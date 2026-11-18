@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 #include "document/ChildPorts.h"
 #include "graph/EditorScene.h"
 #include "ui/EditorWindow.h"
@@ -54,13 +54,13 @@ class SubgraphCardTest : public QObject {
     static nodetool::CanvasSurface *view(EditorWindow &w) { return &w.canvas(); }
     static void clickNode(EditorWindow &w, QString id, Qt::KeyboardModifiers modifiers = {}) {
         const auto key = graphId(w, id);
-        const auto item = nodetool::test::graphicsNode(*w.scene(), key);
+        const auto item = nodetool::test::card(w, key);
         const auto point = item->scenePos() + QPointF(90, 18);
         QTest::mouseClick(&view(w)->viewportWidget(), Qt::LeftButton, modifiers, view(w)->mapFromScene(point));
         QCoreApplication::processEvents();
     }
     static QQuickWidget *context(EditorWindow &w, QString id) {
-        const auto item = nodetool::test::graphicsNode(*w.scene(), graphId(w, id));
+        const auto item = nodetool::test::card(w, graphId(w, id));
         const auto point = view(w)->mapFromScene(item->scenePos() + QPointF(90, 18));
         QContextMenuEvent event(QContextMenuEvent::Mouse, point, view(w)->viewportWidget().mapToGlobal(point));
         QApplication::sendEvent(&view(w)->viewportWidget(), &event);

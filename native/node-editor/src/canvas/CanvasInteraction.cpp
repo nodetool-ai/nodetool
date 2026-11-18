@@ -22,6 +22,9 @@ CanvasInteraction::CanvasInteraction(WorkflowGraphModel &model, CanvasInteractio
     : model_(model), host_(host), theme_(theme) {
   dropHintTimer_.setSingleShot(true);
   dropHintTimer_.setInterval(dropHintDelayMs);
+  // A coarse timer can fire before dropHintVisible() holds, and the Quick
+  // canvas paints its foreground only when asked.
+  dropHintTimer_.setTimerType(Qt::PreciseTimer);
   connect(&dropHintTimer_, &QTimer::timeout, this, [this] { host_.repaintCanvas(); });
 }
 

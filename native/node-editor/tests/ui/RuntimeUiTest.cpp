@@ -16,6 +16,7 @@ class RuntimeUiTest final : public QObject {
  Q_OBJECT
 private slots:
  void projectionPreservesEditingAndItems() {
+   NODETOOL_REQUIRE_QTNODES();
   WorkflowDocument document;
   const QJsonObject snapshot{{"id","w"},{"graph",QJsonObject{{"nodes",QJsonArray{QJsonObject{{"id","n"},{"type","text"},{"ui_properties",QJsonObject{{"position",QJsonObject{{"x",10},{"y",20}}}}},{"data",QJsonObject{}}}}},{"edges",QJsonArray{}}}}};
   QVERIFY(document.load(snapshot));
@@ -50,6 +51,7 @@ private slots:
   QCOMPARE(nodetool::test::graphicsNode(scene, id),item);
  }
  void runningRingMatchesWebConicGradient() {
+   NODETOOL_REQUIRE_QTNODES();
   QCOMPARE(runningRingAngle(0), 90.0);
   QCOMPARE(runningRingAngle(1000), 270.0);
   QCOMPARE(runningRingAngle(2000), 90.0);
@@ -121,6 +123,7 @@ private slots:
  // web/src/utils/untakenBranches.ts and styles/nodes.states.css: the untaken side of an If or
  // Switch fades to 0.4, a node with one live input keeps running, and a selection's 0.2 wins.
  void untakenBranchFadesAfterTheRunReportsIt() {
+   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
@@ -147,6 +150,7 @@ private slots:
  }
  // A branch that fired on every output marks nothing, and counters above zero are live.
  void everyBranchTakenFadesNothing() {
+   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
@@ -161,6 +165,7 @@ private slots:
  // web/src/hooks/useProcessedEdges.ts: an edge flows while its source node runs or it reports
  // message_sent. A running target does not make its inputs flow.
  void wiresFlowFromRunningSourcesOnly() {
+   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
@@ -181,6 +186,7 @@ private slots:
  }
  // web/src/components/node_editor/CustomEdge.tsx: a pill shows the stream count when it passes 1.
  void streamCountPillAppearsAboveOne() {
+   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);

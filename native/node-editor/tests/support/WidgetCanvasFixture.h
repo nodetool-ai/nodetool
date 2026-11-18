@@ -3,6 +3,7 @@
 #include "graph/EditorScene.h"
 #include "ui/QtNodesCanvas.h"
 #include "ui/EditorWindow.h"
+#include "ui/QuickCanvas.h"
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 
 namespace nodetool {
@@ -21,6 +22,19 @@ inline WidgetView *widgetView(EditorWindow &window) {
 inline QtNodes::NodeGraphicsObject *graphicsNode(EditorScene &scene, QtNodes::NodeId id) {
   return QtNodesCanvas::graphicsNode(scene, id);
 }
+
+}
+}
+
+// Skips a test function on the Quick canvas when it reads QtNodes graphics
+// items. node_editor_quick_canvas covers the Quick canvas's items.
+#define NODETOOL_REQUIRE_QTNODES()                                                                    \
+  do {                                                                                                \
+    if (nodetool::QuickCanvas::selected()) { QSKIP("Reads QtNodes graphics items; see node_editor_quick_canvas."); } \
+  } while (false)
+
+namespace nodetool {
+namespace test {
 
 }
 }

@@ -14,6 +14,7 @@
 class QWidget;
 
 namespace nodetool {
+class EditorSceneApi;
 
 // UI thread only. Reads and mutates the canvas's current selection.
 class CanvasSelection : public QObject {
@@ -83,6 +84,8 @@ public:
   virtual bool lineageAt(QPoint viewportPoint) const = 0;
   virtual std::optional<QtNodes::ConnectionId> edgeAt(QPoint viewportPoint) const = 0;
 
+  // The scene behind this canvas, for the theme, motion and gesture state.
+  virtual EditorSceneApi &scene() const = 0;
   virtual CanvasSelection &selection() const = 0;
   virtual bool rubberBandActive() const = 0;
   virtual void setHandDrag(bool enabled) = 0;
@@ -103,6 +106,11 @@ signals:
   void sceneChanged();
   void viewportMoved();
   void rubberBandChanged(bool active);
+  // A press and release on a card, and a double-click on one, as QtNodes reports them.
+  void nodeClicked(QtNodes::NodeId id);
+  void nodeDoubleClicked(QtNodes::NodeId id);
+  // The dimmed set changed, so overlays that follow card opacity update.
+  void branchDimmingChanged();
 };
 
 }

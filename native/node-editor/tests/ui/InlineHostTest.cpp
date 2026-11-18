@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
@@ -38,7 +38,7 @@ private slots:
     QVERIFY(id != QtNodes::InvalidNodeId);
     const auto baseline = window.document()->snapshot();
     const auto open = [&] {
-      const auto node = nodetool::test::graphicsNode(*window.scene(), id);
+      const auto node = nodetool::test::card(window, id);
       const auto point = node->scenePos() + model.inlineFieldRect(id, "Text").center();
       QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(point));
     };

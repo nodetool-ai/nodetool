@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 // Instant Update without a server: an edit reruns the node and its downstream
 // nodes in process, so the output follows the edit, including the last edit of
 // a burst that arrives while a run is active.
@@ -224,7 +224,7 @@ private slots:
     QVERIFY(radius);
     auto *view = &window.canvas();
     const auto track = sliderTrack(*radius);
-    auto *item = nodetool::test::graphicsNode(*window.scene(), b);
+    auto item = nodetool::test::card(window, b);
     const auto point = [&](double fraction) { return view->mapFromScene(item->mapToScene(QPointF(track.left() + track.width() * fraction, track.center().y()))); };
     const auto undo = window.document()->undoStack()->count();
     // Preview runs settle faster than the shown queue delay, so the Run button
@@ -321,7 +321,7 @@ private slots:
     QVERIFY(radius);
     auto *view = &window.canvas();
     const auto track = sliderTrack(*radius);
-    auto *item = nodetool::test::graphicsNode(*window.scene(), b);
+    auto item = nodetool::test::card(window, b);
     const auto point = [&](double fraction) { return view->mapFromScene(item->mapToScene(QPointF(track.left() + track.width() * fraction, track.center().y()))); };
     auto *tab = window.activeEditor();
     int queueChanges = 0;
@@ -424,7 +424,7 @@ private slots:
     QVERIFY(model.commit(model.propertyCommand(card, "note", 12.0)));
     QTRY_COMPARE_WITH_TIMEOUT(pitch, 1.0f, 30000);
     // A slider draft sounds before it is saved.
-    emit window.scene()->sliderDraftChanged(card, "note", -12.0);
+    emit window.scene()->interaction().sliderDraftChanged(card, "note", -12.0);
     QTRY_COMPARE_WITH_TIMEOUT(pitch, -1.0f, 30000);
     QCOMPARE(window.document()->node("trig")["data"].toObject()["note"].toDouble(), 12.0);
     // Every edit went to the one run.

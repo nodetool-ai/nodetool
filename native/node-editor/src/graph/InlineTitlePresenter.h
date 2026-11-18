@@ -15,7 +15,7 @@ class CanvasSurface;
 class CanvasNote;
 namespace node_editor { class WorkflowDocument; }
 class WorkflowGraphModel;
-class EditorScene;
+class EditorSceneApi;
 // UI thread only.
 class InlineTitlePresenter final : public QObject {
   Q_OBJECT
@@ -29,7 +29,7 @@ class InlineTitlePresenter final : public QObject {
   Q_PROPERTY(double zoom READ zoom NOTIFY geometryChanged)
   Q_PROPERTY(int generation READ generation NOTIFY changed)
 public:
-  InlineTitlePresenter(WorkflowGraphModel &, EditorScene &, CanvasSurface &, QQmlEngine *, QObject *parent = nullptr);
+  InlineTitlePresenter(WorkflowGraphModel &, EditorSceneApi &, CanvasSurface &, QQmlEngine *, QObject *parent = nullptr);
   ~InlineTitlePresenter() override;
   QString text() const { return text_; }
   bool group() const { return group_; }
@@ -62,7 +62,7 @@ protected:
   bool eventFilter(QObject *, QEvent *) override;
 private:
   WorkflowGraphModel &model_;
-  EditorScene &scene_;
+  EditorSceneApi &scene_;
   CanvasSurface &canvas_;
   QPointer<QQmlEngine> engine_;
   QPointer<QQuickWidget> widget_;

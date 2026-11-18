@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 #include "graph/EditorScene.h"
 #include "graph/LineageLayer.h"
 #include "graph/NodeLayout.h"
@@ -57,20 +57,20 @@ QJsonObject fixture(bool links = true) {
                                                     {"future", 12}}}
                            : QJsonArray{}}}}};
 }
-QtNodes::NodeGraphicsObject *item(EditorWindow &window,
+nodetool::test::CardHandle item(EditorWindow &window,
                                   const QString &resource) {
   auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
   for (const auto id : model.allNodeIds()) {
     if (model.resourceId(id) == resource) {
-      return nodetool::test::graphicsNode(*window.scene(), id);
+      return nodetool::test::card(window, id);
     }
   }
-  return nullptr;
+  return {nullptr, QtNodes::InvalidNodeId};
 }
 bool select(EditorWindow &window, const QStringList &ids) {
   window.scene()->clearSelection();
   for (const auto &id : ids) {
-    auto *object = item(window, id);
+    auto object = item(window, id);
     if (!object) {
       return false;
     }
@@ -288,7 +288,7 @@ private slots:
     const QJsonValue childPosition =
         window.document()->node("a")["ui_properties"].toObject()["position"];
     QVERIFY(window.selectNode("outer"));
-    auto *frame = item(window, "outer");
+    auto frame = item(window, "outer");
     QVERIFY(frame);
     // A group drags by its label. Its body lets the pointer through (GroupNode.tsx).
     const auto start = view->mapFromScene(window.scene()->groupLabelRect(frame->nodeId(), std::abs(view->zoom())).center());
@@ -312,7 +312,7 @@ private slots:
     window.action("Undo");
     QTRY_COMPARE(layer->linkPath("ab"), path);
     // Loading a new snapshot clears all scene-owned graphics items.
-    QPointer<QGraphicsObject> former = layer->linkItem("ab");
+    QPointer<QObject> former = layer->linkItem("ab");
     QVERIFY(window.document()->load(fixture()));
     QTRY_VERIFY(former.isNull());
     QTRY_VERIFY(layer->linkItem("cd"));
@@ -369,13 +369,13 @@ private slots:
     QTest::qWait(60);
     auto *scene = window.scene();
     auto &model = static_cast<WorkflowGraphModel &>(scene->graphModel());
-    const auto wire = [&]() -> QtNodes::ConnectionGraphicsObject * {
+    const auto wire = [&]() -> nodetool::test::WireHandle {
       for (const auto id : model.allNodeIds()) {
         for (const auto &connection : model.allConnectionIds(id)) {
-          if (model.edge(connection)["id"] == "ctl") { return scene->connectionGraphicsObject(connection); }
+          if (model.edge(connection)["id"] == "ctl") { return nodetool::test::wire(window, connection); }
         }
       }
-      return nullptr;
+      return {nullptr, {}};
     };
     QTRY_VERIFY(wire());
     const auto original = window.document()->snapshot();
@@ -397,7 +397,7 @@ private slots:
     const QRectF region = curve.boundingRect().adjusted(-8, -8, 8, 8);
     QImage image(region.size().toSize() * 2, QImage::Format_ARGB32);
     image.fill(Qt::transparent);
-    { QPainter painter(&image); scene->render(&painter, QRectF(QPointF(), QSizeF(image.size())), region); }
+    { QPainter painter(&image); nodetool::test::renderScene(window, painter, QRectF(QPointF(), QSizeF(image.size())), region); }
     int amber = 0;
     for (int y = 0; y < image.height(); ++y) {
       for (int x = 0; x < image.width(); ++x) {
@@ -425,7 +425,7 @@ private slots:
     QCOMPARE(window.document()->snapshot(), original);
     // The edge menu names the control edge.
     QTRY_VERIFY(wire());
-    QSignalSpy menu(scene, &EditorScene::dataEdgeContextMenuRequested);
+    QSignalSpy menu(&scene->interaction(), &nodetool::canvas::CanvasInteraction::dataEdgeContextMenuRequested);
     QContextMenuEvent request(QContextMenuEvent::Mouse, middle(), view->viewportWidget().mapToGlobal(middle()));
     QApplication::sendEvent(&view->viewportWidget(), &request);
     QTRY_COMPARE(menu.size(), 1);

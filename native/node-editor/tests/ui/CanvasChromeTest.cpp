@@ -363,6 +363,7 @@ private slots:
     // handle_edge_tooltip.css .react-flow__handle:hover { cursor: cell }, and
     // .is-connecting .react-flow__handle { cursor: none }.
     void handlesShowTheCellCursorAndHideItWhileConnecting() {
+      NODETOOL_REQUIRE_QTNODES();
         Scene scene({card("a", "t", 0, 0), card("b", "t", 600, 0)});
         nodetool::test::WidgetView view(&scene.scene);
         view.resize(1000, 400);

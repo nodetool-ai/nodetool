@@ -64,6 +64,9 @@ QtNodesCanvas::QtNodesCanvas(EditorScene &scene, QtNodesCanvasView &view)
   connect(view_.horizontalScrollBar(), &QScrollBar::valueChanged, this, &CanvasSurface::viewportMoved);
   connect(view_.verticalScrollBar(), &QScrollBar::valueChanged, this, &CanvasSurface::viewportMoved);
   connect(&view_, &QGraphicsView::rubberBandChanged, this, [this](const QRect &rect) { emit rubberBandChanged(!rect.isNull()); });
+  connect(&scene_, &QtNodes::BasicGraphicsScene::nodeClicked, this, &CanvasSurface::nodeClicked);
+  connect(&scene_, &QtNodes::BasicGraphicsScene::nodeDoubleClicked, this, &CanvasSurface::nodeDoubleClicked);
+  connect(&scene_, &EditorScene::branchDimmingChanged, this, &CanvasSurface::branchDimmingChanged);
 }
 
 QtNodesCanvasView &QtNodesCanvas::createView(EditorScene &scene, QWidget &parent) {
@@ -176,6 +179,7 @@ std::optional<QtNodes::ConnectionId> QtNodesCanvas::edgeAt(QPoint point) const {
   return std::nullopt;
 }
 
+EditorSceneApi &QtNodesCanvas::scene() const { return scene_; }
 CanvasSelection &QtNodesCanvas::selection() const { return *selection_; }
 bool QtNodesCanvas::rubberBandActive() const { return !view_.rubberBandRect().isNull(); }
 void QtNodesCanvas::setHandDrag(bool enabled) { view_.setDragMode(enabled ? QGraphicsView::ScrollHandDrag : QGraphicsView::RubberBandDrag); }

@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 // Profiles a card slider drag on Image -> Color Grade -> Gaussian Blur with a
 // photo-sized image, in process and offscreen. It drags the Color Grade
 // Contrast slider at 60 Hz and prints, for each preview run, the time from the
@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
   if (!contrast) { std::fprintf(stderr, "no contrast slider\n"); return 1; }
   auto *view = &window.canvas();
   const auto track = sliderTrack(*contrast);
-  auto *item = nodetool::test::graphicsNode(*window.scene(), grade);
+  auto item = nodetool::test::card(window, grade);
   const auto point = [&](double f) { return view->mapFromScene(item->mapToScene(QPointF(track.left() + track.width() * f, track.center().y()))); };
 
   // Main thread stalls: the gaps between 1 ms timer ticks.

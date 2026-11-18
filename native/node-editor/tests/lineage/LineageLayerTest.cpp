@@ -67,9 +67,9 @@ private slots:
     LineageLayer layer(scene);
     QVERIFY(layer.update(graph(), geometry()).isEmpty());
     QVERIFY(layer.linkItem("lineage"));
-    QCOMPARE(layer.linkItem("lineage")->zValue(), -100000.0);
-    QVERIFY(layer.linkItem("lineage")->shape().contains(QPointF(250, 31)));
-    QVERIFY(!layer.linkItem("lineage")->shape().contains(QPointF(250, 40)));
+    QCOMPARE(qobject_cast<QGraphicsObject *>(layer.linkItem("lineage"))->zValue(), -100000.0);
+    QVERIFY(qobject_cast<QGraphicsObject *>(layer.linkItem("lineage"))->shape().contains(QPointF(250, 31)));
+    QVERIFY(!qobject_cast<QGraphicsObject *>(layer.linkItem("lineage"))->shape().contains(QPointF(250, 40)));
     nodetool::QtNodesCanvasView view(&scene);
     view.setSceneRect(-20, -50, 560, 170);
     view.resize(700, 300);
@@ -151,7 +151,7 @@ private slots:
     QVERIFY(!layer.update(malformed, geometry()).isEmpty());
     QCOMPARE(layer.linkPath("lineage"), path);
     layer.setSelectedLinkIds({"lineage"});
-    QPointer<QGraphicsObject> former = layer.linkItem("lineage");
+    QPointer<QObject> former = layer.linkItem("lineage");
     scene.clear();
     QVERIFY(former.isNull());
     QVERIFY(layer.update(original, geometry()).isEmpty());

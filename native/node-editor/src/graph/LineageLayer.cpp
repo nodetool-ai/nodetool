@@ -183,6 +183,34 @@ private:
   LineageTheme theme_;
   bool selected_ = false;
 };
+// UI thread only. The QGraphicsScene owns the item; the link removes it from
+// the scene and destroys it, unless the scene went first.
+class GraphicsLink final : public LineageLayer::Link {
+public:
+  GraphicsLink(const QString &id, LineageLayer &layer, QGraphicsScene &scene) {
+    auto created = std::make_unique<LineageItem>(id, layer);
+    item_ = created.get();
+    scene.addItem(created.release());
+  }
+  ~GraphicsLink() override {
+    if (!item_) { return; }
+    if (auto *scene = item_->scene()) { scene->removeItem(item_); }
+    const std::unique_ptr<LineageItem> detached(item_.data());
+  }
+  void updateGeometry(QPainterPath path, QString label, const LineageTheme &theme, bool selected) override {
+    if (item_) { item_->updateGeometry(std::move(path), std::move(label), theme, selected); }
+  }
+  void setLinkSelected(bool selected) override {
+    if (item_) { item_->setLinkSelected(selected); }
+  }
+  QPainterPath path() const override { return item_ ? item_->path() : QPainterPath{}; }
+  QString label() const override { return item_ ? item_->label() : QString{}; }
+  QObject *object() const override { return item_.data(); }
+
+private:
+  QPointer<LineageItem> item_;
+};
+
 bool validRect(const QRectF &rect) {
   return std::isfinite(rect.x()) && std::isfinite(rect.y()) &&
          std::isfinite(rect.width()) && std::isfinite(rect.height()) &&
@@ -192,20 +220,17 @@ bool validRect(const QRectF &rect) {
 } // namespace
 LineageLayer::LineageLayer(QGraphicsScene &scene, QObject *parent)
     : QObject(parent), scene_(&scene) {}
-LineageLayer::~LineageLayer() {
-  for (const auto &item : items_) { removeItem(item); }
-}
-void LineageLayer::removeItem(QGraphicsObject *item) {
-  if (!item) { return; }
-  scene_->removeItem(item);
-  const std::unique_ptr<QGraphicsObject> detached(item);
+LineageLayer::~LineageLayer() { items_.clear(); }
+std::unique_ptr<LineageLayer::Link> LineageLayer::createLink(const QString &id) {
+  if (quick_) { return quickLink_(id); }
+  return std::make_unique<GraphicsLink>(id, *this, *scene_);
 }
 bool LineageLayer::isLinkItem(const QGraphicsItem *item) {
   return dynamic_cast<const LineageItem *>(item) != nullptr;
 }
 QString LineageLayer::update(const QJsonObject &graph,
                              const QHash<QString, QRectF> &geometry) {
-  if (!scene_) {
+  if (quick_ ? !quickScene_ : !scene_) {
     return QStringLiteral("Lineage scene no longer exists");
   }
   if (!graph.value("nodes").isArray() ||
@@ -246,20 +271,14 @@ QString LineageLayer::update(const QJsonObject &graph,
       continue;
     }
     visible.insert(id);
-    auto *item = static_cast<LineageItem *>(items_.value(id).data());
-    if (!item) {
-      auto created = std::make_unique<LineageItem>(id, *this);
-      item = created.get();
-      scene_->addItem(created.release());
-      items_.insert(id, item);
-    }
+    auto &item = items_[id];
+    if (!item || !item->object()) { item = createLink(id); }
     item->updateGeometry(lineageCurve(*source, *target),
                          link.value("label").toString(), theme_,
                          selected_.contains(id));
   }
   for (auto it = items_.begin(); it != items_.end();) {
-    if (!visible.contains(it.key())) {
-      removeItem(it.value());
+    if (!visible.contains(it->first)) {
       it = items_.erase(it);
     } else {
       ++it;
@@ -272,23 +291,14 @@ QString LineageLayer::update(const QJsonObject &graph,
 void LineageLayer::setTheme(const LineageTheme &theme) {
   theme_ = theme;
   // Geometry is retained, so a theme update never needs a document rebuild.
-  for (auto it = items_.cbegin(); it != items_.cend(); ++it) {
-    if (it.value()) {
-      auto *link = static_cast<LineageItem *>(it.value().data());
-      link->updateGeometry(link->path(), link->label(), theme_,
-                           selected_.contains(it.key()));
-    }
+  for (const auto &[id, link] : items_) {
+    link->updateGeometry(link->path(), link->label(), theme_, selected_.contains(id));
   }
 }
 void LineageLayer::setSelectedLinkIds(const QStringList &ids) {
   selected_ = QSet<QString>(ids.cbegin(), ids.cend());
   selected_.intersect(known_);
-  for (auto it = items_.cbegin(); it != items_.cend(); ++it) {
-    if (it.value()) {
-      static_cast<LineageItem *>(it.value().data())
-          ->setLinkSelected(selected_.contains(it.key()));
-    }
-  }
+  for (const auto &[id, link] : items_) { link->setLinkSelected(selected_.contains(id)); }
 }
 QStringList LineageLayer::selectedLinkIds() const {
   auto result = selected_.values();
@@ -296,11 +306,11 @@ QStringList LineageLayer::selectedLinkIds() const {
   return result;
 }
 QPainterPath LineageLayer::linkPath(const QString &id) const {
-  const auto item = items_.value(id);
-  return item ? static_cast<LineageItem *>(item.data())->path()
-              : QPainterPath{};
+  const auto found = items_.find(id);
+  return found != items_.end() ? found->second->path() : QPainterPath{};
 }
-QGraphicsObject *LineageLayer::linkItem(const QString &id) const {
-  return items_.value(id).data();
+QObject *LineageLayer::linkItem(const QString &id) const {
+  const auto found = items_.find(id);
+  return found != items_.end() ? found->second->object() : nullptr;
 }
 } // namespace nodetool::node_editor

@@ -15,13 +15,13 @@ namespace nodetool {
 class CanvasSurface;
 namespace node_editor { class MediaResolver; }
 class WorkflowGraphModel;
-class EditorScene;
+class EditorSceneApi;
 // Interactive media lives in viewport Quick widgets, never graphics proxies.
 // The resolver is borrowed: its owner, EditorWindow, outlives this presenter.
 class CanvasMediaPresenter final : public QObject {
   Q_OBJECT
 public:
-  CanvasMediaPresenter(WorkflowGraphModel &model, EditorScene &scene,
+  CanvasMediaPresenter(WorkflowGraphModel &model, EditorSceneApi &scene,
                        CanvasSurface &canvas, QQmlEngine *engine,
                        node_editor::MediaResolver &resolver, QObject *parent = nullptr);
   ~CanvasMediaPresenter() override;

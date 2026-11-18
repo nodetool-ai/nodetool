@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "../graph/BodyConnectionFixture.h"
 #include "graph/EditorScene.h"
@@ -66,7 +66,7 @@ class MenusTest final : public QObject {
         return menu;
     }
     static QQuickWidget *contextOnNode(EditorWindow &window, const QString &resource) {
-        auto *item = nodetool::test::graphicsNode(*window.scene(), nodeId(window, resource));
+        auto item = nodetool::test::card(window, nodeId(window, resource));
         view(window)->centerOn(item->sceneBoundingRect().center());
         QTest::qWait(30);
         return contextAt(window, view(window)->mapFromScene(item->scenePos() + QPointF(20, 10)));
@@ -319,10 +319,10 @@ private slots:
         QTRY_COMPARE(model.focusedNode(), QString("a"));
         QCOMPARE(window.selectedCount(), 0);
         // The badge above the focused card is inside its item bounds.
-        QVERIFY(nodetool::test::graphicsNode(*window.scene(), nodeId(window, "a"))->boundingRect().top() <= -20);
+        QVERIFY(nodetool::test::card(window, nodeId(window, "a"))->boundingRect().top() <= -20);
         QTest::keyClick(canvas, Qt::Key_Right, Qt::AltModifier);
         QCOMPARE(model.focusedNode(), QString("b"));
-        QVERIFY(nodetool::test::graphicsNode(*window.scene(), nodeId(window, "a"))->boundingRect().top() > -20);
+        QVERIFY(nodetool::test::card(window, nodeId(window, "a"))->boundingRect().top() > -20);
         QTest::keyClick(canvas, Qt::Key_Down, Qt::AltModifier);
         QCOMPARE(model.focusedNode(), QString("c"));
         // Nothing lies below c, so the focus stays.
@@ -562,7 +562,7 @@ private slots:
         window.show();
         QTest::qWait(60);
         const auto open = [&](const QString &id) {
-            emit window.scene()->dataEdgeContextMenuRequested(id, QPointF(300, 140), view(window)->viewportWidget().mapToGlobal(QPoint(400, 300)));
+            emit window.scene()->interaction().dataEdgeContextMenuRequested(id, QPointF(300, 140), view(window)->viewportWidget().mapToGlobal(QPoint(400, 300)));
             QTest::qWait(60);
             return host(window);
         };
@@ -990,7 +990,7 @@ private slots:
         QCOMPARE(info->property("tags").toStringList(), (QStringList{"alpha", "beta"}));
         // The panel sits beside the card, 16 px from it, right of it when the
         // canvas has room there and left of it otherwise.
-        auto *item = nodetool::test::graphicsNode(*window.scene(), nodeId(window, "described"));
+        auto item = nodetool::test::card(window, nodeId(window, "described"));
         auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
         const auto size = model.layout(nodeId(window, "described")).size;
         const auto card = view(window)->mapFromScene(QRectF(item->scenePos(), size)).translated(view(window)->viewportWidget().pos());
@@ -1052,7 +1052,7 @@ private slots:
         QTRY_COMPARE(status(), QString("2 of 2 node found"));
         QCOMPARE(window.selection(), QString("alpha-2"));
         const auto settled = [&](const QString &resource) {
-            auto *item = nodetool::test::graphicsNode(*window.scene(), nodeId(window, resource));
+            auto item = nodetool::test::card(window, nodeId(window, resource));
             const auto centre = view(window)->mapFromScene(item->mapRectToScene(item->boundingRect()).center());
             const auto area = window.unobstructedViewport().center();
             return std::abs(view(window)->zoom() - 1.0) < 0.001 && std::abs(centre.x() - area.x()) < 3 && std::abs(centre.y() - area.y()) < 3;
@@ -1149,7 +1149,7 @@ private slots:
                     QTest::keyClick(&view(window)->viewportWidget(), Qt::Key_A, Qt::ControlModifier);
                     shown = contextOnNode(window, "source");
                 } else if (surface == "edge") {
-                    emit window.scene()->dataEdgeContextMenuRequested("wire", QPointF(700, 200), view(window)->viewportWidget().mapToGlobal(QPoint(700, 300)));
+                    emit window.scene()->interaction().dataEdgeContextMenuRequested("wire", QPointF(700, 200), view(window)->viewportWidget().mapToGlobal(QPoint(700, 300)));
                     QTest::qWait(60);
                     shown = host(window);
                 } else if (surface == "find") {

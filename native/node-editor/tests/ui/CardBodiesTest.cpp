@@ -1,3 +1,4 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "../support/CanvasProbe.h"
 #include "ui/CanvasSurface.h"
 #include "graph/CanvasDropController.h"
@@ -594,7 +595,7 @@ private slots:
         for (const auto node : host.model().allNodeIds()) {
             for (const auto edge : host.model().allConnectionIds(node)) {
                 if (edge.inNodeId != node) { continue; }
-                auto *wire = host.window.scene()->connectionGraphicsObject(edge);
+                auto wire = nodetool::test::wire(host.window, edge);
                 QVERIFY(wire);
                 const auto name = host.model().edge(edge)["id"].toString();
                 const bool expectedHidden = name == "e1" || name == "e3" || name == "e5";
@@ -644,8 +645,8 @@ private slots:
         for (const auto edge : host.model().allConnectionIds(host.id("prompt"))) {
             if (host.model().edge(edge)["id"] == "e1") {
                 ++restored;
-                QVERIFY(host.window.scene()->connectionGraphicsObject(edge)->shape().isEmpty());
-                QVERIFY(!host.window.scene()->connectionGraphicsObject(edge)->isVisible());
+                QVERIFY(nodetool::test::wire(host.window, edge)->shape().isEmpty());
+                QVERIFY(!nodetool::test::wire(host.window, edge)->isVisible());
             }
         }
         QCOMPARE(restored, 1);
@@ -664,7 +665,7 @@ private slots:
         for (const auto edge : host.model().allConnectionIds(generate)) {
             if (host.model().edge(edge)["id"] != "e3") { continue; }
             ++inspected;
-            auto *wire = host.window.scene()->connectionGraphicsObject(edge);
+            auto wire = nodetool::test::wire(host.window, edge);
             QVERIFY(wire->isVisible());
             QVERIFY(!wire->shape().isEmpty());
             wire->setSelected(true);
@@ -675,7 +676,7 @@ private slots:
         settle();
         for (const auto edge : host.model().allConnectionIds(generate)) {
             if (host.model().edge(edge)["id"] != "e3") { continue; }
-            auto *wire = host.window.scene()->connectionGraphicsObject(edge);
+            auto wire = nodetool::test::wire(host.window, edge);
             QVERIFY(!wire->isVisible());
             QVERIFY(!wire->isSelected());
             QVERIFY(wire->shape().isEmpty());
@@ -684,6 +685,7 @@ private slots:
     }
 
     void ownHandlesKeepControlPortsAndSuppressOutputOnlyBodyPorts() {
+      NODETOOL_REQUIRE_QTNODES();
         auto workflow = fixture()["workflow"].toObject();
         auto graph = workflow["graph"].toObject();
         auto edges = graph["edges"].toArray();
@@ -2106,7 +2108,7 @@ private slots:
         QVERIFY(host.row("cutout", NodeRowKind::Preview)->media.isEmpty());
         QVERIFY(!host.model().canvasResultRect(cutout).isEmpty());
         // Recalculate mask selects only this card and asks to run it, with no document change.
-        QSignalSpy runs(host.window.scene(), &EditorScene::nodeRunRequested);
+        QSignalSpy runs(&host.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::nodeRunRequested);
         host.window.scene()->clearSelection();
         const auto undo = host.undoCount();
         const auto *run = host.row("cutout", NodeRowKind::Action, "runNode");
@@ -2116,7 +2118,7 @@ private slots:
         host.click("cutout", run->rect.center());
         QCOMPARE(runs.size(), 1);
         QCOMPARE(runs.first().first().toString(), QStringLiteral("cutout"));
-        QCOMPARE(host.window.scene()->selectedItems().size(), 1);
+        QCOMPARE(host.window.canvas().selection().count(), 1);
         QCOMPARE(host.undoCount(), undo);
         // Before shows the incoming image, and After, the default, the result.
         QVERIFY(!host.model().layout(host.id("invert")).sourceTab);
@@ -3406,7 +3408,7 @@ private slots:
             QVERIFY(edit->rect.top() >= linked->rect.bottom());
         }
         // Edit asks the window to open the linked document.
-        QSignalSpy opened(host.window.scene(), &EditorScene::documentOpenRequested);
+        QSignalSpy opened(&host.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::documentOpenRequested);
         host.click("settimeline", host.row("settimeline", NodeRowKind::Action, "openDocument")->rect.center());
         QCOMPARE(opened.count(), 1);
         QCOMPARE(opened.first().at(0).toString(), QStringLiteral("timeline"));

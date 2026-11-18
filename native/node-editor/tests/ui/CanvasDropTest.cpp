@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/CanvasDropController.h"
 #include "graph/EditorScene.h"
@@ -217,7 +217,7 @@ private slots:
       const auto position = node["ui_properties"].toObject()["position"].toObject(); QCOMPARE(position["x"].toDouble(), expected.x() + (id == first ? 0 : 250)); QCOMPARE(position["y"].toDouble(), expected.y());
     }
     QCOMPARE(window.document()->undoStack()->index(), 2);
-    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel()); const auto id = *model.allNodeIds().begin(); auto *node = nodetool::test::graphicsNode(*window.scene(), id); QVERIFY(node);
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel()); const auto id = *model.allNodeIds().begin(); auto node = nodetool::test::card(window, id); QVERIFY(node);
     const auto before = controller(window)->transfers(); QSignalSpy created(controller(window), &CanvasDropController::nodeCreated);
     QMimeData onBody; assetMime(first, onBody);
     QVERIFY(!drop(window, onBody, view->mapFromScene(node->scenePos() + QPointF(50, 25)))); QTest::qWait(20);

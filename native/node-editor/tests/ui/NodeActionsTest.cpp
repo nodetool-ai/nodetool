@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/WorkflowGraphModel.h"
@@ -70,7 +70,7 @@ private:
     // The card in view coordinates, the space the overlays are placed in.
     static QRect cardRect(EditorWindow &window, const QString &resource) {
         const auto id = idOf(window, resource);
-        const auto *item = nodetool::test::graphicsNode(*window.scene(), id);
+        const auto item = nodetool::test::card(window, id);
         const QRectF scene(item->scenePos(), QSizeF(modelOf(window)->layout(id).size));
         return viewOf(window)->mapFromScene(scene).translated(viewOf(window)->viewportWidget().pos());
     }
@@ -163,7 +163,7 @@ private slots:
         QElapsedTimer clock;
         clock.start();
         QTest::mouseClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
-        QCOMPARE(window.scene()->selectedItems().size(), 1);
+        QCOMPARE(window.canvas().selection().count(), 1);
         QTest::qWait(100);
         QVERIFY2(!bar->isVisible(), "the toolbar waits 200 ms");
         QTRY_VERIFY_WITH_TIMEOUT(bar->isVisible(), 1000);

@@ -1,4 +1,6 @@
+#include "canvas/NodeGeometry.h"
 #include "canvas/NodePainter.h"
+#include "canvas/PaintStates.h"
 #include "canvas/WirePainter.h"
 #include "EditorScene.h"
 #include "NodeLayout.h"
@@ -34,81 +36,8 @@ namespace nodetool {
 namespace {
 namespace nm = node_metrics;
 
-// UI thread only.
-class NodeGeometry final : public AbstractNodeGeometry {
-public:
-  explicit NodeGeometry(WorkflowGraphModel &model) : AbstractNodeGeometry(model), model_(model) {}
-  QRectF boundingRect(NodeId id) const override {
-    if (const auto &cached = model_.layout(id).bounds) { return *cached; }
-    const auto margin = nm::handleDiameter / 2 + 2;
-    const bool focused = !model_.focusedNode().isEmpty() && model_.focusedNode() == model_.resourceId(id);
-    auto bounds = QRectF(QPointF(0, 0), size(id)).adjusted(-margin, model_.isGroup(id) ? -40 : focused ? -focusBadgeOffset - 1 : -margin, margin, margin);
-    for (const auto side : {PortType::In, PortType::Out}) {
-      const auto ports = model_.ports(id, side);
-      for (int i = 0; i < ports.size(); ++i) {
-        if (!model_.portVisible(id, side, i)) { continue; }
-        const auto point = portPosition(id, side, i);
-        bounds = bounds.united(QRectF(point - QPointF(margin, margin), QSizeF(2 * margin, 2 * margin)));
-      }
-    }
-    model_.layout(id).bounds = bounds;
-    return bounds;
-  }
-  QSize size(NodeId id) const override { return model_.layout(id).size; }
-  void recomputeSize(NodeId) const override {}
-  QPointF portPosition(NodeId id, PortType type, PortIndex index) const override {
-    const auto &layout = model_.layout(id);
-    // The control handle sits at the top center of a card and the bottom center for the controller.
-    if (!model_.isGroup(id) && !model_.isComment(id) && type != PortType::None) {
-      const auto ports = model_.ports(id, type);
-      if (index < unsigned(ports.size()) && ports[index].toObject()["name"] == "__control__") {
-        return {layout.size.width() / 2.0, type == PortType::In ? 0.0 : double(layout.size.height())};
-      }
-    }
-    const auto &rows = type == PortType::In ? layout.inputY : layout.outputY;
-    const auto y = index < unsigned(rows.size()) ? rows[index] : double(nm::contentTop);
-    return {type == PortType::In ? 0.0 : double(layout.size.width()), y};
-  }
-  PortIndex checkPortHit(NodeId id, PortType side, QPointF point) const override {
-    if (side == PortType::None) { return InvalidPortIndex; }
-    const auto ports = model_.ports(id, side);
-    for (int i = 0; i < ports.size(); ++i) {
-      if (model_.portVisible(id, side, i) && QLineF(portPosition(id, side, i), point).length() < 2 * StyleCollection::nodeStyle().ConnectionPointDiameter) {
-        return i;
-      }
-    }
-    return InvalidPortIndex;
-  }
-  QPointF portTextPosition(NodeId id, PortType type, PortIndex index) const override {
-    return portPosition(id, type, index);
-  }
-  QPointF captionPosition(NodeId) const override {
-    return {double(nm::borderWidth + nm::padding + nm::titleOffset), double(nm::borderWidth + nm::padding)};
-  }
-  QRectF captionRect(NodeId id) const override {
-    return {captionPosition(id), QSizeF(size(id).width() - 2 * nm::padding - nm::titleOffset, nm::headerHeight)};
-  }
-  QPointF widgetPosition(NodeId) const override { return {}; }
-  QRect resizeHandleRect(NodeId) const override { return {}; }
-
-private:
-  WorkflowGraphModel &model_;
-};
-
 // Above every card, selected cards (z 1) included.
 constexpr double kDraftWireZ = 1e6;
-
-// A collect handle (list[T] with a concrete T) is a ring: PropertyField.tsx isCollectType.
-bool collectPort(const QJsonValue &port) {
-  // value() copies. operator[] on the temporary object would return a dangling reference.
-  const auto type = port.toObject().value("type");
-  if (!type.isObject()) { return false; }
-  const auto declared = type.toObject();
-  const auto args = declared.value("type_args").toArray();
-  return declared.value("type") == "list" && args.size() == 1 && args[0].toObject().value("type") != "any";
-}
-
-QColor withOpacity(QColor color, double opacity);
 
 // UI thread only. Projects QtNodes item state into the shared card painter.
 class QtNodesCardPainter final : public AbstractNodePainter {
@@ -117,75 +46,16 @@ public:
 
   void paint(QPainter *painter, NodeGraphicsObject &item) const override {
     const auto &model = static_cast<const WorkflowGraphModel &>(item.graphModel());
-    const auto id = item.nodeId();
-    const auto &layout = model.layout(id);
-    const auto kind = model.isReroute(id) ? canvas::CardKind::Reroute
-                    : model.isGroup(id) ? canvas::CardKind::Group
-                    : model.isComment(id) ? canvas::CardKind::Comment : canvas::CardKind::Node;
-    const auto zoom = std::abs(painter->worldTransform().m11());
-    const auto hasResult = kind == canvas::CardKind::Node && model.hasRuntimeOutput(id);
-    const auto running = kind == canvas::CardKind::Node && model.runningShown(id);
-    canvas::CardPaintState state{
-      .theme = scene_.theme(),
-      .layout = layout,
-      .bounds = item.boundingRect(),
-      .kind = kind,
-      .zoom = zoom,
-      .groupOpacity = scene_.groupOpacity(id),
-      .animationPhase = scene_.animationPhase(),
-      .runningAngle = running ? scene_.runningAngle() : 90,
-      .groupDropTarget = scene_.dropGroup() == id,
-      .selected = item.isSelected(),
-      .focused = !model.focusedNode().isEmpty() && model.focusedNode() == model.resourceId(id),
-      .readOnly = model.readOnly(),
-      .bypassed = model.bypassed(id),
-      .grouped = model.depth(id) > 0,
-      .runningShown = running,
-      .runtimeConnected = model.runtimeConnected(),
-      .headerActionHovered = item.property("headerActionHovered").toBool(),
-      .footerHovered = item.property("footerHovered").toBool(),
-      .comment = kind == canvas::CardKind::Comment ? model.comment(id) : QJsonValue{},
-      .runtime = model.runtimeState(id),
-      .outputRect = hasResult ? model.canvasResultRect(id) : QRectF{},
-      .preview = hasResult ? model.runtimePreview(id) : QImage{},
-      .body = {},
-      .handles = {},
+    const canvas::CardItemState card{
+        .id = item.nodeId(),
+        .bounds = item.boundingRect(),
+        .zoom = std::abs(painter->worldTransform().m11()),
+        .selected = item.isSelected(),
+        .hovered = item.nodeState().hovered(),
+        .headerActionHovered = item.property("headerActionHovered").toBool(),
+        .footerHovered = item.property("footerHovered").toBool(),
     };
-    state.body.hasResult = hasResult && !layout.sourceTab;
-    state.body.running = state.runtime.value("status") == QStringLiteral("running");
-    state.body.hovered = item.nodeState().hovered();
-    if (scene_.sliderDraftNode() == id) {
-      state.body.draftProperty = scene_.sliderDraftProperty();
-      state.body.draftValue = scene_.sliderDraftValue();
-    }
-    if (scene_.cropDraftNode() == id) { state.body.cropDraft = scene_.cropDraft(); }
-    if (scene_.paintDraftNode() == id) { state.body.paintDraft = scene_.paintDraft(); }
-    if (scene_.brushCursorNode() == id) { state.body.brushCursor = scene_.brushCursor(); }
-
-    if (zoom > zoomedOutThreshold && (kind == canvas::CardKind::Node || kind == canvas::CardKind::Reroute)) {
-      const auto &hover = scene_.hoveredHandle();
-      const auto &focus = model.focusedHandle();
-      for (const auto side : {PortType::In, PortType::Out}) {
-        const auto ports = model.ports(id, side);
-        const auto &rows = side == PortType::In ? layout.inputY : layout.outputY;
-        for (PortIndex index = 0; index < PortIndex(rows.size()); ++index) {
-          if (!model.portVisible(id, side, index)) { continue; }
-          const auto port = index < PortIndex(ports.size()) ? ports[int(index)] : QJsonValue{};
-          const auto type = kind == canvas::CardKind::Reroute ? model.rerouteHandleType(id)
-                            : model.portData<NodeDataType>(id, side, index, PortRole::DataType).id;
-          state.handles.append(canvas::HandlePaintState{
-            .position = scene_.nodeGeometry().portPosition(id, side, index),
-            .color = typeColor(type),
-            .collect = side == PortType::In && collectPort(port),
-            .hovered = hover.node == id && hover.type == side && hover.index == index,
-            .focused = state.focused && focus.side == side && index < PortIndex(ports.size())
-                       && port.toObject()["name"].toString() == focus.name,
-            .connectable = scene_.handleConnectable(id, side, index),
-          });
-        }
-      }
-    }
-    canvas::NodePainter::paint(painter, state);
+    canvas::NodePainter::paint(painter, canvas::cardPaintState(scene_, model, card));
   }
 
 private:
@@ -200,37 +70,13 @@ public:
   void paint(QPainter *painter, const ConnectionGraphicsObject &wire) const override {
     auto state = geometry(wire);
     if (!state.visible) { return; }
-    const auto id = wire.connectionId();
-    state.selected = wire.isSelected();
-    state.hovered = wire.connectionState().hovered();
-    if (state.draft) {
-      const auto side = id.outNodeId != InvalidNodeId ? PortType::Out : PortType::In;
-      const auto node = getNodeId(side, id);
-      const auto index = getPortIndex(side, id);
-      state.draftFromOutput = side == PortType::Out;
-      state.sourceColor = typeColor(model_.portData<NodeDataType>(node, side, index, PortRole::DataType).id);
-      const auto ports = model_.ports(node, side);
-      const auto declared = index < PortIndex(ports.size()) ? ports[int(index)].toObject()["type"] : QJsonValue{};
-      state.control = (declared.isObject() ? declared.toObject()["type"].toString() : declared.toString()) == "control";
-    } else if (!state.control) {
-      const auto nodeSelected = [&](NodeId node) {
-        const auto *item = scene_.nodeGraphicsObject(node);
-        return item && item->isSelected();
-      };
-      const auto runtime = model_.runtimeEdgeState(id);
-      state.sourceColor = model_.wirePortColor(id, PortType::Out);
-      state.targetColor = model_.wirePortColor(id, PortType::In);
-      state.endpointSelected = nodeSelected(id.outNodeId) || nodeSelected(id.inNodeId);
-      state.bypassed = model_.bypassed(id.outNodeId) || model_.bypassed(id.inNodeId);
-      state.streaming = model_.metadata(id.outNodeId)["is_streaming_output"].toBool();
-      state.flowing = model_.runtimeWireFlowing(id) && model_.runtimeConnected();
-      state.messageSent = runtime["status"] == "message_sent";
-      state.counter = runtime["counter"].toInt();
-      state.connecting = scene_.draftEnd().node != InvalidNodeId;
-      state.animationActive = scene_.animationActive();
-      state.animationPhase = scene_.animationPhase();
-      state.zoom = std::abs(painter->worldTransform().m11());
-    }
+    const auto nodeSelected = [this](NodeId node) {
+      const auto *item = scene_.nodeGraphicsObject(node);
+      return item && item->isSelected();
+    };
+    canvas::fillWirePaintState(state, scene_, model_, wire.connectionId(), wire.isSelected(),
+                               wire.connectionState().hovered(), std::abs(painter->worldTransform().m11()),
+                               nodeSelected);
     canvas::WirePainter::paint(painter, scene_.theme(), state);
   }
 
@@ -240,14 +86,8 @@ public:
 
 private:
   canvas::WirePaintState geometry(const ConnectionGraphicsObject &wire) const {
-    const bool draft = wire.connectionState().requiresPort();
-    canvas::WirePaintState state;
-    state.out = wire.endPoint(PortType::Out);
-    state.in = wire.endPoint(PortType::In);
-    state.visible = model_.wireVisible(wire.connectionId());
-    state.control = !draft && model_.isControlWire(wire.connectionId());
-    state.draft = draft;
-    return state;
+    return canvas::wireGeometry(model_, wire.connectionId(), wire.endPoint(PortType::Out), wire.endPoint(PortType::In),
+                                wire.connectionState().requiresPort());
   }
 
   EditorScene &scene_;
@@ -329,7 +169,7 @@ EditorScene::EditorScene(WorkflowGraphModel &model, QObject *parent)
       }
     }
   });
-  setNodeGeometry(std::make_unique<NodeGeometry>(model));
+  setNodeGeometry(std::make_unique<canvas::NodeGeometry>(model));
   setNodePainter(std::make_unique<QtNodesCardPainter>(*this));
   setConnectionPainter(std::make_unique<QtNodesWirePainter>(*this, model));
   // A wire's highlight follows its end nodes, which do not repaint it themselves.

@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
@@ -323,9 +323,9 @@ private slots:
     auto view = &window.canvas();
     QVERIFY(view);
     auto &model = window.scene()->graphModel();
-    QtNodes::NodeGraphicsObject *frame = nullptr;
+    nodetool::test::CardHandle frame{nullptr, QtNodes::InvalidNodeId};
     for (const auto nodeId : model.allNodeIds()) {
-      if (static_cast<WorkflowGraphModel &>(model).resourceId(nodeId) == group) { frame = nodetool::test::graphicsNode(*window.scene(), nodeId); }
+      if (static_cast<WorkflowGraphModel &>(model).resourceId(nodeId) == group) { frame = nodetool::test::card(window, nodeId); }
     }
     QVERIFY(frame);
     // GroupNode.tsx drags a group by its label. Its body lets the pointer through.
@@ -392,15 +392,15 @@ private:
     window.canvas().centerOn(QPointF(250, 150));
     QTest::qWait(60);
   }
-  static QtNodes::NodeGraphicsObject *itemFor(EditorWindow &window, const QString &resource) {
+  static nodetool::test::CardHandle itemFor(EditorWindow &window, const QString &resource) {
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
-    for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == resource) { return nodetool::test::graphicsNode(*window.scene(), id); } }
-    return nullptr;
+    for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == resource) { return nodetool::test::card(window, id); } }
+    return {nullptr, QtNodes::InvalidNodeId};
   }
   static QPoint pointOn(EditorWindow &window, const QString &resource) {
     auto *view = &window.canvas();
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
-    auto *item = itemFor(window, resource);
+    auto item = itemFor(window, resource);
     const auto size = model.layout(item->nodeId()).size;
     return view->mapFromScene(item->scenePos() + QPointF(size.width() / 2.0, 24));
   }
@@ -538,12 +538,12 @@ private slots:
     }
     QImage hovered(320, 260, QImage::Format_ARGB32_Premultiplied);
     hovered.fill(window.scene()->theme().canvas);
-    { QPainter painter(&hovered); window.scene()->render(&painter, QRectF(0, 0, 320, 260), QRectF(-10, -10, 320, 260)); }
+    { QPainter painter(&hovered); nodetool::test::renderScene(window, painter, QRectF(0, 0, 320, 260), QRectF(-10, -10, 320, 260)); }
     QTest::mouseMove(&view->viewportWidget(), QPoint(start.x(), start.y() + 300), 15);
     QCOMPARE(window.scene()->dropGroup(), QtNodes::InvalidNodeId);
     QImage plain(320, 260, QImage::Format_ARGB32_Premultiplied);
     plain.fill(window.scene()->theme().canvas);
-    { QPainter painter(&plain); window.scene()->render(&painter, QRectF(0, 0, 320, 260), QRectF(-10, -10, 320, 260)); }
+    { QPainter painter(&plain); nodetool::test::renderScene(window, painter, QRectF(0, 0, 320, 260), QRectF(-10, -10, 320, 260)); }
     // A point inside the frame, clear of the card and the label: the frame's fill is lighter at full opacity.
     QVERIFY(hovered.pixelColor(110, 30) != plain.pixelColor(110, 30));
     QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start + QPoint(0, 300));
@@ -578,7 +578,7 @@ private slots:
     const QStringList members{"prompt", "generate", "agent"};
     // A card's header: the pointer selects the card, Ctrl adds it to the selection.
     const auto header = [&](const QString &id) {
-      auto *item = itemFor(window, id);
+      auto item = itemFor(window, id);
       return view->mapFromScene(item->scenePos() + QPointF(model.layout(item->nodeId()).size.width() / 2.0, 12));
     };
     QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, header(members[0]));
@@ -592,18 +592,18 @@ private slots:
     QVERIFY(window.document()->node("subject")["parent_id"].toString().isEmpty());
     QTest::qWait(100);
     // The frame encloses every member card and is drawn behind them.
-    auto *frame = itemFor(window, group);
+    auto frame = itemFor(window, group);
     QVERIFY(frame);
     const QRectF bounds(frame->scenePos(), model.layout(frame->nodeId()).size);
     for (const auto &id : members) {
-      auto *item = itemFor(window, id);
+      auto item = itemFor(window, id);
       QVERIFY2(bounds.contains(QRectF(item->scenePos(), model.layout(item->nodeId()).size)), qPrintable(id));
       QVERIFY(frame->zValue() < item->zValue());
     }
     // The frame paints: a point inside it, clear of every card, differs from the empty canvas.
     QPointF empty = bounds.bottomLeft() + QPointF(8, -8);
     const auto pixel = view->mapFromScene(empty);
-    QVERIFY(view->hostWidget().grab().toImage().pixelColor(pixel) != window.scene()->theme().canvas);
+    QVERIFY(nodetool::test::CanvasProbe(window).grabHost().pixelColor(pixel) != window.scene()->theme().canvas);
     save("real-2-grouped");
     const auto zoom = std::abs(view->zoom());
     QHash<QString, QPointF> before;
@@ -675,10 +675,11 @@ private slots:
     QVERIFY(!window.scene()->dropHintVisible());
     // The box sits above the frame: the canvas there changes once the hint shows.
     const auto above = view->mapFromScene(QPointF(150, -60));
-    const auto before = view->hostWidget().grab().toImage().pixelColor(above);
+    const nodetool::test::CanvasProbe probe(window);
+    const auto before = probe.grabHost().pixelColor(above);
     QTRY_VERIFY_WITH_TIMEOUT(window.scene()->dropHintVisible(), 2000);
     view->viewportWidget().repaint();
-    QVERIFY(view->hostWidget().grab().toImage().pixelColor(above) != before);
+    QVERIFY(probe.grabHost().pixelColor(above) != before);
     QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, target);
     QVERIFY(!window.scene()->dropHintVisible());
   }
@@ -817,7 +818,7 @@ private slots:
     loadDropFixture(window, true);
     auto *view = &window.canvas();
     auto *scene = window.scene();
-    QSignalSpy menus(scene, &EditorScene::canvasContextMenuRequested);
+    QSignalSpy menus(&scene->interaction(), &nodetool::canvas::CanvasInteraction::canvasContextMenuRequested);
     const auto body = view->mapFromScene(QPointF(260, 210));
     QContextMenuEvent onBody(QContextMenuEvent::Mouse, body, view->viewportWidget().mapToGlobal(body));
     QApplication::sendEvent(&view->viewportWidget(), &onBody);

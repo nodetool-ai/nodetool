@@ -39,7 +39,7 @@ void EditorWindow::showCompositorLayoutDialog(const QString &nodeId) {
     if (!quick->rootObject()) { dialog->deleteLater(); return; }
     quick->setFixedWidth(int(std::ceil(quick->rootObject()->implicitWidth())));
     // The stage is the dialog's child and borrows the editor through a QPointer.
-    auto *stage = new node_editor::CompositorStage(editor, scene_->theme(), dialog);
+    auto *stage = new node_editor::CompositorStage(editor, canvas_->scene().theme(), dialog);
     auto *layout = new QHBoxLayout(dialog);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);

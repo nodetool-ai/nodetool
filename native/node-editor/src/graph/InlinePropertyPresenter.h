@@ -13,7 +13,7 @@ namespace nodetool {
 class CanvasSurface;
 namespace node_editor { class PropertyHost; }
 class WorkflowGraphModel;
-class EditorScene;
+class EditorSceneApi;
 // One lazily opened Quick editor overlays the active painted property. The
 // viewport remains a Graphics View and uses no Quick graphics proxy widgets.
 // The property host is borrowed for its pickers: its owner, EditorWindow,
@@ -26,7 +26,7 @@ class InlinePropertyPresenter final : public QObject {
   Q_PROPERTY(int generation READ generation NOTIFY changed)
   Q_PROPERTY(bool expanded READ expanded NOTIFY changed)
 public:
-  InlinePropertyPresenter(WorkflowGraphModel &model, EditorScene &scene,
+  InlinePropertyPresenter(WorkflowGraphModel &model, EditorSceneApi &scene,
                           CanvasSurface &canvas, QQmlEngine *engine,
                           node_editor::PropertyHost &host, QObject *parent = nullptr);
   ~InlinePropertyPresenter() override;

@@ -1,3 +1,4 @@
+#include "../support/CanvasProbe.h"
 #include "../support/WidgetCanvasFixture.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
@@ -39,10 +40,8 @@ class InlineTitleTest final : public QObject {
     for (const auto id : model.allNodeIds()) if (model.resourceId(id) == resource) return id;
     return QtNodes::InvalidNodeId;
   }
-  static QGraphicsObject *note(EditorWindow &window, const QString &resource) {
-    for (auto *entry : window.scene()->items())
-      if (auto *object = dynamic_cast<QGraphicsObject *>(entry); object && object->objectName() == "node-note-" + resource) return object;
-    return nullptr;
+  static nodetool::test::NoteHandle note(EditorWindow &window, const QString &resource) {
+    return nodetool::test::note(window, "node-note-" + resource);
   }
   static QQuickWidget *overlay(EditorWindow &window) {
     for (auto *widget : window.findChildren<QQuickWidget *>()) {
@@ -58,7 +57,7 @@ class InlineTitleTest final : public QObject {
   }
   static void openNote(EditorWindow &window, const QString &resource = "normal") {
     auto *view = &window.canvas(); QVERIFY(view);
-    QPointer<QGraphicsObject> surface = note(window, resource); QVERIFY(surface);
+    auto surface = note(window, resource); QVERIFY(surface);
     view->centerOn(surface->sceneBoundingRect().center()); QTest::qWait(20);
     surface = note(window, resource); QVERIFY(surface);
     QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(surface->mapToScene(QPointF(25, 14))));
@@ -110,8 +109,8 @@ private slots:
     QTRY_VERIFY(!QApplication::activePopupWidget());
     window.activateWindow(); QTRY_VERIFY(window.isActiveWindow());
     auto *presenter = window.findChild<InlineTitlePresenter *>(); QVERIFY(presenter);
-    const auto pill = nodetool::test::graphicsNode(*window.scene(), nodeId(window, reroute)); QVERIFY(pill);
-    QSignalSpy titleRequested(window.scene(), &EditorScene::titleEditRequested);
+    const auto pill = nodetool::test::card(window, nodeId(window, reroute)); QVERIFY(pill);
+    QSignalSpy titleRequested(&window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::titleEditRequested);
     QTest::mouseDClick(&viewport->viewportWidget(), Qt::LeftButton, Qt::NoModifier,
                       viewport->mapFromScene(pill->scenePos() + QPointF(30, 10)));
     QCOMPARE(titleRequested.size(), 1);
@@ -166,7 +165,7 @@ private slots:
     auto *view = &window.canvas(); QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(20, 20));
     QTRY_COMPARE(window.document()->node("normal")["ui_properties"].toObject()["title"].toString(), QString("Blurred note"));
     QCOMPARE(window.document()->undoStack()->index(), 1); window.action("Undo"); QTRY_VERIFY(note(window, "normal"));
-    auto *surface = note(window, "normal"); const auto clearPoint = surface->mapToScene(QPointF(surface->boundingRect().right() - 17, 14));
+    auto surface = note(window, "normal"); const auto clearPoint = surface->mapToScene(QPointF(surface->boundingRect().right() - 17, 14));
     QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(clearPoint));
     QTRY_VERIFY(window.document()->node("normal")["ui_properties"].toObject()["title"].toString().isEmpty());
     QCOMPARE(window.document()->undoStack()->index(), 1); QTRY_VERIFY(!note(window, "normal"));
@@ -190,7 +189,7 @@ private slots:
     QCOMPARE(static_cast<WorkflowGraphModel &>(window.scene()->graphModel()).layout(nodeId(window, "group")).title, QString("Group"));
     QCOMPARE(window.document()->undoStack()->index(), 2);
     QVERIFY(!note(window, "group")); QVERIFY(!note(window, "comment"));
-    const auto comment = nodetool::test::graphicsNode(*window.scene(), nodeId(window, "comment")); QVERIFY(comment); view->centerOn(window.canvas().nodeBounds(nodeId(window, "comment")).center());
+    const auto comment = nodetool::test::card(window, nodeId(window, "comment")); QVERIFY(comment); view->centerOn(window.canvas().nodeBounds(nodeId(window, "comment")).center());
     // A comment's ui title is not a note, but its text edits in place on the card.
     QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(comment->scenePos() + QPointF(80, 40)));
     QTRY_VERIFY(overlay(window)); QTest::keyClick(overlay(window), Qt::Key_Escape); QTRY_VERIFY(!overlay(window));
@@ -199,7 +198,7 @@ private slots:
   }
   static void openComment(EditorWindow &window) {
     auto *view = &window.canvas(); QVERIFY(view);
-    const auto *card = nodetool::test::graphicsNode(*window.scene(), nodeId(window, "comment")); QVERIFY(card);
+    const auto card = nodetool::test::card(window, nodeId(window, "comment")); QVERIFY(card);
     view->centerOn(card->sceneBoundingRect().center()); QTest::qWait(20);
     QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(card->scenePos() + QPointF(80, 40)));
   }
@@ -385,9 +384,10 @@ private slots:
     QCOMPARE(window.document()->undoStack()->index(), 1);
   }
   void noteFollowsCardGeometryWithoutDocumentWrites() {
+    NODETOOL_REQUIRE_QTNODES();
     EditorWindow window; setup(window); QTRY_VERIFY(note(window, "normal"));
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
-    const auto id = nodeId(window, "normal"); auto *surface = note(window, "normal");
+    const auto id = nodeId(window, "normal"); auto surface = note(window, "normal");
     const auto original = window.document()->snapshot();
     const auto initial = surface->pos();
     model.setCanvasMediaNodes({"normal"});
@@ -399,7 +399,7 @@ private slots:
     QVERIFY(model.setNodeData(id, QtNodes::NodeRole::Size, QSize(size.width() + 80, size.height() + 120)));
     QTRY_COMPARE(surface->pos().y(), double(model.layout(id).size.height() + 10));
     QVERIFY(surface->pos().y() > initial.y()); QCOMPARE(window.document()->snapshot(), original);
-    auto *parent = nodetool::test::graphicsNode(*window.scene(), id); QVERIFY(parent);
+    auto *parent = nodetool::test::graphicsNode(*window.qtNodesScene(), id); QVERIFY(parent);
     parent->setPos(parent->pos() + QPointF(70, 40));
     QCOMPARE(surface->scenePos(), parent->scenePos() + surface->pos());
   }

@@ -1,5 +1,6 @@
 #include "CompatibleNodePicker.h"
-#include "EditorScene.h"
+#include "canvas/CanvasStyle.h"
+#include "canvas/EditorSceneApi.h"
 #include "WorkflowGraphModel.h"
 #include "CompatibleNodePlacement.h"
 #include "BodyConnectionRules.h"
@@ -138,11 +139,11 @@ protected:
 };
 }
 CompatibleNodePicker::CompatibleNodePicker(WorkflowGraphModel &model,
-    EditorScene &scene,CanvasSurface &canvas,QQmlEngine *engine,QObject *parent)
+    EditorSceneApi &scene,CanvasSurface &canvas,QQmlEngine *engine,QObject *parent)
     : QObject(parent),model_(model),scene_(scene),canvas_(canvas),engine_(engine) {
-  connect(&scene_,&EditorScene::looseWireDropped,this,&CompatibleNodePicker::open);
-  connect(&scene_,&EditorScene::wireBodyDropped,this,&CompatibleNodePicker::openBody);
-  connect(&scene_,&EditorScene::handleContextMenuRequested,this,&CompatibleNodePicker::open);
+  connect(&scene_.interaction(),&canvas::CanvasInteraction::looseWireDropped,this,&CompatibleNodePicker::open);
+  connect(&scene_.interaction(),&canvas::CanvasInteraction::wireBodyDropped,this,&CompatibleNodePicker::openBody);
+  connect(&scene_.interaction(),&canvas::CanvasInteraction::handleContextMenuRequested,this,&CompatibleNodePicker::open);
   connect(&model_,&WorkflowGraphModel::projectionAboutToChange,this,&CompatibleNodePicker::cancel);
   qApp->installEventFilter(this);
 }

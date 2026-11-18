@@ -1,3 +1,4 @@
+#include "../support/CanvasProbe.h"
 #include "../support/WidgetCanvasFixture.h"
 #include "ui/EditorWindow.h"
 #include "media/VideoFrameView.h"
@@ -187,7 +188,7 @@ private slots:
     window.fit();
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id = *model.allNodeIds().begin();
-    auto *node = nodetool::test::graphicsNode(*window.scene(), id); QVERIFY(node);
+    auto node = nodetool::test::card(window, id); QVERIFY(node);
     node->setSelected(true);
     auto hostFor = [&](const QString &name) -> QQuickWidget * {
       for (auto *widget : window.findChildren<QQuickWidget *>()) {
@@ -240,7 +241,7 @@ private slots:
     window.fit();
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id = *model.allNodeIds().begin();
-    auto *node = nodetool::test::graphicsNode(*window.scene(), id); QVERIFY(node);
+    auto node = nodetool::test::card(window, id); QVERIFY(node);
     QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
     node->setSelected(true);
     auto hostFor = [&](const QString &name) -> QQuickWidget * {
@@ -294,7 +295,7 @@ private slots:
     auto view = &window.canvas(); QVERIFY(view);
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id = *model.allNodeIds().begin();
-    auto node = nodetool::test::graphicsNode(*window.scene(), id); QVERIFY(node);
+    auto node = nodetool::test::card(window, id); QVERIFY(node);
     QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
     QVERIFY(!canvasGalleryWidget(window));
     const auto point = view->mapFromScene(node->mapToScene(model.canvasResultRect(id).center()));
@@ -349,6 +350,7 @@ private slots:
     QVERIFY(!canvasGalleryWidget(window));
   }
   void rasterCanvasRespectsTopCardAndCollapse() {
+    NODETOOL_REQUIRE_QTNODES();
     EditorWindow window; setup(window);
     const QString coverId = "44444444444444444444444444444444";
     auto fixture = window.document()->snapshot();
@@ -363,8 +365,9 @@ private slots:
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     QtNodes::NodeId imageId = 0, coveringId = 0;
     for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == NodeId) { imageId = id; } else { coveringId = id; } }
-    auto imageNode = nodetool::test::graphicsNode(*window.scene(), imageId); QVERIFY(imageNode);
-    auto coveringNode = nodetool::test::graphicsNode(*window.scene(), coveringId); QVERIFY(coveringNode);
+    // Moves, raises and hides the QtNodes items directly, without the document.
+    auto *imageNode = nodetool::test::graphicsNode(*window.qtNodesScene(), imageId); QVERIFY(imageNode);
+    auto *coveringNode = nodetool::test::graphicsNode(*window.qtNodesScene(), coveringId); QVERIFY(coveringNode);
     const auto scenePoint = imageNode->mapToScene(model.canvasResultRect(imageId).center());
     coveringNode->setPos(scenePoint - coveringNode->boundingRect().center());
     coveringNode->setZValue(imageNode->zValue() + 1);
@@ -389,7 +392,7 @@ private slots:
     auto view = &window.canvas(); QVERIFY(view);
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id = *model.allNodeIds().begin();
-    auto node = nodetool::test::graphicsNode(*window.scene(), id); QVERIFY(node);
+    auto node = nodetool::test::card(window, id); QVERIFY(node);
     QVERIFY(model.bypassed(id)); QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
     const auto snapshot = window.document()->snapshot();
     const auto undo = window.document()->undoStack()->count();

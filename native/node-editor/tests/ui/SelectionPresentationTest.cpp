@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
@@ -80,20 +80,20 @@ private:
         return QtNodes::InvalidNodeId;
     }
 
-    static QtNodes::NodeGraphicsObject *itemOf(EditorWindow &window, const QString &resource) {
-        return nodetool::test::graphicsNode(*window.scene(), idOf(window, resource));
+    static nodetool::test::CardHandle itemOf(EditorWindow &window, const QString &resource) {
+        return nodetool::test::card(window, idOf(window, resource));
     }
 
-    static QtNodes::ConnectionGraphicsObject *wireOf(EditorWindow &window, const QString &from, const QString &to) {
-        for (auto item : window.scene()->items()) {
-            auto wire = qgraphicsitem_cast<QtNodes::ConnectionGraphicsObject *>(item);
-            if (wire && !wire->connectionState().requiresPort()
-                && modelOf(window)->resourceId(wire->connectionId().outNodeId) == from
-                && modelOf(window)->resourceId(wire->connectionId().inNodeId) == to) {
-                return wire;
+    static nodetool::test::WireHandle wireOf(EditorWindow &window, const QString &from, const QString &to) {
+        auto *model = modelOf(window);
+        for (const auto id : model->allNodeIds()) {
+            for (const auto &connection : model->allConnectionIds(id)) {
+                if (model->resourceId(connection.outNodeId) == from && model->resourceId(connection.inNodeId) == to) {
+                    return nodetool::test::wire(window, connection);
+                }
             }
         }
-        return nullptr;
+        return {nullptr, {}};
     }
 
     static QRectF cardRect(EditorWindow &window, const QString &resource) {
@@ -123,7 +123,7 @@ private:
         QImage image((source.size() * scale).toSize(), QImage::Format_ARGB32_Premultiplied);
         image.fill(Qt::transparent);
         QPainter painter(&image);
-        window.scene()->render(&painter, QRectF(QPointF(), QSizeF(image.size())), source);
+        nodetool::test::renderScene(window, painter, QRectF(QPointF(), QSizeF(image.size())), source);
         return image;
     }
 
@@ -229,7 +229,7 @@ private slots:
         click(window, "a");
         QCOMPARE(itemOf(window, "s")->opacity(), branchDimmedOpacity);
         clickEmptyCanvas(window);
-        QVERIFY(window.scene()->selectedItems().isEmpty());
+        QCOMPARE(window.canvas().selection().count(), 0);
         for (const auto id : modelOf(window)->allNodeIds()) {
             QCOMPARE(window.canvas().nodeOpacity(id), 1.0);
         }
@@ -433,7 +433,7 @@ private slots:
         load(window, 300);
         window.action("Reset zoom");
         auto *view = viewOf(window);
-        auto *wire = wireOf(window, "u1", "u2");
+        auto wire = wireOf(window, "u1", "u2");
         QVERIFY(wire);
         const auto midpoint = wire->mapToScene(wireCurve(wire->endPoint(QtNodes::PortType::Out), wire->endPoint(QtNodes::PortType::In)).pointAtPercent(0.5));
         const QRectF region(midpoint - QPointF(6, 6), QSizeF(12, 12));
@@ -449,14 +449,14 @@ private slots:
         };
         QTest::mouseMove(&view->viewportWidget(), QPoint(24, 450));
         QTest::qWait(30);
-        QVERIFY(!wire->connectionState().hovered());
+        QVERIFY(!wire->hovered());
         const auto rest = luminance(renderRegion(window, region, 4));
         QTest::mouseMove(&view->viewportWidget(), view->mapFromScene(midpoint));
-        QTRY_VERIFY(wire->connectionState().hovered());
+        QTRY_VERIFY(wire->hovered());
         const auto hovered = luminance(renderRegion(window, region, 4));
         QVERIFY2(hovered > rest * 1.4, qPrintable(QString("rest %1 hovered %2").arg(rest).arg(hovered)));
         QTest::mouseMove(&view->viewportWidget(), QPoint(24, 450));
-        QTRY_VERIFY(!wire->connectionState().hovered());
+        QTRY_VERIFY(!wire->hovered());
     }
 
     // The hovered handle scales to 1.3 about its center, as the web's handle:hover.

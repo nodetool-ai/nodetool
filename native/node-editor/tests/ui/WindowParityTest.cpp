@@ -1,3 +1,4 @@
+#include "../support/CanvasProbe.h"
 #include "../support/WidgetCanvasFixture.h"
 #include "FakeRunServer.h"
 #include "graph/EditorScene.h"
@@ -199,16 +200,17 @@ private slots:
         EditorWindow window;
         prepare(window, true, QSize(1440, 900), true);
         auto &model = graphModel(window);
-        auto *width = nodetool::test::graphicsNode(*window.scene(), nodeId(model, "width"));
-        auto *caption = nodetool::test::graphicsNode(*window.scene(), nodeId(model, "caption"));
+        auto width = nodetool::test::card(window, nodeId(model, "width"));
+        auto caption = nodetool::test::card(window, nodeId(model, "caption"));
         QVERIFY(width && caption);
         const auto overlap = width->sceneBoundingRect().intersected(caption->sceneBoundingRect());
         QVERIFY(!overlap.isEmpty());
-        const auto ordered = window.scene()->items(overlap.center(), Qt::IntersectsItemShape, Qt::DescendingOrder);
-        QVERIFY(ordered.indexOf(caption) < ordered.indexOf(width));
+        QVERIFY(window.canvas().visibleSceneRect().contains(overlap.center()));
+        QVERIFY(nodetool::test::CanvasProbe(window).above(caption.nodeId(), width.nodeId()));
     }
 
     void stackingTracksReorderedDocumentWithThreeOverlappingCards() {
+      NODETOOL_REQUIRE_QTNODES();
         WorkflowGraphModel model;
         EditorScene scene(model);
         const QJsonObject declaration{{"node_type", "Fixture"}, {"title", "Fixture"}};
@@ -252,7 +254,7 @@ private slots:
             {
                 QPainter painter(&card);
                 const auto position = window.canvas().nodeOrigin(generate);
-                window.scene()->render(&painter, QRectF(QPointF(), QSizeF(size)), QRectF(position, QSizeF(size)));
+                nodetool::test::renderScene(window, painter, QRectF(QPointF(), QSizeF(size)), QRectF(position, QSizeF(size)));
             }
             // 12 of 30 fills the bar to 40 percent in the web secondary color.
             const auto filled = card.pixelColor(11 + 50, size.height() - 22);

@@ -1,5 +1,6 @@
 #include "CanvasMediaPresenter.h"
-#include "EditorScene.h"
+#include "canvas/CanvasStyle.h"
+#include "canvas/EditorSceneApi.h"
 #include "WorkflowGraphModel.h"
 #include "media/MediaResolver.h"
 #include <QEvent>
@@ -48,7 +49,7 @@ protected:
   void keyReleaseEvent(QKeyEvent *event) override { QQuickWidget::keyReleaseEvent(event); event->accept(); }
 };
 }
-CanvasMediaPresenter::CanvasMediaPresenter(WorkflowGraphModel &model, EditorScene &scene,
+CanvasMediaPresenter::CanvasMediaPresenter(WorkflowGraphModel &model, EditorSceneApi &scene,
     CanvasSurface &canvas, QQmlEngine *engine, node_editor::MediaResolver &resolver, QObject *parent)
     : QObject(parent), model_(model), canvas_(canvas), engine_(engine), resolver_(resolver) {
   connect(&model_, &WorkflowGraphModel::modelReset, this, [this] { allPlayerNodesDirty_ = true; releaseWidgets(); schedule(); });
@@ -68,7 +69,7 @@ CanvasMediaPresenter::CanvasMediaPresenter(WorkflowGraphModel &model, EditorScen
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, [this](QtNodes::NodeId) { schedule(); });
   connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &CanvasMediaPresenter::schedule);
   connect(&canvas_.selection(), &CanvasSelection::selectionChanged, this, &CanvasMediaPresenter::schedule);
-  connect(&scene, &EditorScene::branchDimmingChanged, this, &CanvasMediaPresenter::schedule);
+  connect(&canvas, &CanvasSurface::branchDimmingChanged, this, &CanvasMediaPresenter::schedule);
   connect(&canvas_, &CanvasSurface::viewportMoved, this, &CanvasMediaPresenter::schedule);
   qApp->installEventFilter(this);
   canvas_.hostWidget().installEventFilter(this);

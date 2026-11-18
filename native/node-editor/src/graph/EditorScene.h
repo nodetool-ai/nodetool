@@ -14,6 +14,7 @@
 #include <QJsonObject>
 #include <QtNodes/BasicGraphicsScene>
 #include "canvas/CanvasInteraction.h"
+#include "canvas/EditorSceneApi.h"
 #include "canvas/CanvasStyle.h"
 
 namespace nodetool {
@@ -24,53 +25,30 @@ class WorkflowGraphModel;
 QSet<QtNodes::NodeId> branchNodeIds(const QSet<QtNodes::NodeId> &selected,
                                     const QVector<QPair<QtNodes::NodeId, QtNodes::NodeId>> &edges);
 // UI thread only. Adapts QtNodes item ownership, painting and input to the canvas.
-class EditorScene final : public QtNodes::BasicGraphicsScene, private canvas::CanvasInteractionHost {
+class EditorScene final : public QtNodes::BasicGraphicsScene, public EditorSceneApi, private canvas::CanvasInteractionHost {
   Q_OBJECT
 public:
   EditorScene(WorkflowGraphModel &model, QObject *parent = nullptr);
   // Detaches the dimming slots. The base class clears the selection while it
   // deletes its items, after this class is gone.
   ~EditorScene() override;
-  canvas::CanvasInteraction &interaction() { return interaction_; }
-  const CanvasTheme &theme() const { return theme_; }
-  void setTheme(const CanvasTheme &theme);
-  void setReducedMotion(bool reduced);
-  double animationPhase() const { return phase_; }
-  // Reduced motion holds the ring at its first frame, as the web does.
-  double runningAngle() const { return animation_.isActive() ? runningRingAngle(clock_.elapsed()) : 90; }
-  bool animationActive() const { return animation_.isActive(); }
-  QRectF groupLabelRect(QtNodes::NodeId id, double zoom) const { return interaction_.groupLabelRect(id, zoom); }
-  // The card height that fits a comment's Markdown at a card width: the text,
-  // the 16 px above and below it, and 2 px of slack as CommentNode.tsx adds.
-  double commentContentHeight(const QString &markdown, double cardWidth) const;
-  using HandleHover = canvas::CanvasInteraction::HandleHover;
-  using DragOutcome = canvas::CanvasInteraction::DragOutcome;
+  QObject &sceneObject() override { return *this; }
+  canvas::CanvasInteraction &interaction() override { return interaction_; }
+  const canvas::CanvasInteraction &interaction() const override { return interaction_; }
+  QtNodes::AbstractGraphModel &graphModel() override { return BasicGraphicsScene::graphModel(); }
+  const QtNodes::AbstractGraphModel &graphModel() const override { return BasicGraphicsScene::graphModel(); }
+  QtNodes::AbstractNodeGeometry &nodeGeometry() override { return BasicGraphicsScene::nodeGeometry(); }
+  const QtNodes::AbstractNodeGeometry &nodeGeometry() const override { return BasicGraphicsScene::nodeGeometry(); }
+  const CanvasTheme &theme() const override { return theme_; }
+  void setTheme(const CanvasTheme &theme) override;
+  void setReducedMotion(bool reduced) override;
+  double animationPhase() const override { return phase_; }
+  double runningAngle() const override { return animation_.isActive() ? runningRingAngle(clock_.elapsed()) : 90; }
+  bool animationActive() const override { return animation_.isActive(); }
+  double commentContentHeight(const QString &markdown, double cardWidth) const override;
   void clearSelection() override { QGraphicsScene::clearSelection(); }
-  void resetDraftConnection() { interaction_.resetDraftConnection(); }
-  DragOutcome takeDragOutcome() { return interaction_.takeDragOutcome(); }
-  HandleHover draftEnd() const { return interaction_.draftEnd(); }
-  int handleConnectable(QtNodes::NodeId node, QtNodes::PortType side, QtNodes::PortIndex index) const {
-    return interaction_.handleConnectable(node, side, index);
-  }
-  bool groupTakesPointer(QtNodes::NodeId id) const { return interaction_.groupTakesPointer(id); }
-  double groupOpacity(QtNodes::NodeId id) const { return interaction_.groupOpacity(id); }
-  bool dropHintVisible() const { return interaction_.dropHintVisible(); }
-  void keepEnclosedGroups(const QRectF &area) { interaction_.keepEnclosedGroups(area); }
-  void setAltHeld(bool held) { interaction_.setAltHeld(held); }
-  bool branchDimmed(QtNodes::NodeId id) const;
-  QString reconnectingEdgeId() const { return interaction_.reconnectingEdgeId(); }
-  QtNodes::NodeId sliderDraftNode() const { return interaction_.sliderDraftNode(); }
-  QString sliderDraftProperty() const { return interaction_.sliderDraftProperty(); }
-  double sliderDraftValue() const { return interaction_.sliderDraftValue(); }
-  QtNodes::NodeId cropDraftNode() const { return interaction_.cropDraftNode(); }
-  QtNodes::NodeId brushCursorNode() const { return interaction_.brushCursorNode(); }
-  QPointF brushCursor() const { return interaction_.brushCursor(); }
-  QRectF cropDraft() const { return interaction_.cropDraft(); }
-  QtNodes::NodeId paintDraftNode() const { return interaction_.paintDraftNode(); }
-  QtNodes::NodeId dropGroup() const { return interaction_.dropGroup(); }
-  const QImage &paintDraft() const { return interaction_.paintDraft(); }
-  const HandleHover &hoveredHandle() const { return interaction_.hoveredHandle(); }
-  bool nodeDragActive() const { return interaction_.nodeDragActive(); }
+  void resetDraftConnection() override { interaction_.resetDraftConnection(); }
+  bool branchDimmed(QtNodes::NodeId id) const override;
 signals:
     void nodeDragChanged(bool active);
     // A double-click on a card header, which collapses the card or, for a Code

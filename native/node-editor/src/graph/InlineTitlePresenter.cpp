@@ -1,5 +1,6 @@
 #include "InlineTitlePresenter.h"
-#include "EditorScene.h"
+#include "canvas/CanvasStyle.h"
+#include "canvas/EditorSceneApi.h"
 #include "WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include <QApplication>
@@ -28,10 +29,10 @@ protected:
 };
 
 }
-InlineTitlePresenter::InlineTitlePresenter(WorkflowGraphModel &model, EditorScene &scene,
+InlineTitlePresenter::InlineTitlePresenter(WorkflowGraphModel &model, EditorSceneApi &scene,
     CanvasSurface &canvas, QQmlEngine *engine, QObject *parent)
     : QObject(parent), model_(model), scene_(scene), canvas_(canvas), engine_(engine) {
-  connect(&scene_, &EditorScene::titleEditRequested, this, &InlineTitlePresenter::activate);
+  connect(&scene_.interaction(), &canvas::CanvasInteraction::titleEditRequested, this, &InlineTitlePresenter::activate);
   // The group and comment controls survive a projection. refresh() keeps the widget of
   // each surviving node, because building one compiles a Quick scene.
   connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] { cancel(); notes_.clear(); });
@@ -155,7 +156,7 @@ void InlineTitlePresenter::activate(QtNodes::NodeId id) {
   if (!canvas_.hasNode(id)) return;
   const auto viewZoom = std::clamp(std::abs(canvas_.zoom()), 0.08, 8.0);
   canvas_.ensureVisible(model_.isGroup(id) ? scene_.groupLabelRect(id, viewZoom) : canvas_.nodeBounds(id), 16);
-  canvas_.selection().clear(); canvas_.selection().setNode(id, true); emit scene_.nodeSelected(id);
+  canvas_.selection().clear(); canvas_.selection().setNode(id, true); emit scene_.interaction().nodeSelected(id);
   node_ = id; group_ = model_.isGroup(id); reroute_ = model_.isReroute(id); comment_ = model_.isComment(id);
   header_ = model_.nodeData(id, QtNodes::NodeRole::Type).toString() == "nodetool.code.Code"; requestedHeight_ = 100;
   text_ = comment_ ? model_.comment(id).toString() : (group_ || header_) ? model_.layout(id).title : model_.uiProperties(id)["title"].toString();

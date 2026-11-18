@@ -1,3 +1,4 @@
+#include "../support/CanvasProbe.h"
 #include "ui/CanvasSurface.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
@@ -397,7 +398,7 @@ private slots:
   QImage image(200, 200, QImage::Format_RGB32);
   {
    QPainter painter(&image);
-   window.scene()->render(&painter, QRectF(0, 0, 200, 200), QRectF(-100, -100, 200, 200));
+   nodetool::test::renderScene(window, painter, QRectF(0, 0, 200, 200), QRectF(-100, -100, 200, 200));
   }
   const auto dark = window.scene()->theme().canvas.lightnessF() < .5;
   const auto axis = nodetool::axisMarkerColor(dark).rgb() & 0xffffff;

@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 #include "media/LocalMediaStore.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QClipboard>
@@ -217,7 +217,7 @@ private slots:
     QTest::mouseMove(textWidget, scrollPoint);
     QTest::mouseClick(textWidget, Qt::LeftButton, {}, scrollPoint);
     QTRY_VERIFY(scroll->property("interactive").toBool());
-    auto view = nodetool::test::widgetView(window);
+    auto view = nodetool::test::view(window);
     QVERIFY(view);
     const auto zoomBefore = tableWidget->rootObject()->property("zoom").toReal();
     // Zoom through the editor, as the toolbar and shortcuts do. The window keeps its own

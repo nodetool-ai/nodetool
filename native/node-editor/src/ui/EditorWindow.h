@@ -36,6 +36,8 @@
 #include "document/WorkflowDocument.h"
 #include "graph/WorkflowGraphModel.h"
 #include "canvas/CanvasInteraction.h"
+#include "canvas/EditorSceneApi.h"
+#include "ui/CanvasSurface.h"
 #include "server/WorkflowSession.h"
 #include "run/BugReport.h"
 #include "run/RunOutputModel.h"
@@ -71,6 +73,7 @@ class CanvasSurface;
 struct EntryMenuRequest;
 namespace node_editor { class LineageLayer; }
 class EditorScene;
+class EditorSceneApi;
 class InlinePropertyPresenter;
 class InlineTitlePresenter;
 class CanvasMediaPresenter;
@@ -318,9 +321,17 @@ public:
   QVariantMap selectionInfo() const;
   int zoomPercent() const;
     CanvasSurface &canvas() const;
-    EditorScene *scene() const {
+    // The scene of either canvas. qtNodesScene() is null on the Quick canvas.
+    EditorSceneApi *scene() const {
         if (activeEditor() != this) {
             return activeEditor()->scene();
+        }
+        ensureProjected();
+        return canvas_ ? &canvas_->scene() : nullptr;
+    }
+    EditorScene *qtNodesScene() const {
+        if (activeEditor() != this) {
+            return activeEditor()->qtNodesScene();
         }
         ensureProjected();
         return scene_.get();

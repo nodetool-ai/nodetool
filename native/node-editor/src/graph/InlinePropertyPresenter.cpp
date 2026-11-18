@@ -1,6 +1,7 @@
 #include "InlinePropertyPresenter.h"
 #include "CardBodies.h"
-#include "EditorScene.h"
+#include "canvas/CanvasStyle.h"
+#include "canvas/EditorSceneApi.h"
 #include "WorkflowGraphModel.h"
 #include "interfaces/PropertyHost.h"
 #include <QEvent>
@@ -31,9 +32,9 @@ protected:
 };
 }
 InlinePropertyPresenter::InlinePropertyPresenter(WorkflowGraphModel &model,
-    EditorScene &scene, CanvasSurface &canvas, QQmlEngine *engine, node_editor::PropertyHost &host, QObject *parent)
+    EditorSceneApi &scene, CanvasSurface &canvas, QQmlEngine *engine, node_editor::PropertyHost &host, QObject *parent)
     : QObject(parent), model_(model), canvas_(canvas), engine_(engine), host_(host) {
-  connect(&scene, &EditorScene::inlineEditRequested, this, &InlinePropertyPresenter::activate);
+  connect(&scene.interaction(), &canvas::CanvasInteraction::inlineEditRequested, this, &InlinePropertyPresenter::activate);
   connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] { if (!holding_) { cancel(); } });
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, [this](QtNodes::NodeId) { reposition(); });
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, [this](QtNodes::NodeId) { reposition(); });

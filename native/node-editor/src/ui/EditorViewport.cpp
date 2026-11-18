@@ -170,7 +170,7 @@ void EditorWindow::showMiniMapPopup(const QString &kind, const QPointF &anchorGl
   if (!tabOwner_) { activeEditor_->showMiniMapPopup(kind, anchorGlobal); return; }
   closeMiniMapPopup();
   QVariantList legend;
-  const bool dark = scene_->theme().canvas.lightnessF() < .5;
+  const bool dark = canvas_->scene().theme().canvas.lightnessF() < .5;
   const QHash<QString, QString> labels{{"input", tr("Input nodes")}, {"constant", tr("Constant nodes")}, {"processing", tr("Processing nodes")},
                                        {"group", tr("Group nodes")}, {"comment", tr("Comment nodes")}, {"output", tr("Output nodes")}};
   for (const auto &category : miniMapCategories()) {

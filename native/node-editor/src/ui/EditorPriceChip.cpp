@@ -55,7 +55,7 @@ void EditorWindow::syncPriceChip() {
 void EditorWindow::positionPriceChip() {
     if (!priceChipOverlay_ || !canvas_) { return; }
     QRectF bounds;
-    if (!priceChip_.provider().isEmpty() && !browserVisible() && !scene_->nodeDragActive()) {
+    if (!priceChip_.provider().isEmpty() && !browserVisible() && !canvas_->scene().nodeDragActive()) {
         for (const auto id : model_.allNodeIds()) {
             if (model_.resourceId(id) == priceChip_.nodeId()) {
                 bounds = canvas_->nodeRect(id);

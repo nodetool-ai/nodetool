@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "EntryMenuSupport.h"
 #include "graph/EditorScene.h"
@@ -64,13 +64,22 @@ class WorkflowTabsTest final : public QObject {
       {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", (i % 40) * 300}, {"y", (i / 40) * 200}}}}}});
     return {{"name", name}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", QJsonArray{}}}}};
   }
+  // The card objects, which survive a tab switch unchanged.
+  static QList<const QObject *> cards(EditorWindow &window) {
+    auto ids = window.scene()->graphModel().allNodeIds();
+    QList<QtNodes::NodeId> sorted(ids.begin(), ids.end());
+    std::sort(sorted.begin(), sorted.end());
+    QList<const QObject *> result;
+    for (const auto id : sorted) { result.append(nodetool::test::CanvasProbe(window).cardObject(id)); }
+    return result;
+  }
   static void moveNode(EditorWindow &window) {
     window.fit(); QTest::qWait(100);
     auto scene = window.scene();
     auto view = &window.canvas();
-    auto node = nodetool::test::graphicsNode(*scene, *scene->graphModel().allNodeIds().begin());
-    QVERIFY(node);
-    const auto start = view->mapFromScene(node->sceneBoundingRect().topLeft() + QPointF(40, 18));
+    const auto id = *scene->graphModel().allNodeIds().begin();
+    QVERIFY(view->hasNode(id));
+    const auto start = view->mapFromScene(view->nodeBounds(id).topLeft() + QPointF(40, 18));
     QTest::mousePress(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
     QTest::mouseMove(&view->viewportWidget(), start + QPoint(55, 40), 30);
     QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start + QPoint(55, 40));
@@ -201,14 +210,14 @@ private slots:
     graph["nodes"] = nodes; large["graph"] = graph;
     window.setCatalog({QJsonObject{{"node_type", "tabs.Test"}, {"title", "Background node"}}});
     QVERIFY(window.document()->load(large));
-    auto document = window.document(); auto scene = window.scene();
+    auto document = window.document(); auto scene = window.scene(); auto *first = window.activeEditor();
     QCoreApplication::processEvents();
     QSignalSpy changed(document, &node_editor::WorkflowDocument::changed);
     QSignalSpy reset(&scene->graphModel(), SIGNAL(modelReset())); QVERIFY(reset.isValid());
     QVERIFY(window.selectNode("note0")); window.action("Zoom in"); QTest::qWait(40);
     auto view = &window.canvas();
     const auto transform = view->zoom(); const auto center = view->mapToScene(view->viewportWidget().rect().center());
-    const auto items = scene->items(); const auto snapshot = document->snapshot();
+    const auto items = cards(*first); const auto snapshot = document->snapshot();
     QVERIFY(click(window, "new-workflow-tab"));
     QVERIFY(window.document()->load(workflow("Small workflow")));
     for (int i = 0; i < 6; ++i) {
@@ -217,7 +226,7 @@ private slots:
       QVERIFY(QLineF(view->mapToScene(view->viewportWidget().rect().center()), center).length() < 2);
       QVERIFY(click(window, "activate-tab-1"));
     }
-    QCOMPARE(changed.count(), 0); QCOMPARE(reset.count(), 0); QCOMPARE(scene->items(), items); QCOMPARE(document->snapshot(), snapshot); QCOMPARE(document->undoStack()->index(), 0);
+    QCOMPARE(changed.count(), 0); QCOMPARE(reset.count(), 0); QCOMPARE(cards(*first), items); QCOMPARE(document->snapshot(), snapshot); QCOMPARE(document->undoStack()->index(), 0);
     moveNode(window); QVERIFY(window.hasUnsavedChanges());
     QCoreApplication::processEvents();
     bool markerVisible = false;

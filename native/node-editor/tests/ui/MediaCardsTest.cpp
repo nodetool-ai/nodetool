@@ -1,5 +1,4 @@
 #include "../support/CanvasProbe.h"
-#include "../support/WidgetCanvasFixture.h"
 #include "graph/CanvasDropController.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
@@ -432,11 +431,11 @@ private slots:
         QTRY_COMPARE(host.height("photo"), 284);
         const auto badge = QRect(110, 242, 60, 18);
         const auto before = host.render("photo").copy(badge);
-        auto *item = nodetool::test::graphicsNode(*host.window.scene(), host.id("photo"));
+        auto item = nodetool::test::card(host.window, host.id("photo"));
         const auto inside = host.view->mapFromScene(item->mapToScene(QPointF(140, 160)));
         QTest::mouseMove(&host.view->viewportWidget(), inside);
         settle();
-        QTRY_VERIFY(item->nodeState().hovered());
+        QTRY_VERIFY(item->hovered());
         const auto after = host.render("photo").copy(badge);
         QVERIFY2(before != after, "hovering draws the 512×512 badge");
         QCOMPARE(host.zone("photo")->label, QStringLiteral("Value"));
@@ -578,7 +577,7 @@ private slots:
         settle();
         QTRY_VERIFY(host.overlay("movie"));
         QTRY_COMPARE(host.height("photo"), 284);
-        auto *item = nodetool::test::graphicsNode(*host.window.scene(), host.id("movie"));
+        auto item = nodetool::test::card(host.window, host.id("movie"));
         auto *viewport = &host.view->viewportWidget();
         const auto start = host.view->mapFromScene(item->mapToScene(QPointF(140, 18)));
         QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, start);

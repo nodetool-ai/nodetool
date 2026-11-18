@@ -45,6 +45,7 @@ public:
   bool lineageAt(QPoint viewportPoint) const override;
   std::optional<QtNodes::ConnectionId> edgeAt(QPoint viewportPoint) const override;
 
+  EditorSceneApi &scene() const override;
   CanvasSelection &selection() const override;
   bool rubberBandActive() const override;
   void setHandDrag(bool enabled) override;
