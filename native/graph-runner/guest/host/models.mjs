@@ -68,6 +68,14 @@ export function openModelRepository(databasePath, userId) {
       for (const name of ['file_path', 'file_hash', 'file_error']) {
         if (!timelineColumns.some((column) => column.name === name)) client.exec(`ALTER TABLE timeline_sequences ADD COLUMN ${name} TEXT`);
       }
+      // The 20261129_000000 and 20261129_000001 migrations: storyboards and
+      // scripts are files in their project folder.
+      for (const table of ['storyboards', 'scripts']) {
+        const columns = client.pragma(`table_info("${table}")`);
+        for (const name of ['file_path', 'file_hash', 'file_error']) {
+          if (!columns.some((column) => column.name === name)) client.exec(`ALTER TABLE ${table} ADD COLUMN ${name} TEXT`);
+        }
+      }
       // The 20261128_000002 and 20261128_000003 migrations: the editing
       // instance that wrote the stored revision, and its schema version.
       if (!timelineColumns.some((column) => column.name === 'last_writer_instance')) client.exec('ALTER TABLE timeline_sequences ADD COLUMN last_writer_instance TEXT');
