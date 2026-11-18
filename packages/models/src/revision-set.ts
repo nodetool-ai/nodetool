@@ -142,14 +142,18 @@ export async function deleteExpiredRevisionSets(now: Date = new Date()): Promise
  * Whether a set that has not expired at `now` names `hash`. Such a hash is a
  * retention root of the blob store (Y1).
  */
-export async function isHashInLiveRevisionSet(hash: string, now: Date = new Date()): Promise<boolean> {
-  const sets = await getPortableDb()
+export async function isHashInLiveRevisionSet(
+  hash: string,
+  now: Date = new Date(),
+  db: ReturnType<typeof getPortableDb> = getPortableDb()
+): Promise<boolean> {
+  const sets = await db
     .selectDistinct({ setId: revisionSetFiles.set_id })
     .from(revisionSetFiles)
     .where(eq(revisionSetFiles.hash, hash));
   const ids = sets.map((row) => row.setId);
   for (let i = 0; i < ids.length; i += IN_LIST_CHUNK) {
-    const [live] = await getPortableDb()
+    const [live] = await db
       .select({ id: revisionSets.id })
       .from(revisionSets)
       .where(and(inArray(revisionSets.id, ids.slice(i, i + IN_LIST_CHUNK)), gt(revisionSets.expires_at, now.toISOString())))
