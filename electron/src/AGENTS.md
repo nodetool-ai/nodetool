@@ -136,7 +136,7 @@ are in [native/account-helper](../../native/account-helper/README.md).
   `CLOUD_REQUEST`, `CLOUD_TRANSFER`). `cloudRequests.ts` applies the list of
   routes and sends a helper `http` message only when it matches a pending
   request. Media loads through the `nodetool-cloud:` scheme, which maps to
-  `/api/assets/*` on the signed-in server only.
+  `/api/assets/*` and `/api/storage/*` on the signed-in server only.
 - Unlike the VST host, the helper is never loaded from the user data folder.
 
 ## Rules
