@@ -18,6 +18,7 @@ import {
   getCloudLinkDocumentByLocalId,
   getCloudLinkFile,
   getCloudSend,
+  DOCUMENT_FILE_MISSING,
   initTestDb,
   Workflow
 } from "@nodetool-ai/models";
@@ -366,4 +367,22 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
       gate.uninstall();
     }
   });
+
+  it("sends a document whose file is missing from its row and lists the file, and leaves out an invalid file (CF3, TC99, review F37)", async () => {
+    const { workflow: missing } = await workflowWithFile(null, "missing");
+    const { workflow: invalid } = await workflowWithFile(null, "invalid");
+    // The first capture's reconcile writes each document's file.
+    await captureSend(TARGET);
+    const missingFile = (await Workflow.get<Workflow>(missing.id))!.file_path!;
+    const invalidFile = (await Workflow.get<Workflow>(invalid.id))!.file_path!;
+    await folder.delete(missingFile);
+    await folder.write(invalidFile, new TextEncoder().encode("{ not json"));
+
+    const review = await captureSend(TARGET);
+    expect((await Workflow.get<Workflow>(missing.id))?.file_error).toBe(DOCUMENT_FILE_MISSING);
+    expect(review.operations).toMatchObject([{ op: "create_document", document_id: missing.id }]);
+    expect(review.missingDocumentFiles).toEqual([{ kind: "workflow", id: missing.id, name: missing.name }]);
+    expect(review.skipped).toMatchObject([{ id: invalid.id, reason: "invalid_file" }]);
+  });
 });
+

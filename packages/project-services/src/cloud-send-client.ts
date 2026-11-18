@@ -26,6 +26,7 @@ import {
   createCloudLink,
   createCloudSend,
   deleteCloudLinkDocument,
+  DOCUMENT_FILE_MISSING,
   deleteCloudSend,
   getCloudLink,
   getCloudLinkById,
@@ -104,6 +105,13 @@ export interface SkippedDocument {
   detail: string;
 }
 
+/** A document whose file is gone from the folder. Its last row is sent, and the sheet lists the file (CF3). */
+export interface MissingDocumentFile {
+  kind: TransferDocumentKind;
+  id: string;
+  name: string;
+}
+
 /** A document a send would delete on the cloud because it is gone here. */
 export interface DeletedLocally {
   kind: TransferDocumentKind;
@@ -137,6 +145,7 @@ interface SendPlan {
   files: CapturedFile[];
   missingFiles: TransferMissingFile[];
   skipped: SkippedDocument[];
+  missingDocumentFiles: MissingDocumentFile[];
   deletedLocally: DeletedLocally[];
   decisions: TransferDecision[];
 }
@@ -148,6 +157,8 @@ export interface SendReview {
   operations: TransferOperation[];
   missingFiles: TransferMissingFile[];
   skipped: SkippedDocument[];
+  /** Documents sent from their rows because their files are missing (CF3). */
+  missingDocumentFiles: MissingDocumentFile[];
   /** Documents gone here that the deletion review must confirm before a send deletes them. */
   deletedLocally: DeletedLocally[];
 }
@@ -288,6 +299,7 @@ export async function captureSend(target: SendTarget): Promise<SendReview> {
     operations: plan.manifest.operations,
     missingFiles: plan.missingFiles,
     skipped: plan.skipped,
+    missingDocumentFiles: plan.missingDocumentFiles,
     deletedLocally: plan.deletedLocally
   };
 }
@@ -299,6 +311,7 @@ interface CapturedDocuments {
   documents: CapturedDocument[];
   skipped: SkippedDocument[];
   deletedLocally: DeletedLocally[];
+  missingDocumentFiles: MissingDocumentFile[];
   files: Array<{ assetId: string; asset: Asset | null; content: AssetContent; referrers: Array<{ kind: TransferDocumentKind; document_id: string }> }>;
   external: string[];
 }
@@ -308,11 +321,16 @@ async function captureDocuments(target: SendTarget, link: CloudLinkRow | null, w
   const payloads: TransferPayload[] = [];
   const documents: CapturedDocument[] = [];
   const skipped: SkippedDocument[] = [];
+  const missingDocumentFiles: MissingDocumentFile[] = [];
   const references = new Map<string, Array<{ kind: TransferDocumentKind; document_id: string }>>();
   const locals = await localDocuments(target.userId, target.projectId);
 
   for (const local of locals) {
-    if (local.fileError) {
+    // A file that does not validate keeps its document out of the send. A
+    // missing file does not: the row is sent and the sheet lists the file (CF3).
+    if (local.fileError === DOCUMENT_FILE_MISSING) {
+      missingDocumentFiles.push({ kind: local.kind, id: local.id, name: local.name });
+    } else if (local.fileError) {
       skipped.push({ kind: local.kind, id: local.id, name: local.name, reason: "invalid_file", detail: local.fileError });
       continue;
     }
@@ -367,7 +385,7 @@ async function captureDocuments(target: SendTarget, link: CloudLinkRow | null, w
     const content = asset && asset.project_id === target.projectId ? await contentOfAsset(workspace, asset) : null;
     referenced.push({ assetId, asset, content, referrers });
   }
-  return { operations, payloads, documents, skipped, deletedLocally, files: referenced, external };
+  return { operations, payloads, documents, skipped, deletedLocally, missingDocumentFiles, files: referenced, external };
 }
 
 /**
@@ -381,7 +399,7 @@ async function planFiles(
   workspace: Workspace,
   captured: CapturedDocuments
 ): Promise<SendPlan | null> {
-  const { operations, payloads, documents, skipped, deletedLocally, external } = captured;
+  const { operations, payloads, documents, skipped, deletedLocally, missingDocumentFiles, external } = captured;
   if (external.length > 0) {
     throw new SendCaptureError(
       "Some files are linked from outside the project folder. Collect them into the folder before sending.",
@@ -437,6 +455,7 @@ async function planFiles(
     files,
     missingFiles,
     skipped,
+    missingDocumentFiles,
     deletedLocally,
     decisions: []
   };
