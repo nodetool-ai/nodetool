@@ -302,7 +302,7 @@ QHash<QString, QString> buildDenied() {
     deny(family("editPoint.", {"rippleIn", "rippleOut", "roll", "trimIn", "trimOut"}), tool);
     deny({"selectNearestEditPoint", "toggleTrimType", "exitTrimMode", "monitorDisplay:trim"}, "it enters trim mode, which needs a person at the keys. Use the trim commands");
     deny({"takeRecord"}, "it records live take switches during playback");
-    deny({"toggleShortcuts", "projectSettings"}, dialog);
+    deny({"toggleShortcuts", "projectSettings", "publishToCloud", "synchronize"}, dialog);
     deny({"pasteAttributes"}, dialog);
     deny({"audioGain"}, dialog + ". Use setClipsGain");
     deny({"speedDuration"}, dialog + ". Use setClipSpeed");

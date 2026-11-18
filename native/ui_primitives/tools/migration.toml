@@ -2933,13 +2933,23 @@ qml_callers = ["native/account/qt/qml/ShareDialog.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ScrollArea, Ui.PanelHeader, Ui.Text, Ui.TextField, Ui.EditorButton, Ui.Toggle, Ui.Select, Ui.Banner, Ui.BusyIndicator"
 
 [[file]]
+path = "native/account/qt/qml/TransferDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "TransferPanel"]
+signals = []
+test_host = "native/timeline/qml/menus/tst_menus.cpp"
+test_scope = "build"
+qml_callers = ["native/timeline/qml/DocumentBar.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog"
+
+[[file]]
 path = "native/account/qt/qml/TransferPanel.qml"
 category = "chrome"
 controls = ["TransferController", "ColumnLayout", "RowLayout", "ListView", "Item", "Ui.ScrollBar", "Ui.PanelHeader", "Ui.Text", "Ui.SegmentedControl", "Ui.CheckBox", "Ui.EditorButton", "Ui.Banner", "Ui.BusyIndicator", "Ui.EmptyState"]
 signals = ["closeRequested"]
 test_host = "native/node-editor/tests/ui/AccountControlComponentTest.cpp"
 test_scope = "interaction"
-qml_callers = []
+qml_callers = ["native/account/qt/qml/TransferDialog.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.ScrollBar, Ui.PanelHeader, Ui.Text, Ui.SegmentedControl, Ui.CheckBox, Ui.EditorButton, Ui.Banner, Ui.BusyIndicator, Ui.EmptyState"
 
 [[file]]

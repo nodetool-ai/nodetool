@@ -1093,7 +1093,7 @@ private slots:
         QTest::addColumn<QStringList>("labels");
         QTest::newRow("file") << "File" << QStringList{"Open Recent", "Open Timeline…", "New Timeline", "---",
             "Export…", "Quick Export…", "Export Frame…", "---", "Import Premiere XML…", "Export to Premiere Pro…", "---",
-            "Project Settings…", "---", "Settings…", "Quit"};
+            "Project Settings…", "---", "Publish to Cloud…", "Synchronize…", "---", "Settings…", "Quit"};
         QTest::newRow("edit") << "Edit" << QStringList{"Undo", "Redo", "---", "Cut", "Copy", "Paste", "Paste Insert", "Paste Attributes…", "---",
             "Delete", "Ripple Delete", "Duplicate", "Duplicate with Gap", "---",
             "Select All", "Deselect All", "Select Clips at Playhead", "Select Next Clip", "Select Previous Clip", "---", "Label"};
@@ -1140,6 +1140,24 @@ private slots:
         QVERIFY(menus.trigger("panelText"));
         const auto store = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
         QTRY_VERIFY(!store->layout().value("hidden").toStringList().contains("transcript"));
+    }
+    // File > Publish to Cloud and Synchronize stay off, with a reason, while
+    // the editor has no account and no project folder on the bundled server.
+    void transferEntriesNeedAnAccountAndAProjectFolder() {
+        QVERIFY(item("transferDialog"));
+        QVERIFY(!item("transferDialog")->property("available").toBool());
+        const auto menus = openMenus();
+        const auto& items = itemsOf(menus, "File");
+        for (const QString action : {"publishToCloud", "synchronize"}) {
+            const auto row = std::find_if(items.begin(), items.end(), [&](const auto& entry) { return entry.action == action; });
+            QVERIFY2(row != items.end(), qPrintable(action));
+            QVERIFY(!row->enabled);
+            QVERIFY(!row->disabledReason.isEmpty());
+        }
+        nt::app::ShellMenus shell;
+        shell.setAnchor(view->rootObject());
+        QVERIFY(!shell.trigger("publishToCloud"));
+        QVERIFY(!item("transferDialog")->property("active").toBool());
     }
     void removeFillerWordsIsOffUntilThereAreSome() {
         const auto off = [&] {

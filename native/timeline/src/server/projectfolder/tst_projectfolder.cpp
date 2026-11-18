@@ -124,6 +124,41 @@ private slots:
         QCOMPARE(folder.projectId(), QString("personal:1"));
         QCOMPARE(server.documentsAsked, QStringList{"personal:1"});
     }
+    // File > Publish to Cloud and Synchronize need a project folder on this
+    // launch's bundled server: not Personal, not another server.
+    void transferNeedsAProjectOnTheBundledServer() {
+        const QString id("fedcba9876543210fedcba9876543210");
+        Fixture server;
+        server.projects.append(project(id, server.folder.path(), true));
+        const auto model = timelineIn(id);
+        ProjectFolderState folder;
+        folder.setTarget({server.http.base(), "fixture-token", "seq", {}, {}});
+        folder.setTimeline(model.get());
+        qputenv("NT_BUNDLED_SERVER_USERS", server.folder.path().toUtf8());
+        qputenv("NT_BUNDLED_SERVER_URL", server.http.base().toString().toUtf8());
+        QVERIFY(!folder.canTransfer());  // nothing is known before the refresh
+        folder.refresh();
+        QTRY_VERIFY(folder.loaded());
+        QCOMPARE(folder.projectId(), id);
+        QVERIFY(folder.canTransfer());
+        QCOMPARE(folder.serverUrl(), server.http.base());
+        QCOMPARE(folder.serverToken(), QString("fixture-token"));
+        QCOMPARE(folder.bundledServerUrl(), server.http.base());
+        // Another server is not this launch's own.
+        qputenv("NT_BUNDLED_SERVER_URL", "http://127.0.0.1:1");
+        QVERIFY(!folder.canTransfer());
+        qunsetenv("NT_BUNDLED_SERVER_URL");
+        qunsetenv("NT_BUNDLED_SERVER_USERS");
+        QVERIFY(!folder.canTransfer());
+        qputenv("NT_BUNDLED_SERVER_USERS", server.folder.path().toUtf8());
+        qputenv("NT_BUNDLED_SERVER_URL", server.http.base().toString().toUtf8());
+        // Personal has no generated id to link.
+        model->setProjectId("personal:1");
+        QTRY_COMPARE(folder.projectId(), QString("personal:1"));
+        QVERIFY(!folder.canTransfer());
+        qunsetenv("NT_BUNDLED_SERVER_URL");
+        qunsetenv("NT_BUNDLED_SERVER_USERS");
+    }
     void folderNotFoundAndLocate() {
         Fixture server;
         const QString away = server.folder.filePath("moved-away");
