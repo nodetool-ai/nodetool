@@ -762,6 +762,7 @@ export async function commitTransfer(
       transferId: transfer.id,
       now
     });
+    await pausePoint("transfer.commit.conversations-added");
 
     // Step 11: record the attempt and the transfer as committed.
     const documents: { kind: TransferDocumentKind; document_id: string; hash: string }[] = [];
