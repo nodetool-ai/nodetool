@@ -80,6 +80,7 @@ struct HttpRequest {
     bool head = false;
 };
 
+// One owning thread per instance. The client owns its network manager.
 class ServerClient {
 public:
     explicit ServerClient(const QUrl& base, const QString& token = QString(), int timeoutMs = 30000);

@@ -1,4 +1,5 @@
 #include "TestHttpServer.h"
+#include "server/ServerTimelineProbe.h"
 #include "server/AutosaveController.h"
 #include "server/ServerClient.h"
 #include "app/CliModes.h"
@@ -152,7 +153,7 @@ private slots:
         });
         QTemporaryDir cache;
         QVERIFY(cache.isValid());
-        const auto loaded = nt::server::openServerTimeline({server.base(), "settings-test", cache.path(), {}, true});
+        const auto loaded = nt::server::openProbedServerTimeline({server.base(), "settings-test", cache.path(), {}, true});
         QVERIFY2(loaded.timeline, qPrintable(loaded.error));
         TimelineModel model;
         model.setTimeline(*loaded.timeline);

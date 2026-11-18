@@ -11,6 +11,7 @@ the native node editor. The
 | `nodetool_timeline_scene` | Qt Core, Yoga | The document types (`model/TimelineTypes.h`), `TimelineJson`, `TimelineSource`, `scene/`, the motion headers, `SceneEval`, `SceneHooks`, `TransitionResolver`, `CaptionCues`, `CpuUsage` and `AudioClockFeed` |
 | `nodetool_timeline_decode` | `nodetool_timeline_scene`, Qt Gui and GuiPrivate (QRhi), FFmpeg, HarfBuzz, FreeType, the platform's hardware decode libraries | The media sources and their pools (`FfmpegSource`, `SourcePool`, `FrameCache`, `SurfacePool`, `RetireQueue`), the hardware interop (`preview/hw/`), the layer and compose hook registries, the effects, render2d and the effect shaders (`shaders/effects/`) |
 | `nodetool_timeline_effects_registrar`, `nodetool_timeline_render2d_registrar` | `nodetool_timeline_decode` | Object libraries that register the [standard hooks](#standard-hooks) at application startup |
+| `nodetool_timeline_player_server` | Qt Network, `nodetool_timeline_scene` | `TimelineDocumentLoader`, `ServerTimelineLoader`, tRPC, media resolution and cache leases |
 | `yogacore` | none | [Yoga 3.2.1](third_party/yoga/README.md), the flex layout engine, unchanged |
 
 `src/` keeps the folder layout of `native/timeline/src`. Both projects put
@@ -70,6 +71,14 @@ nothing reports an error. A host gets them in one of two ways:
 `nt::missingStandardHooks()` names the registrations that are absent.
 `tst_standardhooks` and `tst_standardhooks_explicit` fail when either way
 leaves a hook out.
+
+## Server loader
+
+Construct `nt::server::ServerTimelineLoader(origin, token, cacheDir)` on the
+UI thread and give it the host's lifetime. Call `load(id)` to receive an
+immutable document and its media leases on that thread. Keep the leases while
+playback uses the cached files. `cancel()` discards the pending result and
+requests worker interruption. A new load supersedes the previous one.
 
 ## Build
 

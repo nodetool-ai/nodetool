@@ -275,7 +275,8 @@ target_link_libraries(nodetool-timeline PRIVATE timeline_audio)
 
 find_package(Qt6 6.12 REQUIRED COMPONENTS Network WebSockets)
 add_library(timeline_server STATIC ${NT_server})
-target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode nodetool_account_server_token Qt6::Network Qt6::WebSockets)
+target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode nodetool_account_server_token Qt6::Network Qt6::WebSockets
+    PRIVATE nodetool_timeline_player_server)
 target_compile_options(timeline_server PRIVATE ${NT_WARNINGS})
 # QML controllers include server headers, including their WebSocket types.
 target_link_libraries(timeline_qml PUBLIC timeline_server)

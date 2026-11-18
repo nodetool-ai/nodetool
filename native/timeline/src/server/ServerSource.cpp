@@ -2,7 +2,7 @@
 
 #include "server/AssetCache.h"
 #include "server/ServerClient.h"
-#include "server/ServerTimeline.h"
+#include "server/ServerTimelineProbe.h"
 
 #include <QDir>
 #include <QFile>
@@ -226,7 +226,7 @@ ParseResult loadTimelineSource(const QString& source) {
     options.cacheRoot = a.cacheDir;
     options.token = a.token;
     options.authorizer = a.authorizer;
-    ServerOpenResult opened = openServerTimeline(options);
+    ServerOpenResult opened = openProbedServerTimeline(options);
 
     QString reportPath = a.reportPath;
     if (reportPath.isEmpty()) {

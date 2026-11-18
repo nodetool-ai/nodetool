@@ -78,6 +78,7 @@ public:
         }
         return n;
     }
+    qsizetype activeConnectionCount() const { return m_server.findChildren<QTcpSocket*>().size(); }
     void clearRequests() {
         QMutexLocker l(&m_mutex);
         m_requests.clear();

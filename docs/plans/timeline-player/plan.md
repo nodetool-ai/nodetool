@@ -310,6 +310,10 @@ Medium: about 2k lines moved and 200 new lines. This step can merge before S5.
   `ServerTimeline`. Add the asynchronous `ServerTimelineLoader`.
 - `timeline_server` keeps `ServerSource` and `AutosaveController` and links the
   new library.
+- `openServerTimeline` can run on a `QThread` with an event dispatcher. Its
+  network objects live on the calling thread. Cache locks serialize writes,
+  and a mutex protects leases shared across threads. The timeline app passes
+  its FFmpeg probe to preserve media diagnostics.
 - Gate: `tst_serverclient`, `tst_assetcache`, `tst_serveridentity`,
   `tst_autosave`, `tst_colorspaceversion`, and a new
   `tst_servertimelineloader`.
@@ -381,14 +385,11 @@ Medium: about 500 new lines, and packaging. Decide D2 first.
 - Why the node editor uses the software backend (see D1).
 - How `scripts/test-affected-native.mjs` finds projects. Only the CI wrapper
   was read.
-- Whether `openServerTimeline` is safe on a thread other than the GUI thread.
-  `ServerClient` owns its own `QNetworkAccessManager`, which suggests that it
-  is.
 
 ## Files to read first
 
 - `native/timeline/src/preview/PreviewCompositor.cpp`
 - `native/timeline/CMakeLists.txt`
 - `native/ui_primitives/tools/check_dependencies.py`
-- `native/timeline/src/server/ServerTimeline.h`
+- `native/timeline-player/src/server/ServerTimeline.h`
 - `native/node-editor/src/ui/EditorTabs.cpp`

@@ -28,19 +28,19 @@
 #include <QString>
 #include <QUrl>
 
+#include <functional>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace nt::server {
-
-class ServerClient;
 
 struct ServerOpenOptions {
     QUrl server;
     QString timelineId;
     QString cacheRoot;
     QString token;
-    bool probeMedia = true;  // run probeMedia (D10a) on each picture file
+    bool probeMedia = true;  // invoke the supplied D10a probe on each picture file
     QString expectedInstance;
     // Set for a cloud timeline: each request is authorized through the
     // account (ServerClient::setAuthorizer). Last, so the brace-initialized
@@ -57,10 +57,17 @@ struct ServerOpenResult {
     std::vector<AssetCache::Lease> mediaLeases; // keep fetched files through model adoption
 };
 
-ServerOpenResult openServerTimeline(const ServerOpenOptions& options);
+// The optional diagnostic probe returns a rejection reason, or an empty
+// string for usable media. It runs on the thread doing the load.
+using MediaProbe = std::function<QString(const std::string& path)>;
+
+// Blocking. Call on a QThread with an event dispatcher. The client, cache
+// and network objects are local to the call. Any callbacks run on that thread.
+ServerOpenResult openServerTimeline(const ServerOpenOptions& options, const MediaProbe& probe = {});
 // Resolve a recovered local document's assets without fetching or replacing
 // the current server timeline or its last-load raw backup.
-ServerOpenResult resolveTimelineDocumentMedia(const ServerOpenOptions& options, const QJsonObject& raw);
+ServerOpenResult resolveTimelineDocumentMedia(const ServerOpenOptions& options, const QJsonObject& raw,
+                                              const MediaProbe& probe = {});
 
 // Normalize a supported asset reference for assets.get.
 QString assetIdForReference(const QString& reference);

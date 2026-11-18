@@ -1,4 +1,5 @@
 #include "server/AutosaveController.h"
+#include "server/ServerTimelineProbe.h"
 #include "server/AssetCache.h"
 #include "server/sync/DocumentApplier.h"
 
@@ -296,7 +297,7 @@ void AutosaveController::fetchExternal(bool recovery) {
     auto* worker = QThread::create([options, result] {
         const auto finished = qScopeGuard([] { --liveWorkers; });
         // openServerTimeline owns its ServerClient on this worker thread.
-        *result = openServerTimeline(options);
+        *result = openProbedServerTimeline(options);
     });
     connect(worker, &QThread::finished, this, [guard, result, recovery] {
         if (!guard) {
@@ -741,7 +742,7 @@ bool AutosaveController::restoreEarlierCopy(QObject* timeline) {
     m_restoringEarlier = true;
     m_earlierCopyError.clear();
     auto* worker = QThread::create([options, raw, result] {
-        *result = resolveTimelineDocumentMedia(options, raw);
+        *result = resolveProbedTimelineDocumentMedia(options, raw);
     });
     connect(worker, &QThread::finished, this, [guard, target, result, raw, startingHash] {
         if (!guard) return;

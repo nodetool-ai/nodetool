@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.24)
 # The timeline player shared by native/timeline and the node editor:
 # nodetool_timeline_scene (the timeline document, its JSON parser and scene
 # evaluation, with Qt Core and Yoga only) and nodetool_timeline_decode (the
-# media sources, the GPU effects, the hook registries and render2d).
+# media sources, the GPU effects, the hook registries and render2d), and
+# nodetool_timeline_player_server (the server loader, Qt Network).
 # native/timeline adds this directory with add_subdirectory and links the
 # libraries into timeline_core and timeline_decode.
 project(NodeToolTimelinePlayer LANGUAGES CXX)
@@ -21,7 +22,7 @@ endif()
 # GuiPrivate carries the include path of the semi-public QRhi API (<rhi/qrhi.h>),
 # which is only compatible within one Qt minor version.
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
-find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui GuiPrivate ShaderTools Test)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui GuiPrivate Network ShaderTools Test)
 if(Qt6_VERSION VERSION_GREATER_EQUAL 6.13)
     message(FATAL_ERROR "The timeline player is tested with Qt 6.12 (private QRhi API). Found ${Qt6_VERSION}.")
 endif()
@@ -252,6 +253,24 @@ if(NOT PROJECT_IS_TOP_LEVEL)
     set(NT_PLAYER_DECODE_PLATFORM_LIBS ${NT_PLAYER_DECODE_PLATFORM_LIBS} PARENT_SCOPE)
     set(NT_PLAYER_HAVE_VAAPI_VULKAN ${NT_PLAYER_HAVE_VAAPI_VULKAN} PARENT_SCOPE)
 endif()
+
+add_library(nodetool_timeline_player_server STATIC
+    src/model/TimelineDocumentLoader.h
+    src/server/AssetCache.h
+    src/server/AssetCache.cpp
+    src/server/FieldAudit.h
+    src/server/FieldAudit.cpp
+    src/server/ServerClient.h
+    src/server/ServerClient.cpp
+    src/server/ServerIdentity/ServerIdentity.h
+    src/server/ServerIdentity/ServerIdentity.cpp
+    src/server/ServerTimeline.h
+    src/server/ServerTimeline.cpp
+    src/server/ServerTimelineLoader.h
+    src/server/ServerTimelineLoader.cpp)
+set_target_properties(nodetool_timeline_player_server PROPERTIES AUTOMOC ON)
+target_link_libraries(nodetool_timeline_player_server PUBLIC nodetool_timeline_scene Qt6::Network)
+target_compile_options(nodetool_timeline_player_server PRIVATE ${NT_PLAYER_WARNINGS})
 
 if(BUILD_TESTING)
     qt_add_executable(tst_cpuusage tests/tst_cpuusage.cpp)

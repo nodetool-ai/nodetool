@@ -4,7 +4,7 @@
 #include "server/AssetCache.h"
 #include "server/FieldAudit.h"
 #include "server/ServerClient.h"
-#include "server/ServerTimeline.h"
+#include "server/ServerTimelineProbe.h"
 #include "TestHttpServer.h"
 #include "TrickleHttpServer.h"
 
@@ -932,7 +932,7 @@ private slots:
         options.server = http.base();
         options.timelineId = QStringLiteral("seq1");
         options.cacheRoot = dir.path();
-        const ServerOpenResult r = openServerTimeline(options);
+        const ServerOpenResult r = openProbedServerTimeline(options);
         QVERIFY2(r.timeline, qPrintable(r.error));
         auto clip = [&](const char* id) -> const nt::Clip& {
             for (const nt::Clip& c : r.timeline->clips) {
@@ -1003,7 +1003,7 @@ private slots:
 
         // Warm cache: no byte is downloaded again.
         http.clearRequests();
-        const ServerOpenResult warm = openServerTimeline(options);
+        const ServerOpenResult warm = openProbedServerTimeline(options);
         QVERIFY(warm.timeline);
         QCOMPARE(warm.report.value(u"summary").toObject().value(u"downloads").toInt(), 0);
         QCOMPARE(http.countRequests("GET", "/api/storage/"), 0);
@@ -1145,7 +1145,7 @@ private slots:
         };
         ServerOpenResult result;
         // Owns the loading thread; joined below before `result` is read.
-        auto worker = std::unique_ptr<QThread>(QThread::create([&] { result = openServerTimeline(options); }));
+        auto worker = std::unique_ptr<QThread>(QThread::create([&] { result = openProbedServerTimeline(options); }));
         worker->start();
         QTRY_VERIFY(http.countRequests("GET", mediaPath) >= 1);
         signedOut = true;
@@ -1183,7 +1183,7 @@ private slots:
         options.server = http.base();
         options.timelineId = QStringLiteral("s1");
         options.cacheRoot = dir.path();
-        const ServerOpenResult first = openServerTimeline(options);
+        const ServerOpenResult first = openProbedServerTimeline(options);
         const QString backup = first.report.value(u"rawDocument").toString();
         QVERIFY(QFileInfo::exists(backup));
         const QByteArray before = [&] { QFile f(backup); return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray(); }();
@@ -1196,7 +1196,7 @@ private slots:
         QFile blocker(folder);
         QVERIFY(blocker.open(QIODevice::WriteOnly));
         blocker.close();
-        const ServerOpenResult second = openServerTimeline(options);
+        const ServerOpenResult second = openProbedServerTimeline(options);
         QVERIFY(QFile::remove(folder));
         QVERIFY(QDir().rename(held, folder));
         QVERIFY(second.timeline);  // a backup failure is not a load error
@@ -1216,7 +1216,7 @@ private slots:
         options.server = http.base();
         options.timelineId = QStringLiteral("nope");
         options.cacheRoot = dir.path();
-        const ServerOpenResult r = openServerTimeline(options);
+        const ServerOpenResult r = openProbedServerTimeline(options);
         QVERIFY(!r.timeline);
         QVERIFY2(r.error.contains(QStringLiteral("NOT_FOUND")), qPrintable(r.error));
         QVERIFY(r.report.contains(QStringLiteral("error")));

@@ -1,4 +1,5 @@
 #include "CloudTimelineSaver.h"
+#include "server/ServerTimelineProbe.h"
 
 #include "model/TimelineModel.h"
 #include "nodetool/account/account_session.h"
@@ -181,7 +182,7 @@ void CloudTimelineSaver::applyDraft(const QString& text) {
     // handler on the UI thread, which reads it after the worker ended.
     auto result = std::make_shared<server::ServerOpenResult>();
     auto* worker = QThread::create([options, raw, result] {
-        *result = server::resolveTimelineDocumentMedia(options, raw);
+        *result = server::resolveProbedTimelineDocumentMedia(options, raw);
     });
     // Parented to this object, which waits for it in its destructor.
     worker->setParent(this);

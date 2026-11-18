@@ -1,7 +1,6 @@
 #include "server/ServerTimeline.h"
 
 #include "model/TimelineJson.h"
-#include "preview/FfmpegSource.h"
 #include "server/FieldAudit.h"
 #include "server/ServerClient.h"
 
@@ -156,7 +155,8 @@ std::optional<RemoteFile> proxyFile(const ServerClient& client, const QJsonObjec
 }
 
 static ServerOpenResult openServerTimelineImpl(const ServerOpenOptions& options,
-                                               const std::optional<QJsonObject>& sourceDocument) {
+                                               const std::optional<QJsonObject>& sourceDocument,
+                                               const MediaProbe& probe) {
     QElapsedTimer total;
     total.start();
     ServerOpenResult out;
@@ -509,19 +509,18 @@ static ServerOpenResult openServerTimelineImpl(const ServerOpenOptions& options,
     // D10a facts per picture file, once per file.
     step.restart();
     QJsonArray rejected;
-    if (options.probeMedia) {
-        std::map<std::string, MediaFacts> facts;
+    if (options.probeMedia && probe) {
+        std::map<std::string, QString> rejections;
         for (const Clip& clip : tl.clips) {
             if (clip.mediaPath.empty() || !needsPicture(clip.mediaType)) continue;
             if (QString::fromStdString(clip.mediaPath).startsWith(missingDir)) continue;
-            auto it = facts.find(clip.mediaPath);
-            if (it == facts.end()) it = facts.emplace(clip.mediaPath, probeMedia(clip.mediaPath)).first;
-            const MediaFacts& f = it->second;
-            if (f.usable()) continue;
+            auto it = rejections.find(clip.mediaPath);
+            if (it == rejections.end()) it = rejections.emplace(clip.mediaPath, probe(clip.mediaPath)).first;
+            if (it->second.isEmpty()) continue;
             rejected.append(QJsonObject{{QStringLiteral("clipId"), QString::fromStdString(clip.id)},
                                         {QStringLiteral("assetId"), clip.raw.value(u"currentAssetId").toString()},
                                         {QStringLiteral("path"), QString::fromStdString(clip.mediaPath)},
-                                        {QStringLiteral("reason"), QString::fromStdString(!f.opened ? f.error : f.rejection)}});
+                                        {QStringLiteral("reason"), it->second}});
         }
     }
     timings.insert(QStringLiteral("probeMs"), static_cast<double>(step.elapsed()));
@@ -547,12 +546,13 @@ static ServerOpenResult openServerTimelineImpl(const ServerOpenOptions& options,
     return out;
 }
 
-ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
-    return openServerTimelineImpl(options, std::nullopt);
+ServerOpenResult openServerTimeline(const ServerOpenOptions& options, const MediaProbe& probe) {
+    return openServerTimelineImpl(options, std::nullopt, probe);
 }
 
-ServerOpenResult resolveTimelineDocumentMedia(const ServerOpenOptions& options, const QJsonObject& raw) {
-    return openServerTimelineImpl(options, raw);
+ServerOpenResult resolveTimelineDocumentMedia(const ServerOpenOptions& options, const QJsonObject& raw,
+                                              const MediaProbe& probe) {
+    return openServerTimelineImpl(options, raw, probe);
 }
 
 }  // namespace nt::server

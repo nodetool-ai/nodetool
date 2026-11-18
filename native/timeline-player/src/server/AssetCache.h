@@ -58,7 +58,8 @@ struct FetchResult {
     bool ok() const { return !path.isEmpty(); }
 };
 
-// native-rules #9: used from worker threads and the UI thread, no affinity comment
+// Fetches can run on multiple threads after configuration. Each fetching
+// thread owns its network objects. Callbacks must support that concurrency.
 class AssetCache {
 public:
     using Decorate = std::function<void(QNetworkRequest&)>;
@@ -67,7 +68,8 @@ public:
     // True when the fetch must stop, such as after the account signed out.
     // Called on the fetching thread, so it must be thread-safe.
     using Cancelled = std::function<bool()>;
-    // native-rules #1: std::shared_ptr lease alias with no comment on why unique ownership is impossible
+    // Readers of the same cached file can finish independently. The file
+    // stays pinned until the last lease is released.
     using Lease = std::shared_ptr<const QString>;
 
     // `cancelled` is asked before each request, redirect and retry, and

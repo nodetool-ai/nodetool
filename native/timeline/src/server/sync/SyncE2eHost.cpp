@@ -5,7 +5,7 @@
 #include "preview/hw/HwWindow.h"
 #include "server/AssetCache.h"
 #include "server/AutosaveController.h"
-#include "server/ServerTimeline.h"
+#include "server/ServerTimelineProbe.h"
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
     const auto id = parser.value("timeline");
     const auto cache = parser.value("cache-dir");
     const auto token = parser.isSet("token") ? parser.value("token") : qEnvironmentVariable("NODETOOL_API_TOKEN");
-    auto opened = nt::server::openServerTimeline({server, id, cache, token, true});
+    auto opened = nt::server::openProbedServerTimeline({server, id, cache, token, true});
     if (!opened.timeline) {
         std::fprintf(stderr, "open: %s\n", qPrintable(opened.error));
         return 1;

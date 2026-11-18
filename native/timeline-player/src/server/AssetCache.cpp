@@ -409,7 +409,15 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
     }
     const QString dir = variantDir(assetId, variant);
     const auto threadLock = folderMutex(dir);
-    std::lock_guard inProcess(*threadLock);
+    // An interrupted loader must exit even when another fetch holds the variant.
+    std::unique_lock inProcess(*threadLock, std::defer_lock);
+    while (!inProcess.try_lock()) {
+        if (stopRequested()) {
+            result.error = QStringLiteral("asset download cancelled");
+            return result;
+        }
+        QThread::msleep(25);
+    }
     // Serialize creation as well as downloads. Another process can still
     // create the directory, so check the postcondition after mkpath fails.
     if (!QDir().mkpath(dir) && !QFileInfo(dir).isDir()) {
@@ -418,9 +426,15 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
     }
     QLockFile processLock(QDir(dir).filePath(QStringLiteral(".lock")));
     processLock.setStaleLockTime(0);  // stale only when the holder process is gone
-    if (!processLock.lock()) {
-        result.error = QStringLiteral("cannot lock %1").arg(dir);
-        return result;
+    while (!processLock.tryLock(25)) {
+        if (stopRequested()) {
+            result.error = QStringLiteral("asset download cancelled");
+            return result;
+        }
+        if (processLock.error() != QLockFile::LockFailedError) {
+            result.error = QStringLiteral("cannot lock %1").arg(dir);
+            return result;
+        }
     }
 
     RemoteFile cur = file;

@@ -15,7 +15,6 @@
 
 #include <algorithm>
 #include <utility>
-#include "nodetool/account/qt/ServerToken.h"
 
 namespace nt::server {
 
@@ -104,14 +103,20 @@ void ServerClient::decorate(QNetworkRequest& request) const {
     // to an external storage URL (signed S3 or Supabase).
     if (!isServerOrigin(request.url())) return;
     request.setRawHeader("X-Nodetool-Client", kClientHeader);
-    if (!m_authorizer) {
-        nodetool::account::qt::attachServerToken(request, m_base, m_token);
-        return;
+    RequestAuthorization authorization = m_authorizer ? m_authorizer() : RequestAuthorization{m_token, {}};
+    const auto scheme = m_base.scheme();
+    const bool httpOrigin = scheme == u"http" || scheme == u"https";
+    if (!authorization.token.isEmpty() && httpOrigin && !m_base.host().isEmpty()) {
+        request.setRawHeader("Authorization", "Bearer " + authorization.token.toUtf8());
+        const QVariant policy = request.attribute(QNetworkRequest::RedirectPolicyAttribute);
+        if (!policy.isValid() || policy.toInt() != QNetworkRequest::ManualRedirectPolicy) {
+            request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::SameOriginRedirectPolicy);
+        }
     }
-    RequestAuthorization authorization = m_authorizer();
-    nodetool::account::qt::attachServerToken(request, m_base, authorization.token);
-    const std::lock_guard lock(m_authMutex);
-    m_signedOut = std::move(authorization.signedOut);
+    if (m_authorizer) {
+        const std::lock_guard lock(m_authMutex);
+        m_signedOut = std::move(authorization.signedOut);
+    }
 }
 
 bool ServerClient::cancelled() const {

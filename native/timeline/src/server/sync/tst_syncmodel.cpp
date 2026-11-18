@@ -1,4 +1,5 @@
 #include "app/PanelRegistry.h"
+#include "server/ServerTimelineProbe.h"
 #include "app/EditRegistry.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -393,7 +394,7 @@ private slots:
                 : server;
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", data}}}}).toJson();
         });
-        auto fetched = openServerTimeline({http.base(), "seq", cache.path(), {}, true});
+        auto fetched = openProbedServerTimeline({http.base(), "seq", cache.path(), {}, true});
         QVERIFY2(fetched.timeline, qPrintable(fetched.error));
         const auto replacement = fetched.timeline->clips[0];
         QVERIFY(!replacement.mediaPath.empty());

@@ -1733,7 +1733,7 @@ can write back the fields the model does not own.
 | `src/platform/PlatformStubs.cpp` | Linux and Windows: no-op App Nap and occlusion hooks |
 | `src/preview/RetireQueue.h` | Releases a replaced frame's GPU resources after `FramesInFlight` frames (D11) |
 | `src/platform/` | `ProcessActivity` (no App Nap during measured runs) and `CpuUsage` (process and thread CPU time) |
-| `src/server/` | `ServerClient` (tRPC GET), `AssetCache` (D33 disk cache, Range resume), `FieldAudit` and `ServerTimeline` (the loader report), `ServerSource` (the `--server` arguments) |
+| `src/server/` | `ServerSource` (the `--server` arguments), autosave and the FFmpeg probe passed to the [shared server loader](../timeline-player/README.md#server-loader) |
 | `src/preview/SourcePool` | Opens, pre-rolls and closes decoders (D18), draws placeholders for rejected media, keeps the loader report. Decoders are stopped and joined on a retire thread, never on the render thread |
 | `shaders/` | Textured quad with a per-layer matrix and opacity, RGBA or YUV planes, premultiplied "over" |
 | `qml/` | `TimelineEditor`, `preview/PreviewArea`, `Tracks/*`, named after the React components in `web/src/components/timeline/` |
