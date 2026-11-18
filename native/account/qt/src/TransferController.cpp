@@ -1,5 +1,7 @@
 #include "nodetool/account/qt/TransferController.h"
 
+#include "nodetool/account/origin.h"
+
 #include "nodetool/account/account_session.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
 #include "TaskQueue.h"
@@ -293,6 +295,12 @@ void TransferController::start() {
   }
   if (!serverUrl_.isValid() || projectId_.isEmpty()) {
     fail(tr("This project has no server to send it from."));
+    return;
+  }
+  // The app's bundled server runs the transfer and receives the account's
+  // access token. A project open on another server is not sent from it.
+  if (!isLoopbackHttpOrigin(origin())) {
+    fail(tr("Only projects on this computer can be published or synchronized."));
     return;
   }
   const quint64 sequence = ++sequence_;

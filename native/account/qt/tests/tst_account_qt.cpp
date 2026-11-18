@@ -42,6 +42,8 @@ using namespace nodetool::account::qt;
 namespace {
 
 constexpr const char* kServer = "https://nt.example";
+// The app's bundled server, where a transfer runs.
+constexpr const char* kLocalServer = "http://127.0.0.1:7777";
 
 // A local HTTP server that answers every request with one canned response,
 // and records the last request's head. An empty response never answers. A
@@ -263,7 +265,10 @@ public:
   }
   HttpResponse send(const HttpRequest& request) override {
     const std::lock_guard lock(mutex_);
-    std::string path = request.url.substr(std::string(kServer).size());
+    // The path after the origin, whichever server the request went to.
+    const auto host = request.url.find("://");
+    const auto slash = host == std::string::npos ? std::string::npos : request.url.find('/', host + 3);
+    std::string path = slash == std::string::npos ? std::string() : request.url.substr(slash);
     if (path.starts_with("/trpc/")) {
       path = path.substr(6);
     }
@@ -1385,7 +1390,7 @@ private slots:
 
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
-    transfer.setServerUrl(QUrl(kServer));
+    transfer.setServerUrl(QUrl(kLocalServer));
     transfer.setServerToken("local-token");
     transfer.setProjectId(QString(32, 'p'));
     transfer.setLinked(true);
@@ -1438,6 +1443,28 @@ private slots:
     QVERIFY(!transfer.result().value("published").toBool());
   }
 
+  // A transfer runs only through the app's bundled server. A server off
+  // this computer, such as an editor's remote server, gets no request and
+  // so never sees the account's access token (review F16).
+  void transferRunsOnlyOnTheBundledServer() {
+    Computer computer;
+    computer.server.addCode("code-r", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-r");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    QueueServer server;
+    for (const char* url : {"https://editor.example", "http://192.168.1.4:7777", kServer}) {
+      TransferController transfer(std::make_unique<SharedTransport>(server));
+      transfer.setAccount(account.get());
+      transfer.setServerUrl(QUrl(url));
+      transfer.setServerToken("local-token");
+      transfer.setProjectId(QString(32, 'p'));
+      transfer.start();
+      QCOMPARE(transfer.stage(), TransferController::Stage::Failed);
+    }
+    QVERIFY(server.calls().empty());
+  }
+
   // Publish: a send the cloud refuses for a document changed since the
   // sheet was read asks again. Cancel ends the captured send. Signed out,
   // nothing is sent.
@@ -1463,7 +1490,7 @@ private slots:
 
     TransferController transfer(std::make_unique<SharedTransport>(server));
     transfer.setAccount(account.get());
-    transfer.setServerUrl(QUrl(kServer));
+    transfer.setServerUrl(QUrl(kLocalServer));
     transfer.setProjectId(QString(32, 'p'));
     transfer.setProjectName("Film");
     transfer.start();

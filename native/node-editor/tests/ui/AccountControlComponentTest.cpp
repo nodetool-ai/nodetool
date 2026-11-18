@@ -478,13 +478,13 @@ private slots:
         auto *server = transport.get();
         nodetool::account::qt::TransferController controller(std::move(transport));
         controller.setAccount(account.get());
-        controller.setServerUrl(QUrl("https://nt.example"));
+        controller.setServerUrl(QUrl("http://127.0.0.1:7777"));
         controller.setProjectId(QString(32, 'p'));
         controller.setLinked(true);
 
         QQuickView view;
         view.setInitialProperties({{"account", QVariant::fromValue<AccountController *>(nullptr)},
-                                   {"serverUrl", QUrl("https://nt.example")},
+                                   {"serverUrl", QUrl("http://127.0.0.1:7777")},
                                    {"projectId", QString(32, 'p')},
                                    {"linked", true},
                                    {"controller", QVariant::fromValue(&controller)}});
