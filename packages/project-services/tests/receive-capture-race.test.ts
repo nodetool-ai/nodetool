@@ -24,6 +24,7 @@ import { startPostgresServer, type PostgresServer } from "../../models/tests/hel
 
 const OWNER = "user-owner";
 const HELD = "receive.capture.document-held";
+const LISTED = "receive.capture.members-listed";
 
 function id(): string {
   return randomBytes(16).toString("hex");
@@ -111,5 +112,44 @@ describe("a project capture racing a save on PostgreSQL", { timeout: 120_000 }, 
 
     const hashes = new Map(set.documents.map((document) => [document.document_id, document.content_hash]));
     expect(hashes).toEqual(before);
+  });
+
+  it("captures a document a commit adds together with the commit's other changes (review F47)", async () => {
+    const projectId = id();
+    await Project.create<Project>({ id: projectId, user_id: OWNER, name: "Members", kind: "project" });
+    const one = await workflowIn(projectId, "One");
+    const after = { nodes: [{ id: "n1", type: "nodetool.constant.String", data: { value: "after" } }], edges: [] };
+
+    gate = new PauseGate([LISTED]).install();
+    const captured = captureRevisionSet(host, OWNER, { project_id: projectId });
+    await gate.waitFor(LISTED);
+    // One commit changes the listed document and adds another, and stays
+    // open until the capture waits on the changed document's row.
+    let finish!: () => void;
+    const held = new Promise<void>((resolve) => (finish = resolve));
+    let changed!: () => void;
+    const changedOne = new Promise<void>((resolve) => (changed = resolve));
+    let added = "";
+    const saved = withTransaction(async () => {
+      const workflow = await Workflow.get<Workflow>(one.id);
+      workflow!.graph = after;
+      await workflow!.save();
+      added = (await workflowIn(projectId, "Added")).id;
+      changed();
+      await held;
+    });
+    await changedOne;
+    gate.release(LISTED);
+    gate.uninstall();
+    gate = null;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    finish();
+    await saved;
+    const set = await captured;
+
+    const afterHash = identityHash(await transferPayloadOf("workflow", one.id));
+    const hashes = new Map(set.documents.map((document) => [document.document_id, document.content_hash]));
+    expect(hashes.get(one.id)).toBe(afterHash);
+    expect(hashes.has(added)).toBe(true);
   });
 });
