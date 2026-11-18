@@ -81,7 +81,8 @@ struct CurrentAccess {
 
 // Asks the server for the account's role on the document. A reopened
 // document uses this role; a role kept on this computer is a hint for when
-// the server cannot be reached (review F4).
+// the server cannot be reached (review F4). Any other role is an invalid
+// response: Refused with INVALID_RESPONSE (review F55).
 CurrentAccess readCurrentAccess(CloudClient& client, const std::string& kind, const std::string& id);
 
 // The document's links, the enabled ones first, and its people.

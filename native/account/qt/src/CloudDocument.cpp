@@ -255,6 +255,15 @@ void CloudDocument::open() {
         }
       });
     }
+    // A kept role this app does not know grants nothing, so the document
+    // opens read-only (review F55).
+    if (services.role != "owner" && services.role != "editor" && services.role != "viewer") {
+      services.role = "viewer";
+      state->toUi([](CloudDocument& document) {
+        document.role_ = QStringLiteral("viewer");
+        emit document.stateChanged();
+      });
+    }
     state->saver->setAccess(services.documentId, {services.role == "viewer" ? "viewer" : "editor", {}});
     const OpenedDocument opened = state->saver->open(state->key);
     if (opened.status != SaveStatus::Ok) {

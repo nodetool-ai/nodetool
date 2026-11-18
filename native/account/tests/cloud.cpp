@@ -1537,6 +1537,13 @@ void readsTheCurrentAccessOfEachKind(TestContext& t) {
   }
   CHECK(sawTimeline);
   CHECK(readCurrentAccess(server.client, "unknown", "x").status == CloudListStatus::Refused);
+  // Review F55: a role this client does not know is an invalid answer, not a role.
+  ListServer unknownRole;
+  unknownRole.answers["workflows.sharing.access"] = {200, R"({"result":{"data":{"json":{"access":{"role":"admin"}}}}})"};
+  const CurrentAccess unknown = readCurrentAccess(unknownRole.client, "workflow", "w1");
+  CHECK(unknown.status == CloudListStatus::Refused);
+  CHECK(unknown.reason == "INVALID_RESPONSE");
+  CHECK(unknown.role.empty());
   ListServer offline;
   offline.answers["workflows.sharing.access"] = {503, "{}"};
   CHECK(readCurrentAccess(offline.client, "workflow", "w1").status == CloudListStatus::Offline);

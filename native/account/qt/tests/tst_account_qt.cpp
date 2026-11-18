@@ -1144,11 +1144,19 @@ private slots:
     QCOMPARE(offline->role(), QString("viewer"));
     QVERIFY(offline->readOnly());
 
+    // A kept role this app does not know opens read-only (review F55).
+    auto unknownKept = openAs("admin");
+    QSignalSpy unknownOpened(unknownKept.get(), &CloudDocument::opened);
+    unknownKept->open();
+    QTRY_COMPARE(unknownOpened.count(), 1);
+    QVERIFY(unknownKept->readOnly());
+
     // The server refuses the access read or answers something unreadable,
     // and the document read still works: a kept editor role is not used
-    // (review F25).
+    // (review F25). A role the app does not know is unreadable too (review F55).
     for (const HttpResponse& answer : {HttpResponse{403, R"({"error":{"json":{"data":{"apiCode":"FORBIDDEN"}}}})"},
-                                       HttpResponse{200, R"({"result":{"data":{"nothing":1}}})"}}) {
+                                       HttpResponse{200, R"({"result":{"data":{"nothing":1}}})"},
+                                       HttpResponse{200, R"({"result":{"data":{"access":{"role":"admin"}}}})"}}) {
       server.answer("workflows.sharing.access", answer);
       auto refused = openAs("editor");
       QSignalSpy refusedOpened(refused.get(), &CloudDocument::opened);
