@@ -245,6 +245,44 @@ export abstract class DBModel {
     return match ? (new this(match as Record<string, unknown>) as T) : null;
   }
 
+  /**
+   * Inserts this row only while its key is free, and returns whether it did.
+   * `create` and `save` are upserts, so a caller that must not take over a
+   * row another writer holds uses this instead: a concurrent insert of the
+   * same key waits for the other transaction and then finds the key taken.
+   * The project rule of `save` applies.
+   */
+  async insertIfAbsent(): Promise<boolean> {
+    this.beforeSave();
+    const ctor = this.constructor as typeof DBModel;
+    const row = this.toRow();
+    const projectId = row["project_id"];
+    const userId = row["user_id"];
+    if (
+      typeof projectId === "string" &&
+      projectId !== "default" &&
+      typeof userId === "string" &&
+      !allowLegacyProjectWritesForTests()
+    ) {
+      const [project] = await getPortableDb()
+        .select({ deletedAt: projects.deleted_at })
+        .from(projects)
+        .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)))
+        .limit(1);
+      if (!project) throw new Error("Project not found");
+      if (project.deletedAt) throw new Error("Project has been deleted");
+    }
+    const pkCol = getTableColumn(ctor.table, ctor.primaryKey);
+    const inserted = await getPortableDb()
+      .insert(ctor.table)
+      .values(row)
+      .onConflictDoNothing()
+      .returning({ key: pkCol as SQLiteColumn });
+    if (inserted.length === 0) return false;
+    ModelObserver.notify(this, ModelChangeEvent.CREATED);
+    return true;
+  }
+
   beforeSave(): void {}
 
   async save(): Promise<this> {
