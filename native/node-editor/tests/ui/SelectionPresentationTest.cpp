@@ -8,6 +8,7 @@
 #include <QPainter>
 #include <QQmlEngine>
 #include <QQuickWidget>
+#include <QSettings>
 #include <QScrollBar>
 #include <QVariantAnimation>
 #include <QtNodes/internal/ConnectionGraphicsObject.hpp>

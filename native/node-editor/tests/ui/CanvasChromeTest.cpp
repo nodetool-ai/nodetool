@@ -1,4 +1,5 @@
 #include "../support/WidgetCanvasFixture.h"
+#include "../support/OverlayProbe.h"
 #include "../support/DarkCanvasTheme.h"
 #include "graph/EditorScene.h"
 #include "ui/QuickCanvas.h"
@@ -8,6 +9,7 @@
 #include "run/NodeRuntimeModel.h"
 #include <QDir>
 #include <QPainter>
+#include <QSettings>
 #include <QtNodes/internal/ConnectionGraphicsObject.hpp>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtNodes/ConnectionStyle>
@@ -171,6 +173,36 @@ private:
     }
 
 private slots:
+    void miniMapControlsShareTheQuickScene() {
+        if (!QuickCanvas::selected()) { QSKIP("Requires the Quick canvas"); }
+        QSettings().setValue("canvas-chat-dock/collapsed", true);
+        EditorWindow window;
+        window.resize(1440, 900);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        window.setMiniMapColorMode("default");
+        window.setMiniMapVisible(true);
+        const auto controls = test::overlay(window, "MiniMapControls.qml", true);
+        const auto zoom = test::overlay(window, "ViewportIndicator.qml", true);
+        const auto map = test::overlay(window, "mini-map");
+        QVERIFY(controls && zoom && map);
+        QCOMPARE(controls->quickWindow(), map->quickWindow());
+        QCOMPARE(zoom->quickWindow(), map->quickWindow());
+        auto *colors = test::findOverlayItem(*controls->rootObject(), "mini-map-colors");
+        QVERIFY(colors);
+        const auto click = [&](QQuickItem &item) {
+            QTest::mouseClick(controls->inputWidget(), Qt::LeftButton, {},
+                              item.mapToScene(QPointF(item.width(), item.height()) / 2).toPoint());
+        };
+        click(*colors);
+        QQuickItem *type = nullptr;
+        QTRY_VERIFY((type = test::findOverlayItem(*controls->quickWindow()->contentItem(),
+                                                 "mini-map-color-type")) && type->isVisible());
+        click(*type);
+        QTRY_COMPARE(window.miniMapColorMode(), QString("type"));
+        QTRY_VERIFY(test::findOverlayItem(*controls->rootObject(), "mini-map-legend")->isVisible());
+    }
+
     // nodes.states.css .react-flow__node.bypassed: opacity 0.8 and saturate(0.2)
     // on the whole node, handles included.
     void disabledCardIsDesaturated() {

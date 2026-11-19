@@ -1,3 +1,4 @@
+#include <memory>
 #pragma once
 #include <QObject>
 #include <QPointer>
@@ -13,6 +14,7 @@
 class QQmlEngine;
 class QQuickWidget;
 namespace nodetool {
+class CanvasOverlay;
 class CanvasSurface;
 class WorkflowGraphModel;
 class EditorSceneApi;
@@ -83,7 +85,7 @@ private:
   EditorSceneApi &scene_;
   CanvasSurface &canvas_;
   QPointer<QQmlEngine> engine_;
-  QPointer<QQuickWidget> widget_;
+  std::unique_ptr<CanvasOverlay> widget_;
   QJsonArray catalog_;
   // One row with its search text folded once.
   // One row with its search text folded once, and the node fields the ranking reads.

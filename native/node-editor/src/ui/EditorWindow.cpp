@@ -1,3 +1,6 @@
+#include "canvas/GraphCanvas.h"
+#include "canvas/MiniMapItem.h"
+#include "ui/CanvasOverlay.h"
 #include "document/ChildPorts.h"
 #include "properties/CodeHighlighter.h"
 #include "EditorWindow.h"
@@ -463,7 +466,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   // NODETOOL_NODE_EDITOR_CANVAS=quick selects the Qt Quick canvas
   // (docs/plans/node-editor-quick-canvas/plan.md, Q3). QtNodes stays the default.
   if (QuickCanvas::selected()) {
-    auto quick = std::make_unique<QuickCanvas>(model_, *this);
+    auto quick = std::make_unique<QuickCanvas>(model_, *this, engine_);
+    quick->graphCanvas().viewportWheel = [this](QWheelEvent &wheel) {
+      canvas_->scene().interaction().viewportWheel(wheel.pixelDelta(), wheel.angleDelta(),
+                                                     wheel.phase(), wheel.modifiers(), *this);
+    };
     lineage_ = new node_editor::LineageLayer(quick->canvasScene(), this);
     canvas_ = std::move(quick);
   } else {
@@ -865,25 +872,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   row->addLayout(column, 1);
   setCentralWidget(root);
   initializePanels();
-  const auto overlay = [this](const QString &file, const QVariantMap &properties = {}) {
-    auto widget = panel(file, properties);
-    widget->setParent(&canvas_->hostWidget());
-    widget->setAttribute(Qt::WA_AlwaysStackOnTop);
-    widget->setClearColor(Qt::transparent);
-    widget->setResizeMode(QQuickWidget::SizeViewToRootObject);
-    connect(widget, &QQuickWidget::sceneGraphError, this, [](auto, const QString &message) { qWarning() << message; });
-    return widget;
-  };
   // The overlays' first bindings read the state the window has at this point.
   syncChrome();
   syncRuns();
-  toolbarOverlay_ = overlay("Toolbar", {{"commands", QVariant::fromValue(&editorCommands_)},
-                                        {"runs", QVariant::fromValue(&runState_)}});
+  toolbarOverlay_ = canvasOverlay("Toolbar", {{"commands", QVariant::fromValue(&editorCommands_)},
+                                        {"runs", QVariant::fromValue(&runState_)}}, 50);
     initializeChat();
-  queueOverlay_ = overlay("QueueOverlay", {{"runs", QVariant::fromValue(&runState_)},
-                                          {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
-  queueOverlay_->setParent(centralWidget());
-  queueOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  queueOverlay_ = canvasOverlay("QueueOverlay", {{"runs", QVariant::fromValue(&runState_)},
+                                          {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}}, 40, true, centralWidget());
   connect(queueOverlay_->rootObject(), SIGNAL(expandedChanged()), this, SLOT(layoutOverlays()));
   connect(queueOverlay_->rootObject(), SIGNAL(presentedChanged()), this, SLOT(layoutOverlays()));
   connect(queueOverlay_->rootObject(), SIGNAL(contentHeightChanged()), this, SLOT(layoutOverlays()));
@@ -903,30 +899,40 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&session_, &node_editor::WorkflowSession::workflowChanged, this, &EditorWindow::syncRuns);
   connect(this, &EditorWindow::shownQueueChanged, this, &EditorWindow::layoutOverlays, Qt::QueuedConnection);
   connect(&session_, &node_editor::WorkflowSession::systemStatsChanged, this, &EditorWindow::schedulePanelChanged);
-  selectionOverlay_ = overlay("SelectionToolbar", {{"commands", QVariant::fromValue(&editorCommands_)},
-                                                  {"selection", QVariant::fromValue(&selection_)}});
+  selectionOverlay_ = canvasOverlay("SelectionToolbar", {{"commands", QVariant::fromValue(&editorCommands_)},
+                                                  {"selection", QVariant::fromValue(&selection_)}}, 30);
   syncViewport();
   connect(this, &EditorWindow::zoomChanged, this, &EditorWindow::syncViewport);
   connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncViewport);
-  viewportOverlay_ = overlay("ViewportIndicator", {{"viewport", QVariant::fromValue(&viewport_)}});
-  miniMapControls_ = overlay("MiniMapControls", {{"viewport", QVariant::fromValue(&viewport_)}});
+  viewportOverlay_ = canvasOverlay("ViewportIndicator", {{"viewport", QVariant::fromValue(&viewport_)}}, 30);
+  miniMapControls_ = canvasOverlay("MiniMapControls", {{"viewport", QVariant::fromValue(&viewport_)}}, 30);
   // The legend button joins the row in type mode, so the row keeps its right edge on the mini-map's.
   if (auto *controls = miniMapControls_->rootObject()) {
     connect(controls, SIGNAL(implicitWidthChanged()), this, SLOT(layoutOverlays()));
   }
   syncChrome();
-  setupGuide_ = overlay("SetupGuide", {{"guide", QVariant::fromValue(&firstWorkflowGuide_)}});
+  setupGuide_ = canvasOverlay("SetupGuide", {{"guide", QVariant::fromValue(&firstWorkflowGuide_)}}, 30);
   setupGuide_->show();
-  // native-rules #2: naked new, parent (the view) is set inside the MiniMap constructor, not documented here
-  auto miniMap = new MiniMap(model_, canvas_->scene(), *canvas_);
-  miniMap->navigated = [this] { fitActive_ = false; cancelViewAnimation(); };
-  miniMap->colorByType = [this] { return miniMapColorMode_ == "type"; };
-  miniMap->zoomed = [this] { emit zoomChanged(); };
-  connect(this, &EditorWindow::zoomChanged, miniMap, [miniMap] { miniMap->update(); });
+  if (auto *quick = dynamic_cast<QuickCanvas *>(canvas_.get())) {
+    auto &layer = quick->graphCanvas().overlayLayer();
+    // The canvas overlay layer owns the map through the Qt parent tree.
+    auto *map = new canvas::MiniMapItem(model_, canvas_->scene(), *canvas_, &layer);
+    map->setZ(20);
+    map->navigated = [this] { fitActive_ = false; cancelViewAnimation(); };
+    map->colorByType = [this] { return miniMapColorMode_ == "type"; };
+    map->zoomed = [this] { emit zoomChanged(); };
+  } else {
+    // native-rules #2: naked new, parent (the view) is set inside the MiniMap constructor, not documented here
+    auto miniMap = new MiniMap(model_, canvas_->scene(), *canvas_);
+    miniMap->navigated = [this] { fitActive_ = false; cancelViewAnimation(); };
+    miniMap->colorByType = [this] { return miniMapColorMode_ == "type"; };
+    miniMap->zoomed = [this] { emit zoomChanged(); };
+    connect(this, &EditorWindow::zoomChanged, miniMap, [miniMap] { miniMap->update(); });
+    miniMap->show();
+  }
   // The web hides the mini-map until the user turns it on and remembers the choice.
   miniMapVisible_ = QSettings().value("minimap/visible", false).toBool();
   miniMapColorMode_ = QSettings().value("minimap/colorMode", "default").toString() == "type" ? "type" : "default";
-  miniMap->show();
   toolbarOverlay_->show();
   viewportOverlay_->show();
   layoutOverlays();
@@ -937,10 +943,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, followCard);
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, followCard);
   connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::nodeDragChanged, this, followCard);
-  priceChipOverlay_ = overlay("ProviderPriceChip", {{"chip", QVariant::fromValue(&priceChip_)}});
+  priceChipOverlay_ = canvasOverlay("ProviderPriceChip", {{"chip", QVariant::fromValue(&priceChip_)}}, 60, true);
   priceChipOverlay_->setObjectName("price-chip-overlay");
   // positionPriceChip sizes it to the chip and its popover.
-  priceChipOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
   priceChipOverlay_->hide();
   connect(&priceChip_, &node_editor::PriceChip::toggleRequested, this, &EditorWindow::togglePricePopover);
   connect(&priceChip_, &node_editor::PriceChip::linkRequested, this, [this](const QString &url) {
@@ -953,7 +958,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     connect(root, SIGNAL(implicitHeightChanged()), this, SLOT(positionPriceChip()));
   }
   // The node info panel follows its node the same way.
-  nodeInfoOverlay_ = overlay("NodeInfoPanel", {{"info", QVariant::fromValue(&nodeInfo_)}});
+  nodeInfoOverlay_ = canvasOverlay("NodeInfoPanel", {{"info", QVariant::fromValue(&nodeInfo_)}}, 60);
   nodeInfoOverlay_->setObjectName("node-info-overlay");
   nodeInfoOverlay_->hide();
   const auto followInfo = [this] { positionNodeInfo(); };
@@ -1257,7 +1262,16 @@ EditorWindow::~EditorWindow() {
   if (nodeMenu_) { nodeMenu_->removeEventFilter(this); }
   // The price chip's size signals reposition it, so they stop before it dies.
   if (priceChipOverlay_ && priceChipOverlay_->rootObject()) { priceChipOverlay_->rootObject()->disconnect(this); }
-  priceChipOverlay_ = nullptr;
+  quickMiniMapPopup_.reset();
+  setupGuide_.reset();
+  chatOverlay_.reset();
+  toolbarOverlay_.reset();
+  queueOverlay_.reset();
+  selectionOverlay_.reset();
+  nodeInfoOverlay_.reset();
+  priceChipOverlay_.reset();
+  viewportOverlay_.reset();
+  miniMapControls_.reset();
   // Panels bind to members of this class and must die before those members.
   // The Quick canvas's own widget stays until the canvas below goes, and a
   // panel inside a deleted panel is skipped.
@@ -1279,6 +1293,22 @@ EditorWindow::~EditorWindow() {
   canvas_.reset();
   scene_.reset();
 }
+std::unique_ptr<CanvasOverlay> EditorWindow::canvasOverlay(const QString &file, const QVariantMap &properties,
+                                                            qreal z, bool sizeToView, QWidget *legacyParent) {
+  if (dynamic_cast<QuickCanvas *>(canvas_.get())) {
+    auto overlay = CanvasOverlay::onQuickCanvas(*canvas_, *engine_,
+        QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/") + file + QStringLiteral(".qml")), properties, z);
+    overlay->setObjectName(file);
+    return overlay;
+  }
+  auto *widget = panel(file, properties);
+  widget->setParent(legacyParent ? legacyParent : &canvas_->hostWidget());
+  widget->setAttribute(Qt::WA_AlwaysStackOnTop);
+  widget->setClearColor(Qt::transparent);
+  widget->setResizeMode(sizeToView ? QQuickWidget::SizeRootObjectToView : QQuickWidget::SizeViewToRootObject);
+  return std::make_unique<CanvasOverlay>(*widget);
+}
+
 QQuickWidget *EditorWindow::panel(const QString &file, const QVariantMap &properties) {
   // One engine keeps a single Theme singleton across every panel.
   auto w = new QQuickWidget(engine_, this);
@@ -2182,7 +2212,7 @@ void EditorWindow::layoutOverlays() {
     if (chatOverlay_) {
         layoutChat(QSize(area.width(), std::max(0, area.height() - toolbar.height() - 20)));
         chatOverlay_->setVisible(chatVisible_);
-        chatOverlay_->raise();
+        chatOverlay_->raiseLegacyWidget();
     }
   toolbarOverlay_->setGeometry(std::max(0, (area.width() - toolbar.width()) / 2), std::max(0, area.height() - toolbar.height() - 20), toolbar.width(), toolbar.height());
   if (queueOverlay_ && queueOverlay_->rootObject()) {
@@ -2195,32 +2225,45 @@ void EditorWindow::layoutOverlays() {
     const auto origin = queueDragPoint_ ? *queueDragPoint_ : place(queuePosition_.value_or(defaultPosition), canvas, size);
     queueOverlay_->setGeometry(QRect(origin, size));
     queueOverlay_->setVisible(queueRoot->property("presented").toBool() && size.height() >= 36);
-    queueOverlay_->raise();
+    queueOverlay_->raiseLegacyWidget();
   }
   const auto corner = viewportOverlay_->sizeHint();
   // The web keeps the zoom readout beside the toolbar's end when both fit.
   viewportOverlay_->setGeometry(std::max(0, area.width() - corner.width() - 16), std::max(0, area.height() - corner.height() - 16), corner.width(), corner.height());
   viewportOverlay_->setVisible(area.width() >= toolbar.width() + 2 * corner.width() + 32);
-  if (auto miniMap = canvas_->hostWidget().findChild<QWidget *>("mini-map")) {
-    const bool beside = area.width() >= toolbar.width() + 2 * corner.width() + 32;
-    const int statusBottom = beside ? 16 : toolbar.height() + 28;
-    viewportOverlay_->setGeometry(std::max(0, area.width()-corner.width()-16), std::max(0, area.height()-corner.height()-statusBottom), corner.width(), corner.height());
-    viewportOverlay_->show();
-    miniMap->move(std::max(0, area.width()-miniMap->width()-20), std::max(70, viewportOverlay_->y()-miniMap->height()-16));
-    miniMap->setVisible(beside && miniMapVisible_);
-    viewportOverlay_->setVisible(beside);
-    miniMap->raise(); viewportOverlay_->raise();
-    if (miniMapControls_) {
-      // The palette and legend buttons sit above the mini-map's right edge, as the web's top -28px, right 0.
-      const auto buttons = miniMapControls_->sizeHint();
-      miniMapControls_->setGeometry(miniMap->geometry().right() + 1 - buttons.width(), miniMap->y() - buttons.height() - 4, buttons.width(), buttons.height());
-      miniMapControls_->setVisible(beside && miniMapVisible_);
-      miniMapControls_->raise();
+  const bool beside = area.width() >= toolbar.width() + 2 * corner.width() + 32;
+  const int statusBottom = beside ? 16 : toolbar.height() + 28;
+  viewportOverlay_->setGeometry(std::max(0, area.width()-corner.width()-16),
+      std::max(0, area.height()-corner.height()-statusBottom), corner.width(), corner.height());
+  const auto mapGeometry = [&](QSize size) {
+    return QRect(QPoint(std::max(0, area.width()-size.width()-20),
+                        std::max(70, viewportOverlay_->y()-size.height()-16)), size);
+  };
+  QRect mapRect;
+  if (auto *quick = dynamic_cast<QuickCanvas *>(canvas_.get())) {
+    if (auto *map = quick->graphCanvas().overlayLayer().findChild<QQuickItem *>("mini-map")) {
+      mapRect = mapGeometry(map->size().toSize());
+      map->setPosition(mapRect.topLeft());
+      map->setVisible(beside && miniMapVisible_);
+      map->update();
     }
+  } else if (auto *map = canvas_->hostWidget().findChild<QWidget *>("mini-map")) {
+    mapRect = mapGeometry(map->size());
+    map->move(mapRect.topLeft());
+    map->setVisible(beside && miniMapVisible_);
+    map->raise();
+    viewportOverlay_->raiseLegacyWidget();
   }
-  toolbarOverlay_->raise();
+  if (miniMapControls_ && !mapRect.isEmpty()) {
+    const auto buttons = miniMapControls_->sizeHint();
+    miniMapControls_->setGeometry(mapRect.right() + 1 - buttons.width(), mapRect.top() - buttons.height() - 4,
+                                  buttons.width(), buttons.height());
+    miniMapControls_->setVisible(beside && miniMapVisible_);
+    miniMapControls_->raiseLegacyWidget();
+  }
+  toolbarOverlay_->raiseLegacyWidget();
     if (chatOverlay_ && chatVisible_) {
-        chatOverlay_->raise();
+        chatOverlay_->raiseLegacyWidget();
     }
   if (inlineTitle_) { inlineTitle_->reposition(); }
   if (compatiblePicker_ && compatiblePicker_->widget() && compatiblePicker_->active()) {
@@ -4259,6 +4302,7 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
       scheduleViewportSettle();
     }
     if (type == QEvent::Wheel) {
+      if (dynamic_cast<QuickCanvas *>(canvas_.get())) { return false; }
       const auto &wheel = *static_cast<QWheelEvent *>(event);
       interaction.viewportWheel(wheel.pixelDelta(), wheel.angleDelta(), wheel.phase(), wheel.modifiers(), *this);
       return true;
@@ -4285,6 +4329,8 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     }
   }
   if (type == QEvent::KeyPress) {
+    if (auto *quick = dynamic_cast<QuickCanvas *>(canvas_.get()); quick &&
+        quick->quickWidget().quickWindow()->activeFocusItem() != &quick->graphCanvas()) { return false; }
     const auto &key = *static_cast<QKeyEvent *>(event);
     const auto &viewport = canvas_->viewportWidget();
     const auto pointer = viewport.mapFromGlobal(QCursor::pos());

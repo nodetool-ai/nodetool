@@ -11,6 +11,7 @@
 class QQmlEngine;
 class QQuickWidget;
 namespace nodetool {
+class CanvasOverlay;
 class CanvasSurface;
 class CanvasNote;
 namespace node_editor { class WorkflowDocument; }
@@ -65,10 +66,10 @@ private:
   EditorSceneApi &scene_;
   CanvasSurface &canvas_;
   QPointer<QQmlEngine> engine_;
-  QPointer<QQuickWidget> widget_;
+  std::unique_ptr<CanvasOverlay> widget_;
   QVector<QPointer<QQuickWidget>> retired_;
   std::map<QtNodes::NodeId, std::unique_ptr<CanvasNote>> notes_;
-  QHash<QtNodes::NodeId, QPointer<QQuickWidget>> controls_;
+  std::map<QtNodes::NodeId, std::unique_ptr<CanvasOverlay>> controls_;
   void repositionControls();
   QtNodes::NodeId node_ = QtNodes::InvalidNodeId;
   QString text_;
@@ -79,5 +80,6 @@ private:
   int generation_ = 0;
   bool current() const;
   void flush();
+  QObject retiredQuickRoots_;
 };
 }

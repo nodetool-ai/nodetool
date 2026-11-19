@@ -206,6 +206,7 @@ add_library(node_editor_core STATIC
  src/canvas/NodeItem.cpp src/canvas/NodeItem.h src/canvas/ConnectionItem.cpp src/canvas/ConnectionItem.h
  src/canvas/NodeConnectionInteraction.cpp src/canvas/NodeConnectionInteraction.h
  src/canvas/CanvasViewport.cpp src/canvas/CanvasViewport.h src/canvas/CanvasLayers.cpp src/canvas/CanvasLayers.h
+ src/canvas/CardOverlay.h
  src/canvas/GraphCanvas.cpp src/canvas/GraphCanvas.h src/canvas/LineageItem.cpp src/canvas/LineageItem.h
  src/canvas/MiniMapItem.cpp src/canvas/MiniMapItem.h src/canvas/MiniMapPainter.h
  src/graph/EditorScene.cpp src/graph/EditorScene.h
@@ -237,7 +238,7 @@ add_library(node_editor_core STATIC
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
  src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp
  src/ui/CanvasCapture.cpp src/ui/CanvasCapture.h
- src/ui/CanvasSurface.h src/ui/QtNodesCanvas.cpp src/ui/QtNodesCanvas.h src/ui/QtNodesCanvasView.h src/ui/QtNodesNote.cpp
+ src/ui/CanvasOverlay.h src/ui/CanvasSurface.h src/ui/QtNodesCanvas.cpp src/ui/QtNodesCanvas.h src/ui/QtNodesCanvasView.h src/ui/QtNodesNote.cpp
  src/ui/QuickCanvas.cpp src/ui/QuickCanvas.h)
 target_include_directories(node_editor_core PUBLIC src)
 target_link_libraries(node_editor_core PRIVATE nodetool_graph_runner)
@@ -932,13 +933,7 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_canvas_chrome_tests)
     add_test(NAME node_editor_canvas_chrome COMMAND node_editor_canvas_chrome_tests)
     set_tests_properties(node_editor_canvas_chrome PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-    # The Quick canvas (docs/plans/node-editor-quick-canvas/plan.md, Q3): its
-    # own tests, and the canvas group a second time with the switch set. The
-    # group's tests that build an EditorScene without a window test the
-    # QtNodes scene itself and run once: node_editor_canvas_media,
-    # node_editor_inline_property, node_editor_compatible_picker,
-    # node_editor_group_presentation, node_editor_reroute_presentation,
-    # node_editor_body_connection and node_editor_incremental_projection.
+    # Run the canvas and overlay gates again with the Quick switch set.
     qt_add_executable(node_editor_quick_canvas_tests tests/canvas/QuickCanvasTest.cpp)
     target_link_libraries(node_editor_quick_canvas_tests PRIVATE node_editor_core Qt6::Test)
     nodetool_use_ui_primitives(node_editor_quick_canvas_tests)
@@ -959,6 +954,12 @@ if(BUILD_TESTING)
     set(node_editor_canvas_group
         node_editor_ui=node_editor_ui_tests
         node_editor_large_graph=node_editor_large_graph_tests
+        node_editor_canvas_media=node_editor_canvas_media_tests
+        node_editor_inline_property=node_editor_inline_property_tests
+        node_editor_compatible_picker=node_editor_compatible_picker_tests
+        node_editor_queue_ui=node_editor_queue_ui_tests
+        node_editor_chat=node_editor_chat_tests
+        node_editor_composition=node_editor_composition_tests
         node_editor_canvas_media_host=node_editor_canvas_media_host_tests
         node_editor_inline_title=node_editor_inline_title_tests
         node_editor_inline_host=node_editor_inline_host_tests

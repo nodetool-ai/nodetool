@@ -1,3 +1,4 @@
+#include "ui/CanvasOverlay.h"
 #include "InlinePropertyPresenter.h"
 #include "CardBodies.h"
 #include "canvas/CanvasStyle.h"
@@ -60,14 +61,13 @@ InlinePropertyPresenter::~InlinePropertyPresenter() {
   qApp->removeEventFilter(this);
   ++generation_;
   descriptor_.clear();
-  auto widget = widget_.data();
-  widget_.clear();
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  delete widget;
+  // The viewport owns the legacy editor widget.
+  if (widget_ && widget_->widget()) { widget_->widget()->deleteLater(); }
+  widget_.reset();
   // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   for (const auto &retired : retiredWidgets_) { delete retired.data(); }
 }
-QQuickWidget *InlinePropertyPresenter::editorWidget() const { return widget_; }
+QQuickWidget *InlinePropertyPresenter::editorWidget() const { return widget_ ? widget_->widget() : nullptr; }
 bool InlinePropertyPresenter::current() const {
   if (!active() || model_.readOnly() || !model_.nodeExists(node_)) { return false; }
   return canvas_.selection().contains(node_) && canvas_.selection().count() == 1 && model_.inlineDescriptor(node_, name_) == descriptor_;
@@ -95,20 +95,26 @@ void InlinePropertyPresenter::activate(QtNodes::NodeId id, const QString &name) 
   descriptor_ = descriptor;
   if (!current()) { cancel(); return; }
   expanded_ = false;
-  auto widget = new InlineEditorWidget(engine_, &canvas_.viewportWidget());
-  widget_ = widget;
-  widget->setObjectName("inline-property-overlay");
-  widget->setAttribute(Qt::WA_AlwaysStackOnTop);
-  widget->setClearColor(Qt::transparent);
-  widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-  widget->setInitialProperties({{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_},
-                                {"host", QVariant::fromValue(&host_)}});
+  const QUrl source("qrc:/qt/qml/NodeTool/NodeEditor/InlinePropertyEditor.qml");
+  const QVariantMap properties{{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_}, {"host", QVariant::fromValue(&host_)}};
+  widget_ = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, properties, 10, id);
+  if (!widget_) {
+    auto *widget = new InlineEditorWidget(engine_, &canvas_.viewportWidget());
+    widget->setClearColor(Qt::transparent);
+    widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
+    widget->setAttribute(Qt::WA_AlwaysStackOnTop);
+    widget->setInitialProperties(properties);
+    widget->setSource(source);
+    widget_ = std::make_unique<CanvasOverlay>(*widget);
+  }
+  if (!widget_->rootObject()) { cancel(); return; }
+  widget_->setObjectName("inline-property-overlay");
   reposition();
-  widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/InlinePropertyEditor.qml"));
-  if (widget->status() == QQuickWidget::Error) { cancel(); return; }
-  widget->show();
-  widget->raise();
-  widget->setFocus(Qt::MouseFocusReason);
+  if (!widget_) { return; }
+  widget_->show();
+  widget_->raiseLegacyWidget();
+  if (!widget_->widget()) { canvas_.setFocus(Qt::MouseFocusReason); }
+  widget_->setFocus(Qt::MouseFocusReason);
   emit changed();
   const auto token = generation_;
   QTimer::singleShot(0, this, [this, token] {
@@ -132,13 +138,18 @@ void InlinePropertyPresenter::cancel() {
   if (popupWasOpen) { emit popupChanged(); }
   expanded_ = false;
   if (widget_) {
-    auto old = widget_;
-    widget_.clear();
+    auto old = std::move(widget_);
     old->hide();
     old->setEnabled(false);
-    retiredWidgets_.removeIf([](const auto &entry) { return entry.isNull(); });
-    retiredWidgets_.append(old);
-    old->deleteLater();
+    if (auto *legacy = old->widget()) {
+      retiredWidgets_.removeIf([](const auto &entry) { return entry.isNull(); });
+      retiredWidgets_.append(legacy);
+      legacy->deleteLater();
+    } else {
+      // QML can cancel from inside its own key handler.
+      auto *root = old->rootObject();
+      if (root) { old->retireQuickRoot(retiredQuickRoots_); }
+    }
   }
   emit changed();
 }
@@ -224,14 +235,16 @@ void InlinePropertyPresenter::popupRect(const QRectF &rect) {
   if (wasOpen != popupOpen()) { emit popupChanged(); }
 }
 void InlinePropertyPresenter::updateMask() {
-  if (!widget_) { return; }
+  auto *legacy = widget_ ? widget_->widget() : nullptr;
+  if (!legacy) { return; }
   auto region = QRegion(editorRect_.adjusted(-2, -2, 2, 2).toAlignedRect());
   if (!popupRect_.isEmpty()) { region += QRegion(popupRect_.adjusted(-2,-2,2,2).toAlignedRect()); }
-  widget_->setMask(region.intersected(QRegion(canvas_.viewportWidget().rect())));
+  legacy->setMask(region.intersected(QRegion(canvas_.viewportWidget().rect())));
 }
 void InlinePropertyPresenter::reposition() {
   if (holding_ || projectingResource_) { return; }
-  if (!widget_ || !current()) { if (active()) { cancel(); } return; }
+  if (!widget_) { return; }
+  if (!current()) { if (active()) { cancel(); } return; }
   auto local = model_.inlineFieldRect(node_, name_);
   if (contentHeight_ > 0 && name_ != "code") { local.setHeight(std::max(local.height(), contentHeight_)); }
   const auto kind = descriptor_["kind"].toString();
@@ -251,14 +264,15 @@ void InlinePropertyPresenter::reposition() {
   widget_->setGeometry(canvas_.viewportWidget().rect());
   if (!canvas_.viewportWidget().rect().intersects(editorRect_.toAlignedRect())) { cancel(); return; }
   updateMask();
-  widget_->raise();
+  widget_->raiseLegacyWidget();
   emit geometryChanged();
 }
 bool InlinePropertyPresenter::eventFilter(QObject *object, QEvent *event) {
   if (active() && widget_ && event->type() == QEvent::ShortcutOverride) {
-    bool inside = object == widget_ || object == widget_->quickWindow();
+    const auto *legacy = widget_->widget();
+    bool inside = legacy ? object == legacy || object == legacy->quickWindow() : widget_->ownsFocus(object);
     for (auto target = object; target && !inside; target = target->parent()) {
-      inside = target == widget_ || target == widget_->rootObject();
+      inside = target == legacy || target == widget_->rootObject();
     }
     if (inside) { event->accept(); return true; }
   }
@@ -269,6 +283,8 @@ bool InlinePropertyPresenter::eventFilter(QObject *object, QEvent *event) {
     }
     if (event->type() == QEvent::MouseButtonPress) {
       const auto *mouse = static_cast<QMouseEvent *>(event);
+      if (widget_ && !widget_->widget() && (editorRect_.contains(mouse->position()) ||
+                                             popupRect_.contains(mouse->position()))) { return false; }
       if (mouse->button() == Qt::LeftButton && name_ == QStringLiteral("prompt") && current()) {
         const auto local = canvas_.mapToNode(node_, canvas_.mapToScene(canvas_.viewportWidget().mapFromGlobal(mouse->globalPosition().toPoint())));
         for (const auto &row : model_.layout(node_).rows) {

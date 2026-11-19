@@ -61,6 +61,7 @@ public:
   // its path stay empty without being painted.
   virtual bool mayPaint(const QRectF &) const { return true; }
   const QHash<QPoint, Tile> &tiles() const { return tiles_; }
+  void setIndividualSoftwareRendering(bool enabled);
   void setTile(QPoint key, Tile tile);
   void removeTile(QPoint key);
   const QHash<QPoint, Tile> &stagedTiles() const { return staged_; }
@@ -94,6 +95,7 @@ public:
   static QRectF tileTarget(const QRectF &windowRect, const QImage &pixels, double dpr);
 
 protected:
+  bool individualSoftwareRendering_ = false;
   QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *) override;
   void geometryChange(const QRectF &geometry, const QRectF &previous) override;
   void releaseResources() override;

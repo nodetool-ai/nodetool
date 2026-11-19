@@ -19,6 +19,7 @@ class WorkflowGraphModel;
 } // namespace nodetool
 
 namespace nodetool::canvas {
+class CardOverlay;
 
 // UI thread only. The Quick canvas view, in the role QGraphicsView has for
 // the QtNodes canvas. Its visual children, back to front: the grid, the content
@@ -43,6 +44,9 @@ public:
   const CanvasViewport &viewport() const { return viewport_; }
   CanvasSelection &selection() const { return *selection_; }
   QQuickItem &contentLayer() { return content_; }
+  void focusCanvas(Qt::FocusReason reason);
+  void setCardOverlayVisible(CardOverlay &overlay, bool visible);
+  std::function<void(QWheelEvent &)> viewportWheel;
   QQuickItem &overlayLayer() { return overlay_; }
 
   void setView(double zoom, QPointF center);
@@ -165,6 +169,10 @@ private:
   GridItem grid_;
   QQuickItem content_;
   QQuickItem foreground_;
+  void updateCardOverlayRendering();
+  QSet<CardOverlay *> visibleCardOverlays_;
+  QList<QPointer<CanvasImageItem>> individualSoftwareItems_;
+  bool individualSoftwareRendering_ = false;
   QQuickItem overlay_;
   RubberBandItem band_;
   QTimer settle_;

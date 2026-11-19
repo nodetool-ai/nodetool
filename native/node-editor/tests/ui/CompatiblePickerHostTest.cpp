@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
@@ -52,12 +53,12 @@ private slots:
     QVERIFY(emptyAt(*view,view->mapToScene(drop)));
     QSignalSpy loose(&window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::looseWireDropped);
     drag(*view,start,drop); QCOMPARE(loose.count(),1); QTRY_VERIFY(picker->active());
-    auto popup=picker->widget(); QVERIFY(popup);
+    auto popup=test::overlay(window, "compatible-node-picker"); QVERIFY(popup);
     QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
     const auto baseline=window.document()->snapshot();
     const auto zoom = view->zoom();
     const auto selection=window.selection();
-    const auto paddingGlobal=popup->mapToGlobal(QPoint(5,popup->height()-5));
+    const auto paddingGlobal=popup->mapToGlobal(popup->rootObject()->mapToScene(QPointF(5, popup->height()-5)).toPoint());
     const auto paddingWindow=window.windowHandle()->mapFromGlobal(paddingGlobal);
     QTest::mouseClick(window.windowHandle(),Qt::LeftButton,Qt::NoModifier,paddingWindow);
     QVERIFY(picker->active()); QCOMPARE(window.document()->snapshot(),baseline); QCOMPARE(window.selection(),selection);
@@ -66,7 +67,7 @@ private slots:
     QVERIFY(picker->active()); QCOMPARE(view->zoom(), zoom); QCOMPARE(window.document()->snapshot(),baseline); QCOMPARE(window.selection(),selection);
     popup->setFocus();
     auto search=popup->rootObject()->findChild<QQuickItem *>("compatible-search"); search->forceActiveFocus();
-    QTest::keyClicks(popup,"Receiver prompt"); QTRY_COMPARE(picker->rows().size(),2);
+    QTest::keyClicks(popup->inputWidget(),"Receiver prompt"); QTRY_COMPARE(picker->rows().size(),2);
     QTest::qWait(30);
     QQuickItem *row=nullptr;
     QTRY_VERIFY((row=findItem(popup->rootObject(),"compatible-result-0")));
@@ -89,22 +90,19 @@ private slots:
     auto &model=static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id=picker_fixture::id(model,"origin");
     const auto start=view->mapFromScene(window.canvas().nodeOrigin(id)+window.scene()->nodeGeometry().portPosition(id,PortType::Out,0));
-    QQuickWidget *toolbar=nullptr;
-    for (auto candidate:window.findChildren<QQuickWidget *>()) {
-      if (candidate->isVisible() && candidate->source().path().endsWith("/Toolbar.qml")) { toolbar=candidate; break; }
-    }
+    const auto toolbar = test::overlay(window, "Toolbar.qml", true);
     QVERIFY(toolbar);
     // Drop at the toolbar's left edge, so the popup opens across the centered toolbar.
     auto drop=emptyDrop(*view,id);
-    drop.setX(view->viewportWidget().mapFromGlobal(toolbar->mapToGlobal(QPoint())).x());
+    drop.setX(view->viewportWidget().mapFromGlobal(toolbar->mapToGlobal(toolbar->rootObject()->mapToScene(QPointF()).toPoint())).x());
     QVERIFY(emptyAt(*view,view->mapToScene(drop)));
     drag(*view,start,drop); QTRY_VERIFY(picker->active());
-    auto popup=picker->widget(); QVERIFY(popup);
+    auto popup=test::overlay(window, "compatible-node-picker"); QVERIFY(popup);
     QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
     QQuickItem *row=nullptr; QTRY_VERIFY((row=findItem(popup->rootObject(),"compatible-result-5")));
     const auto rowTop=popup->mapToGlobal(row->mapToScene(QPointF(0,0)).toPoint());
     const QRect rowRect(rowTop,QSize(int(row->width()),int(row->height())));
-    const QRect toolbarRect(toolbar->mapToGlobal(QPoint()),toolbar->size());
+    const QRect toolbarRect(toolbar->mapToGlobal(toolbar->rootObject()->mapToScene(QPointF()).toPoint()),toolbar->size());
     const auto overlap=rowRect.intersected(toolbarRect); QVERIFY(!overlap.isEmpty());
     QTest::mouseClick(window.windowHandle(),Qt::LeftButton,Qt::NoModifier,window.windowHandle()->mapFromGlobal(overlap.center()));
     QTRY_COMPARE(window.document()->nodes().size(),2);
@@ -134,7 +132,7 @@ private slots:
       QCOMPARE(loose.count(),1);
       QTRY_VERIFY(picker->active());
       QCOMPARE(window.document()->snapshot(),baseline);
-      auto popup=picker->widget(); QVERIFY(popup);
+      auto popup=test::overlay(window, "compatible-node-picker"); QVERIFY(popup);
       auto search=popup->rootObject()->findChild<QQuickItem *>("compatible-search"); QVERIFY(search);
       QTRY_VERIFY(search->hasActiveFocus());
       const auto capture=qEnvironmentVariable("NODETOOL_COMPATIBLE_CAPTURE");
@@ -146,9 +144,9 @@ private slots:
         window.setDarkTheme(false); QTest::qWait(50);
         QVERIFY(window.grab().save(capture+"-light.png"));
       }
-      QTest::keyClicks(popup,direction==PortType::Out ? "Receiver prompt":"Producer");
+      QTest::keyClicks(popup->inputWidget(),direction==PortType::Out ? "Receiver prompt":"Producer");
       QTRY_COMPARE(picker->rows().size(),direction==PortType::Out ? 2:1);
-      QTest::keyClick(popup,Qt::Key_Return);
+      QTest::keyClick(popup->inputWidget(),Qt::Key_Return);
       QTRY_COMPARE(window.document()->nodes().size(),2);
       QCOMPARE(window.document()->edges().size(),1);
       const auto edge=window.document()->edges().first().toObject();
@@ -192,9 +190,9 @@ private slots:
       else { drag(*view,start,drop); }
       QCOMPARE(loose.count(),1); QTRY_VERIFY(picker->active());
       QCOMPARE(window.document()->snapshot(),baseline);
-      auto popup=picker->widget(); QVERIFY(popup);
+      auto popup=test::overlay(window, "compatible-node-picker"); QVERIFY(popup);
       QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
-      QTest::keyClicks(popup,"Receiver prompt"); QTest::keyClick(popup,Qt::Key_Return);
+      QTest::keyClicks(popup->inputWidget(),"Receiver prompt"); QTest::keyClick(popup->inputWidget(),Qt::Key_Return);
       QTRY_COMPARE(window.document()->nodes().size(),3);
       const auto edge=window.document()->edges().first().toObject();
       const auto node=window.document()->node(edge["target"].toString());
@@ -220,9 +218,9 @@ private slots:
     };
     const auto baseline=window.document()->snapshot();
     open(); QTRY_VERIFY(picker->active());
-    auto popup=picker->widget(); QVERIFY(popup);
+    auto popup=test::overlay(window, "compatible-node-picker"); QVERIFY(popup);
     QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
-    QTest::keyClick(popup,Qt::Key_Escape); QTRY_VERIFY(!picker->active());
+    QTest::keyClick(popup->inputWidget(),Qt::Key_Escape); QTRY_VERIFY(!picker->active());
     QCOMPARE(window.document()->snapshot(),baseline); QCOMPARE(window.document()->undoStack()->count(),0);
     open(); QTRY_VERIFY(picker->active());
     const auto token=picker->generation(); const auto key=picker->rows().first().toMap()["key"].toString();
@@ -287,20 +285,20 @@ private slots:
     QCOMPARE(requested.count(),1);
     QTRY_VERIFY(picker->active());
     QVERIFY(!picker->canDeleteOutput());
-    auto popup=picker->widget();
+    auto popup=test::overlay(window, "compatible-node-picker");
     QVERIFY(popup);
     QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
     QVERIFY(!picker->rows().isEmpty());
     const auto absent=findItem(popup->rootObject(),"compatible-delete-output");
     QVERIFY(!absent || !absent->isVisible());
-    QTest::keyClick(popup,Qt::Key_Escape);
+    QTest::keyClick(popup->inputWidget(),Qt::Key_Escape);
     QTRY_VERIFY(!picker->active());
     QCOMPARE(window.document()->snapshot(),baseline);
     rightClick(handle("dynamic"));
     QCOMPARE(requested.count(),2);
     QTRY_VERIFY(picker->active());
     QVERIFY(picker->canDeleteOutput());
-    popup=picker->widget();
+    popup=test::overlay(window, "compatible-node-picker");
     QVERIFY(popup);
     QQuickItem *remove=nullptr;
     QTRY_VERIFY((remove=findItem(popup->rootObject(),"compatible-delete-output")) && remove->isVisible());
@@ -317,13 +315,13 @@ private slots:
     // A search hides the action, as the web menu shows it only with an empty search.
     popup->setFocus();
     popup->rootObject()->findChild<QQuickItem *>("compatible-search")->forceActiveFocus();
-    QTest::keyClicks(popup,"Rec");
+    QTest::keyClicks(popup->inputWidget(),"Rec");
     // The fixed rows leave the menu while the search has text.
     QTRY_VERIFY(picker->fixedRows().isEmpty());
     QTRY_VERIFY(!findItem(popup->rootObject(),"compatible-delete-output"));
-    QTest::keyClick(popup,Qt::Key_Backspace);
-    QTest::keyClick(popup,Qt::Key_Backspace);
-    QTest::keyClick(popup,Qt::Key_Backspace);
+    QTest::keyClick(popup->inputWidget(),Qt::Key_Backspace);
+    QTest::keyClick(popup->inputWidget(),Qt::Key_Backspace);
+    QTest::keyClick(popup->inputWidget(),Qt::Key_Backspace);
     QTRY_VERIFY((remove=findItem(popup->rootObject(),"compatible-delete-output")) && remove->isVisible());
     QTest::qWait(30);
     const auto global=popup->mapToGlobal(remove->mapToScene(QPointF(remove->width()/2,remove->height()/2)).toPoint());

@@ -573,12 +573,18 @@ visible tiles first regardless of that limit, keeps queued edits in order
 across frames and keeps the old tiles visible until a replacement grid is ready.
 A running card repaints only its ring and status text, and a model reset keeps
 the cards on screen. The software grid paints the same pixels as QtNodes. The
-app stays on the software backend. The widget overlays stay children of the
-canvas widget. QtNodes stays the default
-([plan, Q3](../../docs/plans/node-editor-quick-canvas/plan.md#q3-quick-canvas-behind-a-switch)).
+app uses the software backend. In Quick mode, each live card editor or media
+player follows its card through a [CardOverlay](src/canvas/CardOverlay.h).
+Software draws individual tiles while a card overlay is visible so Quick
+can interleave cards and their controls. The toolbar, picker, mini-map,
+queue, chat, node information and pricing use the canvas overlay layer.
+See [Q4](../../docs/plans/node-editor-quick-canvas/plan.md#q4-overlays-in-the-scene)
+and [Q5](../../docs/plans/node-editor-quick-canvas/plan.md#q5-quick-canvas-by-default)
+for the overlay and default-switch steps.
 `node_editor_quick_canvas` tests the items, hit tests, gestures and culling.
-The canvas group of the plan runs a second time as `<name>_quick` entries,
-except the tests that build an `EditorScene` without a window.
+The Quick canvas and overlay gates run as `<name>_quick` entries.
+The overlay fixtures send pointer and keyboard input to the window that
+hosts the overlay and exercise the same QML on either canvas.
 
 `node_editor_large_graph_quick` times input handling, canvas polish, software
 scene graph sync and render, and the widget blit. It excludes the wait for

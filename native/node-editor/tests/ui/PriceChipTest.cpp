@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "ui/CanvasSurface.h"
 #include "graph/EditorScene.h"
 #include "graph/ProviderPricing.h"
@@ -89,7 +90,7 @@ private slots:
         QCOMPARE(falShort(fal(0.02, "units")), QString("pricing varies"));
         const auto now = QDateTime::fromString("2026-11-15T00:00:00Z", Qt::ISODate);
         auto dated = fal(0.02, "units");
-        dated["checked_at"] = "2026-08-15T00:00:00Z";
+        dated["checked_at"] = "2026-08-10T00:00:00Z";
         QCOMPARE(falDetails(dated, now), QString("$0.02 per units (SEE DETAILS)\n\nVaries by resolution and quality.\n"
                                                  "View on fal.ai to see detailed pricing.\n\nPrice from 3 months ago\n"
                                                  "Endpoint: fal-ai/x"));
@@ -153,7 +154,7 @@ private slots:
                                                                {"edges", QJsonArray{}}}}}));
         window.session()->connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {});
         window.action("Fit");
-        auto *overlay = window.activeEditor()->findChild<QQuickWidget *>("price-chip-overlay");
+        auto overlay = test::overlay(window, "price-chip-overlay", false, false);
         QVERIFY(overlay);
         QVERIFY(!overlay->isVisible());
 

@@ -142,11 +142,11 @@ private:
 
 } // namespace
 
-QuickCanvas::QuickCanvas(WorkflowGraphModel &model, QWidget &parent) : model_(model) {
+QuickCanvas::QuickCanvas(WorkflowGraphModel &model, QWidget &parent, QQmlEngine *engine) : model_(model) {
   // The shell owns the QQuickWidget through the Qt parent tree. It is both
   // the host and the viewport: it takes the keys a QGraphicsView takes, and
-  // the editor's widget overlays become its children.
-  auto *widget = new QQuickWidget(&parent);
+  // overlays share the GraphCanvas scene graph.
+  auto *widget = engine ? new QQuickWidget(engine, &parent) : new QQuickWidget(&parent);
   widget->setObjectName(QStringLiteral("quick-canvas"));
   widget->setFocusPolicy(Qt::StrongFocus);
   widget->setAcceptDrops(true);
@@ -158,6 +158,7 @@ QuickCanvas::QuickCanvas(WorkflowGraphModel &model, QWidget &parent) : model_(mo
     const auto *focus = QApplication::focusWidget();
     return host && focus && focus != host && host->isAncestorOf(focus);
   });
+  canvas_->setClip(true);
   canvas_->setParentItem(widget->quickWindow()->contentItem());
   canvas_->setSize(widget->size());
   widget->installEventFilter(this);
@@ -301,7 +302,7 @@ void QuickCanvas::requestRepaint() {
 void QuickCanvas::setCursor(const QCursor &cursor) { widget_->setCursor(cursor); }
 void QuickCanvas::setFocus(Qt::FocusReason reason) {
   widget_->setFocus(reason);
-  canvas_->forceActiveFocus(reason);
+  canvas_->focusCanvas(reason);
 }
 
 QImage QuickCanvas::capture(canvas_capture::Mode mode) const {

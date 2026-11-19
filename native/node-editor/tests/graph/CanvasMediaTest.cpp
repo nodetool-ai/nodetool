@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/OverlayCanvasFixture.h"
 #include "../support/DarkCanvasTheme.h"
 #include "graph/CanvasMediaPresenter.h"
 #include "graph/EditorScene.h"
@@ -54,9 +54,9 @@ QJsonArray catalog() {
 }
 struct Fixture {
   WorkflowGraphModel model;
-  EditorScene scene{model};
-  nodetool::test::WidgetView view{&scene};
-  QtNodesCanvas canvas{scene, view};
+  test::OverlayCanvasFixture surface{model};
+  CanvasSurface &canvas = surface.surface();
+  EditorSceneApi &scene = canvas.scene();
   QQmlEngine engine;
   node_editor::MediaResolver resolver;
   node_editor::NodeRuntimeModel runtime;
@@ -76,10 +76,7 @@ struct Fixture {
     model.setRuntimeModel(&runtime);
     runtime.beginRun("first");
     runtime.ingest("first", {{"type", "node_update"}, {"node_id", "video"}, {"status", "completed"}});
-    view.resize(1000, 700);
-    view.setSceneRect(-1000, -1000, 8000, 5000);
-    view.show();
-    view.centerOn(320, 220);
+    surface.show({1000, 700}, {-1000, -1000, 8000, 5000}, {320, 220});
     const auto sound = "data:audio/wav;base64," + QString::fromLatin1(audio().toBase64());
     QFile video(QStringLiteral(MEDIA_VIDEO_FIXTURE));
     if (!video.open(QIODevice::ReadOnly)) { return; }
@@ -95,20 +92,19 @@ struct Fixture {
     for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == name) { return id; } }
     return InvalidNodeId;
   }
-  QQuickWidget *widget(const QString &name) const {
-    for (auto widget : presenter.activeWidgets()) { if (widget->objectName() == "canvas-media-" + name) { return widget; } }
-    return nullptr;
+  test::OverlayProbe widget(const QString &name) {
+    return surface.overlay("canvas-media-" + name);
   }
-  QMediaPlayer *player(const QString &name) const {
+  QMediaPlayer *player(const QString &name) {
     const auto overlay = widget(name);
-    return overlay && overlay->rootObject() ? overlay->rootObject()->findChild<QMediaPlayer *>("preview-player") : nullptr;
+    return overlay ? overlay->rootObject()->findChild<QMediaPlayer *>("preview-player") : nullptr;
   }
   void click(const QString &name, const QString &controlName, qreal fraction = 0.5) {
     const auto overlay = widget(name);
     Q_ASSERT(overlay && overlay->rootObject());
     const auto control = overlay->rootObject()->findChild<QQuickItem *>(controlName);
     Q_ASSERT(control);
-    QTest::mouseClick(overlay, Qt::LeftButton, Qt::NoModifier,
+    QTest::mouseClick(overlay->inputWidget(), Qt::LeftButton, Qt::NoModifier,
                      control->mapToScene(QPointF(control->width() * fraction, control->height() / 2)).toPoint());
   }
 };
@@ -123,20 +119,20 @@ class CanvasMediaTest final : public QObject {
 private slots:
   void nativeControlsPreserveGraphAndPlayback() {
     Fixture f;
-    QTRY_COMPARE(f.presenter.activeWidgets().size(), 2);
+    QTRY_COMPARE(f.presenter.activeItems().size(), 2);
     QTRY_VERIFY(f.player("video") && f.player("video")->duration() > 1000);
     QTRY_VERIFY(f.player("audio") && f.player("audio")->duration() > 1000);
     QCOMPARE(f.player("video")->playbackState(), QMediaPlayer::StoppedState);
     QCOMPARE(f.player("audio")->playbackState(), QMediaPlayer::StoppedState);
-    nodetool::test::graphicsNode(f.scene, f.id("audio"))->setSelected(true);
-    const auto original = nodetool::test::graphicsNode(f.scene, f.id("video"))->pos();
+    f.canvas.selection().setNode(f.id("audio"), true);
+    const auto original = f.canvas.nodeOrigin(f.id("video"));
     f.click("video", "preview-play");
     auto player = f.player("video");
     QTRY_COMPARE(player->playbackState(), QMediaPlayer::PlayingState);
     QTRY_VERIFY(player->position() > 50);
     QTRY_VERIFY(player->videoSink()->videoFrame().isValid());
-    QVERIFY(nodetool::test::graphicsNode(f.scene, f.id("audio"))->isSelected());
-    QVERIFY(!nodetool::test::graphicsNode(f.scene, f.id("video"))->isSelected());
+    QVERIFY(f.canvas.selection().contains(f.id("audio")));
+    QVERIFY(!f.canvas.selection().contains(f.id("video")));
     f.runtime.ingest("first", {{"type", "log_update"}, {"node_id", "video"}, {"content", "Log without a new media source"}});
     f.presenter.setSources(f.sources);
     f.presenter.refresh();
@@ -148,24 +144,26 @@ private slots:
     QVERIFY(seek);
     const auto start = seek->mapToScene(QPointF(seek->width() * 0.2, seek->height() / 2)).toPoint();
     const auto end = seek->mapToScene(QPointF(seek->width() * 0.7, seek->height() / 2)).toPoint();
-    QTest::mousePress(f.widget("video"), Qt::LeftButton, Qt::NoModifier, start);
-    QTest::mouseMove(f.widget("video"), end);
-    QTest::mouseRelease(f.widget("video"), Qt::LeftButton, Qt::NoModifier, end);
+    QTest::mousePress(f.widget("video")->inputWidget(), Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mouseMove(f.widget("video")->inputWidget(), end);
+    QTest::mouseRelease(f.widget("video")->inputWidget(), Qt::LeftButton, Qt::NoModifier, end);
     QTRY_VERIFY(player->position() > 1000);
-    QCOMPARE(nodetool::test::graphicsNode(f.scene, f.id("video"))->pos(), original);
-    QVERIFY(nodetool::test::graphicsNode(f.scene, f.id("audio"))->isSelected());
-    QShortcut shortcut(QKeySequence("Ctrl+G"), &f.view);
+    QCOMPARE(f.canvas.nodeOrigin(f.id("video")), original);
+    QVERIFY(f.canvas.selection().contains(f.id("audio")));
+    QShortcut shortcut(QKeySequence("Ctrl+G"), &f.surface.host());
     QSignalSpy triggered(&shortcut, &QShortcut::activated);
-    QTest::keyClick(f.widget("video"), Qt::Key_G, Qt::ControlModifier);
+    QTest::keyClick(f.widget("video")->inputWidget(), Qt::Key_G, Qt::ControlModifier);
     QCOMPARE(triggered.size(), 0);
-    QWidget unrelated(&f.view);
+    QWidget unrelated(&f.surface.host());
     unrelated.show();
     QShortcut unrelatedShortcut(QKeySequence("Ctrl+J"), &unrelated);
     QSignalSpy unrelatedTriggered(&unrelatedShortcut, &QShortcut::activated);
     QTest::keyClick(&unrelated, Qt::Key_J, Qt::ControlModifier);
     QCOMPARE(unrelatedTriggered.size(), 1);
     for (auto widget : f.presenter.activeWidgets()) { QCOMPARE(widget->rootObject()->findChildren<QMediaPlayer *>().size(), 1); }
-    for (auto item : f.scene.items()) { QVERIFY(dynamic_cast<QGraphicsProxyWidget *>(item) == nullptr); }
+    if (auto *legacy = f.surface.legacyScene()) {
+      for (auto *item : legacy->items()) { QVERIFY(dynamic_cast<QGraphicsProxyWidget *>(item) == nullptr); }
+    }
     f.click("audio", "preview-compact-play");
     QTRY_COMPARE(f.player("audio")->playbackState(), QMediaPlayer::PlayingState);
   }
@@ -177,54 +175,60 @@ private slots:
     f.click("video", "preview-play");
     QPointer<QMediaPlayer> player = f.player("video");
     const auto position = player->position();
-    f.view.scale(0.75, 0.75);
+    f.canvas.scaleBy(0.75, CanvasSurface::ZoomAnchor::Center);
     f.presenter.refresh();
     QCOMPARE(f.player("video"), player.data());
     QCOMPARE(player->position(), position);
     QCOMPARE(player->playbackState(), QMediaPlayer::PausedState);
     QCOMPARE(f.widget("video")->rootObject()->property("zoom").toDouble(), 0.75);
     const auto local = f.model.canvasPlaybackRect(f.id("video"));
-    const auto mapped = f.view.viewportTransform().mapRect(local.translated(nodetool::test::graphicsNode(f.scene, f.id("video"))->scenePos()));
-    QCOMPARE(f.widget("video")->geometry(), mapped.toAlignedRect().intersected(f.view.viewport()->rect()));
-    f.view.centerOn(1100, 220);
+    const auto mapped = f.canvas.viewportTransform().mapRect(local.translated(f.canvas.nodeOrigin(f.id("video"))));
+    QCOMPARE(f.widget("video")->geometry(), mapped.toAlignedRect().intersected((&f.canvas.viewportWidget())->rect()));
+    f.canvas.centerOn({1100, 220});
     f.presenter.refresh();
     QVERIFY(f.widget("video"));
     QVERIFY(f.widget("video")->rootObject()->property("offsetX").toDouble() < 0);
-    QVERIFY(f.view.viewport()->rect().contains(f.widget("video")->geometry()));
+    QVERIFY((&f.canvas.viewportWidget())->rect().contains(f.widget("video")->geometry()));
     QCOMPARE(player->position(), position);
-    f.view.centerOn(5150, 120);
+    f.canvas.centerOn({5150, 120});
     f.presenter.refresh();
     QCOMPARE(player->playbackState(), QMediaPlayer::StoppedState);
     QVERIFY(player->source().isEmpty());
     QTRY_VERIFY(player.isNull());
-    QTRY_COMPARE(f.presenter.activeWidgets().size(), 1);
+    QTRY_COMPARE(f.presenter.activeItems().size(), 1);
     QVERIFY(f.widget("hidden"));
-    f.view.centerOn(320, 220);
+    f.canvas.centerOn({320, 220});
     f.presenter.refresh();
     QTRY_VERIFY(f.player("video") && f.player("video")->duration() > 1000);
     QCOMPARE(f.player("video")->playbackState(), QMediaPlayer::StoppedState);
-    f.view.hide();
-    QCOMPARE(f.presenter.activeWidgets().size(), 0);
-    f.view.show();
+    f.surface.host().hide();
+    QCOMPARE(f.presenter.activeItems().size(), 0);
+    f.surface.host().show();
     QTRY_VERIFY(f.player("video"));
     QCOMPARE(f.player("video")->playbackState(), QMediaPlayer::StoppedState);
   }
-  void overlappingCardsMaskAndReleasePlayback() {
+  void overlappingCardsReleasePlaybackWhenCovered() {
     Fixture f;
     QTRY_VERIFY(f.player("video") && f.player("video")->duration() > 1000);
     f.click("video", "preview-play");
     QTRY_COMPARE(f.player("video")->playbackState(), QMediaPlayer::PlayingState);
     QPointer<QMediaPlayer> player = f.player("video");
-    const auto blocker = nodetool::test::graphicsNode(f.scene, f.id("context-0"));
-    blocker->setZValue(1000);
+    const auto blocker = f.id("context-0");
+    f.surface.setStackZ(blocker, 1000);
     const auto local = f.model.canvasPlaybackRect(f.id("video"));
-    const auto sceneOrigin = nodetool::test::graphicsNode(f.scene, f.id("video"))->scenePos() + local.topLeft();
+    const auto sceneOrigin = f.canvas.nodeOrigin(f.id("video")) + local.topLeft();
     f.model.setNodeData(f.id("context-0"), NodeRole::Position, sceneOrigin + QPointF(local.width() / 2, 0));
     f.presenter.refresh();
     QVERIFY(f.widget("video"));
-    const auto overlap = f.view.viewportTransform().mapRect(blocker->sceneBoundingRect()).intersected(f.widget("video")->geometry());
+    const auto overlap = f.canvas.viewportTransform().mapRect(f.canvas.nodeBounds(blocker)).intersected(f.widget("video")->geometry());
     QVERIFY(!overlap.isEmpty());
-    QVERIFY(!f.widget("video")->mask().contains(overlap.center().toPoint() - f.widget("video")->pos()));
+    if (f.surface.legacyScene()) {
+      const auto *widget = f.presenter.activeWidgets().at(f.presenter.activeWidgets().indexOf(
+          qobject_cast<QQuickWidget *>(f.widget("video")->inputWidget())));
+      QVERIFY(!widget->mask().contains(overlap.center().toPoint() - widget->pos()));
+    } else {
+      QCOMPARE(f.canvas.nodeAt(overlap.center().toPoint()), blocker);
+    }
     QCOMPARE(f.player("video"), player.data());
     f.model.setNodeData(f.id("context-0"), NodeRole::Size, QSize(400, 400));
     f.model.setNodeData(f.id("context-0"), NodeRole::Position, sceneOrigin - QPointF(20, 20));
@@ -251,7 +255,7 @@ private slots:
     previous = f.player("video");
     f.resolver.configure(QUrl("https://different.example"), "different-token");
     f.presenter.clear();
-    QCOMPARE(f.presenter.activeWidgets().size(), 0);
+    QCOMPARE(f.presenter.activeItems().size(), 0);
     QVERIFY(previous->source().isEmpty());
     QTRY_VERIFY(previous.isNull());
     QVERIFY(f.model.canvasPlaybackRect(f.id("video")).isEmpty());
@@ -262,14 +266,20 @@ private slots:
     f.click("video", "preview-play");
     QTRY_VERIFY(f.player("video")->videoSink()->videoFrame().isValid());
     f.click("video", "preview-play");
-    nodetool::test::graphicsNode(f.scene, f.id("audio"))->setSelected(true);
+    f.canvas.selection().setNode(f.id("audio"), true);
     f.inlineEditor.activate(f.id("audio"), "text");
     QTRY_VERIFY(f.inlineEditor.active());
     f.inlineEditor.expand();
     f.presenter.refresh();
     const auto overlap = f.inlineEditor.editorRect().intersected(f.widget("audio")->geometry());
     QVERIFY(!overlap.isEmpty());
-    QCOMPARE(f.view.viewport()->childAt(overlap.center().toPoint()), f.inlineEditor.editorWidget());
+    if (f.surface.legacyScene()) {
+      QCOMPARE(f.canvas.viewportWidget().childAt(overlap.center().toPoint()), f.inlineEditor.editorWidget());
+    } else {
+      const auto editor = f.surface.overlay("inline-property-overlay");
+      QVERIFY(editor);
+      QCOMPARE(editor->quickWindow(), f.widget("audio")->quickWindow());
+    }
     f.inlineEditor.cancel();
     QQmlComponent component(&f.engine);
     component.setData("import QtQml; import NodeTool.UiPrimitives as Ui; QtObject { property var theme: Ui.Theme }", QUrl());
@@ -292,7 +302,7 @@ private slots:
       canvas.grid = canvas.divider;
       f.scene.setTheme(canvas);
       QTest::qWait(50);
-      QVERIFY(capture(f.view, QString("node-editor-canvas-media-%1.png").arg(scheme == 2 ? "dark" : "light")));
+      QVERIFY(capture(f.surface.host(), QString("node-editor-canvas-media-%1.png").arg(scheme == 2 ? "dark" : "light")));
     }
     QVERIFY(!f.scene.animationActive());
   }

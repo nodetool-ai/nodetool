@@ -1,3 +1,4 @@
+#include "ui/CanvasOverlay.h"
 #include "EditorWindow.h"
 #include "EntryMenu.h"
 #include "document/ChildPorts.h"
@@ -931,7 +932,7 @@ void EditorWindow::positionNodeInfo() {
     nodeInfo_.setMaximumHeight(area.height() - top - margin);
     nodeInfoOverlay_->move(left, top);
     nodeInfoOverlay_->show();
-    nodeInfoOverlay_->raise();
+    nodeInfoOverlay_->raiseLegacyWidget();
 }
 
 void EditorWindow::openNodeMenuAt(const QStringList &path, const QString &term) {

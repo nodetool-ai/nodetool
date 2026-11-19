@@ -1,3 +1,4 @@
+#include "ui/CanvasOverlay.h"
 #include "CompatibleNodePicker.h"
 #include "canvas/CanvasStyle.h"
 #include "canvas/EditorSceneApi.h"
@@ -145,15 +146,16 @@ CompatibleNodePicker::CompatibleNodePicker(WorkflowGraphModel &model,
   connect(&scene_.interaction(),&canvas::CanvasInteraction::wireBodyDropped,this,&CompatibleNodePicker::openBody);
   connect(&scene_.interaction(),&canvas::CanvasInteraction::handleContextMenuRequested,this,&CompatibleNodePicker::open);
   connect(&model_,&WorkflowGraphModel::projectionAboutToChange,this,&CompatibleNodePicker::cancel);
+  connect(&canvas_, &CanvasSurface::viewportMoved, this, [this] { if (active_) { positionWidget(); } });
   qApp->installEventFilter(this);
 }
 CompatibleNodePicker::~CompatibleNodePicker() {
   qApp->removeEventFilter(this);
   active_=false; ++generation_;
   // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  auto widget=widget_.data(); widget_.clear(); delete widget;
+  if (widget_ && widget_->widget()) { delete widget_->widget(); }
 }
-QQuickWidget *CompatibleNodePicker::widget() const { return widget_; }
+QQuickWidget *CompatibleNodePicker::widget() const { return widget_ ? widget_->widget() : nullptr; }
 void CompatibleNodePicker::setCatalog(const QJsonArray &catalog) { cancel(); catalog_=catalog; compatibleCache_.clear(); }
 QString CompatibleNodePicker::title() const {
   if (keyboard_) { return tr("Connect %1").arg(titleizedHandle(handle_)); }
@@ -331,22 +333,31 @@ void CompatibleNodePicker::showWidget() {
   active_=true;
   // One widget for the picker's lifetime, so the QML compiles once.
   if (!widget_) {
-    auto widget=new PickerWidget(engine_,&canvas_.hostWidget()); widget_=widget;
-    widget->setObjectName("compatible-node-picker");
-    widget->setAttribute(Qt::WA_AlwaysStackOnTop);
-    widget->setClearColor(Qt::transparent);
-    widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    widget->setInitialProperties({{"picker",QVariant::fromValue(this)}});
-    widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CompatibleNodePicker.qml"));
-    if (widget->status()==QQuickWidget::Error) { widget_.clear(); widget->deleteLater(); cancel(); return; }
+    const QUrl source("qrc:/qt/qml/NodeTool/NodeEditor/CompatibleNodePicker.qml");
+    const QVariantMap properties{{"picker", QVariant::fromValue(this)}};
+    widget_ = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, properties, 80);
+    if (!widget_) {
+      auto *widget = new PickerWidget(engine_, &canvas_.hostWidget());
+      widget->setAttribute(Qt::WA_AlwaysStackOnTop);
+      widget->setClearColor(Qt::transparent);
+      widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
+      widget->setInitialProperties(properties);
+      widget->setSource(source);
+      widget_ = std::make_unique<CanvasOverlay>(*widget);
+    }
+    if (!widget_->rootObject()) { cancel(); return; }
+    widget_->setObjectName("compatible-node-picker");
   }
-  const auto widget=widget_;
-  widget->rootObject()->setProperty("activationToken",generation_);
-  widget->setEnabled(true);
-  positionWidget(); widget->show(); widget->raise(); widget->setFocus(Qt::MouseFocusReason);
+  widget_->rootObject()->setProperty("activationToken", generation_);
+  widget_->setEnabled(true);
+  positionWidget();
+  widget_->show();
+  widget_->raiseLegacyWidget();
+  if (!widget_->widget()) { canvas_.setFocus(Qt::MouseFocusReason); }
+  widget_->setFocus(Qt::MouseFocusReason);
   emit changed();
-  QTimer::singleShot(0,this,[this,widget,token=generation_] {
-    if (current() && token==generation_ && widget) { QMetaObject::invokeMethod(widget->rootObject(),"activate"); }
+  QTimer::singleShot(0,this,[this,token=generation_] {
+    if (current() && token==generation_ && widget_) { QMetaObject::invokeMethod(widget_->rootObject(),"activate"); }
   });
 }
 void CompatibleNodePicker::applyBody(const QString &port,const QJsonArray &prefix,
@@ -720,9 +731,13 @@ void CompatibleNodePicker::cancel() {
 }
 bool CompatibleNodePicker::owns(QObject *object) const {
   if (!widget_) { return false; }
-  const auto item=qobject_cast<QQuickItem *>(object);
-  if (object==widget_ || object==widget_->quickWindow() || (item && item->window()==widget_->quickWindow())) { return true; }
-  for (auto p=object;p;p=p->parent()) { if (p==widget_ || p==widget_->rootObject()) { return true; } }
+  if (const auto legacy = widget_->widget()) {
+    const auto item = qobject_cast<QQuickItem *>(object);
+    if (object == legacy || object == legacy->quickWindow() || (item && item->window() == legacy->quickWindow())) { return true; }
+  }
+  for (auto *p = object; p; p = p->parent()) {
+    if (p == widget_->rootObject()) { return true; }
+  }
   return false;
 }
 void CompatibleNodePicker::positionWidget() {
@@ -735,13 +750,24 @@ void CompatibleNodePicker::positionWidget() {
 }
 bool CompatibleNodePicker::eventFilter(QObject *object,QEvent *event) {
   if (!active_) { return QObject::eventFilter(object,event); }
-  if (event->type()==QEvent::ShortcutOverride && owns(object)) { event->accept(); return true; }
+  if (event->type()==QEvent::ShortcutOverride && (owns(object) || (widget_ && widget_->ownsFocus(object)))) { event->accept(); return true; }
   if ((event->type()==QEvent::MouseButtonPress || event->type()==QEvent::Wheel) && !owns(object)) {
     const auto target=qobject_cast<QWidget *>(object);
     const bool sameWindow=object==canvas_.hostWidget().window()->windowHandle() || (target && target->window()==canvas_.hostWidget().window());
     const auto global=event->type()==QEvent::MouseButtonPress
         ? static_cast<QMouseEvent *>(event)->globalPosition() : static_cast<QWheelEvent *>(event)->globalPosition();
-    const bool inside=widget_ && sameWindow && widget_->rect().contains(widget_->mapFromGlobal(global.toPoint()));
+    bool inside = false;
+    if (widget_) {
+      if (widget_->widget()) {
+        inside = sameWindow && widget_->containsGlobal(global);
+      } else {
+        const auto *item = qobject_cast<QQuickItem *>(object);
+        const auto *quickWindow = widget_->rootObject()->window();
+        if (sameWindow || object == quickWindow || (item && item->window() == quickWindow)) {
+          inside = widget_->geometry().contains(canvas_.viewportWidget().mapFromGlobal(global.toPoint()));
+        }
+      }
+    }
     // Window-system delivery visits the top-level window before routing to the
     // child Quick widget. Preserve that delivery when its point is in the menu.
     if (!inside) { cancel(); }

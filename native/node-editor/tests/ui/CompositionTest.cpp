@@ -1,3 +1,5 @@
+#include "../support/OverlayProbe.h"
+#include "graph/InlineTitlePresenter.h"
 #include "../support/CanvasProbe.h"
 // node_editor_composition: the editor must look the same in a scene capture
 // (what the process composes) and a screen capture (what the window system
@@ -47,13 +49,9 @@ QJsonArray catalog() {
             {"properties", QJsonArray{QJsonObject{{"name", "in"}, {"type", QJsonObject{{"type", "video"}}}}}},
             {"outputs", QJsonArray{QJsonObject{{"name", "out"}, {"type", QJsonObject{{"type", "str"}}}}}}}};
 }
-QQuickWidget *overlay(EditorWindow &window, const QString &name) {
-  for (auto *widget : window.findChildren<QQuickWidget *>()) {
-    if (widget->objectName() == name && widget->isVisible()) { return widget; }
-  }
-  return nullptr;
+test::OverlayProbe overlay(EditorWindow &window, const QString &name) {
+  return test::overlay(window, name);
 }
-QRect inWindow(EditorWindow &window, QWidget &widget) { return {widget.mapTo(&window, QPoint()), widget.size()}; }
 QtNodes::NodeId nodeId(EditorWindow &window, const QString &resource) {
   auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
   for (const auto id : model.allNodeIds()) {
@@ -65,8 +63,8 @@ QtNodes::NodeId nodeId(EditorWindow &window, const QString &resource) {
 QRect cardRect(EditorWindow &window, const QString &resource) {
   return test::CanvasProbe(window).nodeRectInWindow(nodeId(window, resource));
 }
-QString backendOf(QQuickWidget &widget) {
-  const auto *renderer = widget.quickWindow()->rendererInterface();
+QString backendOf(const test::OverlayProbe &widget) {
+  const auto *renderer = widget->quickWindow()->rendererInterface();
   if (!renderer) { return QStringLiteral("none"); }
   return renderer->graphicsApi() == QSGRendererInterface::Software ? QStringLiteral("software") : QStringLiteral("rhi");
 }
@@ -75,7 +73,7 @@ QString backendOf(QQuickWidget &widget) {
 class CompositionTest final : public QObject {
   Q_OBJECT
   std::unique_ptr<EditorWindow> window_;
-  QPointer<QQuickWidget> media_;
+  test::OverlayProbe media_;
 
   // A video card with a playing preview and a text card later in the scene, so
   // the text card stacks above the video card and covers part of its preview.
@@ -97,7 +95,7 @@ class CompositionTest final : public QObject {
     player->setLoops(QMediaPlayer::Infinite);
     player->play();
     QTRY_VERIFY_WITH_TIMEOUT(player->videoSink()->videoFrame().isValid(), 10000);
-    requireBackend(*media_);
+    requireBackend(media_);
   }
   void showWorkflow(const QJsonObject &workflow) {
     window_ = std::make_unique<EditorWindow>();
@@ -108,7 +106,7 @@ class CompositionTest final : public QObject {
     QVERIFY(QTest::qWaitForWindowExposed(window_.get()));
     window_->action("Reset zoom");
   }
-  void requireBackend(QQuickWidget &widget) {
+  void requireBackend(const test::OverlayProbe &widget) {
     const auto want = qEnvironmentVariable("NODETOOL_COMPOSITION_BACKEND", QStringLiteral("software"));
     QCOMPARE(backendOf(widget), want);
   }
@@ -153,29 +151,52 @@ private slots:
   // The chat window opens by default on a wide window. Only the chat case wants it.
   void init() { QSettings().setValue(QStringLiteral("canvas-chat-dock/collapsed"), true); }
   void cleanup() {
-    media_.clear();
+    media_ = {};
     window_.reset();
   }
   // The text card stacks above the video card, so its body hides that part of the preview.
   void mediaUnderCard() {
     showPlayingVideo();
     QVERIFY(media_);
-    compare("media-under-card", cardRect(*window_, CoverNode).intersected(inWindow(*window_, *media_)));
+    const auto covered = cardRect(*window_, CoverNode).intersected(media_->inWindow(*window_));
+    compare("media-under-card", covered);
+    if (dynamic_cast<QuickCanvas *>(&window_->canvas())) {
+      auto &quick = static_cast<QuickCanvas &>(window_->canvas());
+      auto &graph = quick.graphCanvas();
+      const auto sample = [&](QPoint point) {
+        const auto image = quick.quickWidget().grabFramebuffer();
+        const auto viewportPoint = quick.viewportWidget().mapFrom(window_.get(), point);
+        return image.pixelColor((QPointF(viewportPoint) * image.devicePixelRatio()).toPoint());
+      };
+      const auto point = covered.center();
+      const auto withMedia = sample(point);
+      media_->rootObject()->setVisible(false);
+      QCOMPARE(sample(point), withMedia);
+      media_->rootObject()->setVisible(true);
+
+      // Reversing the stack exposes the playing video at that same pixel.
+      auto *cover = graph.scene().nodeItem(nodeId(*window_, CoverNode));
+      const auto z = cover->z();
+      cover->setZ(-1);
+      const auto exposed = sample(point);
+      cover->setZ(z);
+      QVERIFY(exposed != withMedia);
+    }
   }
   // The chat window floats over the canvas, so it hides the preview below it.
   void mediaUnderChat() {
     QSettings().setValue(QStringLiteral("canvas-chat-dock/collapsed"), false);
     showPlayingVideo();
     QVERIFY(media_);
-    QQuickWidget *chat = nullptr;
+    test::OverlayProbe chat;
     QTRY_VERIFY((chat = overlay(*window_, "editor-chat-overlay")));
     // Pan until the chat window covers the right half of the preview.
     auto &canvas = window_->canvas();
-    const auto shift = inWindow(*window_, *media_).left() - (inWindow(*window_, *chat).left() - media_->width() / 2);
+    const auto shift = media_->inWindow(*window_).left() - (chat->inWindow(*window_).left() - media_->width() / 2);
     canvas.setHorizontalOffset(canvas.horizontalOffset() + shift);
     QTRY_VERIFY((media_ = overlay(*window_, "canvas-media-" + VideoNode)) &&
-                inWindow(*window_, *chat).intersected(inWindow(*window_, *media_)).width() >= media_->width() / 4);
-    compare("media-under-chat", inWindow(*window_, *chat).intersected(inWindow(*window_, *media_)));
+                chat->inWindow(*window_).intersected(media_->inWindow(*window_)).width() >= media_->width() / 4);
+    compare("media-under-chat", chat->inWindow(*window_).intersected(media_->inWindow(*window_)));
   }
   // The inline note editor of the text card opens below that card, over the preview.
   void mediaUnderNoteEditor() {
@@ -183,9 +204,13 @@ private slots:
     QVERIFY(media_);
     QVERIFY(window_->selectNode(CoverNode));
     window_->action("Edit note");
-    QQuickWidget *editor = nullptr;
+    test::OverlayProbe editor;
     QTRY_VERIFY((editor = overlay(*window_, "inline-title-overlay")));
-    compare("media-under-note-editor", inWindow(*window_, *editor).intersected(inWindow(*window_, *media_)));
+    const auto *presenter = window_->findChild<InlineTitlePresenter *>();
+    QVERIFY(presenter);
+    const auto &viewport = window_->canvas().viewportWidget();
+    const auto editorBounds = presenter->editorRect().toAlignedRect().translated(viewport.mapTo(window_.get(), QPoint()));
+    compare("media-under-note-editor", editorBounds.intersected(media_->inWindow(*window_)));
   }
   // The header controls of a selected group are a translucent overlay without
   // WA_AlwaysStackOnTop: the canvas must show through around the buttons.
@@ -195,11 +220,10 @@ private slots:
         {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 0}, {"y", 0}}}, {"width", 400}, {"height", 220}}}}}},
       {"edges", QJsonArray{}}}}});
     QVERIFY(window_->selectNode(GroupNode));
-    QQuickWidget *controls = nullptr;
+    test::OverlayProbe controls;
     QTRY_VERIFY((controls = overlay(*window_, "authored-controls-" + GroupNode)));
-    QTRY_COMPARE(controls->status(), QQuickWidget::Ready);
-    requireBackend(*controls);
-    compare("translucent-overlay", inWindow(*window_, *controls));
+    requireBackend(controls);
+    compare("translucent-overlay", controls->inWindow(*window_));
   }
 };
 QTEST_MAIN(CompositionTest)

@@ -156,9 +156,16 @@ public:
 };
 } // namespace
 
+void CanvasImageItem::setIndividualSoftwareRendering(bool enabled) {
+  if (individualSoftwareRendering_ == enabled) { return; }
+  individualSoftwareRendering_ = enabled;
+  update();
+}
+
 QSGNode *CanvasImageItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
   auto root = std::unique_ptr<TileTextureNode>(static_cast<TileTextureNode *>(old));
-  if (!window() || tiles_.isEmpty() || window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software) {
+  if (!window() || tiles_.isEmpty() ||
+      (!individualSoftwareRendering_ && window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software)) {
     return nullptr;
   }
   if (!root) { root = std::make_unique<TileTextureNode>(); }

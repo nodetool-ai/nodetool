@@ -1,3 +1,4 @@
+#include "ui/CanvasOverlay.h"
 // The tab bar notifications and settings, the inspector footer and its cost
 // estimate, and the status bar tabs. Web sources: components/panels/NotificationButton.tsx,
 // SettingsHeaderButton.tsx, inspector/RunSelectedNodesSection.tsx,
@@ -273,7 +274,9 @@ bool EditorWindow::queueVisible() const {
 }
 
 QRect EditorWindow::queueArea() const {
-  return {canvas_->hostWidget().mapTo(centralWidget(), QPoint(0, 0)), canvas_->hostWidget().size()};
+  const auto &host = canvas_->hostWidget();
+  return queueOverlay_ && !queueOverlay_->widget() ? host.rect()
+      : QRect(host.mapTo(centralWidget(), QPoint(0, 0)), host.size());
 }
 
 QSize EditorWindow::queueSize(const QRect &area) const {

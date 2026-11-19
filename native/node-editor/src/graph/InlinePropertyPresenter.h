@@ -1,3 +1,4 @@
+#include <memory>
 #pragma once
 #include <QJsonObject>
 #include <QObject>
@@ -10,6 +11,7 @@
 class QQmlEngine;
 class QQuickWidget;
 namespace nodetool {
+class CanvasOverlay;
 class CanvasSurface;
 namespace node_editor { class PropertyHost; }
 class WorkflowGraphModel;
@@ -67,7 +69,7 @@ private:
   CanvasSurface &canvas_;
   QPointer<QQmlEngine> engine_;
   node_editor::PropertyHost &host_;
-  QPointer<QQuickWidget> widget_;
+  std::unique_ptr<CanvasOverlay> widget_;
   QVector<QPointer<QQuickWidget>> retiredWidgets_;
   QtNodes::NodeId node_ = QtNodes::InvalidNodeId;
   QString name_;
@@ -88,5 +90,6 @@ private:
   void flushApply();
   bool current() const;
   void updateMask();
+  QObject retiredQuickRoots_;
 };
 }

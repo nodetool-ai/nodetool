@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
@@ -44,14 +45,14 @@ private slots:
     };
     open();
     QTRY_VERIFY(presenter->active());
-    auto widget = presenter->editorWidget(); QVERIFY(widget);
+    auto widget = test::overlay(window, "inline-property-overlay"); QVERIFY(widget);
     auto field = widget->rootObject()->findChild<QQuickItem *>("inline-text");
     QVERIFY(field); field->forceActiveFocus();
     QTRY_VERIFY(field->hasActiveFocus());
-    QTest::keyClick(widget, Qt::Key_A, Qt::ControlModifier);
-    QTest::keyClicks(widget, "Inline host edit");
+    QTest::keyClick(widget->inputWidget(), Qt::Key_A, Qt::ControlModifier);
+    QTest::keyClicks(widget->inputWidget(), "Inline host edit");
     QCOMPARE(field->property("text").toString(), QString("Inline host edit"));
-    QTest::keyClick(widget, Qt::Key_Return);
+    QTest::keyClick(widget->inputWidget(), Qt::Key_Return);
     QTRY_COMPARE(window.document()->node("a")["data"].toObject()["Text"].toString(), QString("Inline host edit"));
     QCOMPARE(window.document()->undoStack()->count(), 1);
     window.action("Undo");
@@ -89,8 +90,8 @@ private slots:
     QTRY_VERIFY(presenter->active());
     const auto add = [&] {
       QQuickItem *button = nullptr;
-      QTRY_VERIFY((button = presenter->editorWidget()->rootObject()->findChild<QQuickItem *>("structured-add")));
-      QTest::mouseClick(presenter->editorWidget(), Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint());
+      QTRY_VERIFY((button = test::overlay(window, "inline-property-overlay")->rootObject()->findChild<QQuickItem *>("structured-add")));
+      QTest::mouseClick(test::overlay(window, "inline-property-overlay")->inputWidget(), Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint());
     };
     add();
     QTRY_COMPARE(window.document()->node("a")["data"].toObject()["tags"].toArray().size(), 2);

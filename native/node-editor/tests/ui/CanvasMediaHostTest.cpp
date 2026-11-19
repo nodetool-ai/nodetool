@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
 #include "media/LocalMediaStore.h"
 #include "graph/WorkflowGraphModel.h"
@@ -51,11 +52,8 @@ QJsonObject workflow(const QString &name = "Canvas media host fixture") {
     QJsonObject{{"id", AudioNode}, {"type", "Fixture.Audio"}, {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 330}, {"y", 0}}}}}}
   }}, {"edges", QJsonArray{}}}}};
 }
-QQuickWidget *overlay(EditorWindow &window, const QString &id) {
-  for (auto widget : window.findChildren<QQuickWidget *>()) {
-    if (widget->objectName() == "canvas-media-" + id && widget->isVisible()) { return widget; }
-  }
-  return nullptr;
+test::OverlayProbe overlay(EditorWindow &window, const QString &id) {
+  return test::overlay(window, "canvas-media-" + id);
 }
 QMediaPlayer *player(EditorWindow &window, const QString &id) {
   const auto widget = overlay(window, id);
@@ -82,7 +80,7 @@ void click(EditorWindow &window, const QString &id, const QString &name) {
   Q_ASSERT(widget && widget->rootObject());
   const auto control = widget->rootObject()->findChild<QQuickItem *>(name);
   Q_ASSERT(control);
-  QTest::mouseClick(widget, Qt::LeftButton, Qt::NoModifier,
+  QTest::mouseClick(widget->inputWidget(), Qt::LeftButton, Qt::NoModifier,
                    control->mapToScene(QPointF(control->width() / 2, control->height() / 2)).toPoint());
 }
 }
@@ -212,10 +210,10 @@ private slots:
     const auto scrollPoint = scroll->mapToScene(QPointF(scroll->width() / 2, scroll->height() / 2)).toPoint();
     const auto unengagedZoom = textWidget->rootObject()->property("zoom").toReal();
     QWheelEvent canvasWheel(scrollPoint, textWidget->mapToGlobal(scrollPoint), {}, QPoint(0, 120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
-    QApplication::sendEvent(textWidget, &canvasWheel);
+    QApplication::sendEvent(textWidget->inputWidget(), &canvasWheel);
     QTRY_VERIFY(textWidget->rootObject()->property("zoom").toReal() > unengagedZoom);
-    QTest::mouseMove(textWidget, scrollPoint);
-    QTest::mouseClick(textWidget, Qt::LeftButton, {}, scrollPoint);
+    QTest::mouseMove(textWidget->inputWidget(), scrollPoint);
+    QTest::mouseClick(textWidget->inputWidget(), Qt::LeftButton, {}, scrollPoint);
     QTRY_VERIFY(scroll->property("interactive").toBool());
     auto view = nodetool::test::view(window);
     QVERIFY(view);
@@ -232,10 +230,10 @@ private slots:
     QCOMPARE(tableWidget->rootObject()->property("zoom").toReal(), view->transform().m11());
     const auto transform = view->viewportTransform();
     const auto point = table->mapToScene(QPointF(table->width() / 2, table->height() / 2)).toPoint();
-    QVERIFY(tableWidget->rect().contains(point));
+    QVERIFY(tableWidget->rootObject()->contains(tableWidget->rootObject()->mapFromScene(point)));
     const auto before = table->property("contentY").toReal();
     QWheelEvent wheel(point, tableWidget->mapToGlobal(point), {}, QPoint(0, -120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
-    QApplication::sendEvent(tableWidget, &wheel);
+    QApplication::sendEvent(tableWidget->inputWidget(), &wheel);
     QTRY_VERIFY(table->property("contentY").toReal() > before);
     QCOMPARE(view->viewportTransform(), transform);
     window.runOutput()->ingest("rich-cards", {{"type", "log_update"}, {"job_id", "rich-cards"}, {"content", "Keep rich controls stable"}});
@@ -251,19 +249,19 @@ private slots:
     }
     QCOMPARE(window.document()->snapshot(), snapshot);
     QCOMPARE(window.document()->undoStack()->count(), undo);
-    QPointer<QQuickWidget> previous = tableWidget;
+    test::OverlayProbe previous = tableWidget;
     const auto center = view->mapToScene(view->viewport()->rect().center());
     const auto sceneRect = view->sceneRect();
     view->setSceneRect(-10000, -10000, 20000, 20000);
     view->centerOn(5000, 5000);
     QTRY_VERIFY(!overlay(window, AudioNode));
-    QTRY_VERIFY(previous.isNull());
+    QTRY_VERIFY(!previous);
     view->setSceneRect(sceneRect); view->centerOn(center);
     QTRY_VERIFY(overlay(window, AudioNode));
     previous = overlay(window, AudioNode);
     window.runOutput()->reset();
     QTRY_VERIFY(!overlay(window, AudioNode));
-    QTRY_VERIFY(previous.isNull());
+    QTRY_VERIFY(!previous);
     inject(AudioNode, "Stale result");
     QVERIFY(!overlay(window, AudioNode));
     window.runOutput()->beginRun("rich-cards");
@@ -272,7 +270,7 @@ private slots:
     QTRY_VERIFY(overlay(window, AudioNode));
     previous = overlay(window, AudioNode);
     window.session()->connectToServer(QUrl("http://127.0.0.1:1"), "fixture-token", "rich-account");
-    QTRY_VERIFY(previous.isNull());
+    QTRY_VERIFY(!previous);
     inject(AudioNode, "Old account result");
     QVERIFY(!overlay(window, AudioNode));
     window.session()->disconnectFromServer();
@@ -290,7 +288,7 @@ private slots:
     QVERIFY(file.write(QJsonDocument(workflow("Other workflow")).toJson()) > 0);
     file.close();
     QVERIFY(window.openFile(path));
-    QTRY_VERIFY(previous.isNull());
+    QTRY_VERIFY(!previous);
     inject(AudioNode, "Old workflow result");
     QVERIFY(!overlay(window, AudioNode));
   }
@@ -417,7 +415,7 @@ private slots:
     QCOMPARE(window.document()->undoStack()->count(), undoCount);
     window.runOutput()->beginRun("empty-history");
     QTRY_VERIFY(!overlay(window, VideoNode));
-    QTRY_VERIFY(previous.isNull());
+    QTRY_VERIFY(!previous);
     window.runOutput()->selectRun("first");
     QTRY_VERIFY_WITH_TIMEOUT(player(window, VideoNode) && player(window, VideoNode)->duration() > 1000, 15000);
     QCOMPARE(player(window, VideoNode)->playbackState(), QMediaPlayer::StoppedState);
@@ -426,7 +424,7 @@ private slots:
     previous = player(window, VideoNode);
     window.session()->connectToServer(QUrl("http://127.0.0.1:1"), "fixture-token-one", "account-one");
     QTRY_VERIFY(!overlay(window, VideoNode));
-    QTRY_VERIFY(previous.isNull());
+    QTRY_VERIFY(!previous);
     QVERIFY(window.outputMedia().isEmpty());
     output(window, "first", VideoNode, "video", videoUri);
     QCoreApplication::processEvents();
@@ -439,7 +437,7 @@ private slots:
     QTRY_VERIFY_WITH_TIMEOUT(player(window, VideoNode) && player(window, VideoNode)->duration() > 1000, 15000);
     previous = player(window, VideoNode);
     window.session()->connectToServer(QUrl("http://127.0.0.1:2"), "fixture-token-two", "account-two");
-    QTRY_VERIFY(previous.isNull());
+    QTRY_VERIFY(!previous);
     QVERIFY(!overlay(window, VideoNode));
     output(window, "second", VideoNode, "video", videoUri);
     QVERIFY(window.outputMedia().isEmpty());
@@ -458,7 +456,7 @@ private slots:
     QVERIFY(file.write(QJsonDocument(workflow("Different workflow")).toJson()) > 0);
     file.close();
     QVERIFY(window.openFile(path));
-    QTRY_VERIFY(previous.isNull());
+    QTRY_VERIFY(!previous);
     QVERIFY(!overlay(window, VideoNode));
     output(window, "local", VideoNode, "video", videoUri);
     QVERIFY(window.outputMedia().isEmpty());

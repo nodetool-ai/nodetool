@@ -69,6 +69,7 @@ class QDockWidget;
 class QBoxLayout;
 class QStackedWidget;
 namespace nodetool {
+class CanvasOverlay;
 class CanvasSurface;
 struct EntryMenuRequest;
 namespace node_editor { class LineageLayer; }
@@ -602,6 +603,8 @@ private:
   QStringList selectedIds() const override;
   QList<bool> selectedRunnableStates() const;
   bool singleRunnableCardSelected() const;
+  std::unique_ptr<CanvasOverlay> canvasOverlay(const QString &file, const QVariantMap &properties, qreal z,
+                                               bool sizeToView = false, QWidget *legacyParent = nullptr);
   QQuickWidget *panel(const QString &file, const QVariantMap &properties = {});
   void syncNodeCatalog();
   void syncNodeInspector();
@@ -801,7 +804,7 @@ private:
   node_editor::SetupController setup_;
   QPointer<QDialog> setupDialog_;
   bool guideStarted_ = false, guideDismissed_ = false;
-  QQuickWidget *setupGuide_ = nullptr;
+  std::unique_ptr<CanvasOverlay> setupGuide_;
   // The window owner creates the one engine its tabs share, so the compiled QML
   // types and the Theme singleton exist once. It outlives the tabs, which the
   // owner deletes in its destructor body.
@@ -860,7 +863,7 @@ private:
     // What this tab's chat window (EditorChat.qml) asks of its frame. Owned by
     // value, UI thread, destroyed with the tab.
     node_editor::ChatWindow chatWindow_;
-    QQuickWidget *chatOverlay_ = nullptr;
+    std::unique_ptr<CanvasOverlay> chatOverlay_;
     bool chatVisible_ = false;
     void initializeChat();
     void initializeChatTools();
@@ -876,8 +879,8 @@ private:
     QList<QPointer<EditorWindow>> retainedChatHosts_;
     QPoint chatOffset_;
     QSize chatSize_{420, 2000};
-  QQuickWidget *toolbarOverlay_ = nullptr;
-  QQuickWidget *queueOverlay_ = nullptr;
+  std::unique_ptr<CanvasOverlay> toolbarOverlay_;
+  std::unique_ptr<CanvasOverlay> queueOverlay_;
   // The dropped queue position, or nothing for the canvas's top-left corner.
   std::optional<node_editor::docked_overlay::Position> queuePosition_;
   // The queue overlay's top-left while the user drags it.
@@ -912,12 +915,12 @@ private:
   QVariantList pendingQueue_;
   // Parented to this window. It fires when a queue change has held.
   QTimer *shownQueueTimer_ = nullptr;
-  QQuickWidget *selectionOverlay_ = nullptr;
+  std::unique_ptr<CanvasOverlay> selectionOverlay_;
   // The node info panel, a child of the canvas host deleted by ~EditorWindow before
   // nodeInfo_. nodeInfoId_ is the node it shows, empty while it is hidden.
-  QQuickWidget *nodeInfoOverlay_ = nullptr;
+  std::unique_ptr<CanvasOverlay> nodeInfoOverlay_;
   // The price chip, a child of the canvas host deleted by ~EditorWindow before priceChip_.
-  QQuickWidget *priceChipOverlay_ = nullptr;
+  std::unique_ptr<CanvasOverlay> priceChipOverlay_;
   QString nodeInfoId_;
   // True while the selection toolbar floats over its card instead of the canvas top.
   bool selectionToolbarFloating_ = false;
@@ -927,9 +930,10 @@ private:
   CardMediaLoader *cardMediaLoader_ = nullptr;
   CanvasDropController *canvasDrops_ = nullptr;
   CompatibleNodePicker *compatiblePicker_ = nullptr;
-  QQuickWidget *viewportOverlay_ = nullptr;
-  QQuickWidget *miniMapControls_ = nullptr;
+  std::unique_ptr<CanvasOverlay> viewportOverlay_;
+  std::unique_ptr<CanvasOverlay> miniMapControls_;
   QPointer<QQuickWidget> miniMapPopup_;
+  std::unique_ptr<CanvasOverlay> quickMiniMapPopup_;
   QString miniMapColorMode_ = "default";
   bool inspectorDismissed_ = false;
   bool catalogAutoHidden_ = false;

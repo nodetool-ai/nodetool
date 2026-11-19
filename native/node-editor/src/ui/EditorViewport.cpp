@@ -1,3 +1,4 @@
+#include "ui/CanvasOverlay.h"
 #include "EditorWindow.h"
 #include "MiniMap.h"
 #include "graph/EditorScene.h"
@@ -159,6 +160,10 @@ void EditorWindow::setMiniMapColorMode(const QString &mode) {
 
 void EditorWindow::closeMiniMapPopup() {
   if (!tabOwner_) { activeEditor_->closeMiniMapPopup(); return; }
+  if (auto popup = std::move(quickMiniMapPopup_)) {
+    popup->hide();
+    popup->retireQuickRoot(*this);
+  }
   if (!miniMapPopup_) { return; }
   miniMapPopup_->hide();
   miniMapPopup_->setObjectName({});
@@ -176,6 +181,20 @@ void EditorWindow::showMiniMapPopup(const QString &kind, const QPointF &anchorGl
   for (const auto &category : miniMapCategories()) {
     legend.append(QVariantMap{{"id", category}, {"label", labels.value(category)}, {"color", miniMapCategoryColor(category, dark)}});
   }
+  const QVariantMap properties{{"viewport", QVariant::fromValue(&viewport_)}, {"kind", kind},
+                               {"colorMode", miniMapColorMode_}, {"legend", legend}};
+  quickMiniMapPopup_ = CanvasOverlay::onQuickCanvas(*canvas_, *engine_,
+      QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MiniMapPopups.qml"), properties, 90);
+  if (quickMiniMapPopup_) {
+    auto *root = quickMiniMapPopup_->rootObject();
+    if (!root) { quickMiniMapPopup_.reset(); return; }
+    quickMiniMapPopup_->setObjectName("mini-map-popup-host");
+    quickMiniMapPopup_->setGeometry(canvas_->hostWidget().rect());
+    quickMiniMapPopup_->show();
+    const auto local = canvas_->hostWidget().mapFromGlobal(anchorGlobal.toPoint());
+    QMetaObject::invokeMethod(root, "openAt", Q_ARG(QVariant, local.x()), Q_ARG(QVariant, local.y()));
+    return;
+  }
   // A transparent overlay over the window, so a popup can open past the mini-map's edge.
   auto *host = new QQuickWidget(engine_, this);
   miniMapPopup_ = host;
@@ -185,7 +204,7 @@ void EditorWindow::showMiniMapPopup(const QString &kind, const QPointF &anchorGl
   host->setClearColor(Qt::transparent);
   host->setResizeMode(QQuickWidget::SizeRootObjectToView);
   host->setGeometry(rect());
-  host->setInitialProperties({{"viewport", QVariant::fromValue(&viewport_)}, {"kind", kind}, {"colorMode", miniMapColorMode_}, {"legend", legend}});
+  host->setInitialProperties(properties);
   host->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MiniMapPopups.qml"));
   if (!host->rootObject()) {
     closeMiniMapPopup();

@@ -29,6 +29,7 @@ Item {
         if (kind === "document_ref") loader.item.openPicker()
     }
     function maskPopup() {
+        if (root.token !== presenter.generation) return
         if (!loader.item || !loader.item.popup || !loader.item.popup.visible) {
             presenter.popupRect(Qt.rect(0,0,0,0)); return
         }

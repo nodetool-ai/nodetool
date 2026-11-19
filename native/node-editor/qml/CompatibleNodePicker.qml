@@ -21,6 +21,12 @@ Rectangle {
     }
     color: Ui.Theme.surfaceOverlay
     radius: Ui.Metrics.radiusOverlay
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.AllButtons
+        onWheel: wheel => { wheel.accepted = true }
+    }
+
     border.width: Ui.Metrics.border
     border.color: Ui.Theme.borderControl
     function activate() {
