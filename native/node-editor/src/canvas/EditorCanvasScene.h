@@ -96,6 +96,7 @@ private:
   QList<CanvasHit> hitsAt(QPointF scenePosition) const override;
   QList<CanvasNodeHit> nodesFrontToBack() const override;
   std::optional<CanvasNodeHit> node(QtNodes::NodeId id) override;
+  std::optional<CanvasNodeHit> nodeAtPoint(QPointF scenePosition) override;
   QList<QtNodes::NodeId> selectedNodes() const override { return CanvasScene::selectedNodes(); }
   QList<QtNodes::ConnectionId> selectedWires() const override { return CanvasScene::selectedConnections(); }
   qsizetype selectionCount() const override { return CanvasScene::selectionCount(); }

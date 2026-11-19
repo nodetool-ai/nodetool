@@ -290,10 +290,15 @@ QList<CanvasItem *> CanvasScene::itemsAt(const QPointF &point) const {
 }
 
 NodeItem *CanvasScene::nodeAt(const QPointF &point) const {
-  for (auto *item : itemsAt(point)) {
-    if (auto *node = dynamic_cast<NodeItem *>(item)) { return node; }
+  NodeItem *top = nullptr;
+  for (const auto key : index_.query(point)) {
+    auto *item = items_.value(key);
+    if (item && item->kind() == CanvasItem::Kind::Node && item->effectivelyShown() && item->hitTest(point) &&
+        (!top || topmostFirst(item, top))) {
+      top = static_cast<NodeItem *>(item);
+    }
   }
-  return nullptr;
+  return top;
 }
 
 void CanvasScene::grabMouse(CanvasItem &item) { grabber_ = &item; }

@@ -16,6 +16,7 @@
 #include <QScopedValueRollback>
 #include <QFontMetricsF>
 #include <QPainter>
+#include <QSignalBlocker>
 #include <QTextDocument>
 #include <QPainterPath>
 #include <QtNodes/internal/AbstractConnectionPainter.hpp>
@@ -225,8 +226,35 @@ void EditorScene::onConnectionDeleted(ConnectionId id) {
 }
 
 void EditorScene::onModelReset() {
-  setFocusItem(nullptr);
-  BasicGraphicsScene::onModelReset();
+  // QtNodes clears the entire scene on reset. Rebuild its graph objects
+  // through the model slots so presenter items keep their scene and focus.
+  QList<ConnectionId> wires;
+  QList<NodeId> cards;
+  for (const auto *item : items(Qt::AscendingOrder)) {
+    if (const auto *wire = qgraphicsitem_cast<const ConnectionGraphicsObject *>(item)) {
+      if (connectionGraphicsObject(wire->connectionId()) == wire) { wires.append(wire->connectionId()); }
+    } else if (const auto *card = qgraphicsitem_cast<const NodeGraphicsObject *>(item)) {
+      cards.append(card->nodeId());
+    }
+  }
+  const bool hadGraphSelection = std::ranges::any_of(selectedItems(), [](const QGraphicsItem *item) {
+    return qgraphicsitem_cast<const NodeGraphicsObject *>(item) || qgraphicsitem_cast<const ConnectionGraphicsObject *>(item);
+  });
+  {
+    const QSignalBlocker block(this);
+    resetDraftConnection();
+    for (const auto &id : wires) { onConnectionDeleted(id); }
+    for (const auto id : cards) { onNodeDeleted(id); }
+    const auto ids = model_.allNodeIds();
+    for (const auto id : ids) { BasicGraphicsScene::onNodeCreated(id); }
+    for (const auto id : ids) {
+      const auto ports = model_.nodeData(id, NodeRole::OutPortCount).toUInt();
+      for (PortIndex port = 0; port < ports; ++port) {
+        for (const auto &wire : model_.connections(id, PortType::Out, port)) { BasicGraphicsScene::onConnectionCreated(wire); }
+      }
+    }
+  }
+  if (hadGraphSelection) { emit selectionChanged(); }
 }
 
 QSet<NodeId> branchNodeIds(const QSet<NodeId> &selected, const QVector<QPair<NodeId, NodeId>> &edges) {

@@ -355,6 +355,9 @@ bool QuickCanvas::eventFilter(QObject *object, QEvent *event) {
   case QEvent::UngrabMouse:
     canvas_->cancelPointerGrab();
     break;
+  case QEvent::MouseMove:
+    if (canvas_->moveGrabbedCard(*static_cast<QMouseEvent *>(event))) { return true; }
+    break;
   case QEvent::MouseButtonDblClick:
     canvas_->expectDoubleClick();
     break;

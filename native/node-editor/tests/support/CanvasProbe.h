@@ -292,12 +292,12 @@ public:
   void move(QPoint point) const { QTest::mouseMove(viewport(), point); }
   QImage renderCard(QtNodes::NodeId id) const { return surface().renderCard(id); }
 
-  // The viewport as it is painted now. The Quick canvas renders its pending
-  // frame first, because QQuickWidget renders on a timer.
+  // Read the current Quick framebuffer. The QWidget backing store can
+  // still hold a previous frame until its scheduled widget blit.
   QImage grabViewport() const {
     if (auto *quick = quickCanvas()) {
       quick->graphCanvas().flushRaster();
-      if (quick->quickWidget().isVisible()) { quick->quickWidget().grabFramebuffer(); }
+      if (quick->quickWidget().isVisible()) { return quick->quickWidget().grabFramebuffer(); }
     }
     return viewport()->grab().toImage();
   }

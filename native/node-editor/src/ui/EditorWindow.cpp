@@ -204,6 +204,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&document_, &node_editor::WorkflowDocument::replaced, this, [this] {
     // A loaded workflow has other nodes than the run in progress.
     trackLiveRun({});
+    if (lineage_) { lineage_->clear(); }
     model_.resetOnNextProjection();
     documentReplaced_ = true;
     ++documentEpoch_;

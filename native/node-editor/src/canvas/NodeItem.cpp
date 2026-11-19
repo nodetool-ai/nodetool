@@ -65,7 +65,7 @@ void NodeItem::moveConnections() const {
   auto *scene = canvasScene();
   if (!scene) { return; }
   for (const auto &id : scene->graphModel().allConnectionIds(id_)) {
-    if (auto *connection = scene->connectionItem(id)) { connection->move(); }
+    if (auto *connection = scene->connectionItem(id)) { connection->move(id_); }
   }
 }
 

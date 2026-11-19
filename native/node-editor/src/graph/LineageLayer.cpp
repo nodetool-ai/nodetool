@@ -288,6 +288,12 @@ QString LineageLayer::update(const QJsonObject &graph,
   selected_.intersect(known_);
   return {};
 }
+void LineageLayer::clear() {
+  items_.clear();
+  known_.clear();
+  selected_.clear();
+}
+
 void LineageLayer::setTheme(const LineageTheme &theme) {
   theme_ = theme;
   // Geometry is retained, so a theme update never needs a document rebuild.

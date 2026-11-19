@@ -567,9 +567,10 @@ the view moved and zoomed, and sets no time limit.
 fill raster tiles up to 512 device pixels per side. The software scene graph
 composites visible tiles in bounded regions. On RHI each tile gets its own
 texture. A grid index answers hit tests and culling. Settled tiles use the
-exact device scale and land on whole device pixels. The 64 MiB raster cache
-includes foreground tiles. Polish paints visible tiles first, keeps queued
-edits in order across frames and prefetches with the remaining space. The
+exact device scale and land on whole device pixels. The 64 MiB retention
+limit applies to offscreen tiles, including foreground tiles. Polish paints
+visible tiles first regardless of that limit, keeps queued edits in order
+across frames and keeps the old tiles visible until a replacement grid is ready. The
 app stays on the software backend. The widget overlays stay children of the
 canvas widget. QtNodes stays the default
 ([plan, Q3](../../docs/plans/node-editor-quick-canvas/plan.md#q3-quick-canvas-behind-a-switch)).

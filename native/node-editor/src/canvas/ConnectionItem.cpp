@@ -46,6 +46,7 @@ void ConnectionItem::initializePosition() {
     }
   }
   move();
+  reindex();
 }
 
 QRectF ConnectionItem::boundingRect() const {
@@ -84,20 +85,22 @@ void ConnectionItem::setEndPoint(PortType portType, const QPointF &point) {
   geometryMoved();
 }
 
-void ConnectionItem::move() {
+void ConnectionItem::move(NodeId moved) {
   auto *scene = canvasScene();
   if (!scene) { return; }
-  const auto moveEnd = [&](const ConnectionId &id, PortType portType) {
-    const NodeId nodeId = getNodeId(portType, id);
-    if (nodeId == InvalidNodeId) { return; }
+  const auto oldIn = in_;
+  const auto oldOut = out_;
+  const auto moveEnd = [&](PortType portType) {
+    const NodeId nodeId = getNodeId(portType, id_);
+    if (nodeId == InvalidNodeId || (moved != InvalidNodeId && nodeId != moved)) { return; }
     if (auto *node = scene->nodeItem(nodeId)) {
-      const auto scenePos = node->scenePosition() + scene->nodeGeometry().portPosition(nodeId, portType, getPortIndex(portType, id));
+      const auto scenePos = node->scenePosition() + scene->nodeGeometry().portPosition(nodeId, portType, getPortIndex(portType, id_));
       (portType == PortType::Out ? out_ : in_) = scenePos;
     }
   };
-  moveEnd(id_, PortType::Out);
-  moveEnd(id_, PortType::In);
-  geometryMoved();
+  moveEnd(PortType::Out);
+  moveEnd(PortType::In);
+  if (in_ != oldIn || out_ != oldOut) { geometryMoved(); }
 }
 
 void ConnectionItem::geometryMoved() {
@@ -158,7 +161,6 @@ void ConnectionItem::mouseMove(CanvasMouseEvent &event) {
   if (const auto requiredPort = state_.requiredPort(); requiredPort != PortType::None) {
     setEndPoint(requiredPort, event.scenePos);
   }
-  markDirty();
   event.accept();
 }
 

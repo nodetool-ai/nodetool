@@ -11,6 +11,7 @@
 #include "canvas/MiniMapItem.h"
 #include "canvas/NodeItem.h"
 #include "graph/EditorScene.h"
+#include "graph/LineageLayer.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/CanvasSurface.h"
 #include "ui/QuickCanvas.h"
@@ -22,6 +23,7 @@
 #include <QHelpEvent>
 #include <QGraphicsView>
 #include <QScrollBar>
+#include <QScopeGuard>
 #include <QPainter>
 #include <QQuickWidget>
 #include <QQuickWindow>
@@ -410,7 +412,7 @@ private slots:
     QVERIFY2(wire->rasterBytes() < 8 * 1024 * 1024, qPrintable(QString::number(wire->rasterBytes())));
     QVERIFY(!lineage.hasImage());
     qInfo() << "Long wire bytes" << wire->rasterBytes();
-    QVERIFY(f.canvas->cachedRasterBytes() <= GraphCanvas::rasterCacheBudget);
+    QVERIFY(f.canvas->offscreenRasterBytes() <= GraphCanvas::rasterCacheBudget);
     f.canvas->resetRasterStats();
     f.canvas->setView(1, QPointF(400, 300));
     f.canvas->flushRaster();
@@ -519,7 +521,7 @@ private slots:
             << "card/wire/foreground jobs" << stats.cards << stats.wires << stats.foreground;
     QVERIFY(stats.cards > 0 && stats.wires > 0 && stats.foreground > 0);
     QVERIFY(stats.slowestPass < 4'000'000 * gr::test::kSanitizerTimeScale);
-    QVERIFY(bytes <= GraphCanvas::rasterCacheBudget);
+    QVERIFY(f.canvas->offscreenRasterBytes() <= GraphCanvas::rasterCacheBudget);
     const auto *largeCard = f.item("left");
     const auto *wire = f.canvas->scene().connectionItems().first();
     QVERIFY(largeCard->tiles().size() > 1);
@@ -595,7 +597,7 @@ private slots:
 
   void settledCardTextMatchesDevicePixels() {
     QFETCH(double, zoom);
-    const QPointF origin(73.25, 77.4), center(400, 300);
+    const QPointF origin(zoom == 1. ? QPointF(73, 77) : QPointF(73.25, 77.4)), center(400, 300);
     const auto graph = snapshot({node("source", kSource, origin.x(), origin.y())});
     Fixture quick(graph);
     WorkflowGraphModel model;
@@ -637,6 +639,12 @@ private slots:
     const auto reference = sample(legacyFrame, legacy.mapFromScene(textOrigin));
     const auto rendered = sample(quick.window.grabWindow(), quick.view(textOrigin));
     QCOMPARE(reference.size(), rendered.size());
+    if (zoom == 1. && dpr == 1.) {
+      const auto widgetGrab = sample(view.viewport()->grab().toImage(), legacy.mapFromScene(textOrigin));
+      const auto grabError = glyphError(widgetGrab, rendered, qGray(theme.node.rgb()));
+      qInfo() << "QtNodes viewport title error" << grabError;
+      QVERIFY(grabError < .02);
+    }
     const auto *card = quick.item("source");
     const auto error = glyphError(reference, rendered, qGray(theme.node.rgb()));
     const auto toDevice = [&](const QRectF &local) {
@@ -660,6 +668,236 @@ private slots:
     QVERIFY(error < .02);
   }
 
+  void rasterInvariants_data() {
+    QTest::addColumn<QString>("graphKind");
+    QTest::addColumn<double>("zoom");
+    QTest::addColumn<QSize>("size");
+    QTest::addColumn<int>("panStep");
+    QTest::newRow("F1-scale-swap") << QString("swap") << 3.0 << QSize(1920, 1080) << 7;
+    QTest::newRow("F2-visible-budget") << QString("pressure") << 1.0 << QSize(1920, 1080) << 12;
+    QTest::newRow("F3-fractional-pan") << QString("small") << 1.0 << QSize(1390, 900) << 1;
+    QTest::newRow("P2-gesture-seams") << QString("seam") << 3.0 << QSize(1920, 1080) << 7;
+
+    for (const auto *kind : {"small", "dense", "nested", "wires", "selection"}) {
+      for (const double zoom : {.12, .53, 1., 3.}) {
+        for (const QSize size : {QSize(1390, 900), QSize(1920, 1080)}) {
+          for (const int step : {1, 7, 12}) {
+            const auto name = QString("%1-z%2-%3-pan%4").arg(kind).arg(zoom).arg(size.width()).arg(step);
+            QTest::newRow(qPrintable(name)) << QString(kind) << zoom << size << step;
+          }
+        }
+      }
+    }
+  }
+
+  void rasterInvariants() {
+    QFETCH(QString, graphKind);
+    QFETCH(double, zoom);
+    QFETCH(QSize, size);
+    QFETCH(int, panStep);
+    const bool group = graphKind == "swap" || graphKind == "pressure" || graphKind == "seam" || graphKind == "nested";
+    const bool pressure = graphKind == "pressure";
+    const bool seam = graphKind == "seam";
+    const bool swap = graphKind == "swap";
+    const QPointF center = group ? QPointF(310, 210) : QPointF(400, 300);
+    QJsonArray nodes;
+    QJsonArray edges;
+    if (group) {
+      const auto extent = graphKind == "nested" || pressure
+          ? QSizeF(size) * (1.25 / zoom) : QSizeF(600, 400);
+      const auto at = center - QPointF(extent.width(), extent.height()) / 2;
+      nodes.append(sized(node("group", kGroup, at.x(), at.y()), extent.width(), extent.height()));
+      if (pressure || graphKind == "nested") {
+        nodes.append(sized(node("inner", kGroup, 20, 20, {{"parent_id", "group"}}),
+                           extent.width() - 40, extent.height() - 40));
+      }
+    } else if (graphKind == "dense") {
+      for (int i = 0; i < 2000; ++i) {
+        nodes.append(node(QString::number(i), kSource, i % 50 * 350 - 8400, i / 50 * 190 - 3500));
+      }
+    } else {
+      const auto distance = graphKind == "wires" ? 1900 / zoom : 165;
+      nodes = {node("source", kSource, center.x() - distance, center.y() - 79),
+               node("target", kTarget, center.x() + distance, center.y() + 51)};
+      edges = {edge("wire", "source", "target")};
+      if (graphKind == "selection") {
+        nodes.append(sized(node("group", kGroup, center.x() - 130 / zoom, center.y() + 64 / zoom),
+                           480 / zoom, 150 / zoom));
+      }
+    }
+    const auto graph = snapshot(nodes, edges);
+    Fixture f(graph, size);
+    // Frame grabs can synthesize hover as a different fixture leaves the
+    // cursor over this window. The matrix changes only raster inputs itself.
+    f.canvas->setAcceptHoverEvents(false);
+    auto theme = test::darkCanvasTheme();
+    theme.grid = theme.canvas;
+    f.canvas->setTheme(theme);
+    if (graphKind == "selection") {
+      for (const auto id : f.model.allNodeIds()) { f.canvas->selection().setNode(id, true); }
+    }
+    const auto dpr = f.window.effectiveDevicePixelRatio();
+    GraphCanvas::RasterTestHooks hooks(*f.canvas);
+    f.canvas->setView(zoom, center);
+    f.canvas->flushRaster();
+    f.window.grabWindow();
+
+    const auto deviceRect = [&](const QRectF &sceneRect) {
+      const auto &content = f.canvas->contentLayer();
+      return QRectF((sceneRect.topLeft() * content.scale() + content.position()) * dpr,
+                    sceneRect.size() * content.scale() * dpr);
+    };
+    const auto roundEdges = [](const QRectF &rect) {
+      const auto topLeft = rect.topLeft().toPoint();
+      return QRect(topLeft, QSize(rect.bottomRight().toPoint().x() - topLeft.x(),
+                                  rect.bottomRight().toPoint().y() - topLeft.y()));
+    };
+    double minimumCoverage = 1;
+    bool assertExact = false;
+    bool exact = true;
+    int frames = 0;
+    qsizetype offscreenBytes = 0;
+    // The software test window synchronizes on the GUI thread. Collect
+    // metrics here so intermediate polish passes are part of the assertion.
+    const auto sampleFrame = connect(&f.window, &QQuickWindow::beforeSynchronizing, this, [&] {
+      ++frames;
+      const QRect frame(QPoint(), (QSizeF(f.window.size()) * dpr).toSize());
+      const auto items = f.canvas->scene().itemsIn(f.canvas->viewport().visibleSceneRect());
+      for (const auto *item : items) {
+        const auto origin = item->scenePosition();
+        // The item bounds include an antialiasing margin. Exclude the
+        // outermost two pixels when comparing the old grid during scaling.
+        const auto wanted = roundEdges(deviceRect(item->rasterBounds().translated(origin)))
+                                .adjusted(2, 2, -2, -2).intersected(frame);
+        if (wanted.isEmpty()) { continue; }
+        QRegion painted;
+        for (const auto &tile : item->tiles()) {
+          const auto rect = deviceRect(tile.geometry.localRect().translated(origin));
+          if (assertExact && rect.intersects(frame)) {
+            exact &= qFuzzyCompare(tile.geometry.scale, f.canvas->viewport().zoom() * dpr)
+                && QLineF(rect.topLeft(), QPointF(rect.topLeft().toPoint())).length() < 1e-6
+                && (tile.pixels.isNull() || tile.pixels.size() == rect.size().toSize());
+          }
+          const auto target = CanvasImageItem::alignedImageRect(QRectF(rect.topLeft() / dpr, rect.size() / dpr), dpr);
+          painted |= QRect((target.topLeft() * dpr).toPoint(), (target.size() * dpr).toSize());
+        }
+        qsizetype area = 0;
+        const auto covered = painted.intersected(wanted);
+        for (const auto &rect : covered) { area += qsizetype(rect.width()) * rect.height(); }
+        minimumCoverage = std::min(minimumCoverage, double(area) / (qsizetype(wanted.width()) * wanted.height()));
+      }
+      qsizetype bytes = 0;
+      const auto count = [&](const CanvasImageItem &item, QPointF position) {
+        for (const auto *grid : {&item.tiles(), &item.stagedTiles()}) {
+          for (const auto &tile : *grid) {
+            if (!deviceRect(tile.geometry.localRect().translated(position)).intersects(frame)) { bytes += tile.bytes(); }
+          }
+        }
+      };
+      for (const auto *child : f.canvas->contentLayer().childItems()) {
+        if (const auto *item = dynamic_cast<const CanvasItem *>(child)) {
+          count(*item, item->scenePosition());
+        } else {
+          for (const auto *part : child->childItems()) {
+            if (const auto *item = dynamic_cast<const ForegroundItem *>(part)) { count(*item, item->position()); }
+          }
+        }
+      }
+      offscreenBytes = std::max(offscreenBytes, bytes);
+    });
+    const auto disconnectFrame = qScopeGuard([&] { disconnect(sampleFrame); });
+
+    if (pressure) {
+      // Two already-rastered groups compete after reducing the retention
+      // budget below one visible layer and making the tiles stale.
+      hooks.setCacheBudget(4 * 1024 * 1024);
+      f.canvas->resetRasterStats();
+      for (const auto *name : {"group", "inner"}) { f.item(name)->markDirty(); }
+      QTRY_VERIFY(!f.canvas->rasterPending());
+      const auto passes = f.canvas->rasterStats();
+      for (const auto &tile : f.item("inner")->tiles()) {
+        QCOMPARE(tile.revision, f.item("inner")->rasterRevision());
+      }
+      f.window.grabWindow();
+      f.canvas->resetRasterStats();
+      f.canvas->scene().requestRaster();
+      QTRY_VERIFY(!f.canvas->rasterPending());
+      f.window.grabWindow();
+      QCOMPARE(f.canvas->rasterStats().cards, 0);
+      QVERIFY(passes.slowestPass < 4'000'000 * gr::test::kSanitizerTimeScale);
+    } else if (seam) {
+      f.canvas->resetRasterStats();
+      const auto checkSeams = [&] {
+        const auto frame = f.window.grabWindow();
+        const auto *card = f.item("group");
+        for (const auto &tile : card->tiles()) {
+          const auto rect = deviceRect(tile.geometry.localRect().translated(card->scenePosition()));
+          const auto target = CanvasImageItem::alignedImageRect(QRectF(rect.topLeft() / dpr, rect.size() / dpr), dpr);
+          const auto end = target.bottomRight() * dpr;
+          const auto start = target.topLeft() * dpr;
+          QVERIFY2(QLineF(start, QPointF(start.toPoint())).length() < 1e-6 &&
+                       QLineF(end, QPointF(end.toPoint())).length() < 1e-6,
+                   "Gesture tile has a fractional destination edge");
+        }
+        const auto interior = roundEdges(deviceRect(f.item("group")->sceneBoundingRect()))
+                                  .intersected(frame.rect()).adjusted(25, 25, -25, -25);
+        QVERIFY(!interior.isEmpty());
+        const auto background = theme.canvas.rgb();
+        int gaps = 0;
+        for (int y = interior.top(); y <= interior.bottom(); ++y) {
+          for (int x = interior.left(); x <= interior.right(); ++x) {
+            if (frame.pixel(x, y) == background) { ++gaps; }
+          }
+        }
+        QCOMPARE(gaps, 0);
+      };
+      for (int step = 0; step < 2; ++step) {
+        f.canvas->scaleBy(1.07, false, {});
+        checkSeams();
+      }
+      QTRY_VERIFY(!f.canvas->zoomSettling() && !f.canvas->rasterPending());
+      checkSeams();
+      QVERIFY(f.canvas->rasterStats().slowestPass < 4'000'000 * gr::test::kSanitizerTimeScale);
+    } else {
+      const auto scroll = f.canvas->viewport().scroll();
+      f.canvas->resetRasterStats();
+      for (int step = 1; !swap && step <= 8; ++step) {
+        f.canvas->setScroll(scroll.x() + step * panStep, scroll.y());
+        f.window.grabWindow();
+      }
+      const auto panning = f.canvas->rasterStats();
+      QCOMPARE(panning.cards + panning.wires + panning.foreground, 0);
+      f.canvas->setScroll(scroll.x(), scroll.y());
+      f.canvas->resetRasterStats();
+      if (swap) { hooks.setTimeBudget(0); }
+      f.canvas->scaleBy(1.07, false, {});
+      f.window.grabWindow();
+      QTRY_VERIFY(!f.canvas->zoomSettling() && !f.canvas->rasterPending());
+      if (swap) { hooks.setTimeBudget(1'400'000); }
+      assertExact = true;
+      f.canvas->update();
+      f.window.grabWindow();
+      QVERIFY(exact);
+      const auto stats = f.canvas->rasterStats();
+      QVERIFY2(stats.slowestPass < 4'000'000 * gr::test::kSanitizerTimeScale,
+               qPrintable(QString::number(stats.slowestPass)));
+      f.canvas->resetRasterStats();
+      f.canvas->scene().requestRaster();
+      QTRY_VERIFY(!f.canvas->rasterPending());
+      const auto unchanged = f.canvas->rasterStats();
+      QCOMPARE(unchanged.cards + unchanged.wires + unchanged.foreground, 0);
+      const auto beforeResize = f.window.size();
+      f.window.resize(beforeResize - QSize(36, 24));
+      f.canvas->setSize(f.window.size());
+      f.window.grabWindow();
+      QTRY_VERIFY(!f.canvas->rasterPending());
+    }
+    QVERIFY(frames > 0);
+    QCOMPARE(minimumCoverage, 1.);
+    QVERIFY2(offscreenBytes <= (pressure ? 4 * 1024 * 1024 : GraphCanvas::rasterCacheBudget),
+             qPrintable(QString::number(offscreenBytes)));
+  }
+
   void visibleItemsSurviveCachePressure() {
     Fixture f(snapshot({
         node("source", kSource, -80, 0),
@@ -668,9 +906,8 @@ private slots:
         node("prefetch", kTarget, 910, 0),
     }, {edge("e", "source", "target")}));
     f.canvas->flushRaster();
-    // Fit the initial visible set, with no room to prefetch the fourth card.
-    const auto visibleBytes = f.canvas->cachedRasterBytes() - f.item("prefetch")->rasterBytes();
-    GraphCanvas::RasterTestHooks(*f.canvas).setCacheBudget(visibleBytes);
+    // Keep the initial visible set with no room to prefetch the fourth card.
+    GraphCanvas::RasterTestHooks(*f.canvas).setCacheBudget(0);
     f.canvas->setView(1, QPointF(4000, 4000));
     f.canvas->flushRaster();
     f.canvas->setView(1, QPointF(400, 300));
@@ -694,6 +931,53 @@ private slots:
     // as soon as the view reaches it even though the cache is still full.
     f.canvas->centerOn(QPointF(620, 300));
     QTRY_VERIFY(f.item("prefetch")->hasImage());
+  }
+
+  void cachePressureEvictsFarthestTile() {
+    Fixture f(snapshot({node("visible", kSource, 120, 100),
+                        node("near", kSource, 850, 100),
+                        node("far", kSource, 1080, 100)}));
+    f.canvas->flushRaster();
+    QVERIFY(f.item("near")->hasImage());
+    QVERIFY(f.item("far")->hasImage());
+    GraphCanvas::RasterTestHooks(*f.canvas).setCacheBudget(f.item("near")->rasterBytes());
+    f.canvas->scene().requestRaster();
+    QTRY_VERIFY(!f.canvas->rasterPending());
+    QVERIFY(f.item("near")->hasImage());
+    QVERIFY(!f.item("far")->hasImage());
+    QVERIFY(f.item("visible")->hasImage());
+  }
+
+  void lineageRetainsKeyboardFocusAcrossModelResets() {
+    auto graph = pair();
+    WorkflowGraphModel model;
+    EditorScene scene(model);
+    model.project(graph, catalog());
+    node_editor::LineageLayer lineage(scene);
+    auto linked = graph["graph"].toObject();
+    linked["links"] = QJsonArray{QJsonObject{
+        {"id", "reference"}, {"source", "source"}, {"target", "target"}, {"label", "reference"}, {"kind", "source"}}};
+    QVERIFY(lineage.update(linked, {{"source", QRectF(0, 0, 100, 60)}, {"target", QRectF(300, 0, 100, 60)}}).isEmpty());
+    QGraphicsView view(&scene);
+    view.resize(700, 460);
+    view.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&view));
+    auto *chip = qobject_cast<QGraphicsObject *>(lineage.linkItem("reference"));
+    QVERIFY(chip);
+    chip->setFocus();
+    QCOMPARE(scene.focusItem(), chip);
+    auto expanded = catalog();
+    expanded.append(QJsonObject{{"node_type", "fixture.More"}});
+    model.project(graph, expanded);
+    QCOMPARE(scene.focusItem(), chip);
+    model.project(graph, expanded, true);
+    QCOMPARE(scene.focusItem(), chip);
+    graph["id"] = "another-workflow";
+    model.project(graph, expanded, true);
+    QCOMPARE(scene.focusItem(), chip);
+    QSignalSpy removed(&lineage, &node_editor::LineageLayer::deleteRequested);
+    QTest::keyClick(&view, Qt::Key_Delete);
+    QCOMPARE(removed.size(), 1);
   }
 
   void animatedRastersDoNotStarveVisibleEdits() {

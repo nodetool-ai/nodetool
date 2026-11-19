@@ -29,6 +29,9 @@ public:
     qsizetype bytes() const { return qsizetype(device.width()) * device.height() * 4; }
     QRectF localRect() const;
     bool operator==(const RasterGeometry &) const = default;
+    bool sameGrid(const RasterGeometry &other) const {
+      return scale == other.scale && phase == other.phase && viewportPhase == other.viewportPhase;
+    }
   };
   struct Tile {
     RasterGeometry geometry;
@@ -43,6 +46,11 @@ public:
   const QHash<QPoint, Tile> &tiles() const { return tiles_; }
   void setTile(QPoint key, Tile tile);
   void removeTile(QPoint key);
+  const QHash<QPoint, Tile> &stagedTiles() const { return staged_; }
+  void stageTile(QPoint key, Tile tile) { staged_.insert(key, std::move(tile)); }
+  void removeStagedTile(QPoint key) { staged_.remove(key); }
+  void discardStagedTiles() { staged_.clear(); }
+  void publishStagedTiles();
   void clearImage();
   bool hasImage() const;
   qsizetype rasterBytes() const;
@@ -51,7 +59,7 @@ public:
 
   static RasterGeometry rasterGeometry(const QRectF &rect, QPointF sceneOrigin, double scale, QPointF viewportPhase);
   static QImage rasterize(const RasterGeometry &geometry, double dpr, const std::function<void(QPainter &)> &paint);
-  static QRectF alignedImageRect(const Tile &tile, const QRectF &windowRect, double dpr);
+  static QRectF alignedImageRect(const QRectF &windowRect, double dpr);
 
 protected:
   QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *) override;
@@ -61,6 +69,7 @@ protected:
 
 private:
   QHash<QPoint, Tile> tiles_;
+  QHash<QPoint, Tile> staged_;
   quint64 revision_ = 0;
 };
 

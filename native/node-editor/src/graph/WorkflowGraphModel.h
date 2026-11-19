@@ -50,6 +50,7 @@ public:
   bool wireVisible(QtNodes::ConnectionId id) const;
   int stackingOrder(QtNodes::NodeId id) const { return stackingOrder_.value(id); }
   const QHash<QtNodes::NodeId, int> &stackingOrder() const { return stackingOrder_; }
+  QHash<QtNodes::NodeId, QPointF> nodePositions() const { return positions_; }
   const QSet<QtNodes::NodeId> &groupIds() const { return groupIds_; }
   // Items an If or Switch left unexecuted in the selected run, from edge updates.
   node_editor::UntakenBranch untakenBranch() const;

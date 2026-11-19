@@ -60,6 +60,7 @@ public:
   [[nodiscard]] QString update(const QJsonObject &graph, const WorkflowGraphModel &model,
                                const CanvasSurface &canvas);
   static bool isLinkItem(const QGraphicsItem *item);
+  void clear();
   void setTheme(const LineageTheme &theme);
   void setSelectedLinkIds(const QStringList &ids);
   [[nodiscard]] QStringList selectedLinkIds() const;

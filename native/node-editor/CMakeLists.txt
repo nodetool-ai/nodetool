@@ -945,7 +945,7 @@ if(BUILD_TESTING)
     add_test(NAME node_editor_quick_canvas COMMAND node_editor_quick_canvas_tests)
     set_tests_properties(node_editor_quick_canvas PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     foreach(scale IN ITEMS 1.25 1.5 2)
-        set(density_tests settledCardTextMatchesDevicePixels)
+        set(density_tests settledCardTextMatchesDevicePixels rasterInvariants)
         if(scale EQUAL 2)
             list(APPEND density_tests largeRastersShareSettleBudget nativeResolutionForWideForegroundAndLongWire)
         endif()
@@ -954,7 +954,8 @@ if(BUILD_TESTING)
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_SCALE_FACTOR=${scale}")
     endforeach()
     # The large-raster rows enforce a wall-clock polish limit.
-    set_tests_properties(node_editor_quick_canvas node_editor_quick_canvas_dpr2 PROPERTIES RUN_SERIAL TRUE)
+    set_tests_properties(node_editor_quick_canvas node_editor_quick_canvas_dpr1.25
+        node_editor_quick_canvas_dpr1.5 node_editor_quick_canvas_dpr2 PROPERTIES RUN_SERIAL TRUE)
     set(node_editor_canvas_group
         node_editor_ui=node_editor_ui_tests
         node_editor_large_graph=node_editor_large_graph_tests

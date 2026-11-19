@@ -28,7 +28,7 @@ namespace nodetool::canvas {
 // CanvasInteraction. It borrows the model, which outlives it.
 //
 // Card and wire textures exist only near the viewport. The raster pass runs in
-// updatePolish, prioritizing visible device tiles within time and byte budgets.
+// updatePolish, prioritizing visible device tiles within the frame budget.
 // A zoom gesture scales the existing textures; the pass paints them at
 // the new scale 100 ms after the last zoom step.
 class GraphCanvas final : public QQuickItem {
@@ -62,10 +62,11 @@ public:
   // The host widget was shown or hidden. A show centers on the last center.
   void setViewShown(bool shown);
   void cancelPointerGrab();
+  bool moveGrabbedCard(QMouseEvent &event);
   // The widget shell can host focused overlays outside this Quick window.
   void setOverlayFocusCheck(std::function<bool()> check) { overlayHasFocus_ = std::move(check); }
 
-  // Drains queued tiles immediately, retaining the regular cache limit.
+  // Drains queued tiles immediately, retaining the offscreen cache limit.
   void flushRaster();
   // Whether polish still has queued raster work.
   bool rasterPending() const { return rasterQueued_ || nextRasterJob_ < rasterJobs_.size(); }
@@ -84,13 +85,14 @@ public:
   RasterStats rasterStats() const { return stats_; }
   void resetRasterStats() { stats_ = {}; }
   qsizetype cachedRasterBytes() const { return cachedRasterBytes_; }
+  qsizetype offscreenRasterBytes() const { return offscreenRasterBytes_; }
   static constexpr qsizetype rasterCacheBudget = 64 * 1024 * 1024;
   int gridRasters() const { return grid_.rasterCount(); }
   // Exact device scale after settling, or a √2 bucket during a zoom gesture.
   double rasterScale() const;
   bool zoomSettling() const { return settle_.isActive(); }
 
-  // Drives deterministic raster passes and cache pressure in the canvas tests.
+  // UI thread only. Drives deterministic raster passes and cache pressure in the canvas tests.
   class RasterTestHooks {
   public:
     explicit RasterTestHooks(GraphCanvas &canvas) : canvas_(canvas) {}
@@ -158,6 +160,7 @@ private:
     QPointer<CanvasImageItem> owner;
     QPoint key;
     QRectF sceneRect;
+    bool staged = false;
   };
   struct RasterJob {
     TileRef tile;
@@ -169,7 +172,8 @@ private:
   QSet<quint64> near_;
   QList<RasterJob> rasterJobs_;
   qsizetype nextRasterJob_ = 0;
-  QList<TileRef> offscreenTiles_;
+  // Jobs hold the guarded reference. The swap counter uses its address only as a key.
+  QHash<quintptr, qsizetype> remainingSwapJobs_;
   QList<QRectF> deferredTiles_;
   QRectF plannedVisible_;
   bool rasterWorkDirty_ = true;
@@ -182,6 +186,7 @@ private:
   QRectF retentionArea_;
   quint64 indexedRevision_ = 0;
   qsizetype cachedRasterBytes_ = 0;
+  qsizetype offscreenRasterBytes_ = 0;
   qsizetype rasterCacheBudget_ = rasterCacheBudget;
   // Leave a share of the frame for input and scene graph sync.
   qint64 rasterTimeBudgetNs_ = 1'400'000;

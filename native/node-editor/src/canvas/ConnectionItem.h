@@ -32,8 +32,8 @@ public:
   bool hitTest(const QPointF &scenePoint) const override;
   const QPointF &endPoint(QtNodes::PortType side) const;
   void setEndPoint(QtNodes::PortType side, const QPointF &point);
-  // Moves both ends onto their ports and repaints.
-  void move();
+  // Moves the attached ends on the changed card, or both ends during setup.
+  void move(QtNodes::NodeId moved = QtNodes::InvalidNodeId);
   std::pair<QPointF, QPointF> pointsC1C2() const;
   bool isSelected() const;
   void paintRaster(QPainter &painter, double zoom) const override;

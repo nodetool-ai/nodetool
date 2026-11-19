@@ -176,10 +176,8 @@ void EditorCanvasScene::refreshGroupPointer() {
 }
 
 void EditorCanvasScene::restoreGroupOrder() {
-  for (const auto id : model_.allNodeIds()) {
-    if (model_.isGroup(id)) {
-      if (auto *item = nodeItem(id)) { item->setStackZ(kGroupZ + model_.depth(id)); }
-    }
+  for (const auto id : model_.groupIds()) {
+    if (auto *item = nodeItem(id)) { item->setStackZ(kGroupZ + model_.depth(id)); }
   }
 }
 
@@ -245,6 +243,13 @@ QList<CanvasNodeHit> EditorCanvasScene::nodesFrontToBack() const {
 
 std::optional<CanvasNodeHit> EditorCanvasScene::node(NodeId id) {
   if (const auto *card = nodeItem(id)) { return CanvasNodeHit{id, card->scenePosition(), card->isSelected()}; }
+  return std::nullopt;
+}
+
+std::optional<CanvasNodeHit> EditorCanvasScene::nodeAtPoint(QPointF scenePosition) {
+  if (const auto *card = nodeAt(scenePosition)) {
+    return CanvasNodeHit{card->nodeId(), card->scenePosition(), card->isSelected()};
+  }
   return std::nullopt;
 }
 

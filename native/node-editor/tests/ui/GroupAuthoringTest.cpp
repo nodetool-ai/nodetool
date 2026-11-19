@@ -603,7 +603,7 @@ private slots:
     // The frame paints: a point inside it, clear of every card, differs from the empty canvas.
     QPointF empty = bounds.bottomLeft() + QPointF(8, -8);
     const auto pixel = view->mapFromScene(empty);
-    QVERIFY(nodetool::test::CanvasProbe(window).grabHost().pixelColor(pixel) != window.scene()->theme().canvas);
+    QVERIFY(nodetool::test::CanvasProbe(window).grabViewport().pixelColor(pixel) != window.scene()->theme().canvas);
     save("real-2-grouped");
     const auto zoom = std::abs(view->zoom());
     QHash<QString, QPointF> before;

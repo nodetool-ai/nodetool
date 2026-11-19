@@ -2142,6 +2142,9 @@ QVector<NodeId> WorkflowGraphModel::descendants(NodeId id) const {
   return result;
 }
 void WorkflowGraphModel::moveDescendants(const QHash<NodeId, QPointF> &before) {
+  if (std::ranges::none_of(groupIds_, [&](NodeId id) {
+        return before.contains(id) && before.value(id) != positions_.value(id);
+      })) { return; }
   QVector<NodeId> pending;
   QSet<NodeId> visited;
   for (auto it = nodes_.cbegin(); it != nodes_.cend(); ++it) {

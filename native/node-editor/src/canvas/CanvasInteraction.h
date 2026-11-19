@@ -55,6 +55,12 @@ public:
   virtual QList<CanvasHit> hitsAt(QPointF scenePosition) const = 0;
   virtual QList<CanvasNodeHit> nodesFrontToBack() const = 0;
   virtual std::optional<CanvasNodeHit> node(QtNodes::NodeId id) = 0;
+  virtual std::optional<CanvasNodeHit> nodeAtPoint(QPointF scenePosition) {
+    for (const auto &hit : hitsAt(scenePosition)) {
+      if (const auto card = node(hit.node)) { return card; }
+    }
+    return std::nullopt;
+  }
   virtual QList<QtNodes::NodeId> selectedNodes() const = 0;
   virtual QList<QtNodes::ConnectionId> selectedWires() const = 0;
   virtual qsizetype selectionCount() const = 0;
@@ -312,7 +318,7 @@ private:
   HandleHover handleHover_;
   bool draftFeedback_ = false;
   void updatePointerHover(QPointF scenePosition);
-  void updateHandleHover(const QPointF &scenePosition);
+  void updateHandleHover(const QPointF &scenePosition, const std::optional<CanvasNodeHit> &node);
   void refreshHandleCursor(bool drafting);
   QtNodes::NodeId cursorNode_ = QtNodes::InvalidNodeId;
   bool blankCursor_ = false;

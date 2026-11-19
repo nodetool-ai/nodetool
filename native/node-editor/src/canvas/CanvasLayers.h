@@ -11,11 +11,8 @@ class CanvasViewport;
 class EditorCanvasScene;
 
 // UI thread only. EditorScene::drawBackground in viewport coordinates: the
-// canvas color, the cross grid and the origin axes. The grid is one image a
-// grid period larger than the viewport; a pan moves the image by the scroll
-// offset modulo the period, so it rasters only on a zoom, resize or theme
-// change. GraphCanvas owns it as a visual child. It borrows the viewport and
-// the theme, which its owner keeps alive.
+// canvas color, a repeating cross texture and the origin axes. GraphCanvas
+// owns the item, which borrows the viewport and keeps its own theme colors.
 class GridItem final : public QQuickItem {
 public:
   GridItem(const CanvasViewport &viewport, QQuickItem *parent);
@@ -26,20 +23,19 @@ public:
 
 protected:
   QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) override;
-  void releaseResources() override;
 
 private:
   void raster();
   const CanvasViewport &viewport_;
   QImage image_;
-  bool upload_ = false;
   QPointF imageOrigin_;
   QColor canvas_;
   QColor grid_;
   QColor axis_;
   double period_ = 0;
-  double gap_ = 0;
-  QSize rasterSize_;
+  double texturePeriod_ = 0;
+  bool integralTexture_ = false;
+  double dpr_ = 0;
   int rasters_ = 0;
   QPointF axisOrigin_;
   QSizeF viewportSize_;

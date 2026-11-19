@@ -356,18 +356,18 @@ private slots:
         const QPoint center = viewport->rect().center();
         // A middle-button drag pans in either navigation mode (EditorWindow::eventFilter).
         QPoint pointer = center;
-        const auto pan = [&](int i) {
-            pointer += QPoint(0, i < 60 ? 12 : -12);
+        const auto pan = [&](int i, int step) {
+            pointer += QPoint(0, i < 60 ? step : -step);
             QMouseEvent move(QEvent::MouseMove, QPointF(pointer), QPointF(viewport->mapToGlobal(pointer)), Qt::NoButton,
                              Qt::MiddleButton, Qt::NoModifier);
             QApplication::sendEvent(viewport, &move);
         };
-        const auto panRun = [&](QPoint coldJump = {}) {
+        const auto panRun = [&](QPoint coldJump = {}, int step = 12) {
             pointer = center;
             probe.press(center, Qt::MiddleButton);
             const auto steps = run(120, [&](int i) {
                 if (i == 0 && !coldJump.isNull()) { canvas.panBy(coldJump); }
-                pan(i);
+                pan(i, step);
             });
             probe.release(center, Qt::MiddleButton);
             return steps;
@@ -396,6 +396,12 @@ private slots:
         if (clock.quick()) { panRun(); }
         const auto pan100 = panRun();
         report("pan_100", pan100, cards);
+        const auto oddPan = panRun({}, 7);
+        report("pan_100_step7", oddPan, cards);
+        if (clock.quick()) {
+            QCOMPARE(oddPan.cards, 0);
+            QCOMPARE(oddPan.wires, 0);
+        }
         QCOMPARE(canvas.visibleSceneRect().top(), scroll);
         // The fit view is the minimum zoom, 0.12, with the most cards on screen.
         window.fit();

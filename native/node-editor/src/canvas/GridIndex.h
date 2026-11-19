@@ -21,10 +21,19 @@ public:
   static constexpr qsizetype kMaxCells = 1024;
 
   void insert(const Key &key, const QRectF &bounds) {
-    remove(key);
-    if (!valid(bounds)) { return; }
-    bounds_.insert(key, bounds);
+    if (!valid(bounds)) {
+      remove(key);
+      return;
+    }
     const auto range = cells(bounds);
+    const auto found = bounds_.find(key);
+    if (found != bounds_.end() && (cells(*found) == range ||
+                                   (range.count() > kMaxCells && oversize_.contains(key)))) {
+      *found = bounds;
+      return;
+    }
+    remove(key);
+    bounds_.insert(key, bounds);
     if (range.count() > kMaxCells) {
       oversize_.insert(key);
       return;
@@ -87,11 +96,25 @@ public:
     return result;
   }
 
-  QList<Key> query(const QPointF &point) const { return query(QRectF(point, QSizeF(0, 0))); }
+  QList<Key> query(const QPointF &point) const {
+    QList<Key> result;
+    const QRectF area(point, QSizeF(0, 0));
+    if (!valid(area)) { return result; }
+    const auto consider = [&](const Key &key) {
+      if (intersects(bounds_.value(key), area)) { result.append(key); }
+    };
+    const auto bucket = cells_.constFind(cellKey(cell(point.x()), cell(point.y())));
+    if (bucket != cells_.cend()) {
+      for (const auto &key : *bucket) { consider(key); }
+    }
+    for (const auto &key : oversize_) { consider(key); }
+    return result;
+  }
 
 private:
   struct Range {
     int left = 0, top = 0, right = -1, bottom = -1;
+    bool operator==(const Range &) const = default;
     qsizetype count() const { return qsizetype(right - left + 1) * qsizetype(bottom - top + 1); }
   };
   static bool valid(const QRectF &rect) {

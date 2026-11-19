@@ -26,7 +26,13 @@ void CanvasImageItem::removeTile(QPoint key) {
   update();
 }
 
+void CanvasImageItem::publishStagedTiles() {
+  tiles_ = std::exchange(staged_, {});
+  update();
+}
+
 void CanvasImageItem::clearImage() {
+  staged_.clear();
   if (tiles_.isEmpty()) { return; }
   tiles_.clear();
   update();
@@ -70,10 +76,16 @@ QImage CanvasImageItem::rasterize(const RasterGeometry &geometry, double dpr, co
   return image;
 }
 
-QRectF CanvasImageItem::alignedImageRect(const Tile &tile, const QRectF &windowRect, double dpr) {
-  const auto pixels = windowRect.size() * dpr;
-  if (!qFuzzyCompare(pixels, QSizeF(tile.pixels.size()))) { return windowRect; }
-  return {QPointF((windowRect.topLeft() * dpr).toPoint()) / dpr, QSizeF(tile.pixels.size()) / dpr};
+QRectF CanvasImageItem::alignedImageRect(const QRectF &windowRect, double dpr) {
+  // The two projections of a shared edge can differ by arithmetic noise
+  // at half pixels. Use the same tie break for both sides of the edge.
+  const auto roundEdge = [](QPointF point) {
+    const auto round = [](double coordinate) { return int(std::floor(coordinate + 0.5 + 1e-7)); };
+    return QPoint(round(point.x()), round(point.y()));
+  };
+  const auto start = roundEdge(windowRect.topLeft() * dpr);
+  const auto end = roundEdge(windowRect.bottomRight() * dpr);
+  return {QPointF(start) / dpr, QSizeF(end.x() - start.x(), end.y() - start.y()) / dpr};
 }
 
 namespace {
@@ -127,7 +139,7 @@ QSGNode *CanvasImageItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
     }
     auto *node = entry->node;
     const auto rect = mapRectToScene(it->geometry.localRect());
-    node->setRect(mapRectFromScene(alignedImageRect(*it, rect, window()->effectiveDevicePixelRatio())));
+    node->setRect(mapRectFromScene(alignedImageRect(rect, window()->effectiveDevicePixelRatio())));
   }
   return root.release();
 }
@@ -173,8 +185,8 @@ void CanvasItem::setShown(bool shown) {
 }
 
 bool CanvasItem::effectivelyShown() const {
-  if (!scene_) { return false; }
-  const QQuickItem *item = this;
+  if (!scene_ || !shown_) { return false; }
+  const QQuickItem *item = parentItem();
   while (item && item != &scene_->layer()) {
     if (const auto *canvas = dynamic_cast<const CanvasItem *>(item); canvas && !canvas->shown()) { return false; }
     item = item->parentItem();

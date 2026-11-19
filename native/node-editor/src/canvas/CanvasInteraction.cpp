@@ -282,11 +282,9 @@ int CanvasInteraction::handleConnectable(NodeId node, PortType side, PortIndex i
   return compatible ? 1 : -1;
 }
 
-void CanvasInteraction::updateHandleHover(const QPointF &scenePosition) {
+void CanvasInteraction::updateHandleHover(const QPointF &scenePosition, const std::optional<CanvasNodeHit> &node) {
   HandleHover next;
-  for (const auto &hit : host_.hitsAt(scenePosition)) {
-    const auto node = host_.node(hit.node);
-    if (!node) { continue; }
+  if (node) {
     const auto local = (scenePosition - node->origin);
     for (const auto side : {PortType::In, PortType::Out}) {
       const auto index = host_.portAt(node->id, side, local);
@@ -297,7 +295,6 @@ void CanvasInteraction::updateHandleHover(const QPointF &scenePosition) {
       }
       next = {node->id, side, index};
     }
-    break;
   }
   if (next == handleHover_) { return; }
   const auto previous = handleHover_;
@@ -1229,8 +1226,9 @@ bool CanvasInteraction::move(const CanvasPointerEvent &event) {
   updatePointerHover(event.scenePosition);
   if (footerPress_ != InvalidNodeId) { return true; }
   QHash<NodeId, QPointF> before;
-  for (const auto id : model_.allNodeIds()) { before[id] = model_.nodeData(id, NodeRole::Position).toPointF(); }
-  if (dragNode_ != InvalidNodeId && !viewportGesture_ && dragPositions_.isEmpty()) { dragPositions_ = before; }
+  const bool rememberDrag = dragNode_ != InvalidNodeId && !viewportGesture_ && dragPositions_.isEmpty();
+  if (rememberDrag || !model_.groupIds().isEmpty()) { before = model_.nodePositions(); }
+  if (rememberDrag) { dragPositions_ = before; }
   if (gesture_ == Gesture::Label) {
     const auto delta = event.scenePosition - gestureOrigin_;
     for (const auto id : gestureSelected_) {
@@ -1273,13 +1271,12 @@ bool CanvasInteraction::move(const CanvasPointerEvent &event) {
 }
 
 void CanvasInteraction::updatePointerHover(QPointF scenePosition) {
-  updateHandleHover(scenePosition);
+  const auto node = host_.nodeAtPoint(scenePosition);
+  updateHandleHover(scenePosition, node);
   updateBrushCursor(scenePosition);
   host_.setButtonHover(footerHover_, false, false, {});
   footerHover_ = InvalidNodeId;
-  for (const auto &hit : host_.hitsAt(scenePosition)) {
-    const auto node = host_.node(hit.node);
-    if (!node) { continue; }
+  if (node) {
     const auto &layout = model_.layout(node->id);
     const bool hovered = layout.subgraph && layout.footerRect().contains((scenePosition - node->origin));
     const bool actionHovered = !layout.headerAction.isEmpty() && !layout.collapsed && !model_.readOnly() &&
@@ -1290,7 +1287,6 @@ void CanvasInteraction::updatePointerHover(QPointF scenePosition) {
                              ? QCoreApplication::translate("nodetool::EditorScene", "Open the subgraph in its own tab")
                          : actionHovered ? QCoreApplication::translate("nodetool::EditorScene", "Load workflow")
                                          : QString{});
-    break;
   }
 }
 
@@ -1515,8 +1511,7 @@ void CanvasInteraction::trackNodeDrag(const CanvasPointerEvent &event) {
   const QRectF card(item->origin, model_.layout(dragNode_).size);
   auto target = InvalidNodeId;
   double smallest = 0;
-  for (const auto id : model_.allNodeIds()) {
-    if (!model_.isGroup(id)) { continue; }
+  for (const auto id : model_.groupIds()) {
     const auto group = host_.node(id);
     if (!group) { continue; }
     const QRectF frame(group->origin, model_.layout(id).size);

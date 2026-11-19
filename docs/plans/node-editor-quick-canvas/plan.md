@@ -249,8 +249,8 @@ composite.
   steps of √2. The canvas starts restoring exact-scale rasters 100 ms after
   the gesture ends.
 - The raster cache schedules 512-device-pixel tiles for cards, wires and
-  individual foreground primitives. It prioritizes visible tiles and uses
-  the same byte budget for visible tiles and prefetch. The software pass
+  individual foreground primitives. It prioritizes visible tiles and limits
+  offscreen retention to 64 MiB. The software pass
   draws only visible items
   ([performance rule 21](../../../native/ui_primitives/PERFORMANCE.md#rendering)).
 - The running ring and the focus ring are separate child nodes, so their
@@ -419,7 +419,8 @@ Two test groups are named below.
   `node_editor_navigation`, `node_editor_viewport_navigator`,
   `node_editor_window_parity`, `node_editor_incremental_projection`,
   `node_editor_runtime_ui`, `node_editor_price_chip`,
-  `node_editor_visual_capture` and `node_editor_smoke`.
+  `node_editor_visual_capture` and `node_editor_smoke`. Quick raster invariants
+  run in `node_editor_quick_canvas` and its three additional DPR entries.
 - **Shell group**: `node_editor_workflow_tabs`,
   `node_editor_workflow_tabs_drag`, `node_editor_menus`,
   `node_editor_chrome_parity`, `node_editor_header_row`,
