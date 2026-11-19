@@ -1,12 +1,12 @@
+#include "ui/CanvasOverlay.h"
 #include "EditorWindow.h"
-#include <QGraphicsView>
+#include "ui/CanvasSurface.h"
 #include <QGuiApplication>
 #include <QJsonDocument>
 #include <QtQml/QQmlExtensionPlugin>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
-#include <QQuickWidget>
 #include <QUuid>
 #include <QSettings>
 
@@ -29,16 +29,12 @@ void EditorWindow::initializeChat() {
     chatVisible_ = !settings.value("canvas-chat-dock/collapsed", true).toBool();
     // The session owns its settings handle: reasoning level, permission modes and media settings.
     chat_.usePreferences(std::make_unique<QSettings>());
-    chatOverlay_ = new QQuickWidget(engine_, view_);
-    chatOverlay_->setClearColor(Qt::transparent);
-    chatOverlay_->setAttribute(Qt::WA_TranslucentBackground);
+    chatOverlay_ = canvasOverlay("EditorChat", {{"session", QVariant::fromValue(&chat_)},
+                                                {"frame", QVariant::fromValue(&chatWindow_)}}, 70);
     chatOverlay_->setObjectName("editor-chat-overlay");
-    chatOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
     connect(&chatWindow_, &node_editor::ChatWindow::beginGeometryRequested, this, &EditorWindow::beginChatGeometry);
     connect(&chatWindow_, &node_editor::ChatWindow::changeGeometryRequested, this, &EditorWindow::changeChatGeometry);
     connect(&chatWindow_, &node_editor::ChatWindow::resetPositionRequested, this, &EditorWindow::resetChatPosition);
-    chatOverlay_->setInitialProperties({{"session", QVariant::fromValue(&chat_)}, {"frame", QVariant::fromValue(&chatWindow_)}});
-    chatOverlay_->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/EditorChat.qml"));
     chatOverlay_->hide();
     connect(chatOverlay_->rootObject(), SIGNAL(closeRequested()), this, SLOT(toggleChat()));
     connect(chatOverlay_->rootObject(), SIGNAL(reportRequested(QString,QString)), this, SLOT(reportError(QString,QString)));
@@ -221,7 +217,7 @@ void EditorWindow::changeChatGeometry(int dx, int dy, int edges, bool finished) 
         }
         chatSize_ = rect.size();
     }
-    chatOffset_ = QPoint(rect.x() - (view_->viewport()->width() - rect.width() - 16), rect.y() - 16);
+    chatOffset_ = QPoint(rect.x() - (canvas_->viewportWidget().width() - rect.width() - 16), rect.y() - 16);
     layoutOverlays();
     if (finished) {
         chatGeometryActive_ = false;

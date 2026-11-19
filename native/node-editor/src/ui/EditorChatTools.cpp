@@ -2,7 +2,7 @@
 #include "EditorChatSearch.h"
 #include "document/ConnectionTypes.h"
 #include "graph/BodyConnectionRules.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/NodeCreation.h"
 #include "properties/CodeInference.h"
 #include <QApplication>
@@ -18,7 +18,7 @@
 #include <QTimer>
 #include <QUrlQuery>
 #include <QUuid>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include "ui/CanvasSurface.h"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -668,12 +668,10 @@ void EditorWindow::initializeChatTools() {
                 }
                 // The empty selection between these steps would sync the inspector too.
                 target->selectingNode_ = true;
-                target->scene_->clearSelection();
+                target->canvas_->selection().clear();
                 target->selectingNode_ = false;
                 for (auto modelId : matches) {
-                    if (auto *item = target->scene_->nodeGraphicsObject(modelId)) {
-                        item->setSelected(true);
-                    }
+                    target->canvas_->selection().setNode(modelId, true);
                 }
                 target->fitSelection();
                 QJsonObject result{{"ok", true}, {"focused", focused}};

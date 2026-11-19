@@ -50,4 +50,20 @@ if [[ $status != Accepted ]]; then
     exit 1
 fi
 xcrun stapler staple "$app"
-spctl --assess --type execute --verbose=2 "$app"
+xcrun stapler validate "$app"
+assessed=0
+for attempt in 1 2 3 4 5; do
+    if spctl --assess --type execute --ignore-cache --verbose=4 "$app"; then
+        assessed=1
+        break
+    fi
+    if [[ $attempt -lt 5 ]]; then
+        echo "spctl assessment attempt $attempt/5 failed; retrying in 15s..." >&2
+        sleep 15
+    fi
+done
+if [[ $assessed -ne 1 ]]; then
+    echo "spctl assessment failed; running syspolicy_check for diagnostics:" >&2
+    syspolicy_check distribution "$app" >&2 || true
+    exit 3
+fi

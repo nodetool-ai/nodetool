@@ -163,6 +163,30 @@ describe("rankedModelKeys", () => {
     expect(keys).toEqual(["a:mixed", "a:weak"]);
   });
 
+  it("takes the highest score across multiple routes of one canonical model", () => {
+    const keys = rankedModelKeys({
+      ...EMPTY_ARTIFACT,
+      models: {
+        "a:multi-low": {
+          canonical: "multi",
+          name: "Multi",
+          tasks: { text_to_video: { score: 900, normalized: 0.1, rank: 9, of: 9 } }
+        },
+        "a:single": {
+          canonical: "single",
+          name: "Single",
+          tasks: { text_to_video: { score: 1000, normalized: 0.5, rank: 5, of: 9 } }
+        },
+        "b:multi-high": {
+          canonical: "multi",
+          name: "Multi",
+          tasks: { image_to_video: { score: 1200, normalized: 0.9, rank: 1, of: 9 } }
+        }
+      }
+    });
+    expect(keys).toEqual(["a:multi-low", "b:multi-high", "a:single"]);
+  });
+
   it("returns an empty list for an empty artifact", () => {
     expect(rankedModelKeys(EMPTY_ARTIFACT)).toEqual([]);
   });

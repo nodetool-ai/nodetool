@@ -84,14 +84,18 @@ Rectangle {
             Ui.Select { density: Ui.EditorButton.Compact; accessibleName: qsTr("Trace depth"); value: root.controller.depth; options: [{label: "4", value: 4}, {label: "16", value: 16}, {label: "64", value: 64}]; onValueCommitted: value => root.controller.depth = value }
             Ui.EditorButton { density: Ui.EditorButton.Compact; text: qsTr("Clear filters"); enabled: root.controller.filtered; onClicked: root.controller.clearFilters() }
         }
-        RowLayout {
+        GridLayout {
+            id: logFilters
+            readonly property bool wide: root.width - 2 * Ui.Metrics.md >= Ui.Metrics.dialogWidth
             Layout.fillWidth: true
             visible: root.controller.view === "logs" && !!root.controller.selectedRunId
-            spacing: Ui.Metrics.sm
-            Ui.Select { objectName: "trace-level"; density: Ui.EditorButton.Compact; Layout.preferredWidth: Ui.Metrics.xxxl * 4; Layout.minimumWidth: 0; accessibleName: qsTr("Log level"); value: root.controller.logLevel; options: [{label: qsTr("All levels"), value: ""}, {label: "Debug", value: "debug"}, {label: "Info", value: "info"}, {label: "Warning", value: "warn"}, {label: "Error", value: "error"}]; onValueCommitted: value => root.controller.logLevel = value }
-            Ui.Select { objectName: "trace-source"; density: Ui.EditorButton.Compact; Layout.preferredWidth: Ui.Metrics.xxxl * 6; Layout.minimumWidth: 0; accessibleName: qsTr("Log source"); value: root.controller.logSource; options: [{label: qsTr("All sources"), value: ""}].concat(root.controller.logSources.map(source => ({label: source, value: source}))); onValueCommitted: value => root.controller.logSource = value }
-            TraceSpanPicker { density: Ui.EditorButton.Compact; Layout.preferredWidth: Ui.Metrics.xxxl * 8; Layout.minimumWidth: 0; controller: root.controller }
-            Item { Layout.fillWidth: true }
+            columns: wide ? 4 : 1
+            columnSpacing: Ui.Metrics.sm
+            rowSpacing: Ui.Metrics.sm
+            Ui.Select { objectName: "trace-level"; density: Ui.EditorButton.Compact; Layout.fillWidth: !logFilters.wide; Layout.preferredWidth: Ui.Metrics.xxxl * 4; Layout.minimumWidth: 0; accessibleName: qsTr("Log level"); value: root.controller.logLevel; options: [{label: qsTr("All levels"), value: ""}, {label: "Debug", value: "debug"}, {label: "Info", value: "info"}, {label: "Warning", value: "warn"}, {label: "Error", value: "error"}]; onValueCommitted: value => root.controller.logLevel = value }
+            Ui.Select { objectName: "trace-source"; density: Ui.EditorButton.Compact; Layout.fillWidth: !logFilters.wide; Layout.preferredWidth: Ui.Metrics.xxxl * 6; Layout.minimumWidth: 0; accessibleName: qsTr("Log source"); value: root.controller.logSource; options: [{label: qsTr("All sources"), value: ""}].concat(root.controller.logSources.map(source => ({label: source, value: source}))); onValueCommitted: value => root.controller.logSource = value }
+            TraceSpanPicker { density: Ui.EditorButton.Compact; Layout.fillWidth: !logFilters.wide; Layout.preferredWidth: Ui.Metrics.xxxl * 8; Layout.minimumWidth: 0; controller: root.controller }
+            Item { Layout.fillWidth: true; visible: logFilters.wide }
         }
         Ui.Text { Layout.fillWidth: true; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; textFormat: Text.PlainText; wrapMode: Text.Wrap; text: (root.controller.view === "logs" ? root.controller.logNotices : root.controller.notices).join("\n"); visible: text.length > 0 }
         Ui.Text { role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; text: root.controller.view === "logs" ? qsTr("Loading logs…") : qsTr("Loading trace…"); visible: root.controller.view === "logs" ? root.controller.logsLoading : root.controller.traceLoading }

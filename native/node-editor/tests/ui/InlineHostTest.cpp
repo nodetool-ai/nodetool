@@ -1,11 +1,11 @@
+#include "../support/OverlayProbe.h"
+#include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "PropertyFixture.h"
-#include <QGraphicsView>
 #include <QQuickWidget>
 #include <QQuickItem>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 class InlineHostTest final : public QObject {
@@ -29,7 +29,7 @@ private slots:
     QVERIFY(window.selectNode("a"));
     window.action("Reset zoom");
     QTest::qWait(80);
-    auto view = window.findChild<QGraphicsView *>();
+    auto view = &window.canvas();
     auto presenter = window.findChild<InlinePropertyPresenter *>();
     QVERIFY(view); QVERIFY(presenter);
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
@@ -38,20 +38,20 @@ private slots:
     QVERIFY(id != QtNodes::InvalidNodeId);
     const auto baseline = window.document()->snapshot();
     const auto open = [&] {
-      const auto node = window.scene()->nodeGraphicsObject(id);
+      const auto node = nodetool::test::card(window, id);
       const auto point = node->scenePos() + model.inlineFieldRect(id, "Text").center();
-      QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(point));
+      QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(point));
     };
     open();
     QTRY_VERIFY(presenter->active());
-    auto widget = presenter->editorWidget(); QVERIFY(widget);
+    auto widget = test::overlay(window, "inline-property-overlay"); QVERIFY(widget);
     auto field = widget->rootObject()->findChild<QQuickItem *>("inline-text");
     QVERIFY(field); field->forceActiveFocus();
     QTRY_VERIFY(field->hasActiveFocus());
-    QTest::keyClick(widget, Qt::Key_A, Qt::ControlModifier);
-    QTest::keyClicks(widget, "Inline host edit");
+    QTest::keyClick(widget->inputWidget(), Qt::Key_A, Qt::ControlModifier);
+    QTest::keyClicks(widget->inputWidget(), "Inline host edit");
     QCOMPARE(field->property("text").toString(), QString("Inline host edit"));
-    QTest::keyClick(widget, Qt::Key_Return);
+    QTest::keyClick(widget->inputWidget(), Qt::Key_Return);
     QTRY_COMPARE(window.document()->node("a")["data"].toObject()["Text"].toString(), QString("Inline host edit"));
     QCOMPARE(window.document()->undoStack()->count(), 1);
     window.action("Undo");
@@ -79,18 +79,18 @@ private slots:
     QVERIFY(window.selectNode("a"));
     window.action("Reset zoom");
     QTest::qWait(80);
-    auto view = window.findChild<QGraphicsView *>();
+    auto view = &window.canvas();
     auto presenter = window.findChild<InlinePropertyPresenter *>();
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id = *model.allNodeIds().begin();
     const auto baseline = window.document()->snapshot();
-    const auto point = window.scene()->nodeGraphicsObject(id)->scenePos() + model.inlineFieldRect(id, "tags").center();
-    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(point));
+    const auto point = window.canvas().nodeOrigin(id) + model.inlineFieldRect(id, "tags").center();
+    QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(point));
     QTRY_VERIFY(presenter->active());
     const auto add = [&] {
       QQuickItem *button = nullptr;
-      QTRY_VERIFY((button = presenter->editorWidget()->rootObject()->findChild<QQuickItem *>("structured-add")));
-      QTest::mouseClick(presenter->editorWidget(), Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint());
+      QTRY_VERIFY((button = test::overlay(window, "inline-property-overlay")->rootObject()->findChild<QQuickItem *>("structured-add")));
+      QTest::mouseClick(test::overlay(window, "inline-property-overlay")->inputWidget(), Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint());
     };
     add();
     QTRY_COMPARE(window.document()->node("a")["data"].toObject()["tags"].toArray().size(), 2);

@@ -7,15 +7,16 @@
 #include <QPointF>
 #include <QVariantList>
 #include <functional>
-class QGraphicsView;
 class QMimeData;
 namespace nodetool {
+class CanvasSurface;
 class WorkflowGraphModel;
+// UI thread only.
 class CanvasDropController final : public QObject {
   Q_OBJECT
   Q_PROPERTY(QVariantList transfers READ transfers NOTIFY changed)
 public:
-  CanvasDropController(WorkflowGraphModel &, QGraphicsView &, QObject *parent = nullptr);
+  CanvasDropController(WorkflowGraphModel &, CanvasSurface &, QObject *parent = nullptr);
   ~CanvasDropController() override;
   QVariantList transfers() const;
   void configure(const QUrl &origin, const QString &token, const QString &userId);
@@ -56,7 +57,7 @@ private:
     quint64 serial = 0;
   };
   WorkflowGraphModel &model_;
-  QGraphicsView &view_;
+  CanvasSurface &canvas_;
   node_editor::AssetPickerController uploader_;
   QNetworkAccessManager network_;
   QUrl origin_;

@@ -1,17 +1,16 @@
-#include "graph/EditorScene.h"
+#include "../support/CanvasProbe.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include <QSettings>
 #include "ui/InspectorClearance.h"
 #include <QDockWidget>
-#include <QGraphicsView>
 #include <QPainter>
 #include <QQmlEngine>
 #include <QQuickWidget>
+#include <QSettings>
 #include <QScrollBar>
 #include <QVariantAnimation>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 #include <algorithm>
 #include <cmath>
@@ -63,8 +62,8 @@ private:
         QTest::qWait(80);
     }
 
-    static QGraphicsView *viewOf(EditorWindow &window) {
-        return window.findChild<QGraphicsView *>();
+    static nodetool::CanvasSurface *viewOf(EditorWindow &window) {
+        return &window.canvas();
     }
 
     static WorkflowGraphModel *modelOf(EditorWindow &window) {
@@ -80,20 +79,20 @@ private:
         return QtNodes::InvalidNodeId;
     }
 
-    static QtNodes::NodeGraphicsObject *itemOf(EditorWindow &window, const QString &resource) {
-        return window.scene()->nodeGraphicsObject(idOf(window, resource));
+    static nodetool::test::CardHandle itemOf(EditorWindow &window, const QString &resource) {
+        return nodetool::test::card(window, idOf(window, resource));
     }
 
-    static QtNodes::ConnectionGraphicsObject *wireOf(EditorWindow &window, const QString &from, const QString &to) {
-        for (auto item : window.scene()->items()) {
-            auto wire = qgraphicsitem_cast<QtNodes::ConnectionGraphicsObject *>(item);
-            if (wire && !wire->connectionState().requiresPort()
-                && modelOf(window)->resourceId(wire->connectionId().outNodeId) == from
-                && modelOf(window)->resourceId(wire->connectionId().inNodeId) == to) {
-                return wire;
+    static nodetool::test::WireHandle wireOf(EditorWindow &window, const QString &from, const QString &to) {
+        auto *model = modelOf(window);
+        for (const auto id : model->allNodeIds()) {
+            for (const auto &connection : model->allConnectionIds(id)) {
+                if (model->resourceId(connection.outNodeId) == from && model->resourceId(connection.inNodeId) == to) {
+                    return nodetool::test::wire(window, connection);
+                }
             }
         }
-        return nullptr;
+        return {nullptr, {}};
     }
 
     static QRectF cardRect(EditorWindow &window, const QString &resource) {
@@ -109,13 +108,13 @@ private:
 
     static void click(EditorWindow &window, const QString &resource, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
         const auto point = headerPoint(window, resource);
-        QVERIFY2(viewOf(window)->viewport()->rect().contains(point), qPrintable(resource));
-        QTest::mouseClick(viewOf(window)->viewport(), Qt::LeftButton, modifiers, point);
+        QVERIFY2(viewOf(window)->viewportWidget().rect().contains(point), qPrintable(resource));
+        QTest::mouseClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, modifiers, point);
         QTest::qWait(40);
     }
 
     static void clickEmptyCanvas(EditorWindow &window) {
-        QTest::mouseClick(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(24, 450));
+        QTest::mouseClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(24, 450));
         QTest::qWait(40);
     }
 
@@ -123,7 +122,7 @@ private:
         QImage image((source.size() * scale).toSize(), QImage::Format_ARGB32_Premultiplied);
         image.fill(Qt::transparent);
         QPainter painter(&image);
-        window.scene()->render(&painter, QRectF(QPointF(), QSizeF(image.size())), source);
+        nodetool::test::renderScene(window, painter, QRectF(QPointF(), QSizeF(image.size())), source);
         return image;
     }
 
@@ -229,9 +228,9 @@ private slots:
         click(window, "a");
         QCOMPARE(itemOf(window, "s")->opacity(), branchDimmedOpacity);
         clickEmptyCanvas(window);
-        QVERIFY(window.scene()->selectedItems().isEmpty());
+        QCOMPARE(window.canvas().selection().count(), 0);
         for (const auto id : modelOf(window)->allNodeIds()) {
-            QCOMPARE(window.scene()->nodeGraphicsObject(id)->opacity(), 1.0);
+            QCOMPARE(window.canvas().nodeOpacity(id), 1.0);
         }
         for (const auto &wire : {std::pair{"up", "a"}, {"up", "s"}, {"u1", "u2"}}) {
             QCOMPARE(wireOf(window, wire.first, wire.second)->opacity(), 1.0);
@@ -275,11 +274,11 @@ private slots:
             load(window, 300);
             setReducedMotion(window, reduced);
             const auto point = headerPoint(window, "a");
-            QTest::mousePress(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, point);
+            QTest::mousePress(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point);
             // No event-loop pass between the press and the check.
             QCOMPARE(itemOf(window, "u1")->opacity(), branchDimmedOpacity);
             QCOMPARE(itemOf(window, "d1")->opacity(), 1.0);
-            QTest::mouseRelease(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, point);
+            QTest::mouseRelease(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point);
             setReducedMotion(window, false);
         }
     }
@@ -292,18 +291,18 @@ private slots:
         window.fit();
         QTest::qWait(80);
         auto *view = viewOf(window);
-        const auto zoom = view->transform().m11();
+        const auto zoom = view->zoom();
         QVERIFY2(zoom < 0.95, qPrintable(QString::number(zoom)));
         click(window, "a");
         QTRY_VERIFY(window.inspectorVisible());
         QTest::qWait(400);
-        QCOMPARE(view->transform().m11(), zoom);
+        QCOMPARE(view->zoom(), zoom);
         click(window, "d1");
         QTest::qWait(300);
-        QCOMPARE(view->transform().m11(), zoom);
+        QCOMPARE(view->zoom(), zoom);
         clickEmptyCanvas(window);
         QTest::qWait(300);
-        QCOMPARE(view->transform().m11(), zoom);
+        QCOMPARE(view->zoom(), zoom);
     }
 
     // A select opens the inspector by itself only while the chat is hidden.
@@ -339,8 +338,8 @@ private slots:
         auto *view = viewOf(window);
         const auto place = [&](const QPointF &sceneTopLeft, const QPoint &viewPoint) {
             const auto now = view->mapFromScene(sceneTopLeft);
-            view->horizontalScrollBar()->setValue(view->horizontalScrollBar()->value() + now.x() - viewPoint.x());
-            view->verticalScrollBar()->setValue(view->verticalScrollBar()->value() + now.y() - viewPoint.y());
+            view->setHorizontalOffset(view->horizontalOffset() + now.x() - viewPoint.x());
+            view->panBy(QPoint(0, -(now.y() - viewPoint.y())));
             QTest::qWait(30);
         };
         // The graph sits left of where the inspector opens, so nothing is covered.
@@ -349,7 +348,7 @@ private slots:
         click(window, "a");
         QTRY_VERIFY(window.inspectorVisible());
         QTest::qWait(400);
-        QCOMPARE(view->transform().m11(), 1.0);
+        QCOMPARE(view->zoom(), 1.0);
         QCOMPARE(view->mapFromScene(cardRect(window, "a").topLeft()), before);
         clickEmptyCanvas(window);
         QTRY_VERIFY(!window.inspectorVisible());
@@ -360,18 +359,18 @@ private slots:
         const auto selected = view->mapFromScene(cardRect(window, "a").topLeft());
         double rightmost = 0;
         for (const auto &id : {"up", "a", "d1", "d2", "s", "u1", "u2", "l"}) {
-            const auto rect = view->mapFromScene(cardRect(window, id)).boundingRect();
+            const auto rect = view->mapFromScene(cardRect(window, id));
             rightmost = std::max(rightmost, double(rect.right()));
         }
         click(window, "a");
         QTRY_VERIFY(window.inspectorVisible());
         QTest::qWait(500);
-        QCOMPARE(view->transform().m11(), 1.0);
+        QCOMPARE(view->zoom(), 1.0);
         const auto dock = inspectorDock(window);
         QVERIFY(dock);
         // Web rule: pan by the overhang past the inspector gap, never past the
         // point where the selected node's left edge is 16 px from the canvas edge.
-        const double canvasWidth = view->viewport()->width() + dock->width();
+        const double canvasWidth = view->viewportWidget().width() + dock->width();
         const double wanted = rightmost - (canvasWidth - dock->width() - ::node_editor::inspectorClearancePx);
         const double room = selected.x() - ::node_editor::inspectorClearancePx;
         const double expected = std::min(wanted, std::max(room, 0.0));
@@ -390,7 +389,7 @@ private slots:
             window.action("Reset zoom");
             auto *view = viewOf(window);
             const auto now = view->mapFromScene(cardRect(window, "up").topLeft());
-            view->horizontalScrollBar()->setValue(view->horizontalScrollBar()->value() + now.x() - 420);
+            view->setHorizontalOffset(view->horizontalOffset() + now.x() - 420);
             QTest::qWait(30);
             setReducedMotion(window, reduced);
             const auto start = view->mapFromScene(cardRect(window, "a").topLeft());
@@ -415,17 +414,16 @@ private slots:
         load(window, 300);
         window.action("Reset zoom");
         auto *view = viewOf(window);
-        auto *bar = view->horizontalScrollBar();
         const auto now = view->mapFromScene(cardRect(window, "up").topLeft());
-        bar->setValue(bar->value() + now.x() - 420);
+        view->setHorizontalOffset(view->horizontalOffset() + now.x() - 420);
         QTest::qWait(30);
         setReducedMotion(window, false);
         click(window, "a");
         QTRY_VERIFY(window.findChild<QVariantAnimation *>("inspector-pan-animation"));
-        const int scrolled = bar->value() - 300;
-        bar->setValue(scrolled);
+        const int scrolled = view->horizontalOffset() - 300;
+        view->setHorizontalOffset(scrolled);
         QTRY_VERIFY(!window.findChild<QVariantAnimation *>("inspector-pan-animation"));
-        QCOMPARE(bar->value(), scrolled);
+        QCOMPARE(view->horizontalOffset(), scrolled);
     }
 
     // Hovering a wire draws it as the web does: 4 wide, full opacity, brighter.
@@ -434,7 +432,7 @@ private slots:
         load(window, 300);
         window.action("Reset zoom");
         auto *view = viewOf(window);
-        auto *wire = wireOf(window, "u1", "u2");
+        auto wire = wireOf(window, "u1", "u2");
         QVERIFY(wire);
         const auto midpoint = wire->mapToScene(wireCurve(wire->endPoint(QtNodes::PortType::Out), wire->endPoint(QtNodes::PortType::In)).pointAtPercent(0.5));
         const QRectF region(midpoint - QPointF(6, 6), QSizeF(12, 12));
@@ -448,16 +446,16 @@ private slots:
             }
             return peak;
         };
-        QTest::mouseMove(view->viewport(), QPoint(24, 450));
+        QTest::mouseMove(&view->viewportWidget(), QPoint(24, 450));
         QTest::qWait(30);
-        QVERIFY(!wire->connectionState().hovered());
+        QVERIFY(!wire->hovered());
         const auto rest = luminance(renderRegion(window, region, 4));
-        QTest::mouseMove(view->viewport(), view->mapFromScene(midpoint));
-        QTRY_VERIFY(wire->connectionState().hovered());
+        QTest::mouseMove(&view->viewportWidget(), view->mapFromScene(midpoint));
+        QTRY_VERIFY(wire->hovered());
         const auto hovered = luminance(renderRegion(window, region, 4));
         QVERIFY2(hovered > rest * 1.4, qPrintable(QString("rest %1 hovered %2").arg(rest).arg(hovered)));
-        QTest::mouseMove(view->viewport(), QPoint(24, 450));
-        QTRY_VERIFY(!wire->connectionState().hovered());
+        QTest::mouseMove(&view->viewportWidget(), QPoint(24, 450));
+        QTRY_VERIFY(!wire->hovered());
     }
 
     // The hovered handle scales to 1.3 about its center, as the web's handle:hover.
@@ -474,16 +472,16 @@ private slots:
         const auto ringPixel = [&] {
             return renderRegion(window, region, 4).pixelColor(int((10 + 4.6) * 4), 40);
         };
-        QTest::mouseMove(view->viewport(), QPoint(24, 450));
+        QTest::mouseMove(&view->viewportWidget(), QPoint(24, 450));
         QTest::qWait(30);
         QVERIFY(window.scene()->hoveredHandle().node == QtNodes::InvalidNodeId);
         const auto rest = ringPixel();
-        QTest::mouseMove(view->viewport(), view->mapFromScene(handle));
+        QTest::mouseMove(&view->viewportWidget(), view->mapFromScene(handle));
         QTRY_COMPARE(window.scene()->hoveredHandle().node, id);
         QCOMPARE(window.scene()->hoveredHandle().type, QtNodes::PortType::Out);
         const auto hovered = ringPixel();
         QVERIFY2(hovered != rest, qPrintable(rest.name() + " " + hovered.name()));
-        QTest::mouseMove(view->viewport(), QPoint(24, 450));
+        QTest::mouseMove(&view->viewportWidget(), QPoint(24, 450));
         QTRY_COMPARE(window.scene()->hoveredHandle().node, QtNodes::InvalidNodeId);
         QCOMPARE(ringPixel(), rest);
     }

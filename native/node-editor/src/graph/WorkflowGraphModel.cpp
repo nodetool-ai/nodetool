@@ -20,9 +20,6 @@
 #include <QUrl>
 #include <QSet>
 #include <QUuid>
-#include <QtNodes/NodeData>
-#include <QtNodes/NodeStyle>
-#include <QtNodes/StyleCollection>
 #include <tuple>
 using namespace QtNodes;
 namespace nodetool {
@@ -327,8 +324,16 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
 }
 void WorkflowGraphModel::deriveProjection(const QJsonArray &rawNodes) {
   stackingOrder_.clear();
+  stackingOrder_.reserve(rawNodes.size());
+  groupIds_.clear();
   for (int i = 0; i < rawNodes.size(); ++i) {
-    stackingOrder_.insert(ids_.value(rawNodes[i].toObject()["id"].toString()), i);
+    const auto node = rawNodes[i].toObject();
+    const auto id = ids_.value(node["id"].toString());
+    stackingOrder_.insert(id, i);
+    const auto type = node["type"].toString();
+    if (type == QLatin1String("nodetool.workflows.base_node.Group") || type == QLatin1String("nodetool.workflows.Group")) {
+      groupIds_.insert(id);
+    }
   }
   adjacency_.clear();
   edgeByConnection_.clear();
@@ -1737,11 +1742,11 @@ bool WorkflowGraphModel::connectionPossible(ConnectionId c) const {
   }
   auto a =
       portData(c.outNodeId, PortType::Out, c.outPortIndex, PortRole::DataType)
-          .value<NodeDataType>();
+          .toString();
   auto b = portData(c.inNodeId, PortType::In, c.inPortIndex, PortRole::DataType)
-               .value<NodeDataType>();
-  return !a.id.isEmpty() && !b.id.isEmpty() &&
-         (a.id == b.id || a.id == "any" || b.id == "any");
+               .toString();
+  return !a.isEmpty() && !b.isEmpty() &&
+         (a == b || a == "any" || b == "any");
 }
 void WorkflowGraphModel::addConnection(ConnectionId c) {
   if (connectionPossible(c) && commit) {
@@ -1750,10 +1755,7 @@ void WorkflowGraphModel::addConnection(ConnectionId c) {
     commit({{"op", "addEdge"}, {"edge", e}});
   }
 }
-bool WorkflowGraphModel::isGroup(NodeId id) const {
-  const auto type = nodes_.value(id)["type"].toString();
-  return type == "nodetool.workflows.base_node.Group" || type == "nodetool.workflows.Group";
-}
+bool WorkflowGraphModel::isGroup(NodeId id) const { return groupIds_.contains(id); }
 bool WorkflowGraphModel::isReroute(NodeId id) const { return nodes_.value(id)["type"]=="nodetool.control.Reroute"; }
 QString WorkflowGraphModel::rerouteHandleType(NodeId id) const { return displayTypes_.rerouteHandles.value(resourceId(id),"any"); }
 QString WorkflowGraphModel::effectiveSourceType(NodeId id, PortIndex port) const {
@@ -2137,6 +2139,9 @@ QVector<NodeId> WorkflowGraphModel::descendants(NodeId id) const {
   return result;
 }
 void WorkflowGraphModel::moveDescendants(const QHash<NodeId, QPointF> &before) {
+  if (std::ranges::none_of(groupIds_, [&](NodeId id) {
+        return before.contains(id) && before.value(id) != positions_.value(id);
+      })) { return; }
   QVector<NodeId> pending;
   QSet<NodeId> visited;
   for (auto it = nodes_.cbegin(); it != nodes_.cend(); ++it) {
@@ -2149,7 +2154,7 @@ void WorkflowGraphModel::moveDescendants(const QHash<NodeId, QPointF> &before) {
     visited.insert(id);
     const auto parent = ids_.value(nodes_.value(id)["parent_id"].toString(), InvalidNodeId);
     const auto inherited = positions_.value(parent) - before.value(parent);
-    // QtNodes already moves selected descendants. Only inherit when this item
+    // The canvas already moves selected descendants. Only inherit when this item
     // did not move itself, so a parent and child selection never doubles motion.
     if (before.contains(parent) && positions_.value(id) == before.value(id) && !inherited.isNull()) {
       positions_[id] += inherited;
@@ -2168,8 +2173,6 @@ bool WorkflowGraphModel::collapsed(NodeId id) const {
 QVariant WorkflowGraphModel::nodeData(NodeId id, NodeRole r) const {
   auto n = nodes_.value(id);
   switch (r) {
-  case NodeRole::Style:
-    return QtNodes::StyleCollection::nodeStyle().toJson().toVariantMap();
   case NodeRole::Caption:
     return nodes_.contains(id) ? layout(id).title : QString();
   case NodeRole::Type:
@@ -2239,7 +2242,7 @@ QVariant WorkflowGraphModel::portData(NodeId id, PortType p, PortIndex i,
     if (type.isEmpty()) {
       type = port["type"].toObject()["type"].toString();
     }
-    return QVariant::fromValue(NodeDataType{type, type});
+    return type;
   }
   return {};
 }

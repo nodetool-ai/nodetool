@@ -1,15 +1,13 @@
+#include "../support/OverlayProbe.h"
 #include "../support/DarkCanvasTheme.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
+#include "ui/QuickCanvas.h"
 #include "graph/NodeLayout.h"
 #include "graph/WorkflowGraphModel.h"
 #include "run/NodeRuntimeModel.h"
 #include <QDir>
-#include <QGraphicsView>
 #include <QPainter>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/ConnectionStyle>
-#include <QtNodes/NodeStyle>
+#include <QSettings>
 #include <QtTest>
 #include <algorithm>
 #include <cmath>
@@ -29,20 +27,10 @@ class CanvasChromeTest final : public QObject {
 private:
     // The QtNodes styles the editor window installs: opaque cards without QtNodes'
     // own shadow, the web hit radius and the wire bounds margin.
-    static bool installStyles() {
-        QtNodes::NodeStyle::setNodeStyle(QString::fromUtf8(QJsonDocument(QJsonObject{{"NodeStyle", QJsonObject{
-            {"ShadowEnabled", false}, {"Opacity", 1}, {"PenWidth", 1}, {"HoveredPenWidth", 1},
-            {"ConnectionPointDiameter", nodetool::node_metrics::handleDiameter / 2}}}}).toJson()));
-        QtNodes::ConnectionStyle::setConnectionStyle(QString::fromUtf8(QJsonDocument(QJsonObject{{"ConnectionStyle", QJsonObject{
-            {"PointDiameter", nodetool::node_metrics::wireBoundsMargin}, {"LineWidth", 1.5}, {"UseDataDefinedColors", false}}}}).toJson()));
-        return true;
-    }
-
     struct Scene {
-        bool styled = installStyles();
         WorkflowGraphModel model;
         node_editor::NodeRuntimeModel runtime;
-        mutable EditorScene scene{model};
+        canvas::GraphCanvas graph{model};
         explicit Scene(const QJsonArray &nodes, const QJsonArray &edges = {}, bool dark = true)
         {
             const auto text = QJsonObject{{"type", "str"}};
@@ -70,7 +58,7 @@ private:
                 theme.outputSelected = QColor("#398da4");
                 theme.field = QColor(0x2a, 0x2a, 0x2a, 0x06);
             }
-            scene.setTheme(theme);
+            graph.setTheme(theme);
         }
         QtNodes::NodeId id(const QString &resource) const {
             for (const auto node : model.allNodeIds()) {
@@ -78,26 +66,29 @@ private:
             }
             return QtNodes::InvalidNodeId;
         }
-        QtNodes::NodeGraphicsObject *item(const QString &resource) const { return scene.nodeGraphicsObject(id(resource)); }
-        QtNodes::ConnectionGraphicsObject *wire(const QString &from, const QString &to) const {
-            for (auto item : scene.items()) {
-                auto wire = qgraphicsitem_cast<QtNodes::ConnectionGraphicsObject *>(item);
-                if (wire && model.resourceId(wire->connectionId().outNodeId) == from
-                    && model.resourceId(wire->connectionId().inNodeId) == to) { return wire; }
+        canvas::NodeItem *item(const QString &resource) const { return graph.scene().nodeItem(id(resource)); }
+        canvas::ConnectionItem *wire(const QString &from, const QString &to) const {
+            for (auto *wire : graph.scene().connectionItems()) {
+                const auto connection = wire->connectionId();
+                if (model.resourceId(connection.outNodeId) == from && model.resourceId(connection.inNodeId) == to) {
+                    return wire;
+                }
             }
             return nullptr;
         }
         QPointF outputHandle(const QString &resource) const {
-            return item(resource)->mapToScene(model.layout(id(resource)).size.width(), model.layout(id(resource)).outputY.first());
+            return item(resource)->scenePosition() + QPointF(model.layout(id(resource)).size.width(), model.layout(id(resource)).outputY.first());
         }
         QPointF inputHandle(const QString &resource, int index = 0) const {
-            return item(resource)->mapToScene(0, model.layout(id(resource)).inputY.at(index));
+            return item(resource)->scenePosition() + QPointF(0, model.layout(id(resource)).inputY.at(index));
         }
-        QImage render(const QRectF &source, int scale = 1) const {
+        QImage render(const QRectF &source, double scale = 1) const {
             QImage image((source.size() * scale).toSize(), QImage::Format_ARGB32_Premultiplied);
             image.fill(Qt::transparent);
             QPainter painter(&image);
-            scene.render(&painter, QRectF(QPointF(), QSizeF(image.size())), source);
+            painter.scale(scale, scale);
+            painter.translate(-source.topLeft());
+            graph.renderScene(painter, source, scale);
             return image;
         }
         // The pixel at a scene point, rendered at four times the resolution.
@@ -130,11 +121,11 @@ private:
     // scene pixels. A point is painted when it differs from the canvas.
     static QVector<QPair<bool, double>> runsAlong(const Scene &scene, const QString &from, const QString &to) {
         auto *wire = scene.wire(from, to);
-        const auto path = wire->mapToScene(wireCurve(wire->endPoint(QtNodes::PortType::Out), wire->endPoint(QtNodes::PortType::In)));
+        const auto path = wireCurve(wire->endPoint(QtNodes::PortType::Out), wire->endPoint(QtNodes::PortType::In));
         const auto bounds = path.boundingRect().adjusted(-4, -4, 4, 4);
         constexpr int zoom = 4;
         const auto image = scene.render(bounds, zoom);
-        const auto canvas = scene.scene.theme().canvas;
+        const auto canvas = scene.graph.scene().theme().canvas;
         QVector<double> peaks;
         const double length = path.length();
         QVector<QPair<bool, double>> runs;
@@ -169,6 +160,116 @@ private:
     }
 
 private slots:
+    void panelBackgroundContainsInput_data() {
+        QTest::addColumn<QString>("panel");
+        QTest::addColumn<bool>("wheel");
+        for (const auto *name : {"ViewportIndicator", "Toolbar", "SelectionToolbar", "MiniMapControls", "node-info-overlay", "SetupGuide", "QueueOverlay", "editor-chat-overlay", "authored-controls-selected"}) {
+            QTest::newRow(qPrintable(QString(name) + "-click")) << QString(name) << false;
+            QTest::newRow(qPrintable(QString(name) + "-wheel")) << QString(name) << true;
+        }
+    }
+
+    void panelBackgroundContainsInput() {
+        QFETCH(QString, panel);
+        QFETCH(bool, wheel);
+        QSettings().setValue("canvas-chat-dock/collapsed", true);
+        EditorWindow window;
+        window.resize(1440, 900);
+        window.setCatalog({QJsonObject{{"node_type", "t"}, {"title", "Panel input card"},
+            {"description", "Panel input test"}, {"properties", QJsonArray{}}, {"outputs", QJsonArray{}}}});
+        const bool authored = panel == "authored-controls-selected";
+        const auto type = authored ? "nodetool.workflows.base_node.Group" : "t";
+        QVERIFY(window.document()->load({{"name", "Panel input"},
+            {"graph", QJsonObject{{"nodes", QJsonArray{card("selected", type, 0, authored ? 180 : 0)}}, {"edges", QJsonArray{}}}}}));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto &canvas = window.canvas();
+        canvas.setView(1.0, {0, 0});
+        QCoreApplication::processEvents();
+        QVERIFY(window.selectNode("selected"));
+        QTRY_COMPARE(canvas.selection().count(), 1);
+        if (panel == "node-info-overlay") { window.action("Node info"); }
+        if (panel == "editor-chat-overlay") { window.toggleChat(); }
+        window.setMiniMapColorMode("type");
+        window.setMiniMapVisible(true);
+        test::OverlayProbe probe;
+        const bool guide = panel == "SetupGuide";
+        const bool queue = panel == "QueueOverlay";
+        const bool byFile = !authored && !panel.endsWith("-overlay");
+        QTRY_VERIFY((probe = test::overlay(window, byFile ? panel + ".qml" : panel, byFile, !guide && !queue)));
+        if (guide) {
+            // Present the real guide with a selected card. Its normal empty-canvas
+            // eligibility would leave no selection to detect a leaked press.
+            window.firstWorkflowGuide()->setState(true, false, {false, false, false, false, false});
+            probe->rootObject()->setVisible(true);
+        }
+        if (queue) {
+            probe->rootObject()->setProperty("opened", true);
+            QTRY_VERIFY(probe->isVisible());
+        }
+        QPointF local = guide ? QPointF(12, 12) : QPointF(3, 3);
+        if (authored || panel == "MiniMapControls") {
+            // Both tool strips fill their frames. Use the gap between buttons.
+            const auto *left = test::findOverlayItem(*probe->rootObject(), authored ? "group-options" : "mini-map-legend");
+            const auto *right = test::findOverlayItem(*probe->rootObject(), authored ? "group-run" : "mini-map-colors");
+            QVERIFY(left && right && left->isVisible() && right->isVisible());
+            local = (left->mapToItem(probe->rootObject(), {left->width(), 0}) +
+                     right->mapToItem(probe->rootObject(), {0, right->height()})) / 2;
+        }
+        const auto selected = canvas.selection().nodes();
+        QCOMPARE(selected.size(), 1);
+        const auto zoom = canvas.zoom();
+        auto *input = probe->inputWidget();
+        QVERIFY(probe->rootObject()->contains(local));
+        const auto panelPoint = [&] { return probe->rootObject()->mapToScene(local).toPoint(); };
+        QTRY_VERIFY2(input->rect().contains(panelPoint()),
+                     qPrintable(QString("Frame point (%1, %2), viewport %3 × %4")
+                         .arg(panelPoint().x()).arg(panelPoint().y()).arg(input->width()).arg(input->height())));
+        const auto point = panelPoint();
+        QVERIFY(input->rect().contains(point));
+        if (wheel) {
+            QWheelEvent event(point, input->mapToGlobal(point), {}, {0, 120}, {}, {}, Qt::NoScrollPhase, false);
+            QApplication::sendEvent(input, &event);
+        } else {
+            QTest::mouseClick(input, Qt::LeftButton, {}, point);
+            QCOMPARE(canvas.selection().nodes(), selected);
+            QTest::mousePress(input, Qt::MiddleButton, {}, point);
+            QVERIFY(!canvas.scene().interaction().viewportPanning());
+            QTest::mouseRelease(input, Qt::MiddleButton, {}, point);
+        }
+        QCOMPARE(canvas.selection().nodes(), selected);
+        QCOMPARE(canvas.zoom(), zoom);
+    }
+
+    void miniMapControlsShareTheQuickScene() {
+        QSettings().setValue("canvas-chat-dock/collapsed", true);
+        EditorWindow window;
+        window.resize(1440, 900);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        window.setMiniMapColorMode("default");
+        window.setMiniMapVisible(true);
+        const auto controls = test::overlay(window, "MiniMapControls.qml", true);
+        const auto zoom = test::overlay(window, "ViewportIndicator.qml", true);
+        const auto map = test::overlay(window, "mini-map");
+        QVERIFY(controls && zoom && map);
+        QCOMPARE(controls->quickWindow(), map->quickWindow());
+        QCOMPARE(zoom->quickWindow(), map->quickWindow());
+        auto *colors = test::findOverlayItem(*controls->rootObject(), "mini-map-colors");
+        QVERIFY(colors);
+        const auto click = [&](QQuickItem &item) {
+            QTest::mouseClick(controls->inputWidget(), Qt::LeftButton, {},
+                              item.mapToScene(QPointF(item.width(), item.height()) / 2).toPoint());
+        };
+        click(*colors);
+        QQuickItem *type = nullptr;
+        QTRY_VERIFY((type = test::findOverlayItem(*controls->quickWindow()->contentItem(),
+                                                 "mini-map-color-type")) && type->isVisible());
+        click(*type);
+        QTRY_COMPARE(window.miniMapColorMode(), QString("type"));
+        QTRY_VERIFY(test::findOverlayItem(*controls->rootObject(), "mini-map-legend")->isVisible());
+    }
+
     // nodes.states.css .react-flow__node.bypassed: opacity 0.8 and saturate(0.2)
     // on the whole node, handles included.
     void disabledCardIsDesaturated() {
@@ -186,7 +287,7 @@ private slots:
     void disabledTitleIsFainterThanTheCard() {
         Scene scene({card("on", "t", 0, 0), card("off", "t", 500, 0, {{"bypassed", true}})});
         const auto peak = [&](const QString &resource) {
-            const auto origin = scene.item(resource)->scenePos();
+            const auto origin = scene.item(resource)->scenePosition();
             const QRectF title(origin + QPointF(37, 9), QSizeF(120, 14));
             const auto image = scene.render(title, 4);
             const auto background = image.pixelColor(2, 2);
@@ -219,13 +320,12 @@ private slots:
     void selectedBypassedWireKeepsItsGlow() {
         Scene scene({card("a", "t", 0, 0), card("b", "t", 600, 0, {{"bypassed", true}})}, {link("a", "b")});
         auto *wire = scene.wire("a", "b");
-        auto *path = wire;
-        const auto curve = path->mapToScene(wireCurve(wire->endPoint(QtNodes::PortType::Out), wire->endPoint(QtNodes::PortType::In)));
+        const auto curve = wireCurve(wire->endPoint(QtNodes::PortType::Out), wire->endPoint(QtNodes::PortType::In));
         const auto middle = curve.pointAtPercent(0.5);
         // 2.5 px off the line is outside the 1.5 px stroke and inside the 6 px glow.
-        const auto offLine = [&] { return distance(scene.pixel(middle + QPointF(0, 2.5)), scene.scene.theme().canvas); };
+        const auto offLine = [&] { return distance(scene.pixel(middle + QPointF(0, 2.5)), scene.graph.scene().theme().canvas); };
         const auto before = offLine();
-        wire->setSelected(true);
+        scene.graph.scene().setSelected(*wire, true);
         QVERIFY2(offLine() > before + 6, qPrintable(QString("%1 -> %2").arg(before).arg(offLine())));
     }
 
@@ -265,18 +365,17 @@ private slots:
         Scene scene({card("a", "t", 0, 0), card("b", "t", 0, 400)}, {control});
         auto *wire = scene.wire("a", "b");
         QVERIFY(wire);
-        const auto curve = wire->mapToScene(controlWireCurve(wire->endPoint(QtNodes::PortType::Out), wire->endPoint(QtNodes::PortType::In)));
+        const auto curve = controlWireCurve(wire->endPoint(QtNodes::PortType::Out), wire->endPoint(QtNodes::PortType::In));
         // The strongest paint 1.25 px beside the line, over the middle of the wire.
         const auto beside = [&] {
             double most = 0;
             for (double at = 0.4; at <= 0.6; at += 0.01) {
-                most = std::max(most, distance(scene.pixel(curve.pointAtPercent(at) + QPointF(1.25, 0)), scene.scene.theme().canvas));
+                most = std::max(most, distance(scene.pixel(curve.pointAtPercent(at) + QPointF(1.25, 0)), scene.graph.scene().theme().canvas));
             }
             return most;
         };
         const auto rest = beside();
         wire->connectionState().setHovered(true);
-        wire->update();
         const auto hovered = beside();
         QVERIFY2(hovered > rest + 40, qPrintable(QString("rest %1 hovered %2").arg(rest).arg(hovered)));
     }
@@ -288,7 +387,7 @@ private slots:
         const auto plain = scene.pixel(scene.inputHandle("a", 0));
         const auto collect = scene.pixel(scene.inputHandle("a", 1));
         QVERIFY2(distance(plain, typeColor("str")) < 12, qPrintable(plain.name()));
-        QVERIFY2(distance(collect, scene.scene.theme().node) < 12, qPrintable(collect.name()));
+        QVERIFY2(distance(collect, scene.graph.scene().theme().node) < 12, qPrintable(collect.name()));
         // The ring around the core keeps the list type color.
         const auto ring = scene.pixel(scene.inputHandle("a", 1) + QPointF(3.5, 0));
         QVERIFY2(distance(ring, typeColor("list")) < 40, qPrintable(ring.name()));
@@ -301,13 +400,13 @@ private slots:
         for (const bool dark : {true, false}) {
             Scene scene({card("frame", "nodetool.workflows.base_node.Group", 0, 0, {{"width", 500}, {"height", 400}}),
                          card("kid", "t", 40, 60, {}, "frame"), card("loose", "t", 800, 60)}, {}, dark);
-            const auto &theme = scene.scene.theme();
+            const auto &theme = scene.graph.scene().theme();
             const auto edge = [&](const QString &resource) {
-                const auto origin = scene.item(resource)->scenePos();
+                const auto origin = scene.item(resource)->scenePosition();
                 return scene.pixel(origin + QPointF(0.5, 34));
             };
             const auto fill = [&](const QString &resource) {
-                const auto origin = scene.item(resource)->scenePos();
+                const auto origin = scene.item(resource)->scenePosition();
                 return scene.pixel(origin + QPointF(12, 34));
             };
             const QColor header = dark ? QColor("#2A2D33") : QColor("#F5F5F6");
@@ -317,7 +416,7 @@ private slots:
             QVERIFY2(distance(edge("kid"), expected) < 8, qPrintable(QString("%1 edge %2, expected %3").arg(dark).arg(edge("kid").name(), expected.name())));
             QVERIFY(distance(edge("loose"), expected) > 20);
             // The fill is the tint over the group frame behind the card.
-            const auto behind = scene.pixel(scene.item("kid")->scenePos() + QPointF(-20, 34));
+            const auto behind = scene.pixel(scene.item("kid")->scenePosition() + QPointF(-20, 34));
             const auto tint = dark ? QColor("#222222") : QColor("#cccccc");
             QColor tinted;
             tinted.setRgbF(tint.redF() * 0.55 + behind.redF() * 0.45, tint.greenF() * 0.55 + behind.greenF() * 0.45,
@@ -334,13 +433,13 @@ private slots:
         for (const bool dark : {true, false}) {
             Scene scene({card("p", "nodetool.workflows.base_node.Preview", 0, 0), card("o", "nodetool.output.Output", 600, 0),
                          card("n", "t", 0, 400)}, {}, dark);
-            const auto edge = [&](const QString &resource) { return scene.pixel(scene.item(resource)->scenePos() + QPointF(0.5, 20)); };
+            const auto edge = [&](const QString &resource) { return scene.pixel(scene.item(resource)->scenePosition() + QPointF(0.5, 20)); };
             const auto below = [&](const QString &resource) {
-                return scene.pixel(scene.item(resource)->scenePos() + QPointF(103.7, scene.model.layout(scene.id(resource)).size.height() + 1.5));
+                return scene.pixel(scene.item(resource)->scenePosition() + QPointF(103.7, scene.model.layout(scene.id(resource)).size.height() + 1.5));
             };
             // SHADOW.sm shades the canvas just under an unselected Preview card, and not under a plain one.
-            QVERIFY2(distance(below("p"), scene.scene.theme().canvas) > 3, "a Preview card carries a shadow");
-            QVERIFY2(distance(below("n"), scene.scene.theme().canvas) < 3, "a plain unselected card carries none");
+            QVERIFY2(distance(below("p"), scene.graph.scene().theme().canvas) > 3, "a Preview card carries a shadow");
+            QVERIFY2(distance(below("n"), scene.graph.scene().theme().canvas) < 3, "a plain unselected card carries none");
             scene.item("p")->setSelected(true);
             scene.item("o")->setSelected(true);
             const QColor preview = dark ? QColor("#d4d6db") : QColor("#27272a");
@@ -364,29 +463,53 @@ private slots:
     // .is-connecting .react-flow__handle { cursor: none }.
     void handlesShowTheCellCursorAndHideItWhileConnecting() {
         Scene scene({card("a", "t", 0, 0), card("b", "t", 600, 0)});
-        QGraphicsView view(&scene.scene);
-        view.resize(1000, 400);
-        view.show();
-        QVERIFY(QTest::qWaitForWindowExposed(&view));
-        view.resetTransform();
-        view.centerOn(300, 60);
-        const auto at = [&](const QPointF &scenePoint) { return view.mapFromScene(scenePoint); };
-        QTest::mouseMove(view.viewport(), at(QPointF(300, 200)));
-        QTest::qWait(30);
-        QCOMPARE(view.viewport()->cursor().shape(), Qt::ArrowCursor);
-        QTest::mouseMove(view.viewport(), at(scene.outputHandle("a")));
-        QTest::qWait(50);
-        QTRY_COMPARE(view.viewport()->cursor().shape(), Qt::CrossCursor);
-        QTest::mouseMove(view.viewport(), at(QPointF(300, 200)));
-        QTRY_COMPARE(view.viewport()->cursor().shape(), Qt::ArrowCursor);
-        // Dragging a wire hides the cursor over a handle.
-        QTest::mousePress(view.viewport(), Qt::LeftButton, Qt::NoModifier, at(scene.outputHandle("a")));
-        QTest::mouseMove(view.viewport(), at(scene.outputHandle("a")) + QPoint(40, 20));
-        QTest::mouseMove(view.viewport(), at(scene.inputHandle("b")));
-        QTRY_COMPARE(view.viewport()->cursor().shape(), Qt::BlankCursor);
-        QTest::mouseMove(view.viewport(), at(QPointF(300, 200)));
-        QTest::mouseRelease(view.viewport(), Qt::LeftButton, Qt::NoModifier, at(QPointF(300, 200)));
-        QTRY_COMPARE(view.viewport()->cursor().shape(), Qt::ArrowCursor);
+        QWidget host;
+        host.resize(1000, 400);
+        auto surface = std::make_unique<QuickCanvas>(scene.model, host);
+        surface->hostWidget().resize(host.size());
+        surface->scene().setTheme(scene.graph.scene().theme());
+        host.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&host));
+        surface->setView(1, QPointF(300, 60));
+        auto *viewport = &surface->viewportWidget();
+        const auto cursor = [&] {
+            return viewport->cursor().shape();
+        };
+        const auto empty = surface->mapFromScene(QPointF(300, 200));
+        const auto output = surface->mapFromScene(scene.outputHandle("a"));
+        const auto input = surface->mapFromScene(scene.inputHandle("b"));
+        QTest::mouseMove(viewport, empty);
+        QTRY_COMPARE(cursor(), Qt::ArrowCursor);
+        QTest::mouseMove(viewport, output);
+        QTRY_COMPARE(cursor(), Qt::CrossCursor);
+        QTest::mouseMove(viewport, empty);
+        QTRY_COMPARE(cursor(), Qt::ArrowCursor);
+        QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, output);
+        QTest::mouseMove(viewport, output + QPoint(40, 20));
+        QTest::mouseMove(viewport, input);
+        QTRY_COMPARE(cursor(), Qt::BlankCursor);
+        // Release at a different location without an intermediate move.
+        QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, empty);
+        QTRY_COMPARE(surface->scene().interaction().hoveredHandle().node, QtNodes::InvalidNodeId);
+        QTRY_COMPARE(cursor(), Qt::ArrowCursor);
+    }
+
+    void finalReleaseRefreshesHandleHover() {
+        Scene scene({card("a", "t", 0, 0), card("b", "t", 600, 0)});
+        QWidget host;
+        host.resize(1000, 400);
+        auto surface = std::make_unique<QuickCanvas>(scene.model, host);
+        surface->hostWidget().resize(host.size());
+        host.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&host));
+        surface->setView(1, QPointF(300, 60));
+        auto *viewport = &surface->viewportWidget();
+        const auto empty = surface->mapFromScene(QPointF(300, 200));
+        const auto input = surface->mapFromScene(scene.inputHandle("b"));
+        QTest::mouseMove(viewport, empty);
+        QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, empty);
+        QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, input);
+        QCOMPARE(surface->scene().interaction().hoveredHandle().node, scene.id("b"));
     }
 
     // nodes.zoomed.css, at zoom 0.35 and below: handles are hidden and edges are
@@ -394,11 +517,8 @@ private slots:
     void zoomedOutCardsHideHandlesAndThickenWires() {
         Scene scene({card("a", "t", 0, 0), card("b", "t", 600, 0)}, {link("a", "b")});
         const auto sampleHandle = [&](double zoom) {
-            QImage image(int(40 * zoom) + 8, int(40 * zoom) + 8, QImage::Format_ARGB32_Premultiplied);
-            image.fill(Qt::transparent);
-            QPainter painter(&image);
-            scene.scene.render(&painter, QRectF(QPointF(), QSizeF(image.size())),
-                               QRectF(scene.outputHandle("a") - QPointF(20, 20), QSizeF(40, 40) + QSizeF(8 / zoom, 8 / zoom)));
+            const auto area = QRectF(scene.outputHandle("a") - QPointF(20, 20), QSizeF(40, 40) + QSizeF(8 / zoom, 8 / zoom));
+            const auto image = scene.render(area, zoom);
             return image.pixelColor(int(20 * zoom), int(20 * zoom));
         };
         // Rendered through a scaled painter, so the card paints at the zoom.
@@ -414,15 +534,10 @@ private slots:
         // The ink one pixel column holds at x=437, clear of the grid crosses, summed over its height.
         const auto ink = [&](double zoom) {
             const QRectF source(430, 10, 14, 80);
-            QImage image(int(std::ceil(source.width() * zoom)), int(std::ceil(source.height() * zoom)), QImage::Format_ARGB32_Premultiplied);
-            image.fill(Qt::transparent);
-            {
-                QPainter painter(&image);
-                scene.scene.render(&painter, QRectF(QPointF(), QSizeF(source.width() * zoom, source.height() * zoom)), source);
-            }
+            const auto image = scene.render(source, zoom);
             const int column = int(7 * zoom);
             double total = 0;
-            for (int y = 0; y < image.height(); ++y) { total += distance(image.pixelColor(column, y), scene.scene.theme().canvas); }
+            for (int y = 0; y < image.height(); ++y) { total += distance(image.pixelColor(column, y), scene.graph.scene().theme().canvas); }
             return total / zoom;
         };
         const auto overview = ink(0.3);
@@ -452,14 +567,10 @@ private slots:
             // Selected Preview and Output cards, their edges, and a selected streaming wire.
             scene.item("preview")->setSelected(true);
             scene.item("output")->setSelected(true);
-            scene.wire("stream", "after")->setSelected(true);
+            scene.graph.scene().setSelected(*scene.wire("stream", "after"), true);
             QVERIFY(scene.render(area, 1).save(directory + "/chrome-selected-" + name + ".png"));
             // Overview zoom, drawn at 0.3.
-            QImage far(int(area.width() * 0.3), int(area.height() * 0.3), QImage::Format_ARGB32_Premultiplied);
-            far.fill(Qt::transparent);
-            QPainter painter(&far);
-            scene.scene.render(&painter, QRectF(QPointF(), QSizeF(far.size())), area);
-            painter.end();
+            const auto far = scene.render(area, 0.3);
             QVERIFY(far.save(directory + "/chrome-zoomed-" + name + ".png"));
         }
     }

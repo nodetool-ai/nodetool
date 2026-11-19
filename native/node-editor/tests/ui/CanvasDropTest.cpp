@@ -1,12 +1,12 @@
+#include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/CanvasDropController.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include <QBuffer>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QFile>
-#include <QGraphicsView>
 #include <QImage>
 #include <QJsonDocument>
 #include <QMimeData>
@@ -22,7 +22,6 @@
 #include <QUrlQuery>
 #include <QWebSocketServer>
 #include <QDir>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 #include <cmath>
 using namespace nodetool;
@@ -136,11 +135,11 @@ class CanvasDropTest final : public QObject {
     QTRY_VERIFY(window.session()->serverBound()); QTRY_VERIFY(controller(window)); QTest::qWait(40);
   }
   static bool drop(EditorWindow &window, QMimeData &mime, const QPointF &position) {
-    auto *view = window.findChild<QGraphicsView *>(); Q_ASSERT(view);
-    QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier); QApplication::sendEvent(view->viewport(), &enter);
+    auto *view = &window.canvas(); Q_ASSERT(view);
+    QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier); QApplication::sendEvent(&view->viewportWidget(), &enter);
     if (!enter.isAccepted()) return false;
-    QDragMoveEvent move(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier); QApplication::sendEvent(view->viewport(), &move);
-    QDropEvent event(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier); QApplication::sendEvent(view->viewport(), &event); return event.isAccepted();
+    QDragMoveEvent move(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier); QApplication::sendEvent(&view->viewportWidget(), &move);
+    QDropEvent event(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier); QApplication::sendEvent(&view->viewportWidget(), &event); return event.isAccepted();
   }
   static QQuickWidget *uploadPanel(EditorWindow &window) {
     for (auto *panel : window.findChildren<QQuickWidget *>()) if (panel->source().fileName() == "CanvasDropPanel.qml" && panel->isVisible()) return panel;
@@ -189,7 +188,7 @@ private slots:
     QTest::failOnWarning(QRegularExpression(".*AssetPropertyEditor.*TypeError.*"));
     Server server; EditorWindow window; setup(window, server); QVERIFY(controller(window));
     QTemporaryDir dir; QVERIFY(dir.isValid()); const auto path = writeFile(dir, "image.png", server.png); QVERIFY(!path.isEmpty());
-    auto *view = window.findChild<QGraphicsView *>(); window.action("Reset zoom"); view->setTransform(QTransform::fromScale(1.6, 1.6)); view->centerOn(1200, -700);
+    auto *view = &window.canvas(); window.action("Reset zoom"); view->setView(1.6, view->center()); view->centerOn(QPointF(1200, -700));
     const QPointF point(210.5, 155.5); const auto expected = view->viewportTransform().inverted().map(point);
     QMimeData mime; mime.setUrls({QUrl::fromLocalFile(path)}); server.delayUpload = true;
     QVERIFY(drop(window, mime, point)); QTRY_COMPARE(server.uploads, 1); QVERIFY(window.document()->nodes().isEmpty()); QVERIFY(!controller(window)->transfers().isEmpty());
@@ -208,7 +207,7 @@ private slots:
     server.assets[first] = {{"id", first}, {"name", "Existing image"}, {"content_type", "image/png"}};
     server.assets[second] = {{"id", second}, {"name", "Existing video"}, {"content_type", "video/mp4"}};
     QMimeData mime; mime.setData("application/x-nodetool-drag", QJsonDocument(QJsonObject{{"type", "assets-multiple"}, {"payload", QJsonArray{first.left(12), second}}}).toJson());
-    auto *view = window.findChild<QGraphicsView *>(); const QPointF point(220, 180); const auto expected = view->viewportTransform().inverted().map(point);
+    auto *view = &window.canvas(); const QPointF point(220, 180); const auto expected = view->viewportTransform().inverted().map(point);
     QVERIFY(drop(window, mime, point)); QTRY_COMPARE(window.document()->nodes().size(), 2); QCOMPARE(server.uploads, 0);
     for (const auto &value : window.document()->nodes()) {
       const auto node = value.toObject(); const auto reference = node["data"].toObject()["value"].toObject(); const auto id = reference["asset_id"].toString();
@@ -217,7 +216,7 @@ private slots:
       const auto position = node["ui_properties"].toObject()["position"].toObject(); QCOMPARE(position["x"].toDouble(), expected.x() + (id == first ? 0 : 250)); QCOMPARE(position["y"].toDouble(), expected.y());
     }
     QCOMPARE(window.document()->undoStack()->index(), 2);
-    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel()); const auto id = *model.allNodeIds().begin(); auto *node = window.scene()->nodeGraphicsObject(id); QVERIFY(node);
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel()); const auto id = *model.allNodeIds().begin(); auto node = nodetool::test::card(window, id); QVERIFY(node);
     const auto before = controller(window)->transfers(); QSignalSpy created(controller(window), &CanvasDropController::nodeCreated);
     QMimeData onBody; assetMime(first, onBody);
     QVERIFY(!drop(window, onBody, view->mapFromScene(node->scenePos() + QPointF(50, 25)))); QTest::qWait(20);
@@ -492,9 +491,9 @@ private slots:
     window.resize(1400, 1000);
     window.show();
     QTest::qWait(60);
-    auto *view = window.findChild<QGraphicsView *>();
+    auto *view = &window.canvas();
     QVERIFY(view);
-    view->scale(0.75, 0.75);
+    view->scaleBy(0.75, CanvasSurface::ZoomAnchor::Center);
     const QPointF point(210, 190);
     const auto expected = view->mapToScene(point.toPoint());
     const auto payload = [](const QString &type, const QJsonObject &body) {
@@ -523,7 +522,7 @@ private slots:
     // A drop on a card, or without an ID, adds nothing.
     const auto card = view->mapFromScene(expected + QPointF(30, 20));
     // The scene indexes a new card after the projection settles.
-    QTRY_VERIFY(!view->items(card).isEmpty());
+    QTRY_VERIFY(view->hasItemAt(card));
     QVERIFY(!drop(window, sketch, QPointF(card)));
     QMimeData empty;
     empty.setData("application/x-nodetool-drag", payload("sketch", QJsonObject{{"name", "No id"}}));

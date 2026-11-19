@@ -449,7 +449,7 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
         }
         return true;
     case NodeRowKind::Paint:
-        paintPaintCanvas(painter, theme, row, state.paintDraft, state.brushCursor);
+        paintPaintCanvas(painter, theme, row, &state.paintDraft, state.brushCursor);
         return true;
     case NodeRowKind::Compare:
         paintCompare(painter, theme, row);

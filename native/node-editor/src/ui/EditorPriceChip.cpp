@@ -1,11 +1,9 @@
+#include "ui/CanvasOverlay.h"
 #include "EditorWindow.h"
-#include "graph/EditorScene.h"
-#include <QGraphicsObject>
-#include <QGraphicsView>
+#include "ui/CanvasSurface.h"
 #include <QPointer>
 #include <QQuickItem>
 #include <cmath>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QQuickWidget>
 
 namespace nodetool {
@@ -54,21 +52,19 @@ void EditorWindow::syncPriceChip() {
 }
 
 void EditorWindow::positionPriceChip() {
-    if (!priceChipOverlay_ || !view_) { return; }
-    const QGraphicsObject *item = nullptr;
-    QSizeF size;
-    if (!priceChip_.provider().isEmpty() && !browserVisible() && !scene_->nodeDragActive()) {
+    if (!priceChipOverlay_ || !canvas_) { return; }
+    QRectF bounds;
+    if (!priceChip_.provider().isEmpty() && !browserVisible() && !canvas_->scene().nodeDragActive()) {
         for (const auto id : model_.allNodeIds()) {
             if (model_.resourceId(id) == priceChip_.nodeId()) {
-                item = scene_->nodeGraphicsObject(id);
-                size = model_.layout(id).size;
+                bounds = canvas_->nodeRect(id);
                 break;
             }
         }
     }
-    const auto area = view_->rect();
-    const auto card = item ? view_->mapFromScene(QRectF(item->scenePos(), size)).boundingRect().translated(view_->viewport()->pos()) : QRect();
-    if (!item || !QRect(QPoint(), area.size()).intersects(card)) {
+    const auto area = canvas_->hostWidget().rect();
+    const auto card = bounds.isEmpty() ? QRect() : canvas_->mapFromScene(bounds).translated(canvas_->viewportWidget().pos());
+    if (bounds.isEmpty() || !QRect(QPoint(), area.size()).intersects(card)) {
         priceChipOverlay_->hide();
         return;
     }
@@ -83,7 +79,6 @@ void EditorWindow::positionPriceChip() {
                                    std::clamp(y, 0, std::max(0, area.height() - chipSize.height())), chipSize.width(),
                                    chipSize.height());
     priceChipOverlay_->show();
-    priceChipOverlay_->raise();
 }
 
 void EditorWindow::togglePricePopover() {

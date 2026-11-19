@@ -1,15 +1,14 @@
+#include "../support/OverlayProbe.h"
 #include "document/ChildPorts.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "ui/EditorWindow.h"
 #include <QDir>
 #include <QContextMenuEvent>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include <QMenu>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace nodetool::node_editor;
@@ -51,19 +50,19 @@ class SubgraphCardTest : public QObject {
         }
         return QtNodes::InvalidNodeId;
     }
-    static QGraphicsView *view(EditorWindow &w) { return w.scene()->views().first(); }
+    static nodetool::CanvasSurface *view(EditorWindow &w) { return &w.canvas(); }
     static void clickNode(EditorWindow &w, QString id, Qt::KeyboardModifiers modifiers = {}) {
         const auto key = graphId(w, id);
-        const auto item = w.scene()->nodeGraphicsObject(key);
+        const auto item = nodetool::test::card(w, key);
         const auto point = item->scenePos() + QPointF(90, 18);
-        QTest::mouseClick(view(w)->viewport(), Qt::LeftButton, modifiers, view(w)->mapFromScene(point));
+        QTest::mouseClick(&view(w)->viewportWidget(), Qt::LeftButton, modifiers, view(w)->mapFromScene(point));
         QCoreApplication::processEvents();
     }
     static QQuickWidget *context(EditorWindow &w, QString id) {
-        const auto item = w.scene()->nodeGraphicsObject(graphId(w, id));
+        const auto item = nodetool::test::card(w, graphId(w, id));
         const auto point = view(w)->mapFromScene(item->scenePos() + QPointF(90, 18));
-        QContextMenuEvent event(QContextMenuEvent::Mouse, point, view(w)->viewport()->mapToGlobal(point));
-        QApplication::sendEvent(view(w)->viewport(), &event);
+        QContextMenuEvent event(QContextMenuEvent::Mouse, point, view(w)->viewportWidget().mapToGlobal(point));
+        QApplication::sendEvent(&view(w)->viewportWidget(), &event);
         QTest::qWait(60);
         return w.activeEditor()->findChild<QQuickWidget *>("context-menu-host");
     }
@@ -91,8 +90,9 @@ class SubgraphCardTest : public QObject {
     static bool clickQuick(EditorWindow &w, const QString &name, const QString &text = {}) {
         QCoreApplication::processEvents();
         for (auto *quick : w.findChildren<QQuickWidget *>()) {
-            if (!quick->isVisible() || !quick->rootObject()) { continue; }
-            auto *item = find(quick->rootObject(), name);
+            if (!quick->isVisible()) { continue; }
+            auto *root = quick->rootObject() ? quick->rootObject() : quick->quickWindow()->contentItem();
+            auto *item = find(root, name);
             if (!item || !item->isVisible()) { continue; }
             QTest::mouseClick(quick->quickWindow(), Qt::LeftButton, {}, item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
             if (!text.isEmpty()) { QTest::keyClicks(quick, text); }
@@ -139,10 +139,10 @@ private slots:
             QVERIFY(!model(w).inlineDescriptor(key, "prompt0").isEmpty());
             const auto originalGraph = childGraph(w.document()->node("sub"));
             const auto inputRect = model(w).inlineFieldRect(key, "prompt0");
-            const auto inputPoint = w.scene()->nodeGraphicsObject(key)->mapToScene(inputRect.center());
-            QTest::mouseClick(view(w)->viewport(), Qt::LeftButton, {}, view(w)->mapFromScene(inputPoint));
+            const auto inputPoint = w.canvas().mapFromNode(key, inputRect.center());
+            QTest::mouseClick(&view(w)->viewportWidget(), Qt::LeftButton, {}, view(w)->mapFromScene(inputPoint));
             QCoreApplication::processEvents();
-            auto *inlineEditor = w.findChild<QQuickWidget *>("inline-property-overlay");
+            const auto inlineEditor = nodetool::test::overlay(w, "inline-property-overlay");
             QVERIFY(inlineEditor);
             inlineEditor->setFocus();
             QVERIFY(clickQuick(w, "inline-multiline"));
@@ -156,8 +156,8 @@ private slots:
             clickNode(w, "sub");
             QTRY_COMPARE(w.document()->node("sub")["dynamic_properties"].toObject()["prompt0"].toString(), QString("A mountain at sunrise"));
             QCOMPARE(childGraph(w.document()->node("sub")), originalGraph);
-            const auto formPoint = w.scene()->nodeGraphicsObject(key)->mapToScene(model(w).layout(key).outputFormRect().center());
-            QTest::mouseClick(view(w)->viewport(), Qt::LeftButton, {}, view(w)->mapFromScene(formPoint));
+            const auto formPoint = w.canvas().mapFromNode(key, model(w).layout(key).outputFormRect().center());
+            QTest::mouseClick(&view(w)->viewportWidget(), Qt::LeftButton, {}, view(w)->mapFromScene(formPoint));
             QVERIFY(clickQuick(w, "new-output-name", "result"));
             QVERIFY(clickQuick(w, "add-output"));
             QVERIFY(w.document()->node("sub")["dynamic_outputs"].toObject().contains("result"));
@@ -173,9 +173,9 @@ private slots:
                 }
             }
         }
-        const auto point = w.scene()->nodeGraphicsObject(key)->mapToScene(card.footerRect().center());
-        QTest::mouseMove(view(w)->viewport(), view(w)->mapFromScene(point));
-        QTest::mouseClick(view(w)->viewport(), Qt::LeftButton, {}, view(w)->mapFromScene(point));
+        const auto point = w.canvas().mapFromNode(key, card.footerRect().center());
+        QTest::mouseMove(&view(w)->viewportWidget(), view(w)->mapFromScene(point));
+        QTest::mouseClick(&view(w)->viewportWidget(), Qt::LeftButton, {}, view(w)->mapFromScene(point));
         QTRY_VERIFY(w.document()->snapshot() != QJsonDocument::fromJson(before).object());
         QCOMPARE(w.document()->nodes().size(), count);
     }
@@ -240,9 +240,9 @@ private slots:
         for (const auto &value : w.document()->edges()) { QCOMPARE(value.toObject()["extension"].toInt(), 42); }
         QCOMPARE(w.document()->graph()["extension"].toString(), QString("graph-kept"));
         const auto after = QJsonDocument(w.document()->snapshot()).toJson();
-        QTest::keyClick(view(w), Qt::Key_Z, Qt::ControlModifier);
+        QTest::keyClick(&view(w)->hostWidget(), Qt::Key_Z, Qt::ControlModifier);
         QTRY_COMPARE(QJsonDocument(w.document()->snapshot()).toJson(), before);
-        QTest::keyClick(view(w), Qt::Key_Z, Qt::ControlModifier | Qt::ShiftModifier);
+        QTest::keyClick(&view(w)->hostWidget(), Qt::Key_Z, Qt::ControlModifier | Qt::ShiftModifier);
         QTRY_COMPARE(QJsonDocument(w.document()->snapshot()).toJson(), after);
     }
 };

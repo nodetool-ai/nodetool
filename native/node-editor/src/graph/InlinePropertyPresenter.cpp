@@ -1,65 +1,55 @@
+#include "ui/CanvasOverlay.h"
 #include "InlinePropertyPresenter.h"
 #include "CardBodies.h"
-#include "EditorScene.h"
+#include "canvas/CanvasStyle.h"
+#include "canvas/EditorSceneApi.h"
 #include "WorkflowGraphModel.h"
 #include "interfaces/PropertyHost.h"
 #include <QEvent>
 #include <QApplication>
-#include <QGraphicsView>
 #include <QKeyEvent>
 #include <QMouseEvent>
-#include <QQuickWidget>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QQmlEngine>
-#include <QScrollBar>
 #include <QTimer>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <algorithm>
 #include <cmath>
+#include <utility>
 namespace nodetool {
-namespace {
-// Unhandled Quick keys must not bubble into the graph's editing shortcuts.
-class InlineEditorWidget final : public QQuickWidget {
-public:
-  InlineEditorWidget(QQmlEngine *engine, QWidget *parent) : QQuickWidget(engine, parent) {}
-protected:
-  bool event(QEvent *event) override {
-    if (event->type() == QEvent::ShortcutOverride) { event->accept(); return true; }
-    return QQuickWidget::event(event);
-  }
-  void keyPressEvent(QKeyEvent *event) override { QQuickWidget::keyPressEvent(event); event->accept(); }
-  void keyReleaseEvent(QKeyEvent *event) override { QQuickWidget::keyReleaseEvent(event); event->accept(); }
-};
-}
 InlinePropertyPresenter::InlinePropertyPresenter(WorkflowGraphModel &model,
-    EditorScene &scene, QGraphicsView &view, QQmlEngine *engine, node_editor::PropertyHost &host, QObject *parent)
-    : QObject(parent), model_(model), scene_(scene), view_(view), engine_(engine), host_(host) {
-  connect(&scene_, &EditorScene::inlineEditRequested, this, &InlinePropertyPresenter::activate);
-  connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] { if (!holding_) { cancel(); } });
+    EditorSceneApi &scene, QuickCanvas &canvas, QQmlEngine *engine, node_editor::PropertyHost &host, QObject *parent)
+    : QObject(parent), model_(model), canvas_(canvas), engine_(engine), host_(host) {
+  connect(&scene.interaction(), &canvas::CanvasInteraction::inlineEditRequested, this, &InlinePropertyPresenter::activate);
+  connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] {
+    if (holding_) { return; }
+    const auto kind = descriptor_.value("kind").toString();
+    // An unrelated incremental projection must not cancel a resource request
+    // or close its popup. Revalidate the field after the projection finishes.
+    projectingResource_ = kind == "workflow" || kind == "workflow_list" || kind == "app" || kind == "collection";
+    if (!projectingResource_) { cancel(); }
+  });
+  connect(&model_, &WorkflowGraphModel::modelReset, this, [this] {
+    if (projectingResource_) { cancel(); }
+  });
+  connect(&model_, &WorkflowGraphModel::projectionChanged, this, [this] {
+    if (std::exchange(projectingResource_, false)) { reposition(); }
+  });
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, [this](QtNodes::NodeId) { reposition(); });
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, [this](QtNodes::NodeId) { reposition(); });
-  connect(&scene_, &QGraphicsScene::selectionChanged, this, [this] { if (!holding_ && active() && !current()) { cancel(); } });
-  connect(view.horizontalScrollBar(), &QScrollBar::valueChanged, this, &InlinePropertyPresenter::reposition);
-  connect(view.verticalScrollBar(), &QScrollBar::valueChanged, this, &InlinePropertyPresenter::reposition);
+  connect(&canvas_.selection(), &CanvasSelection::selectionChanged, this, [this] { if (!holding_ && active() && !current()) { cancel(); } });
+  connect(&canvas_, &CanvasSurface::viewportMoved, this, &InlinePropertyPresenter::reposition);
   qApp->installEventFilter(this);
 }
 InlinePropertyPresenter::~InlinePropertyPresenter() {
   qApp->removeEventFilter(this);
   ++generation_;
   descriptor_.clear();
-  auto widget = widget_.data();
-  widget_.clear();
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  delete widget;
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  for (const auto &retired : retiredWidgets_) { delete retired.data(); }
+  widget_.reset();
 }
-QQuickWidget *InlinePropertyPresenter::editorWidget() const { return widget_; }
 bool InlinePropertyPresenter::current() const {
   if (!active() || model_.readOnly() || !model_.nodeExists(node_)) { return false; }
-  const auto item = scene_.nodeGraphicsObject(node_);
-  return item && item->isSelected() && scene_.selectedItems().size() == 1 && model_.inlineDescriptor(node_, name_) == descriptor_;
+  return canvas_.selection().contains(node_) && canvas_.selection().count() == 1 && model_.inlineDescriptor(node_, name_) == descriptor_;
 }
 void InlinePropertyPresenter::activate(QtNodes::NodeId id, const QString &name) {
   if (active() && current() && id == node_) {
@@ -84,20 +74,16 @@ void InlinePropertyPresenter::activate(QtNodes::NodeId id, const QString &name) 
   descriptor_ = descriptor;
   if (!current()) { cancel(); return; }
   expanded_ = false;
-  auto widget = new InlineEditorWidget(engine_, view_.viewport());
-  widget_ = widget;
-  widget->setObjectName("inline-property-overlay");
-  widget->setAttribute(Qt::WA_AlwaysStackOnTop);
-  widget->setClearColor(Qt::transparent);
-  widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-  widget->setInitialProperties({{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_},
-                                {"host", QVariant::fromValue(&host_)}});
+  const QUrl source("qrc:/qt/qml/NodeTool/NodeEditor/InlinePropertyEditor.qml");
+  const QVariantMap properties{{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_}, {"host", QVariant::fromValue(&host_)}};
+  widget_ = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, properties, 10, id, CanvasOverlay::Placement::AboveCards);
+  if (!widget_->rootObject()) { cancel(); return; }
+  widget_->setObjectName("inline-property-overlay");
   reposition();
-  widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/InlinePropertyEditor.qml"));
-  if (widget->status() == QQuickWidget::Error) { cancel(); return; }
-  widget->show();
-  widget->raise();
-  widget->setFocus(Qt::MouseFocusReason);
+  if (!widget_) { return; }
+  widget_->show();
+  canvas_.setFocus(Qt::MouseFocusReason);
+  widget_->setFocus(Qt::MouseFocusReason);
   emit changed();
   const auto token = generation_;
   QTimer::singleShot(0, this, [this, token] {
@@ -106,6 +92,7 @@ void InlinePropertyPresenter::activate(QtNodes::NodeId id, const QString &name) 
   });
 }
 void InlinePropertyPresenter::cancel() {
+  projectingResource_ = false;
   ++generation_;
   committing_ = false;
   pendingValue_.clear();
@@ -120,13 +107,11 @@ void InlinePropertyPresenter::cancel() {
   if (popupWasOpen) { emit popupChanged(); }
   expanded_ = false;
   if (widget_) {
-    auto old = widget_;
-    widget_.clear();
+    auto old = std::move(widget_);
     old->hide();
     old->setEnabled(false);
-    retiredWidgets_.removeIf([](const auto &entry) { return entry.isNull(); });
-    retiredWidgets_.append(old);
-    old->deleteLater();
+    // QML can cancel from inside its own key handler.
+    old->retireQuickRoot(retiredQuickRoots_);
   }
   emit changed();
 }
@@ -139,14 +124,14 @@ void InlinePropertyPresenter::flushCommit() {
     const auto node = node_;
     cancel();
     model_.setCardControl(node, name, value);
-    view_.setFocus(Qt::OtherFocusReason);
+    canvas_.setFocus(Qt::OtherFocusReason);
     return;
   }
   const auto command = model_.propertyCommand(node_, name, QJsonValue::fromVariant(value));
   cancel();
   if (command["op"] == QStringLiteral("batch") && commitCommand) { commitCommand(command); }
   else if (commitProperty) { commitProperty(id, name, value); }
-  view_.setFocus(Qt::OtherFocusReason);
+  canvas_.setFocus(Qt::OtherFocusReason);
 }
 void InlinePropertyPresenter::commit(const QVariant &value, int token) {
   if (token != generation_ || committing_ || !current()) { return; }
@@ -191,7 +176,7 @@ void InlinePropertyPresenter::close(int token) {
   flushApply();
   if (token != generation_) { return; }
   cancel();
-  view_.setFocus(Qt::OtherFocusReason);
+  canvas_.setFocus(Qt::OtherFocusReason);
 }
 void InlinePropertyPresenter::setContentHeight(double height) {
   if (!active() || qFuzzyCompare(height, contentHeight_)) { return; }
@@ -208,18 +193,16 @@ void InlinePropertyPresenter::expand() {
 void InlinePropertyPresenter::popupRect(const QRectF &rect) {
   const bool wasOpen = popupOpen();
   popupRect_ = rect;
-  updateMask();
+  updateInputRect();
   if (wasOpen != popupOpen()) { emit popupChanged(); }
 }
-void InlinePropertyPresenter::updateMask() {
-  if (!widget_) { return; }
-  auto region = QRegion(editorRect_.adjusted(-2, -2, 2, 2).toAlignedRect());
-  if (!popupRect_.isEmpty()) { region += QRegion(popupRect_.adjusted(-2,-2,2,2).toAlignedRect()); }
-  widget_->setMask(region.intersected(QRegion(view_.viewport()->rect())));
+void InlinePropertyPresenter::updateInputRect() {
+  if (widget_) { widget_->setInputRect(editorRect_); }
 }
 void InlinePropertyPresenter::reposition() {
-  if (holding_) { return; }
-  if (!widget_ || !current()) { if (active()) { cancel(); } return; }
+  if (holding_ || projectingResource_) { return; }
+  if (!widget_) { return; }
+  if (!current()) { if (active()) { cancel(); } return; }
   auto local = model_.inlineFieldRect(node_, name_);
   if (contentHeight_ > 0 && name_ != "code") { local.setHeight(std::max(local.height(), contentHeight_)); }
   const auto kind = descriptor_["kind"].toString();
@@ -231,55 +214,63 @@ void InlinePropertyPresenter::reposition() {
     // A narrow action strip expands multiline editing without discarding draft.
     local.setHeight(local.height() + 24);
   }
-  const auto item = scene_.nodeGraphicsObject(node_);
-  if (!item) { cancel(); return; }
-  const auto sceneRect = local.translated(item->scenePos());
-  zoom_ = std::clamp(std::abs(view_.transform().m11()), 0.08, 8.0);
-  const auto transform = view_.viewportTransform();
+  if (!canvas_.hasNode(node_)) { cancel(); return; }
+  const auto sceneRect = local.translated(canvas_.nodeOrigin(node_));
+  zoom_ = std::clamp(std::abs(canvas_.zoom()), 0.08, 8.0);
+  const auto transform = canvas_.viewportTransform();
   editorRect_ = transform.mapRect(sceneRect);
-  widget_->setGeometry(view_.viewport()->rect());
-  if (!view_.viewport()->rect().intersects(editorRect_.toAlignedRect())) { cancel(); return; }
-  updateMask();
-  widget_->raise();
+  widget_->setGeometry(canvas_.viewportWidget().rect());
+  if (!canvas_.viewportWidget().rect().intersects(editorRect_.toAlignedRect())) { cancel(); return; }
+  updateInputRect();
   emit geometryChanged();
 }
+bool InlinePropertyPresenter::insertPromptVariableAt(QPointF viewportPoint) {
+  if (!widget_ || name_ != QStringLiteral("prompt") || !current()) { return false; }
+  const auto point = viewportPoint.toPoint();
+  if (canvas_.nodeAt(point) != node_) { return false; }
+  const auto *root = widget_->rootObject();
+  auto *field = root ? root->findChild<QQuickItem *>(QStringLiteral("inline-multiline")) : nullptr;
+  if (!field) { return false; }
+  const auto local = canvas_.mapToNode(node_, canvas_.mapToScene(point));
+  for (const auto &row : model_.layout(node_).rows) {
+    if (row.action != QStringLiteral("insertVariable") || !row.rect.contains(local)) { continue; }
+    auto text = field->property("text").toString();
+    const auto start = field->property("selectionStart").toInt();
+    const auto end = field->property("selectionEnd").toInt();
+    const auto inserted = QStringLiteral("{{ %1 }}").arg(row.value);
+    if (!field->property("editing").toBool()) {
+      field->setProperty("editBaseline", field->property("value"));
+      field->setProperty("editing", true);
+    }
+    text.replace(start, end - start, inserted);
+    field->setProperty("text", text);
+    field->setProperty("cursorPosition", start + inserted.size());
+    field->forceActiveFocus(Qt::MouseFocusReason);
+    return true;
+  }
+  return false;
+}
+
 bool InlinePropertyPresenter::eventFilter(QObject *object, QEvent *event) {
   if (active() && widget_ && event->type() == QEvent::ShortcutOverride) {
-    bool inside = object == widget_ || object == widget_->quickWindow();
+    bool inside = widget_->ownsFocus(object);
     for (auto target = object; target && !inside; target = target->parent()) {
-      inside = target == widget_ || target == widget_->rootObject();
+      inside = target == widget_->rootObject();
     }
     if (inside) { event->accept(); return true; }
   }
-  if (active() && (object == view_.viewport() || object == &view_)) {
+  if (active() && (object == &canvas_.viewportWidget() || object == &canvas_.hostWidget())) {
     if (event->type() == QEvent::Resize || event->type() == QEvent::Wheel) {
       const auto token = generation_;
       QTimer::singleShot(0, this, [this, token] { if (token == generation_) { reposition(); } });
     }
     if (event->type() == QEvent::MouseButtonPress) {
       const auto *mouse = static_cast<QMouseEvent *>(event);
-      if (mouse->button() == Qt::LeftButton && name_ == QStringLiteral("prompt") && current()) {
-        const auto *item = scene_.nodeGraphicsObject(node_);
-        const auto local = item->mapFromScene(view_.mapToScene(view_.viewport()->mapFromGlobal(mouse->globalPosition().toPoint())));
-        for (const auto &row : model_.layout(node_).rows) {
-          if (row.action != QStringLiteral("insertVariable") || !row.rect.contains(local)) { continue; }
-          const auto field = widget_->rootObject()->findChild<QQuickItem *>(QStringLiteral("inline-multiline"));
-          if (!field) { break; }
-          auto text = field->property("text").toString();
-          const auto start = field->property("selectionStart").toInt();
-          const auto end = field->property("selectionEnd").toInt();
-          const auto inserted = QStringLiteral("{{ %1 }}").arg(row.value);
-          if (!field->property("editing").toBool()) {
-            field->setProperty("editBaseline", field->property("value"));
-            field->setProperty("editing", true);
-          }
-          text.replace(start, end - start, inserted);
-          field->setProperty("text", text);
-          field->setProperty("cursorPosition", start + inserted.size());
-          field->forceActiveFocus(Qt::MouseFocusReason);
-          event->accept();
-          return true;
-        }
+      const auto point = canvas_.viewportWidget().mapFromGlobal(mouse->globalPosition().toPoint());
+      if (widget_ && (editorRect_.contains(point) || popupRect_.contains(point))) { return false; }
+      if (mouse->button() == Qt::LeftButton && insertPromptVariableAt(point)) {
+        event->accept();
+        return true;
       }
       // A deliberate canvas blur commits before its pointer dispatch changes
       // selection. Programmatic selection/source changes still invalidate queued

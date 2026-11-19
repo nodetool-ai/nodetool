@@ -1,6 +1,7 @@
+#include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
 #include "EntryMenuSupport.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "server/MsgPack.h"
 #include "FakeRunServer.h"
 #include <QWebSocketServer>
@@ -13,7 +14,6 @@
 #include <QTcpSocket>
 #include <QDir>
 #include <QFile>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include <QMenu>
 #include <QMessageBox>
@@ -24,7 +24,6 @@
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTimer>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 class WorkflowTabsTest final : public QObject {
@@ -38,24 +37,22 @@ class WorkflowTabsTest final : public QObject {
   static bool click(EditorWindow &window, const QString &name) {
     // Panels follow in the next pass and their layout in the pass after. The card
     // toolbar shows 200 ms after the selection settles (NodeSelectionToolbar.tsx).
-    QTest::qWaitFor([&] {
+    const auto findTarget = [&]() -> test::OverlayProbe {
+      if (auto shared = test::overlay(window, name)) { return shared; }
       for (auto panel : window.findChildren<QQuickWidget *>()) {
         if (!panel->isVisible() || !panel->rootObject()) continue;
         auto item = find(panel->rootObject(), name);
-        if (item && item->isVisible()) return true;
+        if (item && item->isVisible()) { return {*panel, *item, false}; }
       }
-      return false;
-    }, 1000);
-    for (auto panel : window.findChildren<QQuickWidget *>()) {
-      if (!panel->isVisible() || !panel->rootObject()) continue;
-      auto item = find(panel->rootObject(), name);
-      if (!item || !item->isVisible()) continue;
-      QTest::mouseClick(panel->quickWindow(), Qt::LeftButton, Qt::NoModifier,
-        item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
-      QCoreApplication::processEvents();
-      return true;
-    }
-    return false;
+      return {};
+    };
+    test::OverlayProbe target;
+    if (!QTest::qWaitFor([&] { target = findTarget(); return bool(target); }, 1000)) { return false; }
+    const auto *item = target->rootObject();
+    QTest::mouseClick(target->quickWindow(), Qt::LeftButton, Qt::NoModifier,
+      item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
+    QCoreApplication::processEvents();
+    return true;
   }
   static QJsonObject workflow(const QString &name, int count = 1) {
     QJsonArray nodes;
@@ -64,16 +61,25 @@ class WorkflowTabsTest final : public QObject {
       {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", (i % 40) * 300}, {"y", (i / 40) * 200}}}}}});
     return {{"name", name}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", QJsonArray{}}}}};
   }
+  // The card objects, which survive a tab switch unchanged.
+  static QList<const QObject *> cards(EditorWindow &window) {
+    auto ids = window.scene()->graphModel().allNodeIds();
+    QList<QtNodes::NodeId> sorted(ids.begin(), ids.end());
+    std::sort(sorted.begin(), sorted.end());
+    QList<const QObject *> result;
+    for (const auto id : sorted) { result.append(nodetool::test::CanvasProbe(window).cardObject(id)); }
+    return result;
+  }
   static void moveNode(EditorWindow &window) {
     window.fit(); QTest::qWait(100);
     auto scene = window.scene();
-    auto view = scene->views().first();
-    auto node = scene->nodeGraphicsObject(*scene->graphModel().allNodeIds().begin());
-    QVERIFY(node);
-    const auto start = view->mapFromScene(node->sceneBoundingRect().topLeft() + QPointF(40, 18));
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-    QTest::mouseMove(view->viewport(), start + QPoint(55, 40), 30);
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, start + QPoint(55, 40));
+    auto view = &window.canvas();
+    const auto id = *scene->graphModel().allNodeIds().begin();
+    QVERIFY(view->hasNode(id));
+    const auto start = view->mapFromScene(view->nodeBounds(id).topLeft() + QPointF(40, 18));
+    QTest::mousePress(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mouseMove(&view->viewportWidget(), start + QPoint(55, 40), 30);
+    QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start + QPoint(55, 40));
     QCoreApplication::processEvents();
   }
   static void answerClose(QMessageBox::StandardButton choice) {
@@ -178,13 +184,13 @@ private slots:
     QTemporaryDir files; QVERIFY(files.isValid()); const auto path = files.filePath("upload.png");
     QImage image(16, 16, QImage::Format_RGB32); image.fill(Qt::blue); QVERIFY(image.save(path));
     QPointer<CanvasDropController> controller = window.activeEditor()->findChild<CanvasDropController *>(); QVERIFY(controller);
-    auto view = window.scene()->views().first();
+    auto view = &window.canvas();
     QMimeData mime; mime.setUrls({QUrl::fromLocalFile(path)});
-    const auto point = view->viewport()->rect().center();
+    const auto point = view->viewportWidget().rect().center();
     QDragEnterEvent enter(QPointF(point), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-    QApplication::sendEvent(view->viewport(), &enter); QVERIFY(enter.isAccepted());
+    QApplication::sendEvent(&view->viewportWidget(), &enter); QVERIFY(enter.isAccepted());
     QDropEvent drop(point, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-    QApplication::sendEvent(view->viewport(), &drop); QVERIFY(drop.isAccepted());
+    QApplication::sendEvent(&view->viewportWidget(), &drop); QVERIFY(drop.isAccepted());
     QTRY_VERIFY(pending);
     QVERIFY(click(window, "new-workflow-tab"));
     const auto before = window.document()->snapshot();
@@ -201,23 +207,23 @@ private slots:
     graph["nodes"] = nodes; large["graph"] = graph;
     window.setCatalog({QJsonObject{{"node_type", "tabs.Test"}, {"title", "Background node"}}});
     QVERIFY(window.document()->load(large));
-    auto document = window.document(); auto scene = window.scene();
+    auto document = window.document(); auto scene = window.scene(); auto *first = window.activeEditor();
     QCoreApplication::processEvents();
     QSignalSpy changed(document, &node_editor::WorkflowDocument::changed);
     QSignalSpy reset(&scene->graphModel(), SIGNAL(modelReset())); QVERIFY(reset.isValid());
     QVERIFY(window.selectNode("note0")); window.action("Zoom in"); QTest::qWait(40);
-    auto view = scene->views().first();
-    const auto transform = view->transform(); const auto center = view->mapToScene(view->viewport()->rect().center());
-    const auto items = scene->items(); const auto snapshot = document->snapshot();
+    auto view = &window.canvas();
+    const auto transform = view->zoom(); const auto center = view->mapToScene(view->viewportWidget().rect().center());
+    const auto items = cards(*first); const auto snapshot = document->snapshot();
     QVERIFY(click(window, "new-workflow-tab"));
     QVERIFY(window.document()->load(workflow("Small workflow")));
     for (int i = 0; i < 6; ++i) {
       QVERIFY(click(window, "activate-tab-0")); QCOMPARE(window.scene(), scene);
-      QCOMPARE(window.selection(), QString("note0")); QCOMPARE(view->transform(), transform);
-      QVERIFY(QLineF(view->mapToScene(view->viewport()->rect().center()), center).length() < 2);
+      QCOMPARE(window.selection(), QString("note0")); QCOMPARE(view->zoom(), transform);
+      QVERIFY(QLineF(view->mapToScene(view->viewportWidget().rect().center()), center).length() < 2);
       QVERIFY(click(window, "activate-tab-1"));
     }
-    QCOMPARE(changed.count(), 0); QCOMPARE(reset.count(), 0); QCOMPARE(scene->items(), items); QCOMPARE(document->snapshot(), snapshot); QCOMPARE(document->undoStack()->index(), 0);
+    QCOMPARE(changed.count(), 0); QCOMPARE(reset.count(), 0); QCOMPARE(cards(*first), items); QCOMPARE(document->snapshot(), snapshot); QCOMPARE(document->undoStack()->index(), 0);
     moveNode(window); QVERIFY(window.hasUnsavedChanges());
     QCoreApplication::processEvents();
     bool markerVisible = false;

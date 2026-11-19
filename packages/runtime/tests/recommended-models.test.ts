@@ -77,9 +77,15 @@ describe("RECOMMENDED_MODELS catalog invariants", () => {
 
   it("includes the expected anchor models", () => {
     const ids = RECOMMENDED_MODELS.map((m) => m.id);
-    expect(ids).toContain("gpt-5-mini");
-    expect(ids).toContain("claude-sonnet-5");
+    expect(ids).toContain("claude-sonnet-5-5");
+    expect(ids).toContain("gpt-6.2");
+    expect(ids).toContain("gemini-4-neon-preview");
     expect(ids).toContain("whisper-1");
+    expect(
+      RECOMMENDED_MODELS.filter((m) => m.task === "text_generation").map(
+        (m) => m.id
+      )
+    ).toEqual(["claude-sonnet-5-5", "gpt-6.2", "gemini-4-neon-preview"]);
   });
 
   it("uses pinned Anthropic model ids instead of moving latest aliases", () => {

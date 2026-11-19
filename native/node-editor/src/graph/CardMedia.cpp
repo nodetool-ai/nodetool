@@ -1,6 +1,6 @@
 #include "CardMedia.h"
 #include "CardBodyPainter.h"
-#include "EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include <QCoreApplication>
 #include <QJsonObject>
 #include <QPainter>

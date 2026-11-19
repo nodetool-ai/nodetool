@@ -1,17 +1,16 @@
+#include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include <QDialog>
 #include "EntryMenuSupport.h"
 #include <QDir>
-#include <QGraphicsView>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
 #include <QMouseEvent>
 #include <QRegularExpression>
 #include <memory>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QtTest>
 using namespace nodetool;
 namespace {
@@ -33,14 +32,14 @@ QJsonObject node(const QString &id, const QString &type, int x = 100) {
 }
 struct Host {
     EditorWindow window;
-    QGraphicsView *view = nullptr;
+    CanvasSurface *view = nullptr;
     WorkflowGraphModel *model = nullptr;
     explicit Host(const QString &type = "test.Dynamic", const QJsonArray &edges = {}) {
         window.resize(1280, 720); window.setCatalog(catalog());
         const auto loaded = window.document()->load({{"graph", QJsonObject{{"nodes", QJsonArray{node("n", type), node("source", "test.Dynamic", 500)}}, {"edges", edges}}}});
         Q_ASSERT(loaded.ok);
         window.show(); window.action("Reset zoom"); QTest::qWait(80);
-        view = window.scene()->views().first();
+        view = &window.canvas();
         model = &static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
         window.fit(); QTest::qWait(30);
     }
@@ -54,9 +53,9 @@ struct Host {
         return {};
     }
     void click(const QRectF &rect, bool twice = false) {
-        const auto point = view->mapFromScene(window.scene()->nodeGraphicsObject(id())->mapToScene(rect.center()));
-        if (twice) { QTest::mouseDClick(view->viewport(), Qt::LeftButton, {}, point); }
-        else { QTest::mouseClick(view->viewport(), Qt::LeftButton, {}, point); }
+        const auto point = view->mapFromScene(window.canvas().mapFromNode(id(), rect.center()));
+        if (twice) { QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, {}, point); }
+        else { QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, {}, point); }
         QCoreApplication::processEvents();
     }
     QQuickWidget *dialog() {
@@ -134,6 +133,12 @@ private slots:
         h.click(h.action("addInput")); QTRY_VERIFY(h.dialog());
         auto *quick = h.dialog();
         auto *field = find(quick->rootObject(), "dynamic-port-name"); QVERIFY(field);
+        // The offscreen platform has no window manager to activate the popup.
+        // Deliver activation without assigning focus to the field ourselves.
+        if (QGuiApplication::platformName() == QStringLiteral("offscreen")) {
+            QEvent activation(QEvent::WindowActivate);
+            QApplication::sendEvent(quick->window(), &activation);
+        }
         QTRY_VERIFY(field->hasActiveFocus());
         auto *target = QApplication::activePopupWidget() ? QApplication::activePopupWidget()->focusWidget() : QApplication::focusWidget();
         QVERIFY(target);
@@ -221,12 +226,12 @@ private slots:
         Host h; QVERIFY(!h.action("addInput").isEmpty());
         const auto drag = [&](const QString &source) {
             const auto key = h.id(source);
-            const auto start = h.view->mapFromScene(h.window.scene()->nodeGraphicsObject(key)->mapToScene(h.window.scene()->nodeGeometry().portPosition(key, QtNodes::PortType::Out, 0)));
-            const auto drop = h.view->mapFromScene(h.window.scene()->nodeGraphicsObject(h.id())->mapToScene(h.action("addInput").center()));
-            QTest::mousePress(h.view->viewport(), Qt::LeftButton, {}, start);
-            QMouseEvent move(QEvent::MouseMove, QPointF(drop), QPointF(h.view->viewport()->mapToGlobal(drop)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-            QApplication::sendEvent(h.view->viewport(), &move);
-            QTest::mouseRelease(h.view->viewport(), Qt::LeftButton, {}, drop);
+            const auto start = h.view->mapFromScene(h.window.canvas().mapFromNode(key, h.window.scene()->nodeGeometry().portPosition(key, QtNodes::PortType::Out, 0)));
+            const auto drop = h.view->mapFromScene(h.window.canvas().mapFromNode(h.id(), h.action("addInput").center()));
+            QTest::mousePress(&h.view->viewportWidget(), Qt::LeftButton, {}, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(drop), QPointF(h.view->viewportWidget().mapToGlobal(drop)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(&h.view->viewportWidget(), &move);
+            QTest::mouseRelease(&h.view->viewportWidget(), Qt::LeftButton, {}, drop);
             QCoreApplication::processEvents();
         };
         const auto before = h.window.document()->snapshot();

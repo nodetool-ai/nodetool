@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 include(CTest)
+include(cmake/sanitizers/Tests.cmake)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Widgets QuickWidgets Qml Quick QuickControls2 Svg Network WebSockets Multimedia Test)
 qt_standard_project_setup(REQUIRES 6.12)
 # Configures only the QML components, their interfaces, the chat module and the
@@ -166,9 +167,10 @@ endif()
 if(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY)
     return()
 endif()
-include(cmake/QtNodes.cmake)
 include(cmake/GraphRunner.cmake)
 add_library(node_editor_core STATIC
+ third_party/qtnodes/AbstractGraphModel.cpp third_party/qtnodes/AbstractGraphModel.hpp
+ third_party/qtnodes/Definitions.hpp
  src/server/AccountJobs.cpp src/server/AccountJobs.h
  src/server/StoryDocumentSource.cpp src/server/StoryDocumentSource.h
  src/server/SetupController.cpp src/server/SetupController.h
@@ -194,8 +196,21 @@ add_library(node_editor_core STATIC
  src/graph/CardBodyPainter.cpp src/graph/CardBodyPainter.h
  src/graph/CardControls.cpp src/graph/CardControls.h
  src/graph/SynthModules.cpp src/graph/SynthModules.h
- src/graph/EditorScene.cpp src/graph/EditorScene.h
- src/graph/LineageLayer.cpp src/graph/LineageLayer.h
+ src/canvas/CanvasStyle.cpp src/canvas/CanvasStyle.h
+ src/canvas/NodePainter.cpp src/canvas/NodePainter.h
+ src/canvas/WirePainter.cpp src/canvas/WirePainter.h
+ src/canvas/CanvasInteraction.cpp src/canvas/CanvasInteraction.h
+ src/canvas/EditorSceneApi.h src/canvas/NodeGeometry.cpp src/canvas/NodeGeometry.h
+ src/canvas/PaintStates.cpp src/canvas/PaintStates.h src/canvas/GridIndex.h
+ src/canvas/CanvasItem.cpp src/canvas/CanvasItem.h src/canvas/CanvasState.cpp src/canvas/CanvasState.h
+ src/canvas/CanvasScene.cpp src/canvas/CanvasScene.h src/canvas/EditorCanvasScene.cpp src/canvas/EditorCanvasScene.h
+ src/canvas/NodeItem.cpp src/canvas/NodeItem.h src/canvas/ConnectionItem.cpp src/canvas/ConnectionItem.h
+ src/canvas/NodeConnectionInteraction.cpp src/canvas/NodeConnectionInteraction.h
+ src/canvas/CanvasViewport.cpp src/canvas/CanvasViewport.h src/canvas/CanvasLayers.cpp src/canvas/CanvasLayers.h
+ src/canvas/CardOverlay.h
+ src/canvas/GraphCanvas.cpp src/canvas/GraphCanvas.h src/canvas/LineageItem.cpp src/canvas/LineageItem.h
+ src/canvas/MiniMapItem.cpp src/canvas/MiniMapItem.h src/canvas/MiniMapPainter.h
+ src/graph/LineageLayer.cpp src/graph/LineageLayer.h src/graph/LineageCanvas.cpp
  src/graph/InlinePropertyPresenter.cpp src/graph/InlinePropertyPresenter.h
  src/graph/InlineTitlePresenter.cpp src/graph/InlineTitlePresenter.h
  src/graph/CanvasDropController.cpp src/graph/CanvasDropController.h
@@ -221,10 +236,14 @@ add_library(node_editor_core STATIC
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
- src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp)
-target_include_directories(node_editor_core PUBLIC src)
+ src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp
+ src/ui/CanvasCapture.cpp src/ui/CanvasCapture.h
+ src/ui/CanvasOverlay.h src/ui/CanvasSurface.h
+ src/ui/QuickCanvas.cpp src/ui/QuickCanvas.h)
+target_include_directories(node_editor_core PUBLIC src third_party)
+target_compile_definitions(node_editor_core PUBLIC NODE_EDITOR_STATIC)
 target_link_libraries(node_editor_core PRIVATE nodetool_graph_runner)
-target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin nodetool_files nodetool_filesplugin nodetool_storyboard nodetool_storyboardplugin nodetool_script nodetool_scriptplugin nodetool_media_player nodetool_media_playerplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
+target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin nodetool_files nodetool_filesplugin nodetool_storyboard nodetool_storyboardplugin nodetool_script nodetool_scriptplugin nodetool_media_player nodetool_media_playerplugin Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
 qt_add_executable(nodetool-node-editor src/main.cpp)
 option(NT_MACOS_BUNDLE "macOS: build nodetool-node-editor as an .app bundle" OFF)
 set_target_properties(nodetool-node-editor PROPERTIES MACOSX_BUNDLE ${NT_MACOS_BUNDLE}
@@ -254,6 +273,10 @@ qt_add_resources(node_editor_core editor_examples PREFIX /editor/examples BASE e
 # The web data type icons from web/src/icons/data_types/nodetool, drawn in card headers.
 qt_add_resources(node_editor_core editor_type_icons PREFIX /editor/data_types BASE resources/data_types FILES resources/data_types/any.svg resources/data_types/asset.svg resources/data_types/assistant.svg resources/data_types/audio.svg resources/data_types/bool.svg resources/data_types/chunk.svg resources/data_types/database.svg resources/data_types/dataframe.svg resources/data_types/date.svg resources/data_types/datetime.svg resources/data_types/dict.svg resources/data_types/document.svg resources/data_types/enum.svg resources/data_types/file.svg resources/data_types/float.svg resources/data_types/flow.svg resources/data_types/folder.svg resources/data_types/help.svg resources/data_types/image_model.svg resources/data_types/image.svg resources/data_types/int.svg resources/data_types/language_model.svg resources/data_types/list.svg resources/data_types/model_3d.svg resources/data_types/model.svg resources/data_types/notype.svg resources/data_types/np_array.svg resources/data_types/preview.svg resources/data_types/star.svg resources/data_types/string.svg resources/data_types/str.svg resources/data_types/task.svg resources/data_types/tensor.svg resources/data_types/text.svg resources/data_types/thread_message.svg resources/data_types/thread.svg resources/data_types/union.svg resources/data_types/video.svg)
 if(BUILD_TESTING)
+    qt_add_executable(node_editor_canvas_interaction_tests tests/canvas/CanvasInteractionTest.cpp)
+    target_link_libraries(node_editor_canvas_interaction_tests PRIVATE node_editor_core Qt6::Test)
+    add_test(NAME node_editor_canvas_interaction COMMAND node_editor_canvas_interaction_tests)
+    set_tests_properties(node_editor_canvas_interaction PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     qt_add_executable(node_editor_run_trace_tests tests/ui/RunTraceTest.cpp)
     target_link_libraries(node_editor_run_trace_tests PRIVATE node_editor_core Qt6::Test)
     nodetool_use_ui_primitives(node_editor_run_trace_tests)
@@ -594,6 +617,34 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_canvas_media_host_tests)
  add_test(NAME node_editor_canvas_media_host COMMAND node_editor_canvas_media_host_tests)
  set_tests_properties(node_editor_canvas_media_host PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# Scene capture against screen capture for overlays over a playing preview
+# (tests/ui/CompositionTest.cpp). The software entry is a gate.
+qt_add_executable(node_editor_composition_tests tests/ui/CompositionTest.cpp)
+target_link_libraries(node_editor_composition_tests PRIVATE node_editor_core Qt6::Test)
+target_compile_definitions(node_editor_composition_tests PRIVATE MEDIA_VIDEO_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/../timeline/src/preview/effects/fixtures/source-noise.mp4")
+nodetool_use_ui_primitives(node_editor_composition_tests)
+add_test(NAME node_editor_composition COMMAND node_editor_composition_tests)
+set_tests_properties(node_editor_composition PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# The same cases on RHI, disabled pending Q10 qualification. To run the
+# binary under xvfb with a Vulkan driver such as lavapipe:
+#   VK_ICD_FILENAMES=<lvp_icd.json> VK_DRIVER_FILES=<lvp_icd.json> QT_QPA_PLATFORM=xcb \
+#   QSG_RHI_BACKEND=vulkan NODETOOL_COMPOSITION_BACKEND=rhi \
+#   xvfb-run -a -s "-screen 0 1920x1080x24" <build>/node_editor_composition_tests
+# Failure recorded on lavapipe Vulkan with Qt 6.12 (plan step Q0). The scene
+# capture is right in every case. The screen differs:
+#   mediaUnderCard:       6,754 of 6,771 pixels. The preview's controls draw
+#                         over the text card stacked above it
+#   mediaUnderChat:       2,132 of 23,580 pixels. The preview draws over the
+#                         chat window
+#   mediaUnderNoteEditor: 10,290 of 47,160 pixels. The preview draws over the
+#                         inline note editor, whose transparent parts go dark
+#   translucentOverlay:   1,732 of 1,792 pixels. The group header controls
+#                         are black where their overlay is transparent
+# The same binary passes on xcb with QT_QUICK_BACKEND=software.
+add_test(NAME node_editor_composition_rhi COMMAND node_editor_composition_tests)
+set_tests_properties(node_editor_composition_rhi PROPERTIES DISABLED TRUE LABELS render RUN_SERIAL TRUE
+    ENVIRONMENT "QT_QPA_PLATFORM=xcb;QSG_RHI_BACKEND=vulkan;NODETOOL_COMPOSITION_BACKEND=rhi"
+    ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
 endif()
 
 if(BUILD_TESTING)
@@ -881,6 +932,25 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_canvas_chrome_tests)
     add_test(NAME node_editor_canvas_chrome COMMAND node_editor_canvas_chrome_tests)
     set_tests_properties(node_editor_canvas_chrome PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    qt_add_executable(node_editor_quick_canvas_tests tests/canvas/QuickCanvasTest.cpp)
+    target_link_libraries(node_editor_quick_canvas_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_quick_canvas_tests)
+    add_test(NAME node_editor_quick_canvas COMMAND node_editor_quick_canvas_tests)
+    set_tests_properties(node_editor_quick_canvas PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    foreach(scale IN ITEMS 1.25 1.5 2)
+        set(density_tests settledCardTextMatchesDevicePixels rasterInvariants)
+        if(scale EQUAL 2)
+            list(APPEND density_tests largeRastersShareSettleBudget nativeResolutionForWideForegroundAndLongWire)
+        endif()
+        add_test(NAME node_editor_quick_canvas_dpr${scale} COMMAND node_editor_quick_canvas_tests ${density_tests})
+        set_tests_properties(node_editor_quick_canvas_dpr${scale} PROPERTIES
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_SCALE_FACTOR=${scale}")
+    endforeach()
+    # The large-raster rows enforce a wall-clock polish limit.
+    set_tests_properties(node_editor_quick_canvas node_editor_quick_canvas_dpr1.25
+        node_editor_quick_canvas_dpr1.5 node_editor_quick_canvas_dpr2 PROPERTIES RUN_SERIAL TRUE)
+    set_tests_properties(node_editor_large_graph PROPERTIES RUN_SERIAL TRUE)
+    nodetool_node_editor_test_sanitizers()
     # Each test binary writes its settings to a private temporary directory.
     get_property(node_editor_test_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
     foreach(test_target IN LISTS node_editor_test_targets)

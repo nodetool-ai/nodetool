@@ -1,10 +1,11 @@
+#include "../support/MiniMapProbe.h"
+#include "../support/OverlayProbe.h"
+#include "ui/CanvasSurface.h"
 #include "FakeRunServer.h"
 #include "ui/EditorWindow.h"
 #include <QFile>
-#include <QGraphicsView>
 #include "EntryMenuSupport.h"
 #include <QQuickItem>
-#include <QQuickWidget>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QElapsedTimer>
@@ -63,57 +64,48 @@ public:
     }
 private:
 
-    static QQuickWidget *panel(EditorWindow &window, const QString &file) {
-        for (auto *widget : window.findChildren<QQuickWidget *>()) {
-            if (widget->isVisible() && widget->source().fileName() == file) {
-                return widget;
-            }
-        }
-        return nullptr;
-    }
-
     static constexpr int tooltipWaitMs = 1500;
 
-    static QQuickItem *item(QQuickWidget *widget, const QString &name) {
-        return widget ? find(widget->rootObject(), name) : nullptr;
+    static QQuickItem *item(const test::OverlayProbe &panel, const QString &name) {
+        return panel ? find(panel->rootObject(), name) : nullptr;
     }
 
-    // The item's bounds in the widget, which a SizeRootObjectToView panel shares with its scene.
-    static QRectF bounds(QQuickItem *item) {
-        return item->mapRectToScene(QRectF(0, 0, item->width(), item->height()));
+    // Geometry uses the panel's coordinates, while input uses the host's scene.
+    static QRectF bounds(QQuickItem *item, QQuickItem *relativeTo = nullptr) {
+        return item->mapRectToItem(relativeTo, item->boundingRect());
     }
 
     static QPoint center(QQuickItem *item) {
         return bounds(item).center().toPoint();
     }
 
-    static void click(QQuickWidget *widget, const QString &name) {
+    static void click(const test::OverlayProbe &panel, const QString &name) {
         settle();
-        auto *control = item(widget, name);
+        auto *control = item(panel, name);
         QVERIFY2(control, qPrintable(name));
         QVERIFY2(control->isVisible(), qPrintable(name));
-        QTest::mouseClick(widget, Qt::LeftButton, Qt::NoModifier, center(control));
+        QTest::mouseClick(panel->inputWidget(), Qt::LeftButton, Qt::NoModifier, center(control));
         settle();
     }
 
-    static QString hover(QQuickWidget *widget, const QString &name) {
+    static QString hover(const test::OverlayProbe &panel, const QString &name) {
         settle();
-        auto *control = item(widget, name);
+        auto *control = item(panel, name);
         if (!control) {
             return {};
         }
         // Leave first, so a retry hovers again.
-        QTest::mouseMove(widget, QPoint(widget->width() - 1, widget->height() - 1));
+        QTest::mouseMove(panel->inputWidget(), panel->inputWidget()->rect().bottomRight());
         settle();
         // The first move into a panel only enters it. The second one hovers the control.
-        QTest::mouseMove(widget, center(control) - QPoint(1, 0));
-        QTest::mouseMove(widget, center(control));
+        QTest::mouseMove(panel->inputWidget(), center(control) - QPoint(1, 0));
+        QTest::mouseMove(panel->inputWidget(), center(control));
         settle();
         // A tooltip opens after its hover delay, so wait for it. Hovering again would restart the delay.
         QElapsedTimer waited;
         waited.start();
         while (waited.elapsed() < tooltipWaitMs) {
-            if (const auto text = shownTooltip(widget); !text.isEmpty()) {
+            if (const auto text = shownTooltip(panel); !text.isEmpty()) {
                 return text;
             }
             QTest::qWait(25);
@@ -123,8 +115,8 @@ private:
 
     // The text a user sees. A Ui.Tooltip that fits its panel overlay shows there. One that does not
     // (a thin QQuickWidget) hands its text to the window, which shows it through QToolTip.
-    static QString shownTooltip(QQuickWidget *widget) {
-        for (auto *object : widget->rootObject()->findChildren<QObject *>()) {
+    static QString shownTooltip(const test::OverlayProbe &panel) {
+        for (auto *object : panel->rootObject()->findChildren<QObject *>()) {
             if (object->property("followsTrigger").isValid() && object->property("visible").toBool()
                 && object->property("opacity").toReal() > 0) {
                 return object->property("text").toString();
@@ -133,8 +125,8 @@ private:
         return QToolTip::isVisible() ? QToolTip::text() : QString();
     }
 
-    static void leave(QQuickWidget *widget) {
-        QTest::mouseMove(widget, QPoint(widget->width() - 1, widget->height() - 1));
+    static void leave(const test::OverlayProbe &panel) {
+        QTest::mouseMove(panel->inputWidget(), panel->inputWidget()->rect().bottomRight());
         settle();
     }
 
@@ -179,17 +171,19 @@ private slots:
     void geometryFollowsWeb() {
         EditorWindow window;
         open(window);
-        auto *header = panel(window, QStringLiteral("HeaderRow.qml"));
+        const auto header = test::overlay(window, QStringLiteral("HeaderRow.qml"), true);
         QVERIFY(header);
-        auto *tabs = panel(window, QStringLiteral("TabBar.qml"));
+        const auto tabs = test::overlay(window, QStringLiteral("TabBar.qml"), true);
         QVERIFY(tabs);
-        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+        auto *view = &window.activeEditor()->canvas();
         QVERIFY(view);
         // The bar is 40 tall with its 1 px rule, right under the tab bar and over the canvas.
         QCOMPARE(header->height(), 40);
-        QCOMPARE(header->mapTo(&window, QPoint()).y(), tabs->mapTo(&window, QPoint(0, tabs->height())).y());
-        QCOMPARE(header->mapTo(&window, QPoint()).x(), 50);
-        QVERIFY(header->mapTo(&window, QPoint(0, header->height())).y() <= view->mapTo(&window, QPoint()).y());
+        const auto headerRect = header->inWindow(window);
+        const auto tabsRect = tabs->inWindow(window);
+        QCOMPARE(headerRect.top(), tabsRect.bottom() + 1);
+        QCOMPARE(headerRect.left(), 50);
+        QVERIFY(headerRect.bottom() + 1 <= view->hostWidget().mapTo(&window, QPoint()).y());
         const auto undo = bounds(item(header, QStringLiteral("header-undo")));
         const auto redo = bounds(item(header, QStringLiteral("header-redo")));
         QCOMPARE(undo.size(), QSizeF(28, 28));
@@ -212,14 +206,14 @@ private slots:
         QVERIFY2(near(dot.left(), 8), qPrintable(describe(dot.left(), 8)));
         QVERIFY(!item(header, QStringLiteral("header-title")));
 
-        auto *toolbar = panel(window, QStringLiteral("Toolbar.qml"));
+        const auto toolbar = test::overlay(window, QStringLiteral("Toolbar.qml"), true);
         QVERIFY(toolbar);
         // Web: a 46 px dock with a 1 px border, 4 px padding, 28 px buttons and a 36 px Run pill.
         QCOMPARE(toolbar->height(), 46);
-        const auto add = bounds(item(toolbar, QStringLiteral("toolbar-add-node")));
-        const auto layout = bounds(item(toolbar, QStringLiteral("toolbar-auto-layout")));
-        const auto run = bounds(item(toolbar, QStringLiteral("run-workflow")));
-        const auto actions = bounds(item(toolbar, QStringLiteral("toolbar-more")));
+        const auto add = bounds(item(toolbar, QStringLiteral("toolbar-add-node")), toolbar->rootObject());
+        const auto layout = bounds(item(toolbar, QStringLiteral("toolbar-auto-layout")), toolbar->rootObject());
+        const auto run = bounds(item(toolbar, QStringLiteral("run-workflow")), toolbar->rootObject());
+        const auto actions = bounds(item(toolbar, QStringLiteral("toolbar-more")), toolbar->rootObject());
         QCOMPARE(add.topLeft(), QPointF(5, 9));
         QCOMPARE(add.size(), QSizeF(28, 28));
         QCOMPARE(layout.left() - add.right(), 4.0);
@@ -236,18 +230,18 @@ private slots:
     void undoRedoFollowHistory() {
         EditorWindow window;
         open(window);
-        auto *header = panel(window, QStringLiteral("HeaderRow.qml"));
+        const auto header = test::overlay(window, QStringLiteral("HeaderRow.qml"), true);
         QVERIFY(header);
         auto *undo = item(header, QStringLiteral("header-undo"));
         auto *redo = item(header, QStringLiteral("header-redo"));
         QVERIFY(!undo->isEnabled());
         QVERIFY(!redo->isEnabled());
-        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+        auto *view = &window.activeEditor()->canvas();
         QVERIFY(view);
         QVERIFY(window.selectNode(QStringLiteral("subject")));
         settle();
         view->setFocus();
-        QTest::keyClick(view->viewport(), Qt::Key_Delete);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Delete);
         settle();
         QVERIFY(window.document()->node(QStringLiteral("subject")).isEmpty());
         QTRY_VERIFY(undo->isEnabled());
@@ -269,7 +263,7 @@ private slots:
     void saveStateFollowsSession() {
         EditorWindow window;
         open(window);
-        auto *header = panel(window, QStringLiteral("HeaderRow.qml"));
+        const auto header = test::overlay(window, QStringLiteral("HeaderRow.qml"), true);
         QVERIFY(header);
         auto *label = item(header, QStringLiteral("header-save-label"));
         auto *action = item(header, QStringLiteral("header-save-action"));
@@ -287,12 +281,12 @@ private slots:
         QTRY_COMPARE(window.documentSaveStatus(), QStringLiteral("saved"));
         QTRY_COMPARE(label->property("text").toString(), QStringLiteral("Saved"));
 
-        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+        auto *view = &window.activeEditor()->canvas();
         QVERIFY(view);
         QVERIFY(window.selectNode(QStringLiteral("subject")));
         settle();
         view->setFocus();
-        QTest::keyClick(view->viewport(), Qt::Key_Delete);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Delete);
         QTRY_COMPARE(label->property("text").toString(), QStringLiteral("Unsaved changes"));
 
         server->holdSaves = true;
@@ -304,7 +298,7 @@ private slots:
         QVERIFY(item(header, QStringLiteral("header-save-dot"))->isVisible());
 
         server->saveStatus = 500;
-        QTest::keyClick(view->viewport(), Qt::Key_Z, Qt::ControlModifier);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Z, Qt::ControlModifier);
         window.session()->flushAutosave();
         QTRY_COMPARE(label->property("text").toString(), QStringLiteral("Not saved"));
         QTRY_VERIFY(action->isVisible());
@@ -318,7 +312,8 @@ private slots:
         QVERIFY(!action->isVisible());
 
         server->saveStatus = 409;
-        QTest::keyClick(view->viewport(), Qt::Key_Z, Qt::ControlModifier | Qt::ShiftModifier);
+        view->setFocus();
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Z, Qt::ControlModifier | Qt::ShiftModifier);
         window.session()->flushAutosave();
         QTRY_COMPARE(label->property("text").toString(), QStringLiteral("Server conflict"));
         QTRY_VERIFY(action->isVisible());
@@ -329,7 +324,7 @@ private slots:
     void togglesOpenPanels() {
         EditorWindow window;
         open(window);
-        auto *header = panel(window, QStringLiteral("HeaderRow.qml"));
+        const auto header = test::overlay(window, QStringLiteral("HeaderRow.qml"), true);
         QVERIFY(header);
         auto *inspector = item(header, QStringLiteral("header-inspector"));
         auto *chat = item(header, QStringLiteral("header-chat"));
@@ -354,24 +349,24 @@ private slots:
         QTRY_VERIFY(!window.chatVisible());
 
         // The web hides the mini-map until the user turns it on.
-        auto *miniMap = window.activeEditor()->findChild<QWidget *>(QStringLiteral("mini-map"));
+        const test::MiniMapProbe miniMap(window);
         QVERIFY(miniMap);
         QVERIFY(!window.miniMapVisible());
-        QVERIFY(!miniMap->isVisible());
+        QVERIFY(!miniMap.isVisible());
         QTRY_COMPARE(hover(header, QStringLiteral("header-mini-map")), QStringLiteral("Mini map"));
         click(header, QStringLiteral("header-mini-map"));
         QTRY_VERIFY(window.miniMapVisible());
-        QTRY_VERIFY(miniMap->isVisible());
+        QTRY_VERIFY(miniMap.isVisible());
         QTRY_VERIFY(map->property("active").toBool());
         click(header, QStringLiteral("header-mini-map"));
-        QTRY_VERIFY(!miniMap->isVisible());
+        QTRY_VERIFY(!miniMap.isVisible());
 
     }
 
     void commandButtonsRunTheDocumentCommands() {
         EditorWindow window;
         open(window);
-        auto *header = panel(window, QStringLiteral("HeaderRow.qml"));
+        const auto header = test::overlay(window, QStringLiteral("HeaderRow.qml"), true);
         QVERIFY(header);
         QTRY_COMPARE(hover(header, QStringLiteral("header-metadata")), QStringLiteral("Workflow metadata"));
         QTRY_VERIFY(item(header, QStringLiteral("header-metadata"))->isEnabled());
@@ -389,7 +384,7 @@ private slots:
         window.session()->connectToServer(server->url(), {});
         QTRY_VERIFY(window.session()->connected());
         QTRY_VERIFY(server->peer);
-        auto *toolbar = panel(window, QStringLiteral("Toolbar.qml"));
+        const auto toolbar = test::overlay(window, QStringLiteral("Toolbar.qml"), true);
         QVERIFY(toolbar);
         auto *root = toolbar->rootObject();
         auto *stop = item(toolbar, QStringLiteral("toolbar-stop"));

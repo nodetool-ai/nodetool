@@ -29,7 +29,6 @@ import AssetUploadOverlay from "./AssetUploadOverlay";
 import AssetImportDialog from "./AssetImportDialog";
 import Dropzone from "./Dropzone";
 //  panels and styles
-import WorkflowTree from "./WorkflowTree";
 import AssetFilesPanel from "./panels/AssetFilesPanel";
 import assetGridStyles from "./assetGridStyles";
 import useClickOutsideDeselect from "./hooks/useClickOutsideDeselect";
@@ -46,13 +45,11 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useShallow } from "zustand/react/shallow";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import AssetGridSplit from "./AssetGridSplit";
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useOpenProjectConnection } from "../../lib/websocket/openProjectSignal";
 
 const styles = assetGridStyles;
-const WORKFLOWS_PANEL_WIDTH = 200;
 
 /** Displays count and total size of selected assets, with a clear button */
 const SelectedItemsInfo: React.FC<{
@@ -116,13 +113,12 @@ interface AssetGridProps {
   itemSpacing?: number;
   isHorizontal?: boolean;
   sortedAssets?: Asset[];
-  initialWorkflowsPanelWidth?: number;
   isFullscreenAssets?: boolean;
   isMobile?: boolean;
   /**
    * Force the global (all-workflows) asset scope regardless of the currently
-   * open workflow, without adopting the fullscreen page's layout (workflow
-   * list docked beside the grid). Used by the "Library" sidebar panel.
+   * open workflow, without adopting the fullscreen page's toolbar layout.
+   * Used by the "Library" sidebar panel.
    */
   forceGlobalAssets?: boolean;
 }
@@ -133,7 +129,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isHorizontal,
   sortedAssets,
   isFullscreenAssets,
-  initialWorkflowsPanelWidth = WORKFLOWS_PANEL_WIDTH,
   isMobile = false,
   forceGlobalAssets = false
 }) => {
@@ -172,8 +167,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   );
   // Default asset scope per surface: the in-editor sidebar follows the current
   // workflow (re-asserted whenever the open workflow changes), while the
-  // fullscreen page opens on the global/all-assets view. A manual pick of
-  // another workflow holds until one of these inputs changes.
+  // fullscreen page opens on the global/all-assets view.
   useEffect(() => {
     if (forceGlobalAssets) {
       setWorkflowFilter(null);
@@ -185,10 +179,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
 
   const theme = useTheme();
 
-  // The fullscreen page docks the workflow list beside the grid. On a phone
-  // that pane leaves no room for the grid, so narrow viewports omit it.
+  // The fullscreen page shows the wide single-row toolbar. On a narrow
+  // viewport fall back to the compact toolbar.
   const isNarrow = useMediaQuery(theme.breakpoints.down("sm"));
-  const workflowsDocked = Boolean(isFullscreenAssets) && !isNarrow;
+  const isFullscreenWide = Boolean(isFullscreenAssets) && !isNarrow;
 
   // Separate selectors prevent unnecessary re-renders when only one key state changes
   const F2KeyPressed = useKeyPressedStore((state) => state.isKeyPressed("F2"));
@@ -255,10 +249,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const importChoice = useImportModeChoice(startUploads);
   const uploadFiles = importChoice.importFiles;
 
-  // The workflow list never appears on a phone: the pane leaves no room for
-  // the grid and there is no control to dismiss it.
-  const showWorkflows = !isMobile && workflowsDocked;
-
   const filesPanel = (
     <PanelErrorBoundary panelName="Assets">
       <AssetFilesPanel isHorizontal={isHorizontal} itemSpacing={itemSpacing} />
@@ -284,7 +274,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         <AssetActionsMenu
           maxItemSize={maxItemSize}
           onUploadFiles={uploadFiles}
-          isFullscreenAssets={workflowsDocked}
+          isFullscreenAssets={isFullscreenWide}
         />
       )}
       {showInlineFetchError && (
@@ -331,30 +321,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             flex: 1
           }}
         >
-          {showWorkflows ? (
-            <AssetGridSplit
-              orientation="horizontal"
-              initialSize={initialWorkflowsPanelWidth}
-              separatorLabel={t("actions.resizeFolderPane")}
-              first={
-                <PanelErrorBoundary panelName="Asset workflows">
-                  <Box
-                    sx={{
-                      height: "100%",
-                      overflowY: "auto",
-                      overflowX: "hidden",
-                      bgcolor: "c_editor_bg_color"
-                    }}
-                  >
-                    <WorkflowTree />
-                  </Box>
-                </PanelErrorBoundary>
-              }
-              second={filesPanel}
-            />
-          ) : (
-            filesPanel
-          )}
+          {filesPanel}
         </div>
       </Dropzone>
       <Divider />

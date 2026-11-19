@@ -1,3 +1,4 @@
+#include "ui/CanvasOverlay.h"
 // The tab bar notifications and settings, the inspector footer and its cost
 // estimate, and the status bar tabs. Web sources: components/panels/NotificationButton.tsx,
 // SettingsHeaderButton.tsx, inspector/RunSelectedNodesSection.tsx,
@@ -13,7 +14,7 @@
 #include <QGuiApplication>
 #include <QDateTime>
 #include <QDockWidget>
-#include <QGraphicsView>
+#include "ui/CanvasSurface.h"
 #include <QJsonDocument>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -273,7 +274,8 @@ bool EditorWindow::queueVisible() const {
 }
 
 QRect EditorWindow::queueArea() const {
-  return {view_->mapTo(centralWidget(), QPoint(0, 0)), view_->size()};
+  const auto &host = canvas_->hostWidget();
+  return host.rect();
 }
 
 QSize EditorWindow::queueSize(const QRect &area) const {

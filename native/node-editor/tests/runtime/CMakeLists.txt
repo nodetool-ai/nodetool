@@ -9,3 +9,8 @@ find_package(Qt6 REQUIRED COMPONENTS Core Test)
 add_executable(node_editor_runtime_tests NodeRuntimeModelTests.cpp ../../src/run/NodeRuntimeModel.cpp ../../src/run/NodeRuntimeModel.h)
 target_link_libraries(node_editor_runtime_tests PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME node_editor_runtime_tests COMMAND node_editor_runtime_tests)
+
+if(NOT COMMAND nodetool_node_editor_test_sanitizers)
+    include(../../cmake/sanitizers/Tests.cmake)
+endif()
+nodetool_node_editor_test_sanitizers()

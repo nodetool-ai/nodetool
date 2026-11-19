@@ -87,7 +87,6 @@ const AssetExplorer: React.FC = memo(() => {
               itemSpacing={2}
               isHorizontal={true}
               isFullscreenAssets={true}
-              initialWorkflowsPanelWidth={300}
               sortedAssets={folderFiles}
             />
           </ContextMenuProvider>

@@ -196,7 +196,12 @@ const PROBES: Record<string, CredentialProbe> = {
   // (`packages/compute/src/providers/runpod-rest.ts`). Read-only.
   RUNPOD_API_KEY: {
     label: "RunPod",
-    url: () => "https://rest.runpod.io/v1/pods",
+    url: () => {
+      const base =
+        process.env.RUNPOD_REST_BASE_URL?.trim().replace(/\/+$/, "") ||
+        "https://api.runpod.io/v2";
+      return `${base}/pods`;
+    },
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   }
 };

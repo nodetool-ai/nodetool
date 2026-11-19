@@ -1,19 +1,22 @@
 #pragma once
+#include <map>
+#include <memory>
 #include <QObject>
 #include <QHash>
 #include <QPointer>
 #include <QRectF>
 #include <QVector>
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 #include <functional>
-class QGraphicsView;
-class QGraphicsObject;
 class QQmlEngine;
-class QQuickWidget;
 namespace nodetool {
+class CanvasOverlay;
+class QuickCanvas;
+class CanvasNote;
 namespace node_editor { class WorkflowDocument; }
 class WorkflowGraphModel;
-class EditorScene;
+class EditorSceneApi;
+// UI thread only.
 class InlineTitlePresenter final : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString text READ text NOTIFY changed)
@@ -26,7 +29,7 @@ class InlineTitlePresenter final : public QObject {
   Q_PROPERTY(double zoom READ zoom NOTIFY geometryChanged)
   Q_PROPERTY(int generation READ generation NOTIFY changed)
 public:
-  InlineTitlePresenter(WorkflowGraphModel &, EditorScene &, QGraphicsView &, QQmlEngine *, QObject *parent = nullptr);
+  InlineTitlePresenter(WorkflowGraphModel &, EditorSceneApi &, QuickCanvas &, QQmlEngine *, QObject *parent = nullptr);
   ~InlineTitlePresenter() override;
   QString text() const { return text_; }
   bool group() const { return group_; }
@@ -59,13 +62,12 @@ protected:
   bool eventFilter(QObject *, QEvent *) override;
 private:
   WorkflowGraphModel &model_;
-  EditorScene &scene_;
-  QGraphicsView &view_;
+  EditorSceneApi &scene_;
+  QuickCanvas &canvas_;
   QPointer<QQmlEngine> engine_;
-  QPointer<QQuickWidget> widget_;
-  QVector<QPointer<QQuickWidget>> retired_;
-  QHash<QtNodes::NodeId, QPointer<QGraphicsObject>> notes_;
-  QHash<QtNodes::NodeId, QPointer<QQuickWidget>> controls_;
+  std::unique_ptr<CanvasOverlay> widget_;
+  std::map<QtNodes::NodeId, std::unique_ptr<CanvasNote>> notes_;
+  std::map<QtNodes::NodeId, std::unique_ptr<CanvasOverlay>> controls_;
   void repositionControls();
   QtNodes::NodeId node_ = QtNodes::InvalidNodeId;
   QString text_;
@@ -75,7 +77,7 @@ private:
   double zoom_ = 1, requestedHeight_ = 100;
   int generation_ = 0;
   bool current() const;
-  void clearNotes();
   void flush();
+  QObject retiredQuickRoots_;
 };
 }

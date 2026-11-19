@@ -1,4 +1,6 @@
 #pragma once
+
+#include <memory>
 #include <QObject>
 #include <QPointer>
 #include <QJsonArray>
@@ -7,16 +9,17 @@
 #include <QHash>
 #include <QVariantList>
 #include <QVector>
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 #include "CatalogSearch.h"
 #include <functional>
-class QGraphicsView;
 class QQmlEngine;
-class QQuickWidget;
 namespace nodetool {
+class CanvasOverlay;
+class QuickCanvas;
 class WorkflowGraphModel;
-class EditorScene;
+class EditorSceneApi;
 // A loose-wire choice produces one canonical add-node/add-edge document batch.
+// UI thread only.
 class CompatibleNodePicker final : public QObject {
   Q_OBJECT
   Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
@@ -32,8 +35,8 @@ class CompatibleNodePicker final : public QObject {
   // Opened from a focused handle rather than a dropped wire.
   Q_PROPERTY(bool keyboard READ keyboard NOTIFY changed)
 public:
-  CompatibleNodePicker(WorkflowGraphModel &model, EditorScene &scene,
-                       QGraphicsView &view, QQmlEngine *engine,
+  CompatibleNodePicker(WorkflowGraphModel &model, EditorSceneApi &scene,
+                       QuickCanvas &canvas, QQmlEngine *engine,
                        QObject *parent = nullptr);
   ~CompatibleNodePicker() override;
   void setCatalog(const QJsonArray &catalog);
@@ -46,7 +49,6 @@ public:
   bool active() const { return active_; }
   bool keyboard() const { return keyboard_; }
   bool canDeleteOutput() const;
-  QQuickWidget *widget() const;
   // Create `type` beside `source`'s output and wire the output into `targetPort` as one document step.
   bool addConnected(QtNodes::NodeId source, const QString &outputName, const QString &type, const QString &targetPort);
   std::function<bool(const QJsonObject &)> applyCommand;
@@ -79,10 +81,10 @@ protected:
   bool eventFilter(QObject *object, QEvent *event) override;
 private:
   WorkflowGraphModel &model_;
-  EditorScene &scene_;
-  QGraphicsView &view_;
+  EditorSceneApi &scene_;
+  QuickCanvas &canvas_;
   QPointer<QQmlEngine> engine_;
-  QPointer<QQuickWidget> widget_;
+  std::unique_ptr<CanvasOverlay> widget_;
   QJsonArray catalog_;
   // One row with its search text folded once.
   // One row with its search text folded once, and the node fields the ranking reads.

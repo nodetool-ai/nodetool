@@ -498,28 +498,27 @@
     },
     "web/src/components/node_editor/AxisMarker.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/CanvasStyle.cpp"
       ],
-      "note": "EditorScene::drawBackground draws the 1px origin lines in c_editor_axis_color."
+      "note": "CanvasStyle paints the one-pixel origin axes using c_editor_axis_color."
     },
     "web/src/components/node_editor/ConnectionLine.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/WirePainter.cpp"
       ],
       "note": "Glow, width, control dash and pointer dot match.",
       "inventory": "F03"
     },
     "web/src/components/node_editor/ControlEdge.tsx": {
       "native": [
-        "native/node-editor/src/graph/LineageLayer.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/WirePainter.cpp"
       ],
       "note": "Control handle visibility rules remain open.",
       "inventory": "F11"
     },
     "web/src/components/node_editor/CustomEdge.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/WirePainter.cpp"
       ],
       "inventory": "W32"
     },
@@ -545,7 +544,7 @@
     "web/src/components/node_editor/NodeEditor.tsx": {
       "native": [
         "native/node-editor/src/ui/EditorWindow.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/GraphCanvas.cpp"
       ],
       "status": "partial",
       "note": "Canvas host. Platform input, accessibility and latency acceptance is unverified.",
@@ -842,7 +841,7 @@
     "web/src/components/node_types/editing/CompositorBody.tsx": {
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/canvas/CanvasInteraction.cpp",
         "native/node-editor/src/graph/WorkflowGraphModel.cpp",
         "native/node-editor/src/properties/CompositorLayoutEditor.cpp",
         "native/node-editor/src/ui/CompositorLayoutDialog.cpp",
@@ -864,7 +863,7 @@
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/CardBodyPainter.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/canvas/CanvasInteraction.cpp",
         "native/node-editor/src/graph/InlinePropertyPresenter.cpp",
         "native/node-editor/src/graph/WorkflowGraphModel.cpp"
       ],
@@ -875,7 +874,7 @@
     "web/src/components/node_types/editing/CurvesBody.tsx": {
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/CanvasInteraction.cpp"
       ],
       "status": "partial",
       "note": "Tonal and RGB Midtones sliders and Reset match. The Red, Green and Blue labels are not tinted, because the canvas theme has no error or info color.",
@@ -943,7 +942,7 @@
     "web/src/components/node_types/editing/LevelsBody.tsx": {
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/CanvasInteraction.cpp"
       ],
       "status": "match",
       "note": "Histogram with its R, G, B and L view toggle, channel toggle, Black, Gamma and White sliders and Reset match. The histogram counts the 512 px result preview rather than the full-size image.",
@@ -969,7 +968,7 @@
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/CardBodyPainter.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/CanvasInteraction.cpp"
       ],
       "status": "partial",
       "note": "Image and Mask tabs, the incoming image and Recalculate mask match. The running button shows a darker fill without the web's spinner.",
@@ -1000,7 +999,7 @@
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/CardBodyPainter.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/canvas/CanvasInteraction.cpp",
         "native/node-editor/src/graph/WorkflowGraphModel.cpp",
         "native/node-editor/qml/InlinePropertyEditor.qml"
       ],
@@ -1137,7 +1136,7 @@
     "web/src/components/node_types/synth/SynthKnob.tsx": {
       "native": [
         "native/node-editor/src/graph/SynthModules.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/CanvasInteraction.cpp"
       ],
       "status": "partial",
       "note": "Drag, Shift fine drag and double-click reset match. Knobs take no keyboard focus, so arrow, Home and End keys do nothing.",
@@ -1217,7 +1216,7 @@
     },
     "web/src/components/node/BaseNode.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/canvas/NodePainter.cpp",
         "native/node-editor/src/graph/NodeLayout.cpp"
       ],
       "status": "partial",
@@ -1244,7 +1243,7 @@
     },
     "web/src/components/node/ChunkDisplay.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/canvas/NodePainter.cpp",
         "native/node-editor/src/run/NodeRuntimeModel.cpp"
       ],
       "inventory": "F26"
@@ -1263,7 +1262,7 @@
     },
     "web/src/components/node/CommentNode.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/canvas/NodePainter.cpp",
         "native/node-editor/src/graph/InlineTitlePresenter.cpp"
       ],
       "status": "partial",
@@ -1274,7 +1273,7 @@
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/CardBodyPainter.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/CanvasInteraction.cpp"
       ],
       "status": "partial",
       "note": "The comparer is on the card with labels, sizes and the mode toggle. The divider follows a drag where the web follows hover, and the card compares the incoming images where the web waits for the run's comparison.",
@@ -1350,7 +1349,7 @@
     "web/src/components/node/DynamicComfySchemaNode/DynamicComfySchemaNode.tsx": {
       "native": [
         "native/node-editor/src/graph/WorkflowGraphModel.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/NodePainter.cpp"
       ],
       "note": "The ComfyUI accent on the edge and selection, and the Load workflow button at the right of the header.",
       "inventory": "W4"
@@ -1450,7 +1449,7 @@
     },
     "web/src/components/node/GroupNode.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/EditorCanvasScene.cpp"
       ],
       "status": "partial",
       "note": "Open: exact icon ink.",
@@ -1544,13 +1543,13 @@
     },
     "web/src/components/node/NodeChunkDisplay.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/NodePainter.cpp"
       ],
       "inventory": "F26"
     },
     "web/src/components/node/NodeContent.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/canvas/NodePainter.cpp",
         "native/node-editor/src/graph/CardBodies.cpp"
       ],
       "inventory": "F26"
@@ -1563,7 +1562,7 @@
     },
     "web/src/components/node/NodeErrors.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/canvas/NodePainter.cpp",
         "native/node-editor/src/run/BugReport.cpp"
       ],
       "status": "partial",
@@ -1572,7 +1571,7 @@
     },
     "web/src/components/node/NodeExecutionTime.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/NodePainter.cpp"
       ],
       "status": "partial",
       "note": "Not compared against the web pill.",
@@ -1580,7 +1579,7 @@
     },
     "web/src/components/node/NodeHeader.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/canvas/NodePainter.cpp",
         "native/node-editor/src/graph/NodeLayout.cpp"
       ],
       "inventory": "W31"
@@ -1630,7 +1629,7 @@
     },
     "web/src/components/node/NodeProgress.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/NodePainter.cpp"
       ],
       "inventory": "W12"
     },
@@ -1643,13 +1642,13 @@
     },
     "web/src/components/node/NodeResizeHandle.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/CanvasInteraction.cpp"
       ],
       "inventory": "F06"
     },
     "web/src/components/node/NodeResizer.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/CanvasInteraction.cpp"
       ],
       "inventory": "F06"
     },
@@ -1661,7 +1660,7 @@
     },
     "web/src/components/node/NodeStatus.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/NodePainter.cpp"
       ],
       "inventory": "W11"
     },
@@ -1869,7 +1868,7 @@
     },
     "web/src/components/node/ReactFlowWrapper.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/canvas/GraphCanvas.cpp",
         "native/node-editor/src/ui/EditorWindow.cpp"
       ],
       "inventory": "F02"
@@ -1884,7 +1883,7 @@
     "web/src/components/node/RerouteNode.tsx": {
       "native": [
         "native/node-editor/src/graph/RerouteTypes.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/canvas/NodePainter.cpp"
       ],
       "inventory": "F10"
     },
@@ -1917,7 +1916,7 @@
     },
     "web/src/components/node/SubgraphNode/SubgraphNodeContent.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/canvas/NodePainter.cpp",
         "native/node-editor/src/graph/WorkflowGraphModel.cpp"
       ],
       "note": "Open subgraph footer with the inner node count, editable dynamic inputs and Add output. The graph property has no row or handle.",

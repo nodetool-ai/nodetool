@@ -22,3 +22,8 @@ add_test(NAME node_editor_document COMMAND node_editor_document_tests)
 add_executable(node_editor_workflow_merge_tests WorkflowMergeTest.cpp)
 target_link_libraries(node_editor_workflow_merge_tests PRIVATE node_editor_document Qt6::Test)
 add_test(NAME node_editor_workflow_merge COMMAND node_editor_workflow_merge_tests)
+
+if(NOT COMMAND nodetool_node_editor_test_sanitizers)
+    include(../../cmake/sanitizers/Tests.cmake)
+endif()
+nodetool_node_editor_test_sanitizers()

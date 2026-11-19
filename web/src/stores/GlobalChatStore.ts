@@ -1122,11 +1122,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
         const tid = threadId;
 
-        // Pin the conversation to the model this turn runs on. Without this a
-        // thread the user never explicitly picked for would follow the global
+        // Pin the conversation to the model this turn runs on, and record it
+        // as the last-used model so a new thread starts on it. Without pinning,
+        // a thread the user never explicitly picked for would follow the global
         // default when another tab changes it.
         if (!isMediaGeneration) {
           get().pinThreadModel(tid);
+          if (!get().forcedModel) {
+            set({ selectedModel: modelForSend as LanguageModel });
+          }
         }
 
         // Clear the target thread's existing safety timeout

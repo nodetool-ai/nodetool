@@ -258,7 +258,14 @@ jobs:
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
+          existing_keychains=()
+          while IFS= read -r kc; do
+            kc="${kc#"${kc%%[![:space:]]*}"}"
+            kc="${kc#\"}"
+            kc="${kc%\"}"
+            [ -n "$kc" ] && existing_keychains+=("$kc")
+          done < <(security list-keychain -d user)
+          security list-keychain -d user -s "$KEYCHAIN_PATH" "${existing_keychains[@]}"
           xcrun notarytool store-credentials "AC_PASSWORD" \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \

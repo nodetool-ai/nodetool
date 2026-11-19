@@ -1093,6 +1093,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "generativelanguage.googleapis.com, model id from a constant."
   ),
   fixedHost(
+    "packages/compute/src/providers/runpod-availability.ts",
+    "RunPod GPU availability query",
+    "RUNPOD_API_KEY (host-held)",
+    "api.runpod.io GraphQL. RUNPOD_GRAPHQL_URL, set by the operator, can replace it. No caller or model supplies one."
+  ),
+  fixedHost(
     "packages/runtime/src/providers/elevenlabs-provider.ts",
     "ElevenLabs provider (TTS and STT, incl. the elevenlabs-nodes request nodes)",
     "ELEVENLABS_API_KEY",

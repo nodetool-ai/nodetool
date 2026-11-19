@@ -9816,6 +9816,7 @@
         "attachingHint": "Pracownik jest gotowy. Dołączam…"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Około {{min}}–{{max}} na godzinę. Kończy się po {{count}} godzinie i usuwa jego pliki.",
         "summary_other": "Około {{min}}–{{max}} na godzinę. Kończy się po {{count}} godzinie i usuwa jego pliki.",
         "start": "Zacznij",
@@ -9825,7 +9826,14 @@
         "readyHint": "Skopiuj adres URL do Uruchom przepływ pracy ComfyUI. Każda osoba posiadająca ten adres URL może korzystać z poda.",
         "copyEndpoint": "Skopiuj adres URL ComfyUI",
         "summary_few": "Około {{min}}–{{max}} na godzinę. Kończy się po {{count}} godzinach i usuwa pliki.",
-        "summary_many": "Około {{min}}–{{max}} na godzinę. Kończy się po {{count}} godzinach i usuwa pliki."
+        "summary_many": "Około {{min}}–{{max}} na godzinę. Kończy się po {{count}} godzinach i usuwa pliki.",
+        "sectionTitle": "Quick start: ComfyUI on RunPod",
+        "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
+        "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "priceRange": "{{min}}–{{max}}/hr",
+        "running": "Running",
+        "sectionSubtitle_few": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "sectionSubtitle_many": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files."
       },
       "provision": {
         "title": "Zacznij pracownika",
@@ -9849,7 +9857,11 @@
         "stopAria": "Zatrzymaj pracownika {{id}}",
         "stop": "Zatrzymaj się",
         "terminateAria": "Zakończ pracownika {{id}}",
-        "terminate": "Zakończ"
+        "terminate": "Zakończ",
+        "moreActions": "More actions",
+        "copyId": "Copy pod ID",
+        "gpuUnknown": "GPU not set",
+        "pausedCost": "When running"
       },
       "actions": {
         "manageProfiles": "Zarządzaj profilami",
@@ -9907,6 +9919,16 @@
         "title": "Uruchamiaj wykresy na wypożyczonym GPU",
         "description": "Podłącz raz RunPod i wybierz kartę graficzną. Następnie NodeTool uruchamia na nim węzły Pythona, a bezczynni pracownicy sami wstrzymują pracę.",
         "action": "Skonfiguruj pracownika"
+      },
+      "stock": {
+        "high": "High stock",
+        "medium": "In stock",
+        "low": "Low stock",
+        "none": "Out of stock"
+      },
+      "list": {
+        "title": "Your workers",
+        "subtitle": "Pods you rented. Paused pods keep their files and bill only for storage."
       }
     }
   },

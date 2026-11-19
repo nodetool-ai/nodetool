@@ -2,7 +2,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QVector>
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 namespace nodetool {
 class WorkflowGraphModel;
 struct BodyPort { QString name; QJsonObject type; };

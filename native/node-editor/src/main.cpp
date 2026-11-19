@@ -1,5 +1,6 @@
 #include "server/BundledServer.h"
 #include "ui/EditorWindow.h"
+#include "ui/CanvasSurface.h"
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QFile>
@@ -150,7 +151,7 @@ int runEditor(QApplication &app, const QCommandLineParser &parser) {
         }
       }
       if (parser.isSet("screenshot") &&
-          !window.grab().save(parser.value("screenshot"))) {
+          !window.canvas().capture(nodetool::canvas_capture::Mode::Scene).save(parser.value("screenshot"))) {
         status = 5;
       }
       app.exit(status);
