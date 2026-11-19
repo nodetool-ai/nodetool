@@ -11,3 +11,8 @@ add_executable(node_editor_partial_planner_tests PartialRunPlannerTest.cpp ../..
 target_include_directories(node_editor_partial_planner_tests PRIVATE ../../src)
 target_link_libraries(node_editor_partial_planner_tests PRIVATE Qt6::Core Qt6::Qml Qt6::Test)
 add_test(NAME node_editor_partial_planner COMMAND node_editor_partial_planner_tests)
+
+if(NOT COMMAND nodetool_node_editor_test_sanitizers)
+    include(../../cmake/sanitizers/Tests.cmake)
+endif()
+nodetool_node_editor_test_sanitizers()

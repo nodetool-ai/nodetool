@@ -201,8 +201,32 @@ EditorScene::EditorScene(WorkflowGraphModel &model, QObject *parent)
 }
 
 EditorScene::~EditorScene() {
+  setFocusItem(nullptr);
   disconnect(this, nullptr, this, nullptr);
   disconnect(&model_, nullptr, this, nullptr);
+}
+
+void EditorScene::clearFocusFrom(const QGraphicsItem &item) {
+  // Focus-out can update a cached item. Deliver it while Qt still owns the
+  // item's cache so teardown cannot recreate it after freeing it.
+  if (const auto *focused = focusItem(); focused && (focused == &item || item.isAncestorOf(focused))) {
+    setFocusItem(nullptr);
+  }
+}
+
+void EditorScene::onNodeDeleted(NodeId id) {
+  if (const auto *card = nodeGraphicsObject(id)) { clearFocusFrom(*card); }
+  BasicGraphicsScene::onNodeDeleted(id);
+}
+
+void EditorScene::onConnectionDeleted(ConnectionId id) {
+  if (const auto *wire = connectionGraphicsObject(id)) { clearFocusFrom(*wire); }
+  BasicGraphicsScene::onConnectionDeleted(id);
+}
+
+void EditorScene::onModelReset() {
+  setFocusItem(nullptr);
+  BasicGraphicsScene::onModelReset();
 }
 
 QSet<NodeId> branchNodeIds(const QSet<NodeId> &selected, const QVector<QPair<NodeId, NodeId>> &edges) {

@@ -49,6 +49,8 @@ public:
   bool portVisible(QtNodes::NodeId id, QtNodes::PortType side, QtNodes::PortIndex index) const;
   bool wireVisible(QtNodes::ConnectionId id) const;
   int stackingOrder(QtNodes::NodeId id) const { return stackingOrder_.value(id); }
+  const QHash<QtNodes::NodeId, int> &stackingOrder() const { return stackingOrder_; }
+  const QSet<QtNodes::NodeId> &groupIds() const { return groupIds_; }
   // Items an If or Switch left unexecuted in the selected run, from edge updates.
   node_editor::UntakenBranch untakenBranch() const;
   void setRuntimePreview(const QString &nodeId, const QImage &image);
@@ -196,6 +198,7 @@ public:
 
 private:
   QHash<QtNodes::NodeId, int> stackingOrder_;
+  QSet<QtNodes::NodeId> groupIds_;
   void deriveProjection(const QJsonArray &nodes);
   void invalidateNode(QtNodes::NodeId id);
   QHash<QtNodes::NodeId, QJsonObject> nodes_;

@@ -563,16 +563,15 @@ the view moved and zoomed, and sets no time limit.
 
 `NODETOOL_NODE_EDITOR_CANVAS=quick` replaces the `QGraphicsView` with
 [QuickCanvas](src/ui/QuickCanvas.h): one `QQuickWidget` that hosts a
-[GraphCanvas](src/canvas/GraphCanvas.h). The card and wire painters fill raster images. The software scene graph
-composites visible images in one pass, and the RHI path uses one texture per
-item. A grid index answers hit tests and culling. The canvas clips wire and
-lineage images to its raster coverage and sizes those images and the foreground
-for the viewport's pixel density. Settled images use the exact device scale
-and land on whole device pixels. The 64 MiB budget limits prefetch and
-offscreen retention. Polish gives visible work priority and keeps queued edits
-in order across frames. The app stays
-on the software backend, and the widget overlays stay children of the canvas
-widget. QtNodes stays the default
+[GraphCanvas](src/canvas/GraphCanvas.h). Card, wire and foreground painters
+fill raster tiles up to 512 device pixels per side. The software scene graph
+composites visible tiles in bounded regions. On RHI each tile gets its own
+texture. A grid index answers hit tests and culling. Settled tiles use the
+exact device scale and land on whole device pixels. The 64 MiB raster cache
+includes foreground tiles. Polish paints visible tiles first, keeps queued
+edits in order across frames and prefetches with the remaining space. The
+app stays on the software backend. The widget overlays stay children of the
+canvas widget. QtNodes stays the default
 ([plan, Q3](../../docs/plans/node-editor-quick-canvas/plan.md#q3-quick-canvas-behind-a-switch)).
 `node_editor_quick_canvas` tests the items, hit tests, gestures and culling.
 The canvas group of the plan runs a second time as `<name>_quick` entries,

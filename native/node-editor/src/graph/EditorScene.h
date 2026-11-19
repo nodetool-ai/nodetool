@@ -107,6 +107,10 @@ protected:
   void drawForeground(QPainter *painter, const QRectF &rect) override;
 
 private:
+  void onNodeDeleted(QtNodes::NodeId id) override;
+  void onConnectionDeleted(QtNodes::ConnectionId id) override;
+  void onModelReset() override;
+  void clearFocusFrom(const QGraphicsItem &item);
   WorkflowGraphModel &model_;
   CanvasTheme theme_;
   QTimer animation_;

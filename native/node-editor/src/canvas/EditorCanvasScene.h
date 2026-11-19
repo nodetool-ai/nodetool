@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tuple>
+
 #include "canvas/CanvasInteraction.h"
 #include "canvas/CanvasScene.h"
 #include "canvas/CanvasStyle.h"
@@ -54,8 +56,21 @@ public:
   void paintForeground(QPainter &painter, const QRectF &sceneArea, double zoom) const;
   // EditorScene::drawBackground: the canvas color, the cross grid and the axes.
   void paintBackground(QPainter &painter, const QRectF &sceneArea, double zoom) const;
-  // The union of what the foreground draws inside sceneArea, or an empty rect.
-  QRectF foregroundBounds(const QRectF &sceneArea, double zoom) const;
+  struct ForegroundPart {
+    enum Kind { GroupLabel, DropHint, InputLabel, OutputLabel };
+    using Key = std::tuple<Kind, QtNodes::NodeId, int>;
+    Key key;
+    QRectF rect;
+    QPointF origin;
+    QString label;
+    QColor color;
+    double labelScale = 1;
+    double opacity = 1;
+    QRectF bounds;
+    bool operator==(const ForegroundPart &) const = default;
+  };
+  QList<ForegroundPart> foregroundParts(const QRectF &area, double zoom) const;
+  void paintForegroundPart(QPainter &painter, const ForegroundPart &part) const;
 
   // Input from the view. pointer() returns whether the scene took the event:
   // the interaction consumed it or an item grabbed it.

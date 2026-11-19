@@ -121,27 +121,17 @@ QSGNode *GridItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
 
 void GridItem::releaseResources() { upload_ = true; }
 
-ForegroundItem::ForegroundItem(QQuickItem *parent) : CanvasImageItem(parent) {}
+ForegroundItem::ForegroundItem(const EditorCanvasScene &scene, QQuickItem &parent)
+    : CanvasImageItem(&parent), scene_(scene) {}
 
-bool ForegroundItem::needsRaster(const QRectF &visible, double scale, double zoom, bool settled) const {
-  return contentDirty() || (settled && (scale_ != scale || zoom_ != zoom)) || !area_.contains(visible);
+void ForegroundItem::setPart(Part part) {
+  if (part_ == part) { return; }
+  setPosition(part.origin);
+  part_ = std::move(part);
+  invalidateImage();
 }
 
-bool ForegroundItem::raster(const EditorCanvasScene &scene, const QRectF &visible, double scale, double zoom, int maxSide) {
-  area_ = visible.adjusted(-visible.width() / 2, -visible.height() / 2, visible.width() / 2, visible.height() / 2);
-  scale_ = scale;
-  zoom_ = zoom;
-  const auto bounds = scene.foregroundBounds(area_, zoom);
-  if (bounds.isEmpty()) {
-    clearImage();
-    setContentDirty(false);
-    return false;
-  }
-  const auto geometry = rasterGeometry(bounds, {}, scale, maxSide);
-  auto image = rasterize(geometry, [&](QPainter &painter) { scene.paintForeground(painter, bounds, zoom); });
-  setImage(std::move(image), geometry.localRect(), geometry.scale, zoom);
-  return true;
-}
+void ForegroundItem::paintRaster(QPainter &painter, double) const { scene_.paintForegroundPart(painter, part_); }
 
 RubberBandItem::RubberBandItem(QQuickItem *parent) {
   setParentItem(parent);

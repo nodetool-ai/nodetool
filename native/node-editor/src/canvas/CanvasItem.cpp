@@ -7,6 +7,7 @@
 #include <QSGRendererInterface>
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 namespace nodetool::canvas {
 CanvasImageItem::CanvasImageItem(QQuickItem *parent) {
@@ -15,102 +16,131 @@ CanvasImageItem::CanvasImageItem(QQuickItem *parent) {
   setFlag(ItemHasContents, true);
 }
 
-void CanvasImageItem::setImage(QImage image, const QRectF &rect, double scale, double zoom) {
-  image_ = std::move(image);
-  imageRect_ = rect;
-  imageScale_ = scale;
-  imageZoom_ = zoom;
-  upload_ = true;
-  contentDirty_ = false;
+void CanvasImageItem::setTile(QPoint key, Tile tile) {
+  tiles_.insert(key, std::move(tile));
+  update();
+}
+
+void CanvasImageItem::removeTile(QPoint key) {
+  tiles_.remove(key);
   update();
 }
 
 void CanvasImageItem::clearImage() {
-  if (image_.isNull()) { return; }
-  image_ = {};
-  imageRect_ = {};
-  imageScale_ = 0;
-  upload_ = true;
-  contentDirty_ = true;
+  if (tiles_.isEmpty()) { return; }
+  tiles_.clear();
   update();
 }
 
+bool CanvasImageItem::hasImage() const {
+  return std::ranges::any_of(tiles_, [](const Tile &tile) { return !tile.pixels.isNull(); });
+}
+
+qsizetype CanvasImageItem::rasterBytes() const {
+  qsizetype bytes = 0;
+  for (const auto &tile : tiles_) { bytes += tile.bytes(); }
+  return bytes;
+}
+
 QRectF CanvasImageItem::RasterGeometry::localRect() const {
-  return QRectF((QPointF(device.topLeft()) - phase) / scale, QSizeF(device.size()) / scale);
+  return QRectF((QPointF(device.topLeft()) - phase + viewportPhase) / scale, QSizeF(device.size()) / scale);
 }
 
 CanvasImageItem::RasterGeometry CanvasImageItem::rasterGeometry(const QRectF &rect, QPointF sceneOrigin,
-                                                                double scale, int maxSide) {
-  if (rect.isEmpty() || !(scale > 0)) { return {{}, {}, 1}; }
-  scale = std::min({scale, (maxSide - 1) / rect.width(), (maxSide - 1) / rect.height()});
-  const auto origin = sceneOrigin * scale;
+                                                                double scale, QPointF viewportPhase) {
+  if (rect.isEmpty() || !(scale > 0)) { return {{}, {}, 1, {}}; }
+  const auto origin = sceneOrigin * scale + viewportPhase;
   const auto phase = origin - QPointF(origin.toPoint());
   const auto device = QRectF(rect.topLeft() * scale + phase, rect.size() * scale).toAlignedRect();
-  return {device, phase, scale};
+  return {device, phase, scale, viewportPhase};
 }
 
-QImage CanvasImageItem::rasterize(const RasterGeometry &geometry, const std::function<void(QPainter &)> &paint) {
+QImage CanvasImageItem::rasterize(const RasterGeometry &geometry, double dpr, const std::function<void(QPainter &)> &paint) {
   if (geometry.device.isEmpty()) { return {}; }
   QImage image(geometry.device.size(), QImage::Format_ARGB32_Premultiplied);
   if (image.isNull()) { return {}; }
+  image.setDevicePixelRatio(dpr);
   image.fill(Qt::transparent);
   {
     QPainter painter(&image);
-    painter.translate(geometry.phase - QPointF(geometry.device.topLeft()));
-    painter.scale(geometry.scale, geometry.scale);
+    painter.translate((geometry.phase - QPointF(geometry.device.topLeft())) / dpr);
+    painter.scale(geometry.scale / dpr, geometry.scale / dpr);
     paint(painter);
   }
   return image;
 }
 
-QRectF CanvasImageItem::alignedImageRect(const QRectF &windowRect, double dpr) const {
+QRectF CanvasImageItem::alignedImageRect(const Tile &tile, const QRectF &windowRect, double dpr) {
   const auto pixels = windowRect.size() * dpr;
-  if (!qFuzzyCompare(pixels, QSizeF(image_.size()))) { return windowRect; }
-  return {QPointF((windowRect.topLeft() * dpr).toPoint()) / dpr, QSizeF(image_.size()) / dpr};
+  if (!qFuzzyCompare(pixels, QSizeF(tile.pixels.size()))) { return windowRect; }
+  return {QPointF((windowRect.topLeft() * dpr).toPoint()) / dpr, QSizeF(tile.pixels.size()) / dpr};
 }
 
+namespace {
+// Render thread only. The scene graph owns the root, its child nodes and
+// their textures. The cache keys identify the last uploaded images.
+class TileTextureNode final : public QSGNode {
+public:
+  struct Entry {
+    QSGImageNode *node;
+    qint64 imageKey;
+  };
+  QHash<QPoint, Entry> entries;
+};
+} // namespace
+
 QSGNode *CanvasImageItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
-  if (image_.isNull() || imageRect_.isEmpty() || !window()) {
-    delete old;
+  auto root = std::unique_ptr<TileTextureNode>(static_cast<TileTextureNode *>(old));
+  if (!window() || tiles_.isEmpty() || window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software) {
     return nullptr;
   }
-  auto *node = static_cast<QSGImageNode *>(old);
-  if (!node) {
-    node = window()->createImageNode();
-    node->setFiltering(QSGTexture::Linear);
-    upload_ = true;
+  if (!root) { root = std::make_unique<TileTextureNode>(); }
+  for (auto it = root->entries.begin(); it != root->entries.end();) {
+    const auto tile = tiles_.constFind(it.key());
+    if (tile != tiles_.cend() && !tile->pixels.isNull()) {
+      ++it;
+      continue;
+    }
+    std::unique_ptr<QSGImageNode> removed(it->node);
+    root->removeChildNode(removed.get());
+    it = root->entries.erase(it);
   }
-  if (upload_) {
-    node->setTexture(window()->createTextureFromImage(image_, QQuickWindow::TextureCanUseAtlas));
-    node->setOwnsTexture(true);
-    node->setSourceRect(QRectF(QPointF(), node->texture()->textureSize()));
-    upload_ = false;
+  for (auto it = tiles_.cbegin(); it != tiles_.cend(); ++it) {
+    if (it->pixels.isNull()) { continue; }
+    auto entry = root->entries.find(it.key());
+    if (entry == root->entries.end() || entry->imageKey != it->pixels.cacheKey()) {
+      auto texture = std::unique_ptr<QSGTexture>(
+          window()->createTextureFromImage(it->pixels, QQuickWindow::TextureCanUseAtlas));
+      if (!texture) { continue; }
+      if (entry == root->entries.end()) {
+        auto node = std::unique_ptr<QSGImageNode>(window()->createImageNode());
+        node->setFiltering(QSGTexture::Linear);
+        node->setOwnsTexture(true);
+        node->setTexture(texture.release());
+        entry = root->entries.insert(it.key(), {node.get(), it->pixels.cacheKey()});
+        root->appendChildNode(node.release());
+      } else {
+        entry->node->setTexture(texture.release());
+        entry->imageKey = it->pixels.cacheKey();
+      }
+      entry->node->setSourceRect(QRectF(QPointF(), entry->node->texture()->textureSize()));
+    }
+    auto *node = entry->node;
+    const auto rect = mapRectToScene(it->geometry.localRect());
+    node->setRect(mapRectFromScene(alignedImageRect(*it, rect, window()->effectiveDevicePixelRatio())));
   }
-  const auto rect = mapRectToScene(imageRect_);
-  node->setRect(mapRectFromScene(alignedImageRect(rect, window()->effectiveDevicePixelRatio())));
-  return node;
+  return root.release();
 }
 
 void CanvasImageItem::geometryChange(const QRectF &geometry, const QRectF &previous) {
   QQuickItem::geometryChange(geometry, previous);
-  if (hasImage() && geometry.topLeft() != previous.topLeft()) { update(); }
+  if (!tiles_.isEmpty() && geometry.topLeft() != previous.topLeft()) { update(); }
 }
 
-void CanvasImageItem::releaseResources() {
-  // The scene graph destroys the node and its texture. The next frame uploads again.
-  image_ = {};
-  imageScale_ = 0;
-  upload_ = true;
-  contentDirty_ = true;
-}
+void CanvasImageItem::releaseResources() { clearImage(); }
 
 void CanvasImageItem::itemChange(ItemChange change, const ItemChangeData &value) {
-  if (change == ItemSceneChange) {
-    image_ = {};
-    imageScale_ = 0;
-    upload_ = true;
-    contentDirty_ = true;
-  }
+  if (change == ItemSceneChange) { clearImage(); }
   QQuickItem::itemChange(change, value);
 }
 
@@ -167,20 +197,11 @@ void CanvasItem::reindex() {
 }
 
 void CanvasItem::markDirty() {
-  setContentDirty(true);
+  invalidateImage();
   if (scene_) {
     scene_->requestRaster();
     scene_->notifyChanged();
   }
-}
-
-QSGNode *CanvasItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) {
-  // GraphCanvas composites these images in one pass on the software backend.
-  if (window() && window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software) {
-    std::unique_ptr<QSGNode> previous(old);
-    return nullptr;
-  }
-  return CanvasImageItem::updatePaintNode(old, data);
 }
 
 void CanvasItem::itemChange(ItemChange change, const ItemChangeData &value) {

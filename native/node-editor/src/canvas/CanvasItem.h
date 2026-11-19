@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QHash>
 #include <QImage>
 #include <QPointer>
 #include <QQuickItem>
@@ -13,39 +14,44 @@ class QPainter;
 namespace nodetool::canvas {
 class CanvasScene;
 
-// UI thread only, except updatePaintNode, which the scene graph calls while
-// the UI thread is blocked; it reads the image, its rectangle and the upload
-// flag and nothing else. The item owns its QImage. The scene graph owns the
-// QSGImageNode that updatePaintNode returns, and the node owns its texture.
+// UI thread only. Owns the tile images. Scene graph sync borrows them while
+// the UI thread is blocked. The scene graph owns the returned nodes and textures.
 class CanvasImageItem : public QQuickItem {
 public:
   explicit CanvasImageItem(QQuickItem *parent = nullptr);
 
-  // Shows image over rect, in item coordinates, at the raster scale and zoom.
-  void setImage(QImage image, const QRectF &rect, double scale, double zoom);
-  void clearImage();
-  bool hasImage() const { return !image_.isNull(); }
-  const QImage &image() const { return image_; }
-  QRectF imageRect() const { return imageRect_; }
-  double imageScale() const { return imageScale_; }
-  double imageZoom() const { return imageZoom_; }
-  // The content changed since the last raster.
-  bool contentDirty() const { return contentDirty_; }
-  void setContentDirty(bool dirty) { contentDirty_ = dirty; }
-
+  static constexpr int tileSide = 512;
   struct RasterGeometry {
     QRect device;
     QPointF phase;
     double scale;
+    QPointF viewportPhase;
     qsizetype bytes() const { return qsizetype(device.width()) * device.height() * 4; }
     QRectF localRect() const;
+    bool operator==(const RasterGeometry &) const = default;
   };
-  // Align the paint to the scene's device grid. The side limit bounds
-  // transient rasters while a zoom gesture still uses the old coverage.
-  static RasterGeometry rasterGeometry(const QRectF &rect, QPointF sceneOrigin, double scale, int maxSide);
-  static QImage rasterize(const RasterGeometry &geometry, const std::function<void(QPainter &)> &paint);
-  // Snap an image already at display scale to whole device pixels.
-  QRectF alignedImageRect(const QRectF &windowRect, double dpr) const;
+  struct Tile {
+    RasterGeometry geometry;
+    QImage pixels;
+    quint64 revision;
+    double zoom;
+    // Empty tiles have a smaller retained cost but still consume cache space.
+    qsizetype bytes() const { return pixels.sizeInBytes() + sizeof(Tile); }
+  };
+
+  virtual void paintRaster(QPainter &painter, double zoom) const = 0;
+  const QHash<QPoint, Tile> &tiles() const { return tiles_; }
+  void setTile(QPoint key, Tile tile);
+  void removeTile(QPoint key);
+  void clearImage();
+  bool hasImage() const;
+  qsizetype rasterBytes() const;
+  quint64 rasterRevision() const { return revision_; }
+  void invalidateImage() { ++revision_; }
+
+  static RasterGeometry rasterGeometry(const QRectF &rect, QPointF sceneOrigin, double scale, QPointF viewportPhase);
+  static QImage rasterize(const RasterGeometry &geometry, double dpr, const std::function<void(QPainter &)> &paint);
+  static QRectF alignedImageRect(const Tile &tile, const QRectF &windowRect, double dpr);
 
 protected:
   QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *) override;
@@ -54,12 +60,8 @@ protected:
   void itemChange(ItemChange change, const ItemChangeData &value) override;
 
 private:
-  QImage image_;
-  QRectF imageRect_;
-  double imageScale_ = 0;
-  double imageZoom_ = 0;
-  bool upload_ = false;
-  bool contentDirty_ = true;
+  QHash<QPoint, Tile> tiles_;
+  quint64 revision_ = 0;
 };
 
 // UI thread only. The QGraphicsSceneMouseEvent fields the Quick canvas items read.
@@ -96,7 +98,6 @@ public:
   virtual QRectF sceneBoundingRect() const = 0;
   // The shape test of QGraphicsItem::shape(). The default is the bounds.
   virtual QRectF rasterBounds() const { return sceneBoundingRect().translated(-scenePosition()); }
-  virtual void paintRaster(QPainter &painter, double zoom) const = 0;
   std::optional<Qt::CursorShape> pointerCursor() const { return cursor_; }
   void setPointerCursor(std::optional<Qt::CursorShape> cursor) { cursor_ = cursor; }
   virtual bool hitTest(const QPointF &scenePoint) const;
@@ -135,7 +136,6 @@ public:
   void markDirty();
 
 protected:
-  QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) override;
   void itemChange(ItemChange change, const ItemChangeData &value) override;
 
 private:

@@ -102,9 +102,10 @@ void NodeItem::setStackZ(double z) {
   applyZ();
 }
 
-void NodeItem::setStackOrder(int order) {
+void NodeItem::setProjectedStack(int order, double z) {
+  if (order_ == order && stackZ_ == z) { return; }
   order_ = order;
-  applyZ();
+  setStackZ(z);
 }
 
 // Cards of equal z keep the document's stacking order, as stackBefore orders

@@ -2,6 +2,7 @@
 
 #include "canvas/CanvasItem.h"
 #include "canvas/CanvasStyle.h"
+#include "canvas/EditorCanvasScene.h"
 #include <QColor>
 #include <functional>
 
@@ -44,23 +45,18 @@ private:
   QSizeF viewportSize_;
 };
 
-// UI thread only. EditorScene::drawForeground as a scene-space image above the
-// cards. It covers the visible scene rect with a margin and rasters when the
-// foreground changes, when the view leaves the covered area, or after a zoom
-// settles. GraphCanvas owns it as a visual child of the content layer.
+// UI thread only. A foreground primitive and its tiles, owned by GraphCanvas.
 class ForegroundItem final : public CanvasImageItem {
 public:
-  explicit ForegroundItem(QQuickItem *parent);
-  void invalidate() { setContentDirty(true); }
-  // Paints again when dirty or when visible is not inside the covered area.
-  // Returns whether it rastered.
-  bool needsRaster(const QRectF &visible, double scale, double zoom, bool settled) const;
-  bool raster(const EditorCanvasScene &scene, const QRectF &visible, double scale, double zoom, int maxSide);
+  using Part = EditorCanvasScene::ForegroundPart;
+  ForegroundItem(const EditorCanvasScene &scene, QQuickItem &parent);
+  void setPart(Part part);
+  const Part &part() const { return part_; }
+  void paintRaster(QPainter &painter, double zoom) const override;
 
 private:
-  QRectF area_;
-  double scale_ = 0;
-  double zoom_ = 0;
+  const EditorCanvasScene &scene_;
+  Part part_{};
 };
 
 // UI thread only. The rubber band of QGraphicsView::RubberBandDrag in

@@ -2,6 +2,7 @@
 // items, hit tests, gestures and culling, on a GraphCanvas in a QQuickWindow
 // with the software backend, without an EditorWindow.
 #include "../support/DarkCanvasTheme.h"
+#include "../../../graph-runner/unittests/sanitizer_build.h"
 #include "canvas/CanvasViewport.h"
 #include "canvas/ConnectionItem.h"
 #include "canvas/GraphCanvas.h"
@@ -15,6 +16,8 @@
 #include "ui/QuickCanvas.h"
 #include "ui/QtNodesCanvas.h"
 #include <QtNodes/internal/AbstractNodeGeometry.hpp>
+#include <QtNodes/internal/AbstractNodePainter.hpp>
+#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QGraphicsScene>
 #include <QHelpEvent>
 #include <QGraphicsView>
@@ -404,9 +407,9 @@ private slots:
     f.canvas->flushRaster();
     const auto *wire = f.canvas->scene().connectionItems().first();
     QVERIFY(wire->hasImage());
-    QVERIFY2(wire->image().sizeInBytes() < 8 * 1024 * 1024, qPrintable(QString::number(wire->image().sizeInBytes())));
+    QVERIFY2(wire->rasterBytes() < 8 * 1024 * 1024, qPrintable(QString::number(wire->rasterBytes())));
     QVERIFY(!lineage.hasImage());
-    qInfo() << "Long wire bytes" << wire->image().sizeInBytes();
+    qInfo() << "Long wire bytes" << wire->rasterBytes();
     QVERIFY(f.canvas->cachedRasterBytes() <= GraphCanvas::rasterCacheBudget);
     f.canvas->resetRasterStats();
     f.canvas->setView(1, QPointF(400, 300));
@@ -457,7 +460,9 @@ private slots:
     QtNodesCanvas legacy(legacyScene, view);
     host.show();
     QVERIFY(QTest::qWaitForWindowExposed(&host));
-    const auto theme = test::darkCanvasTheme();
+    auto theme = test::darkCanvasTheme();
+    theme.grid = theme.canvas;
+    quick.canvas->setTheme(theme);
     legacy.scene().setTheme(theme);
     legacy.setView(1, QPointF(960, 540));
     for (const auto &id : {QString("left"), QString("right")}) {
@@ -471,8 +476,10 @@ private slots:
     const auto legacyFrame = view.viewport()->grab().toImage();
     QVERIFY(!quickFrame.isNull());
     const auto inkError = [&](QPointF origin, QSize extent) {
-      const auto reference = legacyFrame.copy(QRect(legacy.mapFromScene(origin), extent));
-      const auto rendered = quickFrame.copy(QRect(quick.view(origin), extent));
+      const auto dpr = quick.window.effectiveDevicePixelRatio();
+      const auto size = (QSizeF(extent) * dpr).toSize();
+      const auto reference = legacyFrame.copy(QRect((QPointF(legacy.mapFromScene(origin)) * dpr).toPoint(), size));
+      const auto rendered = quickFrame.copy(QRect((QPointF(quick.view(origin)) * dpr).toPoint(), size));
       return glyphError(reference, rendered, qGray(theme.canvas.rgb()));
     };
     const auto left = inkError({90, 108}, {120, 26});
@@ -484,9 +491,100 @@ private slots:
     path.cubicTo(c1, c2, wire->endPoint(PortType::In));
     const auto stroke = inkError(path.pointAtPercent(.5) - QPointF(80, 35), {160, 70});
     qInfo() << "Foreground errors" << left << right << "wire error" << stroke;
-    QVERIFY(left < .24);
-    QVERIFY(right < .24);
-    QVERIFY(stroke < .24);
+    QVERIFY(left < .02);
+    QVERIFY(right < .02);
+    QVERIFY(stroke < .02);
+  }
+
+  void largeRastersShareSettleBudget() {
+    const auto graph = snapshot({
+        sized(node("left", kGroup, 8, 22), 600, 400),
+        sized(node("right", kGroup, 612, 311), 240, 140),
+        node("source", kSource, -450, -180),
+        node("target", kTarget, 940, 620),
+    }, {edge("long", "source", "target")});
+    Fixture f(graph, {1920, 1080});
+    auto theme = test::darkCanvasTheme();
+    theme.grid = theme.canvas;
+    f.canvas->setTheme(theme);
+    f.canvas->selection().setNode(f.id("left"), true);
+    f.canvas->selection().setNode(f.id("right"), true);
+    f.canvas->resetRasterStats();
+    f.canvas->setView(3, QPointF(320, 180));
+    QTRY_VERIFY(!f.canvas->zoomSettling() && !f.canvas->rasterPending());
+    const auto stats = f.canvas->rasterStats();
+    const auto bytes = stats.peakBytes;
+    qInfo() << "Large raster DPR" << f.window.effectiveDevicePixelRatio()
+            << "slowest polish (ms)" << stats.slowestPass / 1e6 << "cache bytes" << bytes
+            << "card/wire/foreground jobs" << stats.cards << stats.wires << stats.foreground;
+    QVERIFY(stats.cards > 0 && stats.wires > 0 && stats.foreground > 0);
+    QVERIFY(stats.slowestPass < 4'000'000 * gr::test::kSanitizerTimeScale);
+    QVERIFY(bytes <= GraphCanvas::rasterCacheBudget);
+    const auto *largeCard = f.item("left");
+    const auto *wire = f.canvas->scene().connectionItems().first();
+    QVERIFY(largeCard->tiles().size() > 1);
+    QVERIFY(wire->tiles().size() > 1);
+    const auto dpr = f.window.effectiveDevicePixelRatio();
+    for (const auto *item : {static_cast<const CanvasItem *>(largeCard), static_cast<const CanvasItem *>(wire)}) {
+      for (const auto &tile : item->tiles()) {
+        QVERIFY(tile.geometry.device.width() <= CanvasImageItem::tileSide);
+        QVERIFY(tile.geometry.device.height() <= CanvasImageItem::tileSide);
+        QCOMPARE(tile.geometry.scale, 3 * dpr);
+      }
+    }
+
+    WorkflowGraphModel model;
+    EditorScene scene(model);
+    model.project(graph, catalog());
+    QWidget host;
+    auto &view = QtNodesCanvas::createView(scene, host);
+    host.resize(f.window.size());
+    view.resize(host.size());
+    QtNodesCanvas legacy(scene, view);
+    host.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&host));
+    scene.setTheme(theme);
+    legacy.setView(3, QPointF(320, 180));
+    for (const auto id : model.groupIds()) { legacy.selection().setNode(id, true); }
+    const auto reference = view.viewport()->grab().toImage();
+    const auto rendered = f.window.grabWindow();
+    const auto compare = [&](QPointF scenePoint, QSize extent) {
+      const auto size = (QSizeF(extent) * dpr).toSize();
+      const auto expected = reference.copy(QRect((QPointF(legacy.mapFromScene(scenePoint)) * dpr).toPoint(), size));
+      const auto actual = rendered.copy(QRect((QPointF(f.view(scenePoint)) * dpr).toPoint(), size));
+      return glyphError(expected, actual, qGray(theme.canvas.rgb()));
+    };
+    const auto left = compare({8, 6}, {100, 46});
+    const auto right = compare({612, 295}, {80, 46});
+    qInfo() << "Large raster label error" << left << right;
+    QVERIFY(left < .02);
+    QVERIFY(right < .02);
+
+    // A resize must discard the old coverage. Once it settles, a small pan
+    // in the new view uses the existing exact-scale tiles.
+    f.window.resize(800, 600);
+    f.canvas->setSize(f.window.size());
+    QTRY_VERIFY(!f.canvas->rasterPending());
+    f.canvas->resetRasterStats();
+    const auto scroll = f.canvas->viewport().scroll();
+    f.canvas->setScroll(scroll.x() + 1, scroll.y());
+    f.window.grabWindow();
+    QCOMPARE(f.canvas->rasterStats().cards, 0);
+    QCOMPARE(f.canvas->rasterStats().wires, 0);
+  }
+
+  void movingOneGroupOnlyRepaintsItsLabel() {
+    Fixture f(snapshot({
+        sized(node("left", kGroup, 32, 120), 220, 200),
+        sized(node("right", kGroup, 505, 355), 220, 200),
+    }));
+    f.canvas->resetRasterStats();
+    f.canvas->flushRaster();
+    f.canvas->resetRasterStats();
+    QVERIFY(f.model.setNodeData(f.id("left"), NodeRole::Position, QPointF(40, 125)));
+    QTRY_COMPARE(f.canvas->rasterStats().foreground, 1);
+    QTRY_VERIFY(!f.canvas->rasterPending());
+    QCOMPARE(f.canvas->rasterStats().foreground, 1);
   }
 
   void settledCardTextMatchesDevicePixels_data() {
@@ -514,42 +612,65 @@ private slots:
     legacy.scene().setTheme(theme);
     quick.canvas->setView(zoom, center);
     legacy.setView(zoom, center);
-    QTRY_VERIFY(!quick.canvas->settle_.isActive() && !quick.canvas->rasterPending());
+    QTRY_VERIFY(!quick.canvas->zoomSettling() && !quick.canvas->rasterPending());
 
-    // Compare the title at the same scene location in each canvas.
-    const auto textOrigin = origin + QPointF(8, 4);
-    const QSize extent(qRound(133 * zoom), qRound(27 * zoom));
+    // Paint the QtNodes card at the same display density. Its device-coordinate
+    // cache paints at a pixmap-relative phase that can differ at fractional DPR.
+    auto *referenceCard = legacyScene.nodeGraphicsObject(*model.allNodeIds().begin());
+    QVERIFY(referenceCard);
     const auto dpr = quick.window.effectiveDevicePixelRatio();
     QCOMPARE(view.devicePixelRatioF(), dpr);
+    QImage legacyFrame((QSizeF(view.viewport()->size()) * dpr).toSize(), QImage::Format_ARGB32_Premultiplied);
+    legacyFrame.setDevicePixelRatio(dpr);
+    legacyFrame.fill(theme.canvas);
+    {
+      QPainter painter(&legacyFrame);
+      painter.setWorldTransform(legacy.viewportTransform());
+      painter.translate(referenceCard->scenePos());
+      legacyScene.nodePainter().paint(&painter, *referenceCard);
+    }
+    const auto textOrigin = origin + QPointF(8, 4);
+    const QSize extent(qRound(133 * zoom), qRound(27 * zoom));
     const auto sample = [&](const QImage &frame, QPoint origin) {
       return frame.copy(QRect((QPointF(origin) * dpr).toPoint(), (QSizeF(extent) * dpr).toSize()));
     };
-    const auto reference = sample(view.viewport()->grab().toImage(), legacy.mapFromScene(textOrigin));
+    const auto reference = sample(legacyFrame, legacy.mapFromScene(textOrigin));
     const auto rendered = sample(quick.window.grabWindow(), quick.view(textOrigin));
     QCOMPARE(reference.size(), rendered.size());
-    const auto error = glyphError(reference, rendered, qGray(theme.node.rgb()));
     const auto *card = quick.item("source");
+    const auto error = glyphError(reference, rendered, qGray(theme.node.rgb()));
     const auto toDevice = [&](const QRectF &local) {
-      const auto rect = quick.canvas->viewport().viewportTransform().mapRect(local.translated(card->scenePosition()));
-      return QRectF(rect.topLeft() * dpr, rect.size() * dpr);
+      const auto &content = quick.canvas->contentLayer();
+      const auto position = ((local.topLeft() + card->scenePosition()) * content.scale() + content.position()) * dpr;
+      return QRectF(position, local.size() * content.scale() * dpr);
     };
-    qInfo() << "Settled title error" << error << "pixels" << card->image().size()
-            << "expected" << toDevice(card->rasterBounds()).toAlignedRect().size();
-    QCOMPARE(card->imageScale(), zoom * dpr);
-    const auto painted = toDevice(card->imageRect());
-    QVERIFY(QLineF(painted.topLeft(), QPointF(painted.topLeft().toPoint())).length() < 1e-6);
-    QCOMPARE(card->image().size(), toDevice(card->rasterBounds()).toAlignedRect().size());
-    QVERIFY(error < .28);
+    QRect painted;
+    for (const auto &tile : card->tiles()) {
+      QCOMPARE(tile.geometry.scale, zoom * dpr);
+      const auto rect = toDevice(tile.geometry.localRect());
+      QVERIFY(QLineF(rect.topLeft(), QPointF(rect.topLeft().toPoint())).length() < 1e-6);
+      QCOMPARE(tile.pixels.size(), rect.size().toSize());
+      painted |= QRect(rect.topLeft().toPoint(), tile.pixels.size());
+    }
+    const auto expected = toDevice(card->rasterBounds());
+    const auto phase = -QPointF(quick.canvas->viewport().scroll()) * dpr - quick.canvas->contentLayer().position() * dpr;
+    const auto deviceBounds = expected.translated(phase).toAlignedRect();
+    qInfo() << "Settled title error" << error << "pixels" << painted << "expected" << deviceBounds;
+    QCOMPARE(painted, deviceBounds);
+    QVERIFY(error < .02);
   }
 
   void visibleItemsSurviveCachePressure() {
     Fixture f(snapshot({
-        node("source", kSource, 0, 0),
+        node("source", kSource, -80, 0),
         node("target", kTarget, 500, 0),
         node("target2", kTarget, 500, 300),
         node("prefetch", kTarget, 910, 0),
     }, {edge("e", "source", "target")}));
-    f.canvas->rasterCacheBudget_ = 32 * 1024;
+    f.canvas->flushRaster();
+    // Fit the initial visible set, with no room to prefetch the fourth card.
+    const auto visibleBytes = f.canvas->cachedRasterBytes() - f.item("prefetch")->rasterBytes();
+    GraphCanvas::RasterTestHooks(*f.canvas).setCacheBudget(visibleBytes);
     f.canvas->setView(1, QPointF(4000, 4000));
     f.canvas->flushRaster();
     f.canvas->setView(1, QPointF(400, 300));
@@ -578,16 +699,18 @@ private slots:
   void animatedRastersDoNotStarveVisibleEdits() {
     Fixture f(pair());
     f.canvas->flushRaster();
-    f.canvas->rasterTimeBudgetNs_ = 0; // Deterministically paint one visible item per pass.
+    GraphCanvas::RasterTestHooks hooks(*f.canvas);
+    hooks.setTimeBudget(0); // Deterministically paint one visible item per pass.
     const auto cards = f.canvas->scene().nodeItems();
     QSet<NodeItem *> repainted;
     int ticks = 0;
     QTimer timer;
     connect(&timer, &QTimer::timeout, this, [&] {
       for (auto *card : cards) { card->markDirty(); }
-      f.canvas->updatePolish();
+      hooks.polish();
       for (auto *card : cards) {
-        if (!card->contentDirty()) { repainted.insert(card); }
+        const auto &tiles = card->tiles();
+        if (!tiles.isEmpty() && tiles.cbegin()->revision == card->rasterRevision()) { repainted.insert(card); }
       }
       if (++ticks == cards.size()) { timer.stop(); }
     });
@@ -716,6 +839,31 @@ private slots:
     QTest::mousePress(&view, Qt::LeftButton, {}, press);
     QVERIFY(scene.mouseGrabber());
     QTest::mouseRelease(&view, Qt::LeftButton, {}, press);
+  }
+
+  void focusOnHostDoesNotPreserveDrag() {
+    QWidget host;
+    host.resize(800, 600);
+    WorkflowGraphModel model;
+    model.project(pair(), catalog());
+    QuickCanvas surface(model, host);
+    auto &view = surface.viewportWidget();
+    view.resize(host.size());
+    host.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&host));
+    view.setFocus();
+    surface.setView(1, QPointF(400, 300));
+    auto &graph = surface.graphCanvas();
+    const auto press = surface.mapFromScene(QPointF(80, 20));
+    QTest::mousePress(&view, Qt::LeftButton, {}, press);
+    QTest::mouseMove(&view, press + QPoint(80, 60));
+    QVERIFY(graph.scene().nodeDragActive());
+    QCOMPARE(QApplication::focusWidget(), &view);
+    QQuickItem nextFocus(graph.parentItem());
+    nextFocus.forceActiveFocus();
+    QVERIFY(!graph.scene().nodeDragActive());
+    QVERIFY(!graph.scene().mouseGrabber());
+    QTest::mouseRelease(&view, Qt::LeftButton, {}, press + QPoint(80, 60));
   }
 
   void inlineOverlayFocusPreservesPress() {

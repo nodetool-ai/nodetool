@@ -233,21 +233,25 @@ New classes live in `native/node-editor/src/canvas/`, in namespace
    toolbar, the selection toolbar, the zoom readout, the mini-map, the queue,
    the chat window, the node info panel and the price chip.
 
-Card media and inline editors are children of their `NodeItem`. A card above
-another card covers the lower card's player, and a dimmed card dims its
-player, because the scene graph draws children with their parent.
+Card media and inline editors follow their card's opacity and stacking. On
+the software backend, Q4 places them in the overlay layer and preserves that
+order explicitly. Quick children of a card would draw above the whole canvas
+composite.
 
 ### Card and edge rendering
 
-- On RHI, each card returns a `QSGImageNode`. In Q3, the software backend
-  composites visible card and wire images in one render node to limit dirty
-  region work.
+- On RHI, each raster tile has a `QSGImageNode` with its own texture. In Q3,
+  the software backend batches visible draws in viewport tiles and damages
+  only the tiles whose inputs changed. Q4 overlays must preserve the card
+  stacking order during that composite.
 - The UI thread rasterizes at `zoom × devicePixelRatio` on the device pixel
   grid. During a zoom gesture, existing images scale and new rasters use
   steps of √2. The canvas starts restoring exact-scale rasters 100 ms after
   the gesture ends.
-- The raster cache prefetches near the viewport and releases distant card
-  images. The software pass draws only visible items
+- The raster cache schedules 512-device-pixel tiles for cards, wires and
+  individual foreground primitives. It prioritizes visible tiles and uses
+  the same byte budget for visible tiles and prefetch. The software pass
+  draws only visible items
   ([performance rule 21](../../../native/ui_primitives/PERFORMANCE.md#rendering)).
 - The running ring and the focus ring are separate child nodes, so their
   animation does not re-raster the card.
@@ -295,11 +299,12 @@ The measures follow rules 27 and 29: a realistic count, and frame times from
   `QObject` parent. This is the Qt parent exception of rule 2, and the code
   documents the parent.
 - `updatePaintNode` runs on the render thread while the UI thread is blocked.
-  It reads the item's `QImage` and a dirty flag and touches nothing else. The
-  scene graph owns the returned node, and the node owns its texture.
-- An item drops its image and marks itself dirty in `releaseResources()` and
-  on `ItemSceneChange`, so a window change leaks no texture.
-- The raster scheduler is a `QTimer` member of `GraphCanvas`. Connections
+  It reads the tile images and their placement. The scene graph owns the
+  returned nodes and textures.
+- An item drops its tile images in `releaseResources()` and on
+  `ItemSceneChange`. The raster queue rebuilds on the next window.
+- `GraphCanvas` owns the foreground tile items, queue and budget on the UI
+  thread. The zoom settle timer schedules the next raster pass. Connections
   from the model to items use the item as context object, so they end with
   the item (rule 13).
 - No new global state. The graphics API choice is made once in `main()`.
@@ -618,8 +623,8 @@ Medium: about 1,200 lines and two shaders. Depends on D3.
   dirties. With 2,000 image nodes, a pan may cost more than the targets
   allow. Q3 measures this before Q4 starts.
 - **R4. Texture memory at high zoom and device pixel ratio.** A card at zoom
-  4 and ratio 2 is 64 times its logical pixel count. Cap the raster scale and
-  the size of one texture.
+  4 and ratio 2 is 64 times its logical pixel count. Bound the texture size
+  and the total raster cache while keeping the device scale exact.
 - **R5. Focus and shortcuts.** The widget code accepts `ShortcutOverride` in
   overlay widgets and filters events on the view. One Quick window has one
   focus chain, so each of these rules needs a Quick equivalent and a test.

@@ -156,7 +156,7 @@ QuickCanvas::QuickCanvas(WorkflowGraphModel &model, QWidget &parent) : model_(mo
   canvas_ = std::make_unique<canvas::GraphCanvas>(model);
   canvas_->setOverlayFocusCheck([host = QPointer<QQuickWidget>(widget)] {
     const auto *focus = QApplication::focusWidget();
-    return host && focus && host->isAncestorOf(focus);
+    return host && focus && focus != host && host->isAncestorOf(focus);
   });
   canvas_->setParentItem(widget->quickWindow()->contentItem());
   canvas_->setSize(widget->size());

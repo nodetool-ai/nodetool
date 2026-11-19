@@ -22,3 +22,8 @@ add_executable(node_editor_bug_report_tests BugReportTest.cpp ../../src/run/BugR
 target_include_directories(node_editor_bug_report_tests PRIVATE ../../src)
 target_link_libraries(node_editor_bug_report_tests PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME node_editor_bug_report_tests COMMAND node_editor_bug_report_tests)
+
+if(NOT COMMAND nodetool_node_editor_test_sanitizers)
+    include(../../cmake/sanitizers/Tests.cmake)
+endif()
+nodetool_node_editor_test_sanitizers()

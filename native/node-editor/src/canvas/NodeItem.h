@@ -45,7 +45,7 @@ public:
   // The QtNodes z: 0, or 1 while hovered. Groups sit below every card.
   void setStackZ(double z);
   double stackZ() const { return stackZ_; }
-  void setStackOrder(int order);
+  void setProjectedStack(int order, double z);
 
   // Painter flags kept as the QGraphicsObject's dynamic properties were.
   bool headerActionHovered = false;

@@ -9,8 +9,8 @@
 #include <QTimer>
 #include <functional>
 #include <memory>
+#include <map>
 
-class QuickCanvasTest;
 
 namespace nodetool {
 class CanvasSelection;
@@ -28,8 +28,7 @@ namespace nodetool::canvas {
 // CanvasInteraction. It borrows the model, which outlives it.
 //
 // Card and wire textures exist only near the viewport. The raster pass runs in
-// updatePolish, prioritizing visible items within a time budget. Visible images stay resident
-// even above the byte budget, which limits prefetch and offscreen retention.
+// updatePolish, prioritizing visible device tiles within time and byte budgets.
 // A zoom gesture scales the existing textures; the pass paints them at
 // the new scale 100 ms after the last zoom step.
 class GraphCanvas final : public QQuickItem {
@@ -66,7 +65,7 @@ public:
   // The widget shell can host focused overlays outside this Quick window.
   void setOverlayFocusCheck(std::function<bool()> check) { overlayHasFocus_ = std::move(check); }
 
-  // Paints everything near the view now, without a budget.
+  // Drains queued tiles immediately, retaining the regular cache limit.
   void flushRaster();
   // Whether polish still has queued raster work.
   bool rasterPending() const { return rasterQueued_ || nextRasterJob_ < rasterJobs_.size(); }
@@ -80,6 +79,7 @@ public:
     int passes = 0;
     qint64 nanoseconds = 0;
     qint64 slowestPass = 0;
+    qsizetype peakBytes = 0;
   };
   RasterStats rasterStats() const { return stats_; }
   void resetRasterStats() { stats_ = {}; }
@@ -88,6 +88,19 @@ public:
   int gridRasters() const { return grid_.rasterCount(); }
   // Exact device scale after settling, or a √2 bucket during a zoom gesture.
   double rasterScale() const;
+  bool zoomSettling() const { return settle_.isActive(); }
+
+  // Drives deterministic raster passes and cache pressure in the canvas tests.
+  class RasterTestHooks {
+  public:
+    explicit RasterTestHooks(GraphCanvas &canvas) : canvas_(canvas) {}
+    void setCacheBudget(qsizetype bytes) { canvas_.rasterCacheBudget_ = bytes; }
+    void setTimeBudget(qint64 ns) { canvas_.rasterTimeBudgetNs_ = ns; }
+    void polish() { canvas_.updatePolish(); }
+
+  private:
+    GraphCanvas &canvas_;
+  };
 
 signals:
   void viewportMoved();
@@ -112,7 +125,6 @@ protected:
   void wheelEvent(QWheelEvent *event) override;
 
 private:
-  friend class ::QuickCanvasTest;
   CanvasPointerEvent pointerEvent(QPointF position, QPointF global, Qt::MouseButton button, Qt::MouseButtons buttons,
                                   Qt::KeyboardModifiers modifiers) const;
   void pointerMove(QPointF position, QPointF global, Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers);
@@ -127,34 +139,47 @@ private:
   void rasterPass(bool flush);
   void scheduleRaster();
   void invalidateRasterWork();
+  void syncForeground(const QRectF &area, double zoom);
   void rebuildRasterWork(const QRectF &visible, double scale, double zoom, bool settled);
 
   WorkflowGraphModel &model_;
   CanvasViewport viewport_;
   GridItem grid_;
   QQuickItem content_;
-  ForegroundItem foreground_;
+  QQuickItem foreground_;
   QQuickItem overlay_;
   RubberBandItem band_;
   QTimer settle_;
-  // Declared last, so it is destroyed first: its items' visual parent is content_.
+  // The destructor releases foreground, selection and scene items while content_ is alive.
   std::unique_ptr<EditorCanvasScene> scene_;
   std::unique_ptr<CanvasSelection> selection_;
+  std::map<ForegroundItem::Part::Key, std::unique_ptr<ForegroundItem>> foregroundParts_;
+  struct TileRef {
+    QPointer<CanvasImageItem> owner;
+    QPoint key;
+    QRectF sceneRect;
+  };
   struct RasterJob {
-    quint64 key;
-    QRectF rect;
-    bool visible;
+    TileRef tile;
+    CanvasImageItem::RasterGeometry geometry;
+    enum Kind { Card, Wire, Foreground, Other } kind;
+    int priority;
+    qsizetype age;
   };
   QSet<quint64> near_;
   QList<RasterJob> rasterJobs_;
   qsizetype nextRasterJob_ = 0;
-  QList<quint64> offscreenImages_;
-  QSet<quint64> rasterDeferred_;
+  QList<TileRef> offscreenTiles_;
+  QList<QRectF> deferredTiles_;
+  QRectF plannedVisible_;
   bool rasterWorkDirty_ = true;
+  bool plannedWithoutPainting_ = false;
   bool rasterWorkSettled_ = false;
   double rasterWorkScale_ = 0;
+  QPointF devicePhase_;
   QRectF rasterCoverage_;
   QRectF prefetchArea_;
+  QRectF retentionArea_;
   quint64 indexedRevision_ = 0;
   qsizetype cachedRasterBytes_ = 0;
   qsizetype rasterCacheBudget_ = rasterCacheBudget;

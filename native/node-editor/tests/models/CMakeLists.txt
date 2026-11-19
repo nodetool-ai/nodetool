@@ -69,3 +69,8 @@ nodetool_use_ui_primitives(node_editor_presentation_property_tests)
 add_test(NAME node_editor_presentation_properties COMMAND node_editor_presentation_property_tests)
 set_tests_properties(node_editor_presentation_properties PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 nodetool_stage_editor_executables()
+
+if(NOT COMMAND nodetool_node_editor_test_sanitizers)
+    include(../../cmake/sanitizers/Tests.cmake)
+endif()
+nodetool_node_editor_test_sanitizers()

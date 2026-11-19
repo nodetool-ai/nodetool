@@ -327,8 +327,16 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
 }
 void WorkflowGraphModel::deriveProjection(const QJsonArray &rawNodes) {
   stackingOrder_.clear();
+  stackingOrder_.reserve(rawNodes.size());
+  groupIds_.clear();
   for (int i = 0; i < rawNodes.size(); ++i) {
-    stackingOrder_.insert(ids_.value(rawNodes[i].toObject()["id"].toString()), i);
+    const auto node = rawNodes[i].toObject();
+    const auto id = ids_.value(node["id"].toString());
+    stackingOrder_.insert(id, i);
+    const auto type = node["type"].toString();
+    if (type == QLatin1String("nodetool.workflows.base_node.Group") || type == QLatin1String("nodetool.workflows.Group")) {
+      groupIds_.insert(id);
+    }
   }
   adjacency_.clear();
   edgeByConnection_.clear();
@@ -1750,10 +1758,7 @@ void WorkflowGraphModel::addConnection(ConnectionId c) {
     commit({{"op", "addEdge"}, {"edge", e}});
   }
 }
-bool WorkflowGraphModel::isGroup(NodeId id) const {
-  const auto type = nodes_.value(id)["type"].toString();
-  return type == "nodetool.workflows.base_node.Group" || type == "nodetool.workflows.Group";
-}
+bool WorkflowGraphModel::isGroup(NodeId id) const { return groupIds_.contains(id); }
 bool WorkflowGraphModel::isReroute(NodeId id) const { return nodes_.value(id)["type"]=="nodetool.control.Reroute"; }
 QString WorkflowGraphModel::rerouteHandleType(NodeId id) const { return displayTypes_.rerouteHandles.value(resourceId(id),"any"); }
 QString WorkflowGraphModel::effectiveSourceType(NodeId id, PortIndex port) const {

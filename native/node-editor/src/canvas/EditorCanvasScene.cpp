@@ -98,10 +98,11 @@ void EditorCanvasScene::projectionChanged() {
 }
 
 void EditorCanvasScene::applyStacking() {
-  for (const auto id : model_.allNodeIds()) {
+  const auto &order = model_.stackingOrder();
+  for (auto it = order.cbegin(); it != order.cend(); ++it) {
+    const auto id = it.key();
     if (auto *item = nodeItem(id)) {
-      item->setStackOrder(model_.stackingOrder(id));
-      item->setStackZ(model_.isGroup(id) ? kGroupZ + model_.depth(id) : 0);
+      item->setProjectedStack(it.value(), model_.isGroup(id) ? kGroupZ + model_.depth(id) : 0);
     }
   }
   for (auto *wire : connectionItems()) {
@@ -166,8 +167,7 @@ void EditorCanvasScene::repaintCards() {
 }
 
 void EditorCanvasScene::refreshGroupPointer() {
-  for (const auto id : model_.allNodeIds()) {
-    if (!model_.isGroup(id)) { continue; }
+  for (const auto id : model_.groupIds()) {
     auto *item = nodeItem(id);
     // An Alt-drag keeps its grab even if Alt or child selection goes away.
     if (!item || item == mouseGrabber()) { continue; }
@@ -436,39 +436,6 @@ void EditorCanvasScene::setTheme(const CanvasTheme &theme) {
   emit foregroundChanged();
 }
 
-QRectF EditorCanvasScene::foregroundBounds(const QRectF &area, double viewZoom) const {
-  const auto zoom = std::clamp(std::abs(viewZoom), 0.08, 8.0);
-  QRectF bounds;
-  const auto add = [&](const QRectF &rect) {
-    if (rect.intersects(area)) { bounds |= rect.intersected(area); }
-  };
-  for (const auto id : model_.allNodeIds()) {
-    if (!model_.isGroup(id)) { continue; }
-    if (const auto *item = nodeItem(id)) {
-      const auto origin = item->scenePosition();
-      const auto scale = groupLabelScale(zoom);
-      const auto height = (32 + 4) * scale + 5 / zoom;
-      add(QRectF(origin.x(), origin.y() - height, std::max(double(model_.layout(id).size.width()), 24.0 * scale), height));
-    }
-  }
-  if (dropHintVisible()) {
-    if (const auto *group = nodeItem(dropGroup())) {
-      const QRectF frame(group->scenePosition(), model_.layout(dropGroup()).size);
-      add(QRectF(frame.center().x() - 400, frame.top() - 300, 800, 300));
-    }
-  }
-  auto named = CanvasScene::selectedNodes();
-  if (hoveredHandle().node != InvalidNodeId) { named.append(hoveredHandle().node); }
-  for (const auto id : named) {
-    const auto *node = nodeItem(id);
-    if (!node || model_.isReroute(id)) { continue; }
-    const auto &layout = model_.layout(id);
-    const auto origin = node->scenePosition();
-    add(QRectF(origin.x() - 212, origin.y() - nm::rowHeight, layout.size.width() + 424, layout.size.height() + 2 * nm::rowHeight));
-  }
-  return bounds;
-}
-
 void EditorCanvasScene::paintBackground(QPainter &painter, const QRectF &rect, double zoom) const {
   painter.fillRect(rect, theme_.canvas);
   // A cross pattern tied to the scene, as React Flow's Background draws it.
@@ -531,61 +498,88 @@ void EditorCanvasScene::paintDropHint(QPainter &painter, const QRectF &frame) co
   painter.restore();
 }
 
-void EditorCanvasScene::paintForeground(QPainter &painter, const QRectF &, double viewZoom) const {
-  painter.setRenderHint(QPainter::Antialiasing);
-  painter.setRenderHint(QPainter::TextAntialiasing);
+QList<EditorCanvasScene::ForegroundPart> EditorCanvasScene::foregroundParts(const QRectF &area, double viewZoom) const {
   const auto zoom = std::clamp(std::abs(viewZoom), 0.08, 8.0);
   const auto labelScale = groupLabelScale(zoom);
-  for (const auto id : model_.allNodeIds()) {
-    if (!model_.isGroup(id)) { continue; }
+  QList<ForegroundPart> parts;
+  const auto add = [&](ForegroundPart part, const QRectF &bounds) {
+    part.bounds = bounds.translated(-part.origin).adjusted(-2, -2, 2, 2);
+    if (bounds.intersects(area)) { parts.append(std::move(part)); }
+  };
+  for (const auto id : model_.groupIds()) {
     const auto *item = nodeItem(id);
     if (!item) { continue; }
     const auto &layout = model_.layout(id);
-    const auto origin = item->scenePosition();
-    painter.save();
-    // The label is part of the group, so it fades with it.
-    painter.setOpacity(painter.opacity() * item->opacity() * groupOpacity(id));
-    painter.translate(origin + QPointF(0, -5 / zoom));
-    painter.scale(labelScale, labelScale);
-    painter.setFont(canvasFont(theme_, 15, QFont::Medium));
-    painter.setPen(layout.accent.isValid() ? layout.accent : QColor("#9ca3af"));
+    const auto origin = item->scenePosition() + QPointF(0, -5 / zoom);
     const auto width = std::max(24.0, layout.size.width() / labelScale);
-    painter.drawText(QRectF(0, -32, width, 32), Qt::AlignLeft | Qt::AlignVCenter,
-                     painter.fontMetrics().elidedText(layout.title, Qt::ElideRight, int(width)));
-    painter.restore();
+    const QRectF rect(0, -32, width, 32);
+    add({{ForegroundPart::GroupLabel, id, 0}, rect, origin, layout.title,
+         layout.accent.isValid() ? layout.accent : QColor("#9ca3af"), labelScale, item->opacity() * groupOpacity(id)},
+        QRectF(origin + rect.topLeft() * labelScale, rect.size() * labelScale));
   }
   if (dropHintVisible()) {
     if (const auto *group = nodeItem(dropGroup())) {
-      paintDropHint(painter, QRectF(group->scenePosition(), model_.layout(dropGroup()).size));
+      const QRectF frame(QPointF(), model_.layout(dropGroup()).size);
+      const auto origin = group->scenePosition();
+      add({{ForegroundPart::DropHint, dropGroup(), 0}, frame, origin, {}, {}},
+          QRectF(origin + QPointF(frame.center().x() - 400, -300), QSizeF(800, 300)));
     }
   }
-  QList<NodeId> named = CanvasScene::selectedNodes();
+  auto named = CanvasScene::selectedNodes();
   if (hoveredHandle().node != InvalidNodeId && !named.contains(hoveredHandle().node)) { named.append(hoveredHandle().node); }
   for (const auto id : named) {
-    // A selected node names its handle-only inputs and its outputs outside the card.
-    // So does a node while the pointer rests on one of its handles, which the web
-    // names in a tooltip (HandleTooltip.tsx); UX study 21 found bare dots unreadable.
     const auto *node = nodeItem(id);
     if (!node || model_.isReroute(id)) { continue; }
     const auto &layout = model_.layout(id);
     const auto origin = node->scenePosition();
-    painter.setFont(canvasFont(theme_, nm::fontValue, QFont::DemiBold));
-    for (const auto &row : layout.rows) {
+    for (int i = 0; i < layout.rows.size(); ++i) {
+      const auto &row = layout.rows[i];
       if (row.kind != NodeRowKind::Handle) { continue; }
-      painter.setPen(typeColor(row.typeName));
-      painter.drawText(QRectF(origin.x() - 210, origin.y() + row.y - nm::rowHeight / 2, 200, nm::rowHeight),
-                       Qt::AlignRight | Qt::AlignVCenter, row.label);
+      const QRectF rect(-210, row.y - nm::rowHeight / 2, 200, nm::rowHeight);
+      add({{ForegroundPart::InputLabel, id, i}, rect, origin, row.label, typeColor(row.typeName)}, rect.translated(origin));
     }
+    const auto outputs = model_.ports(id, PortType::Out);
     for (int i = 0; i < layout.outputY.size(); ++i) {
-      if (!model_.portVisible(id, PortType::Out, i) || model_.ports(id, PortType::Out)[i].toObject()["name"] == "__control__") {
-        continue;
-      }
-      painter.setPen(typeColor(model_.portData<NodeDataType>(id, PortType::Out, PortIndex(i), PortRole::DataType).id));
-      painter.drawText(QRectF(origin.x() + layout.size.width() + 10, origin.y() + layout.outputY[i] - nm::rowHeight / 2, 200,
-                              nm::rowHeight),
-                       Qt::AlignLeft | Qt::AlignVCenter,
-                       model_.portData<QString>(id, PortType::Out, PortIndex(i), PortRole::Caption));
+      if (!model_.portVisible(id, PortType::Out, i) || outputs[i].toObject()["name"] == "__control__") { continue; }
+      const QRectF rect(layout.size.width() + 10, layout.outputY[i] - nm::rowHeight / 2, 200, nm::rowHeight);
+      add({{ForegroundPart::OutputLabel, id, i}, rect, origin,
+           model_.portData<QString>(id, PortType::Out, PortIndex(i), PortRole::Caption),
+           typeColor(model_.portData<NodeDataType>(id, PortType::Out, PortIndex(i), PortRole::DataType).id)}, rect.translated(origin));
     }
+  }
+  std::sort(parts.begin(), parts.end(), [](const auto &a, const auto &b) { return a.key < b.key; });
+  return parts;
+}
+
+void EditorCanvasScene::paintForegroundPart(QPainter &painter, const ForegroundPart &part) const {
+  painter.save();
+  painter.setRenderHint(QPainter::Antialiasing);
+  painter.setRenderHint(QPainter::TextAntialiasing);
+  const auto kind = std::get<0>(part.key);
+  if (kind == ForegroundPart::GroupLabel) {
+    painter.setOpacity(painter.opacity() * part.opacity);
+    painter.scale(part.labelScale, part.labelScale);
+    painter.setFont(canvasFont(theme_, 15, QFont::Medium));
+    painter.setPen(part.color);
+    painter.drawText(part.rect, Qt::AlignLeft | Qt::AlignVCenter,
+                     painter.fontMetrics().elidedText(part.label, Qt::ElideRight, int(part.rect.width())));
+  } else if (kind == ForegroundPart::DropHint) {
+    paintDropHint(painter, part.rect);
+  } else {
+    painter.setFont(canvasFont(theme_, nm::fontValue, QFont::DemiBold));
+    painter.setPen(part.color);
+    const auto alignment = kind == ForegroundPart::InputLabel ? Qt::AlignRight : Qt::AlignLeft;
+    painter.drawText(part.rect, alignment | Qt::AlignVCenter, part.label);
+  }
+  painter.restore();
+}
+
+void EditorCanvasScene::paintForeground(QPainter &painter, const QRectF &area, double zoom) const {
+  for (const auto &part : foregroundParts(area, zoom)) {
+    painter.save();
+    painter.translate(part.origin);
+    paintForegroundPart(painter, part);
+    painter.restore();
   }
 }
 

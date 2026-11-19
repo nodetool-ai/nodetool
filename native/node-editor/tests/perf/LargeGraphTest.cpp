@@ -156,6 +156,10 @@ private slots:
             QVERIFY(document->applyCommand({{"op", "addEdge"}, {"edge", QJsonObject{
                 {"id", QString("e%1").arg(n)}, {"source", QString::number(n - 2)},
                 {"target", QString::number(n - 1)}, {"sourceHandle", "out"}, {"targetHandle", "in"}}}}));
+            const double edgeCommand = timer.nsecsElapsed() / 1000.0;
+            // A document change queues projection. Read the scene here so
+            // this measures the new wire reaching both canvas implementations.
+            if (window) { QVERIFY(window->scene()); }
             const double edge = timer.nsecsElapsed() / 1000.0;
             timer.restart();
             QVERIFY(document->applyCommand({{"op", "moveNodes"}, {"positions", QJsonObject{
@@ -167,7 +171,7 @@ private slots:
             document->undo();
             const double undo = timer.nsecsElapsed() / 1000.0;
             document->redo();
-            qInfo().nospace() << "N=" << n << " add_us=" << add << " connect_us=" << edge
+            qInfo().nospace() << "N=" << n << " add_us=" << add << " connect_us=" << edge << " connect_command_us=" << edgeCommand
                 << " move_us=" << move << " undo_add_us=" << undo << " event_loop_us=" << projection;
             if (n == 250) {
                 first = add;
