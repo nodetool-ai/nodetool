@@ -15,22 +15,20 @@
 // (setSystemRate). A music project mixes at 48 kHz and lets miniaudio convert
 // for the device (MUSIC-MODE.md 14.1), so playback, bounce and export share
 // sample values: the window follows the document with setFollowDocumentRate.
-//
-// Thread affinity: GUI thread only.
 
 #include "audio/AudioEngine.h"
 
 #include <QMetaObject>
 #include <QObject>
+#include <QPointer>
 #include <QString>
-#include <QTimer>
 
 #include <functional>
 #include <memory>
 #include <string>
 
 class PlaybackClock;
-class TimelineModel;
+class TimelineSource;
 
 namespace nt {
 struct Timeline;
@@ -46,9 +44,10 @@ inline constexpr int kMusicEngineRate = 48000;
 // for a sequence with a `music` object, else 0 (the device's own rate).
 int engineRateFor(const Timeline& timeline);
 
+// UI thread only. AppAudio owns the update timer and stops the engine before it dies.
 class AppAudio {
 public:
-    AppAudio() = default;
+    AppAudio();
     ~AppAudio();
     AppAudio(const AppAudio&) = delete;
     AppAudio& operator=(const AppAudio&) = delete;
@@ -57,7 +56,7 @@ public:
     // open. A system device that refuses the set rate opens at its own rate
     // instead, with a warning on stderr. `latencyMs` sets the null device's
     // reported output latency.
-    bool start(const QString& mode, double latencyMs, TimelineModel& model, PlaybackClock& clock, QString* error);
+    bool start(const QString& mode, double latencyMs, TimelineSource& source, PlaybackClock& clock, QString* error);
     void setReportPath(const QString& path) { m_reportPath = path; }
     // Whether the engine fills the window's loudness meter (audio/loudness/AppReadout.h). Set it before
     // start(). Only the engine of the open timeline should, not a preview of a candidate.
@@ -73,33 +72,34 @@ public:
     bool setSystemRate(int hz, QString* error = nullptr);
     int systemRate() const { return m_systemRate; }
     // Set before start(): the system rate follows engineRateFor() of each
-    // document the model loads.
+    // document the source loads (a new documentGeneration()).
     void setFollowDocumentRate(bool follow) { m_followDocumentRate = follow; }
-    AudioEngine* engine() { return m_engine.get(); }
+    AudioEngine* engine();
     // Tests only: runs in place of AudioEngine::start, so a check can open
     // the null device for the system backend or fail an open.
     using EngineStarter = std::function<bool(AudioEngine&, const AudioEngine::Options&, std::string*)>;
     void setEngineStarterForTest(EngineStarter starter) { m_startEngine = std::move(starter); }
 
 private:
+    class UpdateTimer;
+
     bool openEngine(QString* error);
+    void detachUpdate();
     void closeEngine();
 
-    std::unique_ptr<AudioEngine> m_engine;
-    TimelineModel* m_model = nullptr;
-    PlaybackClock* m_clock = nullptr;
-    PlaybackClock* m_attachedClock = nullptr;  // the clock whose audio feed is this engine's
+    std::unique_ptr<UpdateTimer> m_update;
+    QPointer<TimelineSource> m_source;
+    QPointer<PlaybackClock> m_clock;
+    QPointer<PlaybackClock> m_attachedClock;  // the clock whose audio feed is this engine's
     double m_latencyMs = 0;
     int m_systemRate = 0;
     bool m_followDocumentRate = false;
+    quint64 m_documentGeneration = 0;
     QMetaObject::Connection m_documentConnection;
     double m_recordSeconds = 0;
     QString m_mode;
     QString m_reportPath;
     bool m_publishLoudness = false;
-    QMetaObject::Connection m_connections[2];
-    std::unique_ptr<QTimer> m_timer;
-    std::uint64_t m_appliedRevision = 0;
     EngineStarter m_startEngine;
     // The context of m_documentConnection. Declared last, so it is destroyed
     // first and the connection ends before the members its slot uses.

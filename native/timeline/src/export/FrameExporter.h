@@ -1,13 +1,17 @@
 // Behaviour ported from FilmCraft (https://github.com/storytold/filmcraft), MIT OR Apache-2.0.
 #pragma once
+#include "server/TimelineAssetCacheContext.h"
 #include "export/FrameCapture.h"
 #include <QThread>
 #include <QUrl>
 #include <QVariantMap>
 #include <functional>
+#include <memory>
 
-class FrameExporter : public QObject {
+// UI thread only. Export workers hand results back by queued signals.
+class FrameExporter : public nt::server::TimelineCacheConsumer<QObject> {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(QString state READ state NOTIFY changed)
@@ -20,9 +24,11 @@ class FrameExporter : public QObject {
     Q_PROPERTY(QVariantMap savedAsset READ savedAsset NOTIFY changed)
     Q_PROPERTY(QString lastFolder READ lastFolder NOTIFY changed)
 public:
+    // QML injects the cache in classBegin(). C++ callers supply it explicitly.
     explicit FrameExporter(QObject* parent = nullptr);
+    explicit FrameExporter(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~FrameExporter() override;
-    TimelineModel* timeline() const { return m_capture.timeline(); }
+    TimelineModel* timeline() const { return capture().timeline(); }
     void setTimeline(TimelineModel* model);
     QString state() const { return m_state; }
     QString error() const { return m_error; }
@@ -44,7 +50,7 @@ public:
     // The source.place payload that puts the saved Library frame at the end of the sequence.
     Q_INVOKABLE QVariantMap startFramePlacement() const;
     Q_INVOKABLE void reset();
-    FrameCapture* captureForTest() { return &m_capture; }
+    FrameCapture* captureForTest() { return &capture(); }
     void startWorkerForTest(std::function<void()> work) { worker(std::move(work), [] {}); }
     void setSavedAssetForTest(const QVariantMap& asset) { m_savedAsset = asset; m_state = "saved"; emit changed(); }
 signals:
@@ -52,11 +58,12 @@ signals:
     void timelineChanged();
     void saved();
 private:
+    FrameCapture& capture() const;
     void cancel();
     void beginCapture(double timeMs);
     void captured(const FrameCaptureResult& result, quint64 serial);
     void worker(std::function<void()> work, std::function<void()> finish);
-    FrameCapture m_capture;
+    mutable std::unique_ptr<FrameCapture> m_capture;
     QThread* m_worker = nullptr;
     QString m_state = "idle";
     QString m_error;

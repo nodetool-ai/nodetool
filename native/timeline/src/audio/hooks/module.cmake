@@ -1,5 +1,3 @@
-nt_sources(audio src/audio/hooks/MixerHooks.h src/audio/hooks/MixerHooks.cpp
-    src/audio/hooks/OutputDevice.h src/audio/hooks/OutputDevice.cpp)
 function(nt_mixer_hook_tests)
     qt_add_executable(tst_mixerhooks src/audio/hooks/tst_mixerhooks.cpp)
     set_target_properties(tst_mixerhooks PROPERTIES MACOSX_BUNDLE FALSE)

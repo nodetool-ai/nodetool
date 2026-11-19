@@ -14279,6 +14279,8 @@
       "tryAgainLater": "Tente novamente mais tarde.",
       "cloudLoadFailure": "Não foi possível listar os documentos da nuvem: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "O NodeTool ainda está iniciando. Abra o documento da nuvem novamente em instantes.",
+      "cloudWindowSignedOut": "Entre no NodeTool Cloud para abrir este documento.",
       "noMatching": "Nenhum documento correspondente",
       "noMatchingDescription": "Isso pesquisa apenas documentos. As conversas estão nos bate-papos e os uploads estão na Biblioteca.",
       "noDocuments": "Ainda não há documentos",
@@ -20684,6 +20686,22 @@
     "cancel": "Cancelar",
     "signOut": "Sair",
     "signOutNote": "As alterações pendentes no editor de nós ou na linha do tempo ficam neste computador e são enviadas quando você entrar novamente.",
-    "unavailable": "O login na nuvem não está disponível nesta versão."
+    "unavailable": "O login na nuvem não está disponível nesta versão.",
+    "signOutDialog": {
+      "title": "Alterações ainda não enviadas",
+      "waiting_one": "{{count}} documento na nuvem tem alterações que ainda não foram enviadas.",
+      "waiting_other": "{{count}} documentos na nuvem têm alterações que ainda não foram enviadas.",
+      "unsent_one": "O servidor recusou as alterações de {{count}} documento na nuvem.",
+      "unsent_other": "O servidor recusou as alterações de {{count}} documentos na nuvem.",
+      "unknown": "O NodeTool não conseguiu verificar se há alterações por enviar.",
+      "kept": "Se você sair agora, as alterações ficam neste computador e são enviadas quando você entrar novamente com esta conta.",
+      "keep": "Manter neste computador e sair",
+      "wait": "Esperar o envio",
+      "cancel": "Cancelar",
+      "signOutNow": "Sair agora",
+      "waitingNote": "Aguardando o envio das alterações. Mantenha a janela da nuvem aberta.",
+      "waiting_many": "{{count}} documentos na nuvem têm alterações que ainda não foram enviadas.",
+      "unsent_many": "O servidor recusou as alterações de {{count}} documentos na nuvem."
+    }
   }
 }

@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "app/PanelRegistry.h"
 #include "app/MenuRegistry.h"
 #include "wiring/KeyActions.h"
@@ -28,6 +29,7 @@ QQuickItem* named(QQuickItem* root, const QString& name) {
 }
 class TestWiring : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     nt::wiring::SnapRequest lastSnapRequest;
     int snapCalls = 0;
     int keyRuns = 0;
@@ -85,6 +87,7 @@ private slots:
         clock.setDurationMs(10000);
         clock.seek(1500);
         view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
         view->setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});
         view->loadFromModule("NodeTool.Timeline", "TimelineEditor");
         QVERIFY2(view->status() == QQuickView::Ready, qPrintable(view->errors().isEmpty() ? QString() : view->errors().first().toString()));

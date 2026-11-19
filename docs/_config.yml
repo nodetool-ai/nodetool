@@ -309,6 +309,7 @@ exclude:
   - plans/native-cloud-sync/
   - plans/finetune-v4/
   - plans/timeline-player/
+  - plans/node-editor-quick-canvas/
   # Native runner and editor plans. They cite native/ and web/ source, which
   # no built page can resolve, and only each other link to them.
   - plans/audio-signal-nodes.md

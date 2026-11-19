@@ -1,4 +1,5 @@
 #pragma once
+#include "server/AssetCache.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "assets/AssetMedia.h"
@@ -33,7 +34,7 @@ class SourceMonitor : public QObject {
     Q_PROPERTY(QSize frameSize READ frameSize NOTIFY changed)
     Q_PROPERTY(bool audible READ audible NOTIFY audibleChanged)
 public:
-    explicit SourceMonitor(QObject* parent = nullptr);
+    explicit SourceMonitor(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~SourceMonitor() override;
     TimelineModel* timeline() const { return m_model; }
     PlaybackClock* clock() const { return m_clock; }

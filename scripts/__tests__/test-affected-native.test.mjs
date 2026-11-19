@@ -17,6 +17,7 @@ import {
   buildModel,
   configureCommand,
   ctestRegex,
+  discoverProjects,
   GUEST_INPUTS,
   diskReaders,
   executionPlan,
@@ -25,6 +26,7 @@ import {
   planProjects,
   planStatus,
   producersOf,
+  projectHasOwnChanges,
   readCache,
   readDepfiles,
   readFileApi,
@@ -404,6 +406,16 @@ describe("build directories and helpers", () => {
     expect(resolveBuildDir("graph-runner", { "graph-runner": "/b/gr" }, { NODETOOL_GRAPH_RUNNER_BUILD_DIR: "/b/env" }, "/repo").dir).toBe(resolve("/b/gr"));
     expect(resolveBuildDir("timeline", {}, {}, "/repo")).toEqual({ dir: join("/repo", "native/timeline/build"), source: "default" });
     expect(configureCommand("graph-runner", "linux")).toBe("cmake -S native/graph-runner -B native/graph-runner/build -DCMAKE_BUILD_TYPE=Release");
+  });
+
+  it("leaves a directory that is part of another project out of discovery", () => {
+    const root = mkdtempSync(join(tmpdir(), "native-discover-"));
+    temporary.push(root);
+    write(join(root, "native", "timeline", "CMakeLists.txt"), "include(CTest)\n");
+    write(join(root, "native", "timeline-player", "CMakeLists.txt"), "add_test(NAME t COMMAND t)\n");
+    write(join(root, "native", "media", "CMakeLists.txt"), "add_test(NAME m COMMAND m)\n");
+    expect(discoverProjects(root)).toEqual(["media", "timeline"]);
+    expect(projectHasOwnChanges("timeline", ["native/timeline-player/src/scene/Animation.cpp"])).toBe(true);
   });
 
   it("defaults the editor to build-windows on Windows, as its launcher does", () => {

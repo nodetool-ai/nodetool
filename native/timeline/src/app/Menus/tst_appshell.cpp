@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "ShellMenus.h"
 #include "app/MenuRegistry.h"
 #include "app/Preferences/Preferences.h"
@@ -109,6 +110,7 @@ public:
 }
 class TestAppShell : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     QQuickItem* shellItem(QQuickItem* item) {
         if (item->objectName() == "appShell") {
             return item;
@@ -121,6 +123,7 @@ class TestAppShell : public QObject {
         return nullptr;
     }
     void loadEditor(QQuickView& view, TimelineModel& model, PlaybackClock& clock) {
+        m_testCache.install(*view.engine());
         view.setResizeMode(QQuickView::SizeRootObjectToView);
         QFile file(QStringLiteral(NT_FIXTURES_DIR "/av-sync.json"));
         QVERIFY(file.open(QIODevice::ReadOnly));
@@ -688,7 +691,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
     void recentCloud() {
         Preferences preferences;
         preferences.clearRecentTimelines();
-        nt::server::CloudSource cloud{QUrl("https://user:secret@cloud.example/ignored?q=1"), "cloud-id", "viewer", "/tmp/cache"};
+        nt::server::CloudSource cloud{QUrl("https://user:secret@cloud.example/ignored?q=1"), "cloud-id", "viewer"};
         QVERIFY(recordOpenedTimeline(preferences, {"timeline", "https://cloud.example#cloud_timeline=cloud-id"}, true,
                                      "Shared cut", std::nullopt, cloud));
         const auto entry = Preferences().recentTimelines().first().toMap();
@@ -772,6 +775,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         model.setTimeline(std::move(*parsed.timeline));
         PlaybackClock clock;
         QQuickView view;
+        m_testCache.install(*view.engine());
         view.setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});
         view.loadFromModule("NodeTool.Timeline", "TimelineEditor");
         QVERIFY2(view.status() == QQuickView::Ready, qPrintable(view.errors().isEmpty() ? QString() : view.errors().first().toString()));

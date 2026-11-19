@@ -5,6 +5,7 @@
  * account, so one account never reads another account's rows.
  */
 import type { RouterInputs, RouterOutputs } from "../../trpc/client";
+import type { CloudLocalResult } from "../../window";
 import type {
   AcceptOutcome,
   CloudBase,
@@ -23,6 +24,44 @@ export interface LocalDraftsClient {
   get: { query: (input: Drafts["get"]) => Promise<DraftsOut["get"]> };
   accept: { mutate: (input: Drafts["accept"]) => Promise<DraftsOut["accept"]> };
   markUnsent: { mutate: (input: Drafts["markUnsent"]) => Promise<DraftsOut["markUnsent"]> };
+}
+
+/** A call the desktop app answers from this computer's server. */
+export type CloudLocalCaller = (procedure: string, input: Record<string, unknown>) => Promise<CloudLocalResult>;
+
+/** A `cloudLocal.*` call that did not succeed. */
+export class CloudLocalError extends Error {
+  constructor(readonly code: "REFUSED" | "UNAVAILABLE" | "FAILED", message?: string) {
+    super(message || `The local drafts store did not answer (${code}).`);
+    this.name = "CloudLocalError";
+  }
+}
+
+/**
+ * The drafts client of the desktop app's cloud window (D27). Its session
+ * cannot reach the local server, so the calls go through the main process,
+ * which also names the server key and account.
+ */
+export function cloudLocalDraftsClient(call: CloudLocalCaller): LocalDraftsClient {
+  const invoke = async <T>(procedure: keyof LocalDraftsClient, input: Drafts[keyof LocalDraftsClient]): Promise<T> => {
+    const answer = await call(`cloudLocal.drafts.${procedure}`, { ...input });
+    if (!answer.ok) {
+      throw new CloudLocalError(answer.error, answer.message);
+    }
+    return answer.data as T;
+  };
+  return {
+    put: { mutate: (input) => invoke("put", input) },
+    get: { query: (input) => invoke("get", input) },
+    accept: { mutate: (input) => invoke("accept", input) },
+    markUnsent: { mutate: (input) => invoke("markUnsent", input) }
+  };
+}
+
+/** The cloud window's drafts client, or null in any other window. */
+export function desktopCloudLocalDraftsClient(): LocalDraftsClient | null {
+  const cloud = typeof window !== "undefined" && window.api?.cloud?.window ? window.api.cloud : null;
+  return cloud ? cloudLocalDraftsClient((procedure, input) => cloud.local(procedure, input)) : null;
 }
 
 function ref(key: CloudDocumentKey) {

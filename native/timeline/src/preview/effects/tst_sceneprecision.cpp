@@ -1,3 +1,4 @@
+#include "model/TimelineModel.h"
 #include "preview/layers/TestStill.h"
 #include "export/OffscreenFrames.h"
 #include "model/TimelineJson.h"

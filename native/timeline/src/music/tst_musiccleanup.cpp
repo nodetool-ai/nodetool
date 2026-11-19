@@ -277,7 +277,7 @@ private slots:
         });
         auto timeline = model(fixture());
         const nt::server::SaveTarget target{http.base(), {}, kSequence, m_dir.path(), {}};
-        nt::server::AutosaveController save(target, timeline->undoStack(), [&timeline] { return timeline->timeline().raw; }, "u0");
+        nt::server::AutosaveController save(nt::server::AssetCacheRoot(m_dir.path()), target, timeline->undoStack(), [&timeline] { return timeline->timeline().raw; }, "u0");
         save.setQuitFallbackDirs({m_dir.filePath("fallback")});
         save.setExternalSync(false);
         save.setAutosave(false);
@@ -332,7 +332,7 @@ private slots:
         });
         auto timeline = model(fixture());
         const nt::server::SaveTarget target{http.base(), {}, kSequence, m_dir.path(), {}};
-        nt::server::AutosaveController save(target, timeline->undoStack(), [&timeline] { return timeline->timeline().raw; }, "u0");
+        nt::server::AutosaveController save(nt::server::AssetCacheRoot(m_dir.path()), target, timeline->undoStack(), [&timeline] { return timeline->timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
         MusicCleanup cleanup;

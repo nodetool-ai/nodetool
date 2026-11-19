@@ -33,6 +33,7 @@ import {
   type TransformSource
 } from "../assets/transformWorkflow";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
+import { isEditableElement } from "../../utils/browser";
 import WaveformView, { type Selection } from "./WaveformView";
 import AudioEditorToolbar from "./AudioEditorToolbar";
 import AudioTransportBar from "./AudioTransportBar";
@@ -587,6 +588,37 @@ const AudioSampleEditor = ({
   const zoomFit = useCallback(() => setZoom(1), []);
 
   const ready = !loading && !error && !!sample;
+
+  useEffect(() => {
+    if (!active || !ready || openEffect || transformSource) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.repeat ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      if (event.code !== "Space" && event.key !== " ") {
+        return;
+      }
+      const target = event.target instanceof Element ? event.target : null;
+      if (
+        isEditableElement(target) ||
+        target?.closest('[role="dialog"], [role="menu"], [role="listbox"]')
+      ) {
+        return;
+      }
+      event.preventDefault();
+      togglePlay();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [active, ready, openEffect, transformSource, togglePlay]);
 
   const savedSampleRef = useRef(savedSample);
   savedSampleRef.current = savedSample;

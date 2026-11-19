@@ -14037,6 +14037,8 @@
       "tryAgainLater": "後でもう一度試してください。",
       "cloudLoadFailure": "クラウドのドキュメントを一覧表示できませんでした: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool はまだ起動中です。少し待ってからクラウドドキュメントをもう一度開いてください。",
+      "cloudWindowSignedOut": "このドキュメントを開くには NodeTool Cloud にサインインしてください。",
       "noMatching": "一致する文書がありません",
       "noMatchingDescription": "ドキュメントのみを検索します。会話はチャットで、アップロードはライブラリで行われます。",
       "noDocuments": "まだ書類がありません",
@@ -20373,6 +20375,20 @@
     "cancel": "キャンセル",
     "signOut": "サインアウト",
     "signOutNote": "ノードエディターやタイムラインで送信待ちの変更はこのコンピューターに残り、再度サインインした後に送信されます。",
-    "unavailable": "このビルドではクラウドへのサインインを利用できません。"
+    "unavailable": "このビルドではクラウドへのサインインを利用できません。",
+    "signOutDialog": {
+      "title": "未送信の変更があります",
+      "waiting_other": "{{count}} 件のクラウドドキュメントにまだ送信されていない変更があります。",
+      "unsent_other": "サーバーが {{count}} 件のクラウドドキュメントの変更を拒否しました。",
+      "unknown": "NodeTool は未送信の変更を確認できませんでした。",
+      "kept": "今サインアウトすると、変更はこのコンピューターに残り、このアカウントで再度サインインしたときに送信されます。",
+      "keep": "このコンピューターに残してサインアウト",
+      "wait": "送信が終わるまで待つ",
+      "cancel": "キャンセル",
+      "signOutNow": "今すぐサインアウト",
+      "waitingNote": "変更の送信を待っています。クラウドウィンドウを開いたままにしてください。",
+      "waiting_one": "{{count}} 件のクラウドドキュメントにまだ送信されていない変更があります。",
+      "unsent_one": "サーバーが {{count}} 件のクラウドドキュメントの変更を拒否しました。"
+    }
   }
 }

@@ -73,7 +73,7 @@ Those assistant operations are included here.
 | Workflow input convenience controls | Still missing | Server path browsing, media-list thumbnails and direct uploads, Hugging Face downloads/recommendations, and image-preset category grouping are not ported. Parameters remain editable and stored assets remain selectable. Generic `value` inputs use JSON as the web does. |
 | Per-node and override-sensitive workflow prices | Still missing | The existing public preflight API returns a saved-graph total and unknown node IDs. It does not expose priced items or apply overrides to pricing. The native UI identifies this limit. |
 | Direct shot price quotation | Still missing | Existing public APIs provide no native quote contract. Review shows Price unavailable rather than zero, while retaining the exact request, model, duration and references for approval. |
-| Instance-pinned scratch WebSocket sessions | Still missing | [HTTP instance verification](../src/server/ServerIdentity/ServerIdentity.cpp) binds proof and mutation to one connection. The existing WebSocket transport has no equivalent proof, so AI commands refuse that scratch-only connection mode. Normal authenticated server connections are supported. Tests use isolated deterministic transports. |
+| Instance-pinned scratch WebSocket sessions | Still missing | [HTTP instance verification](../../timeline-player/src/server/ServerIdentity/ServerIdentity.cpp) binds proof and mutation to one connection. The existing WebSocket transport has no equivalent proof, so AI commands refuse that scratch-only connection mode. Normal authenticated server connections are supported. Tests use isolated deterministic transports. |
 
 ## Capability checklist
 
@@ -116,8 +116,8 @@ Generation status must distinguish provider completion, output availability
 and attachment to the destination.
 
 Native integration builds on
-[`ServerClient`](../src/server/ServerClient.h),
-[`TimelineJson`](../src/model/TimelineJson.cpp), the edit registry and
+[`ServerClient`](../../timeline-player/src/server/ServerClient.h),
+[`TimelineJson`](../../timeline-player/src/model/TimelineJson.cpp), the edit registry and
 [`external sync`](../src/server/sync/). Preserve unknown root, track and clip
 JSON while changing owned fields. Use server asset IDs and the asset cache for
 preview. Reuse server authentication. Provider credentials remain on the

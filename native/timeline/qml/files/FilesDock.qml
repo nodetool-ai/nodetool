@@ -2,6 +2,7 @@
 import QtQuick
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import NodeTool.Files
 import NodeTool.UiPrimitives as Ui
 import "../assets/AssetContext.js" as Context

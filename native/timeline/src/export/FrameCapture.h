@@ -1,4 +1,5 @@
 #pragma once
+#include "server/TimelineAssetCacheContext.h"
 #include "model/TimelineModel.h"
 #include <QImage>
 #include <QMap>
@@ -21,14 +22,16 @@ struct FrameCaptureResult {
 };
 
 // native-rules #9: QThreadPool jobs call back into it from other threads, no affinity comment
-class FrameCapture : public QObject {
+class FrameCapture : public nt::server::TimelineCacheConsumer<QObject> {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(int pending READ pending NOTIFY pendingChanged)
 public:
     using Callback = std::function<void(const FrameCaptureResult&)>;
     explicit FrameCapture(QObject* parent = nullptr);
+    explicit FrameCapture(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~FrameCapture() override;
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* model);

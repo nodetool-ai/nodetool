@@ -11,6 +11,8 @@
 
 import { packageAssetHttpPath } from "@nodetool-ai/protocol";
 
+import { cloudAssetUrl, cloudMediaUrl } from "../lib/cloud/cloudMedia";
+import { CLOUD_WINDOW } from "../lib/cloud/cloudWindow";
 import { useAssetStore } from "../stores/AssetStore";
 import { BASE_URL } from "../stores/BASE_URL";
 import { fileUriToHttpUrl } from "./localFile";
@@ -62,6 +64,11 @@ export const resolveStaticMediaUri = (
     return `${BASE_URL}${pkgPath}` as ResolvedMediaUrl;
   }
   if (uri.startsWith("/api/")) {
+    if (CLOUD_WINDOW) {
+      // The cloud window's page holds no token: the server's files load
+      // through the main process, and no other route loads at all.
+      return cloudMediaUrl(CLOUD_WINDOW.server, uri) ?? "";
+    }
     return `${BASE_URL}${uri}` as ResolvedMediaUrl;
   }
   return uri as ResolvedMediaUrl;
@@ -84,6 +91,9 @@ export const resolveMediaUri = async (
   }
   try {
     const asset = await useAssetStore.getState().get(assetId);
+    if (CLOUD_WINDOW) {
+      return cloudAssetUrl(asset?.get_url, CLOUD_WINDOW.server) ?? "";
+    }
     return asResolvedMediaUrl(asset?.get_url) ?? "";
   } catch (error) {
     // Callers render or download whatever comes back; an unresolvable asset is

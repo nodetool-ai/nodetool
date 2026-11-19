@@ -14521,6 +14521,8 @@
       "tryAgainLater": "Spróbuj ponownie później.",
       "cloudLoadFailure": "Nie udało się wyświetlić dokumentów w chmurze: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool wciąż się uruchamia. Otwórz dokument w chmurze ponownie za chwilę.",
+      "cloudWindowSignedOut": "Zaloguj się do NodeTool Cloud, aby otworzyć ten dokument.",
       "noMatching": "Brak pasujących dokumentów",
       "noMatchingDescription": "Wyszukuje tylko dokumenty. Rozmowy znajdują się w Czatach, a przesłane pliki znajdują się w Bibliotece.",
       "noDocuments": "Nie ma jeszcze dokumentów",
@@ -20995,6 +20997,24 @@
     "cancel": "Anuluj",
     "signOut": "Wyloguj się",
     "signOutNote": "Zmiany oczekujące w edytorze węzłów lub na osi czasu pozostają na tym komputerze i zostaną wysłane po ponownym zalogowaniu.",
-    "unavailable": "Logowanie do chmury nie jest dostępne w tej wersji."
+    "unavailable": "Logowanie do chmury nie jest dostępne w tej wersji.",
+    "signOutDialog": {
+      "title": "Zmiany jeszcze niewysłane",
+      "waiting_one": "{{count}} dokument w chmurze ma zmiany, które nie zostały jeszcze wysłane.",
+      "waiting_few": "{{count}} dokumenty w chmurze mają zmiany, które nie zostały jeszcze wysłane.",
+      "waiting_many": "{{count}} dokumentów w chmurze ma zmiany, które nie zostały jeszcze wysłane.",
+      "waiting_other": "{{count}} dokumentu w chmurze ma zmiany, które nie zostały jeszcze wysłane.",
+      "unsent_one": "Serwer odrzucił zmiany w {{count}} dokumencie w chmurze.",
+      "unsent_few": "Serwer odrzucił zmiany w {{count}} dokumentach w chmurze.",
+      "unsent_many": "Serwer odrzucił zmiany w {{count}} dokumentach w chmurze.",
+      "unsent_other": "Serwer odrzucił zmiany w {{count}} dokumentu w chmurze.",
+      "unknown": "NodeTool nie mógł sprawdzić, czy są niewysłane zmiany.",
+      "kept": "Jeśli wylogujesz się teraz, zmiany zostaną na tym komputerze i zostaną wysłane, gdy ponownie zalogujesz się na to konto.",
+      "keep": "Zachowaj na tym komputerze i wyloguj",
+      "wait": "Poczekaj na wysłanie",
+      "cancel": "Anuluj",
+      "signOutNow": "Wyloguj teraz",
+      "waitingNote": "Oczekiwanie na wysłanie zmian. Nie zamykaj okna chmury."
+    }
   }
 }

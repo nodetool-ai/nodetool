@@ -14037,6 +14037,8 @@
       "tryAgainLater": "Yritä myöhemmin uudelleen.",
       "cloudLoadFailure": "Pilvidokumentteja ei voitu luetella: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool käynnistyy vielä. Avaa pilviasiakirja uudelleen hetken kuluttua.",
+      "cloudWindowSignedOut": "Kirjaudu NodeTool Cloudiin avataksesi tämän asiakirjan.",
       "noMatching": "Ei vastaavia dokumentteja",
       "noMatchingDescription": "Tämä hakee vain dokumentteja. Keskustelut ovat Keskusteluissa ja lähetetyt tiedostot Kirjastossa.",
       "noDocuments": "Ei vielä dokumentteja",
@@ -20373,6 +20375,20 @@
     "cancel": "Peruuta",
     "signOut": "Kirjaudu ulos",
     "signOutNote": "Solmueditorissa tai aikajanalla odottavat muutokset jäävät tälle tietokoneelle ja lähetetään, kun kirjaudut uudelleen.",
-    "unavailable": "Pilvikirjautuminen ei ole käytettävissä tässä versiossa."
+    "unavailable": "Pilvikirjautuminen ei ole käytettävissä tässä versiossa.",
+    "signOutDialog": {
+      "title": "Muutoksia ei ole vielä lähetetty",
+      "waiting_one": "{{count}} pilviasiakirjassa on muutoksia, joita ei ole vielä lähetetty.",
+      "waiting_other": "{{count}} pilviasiakirjassa on muutoksia, joita ei ole vielä lähetetty.",
+      "unsent_one": "Palvelin hylkäsi {{count}} pilviasiakirjan muutokset.",
+      "unsent_other": "Palvelin hylkäsi {{count}} pilviasiakirjan muutokset.",
+      "unknown": "NodeTool ei voinut tarkistaa lähettämättömiä muutoksia.",
+      "kept": "Jos kirjaudut ulos nyt, muutokset jäävät tälle tietokoneelle ja lähetetään, kun kirjaudut uudelleen sisään tällä tilillä.",
+      "keep": "Säilytä tällä tietokoneella ja kirjaudu ulos",
+      "wait": "Odota lähetystä",
+      "cancel": "Peruuta",
+      "signOutNow": "Kirjaudu ulos nyt",
+      "waitingNote": "Odotetaan muutosten lähettämistä. Pidä pilvi-ikkuna auki."
+    }
   }
 }

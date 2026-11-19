@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include <QScopeGuard>
 // The keyboard presets, checked in the mounted editor with real key events.
 // A key press uses what the platform reports: Shift+1 is Qt::Key_Exclam and
@@ -35,6 +36,7 @@ QStringList repeatedChords(const std::vector<Binding>& bindings) {
 
 class TestKeyboardPresets : public WiringFixture {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     QQuickItem* region() const { return item("tracksRegion"); }
     QObject* dock() const { return view->rootObject()->property("dockCanvas").value<QObject*>(); }
     QStringList visiblePanels() const { return dock()->property("visiblePanels").toStringList(); }
@@ -809,6 +811,7 @@ private slots:
             QVERIFY(parsed.timeline);
             model.setTimeline(std::move(*parsed.timeline));
             view = std::make_unique<QQuickView>();
+            m_testCache.install(*view->engine());
             view->rootContext()->setContextProperty("nativeInteractiveRun", interactive);
             view->setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});
             view->loadFromModule("NodeTool.Timeline", "TimelineEditor");

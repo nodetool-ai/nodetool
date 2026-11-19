@@ -23,8 +23,12 @@ nt::Clip localMedia(const QString& path, const QJsonObject& raw) {
     return media;
 }
 }
-CandidatePreview::CandidatePreview(QObject* parent) : QObject(parent), m_preview(new TimelineModel(this)),
-    m_clock(new PlaybackClock(this)), m_protection(std::make_shared<nt::assets::MediaProtection>()) {}
+CandidatePreview::CandidatePreview(const nt::server::AssetCacheRoot& cache, QObject* parent) : CandidatePreview(parent) {
+    setCacheRoot(cache);
+}
+
+CandidatePreview::CandidatePreview(QObject* parent) : TimelineMediaConsumer(parent), m_preview(new TimelineModel(this)),
+    m_clock(new PlaybackClock(this)) {}
 CandidatePreview::~CandidatePreview() {
     if (m_worker) { m_worker->requestInterruption(); m_worker->wait(); }
 }
@@ -41,7 +45,7 @@ void CandidatePreview::setTimeline(TimelineModel* model) {
 }
 void CandidatePreview::close() {
     ++m_serial; m_clock->pause(); m_audio.reset(); m_preview->close(); m_ready = false;
-    m_protection->reset({});
+    mediaProtection()->reset({});
     if (m_worker) { m_worker->requestInterruption(); }
     m_pending.reset(); m_loading = false;
     m_error.clear();
@@ -89,7 +93,7 @@ bool CandidatePreview::start(const PendingPreview& request) {
     const auto generation = model->documentGeneration();
     const auto serial = m_serial;
     const QPointer<CandidatePreview> self(this);
-    const auto protection = m_protection;
+    const auto protection = mediaProtection();
     const auto protectionGeneration = protection->generation();
     auto* worker = QThread::create([self, model, generation, serial, target, protection, protectionGeneration, assetId, localPath, mediaType, durationMs]() {
         const bool local = !localPath.isEmpty();
@@ -110,8 +114,7 @@ bool CandidatePreview::start(const PendingPreview& request) {
         if (local) {
             media = localMedia(localPath, clip);
         } else if (result.ok() && !QThread::currentThread()->isInterruptionRequested()) {
-            const auto cacheRoot = QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../.."));
-            media = nt::assets::resolveDroppedMedia(*client, cacheRoot, asset, clip, *protection, protectionGeneration);
+            media = nt::assets::resolveDroppedMedia(*client, asset, clip, *protection, protectionGeneration);
         }
         const auto path = mediaType == "audio" ? media.audioPath : media.mediaPath;
         if (QThread::currentThread()->isInterruptionRequested()) { return; }

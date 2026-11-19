@@ -56,7 +56,8 @@ int frameExportCli(int argc, char** argv) {
         if (!parsed.timeline) { return fail(parsed.error); }
         model.setTimeline(std::move(*parsed.timeline));
     }
-    FrameExporter exporter;
+    const nt::server::AssetCacheRoot cache(nt::server::timelineCacheDirectory());
+    FrameExporter exporter(cache);
     if (!source) { exporter.setTimeline(&model); }
     bool saving = false;
     int exitCode = 1;

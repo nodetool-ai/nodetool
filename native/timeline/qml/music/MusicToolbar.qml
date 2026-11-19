@@ -11,6 +11,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import NodeTool.UiPrimitives as Ui
 import "MusicLayout.js" as MusicLayout
 import "../assets/AssetContext.js" as Context

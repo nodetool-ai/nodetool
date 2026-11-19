@@ -1,3 +1,4 @@
+#include "server/TimelineAssetCacheContext.h"
 #include "SourceViewerState.h"
 #include "SourceEdit.h"
 #include "assets/AssetClip.h"
@@ -29,7 +30,12 @@ QString actionName(const QString& kind) {
 // Saved in the preferences, least recently used first.
 constexpr qsizetype kMaxSavedMarks = 500;
 }
-SourceViewerState::SourceViewerState(QObject* parent) : QObject(parent), m_monitor(new SourceMonitor(this)) {
+SourceViewerState* SourceViewerState::create(QQmlEngine* engine, QJSEngine*) {
+    // The QML engine owns the singleton.
+    return new SourceViewerState(nt::server::TimelineAssetCacheContext::require(engine), engine);
+}
+
+SourceViewerState::SourceViewerState(const nt::server::AssetCacheRoot& cache, QObject* parent) : QObject(parent), m_monitor(new SourceMonitor(cache, this)) {
     connect(m_monitor, &SourceMonitor::opened, this, [this] {
         const double duration = m_asset.value("duration").toDouble();
         if ((!std::isfinite(duration) || duration <= 0) && m_monitor->durationMs() > 0) {

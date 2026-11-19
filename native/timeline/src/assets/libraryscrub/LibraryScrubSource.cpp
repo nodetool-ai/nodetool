@@ -3,7 +3,7 @@
 #include <QNetworkRequest>
 
 namespace nt::assets {
-ScrubSource fetchScrubSource(nt::server::ServerClient& client, const QString& cacheRoot, const QJsonObject& asset,
+ScrubSource fetchScrubSource(nt::server::ServerClient& client, const nt::server::AssetCacheRoot& cacheRoot, const QJsonObject& asset,
                              const std::function<bool()>& interrupted) {
     const auto id = asset.value("id").toString();
     if (id.isEmpty() || (interrupted && interrupted())) { return {}; }
@@ -12,6 +12,7 @@ ScrubSource fetchScrubSource(nt::server::ServerClient& client, const QString& ca
     const auto budget = cache.budgetBytes();
     cache.setBudgetBytes(0);
     const auto fetch = [&](const QString& variant, const nt::server::RemoteFile& file) {
+        ScrubSource source;
         const auto result = cache.fetch(id, variant, file,
             [&]() -> std::optional<nt::server::RemoteFile> {
                 const auto fresh = client.getAsset(id);
@@ -19,11 +20,9 @@ ScrubSource fetchScrubSource(nt::server::ServerClient& client, const QString& ca
                 QString why;
                 return variant == "proxy" ? nt::server::proxyFile(client, fresh.data.toObject(), &why)
                                           : nt::server::originalFile(client, fresh.data.toObject(), &why);
-            });
+            }, [&](const QString& path) { source = {path, cacheRoot.lease(path)}; });
         if (!result.ok()) { return ScrubSource{}; }
-        // Held before eviction runs, so the file just fetched stays.
-        ScrubSource source{result.path, nt::server::AssetCache::lease(result.path)};
-        if (!result.hit) { nt::server::AssetCache::evictRoot(cacheRoot, budget, result.path); }
+        if (!result.hit) { cacheRoot.evict(budget, result.path); }
         return source;
     };
     QString why;

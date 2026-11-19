@@ -1,12 +1,7 @@
-nt_sources(core
-    src/preview/transitions/TransitionResolver.h
-    src/preview/transitions/TransitionResolver.cpp
-)
-
+# TransitionResolver is in native/timeline-player (nodetool_timeline_scene).
+# Its test reads the timeline's fixtures and examples, so it stays here.
 if(NOT MSVC)
-    set_source_files_properties(
-        src/preview/transitions/TransitionResolver.cpp tests/tst_transitionresolver.cpp
-        PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+    set_source_files_properties(tests/tst_transitionresolver.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
 
 function(nt_transition_resolver_tests)

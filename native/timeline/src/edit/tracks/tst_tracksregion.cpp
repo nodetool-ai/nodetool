@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "edit/tracks/TrackHeaderActions.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -25,6 +26,7 @@ QQuickItem* findItem(QQuickItem* root, const QString& name) {
 }
 class TestTracksRegion : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     TimelineModel model;
     PlaybackClock clock;
     std::unique_ptr<QQuickView> view;
@@ -58,6 +60,7 @@ private slots:
         model.setTimeline(std::move(*parsed.timeline));
         before = doc();
         view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
         view->setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});
         view->loadFromModule("NodeTool.Timeline", "TracksRegion");
         QVERIFY2(view->status() == QQuickView::Ready, qPrintable(view->errors().isEmpty() ? QString() : view->errors().first().toString()));

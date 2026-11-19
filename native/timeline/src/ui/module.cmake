@@ -112,9 +112,6 @@ function(nt_ui_tests)
     # which the app registers from this file.
     target_sources(tst_tracksui PRIVATE src/server/recovery/RecoveryRegistration.cpp)
     nt_add_timeline_qml(tst_tracksui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_tracksui_qml/NodeTool/Timeline)
-    # Linux: the render-control case attaches a Vulkan instance (hw::prepareWindow)
-    # when the scene graph runs on Vulkan, as CI and the render tests do.
-    nt_target_sources(tst_tracksui)
     add_test(NAME tst_tracksui COMMAND tst_tracksui)
     # No window is ever shown: the offscreen platform and the software renderer.
     set_tests_properties(tst_tracksui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")

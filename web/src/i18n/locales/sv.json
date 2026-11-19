@@ -14037,6 +14037,8 @@
       "tryAgainLater": "Försök igen senare.",
       "cloudLoadFailure": "Det gick inte att lista dokumenten i molnet: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool startar fortfarande. Öppna molndokumentet igen om en stund.",
+      "cloudWindowSignedOut": "Logga in på NodeTool Cloud för att öppna det här dokumentet.",
       "noMatching": "Inga matchande dokument",
       "noMatchingDescription": "Detta söker endast i dokument. Konversationer finns i Chats och uppladdningar finns i biblioteket.",
       "noDocuments": "Inga dokument ännu",
@@ -20373,6 +20375,20 @@
     "cancel": "Avbryt",
     "signOut": "Logga ut",
     "signOutNote": "Ändringar som väntar i nodredigeraren eller tidslinjen stannar på den här datorn och skickas när du loggar in igen.",
-    "unavailable": "Molninloggning är inte tillgänglig i den här versionen."
+    "unavailable": "Molninloggning är inte tillgänglig i den här versionen.",
+    "signOutDialog": {
+      "title": "Ändringar har inte skickats än",
+      "waiting_one": "{{count}} molndokument har ändringar som inte har skickats än.",
+      "waiting_other": "{{count}} molndokument har ändringar som inte har skickats än.",
+      "unsent_one": "Servern avvisade ändringarna i {{count}} molndokument.",
+      "unsent_other": "Servern avvisade ändringarna i {{count}} molndokument.",
+      "unknown": "NodeTool kunde inte kontrollera om det finns ändringar som inte har skickats.",
+      "kept": "Om du loggar ut nu stannar ändringarna på den här datorn och skickas när du loggar in igen med det här kontot.",
+      "keep": "Behåll på den här datorn och logga ut",
+      "wait": "Vänta tills de skickats",
+      "cancel": "Avbryt",
+      "signOutNow": "Logga ut nu",
+      "waitingNote": "Väntar på att ändringarna skickas. Håll molnfönstret öppet."
+    }
   }
 }

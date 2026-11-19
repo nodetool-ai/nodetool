@@ -11,6 +11,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { CloudAccountState } from "../../window";
 import ErrorBanner from "../support/ErrorBanner";
+import CloudSignOutDialog from "./CloudSignOutDialog";
+import { countCloudDrafts, type DraftCounts } from "../../lib/cloud/waitingDrafts";
 import {
   AlertBanner,
   Caption,
@@ -28,6 +30,8 @@ const CloudAccountSettings: React.FC = () => {
 
   const [account, setAccount] = useState<CloudAccountState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The counts the sign-out dialog shows, or undefined while it is closed.
+  const [signOutCounts, setSignOutCounts] = useState<DraftCounts | null | undefined>(undefined);
 
   useEffect(() => {
     if (!accountApi) {
@@ -76,11 +80,32 @@ const CloudAccountSettings: React.FC = () => {
       void run(accountApi.cancelSignIn);
     }
   }, [accountApi, run]);
-  const handleSignOut = useCallback(() => {
+  const signOutNow = useCallback(() => {
+    setSignOutCounts(undefined);
     if (accountApi) {
       void run(accountApi.signOut);
     }
   }, [accountApi, run]);
+  const handleSignOut = useCallback(async () => {
+    if (!account) {
+      return;
+    }
+    const counts = await countCloudDrafts(account);
+    if (counts && counts.waiting === 0 && counts.unsent === 0) {
+      signOutNow();
+      return;
+    }
+    // FR30: changes not sent yet, or no answer from the local server.
+    setSignOutCounts(counts);
+  }, [account, signOutNow]);
+  const handleSignOutCancel = useCallback(() => setSignOutCounts(undefined), []);
+
+  // A sign-out made in another app closes the dialog.
+  useEffect(() => {
+    if (account?.state !== "signedIn") {
+      setSignOutCounts(undefined);
+    }
+  }, [account?.state]);
 
   if (!accountApi) {
     return null;
@@ -150,7 +175,7 @@ const CloudAccountSettings: React.FC = () => {
               </EditorButton>
             )}
             {account.state === "signedIn" && (
-              <EditorButton variant="outlined" onClick={handleSignOut}>
+              <EditorButton variant="outlined" onClick={() => void handleSignOut()}>
                 {t("cloudAccount.signOut")}
               </EditorButton>
             )}
@@ -158,6 +183,15 @@ const CloudAccountSettings: React.FC = () => {
         )}
         {canUse && account.state === "signedIn" && (
           <Caption>{t("cloudAccount.signOutNote")}</Caption>
+        )}
+
+        {account && signOutCounts !== undefined && (
+          <CloudSignOutDialog
+            account={account}
+            counts={signOutCounts}
+            onSignOut={signOutNow}
+            onCancel={handleSignOutCancel}
+          />
         )}
 
         {error && (

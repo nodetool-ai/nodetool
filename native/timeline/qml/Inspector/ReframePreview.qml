@@ -1,5 +1,6 @@
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 
 Item {
     id: root

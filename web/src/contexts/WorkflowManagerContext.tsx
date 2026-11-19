@@ -28,6 +28,7 @@ import {
   WorkflowManagerState,
   getOpenWorkflowsFromStorage
 } from "../stores/WorkflowManagerStore";
+import { useCloudWindowWorkflowDrafts } from "../hooks/useCloudWindowWorkflowDrafts";
 
 declare global {
   interface Window {
@@ -84,6 +85,7 @@ export const WorkflowManagerProvider: FC<{
   queryClient: QueryClient;
 }> = ({ children, queryClient }) => {
   const [store] = useState(() => createWorkflowManagerStore(queryClient));
+  useCloudWindowWorkflowDrafts(store);
 
   useEffect(() => {
     // Restore workflows that were previously open from localStorage.

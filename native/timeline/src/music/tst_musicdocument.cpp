@@ -97,7 +97,7 @@ private slots:
         QUndoStack undo;
         auto draft = parsed.timeline->raw;
         nt::server::SaveTarget target{http.base(), QString(), "music-seq", dir.path(), QString()};
-        nt::server::AutosaveController save(target, &undo, [&draft] { return draft; }, "u0");
+        nt::server::AutosaveController save(nt::server::AssetCacheRoot(dir.path()), target, &undo, [&draft] { return draft; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(true);
         // An edit the native model owns: a marker. Everything else rides along untouched.

@@ -1,3 +1,4 @@
+#include "server/TimelineAssetCacheContext.h"
 // Headless driver for the real model, sync registration and editor QML.
 // stdin/stdout are JSON lines. Diagnostics belong on stderr.
 #include "model/TimelineModel.h"
@@ -5,7 +6,9 @@
 #include "preview/hw/HwWindow.h"
 #include "server/AssetCache.h"
 #include "server/AutosaveController.h"
-#include "server/ServerTimeline.h"
+#include "server/ServerTimelineProbe.h"
+#include "server/ServerSource.h"
+#include "takes/TakeSwitcher.h"
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -66,9 +69,9 @@ int main(int argc, char** argv) {
         return 2;
     }
     const auto id = parser.value("timeline");
-    const auto cache = parser.value("cache-dir");
+    const nt::server::AssetCacheRoot cache(parser.value("cache-dir"));
     const auto token = parser.isSet("token") ? parser.value("token") : qEnvironmentVariable("NODETOOL_API_TOKEN");
-    auto opened = nt::server::openServerTimeline({server, id, cache, token, true});
+    auto opened = nt::server::openProbedServerTimeline({server, id, cache, token, true, {}, {}});
     if (!opened.timeline) {
         std::fprintf(stderr, "open: %s\n", qPrintable(opened.error));
         return 1;
@@ -78,15 +81,17 @@ int main(int argc, char** argv) {
     model.setTimeline(std::move(*opened.timeline));
     PlaybackClock clock;
     const nt::server::ServerClient client(server, token);
-    const auto backup = QDir(cache).filePath(nt::server::safePathPart(client.serverKey()) + u'/' +
+    const auto backup = QDir(cache.path()).filePath(nt::server::safePathPart(client.serverKey()) + u'/' +
         nt::server::safePathPart(client.userKey()) + QStringLiteral("/timelines"));
-    nt::server::AutosaveController save({server, token, id, backup,
+    nt::server::AutosaveController save(cache, {server, token, id, backup,
         qEnvironmentVariable("NODETOOL_TIMELINE_EXPECT_INSTANCE")}, model.undoStack(),
         [&model] { return model.timeline().raw; }, base);
     if (parser.isSet("sync-url")) {
         save.setExternalSyncUrl(QUrl(parser.value("sync-url")));
     }
     QQuickView view;
+    nt::server::TimelineAssetCacheContext::install(*view.engine(), cache);
+    TakeSwitcher::attach(model, cache);
     nt::hw::prepareWindow(&view);
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});

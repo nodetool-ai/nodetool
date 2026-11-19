@@ -45,6 +45,7 @@ import { setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
 import { getVstHost } from "./vstHost";
 import { getCloudAccount, getCloudSockets } from "./cloudAccount";
+import { cloudWindowLocalCall, getCloudWindow } from "./cloudWindowHost";
 import { showSystemNotification } from "./systemNotifications";
 import { IpcRequest } from "./types.d";
 import {
@@ -108,6 +109,20 @@ const cloudSocketSendSchema = z
   })
   .strict();
 const cloudSocketCloseSchema = z.object({ id: z.number().int().positive() }).strict();
+// A cloud document id is one path segment of a tRPC input, never a URL.
+const cloudDocumentRefSchema = z
+  .object({
+    type: z.enum(["workflow", "timeline"]),
+    id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
+  })
+  .strict();
+// The cloud window's local store: main names the server key and account.
+const cloudLocalCallSchema = z
+  .object({
+    procedure: z.string().max(64),
+    input: z.record(z.string(), z.unknown()),
+  })
+  .strict();
 // The windows whose sockets close when they are destroyed.
 const watchedSocketOwners = new Set<number>();
 const nodePackUninstallRequestSchema = z.object({ name: z.string() }).strict();
@@ -1063,17 +1078,23 @@ export function initializeIpcHandlers(): void {
   });
   // Cloud requests and transfer calls of cloud documents (WP1.14). Neither
   // the input nor the answer holds a token.
-  createIpcMainHandler(IpcChannels.CLOUD_REQUEST, async (_event, request) => {
+  createIpcMainHandler(IpcChannels.CLOUD_REQUEST, async (event, request) => {
     const parsed = cloudRequestSchema.safeParse(request);
     if (!parsed.success) {
       return { ok: false, error: "REFUSED" } as const;
     }
+    if (!getCloudWindow().mayCallCloud(event.sender.id)) {
+      return { ok: false, error: "SIGNED_OUT" } as const;
+    }
     return getCloudAccount().request(parsed.data);
   });
-  createIpcMainHandler(IpcChannels.CLOUD_TRANSFER, async (_event, request) => {
+  createIpcMainHandler(IpcChannels.CLOUD_TRANSFER, async (event, request) => {
     const parsed = cloudTransferSchema.safeParse(request);
     if (!parsed.success) {
       return { status: "refused", reason: "INVALID", data: null } as const;
+    }
+    if (!getCloudWindow().mayCallCloud(event.sender.id)) {
+      return { status: "signedOut", reason: "SIGNED_OUT", data: null } as const;
     }
     return getCloudAccount().transfer(parsed.data.procedure, parsed.data.input);
   });
@@ -1081,6 +1102,9 @@ export function initializeIpcHandlers(): void {
   // socket is the only one that can send on it or close it.
   createIpcMainHandler(IpcChannels.CLOUD_SOCKET_OPEN, async (event) => {
     const sender = event.sender;
+    if (!getCloudWindow().mayCallCloud(sender.id)) {
+      return { ok: false, error: "SIGNED_OUT" } as const;
+    }
     const sockets = getCloudSockets();
     const result = await sockets.open(sender.id);
     if (result.ok && !watchedSocketOwners.has(sender.id)) {
@@ -1101,6 +1125,26 @@ export function initializeIpcHandlers(): void {
     if (parsed.success) {
       getCloudSockets().close(event.sender.id, parsed.data.id);
     }
+  });
+
+  // The cloud window (D27). Any window can open a cloud document there. Only
+  // the cloud window learns its server and account, and only from here.
+  createIpcMainHandler(IpcChannels.CLOUD_WINDOW_OPEN, async (_event, request) => {
+    const parsed = cloudDocumentRefSchema.safeParse(request);
+    return parsed.success ? getCloudWindow().open(parsed.data) : ({ ok: false, error: "SIGNED_OUT" } as const);
+  });
+  createIpcMainHandler(IpcChannels.CLOUD_WINDOW_READY, async (event) =>
+    getCloudWindow().takePending(event.sender.id),
+  );
+  createIpcMainHandler(IpcChannels.CLOUD_LOCAL_CALL, async (event, request) => {
+    const parsed = cloudLocalCallSchema.safeParse(request);
+    return parsed.success
+      ? cloudWindowLocalCall(event.sender.id, parsed.data.procedure, parsed.data.input)
+      : ({ ok: false, error: "REFUSED" } as const);
+  });
+  ipcMain.removeAllListeners(IpcChannels.CLOUD_WINDOW_ORIGIN);
+  ipcMain.on(IpcChannels.CLOUD_WINDOW_ORIGIN, (event) => {
+    event.returnValue = getCloudWindow().originFor(event.sender.id);
   });
 
   createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {

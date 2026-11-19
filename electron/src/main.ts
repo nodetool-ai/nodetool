@@ -63,6 +63,7 @@ import { updateSetting, readSettingsAsync } from "./settings";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 import { configureCertificateTrust } from "./certificateTrust";
 import { disposeVstHost } from "./vstHost";
+import { disposeCloudWindow } from "./cloudWindowHost";
 import {
   disposeCloudAccount,
   getCloudAccount,
@@ -632,6 +633,7 @@ process.on(
 
 app.on("will-quit", () => {
   disposeVstHost();
+  disposeCloudWindow();
   disposeCloudAccount();
   globalShortcut.unregisterAll();
   cleanupTrayEvents();

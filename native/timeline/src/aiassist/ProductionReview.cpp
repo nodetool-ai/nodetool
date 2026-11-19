@@ -18,7 +18,11 @@ QJsonObject reviewInput(const QJsonObject& board, const QString& shotId, const Q
     return {{"board", board}, {"shotId", shotId}, {"kind", kind}, {"model", model}, {"entities", entities}, {"script", script}};
 }
 }
-ProductionReview::ProductionReview(QObject* parent) : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>()) {}
+ProductionReview::ProductionReview(const nt::server::AssetCacheRoot& cache, QObject* parent) : ProductionReview(parent) {
+    setCacheRoot(cache);
+}
+
+ProductionReview::ProductionReview(QObject* parent) : TimelineMediaConsumer(parent) {}
 ProductionReview::~ProductionReview() { if (m_worker) { m_worker->requestInterruption(); m_worker->wait(); } }
 void ProductionReview::setTimeline(TimelineModel* model) {
     if (model == m_timeline) { return; }
@@ -33,7 +37,7 @@ void ProductionReview::setTimeline(TimelineModel* model) {
 void ProductionReview::resetProtection() {
     QSet<QString> paths;
     if (m_timeline) { for (const auto& clip : m_timeline->timeline().clips) { if (!clip.mediaPath.empty()) { paths.insert(QString::fromStdString(clip.mediaPath)); } if (!clip.audioPath.empty()) { paths.insert(QString::fromStdString(clip.audioPath)); } } }
-    m_protection->reset(paths);
+    mediaProtection()->reset(paths);
 }
 QString ProductionReview::fingerprint(const QJsonObject& value) {
     return QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(value).toJson(QJsonDocument::Compact), QCryptographicHash::Sha256).toHex());
@@ -134,7 +138,7 @@ bool ProductionReview::placeShot(const QJsonObject& board, const QString& shotId
     const auto target = nt::server::serverSaveTarget();
     if (!target && !m_call) { m_error = "Open a server timeline to place storyboard media."; emit changed(); return false; }
     ++m_serial; const auto serial = m_serial; const auto generation = m_timeline->documentGeneration(); const auto timeline = m_timeline;
-    const auto call = m_call; const auto resolver = m_resolver; const auto protection = m_protection; const auto mediaGeneration = protection->generation();
+    const auto call = m_call; const auto resolver = m_resolver; const auto protection = mediaProtection(); const auto mediaGeneration = protection->generation();
     const QPointer<ProductionReview> guard(this); m_error.clear(); m_approvedToken.clear();
     auto* worker = QThread::create([guard, timeline, before, placement, serial, generation, target, call, resolver, protection, mediaGeneration] {
         nt::server::ServerClient server(target ? target->server : QUrl("http://127.0.0.1:1"), target ? target->token : QString{});
@@ -143,9 +147,9 @@ bool ProductionReview::placeShot(const QJsonObject& board, const QString& shotId
             const auto raw = value.toObject(); const auto assetId = raw.value("currentAssetId").toString();
             const auto response = call ? call("assets.get", {{"id", assetId}}) : server.getAsset(assetId);
             if (!response.ok()) { error = response.describe(); break; }
-            const auto root = target ? QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../..")) : QString{};
-            auto resolved = resolver ? resolver(server, root, response.data.toObject(), raw, *protection, mediaGeneration)
-                : nt::assets::resolveDroppedMedia(server, root, response.data.toObject(), raw, *protection, mediaGeneration);
+
+            auto resolved = resolver ? resolver(server, protection->cache().path(), response.data.toObject(), raw, *protection, mediaGeneration)
+                : nt::assets::resolveDroppedMedia(server, response.data.toObject(), raw, *protection, mediaGeneration);
             const auto path = QString::fromStdString(raw.value("mediaType") == "audio" ? resolved.audioPath : resolved.mediaPath);
             if (path.isEmpty() || !QFileInfo::exists(path)) { error = "The shot's stored media could not be loaded."; break; }
             media.push_back(std::move(resolved));

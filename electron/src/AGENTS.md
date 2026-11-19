@@ -142,6 +142,16 @@ are in [native/account-helper](../../native/account-helper/README.md).
   server with a token from the helper and relays frames. A socket belongs to
   the window that opened it and closes when that window goes away or the
   account signs out.
+- A cloud document opens in the cloud window (D27, `cloudWindow.ts`). Only
+  main decides which window that is: the page reads its server and account
+  once at boot (IPC `CLOUD_WINDOW_ORIGIN`). The window uses its own session
+  partition, so its persisted stores never mix with the local window's, and
+  closes when the account signs out or changes. A request, transfer or
+  socket from a cloud window of another account is refused, and another
+  account signing in ends the pending requests and sockets of the first.
+  The window's session has no local client token, so its drafts go through
+  `cloudLocal.ts` (IPC `CLOUD_LOCAL_CALL`), which names the server key and
+  account itself.
 - Unlike the VST host, the helper is never loaded from the user data folder.
 
 ## Rules

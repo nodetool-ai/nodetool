@@ -987,6 +987,43 @@ export function documentFileSync<Row extends DocumentRow, Fields>(
         { project_id: row.project_id, file_path: row.file_path },
         row.id
       );
+    },
+
+    async deleting(row, removeRow) {
+      if (reconciling.getStore()) return removeRow();
+      let removed = false;
+      let gone: Row | null = null;
+      try {
+        const folder = await documentFolder(row.user_id, row.project_id);
+        if (folder) {
+          await withProjectFolderLock(row.user_id, folder.projectId, async () => {
+            removed = true;
+            gone = await removeRow();
+            const path = gone?.file_path;
+            if (!gone || !path) return;
+            try {
+              await deleteDocumentFile(adapter, folder.workspace, path, gone.id);
+            } catch (error) {
+              log.warn(`Could not delete the file of a ${adapter.kind}`, {
+                id: gone.id,
+                error: describe(error)
+              });
+            }
+          });
+          return gone;
+        }
+      } catch (error) {
+        // The row delete failed: that is the caller's error.
+        if (removed) throw error;
+        log.debug(`Could not lock the folder of a ${adapter.kind} for a delete`, {
+          id: row.id,
+          error: describe(error)
+        });
+      }
+      // No folder, or its lock could not be taken: the row goes without it.
+      gone = await removeRow();
+      if (gone) await this.deleted(gone);
+      return gone;
     }
   };
 }

@@ -134,8 +134,11 @@ node tools/sanitizers/clang-tidy-baseline.mjs --self-test
 ```
 
 The script uses `/usr/bin/run-clang-tidy` with three low-priority workers
-and a Clang compilation database. Only `src/` and `tests/` translation units
-are selected. Only diagnostics in those directories are compared. Third-party
+and a Clang compilation database. Only the translation units in `src/` and
+`tests/` of this project and of the
+[timeline player module](../../../timeline-player/README.md) are selected.
+Only diagnostics in those directories are compared. Module files appear as
+`../timeline-player/src/...`, relative to `native/timeline`. Third-party
 and build-generated files are excluded. Compiler errors fail the run.
 Diagnostics are unique `file | check | message` strings without line or column.
 A new string fails the command and is printed. Removed diagnostics are allowed.

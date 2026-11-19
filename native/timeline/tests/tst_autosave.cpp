@@ -228,6 +228,7 @@ class TestAutosave : public QObject {
     Q_OBJECT
 
     QTemporaryDir m_dir{QCoreApplication::applicationDirPath() + QStringLiteral("/test-cache-XXXXXX")};
+    const nt::server::AssetCacheRoot m_cacheRoot{m_dir.path()};
     std::unique_ptr<TestHttpServer> m_http;
     std::unique_ptr<QUndoStack> m_undo;
     int m_value = 0;
@@ -235,7 +236,7 @@ class TestAutosave : public QObject {
 
     void make(const QString& base = QStringLiteral("u0"), const QString& folder = {}) {
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), folder.isEmpty() ? m_dir.path() : folder, QString()};
-        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, base);
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, t, m_undo.get(), [this]() { return rawDoc(m_value); }, base);
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
@@ -313,7 +314,8 @@ private slots:
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", fetched}}}}).toJson();
         });
         m_http->setPost([&](const QByteArray&, const QByteArray&) { return ok("2026-10-26T14:00:02.000Z"); });
-        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", mode == "canonical-cache" ? m_dir.filePath("cache/server/user/timelines") : mode == "deleted-no-copy" ? m_dir.filePath("blocked/sync") : m_dir.filePath(mode), {}},
+        m_save = std::make_unique<AutosaveController>(mode == "canonical-cache" ? nt::server::AssetCacheRoot(m_dir.filePath("cache")) : m_cacheRoot,
+            SaveTarget{m_http->base(), {}, "seq", mode == "canonical-cache" ? m_dir.filePath("cache/server/user/timelines") : mode == "deleted-no-copy" ? m_dir.filePath("blocked/sync") : m_dir.filePath(mode), {}},
             m_undo.get(), [&] { return raw; }, loaded["updatedAt"].toString());
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
@@ -455,7 +457,7 @@ private slots:
             ++writes;
             return QJsonDocument::fromJson(body).object()["baseUpdatedAt"] == "u0" ? conflict() : ok("u2");
         });
-        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
             m_undo.get(), [&] { return raw; }, "u0");
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
@@ -527,7 +529,7 @@ private slots:
             const auto base = QJsonDocument::fromJson(bytes).object()["baseUpdatedAt"].toString();
             return resume && base == "u" + QString::number(limit ? 6 : 2) ? ok("saved") : conflict();
         });
-        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
             m_undo.get(), [&] { return raw; }, "u0");
         m_save->setExternalSync(false);
         m_save->setDebounceMs(10);
@@ -621,7 +623,7 @@ private slots:
         } server;
         auto address = server.address.get_future();
         server.start();
-        m_save = std::make_unique<AutosaveController>(SaveTarget{address.get(), {}, "seq", m_dir.path(), {}},
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, SaveTarget{address.get(), {}, "seq", m_dir.path(), {}},
             m_undo.get(), [] { return syncDoc(0, 0, "u0"); }, "u0");
         m_save->setExternalSync(false);
         m_save->refreshExternal();
@@ -662,7 +664,7 @@ private slots:
         m_http->setPost([&](const QByteArray&, const QByteArray&) {
             return ++writes == 1 ? conflict() : ok("saved");
         });
-        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
             m_undo.get(), [&] { return raw; }, "u0");
         const auto finishRecovery = qScopeGuard([&] {
             static_cast<void>(QTest::qWaitFor([] { return AutosaveController::liveFetchWorkers() == 0; }, 2000));
@@ -733,7 +735,7 @@ private slots:
         m_http->setPost([&](const QByteArray&, const QByteArray&) {
             return ++writes == 1 || mode == "limit" || mode == "quit-limited" ? conflict() : ok("saved", mode == "stripped" ? QJsonArray{"unsupported"} : QJsonArray{});
         });
-        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", folder, {}}, m_undo.get(), [&] { return raw; }, "u0");
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, SaveTarget{m_http->base(), {}, "seq", folder, {}}, m_undo.get(), [&] { return raw; }, "u0");
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
         QVERIFY(QMetaObject::invokeMethod(m_save.get(), "setExternalSync", Q_ARG(bool, false)));
@@ -793,7 +795,7 @@ private slots:
             return true;
         });
         SaveTarget target{m_http->base(), "sync-token", "seq", m_dir.filePath("queued-" + mode), {}};
-        m_save = std::make_unique<AutosaveController>(target, m_undo.get(), [&] { return raw; }, "u0");
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, target, m_undo.get(), [&] { return raw; }, "u0");
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
         m_save->setQuitFallbackDirs({});
@@ -981,7 +983,7 @@ private slots:
         copy.close();
         QString earlier;
         {
-            AutosaveController first(target, m_undo.get(), [this] { return rawDoc(m_value); }, "u0");
+            AutosaveController first(m_cacheRoot, target, m_undo.get(), [this] { return rawDoc(m_value); }, "u0");
             first.setExternalSync(false);
             first.setQuitFallbackDirs({fallback});
             earlier = first.property("earlierCopy").toString();
@@ -989,7 +991,7 @@ private slots:
             QVERIFY(earlier != fixed);
             QVERIFY(QFileInfo::exists(earlier));
         }
-        AutosaveController next(target, m_undo.get(), [this] { return rawDoc(m_value); }, "u0");
+        AutosaveController next(m_cacheRoot, target, m_undo.get(), [this] { return rawDoc(m_value); }, "u0");
         next.setExternalSync(false);
         next.setQuitFallbackDirs({fallback});
         QCOMPARE(next.property("earlierCopy").toString(), earlier);
@@ -1113,7 +1115,7 @@ private slots:
         auto raw = rawDoc(0);
         const auto before = raw;
         m_http->setPost([](const QByteArray&, const QByteArray&) { return ok("u1"); });
-        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
             m_undo.get(), [&raw] { return raw; }, "u0");
         m_save->setExternalSync(false);
         m_save->setDebounceMs(25);
@@ -1182,7 +1184,7 @@ private slots:
         m_http->setPost([&](const QByteArray&, const QByteArray&) {
             return mode == "cas" && posts() == 1 ? conflict() : ok("2026-10-26T14:00:02.000Z");
         });
-        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.filePath(mode), {}},
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, SaveTarget{m_http->base(), {}, "seq", m_dir.filePath(mode), {}},
             m_undo.get(), [&raw] { return raw; }, loaded["updatedAt"].toString());
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
@@ -1239,7 +1241,7 @@ private slots:
 
     void projectSettingsSaveSnapshotAndRecovery() {
         auto raw = rawDoc(0);
-        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
             m_undo.get(), [&raw] { return raw; }, "u0");
         const auto cleanup = qScopeGuard([this] { m_save.reset(); });
         m_save->setExternalSync(false);
@@ -1466,7 +1468,7 @@ private slots:
     void aFailedRecoveryWriteIsReported() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(400, QStringLiteral("BAD_REQUEST")); });
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.filePath("blocked/no-such-folder"), QString()};
-        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
@@ -1522,7 +1524,7 @@ private slots:
     void aFailedCopyWriteIsAProperty() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(400, QStringLiteral("BAD_REQUEST")); });
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.filePath("blocked/no-such-folder"), QString()};
-        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
@@ -1664,7 +1666,7 @@ private slots:
         const QString backup = m_dir.filePath(QStringLiteral("blocked-backup"));
         const QString oldBackup = backup + QStringLiteral("-old");
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), backup, QString()};
-        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("blocked-fallback"))});
@@ -1700,7 +1702,7 @@ private slots:
         // 60 bytes, one every 100 ms: 6 s, never 1 s quiet.
         TrickleServer slow(ok(QStringLiteral("u1")).leftJustified(60, ' '), 100);
         SaveTarget t{slow.base(), QString(), QStringLiteral("seq"), m_dir.path(), QString()};
-        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
@@ -1723,7 +1725,7 @@ private slots:
     void quitWithAnUnwritableFolderUsesAFallback() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(503, QStringLiteral("INTERNAL_SERVER_ERROR")); });
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.filePath("blocked/no-such-folder"), QString()};
-        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
         const QString fallback = m_dir.filePath(QStringLiteral("fallback"));
@@ -1760,8 +1762,8 @@ private slots:
         int secondValue = 0;
         QUndoStack firstUndo;
         QUndoStack secondUndo;
-        AutosaveController firstSave(first, &firstUndo, [&]() { return rawDoc(firstValue); }, QStringLiteral("u0"));
-        AutosaveController secondSave(second, &secondUndo, [&]() { return rawDoc(secondValue); }, QStringLiteral("u0"));
+        AutosaveController firstSave(m_cacheRoot, first, &firstUndo, [&]() { return rawDoc(firstValue); }, QStringLiteral("u0"));
+        AutosaveController secondSave(m_cacheRoot, second, &secondUndo, [&]() { return rawDoc(secondValue); }, QStringLiteral("u0"));
         const QString fallback = m_dir.filePath(QStringLiteral("shared-fallback"));
         firstSave.setExternalSync(false);
         firstSave.setAutosave(false);
@@ -1802,7 +1804,7 @@ private slots:
         QVERIFY(blocker.open(QIODevice::WriteOnly));
         blocker.close();
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), blocked, QString()};
-        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
         m_save->setQuitFallbackDirs({blocked});
@@ -1836,7 +1838,7 @@ private slots:
     void quitExitCodeReportsLostEdits() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(503, QStringLiteral("INTERNAL_SERVER_ERROR")); });
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.filePath("blocked/no-such-folder"), QString()};
-        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
         m_save->setQuitFallbackDirs({m_dir.filePath("blocked/also-not")});
@@ -1873,7 +1875,7 @@ private slots:
         m_http->setPost([](const QByteArray&, const QByteArray&) { return ok(QStringLiteral("u1")); });
         SaveTarget target{m_http->base(), QString(), QStringLiteral("seq"), m_dir.path(), QString()};
         target.expectedInstance = QStringLiteral("mine");
-        m_save = std::make_unique<AutosaveController>(target, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, target, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
         // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
@@ -1893,7 +1895,7 @@ private slots:
         m_http->setPost([](const QByteArray&, const QByteArray&) { return ok(QStringLiteral("u1")); });
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.path(), QString()};
         t.expectedInstance = QStringLiteral("mine");
-        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save = std::make_unique<AutosaveController>(m_cacheRoot, t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setRetryBaseMs(50);
         m_save->setExternalSync(false);

@@ -13,6 +13,7 @@ import type { WorkflowGraph } from "@nodetool-ai/protocol";
 import type { workflows } from "@nodetool-ai/protocol/api-schemas";
 import { trpcClient } from "../trpc/client";
 import { BASE_URL } from "../stores/BASE_URL";
+import { shareLinkOrigin } from "../lib/cloud/cloudWindow";
 
 export type ShareRole = "viewer" | "editor" | "public";
 /** The roles a collaborator can hold. A public link never makes one. */
@@ -37,8 +38,8 @@ export const shareUrlForToken = (
   role: ShareRole = "viewer"
 ): string =>
   role === "public"
-    ? `${window.location.origin}/view/${token}`
-    : `${window.location.origin}/share/${token}`;
+    ? `${shareLinkOrigin()}/view/${token}`
+    : `${shareLinkOrigin()}/share/${token}`;
 
 /** Collaborators + share links, for the owner's share dialog. */
 export const useWorkflowSharing = (workflowId: string | null | undefined) => {

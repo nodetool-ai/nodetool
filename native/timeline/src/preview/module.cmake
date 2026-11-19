@@ -1,31 +1,8 @@
-nt_sources(core
-    src/preview/SceneEval.h
-    src/preview/SceneEval.cpp
-)
-nt_sources(decode
-    src/preview/LayerSource.h
-    src/preview/FrameRing.h
-    src/preview/FrameRing.cpp
-    src/preview/YuvFormat.h
-    src/preview/YuvFormat.cpp
-    src/preview/FfmpegSource.h
-    src/preview/FfmpegSource.cpp
-    src/preview/SourcePool.h
-    src/preview/SourcePool.cpp
-    src/preview/SurfacePool.h
-    src/preview/FrameCache.h
-    src/preview/FrameCache.cpp
-    src/preview/SyntheticSource.h
-    src/preview/SyntheticSource.cpp
-    src/preview/StillImageSource.h
-    src/preview/StillImageSource.cpp
-    src/preview/RetireQueue.h
-)
+# The sources, pools and hook registries are in native/timeline-player
+# (nodetool_timeline_decode), and PreviewCompositor is in its QML module
+# (nodetool_timeline_player). Their tests read the timeline's fixtures, so
+# they stay here.
 nt_qml_files(qml/preview/PreviewArea.qml)
-nt_sources(qml
-    src/preview/PreviewCompositor.h
-    src/preview/PreviewCompositor.cpp
-)
 
 function(nt_preview_tests)
     foreach(test_name
@@ -55,7 +32,7 @@ function(nt_preview_tests)
     target_link_libraries(tst_sourcepool PRIVATE Qt6::Network)
 
     nt_qt_test(tst_monitorcompositor
-        SOURCES src/preview/tst_monitorcompositor.cpp src/preview/hw/HwWindow.cpp
+        SOURCES src/preview/tst_monitorcompositor.cpp
         LIBS timeline_core timeline_decode timeline_server Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::Test)
     nt_add_timeline_qml(tst_monitorcompositor)
     set_tests_properties(tst_monitorcompositor PROPERTIES LABELS render
@@ -63,23 +40,16 @@ function(nt_preview_tests)
 
     # M4 exit 3: an edit reaches the preview on the next frame. Renders with
     # QQuickRenderControl on the platform QRhi (no window), so it links the
-    # compositor and the model directly instead of the QML module.
+    # player library and the model directly instead of the timeline's QML
+    # module.
     qt_add_executable(tst_editpreview tests/tst_editpreview.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
-        src/model/TrackListModel.h src/model/TrackListModel.cpp
-        src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
-        src/preview/PreviewCompositor.h src/preview/PreviewCompositor.cpp
-        )
-    nt_target_sources(tst_editpreview)
+        src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_editpreview PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_definitions(tst_editpreview PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
     target_compile_options(tst_editpreview PRIVATE ${NT_WARNINGS})
-    target_link_libraries(tst_editpreview PRIVATE timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml
+    target_link_libraries(tst_editpreview PRIVATE nodetool_timeline_player timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml
         Qt6::Quick Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
-    qt_add_shaders(tst_editpreview "tst_editpreview_shaders"
-        PREFIX "/shaders"
-        BASE shaders
-        FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
     add_test(NAME tst_editpreview COMMAND tst_editpreview)
     # The label `render` marks the tests that need the platform QRhi: no
     # QT_QPA_PLATFORM=offscreen (that platform has no QRhi, so Qt Quick falls back
@@ -89,12 +59,11 @@ function(nt_preview_tests)
     # The window-event tests set the offscreen platform in their ENVIRONMENT.
     set_tests_properties(tst_editpreview PROPERTIES LABELS render)
     if(WIN32)
-        nt_qt_test(tst_d3d11window LIBS timeline_decode Qt6::Quick Qt6::GuiPrivate Qt6::Test)
-        target_sources(tst_d3d11window PRIVATE src/preview/hw/HwWindow.cpp)
+        nt_qt_test(tst_d3d11window LIBS nodetool_timeline_player timeline_decode Qt6::Quick Qt6::GuiPrivate Qt6::Test)
         set_tests_properties(tst_d3d11window PROPERTIES LABELS render)
     endif()
     # Linux: the VAAPI interop's frame completion marks on a Vulkan QRhi.
-    if(UNIX AND NOT APPLE AND Vulkan_FOUND AND LIBVA_FOUND)
+    if("NT_HAVE_VAAPI_VULKAN" IN_LIST NT_PLAYER_DECODE_DEFINITIONS)
         qt_add_executable(tst_vulkaninterop tests/tst_vulkaninterop.cpp)
         target_compile_options(tst_vulkaninterop PRIVATE ${NT_WARNINGS})
         target_compile_definitions(tst_vulkaninterop PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")

@@ -1,4 +1,8 @@
 #pragma once
+#include "server/AssetCache.h"
+
+class QQmlEngine;
+class QJSEngine;
 
 // Hover scrub in the Library (issue #7092). Moving the pointer across a video tile shows the frame at
 // that position of the clip, the way Premiere's Icon view does.
@@ -46,7 +50,8 @@ class LibraryScrub : public QObject {
     Q_PROPERTY(bool frameReady READ frameReady NOTIFY readyChanged)
     Q_PROPERTY(int frameIndex READ frameIndex NOTIFY positionChanged)
 public:
-    explicit LibraryScrub(QObject* parent = nullptr);
+    explicit LibraryScrub(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
+    static LibraryScrub* create(QQmlEngine* engine, QJSEngine*);
     ~LibraryScrub() override;
     bool enabled() const { return m_enabled; }
     void setEnabled(bool value);
@@ -92,6 +97,7 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    const nt::server::AssetCacheRoot m_cache;
     SourceViewerState* source();
     void settle();
     void release();

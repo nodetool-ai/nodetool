@@ -49,7 +49,8 @@ int musicBounceCli(int argc, char** argv) {
                      "--start-frame N --frames N\n");
         return 2;
     }
-    const auto loaded = nt::server::loadTimelineSource(parser.positionalArguments().first());
+    const nt::server::AssetCacheRoot cache(nt::server::timelineCacheDirectory());
+    const auto loaded = nt::server::loadTimelineSource(parser.positionalArguments().first(), cache);
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;

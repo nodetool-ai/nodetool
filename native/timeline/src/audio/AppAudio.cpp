@@ -1,14 +1,15 @@
 #include "audio/AppAudio.h"
 #include "audio/loudness/AppReadout.h"
 
-#include "model/TimelineModel.h"
+#include "model/TimelineSource.h"
+#include "model/TimelineTypes.h"
 #include "playback/PlaybackClock.h"
 
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QObject>
+#include <QTimer>
 
 #include <algorithm>
 #include <cstdio>
@@ -20,7 +21,19 @@ int engineRateFor(const Timeline& timeline) {
     return timeline.raw.value(QStringLiteral("music")).isObject() ? kMusicEngineRate : 0;
 }
 
-bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model, PlaybackClock& clock, QString* error) {
+// UI thread. The connection context owns the state used by its deferred read.
+class AppAudio::UpdateTimer final : public QTimer {
+public:
+    AudioEngine engine;
+    std::uint64_t appliedRevision = 0;
+    QMetaObject::Connection schedule;
+};
+
+AppAudio::AppAudio() = default;
+
+AudioEngine* AppAudio::engine() { return m_update ? &m_update->engine : nullptr; }
+
+bool AppAudio::start(const QString& mode, double latencyMs, TimelineSource& source, PlaybackClock& clock, QString* error) {
     m_mode = mode;
     if (mode == u"none") return true;
     if (mode != u"null" && mode != u"system") {
@@ -28,13 +41,18 @@ bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model
         return false;
     }
     m_latencyMs = latencyMs;
-    m_model = &model;
+    m_source = &source;
     m_clock = &clock;
     if (m_followDocumentRate) {
-        if (const auto snapshot = model.snapshot()) m_systemRate = engineRateFor(*snapshot);
+        if (const auto snapshot = source.snapshot()) m_systemRate = engineRateFor(*snapshot);
+        m_documentGeneration = source.documentGeneration();
         // The context is this object's own, so its destruction ends the connection.
-        m_documentConnection = QObject::connect(&model, &TimelineModel::documentReplaced, &m_documentContext, [this]() {
-            const auto snapshot = m_model->snapshot();
+        m_documentConnection = QObject::connect(&source, &TimelineSource::sourceChanged, &m_documentContext, [this]() {
+            if (!m_source) return;
+            const quint64 generation = m_source->documentGeneration();
+            if (generation == m_documentGeneration) return;
+            m_documentGeneration = generation;
+            const auto snapshot = m_source->snapshot();
             QString why;
             if (!setSystemRate(snapshot ? engineRateFor(*snapshot) : 0, &why)) {
                 std::fprintf(stderr, "error: audio: %s\n", qPrintable(why));
@@ -62,9 +80,9 @@ bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model
 
 bool AppAudio::setSystemRate(int hz, QString* error) {
     hz = std::max(0, hz);
-    const bool started = m_model && m_mode == u"system";
+    const bool started = m_source && m_mode == u"system";
     // After a failed reopen there is no engine, and any later call tries again.
-    if (hz == m_systemRate && (m_engine || !started)) return true;
+    if (hz == m_systemRate && (m_update || !started)) return true;
     const int previous = m_systemRate;
     m_systemRate = hz;
     if (!started) return true;
@@ -93,7 +111,11 @@ bool AppAudio::setSystemRate(int hz, QString* error) {
 }
 
 bool AppAudio::openEngine(QString* error) {
-    TimelineModel& model = *m_model;
+    if (!m_source || !m_clock) {
+        if (error) *error = QStringLiteral("the timeline or the clock is gone");
+        return false;
+    }
+    TimelineSource& source = *m_source;
     AudioEngine::Options options;
     options.recordSeconds = m_recordSeconds;
     if (m_mode == u"null") {
@@ -105,60 +127,73 @@ bool AppAudio::openEngine(QString* error) {
         options.sampleRate = m_systemRate;  // 0: the device's own rate (D24)
     }
     if (m_publishLoudness) options.loudness = &appLoudnessReadout();
-    m_engine = std::make_unique<AudioEngine>();
-    m_engine->setTimeline(model.snapshot());
-    // A new snapshot applies from the next play or seek. One edit fires clipsChanged and
-    // timelineChanged back to back, and a drag fires previewChanged per step. Clip and
-    // track edits (gain, mute, effects) all reach clipsChanged on settle, so listen to
-    // clipsChanged and previewChanged only, and build one plan per event-loop turn.
-    AudioEngine* engine = m_engine.get();
-    m_timer = std::make_unique<QTimer>();
-    m_timer->setSingleShot(true);
-    m_timer->setInterval(0);
-    std::uint64_t* applied = &m_appliedRevision;
-    QObject::connect(m_timer.get(), &QTimer::timeout, m_timer.get(), [engine, &model, applied]() {
-        const auto snapshot = model.snapshot();
+    m_update = std::make_unique<UpdateTimer>();
+    const auto initial = source.snapshot();
+    m_update->engine.setTimeline(initial);
+    m_update->appliedRevision = initial ? initial->revision : 0;
+    // A new snapshot applies from the next play or seek. TimelineModel raises sourceChanged
+    // with each timelineChanged, which follows every clipsChanged, and with each previewChanged,
+    // once per drag step. Clip and track edits (gain, mute, effects) all reach clipsChanged on
+    // settle. Build one plan per event-loop turn, and only for a new revision.
+    m_update->setSingleShot(true);
+    m_update->setInterval(0);
+    const QPointer<UpdateTimer> update(m_update.get());
+    const QPointer<TimelineSource> watched(&source);
+    QObject::connect(m_update.get(), &QTimer::timeout, m_update.get(), [update, watched]() {
+        if (!update || !watched) {
+            return;
+        }
+        const auto snapshot = watched->snapshot();
+        // A host-controlled snapshot read can close the audio synchronously.
+        if (!update) {
+            return;
+        }
         const std::uint64_t revision = snapshot ? snapshot->revision : 0;
-        if (snapshot && revision == *applied) return;
-        *applied = revision;
-        engine->setTimelineAsync(snapshot);
+        if (snapshot && revision == update->appliedRevision) {
+            return;
+        }
+        update->appliedRevision = revision;
+        update->engine.setTimelineAsync(snapshot);
     });
-    m_appliedRevision = model.snapshot() ? model.snapshot()->revision : 0;
-    QTimer* timer = m_timer.get();
-    const auto schedule = [timer]() { timer->start(); };
-    m_connections[0] = QObject::connect(&model, &TimelineModel::clipsChanged, timer, schedule);
-    m_connections[1] = QObject::connect(&model, &TimelineModel::previewChanged, timer, schedule);
+    m_update->schedule = QObject::connect(&source, &TimelineSource::sourceChanged, m_update.get(),
+                                          qOverload<>(&QTimer::start));
     std::string why;
-    if (!(m_startEngine ? m_startEngine(*m_engine, options, &why) : m_engine->start(options, &why))) {
+    AudioEngine& engine = m_update->engine;
+    if (!(m_startEngine ? m_startEngine(engine, options, &why) : engine.start(options, &why))) {
         if (error) *error = QString::fromStdString(why);
-        for (const auto& c : m_connections) QObject::disconnect(c);
-        m_timer.reset();
-        m_engine.reset();
+        m_update.reset();
         return false;
     }
     m_attachedClock = m_clock;
-    m_clock->setAudioFeed(&m_engine->feed());
-    const AudioEngine::Stats s = m_engine->stats();
+    m_clock->setAudioFeed(&engine.feed());
+    const AudioEngine::Stats s = engine.stats();
     std::fprintf(stderr, "audio: %s backend, device \"%s\", %.0f Hz, output latency %.1f ms\n", s.backend.c_str(),
                  s.deviceName.c_str(), s.sampleRate, s.outputLatencySec * 1000.0);
     return true;
 }
 
-void AppAudio::closeEngine() {
-    for (const auto& c : m_connections) QObject::disconnect(c);
+void AppAudio::detachUpdate() {
+    QObject::disconnect(m_update->schedule);
+    m_update->stop();
+    m_update->disconnect();
     if (m_attachedClock) m_attachedClock->setAudioFeed(nullptr);
     m_attachedClock = nullptr;
-    if (m_engine) m_engine->stop();
-    m_engine.reset();
-    m_timer.reset();
+}
+
+void AppAudio::closeEngine() {
+    if (!m_update) return;
+    detachUpdate();
+    m_update->engine.stop();
+    m_update.reset();
 }
 
 AppAudio::~AppAudio() {
-    if (!m_engine) return;
-    for (const auto& c : m_connections) QObject::disconnect(c);
-    if (m_attachedClock) m_attachedClock->setAudioFeed(nullptr);
-    const AudioEngine::Stats s = m_engine->stats();
-    m_engine->stop();
+    QObject::disconnect(m_documentConnection);
+    if (!m_update) return;
+    detachUpdate();
+    const AudioEngine::Stats s = m_update->engine.stats();
+    m_update->engine.stop();
+    m_update.reset();
     if (m_reportPath.isEmpty()) return;
     QJsonArray failures;
     for (const auto& f : s.failures) failures.append(QString::fromStdString(f));

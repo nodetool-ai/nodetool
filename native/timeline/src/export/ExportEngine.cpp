@@ -239,7 +239,8 @@ void publish(const QString& temporary, const QString& destination, bool replace,
     throw std::runtime_error("Cannot publish completed export");
 }
 }
-Result exportTimeline(const Timeline& timeline, const Options& options, std::stop_token stop,
+Result exportTimeline(const Timeline& timeline, const Options& options, const server::AssetCacheRoot& cache,
+                      std::stop_token stop,
                       ProgressCallback progress, CancelProbe cancel) {
     Result result;
     const auto cancelled = [&] { return stop.stop_requested() || (cancel && cancel()); };
@@ -285,7 +286,7 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
                 if (!path.empty()) mediaPaths.insert(QString::fromStdString(path));
             }
         }
-        const auto mediaLeases = nt::assets::MediaProtection::leasePaths(mediaPaths);
+        const auto mediaLeases = nt::assets::MediaProtection::leasePaths(cache, mediaPaths);
         result.samples = std::max<qint64>(1, std::llround((audioOnly ? rangeMs / 1000 : result.frames / result.fps) * 48000));
         if (png && static_cast<quint64>(result.frames) >= PngZip::MaxEntries) {
             throw std::runtime_error("PNG sequence exceeds classic ZIP limit of 65535 entries including the manifest");

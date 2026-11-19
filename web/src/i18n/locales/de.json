@@ -14037,6 +14037,8 @@
       "tryAgainLater": "Versuche es später erneut.",
       "cloudLoadFailure": "Cloud-Dokumente konnten nicht aufgelistet werden: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool startet noch. Öffnen Sie das Cloud-Dokument gleich noch einmal.",
+      "cloudWindowSignedOut": "Melden Sie sich bei NodeTool Cloud an, um dieses Dokument zu öffnen.",
       "noMatching": "Keine passenden Dokumente",
       "noMatchingDescription": "Hier werden nur Dokumente durchsucht. Unter Chats findest du Unterhaltungen und in der Bibliothek hochgeladene Dateien.",
       "noDocuments": "Noch keine Dokumente",
@@ -20373,6 +20375,20 @@
     "cancel": "Abbrechen",
     "signOut": "Abmelden",
     "signOutNote": "Änderungen, die im Node-Editor oder in der Timeline warten, bleiben auf diesem Computer und werden nach der nächsten Anmeldung gesendet.",
-    "unavailable": "Die Cloud-Anmeldung ist in diesem Build nicht verfügbar."
+    "unavailable": "Die Cloud-Anmeldung ist in diesem Build nicht verfügbar.",
+    "signOutDialog": {
+      "title": "Änderungen noch nicht gesendet",
+      "waiting_one": "{{count}} Cloud-Dokument hat Änderungen, die noch nicht gesendet wurden.",
+      "waiting_other": "{{count}} Cloud-Dokumente haben Änderungen, die noch nicht gesendet wurden.",
+      "unsent_one": "Der Server hat die Änderungen an {{count}} Cloud-Dokument abgelehnt.",
+      "unsent_other": "Der Server hat die Änderungen an {{count}} Cloud-Dokumenten abgelehnt.",
+      "unknown": "NodeTool konnte nicht prüfen, ob noch Änderungen zu senden sind.",
+      "kept": "Wenn du dich jetzt abmeldest, bleiben die Änderungen auf diesem Computer und werden gesendet, sobald du dich wieder mit diesem Konto anmeldest.",
+      "keep": "Auf diesem Computer behalten und abmelden",
+      "wait": "Warten, bis gesendet",
+      "cancel": "Abbrechen",
+      "signOutNow": "Jetzt abmelden",
+      "waitingNote": "Warte, bis die Änderungen gesendet sind. Lass das Cloud-Fenster geöffnet."
+    }
   }
 }

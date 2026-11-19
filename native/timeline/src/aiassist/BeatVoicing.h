@@ -1,4 +1,5 @@
 #pragma once
+#include "assets/TimelineMediaConsumer.h"
 #include "ai/GenerationTransport.h"
 #include "aiassist/ScriptVoicingPlan.h"
 #include "assets/AssetMedia.h"
@@ -12,8 +13,9 @@
 #include <memory>
 #include <utility>
 #include <QtQmlIntegration/qqmlintegration.h>
-class BeatVoicing : public QObject {
+class BeatVoicing : public nt::assets::TimelineMediaConsumer {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
@@ -24,6 +26,7 @@ class BeatVoicing : public QObject {
 public:
     using MediaResolver = std::function<nt::Clip(nt::server::ServerClient&, const QString&, const QJsonObject&, const QJsonObject&, nt::assets::MediaProtection&, quint64)>;
     explicit BeatVoicing(QObject* parent = nullptr);
+    explicit BeatVoicing(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     void setMediaResolver(MediaResolver resolver) { m_mediaResolver = std::move(resolver); }
     ~BeatVoicing() override;
     TimelineModel* timeline() const { return m_timeline; }
@@ -57,9 +60,10 @@ private:
     QJsonObject m_observedClip;
     QJsonObject m_candidate;
     std::optional<nt::Clip> m_candidateMedia;
-    MediaResolver m_mediaResolver = nt::assets::resolveDroppedMedia;
-    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
-    std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
+    MediaResolver m_mediaResolver = [](auto& client, const QString&, const auto& asset, const auto& clip,
+                              auto& protection, quint64 generation) {
+        return nt::assets::resolveDroppedMedia(client, asset, clip, protection, generation);
+    };
     QString m_requestId;
     QString m_lineId;
     QString m_assetId;

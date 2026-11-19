@@ -1,10 +1,12 @@
 // Behaviour ported from FilmCraft (https://github.com/storytold/filmcraft), MIT OR Apache-2.0.
+#include "../../tests/TestAssetCacheRoot.h"
 #include "export/FrameExporter.h"
 #include "assets/AssetMedia.h"
 #include "../../tests/TestHttpServer.h"
 #include <QScopeGuard>
 #include "model/TimelineJson.h"
 #include <QFile>
+#include <QProcess>
 #include <QDir>
 #include <memory>
 #include <QJsonArray>
@@ -23,9 +25,66 @@
 
 class TestFrameExport : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     QTemporaryDir m_dir;
     QString dirPath() const { return m_dir.path(); }
 private slots:
+    void defaultCppExporterRequiresCache_data() {
+        QTest::addColumn<bool>("write");
+        QTest::newRow("get") << false;
+        QTest::newRow("set") << true;
+    }
+
+    void defaultCppExporterRequiresCache() {
+        QFETCH(bool, write);
+        constexpr auto childFlag = "NODETOOL_TEST_DEFAULT_CPP_FRAME_EXPORTER";
+        if (qEnvironmentVariableIsSet(childFlag)) {
+            TimelineModel model;
+            FrameExporter exporter;
+            if (write) {
+                exporter.setTimeline(&model);
+            } else {
+                QCOMPARE(exporter.timeline(), nullptr);
+            }
+            return;
+        }
+
+        QProcess child;
+        auto environment = QProcessEnvironment::systemEnvironment();
+        environment.insert(childFlag, "1");
+        child.setProcessEnvironment(environment);
+        child.setProcessChannelMode(QProcess::MergedChannels);
+        const QString row = QString::fromLatin1(QTest::currentDataTag());
+        child.start(QCoreApplication::applicationFilePath(), {"defaultCppExporterRequiresCache:" + row});
+        QVERIFY(child.waitForFinished());
+        const auto output = child.readAll();
+        QVERIFY2(child.exitStatus() == QProcess::CrashExit, output.constData());
+        QVERIFY2(output.contains("Missing timeline asset cache for C++ consumer"), output.constData());
+    }
+
+    void qmlExporterRequiresHostCache() {
+        constexpr auto childFlag = "NODETOOL_TEST_MISSING_FRAME_EXPORTER_CACHE";
+        if (qEnvironmentVariableIsSet(childFlag)) {
+            qmlRegisterType<FrameExporter>("FrameExportTest", 1, 0, "FrameExporter");
+            QQmlEngine engine;
+            QQmlComponent component(&engine);
+            component.setData("import FrameExportTest 1.0; FrameExporter {}", QUrl());
+            const std::unique_ptr<QObject> mounted(component.create());
+            QVERIFY2(mounted, qPrintable(component.errorString()));
+            return;
+        }
+
+        QProcess child;
+        auto environment = QProcessEnvironment::systemEnvironment();
+        environment.insert(childFlag, "1");
+        child.setProcessEnvironment(environment);
+        child.start(QCoreApplication::applicationFilePath(), {"qmlExporterRequiresHostCache"});
+        QVERIFY(child.waitForFinished());
+        QCOMPARE(child.exitStatus(), QProcess::CrashExit);
+        QVERIFY(child.readAllStandardOutput().contains("Missing timeline asset cache") ||
+                child.readAllStandardError().contains("Missing timeline asset cache"));
+    }
+
     void captureAndSave_data() {
         QTest::addColumn<QString>("mode");
         for (const auto& mode : {"png", "jpeg", "unwritable", "second", "delete capture", "delete save"}) {
@@ -51,13 +110,15 @@ private slots:
         const int undo = model.undoStack()->count();
         qmlRegisterType<FrameExporter>("FrameExportTest", 1, 0, "FrameExporter");
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine);
         component.setData("import FrameExportTest 1.0; FrameExporter {}", QUrl());
-        std::unique_ptr<QObject> mounted(component.create());
+        std::unique_ptr<QObject> mounted(component.createWithInitialProperties(
+            {{"timeline", QVariant::fromValue(&model)}}));
         QVERIFY2(mounted, qPrintable(component.errorString()));
         auto* exporter = qobject_cast<FrameExporter*>(mounted.get());
         QVERIFY(exporter);
-        exporter->setTimeline(&model);
+        QCOMPARE(exporter->timeline(), &model);
         exporter->captureForTest()->setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         PlaybackClock clock;
         clock.seek(500);
@@ -85,7 +146,7 @@ private slots:
             QCOMPARE(saved.size(), 1);
             QCOMPARE(exporter->savedPath(), output.toLocalFile());
             QCOMPARE(exporter->lastFolder(), dir.path());
-            FrameExporter other;
+            FrameExporter other(m_testCache.root());
             QCOMPARE(other.lastFolder(), dir.path());
             // Release the reader before replacing the file on Windows.
             {
@@ -101,7 +162,7 @@ private slots:
         QCOMPARE(model.undoStack()->count(), undo);
     }
     void sourceAndRefusals() {
-        FrameExporter exporter;
+        FrameExporter exporter(m_testCache.root());
         exporter.captureForTest()->setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         const auto still = QDir(dirPath()).filePath("frameexport-source.png");
         QImage picture(23, 17, QImage::Format_RGB32); picture.fill(Qt::red);
@@ -146,11 +207,11 @@ private slots:
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", asset}}}}).toJson();
         });
         QTemporaryDir dir;
-        nt::assets::MediaProtection protection;
+        nt::assets::MediaProtection protection{nt::server::AssetCacheRoot(dir.path())};
         nt::server::FetchResult result;
         auto thread = std::unique_ptr<QThread>(QThread::create([&] {
             nt::server::ServerClient client(http.base());
-            result = nt::assets::resolveOriginalMedia(client, dir.path(), "asset", protection);
+            result = nt::assets::resolveOriginalMedia(client, "asset", protection);
         }));
         const auto join = qScopeGuard([&] { thread->requestInterruption(); thread->wait(); });
         thread->start();
@@ -170,7 +231,7 @@ private slots:
         auto gate = std::make_shared<QSemaphore>();
         auto finished = std::make_shared<std::atomic_bool>(false);
         {
-            FrameExporter exporter;
+            FrameExporter exporter(m_testCache.root());
             exporter.startWorkerForTest([gate, finished] { gate->acquire(); finished->store(true); });
             QElapsedTimer timer;
             timer.start();
@@ -183,7 +244,7 @@ private slots:
     }
     void namesAndFileExists() {
         QTemporaryDir dir;
-        FrameExporter exporter;
+        FrameExporter exporter(m_testCache.root());
         const auto file = exporter.fileUrl(dir.path(), " a/b\\c:*?\"<>| ", "jpeg");
         QCOMPARE(file.toLocalFile(), dir.filePath("a_b_c_______.jpg"));
         QVERIFY(!exporter.fileExists(file));

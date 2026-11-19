@@ -182,6 +182,7 @@ import { useWorkflowFreshnessCheck } from "../../hooks/timeline/useWorkflowFresh
 import { useTimelineGenerationSubscriptions } from "../../hooks/timeline/useGenerateClip";
 import { useLoadTimelineIntoStore } from "../../hooks/timeline/useLoadTimelineIntoStore";
 import { useTimelineAutosave } from "../../hooks/timeline/useTimelineAutosave";
+import { useCloudWindowTimelineDrafts } from "../../hooks/timeline/useCloudWindowTimelineDrafts";
 import { useTimelineExternalSync } from "../../hooks/timeline/useTimelineExternalSync";
 import { useTimelineSave } from "../../hooks/timeline/useTimelineSave";
 import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
@@ -708,6 +709,9 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   // declaration order on unmount, so autosave's closing flush must come
   // before the load hook's store reset or the last edits are lost.
   const { flush: flushAutosave } = useTimelineAutosave();
+
+  // In the desktop app's cloud window, keep unsent edits as local drafts.
+  useCloudWindowTimelineDrafts();
 
   // Mirror the fetched sequence into the TimelineStore so store-bound
   // components (Tracks, Inspector, ActivityIndicator) render its content.

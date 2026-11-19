@@ -51,15 +51,15 @@ bool listTimelinesRequested();
 // The --list-timelines mode; needs a Q*Application.
 int listTimelinesMain();
 
-ParseResult loadTimelineSource(const QString& source);
+// Path selected by the command line or the default cache location.
+QString timelineCacheDirectory();
+ParseResult loadTimelineSource(const QString& source, const AssetCacheRoot& cache);
 
 struct CloudSource {
     QUrl origin;
     QString timelineId;
     // `owner`, `editor` or `viewer`, from the list the timeline was opened from.
     QString role;
-    // The media cache folder.
-    QString cacheDir;
 };
 // The cloud timeline the command line names, or nullopt.
 std::optional<CloudSource> cloudTimelineSource();
@@ -71,14 +71,13 @@ void setCloudToken(const QString& token, RequestAuthorizer authorizer);
 // Where the open timeline's media is read: the server of a server timeline,
 // or the cloud server of a cloud timeline, whose requests go through the
 // account's authorizer. Reads only: features that write to the server keep
-// using serverSaveTarget(), which is empty for a cloud timeline.
+// using serverSaveTarget(), which is empty for a cloud timeline. Fetched
+// files go to the AssetCacheRoot the caller was given, not a folder here.
 struct MediaSource {
     QUrl server;
     QString token;
     RequestAuthorizer authorizer;
     QString expectedInstance;
-    // The media cache folder that loadTimelineSource used.
-    QString cacheRoot;
     // A client for one worker; ServerClient is not shared between threads.
     std::unique_ptr<ServerClient> client(int timeoutMs) const;
 };

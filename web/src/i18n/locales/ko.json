@@ -14037,6 +14037,8 @@
       "tryAgainLater": "나중에 다시 시도하세요.",
       "cloudLoadFailure": "클라우드 문서 목록을 불러올 수 없습니다: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool이 아직 시작 중입니다. 잠시 후 클라우드 문서를 다시 여세요.",
+      "cloudWindowSignedOut": "이 문서를 열려면 NodeTool Cloud에 로그인하세요.",
       "noMatching": "일치하는 문서가 없습니다.",
       "noMatchingDescription": "문서만 검색합니다. 대화는 채팅에 있고 업로드는 라이브러리에 있습니다.",
       "noDocuments": "아직 문서가 없습니다.",
@@ -20373,6 +20375,20 @@
     "cancel": "취소",
     "signOut": "로그아웃",
     "signOutNote": "노드 편집기나 타임라인에서 대기 중인 변경 사항은 이 컴퓨터에 남아 있다가 다시 로그인하면 전송됩니다.",
-    "unavailable": "이 빌드에서는 클라우드 로그인을 사용할 수 없습니다."
+    "unavailable": "이 빌드에서는 클라우드 로그인을 사용할 수 없습니다.",
+    "signOutDialog": {
+      "title": "아직 보내지 않은 변경 사항",
+      "waiting_other": "클라우드 문서 {{count}}개에 아직 보내지 않은 변경 사항이 있습니다.",
+      "unsent_other": "서버가 클라우드 문서 {{count}}개의 변경 사항을 거부했습니다.",
+      "unknown": "NodeTool이 보내지 않은 변경 사항을 확인하지 못했습니다.",
+      "kept": "지금 로그아웃하면 변경 사항은 이 컴퓨터에 남아 있다가 이 계정으로 다시 로그인하면 전송됩니다.",
+      "keep": "이 컴퓨터에 보관하고 로그아웃",
+      "wait": "전송될 때까지 기다리기",
+      "cancel": "취소",
+      "signOutNow": "지금 로그아웃",
+      "waitingNote": "변경 사항이 전송되기를 기다리는 중입니다. 클라우드 창을 열어 두세요.",
+      "waiting_one": "클라우드 문서 {{count}}개에 아직 보내지 않은 변경 사항이 있습니다.",
+      "unsent_one": "서버가 클라우드 문서 {{count}}개의 변경 사항을 거부했습니다."
+    }
   }
 }

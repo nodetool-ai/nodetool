@@ -5,6 +5,7 @@
 // takes no pointer input, so the Range tool's drags reach the lane and clips.
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import NodeTool.UiPrimitives as Ui
 
 Item {

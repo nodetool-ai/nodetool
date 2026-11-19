@@ -119,6 +119,9 @@ describe("TC117, FC31: the list of routes", () => {
     ["GET", "/api/assets/0123456789abcdef0123456789abcdef"],
     ["HEAD", "/api/assets/a1/peaks"],
     ["GET", "/api/sync/capabilities"],
+    // The cloud window's boot reads (D27).
+    ["GET", "/api/config"],
+    ["GET", "/api/nodes/metadata?fields=full&limit=10000"],
     ["GET", "/api/storage/u1/0123456789abcdef0123456789abcdef.png"],
   ])("allows %s %s", (method, path) => {
     expect(cloudRouteAllowed(method, path)).toBe(true);
@@ -136,6 +139,10 @@ describe("TC117, FC31: the list of routes", () => {
     ["GET", "//evil.example/api/assets/a"],
     ["GET", "https://evil.example/api/assets/a"],
     ["GET", "/api/workflows"],
+    ["POST", "/api/config"],
+    ["GET", "/api/config/x"],
+    ["GET", "/api/nodes/metadata/secret"],
+    ["GET", "/api/nodes"],
     ["GET", "/api/assets/"],
     ["GET", "/api/storage/"],
     ["POST", "/api/storage/u1/a.png"],
@@ -278,6 +285,18 @@ describe("cloud requests through the account", () => {
     }
     const cancels = helper.received.filter((m) => m.type === "requestCancel").map((m) => m.id);
     expect(cancels).toEqual(ids);
+  });
+
+  test("TC125: another account signing in ends every pending request of the first", async () => {
+    const { account, helper } = await signedInAccount();
+    const answer = account.request({ method: "GET", path: "/trpc/workflows.list", headers: {} });
+    await settle();
+    helper.say({ ...SIGNED_IN, displayName: "Ada L." });
+    await settle();
+    helper.say({ ...SIGNED_IN, accountId: "u2", displayName: "Bea" });
+    await settle();
+    expect(await answer).toEqual({ ok: false, error: "SIGNED_OUT" });
+    expect(helper.received.filter((m) => m.type === "requestCancel")).toHaveLength(1);
   });
 
   test("a helper that exits ends every pending request as offline", async () => {

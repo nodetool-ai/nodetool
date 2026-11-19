@@ -35,9 +35,12 @@ import {
   type DeleteRequest,
   type NameRequest
 } from "./WorkspaceTreeDialogs";
+import { assetTabType } from "../workspace/assetTabType";
+import { workspaceFileKind } from "../workspace/workspaceFileKind";
 import {
   NotAnAssetError,
   assetDirectoryPath,
+  assetOfFile,
   canMoveInto,
   countFilesUnder,
   createFolder,
@@ -476,6 +479,28 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
             ref: document.ref,
             mode: "edit",
             title: document.name,
+            projectId
+          });
+          setPanelVisibility(false);
+          return;
+        }
+      }
+      const kind = workspaceFileKind(itemId);
+      if (kind === "audio" || kind === "image" || kind === "model3d") {
+        const asset = await assetOfFile(projectId, itemId).catch(
+          (error: unknown) => {
+            console.warn("Could not find the asset of a file", error);
+            return null;
+          }
+        );
+        const tabType = asset ? assetTabType(asset) : null;
+        if (asset && tabType) {
+          openTab({
+            type: tabType,
+            ref: asset.id,
+            mode: "view",
+            title:
+              asset.name || item?.label || itemId.split("/").pop() || itemId,
             projectId
           });
           setPanelVisibility(false);

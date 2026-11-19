@@ -18,6 +18,6 @@ struct ScrubSource {
 };
 // Blocks until the file is cached, the fetch fails or `interrupted` turns true. `asset` is a full
 // `assets.get` answer. A cache hit costs no download.
-ScrubSource fetchScrubSource(nt::server::ServerClient& client, const QString& cacheRoot, const QJsonObject& asset,
+ScrubSource fetchScrubSource(nt::server::ServerClient& client, const nt::server::AssetCacheRoot& cacheRoot, const QJsonObject& asset,
                              const std::function<bool()>& interrupted = {});
 }  // namespace nt::assets

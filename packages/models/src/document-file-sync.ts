@@ -41,6 +41,13 @@ export interface DocumentFileSync<Row extends DocumentFileRow> {
   /** The row was deleted. Delete its file. */
   deleted(row: Row): Promise<void>;
   /**
+   * Delete the row with `remove`, then its file, both while the folder of
+   * `row` is locked. A reconcile that ran between the two would find a file
+   * with no row and import it again as a new document. `remove` returns the
+   * deleted row, or null when there was none. The file delete does not throw.
+   */
+  deleting(row: Row, remove: () => Promise<Row | null>): Promise<Row | null>;
+  /**
    * The row is about to move to another project. `row` is the stored row, in
    * the project it leaves. Its file there is deleted once the row has moved,
    * so a file that holds an edit NodeTool has not seen and that is not valid
@@ -49,6 +56,18 @@ export interface DocumentFileSync<Row extends DocumentFileRow> {
    * valid edit does not refuse the move: `saved` keeps it as a version.
    */
   leaving(row: Row): Promise<string | null>;
+}
+
+/**
+ * Delete a row and its file through `sync`, see
+ * {@link DocumentFileSync.deleting}. With no sync installed, only the row goes.
+ */
+export function deleteWithFile<Row extends DocumentFileRow>(
+  sync: DocumentFileSync<Row> | null | undefined,
+  row: Row,
+  remove: () => Promise<Row | null>
+): Promise<Row | null> {
+  return sync ? sync.deleting(row, remove) : remove();
 }
 
 /** A document could not change project because of the state of its file. */

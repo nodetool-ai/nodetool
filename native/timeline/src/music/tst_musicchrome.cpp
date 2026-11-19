@@ -94,6 +94,7 @@ class TestMusicChrome : public WiringFixture {
         clock.clearRange();
         clock.seek(0);
         view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
         view->setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});
         view->loadFromModule("NodeTool.Timeline", "TimelineEditor");
         QVERIFY2(view->status() == QQuickView::Ready, qPrintable(view->errors().isEmpty() ? QString() : view->errors().first().toString()));

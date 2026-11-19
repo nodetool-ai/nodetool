@@ -121,7 +121,8 @@ int exportCli(int argc, char** argv) {
         std::fprintf(stderr, "error: audio-bit-depth must be 16 or 24\n");
         return 2;
     }
-    const auto loaded = server::loadTimelineSource(parser.positionalArguments().first());
+    const server::AssetCacheRoot cache(server::timelineCacheDirectory());
+    const auto loaded = server::loadTimelineSource(parser.positionalArguments().first(), cache);
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
@@ -169,7 +170,7 @@ int exportCli(int argc, char** argv) {
             }
         });
     }
-    const auto result = exportTimeline(*loaded.timeline, options, stop.get_token(), progress,
+    const auto result = exportTimeline(*loaded.timeline, options, cache, stop.get_token(), progress,
         [&] { return !cancelFile.isEmpty() && QFileInfo::exists(cancelFile); });
     if (watchdog.joinable()) {
         watchdog.request_stop();

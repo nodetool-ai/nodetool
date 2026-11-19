@@ -7,14 +7,8 @@ nt_sources(app
     src/server/SaveCli.cpp
 )
 nt_sources(server
-    src/server/ServerClient.h
-    src/server/ServerClient.cpp
-    src/server/AssetCache.h
-    src/server/AssetCache.cpp
-    src/server/FieldAudit.h
-    src/server/FieldAudit.cpp
-    src/server/ServerTimeline.h
-    src/server/ServerTimeline.cpp
+    src/server/ServerTimelineProbe.h
+    src/server/ServerTimelineProbe.cpp
     src/server/ServerSource.h
     src/server/ServerSource.cpp
     src/server/AutosaveController.h
@@ -29,10 +23,10 @@ function(nt_server_tests)
     add_dependencies(tst_colorspaceversion nodetool-timeline)
 
     # Cache and client tests against an in-process HTTP server (no NodeTool server).
-    foreach(test_name tst_assetcache tst_serverclient tst_autosave)
+    foreach(test_name tst_assetcache tst_serverclient tst_serveridentity tst_autosave)
         nt_qt_test(${test_name} LIBS timeline_server Qt6::Test)
         set_tests_properties(${test_name} PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     endforeach()
-
+    nt_qt_test(tst_servertimelineloader LIBS nodetool_timeline_player_server Qt6::Test)
 endfunction()
 nt_tests(nt_server_tests)

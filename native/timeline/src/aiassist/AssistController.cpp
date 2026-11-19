@@ -26,7 +26,11 @@ QString clipMediaKey(const QJsonObject& raw) {
     return raw.value("mediaType").toString() + QChar(0x1f) + raw.value("mediaPath").toString() + QChar(0x1f) + raw.value("audioPath").toString() + QChar(0x1f) + raw.value("currentAssetId").toString();
 }
 }
-AssistController::AssistController(QObject* parent) : QObject(parent) {
+AssistController::AssistController(const nt::server::AssetCacheRoot& cache, QObject* parent) : AssistController(parent) {
+    setCacheRoot(cache);
+}
+
+AssistController::AssistController(QObject* parent) : TimelineMediaConsumer(parent) {
 
 }
 AssistController::~AssistController() { if (m_cancelled) { m_cancelled->store(true); } }
@@ -255,17 +259,17 @@ bool AssistController::call(bool write, const QString& procedure, const QJsonObj
         if (!clip.mediaPath.empty()) { protectedPaths.insert(QString::fromStdString(clip.mediaPath)); }
         if (!clip.audioPath.empty()) { protectedPaths.insert(QString::fromStdString(clip.audioPath)); }
     }
-    m_mediaProtection->reset(protectedPaths);
+    mediaProtection()->reset(protectedPaths);
     if (!mediaResolver) {
         if (const auto target = nt::server::serverSaveTarget()) {
-            const auto protection = m_mediaProtection;
+            const auto protection = mediaProtection();
             const auto mediaGeneration = protection->generation();
             mediaResolver = [target, protection, mediaGeneration](const QJsonObject& raw) {
                 nt::server::ServerClient server(target->server, target->token);
                 const auto asset = server.getAsset(raw.value("currentAssetId").toString());
                 if (!asset.ok()) { return nt::Clip{}; }
-                const auto cacheRoot = QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../.."));
-                return nt::assets::resolveDroppedMedia(server, cacheRoot, asset.data.toObject(), raw, *protection, mediaGeneration);
+
+                return nt::assets::resolveDroppedMedia(server, asset.data.toObject(), raw, *protection, mediaGeneration);
             };
         }
     }

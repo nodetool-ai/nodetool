@@ -29,7 +29,7 @@ QString mediaFor(const QString& assetId) {
 class TakeSwitchUi : public WiringFixture {
     Q_OBJECT
     double nowMs = 1000;
-    TakeSwitcher* switcher() { return TakeSwitcher::forTimeline(&model); }
+    TakeSwitcher* switcher() { return TakeSwitcher::attach(model, m_testCache.root()); }
     MonitorViewState* monitor() const { return view->rootObject()->findChild<MonitorViewState*>("monitorViewState"); }
     TakeGrid* grid() const { return view->rootObject()->findChild<TakeGrid*>("takeGrid"); }
     QUndoStack* undo() { return model.undoStack(); }

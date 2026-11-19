@@ -221,5 +221,49 @@ class DependencyTests(unittest.TestCase):
                 self.assertIsNone(shutil.which(name, path=environment['PATH']))
 
 
+class LinkVariableTests(unittest.TestCase):
+    def audit(self, commands):
+        with tempfile.TemporaryDirectory() as directory:
+            module = Path(directory).resolve() / 'timeline-player'
+            module.mkdir()
+            cmake = module / 'CMakeLists.txt'
+            cmake.write_text(
+                'set(platform_links "")\n' + commands +
+                '\ntarget_link_libraries(player PRIVATE ${platform_links})\n',
+                encoding='utf-8',
+            )
+            files, errors = dependencies.audit_module(module)
+            self.assertEqual(files, [cmake])
+            return errors
+
+    def test_list_additions_cannot_hide_a_forbidden_target(self):
+        for mutation in ('APPEND', 'PREPEND', 'INSERT'):
+            with self.subTest(mutation=mutation):
+                index = '0 ' if mutation == 'INSERT' else ''
+                errors = self.audit(f'list({mutation} platform_links {index}timeline_core)')
+                self.assertEqual(errors, [
+                    'CMakeLists.txt: external link target timeline_core in ${platform_links}'
+                ])
+
+    def test_allowlisted_list_items_can_be_added_or_removed(self):
+        self.assertEqual(self.audit('''
+            list(APPEND platform_links "-framework Metal;Vulkan::Vulkan")
+            list(PREPEND platform_links d3d11)
+            list(INSERT platform_links 0 dxgi)
+            list(REMOVE_ITEM platform_links d3d11)
+        '''), [])
+
+    def test_opaque_writes_are_rejected(self):
+        for command in (
+            'list(TRANSFORM platform_links REPLACE "^.*$" timeline_core)',
+            'string(APPEND platform_links timeline_core)',
+            'set(platform_links ${computed})',
+            'set(alias platform_links)\nlist(APPEND ${alias} timeline_core)',
+            'set(alias platform_links)\nset(${alias} timeline_core)',
+        ):
+            with self.subTest(command=command):
+                self.assertTrue(self.audit(command))
+
+
 if __name__ == '__main__':
     unittest.main()

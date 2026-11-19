@@ -55,6 +55,7 @@
 #include "ai/GenerationTransport.h"
 #include "model/TimelineTypes.h"
 #include "music/MusicBounce.h"
+#include "server/AssetCache.h"
 #include "server/AutosaveController.h"
 
 #include <QAbstractListModel>
@@ -144,7 +145,10 @@ public:
     static constexpr int kMaxResubmits = 1;
     static constexpr int kMaxReconnectDelayMs = 30000;
 
+    // Without a cache root, MusicJobs makes its own for the app's cache
+    // directory. The window attaches one that shares the host's root.
     explicit MusicJobs(QObject* parent = nullptr);
+    MusicJobs(const nt::server::AssetCacheRoot& cache, QObject* parent);
     ~MusicJobs() override;
     MusicJobs(const MusicJobs&) = delete;
     MusicJobs& operator=(const MusicJobs&) = delete;
@@ -154,6 +158,10 @@ public:
     // the clean-up command share it, so a timeline has one socket and one
     // job list. QML reaches it through MusicJobsRegistry.
     static MusicJobs* forTimeline(TimelineModel* timeline);
+    // Creates the timeline's job module on `cache`, the host's asset cache
+    // root, so its downloads share the host's leases. Returns the existing
+    // module when there is one.
+    static MusicJobs* attach(TimelineModel& timeline, const nt::server::AssetCacheRoot& cache);
 
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* timeline);

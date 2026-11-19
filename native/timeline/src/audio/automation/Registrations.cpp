@@ -1,2 +1,10 @@
 #include "audio/automation/Automation.h"
-namespace { const bool registered = [] { nt::automation::registerEdits(); nt::automation::ensureRegistered(); nt::automation::registerPictureAutomation(); return true; }(); }
+#include "audio/automation/Meters.h"
+
+namespace {
+const bool registered = [] {
+    nt::automation::registerEdits();
+    nt::automation::registerMeterStage();
+    return true;
+}();
+}

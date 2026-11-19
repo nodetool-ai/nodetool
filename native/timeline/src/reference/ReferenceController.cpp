@@ -36,14 +36,18 @@ ReferenceController::TakeMediaResolver serverResolver(const std::shared_ptr<nt::
         nt::server::ServerClient client(target.server, target.token);
         const auto asset = client.getAsset(assetId);
         if (!asset.ok()) return nt::Clip{};
-        const auto cacheRoot = QDir::cleanPath(QDir(target.backupDir).absoluteFilePath("../../.."));
-        return nt::assets::resolveDroppedMedia(client, cacheRoot, asset.data.toObject(), clip, *protection, protection->generation());
+
+        return nt::assets::resolveDroppedMedia(client, asset.data.toObject(), clip, *protection, protection->generation());
     };
 }
 }
 
+ReferenceController::ReferenceController(const nt::server::AssetCacheRoot& cache, QObject* parent) : ReferenceController(parent) {
+    setCacheRoot(cache);
+}
+
 ReferenceController::ReferenceController(QObject* parent)
-    : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>()) {
+    : TimelineMediaConsumer(parent) {
     liveInstances().push_back(this);
     m_timer.setSingleShot(true);
     connect(&m_timer, &QTimer::timeout, this, &ReferenceController::followPlayhead);
@@ -385,7 +389,7 @@ void ReferenceController::startTake(const Target& target) {
         failed(projection.error, target);
         return;
     }
-    auto resolver = m_resolver ? m_resolver : serverResolver(m_protection);
+    auto resolver = m_resolver ? m_resolver : serverResolver(mediaProtection());
     if (!resolver) {
         failed(tr("Open a timeline from the server to compare takes."), target);
         return;

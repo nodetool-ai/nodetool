@@ -71,4 +71,5 @@ nodetool-timeline edited.json --render-audio out.f32
 
 `tst_audioroles` (edits, measurement, controller, ducking render, the engine's live meter),
 `tst_audiorolesui` (the Audio panel and the gain dialog with pointer and key events), and `tst_loudness`,
-`tst_ducking`, `tst_liveloudness` in `src/audio/loudness`. The loudness tests hold ffmpeg `ebur128` reference values.
+`tst_ducking`, `tst_liveloudness` in the [timeline player tests](../../../../timeline-player/tests/).
+The loudness tests hold FFmpeg `ebur128` reference values.

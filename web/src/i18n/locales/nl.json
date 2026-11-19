@@ -14037,6 +14037,8 @@
       "tryAgainLater": "Probeer het later opnieuw.",
       "cloudLoadFailure": "Clouddocumenten konden niet worden weergegeven: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool wordt nog gestart. Open het clouddocument zo opnieuw.",
+      "cloudWindowSignedOut": "Meld je aan bij NodeTool Cloud om dit document te openen.",
       "noMatching": "Geen overeenkomende documenten",
       "noMatchingDescription": "Hiermee worden alleen documenten doorzocht. Gesprekken vinden plaats in Chats en uploads staan ​​in de bibliotheek.",
       "noDocuments": "Nog geen documenten",
@@ -20373,6 +20375,20 @@
     "cancel": "Annuleren",
     "signOut": "Afmelden",
     "signOutNote": "Wijzigingen die wachten in de node-editor of de tijdlijn blijven op deze computer en worden verzonden nadat je je opnieuw aanmeldt.",
-    "unavailable": "Aanmelden bij de cloud is niet beschikbaar in deze build."
+    "unavailable": "Aanmelden bij de cloud is niet beschikbaar in deze build.",
+    "signOutDialog": {
+      "title": "Wijzigingen nog niet verzonden",
+      "waiting_one": "{{count}} clouddocument heeft wijzigingen die nog niet zijn verzonden.",
+      "waiting_other": "{{count}} clouddocumenten hebben wijzigingen die nog niet zijn verzonden.",
+      "unsent_one": "De server heeft de wijzigingen in {{count}} clouddocument geweigerd.",
+      "unsent_other": "De server heeft de wijzigingen in {{count}} clouddocumenten geweigerd.",
+      "unknown": "NodeTool kon niet controleren of er nog wijzigingen moeten worden verzonden.",
+      "kept": "Als je je nu afmeldt, blijven de wijzigingen op deze computer en worden ze verzonden wanneer je je opnieuw aanmeldt met dit account.",
+      "keep": "Op deze computer bewaren en afmelden",
+      "wait": "Wachten tot verzonden",
+      "cancel": "Annuleren",
+      "signOutNow": "Nu afmelden",
+      "waitingNote": "Wachten tot de wijzigingen zijn verzonden. Houd het cloudvenster open."
+    }
   }
 }

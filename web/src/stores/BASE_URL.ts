@@ -1,3 +1,4 @@
+import { CLOUD_WINDOW } from "../lib/cloud/cloudWindow";
 import { isString } from "../utils/typePredicates";
 /**
  * Base URL for the backend API.
@@ -11,7 +12,11 @@ const defaultLocalUrl = "";
 
 const apiEnv = import.meta.env.VITE_API_URL;
 
-export const BASE_URL = apiEnv || defaultLocalUrl;
+/**
+ * In the desktop app's cloud window (D27) the one server is the signed-in
+ * cloud server, and its requests go through the main process.
+ */
+export const BASE_URL = CLOUD_WINDOW?.server ?? (apiEnv || defaultLocalUrl);
 
 /**
  * Helper function to get WebSocket URL from BASE_URL.

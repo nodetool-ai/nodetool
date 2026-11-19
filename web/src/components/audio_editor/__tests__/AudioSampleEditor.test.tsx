@@ -355,3 +355,92 @@ it("does not serve the agent tools unless asked", async () => {
     global.fetch = originalFetch;
   }
 });
+
+it("toggles playback with Space when active and ignores Space in text inputs or when inactive", async () => {
+  const originalContext = window.AudioContext;
+  const originalFetch = global.fetch;
+  const mockStart = jest.fn();
+  const mockStop = jest.fn();
+  const mockDisconnect = jest.fn();
+  window.AudioContext = jest.fn(() => ({
+    currentTime: 0,
+    destination: {},
+    resume: jest.fn().mockResolvedValue(undefined),
+    decodeAudioData: jest.fn().mockResolvedValue({
+      sampleRate: 1,
+      numberOfChannels: 1,
+      length: 4,
+      getChannelData: () => new Float32Array([0, 0.25, 0.5, 1])
+    }),
+    createBuffer: jest.fn((channels: number, length: number, sampleRate: number) => {
+      const data = Array.from({ length: channels }, () => new Float32Array(length));
+      return {
+        numberOfChannels: channels,
+        length,
+        sampleRate,
+        copyToChannel: (src: Float32Array, ch: number) => data[ch].set(src)
+      };
+    }),
+    createBufferSource: jest.fn(() => ({
+      buffer: null,
+      loop: false,
+      loopStart: 0,
+      loopEnd: 0,
+      onended: null,
+      connect: jest.fn(),
+      start: mockStart,
+      stop: mockStop,
+      disconnect: mockDisconnect
+    })),
+    suspend: mockSuspend,
+    close: mockClose
+  })) as unknown as typeof AudioContext;
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    arrayBuffer: async () => new ArrayBuffer(0)
+  });
+  const asset = {
+    id: "audio-space",
+    get_url: "https://example.test/space.wav"
+  } as Asset;
+  try {
+    const result = render(
+      <>
+        <AudioSampleEditor asset={asset} active />
+        <input aria-label="Chat input" />
+      </>,
+      {
+        wrapper: ({ children }) => (
+          <ThemeProvider theme={mockTheme}>{children}</ThemeProvider>
+        )
+      }
+    );
+    await screen.findByTestId("sample");
+
+    // Typing Space in an input must not start playback.
+    const input = screen.getByLabelText("Chat input");
+    fireEvent.keyDown(input, { key: " ", code: "Space" });
+    expect(mockStart).not.toHaveBeenCalled();
+
+    // Pressing Space on the document starts playback, then stops it.
+    fireEvent.keyDown(window, { key: " ", code: "Space" });
+    expect(mockStart).toHaveBeenCalledTimes(1);
+    expect(mockStop).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { key: " ", code: "Space" });
+    expect(mockStop).toHaveBeenCalledTimes(1);
+
+    // Inactive tab ignores Space.
+    result.rerender(
+      <>
+        <AudioSampleEditor asset={asset} active={false} />
+        <input aria-label="Chat input" />
+      </>
+    );
+    fireEvent.keyDown(window, { key: " ", code: "Space" });
+    expect(mockStart).toHaveBeenCalledTimes(1);
+  } finally {
+    window.AudioContext = originalContext;
+    global.fetch = originalFetch;
+  }
+});

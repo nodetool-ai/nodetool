@@ -203,8 +203,11 @@ MusicJobs::Job MusicJobs::Job::fromJson(const QJsonObject& value) {
 // ---------------------------------------------------------------- lifetime
 
 MusicJobs::MusicJobs(QObject* parent)
+    : MusicJobs(nt::server::AssetCacheRoot(nt::server::timelineCacheDirectory()), parent) {}
+
+MusicJobs::MusicJobs(const nt::server::AssetCacheRoot& cache, QObject* parent)
     : QObject(parent), m_transport(this), m_poll(this), m_reconnect(this), m_ticker(this),
-      m_list(new MusicJobListModel(this)), m_mediaProtection(std::make_shared<nt::assets::MediaProtection>()) {
+      m_list(new MusicJobListModel(this)), m_mediaProtection(std::make_shared<nt::assets::MediaProtection>(cache)) {
     qRegisterMetaType<nt::music::BounceResult>();
     m_poll.setInterval(kPollIntervalMs);
     m_ticker.setInterval(1000);
@@ -255,6 +258,14 @@ MusicJobs* MusicJobs::forTimeline(TimelineModel* timeline) {
     auto* jobs = new MusicJobs(timeline);
     QQmlEngine::setObjectOwnership(jobs, QQmlEngine::CppOwnership);
     jobs->setTimeline(timeline);
+    return jobs;
+}
+
+MusicJobs* MusicJobs::attach(TimelineModel& timeline, const nt::server::AssetCacheRoot& cache) {
+    if (auto* existing = timeline.findChild<MusicJobs*>(QString(), Qt::FindDirectChildrenOnly)) return existing;
+    auto* jobs = new MusicJobs(cache, &timeline);
+    QQmlEngine::setObjectOwnership(jobs, QQmlEngine::CppOwnership);
+    jobs->setTimeline(&timeline);
     return jobs;
 }
 
@@ -1101,7 +1112,6 @@ void MusicJobs::place(Job& job, bool reinsert) {
     auto worker = std::unique_ptr<QThread>(QThread::create([self, target, protection, generation, assets, jobId, requestId, reinsert] {
         nt::server::ServerClient client(target.server, target.token);
         client.setExpectedInstance(target.expectedInstance);
-        const auto cacheRoot = QDir::cleanPath(QDir(target.backupDir).absoluteFilePath(QStringLiteral("../../..")));
         QList<nt::Clip> media;
         QString error;
         for (const auto& assetId : assets) {
@@ -1112,7 +1122,7 @@ void MusicJobs::place(Job& job, bool reinsert) {
                 break;
             }
             const QJsonObject raw{{"mediaType", "audio"}, {"currentAssetId", assetId}};
-            auto resolved = nt::assets::resolveDroppedMedia(client, cacheRoot, asset.data.toObject(), raw, *protection, generation);
+            auto resolved = nt::assets::resolveDroppedMedia(client, asset.data.toObject(), raw, *protection, generation);
             if (resolved.audioPath.empty() && resolved.mediaPath.empty()) {
                 error = QStringLiteral("Take ") + assetId + QStringLiteral(" could not be downloaded.");
                 break;

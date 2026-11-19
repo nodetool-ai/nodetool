@@ -108,7 +108,6 @@ private slots:
     void initTestCase() {
         QVERIFY(m_dir.isValid());
         // The app registers the automation stage at start-up. The mix needs it to play a volume lane.
-        nt::automation::ensureRegistered();
     }
 
     void rolesAndDefaults() {

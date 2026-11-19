@@ -366,7 +366,7 @@ private slots:
         gestures()->trimMode()->leave();
     }
     void recordingRefuses() {
-        auto* takes = TakeSwitcher::forTimeline(&model);
+        auto* takes = TakeSwitcher::attach(model, m_testCache.root());
         QVERIFY(takes);
         takes->toggleRecording(*gestures());
         QVERIFY(takes->recording());

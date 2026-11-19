@@ -6,7 +6,7 @@
 #include "FrameHoldController.h"
 #include "model/TimelineJson.h"
 #include "edit/targeting/TrackTargeting.h"
-#include "edit/speed/TimeRemap.h"
+#include "scene/TimeRemap.h"
 #include "preview/SceneEval.h"
 #include "audio/Mixer.h"
 #include <array>

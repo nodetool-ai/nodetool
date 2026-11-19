@@ -18,6 +18,7 @@ import {
   type SsoUser
 } from "../lib/ssoSession";
 import { getBuildEnv } from "../lib/buildEnv";
+import { CLOUD_WINDOW } from "../lib/cloud/cloudWindow";
 import {
   markWorkspaceGrantPending,
   syncGoogleProviderToken
@@ -148,6 +149,20 @@ export const useAuth = create<LoginStore>((set, get) => ({
 
     // Clean up any existing subscription before initializing
     get().cleanup();
+
+    if (CLOUD_WINDOW) {
+      // The desktop app's cloud window (D27): the shared account is signed
+      // in, and the main process adds its credential to every request. The
+      // window closes when that account signs out or changes.
+      set({
+        state: "logged_in",
+        session: null,
+        user: { id: CLOUD_WINDOW.account },
+        error: null,
+        _authSubscription: null
+      });
+      return;
+    }
 
     if (!isAuthRequired()) {
       // Backend runs in Local mode — no login screen, single local user.

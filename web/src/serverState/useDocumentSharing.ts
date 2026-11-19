@@ -14,6 +14,7 @@ import type {
   CollaboratorRole,
   ShareOptionsPatch
 } from "./useWorkflowSharing";
+import { shareLinkOrigin } from "../lib/cloud/cloudWindow";
 
 export type SharedDocumentType = documentSharing.SharedDocumentTypeValue;
 
@@ -46,7 +47,7 @@ export const documentsSharedWithMeQueryKey = [
 
 /** The URL a document share link opens: the page that redeems it. */
 export const documentShareUrlForToken = (token: string): string =>
-  `${window.location.origin}/share/document/${token}`;
+  `${shareLinkOrigin()}/share/document/${token}`;
 
 /** Collaborators and links, for the owner's share dialog. */
 export const useDocumentSharing = (

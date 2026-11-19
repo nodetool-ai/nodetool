@@ -1,8 +1,3 @@
-nt_sources(core
-    src/model/TimelineTypes.h
-    src/model/TimelineJson.h
-    src/model/TimelineJson.cpp
-)
 nt_sources(qml
     src/model/TimelineModel.h
     src/model/TimelineModel.cpp

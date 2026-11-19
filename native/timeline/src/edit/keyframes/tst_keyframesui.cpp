@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "edit/ClipGestureController.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -14,6 +15,7 @@
 
 class KeyframeUiSetup : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
   public:
     KeyframeUiSetup() {
         if (qEnvironmentVariableIsEmpty("NODETOOL_TIMELINE_PREFERENCES")) {
@@ -23,6 +25,7 @@ class KeyframeUiSetup : public QObject {
     }
   public slots:
     void qmlEngineAvailable(QQmlEngine* engine) {
+        m_testCache.install(*engine);
         auto parsed = nt::parseTimelineJson(
             R"({"name":"Inspector","width":640,"height":360,"fps":30,"durationMs":2000,"tracks":[{"id":"v","name":"Video","type":"video"}],"clips":[{"id":"c","trackId":"v","mediaType":"video","name":"Picture","startMs":0,"durationMs":2000}]})");
         m_model.setTimeline(std::move(*parsed.timeline));

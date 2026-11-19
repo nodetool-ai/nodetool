@@ -1,4 +1,5 @@
 #pragma once
+#include "assets/TimelineMediaConsumer.h"
 #include "server/AutosaveController.h"
 #include "model/TimelineModel.h"
 #include "model/TrackWindowModel.h"
@@ -18,8 +19,9 @@
 #include <memory>
 #include <optional>
 
-class AssetBrowser : public QObject {
+class AssetBrowser : public nt::assets::TimelineMediaConsumer {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(bool configured READ configured CONSTANT)
     Q_PROPERTY(bool busy READ busy NOTIFY stateChanged)
@@ -50,6 +52,7 @@ class AssetBrowser : public QObject {
     Q_PROPERTY(QString folderWorkspaceId READ folderWorkspaceId WRITE setFolderWorkspaceId NOTIFY autosaveChanged)
 public:
     explicit AssetBrowser(QObject* parent = nullptr);
+    explicit AssetBrowser(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~AssetBrowser() override;
     bool configured() const { return m_target.has_value(); }
     bool busy() const { return !m_thread.isNull(); }
@@ -173,8 +176,6 @@ private:
         QJsonObject capturedDocument;
     };
     QHash<QString, AudioSettlement> m_settlements;
-    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
-    std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
     bool m_reconciling = false;
     std::optional<nt::server::SaveTarget> m_target;
     QPointer<TimelineModel> m_timeline;

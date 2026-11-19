@@ -1,3 +1,4 @@
+# CaptionCues is in native/timeline-player (nodetool_timeline_scene).
 nt_sources(core src/transcript/TranscriptDocument.h src/transcript/TranscriptDocument.cpp)
 function(nt_transcript_tests)
     qt_add_executable(tst_transcript src/transcript/tst_transcript.cpp

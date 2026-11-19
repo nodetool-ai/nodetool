@@ -1,5 +1,6 @@
 #pragma once
 
+#include "model/TimelineSource.h"
 #include "model/TimelineTypes.h"
 #include "model/TrackListModel.h"
 
@@ -16,7 +17,10 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 
 // The document the editor shows. It owns the timeline; QML only observes it.
-class TimelineModel : public QObject {
+// As a TimelineSource it forwards timelineChanged and previewChanged to
+// sourceChanged.
+// Thread affinity: UI thread only.
+class TimelineModel : public TimelineSource {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("Created by main")
@@ -62,7 +66,7 @@ public:
     const nt::Timeline& timeline() const { return *m_timeline; }
     // An immutable snapshot the render thread keeps by pointer (D8). A new
     // document makes a new snapshot; an old one stays valid while held.
-    std::shared_ptr<const nt::Timeline> snapshot() const { return m_timeline; }
+    std::shared_ptr<const nt::Timeline> snapshot() const override { return m_timeline; }
 
     QString name() const { return QString::fromStdString(m_timeline->name); }
     double fps() const { return m_timeline->fps; }
@@ -77,7 +81,7 @@ public:
     QUndoStack* undoStack() const { return m_undo; }
     // Counts document replacements (setTimeline, close). A gesture started
     // under one generation never writes into another.
-    quint64 documentGeneration() const { return m_generation; }
+    quint64 documentGeneration() const override { return m_generation; }
 
     // The document as the server holds it (D4): the raw sequence JSON with
     // every field, the edited clips included.

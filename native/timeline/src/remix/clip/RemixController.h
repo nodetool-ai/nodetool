@@ -1,4 +1,5 @@
 #pragma once
+#include "assets/TimelineMediaConsumer.h"
 
 // The Remix dialog's model: analyses the music of one audio clip off the GUI
 // thread, plans the cuts for a target length, auditions the result, and commits
@@ -54,8 +55,9 @@ signals:
 Q_DECLARE_METATYPE(RemixRelay::Task)
 
 // native-rules #9: used across threads (QThread workers post back through RemixRelay) and declares no thread affinity at its top
-class RemixController : public QObject {
+class RemixController : public nt::assets::TimelineMediaConsumer {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
     Q_PROPERTY(QString clipId READ clipId NOTIFY changed)
@@ -93,6 +95,7 @@ class RemixController : public QObject {
     Q_PROPERTY(QString audioMode READ audioMode WRITE setAudioMode NOTIFY changed)
 public:
     explicit RemixController(QObject* parent = nullptr);
+    explicit RemixController(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~RemixController() override;
 
     TimelineModel* timeline() const { return m_timeline; }
@@ -173,8 +176,6 @@ private:
     mutable std::shared_ptr<nt::remix::Backend> m_serverBackend;
     mutable bool m_serverBackendResolved = false;
     bool m_backendSet = false;
-    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
-    std::shared_ptr<nt::assets::MediaProtection> m_protection;
     // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<RemixRelay> m_relay;
     QString m_clipId, m_clipName, m_currentAsset;

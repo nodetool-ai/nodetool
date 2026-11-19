@@ -145,7 +145,8 @@ int renderAudioCli(int argc, char** argv) {
     }
     // A fixture file, or the timeline that --server URL --timeline ID names
     // (src/server/ServerSource.h).
-    const auto loaded = server::loadTimelineSource(parser.positionalArguments().first());
+    const server::AssetCacheRoot cache(server::timelineCacheDirectory());
+    const auto loaded = server::loadTimelineSource(parser.positionalArguments().first(), cache);
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
