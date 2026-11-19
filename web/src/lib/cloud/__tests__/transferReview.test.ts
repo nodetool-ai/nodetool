@@ -45,7 +45,7 @@ const doc = (
   contentHash: string,
   state: ReceiveDocument["state"],
   decision: ReceiveDocument["decision"]
-): ReceiveDocument => ({ kind, cloudId, localId, name, contentHash, state, decision, missingFiles: 0, changedFiles: 0 });
+): ReceiveDocument => ({ kind, cloudId, localId, name, contentHash, state, decision, missingFiles: 0, localHash: "", changedFiles: 0 });
 
 const receive = (documents: ReceiveDocument[]): ReceiveCapture => ({ setId: "", documents });
 
