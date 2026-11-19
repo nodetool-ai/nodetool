@@ -392,7 +392,7 @@ def audit_module(module):
         except ValueError:
             continue
         text = path.read_text(encoding='utf-8')
-        label = str(path.relative_to(module))
+        label = path.relative_to(module).as_posix()
         dependency_text = text
         if label in policy.get('vendored_sources', set()):
             dependency_text = re.sub(r'https?://[^\s"\'<>]+', '', text)
