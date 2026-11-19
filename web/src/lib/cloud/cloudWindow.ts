@@ -41,3 +41,9 @@ const LOCAL_API_PREFIXES = ["/api/", "/trpc/", "/ws"];
 export function refusedInCloudWindow(url: URL, localOrigin: string): boolean {
   return url.origin === localOrigin && LOCAL_API_PREFIXES.some((prefix) => url.pathname.startsWith(prefix));
 }
+
+/**
+ * The origin a copied share link opens on: the cloud server in the cloud
+ * window, as in the native apps, and this page's origin everywhere else.
+ */
+export const shareLinkOrigin = (): string => CLOUD_WINDOW?.server ?? window.location.origin;
