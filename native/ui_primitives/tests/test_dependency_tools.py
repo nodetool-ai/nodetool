@@ -224,7 +224,7 @@ class DependencyTests(unittest.TestCase):
 class LinkVariableTests(unittest.TestCase):
     def audit(self, commands):
         with tempfile.TemporaryDirectory() as directory:
-            module = Path(directory) / 'timeline-player'
+            module = Path(directory).resolve() / 'timeline-player'
             module.mkdir()
             cmake = module / 'CMakeLists.txt'
             cmake.write_text(
