@@ -9545,7 +9545,11 @@
         "stopAria": "Pysäytä työkone {{id}}",
         "stop": "Pysäytä",
         "terminateAria": "Lopeta työkone {{id}}",
-        "terminate": "Lopeta"
+        "terminate": "Lopeta",
+        "moreActions": "More actions",
+        "copyId": "Copy pod ID",
+        "gpuUnknown": "GPU not set",
+        "pausedCost": "When running"
       },
       "actions": {
         "manageProfiles": "Hallitse profiileja",
@@ -9603,7 +9607,22 @@
         "startAria": "Käynnistä {{name}} vuokratulla GPU:lla",
         "bootingHint": "ComfyUI latautuu. Ensimmäinen käynnistys voi kestää useita minuutteja.",
         "readyHint": "Kopioi URL kohteeseen Run ComfyUI Workflow. Kuka tahansa, jolla on tämä URL, voi käyttää podia.",
-        "copyEndpoint": "Kopioi ComfyUI-URL"
+        "copyEndpoint": "Kopioi ComfyUI-URL",
+        "sectionTitle": "Quick start: ComfyUI on RunPod",
+        "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
+        "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "priceRange": "{{min}}–{{max}}/hr",
+        "running": "Running"
+      },
+      "stock": {
+        "high": "High stock",
+        "medium": "In stock",
+        "low": "Low stock",
+        "none": "Out of stock"
+      },
+      "list": {
+        "title": "Your workers",
+        "subtitle": "Pods you rented. Paused pods keep their files and bill only for storage."
       }
     }
   },

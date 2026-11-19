@@ -3,6 +3,12 @@ import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { css } from "@emotion/react";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeveloperBoardIcon from "@mui/icons-material/DeveloperBoard";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import {
   FlexColumn,
   FlexRow,
@@ -19,13 +25,20 @@ import {
   StatusIndicator,
   AlertBanner,
   PanelHeader,
-  type StatusType, getSpacingPx, SPACING,
-  EmptyState
+  type StatusType, getSpacingPx, SPACING, BORDER_RADIUS,
+  EmptyState,
+  SectionHeader,
+  EditorMenu,
+  MenuItemPrimitive,
+  ToolbarIconButton,
+  Tooltip,
+  TruncatedText
 } from "../ui_primitives";
 import {
   useWorkers,
   useWorkerHealth,
   type ComfyPreset,
+  type GpuAvailability,
   type WorkerInstance,
   type WorkerProfile,
   type WorkerTarget
@@ -79,12 +92,35 @@ const panelStyles =
     ".workers-body": {
       flex: 1,
       minHeight: 0,
+      overflowY: "auto",
+      overflowX: "hidden",
       padding: getSpacingPx(SPACING.lg)
     },
+    ".workers-presets": {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+      gap: getSpacingPx(SPACING.md)
+    },
+    ".workers-table": {
+      border: "1px solid var(--palette-divider)",
+      borderRadius: BORDER_RADIUS.md,
+      overflow: "hidden"
+    },
+    ".workers-row": {
+      display: "grid",
+      gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr) auto",
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.lg),
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
+      borderTop: "1px solid var(--palette-divider)"
+    },
+    ".workers-head": {
+      borderTop: "none",
+      paddingTop: getSpacingPx(SPACING.sm),
+      paddingBottom: getSpacingPx(SPACING.sm)
+    },
     ".scrollable-content": {
-      flex: 1,
-      overflowY: "auto",
-      overflowX: "hidden"
+      flexShrink: 0
     }
   });
 
@@ -166,6 +202,52 @@ function formatRate(cost: number, locale: string, t: TFunction): string {
   return t("screens4_8.workers.rate", { amount });
 }
 
+type StockLevel = "high" | "medium" | "low" | "none";
+
+const STOCK_RANK: Record<StockLevel, number> = { none: 0, low: 1, medium: 2, high: 3 };
+
+/** The better stock level of the two RunPod cloud tiers. */
+function stockLevel(entry: GpuAvailability | undefined): StockLevel {
+  const levels = [entry?.secure, entry?.community].map(
+    (value): StockLevel => (value ? (value.toLowerCase() as StockLevel) : "none")
+  );
+  return levels.reduce((best, level) =>
+    STOCK_RANK[level] > STOCK_RANK[best] ? level : best
+  );
+}
+
+const STOCK_COLOR: Record<StockLevel, "success" | "warning" | "error"> = {
+  high: "success",
+  medium: "success",
+  low: "warning",
+  none: "error"
+};
+
+interface GpuStockProps {
+  gpuId: string;
+  availability: GpuAvailability[];
+}
+
+/** A GPU name with its RunPod stock level. Renders the bare id while loading. */
+const GpuStock: React.FC<GpuStockProps> = ({ gpuId, availability }) => {
+  const { t } = useTranslation();
+  const entry = availability.find((candidate) => candidate.id === gpuId);
+  if (availability.length === 0) {
+    return <Caption size="small">{gpuId}</Caption>;
+  }
+  const level = stockLevel(entry);
+  return (
+    <FlexRow gap={SPACING.sm} align="center" justify="space-between">
+      <Caption size="small">{entry?.displayName ?? gpuId}</Caption>
+      <Chip
+        compact
+        color={STOCK_COLOR[level]}
+        label={t(`screens4_8.workers.stock.${level}`)}
+      />
+    </FlexRow>
+  );
+};
+
 function statusTone(status: string): StatusType {
   return STATUS_TONE[status] ?? "default";
 }
@@ -173,6 +255,7 @@ function statusTone(status: string): StatusType {
 interface ProvisionDialogProps {
   open: boolean;
   profiles: WorkerProfile[];
+  availability: GpuAvailability[];
   apiKeyStatus?: Record<WorkerTarget, boolean>;
   onProvision: (profileName: string) => void;
   onClose: () => void;
@@ -182,6 +265,7 @@ interface ProvisionDialogProps {
 const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
   open,
   profiles,
+  availability,
   apiKeyStatus,
   onProvision,
   onClose,
@@ -196,6 +280,11 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
   // here instead of after the click.
   const apiKeyMissing =
     profile !== undefined && apiKeyStatus?.[profile.target] === false;
+
+  const profileGpu =
+    profile?.target === "runpod"
+      ? readStringField(profile.spec as Record<string, unknown> | undefined, "gpu")
+      : null;
 
   const options = useMemo(
     () => profiles.map(({ name }) => ({ value: name, label: name })),
@@ -230,6 +319,9 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
         {profile && apiKeyMissing && (
           <WorkerApiKeySetup target={profile.target} />
         )}
+        {profileGpu && (
+          <GpuStock gpuId={profileGpu} availability={availability} />
+        )}
         {profile && (
           <Caption size="small">
             {profile.idle_timeout_minutes
@@ -246,6 +338,7 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
 
 interface ComfyPresetsSectionProps {
   presets: ComfyPreset[];
+  availability: GpuAvailability[];
   runningProfiles: ReadonlySet<string>;
   startingId: string | null;
   apiKeyMissing: boolean;
@@ -254,6 +347,7 @@ interface ComfyPresetsSectionProps {
 
 const ComfyPresetsSection: React.FC<ComfyPresetsSectionProps> = ({
   presets,
+  availability,
   runningProfiles,
   startingId,
   apiKeyMissing,
@@ -264,58 +358,60 @@ const ComfyPresetsSection: React.FC<ComfyPresetsSectionProps> = ({
     style: "currency",
     currency: "USD"
   });
+  if (presets.length === 0) return null;
+  const lifetimeHours = Math.round(presets[0].maxLifetimeMinutes / 60);
   return (
-    <FlexColumn gap={SPACING.sm} sx={{ mt: SPACING.md }}>
-      {apiKeyMissing && presets.length > 0 && (
-        <WorkerApiKeySetup target="runpod" />
-      )}
-      {presets.map((preset) => (
-        <Card key={preset.id} variant="outlined" padding="normal">
-          <FlexRow align="center" justify="space-between" gap={SPACING.lg}>
-            <FlexColumn gap={SPACING.micro}>
-              <FlexRow align="center" gap={SPACING.sm} wrap="wrap">
-                <Text size="normal" weight={600}>
-                  {preset.label}
-                </Text>
-                <Chip
-                  compact
-                  label={t("screens4_8.workers.presets.badge")}
-                />
-                <Chip compact label={TARGET_LABEL.runpod} />
-              </FlexRow>
-              <Caption size="small">
-                {t("screens4_8.workers.presets.summary", {
-                  min: money.format(preset.hourlyUsd.min),
-                  max: money.format(preset.hourlyUsd.max),
-                  count: Math.round(preset.maxLifetimeMinutes / 60)
-                })}
-              </Caption>
-              {preset.gpus.length > 0 && (
-                <Caption size="small">
-                  GPU: {preset.gpus.join(" / ")}
-                </Caption>
-              )}
-            </FlexColumn>
-            <EditorButton
-              density="compact"
-              variant="outlined"
-              aria-label={t("screens4_8.workers.presets.startAria", {
-                name: preset.label
-              })}
-              disabled={
-                apiKeyMissing ||
-                startingId !== null ||
-                runningProfiles.has(preset.profileName)
-              }
-              onClick={() => onStart(preset.id)}
-            >
-              {startingId === preset.id
-                ? t("screens4_8.workers.presets.starting")
-                : t("screens4_8.workers.presets.start")}
-            </EditorButton>
-          </FlexRow>
-        </Card>
-      ))}
+    <FlexColumn gap={SPACING.sm} sx={{ mt: SPACING.xl }}>
+      <SectionHeader
+        title={t("screens4_8.workers.presets.sectionTitle")}
+        subtitle={t("screens4_8.workers.presets.sectionSubtitle", {
+          count: lifetimeHours
+        })}
+        size="small"
+      />
+      {apiKeyMissing && <WorkerApiKeySetup target="runpod" />}
+      <div className="workers-presets">
+        {presets.map((preset) => {
+          const running = runningProfiles.has(preset.profileName);
+          return (
+            <Card key={preset.id} variant="outlined" padding="normal">
+              <FlexColumn gap={SPACING.sm} fullHeight>
+                <FlexRow align="center" justify="space-between" gap={SPACING.sm}>
+                  <Text size="normal" weight={600}>
+                    {preset.label}
+                  </Text>
+                  <Caption size="small" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                    {t("screens4_8.workers.presets.priceRange", {
+                      min: money.format(preset.hourlyUsd.min),
+                      max: money.format(preset.hourlyUsd.max)
+                    })}
+                  </Caption>
+                </FlexRow>
+                <FlexColumn gap={SPACING.xs} sx={{ flex: 1 }}>
+                  {preset.gpus.map((gpu) => (
+                    <GpuStock key={gpu} gpuId={gpu} availability={availability} />
+                  ))}
+                </FlexColumn>
+                <EditorButton
+                  density="compact"
+                  variant="outlined"
+                  aria-label={t("screens4_8.workers.presets.startAria", {
+                    name: preset.label
+                  })}
+                  disabled={apiKeyMissing || startingId !== null || running}
+                  onClick={() => onStart(preset.id)}
+                >
+                  {running
+                    ? t("screens4_8.workers.presets.running")
+                    : startingId === preset.id
+                      ? t("screens4_8.workers.presets.starting")
+                      : t("screens4_8.workers.presets.start")}
+                </EditorButton>
+              </FlexColumn>
+            </Card>
+          );
+        })}
+      </div>
     </FlexColumn>
   );
 };
@@ -453,137 +549,186 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
     }
   }, [autoAttach, isRunning, isHealthy, busy, comfyEndpoint, onAutoAttach, instance.id]);
 
+  const [menuButton, setMenuButton] = useState<HTMLElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const runMenu = useCallback(
+    (action: () => void) => () => {
+      setMenuOpen(false);
+      action();
+    },
+    []
+  );
+
+  const hourlyText =
+    instance.estimated_cost_usd !== null
+      ? formatRate(instance.estimated_cost_usd, i18n.language, t)
+      : t("screens4_8.workers.common.unavailable");
+  const statusIcon = isPaused ? (
+    <PauseIcon fontSize="small" />
+  ) : isBooting ||
+    instance.status === "provisioning" ||
+    instance.status === "stopping" ? (
+    <LoadingSpinner size="small" />
+  ) : (
+    <PlayArrowIcon fontSize="small" color="success" />
+  );
+
+  const primaryAction = comfyEndpoint ? (
+    isRunning &&
+    isHealthy && (
+      <CopyButton
+        value={comfyEndpoint}
+        tooltip={t("screens4_8.workers.presets.copyEndpoint")}
+      />
+    )
+  ) : isAttached ? (
+    <EditorButton
+      density="compact"
+      variant="outlined"
+      aria-label={t("screens4_8.workers.instance.detachAria", { id: instance.id })}
+      disabled={busy}
+      onClick={onDetach}
+    >
+      {t("screens4_8.workers.instance.detach")}
+    </EditorButton>
+  ) : isPaused ? (
+    <EditorButton
+      density="compact"
+      variant="outlined"
+      aria-label={t("screens4_8.workers.instance.resumeAria", { id: instance.id })}
+      disabled={stopping}
+      onClick={() => onResume(instance.id)}
+    >
+      {t("screens4_8.workers.instance.resume")}
+    </EditorButton>
+  ) : (
+    <EditorButton
+      density="compact"
+      variant="outlined"
+      aria-label={t("screens4_8.workers.instance.attachAria", { id: instance.id })}
+      // Only enable once the worker is actually answering — attaching
+      // mid-boot just fails the handshake and rolls back.
+      disabled={busy || !isRunning || !isHealthy}
+      onClick={() => onAttach(instance.id)}
+    >
+      {isBooting
+        ? t("screens4_8.workers.status.bootingEllipsis")
+        : t("screens4_8.workers.instance.attach")}
+    </EditorButton>
+  );
+
+  const detailsTooltip = (
+    <FlexColumn gap={SPACING.micro}>
+      <Caption size="small">{displayLabel}</Caption>
+      {hardwareParts.length > 0 && (
+        <Caption size="small">{hardwareParts.join(" · ")}</Caption>
+      )}
+      {profile?.image && <Caption size="small">Image: {profile.image}</Caption>}
+      {endpointUrl && <Caption size="small">Endpoint: {endpointUrl}</Caption>}
+      {metaParts.map((part) => (
+        <Caption key={part} size="small">
+          {part}
+        </Caption>
+      ))}
+    </FlexColumn>
+  );
+
   return (
-    <Card variant="outlined" padding="normal">
-      <FlexColumn gap={SPACING.sm}>
-        <FlexRow align="center" justify="space-between" gap={SPACING.lg} wrap="wrap">
-          <FlexColumn gap={SPACING.micro}>
-            <FlexRow gap={SPACING.sm} align="center" wrap="wrap">
-              <Text size="normal" weight={600}>
-                {instance.profile_name}
-              </Text>
-              <Chip
-                compact
-                label={isComfy ? t("screens4_8.workers.presets.badge") : "Worker"}
-              />
-              <Chip compact label={TARGET_LABEL[instance.target]} />
-              <StatusIndicator
-                status={displayTone}
-                label={displayLabel}
-                pulse={
-                  instance.status === "provisioning" ||
-                  instance.status === "stopping" ||
-                  isBooting
-                }
-              />
-              {isBooting && <LoadingSpinner size="small" />}
-            </FlexRow>
-            {statusHint && <Caption size="small">{statusHint}</Caption>}
-            {healthError && (
-              <Caption size="small" sx={{ color: "error.main" }}>
-                {healthError}
-              </Caption>
+    <div className="workers-row" role="row">
+      <FlexColumn gap={SPACING.micro} role="cell" sx={{ minWidth: 0 }}>
+        <Tooltip title={detailsTooltip}>
+          <FlexRow gap={SPACING.sm} align="center" sx={{ minWidth: 0 }}>
+            {statusIcon}
+            <TruncatedText variant="body2" sx={{ fontWeight: 500 }}>
+              {instance.profile_name}
+            </TruncatedText>
+            {isComfy && (
+              <Chip compact label={t("screens4_8.workers.presets.badge")} />
             )}
-          </FlexColumn>
-          <FlexRow gap={SPACING.lg} align="center" wrap="wrap">
-            <Caption size="small" sx={{ fontVariantNumeric: "tabular-nums" }}>
-              {timerText ??
-                t("screens4_8.workers.instance.uptime", {
-                  value: formatUptime(instance.created_at, now, i18n.language, t)
-                })}
-            </Caption>
-            <Caption size="small" sx={{ fontVariantNumeric: "tabular-nums" }}>
-              {t("screens4_8.workers.instance.cost", {
-                value: formatCost(instance.estimated_cost_usd, i18n.language, t)
-              })}
-              {instance.estimated_cost_usd !== null ? "/hr" : ""}
-              {runningCostText ? ` (${runningCostText} so far)` : ""}
-            </Caption>
-            {comfyEndpoint ? (
-              isRunning &&
-              isHealthy && (
-                <CopyButton
-                  value={comfyEndpoint}
-                  tooltip={t("screens4_8.workers.presets.copyEndpoint")}
-                />
-              )
-            ) : isAttached ? (
-              <EditorButton
-                density="compact"
-                variant="outlined"
-                aria-label={t("screens4_8.workers.instance.detachAria", { id: instance.id })}
-                disabled={busy}
-                onClick={onDetach}
-              >
-                {t("screens4_8.workers.instance.detach")}
-              </EditorButton>
-            ) : isPaused ? (
-              <EditorButton
-                density="compact"
-                variant="outlined"
-                aria-label={t("screens4_8.workers.instance.resumeAria", { id: instance.id })}
-                disabled={stopping}
-                onClick={() => onResume(instance.id)}
-              >
-                {t("screens4_8.workers.instance.resume")}
-              </EditorButton>
-            ) : (
-              <EditorButton
-                density="compact"
-                variant="outlined"
-                aria-label={t("screens4_8.workers.instance.attachAria", { id: instance.id })}
-                // Only enable once the worker is actually answering — attaching
-                // mid-boot just fails the handshake and rolls back.
-                disabled={busy || !isRunning || !isHealthy}
-                onClick={() => onAttach(instance.id)}
-              >
-                {isBooting
-                  ? t("screens4_8.workers.status.bootingEllipsis")
-                  : t("screens4_8.workers.instance.attach")}
-              </EditorButton>
-            )}
-            {/* Pause (keep the volume) — only meaningful while the pod runs. */}
-            {!isPaused && (
-              <EditorButton
-                density="compact"
-                variant="outlined"
-                aria-label={t("screens4_8.workers.instance.stopAria", { id: instance.id })}
-                disabled={stopping}
-                onClick={() => onStop(instance.id)}
-              >
-                {t("screens4_8.workers.instance.stop")}
-              </EditorButton>
-            )}
-            {/* Destroy the pod + volume. The real teardown. */}
-            <EditorButton
-              density="compact"
-              variant="text"
-              aria-label={t("screens4_8.workers.instance.terminateAria", { id: instance.id })}
-              disabled={stopping}
-              onClick={() => onTerminate(instance.id)}
-            >
-              {t("screens4_8.workers.instance.terminate")}
-            </EditorButton>
           </FlexRow>
-        </FlexRow>
-        <FlexColumn gap={SPACING.micro}>
-          {hardwareParts.length > 0 && (
-            <Caption size="small">{hardwareParts.join(" · ")}</Caption>
-          )}
-          {profile?.image && (
-            <Caption size="small" sx={{ wordBreak: "break-all" }}>
-              Image: {profile.image}
-            </Caption>
-          )}
-          {endpointUrl && (
-            <Caption size="small" sx={{ wordBreak: "break-all" }}>
-              Endpoint: {endpointUrl}
-            </Caption>
-          )}
-          <Caption size="small">{metaParts.join(" · ")}</Caption>
-        </FlexColumn>
+        </Tooltip>
+        <Caption size="small">
+          <span css={{ fontFamily: "monospace" }}>{instance.provider_ref}</span>
+          {` · ${displayLabel}`}
+        </Caption>
+        {statusHint && <Caption size="small">{statusHint}</Caption>}
+        {healthError && (
+          <Caption size="small" sx={{ color: "error.main" }}>
+            {healthError}
+          </Caption>
+        )}
       </FlexColumn>
-    </Card>
+      <FlexColumn gap={SPACING.micro} role="cell">
+        <FlexRow gap={SPACING.xs} align="center">
+          <DeveloperBoardIcon fontSize="small" />
+          <Text size="normal">
+            {gpu ?? (vcpu ? `${vcpu} vCPU` : t("screens4_8.workers.instance.gpuUnknown"))}
+          </Text>
+          {gpu && (
+            <Caption size="small" sx={{ fontFamily: "monospace" }}>
+              x{gpuCount ?? 1}
+            </Caption>
+          )}
+        </FlexRow>
+        <Caption size="small">{TARGET_LABEL[instance.target]}</Caption>
+      </FlexColumn>
+      <FlexColumn gap={SPACING.micro} role="cell">
+        <Text size="normal" sx={{ fontVariantNumeric: "tabular-nums" }}>
+          {hourlyText}
+        </Text>
+        <Caption size="small" sx={{ fontVariantNumeric: "tabular-nums" }}>
+          {runningCostText && timerText
+            ? `${runningCostText} · ${timerText}`
+            : isPaused
+              ? t("screens4_8.workers.instance.pausedCost")
+              : t("screens4_8.workers.instance.uptime", {
+                value: formatUptime(instance.created_at, now, i18n.language, t)
+              })}
+        </Caption>
+      </FlexColumn>
+      <FlexRow gap={SPACING.xs} align="center" justify="flex-end" role="cell">
+        {primaryAction}
+        <ToolbarIconButton
+          ref={setMenuButton}
+          icon={<MoreVertIcon fontSize="small" />}
+          tooltip={t("screens4_8.workers.instance.moreActions")}
+          ariaLabel={t("screens4_8.workers.instance.moreActions")}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(true)}
+        />
+        <EditorMenu
+          anchorEl={menuButton}
+          open={menuOpen}
+          onClose={closeMenu}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          {!isPaused && (
+            <MenuItemPrimitive
+              label={t("screens4_8.workers.instance.stop")}
+              icon={<PauseIcon fontSize="small" />}
+              disabled={stopping}
+              onClick={runMenu(() => onStop(instance.id))}
+            />
+          )}
+          <MenuItemPrimitive
+            label={t("screens4_8.workers.instance.copyId")}
+            icon={<ContentCopyIcon fontSize="small" />}
+            onClick={runMenu(() => {
+              void navigator.clipboard.writeText(instance.provider_ref);
+            })}
+          />
+          <MenuItemPrimitive
+            label={t("screens4_8.workers.instance.terminate")}
+            icon={<DeleteOutlineIcon fontSize="small" />}
+            disabled={stopping}
+            onClick={runMenu(() => onTerminate(instance.id))}
+          />
+        </EditorMenu>
+      </FlexRow>
+    </div>
   );
 };
 
@@ -621,6 +766,7 @@ const WorkersPanel: React.FC = () => {
     instancesQuery,
     apiKeyStatus,
     comfyPresets,
+    gpuAvailability,
     startComfyPreset,
     createProfile,
     deleteProfile,
@@ -910,19 +1056,16 @@ const WorkersPanel: React.FC = () => {
           </AlertBanner>
         )}
 
-        <ComfyPresetsSection
-          presets={comfyPresets}
-          runningProfiles={runningProfiles}
-          startingId={startingPresetId}
-          apiKeyMissing={apiKeyStatus?.runpod === false}
-          onStart={handleStartPreset}
-        />
-
         <FlexColumn
           className="scrollable-content"
-          gap={SPACING.md}
+          gap={SPACING.sm}
           sx={{ mt: SPACING.md }}
         >
+          <SectionHeader
+            title={t("screens4_8.workers.list.title")}
+            subtitle={t("screens4_8.workers.list.subtitle")}
+            size="small"
+          />
           {instancesQuery.isLoading ? (
             <FlexRow justify="center" sx={{ py: SPACING.xl }}>
               <LoadingSpinner size="small" />
@@ -946,7 +1089,14 @@ const WorkersPanel: React.FC = () => {
               />
             )
           ) : (
-            shownInstances.map((instance) => (
+            <div className="workers-table" role="table">
+            <div className="workers-row workers-head" role="row">
+              <Caption size="small" role="columnheader">Name</Caption>
+              <Caption size="small" role="columnheader">Compute type</Caption>
+              <Caption size="small" role="columnheader">Cost</Caption>
+              <span role="columnheader" />
+            </div>
+            {shownInstances.map((instance) => (
               <InstanceRow
                 key={instance.id}
                 instance={instance}
@@ -962,14 +1112,24 @@ const WorkersPanel: React.FC = () => {
                 autoAttach={autoAttachIds.has(instance.id)}
                 onAutoAttach={handleAutoAttach}
               />
-            ))
+            ))}
+            </div>
           )}
         </FlexColumn>
+        <ComfyPresetsSection
+          presets={comfyPresets}
+          availability={gpuAvailability}
+          runningProfiles={runningProfiles}
+          startingId={startingPresetId}
+          apiKeyMissing={apiKeyStatus?.runpod === false}
+          onStart={handleStartPreset}
+        />
       </FlexColumn>
 
       <ProvisionDialog
         open={dialogOpen}
         profiles={profiles}
+        availability={gpuAvailability}
         apiKeyStatus={apiKeyStatus}
         onProvision={handleProvision}
         onClose={() => setDialogOpen(false)}

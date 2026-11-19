@@ -9545,7 +9545,11 @@
         "stopAria": "停止工作器 {{id}}",
         "stop": "停止",
         "terminateAria": "终止工作器 {{id}}",
-        "terminate": "终止"
+        "terminate": "终止",
+        "moreActions": "More actions",
+        "copyId": "Copy pod ID",
+        "gpuUnknown": "GPU not set",
+        "pausedCost": "When running"
       },
       "actions": {
         "manageProfiles": "管理配置",
@@ -9603,7 +9607,22 @@
         "startAria": "在租用的 GPU 上启动 {{name}}",
         "bootingHint": "ComfyUI 正在加载。首次启动可能需要几分钟。",
         "readyHint": "将 URL 复制到 Run ComfyUI Workflow。任何拥有此 URL 的人都可以使用该 Pod。",
-        "copyEndpoint": "复制 ComfyUI URL"
+        "copyEndpoint": "复制 ComfyUI URL",
+        "sectionTitle": "Quick start: ComfyUI on RunPod",
+        "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
+        "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "priceRange": "{{min}}–{{max}}/hr",
+        "running": "Running"
+      },
+      "stock": {
+        "high": "High stock",
+        "medium": "In stock",
+        "low": "Low stock",
+        "none": "Out of stock"
+      },
+      "list": {
+        "title": "Your workers",
+        "subtitle": "Pods you rented. Paused pods keep their files and bill only for storage."
       }
     }
   },

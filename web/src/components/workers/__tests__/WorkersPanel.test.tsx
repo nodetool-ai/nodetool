@@ -73,6 +73,7 @@ const makeHookValue = (
   >["instancesQuery"],
   apiKeyStatus: { runpod: true, vast: true, verda: true },
   comfyPresets: [],
+  gpuAvailability: [],
   startComfyPreset: jest.fn(async () => makeInstance()),
   createProfile: jest.fn(async () => makeProfile()),
   deleteProfile: jest.fn(async () => undefined),
@@ -120,14 +121,41 @@ describe("WorkersPanel", () => {
         makeHookValue({ instances: [], comfyPresets: [preset], startComfyPreset })
       );
       renderPanel();
-      expect(screen.getByText("ComfyUI")).toBeInTheDocument();
-      expect(screen.getByText("RunPod")).toBeInTheDocument();
-      expect(screen.getByText(/ComfyUI server on RunPod/i)).toBeInTheDocument();
-      expect(
-        screen.getByText(/NVIDIA RTX PRO 4500 Blackwell \/ NVIDIA GeForce RTX 5090/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Quick start: ComfyUI on RunPod/)).toBeInTheDocument();
+      expect(screen.getByText(/ready ComfyUI server/i)).toBeInTheDocument();
+      expect(screen.getByText("$0.72–$1.19/hr")).toBeInTheDocument();
+      expect(screen.getByText("NVIDIA RTX PRO 4500 Blackwell")).toBeInTheDocument();
+      expect(screen.getByText("NVIDIA GeForce RTX 5090")).toBeInTheDocument();
       await userEvent.click(screen.getByRole("button", { name: /MiniMax H3/ }));
       expect(startComfyPreset).toHaveBeenCalledWith("minimax-h3");
+    });
+
+    it("shows the RunPod stock of each preset GPU", () => {
+      mockUseWorkers.mockReturnValue(
+        makeHookValue({
+          instances: [],
+          comfyPresets: [preset],
+          gpuAvailability: [
+            {
+              id: "NVIDIA RTX PRO 4500 Blackwell",
+              displayName: "RTX PRO 4500",
+              secure: "Low",
+              community: "High"
+            },
+            {
+              id: "NVIDIA GeForce RTX 5090",
+              displayName: "RTX 5090",
+              secure: null,
+              community: null
+            }
+          ]
+        })
+      );
+      renderPanel();
+      expect(screen.getByText("RTX PRO 4500")).toBeInTheDocument();
+      expect(screen.getByText("High stock")).toBeInTheDocument();
+      expect(screen.getByText("RTX 5090")).toBeInTheDocument();
+      expect(screen.getByText("Out of stock")).toBeInTheDocument();
     });
 
     it("refuses a second pod while the model runs", () => {
@@ -156,32 +184,19 @@ describe("WorkersPanel", () => {
     });
   });
 
-  it("renders an instance row with status, cost, and a Stop button", () => {
+  it("renders an instance row with status, cost, and an actions menu", () => {
     mockUseWorkers.mockReturnValue(makeHookValue());
     renderPanel();
 
     expect(screen.getByText("hf-a40")).toBeInTheDocument();
     // A healthy `running` worker is presented as "ready" (probe answered).
     expect(screen.getByText(/ready/i)).toBeInTheDocument();
-    // The row shows the per-instance rate, running cost, live timer, and Stop button.
-    expect(screen.getByText(/Cost: \$0\.50\/hr/)).toBeInTheDocument();
-    expect(screen.getByText(/so far\)/)).toBeInTheDocument();
-    expect(screen.getByText(/\d+:\d{2}/)).toBeInTheDocument();
-    expect(screen.getByText("$0.50/hr")).toBeInTheDocument();
-    // Full worker metadata is visible: type, provider, endpoint, IDs, image.
-    expect(screen.getByText("Worker")).toBeInTheDocument();
-    expect(screen.getByText("RunPod")).toBeInTheDocument();
+    // The row and the header both show the hourly rate.
+    expect(screen.getAllByText("$0.50/hr")).toHaveLength(2);
+    expect(screen.getByText(/\$[\d.,]+ · [\d:]+/)).toBeInTheDocument();
+    expect(screen.getByText("pod-abc")).toBeInTheDocument();
     expect(
-      screen.getByText(/Endpoint: wss:\/\/pod-abc-7777\.proxy\.runpod\.net/)
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Provider ID: pod-abc/)).toBeInTheDocument();
-    expect(screen.getByText(/Instance ID: i-1/)).toBeInTheDocument();
-    expect(screen.getByText(/Idle stop: 15m/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Image: ghcr\.io\/nodetool\/worker:0\.7\.3/)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /stop worker i-1/i })
+      screen.getByRole("button", { name: /more actions/i })
     ).toBeInTheDocument();
   });
 
@@ -217,9 +232,8 @@ describe("WorkersPanel", () => {
     mockUseWorkers.mockReturnValue(value);
     renderPanel();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /stop worker i-1/i })
-    );
+    await userEvent.click(screen.getByRole("button", { name: /more actions/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /^stop$/i }));
 
     expect(value.stop).toHaveBeenCalledWith("i-1");
   });
@@ -229,9 +243,8 @@ describe("WorkersPanel", () => {
     mockUseWorkers.mockReturnValue(value);
     renderPanel();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /terminate worker i-1/i })
-    );
+    await userEvent.click(screen.getByRole("button", { name: /more actions/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /^terminate$/i }));
 
     expect(value.terminate).not.toHaveBeenCalled();
     expect(screen.getByText("Terminate worker?")).toBeInTheDocument();
@@ -247,9 +260,8 @@ describe("WorkersPanel", () => {
     mockUseWorkers.mockReturnValue(value);
     renderPanel();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /terminate worker i-1/i })
-    );
+    await userEvent.click(screen.getByRole("button", { name: /more actions/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /^terminate$/i }));
     await userEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
 
     expect(value.terminate).not.toHaveBeenCalled();
@@ -263,9 +275,11 @@ describe("WorkersPanel", () => {
     renderPanel();
 
     // Paused rows are shown (so they can be resumed) and offer Resume, not Stop.
+    await userEvent.click(screen.getByRole("button", { name: /more actions/i }));
     expect(
-      screen.queryByRole("button", { name: /stop worker i-1/i })
+      screen.queryByRole("menuitem", { name: /^stop$/i })
     ).not.toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
 
     await userEvent.click(
       screen.getByRole("button", { name: /resume worker i-1/i })
@@ -441,9 +455,8 @@ describe("WorkersPanel", () => {
     mockUseWorkers.mockReturnValue(value);
     renderPanel();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /stop worker i-1/i })
-    );
+    await userEvent.click(screen.getByRole("button", { name: /more actions/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /^stop$/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/boom: pod already gone/i)).toBeInTheDocument();

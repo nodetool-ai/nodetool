@@ -9534,7 +9534,12 @@
         "startAria": "Start {{name}} på en leid GPU",
         "bootingHint": "ComfyUI laster inn. Den første starten kan ta flere minutter.",
         "readyHint": "Kopier URL-en til Kjør ComfyUI Workflow. Alle med denne nettadressen kan bruke poden.",
-        "copyEndpoint": "Kopier ComfyUI URL"
+        "copyEndpoint": "Kopier ComfyUI URL",
+        "sectionTitle": "Quick start: ComfyUI on RunPod",
+        "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
+        "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "priceRange": "{{min}}–{{max}}/hr",
+        "running": "Running"
       },
       "provision": {
         "title": "Start en arbeider",
@@ -9556,7 +9561,11 @@
         "stopAria": "Stopp arbeider {{id}}",
         "stop": "Stopp",
         "terminateAria": "Si opp arbeider {{id}}",
-        "terminate": "Avslutt"
+        "terminate": "Avslutt",
+        "moreActions": "More actions",
+        "copyId": "Copy pod ID",
+        "gpuUnknown": "GPU not set",
+        "pausedCost": "When running"
       },
       "actions": {
         "manageProfiles": "Administrer profiler",
@@ -9604,6 +9613,16 @@
         "title": "Kjør grafer på en leid GPU",
         "description": "Koble til RunPod én gang og velg en GPU. NodeTool kjører deretter Python-nodene dine på den, og inaktive arbeidere pauser på egenhånd.",
         "action": "Sett opp en arbeider"
+      },
+      "stock": {
+        "high": "High stock",
+        "medium": "In stock",
+        "low": "Low stock",
+        "none": "Out of stock"
+      },
+      "list": {
+        "title": "Your workers",
+        "subtitle": "Pods you rented. Paused pods keep their files and bill only for storage."
       }
     }
   },

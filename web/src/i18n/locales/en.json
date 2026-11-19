@@ -9534,7 +9534,12 @@
         "startAria": "Start {{name}} on a rented GPU",
         "bootingHint": "ComfyUI is loading. The first start can take several minutes.",
         "readyHint": "Copy the URL into Run ComfyUI Workflow. Anyone with this URL can use the pod.",
-        "copyEndpoint": "Copy ComfyUI URL"
+        "copyEndpoint": "Copy ComfyUI URL",
+        "sectionTitle": "Quick start: ComfyUI on RunPod",
+        "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
+        "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "priceRange": "{{min}}–{{max}}/hr",
+        "running": "Running"
       },
       "provision": {
         "title": "Start a worker",
@@ -9556,7 +9561,11 @@
         "stopAria": "Stop worker {{id}}",
         "stop": "Stop",
         "terminateAria": "Terminate worker {{id}}",
-        "terminate": "Terminate"
+        "terminate": "Terminate",
+        "moreActions": "More actions",
+        "copyId": "Copy pod ID",
+        "gpuUnknown": "GPU not set",
+        "pausedCost": "When running"
       },
       "actions": {
         "manageProfiles": "Manage profiles",
@@ -9604,6 +9613,16 @@
         "title": "Run graphs on a rented GPU",
         "description": "Connect RunPod once and pick a GPU. NodeTool then runs your Python nodes on it, and idle workers pause on their own.",
         "action": "Set up a worker"
+      },
+      "stock": {
+        "high": "High stock",
+        "medium": "In stock",
+        "low": "Low stock",
+        "none": "Out of stock"
+      },
+      "list": {
+        "title": "Your workers",
+        "subtitle": "Pods you rented. Paused pods keep their files and bill only for storage."
       }
     }
   },

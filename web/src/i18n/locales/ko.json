@@ -9534,7 +9534,12 @@
         "startAria": "임대한 GPU에서 {{name}} 시작",
         "bootingHint": "ComfyUI가 로드 중입니다. 처음 시작하는 데 몇 분 정도 걸릴 수 있습니다.",
         "readyHint": "Run ComfyUI Workflow에 URL을 복사합니다. 이 URL이 있는 사람은 누구나 포드를 사용할 수 있습니다.",
-        "copyEndpoint": "ComfyUI URL 복사"
+        "copyEndpoint": "ComfyUI URL 복사",
+        "sectionTitle": "Quick start: ComfyUI on RunPod",
+        "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
+        "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "priceRange": "{{min}}–{{max}}/hr",
+        "running": "Running"
       },
       "provision": {
         "title": "작업자 시작",
@@ -9556,7 +9561,11 @@
         "stopAria": "작업자 {{id}} 중지",
         "stop": "중지",
         "terminateAria": "작업자 {{id}} 종료",
-        "terminate": "종료"
+        "terminate": "종료",
+        "moreActions": "More actions",
+        "copyId": "Copy pod ID",
+        "gpuUnknown": "GPU not set",
+        "pausedCost": "When running"
       },
       "actions": {
         "manageProfiles": "프로필 관리",
@@ -9604,6 +9613,16 @@
         "title": "임대한 GPU에서 그래프 실행",
         "description": "RunPod를 한 번 연결하고 GPU를 선택하세요. 그런 다음 NodeTool이 Python 노드를 실행하고 유휴 작업자가 자체적으로 일시 중지됩니다.",
         "action": "작업자 설정"
+      },
+      "stock": {
+        "high": "High stock",
+        "medium": "In stock",
+        "low": "Low stock",
+        "none": "Out of stock"
+      },
+      "list": {
+        "title": "Your workers",
+        "subtitle": "Pods you rented. Paused pods keep their files and bill only for storage."
       }
     }
   },

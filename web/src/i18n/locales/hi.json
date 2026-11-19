@@ -9534,7 +9534,12 @@
         "startAria": "प्रारंभ {{name}} किराए पर GPU",
         "bootingHint": "ComfyUI लोड हो रहा है। पहली बार कई मिनट लग सकते हैं।",
         "readyHint": "यूआरएल को रन कॉम्फ्यूयूआई वर्कफ़्लो में कॉपी करें। इस यूआरएल के साथ कोई भी फली का उपयोग कर सकता है।",
-        "copyEndpoint": "ComfyUI URL की प्रतिलिपि"
+        "copyEndpoint": "ComfyUI URL की प्रतिलिपि",
+        "sectionTitle": "Quick start: ComfyUI on RunPod",
+        "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
+        "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "priceRange": "{{min}}–{{max}}/hr",
+        "running": "Running"
       },
       "provision": {
         "title": "एक कार्यकर्ता शुरू",
@@ -9556,7 +9561,11 @@
         "stopAria": "बंदी {{id}}",
         "stop": "रोकें",
         "terminateAria": "टर्मिनेटर {{id}}",
-        "terminate": "टर्मिनेटर"
+        "terminate": "टर्मिनेटर",
+        "moreActions": "More actions",
+        "copyId": "Copy pod ID",
+        "gpuUnknown": "GPU not set",
+        "pausedCost": "When running"
       },
       "actions": {
         "manageProfiles": "प्रोफाइल प्रबंधित करें",
@@ -9604,6 +9613,16 @@
         "title": "एक किराए पर GPU पर ग्राफ चलाएं",
         "description": "एक बार रनपॉड कनेक्ट करें और एक GPU चुनें। नोडटूल तब उस पर अपने पायथन नोड्स को चलाता है और निष्क्रिय श्रमिक अपने आप को रोकते हैं।",
         "action": "एक कार्यकर्ता को सेट करें"
+      },
+      "stock": {
+        "high": "High stock",
+        "medium": "In stock",
+        "low": "Low stock",
+        "none": "Out of stock"
+      },
+      "list": {
+        "title": "Your workers",
+        "subtitle": "Pods you rented. Paused pods keep their files and bill only for storage."
       }
     }
   },
