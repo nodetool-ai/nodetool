@@ -121,7 +121,11 @@ describe("WorkersPanel", () => {
       );
       renderPanel();
       expect(screen.getByText("ComfyUI")).toBeInTheDocument();
+      expect(screen.getByText("RunPod")).toBeInTheDocument();
       expect(screen.getByText(/ComfyUI server on RunPod/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/NVIDIA RTX PRO 4500 Blackwell \/ NVIDIA GeForce RTX 5090/)
+      ).toBeInTheDocument();
       await userEvent.click(screen.getByRole("button", { name: /MiniMax H3/ }));
       expect(startComfyPreset).toHaveBeenCalledWith("minimax-h3");
     });
@@ -162,6 +166,18 @@ describe("WorkersPanel", () => {
     // The row shows the per-instance cost; the header shows the live rate.
     expect(screen.getByText(/Cost: \$0\.50/)).toBeInTheDocument();
     expect(screen.getByText("$0.50/hr")).toBeInTheDocument();
+    // Full worker metadata is visible: type, provider, endpoint, IDs, image.
+    expect(screen.getByText("Worker")).toBeInTheDocument();
+    expect(screen.getByText("RunPod")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Endpoint: wss:\/\/pod-abc-7777\.proxy\.runpod\.net/)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Provider ID: pod-abc/)).toBeInTheDocument();
+    expect(screen.getByText(/Instance ID: i-1/)).toBeInTheDocument();
+    expect(screen.getByText(/Idle stop: 15m/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Image: ghcr\.io\/nodetool\/worker:0\.7\.3/)
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /stop worker i-1/i })
     ).toBeInTheDocument();

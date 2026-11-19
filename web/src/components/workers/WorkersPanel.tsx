@@ -40,6 +40,28 @@ import WorkerApiKeySetup from "./WorkerApiKeySetup";
  * bill continuously.
  */
 
+const TARGET_LABEL: Record<WorkerTarget, string> = {
+  runpod: "RunPod",
+  vast: "Vast.ai",
+  verda: "Verda"
+};
+
+function readStringField(
+  spec: Record<string, unknown> | undefined,
+  key: string
+): string | null {
+  const val = spec?.[key];
+  return typeof val === "string" && val.trim() ? val.trim() : null;
+}
+
+function readNumberField(
+  spec: Record<string, unknown> | undefined,
+  key: string
+): number | null {
+  const val = spec?.[key];
+  return typeof val === "number" && Number.isFinite(val) ? val : null;
+}
+
 const STATUS_TONE: Record<string, StatusType> = {
   provisioning: "running",
   running: "info",
@@ -220,7 +242,7 @@ const ComfyPresetsSection: React.FC<ComfyPresetsSectionProps> = ({
         <Card key={preset.id} variant="outlined" padding="normal">
           <FlexRow align="center" justify="space-between" gap={SPACING.lg}>
             <FlexColumn gap={SPACING.micro}>
-              <FlexRow align="center" gap={SPACING.sm}>
+              <FlexRow align="center" gap={SPACING.sm} wrap="wrap">
                 <Text size="normal" weight={600}>
                   {preset.label}
                 </Text>
@@ -228,6 +250,7 @@ const ComfyPresetsSection: React.FC<ComfyPresetsSectionProps> = ({
                   compact
                   label={t("screens4_8.workers.presets.badge")}
                 />
+                <Chip compact label={TARGET_LABEL.runpod} />
               </FlexRow>
               <Caption size="small">
                 {t("screens4_8.workers.presets.summary", {
@@ -236,6 +259,11 @@ const ComfyPresetsSection: React.FC<ComfyPresetsSectionProps> = ({
                   count: Math.round(preset.maxLifetimeMinutes / 60)
                 })}
               </Caption>
+              {preset.gpus.length > 0 && (
+                <Caption size="small">
+                  GPU: {preset.gpus.join(" / ")}
+                </Caption>
+              )}
             </FlexColumn>
             <EditorButton
               density="compact"
@@ -263,6 +291,7 @@ const ComfyPresetsSection: React.FC<ComfyPresetsSectionProps> = ({
 
 interface InstanceRowProps {
   instance: WorkerInstance;
+  profile?: WorkerProfile;
   now: number;
   onStop: (id: string) => void;
   onResume: (id: string) => void;
@@ -278,6 +307,7 @@ interface InstanceRowProps {
 
 const InstanceRow: React.FC<InstanceRowProps> = ({
   instance,
+  profile,
   now,
   onStop,
   onResume,
@@ -302,6 +332,47 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
   const isBooting = isRunning && !isHealthy;
   // A ComfyUI pod has no worker bridge to attach. Its URL goes in the node.
   const comfyEndpoint = healthQuery.data?.comfyEndpoint;
+  const profileSpec = profile?.spec as Record<string, unknown> | undefined;
+  const isComfy =
+    Boolean(comfyEndpoint) || readNumberField(profileSpec, "comfyPort") !== null;
+  const gpu = readStringField(profileSpec, "gpu");
+  const gpuCount = readNumberField(profileSpec, "gpuCount");
+  const vcpu = readNumberField(profileSpec, "vcpu");
+  const disk = readNumberField(profileSpec, "disk");
+  const region = readStringField(profileSpec, "region");
+  const endpointUrl = comfyEndpoint ?? instance.ws_url;
+  const healthError = !isHealthy ? healthQuery.data?.error : undefined;
+  const protocolVersion = healthQuery.data?.protocolVersion;
+
+  const hardwareParts: string[] = [];
+  if (gpu) {
+    hardwareParts.push(gpuCount && gpuCount > 1 ? `${gpu} ×${gpuCount}` : gpu);
+  }
+  if (vcpu) hardwareParts.push(`${vcpu} vCPU`);
+  if (disk) hardwareParts.push(`${disk} GB disk`);
+  if (region) hardwareParts.push(region);
+
+  const metaParts: string[] = [
+    `Provider ID: ${instance.provider_ref}`,
+    `Instance ID: ${instance.id}`
+  ];
+  if (instance.last_activity_at) {
+    metaParts.push(
+      `Last activity: ${formatUptime(instance.last_activity_at, now, i18n.language, t)} ago`
+    );
+  }
+  if (instance.attached_to) {
+    metaParts.push(`Attached: ${instance.attached_to}`);
+  }
+  if (protocolVersion !== undefined) {
+    metaParts.push(`Protocol: v${protocolVersion}`);
+  }
+  if (profile?.idle_timeout_minutes) {
+    metaParts.push(`Idle stop: ${profile.idle_timeout_minutes}m`);
+  }
+  if (profile?.max_lifetime_minutes) {
+    metaParts.push(`Max lifetime: ${profile.max_lifetime_minutes}m`);
+  }
 
   // Effective status presentation: the raw status, except a `running` worker is
   // shown as "booting" until it answers the probe, then "ready".
@@ -343,107 +414,131 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
 
   return (
     <Card variant="outlined" padding="normal">
-      <FlexRow align="center" justify="space-between" gap={SPACING.lg}>
-        <FlexColumn gap={SPACING.micro}>
-          <FlexRow gap={SPACING.md} align="center">
-            <Text size="normal" weight={600}>
-              {instance.profile_name}
-            </Text>
-            <StatusIndicator
-              status={displayTone}
-              label={displayLabel}
-              pulse={
-                instance.status === "provisioning" ||
-                instance.status === "stopping" ||
-                isBooting
-              }
-            />
-            {isBooting && <LoadingSpinner size="small" />}
-          </FlexRow>
-          {statusHint ? (
-            <Caption size="small">{statusHint}</Caption>
-          ) : (
-            <Caption size="small">{instance.id}</Caption>
-          )}
-        </FlexColumn>
-        <FlexRow gap={SPACING.lg} align="center">
-          <Caption size="small">
-            {t("screens4_8.workers.instance.uptime", {
-              value: formatUptime(instance.created_at, now, i18n.language, t)
-            })}
-          </Caption>
-          <Caption size="small">
-            {t("screens4_8.workers.instance.cost", {
-              value: formatCost(instance.estimated_cost_usd, i18n.language, t)
-            })}
-          </Caption>
-          {comfyEndpoint ? (
-            isRunning &&
-            isHealthy && (
-              <CopyButton
-                value={comfyEndpoint}
-                tooltip={t("screens4_8.workers.presets.copyEndpoint")}
+      <FlexColumn gap={SPACING.sm}>
+        <FlexRow align="center" justify="space-between" gap={SPACING.lg} wrap="wrap">
+          <FlexColumn gap={SPACING.micro}>
+            <FlexRow gap={SPACING.sm} align="center" wrap="wrap">
+              <Text size="normal" weight={600}>
+                {instance.profile_name}
+              </Text>
+              <Chip
+                compact
+                label={isComfy ? t("screens4_8.workers.presets.badge") : "Worker"}
               />
-            )
-          ) : isAttached ? (
-            <EditorButton
-              density="compact"
-              variant="outlined"
-              aria-label={t("screens4_8.workers.instance.detachAria", { id: instance.id })}
-              disabled={busy}
-              onClick={onDetach}
-            >
-              {t("screens4_8.workers.instance.detach")}
-            </EditorButton>
-          ) : isPaused ? (
-            <EditorButton
-              density="compact"
-              variant="outlined"
-              aria-label={t("screens4_8.workers.instance.resumeAria", { id: instance.id })}
-              disabled={stopping}
-              onClick={() => onResume(instance.id)}
-            >
-              {t("screens4_8.workers.instance.resume")}
-            </EditorButton>
-          ) : (
-            <EditorButton
-              density="compact"
-              variant="outlined"
-              aria-label={t("screens4_8.workers.instance.attachAria", { id: instance.id })}
-              // Only enable once the worker is actually answering — attaching
-              // mid-boot just fails the handshake and rolls back.
-              disabled={busy || !isRunning || !isHealthy}
-              onClick={() => onAttach(instance.id)}
-            >
-              {isBooting
-                ? t("screens4_8.workers.status.bootingEllipsis")
-                : t("screens4_8.workers.instance.attach")}
-            </EditorButton>
-          )}
-          {/* Pause (keep the volume) — only meaningful while the pod runs. */}
-          {!isPaused && (
+              <Chip compact label={TARGET_LABEL[instance.target]} />
+              <StatusIndicator
+                status={displayTone}
+                label={displayLabel}
+                pulse={
+                  instance.status === "provisioning" ||
+                  instance.status === "stopping" ||
+                  isBooting
+                }
+              />
+              {isBooting && <LoadingSpinner size="small" />}
+            </FlexRow>
+            {statusHint && <Caption size="small">{statusHint}</Caption>}
+            {healthError && (
+              <Caption size="small" sx={{ color: "error.main" }}>
+                {healthError}
+              </Caption>
+            )}
+          </FlexColumn>
+          <FlexRow gap={SPACING.lg} align="center" wrap="wrap">
+            <Caption size="small">
+              {t("screens4_8.workers.instance.uptime", {
+                value: formatUptime(instance.created_at, now, i18n.language, t)
+              })}
+            </Caption>
+            <Caption size="small">
+              {t("screens4_8.workers.instance.cost", {
+                value: formatCost(instance.estimated_cost_usd, i18n.language, t)
+              })}
+            </Caption>
+            {comfyEndpoint ? (
+              isRunning &&
+              isHealthy && (
+                <CopyButton
+                  value={comfyEndpoint}
+                  tooltip={t("screens4_8.workers.presets.copyEndpoint")}
+                />
+              )
+            ) : isAttached ? (
+              <EditorButton
+                density="compact"
+                variant="outlined"
+                aria-label={t("screens4_8.workers.instance.detachAria", { id: instance.id })}
+                disabled={busy}
+                onClick={onDetach}
+              >
+                {t("screens4_8.workers.instance.detach")}
+              </EditorButton>
+            ) : isPaused ? (
+              <EditorButton
+                density="compact"
+                variant="outlined"
+                aria-label={t("screens4_8.workers.instance.resumeAria", { id: instance.id })}
+                disabled={stopping}
+                onClick={() => onResume(instance.id)}
+              >
+                {t("screens4_8.workers.instance.resume")}
+              </EditorButton>
+            ) : (
+              <EditorButton
+                density="compact"
+                variant="outlined"
+                aria-label={t("screens4_8.workers.instance.attachAria", { id: instance.id })}
+                // Only enable once the worker is actually answering — attaching
+                // mid-boot just fails the handshake and rolls back.
+                disabled={busy || !isRunning || !isHealthy}
+                onClick={() => onAttach(instance.id)}
+              >
+                {isBooting
+                  ? t("screens4_8.workers.status.bootingEllipsis")
+                  : t("screens4_8.workers.instance.attach")}
+              </EditorButton>
+            )}
+            {/* Pause (keep the volume) — only meaningful while the pod runs. */}
+            {!isPaused && (
+              <EditorButton
+                density="compact"
+                variant="text"
+                aria-label={t("screens4_8.workers.instance.stopAria", { id: instance.id })}
+                disabled={stopping}
+                onClick={() => onStop(instance.id)}
+              >
+                {t("screens4_8.workers.instance.stop")}
+              </EditorButton>
+            )}
+            {/* Destroy the pod + volume. The real teardown. */}
             <EditorButton
               density="compact"
               variant="text"
-              aria-label={t("screens4_8.workers.instance.stopAria", { id: instance.id })}
+              aria-label={t("screens4_8.workers.instance.terminateAria", { id: instance.id })}
               disabled={stopping}
-              onClick={() => onStop(instance.id)}
+              onClick={() => onTerminate(instance.id)}
             >
-              {t("screens4_8.workers.instance.stop")}
+              {t("screens4_8.workers.instance.terminate")}
             </EditorButton>
-          )}
-          {/* Destroy the pod + volume. The real teardown. */}
-          <EditorButton
-            density="compact"
-            variant="text"
-            aria-label={t("screens4_8.workers.instance.terminateAria", { id: instance.id })}
-            disabled={stopping}
-            onClick={() => onTerminate(instance.id)}
-          >
-            {t("screens4_8.workers.instance.terminate")}
-          </EditorButton>
+          </FlexRow>
         </FlexRow>
-      </FlexRow>
+        <FlexColumn gap={SPACING.micro}>
+          {hardwareParts.length > 0 && (
+            <Caption size="small">{hardwareParts.join(" · ")}</Caption>
+          )}
+          {profile?.image && (
+            <Caption size="small" sx={{ wordBreak: "break-all" }}>
+              Image: {profile.image}
+            </Caption>
+          )}
+          {endpointUrl && (
+            <Caption size="small" sx={{ wordBreak: "break-all" }}>
+              Endpoint: {endpointUrl}
+            </Caption>
+          )}
+          <Caption size="small">{metaParts.join(" · ")}</Caption>
+        </FlexColumn>
+      </FlexColumn>
     </Card>
   );
 };
@@ -799,6 +894,7 @@ const WorkersPanel: React.FC = () => {
               <InstanceRow
                 key={instance.id}
                 instance={instance}
+                profile={profiles.find((p) => p.name === instance.profile_name)}
                 now={now}
                 onStop={handleStop}
                 onResume={handleResume}
