@@ -1617,6 +1617,21 @@ void CanvasInteraction::cancelPointerGesture() {
       model_.setNodeData(id, NodeRole::Position, *drag);
     }
   }
+  discardPointerGesture();
+}
+
+void CanvasInteraction::modelReset() {
+  // The model already holds the new projection. Discard the gesture
+  // without restoring its saved positions or sizes.
+  gesture_ = Gesture::None;
+  gestureNode_ = InvalidNodeId;
+  gesturePositions_.clear();
+  host_.setViewportCursor(std::nullopt, true);
+  setAltHeld(false);
+  discardPointerGesture();
+}
+
+void CanvasInteraction::discardPointerGesture() {
   invalidateViewportGesture();
   panning_ = false;
   middleEdge_.clear();

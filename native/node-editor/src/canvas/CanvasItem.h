@@ -34,6 +34,7 @@ public:
     QPointF phase;
     double scale;
     QPointF viewportPhase;
+    bool tiled = false;
     qsizetype bytes() const { return qsizetype(device.width()) * device.height() * 4; }
     // Where the tile is drawn, in item coordinates.
     QRectF localRect() const;
@@ -41,7 +42,7 @@ public:
     QRectF paintRect() const;
     bool operator==(const RasterGeometry &) const = default;
     bool sameGrid(const RasterGeometry &other) const {
-      return scale == other.scale && phase == other.phase && viewportPhase == other.viewportPhase;
+      return scale == other.scale && phase == other.phase && viewportPhase == other.viewportPhase && tiled == other.tiled;
     }
   };
   struct Tile {

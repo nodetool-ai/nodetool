@@ -7,7 +7,6 @@
 #include <QQuickItem>
 #include <QSet>
 #include <QTimer>
-#include <QVarLengthArray>
 #include <array>
 #include <functional>
 #include <memory>
@@ -106,6 +105,7 @@ public:
     explicit RasterTestHooks(GraphCanvas &canvas) : canvas_(canvas) {}
     void setCacheBudget(qsizetype bytes) { canvas_.rasterCacheBudget_ = bytes; }
     void setTimeBudget(qint64 ns) { canvas_.rasterTimeBudgetNs_ = ns; }
+    void endZoom() { canvas_.settle_.stop(); }
     void polish() { canvas_.updatePolish(); }
 
   private:
@@ -190,19 +190,13 @@ private:
     qsizetype age;
     double distance;
   };
-  // The visible keys a staged grid still lacks before it can be published.
-  struct Staging {
-    // Most staged items need one or a few tiles.
-    using Keys = QVarLengthArray<QPoint, 4>;
-    QPointer<CanvasImageItem> owner;
-    Keys missing;
-  };
   QSet<quint64> near_;
   QList<RasterJob> rasterJobs_;
   qsizetype nextRasterJob_ = 0;
   bool rasterJobsNeedSort_ = false;
-  // Keyed by the item's address. The guarded reference is checked before use.
-  QHash<quintptr, Staging> staging_;
+  // Device bounds of each planned replacement. A pan replans while an
+  // item is waiting to publish. The jobs hold guarded references to owners.
+  QHash<quintptr, QRect> staging_;
   QList<QRectF> deferredTiles_;
   // Tile images replaced by repaints. An image is reused once it is detached,
   // that is, once the scene graph no longer shows it.

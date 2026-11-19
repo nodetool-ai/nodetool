@@ -34,6 +34,52 @@ constexpr qint64 kConsecutiveMs = 50;
 // A staged tile counts as shown when the published grid covers this share of it.
 constexpr double kCoveredShare = .99;
 
+using RasterGeometry = CanvasImageItem::RasterGeometry;
+constexpr int kTileSide = CanvasImageItem::tileSide;
+
+bool usesCells(const RasterGeometry &geometry) {
+  return geometry.device.width() > kTileSide || geometry.device.height() > kTileSide;
+}
+
+RasterGeometry rasterTile(RasterGeometry full, QPoint key) {
+  if (full.tiled) { full.device &= QRect(key, QSize(kTileSide, kTileSide)); }
+  return full;
+}
+
+// Visit the full geometry of each tile that touches the requested item area.
+template <typename Visit>
+bool visitRasterTiles(const RasterGeometry &full, const QRectF &area, Visit visit) {
+  const auto rect = full.localRect();
+  const auto covered = rect.intersected(area);
+  if (covered.isEmpty()) { return true; }
+  if (!full.tiled) { return visit(QPoint(), full); }
+
+  const auto pixels = QRectF(QPointF(full.device.topLeft()) + (covered.topLeft() - rect.topLeft()) * full.scale,
+                             covered.size() * full.scale).toAlignedRect().intersected(full.device);
+  const auto cellStart = [](int pixel) { return int(std::floor(double(pixel) / kTileSide)) * kTileSide; };
+  for (int y = cellStart(pixels.top()); y <= pixels.bottom(); y += kTileSide) {
+    for (int x = cellStart(pixels.left()); x <= pixels.right(); x += kTileSide) {
+      const QPoint key(x, y);
+      const auto cell = rasterTile(full, key);
+      if (cell.localRect().intersects(area) && !visit(key, cell)) { return false; }
+    }
+  }
+  return true;
+}
+
+bool stagedCoverage(const CanvasImageItem &owner, const RasterGeometry &full, QPointF origin,
+                    const QRectF &visible, const QRectF &prefetch, bool draft) {
+  const auto &tiles = owner.stagedTiles();
+  if (tiles.isEmpty() || full.device.isEmpty()) { return false; }
+  const auto rect = full.localRect();
+  const auto view = visible.translated(-origin);
+  const auto area = draft && !full.tiled ? rect : !draft && rect.intersects(view) ? view : prefetch.translated(-origin);
+  return rect.intersects(area) && visitRasterTiles(full, area, [&](QPoint key, const RasterGeometry &geometry) {
+    const auto tile = tiles.constFind(key);
+    return tile != tiles.cend() && tile->geometry == geometry;
+  });
+}
+
 // UI thread only. The selection of the Quick scene, kept on its items. The
 // canvas owns it and destroys it before the scene.
 class SceneSelection final : public CanvasSelection {
@@ -517,7 +563,8 @@ void GraphCanvas::syncForeground(const QRectF &area, double zoom) {
 // Grids. Every card, wire, lineage link and foreground primitive has a
 // published tile grid, which the renderers draw, and a staged grid, which
 // is empty unless the item is changing to another raster grid. A grid is a
-// raster scale, the item's sub-pixel phase and the view's device phase.
+// raster scale, the item's sub-pixel phase, the view's device phase and the
+// whole-item or cell layout.
 //
 // Target grid. During a zoom gesture an item keeps the grid it has, and its
 // textures scale. Changed tiles repaint in that grid. Once settled, the
@@ -529,10 +576,9 @@ void GraphCanvas::syncForeground(const QRectF &area, double zoom) {
 // grid follows through staging.
 //
 // Publication. A staged grid replaces the published one as soon as it holds
-// every key that intersects the view, or every key in the prefetch area for
-// an offscreen item. The tiles' revisions do not matter. A stale staged tile
-// is no older than the published tile it replaces, and it repaints in the
-// published grid afterwards. Content that changes on every frame therefore
+// a tile with the requested geometry for every key that intersects the live
+// view, or every key in the prefetch area for an offscreen item. A stale
+// staged tile can publish and repaint in the published grid afterwards. Content that changes on every frame therefore
 // cannot hold a grid change back. Publication progress lives in the staged
 // grid itself, so rebuilding the plan never loses it.
 //
@@ -599,21 +645,23 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
     const auto &published = owner.tiles();
     const auto *shown = published.isEmpty() ? nullptr : &published.cbegin()->geometry;
     auto full = Image::rasterGeometry(bounds, origin, scale, devicePhase_);
-    const bool tiled = full.device.width() > side || full.device.height() > side;
     if (shown && !settled) {
       full = Image::rasterGeometryOnGrid(bounds, *shown);
-    } else if (shown && motion_ && tiled && shown->scale == full.scale && shown->viewportPhase == full.viewportPhase) {
+    } else if (shown && motion_ && (usesCells(full) || shown->tiled) &&
+               shown->scale == full.scale && shown->viewportPhase == full.viewportPhase) {
       full = Image::rasterGeometryOnGrid(bounds, *shown);
     }
+    full.tiled = usesCells(full);
+    const bool tiled = full.tiled;
     // A moving single-tile item keeps its tile until the view is still, and
     // a repaint replaces that one tile at once.
     const auto compatible = [&](const Image::RasterGeometry &geometry) {
-      return geometry.scale == full.scale && geometry.viewportPhase == full.viewportPhase &&
+      return geometry.tiled == tiled && geometry.scale == full.scale && geometry.viewportPhase == full.viewportPhase &&
              (geometry.phase == full.phase || (motion_ && !tiled));
     };
     // Replacing a one-tile grid at its existing key publishes the entire
     // target in one write. Keep drawing the old tile until that write.
-    const bool singleTileSwap = !tiled && published.size() == 1 && published.cbegin().key() == QPoint();
+    const bool singleTileSwap = shown && !shown->tiled && !tiled;
     bool staging = shown && !compatible(*shown) && !singleTileSwap;
     if (!owner.stagedTiles().isEmpty() && (!staging || !owner.stagedTiles().cbegin()->geometry.sameGrid(full))) {
       owner.discardStagedTiles();
@@ -621,37 +669,26 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
     const auto toScene = [&](const Image::RasterGeometry &geometry) { return geometry.localRect().translated(origin); };
     const auto sceneBounds = bounds.translated(origin);
     wanted.clear();
-    const auto want = [&](QPoint key, const Image::RasterGeometry &geometry) {
-      const auto rect = toScene(geometry);
-      wanted.append({key, geometry, rect, draft || rect.intersects(visible)});
-    };
     if (sceneBounds.intersects(prefetchArea_) || draft) {
-      if (!tiled) {
-        if (!full.device.isEmpty()) { want({}, full); }
-      } else {
-        const auto covered = Image::rasterGeometryOnGrid(bounds.intersected(prefetchArea_.translated(-origin)), full);
-        if (!covered.device.isEmpty()) {
-          const auto tileStart = [=](int value) { return int(std::floor(double(value) / side)) * side; };
-          for (int y = tileStart(covered.device.top()); y <= covered.device.bottom(); y += side) {
-            for (int x = tileStart(covered.device.left()); x <= covered.device.right(); x += side) {
-              want(QPoint(x, y), {full.device.intersected(QRect(x, y, side, side)), full.phase, full.scale, full.viewportPhase});
-            }
-          }
-        }
-      }
+      const auto area = draft && !tiled ? full.localRect() : prefetchArea_.translated(-origin);
+      visitRasterTiles(full, area, [&](QPoint key, const RasterGeometry &geometry) {
+        const auto rect = toScene(geometry);
+        wanted.append({key, geometry, rect, draft || rect.intersects(visible)});
+        return true;
+      });
     }
 
     if (staging && !wanted.isEmpty()) {
-      const bool anyVisible = std::ranges::any_of(wanted, &Wanted::visible);
-      Staging::Keys missing;
-      for (const auto &tile : std::as_const(wanted)) {
-        if ((tile.visible || !anyVisible) && !owner.stagedTiles().contains(tile.key)) { missing.append(tile.key); }
+      QList<QPoint> obsolete;
+      for (auto it = owner.stagedTiles().cbegin(); it != owner.stagedTiles().cend(); ++it) {
+        if (it->geometry != rasterTile(full, it.key())) { obsolete.append(it.key()); }
       }
-      if (missing.isEmpty()) {
+      for (const auto key : obsolete) { owner.removeStagedTile(key); }
+      if (stagedCoverage(owner, full, origin, visible, prefetchArea_, draft)) {
         owner.publishStagedTiles();
         staging = false;
       } else {
-        staging_.insert(reinterpret_cast<quintptr>(&owner), {&owner, std::move(missing)});
+        staging_.insert(reinterpret_cast<quintptr>(&owner), full.device);
       }
     }
     // Whether the published grid already shows a staged key's area.
@@ -669,7 +706,7 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
       const auto existing = target.constFind(tile.key);
       if (existing != target.cend()) {
         // A staged tile publishes at any revision and repaints afterwards.
-        if (staging) { continue; }
+        if (staging && existing->geometry == tile.geometry) { continue; }
         const bool sameZoom = !settled || (zoomedOut(existing->zoom) == zoomedOut(zoom) && (!group || existing->zoom == zoom));
         const bool sameRaster = existing->geometry == tile.geometry || (motion_ && !tiled && compatible(existing->geometry));
         if (owner.tileCurrent(*existing) && sameRaster && sameZoom) { continue; }
@@ -707,7 +744,7 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
       // The bounds are in painted coordinates, so compare the painted area:
       // the drawn rectangle is offset by the view phase.
       const auto painted = it->geometry.paintRect().translated(origin);
-      if (compatible(it->geometry) && (!painted.intersects(sceneBounds) || (!tiled && it.key() != QPoint()))) {
+      if (!staging && compatible(it->geometry) && (!painted.intersects(sceneBounds) || (!tiled && it.key() != QPoint()))) {
         discarded.append(it.key());
         continue;
       }
@@ -849,7 +886,7 @@ void GraphCanvas::rasterPass(bool flush) {
       // A tile of a long wire away from its path stays empty, which saves
       // painting most tiles of a diagonal draft on every pointer move.
       const auto padding = 1 / job.geometry.scale;
-      const bool empty = job.tile.key != QPoint() &&
+      const bool empty = job.geometry.tiled &&
                          !owner->mayPaint(job.geometry.paintRect().adjusted(-padding, -padding, padding, padding));
       auto image = empty     ? QImage()
                    : partial ? CanvasImageItem::rasterize(job.geometry, dpr, paint, existing->pixels, existing->damage)
@@ -858,66 +895,59 @@ void GraphCanvas::rasterPass(bool flush) {
         const auto area = partial ? existing->damage.size() * job.geometry.scale : QSizeF(job.geometry.device.size());
         paintedPixels = qsizetype(std::ceil(area.width()) * std::ceil(area.height()));
       }
-      // The replaced image is reused once the scene graph has let go of it.
-      if (existing != target.cend() && !existing->pixels.isNull()) { keepSpare(existing->pixels); }
-      if (empty) {
-        CanvasImageItem::Tile tile{job.geometry, {}, owner->rasterRevision(), zoom, {}};
-        cachedRasterBytes_ += tile.bytes() - oldBytes;
-        if (!visibleNow) { offscreenRasterBytes_ += tile.bytes() - oldBytes; }
-        if (staged) {
-          owner->stageTile(job.tile.key, std::move(tile));
-        } else {
-          owner->setTile(job.tile.key, std::move(tile));
-        }
-      }
-      if (!image.isNull()) {
+      if (empty || !image.isNull()) {
+        // The replaced image is reused once the scene graph has let go of it.
+        if (existing != target.cend() && !existing->pixels.isNull()) { keepSpare(existing->pixels); }
         // A tile of a long wire or wide label can miss its path. Keep the
-        // validity of such an empty tile without its pixels. A single tile
-        // covers the whole item, so it is not scanned.
-        if (job.kind != RasterJob::Card && job.tile.key != QPoint()) {
+        // validity of such an empty tile without its pixels.
+        if (!image.isNull() && job.kind != RasterJob::Card && job.geometry.tiled) {
           const auto *pixels = reinterpret_cast<const QRgb *>(image.constBits());
           if (std::all_of(pixels, pixels + image.width() * image.height(), [](QRgb pixel) { return pixel == 0; })) { image = {}; }
         }
         CanvasImageItem::Tile tile{job.geometry, std::move(image), owner->rasterRevision(), zoom, {}};
         const auto additional = tile.bytes() - oldBytes;
         cachedRasterBytes_ += additional;
-        if (!visibleNow) {
-          offscreenRasterBytes_ += additional;
-        } else if (job.priority != 0) {
-          plannedVisibleTiles_.append({job.tile.sceneRect, tile.bytes()});
+        const auto accountViewBytes = [&](const QRectF &rect, qsizetype bytes) {
+          if (!rect.intersects(plannedVisible_)) {
+            offscreenRasterBytes_ += bytes;
+          } else if (bytes != 0) {
+            plannedVisibleTiles_.append({rect, bytes});
+          }
+        };
+        const bool draft = job.priority == 0;
+        const auto *item = job.kind == RasterJob::Foreground ? nullptr : static_cast<const CanvasItem *>(owner);
+        const auto origin = item ? item->scenePosition() : owner->position();
+        if (!draft) {
+          if (existing != target.cend() && existing->geometry.localRect() != job.geometry.localRect()) {
+            accountViewBytes(existing->geometry.localRect().translated(origin), -oldBytes);
+            accountViewBytes(job.tile.sceneRect, tile.bytes());
+          } else {
+            accountViewBytes(job.tile.sceneRect, additional);
+          }
         }
         stats_.peakBytes = std::max(stats_.peakBytes, cachedRasterBytes_);
         if (staged) {
           owner->stageTile(job.tile.key, std::move(tile));
-        } else {
-          owner->setTile(job.tile.key, std::move(tile));
-        }
-      }
-    }
-    if (staged) {
-      const auto found = staging_.find(reinterpret_cast<quintptr>(owner));
-      if (found != staging_.end() && found->owner == owner) {
-        auto &missing = found->missing;
-        missing.erase(std::remove(missing.begin(), missing.end(), job.tile.key), missing.end());
-        if (missing.isEmpty()) {
-          staging_.erase(found);
-          // Publishing once the view's keys exist preserves coverage
-          // throughout the transition between two tile grids.
-          // The replaced tiles leave both byte counts.
-          const auto origin = job.tile.sceneRect.topLeft() - job.geometry.localRect().topLeft();
-          for (const auto &tile : owner->tiles()) {
-            cachedRasterBytes_ -= tile.bytes();
-            if (job.priority != 0 && !tile.geometry.localRect().translated(origin).intersects(visible)) {
-              offscreenRasterBytes_ -= tile.bytes();
+          const auto bounds = item ? item->rasterBounds() : static_cast<const ForegroundItem *>(owner)->part().bounds;
+          auto full = CanvasImageItem::rasterGeometryOnGrid(bounds, job.geometry);
+          full.tiled = usesCells(full);
+          const auto stageKey = reinterpret_cast<quintptr>(owner);
+          // Changed bounds need a new plan to drop obsolete cells and queue
+          // replacements. A pan can reuse this plan if its tiles cover the view.
+          if (staging_.value(stageKey) == full.device && stagedCoverage(*owner, full, origin, visible, prefetchArea_, draft)) {
+            staging_.remove(stageKey);
+            for (const auto &previous : owner->tiles()) {
+              cachedRasterBytes_ -= previous.bytes();
+              if (!draft) { accountViewBytes(previous.geometry.localRect().translated(origin), -previous.bytes()); }
+            }
+            owner->publishStagedTiles();
+            // Stale tiles may publish so animated content cannot block a grid swap.
+            if (std::ranges::any_of(owner->tiles(), [&](const auto &tile) { return !owner->tileCurrent(tile); })) {
+              rasterWorkDirty_ = true;
             }
           }
-          owner->publishStagedTiles();
-          // The remaining keys are queued and now paint into the published
-          // grid. Stale tiles that came with it need a new plan.
-          const auto &tiles = owner->tiles();
-          if (std::any_of(tiles.cbegin(), tiles.cend(), [&](const auto &tile) { return !owner->tileCurrent(tile); })) {
-            rasterWorkDirty_ = true;
-          }
+        } else {
+          owner->setTile(job.tile.key, std::move(tile));
         }
       }
     }

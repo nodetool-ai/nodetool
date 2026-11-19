@@ -38,6 +38,7 @@ EditorCanvasScene::EditorCanvasScene(WorkflowGraphModel &model, QQuickItem &laye
   connect(&model_, &WorkflowGraphModel::runtimeNodeChanged, this, &EditorCanvasScene::refreshRuntimeNode);
   connect(&model_, &WorkflowGraphModel::runtimeEdgeChanged, this, &EditorCanvasScene::refreshRuntimeEdge);
   connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, &EditorCanvasScene::resetDraftConnection);
+  connect(&model_, &WorkflowGraphModel::modelReset, &interaction_, &CanvasInteraction::modelReset);
   connect(&model_, &WorkflowGraphModel::projectionChanged, this, &EditorCanvasScene::projectionChanged);
   setNodeGeometry(std::make_unique<NodeGeometry>(model));
   // A scene made after the model projected takes the projection's stacking now.

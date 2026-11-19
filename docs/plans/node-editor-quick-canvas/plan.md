@@ -257,9 +257,10 @@ composite.
   edit never loses progress. The states are listed above
   `GraphCanvas::rebuildRasterWork`:
   - Every item has a published tile grid, which the renderers draw, and a
-    staged grid for a change of scale or device phase. The staged grid
-    replaces the published grid when it holds every tile key in the view,
-    whatever the tiles' content revisions. A stale staged tile repaints after
+    staged grid for a change of scale, phase or tile layout. The staged grid
+    replaces the published grid when its committed tiles match the requested
+    geometry throughout the current viewport, including tiles painted empty.
+    Publication accepts any content revision. A stale staged tile repaints after
     it is published. Content that changes on every frame cannot hold a grid
     change back.
   - While the view or an item moves, rasters keep their sub-pixel phase, as

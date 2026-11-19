@@ -151,6 +151,7 @@ public:
   void keyRelease(int key);
   void focusOut();
   void cancelPointerGesture();
+  void modelReset();
   void leavePointer();
   bool viewportPanning() const { return panning_; }
   void projectionChanged();
@@ -302,6 +303,7 @@ private:
   QPointF brushPoint_;
   void updateBrushCursor(const QPointF &scenePosition, const std::optional<CanvasNodeHit> &node);
   void finishPaint(bool commit);
+  void discardPointerGesture();
   // A synth knob drag: vertical, from the press's card-local y, a tenth as fast with Shift.
   bool knobDrag_ = false;
   double knobStartY_ = 0;
