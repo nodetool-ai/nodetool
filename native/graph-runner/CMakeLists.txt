@@ -26,8 +26,7 @@ endif()
 include(FetchContent)
 
 # QuickJS-ng v0.18.0, pinned by commit. Always a static library, so a host
-# such as the node editor, whose QtNodes dependency turns BUILD_SHARED_LIBS
-# on, does not ship a separate libqjs.
+# that enables BUILD_SHARED_LIBS still ships without a separate libqjs.
 set(BUILD_SHARED_LIBS OFF)
 set(QJS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 set(QJS_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)

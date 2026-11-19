@@ -2,7 +2,7 @@
 #include "EditorChatSearch.h"
 #include "document/ConnectionTypes.h"
 #include "graph/BodyConnectionRules.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/NodeCreation.h"
 #include "properties/CodeInference.h"
 #include <QApplication>

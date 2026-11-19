@@ -5,33 +5,17 @@
 #include "WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include <QApplication>
-#include "ui/CanvasSurface.h"
 #include <QKeyEvent>
 #include <QQmlEngine>
 #include <QQuickItem>
-#include <QQuickWidget>
 #include <QSet>
 #include <QTimer>
 #include <algorithm>
 #include <cmath>
 #include <memory>
 namespace nodetool {
-namespace {
-class TitleEditorWidget final : public QQuickWidget {
-public:
-  TitleEditorWidget(QQmlEngine *engine, QWidget *parent) : QQuickWidget(engine, parent) {}
-protected:
-  bool event(QEvent *event) override {
-    if (event->type() == QEvent::ShortcutOverride) { event->accept(); return true; }
-    return QQuickWidget::event(event);
-  }
-  void keyPressEvent(QKeyEvent *event) override { QQuickWidget::keyPressEvent(event); event->accept(); }
-  void keyReleaseEvent(QKeyEvent *event) override { QQuickWidget::keyReleaseEvent(event); event->accept(); }
-};
-
-}
 InlineTitlePresenter::InlineTitlePresenter(WorkflowGraphModel &model, EditorSceneApi &scene,
-    CanvasSurface &canvas, QQmlEngine *engine, QObject *parent)
+    QuickCanvas &canvas, QQmlEngine *engine, QObject *parent)
     : QObject(parent), model_(model), scene_(scene), canvas_(canvas), engine_(engine) {
   connect(&scene_.interaction(), &canvas::CanvasInteraction::titleEditRequested, this, &InlineTitlePresenter::activate);
   // The group and comment controls survive a projection. refresh() keeps the widget of
@@ -52,17 +36,8 @@ InlineTitlePresenter::InlineTitlePresenter(WorkflowGraphModel &model, EditorScen
 }
 InlineTitlePresenter::~InlineTitlePresenter() {
   qApp->removeEventFilter(this); cancel(); notes_.clear(); clearControls();
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  for (const auto &widget : retired_) delete widget.data();
 }
 void InlineTitlePresenter::clearControls() {
-  for (const auto &[id, overlay] : controls_) {
-    if (auto *legacy = overlay->widget()) {
-      legacy->hide();
-      legacy->setEnabled(false);
-      legacy->deleteLater();
-    }
-  }
   controls_.clear();
 }
 void InlineTitlePresenter::repositionControls() {
@@ -83,7 +58,6 @@ void InlineTitlePresenter::repositionControls() {
     widget->setGeometry(qRound(bounds.right() - width - (group ? 0 : 8 * zoom)), qRound(group ? bounds.top() - 5 - 30 * scale : bounds.top() + 8 * zoom), qCeil(width), qCeil(height));
     if (widget->rootObject()) widget->rootObject()->setScale(scale);
     widget->setVisible((hovered || canvas_.selection().contains(it->first) || widget->underMouse() || (widget->rootObject() && widget->rootObject()->property("menuOpen").toBool())) && canvas_.viewportWidget().rect().intersects(widget->geometry()));
-    widget->raiseLegacyWidget();
   }
 }
 void InlineTitlePresenter::refresh() {
@@ -112,34 +86,15 @@ void InlineTitlePresenter::refresh() {
       }
       continue;
     }
-    if (auto *legacy = overlay ? overlay->widget() : nullptr) {
-      legacy->hide();
-      legacy->setEnabled(false);
-      legacy->deleteLater();
-    }
     auto initial = properties;
     initial.insert("commands", QVariant::fromValue(editor->editorCommands()));
     initial.insert("runs", QVariant::fromValue(editor->runState()));
     const QUrl source("qrc:/qt/qml/NodeTool/NodeEditor/AuthoredControls.qml");
     overlay = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, initial, 5, id);
-    if (!overlay) {
-      // The legacy viewport owns the control widget.
-      auto *widget = new QQuickWidget(engine_, &canvas_.viewportWidget());
-      widget->setClearColor(Qt::transparent);
-      widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-      widget->setInitialProperties(initial);
-      widget->setSource(source);
-      overlay = std::make_unique<CanvasOverlay>(*widget);
-    }
     overlay->setObjectName(name);
   }
   for (auto it = controls_.begin(); it != controls_.end();) {
     if (shown.contains(it->first)) { ++it; continue; }
-    if (auto *legacy = it->second->widget()) {
-      legacy->hide();
-      legacy->setEnabled(false);
-      legacy->deleteLater();
-    }
     it = controls_.erase(it);
   }
   notes_.clear();
@@ -189,34 +144,15 @@ void InlineTitlePresenter::activate(QtNodes::NodeId id) {
   const QUrl source("qrc:/qt/qml/NodeTool/NodeEditor/InlineTitleEditor.qml");
   const QVariantMap properties{{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_}};
   widget_ = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, properties, 10, id, CanvasOverlay::Placement::AboveCards);
-  if (!widget_) {
-    auto *widget = new TitleEditorWidget(engine_, &canvas_.viewportWidget());
-    widget->setClearColor(Qt::transparent);
-    widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    widget->setInitialProperties(properties);
-    widget->setSource(source);
-    widget_ = std::make_unique<CanvasOverlay>(*widget);
-  }
   if (!widget_->rootObject()) { cancel(); return; }
   widget_->setObjectName("inline-title-overlay");
   reposition();
   if (!widget_) { return; }
   widget_->show();
-  widget_->raiseLegacyWidget();
-  if (!widget_->widget()) { canvas_.setFocus(Qt::MouseFocusReason); }
+  canvas_.setFocus(Qt::MouseFocusReason);
   widget_->setFocus(Qt::MouseFocusReason);
   emit changed();
-  if (!widget_->widget()) {
-    QMetaObject::invokeMethod(widget_->rootObject(), "activate");
-  } else {
-    const auto token = generation_;
-    const QPointer<InlineTitlePresenter> presenter(this);
-    QTimer::singleShot(0, this, [presenter, token] {
-      if (presenter && token == presenter->generation_ && presenter->widget_ && presenter->current()) {
-        QMetaObject::invokeMethod(presenter->widget_->rootObject(), "activate");
-      }
-    });
-  }
+  QMetaObject::invokeMethod(widget_->rootObject(), "activate");
 }
 void InlineTitlePresenter::validateDocument(const node_editor::WorkflowDocument &document) {
     if (!active()) {
@@ -239,15 +175,8 @@ void InlineTitlePresenter::cancel() {
     auto old = std::move(widget_);
     old->hide();
     old->setEnabled(false);
-    if (auto *legacy = old->widget()) {
-      retired_.removeIf([](const auto &entry) { return entry.isNull(); });
-      retired_.append(legacy);
-      legacy->deleteLater();
-    } else {
-      // QML can cancel from inside its own key handler.
-      auto *root = old->rootObject();
-      if (root) { old->retireQuickRoot(retiredQuickRoots_); }
-    }
+    // QML can cancel from inside its own key handler.
+    old->retireQuickRoot(retiredQuickRoots_);
   }
   emit changed();
 }
@@ -302,24 +231,18 @@ void InlineTitlePresenter::reposition() {
     rect_.moveTop(std::clamp(rect_.top(), available.top(), std::max(available.top(), available.bottom() - rect_.height())));
   }
   widget_->setGeometry(canvas_.viewportWidget().rect());
-  if (auto *legacy = widget_->widget()) { legacy->setMask(QRegion(rect_.toAlignedRect()).intersected(QRegion(canvas_.viewportWidget().rect()))); }
-  else { widget_->setInputRect(rect_); }
+  widget_->setInputRect(rect_);
   if (!canvas_.viewportWidget().rect().intersects(rect_.toAlignedRect())) { cancel(); return; }
-  widget_->raiseLegacyWidget(); emit geometryChanged();
+  emit geometryChanged();
 }
 bool InlineTitlePresenter::eventFilter(QObject *object, QEvent *event) {
   if (event->type() == QEvent::MouseMove || event->type() == QEvent::Resize || event->type() == QEvent::Wheel)
     QTimer::singleShot(0, this, &InlineTitlePresenter::repositionControls);
   if (active() && widget_) {
-    if (event->type() == QEvent::ShortcutOverride && !widget_->widget() && widget_->ownsFocus(object)) { event->accept(); return true; }
-    if (event->type() == QEvent::ShortcutOverride && widget_->widget()) {
-      if (const auto *item = qobject_cast<QQuickItem *>(object); item && item->window() == widget_->widget()->quickWindow()) { event->accept(); return true; }
-      for (auto *target = object; target; target = target->parent())
-        if (target == widget_->widget() || target == widget_->widget()->quickWindow() || target == widget_->rootObject()) { event->accept(); return true; }
-    }
+    if (event->type() == QEvent::ShortcutOverride && widget_->ownsFocus(object)) { event->accept(); return true; }
     if (object == &canvas_.viewportWidget() || object == &canvas_.hostWidget()) {
       if (event->type() == QEvent::Resize || event->type() == QEvent::Wheel) QTimer::singleShot(0, this, &InlineTitlePresenter::reposition);
-      if (event->type() == QEvent::MouseButtonPress && (widget_->widget() || !rect_.contains(static_cast<QMouseEvent *>(event)->position()))) { if (widget_->rootObject()) QMetaObject::invokeMethod(widget_->rootObject(), "finish"); flush(); }
+      if (event->type() == QEvent::MouseButtonPress && !rect_.contains(static_cast<QMouseEvent *>(event)->position())) { if (widget_->rootObject()) QMetaObject::invokeMethod(widget_->rootObject(), "finish"); flush(); }
     }
   }
   return QObject::eventFilter(object, event);

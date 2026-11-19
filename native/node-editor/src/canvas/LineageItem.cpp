@@ -8,28 +8,6 @@
 #include <QPainterPathStroker>
 
 namespace nodetool::canvas {
-namespace {
-// UI thread only. Owns the Quick link item; the scene borrows it.
-class QuickLink final : public node_editor::LineageLayer::Link {
-public:
-  QuickLink(const QString &id, node_editor::LineageLayer &layer, CanvasScene &scene)
-      : item_(std::make_unique<LineageItem>(scene, id)) {
-    item_->selectionRequested = [&layer](const QString &link, bool additive) { emit layer.selectionRequested(link, additive); };
-    item_->deleteRequested = [&layer](const QString &link) { emit layer.deleteRequested(link); };
-  }
-  void updateGeometry(QPainterPath path, QString label, const node_editor::LineageTheme &theme, bool selected) override {
-    item_->updateGeometry(std::move(path), std::move(label), theme, selected);
-  }
-  void setLinkSelected(bool selected) override { item_->setLinkSelected(selected); }
-  QPainterPath path() const override { return item_->path(); }
-  QString label() const override { return item_->label(); }
-  QObject *object() const override { return item_.get(); }
-
-private:
-  std::unique_ptr<LineageItem> item_;
-};
-} // namespace
-
 LineageItem::LineageItem(CanvasScene &scene, QString id)
     : CanvasItem(scene, Kind::Lineage, &scene.layer()), id_(std::move(id)) {
   setCanvasButtons(Qt::LeftButton | Qt::MiddleButton | Qt::RightButton);
@@ -126,16 +104,9 @@ bool LineageItem::keyPress(QKeyEvent &event) {
   return false;
 }
 
-} // namespace nodetool::canvas
-
-namespace nodetool::node_editor {
-// The Quick canvas's constructor lives here, so LineageLayer.cpp needs no Qt Quick.
-LineageLayer::LineageLayer(canvas::CanvasScene &scene, QObject *parent)
-    : QObject(parent), quickScene_(&scene), quick_(true) {
-  // Link items survive a model reset, as on the QtNodes scene. Loading
-  // another document clears them (EditorWindow).
-  quickLink_ = [this, &scene](const QString &id) -> std::unique_ptr<Link> {
-    return std::make_unique<canvas::QuickLink>(id, *this, scene);
-  };
+void LineageItem::openContextMenu(const QPoint &position) {
+  const auto id = id_;
+  if (contextMenuRequested) { contextMenuRequested(id, position); }
 }
-} // namespace nodetool::node_editor
+
+} // namespace nodetool::canvas

@@ -1,7 +1,7 @@
 #include "../support/OverlayProbe.h"
 #include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "PropertyFixture.h"
 #include "server/MsgPack.h"
 #include <QWebSocketServer>
@@ -16,7 +16,6 @@
 #include <QQuickWindow>
 #include <QTimer>
 #include <QTemporaryDir>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 namespace {

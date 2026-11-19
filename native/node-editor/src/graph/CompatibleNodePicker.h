@@ -9,14 +9,13 @@
 #include <QHash>
 #include <QVariantList>
 #include <QVector>
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 #include "CatalogSearch.h"
 #include <functional>
 class QQmlEngine;
-class QQuickWidget;
 namespace nodetool {
 class CanvasOverlay;
-class CanvasSurface;
+class QuickCanvas;
 class WorkflowGraphModel;
 class EditorSceneApi;
 // A loose-wire choice produces one canonical add-node/add-edge document batch.
@@ -37,7 +36,7 @@ class CompatibleNodePicker final : public QObject {
   Q_PROPERTY(bool keyboard READ keyboard NOTIFY changed)
 public:
   CompatibleNodePicker(WorkflowGraphModel &model, EditorSceneApi &scene,
-                       CanvasSurface &canvas, QQmlEngine *engine,
+                       QuickCanvas &canvas, QQmlEngine *engine,
                        QObject *parent = nullptr);
   ~CompatibleNodePicker() override;
   void setCatalog(const QJsonArray &catalog);
@@ -50,7 +49,6 @@ public:
   bool active() const { return active_; }
   bool keyboard() const { return keyboard_; }
   bool canDeleteOutput() const;
-  QQuickWidget *widget() const;
   // Create `type` beside `source`'s output and wire the output into `targetPort` as one document step.
   bool addConnected(QtNodes::NodeId source, const QString &outputName, const QString &type, const QString &targetPort);
   std::function<bool(const QJsonObject &)> applyCommand;
@@ -84,7 +82,7 @@ protected:
 private:
   WorkflowGraphModel &model_;
   EditorSceneApi &scene_;
-  CanvasSurface &canvas_;
+  QuickCanvas &canvas_;
   QPointer<QQmlEngine> engine_;
   std::unique_ptr<CanvasOverlay> widget_;
   QJsonArray catalog_;

@@ -1,7 +1,7 @@
 #include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/CanvasDropController.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include <QBuffer>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
@@ -22,7 +22,6 @@
 #include <QUrlQuery>
 #include <QWebSocketServer>
 #include <QDir>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 #include <cmath>
 using namespace nodetool;

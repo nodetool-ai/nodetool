@@ -1,7 +1,7 @@
 #include "../support/OverlayCanvasFixture.h"
 #include "CompatiblePickerFixture.h"
 #include "graph/CompatibleNodePicker.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/CompatibleNodePlacement.h"
 #include "document/WorkflowDocument.h"
 #include "document/ConnectionTypes.h"
@@ -19,7 +19,7 @@ struct Fixture {
   node_editor::WorkflowDocument document;
   WorkflowGraphModel model;
   test::OverlayCanvasFixture surface{model};
-  CanvasSurface &canvas = surface.surface();
+  QuickCanvas &canvas = surface.surface();
   EditorSceneApi &scene = canvas.scene();
   QQmlEngine engine;
   CompatibleNodePicker picker{model,scene, canvas,&engine};
@@ -31,7 +31,7 @@ struct Fixture {
     model.project(document.snapshot(),catalog);
     picker.setCatalog(catalog);
     node=picker_fixture::id(model,origin);
-    surface.show({900, 700}, {0, 0, 1200, 900}, {450, 350});
+    surface.show({900, 700}, {450, 350});
     picker.applyCommand=[this](const QJsonObject &command) {
       const auto result=document.applyCommand(command);
       if (result) { model.project(document.snapshot(),catalog); }

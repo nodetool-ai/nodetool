@@ -7,7 +7,6 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
-#include <QQuickWidget>
 #include <QUuid>
 #include <QSettings>
 
@@ -31,10 +30,7 @@ void EditorWindow::initializeChat() {
     // The session owns its settings handle: reasoning level, permission modes and media settings.
     chat_.usePreferences(std::make_unique<QSettings>());
     chatOverlay_ = canvasOverlay("EditorChat", {{"session", QVariant::fromValue(&chat_)},
-                                                {"frame", QVariant::fromValue(&chatWindow_)}}, 70, true);
-    if (auto *widget = chatOverlay_->widget()) {
-        widget->setAttribute(Qt::WA_TranslucentBackground);
-    }
+                                                {"frame", QVariant::fromValue(&chatWindow_)}}, 70);
     chatOverlay_->setObjectName("editor-chat-overlay");
     connect(&chatWindow_, &node_editor::ChatWindow::beginGeometryRequested, this, &EditorWindow::beginChatGeometry);
     connect(&chatWindow_, &node_editor::ChatWindow::changeGeometryRequested, this, &EditorWindow::changeChatGeometry);

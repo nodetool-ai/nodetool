@@ -52,13 +52,11 @@ inline QQuickItem *findOverlayItem(QQuickItem &parent, const QString &name) {
   return nullptr;
 }
 
-inline OverlayProbe overlay(CanvasSurface &surface, QWidget &window, const QString &name, bool byFile = false,
+inline OverlayProbe overlay(QuickCanvas &surface, QWidget &window, const QString &name, bool byFile = false,
                             bool visible = true) {
-  if (auto *quick = dynamic_cast<QuickCanvas *>(&surface)) {
-    const auto itemName = byFile ? QFileInfo(name).completeBaseName() : name;
-    if (auto *root = findOverlayItem(quick->graphCanvas(), itemName); root && (!visible || root->isVisible())) {
-      return {quick->quickWidget(), *root, true};
-    }
+  const auto itemName = byFile ? QFileInfo(name).completeBaseName() : name;
+  if (auto *root = findOverlayItem(surface.graphCanvas(), itemName); root && (!visible || root->isVisible())) {
+    return {surface.quickWidget(), *root, true};
   }
   for (auto *widget : window.findChildren<QQuickWidget *>()) {
     if ((byFile ? widget->source().fileName() : widget->objectName()) == name &&

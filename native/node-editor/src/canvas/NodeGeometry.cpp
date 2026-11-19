@@ -3,7 +3,6 @@
 #include "canvas/CanvasStyle.h"
 #include "graph/NodeLayout.h"
 #include "graph/WorkflowGraphModel.h"
-#include <QtNodes/internal/StyleCollection.hpp>
 #include <QLineF>
 
 namespace nodetool::canvas {
@@ -47,7 +46,7 @@ QPointF NodeGeometry::portPosition(NodeId id, PortType type, PortIndex index) co
 
 PortIndex NodeGeometry::checkPortHit(NodeId id, PortType side, QPointF point) const {
   if (side == PortType::None) { return InvalidPortIndex; }
-  const auto radius = 2 * StyleCollection::nodeStyle().ConnectionPointDiameter;
+  const auto radius = nm::handleDiameter;
   const auto card = size(id);
   // Ordinary ports lie on a side edge. Only a control port can hit elsewhere.
   const double edgeX = side == PortType::In ? 0.0 : card.width();

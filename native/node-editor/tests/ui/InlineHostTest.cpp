@@ -1,12 +1,11 @@
 #include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "PropertyFixture.h"
 #include <QQuickWidget>
 #include <QQuickItem>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 class InlineHostTest final : public QObject {

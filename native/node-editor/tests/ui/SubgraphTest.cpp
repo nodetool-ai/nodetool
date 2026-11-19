@@ -1,7 +1,7 @@
 #include "../support/OverlayProbe.h"
 #include "ui/CanvasSurface.h"
 #include "document/ChildPorts.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "interfaces/RunState.h"
 #include "interfaces/StatusModel.h"
 #include "interfaces/WorkflowHeader.h"

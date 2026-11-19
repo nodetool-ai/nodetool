@@ -1,8 +1,8 @@
 #pragma once
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 
 namespace nodetool::test {
-// A complete dark CanvasTheme for tests that build an EditorScene without the QML presentation map.
+// A complete dark CanvasTheme for tests that build a canvas without the QML presentation map.
 // CanvasTheme has no defaults, so a scene that never receives setTheme paints with invalid colors.
 // These values mirror the dark column of Ui.Theme and are test-only.
 inline CanvasTheme darkCanvasTheme() {

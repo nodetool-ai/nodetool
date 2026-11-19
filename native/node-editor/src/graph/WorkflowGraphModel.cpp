@@ -20,9 +20,6 @@
 #include <QUrl>
 #include <QSet>
 #include <QUuid>
-#include <QtNodes/NodeData>
-#include <QtNodes/NodeStyle>
-#include <QtNodes/StyleCollection>
 #include <tuple>
 using namespace QtNodes;
 namespace nodetool {
@@ -1745,11 +1742,11 @@ bool WorkflowGraphModel::connectionPossible(ConnectionId c) const {
   }
   auto a =
       portData(c.outNodeId, PortType::Out, c.outPortIndex, PortRole::DataType)
-          .value<NodeDataType>();
+          .toString();
   auto b = portData(c.inNodeId, PortType::In, c.inPortIndex, PortRole::DataType)
-               .value<NodeDataType>();
-  return !a.id.isEmpty() && !b.id.isEmpty() &&
-         (a.id == b.id || a.id == "any" || b.id == "any");
+               .toString();
+  return !a.isEmpty() && !b.isEmpty() &&
+         (a == b || a == "any" || b == "any");
 }
 void WorkflowGraphModel::addConnection(ConnectionId c) {
   if (connectionPossible(c) && commit) {
@@ -2157,7 +2154,7 @@ void WorkflowGraphModel::moveDescendants(const QHash<NodeId, QPointF> &before) {
     visited.insert(id);
     const auto parent = ids_.value(nodes_.value(id)["parent_id"].toString(), InvalidNodeId);
     const auto inherited = positions_.value(parent) - before.value(parent);
-    // QtNodes already moves selected descendants. Only inherit when this item
+    // The canvas already moves selected descendants. Only inherit when this item
     // did not move itself, so a parent and child selection never doubles motion.
     if (before.contains(parent) && positions_.value(id) == before.value(id) && !inherited.isNull()) {
       positions_[id] += inherited;
@@ -2176,8 +2173,6 @@ bool WorkflowGraphModel::collapsed(NodeId id) const {
 QVariant WorkflowGraphModel::nodeData(NodeId id, NodeRole r) const {
   auto n = nodes_.value(id);
   switch (r) {
-  case NodeRole::Style:
-    return QtNodes::StyleCollection::nodeStyle().toJson().toVariantMap();
   case NodeRole::Caption:
     return nodes_.contains(id) ? layout(id).title : QString();
   case NodeRole::Type:
@@ -2247,7 +2242,7 @@ QVariant WorkflowGraphModel::portData(NodeId id, PortType p, PortIndex i,
     if (type.isEmpty()) {
       type = port["type"].toObject()["type"].toString();
     }
-    return QVariant::fromValue(NodeDataType{type, type});
+    return type;
   }
   return {};
 }

@@ -8,10 +8,9 @@
 
 #include "canvas/ConnectionItem.h"
 #include "canvas/NodeItem.h"
-#include <QtNodes/AbstractGraphModel>
-#include <QtNodes/ConnectionIdUtils>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/StyleCollection.hpp>
+#include <qtnodes/AbstractGraphModel.hpp>
+#include <qtnodes/ConnectionIdUtils.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QKeyEvent>
 #include <QTimer>
 #include <algorithm>
@@ -64,7 +63,6 @@ void CanvasScene::setNodeGeometry(std::unique_ptr<AbstractNodeGeometry> geometry
   onModelReset();
 }
 
-double CanvasScene::connectionMargin() const { return StyleCollection::connectionStyle().pointDiameter(); }
 
 NodeItem *CanvasScene::nodeItem(NodeId id) const {
   const auto found = nodes_.find(id);
@@ -190,7 +188,8 @@ void CanvasScene::onModelReset() {
     draft_.reset();
     clearSelection();
     cancelMouseGrab();
-    setFocusItem(nullptr);
+    // The lineage layer keeps its items across projection resets. Removing
+    // the focused link from the scene clears focus when the document replaces it.
     if (!geometry_) {
       connections_.clear();
       nodes_.clear();

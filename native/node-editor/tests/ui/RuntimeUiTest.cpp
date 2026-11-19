@@ -1,14 +1,12 @@
 #include "../support/OverlayCanvasFixture.h"
 #include "../support/DarkCanvasTheme.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "graph/NodeLayout.h"
 #include <QPainter>
 #include "document/WorkflowDocument.h"
 #include "run/NodeRuntimeModel.h"
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace nodetool::node_editor;
@@ -16,12 +14,8 @@ class RuntimeUiTest final : public QObject {
  Q_OBJECT
 
  static void render(test::OverlayCanvasFixture &fixture, QPainter &painter, const QRectF &area) {
-   if (auto *quick = fixture.quick()) {
-     painter.translate(-area.topLeft());
-     quick->graphCanvas().renderScene(painter, area, 1);
-   } else {
-     fixture.legacyScene()->render(&painter, QRectF(QPointF(), area.size()), area);
-   }
+   painter.translate(-area.topLeft());
+   fixture.surface().graphCanvas().renderScene(painter, area, 1);
  }
 private slots:
  void projectionPreservesEditingAndItems() {
@@ -35,8 +29,7 @@ private slots:
   auto &scene = canvas.scene();
   const auto ids = graph.allNodeIds(); QVERIFY(!ids.empty()); const auto id = *ids.begin();
   const auto itemFor = [&]() -> const QObject * {
-    if (auto *quick = fixture.quick()) { return quick->canvasScene().nodeItem(id); }
-    return test::graphicsNode(*fixture.legacyScene(), id);
+    return canvas.canvasScene().nodeItem(id);
   };
   const auto *item = itemFor(); QVERIFY(item);
   canvas.selection().setNode(id, true);
@@ -87,8 +80,6 @@ private slots:
   QTRY_VERIFY(graph.runningShown(id));
   scene.setReducedMotion(true);
   QCOMPARE(scene.runningAngle(), 90.0);
-  // EditorWindow sets the QtNodes node opacity to 1. The library default is 0.8.
-  if (auto *legacy = fixture.legacyScene()) { test::graphicsNode(*legacy, id)->setOpacity(1); }
   const QRectF box(canvas.nodeOrigin(id), graph.layout(id).size);
   const auto source = box.adjusted(-10, -10, 10, 10);
   QImage image(source.size().toSize(), QImage::Format_ARGB32);
@@ -146,12 +137,7 @@ private slots:
   auto &scene = canvas.scene();
   const auto opacity = [&](const char *id) { return canvas.nodeOpacity(nodeOf(graph,id)); };
   const auto wireOpacity = [&](const char *edge) { const auto id = wireOf(graph, edge);
-    if (auto *quick = fixture.quick()) { return quick->canvasScene().connectionItem(id)->opacity(); }
-    return fixture.legacyScene()->connectionGraphicsObject(id)->opacity(); };
-  // EditorWindow sets full item opacity. The library default is 0.8.
-  if (auto *legacy = fixture.legacyScene()) {
-    for (auto *item : legacy->items()) { item->setOpacity(1); }
-  }
+    return canvas.canvasScene().connectionItem(id)->opacity(); };
   reportBranch(runtime,"run");
   QTRY_COMPARE(opacity("b"),node_metrics::notRunOpacity);
   QCOMPARE(opacity("c"),node_metrics::notRunOpacity);

@@ -4,7 +4,7 @@
 #include "graph/WorkflowGraphModel.h"
 #include <QClipboard>
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "media/VideoFrameView.h"
 #include <QApplication>
 #include <QDataStream>
@@ -20,7 +20,6 @@
 #include <QVideoSink>
 #include <QScrollBar>
 #include <QWheelEvent>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 namespace {
@@ -251,12 +250,10 @@ private slots:
     QCOMPARE(window.document()->undoStack()->count(), undo);
     test::OverlayProbe previous = tableWidget;
     const auto center = view->mapToScene(view->viewport()->rect().center());
-    const auto sceneRect = view->sceneRect();
-    view->setSceneRect(-10000, -10000, 20000, 20000);
     view->centerOn(5000, 5000);
     QTRY_VERIFY(!overlay(window, AudioNode));
     QTRY_VERIFY(!previous);
-    view->setSceneRect(sceneRect); view->centerOn(center);
+    view->centerOn(center);
     QTRY_VERIFY(overlay(window, AudioNode));
     previous = overlay(window, AudioNode);
     window.runOutput()->reset();

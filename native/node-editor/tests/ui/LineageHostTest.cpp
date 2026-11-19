@@ -1,6 +1,7 @@
+#include "canvas/LineageItem.h"
 #include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/LineageLayer.h"
 #include "graph/NodeLayout.h"
 #include "ui/EditorWindow.h"
@@ -11,9 +12,6 @@
 #include <QQuickWidget>
 #include <QQuickWindow>
 #include <QTemporaryDir>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionState.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace nodetool::node_editor;

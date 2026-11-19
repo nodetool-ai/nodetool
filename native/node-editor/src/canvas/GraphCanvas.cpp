@@ -2,6 +2,7 @@
 #include "canvas/GraphCanvas.h"
 
 #include "canvas/ConnectionItem.h"
+#include "canvas/LineageItem.h"
 #include "canvas/NodeItem.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/CanvasSurface.h"
@@ -100,8 +101,7 @@ public:
     if (auto *node = scene_.nodeItem(id)) { node->setSelected(selected); }
   }
   void selectNodes(const QList<NodeId> &ids, bool replace) override {
-    // One notification for the batch, which QtNodesCanvas sends by blocking
-    // the scene. A blocked batch on the Quick scene sends none at all.
+    // Block per-item signals and publish one selection change for the batch.
     {
       const QSignalBlocker blocker(&scene_.selectionGate());
       if (replace) { clear(); }
@@ -1247,7 +1247,13 @@ void GraphCanvas::cancelPointerGrab() {
 }
 
 void GraphCanvas::contextMenu(QPoint position, QPoint screenPosition, Qt::KeyboardModifiers modifiers) {
-  scene_->contextMenu({.scenePosition = viewport_.mapToScene(position), .screenPosition = screenPosition, .modifiers = modifiers});
+  const auto scenePoint = viewport_.mapToScene(position);
+  const auto hits = scene_->itemsAt(scenePoint);
+  if (!hits.isEmpty() && hits.first()->kind() == CanvasItem::Kind::Lineage) {
+    static_cast<LineageItem *>(hits.first())->openContextMenu(screenPosition);
+    return;
+  }
+  scene_->contextMenu({.scenePosition = scenePoint, .screenPosition = screenPosition, .modifiers = modifiers});
 }
 
 void GraphCanvas::keyPressEvent(QKeyEvent *event) {

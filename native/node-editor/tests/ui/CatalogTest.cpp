@@ -1,7 +1,7 @@
 #include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
 #include "graph/CatalogSearch.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include <QCursor>
 #include <QDir>
 #include <QFile>

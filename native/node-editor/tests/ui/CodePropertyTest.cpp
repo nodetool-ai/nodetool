@@ -1,12 +1,11 @@
 #include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/InlinePropertyPresenter.h"
 #include <QMouseEvent>
 #include <QTemporaryDir>
 #include <QFile>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include "properties/CodeInference.h"
 #include <QQuickWidget>
 #include <QQuickItem>

@@ -1,7 +1,7 @@
 #include "../support/CanvasProbe.h"
 #include "../support/OverlayCanvasFixture.h"
 #include "FakeRunServer.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include <QDir>
@@ -12,7 +12,6 @@
 #include <QQuickWidget>
 #include <QSettings>
 #include <QStandardPaths>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 #include <algorithm>
 #include <cmath>
@@ -212,7 +211,7 @@ private slots:
     void stackingTracksReorderedDocumentWithThreeOverlappingCards() {
         WorkflowGraphModel model;
         test::OverlayCanvasFixture fixture(model);
-        fixture.show(QSize(500, 360), QRectF(-200, -150, 500, 360), QPointF(100, 20));
+        fixture.show({500, 360}, {100, 20});
         const QJsonObject declaration{{"node_type", "Fixture"}, {"title", "Fixture"}};
         const QJsonArray catalog{declaration};
         QHash<QString, QtNodes::NodeId> ids;

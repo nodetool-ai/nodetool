@@ -1,7 +1,5 @@
 #include "ui/CanvasOverlay.h"
 #include "EditorWindow.h"
-#include "graph/EditorScene.h"
-#include <QGraphicsObject>
 #include "ui/CanvasSurface.h"
 #include <QPointer>
 #include <QQuickItem>
@@ -81,7 +79,6 @@ void EditorWindow::positionPriceChip() {
                                    std::clamp(y, 0, std::max(0, area.height() - chipSize.height())), chipSize.width(),
                                    chipSize.height());
     priceChipOverlay_->show();
-    priceChipOverlay_->raiseLegacyWidget();
 }
 
 void EditorWindow::togglePricePopover() {

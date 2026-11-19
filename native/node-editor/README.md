@@ -1,13 +1,11 @@
 # Native workflow editor
 
-A standalone C++20 Qt Widgets host uses QtNodes for the graph and
-`NodeTool.UiPrimitives` Quick panels for the catalog, toolbar, inspector, and run output.
-`WorkflowDocument` owns edits and undo history. Workflow files contain canonical
-NodeTool JSON, never QtNodes scene JSON.
+The standalone C++20 workflow editor uses a Qt Quick canvas inside a Qt Widgets
+window. `WorkflowDocument` owns editing, canonical NodeTool JSON and undo history.
 
 [CanvasSurface](src/ui/CanvasSurface.h) supplies coordinate mapping, selection,
-viewport navigation, hit testing and capture. [QtNodesCanvas](src/ui/QtNodesCanvas.h)
-adapts the widget renderer to that interface.
+viewport navigation, hit testing and capture. [QuickCanvas](src/ui/QuickCanvas.h)
+hosts the scene in the window.
 
 ## Presentation
 
@@ -16,16 +14,12 @@ left rail, workflow tab strip, status bar, and resizable docks frame the canvas.
 The floating toolbar and zoom readout are transparent Quick overlays. All panels
 share one QML engine and therefore one `Ui.Theme`.
 
-[`EditorScene`](src/graph/EditorScene.h) draws the grid and adapts QtNodes
-items to [`NodePainter`](src/canvas/NodePainter.h) and
-[`WirePainter`](src/canvas/WirePainter.h). Both painters take state structs.
-[`CanvasInteraction`](src/canvas/CanvasInteraction.h) handles canvas input
-through scene and viewport hosts.
-
-`wireCurve` supplies the data-wire path for painting and hit testing. QtNodes
-computes connection bounds from its own control points, so the bounds margin and
-a reverse-offset limit keep the curve inside them. A wire running backward by
-more than 1024 logical pixels therefore bends less than React Flow's.
+[`EditorCanvasScene`](src/canvas/EditorCanvasScene.h) draws the grid and prepares
+paint state for [`NodePainter`](src/canvas/NodePainter.h) and
+[`WirePainter`](src/canvas/WirePainter.h).
+[`CanvasInteraction`](src/canvas/CanvasInteraction.h) handles canvas input.
+`wireCurve` supplies the data-wire path for painting and hit testing. The
+reverse tangent is capped to keep the curve inside the connection bounds.
 
 [`node_metrics`](src/graph/NodeLayout.h) and
 [`EditorRoles`](qml/EditorRoles.qml) hold the web values scoped to this editor.
@@ -131,17 +125,9 @@ the offscreen platform plugin for headless checks.
 Local runs accept drive-letter workspace paths. UNC and device-namespace
 paths are refused by the filesystem boundary.
 
-CMake fetches [QtNodes](https://github.com/paceholder/nodeeditor/tree/829b18457d4e95ac17f4fdb01c6201125681729d)
-at immutable revision `829b18457d4e95ac17f4fdb01c6201125681729d`, under
-[BSD-3-Clause](https://github.com/paceholder/nodeeditor/blob/829b18457d4e95ac17f4fdb01c6201125681729d/LICENSE.rst).
-That is the first upstream commit with `setNodeGeometry`, and it is unmodified.
-The notice is in [`licenses/QtNodes-BSD-3-Clause.txt`](licenses/QtNodes-BSD-3-Clause.txt),
-which `scripts/package-macos.sh` copies into the app bundle.
-A build directory configured against an older revision needs a clean configure.
-The adapter uses its `AbstractGraphModel`, `BasicGraphicsScene`,
-`AbstractConnectionPainter`, and named-port projection. An existing checkout of that revision can be supplied through
-`-DFETCHCONTENT_SOURCE_DIR_QTNODES=/path/to/nodeeditor` for offline builds.
-QtNodes supports Qt 5/6. This host requires Qt 6.12 to match the primitives.
+The build uses the [vendored QtNodes model interface](third_party/qtnodes/README.md)
+for graph model, geometry and port types. The macOS packager includes the
+[BSD-3-Clause notice](licenses/QtNodes-BSD-3-Clause.txt). The editor requires Qt 6.12.
 
 ## Application menu
 
@@ -418,9 +404,7 @@ Unknown nodes retain their JSON and incident named ports. Unsupported
 semantics open read-only with the document module's reason in the inspector.
 
 Drag nodes or rubber-band a selection. A pointer gesture commits one document
-transaction. QtNodes' scene undo stack is temporary presentation state and is
-cleared after a gesture. The host does not install QtNodes' clipboard or undo
-actions. Undo and Redo always use the document stack. Delete includes selected
+transaction. Undo and Redo use the document stack. Delete includes selected
 connections. Copy, Paste, and Duplicate use document fragments and remap IDs.
 
 On macOS a two-finger swipe pans, a pinch, Cmd scroll, or physical mouse wheel zooms, and
@@ -496,8 +480,7 @@ provider chip and pointer placement. Run it with `ctest --test-dir <build> -R
 'node_editor_catalog$' --output-on-failure`. `NODETOOL_CATALOG_CAPTURE_DIR`
 writes its captures in both themes.
 [NodeMenuComponentTest](tests/ui/NodeMenuComponentTest.cpp) loads `NodeMenu.qml`
-with a fixture catalog and no `EditorWindow`, so it links no graph runner,
-QtNodes or media. Run it with `ctest --test-dir <build> -R
+with a fixture catalog and no `EditorWindow`, so it links no graph runner or media. Run it with `ctest --test-dir <build> -R
 'node_editor_node_menu_component$' --output-on-failure`.
 [InspectorComponentTest](tests/ui/InspectorComponentTest.cpp) loads
 `Inspector.qml` with a fixture inspector and no `EditorWindow`, commits a field,
@@ -537,32 +520,10 @@ A separate synthetic test projects 1,000 nodes
 and 2,000 edges and checks their adjacency, without measuring input-to-paint
 latency. No performance target is claimed.
 
-### QtNodes large graph baseline
-
-[LargeGraphTest](tests/perf/LargeGraphTest.cpp) `panZoom` repeats the window
-parity fixture into a grid of 2,000 cards and 1,832 edges in a 1440 by 900
-window. Each step sends one input event and then paints the viewport, as the
-card drag measure does. A pan step is a 12-pixel middle-button drag move. A
-zoom step is one wheel notch (1.15) under the cursor, ten in from the fit view
-and ten out. The [Quick canvas plan](../../docs/plans/node-editor-quick-canvas/plan.md#large-graphs)
-compares its targets with these numbers. Three runs on QtNodes with the software backend (offscreen, Linux, a shared
-machine under load) gave:
-
-| Measure | Cards on screen | Mean per step | Slowest step |
-|---|---|---|---|
-| Pan at zoom 1 | 5 | 8.4 to 12.7 ms | 12.9 to 21.5 ms |
-| Pan at the fit zoom (0.12) | 534 | 33.2 to 40.4 ms | 49.8 to 63.0 ms |
-| Zoom from the fit view | 534 at the start | 47.9 to 66.9 ms | 88.8 to 121.3 ms |
-
-`QGraphicsView` paints every step at once, so a zoom leaves no work behind:
-the event loop after the last notch took 33 to 45 µs. The test checks that
-the view moved and zoomed, and sets no time limit.
-
 ### Quick canvas
 
-The editor defaults to [QuickCanvas](src/ui/QuickCanvas.h), a
-`QQuickWidget` that hosts a
-[GraphCanvas](src/canvas/GraphCanvas.h). Card, wire and foreground painters
+[QuickCanvas](src/ui/QuickCanvas.h) hosts a
+[GraphCanvas](src/canvas/GraphCanvas.h) in a `QQuickWidget`. Card, wire and foreground painters
 fill raster tiles up to 512 device pixels per side. The software scene graph
 composites visible tiles in bounded regions. On RHI each tile gets its own
 texture. A grid index answers hit tests and culling. Settled tiles use the
@@ -571,26 +532,22 @@ limit applies to offscreen tiles, including foreground tiles. Polish paints
 visible tiles first regardless of that limit, keeps queued edits in order
 across frames and keeps the old tiles visible until a replacement grid is ready.
 A running card repaints only its ring and status text, and a model reset keeps
-the cards on screen. The software grid paints the same pixels as QtNodes. The
-app uses the software backend. In Quick mode, each live card editor or media
+the cards on screen. The app uses the software backend. Each live card editor or media
 player follows its card through a [CardOverlay](src/canvas/CardOverlay.h).
 Software draws individual tiles while a card overlay is visible so Quick
 can interleave cards and their controls. The toolbar, picker, mini-map,
 queue, chat, node information and pricing use the canvas overlay layer.
-See [Q4](../../docs/plans/node-editor-quick-canvas/plan.md#q4-overlays-in-the-scene)
-and [Q5](../../docs/plans/node-editor-quick-canvas/plan.md#q5-quick-canvas-by-default)
-for the overlay and default-switch steps.
-`node_editor_quick_canvas` tests the items, hit tests, gestures and culling.
-The unsuffixed canvas tests run on Quick by default. Set
-`NODETOOL_NODE_EDITOR_TEST_LEGACY_CANVAS=1` to exercise QtNodes in those
-tests until Q6 removes it. The explicit `<name>_quick` entries still run on Quick.
-The overlay fixtures send pointer and keyboard input to the window that
-hosts the overlay and exercise the same QML on either canvas.
+`node_editor_quick_canvas` tests hit testing, gestures, culling and raster
+publication. The `node_editor_quick_canvas_dpr*` registrations exercise title
+and grid pixels at fractional display scales. The DPR 2 gate also checks
+large-raster timing, wide foreground labels and long wires.
+Configure `tests/lineage` as a standalone CMake source to build and run
+`node_editor_lineage` against the shared editor core.
 
-`node_editor_large_graph_quick` times input handling, canvas polish, software
+`node_editor_large_graph` times input handling, canvas polish, software
 scene graph sync and render, and the widget blit. It excludes the wait for
 the frame timer. Run it serially with
-`ctest --test-dir <build> -R '^node_editor_large_graph_quick$' -V -j 1`.
+`ctest --test-dir <build> -R '^node_editor_large_graph$' -V -j 1`.
 
 | Measure | Quick canvas software gate |
 |---|---|
@@ -615,11 +572,9 @@ the FFmpeg plugin caller.
 [`CanvasCapture`](src/ui/CanvasCapture.h). It covers a playing media preview
 under a stacked card, under the chat window and under the inline note editor,
 and the translucent header controls of a group. `node_editor_composition`
-runs it on the software backend and passes. `node_editor_composition_rhi`
-runs it on Vulkan and is disabled: on the `QGraphicsView` canvas the preview
-draws over all three surfaces and the group controls show black where they
-are transparent. [CMakeLists.txt](CMakeLists.txt) records the failure and the
-command that runs it under `xvfb`.
+runs it on the software backend. The disabled `node_editor_composition_rhi`
+registration preserves the Vulkan check for the
+[renderer qualification step](../../docs/plans/node-editor-quick-canvas/plan.md#q10-rhi).
 
 ## Live backend verification
 

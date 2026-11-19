@@ -1,6 +1,6 @@
 #include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/CompatibleNodePicker.h"
 #include "../graph/BodyConnectionFixture.h"
 #include <QMouseEvent>
@@ -9,9 +9,7 @@
 #include <QSignalSpy>
 #include <QSettings>
 #include <QDir>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace QtNodes;

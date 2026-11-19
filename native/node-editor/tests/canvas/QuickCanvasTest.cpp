@@ -14,17 +14,14 @@
 #include "canvas/NodePainter.h"
 #include "document/WorkflowDocument.h"
 #include "graph/CardBodies.h"
-#include "graph/EditorScene.h"
+#include "canvas/EditorCanvasScene.h"
 #include "graph/LineageLayer.h"
 #include "graph/NodeLayout.h"
 #include "graph/WorkflowGraphModel.h"
 #include "run/NodeRuntimeModel.h"
 #include "ui/CanvasSurface.h"
 #include "ui/QuickCanvas.h"
-#include "ui/QtNodesCanvas.h"
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/AbstractNodePainter.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QElapsedTimer>
 #include <QGraphicsScene>
 #include <QHelpEvent>
@@ -42,6 +39,7 @@
 #include <QtTest>
 #include <limits>
 #include <memory>
+#include <numeric>
 
 using namespace nodetool;
 using namespace nodetool::canvas;
@@ -150,6 +148,16 @@ public:
   std::unique_ptr<GraphCanvas> canvas;
   QList<QJsonObject> commands;
 };
+
+QImage paintViewport(const GraphCanvas &canvas, QSize deviceSize, qreal dpr) {
+  QImage image(deviceSize, QImage::Format_ARGB32_Premultiplied);
+  image.setDevicePixelRatio(dpr);
+  image.fill(Qt::transparent);
+  QPainter painter(&image);
+  painter.setWorldTransform(canvas.viewport().viewportTransform());
+  canvas.renderScene(painter, canvas.viewport().visibleSceneRect(), canvas.viewport().zoom());
+  return image;
+}
 
 QJsonObject sized(QJsonObject card, double width, double height) {
   auto ui = card["ui_properties"].toObject();
@@ -656,35 +664,20 @@ private slots:
         node("target", kTarget, 2380, 715),
     }, {edge("long", "source", "target")});
     Fixture quick(graph, {1920, 1080});
-    WorkflowGraphModel model;
-    EditorScene legacyScene(model);
-    model.project(graph, catalog());
-    QWidget host;
-    auto &view = QtNodesCanvas::createView(legacyScene, host);
-    host.resize(quick.window.size());
-    view.resize(host.size());
-    QtNodesCanvas legacy(legacyScene, view);
-    host.show();
-    QVERIFY(QTest::qWaitForWindowExposed(&host));
     auto theme = test::darkCanvasTheme();
     theme.grid = theme.canvas;
     quick.canvas->setTheme(theme);
-    legacy.scene().setTheme(theme);
-    legacy.setView(1, QPointF(960, 540));
     for (const auto &id : {QString("left"), QString("right")}) {
       quick.canvas->selection().setNode(quick.id(id), true);
-      for (const auto nodeId : model.allNodeIds()) {
-        if (model.resourceId(nodeId) == id) { legacy.selection().setNode(nodeId, true); }
-      }
     }
     quick.canvas->flushRaster();
     const auto quickFrame = quick.window.grabWindow();
-    const auto legacyFrame = view.viewport()->grab().toImage();
+    const auto referenceFrame = paintViewport(*quick.canvas, quickFrame.size(), quick.window.effectiveDevicePixelRatio());
     QVERIFY(!quickFrame.isNull());
     const auto inkError = [&](QPointF origin, QSize extent) {
       const auto dpr = quick.window.effectiveDevicePixelRatio();
       const auto size = (QSizeF(extent) * dpr).toSize();
-      const auto reference = legacyFrame.copy(QRect((QPointF(legacy.mapFromScene(origin)) * dpr).toPoint(), size));
+      const auto reference = referenceFrame.copy(QRect((QPointF(quick.view(origin)) * dpr).toPoint(), size));
       const auto rendered = quickFrame.copy(QRect((QPointF(quick.view(origin)) * dpr).toPoint(), size));
       return glyphError(reference, rendered, qGray(theme.canvas.rgb()));
     };
@@ -739,24 +732,11 @@ private slots:
       }
     }
 
-    WorkflowGraphModel model;
-    EditorScene scene(model);
-    model.project(graph, catalog());
-    QWidget host;
-    auto &view = QtNodesCanvas::createView(scene, host);
-    host.resize(f.window.size());
-    view.resize(host.size());
-    QtNodesCanvas legacy(scene, view);
-    host.show();
-    QVERIFY(QTest::qWaitForWindowExposed(&host));
-    scene.setTheme(theme);
-    legacy.setView(3, QPointF(320, 180));
-    for (const auto id : model.groupIds()) { legacy.selection().setNode(id, true); }
-    const auto reference = view.viewport()->grab().toImage();
     const auto rendered = f.window.grabWindow();
+    const auto reference = paintViewport(*f.canvas, rendered.size(), dpr);
     const auto compare = [&](QPointF scenePoint, QSize extent) {
       const auto size = (QSizeF(extent) * dpr).toSize();
-      const auto expected = reference.copy(QRect((QPointF(legacy.mapFromScene(scenePoint)) * dpr).toPoint(), size));
+      const auto expected = reference.copy(QRect((QPointF(f.view(scenePoint)) * dpr).toPoint(), size));
       const auto actual = rendered.copy(QRect((QPointF(f.view(scenePoint)) * dpr).toPoint(), size));
       return glyphError(expected, actual, qGray(theme.canvas.rgb()));
     };
@@ -843,20 +823,8 @@ private slots:
     const QPointF origin(73.25, 77.4), center(400, 300);
     const auto graph = snapshot({node("source", kSource, origin.x(), origin.y())});
     Fixture quick(graph);
-    WorkflowGraphModel model;
-    EditorScene legacyScene(model);
-    model.project(graph, catalog());
-    QWidget host;
-    auto &view = QtNodesCanvas::createView(legacyScene, host);
-    host.resize(quick.window.size());
-    view.resize(host.size());
-    QtNodesCanvas legacy(legacyScene, view);
-    host.show();
-    QVERIFY(QTest::qWaitForWindowExposed(&host));
     const auto theme = test::darkCanvasTheme();
-    legacy.scene().setTheme(theme);
     quick.canvas->setView(zoom, center);
-    legacy.setView(zoom, center);
     CardOverlay overlay(*quick.item("source"));
     OverlayMarker marker(overlay);
     marker.setVisible(withOverlay);
@@ -871,42 +839,22 @@ private slots:
         quick.canvas->setScroll(scroll.x() + step * panStep, scroll.y() + step * panStep);
         quick.window.grabWindow();
       }
-      view.horizontalScrollBar()->setValue(scroll.x() + 5 * panStep);
-      view.verticalScrollBar()->setValue(scroll.y() + 5 * panStep);
-      QCOMPARE(QPoint(view.horizontalScrollBar()->value(), view.verticalScrollBar()->value()), quick.canvas->viewport().scroll());
       // The settled raster follows the new fractional device offset.
       QTRY_VERIFY(!quick.canvas->zoomSettling() && !quick.canvas->rasterPending());
     }
 
-    // Paint the QtNodes card at the same display density. Its device-coordinate
-    // cache paints at a pixmap-relative phase that can differ at fractional DPR.
-    auto *referenceCard = legacyScene.nodeGraphicsObject(*model.allNodeIds().begin());
-    QVERIFY(referenceCard);
+    // Compare the scene graph's settled tiles against a direct paint at the device pixel ratio.
     const auto dpr = quick.window.effectiveDevicePixelRatio();
-    QCOMPARE(view.devicePixelRatioF(), dpr);
-    QImage legacyFrame((QSizeF(view.viewport()->size()) * dpr).toSize(), QImage::Format_ARGB32_Premultiplied);
-    legacyFrame.setDevicePixelRatio(dpr);
-    legacyFrame.fill(theme.canvas);
-    {
-      QPainter painter(&legacyFrame);
-      painter.setWorldTransform(legacy.viewportTransform());
-      painter.translate(referenceCard->scenePos());
-      legacyScene.nodePainter().paint(&painter, *referenceCard);
-    }
+    const auto frame = quick.window.grabWindow();
+    const auto referenceFrame = paintViewport(*quick.canvas, frame.size(), dpr);
     const auto textOrigin = origin + QPointF(8, 4);
     const QSize extent(qRound(133 * zoom), qRound(27 * zoom));
     const auto sample = [&](const QImage &frame, QPoint origin) {
       return frame.copy(QRect((QPointF(origin) * dpr).toPoint(), (QSizeF(extent) * dpr).toSize()));
     };
-    const auto reference = sample(legacyFrame, legacy.mapFromScene(textOrigin));
-    const auto rendered = sample(quick.window.grabWindow(), quick.view(textOrigin));
+    const auto reference = sample(referenceFrame, quick.view(textOrigin));
+    const auto rendered = sample(frame, quick.view(textOrigin));
     QCOMPARE(reference.size(), rendered.size());
-    if (zoom == 1. && dpr == 1.) {
-      const auto widgetGrab = sample(view.viewport()->grab().toImage(), legacy.mapFromScene(textOrigin));
-      const auto grabError = glyphError(widgetGrab, rendered, qGray(theme.node.rgb()));
-      qInfo() << "QtNodes viewport title error" << grabError;
-      QVERIFY(grabError < .02);
-    }
     const auto *card = quick.item("source");
     const auto error = glyphError(reference, rendered, qGray(theme.node.rgb()));
     const auto toDevice = [&](const QRectF &local) {
@@ -1069,48 +1017,80 @@ private slots:
     constexpr int kWait = 5000 * gr::test::kSanitizerTimeScale;
 
     if (gridRow) {
-      // The grid matches the QtNodes viewport pixel for pixel, crosses and axes.
-      WorkflowGraphModel model;
-      EditorScene legacyScene(model);
-      model.project(graph, catalog());
-      QWidget host;
-      auto &view = QtNodesCanvas::createView(legacyScene, host);
-      host.resize(f.window.size());
-      view.resize(host.size());
-      QtNodesCanvas legacy(legacyScene, view);
-      host.show();
-      QVERIFY(QTest::qWaitForWindowExposed(&host));
-      legacy.scene().setTheme(theme);
       f.canvas->setView(zoom, center);
-      legacy.setView(zoom, center);
-      QCOMPARE(QPoint(view.horizontalScrollBar()->value(), view.verticalScrollBar()->value()), f.canvas->viewport().scroll());
-      auto gap = node_metrics::gridGap;
-      while (gap * zoom < 12) { gap *= 2; }
-      const auto devicePeriod = gap * zoom * dpr;
+      // At these zooms the 25-unit cross spacing doubles only in the overview.
+      const double sceneGap = zoom < .48 ? 50. : 25.;
+      const double devicePeriod = sceneGap * zoom * dpr;
+      const double deviceArm = 1.5 * zoom * dpr;
+      const QPointF latticeStart(std::ceil(center.x() / sceneGap) * sceneGap,
+                                 std::ceil(center.y() / sceneGap) * sceneGap);
       if (!software && std::abs(devicePeriod - std::round(devicePeriod)) > 1e-6) {
         QSKIP("The RHI grid repeats a texture, which is exact only for whole device-pixel periods");
       }
       QTRY_VERIFY_WITH_TIMEOUT(!f.canvas->zoomSettling() && !f.canvas->rasterPending(), kWait);
       const auto compareGrids = [&](const char *when) {
         const auto quickFrame = f.window.grabWindow().convertToFormat(QImage::Format_RGB32);
-        const auto legacyFrame = view.viewport()->grab().toImage().convertToFormat(QImage::Format_RGB32);
-        QCOMPARE(quickFrame.size(), legacyFrame.size());
+        const auto reference = paintViewport(*f.canvas, quickFrame.size(), dpr).convertToFormat(QImage::Format_RGB32);
+        QCOMPARE(quickFrame.size(), reference.size());
         const auto background = theme.canvas.rgb() & 0xffffff;
-        int quickGrid = 0, legacyGrid = 0, differing = 0;
-        // QtNodes fills the exposed scene rectangle with antialiasing, which
-        // blends its last device row and column with the widget background,
-        // and leaves the half pixel beyond 1.25 × 1390 unpainted.
+        int quickGrid = 0, referenceGrid = 0, differing = 0;
+        // Exclude the edge where a fractional device pixel can be clipped.
         for (int y = 0; y < quickFrame.height() - 1; ++y) {
           for (int x = 0; x < quickFrame.width() - 1; ++x) {
-            const auto a = quickFrame.pixel(x, y) & 0xffffff, b = legacyFrame.pixel(x, y) & 0xffffff;
+            const auto a = quickFrame.pixel(x, y) & 0xffffff, b = reference.pixel(x, y) & 0xffffff;
             quickGrid += a != background;
-            legacyGrid += b != background;
+            referenceGrid += b != background;
             differing += a != b;
           }
         }
-        qInfo() << "Grid pixels" << when << "quick" << quickGrid << "QtNodes" << legacyGrid << "differing" << differing;
-        QVERIFY(legacyGrid > 0);
+        qInfo() << "Grid pixels" << when << "quick" << quickGrid << "direct paint" << referenceGrid << "differing" << differing;
+        QVERIFY(referenceGrid > 0);
         QCOMPARE(differing, 0);
+        // Check the lattice independently of the shared grid painter. In
+        // device space an aliased cosmetic stroke can land one pixel from
+        // its projected coordinate. Sample away from the origin axes.
+        const auto scroll = QPointF(f.canvas->viewport().scroll());
+        const auto gridColor = theme.grid.rgb();
+        const auto backgroundColor = theme.canvas.rgb();
+        const int margin = qCeil(deviceArm) + 2;
+        const int side = 2 * margin + 1;
+        for (int row = 0; row < 3; ++row) {
+          for (int column = 0; column < 3; ++column) {
+            const auto sceneCross = latticeStart + QPointF(column * sceneGap, row * sceneGap);
+            const auto deviceCross = (sceneCross * zoom - scroll) * dpr;
+            const auto topLeft = deviceCross.toPoint() - QPoint(margin, margin);
+            QVERIFY(quickFrame.rect().contains(QRect(topLeft, QSize(side, side))));
+            QList<int> horizontal(side, 0), vertical(side, 0);
+            for (int y = 0; y < side; ++y) {
+              for (int x = 0; x < side; ++x) {
+                if (quickFrame.pixel(topLeft + QPoint(x, y)) == gridColor) {
+                  ++horizontal[y];
+                  ++vertical[x];
+                }
+              }
+            }
+            const auto rowWithInk = std::max_element(horizontal.cbegin(), horizontal.cend());
+            const auto columnWithInk = std::max_element(vertical.cbegin(), vertical.cend());
+            const int crossY = topLeft.y() + int(rowWithInk - horizontal.cbegin());
+            const int crossX = topLeft.x() + int(columnWithInk - vertical.cbegin());
+            QVERIFY(std::abs(crossX - deviceCross.x()) <= 1.0);
+            QVERIFY(std::abs(crossY - deviceCross.y()) <= 1.0);
+            QCOMPARE(quickFrame.pixel(crossX, crossY), gridColor);
+            if (deviceArm >= 1.25) {
+              QVERIFY(*rowWithInk >= 2);
+              QVERIFY(*columnWithInk >= 2);
+            }
+            if (deviceArm >= 2) {
+              for (const auto offset : {QPoint(-1, 0), QPoint(1, 0), QPoint(0, -1), QPoint(0, 1)}) {
+                QCOMPARE(quickFrame.pixel(QPoint(crossX, crossY) + offset), gridColor);
+              }
+            }
+            QCOMPARE(std::accumulate(horizontal.cbegin(), horizontal.cend(), 0),
+                     *rowWithInk + *columnWithInk - 1);
+            const auto between = deviceCross + QPointF(devicePeriod / 2, devicePeriod / 2);
+            QCOMPARE(quickFrame.pixel(between.toPoint()), backgroundColor);
+          }
+        }
       };
       compareGrids("settled");
       if (QTest::currentTestFailed()) { return; }
@@ -1118,9 +1098,6 @@ private slots:
       for (const auto step : {QPoint(12, 0), QPoint(0, 8), QPoint(-7, 5), QPoint(4, -12)}) {
         const auto scroll = f.canvas->viewport().scroll() + step;
         f.canvas->setScroll(scroll.x(), scroll.y());
-        view.horizontalScrollBar()->setValue(scroll.x());
-        view.verticalScrollBar()->setValue(scroll.y());
-        QCOMPARE(QPoint(view.horizontalScrollBar()->value(), view.verticalScrollBar()->value()), scroll);
         compareGrids("panned");
         if (QTest::currentTestFailed()) { return; }
       }
@@ -1564,34 +1541,32 @@ private slots:
 
   void lineageRetainsKeyboardFocusAcrossModelResets() {
     auto graph = pair();
-    WorkflowGraphModel model;
-    EditorScene scene(model);
-    model.project(graph, catalog());
+    Fixture f(graph, {700, 460});
+    auto &scene = f.canvas->scene();
     node_editor::LineageLayer lineage(scene);
     auto linked = graph["graph"].toObject();
     linked["links"] = QJsonArray{QJsonObject{
         {"id", "reference"}, {"source", "source"}, {"target", "target"}, {"label", "reference"}, {"kind", "source"}}};
-    QVERIFY(lineage.update(linked, {{"source", QRectF(0, 0, 100, 60)}, {"target", QRectF(300, 0, 100, 60)}}).isEmpty());
-    QGraphicsView view(&scene);
-    view.resize(700, 460);
-    view.show();
-    QVERIFY(QTest::qWaitForWindowExposed(&view));
-    auto *chip = qobject_cast<QGraphicsObject *>(lineage.linkItem("reference"));
+    QVERIFY(lineage.update(linked, {{"source", f.item("source")->sceneBoundingRect()},
+                                    {"target", f.item("target")->sceneBoundingRect()}}).isEmpty());
+    auto *chip = lineage.linkItem("reference");
     QVERIFY(chip);
-    chip->setFocus();
+    QTest::mouseClick(&f.window, Qt::LeftButton, {}, f.view(lineage.linkPath("reference").pointAtPercent(.5)));
     QCOMPARE(scene.focusItem(), chip);
     auto expanded = catalog();
     expanded.append(QJsonObject{{"node_type", "fixture.More"}});
-    model.project(graph, expanded);
+    f.model.project(graph, expanded);
     QCOMPARE(scene.focusItem(), chip);
-    model.project(graph, expanded, true);
+    f.model.project(graph, expanded, true);
     QCOMPARE(scene.focusItem(), chip);
     graph["id"] = "another-workflow";
-    model.project(graph, expanded, true);
+    f.model.project(graph, expanded, true);
     QCOMPARE(scene.focusItem(), chip);
     QSignalSpy removed(&lineage, &node_editor::LineageLayer::deleteRequested);
-    QTest::keyClick(&view, Qt::Key_Delete);
+    QTest::keyClick(&f.window, Qt::Key_Delete);
     QCOMPARE(removed.size(), 1);
+    lineage.clear();
+    QVERIFY(!scene.focusItem());
   }
 
   void animatedRastersDoNotStarveVisibleEdits() {
@@ -1864,40 +1839,27 @@ private slots:
   void noteChipAtFitZoom() {
     QWidget host;
     host.resize(640, 400);
-    WorkflowGraphModel quickModel, legacyModel;
-    EditorScene legacyScene(legacyModel);
-    for (auto *model : {&quickModel, &legacyModel}) { model->project(pair(), catalog()); }
+    WorkflowGraphModel quickModel;
+    quickModel.project(pair(), catalog());
     QuickCanvas quick(quickModel, host);
     quick.hostWidget().resize(host.size());
     host.show();
     QVERIFY(QTest::qWaitForWindowExposed(&host));
-    QWidget legacyHost;
-    auto &view = QtNodesCanvas::createView(legacyScene, legacyHost);
-    view.resize(host.size());
-    legacyHost.resize(host.size());
-    QtNodesCanvas legacy(legacyScene, view);
-    legacyHost.show();
-    QVERIFY(QTest::qWaitForWindowExposed(&legacyHost));
     const auto theme = test::darkCanvasTheme();
     quick.scene().setTheme(theme);
-    legacy.scene().setTheme(theme);
     const QPointF center(400, 200);
     const auto id = quick.canvasScene().nodeAt(QPointF(80, 20))->nodeId();
-    const auto legacyId = legacy.nodeAt(legacy.mapFromScene(QPointF(80, 20)));
     const auto quickNote = quick.addNote(id, "2 Title", "note", {}, {});
-    const auto legacyNote = legacy.addNote(legacyId, "2 Title", "note", {}, {});
     QVERIFY(quickNote);
-    QVERIFY(legacyNote);
     quick.setView(.53, center);
-    legacy.setView(.53, center);
     quick.graphCanvas().flushRaster();
     const auto quickFrame = quick.quickWidget().grabFramebuffer();
-    const auto legacyFrame = view.viewport()->grab().toImage();
     const auto ink = [&](const CanvasSurface &canvas, const QImage &frame, NodeId card) {
       const QPointF textOrigin = canvas.nodeRect(card).bottomLeft() + QPointF(20, 18);
       return frame.copy(QRect(canvas.mapFromScene(textOrigin) - QPoint(1, 1), QSize(27, 9)));
     };
-    const auto reference = ink(legacy, legacyFrame, legacyId);
+    const auto referenceFrame = paintViewport(quick.graphCanvas(), quickFrame.size(), quickFrame.devicePixelRatio());
+    const auto reference = ink(quick, referenceFrame, id);
     const auto rendered = ink(quick, quickFrame, id);
     // Compare the distribution of glyph ink, allowing a pixel of offset from
     // the view mapping and different subpixel coverage from the raster bucket.

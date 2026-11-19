@@ -1,6 +1,6 @@
 #include "../support/OverlayProbe.h"
 #include "document/ChildPorts.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "ui/EditorWindow.h"
 #include <QDir>
 #include <QContextMenuEvent>
@@ -9,7 +9,6 @@
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace nodetool::node_editor;

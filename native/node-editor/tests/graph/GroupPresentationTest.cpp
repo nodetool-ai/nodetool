@@ -1,13 +1,11 @@
 #include "../support/OverlayCanvasFixture.h"
 #include "../support/DarkCanvasTheme.h"
 #include "graph/WorkflowGraphModel.h"
-#include "graph/EditorScene.h"
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include "canvas/CanvasStyle.h"
 #include <QJsonDocument>
 #include <QtTest>
 #include <cmath>
 #include <QPainter>
-#include <QGraphicsSceneMouseEvent>
 #include "document/WorkflowDocument.h"
 using namespace nodetool;
 using namespace QtNodes;
@@ -36,36 +34,19 @@ void sceneMouse(test::OverlayCanvasFixture &fixture, QEvent::Type type, QPointF 
   auto &viewport = surface.viewportWidget();
   const auto local = surface.mapFromScene(point);
   const auto global = viewport.mapToGlobal(local);
-  const auto button = type == QEvent::GraphicsSceneMouseMove ? Qt::NoButton : Qt::LeftButton;
-  const auto buttons = type == QEvent::GraphicsSceneMouseRelease ? Qt::NoButton : Qt::LeftButton;
-  if (auto *legacy = fixture.legacyScene()) {
-    QGraphicsSceneMouseEvent event(type);
-    event.setWidget(&viewport);
-    event.setScenePos(point);
-    event.setLastScenePos(point);
-    event.setScreenPos(global);
-    event.setButton(button);
-    event.setButtons(buttons);
-    QApplication::sendEvent(legacy, &event);
-  } else {
-    const auto mouseType = type == QEvent::GraphicsSceneMouseMove ? QEvent::MouseMove
-                         : type == QEvent::GraphicsSceneMouseRelease ? QEvent::MouseButtonRelease
-                                                                    : QEvent::MouseButtonPress;
-    QMouseEvent event(mouseType, local, global, button, buttons, Qt::NoModifier);
-    QApplication::sendEvent(&viewport, &event);
-  }
+  const auto button = type == QEvent::MouseMove ? Qt::NoButton : Qt::LeftButton;
+  const auto buttons = type == QEvent::MouseButtonRelease ? Qt::NoButton : Qt::LeftButton;
+  QMouseEvent event(type, local, global, button, buttons, Qt::NoModifier);
+  QApplication::sendEvent(&viewport, &event);
 }
 
 double stackZ(test::OverlayCanvasFixture &fixture, NodeId id) {
-  if (auto *quick = fixture.quick()) { return quick->canvasScene().nodeItem(id)->z(); }
-  return test::graphicsNode(*fixture.legacyScene(), id)->zValue();
+  return fixture.surface().canvasScene().nodeItem(id)->z();
 }
 
 void escape(test::OverlayCanvasFixture &fixture) {
   QKeyEvent event(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
-  auto &scene = fixture.surface().scene().sceneObject();
-  QObject *target = fixture.quick() ? static_cast<QObject *>(&fixture.surface().viewportWidget()) : &scene;
-  QApplication::sendEvent(target, &event);
+  QApplication::sendEvent(&fixture.surface().viewportWidget(), &event);
 }
 
 QJsonObject gestureFixture() {
@@ -83,16 +64,16 @@ void GroupPresentationTest::labelHitOutsideItemBounds() {
   WorkflowGraphModel model;
   test::OverlayCanvasFixture fixture(model);
   model.project(gestureFixture());
-  fixture.show(QSize(1400, 1100), QRectF(-600, -500, 1600, 1400), QPointF(300, 270));
+  fixture.show(QSize(1400, 1100), QPointF(300, 270));
   fixture.surface().setView(0.25, QPointF(300, 270));
   const auto group = idFor(model, "group"), child = idFor(model, "child");
   const auto label = fixture.surface().scene().groupLabelRect(group, 0.25);
   const auto point = label.center();
   QVERIFY(point.y() < fixture.surface().nodeBounds(group).top());
-  sceneMouse(fixture, QEvent::GraphicsSceneMousePress, point);
+  sceneMouse(fixture, QEvent::MouseButtonPress, point);
   QVERIFY(fixture.surface().selection().contains(group));
-  sceneMouse(fixture, QEvent::GraphicsSceneMouseMove, point + QPointF(80, 40));
-  sceneMouse(fixture, QEvent::GraphicsSceneMouseRelease, point + QPointF(80, 40));
+  sceneMouse(fixture, QEvent::MouseMove, point + QPointF(80, 40));
+  sceneMouse(fixture, QEvent::MouseButtonRelease, point + QPointF(80, 40));
   QCOMPARE(model.nodeData(group, NodeRole::Position).toPointF(), QPointF(180,240));
   QCOMPARE(model.nodeData(child, NodeRole::Position).toPointF(), QPointF(220,290));
   QVERIFY(stackZ(fixture, group) < stackZ(fixture, child));
@@ -117,7 +98,7 @@ void GroupPresentationTest::resizeCommitsOnceAndPreservesChildren() {
   WorkflowGraphModel model;
   test::OverlayCanvasFixture fixture(model);
   model.project(document.snapshot());
-  fixture.show(QSize(1400, 1100), QRectF(-600, -500, 1600, 1400), QPointF(300, 270));
+  fixture.show(QSize(1400, 1100), QPointF(300, 270));
   int commits = 0;
   model.commit = [&](const QJsonObject &command) {
     ++commits;
@@ -127,11 +108,11 @@ void GroupPresentationTest::resizeCommitsOnceAndPreservesChildren() {
   };
   const auto group = idFor(model, "group"), child = idFor(model, "child");
   const auto before = document.snapshot();
-  sceneMouse(fixture, QEvent::GraphicsSceneMousePress, QPointF(495,495));
-  sceneMouse(fixture, QEvent::GraphicsSceneMouseMove, QPointF(595,575));
+  sceneMouse(fixture, QEvent::MouseButtonPress, QPointF(495,495));
+  sceneMouse(fixture, QEvent::MouseMove, QPointF(595,575));
   QCOMPARE(model.layout(group).size, QSize(500,380));
   QCOMPARE(document.snapshot(), before);
-  sceneMouse(fixture, QEvent::GraphicsSceneMouseRelease, QPointF(595,575));
+  sceneMouse(fixture, QEvent::MouseButtonRelease, QPointF(595,575));
   QCOMPARE(commits,1);
   QCOMPARE(document.undoStack()->count(),1);
   QCOMPARE(document.node("group")["ui_properties"].toObject()["future"].toString(),QString("retained"));
@@ -141,9 +122,9 @@ void GroupPresentationTest::resizeCommitsOnceAndPreservesChildren() {
   fixture.surface().selection().setNode(group, true);
   // Top-left resize preserves child absolute coordinates while updating its
   // relative offset inside the resized frame in the same history entry.
-  sceneMouse(fixture, QEvent::GraphicsSceneMousePress, QPointF(100,200));
-  sceneMouse(fixture, QEvent::GraphicsSceneMouseMove, QPointF(50,150));
-  sceneMouse(fixture, QEvent::GraphicsSceneMouseRelease, QPointF(50,150));
+  sceneMouse(fixture, QEvent::MouseButtonPress, QPointF(100,200));
+  sceneMouse(fixture, QEvent::MouseMove, QPointF(50,150));
+  sceneMouse(fixture, QEvent::MouseButtonRelease, QPointF(50,150));
   QCOMPARE(model.layout(group).size,QSize(450,350));
   QCOMPARE(model.nodeData(group,NodeRole::Position).toPointF(),QPointF(50,150));
   QCOMPARE(model.nodeData(child,NodeRole::Position).toPointF(),QPointF(140,250));
@@ -160,12 +141,8 @@ void GroupPresentationTest::nativeLabelRendering() {
   image.fill(Qt::transparent);
   QPainter painter(&image);
   const QRectF area(50, 80, 600, 500);
-  if (auto *quick = fixture.quick()) {
-    painter.translate(-area.topLeft());
-    quick->graphCanvas().renderScene(painter, area, 1);
-  } else {
-    fixture.legacyScene()->render(&painter, QRectF(QPointF(), area.size()), area);
-  }
+  painter.translate(-area.topLeft());
+  fixture.surface().graphCanvas().renderScene(painter, area, 1);
   painter.end();
   // The headline lives outside the group body and the QtNodes item clip.
   int ink = 0;
@@ -185,15 +162,15 @@ void GroupPresentationTest::ordinaryNodeResizeBounds() {
   const QJsonObject node{{"id","card"},{"type","test.Empty"},
     {"ui_properties",QJsonObject{{"position",QJsonObject{{"x",0},{"y",0}}},{"future",42}}}};
   model.project(QJsonObject{{"nodes",QJsonArray{node}},{"edges",QJsonArray{}}});
-  fixture.show(QSize(1400, 1100), QRectF(-600, -500, 1600, 1400), QPointF(300, 270));
+  fixture.show(QSize(1400, 1100), QPointF(300, 270));
   const auto id = idFor(model,"card");
   const auto initial = model.layout(id).size;
   const auto handle = QPointF(initial.width()-5,initial.height()-5);
-  sceneMouse(fixture, QEvent::GraphicsSceneMousePress,handle);
-  sceneMouse(fixture, QEvent::GraphicsSceneMouseMove,handle+QPointF(1000,100));
+  sceneMouse(fixture, QEvent::MouseButtonPress,handle);
+  sceneMouse(fixture, QEvent::MouseMove,handle+QPointF(1000,100));
   QCOMPARE(model.layout(id).size.width(),800);
   QCOMPARE(model.layout(id).size.height(),initial.height()+100);
-  sceneMouse(fixture, QEvent::GraphicsSceneMouseMove,handle-QPointF(1000,1000));
+  sceneMouse(fixture, QEvent::MouseMove,handle-QPointF(1000,1000));
   QCOMPARE(model.layout(id).size,QSize(150,initial.height()));
   escape(fixture);
   QCOMPARE(model.layout(id).size,initial);
@@ -202,22 +179,22 @@ void GroupPresentationTest::resizeCancelAndReadOnly() {
   WorkflowGraphModel model;
   test::OverlayCanvasFixture fixture(model);
   model.project(gestureFixture());
-  fixture.show(QSize(1400, 1100), QRectF(-600, -500, 1600, 1400), QPointF(300, 270));
+  fixture.show(QSize(1400, 1100), QPointF(300, 270));
   const auto child = idFor(model,"child");
   int commits = 0;
   model.commit = [&](const QJsonObject &) { ++commits; return true; };
   QCOMPARE(fixture.surface().nodeOrigin(child),QPointF(140,250));
-  sceneMouse(fixture, QEvent::GraphicsSceneMousePress,QPointF(235,325));
+  sceneMouse(fixture, QEvent::MouseButtonPress,QPointF(235,325));
   QVERIFY(fixture.surface().selection().contains(child));
-  sceneMouse(fixture, QEvent::GraphicsSceneMouseMove,QPointF(145,255));
+  sceneMouse(fixture, QEvent::MouseMove,QPointF(145,255));
   QCOMPARE(model.layout(child).size,QSize(30,40));
   escape(fixture);
   QCOMPARE(model.layout(child).size,QSize(100,80));
   QCOMPARE(commits,0);
   model.project(gestureFixture(),{},true);
-  sceneMouse(fixture, QEvent::GraphicsSceneMousePress,QPointF(235,325));
-  sceneMouse(fixture, QEvent::GraphicsSceneMouseMove,QPointF(335,425));
-  sceneMouse(fixture, QEvent::GraphicsSceneMouseRelease,QPointF(335,425));
+  sceneMouse(fixture, QEvent::MouseButtonPress,QPointF(235,325));
+  sceneMouse(fixture, QEvent::MouseMove,QPointF(335,425));
+  sceneMouse(fixture, QEvent::MouseButtonRelease,QPointF(335,425));
   QCOMPARE(model.layout(child).size,QSize(100,80));
   QCOMPARE(commits,0);
 }

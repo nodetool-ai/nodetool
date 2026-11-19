@@ -37,7 +37,7 @@
 #include "graph/WorkflowGraphModel.h"
 #include "canvas/CanvasInteraction.h"
 #include "canvas/EditorSceneApi.h"
-#include "ui/CanvasSurface.h"
+#include "ui/QuickCanvas.h"
 #include "server/WorkflowSession.h"
 #include "run/BugReport.h"
 #include "run/RunOutputModel.h"
@@ -70,11 +70,8 @@ class QBoxLayout;
 class QStackedWidget;
 namespace nodetool {
 class CanvasOverlay;
-class CanvasSurface;
 struct EntryMenuRequest;
 namespace node_editor { class LineageLayer; }
-class EditorScene;
-class EditorSceneApi;
 class InlinePropertyPresenter;
 class InlineTitlePresenter;
 class CanvasMediaPresenter;
@@ -321,21 +318,13 @@ public:
     void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;
   int zoomPercent() const;
-    CanvasSurface &canvas() const;
-    // The scene of either canvas. qtNodesScene() is null on the Quick canvas.
+    QuickCanvas &canvas() const;
     EditorSceneApi *scene() const {
         if (activeEditor() != this) {
             return activeEditor()->scene();
         }
         ensureProjected();
         return canvas_ ? &canvas_->scene() : nullptr;
-    }
-    EditorScene *qtNodesScene() const {
-        if (activeEditor() != this) {
-            return activeEditor()->qtNodesScene();
-        }
-        ensureProjected();
-        return scene_.get();
     }
   void authoredAction(const QString &id, const QString &command, quint64 epoch, quint64 credentials);
   Q_INVOKABLE void showToolTip(const QString &text);
@@ -603,8 +592,7 @@ private:
   QStringList selectedIds() const override;
   QList<bool> selectedRunnableStates() const;
   bool singleRunnableCardSelected() const;
-  std::unique_ptr<CanvasOverlay> canvasOverlay(const QString &file, const QVariantMap &properties, qreal z,
-                                               bool sizeToView = false, QWidget *legacyParent = nullptr);
+  std::unique_ptr<CanvasOverlay> canvasOverlay(const QString &file, const QVariantMap &properties, qreal z);
   QQuickWidget *panel(const QString &file, const QVariantMap &properties = {});
   void syncNodeCatalog();
   void syncNodeInspector();
@@ -932,8 +920,7 @@ private:
   CompatibleNodePicker *compatiblePicker_ = nullptr;
   std::unique_ptr<CanvasOverlay> viewportOverlay_;
   std::unique_ptr<CanvasOverlay> miniMapControls_;
-  QPointer<QQuickWidget> miniMapPopup_;
-  std::unique_ptr<CanvasOverlay> quickMiniMapPopup_;
+  std::unique_ptr<CanvasOverlay> miniMapPopup_;
   QString miniMapColorMode_ = "default";
   bool inspectorDismissed_ = false;
   bool catalogAutoHidden_ = false;
@@ -969,8 +956,7 @@ private:
     node_editor::DocumentPickerController documentPicker_;
   QDockWidget *outputDock_ = nullptr;
   WorkflowGraphModel model_;
-  std::unique_ptr<EditorScene> scene_;
-  std::unique_ptr<CanvasSurface> canvas_;
+  std::unique_ptr<QuickCanvas> canvas_;
   QJsonArray metadata_;
   // Code snippets keyed by their menu node type, read from the generated
   // resource on the first catalog (scripts/generate-code-snippets.mjs).
@@ -991,7 +977,6 @@ private:
   void disableFit() override { fitActive_ = false; }
   bool canvasKeysBlocked() const override;
   void scheduleViewportRelease(quint64 epoch) override;
-  void clearBaseUndo() override;
   void invalidateGesture();
   bool rubberBandSelectionPending_ = false;
   QTimer *runPanelTimer_ = nullptr;

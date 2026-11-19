@@ -1,7 +1,7 @@
 #include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/CompatibleNodePicker.h"
 #include "graph/CompatibleNodePlacement.h"
 #include "../graph/CompatiblePickerFixture.h"
@@ -12,8 +12,7 @@
 #include <QSignalSpy>
 #include <QWindow>
 #include <QWheelEvent>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace QtNodes;

@@ -12,12 +12,11 @@
 // "software" (the default) or "rhi". The check fails when Qt picked another
 // one, because Qt falls back to software without a message.
 // NODETOOL_COMPOSITION_CAPTURE_DIR saves both captures of every case.
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "run/RunOutputModel.h"
 #include "ui/CanvasCapture.h"
 #include "ui/EditorWindow.h"
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QDir>
 #include <QFile>
 #include <QMediaPlayer>
@@ -160,28 +159,25 @@ private slots:
     QVERIFY(media_);
     const auto covered = cardRect(*window_, CoverNode).intersected(media_->inWindow(*window_));
     compare("media-under-card", covered);
-    if (dynamic_cast<QuickCanvas *>(&window_->canvas())) {
-      auto &quick = static_cast<QuickCanvas &>(window_->canvas());
-      auto &graph = quick.graphCanvas();
-      const auto sample = [&](QPoint point) {
-        const auto image = quick.quickWidget().grabFramebuffer();
-        const auto viewportPoint = quick.viewportWidget().mapFrom(window_.get(), point);
-        return image.pixelColor((QPointF(viewportPoint) * image.devicePixelRatio()).toPoint());
-      };
-      const auto point = covered.center();
-      const auto withMedia = sample(point);
-      media_->rootObject()->setVisible(false);
-      QCOMPARE(sample(point), withMedia);
-      media_->rootObject()->setVisible(true);
-
-      // Reversing the stack exposes the playing video at that same pixel.
-      auto *cover = graph.scene().nodeItem(nodeId(*window_, CoverNode));
-      const auto z = cover->z();
-      cover->setZ(-1);
-      const auto exposed = sample(point);
-      cover->setZ(z);
-      QVERIFY(exposed != withMedia);
-    }
+    auto &quick = window_->canvas();
+    auto &graph = quick.graphCanvas();
+    const auto sample = [&](QPoint point) {
+      const auto image = quick.quickWidget().grabFramebuffer();
+      const auto viewportPoint = quick.viewportWidget().mapFrom(window_.get(), point);
+      return image.pixelColor((QPointF(viewportPoint) * image.devicePixelRatio()).toPoint());
+    };
+    const auto point = covered.center();
+    const auto withMedia = sample(point);
+    media_->rootObject()->setVisible(false);
+    QCOMPARE(sample(point), withMedia);
+    media_->rootObject()->setVisible(true);
+    // Reversing the stack exposes the playing video at that same pixel.
+    auto *cover = graph.scene().nodeItem(nodeId(*window_, CoverNode));
+    const auto z = cover->z();
+    cover->setZ(-1);
+    const auto exposed = sample(point);
+    cover->setZ(z);
+    QVERIFY(exposed != withMedia);
   }
   // The chat window floats over the canvas, so it hides the preview below it.
   void mediaUnderChat() {

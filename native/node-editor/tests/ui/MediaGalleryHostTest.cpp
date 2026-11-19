@@ -1,9 +1,8 @@
 #include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
 #include "media/VideoFrameView.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QApplication>
 #include <QBuffer>
 #include <QDataStream>

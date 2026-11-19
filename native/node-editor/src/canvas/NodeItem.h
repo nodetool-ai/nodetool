@@ -9,7 +9,7 @@
 
 #include "canvas/CanvasItem.h"
 #include "canvas/CanvasState.h"
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 
 namespace nodetool::canvas {
 class ConnectionItem;

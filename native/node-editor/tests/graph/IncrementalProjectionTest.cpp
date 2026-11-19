@@ -1,13 +1,11 @@
 #include "../support/OverlayCanvasFixture.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/InlineTitlePresenter.h"
 #include "graph/WorkflowGraphModel.h"
 #include "document/WorkflowDocument.h"
 #include <QJsonDocument>
 #include <QPointer>
 #include <QSignalSpy>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace nodetool::node_editor;
@@ -46,20 +44,14 @@ NodeId idFor(const WorkflowGraphModel &model, const QString &resource) {
   return InvalidNodeId;
 }
 QObject *itemFor(test::OverlayCanvasFixture &host, NodeId id) {
-  if (auto *quick = host.quick()) { return quick->canvasScene().nodeItem(id); }
-  return test::graphicsNode(*host.legacyScene(), id);
+  return host.surface().canvasScene().nodeItem(id);
 }
 double stackZ(test::OverlayCanvasFixture &host, NodeId id) {
-  if (auto *quick = host.quick()) { return quick->canvasScene().nodeItem(id)->z(); }
-  return test::graphicsNode(*host.legacyScene(), id)->zValue();
+  return host.surface().canvasScene().nodeItem(id)->z();
 }
 std::optional<std::pair<QPointF, QPointF>> wireEnds(test::OverlayCanvasFixture &host, const ConnectionId &id) {
-  if (auto *quick = host.quick()) {
-    if (const auto *wire = quick->canvasScene().connectionItem(id)) {
-      return std::pair{wire->endPoint(PortType::Out), wire->endPoint(PortType::In)};
-    }
-  } else if (const auto *wire = host.legacyScene()->connectionGraphicsObject(id)) {
-    return std::pair{wire->mapToScene(wire->endPoint(PortType::Out)), wire->mapToScene(wire->endPoint(PortType::In))};
+  if (const auto *wire = host.surface().canvasScene().connectionItem(id)) {
+    return std::pair{wire->endPoint(PortType::Out), wire->endPoint(PortType::In)};
   }
   return std::nullopt;
 }
@@ -67,7 +59,7 @@ struct Fixture {
   WorkflowDocument document;
   WorkflowGraphModel model;
   test::OverlayCanvasFixture host{model};
-  CanvasSurface &canvas = host.surface();
+  QuickCanvas &canvas = host.surface();
   Fixture() {
     document.setNodeMetadata(catalog());
     if (!document.load(workflow())) { qFatal("fixture workflow does not load"); }
@@ -247,15 +239,9 @@ void IncrementalProjectionTest::notesFollowIncrementalProjection() {
   QVERIFY(f.apply({{"op", "setNodeField"}, {"id", "b"}, {"field", "ui_properties"},
       {"value", QJsonObject{{"position", QJsonObject{{"x", 400}, {"y", 0}}}, {"title", "Below the card"}}}}));
   const auto note = [&f] {
-    if (auto *quick = f.host.quick()) {
-      const auto *card = quick->canvasScene().nodeItem(idFor(f.model, "b"));
-      for (auto *child : card->childItems()) {
-        if (child->objectName() == "node-note-b") { return true; }
-      }
-      return false;
-    }
-    for (auto *child : test::graphicsNode(*f.host.legacyScene(), idFor(f.model, "b"))->childItems()) {
-      if (auto *object = dynamic_cast<QGraphicsObject *>(child); object && object->objectName() == "node-note-b") { return true; }
+    const auto *card = f.canvas.canvasScene().nodeItem(idFor(f.model, "b"));
+    for (auto *child : card->childItems()) {
+      if (child->objectName() == "node-note-b") { return true; }
     }
     return false;
   };

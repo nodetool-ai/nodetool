@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graph/DragWiggle.h"
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 #include <QElapsedTimer>
 #include <QHash>
 #include <QImage>
@@ -120,7 +120,6 @@ public:
   virtual void action(const QString &name) = 0;
   virtual QJsonArray dragGroupCommands(const QJsonObject &positions, QtNodes::NodeId group, bool detach) = 0;
   virtual void scheduleViewportRelease(quint64 epoch) = 0;
-  virtual void clearBaseUndo() = 0;
 };
 
 enum class CanvasDropKind { NodeType, Example };

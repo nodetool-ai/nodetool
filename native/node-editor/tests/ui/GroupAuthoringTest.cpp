@@ -1,7 +1,7 @@
 #include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QPainter>
 #include <QContextMenuEvent>
@@ -20,7 +20,6 @@
 #include <QWebSocketServer>
 #include <QWebSocket>
 #include "server/MsgPack.h"
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 class GroupAuthoringTest final : public QObject {

@@ -1,6 +1,6 @@
 #include "../support/MiniMapProbe.h"
 #include "ui/CanvasSurface.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include "PropertyFixture.h"
@@ -15,7 +15,6 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QVariantAnimation>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 #include <cmath>
 using namespace nodetool;

@@ -4,7 +4,7 @@
 #include "graph/CanvasDropController.h"
 #include "graph/CardBodies.h"
 #include "graph/CompositorGeometry.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/SynthModules.h"
 #include "graph/WorkflowGraphModel.h"
@@ -31,8 +31,6 @@
 #include <QTemporaryDir>
 #include <QUndoStack>
 #include <QUrlQuery>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
 #include <QtTest>
 #include <cmath>
 #include <utility>
@@ -696,12 +694,10 @@ private slots:
         test::OverlayCanvasFixture canvas(model);
         model.project(workflow, fixture()["metadata"].toArray());
         const auto wireVisible = [&](const QtNodes::ConnectionId &id) {
-            if (auto *quick = canvas.quick()) { return quick->canvasScene().connectionItem(id)->shown(); }
-            return canvas.legacyScene()->connectionGraphicsObject(id)->isVisible();
+            return canvas.surface().canvasScene().connectionItem(id)->shown();
         };
         const auto wireShape = [&](const QtNodes::ConnectionId &id) {
-            if (auto *quick = canvas.quick()) { return quick->canvasScene().connectionItem(id)->hitPath(); }
-            return canvas.legacyScene()->connectionGraphicsObject(id)->shape();
+            return canvas.surface().canvasScene().connectionItem(id)->hitPath();
         };
         int inspected = 0;
         for (const auto node : model.allNodeIds()) {
@@ -1054,25 +1050,23 @@ private slots:
         overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY((field = find(overlay->rootObject(), QStringLiteral("inline-multiline"))) != nullptr);
-        if (dynamic_cast<QuickCanvas *>(host.view)) {
-            auto *expand = find(overlay->rootObject(), QStringLiteral("inline-expand"));
-            QVERIFY(expand);
-            const auto clickExpand = [&] {
-                QTest::mouseClick(overlay->inputWidget(), Qt::LeftButton, Qt::NoModifier,
-                                  expand->mapToScene(QPointF(expand->width() / 2, expand->height() / 2)).toPoint());
-            };
-            clickExpand();
-            QTRY_COMPARE(expand->property("text").toString(), QStringLiteral("Collapse"));
-            const auto chipCenter = host.row("prompt", NodeRowKind::Action, "insertVariable")->rect.center();
-            const auto inputPoint = host.point("prompt", chipCenter);
-            QVERIFY(field->contains(field->mapFromScene(inputPoint)));
-            field->setProperty("cursorPosition", 0);
-            host.click("prompt", chipCenter);
-            QCOMPARE(field->property("text").toString(), before);
-            QVERIFY(field->property("cursorPosition").toInt() > 0);
-            clickExpand();
-            QTRY_COMPARE(expand->property("text").toString(), QStringLiteral("Expand"));
-        }
+        auto *expand = find(overlay->rootObject(), QStringLiteral("inline-expand"));
+        QVERIFY(expand);
+        const auto clickExpand = [&] {
+            QTest::mouseClick(overlay->inputWidget(), Qt::LeftButton, Qt::NoModifier,
+                              expand->mapToScene(QPointF(expand->width() / 2, expand->height() / 2)).toPoint());
+        };
+        clickExpand();
+        QTRY_COMPARE(expand->property("text").toString(), QStringLiteral("Collapse"));
+        const auto chipCenter = host.row("prompt", NodeRowKind::Action, "insertVariable")->rect.center();
+        const auto inputPoint = host.point("prompt", chipCenter);
+        QVERIFY(field->contains(field->mapFromScene(inputPoint)));
+        field->setProperty("cursorPosition", 0);
+        host.click("prompt", chipCenter);
+        QCOMPARE(field->property("text").toString(), before);
+        QVERIFY(field->property("cursorPosition").toInt() > 0);
+        clickExpand();
+        QTRY_COMPARE(expand->property("text").toString(), QStringLiteral("Expand"));
         field->setProperty("cursorPosition", 6);
         host.click("prompt", host.row("prompt", NodeRowKind::Action, "insertVariable")->rect.center());
         QTest::mouseClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewportWidget().height() - 20));

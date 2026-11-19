@@ -1,7 +1,7 @@
 #include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
 #include "../graph/BodyConnectionFixture.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "EntryMenuSupport.h"
 #include <QMenu>
 #include <QMenuBar>
@@ -19,7 +19,6 @@
 #include <QQuickItem>
 #include <QFile>
 #include <QRegularExpression>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 using namespace nodetool;
 class MenusTest final : public QObject {
     Q_OBJECT

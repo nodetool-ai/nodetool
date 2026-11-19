@@ -6,10 +6,11 @@
 #include "canvas/ConnectionItem.h"
 
 #include "canvas/CanvasScene.h"
+#include "graph/NodeLayout.h"
 #include "canvas/NodeItem.h"
-#include <QtNodes/AbstractGraphModel>
-#include <QtNodes/ConnectionIdUtils>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
+#include <qtnodes/AbstractGraphModel.hpp>
+#include <qtnodes/ConnectionIdUtils.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QPainter>
 #include <algorithm>
 #include <cmath>
@@ -57,7 +58,7 @@ QRectF ConnectionItem::boundingRect() const {
   const QRectF c1c2Rect = QRectF(points.first, points.second).normalized();
   QRectF commonRect = basicRect.united(c1c2Rect);
   auto *scene = canvasScene();
-  const double diam = scene ? scene->connectionMargin() : 0;
+  const double diam = scene ? node_metrics::wireBoundsMargin : 0;
   const QPointF cornerOffset(diam, diam);
   // Expand rect by port circle diameter.
   commonRect.setTopLeft(commonRect.topLeft() - cornerOffset);

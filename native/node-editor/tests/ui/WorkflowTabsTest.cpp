@@ -1,7 +1,7 @@
 #include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
 #include "EntryMenuSupport.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "server/MsgPack.h"
 #include "FakeRunServer.h"
 #include <QWebSocketServer>
@@ -24,7 +24,6 @@
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTimer>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 class WorkflowTabsTest final : public QObject {

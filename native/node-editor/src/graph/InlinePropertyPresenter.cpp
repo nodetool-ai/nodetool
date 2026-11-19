@@ -7,10 +7,8 @@
 #include "interfaces/PropertyHost.h"
 #include <QEvent>
 #include <QApplication>
-#include "ui/CanvasSurface.h"
 #include <QKeyEvent>
 #include <QMouseEvent>
-#include <QQuickWidget>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QQmlEngine>
@@ -19,22 +17,8 @@
 #include <cmath>
 #include <utility>
 namespace nodetool {
-namespace {
-// Unhandled Quick keys must not bubble into the graph's editing shortcuts.
-class InlineEditorWidget final : public QQuickWidget {
-public:
-  InlineEditorWidget(QQmlEngine *engine, QWidget *parent) : QQuickWidget(engine, parent) {}
-protected:
-  bool event(QEvent *event) override {
-    if (event->type() == QEvent::ShortcutOverride) { event->accept(); return true; }
-    return QQuickWidget::event(event);
-  }
-  void keyPressEvent(QKeyEvent *event) override { QQuickWidget::keyPressEvent(event); event->accept(); }
-  void keyReleaseEvent(QKeyEvent *event) override { QQuickWidget::keyReleaseEvent(event); event->accept(); }
-};
-}
 InlinePropertyPresenter::InlinePropertyPresenter(WorkflowGraphModel &model,
-    EditorSceneApi &scene, CanvasSurface &canvas, QQmlEngine *engine, node_editor::PropertyHost &host, QObject *parent)
+    EditorSceneApi &scene, QuickCanvas &canvas, QQmlEngine *engine, node_editor::PropertyHost &host, QObject *parent)
     : QObject(parent), model_(model), canvas_(canvas), engine_(engine), host_(host) {
   connect(&scene.interaction(), &canvas::CanvasInteraction::inlineEditRequested, this, &InlinePropertyPresenter::activate);
   connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] {
@@ -61,13 +45,8 @@ InlinePropertyPresenter::~InlinePropertyPresenter() {
   qApp->removeEventFilter(this);
   ++generation_;
   descriptor_.clear();
-  // The viewport owns the legacy editor widget.
-  if (widget_ && widget_->widget()) { widget_->widget()->deleteLater(); }
   widget_.reset();
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  for (const auto &retired : retiredWidgets_) { delete retired.data(); }
 }
-QQuickWidget *InlinePropertyPresenter::editorWidget() const { return widget_ ? widget_->widget() : nullptr; }
 bool InlinePropertyPresenter::current() const {
   if (!active() || model_.readOnly() || !model_.nodeExists(node_)) { return false; }
   return canvas_.selection().contains(node_) && canvas_.selection().count() == 1 && model_.inlineDescriptor(node_, name_) == descriptor_;
@@ -98,22 +77,12 @@ void InlinePropertyPresenter::activate(QtNodes::NodeId id, const QString &name) 
   const QUrl source("qrc:/qt/qml/NodeTool/NodeEditor/InlinePropertyEditor.qml");
   const QVariantMap properties{{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_}, {"host", QVariant::fromValue(&host_)}};
   widget_ = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, properties, 10, id, CanvasOverlay::Placement::AboveCards);
-  if (!widget_) {
-    auto *widget = new InlineEditorWidget(engine_, &canvas_.viewportWidget());
-    widget->setClearColor(Qt::transparent);
-    widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    widget->setAttribute(Qt::WA_AlwaysStackOnTop);
-    widget->setInitialProperties(properties);
-    widget->setSource(source);
-    widget_ = std::make_unique<CanvasOverlay>(*widget);
-  }
   if (!widget_->rootObject()) { cancel(); return; }
   widget_->setObjectName("inline-property-overlay");
   reposition();
   if (!widget_) { return; }
   widget_->show();
-  widget_->raiseLegacyWidget();
-  if (!widget_->widget()) { canvas_.setFocus(Qt::MouseFocusReason); }
+  canvas_.setFocus(Qt::MouseFocusReason);
   widget_->setFocus(Qt::MouseFocusReason);
   emit changed();
   const auto token = generation_;
@@ -141,15 +110,8 @@ void InlinePropertyPresenter::cancel() {
     auto old = std::move(widget_);
     old->hide();
     old->setEnabled(false);
-    if (auto *legacy = old->widget()) {
-      retiredWidgets_.removeIf([](const auto &entry) { return entry.isNull(); });
-      retiredWidgets_.append(legacy);
-      legacy->deleteLater();
-    } else {
-      // QML can cancel from inside its own key handler.
-      auto *root = old->rootObject();
-      if (root) { old->retireQuickRoot(retiredQuickRoots_); }
-    }
+    // QML can cancel from inside its own key handler.
+    old->retireQuickRoot(retiredQuickRoots_);
   }
   emit changed();
 }
@@ -231,18 +193,11 @@ void InlinePropertyPresenter::expand() {
 void InlinePropertyPresenter::popupRect(const QRectF &rect) {
   const bool wasOpen = popupOpen();
   popupRect_ = rect;
-  updateMask();
+  updateInputRect();
   if (wasOpen != popupOpen()) { emit popupChanged(); }
 }
-void InlinePropertyPresenter::updateMask() {
-  auto *legacy = widget_ ? widget_->widget() : nullptr;
-  if (!legacy) {
-    if (widget_) { widget_->setInputRect(editorRect_); }
-    return;
-  }
-  auto region = QRegion(editorRect_.adjusted(-2, -2, 2, 2).toAlignedRect());
-  if (!popupRect_.isEmpty()) { region += QRegion(popupRect_.adjusted(-2,-2,2,2).toAlignedRect()); }
-  legacy->setMask(region.intersected(QRegion(canvas_.viewportWidget().rect())));
+void InlinePropertyPresenter::updateInputRect() {
+  if (widget_) { widget_->setInputRect(editorRect_); }
 }
 void InlinePropertyPresenter::reposition() {
   if (holding_ || projectingResource_) { return; }
@@ -266,8 +221,7 @@ void InlinePropertyPresenter::reposition() {
   editorRect_ = transform.mapRect(sceneRect);
   widget_->setGeometry(canvas_.viewportWidget().rect());
   if (!canvas_.viewportWidget().rect().intersects(editorRect_.toAlignedRect())) { cancel(); return; }
-  updateMask();
-  widget_->raiseLegacyWidget();
+  updateInputRect();
   emit geometryChanged();
 }
 bool InlinePropertyPresenter::insertPromptVariableAt(QPointF viewportPoint) {
@@ -299,10 +253,9 @@ bool InlinePropertyPresenter::insertPromptVariableAt(QPointF viewportPoint) {
 
 bool InlinePropertyPresenter::eventFilter(QObject *object, QEvent *event) {
   if (active() && widget_ && event->type() == QEvent::ShortcutOverride) {
-    const auto *legacy = widget_->widget();
-    bool inside = legacy ? object == legacy || object == legacy->quickWindow() : widget_->ownsFocus(object);
+    bool inside = widget_->ownsFocus(object);
     for (auto target = object; target && !inside; target = target->parent()) {
-      inside = target == legacy || target == widget_->rootObject();
+      inside = target == widget_->rootObject();
     }
     if (inside) { event->accept(); return true; }
   }
@@ -313,9 +266,8 @@ bool InlinePropertyPresenter::eventFilter(QObject *object, QEvent *event) {
     }
     if (event->type() == QEvent::MouseButtonPress) {
       const auto *mouse = static_cast<QMouseEvent *>(event);
-      const bool shared = widget_ && !widget_->widget();
       const auto point = canvas_.viewportWidget().mapFromGlobal(mouse->globalPosition().toPoint());
-      if (shared && (editorRect_.contains(point) || popupRect_.contains(point))) { return false; }
+      if (widget_ && (editorRect_.contains(point) || popupRect_.contains(point))) { return false; }
       if (mouse->button() == Qt::LeftButton && insertPromptVariableAt(point)) {
         event->accept();
         return true;

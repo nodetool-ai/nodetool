@@ -9,27 +9,23 @@
 #include <QSet>
 #include <QRegion>
 #include <QVector>
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 class QQmlEngine;
-class QQuickWidget;
 class QQuickItem;
 class QQuickWindow;
 namespace nodetool {
-class CanvasSurface;
+class QuickCanvas;
 class CanvasOverlay;
 namespace node_editor { class MediaResolver; }
 class WorkflowGraphModel;
-class EditorSceneApi;
-// Interactive media lives in viewport Quick widgets, never graphics proxies.
+// UI thread only. Places media items on canvas cards.
 // The resolver is borrowed: its owner, EditorWindow, outlives this presenter.
 class CanvasMediaPresenter final : public QObject {
   Q_OBJECT
 public:
-  CanvasMediaPresenter(WorkflowGraphModel &model, EditorSceneApi &scene,
-                       CanvasSurface &canvas, QQmlEngine *engine,
+  CanvasMediaPresenter(WorkflowGraphModel &model, QuickCanvas &canvas, QQmlEngine *engine,
                        node_editor::MediaResolver &resolver, QObject *parent = nullptr);
   ~CanvasMediaPresenter() override;
-  QList<QQuickWidget *> activeWidgets() const;
   QList<QQuickItem *> activeItems() const;
   bool canViewImage(const QString &nodeId) const;
   // The output name of the node's current image result, empty when it has none (web OutputQuickActionButtons).
@@ -50,7 +46,7 @@ private slots:
 private:
   struct Entry { CanvasOverlay *widget; QVariantMap source; };
   WorkflowGraphModel &model_;
-  CanvasSurface &canvas_;
+  QuickCanvas &canvas_;
   QPointer<QQmlEngine> engine_;
   node_editor::MediaResolver &resolver_;
   QHash<QString, QVariantMap> sources_;
@@ -70,9 +66,8 @@ private:
   bool allPlayerNodesDirty_ = true;
   void updatePlayerNodes();
   void showPlayers(QtNodes::NodeId node, const QRect &viewport, const QTransform &transform, double zoom,
-                   const QRegion &covered, QSet<QString> &visible, QList<QQuickWidget *> &stacking);
+                   const QRegion &covered, QSet<QString> &visible);
   void retirePlayer(const QString &key);
-  QVector<QPointer<QQuickWidget>> retired_;
   QPointer<QQuickWindow> imageViewer_;
   QString imageViewerNode_;
   QVariantMap imageViewerSource_;
@@ -84,7 +79,7 @@ private:
   void closeImageViewer();
   void applySources(const QHash<QString, QVariantMap> &sources);
   void retire(const QString &id);
-  void releaseWidgets();
+  void releaseOverlays();
   QObject retiredQuickRoots_;
 };
 }

@@ -1,6 +1,6 @@
 #include "../support/OverlayCanvasFixture.h"
 #include "graph/InlinePropertyPresenter.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "document/WorkflowDocument.h"
 #include "properties/ResourcePickerController.h"
@@ -15,7 +15,6 @@
 #include <QShortcut>
 #include <QScrollBar>
 #include <QSignalSpy>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace QtNodes;
@@ -45,7 +44,7 @@ struct Fixture {
   node_editor::WorkflowDocument document;
   WorkflowGraphModel model;
   test::OverlayCanvasFixture surface{model};
-  CanvasSurface &canvas = surface.surface();
+  QuickCanvas &canvas = surface.surface();
   EditorSceneApi &scene = canvas.scene();
   QQmlEngine engine;
   node_editor::PropertyHost host;
@@ -57,7 +56,7 @@ struct Fixture {
     Q_ASSERT(loaded.ok);
     model.project(document.snapshot(),cat);
     id = node("node");
-    surface.show({900, 700}, {0, 0, 1000, 900}, {450, 350});
+    surface.show({900, 700}, {450, 350});
     canvas.selection().setNode(id, true);
     presenter.commitProperty = [this](const QString &node,const QString &name,const QVariant &value) {
       const auto result = document.applyCommand({{"op","setProperty"},{"id",node},{"name",name},{"value",QJsonValue::fromVariant(value)}});

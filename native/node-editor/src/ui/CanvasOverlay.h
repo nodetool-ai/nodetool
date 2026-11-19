@@ -18,8 +18,7 @@
 
 namespace nodetool {
 
-// UI thread only. Owns the Quick root. The legacy widget is owned by its
-// widget parent. Both hosts use the same QML and viewport geometry.
+// UI thread only. Owns the QML root and places it on a card or in the viewport.
 class CanvasOverlay {
   // UI thread only. The QML root owns this fallback item. Controls get the
   // event first, then the frame absorbs it before it reaches the canvas.
@@ -67,7 +66,6 @@ class CanvasOverlay {
 
 public:
   enum class Placement { OnCard, AboveCards };
-  explicit CanvasOverlay(QQuickWidget &widget) : widget_(&widget) {}
   CanvasOverlay(QQmlEngine &engine, canvas::GraphCanvas &graph, const QUrl &source,
                 const QVariantMap &properties, qreal z, QtNodes::NodeId node, Placement placement) : graph_(&graph) {
     auto *card = node == QtNodes::InvalidNodeId ? nullptr : graph.scene().nodeItem(node);
@@ -128,36 +126,30 @@ public:
     if (graph_ && cardOverlay_) { graph_->setCardOverlayVisible(*cardOverlay_, false); }
   }
 
-  static std::unique_ptr<CanvasOverlay> onQuickCanvas(CanvasSurface &surface, QQmlEngine &engine,
+  static std::unique_ptr<CanvasOverlay> onQuickCanvas(QuickCanvas &surface, QQmlEngine &engine,
       const QUrl &source, const QVariantMap &properties, qreal z, QtNodes::NodeId node = QtNodes::InvalidNodeId,
       Placement placement = Placement::OnCard) {
-    auto *quick = dynamic_cast<QuickCanvas *>(&surface);
-    if (!quick) { return {}; }
-    return std::make_unique<CanvasOverlay>(engine, quick->graphCanvas(), source, properties, z, node, placement);
+    return std::make_unique<CanvasOverlay>(engine, surface.graphCanvas(), source, properties, z, node, placement);
   }
 
-  QQuickItem *rootObject() const { return widget_ ? widget_->rootObject() : root_.data(); }
-  QQuickWidget *widget() const { return widget_; }
+  QQuickItem *rootObject() const { return root_.data(); }
   void setInputRect(const QRectF &rect) {
     if (inputBarrier_ && root_) { inputBarrier_->setRect(rect, *root_); }
   }
   void setCardInteractiveArea(const QRegion &area) {
     if (cardOverlay_) { cardOverlay_->setInteractiveArea(area); }
-    // Unhandled media scrolling zooms the canvas, as on the widget path.
+    // A wheel event the player leaves unhandled reaches the canvas.
     if (inputBarrier_) { inputBarrier_->passUnhandledWheelThrough(); }
   }
   void setObjectName(const QString &name) {
-    if (widget_) { widget_->setObjectName(name); }
-    else if (root_) { root_->setObjectName(name); }
+    if (root_) { root_->setObjectName(name); }
   }
   QSize sizeHint() const {
-    if (widget_) { return widget_->sizeHint(); }
     if (!root_) { return {}; }
     return QSizeF(root_->implicitWidth() > 0 ? root_->implicitWidth() : root_->width(),
                   root_->implicitHeight() > 0 ? root_->implicitHeight() : root_->height()).toSize();
   }
   QRect geometry() const {
-    if (widget_) { return widget_->geometry(); }
     return root_ ? QRectF(root_->position(), root_->size()).toRect() : QRect{};
   }
   QPoint pos() const { return geometry().topLeft(); }
@@ -165,21 +157,18 @@ public:
   int width() const { return geometry().width(); }
   void setGeometry(QRect rect) {
     if (cardOverlay_ && graph_) { cardOverlay_->alignToViewport(*graph_); }
-    if (widget_) { widget_->setGeometry(rect); }
-    else if (root_ && geometry() != rect) {
+    if (root_ && geometry() != rect) {
       root_->setPosition(rect.topLeft());
       root_->setSize(rect.size());
     }
   }
   void setGeometry(int x, int y, int w, int h) { setGeometry(QRect(x, y, w, h)); }
   void move(QPoint position) {
-    if (widget_) { widget_->move(position); }
-    else if (root_) { root_->setPosition(position); }
+    if (root_) { root_->setPosition(position); }
   }
   void move(int x, int y) { move(QPoint(x, y)); }
   void setVisible(bool visible) {
-    if (widget_) { widget_->setVisible(visible); }
-    else if (root_) {
+    if (root_) {
       root_->setVisible(visible);
       if (cardOverlay_) {
         cardOverlay_->setVisible(visible);
@@ -187,13 +176,11 @@ public:
       }
     }
   }
-  bool isVisible() const { return widget_ ? widget_->isVisible() : root_ && root_->isVisible(); }
+  bool isVisible() const { return root_ && root_->isVisible(); }
   void setEnabled(bool enabled) {
-    if (widget_) { widget_->setEnabled(enabled); }
-    else if (root_) { root_->setEnabled(enabled); }
+    if (root_) { root_->setEnabled(enabled); }
   }
   bool containsGlobal(QPointF point) const {
-    if (widget_) { return widget_->rect().contains(widget_->mapFromGlobal(point).toPoint()); }
     return root_ && root_->contains(root_->mapFromGlobal(point));
   }
   bool ownsFocus(QObject *receiver) const {
@@ -208,24 +195,20 @@ public:
     return false;
   }
   bool underMouse() const { return containsGlobal(QCursor::pos()); }
-  QString objectName() const { return widget_ ? widget_->objectName() : root_ ? root_->objectName() : QString{}; }
+  QString objectName() const { return root_ ? root_->objectName() : QString{}; }
   void show() { setVisible(true); }
   void hide() { setVisible(false); }
-  void raiseLegacyWidget() { if (widget_) { widget_->raise(); } }
   void setFocus(Qt::FocusReason reason) {
-    if (widget_) { widget_->setFocus(reason); }
-    else if (root_) {
+    if (root_) {
       if (graph_) { graph_->forceActiveFocus(reason); }
       root_->forceActiveFocus(reason);
     }
   }
   QPoint mapToGlobal(QPoint point) const {
-    if (widget_) { return widget_->mapToGlobal(point); }
     return root_ ? root_->mapToGlobal(point).toPoint() : point;
   }
 
 private:
-  QPointer<QQuickWidget> widget_;
   QPointer<canvas::GraphCanvas> graph_;
   QQuickItem viewportHost_;
   std::unique_ptr<canvas::CardOverlay> cardOverlay_;

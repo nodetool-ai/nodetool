@@ -1,5 +1,5 @@
 #include "../support/CanvasProbe.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "canvas/ConnectionItem.h"
 #include "canvas/GraphCanvas.h"
 #include "ui/QuickCanvas.h"
@@ -20,9 +20,7 @@
 #include <QQuickWindow>
 #include <QSaveFile>
 #include <QTest>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <stdexcept>
 
 namespace {
@@ -189,13 +187,8 @@ int main(int argc, char **argv) {
         auto rect = bounds.toAlignedRect();
         QImage image(rect.size(), QImage::Format_ARGB32_Premultiplied); image.fill(Qt::transparent);
         QPainter painter(&image); painter.setRenderHint(QPainter::Antialiasing);
-        if (auto *qtNodes = editor.qtNodesScene()) {
-          qtNodes->render(&painter, QRectF(QPointF(0, 0), rect.size()), rect, Qt::IgnoreAspectRatio);
-        } else {
-          // The Quick canvas paints the same area at zoom 1, as QGraphicsScene::render does.
-          painter.translate(-QPointF(rect.topLeft()));
-          static_cast<nodetool::QuickCanvas &>(editor.canvas()).graphCanvas().renderScene(painter, rect, 1);
-        }
+        painter.translate(-QPointF(rect.topLeft()));
+        editor.canvas().graphCanvas().renderScene(painter, rect, 1);
         return image;
       };
       auto &surface = editor.canvas();
@@ -205,7 +198,7 @@ int main(int argc, char **argv) {
       namespace nm = nodetool::node_metrics;
       QCoreApplication::processEvents();
       const auto &theme = scene->theme();
-      const auto portType = model->portData<QtNodes::NodeDataType>(first, QtNodes::PortType::Out, 0, QtNodes::PortRole::DataType).id;
+      const auto portType = model->portData<QString>(first, QtNodes::PortType::Out, 0, QtNodes::PortRole::DataType);
       const auto accent = nodetool::typeColor(portType);
       // Inherited font of the card. Titles and labels add a medium weight.
       const auto withCardFont = [&](QJsonObject m) {
@@ -226,7 +219,7 @@ int main(int argc, char **argv) {
         m["border.color"] = rgba(selected ? accent : theme.divider);
         m["background.color"] = rgba(theme.node);
         for (auto side : {"padding.top", "padding.right", "padding.bottom", "padding.left"}) { m[side] = nm::padding; }
-        append(selected ? "node-selected" : "node-card", selected ? "selected" : "default", "native/node-editor/src/graph/EditorScene.cpp", render(QRectF(origin, QSizeF(size)).adjusted(-2, -2, 2, 2)), m, "painter-constant");
+        append(selected ? "node-selected" : "node-card", selected ? "selected" : "default", "native/node-editor/src/canvas/NodePainter.cpp", render(QRectF(origin, QSizeF(size)).adjusted(-2, -2, 2, 2)), m, "painter-constant");
       }
       select(false);
       for (auto type : {QtNodes::PortType::In, QtNodes::PortType::Out}) {
@@ -239,25 +232,18 @@ int main(int argc, char **argv) {
         m["border.radius"] = 100;
         m["background.color"] = rgba(accent);
         for (auto side : {"padding.top", "padding.right", "padding.bottom", "padding.left"}) { m[side] = 0; }
-        append(type == QtNodes::PortType::In ? "port-input" : "port-output", type == QtNodes::PortType::In ? "default" : "connected", "native/node-editor/src/graph/EditorScene.cpp", render(QRectF(point.x() - diameter, point.y() - diameter, diameter * 2, diameter * 2)), m, "painter-constant");
+        append(type == QtNodes::PortType::In ? "port-input" : "port-output", type == QtNodes::PortType::In ? "default" : "connected", "native/node-editor/src/canvas/NodePainter.cpp", render(QRectF(point.x() - diameter, point.y() - diameter, diameter * 2, diameter * 2)), m, "painter-constant");
       }
       QPointF out, in;
-      if (auto *qtNodes = editor.qtNodesScene()) {
-        auto *connection = qtNodes->connectionGraphicsObject({first, 0, second, 0});
-        require(connection, "Missing connection graphics object");
-        out = connection->mapToScene(connection->endPoint(QtNodes::PortType::Out));
-        in = connection->mapToScene(connection->endPoint(QtNodes::PortType::In));
-      } else {
-        auto *connection = static_cast<nodetool::QuickCanvas &>(editor.canvas()).graphCanvas().scene().connectionItem({first, 0, second, 0});
-        require(connection, "Missing connection item");
-        out = connection->endPoint(QtNodes::PortType::Out);
-        in = connection->endPoint(QtNodes::PortType::In);
-      }
+      auto *connection = editor.canvas().graphCanvas().scene().connectionItem({first, 0, second, 0});
+      require(connection, "Missing connection item");
+      out = connection->endPoint(QtNodes::PortType::Out);
+      in = connection->endPoint(QtNodes::PortType::In);
       auto m = emptyMetrics();
       auto stroke = accent;
       stroke.setAlphaF(nm::wireOpacity);
       m["stroke.color"] = rgba(stroke); m["stroke.width"] = nm::wireWidth;
-      append("connection", "default", "native/node-editor/src/graph/EditorScene.cpp", render(nodetool::wireCurve(out, in).boundingRect().adjusted(0, -4, 0, 4)), m, "painter-constant");
+      append("connection", "default", "native/node-editor/src/canvas/WirePainter.cpp", render(nodetool::wireCurve(out, in).boundingRect().adjusted(0, -4, 0, 4)), m, "painter-constant");
     }
     require(cases.size() == 32, "Incomplete capture coverage");
     if (parser.isSet("require-case")) {

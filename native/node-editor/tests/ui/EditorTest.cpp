@@ -1,6 +1,5 @@
 #include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
-#include "../support/WidgetCanvasFixture.h"
 #include "ui/EditorWindow.h"
 #include "PropertyFixture.h"
 #include <QQuickItem>
@@ -17,17 +16,14 @@
 #include <QQuickWidget>
 #include <QTemporaryDir>
 #include <QTimer>
-#include <QtNodes/BasicGraphicsScene>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QtTest>
 #include "run/GenerationHistory.h"
 #include "run/RunOutputModel.h"
 #include <functional>
 #include <memory>
 #include <vector>
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 using namespace nodetool;
 class EditorTest final : public QObject {
   Q_OBJECT
@@ -699,12 +695,10 @@ private slots:
                                    "SetupGuide", "QueueOverlay", "editor-chat-overlay",
                                    "node-info-overlay", "price-chip-overlay"};
     qsizetype quickPanels = 0;
-    if (auto *quick = dynamic_cast<QuickCanvas *>(&w.canvas())) {
-      panels.removeAll(&quick->quickWidget());
-      for (const auto &name : canvasPanels) {
-        QVERIFY2(test::overlay(w, name, false, false), qPrintable(name));
-        ++quickPanels;
-      }
+    panels.removeAll(&w.canvas().quickWidget());
+    for (const auto &name : canvasPanels) {
+      QVERIFY2(test::overlay(w, name, false, false), qPrintable(name));
+      ++quickPanels;
     }
     QCOMPARE(panels.size() + quickPanels, 23);
     for (auto p : panels) {
@@ -795,10 +789,6 @@ private slots:
     QTRY_VERIFY(!w.catalogVisible());
     w.resize(1440, 900);
     QTRY_VERIFY(w.catalogVisible());
-    // QtNodes cards take a drop shadow effect unless the style turns it off. Quick cards have none.
-    if (auto *scene = w.qtNodesScene()) {
-      QVERIFY(nodetool::test::graphicsNode(*scene, *w.findChild<WorkflowGraphModel *>()->allNodeIds().begin())->graphicsEffect() == nullptr);
-    }
     // All panels share one engine, so one theme change reaches the canvas and every panel.
     const auto before = w.scene()->theme().node;
     w.setDarkTheme(before.lightness() > 128);
@@ -1026,12 +1016,7 @@ private slots:
         b = id;
       }
     }
-    auto style =
-        QJsonDocument::fromVariant(m.nodeData(a, QtNodes::NodeRole::Style))
-            .object()["NodeStyle"]
-            .toObject();
-    QVERIFY(!style["FontColor"].toString().isEmpty());
-    QVERIFY(style["Opacity"].toDouble() > 0);
+    QVERIFY(w.scene()->theme().textPrimary.isValid());
     QtNodes::ConnectionId c{a, 0, b, 0};
     QVERIFY(m.connectionPossible(c));
     m.addConnection(c);

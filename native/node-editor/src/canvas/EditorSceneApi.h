@@ -1,7 +1,7 @@
 #pragma once
 
 #include "canvas/CanvasInteraction.h"
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 
 class QObject;
 

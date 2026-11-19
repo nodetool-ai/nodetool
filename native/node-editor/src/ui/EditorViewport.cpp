@@ -1,13 +1,10 @@
 #include "ui/CanvasOverlay.h"
 #include "EditorWindow.h"
-#include "MiniMap.h"
-#include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QEasingCurve>
-#include "ui/CanvasSurface.h"
+#include "canvas/MiniMapPainter.h"
 #include <QScopedValueRollback>
 #include <QQuickItem>
-#include <QQuickWidget>
 #include <QSettings>
 #include <QVariantAnimation>
 #include <algorithm>
@@ -152,7 +149,6 @@ void EditorWindow::setMiniMapColorMode(const QString &mode) {
   // The choice holds for every workflow tab, as in the web store.
   for (auto tab : tabOwner_->tabs_) {
     tab->miniMapColorMode_ = mode;
-    if (auto map = tab->canvas_->hostWidget().findChild<QWidget *>("mini-map")) { map->update(); }
     tab->layoutOverlays();
     tab->schedulePanelChanged();
   }
@@ -160,15 +156,10 @@ void EditorWindow::setMiniMapColorMode(const QString &mode) {
 
 void EditorWindow::closeMiniMapPopup() {
   if (!tabOwner_) { activeEditor_->closeMiniMapPopup(); return; }
-  if (auto popup = std::move(quickMiniMapPopup_)) {
+  if (auto popup = std::move(miniMapPopup_)) {
     popup->hide();
     popup->retireQuickRoot(*this);
   }
-  if (!miniMapPopup_) { return; }
-  miniMapPopup_->hide();
-  miniMapPopup_->setObjectName({});
-  miniMapPopup_->deleteLater();
-  miniMapPopup_.clear();
 }
 
 void EditorWindow::showMiniMapPopup(const QString &kind, const QPointF &anchorGlobal) {
@@ -183,41 +174,18 @@ void EditorWindow::showMiniMapPopup(const QString &kind, const QPointF &anchorGl
   }
   const QVariantMap properties{{"viewport", QVariant::fromValue(&viewport_)}, {"kind", kind},
                                {"colorMode", miniMapColorMode_}, {"legend", legend}};
-  quickMiniMapPopup_ = CanvasOverlay::onQuickCanvas(*canvas_, *engine_,
+  miniMapPopup_ = CanvasOverlay::onQuickCanvas(*canvas_, *engine_,
       QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MiniMapPopups.qml"), properties, 90);
-  if (quickMiniMapPopup_) {
-    auto *root = quickMiniMapPopup_->rootObject();
-    if (!root) { quickMiniMapPopup_.reset(); return; }
-    quickMiniMapPopup_->setObjectName("mini-map-popup-host");
-    // The viewport-sized root only positions the popup. Qt Quick's popup
-    // item handles its own frame and dismissal.
-    quickMiniMapPopup_->setInputRect({});
-    quickMiniMapPopup_->setGeometry(canvas_->hostWidget().rect());
-    quickMiniMapPopup_->show();
-    const auto local = canvas_->hostWidget().mapFromGlobal(anchorGlobal.toPoint());
-    QMetaObject::invokeMethod(root, "openAt", Q_ARG(QVariant, local.x()), Q_ARG(QVariant, local.y()));
-    return;
-  }
-  // A transparent overlay over the window, so a popup can open past the mini-map's edge.
-  auto *host = new QQuickWidget(engine_, this);
-  miniMapPopup_ = host;
-  host->setObjectName("mini-map-popup-host");
-  host->setAttribute(Qt::WA_AlwaysStackOnTop);
-  host->setAttribute(Qt::WA_TranslucentBackground);
-  host->setClearColor(Qt::transparent);
-  host->setResizeMode(QQuickWidget::SizeRootObjectToView);
-  host->setGeometry(rect());
-  host->setInitialProperties(properties);
-  host->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MiniMapPopups.qml"));
-  if (!host->rootObject()) {
-    closeMiniMapPopup();
-    return;
-  }
-  host->show();
-  host->raise();
-  host->setFocus();
-  const auto local = mapFromGlobal(anchorGlobal.toPoint());
-  QMetaObject::invokeMethod(host->rootObject(), "openAt", Q_ARG(QVariant, local.x()), Q_ARG(QVariant, local.y()));
+  auto *root = miniMapPopup_->rootObject();
+  if (!root) { miniMapPopup_.reset(); return; }
+  miniMapPopup_->setObjectName("mini-map-popup-host");
+  // The viewport-sized root only positions the popup. Qt Quick's popup
+  // item handles its own frame and dismissal.
+  miniMapPopup_->setInputRect({});
+  miniMapPopup_->setGeometry(canvas_->hostWidget().rect());
+  miniMapPopup_->show();
+  const auto local = canvas_->hostWidget().mapFromGlobal(anchorGlobal.toPoint());
+  QMetaObject::invokeMethod(root, "openAt", Q_ARG(QVariant, local.x()), Q_ARG(QVariant, local.y()));
 }
 
 }

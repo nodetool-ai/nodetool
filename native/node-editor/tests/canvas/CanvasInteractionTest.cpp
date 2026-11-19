@@ -1,7 +1,7 @@
 #include "canvas/CanvasInteraction.h"
 #include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
-#include <QtNodes/ConnectionIdUtils>
+#include <qtnodes/ConnectionIdUtils.hpp>
 #include <QtTest>
 
 using namespace nodetool;

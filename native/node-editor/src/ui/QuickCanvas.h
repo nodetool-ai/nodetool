@@ -25,8 +25,6 @@ public:
   QuickCanvas(WorkflowGraphModel &model, QWidget &parent, QQmlEngine *engine = nullptr);
   ~QuickCanvas() override;
 
-  // Quick is the default. The legacy test switch lasts until Q6.
-  static bool selected();
   canvas::GraphCanvas &graphCanvas() const { return *canvas_; }
   canvas::CanvasScene &canvasScene() const;
   QQuickWidget &quickWidget() const;
@@ -67,7 +65,7 @@ public:
   void setHandDrag(bool enabled) override;
   void requestRepaint() override;
   void setCursor(const QCursor &cursor) override;
-  void setFocus(Qt::FocusReason reason) override;
+  void setFocus(Qt::FocusReason reason = Qt::OtherFocusReason) override;
   QImage capture(canvas_capture::Mode mode) const override;
   QImage renderCard(QtNodes::NodeId id) const override;
   std::unique_ptr<CanvasNote> addNote(QtNodes::NodeId id, const QString &text, const QString &name,

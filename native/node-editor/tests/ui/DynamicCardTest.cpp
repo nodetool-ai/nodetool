@@ -1,6 +1,6 @@
 #include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include <QDialog>
 #include "EntryMenuSupport.h"
 #include <QDir>
@@ -10,8 +10,7 @@
 #include <QMouseEvent>
 #include <QRegularExpression>
 #include <memory>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QtTest>
 using namespace nodetool;
 namespace {

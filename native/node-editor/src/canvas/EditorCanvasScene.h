@@ -54,10 +54,10 @@ public:
   QPainterPath connectionStroke(const ConnectionItem &item) const override;
   QPainterPath connectionPath(const ConnectionItem &item) const override;
   bool connectionPaintsOffPath(const ConnectionItem &item) const override;
-  // EditorScene::drawForeground: group labels, the drop hint and the port
+  // Group labels, the drop hint and the port
   // names of selected and hovered cards, in scene coordinates.
   void paintForeground(QPainter &painter, const QRectF &sceneArea, double zoom) const;
-  // EditorScene::drawBackground: the canvas color, the cross grid and the axes.
+  // Draws the canvas color, cross grid and axes.
   void paintBackground(QPainter &painter, const QRectF &sceneArea, double zoom) const;
   struct ForegroundPart {
     enum Kind { GroupLabel, DropHint, InputLabel, OutputLabel };

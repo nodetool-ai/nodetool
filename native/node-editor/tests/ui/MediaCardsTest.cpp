@@ -1,6 +1,6 @@
 #include "../support/OverlayProbe.h"
 #include "graph/CanvasDropController.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "media/AudioWaveform.h"
 #include "media/VideoFrameView.h"
@@ -24,7 +24,6 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QUrlQuery>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 #include <cmath>
 #include <functional>

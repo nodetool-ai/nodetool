@@ -8,11 +8,10 @@
 //
 // --sample runs macOS `sample` on this process for the drag, for a call tree.
 #include "../../src/graph/CardBodies.h"
-#include "../../src/graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "../../src/graph/WorkflowGraphModel.h"
 #include "../../src/server/WorkflowSession.h"
 #include "../../src/ui/EditorWindow.h"
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDir>

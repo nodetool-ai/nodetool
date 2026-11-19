@@ -275,8 +275,7 @@ bool EditorWindow::queueVisible() const {
 
 QRect EditorWindow::queueArea() const {
   const auto &host = canvas_->hostWidget();
-  return queueOverlay_ && !queueOverlay_->widget() ? host.rect()
-      : QRect(host.mapTo(centralWidget(), QPoint(0, 0)), host.size());
+  return host.rect();
 }
 
 QSize EditorWindow::queueSize(const QRect &area) const {

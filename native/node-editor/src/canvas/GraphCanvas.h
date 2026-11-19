@@ -21,8 +21,7 @@ class WorkflowGraphModel;
 namespace nodetool::canvas {
 class CardOverlay;
 
-// UI thread only. The Quick canvas view, in the role QGraphicsView has for
-// the QtNodes canvas. Its visual children, back to front: the grid, the content
+// UI thread only. Its visual children, back to front, are the grid, the content
 // layer that carries the pan and zoom transform (cards, wires, lineage links,
 // the draft wire and the foreground), and the overlay layer in viewport
 // coordinates (the rubber band). It owns the scene, the viewport, the

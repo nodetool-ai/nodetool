@@ -1,7 +1,6 @@
 #include "graph/WorkflowGraphModel.h"
 #include "document/WorkflowDocument.h"
 #include <QtTest>
-#include <QtNodes/NodeData>
 using namespace nodetool;
 using namespace nodetool::node_editor;
 class DynamicPortsTest final : public QObject {
@@ -69,10 +68,10 @@ private slots:
   QCOMPARE(ports[0].toObject()["name"].toString(),"static");
   QCOMPARE(ports[1].toObject()["name"].toString(),"extra");
   QCOMPARE(ports[2].toObject()["name"].toString(),"fallback");
-  QCOMPARE(graph.portData<QtNodes::NodeDataType>(id,QtNodes::PortType::In,0,QtNodes::PortRole::DataType).id,"bool");
-  QCOMPARE(graph.portData<QtNodes::NodeDataType>(id,QtNodes::PortType::In,1,QtNodes::PortRole::DataType).id,"str");
-  QCOMPARE(graph.portData<QtNodes::NodeDataType>(id,QtNodes::PortType::In,2,QtNodes::PortRole::DataType).id,"any");
-  QCOMPARE(graph.portData<QtNodes::NodeDataType>(id,QtNodes::PortType::Out,0,QtNodes::PortRole::DataType).id,"int");
+  QCOMPARE(graph.portData<QString>(id,QtNodes::PortType::In,0,QtNodes::PortRole::DataType),"bool");
+  QCOMPARE(graph.portData<QString>(id,QtNodes::PortType::In,1,QtNodes::PortRole::DataType),"str");
+  QCOMPARE(graph.portData<QString>(id,QtNodes::PortType::In,2,QtNodes::PortRole::DataType),"any");
+  QCOMPARE(graph.portData<QString>(id,QtNodes::PortType::Out,0,QtNodes::PortRole::DataType),"int");
   QCOMPARE(document.snapshot(),before); QCOMPARE(document.undoStack()->count(),0);
   QVERIFY(document.applyCommand({{"op","setNodeField"},{"id","n"},{"field","dynamic_inputs"},{"value",QJsonObject{}}}));
   graph.project(document.snapshot(),catalog);

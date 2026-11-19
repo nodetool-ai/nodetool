@@ -10,12 +10,8 @@
 #include <QSet>
 #include <QStringList>
 
-#include <functional>
 #include <map>
 #include <memory>
-
-class QGraphicsScene;
-class QGraphicsItem;
 
 namespace nodetool {
 class CanvasSurface;
@@ -23,6 +19,7 @@ class WorkflowGraphModel;
 }
 namespace nodetool::canvas {
 class CanvasScene;
+class LineageItem;
 }
 namespace nodetool::node_editor {
 enum class LineageSide { Left, Right, Top, Bottom };
@@ -44,13 +41,10 @@ struct LineageTheme {
 // model access. Refresh absolute geometry after node/group motion; view
 // transforms supply zoom. Nodes and normal wires remain above the link hit
 // targets.
-// UI thread only. On the QtNodes canvas the attached QGraphicsScene owns the
-// link items. On the Quick canvas the layer owns its canvas::LineageItem
-// links through std::unique_ptr, and the scene borrows them.
+// UI thread only. Owns the lineage items that the canvas scene borrows.
 class LineageLayer final : public QObject {
   Q_OBJECT
 public:
-  explicit LineageLayer(QGraphicsScene &scene, QObject *parent = nullptr);
   explicit LineageLayer(canvas::CanvasScene &scene, QObject *parent = nullptr);
   ~LineageLayer() override;
   // Atomic validation. Missing measurements hide that link until a later
@@ -59,24 +53,13 @@ public:
                                const QHash<QString, QRectF> &absoluteGeometry);
   [[nodiscard]] QString update(const QJsonObject &graph, const WorkflowGraphModel &model,
                                const CanvasSurface &canvas);
-  static bool isLinkItem(const QGraphicsItem *item);
   void clear();
   void setTheme(const LineageTheme &theme);
   void setSelectedLinkIds(const QStringList &ids);
   [[nodiscard]] QStringList selectedLinkIds() const;
   [[nodiscard]] QPainterPath linkPath(const QString &id) const;
-  // The link's item on either canvas, or null.
-  [[nodiscard]] QObject *linkItem(const QString &id) const;
-  // UI thread only. One link's item on whichever canvas the layer draws on.
-  class Link {
-  public:
-    virtual ~Link() = default;
-    virtual void updateGeometry(QPainterPath path, QString label, const LineageTheme &theme, bool selected) = 0;
-    virtual void setLinkSelected(bool selected) = 0;
-    virtual QPainterPath path() const = 0;
-    virtual QString label() const = 0;
-    virtual QObject *object() const = 0;
-  };
+  // The visible link's item, or null.
+  [[nodiscard]] canvas::LineageItem *linkItem(const QString &id) const;
 signals:
   // Host clears other selections on a non-additive request and applies
   // removeLink on deletion. Signals never edit the document themselves.
@@ -85,14 +68,9 @@ signals:
   void contextMenuRequested(const QString &id, const QPoint &screenPosition);
 
 private:
-  std::unique_ptr<Link> createLink(const QString &id);
-  QPointer<QGraphicsScene> scene_;
-  // The Quick canvas's scene, and the factory its constructor sets
-  // (canvas/LineageItem.cpp), so that this file needs no Qt Quick.
-  QPointer<QObject> quickScene_;
-  std::function<std::unique_ptr<Link>(const QString &)> quickLink_;
-  bool quick_ = false;
-  std::map<QString, std::unique_ptr<Link>> items_;
+  std::unique_ptr<canvas::LineageItem> createLink(const QString &id);
+  QPointer<canvas::CanvasScene> scene_;
+  std::map<QString, std::unique_ptr<canvas::LineageItem>> items_;
   QSet<QString> known_, selected_;
   LineageTheme theme_;
 };

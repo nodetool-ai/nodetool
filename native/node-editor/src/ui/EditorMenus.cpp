@@ -2,7 +2,7 @@
 #include "EditorWindow.h"
 #include "EntryMenu.h"
 #include "document/ChildPorts.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/CanvasMediaPresenter.h"
 #include <QApplication>
 #include <QUuid>
@@ -932,7 +932,6 @@ void EditorWindow::positionNodeInfo() {
     nodeInfo_.setMaximumHeight(area.height() - top - margin);
     nodeInfoOverlay_->move(left, top);
     nodeInfoOverlay_->show();
-    nodeInfoOverlay_->raiseLegacyWidget();
 }
 
 void EditorWindow::openNodeMenuAt(const QStringList &path, const QString &term) {

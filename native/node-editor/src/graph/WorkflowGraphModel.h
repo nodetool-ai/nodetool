@@ -17,7 +17,7 @@
 #include <QTimer>
 #include "../run/NodeRuntimeModel.h"
 #include "../run/UntakenBranch.h"
-#include <QtNodes/AbstractGraphModel>
+#include <qtnodes/AbstractGraphModel.hpp>
 #include <functional>
 namespace nodetool {
 // Presentation only. The host commits through WorkflowDocument, then projects

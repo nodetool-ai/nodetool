@@ -6,13 +6,12 @@
 #include <QPointer>
 #include <QRectF>
 #include <QVector>
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 #include <functional>
 class QQmlEngine;
-class QQuickWidget;
 namespace nodetool {
 class CanvasOverlay;
-class CanvasSurface;
+class QuickCanvas;
 class CanvasNote;
 namespace node_editor { class WorkflowDocument; }
 class WorkflowGraphModel;
@@ -30,7 +29,7 @@ class InlineTitlePresenter final : public QObject {
   Q_PROPERTY(double zoom READ zoom NOTIFY geometryChanged)
   Q_PROPERTY(int generation READ generation NOTIFY changed)
 public:
-  InlineTitlePresenter(WorkflowGraphModel &, EditorSceneApi &, CanvasSurface &, QQmlEngine *, QObject *parent = nullptr);
+  InlineTitlePresenter(WorkflowGraphModel &, EditorSceneApi &, QuickCanvas &, QQmlEngine *, QObject *parent = nullptr);
   ~InlineTitlePresenter() override;
   QString text() const { return text_; }
   bool group() const { return group_; }
@@ -64,10 +63,9 @@ protected:
 private:
   WorkflowGraphModel &model_;
   EditorSceneApi &scene_;
-  CanvasSurface &canvas_;
+  QuickCanvas &canvas_;
   QPointer<QQmlEngine> engine_;
   std::unique_ptr<CanvasOverlay> widget_;
-  QVector<QPointer<QQuickWidget>> retired_;
   std::map<QtNodes::NodeId, std::unique_ptr<CanvasNote>> notes_;
   std::map<QtNodes::NodeId, std::unique_ptr<CanvasOverlay>> controls_;
   void repositionControls();

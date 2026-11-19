@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ui/CanvasCapture.h"
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 #include <QCursor>
 #include <QList>
 #include <QObject>
@@ -106,7 +106,7 @@ signals:
   void sceneChanged();
   void viewportMoved();
   void rubberBandChanged(bool active);
-  // A press and release on a card, and a double-click on one, as QtNodes reports them.
+  // A press and release on a card, and a double-click on one.
   void nodeClicked(QtNodes::NodeId id);
   void nodeDoubleClicked(QtNodes::NodeId id);
   // The dimmed set changed, so overlays that follow card opacity update.

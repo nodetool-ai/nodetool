@@ -1,5 +1,5 @@
 #include "../support/OverlayProbe.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
@@ -10,7 +10,6 @@
 #include <QQuickWindow>
 #include <QScrollBar>
 #include <QSettings>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 #include <QWebSocket>
 #include <QWebSocketServer>

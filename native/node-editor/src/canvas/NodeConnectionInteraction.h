@@ -9,7 +9,7 @@
 // undo commands.
 #pragma once
 
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 #include <QPointF>
 
 namespace nodetool::canvas {

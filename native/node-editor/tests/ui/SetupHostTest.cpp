@@ -1,5 +1,5 @@
 #include "../support/OverlayProbe.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "server/MsgPack.h"
 #include "ui/EditorWindow.h"
 #include <QDir>

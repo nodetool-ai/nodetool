@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 
 namespace nodetool {
 class WorkflowGraphModel;

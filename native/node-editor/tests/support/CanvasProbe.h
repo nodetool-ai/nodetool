@@ -3,16 +3,10 @@
 #include "canvas/ConnectionItem.h"
 #include "canvas/GraphCanvas.h"
 #include "canvas/NodeItem.h"
-#include "graph/EditorScene.h"
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
-#include "ui/QtNodesCanvas.h"
 #include "ui/QuickCanvas.h"
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionState.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QGraphicsView>
-#include <QGraphicsObject>
 #include <QPainter>
 #include <QPointer>
 #include <QPixmap>
@@ -24,7 +18,7 @@
 
 namespace nodetool::test {
 
-// A wire as either canvas shows it, in scene coordinates.
+// A wire in scene coordinates.
 struct WireProbe {
   QPointF out;
   QPointF in;
@@ -36,13 +30,11 @@ struct WireProbe {
   QRectF bounds;
 };
 
-// UI thread only. A card on either canvas with the QGraphicsItem calls the
-// tests read, answered through CanvasSurface. It borrows the surface.
+// UI thread only. Borrows the card through its canvas and ID.
 class CardHandle {
 public:
-  CardHandle(CanvasSurface *surface, QtNodes::NodeId id) : surface_(surface), id_(id) {}
+  CardHandle(QuickCanvas *surface, QtNodes::NodeId id) : surface_(surface), id_(id) {}
   explicit operator bool() const { return surface_ && surface_->hasNode(id_); }
-  // Lets tests keep the pointer syntax of the QGraphicsObject they read before.
   const CardHandle *operator->() const { return this; }
   QtNodes::NodeId nodeId() const { return id_; }
   QRectF sceneBoundingRect() const { return surface_->nodeBounds(id_); }
@@ -58,66 +50,46 @@ public:
   void setSelected(bool selected) const { surface_->selection().setNode(id_, selected); }
   double opacity() const { return surface_->nodeOpacity(id_); }
   bool isVisible() const { return surface_->hasNode(id_); }
-  // QGraphicsItem::zValue, or the Quick item's z, which orders the same way.
   double zValue() const {
-    if (auto *scene = dynamic_cast<EditorScene *>(&surface_->scene())) {
-      const auto *item = scene->nodeGraphicsObject(id_);
-      return item ? item->zValue() : 0;
-    }
-    const auto *quick = dynamic_cast<QuickCanvas *>(surface_);
-    const auto *item = quick ? quick->graphCanvas().scene().nodeItem(id_) : nullptr;
+    const auto *item = surface_->canvasScene().nodeItem(id_);
     return item ? item->z() : 0;
   }
   bool hovered() const {
-    if (auto *scene = dynamic_cast<EditorScene *>(&surface_->scene())) {
-      const auto *item = scene->nodeGraphicsObject(id_);
-      return item && item->nodeState().hovered();
-    }
-    const auto *quick = dynamic_cast<QuickCanvas *>(surface_);
-    const auto *item = quick ? quick->graphCanvas().scene().nodeItem(id_) : nullptr;
+    const auto *item = surface_->canvasScene().nodeItem(id_);
     return item && item->nodeState().hovered();
   }
 
 private:
-  CanvasSurface *surface_;
+  QuickCanvas *surface_;
   QtNodes::NodeId id_;
 };
 
 inline CardHandle card(EditorWindow &window, QtNodes::NodeId id) { return {&window.canvas(), id}; }
 
-// UI thread only. A wire on either canvas with the QGraphicsItem calls the
-// tests read. Coordinates are the item's own: QtNodes places a wire item at
-// its port, the Quick canvas at the scene origin. It borrows the window.
+// UI thread only. Reacquires the wire by ID when inspected.
 class WireHandle {
 public:
   WireHandle(EditorWindow *window, QtNodes::ConnectionId id) : window_(window), id_(id) {}
-  explicit operator bool() const { return window_ && (qtNodes() || quick()); }
+  explicit operator bool() const { return quick() != nullptr; }
   const WireHandle *operator->() const { return this; }
   QtNodes::ConnectionId connectionId() const { return id_; }
-  double opacity() const { return qtNodes() ? qtNodes()->opacity() : quick()->opacity(); }
-  bool isSelected() const { return qtNodes() ? qtNodes()->isSelected() : quick()->isSelected(); }
+  double opacity() const { return quick()->opacity(); }
+  bool isSelected() const { return quick()->isSelected(); }
   void setSelected(bool selected) const {
-    if (auto *item = qtNodes()) {
-      item->setSelected(selected);
-    } else if (auto *item = quick()) {
+    if (auto *item = quick()) {
       item->canvasScene()->setSelected(*item, selected);
     }
   }
-  bool isVisible() const { return qtNodes() ? qtNodes()->isVisible() : quick()->shown(); }
-  QPainterPath shape() const { return qtNodes() ? qtNodes()->shape() : quick()->hitPath(); }
-  QRectF boundingRect() const { return qtNodes() ? qtNodes()->boundingRect() : quick()->boundingRect(); }
-  QPointF endPoint(QtNodes::PortType side) const { return qtNodes() ? qtNodes()->endPoint(side) : quick()->endPoint(side); }
-  QPointF mapToScene(QPointF point) const { return qtNodes() ? qtNodes()->mapToScene(point) : point; }
-  bool hovered() const { return qtNodes() ? qtNodes()->connectionState().hovered() : quick()->connectionState().hovered(); }
+  bool isVisible() const { return quick()->shown(); }
+  QPainterPath shape() const { return quick()->hitPath(); }
+  QRectF boundingRect() const { return quick()->boundingRect(); }
+  QPointF endPoint(QtNodes::PortType side) const { return quick()->endPoint(side); }
+  QPointF mapToScene(QPointF point) const { return point; }
+  bool hovered() const { return quick()->connectionState().hovered(); }
 
 private:
-  QtNodes::ConnectionGraphicsObject *qtNodes() const {
-    auto *scene = window_ ? window_->qtNodesScene() : nullptr;
-    return scene ? scene->connectionGraphicsObject(id_) : nullptr;
-  }
   canvas::ConnectionItem *quick() const {
-    auto *surface = window_ ? dynamic_cast<QuickCanvas *>(&window_->canvas()) : nullptr;
-    return surface ? surface->graphCanvas().scene().connectionItem(id_) : nullptr;
+    return window_ ? window_->canvas().canvasScene().connectionItem(id_) : nullptr;
   }
   EditorWindow *window_;
   QtNodes::ConnectionId id_;
@@ -125,7 +97,7 @@ private:
 
 inline WireHandle wire(EditorWindow &window, QtNodes::ConnectionId id) { return {&window, id}; }
 
-// UI thread only. A card's note item on either canvas, found by object name.
+// UI thread only. A card's note item, found by object name.
 // The guarded pointer goes null when the card or its presenter drops the note.
 class NoteHandle {
 public:
@@ -134,37 +106,26 @@ public:
   bool isNull() const { return note_.isNull(); }
   const NoteHandle *operator->() const { return this; }
   QRectF boundingRect() const {
-    if (auto *item = graphics()) { return item->boundingRect(); }
     auto *item = quick();
     return item ? item->sceneBoundingRect().translated(-item->scenePosition()) : QRectF{};
   }
   QRectF sceneBoundingRect() const {
-    if (auto *item = graphics()) { return item->sceneBoundingRect(); }
     return quick() ? quick()->sceneBoundingRect() : QRectF{};
   }
-  QPointF pos() const { return graphics() ? graphics()->pos() : quick() ? quick()->position() : QPointF{}; }
-  QPointF scenePos() const { return graphics() ? graphics()->scenePos() : quick() ? quick()->scenePosition() : QPointF{}; }
-  QPointF mapToScene(QPointF local) const { return graphics() ? graphics()->mapToScene(local) : scenePos() + local; }
-  bool isVisible() const { return graphics() ? graphics()->isVisible() : quick() && quick()->isVisible() && quick()->shown(); }
+  QPointF pos() const { return quick() ? quick()->position() : QPointF{}; }
+  QPointF scenePos() const { return quick() ? quick()->scenePosition() : QPointF{}; }
+  QPointF mapToScene(QPointF local) const { return scenePos() + local; }
+  bool isVisible() const { return quick() && quick()->isVisible() && quick()->shown(); }
 
 private:
-  QGraphicsObject *graphics() const { return qobject_cast<QGraphicsObject *>(note_.data()); }
   canvas::CanvasItem *quick() const { return dynamic_cast<canvas::CanvasItem *>(note_.data()); }
   QPointer<QObject> note_;
 };
 
 inline NoteHandle note(EditorWindow &window, const QString &name) {
-  if (auto *scene = window.qtNodesScene()) {
-    for (auto *entry : scene->items()) {
-      if (auto *object = dynamic_cast<QGraphicsObject *>(entry); object && object->objectName() == name) { return NoteHandle(object); }
-    }
-    return NoteHandle();
-  }
-  if (auto *quick = dynamic_cast<QuickCanvas *>(&window.canvas())) {
-    for (auto *card : quick->graphCanvas().scene().nodeItems()) {
-      for (auto *child : card->childItems()) {
-        if (child->objectName() == name) { return NoteHandle(child); }
-      }
+  for (auto *card : window.canvas().canvasScene().nodeItems()) {
+    for (auto *child : card->childItems()) {
+      if (child->objectName() == name) { return NoteHandle(child); }
     }
   }
   return NoteHandle();
@@ -172,8 +133,7 @@ inline NoteHandle note(EditorWindow &window, const QString &name) {
 
 QImage grabCanvasViewport(EditorWindow &window);
 
-// UI thread only. The QGraphicsView calls the tests read, answered through
-// CanvasSurface on either canvas. It borrows the window.
+// UI thread only. Borrows the window to drive its viewport.
 class ViewHandle {
 public:
   explicit ViewHandle(EditorWindow &window) : window_(&window) {}
@@ -232,16 +192,7 @@ public:
   };
   ScrollHandle horizontalScrollBar() const { return {surface(), Qt::Horizontal}; }
   ScrollHandle verticalScrollBar() const { return {surface(), Qt::Vertical}; }
-  // Both canvases use QtNodesCanvas's fixed scene rectangle.
-  QRectF sceneRect() const { return {-32767, -32767, 65534, 65534}; }
-  void setSceneRect(const QRectF &) const {}
-  void setSceneRect(qreal, qreal, qreal, qreal) const {}
-  // ScrollHandDrag while mouse navigation is on, otherwise RubberBandDrag.
-  QGraphicsView::DragMode dragMode() const {
-    if (auto *view = qobject_cast<QGraphicsView *>(&surface().hostWidget())) { return view->dragMode(); }
-    const auto *quick = dynamic_cast<QuickCanvas *>(&surface());
-    return quick && quick->graphCanvas().handDrag() ? QGraphicsView::ScrollHandDrag : QGraphicsView::RubberBandDrag;
-  }
+  bool handDrag() const { return window_->canvas().graphCanvas().handDrag(); }
 
 private:
   EditorWindow *window_;
@@ -249,7 +200,7 @@ private:
 
 inline ViewHandle view(EditorWindow &window) { return ViewHandle(window); }
 
-// QGraphicsScene::itemsBoundingRect over the cards and wires of either canvas.
+// Bounds of the cards and wires.
 inline QRectF itemsBoundingRect(EditorWindow &window) {
   auto &surface = window.canvas();
   auto &model = window.scene()->graphModel();
@@ -261,9 +212,7 @@ inline QRectF itemsBoundingRect(EditorWindow &window) {
   return bounds;
 }
 
-// UI thread only. Reads and drives either canvas through CanvasSurface and,
-// where the seam has no call for it, through each canvas's own items. Point
-// arguments of the pointer helpers are viewport-local. The window outlives it.
+// UI thread only. Borrows the window. Pointer coordinates are viewport-local.
 class CanvasProbe {
 public:
   explicit CanvasProbe(EditorWindow &window) : window_(window) {}
@@ -306,19 +255,15 @@ public:
     grabViewport();
     return surface().hostWidget().grab().toImage();
   }
-  // QGraphicsScene::render of a scene area onto an image of the given size.
+  // Draw a scene area into an image.
   QImage renderScene(const QRectF &sceneArea, QSize size) const {
     QImage image(size, QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing);
-    if (auto *scene = window_.qtNodesScene()) {
-      scene->render(&painter, QRectF(QPointF(), QSizeF(size)), sceneArea);
-    } else if (auto *quick = quickCanvas()) {
-      painter.scale(size.width() / sceneArea.width(), size.height() / sceneArea.height());
-      painter.translate(-sceneArea.topLeft());
-      quick->graphCanvas().renderScene(painter, sceneArea, size.width() / sceneArea.width());
-    }
+    painter.scale(size.width() / sceneArea.width(), size.height() / sceneArea.height());
+    painter.translate(-sceneArea.topLeft());
+    quickCanvas()->graphCanvas().renderScene(painter, sceneArea, size.width() / sceneArea.width());
     return image;
   }
 
@@ -334,77 +279,47 @@ public:
     const auto ai = order.indexOf(a), bi = order.indexOf(b);
     return ai >= 0 && bi >= 0 && ai < bi;
   }
-  // The item stacking value: QGraphicsItem::zValue, or the Quick item's z.
   double z(QtNodes::NodeId id) const {
-    if (auto *scene = window_.qtNodesScene()) {
-      const auto *item = scene->nodeGraphicsObject(id);
-      return item ? item->zValue() : 0;
-    }
-    const auto *item = quickCanvas() ? quickCanvas()->graphCanvas().scene().nodeItem(id) : nullptr;
+    const auto *item = quickCanvas()->canvasScene().nodeItem(id);
     return item ? item->z() : 0;
   }
   // The object of a card, which stays the same while the card survives a projection.
   const QObject *cardObject(QtNodes::NodeId id) const {
-    if (auto *scene = window_.qtNodesScene()) { return scene->nodeGraphicsObject(id); }
-    return quickCanvas() ? quickCanvas()->graphCanvas().scene().nodeItem(id) : nullptr;
+    return quickCanvas()->canvasScene().nodeItem(id);
   }
   // The card's bounds in scene coordinates as its item reports them.
   QRectF cardItemBounds(QtNodes::NodeId id) const { return surface().nodeBounds(id); }
 
   std::optional<WireProbe> wire(const QtNodes::ConnectionId &id) const {
-    if (auto *scene = window_.qtNodesScene()) {
-      auto *item = scene->connectionGraphicsObject(id);
-      if (!item) { return std::nullopt; }
-      return WireProbe{item->mapToScene(item->endPoint(QtNodes::PortType::Out)),
-                       item->mapToScene(item->endPoint(QtNodes::PortType::In)), item->isSelected(), item->isVisible(),
-                       item->connectionState().requiresPort(), item->opacity(), item->mapToScene(item->shape()),
-                       item->sceneBoundingRect()};
-    }
-    auto *item = quickCanvas() ? quickCanvas()->graphCanvas().scene().connectionItem(id) : nullptr;
+    auto *item = quickCanvas()->canvasScene().connectionItem(id);
     if (!item) { return std::nullopt; }
     return WireProbe{item->endPoint(QtNodes::PortType::Out), item->endPoint(QtNodes::PortType::In), item->isSelected(),
                      item->shown(), item->connectionState().requiresPort(), item->opacity(), item->hitPath(),
                      item->boundingRect()};
   }
   void selectWire(const QtNodes::ConnectionId &id, bool selected) const {
-    if (auto *scene = window_.qtNodesScene()) {
-      if (auto *item = scene->connectionGraphicsObject(id)) { item->setSelected(selected); }
-    } else if (auto *quick = quickCanvas()) {
-      if (auto *item = quick->graphCanvas().scene().connectionItem(id)) { quick->graphCanvas().scene().setSelected(*item, selected); }
-    }
+    auto &scene = quickCanvas()->canvasScene();
+    if (auto *item = scene.connectionItem(id)) { scene.setSelected(*item, selected); }
   }
   // The wire being dragged, if any.
   std::optional<WireProbe> draft() const {
-    if (auto *scene = window_.qtNodesScene()) {
-      auto *item = qgraphicsitem_cast<QtNodes::ConnectionGraphicsObject *>(scene->mouseGrabberItem());
-      if (!item || !item->connectionState().requiresPort()) { return std::nullopt; }
-      return WireProbe{item->mapToScene(item->endPoint(QtNodes::PortType::Out)),
-                       item->mapToScene(item->endPoint(QtNodes::PortType::In)), item->isSelected(), item->isVisible(), true,
-                       item->opacity(), item->mapToScene(item->shape()), item->sceneBoundingRect()};
-    }
-    auto *item = quickCanvas() ? quickCanvas()->graphCanvas().scene().draftConnection() : nullptr;
+    auto *item = quickCanvas()->canvasScene().draftConnection();
     if (!item) { return std::nullopt; }
     return WireProbe{item->endPoint(QtNodes::PortType::Out), item->endPoint(QtNodes::PortType::In), false, item->shown(), true,
                      item->opacity(), item->hitPath(), item->boundingRect()};
   }
   // Whether a pointer press is still held by an item of the canvas.
   bool grabbed() const {
-    if (auto *scene = window_.qtNodesScene()) { return scene->mouseGrabberItem() != nullptr; }
-    return quickCanvas() && quickCanvas()->graphCanvas().scene().mouseGrabber() != nullptr;
+    return quickCanvas()->canvasScene().mouseGrabber() != nullptr;
   }
   // Whether the wire being dragged draws above the card's item.
   bool draftAbove(QtNodes::NodeId card) const {
-    if (auto *scene = window_.qtNodesScene()) {
-      auto *item = qgraphicsitem_cast<QtNodes::ConnectionGraphicsObject *>(scene->mouseGrabberItem());
-      auto *node = scene->nodeGraphicsObject(card);
-      return item && node && item->zValue() > node->zValue();
-    }
     auto &scene = quickCanvas()->graphCanvas().scene();
     auto *item = scene.draftConnection();
     auto *node = scene.nodeItem(card);
     return item && node && item->z() > node->z();
   }
-  QuickCanvas *quickCanvas() const { return dynamic_cast<QuickCanvas *>(&surface()); }
+  QuickCanvas *quickCanvas() const { return &window_.canvas(); }
 
 private:
   EditorWindow &window_;
@@ -412,14 +327,9 @@ private:
 
 inline QImage grabCanvasViewport(EditorWindow &window) { return CanvasProbe(window).grabViewport(); }
 
-// QGraphicsScene::render(painter, target, source) on either canvas.
+// Draw the scene area centered in the target.
 inline void renderScene(EditorWindow &window, QPainter &painter, const QRectF &target, const QRectF &source) {
-  if (auto *scene = window.qtNodesScene()) {
-    scene->render(&painter, target, source);
-    return;
-  }
-  auto *quick = dynamic_cast<QuickCanvas *>(&window.canvas());
-  if (!quick) { return; }
+  auto &quick = window.canvas();
   // KeepAspectRatio, centered in the target, as QGraphicsScene::render does.
   const double scale = std::min(target.width() / source.width(), target.height() / source.height());
   painter.save();
@@ -427,7 +337,7 @@ inline void renderScene(EditorWindow &window, QPainter &painter, const QRectF &t
   painter.scale(scale, scale);
   painter.translate(-source.topLeft());
   painter.setClipRect(source);
-  quick->graphCanvas().renderScene(painter, source, scale);
+  quick.graphCanvas().renderScene(painter, source, scale);
   painter.restore();
 }
 
