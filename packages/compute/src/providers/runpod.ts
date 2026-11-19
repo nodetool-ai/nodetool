@@ -38,15 +38,18 @@ const WORKER_PORT = 7777;
 /** Worker is exposed via the RunPod HTTP proxy as a wss:// endpoint. */
 const EXPOSURE = "http" as const;
 
-/** Map a RunPod pod's `desiredStatus` to the shared `WorkerStatus`. */
+/** Map a RunPod pod's `status` to the shared `WorkerStatus`. */
 function mapPodStatus(pod: RunpodPod): WorkerStatus {
-  switch (pod.desiredStatus) {
+  switch (pod.status) {
     case "RUNNING":
-    case "READYT": // RunPod's "ready to run" transitional state
       return "running";
     case "EXITED":
     case "TERMINATED":
       return "stopped";
+    case "ERROR":
+      return "error";
+    case "PROVISIONING":
+    case "STARTING":
     default:
       return "provisioning";
   }
@@ -65,7 +68,7 @@ export class RunpodPodProvider implements WorkerProvider {
       internalPort: spec.comfyPort ?? WORKER_PORT,
       exposure: EXPOSURE,
       computeType: useGpu ? "GPU" : "CPU",
-      gpuTypeIds: spec.gpu ? [spec.gpu] : undefined,
+      gpuTypeId: spec.gpu,
       gpuCount: spec.gpuCount,
       // The CUDA filter describes the worker image, not an arbitrary one.
       allowedCudaVersions: spec.comfyPort ? [] : undefined,
@@ -90,7 +93,7 @@ export class RunpodPodProvider implements WorkerProvider {
       wsUrl,
       token: spec.token,
       status: "running",
-      costUsd: pod.costPerHr,
+      costUsd: pod.cost,
     };
   }
 
@@ -118,7 +121,7 @@ export class RunpodPodProvider implements WorkerProvider {
       providerRef: ref,
       wsUrl,
       status: "running",
-      costUsd: pod.costPerHr,
+      costUsd: pod.cost,
     };
   }
 
