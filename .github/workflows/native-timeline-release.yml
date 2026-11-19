@@ -106,7 +106,14 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security import "$CERTIFICATE_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" > /dev/null
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          existing_keychains=()
+          while IFS= read -r kc; do
+            kc="${kc#"${kc%%[![:space:]]*}"}"
+            kc="${kc#\"}"
+            kc="${kc%\"}"
+            [ -n "$kc" ] && existing_keychains+=("$kc")
+          done < <(security list-keychain -d user)
+          security list-keychain -d user -s "$KEYCHAIN_PATH" "${existing_keychains[@]}"
           rm -f "$CERTIFICATE_PATH"
           xcrun notarytool store-credentials "AC_PASSWORD" \
             --apple-id "$APPLE_ID" \
@@ -133,7 +140,10 @@ jobs:
           mkdir "$RUNNER_TEMP/release-extracted"
           ditto -x -k "release-assets/$asset" "$RUNNER_TEMP/release-extracted"
           app="$RUNNER_TEMP/release-extracted/NodeTool Timeline.app"
-          spctl --assess --type execute --verbose=2 "$app"
+          spctl --assess --type execute --ignore-cache --verbose=4 "$app" || {
+            syspolicy_check distribution "$app" >&2 || true
+            exit 3
+          }
           python3 native/timeline/scripts/smoke-package.py "$app/Contents/MacOS/nodetool-timeline" \
             --package "$RUNNER_TEMP/release-extracted" --version "$APP_VERSION"
           node scripts/smoke-backend-bundle.mjs "$app/Contents/Resources/backend"

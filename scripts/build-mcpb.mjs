@@ -165,13 +165,25 @@ async function stage(version) {
   return bridgePath;
 }
 
+function collectFiles(dir, base = dir, entries = {}) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      collectFiles(fullPath, base, entries);
+    } else if (entry.isFile()) {
+      const rel = path.relative(base, fullPath).split(path.sep).join("/");
+      entries[rel] = new Uint8Array(fs.readFileSync(fullPath));
+    }
+  }
+  return entries;
+}
+
 async function pack(outFile) {
   await fsp.mkdir(path.dirname(outFile), { recursive: true });
   await fsp.rm(outFile, { force: true });
-  const AdmZip = require("adm-zip");
-  const zip = new AdmZip();
-  zip.addLocalFolder(STAGING_DIR);
-  zip.writeZip(outFile);
+  const { zipSync } = await import("fflate");
+  const zipped = zipSync(collectFiles(STAGING_DIR), { level: 9 });
+  await fsp.writeFile(outFile, zipped);
 }
 
 // ---------------------------------------------------------------------------
