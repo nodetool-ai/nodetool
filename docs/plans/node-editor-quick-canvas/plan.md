@@ -40,15 +40,15 @@ measured on RHI after Q10.
 
 On 2026-11-19 the user decided that the Quick canvas is the default and that
 QtNodes is removed. Q5 therefore flips the default without a one-release
-fallback, and Q6 deletes QtNodes in the same PR series. Q4 comes first
+fallback, and Q6 removes its renderer in the same PR series. Q4 comes first
 because the media, inline editor and picker overlays still live in widgets.
 
 - **D1. Keep `QtNodes::AbstractGraphModel` as the model interface.**
   Recommended: keep it. `WorkflowGraphModel` implements it, and 28 source
   files and 61 test files use `QtNodes::NodeId`, `PortType`, `PortIndex` and
   `ConnectionId`. The model headers need only Qt Core. While both canvases
-  exist, both use the fetched headers. When QtNodes leaves (Q6), five files
-  are vendored unmodified and keep the `QtNodes` namespace. The alternative, a
+  exist, both use the fetched headers. Q6 vendors the model and geometry interface with the
+  `QtNodes` namespace. The alternative, a
   new model interface, renames about 600 uses and changes no behaviour.
 - **D2. How cards draw.** Three options:
   - O1: a C++ `QQuickItem` per card that shows a texture. The existing
@@ -111,7 +111,7 @@ because the media, inline editor and picker overlays still live in widgets.
   `BasicGraphicsScene`, the item mouse handlers, the draft connection, and
   `NodeConnectionInteraction`. These are about 1,600 lines upstream.
 - **F2. The editor's own canvas code is the larger part.**
-  [`EditorScene.cpp`](../../../native/node-editor/src/graph/EditorScene.cpp)
+  `EditorScene.cpp`
   has 2,801 lines. It holds the geometry (`NodeGeometry`, line 85), the card
   painter (`NodePainter`, line 325), the wire painter (`WirePainter`, line
   863), and about 1,700 lines of mouse and key handling written against
@@ -202,7 +202,7 @@ New classes live in `native/node-editor/src/canvas/`, in namespace
 
 | QtNodes or editor class | Quick class | What changes |
 |---|---|---|
-| `AbstractGraphModel`, `Definitions`, `ConnectionIdUtils`, `ConnectionIdHash` | The same, unmodified | Fetched until Q6, then vendored |
+| `AbstractGraphModel`, `Definitions`, `ConnectionIdUtils`, `ConnectionIdHash` | The same namespace and model types | Fetched until Q6, then vendored |
 | `BasicGraphicsScene` | `CanvasScene` (`QObject`) | Same item maps, model signal slots and draft connection. No `QGraphicsScene` base, no undo stack |
 | `EditorScene` | `EditorCanvasScene`, derived from `CanvasScene` | Same public methods and signals. Mouse handlers move to `CanvasInteraction` |
 | `NodeGraphicsObject` | `NodeItem` (`QQuickItem`) | Shows a texture that the card painter fills. Holds `NodeState`. `setGeometryChanged`, `moveConnections` and `reactToConnection` keep their names |
@@ -238,10 +238,11 @@ New classes live in `native/node-editor/src/canvas/`, in namespace
    toolbar, the selection toolbar, the zoom readout, the mini-map, the queue,
    the chat window, the node info panel and the price chip.
 
-Card media and inline editors follow their card's opacity and stacking. On
-the software backend, Q4 places them in the overlay layer and preserves that
-order explicitly. Quick children of a card would draw above the whole canvas
-composite.
+Card media and authored controls inherit their card's opacity and stacking.
+When a card overlay is visible, the software backend draws individual item
+tiles so Quick can interleave those overlays with overlapping cards. Inline
+editors follow their card's opacity and position and sit in the viewport
+overlay layer so they can extend over adjacent cards.
 
 ### Card and edge rendering
 
@@ -540,13 +541,12 @@ Large: about 5,000 new lines.
 
 Medium to large: about 2,500 lines changed, small QML edits.
 
-- Add `CardOverlay`. On the Quick canvas, `CanvasMediaPresenter`,
-  `InlinePropertyPresenter` and `InlineTitlePresenter` create their QML as
-  items in it. The picker, the toolbars, the zoom readout, the mini-map
-  controls, the queue, the chat window, the node info panel and the price
-  chip become items of the overlay layer.
-- On that path the masks, the `WA_AlwaysStackOnTop` flags, the raise order
-  and the wheel forwarding of `CanvasMediaWidget` are not compiled in.
+- Add `CardOverlay` for media and authored controls on the Quick canvas.
+  Inline editors, the picker, toolbars, zoom readout, mini-map controls,
+  queue, chat, node info panel and price chip use the viewport overlay layer.
+- The Quick path uses item stacking and input delivery. Widget masks,
+  `WA_AlwaysStackOnTop`, widget raise order and `CanvasMediaWidget` wheel
+  forwarding stay in the QtNodes branch until Q6.
 - Gate: the `_quick` entries of `node_editor_canvas_media`,
   `node_editor_canvas_media_host`, the three inline tests, both picker tests,
   `node_editor_canvas_chrome`, `node_editor_selection_presentation`,
@@ -555,16 +555,19 @@ Medium to large: about 2,500 lines changed, small QML edits.
 
 ### Q5. Quick canvas by default
 
-Small in code. It is the parity checkpoint.
+Quick is the default. The test switch
+`NODETOOL_NODE_EDITOR_TEST_LEGACY_CANVAS=1` selects QtNodes for the compatibility
+gate until Q6.
 
-- The switch defaults to `quick`. The user decided on 2026-11-19 that
-  QtNodes leaves with it, so there is no `qtnodes` fallback value. Q6 follows
-  directly.
-- Run the visual comparison (`scripts/visual-compare.mjs`) and the parity
-  runner, and update `docs/parity.md` where a result changed.
-- Lower the drag limit in `LargeGraphTest` to 16 ms.
-- Gate: the full node editor ctest in the default mode, and the canvas group
-  with the old canvas.
+- The parity fixtures exercise the shared Quick scene, including canvas input,
+  card and overlay stacking, inline editors, media and runtime updates. The
+  Quick box-selection test counts two cards and their wire.
+- The Quick software drag limit is 16 ms per pointer move. The tighter 4 ms mean limit
+  remains in place, and the QtNodes test keeps its existing budget until Q6.
+- See [canvas verification](../../../native/node-editor/docs/parity.md#quick-canvas)
+  for the native captures, component runner and web visual comparison.
+- Gate the complete node editor CTest suite in default mode and the canvas
+  group with the legacy test switch.
 
 ### Q6. QtNodes leaves
 

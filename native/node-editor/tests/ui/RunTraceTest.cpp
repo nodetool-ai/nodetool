@@ -405,7 +405,7 @@ private slots:
         click(view, "trace-logs");
         QTRY_COMPARE(controller.logs().size(), 1);
         QVERIFY2(!spanDetails->isVisible(), "A remembered span must not occupy Logs details");
-        click(view, "trace-log-log-a");
+        click(view, "trace-log-message-0");
         QTRY_VERIFY(findItem(root, "trace-log-attribute-value-0"));
         auto *literal = findItem(root, "trace-log-attribute-value-0");
         QCOMPARE(literal->property("text").toString(), QString("<b>plain failure</b>"));
@@ -715,7 +715,7 @@ private slots:
         QCOMPARE(chatRun()["span_id"].toString(), selectedSpan);
         hostClick(panel, "trace-logs");
         QTRY_COMPARE(controller->logs().size(), 1);
-        hostClick(panel, "trace-log-log-a");
+        hostClick(panel, "trace-log-message-0");
         QCOMPARE(controller->selectedLog()["id"].toString(), QString("log-a"));
         auto *picker = panel->rootObject()->findChild<QQuickItem *>("trace-run");
         QVERIFY(picker);
@@ -782,7 +782,7 @@ private slots:
         QCOMPARE(copied["attributes"].toObject()["large"].toString().size(), 40000);
         click(view, "trace-logs");
         QTRY_COMPARE(controller.logs().size(), 1);
-        click(view, "trace-log-log-a");
+        click(view, "trace-log-message-0");
         QCOMPARE(controller.selectedLog()["id"].toString(), QString("log-a"));
         controller.setWorkflow("workflow-b", "Other");
         QVERIFY(controller.runs().isEmpty());

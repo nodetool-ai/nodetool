@@ -1,7 +1,7 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/OverlayCanvasFixture.h"
 #include "BodyConnectionFixture.h"
 #include "graph/CompatibleNodePicker.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/BodyConnectionRules.h"
 #include "document/WorkflowDocument.h"
 #include <QQmlEngine>
@@ -15,8 +15,8 @@ using namespace nodetool::body_fixture;
 struct Fixture {
   node_editor::WorkflowDocument document;
   WorkflowGraphModel model;
-  EditorScene scene{model}; nodetool::test::WidgetView view{&scene}; QtNodesCanvas canvas{scene, view}; QQmlEngine engine;
-  CompatibleNodePicker picker{model,scene, canvas,&engine};
+  test::OverlayCanvasFixture host{model}; QuickCanvas &canvas = host.surface(); QQmlEngine engine;
+  CompatibleNodePicker picker{model, canvas.scene(), canvas, &engine};
   QString error;
   explicit Fixture(const QString &targetType,const QJsonObject &extra={},const QJsonArray &edges={},const QJsonArray &additional={},const QString &originType="Fixed") {
     auto target=node("target",targetType,500);
@@ -24,7 +24,7 @@ struct Fixture {
     QJsonArray nodes{node("origin",originType,100),target}; for (const auto &value:additional) { nodes.append(value); }
     document.setNodeMetadata(catalog()); const auto loaded=document.load(QJsonObject{{"graph",QJsonObject{{"nodes",nodes},{"edges",edges}}}}); Q_ASSERT(loaded.ok);
     model.project(document.snapshot(),catalog()); picker.setCatalog(catalog());
-    view.resize(1000,700); view.show();
+    host.show({1000, 700}, {500, 300});
     picker.applyCommand=[this](const QJsonObject &command) { const auto result=document.applyCommand(command); error=result.error; if (result) { model.project(document.snapshot(),catalog()); } return bool(result); };
   }
   void drop(PortType direction=PortType::Out) {
@@ -82,9 +82,9 @@ private slots:
     QVERIFY(f.picker.active()); QCOMPARE(f.picker.rows().size(),3); QCOMPARE(f.document.snapshot(),before);
     const auto old=f.picker.generation(); f.picker.cancel(); f.drop();
     f.picker.choose("prompt",old); QCOMPARE(f.document.snapshot(),before);
-    auto widget=f.picker.widget(); QVERIFY(widget);
+    auto widget=f.host.overlay("compatible-node-picker"); QVERIFY(widget);
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
-    QTest::keyClicks(widget,"prompt"); QTRY_COMPARE(f.picker.rows().size(),1); QTest::keyClick(widget,Qt::Key_Return);
+    QTest::keyClicks(widget->inputWidget(),"prompt"); QTRY_COMPARE(f.picker.rows().size(),1); QTest::keyClick(widget->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.document.edges().size(),1); QCOMPARE(f.document.edges().first().toObject()["targetHandle"].toString(),QString("prompt"));
     QCOMPARE(f.document.undoStack()->count(),1); f.document.undo(); QCOMPARE(f.document.snapshot(),before);
   }

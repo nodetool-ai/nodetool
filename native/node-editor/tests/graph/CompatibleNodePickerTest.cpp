@@ -1,7 +1,7 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/OverlayCanvasFixture.h"
 #include "CompatiblePickerFixture.h"
 #include "graph/CompatibleNodePicker.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/CompatibleNodePlacement.h"
 #include "document/WorkflowDocument.h"
 #include "document/ConnectionTypes.h"
@@ -18,9 +18,9 @@ struct Fixture {
   QJsonArray catalog;
   node_editor::WorkflowDocument document;
   WorkflowGraphModel model;
-  EditorScene scene{model};
-  nodetool::test::WidgetView view{&scene};
-  QtNodesCanvas canvas{scene, view};
+  test::OverlayCanvasFixture surface{model};
+  QuickCanvas &canvas = surface.surface();
+  EditorSceneApi &scene = canvas.scene();
   QQmlEngine engine;
   CompatibleNodePicker picker{model,scene, canvas,&engine};
   NodeId node=InvalidNodeId;
@@ -31,7 +31,7 @@ struct Fixture {
     model.project(document.snapshot(),catalog);
     picker.setCatalog(catalog);
     node=picker_fixture::id(model,origin);
-    view.resize(900,700); view.setSceneRect(0,0,1200,900); view.show();
+    surface.show({900, 700}, {450, 350});
     picker.applyCommand=[this](const QJsonObject &command) {
       const auto result=document.applyCommand(command);
       if (result) { model.project(document.snapshot(),catalog); }
@@ -149,30 +149,30 @@ private slots:
     }
   }
   void arrowKeysChooseExplicitAmbiguousPort() {
-    Fixture f; f.open(); auto widget=f.picker.widget(); QVERIFY(widget);
+    Fixture f; f.open(); auto widget=f.surface.overlay("compatible-node-picker"); QVERIFY(widget);
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
-    QTest::keyClicks(widget,"Multi"); QTRY_COMPARE(f.picker.rows().size(),2);
-    QTest::keyClick(widget,Qt::Key_Down); QTest::keyClick(widget,Qt::Key_Return);
+    QTest::keyClicks(widget->inputWidget(),"Multi"); QTRY_COMPARE(f.picker.rows().size(),2);
+    QTest::keyClick(widget->inputWidget(),Qt::Key_Down); QTest::keyClick(widget->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.document.edges().size(),1);
     QCOMPARE(f.document.edges().first().toObject()["targetHandle"].toString(),QString("right"));
     QCOMPARE(f.document.undoStack()->count(),1);
   }
   void keyboardCancelAndOldPopupToken() {
     Fixture f; f.open();
-    auto widget=f.picker.widget(); QVERIFY(widget);
+    auto widget=f.surface.overlay("compatible-node-picker"); QVERIFY(widget);
     auto search=widget->rootObject()->findChild<QQuickItem *>("compatible-search"); QVERIFY(search);
     QTRY_VERIFY(search->hasActiveFocus());
-    QTest::keyClicks(widget,"Receiver prompt"); QTRY_COMPARE(f.picker.rows().size(),2);
-    QTest::keyClick(widget,Qt::Key_Return);
+    QTest::keyClicks(widget->inputWidget(),"Receiver prompt"); QTRY_COMPARE(f.picker.rows().size(),2);
+    QTest::keyClick(widget->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.document.nodes().size(),2);
     QCOMPARE(f.document.undoStack()->count(),1);
     f.document.undo(); f.model.project(f.document.snapshot(),picker_fixture::catalog());
     const auto baseline=f.document.snapshot();
-    f.open(); widget=f.picker.widget(); QVERIFY(widget);
+    f.open(); widget=f.surface.overlay("compatible-node-picker"); QVERIFY(widget);
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
     const auto token=f.picker.generation();
     const auto oldKey=key(f.picker.rows(),"Receiver");
-    QTest::keyClick(widget,Qt::Key_Escape); QTRY_VERIFY(!f.picker.active());
+    QTest::keyClick(widget->inputWidget(),Qt::Key_Escape); QTRY_VERIFY(!f.picker.active());
     f.open();
     f.picker.choose(oldKey,token); f.picker.search("stale query",token); f.picker.dismiss(token);
     QVERIFY(f.picker.active()); QVERIFY(f.picker.query().isEmpty());

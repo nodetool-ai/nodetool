@@ -8,7 +8,7 @@
 // nodetool::canvas.
 #pragma once
 
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 #include <QPointer>
 
 namespace nodetool::canvas {

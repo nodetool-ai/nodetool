@@ -1,5 +1,5 @@
 #include "../support/CanvasProbe.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include <QSettings>
@@ -8,10 +8,9 @@
 #include <QPainter>
 #include <QQmlEngine>
 #include <QQuickWidget>
+#include <QSettings>
 #include <QScrollBar>
 #include <QVariantAnimation>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 #include <algorithm>
 #include <cmath>

@@ -1,4 +1,5 @@
-#include "graph/EditorScene.h"
+#include "../support/OverlayProbe.h"
+#include "canvas/CanvasStyle.h"
 #include "server/MsgPack.h"
 #include "ui/EditorWindow.h"
 #include <QDir>
@@ -182,6 +183,24 @@ QQuickItem *find(QQuickItem *item, const QString &name) {
 }
 bool click(EditorWindow &window, const QString &name) {
     QCoreApplication::processEvents();
+    if (const auto overlay = nodetool::test::overlay(window, name)) {
+        auto *item = overlay->rootObject();
+        if (!item->isEnabled()) {
+            return false;
+        }
+        QList<QQuickItem *> ancestors;
+        for (auto *ancestor = item->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
+            ancestors.prepend(ancestor);
+        }
+        for (auto *ancestor : ancestors) {
+            ancestor->ensurePolished();
+        }
+        item->ensurePolished();
+        const auto point = item->mapToScene(item->boundingRect().center()).toPoint();
+        QTest::mouseClick(overlay->inputWidget(), Qt::LeftButton, Qt::NoModifier, point);
+        QCoreApplication::processEvents();
+        return true;
+    }
     QList<QQuickWindow *> surfaces;
     for (auto host : window.findChildren<QQuickWidget *>()) {
         if (host->isVisible() && host->rootObject()) {
@@ -223,7 +242,9 @@ bool click(EditorWindow &window, const QString &name) {
                               Qt::NoScrollPhase, false);
             QCoreApplication::sendEvent(surface, &wheel);
             // A press during the scroll animation stops the Flickable, not a click.
-            QTest::qWaitFor([clipped] { return !clipped->property("moving").toBool(); }, 2000);
+            if (!QTest::qWaitFor([clipped] { return !clipped->property("moving").toBool(); }, 2000)) {
+                return false;
+            }
             QTest::qWait(50);
         }
         // A window-type popup's items are found through the catalog surface but
@@ -266,6 +287,9 @@ private slots:
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
                            settings_.path());
+    }
+    void init() {
+        QSettings().setValue(QStringLiteral("canvas-chat-dock/collapsed"), true);
     }
     void savedWorkflowEligibility() {
         Server server;

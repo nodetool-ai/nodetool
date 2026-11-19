@@ -3,7 +3,7 @@
 // WorkspaceTabItem.tsx and web/src/stores/WorkspaceTabsStore.ts, driven through
 // real pointer and key events on EditorWindow.
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "server/MsgPack.h"
 #include <QAbstractButton>
 #include <QAction>

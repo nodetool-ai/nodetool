@@ -40,7 +40,6 @@ private:
   CanvasSurface &canvas_;
   QVector<MiniMapNode> nodes_;
   QRectF bounds_;
-  MiniMapGeometry geometry_;
   bool pending_ = false;
 };
 

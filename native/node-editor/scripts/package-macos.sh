@@ -36,7 +36,7 @@ rm -rf "$app"
 cp -R "$build/nodetool-node-editor.app" "$app"
 app=$(cd "$app" && pwd -P)
 cp "$guest" "$app/Contents/MacOS/guest.js"
-# QtNodes is linked in, and its BSD licence asks binaries to reproduce the notice.
+# The vendored QtNodes model and adapted canvas code require the BSD notice.
 mkdir -p "$app/Contents/Resources/licenses"
 cp licenses/*.txt "$app/Contents/Resources/licenses/"
 "$qt/bin/macdeployqt" "$app" -qmldir=qml -qmldir=../ui_primitives/qml -always-overwrite -verbose=1 \

@@ -19,9 +19,9 @@ class WorkflowGraphModel;
 } // namespace nodetool
 
 namespace nodetool::canvas {
+class CardOverlay;
 
-// UI thread only. The Quick canvas view, in the role QGraphicsView has for
-// the QtNodes canvas. Its visual children, back to front: the grid, the content
+// UI thread only. Its visual children, back to front, are the grid, the content
 // layer that carries the pan and zoom transform (cards, wires, lineage links,
 // the draft wire and the foreground), and the overlay layer in viewport
 // coordinates (the rubber band). It owns the scene, the viewport, the
@@ -43,6 +43,10 @@ public:
   const CanvasViewport &viewport() const { return viewport_; }
   CanvasSelection &selection() const { return *selection_; }
   QQuickItem &contentLayer() { return content_; }
+  void focusCanvas(Qt::FocusReason reason);
+  void setCardOverlayVisible(CardOverlay &overlay, bool visible);
+  std::function<void(QWheelEvent &)> viewportWheel;
+  std::function<bool(PointerAction, QMouseEvent &)> viewportPointer;
   QQuickItem &overlayLayer() { return overlay_; }
 
   void setView(double zoom, QPointF center);
@@ -165,6 +169,10 @@ private:
   GridItem grid_;
   QQuickItem content_;
   QQuickItem foreground_;
+  void updateCardOverlayRendering();
+  QSet<CardOverlay *> visibleCardOverlays_;
+  QList<QPointer<CanvasImageItem>> individualSoftwareItems_;
+  bool individualSoftwareRendering_ = false;
   QQuickItem overlay_;
   RubberBandItem band_;
   QTimer settle_;

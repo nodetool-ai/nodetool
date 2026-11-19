@@ -1,7 +1,7 @@
 #include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
 #include "graph/CatalogSearch.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include <QCursor>
 #include <QDir>
 #include <QFile>
@@ -85,7 +85,11 @@ QQuickWidget *openNodeMenu(EditorWindow &window, const QPoint &offset = QPoint(3
     if (!view) {
         return nullptr;
     }
-    QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(view->viewportWidget().width() / 2, view->viewportWidget().height() / 2) + offset);
+    auto *viewport = &view->viewportWidget();
+    const auto point = QPoint(viewport->width() / 2, viewport->height() / 2) + offset;
+    QTest::mouseDClick(viewport, Qt::LeftButton, Qt::NoModifier, point);
+    // Release the press in the Quick canvas before hovering the popup's rows.
+    QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, point);
     return window.catalogAtPointer() ? catalogPanel(window) : nullptr;
 }
 

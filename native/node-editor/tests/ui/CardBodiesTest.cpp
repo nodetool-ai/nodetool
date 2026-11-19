@@ -1,10 +1,10 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/OverlayCanvasFixture.h"
 #include "../support/CanvasProbe.h"
 #include "ui/CanvasSurface.h"
 #include "graph/CanvasDropController.h"
 #include "graph/CardBodies.h"
 #include "graph/CompositorGeometry.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/SynthModules.h"
 #include "graph/WorkflowGraphModel.h"
@@ -31,8 +31,6 @@
 #include <QTemporaryDir>
 #include <QUndoStack>
 #include <QUrlQuery>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
 #include <QtTest>
 #include <cmath>
 #include <utility>
@@ -488,13 +486,8 @@ class CardBodiesTest final : public QObject {
         QJsonObject data(const QString &resource) { return window.document()->node(resource)["data"].toObject(); }
         int undoCount() { return window.document()->undoStack()->count(); }
 
-        QQuickWidget *overlay() {
-            for (auto *widget : window.findChildren<QQuickWidget *>()) {
-                if (widget->objectName() == QStringLiteral("inline-property-overlay") && widget->isVisible()) {
-                    return widget;
-                }
-            }
-            return nullptr;
+        test::OverlayProbe overlay() {
+            return test::overlay(window, "inline-property-overlay");
         }
 
         QImage render(const QString &resource) {
@@ -548,7 +541,7 @@ class CardBodiesTest final : public QObject {
         return nullptr;
     }
 
-    static void type(QQuickWidget *widget, const QString &text) {
+    static void type(test::OverlayProbe widget, const QString &text) {
         for (const auto c : text) {
             QKeyEvent press(QEvent::KeyPress, 0, Qt::NoModifier, QString(c));
             QKeyEvent release(QEvent::KeyRelease, 0, Qt::NoModifier, QString(c));
@@ -688,7 +681,6 @@ private slots:
     }
 
     void ownHandlesKeepControlPortsAndSuppressOutputOnlyBodyPorts() {
-      NODETOOL_REQUIRE_QTNODES();
         auto workflow = fixture()["workflow"].toObject();
         auto graph = workflow["graph"].toObject();
         auto edges = graph["edges"].toArray();
@@ -699,8 +691,14 @@ private slots:
         graph["edges"] = edges;
         workflow["graph"] = graph;
         WorkflowGraphModel model;
-        EditorScene scene(model);
+        test::OverlayCanvasFixture canvas(model);
         model.project(workflow, fixture()["metadata"].toArray());
+        const auto wireVisible = [&](const QtNodes::ConnectionId &id) {
+            return canvas.surface().canvasScene().connectionItem(id)->shown();
+        };
+        const auto wireShape = [&](const QtNodes::ConnectionId &id) {
+            return canvas.surface().canvasScene().connectionItem(id)->hitPath();
+        };
         int inspected = 0;
         for (const auto node : model.allNodeIds()) {
             for (const auto edge : model.allConnectionIds(node)) {
@@ -710,12 +708,12 @@ private slots:
                     ++inspected;
                     QVERIFY(model.portVisible(edge.outNodeId, QtNodes::PortType::Out, edge.outPortIndex));
                     QVERIFY(model.portVisible(node, QtNodes::PortType::In, edge.inPortIndex));
-                    QVERIFY(scene.connectionGraphicsObject(edge)->isVisible());
+                    QVERIFY(wireVisible(edge));
                 } else if (name == "output-body") {
                     ++inspected;
                     QVERIFY(!model.portVisible(edge.outNodeId, QtNodes::PortType::Out, edge.outPortIndex));
-                    QVERIFY(!scene.connectionGraphicsObject(edge)->isVisible());
-                    QVERIFY(scene.connectionGraphicsObject(edge)->shape().isEmpty());
+                    QVERIFY(!wireVisible(edge));
+                    QVERIFY(wireShape(edge).isEmpty());
                 }
             }
         }
@@ -888,7 +886,7 @@ private slots:
         QVERIFY(promptVariables(composer->value).contains(QStringLiteral("subject")));
         const auto before = host.undoCount();
         host.click("prompt", composer->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-multiline")));
         QTest::keyClick(overlay->quickWindow(), Qt::Key_A, Qt::ControlModifier);
@@ -952,11 +950,11 @@ private slots:
         QCOMPARE(select->value, QStringLiteral("Gaussian"));
         const auto undo = host.undoCount();
         host.click("blur", select->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-choice")));
-        QTest::keyClick(overlay, Qt::Key_Down);
-        QTest::keyClick(overlay, Qt::Key_Return);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Down);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Return);
         QTRY_COMPARE(host.data("blur")["blur_type"].toString(), QStringLiteral("box"));
         QCOMPARE(host.undoCount(), undo + 1);
         // A drag on the slider commits once, on release.
@@ -1007,7 +1005,7 @@ private slots:
         const auto *width = host.row("resize", NodeRowKind::Field, "width");
         QVERIFY(width);
         host.click("resize", width->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-number")));
         QTest::keyClick(overlay->quickWindow(), Qt::Key_A, Qt::ControlModifier);
@@ -1031,7 +1029,7 @@ private slots:
         QVERIFY(host.window.document()->applyCommand({{"op", "addDynamicInput"}, {"id", "prompt"}, {"name", "subject"}}).ok);
         const auto *composer = host.row("prompt", NodeRowKind::Composer);
         host.click("prompt", composer->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QQuickItem *field = nullptr;
         QTRY_VERIFY((field = find(overlay->rootObject(), QStringLiteral("inline-multiline"))) != nullptr);
@@ -1052,6 +1050,23 @@ private slots:
         overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY((field = find(overlay->rootObject(), QStringLiteral("inline-multiline"))) != nullptr);
+        auto *expand = find(overlay->rootObject(), QStringLiteral("inline-expand"));
+        QVERIFY(expand);
+        const auto clickExpand = [&] {
+            QTest::mouseClick(overlay->inputWidget(), Qt::LeftButton, Qt::NoModifier,
+                              expand->mapToScene(QPointF(expand->width() / 2, expand->height() / 2)).toPoint());
+        };
+        clickExpand();
+        QTRY_COMPARE(expand->property("text").toString(), QStringLiteral("Collapse"));
+        const auto chipCenter = host.row("prompt", NodeRowKind::Action, "insertVariable")->rect.center();
+        const auto inputPoint = host.point("prompt", chipCenter);
+        QVERIFY(field->contains(field->mapFromScene(inputPoint)));
+        field->setProperty("cursorPosition", 0);
+        host.click("prompt", chipCenter);
+        QCOMPARE(field->property("text").toString(), before);
+        QVERIFY(field->property("cursorPosition").toInt() > 0);
+        clickExpand();
+        QTRY_COMPARE(expand->property("text").toString(), QStringLiteral("Expand"));
         field->setProperty("cursorPosition", 6);
         host.click("prompt", host.row("prompt", NodeRowKind::Action, "insertVariable")->rect.center());
         QTest::mouseClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewportWidget().height() - 20));
@@ -1125,7 +1140,7 @@ private slots:
         QCOMPARE(chip->value, QStringLiteral("gpt-5-mini"));
         QVERIFY(chip->bare);
         host.click("agent", chip->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-model")));
         QQuickItem *choice = nullptr;
@@ -1593,11 +1608,11 @@ private slots:
         QCOMPARE(host.model().nodeData(host.id("getter"), QtNodes::NodeRole::InPortCount).toUInt(), 1u);
         const auto undo = host.undoCount();
         host.click("getter", picker->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-choice")));
-        QTest::keyClick(overlay, Qt::Key_Down);
-        QTest::keyClick(overlay, Qt::Key_Return);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Down);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Return);
         QTRY_COMPARE(host.data("getter")["name"].toString(), QStringLiteral("mood"));
         QCOMPARE(host.undoCount(), undo + 1);
         // Without any Set Variable node the body shows the empty hint instead of a picker.
@@ -1692,7 +1707,7 @@ private slots:
         QCOMPARE(expand->rect, QRectF(223, 10.5, 21, 21));
         auto undo = host.undoCount();
         host.click("text", area->rect.center());
-        QPointer<QQuickWidget> overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-multiline")));
         // The editor covers the text area, as the web swaps its preview for a textarea.
@@ -1709,11 +1724,14 @@ private slots:
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-multiline")));
         type(overlay, QStringLiteral("!"));
-        QTest::keyClick(overlay.data(), Qt::Key_Return, Qt::ControlModifier);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Return, Qt::ControlModifier);
         QTRY_COMPARE(host.data("text")["value"].toString().size(), 6);
         QVERIFY(host.data("text")["value"].toString().contains('!'));
         QCOMPARE(host.undoCount(), ++undo);
         // Copy puts the value on the clipboard and leaves the document alone.
+        host.window.action("Reset zoom");
+        host.view->centerOn(host.view->nodeBounds(host.id("text")).center());
+        settle();
         QGuiApplication::clipboard()->clear();
         host.click("text", host.row("text", NodeRowKind::Action, "copyValue")->rect.center());
         QCOMPARE(QGuiApplication::clipboard()->text(), host.data("text")["value"].toString());
@@ -1811,7 +1829,7 @@ private slots:
         QVERIFY(host.model().dimensionsLinked(host.id("resize2")));
         auto undo = host.undoCount();
         host.click("resize2", host.row("resize2", NodeRowKind::Field, "width")->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-number")));
         QTest::keyClick(overlay->quickWindow(), Qt::Key_A, Qt::ControlModifier);
@@ -1865,7 +1883,7 @@ private slots:
         QCOMPARE(host.row("paste", NodeRowKind::Field, "top")->rect.x(), 11.0 + 127 + 4);
         const auto undo = host.undoCount();
         host.click("paste", left->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-number")));
         QTest::keyClick(overlay->quickWindow(), Qt::Key_A, Qt::ControlModifier);
@@ -2929,7 +2947,7 @@ private slots:
         QPointer<QQuickItem> chooser;
         // Project an unrelated card while the chooser's network request is open.
         server.beforeWorkflowListReply = [&] {
-            if (auto *overlay = host.overlay()) {
+            if (auto overlay = host.overlay()) {
                 chooser = find(overlay->rootObject(), QStringLiteral("inline-resource-select"));
             }
             QVERIFY(host.window.document()->applyCommand({{"op", "addNode"},
@@ -2979,7 +2997,7 @@ private slots:
         QPointer<QQuickItem> chooser;
         // Resolve the current chooser while waiting for its server reply.
         QTRY_VERIFY([&] {
-            const auto *overlay = host.overlay();
+            const auto overlay = host.overlay();
             chooser = overlay ? find(overlay->rootObject(), QStringLiteral("inline-resource-select")) : nullptr;
             return chooser && chooser->property("options").toList().size() == 1;
         }());
@@ -3151,7 +3169,7 @@ private slots:
         const auto *chip = host.row("languagemodelconstant", NodeRowKind::ModelChip, "value");
         QVERIFY(chip);
         host.click("languagemodelconstant", chip->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-model")));
         QQuickItem *choice = nullptr;
@@ -3192,11 +3210,11 @@ private slots:
         QCOMPARE(bare->height, double(node_metrics::fieldHeight));
         const auto undo = host.undoCount();
         host.click("picked", host.model().inlineFieldRect(host.id("picked"), "value").center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-choice")));
-        QTest::keyClick(overlay, Qt::Key_Down);
-        QTest::keyClick(overlay, Qt::Key_Return);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Down);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Return);
         QTRY_COMPARE(host.data("picked")["value"].toString(), QStringLiteral("b"));
         QCOMPARE(host.undoCount(), undo + 1);
         QCOMPARE(host.data("picked")["options"].toArray(), options);
@@ -3287,7 +3305,7 @@ private slots:
                   constantsCatalog());
         const auto undo = host.undoCount();
         host.click("hd", host.row("hd", NodeRowKind::ImageSize, "value")->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QQuickItem *width = nullptr;
         QTRY_VERIFY((width = find(overlay->rootObject(), QStringLiteral("image-width-value"))) != nullptr);

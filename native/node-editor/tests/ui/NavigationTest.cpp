@@ -1,7 +1,7 @@
+#include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include "canvas/CanvasStyle.h"
 #include <QApplication>
 #include <QInputDialog>
 #include <QTimer>
@@ -50,7 +50,7 @@ private slots:
     QCOMPARE(canvas->transform().m11(), zoom * 1.5);
     QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
     QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
-    QCOMPARE(canvas->dragMode(), QGraphicsView::RubberBandDrag);
+    QVERIFY(!canvas->handDrag());
 
     QSettings().setValue("canvas/navigation", "mouse");
     const auto pinched = canvas->transform().m11();
@@ -63,13 +63,13 @@ private slots:
     QCOMPARE(canvas->transform().m11(), pinched * 1.15);
     QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
     QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
-    QCOMPARE(canvas->dragMode(), QGraphicsView::RubberBandDrag);
+    QVERIFY(!canvas->handDrag());
 #else
     wheel(window, QPoint(30, 40), QPoint(0, 120));
     QCOMPARE(canvas->transform().m11(), pinched * 1.15);
     QTest::mousePress(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
     QTest::mouseRelease(canvas->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(5, 5));
-    QCOMPARE(canvas->dragMode(), QGraphicsView::ScrollHandDrag);
+    QVERIFY(canvas->handDrag());
 #endif
     QSettings().remove("canvas/navigation");
   }
@@ -198,11 +198,8 @@ private slots:
     for (const auto id : model.allNodeIds()) { window.canvas().selection().setNode(id, true); }
     const auto initial = window.document()->snapshot();
     const auto undoIndex = window.document()->undoStack()->index();
-    QQuickWidget *toolbar = nullptr;
-    for (auto panel : window.findChildren<QQuickWidget *>()) {
-      if (panel->source().fileName() == "SelectionToolbar.qml") { toolbar = panel; }
-    }
-    QVERIFY(toolbar);
+    test::OverlayProbe toolbar;
+    QTRY_VERIFY((toolbar = test::overlay(window, "SelectionToolbar.qml", true)));
     QTRY_VERIFY(toolbar->isVisible());
     auto arrangeButton = toolbar->rootObject()->findChild<QQuickItem *>("selection-arrange-selection");
     QVERIFY(arrangeButton);
@@ -233,6 +230,7 @@ private slots:
     const auto undo = window.document()->undoStack()->index();
     auto view = nodetool::test::view(window);
     QVERIFY(view);
+    window.canvas().setFocus(Qt::OtherFocusReason);
     QTest::keyClick(view->widget(), Qt::Key_F, Qt::ControlModifier);
     QTRY_VERIFY(window.findChild<QQuickWidget *>("find-panel"));
     auto *panel = window.findChild<QQuickWidget *>("find-panel");

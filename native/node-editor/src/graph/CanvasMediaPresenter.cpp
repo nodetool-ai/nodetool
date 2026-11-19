@@ -1,17 +1,15 @@
+#include "ui/CanvasOverlay.h"
 #include "CanvasMediaPresenter.h"
 #include "canvas/CanvasStyle.h"
-#include "canvas/EditorSceneApi.h"
 #include "WorkflowGraphModel.h"
 #include "media/MediaResolver.h"
 #include <QEvent>
 #include <QApplication>
 #include <QQuickWindow>
 #include <QQuickRenderControl>
-#include "ui/CanvasSurface.h"
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QQuickItem>
-#include <QQuickWidget>
 #include <QQmlEngine>
 #include <QQmlComponent>
 #include <QRegion>
@@ -21,38 +19,9 @@
 #include <algorithm>
 #include <cmath>
 namespace nodetool {
-namespace {
-class CanvasMediaWidget final : public QQuickWidget {
-public:
-  CanvasMediaWidget(QQmlEngine *engine, QWidget *parent) : QQuickWidget(engine, parent) {}
-protected:
-  bool event(QEvent *event) override {
-    if (event->type() == QEvent::ShortcutOverride) { event->accept(); return true; }
-    return QQuickWidget::event(event);
-  }
-  void mousePressEvent(QMouseEvent *event) override { QQuickWidget::mousePressEvent(event); event->accept(); }
-  void mouseMoveEvent(QMouseEvent *event) override { QQuickWidget::mouseMoveEvent(event); event->accept(); }
-  void mouseReleaseEvent(QMouseEvent *event) override { QQuickWidget::mouseReleaseEvent(event); event->accept(); }
-  void mouseDoubleClickEvent(QMouseEvent *event) override { QQuickWidget::mouseDoubleClickEvent(event); event->accept(); }
-  // A wheel that no output scrolls goes on to the viewport, which zooms or pans the canvas.
-  void wheelEvent(QWheelEvent *event) override {
-    event->ignore();
-    QQuickWidget::wheelEvent(event);
-    if (event->isAccepted() || !parentWidget()) { event->accept(); return; }
-    // Qt propagates only spontaneous wheel events, so hand this one to the viewport explicitly.
-    QWheelEvent forwarded(mapToParent(event->position()), event->globalPosition(), event->pixelDelta(), event->angleDelta(),
-      event->buttons(), event->modifiers(), event->phase(), event->inverted(), event->source());
-    QCoreApplication::sendEvent(parentWidget(), &forwarded);
-    event->accept();
-  }
-  void keyPressEvent(QKeyEvent *event) override { QQuickWidget::keyPressEvent(event); event->accept(); }
-  void keyReleaseEvent(QKeyEvent *event) override { QQuickWidget::keyReleaseEvent(event); event->accept(); }
-};
-}
-CanvasMediaPresenter::CanvasMediaPresenter(WorkflowGraphModel &model, EditorSceneApi &scene,
-    CanvasSurface &canvas, QQmlEngine *engine, node_editor::MediaResolver &resolver, QObject *parent)
+CanvasMediaPresenter::CanvasMediaPresenter(WorkflowGraphModel &model, QuickCanvas &canvas, QQmlEngine *engine, node_editor::MediaResolver &resolver, QObject *parent)
     : QObject(parent), model_(model), canvas_(canvas), engine_(engine), resolver_(resolver) {
-  connect(&model_, &WorkflowGraphModel::modelReset, this, [this] { allPlayerNodesDirty_ = true; releaseWidgets(); schedule(); });
+  connect(&model_, &WorkflowGraphModel::modelReset, this, [this] { allPlayerNodesDirty_ = true; releaseOverlays(); schedule(); });
   // An incremental projection keeps the players of surviving nodes.
   connect(&model_, &WorkflowGraphModel::projectionChanged, this, [this] {
     QSet<QString> present;
@@ -80,18 +49,35 @@ CanvasMediaPresenter::~CanvasMediaPresenter() {
   qApp->removeEventFilter(this);
   canvas_.hostWidget().removeEventFilter(this);
   canvas_.viewportWidget().removeEventFilter(this);
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  for (const auto &entry : active_) { delete entry.widget.data(); }
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  for (const auto &player : players_) { delete player.widget.data(); }
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  for (const auto &widget : retired_) { delete widget.data(); }
+  releaseOverlays();
 }
-QList<QQuickWidget *> CanvasMediaPresenter::activeWidgets() const {
-  QList<QQuickWidget *> result;
-  for (const auto &entry : active_) { if (entry.widget) { result.append(entry.widget); } }
+QList<QQuickItem *> CanvasMediaPresenter::activeItems() const {
+  QList<QQuickItem *> result;
+  for (const auto &entry : active_) {
+    if (auto *root = entry.widget->rootObject()) { result.append(root); }
+  }
   return result;
 }
+
+CanvasOverlay *CanvasMediaPresenter::createOverlay(QtNodes::NodeId node, const QString &file, const QString &name,
+                                                   const QVariantMap &properties) {
+  const QUrl source(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/") + file + QStringLiteral(".qml"));
+  auto overlay = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, properties, 0, node);
+  if (!overlay->rootObject()) { return nullptr; }
+  overlay->setObjectName(name);
+  auto *handle = overlay.get();
+  overlays_.emplace(handle, std::move(overlay));
+  return handle;
+}
+
+void CanvasMediaPresenter::retireOverlay(CanvasOverlay &overlay) {
+  overlay.hide();
+  overlay.setEnabled(false);
+  if (auto *root = overlay.rootObject()) { QMetaObject::invokeMethod(root, "release"); }
+  overlay.retireQuickRoot(retiredQuickRoots_);
+  overlays_.erase(&overlay);
+}
+
 void CanvasMediaPresenter::schedule() {
   if (scheduled_) { return; }
   scheduled_ = true;
@@ -167,15 +153,9 @@ void CanvasMediaPresenter::applySources(const QHash<QString, QVariantMap> &sourc
 }
 void CanvasMediaPresenter::retire(const QString &id) {
   const auto entry = active_.take(id);
-  if (!entry.widget) { return; }
-  if (entry.widget->rootObject()) { QMetaObject::invokeMethod(entry.widget->rootObject(), "release"); }
-  entry.widget->hide();
-  entry.widget->setEnabled(false);
-  retired_.removeIf([](const auto &widget) { return widget.isNull(); });
-  retired_.append(entry.widget);
-  entry.widget->deleteLater();
+  if (entry.widget) { retireOverlay(*entry.widget); }
 }
-void CanvasMediaPresenter::releaseWidgets() {
+void CanvasMediaPresenter::releaseOverlays() {
   closeImageViewer();
   for (const auto &id : active_.keys()) { retire(id); }
   for (const auto &key : players_.keys()) { retirePlayer(key); }
@@ -183,13 +163,7 @@ void CanvasMediaPresenter::releaseWidgets() {
 }
 void CanvasMediaPresenter::retirePlayer(const QString &key) {
   const auto player = players_.take(key);
-  if (!player.widget) { return; }
-  if (player.widget->rootObject()) { QMetaObject::invokeMethod(player.widget->rootObject(), "release"); }
-  player.widget->hide();
-  player.widget->setEnabled(false);
-  retired_.removeIf([](const auto &widget) { return widget.isNull(); });
-  retired_.append(player.widget);
-  player.widget->deleteLater();
+  if (player.widget) { retireOverlay(*player.widget); }
 }
 void CanvasMediaPresenter::updatePlayerNodes() {
   const auto hasPlayer = [this](QtNodes::NodeId id) {
@@ -214,7 +188,7 @@ void CanvasMediaPresenter::updatePlayerNodes() {
   dirtyPlayerNodes_.clear();
 }
 void CanvasMediaPresenter::showPlayers(QtNodes::NodeId node, const QRect &viewport, const QTransform &transform, double zoom,
-                                       const QRegion &covered, QSet<QString> &visible, QList<QQuickWidget *> &stacking) {
+                                       const QRegion &covered, QSet<QString> &visible) {
   const auto resource = model_.resourceId(node);
   for (const auto &row : model_.layout(node).rows) {
     if (row.kind != NodeRowKind::DropZone || row.media.isEmpty() || (row.mediaKind != "video" && row.mediaKind != "audio")) { continue; }
@@ -222,8 +196,8 @@ void CanvasMediaPresenter::showPlayers(QtNodes::NodeId node, const QRect &viewpo
     for (const auto &item : row.media) { local = local.united(item.rect); }
     const auto mapped = transform.mapRect(canvas_.mapRectFromNode(node, local));
     const auto clipped = mapped.toAlignedRect().intersected(viewport);
-    const auto mask = QRegion(clipped).subtracted(covered);
-    if (mask.isEmpty()) { continue; }
+    const auto exposed = QRegion(clipped).subtracted(covered);
+    if (exposed.isEmpty()) { continue; }
     QVariantList items, geometry;
     for (const auto &item : row.media) {
       items.append(QVariantMap{{"kind", row.mediaKind}, {"locator", item.locator}, {"identity", item.identity},
@@ -232,26 +206,20 @@ void CanvasMediaPresenter::showPlayers(QtNodes::NodeId node, const QRect &viewpo
     }
     const auto key = resource + '-' + row.propertyName;
     visible.insert(key);
-    if (players_.contains(key) && players_[key].items != items) { retirePlayer(key); }
+    if (players_.contains(key) && (!players_[key].widget->rootObject() || players_[key].items != items)) { retirePlayer(key); }
     if (!players_.contains(key)) {
-      auto widget = new CanvasMediaWidget(engine_, &canvas_.viewportWidget());
-      widget->setObjectName("card-media-" + key);
-      widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-      widget->setClearColor(Qt::transparent);
-      widget->setAttribute(Qt::WA_AlwaysStackOnTop);
-      widget->setFocusPolicy(Qt::StrongFocus);
-      widget->setInitialProperties({{"items", items}, {"geometry", geometry}, {"playerKey", key}, {"resolver", QVariant::fromValue<QObject *>(&resolver_)},
-                                    {"requestKey", "card-media-player:" + key + ':' + QString::number(++serial_)}});
-      widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CardMediaPlayer.qml"));
-      if (widget->status() == QQuickWidget::Error || !widget->rootObject()) { widget->deleteLater(); continue; }
+      auto *widget = createOverlay(node, "CardMediaPlayer", "card-media-" + key,
+          {{"items", items}, {"geometry", geometry}, {"playerKey", key}, {"resolver", QVariant::fromValue<QObject *>(&resolver_)},
+           {"requestKey", "card-media-player:" + key + ':' + QString::number(++serial_)}});
+      if (!widget) { continue; }
       connect(widget->rootObject(), SIGNAL(naturalSizeReported(QString,int,int,int)), this, SLOT(reportNaturalSize(QString,int,int,int)));
       players_.insert(key, {widget, node, row.propertyName, row.mediaList, items, geometry});
     }
     auto &player = players_[key];
-    auto widget = player.widget.data();
+    auto *widget = player.widget;
     if (!widget || !widget->rootObject()) { continue; }
     widget->setGeometry(clipped);
-    widget->setMask(mask.translated(-clipped.topLeft()));
+    widget->setCardInteractiveArea(exposed);
     auto root = widget->rootObject();
     if (player.geometry != geometry) { root->setProperty("geometry", geometry); player.geometry = geometry; }
     root->setProperty("logicalWidth", local.width());
@@ -259,9 +227,8 @@ void CanvasMediaPresenter::showPlayers(QtNodes::NodeId node, const QRect &viewpo
     root->setProperty("zoom", zoom);
     root->setProperty("offsetX", mapped.x() - clipped.x());
     root->setProperty("offsetY", mapped.y() - clipped.y());
-    root->setProperty("mediaOpacity", (model_.bypassed(node) ? node_metrics::disabledOpacity : 1.0) * canvas_.nodeOpacity(node));
+    root->setProperty("mediaOpacity", model_.bypassed(node) ? node_metrics::disabledOpacity : 1.0);
     widget->show();
-    stacking.prepend(widget);
   }
 }
 void CanvasMediaPresenter::reportNaturalSize(const QString &key, int index, int width, int height) {
@@ -279,11 +246,11 @@ void CanvasMediaPresenter::reportNaturalSize(const QString &key, int index, int 
 }
 void CanvasMediaPresenter::clear() {
   sources_.clear();
-  releaseWidgets();
+  releaseOverlays();
   model_.setCanvasMediaNodes({});
 }
 void CanvasMediaPresenter::refresh() {
-  if (!engine_ || !canvas_.hostWidget().isVisible() || !canvas_.viewportWidget().isVisible()) { releaseWidgets(); return; }
+  if (!engine_ || !canvas_.hostWidget().isVisible() || !canvas_.viewportWidget().isVisible()) { releaseOverlays(); return; }
   if (imageViewer_) {
     bool present = false;
     for (const auto id : model_.allNodeIds()) {
@@ -297,7 +264,6 @@ void CanvasMediaPresenter::refresh() {
   updatePlayerNodes();
   QSet<QString> visible, visiblePlayers;
   QRegion covered;
-  QList<QQuickWidget *> stacking;
   for (const auto node : canvas_.visibleNodes()) {
     const auto id = model_.resourceId(node);
     const auto source = sources_.constFind(id);
@@ -305,27 +271,21 @@ void CanvasMediaPresenter::refresh() {
     if (source != sources_.cend() && !local.isEmpty()) {
       const auto mapped = transform.mapRect(canvas_.mapRectFromNode(node, local));
       const auto clipped = mapped.toAlignedRect().intersected(viewport);
-      const auto mask = QRegion(clipped).subtracted(covered);
-      if (!mask.isEmpty()) {
+      const auto exposed = QRegion(clipped).subtracted(covered);
+      if (!exposed.isEmpty()) {
         visible.insert(id);
-        if (active_.contains(id) && (active_[id].source.value("runId") != source->value("runId") || active_[id].source.value("outputName") != source->value("outputName"))) { retire(id); }
+        if (active_.contains(id) && (!active_[id].widget->rootObject() || active_[id].source.value("runId") != source->value("runId") || active_[id].source.value("outputName") != source->value("outputName"))) { retire(id); }
         if (!active_.contains(id)) {
-          auto widget = new CanvasMediaWidget(engine_, &canvas_.viewportWidget());
-          widget->setObjectName("canvas-media-" + id);
-          widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-          widget->setClearColor(Qt::transparent);
-          widget->setAttribute(Qt::WA_AlwaysStackOnTop);
-          widget->setFocusPolicy(Qt::StrongFocus);
-          widget->setInitialProperties({{"richEntry", source->value("richEntry", QVariantMap{})}, {"mediaKind", source->value("kind")}, {"locator", source->value("locator")},
+          auto *widget = createOverlay(node, "CanvasMedia", "canvas-media-" + id,
+              {{"richEntry", source->value("richEntry", QVariantMap{})}, {"mediaKind", source->value("kind")}, {"locator", source->value("locator")},
             {"filename", source->value("filename").toString()}, {"notice", source->value("notice").toString()}, {"items", source->value("items")}, {"previewActions", source->value("previewActions").toBool()}, {"resolver", QVariant::fromValue<QObject *>(&resolver_)}, {"requestKey", "canvas-media:" + id + ':' + QString::number(++serial_)}});
-          widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CanvasMedia.qml"));
-          if (widget->status() == QQuickWidget::Error) { widget->deleteLater(); continue; }
+          if (!widget) { continue; }
           active_.insert(id, {widget, *source});
         }
-        auto widget = active_[id].widget.data();
+        auto *widget = active_[id].widget;
         if (!widget || !widget->rootObject()) { continue; }
         widget->setGeometry(clipped);
-        widget->setMask(mask.translated(-clipped.topLeft()));
+        widget->setCardInteractiveArea(exposed);
         auto root = widget->rootObject();
         if (active_[id].source != *source) {
           root->setProperty("richEntry", source->value("richEntry", QVariantMap{}));
@@ -340,20 +300,16 @@ void CanvasMediaPresenter::refresh() {
         root->setProperty("zoom", zoom);
         root->setProperty("offsetX", mapped.x() - clipped.x());
         root->setProperty("offsetY", mapped.y() - clipped.y());
-        // The widget sits above the canvas, so it follows the card opacity: disabled and off the selected branch.
-        root->setProperty("mediaOpacity", (model_.bypassed(node) ? node_metrics::disabledOpacity : 1.0) * canvas_.nodeOpacity(node));
+        // Card stacking supplies branch opacity. The content also reflects bypass state.
+        root->setProperty("mediaOpacity", model_.bypassed(node) ? node_metrics::disabledOpacity : 1.0);
         widget->show();
-        stacking.prepend(widget);
       }
     }
-    if (playerNodes_.contains(node)) { showPlayers(node, viewport, transform, zoom, covered, visiblePlayers, stacking); }
+    if (playerNodes_.contains(node)) { showPlayers(node, viewport, transform, zoom, covered, visiblePlayers); }
     covered += QRegion(transform.mapRect(canvas_.nodeBounds(node)).toAlignedRect());
   }
   for (const auto &id : active_.keys()) { if (!visible.contains(id)) { retire(id); } }
   for (const auto &key : players_.keys()) { if (!visiblePlayers.contains(key)) { retirePlayer(key); } }
-  for (auto widget : stacking) { widget->raise(); }
-  if (auto editor = canvas_.viewportWidget().findChild<QQuickWidget *>("inline-property-overlay", Qt::FindDirectChildrenOnly)) { editor->raise(); }
-  if (auto picker = canvas_.viewportWidget().findChild<QQuickWidget *>("compatible-node-picker", Qt::FindDirectChildrenOnly); picker && picker->isVisible()) { picker->raise(); }
   emit changed();
 }
 void CanvasMediaPresenter::closeImageViewer() {
@@ -363,8 +319,8 @@ void CanvasMediaPresenter::closeImageViewer() {
   imageViewerNode_.clear();
   imageViewerSource_.clear();
   QMetaObject::invokeMethod(viewer, "dismiss");
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  delete viewer;
+  viewer->QObject::setParent(nullptr);
+  const std::unique_ptr<QQuickWindow> detached(viewer);
 }
 bool CanvasMediaPresenter::canViewImage(const QString &nodeId) const {
   for (const auto id : model_.allNodeIds()) {
@@ -394,18 +350,18 @@ bool CanvasMediaPresenter::openImageViewer(QtNodes::NodeId id) {
   if (!canOpenImageViewer(id)) { return false; }
   closeImageViewer();
   QQmlComponent component(engine_, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ImageViewer.qml"));
-  auto object = component.createWithInitialProperties({{"items", items}, {"selected", items.first()},
-      {"currentIndex", 0}, {"resolver", QVariant::fromValue<QObject *>(&resolver_)}, {"scopeKey", "canvas-image:" + resource + ':' + QString::number(++serial_)}});
-  auto viewer = qobject_cast<QQuickWindow *>(object);
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  if (!viewer) { delete object; return false; }
+  std::unique_ptr<QObject> object(component.createWithInitialProperties({{"items", items}, {"selected", items.first()},
+      {"currentIndex", 0}, {"resolver", QVariant::fromValue<QObject *>(&resolver_)}, {"scopeKey", "canvas-image:" + resource + ':' + QString::number(++serial_)}}));
+  auto *viewer = qobject_cast<QQuickWindow *>(object.get());
+  if (!viewer) { return false; }
   viewer->QObject::setParent(this);
+  object.release();
   imageViewer_ = viewer;
   imageViewerNode_ = resource;
   imageViewerSource_ = source;
   viewer->setTransientParent(canvas_.hostWidget().window()->windowHandle());
-  connect(viewer, &QWindow::visibleChanged, this, [this, viewer](bool visible) {
-    if (visible) { return; }
+  connect(viewer, &QWindow::visibleChanged, this, [this, viewer = QPointer(viewer)](bool visible) {
+    if (!viewer || visible) { return; }
     if (imageViewer_ == viewer) { imageViewer_.clear(); imageViewerNode_.clear(); imageViewerSource_.clear(); }
     viewer->deleteLater();
     canvas_.setFocus(Qt::PopupFocusReason);
@@ -432,14 +388,8 @@ bool CanvasMediaPresenter::eventFilter(QObject *object, QEvent *event) {
       }
       if (owned) { event->accept(); return true; }
     }
-    QList<QQuickWidget *> widgets = activeWidgets();
-    for (const auto &player : players_) { if (player.widget) { widgets.append(player.widget); } }
-    for (auto *widget : widgets) {
-      bool inside = object == widget || object == widget->quickWindow();
-      for (auto target = object; target && !inside; target = target->parent()) {
-        inside = target == widget || target == widget->rootObject();
-      }
-      if (inside) { event->accept(); return true; }
+    for (const auto &[handle, overlay] : overlays_) {
+      if (overlay->ownsFocus(object)) { event->accept(); return true; }
     }
   }
   if (object == &canvas_.viewportWidget() && event->type() == QEvent::MouseButtonDblClick) {
@@ -457,7 +407,7 @@ bool CanvasMediaPresenter::eventFilter(QObject *object, QEvent *event) {
     }
   }
   if (object == &canvas_.hostWidget() || object == &canvas_.viewportWidget()) {
-    if (event->type() == QEvent::Hide) { releaseWidgets(); }
+    if (event->type() == QEvent::Hide) { releaseOverlays(); }
     else if (event->type() == QEvent::Show || event->type() == QEvent::Resize || event->type() == QEvent::Wheel) { schedule(); }
   }
   return QObject::eventFilter(object, event);

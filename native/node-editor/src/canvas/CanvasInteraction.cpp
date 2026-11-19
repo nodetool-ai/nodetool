@@ -5,7 +5,7 @@
 #include "graph/WorkflowGraphModel.h"
 #include "ui/CanvasSurface.h"
 #include <utility>
-#include <QtNodes/ConnectionIdUtils>
+#include <qtnodes/ConnectionIdUtils.hpp>
 #include <QClipboard>
 #include <QFontMetricsF>
 #include <QGuiApplication>
@@ -139,7 +139,6 @@ void CanvasInteraction::finishViewportRelease(quint64 epoch, CanvasViewportHost 
     const auto commands = std::exchange(viewportCommands_, {});
     if (host.apply({{"op", "batch"}, {"commands", commands}})) { host.previewCardEdit(commands); }
   }
-  host.clearBaseUndo();
 }
 
 void CanvasInteraction::invalidateViewportGesture() {

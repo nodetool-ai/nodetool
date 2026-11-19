@@ -1,6 +1,8 @@
+#include "canvas/CardOverlay.h"
 #include "canvas/GraphCanvas.h"
 
 #include "canvas/ConnectionItem.h"
+#include "canvas/LineageItem.h"
 #include "canvas/NodeItem.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/CanvasSurface.h"
@@ -99,8 +101,7 @@ public:
     if (auto *node = scene_.nodeItem(id)) { node->setSelected(selected); }
   }
   void selectNodes(const QList<NodeId> &ids, bool replace) override {
-    // One notification for the batch, which QtNodesCanvas sends by blocking
-    // the scene. A blocked batch on the Quick scene sends none at all.
+    // Block per-item signals and publish one selection change for the batch.
     {
       const QSignalBlocker blocker(&scene_.selectionGate());
       if (replace) { clear(); }
@@ -259,15 +260,49 @@ double GraphCanvas::itemOpacity(const CanvasItem &item) const {
   return opacity;
 }
 
+void GraphCanvas::setCardOverlayVisible(CardOverlay &overlay, bool visible) {
+  if (visible == visibleCardOverlays_.contains(&overlay)) { return; }
+  if (visible) { visibleCardOverlays_.insert(&overlay); }
+  else { visibleCardOverlays_.remove(&overlay); }
+  updateCardOverlayRendering();
+}
+
+void GraphCanvas::updateCardOverlayRendering() {
+  if (!window() || window()->rendererInterface()->graphicsApi() != QSGRendererInterface::Software ||
+      (visibleCardOverlays_.isEmpty() && !individualSoftwareRendering_)) { return; }
+  const auto visible = viewport_.visibleSceneRect();
+  // The software batch is one paint node. While there is a live card overlay,
+  // use the same per-item tiles as RHI so Quick can interleave cards and QML.
+  individualSoftwareRendering_ = std::ranges::any_of(visibleCardOverlays_, [&](const CardOverlay *overlay) {
+    const auto *card = static_cast<const CanvasItem *>(overlay->parentItem());
+    return card && card->sceneBoundingRect().intersects(visible);
+  });
+  QList<QPointer<CanvasImageItem>> next;
+  QSet<CanvasImageItem *> retained;
+  const auto include = [&](CanvasImageItem &item) {
+    retained.insert(&item);
+    next.append(&item);
+    item.setIndividualSoftwareRendering(true);
+    item.update();
+  };
+  if (individualSoftwareRendering_) {
+    for (auto *item : scene_->itemsIn(visible)) { include(*item); }
+    for (const auto &[key, item] : foregroundParts_) { include(*item); }
+  }
+  for (const auto &item : std::as_const(individualSoftwareItems_)) {
+    if (item && !retained.contains(item)) { item->setIndividualSoftwareRendering(false); }
+  }
+  individualSoftwareItems_ = std::move(next);
+  update();
+}
+
 QSGNode *GraphCanvas::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
   auto *view = window();
-  if (!view || view->rendererInterface()->graphicsApi() != QSGRendererInterface::Software) {
+  if (!view || individualSoftwareRendering_ || view->rendererInterface()->graphicsApi() != QSGRendererInterface::Software) {
     std::unique_ptr<QSGNode> previous(old);
     return nullptr;
   }
-  // Batch nearby draws at fit zoom, but bound damage to the screen
-  // tiles whose inputs changed. Quick children would draw above every card
-  // in this composite. Place future card overlays in the overlay layer.
+  // Batch nearby draws at fit zoom and bound damage to changed viewport tiles.
   auto root = std::unique_ptr<QSGNode>(old);
   if (!root) { root = std::make_unique<QSGNode>(); }
   const auto dpr = view->effectiveDevicePixelRatio();
@@ -433,6 +468,7 @@ void GraphCanvas::viewChanged(bool zoomed) {
     for (const auto &[key, item] : foregroundParts_) { item->update(); }
   }
   emit viewportMoved();
+  updateCardOverlayRendering();
 }
 
 void GraphCanvas::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) {
@@ -960,6 +996,7 @@ void GraphCanvas::rasterPass(bool flush) {
   stats_.nanoseconds += elapsed;
   stats_.slowestPass = std::max(stats_.slowestPass, elapsed);
   ++stats_.passes;
+  updateCardOverlayRendering();
   update();
   if (nextRasterJob_ < rasterJobs_.size() || rasterWorkDirty_) { QTimer::singleShot(0, this, &GraphCanvas::scheduleRaster); }
 }
@@ -1004,11 +1041,19 @@ CanvasPointerEvent GraphCanvas::pointerEvent(QPointF position, QPointF global, Q
           std::clamp(viewport_.zoom(), 0.08, 8.0)};
 }
 
+void GraphCanvas::focusCanvas(Qt::FocusReason reason) {
+  if (auto *active = window() ? window()->activeFocusItem() : nullptr;
+      active && active != this && isAncestorOf(active)) {
+    active->setFocus(false, reason);
+  }
+  forceActiveFocus(reason);
+}
+
 void GraphCanvas::mousePressEvent(QMouseEvent *event) {
   event->accept();
   buttonsDown_ = event->buttons();
-  if (skipPress_) { return; }
-  if (!hasActiveFocus()) { forceActiveFocus(Qt::MouseFocusReason); }
+  if (skipPress_ || (viewportPointer && viewportPointer(PointerAction::Press, *event))) { return; }
+  if (!window() || window()->activeFocusItem() != this) { focusCanvas(Qt::MouseFocusReason); }
   const auto position = event->position().toPoint();
   pressPosition_ = position;
   pressScene_ = viewport_.mapToScene(position);
@@ -1053,6 +1098,7 @@ bool GraphCanvas::moveGrabbedCard(QMouseEvent &event) {
 
 void GraphCanvas::mouseMoveEvent(QMouseEvent *event) {
   event->accept();
+  if (viewportPointer && viewportPointer(PointerAction::Move, *event)) { return; }
   pointerMove(event->position(), event->globalPosition(), event->buttons(), event->modifiers());
 }
 
@@ -1128,6 +1174,7 @@ void GraphCanvas::mouseReleaseEvent(QMouseEvent *event) {
   event->accept();
   buttonsDown_ = event->buttons();
   skipPress_ = false;
+  if (viewportPointer && viewportPointer(PointerAction::Release, *event)) { return; }
   if (!handDrag_ && !event->buttons()) {
     if (rubberBanding_) {
       rubberBanding_ = false;
@@ -1200,10 +1247,17 @@ void GraphCanvas::cancelPointerGrab() {
 }
 
 void GraphCanvas::contextMenu(QPoint position, QPoint screenPosition, Qt::KeyboardModifiers modifiers) {
-  scene_->contextMenu({.scenePosition = viewport_.mapToScene(position), .screenPosition = screenPosition, .modifiers = modifiers});
+  const auto scenePoint = viewport_.mapToScene(position);
+  const auto hits = scene_->itemsAt(scenePoint);
+  if (!hits.isEmpty() && hits.first()->kind() == CanvasItem::Kind::Lineage) {
+    static_cast<LineageItem *>(hits.first())->openContextMenu(screenPosition);
+    return;
+  }
+  scene_->contextMenu({.scenePosition = scenePoint, .screenPosition = screenPosition, .modifiers = modifiers});
 }
 
 void GraphCanvas::keyPressEvent(QKeyEvent *event) {
+  if (window() && window()->activeFocusItem() != this) { event->ignore(); return; }
   if (scene_->keyPress(*event)) {
     event->accept();
     return;
@@ -1236,6 +1290,10 @@ void GraphCanvas::focusOutEvent(QFocusEvent *event) {
   QQuickItem::focusOutEvent(event);
 }
 
-void GraphCanvas::wheelEvent(QWheelEvent *event) { event->ignore(); }
+void GraphCanvas::wheelEvent(QWheelEvent *event) {
+  if (!viewportWheel) { event->ignore(); return; }
+  viewportWheel(*event);
+  event->accept();
+}
 
 } // namespace nodetool::canvas

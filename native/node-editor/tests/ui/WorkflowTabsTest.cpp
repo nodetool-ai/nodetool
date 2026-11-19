@@ -1,7 +1,7 @@
-#include "../support/CanvasProbe.h"
+#include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
 #include "EntryMenuSupport.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "server/MsgPack.h"
 #include "FakeRunServer.h"
 #include <QWebSocketServer>
@@ -24,7 +24,6 @@
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QTimer>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 class WorkflowTabsTest final : public QObject {
@@ -38,24 +37,22 @@ class WorkflowTabsTest final : public QObject {
   static bool click(EditorWindow &window, const QString &name) {
     // Panels follow in the next pass and their layout in the pass after. The card
     // toolbar shows 200 ms after the selection settles (NodeSelectionToolbar.tsx).
-    QTest::qWaitFor([&] {
+    const auto findTarget = [&]() -> test::OverlayProbe {
+      if (auto shared = test::overlay(window, name)) { return shared; }
       for (auto panel : window.findChildren<QQuickWidget *>()) {
         if (!panel->isVisible() || !panel->rootObject()) continue;
         auto item = find(panel->rootObject(), name);
-        if (item && item->isVisible()) return true;
+        if (item && item->isVisible()) { return {*panel, *item, false}; }
       }
-      return false;
-    }, 1000);
-    for (auto panel : window.findChildren<QQuickWidget *>()) {
-      if (!panel->isVisible() || !panel->rootObject()) continue;
-      auto item = find(panel->rootObject(), name);
-      if (!item || !item->isVisible()) continue;
-      QTest::mouseClick(panel->quickWindow(), Qt::LeftButton, Qt::NoModifier,
-        item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
-      QCoreApplication::processEvents();
-      return true;
-    }
-    return false;
+      return {};
+    };
+    test::OverlayProbe target;
+    if (!QTest::qWaitFor([&] { target = findTarget(); return bool(target); }, 1000)) { return false; }
+    const auto *item = target->rootObject();
+    QTest::mouseClick(target->quickWindow(), Qt::LeftButton, Qt::NoModifier,
+      item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
+    QCoreApplication::processEvents();
+    return true;
   }
   static QJsonObject workflow(const QString &name, int count = 1) {
     QJsonArray nodes;

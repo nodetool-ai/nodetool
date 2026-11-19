@@ -1,6 +1,7 @@
 // The Comfy backend in the editor: the target control, the target's node
 // catalog in a Comfy workflow and New Comfy Workflow, against a fake server.
 #include "ui/EditorWindow.h"
+#include "../support/OverlayProbe.h"
 #include <QCryptographicHash>
 #include <QJsonDocument>
 #include <QQuickItem>
@@ -159,6 +160,7 @@ QQuickItem *find(QQuickItem *item, const QString &name) {
 }
 
 QQuickItem *visibleItem(EditorWindow &window, const QString &name) {
+    if (auto shared = test::overlay(window, name)) { return shared->rootObject(); }
     for (auto *host : window.findChildren<QQuickWidget *>()) {
         if (!host->isVisible() || !host->rootObject()) { continue; }
         if (auto *item = find(host->rootObject(), name); item && item->isVisible()) { return item; }

@@ -1,6 +1,6 @@
-#include "../support/CanvasProbe.h"
+#include "../support/MiniMapProbe.h"
 #include "ui/CanvasSurface.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include "PropertyFixture.h"
@@ -15,7 +15,6 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QVariantAnimation>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 #include <cmath>
 using namespace nodetool;
@@ -100,10 +99,6 @@ int countPixels(const QImage &image, const QString &color) {
  }
  return count;
 }
-QImage miniMapImage(QWidget *map) {
- QTest::qWait(60);
- return map->grab().toImage().convertToFormat(QImage::Format_RGB32);
-}
 // A rendered 12 x 12 swatch or label color from a QML item.
 QColor colorOf(QQuickItem *item) { return item ? item->property("color").value<QColor>() : QColor(); }
 }
@@ -116,25 +111,47 @@ private slots:
   QSettings().clear();
  }
  void navigation() {
+  QSettings().setValue("canvas-chat-dock/collapsed", true);
   EditorWindow window;
   window.setCatalog(property_fixture::catalog());
   QVERIFY(window.document()->load(property_fixture::workflow()));
   window.resize(1400, 900); window.show();
-  QTest::qWait(100);
-  auto map = window.findChild<QWidget *>("mini-map");
+  window.setMiniMapVisible(true);
+  const test::MiniMapProbe map(window);
   QVERIFY(map);
+  QTRY_VERIFY(map.isVisible());
   auto view = &window.canvas(); QVERIFY(view);
   const auto snapshot = window.document()->snapshot();
   const auto count = window.document()->undoStack()->count();
   const auto before = view->mapToScene(view->viewportWidget().rect().center());
-  QTest::mouseClick(map, Qt::LeftButton, Qt::NoModifier, QPoint(20,20));
+  QTest::mouseClick(map.inputWidget(), Qt::LeftButton, Qt::NoModifier, map.inputPoint({20, 20}));
   QVERIFY(view->mapToScene(view->viewportWidget().rect().center()) != before);
-  QTest::mousePress(map, Qt::LeftButton, Qt::NoModifier, QPoint(30,30));
-  QTest::mouseMove(map, QPoint(170,100));
-  QTest::mouseRelease(map, Qt::LeftButton, Qt::NoModifier, QPoint(170,100));
+  QTest::mousePress(map.inputWidget(), Qt::LeftButton, Qt::NoModifier, map.inputPoint({30, 30}));
+  QTest::mouseMove(map.inputWidget(), map.inputPoint({170, 100}));
+  QTest::mouseRelease(map.inputWidget(), Qt::LeftButton, Qt::NoModifier, map.inputPoint({170, 100}));
   QCOMPARE(window.document()->snapshot(), snapshot);
   QCOMPARE(window.document()->undoStack()->count(), count);
   QVERIFY(window.document()->undoStack()->isClean());
+  if (test::CanvasProbe(window).quickCanvas()) {
+   QVERIFY(!map.image().isNull());
+   window.setMiniMapVisible(false);
+   view->centerOn({5000, 6500});
+   QRectF bounds;
+   for (auto id : window.scene()->graphModel().allNodeIds()) { bounds |= view->nodeRect(id); }
+   const auto geometry = miniMapGeometry(map.geometry().size(), bounds, view->visibleSceneRect());
+   const QPoint local(150, 80);
+   const auto expected = geometry.toScene(local);
+   window.setMiniMapVisible(true);
+   // This press reaches the shown item before its next frame paints.
+   auto *input = map.inputWidget();
+   const auto point = map.inputPoint(local);
+   QMouseEvent press(QEvent::MouseButtonPress, point, input->mapToGlobal(point), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+   QApplication::sendEvent(input, &press);
+   QMouseEvent release(QEvent::MouseButtonRelease, point, input->mapToGlobal(point), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+   QApplication::sendEvent(input, &release);
+   QVERIFY(QLineF(view->center(), expected).length() < 2 / view->zoom());
+   QCOMPARE(window.document()->snapshot(), snapshot);
+  }
   auto workflow = property_fixture::workflow();
   auto graph = workflow["graph"].toObject();
   QJsonArray nodes;
@@ -145,18 +162,18 @@ private slots:
   }
   graph["nodes"] = nodes; graph["edges"] = QJsonArray{}; workflow["graph"] = graph;
   QVERIFY(window.document()->load(workflow));
-  QTRY_COMPARE(map->property("nodeCount").toInt(), 1200);
+  QTRY_COMPARE(map.nodeCount(), 1200);
   const auto largeSnapshot = window.document()->snapshot();
-  QTest::mouseClick(map, Qt::LeftButton, Qt::NoModifier, QPoint(150,80));
+  QTest::mouseClick(map.inputWidget(), Qt::LeftButton, Qt::NoModifier, map.inputPoint({150, 80}));
   QCOMPARE(window.document()->snapshot(), largeSnapshot);
   QVERIFY(window.document()->undoStack()->isClean());
   QVERIFY(window.document()->load(property_fixture::workflow()));
-  QTRY_VERIFY(map->property("nodeCount").toInt() < 1200);
-  const int smallCount = map->property("nodeCount").toInt();
+  QTRY_VERIFY(map.nodeCount() < 1200);
+  const int smallCount = map.nodeCount();
   QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", property_fixture::node("extra")}}));
-  QTRY_COMPARE(map->property("nodeCount").toInt(), smallCount+1);
+  QTRY_COMPARE(map.nodeCount(), smallCount+1);
   QVERIFY(window.document()->applyCommand({{"op", "removeNodes"}, {"ids", QJsonArray{"extra"}}}));
-  QTRY_COMPARE(map->property("nodeCount").toInt(), smallCount);
+  QTRY_COMPARE(map.nodeCount(), smallCount);
   QVERIFY(window.selectNode("a"));
   window.fit();
   const QString dir = qEnvironmentVariable("NODETOOL_MINIMAP_CAPTURE");
@@ -166,7 +183,7 @@ private slots:
     window.setDarkTheme(dark);
     for (int width : {1400, 900}) {
      window.resize(width,900); QTest::qWait(150);
-     QVERIFY(map->isVisible());
+     QVERIFY(map.isVisible());
      QVERIFY(window.grab().save(dir + QString("/%1-%2.png").arg(dark ? "dark" : "light").arg(width)));
     }
    }
@@ -191,15 +208,15 @@ private slots:
    window.setDarkTheme(palette.dark);
    loadCategories(window);
    window.setMiniMapVisible(true);
-   auto map = window.findChild<QWidget *>("mini-map");
+   const test::MiniMapProbe map(window);
    QVERIFY(map);
    QCOMPARE(window.miniMapColorMode(), QString("default"));
-   auto image = miniMapImage(map);
+   auto image = map.image();
    for (const auto &color : palette.defaults) { QVERIFY2(countPixels(image, color) > 12, qPrintable("default " + color)); }
    for (const auto &color : palette.absentInDefault) { QCOMPARE(countPixels(image, color), 0); }
    QVERIFY((window.setMiniMapColorMode("type"), true));
    QCOMPARE(window.miniMapColorMode(), QString("type"));
-   image = miniMapImage(map);
+   image = map.image();
    for (const auto &color : palette.typed) { QVERIFY2(countPixels(image, color) > 12, qPrintable("type " + color)); }
    // An unknown mode changes nothing.
    QVERIFY((window.setMiniMapColorMode("rainbow"), true));
@@ -232,28 +249,28 @@ private slots:
   EditorWindow window;
   window.setDarkTheme(true);
   loadCategories(window);
-  auto map = window.findChild<QWidget *>("mini-map");
+  const test::MiniMapProbe map(window);
   QVERIFY(map);
-  auto *controls = widgetWithSource(window, "MiniMapControls.qml");
+  const auto controls = test::overlay(window, "MiniMapControls.qml", true, false);
   QVERIFY(controls);
   QVERIFY(!controls->isVisible());
   window.setMiniMapVisible(true);
   QTRY_VERIFY(controls->isVisible());
-  QVERIFY(map->isVisible());
-  QCOMPARE(controls->geometry().right(), map->geometry().right());
-  QVERIFY(controls->geometry().bottom() < map->geometry().top());
+  QVERIFY(map.isVisible());
+  QCOMPARE(controls->geometry().right(), map.geometry().right());
+  QVERIFY(controls->geometry().bottom() < map.geometry().top());
   auto *palette = findItem(controls->rootObject(), "mini-map-colors");
   auto *legendButton = findItem(controls->rootObject(), "mini-map-legend");
   QVERIFY(palette);
   QVERIFY(legendButton);
   QVERIFY(!legendButton->isVisible());
-  const auto click = [](QQuickWidget *widget, QQuickItem *item) {
+  const auto click = [](test::OverlayProbe widget, QQuickItem *item) {
    const auto center = item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint();
-   QTest::mouseClick(widget, Qt::LeftButton, Qt::NoModifier, center);
+   QTest::mouseClick(widget->inputWidget(), Qt::LeftButton, Qt::NoModifier, center);
   };
   click(controls, palette);
-  QQuickWidget *host = nullptr;
-  QTRY_VERIFY((host = window.findChild<QQuickWidget *>("mini-map-popup-host")) && host->rootObject());
+  test::OverlayProbe host;
+  QTRY_VERIFY((host = test::overlay(window, "mini-map-popup-host")) && host->rootObject());
   QCOMPARE(host->rootObject()->property("kind").toString(), QString("colors"));
   QTRY_VERIFY(findItem(host->rootObject(), "mini-map-color-default"));
   auto *defaults = findItem(host->rootObject(), "mini-map-color-default");
@@ -273,13 +290,13 @@ private slots:
   capture("colors-menu-dark");
   click(host, typed);
   QTRY_COMPARE(window.miniMapColorMode(), QString("type"));
-  QTRY_VERIFY(!window.findChild<QQuickWidget *>("mini-map-popup-host"));
+  QTRY_VERIFY(!test::overlay(window, "mini-map-popup-host"));
   QTRY_VERIFY(legendButton->isVisible());
   // The row grows by the legend button and keeps its right edge on the mini-map's.
   QTRY_VERIFY(controls->width() >= int(legendButton->width() + palette->width()));
-  QTRY_COMPARE(controls->geometry().right(), map->geometry().right());
+  QTRY_COMPARE(controls->geometry().right(), map.geometry().right());
   click(controls, legendButton);
-  QTRY_VERIFY((host = window.findChild<QQuickWidget *>("mini-map-popup-host")) && host->rootObject());
+  QTRY_VERIFY((host = test::overlay(window, "mini-map-popup-host")) && host->rootObject());
   QCOMPARE(host->rootObject()->property("kind").toString(), QString("legend"));
   const QList<QPair<QString, QString>> rows{{"input", "Input nodes"}, {"constant", "Constant nodes"}, {"processing", "Processing nodes"},
    {"group", "Group nodes"}, {"comment", "Comment nodes"}, {"output", "Output nodes"}};
@@ -294,8 +311,8 @@ private slots:
    QCOMPARE(colorOf(swatch).name(), colors[i]);
   }
   capture("legend-dark");
-  QTest::keyClick(host, Qt::Key_Escape);
-  QTRY_VERIFY(!window.findChild<QQuickWidget *>("mini-map-popup-host"));
+  QTest::keyClick(host->inputWidget(), Qt::Key_Escape);
+  QTRY_VERIFY(!test::overlay(window, "mini-map-popup-host"));
   // Hiding the mini-map hides its controls too.
   window.setMiniMapVisible(false);
   QTRY_VERIFY(!controls->isVisible());
@@ -308,7 +325,7 @@ private slots:
   window.setDarkTheme(true);
   loadCategories(window);
   setReducedMotion(window, true);
-  auto *overlay = widgetWithSource(window, "ViewportIndicator.qml");
+  const auto overlay = test::overlay(window, "ViewportIndicator.qml", true);
   QVERIFY(overlay);
   auto *label = findItem(overlay->rootObject(), "zoom-label");
   QVERIFY(label);
@@ -344,11 +361,11 @@ private slots:
   QCOMPARE(startZoom, 1.0);
   QVERIFY(!viewAnimation(window));
   // The status indicator's fit button is a user surface.
-  auto *indicator = widgetWithSource(window, "ViewportIndicator.qml");
+  const auto indicator = test::overlay(window, "ViewportIndicator.qml", true);
   QVERIFY(indicator);
   auto *fitButton = findItem(indicator->rootObject(), "fit-view");
   QVERIFY(fitButton);
-  QTest::mouseClick(indicator, Qt::LeftButton, Qt::NoModifier, fitButton->mapToScene(QPointF(fitButton->width() / 2, fitButton->height() / 2)).toPoint());
+  QTest::mouseClick(indicator->inputWidget(), Qt::LeftButton, Qt::NoModifier, fitButton->mapToScene(QPointF(fitButton->width() / 2, fitButton->height() / 2)).toPoint());
   auto *animation = viewAnimation(window);
   QVERIFY(animation);
   QVERIFY(motionNormal(window) > 0);

@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
 #include "server/MsgPack.h"
@@ -139,15 +140,7 @@ class QueueDataTest final : public QObject {
         }
         return nullptr;
     }
-    static QQuickWidget *panel(EditorWindow &window, QString file) {
-        for (auto widget : window.findChildren<QQuickWidget *>()) {
-            if (widget->isVisible() && widget->source().fileName() == file) {
-                return widget;
-            }
-        }
-        return nullptr;
-    }
-    static void click(QQuickWidget *widget, QString name) {
+    static void click(test::OverlayProbe widget, QString name) {
         QVERIFY(widget);
         QTRY_VERIFY(widget->height() > 0);
         auto item = find(widget->rootObject(), name);
@@ -238,9 +231,9 @@ private slots:
         window.session()->connectToServer(server.url(), {});
         QTRY_COMPARE(server.held.size(), 1);
         QPointer<WorkflowSession> closed = window.session();
-        click(panel(window, "TabBar.qml"), "new-workflow-tab");
+        click(test::overlay(window, "TabBar.qml", true), "new-workflow-tab");
         QTRY_COMPARE(window.workflowTabs().size(), 2);
-        click(panel(window, "TabBar.qml"), "close-tab-0");
+        click(test::overlay(window, "TabBar.qml", true), "close-tab-0");
         QTRY_VERIFY(closed.isNull());
         JobsServer::respond(server.held[0], {{"jobs", QJsonArray{JobsServer::job("shared", "running")}}, {"next_start_key", QJsonValue::Null}});
         QTRY_COMPARE(window.session()->queue().size(), 1);
@@ -257,8 +250,8 @@ private slots:
         QTRY_VERIFY(window.session()->connected());
         QTRY_COMPARE(window.session()->queue().size(), 1);
         // The overlay shows once the active state holds for the shown queue delay.
-        QTRY_VERIFY(panel(window, "QueueOverlay.qml"));
-        auto overlay = panel(window, "QueueOverlay.qml");
+        test::OverlayProbe overlay;
+        QTRY_VERIFY((overlay = test::overlay(window, "QueueOverlay.qml", true)));
         click(overlay, "queue-toggle");
         server.rejectCancel = true;
         QSignalSpy errors(window.session(), &WorkflowSession::errorOccurred);
@@ -294,7 +287,7 @@ private slots:
         QVERIFY(window.commitProperty("a", "value", "off"));
         QTest::qWait(350);
         QVERIFY(server.commands.isEmpty());
-        auto toolbar = panel(window, "Toolbar.qml");
+        auto toolbar = test::overlay(window, "Toolbar.qml", true);
         click(toolbar, "toolbar-more");
         QQuickWidget *menu = nullptr;
         QTRY_VERIFY((menu = entry_menu::host(window, "more")));
@@ -341,7 +334,7 @@ private slots:
         window.session()->connectToServer(server.url(), {});
         window.session()->setSnapshot(snapshot());
         QTRY_VERIFY(window.session()->connected());
-        auto toolbar = panel(window, "Toolbar.qml");
+        auto toolbar = test::overlay(window, "Toolbar.qml", true);
         QVERIFY(toolbar);
         auto root = toolbar->rootObject();
         QCOMPARE(root->property("runLabel").toString(), QString("Run entire workflow"));

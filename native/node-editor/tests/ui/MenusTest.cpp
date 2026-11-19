@@ -1,7 +1,7 @@
-#include "../support/CanvasProbe.h"
+#include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
 #include "../graph/BodyConnectionFixture.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "EntryMenuSupport.h"
 #include <QMenu>
 #include <QMenuBar>
@@ -19,7 +19,6 @@
 #include <QQuickItem>
 #include <QFile>
 #include <QRegularExpression>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 using namespace nodetool;
 class MenusTest final : public QObject {
     Q_OBJECT
@@ -356,6 +355,7 @@ private slots:
         // Tab belongs to the window until a node has focus.
         QTest::keyClick(canvas, Qt::Key_Tab);
         QCOMPARE(model.focusedHandle().side, QtNodes::PortType::None);
+        view(window)->setFocus();
         QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
         QTRY_COMPARE(model.focusedNode(), QString("a"));
         QTest::keyClick(canvas, Qt::Key_Tab);
@@ -379,9 +379,8 @@ private slots:
         // Enter opens the picker instead of selecting the focused node.
         QTest::keyClick(canvas, Qt::Key_Return);
         QCOMPARE(window.selectedCount(), 0);
-        auto *picker = window.findChild<QQuickWidget *>("compatible-node-picker");
-        QVERIFY(picker);
-        QTRY_VERIFY(picker->isVisible());
+        nodetool::test::OverlayProbe picker;
+        QTRY_VERIFY((picker = nodetool::test::overlay(window, "compatible-node-picker")));
         QCOMPARE(picker->rootObject()->property("picker").value<QObject *>()->property("title").toString(), QString("Connect Out"));
         // The first row is b's input. Enter in the search field picks it.
         auto *search = picker->rootObject()->findChild<QQuickItem *>("compatible-search");
@@ -814,7 +813,7 @@ private slots:
         auto *node = window.findChild<QMenu *>("application-menu-node");
         auto *workflow = window.findChild<QMenu *>("application-menu-workflow");
         QVERIFY(node && workflow);
-        QCOMPARE(labels(workflow), (QStringList{"Run", "Run Selected", "Stop", "Open from Server…", "Save to Server", "Sync with Server…", "Reconnect",
+        QCOMPARE(labels(workflow), (QStringList{"Run", "Run Selected", "Stop", "Open from Server…", "Save to Server", "Sync with Server…", "Share…", "Reconnect",
             "Linked Workflows…", "Metadata…", "Canvas Uploads…"}));
         emit node->aboutToShow();
         QVERIFY(entry(node, "Layout Selection")->isEnabled());
@@ -968,7 +967,7 @@ private slots:
         window.show();
         window.action("Reset zoom");
         QTest::qWait(60);
-        auto *overlay = window.findChild<QQuickWidget *>("node-info-overlay");
+        const auto overlay = nodetool::test::overlay(window, "node-info-overlay", false, false);
         QVERIFY(overlay && overlay->rootObject());
         QVERIFY(!overlay->isVisible());
         auto *info = qvariant_cast<QObject *>(overlay->rootObject()->property("info"));

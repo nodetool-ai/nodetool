@@ -1,7 +1,7 @@
 #include "../support/CanvasProbe.h"
 #include "../../../graph-runner/unittests/sanitizer_build.h"
 #include "ui/CanvasSurface.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include "canvas/GraphCanvas.h"
@@ -9,7 +9,6 @@
 #include <QPointer>
 #include <QQuickWidget>
 #include <QQuickWindow>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QApplication>
 #include <QElapsedTimer>
 #include <QFile>
@@ -31,16 +30,14 @@ namespace {
 // exercise every input and frame, with the native test suite's timing scale.
 constexpr auto kTimingScale = gr::test::kSanitizerTimeScale;
 
-// UI thread only. The UI thread work of one input step on either canvas. The
-// QtNodes view paints in repaint(). QQuickWidget renders on a 5 ms timer, so
-// a Quick step waits for its frame and adds the raster pass (polish), the
+// UI thread only. QQuickWidget renders on a 5 ms timer. Each step waits for
+// its frame and adds the raster pass (polish), the
 // sync and render of the software renderer, and the widget's blit, without
 // the idle wait. The clock borrows the window, which outlives it.
 class StepClock final : public QObject {
 public:
   explicit StepClock(nodetool::EditorWindow &window)
-      : quick_(dynamic_cast<nodetool::QuickCanvas *>(&window.canvas())), viewport_(&window.canvas().viewportWidget()) {
-    if (!quick_) { return; }
+      : quick_(&window.canvas()), viewport_(&window.canvas().viewportWidget()) {
     auto *scene = quick_->quickWidget().quickWindow();
     // QQuickWidget uses the GUI thread for sync and render. Disconnect before
     // the clock's members go away, even though the window remains alive.
@@ -59,7 +56,6 @@ public:
   ~StepClock() override {
     for (const auto &connection : connections_) { disconnect(connection); }
   }
-  bool quick() const { return quick_ != nullptr; }
   // Sends one step and returns measured work in microseconds, excluding the
   // QQuickWidget timer wait.
   double step(const std::function<void()> &send) {
@@ -72,11 +68,9 @@ public:
     const auto input = timer.nsecsElapsed();
     inputNs += input;
     QCoreApplication::processEvents();
-    if (quick_) {
-      QElapsedTimer wait;
-      wait.start();
-      while (frames_ == frames && wait.elapsed() < 200) { QCoreApplication::processEvents(QEventLoop::AllEvents, 2); }
-    }
+    QElapsedTimer wait;
+    wait.start();
+    while (frames_ == frames && wait.elapsed() < 200) { QCoreApplication::processEvents(QEventLoop::AllEvents, 2); }
     timer.restart();
     viewport_->repaint();
     const auto blit = timer.nsecsElapsed();
@@ -91,7 +85,7 @@ public:
   }
   qint64 inputNs = 0, rasterPartNs = 0, syncPartNs = 0, renderPartNs = 0, blitNs = 0;
   nodetool::canvas::GraphCanvas::RasterStats stats() const {
-    return quick_ ? quick_->graphCanvas().rasterStats() : nodetool::canvas::GraphCanvas::RasterStats{};
+    return quick_->graphCanvas().rasterStats();
   }
 
 private:
@@ -259,15 +253,13 @@ private slots:
         const double perMove = total / moves;
         QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, start + QPoint(moves * 3, moves * 2));
         qInfo().nospace() << "drag nodes=" << nodes.size() << " per_move_us=" << perMove << " max_move_us=" << slowest
-                          << " canvas=" << (clock.quick() ? "quick" : "qtnodes") << " input_us=" << clock.inputNs / 1000.0 / moves
+                          << " input_us=" << clock.inputNs / 1000.0 / moves
                           << " polish_us=" << clock.rasterPartNs / 1000.0 / moves << " sync_us=" << clock.syncPartNs / 1000.0 / moves
                           << " render_us=" << clock.renderPartNs / 1000.0 / moves
                           << " blit_us=" << clock.blitNs / 1000.0 / moves << " card_rasters=" << clock.stats().cards
                           << " wire_rasters=" << clock.stats().wires;
-        // The Quick canvas moves the card's texture; plan target: under 4 ms a move.
-        if (clock.quick()) { QVERIFY2(perMove < 4000 * kTimingScale, "Quick canvas drag exceeded its timing budget"); }
-        // Scanning the catalog for every handle on every bounds query took over 5 s a move.
-        QVERIFY2(perMove < 100000 * kTimingScale, "Drag exceeded its timing budget");
+          QVERIFY2(perMove < 4000 * kTimingScale, "Quick canvas drag exceeded its mean timing budget");
+          QVERIFY2(slowest < 16000 * kTimingScale, "A Quick canvas drag move exceeded its timing budget");
         QTRY_VERIFY(view->nodeOrigin(target) != original);
     }
     // Pan and zoom over 2,000 cards: the parity fixture repeated into a grid.
@@ -393,15 +385,13 @@ private slots:
         int cards = visible();
         // A first pan paints the cards it reaches; the measured pan runs over
         // the same ground again, as a back-and-forth pan does.
-        if (clock.quick()) { panRun(); }
+        panRun();
         const auto pan100 = panRun();
         report("pan_100", pan100, cards);
         const auto oddPan = panRun({}, 7);
         report("pan_100_step7", oddPan, cards);
-        if (clock.quick()) {
-            QCOMPARE(oddPan.cards, 0);
-            QCOMPARE(oddPan.wires, 0);
-        }
+        QCOMPARE(oddPan.cards, 0);
+        QCOMPARE(oddPan.wires, 0);
         QCOMPARE(canvas.visibleSceneRect().top(), scroll);
         // The fit view is the minimum zoom, 0.12, with the most cards on screen.
         window.fit();
@@ -413,28 +403,22 @@ private slots:
         QTest::qWait(150);
         const auto cold = panRun(coldJump);
         report("pan_fit_cold", cold, cards);
-        if (clock.quick()) {
-            QVERIFY(cold.cards > 0);
-            QVERIFY2(cold.input + cold.polish < 2000 * kTimingScale, "Cold fit pan input and polish exceeded its timing budget");
-            // Let the normal polish queue prefetch before taking the measured
-            // route, including after the jump back to the start.
-            auto &graph = static_cast<nodetool::QuickCanvas &>(canvas).graphCanvas();
-            for (const int distance : {0, 360, 720, 0}) {
-                canvas.centerOn(fitCenter - QPointF(0, distance / canvas.zoom()));
-                QTRY_VERIFY_WITH_TIMEOUT(!graph.rasterPending(), int(4000 * kTimingScale));
-            }
-        } else {
-            canvas.centerOn(fitCenter);
+        QVERIFY(cold.cards > 0);
+        QVERIFY2(cold.input + cold.polish < 2000 * kTimingScale, "Cold fit pan input and polish exceeded its timing budget");
+        // Let the normal polish queue prefetch before taking the measured
+        // route, including after the jump back to the start.
+        auto &quickGraph = window.canvas().graphCanvas();
+        for (const int distance : {0, 360, 720, 0}) {
+            canvas.centerOn(fitCenter - QPointF(0, distance / canvas.zoom()));
+            QTRY_VERIFY_WITH_TIMEOUT(!quickGraph.rasterPending(), int(4000 * kTimingScale));
         }
         const auto panFit = panRun();
         report("pan_fit_warm", panFit, cards);
-        if (clock.quick()) {
-            QVERIFY2(panFit.meanUs < 16000 * kTimingScale, "Warm fit pan exceeded its software frame budget");
-            QCOMPARE(pan100.cards + panFit.cards, 0);
-            QCOMPARE(pan100.wires + panFit.wires, 0);
-            QVERIFY2(panFit.input + panFit.polish < 2000 * kTimingScale, "Warm fit pan input and polish exceeded its timing budget");
-            QVERIFY2(pan100.meanUs < 2000 * kTimingScale, "Quick canvas pan at zoom 1 exceeded its timing budget");
-        }
+        QVERIFY2(panFit.meanUs < 16000 * kTimingScale, "Warm fit pan exceeded its software frame budget");
+        QCOMPARE(pan100.cards + panFit.cards, 0);
+        QCOMPARE(pan100.wires + panFit.wires, 0);
+        QVERIFY2(panFit.input + panFit.polish < 2000 * kTimingScale, "Warm fit pan input and polish exceeded its timing budget");
+        QVERIFY2(pan100.meanUs < 2000 * kTimingScale, "Quick canvas pan at zoom 1 exceeded its timing budget");
         const double fitZoom = canvas.zoom();
         // Ten notches in, ten out: zoom 0.12 to about 0.49 and back.
         double deepest = fitZoom;
@@ -442,20 +426,16 @@ private slots:
         report("zoom_fit", zoomSteps, cards);
         QVERIFY(deepest > fitZoom * 3);
         QVERIFY(canvas.zoom() < fitZoom * 1.2);
-        // The canvas paints at once, so a zoom gesture leaves no raster work behind.
         QElapsedTimer settle;
         settle.start();
-        if (auto *quick = dynamic_cast<nodetool::QuickCanvas *>(&window.canvas())) {
-            // The Quick canvas paints the zoomed cards again after the gesture,
-            // spread over frames (plan target: at most 4 ms of raster a frame).
-            auto &graph = quick->graphCanvas();
-            graph.resetRasterStats();
-            QTest::qWait(400);
-            const auto stats = graph.rasterStats();
-            qInfo().nospace() << "zoom_settle cards=" << stats.cards << " wires=" << stats.wires << " passes=" << stats.passes
-                              << " raster_us=" << stats.nanoseconds / 1000.0 << " slowest_pass_us=" << stats.slowestPass / 1000.0;
-            QVERIFY2(stats.slowestPass <= 4'000'000 * kTimingScale, "Zoom settle exceeded its timing budget");
-        }
+        // The Quick canvas paints the zoomed cards again after the gesture,
+        // spread over frames (plan target: at most 4 ms of raster a frame).
+        quickGraph.resetRasterStats();
+        QTest::qWait(400);
+        const auto stats = quickGraph.rasterStats();
+        qInfo().nospace() << "zoom_settle cards=" << stats.cards << " wires=" << stats.wires << " passes=" << stats.passes
+                          << " raster_us=" << stats.nanoseconds / 1000.0 << " slowest_pass_us=" << stats.slowestPass / 1000.0;
+        QVERIFY2(stats.slowestPass <= 4'000'000 * kTimingScale, "Zoom settle exceeded its timing budget");
         qInfo().nospace() << "zoom_settle_us=" << settle.nsecsElapsed() / 1000.0;
     }
 };

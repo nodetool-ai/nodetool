@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "media/LiveAudioVisualizer.h"
 #include "media/PcmStream.h"
 #include "ui/EditorWindow.h"
@@ -59,8 +60,8 @@ QQuickItem *visibleItem(QQuickItem *root, const QString &name) {
  for (auto child : root->childItems()) { if (auto found = visibleItem(child, name)) { return found; } }
  return nullptr;
 }
-QImage framebuffer(QQuickWidget &widget, QQuickItem &item) {
- const auto image = widget.grabFramebuffer();
+QImage framebuffer(const nodetool::test::OverlayProbe &overlay, QQuickItem &item) {
+ const auto image = qobject_cast<QQuickWidget *>(overlay->inputWidget())->grabFramebuffer();
  const auto rect = item.mapRectToScene(item.boundingRect());
  const auto ratio = image.devicePixelRatio();
  return image.copy(QRectF(rect.x() * ratio, rect.y() * ratio, rect.width() * ratio, rect.height() * ratio).toAlignedRect());
@@ -176,15 +177,9 @@ private slots:
    window.runOutput()->ingest("visual", {{"job_id", "visual"}, {"type", "output_update"}, {"node_id", node}, {"output_name", "value"}, {"value", chunk}});
   };
   inject(32); window.fit();
-  QQuickWidget *canvas = nullptr, *panel = nullptr;
-  QTRY_VERIFY_WITH_TIMEOUT(([&] {
-   for (auto widget : window.findChildren<QQuickWidget *>()) {
-    if (widget->objectName() == "canvas-media-" + node && widget->isVisible()) { canvas = widget; }
-    if (widget->source().fileName() == "RunOutput.qml" && widget->isVisible()) { panel = widget; }
-   }
-   return canvas && panel;
-  })(), 3000);
-  QTRY_COMPARE(canvas->status(), QQuickWidget::Ready); QTRY_COMPARE(panel->status(), QQuickWidget::Ready);
+  nodetool::test::OverlayProbe canvas, panel;
+  QTRY_VERIFY_WITH_TIMEOUT((canvas = nodetool::test::overlay(window, "canvas-media-" + node)) &&
+                           (panel = nodetool::test::overlay(window, "RunOutput.qml", true)), 3000);
   QTRY_VERIFY(visibleItem(canvas->rootObject(), "pcm-visualizer")); QTRY_VERIFY(visibleItem(panel->rootObject(), "pcm-visualizer"));
   auto canvasVisual = qobject_cast<LiveAudioVisualizer *>(visibleItem(canvas->rootObject(), "pcm-visualizer"));
   auto panelVisual = qobject_cast<LiveAudioVisualizer *>(visibleItem(panel->rootObject(), "pcm-visualizer")); QVERIFY(canvasVisual); QVERIFY(panelVisual);
@@ -195,19 +190,19 @@ private slots:
   inject(32); QTRY_VERIFY_WITH_TIMEOUT(controller->visualFrame().sequence > 0, 300);
   QTest::qWait(50);
   inject(32); QTest::qWait(40);
-  const auto first = framebuffer(*canvas, *canvasVisual), firstPanel = framebuffer(*panel, *panelVisual);
+  const auto first = framebuffer(canvas, *canvasVisual), firstPanel = framebuffer(panel, *panelVisual);
   QVERIFY(!first.isNull()); QVERIFY(!firstPanel.isNull());
   inject(96); QTest::qWait(40);
-  const auto second = framebuffer(*canvas, *canvasVisual), secondPanel = framebuffer(*panel, *panelVisual);
+  const auto second = framebuffer(canvas, *canvasVisual), secondPanel = framebuffer(panel, *panelVisual);
   QVERIFY(differentPixels(first, second) > 20); QVERIFY(differentPixels(firstPanel, secondPanel) > 20);
   const auto directory = qEnvironmentVariable("NODETOOL_MEDIA_CAPTURE_DIR");
   if (!directory.isEmpty()) { QVERIFY(QDir().mkpath(directory)); QVERIFY(window.grab().save(QDir(directory).filePath(QString("live-audio-%1.png").arg(QString::fromLatin1(QTest::currentDataTag()))))); }
   auto stop = visibleItem(canvas->rootObject(), "pcm-start-stop"); QVERIFY(stop);
   const auto position = stop->mapToScene(QPointF(stop->width()/2, stop->height()/2)).toPoint();
-  QTest::mouseClick(canvas, Qt::LeftButton, Qt::NoModifier, position); QTRY_VERIFY(!controller->playing());
+  QTest::mouseClick(canvas->inputWidget(), Qt::LeftButton, Qt::NoModifier, position); QTRY_VERIFY(!controller->playing());
   QCOMPARE(controller->visualFrame().sequence, quint64(0));
   QTest::qWait(40);
-  const auto stopped = framebuffer(*canvas, *canvasVisual), stoppedPanel = framebuffer(*panel, *panelVisual);
+  const auto stopped = framebuffer(canvas, *canvasVisual), stoppedPanel = framebuffer(panel, *panelVisual);
   QVERIFY(differentPixels(second, stopped) > 20); QVERIFY(differentPixels(secondPanel, stoppedPanel) > 20);
  }
  void sustainedAnalysisBound() {

@@ -1,3 +1,4 @@
+#include "ui/CanvasOverlay.h"
 #include "CompatibleNodePicker.h"
 #include "canvas/CanvasStyle.h"
 #include "canvas/EditorSceneApi.h"
@@ -7,13 +8,11 @@
 #include "NodeCreation.h"
 #include "document/ConnectionTypes.h"
 #include <QApplication>
-#include "ui/CanvasSurface.h"
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QQmlEngine>
 #include <QQuickItem>
-#include <QQuickWidget>
 #include <QQuickWindow>
 #include <QJsonDocument>
 #include <QRegularExpression>
@@ -125,35 +124,21 @@ bool isCollect(const QJsonObject &type) {
   const auto element=typeOf(QJsonObject{{"type",args[0]}})["type"].toString();
   return !element.isEmpty() && element!="any";
 }
-class PickerWidget final : public QQuickWidget {
-public:
-  PickerWidget(QQmlEngine *engine,QWidget *parent) : QQuickWidget(engine,parent) {}
-protected:
-  void mousePressEvent(QMouseEvent *event) override { QQuickWidget::mousePressEvent(event); event->accept(); }
-  void mouseMoveEvent(QMouseEvent *event) override { QQuickWidget::mouseMoveEvent(event); event->accept(); }
-  void mouseReleaseEvent(QMouseEvent *event) override { QQuickWidget::mouseReleaseEvent(event); event->accept(); }
-  void mouseDoubleClickEvent(QMouseEvent *event) override { QQuickWidget::mouseDoubleClickEvent(event); event->accept(); }
-  void wheelEvent(QWheelEvent *event) override { QQuickWidget::wheelEvent(event); event->accept(); }
-  void keyPressEvent(QKeyEvent *event) override { QQuickWidget::keyPressEvent(event); event->accept(); }
-  void keyReleaseEvent(QKeyEvent *event) override { QQuickWidget::keyReleaseEvent(event); event->accept(); }
-};
 }
 CompatibleNodePicker::CompatibleNodePicker(WorkflowGraphModel &model,
-    EditorSceneApi &scene,CanvasSurface &canvas,QQmlEngine *engine,QObject *parent)
+    EditorSceneApi &scene,QuickCanvas &canvas,QQmlEngine *engine,QObject *parent)
     : QObject(parent),model_(model),scene_(scene),canvas_(canvas),engine_(engine) {
   connect(&scene_.interaction(),&canvas::CanvasInteraction::looseWireDropped,this,&CompatibleNodePicker::open);
   connect(&scene_.interaction(),&canvas::CanvasInteraction::wireBodyDropped,this,&CompatibleNodePicker::openBody);
   connect(&scene_.interaction(),&canvas::CanvasInteraction::handleContextMenuRequested,this,&CompatibleNodePicker::open);
   connect(&model_,&WorkflowGraphModel::projectionAboutToChange,this,&CompatibleNodePicker::cancel);
+  connect(&canvas_, &CanvasSurface::viewportMoved, this, [this] { if (active_) { positionWidget(); } });
   qApp->installEventFilter(this);
 }
 CompatibleNodePicker::~CompatibleNodePicker() {
   qApp->removeEventFilter(this);
   active_=false; ++generation_;
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  auto widget=widget_.data(); widget_.clear(); delete widget;
 }
-QQuickWidget *CompatibleNodePicker::widget() const { return widget_; }
 void CompatibleNodePicker::setCatalog(const QJsonArray &catalog) { cancel(); catalog_=catalog; compatibleCache_.clear(); }
 QString CompatibleNodePicker::title() const {
   if (keyboard_) { return tr("Connect %1").arg(titleizedHandle(handle_)); }
@@ -329,24 +314,23 @@ QVector<CompatibleNodePicker::Candidate> CompatibleNodePicker::existingCandidate
 }
 void CompatibleNodePicker::showWidget() {
   active_=true;
-  // One widget for the picker's lifetime, so the QML compiles once.
+  // Keep the picker item for its lifetime so the QML compiles once.
   if (!widget_) {
-    auto widget=new PickerWidget(engine_,&canvas_.hostWidget()); widget_=widget;
-    widget->setObjectName("compatible-node-picker");
-    widget->setAttribute(Qt::WA_AlwaysStackOnTop);
-    widget->setClearColor(Qt::transparent);
-    widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    widget->setInitialProperties({{"picker",QVariant::fromValue(this)}});
-    widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CompatibleNodePicker.qml"));
-    if (widget->status()==QQuickWidget::Error) { widget_.clear(); widget->deleteLater(); cancel(); return; }
+    const QUrl source("qrc:/qt/qml/NodeTool/NodeEditor/CompatibleNodePicker.qml");
+    const QVariantMap properties{{"picker", QVariant::fromValue(this)}};
+    widget_ = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, properties, 80);
+    if (!widget_->rootObject()) { cancel(); return; }
+    widget_->setObjectName("compatible-node-picker");
   }
-  const auto widget=widget_;
-  widget->rootObject()->setProperty("activationToken",generation_);
-  widget->setEnabled(true);
-  positionWidget(); widget->show(); widget->raise(); widget->setFocus(Qt::MouseFocusReason);
+  widget_->rootObject()->setProperty("activationToken", generation_);
+  widget_->setEnabled(true);
+  positionWidget();
+  widget_->show();
+  canvas_.setFocus(Qt::MouseFocusReason);
+  widget_->setFocus(Qt::MouseFocusReason);
   emit changed();
-  QTimer::singleShot(0,this,[this,widget,token=generation_] {
-    if (current() && token==generation_ && widget) { QMetaObject::invokeMethod(widget->rootObject(),"activate"); }
+  QTimer::singleShot(0,this,[this,token=generation_] {
+    if (current() && token==generation_ && widget_) { QMetaObject::invokeMethod(widget_->rootObject(),"activate"); }
   });
 }
 void CompatibleNodePicker::applyBody(const QString &port,const QJsonArray &prefix,
@@ -720,9 +704,9 @@ void CompatibleNodePicker::cancel() {
 }
 bool CompatibleNodePicker::owns(QObject *object) const {
   if (!widget_) { return false; }
-  const auto item=qobject_cast<QQuickItem *>(object);
-  if (object==widget_ || object==widget_->quickWindow() || (item && item->window()==widget_->quickWindow())) { return true; }
-  for (auto p=object;p;p=p->parent()) { if (p==widget_ || p==widget_->rootObject()) { return true; } }
+  for (auto *p = object; p; p = p->parent()) {
+    if (p == widget_->rootObject()) { return true; }
+  }
   return false;
 }
 void CompatibleNodePicker::positionWidget() {
@@ -735,13 +719,20 @@ void CompatibleNodePicker::positionWidget() {
 }
 bool CompatibleNodePicker::eventFilter(QObject *object,QEvent *event) {
   if (!active_) { return QObject::eventFilter(object,event); }
-  if (event->type()==QEvent::ShortcutOverride && owns(object)) { event->accept(); return true; }
+  if (event->type()==QEvent::ShortcutOverride && (owns(object) || (widget_ && widget_->ownsFocus(object)))) { event->accept(); return true; }
   if ((event->type()==QEvent::MouseButtonPress || event->type()==QEvent::Wheel) && !owns(object)) {
     const auto target=qobject_cast<QWidget *>(object);
     const bool sameWindow=object==canvas_.hostWidget().window()->windowHandle() || (target && target->window()==canvas_.hostWidget().window());
     const auto global=event->type()==QEvent::MouseButtonPress
         ? static_cast<QMouseEvent *>(event)->globalPosition() : static_cast<QWheelEvent *>(event)->globalPosition();
-    const bool inside=widget_ && sameWindow && widget_->rect().contains(widget_->mapFromGlobal(global.toPoint()));
+    bool inside = false;
+    if (widget_) {
+      const auto *item = qobject_cast<QQuickItem *>(object);
+      const auto *quickWindow = widget_->rootObject()->window();
+      if (sameWindow || object == quickWindow || (item && item->window() == quickWindow)) {
+        inside = widget_->geometry().contains(canvas_.viewportWidget().mapFromGlobal(global.toPoint()));
+      }
+    }
     // Window-system delivery visits the top-level window before routing to the
     // child Quick widget. Preserve that delivery when its point is in the menu.
     if (!inside) { cancel(); }

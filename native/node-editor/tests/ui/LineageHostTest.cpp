@@ -1,5 +1,7 @@
+#include "canvas/LineageItem.h"
+#include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/LineageLayer.h"
 #include "graph/NodeLayout.h"
 #include "ui/EditorWindow.h"
@@ -10,9 +12,6 @@
 #include <QQuickWidget>
 #include <QQuickWindow>
 #include <QTemporaryDir>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionState.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace nodetool::node_editor;
@@ -202,13 +201,8 @@ private slots:
     QVERIFY(window.document()->graph()["links"].toArray().isEmpty());
     QVERIFY(select(window, {"b", "a"}));
     QCOMPARE(window.selectedCount(), 2);
-    QQuickWidget *toolbar = nullptr;
-    for (auto *panel : window.findChildren<QQuickWidget *>()) {
-      if (panel->source().fileName() == "SelectionToolbar.qml") {
-        toolbar = panel;
-      }
-    }
-    QVERIFY(toolbar);
+    test::OverlayProbe toolbar;
+    QTRY_VERIFY((toolbar = test::overlay(window, "SelectionToolbar.qml", true)));
     QQuickItem *linkButton =
         find(toolbar->rootObject(), "selection-link-selected");
     if (linkButton && linkButton->isVisible()) {

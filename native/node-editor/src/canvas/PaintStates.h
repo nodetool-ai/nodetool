@@ -2,7 +2,7 @@
 
 #include "canvas/NodePainter.h"
 #include "canvas/WirePainter.h"
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 #include <functional>
 
 namespace nodetool {

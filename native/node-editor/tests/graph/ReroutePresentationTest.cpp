@@ -1,14 +1,9 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/OverlayCanvasFixture.h"
 #include "../support/DarkCanvasTheme.h"
 #include "graph/WorkflowGraphModel.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/RerouteTypes.h"
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/NodeStyle>
-#include <QtNodes/StyleCollection>
-#include <QGraphicsSceneContextMenuEvent>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QJsonDocument>
 #include <QPainter>
 #include <QSignalSpy>
@@ -42,9 +37,8 @@ NodeId id(const WorkflowGraphModel &model,const QString &name) {
 class ReroutePresentationTest final : public QObject {
   Q_OBJECT
 private slots:
-  void initTestCase() { auto style=StyleCollection::nodeStyle();style.ShadowEnabled=false;StyleCollection::setNodeStyle(style); }
   void exactPillAndCanonicalAnyPorts() {
-    WorkflowGraphModel model;EditorScene scene(model);const auto snapshot=fixture();model.project(snapshot,catalog());
+    WorkflowGraphModel model;test::OverlayCanvasFixture host(model);auto &scene=host.surface().scene();const auto snapshot=fixture();model.project(snapshot,catalog());
     const auto route=id(model,"r1");const auto &layout=model.layout(route);
     QVERIFY(model.isReroute(route));QCOMPARE(layout.size,QSize(60,20));QCOMPARE(layout.minimumSize,QSize(60,20));QVERIFY(layout.rows.isEmpty());QVERIFY(layout.title.isEmpty());
     QCOMPARE(model.nodeSnapshot(route),snapshot["nodes"].toArray()[1].toObject());
@@ -52,7 +46,7 @@ private slots:
     QCOMPARE(scene.nodeGeometry().portPosition(route,PortType::Out,0),QPointF(60,10));
     QCOMPARE(scene.nodeGeometry().checkPortHit(route,PortType::In,{0,10}),PortIndex(0));
     QCOMPARE(scene.nodeGeometry().checkPortHit(route,PortType::Out,{60,10}),PortIndex(0));
-    QCOMPARE(model.portData<NodeDataType>(route,PortType::In,0,PortRole::DataType).id,QString("any"));
+    QCOMPARE(model.portData<QString>(route,PortType::In,0,PortRole::DataType),QString("any"));
     QVERIFY(!model.setNodeData(route,NodeRole::Size,QSize(200,300)));QCOMPARE(model.layout(route).size,QSize(60,20));
     QCOMPARE(model.rerouteHandleType(route),QString("image"));
     QCOMPARE(model.rerouteHandleType(id(model,"r2")),QString("any"));
@@ -85,39 +79,113 @@ private slots:
     QCOMPARE(forwarded.rerouteHandles.value("r"),QString("any"));
   }
   void nativePillDoubleClickMoveNoResizeAndPortDraft() {
-    WorkflowGraphModel model;EditorScene scene(model);scene.setTheme(nodetool::test::darkCanvasTheme());model.project(fixture(),catalog());nodetool::test::WidgetView view(&scene);view.resize(1000,600);view.setSceneRect(-400,-100,1200,500);view.show();QApplication::processEvents();
-    const auto route=id(model,"r1");auto *item=nodetool::test::graphicsNode(scene, route);QVERIFY(item);item->setSelected(true);
-    QSignalSpy edit(&scene,&EditorScene::titleEditRequested);QSignalSpy loose(&scene,&EditorScene::looseWireDropped);
-    const auto center=view.mapFromScene(item->scenePos()+QPointF(30,10));
-    QTest::mouseClick(view.viewport(),Qt::LeftButton,Qt::NoModifier,center);
-    QTest::mouseDClick(view.viewport(),Qt::LeftButton,Qt::NoModifier,center);QCOMPARE(edit.count(),1);QCOMPARE(edit[0][0].value<NodeId>(),route);
-    const auto start=view.mapFromScene(item->scenePos()+QPointF(30,18));const auto finish=start+QPoint(35,20);
-    QTest::mousePress(view.viewport(),Qt::LeftButton,Qt::NoModifier,start);QTest::mouseMove(view.viewport(),finish);QTest::mouseRelease(view.viewport(),Qt::LeftButton,Qt::NoModifier,finish);
-    QCOMPARE(model.layout(route).size,QSize(60,20));QVERIFY(item->scenePos()!=QPointF(0,100));
-    const auto port=view.mapFromScene(item->scenePos()+QPointF(60,10));const auto drop=view.mapFromScene(item->scenePos()+QPointF(90,90));
-    QTest::mousePress(view.viewport(),Qt::LeftButton,Qt::NoModifier,port);QTest::mouseMove(view.viewport(),drop);QTest::mouseRelease(view.viewport(),Qt::LeftButton,Qt::NoModifier,drop);QCOMPARE(loose.count(),1);QCOMPARE(model.layout(route).size,QSize(60,20));
+    WorkflowGraphModel model;
+    test::OverlayCanvasFixture host(model);
+    auto &view = host.surface();
+    auto &scene = view.scene();
+    scene.setTheme(test::darkCanvasTheme());
+    model.project(fixture(), catalog());
+    host.show({1000, 600}, {200, 150});
+    QApplication::processEvents();
+    auto *viewport = &view.viewportWidget();
+    const auto route = id(model, "r1");
+    QVERIFY(view.hasNode(route));
+    view.selection().setNode(route, true);
+    QSignalSpy edit(&scene.interaction(), &canvas::CanvasInteraction::titleEditRequested);
+    QSignalSpy loose(&scene.interaction(), &canvas::CanvasInteraction::looseWireDropped);
+    const auto center = view.mapFromScene(view.mapFromNode(route, {30, 10}));
+    QTest::mouseClick(viewport, Qt::LeftButton, Qt::NoModifier, center);
+    QTest::mouseDClick(viewport, Qt::LeftButton, Qt::NoModifier, center);
+    QCOMPARE(edit.count(), 1);
+    QCOMPARE(edit[0][0].value<NodeId>(), route);
+    const auto drag = [&](QPoint start, QPoint end) {
+      QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, start);
+      QTest::mouseMove(viewport, end);
+      QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, end);
+    };
+    const auto start = view.mapFromScene(view.mapFromNode(route, {30, 18}));
+    drag(start, start + QPoint(35, 20));
+    QCOMPARE(model.layout(route).size, QSize(60, 20));
+    QVERIFY(view.nodeOrigin(route) != QPointF(0, 100));
+    drag(view.mapFromScene(view.mapFromNode(route, {60, 10})),
+         view.mapFromScene(view.mapFromNode(route, {90, 90})));
+    QCOMPARE(loose.count(), 1);
+    QCOMPARE(model.layout(route).size, QSize(60, 20));
   }
+
   void contextOwnsCanonicalDataEdgeAndRejectsOthers() {
-    for (const auto &kind:{QString("data"),QString("control"),QString("lineage"),QString("readonly")}) {
-      WorkflowGraphModel model;EditorScene scene(model);scene.setTheme(nodetool::test::darkCanvasTheme());auto snapshot=fixture();auto edges=snapshot["edges"].toArray();auto selected=edges[1].toObject();
-      if (kind=="control" || kind=="lineage") { selected["edge_type"]=kind; }edges[1]=selected;snapshot["edges"]=edges;model.project(snapshot,catalog(),kind=="readonly");
-      nodetool::test::WidgetView view(&scene);view.resize(1000,600);view.show();
-      ConnectionId connection{id(model,"r1"),0,id(model,"r2"),0};auto *wire=scene.connectionGraphicsObject(connection);QVERIFY(wire);
-      const auto point=wire->mapToScene(wireCurve(wire->endPoint(PortType::Out),wire->endPoint(PortType::In)).pointAtPercent(0.5));
-      QSignalSpy request(&scene,&EditorScene::dataEdgeContextMenuRequested);QGraphicsSceneContextMenuEvent event(QEvent::GraphicsSceneContextMenu);event.setScenePos(point);event.setScreenPos({123,456});event.setWidget(view.viewport());QApplication::sendEvent(&scene,&event);
+    for (const auto &kind : {QString("data"), QString("control"), QString("lineage"), QString("readonly")}) {
+      WorkflowGraphModel model;
+      test::OverlayCanvasFixture host(model);
+      auto &view = host.surface();
+      auto &scene = view.scene();
+      scene.setTheme(test::darkCanvasTheme());
+      auto snapshot = fixture();
+      auto edges = snapshot["edges"].toArray();
+      auto selected = edges[1].toObject();
+      if (kind == "control" || kind == "lineage") { selected["edge_type"] = kind; }
+      edges[1] = selected;
+      snapshot["edges"] = edges;
+      model.project(snapshot, catalog(), kind == "readonly");
+      host.show({1000, 600}, {200, 150});
+      const ConnectionId connection{id(model, "r1"), 0, id(model, "r2"), 0};
+      const auto *wire = view.canvasScene().connectionItem(connection);
+      QVERIFY(wire);
+      const auto point = wireCurve(wire->endPoint(PortType::Out), wire->endPoint(PortType::In)).pointAtPercent(0.5);
+      QSignalSpy request(&scene.interaction(), &canvas::CanvasInteraction::dataEdgeContextMenuRequested);
+      const QPoint screen(123, 456);
+      scene.interaction().contextMenu({.scenePosition = point, .screenPosition = screen});
       // Control edges open the edge menu without its reroute entry, as in EdgeContextMenu.tsx.
-      QCOMPARE(request.count(),kind=="data" || kind=="control" ? 1:0);
-      if (kind=="data") { QCOMPARE(request[0][0].toString(),QString("second"));QCOMPARE(request[0][1].toPointF(),point);QCOMPARE(request[0][2].toPoint(),QPoint(123,456)); }
+      QCOMPARE(request.count(), kind == "data" || kind == "control" ? 1 : 0);
+      if (kind == "data") {
+        QCOMPARE(request[0][0].toString(), QString("second"));
+        QCOMPARE(request[0][1].toPointF(), point);
+        QCOMPARE(request[0][2].toPoint(), screen);
+      }
     }
   }
+  void quickPillAndPortPixels() {
+    WorkflowGraphModel model;
+    test::OverlayCanvasFixture host(model);
+    auto &view = host.surface();
+    auto theme = test::darkCanvasTheme();
+    const QColor paper("#e8edf0");
+    theme.reroutePaper = paper;
+    view.scene().setTheme(theme);
+    model.project(fixture(), catalog());
+    const QRect area(-10, 90, 80, 40);
+    QImage image(area.size(), QImage::Format_ARGB32_Premultiplied);
+    image.fill(theme.canvas);
+    QPainter painter(&image);
+    painter.translate(-area.topLeft());
+    view.graphCanvas().renderScene(painter, area, 1);
+    painter.end();
+    QVERIFY(image.pixelColor(40, 20).lightness() > 170);
+    QVERIFY(image.pixelColor(12, 12).lightness() < 90);
+    QCOMPARE(image.pixelColor(10, 20), typeColor("image"));
+    QCOMPARE(image.pixelColor(70, 20), typeColor("image"));
+  }
+
   void deterministicNativeCaptures() {
     const auto prefix=qEnvironmentVariable("NODETOOL_REROUTE_CAPTURE");if (prefix.isEmpty()) { QSKIP("Set NODETOOL_REROUTE_CAPTURE to capture native scene fixtures"); }
-    WorkflowGraphModel model;EditorScene scene(model);model.project(fixture(),catalog());
+    WorkflowGraphModel model;
+    test::OverlayCanvasFixture host(model);
+    auto &view = host.surface();
+    model.project(fixture(), catalog());
     for (const auto &scheme:{QString("dark"),QString("light")}) {
       auto theme = nodetool::test::darkCanvasTheme();
       if (scheme=="light") { theme.textPrimary=QColor("#18181b");theme.textSecondary=QColor("#5b5b66");theme.canvas=QColor("#f5f5f6");theme.node=QColor("#ffffff");theme.grid=QColor("#dcdce1");theme.reroutePaper=QColor("#ffffff");theme.rerouteBorder=QColor("#71717a");theme.primary=QColor("#2f62c4"); }
-      scene.setTheme(theme);nodetool::test::graphicsNode(scene, id(model,"r1"))->setSelected(true);
-      QImage image(1100,420,QImage::Format_ARGB32_Premultiplied);image.fill(theme.canvas);QPainter painter(&image);scene.render(&painter,QRectF(0,0,1100,420),QRectF(-380,-30,1150,440));painter.end();QVERIFY(image.save(prefix+"-"+scheme+".png"));
+      view.scene().setTheme(theme);
+      view.selection().setNode(id(model, "r1"), true);
+      QImage image(1100, 420, QImage::Format_ARGB32_Premultiplied);
+      image.fill(theme.canvas);
+      QPainter painter(&image);
+      const QRectF area(-380, -30, 1150, 440);
+      painter.scale(image.width() / area.width(), image.height() / area.height());
+      painter.translate(-area.topLeft());
+      view.graphCanvas().renderScene(painter, area, image.width() / area.width());
+      painter.end();
+      QVERIFY(image.save(prefix + "-" + scheme + ".png"));
     }
   }
 };

@@ -3,8 +3,7 @@
 // nodes in process, so the output follows the edit, including the last edit of
 // a burst that arrives while a run is active.
 #include "../../src/graph/CardBodies.h"
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include "../../src/graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "../../src/graph/WorkflowGraphModel.h"
 #include "../../src/media/LocalMediaStore.h"
 #include "../../src/media/PcmStream.h"
@@ -290,7 +289,7 @@ private slots:
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     QtNodes::NodeId b = QtNodes::InvalidNodeId;
     for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == "b") { b = id; } }
-    // EditorScene's card paint: without a preview image, the result area
+    // The card painter: without a preview image, the result area
     // draws the error, the text or the result object.
     QStringList drawn;
     const auto probe = [&] {

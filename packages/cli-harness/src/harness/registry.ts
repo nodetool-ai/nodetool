@@ -2752,7 +2752,7 @@ export const SURFACES: SurfaceEntry[] = [
     paths: ["native/node-editor/", "native/media/"],
     gap:
       "Run the native check with CMake, Ninja, a C++20 compiler and Qt 6.12 development libraries. " +
-      "QtNodes requires network access on first configure. The root gate lists this check as manual work. " +
+      "Graph runner dependencies may require network access on first configure. The root gate lists this check as manual work. " +
       "Platform input, accessibility and installed-app rendering require separate acceptance."
   },
   {

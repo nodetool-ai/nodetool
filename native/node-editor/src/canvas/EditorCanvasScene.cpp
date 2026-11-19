@@ -5,13 +5,11 @@
 #include "canvas/NodeGeometry.h"
 #include "canvas/NodeItem.h"
 #include "canvas/PaintStates.h"
-#include "graph/EditorScene.h"
 #include "graph/NodeLayout.h"
 #include "graph/TypeStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QCursor>
-#include <QtNodes/ConnectionIdUtils>
-#include <QtNodes/NodeData>
+#include <qtnodes/ConnectionIdUtils.hpp>
 #include <QFontMetricsF>
 #include <QKeyEvent>
 #include <QPainter>
@@ -24,6 +22,30 @@ namespace nodetool::canvas {
 using namespace QtNodes;
 namespace nm = node_metrics;
 namespace {
+QSet<NodeId> branchNodeIds(const QSet<NodeId> &selected, const QVector<QPair<NodeId, NodeId>> &edges) {
+  if (selected.isEmpty()) { return {}; }
+  QHash<NodeId, QVector<NodeId>> incoming;
+  QHash<NodeId, QVector<NodeId>> outgoing;
+  for (const auto &[source, target] : edges) {
+    incoming[target].append(source);
+    outgoing[source].append(target);
+  }
+  auto result = selected;
+  for (const auto *adjacency : {&incoming, &outgoing}) {
+    QVector<NodeId> queue(selected.cbegin(), selected.cend());
+    QSet<NodeId> visited = selected;
+    for (int i = 0; i < queue.size(); ++i) {
+      for (const auto neighbor : adjacency->value(queue[i])) {
+        if (visited.contains(neighbor)) { continue; }
+        visited.insert(neighbor);
+        result.insert(neighbor);
+        queue.append(neighbor);
+      }
+    }
+  }
+  return result;
+}
+
 // Above every card, a hovered card (z 1) included.
 constexpr double kDraftWireZ = 1e6;
 constexpr double kGroupZ = -1000000;
@@ -545,7 +567,7 @@ QList<EditorCanvasScene::ForegroundPart> EditorCanvasScene::foregroundParts(cons
       const QRectF rect(layout.size.width() + 10, layout.outputY[i] - nm::rowHeight / 2, 200, nm::rowHeight);
       add({{ForegroundPart::OutputLabel, id, i}, rect, origin,
            model_.portData<QString>(id, PortType::Out, PortIndex(i), PortRole::Caption),
-           typeColor(model_.portData<NodeDataType>(id, PortType::Out, PortIndex(i), PortRole::DataType).id)}, rect.translated(origin));
+           typeColor(model_.portData<QString>(id, PortType::Out, PortIndex(i), PortRole::DataType))}, rect.translated(origin));
     }
   }
   std::sort(parts.begin(), parts.end(), [](const auto &a, const auto &b) { return a.key < b.key; });

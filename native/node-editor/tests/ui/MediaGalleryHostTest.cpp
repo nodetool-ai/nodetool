@@ -1,10 +1,8 @@
-#include "../support/CanvasProbe.h"
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
 #include "media/VideoFrameView.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QApplication>
 #include <QBuffer>
 #include <QDataStream>
@@ -48,15 +46,11 @@ QString audioUri() {
   return "data:audio/wav;base64," + QString::fromLatin1(bytes.toBase64());
 }
 QJsonObject media(const QString &kind, const QString &uri) { return {{"type", kind}, {"uri", uri}}; }
-QQuickWidget *canvasGalleryWidget(EditorWindow &window) {
-  for (auto widget : window.findChildren<QQuickWidget *>()) {
-    if (widget->isVisible() && widget->objectName() == "canvas-media-" + NodeId) { return widget; }
-  }
-  return nullptr;
+test::OverlayProbe canvasGalleryWidget(EditorWindow &window) {
+  return test::overlay(window, "canvas-media-" + NodeId);
 }
-QQuickWidget *panel(EditorWindow &window) {
-  for (auto widget : window.findChildren<QQuickWidget *>()) { if (widget->source().fileName() == "RunOutput.qml") { return widget; } }
-  return nullptr;
+test::OverlayProbe panel(EditorWindow &window) {
+  return test::overlay(window, "RunOutput.qml", true, false);
 }
 QQuickItem *findItem(QQuickItem *root, const QString &name) {
   if (!root) { return nullptr; }
@@ -70,18 +64,22 @@ QMediaPlayer *findPlayer(QQuickItem *root) {
   for (auto child : root->childItems()) { if (auto result = findPlayer(child)) { return result; } }
   return nullptr;
 }
-QQuickItem *gallery(QQuickWidget *widget) { return widget && widget->rootObject() ? findItem(widget->rootObject(), widget->objectName().startsWith("canvas-media-") ? "canvas-media-preview" : "output-gallery") : nullptr; }
-QMediaPlayer *player(QQuickWidget *widget) { return widget ? findPlayer(widget->rootObject()) : nullptr; }
-QQuickItem *control(QQuickWidget *widget, const QString &name) { return widget ? findItem(widget->rootObject(), name) : nullptr; }
+QQuickItem *gallery(test::OverlayProbe widget) {
+  if (!widget) { return nullptr; }
+  if (auto *item = findItem(widget->rootObject(), "canvas-media-preview")) { return item; }
+  return findItem(widget->rootObject(), "output-gallery");
+}
+QMediaPlayer *player(test::OverlayProbe widget) { return widget ? findPlayer(widget->rootObject()) : nullptr; }
+QQuickItem *control(test::OverlayProbe widget, const QString &name) { return widget ? findItem(widget->rootObject(), name) : nullptr; }
 void polish(QQuickItem *item) {
   if (!item) { return; }
   item->ensurePolished();
   for (auto child : item->childItems()) { polish(child); }
 }
-bool click(QQuickWidget *widget, const QString &name) {
+bool click(test::OverlayProbe widget, const QString &name) {
   if (widget) { polish(widget->rootObject()); }
   auto item = control(widget, name); if (!widget || !item || !item->isVisible()) { return false; }
-  QTest::mouseClick(widget, Qt::LeftButton, Qt::NoModifier, item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
+  QTest::mouseClick(widget->inputWidget(), Qt::LeftButton, Qt::NoModifier, item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
   return true;
 }
 QQuickWindow *imageViewer() {
@@ -90,30 +88,30 @@ QQuickWindow *imageViewer() {
   }
   return nullptr;
 }
-bool openTile(QQuickWidget *widget, const QString &name, bool dismissViewer = true) {
+bool openTile(test::OverlayProbe widget, const QString &name, bool dismissViewer = true) {
   if (widget) { polish(widget->rootObject()); }
   const auto item = control(widget, name);
   if (!widget || !item || !item->isVisible()) { return false; }
   const auto point = item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint();
-  QTest::mouseDClick(widget, Qt::LeftButton, Qt::NoModifier, point);
+  QTest::mouseDClick(widget->inputWidget(), Qt::LeftButton, Qt::NoModifier, point);
   if (dismissViewer && imageViewer()) {
     QMetaObject::invokeMethod(imageViewer(), "dismiss");
-    widget->window()->activateWindow();
+    widget->inputWidget()->window()->activateWindow();
     widget->setFocus();
   }
   return true;
 }
-bool scrollGrid(QQuickWidget *widget, int pixels) {
+bool scrollGrid(test::OverlayProbe widget, int pixels) {
   if (widget) { polish(widget->rootObject()); }
   const auto grid = control(widget, "gallery-grid-scroll");
   if (!widget || !grid) { return false; }
   const auto point = grid->mapToScene(QPointF(grid->width() / 2, grid->height() / 2));
-  QTest::mouseMove(widget, point.toPoint());
+  QTest::mouseMove(widget->inputWidget(), point.toPoint());
   QWheelEvent wheel(point, widget->mapToGlobal(point.toPoint()), QPoint(0, pixels), QPoint(0, pixels < 0 ? -120 : 120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
-  QCoreApplication::sendEvent(widget, &wheel);
+  QCoreApplication::sendEvent(widget->inputWidget(), &wheel);
   return wheel.isAccepted();
 }
-bool scrollToEnd(QQuickWidget *widget) {
+bool scrollToEnd(test::OverlayProbe widget) {
   if (widget) { polish(widget->rootObject()); }
   const auto bar = control(widget, "gallery-grid-scrollbar");
   if (!widget || !bar) { return false; }
@@ -121,9 +119,9 @@ bool scrollToEnd(QQuickWidget *widget) {
   if (!handle) { return false; }
   const auto start = handle->mapToScene(QPointF(handle->width() / 2, handle->height() / 2)).toPoint();
   const auto end = bar->mapToScene(QPointF(bar->width() / 2, bar->height() - 1)).toPoint();
-  QTest::mousePress(widget, Qt::LeftButton, Qt::NoModifier, start);
-  QTest::mouseMove(widget, end, 20);
-  QTest::mouseRelease(widget, Qt::LeftButton, Qt::NoModifier, end);
+  QTest::mousePress(widget->inputWidget(), Qt::LeftButton, Qt::NoModifier, start);
+  QTest::mouseMove(widget->inputWidget(), end, 20);
+  QTest::mouseRelease(widget->inputWidget(), Qt::LeftButton, Qt::NoModifier, end);
   return true;
 }
 int resolvedImages(QQuickItem *root) {
@@ -190,15 +188,10 @@ private slots:
     const auto id = *model.allNodeIds().begin();
     auto node = nodetool::test::card(window, id); QVERIFY(node);
     node->setSelected(true);
-    auto hostFor = [&](const QString &name) -> QQuickWidget * {
-      for (auto *widget : window.findChildren<QQuickWidget *>()) {
-        if (widget->isVisible() && control(widget, name)) { return widget; }
-      }
-      return nullptr;
-    };
-    QTRY_VERIFY(hostFor("selection-more-node-actions"));
-    auto *toolbar = hostFor("selection-more-node-actions");
+    test::OverlayProbe toolbar;
+    QTRY_VERIFY((toolbar = test::overlay(window, "SelectionToolbar.qml", true)));
     auto *more = control(toolbar, "selection-more-node-actions");
+    QVERIFY(more);
     more->forceActiveFocus();
     QTest::keyClick(toolbar->quickWindow(), Qt::Key_Space);
     QTRY_VERIFY(window.findChild<QQuickWidget *>("context-menu-host"));
@@ -244,13 +237,13 @@ private slots:
     auto node = nodetool::test::card(window, id); QVERIFY(node);
     QTRY_VERIFY(!model.canvasResultRect(id).isEmpty());
     node->setSelected(true);
-    auto hostFor = [&](const QString &name) -> QQuickWidget * {
-      for (auto *widget : window.findChildren<QQuickWidget *>()) { if (widget->isVisible() && control(widget, name)) { return widget; } }
-      return nullptr;
-    };
     const auto openMenu = [&]() -> QQuickWidget * {
-      QQuickWidget *toolbar = nullptr; [&] { QTRY_VERIFY(toolbar = hostFor("selection-more-node-actions")); }();
-      auto *more = control(toolbar, "selection-more-node-actions"); more->forceActiveFocus();
+      test::OverlayProbe toolbar;
+      [&] { QTRY_VERIFY((toolbar = test::overlay(window, "SelectionToolbar.qml", true))); }();
+      if (!toolbar) { return nullptr; }
+      auto *more = control(toolbar, "selection-more-node-actions");
+      if (!more) { return nullptr; }
+      more->forceActiveFocus();
       QTest::keyClick(toolbar->quickWindow(), Qt::Key_Space);
       QQuickWidget *menu = nullptr; [&] { QTRY_VERIFY(menu = window.findChild<QQuickWidget *>("context-menu-host")); }();
       return menu;
@@ -350,7 +343,6 @@ private slots:
     QVERIFY(!canvasGalleryWidget(window));
   }
   void rasterCanvasRespectsTopCardAndCollapse() {
-    NODETOOL_REQUIRE_QTNODES();
     EditorWindow window; setup(window);
     const QString coverId = "44444444444444444444444444444444";
     auto fixture = window.document()->snapshot();
@@ -365,17 +357,17 @@ private slots:
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     QtNodes::NodeId imageId = 0, coveringId = 0;
     for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == NodeId) { imageId = id; } else { coveringId = id; } }
-    // Moves, raises and hides the QtNodes items directly, without the document.
-    auto *imageNode = nodetool::test::graphicsNode(*window.qtNodesScene(), imageId); QVERIFY(imageNode);
-    auto *coveringNode = nodetool::test::graphicsNode(*window.qtNodesScene(), coveringId); QVERIFY(coveringNode);
-    const auto scenePoint = imageNode->mapToScene(model.canvasResultRect(imageId).center());
-    coveringNode->setPos(scenePoint - coveringNode->boundingRect().center());
-    coveringNode->setZValue(imageNode->zValue() + 1);
-    QVERIFY(coveringNode->sceneBoundingRect().contains(scenePoint));
-    QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(scenePoint));
+    const auto scenePoint = window.canvas().mapFromNode(imageId, model.canvasResultRect(imageId).center());
+    const auto coverSize = window.canvas().nodeBounds(coveringId).size();
+    QVERIFY(model.setNodeData(coveringId, QtNodes::NodeRole::Position,
+                              scenePoint - QPointF(coverSize.width() / 2, coverSize.height() / 2)));
+    const auto point = view->mapFromScene(scenePoint);
+    QTRY_COMPARE(view->nodeAt(point), coveringId);
+    QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point);
     QVERIFY(!imageViewer());
-    coveringNode->setVisible(false);
-    QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(scenePoint));
+    QVERIFY(model.setNodeData(coveringId, QtNodes::NodeRole::Position, scenePoint + QPointF(600, 600)));
+    QTRY_COMPARE(view->nodeAt(point), imageId);
+    QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point);
     QTRY_VERIFY(imageViewer());
     auto ui = window.document()->node(NodeId)["ui_properties"].toObject(); ui["collapsed"] = true;
     QVERIFY(window.document()->applyCommand({{"op", "setNodeField"}, {"id", NodeId}, {"field", "ui_properties"}, {"value", ui}}));
@@ -460,7 +452,7 @@ private slots:
     output(window, "gallery", QJsonArray{red, red, "Mixed caption retained", blue, media("audio", audioUri()), media("video", movie)});
     window.fit();
     QTRY_VERIFY(canvasGalleryWidget(window) && gallery(canvasGalleryWidget(window)));
-    QPointer<QQuickWidget> widget = canvasGalleryWidget(window);
+    auto widget = canvasGalleryWidget(window);
     auto view = gallery(widget);
     QCOMPARE(view->property("count").toInt(), 6);
     QCOMPARE(window.outputMedia().size(), 5);
@@ -575,7 +567,7 @@ private slots:
     // Panels follow the resize in a later pass, which can rebuild the tiles.
     QTRY_VERIFY(click(panel(window), "gallery-tile-0"));
     QVERIFY(!gallery(panel(window))->property("singleView").toBool());
-    QTest::keyClick(panel(window), Qt::Key_Return);
+    QTest::keyClick(panel(window)->inputWidget(), Qt::Key_Return);
     QTRY_VERIFY(imageViewer());
     imageViewer()->requestActivate();
     QTRY_VERIFY(imageViewer()->isActive());
@@ -589,7 +581,7 @@ private slots:
     QVERIFY(click(panel(window), "gallery-grid"));
     QTRY_VERIFY(control(panel(window), "gallery-tile-1"));
     QVERIFY(click(panel(window), "gallery-tile-1"));
-    QTest::keyClick(panel(window), Qt::Key_Space);
+    QTest::keyClick(panel(window)->inputWidget(), Qt::Key_Space);
     QTRY_VERIFY(imageViewer());
     imageViewer()->requestActivate();
     QTRY_VERIFY(imageViewer()->isActive());
@@ -630,7 +622,7 @@ private slots:
     output(window, "stream", sound); window.fit();
     QTRY_VERIFY(canvasGalleryWidget(window) && player(canvasGalleryWidget(window)) && player(panel(window)));
     QTRY_VERIFY(player(canvasGalleryWidget(window))->duration() > 1000 && player(panel(window))->duration() > 1000);
-    QPointer<QQuickWidget> card = canvasGalleryWidget(window), bottom = panel(window);
+    const auto card = canvasGalleryWidget(window), bottom = panel(window);
     QVERIFY(click(card, "preview-compact-play")); QVERIFY(click(bottom, "preview-play"));
     QTRY_COMPARE(player(card)->playbackState(), QMediaPlayer::PlayingState);
     QTRY_COMPARE(player(bottom)->playbackState(), QMediaPlayer::PlayingState);
@@ -639,7 +631,7 @@ private slots:
     output(window, "stream", sound);
     QTRY_VERIFY(gallery(card) && gallery(card)->property("count").toInt() == 2);
     QTRY_VERIFY(gallery(bottom) && gallery(bottom)->property("count").toInt() == 2);
-    QCOMPARE(canvasGalleryWidget(window), card);
+    QCOMPARE(canvasGalleryWidget(window)->rootObject(), card->rootObject());
     QCOMPARE(player(card), cardPlayer.data()); QCOMPARE(player(bottom), panelPlayer.data());
     QCOMPARE(cardPlayer->playbackState(), QMediaPlayer::PlayingState); QCOMPARE(panelPlayer->playbackState(), QMediaPlayer::PlayingState);
     output(window, "stream", "Stream caption preserved");

@@ -1,6 +1,6 @@
 QtNodes, https://github.com/paceholder/nodeeditor, commit 829b18457d4e95ac17f4fdb01c6201125681729d
-The QtNodes library is linked into this editor. It is used under the
-BSD-3-Clause license below.
+This editor vendors the QtNodes model interface and uses adapted canvas code.
+Both are covered by the BSD-3-Clause license below.
 
 Copyright (c) 2022, Dmitry Pinaev
 All rights reserved.

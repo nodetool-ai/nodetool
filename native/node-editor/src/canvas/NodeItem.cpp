@@ -8,9 +8,9 @@
 #include "canvas/CanvasScene.h"
 #include "canvas/ConnectionItem.h"
 #include "canvas/NodeConnectionInteraction.h"
-#include <QtNodes/AbstractGraphModel>
-#include <QtNodes/ConnectionIdUtils>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
+#include <qtnodes/AbstractGraphModel.hpp>
+#include <qtnodes/ConnectionIdUtils.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QPainter>
 
 namespace nodetool::canvas {

@@ -7,11 +7,7 @@
 
 namespace nodetool::canvas {
 
-// UI thread only. A graph.links lineage link on the Quick canvas: the same
-// path, label and input as the QGraphicsObject link of LineageLayer. The layer
-// owns the item through std::unique_ptr; its visual parent is the content
-// layer. The callbacks belong to the layer, which owns the item, so they never
-// outlive their target.
+// UI thread only. LineageLayer owns this item. The canvas content layer is its visual parent.
 class LineageItem final : public CanvasItem {
 public:
   LineageItem(CanvasScene &scene, QString id);
@@ -26,6 +22,9 @@ public:
 
   std::function<void(const QString &id, bool additive)> selectionRequested;
   std::function<void(const QString &id)> deleteRequested;
+
+  std::function<void(const QString &id, const QPoint &position)> contextMenuRequested;
+  void openContextMenu(const QPoint &position);
 
   void mousePress(CanvasMouseEvent &event) override;
   void mouseMove(CanvasMouseEvent &event) override { event.accept(); }

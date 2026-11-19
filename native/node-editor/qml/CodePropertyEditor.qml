@@ -5,7 +5,7 @@ import NodeTool.UiPrimitives as Ui
 // The source editor of a code property: a line gutter, highlighting, the
 // current line, auto-indent, block indent and outdent, line comments and
 // bracket pairs. On the canvas (canvas: true) it covers the card's code field
-// exactly: the font and offsets match paintCodeField in EditorScene.cpp and
+// exactly: the font and offsets match paintCodeField in NodePainter.cpp and
 // the code metrics in NodeLayout.h, so opening it moves no text.
 ColumnLayout {
     id: root

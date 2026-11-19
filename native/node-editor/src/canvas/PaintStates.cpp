@@ -3,9 +3,8 @@
 #include "canvas/EditorSceneApi.h"
 #include "graph/TypeStyle.h"
 #include "graph/WorkflowGraphModel.h"
-#include <QtNodes/ConnectionIdUtils>
-#include <QtNodes/NodeData>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
+#include <qtnodes/ConnectionIdUtils.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 
 namespace nodetool::canvas {
 using namespace QtNodes;
@@ -78,7 +77,7 @@ CardPaintState cardPaintState(const EditorSceneApi &scene, const WorkflowGraphMo
         if (!model.portVisible(id, side, index)) { continue; }
         const auto port = index < PortIndex(ports.size()) ? ports[int(index)] : QJsonValue{};
         const auto type = kind == CardKind::Reroute ? model.rerouteHandleType(id)
-                                                    : model.portData<NodeDataType>(id, side, index, PortRole::DataType).id;
+                                                    : model.portData<QString>(id, side, index, PortRole::DataType);
         state.handles.append(HandlePaintState{
             .position = scene.nodeGeometry().portPosition(id, side, index),
             .color = typeColor(type),
@@ -114,7 +113,7 @@ void fillWirePaintState(WirePaintState &state, const EditorSceneApi &scene, cons
     const auto node = getNodeId(side, id);
     const auto index = getPortIndex(side, id);
     state.draftFromOutput = side == PortType::Out;
-    state.sourceColor = typeColor(model.portData<NodeDataType>(node, side, index, PortRole::DataType).id);
+    state.sourceColor = typeColor(model.portData<QString>(node, side, index, PortRole::DataType));
     const auto ports = model.ports(node, side);
     const auto declared = index < PortIndex(ports.size()) ? ports[int(index)].toObject()["type"] : QJsonValue{};
     state.control = (declared.isObject() ? declared.toObject()["type"].toString() : declared.toString()) == "control";

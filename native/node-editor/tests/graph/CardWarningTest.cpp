@@ -1,10 +1,9 @@
-#include "../support/WidgetCanvasFixture.h"
-#include "graph/EditorScene.h"
+#include "../support/OverlayCanvasFixture.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "document/WorkflowDocument.h"
 #include "run/NodeRuntimeModel.h"
 #include <QSignalSpy>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace nodetool::node_editor;
@@ -41,7 +40,8 @@ QJsonObject workflow(const QString &secondName, bool speak) {
 struct Fixture {
   WorkflowDocument document;
   WorkflowGraphModel model;
-  EditorScene scene{model};
+  test::OverlayCanvasFixture host{model};
+  QuickCanvas &canvas = host.surface();
   explicit Fixture(const QString &secondName, bool speak = false) {
     document.setNodeMetadata(catalog());
     if (!document.load(workflow(secondName, speak))) { qFatal("fixture workflow does not load"); }
@@ -88,20 +88,16 @@ private slots:
   void connectProviderNamesTheSecret() {
     Fixture f(QStringLiteral("other"));
     f.model.setConfiguredSecrets({}, true);
-    QSignalSpy requested(&f.scene, &EditorScene::providerConnectRequested);
-    auto *item = nodetool::test::graphicsNode(f.scene, f.id("llm"));
-    QVERIFY(item);
+    QSignalSpy requested(&f.canvas.scene().interaction(), &canvas::CanvasInteraction::providerConnectRequested);
     QRectF button;
     for (const auto &row : f.model.layout(f.id("llm")).rows) {
       if (row.action == QStringLiteral("connectProvider")) { button = row.rect; }
     }
     QVERIFY(!button.isEmpty());
-    nodetool::test::WidgetView view(&f.scene);
-    view.resize(1200, 600);
-    view.show();
-    QVERIFY(QTest::qWaitForWindowExposed(&view));
-    const auto point = view.mapFromScene(item->mapToScene(button.center()));
-    QTest::mouseClick(view.viewport(), Qt::LeftButton, {}, point);
+    f.host.show({1200, 600}, {480, 200});
+    QVERIFY(QTest::qWaitForWindowExposed(&f.host.host()));
+    const auto point = f.canvas.mapFromScene(f.canvas.mapFromNode(f.id("llm"), button.center()));
+    QTest::mouseClick(&f.canvas.viewportWidget(), Qt::LeftButton, {}, point);
     QTRY_COMPARE(requested.size(), 1);
     QCOMPARE(requested.first().first().toString(), QStringLiteral("OPENAI_API_KEY"));
   }
@@ -135,24 +131,20 @@ private slots:
     f.model.setRuntimeModel(&runtime);
     runtime.beginRun(QStringLiteral("job"));
     runtime.ingest(QStringLiteral("job"), {{"type", "node_update"}, {"job_id", "job"}, {"node_id", "llm"}, {"status", "error"}, {"error", "Model refused"}});
-    QSignalSpy requested(&f.scene, &EditorScene::errorReportRequested);
-    auto *item = nodetool::test::graphicsNode(f.scene, f.id("llm"));
-    QVERIFY(item);
-    nodetool::test::WidgetView view(&f.scene);
-    view.resize(1200, 600);
-    view.show();
-    QVERIFY(QTest::qWaitForWindowExposed(&view));
+    QSignalSpy requested(&f.canvas.scene().interaction(), &canvas::CanvasInteraction::errorReportRequested);
+    f.host.show({1200, 600}, {480, 200});
+    QVERIFY(QTest::qWaitForWindowExposed(&f.host.host()));
     const auto size = f.model.layout(f.id("llm")).size;
     // The control sits at the card's bottom left, across from the status label.
-    const auto point = view.mapFromScene(item->mapToScene(QPointF(24, size.height() - 10)));
-    QTest::mouseClick(view.viewport(), Qt::LeftButton, {}, point);
+    const auto point = f.canvas.mapFromScene(f.canvas.mapFromNode(f.id("llm"), QPointF(24, size.height() - 10)));
+    QTest::mouseClick(&f.canvas.viewportWidget(), Qt::LeftButton, {}, point);
     QTRY_COMPARE(requested.size(), 1);
     QCOMPARE(requested.first().first().toString(), QStringLiteral("llm"));
     // A card that ran cleanly has no Report control.
     runtime.beginRun(QStringLiteral("next"));
     runtime.ingest(QStringLiteral("next"), {{"type", "node_update"}, {"job_id", "next"}, {"node_id", "llm"}, {"status", "completed"}});
     QCOMPARE(f.model.runtimeState(f.id("llm"))["status"].toString(), QStringLiteral("completed"));
-    QTest::mouseClick(view.viewport(), Qt::LeftButton, {}, point);
+    QTest::mouseClick(&f.canvas.viewportWidget(), Qt::LeftButton, {}, point);
     QTest::qWait(50);
     QCOMPARE(requested.size(), 1);
   }

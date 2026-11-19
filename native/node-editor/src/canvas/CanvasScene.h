@@ -11,8 +11,8 @@
 
 #include "canvas/CanvasItem.h"
 #include "canvas/GridIndex.h"
-#include <QtNodes/internal/ConnectionIdHash.hpp>
-#include <QtNodes/Definitions>
+#include <qtnodes/ConnectionIdHash.hpp>
+#include <qtnodes/Definitions.hpp>
 #include <QHash>
 #include <QObject>
 #include <QPainterPath>
@@ -69,8 +69,6 @@ public:
   // marks can reach farther than half the widest stroke from it.
   virtual QPainterPath connectionPath(const ConnectionItem &) const { return {}; }
   virtual bool connectionPaintsOffPath(const ConnectionItem &) const { return true; }
-  // The connection bounds margin, QtNodes' ConnectionStyle point diameter.
-  double connectionMargin() const;
   // The logical zoom of the view, which painting reads.
   double zoom() const { return zoom_; }
   void setZoom(double zoom) { zoom_ = zoom; }

@@ -1,12 +1,11 @@
-#include "../support/CanvasProbe.h"
+#include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/InlinePropertyPresenter.h"
 #include <QMouseEvent>
 #include <QTemporaryDir>
 #include <QFile>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include "properties/CodeInference.h"
 #include <QQuickWidget>
 #include <QQuickItem>
@@ -141,7 +140,7 @@ private slots:
   const auto codePoint=window.canvas().nodeOrigin(codeId)+model.inlineFieldRect(codeId,"code").center();
   QTest::mouseClick(view->viewport(),Qt::LeftButton,Qt::NoModifier,view->mapFromScene(codePoint));
   QTRY_VERIFY(presenter->active());
-  auto popup=presenter->editorWidget(); QVERIFY(popup);
+  auto popup=nodetool::test::overlay(window, "inline-property-overlay"); QVERIFY(popup);
   auto inlineEditor=find(popup->rootObject()); QVERIFY(inlineEditor);
   // The inline editor covers the card's code field exactly, with no Expand strip.
   const auto fieldOnView=view->mapFromScene(window.canvas().nodeOrigin(codeId)+model.inlineFieldRect(codeId,"code").topLeft());
@@ -150,23 +149,23 @@ private slots:
   for(auto child:popup->rootObject()->findChildren<QQuickItem*>()) if(child->objectName()=="inline-expand") QVERIFY(!child->isVisible());
   // Brackets pair, Return indents inside a block, and Cmd or Ctrl+/ comments the line.
   inlineEditor->forceActiveFocus(); inlineEditor->setProperty("text",QString()); inlineEditor->setProperty("cursorPosition",0);
-  QTest::keyClicks(popup,"if (x) {");
+  QTest::keyClicks(popup->inputWidget(),"if (x) {");
   QCOMPARE(inlineEditor->property("text").toString(),QString("if (x) {}"));
-  QTest::keyClick(popup,Qt::Key_Return);
+  QTest::keyClick(popup->inputWidget(),Qt::Key_Return);
   QCOMPARE(inlineEditor->property("text").toString(),QString("if (x) {\n  \n}"));
-  QTest::keyClicks(popup,"go");
-  QTest::keyClick(popup,Qt::Key_Slash,Qt::ControlModifier);
+  QTest::keyClicks(popup->inputWidget(),"go");
+  QTest::keyClick(popup->inputWidget(),Qt::Key_Slash,Qt::ControlModifier);
   QCOMPARE(inlineEditor->property("text").toString(),QString("if (x) {\n  // go\n}"));
-  QTest::keyClick(popup,Qt::Key_Slash,Qt::ControlModifier);
+  QTest::keyClick(popup->inputWidget(),Qt::Key_Slash,Qt::ControlModifier);
   QCOMPARE(inlineEditor->property("text").toString(),QString("if (x) {\n  go\n}"));
-  QTest::keyClick(popup,Qt::Key_Escape); QTRY_VERIFY(!presenter->active());
+  QTest::keyClick(popup->inputWidget(),Qt::Key_Escape); QTRY_VERIFY(!presenter->active());
   QCOMPARE(window.document()->snapshot(),before);
   QTest::mouseClick(view->viewport(),Qt::LeftButton,Qt::NoModifier,view->mapFromScene(codePoint));
   QTRY_VERIFY(presenter->active());
-  popup=presenter->editorWidget(); QVERIFY(popup);
+  popup=nodetool::test::overlay(window, "inline-property-overlay"); QVERIFY(popup);
   inlineEditor=find(popup->rootObject()); QVERIFY(inlineEditor);
-  inlineEditor->forceActiveFocus(); QTest::keyClicks(popup,"cancel popup");
-  QTest::keyClick(popup,Qt::Key_Escape); QTRY_VERIFY(!presenter->active());
+  inlineEditor->forceActiveFocus(); QTest::keyClicks(popup->inputWidget(),"cancel popup");
+  QTest::keyClick(popup->inputWidget(),Qt::Key_Escape); QTRY_VERIFY(!presenter->active());
   QCOMPARE(window.document()->snapshot(),before);
   const auto directory=qEnvironmentVariable("NODETOOL_CODE_CAPTURE_DIR");
   if(!directory.isEmpty()) {

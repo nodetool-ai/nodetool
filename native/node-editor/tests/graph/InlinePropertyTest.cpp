@@ -1,6 +1,6 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/OverlayCanvasFixture.h"
 #include "graph/InlinePropertyPresenter.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "document/WorkflowDocument.h"
 #include "properties/ResourcePickerController.h"
@@ -15,7 +15,6 @@
 #include <QShortcut>
 #include <QScrollBar>
 #include <QSignalSpy>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace QtNodes;
@@ -44,9 +43,9 @@ struct Fixture {
   QJsonArray cat;
   node_editor::WorkflowDocument document;
   WorkflowGraphModel model;
-  EditorScene scene{model};
-  nodetool::test::WidgetView view{&scene};
-  QtNodesCanvas canvas{scene, view};
+  test::OverlayCanvasFixture surface{model};
+  QuickCanvas &canvas = surface.surface();
+  EditorSceneApi &scene = canvas.scene();
   QQmlEngine engine;
   node_editor::PropertyHost host;
   InlinePropertyPresenter presenter{model,scene, canvas,&engine,host};
@@ -57,11 +56,8 @@ struct Fixture {
     Q_ASSERT(loaded.ok);
     model.project(document.snapshot(),cat);
     id = node("node");
-    view.resize(900,700);
-    view.setSceneRect(0,0,1000,900);
-    view.show();
-    view.centerOn(300,300);
-    nodetool::test::graphicsNode(scene, id)->setSelected(true);
+    surface.show({900, 700}, {450, 350});
+    canvas.selection().setNode(id, true);
     presenter.commitProperty = [this](const QString &node,const QString &name,const QVariant &value) {
       const auto result = document.applyCommand({{"op","setProperty"},{"id",node},{"name",name},{"value",QJsonValue::fromVariant(value)}});
       if (result) { model.project(document.snapshot(),cat); }
@@ -75,8 +71,8 @@ struct Fixture {
   void open(const QString &name, const QString &resource = "node") {
     // A click on the field selects only its node.
     id = node(resource);
-    scene.clearSelection();
-    nodetool::test::graphicsNode(scene, id)->setSelected(true);
+    canvas.selection().clear();
+    canvas.selection().setNode(id, true);
     presenter.activate(id,name);
     QApplication::processEvents();
   }
@@ -88,13 +84,16 @@ struct Fixture {
     for (auto *child : root->childItems()) { if (auto *found = find(child, name)) { return found; } }
     return nullptr;
   }
-  QQuickItem *item(const QString &name) const {
-    const auto widget = presenter.editorWidget();
+  QQuickItem *item(const QString &name) {
+    const auto widget = surface.overlay("inline-property-overlay");
     return widget ? find(widget->rootObject(), name) : nullptr;
   }
   void click(QQuickItem *target) {
     Q_ASSERT(target);
-    QTest::mouseClick(presenter.editorWidget(),Qt::LeftButton,Qt::NoModifier,target->mapToScene(QPointF(target->width()/2,target->height()/2)).toPoint());
+    const auto overlay = surface.overlay("inline-property-overlay");
+    const auto point = target->mapToScene(QPointF(target->width() / 2, target->height() / 2)).toPoint();
+    QVERIFY(overlay->inputWidget()->rect().contains(point));
+    QTest::mouseClick(overlay->inputWidget(), Qt::LeftButton, Qt::NoModifier, point);
   }
 };
 // The web edits these inline on the card: a constant List or Dict table, a
@@ -173,23 +172,23 @@ private slots:
     NodeId otherId=InvalidNodeId;
     for (const auto id:f.model.allNodeIds()) { if (f.model.resourceId(id)=="other") { otherId=id; } }
     QVERIFY(otherId!=InvalidNodeId);
-    f.open("text"); auto widget=f.presenter.editorWidget(); QVERIFY(widget);
+    f.open("text"); auto widget=f.surface.overlay("inline-property-overlay"); QVERIFY(widget);
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("inline-text")->hasActiveFocus());
-    QTest::keyClick(widget,Qt::Key_A,Qt::ControlModifier);
-    QTest::keyClicks(widget,"saved before switch");
-    const auto otherPoint=f.view.mapFromScene(nodetool::test::graphicsNode(f.scene, otherId)->sceneBoundingRect().center());
-    QVERIFY(f.view.viewport()->rect().contains(otherPoint));
-    QTest::mouseClick(f.view.viewport(),Qt::LeftButton,Qt::NoModifier,otherPoint);
+    QTest::keyClick(widget->inputWidget(),Qt::Key_A,Qt::ControlModifier);
+    QTest::keyClicks(widget->inputWidget(),"saved before switch");
+    const auto otherPoint=f.canvas.mapFromScene(f.canvas.nodeBounds(otherId).center());
+    QVERIFY((&f.canvas.viewportWidget())->rect().contains(otherPoint));
+    QTest::mouseClick((&f.canvas.viewportWidget()),Qt::LeftButton,Qt::NoModifier,otherPoint);
     QTRY_COMPARE(f.value("text").toString(),QString("saved before switch"));
     QVERIFY(!f.document.node("other")["data"].toObject().contains("text"));
     QCOMPARE(f.document.undoStack()->count(),1);
     QCOMPARE(f.document.undoStack()->index(),1);
     f.document.undo(); f.model.project(f.document.snapshot(),catalog());
     QCOMPARE(f.value("text").toString(),QString("original"));
-    f.open("text"); widget=f.presenter.editorWidget(); QVERIFY(widget);
+    f.open("text"); widget=f.surface.overlay("inline-property-overlay"); QVERIFY(widget);
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("inline-text")->hasActiveFocus());
-    QTest::keyClick(widget,Qt::Key_A,Qt::ControlModifier); QTest::keyClicks(widget,"saved on canvas blur");
-    QTest::mouseClick(f.view.viewport(),Qt::LeftButton,Qt::NoModifier,QPoint(800,600));
+    QTest::keyClick(widget->inputWidget(),Qt::Key_A,Qt::ControlModifier); QTest::keyClicks(widget->inputWidget(),"saved on canvas blur");
+    QTest::mouseClick((&f.canvas.viewportWidget()),Qt::LeftButton,Qt::NoModifier,QPoint(800,600));
     QTRY_COMPARE(f.value("text").toString(),QString("saved on canvas blur"));
     QCOMPARE(f.document.undoStack()->count(),1);
     QApplication::processEvents();
@@ -198,19 +197,19 @@ private slots:
   void nativeFieldClickAndIdle() {
     Fixture f;
     QTest::qWait(20);
-    const auto field=f.model.inlineFieldRect(f.id,"text").translated(nodetool::test::graphicsNode(f.scene, f.id)->scenePos());
-    const auto point=f.view.mapFromScene(field.center());
-    QVERIFY(f.view.viewport()->rect().contains(point));
-    QTest::mouseClick(f.view.viewport(),Qt::LeftButton,Qt::NoModifier,point);
+    const auto field=f.model.inlineFieldRect(f.id,"text").translated(f.canvas.nodeOrigin(f.id));
+    const auto point=f.canvas.mapFromScene(field.center());
+    QVERIFY((&f.canvas.viewportWidget())->rect().contains(point));
+    QTest::mouseClick((&f.canvas.viewportWidget()),Qt::LeftButton,Qt::NoModifier,point);
     QTRY_VERIFY(f.presenter.active());
-    auto widget=f.presenter.editorWidget(); QVERIFY(widget);
+    auto widget=f.surface.overlay("inline-property-overlay"); QVERIFY(widget);
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("inline-text")->hasActiveFocus());
     QSignalSpy idleGeometry(&f.presenter,&InlinePropertyPresenter::geometryChanged);
     QTest::qWait(40);
     QCOMPARE(idleGeometry.count(),0);
-    QTest::keyClick(widget,Qt::Key_A,Qt::ControlModifier);
-    QTest::keyClicks(widget,"clicked field");
-    QTest::keyClick(widget,Qt::Key_Return);
+    QTest::keyClick(widget->inputWidget(),Qt::Key_A,Qt::ControlModifier);
+    QTest::keyClicks(widget->inputWidget(),"clicked field");
+    QTest::keyClick(widget->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.value("text").toString(),QString("clicked field"));
     f.document.undo(); QCOMPARE(f.value("text").toString(),QString("original"));
   }
@@ -218,57 +217,57 @@ private slots:
     Fixture f;
     f.open("text");
     QVERIFY(f.presenter.active());
-    auto widget = f.presenter.editorWidget(); QVERIFY(widget);
+    auto widget = f.surface.overlay("inline-property-overlay"); QVERIFY(widget);
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("inline-text"));
     auto input = widget->rootObject()->findChild<QQuickItem *>("inline-text");
     QTRY_VERIFY(input->hasActiveFocus());
-    QShortcut graphShortcut(QKeySequence("Ctrl+G"),&f.view);
+    QShortcut graphShortcut(QKeySequence("Ctrl+G"),&f.surface.host());
     QSignalSpy triggered(&graphShortcut,&QShortcut::activated);
-    QTest::keyClick(widget,Qt::Key_G,Qt::ControlModifier);
+    QTest::keyClick(widget->inputWidget(),Qt::Key_G,Qt::ControlModifier);
     QCOMPARE(triggered.count(),0);
-    QWidget unrelated(&f.view);
+    QWidget unrelated(&f.surface.host());
     unrelated.show();
     QShortcut unrelatedShortcut(QKeySequence("Ctrl+J"),&unrelated);
     QSignalSpy unrelatedTriggered(&unrelatedShortcut,&QShortcut::activated);
     QTest::keyClick(&unrelated,Qt::Key_J,Qt::ControlModifier);
     QCOMPARE(unrelatedTriggered.count(),1);
     QVERIFY(f.presenter.active());
-    QTest::keyClick(widget,Qt::Key_A,Qt::ControlModifier);
-    QTest::keyClicks(widget,"changed");
+    QTest::keyClick(widget->inputWidget(),Qt::Key_A,Qt::ControlModifier);
+    QTest::keyClicks(widget->inputWidget(),"changed");
     QCOMPARE(f.value("text").toString(),QString("original"));
-    QTest::keyClick(widget,Qt::Key_Return);
+    QTest::keyClick(widget->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.value("text").toString(),QString("changed"));
     QCOMPARE(f.document.undoStack()->count(),1);
     QCOMPARE(f.document.node("node")["data"].toObject()["future"].toInt(),42);
     f.document.undo(); f.model.project(f.document.snapshot(),catalog());
     QCOMPARE(f.value("text").toString(),QString("original"));
-    f.open("text"); widget = f.presenter.editorWidget(); QVERIFY(widget);
+    f.open("text"); widget = f.surface.overlay("inline-property-overlay"); QVERIFY(widget);
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("inline-text")->hasActiveFocus());
-    QTest::keyClicks(widget,"discarded");
-    QTest::keyClick(widget,Qt::Key_Escape);
+    QTest::keyClicks(widget->inputWidget(),"discarded");
+    QTest::keyClick(widget->inputWidget(),Qt::Key_Escape);
     QTRY_VERIFY(!f.presenter.active());
     QCOMPARE(f.value("text").toString(),QString("original"));
   }
   void numericBooleanAndEnum() {
     Fixture f;
-    f.open("number"); auto widget=f.presenter.editorWidget(); QVERIFY(widget);
+    f.open("number"); auto widget=f.surface.overlay("inline-property-overlay"); QVERIFY(widget);
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("inline-number")->hasActiveFocus());
-    QTest::keyClick(widget,Qt::Key_A,Qt::ControlModifier);
-    QTest::keyClicks(widget,"-1"); QTest::keyClick(widget,Qt::Key_Return);
+    QTest::keyClick(widget->inputWidget(),Qt::Key_A,Qt::ControlModifier);
+    QTest::keyClicks(widget->inputWidget(),"-1"); QTest::keyClick(widget->inputWidget(),Qt::Key_Return);
     QApplication::processEvents();
     QCOMPARE(f.value("number").toDouble(),2.5);
     QVERIFY(f.presenter.active());
-    QTest::keyClick(widget,Qt::Key_A,Qt::ControlModifier);
-    QTest::keyClicks(widget,"3.5"); QTest::keyClick(widget,Qt::Key_Return);
+    QTest::keyClick(widget->inputWidget(),Qt::Key_A,Qt::ControlModifier);
+    QTest::keyClicks(widget->inputWidget(),"3.5"); QTest::keyClick(widget->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.value("number").toDouble(),3.5);
     f.open("flag"); QTRY_VERIFY(f.value("flag").toBool());
-    f.open("mode"); widget=f.presenter.editorWidget(); QVERIFY(widget);
+    f.open("mode"); widget=f.surface.overlay("inline-property-overlay"); QVERIFY(widget);
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("inline-choice"));
     const auto capture=qEnvironmentVariable("NODETOOL_INLINE_CAPTURE");
-    if (!capture.isEmpty()) { QTest::qWait(40); QVERIFY(f.view.grab().save(capture+"-enum.png")); }
+    if (!capture.isEmpty()) { QTest::qWait(40); QVERIFY(f.surface.host().grab().save(capture+"-enum.png")); }
     // The real Select popup handles navigation and Return itself.
-    QTest::keyClick(widget,Qt::Key_Down);
-    QTest::keyClick(widget,Qt::Key_Return);
+    QTest::keyClick(widget->inputWidget(),Qt::Key_Down);
+    QTest::keyClick(widget->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.value("mode").toString(),QString("Second"));
     QCOMPARE(f.document.undoStack()->count(),3);
   }
@@ -277,13 +276,13 @@ private slots:
     QVERIFY(f.model.inlineDescriptor(f.id,"hidden").isEmpty());
     f.open("text");
     const auto before=f.presenter.editorRect();
-    f.view.scale(1.5,1.5); f.presenter.reposition();
+    f.canvas.scaleBy(1.5, CanvasSurface::ZoomAnchor::Center); f.presenter.reposition();
     QCOMPARE(f.presenter.editorRect().width(),before.width()*1.5);
     const auto zoomed=f.presenter.editorRect();
-    f.view.horizontalScrollBar()->setValue(f.view.horizontalScrollBar()->value()+20);
+    f.canvas.setHorizontalOffset(f.canvas.horizontalOffset() + 20);
     QVERIFY(f.presenter.editorRect().left()!=zoomed.left());
     f.presenter.commit("stale",f.presenter.generation());
-    f.scene.clearSelection();
+    f.canvas.selection().clear();
     QApplication::processEvents();
     QCOMPARE(f.value("text").toString(),QString("original"));
     f.open("text"); const auto old=f.presenter.generation();
@@ -298,29 +297,29 @@ private slots:
   }
   void multilineExpansionAndCapture() {
     Fixture f;
-    f.open("prompt"); auto widget=f.presenter.editorWidget(); QVERIFY(widget);
+    f.open("prompt"); auto widget=f.surface.overlay("inline-property-overlay"); QVERIFY(widget);
     QTRY_VERIFY(widget->rootObject()->findChild<QQuickItem *>("inline-multiline")->hasActiveFocus());
-    QTest::keyClick(widget,Qt::Key_A,Qt::ControlModifier);
-    QTest::keyClicks(widget,"Line one"); QTest::keyClick(widget,Qt::Key_Return); QTest::keyClicks(widget,"Line two");
+    QTest::keyClick(widget->inputWidget(),Qt::Key_A,Qt::ControlModifier);
+    QTest::keyClicks(widget->inputWidget(),"Line one"); QTest::keyClick(widget->inputWidget(),Qt::Key_Return); QTest::keyClicks(widget->inputWidget(),"Line two");
     const auto compact=f.presenter.editorRect().height();
     auto expand=widget->rootObject()->findChild<QQuickItem *>("inline-expand");
     QVERIFY(expand);
     const auto expandPoint=expand->mapToScene(QPointF(expand->width()/2,expand->height()/2)).toPoint();
-    QTest::mouseClick(widget,Qt::LeftButton,Qt::NoModifier,expandPoint);
+    QTest::mouseClick(widget->inputWidget(),Qt::LeftButton,Qt::NoModifier,expandPoint);
     QVERIFY(f.presenter.editorRect().height()>compact);
     QCOMPARE(widget->rootObject()->findChild<QQuickItem *>("inline-multiline")->property("text").toString(),QString("Line one\nLine two"));
     const auto path=qEnvironmentVariable("NODETOOL_INLINE_CAPTURE");
     if (!path.isEmpty()) {
       QTest::qWait(80);
-      QVERIFY(f.view.grab().save(path+"-dark.png"));
+      QVERIFY(f.surface.host().grab().save(path+"-dark.png"));
       auto theme=f.engine.singletonInstance<QObject *>("NodeTool.UiPrimitives","Theme");
       QVERIFY(theme); theme->setProperty("preference",3);
       auto light=f.scene.theme(); light.canvas=QColor("#f5f5f6"); light.node=QColor("#ffffff"); light.textPrimary=QColor("#18181b"); light.textSecondary=QColor("#5b5b66"); light.grid=QColor("#dcdce1"); light.field=QColor("#f9f9f9"); light.divider=QColor("#e4e4e7");
       f.scene.setTheme(light);
       QTest::qWait(80);
-      QVERIFY(f.view.grab().save(path+"-light.png"));
+      QVERIFY(f.surface.host().grab().save(path+"-light.png"));
     }
-    QTest::keyClick(widget,Qt::Key_Return,Qt::ControlModifier);
+    QTest::keyClick(widget->inputWidget(),Qt::Key_Return,Qt::ControlModifier);
     QTRY_COMPARE(f.value("prompt").toString(),QString("Line one\nLine two"));
     QCOMPARE(f.document.undoStack()->count(),1);
   }
@@ -356,15 +355,15 @@ private slots:
     QTRY_COMPARE(f.value("tags").toArray().size(),2);
     QVERIFY(f.presenter.active());
     const auto capture=qEnvironmentVariable("NODETOOL_INLINE_CAPTURE");
-    if (!capture.isEmpty()) { QTest::qWait(80); QVERIFY(f.view.grab().save(capture+"-structured.png")); }
+    if (!capture.isEmpty()) { QTest::qWait(80); QVERIFY(f.surface.host().grab().save(capture+"-structured.png")); }
     QTRY_VERIFY(f.item("structured-text-1"));
     f.click(f.item("structured-text-1"));
-    QTest::keyClicks(f.presenter.editorWidget(),"blue");
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_Return);
+    QTest::keyClicks(f.surface.overlay("inline-property-overlay")->inputWidget(),"blue");
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.value("tags").toArray(),(QJsonArray{"red","blue"}));
     QVERIFY(f.presenter.active());
     QCOMPARE(f.document.undoStack()->count(),2);
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_Escape);
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_Escape);
     QTRY_VERIFY(!f.presenter.active());
     QCOMPARE(f.value("tags").toArray(),(QJsonArray{"red","blue"}));
     QCOMPARE(f.document.node("node")["data"].toObject()["future"].toInt(),7);
@@ -372,9 +371,9 @@ private slots:
     f.open("tags");
     QTRY_VERIFY(f.item("structured-text-0"));
     f.click(f.item("structured-text-0"));
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_A,Qt::ControlModifier);
-    QTest::keyClicks(f.presenter.editorWidget(),"green");
-    QTest::mouseClick(f.view.viewport(),Qt::LeftButton,Qt::NoModifier,QPoint(880,680));
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_A,Qt::ControlModifier);
+    QTest::keyClicks(f.surface.overlay("inline-property-overlay")->inputWidget(),"green");
+    QTest::mouseClick((&f.canvas.viewportWidget()),Qt::LeftButton,Qt::NoModifier,QPoint(880,680));
     QTRY_COMPARE(f.value("tags").toArray(),(QJsonArray{"green","blue"}));
     QTRY_VERIFY(!f.presenter.active());
     QCOMPARE(f.document.undoStack()->count(),3);
@@ -399,8 +398,8 @@ private slots:
     f.open("payload");
     QTRY_VERIFY(f.item("structured-json"));
     f.click(f.item("structured-json"));
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_A,Qt::ControlModifier);
-    QTest::keyClicks(f.presenter.editorWidget(),"{\"b\":2}");
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_A,Qt::ControlModifier);
+    QTest::keyClicks(f.surface.overlay("inline-property-overlay")->inputWidget(),"{\"b\":2}");
     f.click(f.item("structured-apply-json"));
     QTRY_COMPARE(f.value("payload").toObject()["data"].toString(),QString("{\"b\":2}"));
     QCOMPARE(f.value("payload").toObject()["type"].toString(),QString("json"));
@@ -414,8 +413,8 @@ private slots:
     auto select=f.item("inline-resource-select");
     QTRY_COMPARE(select->property("count").toInt(),2);
     QTRY_VERIFY(f.presenter.popupOpen());
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_Down);
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_Return);
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_Down);
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.value("flow").toObject(),(QJsonObject{{"type","workflow"},{"id","w2"}}));
     QTRY_VERIFY(!f.presenter.active());
     // The list select toggles one workflow per choice and stays on the card.
@@ -424,26 +423,26 @@ private slots:
     select=f.item("inline-resource-select");
     QTRY_COMPARE(select->property("count").toInt(),2);
     QTRY_VERIFY(f.presenter.popupOpen());
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_Down);
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_Return);
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_Down);
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.value("flows").toArray(),(QJsonArray{QJsonObject{{"type","workflow"},{"id","w1"}}}));
     QVERIFY(f.presenter.active());
     select=f.item("inline-resource-select");
     QTRY_VERIFY(!f.presenter.popupOpen());
     f.click(select);
     QTRY_VERIFY(f.presenter.popupOpen());
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_Down);
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_Return);
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_Down);
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.value("flows").toArray().size(),2);
     QCOMPARE(f.value("flows").toArray().last().toObject()["id"].toString(),QString("w2"));
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_Escape);
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_Escape);
     QTRY_VERIFY(!f.presenter.active());
     f.open("store");
     QTRY_VERIFY(f.item("inline-resource-select"));
     QTRY_COMPARE(f.item("inline-resource-select")->property("count").toInt(),1);
     QTRY_VERIFY(f.presenter.popupOpen());
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_Down);
-    QTest::keyClick(f.presenter.editorWidget(),Qt::Key_Return);
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_Down);
+    QTest::keyClick(f.surface.overlay("inline-property-overlay")->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(f.value("store").toObject(),(QJsonObject{{"type","collection"},{"name","docs"}}));
     QCOMPARE(f.document.undoStack()->count(),4);
     QCOMPARE(f.document.node("node")["data"].toObject()["future"].toInt(),7);

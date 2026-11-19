@@ -1,6 +1,6 @@
 #include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include <QDialog>
 #include "EntryMenuSupport.h"
 #include <QDir>
@@ -10,8 +10,7 @@
 #include <QMouseEvent>
 #include <QRegularExpression>
 #include <memory>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QtTest>
 using namespace nodetool;
 namespace {
@@ -134,6 +133,12 @@ private slots:
         h.click(h.action("addInput")); QTRY_VERIFY(h.dialog());
         auto *quick = h.dialog();
         auto *field = find(quick->rootObject(), "dynamic-port-name"); QVERIFY(field);
+        // The offscreen platform has no window manager to activate the popup.
+        // Deliver activation without assigning focus to the field ourselves.
+        if (QGuiApplication::platformName() == QStringLiteral("offscreen")) {
+            QEvent activation(QEvent::WindowActivate);
+            QApplication::sendEvent(quick->window(), &activation);
+        }
         QTRY_VERIFY(field->hasActiveFocus());
         auto *target = QApplication::activePopupWidget() ? QApplication::activePopupWidget()->focusWidget() : QApplication::focusWidget();
         QVERIFY(target);

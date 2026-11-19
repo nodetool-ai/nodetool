@@ -167,9 +167,10 @@ endif()
 if(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY)
     return()
 endif()
-include(cmake/QtNodes.cmake)
 include(cmake/GraphRunner.cmake)
 add_library(node_editor_core STATIC
+ third_party/qtnodes/AbstractGraphModel.cpp third_party/qtnodes/AbstractGraphModel.hpp
+ third_party/qtnodes/Definitions.hpp
  src/server/AccountJobs.cpp src/server/AccountJobs.h
  src/server/StoryDocumentSource.cpp src/server/StoryDocumentSource.h
  src/server/SetupController.cpp src/server/SetupController.h
@@ -206,9 +207,9 @@ add_library(node_editor_core STATIC
  src/canvas/NodeItem.cpp src/canvas/NodeItem.h src/canvas/ConnectionItem.cpp src/canvas/ConnectionItem.h
  src/canvas/NodeConnectionInteraction.cpp src/canvas/NodeConnectionInteraction.h
  src/canvas/CanvasViewport.cpp src/canvas/CanvasViewport.h src/canvas/CanvasLayers.cpp src/canvas/CanvasLayers.h
+ src/canvas/CardOverlay.h
  src/canvas/GraphCanvas.cpp src/canvas/GraphCanvas.h src/canvas/LineageItem.cpp src/canvas/LineageItem.h
  src/canvas/MiniMapItem.cpp src/canvas/MiniMapItem.h src/canvas/MiniMapPainter.h
- src/graph/EditorScene.cpp src/graph/EditorScene.h
  src/graph/LineageLayer.cpp src/graph/LineageLayer.h src/graph/LineageCanvas.cpp
  src/graph/InlinePropertyPresenter.cpp src/graph/InlinePropertyPresenter.h
  src/graph/InlineTitlePresenter.cpp src/graph/InlineTitlePresenter.h
@@ -237,11 +238,12 @@ add_library(node_editor_core STATIC
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
  src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp
  src/ui/CanvasCapture.cpp src/ui/CanvasCapture.h
- src/ui/CanvasSurface.h src/ui/QtNodesCanvas.cpp src/ui/QtNodesCanvas.h src/ui/QtNodesCanvasView.h src/ui/QtNodesNote.cpp
+ src/ui/CanvasOverlay.h src/ui/CanvasSurface.h
  src/ui/QuickCanvas.cpp src/ui/QuickCanvas.h)
-target_include_directories(node_editor_core PUBLIC src)
+target_include_directories(node_editor_core PUBLIC src third_party)
+target_compile_definitions(node_editor_core PUBLIC NODE_EDITOR_STATIC)
 target_link_libraries(node_editor_core PRIVATE nodetool_graph_runner)
-target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin nodetool_files nodetool_filesplugin nodetool_storyboard nodetool_storyboardplugin nodetool_script nodetool_scriptplugin nodetool_media_player nodetool_media_playerplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
+target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin nodetool_files nodetool_filesplugin nodetool_storyboard nodetool_storyboardplugin nodetool_script nodetool_scriptplugin nodetool_media_player nodetool_media_playerplugin Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
 qt_add_executable(nodetool-node-editor src/main.cpp)
 option(NT_MACOS_BUNDLE "macOS: build nodetool-node-editor as an .app bundle" OFF)
 set_target_properties(nodetool-node-editor PROPERTIES MACOSX_BUNDLE ${NT_MACOS_BUNDLE}
@@ -623,10 +625,8 @@ target_compile_definitions(node_editor_composition_tests PRIVATE MEDIA_VIDEO_FIX
 nodetool_use_ui_primitives(node_editor_composition_tests)
 add_test(NAME node_editor_composition COMMAND node_editor_composition_tests)
 set_tests_properties(node_editor_composition PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-# The same cases on RHI. It fails on the QGraphicsView canvas and stays
-# disabled until the Quick canvas (plan Q3 to Q5) passes it. ctest does not
-# run a disabled entry, so run the binary under xvfb with a Vulkan driver,
-# for example lavapipe:
+# The same cases on RHI, disabled pending Q10 qualification. To run the
+# binary under xvfb with a Vulkan driver such as lavapipe:
 #   VK_ICD_FILENAMES=<lvp_icd.json> VK_DRIVER_FILES=<lvp_icd.json> QT_QPA_PLATFORM=xcb \
 #   QSG_RHI_BACKEND=vulkan NODETOOL_COMPOSITION_BACKEND=rhi \
 #   xvfb-run -a -s "-screen 0 1920x1080x24" <build>/node_editor_composition_tests
@@ -932,13 +932,6 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_canvas_chrome_tests)
     add_test(NAME node_editor_canvas_chrome COMMAND node_editor_canvas_chrome_tests)
     set_tests_properties(node_editor_canvas_chrome PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-    # The Quick canvas (docs/plans/node-editor-quick-canvas/plan.md, Q3): its
-    # own tests, and the canvas group a second time with the switch set. The
-    # group's tests that build an EditorScene without a window test the
-    # QtNodes scene itself and run once: node_editor_canvas_media,
-    # node_editor_inline_property, node_editor_compatible_picker,
-    # node_editor_group_presentation, node_editor_reroute_presentation,
-    # node_editor_body_connection and node_editor_incremental_projection.
     qt_add_executable(node_editor_quick_canvas_tests tests/canvas/QuickCanvasTest.cpp)
     target_link_libraries(node_editor_quick_canvas_tests PRIVATE node_editor_core Qt6::Test)
     nodetool_use_ui_primitives(node_editor_quick_canvas_tests)
@@ -956,44 +949,7 @@ if(BUILD_TESTING)
     # The large-raster rows enforce a wall-clock polish limit.
     set_tests_properties(node_editor_quick_canvas node_editor_quick_canvas_dpr1.25
         node_editor_quick_canvas_dpr1.5 node_editor_quick_canvas_dpr2 PROPERTIES RUN_SERIAL TRUE)
-    set(node_editor_canvas_group
-        node_editor_ui=node_editor_ui_tests
-        node_editor_large_graph=node_editor_large_graph_tests
-        node_editor_canvas_media_host=node_editor_canvas_media_host_tests
-        node_editor_inline_title=node_editor_inline_title_tests
-        node_editor_inline_host=node_editor_inline_host_tests
-        node_editor_compatible_picker_host=node_editor_compatible_picker_host_tests
-        node_editor_group_authoring=node_editor_group_authoring_tests
-        node_editor_canvas_authoring=node_editor_canvas_authoring_tests
-        node_editor_canvas_drop=node_editor_canvas_drop_tests
-        node_editor_canvas_chrome=node_editor_canvas_chrome_tests
-        node_editor_card_bodies=node_editor_card_bodies_tests
-        node_editor_media_cards=node_editor_media_cards_tests
-        node_editor_selection_presentation=node_editor_selection_presentation_tests
-        node_editor_lineage_host=node_editor_lineage_host_tests
-        node_editor_body_drop_host=node_editor_body_drop_host_tests
-        node_editor_dynamic_card=node_editor_dynamic_card_tests
-        node_editor_dynamic_ports=node_editor_dynamic_ports_tests
-        node_editor_subgraph_card=node_editor_subgraph_card_tests
-        node_editor_navigation=node_editor_navigation_tests
-        node_editor_viewport_navigator=node_editor_viewport_navigator_tests
-        node_editor_window_parity=node_editor_window_parity_tests
-        node_editor_runtime_ui=node_editor_runtime_ui_tests
-        node_editor_price_chip=node_editor_price_chip_tests)
-    foreach(entry IN LISTS node_editor_canvas_group)
-        string(REPLACE "=" ";" pair "${entry}")
-        list(GET pair 0 name)
-        list(GET pair 1 target)
-        add_test(NAME ${name}_quick COMMAND ${target})
-        get_test_property(${name} ENVIRONMENT environment)
-        set_tests_properties(${name}_quick PROPERTIES ENVIRONMENT "${environment};NODETOOL_NODE_EDITOR_CANVAS=quick")
-    endforeach()
-    # Its frame times are limits, so it runs alone.
-    set_tests_properties(node_editor_large_graph_quick PROPERTIES RUN_SERIAL TRUE)
-    add_test(NAME node_editor_smoke_quick COMMAND nodetool-node-editor --screenshot ${CMAKE_CURRENT_BINARY_DIR}/editor-quick.png
-        --dump ${CMAKE_CURRENT_BINARY_DIR}/empty-quick.json)
-    set_tests_properties(node_editor_smoke_quick PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;NODETOOL_NODE_EDITOR_CANVAS=quick")
+    set_tests_properties(node_editor_large_graph PROPERTIES RUN_SERIAL TRUE)
     nodetool_node_editor_test_sanitizers()
     # Each test binary writes its settings to a private temporary directory.
     get_property(node_editor_test_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)

@@ -5,6 +5,7 @@
 #include <memory>
 
 class QQuickWidget;
+class QQmlEngine;
 
 namespace nodetool {
 class WorkflowGraphModel;
@@ -14,18 +15,16 @@ class GraphCanvas;
 } // namespace canvas
 
 // UI thread only. CanvasSurface over the Quick canvas: one QQuickWidget that
-// hosts a GraphCanvas and also parents the editor's widget overlays, so it is
+// hosts a GraphCanvas and its Quick overlays, so it is
 // both hostWidget() and viewportWidget(). The Qt parent (the shell) owns the
 // QQuickWidget. This object owns the GraphCanvas through
 // std::unique_ptr and destroys it before the widgets; the model outlives it.
 class QuickCanvas final : public CanvasSurface {
   Q_OBJECT
 public:
-  QuickCanvas(WorkflowGraphModel &model, QWidget &parent);
+  QuickCanvas(WorkflowGraphModel &model, QWidget &parent, QQmlEngine *engine = nullptr);
   ~QuickCanvas() override;
 
-  // NODETOOL_NODE_EDITOR_CANVAS=quick selects this canvas.
-  static bool selected();
   canvas::GraphCanvas &graphCanvas() const { return *canvas_; }
   canvas::CanvasScene &canvasScene() const;
   QQuickWidget &quickWidget() const;
@@ -66,7 +65,7 @@ public:
   void setHandDrag(bool enabled) override;
   void requestRepaint() override;
   void setCursor(const QCursor &cursor) override;
-  void setFocus(Qt::FocusReason reason) override;
+  void setFocus(Qt::FocusReason reason = Qt::OtherFocusReason) override;
   QImage capture(canvas_capture::Mode mode) const override;
   QImage renderCard(QtNodes::NodeId id) const override;
   std::unique_ptr<CanvasNote> addNote(QtNodes::NodeId id, const QString &text, const QString &name,
