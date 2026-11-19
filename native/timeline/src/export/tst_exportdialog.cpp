@@ -491,7 +491,7 @@ private slots:
         options.format = "wav";
         options.audioBitDepth = 24;
         options.output = dir.filePath("mix24.wav");
-        const auto result = nt::exporting::exportTimeline(*parsed.timeline, options);
+        const auto result = nt::exporting::exportTimeline(*parsed.timeline, options, m_testCache.root());
         QVERIFY2(result.ok(), qPrintable(result.error));
         QCOMPARE(result.audioEncoder, QString("pcm_s24le"));
 
@@ -541,7 +541,7 @@ private slots:
         // The same mix at 16 bit keeps its header and its coarser step.
         options.audioBitDepth = 16;
         options.output = dir.filePath("mix16.wav");
-        QVERIFY(nt::exporting::exportTimeline(*parsed.timeline, options).ok());
+        QVERIFY(nt::exporting::exportTimeline(*parsed.timeline, options, m_testCache.root()).ok());
         QFile file16(options.output);
         QVERIFY(file16.open(QIODevice::ReadOnly));
         const QByteArray bytes16 = file16.readAll();
