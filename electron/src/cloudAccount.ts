@@ -433,9 +433,10 @@ export class CloudAccount {
   }
 
   private publish(next: CloudAccountState): void {
+    const previous = this.current;
     this.current = next;
-    if (next.state !== "signedIn") {
-      // FC30, TC119: no cloud request outlives the sign-in.
+    if (next.state !== "signedIn" || accountChanged(previous, next)) {
+      // FC30, TC119, TC125: no cloud request outlives the sign-in it was made under.
       this.requests.signedOut();
     }
     this.deps.onState(next);
@@ -596,6 +597,18 @@ export function registerCloudMediaScheme(): void {
 }
 
 /** Answers `nodetool-cloud:` URLs through the account (cloudMediaResponse), in one session. */
+/**
+ * Whether a signed-in account gave way to another without a sign-out in
+ * between, as when a native app signs in another account on this computer.
+ */
+export function accountChanged(previous: CloudAccountState, next: CloudAccountState): boolean {
+  return (
+    previous.state === "signedIn" &&
+    next.state === "signedIn" &&
+    (previous.accountId !== next.accountId || previous.serverOrigin !== next.serverOrigin)
+  );
+}
+
 export function handleCloudMediaScheme(target: Electron.Protocol = protocol): void {
   target.handle(CLOUD_MEDIA_SCHEME, (request) => cloudMediaResponse(request, getCloudAccount()));
 }
@@ -620,10 +633,12 @@ export function getCloudSockets(): CloudSockets {
       },
       log: (message, level) => logMessage(message, level),
     });
+    let last = account.state();
     account.onStateChange((state) => {
-      if (state.state !== "signedIn") {
+      if (state.state !== "signedIn" || accountChanged(last, state)) {
         sockets.signedOut();
       }
+      last = state;
     });
     sharedSockets = sockets;
   }

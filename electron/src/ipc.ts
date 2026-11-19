@@ -1078,17 +1078,23 @@ export function initializeIpcHandlers(): void {
   });
   // Cloud requests and transfer calls of cloud documents (WP1.14). Neither
   // the input nor the answer holds a token.
-  createIpcMainHandler(IpcChannels.CLOUD_REQUEST, async (_event, request) => {
+  createIpcMainHandler(IpcChannels.CLOUD_REQUEST, async (event, request) => {
     const parsed = cloudRequestSchema.safeParse(request);
     if (!parsed.success) {
       return { ok: false, error: "REFUSED" } as const;
     }
+    if (!getCloudWindow().mayCallCloud(event.sender.id)) {
+      return { ok: false, error: "SIGNED_OUT" } as const;
+    }
     return getCloudAccount().request(parsed.data);
   });
-  createIpcMainHandler(IpcChannels.CLOUD_TRANSFER, async (_event, request) => {
+  createIpcMainHandler(IpcChannels.CLOUD_TRANSFER, async (event, request) => {
     const parsed = cloudTransferSchema.safeParse(request);
     if (!parsed.success) {
       return { status: "refused", reason: "INVALID", data: null } as const;
+    }
+    if (!getCloudWindow().mayCallCloud(event.sender.id)) {
+      return { status: "signedOut", reason: "SIGNED_OUT", data: null } as const;
     }
     return getCloudAccount().transfer(parsed.data.procedure, parsed.data.input);
   });
@@ -1096,6 +1102,9 @@ export function initializeIpcHandlers(): void {
   // socket is the only one that can send on it or close it.
   createIpcMainHandler(IpcChannels.CLOUD_SOCKET_OPEN, async (event) => {
     const sender = event.sender;
+    if (!getCloudWindow().mayCallCloud(sender.id)) {
+      return { ok: false, error: "SIGNED_OUT" } as const;
+    }
     const sockets = getCloudSockets();
     const result = await sockets.open(sender.id);
     if (result.ok && !watchedSocketOwners.has(sender.id)) {
