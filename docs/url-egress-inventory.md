@@ -248,6 +248,12 @@ hash and size.
   transfer ticket from the server must be a relative URL under `/wangp_api/`
   that resolves to the configured origin. The cloud profile excludes the
   `wangp` provider and the `lib.wan2gp` nodes.
+- `packages/websocket/src/finetune/ollama-capture.ts` and
+  `packages/websocket/src/finetune/openai-capture.ts` — fetch seams that the
+  offline `finetune-data` script injects into the Ollama, OpenRouter and
+  llama.cpp providers to record each exchange. The URL is the provider's own:
+  `OLLAMA_API_URL`, `FINETUNE_LLAMA_CPP_URL` or OpenRouter's fixed host, all
+  set by the operator. No caller or model supplies one.
 - `packages/runtime/src/providers/wan2gp-server.ts` — polls only the Wan2GP
   server it started on `127.0.0.1`, at a port it picked, until that server
   answers. The cloud profile excludes the `wangp` provider and the

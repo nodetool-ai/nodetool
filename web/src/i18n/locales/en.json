@@ -14035,6 +14035,8 @@
       "loadFailureTitle": "Could not load documents",
       "loadFailureSummary": "Project documents failed to load",
       "tryAgainLater": "Try again later.",
+      "cloudLoadFailure": "Cloud documents could not be listed: {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "No matching documents",
       "noMatchingDescription": "This searches documents only. Conversations are in Chats, and uploads are in the Library.",
       "noDocuments": "No documents yet",
@@ -14053,7 +14055,9 @@
         "text": "Text files",
         "agents": "Agents & code",
         "entities": "Entities",
-        "shared": "Shared with me"
+        "shared": "Shared with me",
+        "cloud": "Cloud",
+        "cloudShared": "Shared with me"
       },
       "type": {
         "workflow": "Workflow",

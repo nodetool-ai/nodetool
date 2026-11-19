@@ -332,12 +332,19 @@ needs Qt Core and Network.
 `qt/qml/` holds the QML both apps compile: `AccountControl.qml`, with the
 server menu and the Sign in to another server dialog, `CloudDocumentsPanel.qml`,
 `CloudSyncStatus.qml`, `SharePanel.qml` and `ShareDialog.qml`, which shows
-the panel in a dialog, and `TransferPanel.qml`, the review sheet of Publish
-and Synchronize. The node editor compiles the transfer panel. Neither app
-opens it from a menu yet. The node editor shows the panel in its own overlay
-window from Workflow > Share or the header's Share button, and the timeline
-shows the dialog from Share in the document bar. Both show Share only on a
-cloud document the account owns.
+the panel in a dialog, and `TransferPanel.qml` with `TransferDialog.qml`, the
+review sheet of Publish and Synchronize. The node editor shows the panel in its
+own overlay window from Workflow > Share or the header's Share button, and the
+timeline shows the dialog from Share in the document bar. Both show Share only
+on a cloud document the account owns.
+
+Both apps open the review sheet from File > Publish to Cloud… and File >
+Synchronize…. The node editor shows `TransferPanel.qml` in its own overlay
+window, and the timeline shows `TransferDialog.qml` from its document bar. The
+sheet asks the local server's `cloudTransfer.link` whether the project is linked
+and publishes or synchronizes from the answer. The entries are enabled only for
+a project folder on the bundled server that the app's launch started, with a
+signed-in account.
 
 The controller runs the keychain, lock and server calls on one task
 thread. Results come back through an inbox guarded by a mutex, and a

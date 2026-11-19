@@ -870,7 +870,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         for (const auto& item : menu("File").items) {
             file << (item.separator ? QString("---") : item.label);
         }
-        QCOMPARE(file.mid(3), QStringList({"---", "Export Thing…", "---", "Project Settings…", "---", "Settings…", "Quit"}));
+        QCOMPARE(file.mid(3), QStringList({"---", "Export Thing…", "---", "Project Settings…", "---", "Publish to Cloud…", "Synchronize…", "---", "Settings…", "Quit"}));
         const auto inClip = [](const Menu& clipMenu) -> const ShellMenuItem& {
             return *std::find_if(clipMenu.items.begin(), clipMenu.items.end(), [](const ShellMenuItem& item) { return item.action == "nudgeLeft"; });
         };

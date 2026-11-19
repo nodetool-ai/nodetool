@@ -144,6 +144,7 @@ int main(int argc, char** argv) {
   options.store = store.get();
   options.keychainAvailable = keychainAvailable;
   options.endpoint = &endpoint;
+  options.transport = &transport;
   options.policy = nodetool::account::readManagedPolicy;
 #ifdef NODETOOL_ACCOUNT_HELPER_TESTING
   options.fault = testFault();
@@ -158,7 +159,7 @@ int main(int argc, char** argv) {
 
   {
     AccountHelper helper(std::move(options), emit);
-    emit({{"type", "ready"}, {"protocol", 1}});
+    emit({{"type", "ready"}, {"protocol", 2}});
     std::string line;
     while (std::getline(std::cin, line)) {
       if (line.size() > kMaxLineBytes) {

@@ -14035,6 +14035,8 @@
       "loadFailureTitle": "दस्तावेज़ लोड नहीं कर सकता",
       "loadFailureSummary": "परियोजना दस्तावेज लोड करने में विफल",
       "tryAgainLater": "बाद में फिर से कोशिश करें।",
+      "cloudLoadFailure": "क्लाउड दस्तावेज़ों की सूची नहीं बन सकी: {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "कोई मिलान दस्तावेज नहीं",
       "noMatchingDescription": "यह केवल दस्तावेजों की खोज करता है। वार्तालाप चैट में हैं और अपलोड लाइब्रेरी में हैं।",
       "noDocuments": "अभी तक कोई दस्तावेज नहीं",
@@ -14053,7 +14055,9 @@
         "text": "पाठ्यपुस्तक",
         "agents": "एजेंट्स & कोड",
         "entities": "संस्था",
-        "shared": "मेरे साथ साझा"
+        "shared": "मेरे साथ साझा",
+        "cloud": "क्लाउड",
+        "cloudShared": "मेरे साथ साझा"
       },
       "type": {
         "workflow": "वर्कफ़्लो",

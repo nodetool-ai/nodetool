@@ -41,6 +41,7 @@ export {
 } from "guest-real:@nodetool-ai/runtime/providers/image-mime.js";
 export { sniffAudioMime, sniffAudioMimeOrNull } from "guest-real:@nodetool-ai/runtime/providers/audio-mime.js";
 export { extractJson, messageText } from "guest-real:@nodetool-ai/runtime/providers/structured-output.js";
+export { MINIMAX_H3_IMAGE_MODELS, minimaxImageData } from "guest-real:@nodetool-ai/runtime/providers/minimax-image.js";
 export { RecoverableNodeError, isRecoverableNodeError } from "guest-real:@nodetool-ai/runtime/recoverable-node-error.js";
 export { VariableChannel } from "guest-real:@nodetool-ai/runtime/variable-channel.js";
 export { getCostReconciler, registerCostReconciler } from "guest-real:@nodetool-ai/runtime/cost-reconciler.js";

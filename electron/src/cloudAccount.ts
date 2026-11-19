@@ -19,9 +19,23 @@ import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
 import { existsSync } from "fs";
 import * as path from "path";
 import { createInterface } from "readline";
-import { app, BrowserWindow, net, shell } from "electron";
+import { app, BrowserWindow, net, protocol, shell } from "electron";
+import WebSocket from "ws";
 import { z } from "zod";
+import {
+  CLOUD_MEDIA_SCHEME,
+  CloudRequests,
+  cloudMediaResponse,
+  type CloudFetchLike,
+  type CloudRequestInput,
+  type CloudResponse,
+  type SocketTokenResult,
+  type TransferResult,
+} from "./cloudRequests";
+import { CloudSockets, MAX_SOCKET_FRAME_BYTES } from "./cloudSocket";
+import { getLocalClientToken } from "./localClientToken";
 import { logMessage } from "./logger";
+import { serverState } from "./state";
 import { IpcChannels, type CloudAccountState } from "./types.d";
 
 /** The default cloud server, as in the native apps' cloudServerOrigin(). */
@@ -182,6 +196,7 @@ const boundedText = z
 const helperStateSchema = z.object({
   state: z.enum(["signedOut", "signingIn", "signedIn"]).catch("signedOut"),
   displayName: boundedText,
+  accountId: boundedText,
   serverOrigin: boundedText,
   serverEndPending: z.boolean().catch(false),
   cloudAvailable: z.boolean().catch(false),
@@ -197,6 +212,9 @@ const helperHttpSchema = z.object({
   body: z.string().catch(""),
   timeoutMs: z.number().catch(10_000),
   requiredOrigin: z.string().catch(""),
+  // Protocol version 2: the cloud request or transfer call this serves.
+  request: z.number().int().optional().catch(undefined),
+  transfer: z.number().int().optional().catch(undefined),
 });
 
 /** Every message the helper may send. Anything else is ignored. */
@@ -207,6 +225,25 @@ const helperMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("httpCancel"), id: z.number().int() }),
   z.object({ type: z.literal("fatal"), message: boundedText }),
   z.object({ type: z.literal("ready") }).passthrough(),
+  z.object({
+    type: z.literal("response"),
+    id: z.number().int(),
+    status: z.number().int().catch(0),
+    error: z.string().catch("OFFLINE"),
+  }),
+  z.object({
+    type: z.literal("transferResult"),
+    id: z.number().int(),
+    status: z.string().catch("localUnavailable"),
+    reason: boundedText,
+    data: z.unknown(),
+  }),
+  z.object({
+    type: z.literal("socketTokenResult"),
+    id: z.number().int(),
+    token: z.string().optional().catch(undefined),
+    error: z.string().optional().catch(undefined),
+  }),
 ]);
 
 /** The renderer's copy of a `state` message, built field by field. */
@@ -249,6 +286,11 @@ export interface CloudAccountDeps {
   server: string;
   spawnHelper: (file: string, args: string[]) => ChildProcessWithoutNullStreams;
   fetch: FetchLike;
+  /** Sends the renderer's cloud requests and transfer calls (cloudRequests.ts). */
+  cloudFetch: CloudFetchLike;
+  /** The loopback origin of the local server this app runs, or null. */
+  localOrigin: () => string | null;
+  localClientToken: () => string;
   openExternal: (url: string) => Promise<void>;
   onState: (state: CloudAccountState) => void;
   setTimer: (fn: () => void, ms: number) => void;
@@ -258,6 +300,7 @@ export interface CloudAccountDeps {
 const UNAVAILABLE: Omit<CloudAccountState, "available" | "serverOrigin"> = {
   state: "signedOut",
   displayName: "",
+  accountId: "",
   serverEndPending: false,
   cloudAvailable: true,
   keychainAvailable: true,
@@ -269,27 +312,53 @@ const UNAVAILABLE: Omit<CloudAccountState, "available" | "serverOrigin"> = {
  * helper process and ends it in dispose() by closing its stdin.
  */
 export class CloudAccount {
-  private readonly serverOrigin: string | null;
+  private readonly origin: string | null;
   private child: ChildProcessWithoutNullStreams | null = null;
   private restarts = 0;
   private disposed = false;
   private readonly inFlight = new Map<number, AbortController>();
   private current: CloudAccountState;
+  private readonly requests: CloudRequests;
+  private readonly stateListeners = new Set<(state: CloudAccountState) => void>();
 
   constructor(private readonly deps: CloudAccountDeps) {
-    this.serverOrigin = canonicalHttpsOrigin(deps.server);
+    this.origin = canonicalHttpsOrigin(deps.server);
+    this.requests = new CloudRequests({
+      serverOrigin: this.origin,
+      localOrigin: deps.localOrigin,
+      localClientToken: deps.localClientToken,
+      fetch: deps.cloudFetch,
+      send: (message) => this.send(message),
+      setTimer: (fn, ms) => {
+        const timer = setTimeout(fn, ms);
+        timer.unref?.();
+        return () => clearTimeout(timer);
+      },
+      log: deps.log,
+    });
     this.current = deps.helperPath
-      ? { ...UNAVAILABLE, available: true, serverOrigin: this.serverOrigin ?? "" }
+      ? { ...UNAVAILABLE, available: true, serverOrigin: this.origin ?? "" }
       : {
           ...UNAVAILABLE,
           available: false,
-          serverOrigin: this.serverOrigin ?? "",
+          serverOrigin: this.origin ?? "",
           message: "Cloud sign-in is not available in this build.",
         };
   }
 
   state(): CloudAccountState {
     return this.current;
+  }
+
+  /** Calls `listener` with every new state. Returns the function that stops it. */
+  onStateChange(listener: (state: CloudAccountState) => void): () => void {
+    this.stateListeners.add(listener);
+    return () => this.stateListeners.delete(listener);
+  }
+
+  /** The canonical origin of the configured server, or null. */
+  serverOrigin(): string | null {
+    return this.origin;
   }
 
   start(): void {
@@ -319,8 +388,33 @@ export class CloudAccount {
     this.send({ type: "signOut" });
   }
 
+  /** A cloud request of the renderer, sent with the account's credential by the helper. */
+  request(input: CloudRequestInput): Promise<CloudResponse> {
+    if (this.current.state !== "signedIn") {
+      return Promise.resolve({ ok: false, error: "SIGNED_OUT" });
+    }
+    return this.requests.request(input);
+  }
+
+  /** A call of the local server's transfer router, with the account added by the helper. */
+  transfer(procedure: string, input: Record<string, unknown>): Promise<TransferResult> {
+    if (this.current.state !== "signedIn") {
+      return Promise.resolve({ status: "signedOut", reason: "SIGNED_OUT", data: null });
+    }
+    return this.requests.transfer(procedure, input);
+  }
+
+  /** An access token for one socket upgrade. Main process only, never the renderer. */
+  socketToken(): Promise<SocketTokenResult> {
+    if (this.current.state !== "signedIn") {
+      return Promise.resolve({ ok: false, error: "SIGNED_OUT" });
+    }
+    return this.requests.socketToken();
+  }
+
   dispose(): void {
     this.disposed = true;
+    this.requests.dispose();
     for (const controller of this.inFlight.values()) {
       controller.abort();
     }
@@ -330,15 +424,24 @@ export class CloudAccount {
     this.child = null;
   }
 
-  private send(message: Record<string, unknown>): void {
+  private send(message: Record<string, unknown>): boolean {
     if (this.child && !this.child.stdin.destroyed) {
       this.child.stdin.write(`${JSON.stringify(message)}\n`);
+      return true;
     }
+    return false;
   }
 
   private publish(next: CloudAccountState): void {
     this.current = next;
+    if (next.state !== "signedIn") {
+      // FC30, TC119: no cloud request outlives the sign-in.
+      this.requests.signedOut();
+    }
     this.deps.onState(next);
+    for (const listener of [...this.stateListeners]) {
+      listener(next);
+    }
   }
 
   private onLine(line: string): void {
@@ -363,7 +466,7 @@ export class CloudAccount {
         return;
       case "http": {
         const request = helperHttpSchema.safeParse(message);
-        if (request.success) {
+        if (request.success && !this.requests.onHttp(request.data)) {
           void this.forward(request.data);
         }
         return;
@@ -371,6 +474,16 @@ export class CloudAccount {
       case "httpCancel":
         this.inFlight.get(message.id)?.abort();
         this.inFlight.delete(message.id);
+        this.requests.onHttpCancel(message.id);
+        return;
+      case "response":
+        this.requests.onResponse(message);
+        return;
+      case "transferResult":
+        this.requests.onTransferResult(message);
+        return;
+      case "socketTokenResult":
+        this.requests.onSocketTokenResult(message);
         return;
       case "fatal":
         this.deps.log(`account helper: ${message.message}`, "error");
@@ -382,7 +495,7 @@ export class CloudAccount {
 
   private async openBrowser(url: string): Promise<void> {
     let opened = false;
-    if (isAuthorizeUrl(url, this.serverOrigin)) {
+    if (isAuthorizeUrl(url, this.origin)) {
       try {
         await this.deps.openExternal(url);
         opened = true;
@@ -397,12 +510,12 @@ export class CloudAccount {
 
   private async forward(request: HelperHttpRequest): Promise<void> {
     const { id } = request;
-    if (!mayForward(request, this.serverOrigin)) {
+    if (!mayForward(request, this.origin)) {
       this.deps.log("Refused an account request to a host other than the cloud server", "warn");
     }
     const controller = new AbortController();
     this.inFlight.set(id, controller);
-    const response = await forwardRequest(request, this.serverOrigin, this.deps.fetch, controller.signal);
+    const response = await forwardRequest(request, this.origin, this.deps.fetch, controller.signal);
     this.inFlight.delete(id);
     this.send({ type: "httpResponse", id, status: response.status, body: response.body });
   }
@@ -416,6 +529,7 @@ export class CloudAccount {
       controller.abort();
     }
     this.inFlight.clear();
+    this.requests.helperStopped();
     if (this.disposed) {
       return;
     }
@@ -425,7 +539,7 @@ export class CloudAccount {
       this.publish({
         ...UNAVAILABLE,
         available: false,
-        serverOrigin: this.serverOrigin ?? "",
+        serverOrigin: this.origin ?? "",
         message: "Cloud sign-in stopped working. Restart NodeTool to try again.",
       });
       return;
@@ -446,6 +560,14 @@ export function getCloudAccount(): CloudAccount {
       server: configuredCloudServer(),
       spawnHelper: (file, args) => spawn(file, args, { stdio: ["pipe", "pipe", "pipe"], windowsHide: true }),
       fetch: (url, init) => net.fetch(url, init),
+      cloudFetch: (url, { body, ...init }) =>
+        net.fetch(url, { ...init, body: body instanceof Uint8Array ? new Uint8Array(body) : body }),
+      localOrigin: () => {
+        // The app's own server, started or adopted at launch.
+        const port = serverState.isStarted ? serverState.serverPort : undefined;
+        return port ? `http://127.0.0.1:${port}` : null;
+      },
+      localClientToken: getLocalClientToken,
       openExternal: (url) => shell.openExternal(url),
       onState: (state) => {
         for (const w of BrowserWindow.getAllWindows()) {
@@ -460,7 +582,57 @@ export function getCloudAccount(): CloudAccount {
   return shared;
 }
 
+/**
+ * Makes `nodetool-cloud:` a secure scheme that media elements and fetch can
+ * load. Electron requires this before the app is ready.
+ */
+export function registerCloudMediaScheme(): void {
+  protocol.registerSchemesAsPrivileged([
+    {
+      scheme: CLOUD_MEDIA_SCHEME,
+      privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true },
+    },
+  ]);
+}
+
+/** Answers `nodetool-cloud:` URLs through the account (cloudMediaResponse). */
+export function handleCloudMediaScheme(): void {
+  protocol.handle(CLOUD_MEDIA_SCHEME, (request) => cloudMediaResponse(request, getCloudAccount()));
+}
+
+let sharedSockets: CloudSockets | null = null;
+
+/**
+ * The workflow sockets of cloud documents (D25). Each belongs to the window
+ * that opened it and closes when that window goes away or the account signs
+ * out.
+ */
+export function getCloudSockets(): CloudSockets {
+  if (!sharedSockets) {
+    const account = getCloudAccount();
+    const sockets = new CloudSockets({
+      account,
+      connect: (url, headers) =>
+        new WebSocket(url, { headers, followRedirects: false, maxPayload: MAX_SOCKET_FRAME_BYTES }),
+      deliver: (owner, event) => {
+        const window = BrowserWindow.getAllWindows().find((w) => !w.isDestroyed() && w.webContents.id === owner);
+        window?.webContents.send(IpcChannels.CLOUD_SOCKET_EVENT, event);
+      },
+      log: (message, level) => logMessage(message, level),
+    });
+    account.onStateChange((state) => {
+      if (state.state !== "signedIn") {
+        sockets.signedOut();
+      }
+    });
+    sharedSockets = sockets;
+  }
+  return sharedSockets;
+}
+
 export function disposeCloudAccount(): void {
+  sharedSockets?.dispose();
+  sharedSockets = null;
   shared?.dispose();
   shared = null;
 }

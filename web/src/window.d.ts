@@ -116,6 +116,8 @@ export interface CloudAccountState {
   available: boolean;
   state: "signedOut" | "signingIn" | "signedIn";
   displayName: string;
+  /** The signed-in account's id, empty otherwise. Not a credential. */
+  accountId: string;
   serverOrigin: string;
   /** Signed out here, and the server has not confirmed the end of the session yet. */
   serverEndPending: boolean;
@@ -125,6 +127,25 @@ export interface CloudAccountState {
   keychainAvailable: boolean;
   /** Why the last sign-in did not complete, or the policy's reason. */
   message: string;
+}
+
+/** A request to the signed-in cloud server. The desktop app adds the credential. */
+export interface CloudRequestInput {
+  method: "GET" | "HEAD" | "POST";
+  /** A path on the signed-in server, with its query. */
+  path: string;
+  headers: Record<string, string>;
+  body?: string | Uint8Array;
+}
+
+export type CloudResponse =
+  | { ok: true; status: number; headers: [string, string][]; body: Uint8Array }
+  | { ok: false; error: "SIGNED_OUT" | "OFFLINE" | "REFUSED" | "CANCELLED" | "BUSY" };
+
+export interface CloudTransferResult {
+  status: "ok" | "signedOut" | "offline" | "refused" | "localUnavailable" | "cancelled";
+  reason: string;
+  data: unknown;
 }
 
 interface McpBundleInstallResult {
@@ -217,6 +238,33 @@ declare global {
         signOut: () => Promise<void>;
         /** Returns the unsubscribe function. */
         onChange: (callback: (state: CloudAccountState) => void) => () => void;
+      };
+      /**
+       * Requests to the signed-in cloud server and the local transfer router,
+       * sent with the shared account. No token reaches the page. Desktop only.
+       */
+      cloud?: {
+        request: (request: CloudRequestInput) => Promise<CloudResponse>;
+        transfer: (request: {
+          procedure: string;
+          input: Record<string, unknown>;
+        }) => Promise<CloudTransferResult>;
+        /** The workflow socket of a cloud document, opened by the desktop app. */
+        socket: {
+          open: () => Promise<
+            { ok: true; id: number } | { ok: false; error: "SIGNED_OUT" | "OFFLINE" | "BUSY" }
+          >;
+          send: (id: number, data: Uint8Array | string) => Promise<boolean>;
+          close: (id: number) => Promise<void>;
+          onEvent: (
+            callback: (
+              event:
+                | { id: number; kind: "open" }
+                | { id: number; kind: "message"; data: Uint8Array | string }
+                | { id: number; kind: "close"; code: number; reason: string }
+            ) => void
+          ) => () => void;
+        };
       };
       /** Native OS notifications. Desktop only. */
       notifications?: {

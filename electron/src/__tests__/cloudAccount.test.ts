@@ -113,6 +113,7 @@ describe("stateFromHelper", () => {
       type: "state",
       state: "signedIn",
       displayName: "Ada",
+      accountId: "u1",
       serverOrigin: ORIGIN,
       serverEndPending: false,
       cloudAvailable: true,
@@ -123,6 +124,7 @@ describe("stateFromHelper", () => {
     expect(state).toEqual({
       state: "signedIn",
       displayName: "Ada",
+      accountId: "u1",
       serverOrigin: ORIGIN,
       serverEndPending: false,
       cloudAvailable: true,
@@ -130,6 +132,8 @@ describe("stateFromHelper", () => {
       message: "",
     });
     expect(stateFromHelper({ state: "anything" }).state).toBe("signedOut");
+    // A helper of version 1 names no account.
+    expect(stateFromHelper({ state: "signedIn" }).accountId).toBe("");
   });
 });
 
@@ -181,6 +185,9 @@ function setup(overrides: Partial<CloudAccountDeps> = {}) {
       return helper as unknown as ChildProcessWithoutNullStreams;
     },
     fetch: fetchImpl,
+    cloudFetch: jest.fn(),
+    localOrigin: () => "http://127.0.0.1:7777",
+    localClientToken: () => "local-token",
     openExternal,
     onState: (state) => states.push(state),
     setTimer: (fn, ms) => timers.push({ fn, ms }),

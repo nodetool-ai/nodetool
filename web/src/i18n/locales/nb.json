@@ -14035,6 +14035,8 @@
       "loadFailureTitle": "Kunne ikke laste inn dokumenter",
       "loadFailureSummary": "Prosjektdokumenter kunne ikke lastes inn",
       "tryAgainLater": "Prøv igjen senere.",
+      "cloudLoadFailure": "Kunne ikke vise dokumentene i skyen: {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "Ingen samsvarende dokumenter",
       "noMatchingDescription": "Dette søker kun i dokumenter. Samtaler er i Chats, og opplastinger er i biblioteket.",
       "noDocuments": "Ingen dokumenter ennå",
@@ -14053,7 +14055,9 @@
         "text": "Tekstfiler",
         "agents": "Agenter og kode",
         "entities": "Enheter",
-        "shared": "Delt med meg"
+        "shared": "Delt med meg",
+        "cloud": "Sky",
+        "cloudShared": "Delt med meg"
       },
       "type": {
         "workflow": "Arbeidsflyt",
