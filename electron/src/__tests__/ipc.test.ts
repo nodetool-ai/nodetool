@@ -91,6 +91,7 @@ jest.mock('electron', () => {
       on: jest.fn(),
       once: jest.fn(),
       removeHandler: jest.fn(),
+      removeAllListeners: jest.fn(),
     },
     BrowserWindow: {
       fromWebContents: jest.fn(),
