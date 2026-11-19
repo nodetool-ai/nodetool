@@ -364,6 +364,8 @@ As built (WP1.15, sign-out): Sign out in Settings counts the account's drafts in
 
 As built (WP1.15, TC125): drafts are scoped by the window's server and account, so a cloud window of account A writes and reads only A's drafts. When another account signs in without a sign-out in between, as a native app can do, the main process ends every pending cloud request and socket of the first account (`accountChanged` in `electron/src/cloudAccount.ts`). A request, transfer or socket from a cloud window that belongs to another account than the signed-in one is answered as signed out (`CloudWindow.mayCallCloud`), also while that window is still closing. A's drafts stay in the local server and are taken up when A signs in again.
 
+As built (WP2.14, review rows): `web/src/lib/cloud/transferReview.ts` ports `TransferReview`, `unreviewedOperations` and `unreviewedFileOperations` from `native/account` to TypeScript, with readers for the local router's `send.capture`, `receive.capture` and `send.run` answers. Its tests are the review cases of `native/account/tests/transfer.cpp`, so both sheets build the same rows and collect the same decisions (TR11). The controller, the sheet and the menu entries follow.
+
 ### Local data scoping and durable drafts
 
 New tables in the local NodeTool database. Every row carries `server_key` (SHA-256 of the server origin, first 16 hex characters) and `account_id`. Every query filters on both, and the access layer takes them as required arguments.
