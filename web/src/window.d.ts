@@ -154,6 +154,10 @@ export interface CloudDocumentRef {
   id: string;
 }
 
+export type CloudLocalResult =
+  | { ok: true; data: unknown }
+  | { ok: false; error: "REFUSED" | "UNAVAILABLE" | "FAILED"; message?: string };
+
 export type CloudWindowOpenResult =
   | { ok: true }
   | { ok: false; error: "SIGNED_OUT" | "STARTING" };
@@ -283,6 +287,11 @@ declare global {
         windowReady: () => Promise<CloudDocumentRef[]>;
         /** Documents opened in the cloud window after it was ready. Returns the unsubscribe function. */
         onWindowDocument: (callback: (document: CloudDocumentRef) => void) => () => void;
+        /**
+         * In the cloud window, a `cloudLocal.*` call on this computer's server.
+         * The desktop app names the server key and account. Refused elsewhere.
+         */
+        local: (procedure: string, input: Record<string, unknown>) => Promise<CloudLocalResult>;
       };
       /** Native OS notifications. Desktop only. */
       notifications?: {

@@ -6,8 +6,8 @@
  * the cloud window and for which server and account. In the cloud window the
  * web app's one server is that cloud server: `BASE_URL` is its origin, and
  * every request to it goes through the main process, which adds the
- * credential. Requests to the local server's API are refused, except the
- * drafts client's, which uses `localFetch`.
+ * credential. Requests to the local server's API are refused. The drafts
+ * client goes through the main process instead (`cloudLocalDraftsClient`).
  *
  * This module has no imports from the app, so `BASE_URL` can read it.
  */

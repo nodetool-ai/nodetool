@@ -33,6 +33,7 @@ import {
   CloudSocketOpenResult,
   CloudTransferInput,
   CloudWindowOpenResult,
+  CloudLocalResult,
   CloudWindowOrigin,
   TransferResult,
 } from "./types.d";
@@ -744,6 +745,9 @@ const api = {
     windowReady: (): Promise<CloudDocumentRef[]> => ipcRenderer.invoke(IpcChannels.CLOUD_WINDOW_READY),
     /** Documents opened in the cloud window after it was ready. */
     onWindowDocument: createEventSubscription(IpcChannels.CLOUD_WINDOW_DOCUMENT),
+    /** In the cloud window, a `cloudLocal.*` call on this computer's server. */
+    local: (procedure: string, input: Record<string, unknown>): Promise<CloudLocalResult> =>
+      ipcRenderer.invoke(IpcChannels.CLOUD_LOCAL_CALL, { procedure, input }),
   },
 
   // ============================================================================
