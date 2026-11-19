@@ -921,6 +921,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   layoutOverlays();
   // The card toolbar follows its card through pan, zoom, resize, move and drag.
   const auto followCard = [this] { positionSelectionToolbar(); };
+  if (auto *root = selectionOverlay_->rootObject()) {
+    connect(root, &QQuickItem::implicitWidthChanged, this, followCard);
+    connect(root, &QQuickItem::implicitHeightChanged, this, followCard);
+  }
   connect(canvas_.get(), &CanvasSurface::viewportMoved, this, followCard);
   connect(this, &EditorWindow::zoomChanged, this, followCard);
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, followCard);
@@ -2135,7 +2139,7 @@ void EditorWindow::positionSelectionToolbar() {
   if (visible && nodes.size() == 1) {
     const auto id = nodes.first();
     if (!model_.isGroup(id) && !model_.isComment(id) && !model_.isReroute(id) && canvas_->hasNode(id)) {
-      const auto card = canvas_->mapFromScene(canvas_->nodeRect(id)).translated(canvas_->viewportWidget().pos());
+      const auto card = canvas_->mapFromScene(canvas_->nodeRect(id));
       const auto waited = now - toolbarSelectedAt_.value(ids.first(), now);
       if (canvas_->scene().nodeDragActive() || !QRect(QPoint(), area.size()).intersects(card)) {
         visible = false;

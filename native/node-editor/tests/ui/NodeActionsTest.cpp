@@ -66,12 +66,12 @@ private:
         return QtNodes::InvalidNodeId;
     }
 
-    // The card in view coordinates, the space the overlays are placed in.
+    // The card in canvas overlay coordinates, the space the overlays are placed in.
     static QRect cardRect(EditorWindow &window, const QString &resource) {
         const auto id = idOf(window, resource);
         const auto item = nodetool::test::card(window, id);
         const QRectF scene(item->scenePos(), QSizeF(modelOf(window)->layout(id).size));
-        return viewOf(window)->mapFromScene(scene).translated(viewOf(window)->viewportWidget().pos());
+        return viewOf(window)->mapFromScene(scene);
     }
 
     static QPoint headerPoint(EditorWindow &window, const QString &resource) {
@@ -137,6 +137,9 @@ private slots:
     void toolbarFloatsAboveTheSelectedCard() {
         EditorWindow window;
         load(window);
+        // The canvas sits below HeaderRow inside the central column, so viewportWidget().pos().y()
+        // is non-zero; overlay positioning must stay in canvas-local coordinates.
+        QVERIFY(viewOf(window)->viewportWidget().pos().y() > 0);
         click(window, "a");
         expectAbove(window, "a");
         for (const auto &name : {"selection-run-selected", "selection-disable-selected", "selection-duplicate",
