@@ -79,8 +79,10 @@ export class JsScript extends DBModel {
   }
 
   override async delete(): Promise<void> {
-    await super.delete();
-    await jsScriptFiles.deleted(this);
+    await jsScriptFiles.deleting(this, async () => {
+      await super.delete();
+      return this;
+    });
   }
 
   /** The etag of the JS script, without the state of its file. */

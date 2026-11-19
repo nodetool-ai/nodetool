@@ -24,6 +24,7 @@ import { WorkflowCollaborator } from "./workflow-collaborator.js";
 import { TriggerRegistration } from "./trigger-registration.js";
 import {
   assertDocumentFileMayLeave,
+  deleteWithFile,
   type DocumentFileLocation,
   type DocumentFileSync
 } from "./document-file-sync.js";
@@ -154,9 +155,11 @@ export class Workflow extends DBModel {
 
   override async delete(): Promise<void> {
     await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: this.id });
-    await super.delete();
+    await deleteWithFile(workflowFileSync, this, async () => {
+      await super.delete();
+      return this;
+    });
     await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: this.id });
-    await workflowFileSync?.deleted(this);
   }
 
   /**
@@ -568,25 +571,31 @@ export class Workflow extends DBModel {
       // The row, its versions, grants and references go in one transaction,
       // with the copy kept for a restore (PRD D4).
       await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: wf.id });
-      const deleted = await deleteDocumentKeeping({
-        kind: "workflow",
-        userId,
-        table: workflows,
-        where: and(eq(workflows.id, wf.id), eq(workflows.user_id, userId)) as SQL,
-        dependents: workflowDependents(wf.id),
-        grants: "workflow_collaborators",
-        deletedWithProject: options.deletedWithProject,
-        describe: (row) => ({
-          documentId: String(row["id"]),
-          projectId: (row["project_id"] as string | null) ?? null,
-          name: String(row["name"])
-        })
+      // The file goes under the same folder lock as the row, so a reconcile
+      // cannot find the file without its row and import it again.
+      let sharedWith: string[] | undefined;
+      const gone = await deleteWithFile(workflowFileSync, wf, async () => {
+        const deleted = await deleteDocumentKeeping({
+          kind: "workflow",
+          userId,
+          table: workflows,
+          where: and(eq(workflows.id, wf.id), eq(workflows.user_id, userId)) as SQL,
+          dependents: workflowDependents(wf.id),
+          grants: "workflow_collaborators",
+          deletedWithProject: options.deletedWithProject,
+          describe: (row) => ({
+            documentId: String(row["id"]),
+            projectId: (row["project_id"] as string | null) ?? null,
+            name: String(row["name"])
+          })
+        });
+        if (!deleted) return null;
+        sharedWith = deleted.sharedWith;
+        return new Workflow(deleted.row);
       });
-      if (!deleted) return false;
-      const gone = new Workflow(deleted.row);
-      ModelObserver.notify(gone, ModelChangeEvent.DELETED, { sharedWith: deleted.sharedWith });
+      if (!gone) return false;
+      ModelObserver.notify(gone, ModelChangeEvent.DELETED, { sharedWith });
       await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: gone.id });
-      await workflowFileSync?.deleted(gone);
       // No foreign key ties registrations to the workflow, so a deleted
       // workflow's webhook kept accepting events and its file watch kept firing.
       await TriggerRegistration.deleteByWorkflow(wf.id);
