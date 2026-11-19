@@ -16,6 +16,7 @@
 
 import { eq } from "drizzle-orm";
 import { encrypt, decrypt, initMasterKey } from "@nodetool-ai/security";
+import { createLogger } from "@nodetool-ai/config";
 import { createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
 import { workerInstances } from "./schema/workers.js";
@@ -29,6 +30,8 @@ export type WorkerTarget = "runpod" | "vast" | "verda";
  */
 const WORKER_TOKEN_SALT = "worker";
 
+const log = createLogger("nodetool.models.worker-instances");
+
 /** Encrypt a plaintext bearer token, or pass through null. */
 async function encryptToken(token: string | null): Promise<string | null> {
   if (token === null) {
@@ -38,15 +41,28 @@ async function encryptToken(token: string | null): Promise<string | null> {
   return encrypt(masterKey, WORKER_TOKEN_SALT, token);
 }
 
-/** Decrypt a stored bearer token, or pass through null. */
+/**
+ * Decrypt a stored bearer token, or pass through null. A token encrypted with
+ * an earlier master key reads as null: the instance must stay usable, so the
+ * user can still resume or terminate a pod that bills.
+ */
 async function decryptToken(
+  id: string,
   encryptedToken: string | null
 ): Promise<string | null> {
   if (encryptedToken === null) {
     return null;
   }
   const masterKey = await initMasterKey();
-  return decrypt(masterKey, WORKER_TOKEN_SALT, encryptedToken);
+  try {
+    return await decrypt(masterKey, WORKER_TOKEN_SALT, encryptedToken);
+  } catch (error) {
+    log.warn("Worker token does not decrypt with the current master key", {
+      instanceId: id,
+      error: String(error)
+    });
+    return null;
+  }
 }
 
 export type WorkerStatus =
@@ -149,7 +165,7 @@ export async function getWorkerInstance(
   if (!row) {
     return null;
   }
-  return { ...toInstance(row), token: await decryptToken(row.encrypted_token) };
+  return { ...toInstance(row), token: await decryptToken(row.id, row.encrypted_token) };
 }
 
 /** Return all instances, optionally filtered by status. */

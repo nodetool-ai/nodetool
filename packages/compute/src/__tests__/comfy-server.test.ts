@@ -49,8 +49,8 @@ describe("waitForComfyServer", () => {
 describe("RunpodPodProvider with a ComfyUI port", () => {
   it("publishes the port and adds no worker environment", async () => {
     mockFetch
-      .mockResolvedValueOnce(json({ id: "p1", desiredStatus: "RUNNING" }))
-      .mockResolvedValueOnce(json({ id: "p1", desiredStatus: "RUNNING" }));
+      .mockResolvedValueOnce(json({ id: "p1", status: "RUNNING" }))
+      .mockResolvedValueOnce(json({ id: "p1", status: "RUNNING" }));
     const result = await new RunpodPodProvider("key").provision({
       name: "comfy",
       image: "example/comfy:1",
@@ -60,15 +60,16 @@ describe("RunpodPodProvider with a ComfyUI port", () => {
     });
     const body = JSON.parse(String(mockFetch.mock.calls[0][1].body));
     expect(body.ports).toEqual(["8188/http"]);
-    expect(body.allowedCudaVersions).toBeUndefined();
+    expect(body.gpu.allowedCudaVersions).toBeUndefined();
+    expect(body.gpu.minCudaVersion).toBeUndefined();
     expect(body.env).toEqual({});
     expect(result.wsUrl).toBe("wss://p1-8188.proxy.runpod.net");
   });
 
   it("lets a template supply the image, ports and disks", async () => {
     mockFetch
-      .mockResolvedValueOnce(json({ id: "p1", desiredStatus: "RUNNING" }))
-      .mockResolvedValueOnce(json({ id: "p1", desiredStatus: "RUNNING" }));
+      .mockResolvedValueOnce(json({ id: "p1", status: "RUNNING" }))
+      .mockResolvedValueOnce(json({ id: "p1", status: "RUNNING" }));
     const result = await new RunpodPodProvider("key").provision({
       name: "comfy",
       image: "runpod-template:abc",
@@ -79,33 +80,35 @@ describe("RunpodPodProvider with a ComfyUI port", () => {
     });
     const body = JSON.parse(String(mockFetch.mock.calls[0][1].body));
     expect(body.templateId).toBe("abc");
-    for (const key of ["imageName", "ports", "containerDiskInGb", "volumeInGb", "volumeMountPath"]) {
+    for (const key of ["image", "ports", "disk", "mounts"]) {
       expect(body).not.toHaveProperty(key);
     }
     expect(result.wsUrl).toBe("wss://p1-8188.proxy.runpod.net");
   });
 
-  it("sends an explicit disk beside a template", async () => {
+  it("sends an explicit persistent mount beside a template on GPU pods", async () => {
     mockFetch
-      .mockResolvedValueOnce(json({ id: "p1", desiredStatus: "RUNNING" }))
-      .mockResolvedValueOnce(json({ id: "p1", desiredStatus: "RUNNING" }));
+      .mockResolvedValueOnce(json({ id: "p1", status: "RUNNING" }))
+      .mockResolvedValueOnce(json({ id: "p1", status: "RUNNING" }));
     await new RunpodPodProvider("key").provision({
       name: "comfy",
       image: "runpod-template:abc",
       target: "runpod",
       comfyPort: 8188,
       templateId: "abc",
+      gpu: "NVIDIA A40",
       disk: 200,
     });
     const body = JSON.parse(String(mockFetch.mock.calls[0][1].body));
-    expect(body.volumeInGb).toBe(200);
-    expect(body).not.toHaveProperty("volumeMountPath");
+    expect(body.mounts).toEqual({
+      persistent: { size: 200, path: "/workspace" },
+    });
   });
 
   it("resolves the same port on resume", async () => {
     mockFetch
       .mockResolvedValueOnce(json({}))
-      .mockResolvedValueOnce(json({ id: "p1", desiredStatus: "RUNNING" }));
+      .mockResolvedValueOnce(json({ id: "p1", status: "RUNNING" }));
     const result = await new RunpodPodProvider("key").resume("p1", {
       comfyPort: 8188,
     });

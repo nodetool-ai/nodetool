@@ -146,6 +146,21 @@ describe("worker instance registry accessors", () => {
     expect(row.encrypted_token).not.toContain("super-secret-token");
   });
 
+  it("reads a token from an earlier master key as null", async () => {
+    const created = await createWorkerInstance(makeInput({ token: "tok" }));
+    getRawDb()
+      .prepare("UPDATE worker_instances SET encrypted_token = ? WHERE id = ?")
+      .run(Buffer.alloc(64, 7).toString("base64"), created.id);
+
+    const read = await getWorkerInstance(created.id);
+    expect(read?.token).toBeNull();
+    expect(read?.provider_ref).toBe(created.provider_ref);
+    // Lifecycle writes still work on such an instance.
+    await expect(
+      updateWorkerInstance(created.id, { status: "terminated" })
+    ).resolves.toMatchObject({ status: "terminated" });
+  });
+
   it("getWorkerInstance round-trips the decrypted token", async () => {
     const created = await createWorkerInstance(
       makeInput({ token: "super-secret-token" })

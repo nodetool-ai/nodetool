@@ -1586,6 +1586,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "a worker authenticates with. Host control, not the caller's " +
       "data."
   },
+  "worker.gpuAvailability": {
+    withheld:
+      "GPU stock is read with the host's RunPod API key for starting " +
+      "compute, not a sandbox capability."
+  },
   "worker.health": {
     withheld:
       "Provisioning and terminating compute, and reading the API key " +

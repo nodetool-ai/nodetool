@@ -9671,6 +9671,7 @@
         "attachingHint": "Le travailleur est prêt. Attacher…"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Environ {{min}}–{{max}} par heure. Se termine après {{count}} heure et supprime ses fichiers.",
         "summary_other": "Environ {{min}}–{{max}} par heure. Se termine après {{count}} heures et supprime ses fichiers.",
         "start": "Commencer",
@@ -9679,7 +9680,13 @@
         "bootingHint": "ComfyUI est en cours de chargement. Le premier démarrage peut prendre plusieurs minutes.",
         "readyHint": "Copiez l'URL dans Run ComfyUI Workflow. Toute personne disposant de cette URL peut utiliser le pod.",
         "copyEndpoint": "Copier l'URL de ComfyUI",
-        "summary_many": "Environ {{min}}–{{max}} par heure. Se termine après {{count}} heures et supprime ses fichiers."
+        "summary_many": "Environ {{min}}–{{max}} par heure. Se termine après {{count}} heures et supprime ses fichiers.",
+        "sectionTitle": "Quick start: ComfyUI on RunPod",
+        "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
+        "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "priceRange": "{{min}}–{{max}}/hr",
+        "running": "Running",
+        "sectionSubtitle_many": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files."
       },
       "provision": {
         "title": "Démarrer un travailleur",
@@ -9702,7 +9709,11 @@
         "stopAria": "Arrêter le travailleur {{id}}",
         "stop": "Arrêter",
         "terminateAria": "Mettre fin au travailleur {{id}}",
-        "terminate": "Terminer"
+        "terminate": "Terminer",
+        "moreActions": "More actions",
+        "copyId": "Copy pod ID",
+        "gpuUnknown": "GPU not set",
+        "pausedCost": "When running"
       },
       "actions": {
         "manageProfiles": "Gérer les profils",
@@ -9755,6 +9766,16 @@
         "title": "Exécuter des graphiques sur un GPU loué",
         "description": "Connectez RunPod une fois et choisissez un GPU. NodeTool y exécute ensuite vos nœuds Python et les travailleurs inactifs s'arrêtent d'eux-mêmes.",
         "action": "Configurer un travailleur"
+      },
+      "stock": {
+        "high": "High stock",
+        "medium": "In stock",
+        "low": "Low stock",
+        "none": "Out of stock"
+      },
+      "list": {
+        "title": "Your workers",
+        "subtitle": "Pods you rented. Paused pods keep their files and bill only for storage."
       }
     }
   },
