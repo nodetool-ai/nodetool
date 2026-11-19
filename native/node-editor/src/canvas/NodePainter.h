@@ -49,5 +49,9 @@ struct CardPaintState {
 class NodePainter {
 public:
   static void paint(QPainter *painter, const CardPaintState &state);
+  // The card-local rectangles whose pixels follow the animation clock: the
+  // running ring when it has more than one colour, and the pulsing status
+  // text. Empty when nothing on the card changes from frame to frame.
+  static QList<QRectF> animatedRegion(const CardPaintState &state);
 };
 } // namespace nodetool::canvas

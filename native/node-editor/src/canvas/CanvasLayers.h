@@ -11,34 +11,39 @@ class CanvasViewport;
 class EditorCanvasScene;
 
 // UI thread only. EditorScene::drawBackground in viewport coordinates: the
-// canvas color, a repeating cross texture and the origin axes. GraphCanvas
-// owns the item, which borrows the viewport and keeps its own theme colors.
+// canvas color, the crosses and the origin axes. The software renderer paints
+// them as QtNodes does, once per view, and copies the damaged region from
+// that image. The RHI renderer repeats a cross texture, painted at the view's
+// fractional device offset. GraphCanvas owns the item, which borrows the
+// viewport and keeps its own theme colors.
 class GridItem final : public QQuickItem {
 public:
   GridItem(const CanvasViewport &viewport, QQuickItem *parent);
   void setTheme(const CanvasTheme &theme);
   // Re-reads the viewport after a pan, zoom or resize.
   void sync();
+  // Texture rasters of the RHI grid.
   int rasterCount() const { return rasters_; }
 
 protected:
   QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) override;
 
 private:
-  void raster();
+  void raster(double dpr, QPointF phase);
   const CanvasViewport &viewport_;
   QImage image_;
-  QPointF imageOrigin_;
   QColor canvas_;
   QColor grid_;
   QColor axis_;
-  double period_ = 0;
-  double texturePeriod_ = 0;
-  bool integralTexture_ = false;
-  double dpr_ = 0;
-  int rasters_ = 0;
-  QPointF axisOrigin_;
+  double zoom_ = 1;
+  QPoint scroll_;
   QSizeF viewportSize_;
+  QPointF axisOrigin_;
+  // The inputs of the RHI texture, and its side in device pixels.
+  double imageZoom_ = 0;
+  double imageDpr_ = 0;
+  QPointF imagePhase_;
+  int rasters_ = 0;
 };
 
 // UI thread only. A foreground primitive and its tiles, owned by GraphCanvas.

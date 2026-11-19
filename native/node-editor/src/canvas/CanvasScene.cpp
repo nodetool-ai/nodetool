@@ -15,6 +15,7 @@
 #include <QKeyEvent>
 #include <QTimer>
 #include <algorithm>
+#include <unordered_set>
 
 namespace nodetool::canvas {
 using namespace QtNodes;
@@ -103,14 +104,16 @@ void CanvasScene::resetDraftConnection() {
 
 void CanvasScene::traverseGraphAndPopulateGraphicsObjects() {
   const auto allNodeIds = model_.allNodeIds();
-  // First create all the nodes.
-  for (const NodeId nodeId : allNodeIds) { nodes_[nodeId] = std::make_unique<NodeItem>(*this, nodeId); }
+  // First create all the nodes. A reset keeps the items that exist.
+  for (const NodeId nodeId : allNodeIds) {
+    if (!nodes_.contains(nodeId)) { nodes_[nodeId] = std::make_unique<NodeItem>(*this, nodeId); }
+  }
   // Then for each node check output connections and insert them.
   for (const NodeId nodeId : allNodeIds) {
     const auto nOutPorts = model_.nodeData<PortCount>(nodeId, NodeRole::OutPortCount);
     for (PortIndex index = 0; index < nOutPorts; ++index) {
       for (const auto &cid : model_.connections(nodeId, PortType::Out, index)) {
-        connections_[cid] = std::make_unique<ConnectionItem>(*this, cid);
+        if (!connections_.contains(cid)) { connections_[cid] = std::make_unique<ConnectionItem>(*this, cid); }
       }
     }
   }
@@ -177,16 +180,64 @@ void CanvasScene::onNodeClicked(NodeId id) {
   nodeDrag_ = false;
 }
 
+// QtNodes clears the scene and rebuilds every item. This scene keeps the
+// items of nodes and connections that still exist, with their rasters, so a
+// reset never shows a blank card. Each kept item reads the model again. The
+// selection is cleared, as a rebuilt QGraphicsScene starts without one.
 void CanvasScene::onModelReset() {
   {
     SelectionBatch batch(*this);
     draft_.reset();
-    connections_.clear();
-    nodes_.clear();
+    clearSelection();
+    cancelMouseGrab();
+    setFocusItem(nullptr);
+    if (!geometry_) {
+      connections_.clear();
+      nodes_.clear();
+    } else {
+      std::unordered_set<NodeId> nodes;
+      std::unordered_set<ConnectionId> connections;
+      for (const auto id : model_.allNodeIds()) {
+        nodes.insert(id);
+        for (const auto &connection : model_.allConnectionIds(id)) { connections.insert(connection); }
+      }
+      // Move each removed item out first: its destructor can run selection
+      // slots that read the maps.
+      for (auto it = connections_.begin(); it != connections_.end();) {
+        if (connections.contains(it->first)) {
+          ++it;
+          continue;
+        }
+        auto item = std::move(it->second);
+        it = connections_.erase(it);
+        item.reset();
+      }
+      for (auto it = nodes_.begin(); it != nodes_.end();) {
+        if (nodes.contains(it->first)) {
+          ++it;
+          continue;
+        }
+        auto item = std::move(it->second);
+        it = nodes_.erase(it);
+        item.reset();
+      }
+    }
   }
-  if (geometry_) { traverseGraphAndPopulateGraphicsObjects(); }
+  if (geometry_) {
+    for (const auto id : model_.allNodeIds()) {
+      if (auto *node = nodeItem(id)) {
+        geometry_->recomputeSize(id);
+        node->setGeometryChanged();
+        node->syncPosition();
+      }
+    }
+    traverseGraphAndPopulateGraphicsObjects();
+    for (auto &[id, connection] : connections_) {
+      connection->move();
+      connection->markDirty();
+    }
+  }
   notifyChanged();
-  emit itemsReset();
 }
 
 QList<NodeId> CanvasScene::selectedNodes() const {

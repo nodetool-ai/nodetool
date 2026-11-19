@@ -300,7 +300,7 @@ private:
   // PainterBody's .brush-cursor: shown while the pointer is over a paint canvas.
   QtNodes::NodeId brushNode_ = QtNodes::InvalidNodeId;
   QPointF brushPoint_;
-  void updateBrushCursor(const QPointF &scenePosition);
+  void updateBrushCursor(const QPointF &scenePosition, const std::optional<CanvasNodeHit> &node);
   void finishPaint(bool commit);
   // A synth knob drag: vertical, from the press's card-local y, a tenth as fast with Shift.
   bool knobDrag_ = false;

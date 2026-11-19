@@ -689,6 +689,37 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
 
 } // namespace
 
+QList<QRectF> NodePainter::animatedRegion(const CardPaintState &state) {
+  // paintCard draws the ring and the status text from these inputs.
+  if (state.kind != CardKind::Node || state.bypassed || !state.runningShown || state.runtime.isEmpty()) { return {}; }
+  const auto &layout = state.layout;
+  const QRectF box(QPointF(), layout.size);
+  QList<QRectF> region;
+  const auto &colors = layout.runningColors;
+  if (std::ranges::any_of(colors, [&](const QColor &color) { return color != colors.first(); })) {
+    // paintRunningRing: 4 outside the card, 3 wide, corners of radius 12,
+    // and a unit of antialiasing.
+    const auto outer = box.adjusted(-5, -5, 5, 5);
+    constexpr double band = 13;
+    region = {QRectF(outer.left(), outer.top(), outer.width(), band),
+              QRectF(outer.left(), outer.bottom() - band, outer.width(), band),
+              QRectF(outer.left(), outer.top(), band, outer.height()),
+              QRectF(outer.right() - band, outer.top(), band, outer.height())};
+  }
+  // The status label and the report link use the pulsing colour.
+  const auto status = state.runtime["status"].toString();
+  const bool label = !state.runtimeConnected || status == "error" || status == "failed" ||
+                     (layout.subgraph && status == "running" && state.runtime["total"].toDouble() > 0);
+  if (label) {
+    const auto bottom = box.height() - 2 - (layout.subgraph ? nm::handleRowStep : 0);
+    region.append(QRectF(0, bottom - nm::rowHeight - 1, box.width(), nm::rowHeight + 3));
+  }
+  if (const auto report = reportErrorRect(state.runtime, layout); !report.isEmpty()) {
+    region.append(report.adjusted(-1, -1, 1, 1));
+  }
+  return region;
+}
+
 void NodePainter::paint(QPainter *painter, const CardPaintState &state) {
   if (!state.bypassed || state.kind != CardKind::Node) {
     paintCard(painter, state);

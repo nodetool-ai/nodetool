@@ -74,25 +74,32 @@ public:
   QList<Key> query(const QRectF &area) const {
     QList<Key> result;
     if (!valid(area)) { return result; }
-    QSet<Key> seen;
     const auto range = cells(area);
-    const auto consider = [&](const Key &key) {
-      if (seen.contains(key)) { return; }
-      seen.insert(key);
-      if (intersects(bounds_.value(key), area)) { result.append(key); }
-    };
     if (range.count() > kMaxCells) {
-      for (auto it = bounds_.cbegin(); it != bounds_.cend(); ++it) { consider(it.key()); }
+      for (auto it = bounds_.cbegin(); it != bounds_.cend(); ++it) {
+        if (intersects(*it, area)) { result.append(it.key()); }
+      }
       return result;
     }
     for (int x = range.left; x <= range.right; ++x) {
       for (int y = range.top; y <= range.bottom; ++y) {
         const auto cell = cells_.constFind(cellKey(x, y));
         if (cell == cells_.cend()) { continue; }
-        for (const auto &key : *cell) { consider(key); }
+        for (const auto &key : *cell) {
+          const auto bounds = bounds_.value(key);
+          // A key is listed in every cell it touches. Report it from the
+          // first cell where its cells and the query's overlap.
+          const auto listed = cells(bounds);
+          if (x == std::max(range.left, listed.left) && y == std::max(range.top, listed.top) &&
+              intersects(bounds, area)) {
+            result.append(key);
+          }
+        }
       }
     }
-    for (const auto &key : oversize_) { consider(key); }
+    for (const auto &key : oversize_) {
+      if (intersects(bounds_.value(key), area)) { result.append(key); }
+    }
     return result;
   }
 

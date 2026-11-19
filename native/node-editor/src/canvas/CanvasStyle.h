@@ -5,11 +5,23 @@
 #include <QPainterPath>
 #include <QVariantMap>
 
+class QPainter;
+
 namespace nodetool {
 // web AxisMarker.tsx: the origin lines run this many screen pixels, in
 // c_editor_axis_color from paletteDark.ts or paletteLight.ts.
 inline constexpr double axisMarkerLength = 80000;
 inline QColor axisMarkerColor(bool dark) { return dark ? QColor("#17181B") : QColor("#E4E4E7"); }
+
+// The grid spacing in scene units: 25, doubled until a cell is 12 px on screen.
+double gridGap(double zoom);
+// EditorScene::drawBackground at a zoom: the canvas colour, the crosses and
+// the origin axes. QtNodes lists the crosses of the exposed scene rectangle,
+// up to its right and bottom edges. This draws the ones that reach area, a
+// part of exposed, so that painting a part makes the same pixels.
+// Thread-safe: it reads only its arguments.
+void paintGrid(QPainter &painter, const QRectF &exposed, const QRectF &area, double zoom, const QColor &canvas,
+               const QColor &grid, const QColor &axis);
 
 // Colors and font families the canvas receives from Qt Quick. The web's node
 // background, canvas grid, and translucent controls are native-editor roles.

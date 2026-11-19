@@ -570,7 +570,9 @@ texture. A grid index answers hit tests and culling. Settled tiles use the
 exact device scale and land on whole device pixels. The 64 MiB retention
 limit applies to offscreen tiles, including foreground tiles. Polish paints
 visible tiles first regardless of that limit, keeps queued edits in order
-across frames and keeps the old tiles visible until a replacement grid is ready. The
+across frames and keeps the old tiles visible until a replacement grid is ready.
+A running card repaints only its ring and status text, and a model reset keeps
+the cards on screen. The software grid paints the same pixels as QtNodes. The
 app stays on the software backend. The widget overlays stay children of the
 canvas widget. QtNodes stays the default
 ([plan, Q3](../../docs/plans/node-editor-quick-canvas/plan.md#q3-quick-canvas-behind-a-switch)).

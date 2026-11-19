@@ -1095,12 +1095,10 @@ void CanvasInteraction::moveCrop(const QPointF &scenePosition) {
     return;
   }
 }
-void CanvasInteraction::updateBrushCursor(const QPointF &scenePosition) {
+void CanvasInteraction::updateBrushCursor(const QPointF &scenePosition, const std::optional<CanvasNodeHit> &node) {
   auto next = InvalidNodeId;
   QPointF point;
-  for (const auto &hit : host_.hitsAt(scenePosition)) {
-    const auto node = host_.node(hit.node);
-    if (!node) { continue; }
+  if (node) {
     const auto local = (scenePosition - node->origin);
     for (const auto &row : model_.layout(node->id).rows) {
       if (row.kind == NodeRowKind::Paint && row.rect.contains(local)) {
@@ -1108,7 +1106,6 @@ void CanvasInteraction::updateBrushCursor(const QPointF &scenePosition) {
         point = local;
       }
     }
-    break;
   }
   if (next == brushNode_ && point == brushPoint_) { return; }
   const auto previous = std::exchange(brushNode_, next);
@@ -1273,7 +1270,7 @@ bool CanvasInteraction::move(const CanvasPointerEvent &event) {
 void CanvasInteraction::updatePointerHover(QPointF scenePosition) {
   const auto node = host_.nodeAtPoint(scenePosition);
   updateHandleHover(scenePosition, node);
-  updateBrushCursor(scenePosition);
+  updateBrushCursor(scenePosition, node);
   host_.setButtonHover(footerHover_, false, false, {});
   footerHover_ = InvalidNodeId;
   if (node) {

@@ -11,6 +11,7 @@
 #include <QtNodes/ConnectionIdUtils>
 #include <QtNodes/internal/AbstractNodeGeometry.hpp>
 #include <QPainter>
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
@@ -66,7 +67,13 @@ QRectF ConnectionItem::boundingRect() const {
 
 QPainterPath ConnectionItem::hitPath() const {
   auto *scene = canvasScene();
-  return scene ? scene->connectionStroke(*this) : QPainterPath{};
+  if (!scene) { return {}; }
+  // Every change of the wire's paint state marks it dirty, which moves its revision.
+  const bool draft = state_.requiresPort();
+  if (!hit_.valid || hit_.out != out_ || hit_.in != in_ || hit_.revision != rasterRevision() || hit_.draft != draft) {
+    hit_ = {out_, in_, rasterRevision(), draft, true, scene->connectionStroke(*this)};
+  }
+  return hit_.path;
 }
 
 bool ConnectionItem::hitTest(const QPointF &scenePoint) const {
@@ -134,6 +141,25 @@ bool ConnectionItem::isSelected() const {
 
 void ConnectionItem::paintRaster(QPainter &painter, double zoom) const {
   if (auto *scene = canvasScene()) { scene->paintConnection(painter, *this, zoom); }
+}
+
+bool ConnectionItem::mayPaint(const QRectF &area) const {
+  auto *scene = canvasScene();
+  if (!scene || scene->connectionPaintsOffPath(*this)) { return true; }
+  const bool draft = state_.requiresPort();
+  if (!path_.valid || path_.out != out_ || path_.in != in_ || path_.revision != rasterRevision() || path_.draft != draft) {
+    path_ = {out_, in_, rasterRevision(), draft, true, {}};
+    for (const auto &polygon : scene->connectionPath(*this).toSubpathPolygons()) {
+      for (qsizetype i = 1; i < polygon.size(); ++i) { path_.segments.append(QRectF(polygon[i - 1], polygon[i]).normalized()); }
+    }
+  }
+  // Strokes, glows and the draft's end dot reach at most 7 from the centre
+  // line, and flattening the curve moves it by less than a unit.
+  const auto reach = area.adjusted(-8, -8, 8, 8);
+  return std::ranges::any_of(path_.segments, [&](const QRectF &segment) {
+    return segment.left() <= reach.right() && reach.left() <= segment.right() && segment.top() <= reach.bottom() &&
+           reach.top() <= segment.bottom();
+  });
 }
 
 void ConnectionItem::setStackZ(double z) { setZ(z + indexKey() * 1e-9); }

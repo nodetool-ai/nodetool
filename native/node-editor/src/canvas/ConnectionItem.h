@@ -28,6 +28,8 @@ public:
   const ConnectionState &connectionState() const { return state_; }
   QRectF boundingRect() const;
   QRectF sceneBoundingRect() const override { return boundingRect(); }
+  // The wire's stroke for hit tests. It is kept until the end points or the
+  // wire's content change, so hit tests during a card drag reuse it.
   QPainterPath hitPath() const;
   bool hitTest(const QPointF &scenePoint) const override;
   const QPointF &endPoint(QtNodes::PortType side) const;
@@ -37,6 +39,7 @@ public:
   std::pair<QPointF, QPointF> pointsC1C2() const;
   bool isSelected() const;
   void paintRaster(QPainter &painter, double zoom) const override;
+  bool mayPaint(const QRectF &area) const override;
   void setStackZ(double z);
 
   void mousePress(CanvasMouseEvent &event) override;
@@ -52,6 +55,23 @@ private:
   ConnectionState state_;
   QPointF out_;
   QPointF in_;
+  // Bounding boxes of the flattened centre line, for mayPaint.
+  struct PathCache {
+    QPointF out, in;
+    quint64 revision = 0;
+    bool draft = false;
+    bool valid = false;
+    QList<QRectF> segments;
+  };
+  mutable PathCache path_;
+  struct HitCache {
+    QPointF out, in;
+    quint64 revision = 0;
+    bool draft = false;
+    bool valid = false;
+    QPainterPath path;
+  };
+  mutable HitCache hit_;
 };
 
 } // namespace nodetool::canvas

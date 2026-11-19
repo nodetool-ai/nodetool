@@ -253,8 +253,39 @@ composite.
   offscreen retention to 64 MiB. The software pass
   draws only visible items
   ([performance rule 21](../../../native/ui_primitives/PERFORMANCE.md#rendering)).
-- The running ring and the focus ring are separate child nodes, so their
-  animation does not re-raster the card.
+- The scheduler keeps its state in the tiles, so rebuilding its plan after an
+  edit never loses progress. The states are listed above
+  `GraphCanvas::rebuildRasterWork`:
+  - Every item has a published tile grid, which the renderers draw, and a
+    staged grid for a change of scale or device phase. The staged grid
+    replaces the published grid when it holds every tile key in the view,
+    whatever the tiles' content revisions. A stale staged tile repaints after
+    it is published. Content that changes on every frame cannot hold a grid
+    change back.
+  - While the view or an item moves, rasters keep their sub-pixel phase, as
+    the QtNodes device cache does. 100 ms after the last move the canvas takes
+    the device phase of a direct paint and the exact grid follows through
+    staging.
+  - A visible area with nothing on screen may use 3 ms of a frame. Stale
+    visible tiles and prefetch stop at 1.4 ms. Missing tiles within one tile
+    of the view share queue order with stale visible tiles, so animated cards
+    leave time to fill the edge before a pan. Farther tiles fill nearest first.
+    Only offscreen tiles are deferred or evicted for the byte budget.
+  - Animated parts invalidate only their rectangles. A running card repaints
+    the tiles touched by its rotating ring or pulsing status text. A card
+    with a single-colour ring and no pulsing label needs no animation repaint.
+    A flowing wire repaints its tiles.
+  - A model reset keeps the items of nodes and connections that still exist,
+    with their tiles, until the replacements are painted.
+- The software grid paints the QtNodes crosses and axes, pixel for pixel,
+  into an image once per view and copies the damaged region from it. A pan
+  by whole device pixels at a zoom with an exact binary mapping, such as
+  zoom 1, moves the image and paints only the exposed strips. The RHI grid
+  repeats a texture painted at the view's fractional device offset.
+- A tile of a long wire that its path does not reach stays empty without
+  being painted, so a diagonal draft wire repaints only its path's tiles.
+- Until Q11, the running ring is part of the card raster. Only the tiles it
+  touches repaint, and only within its rectangles.
 - `ConnectionItem` uses the same texture path with `WirePainter` until Q11.
 
 ### Large graphs

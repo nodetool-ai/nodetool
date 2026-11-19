@@ -34,5 +34,7 @@ class WirePainter {
 public:
   static void paint(QPainter *painter, const CanvasTheme &theme, const WirePaintState &state);
   static QPainterPath hitStroke(const WirePaintState &state);
+  // The centre line that paint() strokes, empty for a hidden wire.
+  static QPainterPath path(const WirePaintState &state);
 };
 } // namespace nodetool::canvas

@@ -19,6 +19,7 @@ class WorkflowGraphModel;
 }
 
 namespace nodetool::canvas {
+struct CardItemState;
 
 // UI thread only. The editor's scene on the Quick canvas, as EditorScene is on
 // QtNodes: it projects cards and wires into the shared painters, dims the
@@ -51,6 +52,8 @@ public:
   void paintNode(QPainter &painter, const NodeItem &item, double zoom) const override;
   void paintConnection(QPainter &painter, const ConnectionItem &item, double zoom) const override;
   QPainterPath connectionStroke(const ConnectionItem &item) const override;
+  QPainterPath connectionPath(const ConnectionItem &item) const override;
+  bool connectionPaintsOffPath(const ConnectionItem &item) const override;
   // EditorScene::drawForeground: group labels, the drop hint and the port
   // names of selected and hovered cards, in scene coordinates.
   void paintForeground(QPainter &painter, const QRectF &sceneArea, double zoom) const;
@@ -130,7 +133,10 @@ private:
   void updateBranchDimming();
   void scheduleDimming();
   void flushDimming();
+  // Repaints the parts of running cards and flowing wires that follow the
+  // animation clock.
   void animate();
+  CardItemState cardItem(const NodeItem &item, double zoom) const;
   void repaintCards();
   void refreshRuntime();
   void refreshRuntimeNode(QtNodes::NodeId id);

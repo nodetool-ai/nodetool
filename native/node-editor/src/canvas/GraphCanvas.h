@@ -7,6 +7,8 @@
 #include <QQuickItem>
 #include <QSet>
 #include <QTimer>
+#include <QVarLengthArray>
+#include <array>
 #include <functional>
 #include <memory>
 #include <map>
@@ -30,7 +32,8 @@ namespace nodetool::canvas {
 // Card and wire textures exist only near the viewport. The raster pass runs in
 // updatePolish, prioritizing visible device tiles within the frame budget.
 // A zoom gesture scales the existing textures; the pass paints them at
-// the new scale 100 ms after the last zoom step.
+// the new scale 100 ms after the last zoom step. GraphCanvas.cpp describes
+// the scheduler's states above rebuildRasterWork.
 class GraphCanvas final : public QQuickItem {
   Q_OBJECT
 public:
@@ -68,8 +71,11 @@ public:
 
   // Drains queued tiles immediately, retaining the offscreen cache limit.
   void flushRaster();
-  // Whether polish still has queued raster work.
-  bool rasterPending() const { return rasterQueued_ || nextRasterJob_ < rasterJobs_.size(); }
+  // Whether polish still has queued raster work, or the view or an item
+  // moved and the settled rasters have not caught up yet.
+  bool rasterPending() const {
+    return rasterQueued_ || rasterWorkDirty_ || nextRasterJob_ < rasterJobs_.size() || still_.isActive();
+  }
   // QGraphicsScene::render of a scene area at a zoom: background, items and
   // foreground painted directly, without textures.
   void renderScene(QPainter &painter, const QRectF &sceneArea, double zoom) const;
@@ -77,6 +83,8 @@ public:
     int cards = 0;
     int wires = 0;
     int foreground = 0;
+    // Jobs whose tile intersected the view when it was painted.
+    int visible = 0;
     int passes = 0;
     qint64 nanoseconds = 0;
     qint64 slowestPass = 0;
@@ -142,7 +150,15 @@ private:
   void scheduleRaster();
   void invalidateRasterWork();
   void syncForeground(const QRectF &area, double zoom);
+  void sortRasterJobs();
   void rebuildRasterWork(const QRectF &visible, double scale, double zoom, bool settled);
+  // The fractional device offset of the current scroll.
+  QPointF viewPhase() const;
+  // A released tile image of the size, or a null image.
+  QImage spareImage(QSize size);
+  void keepSpare(const QImage &image);
+  void startMotion();
+  void settleMotion();
 
   WorkflowGraphModel &model_;
   CanvasViewport viewport_;
@@ -152,6 +168,10 @@ private:
   QQuickItem overlay_;
   RubberBandItem band_;
   QTimer settle_;
+  // Runs from the last pan or item move. While it runs, items keep the
+  // sub-pixel phase of their rasters. Its timeout restores exact phases.
+  QTimer still_;
+  QElapsedTimer lastMotion_;
   // The destructor releases foreground, selection and scene items while content_ is alive.
   std::unique_ptr<EditorCanvasScene> scene_;
   std::unique_ptr<CanvasSelection> selection_;
@@ -168,16 +188,33 @@ private:
     enum Kind { Card, Wire, Foreground, Other } kind;
     int priority;
     qsizetype age;
+    double distance;
+  };
+  // The visible keys a staged grid still lacks before it can be published.
+  struct Staging {
+    // Most staged items need one or a few tiles.
+    using Keys = QVarLengthArray<QPoint, 4>;
+    QPointer<CanvasImageItem> owner;
+    Keys missing;
   };
   QSet<quint64> near_;
   QList<RasterJob> rasterJobs_;
   qsizetype nextRasterJob_ = 0;
-  // Jobs hold the guarded reference. The swap counter uses its address only as a key.
-  QHash<quintptr, qsizetype> remainingSwapJobs_;
+  bool rasterJobsNeedSort_ = false;
+  // Keyed by the item's address. The guarded reference is checked before use.
+  QHash<quintptr, Staging> staging_;
   QList<QRectF> deferredTiles_;
+  // Tile images replaced by repaints. An image is reused once it is detached,
+  // that is, once the scene graph no longer shows it.
+  QList<QImage> spareImages_;
+  // Scene rectangles and sizes of the tiles in the planned view. A pan moves
+  // the ones it leaves into the offscreen budget.
+  QList<std::pair<QRectF, qsizetype>> plannedVisibleTiles_;
   QRectF plannedVisible_;
   bool rasterWorkDirty_ = true;
   bool plannedWithoutPainting_ = false;
+  // When the last pass that only planned ran.
+  QElapsedTimer planOnly_;
   bool rasterWorkSettled_ = false;
   double rasterWorkScale_ = 0;
   QPointF devicePhase_;
@@ -188,8 +225,13 @@ private:
   qsizetype cachedRasterBytes_ = 0;
   qsizetype offscreenRasterBytes_ = 0;
   qsizetype rasterCacheBudget_ = rasterCacheBudget;
-  // Leave a share of the frame for input and scene graph sync.
+  // Leave a share of the frame for input and scene graph sync. GraphCanvas.cpp
+  // derives the budget for blank visible areas from it.
   qint64 rasterTimeBudgetNs_ = 1'400'000;
+  // Running averages of the raster cost per painted pixel for each job kind,
+  // which predict whether the next job fits the pass.
+  std::array<double, 4> nsPerPixel_{};
+  bool motion_ = false;
   std::function<bool()> overlayHasFocus_;
   std::optional<QPointF> cursorPoint_;
   std::optional<Qt::CursorShape> interactionCursor_;

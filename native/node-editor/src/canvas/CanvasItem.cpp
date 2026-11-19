@@ -52,6 +52,26 @@ QRectF CanvasImageItem::RasterGeometry::localRect() const {
   return QRectF((QPointF(device.topLeft()) - phase + viewportPhase) / scale, QSizeF(device.size()) / scale);
 }
 
+QRectF CanvasImageItem::RasterGeometry::paintRect() const {
+  return QRectF((QPointF(device.topLeft()) - phase) / scale, QSizeF(device.size()) / scale);
+}
+
+void CanvasImageItem::invalidateRegion(const QList<QRectF> &region) {
+  const auto previous = revision_++;
+  for (auto *grid : {&tiles_, &staged_}) {
+    for (auto &tile : *grid) {
+      // A tile that was already stale repaints in full.
+      if (tile.revision != previous) { continue; }
+      tile.revision = revision_;
+      const auto area = tile.geometry.paintRect();
+      for (const auto &rect : region) {
+        const auto touched = rect.intersected(area);
+        if (!touched.isEmpty()) { tile.damage = tile.damage.isEmpty() ? touched : tile.damage.united(touched); }
+      }
+    }
+  }
+}
+
 CanvasImageItem::RasterGeometry CanvasImageItem::rasterGeometry(const QRectF &rect, QPointF sceneOrigin,
                                                                 double scale, QPointF viewportPhase) {
   if (rect.isEmpty() || !(scale > 0)) { return {{}, {}, 1, {}}; }
@@ -61,19 +81,45 @@ CanvasImageItem::RasterGeometry CanvasImageItem::rasterGeometry(const QRectF &re
   return {device, phase, scale, viewportPhase};
 }
 
-QImage CanvasImageItem::rasterize(const RasterGeometry &geometry, double dpr, const std::function<void(QPainter &)> &paint) {
+CanvasImageItem::RasterGeometry CanvasImageItem::rasterGeometryOnGrid(const QRectF &rect, const RasterGeometry &grid) {
+  if (rect.isEmpty() || !(grid.scale > 0)) { return {{}, {}, 1, {}}; }
+  const auto device = QRectF(rect.topLeft() * grid.scale + grid.phase, rect.size() * grid.scale).toAlignedRect();
+  return {device, grid.phase, grid.scale, grid.viewportPhase};
+}
+
+QImage CanvasImageItem::rasterize(const RasterGeometry &geometry, double dpr, const std::function<void(QPainter &)> &paint,
+                                  const QImage &base, const QRectF &damage, QImage spare) {
   if (geometry.device.isEmpty()) { return {}; }
-  QImage image(geometry.device.size(), QImage::Format_ARGB32_Premultiplied);
+  // A partial repaint covers whole device pixels around the damaged area.
+  QRect pixels(QPoint(), geometry.device.size());
+  if (!base.isNull() && !damage.isEmpty() && base.size() == pixels.size()) {
+    pixels = QRectF(damage.topLeft() * geometry.scale + geometry.phase - QPointF(geometry.device.topLeft()),
+                    damage.size() * geometry.scale)
+                 .toAlignedRect()
+                 .intersected(pixels);
+    if (pixels.isEmpty()) { return base; }
+  }
+  // The painter code sets its own clips, so the damaged area is painted into
+  // an image of its own size. An integral offset paints the same pixels.
+  const bool reuse = spare.size() == pixels.size() && spare.format() == QImage::Format_ARGB32_Premultiplied && spare.isDetached();
+  QImage image = reuse ? std::move(spare) : QImage(pixels.size(), QImage::Format_ARGB32_Premultiplied);
   if (image.isNull()) { return {}; }
   image.setDevicePixelRatio(dpr);
   image.fill(Qt::transparent);
   {
     QPainter painter(&image);
-    painter.translate((geometry.phase - QPointF(geometry.device.topLeft())) / dpr);
+    painter.translate((geometry.phase - QPointF(geometry.device.topLeft() + pixels.topLeft())) / dpr);
     painter.scale(geometry.scale / dpr, geometry.scale / dpr);
     paint(painter);
   }
-  return image;
+  if (pixels.size() == geometry.device.size()) { return image; }
+  auto merged = base.copy();
+  merged.setDevicePixelRatio(dpr);
+  QPainter painter(&merged);
+  painter.setCompositionMode(QPainter::CompositionMode_Source);
+  painter.drawImage(QPointF(pixels.topLeft()) / dpr, image);
+  painter.end();
+  return merged;
 }
 
 QRectF CanvasImageItem::alignedImageRect(const QRectF &windowRect, double dpr) {
@@ -86,6 +132,15 @@ QRectF CanvasImageItem::alignedImageRect(const QRectF &windowRect, double dpr) {
   const auto start = roundEdge(windowRect.topLeft() * dpr);
   const auto end = roundEdge(windowRect.bottomRight() * dpr);
   return {QPointF(start) / dpr, QSizeF(end.x() - start.x(), end.y() - start.y()) / dpr};
+}
+
+QRectF CanvasImageItem::tileTarget(const QRectF &windowRect, const QImage &pixels, double dpr) {
+  const auto aligned = alignedImageRect(windowRect, dpr);
+  const auto device = windowRect.size() * dpr;
+  if (pixels.isNull() || std::abs(device.width() - pixels.width()) > 1e-3 || std::abs(device.height() - pixels.height()) > 1e-3) {
+    return aligned;
+  }
+  return {aligned.topLeft(), QSizeF(pixels.size()) / dpr};
 }
 
 namespace {
@@ -139,7 +194,7 @@ QSGNode *CanvasImageItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
     }
     auto *node = entry->node;
     const auto rect = mapRectToScene(it->geometry.localRect());
-    node->setRect(mapRectFromScene(alignedImageRect(rect, window()->effectiveDevicePixelRatio())));
+    node->setRect(mapRectFromScene(tileTarget(rect, it->pixels, window()->effectiveDevicePixelRatio())));
   }
   return root.release();
 }
@@ -210,6 +265,14 @@ void CanvasItem::reindex() {
 
 void CanvasItem::markDirty() {
   invalidateImage();
+  if (scene_) {
+    scene_->requestRaster();
+    scene_->notifyChanged();
+  }
+}
+
+void CanvasItem::markDirty(const QList<QRectF> &region) {
+  invalidateRegion(region);
   if (scene_) {
     scene_->requestRaster();
     scene_->notifyChanged();

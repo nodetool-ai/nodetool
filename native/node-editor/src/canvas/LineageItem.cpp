@@ -132,8 +132,8 @@ namespace nodetool::node_editor {
 // The Quick canvas's constructor lives here, so LineageLayer.cpp needs no Qt Quick.
 LineageLayer::LineageLayer(canvas::CanvasScene &scene, QObject *parent)
     : QObject(parent), quickScene_(&scene), quick_(true) {
-  // QtNodes' scene deletes link items on a reset, and update() makes new ones.
-  connect(&scene, &canvas::CanvasScene::itemsReset, this, [this] { items_.clear(); });
+  // Link items survive a model reset, as on the QtNodes scene. Loading
+  // another document clears them (EditorWindow).
   quickLink_ = [this, &scene](const QString &id) -> std::unique_ptr<Link> {
     return std::make_unique<canvas::QuickLink>(id, *this, scene);
   };

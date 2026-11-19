@@ -2118,7 +2118,9 @@ void EditorWindow::positionSelectionToolbar() {
   selectionToolbarFloating_ = false;
   // NodeSelectionToolbar.tsx shows the card toolbar only for one selected card
   // that is not being dragged, centered above it with an 8 px gap.
-  const auto ids = selectedIds();
+  const auto nodes = canvas_->selection().nodes();
+  QStringList ids;
+  for (const auto id : nodes) { ids.append(model_.resourceId(id)); }
   if (!toolbarClock_.isValid()) {
     toolbarClock_.start();
     toolbarDelay_.setSingleShot(true);
@@ -2133,28 +2135,25 @@ void EditorWindow::positionSelectionToolbar() {
     }
     for (const auto &id : ids) { toolbarSelectedAt_.insert(id, toolbarSelectedAt_.value(id, now)); }
   }
-  if (visible && ids.size() == 1) {
-    for (const auto id : model_.allNodeIds()) {
-      if (model_.resourceId(id) != ids.first()) { continue; }
-      if (model_.isGroup(id) || model_.isComment(id) || model_.isReroute(id)) { break; }
-      if (!canvas_->hasNode(id)) { break; }
+  if (visible && nodes.size() == 1) {
+    const auto id = nodes.first();
+    if (!model_.isGroup(id) && !model_.isComment(id) && !model_.isReroute(id) && canvas_->hasNode(id)) {
       const auto card = canvas_->mapFromScene(canvas_->nodeRect(id)).translated(canvas_->viewportWidget().pos());
-      constexpr int cardToolbarGap = 8;
-      if (!QRect(QPoint(), area.size()).intersects(card) || canvas_->scene().nodeDragActive()) { visible = false; break; }
-      // The toolbar shows 200 ms after the card is selected, and not while one of the
-      // card's dropdowns is open (NodeSelectionToolbar.tsx: useSelect activeSelect).
       const auto waited = now - toolbarSelectedAt_.value(ids.first(), now);
-      if (waited < toolbarShowDelayMs) {
+      if (canvas_->scene().nodeDragActive() || !QRect(QPoint(), area.size()).intersects(card)) {
+        visible = false;
+      } else if (waited < toolbarShowDelayMs) {
         toolbarDelay_.start(int(toolbarShowDelayMs - waited));
         visible = false;
-        break;
+      } else if (inlinePresenter_ && inlinePresenter_->popupOpen()) {
+        visible = false;
+      } else {
+        constexpr int cardToolbarGap = 8;
+        const int x = card.center().x() - selection.width() / 2;
+        const int y = card.top() - cardToolbarGap - selection.height();
+        origin = QPoint(std::clamp(x, 0, std::max(0, area.width() - selection.width())), std::clamp(y, 0, std::max(0, area.height() - selection.height())));
+        selectionToolbarFloating_ = true;
       }
-      if (inlinePresenter_ && inlinePresenter_->popupOpen()) { visible = false; break; }
-      const int x = card.center().x() - selection.width() / 2;
-      const int y = card.top() - cardToolbarGap - selection.height();
-      origin = QPoint(std::clamp(x, 0, std::max(0, area.width() - selection.width())), std::clamp(y, 0, std::max(0, area.height() - selection.height())));
-      selectionToolbarFloating_ = true;
-      break;
     }
   }
   const QRect geometry(origin.x(), origin.y(), selection.width(), selection.height());

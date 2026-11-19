@@ -47,10 +47,15 @@ QPointF NodeGeometry::portPosition(NodeId id, PortType type, PortIndex index) co
 
 PortIndex NodeGeometry::checkPortHit(NodeId id, PortType side, QPointF point) const {
   if (side == PortType::None) { return InvalidPortIndex; }
+  const auto radius = 2 * StyleCollection::nodeStyle().ConnectionPointDiameter;
+  const auto card = size(id);
+  // Ordinary ports lie on a side edge. Only a control port can hit elsewhere.
+  const double edgeX = side == PortType::In ? 0.0 : card.width();
+  const QPointF control(card.width() / 2.0, side == PortType::In ? 0.0 : card.height());
+  if (qAbs(point.x() - edgeX) >= radius && QLineF(point, control).length() >= radius) { return InvalidPortIndex; }
   const auto ports = model_.ports(id, side);
   for (int i = 0; i < ports.size(); ++i) {
-    if (model_.portVisible(id, side, i) &&
-        QLineF(portPosition(id, side, i), point).length() < 2 * StyleCollection::nodeStyle().ConnectionPointDiameter) {
+    if (QLineF(portPosition(id, side, i), point).length() < radius && model_.portVisible(id, side, i)) {
       return i;
     }
   }

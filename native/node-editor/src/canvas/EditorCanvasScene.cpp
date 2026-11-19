@@ -71,14 +71,30 @@ EditorCanvasScene::~EditorCanvasScene() {
 void EditorCanvasScene::animate() {
   phase_ = std::fmod(clock_.elapsed() / 1000.0, 1.0);
   for (auto id : model_.allNodeIds()) {
-    bool activeEdge = false;
-    for (const auto &edge : model_.allConnectionIds(id)) { activeEdge = activeEdge || model_.runtimeWireFlowing(edge); }
-    if (!model_.runningShown(id) && !activeEdge) { continue; }
-    if (auto *node = nodeItem(id)) { node->markDirty(); }
+    // Only the ring and the status text of a running card follow the clock.
+    if (auto *node = nodeItem(id); node && model_.runningShown(id)) {
+      const auto region = NodePainter::animatedRegion(cardPaintState(*this, model_, cardItem(*node, zoom())));
+      if (!region.isEmpty()) { node->markDirty(region); }
+    }
+    // A flowing wire scrolls its dashes along the whole path. Each wire is
+    // listed under both ends, and the outgoing end repaints it.
     for (const auto &edge : model_.allConnectionIds(id)) {
+      if (edge.outNodeId != id || !model_.runtimeWireFlowing(edge)) { continue; }
       if (auto *wire = connectionItem(edge)) { wire->markDirty(); }
     }
   }
+}
+
+CardItemState EditorCanvasScene::cardItem(const NodeItem &item, double zoom) const {
+  return {
+      .id = item.nodeId(),
+      .bounds = item.boundingRect(),
+      .zoom = zoom,
+      .selected = item.isSelected(),
+      .hovered = item.nodeState().hovered(),
+      .headerActionHovered = item.headerActionHovered,
+      .footerHovered = item.footerHovered,
+  };
 }
 
 void EditorCanvasScene::scheduleDimming() {
@@ -347,16 +363,7 @@ void EditorCanvasScene::setButtonHover(NodeId id, bool footer, bool action, cons
 }
 
 void EditorCanvasScene::paintNode(QPainter &painter, const NodeItem &item, double zoom) const {
-  const CardItemState card{
-      .id = item.nodeId(),
-      .bounds = item.boundingRect(),
-      .zoom = zoom,
-      .selected = item.isSelected(),
-      .hovered = item.nodeState().hovered(),
-      .headerActionHovered = item.headerActionHovered,
-      .footerHovered = item.footerHovered,
-  };
-  NodePainter::paint(&painter, cardPaintState(*this, model_, card));
+  NodePainter::paint(&painter, cardPaintState(*this, model_, cardItem(item, zoom)));
 }
 
 void EditorCanvasScene::paintConnection(QPainter &painter, const ConnectionItem &item, double zoom) const {
@@ -375,6 +382,16 @@ void EditorCanvasScene::paintConnection(QPainter &painter, const ConnectionItem 
 QPainterPath EditorCanvasScene::connectionStroke(const ConnectionItem &item) const {
   return WirePainter::hitStroke(wireGeometry(model_, item.connectionId(), item.endPoint(PortType::Out),
                                              item.endPoint(PortType::In), item.connectionState().requiresPort()));
+}
+
+QPainterPath EditorCanvasScene::connectionPath(const ConnectionItem &item) const {
+  return WirePainter::path(wireGeometry(model_, item.connectionId(), item.endPoint(PortType::Out),
+                                        item.endPoint(PortType::In), item.connectionState().requiresPort()));
+}
+
+// The count pill at the middle of the wire can reach any tile it overlaps.
+bool EditorCanvasScene::connectionPaintsOffPath(const ConnectionItem &item) const {
+  return !item.connectionState().requiresPort() && model_.runtimeEdgeState(item.connectionId())["counter"].toInt() > 1;
 }
 
 double EditorCanvasScene::commentContentHeight(const QString &markdown, double cardWidth) const {
@@ -442,29 +459,7 @@ void EditorCanvasScene::setTheme(const CanvasTheme &theme) {
 }
 
 void EditorCanvasScene::paintBackground(QPainter &painter, const QRectF &rect, double zoom) const {
-  painter.fillRect(rect, theme_.canvas);
-  // A cross pattern tied to the scene, as React Flow's Background draws it.
-  auto gap = nm::gridGap;
-  while (gap * zoom < 12) { gap *= 2; }
-  QVector<QLineF> crosses;
-  const auto half = nm::gridCross / 2;
-  for (auto x = std::floor(rect.left() / gap) * gap; x <= rect.right(); x += gap) {
-    for (auto y = std::floor(rect.top() / gap) * gap; y <= rect.bottom(); y += gap) {
-      crosses.append({x - half, y, x + half, y});
-      crosses.append({x, y - half, x, y + half});
-    }
-  }
-  painter.save();
-  painter.setRenderHint(QPainter::Antialiasing, false);
-  painter.setPen(QPen(theme_.grid, 0));
-  painter.drawLines(crosses);
-  // Origin axes (web AxisMarker.tsx): 1px lines from (0, 0) running 80000 screen
-  // pixels right and down, in the palette's c_editor_axis_color.
-  const auto axisLength = axisMarkerLength / std::max(std::abs(zoom), 1e-6);
-  const QLineF axes[] = {{0, 0, axisLength, 0}, {0, 0, 0, axisLength}};
-  painter.setPen(QPen(axisMarkerColor(theme_.canvas.lightnessF() < .5), 0));
-  painter.drawLines(axes, 2);
-  painter.restore();
+  paintGrid(painter, rect, rect, zoom, theme_.canvas, theme_.grid, axisMarkerColor(theme_.canvas.lightnessF() < .5));
 }
 
 // GroupNode.tsx .help-text: a box centered over the group, its bottom edge

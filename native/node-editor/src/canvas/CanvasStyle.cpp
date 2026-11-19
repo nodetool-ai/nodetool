@@ -2,6 +2,7 @@
 #include "graph/NodeLayout.h"
 #include <QEasingCurve>
 #include <QJsonObject>
+#include <QPainter>
 #include <algorithm>
 #include <cmath>
 
@@ -27,6 +28,44 @@ QFont canvasFont(const CanvasTheme &theme, int pixels, QFont::Weight weight) {
   font.setWeight(weight);
   font.setHintingPreference(QFont::PreferNoHinting);
   return font;
+}
+
+double gridGap(double zoom) {
+  auto gap = nm::gridGap;
+  while (gap * zoom < 12) { gap *= 2; }
+  return gap;
+}
+
+void paintGrid(QPainter &painter, const QRectF &exposed, const QRectF &area, double zoom, const QColor &canvas,
+               const QColor &grid, const QColor &axis) {
+  painter.fillRect(area, canvas);
+  // A cross pattern tied to the scene, as React Flow's Background draws it.
+  const auto gap = gridGap(zoom);
+  const auto half = nm::gridCross / 2;
+  // Multiples of the gap are exact, so every start lies on QtNodes' lattice.
+  const auto first = [&](double exposedStart, double areaStart) {
+    return std::max(std::floor(exposedStart / gap), std::floor((areaStart - half) / gap)) * gap;
+  };
+  const auto lastX = std::min(exposed.right(), area.right() + half);
+  const auto lastY = std::min(exposed.bottom(), area.bottom() + half);
+  QVector<QLineF> crosses;
+  for (auto x = first(exposed.left(), area.left()); x <= lastX; x += gap) {
+    for (auto y = first(exposed.top(), area.top()); y <= lastY; y += gap) {
+      crosses.append({x - half, y, x + half, y});
+      crosses.append({x, y - half, x, y + half});
+    }
+  }
+  painter.save();
+  painter.setRenderHint(QPainter::Antialiasing, false);
+  painter.setPen(QPen(grid, 0));
+  painter.drawLines(crosses);
+  // Origin axes (web AxisMarker.tsx): 1px lines from (0, 0) running 80000 screen
+  // pixels right and down, in the palette's c_editor_axis_color.
+  const auto axisLength = axisMarkerLength / std::max(std::abs(zoom), 1e-6);
+  const QLineF axes[] = {{0, 0, axisLength, 0}, {0, 0, 0, axisLength}};
+  painter.setPen(QPen(axis, 0));
+  painter.drawLines(axes, 2);
+  painter.restore();
 }
 
 double runningRingAngle(qint64 elapsedMs) {

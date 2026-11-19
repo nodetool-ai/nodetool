@@ -65,6 +65,10 @@ public:
   virtual void paintNode(QPainter &painter, const NodeItem &item, double zoom) const = 0;
   virtual void paintConnection(QPainter &painter, const ConnectionItem &item, double zoom) const = 0;
   virtual QPainterPath connectionStroke(const ConnectionItem &item) const = 0;
+  // The centre line the connection painter strokes, and whether the painted
+  // marks can reach farther than half the widest stroke from it.
+  virtual QPainterPath connectionPath(const ConnectionItem &) const { return {}; }
+  virtual bool connectionPaintsOffPath(const ConnectionItem &) const { return true; }
   // The connection bounds margin, QtNodes' ConnectionStyle point diameter.
   double connectionMargin() const;
   // The logical zoom of the view, which painting reads.
@@ -145,8 +149,6 @@ signals:
   // Items changed position, size or content.
   void changed();
   void rasterRequested();
-  // A model reset rebuilt every item, as QGraphicsScene::clear() does.
-  void itemsReset();
 
 public slots:
   void onConnectionDeleted(const QtNodes::ConnectionId &id);

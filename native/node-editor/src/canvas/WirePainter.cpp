@@ -168,6 +168,8 @@ void WirePainter::paint(QPainter *painter, const CanvasTheme &theme, const WireP
   }
 }
 
+QPainterPath WirePainter::path(const WirePaintState &state) { return state.visible ? wirePath(state) : QPainterPath{}; }
+
 QPainterPath WirePainter::hitStroke(const WirePaintState &state) {
   if (!state.visible) { return {}; }
   QPainterPathStroker stroker;
