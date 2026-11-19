@@ -87,6 +87,7 @@ jest.mock("../../../trpc/client", () => ({
 }));
 
 const mockActions = {
+  assetOfFile: jest.fn(),
   createFolder: jest.fn(),
   renameEntry: jest.fn(),
   deleteEntry: jest.fn(),
@@ -98,6 +99,7 @@ jest.mock("../workspaceTreeActions", () => {
   const actual = jest.requireActual("../workspaceTreeActions");
   return {
     ...actual,
+    assetOfFile: (...args: unknown[]) => mockActions.assetOfFile(...args),
     createFolder: (...args: unknown[]) => mockActions.createFolder(...args),
     renameEntry: (...args: unknown[]) => mockActions.renameEntry(...args),
     deleteEntry: (...args: unknown[]) => mockActions.deleteEntry(...args),
@@ -136,6 +138,8 @@ describe("WorkspaceTree", () => {
     listFiles.mockReset();
     documentByFile.mockReset();
     documentByFile.mockResolvedValue(null);
+    mockActions.assetOfFile.mockReset();
+    mockActions.assetOfFile.mockResolvedValue(null);
     listFiles.mockResolvedValue([
       { name: "notes.md", path: "notes.md", is_dir: false, size: 12 }
     ]);
@@ -327,6 +331,82 @@ describe("WorkspaceTree", () => {
         expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(1)
       );
       expect(documentByFile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("a media asset file", () => {
+    it("opens an audio file as an audio asset tab so View/Edit is available", async () => {
+      listFiles.mockResolvedValue([
+        { name: "voice.wav", path: "voice.wav", is_dir: false, size: 4096 }
+      ]);
+      mockActions.assetOfFile.mockResolvedValue({
+        id: "asset-audio-1",
+        name: "voice.wav",
+        content_type: "audio/wav"
+      });
+      usePanelStore.getState().setVisibility(true);
+      renderTree();
+      await userEvent.dblClick(await screen.findByText("voice.wav"));
+
+      await waitFor(() =>
+        expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(1)
+      );
+      expect(mockActions.assetOfFile).toHaveBeenCalledWith(
+        "project-a",
+        "voice.wav"
+      );
+      expect(useWorkspaceTabsStore.getState().tabs[0]).toMatchObject({
+        type: "audio",
+        ref: "asset-audio-1",
+        mode: "view",
+        title: "voice.wav",
+        projectId: "project-a"
+      });
+      expect(usePanelStore.getState().panel.isVisible).toBe(false);
+    });
+
+    it("opens an image file as an image asset tab", async () => {
+      listFiles.mockResolvedValue([
+        { name: "cover.png", path: "cover.png", is_dir: false, size: 2048 }
+      ]);
+      mockActions.assetOfFile.mockResolvedValue({
+        id: "asset-img-1",
+        name: "cover.png",
+        content_type: "image/png"
+      });
+      renderTree();
+      await userEvent.dblClick(await screen.findByText("cover.png"));
+
+      await waitFor(() =>
+        expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(1)
+      );
+      expect(useWorkspaceTabsStore.getState().tabs[0]).toMatchObject({
+        type: "image",
+        ref: "asset-img-1",
+        mode: "view",
+        title: "cover.png",
+        projectId: "project-a"
+      });
+    });
+
+    it("falls back to workspace-file when no asset owns the audio file", async () => {
+      listFiles.mockResolvedValue([
+        { name: "stray.wav", path: "stray.wav", is_dir: false, size: 1024 }
+      ]);
+      mockActions.assetOfFile.mockResolvedValue(null);
+      renderTree();
+      await userEvent.dblClick(await screen.findByText("stray.wav"));
+
+      await waitFor(() =>
+        expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(1)
+      );
+      expect(useWorkspaceTabsStore.getState().tabs[0]).toMatchObject({
+        type: "workspace-file",
+        ref: "ws-a::stray.wav",
+        mode: "view",
+        title: "stray.wav",
+        projectId: "project-a"
+      });
     });
   });
 
