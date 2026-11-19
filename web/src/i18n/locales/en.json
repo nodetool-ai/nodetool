@@ -20375,6 +20375,20 @@
     "cancel": "Cancel",
     "signOut": "Sign out",
     "signOutNote": "Changes waiting in the node editor or the timeline stay on this computer and are sent after you sign in again.",
-    "unavailable": "Cloud sign-in is not available in this build."
+    "unavailable": "Cloud sign-in is not available in this build.",
+    "signOutDialog": {
+      "title": "Changes not sent yet",
+      "waiting_one": "{{count}} cloud document has changes that were not sent yet.",
+      "waiting_other": "{{count}} cloud documents have changes that were not sent yet.",
+      "unsent_one": "The server refused the changes to {{count}} cloud document.",
+      "unsent_other": "The server refused the changes to {{count}} cloud documents.",
+      "unknown": "NodeTool could not check for changes that were not sent yet.",
+      "kept": "If you sign out now, the changes stay on this computer and are sent after you sign in again with this account.",
+      "keep": "Keep on this computer and sign out",
+      "wait": "Wait until sent",
+      "cancel": "Cancel",
+      "signOutNow": "Sign out now",
+      "waitingNote": "Waiting for the changes to be sent. Keep the cloud window open."
+    }
   }
 }

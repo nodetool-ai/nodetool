@@ -20375,6 +20375,20 @@
     "cancel": "取消",
     "signOut": "退出登录",
     "signOutNote": "节点编辑器或时间线中等待发送的更改会保留在这台计算机上，并在你再次登录后发送。",
-    "unavailable": "此版本不支持云登录。"
+    "unavailable": "此版本不支持云登录。",
+    "signOutDialog": {
+      "title": "有尚未发送的更改",
+      "waiting_other": "{{count}} 个云文档有尚未发送的更改。",
+      "unsent_other": "服务器拒绝了 {{count}} 个云文档的更改。",
+      "unknown": "NodeTool 无法检查是否有尚未发送的更改。",
+      "kept": "如果现在退出登录，这些更改会保留在这台电脑上，并在你用此账户重新登录后发送。",
+      "keep": "保留在这台电脑上并退出登录",
+      "wait": "等待发送完成",
+      "cancel": "取消",
+      "signOutNow": "立即退出登录",
+      "waitingNote": "正在等待更改发送。请保持云窗口打开。",
+      "waiting_one": "{{count}} 个云文档有尚未发送的更改。",
+      "unsent_one": "服务器拒绝了 {{count}} 个云文档的更改。"
+    }
   }
 }
