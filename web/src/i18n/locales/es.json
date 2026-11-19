@@ -20686,6 +20686,22 @@
     "cancel": "Cancelar",
     "signOut": "Cerrar sesión",
     "signOutNote": "Los cambios pendientes en el editor de nodos o en la línea de tiempo se quedan en este ordenador y se envían cuando vuelvas a iniciar sesión.",
-    "unavailable": "El inicio de sesión en la nube no está disponible en esta versión."
+    "unavailable": "El inicio de sesión en la nube no está disponible en esta versión.",
+    "signOutDialog": {
+      "title": "Cambios aún no enviados",
+      "waiting_one": "{{count}} documento en la nube tiene cambios que aún no se enviaron.",
+      "waiting_other": "{{count}} documentos en la nube tienen cambios que aún no se enviaron.",
+      "unsent_one": "El servidor rechazó los cambios de {{count}} documento en la nube.",
+      "unsent_other": "El servidor rechazó los cambios de {{count}} documentos en la nube.",
+      "unknown": "NodeTool no pudo comprobar si hay cambios sin enviar.",
+      "kept": "Si cierras sesión ahora, los cambios se quedan en este equipo y se envían cuando vuelvas a iniciar sesión con esta cuenta.",
+      "keep": "Guardar en este equipo y cerrar sesión",
+      "wait": "Esperar a que se envíen",
+      "cancel": "Cancelar",
+      "signOutNow": "Cerrar sesión ahora",
+      "waitingNote": "Esperando a que se envíen los cambios. Mantén abierta la ventana de la nube.",
+      "waiting_many": "{{count}} documentos en la nube tienen cambios que aún no se enviaron.",
+      "unsent_many": "El servidor rechazó los cambios de {{count}} documentos en la nube."
+    }
   }
 }

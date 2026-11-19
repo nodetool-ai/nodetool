@@ -20686,6 +20686,22 @@
     "cancel": "Cancelar",
     "signOut": "Sair",
     "signOutNote": "As alterações pendentes no editor de nós ou na linha do tempo ficam neste computador e são enviadas quando você entrar novamente.",
-    "unavailable": "O login na nuvem não está disponível nesta versão."
+    "unavailable": "O login na nuvem não está disponível nesta versão.",
+    "signOutDialog": {
+      "title": "Alterações ainda não enviadas",
+      "waiting_one": "{{count}} documento na nuvem tem alterações que ainda não foram enviadas.",
+      "waiting_other": "{{count}} documentos na nuvem têm alterações que ainda não foram enviadas.",
+      "unsent_one": "O servidor recusou as alterações de {{count}} documento na nuvem.",
+      "unsent_other": "O servidor recusou as alterações de {{count}} documentos na nuvem.",
+      "unknown": "O NodeTool não conseguiu verificar se há alterações por enviar.",
+      "kept": "Se você sair agora, as alterações ficam neste computador e são enviadas quando você entrar novamente com esta conta.",
+      "keep": "Manter neste computador e sair",
+      "wait": "Esperar o envio",
+      "cancel": "Cancelar",
+      "signOutNow": "Sair agora",
+      "waitingNote": "Aguardando o envio das alterações. Mantenha a janela da nuvem aberta.",
+      "waiting_many": "{{count}} documentos na nuvem têm alterações que ainda não foram enviadas.",
+      "unsent_many": "O servidor recusou as alterações de {{count}} documentos na nuvem."
+    }
   }
 }

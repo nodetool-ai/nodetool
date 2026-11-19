@@ -20686,6 +20686,22 @@
     "cancel": "Annulla",
     "signOut": "Esci",
     "signOutNote": "Le modifiche in attesa nell'editor di nodi o nella timeline restano su questo computer e vengono inviate al prossimo accesso.",
-    "unavailable": "L'accesso al cloud non è disponibile in questa build."
+    "unavailable": "L'accesso al cloud non è disponibile in questa build.",
+    "signOutDialog": {
+      "title": "Modifiche non ancora inviate",
+      "waiting_one": "{{count}} documento cloud ha modifiche non ancora inviate.",
+      "waiting_other": "{{count}} documenti cloud hanno modifiche non ancora inviate.",
+      "unsent_one": "Il server ha rifiutato le modifiche a {{count}} documento cloud.",
+      "unsent_other": "Il server ha rifiutato le modifiche a {{count}} documenti cloud.",
+      "unknown": "NodeTool non è riuscito a verificare se ci sono modifiche da inviare.",
+      "kept": "Se esci ora, le modifiche restano su questo computer e vengono inviate quando accedi di nuovo con questo account.",
+      "keep": "Tieni su questo computer ed esci",
+      "wait": "Attendi l'invio",
+      "cancel": "Annulla",
+      "signOutNow": "Esci ora",
+      "waitingNote": "In attesa dell'invio delle modifiche. Tieni aperta la finestra cloud.",
+      "waiting_many": "{{count}} documenti cloud hanno modifiche non ancora inviate.",
+      "unsent_many": "Il server ha rifiutato le modifiche a {{count}} documenti cloud."
+    }
   }
 }

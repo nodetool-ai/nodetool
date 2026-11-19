@@ -20686,6 +20686,22 @@
     "cancel": "Annuler",
     "signOut": "Se déconnecter",
     "signOutNote": "Les modifications en attente dans l'éditeur de nœuds ou la timeline restent sur cet ordinateur et sont envoyées à votre prochaine connexion.",
-    "unavailable": "La connexion au cloud n'est pas disponible dans cette version."
+    "unavailable": "La connexion au cloud n'est pas disponible dans cette version.",
+    "signOutDialog": {
+      "title": "Modifications pas encore envoyées",
+      "waiting_one": "{{count}} document cloud contient des modifications pas encore envoyées.",
+      "waiting_other": "{{count}} documents cloud contiennent des modifications pas encore envoyées.",
+      "unsent_one": "Le serveur a refusé les modifications de {{count}} document cloud.",
+      "unsent_other": "Le serveur a refusé les modifications de {{count}} documents cloud.",
+      "unknown": "NodeTool n'a pas pu vérifier s'il reste des modifications à envoyer.",
+      "kept": "Si vous vous déconnectez maintenant, les modifications restent sur cet ordinateur et sont envoyées lorsque vous vous reconnectez avec ce compte.",
+      "keep": "Garder sur cet ordinateur et se déconnecter",
+      "wait": "Attendre l'envoi",
+      "cancel": "Annuler",
+      "signOutNow": "Se déconnecter maintenant",
+      "waitingNote": "En attente de l'envoi des modifications. Gardez la fenêtre cloud ouverte.",
+      "waiting_many": "{{count}} documents cloud contiennent des modifications pas encore envoyées.",
+      "unsent_many": "Le serveur a refusé les modifications de {{count}} documents cloud."
+    }
   }
 }

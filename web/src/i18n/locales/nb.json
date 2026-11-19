@@ -20375,6 +20375,20 @@
     "cancel": "Avbryt",
     "signOut": "Logg ut",
     "signOutNote": "Endringer som venter i noderedigeringen eller tidslinjen blir på denne datamaskinen og sendes når du logger på igjen.",
-    "unavailable": "Skypålogging er ikke tilgjengelig i denne versjonen."
+    "unavailable": "Skypålogging er ikke tilgjengelig i denne versjonen.",
+    "signOutDialog": {
+      "title": "Endringer er ikke sendt ennå",
+      "waiting_one": "{{count}} skydokument har endringer som ikke er sendt ennå.",
+      "waiting_other": "{{count}} skydokumenter har endringer som ikke er sendt ennå.",
+      "unsent_one": "Serveren avviste endringene i {{count}} skydokument.",
+      "unsent_other": "Serveren avviste endringene i {{count}} skydokumenter.",
+      "unknown": "NodeTool kunne ikke sjekke om det finnes endringer som ikke er sendt.",
+      "kept": "Hvis du logger ut nå, blir endringene på denne datamaskinen og sendes når du logger inn igjen med denne kontoen.",
+      "keep": "Behold på denne datamaskinen og logg ut",
+      "wait": "Vent til de er sendt",
+      "cancel": "Avbryt",
+      "signOutNow": "Logg ut nå",
+      "waitingNote": "Venter på at endringene sendes. Hold skyvinduet åpent."
+    }
   }
 }
