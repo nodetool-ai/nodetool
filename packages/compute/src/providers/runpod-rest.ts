@@ -288,13 +288,20 @@ export const DEFAULT_CPU_FLAVOR_ID = "cpu5c";
 export const DEFAULT_CPU_VCPU_COUNT = 4;
 
 /**
- * CUDA versions a GPU worker host must support. The worker image installs
- * PyPI's Linux torch, which is a CUDA 13.0 build and needs an NVIDIA driver
- * of 580 or newer. Without the filter RunPod may place the pod on an older
- * driver, where torch cannot use the GPU. RunPod's API lists 13.0 as its
- * newest value; add newer ones here as RunPod adds them.
+ * Minimum CUDA version a GPU worker host must support. The worker image
+ * installs PyPI's Linux torch, which is a CUDA 13.0 build and needs an NVIDIA
+ * driver of 580 or newer. Using `minCudaVersion` (rather than exact-match
+ * `allowedCudaVersions`) accepts 13.0 and any newer host CUDA version.
  */
-export const WORKER_CUDA_VERSIONS: readonly string[] = ["13.0"];
+export const WORKER_MIN_CUDA_VERSION = "13.0";
+
+/** @deprecated Use {@link WORKER_MIN_CUDA_VERSION} with `minCudaVersion`. */
+export const WORKER_CUDA_VERSIONS: readonly string[] = [WORKER_MIN_CUDA_VERSION];
+
+/** Matches RunPod's capacity-exhausted error responses across API versions. */
+export function isRunpodCapacityError(err: unknown): boolean {
+  return err instanceof Error && /no (?:longer any )?instances/i.test(err.message);
+}
 
 export interface DeployWorkerPodOptions {
   /** Pod name. */
@@ -309,6 +316,11 @@ export interface DeployWorkerPodOptions {
   internalPort?: number;
   /** Expose via RunPod HTTP proxy ("http" → wss proxy) or direct TCP. */
   exposure?: "http" | "tcp";
+  /**
+   * RunPod cloud tier. When omitted, tries `"SECURE"` first and falls back to
+   * `"COMMUNITY"` if Secure Cloud reports no available capacity.
+   */
+  cloud?: "SECURE" | "COMMUNITY";
   computeType?: "CPU" | "GPU";
   /** CPU flavor identifier (CPU pods only). Defaults to {@link DEFAULT_CPU_FLAVOR_ID}. */
   cpuFlavorId?: string;
@@ -321,8 +333,13 @@ export interface DeployWorkerPodOptions {
   /** GPUs per pod (GPU pods only). Defaults to {@link DEFAULT_GPU_COUNT}. */
   gpuCount?: number;
   /**
-   * CUDA versions the host must support (GPU pods only). Defaults to
-   * {@link WORKER_CUDA_VERSIONS}.
+   * Minimum CUDA version the host must support (GPU pods only). Defaults to
+   * {@link WORKER_MIN_CUDA_VERSION} unless `allowedCudaVersions` is supplied.
+   */
+  minCudaVersion?: string;
+  /**
+   * Exact CUDA versions the host must support (GPU pods only). Pass `[]` to
+   * disable the default {@link WORKER_MIN_CUDA_VERSION} floor.
    */
   allowedCudaVersions?: readonly string[];
   containerDiskInGb?: number;
@@ -376,6 +393,7 @@ export async function deployWorkerPod(
   const spec: RunpodPodSpec = {
     name: opts.name,
     ...(opts.templateId ? { templateId: opts.templateId } : { image: opts.image }),
+    ...(opts.cloud ? { cloud: opts.cloud } : {}),
     env
   };
 
@@ -392,9 +410,14 @@ export async function deployWorkerPod(
     if (opts.vcpuCount !== undefined) {
       gpu.minVcpuCountPerGpu = Math.max(1, Math.floor(opts.vcpuCount / gpuCount));
     }
-    const cudaVersions = opts.allowedCudaVersions ?? WORKER_CUDA_VERSIONS;
-    if (cudaVersions.length > 0) {
-      gpu.allowedCudaVersions = [...cudaVersions];
+    if (opts.minCudaVersion) {
+      gpu.minCudaVersion = opts.minCudaVersion;
+    } else if (opts.allowedCudaVersions !== undefined) {
+      if (opts.allowedCudaVersions.length > 0) {
+        gpu.allowedCudaVersions = [...opts.allowedCudaVersions];
+      }
+    } else {
+      gpu.minCudaVersion = WORKER_MIN_CUDA_VERSION;
     }
     spec.gpu = gpu;
   } else {
@@ -426,7 +449,19 @@ export async function deployWorkerPod(
     };
   }
 
-  const created = await createPod(apiKey, spec);
+  let created: RunpodPod;
+  try {
+    created = await createPod(apiKey, spec);
+  } catch (err) {
+    // API v2 removed `cloudType: "ALL"` and defaults to `"SECURE"` only.
+    // When the caller did not pin a cloud tier and Secure Cloud has no
+    // capacity, retry once on Community Cloud.
+    if (!opts.cloud && isRunpodCapacityError(err)) {
+      created = await createPod(apiKey, { ...spec, cloud: "COMMUNITY" });
+    } else {
+      throw err;
+    }
+  }
   try {
     const { pod, wsUrl } = await waitForPodEndpoint(apiKey, created.id, {
       internalPort,

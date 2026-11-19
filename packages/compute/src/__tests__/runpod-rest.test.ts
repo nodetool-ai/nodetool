@@ -5,7 +5,7 @@ import {
   DEFAULT_CPU_VCPU_COUNT,
   DEFAULT_GPU_COUNT,
   DEFAULT_RUNPOD_REST_BASE_URL,
-  WORKER_CUDA_VERSIONS,
+  WORKER_MIN_CUDA_VERSION,
   deployWorkerPod,
   getRunpodRestBaseUrl,
   listPods,
@@ -105,11 +105,11 @@ describe("deployWorkerPod GPU spec", () => {
     expect(body.gpu).toEqual({
       id: "NVIDIA GeForce RTX 4090",
       count: DEFAULT_GPU_COUNT,
-      allowedCudaVersions: ["13.0"],
+      minCudaVersion: WORKER_MIN_CUDA_VERSION,
     });
   });
 
-  it("limits GPU pods to hosts whose driver runs the worker's CUDA 13 torch", async () => {
+  it("limits GPU pods to hosts whose driver runs CUDA 13.0 or newer", async () => {
     mockCreateThenRunning();
 
     await deployWorkerPod(API_KEY, {
@@ -120,8 +120,68 @@ describe("deployWorkerPod GPU spec", () => {
     });
 
     const gpu = createBody().gpu as Record<string, unknown>;
-    expect(gpu.allowedCudaVersions).toEqual(["13.0"]);
-    expect(WORKER_CUDA_VERSIONS).toEqual(["13.0"]);
+    expect(gpu.minCudaVersion).toBe("13.0");
+    expect(gpu.allowedCudaVersions).toBeUndefined();
+    expect(WORKER_MIN_CUDA_VERSION).toBe("13.0");
+  });
+
+  it("falls back from default SECURE cloud to COMMUNITY on v2 capacity error", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            detail:
+              "There are no longer any instances available with the requested specifications. Please refresh and try again.",
+            status: 400,
+            title: "Bad Request",
+          },
+          400,
+          false
+        )
+      )
+      .mockResolvedValueOnce(jsonResponse({ id: "pod-community" }))
+      .mockResolvedValueOnce(
+        jsonResponse({ id: "pod-community", status: "RUNNING" })
+      );
+
+    const deployed = await deployWorkerPod(API_KEY, {
+      name: "gpu-worker",
+      image: "img",
+      computeType: "GPU",
+      gpuTypeId: "NVIDIA A40",
+    });
+
+    expect(deployed.podId).toBe("pod-community");
+    const firstBody = JSON.parse(String(mockFetch.mock.calls[0][1].body));
+    const retryBody = JSON.parse(String(mockFetch.mock.calls[1][1].body));
+    expect(firstBody.cloud).toBeUndefined();
+    expect(retryBody.cloud).toBe("COMMUNITY");
+  });
+
+  it("does not fall back when cloud is explicitly pinned", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          detail:
+            "There are no longer any instances available with the requested specifications.",
+          status: 400,
+          title: "Bad Request",
+        },
+        400,
+        false
+      )
+    );
+
+    await expect(
+      deployWorkerPod(API_KEY, {
+        name: "gpu-worker",
+        image: "img",
+        computeType: "GPU",
+        gpuTypeId: "NVIDIA A40",
+        cloud: "SECURE",
+      })
+    ).rejects.toThrow(/no longer any instances/i);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("rejects GPU pods without a GPU type id", async () => {

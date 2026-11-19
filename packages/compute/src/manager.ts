@@ -303,7 +303,10 @@ export class WorkerManager {
       try {
         return await this.provision(preset.profileName, { gpu });
       } catch (error) {
-        if (!(error instanceof Error) || !/no instances/i.test(error.message)) {
+        if (
+          !(error instanceof Error) ||
+          !/no (?:longer any )?instances/i.test(error.message)
+        ) {
           throw error;
         }
       }

@@ -61,6 +61,7 @@ describe("RunpodPodProvider with a ComfyUI port", () => {
     const body = JSON.parse(String(mockFetch.mock.calls[0][1].body));
     expect(body.ports).toEqual(["8188/http"]);
     expect(body.gpu.allowedCudaVersions).toBeUndefined();
+    expect(body.gpu.minCudaVersion).toBeUndefined();
     expect(body.env).toEqual({});
     expect(result.wsUrl).toBe("wss://p1-8188.proxy.runpod.net");
   });
