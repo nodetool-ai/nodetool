@@ -9,7 +9,7 @@ afterEach(() => {
 });
 
 function stubFetch(body: unknown, status = 200) {
-  const fetchMock = vi.fn(async () =>
+  const fetchMock = vi.fn(async (_url: string, _init: RequestInit) =>
     new Response(JSON.stringify(body), { status })
   );
   vi.stubGlobal("fetch", fetchMock);
@@ -36,11 +36,19 @@ describe("fetchRunpodGpuAvailability", () => {
       { id: "NVIDIA L40S", displayName: "L40S", secure: "Low", community: null },
       { id: "NVIDIA A40", displayName: "A40", secure: null, community: null },
     ]);
-    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    const query = JSON.parse(String(init.body)).query as string;
-    expect(query).toContain('secureCloud:true, minCudaVersion:"13.0"');
-    expect(query).toContain('secureCloud:false, minCudaVersion:"13.0"');
-    expect((init.headers as Record<string, string>).authorization).toBe("Bearer key");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.runpod.io/graphql",
+      expect.objectContaining({
+        headers: expect.objectContaining({ authorization: "Bearer key" }),
+        body: expect.stringContaining('secureCloud:true, minCudaVersion:\\"13.0\\"'),
+      })
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: expect.stringContaining('secureCloud:false, minCudaVersion:\\"13.0\\"'),
+      })
+    );
   });
 
   it("throws on GraphQL errors", async () => {

@@ -9685,7 +9685,8 @@
         "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
         "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
         "priceRange": "{{min}}–{{max}}/hr",
-        "running": "Running"
+        "running": "Running",
+        "sectionSubtitle_many": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files."
       },
       "provision": {
         "title": "Inizia un lavoratore",

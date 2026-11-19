@@ -649,7 +649,7 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
           </FlexRow>
         </Tooltip>
         <Caption size="small">
-          <span css={{ fontFamily: "monospace" }}>{instance.provider_ref}</span>
+          <span css={{ fontFamily: "var(--fontFamily2)" }}>{instance.provider_ref}</span>
           {` · ${displayLabel}`}
         </Caption>
         {statusHint && <Caption size="small">{statusHint}</Caption>}
@@ -666,7 +666,7 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
             {gpu ?? (vcpu ? `${vcpu} vCPU` : t("screens4_8.workers.instance.gpuUnknown"))}
           </Text>
           {gpu && (
-            <Caption size="small" sx={{ fontFamily: "monospace" }}>
+            <Caption size="small" sx={{ fontFamily: "var(--fontFamily2)" }}>
               x{gpuCount ?? 1}
             </Caption>
           )}

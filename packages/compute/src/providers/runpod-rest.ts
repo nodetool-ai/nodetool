@@ -393,9 +393,11 @@ export async function deployWorkerPod(
   const spec: RunpodPodSpec = {
     name: opts.name,
     ...(opts.templateId ? { templateId: opts.templateId } : { image: opts.image }),
-    ...(opts.cloud ? { cloud: opts.cloud } : {}),
     env
   };
+  if (opts.cloud) {
+    spec.cloud = opts.cloud;
+  }
 
   if (isGpu) {
     const gpuId = opts.gpuTypeId ?? opts.gpuTypeIds?.[0];
