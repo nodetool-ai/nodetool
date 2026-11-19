@@ -2,11 +2,14 @@
  * The cloud window of this launch (D27), over a real `BrowserWindow`. The
  * rules live in `cloudWindow.ts`.
  */
-import type { BrowserWindow } from "electron";
+import { net, type BrowserWindow } from "electron";
 
 import { getCloudAccount } from "./cloudAccount";
+import { callCloudLocal, type CloudLocalResult } from "./cloudLocal";
 import { CloudWindow, type WindowLike } from "./cloudWindow";
+import { getLocalClientToken } from "./localClientToken";
 import { logMessage } from "./logger";
+import { serverState } from "./state";
 import { IpcChannels } from "./types.d";
 import { createCloudBrowserWindow, webAppUrl } from "./window";
 
@@ -51,6 +54,25 @@ export function getCloudWindow(): CloudWindow {
     shared = cloudWindow;
   }
   return shared;
+}
+
+/** A `cloudLocal.*` call of the window `webContentsId`, on this app's own server. */
+export function cloudWindowLocalCall(
+  webContentsId: number,
+  procedure: string,
+  input: Record<string, unknown>
+): Promise<CloudLocalResult> {
+  return callCloudLocal(
+    {
+      originFor: (id) => getCloudWindow().originFor(id),
+      localOrigin: () => (serverState.isStarted && serverState.serverPort ? `http://127.0.0.1:${serverState.serverPort}` : null),
+      localClientToken: getLocalClientToken,
+      fetch: (url, init) => net.fetch(url, init),
+    },
+    webContentsId,
+    procedure,
+    input
+  );
 }
 
 export function disposeCloudWindow(): void {

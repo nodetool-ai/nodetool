@@ -5,8 +5,9 @@
  * A request to the cloud server goes through the main process, which adds the
  * account's credential. A request to the local server's API is refused: the
  * cloud window shows the cloud server's documents only. The drafts client,
- * which keeps unsaved edits on this computer, uses `localFetch`. Everything
- * else, such as the app's own scripts and translations, loads as before.
+ * which keeps unsaved edits on this computer, goes through the main process.
+ * Everything else, such as the app's own scripts and translations, loads as
+ * before.
  */
 import { CLOUD_WINDOW, localFetch, refusedInCloudWindow, type CloudWindowOrigin } from "./cloudWindow";
 import { CloudRequestError, createCloudFetch, type CloudRequester } from "./cloudFetch";

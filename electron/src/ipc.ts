@@ -45,7 +45,7 @@ import { setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
 import { getVstHost } from "./vstHost";
 import { getCloudAccount, getCloudSockets } from "./cloudAccount";
-import { getCloudWindow } from "./cloudWindowHost";
+import { cloudWindowLocalCall, getCloudWindow } from "./cloudWindowHost";
 import { showSystemNotification } from "./systemNotifications";
 import { IpcRequest } from "./types.d";
 import {
@@ -114,6 +114,13 @@ const cloudDocumentRefSchema = z
   .object({
     type: z.enum(["workflow", "timeline"]),
     id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
+  })
+  .strict();
+// The cloud window's local store: main names the server key and account.
+const cloudLocalCallSchema = z
+  .object({
+    procedure: z.string().max(64),
+    input: z.record(z.string(), z.unknown()),
   })
   .strict();
 // The windows whose sockets close when they are destroyed.
@@ -1120,6 +1127,12 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.CLOUD_WINDOW_READY, async (event) =>
     getCloudWindow().takePending(event.sender.id),
   );
+  createIpcMainHandler(IpcChannels.CLOUD_LOCAL_CALL, async (event, request) => {
+    const parsed = cloudLocalCallSchema.safeParse(request);
+    return parsed.success
+      ? cloudWindowLocalCall(event.sender.id, parsed.data.procedure, parsed.data.input)
+      : ({ ok: false, error: "REFUSED" } as const);
+  });
   ipcMain.removeAllListeners(IpcChannels.CLOUD_WINDOW_ORIGIN);
   ipcMain.on(IpcChannels.CLOUD_WINDOW_ORIGIN, (event) => {
     event.returnValue = getCloudWindow().originFor(event.sender.id);

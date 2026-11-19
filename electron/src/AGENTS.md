@@ -146,7 +146,9 @@ are in [native/account-helper](../../native/account-helper/README.md).
   main decides which window that is: the page reads its server and account
   once at boot (IPC `CLOUD_WINDOW_ORIGIN`). The window uses its own session
   partition, so its persisted stores never mix with the local window's, and
-  closes when the account signs out or changes.
+  closes when the account signs out or changes. That session has no local
+  client token, so its drafts go through `cloudLocal.ts` (IPC
+  `CLOUD_LOCAL_CALL`), which names the server key and account itself.
 - Unlike the VST host, the helper is never loaded from the user data folder.
 
 ## Rules
