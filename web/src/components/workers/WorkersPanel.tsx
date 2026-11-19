@@ -125,6 +125,37 @@ function formatUptime(
   });
 }
 
+function formatTimer(createdAt: string, now: number): string | null {
+  const startedMs = Date.parse(createdAt);
+  if (Number.isNaN(startedMs)) return null;
+  const totalSeconds = Math.max(0, Math.floor((now - startedMs) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const mm = String(minutes).padStart(2, "0");
+  const ss = String(seconds).padStart(2, "0");
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+function formatRunningCost(
+  hourlyRate: number | null,
+  createdAt: string,
+  now: number,
+  locale: string
+): string | null {
+  if (hourlyRate === null) return null;
+  const startedMs = Date.parse(createdAt);
+  if (Number.isNaN(startedMs)) return null;
+  const elapsedHours = Math.max(0, (now - startedMs) / 3_600_000);
+  const accrued = hourlyRate * elapsedHours;
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: accrued < 0.1 ? 4 : 2
+  }).format(accrued);
+}
+
 function formatCost(cost: number | null, locale: string, t: TFunction): string {
   if (cost === null) return t("screens4_8.workers.common.unavailable");
   return new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(cost);
@@ -323,6 +354,16 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
   const isAttached = instance.status === "attached";
   const isPaused = instance.status === "stopped";
   const isRunning = instance.status === "running";
+  const isBilling = BILLING_STATUSES.has(instance.status);
+  const timerText = isBilling ? formatTimer(instance.created_at, now) : null;
+  const runningCostText = isBilling
+    ? formatRunningCost(
+        instance.estimated_cost_usd,
+        instance.created_at,
+        now,
+        i18n.language
+      )
+    : null;
 
   // While a worker is `running` but not attached, "running" only means the
   // pod's port is mapped — not that the worker process is serving. Probe its
@@ -445,15 +486,18 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
             )}
           </FlexColumn>
           <FlexRow gap={SPACING.lg} align="center" wrap="wrap">
-            <Caption size="small">
-              {t("screens4_8.workers.instance.uptime", {
-                value: formatUptime(instance.created_at, now, i18n.language, t)
-              })}
+            <Caption size="small" sx={{ fontVariantNumeric: "tabular-nums" }}>
+              {timerText ??
+                t("screens4_8.workers.instance.uptime", {
+                  value: formatUptime(instance.created_at, now, i18n.language, t)
+                })}
             </Caption>
-            <Caption size="small">
+            <Caption size="small" sx={{ fontVariantNumeric: "tabular-nums" }}>
               {t("screens4_8.workers.instance.cost", {
                 value: formatCost(instance.estimated_cost_usd, i18n.language, t)
               })}
+              {instance.estimated_cost_usd !== null ? "/hr" : ""}
+              {runningCostText ? ` (${runningCostText} so far)` : ""}
             </Caption>
             {comfyEndpoint ? (
               isRunning &&
@@ -502,7 +546,7 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
             {!isPaused && (
               <EditorButton
                 density="compact"
-                variant="text"
+                variant="outlined"
                 aria-label={t("screens4_8.workers.instance.stopAria", { id: instance.id })}
                 disabled={stopping}
                 onClick={() => onStop(instance.id)}
@@ -605,12 +649,24 @@ const WorkersPanel: React.FC = () => {
   const [autoAttachIds, setAutoAttachIds] = useState<ReadonlySet<string>>(
     () => new Set()
   );
-  const now = Date.now();
+  const [now, setNow] = useState(() => Date.now());
 
   const shownInstances = useMemo(
     () => instances.filter((instance) => SHOWN_STATUSES.has(instance.status)),
     [instances]
   );
+
+  const hasLiveBilling = useMemo(
+    () =>
+      shownInstances.some((instance) => BILLING_STATUSES.has(instance.status)),
+    [shownInstances]
+  );
+
+  useEffect(() => {
+    if (!hasLiveBilling) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [hasLiveBilling]);
 
   const totalCost = useMemo(
     () =>

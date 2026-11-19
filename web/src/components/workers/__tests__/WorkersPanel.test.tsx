@@ -163,8 +163,10 @@ describe("WorkersPanel", () => {
     expect(screen.getByText("hf-a40")).toBeInTheDocument();
     // A healthy `running` worker is presented as "ready" (probe answered).
     expect(screen.getByText(/ready/i)).toBeInTheDocument();
-    // The row shows the per-instance cost; the header shows the live rate.
-    expect(screen.getByText(/Cost: \$0\.50/)).toBeInTheDocument();
+    // The row shows the per-instance rate, running cost, live timer, and Stop button.
+    expect(screen.getByText(/Cost: \$0\.50\/hr/)).toBeInTheDocument();
+    expect(screen.getByText(/so far\)/)).toBeInTheDocument();
+    expect(screen.getByText(/\d+:\d{2}/)).toBeInTheDocument();
     expect(screen.getByText("$0.50/hr")).toBeInTheDocument();
     // Full worker metadata is visible: type, provider, endpoint, IDs, image.
     expect(screen.getByText("Worker")).toBeInTheDocument();
