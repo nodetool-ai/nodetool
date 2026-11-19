@@ -691,7 +691,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
     void recentCloud() {
         Preferences preferences;
         preferences.clearRecentTimelines();
-        nt::server::CloudSource cloud{QUrl("https://user:secret@cloud.example/ignored?q=1"), "cloud-id", "viewer", "/tmp/cache"};
+        nt::server::CloudSource cloud{QUrl("https://user:secret@cloud.example/ignored?q=1"), "cloud-id", "viewer"};
         QVERIFY(recordOpenedTimeline(preferences, {"timeline", "https://cloud.example#cloud_timeline=cloud-id"}, true,
                                      "Shared cut", std::nullopt, cloud));
         const auto entry = Preferences().recentTimelines().first().toMap();
