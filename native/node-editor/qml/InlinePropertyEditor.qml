@@ -64,7 +64,17 @@ Item {
                 : root.kind === "number" || root.kind === "integer" ? numberEditor
                 : multilineEditor
         }
+        MouseArea {
+            visible: root.descriptor.name === "prompt"
+            y: loader.height
+            width: expandButton.x
+            height: expandButton.height
+            onPressed: mouse => {
+                mouse.accepted = root.presenter.insertPromptVariableAt(mapToItem(root, mouse.x, mouse.y))
+            }
+        }
         Ui.EditorButton {
+            id: expandButton
             objectName: "inline-expand"
             visible: root.descriptor.name !== "code" && (root.kind === "text" || root.kind === "multiline")
             x: parent.width - width

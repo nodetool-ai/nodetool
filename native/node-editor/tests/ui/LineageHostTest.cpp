@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
 #include "graph/EditorScene.h"
 #include "graph/LineageLayer.h"
@@ -202,13 +203,8 @@ private slots:
     QVERIFY(window.document()->graph()["links"].toArray().isEmpty());
     QVERIFY(select(window, {"b", "a"}));
     QCOMPARE(window.selectedCount(), 2);
-    QQuickWidget *toolbar = nullptr;
-    for (auto *panel : window.findChildren<QQuickWidget *>()) {
-      if (panel->source().fileName() == "SelectionToolbar.qml") {
-        toolbar = panel;
-      }
-    }
-    QVERIFY(toolbar);
+    test::OverlayProbe toolbar;
+    QTRY_VERIFY((toolbar = test::overlay(window, "SelectionToolbar.qml", true)));
     QQuickItem *linkButton =
         find(toolbar->rootObject(), "selection-link-selected");
     if (linkButton && linkButton->isVisible()) {

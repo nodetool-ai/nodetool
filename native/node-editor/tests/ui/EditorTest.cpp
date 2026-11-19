@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
 #include "../support/WidgetCanvasFixture.h"
 #include "ui/EditorWindow.h"
@@ -658,14 +659,16 @@ private slots:
     QTest::qWait(150);
     QQuickItem *field = nullptr;
     QTRY_VERIFY((field = control(window, "Text")));
-    type(window, field, "typed before the click", 0);
     auto view = nodetool::test::view(*window.activeEditor());
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     QtNodes::NodeId target = QtNodes::InvalidNodeId;
     for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == "b") { target = id; } }
     auto item = nodetool::test::card(window, target);
     QVERIFY(item);
-    const auto header = item->sceneBoundingRect().topLeft() + QPointF(item->sceneBoundingRect().width() / 2, 12);
+    view->centerOn(item->sceneBoundingRect().center());
+    const auto header = item->mapToScene(QPointF(25, 14));
+    QTRY_VERIFY(window.unobstructedViewport().contains(view->mapFromScene(header)));
+    type(window, field, "typed before the click", 0);
     QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(header));
     QTRY_COMPARE(window.selection(), QString("b"));
     QTRY_COMPARE(window.document()->node("a")["data"].toObject()["Text"], QJsonValue("typed before the click"));
@@ -692,12 +695,18 @@ private slots:
     w.show();
     QTest::qWait(50);
     auto panels = w.findChildren<QQuickWidget *>();
-    // The Quick canvas is a QQuickWidget too, with no QML source. It is not a panel.
-    panels.removeAll(qobject_cast<QQuickWidget *>(&w.canvas().viewportWidget()));
-    // Rail, tabs, document header, status, catalog, node menu, browser, inspector, output, both toolbars,
-    // viewport readout, mini-map controls, first-workflow guide, queue overlay, subgraph canvas strip, chat overlay, library,
-    // node info overlay, examples panel, price chip, document file banner.
-    QCOMPARE(panels.size(), 22);
+    const QStringList canvasPanels{"Toolbar", "SelectionToolbar", "ViewportIndicator", "MiniMapControls",
+                                   "SetupGuide", "QueueOverlay", "editor-chat-overlay",
+                                   "node-info-overlay", "price-chip-overlay"};
+    qsizetype quickPanels = 0;
+    if (auto *quick = dynamic_cast<QuickCanvas *>(&w.canvas())) {
+      panels.removeAll(&quick->quickWidget());
+      for (const auto &name : canvasPanels) {
+        QVERIFY2(test::overlay(w, name, false, false), qPrintable(name));
+        ++quickPanels;
+      }
+    }
+    QCOMPARE(panels.size() + quickPanels, 23);
     for (auto p : panels) {
       QCOMPARE(p->status(), QQuickWidget::Ready);
     }
@@ -826,17 +835,14 @@ private slots:
     EditorWindow w;
     w.show();
     QTest::qWait(50);
-    QQuickWidget *overlay = nullptr;
-    for (auto panel : w.findChildren<QQuickWidget *>()) {
-      if (panel->source().fileName() == "ViewportIndicator.qml") { overlay = panel; }
-    }
+    const auto overlay = test::overlay(w, "ViewportIndicator.qml", true);
     QVERIFY(overlay);
     QVERIFY(overlay->isVisible());
     auto zoomIn = overlay->rootObject()->findChild<QQuickItem *>("zoom-in");
     QVERIFY(zoomIn);
     const auto before = w.zoomPercent();
-    const auto center = zoomIn->mapToItem(overlay->rootObject(), QPointF(zoomIn->width() / 2, zoomIn->height() / 2)).toPoint();
-    QTest::mouseClick(overlay, Qt::LeftButton, {}, center);
+    const auto center = zoomIn->mapToScene(QPointF(zoomIn->width() / 2, zoomIn->height() / 2)).toPoint();
+    QTest::mouseClick(overlay->inputWidget(), Qt::LeftButton, {}, center);
     QTRY_VERIFY(w.zoomPercent() > before);
   }
   static QJsonObject placedNode(const QString &id, double x, double y) {

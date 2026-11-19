@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
@@ -73,9 +74,8 @@ private slots:
   window.action("Auto layout"); QTest::qWait(60);
   const auto authored = window.document()->snapshot();
   QVERIFY(window.selectNode("n1"));
-  QQuickWidget *toolbar = nullptr;
-  for (auto panel : window.findChildren<QQuickWidget *>()) { if (panel->source().fileName() == "SelectionToolbar.qml") { toolbar = panel; } }
-  QVERIFY(toolbar); QTest::qWait(50);
+  test::OverlayProbe toolbar;
+  QTRY_VERIFY((toolbar = test::overlay(window, "SelectionToolbar.qml", true))); QTest::qWait(50);
   const auto control = find(toolbar->rootObject(), "selection-run-selected"); QVERIFY(control); QVERIFY(control->isVisible());
   QSignalSpy clicked(control, SIGNAL(clicked()));
   QTest::mouseClick(toolbar->quickWindow(), Qt::LeftButton, Qt::NoModifier, control->mapToScene(QPointF(control->width()/2, control->height()/2)).toPoint());
@@ -135,9 +135,8 @@ private slots:
   auto model = window.findChild<WorkflowGraphModel *>(); QVERIFY(model);
   for (const auto id : model->allNodeIds()) { if (model->resourceId(id) == "n2") { window.canvas().selection().setNode(id, true); } }
   QCOMPARE(window.selectedCount(), 2); QVERIFY(!window.selectionDisabled());
-  QQuickWidget *toolbar = nullptr;
-  for (auto panel : window.findChildren<QQuickWidget *>()) { if (panel->source().fileName() == "SelectionToolbar.qml") { toolbar = panel; } }
-  QVERIFY(toolbar); QTest::qWait(60);
+  test::OverlayProbe toolbar;
+  QTRY_VERIFY((toolbar = test::overlay(window, "SelectionToolbar.qml", true))); QTest::qWait(60);
   auto control = find(toolbar->rootObject(), "selection-disable-selected"); QVERIFY(control); QVERIFY(control->isVisible());
   const auto count = window.document()->undoStack()->count();
   QTest::mouseClick(toolbar->quickWindow(), Qt::LeftButton, Qt::NoModifier, control->mapToScene(QPointF(control->width()/2, control->height()/2)).toPoint());

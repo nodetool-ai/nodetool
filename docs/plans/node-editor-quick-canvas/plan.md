@@ -555,16 +555,19 @@ Medium to large: about 2,500 lines changed, small QML edits.
 
 ### Q5. Quick canvas by default
 
-Small in code. It is the parity checkpoint.
+Quick is the default. The test switch
+`NODETOOL_NODE_EDITOR_TEST_LEGACY_CANVAS=1` selects QtNodes for the compatibility
+gate until Q6.
 
-- The switch defaults to `quick`. The user decided on 2026-11-19 that
-  QtNodes leaves with it, so there is no `qtnodes` fallback value. Q6 follows
-  directly.
-- Run the visual comparison (`scripts/visual-compare.mjs`) and the parity
-  runner, and update `docs/parity.md` where a result changed.
-- Lower the drag limit in `LargeGraphTest` to 16 ms.
-- Gate: the full node editor ctest in the default mode, and the canvas group
-  with the old canvas.
+- The parity fixtures exercise the shared Quick scene, including canvas input,
+  card and overlay stacking, inline editors, media and runtime updates. The
+  Quick box-selection test counts two cards and their wire.
+- The Quick software drag limit is 16 ms per pointer move. The tighter 4 ms mean limit
+  remains in place, and the QtNodes test keeps its existing budget until Q6.
+- See [canvas verification](../../../native/node-editor/docs/parity.md#quick-canvas)
+  for the native captures, component runner and web visual comparison.
+- Gate the complete node editor CTest suite in default mode and the canvas
+  group with the legacy test switch.
 
 ### Q6. QtNodes leaves
 

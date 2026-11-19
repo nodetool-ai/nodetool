@@ -25,7 +25,7 @@ public:
   QuickCanvas(WorkflowGraphModel &model, QWidget &parent, QQmlEngine *engine = nullptr);
   ~QuickCanvas() override;
 
-  // NODETOOL_NODE_EDITOR_CANVAS=quick selects this canvas.
+  // Quick is the default. The legacy test switch lasts until Q6.
   static bool selected();
   canvas::GraphCanvas &graphCanvas() const { return *canvas_; }
   canvas::CanvasScene &canvasScene() const;

@@ -1,4 +1,4 @@
-#include "../support/CanvasProbe.h"
+#include "../support/OverlayProbe.h"
 #include "graph/CanvasDropController.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
@@ -173,7 +173,11 @@ bool near(const QColor &actual, const QColor &expected) {
 }
 
 // Distinct colors in a region, a measure of a decoded video frame or waveform.
-int colorCount(const QImage &image, const QRect &region) {
+int colorCount(const QImage &image, const QQuickItem &item, qreal inset = 0) {
+    const auto bounds = item.mapRectToScene(item.boundingRect()).adjusted(inset, inset, -inset, -inset);
+    const auto ratio = image.devicePixelRatio();
+    const QRectF pixels(bounds.topLeft() * ratio, bounds.size() * ratio);
+    const auto region = pixels.toAlignedRect().intersected(image.rect());
     QSet<QRgb> colors;
     for (int y = region.top(); y <= region.bottom(); y += 2) {
         for (int x = region.left(); x <= region.right(); x += 2) {
@@ -239,18 +243,19 @@ class MediaCardsTest final : public QObject {
             return test::CanvasProbe(window).renderCard(id(resource));
         }
 
-        QQuickWidget *overlay(const QString &resource) {
-            for (auto *widget : window.findChildren<QQuickWidget *>()) {
-                if (widget->objectName() == "card-media-" + resource + "-value" && widget->isVisible()) {
-                    return widget;
-                }
-            }
-            return nullptr;
+        test::OverlayProbe overlay(const QString &resource) {
+            return test::overlay(window, "card-media-" + resource + "-value");
+        }
+
+        QImage grabOverlay(const test::OverlayProbe &overlay) {
+            const test::CanvasProbe probe(window);
+            return probe.quickCanvas() ? probe.grabViewport() :
+                static_cast<QQuickWidget *>(overlay->inputWidget())->grabFramebuffer();
         }
 
         // Repeater delegates are visual children only, so the search walks the item tree.
         template <typename T> T *inOverlay(const QString &resource, const QString &name) {
-            auto *widget = overlay(resource);
+            const auto widget = overlay(resource);
             std::function<T *(QQuickItem *)> visit = [&](QQuickItem *item) -> T * {
                 if (auto *self = qobject_cast<T *>(item); self && item->objectName() == name) {
                     return self;
@@ -492,15 +497,14 @@ private slots:
             auto *player = host.inOverlay<QMediaPlayer>(id, "card-media-player");
             QVERIFY(player);
             QVERIFY(player->playbackState() != QMediaPlayer::PlayingState);
-            auto *widget = host.overlay(id);
-            const auto pixels = widget->grabFramebuffer();
-            const auto inside = frame->mapRectToScene(QRectF(0, 0, frame->width(), frame->height())).toRect().adjusted(4, 4, -4, -4);
-            QVERIFY2(colorCount(pixels, inside.intersected(pixels.rect())) > 20, "the overlay shows the video frame");
+            const auto widget = host.overlay(id);
+            const auto pixels = host.grabOverlay(widget);
+            QVERIFY2(colorCount(pixels, *frame, 4) > 20, "the overlay shows the video frame");
             auto *play = host.inOverlay<QQuickItem>(id, "card-media-play");
             QVERIFY(play);
-            QTest::mouseClick(widget, Qt::LeftButton, Qt::NoModifier, play->mapToScene(QPointF(play->width() / 2, play->height() / 2)).toPoint());
+            QTest::mouseClick(widget->inputWidget(), Qt::LeftButton, Qt::NoModifier, play->mapToScene(QPointF(play->width() / 2, play->height() / 2)).toPoint());
             QTRY_COMPARE(player->playbackState(), QMediaPlayer::PlayingState);
-            QTest::mouseClick(widget, Qt::LeftButton, Qt::NoModifier, play->mapToScene(QPointF(play->width() / 2, play->height() / 2)).toPoint());
+            QTest::mouseClick(widget->inputWidget(), Qt::LeftButton, Qt::NoModifier, play->mapToScene(QPointF(play->width() / 2, play->height() / 2)).toPoint());
             QTRY_VERIFY(player->playbackState() != QMediaPlayer::PlayingState);
         }
         // The overlay covers the zone's media area in the viewport.
@@ -524,13 +528,13 @@ private slots:
             auto *wave = host.inOverlay<nodetool::node_editor::AudioWaveform>(id, "card-media-waveform");
             QVERIFY(wave);
             QTRY_VERIFY(!wave->peaks().isEmpty());
-            auto *widget = host.overlay(id);
-            QTRY_VERIFY(colorCount(widget->grabFramebuffer(), wave->mapRectToScene(QRectF(0, 0, wave->width(), wave->height())).toRect()) > 1);
+            const auto widget = host.overlay(id);
+            QTRY_VERIFY(colorCount(host.grabOverlay(widget), *wave) > 1);
             auto *player = host.inOverlay<QMediaPlayer>(id, "card-media-player");
             auto *play = host.inOverlay<QQuickItem>(id, "card-media-play");
             QVERIFY(player && play);
             QTRY_VERIFY(player->duration() > 1000);
-            QTest::mouseClick(widget, Qt::LeftButton, Qt::NoModifier, play->mapToScene(QPointF(play->width() / 2, play->height() / 2)).toPoint());
+            QTest::mouseClick(widget->inputWidget(), Qt::LeftButton, Qt::NoModifier, play->mapToScene(QPointF(play->width() / 2, play->height() / 2)).toPoint());
             QTRY_COMPARE(player->playbackState(), QMediaPlayer::PlayingState);
             player->stop();
         }

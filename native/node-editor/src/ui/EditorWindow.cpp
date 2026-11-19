@@ -463,8 +463,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     for (auto it = runtimePreviewSources_.cbegin(); it != runtimePreviewSources_.cend(); ++it) { model_.setRuntimePreview(it.key(), {}); }
     runtimePreviewSources_.clear();
   });
-  // NODETOOL_NODE_EDITOR_CANVAS=quick selects the Qt Quick canvas
-  // (docs/plans/node-editor-quick-canvas/plan.md, Q3). QtNodes stays the default.
+  // Quick is the default. The QtNodes branch remains for the Q6 removal.
   if (QuickCanvas::selected()) {
     auto quick = std::make_unique<QuickCanvas>(model_, *this, engine_);
     quick->graphCanvas().viewportWheel = [this](QWheelEvent &wheel) {
@@ -2254,7 +2253,7 @@ void EditorWindow::layoutOverlays() {
       mapRect = mapGeometry(map->size().toSize());
       map->setPosition(mapRect.topLeft());
       map->setVisible(beside && miniMapVisible_);
-      map->update();
+      if (map->isVisible()) { map->update(); }
     }
   } else if (auto *map = canvas_->hostWidget().findChild<QWidget *>("mini-map")) {
     mapRect = mapGeometry(map->size());

@@ -270,6 +270,33 @@ void InlinePropertyPresenter::reposition() {
   widget_->raiseLegacyWidget();
   emit geometryChanged();
 }
+bool InlinePropertyPresenter::insertPromptVariableAt(QPointF viewportPoint) {
+  if (!widget_ || name_ != QStringLiteral("prompt") || !current()) { return false; }
+  const auto point = viewportPoint.toPoint();
+  if (canvas_.nodeAt(point) != node_) { return false; }
+  const auto *root = widget_->rootObject();
+  auto *field = root ? root->findChild<QQuickItem *>(QStringLiteral("inline-multiline")) : nullptr;
+  if (!field) { return false; }
+  const auto local = canvas_.mapToNode(node_, canvas_.mapToScene(point));
+  for (const auto &row : model_.layout(node_).rows) {
+    if (row.action != QStringLiteral("insertVariable") || !row.rect.contains(local)) { continue; }
+    auto text = field->property("text").toString();
+    const auto start = field->property("selectionStart").toInt();
+    const auto end = field->property("selectionEnd").toInt();
+    const auto inserted = QStringLiteral("{{ %1 }}").arg(row.value);
+    if (!field->property("editing").toBool()) {
+      field->setProperty("editBaseline", field->property("value"));
+      field->setProperty("editing", true);
+    }
+    text.replace(start, end - start, inserted);
+    field->setProperty("text", text);
+    field->setProperty("cursorPosition", start + inserted.size());
+    field->forceActiveFocus(Qt::MouseFocusReason);
+    return true;
+  }
+  return false;
+}
+
 bool InlinePropertyPresenter::eventFilter(QObject *object, QEvent *event) {
   if (active() && widget_ && event->type() == QEvent::ShortcutOverride) {
     const auto *legacy = widget_->widget();
@@ -286,29 +313,12 @@ bool InlinePropertyPresenter::eventFilter(QObject *object, QEvent *event) {
     }
     if (event->type() == QEvent::MouseButtonPress) {
       const auto *mouse = static_cast<QMouseEvent *>(event);
-      if (widget_ && !widget_->widget() && (editorRect_.contains(mouse->position()) ||
-                                             popupRect_.contains(mouse->position()))) { return false; }
-      if (mouse->button() == Qt::LeftButton && name_ == QStringLiteral("prompt") && current()) {
-        const auto local = canvas_.mapToNode(node_, canvas_.mapToScene(canvas_.viewportWidget().mapFromGlobal(mouse->globalPosition().toPoint())));
-        for (const auto &row : model_.layout(node_).rows) {
-          if (row.action != QStringLiteral("insertVariable") || !row.rect.contains(local)) { continue; }
-          const auto field = widget_->rootObject()->findChild<QQuickItem *>(QStringLiteral("inline-multiline"));
-          if (!field) { break; }
-          auto text = field->property("text").toString();
-          const auto start = field->property("selectionStart").toInt();
-          const auto end = field->property("selectionEnd").toInt();
-          const auto inserted = QStringLiteral("{{ %1 }}").arg(row.value);
-          if (!field->property("editing").toBool()) {
-            field->setProperty("editBaseline", field->property("value"));
-            field->setProperty("editing", true);
-          }
-          text.replace(start, end - start, inserted);
-          field->setProperty("text", text);
-          field->setProperty("cursorPosition", start + inserted.size());
-          field->forceActiveFocus(Qt::MouseFocusReason);
-          event->accept();
-          return true;
-        }
+      const bool shared = widget_ && !widget_->widget();
+      const auto point = canvas_.viewportWidget().mapFromGlobal(mouse->globalPosition().toPoint());
+      if (shared && (editorRect_.contains(point) || popupRect_.contains(point))) { return false; }
+      if (mouse->button() == Qt::LeftButton && insertPromptVariableAt(point)) {
+        event->accept();
+        return true;
       }
       // A deliberate canvas blur commits before its pointer dispatch changes
       // selection. Programmatic selection/source changes still invalidate queued

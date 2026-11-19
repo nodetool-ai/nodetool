@@ -3,6 +3,25 @@
 The native editor uses the web editor as its presentation reference. This list
 records implemented surfaces and remaining work without claiming full parity.
 
+## Quick canvas
+
+The [Quick canvas](../README.md#quick-canvas) is the default. The canvas tests
+exercise mixed card and wire box selection, card stacking, group gestures,
+reroute input, inline editing, media controls and runtime rendering through
+the Quick scene.
+
+Native visual capture produced 32 cases in each canvas mode. Twenty-six
+matched pixel for pixel. Differences were limited to selected and unselected
+card crops in both themes and the dark input and output port crops. The largest
+difference was 718 of 21,584 pixels in the dark selected card.
+
+The [component parity runner](../../parity/README.md#runner) matched 20 of 23
+checks. The three pixel mismatches also occur with the pre-Q4 component host:
+the opening frame of ChatComposer and the opening and search frames of
+NodeMenu. The web visual comparison stopped during fixture rendering because
+SaveDestinationHint requires a tRPC context. The native captures use the same
+Qt capture executable the comparison script invokes.
+
 ## Implemented
 
 - Catalog search, metadata inspector, typed ports, node and wire geometry,

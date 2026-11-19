@@ -45,6 +45,18 @@ class InlineTitleTest final : public QObject {
     return nodetool::test::note(window, "node-note-" + resource);
   }
   static test::OverlayProbe overlay(EditorWindow &window) {
+    if (!QuickCanvas::selected()) {
+      for (auto *host : window.findChildren<QQuickWidget *>()) {
+        if (host->objectName() != "inline-title-overlay" || !host->isVisible() || !host->rootObject()) {
+          continue;
+        }
+        auto *field = host->rootObject()->findChild<QQuickItem *>("inline-title-text");
+        if (field && field->hasActiveFocus()) {
+          return {*host, *host->rootObject(), false};
+        }
+      }
+      return {};
+    }
     const auto overlay = test::overlay(window, "inline-title-overlay");
     return overlay && overlay->rootObject()->findChild<QQuickItem *>("inline-title-text")
         ? overlay : test::OverlayProbe{};

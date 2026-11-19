@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/OverlayCanvasFixture.h"
 #include "graph/EditorScene.h"
 #include "graph/InlineTitlePresenter.h"
 #include "graph/WorkflowGraphModel.h"
@@ -45,10 +45,29 @@ NodeId idFor(const WorkflowGraphModel &model, const QString &resource) {
   for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == resource) { return id; } }
   return InvalidNodeId;
 }
+QObject *itemFor(test::OverlayCanvasFixture &host, NodeId id) {
+  if (auto *quick = host.quick()) { return quick->canvasScene().nodeItem(id); }
+  return test::graphicsNode(*host.legacyScene(), id);
+}
+double stackZ(test::OverlayCanvasFixture &host, NodeId id) {
+  if (auto *quick = host.quick()) { return quick->canvasScene().nodeItem(id)->z(); }
+  return test::graphicsNode(*host.legacyScene(), id)->zValue();
+}
+std::optional<std::pair<QPointF, QPointF>> wireEnds(test::OverlayCanvasFixture &host, const ConnectionId &id) {
+  if (auto *quick = host.quick()) {
+    if (const auto *wire = quick->canvasScene().connectionItem(id)) {
+      return std::pair{wire->endPoint(PortType::Out), wire->endPoint(PortType::In)};
+    }
+  } else if (const auto *wire = host.legacyScene()->connectionGraphicsObject(id)) {
+    return std::pair{wire->mapToScene(wire->endPoint(PortType::Out)), wire->mapToScene(wire->endPoint(PortType::In))};
+  }
+  return std::nullopt;
+}
 struct Fixture {
   WorkflowDocument document;
   WorkflowGraphModel model;
-  EditorScene scene{model};
+  test::OverlayCanvasFixture host{model};
+  CanvasSurface &canvas = host.surface();
   Fixture() {
     document.setNodeMetadata(catalog());
     if (!document.load(workflow())) { qFatal("fixture workflow does not load"); }
@@ -61,7 +80,7 @@ struct Fixture {
     return bool(result);
   }
   void project() { model.project(document.snapshot(), catalog()); }
-  NodeGraphicsObject *item(const QString &resource) { return nodetool::test::graphicsNode(scene, idFor(model, resource)); }
+  QObject *item(const QString &resource) { return itemFor(host, idFor(model, resource)); }
   // Builds every card layout, as the painters do, and returns the build count.
   quint64 buildAllLayouts() {
     for (const auto id : model.allNodeIds()) { model.layout(id); }
@@ -71,22 +90,26 @@ struct Fixture {
 // The incremental scene must equal a scene projected from scratch.
 void expectMatchesFresh(Fixture &f) {
   WorkflowGraphModel fresh;
-  EditorScene freshScene(fresh);
+  test::OverlayCanvasFixture freshHost(fresh);
   fresh.project(f.document.snapshot(), catalog());
-  const auto describe = [](WorkflowGraphModel &model, EditorScene &scene) {
+  const auto describe = [](WorkflowGraphModel &model, test::OverlayCanvasFixture &host) {
+    auto &canvas = host.surface();
     QStringList nodes, wires;
-    for (auto *item : scene.items()) {
-      if (auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(item)) {
-        const auto size = model.layout(node->nodeId()).size;
-        nodes.append(QString("%1 %2,%3 %4x%5 z%6").arg(model.resourceId(node->nodeId())).arg(node->pos().x()).arg(node->pos().y())
-                         .arg(size.width()).arg(size.height()).arg(node->zValue()));
-      } else if (auto *wire = qgraphicsitem_cast<ConnectionGraphicsObject *>(item)) {
-        const auto id = wire->connectionId();
-        const auto edge = model.edge(id);
-        const auto out = wire->mapToScene(wire->endPoint(PortType::Out));
-        const auto in = wire->mapToScene(wire->endPoint(PortType::In));
-        const auto expectedOut = scene.nodeGeometry().portScenePosition(id.outNodeId, PortType::Out, id.outPortIndex, nodetool::test::graphicsNode(scene, id.outNodeId)->sceneTransform());
-        const auto expectedIn = scene.nodeGeometry().portScenePosition(id.inNodeId, PortType::In, id.inPortIndex, nodetool::test::graphicsNode(scene, id.inNodeId)->sceneTransform());
+    for (const auto id : model.allNodeIds()) {
+      if (!canvas.hasNode(id)) { continue; }
+      const auto bounds = canvas.nodeBounds(id);
+      nodes.append(QString("%1 %2,%3 %4x%5 z%6").arg(model.resourceId(id)).arg(bounds.x()).arg(bounds.y())
+                       .arg(model.layout(id).size.width()).arg(model.layout(id).size.height()).arg(stackZ(host, id)));
+      for (const auto &connection : model.allConnectionIds(id)) {
+        if (connection.inNodeId != id) { continue; }
+        const auto ends = wireEnds(host, connection);
+        if (!ends) { continue; }
+        const auto [out, in] = *ends;
+        const auto &geometry = canvas.scene().nodeGeometry();
+        const auto expectedOut = canvas.mapFromNode(connection.outNodeId,
+            geometry.portPosition(connection.outNodeId, PortType::Out, connection.outPortIndex));
+        const auto expectedIn = canvas.mapFromNode(id, geometry.portPosition(id, PortType::In, connection.inPortIndex));
+        const auto edge = model.edge(connection);
         wires.append(QString("%1.%2>%3.%4 %5,%6>%7,%8 attached=%9").arg(edge["source"].toString(), edge["sourceHandle"].toString(),
             edge["target"].toString(), edge["targetHandle"].toString()).arg(out.x()).arg(out.y()).arg(in.x()).arg(in.y())
             .arg(QLineF(out, expectedOut).length() < 0.5 && QLineF(in, expectedIn).length() < 0.5));
@@ -96,7 +119,7 @@ void expectMatchesFresh(Fixture &f) {
     wires.sort();
     return nodes + QStringList{"--"} + wires;
   };
-  QCOMPARE(describe(f.model, f.scene), describe(fresh, freshScene));
+  QCOMPARE(describe(f.model, f.host), describe(fresh, freshHost));
   QCOMPARE(f.model.allNodeIds().size(), fresh.allNodeIds().size());
 }
 } // namespace
@@ -117,8 +140,8 @@ void IncrementalProjectionTest::moveKeepsItemsSelectionAndLayouts() {
   Fixture f;
   QSignalSpy reset(&f.model, &WorkflowGraphModel::modelReset);
   QSignalSpy changed(&f.model, &WorkflowGraphModel::projectionChanged);
-  const QPointer<NodeGraphicsObject> a = f.item("a"), b = f.item("b"), c = f.item("c");
-  b->setSelected(true);
+  const QPointer<QObject> a = f.item("a"), b = f.item("b"), c = f.item("c");
+  f.canvas.selection().setNode(idFor(f.model, "b"), true);
   const auto builds = f.buildAllLayouts();
   QVERIFY(f.apply({{"op", "moveNodes"}, {"positions", QJsonObject{{"a", QJsonObject{{"x", 50}, {"y", 70}}}}}}));
   QCOMPARE(reset.count(), 0);
@@ -126,15 +149,15 @@ void IncrementalProjectionTest::moveKeepsItemsSelectionAndLayouts() {
   QCOMPARE(f.item("a"), a.data());
   QCOMPARE(f.item("b"), b.data());
   QCOMPARE(f.item("c"), c.data());
-  QCOMPARE(a->pos(), QPointF(50, 70));
-  QVERIFY(b->isSelected());
+  QCOMPARE(f.canvas.nodeOrigin(idFor(f.model, "a")), QPointF(50, 70));
+  QVERIFY(f.canvas.selection().contains(idFor(f.model, "b")));
   QCOMPARE(f.buildAllLayouts(), builds);
   expectMatchesFresh(f);
 }
 void IncrementalProjectionTest::propertyChangeRebuildsOnlyThatCard() {
   Fixture f;
   QSignalSpy reset(&f.model, &WorkflowGraphModel::modelReset);
-  const QPointer<NodeGraphicsObject> b = f.item("b"), c = f.item("c");
+  const QPointer<QObject> b = f.item("b"), c = f.item("c");
   const auto builds = f.buildAllLayouts();
   QVERIFY(f.apply({{"op", "setProperty"}, {"id", "c"}, {"name", "note"}, {"value", "changed"}}));
   QCOMPARE(reset.count(), 0);
@@ -149,12 +172,12 @@ void IncrementalProjectionTest::propertyChangeRebuildsOnlyThatCard() {
 void IncrementalProjectionTest::addConnectDisconnectDeleteAndUndo() {
   Fixture f;
   QSignalSpy reset(&f.model, &WorkflowGraphModel::modelReset);
-  const QPointer<NodeGraphicsObject> b = f.item("b");
+  const QPointer<QObject> b = f.item("b");
   const auto before = f.document.snapshot();
   QVERIFY(f.apply({{"op", "addNode"}, {"node", QJsonObject{{"id", "d"}, {"type", "t.Sink"}, {"data", QJsonObject{}},
       {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 800}, {"y", 100}}}}}}}}));
   QVERIFY(f.item("d"));
-  QCOMPARE(f.item("d")->pos(), QPointF(800, 100));
+  QCOMPARE(f.canvas.nodeOrigin(idFor(f.model, "d")), QPointF(800, 100));
   expectMatchesFresh(f);
   const auto builds = f.buildAllLayouts();
   QVERIFY(f.apply({{"op", "addEdge"}, {"edge", QJsonObject{{"id", "bd"}, {"source", "b"}, {"sourceHandle", "out"}, {"target", "d"}, {"targetHandle", "value"}}}}));
@@ -167,7 +190,7 @@ void IncrementalProjectionTest::addConnectDisconnectDeleteAndUndo() {
   expectMatchesFresh(f);
   const auto d = idFor(f.model, "d");
   QVERIFY(f.apply({{"op", "removeNodes"}, {"ids", QJsonArray{"d"}}}));
-  QVERIFY(!nodetool::test::graphicsNode(f.scene, d));
+  QVERIFY(!f.canvas.hasNode(d));
   expectMatchesFresh(f);
   for (int i = 0; i < 4; ++i) { f.document.undo(); f.project(); expectMatchesFresh(f); }
   QCOMPARE(f.document.snapshot(), before);
@@ -183,14 +206,14 @@ void IncrementalProjectionTest::addConnectDisconnectDeleteAndUndo() {
 void IncrementalProjectionTest::dynamicPortShiftRebindsWires() {
   Fixture f;
   QSignalSpy reset(&f.model, &WorkflowGraphModel::modelReset);
-  const QPointer<NodeGraphicsObject> a = f.item("a");
+  const QPointer<QObject> a = f.item("a");
   const auto zeta = f.model.ports(idFor(f.model, "a"), PortType::Out).size() - 1;
   // "alpha" sorts before "zeta", so the connected dynamic output moves down one port.
   QVERIFY(f.apply({{"op", "addDynamicOutput"}, {"id", "a"}, {"name", "alpha"}, {"type", QJsonObject{{"type", "str"}}}}));
   QCOMPARE(f.item("a"), a.data());
   const auto wires = f.model.connections(idFor(f.model, "a"), PortType::Out, PortIndex(zeta + 1));
   QCOMPARE(wires.size(), size_t(1));
-  QVERIFY(f.scene.connectionGraphicsObject(*wires.begin()));
+  QVERIFY(wireEnds(f.host, *wires.begin()));
   expectMatchesFresh(f);
   f.document.undo(); f.project();
   expectMatchesFresh(f);
@@ -199,13 +222,13 @@ void IncrementalProjectionTest::dynamicPortShiftRebindsWires() {
 void IncrementalProjectionTest::groupsReroutesAndCommentsFollowIncrementalEdits() {
   Fixture f;
   QSignalSpy reset(&f.model, &WorkflowGraphModel::modelReset);
-  const QPointer<NodeGraphicsObject> child = f.item("child");
+  const QPointer<QObject> child = f.item("child");
   QVERIFY(f.apply({{"op", "moveNodes"}, {"positions", QJsonObject{{"group", QJsonObject{{"x", -700}, {"y", 50}}}}}}));
   QCOMPARE(f.item("child"), child.data());
-  QCOMPARE(child->pos(), QPointF(-660, 110));
+  QCOMPARE(f.canvas.nodeOrigin(idFor(f.model, "child")), QPointF(-660, 110));
   QVERIFY(f.apply({{"op", "addNode"}, {"node", QJsonObject{{"id", "inner"}, {"parent_id", "group"}, {"type", "nodetool.workflows.base_node.Group"},
       {"data", QJsonObject{{"headline", "Inner"}}}, {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 10}, {"y", 20}}}, {"width", 200}, {"height", 200}}}}}}));
-  QCOMPARE(f.item("inner")->zValue(), -1000000.0 + 1);
+  QCOMPARE(stackZ(f.host, idFor(f.model, "inner")), -1000000.0 + 1);
   QVERIFY(f.apply({{"op", "setComment"}, {"id", "comment"}, {"value", "Edited"}}));
   QCOMPARE(f.model.comment(idFor(f.model, "comment")).toString(), QString("Edited"));
   QVERIFY(f.apply({{"op", "renameNode"}, {"id", "group"}, {"title", "Renamed frame"}}));
@@ -219,14 +242,19 @@ void IncrementalProjectionTest::groupsReroutesAndCommentsFollowIncrementalEdits(
 }
 void IncrementalProjectionTest::notesFollowIncrementalProjection() {
   Fixture f;
-  nodetool::test::WidgetView view(&f.scene);
-  QtNodesCanvas canvas(f.scene, view);
-  InlineTitlePresenter titles(f.model, f.scene, canvas, nullptr);
+  InlineTitlePresenter titles(f.model, f.canvas.scene(), f.canvas, nullptr);
   QSignalSpy reset(&f.model, &WorkflowGraphModel::modelReset);
   QVERIFY(f.apply({{"op", "setNodeField"}, {"id", "b"}, {"field", "ui_properties"},
       {"value", QJsonObject{{"position", QJsonObject{{"x", 400}, {"y", 0}}}, {"title", "Below the card"}}}}));
   const auto note = [&f] {
-    for (auto *child : f.item("b")->childItems()) {
+    if (auto *quick = f.host.quick()) {
+      const auto *card = quick->canvasScene().nodeItem(idFor(f.model, "b"));
+      for (auto *child : card->childItems()) {
+        if (child->objectName() == "node-note-b") { return true; }
+      }
+      return false;
+    }
+    for (auto *child : test::graphicsNode(*f.host.legacyScene(), idFor(f.model, "b"))->childItems()) {
       if (auto *object = dynamic_cast<QGraphicsObject *>(child); object && object->objectName() == "node-note-b") { return true; }
     }
     return false;

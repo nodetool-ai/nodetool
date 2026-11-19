@@ -2,6 +2,7 @@
 #include "EntryMenuSupport.h"
 #include "FakeRunServer.h"
 #include "server/MsgPack.h"
+#include "../support/MiniMapProbe.h"
 #include "ui/EditorWindow.h"
 #include <QDesktopServices>
 #include <QDockWidget>
@@ -581,7 +582,7 @@ private slots:
         window.action("Run");
         QTRY_VERIFY_WITH_TIMEOUT(!commands.isEmpty(), 2000);
         QTRY_VERIFY(window.queueAvailable());
-        auto *overlay = panel(window, QStringLiteral("QueueOverlay"));
+        const auto overlay = test::overlay(window, "QueueOverlay.qml", true, false);
         QVERIFY(overlay);
         QTRY_VERIFY(overlay->rootObject()->property("presented").toBool());
         QVERIFY(!overlay->rootObject()->property("expanded").toBool());
@@ -606,12 +607,12 @@ private slots:
             show(window, fixture()["metadata"].toArray());
             QVERIFY(window.document()->load(fixture()["workflow"].toObject()));
             QTest::qWait(120);
-            auto *map = window.findChild<QWidget *>(QStringLiteral("mini-map"));
+            const test::MiniMapProbe map(window);
             QVERIFY(map);
             QVERIFY(!window.miniMapVisible());
-            QVERIFY(!map->isVisible());
+            QVERIFY(!map.isVisible());
             window.action(QStringLiteral("Toggle mini-map"));
-            QTRY_VERIFY(map->isVisible());
+            QTRY_VERIFY(map.isVisible());
             QVERIFY(window.miniMapVisible());
             QVERIFY(QSettings().value(QStringLiteral("minimap/visible")).toBool());
         }
@@ -620,12 +621,12 @@ private slots:
             EditorWindow window;
             show(window, fixture()["metadata"].toArray());
             QTest::qWait(120);
-            auto *map = window.findChild<QWidget *>(QStringLiteral("mini-map"));
+            const test::MiniMapProbe map(window);
             QVERIFY(map);
             QVERIFY(window.miniMapVisible());
-            QTRY_VERIFY(map->isVisible());
+            QTRY_VERIFY(map.isVisible());
             window.action(QStringLiteral("Toggle mini-map"));
-            QTRY_VERIFY(!map->isVisible());
+            QTRY_VERIFY(!map.isVisible());
             QVERIFY(!QSettings().value(QStringLiteral("minimap/visible"), true).toBool());
         }
         EditorWindow window;

@@ -989,8 +989,8 @@ if(BUILD_TESTING)
         get_test_property(${name} ENVIRONMENT environment)
         set_tests_properties(${name}_quick PROPERTIES ENVIRONMENT "${environment};NODETOOL_NODE_EDITOR_CANVAS=quick")
     endforeach()
-    # Its frame times are limits, so it runs alone.
-    set_tests_properties(node_editor_large_graph_quick PROPERTIES RUN_SERIAL TRUE)
+    # Both entries time frames and must run alone.
+    set_tests_properties(node_editor_large_graph node_editor_large_graph_quick PROPERTIES RUN_SERIAL TRUE)
     add_test(NAME node_editor_smoke_quick COMMAND nodetool-node-editor --screenshot ${CMAKE_CURRENT_BINARY_DIR}/editor-quick.png
         --dump ${CMAKE_CURRENT_BINARY_DIR}/empty-quick.json)
     set_tests_properties(node_editor_smoke_quick PROPERTIES

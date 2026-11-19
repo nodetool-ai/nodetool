@@ -264,10 +264,13 @@ private slots:
                           << " render_us=" << clock.renderPartNs / 1000.0 / moves
                           << " blit_us=" << clock.blitNs / 1000.0 / moves << " card_rasters=" << clock.stats().cards
                           << " wire_rasters=" << clock.stats().wires;
-        // The Quick canvas moves the card's texture; plan target: under 4 ms a move.
-        if (clock.quick()) { QVERIFY2(perMove < 4000 * kTimingScale, "Quick canvas drag exceeded its timing budget"); }
-        // Scanning the catalog for every handle on every bounds query took over 5 s a move.
-        QVERIFY2(perMove < 100000 * kTimingScale, "Drag exceeded its timing budget");
+        if (clock.quick()) {
+            QVERIFY2(perMove < 4000 * kTimingScale, "Quick canvas drag exceeded its mean timing budget");
+            QVERIFY2(slowest < 16000 * kTimingScale, "A Quick canvas drag move exceeded its timing budget");
+        } else {
+            // Scanning the catalog for every handle on every bounds query took over 5 s a move.
+            QVERIFY2(perMove < 100000 * kTimingScale, "Legacy canvas drag exceeded its mean timing budget");
+        }
         QTRY_VERIFY(view->nodeOrigin(target) != original);
     }
     // Pan and zoom over 2,000 cards: the parity fixture repeated into a grid.

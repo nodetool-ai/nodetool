@@ -1,4 +1,4 @@
-#include "../support/CanvasProbe.h"
+#include "../support/OverlayProbe.h"
 #include "document/ChildPorts.h"
 #include "graph/EditorScene.h"
 #include "ui/EditorWindow.h"
@@ -91,8 +91,9 @@ class SubgraphCardTest : public QObject {
     static bool clickQuick(EditorWindow &w, const QString &name, const QString &text = {}) {
         QCoreApplication::processEvents();
         for (auto *quick : w.findChildren<QQuickWidget *>()) {
-            if (!quick->isVisible() || !quick->rootObject()) { continue; }
-            auto *item = find(quick->rootObject(), name);
+            if (!quick->isVisible()) { continue; }
+            auto *root = quick->rootObject() ? quick->rootObject() : quick->quickWindow()->contentItem();
+            auto *item = find(root, name);
             if (!item || !item->isVisible()) { continue; }
             QTest::mouseClick(quick->quickWindow(), Qt::LeftButton, {}, item->mapToScene(QPointF(item->width() / 2, item->height() / 2)).toPoint());
             if (!text.isEmpty()) { QTest::keyClicks(quick, text); }
@@ -142,7 +143,7 @@ private slots:
             const auto inputPoint = w.canvas().mapFromNode(key, inputRect.center());
             QTest::mouseClick(&view(w)->viewportWidget(), Qt::LeftButton, {}, view(w)->mapFromScene(inputPoint));
             QCoreApplication::processEvents();
-            auto *inlineEditor = w.findChild<QQuickWidget *>("inline-property-overlay");
+            const auto inlineEditor = nodetool::test::overlay(w, "inline-property-overlay");
             QVERIFY(inlineEditor);
             inlineEditor->setFocus();
             QVERIFY(clickQuick(w, "inline-multiline"));

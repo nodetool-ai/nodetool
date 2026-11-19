@@ -547,6 +547,28 @@ private slots:
     QVERIFY(!scene.draftConnection());
   }
 
+  void rubberBandCountsCardsAndWire() {
+    Fixture f(snapshot({node("source", kSource, 80, 160), node("target", kTarget, 440, 160),
+                        node("outside", kSource, 80, 460)},
+                       {edge("wire", "source", "target")}));
+    const auto connection = *f.model.allConnectionIds(f.id("source")).begin();
+    auto &scene = f.canvas->scene();
+    const auto *wire = scene.connectionItem(connection);
+    QVERIFY(wire && wire->shown());
+    const QPointF start(55, 130), end(745, 400);
+    QVERIFY(scene.itemsAt(start).isEmpty());
+    f.press(start);
+    f.drag(start, end);
+    QVERIFY(f.canvas->rubberBandActive());
+    f.release(end);
+    QVERIFY(!f.canvas->rubberBandActive());
+    QVERIFY(f.item("source")->isSelected());
+    QVERIFY(f.item("target")->isSelected());
+    QVERIFY(!f.item("outside")->isSelected());
+    QVERIFY(wire->isSelected());
+    QCOMPARE(f.canvas->selection().count(), 3);
+  }
+
   // useSelectionEvents.ts: a box selects the cards it touches and a group only
   // when it encloses the group's frame.
   void rubberBandWithEnclosedGroups() {

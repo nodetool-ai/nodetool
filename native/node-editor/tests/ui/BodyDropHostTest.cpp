@@ -1,4 +1,4 @@
-#include "../support/CanvasProbe.h"
+#include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include "graph/CompatibleNodePicker.h"
@@ -7,6 +7,7 @@
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QSignalSpy>
+#include <QSettings>
 #include <QDir>
 #include <QtNodes/internal/AbstractNodeGeometry.hpp>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
@@ -49,6 +50,7 @@ struct Host {
 class BodyDropHostTest final : public QObject {
   Q_OBJECT
 private slots:
+  void init() { QSettings().setValue("canvas-chat-dock/collapsed", true); }
   void reconnectInvalidTargetDeletesWithUndoAtZoom() {
     const QJsonObject original{{"id","original"},{"source","origin"},{"target","target"},{"sourceHandle","out"},{"targetHandle","message"},{"future",42}};
     for (const double zoom : {0.5, 1.0, 1.5}) {
@@ -102,8 +104,8 @@ private slots:
   void ambiguousBodyPickerKeyboardAndSourceInvalidation() {
     Host h(workflow("Receiver")); const auto before=h.window.document()->snapshot();
     drag(h.view,h.port("origin",PortType::Out),h.body("target")); QTRY_VERIFY(h.picker->active()); QCOMPARE(h.picker->rows().size(),3);
-    auto popup=h.picker->widget(); QVERIFY(popup); QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
-    QTest::keyClicks(popup,"prompt"); QTest::keyClick(popup,Qt::Key_Return);
+    auto popup=nodetool::test::overlay(h.window, "compatible-node-picker"); QVERIFY(popup); QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
+    QTest::keyClicks(popup->inputWidget(),"prompt"); QTest::keyClick(popup->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(h.window.document()->edges().size(),1); QCOMPARE(h.window.document()->edges().first().toObject()["targetHandle"].toString(),QString("prompt"));
     QCOMPARE(h.window.document()->undoStack()->count(),1); h.window.action("Undo"); QCOMPARE(h.window.document()->snapshot(),before);
     QVERIFY(h.window.selectNode("origin"));
@@ -115,8 +117,8 @@ private slots:
     Host h(workflow("Producer")); const auto before=h.window.document()->snapshot();
     QSignalSpy dropped(&h.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::wireBodyDropped);
     drag(h.view,h.port("origin",PortType::In),h.body("target")); QCOMPARE(dropped.count(),1); QTRY_VERIFY(h.picker->active()); QCOMPARE(h.picker->rows().size(),3);
-    auto popup=h.picker->widget(); QVERIFY(popup); QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
-    QTest::keyClicks(popup,"other"); QTest::keyClick(popup,Qt::Key_Return);
+    auto popup=nodetool::test::overlay(h.window, "compatible-node-picker"); QVERIFY(popup); QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
+    QTest::keyClicks(popup->inputWidget(),"other"); QTest::keyClick(popup->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(h.window.document()->edges().size(),1); const auto edge=h.window.document()->edges().first().toObject();
     QCOMPARE(edge["source"].toString(),QString("target")); QCOMPARE(edge["sourceHandle"].toString(),QString("other")); QCOMPARE(edge["target"].toString(),QString("origin"));
     QCOMPARE(h.window.document()->undoStack()->count(),1); h.window.action("Undo"); QCOMPARE(h.window.document()->snapshot(),before);

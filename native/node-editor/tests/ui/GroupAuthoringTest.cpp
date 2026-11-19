@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
@@ -58,24 +59,25 @@ private slots:
         {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 20}, {"y", 400}}}}}}}}));
     QCOMPARE(window.document()->node("direct")["parent_id"].toString(), group);
     QVERIFY(window.selectNode(group)); window.fit();
-    QQuickWidget *controls = nullptr;
-    QTRY_VERIFY((controls = window.findChild<QQuickWidget *>("authored-controls-" + group)));
-    QTRY_COMPARE(controls->status(), QQuickWidget::Ready);
+    test::OverlayProbe controls;
+    QTRY_VERIFY((controls = test::overlay(window, "authored-controls-" + group)));
     auto *options = controls->rootObject()->findChild<QQuickItem *>("group-options");
     QVERIFY(options);
     auto *runGeometry = controls->rootObject()->findChild<QQuickItem *>("group-run");
     QVERIFY(runGeometry);
     QTRY_VERIFY(options->isVisible());
     QTRY_VERIFY(runGeometry->x() >= options->x() + options->width());
-    QTRY_VERIFY(runGeometry->mapRectToScene(runGeometry->boundingRect()).right() <= controls->width() + 1);
+    QTRY_VERIFY(runGeometry->mapRectToScene(runGeometry->boundingRect()).right()
+                - controls->rootObject()->mapToScene(QPointF()).x() <= controls->width() + 1);
     QVERIFY(runGeometry->height() <= 28);
     auto *button = controls->rootObject()->findChild<QQuickItem *>("group-run");
     QVERIFY(button); QTRY_VERIFY(button->isEnabled());
     QCOMPARE(button->property("accessibleName").toString(), QString("Run group"));
     QVERIFY(!button->property("loading").toBool());
-    window.scene()->clearSelection();
-    controls->show();
-    QTest::mouseClick(controls, Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width()/2, button->height()/2)).toPoint());
+    const auto point = button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint();
+    QCursor::setPos(controls->mapToGlobal(point));
+    window.canvas().selection().clear();
+    QTest::mouseClick(controls->inputWidget(), Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width()/2, button->height()/2)).toPoint());
     QTRY_VERIFY(!requests.isEmpty());
     const auto nodes = requests.last()["data"].toObject()["graph"].toObject()["nodes"].toArray();
     // GroupNode.tsx runs the group's direct children: the nested group's card stays out.
@@ -92,19 +94,19 @@ private slots:
     window.action("Add comment");
     const auto note = window.document()->nodes().first().toObject()["id"].toString();
     QVERIFY(window.selectNode(note)); window.fit();
-    QTRY_VERIFY(window.findChild<QQuickWidget *>("authored-controls-" + note));
+    QTRY_VERIFY(test::overlay(window, "authored-controls-" + note));
     QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{{"id", "legacy"}, {"type", "comment"}}}}));
     QTRY_VERIFY(window.readOnly());
     // Panels follow in a later pass. The read-only projection replaces the controls and disables the old ones.
     QTRY_VERIFY(static_cast<WorkflowGraphModel &>(window.scene()->graphModel()).readOnly());
-    QQuickWidget *controls = nullptr;
-    QTRY_VERIFY((controls = window.findChild<QQuickWidget *>("authored-controls-" + note)) && controls->isEnabled());
+    test::OverlayProbe controls;
+    QTRY_VERIFY((controls = test::overlay(window, "authored-controls-" + note)) && controls->rootObject()->isEnabled());
     QVERIFY(window.selectNode(note)); window.fit();
     auto *trigger = controls->rootObject()->findChild<QQuickItem *>("comment-color");
     QVERIFY(trigger);
     QTRY_VERIFY(!trigger->isEnabled());
     const auto snapshot = window.document()->snapshot();
-    QTest::mouseClick(controls, Qt::LeftButton, Qt::NoModifier, trigger->mapToScene(QPointF(trigger->width()/2, trigger->height()/2)).toPoint());
+    QTest::mouseClick(controls->inputWidget(), Qt::LeftButton, Qt::NoModifier, trigger->mapToScene(QPointF(trigger->width()/2, trigger->height()/2)).toPoint());
     QCOMPARE(window.document()->snapshot(), snapshot);
   }
   void headerControlsExist() {
@@ -115,7 +117,8 @@ private slots:
     QVERIFY(window.selectNode(note));
     window.action("Group selection");
     window.fit();
-    QTRY_VERIFY(window.findChild<QQuickWidget *>("authored-controls-" + window.document()->node(note)["parent_id"].toString()));
+    QTRY_VERIFY(test::overlay(window, "authored-controls-" + window.document()->node(note)["parent_id"].toString(),
+                              false, false));
   }
   // GroupNode.tsx toggleBypassChildren: Disable all acts on the group's direct
   // children. A nested group's cards keep their state.
@@ -167,13 +170,12 @@ private slots:
     const auto group = window.document()->node("source")["parent_id"].toString();
     QVERIFY(window.selectNode(group));
     window.fit();
-    QQuickWidget *controls = nullptr;
-    QTRY_VERIFY((controls = window.findChild<QQuickWidget *>("authored-controls-" + group)));
-    QTRY_COMPARE(controls->status(), QQuickWidget::Ready);
+    test::OverlayProbe controls;
+    QTRY_VERIFY((controls = test::overlay(window, "authored-controls-" + group)));
     QTRY_VERIFY(controls->isVisible());
     auto *trigger = controls->rootObject()->findChild<QQuickItem *>("group-options");
     QVERIFY(trigger);
-    QTest::mouseClick(controls, Qt::LeftButton, Qt::NoModifier, trigger->mapToScene(QPointF(trigger->width()/2, trigger->height()/2)).toPoint());
+    QTest::mouseClick(controls->inputWidget(), Qt::LeftButton, Qt::NoModifier, trigger->mapToScene(QPointF(trigger->width()/2, trigger->height()/2)).toPoint());
     auto *button = controls->rootObject()->findChild<QQuickItem *>("group-bypass");
     QVERIFY(button);
     QTRY_VERIFY(button->window());
@@ -184,10 +186,10 @@ private slots:
     window.action("Undo");
     QVERIFY(!window.document()->node("source")["ui_properties"].toObject()["bypassed"].toBool());
     QTest::qWait(80);
-    QTRY_VERIFY((controls = window.findChild<QQuickWidget *>("authored-controls-" + group)));
+    QTRY_VERIFY((controls = test::overlay(window, "authored-controls-" + group)));
     QVERIFY(window.selectNode(group)); window.fit();
     trigger = controls->rootObject()->findChild<QQuickItem *>("group-options");
-    QTest::mouseClick(controls, Qt::LeftButton, Qt::NoModifier, trigger->mapToScene(QPointF(trigger->width()/2, trigger->height()/2)).toPoint());
+    QTest::mouseClick(controls->inputWidget(), Qt::LeftButton, Qt::NoModifier, trigger->mapToScene(QPointF(trigger->width()/2, trigger->height()/2)).toPoint());
     auto *groupColor = controls->rootObject()->findChild<QQuickItem *>("group-color");
     QVERIFY(groupColor); QTRY_VERIFY(groupColor->window());
     QTest::mouseClick(groupColor->window(), Qt::LeftButton, Qt::NoModifier, groupColor->mapToScene(QPointF(groupColor->width()/2, groupColor->height()/2)).toPoint());
@@ -210,13 +212,12 @@ private slots:
     for (const auto value : window.document()->nodes()) if (value.toObject()["type"].toString().contains("Comment")) note = value.toObject()["id"].toString();
     QVERIFY(!note.isEmpty());
     QVERIFY(window.selectNode(note)); window.fit();
-    QQuickWidget *commentControls = nullptr;
-    QTRY_VERIFY((commentControls = window.findChild<QQuickWidget *>("authored-controls-" + note)));
-    QTRY_COMPARE(commentControls->status(), QQuickWidget::Ready);
+    test::OverlayProbe commentControls;
+    QTRY_VERIFY((commentControls = test::overlay(window, "authored-controls-" + note)));
     QTRY_VERIFY(commentControls->isVisible());
     auto *colorButton = commentControls->rootObject()->findChild<QQuickItem *>("comment-color");
     QVERIFY(colorButton);
-    QTest::mouseClick(commentControls, Qt::LeftButton, Qt::NoModifier, colorButton->mapToScene(QPointF(colorButton->width()/2, colorButton->height()/2)).toPoint());
+    QTest::mouseClick(commentControls->inputWidget(), Qt::LeftButton, Qt::NoModifier, colorButton->mapToScene(QPointF(colorButton->width()/2, colorButton->height()/2)).toPoint());
     auto *palette = commentControls->rootObject()->findChild<QObject *>("comment-palette");
     QVERIFY(palette);
     auto *content = qvariant_cast<QQuickItem *>(palette->property("contentItem"));
@@ -262,6 +263,7 @@ private slots:
     QVERIFY(window.selectNode(note));
     auto view = &window.canvas();
     QVERIFY(view);
+    view->setFocus(Qt::OtherFocusReason);
     QTest::keyClick(&view->hostWidget(), Qt::Key_G, Qt::ControlModifier);
     QTRY_COMPARE(window.document()->nodes().size(), 2);
     const auto group = window.document()->node(note)["parent_id"].toString();
@@ -296,15 +298,15 @@ private slots:
     const auto baseline = window.document()->snapshot();
     // CommentNode.tsx edits the text on the card. Enter adds a line and Ctrl+Enter stores it.
     window.action("Edit comment");
-    QQuickWidget *editor = nullptr;
-    QTRY_VERIFY((editor = window.findChild<QQuickWidget *>("inline-title-overlay")) && editor->isVisible() && editor->rootObject()
+    test::OverlayProbe editor;
+    QTRY_VERIFY((editor = test::overlay(window, "inline-title-overlay")) && editor->isVisible() && editor->rootObject()
                 && editor->rootObject()->findChild<QQuickItem *>("inline-title-text")
                 && editor->rootObject()->findChild<QQuickItem *>("inline-title-text")->hasActiveFocus());
-    QTest::keyClick(editor, Qt::Key_A, Qt::ControlModifier);
-    QTest::keyClicks(editor, "## A comment");
-    QTest::keyClick(editor, Qt::Key_Return);
-    QTest::keyClicks(editor, "With **formatting**");
-    QTest::keyClick(editor, Qt::Key_Return, Qt::ControlModifier);
+    QTest::keyClick(editor->inputWidget(), Qt::Key_A, Qt::ControlModifier);
+    QTest::keyClicks(editor->inputWidget(), "## A comment");
+    QTest::keyClick(editor->inputWidget(), Qt::Key_Return);
+    QTest::keyClicks(editor->inputWidget(), "With **formatting**");
+    QTest::keyClick(editor->inputWidget(), Qt::Key_Return, Qt::ControlModifier);
     QTRY_COMPARE(window.document()->node(note)["data"].toObject()["comment"].toString(), QString("## A comment\nWith **formatting**"));
     window.action("Undo");
     QCOMPARE(window.document()->snapshot(), baseline);
@@ -337,16 +339,16 @@ private slots:
     QCOMPARE(window.document()->node(note)["ui_properties"].toObject()["position"], childPosition);
     window.action("Undo");
     QCOMPARE(window.document()->snapshot(), grouped);
-    QQuickWidget *header = nullptr;
-    QTRY_VERIFY((header = window.findChild<QQuickWidget *>("authored-controls-" + group)));
+    test::OverlayProbe header;
+    QTRY_VERIFY((header = test::overlay(window, "authored-controls-" + group)));
     QVERIFY(window.selectNode(group));
     window.fit();
     QTest::qWait(80);
-    const auto rendered = window.grab().toImage().copy(QRect(header->mapTo(&window, QPoint()), header->size()));
+    const auto rendered = window.grab().toImage().copy(header->inWindow(window));
     for (const auto &name : {"group-options", "group-run"}) {
       const auto *control = header->rootObject()->findChild<QQuickItem *>(name);
       QVERIFY(control);
-      const auto rect = control->mapRectToScene(control->boundingRect()).toAlignedRect().intersected(rendered.rect());
+      const auto rect = control->mapRectToItem(header->rootObject(), control->boundingRect()).toAlignedRect().intersected(rendered.rect());
       int brightPixels = 0;
       for (int y = rect.top(); y <= rect.bottom(); ++y) for (int x = rect.left(); x <= rect.right(); ++x) {
         if (rendered.pixelColor(x,y).lightness() > 150) ++brightPixels;

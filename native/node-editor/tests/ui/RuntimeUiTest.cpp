@@ -1,4 +1,4 @@
-#include "../support/WidgetCanvasFixture.h"
+#include "../support/OverlayCanvasFixture.h"
 #include "../support/DarkCanvasTheme.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
@@ -14,18 +14,32 @@ using namespace nodetool;
 using namespace nodetool::node_editor;
 class RuntimeUiTest final : public QObject {
  Q_OBJECT
+
+ static void render(test::OverlayCanvasFixture &fixture, QPainter &painter, const QRectF &area) {
+   if (auto *quick = fixture.quick()) {
+     painter.translate(-area.topLeft());
+     quick->graphCanvas().renderScene(painter, area, 1);
+   } else {
+     fixture.legacyScene()->render(&painter, QRectF(QPointF(), area.size()), area);
+   }
+ }
 private slots:
  void projectionPreservesEditingAndItems() {
-   NODETOOL_REQUIRE_QTNODES();
   WorkflowDocument document;
   const QJsonObject snapshot{{"id","w"},{"graph",QJsonObject{{"nodes",QJsonArray{QJsonObject{{"id","n"},{"type","text"},{"ui_properties",QJsonObject{{"position",QJsonObject{{"x",10},{"y",20}}}}},{"data",QJsonObject{}}}}},{"edges",QJsonArray{}}}}};
   QVERIFY(document.load(snapshot));
   WorkflowGraphModel graph; graph.project(document.snapshot());
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
-  EditorScene scene(graph);
+  test::OverlayCanvasFixture fixture(graph);
+  auto &canvas = fixture.surface();
+  auto &scene = canvas.scene();
   const auto ids = graph.allNodeIds(); QVERIFY(!ids.empty()); const auto id = *ids.begin();
-  auto item = nodetool::test::graphicsNode(scene, id); QVERIFY(item);
-  item->setSelected(true);
+  const auto itemFor = [&]() -> const QObject * {
+    if (auto *quick = fixture.quick()) { return quick->canvasScene().nodeItem(id); }
+    return test::graphicsNode(*fixture.legacyScene(), id);
+  };
+  const auto *item = itemFor(); QVERIFY(item);
+  canvas.selection().setNode(id, true);
   const auto before = document.snapshot();
   const auto undoCount = document.undoStack()->count();
   const auto originalSize = graph.layout(id).size;
@@ -33,11 +47,11 @@ private slots:
   runtime.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",1},{"node_id","n"},{"status","running"}});
   // The ring shows once the running state holds for runningDelayMs.
   QTRY_VERIFY(scene.animationActive());
-  QCOMPARE(nodetool::test::graphicsNode(scene, id),item);
-  QVERIFY(item->isSelected());
+  QCOMPARE(itemFor(),item);
+  QVERIFY(canvas.selection().contains(id));
   // A status alone changes no card size, as on the web.
   QCOMPARE(graph.layout(id).size, originalSize);
-  QCOMPARE(item->pos(),QPointF(10,20));
+  QCOMPARE(canvas.nodeOrigin(id),QPointF(10,20));
   QCOMPARE(document.snapshot(),before); QCOMPARE(document.undoStack()->count(),undoCount);
   scene.setReducedMotion(true); QVERIFY(!scene.animationActive());
   scene.setReducedMotion(false); QVERIFY(scene.animationActive());
@@ -48,10 +62,9 @@ private slots:
   QCOMPARE(document.snapshot(),before); QCOMPARE(document.undoStack()->count(),undoCount);
   runtime.beginRun("b");
   QCOMPARE(graph.layout(id).size,originalSize);
-  QCOMPARE(nodetool::test::graphicsNode(scene, id),item);
+  QCOMPARE(itemFor(),item);
  }
  void runningRingMatchesWebConicGradient() {
-   NODETOOL_REQUIRE_QTNODES();
   QCOMPARE(runningRingAngle(0), 90.0);
   QCOMPARE(runningRingAngle(1000), 270.0);
   QCOMPARE(runningRingAngle(2000), 90.0);
@@ -62,7 +75,9 @@ private slots:
   const QJsonObject snapshot{{"id","w"},{"graph",QJsonObject{{"nodes",QJsonArray{QJsonObject{{"id","n"},{"type","test"},{"ui_properties",QJsonObject{{"position",QJsonObject{{"x",0},{"y",0}}}}},{"data",QJsonObject{}}}}},{"edges",QJsonArray{}}}}};
   WorkflowGraphModel graph; graph.project(snapshot, catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
-  EditorScene scene(graph);
+  test::OverlayCanvasFixture fixture(graph);
+  auto &canvas = fixture.surface();
+  auto &scene = canvas.scene();
   scene.setTheme(nodetool::test::darkCanvasTheme());
   const auto id = *graph.allNodeIds().begin();
   const QVector<QColor> expected{typeColor("image"), typeColor("str"), typeColor("int"), typeColor("int"), typeColor("int")};
@@ -73,12 +88,12 @@ private slots:
   scene.setReducedMotion(true);
   QCOMPARE(scene.runningAngle(), 90.0);
   // EditorWindow sets the QtNodes node opacity to 1. The library default is 0.8.
-  nodetool::test::graphicsNode(scene, id)->setOpacity(1);
-  const QRectF box(nodetool::test::graphicsNode(scene, id)->pos(), graph.layout(id).size);
+  if (auto *legacy = fixture.legacyScene()) { test::graphicsNode(*legacy, id)->setOpacity(1); }
+  const QRectF box(canvas.nodeOrigin(id), graph.layout(id).size);
   const auto source = box.adjusted(-10, -10, 10, 10);
   QImage image(source.size().toSize(), QImage::Format_ARGB32);
   image.fill(Qt::transparent);
-  { QPainter painter(&image); scene.render(&painter, QRectF(QPointF(), source.size()), source); }
+  { QPainter painter(&image); render(fixture, painter, source); }
   const auto pixel = [&](double x, double y) { return image.pixelColor(int(std::floor(x - source.left())), int(std::floor(y - source.top()))); };
   const auto near = [](const QColor &a, const QColor &b) {
     return std::abs(a.red() - b.red()) < 24 && std::abs(a.green() - b.green()) < 24 && std::abs(a.blue() - b.blue()) < 24;
@@ -123,15 +138,20 @@ private slots:
  // web/src/utils/untakenBranches.ts and styles/nodes.states.css: the untaken side of an If or
  // Switch fades to 0.4, a node with one live input keeps running, and a selection's 0.2 wins.
  void untakenBranchFadesAfterTheRunReportsIt() {
-   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
-  EditorScene scene(graph);
-  const auto opacity = [&](const char *id) { return nodetool::test::graphicsNode(scene, nodeOf(graph,id))->opacity(); };
-  const auto wireOpacity = [&](const char *edge) { return scene.connectionGraphicsObject(wireOf(graph,edge))->opacity(); };
+  test::OverlayCanvasFixture fixture(graph);
+  auto &canvas = fixture.surface();
+  auto &scene = canvas.scene();
+  const auto opacity = [&](const char *id) { return canvas.nodeOpacity(nodeOf(graph,id)); };
+  const auto wireOpacity = [&](const char *edge) { const auto id = wireOf(graph, edge);
+    if (auto *quick = fixture.quick()) { return quick->canvasScene().connectionItem(id)->opacity(); }
+    return fixture.legacyScene()->connectionGraphicsObject(id)->opacity(); };
   // EditorWindow sets full item opacity. The library default is 0.8.
-  for (auto item : scene.items()) { item->setOpacity(1); }
+  if (auto *legacy = fixture.legacyScene()) {
+    for (auto *item : legacy->items()) { item->setOpacity(1); }
+  }
   reportBranch(runtime,"run");
   QTRY_COMPARE(opacity("b"),node_metrics::notRunOpacity);
   QCOMPARE(opacity("c"),node_metrics::notRunOpacity);
@@ -142,34 +162,34 @@ private slots:
   runtime.ingest("run",{{"type","job_update"},{"job_id","run"},{"job_seq",3},{"status","completed"}});
   QTest::qWait(30); QCOMPARE(opacity("b"),node_metrics::notRunOpacity);
   // A selection fades everything off its branch to 0.2, even an untaken node.
-  nodetool::test::graphicsNode(scene, nodeOf(graph,"x"))->setSelected(true);
+  canvas.selection().setNode(nodeOf(graph,"x"), true);
   QTRY_COMPARE(opacity("b"),branchDimmedOpacity);
-  scene.clearSelection(); QTRY_COMPARE(opacity("b"),node_metrics::notRunOpacity);
+  canvas.selection().clear(); QTRY_COMPARE(opacity("b"),node_metrics::notRunOpacity);
   // The next run reports nothing yet, so nothing fades.
   runtime.beginRun("next"); QTRY_COMPARE(opacity("b"),1.0); QCOMPARE(wireOpacity("ib"),1.0);
  }
  // A branch that fired on every output marks nothing, and counters above zero are live.
  void everyBranchTakenFadesNothing() {
-   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
-  EditorScene scene(graph);
+  test::OverlayCanvasFixture fixture(graph);
+  auto &canvas = fixture.surface();
   runtime.beginRun("run");
   runtime.ingest("run",{{"type","edge_update"},{"job_id","run"},{"job_seq",1},{"edge_id","ia"},{"status","completed"},{"counter",1}});
   runtime.ingest("run",{{"type","edge_update"},{"job_id","run"},{"job_seq",2},{"edge_id","ib"},{"status","completed"},{"counter",2}});
   QTest::qWait(30);
   QVERIFY(graph.untakenBranch().empty());
-  QCOMPARE(nodetool::test::graphicsNode(scene, nodeOf(graph,"b"))->opacity(),1.0);
+  QCOMPARE(canvas.nodeOpacity(nodeOf(graph,"b")),1.0);
  }
  // web/src/hooks/useProcessedEdges.ts: an edge flows while its source node runs or it reports
  // message_sent. A running target does not make its inputs flow.
  void wiresFlowFromRunningSourcesOnly() {
-   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
-  EditorScene scene(graph);
+  test::OverlayCanvasFixture fixture(graph);
+  auto &scene = fixture.surface().scene();
   const auto ia = wireOf(graph,"ia"), ad = wireOf(graph,"ad");
   QVERIFY(!graph.runtimeWireFlowing(ia));
   runtime.beginRun("run");
@@ -186,19 +206,24 @@ private slots:
  }
  // web/src/components/node_editor/CustomEdge.tsx: a pill shows the stream count when it passes 1.
  void streamCountPillAppearsAboveOne() {
-   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
-  EditorScene scene(graph);
+  test::OverlayCanvasFixture fixture(graph);
+  auto &canvas = fixture.surface();
+  auto &scene = canvas.scene();
   scene.setTheme(nodetool::test::darkCanvasTheme());
   const auto ad = wireOf(graph,"ad");
-  const auto path = wireCurve(scene.connectionGraphicsObject(ad)->endPoint(QtNodes::PortType::Out), scene.connectionGraphicsObject(ad)->endPoint(QtNodes::PortType::In));
+  const auto port = [&](QtNodes::NodeId node, QtNodes::PortType side, QtNodes::PortIndex index) {
+    return canvas.mapFromNode(node, scene.nodeGeometry().portPosition(node, side, index));
+  };
+  const auto path = wireCurve(port(ad.outNodeId, QtNodes::PortType::Out, ad.outPortIndex),
+                             port(ad.inNodeId, QtNodes::PortType::In, ad.inPortIndex));
   const auto mid = path.pointAtPercent(0.5);
   const QRectF region(mid - QPointF(20,14),QSizeF(40,28));
   const auto bright = [&] {
     QImage image(region.size().toSize(),QImage::Format_ARGB32); image.fill(Qt::transparent);
-    { QPainter painter(&image); scene.render(&painter,QRectF(QPointF(),region.size()),region); }
+    { QPainter painter(&image); render(fixture, painter, region); }
     int count = 0;
     for (int y = 0; y < image.height(); ++y) { for (int x = 0; x < image.width(); ++x) { const auto c = image.pixelColor(x,y); count += c.red() > 200 && c.green() > 200 && c.blue() > 200 && c.alpha() > 200; } }
     return count;

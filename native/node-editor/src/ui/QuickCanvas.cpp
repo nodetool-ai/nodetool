@@ -179,7 +179,10 @@ QuickCanvas::~QuickCanvas() {
   canvas_.reset();
 }
 
-bool QuickCanvas::selected() { return qEnvironmentVariable("NODETOOL_NODE_EDITOR_CANVAS") == QStringLiteral("quick"); }
+bool QuickCanvas::selected() {
+  return qEnvironmentVariable("NODETOOL_NODE_EDITOR_CANVAS") == QStringLiteral("quick") ||
+         !qEnvironmentVariableIsSet("NODETOOL_NODE_EDITOR_TEST_LEGACY_CANVAS");
+}
 
 canvas::CanvasScene &QuickCanvas::canvasScene() const { return canvas_->scene(); }
 QQuickWidget &QuickCanvas::quickWidget() const { return *widget_; }

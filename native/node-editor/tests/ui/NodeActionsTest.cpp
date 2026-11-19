@@ -1,4 +1,4 @@
-#include "../support/CanvasProbe.h"
+#include "../support/OverlayProbe.h"
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/WorkflowGraphModel.h"
@@ -76,8 +76,8 @@ private:
     }
 
     static QPoint headerPoint(EditorWindow &window, const QString &resource) {
-        const auto card = cardRect(window, resource);
-        return viewOf(window)->viewportWidget().mapFrom(&viewOf(window)->hostWidget(), card.topLeft() + QPoint(card.width() / 2, 12));
+        return viewOf(window)->mapFromScene(viewOf(window)->mapFromNode(
+            idOf(window, resource), QPointF(25, 14)));
     }
 
     static void centerOn(EditorWindow &window, const QString &resource) {
@@ -92,17 +92,18 @@ private:
         QTest::qWait(260);
     }
 
-    static QQuickWidget *toolbar(EditorWindow &window) {
-        for (auto *panel : window.findChildren<QQuickWidget *>()) {
-            if (panel->source().fileName() == "SelectionToolbar.qml") {
-                return panel;
-            }
-        }
-        return nullptr;
+    static void doubleClickHeader(EditorWindow &window, const QString &resource) {
+        auto *viewport = &viewOf(window)->viewportWidget();
+        const auto point = headerPoint(window, resource);
+        QTest::mouseDClick(viewport, Qt::LeftButton, Qt::NoModifier, point);
+    }
+
+    static test::OverlayProbe toolbar(EditorWindow &window) {
+        return test::overlay(window, "SelectionToolbar.qml", true, false);
     }
 
     static QQuickItem *button(EditorWindow &window, const QString &name) {
-        auto *bar = toolbar(window);
+        const auto bar = toolbar(window);
         return bar && bar->rootObject() ? bar->rootObject()->findChild<QQuickItem *>(name) : nullptr;
     }
 
@@ -116,7 +117,7 @@ private:
 
     // The toolbar sits centered over the card with the web's 8 px gap.
     static void expectAbove(EditorWindow &window, const QString &resource) {
-        auto *bar = toolbar(window);
+        const auto bar = toolbar(window);
         QVERIFY(bar);
         QTRY_VERIFY(bar->isVisible());
         const auto card = cardRect(window, resource);
@@ -157,7 +158,7 @@ private slots:
         EditorWindow window;
         load(window);
         centerOn(window, "a");
-        auto *bar = toolbar(window);
+        const auto bar = toolbar(window);
         QVERIFY(bar);
         QVERIFY(!bar->isVisible());
         QElapsedTimer clock;
@@ -168,7 +169,7 @@ private slots:
         QVERIFY2(!bar->isVisible(), "the toolbar waits 200 ms");
         QTRY_VERIFY_WITH_TIMEOUT(bar->isVisible(), 1000);
         QVERIFY2(clock.elapsed() >= 195, qPrintable(QString::number(clock.elapsed())));
-        window.scene()->clearSelection();
+        window.canvas().selection().clear();
         QCoreApplication::processEvents();
         QVERIFY2(!bar->isVisible(), "deselecting hides the toolbar at once");
         QTest::mouseClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
@@ -213,10 +214,17 @@ private slots:
         QTest::qWait(40);
         expectAbove(window, "a");
         // A resize from the corner handle moves the card center, and the toolbar follows.
+        centerOn(window, "a");
         const auto before = cardRect(window, "a");
-        const auto corner = view->viewportWidget().mapFrom(&view->hostWidget(), before.bottomRight() - QPoint(6, 6));
+        const auto id = idOf(window, "a");
+        const auto size = modelOf(window)->layout(id).size;
+        const auto corner = view->mapFromScene(view->mapFromNode(id, QPointF(size.width() - 12, size.height() - 12)));
+        QCOMPARE(view->nodeAt(corner), id);
         QTest::mousePress(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, corner);
-        QTest::mouseMove(&view->viewportWidget(), corner + QPoint(60, 30));
+        const auto drop = corner + QPoint(60, 30);
+        QMouseEvent move(QEvent::MouseMove, drop, view->viewportWidget().mapToGlobal(drop),
+                         Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&view->viewportWidget(), &move);
         QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, corner + QPoint(60, 30));
         QTest::qWait(60);
         QVERIFY(cardRect(window, "a").width() > before.width());
@@ -249,7 +257,7 @@ private slots:
         load(window);
         click(window, "a");
         click(window, "b", Qt::ControlModifier);
-        auto *bar = toolbar(window);
+        const auto bar = toolbar(window);
         QVERIFY(bar);
         QTRY_VERIFY(bar->isVisible());
         QCOMPARE(bar->y(), 30);
@@ -268,7 +276,7 @@ private slots:
         click(window, "a");
         QQuickItem *more = nullptr;
         QTRY_VERIFY((more = button(window, "selection-more-node-actions")));
-        QTest::mouseClick(toolbar(window)->quickWindow(), Qt::LeftButton, Qt::NoModifier, center(more));
+        QTest::mouseClick(toolbar(window)->inputWidget(), Qt::LeftButton, Qt::NoModifier, center(more));
         QQuickWidget *menu = nullptr;
         QTRY_VERIFY((menu = window.findChild<QQuickWidget *>("context-menu-host")) && menu->isVisible());
         QVariant result;
@@ -284,14 +292,14 @@ private slots:
         const auto baseline = window.document()->snapshot();
         QQuickItem *disable = nullptr;
         QTRY_VERIFY((disable = button(window, "selection-disable-selected")));
-        QTest::mouseClick(toolbar(window)->quickWindow(), Qt::LeftButton, Qt::NoModifier, center(disable));
+        QTest::mouseClick(toolbar(window)->inputWidget(), Qt::LeftButton, Qt::NoModifier, center(disable));
         QTRY_VERIFY(ui(window, "a")["bypassed"].toBool());
         QCOMPARE(window.document()->undoStack()->index(), 1);
         window.action("Undo");
         QCOMPARE(window.document()->snapshot(), baseline);
         QQuickItem *duplicate = nullptr;
         QTRY_VERIFY((duplicate = button(window, "selection-duplicate")));
-        QTest::mouseClick(toolbar(window)->quickWindow(), Qt::LeftButton, Qt::NoModifier, center(duplicate));
+        QTest::mouseClick(toolbar(window)->inputWidget(), Qt::LeftButton, Qt::NoModifier, center(duplicate));
         QTRY_COMPARE(window.document()->nodes().size(), 6);
         QCOMPARE(window.document()->undoStack()->index(), 1);
     }
@@ -306,7 +314,7 @@ private slots:
         QQuickItem *chat = nullptr;
         QTRY_VERIFY((chat = button(window, "selection-chat-about-node")));
         QVERIFY(!window.chatVisible());
-        QTest::mouseClick(toolbar(window)->quickWindow(), Qt::LeftButton, Qt::NoModifier, center(chat));
+        QTest::mouseClick(toolbar(window)->inputWidget(), Qt::LeftButton, Qt::NoModifier, center(chat));
         QTRY_VERIFY(window.chatVisible());
     }
 
@@ -320,7 +328,7 @@ private slots:
         QVERIFY(expanded.height() > 40);
         const auto baseline = window.document()->snapshot();
         centerOn(window, "a");
-        QTest::mouseDClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
+        doubleClickHeader(window, "a");
         QTRY_VERIFY(ui(window, "a")["collapsed"].toBool());
         QCOMPARE(window.document()->undoStack()->index(), 1);
         const auto &strip = modelOf(window)->layout(id);
@@ -334,7 +342,7 @@ private slots:
         // The expanded size stays in the document for the expand.
         QVERIFY(!ui(window, "a").contains("width") || ui(window, "a")["width"].toInt() >= 140);
         QTest::qWait(40);
-        QTest::mouseDClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
+        doubleClickHeader(window, "a");
         QTRY_VERIFY(!ui(window, "a")["collapsed"].toBool());
         QCOMPARE(modelOf(window)->layout(idOf(window, "a")).size, expanded);
         QCOMPARE(window.document()->undoStack()->index(), 2);
@@ -353,7 +361,7 @@ private slots:
         QTest::keyClick(&view->hostWidget(), Qt::Key_C);
         QTRY_VERIFY(ui(window, "a")["collapsed"].toBool());
         QVERIFY(!ui(window, "b")["collapsed"].toBool());
-        click(window, "a");
+        QVERIFY(window.canvas().selection().contains(idOf(window, "a")));
         click(window, "b", Qt::ControlModifier);
         QCOMPARE(window.selectedCount(), 2);
         const auto index = window.document()->undoStack()->index();
@@ -377,7 +385,10 @@ private slots:
             QContextMenuEvent event(QContextMenuEvent::Mouse, point, viewOf(window)->viewportWidget().mapToGlobal(point));
             QApplication::sendEvent(&viewOf(window)->viewportWidget(), &event);
             QTest::qWait(80);
-            return window.findChild<QQuickWidget *>("context-menu-host");
+            for (auto *menu : window.findChildren<QQuickWidget *>("context-menu-host")) {
+                if (menu->isVisible()) { return menu; }
+            }
+            return nullptr;
         };
         auto label = [](QQuickWidget *menu) {
             for (const auto &value : menu->rootObject()->property("entries").toList()) {
@@ -427,47 +438,48 @@ private slots:
     void codeHeaderRenamesInPlace() {
         EditorWindow window;
         load(window);
-        auto overlay = [&]() -> QQuickWidget * {
-            for (auto *widget : window.findChildren<QQuickWidget *>()) {
-                const auto *text = widget->rootObject() ? widget->rootObject()->findChild<QQuickItem *>("inline-title-text") : nullptr;
-                if (widget->objectName() == "inline-title-overlay" && widget->isVisible() && text && text->hasActiveFocus()) {
-                    return widget;
+        auto overlay = [&]() -> test::OverlayProbe {
+            const auto editor = test::overlay(window, "inline-title-overlay");
+            if (editor) {
+                const auto *field = editor->rootObject()->findChild<QQuickItem *>("inline-title-text");
+                if (field && field->hasActiveFocus()) {
+                    return editor;
                 }
             }
-            return nullptr;
+            return {};
         };
         const auto baseline = window.document()->snapshot();
         centerOn(window, "code");
-        QTest::mouseDClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "code"));
-        QQuickWidget *widget = nullptr;
+        doubleClickHeader(window, "code");
+        test::OverlayProbe widget;
         QTRY_VERIFY((widget = overlay()));
         auto *field = widget->rootObject()->findChild<QQuickItem *>("inline-title-text");
         QVERIFY(field);
         QTRY_VERIFY(field->hasActiveFocus());
         QCOMPARE(field->property("text").toString(), QString("Code"));
         QVERIFY(!ui(window, "code")["collapsed"].toBool());
-        QTest::keyClick(widget, Qt::Key_A, Qt::ControlModifier);
-        QTest::keyClicks(widget, "Parse rows");
-        QTest::keyClick(widget, Qt::Key_Return);
+        QTest::keyClick(widget->inputWidget(), Qt::Key_A, Qt::ControlModifier);
+        QTest::keyClicks(widget->inputWidget(), "Parse rows");
+        QTest::keyClick(widget->inputWidget(), Qt::Key_Return);
         QTRY_COMPARE(ui(window, "code")["title"].toString(), QString("Parse rows"));
         QCOMPARE(window.document()->undoStack()->index(), 1);
         QCOMPARE(modelOf(window)->layout(idOf(window, "code")).title, QString("Parse rows"));
         // Escape discards.
         centerOn(window, "code");
-        QTest::mouseDClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "code"));
+        doubleClickHeader(window, "code");
         QTRY_VERIFY((widget = overlay()));
-        QTest::keyClicks(widget, " draft");
-        QTest::keyClick(widget, Qt::Key_Escape);
+        QTest::keyClicks(widget->inputWidget(), " draft");
+        QTest::keyClick(widget->inputWidget(), Qt::Key_Escape);
         QTRY_VERIFY(!overlay());
         QCOMPARE(ui(window, "code")["title"].toString(), QString("Parse rows"));
         QCOMPARE(window.document()->undoStack()->index(), 1);
         // The metadata title stores nothing, so the header follows the metadata again.
         centerOn(window, "code");
-        QTest::mouseDClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "code"));
+        doubleClickHeader(window, "code");
         QTRY_VERIFY((widget = overlay()));
-        QTest::keyClick(widget, Qt::Key_A, Qt::ControlModifier);
-        QTest::keyClicks(widget, "Code");
-        QTest::keyClick(widget, Qt::Key_Return);
+        QTest::keyClick(widget->inputWidget(), Qt::Key_A, Qt::ControlModifier);
+        QTest::keyClicks(widget->inputWidget(), "Code");
+        QTest::keyClick(widget->inputWidget(), Qt::Key_Return);
         QTRY_VERIFY(ui(window, "code")["title"].toString().isEmpty());
         QCOMPARE(modelOf(window)->layout(idOf(window, "code")).title, QString("Code"));
         window.action("Undo");
@@ -484,7 +496,7 @@ private slots:
         click(window, "a");
         window.action("Disable selected");
         QTRY_VERIFY(ui(window, "a")["bypassed"].toBool());
-        click(window, "a");
+        QVERIFY(window.canvas().selection().contains(idOf(window, "a")));
         click(window, "b", Qt::ControlModifier);
         QCOMPARE(window.selectedCount(), 2);
         QTRY_VERIFY(button(window, "selection-enable-selected"));
@@ -536,7 +548,7 @@ private slots:
         QQuickItem *run = nullptr;
         QTRY_VERIFY((run = button(window, "selection-run-selected")));
         QVERIFY(run->isEnabled());
-        QTest::mouseClick(toolbar(window)->quickWindow(), Qt::LeftButton, Qt::NoModifier, center(run));
+        QTest::mouseClick(toolbar(window)->inputWidget(), Qt::LeftButton, Qt::NoModifier, center(run));
         QTRY_COMPARE(requests.size(), 2);
         const auto nodes = requests.last()["data"].toObject()["graph"].toObject()["nodes"].toArray();
         QCOMPARE(nodes.size(), 1);
@@ -558,17 +570,12 @@ private slots:
         click(window, "a");
         window.action("Disable selected");
         QTRY_VERIFY(ui(window, "a")["bypassed"].toBool());
-        window.scene()->clearSelection();
+        window.canvas().selection().clear();
         window.action("Reset zoom");
         QTest::qWait(80);
-        const auto image = window.grab().toImage();
-        const auto crop = [&](const QString &resource) {
-            const auto card = cardRect(window, resource);
-            const auto origin = window.mapFromGlobal(viewOf(window)->viewportWidget().mapToGlobal(viewOf(window)->viewportWidget().mapFrom(&viewOf(window)->hostWidget(), card.topLeft())));
-            return image.copy(origin.x(), origin.y(), card.width(), card.height());
-        };
-        const auto disabled = crop("a");
-        const auto enabled = crop("b");
+        const auto disabled = window.canvas().renderCard(idOf(window, "a"));
+        const auto enabled = window.canvas().renderCard(idOf(window, "b"));
+        QVERIFY(!disabled.isNull() && !enabled.isNull());
         QCOMPARE(disabled.size(), enabled.size());
         const auto distinct = [](const QImage &card, int fromX, int toX, int y) {
             QSet<QRgb> colors;

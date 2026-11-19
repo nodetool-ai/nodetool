@@ -17,7 +17,9 @@ MiniMapItem::MiniMapItem(WorkflowGraphModel &model, EditorSceneApi &scene, Canva
   // React Flow MiniMap defaults.
   setSize(QSizeF(200, 150));
   connect(&canvas, &CanvasSurface::sceneChanged, this, &MiniMapItem::schedule);
-  connect(&canvas, &CanvasSurface::viewportMoved, this, [this] { update(); });
+  const auto updateWhenVisible = [this] { if (isVisible()) { update(); } };
+  connect(&canvas, &CanvasSurface::viewportMoved, this, updateWhenVisible);
+  connect(this, &QQuickItem::visibleChanged, this, updateWhenVisible);
   schedule();
 }
 
@@ -38,19 +40,22 @@ void MiniMapItem::rebuild() {
                       model_.nodeSnapshot(id)["type"].toString()});
     bounds_ |= rect;
   }
-  update();
+  if (isVisible()) { update(); }
 }
 
 void MiniMapItem::paint(QPainter *painter) {
+  // A queued texture update can survive a visibility change.
+  if (!isVisible()) { return; }
   const auto viewport = canvas_.visibleSceneRect();
-  geometry_ = miniMapGeometry(size(), bounds_, viewport);
-  paintMiniMap(*painter, size(), scene_.theme(), nodes_, viewport, colorByType && colorByType(), geometry_);
+  const auto geometry = miniMapGeometry(size(), bounds_, viewport);
+  paintMiniMap(*painter, size(), scene_.theme(), nodes_, viewport, colorByType && colorByType(), geometry);
 }
 
 void MiniMapItem::navigate(QPointF point) {
-  if (geometry_.scale <= 0) { return; }
+  const auto geometry = miniMapGeometry(size(), bounds_, canvas_.visibleSceneRect());
+  if (geometry.scale <= 0) { return; }
   if (navigated) { navigated(); }
-  canvas_.centerOn(geometry_.toScene(point));
+  canvas_.centerOn(geometry.toScene(point));
 }
 
 void MiniMapItem::mousePressEvent(QMouseEvent *event) {

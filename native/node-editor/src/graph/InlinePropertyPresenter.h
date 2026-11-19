@@ -58,6 +58,7 @@ public slots:
   // The height an open structured editor needs, in card units.
   void setContentHeight(double height);
   void expand();
+  bool insertPromptVariableAt(QPointF viewportPoint);
   void popupRect(const QRectF &rect);
 signals:
   void changed();

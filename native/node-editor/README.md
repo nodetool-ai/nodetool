@@ -537,7 +537,7 @@ A separate synthetic test projects 1,000 nodes
 and 2,000 edges and checks their adjacency, without measuring input-to-paint
 latency. No performance target is claimed.
 
-### Large graph baseline
+### QtNodes large graph baseline
 
 [LargeGraphTest](tests/perf/LargeGraphTest.cpp) `panZoom` repeats the window
 parity fixture into a grid of 2,000 cards and 1,832 edges in a 1440 by 900
@@ -545,9 +545,8 @@ window. Each step sends one input event and then paints the viewport, as the
 card drag measure does. A pan step is a 12-pixel middle-button drag move. A
 zoom step is one wheel notch (1.15) under the cursor, ten in from the fit view
 and ten out. The [Quick canvas plan](../../docs/plans/node-editor-quick-canvas/plan.md#large-graphs)
-compares its targets with these numbers. Three runs of
-`ctest --test-dir <build> -R '^node_editor_large_graph$' -V` on the software
-backend (offscreen, Linux, a shared machine under load) gave:
+compares its targets with these numbers. Three runs on QtNodes with the software backend (offscreen, Linux, a shared
+machine under load) gave:
 
 | Measure | Cards on screen | Mean per step | Slowest step |
 |---|---|---|---|
@@ -561,8 +560,8 @@ the view moved and zoomed, and sets no time limit.
 
 ### Quick canvas
 
-`NODETOOL_NODE_EDITOR_CANVAS=quick` replaces the `QGraphicsView` with
-[QuickCanvas](src/ui/QuickCanvas.h): one `QQuickWidget` that hosts a
+The editor defaults to [QuickCanvas](src/ui/QuickCanvas.h), a
+`QQuickWidget` that hosts a
 [GraphCanvas](src/canvas/GraphCanvas.h). Card, wire and foreground painters
 fill raster tiles up to 512 device pixels per side. The software scene graph
 composites visible tiles in bounded regions. On RHI each tile gets its own
@@ -582,7 +581,9 @@ See [Q4](../../docs/plans/node-editor-quick-canvas/plan.md#q4-overlays-in-the-sc
 and [Q5](../../docs/plans/node-editor-quick-canvas/plan.md#q5-quick-canvas-by-default)
 for the overlay and default-switch steps.
 `node_editor_quick_canvas` tests the items, hit tests, gestures and culling.
-The Quick canvas and overlay gates run as `<name>_quick` entries.
+The unsuffixed canvas tests run on Quick by default. Set
+`NODETOOL_NODE_EDITOR_TEST_LEGACY_CANVAS=1` to exercise QtNodes in those
+tests until Q6 removes it. The explicit `<name>_quick` entries still run on Quick.
 The overlay fixtures send pointer and keyboard input to the window that
 hosts the overlay and exercise the same QML on either canvas.
 
@@ -593,7 +594,7 @@ the frame timer. Run it serially with
 
 | Measure | Quick canvas software gate |
 |---|---|
-| Card drag, 72 cards, per move | Under 4 ms |
+| Card drag, 72 cards, per move | 16 ms limit, with a 4 ms mean limit |
 | Warm pan at zoom 1 | Under 2 ms, zero card and wire rasters |
 | Cold pan at fit zoom | Under 2 ms for input and polish |
 | Warm pan at fit zoom | Under 16 ms per step and under 2 ms for input and polish, zero card and wire rasters |
