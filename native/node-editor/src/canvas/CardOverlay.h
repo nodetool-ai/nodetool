@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QMouseEvent>
 #include <QQuickItem>
 #include <QRegion>
 #include <optional>
@@ -16,9 +17,7 @@ public:
   }
   void setInteractiveArea(const QRegion &area) {
     interactiveArea_ = area;
-    // Quick skips the children of a clipped item when contains() rejects
-    // the pointer. The visual clip stays the full viewport rectangle.
-    setClip(true);
+    setFiltersChildMouseEvents(true);
   }
 
   bool contains(const QPointF &point) const override {
@@ -33,6 +32,19 @@ public:
     setPosition(origin);
     setScale(unit.x() - origin.x());
     setSize(viewport.size());
+  }
+
+protected:
+  bool childMouseEventFilter(QQuickItem *, QEvent *event) override {
+    if (event->type() != QEvent::MouseButtonPress && event->type() != QEvent::MouseButtonDblClick) {
+      return false;
+    }
+    const auto &mouse = *static_cast<QMouseEvent *>(event);
+    if (contains(mapFromScene(mouse.scenePosition()))) { return false; }
+    // Quick uses the rectangular clip for descendant hit tests. Reject this
+    // target and let delivery continue to the next item, including the canvas.
+    event->ignore();
+    return true;
   }
 
 private:

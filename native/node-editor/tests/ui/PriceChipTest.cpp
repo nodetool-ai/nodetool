@@ -188,6 +188,19 @@ private slots:
         auto *popover = find(overlay->rootObject(), "price-chip-popover");
         QVERIFY(popover && popover->isVisible());
         QTRY_VERIFY(overlay->height() > popover->height());
+        if (dynamic_cast<QuickCanvas *>(view)) {
+            // The popover's text padding is inside the frame and outside its links.
+            const auto point = popover->mapToScene(QPointF(6, 6)).toPoint();
+            auto *input = overlay->inputWidget();
+            QVERIFY(input->rect().contains(point));
+            const auto zoom = view->zoom();
+            QWheelEvent wheel(point, input->mapToGlobal(point), {}, {0, 120}, {}, {}, Qt::NoScrollPhase, false);
+            QApplication::sendEvent(input, &wheel);
+            QCOMPARE(view->zoom(), zoom);
+            QTest::mouseClick(input, Qt::LeftButton, {}, point);
+            QCOMPARE(view->selection().nodes(), QList<QtNodes::NodeId>{falId});
+            QVERIFY(chip->open());
+        }
         if (const auto directory = qEnvironmentVariable("NODETOOL_PRICE_CHIP_CAPTURE_DIR"); !directory.isEmpty()) {
             QTest::qWait(200);
             QDir().mkpath(directory);

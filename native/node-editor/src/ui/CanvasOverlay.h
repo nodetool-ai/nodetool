@@ -6,41 +6,106 @@
 #include "canvas/NodeItem.h"
 #include "ui/QuickCanvas.h"
 #include <QQuickWindow>
+#include <QMouseEvent>
+#include <QWheelEvent>
 #include <QPointer>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <memory>
+#include <optional>
 
 namespace nodetool {
 
 // UI thread only. Owns the Quick root. The legacy widget is owned by its
 // widget parent. Both hosts use the same QML and viewport geometry.
 class CanvasOverlay {
+  // UI thread only. The QML root owns this fallback item. Controls get the
+  // event first, then the frame absorbs it before it reaches the canvas.
+  class InputBarrier final : public QQuickItem {
+  public:
+    explicit InputBarrier(QQuickItem &root) : QQuickItem(&root) {
+      // A visual sibling keeps the barrier out of QML positioners such as Row.
+      // The root still owns it via QObject and stays above it within the host.
+      setParentItem(root.parentItem());
+      setAcceptedMouseButtons(Qt::AllButtons);
+      const auto sync = [this, &root] { syncGeometry(root); };
+      connect(&root, &QQuickItem::xChanged, this, sync);
+      connect(&root, &QQuickItem::yChanged, this, sync);
+      connect(&root, &QQuickItem::widthChanged, this, sync);
+      connect(&root, &QQuickItem::heightChanged, this, sync);
+      connect(&root, &QQuickItem::scaleChanged, this, sync);
+      connect(&root, &QQuickItem::visibleChanged, this, [this, &root] { setVisible(root.isVisible()); });
+      connect(&root, &QQuickItem::enabledChanged, this, [this, &root] { setEnabled(root.isEnabled()); });
+      setVisible(root.isVisible());
+      sync();
+    }
+
+    void passUnhandledWheelThrough() { absorbWheel_ = false; }
+
+    void setRect(const QRectF &rect, const QQuickItem &root) {
+      customRect_ = rect;
+      syncGeometry(root);
+    }
+
+  protected:
+    void mousePressEvent(QMouseEvent *event) override { event->accept(); }
+    void mouseDoubleClickEvent(QMouseEvent *event) override { event->accept(); }
+    void wheelEvent(QWheelEvent *event) override { event->setAccepted(absorbWheel_); }
+
+  private:
+    void syncGeometry(const QQuickItem &root) {
+      const auto geometry = root.mapRectToItem(parentItem(), customRect_.value_or(root.boundingRect()));
+      setPosition(geometry.topLeft());
+      setSize(geometry.size());
+    }
+
+    std::optional<QRectF> customRect_;
+    bool absorbWheel_ = true;
+  };
+
 public:
-  CanvasOverlay(QQuickWidget &widget) : widget_(&widget) {}
-  CanvasOverlay(QQmlEngine &engine, QQuickItem &parent, const QUrl &source,
-                const QVariantMap &properties, qreal z,
-                canvas::GraphCanvas *graph = nullptr, canvas::NodeItem *card = nullptr) : graph_(graph) {
+  enum class Placement { OnCard, AboveCards };
+  explicit CanvasOverlay(QQuickWidget &widget) : widget_(&widget) {}
+  CanvasOverlay(QQmlEngine &engine, canvas::GraphCanvas &graph, const QUrl &source,
+                const QVariantMap &properties, qreal z, QtNodes::NodeId node, Placement placement) : graph_(&graph) {
+    auto *card = node == QtNodes::InvalidNodeId ? nullptr : graph.scene().nodeItem(node);
+    if (node != QtNodes::InvalidNodeId && !card) { return; }
     QQmlComponent component(&engine, source);
     std::unique_ptr<QObject> object(component.createWithInitialProperties(properties));
     if (auto *item = qobject_cast<QQuickItem *>(object.get())) {
       root_ = item;
       item->setVisible(false);
-      if (card) {
+      if (card && placement == Placement::OnCard) {
         cardOverlay_ = std::make_unique<canvas::CardOverlay>(*card);
+        cardOverlay_->setZ(z);
         cardOverlay_->setVisible(false);
-        cardOverlay_->alignToViewport(*graph);
+        cardOverlay_->alignToViewport(graph);
         // The card overlay owns its QML content through the Qt parent tree.
         item->setParent(cardOverlay_.get());
         item->setParentItem(cardOverlay_.get());
       } else {
         ownedRoot_.reset(item);
-        item->setParentItem(&parent);
+        viewportHost_.setParentItem(&graph.overlayLayer());
+        viewportHost_.setZ(z);
+        item->setParentItem(&viewportHost_);
+        if (card) {
+          item->setOpacity(card->opacity());
+          QObject::connect(card, &QQuickItem::opacityChanged, item, [item, card] { item->setOpacity(card->opacity()); });
+        }
       }
       object.release();
-      item->setZ(z);
+      // The Qt parent owns the frame's input barrier.
+      inputBarrier_ = new InputBarrier(*item);
+      inputBarrier_->stackBefore(item);
+      if (card) {
+        cardDestroyed_ = QObject::connect(card, &QObject::destroyed, item, [this] {
+          hide();
+          setEnabled(false);
+          if (graph_) { retireQuickRoot(*graph_); }
+        });
+      }
     } else {
       qWarning().noquote() << source << component.errorString();
     }
@@ -48,30 +113,38 @@ public:
 
   void retireQuickRoot(QObject &owner) {
     if (!root_) { return; }
+    QObject::disconnect(cardDestroyed_);
+    if (inputBarrier_) { inputBarrier_->setParentItem(nullptr); }
     root_->setParentItem(nullptr);
     root_->setParent(&owner);
     ownedRoot_.release();
     root_->deleteLater();
     root_.clear();
+    inputBarrier_.clear();
   }
 
   ~CanvasOverlay() {
+    QObject::disconnect(cardDestroyed_);
     if (graph_ && cardOverlay_) { graph_->setCardOverlayVisible(*cardOverlay_, false); }
   }
 
   static std::unique_ptr<CanvasOverlay> onQuickCanvas(CanvasSurface &surface, QQmlEngine &engine,
-      const QUrl &source, const QVariantMap &properties, qreal z, QtNodes::NodeId node = QtNodes::InvalidNodeId) {
+      const QUrl &source, const QVariantMap &properties, qreal z, QtNodes::NodeId node = QtNodes::InvalidNodeId,
+      Placement placement = Placement::OnCard) {
     auto *quick = dynamic_cast<QuickCanvas *>(&surface);
     if (!quick) { return {}; }
-    auto &graph = quick->graphCanvas();
-    return std::make_unique<CanvasOverlay>(engine, graph.overlayLayer(), source, properties, z,
-        &graph, graph.scene().nodeItem(node));
+    return std::make_unique<CanvasOverlay>(engine, quick->graphCanvas(), source, properties, z, node, placement);
   }
 
   QQuickItem *rootObject() const { return widget_ ? widget_->rootObject() : root_.data(); }
   QQuickWidget *widget() const { return widget_; }
+  void setInputRect(const QRectF &rect) {
+    if (inputBarrier_ && root_) { inputBarrier_->setRect(rect, *root_); }
+  }
   void setCardInteractiveArea(const QRegion &area) {
     if (cardOverlay_) { cardOverlay_->setInteractiveArea(area); }
+    // Unhandled media scrolling zooms the canvas, as on the widget path.
+    if (inputBarrier_) { inputBarrier_->passUnhandledWheelThrough(); }
   }
   void setObjectName(const QString &name) {
     if (widget_) { widget_->setObjectName(name); }
@@ -154,9 +227,12 @@ public:
 private:
   QPointer<QQuickWidget> widget_;
   QPointer<canvas::GraphCanvas> graph_;
+  QQuickItem viewportHost_;
   std::unique_ptr<canvas::CardOverlay> cardOverlay_;
   std::unique_ptr<QQuickItem> ownedRoot_;
   QPointer<QQuickItem> root_;
+  QPointer<InputBarrier> inputBarrier_;
+  QMetaObject::Connection cardDestroyed_;
 };
 
 } // namespace nodetool

@@ -1052,7 +1052,7 @@ void GraphCanvas::focusCanvas(Qt::FocusReason reason) {
 void GraphCanvas::mousePressEvent(QMouseEvent *event) {
   event->accept();
   buttonsDown_ = event->buttons();
-  if (skipPress_) { return; }
+  if (skipPress_ || (viewportPointer && viewportPointer(PointerAction::Press, *event))) { return; }
   if (!window() || window()->activeFocusItem() != this) { focusCanvas(Qt::MouseFocusReason); }
   const auto position = event->position().toPoint();
   pressPosition_ = position;
@@ -1098,6 +1098,7 @@ bool GraphCanvas::moveGrabbedCard(QMouseEvent &event) {
 
 void GraphCanvas::mouseMoveEvent(QMouseEvent *event) {
   event->accept();
+  if (viewportPointer && viewportPointer(PointerAction::Move, *event)) { return; }
   pointerMove(event->position(), event->globalPosition(), event->buttons(), event->modifiers());
 }
 
@@ -1173,6 +1174,7 @@ void GraphCanvas::mouseReleaseEvent(QMouseEvent *event) {
   event->accept();
   buttonsDown_ = event->buttons();
   skipPress_ = false;
+  if (viewportPointer && viewportPointer(PointerAction::Release, *event)) { return; }
   if (!handDrag_ && !event->buttons()) {
     if (rubberBanding_) {
       rubberBanding_ = false;

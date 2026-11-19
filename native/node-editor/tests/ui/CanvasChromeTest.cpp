@@ -173,6 +173,88 @@ private:
     }
 
 private slots:
+    void panelBackgroundContainsInput_data() {
+        QTest::addColumn<QString>("panel");
+        QTest::addColumn<bool>("wheel");
+        for (const auto *name : {"ViewportIndicator", "Toolbar", "SelectionToolbar", "MiniMapControls", "node-info-overlay", "SetupGuide", "QueueOverlay", "editor-chat-overlay", "authored-controls-selected"}) {
+            QTest::newRow(qPrintable(QString(name) + "-click")) << QString(name) << false;
+            QTest::newRow(qPrintable(QString(name) + "-wheel")) << QString(name) << true;
+        }
+    }
+
+    void panelBackgroundContainsInput() {
+        if (!QuickCanvas::selected()) { QSKIP("Requires the Quick canvas"); }
+        QFETCH(QString, panel);
+        QFETCH(bool, wheel);
+        QSettings().setValue("canvas-chat-dock/collapsed", true);
+        EditorWindow window;
+        window.resize(1440, 900);
+        window.setCatalog({QJsonObject{{"node_type", "t"}, {"title", "Panel input card"},
+            {"description", "Panel input test"}, {"properties", QJsonArray{}}, {"outputs", QJsonArray{}}}});
+        const bool authored = panel == "authored-controls-selected";
+        const auto type = authored ? "nodetool.workflows.base_node.Group" : "t";
+        QVERIFY(window.document()->load({{"name", "Panel input"},
+            {"graph", QJsonObject{{"nodes", QJsonArray{card("selected", type, 0, authored ? 180 : 0)}}, {"edges", QJsonArray{}}}}}));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto &canvas = window.canvas();
+        canvas.setView(1.0, {0, 0});
+        QCoreApplication::processEvents();
+        QVERIFY(window.selectNode("selected"));
+        QTRY_COMPARE(canvas.selection().count(), 1);
+        if (panel == "node-info-overlay") { window.action("Node info"); }
+        if (panel == "editor-chat-overlay") { window.toggleChat(); }
+        window.setMiniMapColorMode("type");
+        window.setMiniMapVisible(true);
+        test::OverlayProbe probe;
+        const bool guide = panel == "SetupGuide";
+        const bool queue = panel == "QueueOverlay";
+        const bool byFile = !authored && !panel.endsWith("-overlay");
+        QTRY_VERIFY((probe = test::overlay(window, byFile ? panel + ".qml" : panel, byFile, !guide && !queue)));
+        if (guide) {
+            // Present the real guide with a selected card. Its normal empty-canvas
+            // eligibility would leave no selection to detect a leaked press.
+            window.firstWorkflowGuide()->setState(true, false, {false, false, false, false, false});
+            probe->rootObject()->setVisible(true);
+        }
+        if (queue) {
+            probe->rootObject()->setProperty("opened", true);
+            QTRY_VERIFY(probe->isVisible());
+        }
+        QPointF local = guide ? QPointF(12, 12) : QPointF(3, 3);
+        if (authored || panel == "MiniMapControls") {
+            // Both tool strips fill their frames. Use the gap between buttons.
+            const auto *left = test::findOverlayItem(*probe->rootObject(), authored ? "group-options" : "mini-map-legend");
+            const auto *right = test::findOverlayItem(*probe->rootObject(), authored ? "group-run" : "mini-map-colors");
+            QVERIFY(left && right && left->isVisible() && right->isVisible());
+            local = (left->mapToItem(probe->rootObject(), {left->width(), 0}) +
+                     right->mapToItem(probe->rootObject(), {0, right->height()})) / 2;
+        }
+        const auto selected = canvas.selection().nodes();
+        QCOMPARE(selected.size(), 1);
+        const auto zoom = canvas.zoom();
+        auto *input = probe->inputWidget();
+        QVERIFY(probe->rootObject()->contains(local));
+        const auto panelPoint = [&] { return probe->rootObject()->mapToScene(local).toPoint(); };
+        QTRY_VERIFY2(input->rect().contains(panelPoint()),
+                     qPrintable(QString("Frame point (%1, %2), viewport %3 × %4")
+                         .arg(panelPoint().x()).arg(panelPoint().y()).arg(input->width()).arg(input->height())));
+        const auto point = panelPoint();
+        QVERIFY(input->rect().contains(point));
+        if (wheel) {
+            QWheelEvent event(point, input->mapToGlobal(point), {}, {0, 120}, {}, {}, Qt::NoScrollPhase, false);
+            QApplication::sendEvent(input, &event);
+        } else {
+            QTest::mouseClick(input, Qt::LeftButton, {}, point);
+            QCOMPARE(canvas.selection().nodes(), selected);
+            QTest::mousePress(input, Qt::MiddleButton, {}, point);
+            QVERIFY(!canvas.scene().interaction().viewportPanning());
+            QTest::mouseRelease(input, Qt::MiddleButton, {}, point);
+        }
+        QCOMPARE(canvas.selection().nodes(), selected);
+        QCOMPARE(canvas.zoom(), zoom);
+    }
+
     void miniMapControlsShareTheQuickScene() {
         if (!QuickCanvas::selected()) { QSKIP("Requires the Quick canvas"); }
         QSettings().setValue("canvas-chat-dock/collapsed", true);

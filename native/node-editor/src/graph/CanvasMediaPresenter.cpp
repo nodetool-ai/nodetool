@@ -95,7 +95,9 @@ QList<QQuickWidget *> CanvasMediaPresenter::activeWidgets() const {
 
 QList<QQuickItem *> CanvasMediaPresenter::activeItems() const {
   QList<QQuickItem *> result;
-  for (const auto &entry : active_) { result.append(entry.widget->rootObject()); }
+  for (const auto &entry : active_) {
+    if (auto *root = entry.widget->rootObject()) { result.append(root); }
+  }
   return result;
 }
 
@@ -125,7 +127,7 @@ CanvasOverlay *CanvasMediaPresenter::createOverlay(QtNodes::NodeId node, const Q
 void CanvasMediaPresenter::retireOverlay(CanvasOverlay &overlay) {
   overlay.hide();
   overlay.setEnabled(false);
-  QMetaObject::invokeMethod(overlay.rootObject(), "release");
+  if (auto *root = overlay.rootObject()) { QMetaObject::invokeMethod(root, "release"); }
   if (auto *legacy = overlay.widget()) {
     retired_.removeIf([](const auto &widget) { return widget.isNull(); });
     retired_.append(legacy);
@@ -264,7 +266,7 @@ void CanvasMediaPresenter::showPlayers(QtNodes::NodeId node, const QRect &viewpo
     }
     const auto key = resource + '-' + row.propertyName;
     visible.insert(key);
-    if (players_.contains(key) && players_[key].items != items) { retirePlayer(key); }
+    if (players_.contains(key) && (!players_[key].widget->rootObject() || players_[key].items != items)) { retirePlayer(key); }
     if (!players_.contains(key)) {
       auto *widget = createOverlay(node, "CardMediaPlayer", "card-media-" + key,
           {{"items", items}, {"geometry", geometry}, {"playerKey", key}, {"resolver", QVariant::fromValue<QObject *>(&resolver_)},
@@ -335,7 +337,7 @@ void CanvasMediaPresenter::refresh() {
       const auto exposed = QRegion(clipped).subtracted(covered);
       if (!exposed.isEmpty()) {
         visible.insert(id);
-        if (active_.contains(id) && (active_[id].source.value("runId") != source->value("runId") || active_[id].source.value("outputName") != source->value("outputName"))) { retire(id); }
+        if (active_.contains(id) && (!active_[id].widget->rootObject() || active_[id].source.value("runId") != source->value("runId") || active_[id].source.value("outputName") != source->value("outputName"))) { retire(id); }
         if (!active_.contains(id)) {
           auto *widget = createOverlay(node, "CanvasMedia", "canvas-media-" + id,
               {{"richEntry", source->value("richEntry", QVariantMap{})}, {"mediaKind", source->value("kind")}, {"locator", source->value("locator")},

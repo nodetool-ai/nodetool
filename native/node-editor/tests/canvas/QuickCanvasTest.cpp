@@ -4,6 +4,7 @@
 #include "../support/DarkCanvasTheme.h"
 #include "../../../graph-runner/unittests/sanitizer_build.h"
 #include "canvas/CanvasViewport.h"
+#include "canvas/CardOverlay.h"
 #include "canvas/ConnectionItem.h"
 #include "canvas/GraphCanvas.h"
 #include "canvas/GridIndex.h"
@@ -31,6 +32,7 @@
 #include <QScrollBar>
 #include <QScopeGuard>
 #include <QPainter>
+#include <QQuickPaintedItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
@@ -87,6 +89,17 @@ const QString kMulti = QStringLiteral("fixture.Multi");
 
 // UI thread only. Members are declared so that the canvas goes before the
 // model, and both before the window.
+// UI thread only. Paint a small card control outside the sampled title.
+class OverlayMarker final : public QQuickPaintedItem {
+public:
+  explicit OverlayMarker(CardOverlay &overlay) {
+    setParentItem(&overlay);
+    setPosition({60, 45});
+    setSize({20, 14});
+  }
+  void paint(QPainter *painter) override { painter->fillRect(boundingRect(), Qt::red); }
+};
+
 class Fixture {
 public:
   explicit Fixture(const QJsonObject &graph, QSize size = {800, 600}) {
@@ -792,16 +805,19 @@ private slots:
   void settledCardTextMatchesDevicePixels_data() {
     QTest::addColumn<double>("zoom");
     QTest::addColumn<int>("panStep");
-    QTest::newRow("fit") << .53 << 0;
-    QTest::newRow("normal") << 1.0 << 0;
+    QTest::addColumn<bool>("withOverlay");
+    QTest::newRow("fit") << .53 << 0 << false;
+    QTest::newRow("normal") << 1.0 << 0 << false;
     // Odd pans move the content by fractional device pixels at 1.25 and 1.5.
-    QTest::newRow("fit-odd-pan") << .53 << 7;
-    QTest::newRow("normal-odd-pan") << 1.0 << 7;
+    QTest::newRow("fit-odd-pan") << .53 << 7 << false;
+    QTest::newRow("normal-odd-pan") << 1.0 << 7 << false;
+    QTest::newRow("overlay-odd-pan") << 1.0 << 7 << true;
   }
 
   void settledCardTextMatchesDevicePixels() {
     QFETCH(double, zoom);
     QFETCH(int, panStep);
+    QFETCH(bool, withOverlay);
     const QPointF origin(73.25, 77.4), center(400, 300);
     const auto graph = snapshot({node("source", kSource, origin.x(), origin.y())});
     Fixture quick(graph);
@@ -819,6 +835,13 @@ private slots:
     legacy.scene().setTheme(theme);
     quick.canvas->setView(zoom, center);
     legacy.setView(zoom, center);
+    CardOverlay overlay(*quick.item("source"));
+    OverlayMarker marker(overlay);
+    marker.setVisible(withOverlay);
+    if (withOverlay) { quick.canvas->setCardOverlayVisible(overlay, true); }
+    const auto unregister = qScopeGuard([&] {
+      if (withOverlay) { quick.canvas->setCardOverlayVisible(overlay, false); }
+    });
     QTRY_VERIFY(!quick.canvas->zoomSettling() && !quick.canvas->rasterPending());
     if (panStep) {
       const auto scroll = quick.canvas->viewport().scroll();
@@ -892,6 +915,7 @@ private slots:
     QTest::addColumn<int>("panStep");
     QTest::newRow("F1-scale-swap") << QString("swap") << 3.0 << QSize(1920, 1080) << 7;
     QTest::newRow("F2-visible-budget") << QString("pressure") << 1.0 << QSize(1920, 1080) << 12;
+    QTest::newRow("overlay-pan") << QString("overlay") << 1.0 << QSize(1390, 900) << 7;
     QTest::newRow("F3-fractional-pan") << QString("small") << 1.0 << QSize(1390, 900) << 1;
     QTest::newRow("P2-gesture-seams") << QString("seam") << 3.0 << QSize(1920, 1080) << 7;
     // Fix set 5: an animated card through a scale swap, cache pressure while
@@ -994,6 +1018,17 @@ private slots:
     }
     const auto graph = snapshot(nodes, edges);
     Fixture f(graph, size);
+    std::unique_ptr<CardOverlay> overlay;
+    std::unique_ptr<OverlayMarker> marker;
+    if (graphKind == "overlay") {
+      QVERIFY(f.item("source"));
+      overlay = std::make_unique<CardOverlay>(*f.item("source"));
+      marker = std::make_unique<OverlayMarker>(*overlay);
+      f.canvas->setCardOverlayVisible(*overlay, true);
+    }
+    const auto unregister = qScopeGuard([&] {
+      if (overlay) { f.canvas->setCardOverlayVisible(*overlay, false); }
+    });
     // Frame grabs can synthesize hover as a different fixture leaves the
     // cursor over this window. The matrix changes only raster inputs itself.
     f.canvas->setAcceptHoverEvents(false);
@@ -1433,6 +1468,9 @@ private slots:
       checkExact("after zoom");
       if (QTest::currentTestFailed()) { return; }
       const auto stats = f.canvas->rasterStats();
+      if (overlay) {
+        qInfo() << "Card overlay raster" << stats.slowestPass << "ns max pass," << offscreenBytes << "offscreen bytes";
+      }
       QVERIFY2(stats.slowestPass < 4'000'000 * gr::test::kSanitizerTimeScale,
                qPrintable(QString::number(stats.slowestPass)));
       f.canvas->resetRasterStats();

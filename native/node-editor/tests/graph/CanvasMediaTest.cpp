@@ -1,13 +1,16 @@
 #include "../support/OverlayCanvasFixture.h"
 #include "../support/DarkCanvasTheme.h"
 #include "graph/CanvasMediaPresenter.h"
+#include "graph/CardBodies.h"
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
+#include "graph/InlineTitlePresenter.h"
 #include "graph/WorkflowGraphModel.h"
 #include "interfaces/PropertyHost.h"
 #include "media/MediaResolver.h"
 #include "media/VideoFrameView.h"
 #include "run/NodeRuntimeModel.h"
+#include "ui/CanvasOverlay.h"
 #include <QApplication>
 #include <QDataStream>
 #include <QDir>
@@ -19,6 +22,7 @@
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QShortcut>
+#include <QTemporaryFile>
 #include <QSignalSpy>
 #include <QVideoSink>
 #include <QVideoFrame>
@@ -99,6 +103,21 @@ struct Fixture {
     const auto overlay = widget(name);
     return overlay ? overlay->rootObject()->findChild<QMediaPlayer *>("preview-player") : nullptr;
   }
+  QColor pixelAt(QPoint point) {
+    const auto image = surface.quick()->quickWidget().grabFramebuffer();
+    return image.pixelColor((QPointF(point) * image.devicePixelRatio()).toPoint());
+  }
+  QQuickItem *placeRaisedVideoControlAt(QPoint point) {
+    const auto video = id("video");
+    auto *play = widget("video")->rootObject()->findChild<QQuickItem *>("preview-play");
+    if (!play) { return nullptr; }
+    QPointer<QQuickItem> retained = play;
+    const auto center = play->mapToScene(QPointF(play->width(), play->height()) / 2);
+    model.setNodeData(video, NodeRole::Position, canvas.nodeOrigin(video) + (point - center) / canvas.zoom());
+    surface.setStackZ(video, 1);
+    presenter.refresh();
+    return retained;
+  }
   void click(const QString &name, const QString &controlName, qreal fraction = 0.5) {
     const auto overlay = widget(name);
     Q_ASSERT(overlay && overlay->rootObject());
@@ -108,6 +127,13 @@ struct Fixture {
                      control->mapToScene(QPointF(control->width() * fraction, control->height() / 2)).toPoint());
   }
 };
+QJsonObject snapshotWithoutCard(const WorkflowGraphModel &model, NodeId removed) {
+  QJsonArray nodes;
+  for (const auto id : model.allNodeIds()) {
+    if (id != removed) { nodes.append(model.nodeSnapshot(id)); }
+  }
+  return {{"graph", QJsonObject{{"nodes", nodes}, {"edges", QJsonArray{}}}}};
+}
 bool capture(QWidget &widget, const QString &name) {
   const auto directory = qEnvironmentVariable("NODETOOL_MEDIA_CAPTURE_DIR");
   if (directory.isEmpty()) { return true; }
@@ -210,14 +236,25 @@ private slots:
   void overlappingCardsReleasePlaybackWhenCovered() {
     Fixture f;
     QTRY_VERIFY(f.player("video") && f.player("video")->duration() > 1000);
-    f.click("video", "preview-play");
-    QTRY_COMPARE(f.player("video")->playbackState(), QMediaPlayer::PlayingState);
     QPointer<QMediaPlayer> player = f.player("video");
+    player->setLoops(QMediaPlayer::Infinite);
+    f.click("video", "preview-play");
+    QTRY_COMPARE(player->playbackState(), QMediaPlayer::PlayingState);
     const auto blocker = f.id("context-0");
-    f.surface.setStackZ(blocker, 1000);
+    if (auto *quick = f.surface.quick()) {
+      quick->graphCanvas().setAcceptHoverEvents(false);
+      quick->canvasScene().clearHover();
+    }
     const auto local = f.model.canvasPlaybackRect(f.id("video"));
     const auto sceneOrigin = f.canvas.nodeOrigin(f.id("video")) + local.topLeft();
     f.model.setNodeData(f.id("context-0"), NodeRole::Position, sceneOrigin + QPointF(local.width() / 2, 0));
+    if (f.surface.quick()) {
+      auto *play = f.widget("video")->rootObject()->findChild<QQuickItem *>("preview-play");
+      QVERIFY(play);
+      const auto point = play->mapToScene(QPointF(play->width(), play->height()) / 2).toPoint();
+      f.model.setNodeData(blocker, NodeRole::Position, f.canvas.mapToScene(point - QPoint(30, 30)));
+    }
+    f.surface.setStackZ(blocker, 1000);
     f.presenter.refresh();
     QVERIFY(f.widget("video"));
     const auto overlap = f.canvas.viewportTransform().mapRect(f.canvas.nodeBounds(blocker)).intersected(f.widget("video")->geometry());
@@ -227,7 +264,41 @@ private slots:
           qobject_cast<QQuickWidget *>(f.widget("video")->inputWidget())));
       QVERIFY(!widget->mask().contains(overlap.center().toPoint() - widget->pos()));
     } else {
-      QCOMPARE(f.canvas.nodeAt(overlap.center().toPoint()), blocker);
+      auto *media = f.widget("video")->rootObject();
+      auto *play = media->findChild<QQuickItem *>("preview-play");
+      QVERIFY(play);
+      const auto point = play->mapToScene(QPointF(play->width(), play->height()) / 2).toPoint();
+      QVERIFY(overlap.contains(point));
+      QTRY_VERIFY(!f.surface.quick()->graphCanvas().rasterPending());
+      const auto covered = f.pixelAt(point);
+      const auto opacity = media->opacity();
+      media->setOpacity(0);
+      QCOMPARE(f.pixelAt(point), covered);
+      media->setOpacity(opacity);
+
+      QSignalSpy clicked(play, SIGNAL(clicked()));
+      QVERIFY(clicked.isValid());
+      QCOMPARE(f.canvas.nodeAt(point), blocker);
+      QTest::mouseClick(&f.canvas.viewportWidget(), Qt::LeftButton, {}, point);
+      QCOMPARE(clicked.count(), 0);
+      QVERIFY(f.canvas.selection().contains(blocker));
+      QCOMPARE(player->playbackState(), QMediaPlayer::PlayingState);
+
+      // Reverse the stack without refreshing the presenter's occlusion
+      // region so the mask alone keeps the play control from receiving input.
+      auto *cover = f.surface.quick()->canvasScene().nodeItem(blocker);
+      const auto z = cover->z();
+      cover->setZ(-1);
+      QVERIFY(f.pixelAt(point) != covered);
+      QTest::mouseClick(&f.canvas.viewportWidget(), Qt::LeftButton, {}, point);
+      QCOMPARE(clicked.count(), 0);
+
+      auto *cardOverlay = media->parentItem();
+      cardOverlay->setFiltersChildMouseEvents(false);
+      QTest::mouseClick(&f.canvas.viewportWidget(), Qt::LeftButton, {}, point);
+      QCOMPARE(clicked.count(), 1);
+      cardOverlay->setFiltersChildMouseEvents(true);
+      cover->setZ(z);
     }
     QCOMPARE(f.player("video"), player.data());
     f.model.setNodeData(f.id("context-0"), NodeRole::Size, QSize(400, 400));
@@ -260,6 +331,155 @@ private slots:
     QTRY_VERIFY(previous.isNull());
     QVERIFY(f.model.canvasPlaybackRect(f.id("video")).isEmpty());
   }
+  void cardOverlayZAndCardDestruction() {
+    Fixture f;
+    if (!f.surface.quick()) { QSKIP("Requires the Quick canvas"); }
+    QTemporaryFile source(QDir::tempPath() + "/card-overlay-XXXXXX.qml");
+    QVERIFY(source.open());
+    const QByteArray qml = R"(
+      import QtQuick
+      Rectangle {
+        required property color ink
+        property int presses: 0
+        color: ink
+        MouseArea { anchors.fill: parent; onPressed: parent.presses++ }
+      }
+    )";
+    QCOMPARE(source.write(qml), qml.size());
+    source.close();
+    const auto url = QUrl::fromLocalFile(source.fileName());
+    const auto cardId = f.id("context-1");
+    const auto point = f.canvas.mapFromScene(f.canvas.nodeOrigin(cardId) + QPointF(40, 30));
+    QVERIFY(f.canvas.viewportWidget().rect().contains(point));
+    auto foreground = CanvasOverlay::onQuickCanvas(f.canvas, f.engine, url, {{"ink", QColor(Qt::red)}}, 5, cardId);
+    auto background = CanvasOverlay::onQuickCanvas(f.canvas, f.engine, url, {{"ink", QColor(Qt::blue)}}, 0, cardId);
+    for (auto *overlay : {foreground.get(), background.get()}) {
+      QVERIFY(overlay->rootObject());
+      overlay->setGeometry(QRect(point - QPoint(10, 10), QSize(20, 20)));
+      overlay->show();
+    }
+    QPointer<QQuickItem> front = foreground->rootObject();
+    QPointer<QQuickItem> back = background->rootObject();
+    QTest::mouseClick(&f.canvas.viewportWidget(), Qt::LeftButton, {}, point);
+    QCOMPARE(front->property("presses").toInt(), 1);
+    QCOMPARE(back->property("presses").toInt(), 0);
+    QCOMPARE(f.pixelAt(point), QColor(Qt::red));
+
+    f.model.project(snapshotWithoutCard(f.model, cardId), catalog());
+    QTRY_VERIFY(front.isNull() && back.isNull());
+    QVERIFY(!foreground->rootObject() && !background->rootObject());
+  }
+
+  void inlineEditorFrameContainsInput() {
+    Fixture f;
+    if (!f.surface.quick()) { QSKIP("Requires the Quick canvas"); }
+    f.surface.quick()->graphCanvas().viewportWheel = [&f](QWheelEvent &) {
+      f.canvas.scaleBy(1.15, CanvasSurface::ZoomAnchor::Center);
+    };
+    const auto edited = f.id("context-1");
+    f.model.setNodeData(edited, NodeRole::Position, QPointF(0, 220));
+    f.canvas.selection().setNode(edited, true);
+    f.inlineEditor.activate(edited, "text");
+    f.inlineEditor.expand();
+    const auto editor = f.surface.overlay("inline-property-overlay");
+    QVERIFY(editor);
+    auto *button = editor->rootObject()->findChild<QQuickItem *>("inline-expand");
+    QVERIFY(button);
+    const auto strip = button->mapToScene(QPointF(0, button->height() / 2));
+    const auto point = QPointF(f.inlineEditor.editorRect().left() + 3, strip.y()).toPoint();
+    QVERIFY(f.inlineEditor.editorRect().contains(point));
+    QVERIFY(!button->contains(button->mapFromScene(point)));
+    auto *input = editor->inputWidget();
+    const auto zoom = f.canvas.zoom();
+    QWheelEvent wheel(point, input->mapToGlobal(point), {}, {0, 120}, {}, {}, Qt::NoScrollPhase, false);
+    QApplication::sendEvent(input, &wheel);
+    QCOMPARE(f.canvas.zoom(), zoom);
+    QTest::mouseClick(input, Qt::LeftButton, {}, point);
+    QVERIFY(f.inlineEditor.active());
+    QVERIFY(f.inlineEditor.expanded());
+    QCOMPARE(f.canvas.selection().nodes(), QList<NodeId>{edited});
+  }
+
+  void expandedEditorReceivesInputAboveRaisedCard() {
+    Fixture f;
+    if (!f.surface.quick()) { QSKIP("Requires the Quick canvas"); }
+    const auto edited = f.id("context-1");
+    f.model.setNodeData(edited, NodeRole::Position, QPointF(0, 220));
+    f.canvas.selection().setNode(edited, true);
+    f.inlineEditor.activate(edited, "text");
+    QVERIFY(f.inlineEditor.active());
+    f.inlineEditor.expand();
+    const auto editor = f.surface.overlay("inline-property-overlay");
+    QVERIFY(editor);
+    auto *button = editor->rootObject()->findChild<QQuickItem *>("inline-expand");
+    QVERIFY(button);
+    const auto point = button->mapToScene(QPointF(button->width(), button->height()) / 2).toPoint();
+    QVERIFY(!f.canvas.viewportTransform().mapRect(f.canvas.nodeBounds(edited)).contains(point));
+    QTRY_VERIFY(f.player("video") && f.player("video")->duration() > 1000);
+    const auto *play = f.placeRaisedVideoControlAt(point);
+    QVERIFY(play && play->contains(play->mapFromScene(point)));
+    QTRY_VERIFY(!f.surface.quick()->graphCanvas().rasterPending());
+    const auto stacked = f.pixelAt(point);
+    editor->rootObject()->setOpacity(0);
+    QVERIFY(f.pixelAt(point) != stacked);
+    editor->rootObject()->setOpacity(1);
+    QTest::mouseClick(editor->inputWidget(), Qt::LeftButton, {}, point);
+    QVERIFY(f.inlineEditor.active());
+    QVERIFY(!f.inlineEditor.expanded());
+    QVERIFY(f.canvas.selection().contains(edited));
+    QCOMPARE(f.player("video")->playbackState(), QMediaPlayer::StoppedState);
+  }
+
+  void wideEditorReceivesInputAboveRaisedCard() {
+    Fixture f;
+    if (!f.surface.quick()) { QSKIP("Requires the Quick canvas"); }
+    auto painter = node("painter", 0, 170);
+    painter["type"] = "nodetool.image.Painter";
+    auto metadata = catalog();
+    metadata.append(QJsonObject{{"node_type", "nodetool.image.Painter"}, {"title", "Painter"}});
+    f.model.project({{"graph", QJsonObject{{"nodes", QJsonArray{painter, node("video", 330, 0)}},
+                                          {"edges", QJsonArray{}}}}}, metadata);
+    QTRY_VERIFY(f.player("video") && f.player("video")->duration() > 1000);
+    const auto edited = f.id("painter");
+    f.canvas.selection().setNode(edited, true);
+    f.inlineEditor.activate(edited, painterColorControl);
+    const auto editor = f.surface.overlay("inline-property-overlay");
+    QVERIFY(editor);
+    auto *field = editor->rootObject()->findChild<QQuickItem *>("color-hex-" + QString(painterColorControl));
+    QVERIFY(field);
+    const auto point = field->mapToScene(QPointF(field->width() - 6, field->height() / 2)).toPoint();
+    QVERIFY(!f.canvas.viewportTransform().mapRect(f.canvas.nodeRect(edited)).contains(point));
+    const auto *play = f.placeRaisedVideoControlAt(point);
+    QVERIFY(play && play->contains(play->mapFromScene(point)));
+    QVERIFY(!field->hasActiveFocus());
+    QTest::mouseClick(editor->inputWidget(), Qt::LeftButton, {}, point);
+    QVERIFY(field->hasActiveFocus());
+    QCOMPARE(f.player("video")->playbackState(), QMediaPlayer::StoppedState);
+  }
+
+  void noteEditorReceivesInputAboveRaisedCard() {
+    Fixture f;
+    if (!f.surface.quick()) { QSKIP("Requires the Quick canvas"); }
+    InlineTitlePresenter notes(f.model, f.scene, f.canvas, &f.engine);
+    const auto edited = f.id("context-1");
+    f.model.setNodeData(edited, NodeRole::Position, QPointF(0, 220));
+    notes.activate(edited);
+    const auto editor = f.surface.overlay("inline-title-overlay");
+    QVERIFY(editor);
+    auto *field = editor->rootObject()->findChild<QQuickItem *>("inline-title-text");
+    QVERIFY(field);
+    field->setProperty("text", "A note extending below the card");
+    QTRY_VERIFY(f.player("video") && f.player("video")->duration() > 1000);
+    const auto point = field->mapToScene(QPointF(field->width() / 2, field->height() / 2)).toPoint();
+    QVERIFY(!f.canvas.viewportTransform().mapRect(f.canvas.nodeBounds(edited)).contains(point));
+    const auto *play = f.placeRaisedVideoControlAt(point);
+    QVERIFY(play && play->contains(play->mapFromScene(point)));
+    field->setProperty("cursorPosition", 0);
+    QTest::mouseClick(editor->inputWidget(), Qt::LeftButton, {}, point);
+    QVERIFY(field->property("cursorPosition").toInt() > 0);
+    QCOMPARE(f.player("video")->playbackState(), QMediaPlayer::StoppedState);
+  }
+
   void inlineLayerAndComplexGraphCaptures() {
     Fixture f;
     QTRY_VERIFY(f.player("video") && f.player("video")->duration() > 1000);
@@ -276,9 +496,25 @@ private slots:
     if (f.surface.legacyScene()) {
       QCOMPARE(f.canvas.viewportWidget().childAt(overlap.center().toPoint()), f.inlineEditor.editorWidget());
     } else {
+      QPointer<QMediaPlayer> previous = f.player("audio");
+      auto next = f.sources;
+      auto sound = next.first().toMap();
+      sound["runId"] = "second";
+      next.first() = sound;
+      f.presenter.setSources(next);
+      QTRY_VERIFY(f.player("audio") && f.player("audio") != previous && f.player("audio")->duration() > 1000);
+
       const auto editor = f.surface.overlay("inline-property-overlay");
       QVERIFY(editor);
-      QCOMPARE(editor->quickWindow(), f.widget("audio")->quickWindow());
+      auto *field = editor->rootObject()->findChild<QQuickItem *>("inline-multiline");
+      auto *play = f.widget("audio")->rootObject()->findChild<QQuickItem *>("preview-play");
+      QVERIFY(field && play);
+      const auto point = play->mapToScene(QPointF(play->width(), play->height()) / 2).toPoint();
+      QVERIFY(field->contains(field->mapFromScene(point)));
+      field->setProperty("cursorPosition", 0);
+      QTest::mouseClick(editor->inputWidget(), Qt::LeftButton, {}, point);
+      QVERIFY(field->property("cursorPosition").toInt() > 0);
+      QCOMPARE(f.player("audio")->playbackState(), QMediaPlayer::StoppedState);
     }
     f.inlineEditor.cancel();
     QQmlComponent component(&f.engine);

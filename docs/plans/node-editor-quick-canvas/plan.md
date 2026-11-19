@@ -238,10 +238,11 @@ New classes live in `native/node-editor/src/canvas/`, in namespace
    toolbar, the selection toolbar, the zoom readout, the mini-map, the queue,
    the chat window, the node info panel and the price chip.
 
-Card media and inline editors follow their card's opacity and stacking. On
-the software backend, Q4 places them in the overlay layer and preserves that
-order explicitly. Quick children of a card would draw above the whole canvas
-composite.
+Card media and authored controls inherit their card's opacity and stacking.
+When a card overlay is visible, the software backend draws individual item
+tiles so Quick can interleave those overlays with overlapping cards. Inline
+editors follow their card's opacity and position and sit in the viewport
+overlay layer so they can extend over adjacent cards.
 
 ### Card and edge rendering
 
@@ -540,13 +541,12 @@ Large: about 5,000 new lines.
 
 Medium to large: about 2,500 lines changed, small QML edits.
 
-- Add `CardOverlay`. On the Quick canvas, `CanvasMediaPresenter`,
-  `InlinePropertyPresenter` and `InlineTitlePresenter` create their QML as
-  items in it. The picker, the toolbars, the zoom readout, the mini-map
-  controls, the queue, the chat window, the node info panel and the price
-  chip become items of the overlay layer.
-- On that path the masks, the `WA_AlwaysStackOnTop` flags, the raise order
-  and the wheel forwarding of `CanvasMediaWidget` are not compiled in.
+- Add `CardOverlay` for media and authored controls on the Quick canvas.
+  Inline editors, the picker, toolbars, zoom readout, mini-map controls,
+  queue, chat, node info panel and price chip use the viewport overlay layer.
+- The Quick path uses item stacking and input delivery. Widget masks,
+  `WA_AlwaysStackOnTop`, widget raise order and `CanvasMediaWidget` wheel
+  forwarding stay in the QtNodes branch until Q6.
 - Gate: the `_quick` entries of `node_editor_canvas_media`,
   `node_editor_canvas_media_host`, the three inline tests, both picker tests,
   `node_editor_canvas_chrome`, `node_editor_selection_presentation`,

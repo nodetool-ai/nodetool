@@ -47,6 +47,7 @@ public:
   void focusCanvas(Qt::FocusReason reason);
   void setCardOverlayVisible(CardOverlay &overlay, bool visible);
   std::function<void(QWheelEvent &)> viewportWheel;
+  std::function<bool(PointerAction, QMouseEvent &)> viewportPointer;
   QQuickItem &overlayLayer() { return overlay_; }
 
   void setView(double zoom, QPointF center);

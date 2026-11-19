@@ -471,6 +471,13 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
       canvas_->scene().interaction().viewportWheel(wheel.pixelDelta(), wheel.angleDelta(),
                                                      wheel.phase(), wheel.modifiers(), *this);
     };
+    // Quick decides which item owns the press before the viewport starts a gesture.
+    quick->graphCanvas().viewportPointer = [this](canvas::PointerAction action, QMouseEvent &mouse) {
+      const auto position = mouse.position().toPoint();
+      return canvas_->scene().interaction().viewportPointerEvent(action,
+          {canvas_->mapToScene(position), mouse.globalPosition().toPoint(), mouse.button(), mouse.buttons(),
+           mouse.modifiers(), canvas_->zoom()}, position, *this, true);
+    };
     lineage_ = new node_editor::LineageLayer(quick->canvasScene(), this);
     canvas_ = std::move(quick);
   } else {
@@ -1303,8 +1310,10 @@ std::unique_ptr<CanvasOverlay> EditorWindow::canvasOverlay(const QString &file, 
   }
   auto *widget = panel(file, properties);
   widget->setParent(legacyParent ? legacyParent : &canvas_->hostWidget());
-  widget->setAttribute(Qt::WA_AlwaysStackOnTop);
+  // Chat was a regular sibling widget on QtNodes, with its own raise order.
+  if (file != "EditorChat") { widget->setAttribute(Qt::WA_AlwaysStackOnTop); }
   widget->setClearColor(Qt::transparent);
+  connect(widget, &QQuickWidget::sceneGraphError, this, [](auto, const QString &message) { qWarning() << message; });
   widget->setResizeMode(sizeToView ? QQuickWidget::SizeRootObjectToView : QQuickWidget::SizeViewToRootObject);
   return std::make_unique<CanvasOverlay>(*widget);
 }
@@ -4315,7 +4324,8 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     }
   }
   const bool onViewport = object == &canvas_->viewportWidget();
-  if ((onViewport && type == QEvent::MouseButtonPress) || type == QEvent::MouseMove || type == QEvent::MouseButtonRelease) {
+  if (!dynamic_cast<QuickCanvas *>(canvas_.get()) &&
+      ((onViewport && type == QEvent::MouseButtonPress) || type == QEvent::MouseMove || type == QEvent::MouseButtonRelease)) {
     const auto &mouse = *static_cast<QMouseEvent *>(event);
     const auto position = mouse.position().toPoint();
     using canvas::PointerAction;

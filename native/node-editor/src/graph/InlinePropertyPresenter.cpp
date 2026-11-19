@@ -97,7 +97,7 @@ void InlinePropertyPresenter::activate(QtNodes::NodeId id, const QString &name) 
   expanded_ = false;
   const QUrl source("qrc:/qt/qml/NodeTool/NodeEditor/InlinePropertyEditor.qml");
   const QVariantMap properties{{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_}, {"host", QVariant::fromValue(&host_)}};
-  widget_ = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, properties, 10, id);
+  widget_ = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, properties, 10, id, CanvasOverlay::Placement::AboveCards);
   if (!widget_) {
     auto *widget = new InlineEditorWidget(engine_, &canvas_.viewportWidget());
     widget->setClearColor(Qt::transparent);
@@ -236,7 +236,10 @@ void InlinePropertyPresenter::popupRect(const QRectF &rect) {
 }
 void InlinePropertyPresenter::updateMask() {
   auto *legacy = widget_ ? widget_->widget() : nullptr;
-  if (!legacy) { return; }
+  if (!legacy) {
+    if (widget_) { widget_->setInputRect(editorRect_); }
+    return;
+  }
   auto region = QRegion(editorRect_.adjusted(-2, -2, 2, 2).toAlignedRect());
   if (!popupRect_.isEmpty()) { region += QRegion(popupRect_.adjusted(-2,-2,2,2).toAlignedRect()); }
   legacy->setMask(region.intersected(QRegion(canvas_.viewportWidget().rect())));

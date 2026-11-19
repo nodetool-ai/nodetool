@@ -112,7 +112,11 @@ void InlineTitlePresenter::refresh() {
       }
       continue;
     }
-    if (overlay && overlay->widget()) { overlay->widget()->deleteLater(); }
+    if (auto *legacy = overlay ? overlay->widget() : nullptr) {
+      legacy->hide();
+      legacy->setEnabled(false);
+      legacy->deleteLater();
+    }
     auto initial = properties;
     initial.insert("commands", QVariant::fromValue(editor->editorCommands()));
     initial.insert("runs", QVariant::fromValue(editor->runState()));
@@ -184,7 +188,7 @@ void InlineTitlePresenter::activate(QtNodes::NodeId id) {
   emit activated();
   const QUrl source("qrc:/qt/qml/NodeTool/NodeEditor/InlineTitleEditor.qml");
   const QVariantMap properties{{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_}};
-  widget_ = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, properties, 10, id);
+  widget_ = CanvasOverlay::onQuickCanvas(canvas_, *engine_, source, properties, 10, id, CanvasOverlay::Placement::AboveCards);
   if (!widget_) {
     auto *widget = new TitleEditorWidget(engine_, &canvas_.viewportWidget());
     widget->setClearColor(Qt::transparent);
@@ -299,6 +303,7 @@ void InlineTitlePresenter::reposition() {
   }
   widget_->setGeometry(canvas_.viewportWidget().rect());
   if (auto *legacy = widget_->widget()) { legacy->setMask(QRegion(rect_.toAlignedRect()).intersected(QRegion(canvas_.viewportWidget().rect()))); }
+  else { widget_->setInputRect(rect_); }
   if (!canvas_.viewportWidget().rect().intersects(rect_.toAlignedRect())) { cancel(); return; }
   widget_->raiseLegacyWidget(); emit geometryChanged();
 }

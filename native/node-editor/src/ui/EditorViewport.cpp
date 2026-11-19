@@ -189,6 +189,9 @@ void EditorWindow::showMiniMapPopup(const QString &kind, const QPointF &anchorGl
     auto *root = quickMiniMapPopup_->rootObject();
     if (!root) { quickMiniMapPopup_.reset(); return; }
     quickMiniMapPopup_->setObjectName("mini-map-popup-host");
+    // The viewport-sized root only positions the popup. Qt Quick's popup
+    // item handles its own frame and dismissal.
+    quickMiniMapPopup_->setInputRect({});
     quickMiniMapPopup_->setGeometry(canvas_->hostWidget().rect());
     quickMiniMapPopup_->show();
     const auto local = canvas_->hostWidget().mapFromGlobal(anchorGlobal.toPoint());
