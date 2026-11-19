@@ -143,13 +143,14 @@ void signInElsewhereThenSignOutHere(TestContext& t) {
   CHECK(out.waitForState(signedOut));
 
   pc.signInElsewhere();
-  CHECK(out.waitForState([](const auto& s) { return signedInAs(s, "Ada"); }));
+  // The state names the account, which keys the desktop app's caches.
+  CHECK(out.waitForState([](const auto& s) { return signedInAs(s, "Ada") && s["accountId"] == "u1"; }));
 
   AccountSession qtApp(pc.keychain, pc.server, pc.sessionOptions());
   CHECK(qtApp.credentialForRequest().status == CredentialStatus::Ready);
 
   helper.handle({{"type", "signOut"}});
-  CHECK(out.waitForState(signedOut));
+  CHECK(out.waitForState([](const auto& s) { return signedOut(s) && s["accountId"] == ""; }));
   CHECK(qtApp.credentialForRequest().status == CredentialStatus::SignedOut);
   const SessionRecord record = pc.record();
   CHECK(record.state == SessionState::SignedOut);

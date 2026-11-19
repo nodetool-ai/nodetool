@@ -117,6 +117,9 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
   bool stopping = false;
   State state = State::SignedOut;
   std::string displayName;
+  // The signed-in account's id, which the desktop app's caches are keyed by.
+  // Empty until the refresh after a sign-in reads it.
+  std::string accountId;
   bool serverEndPending = false;
   bool cloudAvailable = true;
   std::string message;
@@ -243,6 +246,7 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
     nlohmann::json next = {{"type", "state"},
                            {"state", stateName(state)},
                            {"displayName", displayName},
+                           {"accountId", accountId},
                            {"serverOrigin", options.serverOrigin},
                            {"serverEndPending", serverEndPending},
                            {"cloudAvailable", cloudAvailable},
@@ -374,6 +378,7 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
     const std::shared_ptr<AccountSession> current = sessionFromIndex();
     State next = State::SignedOut;
     std::string name;
+    std::string id;
     bool pending = false;
     if (current) {
       const bool allowed = policyAllows.load(std::memory_order_acquire);
@@ -388,6 +393,9 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
       }
       next = allowed && status.state == SessionState::SignedIn ? State::SignedIn : State::SignedOut;
       name = status.displayName;
+      if (next == State::SignedIn) {
+        id = current->accountId();
+      }
       pending = status.serverEndPending;
     }
 
@@ -399,6 +407,7 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
         state = next;
       }
       displayName = name;
+      accountId = id;
       serverEndPending = pending;
       if (!pending) {
         serverEndAttempt = 0;

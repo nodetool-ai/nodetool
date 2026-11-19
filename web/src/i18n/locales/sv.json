@@ -14035,6 +14035,8 @@
       "loadFailureTitle": "Det gick inte att ladda dokument",
       "loadFailureSummary": "Det gick inte att läsa in projektdokument",
       "tryAgainLater": "Försök igen senare.",
+      "cloudLoadFailure": "Det gick inte att lista dokumenten i molnet: {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "Inga matchande dokument",
       "noMatchingDescription": "Detta söker endast i dokument. Konversationer finns i Chats och uppladdningar finns i biblioteket.",
       "noDocuments": "Inga dokument ännu",
@@ -14053,7 +14055,9 @@
         "text": "Textfiler",
         "agents": "Agenter & kod",
         "entities": "Entiteter",
-        "shared": "Delade med mig"
+        "shared": "Delade med mig",
+        "cloud": "Moln",
+        "cloudShared": "Delade med mig"
       },
       "type": {
         "workflow": "Arbetsflöde",

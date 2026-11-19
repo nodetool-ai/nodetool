@@ -15,6 +15,7 @@ const signedOut: CloudAccountState = {
   available: true,
   state: "signedOut",
   displayName: "",
+  accountId: "",
   serverOrigin: "https://api.nodetool.ai",
   serverEndPending: false,
   cloudAvailable: true,

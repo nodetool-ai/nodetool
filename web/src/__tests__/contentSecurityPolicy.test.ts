@@ -54,6 +54,15 @@ describe("index.html Content-Security-Policy", () => {
     expect(cspDirectives().get("media-src")).toContain("https:");
   });
 
+  // The desktop app serves a cloud document's authenticated media through
+  // its own scheme, which the main process maps to the signed-in server.
+  it("allows the desktop app's nodetool-cloud: media scheme", () => {
+    const csp = cspDirectives();
+    for (const directive of ["img-src", "media-src", "connect-src"]) {
+      expect(csp.get(directive)).toContain("nodetool-cloud:");
+    }
+  });
+
   // Without worker-src, script-src governs workers and blocks blob: URLs, so
   // the export's audio encoder (mediabunny's MP3 worker) fails to start.
   it("allows workers created from blob: URLs", () => {

@@ -33,6 +33,16 @@ jest.mock("../../../hooks/useSharedDocumentGroup", () => ({
   useSharedDocumentGroup: () => mockSharedGroup
 }));
 
+let mockCloudGroups: { groups: unknown[]; error: Error | null } = { groups: [], error: null };
+jest.mock("../../../hooks/useCloudDocumentGroups", () => ({
+  useCloudDocumentGroups: () => mockCloudGroups
+}));
+
+const mockOpenCloudDocument = jest.fn();
+jest.mock("../../../lib/cloud/openCloudDocument", () => ({
+  openCloudDocument: (document: unknown) => mockOpenCloudDocument(document)
+}));
+
 const mockOpenSharedDocument = jest.fn();
 jest.mock("../../../lib/openSharedDocument", () => ({
   openSharedDocument: (document: unknown) => mockOpenSharedDocument(document)
@@ -138,6 +148,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockUseDocumentTreeData.mockReturnValue(data);
   mockSharedGroup = null;
+  mockCloudGroups = { groups: [], error: null };
 });
 
 it("renders only non-empty groups and gives disclosure controls to groups", () => {
@@ -616,4 +627,75 @@ it("lists documents shared with the user and opens them by role, without owner a
     role: "viewer"
   });
   expect(mockOpenTab).not.toHaveBeenCalled();
+});
+
+const CLOUD = { kind: "cloud", server: "https://api.nodetool.ai", account: "u1" } as const;
+
+it("lists the account's cloud documents and opens them with their origin, without the local actions", async () => {
+  const user = userEvent.setup();
+  mockCloudGroups = {
+    groups: [
+      {
+        id: "cloud",
+        label: "Cloud",
+        children: [
+          { id: "workflow-1", name: "Cloud Flow", type: "workflow", typeLabel: "Workflow", origin: CLOUD }
+        ]
+      },
+      {
+        id: "cloudShared",
+        label: "Shared with me",
+        children: [
+          {
+            id: "tl-2",
+            name: "Their Cut",
+            type: "timeline",
+            typeLabel: "Timeline",
+            origin: CLOUD,
+            sharedRole: "viewer"
+          }
+        ]
+      }
+    ],
+    error: null
+  };
+  renderTree();
+
+  expect(screen.getByText("Cloud")).toBeInTheDocument();
+  expect(screen.getByText("Shared with me")).toBeInTheDocument();
+  for (const name of ["Cloud Flow", "Their Cut"]) {
+    for (const action of ["Share", "Rename", "Delete", "Duplicate"]) {
+      expect(screen.queryByRole("button", { name: `${action} ${name}` })).not.toBeInTheDocument();
+    }
+  }
+
+  // The local workflow with the same id keeps opening locally.
+  await user.click(screen.getByRole("treeitem", { name: /^Cloud Flow Workflow$/ }));
+  expect(mockOpenCloudDocument).toHaveBeenCalledWith({
+    origin: CLOUD,
+    type: "workflow",
+    id: "workflow-1",
+    name: "Cloud Flow",
+    role: "owner"
+  });
+  await user.click(screen.getByRole("treeitem", { name: /^Their Cut Timeline$/ }));
+  expect(mockOpenCloudDocument).toHaveBeenLastCalledWith({
+    origin: CLOUD,
+    type: "timeline",
+    id: "tl-2",
+    name: "Their Cut",
+    role: "viewer"
+  });
+  expect(mockOpenTab).not.toHaveBeenCalled();
+  expect(mockOpenSharedDocument).not.toHaveBeenCalled();
+});
+
+it("says when the cloud documents could not be listed, and keeps the local ones", () => {
+  mockCloudGroups = { groups: [], error: new Error("NodeTool Cloud could not be reached.") };
+  renderTree();
+
+  expect(
+    screen.getByText("Cloud documents could not be listed: NodeTool Cloud could not be reached.")
+  ).toBeInTheDocument();
+  expect(screen.getByText("Campaign Generator")).toBeInTheDocument();
 });
