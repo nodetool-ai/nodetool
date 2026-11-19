@@ -250,7 +250,11 @@ def cmake_link_errors(cmake_files, policy):
     assigned = set()
     link_properties = {'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES_DIRECT'}
     legacy_link_property = re.compile(r'(?:IMPORTED_)?LINK_INTERFACE_LIBRARIES(?:_.+)?')
-    standard_libraries = re.compile(r'CMAKE_(?:C|CXX)_STANDARD_LIBRARIES(?:_INIT)?')
+    link_variables = re.compile(
+        r'CMAKE_(?:(?:C|CXX)_STANDARD_LIBRARIES(?:_INIT)?|(?:EXE|SHARED)_LINKER_FLAGS(?:_\w+)?)')
+    library_option = re.compile(
+        r'(?:^|[\s,:;>"\'])-l|'
+        r'\.(?i:a|so(?:\.\d+)*|dylib|lib|dll|tbd)(?=$|[\s,;>"\'])')
     errors = []
     # The audit visits every branch. A removal cannot make an earlier link
     # safe, so collect every value that can be introduced into a link list.
@@ -269,9 +273,16 @@ def cmake_link_errors(cmake_files, policy):
                 errors.append(f'{label}: unresolved cmake_language(CALL) command')
             if command == 'cmake_language' and args[:1] == ['EVAL']:
                 errors.append(f'{label}: cmake_language(EVAL CODE) bypasses static dependency checking')
+            if command == 'cmake_language' and args[:1] == ['DEFER'] and 'CALL' in args[1:]:
+                errors.append(f'{label}: cmake_language(DEFER ... CALL) bypasses static dependency checking')
             for arg in args:
-                if standard_libraries.fullmatch(arg):
+                if link_variables.fullmatch(arg):
                     errors.append(f'{label}: use target_link_libraries() instead of {arg}')
+            if command in {'add_link_options', 'target_link_options'}:
+                options = args[1:] if command == 'target_link_options' else args
+                for option in options:
+                    if library_option.search(option):
+                        errors.append(f'{label}: use target_link_libraries() instead of passing {option} to {command}()')
             if command == 'link_libraries' or any(
                 name in link_properties or legacy_link_property.fullmatch(name) or '$' in name for name in properties
             ):

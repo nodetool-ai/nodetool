@@ -35,19 +35,20 @@ bool validFormat(const QString& format) { return format == "png" || format == "j
 }
 FrameExporter::FrameExporter(const nt::server::AssetCacheRoot& cache, QObject* parent) : FrameExporter(parent) {
     setCacheRoot(cache);
-    m_capture = std::make_unique<FrameCapture>(cache);
 }
 
 FrameExporter::FrameExporter(QObject* parent) : TimelineCacheConsumer(parent) {}
-void FrameExporter::classBegin() {
-    TimelineCacheConsumer::classBegin();
-    m_capture = std::make_unique<FrameCapture>(cacheRoot());
+FrameCapture& FrameExporter::capture() const {
+    if (!m_capture) {
+        m_capture = std::make_unique<FrameCapture>(cacheRoot());
+    }
+    return *m_capture;
 }
 
 FrameExporter::~FrameExporter() { cancel(); }
 void FrameExporter::cancel() {
     ++m_serial;
-    if (m_request) { m_capture->cancel(m_request); m_request = 0; }
+    if (m_request) { capture().cancel(m_request); m_request = 0; }
     // The worker captures no pointer to this object. It may be waiting on another download's
     // cache lock, which does not see an interruption, so the GUI thread leaves it to finish alone.
     if (auto* thread = std::exchange(m_worker, nullptr)) {
@@ -73,7 +74,7 @@ void FrameExporter::worker(std::function<void()> work, std::function<void()> fin
 void FrameExporter::setTimeline(TimelineModel* model) {
     if (model == timeline()) { return; }
     reset();
-    m_capture->setTimeline(model);
+    capture().setTimeline(model);
     emit timelineChanged();
 }
 bool FrameExporter::libraryAvailable() const { return nt::server::serverSaveTarget().has_value(); }
@@ -94,7 +95,7 @@ void FrameExporter::captured(const FrameCaptureResult& result, quint64 serial) {
 void FrameExporter::captureProgram(double timeMs) {
     beginCapture(timeMs);
     const auto serial = m_serial;
-    m_request = m_capture->captureSequence(timeMs, [self = QPointer<FrameExporter>(this), serial](const auto& result) {
+    m_request = capture().captureSequence(timeMs, [self = QPointer<FrameExporter>(this), serial](const auto& result) {
         if (self) { self->captured(result, serial); }
     });
     emit changed();
@@ -122,7 +123,7 @@ void FrameExporter::captureSource(const QVariantMap& asset, const QString& previ
                 m_state = "failed"; m_error = "The original media could not be downloaded. Reconnect and try again.";
                 emit changed(); return;
             }
-            m_request = m_capture->captureSource(resolved->path, type == "image" ? 0 : sourceMs,
+            m_request = capture().captureSource(resolved->path, type == "image" ? 0 : sourceMs,
                 [self = QPointer<FrameExporter>(this), serial, protection](const auto& result) {
                     if (self) { self->captured(result, serial); }
                 });
@@ -130,7 +131,7 @@ void FrameExporter::captureSource(const QVariantMap& asset, const QString& previ
         emit changed(); return;
     }
     const auto serial = m_serial;
-    m_request = m_capture->captureSource(previewPath, type == "image" ? 0 : sourceMs,
+    m_request = capture().captureSource(previewPath, type == "image" ? 0 : sourceMs,
         [self = QPointer<FrameExporter>(this), serial](const auto& result) {
             if (self) { self->captured(result, serial); }
         });

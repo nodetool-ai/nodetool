@@ -29,6 +29,39 @@ class TestFrameExport : public QObject {
     QTemporaryDir m_dir;
     QString dirPath() const { return m_dir.path(); }
 private slots:
+    void defaultCppExporterRequiresCache_data() {
+        QTest::addColumn<bool>("write");
+        QTest::newRow("get") << false;
+        QTest::newRow("set") << true;
+    }
+
+    void defaultCppExporterRequiresCache() {
+        QFETCH(bool, write);
+        constexpr auto childFlag = "NODETOOL_TEST_DEFAULT_CPP_FRAME_EXPORTER";
+        if (qEnvironmentVariableIsSet(childFlag)) {
+            TimelineModel model;
+            FrameExporter exporter;
+            if (write) {
+                exporter.setTimeline(&model);
+            } else {
+                QCOMPARE(exporter.timeline(), nullptr);
+            }
+            return;
+        }
+
+        QProcess child;
+        auto environment = QProcessEnvironment::systemEnvironment();
+        environment.insert(childFlag, "1");
+        child.setProcessEnvironment(environment);
+        child.setProcessChannelMode(QProcess::MergedChannels);
+        const QString row = QString::fromLatin1(QTest::currentDataTag());
+        child.start(QCoreApplication::applicationFilePath(), {"defaultCppExporterRequiresCache:" + row});
+        QVERIFY(child.waitForFinished());
+        const auto output = child.readAll();
+        QVERIFY2(child.exitStatus() == QProcess::CrashExit, output.constData());
+        QVERIFY2(output.contains("Missing timeline asset cache for C++ consumer"), output.constData());
+    }
+
     void qmlExporterRequiresHostCache() {
         constexpr auto childFlag = "NODETOOL_TEST_MISSING_FRAME_EXPORTER_CACHE";
         if (qEnvironmentVariableIsSet(childFlag)) {
@@ -80,11 +113,12 @@ private slots:
         m_testCache.install(engine);
         QQmlComponent component(&engine);
         component.setData("import FrameExportTest 1.0; FrameExporter {}", QUrl());
-        std::unique_ptr<QObject> mounted(component.create());
+        std::unique_ptr<QObject> mounted(component.createWithInitialProperties(
+            {{"timeline", QVariant::fromValue(&model)}}));
         QVERIFY2(mounted, qPrintable(component.errorString()));
         auto* exporter = qobject_cast<FrameExporter*>(mounted.get());
         QVERIFY(exporter);
-        exporter->setTimeline(&model);
+        QCOMPARE(exporter->timeline(), &model);
         exporter->captureForTest()->setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         PlaybackClock clock;
         clock.seek(500);

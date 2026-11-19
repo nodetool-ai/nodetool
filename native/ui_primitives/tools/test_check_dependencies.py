@@ -44,6 +44,38 @@ class CMakeLinkAuditTest(unittest.TestCase):
         self.assertIn('cmake_language(EVAL CODE)', ' '.join(self.audit(
             'cmake_language(EVAL CODE "target_link_libraries(x PRIVATE forbidden_lib)")')))
 
+    def test_cmake_language_deferred_link_commands(self):
+        for command in (
+            'cmake_language(DEFER CALL target_link_libraries x PRIVATE forbidden_lib)',
+            'cmake_language(DEFER DIRECTORY . ID delayed CALL TARGET_LINK_LIBRARIES x PRIVATE forbidden_lib)',
+        ):
+            with self.subTest(command=command):
+                self.assertIn('cmake_language(DEFER', ' '.join(self.audit(command)))
+
+    def test_linker_flag_variables_cannot_inject_link_dependencies(self):
+        for variable in ('CMAKE_EXE_LINKER_FLAGS', 'CMAKE_SHARED_LINKER_FLAGS',
+                         'CMAKE_EXE_LINKER_FLAGS_INIT', 'CMAKE_SHARED_LINKER_FLAGS_DEBUG'):
+            with self.subTest(variable=variable):
+                self.assertIn(variable, ' '.join(self.audit(f'set({variable} "-lforbidden")')))
+
+    def test_link_options_cannot_inject_link_dependencies(self):
+        for command in (
+            'add_link_options(-lforbidden)',
+            'add_link_options(LINKER:-l,forbidden)',
+            'add_link_options("SHELL:-l forbidden")',
+            'target_link_options(x PRIVATE -Wl,-lforbidden)',
+            'target_link_options(x PRIVATE "$<$<CONFIG:Debug>:-lforbidden>")',
+            'target_link_options(x PRIVATE "/opt/forbidden library/libforbidden.so.1.2")',
+            'add_link_options(LINKER:/opt/libforbidden.a)',
+            'target_link_options(x PRIVATE "C:/SDK/forbidden.lib")',
+        ):
+            with self.subTest(command=command):
+                self.assertIn('use target_link_libraries()', ' '.join(self.audit(command)))
+        self.assertEqual(self.audit('''
+            add_link_options(-fexperimental-library)
+            target_link_options(x PRIVATE -Wl,--as-needed -L/opt/lib)
+        '''), [])
+
     def test_legacy_link_properties(self):
         for name in ('LINK_INTERFACE_LIBRARIES', 'LINK_INTERFACE_LIBRARIES_DEBUG',
                      'IMPORTED_LINK_INTERFACE_LIBRARIES', 'IMPORTED_LINK_INTERFACE_LIBRARIES_RELEASE'):
