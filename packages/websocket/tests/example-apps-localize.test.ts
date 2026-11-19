@@ -30,7 +30,7 @@ describe("localizeLanguageModels", () => {
     );
     expect(modelOf(out)).toMatchObject({
       provider: "anthropic",
-      id: "claude-sonnet-5"
+      id: "claude-sonnet-5-5"
     });
   });
 
@@ -56,7 +56,7 @@ describe("localizeLanguageModels, unselected models", () => {
       bundleWith(model("empty", "")),
       new Set(["openai"])
     );
-    expect(modelOf(out)).toMatchObject({ provider: "openai", id: "gpt-5-mini" });
+    expect(modelOf(out)).toMatchObject({ provider: "openai", id: "gpt-6.2" });
   });
 
   it("leaves an unselected model alone when no provider is configured", () => {
