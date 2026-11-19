@@ -1,8 +1,8 @@
 name: Native timeline release
 
 # Called by release.yaml for every NodeTool release (v* tags and nightlies).
-# Its assets join that release: release.yaml's publish job downloads every
-# workflow artifact of the run, including timeline-<platform>. It builds the
+# A separate job attaches the verified timeline-<platform> artifacts after
+# the desktop release publishes. This workflow builds the
 # commit of the calling run. A ref input would let the restored caches of
 # setup-native-timeline meet a checkout chosen by a caller (CodeQL cache
 # poisoning), so release.yaml skips it when the release builds another commit.

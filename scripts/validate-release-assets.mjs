@@ -7,7 +7,7 @@ const STABLE_CHANNEL = "stable";
 
 const dir = path.resolve(process.argv[2] ?? "release-assets");
 const inputChannel = process.argv[3] ?? STABLE_CHANNEL;
-// release.yaml passes --with-timeline when native-timeline-release.yml ran.
+// Pass --with-timeline to validate a download set that includes Timeline.
 const withTimeline = process.argv.includes("--with-timeline");
 const channel = inputChannel === NIGHTLY_CHANNEL ? NIGHTLY_CHANNEL : STABLE_CHANNEL;
 // Stable channel publishes latest* updater manifests.
