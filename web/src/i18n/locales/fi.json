@@ -9595,6 +9595,7 @@
         "action": "Määritä työkone"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Noin {{min}}–{{max}} tunnissa. Päättyy {{count}} tunnin jälkeen ja poistaa tiedostonsa.",
         "summary_other": "Noin {{min}}–{{max}} tunnissa. Päättyy {{count}} tunnin jälkeen ja poistaa tiedostonsa.",
         "start": "Käynnistä",

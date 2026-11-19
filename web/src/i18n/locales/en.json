@@ -9526,8 +9526,9 @@
         "attachingHint": "Worker is ready. Attaching…"
       },
       "presets": {
-        "summary_one": "About {{min}}–{{max}} per hour. Ends after {{count}} hour and deletes its files.",
-        "summary_other": "About {{min}}–{{max}} per hour. Ends after {{count}} hours and deletes its files.",
+        "badge": "ComfyUI",
+        "summary_one": "ComfyUI server on RunPod. About {{min}}–{{max}} per hour. Ends after {{count}} hour and deletes its files.",
+        "summary_other": "ComfyUI server on RunPod. About {{min}}–{{max}} per hour. Ends after {{count}} hours and deletes its files.",
         "start": "Start",
         "starting": "Starting…",
         "startAria": "Start {{name}} on a rented GPU",

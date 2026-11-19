@@ -9526,6 +9526,7 @@
         "attachingHint": "作業員の準備は完了です。添付中…"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "1 時間あたり約 {{min}}–{{max}}。 {{count}} 時間後に終了し、ファイルを削除します。",
         "summary_other": "1 時間あたり約 {{min}}–{{max}}。 {{count}} 時間後に終了し、ファイルが削除されます。",
         "start": "スタート",

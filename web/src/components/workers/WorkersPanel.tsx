@@ -7,6 +7,7 @@ import {
   FlexColumn,
   FlexRow,
   Card,
+  Chip,
   Text,
   Caption,
   LoadingSpinner,
@@ -219,9 +220,15 @@ const ComfyPresetsSection: React.FC<ComfyPresetsSectionProps> = ({
         <Card key={preset.id} variant="outlined" padding="normal">
           <FlexRow align="center" justify="space-between" gap={SPACING.lg}>
             <FlexColumn gap={SPACING.micro}>
-              <Text size="normal" weight={600}>
-                {preset.label}
-              </Text>
+              <FlexRow align="center" gap={SPACING.sm}>
+                <Text size="normal" weight={600}>
+                  {preset.label}
+                </Text>
+                <Chip
+                  compact
+                  label={t("screens4_8.workers.presets.badge")}
+                />
+              </FlexRow>
               <Caption size="small">
                 {t("screens4_8.workers.presets.summary", {
                   min: money.format(preset.hourlyUsd.min),

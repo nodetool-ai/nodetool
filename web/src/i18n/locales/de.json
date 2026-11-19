@@ -9595,6 +9595,7 @@
         "action": "Worker einrichten"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Etwa {{min}}–{{max}} pro Stunde. Endet nach {{count}} Stunde und löscht seine Dateien.",
         "summary_other": "Etwa {{min}}–{{max}} pro Stunde. Endet nach {{count}} Stunden und löscht seine Dateien.",
         "start": "Starten",

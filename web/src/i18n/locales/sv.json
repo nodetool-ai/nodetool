@@ -9526,6 +9526,7 @@
         "attachingHint": "Arbetaren är redo. Bifogar..."
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Cirka {{min}}–{{max}} per timme. Slutar efter {{count}} timme och raderar dess filer.",
         "summary_other": "Cirka {{min}}–{{max}} per timme. Slutar efter {{count}} timmar och raderar dess filer.",
         "start": "Starta",

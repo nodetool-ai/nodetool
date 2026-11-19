@@ -9816,6 +9816,7 @@
         "attachingHint": "Pracownik jest gotowy. Dołączam…"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Około {{min}}–{{max}} na godzinę. Kończy się po {{count}} godzinie i usuwa jego pliki.",
         "summary_other": "Około {{min}}–{{max}} na godzinę. Kończy się po {{count}} godzinie i usuwa jego pliki.",
         "start": "Zacznij",

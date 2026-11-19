@@ -120,6 +120,8 @@ describe("WorkersPanel", () => {
         makeHookValue({ instances: [], comfyPresets: [preset], startComfyPreset })
       );
       renderPanel();
+      expect(screen.getByText("ComfyUI")).toBeInTheDocument();
+      expect(screen.getByText(/ComfyUI server on RunPod/i)).toBeInTheDocument();
       await userEvent.click(screen.getByRole("button", { name: /MiniMax H3/ }));
       expect(startComfyPreset).toHaveBeenCalledWith("minimax-h3");
     });

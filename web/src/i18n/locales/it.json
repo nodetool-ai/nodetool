@@ -9671,6 +9671,7 @@
         "attachingHint": "Il lavoratore è pronto. Allegando..."
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Circa {{min}}–{{max}} all'ora. Termina dopo {{count}} ora ed elimina i relativi file.",
         "summary_other": "Circa {{min}}–{{max}} all'ora. Termina dopo {{count}} ore ed elimina i relativi file.",
         "start": "Inizia",

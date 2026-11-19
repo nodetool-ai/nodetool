@@ -9526,6 +9526,7 @@
         "attachingHint": "작업자가 준비되었습니다. 첨부 중…"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "시간당 약 {{min}}~{{max}}입니다. {{count}}시간 후에 종료되고 해당 파일이 삭제됩니다.",
         "summary_other": "시간당 약 {{min}}~{{max}}입니다. {{count}}시간 후에 종료되고 해당 파일이 삭제됩니다.",
         "start": "시작",

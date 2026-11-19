@@ -9671,6 +9671,7 @@
         "attachingHint": "O trabalhador está pronto. Anexando…"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Cerca de {{min}}–{{max}} por hora. Termina após {{count}} hora e exclui seus arquivos.",
         "summary_other": "Cerca de {{min}}–{{max}} por hora. Termina após {{count}} horas e exclui seus arquivos.",
         "start": "Começar",

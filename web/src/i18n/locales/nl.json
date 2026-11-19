@@ -9526,6 +9526,7 @@
         "attachingHint": "Arbeider is klaar. Bevestigen…"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Ongeveer {{min}}–{{max}} per uur. Eindigt na {{count}} uur en verwijdert de bestanden.",
         "summary_other": "Ongeveer {{min}}–{{max}} per uur. Eindigt na {{count}} uur en verwijdert de bestanden.",
         "start": "Begin",

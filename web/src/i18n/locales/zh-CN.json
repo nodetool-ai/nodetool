@@ -9595,6 +9595,7 @@
         "action": "设置工作器"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "每小时约 {{min}}–{{max}}。{{count}} 小时后结束并删除其文件。",
         "summary_other": "每小时约 {{min}}–{{max}}。{{count}} 小时后结束并删除其文件。",
         "start": "启动",

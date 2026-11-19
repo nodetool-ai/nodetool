@@ -9671,6 +9671,7 @@
         "attachingHint": "Le travailleur est prêt. Attacher…"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Environ {{min}}–{{max}} par heure. Se termine après {{count}} heure et supprime ses fichiers.",
         "summary_other": "Environ {{min}}–{{max}} par heure. Se termine après {{count}} heures et supprime ses fichiers.",
         "start": "Commencer",
