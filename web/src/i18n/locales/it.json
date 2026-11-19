@@ -14277,6 +14277,8 @@
       "loadFailureTitle": "Impossibile caricare i documenti",
       "loadFailureSummary": "Impossibile caricare i documenti del progetto",
       "tryAgainLater": "Riprova più tardi.",
+      "cloudLoadFailure": "Impossibile elencare i documenti cloud: {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "Nessun documento corrispondente",
       "noMatchingDescription": "Questa ricerca avviene solo sui documenti. Le conversazioni sono nelle chat e i caricamenti sono nella Libreria.",
       "noDocuments": "Nessun documento ancora",
@@ -14295,7 +14297,9 @@
         "text": "File di testo",
         "agents": "Agenti e codice",
         "entities": "Entità",
-        "shared": "Condiviso con me"
+        "shared": "Condiviso con me",
+        "cloud": "Cloud",
+        "cloudShared": "Condiviso con me"
       },
       "type": {
         "workflow": "Flusso di lavoro",

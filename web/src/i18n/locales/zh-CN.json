@@ -14035,6 +14035,8 @@
       "loadFailureTitle": "无法加载文档",
       "loadFailureSummary": "项目文档加载失败",
       "tryAgainLater": "请稍后重试。",
+      "cloudLoadFailure": "无法列出云端文档：{{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "没有匹配的文档",
       "noMatchingDescription": "这里只搜索文档。对话位于聊天中，上传内容位于素材库中。",
       "noDocuments": "还没有文档",
@@ -14053,7 +14055,9 @@
         "text": "文本文件",
         "agents": "代理和代码",
         "entities": "实体",
-        "shared": "与我共享"
+        "shared": "与我共享",
+        "cloud": "云端",
+        "cloudShared": "与我共享"
       },
       "type": {
         "workflow": "工作流",

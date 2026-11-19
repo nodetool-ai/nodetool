@@ -14035,6 +14035,8 @@
       "loadFailureTitle": "ドキュメントをロードできませんでした",
       "loadFailureSummary": "プロジェクトドキュメントのロードに失敗しました",
       "tryAgainLater": "後でもう一度試してください。",
+      "cloudLoadFailure": "クラウドのドキュメントを一覧表示できませんでした: {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "一致する文書がありません",
       "noMatchingDescription": "ドキュメントのみを検索します。会話はチャットで、アップロードはライブラリで行われます。",
       "noDocuments": "まだ書類がありません",
@@ -14053,7 +14055,9 @@
         "text": "テキストファイル",
         "agents": "エージェントとコード",
         "entities": "エンティティ",
-        "shared": "私と共有しました"
+        "shared": "私と共有しました",
+        "cloud": "クラウド",
+        "cloudShared": "私と共有しました"
       },
       "type": {
         "workflow": "ワークフロー",

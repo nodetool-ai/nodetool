@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 import type { Entity } from "@nodetool-ai/protocol";
 
+import type { DocumentOrigin } from "../lib/cloud/documentOrigin";
 import { trpc } from "../trpc/client";
 
 export type DocumentTreeLeafType =
@@ -24,6 +25,8 @@ export interface DocumentTreeLeaf {
   readonly entity?: Entity;
   /** Set on a document another user shared with the caller: their role. */
   readonly sharedRole?: "viewer" | "editor";
+  /** Set on a document of a cloud server in the desktop app. Absent means local. */
+  readonly origin?: DocumentOrigin;
 }
 
 export interface DocumentTreeGroup {
@@ -34,7 +37,9 @@ export interface DocumentTreeGroup {
     | "text"
     | "agents"
     | "entities"
-    | "shared";
+    | "shared"
+    | "cloud"
+    | "cloudShared";
   readonly label: string;
   readonly children: readonly DocumentTreeLeaf[];
 }

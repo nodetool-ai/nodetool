@@ -113,6 +113,7 @@ describe("stateFromHelper", () => {
       type: "state",
       state: "signedIn",
       displayName: "Ada",
+      accountId: "u1",
       serverOrigin: ORIGIN,
       serverEndPending: false,
       cloudAvailable: true,
@@ -123,6 +124,7 @@ describe("stateFromHelper", () => {
     expect(state).toEqual({
       state: "signedIn",
       displayName: "Ada",
+      accountId: "u1",
       serverOrigin: ORIGIN,
       serverEndPending: false,
       cloudAvailable: true,
@@ -130,6 +132,8 @@ describe("stateFromHelper", () => {
       message: "",
     });
     expect(stateFromHelper({ state: "anything" }).state).toBe("signedOut");
+    // A helper of version 1 names no account.
+    expect(stateFromHelper({ state: "signedIn" }).accountId).toBe("");
   });
 });
 
