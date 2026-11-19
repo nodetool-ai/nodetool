@@ -556,6 +556,10 @@ export enum IpcChannels {
   CLOUD_SOCKET_SEND = "cloud-socket-send",
   CLOUD_SOCKET_CLOSE = "cloud-socket-close",
   CLOUD_SOCKET_EVENT = "cloud-socket-event",
+  CLOUD_WINDOW_OPEN = "cloud-window-open",
+  CLOUD_WINDOW_ORIGIN = "cloud-window-origin",
+  CLOUD_WINDOW_READY = "cloud-window-ready",
+  CLOUD_WINDOW_DOCUMENT = "cloud-window-document",
   // Native OS notifications, shown while no app window is focused
   SYSTEM_NOTIFICATION_SHOW = "system-notification-show",
 }
@@ -605,6 +609,20 @@ export type CloudResponse =
   | { ok: false; error: CloudRequestError };
 
 /** The workflow socket of a cloud document, opened by the main process (D25). */
+/** A document of the signed-in cloud server that opens in the cloud window (D26, D27). */
+export interface CloudDocumentRef {
+  type: "workflow" | "timeline";
+  id: string;
+}
+
+/** The server and account the cloud window was opened for. */
+export interface CloudWindowOrigin {
+  server: string;
+  account: string;
+}
+
+export type CloudWindowOpenResult = { ok: true } | { ok: false; error: "SIGNED_OUT" | "STARTING" };
+
 export type CloudSocketOpenResult = { ok: true; id: number } | { ok: false; error: "SIGNED_OUT" | "OFFLINE" | "BUSY" };
 
 export interface CloudSocketSendInput {
@@ -891,6 +909,8 @@ export interface IpcRequest {
   [IpcChannels.CLOUD_SOCKET_OPEN]: void;
   [IpcChannels.CLOUD_SOCKET_SEND]: CloudSocketSendInput;
   [IpcChannels.CLOUD_SOCKET_CLOSE]: CloudSocketCloseInput;
+  [IpcChannels.CLOUD_WINDOW_OPEN]: CloudDocumentRef;
+  [IpcChannels.CLOUD_WINDOW_READY]: void;
   [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: SystemNotificationRequest;
 }
 
@@ -1003,6 +1023,8 @@ export interface IpcResponse {
   [IpcChannels.CLOUD_SOCKET_OPEN]: CloudSocketOpenResult;
   [IpcChannels.CLOUD_SOCKET_SEND]: boolean;
   [IpcChannels.CLOUD_SOCKET_CLOSE]: void;
+  [IpcChannels.CLOUD_WINDOW_OPEN]: CloudWindowOpenResult;
+  [IpcChannels.CLOUD_WINDOW_READY]: CloudDocumentRef[];
   [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: boolean;
 }
 
@@ -1020,6 +1042,7 @@ export interface IpcEvents {
   [IpcChannels.VST_EVENT]: VstHostEvent;
   [IpcChannels.CLOUD_ACCOUNT_EVENT]: CloudAccountState;
   [IpcChannels.CLOUD_SOCKET_EVENT]: CloudSocketEvent;
+  [IpcChannels.CLOUD_WINDOW_DOCUMENT]: CloudDocumentRef;
 }
 
 export type PythonPackages = string[];

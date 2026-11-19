@@ -14037,6 +14037,8 @@
       "tryAgainLater": "Försök igen senare.",
       "cloudLoadFailure": "Det gick inte att lista dokumenten i molnet: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool startar fortfarande. Öppna molndokumentet igen om en stund.",
+      "cloudWindowSignedOut": "Logga in på NodeTool Cloud för att öppna det här dokumentet.",
       "noMatching": "Inga matchande dokument",
       "noMatchingDescription": "Detta söker endast i dokument. Konversationer finns i Chats och uppladdningar finns i biblioteket.",
       "noDocuments": "Inga dokument ännu",

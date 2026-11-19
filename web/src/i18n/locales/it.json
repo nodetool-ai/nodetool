@@ -14279,6 +14279,8 @@
       "tryAgainLater": "Riprova più tardi.",
       "cloudLoadFailure": "Impossibile elencare i documenti cloud: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool è ancora in avvio. Riapri il documento cloud tra un momento.",
+      "cloudWindowSignedOut": "Accedi a NodeTool Cloud per aprire questo documento.",
       "noMatching": "Nessun documento corrispondente",
       "noMatchingDescription": "Questa ricerca avviene solo sui documenti. Le conversazioni sono nelle chat e i caricamenti sono nella Libreria.",
       "noDocuments": "Nessun documento ancora",

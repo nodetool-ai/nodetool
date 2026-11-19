@@ -10,6 +10,7 @@ import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { createCloudTrpcClient } from "../../trpc/cloudClient";
 import type { CloudAccountState } from "../../window";
 import { desktopCloudRequester } from "./cloudFetch";
+import { isCloudWindow } from "./cloudWindow";
 import type { DocumentOrigin } from "./documentOrigin";
 
 type CloudOrigin = Extract<DocumentOrigin, { kind: "cloud" }>;
@@ -63,8 +64,13 @@ export function cloudOriginOf(state: CloudAccountState | null): CloudOrigin | nu
   return { kind: "cloud", server: state.serverOrigin, account: state.accountId };
 }
 
+/**
+ * The signed-in cloud server, for the local window's cloud groups. Null in the
+ * cloud window, where the cloud server is the page's own server (D27).
+ */
 export function useCloudOrigin(): CloudOrigin | null {
-  const origin = cloudOriginOf(useCloudAccountState());
+  const state = useCloudAccountState();
+  const origin = isCloudWindow() ? null : cloudOriginOf(state);
   const server = origin?.server;
   const account = origin?.account;
   // One object for one server and account, so it can sit in dependency lists.

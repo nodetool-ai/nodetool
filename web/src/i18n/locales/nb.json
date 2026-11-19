@@ -14037,6 +14037,8 @@
       "tryAgainLater": "Prøv igjen senere.",
       "cloudLoadFailure": "Kunne ikke vise dokumentene i skyen: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool starter fortsatt. Åpne skydokumentet igjen om et øyeblikk.",
+      "cloudWindowSignedOut": "Logg på NodeTool Cloud for å åpne dette dokumentet.",
       "noMatching": "Ingen samsvarende dokumenter",
       "noMatchingDescription": "Dette søker kun i dokumenter. Samtaler er i Chats, og opplastinger er i biblioteket.",
       "noDocuments": "Ingen dokumenter ennå",

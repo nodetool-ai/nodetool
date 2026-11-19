@@ -595,9 +595,9 @@ export function registerCloudMediaScheme(): void {
   ]);
 }
 
-/** Answers `nodetool-cloud:` URLs through the account (cloudMediaResponse). */
-export function handleCloudMediaScheme(): void {
-  protocol.handle(CLOUD_MEDIA_SCHEME, (request) => cloudMediaResponse(request, getCloudAccount()));
+/** Answers `nodetool-cloud:` URLs through the account (cloudMediaResponse), in one session. */
+export function handleCloudMediaScheme(target: Electron.Protocol = protocol): void {
+  target.handle(CLOUD_MEDIA_SCHEME, (request) => cloudMediaResponse(request, getCloudAccount()));
 }
 
 let sharedSockets: CloudSockets | null = null;

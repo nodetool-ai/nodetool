@@ -148,6 +148,16 @@ export interface CloudTransferResult {
   data: unknown;
 }
 
+/** A document of the signed-in cloud server, as the cloud window opens it. */
+export interface CloudDocumentRef {
+  type: "workflow" | "timeline";
+  id: string;
+}
+
+export type CloudWindowOpenResult =
+  | { ok: true }
+  | { ok: false; error: "SIGNED_OUT" | "STARTING" };
+
 interface McpBundleInstallResult {
   ok: boolean;
   opened: boolean;
@@ -265,6 +275,14 @@ declare global {
             ) => void
           ) => () => void;
         };
+        /** Opens a document of the signed-in server in the cloud window (D27). */
+        openDocument: (document: CloudDocumentRef) => Promise<CloudWindowOpenResult>;
+        /** In the cloud window, its server and account. Null in every other window. */
+        window: { server: string; account: string } | null;
+        /** The cloud window's page is ready: the documents asked for so far. */
+        windowReady: () => Promise<CloudDocumentRef[]>;
+        /** Documents opened in the cloud window after it was ready. Returns the unsubscribe function. */
+        onWindowDocument: (callback: (document: CloudDocumentRef) => void) => () => void;
       };
       /** Native OS notifications. Desktop only. */
       notifications?: {

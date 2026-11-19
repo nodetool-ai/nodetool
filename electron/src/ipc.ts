@@ -45,6 +45,7 @@ import { setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
 import { getVstHost } from "./vstHost";
 import { getCloudAccount, getCloudSockets } from "./cloudAccount";
+import { getCloudWindow } from "./cloudWindowHost";
 import { showSystemNotification } from "./systemNotifications";
 import { IpcRequest } from "./types.d";
 import {
@@ -108,6 +109,13 @@ const cloudSocketSendSchema = z
   })
   .strict();
 const cloudSocketCloseSchema = z.object({ id: z.number().int().positive() }).strict();
+// A cloud document id is one path segment of a tRPC input, never a URL.
+const cloudDocumentRefSchema = z
+  .object({
+    type: z.enum(["workflow", "timeline"]),
+    id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
+  })
+  .strict();
 // The windows whose sockets close when they are destroyed.
 const watchedSocketOwners = new Set<number>();
 const nodePackUninstallRequestSchema = z.object({ name: z.string() }).strict();
@@ -1101,6 +1109,20 @@ export function initializeIpcHandlers(): void {
     if (parsed.success) {
       getCloudSockets().close(event.sender.id, parsed.data.id);
     }
+  });
+
+  // The cloud window (D27). Any window can open a cloud document there. Only
+  // the cloud window learns its server and account, and only from here.
+  createIpcMainHandler(IpcChannels.CLOUD_WINDOW_OPEN, async (_event, request) => {
+    const parsed = cloudDocumentRefSchema.safeParse(request);
+    return parsed.success ? getCloudWindow().open(parsed.data) : ({ ok: false, error: "SIGNED_OUT" } as const);
+  });
+  createIpcMainHandler(IpcChannels.CLOUD_WINDOW_READY, async (event) =>
+    getCloudWindow().takePending(event.sender.id),
+  );
+  ipcMain.removeAllListeners(IpcChannels.CLOUD_WINDOW_ORIGIN);
+  ipcMain.on(IpcChannels.CLOUD_WINDOW_ORIGIN, (event) => {
+    event.returnValue = getCloudWindow().originFor(event.sender.id);
   });
 
   createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {

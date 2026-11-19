@@ -14037,6 +14037,8 @@
       "tryAgainLater": "나중에 다시 시도하세요.",
       "cloudLoadFailure": "클라우드 문서 목록을 불러올 수 없습니다: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool이 아직 시작 중입니다. 잠시 후 클라우드 문서를 다시 여세요.",
+      "cloudWindowSignedOut": "이 문서를 열려면 NodeTool Cloud에 로그인하세요.",
       "noMatching": "일치하는 문서가 없습니다.",
       "noMatchingDescription": "문서만 검색합니다. 대화는 채팅에 있고 업로드는 라이브러리에 있습니다.",
       "noDocuments": "아직 문서가 없습니다.",

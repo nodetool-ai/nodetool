@@ -11,6 +11,8 @@ import { FrontendToolRegistry } from "../tools/frontendTools";
 import { getFrontendToolRuntimeState } from "../tools/frontendToolRuntimeState";
 import { validateInboundMessage } from "./validateInboundMessage";
 import { getAppSessionToken } from "../appSession";
+import { cloudSocketFactory, desktopCloudSocketBridge } from "../cloud/CloudWebSocket";
+import { isCloudWindow } from "../cloud/cloudWindow";
 import {
   isProviderCallFailed,
   type RendererRegisteredMessage,
@@ -238,7 +240,8 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
         urlProvider: () => this.buildAuthenticatedUrl(),
         binaryType: "arraybuffer",
         reconnect: true,
-        reconnectInterval: RECONNECT_INTERVAL_MS
+        reconnectInterval: RECONNECT_INTERVAL_MS,
+        createSocket: cloudWindowSocketFactory()
       });
 
       this.wsManager.on("open", () => {
@@ -792,6 +795,15 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     const query = params.toString();
     return query ? `${UNIFIED_WS_URL}?${query}` : UNIFIED_WS_URL;
   }
+}
+
+/**
+ * In the desktop app's cloud window, the socket is the signed-in server's
+ * `/ws`, opened by the main process with the account's token (D27).
+ */
+function cloudWindowSocketFactory(): ((url: string) => WebSocket) | undefined {
+  const bridge = isCloudWindow() ? desktopCloudSocketBridge() : null;
+  return bridge ? cloudSocketFactory(bridge) : undefined;
 }
 
 export const globalWebSocketManager = GlobalWebSocketManager.getInstance();

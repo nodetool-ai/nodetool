@@ -14037,6 +14037,8 @@
       "tryAgainLater": "Yritä myöhemmin uudelleen.",
       "cloudLoadFailure": "Pilvidokumentteja ei voitu luetella: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool käynnistyy vielä. Avaa pilviasiakirja uudelleen hetken kuluttua.",
+      "cloudWindowSignedOut": "Kirjaudu NodeTool Cloudiin avataksesi tämän asiakirjan.",
       "noMatching": "Ei vastaavia dokumentteja",
       "noMatchingDescription": "Tämä hakee vain dokumentteja. Keskustelut ovat Keskusteluissa ja lähetetyt tiedostot Kirjastossa.",
       "noDocuments": "Ei vielä dokumentteja",

@@ -29,8 +29,11 @@ import {
   SystemNotificationRequest,
   CloudRequestInput,
   CloudResponse,
+  CloudDocumentRef,
   CloudSocketOpenResult,
   CloudTransferInput,
+  CloudWindowOpenResult,
+  CloudWindowOrigin,
   TransferResult,
 } from "./types.d";
 import { isString } from "./typePredicates";
@@ -40,6 +43,26 @@ import { isString } from "./typePredicates";
 // ============================================================================
 
 type ClipboardType = "clipboard" | "selection";
+
+/**
+ * Whether this window is the cloud window, and for which server and account
+ * (D27). The main process answers once, before page code runs, so the page
+ * cannot make itself a cloud window.
+ */
+function readCloudWindowOrigin(): CloudWindowOrigin | null {
+  let answer: { server?: unknown; account?: unknown } | null = null;
+  try {
+    answer = ipcRenderer.sendSync(IpcChannels.CLOUD_WINDOW_ORIGIN);
+  } catch {
+    return null;
+  }
+  if (answer && isString(answer.server) && isString(answer.account) && answer.server && answer.account) {
+    return Object.freeze({ server: answer.server, account: answer.account });
+  }
+  return null;
+}
+
+const cloudWindowOrigin = readCloudWindowOrigin();
 
 // ============================================================================
 // Event Handler Factory
@@ -712,6 +735,15 @@ const api = {
       /** Frames, the open and the close of every socket this window opened. */
       onEvent: createEventSubscription(IpcChannels.CLOUD_SOCKET_EVENT),
     },
+    /** Opens a document of the signed-in server in the cloud window (D27). */
+    openDocument: (document: CloudDocumentRef): Promise<CloudWindowOpenResult> =>
+      ipcRenderer.invoke(IpcChannels.CLOUD_WINDOW_OPEN, { type: document?.type, id: document?.id }),
+    /** In the cloud window, its server and account. Null in every other window. */
+    window: cloudWindowOrigin,
+    /** The cloud window's page is ready: the documents asked for so far. */
+    windowReady: (): Promise<CloudDocumentRef[]> => ipcRenderer.invoke(IpcChannels.CLOUD_WINDOW_READY),
+    /** Documents opened in the cloud window after it was ready. */
+    onWindowDocument: createEventSubscription(IpcChannels.CLOUD_WINDOW_DOCUMENT),
   },
 
   // ============================================================================

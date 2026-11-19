@@ -14037,6 +14037,8 @@
       "tryAgainLater": "请稍后重试。",
       "cloudLoadFailure": "无法列出云端文档：{{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool 仍在启动。请稍后再次打开云文档。",
+      "cloudWindowSignedOut": "登录 NodeTool Cloud 以打开此文档。",
       "noMatching": "没有匹配的文档",
       "noMatchingDescription": "这里只搜索文档。对话位于聊天中，上传内容位于素材库中。",
       "noDocuments": "还没有文档",

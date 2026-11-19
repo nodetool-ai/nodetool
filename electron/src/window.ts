@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, dialog, WebContents } from "electron";
+import { app, BrowserWindow, session, dialog, WebContents, type Session } from "electron";
 import { setMainWindow, getMainWindow, serverState } from "./state";
 import { IpcChannels } from "./types.d";
 import path from "path";
@@ -7,6 +7,7 @@ import { isAppQuitting } from "./main";
 import { isElectronDevMode, getWebDevServerUrl } from "./devMode";
 import { hardenWebContents, isTrustedAppOrigin } from "./windowSecurity";
 import { LOCAL_CLIENT_TOKEN_HEADER, getLocalClientToken } from "./localClientToken";
+import { handleCloudMediaScheme } from "./cloudAccount";
 
 /**
  * Shared secure webPreferences for all windows.
@@ -139,13 +140,8 @@ function openSettingsInMainWindow(): void {
   });
 }
 
-/**
- * Set permission handlers for Electron sessions.
- */
-function initializePermissionHandlers(): void {
-  if (permissionHandlersInitialized) return;
-  permissionHandlersInitialized = true;
-
+/** The app's permission policy, for the default session and the cloud window's. */
+function applyPermissionPolicy(target: Session): void {
   // Harmless for any frame, including third-party embeds.
   const alwaysAllowedPermissions = new Set(["fullscreen", "mediaKeySystem"]);
   // Camera/microphone, device enumeration and clipboard writes are granted
@@ -163,7 +159,7 @@ function initializePermissionHandlers(): void {
     alwaysAllowedPermissions.has(permission) ||
     (appOnlyPermissions.has(permission) && isTrustedAppOrigin(urlOrOrigin));
 
-  session.defaultSession.setPermissionRequestHandler(
+  target.setPermissionRequestHandler(
     (
       _webContents: WebContents,
       permission: string,
@@ -179,14 +175,23 @@ function initializePermissionHandlers(): void {
     }
   );
 
-  session.defaultSession.setPermissionCheckHandler(
+  target.setPermissionCheckHandler(
     (
       _webContents: WebContents | null,
       permission: string,
       requestingOrigin: string
     ): boolean => isPermissionAllowed(permission, requestingOrigin)
   );
+}
 
+/**
+ * Set permission handlers for Electron sessions.
+ */
+function initializePermissionHandlers(): void {
+  if (permissionHandlersInitialized) return;
+  permissionHandlersInitialized = true;
+
+  applyPermissionPolicy(session.defaultSession);
   // The app's own pages talk to local services (the backend, and in dev the
   // Vite server) across localhost/127.0.0.1 origins. Relax CORS only for
   // requests made by those pages: the requesting frame decides, not the
@@ -303,7 +308,54 @@ function _resetPermissionHandlersForTesting(): void {
   permissionHandlersInitialized = false;
 }
 
+/**
+ * The cloud window (D27), with the app's secure preferences, DevTools
+ * shortcut and hardening.
+ */
+/**
+ * The cloud window's own session (D27). Its storage is apart from the local
+ * window's, so the two windows' saved tabs, settings and caches never mix.
+ * It gets no local client token, so the local server treats its requests as
+ * any other page's.
+ */
+const CLOUD_WINDOW_PARTITION = "persist:nodetool-cloud";
+let cloudSessionInitialized = false;
+
+function cloudWindowSession(): Session {
+  const cloudSession = session.fromPartition(CLOUD_WINDOW_PARTITION);
+  if (!cloudSessionInitialized) {
+    cloudSessionInitialized = true;
+    applyPermissionPolicy(cloudSession);
+    handleCloudMediaScheme(cloudSession.protocol);
+  }
+  return cloudSession;
+}
+
+function createCloudBrowserWindow(): BrowserWindow {
+  const window = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    frame: true,
+    title: "NodeTool Cloud",
+    webPreferences: { ...secureWebPreferences, session: cloudWindowSession() },
+  });
+  window.setBackgroundColor("#111111");
+  registerDevToolsShortcut(window);
+  hardenWebContents(window.webContents);
+  return window;
+}
+
+/** Where the web app loads from: the Vite server in dev mode, else the started backend. */
+function webAppUrl(): string | null {
+  if (isElectronDevMode()) {
+    return getWebDevServerUrl();
+  }
+  return serverState.isStarted ? serverState.initialURL : null;
+}
+
 export {
+  createCloudBrowserWindow,
+  webAppUrl,
   createWindow,
   createLogViewerWindow,
   openSettingsInMainWindow,

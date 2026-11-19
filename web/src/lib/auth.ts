@@ -1,6 +1,7 @@
 import { supabase } from "./supabaseClient";
 import { isSsoMode } from "./runtimeConfig";
 import { getSsoToken, getSsoUser } from "./ssoSession";
+import { isCloudWindow } from "./cloud/cloudWindow";
 
 /** The bearer token and user id of the signed-in session. */
 export interface AccessSession {
@@ -10,9 +11,13 @@ export interface AccessSession {
 
 /**
  * The signed-in session's bearer token, from the SSO session in SSO mode and
- * from Supabase otherwise. Null when nobody is signed in.
+ * from Supabase otherwise. Null when nobody is signed in, and always null in
+ * the desktop app's cloud window, whose page holds no token (D27).
  */
 export const getAccessSession = async (): Promise<AccessSession | null> => {
+  if (isCloudWindow()) {
+    return null;
+  }
   if (isSsoMode()) {
     const token = getSsoToken();
     const user = getSsoUser();
