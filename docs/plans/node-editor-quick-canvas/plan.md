@@ -38,6 +38,11 @@ on RHI. The spike logs are `~/.cache/tp-native/logs/ne-rhi-*.log`.
 The user accepted D1 to D9 as recommended and deferred Q11 until edges are
 measured on RHI after Q10.
 
+On 2026-11-19 the user decided that the Quick canvas is the default and that
+QtNodes is removed. Q5 therefore flips the default without a one-release
+fallback, and Q6 deletes QtNodes in the same PR series. Q4 comes first
+because the media, inline editor and picker overlays still live in widgets.
+
 - **D1. Keep `QtNodes::AbstractGraphModel` as the model interface.**
   Recommended: keep it. `WorkflowGraphModel` implements it, and 28 source
   files and 61 test files use `QtNodes::NodeId`, `PortType`, `PortIndex` and
@@ -552,8 +557,9 @@ Medium to large: about 2,500 lines changed, small QML edits.
 
 Small in code. It is the parity checkpoint.
 
-- The switch defaults to `quick`. `NODETOOL_NODE_EDITOR_CANVAS=qtnodes`
-  keeps the old canvas for one release.
+- The switch defaults to `quick`. The user decided on 2026-11-19 that
+  QtNodes leaves with it, so there is no `qtnodes` fallback value. Q6 follows
+  directly.
 - Run the visual comparison (`scripts/visual-compare.mjs`) and the parity
   runner, and update `docs/parity.md` where a result changed.
 - Lower the drag limit in `LargeGraphTest` to 16 ms.
