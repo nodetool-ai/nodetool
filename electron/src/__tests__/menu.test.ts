@@ -245,6 +245,62 @@ describe('buildMenu', () => {
     expect(buildFromTemplateMock).toHaveBeenCalledTimes(2);
   });
 
+  it('enables Publish to Cloud and Synchronize only when the renderer says they apply', async () => {
+    mockIpcChannels();
+
+    const sendMock = jest.fn();
+    const buildFromTemplateMock = jest
+      .fn()
+      .mockImplementation((template) => ({ template }));
+
+    jest.doMock('electron', () => ({
+      app: {
+        isPackaged: false,
+        getPath: jest.fn().mockReturnValue('/mock/userData'),
+      },
+      Menu: {
+        buildFromTemplate: buildFromTemplateMock,
+        setApplicationMenu: jest.fn(),
+      },
+      shell: { openExternal: jest.fn() },
+    }));
+    jest.doMock('../state', () => ({
+      getMainWindow: jest.fn().mockReturnValue({
+        isDestroyed: () => false,
+        webContents: { send: sendMock },
+      }),
+    }));
+    jest.doMock('../window', () => ({
+      createLogViewerWindow: jest.fn(),
+      openSettingsInMainWindow: jest.fn(),
+    }));
+
+    const menuModule = await import('../menu');
+    menuModule.buildMenu();
+
+    const fileItem = (call: number, label: string) => {
+      const template = buildFromTemplateMock.mock.calls[call][0] as Array<Record<string, any>>;
+      return template
+        .find((item) => item.label === 'File')
+        ?.submenu?.find((item: { label?: string }) => item.label === label);
+    };
+
+    expect(fileItem(0, 'Publish to Cloud…')?.enabled).toBe(false);
+    expect(fileItem(0, 'Synchronize…')?.enabled).toBe(false);
+
+    menuModule.setMenuCloudTransfer(true);
+    expect(buildFromTemplateMock).toHaveBeenCalledTimes(2);
+    expect(fileItem(1, 'Publish to Cloud…')?.enabled).toBe(true);
+    fileItem(1, 'Publish to Cloud…')?.click();
+    expect(sendMock).toHaveBeenCalledWith('menu-event', { type: 'publishToCloud' });
+    fileItem(1, 'Synchronize…')?.click();
+    expect(sendMock).toHaveBeenCalledWith('menu-event', { type: 'synchronizeProject' });
+
+    // An unchanged value does not rebuild the menu.
+    menuModule.setMenuCloudTransfer(true);
+    expect(buildFromTemplateMock).toHaveBeenCalledTimes(2);
+  });
+
   it('builds a Vaults submenu, checks the active vault, and switches on click', async () => {
     mockIpcChannels();
 

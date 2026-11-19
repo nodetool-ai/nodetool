@@ -41,13 +41,14 @@ import {
   getVaultList,
 } from "./vaults";
 import { applyVaultSwitch } from "./vaultSwitch";
-import { setMenuSnapToGrid } from "./menu";
+import { setMenuCloudTransfer, setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
 import { getVstHost } from "./vstHost";
 import { getCloudAccount, getCloudSockets } from "./cloudAccount";
 import { cloudWindowLocalCall, getCloudWindow } from "./cloudWindowHost";
 import { showSystemNotification } from "./systemNotifications";
 import { IpcRequest } from "./types.d";
+import { getMainWindow } from "./state";
 import {
   registerWorkflowShortcut,
   setupWorkflowShortcuts,
@@ -731,6 +732,15 @@ export function initializeIpcHandlers(): void {
     } catch (error) {
       logMessage(`Error in window maximize: ${error}`, "error");
     }
+  });
+
+  ipcMain.on(IpcChannels.MENU_SET_CLOUD_TRANSFER, (event, enabled: unknown) => {
+    // Only the main window names the project the menu entries act on.
+    const mainWindow = getMainWindow();
+    if (!isBoolean(enabled) || !mainWindow || event.sender !== mainWindow.webContents) {
+      return;
+    }
+    setMenuCloudTransfer(enabled);
   });
 
   ipcMain.on(IpcChannels.MENU_SET_SNAP_TO_GRID, (_event, enabled: unknown) => {

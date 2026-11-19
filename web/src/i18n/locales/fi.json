@@ -20390,5 +20390,91 @@
       "signOutNow": "Kirjaudu ulos nyt",
       "waitingNote": "Odotetaan muutosten lähettämistä. Pidä pilvi-ikkuna auki."
     }
+  },
+  "cloudTransfer": {
+    "title": {
+      "publish": "Julkaise pilveen",
+      "synchronize": "Synkronoi"
+    },
+    "capturing": "Luetaan muutoksia…",
+    "running": "Lähetetään ja vastaanotetaan…",
+    "apply": {
+      "publish": "Julkaise",
+      "synchronize": "Synkronoi"
+    },
+    "cancel": "Peruuta",
+    "close": "Sulje",
+    "tryAgain": "Yritä uudelleen",
+    "nothing": "Ei mitään lähetettävää tai vastaanotettavaa.",
+    "section": {
+      "choice": "Muutettu täällä ja pilvessä",
+      "receive": "Vastaanotetaan pilvestä",
+      "send": "Lähetetään pilveen",
+      "deletion": "Poistettu tältä tietokoneelta",
+      "problem": "Ei voi lähettää"
+    },
+    "choice": {
+      "label": "Säilytettävä versio: {{name}}",
+      "receive": "Pilviversio",
+      "keepLocal": "Säilytä omani"
+    },
+    "deletion": {
+      "confirm": "Poista myös pilvestä",
+      "note": "Ellet poista sitä myös pilvestä, pilviversio palaa tälle tietokoneelle."
+    },
+    "missing": {
+      "confirm": "Lähetä ilman tätä tiedostoa"
+    },
+    "row": {
+      "createDocument": "Uusi täällä, lähetetään",
+      "replaceDocument": "Muutettu täällä, lähetetään",
+      "renameDocument": "Nimetty uudelleen: {{name}}",
+      "keepBoth": "Lähetetään kopiona pilviversion rinnalle",
+      "addVersions": "Tallennetut versiot lähetetään",
+      "putAssetFile": "Tiedosto muutettu täällä, lähetetään",
+      "newInCloud": "Uusi pilvessä",
+      "cloudChanged": "Muutettu pilvessä",
+      "cloudFileChanged": "Sen käyttämä tiedosto muuttui pilvessä",
+      "bothChanged": "Muutettu täällä ja pilvessä",
+      "deleted": "Poistettu tältä tietokoneelta",
+      "deletedCloudChanged": "Poistettu tältä tietokoneelta, ja sen jälkeen muutettu pilvessä",
+      "missingLocally": "Tarvittava tiedosto puuttuu projektikansiosta",
+      "tooLarge": "Tarvittava tiedosto on liian suuri lähetettäväksi",
+      "overAllowance": "Tarvittava tiedosto ei mahdu tallennustilakiintiöön",
+      "cannotSend": "Ei voi lähettää: {{reason}}",
+      "documentFileMissing": "Sen tiedosto puuttuu projektikansiosta, joten viimeksi tallennettu versio lähetetään."
+    },
+    "message": {
+      "signInToPublish": "Kirjaudu sisään julkaistaksesi tämän projektin.",
+      "signInToSynchronize": "Kirjaudu sisään synkronoidaksesi tämän projektin.",
+      "noProject": "Avaa projektikansio julkaistaksesi tai synkronoidaksesi sen.",
+      "linkedElsewhere": "Tämä projekti on linkitetty toiseen pilvipalvelimeen tai tiliin. Kirjaudu sille tilille synkronoidaksesi sen.",
+      "signedOut": "Kirjaudu uudelleen lähettääksesi tai vastaanottaaksesi tämän projektin.",
+      "offline": "Pilvipalvelimeen ei saatu yhteyttä. Yritä uudelleen, kun olet verkossa.",
+      "localUnavailable": "Tämän sovelluksen projektipalvelin ei vastannut.",
+      "cancelled": "Siirto keskeytyi, koska pilvitili vaihtui.",
+      "refused": "Palvelin hylkäsi siirron ({{reason}}).",
+      "collectFirst": "Osa projektin tiedostoista on projektikansion ulkopuolella. Kerää ne kansioon ja yritä uudelleen.",
+      "receiveExpired": "Pilviprojekti muuttui, kun tämä ikkuna oli auki. Synkronoi uudelleen.",
+      "receiveChangedWhileOpen": "Jokin muuttui, kun tämä ikkuna oli auki. Tarkista valinnat uudelleen.",
+      "receivingChangedAgain": "Pilviprojekti muuttui uudelleen vastaanoton aikana. Valitse uudelleen.",
+      "chooseAgain_one": "{{count}} asiakirja muuttui täällä tai pilvessä valintasi jälkeen. Valitse uudelleen.",
+      "chooseAgain_other": "{{count}} asiakirjaa muuttui täällä tai pilvessä valintasi jälkeen. Valitse uudelleen.",
+      "cloudChangedChooseAgain_one": "{{count}} asiakirjan pilviversio muuttui tämän ikkunan lukemisen jälkeen. Valitse uudelleen.",
+      "cloudChangedChooseAgain_other": "{{count}} asiakirjan pilviversio muuttui tämän ikkunan lukemisen jälkeen. Valitse uudelleen.",
+      "notPreparedAgain": "Vastaanotettu. Täällä tehtyjä muutoksia ei voitu valmistella uudelleen: {{reason}} Synkronoi uudelleen lähettääksesi ne.",
+      "sendChangedWhileOpen": "Tämä projekti muuttui, kun ikkuna oli auki. Tarkista, mitä lähetetään.",
+      "missingFilesUnconfirmed": "Projektin tarvitsemia tiedostoja puuttuu. Vahvista jokainen lähettääksesi ilman sitä.",
+      "sendRefused": "Pilvi hylkäsi lähetyksen: {{reasons}}"
+    },
+    "done": {
+      "published": "Julkaistu pilveen.",
+      "synchronized": "Synkronoitu.",
+      "received": "Vastaanotettu: {{names}}",
+      "notReceived": "Ei vastaanotettu: {{names}}",
+      "changedDuringReceive": "Muutettu täällä vastaanoton aikana, joten ei korvattu: {{names}}",
+      "missingFiles_one": "{{count}} tiedostoa ei voitu vastaanottaa.",
+      "missingFiles_other": "{{count}} tiedostoa ei voitu vastaanottaa."
+    }
   }
 }

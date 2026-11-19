@@ -20390,5 +20390,91 @@
       "signOutNow": "Logga ut nu",
       "waitingNote": "Väntar på att ändringarna skickas. Håll molnfönstret öppet."
     }
+  },
+  "cloudTransfer": {
+    "title": {
+      "publish": "Publicera i molnet",
+      "synchronize": "Synkronisera"
+    },
+    "capturing": "Läser vad som ändrats…",
+    "running": "Skickar och tar emot…",
+    "apply": {
+      "publish": "Publicera",
+      "synchronize": "Synkronisera"
+    },
+    "cancel": "Avbryt",
+    "close": "Stäng",
+    "tryAgain": "Försök igen",
+    "nothing": "Inget att skicka eller ta emot.",
+    "section": {
+      "choice": "Ändrat här och i molnet",
+      "receive": "Tas emot från molnet",
+      "send": "Skickas till molnet",
+      "deletion": "Raderat på den här datorn",
+      "problem": "Kan inte skickas"
+    },
+    "choice": {
+      "label": "Version av {{name}} att behålla",
+      "receive": "Molnversionen",
+      "keepLocal": "Behåll min"
+    },
+    "deletion": {
+      "confirm": "Radera i molnet också",
+      "note": "Om du inte väljer att radera den i molnet kommer molnversionen tillbaka till den här datorn."
+    },
+    "missing": {
+      "confirm": "Skicka utan den här filen"
+    },
+    "row": {
+      "createDocument": "Ny här, skickas",
+      "replaceDocument": "Ändrad här, skickas",
+      "renameDocument": "Bytt namn till {{name}}",
+      "keepBoth": "Skickas som en kopia bredvid molnversionen",
+      "addVersions": "Sparade versioner skickas",
+      "putAssetFile": "Filen ändrad här, skickas",
+      "newInCloud": "Ny i molnet",
+      "cloudChanged": "Ändrad i molnet",
+      "cloudFileChanged": "En fil den använder har ändrats i molnet",
+      "bothChanged": "Ändrat här och i molnet",
+      "deleted": "Raderat på den här datorn",
+      "deletedCloudChanged": "Raderat på den här datorn och ändrat i molnet sedan dess",
+      "missingLocally": "En fil den behöver saknas i projektmappen",
+      "tooLarge": "En fil den behöver är för stor att skicka",
+      "overAllowance": "En fil den behöver får inte plats i lagringsutrymmet",
+      "cannotSend": "Kan inte skickas: {{reason}}",
+      "documentFileMissing": "Dess fil saknas i projektmappen, så den senast sparade versionen skickas."
+    },
+    "message": {
+      "signInToPublish": "Logga in för att publicera det här projektet.",
+      "signInToSynchronize": "Logga in för att synkronisera det här projektet.",
+      "noProject": "Öppna en projektmapp för att publicera eller synkronisera den.",
+      "linkedElsewhere": "Det här projektet är länkat till en annan molnserver eller ett annat konto. Logga in på det kontot för att synkronisera det.",
+      "signedOut": "Logga in igen för att skicka eller ta emot det här projektet.",
+      "offline": "Molnservern gick inte att nå. Försök igen när du är online.",
+      "localUnavailable": "Den här appens projektserver svarade inte.",
+      "cancelled": "Överföringen stoppades eftersom molnkontot ändrades.",
+      "refused": "Servern avvisade överföringen ({{reason}}).",
+      "collectFirst": "Vissa filer som projektet använder ligger utanför projektmappen. Samla dem i mappen och försök sedan igen.",
+      "receiveExpired": "Molnprojektet ändrades medan det här fönstret var öppet. Synkronisera igen.",
+      "receiveChangedWhileOpen": "Något ändrades medan det här fönstret var öppet. Kontrollera valen igen.",
+      "receivingChangedAgain": "Molnprojektet ändrades igen under mottagningen. Välj igen.",
+      "chooseAgain_one": "{{count}} dokument ändrades här eller i molnet efter ditt val. Välj igen.",
+      "chooseAgain_other": "{{count}} dokument ändrades här eller i molnet efter ditt val. Välj igen.",
+      "cloudChangedChooseAgain_one": "Molnversionen av {{count}} dokument ändrades efter att fönstret lästes. Välj igen.",
+      "cloudChangedChooseAgain_other": "Molnversionen av {{count}} dokument ändrades efter att fönstret lästes. Välj igen.",
+      "notPreparedAgain": "Mottaget. Ändringarna här kunde inte förberedas igen: {{reason}} Synkronisera igen för att skicka dem.",
+      "sendChangedWhileOpen": "Projektet ändrades medan fönstret var öppet. Kontrollera vad som skickas.",
+      "missingFilesUnconfirmed": "Filer som projektet behöver saknas. Bekräfta var och en för att skicka utan den.",
+      "sendRefused": "Molnet avvisade sändningen: {{reasons}}"
+    },
+    "done": {
+      "published": "Publicerat i molnet.",
+      "synchronized": "Synkroniserat.",
+      "received": "Mottaget: {{names}}",
+      "notReceived": "Inte mottaget: {{names}}",
+      "changedDuringReceive": "Ändrat här under mottagningen och därför inte ersatt: {{names}}",
+      "missingFiles_one": "{{count}} fil kunde inte tas emot.",
+      "missingFiles_other": "{{count}} filer kunde inte tas emot."
+    }
   }
 }

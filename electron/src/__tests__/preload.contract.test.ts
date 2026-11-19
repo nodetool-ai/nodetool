@@ -37,6 +37,7 @@ const IpcChannels = {
   WINDOW_MAXIMIZE: "window-maximize",
   MENU_EVENT: "menu-event",
   MENU_SET_SNAP_TO_GRID: "menu-set-snap-to-grid",
+  MENU_SET_CLOUD_TRANSFER: "menu-set-cloud-transfer",
   ON_CREATE_WORKFLOW: "on-create-workflow",
   ON_UPDATE_WORKFLOW: "on-update-workflow",
   ON_DELETE_WORKFLOW: "on-delete-workflow",

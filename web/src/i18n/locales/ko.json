@@ -20390,5 +20390,91 @@
       "waiting_one": "클라우드 문서 {{count}}개에 아직 보내지 않은 변경 사항이 있습니다.",
       "unsent_one": "서버가 클라우드 문서 {{count}}개의 변경 사항을 거부했습니다."
     }
+  },
+  "cloudTransfer": {
+    "title": {
+      "publish": "클라우드에 게시",
+      "synchronize": "동기화"
+    },
+    "capturing": "변경 사항을 읽는 중…",
+    "running": "보내고 받는 중…",
+    "apply": {
+      "publish": "게시",
+      "synchronize": "동기화"
+    },
+    "cancel": "취소",
+    "close": "닫기",
+    "tryAgain": "다시 시도",
+    "nothing": "보내거나 받을 항목이 없습니다.",
+    "section": {
+      "choice": "여기와 클라우드에서 모두 변경됨",
+      "receive": "클라우드에서 받음",
+      "send": "클라우드로 보냄",
+      "deletion": "이 컴퓨터에서 삭제됨",
+      "problem": "보낼 수 없음"
+    },
+    "choice": {
+      "label": "유지할 {{name}} 버전",
+      "receive": "클라우드 버전",
+      "keepLocal": "내 버전 유지"
+    },
+    "deletion": {
+      "confirm": "클라우드에서도 삭제",
+      "note": "클라우드에서도 삭제하지 않으면 클라우드 버전이 이 컴퓨터로 돌아옵니다."
+    },
+    "missing": {
+      "confirm": "이 파일 없이 보내기"
+    },
+    "row": {
+      "createDocument": "여기서 새로 만듦, 보냄",
+      "replaceDocument": "여기서 변경됨, 보냄",
+      "renameDocument": "{{name}}(으)로 이름 바뀜",
+      "keepBoth": "클라우드 버전 옆에 사본으로 보냄",
+      "addVersions": "저장된 버전을 보냄",
+      "putAssetFile": "여기서 파일이 변경됨, 보냄",
+      "newInCloud": "클라우드에서 새로 만듦",
+      "cloudChanged": "클라우드에서 변경됨",
+      "cloudFileChanged": "사용하는 파일이 클라우드에서 변경됨",
+      "bothChanged": "여기와 클라우드에서 모두 변경됨",
+      "deleted": "이 컴퓨터에서 삭제됨",
+      "deletedCloudChanged": "이 컴퓨터에서 삭제되었고 이후 클라우드에서 변경됨",
+      "missingLocally": "필요한 파일이 프로젝트 폴더에 없습니다",
+      "tooLarge": "필요한 파일이 너무 커서 보낼 수 없습니다",
+      "overAllowance": "필요한 파일이 저장 공간 한도를 넘습니다",
+      "cannotSend": "보낼 수 없음: {{reason}}",
+      "documentFileMissing": "파일이 프로젝트 폴더에 없어서 마지막으로 저장한 버전을 보냅니다."
+    },
+    "message": {
+      "signInToPublish": "이 프로젝트를 게시하려면 로그인하세요.",
+      "signInToSynchronize": "이 프로젝트를 동기화하려면 로그인하세요.",
+      "noProject": "게시하거나 동기화하려면 프로젝트 폴더를 여세요.",
+      "linkedElsewhere": "이 프로젝트는 다른 클라우드 서버나 계정에 연결되어 있습니다. 동기화하려면 그 계정으로 로그인하세요.",
+      "signedOut": "이 프로젝트를 보내거나 받으려면 다시 로그인하세요.",
+      "offline": "클라우드 서버에 연결할 수 없습니다. 온라인 상태일 때 다시 시도하세요.",
+      "localUnavailable": "이 앱의 프로젝트 서버가 응답하지 않았습니다.",
+      "cancelled": "클라우드 계정이 바뀌어 전송이 중지되었습니다.",
+      "refused": "서버가 전송을 거부했습니다({{reason}}).",
+      "collectFirst": "이 프로젝트가 사용하는 일부 파일이 프로젝트 폴더 밖에 있습니다. 폴더로 모은 뒤 다시 시도하세요.",
+      "receiveExpired": "이 창이 열려 있는 동안 클라우드 프로젝트가 변경되었습니다. 다시 동기화하세요.",
+      "receiveChangedWhileOpen": "이 창이 열려 있는 동안 변경된 내용이 있습니다. 선택을 다시 확인하세요.",
+      "receivingChangedAgain": "받는 동안 클라우드 프로젝트가 다시 변경되었습니다. 다시 선택하세요.",
+      "chooseAgain_one": "선택한 후 문서 {{count}}개가 여기나 클라우드에서 변경되었습니다. 다시 선택하세요.",
+      "chooseAgain_other": "선택한 후 문서 {{count}}개가 여기나 클라우드에서 변경되었습니다. 다시 선택하세요.",
+      "cloudChangedChooseAgain_one": "이 창을 읽은 후 문서 {{count}}개의 클라우드 버전이 변경되었습니다. 다시 선택하세요.",
+      "cloudChangedChooseAgain_other": "이 창을 읽은 후 문서 {{count}}개의 클라우드 버전이 변경되었습니다. 다시 선택하세요.",
+      "notPreparedAgain": "받았습니다. 여기의 변경 사항을 다시 준비하지 못했습니다: {{reason}} 보내려면 다시 동기화하세요.",
+      "sendChangedWhileOpen": "창이 열려 있는 동안 이 프로젝트가 변경되었습니다. 보낼 내용을 확인하세요.",
+      "missingFilesUnconfirmed": "이 프로젝트에 필요한 파일이 없습니다. 각 파일을 확인하면 그 파일 없이 보냅니다.",
+      "sendRefused": "클라우드가 보내기를 거부했습니다: {{reasons}}"
+    },
+    "done": {
+      "published": "클라우드에 게시했습니다.",
+      "synchronized": "동기화했습니다.",
+      "received": "받음: {{names}}",
+      "notReceived": "받지 못함: {{names}}",
+      "changedDuringReceive": "받는 동안 여기서 변경되어 바꾸지 않음: {{names}}",
+      "missingFiles_one": "파일 {{count}}개를 받지 못했습니다.",
+      "missingFiles_other": "파일 {{count}}개를 받지 못했습니다."
+    }
   }
 }

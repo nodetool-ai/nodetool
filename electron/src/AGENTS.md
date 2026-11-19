@@ -152,6 +152,11 @@ are in [native/account-helper](../../native/account-helper/README.md).
   The window's session has no local client token, so its drafts go through
   `cloudLocal.ts` (IPC `CLOUD_LOCAL_CALL`), which names the server key and
   account itself.
+- File > Publish to Cloud… and File > Synchronize… send menu events to the
+  main window, whose `CloudTransferHost` opens the review sheet. The entries
+  are enabled only while the main window reports a project folder with a full
+  id and a signed-in account (IPC `MENU_SET_CLOUD_TRANSFER`, accepted from the
+  main window only).
 - Unlike the VST host, the helper is never loaded from the user data folder.
 
 ## Rules

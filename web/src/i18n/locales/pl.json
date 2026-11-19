@@ -21016,5 +21016,97 @@
       "signOutNow": "Wyloguj teraz",
       "waitingNote": "Oczekiwanie na wysłanie zmian. Nie zamykaj okna chmury."
     }
+  },
+  "cloudTransfer": {
+    "title": {
+      "publish": "Opublikuj w chmurze",
+      "synchronize": "Synchronizuj"
+    },
+    "capturing": "Odczytywanie zmian…",
+    "running": "Wysyłanie i odbieranie…",
+    "apply": {
+      "publish": "Opublikuj",
+      "synchronize": "Synchronizuj"
+    },
+    "cancel": "Anuluj",
+    "close": "Zamknij",
+    "tryAgain": "Spróbuj ponownie",
+    "nothing": "Nie ma nic do wysłania ani odebrania.",
+    "section": {
+      "choice": "Zmienione tutaj i w chmurze",
+      "receive": "Zostanie odebrane z chmury",
+      "send": "Zostanie wysłane do chmury",
+      "deletion": "Usunięte na tym komputerze",
+      "problem": "Nie można wysłać"
+    },
+    "choice": {
+      "label": "Wersja {{name}} do zachowania",
+      "receive": "Wersja z chmury",
+      "keepLocal": "Zachowaj moją"
+    },
+    "deletion": {
+      "confirm": "Usuń także w chmurze",
+      "note": "Jeśli nie usuniesz go także w chmurze, wersja z chmury wróci na ten komputer."
+    },
+    "missing": {
+      "confirm": "Wyślij bez tego pliku"
+    },
+    "row": {
+      "createDocument": "Nowy tutaj, zostanie wysłany",
+      "replaceDocument": "Zmieniony tutaj, zostanie wysłany",
+      "renameDocument": "Zmieniono nazwę na {{name}}",
+      "keepBoth": "Zostanie wysłany jako kopia obok wersji z chmury",
+      "addVersions": "Zapisane wersje zostaną wysłane",
+      "putAssetFile": "Plik zmieniony tutaj, zostanie wysłany",
+      "newInCloud": "Nowy w chmurze",
+      "cloudChanged": "Zmieniony w chmurze",
+      "cloudFileChanged": "Używany plik zmienił się w chmurze",
+      "bothChanged": "Zmienione tutaj i w chmurze",
+      "deleted": "Usunięte na tym komputerze",
+      "deletedCloudChanged": "Usunięte na tym komputerze i od tego czasu zmienione w chmurze",
+      "missingLocally": "Potrzebnego pliku brakuje w folderze projektu",
+      "tooLarge": "Potrzebny plik jest za duży, aby go wysłać",
+      "overAllowance": "Potrzebny plik nie mieści się w dostępnym miejscu",
+      "cannotSend": "Nie można wysłać: {{reason}}",
+      "documentFileMissing": "Jego pliku brakuje w folderze projektu, więc zostanie wysłana ostatnia zapisana wersja."
+    },
+    "message": {
+      "signInToPublish": "Zaloguj się, aby opublikować ten projekt.",
+      "signInToSynchronize": "Zaloguj się, aby zsynchronizować ten projekt.",
+      "noProject": "Otwórz folder projektu, aby go opublikować lub zsynchronizować.",
+      "linkedElsewhere": "Ten projekt jest połączony z innym serwerem lub kontem w chmurze. Zaloguj się na to konto, aby go zsynchronizować.",
+      "signedOut": "Zaloguj się ponownie, aby wysłać lub odebrać ten projekt.",
+      "offline": "Nie udało się połączyć z serwerem w chmurze. Spróbuj ponownie, gdy będziesz online.",
+      "localUnavailable": "Serwer projektów tej aplikacji nie odpowiedział.",
+      "cancelled": "Przesyłanie zostało przerwane, ponieważ zmieniło się konto w chmurze.",
+      "refused": "Serwer odrzucił przesyłanie ({{reason}}).",
+      "collectFirst": "Niektóre pliki tego projektu są poza folderem projektu. Zbierz je w folderze i spróbuj ponownie.",
+      "receiveExpired": "Projekt w chmurze zmienił się, gdy to okno było otwarte. Zsynchronizuj ponownie.",
+      "receiveChangedWhileOpen": "Coś się zmieniło, gdy to okno było otwarte. Sprawdź ponownie wybory.",
+      "receivingChangedAgain": "Projekt w chmurze zmienił się ponownie podczas odbierania. Wybierz ponownie.",
+      "chooseAgain_one": "{{count}} dokument zmienił się tutaj lub w chmurze po Twoim wyborze. Wybierz ponownie.",
+      "chooseAgain_other": "{{count}} dokumentów zmieniło się tutaj lub w chmurze po Twoim wyborze. Wybierz ponownie.",
+      "cloudChangedChooseAgain_one": "Wersja w chmurze {{count}} dokumentu zmieniła się od odczytu tego okna. Wybierz ponownie.",
+      "cloudChangedChooseAgain_other": "Wersja w chmurze {{count}} dokumentów zmieniła się od odczytu tego okna. Wybierz ponownie.",
+      "notPreparedAgain": "Odebrano. Nie udało się ponownie przygotować zmian z tego komputera: {{reason}} Zsynchronizuj ponownie, aby je wysłać.",
+      "sendChangedWhileOpen": "Ten projekt zmienił się, gdy okno było otwarte. Sprawdź, co zostanie wysłane.",
+      "missingFilesUnconfirmed": "Brakuje plików potrzebnych temu projektowi. Potwierdź każdy, aby wysłać bez niego.",
+      "sendRefused": "Chmura odrzuciła wysyłanie: {{reasons}}",
+      "chooseAgain_few": "{{count}} dokumenty zmieniły się tutaj lub w chmurze po Twoim wyborze. Wybierz ponownie.",
+      "chooseAgain_many": "{{count}} dokumentów zmieniło się tutaj lub w chmurze po Twoim wyborze. Wybierz ponownie.",
+      "cloudChangedChooseAgain_few": "Wersja w chmurze {{count}} dokumentów zmieniła się od odczytu tego okna. Wybierz ponownie.",
+      "cloudChangedChooseAgain_many": "Wersja w chmurze {{count}} dokumentów zmieniła się od odczytu tego okna. Wybierz ponownie."
+    },
+    "done": {
+      "published": "Opublikowano w chmurze.",
+      "synchronized": "Zsynchronizowano.",
+      "received": "Odebrano: {{names}}",
+      "notReceived": "Nie odebrano: {{names}}",
+      "changedDuringReceive": "Zmienione tutaj podczas odbierania, więc nie zastąpione: {{names}}",
+      "missingFiles_one": "Nie udało się odebrać {{count}} pliku.",
+      "missingFiles_other": "Nie udało się odebrać {{count}} plików.",
+      "missingFiles_few": "Nie udało się odebrać {{count}} plików.",
+      "missingFiles_many": "Nie udało się odebrać {{count}} plików."
+    }
   }
 }
