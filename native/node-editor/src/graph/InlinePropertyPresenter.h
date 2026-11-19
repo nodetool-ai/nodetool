@@ -7,13 +7,13 @@
 #include <QVector>
 #include <QtNodes/Definitions>
 #include <functional>
-class QGraphicsView;
 class QQmlEngine;
 class QQuickWidget;
 namespace nodetool {
+class CanvasSurface;
 namespace node_editor { class PropertyHost; }
 class WorkflowGraphModel;
-class EditorScene;
+class EditorSceneApi;
 // One lazily opened Quick editor overlays the active painted property. The
 // viewport remains a Graphics View and uses no Quick graphics proxy widgets.
 // The property host is borrowed for its pickers: its owner, EditorWindow,
@@ -26,8 +26,8 @@ class InlinePropertyPresenter final : public QObject {
   Q_PROPERTY(int generation READ generation NOTIFY changed)
   Q_PROPERTY(bool expanded READ expanded NOTIFY changed)
 public:
-  InlinePropertyPresenter(WorkflowGraphModel &model, EditorScene &scene,
-                          QGraphicsView &view, QQmlEngine *engine,
+  InlinePropertyPresenter(WorkflowGraphModel &model, EditorSceneApi &scene,
+                          CanvasSurface &canvas, QQmlEngine *engine,
                           node_editor::PropertyHost &host, QObject *parent = nullptr);
   ~InlinePropertyPresenter() override;
   QVariantMap descriptor() const { return descriptor_; }
@@ -64,8 +64,7 @@ protected:
   bool eventFilter(QObject *object, QEvent *event) override;
 private:
   WorkflowGraphModel &model_;
-  EditorScene &scene_;
-  QGraphicsView &view_;
+  CanvasSurface &canvas_;
   QPointer<QQmlEngine> engine_;
   node_editor::PropertyHost &host_;
   QPointer<QQuickWidget> widget_;
@@ -81,6 +80,7 @@ private:
   QVariant pendingValue_;
   // An applied change re-projects the document. The editor survives it.
   bool holding_ = false;
+  bool projectingResource_ = false;
   bool applyQueued_ = false;
   QVariant pendingApply_;
   double contentHeight_ = 0;

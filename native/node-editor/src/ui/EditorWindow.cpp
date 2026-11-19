@@ -48,7 +48,8 @@
 #include <QFileInfo>
 #include <QCursor>
 #include <optional>
-#include <QGraphicsView>
+#include "ui/QtNodesCanvas.h"
+#include "ui/QuickCanvas.h"
 #include <QHBoxLayout>
 #include <QInputDialog>
 #include <QCompleter>
@@ -70,7 +71,6 @@
 #include <QSettings>
 #include <QScreen>
 #include <QStackedWidget>
-#include <QScrollBar>
 #include <QSignalBlocker>
 #include <QSet>
 #include <QTimer>
@@ -84,9 +84,8 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <QtNodes/NodeData>
 #include <QtNodes/NodeStyle>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 namespace nodetool {
 namespace {
 // The web node menu lists code snippets as virtual node types. Choosing one
@@ -205,6 +204,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&document_, &node_editor::WorkflowDocument::replaced, this, [this] {
     // A loaded workflow has other nodes than the run in progress.
     trackLiveRun({});
+    if (lineage_) { lineage_->clear(); }
     model_.resetOnNextProjection();
     documentReplaced_ = true;
     ++documentEpoch_;
@@ -401,7 +401,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     if (browserVisible() && !origin.isEmpty()) { loadBrowser(); }
     if (libraryVisible()) { library_.refresh(); }
     if (examplesVisible()) { exampleGallery_.refresh(); }
-    if (scene_) { refresh(); }
+    if (canvas_) { refresh(); }
   });
   connect(&previewAssets_, &node_editor::PreviewSourceAssets::changed, this, [this] { syncRuntimePreviews(); });
   connect(&browser_, &node_editor::WorkflowBrowser::changed, this, [this] {
@@ -460,14 +460,23 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     for (auto it = runtimePreviewSources_.cbegin(); it != runtimePreviewSources_.cend(); ++it) { model_.setRuntimePreview(it.key(), {}); }
     runtimePreviewSources_.clear();
   });
-  scene_ = new EditorScene(model_, this);
-  lineage_ = new node_editor::LineageLayer(*scene_, this);
+  // NODETOOL_NODE_EDITOR_CANVAS=quick selects the Qt Quick canvas
+  // (docs/plans/node-editor-quick-canvas/plan.md, Q3). QtNodes stays the default.
+  if (QuickCanvas::selected()) {
+    auto quick = std::make_unique<QuickCanvas>(model_, *this);
+    lineage_ = new node_editor::LineageLayer(quick->canvasScene(), this);
+    canvas_ = std::move(quick);
+  } else {
+    scene_ = std::make_unique<EditorScene>(model_);
+    canvas_ = std::make_unique<QtNodesCanvas>(*scene_, QtNodesCanvas::createView(*scene_, *this));
+    lineage_ = new node_editor::LineageLayer(*scene_, this);
+  }
   connect(&model_, &WorkflowGraphModel::modelReset, this, &EditorWindow::scheduleLineage);
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, &EditorWindow::scheduleLineage);
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, &EditorWindow::scheduleLineage);
   connect(lineage_, &node_editor::LineageLayer::selectionRequested, this, [this](const QString &id, bool additive) {
     auto ids = additive ? lineage_->selectedLinkIds() : QStringList{};
-    if (!additive) { scene_->clearSelection(); }
+    if (!additive) { canvas_->selection().clear(); }
     if (ids.contains(id)) { ids.removeAll(id); } else { ids.append(id); }
     lineage_->setSelectedLinkIds(ids);
     schedulePanelChanged();
@@ -478,7 +487,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(lineage_, &node_editor::LineageLayer::contextMenuRequested, this, [this](const QString &id, const QPoint &position) {
     showContextMenu("link", position, {}, id);
   });
-    connect(scene_, &EditorScene::outputFormRequested, this, [this](const QString &id) {
+    connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::outputFormRequested, this, [this](const QString &id) {
         if (readOnly() || !selectNode(id)) { return; }
         // Frameless and transparent so only the QML overlay surface shows.
         auto *dialog = new QDialog(this, Qt::Popup | Qt::FramelessWindowHint);
@@ -521,57 +530,43 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
         connect(this, &EditorWindow::credentialsEpochChanged, dialog, &QDialog::close);
         dialog->show();
     });
-    connect(scene_, &EditorScene::dynamicPortFormRequested, this, &EditorWindow::showDynamicPortDialog);
-    connect(scene_, &EditorScene::dynamicTypeMenuRequested, this, &EditorWindow::showDynamicTypeMenu);
-    connect(scene_, &EditorScene::headerActionRequested, this, [this](const QString &id, const QString &action) {
+    connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::dynamicPortFormRequested, this, &EditorWindow::showDynamicPortDialog);
+    connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::dynamicTypeMenuRequested, this, &EditorWindow::showDynamicTypeMenu);
+    connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::headerActionRequested, this, [this](const QString &id, const QString &action) {
         if (action == QStringLiteral("loadComfyWorkflow")) { showComfyWorkflowDialog(id); }
         if (action == QStringLiteral("compositorLayout")) { showCompositorLayoutDialog(id); }
     });
-    connect(scene_, &EditorScene::childOpenRequested, this, [this](const QString &id) {
+    connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::childOpenRequested, this, [this](const QString &id) {
         if (selectNode(id)) { openChild(); }
     });
-  connect(scene_, &EditorScene::canvasContextMenuRequested, this, [this](const QString &id, const QPoint &position) {
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::canvasContextMenuRequested, this, [this](const QString &id, const QPoint &position) {
     if (!id.isEmpty() && !selectedIds().contains(id)) { selectNode(id); }
     const auto kind = id.isEmpty() ? QString("pane") : document_.node(id)["type"].toString().endsWith(".Group") ? QString("group") : selectedCount() > 1 ? QString("selection") : QString("node");
     showActionMenu(kind, position);
   });
-  connect(scene_, &EditorScene::dataEdgeContextMenuRequested, this,
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::dataEdgeContextMenuRequested, this,
           [this](const QString &id, const QPointF &position, const QPoint &screenPosition) {
     showContextMenu("edge", screenPosition, {}, id, position);
   });
-  // Plain QGraphicsView deliberately avoids QtNodes' clipboard and undo
-  // actions.
-  view_ = new QGraphicsView(scene_, this);
-  view_->setAcceptDrops(true);
-  view_->viewport()->setAcceptDrops(true);
-  view_->setRenderHint(QPainter::Antialiasing);
-  view_->setRenderHint(QPainter::TextAntialiasing);
-  view_->setDragMode(QGraphicsView::RubberBandDrag);
-  view_->setFrameShape(QFrame::NoFrame);
-  // Selected-node port labels sit outside their items, so a partial repaint would trail them.
-  view_->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
-  view_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  view_->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  view_->setSceneRect(-32767, -32767, 65534, 65534);
-  view_->installEventFilter(this);
-  view_->viewport()->installEventFilter(this);
-  inlinePresenter_ = new InlinePropertyPresenter(model_, *scene_, *view_, engine_, *nodeInspector_.fields(), this);
+  canvas_->hostWidget().installEventFilter(this);
+  canvas_->viewportWidget().installEventFilter(this);
+  inlinePresenter_ = new InlinePropertyPresenter(model_, canvas_->scene(), *canvas_, engine_, *nodeInspector_.fields(), this);
   inlinePresenter_->commitProperty = [this](const QString &id, const QString &name, const QVariant &value) {
     return commitProperty(id, name, value);
   };
   inlinePresenter_->commitCommand = [this](const QJsonObject &command) { return apply(command); };
   connect(this, &EditorWindow::zoomChanged, inlinePresenter_, &InlinePropertyPresenter::reposition);
   // Constant String's Open editor stands in for the web's text editor modal.
-  connect(scene_, &EditorScene::inlineExpandRequested, this, [this](QtNodes::NodeId id, const QString &name) {
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::inlineExpandRequested, this, [this](QtNodes::NodeId id, const QString &name) {
     inlinePresenter_->activate(id, name);
     if (inlinePresenter_->active() && !inlinePresenter_->expanded()) { inlinePresenter_->expand(); }
   });
-  connect(scene_, &EditorScene::documentOpenRequested, this, [this](const QString &kind, const QString &id) { openLinkedDocument(kind, id); });
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::documentOpenRequested, this, [this](const QString &kind, const QString &id) { openLinkedDocument(kind, id); });
   // The web opens provider onboarding at the key. Native opens the server's provider settings.
-  connect(scene_, &EditorScene::providerConnectRequested, this, [this] { packSetup()->openProviderSettings(); });
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::providerConnectRequested, this, [this] { packSetup()->openProviderSettings(); });
   // The scene selects the card before it asks, so Run selected runs that node.
-  connect(scene_, &EditorScene::nodeRunRequested, this, [this](const QString &) { action(QStringLiteral("Run selected")); });
-  connect(scene_, &EditorScene::errorReportRequested, this, [this](const QString &resource) {
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::nodeRunRequested, this, [this](const QString &) { action(QStringLiteral("Run selected")); });
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::errorReportRequested, this, [this](const QString &resource) {
     node_editor::BugReportContext context{.source = QStringLiteral("Node error")};
     for (const auto id : model_.allNodeIds()) {
       if (model_.resourceId(id) != resource) { continue; }
@@ -584,7 +579,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(inlinePresenter_, &InlinePropertyPresenter::popupChanged, this, &EditorWindow::positionSelectionToolbar);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
   connect(this, &EditorWindow::documentEpochChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
-  inlineTitle_ = new InlineTitlePresenter(model_, *scene_, *view_, engine_, this);
+  inlineTitle_ = new InlineTitlePresenter(model_, canvas_->scene(), *canvas_, engine_, this);
   inlineTitle_->availableViewport = [this] {
     auto area = unobstructedViewport();
     // A tall note editor stays clear of a toolbar floating over its card.
@@ -604,7 +599,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
       if (model_.resourceId(graphId) != id) { continue; }
       auto ui = model_.uiProperties(graphId);
       const auto size = model_.layout(graphId).size;
-      const auto height = std::max<double>(commentMinimumHeight, std::ceil(scene_->commentContentHeight(text, size.width())));
+      const auto height = std::max<double>(commentMinimumHeight, std::ceil(canvas_->scene().commentContentHeight(text, size.width())));
       if (height != size.height()) {
         ui["height"] = height;
         commands.append(QJsonObject{{"op", "setNodeField"}, {"id", id}, {"field", "ui_properties"}, {"value", ui}});
@@ -618,12 +613,12 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, inlineTitle_, &InlineTitlePresenter::clearControls);
   connect(this, &EditorWindow::documentEpochChanged, inlineTitle_, &InlineTitlePresenter::cancel);
   connect(inlineTitle_, &InlineTitlePresenter::activated, inlinePresenter_, &InlinePropertyPresenter::cancel);
-  connect(scene_, &EditorScene::inlineEditRequested, inlineTitle_, &InlineTitlePresenter::cancel);
-  canvasMedia_ = new CanvasMediaPresenter(model_, *scene_, *view_, engine_, mediaResolver_, this);
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::inlineEditRequested, inlineTitle_, &InlineTitlePresenter::cancel);
+  canvasMedia_ = new CanvasMediaPresenter(model_, canvas_->scene(), *canvas_, engine_, mediaResolver_, this);
   cardMediaLoader_ = new CardMediaLoader(model_, mediaResolver_, this);
   connect(this, &EditorWindow::zoomChanged, canvasMedia_, &CanvasMediaPresenter::refresh);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, canvasMedia_, &CanvasMediaPresenter::clear);
-  compatiblePicker_ = new CompatibleNodePicker(model_, *scene_, *view_, engine_, this);
+  compatiblePicker_ = new CompatibleNodePicker(model_, canvas_->scene(), *canvas_, engine_, this);
   compatiblePicker_->applyCommand = [this](const QJsonObject &command) { return apply(command); };
   compatiblePicker_->recentTypes = [this] { return catalogRecent(); };
   connect(compatiblePicker_, &CompatibleNodePicker::nodeCreated, this, [this](const QString &id) {
@@ -636,7 +631,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(compatiblePicker_, &CompatibleNodePicker::codeRequested, this, [this](const QString &, const QString &draft) { askAgent(draft); });
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, compatiblePicker_, &CompatibleNodePicker::cancel);
   connect(this, &EditorWindow::documentEpochChanged, compatiblePicker_, &CompatibleNodePicker::cancel);
-  canvasDrops_ = new CanvasDropController(model_, *view_, this);
+  canvasDrops_ = new CanvasDropController(model_, *canvas_, this);
   connect(canvasDrops_, &CanvasDropController::copyRequested, this, [this](const QString &node, const QString &property) {
     if (cardMediaLoader_) { cardMediaLoader_->copy(node, property); }
   });
@@ -669,24 +664,21 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     });
   });
   model_.commit = [this](const auto &c) {
-    if (gesture_) {
-      gestureCommands_.append(c);
-      return true;
-    }
+    if (canvas_->scene().interaction().bufferViewportCommand(c)) { return true; }
     if (!apply(c)) { return false; }
     previewCardEdit(c["op"] == "batch" ? c["commands"].toArray() : QJsonArray{c});
     return true;
   };
-  connect(scene_, &EditorScene::sliderDraftChanged, this, [this](QtNodes::NodeId id, const QString &name, double value) {
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::sliderDraftChanged, this, [this](QtNodes::NodeId id, const QString &name, double value) {
     // A card control such as the Painter's brush size is no property to rerun with.
     if (readOnly() || !model_.nodeExists(id) || isCardControl(name)) { return; }
     sendLiveDraft(model_.resourceId(id), name, value);
     scheduleInstantRerun(model_.resourceId(id), {{"name", name}, {"value", value}}, true, true);
   });
-  connect(scene_, &EditorScene::reconnectRequested, this, [this](const QString &id, const QJsonObject &connection) {
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::reconnectRequested, this, [this](const QString &id, const QJsonObject &connection) {
     apply({{"op", "reconnectEdge"}, {"id", id}, {"connection", connection}});
   });
-  connect(scene_, &EditorScene::reconnectDiscarded, this, [this](const QString &id) {
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::reconnectDiscarded, this, [this](const QString &id) {
     apply({{"op", "removeEdge"}, {"id", id}});
   });
   model_.validateConnection = [this](const QJsonObject &edge) {
@@ -699,7 +691,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
       return false;
     }
     candidate.setNodeMetadata(metadata_);
-    const auto reconnect = scene_->reconnectingEdgeId();
+    const auto reconnect = canvas_->scene().reconnectingEdgeId();
     if (!reconnect.isEmpty()) {
       return candidate.applyCommand({{"op", "reconnectEdge"}, {"id", reconnect}, {"connection", edge}}).ok;
     }
@@ -736,7 +728,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     connect(fileBanner->rootObject(), &QQuickItem::implicitHeightChanged, fileBanner, resizeFileBanner);
     resizeFileBanner();
     canvasLayout->addWidget(fileBanner);
-    canvasLayout->addWidget(view_, 1);
+    canvasLayout->addWidget(&canvas_->hostWidget(), 1);
     dockHost_->setCentralWidget(canvasColumn);
     canvasColumn->installEventFilter(this);
   dockHost_->setDockOptions(QMainWindow::AnimatedDocks);
@@ -875,7 +867,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   initializePanels();
   const auto overlay = [this](const QString &file, const QVariantMap &properties = {}) {
     auto widget = panel(file, properties);
-    widget->setParent(view_);
+    widget->setParent(&canvas_->hostWidget());
     widget->setAttribute(Qt::WA_AlwaysStackOnTop);
     widget->setClearColor(Qt::transparent);
     widget->setResizeMode(QQuickWidget::SizeViewToRootObject);
@@ -926,7 +918,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   setupGuide_ = overlay("SetupGuide", {{"guide", QVariant::fromValue(&firstWorkflowGuide_)}});
   setupGuide_->show();
   // native-rules #2: naked new, parent (the view) is set inside the MiniMap constructor, not documented here
-  auto miniMap = new MiniMap(model_, *scene_, *view_);
+  auto miniMap = new MiniMap(model_, canvas_->scene(), *canvas_);
   miniMap->navigated = [this] { fitActive_ = false; cancelViewAnimation(); };
   miniMap->colorByType = [this] { return miniMapColorMode_ == "type"; };
   miniMap->zoomed = [this] { emit zoomChanged(); };
@@ -940,12 +932,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   layoutOverlays();
   // The card toolbar follows its card through pan, zoom, resize, move and drag.
   const auto followCard = [this] { positionSelectionToolbar(); };
-  connect(view_->horizontalScrollBar(), &QScrollBar::valueChanged, this, followCard);
-  connect(view_->verticalScrollBar(), &QScrollBar::valueChanged, this, followCard);
+  connect(canvas_.get(), &CanvasSurface::viewportMoved, this, followCard);
   connect(this, &EditorWindow::zoomChanged, this, followCard);
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, followCard);
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, followCard);
-  connect(scene_, &EditorScene::nodeDragChanged, this, followCard);
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::nodeDragChanged, this, followCard);
   priceChipOverlay_ = overlay("ProviderPriceChip", {{"chip", QVariant::fromValue(&priceChip_)}});
   priceChipOverlay_->setObjectName("price-chip-overlay");
   // positionPriceChip sizes it to the chip and its popover.
@@ -966,8 +957,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   nodeInfoOverlay_->setObjectName("node-info-overlay");
   nodeInfoOverlay_->hide();
   const auto followInfo = [this] { positionNodeInfo(); };
-  connect(view_->horizontalScrollBar(), &QScrollBar::valueChanged, this, followInfo);
-  connect(view_->verticalScrollBar(), &QScrollBar::valueChanged, this, followInfo);
+  connect(canvas_.get(), &CanvasSurface::viewportMoved, this, followInfo);
   connect(this, &EditorWindow::zoomChanged, this, followInfo);
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, followInfo);
   connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &EditorWindow::syncNodeInfo);
@@ -975,7 +965,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(inspectorDock_, &QDockWidget::visibilityChanged, this, [this] { schedulePanelChanged(); });
   connect(outputDock_, &QDockWidget::visibilityChanged, this,
           [this] { schedulePanelChanged(); });
-  connect(scene_, &QtNodes::BasicGraphicsScene::nodeDoubleClicked, this, [this](QtNodes::NodeId id) {
+  connect(canvas_.get(), &CanvasSurface::nodeDoubleClicked, this, [this](QtNodes::NodeId id) {
     if (node_editor::isChildNode(document_.node(model_.resourceId(id)))) { selected_ = model_.resourceId(id); openChild(); return; }
     // A document constant opens its document, as its Edit button does.
     for (const auto &row : model_.layout(id).rows) {
@@ -986,19 +976,19 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
       }
     }
   });
-  connect(scene_, &EditorScene::headerDoubleClicked, this, [this](QtNodes::NodeId id) {
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::headerDoubleClicked, this, [this](QtNodes::NodeId id) {
     if (readOnly()) { return; }
     // A Code node's header title is editable, so a double-click renames it.
     if (model_.nodeSnapshot(id)["type"].toString() == "nodetool.code.Code") { inlineTitle_->activate(id); }
     else { action("Toggle collapse"); }
   });
-  connect(scene_, &EditorScene::paneDoubleClicked, this, [this](const QPointF &position) {
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::paneDoubleClicked, this, [this](const QPointF &position) {
     if (readOnly()) { return; }
     armCatalogPlacement(position);
     action("Add node");
   });
   connect(this, &EditorWindow::documentEpochChanged, this, [this] { cancelCatalogPlacement(); });
-  connect(scene_, &EditorScene::connectionRefused, this, [this] {
+  connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::connectionRefused, this, [this] {
     message_ = tr("Cannot connect these handles");
     schedulePanelChanged();
   });
@@ -1012,17 +1002,17 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   };
   // A box selection changes the selection on many mouse moves. Panels follow
   // it once, when the drag ends, because each panel refresh is expensive.
-  connect(scene_, &QGraphicsScene::selectionChanged, this, [this, selectionSettled] {
+  connect(&canvas_->selection(), &CanvasSelection::selectionChanged, this, [this, selectionSettled] {
     if (selectingNode_) { return; }
-    if (!view_->rubberBandRect().isNull()) { rubberBandSelectionPending_ = true; return; }
+    if (canvas_->rubberBandActive()) { rubberBandSelectionPending_ = true; return; }
     selectionSettled();
   });
-  connect(view_, &QGraphicsView::rubberBandChanged, this, [this, selectionSettled](QRect rect) {
-    if (!rect.isNull() || !rubberBandSelectionPending_) { return; }
+  connect(canvas_.get(), &CanvasSurface::rubberBandChanged, this, [this, selectionSettled](bool active) {
+    if (active || !rubberBandSelectionPending_) { return; }
     rubberBandSelectionPending_ = false;
     selectionSettled();
   });
-  connect(scene_, &QtNodes::BasicGraphicsScene::nodeClicked, this, [this](auto id) { inspectNode(model_.resourceId(id)); });
+  connect(canvas_.get(), &CanvasSurface::nodeClicked, this, [this](auto id) { inspectNode(model_.resourceId(id)); });
   connect(document_.undoStack(), &QUndoStack::cleanChanged, this, [this](bool clean) {
     setWindowModified(!clean);
     schedulePanelChanged();
@@ -1167,7 +1157,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
                           instantRerun(edit);
                       }
                   });
-              } else if (scrubbing_ && scene_->sliderDraftNode() == QtNodes::InvalidNodeId) {
+              } else if (scrubbing_ && canvas_->scene().sliderDraftNode() == QtNodes::InvalidNodeId) {
                   setScrubbing(false);
               }
             }
@@ -1259,8 +1249,8 @@ EditorWindow::~EditorWindow() {
   // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete inlinePresenter_;
   // Dock animations can resize the viewport while bound overlays are destroyed.
-  view_->removeEventFilter(this);
-  view_->viewport()->removeEventFilter(this);
+  canvas_->hostWidget().removeEventFilter(this);
+  canvas_->viewportWidget().removeEventFilter(this);
   // ~QWidget sends the panels a Hide event, which must not reach eventFilter
   // once their QQuickWidget part is gone.
   if (catalogPanel_) { catalogPanel_->removeEventFilter(this); }
@@ -1269,13 +1259,25 @@ EditorWindow::~EditorWindow() {
   if (priceChipOverlay_ && priceChipOverlay_->rootObject()) { priceChipOverlay_->rootObject()->disconnect(this); }
   priceChipOverlay_ = nullptr;
   // Panels bind to members of this class and must die before those members.
+  // The Quick canvas's own widget stays until the canvas below goes, and a
+  // panel inside a deleted panel is skipped.
+  QList<QPointer<QQuickWidget>> panels;
   for (auto panel : findChildren<QQuickWidget *>()) {
-    // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
-    delete panel;
+    if (panel != &canvas_->viewportWidget()) { panels.append(panel); }
   }
-  view_->setScene(nullptr);
-  // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
-  delete scene_;
+  for (const auto &panel : panels) {
+    // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
+    delete panel.data();
+  }
+  cancelViewAnimation();
+  if (auto *map = canvas_->hostWidget().findChild<QWidget *>("mini-map")) {
+    // Stop the mini-map's callbacks before destroying the surface it borrows.
+    map->setParent(nullptr);
+    const std::unique_ptr<QWidget> detached(map);
+  }
+  if (auto *qtNodes = dynamic_cast<QtNodesCanvas *>(canvas_.get())) { qtNodes->detachScene(); }
+  canvas_.reset();
+  scene_.reset();
 }
 QQuickWidget *EditorWindow::panel(const QString &file, const QVariantMap &properties) {
   // One engine keeps a single Theme singleton across every panel.
@@ -1968,7 +1970,7 @@ QVariantMap EditorWindow::selectionInfo() const {
           {"inputs", ports(QtNodes::PortType::In)}, {"outputs", ports(QtNodes::PortType::Out)}};
 }
 int EditorWindow::zoomPercent() const {
-  if (!tabOwner_) { return activeEditor_->zoomPercent(); } return int(std::round(view_->transform().m11() * 100)); }
+  if (!tabOwner_) { return activeEditor_->zoomPercent(); } return int(std::round(canvas_->zoom() * 100)); }
 void EditorWindow::showToolTip(const QString &text) {
   if (!tabOwner_) { activeEditor_->showToolTip(text); return; }
   if (text.isEmpty()) { QToolTip::hideText(); } else { QToolTip::showText(QCursor::pos(), text, this); }
@@ -2108,22 +2110,24 @@ QJsonArray EditorWindow::expandParentCommands(const QJsonObject &positions, cons
 }
 
 void EditorWindow::positionSelectionToolbar() {
-  if (!selectionOverlay_ || !view_) { return; }
-  const auto area = view_->rect();
+  if (!selectionOverlay_ || !canvas_) { return; }
+  const auto area = canvas_->hostWidget().rect();
   const auto selection = selectionOverlay_->sizeHint();
   QPoint origin(std::max(0, (area.width() - selection.width()) / 2), 30);
   bool visible = selectedCount() > 0 && !browserVisible();
   selectionToolbarFloating_ = false;
   // NodeSelectionToolbar.tsx shows the card toolbar only for one selected card
   // that is not being dragged, centered above it with an 8 px gap.
-  const auto ids = selectedIds();
+  const auto nodes = canvas_->selection().nodes();
+  QStringList ids;
+  for (const auto id : nodes) { ids.append(model_.resourceId(id)); }
   if (!toolbarClock_.isValid()) {
     toolbarClock_.start();
     toolbarDelay_.setSingleShot(true);
     connect(&toolbarDelay_, &QTimer::timeout, this, &EditorWindow::positionSelectionToolbar);
   }
   const auto now = toolbarClock_.elapsed();
-  if (scene_->nodeDragActive()) {
+  if (canvas_->scene().nodeDragActive()) {
     toolbarSelectedAt_.clear();
   } else {
     for (auto it = toolbarSelectedAt_.begin(); it != toolbarSelectedAt_.end();) {
@@ -2131,29 +2135,25 @@ void EditorWindow::positionSelectionToolbar() {
     }
     for (const auto &id : ids) { toolbarSelectedAt_.insert(id, toolbarSelectedAt_.value(id, now)); }
   }
-  if (visible && ids.size() == 1) {
-    for (const auto id : model_.allNodeIds()) {
-      if (model_.resourceId(id) != ids.first()) { continue; }
-      if (model_.isGroup(id) || model_.isComment(id) || model_.isReroute(id)) { break; }
-      const auto *item = scene_->nodeGraphicsObject(id);
-      if (!item) { break; }
-      const auto card = view_->mapFromScene(QRectF(item->scenePos(), model_.layout(id).size)).boundingRect().translated(view_->viewport()->pos());
-      constexpr int cardToolbarGap = 8;
-      if (!QRect(QPoint(), area.size()).intersects(card) || scene_->nodeDragActive()) { visible = false; break; }
-      // The toolbar shows 200 ms after the card is selected, and not while one of the
-      // card's dropdowns is open (NodeSelectionToolbar.tsx: useSelect activeSelect).
+  if (visible && nodes.size() == 1) {
+    const auto id = nodes.first();
+    if (!model_.isGroup(id) && !model_.isComment(id) && !model_.isReroute(id) && canvas_->hasNode(id)) {
+      const auto card = canvas_->mapFromScene(canvas_->nodeRect(id)).translated(canvas_->viewportWidget().pos());
       const auto waited = now - toolbarSelectedAt_.value(ids.first(), now);
-      if (waited < toolbarShowDelayMs) {
+      if (canvas_->scene().nodeDragActive() || !QRect(QPoint(), area.size()).intersects(card)) {
+        visible = false;
+      } else if (waited < toolbarShowDelayMs) {
         toolbarDelay_.start(int(toolbarShowDelayMs - waited));
         visible = false;
-        break;
+      } else if (inlinePresenter_ && inlinePresenter_->popupOpen()) {
+        visible = false;
+      } else {
+        constexpr int cardToolbarGap = 8;
+        const int x = card.center().x() - selection.width() / 2;
+        const int y = card.top() - cardToolbarGap - selection.height();
+        origin = QPoint(std::clamp(x, 0, std::max(0, area.width() - selection.width())), std::clamp(y, 0, std::max(0, area.height() - selection.height())));
+        selectionToolbarFloating_ = true;
       }
-      if (inlinePresenter_ && inlinePresenter_->popupOpen()) { visible = false; break; }
-      const int x = card.center().x() - selection.width() / 2;
-      const int y = card.top() - cardToolbarGap - selection.height();
-      origin = QPoint(std::clamp(x, 0, std::max(0, area.width() - selection.width())), std::clamp(y, 0, std::max(0, area.height() - selection.height())));
-      selectionToolbarFloating_ = true;
-      break;
     }
   }
   const QRect geometry(origin.x(), origin.y(), selection.width(), selection.height());
@@ -2168,7 +2168,7 @@ void EditorWindow::positionSelectionToolbar() {
 }
 void EditorWindow::layoutOverlays() {
   if (!toolbarOverlay_ || !viewportOverlay_) { return; }
-  const auto area = view_->rect();
+  const auto area = canvas_->hostWidget().rect();
   if (setupGuide_ && setupGuide_->rootObject()) {
     // The web guide sizes to its content inside the canvas. Cap it the same way here.
     setupGuide_->rootObject()->setProperty("maximumWidth", std::max(0, area.width() - 2 * 16));
@@ -2201,7 +2201,7 @@ void EditorWindow::layoutOverlays() {
   // The web keeps the zoom readout beside the toolbar's end when both fit.
   viewportOverlay_->setGeometry(std::max(0, area.width() - corner.width() - 16), std::max(0, area.height() - corner.height() - 16), corner.width(), corner.height());
   viewportOverlay_->setVisible(area.width() >= toolbar.width() + 2 * corner.width() + 32);
-  if (auto miniMap = view_->findChild<QWidget *>("mini-map")) {
+  if (auto miniMap = canvas_->hostWidget().findChild<QWidget *>("mini-map")) {
     const bool beside = area.width() >= toolbar.width() + 2 * corner.width() + 32;
     const int statusBottom = beside ? 16 : toolbar.height() + 28;
     viewportOverlay_->setGeometry(std::max(0, area.width()-corner.width()-16), std::max(0, area.height()-corner.height()-statusBottom), corner.width(), corner.height());
@@ -2320,7 +2320,7 @@ void EditorWindow::showDynamicPortDialog(const QString &id, bool output, const Q
         if (area.isEmpty() || !quick->rootObject()) { return; }
         dialog->resize(std::min(area.width(), int(std::ceil(quick->rootObject()->implicitWidth()))),
                        std::min(area.height(), int(std::ceil(quick->rootObject()->implicitHeight()))));
-        auto anchor = view_->viewport()->mapToGlobal(view_->mapFromScene(sceneAnchor.bottomLeft()));
+        auto anchor = canvas_->viewportWidget().mapToGlobal(canvas_->mapFromScene(sceneAnchor.bottomLeft()));
         anchor.setX(std::clamp(anchor.x(), area.left(), std::max(area.left(), area.right() - dialog->width())));
         anchor.setY(std::clamp(anchor.y(), area.top(), std::max(area.top(), area.bottom() - dialog->height())));
         dialog->move(anchor);
@@ -2330,8 +2330,8 @@ void EditorWindow::showDynamicPortDialog(const QString &id, bool output, const Q
     dialog->show();
     quick->setFocus(Qt::PopupFocusReason);
     QMetaObject::invokeMethod(quick->rootObject(), "activate");
-    connect(dialog, &QDialog::finished, view_, [view = QPointer<QGraphicsView>(view_)] {
-        if (view) { view->setFocus(Qt::OtherFocusReason); }
+    connect(dialog, &QDialog::finished, canvas_.get(), [canvas = QPointer<CanvasSurface>(canvas_.get())] {
+      if (canvas) { canvas->setFocus(Qt::OtherFocusReason); }
     });
 }
 
@@ -2359,7 +2359,7 @@ void EditorWindow::showDynamicTypeMenu(const QString &id, const QString &name, c
     }
     EntryMenuRequest request;
     request.kind = "dynamic-slot-type-menu";
-    request.global = view_->viewport()->mapToGlobal(view_->mapFromScene(sceneAnchor.bottomLeft()));
+    request.global = canvas_->viewportWidget().mapToGlobal(canvas_->mapFromScene(sceneAnchor.bottomLeft()));
     request.entries = menu.entries();
     request.actions = menu.actions();
     request.keepAlive = controller;
@@ -2393,9 +2393,9 @@ bool EditorWindow::selectNode(const QString &resourceId) {
     lineage_->setSelectedLinkIds({});
     // The empty selection between these steps would sync the inspector too.
     selectingNode_ = true;
-    scene_->clearSelection();
+    canvas_->selection().clear();
     selectingNode_ = false;
-    scene_->nodeGraphicsObject(id)->setSelected(true);
+    canvas_->selection().setNode(id, true);
     // A programmatic selection may be off screen. A click is not, so it never asks.
     revealPending_ = true;
     inspectNode(resourceId);
@@ -2428,23 +2428,21 @@ bool EditorWindow::mouseNavigation() {
 #endif
 }
 void EditorWindow::zoomUnderCursor(double factor) {
-  const auto scale = view_->transform().m11() * factor;
+  const auto scale = canvas_->zoom() * factor;
   if (scale < 0.12 || scale > 4) { return; }
   fitActive_ = false;
   cancelViewAnimation();
-  view_->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
-  view_->scale(factor, factor);
+  canvas_->scaleBy(factor, CanvasSurface::ZoomAnchor::Pointer);
   emit zoomChanged();
 }
 void EditorWindow::panBy(QPoint delta) {
   fitActive_ = false;
   cancelViewAnimation();
-  view_->horizontalScrollBar()->setValue(view_->horizontalScrollBar()->value() - delta.x());
-  view_->verticalScrollBar()->setValue(view_->verticalScrollBar()->value() - delta.y());
+  canvas_->panBy(delta);
 }
 void EditorWindow::zoomBy(double factor) {
   // ViewportStatusIndicator.tsx steps from the zoom the view has now: zoomTo(getZoom() * 1.2).
-  zoomTo(view_->transform().m11() * factor);
+  zoomTo(canvas_->zoom() * factor);
 }
 void EditorWindow::showMoreMenu() {
   showActionMenu("more", QCursor::pos());
@@ -2553,10 +2551,7 @@ void EditorWindow::setCatalog(const QJsonArray &source) {
   scheduleViewportSettle(true);
 }
 void EditorWindow::invalidateGesture() {
-  ++gestureEpoch_;
-  gesture_ = false;
-  gestureCommands_ = {};
-  gesturePositions_.clear();
+  if (canvas_) { canvas_->scene().interaction().invalidateViewportGesture(); }
 }
 void EditorWindow::refresh() {
     setup_.offerWorkflow(document_.snapshot(), metadata_);
@@ -2565,7 +2560,7 @@ void EditorWindow::refresh() {
   if (canvasDrops_) canvasDrops_->setWorkflowId(session_.serverBound() ? session_.workflow()["id"].toString() : QString{});
   invalidateGesture();
   auto selected = selectedIds();
-  const QSignalBlocker selectionBlocker(scene_);
+  const QSignalBlocker selectionBlocker(&canvas_->scene().sceneObject());
   auto presentationMetadata = metadata_;
   for (qsizetype i = 0; i < presentationMetadata.size(); ++i) {
     auto entry = presentationMetadata[i].toObject(); QStringList missing;
@@ -2585,7 +2580,7 @@ void EditorWindow::refresh() {
   model_.project(document_.snapshot(), presentationMetadata, readOnly());
   for (auto id : model_.allNodeIds()) {
     if (selected.contains(model_.resourceId(id))) {
-      scene_->nodeGraphicsObject(id)->setSelected(true);
+      canvas_->selection().setNode(id, true);
     }
   }
   if (document_.node(selected_).isEmpty()) { selected_.clear(); }
@@ -2603,13 +2598,7 @@ void EditorWindow::scheduleLineage() {
   QTimer::singleShot(0, this, [this] { lineagePending_ = false; syncLineage(); });
 }
 void EditorWindow::syncLineage() {
-  QHash<QString, QRectF> geometry;
-  for (const auto id : model_.allNodeIds()) {
-    if (const auto item = scene_->nodeGraphicsObject(id)) {
-      geometry.insert(model_.resourceId(id), item->mapRectToScene(QRectF(QPointF{}, model_.layout(id).size)));
-    }
-  }
-  const auto error = lineage_->update(document_.graph(), geometry);
+  const auto error = lineage_->update(document_.graph(), model_, *canvas_);
   if (!error.isEmpty() && !document_.isReadOnly()) { message_ = error; }
 }
 QVariantList EditorWindow::catalog() const {
@@ -2933,7 +2922,7 @@ void EditorWindow::addNode(const QString &type) {
   const auto point = catalogPoint_;
   const bool fromMenu = nodeMenuVisible();
   if ((point || fromMenu) && knownNodeType(type)) { cancelCatalogPlacement(); }
-  if (knownNodeType(type)) { addNodeAt(type, point ? *point : view_->mapToScene(unobstructedViewport().center().toPoint()), true); }
+  if (knownNodeType(type)) { addNodeAt(type, point ? *point : canvas_->mapToScene(unobstructedViewport().center().toPoint()), true); }
   else { model_.addNode(type); }
   // The web menu closes after an add, which returns the keyboard to the canvas.
   if (point || fromMenu) { focusCanvas(); }
@@ -2956,7 +2945,7 @@ void EditorWindow::openNodeMenu() {
     // The menu opens at the pointer point (NodeMenuStore.openNodeMenu x, y), or centered.
     QPoint topLeft = area.center() - QPoint(nodeMenu_->width() / 2, nodeMenu_->height() / 2);
     if (catalogPoint_) {
-        topLeft = view_->viewport()->mapTo(dockHost_, view_->mapFromScene(*catalogPoint_));
+        topLeft = canvas_->viewportWidget().mapTo(dockHost_, canvas_->mapFromScene(*catalogPoint_));
     }
     placeNodeMenu(topLeft);
     nodeMenu_->show();
@@ -2994,7 +2983,7 @@ void EditorWindow::focusCanvas() {
         if (activeEditor_) { activeEditor_->focusCanvas(); }
         return;
     }
-    view_->setFocus(Qt::ShortcutFocusReason);
+    canvas_->setFocus(Qt::ShortcutFocusReason);
 }
 void EditorWindow::armCatalogPlacement(const QPointF &scenePosition) {
     if (!std::isfinite(scenePosition.x()) || !std::isfinite(scenePosition.y())) { return; }
@@ -3036,8 +3025,7 @@ void EditorWindow::autoLayout(bool selectedOnly) {
   }
   QHash<QString, QSizeF> sizes;
   for (const auto id : model_.allNodeIds()) {
-    const auto item = scene_->nodeGraphicsObject(id);
-    if (item) { sizes.insert(model_.resourceId(id), item->boundingRect().size().expandedTo(QSizeF(model_.layout(id).size))); }
+    if (canvas_->hasNode(id)) { sizes.insert(model_.resourceId(id), canvas_->nodeBounds(id).size().expandedTo(QSizeF(model_.layout(id).size))); }
     QStringList outputs;
     for (const auto &port : model_.ports(id, QtNodes::PortType::Out)) { outputs.append(port.toObject()["name"].toString()); }
     options.outputOrder.insert(model_.resourceId(id), outputs);
@@ -3246,7 +3234,7 @@ void EditorWindow::previewCardEdit(const QJsonArray &commands) {
 void EditorWindow::setScrubbing(bool scrubbing) {
     if (scrubbing_ == scrubbing) { return; }
     scrubbing_ = scrubbing;
-    scene_->setReducedMotion(canvasReducedMotion_ || instantUpdate_ || scrubbing_);
+    canvas_->scene().setReducedMotion(canvasReducedMotion_ || instantUpdate_ || scrubbing_);
     schedulePanelChanged();
 }
 bool EditorWindow::removeProperty(const QString &nodeId, const QString &name) {
@@ -3255,13 +3243,13 @@ bool EditorWindow::removeProperty(const QString &nodeId, const QString &name) {
   return apply({{"op", "removeProperty"}, {"id", nodeId}, {"name", name}});
 }
 
+CanvasSurface &EditorWindow::canvas() const {
+  return tabOwner_ ? *canvas_ : activeEditor()->canvas();
+}
+
 QStringList EditorWindow::selectedIds() const {
   QStringList ids;
-  for (auto item : scene_->selectedItems()) {
-    if (auto n = qgraphicsitem_cast<QtNodes::NodeGraphicsObject *>(item)) {
-      ids.append(model_.resourceId(n->nodeId()));
-    }
-  }
+  for (const auto id : canvas_->selection().nodes()) { ids.append(model_.resourceId(id)); }
   return ids;
 }
 void EditorWindow::fit() {
@@ -3273,7 +3261,7 @@ void EditorWindow::fit() {
 }
 QRectF EditorWindow::unobstructedViewport() const {
   if (!tabOwner_) { return activeEditor_->unobstructedViewport(); }
-  QRectF area = view_->viewport()->rect();
+  QRectF area = canvas_->viewportWidget().rect();
   // A toolbar floating over its card covers only that card, so it takes nothing from the canvas.
   if (selectionOverlay_ && selectionOverlay_->isVisible() && !selectionToolbarFloating_) {
     const auto bottom = selectionOverlay_->geometry().bottom() + 8.0;
@@ -3282,7 +3270,7 @@ QRectF EditorWindow::unobstructedViewport() const {
   // The chat window floats over the canvas's right side. Fitting the graph beside
   // it keeps an opened workflow's last nodes in sight (UX study 21).
   if (chatOverlay_ && chatOverlay_->isVisible()) {
-    const auto chatLeft = view_->viewport()->mapFrom(view_, chatOverlay_->geometry().topLeft()).x() - 8.0;
+    const auto chatLeft = canvas_->viewportWidget().mapFrom(&canvas_->hostWidget(), chatOverlay_->geometry().topLeft()).x() - 8.0;
     if (chatLeft > area.left() + area.width() / 2) { area.setRight(chatLeft); }
   }
   if (!toolbarOverlay_ || !toolbarOverlay_->isVisible()) { return area; }
@@ -3295,7 +3283,7 @@ EditorWindow::ViewTarget EditorWindow::fitTarget() const {
   QRectF bounds;
   for (auto id : model_.allNodeIds()) {
     const auto margin = node_metrics::handleDiameter / 2;
-    bounds |= scene_->nodeGraphicsObject(id)->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model_.layout(id).size))).adjusted(-margin, -margin, margin, margin);
+    bounds |= canvas_->nodeRect(id).adjusted(-margin, -margin, margin, margin);
   }
   const auto area = unobstructedViewport();
   if (bounds.isEmpty() || area.isEmpty()) { return {1.0, QPointF(0, 0)}; }
@@ -3317,8 +3305,8 @@ void EditorWindow::revealNode(const QString &resourceId) {
     return std::nullopt;
   }();
   if (!modelId) { return; }
-  const auto node = scene_->nodeGraphicsObject(*modelId);
-  const auto rect = view_->mapFromScene(node->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model_.layout(*modelId).size)))).boundingRect();
+  if (!canvas_->hasNode(*modelId)) { return; }
+  const auto rect = canvas_->mapFromScene(canvas_->nodeRect(*modelId));
   const auto area = unobstructedViewport().toRect();
   const auto delta = [](int low, int high, int areaLow, int areaHigh) {
     if (high - low > areaHigh - areaLow || low < areaLow) { return low - areaLow; }
@@ -3326,8 +3314,8 @@ void EditorWindow::revealNode(const QString &resourceId) {
   };
   const QPointF move(delta(rect.left(), rect.right(), area.left(), area.right()), delta(rect.top(), rect.bottom(), area.top(), area.bottom()));
   if (move.isNull()) { return; }
-  const double zoom = view_->transform().m11();
-  const auto center = view_->viewportTransform().inverted().map(QRectF(view_->viewport()->rect()).center());
+  const double zoom = canvas_->zoom();
+  const auto center = canvas_->center();
   // A programmatic selection has no pointer gesture to follow, so the view lands at once.
   moveViewTo(zoom, center + move / zoom, 0);
 }
@@ -3337,30 +3325,28 @@ int EditorWindow::inspectorInset() const {
 }
 void EditorWindow::clearInspectorOverlap(int inset, bool instant) {
   const auto toRect = [&](QtNodes::NodeId id) {
-    const auto item = scene_->nodeGraphicsObject(id);
-    const auto rect = view_->viewportTransform().mapRect(item->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model_.layout(id).size))));
+    const auto rect = canvas_->viewportTransform().mapRect(canvas_->nodeRect(id));
     return ::node_editor::ScreenRect{rect.left(), rect.right()};
   };
   std::vector<::node_editor::ScreenRect> nodes;
   std::vector<::node_editor::ScreenRect> selected;
   for (const auto id : model_.allNodeIds()) {
-    if (!scene_->nodeGraphicsObject(id)) { continue; }
+    if (!canvas_->hasNode(id)) { continue; }
     nodes.push_back(toRect(id));
-    if (scene_->nodeGraphicsObject(id)->isSelected()) { selected.push_back(nodes.back()); }
+    if (canvas_->selection().contains(id)) { selected.push_back(nodes.back()); }
   }
   // The canvas was this much wider before the inspector took its share.
-  const auto dx = ::node_editor::inspectorClearancePan(nodes, selected, view_->viewport()->width() + inset, inset);
+  const auto dx = ::node_editor::inspectorClearancePan(nodes, selected, canvas_->viewportWidget().width() + inset, inset);
   if (dx == 0) { return; }
   fitActive_ = false;
-  auto *bar = view_->horizontalScrollBar();
-  const int from = bar->value();
+  const int from = canvas_->horizontalOffset();
   const int to = from - int(std::lround(dx));
   const auto animation = qobject_cast<QAbstractAnimation *>(viewAnimation_.data());
   // A find or locate move already owns the viewport.
   if (animation && animation->state() == QAbstractAnimation::Running) { return; }
   if (viewAnimation_) { viewAnimation_->deleteLater(); }
   if (instant || canvasReducedMotion_) {
-    bar->setValue(to);
+    canvas_->setHorizontalOffset(to);
     emit zoomChanged();
     return;
   }
@@ -3377,14 +3363,13 @@ void EditorWindow::clearInspectorOverlap(int inset, bool instant) {
   // next step moves the view back.
   pan->setProperty("expected", from);
   connect(pan, &QVariantAnimation::valueChanged, pan, [this, pan](const QVariant &value) {
-    auto *bar = view_->horizontalScrollBar();
-    if (bar->value() != pan->property("expected").toInt()) {
+    if (canvas_->horizontalOffset() != pan->property("expected").toInt()) {
       pan->stop();
       pan->deleteLater();
       return;
     }
-    bar->setValue(value.toInt());
-    pan->setProperty("expected", bar->value());
+    canvas_->setHorizontalOffset(value.toInt());
+    pan->setProperty("expected", canvas_->horizontalOffset());
     emit zoomChanged();
   });
   connect(pan, &QVariantAnimation::finished, pan, &QObject::deleteLater);
@@ -3400,7 +3385,7 @@ void EditorWindow::scheduleViewportSettle(bool refit) {
     layoutOverlays();
     // A background tab keeps its viewport. Showing it again is not a dock change.
     if (!isVisible()) { return; }
-    const auto size = view_->viewport()->size();
+    const auto size = canvas_->viewportWidget().size();
     const bool resized = size != settledViewport_;
     settledViewport_ = size;
     const auto inset = inspectorInset();
@@ -3641,15 +3626,11 @@ void EditorWindow::action(const QString &name) {
     apply({{"op", "batch"}, {"commands", commands}});
     return;
   }
-  if (name == "Command menu" || name == "Keyboard shortcuts") { showActionMenu(name == "Command menu" ? "command" : "shortcuts", view_->viewport()->mapToGlobal(unobstructedViewport().center().toPoint())); return; }
+  if (name == "Command menu" || name == "Keyboard shortcuts") { showActionMenu(name == "Command menu" ? "command" : "shortcuts", canvas_->viewportWidget().mapToGlobal(unobstructedViewport().center().toPoint())); return; }
   if (name == "Disable toggle") { action(selectionMostlyDisabled() ? "Enable selected" : "Disable selected"); return; }
   if (name == "Select all") {
-    // Each setSelected emits selectionChanged, and every listener does work
-    // that grows with the graph. Notify once for the whole selection.
-    QSignalBlocker blocker(scene_);
-    for (auto id : model_.allNodeIds()) { if (auto *item = scene_->nodeGraphicsObject(id)) { item->setSelected(true); } }
-    blocker.unblock();
-    emit scene_->selectionChanged();
+    const auto ids = model_.allNodeIds();
+    canvas_->selection().selectNodes(QList<QtNodes::NodeId>(ids.begin(), ids.end()), false);
     return;
   }
   if (name == "Settings") { openSettings(); return; }
@@ -3768,7 +3749,7 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Add comment") {
-    const auto position = view_->mapToScene(unobstructedViewport().center().toPoint());
+    const auto position = canvas_->mapToScene(unobstructedViewport().center().toPoint());
     const auto id = QUuid::createUuid().toString(QUuid::Id128);
     if (apply({{"op", "addNode"}, {"node", QJsonObject{{"id", id}, {"type", "nodetool.workflows.base_node.Comment"}, {"data", QJsonObject{{"comment", "Comment"}}}, {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", position.x()}, {"y", position.y()}}}, {"width", 300}, {"height", 160}}}}}})) { selectNode(id); }
     return;
@@ -3878,7 +3859,7 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "Clear selection") {
     lineage_->setSelectedLinkIds({});
-    scene_->clearSelection();
+    canvas_->selection().clear();
     selected_.clear();
     inspectorDismissed_ = true;
     syncInspector();
@@ -3893,7 +3874,7 @@ void EditorWindow::action(const QString &name) {
       instantUpdate_ = !instantUpdate_;
       ++instantUpdateGeneration_;
       instantPending_.reset();
-      scene_->setReducedMotion(canvasReducedMotion_ || instantUpdate_ || scrubbing_);
+      canvas_->scene().setReducedMotion(canvasReducedMotion_ || instantUpdate_ || scrubbing_);
       schedulePanelChanged();
       return;
   }
@@ -3917,7 +3898,7 @@ void EditorWindow::action(const QString &name) {
         // The menu is a user surface, so the preset animates.
         const QScopedValueRollback user(userViewInput_, true);
         zoomTo(zoom);
-      }, RowOptions{.checked = std::abs(view_->transform().m11() - zoom) < .01});
+      }, RowOptions{.checked = std::abs(canvas_->zoom() - zoom) < .01});
     }
     EntryMenuRequest request;
     request.kind = "zoom-presets-menu";
@@ -3979,9 +3960,9 @@ void EditorWindow::action(const QString &name) {
   // in the visible center when the pointer is off the canvas.
   if (const auto type = quickAddNodeType(name); !type.isEmpty()) {
     if (readOnly()) { return; }
-    const auto pointer = view_->viewport()->mapFromGlobal(QCursor::pos());
-    const auto point = view_->viewport()->rect().contains(pointer) ? view_->mapToScene(pointer)
-                                                                 : view_->mapToScene(unobstructedViewport().center().toPoint());
+    const auto pointer = canvas_->viewportWidget().mapFromGlobal(QCursor::pos());
+    const auto point = canvas_->viewportWidget().rect().contains(pointer) ? canvas_->mapToScene(pointer)
+                                                                 : canvas_->mapToScene(unobstructedViewport().center().toPoint());
     addNodeAt(type, point, true);
     return;
   }
@@ -4106,18 +4087,15 @@ void EditorWindow::action(const QString &name) {
     for (const auto &id : lineage_->selectedLinkIds()) {
       commands.append(QJsonObject{{"op", "removeLink"}, {"id", id}});
     }
-    for (auto item : scene_->selectedItems()) {
-      if (auto c =
-              qgraphicsitem_cast<QtNodes::ConnectionGraphicsObject *>(item)) {
-        auto wanted = model_.edge(c->connectionId());
-        for (auto v : document_.edges()) {
-          auto e = v.toObject();
-          if (e["source"] == wanted["source"] &&
-              e["target"] == wanted["target"] &&
-              e["sourceHandle"] == wanted["sourceHandle"] &&
-              e["targetHandle"] == wanted["targetHandle"]) {
-            commands.append(QJsonObject{{"op", "removeEdge"}, {"id", e["id"]}});
-          }
+    for (const auto &connection : canvas_->selection().edges()) {
+      const auto wanted = model_.edge(connection);
+      for (const auto &value : document_.edges()) {
+        const auto edge = value.toObject();
+        if (edge["source"] == wanted["source"] &&
+            edge["target"] == wanted["target"] &&
+            edge["sourceHandle"] == wanted["sourceHandle"] &&
+            edge["targetHandle"] == wanted["targetHandle"]) {
+          commands.append(QJsonObject{{"op", "removeEdge"}, {"id", edge["id"]}});
         }
       }
     }
@@ -4140,11 +4118,11 @@ void EditorWindow::action(const QString &name) {
     if (fragment.isObject()) {
       // As on the web: the first top-level node lands at the pointer, or at the
       // canvas centre when the pointer is elsewhere. Repeats at one spot step.
-      const auto viewport = view_->viewport();
+      const auto *viewport = &canvas_->viewportWidget();
       auto screen = pasteMenuPosition_.isNull() ? viewport->mapFromGlobal(QCursor::pos()) : viewport->mapFromGlobal(pasteMenuPosition_);
       pasteMenuPosition_ = {};
       if (!viewport->rect().contains(screen)) { screen = viewport->rect().center(); }
-      auto at = view_->mapToScene(screen);
+      auto at = canvas_->mapToScene(screen);
       constexpr double step = 40;
       if (lastPaste_ && std::abs(lastPaste_->x() - at.x()) < step && std::abs(lastPaste_->y() - at.y()) < step) {
         at = *lastPaste_ + QPointF(step, step);
@@ -4196,15 +4174,37 @@ void EditorWindow::openFocusedHandlePicker() {
     const auto ports = model_.ports(id, handle.side);
     for (qsizetype i = 0; i < ports.size(); ++i) {
       if (ports[i].toObject()["name"].toString() != handle.name) { continue; }
-      const auto *item = scene_->nodeGraphicsObject(id);
-      if (!item) { return; }
+      if (!canvas_->hasNode(id)) { return; }
       revealNode(model_.focusedNode());
-      const auto point = item->mapToScene(scene_->nodeGeometry().portPosition(id, handle.side, QtNodes::PortIndex(i)));
+      const auto point = canvas_->mapFromNode(id, canvas_->scene().nodeGeometry().portPosition(id, handle.side, QtNodes::PortIndex(i)));
       compatiblePicker_->openKeyboard(id, handle.side, QtNodes::PortIndex(i), point);
       return;
     }
   }
 }
+CanvasSurface &EditorWindow::viewportSurface() const { return *canvas_; }
+
+bool EditorWindow::usesMouseNavigation() const { return mouseNavigation(); }
+
+int EditorWindow::dragDistance() const { return QApplication::startDragDistance(); }
+
+void EditorWindow::clearLineageSelection() { lineage_->setSelectedLinkIds({}); }
+
+bool EditorWindow::canvasKeysBlocked() const {
+  return QApplication::activePopupWidget() || inlinePresenter_->active() || inlineTitle_->active();
+}
+
+void EditorWindow::scheduleViewportRelease(quint64 epoch) {
+  const QPointer<EditorWindow> window(this);
+  QTimer::singleShot(0, this, [window, epoch] {
+    if (window && window->canvas_) { window->canvas_->scene().interaction().finishViewportRelease(epoch, *window); }
+  });
+}
+
+void EditorWindow::clearBaseUndo() {
+  if (scene_) { scene_->undoStack().clear(); }
+}
+
 bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
   // The catalog panel and the canvas column are watched only for these events. The
   // keyboard handling below is for the canvas.
@@ -4216,7 +4216,7 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
       catalogPanel_->setFocus(Qt::OtherFocusReason);
       if (auto *root = catalogPanel_->rootObject()) { QMetaObject::invokeMethod(root, "focusSearch"); }
     } else if (catalogPanel_->hasFocus() || catalogPanel_->isAncestorOf(QApplication::focusWidget())) {
-      view_->setFocus(Qt::OtherFocusReason);
+      canvas_->setFocus(Qt::OtherFocusReason);
     }
     schedulePanelChanged();
     return false;
@@ -4224,7 +4224,7 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
   if (nodeMenu_ && object == nodeMenu_) {
     // A hidden menu returns the keyboard to the canvas.
     if (event->type() == QEvent::Hide && (nodeMenu_->hasFocus() || nodeMenu_->isAncestorOf(QApplication::focusWidget()))) {
-      view_->setFocus(Qt::OtherFocusReason);
+      canvas_->setFocus(Qt::OtherFocusReason);
     }
     return false;
   }
@@ -4235,214 +4235,61 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     }
     return false;
   }
-  if (object == view_->viewport() && (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove || event->type() == QEvent::Drop) && static_cast<QDropEvent *>(event)->mimeData()->hasFormat("application/x-nodetool-node-type")) {
-    auto drop = static_cast<QDropEvent *>(event);
-    const auto bytes = drop->mimeData()->data("application/x-nodetool-node-type");
-    const auto type = QString::fromUtf8(bytes);
-    if (readOnly() || bytes.isEmpty() || bytes.size() > 4096 || type.toUtf8() != bytes || !knownNodeType(type) || !(drop->possibleActions() & Qt::CopyAction)) {
-      drop->ignore(); return true;
-    }
-    if (event->type() != QEvent::Drop || addNodeAt(type, view_->mapToScene(drop->position().toPoint()))) {
-      drop->setDropAction(Qt::CopyAction); drop->accept();
-    } else { drop->ignore(); }
-    return true;
-  }
-  // ExamplesPanel.tsx drags an example card onto the canvas, which pastes a copy of
-  // its graph with the first node at the drop point (useDropHandler.ts pasteExampleGraph).
-  if (object == view_->viewport() && (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove || event->type() == QEvent::Drop)
-      && static_cast<QDropEvent *>(event)->mimeData()->hasFormat(node_editor::ExampleGallery::DragMime)) {
-    auto drop = static_cast<QDropEvent *>(event);
-    const auto key = QString::fromUtf8(drop->mimeData()->data(node_editor::ExampleGallery::DragMime));
-    if (readOnly() || key.isEmpty() || key.size() > 4096 || !(drop->possibleActions() & Qt::CopyAction)) {
-      drop->ignore(); return true;
-    }
-    if (event->type() != QEvent::Drop || pasteExample(key, view_->mapToScene(drop->position().toPoint()))) {
-      drop->setDropAction(Qt::CopyAction); drop->accept();
-    } else { drop->ignore(); }
-    return true;
-  }
-  if (event->type() == QEvent::Resize && object == view_->viewport()) {
-    layoutOverlays();
-    scheduleViewportSettle();
-  }
-  if (event->type() == QEvent::Wheel && object == view_->viewport()) {
-    auto wheel = static_cast<QWheelEvent *>(event);
-    // A physical wheel reports no scroll phase and no pixel delta, so it still zooms.
-    const bool physicalWheel = wheel->phase() == Qt::NoScrollPhase && wheel->pixelDelta().isNull();
-    if (mouseNavigation() || physicalWheel || wheel->modifiers().testAnyFlags(Qt::ControlModifier | Qt::MetaModifier)) {
-      if (wheel->angleDelta().y() != 0) { zoomUnderCursor(wheel->angleDelta().y() > 0 ? 1.15 : 1.0 / 1.15); }
-    } else {
-      panBy(wheel->pixelDelta().isNull() ? wheel->angleDelta() / 2 : wheel->pixelDelta());
-    }
-    return true;
-  }
-  if (event->type() == QEvent::NativeGesture && object == view_->viewport()) {
-    auto gesture = static_cast<QNativeGestureEvent *>(event);
-    if (gesture->gestureType() != Qt::ZoomNativeGesture) { return false; }
-    zoomUnderCursor(1.0 + gesture->value());
-    return true;
-  }
-  if (event->type() == QEvent::MouseButtonPress &&
-      object == view_->viewport()) {
-    auto mouse = static_cast<QMouseEvent *>(event);
-    // A pane press closes the web node menu (usePaneEvents.ts handlePaneClick).
-    cancelCatalogPlacement();
-    if (mouse->button() == Qt::LeftButton && !mouse->modifiers().testAnyFlags(Qt::ShiftModifier | Qt::ControlModifier | Qt::MetaModifier)) {
-      lineage_->setSelectedLinkIds({});
-    }
-    // Applied per press so that every open tab follows the one setting.
-    view_->setDragMode(mouseNavigation() ? QGraphicsView::ScrollHandDrag : QGraphicsView::RubberBandDrag);
-    if (mouseNavigation() && mouse->button() == Qt::LeftButton && !view_->itemAt(mouse->position().toPoint())) { fitActive_ = false; cancelViewAnimation(); }
-    if (mouse->button() == Qt::MiddleButton) {
-      const auto hit = view_->itemAt(mouse->position().toPoint());
-      if (hit && hit->toGraphicsObject() && hit->toGraphicsObject()->parent() == lineage_) { return false; }
-      // A middle click on a wire deletes it (web hooks/handlers/useEdgeHandlers.ts:116-126).
-      middleEdge_.clear();
-      if (auto wire = qgraphicsitem_cast<QtNodes::ConnectionGraphicsObject *>(hit); wire && !wire->connectionState().requiresPort() && !readOnly()) {
-        middleEdge_ = model_.edge(wire->connectionId())["id"].toString();
-        middlePress_ = mouse->position().toPoint();
-      }
-      panning_ = true;
-      fitActive_ = false;
-      cancelViewAnimation();
-      panPosition_ = mouse->position().toPoint();
-      return true;
-    }
-  }
-  if (event->type() == QEvent::MouseMove && panning_) {
-    auto mouse = static_cast<QMouseEvent *>(event);
-    auto delta = mouse->position().toPoint() - panPosition_;
-    panPosition_ = mouse->position().toPoint();
-    view_->horizontalScrollBar()->setValue(
-        view_->horizontalScrollBar()->value() - delta.x());
-    view_->verticalScrollBar()->setValue(view_->verticalScrollBar()->value() -
-                                         delta.y());
-    return true;
-  }
-  if (event->type() == QEvent::MouseButtonRelease && panning_) {
-    panning_ = false;
-    const auto mouse = static_cast<QMouseEvent *>(event);
-    const auto edge = std::exchange(middleEdge_, QString());
-    if (!edge.isEmpty() && mouse->button() == Qt::MiddleButton && (mouse->position().toPoint() - middlePress_).manhattanLength() < QApplication::startDragDistance()) {
-      apply({{"op", "removeEdge"}, {"id", edge}});
-    }
-    return true;
-  }
-  if (event->type() == QEvent::MouseButtonPress &&
-      object == view_->viewport()) {
-    ++gestureEpoch_;
-    gesture_ = true;
-    gestureCommands_ = {};
-    gesturePositions_.clear();
-    for (auto id : model_.allNodeIds()) {
-      gesturePositions_.insert(model_.resourceId(id), model_.nodeData(id, QtNodes::NodeRole::Position).toPointF());
-    }
-  }
-  if (event->type() == QEvent::MouseButtonRelease &&
-      object == view_->viewport()) {
-    const auto epoch = gestureEpoch_;
-    QTimer::singleShot(0, this, [this, epoch] {
-      if (!gesture_ || epoch != gestureEpoch_) { return; }
-      QJsonObject positions;
-      for (auto id : model_.allNodeIds()) {
-        auto p = model_.nodeData(id, QtNodes::NodeRole::Position).toPointF();
-        const auto resource = model_.resourceId(id);
-        if (gesturePositions_.contains(resource) && p != gesturePositions_.value(resource)) {
-          positions[model_.resourceId(id)] =
-              QJsonObject{{"x", p.x()}, {"y", p.y()}};
-        }
-      }
-      const auto outcome = scene_->takeDragOutcome();
-      if (!positions.isEmpty()) {
-        fitActive_ = false;
-        // The drag's group changes and its new positions are one undo step.
-        for (const auto &command : dragGroupCommands(positions, outcome.group, outcome.detach)) { gestureCommands_.append(command); }
-        gestureCommands_.append(
-            QJsonObject{{"op", "moveNodes"}, {"positions", positions}, {"space", "absolute"}});
-      }
-      gesture_ = false;
-      gesturePositions_.clear();
-      bool detachOnly = !gestureCommands_.isEmpty();
-      for (auto v : gestureCommands_) {
-        if (v.toObject()["op"] != "removeEdge") {
-          detachOnly = false;
-        }
-      }
-      if (detachOnly) {
-        gestureCommands_ = {};
-        refresh();
-      }
-      if (!gestureCommands_.isEmpty()) {
-        // apply() resets the gesture state, so the commands are taken first.
-        const auto commands = std::exchange(gestureCommands_, {});
-        if (apply({{"op", "batch"}, {"commands", commands}})) { previewCardEdit(commands); }
-      }
-      scene_->undoStack().clear();
-    });
-  }
-  if (event->type() == QEvent::KeyPress) {
-    if (QApplication::activePopupWidget() || inlinePresenter_->active() || inlineTitle_->active()) { return false; }
-    auto key = static_cast<QKeyEvent *>(event);
-    if (key->modifiers() == Qt::NoModifier &&
-        (key->key() == Qt::Key_Left || key->key() == Qt::Key_Right ||
-         key->key() == Qt::Key_Up || key->key() == Qt::Key_Down)) {
-      const auto selected = selectedIds();
-      if (!selected.isEmpty()) {
-        const QSet<QString> ids(selected.cbegin(), selected.cend());
-        const QPointF delta(key->key() == Qt::Key_Left ? -10 : key->key() == Qt::Key_Right ? 10 : 0,
-                            key->key() == Qt::Key_Up ? -10 : key->key() == Qt::Key_Down ? 10 : 0);
-        QJsonObject positions;
-        for (const auto id : model_.allNodeIds()) {
-          const auto resource = model_.resourceId(id);
-          if (!ids.contains(resource)) { continue; }
-          const auto position = model_.nodeData(id, QtNodes::NodeRole::Position).toPointF() + delta;
-          positions.insert(resource, QJsonObject{{"x", position.x()}, {"y", position.y()}});
-        }
-        if (apply({{"op", "moveNodes"}, {"positions", positions}, {"space", "absolute"}})) { fitActive_ = false; }
+  auto &interaction = canvas_->scene().interaction();
+  const auto type = event->type();
+  if (object == &canvas_->viewportWidget()) {
+    if (type == QEvent::DragEnter || type == QEvent::DragMove || type == QEvent::Drop) {
+      auto &drop = *static_cast<QDropEvent *>(event);
+      const auto &mime = *drop.mimeData();
+      constexpr auto nodeTypeMime = "application/x-nodetool-node-type";
+      using canvas::CanvasDropKind;
+      const bool nodeType = mime.hasFormat(nodeTypeMime);
+      if (nodeType || mime.hasFormat(node_editor::ExampleGallery::DragMime)) {
+        const auto kind = nodeType ? CanvasDropKind::NodeType : CanvasDropKind::Example;
+        const auto bytes = mime.data(nodeType ? nodeTypeMime : node_editor::ExampleGallery::DragMime);
+        const bool accepted = interaction.viewportDrop(kind, bytes, drop.possibleActions(), type == QEvent::Drop,
+                                                        canvas_->mapToScene(drop.position().toPoint()), *this);
+        if (accepted) { drop.setDropAction(Qt::CopyAction); drop.accept(); }
+        else { drop.ignore(); }
         return true;
       }
     }
-    // HandleTooltip.tsx: with a node focused, Tab and Shift+Tab walk its handles,
-    // and Enter or Space on a handle opens the keyboard connection picker.
-    const auto modifiers = key->modifiers() & ~Qt::KeypadModifier;
-    if (!model_.focusedNode().isEmpty() && (key->key() == Qt::Key_Tab || key->key() == Qt::Key_Backtab)
-        && !(modifiers & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))) {
-      model_.focusNextHandle(key->key() == Qt::Key_Backtab || (modifiers & Qt::ShiftModifier));
+    if (type == QEvent::Resize) {
+      layoutOverlays();
+      scheduleViewportSettle();
+    }
+    if (type == QEvent::Wheel) {
+      const auto &wheel = *static_cast<QWheelEvent *>(event);
+      interaction.viewportWheel(wheel.pixelDelta(), wheel.angleDelta(), wheel.phase(), wheel.modifiers(), *this);
       return true;
     }
-    if (model_.focusedHandle().side != QtNodes::PortType::None && modifiers == Qt::NoModifier) {
-      if (key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter || key->key() == Qt::Key_Space) {
-        openFocusedHandlePicker();
-        return true;
-      }
-      if (key->key() == Qt::Key_Escape) {
-        model_.setFocusedHandle(QtNodes::PortType::None, {});
-        return true;
-      }
-    }
-    QString command;
-    if (key->key() == Qt::Key_Escape) {
-        if (runActive()) {
-            action("Stop");
-        }
-      invalidateGesture();
-      scene_->resetDraftConnection();
-      refresh();
+    if (type == QEvent::NativeGesture) {
+      const auto &gesture = *static_cast<QNativeGestureEvent *>(event);
+      if (gesture.gestureType() != Qt::ZoomNativeGesture) { return false; }
+      zoomUnderCursor(1.0 + gesture.value());
       return true;
     }
-    if (QApplication::activePopupWidget()) { return false; }
-    command = shortcutCommand(key->key(), key->modifiers());
-    // Enter is free for the canvas until navigation has focused a node.
-    if (command == "Select focused node" && model_.focusedNode().isEmpty()) { command.clear(); }
-    if (command == "Add node" && !readOnly()) {
-      // Space opens the node menu where the pointer is (web useNodeEditorShortcuts.ts).
-      const auto pointer = view_->viewport()->mapFromGlobal(QCursor::pos());
-      if (view_->viewport()->rect().contains(pointer)) { armCatalogPlacement(view_->mapToScene(pointer)); }
-    }
-    if (!command.isEmpty()) {
-      action(command);
+  }
+  const bool onViewport = object == &canvas_->viewportWidget();
+  if ((onViewport && type == QEvent::MouseButtonPress) || type == QEvent::MouseMove || type == QEvent::MouseButtonRelease) {
+    const auto &mouse = *static_cast<QMouseEvent *>(event);
+    const auto position = mouse.position().toPoint();
+    using canvas::PointerAction;
+    const auto action = type == QEvent::MouseButtonPress ? PointerAction::Press
+                      : type == QEvent::MouseButtonRelease ? PointerAction::Release : PointerAction::Move;
+    // Only the viewport's releases finish a document gesture. A middle-button
+    // pan can end on the host widget as well.
+    if (interaction.viewportPointerEvent(action, {canvas_->mapToScene(position), mouse.globalPosition().toPoint(),
+            mouse.button(), mouse.buttons(), mouse.modifiers(), canvas_->zoom()}, position, *this, onViewport)) {
       return true;
     }
+  }
+  if (type == QEvent::KeyPress) {
+    const auto &key = *static_cast<QKeyEvent *>(event);
+    const auto &viewport = canvas_->viewportWidget();
+    const auto pointer = viewport.mapFromGlobal(QCursor::pos());
+    const auto scenePointer = viewport.rect().contains(pointer) ? std::optional{canvas_->mapToScene(pointer)} : std::nullopt;
+    if (interaction.viewportKeyPress(key.key(), key.modifiers(), scenePointer, *this)) { return true; }
   }
   return QMainWindow::eventFilter(object, event);
 }
@@ -4470,7 +4317,7 @@ void EditorWindow::presentation(const QVariantMap &roles) {
   if (!tabOwner_) { activeEditor_->presentation(roles); return; }
     canvasReducedMotion_ = roles.value("reducedMotion").toBool();
     motionNormalMs_ = roles.value("motionNormal", motionNormalMs_).toInt();
-    scene_->setReducedMotion(canvasReducedMotion_ || instantUpdate_ || scrubbing_);
+    canvas_->scene().setReducedMotion(canvasReducedMotion_ || instantUpdate_ || scrubbing_);
   auto color = [&](const char *name) {
     return roles.value(name).value<QColor>();
   };
@@ -4544,7 +4391,7 @@ void EditorWindow::presentation(const QVariantMap &roles) {
                          {"UseDataDefinedColors", false}};
   QtNodes::ConnectionStyle::setConnectionStyle(QString::fromUtf8(
       QJsonDocument(QJsonObject{{"ConnectionStyle", connection}}).toJson()));
-  scene_->setTheme(theme);
+  canvas_->scene().setTheme(theme);
 }
 void EditorWindow::layoutCatalog() {
   if (!catalogPanel_ || !dockHost_ || !dockHost_->centralWidget() || !catalogPanel_->rootObject()) { return; }

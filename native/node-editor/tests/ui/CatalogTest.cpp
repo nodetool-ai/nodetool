@@ -1,3 +1,4 @@
+#include "ui/CanvasSurface.h"
 #include "ui/EditorWindow.h"
 #include "graph/CatalogSearch.h"
 #include "graph/EditorScene.h"
@@ -5,7 +6,6 @@
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
-#include <QGraphicsView>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -81,11 +81,11 @@ QStringList visibleTypes(QQuickWidget *catalog) {
 QQuickWidget *openNodeMenu(EditorWindow &window, const QPoint &offset = QPoint(37, -41)) {
     window.show();
     QTest::qWait(100);
-    auto view = window.findChild<QGraphicsView *>();
+    auto view = &window.canvas();
     if (!view) {
         return nullptr;
     }
-    QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(view->viewport()->width() / 2, view->viewport()->height() / 2) + offset);
+    QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(view->viewportWidget().width() / 2, view->viewportWidget().height() / 2) + offset);
     return window.catalogAtPointer() ? catalogPanel(window) : nullptr;
 }
 
@@ -590,15 +590,15 @@ private slots:
         window.setCatalog(catalogFixture());
         window.show();
         QTest::qWait(100);
-        auto view = window.findChild<QGraphicsView *>();
+        auto view = &window.canvas();
         QVERIFY(view);
-        view->scale(0.8, 0.8);
-        const QPoint pointer(view->viewport()->width() / 3, view->viewport()->height() / 3);
+        view->scaleBy(0.8, CanvasSurface::ZoomAnchor::Center);
+        const QPoint pointer(view->viewportWidget().width() / 3, view->viewportWidget().height() / 3);
         const auto expected = view->mapToScene(pointer);
-        QCursor::setPos(view->viewport()->mapToGlobal(pointer));
-        QCOMPARE(view->viewport()->mapFromGlobal(QCursor::pos()), pointer);
+        QCursor::setPos(view->viewportWidget().mapToGlobal(pointer));
+        QCOMPARE(view->viewportWidget().mapFromGlobal(QCursor::pos()), pointer);
         view->setFocus();
-        QTest::keyClick(view->viewport(), Qt::Key_Space);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Space);
         QVERIFY(window.catalogAtPointer());
         auto catalog = catalogPanel(window);
         QVERIFY(catalog);
@@ -611,25 +611,25 @@ private slots:
         QTRY_COMPARE(window.document()->nodes().size(), 1);
         QCOMPARE(position(window.document()->nodes().first().toObject()), expected);
         QVERIFY(!window.catalogAtPointer());
-        QTRY_VERIFY(view->hasFocus());
+        QTRY_VERIFY(view->hostWidget().hasFocus());
         QCOMPARE(window.document()->undoStack()->count(), 1);
         // Escape in the search closes the pointer menu without adding.
-        QTest::keyClick(view->viewport(), Qt::Key_Space);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Space);
         QVERIFY(window.catalogAtPointer());
         QTRY_VERIFY(find(root, "nodeSearch")->hasActiveFocus());
         QTest::keyClicks(catalog, "blur");
         QTest::keyClick(catalog, Qt::Key_Escape);
         QVERIFY(!window.catalogAtPointer());
         QTRY_VERIFY(root->property("query").toString().isEmpty());
-        QTRY_VERIFY(view->hasFocus());
+        QTRY_VERIFY(view->hostWidget().hasFocus());
         QCOMPARE(window.document()->nodes().size(), 1);
         // Space in an empty search closes it too.
-        QTest::keyClick(view->viewport(), Qt::Key_Space);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Space);
         QVERIFY(window.catalogAtPointer());
         QTRY_VERIFY(find(root, "nodeSearch")->hasActiveFocus());
         QTest::keyClick(catalog, Qt::Key_Space);
         QVERIFY(!window.catalogAtPointer());
-        QTRY_VERIFY(view->hasFocus());
+        QTRY_VERIFY(view->hostWidget().hasFocus());
         QVERIFY(root->property("query").toString().isEmpty());
     }
 
@@ -678,11 +678,11 @@ private slots:
         window.setCatalog(catalogFixture());
         window.show();
         QTest::qWait(100);
-        auto view = window.findChild<QGraphicsView *>();
+        auto view = &window.canvas();
         QVERIFY(view);
-        const QPoint pointer(view->viewport()->width() / 2 + 37, view->viewport()->height() / 2 - 41);
+        const QPoint pointer(view->viewportWidget().width() / 2 + 37, view->viewportWidget().height() / 2 - 41);
         const auto expected = view->mapToScene(pointer);
-        QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, pointer);
+        QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, pointer);
         QVERIFY(window.catalogAtPointer());
         auto catalog = catalogPanel(window);
         QVERIFY(catalog);
@@ -698,14 +698,14 @@ private slots:
         QVERIFY(!window.catalogAtPointer());
         // A double-click on a card does not arm the menu.
         const auto card = view->mapFromScene(expected + QPointF(20, 20));
-        QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, card);
+        QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, card);
         QVERIFY(!window.catalogAtPointer());
         // A header double-click may collapse the card, which is its own edit.
         const auto edits = window.document()->undoStack()->count();
-        const QPoint other(40, view->viewport()->height() - 60);
-        QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, other);
+        const QPoint other(40, view->viewportWidget().height() - 60);
+        QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, other);
         QVERIFY(window.catalogAtPointer());
-        QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, other);
+        QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, other);
         QVERIFY(!window.catalogAtPointer());
         QVERIFY(!window.nodeMenuVisible());
         // The docked node library then adds in the visible center.
@@ -727,10 +727,10 @@ private slots:
         window.setCatalog(catalogFixture());
         window.show();
         QTest::qWait(100);
-        auto view = window.findChild<QGraphicsView *>();
+        auto view = &window.canvas();
         QVERIFY(view);
         const QPoint pointer(80, 90);
-        QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, pointer);
+        QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, pointer);
         QVERIFY(window.catalogAtPointer());
         QJsonObject replacement{{"name", "Replacement"}, {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}};
         QVERIFY(window.document()->load(replacement));
@@ -741,10 +741,10 @@ private slots:
         locked["graph"] = graph;
         QVERIFY(window.document()->load(locked));
         QVERIFY(window.readOnly());
-        QTest::mouseDClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, pointer);
+        QTest::mouseDClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, pointer);
         QVERIFY(!window.catalogAtPointer());
-        QCursor::setPos(view->viewport()->mapToGlobal(pointer));
-        QTest::keyClick(view->viewport(), Qt::Key_Space);
+        QCursor::setPos(view->viewportWidget().mapToGlobal(pointer));
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Space);
         QVERIFY(!window.catalogAtPointer());
         window.addNode("nodetool.text.Concat");
         QCOMPARE(window.document()->snapshot(), locked);

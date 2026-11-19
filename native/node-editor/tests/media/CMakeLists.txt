@@ -19,3 +19,8 @@ endif()
 add_executable(node_editor_media_gallery_model_tests MediaGalleryModelTests.cpp ../../src/media/MediaGalleryModel.cpp ../../src/media/MediaGalleryModel.h)
 target_link_libraries(node_editor_media_gallery_model_tests PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME node_editor_media_gallery_model COMMAND node_editor_media_gallery_model_tests)
+
+if(NOT COMMAND nodetool_node_editor_test_sanitizers)
+    include(../../cmake/sanitizers/Tests.cmake)
+endif()
+nodetool_node_editor_test_sanitizers()

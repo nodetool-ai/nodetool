@@ -1,3 +1,5 @@
+#include "../support/CanvasProbe.h"
+#include "../support/WidgetCanvasFixture.h"
 #include "ui/EditorWindow.h"
 #include "PropertyFixture.h"
 #include <QQuickItem>
@@ -8,7 +10,6 @@
 #include <QTcpSocket>
 #include <QWebSocketServer>
 #include "server/MsgPack.h"
-#include <QGraphicsView>
 #include <QMessageBox>
 #include <QInputDialog>
 #include <QLineEdit>
@@ -87,11 +88,11 @@ private:
   }
   static void select(EditorWindow &w, const QString &resourceId) {
     auto model = w.findChild<WorkflowGraphModel *>();
-    auto view = w.findChild<QGraphicsView *>();
-    auto scene = static_cast<QtNodes::BasicGraphicsScene *>(view->scene());
+    auto view = nodetool::test::view(w);
+    auto *scene = w.scene();
     for (auto id : model->allNodeIds()) {
       if (model->resourceId(id) == resourceId) {
-        scene->nodeClicked(id);
+        emit w.canvas().nodeClicked(id);
         // Panels follow in the next pass, and their layout in the pass after.
         QCoreApplication::processEvents();
         QCoreApplication::processEvents();
@@ -626,11 +627,11 @@ private slots:
     EditorWindow window;
     loadPanelFixture(window);
     auto *tab = window.activeEditor();
-    auto *view = tab->findChild<QGraphicsView *>();
+    auto view = nodetool::test::view(*tab);
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     QtNodes::NodeId target = QtNodes::InvalidNodeId;
     for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == "b") { target = id; } }
-    auto *item = window.scene()->nodeGraphicsObject(target);
+    auto item = nodetool::test::card(window, target);
     QVERIFY(item);
     const auto point = view->mapFromScene(item->sceneBoundingRect().center());
     QVERIFY(view->viewport()->rect().contains(point));
@@ -658,11 +659,11 @@ private slots:
     QQuickItem *field = nullptr;
     QTRY_VERIFY((field = control(window, "Text")));
     type(window, field, "typed before the click", 0);
-    auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+    auto view = nodetool::test::view(*window.activeEditor());
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     QtNodes::NodeId target = QtNodes::InvalidNodeId;
     for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == "b") { target = id; } }
-    auto *item = window.scene()->nodeGraphicsObject(target);
+    auto item = nodetool::test::card(window, target);
     QVERIFY(item);
     const auto header = item->sceneBoundingRect().topLeft() + QPointF(item->sceneBoundingRect().width() / 2, 12);
     QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(header));
@@ -691,6 +692,8 @@ private slots:
     w.show();
     QTest::qWait(50);
     auto panels = w.findChildren<QQuickWidget *>();
+    // The Quick canvas is a QQuickWidget too, with no QML source. It is not a panel.
+    panels.removeAll(qobject_cast<QQuickWidget *>(&w.canvas().viewportWidget()));
     // Rail, tabs, document header, status, catalog, node menu, browser, inspector, output, both toolbars,
     // viewport readout, mini-map controls, first-workflow guide, queue overlay, subgraph canvas strip, chat overlay, library,
     // node info overlay, examples panel, price chip, document file banner.
@@ -736,7 +739,7 @@ private slots:
     QTest::qWait(50);
     w.fit();
     QTest::qWait(50);
-    auto view = w.findChild<QGraphicsView *>();
+    auto view = nodetool::test::view(w);
     const auto image = view->grab().toImage();
     const auto canvas = w.scene()->theme().canvas;
     const auto mid = view->mapFromScene(QPointF(340, 46));
@@ -783,7 +786,10 @@ private slots:
     QTRY_VERIFY(!w.catalogVisible());
     w.resize(1440, 900);
     QTRY_VERIFY(w.catalogVisible());
-    QVERIFY(w.scene()->nodeGraphicsObject(*w.findChild<WorkflowGraphModel *>()->allNodeIds().begin())->graphicsEffect() == nullptr);
+    // QtNodes cards take a drop shadow effect unless the style turns it off. Quick cards have none.
+    if (auto *scene = w.qtNodesScene()) {
+      QVERIFY(nodetool::test::graphicsNode(*scene, *w.findChild<WorkflowGraphModel *>()->allNodeIds().begin())->graphicsEffect() == nullptr);
+    }
     // All panels share one engine, so one theme change reaches the canvas and every panel.
     const auto before = w.scene()->theme().node;
     w.setDarkTheme(before.lightness() > 128);
@@ -809,12 +815,12 @@ private slots:
     }
     loadPlaced(w, nodes, edges);
     w.fit();
-    auto view = w.findChild<QGraphicsView *>();
+    auto view = nodetool::test::view(w);
     QElapsedTimer timer;
     timer.start();
-    for (int i = 0; i < 5; ++i) { view->viewport()->grab(); }
+    for (int i = 0; i < 5; ++i) { view->grab(); }
     qInfo() << "1000 nodes, one full-viewport repaint, ms:" << timer.elapsed() / 5.0;
-    QVERIFY(!view->viewport()->grab().isNull());
+    QVERIFY(!view->grab().isNull());
   }
   void floatingOverlayReceivesPointerInput() {
     EditorWindow w;
@@ -845,14 +851,14 @@ private slots:
     w.show();
     QTest::qWait(50);
   }
-  static QtNodes::ConnectionGraphicsObject *wireInto(EditorWindow &w, const QString &target) {
-    for (auto item : w.scene()->items()) {
-      if (auto wire = qgraphicsitem_cast<QtNodes::ConnectionGraphicsObject *>(item)) {
-        auto model = w.findChild<WorkflowGraphModel *>();
-        if (model->resourceId(wire->connectionId().inNodeId) == target) { return wire; }
+  static nodetool::test::WireHandle wireInto(EditorWindow &w, const QString &target) {
+    auto *model = w.findChild<WorkflowGraphModel *>();
+    for (const auto id : model->allNodeIds()) {
+      for (const auto &connection : model->allConnectionIds(id)) {
+        if (model->resourceId(connection.inNodeId) == target) { return nodetool::test::wire(w, connection); }
       }
     }
-    return nullptr;
+    return {nullptr, {}};
   }
   void wirePaintHitAndBoundsShareOneCurve() {
     EditorWindow w;
@@ -865,7 +871,7 @@ private slots:
                {edge("a", "b"), edge("a", "c"), edge("a", "d"), edge("a", "e")});
     w.fit();
     QCoreApplication::processEvents();
-    auto view = w.findChild<QGraphicsView *>();
+    auto view = nodetool::test::view(w);
     view->resetTransform();
     for (const auto &target : {QStringLiteral("b"), QStringLiteral("c"), QStringLiteral("d"), QStringLiteral("e")}) {
       auto wire = wireInto(w, target);
@@ -890,7 +896,7 @@ private slots:
     QCoreApplication::processEvents();
     const auto canvas = w.scene()->theme().canvas;
     const auto viewPoint = view->mapFromScene(scenePoint);
-    const auto frame = view->viewport()->grab().toImage();
+    const auto frame = view->grab().toImage();
     bool painted = false;
     for (int y = viewPoint.y() - 2; y <= viewPoint.y() + 2; ++y) {
       painted |= frame.pixelColor(viewPoint.x(), y).red() > canvas.red() + 40;
@@ -906,12 +912,12 @@ private slots:
       nodes.append(placedNode(QString::number(i), (i % 4) * 400, (i / 4) * 300));
     }
     loadPlaced(w, nodes, {});
-    auto view = w.findChild<QGraphicsView *>();
+    auto view = nodetool::test::view(w);
     auto model = w.findChild<WorkflowGraphModel *>();
     const auto allVisible = [&] {
       const auto area = w.unobstructedViewport();
       for (auto id : model->allNodeIds()) {
-        const auto rect = view->mapFromScene(w.scene()->nodeGraphicsObject(id)->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model->layout(id).size)))).boundingRect();
+        const auto rect = view->mapFromScene(nodetool::test::card(w, id)->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model->layout(id).size)))).boundingRect();
         if (!area.contains(QRectF(rect))) { return false; }
       }
       return true;
@@ -930,7 +936,7 @@ private slots:
     QCOMPARE(w.zoomPercent(), wideZoom);
     for (auto id : model->allNodeIds()) {
       if (model->resourceId(id) != "5") { continue; }
-      const auto rect = view->mapFromScene(w.scene()->nodeGraphicsObject(id)->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model->layout(id).size)))).boundingRect();
+      const auto rect = view->mapFromScene(nodetool::test::card(w, id)->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model->layout(id).size)))).boundingRect();
       QVERIFY(view->viewport()->rect().contains(rect));
     }
     w.action("Clear selection");
@@ -947,7 +953,7 @@ private slots:
     QCOMPARE(w.zoomPercent(), 100);
     for (auto id : model->allNodeIds()) {
       if (model->resourceId(id) != "11") { continue; }
-      const auto rect = view->mapFromScene(w.scene()->nodeGraphicsObject(id)->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model->layout(id).size)))).boundingRect();
+      const auto rect = view->mapFromScene(nodetool::test::card(w, id)->mapRectToScene(QRectF(QPointF(0, 0), QSizeF(model->layout(id).size)))).boundingRect();
       QTRY_VERIFY(w.unobstructedViewport().contains(QRectF(rect)));
     }
   }
@@ -1263,8 +1269,8 @@ private slots:
     w.show();
     QTest::qWait(30);
     w.fit();
-    auto view = w.findChild<QGraphicsView *>();
-    auto scene = static_cast<QtNodes::BasicGraphicsScene *>(view->scene());
+    auto view = nodetool::test::view(w);
+    const nodetool::test::CanvasProbe probe(w);
     auto model = w.findChild<WorkflowGraphModel *>();
     QVERIFY(model);
     QtNodes::NodeId source = 0, target = 0;
@@ -1275,12 +1281,8 @@ private slots:
         target = id;
       }
     }
-    auto out = view->mapFromScene(scene->nodeGeometry().portScenePosition(
-        source, QtNodes::PortType::Out, 0,
-        scene->nodeGraphicsObject(source)->sceneTransform()));
-    auto in = view->mapFromScene(scene->nodeGeometry().portScenePosition(
-        target, QtNodes::PortType::In, 0,
-        scene->nodeGraphicsObject(target)->sceneTransform()));
+    auto out = view->mapFromScene(probe.port(source, QtNodes::PortType::Out, 0));
+    auto in = view->mapFromScene(probe.port(target, QtNodes::PortType::In, 0));
     auto count = d->undoStack()->count();
     QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, out);
     QMouseEvent move(QEvent::MouseMove, in, view->viewport()->mapToGlobal(in),
@@ -1290,8 +1292,8 @@ private slots:
     QCoreApplication::processEvents();
     QCOMPARE(d->edges().size(), 1);
     QCOMPARE(d->undoStack()->count(), count + 1);
-    QTRY_VERIFY(scene->connectionGraphicsObject({source, 0, target, 0}));
-    auto connection = scene->connectionGraphicsObject({source, 0, target, 0});
+    QTRY_VERIFY(nodetool::test::wire(w, {source, 0, target, 0}));
+    auto connection = nodetool::test::wire(w, {source, 0, target, 0});
     connection->setSelected(true);
     w.action("Delete");
     QCOMPARE(d->edges().size(), 0);
@@ -1306,9 +1308,8 @@ private slots:
     QTest::qWait(50);
     w.fit();
     QCoreApplication::processEvents();
-    auto view = w.findChild<QGraphicsView *>();
-    auto scene = static_cast<QtNodes::BasicGraphicsScene *>(view->scene());
-    auto node = scene->nodeGraphicsObject(0);
+    auto view = nodetool::test::view(w);
+    auto node = nodetool::test::card(w, 0);
     QVERIFY(node);
     auto start = view->mapFromScene(node->sceneBoundingRect().center());
     auto old = w.document()->snapshot();

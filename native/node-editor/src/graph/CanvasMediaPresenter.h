@@ -8,22 +8,21 @@
 #include <QRegion>
 #include <QVector>
 #include <QtNodes/Definitions>
-class QGraphicsView;
-namespace QtNodes { class NodeGraphicsObject; }
 class QQmlEngine;
 class QQuickWidget;
 class QQuickWindow;
 namespace nodetool {
+class CanvasSurface;
 namespace node_editor { class MediaResolver; }
 class WorkflowGraphModel;
-class EditorScene;
+class EditorSceneApi;
 // Interactive media lives in viewport Quick widgets, never graphics proxies.
 // The resolver is borrowed: its owner, EditorWindow, outlives this presenter.
 class CanvasMediaPresenter final : public QObject {
   Q_OBJECT
 public:
-  CanvasMediaPresenter(WorkflowGraphModel &model, EditorScene &scene,
-                       QGraphicsView &view, QQmlEngine *engine,
+  CanvasMediaPresenter(WorkflowGraphModel &model, EditorSceneApi &scene,
+                       CanvasSurface &canvas, QQmlEngine *engine,
                        node_editor::MediaResolver &resolver, QObject *parent = nullptr);
   ~CanvasMediaPresenter() override;
   QList<QQuickWidget *> activeWidgets() const;
@@ -46,8 +45,7 @@ private slots:
 private:
   struct Entry { QPointer<QQuickWidget> widget; QVariantMap source; };
   WorkflowGraphModel &model_;
-  EditorScene &scene_;
-  QGraphicsView &view_;
+  CanvasSurface &canvas_;
   QPointer<QQmlEngine> engine_;
   node_editor::MediaResolver &resolver_;
   QHash<QString, QVariantMap> sources_;
@@ -60,7 +58,7 @@ private:
   QSet<QtNodes::NodeId> dirtyPlayerNodes_;
   bool allPlayerNodesDirty_ = true;
   void updatePlayerNodes();
-  void showPlayers(QtNodes::NodeGraphicsObject &node, const QRect &viewport, const QTransform &transform, double zoom,
+  void showPlayers(QtNodes::NodeId node, const QRect &viewport, const QTransform &transform, double zoom,
                    const QRegion &covered, QSet<QString> &visible, QList<QQuickWidget *> &stacking);
   void retirePlayer(const QString &key);
   QVector<QPointer<QQuickWidget>> retired_;

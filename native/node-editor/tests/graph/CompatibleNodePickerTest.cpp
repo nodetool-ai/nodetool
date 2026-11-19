@@ -1,10 +1,10 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "CompatiblePickerFixture.h"
 #include "graph/CompatibleNodePicker.h"
 #include "graph/EditorScene.h"
 #include "graph/CompatibleNodePlacement.h"
 #include "document/WorkflowDocument.h"
 #include "document/ConnectionTypes.h"
-#include <QGraphicsView>
 #include <QQmlEngine>
 #include <QQuickWidget>
 #include <QQuickItem>
@@ -19,9 +19,10 @@ struct Fixture {
   node_editor::WorkflowDocument document;
   WorkflowGraphModel model;
   EditorScene scene{model};
-  QGraphicsView view{&scene};
+  nodetool::test::WidgetView view{&scene};
+  QtNodesCanvas canvas{scene, view};
   QQmlEngine engine;
-  CompatibleNodePicker picker{model,scene,view,&engine};
+  CompatibleNodePicker picker{model,scene, canvas,&engine};
   NodeId node=InvalidNodeId;
   explicit Fixture(QJsonArray nodes=picker_fixture::catalog(),const QJsonObject &workflow=picker_fixture::workflow(),
                    const QString &origin="origin") : catalog(std::move(nodes)) {

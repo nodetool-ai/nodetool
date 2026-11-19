@@ -1,3 +1,4 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "../support/DarkCanvasTheme.h"
 #include "graph/WorkflowGraphModel.h"
 #include "graph/EditorScene.h"
@@ -5,7 +6,6 @@
 #include <QJsonDocument>
 #include <QtTest>
 #include <cmath>
-#include <QGraphicsView>
 #include <QPainter>
 #include <QGraphicsSceneMouseEvent>
 #include "document/WorkflowDocument.h"
@@ -31,7 +31,7 @@ private slots:
 };
 #ifndef Q_MOC_RUN
 namespace {
-void sceneMouse(EditorScene &scene, QGraphicsView &view, QEvent::Type type, QPointF point) {
+void sceneMouse(EditorScene &scene, nodetool::test::WidgetView &view, QEvent::Type type, QPointF point) {
   QGraphicsSceneMouseEvent event(type);
   event.setWidget(view.viewport());
   event.setScenePos(point);
@@ -56,19 +56,19 @@ void GroupPresentationTest::labelHitOutsideItemBounds() {
   WorkflowGraphModel model;
   EditorScene scene(model);
   model.project(gestureFixture());
-  QGraphicsView view(&scene);
+  nodetool::test::WidgetView view(&scene);
   view.scale(0.25, 0.25);
   const auto group = idFor(model, "group"), child = idFor(model, "child");
   const auto label = scene.groupLabelRect(group, 0.25);
   const auto point = label.center();
-  QVERIFY(point.y() < scene.nodeGraphicsObject(group)->sceneBoundingRect().top());
+  QVERIFY(point.y() < nodetool::test::graphicsNode(scene, group)->sceneBoundingRect().top());
   sceneMouse(scene, view, QEvent::GraphicsSceneMousePress, point);
-  QVERIFY(scene.nodeGraphicsObject(group)->isSelected());
+  QVERIFY(nodetool::test::graphicsNode(scene, group)->isSelected());
   sceneMouse(scene, view, QEvent::GraphicsSceneMouseMove, point + QPointF(80, 40));
   sceneMouse(scene, view, QEvent::GraphicsSceneMouseRelease, point + QPointF(80, 40));
   QCOMPARE(model.nodeData(group, NodeRole::Position).toPointF(), QPointF(180,240));
   QCOMPARE(model.nodeData(child, NodeRole::Position).toPointF(), QPointF(220,290));
-  QVERIFY(scene.nodeGraphicsObject(group)->zValue() < scene.nodeGraphicsObject(child)->zValue());
+  QVERIFY(nodetool::test::graphicsNode(scene, group)->zValue() < nodetool::test::graphicsNode(scene, child)->zValue());
 }
 // React Flow writes fractional sizes after a resize. They round, and never
 // fall back to the default 400 x 300 frame or a card's natural height.
@@ -90,7 +90,7 @@ void GroupPresentationTest::resizeCommitsOnceAndPreservesChildren() {
   WorkflowGraphModel model;
   EditorScene scene(model);
   model.project(document.snapshot());
-  QGraphicsView view(&scene);
+  nodetool::test::WidgetView view(&scene);
   int commits = 0;
   model.commit = [&](const QJsonObject &command) {
     ++commits;
@@ -111,7 +111,7 @@ void GroupPresentationTest::resizeCommitsOnceAndPreservesChildren() {
   QCOMPARE(model.nodeData(child,NodeRole::Position).toPointF(),QPointF(140,250));
   document.undo(); model.project(document.snapshot());
   QCOMPARE(document.snapshot(),before);
-  scene.nodeGraphicsObject(group)->setSelected(true);
+  nodetool::test::graphicsNode(scene, group)->setSelected(true);
   // Top-left resize preserves child absolute coordinates while updating its
   // relative offset inside the resized frame in the same history entry.
   sceneMouse(scene, view, QEvent::GraphicsSceneMousePress, QPointF(100,200));
@@ -152,7 +152,7 @@ void GroupPresentationTest::ordinaryNodeResizeBounds() {
   const QJsonObject node{{"id","card"},{"type","test.Empty"},
     {"ui_properties",QJsonObject{{"position",QJsonObject{{"x",0},{"y",0}}},{"future",42}}}};
   model.project(QJsonObject{{"nodes",QJsonArray{node}},{"edges",QJsonArray{}}});
-  QGraphicsView view(&scene);
+  nodetool::test::WidgetView view(&scene);
   const auto id = idFor(model,"card");
   const auto initial = model.layout(id).size;
   const auto handle = QPointF(initial.width()-5,initial.height()-5);
@@ -170,13 +170,13 @@ void GroupPresentationTest::resizeCancelAndReadOnly() {
   WorkflowGraphModel model;
   EditorScene scene(model);
   model.project(gestureFixture());
-  QGraphicsView view(&scene);
+  nodetool::test::WidgetView view(&scene);
   const auto child = idFor(model,"child");
   int commits = 0;
   model.commit = [&](const QJsonObject &) { ++commits; return true; };
-  QCOMPARE(scene.nodeGraphicsObject(child)->scenePos(),QPointF(140,250));
+  QCOMPARE(nodetool::test::graphicsNode(scene, child)->scenePos(),QPointF(140,250));
   sceneMouse(scene,view,QEvent::GraphicsSceneMousePress,QPointF(235,325));
-  QVERIFY(scene.nodeGraphicsObject(child)->isSelected());
+  QVERIFY(nodetool::test::graphicsNode(scene, child)->isSelected());
   sceneMouse(scene,view,QEvent::GraphicsSceneMouseMove,QPointF(145,255));
   QCOMPARE(model.layout(child).size,QSize(30,40));
   QKeyEvent escape(QEvent::KeyPress,Qt::Key_Escape,Qt::NoModifier);
@@ -210,8 +210,8 @@ void GroupPresentationTest::nestedMovementAndGeometry() {
     QCOMPARE(model.layout(note).size, QSize(240,120));
     QCOMPARE(model.layout(outer).title, QString("Outer"));
     QVERIFY(model.ports(note, PortType::In).isEmpty());
-    QVERIFY(scene.nodeGraphicsObject(outer)->zValue() < scene.nodeGraphicsObject(inner)->zValue());
-    QVERIFY(scene.nodeGraphicsObject(inner)->zValue() < scene.nodeGraphicsObject(note)->zValue());
+    QVERIFY(nodetool::test::graphicsNode(scene, outer)->zValue() < nodetool::test::graphicsNode(scene, inner)->zValue());
+    QVERIFY(nodetool::test::graphicsNode(scene, inner)->zValue() < nodetool::test::graphicsNode(scene, note)->zValue());
     QHash<NodeId,QPointF> before;
     for (const auto id : model.allNodeIds()) { before[id] = model.nodeData(id,NodeRole::Position).toPointF(); }
     QVERIFY(model.setNodeData(outer,NodeRole::Position,QPointF(120,230)));

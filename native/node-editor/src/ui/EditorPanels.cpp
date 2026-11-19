@@ -13,7 +13,7 @@
 #include <QGuiApplication>
 #include <QDateTime>
 #include <QDockWidget>
-#include <QGraphicsView>
+#include "ui/CanvasSurface.h"
 #include <QJsonDocument>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -273,7 +273,7 @@ bool EditorWindow::queueVisible() const {
 }
 
 QRect EditorWindow::queueArea() const {
-  return {view_->mapTo(centralWidget(), QPoint(0, 0)), view_->size()};
+  return {canvas_->hostWidget().mapTo(centralWidget(), QPoint(0, 0)), canvas_->hostWidget().size()};
 }
 
 QSize EditorWindow::queueSize(const QRect &area) const {

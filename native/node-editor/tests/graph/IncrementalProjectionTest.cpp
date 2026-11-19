@@ -1,8 +1,8 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "graph/EditorScene.h"
 #include "graph/InlineTitlePresenter.h"
 #include "graph/WorkflowGraphModel.h"
 #include "document/WorkflowDocument.h"
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include <QPointer>
 #include <QSignalSpy>
@@ -61,7 +61,7 @@ struct Fixture {
     return bool(result);
   }
   void project() { model.project(document.snapshot(), catalog()); }
-  NodeGraphicsObject *item(const QString &resource) { return scene.nodeGraphicsObject(idFor(model, resource)); }
+  NodeGraphicsObject *item(const QString &resource) { return nodetool::test::graphicsNode(scene, idFor(model, resource)); }
   // Builds every card layout, as the painters do, and returns the build count.
   quint64 buildAllLayouts() {
     for (const auto id : model.allNodeIds()) { model.layout(id); }
@@ -85,8 +85,8 @@ void expectMatchesFresh(Fixture &f) {
         const auto edge = model.edge(id);
         const auto out = wire->mapToScene(wire->endPoint(PortType::Out));
         const auto in = wire->mapToScene(wire->endPoint(PortType::In));
-        const auto expectedOut = scene.nodeGeometry().portScenePosition(id.outNodeId, PortType::Out, id.outPortIndex, scene.nodeGraphicsObject(id.outNodeId)->sceneTransform());
-        const auto expectedIn = scene.nodeGeometry().portScenePosition(id.inNodeId, PortType::In, id.inPortIndex, scene.nodeGraphicsObject(id.inNodeId)->sceneTransform());
+        const auto expectedOut = scene.nodeGeometry().portScenePosition(id.outNodeId, PortType::Out, id.outPortIndex, nodetool::test::graphicsNode(scene, id.outNodeId)->sceneTransform());
+        const auto expectedIn = scene.nodeGeometry().portScenePosition(id.inNodeId, PortType::In, id.inPortIndex, nodetool::test::graphicsNode(scene, id.inNodeId)->sceneTransform());
         wires.append(QString("%1.%2>%3.%4 %5,%6>%7,%8 attached=%9").arg(edge["source"].toString(), edge["sourceHandle"].toString(),
             edge["target"].toString(), edge["targetHandle"].toString()).arg(out.x()).arg(out.y()).arg(in.x()).arg(in.y())
             .arg(QLineF(out, expectedOut).length() < 0.5 && QLineF(in, expectedIn).length() < 0.5));
@@ -167,7 +167,7 @@ void IncrementalProjectionTest::addConnectDisconnectDeleteAndUndo() {
   expectMatchesFresh(f);
   const auto d = idFor(f.model, "d");
   QVERIFY(f.apply({{"op", "removeNodes"}, {"ids", QJsonArray{"d"}}}));
-  QVERIFY(!f.scene.nodeGraphicsObject(d));
+  QVERIFY(!nodetool::test::graphicsNode(f.scene, d));
   expectMatchesFresh(f);
   for (int i = 0; i < 4; ++i) { f.document.undo(); f.project(); expectMatchesFresh(f); }
   QCOMPARE(f.document.snapshot(), before);
@@ -219,8 +219,9 @@ void IncrementalProjectionTest::groupsReroutesAndCommentsFollowIncrementalEdits(
 }
 void IncrementalProjectionTest::notesFollowIncrementalProjection() {
   Fixture f;
-  QGraphicsView view(&f.scene);
-  InlineTitlePresenter titles(f.model, f.scene, view, nullptr);
+  nodetool::test::WidgetView view(&f.scene);
+  QtNodesCanvas canvas(f.scene, view);
+  InlineTitlePresenter titles(f.model, f.scene, canvas, nullptr);
   QSignalSpy reset(&f.model, &WorkflowGraphModel::modelReset);
   QVERIFY(f.apply({{"op", "setNodeField"}, {"id", "b"}, {"field", "ui_properties"},
       {"value", QJsonObject{{"position", QJsonObject{{"x", 400}, {"y", 0}}}, {"title", "Below the card"}}}}));

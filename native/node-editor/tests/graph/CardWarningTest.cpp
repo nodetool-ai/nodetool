@@ -1,8 +1,8 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
 #include "document/WorkflowDocument.h"
 #include "run/NodeRuntimeModel.h"
-#include <QGraphicsView>
 #include <QSignalSpy>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
@@ -89,14 +89,14 @@ private slots:
     Fixture f(QStringLiteral("other"));
     f.model.setConfiguredSecrets({}, true);
     QSignalSpy requested(&f.scene, &EditorScene::providerConnectRequested);
-    auto *item = f.scene.nodeGraphicsObject(f.id("llm"));
+    auto *item = nodetool::test::graphicsNode(f.scene, f.id("llm"));
     QVERIFY(item);
     QRectF button;
     for (const auto &row : f.model.layout(f.id("llm")).rows) {
       if (row.action == QStringLiteral("connectProvider")) { button = row.rect; }
     }
     QVERIFY(!button.isEmpty());
-    QGraphicsView view(&f.scene);
+    nodetool::test::WidgetView view(&f.scene);
     view.resize(1200, 600);
     view.show();
     QVERIFY(QTest::qWaitForWindowExposed(&view));
@@ -136,9 +136,9 @@ private slots:
     runtime.beginRun(QStringLiteral("job"));
     runtime.ingest(QStringLiteral("job"), {{"type", "node_update"}, {"job_id", "job"}, {"node_id", "llm"}, {"status", "error"}, {"error", "Model refused"}});
     QSignalSpy requested(&f.scene, &EditorScene::errorReportRequested);
-    auto *item = f.scene.nodeGraphicsObject(f.id("llm"));
+    auto *item = nodetool::test::graphicsNode(f.scene, f.id("llm"));
     QVERIFY(item);
-    QGraphicsView view(&f.scene);
+    nodetool::test::WidgetView view(&f.scene);
     view.resize(1200, 600);
     view.show();
     QVERIFY(QTest::qWaitForWindowExposed(&view));

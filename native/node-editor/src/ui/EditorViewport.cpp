@@ -3,13 +3,12 @@
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QEasingCurve>
-#include <QGraphicsView>
+#include "ui/CanvasSurface.h"
 #include <QScopedValueRollback>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QSettings>
 #include <QVariantAnimation>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <algorithm>
 #include <cmath>
 
@@ -45,20 +44,18 @@ void EditorWindow::cancelViewAnimation() {
 
 QPointF EditorWindow::centerOnArea(const QPointF &scenePoint, double zoom) const {
   const auto area = unobstructedViewport();
-  return scenePoint + (QRectF(view_->viewport()->rect()).center() - area.center()) / zoom;
+  return scenePoint + (QRectF(canvas_->viewportWidget().rect()).center() - area.center()) / zoom;
 }
 
 void EditorWindow::moveViewTo(double zoom, const QPointF &viewCenter, int durationMs) {
   zoom = std::clamp(zoom, minimumZoom, maximumZoom);
   const auto place = [this](double z, const QPointF &center) {
-    view_->setTransformationAnchor(QGraphicsView::AnchorViewCenter);
-    view_->setTransform(QTransform::fromScale(z, z));
-    view_->centerOn(center);
+    canvas_->setView(z, center);
     emit zoomChanged();
   };
   cancelViewAnimation();
-  const double fromZoom = view_->transform().m11();
-  const auto fromCenter = view_->viewportTransform().inverted().map(QRectF(view_->viewport()->rect()).center());
+  const double fromZoom = canvas_->zoom();
+  const auto fromCenter = canvas_->center();
   const bool arrived = std::abs(fromZoom - zoom) < 1e-9 && QLineF(fromCenter, viewCenter).length() * zoom < 0.5;
   if (durationMs <= 0 || canvasReducedMotion_ || !isVisible() || arrived) {
     place(zoom, viewCenter);
@@ -87,7 +84,7 @@ void EditorWindow::moveViewTo(double zoom, const QPointF &viewCenter, int durati
 // zoomTo keeps the viewport center, as React Flow does.
 void EditorWindow::zoomTo(double zoom) {
   fitActive_ = false;
-  const auto center = view_->viewportTransform().inverted().map(QRectF(view_->viewport()->rect()).center());
+  const auto center = canvas_->center();
   moveViewTo(zoom, center, viewMs(motionNormalMs_));
 }
 
@@ -106,10 +103,7 @@ void EditorWindow::fitView() {
 
 void EditorWindow::fitSelection() {
   QRectF bounds;
-  for (auto id : model_.allNodeIds()) {
-    auto item = scene_->nodeGraphicsObject(id);
-    if (item && item->isSelected()) { bounds |= item->mapRectToScene(QRectF(QPointF(), model_.layout(id).size)); }
-  }
+  for (const auto id : canvas_->selection().nodes()) { bounds |= canvas_->nodeRect(id); }
   // With nothing selected the web fits every node.
   if (bounds.isEmpty()) { fitView(); return; }
   fitActive_ = false;
@@ -128,9 +122,9 @@ void EditorWindow::focusSelectedNode() {
 void EditorWindow::focusNode(const QString &resourceId) {
   for (auto id : model_.allNodeIds()) {
     if (model_.resourceId(id) != resourceId) { continue; }
-    if (auto item = scene_->nodeGraphicsObject(id)) {
+    if (canvas_->hasNode(id)) {
       fitActive_ = false;
-      moveViewTo(focusZoom, centerOnArea(item->scenePos(), focusZoom), viewMs(focusDurationMs));
+      moveViewTo(focusZoom, centerOnArea(canvas_->nodeOrigin(id), focusZoom), viewMs(focusDurationMs));
     }
     return;
   }
@@ -138,7 +132,7 @@ void EditorWindow::focusNode(const QString &resourceId) {
 
 bool EditorWindow::zoomIsPreset() const {
   if (!tabOwner_) { return activeEditor_->zoomIsPreset(); }
-  const double zoom = view_->transform().m11();
+  const double zoom = canvas_->zoom();
   for (const double preset : {0.25, 0.5, 0.75, 1.0, 1.5, 2.0}) {
     if (std::abs(preset - zoom) < 0.01) { return true; }
   }
@@ -157,7 +151,7 @@ void EditorWindow::setMiniMapColorMode(const QString &mode) {
   // The choice holds for every workflow tab, as in the web store.
   for (auto tab : tabOwner_->tabs_) {
     tab->miniMapColorMode_ = mode;
-    if (auto map = tab->view_->findChild<QWidget *>("mini-map")) { map->update(); }
+    if (auto map = tab->canvas_->hostWidget().findChild<QWidget *>("mini-map")) { map->update(); }
     tab->layoutOverlays();
     tab->schedulePanelChanged();
   }
@@ -176,7 +170,7 @@ void EditorWindow::showMiniMapPopup(const QString &kind, const QPointF &anchorGl
   if (!tabOwner_) { activeEditor_->showMiniMapPopup(kind, anchorGlobal); return; }
   closeMiniMapPopup();
   QVariantList legend;
-  const bool dark = scene_->theme().canvas.lightnessF() < .5;
+  const bool dark = canvas_->scene().theme().canvas.lightnessF() < .5;
   const QHash<QString, QString> labels{{"input", tr("Input nodes")}, {"constant", tr("Constant nodes")}, {"processing", tr("Processing nodes")},
                                        {"group", tr("Group nodes")}, {"comment", tr("Comment nodes")}, {"output", tr("Output nodes")}};
   for (const auto &category : miniMapCategories()) {

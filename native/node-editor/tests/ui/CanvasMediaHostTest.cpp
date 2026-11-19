@@ -1,3 +1,4 @@
+#include "../support/CanvasProbe.h"
 #include "media/LocalMediaStore.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QClipboard>
@@ -8,7 +9,6 @@
 #include <QDataStream>
 #include <QFile>
 #include <QDir>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include <QMediaPlayer>
 #include <QPointer>
@@ -217,11 +217,11 @@ private slots:
     QTest::mouseMove(textWidget, scrollPoint);
     QTest::mouseClick(textWidget, Qt::LeftButton, {}, scrollPoint);
     QTRY_VERIFY(scroll->property("interactive").toBool());
-    auto view = window.findChild<QGraphicsView *>();
+    auto view = nodetool::test::view(window);
     QVERIFY(view);
     const auto zoomBefore = tableWidget->rootObject()->property("zoom").toReal();
     // Zoom through the editor, as the toolbar and shortcuts do. The window keeps its own
-    // zoom state, so a direct QGraphicsView::scale is not a user zoom.
+    // zoom state, so a direct scale on the widget view is not a user zoom.
     window.action("Zoom out");
     view->horizontalScrollBar()->setValue(view->horizontalScrollBar()->value() + 20);
     view->verticalScrollBar()->setValue(view->verticalScrollBar()->value() + 15);

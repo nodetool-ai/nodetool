@@ -1,8 +1,8 @@
+#include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QApplication>
-#include <QGraphicsView>
 #include <QInputDialog>
 #include <QTimer>
 #include "EntryMenuSupport.h"
@@ -27,7 +27,7 @@ class NavigationTest final : public QObject {
   Q_OBJECT
 private slots:
   void canvasNavigationSchemes() {
-    const auto view = [](EditorWindow &window) { return window.findChild<QGraphicsView *>(); };
+    const auto view = [](EditorWindow &window) { return nodetool::test::view(window); };
     const auto wheel = [&](EditorWindow &window, QPoint pixels, QPoint angle) {
       QWheelEvent event(QPointF(50, 50), QPointF(50, 50), pixels, angle, Qt::NoButton, Qt::NoModifier, Qt::ScrollUpdate, false);
       QApplication::sendEvent(view(window)->viewport(), &event);
@@ -35,7 +35,7 @@ private slots:
     QSettings().setValue("canvas/navigation", "trackpad");
     EditorWindow window;
     window.show();
-    auto *canvas = view(window);
+    auto canvas = view(window);
     QVERIFY(canvas);
     const auto zoom = canvas->transform().m11();
     const auto x = canvas->horizontalScrollBar()->value();
@@ -80,7 +80,7 @@ private slots:
     window.resize(1200, 800);
     window.show();
     QVERIFY(QTest::qWaitForWindowExposed(&window));
-    auto *canvas = window.findChild<QGraphicsView *>();
+    auto canvas = nodetool::test::view(window);
     const auto center = canvas->viewport()->rect().center();
     const QPointF local = canvas->viewport()->mapTo(&window, center);
     const QPointF global = canvas->viewport()->mapToGlobal(center);
@@ -109,10 +109,10 @@ private slots:
     }
     QVERIFY(window.document()->applyCommand({{"op", "batch"}, {"commands", commands}}));
     QCoreApplication::processEvents();
-    auto *canvas = window.findChild<QGraphicsView *>();
+    auto canvas = nodetool::test::view(window);
     auto *viewport = canvas->viewport();
-    canvas->centerOn(canvas->scene()->itemsBoundingRect().center());
-    const auto bounds = canvas->mapFromScene(canvas->scene()->itemsBoundingRect()).boundingRect();
+    canvas->centerOn(nodetool::test::itemsBoundingRect(window).center());
+    const auto bounds = canvas->mapFromScene(nodetool::test::itemsBoundingRect(window)).boundingRect();
     QVERIFY2(viewport->rect().contains(bounds), qPrintable(QString("%1x%2").arg(viewport->width()).arg(viewport->height())));
     std::vector<std::unique_ptr<QSignalSpy>> spies;
     const auto editors = window.findChildren<EditorWindow *>();
@@ -126,7 +126,7 @@ private slots:
       QMouseEvent move(QEvent::MouseMove, point, viewport->mapToGlobal(point), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
       QApplication::sendEvent(viewport, &move);
     }
-    QCOMPARE(canvas->scene()->selectedItems().size(), 30);
+    QCOMPARE(window.canvas().selection().count(), 30);
     QCOMPARE(refreshes(), 0);
     QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, bounds.bottomRight() + QPoint(8, 8));
     QTRY_VERIFY(refreshes() > 0);
@@ -140,7 +140,7 @@ private slots:
     QVERIFY(QTest::qWaitForWindowExposed(&window));
     QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{{"id", "source"}, {"type", "nodetool.workflows.base_node.Comment"}, {"data", QJsonObject{{"comment", "Text"}}}, {"ui_properties", QJsonObject{{"width", 120}, {"height", 60}, {"position", QJsonObject{{"x", 0}, {"y", 0}}}}}}}}));
     QApplication::clipboard()->setText(QString::fromUtf8(QJsonDocument(window.document()->copy({"source"})).toJson()));
-    auto *canvas = window.findChild<QGraphicsView *>();
+    auto canvas = nodetool::test::view(window);
     auto *viewport = canvas->viewport();
     const auto pasted = [&] {
       QList<QPointF> positions;
@@ -179,13 +179,13 @@ private slots:
     }
     QVERIFY(window.document()->applyCommand({{"op", "batch"}, {"commands", commands}}));
     QCoreApplication::processEvents();
-    auto *scene = window.findChild<QGraphicsView *>()->scene();
-    QSignalSpy changes(scene, &QGraphicsScene::selectionChanged);
+    auto &selection = window.canvas().selection();
+    QSignalSpy changes(&selection, &nodetool::CanvasSelection::selectionChanged);
     QElapsedTimer timer;
     timer.start();
     window.action("Select all");
     qInfo() << "select all ms" << timer.elapsed();
-    QCOMPARE(scene->selectedItems().size(), 300);
+    QCOMPARE(selection.count(), 300);
     QCOMPARE(changes.count(), 1);
   }
   void arrangeSelectionMenuPreservesUndo() {
@@ -195,7 +195,7 @@ private slots:
       QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{{"id", QString::number(i)}, {"type", "nodetool.workflows.base_node.Comment"}, {"data", QJsonObject{{"comment", "Text"}}}, {"ui_properties", QJsonObject{{"width", 200 + i * 20}, {"height", 100}, {"position", QJsonObject{{"x", 100 + i * 300}, {"y", i * 40}}}}}}}}));
     }
     auto &model = window.scene()->graphModel();
-    for (const auto id : model.allNodeIds()) { window.scene()->nodeGraphicsObject(id)->setSelected(true); }
+    for (const auto id : model.allNodeIds()) { window.canvas().selection().setNode(id, true); }
     const auto initial = window.document()->snapshot();
     const auto undoIndex = window.document()->undoStack()->index();
     QQuickWidget *toolbar = nullptr;
@@ -231,9 +231,9 @@ private slots:
     QVERIFY(window.selectNode("first"));
     const auto snapshot = window.document()->snapshot();
     const auto undo = window.document()->undoStack()->index();
-    auto view = window.findChild<QGraphicsView *>();
+    auto view = nodetool::test::view(window);
     QVERIFY(view);
-    QTest::keyClick(view, Qt::Key_F, Qt::ControlModifier);
+    QTest::keyClick(view->widget(), Qt::Key_F, Qt::ControlModifier);
     QTRY_VERIFY(window.findChild<QQuickWidget *>("find-panel"));
     auto *panel = window.findChild<QQuickWidget *>("find-panel");
     QTest::keyClicks(panel, "SECOND");
@@ -241,9 +241,9 @@ private slots:
     QTRY_VERIFY(!window.findChild<QQuickWidget *>("find-panel") || !window.findChild<QQuickWidget *>("find-panel")->isVisible());
     QCOMPARE(window.selection(), QString("second"));
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
-    QtNodes::NodeGraphicsObject *found = nullptr;
+    nodetool::test::CardHandle found{nullptr, QtNodes::InvalidNodeId};
     for (const auto id : model.allNodeIds()) {
-      if (model.resourceId(id) == "second") { found = window.scene()->nodeGraphicsObject(id); }
+      if (model.resourceId(id) == "second") { found = nodetool::test::card(window, id); }
     }
     QVERIFY(found);
     QTRY_VERIFY(window.unobstructedViewport().contains(view->mapFromScene(found->scenePos() + QPointF(140, 30))));

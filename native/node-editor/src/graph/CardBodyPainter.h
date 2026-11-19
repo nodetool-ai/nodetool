@@ -1,5 +1,5 @@
 #pragma once
-#include "EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "CardControls.h"
 #include "NodeLayout.h"
 #include <optional>
@@ -13,7 +13,7 @@ struct CardBodyPaintState {
     // The node is running, so its Run button shows the running state.
     bool running = false;
     // The stroke being drawn on a Painter card, at full alpha.
-    const QImage *paintDraft = nullptr;
+    QImage paintDraft;
     // The card-local pointer over a Painter canvas, where the brush circle draws.
     std::optional<QPointF> brushCursor;
     // The slider value under an active drag, before it is committed.

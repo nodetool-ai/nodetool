@@ -5,6 +5,10 @@ A standalone C++20 Qt Widgets host uses QtNodes for the graph and
 `WorkflowDocument` owns edits and undo history. Workflow files contain canonical
 NodeTool JSON, never QtNodes scene JSON.
 
+[CanvasSurface](src/ui/CanvasSurface.h) supplies coordinate mapping, selection,
+viewport navigation, hit testing and capture. [QtNodesCanvas](src/ui/QtNodesCanvas.h)
+adapts the widget renderer to that interface.
+
 ## Presentation
 
 The editor follows the web workflow editor's layout, colors, and geometry. A
@@ -12,10 +16,13 @@ left rail, workflow tab strip, status bar, and resizable docks frame the canvas.
 The floating toolbar and zoom readout are transparent Quick overlays. All panels
 share one QML engine and therefore one `Ui.Theme`.
 
-[`EditorScene`](src/graph/EditorScene.h) installs its geometry, node painter,
-and connection painter through the QtNodes extension points. It draws the node
-card, type-colored handles, inline scalar fields, the canvas grid, and wires.
-`wireCurve` is the one curve for wire painting and the hit stroke. QtNodes
+[`EditorScene`](src/graph/EditorScene.h) draws the grid and adapts QtNodes
+items to [`NodePainter`](src/canvas/NodePainter.h) and
+[`WirePainter`](src/canvas/WirePainter.h). Both painters take state structs.
+[`CanvasInteraction`](src/canvas/CanvasInteraction.h) handles canvas input
+through scene and viewport hosts.
+
+`wireCurve` supplies the data-wire path for painting and hit testing. QtNodes
 computes connection bounds from its own control points, so the bounds margin and
 a reverse-offset limit keep the curve inside them. A wire running backward by
 more than 1024 logical pixels therefore bends less than React Flow's.
@@ -128,6 +135,8 @@ CMake fetches [QtNodes](https://github.com/paceholder/nodeeditor/tree/829b18457d
 at immutable revision `829b18457d4e95ac17f4fdb01c6201125681729d`, under
 [BSD-3-Clause](https://github.com/paceholder/nodeeditor/blob/829b18457d4e95ac17f4fdb01c6201125681729d/LICENSE.rst).
 That is the first upstream commit with `setNodeGeometry`, and it is unmodified.
+The notice is in [`licenses/QtNodes-BSD-3-Clause.txt`](licenses/QtNodes-BSD-3-Clause.txt),
+which `scripts/package-macos.sh` copies into the app bundle.
 A build directory configured against an older revision needs a clean configure.
 The adapter uses its `AbstractGraphModel`, `BasicGraphicsScene`,
 `AbstractConnectionPainter`, and named-port projection. An existing checkout of that revision can be supplied through
@@ -527,6 +536,83 @@ EditorWindow visual parity. Run both with `ctest --test-dir <build> -R
 A separate synthetic test projects 1,000 nodes
 and 2,000 edges and checks their adjacency, without measuring input-to-paint
 latency. No performance target is claimed.
+
+### Large graph baseline
+
+[LargeGraphTest](tests/perf/LargeGraphTest.cpp) `panZoom` repeats the window
+parity fixture into a grid of 2,000 cards and 1,832 edges in a 1440 by 900
+window. Each step sends one input event and then paints the viewport, as the
+card drag measure does. A pan step is a 12-pixel middle-button drag move. A
+zoom step is one wheel notch (1.15) under the cursor, ten in from the fit view
+and ten out. The [Quick canvas plan](../../docs/plans/node-editor-quick-canvas/plan.md#large-graphs)
+compares its targets with these numbers. Three runs of
+`ctest --test-dir <build> -R '^node_editor_large_graph$' -V` on the software
+backend (offscreen, Linux, a shared machine under load) gave:
+
+| Measure | Cards on screen | Mean per step | Slowest step |
+|---|---|---|---|
+| Pan at zoom 1 | 5 | 8.4 to 12.7 ms | 12.9 to 21.5 ms |
+| Pan at the fit zoom (0.12) | 534 | 33.2 to 40.4 ms | 49.8 to 63.0 ms |
+| Zoom from the fit view | 534 at the start | 47.9 to 66.9 ms | 88.8 to 121.3 ms |
+
+`QGraphicsView` paints every step at once, so a zoom leaves no work behind:
+the event loop after the last notch took 33 to 45 µs. The test checks that
+the view moved and zoomed, and sets no time limit.
+
+### Quick canvas
+
+`NODETOOL_NODE_EDITOR_CANVAS=quick` replaces the `QGraphicsView` with
+[QuickCanvas](src/ui/QuickCanvas.h): one `QQuickWidget` that hosts a
+[GraphCanvas](src/canvas/GraphCanvas.h). Card, wire and foreground painters
+fill raster tiles up to 512 device pixels per side. The software scene graph
+composites visible tiles in bounded regions. On RHI each tile gets its own
+texture. A grid index answers hit tests and culling. Settled tiles use the
+exact device scale and land on whole device pixels. The 64 MiB retention
+limit applies to offscreen tiles, including foreground tiles. Polish paints
+visible tiles first regardless of that limit, keeps queued edits in order
+across frames and keeps the old tiles visible until a replacement grid is ready.
+A running card repaints only its ring and status text, and a model reset keeps
+the cards on screen. The software grid paints the same pixels as QtNodes. The
+app stays on the software backend. The widget overlays stay children of the
+canvas widget. QtNodes stays the default
+([plan, Q3](../../docs/plans/node-editor-quick-canvas/plan.md#q3-quick-canvas-behind-a-switch)).
+`node_editor_quick_canvas` tests the items, hit tests, gestures and culling.
+The canvas group of the plan runs a second time as `<name>_quick` entries,
+except the tests that build an `EditorScene` without a window.
+
+`node_editor_large_graph_quick` times input handling, canvas polish, software
+scene graph sync and render, and the widget blit. It excludes the wait for
+the frame timer. Run it serially with
+`ctest --test-dir <build> -R '^node_editor_large_graph_quick$' -V -j 1`.
+
+| Measure | Quick canvas software gate |
+|---|---|
+| Card drag, 72 cards, per move | Under 4 ms |
+| Warm pan at zoom 1 | Under 2 ms, zero card and wire rasters |
+| Cold pan at fit zoom | Under 2 ms for input and polish |
+| Warm pan at fit zoom | Under 16 ms per step and under 2 ms for input and polish, zero card and wire rasters |
+| Zoom settle, slowest raster pass | At most 4 ms a frame |
+
+The cold pan jumps to an evicted view. The warm pan lets background polish
+prefetch the route before timing it.
+
+AddressSanitizer CTest runs use the Qt and driver leak suppressions in
+[`cmake/sanitizers/lsan.supp`](cmake/sanitizers/lsan.supp). Screenshot and
+multimedia tests request full allocation stacks for the Qt pixmap reader and
+the FFmpeg plugin caller.
+
+### Composition
+
+[CompositionTest](tests/ui/CompositionTest.cpp) compares a scene capture
+(`QWidget::grab()`) with a screen capture (`QScreen::grabWindow()`) through
+[`CanvasCapture`](src/ui/CanvasCapture.h). It covers a playing media preview
+under a stacked card, under the chat window and under the inline note editor,
+and the translucent header controls of a group. `node_editor_composition`
+runs it on the software backend and passes. `node_editor_composition_rhi`
+runs it on Vulkan and is disabled: on the `QGraphicsView` canvas the preview
+draws over all three surfaces and the group controls show black where they
+are transparent. [CMakeLists.txt](CMakeLists.txt) records the failure and the
+command that runs it under `xvfb`.
 
 ## Live backend verification
 

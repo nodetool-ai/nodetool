@@ -1,3 +1,4 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "../support/DarkCanvasTheme.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
@@ -15,6 +16,7 @@ class RuntimeUiTest final : public QObject {
  Q_OBJECT
 private slots:
  void projectionPreservesEditingAndItems() {
+   NODETOOL_REQUIRE_QTNODES();
   WorkflowDocument document;
   const QJsonObject snapshot{{"id","w"},{"graph",QJsonObject{{"nodes",QJsonArray{QJsonObject{{"id","n"},{"type","text"},{"ui_properties",QJsonObject{{"position",QJsonObject{{"x",10},{"y",20}}}}},{"data",QJsonObject{}}}}},{"edges",QJsonArray{}}}}};
   QVERIFY(document.load(snapshot));
@@ -22,7 +24,7 @@ private slots:
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
   EditorScene scene(graph);
   const auto ids = graph.allNodeIds(); QVERIFY(!ids.empty()); const auto id = *ids.begin();
-  auto item = scene.nodeGraphicsObject(id); QVERIFY(item);
+  auto item = nodetool::test::graphicsNode(scene, id); QVERIFY(item);
   item->setSelected(true);
   const auto before = document.snapshot();
   const auto undoCount = document.undoStack()->count();
@@ -31,7 +33,7 @@ private slots:
   runtime.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",1},{"node_id","n"},{"status","running"}});
   // The ring shows once the running state holds for runningDelayMs.
   QTRY_VERIFY(scene.animationActive());
-  QCOMPARE(scene.nodeGraphicsObject(id),item);
+  QCOMPARE(nodetool::test::graphicsNode(scene, id),item);
   QVERIFY(item->isSelected());
   // A status alone changes no card size, as on the web.
   QCOMPARE(graph.layout(id).size, originalSize);
@@ -46,9 +48,10 @@ private slots:
   QCOMPARE(document.snapshot(),before); QCOMPARE(document.undoStack()->count(),undoCount);
   runtime.beginRun("b");
   QCOMPARE(graph.layout(id).size,originalSize);
-  QCOMPARE(scene.nodeGraphicsObject(id),item);
+  QCOMPARE(nodetool::test::graphicsNode(scene, id),item);
  }
  void runningRingMatchesWebConicGradient() {
+   NODETOOL_REQUIRE_QTNODES();
   QCOMPARE(runningRingAngle(0), 90.0);
   QCOMPARE(runningRingAngle(1000), 270.0);
   QCOMPARE(runningRingAngle(2000), 90.0);
@@ -70,8 +73,8 @@ private slots:
   scene.setReducedMotion(true);
   QCOMPARE(scene.runningAngle(), 90.0);
   // EditorWindow sets the QtNodes node opacity to 1. The library default is 0.8.
-  scene.nodeGraphicsObject(id)->setOpacity(1);
-  const QRectF box(scene.nodeGraphicsObject(id)->pos(), graph.layout(id).size);
+  nodetool::test::graphicsNode(scene, id)->setOpacity(1);
+  const QRectF box(nodetool::test::graphicsNode(scene, id)->pos(), graph.layout(id).size);
   const auto source = box.adjusted(-10, -10, 10, 10);
   QImage image(source.size().toSize(), QImage::Format_ARGB32);
   image.fill(Qt::transparent);
@@ -120,11 +123,12 @@ private slots:
  // web/src/utils/untakenBranches.ts and styles/nodes.states.css: the untaken side of an If or
  // Switch fades to 0.4, a node with one live input keeps running, and a selection's 0.2 wins.
  void untakenBranchFadesAfterTheRunReportsIt() {
+   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
   EditorScene scene(graph);
-  const auto opacity = [&](const char *id) { return scene.nodeGraphicsObject(nodeOf(graph,id))->opacity(); };
+  const auto opacity = [&](const char *id) { return nodetool::test::graphicsNode(scene, nodeOf(graph,id))->opacity(); };
   const auto wireOpacity = [&](const char *edge) { return scene.connectionGraphicsObject(wireOf(graph,edge))->opacity(); };
   // EditorWindow sets full item opacity. The library default is 0.8.
   for (auto item : scene.items()) { item->setOpacity(1); }
@@ -138,7 +142,7 @@ private slots:
   runtime.ingest("run",{{"type","job_update"},{"job_id","run"},{"job_seq",3},{"status","completed"}});
   QTest::qWait(30); QCOMPARE(opacity("b"),node_metrics::notRunOpacity);
   // A selection fades everything off its branch to 0.2, even an untaken node.
-  scene.nodeGraphicsObject(nodeOf(graph,"x"))->setSelected(true);
+  nodetool::test::graphicsNode(scene, nodeOf(graph,"x"))->setSelected(true);
   QTRY_COMPARE(opacity("b"),branchDimmedOpacity);
   scene.clearSelection(); QTRY_COMPARE(opacity("b"),node_metrics::notRunOpacity);
   // The next run reports nothing yet, so nothing fades.
@@ -146,6 +150,7 @@ private slots:
  }
  // A branch that fired on every output marks nothing, and counters above zero are live.
  void everyBranchTakenFadesNothing() {
+   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
@@ -155,11 +160,12 @@ private slots:
   runtime.ingest("run",{{"type","edge_update"},{"job_id","run"},{"job_seq",2},{"edge_id","ib"},{"status","completed"},{"counter",2}});
   QTest::qWait(30);
   QVERIFY(graph.untakenBranch().empty());
-  QCOMPARE(scene.nodeGraphicsObject(nodeOf(graph,"b"))->opacity(),1.0);
+  QCOMPARE(nodetool::test::graphicsNode(scene, nodeOf(graph,"b"))->opacity(),1.0);
  }
  // web/src/hooks/useProcessedEdges.ts: an edge flows while its source node runs or it reports
  // message_sent. A running target does not make its inputs flow.
  void wiresFlowFromRunningSourcesOnly() {
+   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
@@ -180,6 +186,7 @@ private slots:
  }
  // web/src/components/node_editor/CustomEdge.tsx: a pill shows the stream count when it passes 1.
  void streamCountPillAppearsAboveOne() {
+   NODETOOL_REQUIRE_QTNODES();
   QJsonArray catalog; const auto snapshot = branchGraph(nullptr,&catalog);
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);

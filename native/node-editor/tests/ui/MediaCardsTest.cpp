@@ -1,3 +1,4 @@
+#include "../support/CanvasProbe.h"
 #include "graph/CanvasDropController.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
@@ -10,7 +11,6 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
-#include <QGraphicsView>
 #include <QImage>
 #include <QJsonDocument>
 #include <QMediaPlayer>
@@ -190,7 +190,7 @@ class MediaCardsTest final : public QObject {
     struct Host {
         MediaServer server;
         EditorWindow window;
-        QGraphicsView *view = nullptr;
+        nodetool::CanvasSurface *view = nullptr;
 
         explicit Host(const QJsonArray &nodes, bool dark = true) {
             window.setDarkTheme(dark);
@@ -206,9 +206,9 @@ class MediaCardsTest final : public QObject {
                 window.action(QStringLiteral("Toggle nodes"));
             }
             settle();
-            view = window.findChild<QGraphicsView *>();
+            view = &window.canvas();
             Q_ASSERT(view);
-            view->resetTransform();
+            view->scaleBy(1.0 / view->zoom(), CanvasSurface::ZoomAnchor::Center);
             view->centerOn(QPointF(700, 300));
             settle();
         }
@@ -236,16 +236,7 @@ class MediaCardsTest final : public QObject {
         }
 
         QImage render(const QString &resource) {
-            const auto size = model().layout(id(resource)).size;
-            QImage card(size, QImage::Format_ARGB32_Premultiplied);
-            card.fill(Qt::transparent);
-            QPainter painter(&card);
-            auto *item = window.scene()->nodeGraphicsObject(id(resource));
-            const auto cache = item->cacheMode();
-            item->setCacheMode(QGraphicsItem::NoCache);
-            window.scene()->render(&painter, QRectF(QPointF(), QSizeF(size)), QRectF(item->scenePos(), QSizeF(size)));
-            item->setCacheMode(cache);
-            return card;
+            return test::CanvasProbe(window).renderCard(id(resource));
         }
 
         QQuickWidget *overlay(const QString &resource) {
@@ -278,15 +269,15 @@ class MediaCardsTest final : public QObject {
         }
 
         void click(const QString &resource, const QPointF &local) {
-            auto *item = window.scene()->nodeGraphicsObject(id(resource));
-            const auto point = view->mapFromScene(item->mapToScene(local));
-            QTest::mouseMove(view->viewport(), point);
-            QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, point);
+            const test::CanvasProbe probe(window);
+            const auto point = probe.cardPoint(id(resource), local);
+            probe.move(point);
+            probe.click(point);
             settle();
         }
 
         void show(const QString &resource) {
-            view->centerOn(window.scene()->nodeGraphicsObject(id(resource))->sceneBoundingRect().center());
+            view->centerOn(window.canvas().nodeBounds(id(resource)).center());
             settle();
         }
     };
@@ -440,11 +431,11 @@ private slots:
         QTRY_COMPARE(host.height("photo"), 284);
         const auto badge = QRect(110, 242, 60, 18);
         const auto before = host.render("photo").copy(badge);
-        auto *item = host.window.scene()->nodeGraphicsObject(host.id("photo"));
+        auto item = nodetool::test::card(host.window, host.id("photo"));
         const auto inside = host.view->mapFromScene(item->mapToScene(QPointF(140, 160)));
-        QTest::mouseMove(host.view->viewport(), inside);
+        QTest::mouseMove(&host.view->viewportWidget(), inside);
         settle();
-        QTRY_VERIFY(item->nodeState().hovered());
+        QTRY_VERIFY(item->hovered());
         const auto after = host.render("photo").copy(badge);
         QVERIFY2(before != after, "hovering draws the 512×512 badge");
         QCOMPARE(host.zone("photo")->label, QStringLiteral("Value"));
@@ -513,8 +504,7 @@ private slots:
             QTRY_VERIFY(player->playbackState() != QMediaPlayer::PlayingState);
         }
         // The overlay covers the zone's media area in the viewport.
-        auto *item = host.window.scene()->nodeGraphicsObject(host.id("movie"));
-        const auto expected = host.view->mapFromScene(item->mapToScene(host.zone("movie")->rect)).boundingRect();
+        const auto expected = host.view->mapFromScene(host.window.canvas().mapRectFromNode(host.id("movie"), host.zone("movie")->rect));
         QVERIFY((host.overlay("movie")->geometry().topLeft() - expected.topLeft()).manhattanLength() <= 2);
     }
 
@@ -587,8 +577,8 @@ private slots:
         settle();
         QTRY_VERIFY(host.overlay("movie"));
         QTRY_COMPARE(host.height("photo"), 284);
-        auto *item = host.window.scene()->nodeGraphicsObject(host.id("movie"));
-        auto *viewport = host.view->viewport();
+        auto item = nodetool::test::card(host.window, host.id("movie"));
+        auto *viewport = &host.view->viewportWidget();
         const auto start = host.view->mapFromScene(item->mapToScene(QPointF(140, 18)));
         QTest::mousePress(viewport, Qt::LeftButton, Qt::NoModifier, start);
         constexpr int moves = 200;
@@ -604,7 +594,7 @@ private slots:
         qInfo().nospace() << "media drag per_move_us=" << timer.nsecsElapsed() / 1000.0 / moves;
         QTest::mouseRelease(viewport, Qt::LeftButton, Qt::NoModifier, start + QPoint(moves, moves / 2));
         settle();
-        const auto expected = host.view->mapFromScene(item->mapToScene(host.zone("movie")->rect)).boundingRect();
+        const auto expected = host.view->mapFromScene(host.window.canvas().mapRectFromNode(host.id("movie"), host.zone("movie")->rect));
         QTRY_VERIFY((host.overlay("movie")->geometry().topLeft() - expected.topLeft()).manhattanLength() <= 2);
     }
 
@@ -636,7 +626,7 @@ private slots:
                 host.window.toggleChat();
             }
             settle();
-            host.view->setTransform(QTransform::fromScale(0.72, 0.72));
+            host.view->setView(0.72, host.view->center());
             settle();
             host.view->centerOn(QPointF(940, 330));
             QTRY_VERIFY(host.overlay("video") && host.overlay("voice") && host.overlay("videos"));
@@ -645,12 +635,12 @@ private slots:
             QTest::qWait(1500);
             const auto theme = dark ? QStringLiteral("dark") : QStringLiteral("light");
             QVERIFY(host.window.grab().save(QStringLiteral("%1/media-cards-%2.png").arg(directory, theme)));
-            host.view->resetTransform();
+            host.view->scaleBy(1.0 / host.view->zoom(), CanvasSurface::ZoomAnchor::Center);
             settle();
             for (const auto *row : {"image", "images"}) {
-                host.view->centerOn(host.window.scene()->nodeGraphicsObject(host.id(QString::fromLatin1(row)))->sceneBoundingRect().topLeft() + QPointF(640, 180));
+                host.view->centerOn(host.window.canvas().nodeBounds(host.id(QString::fromLatin1(row))).topLeft() + QPointF(640, 180));
                 QTest::qWait(1200);
-                QVERIFY(host.view->grab().save(QStringLiteral("%1/media-%2-row-%3.png").arg(directory, QString::fromLatin1(row), theme)));
+                QVERIFY(host.view->hostWidget().grab().save(QStringLiteral("%1/media-%2-row-%3.png").arg(directory, QString::fromLatin1(row), theme)));
             }
         }
     }
@@ -691,15 +681,15 @@ private slots:
                 window.toggleChat();
             }
             settle();
-            auto *view = window.findChild<QGraphicsView *>();
+            auto *view = &window.canvas();
             QVERIFY(view);
-            view->resetTransform();
-            view->setTransform(QTransform::fromScale(0.66, 0.66));
+            view->scaleBy(1.0 / view->zoom(), CanvasSurface::ZoomAnchor::Center);
+            view->setView(0.66, view->center());
             view->centerOn(QPointF(800, 520));
             QTest::qWait(4000);
             const auto theme = dark ? QStringLiteral("dark") : QStringLiteral("light");
             QVERIFY(window.grab().save(QStringLiteral("%1/server-workflow-%2.png").arg(directory, theme)));
-            view->resetTransform();
+            view->scaleBy(1.0 / view->zoom(), CanvasSurface::ZoomAnchor::Center);
             view->centerOn(QPointF(780, 160));
             QTest::qWait(2500);
             QVERIFY(window.grab().save(QStringLiteral("%1/server-workflow-top-%2.png").arg(directory, theme)));

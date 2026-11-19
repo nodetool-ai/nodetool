@@ -1,8 +1,8 @@
+#include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "PropertyFixture.h"
-#include <QGraphicsView>
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
@@ -29,7 +29,7 @@ private slots:
     QVERIFY(window.selectNode("a"));
     window.action("Reset zoom");
     QTest::qWait(80);
-    auto view = window.findChild<QGraphicsView *>();
+    auto view = &window.canvas();
     auto presenter = window.findChild<InlinePropertyPresenter *>();
     QVERIFY(view); QVERIFY(presenter);
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
@@ -38,9 +38,9 @@ private slots:
     QVERIFY(id != QtNodes::InvalidNodeId);
     const auto baseline = window.document()->snapshot();
     const auto open = [&] {
-      const auto node = window.scene()->nodeGraphicsObject(id);
+      const auto node = nodetool::test::card(window, id);
       const auto point = node->scenePos() + model.inlineFieldRect(id, "Text").center();
-      QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(point));
+      QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(point));
     };
     open();
     QTRY_VERIFY(presenter->active());
@@ -79,13 +79,13 @@ private slots:
     QVERIFY(window.selectNode("a"));
     window.action("Reset zoom");
     QTest::qWait(80);
-    auto view = window.findChild<QGraphicsView *>();
+    auto view = &window.canvas();
     auto presenter = window.findChild<InlinePropertyPresenter *>();
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto id = *model.allNodeIds().begin();
     const auto baseline = window.document()->snapshot();
-    const auto point = window.scene()->nodeGraphicsObject(id)->scenePos() + model.inlineFieldRect(id, "tags").center();
-    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(point));
+    const auto point = window.canvas().nodeOrigin(id) + model.inlineFieldRect(id, "tags").center();
+    QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(point));
     QTRY_VERIFY(presenter->active());
     const auto add = [&] {
       QQuickItem *button = nullptr;

@@ -1,3 +1,4 @@
+#include "../support/CanvasProbe.h"
 // Instant Update without a server: an edit reruns the node and its downstream
 // nodes in process, so the output follows the edit, including the last edit of
 // a burst that arrives while a run is active.
@@ -15,7 +16,6 @@
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QGraphicsView>
 #include <QMouseEvent>
 #include <QUndoStack>
 #include <QTemporaryDir>
@@ -222,9 +222,9 @@ private slots:
     const NodeRow *radius = nullptr;
     for (const auto &row : model.layout(b).rows) { if (row.kind == NodeRowKind::Slider && row.propertyName == "radius") { radius = &row; } }
     QVERIFY(radius);
-    auto *view = window.findChild<QGraphicsView *>();
+    auto *view = &window.canvas();
     const auto track = sliderTrack(*radius);
-    auto *item = window.scene()->nodeGraphicsObject(b);
+    auto item = nodetool::test::card(window, b);
     const auto point = [&](double fraction) { return view->mapFromScene(item->mapToScene(QPointF(track.left() + track.width() * fraction, track.center().y()))); };
     const auto undo = window.document()->undoStack()->count();
     // Preview runs settle faster than the shown queue delay, so the Run button
@@ -233,10 +233,10 @@ private slots:
     QTRY_VERIFY(!tab->shownRunActive());
     int shownChanges = 0;
     connect(tab, &EditorWindow::shownQueueChanged, this, [&] { if (tab->shownRunActive()) { ++shownChanges; } });
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, point(0.25));
+    QTest::mousePress(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point(0.25));
     QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 2, 60000);
-    QMouseEvent move(QEvent::MouseMove, QPointF(point(0.5)), QPointF(view->viewport()->mapToGlobal(point(0.5))), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-    QApplication::sendEvent(view->viewport(), &move);
+    QMouseEvent move(QEvent::MouseMove, QPointF(point(0.5)), QPointF(view->viewportWidget().mapToGlobal(point(0.5))), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&view->viewportWidget(), &move);
     QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 3, 60000);
     const auto draft = window.scene()->sliderDraftValue();
     QVERIFY(draft > 20 && draft < 40);
@@ -250,7 +250,7 @@ private slots:
     for (const auto &job : finished.mid(1)) {
       QVERIFY2(!ran[job].contains("a") && ran[job].contains("b") && ran[job].contains("out"), qPrintable(ran[job].join(',')));
     }
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, point(0.5));
+    QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point(0.5));
     QTRY_COMPARE(window.document()->node("b")["data"].toObject()["radius"].toDouble(), draft);
     QCOMPARE(window.document()->undoStack()->count(), undo + 1);
     QTRY_COMPARE_WITH_TIMEOUT(finished.size(), 4, 60000);
@@ -319,9 +319,9 @@ private slots:
     const NodeRow *radius = nullptr;
     for (const auto &row : model.layout(b).rows) { if (row.kind == NodeRowKind::Slider && row.propertyName == "radius") { radius = &row; } }
     QVERIFY(radius);
-    auto *view = window.findChild<QGraphicsView *>();
+    auto *view = &window.canvas();
     const auto track = sliderTrack(*radius);
-    auto *item = window.scene()->nodeGraphicsObject(b);
+    auto item = nodetool::test::card(window, b);
     const auto point = [&](double fraction) { return view->mapFromScene(item->mapToScene(QPointF(track.left() + track.width() * fraction, track.center().y()))); };
     auto *tab = window.activeEditor();
     int queueChanges = 0;
@@ -332,16 +332,16 @@ private slots:
     connect(&poll, &QTimer::timeout, this, [&] {
       if (tab->message() != message && !messages.contains(tab->message())) { messages.append(tab->message()); }
     });
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, point(0.1));
+    QTest::mousePress(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point(0.1));
     for (int step = 2; step <= 9; ++step) {
       const auto to = point(step / 10.0);
-      QMouseEvent move(QEvent::MouseMove, QPointF(to), QPointF(view->viewport()->mapToGlobal(to)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-      QApplication::sendEvent(view->viewport(), &move);
+      QMouseEvent move(QEvent::MouseMove, QPointF(to), QPointF(view->viewportWidget().mapToGlobal(to)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+      QApplication::sendEvent(&view->viewportWidget(), &move);
       QTest::qWait(step % 2 ? 5 : 60);
     }
     QVERIFY2(ringChanges <= 2, qPrintable(QString::number(ringChanges)));
     QVERIFY2(queueChanges <= 2, qPrintable(QString::number(queueChanges)));
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, point(0.9));
+    QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point(0.9));
     const auto seen = finished.size();
     QTRY_VERIFY_WITH_TIMEOUT(finished.size() > seen && !window.activeEditor()->runActive(), 60000);
     QTest::qWait(300);
@@ -424,7 +424,7 @@ private slots:
     QVERIFY(model.commit(model.propertyCommand(card, "note", 12.0)));
     QTRY_COMPARE_WITH_TIMEOUT(pitch, 1.0f, 30000);
     // A slider draft sounds before it is saved.
-    emit window.scene()->sliderDraftChanged(card, "note", -12.0);
+    emit window.scene()->interaction().sliderDraftChanged(card, "note", -12.0);
     QTRY_COMPARE_WITH_TIMEOUT(pitch, -1.0f, 30000);
     QCOMPARE(window.document()->node("trig")["data"].toObject()["note"].toDouble(), 12.0);
     // Every edit went to the one run.

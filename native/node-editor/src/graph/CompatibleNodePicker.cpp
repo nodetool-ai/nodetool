@@ -1,12 +1,13 @@
 #include "CompatibleNodePicker.h"
-#include "EditorScene.h"
+#include "canvas/CanvasStyle.h"
+#include "canvas/EditorSceneApi.h"
 #include "WorkflowGraphModel.h"
 #include "CompatibleNodePlacement.h"
 #include "BodyConnectionRules.h"
 #include "NodeCreation.h"
 #include "document/ConnectionTypes.h"
 #include <QApplication>
-#include <QGraphicsView>
+#include "ui/CanvasSurface.h"
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -19,7 +20,6 @@
 #include <QSet>
 #include <QTimer>
 #include <QUuid>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <algorithm>
 namespace nodetool {
 namespace {
@@ -139,11 +139,11 @@ protected:
 };
 }
 CompatibleNodePicker::CompatibleNodePicker(WorkflowGraphModel &model,
-    EditorScene &scene,QGraphicsView &view,QQmlEngine *engine,QObject *parent)
-    : QObject(parent),model_(model),scene_(scene),view_(view),engine_(engine) {
-  connect(&scene_,&EditorScene::looseWireDropped,this,&CompatibleNodePicker::open);
-  connect(&scene_,&EditorScene::wireBodyDropped,this,&CompatibleNodePicker::openBody);
-  connect(&scene_,&EditorScene::handleContextMenuRequested,this,&CompatibleNodePicker::open);
+    EditorSceneApi &scene,CanvasSurface &canvas,QQmlEngine *engine,QObject *parent)
+    : QObject(parent),model_(model),scene_(scene),canvas_(canvas),engine_(engine) {
+  connect(&scene_.interaction(),&canvas::CanvasInteraction::looseWireDropped,this,&CompatibleNodePicker::open);
+  connect(&scene_.interaction(),&canvas::CanvasInteraction::wireBodyDropped,this,&CompatibleNodePicker::openBody);
+  connect(&scene_.interaction(),&canvas::CanvasInteraction::handleContextMenuRequested,this,&CompatibleNodePicker::open);
   connect(&model_,&WorkflowGraphModel::projectionAboutToChange,this,&CompatibleNodePicker::cancel);
   qApp->installEventFilter(this);
 }
@@ -331,7 +331,7 @@ void CompatibleNodePicker::showWidget() {
   active_=true;
   // One widget for the picker's lifetime, so the QML compiles once.
   if (!widget_) {
-    auto widget=new PickerWidget(engine_,&view_); widget_=widget;
+    auto widget=new PickerWidget(engine_,&canvas_.hostWidget()); widget_=widget;
     widget->setObjectName("compatible-node-picker");
     widget->setAttribute(Qt::WA_AlwaysStackOnTop);
     widget->setClearColor(Qt::transparent);
@@ -379,8 +379,7 @@ void CompatibleNodePicker::openBody(QtNodes::NodeId node,QtNodes::PortType port,
   if (forward && type=="nodetool.workflows.base_node.Preview") { applyBody("value"); return; }
   if (forward && handle_=="__control__") { applyBody("__control__"); return; }
   if (forward && metadata["supports_dynamic_inputs"].toBool() && !schemaOnlyInputs(type)) {
-    const auto *item = scene_.nodeGraphicsObject(target);
-    const auto local = item ? item->mapFromScene(position) : QPointF{};
+    const auto local = canvas_.mapToNode(target, position);
     for (const auto &row : model_.layout(target).rows) {
       if ((row.action == "addInput" || row.action == "addContentInput") && row.rect.contains(local)) {
         dynamic(false); return;
@@ -728,18 +727,18 @@ bool CompatibleNodePicker::owns(QObject *object) const {
 }
 void CompatibleNodePicker::positionWidget() {
   if (!widget_) { return; }
-  const auto size=QSize(std::min(340,view_.viewport()->width()),std::min(380,view_.viewport()->height()));
-  auto point=view_.mapFromScene(position_);
-  point.setX(std::clamp(point.x(),0,std::max(0,view_.viewport()->width()-size.width())));
-  point.setY(std::clamp(point.y(),0,std::max(0,view_.viewport()->height()-size.height())));
-  widget_->setGeometry(QRect(view_.viewport()->mapTo(&view_,point),size));
+  const auto size=QSize(std::min(340,canvas_.viewportWidget().width()),std::min(380,canvas_.viewportWidget().height()));
+  auto point=canvas_.mapFromScene(position_);
+  point.setX(std::clamp(point.x(),0,std::max(0,canvas_.viewportWidget().width()-size.width())));
+  point.setY(std::clamp(point.y(),0,std::max(0,canvas_.viewportWidget().height()-size.height())));
+  widget_->setGeometry(QRect(canvas_.viewportWidget().mapTo(&canvas_.hostWidget(),point),size));
 }
 bool CompatibleNodePicker::eventFilter(QObject *object,QEvent *event) {
   if (!active_) { return QObject::eventFilter(object,event); }
   if (event->type()==QEvent::ShortcutOverride && owns(object)) { event->accept(); return true; }
   if ((event->type()==QEvent::MouseButtonPress || event->type()==QEvent::Wheel) && !owns(object)) {
     const auto target=qobject_cast<QWidget *>(object);
-    const bool sameWindow=object==view_.window()->windowHandle() || (target && target->window()==view_.window());
+    const bool sameWindow=object==canvas_.hostWidget().window()->windowHandle() || (target && target->window()==canvas_.hostWidget().window());
     const auto global=event->type()==QEvent::MouseButtonPress
         ? static_cast<QMouseEvent *>(event)->globalPosition() : static_cast<QWheelEvent *>(event)->globalPosition();
     const bool inside=widget_ && sameWindow && widget_->rect().contains(widget_->mapFromGlobal(global.toPoint()));
@@ -747,7 +746,7 @@ bool CompatibleNodePicker::eventFilter(QObject *object,QEvent *event) {
     // child Quick widget. Preserve that delivery when its point is in the menu.
     if (!inside) { cancel(); }
   }
-  if (event->type()==QEvent::Resize && object==view_.viewport()) { positionWidget(); }
+  if (event->type()==QEvent::Resize && object==&canvas_.viewportWidget()) { positionWidget(); }
   return QObject::eventFilter(object,event);
 }
 }

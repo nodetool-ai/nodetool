@@ -15,12 +15,10 @@
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QQmlEngine>
-#include <QScrollBar>
 #include <QTimer>
 #include <QVariantAnimation>
 #include <QSignalBlocker>
-#include <QGraphicsView>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
+#include "ui/CanvasSurface.h"
 #include <functional>
 #include <memory>
 #include <optional>
@@ -562,20 +560,12 @@ bool EditorWindow::contextAction(const QString &name) {
     return false;
 }
 
-// Replaces the selection without notifying per node: every listener does work
-// that grows with the graph, so the whole change notifies once.
-static void replaceSelection(EditorScene &scene, WorkflowGraphModel &model, const QSet<QString> &ids) {
-    QSignalBlocker blocker(&scene);
-    scene.clearSelection();
+static void replaceSelection(CanvasSelection &selection, const WorkflowGraphModel &model, const QSet<QString> &ids) {
+    QList<QtNodes::NodeId> nodes;
     for (const auto id : model.allNodeIds()) {
-        if (ids.contains(model.resourceId(id))) {
-            if (auto *item = scene.nodeGraphicsObject(id)) {
-                item->setSelected(true);
-            }
-        }
+        if (ids.contains(model.resourceId(id))) { nodes.append(id); }
     }
-    blocker.unblock();
-    emit scene.selectionChanged();
+    selection.selectNodes(nodes, true);
 }
 
 // useSelectConnected.ts: every node reachable through the data edges.
@@ -608,7 +598,7 @@ bool EditorWindow::selectConnected(const QString &direction) {
     };
     if (direction == "upstream" || direction == "both") { walk(incoming); }
     if (direction == "downstream" || direction == "both") { walk(outgoing); }
-    replaceSelection(*scene_, model_, result);
+    replaceSelection(canvas_->selection(), model_, result);
     return true;
 }
 
@@ -621,7 +611,7 @@ void EditorWindow::selectSameType(const QString &nodeId) {
             same.insert(resource);
         }
     }
-    replaceSelection(*scene_, model_, same);
+    replaceSelection(canvas_->selection(), model_, same);
 }
 
 // NodeTypeMapping.ts: a constant becomes the matching input node, and back.
@@ -653,7 +643,7 @@ void EditorWindow::showContextMenu(const QString &kind, const QPoint &globalPosi
         contextMenuHost_->deleteLater();
     }
     // The entry actions capture the builder, so the dispatcher keeps it alive.
-    const auto builder = std::make_shared<ContextMenuBuilder>(*this, nodeId, edgeId, scenePosition.isNull() ? view_->mapToScene(view_->viewport()->mapFromGlobal(globalPosition)) : scenePosition, globalPosition);
+    const auto builder = std::make_shared<ContextMenuBuilder>(*this, nodeId, edgeId, scenePosition.isNull() ? canvas_->mapToScene(canvas_->viewportWidget().mapFromGlobal(globalPosition)) : scenePosition, globalPosition);
     MenuBuilder menu = kind == "pane" ? builder->pane() : kind == "selection" ? builder->selection() : kind == "edge" ? builder->edge() : kind == "link" ? builder->link() : builder->node();
     if (menu.entries().isEmpty()) {
         return;
@@ -817,8 +807,7 @@ void EditorWindow::revealFound(const QString &resourceId) {
         if (!found) {
             return;
         }
-        const auto item = scene_->nodeGraphicsObject(*found);
-        const auto target = item->mapRectToScene(QRectF(QPointF(), QSizeF(model_.layout(*found).size))).center();
+        const auto target = canvas_->nodeRect(*found).center();
         moveViewTo(1.0, centerOnArea(target, 1.0), 300);
     }, Qt::QueuedConnection);
 }
@@ -853,8 +842,8 @@ void EditorWindow::showFindPanel() {
         }
         panel->hide();
         panel->deleteLater();
-        if (view_) {
-            view_->setFocus();
+        if (canvas_) {
+            canvas_->setFocus();
         }
     };
     connect(this, &EditorWindow::documentEpochChanged, panel, [controller] { controller->close(); });
@@ -890,7 +879,7 @@ void EditorWindow::closeNodeInfo() {
     if (nodeInfoId_.isEmpty()) { return; }
     nodeInfoId_.clear();
     syncNodeInfo();
-    if (view_) { view_->setFocus(); }
+    if (canvas_) { canvas_->setFocus(); }
 }
 
 void EditorWindow::syncNodeInfo() {
@@ -918,24 +907,22 @@ void EditorWindow::syncNodeInfo() {
 // edge, or left of the node when the right side has no room, 16 px inside the
 // canvas, and gives it at least 200 px of height.
 void EditorWindow::positionNodeInfo() {
-    if (!nodeInfoOverlay_ || nodeInfoId_.isEmpty() || !view_) { return; }
-    const QGraphicsObject *item = nullptr;
-    QSizeF size;
+    if (!nodeInfoOverlay_ || nodeInfoId_.isEmpty() || !canvas_) { return; }
+    QRectF bounds;
     for (const auto id : model_.allNodeIds()) {
         if (model_.resourceId(id) == nodeInfoId_) {
-            item = scene_->nodeGraphicsObject(id);
-            size = model_.layout(id).size;
+            bounds = canvas_->nodeRect(id);
         }
     }
-    if (!item) {
+    if (bounds.isEmpty()) {
         nodeInfoOverlay_->hide();
         return;
     }
     constexpr int gap = 16;
     constexpr int margin = 16;
     constexpr int minimumHeight = 200;
-    const auto card = view_->mapFromScene(QRectF(item->scenePos(), size)).boundingRect().translated(view_->viewport()->pos());
-    const auto area = view_->rect();
+    const auto card = canvas_->mapFromScene(bounds).translated(canvas_->viewportWidget().pos());
+    const auto area = canvas_->hostWidget().rect();
     const int width = nodeInfoOverlay_->width();
     int left = card.right() + gap;
     if (left + width + margin > area.width()) { left = card.left() - gap - width; }

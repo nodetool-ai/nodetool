@@ -1,3 +1,4 @@
+#include "../support/WidgetCanvasFixture.h"
 #include "../support/DarkCanvasTheme.h"
 #include "graph/CanvasMediaPresenter.h"
 #include "graph/EditorScene.h"
@@ -12,7 +13,6 @@
 #include <QDir>
 #include <QFile>
 #include <QGraphicsProxyWidget>
-#include <QGraphicsView>
 #include <QMediaPlayer>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -55,13 +55,14 @@ QJsonArray catalog() {
 struct Fixture {
   WorkflowGraphModel model;
   EditorScene scene{model};
-  QGraphicsView view{&scene};
+  nodetool::test::WidgetView view{&scene};
+  QtNodesCanvas canvas{scene, view};
   QQmlEngine engine;
   node_editor::MediaResolver resolver;
   node_editor::NodeRuntimeModel runtime;
   node_editor::PropertyHost host;
-  InlinePropertyPresenter inlineEditor{model, scene, view, &engine, host};
-  CanvasMediaPresenter presenter{model, scene, view, &engine, resolver};
+  InlinePropertyPresenter inlineEditor{model, scene, canvas, &engine, host};
+  CanvasMediaPresenter presenter{model, scene, canvas, &engine, resolver};
   QVariantList sources;
   Fixture() {
     QJsonArray nodes{node("audio", 0, 0), node("video", 330, 0), node("hidden", 5000, 0)};
@@ -127,15 +128,15 @@ private slots:
     QTRY_VERIFY(f.player("audio") && f.player("audio")->duration() > 1000);
     QCOMPARE(f.player("video")->playbackState(), QMediaPlayer::StoppedState);
     QCOMPARE(f.player("audio")->playbackState(), QMediaPlayer::StoppedState);
-    f.scene.nodeGraphicsObject(f.id("audio"))->setSelected(true);
-    const auto original = f.scene.nodeGraphicsObject(f.id("video"))->pos();
+    nodetool::test::graphicsNode(f.scene, f.id("audio"))->setSelected(true);
+    const auto original = nodetool::test::graphicsNode(f.scene, f.id("video"))->pos();
     f.click("video", "preview-play");
     auto player = f.player("video");
     QTRY_COMPARE(player->playbackState(), QMediaPlayer::PlayingState);
     QTRY_VERIFY(player->position() > 50);
     QTRY_VERIFY(player->videoSink()->videoFrame().isValid());
-    QVERIFY(f.scene.nodeGraphicsObject(f.id("audio"))->isSelected());
-    QVERIFY(!f.scene.nodeGraphicsObject(f.id("video"))->isSelected());
+    QVERIFY(nodetool::test::graphicsNode(f.scene, f.id("audio"))->isSelected());
+    QVERIFY(!nodetool::test::graphicsNode(f.scene, f.id("video"))->isSelected());
     f.runtime.ingest("first", {{"type", "log_update"}, {"node_id", "video"}, {"content", "Log without a new media source"}});
     f.presenter.setSources(f.sources);
     f.presenter.refresh();
@@ -151,8 +152,8 @@ private slots:
     QTest::mouseMove(f.widget("video"), end);
     QTest::mouseRelease(f.widget("video"), Qt::LeftButton, Qt::NoModifier, end);
     QTRY_VERIFY(player->position() > 1000);
-    QCOMPARE(f.scene.nodeGraphicsObject(f.id("video"))->pos(), original);
-    QVERIFY(f.scene.nodeGraphicsObject(f.id("audio"))->isSelected());
+    QCOMPARE(nodetool::test::graphicsNode(f.scene, f.id("video"))->pos(), original);
+    QVERIFY(nodetool::test::graphicsNode(f.scene, f.id("audio"))->isSelected());
     QShortcut shortcut(QKeySequence("Ctrl+G"), &f.view);
     QSignalSpy triggered(&shortcut, &QShortcut::activated);
     QTest::keyClick(f.widget("video"), Qt::Key_G, Qt::ControlModifier);
@@ -183,7 +184,7 @@ private slots:
     QCOMPARE(player->playbackState(), QMediaPlayer::PausedState);
     QCOMPARE(f.widget("video")->rootObject()->property("zoom").toDouble(), 0.75);
     const auto local = f.model.canvasPlaybackRect(f.id("video"));
-    const auto mapped = f.view.viewportTransform().mapRect(local.translated(f.scene.nodeGraphicsObject(f.id("video"))->scenePos()));
+    const auto mapped = f.view.viewportTransform().mapRect(local.translated(nodetool::test::graphicsNode(f.scene, f.id("video"))->scenePos()));
     QCOMPARE(f.widget("video")->geometry(), mapped.toAlignedRect().intersected(f.view.viewport()->rect()));
     f.view.centerOn(1100, 220);
     f.presenter.refresh();
@@ -214,10 +215,10 @@ private slots:
     f.click("video", "preview-play");
     QTRY_COMPARE(f.player("video")->playbackState(), QMediaPlayer::PlayingState);
     QPointer<QMediaPlayer> player = f.player("video");
-    const auto blocker = f.scene.nodeGraphicsObject(f.id("context-0"));
+    const auto blocker = nodetool::test::graphicsNode(f.scene, f.id("context-0"));
     blocker->setZValue(1000);
     const auto local = f.model.canvasPlaybackRect(f.id("video"));
-    const auto sceneOrigin = f.scene.nodeGraphicsObject(f.id("video"))->scenePos() + local.topLeft();
+    const auto sceneOrigin = nodetool::test::graphicsNode(f.scene, f.id("video"))->scenePos() + local.topLeft();
     f.model.setNodeData(f.id("context-0"), NodeRole::Position, sceneOrigin + QPointF(local.width() / 2, 0));
     f.presenter.refresh();
     QVERIFY(f.widget("video"));
@@ -261,7 +262,7 @@ private slots:
     f.click("video", "preview-play");
     QTRY_VERIFY(f.player("video")->videoSink()->videoFrame().isValid());
     f.click("video", "preview-play");
-    f.scene.nodeGraphicsObject(f.id("audio"))->setSelected(true);
+    nodetool::test::graphicsNode(f.scene, f.id("audio"))->setSelected(true);
     f.inlineEditor.activate(f.id("audio"), "text");
     QTRY_VERIFY(f.inlineEditor.active());
     f.inlineEditor.expand();

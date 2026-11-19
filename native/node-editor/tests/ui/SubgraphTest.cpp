@@ -1,3 +1,4 @@
+#include "ui/CanvasSurface.h"
 #include "document/ChildPorts.h"
 #include "graph/EditorScene.h"
 #include "interfaces/RunState.h"
@@ -11,7 +12,6 @@
 #include "EntryMenuSupport.h"
 #include <QQuickItem>
 #include <QQuickWidget>
-#include <QGraphicsView>
 #include <QQuickWindow>
 #include <QSettings>
 #include <QTcpServer>
@@ -421,11 +421,11 @@ private slots:
             }
         }
         QVERIFY(strips);
-        auto view = window.activeEditor()->findChild<QGraphicsView *>();
+        auto view = &window.activeEditor()->canvas();
         QVERIFY(view);
-        QTRY_COMPARE(strips->width(), view->width());
-        QCOMPARE(strips->mapTo(&window, QPoint()).x(), view->mapTo(&window, QPoint()).x());
-        QCOMPARE(strips->mapTo(&window, QPoint(0, strips->height())).y(), view->mapTo(&window, QPoint()).y());
+        QTRY_COMPARE(strips->width(), view->hostWidget().width());
+        QCOMPARE(strips->mapTo(&window, QPoint()).x(), view->hostWidget().mapTo(&window, QPoint()).x());
+        QCOMPARE(strips->mapTo(&window, QPoint(0, strips->height())).y(), view->hostWidget().mapTo(&window, QPoint()).y());
         QCOMPARE(find(strips->rootObject(), "canvas-label-0-0")->property("text").toString(), QString("Workflow"));
         QCOMPARE(find(strips->rootObject(), "canvas-label-1-0")->property("text").toString(), first->workflowName());
       const auto entries = window.canvasStrips().first().toMap()["entries"].toList();
@@ -434,7 +434,7 @@ private slots:
           {{"op", "setProperty"}, {"id", "input"}, {"name", "name"}, {"value", "changed"}}));
       QTRY_VERIFY(!parent->undoStack()->isClean());
       // The web toolbar has no Save button. Ctrl+S saves the parent from a child surface.
-      QTest::keyClick(view->viewport(), Qt::Key_S, Qt::ControlModifier);
+      QTest::keyClick(&view->viewportWidget(), Qt::Key_S, Qt::ControlModifier);
       QVERIFY(parent->undoStack()->isClean());
       QVERIFY(!window.hasUnsavedChanges());
       window.persistTabs();

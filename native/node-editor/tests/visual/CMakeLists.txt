@@ -8,4 +8,9 @@ add_test(NAME node_editor_visual_missing_out COMMAND node_editor_visual_capture)
 add_test(NAME node_editor_visual_invalid_state COMMAND node_editor_visual_capture --out ${CMAKE_CURRENT_BINARY_DIR}/invalid --state invented)
 set_tests_properties(node_editor_visual_missing_capture node_editor_visual_missing_out node_editor_visual_invalid_state PROPERTIES WILL_FAIL TRUE)
 set_tests_properties(node_editor_visual_capture node_editor_visual_missing_capture node_editor_visual_missing_out node_editor_visual_invalid_state PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_SCALE_FACTOR=1")
+# The Quick canvas (docs/plans/node-editor-quick-canvas/plan.md, Q3).
+add_test(NAME node_editor_visual_capture_quick COMMAND node_editor_visual_capture --out ${CMAKE_CURRENT_BINARY_DIR}/artifacts-quick)
+set_tests_properties(node_editor_visual_capture_quick PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_SCALE_FACTOR=1;NODETOOL_NODE_EDITOR_CANVAS=quick")
+nodetool_node_editor_test_sanitizers()
 nodetool_stage_editor_executables()

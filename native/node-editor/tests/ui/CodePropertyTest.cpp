@@ -1,7 +1,7 @@
+#include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
-#include <QGraphicsView>
 #include <QMouseEvent>
 #include <QTemporaryDir>
 #include <QFile>
@@ -90,14 +90,14 @@ private slots:
   QTRY_VERIFY(window.document()->node("code")["dynamic_outputs"].toObject().contains("answer"));
   QCOMPARE(window.document()->undoStack()->count(),1);
   QVERIFY(window.document()->node("code")["dynamic_properties"].toObject().contains("text"));
-  auto view=window.findChild<QGraphicsView*>(); QVERIFY(view);
+  auto view=nodetool::test::view(window); QVERIFY(view);
   auto& model=static_cast<WorkflowGraphModel&>(window.scene()->graphModel());
   QJsonObject positions{{"code",QJsonObject{{"x",0},{"y",0}}},{"sink",QJsonObject{{"x",500},{"y",0}}}};
   QVERIFY(window.document()->applyCommand({{"op","moveNodes"},{"positions",positions}}));
-  view->fitInView(window.scene()->itemsBoundingRect().adjusted(-40,-40,40,40),Qt::KeepAspectRatio);
+  view->fitInView(nodetool::test::itemsBoundingRect(window).adjusted(-40,-40,40,40),Qt::KeepAspectRatio);
   const auto port=[&](QString resource,QtNodes::PortType side) {
    for(auto id:model.allNodeIds()) if(model.resourceId(id)==resource)
-    return view->mapFromScene(window.scene()->nodeGraphicsObject(id)->scenePos()+window.scene()->nodeGeometry().portPosition(id,side,0));
+    return view->mapFromScene(window.canvas().nodeOrigin(id)+window.scene()->nodeGeometry().portPosition(id,side,0));
    return QPoint();
   };
   const auto start=port("code",QtNodes::PortType::Out),end=port("sink",QtNodes::PortType::In);
@@ -138,13 +138,13 @@ private slots:
   for(auto id:model.allNodeIds()) if(model.resourceId(id)=="code") codeId=id;
   QVERIFY(codeId!=QtNodes::InvalidNodeId);
   auto presenter=window.findChild<InlinePropertyPresenter*>(); QVERIFY(presenter);
-  const auto codePoint=window.scene()->nodeGraphicsObject(codeId)->scenePos()+model.inlineFieldRect(codeId,"code").center();
+  const auto codePoint=window.canvas().nodeOrigin(codeId)+model.inlineFieldRect(codeId,"code").center();
   QTest::mouseClick(view->viewport(),Qt::LeftButton,Qt::NoModifier,view->mapFromScene(codePoint));
   QTRY_VERIFY(presenter->active());
   auto popup=presenter->editorWidget(); QVERIFY(popup);
   auto inlineEditor=find(popup->rootObject()); QVERIFY(inlineEditor);
   // The inline editor covers the card's code field exactly, with no Expand strip.
-  const auto fieldOnView=view->mapFromScene(window.scene()->nodeGraphicsObject(codeId)->scenePos()+model.inlineFieldRect(codeId,"code").topLeft());
+  const auto fieldOnView=view->mapFromScene(window.canvas().nodeOrigin(codeId)+model.inlineFieldRect(codeId,"code").topLeft());
   QVERIFY(std::abs(presenter->editorRect().left()-fieldOnView.x())<=1 && std::abs(presenter->editorRect().top()-fieldOnView.y())<=1);
   QVERIFY(std::abs(presenter->editorRect().height()-model.inlineFieldRect(codeId,"code").height()*view->transform().m11())<=1);
   for(auto child:popup->rootObject()->findChildren<QQuickItem*>()) if(child->objectName()=="inline-expand") QVERIFY(!child->isVisible());
@@ -178,13 +178,13 @@ private slots:
    window.setDarkTheme(true);
    QString sample="const PRESETS = {\n  \"dolly in\": {\n    id: \"camera.dolly-in\", // push\n    version: 1,\n  },\n};\nreturn {answer: PRESETS};";
    QVERIFY(window.document()->applyCommand({{"op","setProperty"},{"id","code"},{"name","code"},{"value",sample}}).ok);
-   view->resetTransform(); view->scale(2,2); view->centerOn(window.scene()->nodeGraphicsObject(codeId)); QTest::qWait(80);
-   const auto field=model.inlineFieldRect(codeId,"code").translated(window.scene()->nodeGraphicsObject(codeId)->scenePos());
+   view->resetTransform(); view->scale(2,2); view->centerOn(nodetool::test::card(window, codeId)); QTest::qWait(80);
+   const auto field=model.inlineFieldRect(codeId,"code").translated(window.canvas().nodeOrigin(codeId));
    const auto area=view->mapFromScene(field.adjusted(-8,-8,8,8)).boundingRect();
-   QVERIFY(view->viewport()->grab(area).save(directory+"/code-card.png"));
+   QVERIFY(view->grab(area).save(directory+"/code-card.png"));
    QTest::mouseClick(view->viewport(),Qt::LeftButton,Qt::NoModifier,view->mapFromScene(field.center()));
    QTRY_VERIFY(presenter->active()); QTest::qWait(120);
-   QVERIFY(view->viewport()->grab(area).save(directory+"/code-card-active.png"));
+   QVERIFY(view->grab(area).save(directory+"/code-card-active.png"));
    QVERIFY(window.grab().save(directory+"/code-window-active.png"));
   }
  }

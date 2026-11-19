@@ -1,10 +1,10 @@
+#include "../support/CanvasProbe.h"
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include <QContextMenuEvent>
 #include <QDir>
-#include <QGraphicsView>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
@@ -55,7 +55,7 @@ private:
         QTest::qWait(80);
     }
 
-    static QGraphicsView *viewOf(EditorWindow &window) { return window.findChild<QGraphicsView *>(); }
+    static nodetool::CanvasSurface *viewOf(EditorWindow &window) { return &window.canvas(); }
     static WorkflowGraphModel *modelOf(EditorWindow &window) { return window.findChild<WorkflowGraphModel *>(); }
 
     static QtNodes::NodeId idOf(EditorWindow &window, const QString &resource) {
@@ -70,24 +70,24 @@ private:
     // The card in view coordinates, the space the overlays are placed in.
     static QRect cardRect(EditorWindow &window, const QString &resource) {
         const auto id = idOf(window, resource);
-        const auto *item = window.scene()->nodeGraphicsObject(id);
+        const auto item = nodetool::test::card(window, id);
         const QRectF scene(item->scenePos(), QSizeF(modelOf(window)->layout(id).size));
-        return viewOf(window)->mapFromScene(scene).boundingRect().translated(viewOf(window)->viewport()->pos());
+        return viewOf(window)->mapFromScene(scene).translated(viewOf(window)->viewportWidget().pos());
     }
 
     static QPoint headerPoint(EditorWindow &window, const QString &resource) {
         const auto card = cardRect(window, resource);
-        return viewOf(window)->viewport()->mapFrom(viewOf(window), card.topLeft() + QPoint(card.width() / 2, 12));
+        return viewOf(window)->viewportWidget().mapFrom(&viewOf(window)->hostWidget(), card.topLeft() + QPoint(card.width() / 2, 12));
     }
 
     static void centerOn(EditorWindow &window, const QString &resource) {
-        viewOf(window)->centerOn(window.scene()->nodeGraphicsObject(idOf(window, resource)));
+        viewOf(window)->centerOn(window.canvas().nodeBounds(idOf(window, resource)).center());
         QTest::qWait(40);
     }
 
     static void click(EditorWindow &window, const QString &resource, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
         centerOn(window, resource);
-        QTest::mouseClick(viewOf(window)->viewport(), Qt::LeftButton, modifiers, headerPoint(window, resource));
+        QTest::mouseClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, modifiers, headerPoint(window, resource));
         // The card toolbar shows 200 ms after the selection settles (NodeSelectionToolbar.tsx).
         QTest::qWait(260);
     }
@@ -162,8 +162,8 @@ private slots:
         QVERIFY(!bar->isVisible());
         QElapsedTimer clock;
         clock.start();
-        QTest::mouseClick(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
-        QCOMPARE(window.scene()->selectedItems().size(), 1);
+        QTest::mouseClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
+        QCOMPARE(window.canvas().selection().count(), 1);
         QTest::qWait(100);
         QVERIFY2(!bar->isVisible(), "the toolbar waits 200 ms");
         QTRY_VERIFY_WITH_TIMEOUT(bar->isVisible(), 1000);
@@ -171,7 +171,7 @@ private slots:
         window.scene()->clearSelection();
         QCoreApplication::processEvents();
         QVERIFY2(!bar->isVisible(), "deselecting hides the toolbar at once");
-        QTest::mouseClick(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
+        QTest::mouseClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
         QTest::qWait(100);
         QVERIFY2(!bar->isVisible(), "selecting again restarts the delay");
         QTRY_VERIFY_WITH_TIMEOUT(bar->isVisible(), 1000);
@@ -199,10 +199,10 @@ private slots:
         click(window, "a");
         expectAbove(window, "a");
         auto *view = viewOf(window);
-        const auto start = view->viewport()->rect().center();
-        QTest::mousePress(view->viewport(), Qt::MiddleButton, Qt::NoModifier, start);
-        QTest::mouseMove(view->viewport(), start + QPoint(70, 40));
-        QTest::mouseRelease(view->viewport(), Qt::MiddleButton, Qt::NoModifier, start + QPoint(70, 40));
+        const auto start = view->viewportWidget().rect().center();
+        QTest::mousePress(&view->viewportWidget(), Qt::MiddleButton, Qt::NoModifier, start);
+        QTest::mouseMove(&view->viewportWidget(), start + QPoint(70, 40));
+        QTest::mouseRelease(&view->viewportWidget(), Qt::MiddleButton, Qt::NoModifier, start + QPoint(70, 40));
         QTest::qWait(40);
         expectAbove(window, "a");
         window.action("Zoom in");
@@ -214,10 +214,10 @@ private slots:
         expectAbove(window, "a");
         // A resize from the corner handle moves the card center, and the toolbar follows.
         const auto before = cardRect(window, "a");
-        const auto corner = view->viewport()->mapFrom(view, before.bottomRight() - QPoint(6, 6));
-        QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, corner);
-        QTest::mouseMove(view->viewport(), corner + QPoint(60, 30));
-        QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, corner + QPoint(60, 30));
+        const auto corner = view->viewportWidget().mapFrom(&view->hostWidget(), before.bottomRight() - QPoint(6, 6));
+        QTest::mousePress(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, corner);
+        QTest::mouseMove(&view->viewportWidget(), corner + QPoint(60, 30));
+        QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, corner + QPoint(60, 30));
         QTest::qWait(60);
         QVERIFY(cardRect(window, "a").width() > before.width());
         expectAbove(window, "a");
@@ -231,13 +231,13 @@ private slots:
         expectAbove(window, "a");
         auto *view = viewOf(window);
         const auto start = headerPoint(window, "a");
-        QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+        QTest::mousePress(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
         for (int step = 1; step <= 6; ++step) {
-            QTest::mouseMove(view->viewport(), start + QPoint(step * 12, step * 6), 15);
+            QTest::mouseMove(&view->viewportWidget(), start + QPoint(step * 12, step * 6), 15);
         }
         QVERIFY(window.scene()->nodeDragActive());
         QVERIFY(!toolbar(window)->isVisible());
-        QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, start + QPoint(72, 36));
+        QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start + QPoint(72, 36));
         QTest::qWait(60);
         QVERIFY(!window.scene()->nodeDragActive());
         expectAbove(window, "a");
@@ -320,7 +320,7 @@ private slots:
         QVERIFY(expanded.height() > 40);
         const auto baseline = window.document()->snapshot();
         centerOn(window, "a");
-        QTest::mouseDClick(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
+        QTest::mouseDClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
         QTRY_VERIFY(ui(window, "a")["collapsed"].toBool());
         QCOMPARE(window.document()->undoStack()->index(), 1);
         const auto &strip = modelOf(window)->layout(id);
@@ -334,7 +334,7 @@ private slots:
         // The expanded size stays in the document for the expand.
         QVERIFY(!ui(window, "a").contains("width") || ui(window, "a")["width"].toInt() >= 140);
         QTest::qWait(40);
-        QTest::mouseDClick(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
+        QTest::mouseDClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "a"));
         QTRY_VERIFY(!ui(window, "a")["collapsed"].toBool());
         QCOMPARE(modelOf(window)->layout(idOf(window, "a")).size, expanded);
         QCOMPARE(window.document()->undoStack()->index(), 2);
@@ -350,20 +350,20 @@ private slots:
         load(window);
         click(window, "a");
         auto *view = viewOf(window);
-        QTest::keyClick(view, Qt::Key_C);
+        QTest::keyClick(&view->hostWidget(), Qt::Key_C);
         QTRY_VERIFY(ui(window, "a")["collapsed"].toBool());
         QVERIFY(!ui(window, "b")["collapsed"].toBool());
         click(window, "a");
         click(window, "b", Qt::ControlModifier);
         QCOMPARE(window.selectedCount(), 2);
         const auto index = window.document()->undoStack()->index();
-        QTest::keyClick(view, Qt::Key_C);
+        QTest::keyClick(&view->hostWidget(), Qt::Key_C);
         QTRY_COMPARE(window.document()->undoStack()->index(), index + 1);
         QCOMPARE(ui(window, "a")["collapsed"].toBool(), ui(window, "b")["collapsed"].toBool());
         // A group has no collapsed state.
         window.selectNode("g");
         const auto snapshot = window.document()->snapshot();
-        QTest::keyClick(view, Qt::Key_C);
+        QTest::keyClick(&view->hostWidget(), Qt::Key_C);
         QCOMPARE(window.document()->snapshot(), snapshot);
     }
 
@@ -374,8 +374,8 @@ private slots:
         auto open = [&](const QString &resource) -> QQuickWidget * {
             centerOn(window, resource);
             const auto point = headerPoint(window, resource);
-            QContextMenuEvent event(QContextMenuEvent::Mouse, point, viewOf(window)->viewport()->mapToGlobal(point));
-            QApplication::sendEvent(viewOf(window)->viewport(), &event);
+            QContextMenuEvent event(QContextMenuEvent::Mouse, point, viewOf(window)->viewportWidget().mapToGlobal(point));
+            QApplication::sendEvent(&viewOf(window)->viewportWidget(), &event);
             QTest::qWait(80);
             return window.findChild<QQuickWidget *>("context-menu-host");
         };
@@ -416,7 +416,7 @@ private slots:
         const auto card = cardRect(window, "c");
         QVERIFY(std::abs(card.height() - 40) <= 1);
         const auto canvas = window.scene()->theme().canvas;
-        const auto below = window.mapFromGlobal(viewOf(window)->viewport()->mapToGlobal(viewOf(window)->viewport()->mapFrom(viewOf(window), card.bottomLeft() + QPoint(card.width() / 2, 30))));
+        const auto below = window.mapFromGlobal(viewOf(window)->viewportWidget().mapToGlobal(viewOf(window)->viewportWidget().mapFrom(&viewOf(window)->hostWidget(), card.bottomLeft() + QPoint(card.width() / 2, 30))));
         QVERIFY(image.rect().contains(below));
         // 30 px under the strip is bare canvas, not an expanded body.
         QVERIFY(std::abs(image.pixelColor(below).lightness() - canvas.lightness()) < 40);
@@ -438,7 +438,7 @@ private slots:
         };
         const auto baseline = window.document()->snapshot();
         centerOn(window, "code");
-        QTest::mouseDClick(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "code"));
+        QTest::mouseDClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "code"));
         QQuickWidget *widget = nullptr;
         QTRY_VERIFY((widget = overlay()));
         auto *field = widget->rootObject()->findChild<QQuickItem *>("inline-title-text");
@@ -454,7 +454,7 @@ private slots:
         QCOMPARE(modelOf(window)->layout(idOf(window, "code")).title, QString("Parse rows"));
         // Escape discards.
         centerOn(window, "code");
-        QTest::mouseDClick(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "code"));
+        QTest::mouseDClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "code"));
         QTRY_VERIFY((widget = overlay()));
         QTest::keyClicks(widget, " draft");
         QTest::keyClick(widget, Qt::Key_Escape);
@@ -463,7 +463,7 @@ private slots:
         QCOMPARE(window.document()->undoStack()->index(), 1);
         // The metadata title stores nothing, so the header follows the metadata again.
         centerOn(window, "code");
-        QTest::mouseDClick(viewOf(window)->viewport(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "code"));
+        QTest::mouseDClick(&viewOf(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, headerPoint(window, "code"));
         QTRY_VERIFY((widget = overlay()));
         QTest::keyClick(widget, Qt::Key_A, Qt::ControlModifier);
         QTest::keyClicks(widget, "Code");
@@ -489,7 +489,7 @@ private slots:
         QCOMPARE(window.selectedCount(), 2);
         QTRY_VERIFY(button(window, "selection-enable-selected"));
         QVERIFY(!button(window, "selection-disable-selected"));
-        QTest::keyClick(viewOf(window), Qt::Key_B);
+        QTest::keyClick(&viewOf(window)->hostWidget(), Qt::Key_B);
         QTRY_VERIFY(!ui(window, "a")["bypassed"].toBool());
         QVERIFY(!ui(window, "b")["bypassed"].toBool());
         click(window, "c");
@@ -500,7 +500,7 @@ private slots:
         click(window, "c", Qt::ControlModifier);
         QCOMPARE(window.selectedCount(), 3);
         QTRY_VERIFY(button(window, "selection-disable-selected"));
-        QTest::keyClick(viewOf(window), Qt::Key_B);
+        QTest::keyClick(&viewOf(window)->hostWidget(), Qt::Key_B);
         QTRY_VERIFY(ui(window, "a")["bypassed"].toBool());
         QVERIFY(ui(window, "b")["bypassed"].toBool());
         QVERIFY(ui(window, "c")["bypassed"].toBool());
@@ -564,7 +564,7 @@ private slots:
         const auto image = window.grab().toImage();
         const auto crop = [&](const QString &resource) {
             const auto card = cardRect(window, resource);
-            const auto origin = window.mapFromGlobal(viewOf(window)->viewport()->mapToGlobal(viewOf(window)->viewport()->mapFrom(viewOf(window), card.topLeft())));
+            const auto origin = window.mapFromGlobal(viewOf(window)->viewportWidget().mapToGlobal(viewOf(window)->viewportWidget().mapFrom(&viewOf(window)->hostWidget(), card.topLeft())));
             return image.copy(origin.x(), origin.y(), card.width(), card.height());
         };
         const auto disabled = crop("a");

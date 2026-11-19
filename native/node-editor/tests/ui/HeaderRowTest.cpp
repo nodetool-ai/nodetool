@@ -1,7 +1,7 @@
+#include "ui/CanvasSurface.h"
 #include "FakeRunServer.h"
 #include "ui/EditorWindow.h"
 #include <QFile>
-#include <QGraphicsView>
 #include "EntryMenuSupport.h"
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -183,13 +183,13 @@ private slots:
         QVERIFY(header);
         auto *tabs = panel(window, QStringLiteral("TabBar.qml"));
         QVERIFY(tabs);
-        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+        auto *view = &window.activeEditor()->canvas();
         QVERIFY(view);
         // The bar is 40 tall with its 1 px rule, right under the tab bar and over the canvas.
         QCOMPARE(header->height(), 40);
         QCOMPARE(header->mapTo(&window, QPoint()).y(), tabs->mapTo(&window, QPoint(0, tabs->height())).y());
         QCOMPARE(header->mapTo(&window, QPoint()).x(), 50);
-        QVERIFY(header->mapTo(&window, QPoint(0, header->height())).y() <= view->mapTo(&window, QPoint()).y());
+        QVERIFY(header->mapTo(&window, QPoint(0, header->height())).y() <= view->hostWidget().mapTo(&window, QPoint()).y());
         const auto undo = bounds(item(header, QStringLiteral("header-undo")));
         const auto redo = bounds(item(header, QStringLiteral("header-redo")));
         QCOMPARE(undo.size(), QSizeF(28, 28));
@@ -242,12 +242,12 @@ private slots:
         auto *redo = item(header, QStringLiteral("header-redo"));
         QVERIFY(!undo->isEnabled());
         QVERIFY(!redo->isEnabled());
-        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+        auto *view = &window.activeEditor()->canvas();
         QVERIFY(view);
         QVERIFY(window.selectNode(QStringLiteral("subject")));
         settle();
         view->setFocus();
-        QTest::keyClick(view->viewport(), Qt::Key_Delete);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Delete);
         settle();
         QVERIFY(window.document()->node(QStringLiteral("subject")).isEmpty());
         QTRY_VERIFY(undo->isEnabled());
@@ -287,12 +287,12 @@ private slots:
         QTRY_COMPARE(window.documentSaveStatus(), QStringLiteral("saved"));
         QTRY_COMPARE(label->property("text").toString(), QStringLiteral("Saved"));
 
-        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+        auto *view = &window.activeEditor()->canvas();
         QVERIFY(view);
         QVERIFY(window.selectNode(QStringLiteral("subject")));
         settle();
         view->setFocus();
-        QTest::keyClick(view->viewport(), Qt::Key_Delete);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Delete);
         QTRY_COMPARE(label->property("text").toString(), QStringLiteral("Unsaved changes"));
 
         server->holdSaves = true;
@@ -304,7 +304,7 @@ private slots:
         QVERIFY(item(header, QStringLiteral("header-save-dot"))->isVisible());
 
         server->saveStatus = 500;
-        QTest::keyClick(view->viewport(), Qt::Key_Z, Qt::ControlModifier);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Z, Qt::ControlModifier);
         window.session()->flushAutosave();
         QTRY_COMPARE(label->property("text").toString(), QStringLiteral("Not saved"));
         QTRY_VERIFY(action->isVisible());
@@ -318,7 +318,7 @@ private slots:
         QVERIFY(!action->isVisible());
 
         server->saveStatus = 409;
-        QTest::keyClick(view->viewport(), Qt::Key_Z, Qt::ControlModifier | Qt::ShiftModifier);
+        QTest::keyClick(&view->viewportWidget(), Qt::Key_Z, Qt::ControlModifier | Qt::ShiftModifier);
         window.session()->flushAutosave();
         QTRY_COMPARE(label->property("text").toString(), QStringLiteral("Server conflict"));
         QTRY_VERIFY(action->isVisible());

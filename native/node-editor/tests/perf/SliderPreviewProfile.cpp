@@ -1,3 +1,4 @@
+#include "../support/CanvasProbe.h"
 // Profiles a card slider drag on Image -> Color Grade -> Gaussian Blur with a
 // photo-sized image, in process and offscreen. It drags the Color Grade
 // Contrast slider at 60 Hz and prints, for each preview run, the time from the
@@ -17,7 +18,6 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
-#include <QGraphicsView>
 #include <QImageReader>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -168,9 +168,9 @@ int main(int argc, char **argv) {
   const NodeRow *contrast = nullptr;
   for (const auto &r : model.layout(grade).rows) { if (r.kind == NodeRowKind::Slider && r.propertyName == "contrast") { contrast = &r; } }
   if (!contrast) { std::fprintf(stderr, "no contrast slider\n"); return 1; }
-  auto *view = window.findChild<QGraphicsView *>();
+  auto *view = &window.canvas();
   const auto track = sliderTrack(*contrast);
-  auto *item = window.scene()->nodeGraphicsObject(grade);
+  auto item = nodetool::test::card(window, grade);
   const auto point = [&](double f) { return view->mapFromScene(item->mapToScene(QPointF(track.left() + track.width() * f, track.center().y()))); };
 
   // Main thread stalls: the gaps between 1 ms timer ticks.
@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
     QTest::qWait(500);
   }
   QList<double> moveCost;
-  QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, point(0.25));
+  QTest::mousePress(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point(0.25));
   const auto start = clock.elapsed();
   int frame = 0;
   while (clock.elapsed() - start < seconds * 1000) {
@@ -194,17 +194,17 @@ int main(int argc, char **argv) {
     while (clock.elapsed() < due) { QCoreApplication::processEvents(QEventLoop::AllEvents, 1); }
     const auto phase = std::fmod(frame / 120.0, 1.0);
     const auto to = point(0.25 + 0.5 * (phase < 0.5 ? phase * 2 : 2 - phase * 2));
-    QMouseEvent move(QEvent::MouseMove, QPointF(to), QPointF(view->viewport()->mapToGlobal(to)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+    QMouseEvent move(QEvent::MouseMove, QPointF(to), QPointF(view->viewportWidget().mapToGlobal(to)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
     lastMove = clock.elapsed();
     QElapsedTimer cost;
     cost.start();
-    QApplication::sendEvent(view->viewport(), &move);
+    QApplication::sendEvent(&view->viewportWidget(), &move);
     moveCost.append(cost.nsecsElapsed() / 1e6);
     ++frame;
   }
   const auto dragEnd = clock.elapsed();
   ticks.stop();
-  QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, point(0.5));
+  QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, point(0.5));
   waitFor([&] { return !window.activeEditor()->runActive(); }, 30000);
   QTest::qWait(300);
 

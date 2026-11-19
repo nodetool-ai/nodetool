@@ -1,10 +1,11 @@
+#include "../support/CanvasProbe.h"
+#include "ui/CanvasSurface.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include "PropertyFixture.h"
 #include "EntryMenuSupport.h"
 #include <QDockWidget>
-#include <QGraphicsView>
 #include <QDir>
 #include <QPainter>
 #include <QQmlEngine>
@@ -69,7 +70,7 @@ int motionNormal(EditorWindow &window) {
 QVariantAnimation *viewAnimation(EditorWindow &window) {
  return window.findChild<QVariantAnimation *>("viewport-animation");
 }
-QGraphicsView *viewOf(EditorWindow &window) { return window.findChild<QGraphicsView *>(); }
+nodetool::CanvasSurface *viewOf(EditorWindow &window) { return &window.canvas(); }
 QJsonObject placed(const QString &id, const QString &type, double x, double y, double width = 0, double height = 0) {
  QJsonObject ui{{"position", QJsonObject{{"x", x}, {"y", y}}}};
  if (width > 0) { ui["width"] = width; ui["height"] = height; }
@@ -122,12 +123,12 @@ private slots:
   QTest::qWait(100);
   auto map = window.findChild<QWidget *>("mini-map");
   QVERIFY(map);
-  auto view = window.findChild<QGraphicsView *>(); QVERIFY(view);
+  auto view = &window.canvas(); QVERIFY(view);
   const auto snapshot = window.document()->snapshot();
   const auto count = window.document()->undoStack()->count();
-  const auto before = view->mapToScene(view->viewport()->rect().center());
+  const auto before = view->mapToScene(view->viewportWidget().rect().center());
   QTest::mouseClick(map, Qt::LeftButton, Qt::NoModifier, QPoint(20,20));
-  QVERIFY(view->mapToScene(view->viewport()->rect().center()) != before);
+  QVERIFY(view->mapToScene(view->viewportWidget().rect().center()) != before);
   QTest::mousePress(map, Qt::LeftButton, Qt::NoModifier, QPoint(30,30));
   QTest::mouseMove(map, QPoint(170,100));
   QTest::mouseRelease(map, Qt::LeftButton, Qt::NoModifier, QPoint(170,100));
@@ -317,9 +318,9 @@ private slots:
   auto *view = viewOf(window);
   for (const auto &[zoom, preset] : QList<QPair<double, bool>>{{0.25, true}, {0.5, true}, {0.75, true}, {1.0, true}, {1.5, true}, {2.0, true}, {0.6, false}, {1.2, false}}) {
    // One zoom-in step from zoom / 1.2 lands on the zoom under test.
-   view->setTransform(QTransform::fromScale(zoom / 1.2, zoom / 1.2));
+   view->setView(zoom / 1.2, view->center());
    window.action("Zoom in");
-   QVERIFY(std::abs(view->transform().m11() - zoom) < 1e-9);
+   QVERIFY(std::abs(view->zoom() - zoom) < 1e-9);
    QCOMPARE(window.zoomIsPreset(), preset);
    QTRY_COMPARE(colorOf(label), preset ? primary : secondary);
   }
@@ -333,13 +334,13 @@ private slots:
   auto *view = viewOf(window);
   setReducedMotion(window, true);
   window.fit();
-  const auto targetZoom = view->transform().m11();
-  const auto targetCenter = view->mapToScene(view->viewport()->rect().center());
+  const auto targetZoom = view->zoom();
+  const auto targetCenter = view->mapToScene(view->viewportWidget().rect().center());
   QVERIFY(targetZoom < 0.9);
   window.action("Reset zoom");
-  view->centerOn(0, 0);
+  view->centerOn(QPointF(0, 0));
   setReducedMotion(window, false);
-  const auto startZoom = view->transform().m11();
+  const auto startZoom = view->zoom();
   QCOMPARE(startZoom, 1.0);
   QVERIFY(!viewAnimation(window));
   // The status indicator's fit button is a user surface.
@@ -353,11 +354,11 @@ private slots:
   QVERIFY(motionNormal(window) > 0);
   QCOMPARE(animation->duration(), motionNormal(window));
   QTest::qWait(motionNormal(window) / 2);
-  const auto midZoom = view->transform().m11();
+  const auto midZoom = view->zoom();
   QVERIFY2(midZoom < startZoom && midZoom > targetZoom, qPrintable(QString::number(midZoom)));
   QTRY_VERIFY(!viewAnimation(window));
-  QVERIFY(std::abs(view->transform().m11() - targetZoom) < 1e-6);
-  const auto center = view->mapToScene(view->viewport()->rect().center());
+  QVERIFY(std::abs(view->zoom() - targetZoom) < 1e-6);
+  const auto center = view->mapToScene(view->viewportWidget().rect().center());
   QVERIFY(QLineF(center, targetCenter).length() < 1.5);
  }
 
@@ -368,21 +369,21 @@ private slots:
   auto *view = viewOf(window);
   setReducedMotion(window, true);
   window.fit();
-  const auto fitted = view->transform().m11();
+  const auto fitted = view->zoom();
   window.userAction("Reset zoom");
-  QCOMPARE(view->transform().m11(), 1.0);
+  QCOMPARE(view->zoom(), 1.0);
   QVERIFY(!viewAnimation(window));
   window.userAction("Zoom in");
-  QVERIFY(std::abs(view->transform().m11() - 1.2) < 1e-9);
+  QVERIFY(std::abs(view->zoom() - 1.2) < 1e-9);
   window.userAction("Zoom out");
-  QVERIFY(std::abs(view->transform().m11() - 1.0) < 1e-9);
+  QVERIFY(std::abs(view->zoom() - 1.0) < 1e-9);
   QVERIFY(!viewAnimation(window));
   window.userAction("Fit");
-  QVERIFY(std::abs(view->transform().m11() - fitted) < 1e-6);
+  QVERIFY(std::abs(view->zoom() - fitted) < 1e-6);
   QVERIFY(!viewAnimation(window));
   QVERIFY(window.selectNode("proc"));
   window.userAction("Fit selection");
-  const auto selected = view->transform().m11();
+  const auto selected = view->zoom();
   QVERIFY(selected > fitted);
   QVERIFY(!viewAnimation(window));
  }
@@ -397,7 +398,7 @@ private slots:
   QImage image(200, 200, QImage::Format_RGB32);
   {
    QPainter painter(&image);
-   window.scene()->render(&painter, QRectF(0, 0, 200, 200), QRectF(-100, -100, 200, 200));
+   nodetool::test::renderScene(window, painter, QRectF(0, 0, 200, 200), QRectF(-100, -100, 200, 200));
   }
   const auto dark = window.scene()->theme().canvas.lightnessF() < .5;
   const auto axis = nodetool::axisMarkerColor(dark).rgb() & 0xffffff;
@@ -414,16 +415,16 @@ private slots:
   loadCategories(window);
   auto *view = viewOf(window);
   setReducedMotion(window, true);
-  view->setTransform(QTransform::fromScale(3.9, 3.9));
+  view->setView(3.9, view->center());
   window.action("Zoom in");
-  QVERIFY2(std::abs(view->transform().m11() - 4.0) < 1e-9, qPrintable(QString::number(view->transform().m11())));
+  QVERIFY2(std::abs(view->zoom() - 4.0) < 1e-9, qPrintable(QString::number(view->zoom())));
   window.action("Zoom in");
-  QVERIFY(std::abs(view->transform().m11() - 4.0) < 1e-9);
-  view->setTransform(QTransform::fromScale(0.13, 0.13));
+  QVERIFY(std::abs(view->zoom() - 4.0) < 1e-9);
+  view->setView(0.13, view->center());
   window.action("Zoom out");
-  QVERIFY2(std::abs(view->transform().m11() - 0.12) < 1e-9, qPrintable(QString::number(view->transform().m11())));
+  QVERIFY2(std::abs(view->zoom() - 0.12) < 1e-9, qPrintable(QString::number(view->zoom())));
   window.action("Zoom out");
-  QVERIFY(std::abs(view->transform().m11() - 0.12) < 1e-9);
+  QVERIFY(std::abs(view->zoom() - 0.12) < 1e-9);
  }
 
  // A zoom step and a preset animate over the normal motion token and end on the exact zoom.
@@ -439,7 +440,7 @@ private slots:
   QVERIFY(animation);
   QCOMPARE(animation->duration(), motionNormal(window));
   QTRY_VERIFY(!viewAnimation(window));
-  QVERIFY(std::abs(view->transform().m11() - 1.2) < 1e-9);
+  QVERIFY(std::abs(view->zoom() - 1.2) < 1e-9);
   window.userAction("Zoom presets");
   auto *presets = entry_menu::host(window, "zoom-presets-menu");
   QVERIFY(presets);
@@ -450,7 +451,7 @@ private slots:
   QVERIFY(animation);
   QCOMPARE(animation->duration(), motionNormal(window));
   QTRY_VERIFY(!viewAnimation(window));
-  QVERIFY(std::abs(view->transform().m11() - 0.5) < 1e-9);
+  QVERIFY(std::abs(view->zoom() - 0.5) < 1e-9);
  }
 
  // A wheel, a pan or a mini-map drag takes the view back from a running animation.
@@ -465,12 +466,12 @@ private slots:
   QVERIFY(viewAnimation(window));
   QTest::qWait(50);
   const auto point = QPointF(300, 300);
-  QWheelEvent wheel(point, view->viewport()->mapToGlobal(point), QPoint(), QPoint(0, 120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
-  QApplication::sendEvent(view->viewport(), &wheel);
+  QWheelEvent wheel(point, view->viewportWidget().mapToGlobal(point), QPoint(), QPoint(0, 120), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+  QApplication::sendEvent(&view->viewportWidget(), &wheel);
   QVERIFY(!viewAnimation(window));
-  const auto zoom = view->transform().m11();
+  const auto zoom = view->zoom();
   QTest::qWait(motionNormal(window) + 100);
-  QCOMPARE(view->transform().m11(), zoom);
+  QCOMPARE(view->zoom(), zoom);
  }
 
  // NodeInfoPanel.tsx handleFocusClick: setCenter(node.x, node.y, { zoom: 1.5, duration: 300 }).
@@ -485,18 +486,18 @@ private slots:
   auto *model = window.findChild<WorkflowGraphModel *>();
   QVERIFY(model);
   for (const auto id : model->allNodeIds()) {
-   if (model->resourceId(id) == "out") { node = window.scene()->nodeGraphicsObject(id)->scenePos(); }
+   if (model->resourceId(id) == "out") { node = window.canvas().nodeOrigin(id); }
   }
   window.action("Reset zoom");
-  view->centerOn(0, 0);
+  view->centerOn(QPointF(0, 0));
   const auto centerOfArea = [&] { return view->mapToScene(window.unobstructedViewport().center().toPoint()); };
   // Reduced motion lands at once.
   window.action("Focus node");
   QVERIFY(!viewAnimation(window));
-  QVERIFY(std::abs(view->transform().m11() - 1.5) < 1e-9);
+  QVERIFY(std::abs(view->zoom() - 1.5) < 1e-9);
   QVERIFY2(QLineF(centerOfArea(), node).length() < 2, qPrintable(QString("%1,%2 vs %3,%4").arg(centerOfArea().x()).arg(centerOfArea().y()).arg(node.x()).arg(node.y())));
   window.action("Reset zoom");
-  view->centerOn(0, 0);
+  view->centerOn(QPointF(0, 0));
   setReducedMotion(window, false);
   window.userAction("Focus node");
   auto *animation = viewAnimation(window);
@@ -504,7 +505,7 @@ private slots:
   // The web has no 300 ms token, so the duration follows setCenter's.
   QCOMPARE(animation->duration(), 300);
   QTRY_VERIFY(!viewAnimation(window));
-  QVERIFY(std::abs(view->transform().m11() - 1.5) < 1e-9);
+  QVERIFY(std::abs(view->zoom() - 1.5) < 1e-9);
   QVERIFY(QLineF(centerOfArea(), node).length() < 2);
  }
 
@@ -515,9 +516,9 @@ private slots:
   auto *view = viewOf(window);
   setReducedMotion(window, true);
   window.action("Reset zoom");
-  const auto before = view->transform();
+  const auto before = view->viewportTransform();
   window.action("Focus node");
-  QCOMPARE(view->transform(), before);
+  QCOMPARE(view->viewportTransform(), before);
   QVERIFY(!viewAnimation(window));
  }
 
@@ -540,7 +541,7 @@ private slots:
   QCOMPARE(button->property("text").toString(), QString("Focus"));
   const auto center = button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint();
   QTest::mouseClick(inspector, Qt::LeftButton, Qt::NoModifier, center);
-  QTRY_VERIFY(std::abs(view->transform().m11() - 1.5) < 1e-9);
+  QTRY_VERIFY(std::abs(view->zoom() - 1.5) < 1e-9);
  }
 
  // Selecting a card that is off screen brings it into view with the same motion.
@@ -556,10 +557,10 @@ private slots:
   auto *view = viewOf(window);
   setReducedMotion(window, false);
   window.action("Reset zoom");
-  view->centerOn(0, 0);
+  view->centerOn(QPointF(0, 0));
   QTest::qWait(60);
   QVERIFY(window.selectNode("far"));
-  QTRY_VERIFY(view->mapToScene(view->viewport()->rect()).boundingRect().right() > 6100);
+  QTRY_VERIFY(view->visibleSceneRect().right() > 6100);
   QVERIFY(!viewAnimation(window));
  }
 
@@ -571,17 +572,17 @@ private slots:
   auto *view = viewOf(window);
   setReducedMotion(window, false);
   window.action("Reset zoom");
-  QCOMPARE(view->transform().m11(), 1.0);
+  QCOMPARE(view->zoom(), 1.0);
   window.action("Zoom in");
-  QVERIFY(std::abs(view->transform().m11() - 1.2) < 1e-9);
+  QVERIFY(std::abs(view->zoom() - 1.2) < 1e-9);
   window.action("Fit");
-  const auto fitted = view->transform().m11();
+  const auto fitted = view->zoom();
   QVERIFY(fitted < 0.9);
   QVERIFY(window.selectNode("proc"));
   window.action("Fit selection");
-  QVERIFY(view->transform().m11() > fitted);
+  QVERIFY(view->zoom() > fitted);
   window.action("Focus node");
-  QVERIFY(std::abs(view->transform().m11() - 1.5) < 1e-9);
+  QVERIFY(std::abs(view->zoom() - 1.5) < 1e-9);
   QVERIFY(!viewAnimation(window));
  }
 };

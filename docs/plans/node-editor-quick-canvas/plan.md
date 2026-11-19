@@ -38,6 +38,11 @@ on RHI. The spike logs are `~/.cache/tp-native/logs/ne-rhi-*.log`.
 The user accepted D1 to D9 as recommended and deferred Q11 until edges are
 measured on RHI after Q10.
 
+On 2026-11-19 the user decided that the Quick canvas is the default and that
+QtNodes is removed. Q5 therefore flips the default without a one-release
+fallback, and Q6 deletes QtNodes in the same PR series. Q4 comes first
+because the media, inline editor and picker overlays still live in widgets.
+
 - **D1. Keep `QtNodes::AbstractGraphModel` as the model interface.**
   Recommended: keep it. `WorkflowGraphModel` implements it, and 28 source
   files and 61 test files use `QtNodes::NodeId`, `PortType`, `PortIndex` and
@@ -161,9 +166,11 @@ measured on RHI after Q10.
   `node_editor_ui` and `node_editor_canvas_media_host`
   (`~/.cache/tp-native/logs/ne-ctest-software.log`). Each step records the
   failing set before it starts.
-- **F14. The editor package ships no license notices.**
-  `native/node-editor/scripts/package-macos.sh` says so in its header. QtNodes
-  is linked into the binary today, so the BSD notice is already owed.
+- **F14. The editor package shipped no license notices.** QtNodes is linked
+  into the binary, so the BSD notice was owed. Q0 added
+  `native/node-editor/licenses/QtNodes-BSD-3-Clause.txt`, which
+  `scripts/package-macos.sh` copies. The Windows build has no packaging step
+  that copies it yet.
 
 ## What depends on QtNodes and QGraphicsView
 
@@ -231,22 +238,60 @@ New classes live in `native/node-editor/src/canvas/`, in namespace
    toolbar, the selection toolbar, the zoom readout, the mini-map, the queue,
    the chat window, the node info panel and the price chip.
 
-Card media and inline editors are children of their `NodeItem`. A card above
-another card covers the lower card's player, and a dimmed card dims its
-player, because the scene graph draws children with their parent.
+Card media and inline editors follow their card's opacity and stacking. On
+the software backend, Q4 places them in the overlay layer and preserves that
+order explicitly. Quick children of a card would draw above the whole canvas
+composite.
 
 ### Card and edge rendering
 
-- `NodeItem::updatePaintNode` returns a `QSGImageNode` from
-  `QQuickWindow::createImageNode()`. Both the software and the RHI backend
-  draw this node type.
-- The card image is rasterized on the UI thread at `zoom × devicePixelRatio`,
-  rounded to steps of √2. During a zoom gesture the existing texture scales.
-  The canvas rasters again 100 ms after the gesture ends.
-- A card off screen holds no image and is not visible
+- On RHI, each raster tile has a `QSGImageNode` with its own texture. In Q3,
+  the software backend batches visible draws in viewport tiles and damages
+  only the tiles whose inputs changed. Q4 overlays must preserve the card
+  stacking order during that composite.
+- The UI thread rasterizes at `zoom × devicePixelRatio` on the device pixel
+  grid. During a zoom gesture, existing images scale and new rasters use
+  steps of √2. The canvas starts restoring exact-scale rasters 100 ms after
+  the gesture ends.
+- The raster cache schedules 512-device-pixel tiles for cards, wires and
+  individual foreground primitives. It prioritizes visible tiles and limits
+  offscreen retention to 64 MiB. The software pass
+  draws only visible items
   ([performance rule 21](../../../native/ui_primitives/PERFORMANCE.md#rendering)).
-- The running ring and the focus ring are separate child nodes, so their
-  animation does not re-raster the card.
+- The scheduler keeps its state in the tiles, so rebuilding its plan after an
+  edit never loses progress. The states are listed above
+  `GraphCanvas::rebuildRasterWork`:
+  - Every item has a published tile grid, which the renderers draw, and a
+    staged grid for a change of scale, phase or tile layout. The staged grid
+    replaces the published grid when its committed tiles match the requested
+    geometry throughout the current viewport, including tiles painted empty.
+    Publication accepts any content revision. A stale staged tile repaints after
+    it is published. Content that changes on every frame cannot hold a grid
+    change back.
+  - While the view or an item moves, rasters keep their sub-pixel phase, as
+    the QtNodes device cache does. 100 ms after the last move the canvas takes
+    the device phase of a direct paint and the exact grid follows through
+    staging.
+  - A visible area with nothing on screen may use 3 ms of a frame. Stale
+    visible tiles and prefetch stop at 1.4 ms. Missing tiles within one tile
+    of the view share queue order with stale visible tiles, so animated cards
+    leave time to fill the edge before a pan. Farther tiles fill nearest first.
+    Only offscreen tiles are deferred or evicted for the byte budget.
+  - Animated parts invalidate only their rectangles. A running card repaints
+    the tiles touched by its rotating ring or pulsing status text. A card
+    with a single-colour ring and no pulsing label needs no animation repaint.
+    A flowing wire repaints its tiles.
+  - A model reset keeps the items of nodes and connections that still exist,
+    with their tiles, until the replacements are painted.
+- The software grid paints the QtNodes crosses and axes, pixel for pixel,
+  into an image once per view and copies the damaged region from it. A pan
+  by whole device pixels at a zoom with an exact binary mapping, such as
+  zoom 1, moves the image and paints only the exposed strips. The RHI grid
+  repeats a texture painted at the view's fractional device offset.
+- A tile of a long wire that its path does not reach stays empty without
+  being painted, so a diagonal draft wire repaints only its path's tiles.
+- Until Q11, the running ring is part of the card raster. Only the tiles it
+  touches repaint, and only within its rectangles.
 - `ConnectionItem` uses the same texture path with `WirePainter` until Q11.
 
 ### Large graphs
@@ -259,8 +304,8 @@ Measured today, from the spike logs of `node_editor_large_graph`
 | Card drag, 72 nodes, per pointer move | 31.6 ms (Vulkan on lavapipe), 80.8 ms (OpenGL). The test fails above 100 ms | UI thread work under 4 ms. The limit drops to 16 ms in Q5 |
 | Add a node with the window shown, 2,000 nodes | 623 to 725 µs | No slower |
 | Event loop after the batch of 2,000 | 221 to 239 ms | No slower |
-| Pan, 2,000 nodes | Not measured | No raster. UI thread work under 2 ms a frame |
-| Zoom settle, 2,000 nodes | Not measured | Raster spread over frames, at most 4 ms a frame |
+| Pan, 2,000 nodes | 8 to 13 ms a step at zoom 1, 33 to 40 ms at zoom 0.12 (software, [README](../../../native/node-editor/README.md#large-graph-baseline)) | No raster. UI thread work under 2 ms a frame |
+| Zoom settle, 2,000 nodes | 48 to 67 ms a wheel notch, painted at once with no settle work (software) | Raster spread over frames, at most 4 ms a frame |
 
 The frame budget is 16 ms at 60 FPS, with a few milliseconds for the UI
 thread ([rule 1](../../../native/ui_primitives/PERFORMANCE.md#frame-budget)).
@@ -291,11 +336,12 @@ The measures follow rules 27 and 29: a realistic count, and frame times from
   `QObject` parent. This is the Qt parent exception of rule 2, and the code
   documents the parent.
 - `updatePaintNode` runs on the render thread while the UI thread is blocked.
-  It reads the item's `QImage` and a dirty flag and touches nothing else. The
-  scene graph owns the returned node, and the node owns its texture.
-- An item drops its image and marks itself dirty in `releaseResources()` and
-  on `ItemSceneChange`, so a window change leaks no texture.
-- The raster scheduler is a `QTimer` member of `GraphCanvas`. Connections
+  It reads the tile images and their placement. The scene graph owns the
+  returned nodes and textures.
+- An item drops its tile images in `releaseResources()` and on
+  `ItemSceneChange`. The raster queue rebuilds on the next window.
+- `GraphCanvas` owns the foreground tile items, queue and budget on the UI
+  thread. The zoom settle timer schedules the next raster pass. Connections
   from the model to items use the item as context object, so they end with
   the item (rule 13).
 - No new global state. The graphics API choice is made once in `main()`.
@@ -410,7 +456,8 @@ Two test groups are named below.
   `node_editor_navigation`, `node_editor_viewport_navigator`,
   `node_editor_window_parity`, `node_editor_incremental_projection`,
   `node_editor_runtime_ui`, `node_editor_price_chip`,
-  `node_editor_visual_capture` and `node_editor_smoke`.
+  `node_editor_visual_capture` and `node_editor_smoke`. Quick raster invariants
+  run in `node_editor_quick_canvas` and its three additional DPR entries.
 - **Shell group**: `node_editor_workflow_tabs`,
   `node_editor_workflow_tabs_drag`, `node_editor_menus`,
   `node_editor_chrome_parity`, `node_editor_header_row`,
@@ -510,8 +557,9 @@ Medium to large: about 2,500 lines changed, small QML edits.
 
 Small in code. It is the parity checkpoint.
 
-- The switch defaults to `quick`. `NODETOOL_NODE_EDITOR_CANVAS=qtnodes`
-  keeps the old canvas for one release.
+- The switch defaults to `quick`. The user decided on 2026-11-19 that
+  QtNodes leaves with it, so there is no `qtnodes` fallback value. Q6 follows
+  directly.
 - Run the visual comparison (`scripts/visual-compare.mjs`) and the parity
   runner, and update `docs/parity.md` where a result changed.
 - Lower the drag limit in `LargeGraphTest` to 16 ms.
@@ -614,8 +662,8 @@ Medium: about 1,200 lines and two shaders. Depends on D3.
   dirties. With 2,000 image nodes, a pan may cost more than the targets
   allow. Q3 measures this before Q4 starts.
 - **R4. Texture memory at high zoom and device pixel ratio.** A card at zoom
-  4 and ratio 2 is 64 times its logical pixel count. Cap the raster scale and
-  the size of one texture.
+  4 and ratio 2 is 64 times its logical pixel count. Bound the texture size
+  and the total raster cache while keeping the device scale exact.
 - **R5. Focus and shortcuts.** The widget code accepts `ShortcutOverride` in
   overlay widgets and filters events on the view. One Quick window has one
   focus chain, so each of these rules needs a Quick equivalent and a test.

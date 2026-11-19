@@ -1,3 +1,4 @@
+#include "ui/CanvasSurface.h"
 #include "interfaces/RunState.h"
 #include "server/MsgPack.h"
 #include "ui/DockedOverlay.h"
@@ -6,7 +7,6 @@
 #include <QDateTime>
 #include <QDir>
 #include <QDockWidget>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include "EntryMenuSupport.h"
 #include <QQmlContext>
@@ -88,15 +88,8 @@ class QueueUiTest final : public QObject {
             item->mapToScene({item->width() / 2, item->height() / 2})
                 .toPoint());
     }
-    // The editor canvas: the largest graphics view in the window.
-    static QGraphicsView *canvas(EditorWindow &window) {
-        QGraphicsView *best = nullptr;
-        for (auto view : window.findChildren<QGraphicsView *>()) {
-            if (view->isVisible() && (!best || view->width() * view->height() > best->width() * best->height())) {
-                best = view;
-            }
-        }
-        return best;
+    static QWidget *canvas(EditorWindow &window) {
+        return &window.canvas().hostWidget();
     }
     static QRect canvasRect(EditorWindow &window, QWidget *parent) {
         auto view = canvas(window);

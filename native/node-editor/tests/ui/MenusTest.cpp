@@ -1,7 +1,7 @@
+#include "../support/CanvasProbe.h"
 #include "ui/EditorWindow.h"
 #include "../graph/BodyConnectionFixture.h"
 #include "graph/EditorScene.h"
-#include <QGraphicsView>
 #include "EntryMenuSupport.h"
 #include <QMenu>
 #include <QMenuBar>
@@ -48,8 +48,8 @@ class MenusTest final : public QObject {
         }
         return QtNodes::InvalidNodeId;
     }
-    static QGraphicsView *view(EditorWindow &window) {
-        return window.findChild<QGraphicsView *>();
+    static nodetool::CanvasSurface *view(EditorWindow &window) {
+        return &window.canvas();
     }
     static QQuickWidget *host(EditorWindow &window) {
         return window.findChild<QQuickWidget *>("context-menu-host");
@@ -57,8 +57,8 @@ class MenusTest final : public QObject {
     // A real context-menu event on the canvas viewport.
     static QQuickWidget *contextAt(EditorWindow &window, const QPoint &point) {
         auto *canvas = view(window);
-        QContextMenuEvent event(QContextMenuEvent::Mouse, point, canvas->viewport()->mapToGlobal(point));
-        QApplication::sendEvent(canvas->viewport(), &event);
+        QContextMenuEvent event(QContextMenuEvent::Mouse, point, canvas->viewportWidget().mapToGlobal(point));
+        QApplication::sendEvent(&canvas->viewportWidget(), &event);
         auto *menu = host(window);
         if (menu) {
             QTest::qWait(60);
@@ -66,8 +66,8 @@ class MenusTest final : public QObject {
         return menu;
     }
     static QQuickWidget *contextOnNode(EditorWindow &window, const QString &resource) {
-        auto *item = window.scene()->nodeGraphicsObject(nodeId(window, resource));
-        view(window)->centerOn(item);
+        auto item = nodetool::test::card(window, nodeId(window, resource));
+        view(window)->centerOn(item->sceneBoundingRect().center());
         QTest::qWait(30);
         return contextAt(window, view(window)->mapFromScene(item->scenePos() + QPointF(20, 10)));
     }
@@ -158,7 +158,7 @@ private slots:
     void commandShortcut() {
         EditorWindow window; window.show(); QTest::qWait(50);
         auto *canvas = view(window); QVERIFY(canvas);
-        canvas->setFocus(); QTest::keyClick(canvas->viewport(), Qt::Key_K, Qt::ControlModifier);
+        canvas->setFocus(); QTest::keyClick(&canvas->viewportWidget(), Qt::Key_K, Qt::ControlModifier);
         QTRY_VERIFY(window.findChild<QDialog *>("command-panel"));
         auto *panel = window.findChild<QDialog *>("command-panel");
         auto *quick = panel->findChild<QQuickWidget *>(); QVERIFY(quick);
@@ -310,7 +310,7 @@ private slots:
         window.action("Reset zoom");
         QTest::qWait(60);
         auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
-        auto *canvas = view(window)->viewport();
+        auto *canvas = &view(window)->viewportWidget();
         view(window)->setFocus();
         // Enter does nothing before a node has focus.
         QTest::keyClick(canvas, Qt::Key_Return);
@@ -319,10 +319,10 @@ private slots:
         QTRY_COMPARE(model.focusedNode(), QString("a"));
         QCOMPARE(window.selectedCount(), 0);
         // The badge above the focused card is inside its item bounds.
-        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "a"))->boundingRect().top() <= -20);
+        QVERIFY(nodetool::test::card(window, nodeId(window, "a"))->boundingRect().top() <= -20);
         QTest::keyClick(canvas, Qt::Key_Right, Qt::AltModifier);
         QCOMPARE(model.focusedNode(), QString("b"));
-        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "a"))->boundingRect().top() > -20);
+        QVERIFY(nodetool::test::card(window, nodeId(window, "a"))->boundingRect().top() > -20);
         QTest::keyClick(canvas, Qt::Key_Down, Qt::AltModifier);
         QCOMPARE(model.focusedNode(), QString("c"));
         // Nothing lies below c, so the focus stays.
@@ -337,7 +337,7 @@ private slots:
         QCOMPARE(model.focusedNode(), QString("c"));
         QTest::keyClick(canvas, Qt::Key_Return);
         QTRY_COMPARE(window.selectedCount(), 1);
-        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "c"))->isSelected());
+        QVERIFY(window.canvas().selection().contains(nodeId(window, "c")));
     }
     // HandleTooltip.tsx: with a node focused, Tab walks its handles and Enter
     // opens KeyboardConnectionPicker, which wires the handle to an existing port.
@@ -351,7 +351,7 @@ private slots:
         window.action("Reset zoom");
         QTest::qWait(60);
         auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
-        auto *canvas = view(window)->viewport();
+        auto *canvas = &view(window)->viewportWidget();
         view(window)->setFocus();
         // Tab belongs to the window until a node has focus.
         QTest::keyClick(canvas, Qt::Key_Tab);
@@ -406,7 +406,7 @@ private slots:
         QVERIFY(window.document()->load(QJsonObject{{"id", "settings"}, {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}}));
         window.resize(1000, 700);
         window.show();
-        auto *canvas = view(window)->viewport();
+        auto *canvas = &view(window)->viewportWidget();
         view(window)->setFocus();
         // No server is connected, so settings explain what is missing.
         QTest::keyClick(canvas, Qt::Key_Comma, Qt::ControlModifier);
@@ -508,7 +508,7 @@ private slots:
         QVERIFY(window.selectNode("b"));
         QVERIFY(window.selectNode("a"));
         view(window)->setFocus();
-        QTest::keyClick(view(window)->viewport(), Qt::Key_A, Qt::ControlModifier);
+        QTest::keyClick(&view(window)->viewportWidget(), Qt::Key_A, Qt::ControlModifier);
         QCOMPARE(window.selectedCount(), 3);
         auto *menu = contextOnNode(window, "a");
         QVERIFY(menu);
@@ -529,19 +529,19 @@ private slots:
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         // Select inputs and outputs follow the data edges through the whole graph.
         QVERIFY(window.selectNode("b"));
-        QTest::keyClick(view(window)->viewport(), Qt::Key_I, Qt::ShiftModifier);
+        QTest::keyClick(&view(window)->viewportWidget(), Qt::Key_I, Qt::ShiftModifier);
         QCOMPARE(window.selectedCount(), 2);
         QVERIFY(window.selectNode("a"));
-        QTest::keyClick(view(window)->viewport(), Qt::Key_O, Qt::ShiftModifier);
+        QTest::keyClick(&view(window)->viewportWidget(), Qt::Key_O, Qt::ShiftModifier);
         QCOMPARE(window.selectedCount(), 2);
         QVERIFY(window.selectNode("c"));
-        QTest::keyClick(view(window)->viewport(), Qt::Key_C, Qt::ShiftModifier);
+        QTest::keyClick(&view(window)->viewportWidget(), Qt::Key_C, Qt::ShiftModifier);
         QCOMPARE(window.selectedCount(), 1);
         QVERIFY(window.selectNode("a"));
-        QTest::keyClick(view(window)->viewport(), Qt::Key_C, Qt::ShiftModifier);
+        QTest::keyClick(&view(window)->viewportWidget(), Qt::Key_C, Qt::ShiftModifier);
         QCOMPARE(window.selectedCount(), 2);
         view(window)->setFocus();
-        QTest::keyClick(view(window)->viewport(), Qt::Key_A, Qt::ControlModifier);
+        QTest::keyClick(&view(window)->viewportWidget(), Qt::Key_A, Qt::ControlModifier);
         menu = contextOnNode(window, "a");
         QVERIFY(menu);
         QVERIFY(labels(menu).contains("Enable all"));
@@ -562,7 +562,7 @@ private slots:
         window.show();
         QTest::qWait(60);
         const auto open = [&](const QString &id) {
-            emit window.scene()->dataEdgeContextMenuRequested(id, QPointF(300, 140), view(window)->viewport()->mapToGlobal(QPoint(400, 300)));
+            emit window.scene()->interaction().dataEdgeContextMenuRequested(id, QPointF(300, 140), view(window)->viewportWidget().mapToGlobal(QPoint(400, 300)));
             QTest::qWait(60);
             return host(window);
         };
@@ -731,16 +731,16 @@ private slots:
             {"nodes", QJsonArray{node("first", "Fixed", 100, 100), node("second", "Fixed", 500, 160)}},
             {"edges", QJsonArray{QJsonObject{{"id", "e"}, {"source", "first"}, {"sourceHandle", "out"}, {"target", "second"}, {"targetHandle", "in"}}}}}}}});
         QVERIFY(gallery->rows().first().toMap()["key"] == "server:pair");
-        auto *view = window.findChild<QGraphicsView *>();
+        auto *view = &window.canvas();
         const QPoint point(400, 300);
         const auto expected = view->mapToScene(point);
         QMimeData mime;
         mime.setData(node_editor::ExampleGallery::DragMime, "server:pair");
         QDragEnterEvent enter(QPointF(point), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(view->viewport(), &enter);
+        QApplication::sendEvent(&view->viewportWidget(), &enter);
         QVERIFY(enter.isAccepted());
         QDropEvent drop(point, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(view->viewport(), &drop);
+        QApplication::sendEvent(&view->viewportWidget(), &drop);
         QVERIFY(drop.isAccepted());
         QCOMPARE(window.document()->nodes().size(), 3);
         QCOMPARE(window.document()->edges().size(), 1);
@@ -760,7 +760,7 @@ private slots:
         QMimeData unknown;
         unknown.setData(node_editor::ExampleGallery::DragMime, "server:missing");
         QDropEvent refused(point, Qt::CopyAction, &unknown, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(view->viewport(), &refused);
+        QApplication::sendEvent(&view->viewportWidget(), &refused);
         QVERIFY(!refused.isAccepted());
         window.action("Undo");
         QCOMPARE(window.document()->nodes().size(), 1);
@@ -838,10 +838,10 @@ private slots:
         QTest::keyClick(panel->quickWindow(), Qt::Key_A, Qt::ControlModifier);
         QCoreApplication::processEvents();
         QCOMPARE(window.selectedCount(), 0);
-        auto *canvas = window.activeEditor()->findChild<QGraphicsView *>();
+        auto *canvas = &window.activeEditor()->canvas();
         QVERIFY(canvas);
         canvas->setFocus();
-        QTest::keyClick(canvas->viewport(), Qt::Key_A, Qt::ControlModifier);
+        QTest::keyClick(&canvas->viewportWidget(), Qt::Key_A, Qt::ControlModifier);
         QTRY_VERIFY(window.selectedCount() > 1);
 
         // An open menu shows the tab's state. A closed menu leaves the shortcut on.
@@ -975,7 +975,7 @@ private slots:
         QVERIFY(info);
         const auto toggle = [&] {
             view(window)->setFocus();
-            QTest::keyClick(view(window)->viewport(), Qt::Key_I, Qt::ControlModifier);
+            QTest::keyClick(&view(window)->viewportWidget(), Qt::Key_I, Qt::ControlModifier);
         };
         // Nothing selected: nothing to show.
         toggle();
@@ -990,11 +990,11 @@ private slots:
         QCOMPARE(info->property("tags").toStringList(), (QStringList{"alpha", "beta"}));
         // The panel sits beside the card, 16 px from it, right of it when the
         // canvas has room there and left of it otherwise.
-        auto *item = window.scene()->nodeGraphicsObject(nodeId(window, "described"));
+        auto item = nodetool::test::card(window, nodeId(window, "described"));
         auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
         const auto size = model.layout(nodeId(window, "described")).size;
-        const auto card = view(window)->mapFromScene(QRectF(item->scenePos(), size)).boundingRect().translated(view(window)->viewport()->pos());
-        const bool right = card.right() + 16 + overlay->width() + 16 <= view(window)->width();
+        const auto card = view(window)->mapFromScene(QRectF(item->scenePos(), size)).translated(view(window)->viewportWidget().pos());
+        const bool right = card.right() + 16 + overlay->width() + 16 <= view(window)->hostWidget().width();
         QVERIFY2(right ? std::abs(overlay->x() - card.right() - 16) <= 2 : std::abs(overlay->geometry().right() + 1 + 16 - card.left()) <= 2,
                  qPrintable(QString("panel %1-%2, card %3-%4").arg(overlay->x()).arg(overlay->geometry().right()).arg(card.left()).arg(card.right())));
         QVERIFY(std::abs(overlay->y() - std::max(16, card.top())) <= 2);
@@ -1036,7 +1036,7 @@ private slots:
         window.action("Reset zoom");
         QTest::qWait(60);
         view(window)->setFocus();
-        QTest::keyClick(view(window)->viewport(), Qt::Key_F, Qt::ControlModifier);
+        QTest::keyClick(&view(window)->viewportWidget(), Qt::Key_F, Qt::ControlModifier);
         auto findPanel = [&]() { return window.findChild<QQuickWidget *>("find-panel"); };
         QTRY_VERIFY(findPanel() && findPanel()->isVisible());
         auto *panel = findPanel();
@@ -1052,10 +1052,10 @@ private slots:
         QTRY_COMPARE(status(), QString("2 of 2 node found"));
         QCOMPARE(window.selection(), QString("alpha-2"));
         const auto settled = [&](const QString &resource) {
-            auto *item = window.scene()->nodeGraphicsObject(nodeId(window, resource));
+            auto item = nodetool::test::card(window, nodeId(window, resource));
             const auto centre = view(window)->mapFromScene(item->mapRectToScene(item->boundingRect()).center());
             const auto area = window.unobstructedViewport().center();
-            return std::abs(view(window)->transform().m11() - 1.0) < 0.001 && std::abs(centre.x() - area.x()) < 3 && std::abs(centre.y() - area.y()) < 3;
+            return std::abs(view(window)->zoom() - 1.0) < 0.001 && std::abs(centre.x() - area.x()) < 3 && std::abs(centre.y() - area.y()) < 3;
         };
         QTRY_VERIFY_WITH_TIMEOUT(settled("alpha-2"), 3000);
         QTest::keyClick(panel, Qt::Key_Down);
@@ -1100,7 +1100,7 @@ private slots:
         QCOMPARE(window.selection(), QString("beta"));
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         // Escape and a press outside the panel close it without moving the selection.
-        QTest::keyClick(view(window)->viewport(), Qt::Key_F, Qt::ControlModifier);
+        QTest::keyClick(&view(window)->viewportWidget(), Qt::Key_F, Qt::ControlModifier);
         QTRY_VERIFY(findPanel() && findPanel()->isVisible());
         QTest::keyClick(findPanel(), Qt::Key_Escape);
         QTRY_VERIFY(!findPanel() || !findPanel()->isVisible());
@@ -1108,7 +1108,7 @@ private slots:
         window.action("Find node");
         QTRY_VERIFY(findPanel() && findPanel()->isVisible());
         QTest::qWait(200);
-        QTest::mouseClick(view(window)->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(40, 600));
+        QTest::mouseClick(&view(window)->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(40, 600));
         QTRY_VERIFY(!findPanel() || !findPanel()->isVisible());
         QCOMPARE(window.document()->undoStack()->index(), 0);
     }
@@ -1146,10 +1146,10 @@ private slots:
                 } else if (surface == "selection") {
                     window.selectNode("source");
                     view(window)->setFocus();
-                    QTest::keyClick(view(window)->viewport(), Qt::Key_A, Qt::ControlModifier);
+                    QTest::keyClick(&view(window)->viewportWidget(), Qt::Key_A, Qt::ControlModifier);
                     shown = contextOnNode(window, "source");
                 } else if (surface == "edge") {
-                    emit window.scene()->dataEdgeContextMenuRequested("wire", QPointF(700, 200), view(window)->viewport()->mapToGlobal(QPoint(700, 300)));
+                    emit window.scene()->interaction().dataEdgeContextMenuRequested("wire", QPointF(700, 200), view(window)->viewportWidget().mapToGlobal(QPoint(700, 300)));
                     QTest::qWait(60);
                     shown = host(window);
                 } else if (surface == "find") {
