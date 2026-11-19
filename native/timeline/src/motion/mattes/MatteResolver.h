@@ -19,7 +19,7 @@ namespace nt::motion {
 // The destructor interrupts and joins the worker.
 class MatteResolver final : public QObject {
 public:
-    MatteResolver(TimelineModel& model, nt::server::MediaSource source);
+    MatteResolver(TimelineModel& model, nt::server::MediaSource source, nt::server::AssetCacheRoot cache);
     ~MatteResolver() override;
 private:
     void reset();
@@ -29,7 +29,7 @@ private:
     nt::server::MediaSource m_source;
     // Shared with the running worker, which uses it after a reset() here
     // has moved to a new generation.
-    std::shared_ptr<nt::assets::MediaProtection> m_protection = std::make_shared<nt::assets::MediaProtection>();
+    std::shared_ptr<nt::assets::MediaProtection> m_protection;
     QPointer<QThread> m_worker;
     QSet<QString> m_queued;
     std::deque<QString> m_pending;

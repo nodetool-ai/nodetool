@@ -68,7 +68,7 @@ and a full editor screenshot. It does not call a model provider.
 ## Build and test
 
 Requires Qt 6.12 (the build rejects other minor versions, because QRhi is a
-private API), Ninja, CMake 3.24 or newer, and FFmpeg with pkg-config files. On
+private API), Ninja, CMake 3.28 or newer, and FFmpeg with pkg-config files. On
 macOS:
 
 ```bash
@@ -1397,9 +1397,9 @@ schema. It exits non-zero on a schema error or a mismatch, and when it compared
 matrix before it compares, and counts a layer only when every value matches.
 `--json` prints one object with the verdict and the result per fixture.
 Without `--bin` it runs the most recently built `build*/nodetool-timeline`.
-It refuses (exit 2) a binary older than any source of the plan (`src/scene`,
-`src/preview`, `src/model`, `src/server`, `src/main.cpp`, `third_party/yoga`),
-and names the newest such file.
+It refuses (exit 2) a binary older than any source of the plan (`src/preview`,
+`src/model`, `src/server`, `src/main.cpp`, and `src` and `third_party/yoga` in
+`native/timeline-player`), and names the newest such file.
 
 The excluded clips and their reasons must equal `fixtures/plan/exclusions.json`
 (rewrite it with `--update-exclusions` after a deliberate change). A flex
@@ -1513,6 +1513,14 @@ picture reads the proxy only when `proxy_status` is `ready`. Audio always
 reads the original. A partial download resumes with `Range` after a
 re-check of the version, and restarts from 0 on any mismatch. The raw
 document of the last load stays in `<server>/<user>/timelines/<id>.json`.
+
+The app owns one cache root for its lifetime. Downloads, document readers,
+frame capture and queued exports use that root's in-memory lease registry.
+The host installs it on each QML engine through
+`TimelineAssetCacheContext::install` before loading editor components.
+C++ consumers receive the cache in their constructors or function calls.
+Acquiring and releasing a lease never writes a file beside the media. The
+download folder lock still serializes fetches and eviction.
 
 The loader report (`--loader-report FILE`, else `<id>.report.json` next to
 the raw document) lists each field with a value the model does not apply, per
@@ -1723,8 +1731,7 @@ can write back the fields the model does not own.
 | `src/ui/` | Tracks UI: `TimelineWheel` and `TimelineFormat` (pure math and labels), `TimelineViewState`, `TimelineGestureArea`, `RulerCanvas`, `UiBench` |
 | `src/playback/PlaybackClock` | Play, pause, seek, rate. The time comes from the audio device when one runs, else from a monotonic clock |
 | `src/playback/AudioClockFeed` | The seqlocked state between the clock and the device callback, and the callback half of the clock (`CallbackClockDriver`) |
-| `src/audio/` | `AudioEngine` (miniaudio device, decode worker, PCM rings), `Mixer` (the mix rules and `mixBlock`), `FadeCurves`, `AudioSource` (FFmpeg and libswresample), `OutputLatency` (CoreAudio), `LoopbackCapture`, the audio CLI modes |
-| `third_party/miniaudio.h` | miniaudio 0.11.22, one header (MIT No Attribution or public domain) |
+| `src/audio/` | `AppAudio`, the audio CLI modes, and mixer automation. The engine, mixer, loudness processing and miniaudio live in the [shared player](../timeline-player/README.md#audio) |
 | `third_party/yoga/` | Yoga 3.2.1, the flex layout engine (MIT, `LICENSE`), unchanged |
 | `licenses/FilmCraft-MIT.txt` | FilmCraft (MIT), the source of the ported algorithms. The macOS package copies it by name |
 | `src/scene/FlexLayout`, `TextBlock`, `TextAnimation`, `SvgPath` | Flex layout, the text block box, animated text styles and SVG path bounds, ported from `@nodetool-ai/timeline` |
@@ -1740,14 +1747,13 @@ can write back the fields the model does not own.
 | `src/platform/PlatformStubs.cpp` | Linux and Windows: no-op App Nap and occlusion hooks |
 | `src/preview/RetireQueue.h` | Releases a replaced frame's GPU resources after `FramesInFlight` frames (D11) |
 | `src/platform/` | `ProcessActivity` (no App Nap during measured runs) and `CpuUsage` (process and thread CPU time) |
-| `src/server/` | `ServerClient` (tRPC GET), `AssetCache` (D33 disk cache, Range resume), `FieldAudit` and `ServerTimeline` (the loader report), `ServerSource` (the `--server` arguments) |
+| `src/server/` | `ServerSource` (the `--server` arguments), autosave and the FFmpeg probe passed to the [shared server loader](../timeline-player/README.md#server-loader) |
 | `src/preview/SourcePool` | Opens, pre-rolls and closes decoders (D18), draws placeholders for rejected media, keeps the loader report. Decoders are stopped and joined on a retire thread, never on the render thread |
 | `shaders/` | Textured quad with a per-layer matrix and opacity, RGBA or YUV planes, premultiplied "over" |
 | `qml/` | `TimelineEditor`, `preview/PreviewArea`, `Tracks/*`, named after the React components in `web/src/components/timeline/` |
 | `src/edit/keys/`, `src/edit/KeymapOverlay.h` | Key action handlers and the native preset changes |
 | `src/edit/sourceEdit/`, `src/edit/trim/`, `src/edit/framehold/`, `src/edit/audioroles/` | Source monitor and placement, trim mode, frame holds, audio roles |
-| `src/audio/loudness/` | BS.1770-4 meter, ducking algorithms and the lock-free live readout |
-| `src/audio/ShuttleStretch` | WSOLA stretcher for pitch-kept shuttle |
+| `src/audio/loudness/` | The app's loudness readout for the active timeline |
 | `src/assets/libraryscrub/` | Library hover scrub |
 | `src/color/`, `src/colorpanel/` | Scope maths and Match, and their controllers |
 | `src/markers/`, `src/takes/`, `src/transcript/`, `src/reference/`, `src/remix/`, `src/scenedetect/` | Markers, take switching, the Text panel, the Reference panel, Remix, Scene Edit Detection |

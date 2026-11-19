@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "InspectorSectionRegistry.h"
 #include "InspectorEdits.h"
 #include "edit/keyframes/ClipInspectorController.h"
@@ -48,6 +49,7 @@ bool textSignal(QObject* item, const char* signal, const QString& value) {
 struct Editor {
     TimelineModel model;
     PlaybackClock clock;
+    TestAssetCacheRoot cache;
     QQmlEngine engine;
     QQuickWindow window;
     std::unique_ptr<QObject> object;
@@ -55,6 +57,7 @@ struct Editor {
     Editor() {
         auto parsed = nt::parseTimelineJson(R"({"name":"Inspector sections","width":640,"height":360,"fps":30,"durationMs":7000,"tracks":[{"id":"v","type":"video","name":"Video"}],"clips":[{"id":"a","name":"First","trackId":"v","mediaType":"image","startMs":0,"durationMs":3000,"currentAssetId":"asset-a"},{"id":"b","name":"Second","trackId":"v","mediaType":"image","startMs":3000,"durationMs":3000,"currentAssetId":"asset-b"}]})");
         model.setTimeline(std::move(*parsed.timeline));
+        cache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         object.reset(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)},
             {"clock", QVariant::fromValue(&clock)}, {"width", 1280}, {"height", 800}}));

@@ -53,7 +53,8 @@ private slots:
         QVERIFY(parsed.timeline);
         TimelineModel model;
         model.setTimeline(*parsed.timeline);
-        GenerationController controller;
+        const nt::server::AssetCacheRoot cacheRoot(cache.path());
+        GenerationController controller(cacheRoot);
         controller.setTimeline(&model);
         controller.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path() + "/server/user/timelines"};
         controller.m_candidates = QJsonArray{QJsonObject{{"id", "take"}, {"clipId", "clip"}, {"assetId", assetId},

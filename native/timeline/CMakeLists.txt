@@ -29,10 +29,8 @@ pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavformat libavcodec libavut
 
 if(MSVC)
     set(NT_WARNINGS /W4 /permissive-)
-    set(NT_NO_WARNINGS /w)
 else()
     set(NT_WARNINGS -Wall -Wextra)
-    set(NT_NO_WARNINGS -w)
 endif()
 
 # Apple's libc++ keeps std::jthread and std::stop_token behind this flag.
@@ -41,10 +39,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     add_link_options(-fexperimental-library)
 endif()
 
-# Platforms (M6). The hardware decode path is chosen at compile time
-# (src/preview/hw/HwInterop.h): VideoToolbox on macOS, D3D11VA on Windows,
-# VAAPI with DMA-BUF import into Vulkan on Linux when libva and Vulkan are
-# found, else none (software decode only).
+# Platforms (M6). The hardware decode path and its libraries are chosen in
+# native/timeline-player and propagate through nodetool_timeline_decode.
 # NT_PORTABLE builds the code of the other platforms on macOS: no
 # VideoToolbox and the portable platform code, so it compiles and its tests
 # run on the development machine.
@@ -57,37 +53,29 @@ set(NT_PLATFORM_DEFINES "")
 if(NT_PORTABLE)
     list(APPEND NT_PLATFORM_DEFINES NT_HW_NONE NT_PORTABLE_PLATFORM)
 endif()
-set(NT_DECODE_PLATFORM_SOURCES src/preview/hw/HwInterop.h src/preview/hw/HwInterop.cpp)
-set(NT_DECODE_PLATFORM_LIBS "")
-if(NT_APPLE_CODE)
-    list(APPEND NT_DECODE_PLATFORM_SOURCES src/preview/hw/VideoToolboxInterop.h src/preview/hw/VideoToolboxInterop.mm)
-    set(NT_DECODE_PLATFORM_LIBS "-framework CoreVideo" "-framework IOSurface" "-framework Metal" "-framework Foundation")
-elseif(APPLE)
-    # NT_PORTABLE: QRhi's Metal backend still runs the compositor.
-    set(NT_DECODE_PLATFORM_LIBS "-framework Foundation")
-elseif(WIN32)
-    list(APPEND NT_DECODE_PLATFORM_SOURCES src/preview/hw/D3D11Interop.h src/preview/hw/D3D11Interop.cpp)
-    set(NT_DECODE_PLATFORM_LIBS d3d11 dxgi)
-elseif(UNIX)
-    find_package(Vulkan)
-    pkg_check_modules(LIBVA IMPORTED_TARGET libva libva-drm)
-    if(Vulkan_FOUND AND LIBVA_FOUND)
-        list(APPEND NT_DECODE_PLATFORM_SOURCES src/preview/hw/VulkanInterop.h src/preview/hw/VulkanInterop.cpp)
-        list(APPEND NT_PLATFORM_DEFINES NT_HAVE_VAAPI_VULKAN)
-        set(NT_DECODE_PLATFORM_LIBS Vulkan::Vulkan PkgConfig::LIBVA)
-    else()
-        message(STATUS "nodetool-timeline: no libva or Vulkan, software decode only")
-    endif()
+
+# The timeline player: the document model and scene evaluation
+# (nodetool_timeline_scene), decode, effects and render2d
+# (nodetool_timeline_decode), and the QML module NodeTool.TimelinePlayer
+# with the clock and the compositor (nodetool_timeline_player), which the
+# node editor also builds. render2d
+# falls back to the repository's fonts in a build tree.
+set(NT_PLAYER_FONTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/timeline/fonts")
+# The player's TimelinePlayer.qml uses NodeTool.UiPrimitives, so add it first.
+if(NOT TARGET nodetool_ui_primitives)
+    add_subdirectory(../ui_primitives ${CMAKE_CURRENT_BINARY_DIR}/ui_primitives)
 endif()
-if(APPLE)
-    set(NT_AUDIO_PLATFORM_LIBS "-framework CoreAudio" "-framework AudioToolbox" "-framework CoreFoundation")
-elseif(UNIX)
-    # miniaudio loads ALSA and PulseAudio at run time.
-    find_package(Threads REQUIRED)
-    set(NT_AUDIO_PLATFORM_LIBS ${CMAKE_DL_LIBS} Threads::Threads m)
-else()
-    set(NT_AUDIO_PLATFORM_LIBS "")
+if(NOT TARGET nodetool_timeline_scene)
+    add_subdirectory(../timeline-player ${CMAKE_CURRENT_BINARY_DIR}/timeline-player)
 endif()
+get_target_property(NT_PLAYER_IMPORT_PATH nodetool_timeline_player BINARY_DIR)
+get_target_property(NT_PLAYER_DECODE_DEFINITIONS nodetool_timeline_decode INTERFACE_COMPILE_DEFINITIONS)
+# The startup registrars of the standard preview hooks: each executable that
+# renders with those hooks compiles them in (timeline-player README).
+set(NT_EFFECTS_REGISTRAR $<TARGET_OBJECTS:nodetool_timeline_effects_registrar>)
+set(NT_RENDER2D_REGISTRAR $<TARGET_OBJECTS:nodetool_timeline_render2d_registrar>)
+set(NT_PLAYBACK_REGISTRAR $<TARGET_OBJECTS:nodetool_timeline_playback_registrar>)
+
 if(NT_APPLE_CODE)
     set(NT_APP_PLATFORM_SOURCES src/platform/ProcessActivity.h src/platform/ProcessActivity.mm
         src/platform/SchedulingDiagnostics.h src/platform/SchedulingDiagnostics.mm)
@@ -97,20 +85,8 @@ if(NT_APPLE_CODE)
 else()
     set(NT_APP_PLATFORM_SOURCES src/platform/ProcessActivity.h src/platform/SchedulingDiagnostics.h
         src/platform/PlatformStubs.cpp)
-    set(NT_APP_PLATFORM_LIBS ${NT_DECODE_PLATFORM_LIBS})
 endif()
 add_compile_definitions(${NT_PLATFORM_DEFINES})
-
-# Yoga 3.2.1, the flex layout of the web scene model (third_party/yoga).
-# No fused multiply-add: the web runs it as WebAssembly, which has none.
-file(GLOB_RECURSE NT_YOGA_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/yoga/yoga/*.cpp)
-add_library(yogacore STATIC ${NT_YOGA_SOURCES})
-target_include_directories(yogacore PUBLIC third_party/yoga)
-target_compile_features(yogacore PUBLIC cxx_std_20)
-target_compile_options(yogacore PRIVATE ${NT_NO_WARNINGS})
-if(NOT MSVC)
-    target_compile_options(yogacore PRIVATE -ffp-contract=off)
-endif()
 
 # A module contributes to a target group or registers a test callback. All
 # app registration sources compile directly into each consuming executable.
@@ -166,9 +142,6 @@ endforeach()
 
 include(src/app/QmlDiscovery.cmake)
 
-if(NOT TARGET nodetool_ui_primitives)
-    add_subdirectory(../ui_primitives ${CMAKE_CURRENT_BINARY_DIR}/ui_primitives)
-endif()
 if(NOT TARGET nodetool_model_picker)
     add_subdirectory(../model-picker ${CMAKE_CURRENT_BINARY_DIR}/model-picker)
 endif()
@@ -187,52 +160,27 @@ endif()
 if(NOT TARGET nodetool_script)
     add_subdirectory(../script ${CMAKE_CURRENT_BINARY_DIR}/script)
 endif()
-# The buffer kernels of native/kernels: the mixer's filters share the
-# Web Audio biquad design with the lib.audio nodes.
-if(NOT TARGET nodetool_kernels)
-    add_subdirectory(../kernels ${CMAKE_CURRENT_BINARY_DIR}/kernels)
-    # native/kernels requires CMake 3.28, whose policy CMP0155 scans C++20
-    # sources for modules. The kernels use none, and the scan needs
-    # clang-scan-deps, which the CI image does not install.
-    set_target_properties(nodetool_kernels PROPERTIES CXX_SCAN_FOR_MODULES OFF)
-endif()
-
-# Model and scene evaluation: no GUI, shared by the app and the tests.
+# The timeline's Core-only code, shared by the app, timeline-ops and the tests.
 add_library(timeline_core STATIC ${NT_core})
 target_include_directories(timeline_core PUBLIC src)
-target_link_libraries(timeline_core PUBLIC Qt6::Core nodetool_script_authoring PRIVATE yogacore)
+target_link_libraries(timeline_core PUBLIC nodetool_timeline_scene Qt6::Core nodetool_script_authoring)
 target_compile_options(timeline_core PRIVATE ${NT_WARNINGS})
-# The scene port computes what the web computes in JavaScript, one rounding
-# per operation: no fused multiply-add (Clang contracts by default).
-if(NOT MSVC)
-    set_source_files_properties(
-        src/scene/Animation.cpp src/scene/ClipScene.cpp src/scene/FlexLayout.cpp src/scene/SvgPath.cpp
-        src/scene/TextAnimation.cpp src/scene/TextBlock.cpp src/preview/SceneEval.cpp
-        TARGET_DIRECTORY timeline_core PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
-endif()
 
-# Decode and GPU sources: FFmpeg, QRhi textures, the source pool.
+# The timeline's decode code over nodetool_timeline_decode: export
+# capabilities and the shot scan.
 add_library(timeline_decode STATIC ${NT_decode})
-if(NT_APPLE_CODE)
-    set_source_files_properties(src/preview/hw/VideoToolboxInterop.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
-endif()
-target_link_libraries(timeline_decode PUBLIC timeline_core Qt6::Gui Qt6::GuiPrivate PkgConfig::FFMPEG
-    ${NT_DECODE_PLATFORM_LIBS})
+target_link_libraries(timeline_decode PUBLIC timeline_core nodetool_timeline_decode Qt6::Gui Qt6::GuiPrivate PkgConfig::FFMPEG)
 target_compile_options(timeline_decode PRIVATE ${NT_WARNINGS})
 
-# Audio (M3): miniaudio device, PCM rings, the mixer, fade curves.
+# The app's audio controller and editing features use the shared engine.
 add_library(timeline_audio STATIC ${NT_audio})
-target_include_directories(timeline_audio PRIVATE third_party)
-target_link_libraries(timeline_audio PUBLIC timeline_core PkgConfig::FFMPEG ${NT_AUDIO_PLATFORM_LIBS})
-target_link_libraries(timeline_audio PRIVATE nodetool_kernels)
+target_link_libraries(timeline_audio PUBLIC timeline_core nodetool_timeline_audio PRIVATE Qt6::Gui)
 target_compile_options(timeline_audio PRIVATE ${NT_WARNINGS})
 # Clang on arm64 contracts by default, which changes a remix's features and plan from every other platform's.
 if(NOT MSVC)
     set_source_files_properties(src/remix/RemixDsp.cpp
         TARGET_DIRECTORY timeline_audio PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
-# Third-party code: its own warnings are not ours to fix.
-set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_NO_WARNINGS}")
 
 qt_add_executable(nodetool-timeline src/main.cpp ${NT_app})
 target_compile_definitions(nodetool-timeline PRIVATE NT_APP_VERSION="${PROJECT_VERSION}")
@@ -263,16 +211,17 @@ qt_add_qml_module(timeline_qml
     URI NodeTool.Timeline
     NO_PLUGIN
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/Timeline
+    # PlaybackClock, PreviewCompositor and TimelineSource, the base of
+    # TimelineModel. The QML files import it.
+    DEPENDENCIES NodeTool.TimelinePlayer
+    # Where qmlcachegen and qmllint find that module's qmldir and types.
+    IMPORT_PATH ${NT_PLAYER_IMPORT_PATH}
     QML_FILES ${NT_qml_files}
     RESOURCES ${NT_qml_resources}
     SOURCES ${NT_qml})
-qt_add_shaders(timeline_qml timeline_compositor_shaders
-    PREFIX "/shaders"
-    BASE shaders
-    FILES shaders/composite.vert shaders/composite.frag shaders/monitorview.frag)
 list(REMOVE_DUPLICATES NT_qml_includes)
 target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
-target_link_libraries(timeline_qml PUBLIC timeline_core timeline_decode timeline_audio
+target_link_libraries(timeline_qml PUBLIC nodetool_timeline_player timeline_core timeline_decode timeline_audio
     nodetool_model_picker nodetool_media nodetool_files nodetool_entities nodetool_storyboard nodetool_chat nodetool_account_qt Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
 function(nt_add_timeline_qml target)
@@ -289,7 +238,7 @@ function(nt_add_timeline_qml target)
     set_property(TARGET ${target} PROPERTY SOURCES "${host_sources}")
     nodetool_use_ui_primitives(${target})
     target_link_libraries(${target} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,timeline_qml>"
-        nodetool_model_pickerplugin nodetool_mediaplugin nodetool_filesplugin nodetool_entitiesplugin nodetool_storyboardplugin nodetool_chatplugin)
+        nodetool_timeline_playerplugin nodetool_model_pickerplugin nodetool_mediaplugin nodetool_filesplugin nodetool_entitiesplugin nodetool_storyboardplugin nodetool_chatplugin)
 endfunction()
 nt_add_timeline_qml(nodetool-timeline)
 # Compile-only check of the Linux hardware path on macOS: with a
@@ -298,7 +247,8 @@ nt_add_timeline_qml(nodetool-timeline)
 # objects are not linked (scripts/check-portable.sh).
 set(NT_CHECK_VULKAN_HEADERS "" CACHE PATH "macOS: a Vulkan-Headers include folder, to compile the Linux hardware path")
 if(APPLE AND NT_CHECK_VULKAN_HEADERS)
-    add_library(nt_linux_hw_check OBJECT src/preview/hw/VulkanInterop.cpp src/preview/hw/HwWindow.cpp)
+    add_library(nt_linux_hw_check OBJECT ../timeline-player/src/preview/hw/VulkanInterop.cpp
+        ../timeline-player/src/preview/hw/HwWindow.cpp)
     target_compile_definitions(nt_linux_hw_check PRIVATE NT_HW_SYNTAX_CHECK_VAAPI)
     target_include_directories(nt_linux_hw_check PRIVATE ${NT_CHECK_VULKAN_HEADERS})
     target_link_libraries(nt_linux_hw_check PRIVATE timeline_core Qt6::Gui Qt6::GuiPrivate Qt6::Quick PkgConfig::FFMPEG)
@@ -310,7 +260,8 @@ target_link_libraries(nodetool-timeline PRIVATE timeline_audio)
 
 find_package(Qt6 6.12 REQUIRED COMPONENTS Network WebSockets)
 add_library(timeline_server STATIC ${NT_server})
-target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode nodetool_account_server_token Qt6::Network Qt6::WebSockets)
+target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode nodetool_account_server_token Qt6::Network Qt6::WebSockets
+    nodetool_timeline_player_server)
 target_compile_options(timeline_server PRIVATE ${NT_WARNINGS})
 # QML controllers include server headers, including their WebSocket types.
 target_link_libraries(timeline_qml PUBLIC timeline_server)
@@ -347,6 +298,17 @@ if(NT_FUZZ)
 endif()
 if(NT_SANITIZER_PLANTS)
     add_subdirectory(tools/sanitizers/plants)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME timeline_player_first_configure COMMAND ${CMAKE_COMMAND}
+        -S ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/player-first
+        -B ${CMAKE_CURRENT_BINARY_DIR}/player-first-configure
+        -G "${CMAKE_GENERATOR}"
+        "-DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}"
+        "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+        "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+        "-DQt6_DIR=${Qt6_DIR}"
+        "-DFETCHCONTENT_SOURCE_DIR_NLOHMANN_JSON=${nlohmann_json_SOURCE_DIR}")
 endif()
 nt_sanitizer_test_checks()
 # Visual Studio does not emit compile_commands.json.

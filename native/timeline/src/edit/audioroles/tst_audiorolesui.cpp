@@ -1,6 +1,7 @@
 // The Audio panel, the loudness meter and the gain dialog's Normalize modes, mounted in the real editor and driven
 // with pointer and key events. No sound: the editor runs without an audio engine.
 
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "AudioRoleJson.h"
 #include "AudioRoles.h"
 #include "AudioRolesTestSupport.h"
@@ -38,6 +39,7 @@ QQuickItem* findItem(QQuickItem* root, const QString& name) {
 struct Editor {
     TimelineModel model;
     PlaybackClock clock;
+    TestAssetCacheRoot cache;
     QQmlEngine engine;
     QQuickWindow window;
     std::unique_ptr<QObject> object;
@@ -46,6 +48,7 @@ struct Editor {
         auto parsed = nt::parseTimelineJson(source);
         Q_ASSERT(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
+        cache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         object.reset(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)},
             {"clock", QVariant::fromValue(&clock)}, {"width", 1280}, {"height", 900}}));

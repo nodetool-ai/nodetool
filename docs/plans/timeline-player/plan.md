@@ -11,18 +11,21 @@ run. The items that the study could not confirm are in
 
 ## Decisions before work starts
 
-- **D1. The node editor's software scene graph.**
-  [`native/node-editor/src/main.cpp`](../../../native/node-editor/src/main.cpp)
-  calls `QQuickWindow::setGraphicsApi(QSGRendererInterface::Software)` at line
-  24. Check first whether the node editor can use the RHI backend. If it can,
-  S5 shrinks to the controller and the QML item, and the offscreen compositor
-  becomes optional. No reason for the software backend was found in the code.
-- **D2. Two FFmpeg copies in the node editor.** Qt Multimedia's FFmpeg backend
-  ships its own FFmpeg, and the player links the timeline's FFmpeg. The
-  recommendation is to move `native/media-player` onto the player's FFmpeg
-  decoder, so that the app keeps one FFmpeg. Decide this before S7.
+- **D1. The node editor's software scene graph.** Answered: the current
+  node editor cannot use RHI. A spike found that its masked `QQuickWidget`
+  overlays draw over cards and panels on the GPU, that a `QQuickWidget` cannot
+  take the device configuration hardware decoding needs, and that a failed
+  device leaves a black window. The user chose to port the node editor canvas
+  to Qt Quick on RHI, in the
+  [Quick canvas plan](../node-editor-quick-canvas/plan.md). After its step Q10
+  the node editor hosts `PreviewCompositor` directly, so S5 has no offscreen
+  compositor.
+- **D2. Two FFmpeg copies in the node editor.** Answered: the user chose to
+  move `native/media` onto the player's FFmpeg decoder, so that the node editor
+  keeps one FFmpeg. That move lands after Q10 of the Quick canvas plan.
 
-Recommended start: the D1 check, then S0 and S1.
+The order of this plan's steps relative to the Quick canvas plan is in
+[that plan](../node-editor-quick-canvas/plan.md#the-timeline-player-plan).
 
 ## Findings
 
@@ -262,7 +265,9 @@ Medium: about 35 files and 4.5k lines.
 
 - Move the engine, mixer, sources, `ShuttleStretch`, effects, hooks, loudness
   and miniaudio.
-- `AudioCli` and `automation/` stay in the timeline app.
+- `AudioCli`, automation editing and mixer meter taps stay in the timeline app.
+  Mixer and picture automation, time-remap voice expansion and dynamic
+  reframe are registered by the shared player.
 - Gate: `tst_fadecurves`, `tst_mixer`, `tst_audioclock`, `tst_audioengine`,
   `tst_shuttlestretch`, `tst_shuttleaudio`, `tst_appaudio`,
   `tst_liveaudioedit`, and the ThreadSanitizer preset.
@@ -286,20 +291,19 @@ Medium: 4 classes moved, about 10 test targets and 19 QML files changed.
 
 ### S5. Host-independent player
 
-Large: about 1.3k new lines, and a refactor of the 1.8k-line compositor file.
-D1 can make this step much smaller.
+Medium: about 600 new lines. D1 removed the offscreen compositor from this
+step.
 
-- Extract `CompositorCore` from `PreviewCompositorRenderer`. It takes a
-  `QRhi*`, a command buffer and a render target. The `QQuickRhiItem` renderer
-  becomes a thin adapter.
-- Add `OffscreenCompositor`, `TimelineFrameItem`, `StaticTimelineSource`,
-  `TimelinePlayerController` and `TimelinePlayer.qml`.
+- Add `StaticTimelineSource`, `TimelinePlayerController` and
+  `TimelinePlayer.qml`. `TimelinePlayer.qml` always uses `PreviewCompositor`.
+- When the window's graphics API is Software, the controller reports
+  `status: unavailable` and draws nothing.
 - Gates:
   - A new `tst_timelineplayer` (offscreen and software, a fake loader,
-    synthetic sources): play, pause, seek, frame number, and teardown during
-    playback.
-  - A new `tst_offscreencompositor` (render label): PSNR against the direct
-    path.
+    synthetic sources): play, pause, seek, frame number, the unavailable
+    state, and teardown during playback.
+  - A render-label `tst_timelineplayer_render` that shows a frame through
+    `TimelinePlayer.qml`.
   - All render-label tests unchanged. ASan and TSan.
 
 ### S6. Loader library
@@ -310,13 +314,19 @@ Medium: about 2k lines moved and 200 new lines. This step can merge before S5.
   `ServerTimeline`. Add the asynchronous `ServerTimelineLoader`.
 - `timeline_server` keeps `ServerSource` and `AutosaveController` and links the
   new library.
+- `openServerTimeline` can run on a `QThread` with an event dispatcher. Its
+  network objects live on the calling thread. Cache locks serialize writes,
+  and a mutex protects leases shared across threads. The timeline app passes
+  its FFmpeg probe to preserve media diagnostics.
 - Gate: `tst_serverclient`, `tst_assetcache`, `tst_serveridentity`,
   `tst_autosave`, `tst_colorspaceversion`, and a new
   `tst_servertimelineloader`.
 
 ### S7. Node editor integration
 
-Medium: about 500 new lines, and packaging. Decide D2 first.
+Medium: about 500 new lines, and packaging. It lands after Q10 of the
+[Quick canvas plan](../node-editor-quick-canvas/plan.md), with the D2 media
+move.
 
 - Link the module.
 - Add `EditorWindow::openTimelineDocument(id)`, modelled on
@@ -332,7 +342,8 @@ Medium: about 500 new lines, and packaging. Decide D2 first.
 
 ## Risks
 
-- **GPU context in the node editor (highest risk).**
+- **GPU context in the node editor.** D1 removed this risk: after Q10 the
+  node editor's one window has the `QRhi`. The notes below stay for reference.
   - A standalone `QRhi` is easy on macOS (Metal). Windows needs a D3D11 device
     with video support. Linux needs a `QVulkanInstance` or an offscreen GL
     surface made on the GUI thread.
@@ -381,14 +392,11 @@ Medium: about 500 new lines, and packaging. Decide D2 first.
 - Why the node editor uses the software backend (see D1).
 - How `scripts/test-affected-native.mjs` finds projects. Only the CI wrapper
   was read.
-- Whether `openServerTimeline` is safe on a thread other than the GUI thread.
-  `ServerClient` owns its own `QNetworkAccessManager`, which suggests that it
-  is.
 
 ## Files to read first
 
 - `native/timeline/src/preview/PreviewCompositor.cpp`
 - `native/timeline/CMakeLists.txt`
 - `native/ui_primitives/tools/check_dependencies.py`
-- `native/timeline/src/server/ServerTimeline.h`
+- `native/timeline-player/src/server/ServerTimeline.h`
 - `native/node-editor/src/ui/EditorTabs.cpp`

@@ -23,6 +23,7 @@ on:
   pull_request:
     paths:
       - "native/timeline/**"
+      - "native/timeline-player/**"
       - "native/ui_primitives/**"
       - "native/chat/**"
       - "native/model-picker/**"
@@ -38,6 +39,7 @@ on:
     branches: [main, feat/native-timeline]
     paths:
       - "native/timeline/**"
+      - "native/timeline-player/**"
       - "native/ui_primitives/**"
       - "native/chat/**"
       - "native/model-picker/**"

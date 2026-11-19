@@ -28,6 +28,9 @@ nice -n 10 cmake --build build-m6-portable -j "$jobs"
 cmake -S . -B build-m6 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$qt" \
     -DNT_CHECK_VULKAN_HEADERS="$PWD/$headers" > /dev/null
 nice -n 10 cmake --build build-m6 -j "$jobs" --target nt_linux_hw_check
-nm -C build-m6/CMakeFiles/nt_linux_hw_check.dir/src/preview/hw/VulkanInterop.cpp.o | grep -q "VulkanInterop::wrap" ||
+# VulkanInterop.cpp is in native/timeline-player, so CMake names its object
+# after the full source path.
+object=$(find build-m6/CMakeFiles/nt_linux_hw_check.dir -name VulkanInterop.cpp.o | head -n 1)
+[[ -n "$object" ]] && nm -C "$object" | grep -q "VulkanInterop::wrap" ||
     { echo "error: the Linux hardware path was not compiled" >&2; exit 1; }
 echo "portable build tested; Linux hardware path compiled"

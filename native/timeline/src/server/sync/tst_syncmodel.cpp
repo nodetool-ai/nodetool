@@ -1,4 +1,6 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "app/PanelRegistry.h"
+#include "server/ServerTimelineProbe.h"
 #include "app/EditRegistry.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -73,7 +75,7 @@ private slots:
         QVERIFY(parsed.timeline);
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
+        AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
             [&] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
@@ -90,7 +92,7 @@ private slots:
         QDirIterator files(cache.path(), {"*.mp4"}, QDir::Files, QDirIterator::Subdirectories);
         QVERIFY(files.hasNext());
         const QString path = files.next();
-        AssetCache::evictRoot(cache.path(), 1, {});
+        save.assetCache().evict(1, {});
         QVERIFY(QFile::exists(path));
         QVERIFY(model.replaceClips(base.value("clips").toArray()));
         QTRY_COMPARE_WITH_TIMEOUT(save.baseUpdatedAt(), QString("u1"), 5000);
@@ -120,7 +122,7 @@ private slots:
         auto parsed = nt::parseTimelineJson(QJsonDocument(initial).toJson());
         QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
-        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
+        AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
             [&] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
@@ -198,7 +200,7 @@ private slots:
         QVERIFY(parsed.timeline);
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
+        AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
             [&] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
@@ -249,13 +251,15 @@ private slots:
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
         });
         http.setPost([](const QByteArray&, const QByteArray&) { return QByteArray(R"({"result":{"data":{"updatedAt":"u2"}}})"); });
-        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(), [&] { return model.timeline().raw; }, "u0");
+        AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, model.undoStack(), [&] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
         save.setQuitFallbackDirs({});
         PlaybackClock clock;
         clock.setFps(12);
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         engine.rootContext()->setContextProperty("autosave", &save);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         const auto object = std::unique_ptr<QObject>(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)},
@@ -393,14 +397,15 @@ private slots:
                 : server;
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", data}}}}).toJson();
         });
-        auto fetched = openServerTimeline({http.base(), "seq", cache.path(), {}, true});
+        const AssetCacheRoot root(cache.path());
+        auto fetched = openProbedServerTimeline({http.base(), "seq", root, {}, true, {}, {}});
         QVERIFY2(fetched.timeline, qPrintable(fetched.error));
         const auto replacement = fetched.timeline->clips[0];
         QVERIFY(!replacement.mediaPath.empty());
         QVERIFY(!replacement.audioPath.empty());
         QVERIFY(QFile::exists(QString::fromStdString(replacement.mediaPath)));
         fetched.mediaLeases.clear();
-        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
+        AutosaveController save(root, {http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
             [&] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
@@ -411,7 +416,7 @@ private slots:
         QTRY_COMPARE(save.baseUpdatedAt(), QString("u1"));
         QCOMPARE(save.externalConflicts().size(), 1);
         QCOMPARE(model.timeline().clips[0].mediaPath, loaded.timeline->clips[0].mediaPath);
-        AssetCache::evictRoot(cache.path(), 1, {});
+        save.assetCache().evict(1, {});
         QVERIFY(QFile::exists(QString::fromStdString(replacement.mediaPath)));
         QVERIFY(save.acceptExternalConflict("a", &model));
         QCOMPARE(model.timeline().clips[0].raw["currentAssetId"], clip["currentAssetId"]);

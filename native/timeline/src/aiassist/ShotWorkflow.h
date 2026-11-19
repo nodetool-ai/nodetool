@@ -1,4 +1,5 @@
 #pragma once
+#include "assets/TimelineMediaConsumer.h"
 #include "ai/GenerationTransport.h"
 #include "assets/AssetMedia.h"
 #include "model/TimelineModel.h"
@@ -9,8 +10,9 @@
 #include <functional>
 #include "server/ServerClient.h"
 #include <QtQmlIntegration/qqmlintegration.h>
-class ShotWorkflow : public QObject {
+class ShotWorkflow : public nt::assets::TimelineMediaConsumer {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
@@ -24,6 +26,7 @@ public:
     using MediaResolver = std::function<nt::Clip(nt::server::ServerClient&, const QString&, const QJsonObject&, const QJsonObject&, nt::assets::MediaProtection&, quint64)>;
     void setMediaResolver(MediaResolver resolver) { m_mediaResolver = std::move(resolver); }
     explicit ShotWorkflow(QObject* parent = nullptr);
+    explicit ShotWorkflow(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~ShotWorkflow() override;
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* timeline);
@@ -49,8 +52,6 @@ private:
     friend class ShotWorkflowTest;
     Call m_call;
     MediaResolver m_mediaResolver;
-    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
-    std::shared_ptr<nt::assets::MediaProtection> m_protection;
     void receive(const QJsonObject& frame);
     void persist(const QJsonObject& board, const QJsonObject& localEdit = {});
     void fail(const QString& error);

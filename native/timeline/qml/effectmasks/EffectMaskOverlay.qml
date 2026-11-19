@@ -10,6 +10,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import NodeTool.UiPrimitives as Ui
 import "../../src/edit/clipeffects" as ClipFx
 import "../../src/edit/clipeffects/EffectMaskEdits.js" as MaskEdits

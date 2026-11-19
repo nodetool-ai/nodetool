@@ -43,7 +43,12 @@ bool listsByDirectory(const QString& project) { return !project.isEmpty() && pro
 constexpr qint64 ProjectCheckIntervalMs = 60000;
 }
 
-AssetBrowser::AssetBrowser(QObject* parent) : QObject(parent), m_target(nt::server::serverSaveTarget()) {
+AssetBrowser::AssetBrowser(const nt::server::AssetCacheRoot& cache, QObject* parent) : AssetBrowser(parent) {
+    setCacheRoot(cache);
+}
+
+AssetBrowser::AssetBrowser(QObject* parent) : TimelineMediaConsumer(parent),
+    m_target(nt::server::serverSaveTarget()) {
     m_poll.setInterval(5000);
     connect(&m_poll, &QTimer::timeout, this, &AssetBrowser::pollProxies);
 }
@@ -141,7 +146,7 @@ void AssetBrowser::resetDocumentState() {
         if (m_hasQueried) { refresh(); }
     }
     emit libraryScopeChanged();
-    m_mediaProtection->reset(m_timeline ? m_timeline->resolvedMediaPaths() : QSet<QString>{});
+    mediaProtection()->reset(m_timeline ? m_timeline->resolvedMediaPaths() : QSet<QString>{});
 }
 
 void AssetBrowser::scheduleProtectDocumentMedia() {
@@ -156,7 +161,7 @@ void AssetBrowser::scheduleProtectDocumentMedia() {
 
 void AssetBrowser::protectDocumentMedia() {
     if (!m_timeline) { return; }
-    m_mediaProtection->replaceCurrent(m_timeline->resolvedMediaPaths());
+    mediaProtection()->replaceCurrent(m_timeline->resolvedMediaPaths());
 }
 
 void AssetBrowser::reconcileLinkedAudio() {
@@ -685,15 +690,14 @@ void AssetBrowser::queueMedia(const QJsonObject& asset, const QJsonObject& clip,
     const auto type = clip.value("mediaType").toString();
     if (!m_target || (type != "video" && type != "image" && type != "audio") ||
         clip.value("currentAssetId").toString() != asset.value("id").toString()) { return; }
-    // ServerSource places backups at <cacheRoot>/<serverKey>/<userKey>/timelines.
-    const auto cacheRoot = QDir::cleanPath(QDir(m_target->backupDir).absoluteFilePath("../../.."));
+
     protectDocumentMedia();
-    const auto mediaGeneration = m_mediaProtection->generation();
+    const auto mediaGeneration = mediaProtection()->generation();
     const QPointer<AssetBrowser> self(this);
-    request([asset, clip, cacheRoot, protection = m_mediaProtection, mediaGeneration](nt::server::ServerClient& client) {
+    request([asset, clip, protection = mediaProtection(), mediaGeneration](nt::server::ServerClient& client) {
         Result result;
         if (protection->generation() == mediaGeneration && !QThread::currentThread()->isInterruptionRequested()) {
-            result.media = nt::assets::resolveDroppedMedia(client, cacheRoot, asset, clip, *protection, mediaGeneration);
+            result.media = nt::assets::resolveDroppedMedia(client, asset, clip, *protection, mediaGeneration);
         }
         return result;
     }, [self, model, generation](const Result& result) {

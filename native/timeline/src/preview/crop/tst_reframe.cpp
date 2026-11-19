@@ -1,4 +1,5 @@
-#include "Reframe.h"
+#include "../../../tests/TestAssetCacheRoot.h"
+#include "ReframeEditing.h"
 #include "ReframeController.h"
 #include "preview/SceneEval.h"
 #include "app/PanelRegistry.h"
@@ -168,7 +169,9 @@ class TestReframe : public QObject {
         model.setTimeline(*parsed.timeline);
         PlaybackClock clock;
         clock.seek(300);
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQmlComponent component(&engine);
         component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
         std::unique_ptr<QObject> object(component.createWithInitialProperties(
@@ -225,7 +228,9 @@ class TestReframe : public QObject {
         QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
         PlaybackClock clock;
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQmlComponent component(&engine);
         component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));

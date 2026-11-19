@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "assets/AssetBrowser.h"
 #include "aiassist/CandidatePreview.h"
 #include <QBuffer>
@@ -47,9 +48,38 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 
 class TestAssetBrowser : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
 private slots:
+    void qmlBrowserProtectsMediaInHostRegistry() {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const nt::server::AssetCacheRoot cache(directory.path());
+        const QString path = directory.filePath("leased.mp4");
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        QCOMPARE(file.write("media"), 5);
+        file.close();
+
+        qmlRegisterType<AssetBrowser>("CacheInjectionTest", 1, 0, "AssetBrowser");
+        QQmlEngine engine;
+        nt::server::TimelineAssetCacheContext::install(engine, cache);
+        QQmlComponent component(&engine);
+        component.setData("import CacheInjectionTest 1.0; AssetBrowser {}", QUrl());
+        auto browser = std::unique_ptr<QObject>(component.create());
+        QVERIFY2(browser, qPrintable(component.errorString()));
+        auto* controller = qobject_cast<AssetBrowser*>(browser.get());
+        QVERIFY(controller);
+        controller->mediaProtection()->reset({path});
+        cache.evict(1, {});
+        QVERIFY(QFileInfo::exists(path));
+
+        browser.reset();
+        cache.evict(1, {});
+        QVERIFY(!QFileInfo::exists(path));
+    }
+
     void pollResultsDiffTheAssetModel() {
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         auto* model = browser.assetModel();
         const auto row = [](const char* id, const char* name) {
             return QJsonObject{{"id", id}, {"name", name}, {"content_type", "video/mp4"}, {"proxy_status", "running"}};
@@ -104,7 +134,7 @@ private slots:
     }
     void destructionCancelsTricklingQuery() {
         TrickleHttpServer http;
-        auto browser = std::make_unique<AssetBrowser>();
+        auto browser = std::make_unique<AssetBrowser>(m_testCache.root());
         browser->m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
         browser->refresh();
         QTRY_VERIFY(http.requests() > 0 && http.chunks() >= 2);
@@ -159,11 +189,12 @@ private slots:
         nt::server::SaveTarget target;
         target.server = http.base();
         target.backupDir = dir.filePath("server/user/timelines");
+        const nt::server::AssetCacheRoot root(dir.path());
         nt::motion::MatteResolver resolver(model,
-            nt::server::MediaSource{target.server, target.token, {}, target.expectedInstance, dir.path()});
+            nt::server::MediaSource{target.server, target.token, {}, target.expectedInstance}, root);
         std::vector<std::unique_ptr<AssetBrowser>> browsers;
         for (int i = 0; i < browserCount; ++i) {
-            auto browser = std::make_unique<AssetBrowser>();
+            auto browser = std::make_unique<AssetBrowser>(root);
             browser->m_target = target;
             browser->setTimeline(&model);
             browsers.push_back(std::move(browser));
@@ -218,11 +249,11 @@ private slots:
         gestures.setClock(&clock);
         nt::targeting::TrackTargeting::current().setTrackTargeted("v", true);
         nt::targeting::TrackTargeting::current().setTrackTargeted("a", true);
-        AssetBrowser browser;
+        AssetBrowser browser{nt::server::AssetCacheRoot(cache.path())};
         browser.setTimeline(&model);
         browser.m_target = nt::server::SaveTarget{http.base(), {}, "seq",
             cache.filePath("server/user/timelines"), {}};
-        SourceViewerState source;
+        SourceViewerState source(m_testCache.root());
         source.setMediaBrowser(&browser);
         source.setAsset({{"id", "0123456789abcdef0123456789abcdef"}, {"name", "Fresh"},
             {"content_type", media + (media == "image" ? "/png" : media == "audio" ? "/wav" : "/mp4")},
@@ -274,10 +305,11 @@ private slots:
         second.timeline->clips.front().audioPath = QDir::current().relativeFilePath(paths[2]).toStdString();
         TimelineModel model;
         model.setTimeline(std::move(*first.timeline));
-        AssetBrowser browser;
+        const nt::server::AssetCacheRoot root(dir.path());
+        AssetBrowser browser(root);
         browser.setTimeline(&model);
         bool switched = false;
-        browser.m_mediaProtection->evict(dir.path(), 1024 * 1024, paths[3], [&] {
+        root.evict(1024 * 1024, paths[3], [&] {
             model.setTimeline(std::move(*second.timeline));
             switched = true;
         });
@@ -317,9 +349,9 @@ private slots:
         QLockFile held(dir.filePath("locked/.lock"));
         held.setStaleLockTime(0);
         QVERIFY(held.tryLock(0));
-        nt::assets::MediaProtection protection;
+        nt::assets::MediaProtection protection{nt::server::AssetCacheRoot(dir.path())};
         protection.protect(QDir::current().relativeFilePath(paths[0]));
-        protection.evict(dir.path(), budget, paths[4]);
+        protection.cache().evict(budget, paths[4]);
         QCOMPARE(QFileInfo::exists(paths[2]), !evicted);
         for (const auto& path : paths) {
             if (path != paths[2]) { QVERIFY2(QFileInfo::exists(path), qPrintable(path)); }
@@ -336,15 +368,16 @@ private slots:
             QCOMPARE(file.write(QByteArray(700000, 'b')), 700000);
             paths.append(path);
         }
-        nt::assets::MediaProtection document;
+        const nt::server::AssetCacheRoot cache(dir.path());
+        nt::assets::MediaProtection document(cache);
         document.reset({paths[0]});
-        auto exportLeases = nt::assets::MediaProtection::leasePaths({paths[1]});
-        document.evict(dir.path(), 700000, paths[2]);
+        auto exportLeases = nt::assets::MediaProtection::leasePaths(cache, {paths[1]});
+        cache.evict(700000, paths[2]);
         QVERIFY(QFileInfo::exists(paths[0]));
         QVERIFY(QFileInfo::exists(paths[1]));
         document.reset({});
         exportLeases.clear();
-        document.evict(dir.path(), 700000, paths[2]);
+        cache.evict(700000, paths[2]);
         QVERIFY(!QFileInfo::exists(paths[0]));
         QVERIFY(!QFileInfo::exists(paths[1]));
         QVERIFY(QFileInfo::exists(paths[2]));
@@ -357,11 +390,11 @@ private slots:
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
         nt::server::ServerClient client(http.base());
-        nt::assets::MediaProtection protection;
+        nt::assets::MediaProtection protection{nt::server::AssetCacheRoot(dir.path())};
         const QJsonObject asset{{"id", "video"}, {"get_url", "/original.mp4"},
             {"size", 700000}, {"content_type", "video/mp4"},
             {"proxy_status", "ready"}, {"proxy_url", "/proxy.mp4?v=proxy1"}};
-        const auto media = nt::assets::resolveDroppedMedia(client, dir.path(), asset,
+        const auto media = nt::assets::resolveDroppedMedia(client, asset,
             {{"id", "clip"}, {"mediaType", "video"}}, protection, protection.generation());
         const QString preview = QString::fromStdString(media.mediaPath);
         const QString original = QString::fromStdString(media.originalMediaPath);
@@ -375,7 +408,7 @@ private slots:
             "tracks":[{"id":"v","type":"video","index":0},{"id":"a","type":"audio","index":1}],"clips":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel model; model.setTimeline(std::move(*parsed.timeline));
-        AssetBrowser browser; browser.setTimeline(&model); browser.m_target = nt::server::SaveTarget{};
+        AssetBrowser browser(m_testCache.root()); browser.setTimeline(&model); browser.m_target = nt::server::SaveTarget{};
         QThread occupiedWorker; browser.m_thread = &occupiedWorker;
         const auto clearWorker = qScopeGuard([&browser] { browser.m_thread.clear(); });
         nt::sourceedit::Placement p;
@@ -409,7 +442,7 @@ private slots:
         QVERIFY(parsed.timeline);
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.setTimeline(&model);
         browser.m_target = nt::server::SaveTarget{};
         QThread occupiedWorker;
@@ -465,7 +498,7 @@ private slots:
         QVERIFY(parsed.timeline);
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.setTimeline(&model);
         browser.m_target = nt::server::SaveTarget{};
         QThread occupiedWorker;
@@ -510,13 +543,13 @@ private slots:
             const auto audio = model.clipsJson().last().toObject();
             QCOMPARE(audio.value("status").toString(), outcome == "failed" ? QString("failed") : QString("generated"));
         }
-        const auto protection = browser.m_mediaProtection;
+        const auto protection = browser.mediaProtection();
         const auto protectionGeneration = protection->generation();
         auto replacement = nt::parseTimelineJson(model.documentJson());
         QVERIFY(replacement.timeline);
         model.setTimeline(std::move(*replacement.timeline));
         QVERIFY(browser.m_settlements.isEmpty());
-        QCOMPARE(browser.m_mediaProtection, protection);
+        QCOMPARE(browser.mediaProtection(), protection);
         QVERIFY(protection->generation() != protectionGeneration);
     }
     void linkedSilentSettlementPreservesLaterTrack() {
@@ -525,7 +558,7 @@ private slots:
         QVERIFY(parsed.timeline);
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.setTimeline(&model);
         browser.m_target = nt::server::SaveTarget{};
         QThread occupied;
@@ -596,7 +629,7 @@ private slots:
         second.timeline->clips.front().audioPath = paths[2].toStdString();
         TimelineModel model;
         model.setTimeline(std::move(*first.timeline));
-        AssetBrowser browser;
+        AssetBrowser browser{nt::server::AssetCacheRoot(dir.path())};
         browser.setTimeline(&model);
         nt::server::SaveTarget target;
         target.server = http.base();
@@ -697,7 +730,7 @@ private slots:
         }
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        AssetBrowser browser;
+        AssetBrowser browser{nt::server::AssetCacheRoot(dir.path())};
         browser.setTimeline(&model);
         nt::server::SaveTarget target;
         target.server = http.base();
@@ -748,7 +781,7 @@ private slots:
         TimelineModel model;
         model.setTimeline(*parsed.timeline);
         const auto before = model.timeline().raw;
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.setTimeline(&model);
         browser.m_target = nt::server::SaveTarget{};
         QThread occupiedWorker;
@@ -822,7 +855,7 @@ private slots:
         original.setTimeline(std::move(*first.timeline));
         replacement.setTimeline(std::move(*second.timeline));
         QThread occupiedWorker; // Hold uploads in the queue without starting a server or thread.
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.m_target = nt::server::SaveTarget{};
         browser.m_thread = &occupiedWorker;
         browser.setTimeline(&original);
@@ -844,9 +877,10 @@ private slots:
         browser.m_thread.clear();
     }
     void foldersOpenWithKeyboardAndMouse() {
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         QVERIFY2(browser.property("folderId").isValid(), "AssetBrowser must expose current folderId");
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Media/qml/AssetItem.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> object(component.createWithInitialProperties({
@@ -877,7 +911,7 @@ private slots:
         QCOMPARE(model.undoStack()->count(), 0);
     }
     void noServer() {
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         QVERIFY(!browser.configured());
         QVERIFY(!browser.busy());
         QVERIFY(browser.assets().isEmpty());
@@ -892,6 +926,7 @@ private slots:
         model.setTimeline(std::move(*parsed.timeline));
         PlaybackClock clock;
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> editor(component.createWithInitialProperties({
@@ -986,6 +1021,7 @@ private slots:
         const auto undoCount = model.undoStack()->count();
         PlaybackClock clock;
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> editor(component.createWithInitialProperties({
@@ -1075,7 +1111,7 @@ private slots:
             const QJsonObject asset{{"id", "known"}, {"name", "Take"}, {"parent_id", "folder-1"}, {"content_type", "video/mp4"}};
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", asset}}}}).toJson();
         });
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
         QSignalSpy located(&browser, &AssetBrowser::assetLocated);
         browser.locateAsset("known");
@@ -1086,7 +1122,7 @@ private slots:
         browser.locateAsset("gone");
         QTRY_VERIFY(!browser.busy());
         QCOMPARE(located.size(), 1);
-        AssetBrowser noServer;
+        AssetBrowser noServer(m_testCache.root());
         QSignalSpy nothing(&noServer, &AssetBrowser::assetLocated);
         noServer.locateAsset("known");
         QVERIFY(!noServer.busy());
@@ -1103,10 +1139,10 @@ private slots:
         QTemporaryDir cache;
         QUndoStack undo;
         const QJsonObject raw{{"id", "seq"}};
-        nt::server::AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+        nt::server::AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
         browser.setAutosave(&save);
         const auto searches = [&] { return http.countRequests("GET", "/trpc/assets.search"); };
@@ -1160,7 +1196,7 @@ private slots:
         TimelineModel model;
         model.setTimeline(*nt::parseTimeline(QJsonObject{{"projectId", "p1"}, {"fps", 30}, {"width", 640},
             {"height", 360}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}}).timeline);
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
         browser.setTimeline(&model);
         browser.refresh();
@@ -1190,7 +1226,7 @@ private slots:
             if (path == "/trpc/assets.relinkExternal") { posts.append(QJsonDocument::fromJson(body).object()); }
             return answer;
         });
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
         browser.refresh();
         QTRY_COMPARE(browser.assetModel()->rowCount(), 1);
@@ -1232,7 +1268,7 @@ private slots:
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", asset}}}}).toJson();
         });
         TimelineModel timeline;
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.setTimeline(&timeline);
         browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
         const auto before = timeline.documentJson();
@@ -1276,12 +1312,13 @@ private slots:
             return QByteArray(R"({"result":{"data":{}}})");
         });
         TimelineModel timeline;
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.setTimeline(&timeline);
         browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
         browser.applyAssets(QJsonArray{asset, folder});
         const auto before = timeline.documentJson();
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Media/qml/AssetGrid.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> object(component.createWithInitialProperties({
@@ -1324,6 +1361,7 @@ private slots:
     // A small resize keeps the thumbnail decode size, and a pooled tile drops its fade.
     void tileThumbnailKeepsCacheBucket() {
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine);
         component.setData(R"(import QtQuick
 import NodeTool.Timeline
@@ -1365,6 +1403,7 @@ Item {
     void tileDragCarriesSingleAsset() {
         QFETCH(bool, folder);
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine);
         component.setData(R"(import QtQuick
 import NodeTool.Timeline
@@ -1518,6 +1557,7 @@ Item {
         const auto before = cut.documentJson();
         const auto generation = cut.documentGeneration();
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine, QUrl::fromLocalFile(QFINDTESTDATA("../../qml/assets/AssetExplorer.qml")));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> object(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&cut)}, {"width", 320}, {"height", 640}}));
@@ -1654,6 +1694,7 @@ Item {
         folder.refresh();
         QTRY_VERIFY(folder.loaded());
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent hostComponent(&engine);
         hostComponent.setData("import QtQuick\nItem { property var timeline: null; property var clock: ({});"
             " property var projectFolder: null; property var saver: null }", QUrl());
@@ -1736,6 +1777,7 @@ Item {
         folder.setTarget({http.base(), {}, "seq", {}, {}});
         folder.setTimeline(&model);
         QQmlEngine engine;
+        m_testCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/DocumentFileBanner.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> object(component.createWithInitialProperties({{"width", 480},
@@ -1768,6 +1810,7 @@ Item {
     }
     void libraryOffersEntityActions() {
         QQmlEngine engine;
+        m_testCache.install(engine);
         // A stand-in for the editor, which is what the Library menu hands an image to.
         QQmlComponent hostComponent(&engine);
         hostComponent.setData("import QtQuick\nItem { property var timeline: null; property var clock: ({}); property var calls: []\n"
@@ -1859,7 +1902,8 @@ int main(int argc, char** argv) {
     if (listFolder) {
         const auto target = nt::server::serverSaveTarget();
         if (!target || target->server.port() == 7777) { return 2; }
-        AssetBrowser browser;
+        const nt::server::AssetCacheRoot cache(nt::server::timelineCacheDirectory());
+        AssetBrowser browser(cache);
         // An optional project, carried by the open timeline as in the Library.
         TimelineModel model;
         if (const auto project = app.arguments().value(3); !project.isEmpty()) {
@@ -1894,7 +1938,8 @@ int main(int argc, char** argv) {
         if (!parsed.timeline) { return 2; }
         TimelineModel model;
         model.setTimeline(std::move(*parsed.timeline));
-        AssetBrowser browser;
+        const nt::server::AssetCacheRoot cache(nt::server::timelineCacheDirectory());
+        AssetBrowser browser(cache);
         browser.setTimeline(&model);
         const auto before = model.documentJson();
         const auto scenario = args.value(3);

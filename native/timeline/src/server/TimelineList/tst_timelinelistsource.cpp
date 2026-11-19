@@ -61,7 +61,7 @@ private slots:
         QVERIFY(file.open(QIODevice::WriteOnly));
         file.write(DOCUMENT);
         file.close();
-        const auto loaded = nt::server::loadTimelineSource(path);
+        const auto loaded = nt::server::loadTimelineSource(path, nt::server::AssetCacheRoot(m_cache.path()));
         QVERIFY2(loaded.timeline.has_value(), qPrintable(loaded.error));
         QCOMPARE(loaded.timeline->name, std::string("Label cut"));
         QVERIFY(!nt::server::serverSaveTarget());
@@ -83,7 +83,7 @@ private slots:
         QVERIFY(server.base().port() > 0);
         QVERIFY(server.base().port() != 7777);
         const auto source = suffix.startsWith('#') ? server.base().toString() + suffix : suffix;
-        const auto loaded = nt::server::loadTimelineSource(source);
+        const auto loaded = nt::server::loadTimelineSource(source, nt::server::AssetCacheRoot(m_cache.path()));
         QVERIFY(!loaded.timeline);
         QVERIFY2(loaded.error.startsWith("cannot open "), qPrintable(loaded.error));
         QVERIFY(server.requests().empty());
@@ -95,7 +95,7 @@ private slots:
         QVERIFY(server.base().port() > 0);
         QVERIFY(server.base().port() != 7777);
         serveTimeline(server);
-        const auto loaded = nt::server::loadTimelineSource(server.base().toString() + "#timeline=label-cut");
+        const auto loaded = nt::server::loadTimelineSource(server.base().toString() + "#timeline=label-cut", nt::server::AssetCacheRoot(m_cache.path()));
         const auto target = nt::server::serverSaveTarget();
         QVERIFY(target.has_value());
         QCOMPARE(target->server, server.base());
@@ -106,13 +106,12 @@ private slots:
         QVERIFY(target->backupDir.endsWith("/timelines"));
         QVERIFY2(loaded.timeline.has_value(), qPrintable(loaded.error));
         // Media of a server timeline is read from the same server, with its
-        // token and instance, into the cache the load used.
+        // token and instance. Its files go to the injected cache root.
         const auto media = nt::server::mediaSource();
         QVERIFY(media.has_value());
         QCOMPARE(media->server, server.base());
         QCOMPARE(media->token, QString("label-token"));
         QCOMPARE(media->expectedInstance, QString("label-instance"));
-        QCOMPARE(media->cacheRoot, m_cache.path());
         QVERIFY(!media->authorizer);
     }
 
@@ -121,7 +120,7 @@ private slots:
         QVERIFY(server.base().port() > 0);
         QVERIFY(server.base().port() != 7777);
         serveTimeline(server);
-        const auto loaded = nt::server::loadTimelineSource(server.base().toString() + "/path#timeline=label-cut");
+        const auto loaded = nt::server::loadTimelineSource(server.base().toString() + "/path#timeline=label-cut", nt::server::AssetCacheRoot(m_cache.path()));
         QVERIFY2(loaded.timeline.has_value(), qPrintable(loaded.error));
         QCOMPARE(loaded.timeline->id, std::string("label-cut"));
         const auto target = nt::server::serverSaveTarget();
@@ -159,13 +158,13 @@ private slots:
         QCOMPARE(nt::server::takeServerArgs(argc, argv.data()), 0);
         QCOMPARE(argc, 2);
         const auto commandLineLabel = QString::fromUtf8(argv[1]);
-        const auto explicitOpen = nt::server::loadTimelineSource(QString::fromUtf8(argv[1]));
+        const auto explicitOpen = nt::server::loadTimelineSource(QString::fromUtf8(argv[1]), nt::server::AssetCacheRoot(QString::fromUtf8(cache)));
         QVERIFY2(explicitOpen.timeline.has_value(), qPrintable(explicitOpen.error));
         const auto explicitTarget = nt::server::serverSaveTarget();
         QVERIFY(explicitTarget.has_value());
         QCOMPARE(explicitTarget->token, QString("explicit-token"));
         QVERIFY(explicitTarget->backupDir.startsWith(QString::fromUtf8(cache) + '/'));
-        const auto loaded = nt::server::loadTimelineSource(selected.base().toString() + "#timeline=chosen");
+        const auto loaded = nt::server::loadTimelineSource(selected.base().toString() + "#timeline=chosen", nt::server::AssetCacheRoot(m_cache.path()));
         QVERIFY2(loaded.timeline.has_value(), qPrintable(loaded.error));
         QCOMPARE(QString::fromUtf8(argv[1]), commandLineLabel);
         const auto target = nt::server::serverSaveTarget();
@@ -199,7 +198,7 @@ private slots:
         QCOMPARE(cloud->origin, QUrl("https://cloud.example"));
         QCOMPARE(cloud->timelineId, QString("t1"));
         QCOMPARE(cloud->role, QString("editor"));
-        QVERIFY(!cloud->cacheDir.isEmpty());
+        QVERIFY(!nt::server::timelineCacheDirectory().isEmpty());
         QVERIFY(!nt::server::serverSaveTarget().has_value());
 
         // Takes and mattes of a cloud timeline are read from the cloud
@@ -213,7 +212,6 @@ private slots:
         QVERIFY(media.has_value());
         QCOMPARE(media->server, QUrl("https://cloud.example"));
         QCOMPARE(media->token, QString("account-token"));
-        QCOMPARE(media->cacheRoot, cloud->cacheDir);
         QVERIFY(media->expectedInstance.isEmpty());
         QVERIFY(media->authorizer);
         QCOMPARE(media->authorizer().token, QString("fresh-token"));

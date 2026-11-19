@@ -314,20 +314,18 @@ needs Qt Core and Network.
   the receive replaced a document, and answers the one refusal of each
   document kept local with the cloud revision the sheet showed. QML
   creates it.
-- `ServerToken.h` is the one place the apps attach their own server's
-  token, local or self-hosted, to a request. `attachServerToken()` sets
+- `ServerToken.h` provides the token helper for the account and its hosts.
+  `attachServerToken()` sets
   `Authorization: Bearer` only when the token is not empty and the request
   goes to that server's origin, where a socket URL (`ws`, `wss`) counts as
   its HTTP origin. Qt copies the headers to every redirect it follows, so a
   request with the token follows redirects inside its origin only, unless
   it reads redirects itself. A request to any other host, such as a provider's media
-  URL, carries no token. The node editor and the timeline send their
-  server requests through it. Native chat builds without the account
-  service, so `ChatClient` keeps the same rule in a helper of its own. A
-  cloud document's requests go through `CloudClient`, and the local draft
-  store's client, which talks to the local server alone, takes the token in
-  its headers. The header needs only Qt Network, so the timeline's server
-  client links its interface target `nodetool_account_server_token` alone.
+  URL, carries no token. Native chat and the shared timeline player build
+  without the account service and enforce the same origin rule in their
+  clients. A cloud document's requests go through `CloudClient`, and the
+  local draft store's client takes the token in its headers for the local
+  server. The header is available through `nodetool_account_server_token`.
 
 `qt/qml/` holds the QML both apps compile: `AccountControl.qml`, with the
 server menu and the Sign in to another server dialog, `CloudDocumentsPanel.qml`,

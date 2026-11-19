@@ -1,4 +1,6 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "TestHttpServer.h"
+#include "server/ServerTimelineProbe.h"
 #include "server/AutosaveController.h"
 #include "server/ServerClient.h"
 #include "app/CliModes.h"
@@ -29,6 +31,7 @@
 
 class TestTimelineListUi : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     std::unique_ptr<QObject> make(QQmlEngine& engine, const QString& name, const QVariantMap& props) {
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/" + name + ".qml"));
         if (!component.isReady()) {
@@ -152,11 +155,12 @@ private slots:
         });
         QTemporaryDir cache;
         QVERIFY(cache.isValid());
-        const auto loaded = nt::server::openServerTimeline({server.base(), "settings-test", cache.path(), {}, true});
+        const nt::server::AssetCacheRoot root(cache.path());
+        const auto loaded = nt::server::openProbedServerTimeline({server.base(), "settings-test", root, {}, true, {}, {}});
         QVERIFY2(loaded.timeline, qPrintable(loaded.error));
         TimelineModel model;
         model.setTimeline(*loaded.timeline);
-        nt::server::AutosaveController save({server.base(), {}, "settings-test", cache.path(), {}},
+        nt::server::AutosaveController save(root, {server.base(), {}, "settings-test", cache.path(), {}},
             model.undoStack(), [&model] { return model.timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
@@ -192,7 +196,7 @@ private slots:
         QTemporaryDir cache;
         QUndoStack undo;
         const QJsonObject raw{{"id", "seq"}};
-        nt::server::AutosaveController save({server.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+        nt::server::AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {server.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);
         nt::server::TimelineDocumentController actions;
@@ -234,6 +238,7 @@ private slots:
         load(model);
         PlaybackClock clock;
         QQmlEngine engine;
+        m_testCache.install(engine);
         auto editor = make(engine, "TimelineEditor", {{"timeline", QVariant::fromValue(&model)},
             {"clock", QVariant::fromValue(&clock)}});
         QVERIFY2(editor, "TimelineEditor must load");
@@ -266,6 +271,7 @@ private slots:
         QSignalSpy playingChanged(&clock, &PlaybackClock::playingChanged);
         QVERIFY(playingChanged.isValid());
         QQmlEngine engine;
+        m_testCache.install(engine);
         auto editor = make(engine, "TimelineEditor", {{"timeline", QVariant::fromValue(&model)},
             {"clock", QVariant::fromValue(&clock)}});
         QVERIFY2(editor, "TimelineEditor must load");
@@ -307,6 +313,7 @@ private slots:
         PlaybackClock clock;
         clock.setDurationMs(6000);
         QQmlEngine engine;
+        m_testCache.install(engine);
         auto editor = make(engine, "TimelineEditor", {{"timeline", QVariant::fromValue(&model)},
             {"clock", QVariant::fromValue(&clock)}});
         QVERIFY(editor);

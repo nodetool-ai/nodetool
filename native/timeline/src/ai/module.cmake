@@ -35,18 +35,17 @@ function(nt_ai_tests)
         src/ai/GenerationController.h src/ai/GenerationController.cpp
         src/aiassist/AssistantSession.h src/aiassist/AssistantSession.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
-        src/model/TrackListModel.h src/model/TrackListModel.cpp
-        src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp)
-    target_link_libraries(tst_ai_controller PRIVATE timeline_core timeline_decode timeline_server timeline_audio
+        src/model/TrackListModel.h src/model/TrackListModel.cpp)
+    target_link_libraries(tst_ai_controller PRIVATE nodetool_timeline_player timeline_core timeline_decode timeline_server timeline_audio
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::WebSockets Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     add_test(NAME tst_ai_controller COMMAND tst_ai_controller)
-    qt_add_executable(tst_ai_ui src/ai/tst_generationui.cpp src/preview/hw/HwWindow.cpp)
+    qt_add_executable(tst_ai_ui src/ai/tst_generationui.cpp)
     target_link_libraries(tst_ai_ui PRIVATE timeline_core timeline_decode timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_ai_ui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_ai_ui_qml/NodeTool/Timeline)
     add_test(NAME tst_ai_ui COMMAND tst_ai_ui)
     set_tests_properties(tst_ai_ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-    qt_add_executable(tst_ai_device src/ai/tst_generationdevice.cpp src/preview/hw/HwWindow.cpp)
+    qt_add_executable(tst_ai_device src/ai/tst_generationdevice.cpp)
     set_target_properties(tst_ai_device PROPERTIES EXCLUDE_FROM_ALL TRUE)
     target_link_libraries(tst_ai_device PRIVATE timeline_core timeline_decode timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})

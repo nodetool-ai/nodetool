@@ -1,3 +1,4 @@
+#include "server/ServerSource.h"
 #include "remix/clip/RemixController.h"
 
 #include "model/TimelineJson.h"
@@ -19,8 +20,12 @@ QString newId() { return QUuid::createUuid().toString(QUuid::Id128); }
 double clampPercent(double v) { return std::isfinite(v) ? std::clamp(v, 0.0, 100.0) : 50.0; }
 }  // namespace
 
+RemixController::RemixController(const nt::server::AssetCacheRoot& cache, QObject* parent) : RemixController(parent) {
+    setCacheRoot(cache);
+}
+
 RemixController::RemixController(QObject* parent)
-    : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>()),
+    : TimelineMediaConsumer(parent),
       m_previewModel(new TimelineModel(this)), m_previewClock(new PlaybackClock(this)) {
     qRegisterMetaType<RemixRelay::Task>("RemixRelay::Task");
     // Workers hand their results to the GUI thread through a relay they own a share of. The relay outlives this
@@ -251,7 +256,7 @@ void RemixController::startAnalysis(std::string path) {
     const auto assetId = m_window.assetId;
     const auto start = m_window.startMs, duration = m_window.durationMs;
     const auto backend = this->backend();
-    const auto protection = m_protection;
+    const auto protection = mediaProtection();
     protection->reset(protectedPaths());
     const auto mediaGeneration = protection->generation();
     const auto relay = m_relay;
@@ -354,7 +359,7 @@ void RemixController::startBake(bool thenListen, bool thenApply) {
     const nt::remix::FileWindow window{m_sourcePath.toStdString(), m_window.startMs, m_window.durationMs};
     const auto plan = *m_plan;
     const auto backend = thenApply ? this->backend() : nullptr;
-    const auto protection = m_protection;
+    const auto protection = mediaProtection();
     protection->reset(protectedPaths());
     const auto mediaGeneration = protection->generation();
     const auto generation = m_generation;
@@ -547,7 +552,7 @@ QString RemixController::revert(const QString& clipId) {
     const QPointer<RemixController> self(this);
     const auto serial = ++m_serial;
     const auto generation = m_timeline->documentGeneration();
-    const auto protection = m_protection;
+    const auto protection = mediaProtection();
     protection->reset(protectedPaths());
     const auto mediaGeneration = protection->generation();
     const auto relay = m_relay;

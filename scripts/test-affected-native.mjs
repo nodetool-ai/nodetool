@@ -21,7 +21,10 @@
  * editor build native/jobs. A project's `sharedDirs` count as part of it for
  * selection too: the timeline build compiles native/ui_primitives,
  * native/chat, native/model-picker, native/storyboard and native/files and
- * runs their tests, and the node editor build compiles native/files.
+ * runs their tests, and the node editor build compiles native/files. A
+ * directory with `partOf` is never a project of its own, even when it declares
+ * tests: it is built only inside the named project, which lists it in
+ * `sharedDirs` (native/timeline-player inside the timeline build).
  *
  * The dependency model of each test is read from the build directory:
  *
@@ -118,10 +121,6 @@ export const PROJECTS = {
     ],
     bundleInputs: GUEST_INPUTS
   },
-  // The mixer's filters link native/kernels (native/timeline/CMakeLists.txt).
-  timeline: {
-    dependsOn: ["kernels"]
-  },
   // The editor's local-run tests load the graph runner's guest bundle from the
   // path in NODETOOL_GUEST_BUNDLE (native/node-editor/cmake/GraphRunner.cmake).
   // On Windows the editor's launcher and check script build in `build-windows`
@@ -141,12 +140,30 @@ export const PROJECTS = {
     // The editor compiles native/files through add_subdirectory and runs its tests.
     sharedDirs: ["native/files"]
   },
-  // The timeline build compiles these through add_subdirectory and registers
-  // their tests, and its tests load their QML. A file under them that maps to
-  // no test input selects every timeline test, as a file under
-  // native/timeline/ does.
+  // The mixer's filters link native/kernels (native/timeline/CMakeLists.txt).
+  // The timeline build compiles the shared directories through
+  // add_subdirectory and registers their tests, and its tests load their QML.
+  // A file under them that maps to no test input selects every timeline test,
+  // as a file under native/timeline/ does.
   timeline: {
-    sharedDirs: ["native/ui_primitives", "native/chat", "native/model-picker", "native/storyboard", "native/files"]
+    dependsOn: ["kernels"],
+    sharedDirs: [
+      "native/timeline-player",
+      "native/ui_primitives",
+      "native/chat",
+      "native/model-picker",
+      "native/storyboard",
+      "native/files"
+    ]
+  },
+  // The realtime tests include headers from native/timeline-player/src and
+  // compile its miniaudio.cpp (native/realtime/CMakeLists.txt).
+  realtime: {
+    sharedDirs: ["native/timeline-player"]
+  },
+  // Built and tested only inside the timeline build.
+  "timeline-player": {
+    partOf: "timeline"
   }
 };
 
@@ -159,7 +176,8 @@ export function projectConfig(name) {
     prepare: config.prepare ?? [],
     bundleInputs: config.bundleInputs ?? [],
     dependsOn: config.dependsOn ?? [],
-    sharedDirs: config.sharedDirs ?? []
+    sharedDirs: config.sharedDirs ?? [],
+    partOf: config.partOf ?? null
   };
 }
 
@@ -179,7 +197,7 @@ export function discoverProjects(root = repoRoot) {
   if (!existsSync(nativeDir)) return [];
   const projects = [];
   for (const entry of readdirSync(nativeDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
+    if (!entry.isDirectory() || projectConfig(entry.name).partOf) continue;
     const dir = join(nativeDir, entry.name);
     if (!existsSync(join(dir, "CMakeLists.txt"))) continue;
     if (cmakeFilesUnder(dir).some((file) => /\b(add_test|enable_testing|include\s*\(\s*CTest\s*\))/.test(readFileSync(file, "utf8")))) {

@@ -1,4 +1,5 @@
 #include "server/AutosaveController.h"
+#include "server/ServerTimelineProbe.h"
 #include "server/AssetCache.h"
 #include "server/sync/DocumentApplier.h"
 
@@ -68,9 +69,10 @@ QJsonObject documentForSave(const QJsonObject& raw) {
     return doc;
 }
 
-AutosaveController::AutosaveController(SaveTarget target, QUndoStack* undo, DocumentFn document,
-                                       QString baseUpdatedAt, QObject* parent)
+AutosaveController::AutosaveController(AssetCacheRoot cache, SaveTarget target, QUndoStack* undo,
+                                       DocumentFn document, QString baseUpdatedAt, QObject* parent)
     : QObject(parent),
+      m_cache(std::move(cache)),
       m_target(std::move(target)),
       m_undo(undo),
       m_document(std::move(document)),
@@ -283,12 +285,8 @@ void AutosaveController::fetchExternal(bool recovery) {
     m_retry.stop();
     m_externalState = recovery ? QStringLiteral("recovering") : QStringLiteral("fetching");
     m_fetchElapsed.start();
-    // serverSaveTarget: backupDir is cacheRoot/serverKey/userKey/timelines.
-    const QString cacheRoot = QFileInfo(m_target.backupDir).fileName() == u"timelines"
-        ? QDir::cleanPath(m_target.backupDir + QStringLiteral("/../../.."))
-        : m_target.backupDir; // standalone library callers can supply a plain backup folder
-    const ServerOpenOptions options{m_target.server, m_target.timelineId, cacheRoot, m_target.token,
-        true, m_target.expectedInstance};
+    const ServerOpenOptions options{m_target.server, m_target.timelineId, m_cache, m_target.token,
+        true, m_target.expectedInstance, {}};
     // native-rules #1: std::shared_ptr result shared with the worker, no justification comment
     auto result = std::make_shared<ServerOpenResult>();
     const QPointer<AutosaveController> guard(this);
@@ -296,7 +294,7 @@ void AutosaveController::fetchExternal(bool recovery) {
     auto* worker = QThread::create([options, result] {
         const auto finished = qScopeGuard([] { --liveWorkers; });
         // openServerTimeline owns its ServerClient on this worker thread.
-        *result = openServerTimeline(options);
+        *result = openProbedServerTimeline(options);
     });
     connect(worker, &QThread::finished, this, [guard, result, recovery] {
         if (!guard) {
@@ -729,10 +727,8 @@ bool AutosaveController::restoreEarlierCopy(QObject* timeline) {
     }
     if (!needsMedia) return apply(nullptr, {});
 
-    const QString cacheRoot = QFileInfo(m_target.backupDir).fileName() == u"timelines"
-        ? QDir::cleanPath(m_target.backupDir + QStringLiteral("/../../..")) : m_target.backupDir;
-    const ServerOpenOptions options{m_target.server, m_target.timelineId, cacheRoot,
-        m_target.token, true, m_target.expectedInstance};
+    const ServerOpenOptions options{m_target.server, m_target.timelineId, m_cache,
+        m_target.token, true, m_target.expectedInstance, {}};
     const QByteArray startingHash = currentHash();
     const QPointer<AutosaveController> guard(this);
     const QPointer<QObject> target(timeline);
@@ -741,7 +737,7 @@ bool AutosaveController::restoreEarlierCopy(QObject* timeline) {
     m_restoringEarlier = true;
     m_earlierCopyError.clear();
     auto* worker = QThread::create([options, raw, result] {
-        *result = resolveTimelineDocumentMedia(options, raw);
+        *result = resolveProbedTimelineDocumentMedia(options, raw);
     });
     connect(worker, &QThread::finished, this, [guard, target, result, raw, startingHash] {
         if (!guard) return;

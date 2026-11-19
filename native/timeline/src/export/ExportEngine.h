@@ -7,6 +7,8 @@
 #include <functional>
 #include <stop_token>
 
+namespace nt::server { class AssetCacheRoot; }
+
 namespace nt::exporting {
 // After a cancel request the export process exits within this time.
 inline constexpr int kCancelStopBudgetMs = 3000;
@@ -57,6 +59,7 @@ using CancelProbe = std::function<bool()>;
 bool mp4Available();
 // Runs on the owning Qt GUI/QRhi thread. The editor controller launches a
 // separate process so neither mixing nor encoder work blocks the editor.
-Result exportTimeline(const Timeline& timeline, const Options& options, std::stop_token stop = {},
+Result exportTimeline(const Timeline& timeline, const Options& options, const server::AssetCacheRoot& cache,
+                      std::stop_token stop = {},
                       ProgressCallback progress = {}, CancelProbe cancel = {});
 }

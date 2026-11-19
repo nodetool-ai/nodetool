@@ -152,8 +152,8 @@ Start-Process ./build-windows/Release/nodetool-timeline.exe -Wait -WindowStyle H
 3. **A3:** Settle stack ordering, reset defaults and imported-effect editing. Add vignette shape/color-quality enhancements as explicit, compatible changes.
 
 [VideoPreview]: https://github.com/nodetool-ai/nodetool/blob/3df7fc227bba42a325f15b2668d62d87a20ba0b5/native/timeline/qml/wiring/w/VideoPreview.qml
-[shader]: ../shaders/effects/clip.frag
-[EffectPlan]: ../src/preview/effects/EffectPlan.cpp
+[shader]: ../../timeline-player/shaders/effects/clip.frag
+[EffectPlan]: ../../timeline-player/src/preview/effects/EffectPlan.cpp
 [ClipCatalog]: ../src/edit/clipeffects/ClipEffectsCatalog.js
 [EffectCard]: ../qml/wiring/w/EffectCard.qml
 [ToneCurve]: ../src/edit/clipeffects/ToneCurveEditor.qml

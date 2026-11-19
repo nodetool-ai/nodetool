@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "app/EditRegistry.h"
 #include "wiring/WiringFixture.h"
 #include "wiring/SourceDurations.h"
@@ -62,7 +63,9 @@ private slots:
     void init() { QTest::failOnWarning(QRegularExpression(".*Binding loop.*")); }
     void panelSelection() {
         TimelineModel model; load(model, fixture()); PlaybackClock clock;
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> editor(component.createWithInitialProperties({
@@ -91,7 +94,9 @@ private slots:
     void clickingTheWedgeSelectsTheTransition() {
         TimelineModel model; load(model, fixture()); PlaybackClock clock;
         QVERIFY(model.applyEdit("setClipTransition", {{"clipId", "cut-b"}, {"mode", "wipe"}}));
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> editor(component.createWithInitialProperties({

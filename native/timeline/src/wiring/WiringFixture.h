@@ -1,4 +1,5 @@
 #pragma once
+#include "../../tests/TestAssetCacheRoot.h"
 #include "edit/ClipGestureController.h"
 #include "DockLayoutStore.h"
 #include "edit/targeting/TrackTargeting.h"
@@ -12,6 +13,7 @@
 // Production editor setup and pointer helpers shared with the step 1 fixture.
 class WiringFixture : public QObject {
 protected:
+    TestAssetCacheRoot m_testCache;
     TimelineModel model;
     PlaybackClock clock;
     std::unique_ptr<QQuickView> view;
@@ -77,6 +79,7 @@ protected:
         clock.setDurationMs(10000);
         clock.seek(1500);
         view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
         view->setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});
         view->loadFromModule("NodeTool.Timeline", "TimelineEditor");
         QVERIFY2(view->status() == QQuickView::Ready, qPrintable(view->errors().isEmpty() ? QString() : view->errors().first().toString()));

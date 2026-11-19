@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "edit/ClipGestureController.h"
 #include "ai/GenerationController.h"
 #include "../../tests/TestHttpServer.h"
@@ -37,7 +38,9 @@ private slots:
         TimelineModel timeline;
         timeline.setTimeline(std::move(*parsed.timeline));
         PlaybackClock clock;
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> editor(component.createWithInitialProperties({
@@ -146,7 +149,9 @@ private slots:
         TimelineModel timeline;
         timeline.setTimeline(std::move(*parsed.timeline));
         PlaybackClock clock;
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> editor(component.createWithInitialProperties({
@@ -186,7 +191,9 @@ private slots:
         gestures.setTimeline(&timeline);
         gestures.setClock(&clock);
 
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/ai/GenerateToolbar.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         const QVariantMap props{{"timeline", QVariant::fromValue(&timeline)}, {"gestures", QVariant::fromValue(&gestures)}};

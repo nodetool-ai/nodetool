@@ -218,7 +218,7 @@ private slots:
         const auto model = timelineIn("p1");
         QTemporaryDir cache;
         QUndoStack undo;
-        nt::server::AutosaveController save({server.http.base(), {}, "seq", cache.path(), {}}, &undo,
+        nt::server::AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {server.http.base(), {}, "seq", cache.path(), {}}, &undo,
                                             [&] { return model->timeline().raw; }, "u0");
         save.setExternalSync(false);
         save.setAutosave(false);

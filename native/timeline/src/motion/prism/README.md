@@ -17,7 +17,7 @@ node native/timeline/src/motion/prism/oracle.mjs /path/to/immutable/nodetool-tim
 ```
 
 The shared decoder change is integrated in
-[FfmpegSource.cpp](../../preview/FfmpegSource.cpp).
+[FfmpegSource.cpp](../../../../timeline-player/src/preview/FfmpegSource.cpp).
 
 The placement regression uses the same full-chroma fixture with keying and edge
 highlighting over purple. It covers fractional transforms, a grouped keyed
@@ -30,7 +30,7 @@ node native/timeline/src/motion/prism/placement-oracle.mjs /path/to/immutable/no
 ```
 
 The private leaf-placement bridge is integrated in
-[PreviewCompositor.cpp](../../preview/PreviewCompositor.cpp).
+[PreviewCompositor.cpp](../../../../timeline-player/src/preview/PreviewCompositor.cpp).
 Leaf pixels reach the web placement shader as straight RGBA8. Native stages
 retain their premultiplied contract and convert each sampled texel before
 placement interpolation. Container surfaces keep premultiplied placement.
@@ -41,8 +41,8 @@ pipeline. The regression includes radius-free crops and quarter-pixel shadow
 offsets with partial shadow opacity.
 
 Crop domain and placement corrections are integrated in the
-[effect shader](../../../shaders/effects/clip.frag) and
-[composite shader](../../../shaders/composite.frag).
+[effect shader](../../../../timeline-player/shaders/effects/clip.frag) and
+[composite shader](../../../../timeline-player/shaders/composite.frag).
 
 The decoder-dependent native test and pure reference contracts are registered
 by the owned module.

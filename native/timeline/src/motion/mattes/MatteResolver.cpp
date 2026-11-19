@@ -5,8 +5,9 @@
 #include <QFileInfo>
 
 namespace nt::motion {
-MatteResolver::MatteResolver(TimelineModel& model, nt::server::MediaSource source)
-    : QObject(&model), m_model(&model), m_source(std::move(source)) {
+MatteResolver::MatteResolver(TimelineModel& model, nt::server::MediaSource source, nt::server::AssetCacheRoot cache)
+    : QObject(&model), m_model(&model), m_source(std::move(source)),
+      m_protection(std::make_shared<nt::assets::MediaProtection>(std::move(cache))) {
     connect(&model, &TimelineModel::documentReplaced, this, [this] { reset(); });
     connect(&model, &TimelineModel::clipsChanged, this, [this] { scan(false); });
     reset();
@@ -62,7 +63,7 @@ void MatteResolver::next() {
         if (protection->generation() != protectionGeneration || QThread::currentThread()->isInterruptionRequested()) return;
         const auto asset = client->getAsset(lookupId);
         if (!asset.ok()) return;
-        *result = nt::assets::resolveDroppedMedia(*client, source.cacheRoot, asset.data.toObject(),
+        *result = nt::assets::resolveDroppedMedia(*client, asset.data.toObject(),
             QJsonObject{{"mediaType", "image"}}, *protection, protectionGeneration);
     });
     worker->setParent(this);

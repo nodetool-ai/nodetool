@@ -1,6 +1,7 @@
 #include "export/FrameCapture.h"
 #include "assets/AssetMedia.h"
 #include "export/ExportController.h"
+#include "server/ServerSource.h"
 #include <QCoreApplication>
 #include <QDir>
 #include <QEvent>
@@ -21,7 +22,11 @@ struct FrameCapture::Snapshot {
     bool ready = false;
 };
 
-FrameCapture::FrameCapture(QObject* parent) : QObject(parent) {
+FrameCapture::FrameCapture(const nt::server::AssetCacheRoot& cache, QObject* parent) : FrameCapture(parent) {
+    setCacheRoot(cache);
+}
+
+FrameCapture::FrameCapture(QObject* parent) : TimelineCacheConsumer(parent) {
     m_pool.setMaxThreadCount(1);
     m_idle.setSingleShot(true);
     m_idle.setInterval(60000);
@@ -156,7 +161,7 @@ std::shared_ptr<FrameCapture::Snapshot> FrameCapture::prepareSnapshot(const QJso
         m_pool.start([value] { QFile::remove(value->path); delete value; });
     });
     snapshot->path = m_directory.filePath(QStringLiteral("sequence-%1.json").arg(++m_snapshotSerial));
-    snapshot->leases = nt::assets::MediaProtection::leasePaths(m_timeline->resolvedMediaPaths());
+    snapshot->leases = nt::assets::MediaProtection::leasePaths(cacheRoot(), m_timeline->resolvedMediaPaths());
     // Only the media this document draws has to be there.
     QSet<QString> drawn;
     for (const auto& clip : raw.value("clips").toArray()) drawn.insert(clip.toObject().value("id").toString());

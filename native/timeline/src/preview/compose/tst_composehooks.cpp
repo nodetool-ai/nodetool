@@ -1,5 +1,6 @@
 #include "preview/compose/TestHandlers.h"
 #include "preview/layers/SceneHooks.h"
+#include "model/TimelineModel.h"
 #include "preview/layers/TestStill.h"
 #include "model/TimelineJson.h"
 #include "export/OffscreenFrames.h"

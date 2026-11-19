@@ -1,4 +1,5 @@
 #pragma once
+#include "assets/TimelineMediaConsumer.h"
 #include "ai/GenerationTransport.h"
 #include "server/AutosaveController.h"
 #include "model/TimelineModel.h"
@@ -18,8 +19,9 @@ namespace nt::audio { class AppAudio; }
 namespace nt::assets { class MediaProtection; }
 namespace nt::ai { class WorkflowGeneration; }
 
-class GenerationController : public QObject {
+class GenerationController : public nt::assets::TimelineMediaConsumer {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(bool ready READ ready NOTIFY changed)
@@ -39,6 +41,7 @@ class GenerationController : public QObject {
     Q_PROPERTY(QString previewAudioMode READ previewAudioMode WRITE setPreviewAudioMode)
 public:
     explicit GenerationController(QObject* parent = nullptr);
+    explicit GenerationController(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~GenerationController() override;
     TimelineModel* timeline() const;
     TimelineModel* previewTimeline() const { return m_previewTimeline; }
@@ -148,7 +151,5 @@ private:
     PlaybackClock* m_previewClock;
     QString m_previewAudioMode = QStringLiteral("none");
     std::unique_ptr<nt::audio::AppAudio> m_previewAudio;
-    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
-    std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection;
     nt::ai::WorkflowGeneration* m_workflow;
 };

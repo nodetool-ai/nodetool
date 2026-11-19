@@ -9,7 +9,7 @@ void MediaProtection::reset(QSet<QString> paths) {
     std::map<QString, Lease> replacement;
     for (const auto& path : paths) {
         if (!path.isEmpty()) {
-            auto held = nt::server::AssetCache::lease(path);
+            auto held = m_cache.lease(path);
             const QString key = *held;
             replacement.try_emplace(key, std::move(held));
         }
@@ -24,7 +24,7 @@ void MediaProtection::replaceCurrent(QSet<QString> paths) {
     std::map<QString, Lease> replacement;
     for (const auto& path : paths) {
         if (!path.isEmpty()) {
-            auto held = nt::server::AssetCache::lease(path);
+            auto held = m_cache.lease(path);
             const QString key = *held;
             replacement.try_emplace(key, std::move(held));
         }
@@ -45,35 +45,31 @@ void MediaProtection::protect(const QString& path, std::optional<quint64> genera
     if (path.isEmpty()) { return; }
     const std::lock_guard lock(m_mutex);
     if (generation && *generation != m_generation) { return; }
-    auto held = nt::server::AssetCache::lease(path);
+    auto held = m_cache.lease(path);
     const QString key = *held;
     if (!m_paths.contains(key) && !m_fetched.contains(key)) {
         m_fetched.emplace(key, std::move(held));
     }
 }
 
-std::vector<MediaProtection::Lease> MediaProtection::leasePaths(const QSet<QString>& paths) {
+std::vector<MediaProtection::Lease> MediaProtection::leasePaths(
+    const nt::server::AssetCacheRoot& cache, const QSet<QString>& paths) {
     std::vector<Lease> leases;
     leases.reserve(paths.size());
     for (const auto& path : paths) {
-        if (!path.isEmpty()) leases.push_back(nt::server::AssetCache::lease(path));
+        if (!path.isEmpty()) leases.push_back(cache.lease(path));
     }
     return leases;
 }
 
-void MediaProtection::evict(const QString& root, qint64 budget, const QString& justFetched,
-                            const std::function<void()>& afterScan) {
-    nt::server::AssetCache::evictRoot(root, budget, justFetched, afterScan);
-}
-
-nt::server::FetchResult resolveOriginalMedia(nt::server::ServerClient& client, const QString& cacheRoot,
+nt::server::FetchResult resolveOriginalMedia(nt::server::ServerClient& client,
                                               const QString& assetId, MediaProtection& protection) {
     const auto fresh = client.getAsset(assetId);
     if (!fresh.ok()) { return {{}, fresh.describe()}; }
     QString error;
     const auto original = nt::server::originalFile(client, fresh.data.toObject(), &error);
     if (!original) { return {{}, error}; }
-    nt::server::AssetCache cache(cacheRoot, client.serverKey(), client.userKey(),
+    nt::server::AssetCache cache(protection.cache(), client.serverKey(), client.userKey(),
         [&client](QNetworkRequest& request) { client.decorate(request); }, [&client] { return client.cancelled(); });
     const auto budget = cache.budgetBytes();
     cache.setBudgetBytes(0);
@@ -83,11 +79,11 @@ nt::server::FetchResult resolveOriginalMedia(nt::server::ServerClient& client, c
         QString why;
         return nt::server::originalFile(client, rechecked.data.toObject(), &why);
     }, [&](const QString& path) { protection.protect(path); });
-    if (fetched.ok() && !fetched.hit) { protection.evict(cacheRoot, budget, fetched.path); }
+    if (fetched.ok() && !fetched.hit) { protection.cache().evict(budget, fetched.path); }
     return fetched;
 }
 
-nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& cacheRoot,
+nt::Clip resolveDroppedMedia(nt::server::ServerClient& client,
                              const QJsonObject& asset, const QJsonObject& raw, MediaProtection& protection,
                              quint64 generation) {
     nt::Clip media;
@@ -98,7 +94,7 @@ nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& ca
     const bool picture = media.mediaType == nt::MediaType::Video || media.mediaType == nt::MediaType::Image;
     const bool audio = media.mediaType == nt::MediaType::Video || media.mediaType == nt::MediaType::Audio;
     const auto id = asset.value("id").toString();
-    nt::server::AssetCache cache(cacheRoot, client.serverKey(), client.userKey(),
+    nt::server::AssetCache cache(protection.cache(), client.serverKey(), client.userKey(),
         [&client](QNetworkRequest& request) { client.decorate(request); }, [&client] { return client.cancelled(); });
     const auto budget = cache.budgetBytes();
     cache.setBudgetBytes(0);
@@ -111,7 +107,7 @@ nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& ca
                 return variant == "proxy" ? nt::server::proxyFile(client, fresh.data.toObject(), &why)
                                           : nt::server::originalFile(client, fresh.data.toObject(), &why);
             }, [&](const QString& path) { protection.protect(path, generation); });
-        if (result.ok() && !result.hit) { protection.evict(cacheRoot, budget, result.path); }
+        if (result.ok() && !result.hit) { protection.cache().evict(budget, result.path); }
         return result;
     };
     QString why;
@@ -141,7 +137,7 @@ nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& ca
     }
     if (failed) {
         if (picture) {
-            media.mediaPath = QDir(cacheRoot).filePath("missing/" + nt::server::safePathPart(id)).toStdString();
+            media.mediaPath = QDir(protection.cache().path()).filePath("missing/" + nt::server::safePathPart(id)).toStdString();
         }
         media.audioPath.clear();
         media.originalMediaPath.clear();

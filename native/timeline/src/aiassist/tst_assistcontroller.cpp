@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "aiassist/AssistController.h"
 #include <QtTest>
 #include "model/TimelineJson.h"
@@ -7,6 +8,7 @@
 #include <atomic>
 class ControllerTest : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
 private slots:
     void casAndServerContracts() {
         TimelineModel model;
@@ -30,7 +32,7 @@ private slots:
             QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
             model.setTimeline(*parsed.timeline);
         }
-        AssistController controller;
+        AssistController controller(m_testCache.root());
         controller.setModel(&model);
         QString called;
         QJsonObject input;
@@ -69,7 +71,7 @@ private slots:
             model.setTimeline(*parsed.timeline);
         }
         const auto before = model.timeline().raw;
-        AssistController controller;
+        AssistController controller(m_testCache.root());
         controller.setModel(&model);
         const QJsonObject script{{"id", "script"}, {"timelineId", "sequence"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"sections", QJsonArray{}}}}};
         controller.setCall([script](bool, const QString& procedure, const QJsonObject&) {
@@ -114,7 +116,7 @@ private slots:
         const auto before = model.timeline().raw;
         const QJsonObject shot{{"id", "shot"}, {"index", 0}, {"clip", QJsonObject{{"asset_id", "video"}, {"duration", 3}}}};
         const QJsonObject board{{"id", "board"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"shots", QJsonArray{shot}}}}};
-        AssistController controller;
+        AssistController controller(m_testCache.root());
         controller.setModel(&model);
         QJsonObject linkedInput;
         QTemporaryFile resolvedFile; QVERIFY(resolvedFile.open());
@@ -148,7 +150,7 @@ private slots:
         TimelineModel model; model.setTimeline(*parsed.timeline);
         const auto beforeMove = model.timeline().raw;
         QVERIFY(model.moveClip("clip", 100));
-        AssistController controller; controller.setModel(&model);
+        AssistController controller(m_testCache.root()); controller.setModel(&model);
         const QJsonObject shot{{"id", "shot"}, {"index", 0}, {"clip", QJsonObject{{"asset_id", "video"}, {"duration", 3}}}};
         const QJsonObject board{{"id", "board"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"shots", QJsonArray{shot}}, {"screenplay", QJsonObject{{"script_id", "script"}}}}}};
         // native-rules #1: std::shared_ptr shared with a worker, no justification comment
@@ -179,7 +181,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson());
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
         TimelineModel model; model.setTimeline(*parsed.timeline);
-        AssistController controller; controller.setModel(&model);
+        AssistController controller(m_testCache.root()); controller.setModel(&model);
         // native-rules #1: std::shared_ptr with no justification comment
         const auto calls = std::make_shared<QStringList>();
         const auto linkedInput = std::make_shared<QJsonObject>();
@@ -205,7 +207,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson());
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
         TimelineModel model; model.setTimeline(*parsed.timeline);
-        AssistController controller; controller.setModel(&model);
+        AssistController controller(m_testCache.root()); controller.setModel(&model);
         QSignalSpy changed(&controller, &AssistController::changed);
         QSignalSpy edits(&model, &TimelineModel::timelineChanged);
         QJsonObject next = clip; next.insert("durationMs", 200);
@@ -221,7 +223,7 @@ private slots:
         };
         TimelineModel model; model.setTimeline(load("sequence"));
         const QJsonObject resource{{"id", "script"}, {"updatedAt", "revision"}, {"timelineId", "sequence"}, {"document", QJsonObject{{"cast", QJsonArray{}}, {"sections", QJsonArray{}}}}};
-        AssistController controller; controller.setProperty("documentOnly", true); controller.setModel(&model);
+        AssistController controller(m_testCache.root()); controller.setProperty("documentOnly", true); controller.setModel(&model);
         controller.setCall([resource](bool, const QString&, const QJsonObject&) { return nt::server::QueryResult{resource, {}}; });
         QVERIFY(controller.openScript("script")); QTRY_VERIFY(!controller.busy());
         model.setTimeline(load("sequence"));
@@ -240,7 +242,7 @@ private slots:
         // native-rules #1: std::shared_ptr with no justification comment
         const auto resource = std::make_shared<QJsonObject>(QJsonObject{{"id", "script"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"cast", QJsonArray{}}, {"sections", QJsonArray{section}}}}});
         const auto fail = std::make_shared<std::atomic_bool>(true);
-        AssistController controller; controller.setModel(&model);
+        AssistController controller(m_testCache.root()); controller.setModel(&model);
         controller.setCall([resource, fail](bool write, const QString&, const QJsonObject& input) {
             if (write && fail->load()) { return nt::server::QueryResult{{}, {"A newer script revision exists", "CONFLICT", {}, 409}}; }
             if (write) { resource->insert("document", input.value("document")); resource->insert("updatedAt", "next"); }
@@ -270,7 +272,7 @@ private slots:
         const QJsonObject line{{"id", "line"}, {"text", "Original"}, {"takes", QJsonArray{}}};
         const QJsonObject section{{"id", "section"}, {"lines", QJsonArray{line}}};
         const QJsonObject source{{"id", "script"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"cast", QJsonArray{}}, {"sections", QJsonArray{section}}}}};
-        AssistController controller; controller.setModel(&model);
+        AssistController controller(m_testCache.root()); controller.setModel(&model);
         controller.setCall([source, release, started, writes](bool write, const QString&, const QJsonObject& input) {
             auto result = source;
             if (write) { writes->fetch_add(1); started->store(true); release->acquire(); result.insert("document", input.value("document")); result.insert("updatedAt", "next"); }
@@ -299,7 +301,7 @@ private slots:
         const QJsonObject section{{"id", "section"}, {"lines", QJsonArray{line}}};
         // native-rules #1: std::shared_ptr with no justification comment
         const auto source = std::make_shared<QJsonObject>(QJsonObject{{"id", "script"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"sections", QJsonArray{section}}}}});
-        AssistController controller; controller.setModel(&model);
+        AssistController controller(m_testCache.root()); controller.setModel(&model);
         controller.setCall([source](bool, const QString&, const QJsonObject&) { return nt::server::QueryResult{*source, {}}; });
         QVERIFY(controller.openScript("script")); QTRY_VERIFY(!controller.busy());
         controller.setScriptLineDraft("script", "line", "Keep this draft");
@@ -322,7 +324,7 @@ private slots:
         auto resource = std::make_shared<QJsonObject>(QJsonObject{{"id", "script"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"cast", QJsonArray{}}, {"sections", QJsonArray{QJsonObject{{"id", "section"}, {"lines", QJsonArray{line}}}}}}}});
         const auto writes = std::make_shared<std::atomic_int>(0);
         const auto correctCas = std::make_shared<std::atomic_bool>(true);
-        AssistController controller; controller.setModel(&model);
+        AssistController controller(m_testCache.root()); controller.setModel(&model);
         controller.setCall([resource, writes, correctCas](bool write, const QString& procedure, const QJsonObject& input) {
             if (write && procedure == "scripts.update") {
                 if (input.value("baseUpdatedAt") != resource->value("updatedAt")) { correctCas->store(false); }
@@ -367,7 +369,7 @@ private slots:
             QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
             model.setTimeline(*parsed.timeline);
         }
-        AssistController controller;
+        AssistController controller(m_testCache.root());
         controller.setModel(&model);
         // native-rules #1: std::shared_ptr shared with a worker, no justification comment
         auto release = std::make_shared<QSemaphore>();

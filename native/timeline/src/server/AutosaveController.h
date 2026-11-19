@@ -135,9 +135,10 @@ class AutosaveController : public QObject {
 public:
     using DocumentFn = std::function<QJsonObject()>;
 
-    AutosaveController(SaveTarget target, QUndoStack* undo, DocumentFn document, QString baseUpdatedAt,
-                       QObject* parent = nullptr);
+    AutosaveController(AssetCacheRoot cache, SaveTarget target, QUndoStack* undo, DocumentFn document,
+                       QString baseUpdatedAt, QObject* parent = nullptr);
     ~AutosaveController() override;
+    const AssetCacheRoot& assetCache() const { return m_cache; }
 
     // Test seam: scheduled or running fetch workers, across controllers.
     static int liveFetchWorkers();
@@ -225,6 +226,7 @@ private:
     QString copyPath(const QString& suffix) const;  // in the backup folder; empty without one
     void removeCopy(const QString& suffix) const;
 
+    const AssetCacheRoot m_cache;
     SaveTarget m_target;
     QUndoStack* m_undo;
     DocumentFn m_document;

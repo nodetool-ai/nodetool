@@ -1,5 +1,6 @@
 // Behaviour follows FilmCraft (https://github.com/storytold/filmcraft), crates/ui-egui/src/panels/export_mode, MIT. See licenses/FilmCraft-MIT.txt.
 #pragma once
+#include "server/TimelineAssetCacheContext.h"
 #include "export/ExportController.h"
 #include "export/ExportSettings.h"
 #include <QAbstractListModel>
@@ -7,8 +8,9 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 #include <vector>
 
-class ExportQueue : public QAbstractListModel {
+class ExportQueue : public nt::server::TimelineCacheConsumer<QAbstractListModel> {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
@@ -17,6 +19,7 @@ class ExportQueue : public QAbstractListModel {
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
 public:
     explicit ExportQueue(QObject* parent = nullptr);
+    explicit ExportQueue(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~ExportQueue() override;
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* model);

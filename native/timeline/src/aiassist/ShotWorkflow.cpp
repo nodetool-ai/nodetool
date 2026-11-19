@@ -3,7 +3,7 @@
 #include "aiassist/AssistDocument.h"
 #include "aiassist/LinkedWorkflow.h"
 #include "app/EditRegistry.h"
-#include "edit/speed/TimeRemap.h"
+#include "scene/TimeRemap.h"
 #include "edit/EditActions.h"
 #include "server/ServerSource.h"
 #include "server/ServerClient.h"
@@ -56,7 +56,11 @@ const bool registered = [] {
     return true;
 }();
 }
-ShotWorkflow::ShotWorkflow(QObject* parent) : QObject(parent), m_protection(std::make_shared<nt::assets::MediaProtection>()), m_transport(this), m_poll(this) {
+ShotWorkflow::ShotWorkflow(const nt::server::AssetCacheRoot& cache, QObject* parent) : ShotWorkflow(parent) {
+    setCacheRoot(cache);
+}
+
+ShotWorkflow::ShotWorkflow(QObject* parent) : TimelineMediaConsumer(parent), m_transport(this), m_poll(this) {
     m_poll.setInterval(3000);
     connect(&m_poll, &QTimer::timeout, this, &ShotWorkflow::lookup);
     connect(&m_transport, &nt::ai::GenerationTransport::response, this, &ShotWorkflow::receive);
@@ -90,7 +94,7 @@ void ShotWorkflow::setTimeline(TimelineModel* timeline) {
 void ShotWorkflow::resetProtection() {
     QSet<QString> paths;
     if (m_timeline) { for (const auto& clip : m_timeline->timeline().clips) { if (!clip.mediaPath.empty()) { paths.insert(QString::fromStdString(clip.mediaPath)); } if (!clip.audioPath.empty()) { paths.insert(QString::fromStdString(clip.audioPath)); } } }
-    m_protection->reset(paths);
+    mediaProtection()->reset(paths);
 }
 void ShotWorkflow::fail(const QString& error) { m_poll.stop(); m_state = "failed"; m_error = error; emit changed(); }
 QVariantList ShotWorkflow::candidates(const QJsonObject& board, const QString& shotId, const QString& kind) const {
@@ -273,7 +277,7 @@ void ShotWorkflow::receive(const QJsonObject& frame) {
 }
 void ShotWorkflow::persist(const QJsonObject& board, const QJsonObject& localEdit) {
     if (!current() || !m_target || m_worker || board.value("updatedAt").toString().isEmpty()) { fail("Reload the storyboard before saving this change."); return; }
-    const auto protection = m_protection; const auto mediaGeneration = protection->generation(); const auto resolver = m_mediaResolver;
+    const auto protection = mediaProtection(); const auto mediaGeneration = protection->generation(); const auto resolver = m_mediaResolver;
     QJsonArray mediaClips;
     QJsonObject expectedAcceptance;
     // native-rules #1: std::shared_ptr AcceptanceGuard shared with a worker, no justification comment
@@ -308,9 +312,9 @@ void ShotWorkflow::persist(const QJsonObject& board, const QJsonObject& localEdi
             const auto raw = value.toObject(); const auto assetId = raw.value("currentAssetId").toString();
             const auto asset = call ? call(false, "assets.get", {{"id", assetId}}) : server.getAsset(assetId);
             if (!asset.ok()) { mediaError = asset; break; }
-            const auto root = QDir::cleanPath(QDir(target.backupDir).absoluteFilePath("../../.."));
-            auto media = resolver ? resolver(server, root, asset.data.toObject(), raw, *protection, mediaGeneration)
-                : nt::assets::resolveDroppedMedia(server, root, asset.data.toObject(), raw, *protection, mediaGeneration);
+
+            auto media = resolver ? resolver(server, protection->cache().path(), asset.data.toObject(), raw, *protection, mediaGeneration)
+                : nt::assets::resolveDroppedMedia(server, asset.data.toObject(), raw, *protection, mediaGeneration);
             const auto path = QString::fromStdString(raw.value("mediaType") == "audio" ? media.audioPath : media.mediaPath);
             if (path.isEmpty() || !QFileInfo::exists(path)) { mediaError.error = {"Selected shot media could not be resolved", "MEDIA_UNAVAILABLE", {}, 0}; break; }
             resolvedMedia.push_back(std::move(media));

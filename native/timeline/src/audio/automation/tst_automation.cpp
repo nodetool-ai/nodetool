@@ -1,4 +1,5 @@
 #include "audio/automation/Automation.h"
+#include "audio/automation/Meters.h"
 #include "audio/Mixer.h"
 #include "audio/automation/Meters.h"
 #include "model/TimelineJson.h"
@@ -25,7 +26,6 @@ class TestAutomation : public QObject {
     Q_OBJECT
 private slots:
     void pictureSegmentCrossesClipEdges() {
-        registerPictureAutomation();
         const auto doc = QJsonDocument::fromJson(R"({"fps":30,"durationMs":1000,
             "tracks":[{"id":"v","type":"video","index":0,"automation":[{
                 "id":"opacity","target":{"kind":"clip","property":"opacity"},
@@ -187,7 +187,7 @@ private slots:
     }
 };
 int main(int argc, char** argv) {
-    QCoreApplication app(argc, argv); ensureRegistered();
+    QCoreApplication app(argc, argv); registerMeterStage();
     if (app.arguments().contains("--json")) {
         QFile in; if (!in.open(stdin,QIODevice::ReadOnly)) { return 2; }
         QJsonArray out;

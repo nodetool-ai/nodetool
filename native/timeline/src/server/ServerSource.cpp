@@ -2,7 +2,7 @@
 
 #include "server/AssetCache.h"
 #include "server/ServerClient.h"
-#include "server/ServerTimeline.h"
+#include "server/ServerTimelineProbe.h"
 
 #include <QDir>
 #include <QFile>
@@ -11,11 +11,13 @@
 #include <QJsonDocument>
 #include <QStandardPaths>
 #include <QUrlQuery>
+#include <QVariant>
 
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <utility>
+
 
 namespace nt::server {
 namespace {
@@ -175,7 +177,7 @@ int listTimelinesMain() {
 std::optional<CloudSource> cloudTimelineSource() {
     const Args& a = args();
     if (!a.active || !a.cloud) return std::nullopt;
-    return CloudSource{QUrl(a.server), a.timeline, a.role, a.cacheDir};
+    return CloudSource{QUrl(a.server), a.timeline, a.role};
 }
 
 void setCloudToken(const QString& token, RequestAuthorizer authorizer) {
@@ -200,6 +202,10 @@ std::optional<SaveTarget> serverSaveTarget() {
     return t;
 }
 
+QString timelineCacheDirectory() {
+    return args().active ? args().cacheDir : defaultCacheDir();
+}
+
 std::unique_ptr<ServerClient> MediaSource::client(int timeoutMs) const {
     auto result = std::make_unique<ServerClient>(server, token, timeoutMs);
     result->setExpectedInstance(expectedInstance);
@@ -210,15 +216,14 @@ std::unique_ptr<ServerClient> MediaSource::client(int timeoutMs) const {
 std::optional<MediaSource> mediaSource() {
     if (args().active && args().cloud) {
         const Args& a = args();
-        return MediaSource{QUrl(a.server), a.token, a.authorizer, QString(), a.cacheDir};
+        return MediaSource{QUrl(a.server), a.token, a.authorizer, QString()};
     }
     const auto target = serverSaveTarget();
     if (!target) return std::nullopt;
-    const Args& a = loadedSource() ? *loadedSource() : args();
-    return MediaSource{target->server, target->token, {}, target->expectedInstance, a.cacheDir};
+    return MediaSource{target->server, target->token, {}, target->expectedInstance};
 }
 
-ParseResult loadTimelineSource(const QString& source) {
+ParseResult loadTimelineSource(const QString& source, const AssetCacheRoot& cache) {
     Args selected = args();
     if (!selected.active || source.toStdString() != selected.label) {
         QUrl url(source);
@@ -232,19 +237,17 @@ ParseResult loadTimelineSource(const QString& source) {
         selected.active = true;
         selected.server = url.toString();
         selected.timeline = fragment.front().second;
-        selected.cacheDir = defaultCacheDir();
         selected.token = qEnvironmentVariable("NODETOOL_API_TOKEN");
     }
+    selected.cacheDir = cache.path();
     loadedSource() = std::move(selected);
     const Args& a = *loadedSource();
 
-    ServerOpenOptions options;
-    options.server = QUrl(a.server);
-    options.timelineId = a.timeline;
-    options.cacheRoot = a.cacheDir;
-    options.token = a.token;
-    options.authorizer = a.authorizer;
-    ServerOpenResult opened = openServerTimeline(options);
+    const ServerOpenOptions options{
+        .server = QUrl(a.server), .timelineId = a.timeline, .cacheRoot = cache,
+        .token = a.token, .expectedInstance = {}, .authorizer = a.authorizer,
+    };
+    ServerOpenResult opened = openProbedServerTimeline(options);
 
     QString reportPath = a.reportPath;
     if (reportPath.isEmpty()) {

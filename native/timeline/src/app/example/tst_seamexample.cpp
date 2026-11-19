@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "app/CliModes.h"
 #include "app/EditRegistry.h"
 #include <QCommandLineParser>
@@ -99,7 +100,9 @@ private slots:
         QCOMPARE(examples.first().toMap().value("source").toUrl(), QUrl("qrc:/example/ExamplePanel.qml"));
         TimelineModel model;
         PlaybackClock clock;
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> editor(component.createWithInitialProperties({

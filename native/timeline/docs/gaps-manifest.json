@@ -51,7 +51,7 @@
       "server": [],
       "exit": [
         "Build, ctest, plan check and op check give the same results as before the change",
-        "CMakeLists.txt includes every module.cmake under src/ at any depth (GLOB_RECURSE, sorted), so nested modules such as src/preview/transitions/ register without a shared edit",
+        "CMakeLists.txt includes every module.cmake under src/ at any depth (GLOB_RECURSE, sorted), so nested modules register without a shared edit",
         "A test package that adds a module in a nested folder (src/<module>/<name>/module.cmake), CLI mode, edit, panel and menu item touches no shared file (git diff --stat), and its test runs in ctest",
         "ServerClient::upload(json, filePath, contentType) sends the multipart POST /api/assets of AssetStore.ts through the same private write path as mutate: an upload of a media fixture to the scratch server returns the asset and assets.get returns it",
         "With an expected instance and a listener whose /ready answer lacks it, upload sends no multipart body (tst_serverclient)"
@@ -66,13 +66,14 @@
       "owns": [
         "src/main.cpp",
         "src/model/TimelineModel.*",
-        "src/scene/ClipScene.*",
-        "src/audio/Mixer.cpp",
-        "src/audio/Mixer.h",
-        "src/audio/AudioEngine.*",
+        "../timeline-player/src/scene/ClipScene.*",
+        "../timeline-player/src/audio/Mixer.cpp",
+        "../timeline-player/src/audio/Mixer.h",
+        "../timeline-player/src/audio/AudioEngine.*",
         "scripts/plan-conformance.mjs",
         "scripts/conformance/plan/",
         "src/audio/hooks/",
+        "../timeline-player/src/audio/hooks/",
         "src/model/hooks/",
         "src/app/startup/"
       ],
@@ -87,7 +88,7 @@
         "Effect stages (J): a registered stage runs on a layer texture and on a group surface before compositing, with the layer's ext parameters; an invert stage registered by tst_layerhooks inverts that layer's pixels in the still and leaves the others",
         "Text measurer (I): a measurer registered for the scene is passed to the flex layout in evaluateScene; tst_layerhooks shows a changed flex box with a fixed-width measurer and the fallback rule without one",
         "Source-time mapper (D3): clipSourceMsAt consults a registered mapper and keeps its formula without one (tst_layerhooks)",
-        "Mixer voice expander (D3) and gain envelope (P2) in src/audio/hooks/: a registered expander splits a voice into segments, a silent segment writes zeros, an envelope scales the gain; without hooks tst_mixer and check-mix.mjs are unchanged (tst_mixerhooks)",
+        "Mixer voice expander (D3) and gain envelope (P2) in ../timeline-player/src/audio/hooks/: a registered expander splits a voice into segments, a silent segment writes zeros, an envelope scales the gain; without hooks tst_mixer and check-mix.mjs are unchanged (tst_mixerhooks)",
         "Output device selector (R): AudioEngine asks a registered provider for a device name before ma_device_init and falls back to the default device when no playback device matches; tst_mixerhooks covers the pick on miniaudio's null backend",
         "Decode-mode default (R): main.cpp uses a provider registered in src/app/startup/ when neither --decode nor --decoder is set, and the help text names it; tst_startuphooks checks flag, provider and the sw fallback",
         "TimelineModel media registration (B F1): registerMedia adds the runtime paths of new media without a history reset or a generation change; tst_modelhooks drops a clip with new media, registers it, and the preview resolves the path with the undo count unchanged",
@@ -181,14 +182,16 @@
       "gaps": [],
       "title": "Compositor seams, round 3",
       "owns": [
-        "src/preview/PreviewCompositor.*",
-        "src/preview/LayerSource.h",
-        "src/preview/SceneEval.h",
-        "src/preview/SceneEval.cpp",
-        "shaders/composite.vert",
-        "shaders/composite.frag",
+        "../timeline-player/src/preview/PreviewCompositor.*",
+        "../timeline-player/src/preview/LayerSource.h",
+        "../timeline-player/src/preview/SceneEval.h",
+        "../timeline-player/src/preview/SceneEval.cpp",
+        "../timeline-player/shaders/composite.vert",
+        "../timeline-player/shaders/composite.frag",
         "src/preview/layers/",
-        "src/preview/compose/"
+        "../timeline-player/src/preview/layers/",
+        "src/preview/compose/",
+        "../timeline-player/src/preview/compose/"
       ],
       "web": [
         "packages/timeline/src/render/frameCompositor.ts",
@@ -480,8 +483,8 @@
       "owns": [
         "qml/Inspector/Speed*",
         "src/edit/speed/",
-        "src/model/TimelineTypes.h",
-        "src/model/TimelineJson.*",
+        "../timeline-player/src/model/TimelineTypes.h",
+        "../timeline-player/src/model/TimelineJson.*",
         "src/model/LaneClipModel.*",
         "scripts/conformance/suites/speed.*"
       ],
@@ -535,6 +538,7 @@
       "owns": [
         "qml/Inspector/Reframe*",
         "src/preview/crop/",
+        "../timeline-player/src/preview/crop/",
         "scripts/conformance/suites/reframe.*",
         "scripts/conformance/plan/crop.mjs"
       ],
@@ -658,7 +662,8 @@
       "title": "Text, shapes and captions",
       "owns": [
         "src/render2d/",
-        "src/scene/TextBlock.*",
+        "../timeline-player/src/render2d/",
+        "../timeline-player/src/scene/TextBlock.*",
         "qml/Inspector/Text*",
         "qml/Inspector/Shape*",
         "qml/Inspector/Caption*",
@@ -697,16 +702,17 @@
       ],
       "title": "Effects, adjustments, masks and blend modes",
       "owns": [
-        "shaders/effects/",
+        "../timeline-player/shaders/effects/",
         "src/preview/effects/",
+        "../timeline-player/src/preview/effects/",
         "scripts/conformance/plan/effects.mjs",
-        "src/preview/SceneEval.h",
-        "src/preview/SceneEval.cpp",
-        "src/preview/layers/SceneHooks.h",
-        "src/preview/PreviewCompositor.h",
-        "src/preview/PreviewCompositor.cpp"
+        "../timeline-player/src/preview/SceneEval.h",
+        "../timeline-player/src/preview/SceneEval.cpp",
+        "../timeline-player/src/preview/layers/SceneHooks.h",
+        "../timeline-player/src/preview/PreviewCompositor.h",
+        "../timeline-player/src/preview/PreviewCompositor.cpp"
       ],
-      "ownsNote": "src/preview/SceneEval.h, src/preview/SceneEval.cpp, src/preview/layers/SceneHooks.h and src/preview/PreviewCompositor.*: shared with S4 (merged), approved by the user (D11)",
+      "ownsNote": "../timeline-player/src/preview/SceneEval.h, ../timeline-player/src/preview/SceneEval.cpp, ../timeline-player/src/preview/layers/SceneHooks.h and ../timeline-player/src/preview/PreviewCompositor.*: shared with S4 (merged), approved by the user (D11)",
       "web": [
         "web/src/components/timeline/preview/gpu/compositor.ts",
         "web/src/components/timeline/preview/maskRender.ts",
@@ -855,7 +861,7 @@
       ],
       "title": "Audio effects",
       "owns": [
-        "src/audio/effects/",
+        "../timeline-player/src/audio/effects/",
         "qml/fx/"
       ],
       "web": [
@@ -935,8 +941,8 @@
       "gaps": [],
       "title": "Server identity before a write",
       "owns": [
-        "src/server/ServerClient.*",
-        "src/server/ServerIdentity*",
+        "../timeline-player/src/server/ServerClient.*",
+        "../timeline-player/src/server/ServerIdentity/",
         "src/server/SaveCli.*",
         "tests/tst_serveridentity.cpp",
         "tests/tst_serverclient.cpp",
@@ -973,6 +979,7 @@
       "title": "Linear transition resolver",
       "owns": [
         "src/preview/transitions/",
+        "../timeline-player/src/preview/transitions/",
         "tests/tst_transitionresolver.cpp"
       ],
       "web": [
@@ -985,7 +992,7 @@
         "Differential test: the new resolver equals the old quadratic one (keys and every field, doubles bit for bit) on every timeline fixture and example at 30 fps, and on 1,000 generated buckets with shared starts, equal ends, zero and negative durations, hidden and adjustment clips and nested groups. A planted tie change (>= for >) fails it once",
         "Timing test: one bucket of n overlapping active clips at n = 2,000 and n = 32,000, median of 5 runs, larger run under 40 times the smaller. It fails against the old resolver",
         "SceneEval.cpp changes only by the removal of the moved code and the two call sites (transitionOpacitiesAt, evaluateScene)",
-        "src/preview/transitions/module.cmake registers the resolver and its test through S1's recursive include, with no edit to src/preview/module.cmake or CMakeLists.txt"
+        "The shared player builds TransitionResolver. src/preview/transitions/module.cmake registers its test through the timeline build’s recursive include"
       ]
     },
     {
@@ -1110,16 +1117,17 @@
       "title": "Automation and mixer",
       "owns": [
         "src/audio/automation/",
+        "../timeline-player/src/audio/automation/",
         "qml/mixer/",
         "qml/Tracks/automation/"
       ],
       "ownsShared": [
         {
-          "path": "src/audio/Mixer.cpp",
+          "path": "../timeline-player/src/audio/Mixer.cpp",
           "note": "shared with its merged owner, approved by the user (D15)"
         },
         {
-          "path": "src/audio/effects/Effects.cpp",
+          "path": "../timeline-player/src/audio/effects/Effects.cpp",
           "note": "shared with its merged owner, approved by the user (D15)"
         },
         {
@@ -1131,23 +1139,23 @@
           "note": "shared with its merged owner, approved by the user (D15)"
         },
         {
-          "path": "src/preview/SceneEval.h",
+          "path": "../timeline-player/src/preview/SceneEval.h",
           "note": "shared with its merged owner, approved by the user (D15)"
         },
         {
-          "path": "src/preview/SceneEval.cpp",
+          "path": "../timeline-player/src/preview/SceneEval.cpp",
           "note": "shared with its merged owner, approved by the user (D15)"
         },
         {
-          "path": "src/preview/layers/SceneHooks.h",
+          "path": "../timeline-player/src/preview/layers/SceneHooks.h",
           "note": "shared with its merged owner, approved by the user (D15)"
         },
         {
-          "path": "src/preview/layers/SceneHooks.cpp",
+          "path": "../timeline-player/src/preview/layers/SceneHooks.cpp",
           "note": "shared with its merged owner, approved by the user (D15)"
         },
         {
-          "path": "src/server/FieldAudit.cpp",
+          "path": "../timeline-player/src/server/FieldAudit.cpp",
           "note": "shared with its merged owner, approved by the user (D15)"
         },
         {

@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "edit/ClipGestureController.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -20,6 +21,7 @@ class FollowPathUiSetup : public QObject {
     }
   public slots:
     void qmlEngineAvailable(QQmlEngine* engine) {
+        m_testCache.install(*engine);
         auto parsed = nt::parseTimelineJson(
             R"({"name":"Inspector","width":640,"height":360,"fps":30,"durationMs":2000,"tracks":[{"id":"v","name":"Video","type":"video"}],"clips":[{"id":"c","trackId":"v","mediaType":"video","name":"Picture","startMs":0,"durationMs":2000,"animations":[{"id":"a","role":"in","preset":"followPath","durationMs":800,"params":{"unknown":42}}]},{"id":"s","trackId":"v","mediaType":"shape","name":"Box","startMs":0,"durationMs":2000,"shapeStyle":{"kind":"rect"}}]})");
         m_original = parsed.timeline->raw;
@@ -71,6 +73,7 @@ class FollowPathUiSetup : public QObject {
 
   private:
     QTemporaryDir m_preferences;
+    TestAssetCacheRoot m_testCache;
     QJsonObject m_original;
     bool m_groupFixture = false;
     TimelineModel m_model;

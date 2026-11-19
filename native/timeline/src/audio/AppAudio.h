@@ -13,44 +13,42 @@
 
 #include "audio/AudioEngine.h"
 
-#include <QMetaObject>
+#include <QPointer>
 #include <QString>
-#include <QTimer>
 
 #include <memory>
 
 class PlaybackClock;
-class TimelineModel;
+class TimelineSource;
 
 namespace nt::audio {
 
+// UI thread only. AppAudio owns the update timer and stops the engine before it dies.
 class AppAudio {
 public:
-    AppAudio() = default;
+    AppAudio();
     ~AppAudio();
     AppAudio(const AppAudio&) = delete;
     AppAudio& operator=(const AppAudio&) = delete;
 
     // Returns false with `error` set for a bad mode or a device that fails to
     // open. `latencyMs` sets the null device's reported output latency.
-    bool start(const QString& mode, double latencyMs, TimelineModel& model, PlaybackClock& clock, QString* error);
+    bool start(const QString& mode, double latencyMs, TimelineSource& source, PlaybackClock& clock, QString* error);
     void setReportPath(const QString& path) { m_reportPath = path; }
     // Whether the engine fills the window's loudness meter (audio/loudness/AppReadout.h). Set it before
     // start(). Only the engine of the open timeline should, not a preview of a candidate.
     void setPublishLoudness(bool publish) { m_publishLoudness = publish; }
     void setRecordSeconds(double seconds) { m_recordSeconds = seconds; }
-    AudioEngine* engine() { return m_engine.get(); }
+    AudioEngine* engine();
 
 private:
-    std::unique_ptr<AudioEngine> m_engine;
-    PlaybackClock* m_clock = nullptr;
+    class UpdateTimer;
+    std::unique_ptr<UpdateTimer> m_update;
+    QPointer<PlaybackClock> m_clock;
     double m_recordSeconds = 0;
     QString m_mode;
     QString m_reportPath;
     bool m_publishLoudness = false;
-    QMetaObject::Connection m_connections[2];
-    std::unique_ptr<QTimer> m_timer;
-    std::uint64_t m_appliedRevision = 0;
 };
 
 }  // namespace nt::audio

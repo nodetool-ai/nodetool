@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "edit/ClipGestureController.h"
 #include "edit/clipeffects/ClipAnalysisController.h"
 #include "edit/clipeffects/ClipEffectsUi.h"
@@ -76,6 +77,7 @@ QJsonObject identityCurves() {
 struct Editor {
     TimelineModel model;
     PlaybackClock clock;
+    TestAssetCacheRoot cache;
     QQmlEngine engine;
     QQuickWindow window;
     std::unique_ptr<QObject> object;
@@ -87,6 +89,7 @@ struct Editor {
         ]})");
         if (!parsed.timeline) { error = "Invalid test document"; return; }
         model.setTimeline(std::move(*parsed.timeline));
+        cache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         object.reset(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)},
             {"clock", QVariant::fromValue(&clock)}, {"width", 1280}, {"height", 800}}));

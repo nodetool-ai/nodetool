@@ -7,6 +7,7 @@
 // Cases copied from the web tests in web/src/components/timeline/Tracks/__tests__/:
 // TracksRegionWheelZoom, TracksRegionHorizontalVirtualization,
 // TracksRegionVirtualization, TimelineScrollbar and timelineWheel.
+#include "TestAssetCacheRoot.h"
 #include "model/LaneClipModel.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -402,6 +403,7 @@ private:
 
 class TestTracksUi : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
 
     TimelineModel* model = nullptr;
     PlaybackClock* clock = nullptr;
@@ -419,6 +421,7 @@ class TestTracksUi : public QObject {
         model->setTimeline(makeTimeline(l));
         clock->setDurationMs(model->contentEndMs());
         view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
         view->setInitialProperties({{QStringLiteral("timeline"), QVariant::fromValue(model)},
                                     {QStringLiteral("clock"), QVariant::fromValue(clock)}});
         view->loadFromModule("NodeTool.Timeline", "TracksRegion");
@@ -1605,6 +1608,7 @@ private slots:
         json.insert("clips", clips);
         model->setTimeline(parseTimeline(json));
         view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
         view->setInitialProperties({{QStringLiteral("timeline"), QVariant::fromValue(model)},
                                     {QStringLiteral("clock"), QVariant::fromValue(clock)}});
         view->loadFromModule("NodeTool.Timeline", "TracksRegion");
@@ -2053,6 +2057,7 @@ private slots:
         clock = new PlaybackClock(this);
         model->setTimeline(*loaded.timeline);
         view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
         view->setInitialProperties({{QStringLiteral("timeline"), QVariant::fromValue(model)},
                                     {QStringLiteral("clock"), QVariant::fromValue(clock)}});
         view->loadFromModule("NodeTool.Timeline", "TracksRegion");
@@ -2140,6 +2145,7 @@ private slots:
         clock = new PlaybackClock(this);
         model->setTimeline(parseTimeline(json));
         view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
         view->setInitialProperties({{QStringLiteral("timeline"), QVariant::fromValue(model)},
                                     {QStringLiteral("clock"), QVariant::fromValue(clock)}});
         view->loadFromModule("NodeTool.Timeline", "TracksRegion");
@@ -2320,6 +2326,7 @@ private slots:
         clock = new PlaybackClock(this);
         model->setTimeline(parseTimeline(json));
         view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
         view->setInitialProperties({{QStringLiteral("timeline"), QVariant::fromValue(model)},
                                     {QStringLiteral("clock"), QVariant::fromValue(clock)}});
         view->loadFromModule("NodeTool.Timeline", "TracksRegion");
@@ -2364,6 +2371,7 @@ private slots:
         model->setTimeline(parseTimeline(json));
         clock->setDurationMs(model->contentEndMs());
         view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
         view->setInitialProperties({{QStringLiteral("timeline"), QVariant::fromValue(model)},
                                     {QStringLiteral("clock"), QVariant::fromValue(clock)}});
         view->loadFromModule("NodeTool.Timeline", "TracksRegion");
@@ -3390,7 +3398,7 @@ private slots:
         {
             http.setPost([&](const QByteArray&, const QByteArray&) { return stripOk; });
             nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), dir.filePath("blocked/no-such-folder")};
-            nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
+            nt::server::AutosaveController saver(nt::server::AssetCacheRoot(dir.path()), t, &undo, docFn, QStringLiteral("u0"));
             saver.setQuitFallbackDirs({dir.filePath("blocked/also-not")});
             saver.setAutosave(false);
             // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
@@ -3411,7 +3419,7 @@ private slots:
             http.setPost([&](const QByteArray&, const QByteArray&) { return ++calls == 1 ? unavailable : stripOk; });
             const QString backup = dir.filePath(QStringLiteral("stale-copy"));
             nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), backup};
-            nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
+            nt::server::AutosaveController saver(nt::server::AssetCacheRoot(dir.path()), t, &undo, docFn, QStringLiteral("u0"));
             saver.setQuitFallbackDirs({dir.filePath("blocked/also-not")});
             saver.setAutosave(false);
             // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
@@ -3446,7 +3454,7 @@ private slots:
         {
             http.setPost([&](const QByteArray&, const QByteArray&) { return stripOk; });
             nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), dir.filePath("blocked/no-such-folder")};
-            nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
+            nt::server::AutosaveController saver(nt::server::AssetCacheRoot(dir.path()), t, &undo, docFn, QStringLiteral("u0"));
             const QString fallback = dir.filePath(QStringLiteral("fallback"));
             saver.setQuitFallbackDirs({fallback});
             saver.setAutosave(false);
@@ -3471,7 +3479,7 @@ private slots:
         {
             http.setPost([&](const QByteArray&, const QByteArray&) { return conflictBody; });
             nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), dir.path()};
-            nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
+            nt::server::AutosaveController saver(nt::server::AssetCacheRoot(dir.path()), t, &undo, docFn, QStringLiteral("u0"));
             saver.setQuitFallbackDirs({dir.filePath(QStringLiteral("fallback"))});
             saver.setAutosave(false);
             // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns

@@ -103,7 +103,7 @@ private slots:
         QTemporaryDir cache;
         QUndoStack undo;
         const auto raw = document();
-        nt::server::AutosaveController save({QUrl("http://127.0.0.1:1"), {}, "seq", cache.path(), {}},
+        nt::server::AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {QUrl("http://127.0.0.1:1"), {}, "seq", cache.path(), {}},
             &undo, [&] { return raw; }, "u0");
         save.setExternalSync(false);
         save.setQuitFallbackDirs({});
@@ -198,7 +198,7 @@ private slots:
         QUndoStack undo;
         setDocumentApplier([&](QUndoStack*, const QJsonObject& next, const nt::Timeline&) { raw = next; return true; });
         const auto reset = qScopeGuard([] { setDocumentApplier({}); });
-        nt::server::AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+        nt::server::AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
         save.setAutosave(false);
         save.setExternalSyncUrl(ws.server.serverUrl());
         // The write already happened before subscription. No notice is sent.
@@ -235,7 +235,7 @@ private slots:
         auto raw = document();
         const auto base = QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort()));
         auto save = std::make_unique<nt::server::AutosaveController>(
-            nt::server::SaveTarget{base, {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+            nt::server::AssetCacheRoot(cache.path()), nt::server::SaveTarget{base, {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
         save->setExternalSync(false);
         save->setAutosave(false);
         save->setQuitFallbackDirs({});
@@ -289,7 +289,7 @@ private slots:
         QUndoStack undo;
         setDocumentApplier([&](QUndoStack*, const QJsonObject& next, const nt::Timeline&) { raw = next; return true; });
         const auto reset = qScopeGuard([] { setDocumentApplier({}); });
-        nt::server::AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+        nt::server::AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
         save.setAutosave(false);
         save.setExternalSyncUrl(QUrl(QString("http://127.0.0.1:%1").arg(ws.server.serverPort())));
         QTRY_COMPARE(ws.peers.size(), 1);
@@ -617,7 +617,7 @@ private slots:
         QUndoStack undo;
         setDocumentApplier([&](QUndoStack*, const QJsonObject& next, const nt::Timeline&) { raw = next; return true; });
         const auto reset = qScopeGuard([] { setDocumentApplier({}); });
-        nt::server::AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+        nt::server::AutosaveController save(nt::server::AssetCacheRoot(cache.path()), {http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
         save.setAutosave(false);
         save.setQuitFallbackDirs({});
         save.setExternalSyncUrl(ws.server.serverUrl());

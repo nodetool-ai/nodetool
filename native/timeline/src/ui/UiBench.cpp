@@ -1,3 +1,4 @@
+#include "server/TimelineAssetCacheContext.h"
 #include "ui/UiBench.h"
 
 #include "ui/BenchMedia.h"
@@ -241,7 +242,7 @@ void keepPlaying(PlaybackClock& clock) {
     if (clock.time() > 14000.0) clock.seek(0.0);
 }
 
-int runOffscreen(TimelineModel& model, PlaybackClock& clock, const UiBenchOptions& options) {
+int runOffscreen(TimelineModel& model, PlaybackClock& clock, const nt::server::AssetCacheRoot& cache, const UiBenchOptions& options) {
     QQuickRenderControl control;
     QQuickWindow window(&control);
     hw::prepareWindow(&window);
@@ -252,6 +253,7 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, const UiBenchOption
         QQmlDebuggingEnabler::startTcpDebugServer(port, QQmlDebuggingEnabler::WaitForClient);
     }
     QQmlEngine engine;
+    nt::server::TimelineAssetCacheContext::install(engine, cache);
     QQmlComponent component(&engine);
     component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
     std::unique_ptr<QObject> rootObject(component.createWithInitialProperties(
@@ -378,8 +380,9 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, const UiBenchOption
                   view->clipWindowUpdates() - windowUpdatesAtStart);
 }
 
-int runWindowed(TimelineModel& model, PlaybackClock& clock, const UiBenchOptions& options) {
+int runWindowed(TimelineModel& model, PlaybackClock& clock, const nt::server::AssetCacheRoot& cache, const UiBenchOptions& options) {
     QQuickView window;
+    nt::server::TimelineAssetCacheContext::install(*window.engine(), cache);
     hw::prepareWindow(&window);
     window.setResizeMode(QQuickView::SizeRootObjectToView);
     window.setFlags(window.flags() | Qt::WindowDoesNotAcceptFocus);
@@ -482,8 +485,8 @@ int runWindowed(TimelineModel& model, PlaybackClock& clock, const UiBenchOptions
 
 }  // namespace
 
-int runUiBench(TimelineModel& model, PlaybackClock& clock, const UiBenchOptions& options) {
-    return options.windowed ? runWindowed(model, clock, options) : runOffscreen(model, clock, options);
+int runUiBench(TimelineModel& model, PlaybackClock& clock, const nt::server::AssetCacheRoot& cache, const UiBenchOptions& options) {
+    return options.windowed ? runWindowed(model, clock, cache, options) : runOffscreen(model, clock, cache, options);
 }
 
 }  // namespace nt::ui

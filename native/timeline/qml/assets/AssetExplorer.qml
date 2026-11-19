@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 import NodeTool.Media
 import NodeTool.UiPrimitives as Ui
 import "AssetContext.js" as Context

@@ -83,7 +83,7 @@ private slots:
         QVERIFY(!settings->value("source/marks").toByteArray().contains("unmarked"));
         state->setAsset(asset.toVariantMap());
         QCOMPARE(state->inMs(), 1000.0); QCOMPARE(state->outMs(), 3000.0);
-        SourceViewerState reopened; reopened.setAsset(asset.toVariantMap());
+        SourceViewerState reopened(m_testCache.root()); reopened.setAsset(asset.toVariantMap());
         QCOMPARE(reopened.inMs(), 1000.0); QCOMPARE(reopened.outMs(), 3000.0);
         reopened.clearMarks(); state->reloadMarksForTest(); QVERIFY(!state->hasMarks());
     }

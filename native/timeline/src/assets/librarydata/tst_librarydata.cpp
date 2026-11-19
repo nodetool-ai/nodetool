@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "assets/AssetBrowser.h"
 #include "../../../tests/TestHttpServer.h"
 #include <QJsonDocument>
@@ -6,6 +7,7 @@
 
 class TestLibraryData : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
 private:
     static QJsonObject asset(const QString& id, const QString& parent, const QString& name = "Shot") {
         return {{"id", id}, {"parent_id", parent}, {"user_id", "legacy-user"}, {"name", name},
@@ -30,7 +32,7 @@ private slots:
                 : QJsonObject{{"assets", QJsonArray{asset("0123456789abcdef0123456789abcdef", "nested", "Far shot")}}, {"next_cursor", QJsonValue::Null}};
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", page}}}}).toJson();
         });
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         attach(browser, http);
         browser.refresh();
         QTRY_VERIFY(!browser.busy());
@@ -70,7 +72,7 @@ private slots:
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", QJsonObject{
                 {"assets", rows}, {"next_cursor", QJsonValue::Null}}}}}}).toJson();
         });
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         attach(browser, http);
         if (type.isEmpty()) { browser.refresh(); }
         else { browser.setTypeFilter(type); }
@@ -100,7 +102,7 @@ private slots:
             }
             return QByteArray(R"({"result":{"data":{}}})");
         });
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         attach(browser, http);
         browser.setAssetTags("legacy-id", {" hero ", "hero", ""});
         QTRY_VERIFY(!browser.busy());
@@ -120,7 +122,7 @@ private slots:
             writes.append({path, QJsonDocument::fromJson(bytes).object()});
             return path == "/api/assets" ? QByteArray(R"({"id":"new-folder"})") : QByteArray(R"({"result":{"data":{}}})");
         });
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         attach(browser, http);
         const QString id = "0123456789abcdef0123456789abcdef";
         browser.renameAsset(id, " Name ");
@@ -155,7 +157,7 @@ private slots:
             }
             return QByteArray(R"({"result":{"data":{}}})");
         });
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         attach(browser, http);
         browser.moveAsset("nested-legacy-asset", "");
         QTRY_VERIFY(!browser.busy());
@@ -166,7 +168,7 @@ private slots:
     }
     void rapidFiltersCoalesceWhileReadIsPending() {
         TestHttpServer http;
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         attach(browser, http);
         QStringList queries;
         http.setJson([&](const QByteArray&, const QUrl& url) {
@@ -188,7 +190,7 @@ private slots:
     }
     void pendingListingSurvivesSameProjectReplacement() {
         TestHttpServer http;
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         attach(browser, http);
         TimelineModel timeline;
         nt::Timeline document;
@@ -212,7 +214,7 @@ private slots:
     }
     void queuedMutationDoesNotRunAfterDocumentSwitch() {
         TestHttpServer http;
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         attach(browser, http);
         int writes = 0;
         http.setPost([&](const QByteArray&, const QByteArray&) { ++writes; return QByteArray(R"({"result":{"data":{}}})"); });
@@ -228,7 +230,7 @@ private slots:
     }
     void submittedMutationCompletionDoesNotAffectNewDocument() {
         TestHttpServer http;
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         attach(browser, http);
         int reads = 0;
         http.setJson([&](const QByteArray&, const QUrl&) { ++reads; return QByteArray(R"({"result":{"data":{"assets":[]}}})"); });
@@ -242,7 +244,7 @@ private slots:
         QCOMPARE(reads, 0);
     }
     void emptyFolderIdOpensRoot() {
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.m_target.reset();
         browser.m_folderId = "nested";
         browser.m_folderPath = {"", "parent"};
@@ -251,7 +253,7 @@ private slots:
         QCOMPARE(browser.breadcrumbs().size(), 1);
     }
     void staleQueryCannotReplaceNewView() {
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.m_target.reset();
         browser.m_queryGeneration = 2;
         AssetBrowser::Result old;
@@ -262,7 +264,7 @@ private slots:
         QVERIFY(browser.assets().isEmpty());
     }
     void scopeIncludesAuthenticationAndFullServer() {
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.m_target = nt::server::SaveTarget{QUrl("http://localhost:1234/one"), "token-a", {}, {}, {}};
         const auto scope = browser.libraryScope();
         QCOMPARE(scope.size(), 64);
@@ -274,7 +276,7 @@ private slots:
         QVERIFY(scope != browser.libraryScope());
     }
     void projectReplacementInvalidatesFoldersAndQueries() {
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.m_target = nt::server::SaveTarget{QUrl("http://localhost:1234"), "token", {}, {}, {}};
         TimelineModel timeline;
         nt::Timeline first;
@@ -298,7 +300,7 @@ private slots:
         http.setJson([](const QByteArray&, const QUrl&) {
             return QByteArray(R"({"result":{"data":{"assets":[],"next_cursor":null}}})");
         });
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         attach(browser, http);
         QStringList observed;
         connect(&browser, &AssetBrowser::transfersChanged, &browser, [&] {
@@ -332,7 +334,7 @@ private slots:
             ++searches;
             return QByteArray(R"({"result":{"data":{"assets":[],"next_cursor":null}}})");
         });
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         attach(browser, http);
         browser.importFiles({QUrl::fromLocalFile("/nodetool-library-test/missing-one.mp4"),
             QUrl::fromLocalFile("/nodetool-library-test/missing-two.mp4"),
@@ -345,7 +347,7 @@ private slots:
         QCOMPARE(searches, 1);
     }
     void failedImportCanRetryAndClear() {
-        AssetBrowser browser;
+        AssetBrowser browser(m_testCache.root());
         browser.m_target.reset();
         const AssetBrowser::QueuedImport queued{"/missing", {}, {}, "transfer"};
         browser.m_imports.insert("transfer", queued);

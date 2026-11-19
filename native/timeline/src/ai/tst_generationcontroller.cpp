@@ -1,3 +1,4 @@
+#include "../../tests/TestAssetCacheRoot.h"
 #include "ai/GenerationController.h"
 #include "ai/Take.h"
 #include "ai/ClipRequests.h"
@@ -33,6 +34,7 @@ QString schemaError(const TimelineModel& timeline) {
 
 class TestGenerationController : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
 private slots:
     void largeCandidateHistory() {
         QJsonArray versions;
@@ -56,7 +58,7 @@ private slots:
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
         TimelineModel timeline;
         timeline.setTimeline(*parsed.timeline);
-        GenerationController controller;
+        GenerationController controller(m_testCache.root());
         controller.setTimeline(&timeline);
         controller.m_candidates = saved;
         const auto result = controller.candidates();
@@ -69,7 +71,7 @@ private slots:
     void sharedAssetHistory() {
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","fps":30,"width":640,"height":360,"tracks":[{"id":"track","type":"video","index":0}],"clips":[{"id":"clip","trackId":"track","mediaType":"video","startMs":0,"durationMs":1000,"currentAssetId":"shared","activeTakeId":"two","versions":[{"id":"one","assetId":"shared","status":"success","durationMs":1000},{"id":"two","assetId":"shared","status":"success","durationMs":1000}]}]})");
         QVERIFY(parsed.timeline); TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         QCOMPARE(controller.candidates().size(), 2);
         controller.deleteTake("clip", "two");
         QCOMPARE(timeline.undoStack()->count(), 0);
@@ -85,7 +87,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","fps":30,"width":640,"height":360,"tracks":[{"id":"track","type":"audio","index":0}],"clips":[{"id":"clip","trackId":"track","name":"Clip","mediaType":"audio","sourceType":"generated","startMs":0,"durationMs":1000,"status":"generated","locked":false,"versions":[{"id":"server-take","assetId":"asset","status":"success"}]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), {}, "timeline", cache.path()};
         controller.m_job = {{"requestId", "take"}, {"clipId", "clip"}};
         controller.m_state = "completed";
@@ -98,7 +100,7 @@ private slots:
         timeline.undoStack()->undo();
         QVERIFY(!controller.candidates().first().toMap().contains("label"));
         timeline.undoStack()->redo();
-        GenerationController reopened; reopened.setTimeline(&timeline); reopened.m_target = controller.m_target; reopened.restore();
+        GenerationController reopened(m_testCache.root()); reopened.setTimeline(&timeline); reopened.m_target = controller.m_target; reopened.restore();
         QCOMPARE(reopened.candidates().first().toMap().value("label").toString(), QStringLiteral("New label"));
         controller.m_job = {{"requestId", "staged"}, {"clipId", "clip"}};
         controller.m_candidates.append(QJsonObject{{"id", "staged"}, {"requestId", "staged"}, {"clipId", "clip"},
@@ -110,7 +112,7 @@ private slots:
         controller.deleteTake("clip", "staged");
         QCOMPARE(timeline.undoStack()->count(), undoCount);
         QCOMPARE(controller.candidates().size(), 1);
-        GenerationController afterDiscard; afterDiscard.setTimeline(&timeline); afterDiscard.m_target = controller.m_target; afterDiscard.restore();
+        GenerationController afterDiscard(m_testCache.root()); afterDiscard.setTimeline(&timeline); afterDiscard.m_target = controller.m_target; afterDiscard.restore();
         QCOMPARE(afterDiscard.candidates().size(), 1);
         QCOMPARE(afterDiscard.candidates().first().toMap().value("id").toString(), QStringLiteral("server-take"));
         controller.deleteTake("clip", "server-take");
@@ -120,7 +122,7 @@ private slots:
         QCOMPARE(controller.candidates().first().toMap().value("label").toString(), QStringLiteral("New label"));
         timeline.undoStack()->redo();
         QVERIFY(controller.candidates().isEmpty());
-        GenerationController afterRedo; afterRedo.setTimeline(&timeline); afterRedo.m_target = controller.m_target; afterRedo.restore();
+        GenerationController afterRedo(m_testCache.root()); afterRedo.setTimeline(&timeline); afterRedo.m_target = controller.m_target; afterRedo.restore();
         QVERIFY(afterRedo.candidates().isEmpty());
     }
     void sharedMediaProtection() {
@@ -131,14 +133,14 @@ private slots:
         for (const auto& name : {path, latest}) {
             QFile file(name); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write("12345678"), qint64(8));
         }
-        nt::assets::MediaProtection evictor;
+        const nt::server::AssetCacheRoot root(cache.path());
         {
-            nt::assets::MediaProtection preview;
+            nt::assets::MediaProtection preview(root);
             preview.protect(path);
-            evictor.evict(cache.path(), 1, latest);
+            root.evict(1, latest);
             QVERIFY(QFileInfo::exists(path));
             preview.reset({});
-            evictor.evict(cache.path(), 1, latest);
+            root.evict(1, latest);
             QVERIFY(!QFileInfo::exists(path));
         }
         QVERIFY(QFileInfo::exists(latest));
@@ -161,7 +163,7 @@ private slots:
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
         TimelineModel timeline;
         timeline.setTimeline(*parsed.timeline);
-        GenerationController controller;
+        GenerationController controller(m_testCache.root());
         controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path() + "/server/user/timelines"};
         controller.m_candidates = QJsonArray{QJsonObject{{"id", "request"}, {"requestId", "request"}, {"clipId", "clip"},
@@ -228,7 +230,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","name":"Test","fps":30,"width":1920,"height":1080,"durationMs":0,"tracks":[{"id":"track","name":"Video","type":"video","index":0,"visible":true,"locked":false}],"clips":[{"id":"clip","trackId":"track","name":"shot","startMs":1000,"durationMs":1000,"mediaType":"video","sourceType":"imported","currentAssetId":"original","inPointMs":500,"outPointMs":1500,"status":"generated","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path() + "/server/user/timelines"};
         const auto source = timeline.clipsJson().first().toObject();
         const auto request = nt::ai::mediaEditRequest("timeline", source,
@@ -282,7 +284,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","fps":30,"width":1920,"height":1080,"tracks":[{"id":"track","type":"video","index":0}],"clips":[{"id":"clip","trackId":"track","name":"shot","startMs":0,"durationMs":8000,"mediaType":"video","sourceType":"generated","currentAssetId":"edited","inPointMs":0,"outPointMs":8000,"speedMultiplier":1,"speedBaked":true,"status":"generated","versions":[{"id":"baseline","assetId":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","status":"success","durationMs":4000,"sourceMapping":{"inPointMs":0,"outPointMs":4000,"speedMultiplier":0.5},"dependencyHash":"","paramOverridesSnapshot":{}}]}]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path() + "/server/user/timelines"};
         controller.previewUrl("clip", "baseline");
         QTRY_VERIFY(!controller.m_resolving && !controller.m_worker);
@@ -309,7 +311,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","name":"Test","fps":30,"width":1920,"height":1080,"durationMs":0,"tracks":[{"id":"track","name":"Video","type":"video","index":0,"visible":true,"locked":false}],"clips":[{"id":"clip","trackId":"track","name":"shot","startMs":1000,"durationMs":1000,"mediaType":"video","sourceType":"imported","currentAssetId":"original","status":"generated","locked":false,"versions":[]},{"id":"next","trackId":"track","name":"next","startMs":2000,"durationMs":1000,"mediaType":"video","sourceType":"imported","status":"draft","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path() + "/server/user/timelines"};
         const auto source = timeline.clipsJson().first().toObject();
         const auto request = nt::ai::extensionRequest("timeline", "extend", source,
@@ -370,7 +372,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","name":"Test","fps":30,"width":1920,"height":1080,"durationMs":0,"tracks":[{"id":"track","type":"video","index":0}],"clips":[{"id":"image","trackId":"track","name":"frame","startMs":0,"durationMs":1000,"mediaType":"image","sourceType":"imported","currentAssetId":"source","status":"generated","locked":false,"versions":[]},{"id":"video","trackId":"track","name":"video","startMs":0,"durationMs":1000,"mediaType":"video","sourceType":"generated","bindingKind":"image-to-video","sourceClipId":"image","provider":"test","model":"model","prompt":"move","status":"draft","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path() + "/server/user/timelines"};
         const auto source = timeline.clipsJson().first().toObject();
         controller.m_candidates = QJsonArray{QJsonObject{{"id", "i2v"}, {"requestId", "i2v"}, {"clipId", "video"},
@@ -400,7 +402,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","name":"Test","fps":30,"width":1920,"height":1080,"durationMs":0,"tracks":[{"id":"track","type":"video","index":0}],"clips":[{"id":"clip","trackId":"track","name":"shot","startMs":1000,"durationMs":1000,"mediaType":"video","sourceType":"imported","currentAssetId":"source","inPointMs":500,"outPointMs":1500,"status":"generated","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{QUrl(QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort())), {}, "timeline", cache.path()};
         controller.open(); QTRY_VERIFY(controller.ready());
         controller.submitMediaEdit("clip", {{"instruction", "change light"}, {"provider", "test"}, {"model", "model"}});
@@ -409,7 +411,7 @@ private slots:
         QCOMPARE(data.value("mode").toString(), QString("video_edit"));
         QCOMPARE(data.value("source_context").toObject().value("source_start_ms").toInt(), 500);
         QCOMPARE(timeline.undoStack()->count(), 0);
-        GenerationController reopened; reopened.setTimeline(&timeline); reopened.m_target = controller.m_target; reopened.restore();
+        GenerationController reopened(m_testCache.root()); reopened.setTimeline(&timeline); reopened.m_target = controller.m_target; reopened.restore();
         QCOMPARE(reopened.state(), QString("recovering"));
         QCOMPARE(reopened.m_job.value("snapshot").toObject().value("sourceContext").toObject().value("sourceAssetId").toString(), QString("source"));
         QCOMPARE(reopened.m_job.value("operation").toString(), QString("edit"));
@@ -425,7 +427,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","name":"Test","fps":30,"width":1920,"height":1080,"durationMs":0,"tracks":[{"id":"track","name":"Audio","type":"audio","index":0,"visible":true,"locked":false}],"clips":[{"id":"clip","trackId":"track","name":"line","startMs":0,"durationMs":1000,"mediaType":"audio","sourceType":"generated","scriptId":"script","scriptLineId":"line","currentAssetId":"source","status":"generated","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{http.base(), {}, "timeline", cache.path() + "/server/user/timelines"};
         const auto source = timeline.clipsJson().first().toObject();
         const auto request = nt::ai::lineDeliveryRequest(QJsonObject{{"scriptId", "script"},
@@ -462,7 +464,7 @@ private slots:
         const auto empty = nt::parseTimelineJson(R"({"id":"timeline","fps":30,"width":640,"height":360,"tracks":[],"clips":[],"markers":[]})");
         QVERIFY(empty.timeline);
         TimelineModel imageTimeline; imageTimeline.setTimeline(*empty.timeline);
-        GenerationController imageController; imageController.setTimeline(&imageTimeline);
+        GenerationController imageController(m_testCache.root()); imageController.setTimeline(&imageTimeline);
         imageController.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path()};
         imageController.m_job = QJsonObject{{"clipId", "image"}, {"clip", QJsonObject{{"id", "image"}, {"name", "Image"},
             {"mediaType", "image"}, {"sourceType", "generated"}, {"startMs", 0}, {"durationMs", 4000},
@@ -475,7 +477,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","fps":30,"width":640,"height":360,"tracks":[{"id":"track","name":"Video","type":"video","index":0,"visible":true,"locked":false}],"clips":[{"id":"clip","trackId":"track","name":"Clip","mediaType":"video","sourceType":"generated","bindingKind":"text-to-video","provider":"test","model":"model","prompt":"scene","aspectRatio":"16:9","resolution":"720p","seed":42,"negativePrompt":"blur","referenceImageIds":["ref"],"startMs":0,"durationMs":4000,"status":"draft","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path() + "/server/user/timelines"};
         const auto submitted = timeline.clipsJson().first().toObject();
         controller.m_candidates = QJsonArray{QJsonObject{{"id", "request"}, {"requestId", "request"}, {"clipId", "clip"},
@@ -532,7 +534,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","fps":30,"width":640,"height":360,"tracks":[{"id":"track","name":"Audio","type":"audio","index":0,"visible":true,"locked":false}],"clips":[{"id":"clip","trackId":"track","name":"Clip","mediaType":"audio","sourceType":"generated","workflowId":"workflow","selectedOutputNodeId":"output","startMs":0,"durationMs":1000,"status":"draft","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path() + "/server/user/timelines"};
         const auto clip = timeline.clipsJson().first().toObject();
         controller.m_candidates = QJsonArray{QJsonObject{{"id", "job"}, {"requestId", "job"}, {"clipId", "clip"},
@@ -562,7 +564,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","fps":30,"width":640,"height":360,"tracks":[{"id":"track","type":"video","index":0}],"clips":[{"id":"clip","trackId":"track","name":"Clip","mediaType":"video","sourceType":"generated","workflowId":"workflow","selectedOutputNodeId":"out","startMs":0,"durationMs":1000,"status":"generated","lastGeneratedHash":"old","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path()};
         controller.loadWorkflowInputs("clip");
         QTRY_VERIFY(!controller.workflowInputsLoading());
@@ -626,7 +628,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","fps":30,"width":640,"height":360,"tracks":[{"id":"track","type":"video","index":0}],"clips":[{"id":"clip","trackId":"track","name":"Clip","mediaType":"video","sourceType":"generated","workflowId":"workflow","selectedOutputNodeId":"out","startMs":0,"durationMs":1000,"status":"draft","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{server.base(), {}, "timeline", cache.path()};
         bool staleShown = false;
         connect(&controller, &GenerationController::workflowInputsChanged, this, [&] {
@@ -687,7 +689,7 @@ private slots:
         });
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","name":"Test","fps":30,"width":1920,"height":1080,"durationMs":0,"tracks":[{"id":"track","type":"video","index":0}],"clips":[{"id":"clip","trackId":"track","name":"shot","startMs":0,"durationMs":1000,"mediaType":"video","sourceType":"generated","workflowId":"workflow","selectedOutputNodeId":"output","status":"draft","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline); TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{http.base(), {}, "timeline", cache.path()};
         controller.m_transport.configure(QUrl(QStringLiteral("http://127.0.0.1:%1").arg(socket.serverPort())));
         controller.m_transport.open(); QTRY_VERIFY(controller.ready());
@@ -697,7 +699,7 @@ private slots:
         recoveredJobId = jobId;
         controller.m_workflow->statusChanged("completed", {});
         QCOMPARE(controller.state(), QString("recovering"));
-        GenerationController reopened; reopened.setTimeline(&timeline); reopened.m_target = controller.m_target; reopened.restore();
+        GenerationController reopened(m_testCache.root()); reopened.setTimeline(&timeline); reopened.m_target = controller.m_target; reopened.restore();
         QCOMPARE(reopened.state(), QString("recovering"));
         QCOMPARE(reopened.m_job.value("workflowContext").toObject().value("jobId").toString(), jobId);
         const auto firstPeer = peer;
@@ -750,7 +752,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","name":"Test","fps":30,"width":1920,"height":1080,"durationMs":0,"tracks":[{"id":"track","type":"audio","index":0}],"clips":[{"id":"clip","trackId":"track","name":"line","startMs":0,"durationMs":1000,"mediaType":"audio","sourceType":"generated","scriptId":"script","scriptLineId":"line","currentAssetId":"source","status":"generated","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{http.base(), {}, "timeline", cache.path()};
         controller.m_transport.configure(QUrl(QStringLiteral("http://127.0.0.1:%1").arg(socket.serverPort())));
         controller.m_transport.open(); QTRY_VERIFY(controller.ready());
@@ -786,7 +788,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","name":"Test","fps":30,"width":1920,"height":1080,"durationMs":0,"tracks":[{"id":"image-track","type":"video","index":0}],"clips":[{"id":"image","trackId":"image-track","name":"frame","startMs":1000,"durationMs":4000,"mediaType":"image","sourceType":"imported","currentAssetId":"source","status":"generated","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{QUrl(QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort())), {}, "timeline", cache.path()};
         controller.open(); QTRY_VERIFY(controller.ready());
         QSignalSpy inserted(&controller, &GenerationController::clipInserted);
@@ -830,7 +832,7 @@ private slots:
         });
         const auto parsed = nt::parseTimelineJson(R"({"id":"sequence","name":"Film","fps":30,"width":640,"height":360,"durationMs":0,"tracks":[],"clips":[],"markers":[],"setup":{"stage":"review","brief":"Film","format":"ad-15","beats":[{"id":"beat","prompt":"Harbor","duration_ms":2000,"production":{"schema_version":1,"speech_mode":"none","local_direction":"Keep product centered","duration_ms":3000,"requested_take_count":1,"visual_treatment":"product_close_up","reference_bindings":[{"kind":"product","asset_id":"reference"}],"protected_inputs":[{"id":"title","kind":"exact_text","value":"Brand","allowed_transformations":[]}]}}]}})");
         QVERIFY(parsed.timeline); TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController generation; generation.setTimeline(&timeline);
+        GenerationController generation(m_testCache.root()); generation.setTimeline(&timeline);
         generation.m_target = nt::server::SaveTarget{QUrl(QStringLiteral("http://127.0.0.1:%1").arg(socket.serverPort())), {}, "sequence", cache.path() + "/server/user/timelines"};
         generation.open(); QTRY_VERIFY(generation.ready());
         AssistantSession session; session.setTimeline(&timeline); session.setGenerationController(&generation);
@@ -862,7 +864,7 @@ private slots:
         QCOMPARE(generation.candidates().size(), 1);
         QCOMPARE(timeline.clipsJson().first().toObject().value("currentAssetId").toString(), QString());
         QCOMPARE(timeline.undoStack()->count(), 1);
-        GenerationController recovered; recovered.setTimeline(&timeline);
+        GenerationController recovered(m_testCache.root()); recovered.setTimeline(&timeline);
         recovered.m_target = nt::server::SaveTarget{http.base(), {}, "sequence", cache.path() + "/server/user/timelines"};
         const auto submittedCount = messages.size();
         recovered.restore();
@@ -893,7 +895,7 @@ private slots:
         });
         const auto parsed = nt::parseTimelineJson(R"({"id":"timeline","name":"Test","fps":30,"width":1920,"height":1080,"durationMs":0,"tracks":[{"id":"track","type":"video","index":0}],"clips":[{"id":"clip","trackId":"track","name":"image","startMs":0,"durationMs":4000,"mediaType":"image","sourceType":"generated","bindingKind":"text-to-image","provider":"test","model":"model","prompt":"landscape","width":1024,"height":768,"status":"draft","locked":false,"versions":[]}],"markers":[]})");
         QVERIFY(parsed.timeline); TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{QUrl(QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort())), {}, "timeline", cache.path()};
         controller.open(); QTRY_VERIFY(controller.ready());
         controller.regeneratePrepared("clip", "not-an-id");
@@ -951,7 +953,7 @@ private slots:
         auto target = clips.first().toObject(); target.insert("bindingKind", "image-to-image"); target.insert("sourceClipId", "source");
         clips = QJsonArray{source, target}; timeline.replaceClips(clips);
         TimelineModel other; other.setTimeline(timeline.timeline());
-        GenerationController second; second.setTimeline(&other);
+        GenerationController second(m_testCache.root()); second.setTimeline(&other);
         second.m_target = nt::server::SaveTarget{QUrl(QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort())), {}, "timeline", cache.path() + "/other"};
         second.open(); QTRY_VERIFY(second.ready());
         const auto before = messages.size(); second.regenerate("clip"); QTRY_VERIFY(messages.size() > before);
@@ -979,7 +981,7 @@ private slots:
         QVERIFY(parsed.timeline);
         TimelineModel timeline; timeline.setTimeline(*parsed.timeline);
         const auto serverUrl = QUrl(QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort()));
-        GenerationController controller; controller.setTimeline(&timeline);
+        GenerationController controller(m_testCache.root()); controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{serverUrl, {}, full.left(12), cache.path()};
         controller.open(); QTRY_VERIFY(controller.ready());
         controller.submit("video", "test", "model", "scene", 4, "16:9", "720p", {}, {}, 0);
@@ -987,7 +989,7 @@ private slots:
         QCOMPARE(messages.first().value("data").toObject().value("timeline_context").toObject().value("sequence_id").toString(), full);
         const auto request = controller.m_job.value("requestId").toString();
         QVERIFY(!request.isEmpty());
-        GenerationController reopened; reopened.setTimeline(&timeline);
+        GenerationController reopened(m_testCache.root()); reopened.setTimeline(&timeline);
         reopened.m_target = nt::server::SaveTarget{serverUrl, {}, full, cache.path()};
         reopened.restore();
         QCOMPARE(reopened.m_job.value("requestId").toString(), request);
@@ -998,7 +1000,7 @@ private slots:
         int generations = 0;
         for (const auto& message : messages) if (message.value("command") == "generate_media") ++generations;
         QCOMPARE(generations, 1);
-        GenerationController mismatch; mismatch.setTimeline(&timeline);
+        GenerationController mismatch(m_testCache.root()); mismatch.setTimeline(&timeline);
         mismatch.m_target = nt::server::SaveTarget{serverUrl, {}, QStringLiteral("other"), cache.path()};
         mismatch.open();
         QVERIFY(!mismatch.ready());
@@ -1014,7 +1016,7 @@ private slots:
         const auto legacy = nt::parseTimelineJson(R"({"id":"personal:legacy","fps":30,"width":640,"height":360,"tracks":[],"clips":[]})");
         QVERIFY(legacy.timeline);
         TimelineModel legacyModel; legacyModel.setTimeline(*legacy.timeline);
-        GenerationController legacyController; legacyController.setTimeline(&legacyModel);
+        GenerationController legacyController(m_testCache.root()); legacyController.setTimeline(&legacyModel);
         legacyController.m_target = nt::server::SaveTarget{serverUrl, {}, QStringLiteral("personal:legacy"), cache.path()};
         QVERIFY(legacyController.canonicalizeTarget());
         QCOMPARE(legacyController.m_target->timelineId, QStringLiteral("personal:legacy"));
@@ -1035,7 +1037,7 @@ private slots:
         QVERIFY(parsed.timeline);
         TimelineModel timeline;
         timeline.setTimeline(*parsed.timeline);
-        GenerationController controller;
+        GenerationController controller(m_testCache.root());
         controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{QUrl(QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort())), {}, "timeline", cache.path()};
         controller.open();
@@ -1067,7 +1069,7 @@ private slots:
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
         TimelineModel timeline;
         timeline.setTimeline(*parsed.timeline);
-        GenerationController controller;
+        GenerationController controller(m_testCache.root());
         controller.setTimeline(&timeline);
         controller.m_target = nt::server::SaveTarget{QUrl(QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort())), {}, "timeline", cache.path()};
         controller.open();
@@ -1107,7 +1109,7 @@ private slots:
         QCOMPARE(timeline.clipCount(), 0);
         timeline.undoStack()->redo();
         QCOMPARE(timeline.clipCount(), 1);
-        GenerationController reopened;
+        GenerationController reopened(m_testCache.root());
         reopened.setTimeline(&timeline);
         reopened.m_target = controller.m_target;
         reopened.restore();

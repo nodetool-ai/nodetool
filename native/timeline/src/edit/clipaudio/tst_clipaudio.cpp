@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "edit/ClipGestureController.h"
@@ -47,6 +48,7 @@ QQuickItem* findItem(QQuickItem* root, const QString& name) {
 struct AudioEditor {
     TimelineModel model;
     PlaybackClock clock;
+    TestAssetCacheRoot cache;
     QQmlEngine engine;
     QQuickWindow window;
     std::unique_ptr<QObject> object;
@@ -55,6 +57,7 @@ struct AudioEditor {
         auto parsed = nt::parseTimelineJson(source);
         Q_ASSERT(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
+        cache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         object.reset(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)},
             {"clock", QVariant::fromValue(&clock)}, {"width", 1280}, {"height", 800}}));
@@ -1020,7 +1023,9 @@ AudioGainDialog { clipIds: ["c", "silent"] })", QUrl());
         TimelineModel model;
         load(model);
         PlaybackClock clock;
+        TestAssetCacheRoot assetCache;
         QQmlEngine engine;
+        assetCache.install(engine);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/TimelineEditor.qml"));
         std::unique_ptr<QObject> editor(component.createWithInitialProperties({
             {"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)},

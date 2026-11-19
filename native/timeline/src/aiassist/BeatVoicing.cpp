@@ -20,7 +20,12 @@ namespace {
 const bool registeredBeatTake = nt::app::registerEdit("assist.applyBeatTake", nt::aiassist::applyTranscriptBeatTake);
 QString requestId() { return QUuid::createUuid().toString(QUuid::Id128); }
 }
-BeatVoicing::BeatVoicing(QObject* parent) : QObject(parent), m_transport(this), m_timeout(this), m_poll(this) {
+BeatVoicing::BeatVoicing(const nt::server::AssetCacheRoot& cache, QObject* parent) : BeatVoicing(parent) {
+    setCacheRoot(cache);
+}
+
+BeatVoicing::BeatVoicing(QObject* parent) : TimelineMediaConsumer(parent), m_transport(this),
+    m_timeout(this), m_poll(this) {
     m_poll.setInterval(3000);
     connect(&m_poll, &QTimer::timeout, this, &BeatVoicing::lookup);
     m_timeout.setSingleShot(true);
@@ -186,7 +191,7 @@ void BeatVoicing::persist(const QJsonObject& transcription) {
     auto mediaClip = m_observedClip;
     mediaClip.insert("currentAssetId", assetId);
     const auto resolver = m_mediaResolver;
-    const auto protection = m_mediaProtection;
+    const auto protection = mediaProtection();
     const auto mediaGeneration = protection->generation();
     const auto createdAt = QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
     const QPointer<BeatVoicing> self(this);
@@ -195,8 +200,7 @@ void BeatVoicing::persist(const QJsonObject& transcription) {
         const auto asset = client.getAsset(assetId);
         nt::Clip media;
         if (asset.ok() && resolver && !QThread::currentThread()->isInterruptionRequested()) {
-            const auto cacheRoot = QDir::cleanPath(QDir(target.backupDir).absoluteFilePath("../../.."));
-            media = resolver(client, cacheRoot, asset.data.toObject(), mediaClip, *protection, mediaGeneration);
+            media = resolver(client, protection->cache().path(), asset.data.toObject(), mediaClip, *protection, mediaGeneration);
         }
         const auto path = QString::fromStdString(media.audioPath.empty() ? media.mediaPath : media.audioPath);
         const bool resolved = asset.ok() && !path.isEmpty() && QFileInfo::exists(path);

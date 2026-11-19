@@ -29,7 +29,7 @@ negated image. Reports and full input documents remain under
 
 The comparison is synthetic fixture coverage. It does not establish complete
 shipped-document, encoded-export, border-radius or cross-platform equality.
-The integrated [scene evaluator](../../preview/SceneEval.cpp) retains expanded clip
+The integrated [scene evaluator](../../../../timeline-player/src/preview/SceneEval.cpp) retains expanded clip
 records for exact decoder and provider lookup rather than parsing copy IDs.
 
 The generated-matte importer stages a temporary `generating` record while it

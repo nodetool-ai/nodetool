@@ -1,3 +1,4 @@
+#include "server/TimelineAssetCacheContext.h"
 #include "LibraryScrub.h"
 #include "LibraryScrubSource.h"
 #include "SourceViewerState.h"
@@ -34,7 +35,12 @@ bool insideSource(const QQuickItem* item) {
 }
 }  // namespace
 
-LibraryScrub::LibraryScrub(QObject* parent) : QObject(parent) {
+LibraryScrub* LibraryScrub::create(QQmlEngine* engine, QJSEngine*) {
+    // The QML engine owns the singleton.
+    return new LibraryScrub(nt::server::TimelineAssetCacheContext::require(engine), engine);
+}
+
+LibraryScrub::LibraryScrub(const nt::server::AssetCacheRoot& cache, QObject* parent) : QObject(parent), m_cache(cache) {
     m_enabled = nt::app::openTimelinePreferences()->value(kPreference, true).toBool();
     m_dwell.setSingleShot(true);
     m_dwell.setInterval(kDwellMs);
@@ -185,11 +191,12 @@ void LibraryScrub::startFetch() {
         return;
     }
     const auto target = nt::server::serverSaveTarget();
+    const auto cacheRoot = m_cache;
     if (!target) { return; }
     ++m_fetches;
     const QPointer<LibraryScrub> self(this);
     const auto listed = QJsonObject::fromVariantMap(m_asset);
-    auto* worker = QThread::create([self, listed, target, id] {
+    auto* worker = QThread::create([self, listed, target, id, cacheRoot] {
         const auto interrupted = [] { return QThread::currentThread()->isInterruptionRequested(); };
         nt::assets::ScrubSource found;
         nt::server::ServerClient client(target->server, target->token, 10000);
@@ -199,7 +206,6 @@ void LibraryScrub::startFetch() {
             auto asset = listed;
             const auto fetched = answer.data.toObject();
             for (auto it = fetched.begin(); it != fetched.end(); ++it) { asset.insert(it.key(), it.value()); }
-            const auto cacheRoot = QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../.."));
             found = nt::assets::fetchScrubSource(client, cacheRoot, asset, interrupted);
         }
         if (!self) { return; }

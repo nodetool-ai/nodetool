@@ -10,9 +10,6 @@ function(nt_shell_tests)
         Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test ${NT_APP_PLATFORM_LIBS})
     target_compile_definitions(tst_appshell PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
     nt_add_timeline_qml(tst_appshell OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_appshell_qml/NodeTool/Timeline)
-    if(UNIX AND NOT APPLE)
-        target_sources(tst_appshell PRIVATE src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
-    endif()
     add_test(NAME tst_appshell_menus COMMAND tst_appshell shellRegistration menus shortcutsAreNotShared conversions dispatch
         registeredEntriesRefuseBadInput registeredEntriesInDescription registeredEntryDispatch registeredEntriesInPlatformMenus
         editMenuKeepsTextFocus viewMenuRunsItsTimelineCommandWhileTyping)

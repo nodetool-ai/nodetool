@@ -84,7 +84,7 @@ private slots:
         QVERIFY(file.open(QIODevice::WriteOnly));
         file.write(wav);
         file.close();
-        CandidatePreview review;
+        CandidatePreview review(m_testCache.root());
         review.setTimeline(view->rootObject()->property("timeline").value<TimelineModel*>());
         QVERIFY(review.timeline());
         QVERIFY(!review.previewFile(dir.filePath("missing.wav"), "audio"));

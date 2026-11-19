@@ -378,7 +378,7 @@ local process that read one answer can replay it. The JavaScript helpers
   secret never goes over the wire, so a copied answer does not match a new
   nonce. `QNetworkAccessManager` does not promise to reuse a connection, so
   this likely needs a small `QTcpSocket` writer in
-  `src/server/ServerIdentity.*`. Pinned TLS and a private Unix socket are
+  `../timeline-player/src/server/ServerIdentity/`. Pinned TLS and a private Unix socket are
   the alternatives. Record the choice and the reason in the header comment
   of `ServerClient.h`.
 - Every write takes this path: `timeline.update` from

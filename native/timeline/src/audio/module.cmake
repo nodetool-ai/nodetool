@@ -1,26 +1,9 @@
 nt_sources(audio
-    src/audio/FadeCurves.h
-    src/audio/FadeCurves.cpp
-    src/audio/ShuttleStretch.h
-    src/audio/ShuttleStretch.cpp
-    src/audio/PcmRing.h
-    src/audio/Mixer.h
-    src/audio/Mixer.cpp
-    src/audio/AudioSource.h
-    src/audio/AudioSource.cpp
-    src/audio/OutputLatency.h
-    src/audio/OutputLatency.cpp
-    src/audio/AudioEngine.h
-    src/audio/AudioEngine.cpp
-    src/audio/LoopbackCapture.h
-    src/audio/LoopbackCapture.cpp
     src/audio/AppAudio.h
     src/audio/AppAudio.cpp
     src/audio/AudioMode.h
     src/audio/AudioMode.cpp
-    src/audio/miniaudio.cpp
 )
-cmake_language(DEFER CALL target_link_libraries timeline_audio PRIVATE Qt6::Gui)
 nt_sources(app
     src/audio/AvSyncInterpolation.h
     src/audio/AudioCli.h
@@ -30,23 +13,20 @@ nt_sources(app
 function(nt_audio_tests)
     # Audio tests (M3): fade curves against the TypeScript vectors, the mixer,
     # the PCM ring, the audio source, and the clock with a fake device.
-    foreach(test_name tst_fadecurves tst_mixer tst_audioclock tst_audioengine tst_shuttlestretch tst_shuttleaudio)
+    foreach(test_name tst_fadecurves tst_mixer tst_audioclock tst_audioengine tst_shuttleaudio)
         nt_qt_test(${test_name} LIBS timeline_core timeline_audio Qt6::Test
             DEFINES NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures" NT_BUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}"
             INCLUDES src/playback)
     endforeach()
-    target_sources(tst_audioclock PRIVATE src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp)
-    target_link_libraries(tst_audioclock PRIVATE Qt6::Qml)
-    target_sources(tst_shuttleaudio PRIVATE src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp)
-    target_link_libraries(tst_shuttleaudio PRIVATE Qt6::Qml)
+    target_link_libraries(tst_audioclock PRIVATE nodetool_timeline_player Qt6::Qml)
+    target_link_libraries(tst_shuttleaudio PRIVATE nodetool_timeline_player Qt6::Qml)
     set_tests_properties(tst_shuttleaudio PROPERTIES FIXTURES_REQUIRED media)
     qt_add_executable(tst_appaudio tests/tst_appaudio.cpp
-        src/model/TimelineModel.h src/model/TimelineModel.cpp src/model/TrackListModel.h src/model/TrackListModel.cpp
-        src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp)
+        src/model/TimelineModel.h src/model/TimelineModel.cpp src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_appaudio PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_appaudio PRIVATE ${NT_WARNINGS})
     target_include_directories(tst_appaudio PRIVATE src/playback)
-    target_link_libraries(tst_appaudio PRIVATE timeline_core timeline_audio Qt6::Gui Qt6::Qml Qt6::Test)
+    target_link_libraries(tst_appaudio PRIVATE nodetool_timeline_player timeline_core timeline_audio Qt6::Gui Qt6::Qml Qt6::Test)
     add_test(NAME tst_appaudio COMMAND tst_appaudio)
     # The curve vectors come from the TypeScript functions on every run.
     add_test(NAME fade_vectors COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/scripts/fade-vectors.mjs

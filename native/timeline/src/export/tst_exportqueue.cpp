@@ -1,4 +1,5 @@
 // Behaviour follows FilmCraft (https://github.com/storytold/filmcraft), crates/ui-egui/src/panels/export_mode, MIT. See licenses/FilmCraft-MIT.txt.
+#include "../../tests/TestAssetCacheRoot.h"
 #include "export/ExportQueue.h"
 #include "export/ExportPresets.h"
 #include "export/ExportSettings.h"
@@ -45,6 +46,7 @@ bool loadFixture(TimelineModel& model) {
 
 class ExportQueueTest : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
 private slots:
     void settingsRoundTrip() {
         using namespace nt::exporting;
@@ -148,7 +150,7 @@ private slots:
         QTemporaryDir dir;
         TimelineModel model;
         QVERIFY(loadFixture(model));
-        ExportQueue queue;
+        ExportQueue queue(m_testCache.root());
         queue.setTimeline(&model);
         queue.setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         QStringList ids, finished;
@@ -203,7 +205,7 @@ private slots:
         QTemporaryDir dir;
         TimelineModel model;
         QVERIFY(loadFixture(model));
-        ExportQueue reference;
+        ExportQueue reference(m_testCache.root());
         reference.setTimeline(&model);
         reference.setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         const auto before = reference.enqueue(dir.filePath("before.wav"), wav);
@@ -213,7 +215,7 @@ private slots:
         const auto header = wavDataOffset(dir.filePath("before.wav"));
         QVERIFY(header >= 44);
         QCOMPARE(expected - header, qint64(9 * 48000 * 4));
-        ExportQueue queue;
+        ExportQueue queue(m_testCache.root());
         queue.setTimeline(&model);
         queue.setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         const auto a = queue.enqueue(dir.filePath("a.wav"), wav);
@@ -240,7 +242,7 @@ private slots:
         QFile exists(dir.filePath("exists.wav/keep.txt"));
         QVERIFY(exists.open(QIODevice::WriteOnly));
         exists.write("keep"); exists.close();
-        ExportQueue queue;
+        ExportQueue queue(m_testCache.root());
         queue.setTimeline(&model);
         queue.setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         const auto a = queue.enqueue(dir.filePath("exists.wav"), wav);
@@ -269,7 +271,7 @@ private slots:
         QTemporaryDir dir;
         TimelineModel model;
         QVERIFY(loadFixture(model));
-        ExportQueue queue;
+        ExportQueue queue(m_testCache.root());
         queue.setTimeline(&model);
         queue.setExecutable(QStringLiteral(NT_EXPORT_BINARY));
         const auto a = queue.enqueue(dir.filePath("a.wav"), wav);
@@ -291,7 +293,7 @@ private slots:
     }
     void refusals() {
         QTemporaryDir dir;
-        ExportQueue queue;
+        ExportQueue queue(m_testCache.root());
         QVERIFY(queue.enqueue(dir.filePath("a.wav"), wav).isEmpty());
         QCOMPARE(queue.lastError(), QString("Open a timeline before exporting."));
         TimelineModel model;
@@ -323,7 +325,7 @@ private slots:
         QVERIFY(loadFixture(model));
         QElapsedTimer elapsed;
         {
-            ExportQueue queue;
+            ExportQueue queue(m_testCache.root());
             queue.setTimeline(&model);
             queue.setExecutable(QCoreApplication::applicationFilePath());
             QVERIFY(!queue.enqueue(dir.filePath("never.wav"), wav).isEmpty());

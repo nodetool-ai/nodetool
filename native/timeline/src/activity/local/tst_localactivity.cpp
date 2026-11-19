@@ -1,3 +1,4 @@
+#include "../../../tests/TestAssetCacheRoot.h"
 #include "LocalActivityStore.h"
 #include "export/ExportController.h"
 #include <QCoreApplication>
@@ -16,6 +17,7 @@ public:
 };
 class LocalActivityTest : public QObject {
     Q_OBJECT
+    TestAssetCacheRoot m_testCache;
     QTemporaryDir m_history;
 private slots:
     void initTestCase() {
@@ -40,7 +42,7 @@ private slots:
         TimelineModel model;
         model.setTimeline(std::move(timeline));
         const auto before = model.documentJson();
-        ExportController controller;
+        ExportController controller(m_testCache.root());
         controller.setTimeline(&model);
         controller.setExecutable(QCoreApplication::applicationFilePath());
         QSignalSpy finished(&controller, &ExportController::finished);

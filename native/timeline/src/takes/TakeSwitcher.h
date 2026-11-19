@@ -1,6 +1,10 @@
 // Behaviour ported from FilmCraft (https://github.com/storytold/filmcraft), crates/engine/src/multicam.rs, MIT.
 // See licenses/FilmCraft-MIT.txt.
 #pragma once
+#include "server/AssetCache.h"
+
+class QQmlEngine;
+class QJSEngine;
 
 #include "model/TimelineTypes.h"
 #include "takes/TakeSwitch.h"
@@ -36,9 +40,10 @@ public:
     // Runs on a worker thread. Returns a clip with its media paths set, or with none when it fails.
     using MediaResolver = std::function<nt::Clip(const QJsonObject& rawClip, const QString& assetId)>;
 
-    explicit TakeSwitcher(TimelineModel* model);
+    TakeSwitcher(TimelineModel* model, const nt::server::AssetCacheRoot& cache);
     ~TakeSwitcher() override;
     static TakeSwitcher* forTimeline(TimelineModel* model);
+    static TakeSwitcher* attach(TimelineModel& model, const nt::server::AssetCacheRoot& cache);
 
     bool recording() const { return m_recording; }
     QString message() const { return m_message; }
@@ -96,7 +101,11 @@ class TakeInfo : public QObject {
     QML_ELEMENT
     QML_SINGLETON
 public:
-    explicit TakeInfo(QObject* parent = nullptr) : QObject(parent) {}
+    TakeInfo(const nt::server::AssetCacheRoot& cache, QObject* parent) : QObject(parent), m_cache(cache) {}
+    static TakeInfo* create(QQmlEngine* engine, QJSEngine*);
     Q_INVOKABLE TakeSwitcher* switcherFor(TimelineModel* timeline) const;
     Q_INVOKABLE QString badge(const QVariantMap& clip) const;
+
+private:
+    const nt::server::AssetCacheRoot m_cache;
 };

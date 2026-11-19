@@ -1,4 +1,5 @@
 #include "preview/layers/SceneHooks.h"
+#include "model/TimelineModel.h"
 #include "preview/layers/TestStill.h"
 #include "preview/layers/TestInvertStage.h"
 #include <QGuiApplication>

@@ -1,4 +1,5 @@
 #pragma once
+#include "assets/TimelineMediaConsumer.h"
 #include "assets/AssetMedia.h"
 #include "model/TimelineModel.h"
 #include "server/ServerClient.h"
@@ -6,8 +7,9 @@
 #include <QThread>
 #include <functional>
 #include <QtQmlIntegration/qqmlintegration.h>
-class ProductionReview : public QObject {
+class ProductionReview : public nt::assets::TimelineMediaConsumer {
     Q_OBJECT
+    Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
     Q_PROPERTY(QVariantMap summary READ summary NOTIFY changed)
@@ -18,6 +20,7 @@ public:
     using ReadCall = std::function<nt::server::QueryResult(const QString&, const QJsonObject&)>;
     using MediaResolver = std::function<nt::Clip(nt::server::ServerClient&, const QString&, const QJsonObject&, const QJsonObject&, nt::assets::MediaProtection&, quint64)>;
     explicit ProductionReview(QObject* parent = nullptr);
+    explicit ProductionReview(const nt::server::AssetCacheRoot& cache, QObject* parent = nullptr);
     ~ProductionReview() override;
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* model);
@@ -51,8 +54,6 @@ private:
     QString m_error;
     ReadCall m_call;
     MediaResolver m_resolver;
-    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
-    std::shared_ptr<nt::assets::MediaProtection> m_protection;
     QThread* m_worker = nullptr;
     quint64 m_serial = 0;
 };

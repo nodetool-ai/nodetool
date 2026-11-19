@@ -9,7 +9,7 @@
 #include "edit/keyframes/Keyframes.h"
 #include "edit/keys/AudioCrossfade.h"
 #include "edit/sourceEdit/SourceViewerState.h"
-#include "edit/speed/TimeRemap.h"
+#include "scene/TimeRemap.h"
 #include "edit/targeting/TargetingEdits.h"
 #include "edit/targeting/TrackTargeting.h"
 #include "ui/TimelineViewState.h"

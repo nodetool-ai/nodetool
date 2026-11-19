@@ -1,5 +1,6 @@
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.TimelinePlayer
 
 // The dock slot owns the height, as TimelineTracksPanel.tsx does on the web.
 Item {
