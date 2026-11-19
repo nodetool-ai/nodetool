@@ -140,6 +140,14 @@ const comfyPresetOutput = z.object({
   maxLifetimeMinutes: z.number()
 });
 
+const stockSchema = z.enum(["High", "Medium", "Low"]).nullable();
+const gpuAvailabilityOutput = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  secure: stockSchema,
+  community: stockSchema
+});
+
 /** Pull the wired `WorkerManager` from context or fail loudly. */
 function requireManager(manager: WorkerManager | undefined): WorkerManager {
   if (!manager) {
@@ -237,6 +245,15 @@ export const workerRouter = router({
       isProductionServer()
         ? []
         : COMFY_PRESETS.map((preset) => ({ ...preset, gpus: [...preset.gpus] }))
+    ),
+
+  /** RunPod GPU stock for hosts that can run the worker image. */
+  gpuAvailability: protectedProcedure
+    .output(z.array(gpuAvailabilityOutput))
+    .query(({ ctx }) =>
+      isProductionServer()
+        ? []
+        : requireManager(ctx.workerManager).gpuAvailability()
     ),
 
   startComfyPreset: localProcedure

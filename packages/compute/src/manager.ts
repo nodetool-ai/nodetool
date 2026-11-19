@@ -37,6 +37,11 @@ import {
 } from "@nodetool-ai/models";
 
 import { RunpodPodProvider } from "./providers/runpod.js";
+import {
+  availabilityRank,
+  fetchRunpodGpuAvailability,
+  type RunpodGpuAvailability
+} from "./providers/runpod-availability.js";
 import { VastProvider } from "./providers/vast.js";
 import { VerdaProvider } from "./providers/verda.js";
 import type {
@@ -155,7 +160,11 @@ export interface WorkerManagerDeps {
     target: WorkerTarget,
     credentials: WorkerCredentials
   ) => WorkerProvider;
+  fetchGpuAvailability: (apiKey: string) => Promise<RunpodGpuAvailability[]>;
 }
+
+/** How long one RunPod stock reading is reused. */
+const GPU_AVAILABILITY_TTL_MS = 30_000;
 
 function defaultDeps(): WorkerManagerDeps {
   return {
@@ -168,6 +177,7 @@ function defaultDeps(): WorkerManagerDeps {
     listWorkerInstances: realListWorkerInstances,
     updateWorkerInstance: realUpdateWorkerInstance,
     getSecret: realGetSecret,
+    fetchGpuAvailability: (apiKey) => fetchRunpodGpuAvailability(apiKey),
     getSetting: async (key) => {
       const setting = await Setting.find(LOCAL_USER_ID, key);
       return setting ? setting.getValue() : null;
@@ -184,6 +194,10 @@ function defaultDeps(): WorkerManagerDeps {
 
 export class WorkerManager {
   private readonly deps: WorkerManagerDeps;
+  private gpuAvailabilityCache: {
+    at: number;
+    value: Promise<RunpodGpuAvailability[]>;
+  } | null = null;
 
   constructor(deps: Partial<WorkerManagerDeps> = {}) {
     this.deps = { ...defaultDeps(), ...deps };
@@ -299,7 +313,18 @@ export class WorkerManager {
         max_lifetime_minutes: preset.maxLifetimeMinutes,
       });
     }
-    for (const gpu of preset.gpus) {
+    // Try the GPU with the most stock first. A failed stock read keeps the
+    // preset order.
+    const stock = await this.gpuAvailability().catch(
+      () => [] as RunpodGpuAvailability[]
+    );
+    const rank = (gpu: string): number =>
+      availabilityRank(stock.find((entry) => entry.id === gpu));
+    const gpus = preset.gpus
+      .map((gpu, index) => ({ gpu, index, rank: rank(gpu) }))
+      .sort((a, b) => b.rank - a.rank || a.index - b.index)
+      .map(({ gpu }) => gpu);
+    for (const gpu of gpus) {
       try {
         return await this.provision(preset.profileName, { gpu });
       } catch (error) {
@@ -591,6 +616,29 @@ export class WorkerManager {
    * secrets list alone, which only sees the store and so false-warns on an
    * env-provided key.
    */
+  /**
+   * RunPod GPU stock levels for hosts that can run the worker image. Empty
+   * when no RunPod key is configured. One reading is reused for 30 seconds.
+   */
+  gpuAvailability(): Promise<RunpodGpuAvailability[]> {
+    const cached = this.gpuAvailabilityCache;
+    if (cached && Date.now() - cached.at < GPU_AVAILABILITY_TTL_MS) {
+      return cached.value;
+    }
+    const value = (async () => {
+      const apiKey = await this.resolveSecret("RUNPOD_API_KEY");
+      return apiKey ? this.deps.fetchGpuAvailability(apiKey) : [];
+    })();
+    this.gpuAvailabilityCache = { at: Date.now(), value };
+    // Do not keep a failed reading.
+    value.catch(() => {
+      if (this.gpuAvailabilityCache?.value === value) {
+        this.gpuAvailabilityCache = null;
+      }
+    });
+    return value;
+  }
+
   async apiKeyStatus(): Promise<Record<WorkerTarget, boolean>> {
     const targets = Object.keys(CREDENTIAL_SECRETS) as WorkerTarget[];
     const entries = await Promise.all(

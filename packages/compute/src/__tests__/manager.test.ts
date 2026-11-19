@@ -215,6 +215,7 @@ function makeManager(overrides: Partial<WorkerManagerDeps> = {}) {
     ...settings.deps,
     getSecret,
     providerFactory: (_target, _apiKey) => provider,
+    fetchGpuAvailability: async () => [],
     ...overrides,
   };
   const manager = new WorkerManager(deps);
@@ -852,9 +853,36 @@ describe("WorkerManager — reconcile", () => {
   });
 });
 
+describe("gpuAvailability", () => {
+  it("reuses one reading and skips the fetch without a key", async () => {
+    const fetchGpuAvailability = vi.fn(async () => []);
+    const { manager } = makeManager({ fetchGpuAvailability });
+    await manager.gpuAvailability();
+    await manager.gpuAvailability();
+    expect(fetchGpuAvailability).toHaveBeenCalledTimes(1);
+    expect(fetchGpuAvailability).toHaveBeenCalledWith("default-api-key");
+
+    const noKey = makeManager({
+      fetchGpuAvailability,
+      getSecret: vi.fn(async () => null),
+    });
+    const saved = process.env.RUNPOD_API_KEY;
+    delete process.env.RUNPOD_API_KEY;
+    try {
+      await expect(noKey.manager.gpuAvailability()).resolves.toEqual([]);
+    } finally {
+      if (saved !== undefined) process.env.RUNPOD_API_KEY = saved;
+    }
+    expect(fetchGpuAvailability).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("startComfyPreset", () => {
-  function setup(failures: string[]) {
-    const { manager, provider } = makeManager();
+  function setup(
+    failures: string[],
+    fetchGpuAvailability: WorkerManagerDeps["fetchGpuAvailability"] = async () => []
+  ) {
+    const { manager, provider } = makeManager({ fetchGpuAvailability });
     const provision = vi
       .spyOn(provider, "provision")
       .mockImplementation(async (spec: WorkerSpec): Promise<ProvisionResult> => {
@@ -897,6 +925,35 @@ describe("startComfyPreset", () => {
   it("reports when no GPU has capacity", async () => {
     const { manager } = setup(["no instances", "no instances"]);
     await expect(manager.startComfyPreset("minimax-h3")).rejects.toThrow("no capacity");
+  });
+
+  it("tries the GPU with the most stock first", async () => {
+    const { manager, provision } = setup([], async () => [
+      {
+        id: "NVIDIA RTX PRO 4500 Blackwell",
+        displayName: "RTX PRO 4500",
+        secure: null,
+        community: null,
+      },
+      {
+        id: "NVIDIA GeForce RTX 5090",
+        displayName: "RTX 5090",
+        secure: "Low",
+        community: null,
+      },
+    ]);
+    await manager.startComfyPreset("minimax-h3");
+    expect(provision.mock.calls.map(([spec]) => spec.gpu)).toEqual([
+      "NVIDIA GeForce RTX 5090",
+    ]);
+  });
+
+  it("keeps the preset order when the stock read fails", async () => {
+    const { manager, provision } = setup([], async () => {
+      throw new Error("graphql down");
+    });
+    await manager.startComfyPreset("minimax-h3");
+    expect(provision.mock.calls[0][0].gpu).toBe("NVIDIA RTX PRO 4500 Blackwell");
   });
 
   it("rejects an unknown preset", async () => {
