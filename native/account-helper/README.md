@@ -56,7 +56,7 @@ The helper to Electron main:
 | Message | Fields |
 |---|---|
 | `ready` | `protocol` (2) |
-| `state` | `state` (`signedOut`, `signingIn` or `signedIn`), `displayName`, `serverOrigin`, `serverEndPending`, `cloudAvailable`, `keychainAvailable`, `message` |
+| `state` | `state` (`signedOut`, `signingIn` or `signedIn`), `displayName`, `accountId` (empty unless signed in), `serverOrigin`, `serverEndPending`, `cloudAvailable`, `keychainAvailable`, `message` |
 | `openBrowser` | `url` |
 | `http` | `id`, `method`, `url`, `headers`, `body`, `timeoutMs`, `requiredOrigin`, and `request` or `transfer` with the id it serves |
 | `httpCancel` | `id` |

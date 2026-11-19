@@ -14519,6 +14519,8 @@
       "loadFailureTitle": "Nie można załadować dokumentów",
       "loadFailureSummary": "Nie udało się wczytać dokumentów projektu",
       "tryAgainLater": "Spróbuj ponownie później.",
+      "cloudLoadFailure": "Nie udało się wyświetlić dokumentów w chmurze: {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "Brak pasujących dokumentów",
       "noMatchingDescription": "Wyszukuje tylko dokumenty. Rozmowy znajdują się w Czatach, a przesłane pliki znajdują się w Bibliotece.",
       "noDocuments": "Nie ma jeszcze dokumentów",
@@ -14537,7 +14539,9 @@
         "text": "Pliki tekstowe",
         "agents": "Agenci i kod",
         "entities": "Podmioty",
-        "shared": "Udostępniono mi"
+        "shared": "Udostępniono mi",
+        "cloud": "Chmura",
+        "cloudShared": "Udostępniono mi"
       },
       "type": {
         "workflow": "Przepływ pracy",

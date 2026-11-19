@@ -14035,6 +14035,8 @@
       "loadFailureTitle": "Dokumente konnten nicht geladen werden",
       "loadFailureSummary": "Projekt-Dokumente konnten nicht geladen werden",
       "tryAgainLater": "Versuche es später erneut.",
+      "cloudLoadFailure": "Cloud-Dokumente konnten nicht aufgelistet werden: {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "Keine passenden Dokumente",
       "noMatchingDescription": "Hier werden nur Dokumente durchsucht. Unter Chats findest du Unterhaltungen und in der Bibliothek hochgeladene Dateien.",
       "noDocuments": "Noch keine Dokumente",
@@ -14053,7 +14055,9 @@
         "text": "Textdateien",
         "agents": "Agenten und Code",
         "entities": "Entitäten",
-        "shared": "Mit mir geteilt"
+        "shared": "Mit mir geteilt",
+        "cloud": "Cloud",
+        "cloudShared": "Mit mir geteilt"
       },
       "type": {
         "workflow": "Workflow",

@@ -14035,6 +14035,8 @@
       "loadFailureTitle": "Kan documenten niet laden",
       "loadFailureSummary": "Projectdocumenten kunnen niet worden geladen",
       "tryAgainLater": "Probeer het later opnieuw.",
+      "cloudLoadFailure": "Clouddocumenten konden niet worden weergegeven: {{error}}",
+      "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
       "noMatching": "Geen overeenkomende documenten",
       "noMatchingDescription": "Hiermee worden alleen documenten doorzocht. Gesprekken vinden plaats in Chats en uploads staan ​​in de bibliotheek.",
       "noDocuments": "Nog geen documenten",
@@ -14053,7 +14055,9 @@
         "text": "Tekstbestanden",
         "agents": "Agenten en code",
         "entities": "Entiteiten",
-        "shared": "Gedeeld met mij"
+        "shared": "Gedeeld met mij",
+        "cloud": "Cloud",
+        "cloudShared": "Gedeeld met mij"
       },
       "type": {
         "workflow": "Werkstroom",
