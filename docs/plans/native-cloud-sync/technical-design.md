@@ -362,6 +362,8 @@ As built (WP1.15, cloud window drafts): in the cloud window the web editors keep
 
 As built (WP1.15, sign-out): Sign out in Settings counts the account's drafts in the local server (`web/src/lib/cloud/waitingDrafts.ts`). With none it signs out at once. Otherwise `CloudSignOutDialog` offers to keep them on this computer and sign out, to wait until they are sent, or to cancel. Wait counts again every 2 seconds and signs out when no waiting draft is left, and it is offered only while some draft is waiting, since a refused draft is never sent. When the local server does not answer, the dialog says so and offers keep and cancel. Nothing is deleted in any case.
 
+As built (WP1.15, TC125): drafts are scoped by the window's server and account, so a cloud window of account A writes and reads only A's drafts. When another account signs in without a sign-out in between, as a native app can do, the main process ends every pending cloud request and socket of the first account (`accountChanged` in `electron/src/cloudAccount.ts`). A request, transfer or socket from a cloud window that belongs to another account than the signed-in one is answered as signed out (`CloudWindow.mayCallCloud`), also while that window is still closing. A's drafts stay in the local server and are taken up when A signs in again.
+
 ### Local data scoping and durable drafts
 
 New tables in the local NodeTool database. Every row carries `server_key` (SHA-256 of the server origin, first 16 hex characters) and `account_id`. Every query filters on both, and the access layer takes them as required arguments.

@@ -287,6 +287,18 @@ describe("cloud requests through the account", () => {
     expect(cancels).toEqual(ids);
   });
 
+  test("TC125: another account signing in ends every pending request of the first", async () => {
+    const { account, helper } = await signedInAccount();
+    const answer = account.request({ method: "GET", path: "/trpc/workflows.list", headers: {} });
+    await settle();
+    helper.say({ ...SIGNED_IN, displayName: "Ada L." });
+    await settle();
+    helper.say({ ...SIGNED_IN, accountId: "u2", displayName: "Bea" });
+    await settle();
+    expect(await answer).toEqual({ ok: false, error: "SIGNED_OUT" });
+    expect(helper.received.filter((m) => m.type === "requestCancel")).toHaveLength(1);
+  });
+
   test("a helper that exits ends every pending request as offline", async () => {
     const { account, helper } = await signedInAccount();
     const answer = account.request({ method: "GET", path: "/trpc/workflows.list", headers: {} });

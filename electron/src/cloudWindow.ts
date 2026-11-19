@@ -59,6 +59,12 @@ export class CloudWindow {
   private origin: CloudWindowOrigin | null = null;
   private ready = false;
   private pending: CloudDocumentRef[] = [];
+  /**
+   * Every page this launch opened as a cloud window, closed ones included.
+   * Electron never reuses a webContents id within a process, so the set
+   * grows by one per window opened.
+   */
+  private readonly pages = new Set<number>();
 
   constructor(private readonly deps: CloudWindowDeps) {}
 
@@ -83,6 +89,7 @@ export class CloudWindow {
     }
     this.closeWindow();
     const window = this.deps.createWindow();
+    this.pages.add(window.webContentsId);
     this.window = window;
     this.origin = origin;
     this.ready = false;
@@ -102,6 +109,21 @@ export class CloudWindow {
     return this.window && !this.window.isDestroyed() && this.window.webContentsId === webContentsId
       ? this.origin
       : null;
+  }
+
+  /**
+   * Whether a cloud request of the page `webContentsId` may go out with the
+   * signed-in account's credential (TC125). Any other window may. A cloud
+   * window may only while it belongs to the account that is signed in now,
+   * so a window of account A that is still closing sends nothing under B.
+   */
+  mayCallCloud(webContentsId: number): boolean {
+    if (!this.pages.has(webContentsId)) {
+      return true;
+    }
+    const mine = this.originFor(webContentsId);
+    const current = originOfState(this.deps.account.state());
+    return mine !== null && current !== null && sameOrigin(mine, current);
   }
 
   /**

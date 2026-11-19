@@ -4,6 +4,7 @@
 jest.mock("../types.d", () => ({}));
 
 import { CloudWindow, originOfState, type WindowLike } from "../cloudWindow";
+import { accountChanged } from "../cloudAccount";
 import type { CloudAccountState, CloudDocumentRef } from "../types.d";
 
 const SIGNED_IN: CloudAccountState = {
@@ -171,4 +172,30 @@ test("the origin of a state needs the account id and the policy", () => {
   expect(originOfState({ ...SIGNED_IN, accountId: "" })).toBeNull();
   expect(originOfState({ ...SIGNED_IN, cloudAvailable: false })).toBeNull();
   expect(originOfState({ ...SIGNED_IN, available: false })).toBeNull();
+});
+
+test("TC125: a cloud window sends nothing under an account it was not opened for", () => {
+  const { cloudWindow, setState, setStateQuietly } = setup();
+  // The local window is never a cloud window.
+  expect(cloudWindow.mayCallCloud(1)).toBe(true);
+  cloudWindow.open(FLOW);
+  expect(cloudWindow.mayCallCloud(10)).toBe(true);
+  // Account B signs in before the state event closes A's window.
+  setStateQuietly({ ...SIGNED_IN, accountId: "u2" });
+  expect(cloudWindow.mayCallCloud(10)).toBe(false);
+  setState({ ...SIGNED_IN, accountId: "u2" });
+  // Closed or still closing, A's page stays refused, also after B opens a window.
+  expect(cloudWindow.mayCallCloud(10)).toBe(false);
+  cloudWindow.open(CUT);
+  expect(cloudWindow.mayCallCloud(11)).toBe(true);
+  expect(cloudWindow.mayCallCloud(10)).toBe(false);
+  expect(cloudWindow.mayCallCloud(1)).toBe(true);
+});
+
+test("an account change is another account or server, signed in throughout", () => {
+  expect(accountChanged(SIGNED_IN, { ...SIGNED_IN, displayName: "Ada L." })).toBe(false);
+  expect(accountChanged(SIGNED_IN, { ...SIGNED_IN, accountId: "u2" })).toBe(true);
+  expect(accountChanged(SIGNED_IN, { ...SIGNED_IN, serverOrigin: "https://nt.example" })).toBe(true);
+  expect(accountChanged(SIGNED_IN, { ...SIGNED_IN, state: "signedOut", accountId: "" })).toBe(false);
+  expect(accountChanged({ ...SIGNED_IN, state: "signedOut", accountId: "" }, SIGNED_IN)).toBe(false);
 });
