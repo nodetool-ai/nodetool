@@ -1,4 +1,9 @@
-import { isCompactionMessage, type Message } from "@nodetool-ai/models";
+import {
+  isCompactionMessage,
+  turnContextText,
+  type Message,
+  type TurnContextSection
+} from "@nodetool-ai/models";
 import type {
   MessageContent,
   Message as ProviderMessage,
@@ -65,7 +70,10 @@ export function dbMessageToProviderMessage(
     : (m.content as string | null);
   return {
     role,
-    content: rawContent ?? "",
+    // An assistant turn that only called tools went out with `null` content
+    // while it was live; replaying it as "" would change the bytes of a
+    // request prefix the provider has cached.
+    content: rawContent ?? (role === "assistant" ? null : ""),
     toolCallId: isString(m.tool_call_id) ? m.tool_call_id : null,
     toolCalls: Array.isArray(m.tool_calls)
       ? (m.tool_calls as Array<ProviderToolCall>).map((tc) => {
@@ -82,6 +90,39 @@ export function dbMessageToProviderMessage(
       : null,
     threadId: m.thread_id
   };
+}
+
+/**
+ * The content of the image message a `view_image` result put after its round,
+ * when it can be stored on the tool row: text blocks and images referenced by
+ * a storage uri. Null for anything carrying bytes or a `data:` uri, which the
+ * database does not hold. Such a row replays without its image, and the
+ * request prefix after it changes once.
+ */
+export function storableViewedImage(
+  content: readonly MessageContent[] | undefined
+): MessageContent[] | null {
+  if (!content || content.length === 0) return null;
+  const storable = content.every((block) =>
+    block.type === "text"
+      ? isString(block.text)
+      : block.type === "image_url" &&
+        isString(block.image.uri) &&
+        !block.image.uri.startsWith("data:") &&
+        block.image.data === undefined
+  );
+  return storable ? [...content] : null;
+}
+
+/**
+ * The image message a stored `view_image` row carries (see
+ * {@link storableViewedImage}), shaped as the provider loop built it: role and
+ * content only. Null for every other row.
+ */
+export function viewedImageMessage(row: Message): ProviderMessage | null {
+  if (row.role !== "tool" || !Array.isArray(row.output_files)) return null;
+  const content = storableViewedImage(row.output_files as MessageContent[]);
+  return content ? { role: "user", content } : null;
 }
 
 /**
@@ -102,49 +143,107 @@ export function toolResultDisplayText(content: MessageContent[]): string {
 }
 
 /**
- * Append ephemeral context to the last user message.
+ * A user message with its turn context appended: a text part on array
+ * content, a blank line and the text on string content.
  *
- * Every turn-scoped block (RAG context, memory, an invoked skill's
- * body) rides here, and the position is the point. Providers cache the
- * longest stable prefix on their own, and Anthropic and the OpenAI Responses
- * API hoist *every* system-role message into one system string — so a block
- * that changes per turn, injected as a system message, rewrote the tail of
- * that string and invalidated the whole prefix ahead of the conversation,
- * tool catalog included. Folded into the last user message instead, the
- * volatile bytes sit after everything a later turn will reuse.
+ * Every turn-scoped block (what the user is looking at, the focused tools,
+ * memory, an invoked skill's body) rides on the user message it was sent
+ * with. Providers cache the longest stable prefix, and Anthropic and the
+ * OpenAI Responses API hoist every system-role message into one system
+ * string, so a per-turn block in a system message rewrote that string and
+ * invalidated the whole prefix. On the user message the block sits after
+ * everything earlier turns sent. The block is stored on that message
+ * (`turn_context`) and replayed through this function on every later turn,
+ * so the bytes a provider cached are sent again unchanged.
  *
  * Call it after media resolution: the text is appended as-is, so an
  * `asset://` uri a memory carries stays a reference instead of being
  * inlined as a data URI.
  */
+export function appendTurnContext(
+  message: ProviderMessage,
+  context: string
+): ProviderMessage {
+  if (!context) return message;
+  return Array.isArray(message.content)
+    ? { ...message, content: [...message.content, { type: "text", text: context }] }
+    : {
+        ...message,
+        content: `${isString(message.content) ? message.content : ""}\n\n${context}`
+      };
+}
+
+/** {@link appendTurnContext} on the last user message of `messages`. */
 export function appendContextToLastUser(
   messages: ProviderMessage[],
   context: string
 ): ProviderMessage[] {
-  let lastUserIndex = -1;
   for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === "user") {
-      lastUserIndex = i;
-      break;
+    if (messages[i].role !== "user") continue;
+    return [
+      ...messages.slice(0, i),
+      appendTurnContext(messages[i], context),
+      ...messages.slice(i + 1)
+    ];
+  }
+  return messages;
+}
+
+/** One block a turn would send, before it is compared with what was sent. */
+export interface TurnContextCandidate {
+  key: string;
+  /** The block for this turn; empty when the turn has none of this kind. */
+  text: string;
+  /**
+   * Sent in place of an empty `text` when the thread last sent a non-empty
+   * block of this kind, so the model does not act on a stale one, such as a
+   * document the user has since closed. Omit it for kinds whose earlier block
+   * stays true.
+   */
+  cleared?: string;
+}
+
+/**
+ * The newest text of every turn-context kind in `rows`, oldest row first.
+ * `rows` is the history a provider is sent, so a block cut by compaction no
+ * longer counts as sent.
+ */
+export function lastSentTurnContext(
+  rows: readonly Message[]
+): Map<string, string> {
+  const sent = new Map<string, string>();
+  for (const row of rows) {
+    for (const section of row.turn_context ?? []) {
+      sent.set(section.key, section.text);
     }
   }
-  if (lastUserIndex < 0) return messages;
-  const target = messages[lastUserIndex];
-  const appended: ProviderMessage = Array.isArray(target.content)
-    ? {
-        ...target,
-        content: [...target.content, { type: "text", text: context }]
-      }
-    : {
-        ...target,
-        content: `${isString(target.content) ? target.content : ""}\n\n${context}`
-      };
-  return [
-    ...messages.slice(0, lastUserIndex),
-    appended,
-    ...messages.slice(lastUserIndex + 1)
-  ];
+  return sent;
 }
+
+/**
+ * The blocks this turn sends: each candidate whose text differs from the one
+ * the thread last sent for its kind (I3). An unchanged block is already in
+ * the history, so sending it again would only grow the prompt.
+ */
+export function turnContextDelta(
+  candidates: readonly TurnContextCandidate[],
+  lastSent: ReadonlyMap<string, string>
+): TurnContextSection[] {
+  const out: TurnContextSection[] = [];
+  for (const { key, text, cleared } of candidates) {
+    const previous = lastSent.get(key);
+    if (text) {
+      if (text !== previous) out.push({ key, text });
+      continue;
+    }
+    if (cleared && previous && previous !== cleared) {
+      out.push({ key, text: cleared });
+    }
+  }
+  return out;
+}
+
+export { turnContextText };
 
 /** The bodies of the skills this turn's message named with `/<name>`. */
 export function invokedSkillsSection(

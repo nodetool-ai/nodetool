@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <optional>
 
@@ -27,6 +28,12 @@ public:
   explicit PipeTransport(Emit emit) : emit_(std::move(emit)) {}
 
   account::HttpResponse send(const account::HttpRequest& request) override;
+
+  // send(), with `fields` added to the `http` message, such as the id of
+  // the main process's request it answers (`request` or `transfer`), and a
+  // second flag that stops it, such as the main process's cancel.
+  account::HttpResponse send(const account::HttpRequest& request, const nlohmann::json& fields,
+                             std::shared_ptr<const account::RequestCancel> alsoCancel);
 
   // An `httpResponse` line. Unknown ids are ignored: the request already
   // ended by its deadline or its cancel.
@@ -43,6 +50,26 @@ private:
   std::map<uint64_t, std::optional<account::HttpResponse>> waiting_;
   uint64_t nextId_ = 1;
   bool closed_ = false;
+};
+
+// A transport that sends every request through a PipeTransport with the
+// same fields and second cancel flag, for a client of the library that
+// takes an HttpTransport, such as LocalTransferClient.
+//
+// Thread affinity: as PipeTransport. Ownership: borrows the PipeTransport,
+// which must outlive it.
+class TaggedTransport final : public account::HttpTransport {
+public:
+  TaggedTransport(PipeTransport& pipe, nlohmann::json fields, std::shared_ptr<const account::RequestCancel> cancel)
+      : pipe_(pipe), fields_(std::move(fields)), cancel_(std::move(cancel)) {}
+  account::HttpResponse send(const account::HttpRequest& request) override {
+    return pipe_.send(request, fields_, cancel_);
+  }
+
+private:
+  PipeTransport& pipe_;
+  const nlohmann::json fields_;
+  const std::shared_ptr<const account::RequestCancel> cancel_;
 };
 
 } // namespace nodetool::account_helper

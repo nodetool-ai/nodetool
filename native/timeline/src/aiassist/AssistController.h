@@ -78,6 +78,10 @@ public:
     Q_INVOKABLE bool linkScript(const QString& id, bool linked);
     Q_INVOKABLE bool saveScript(const QJsonObject& script);
     Q_INVOKABLE bool saveStoryboard(const QJsonObject& storyboard);
+    // The StoryWorkspace contract: drafts stay per server and timeline, and
+    // the scripts and storyboards that clips on this timeline link.
+    Q_INVOKABLE QString draftScope() const;
+    Q_INVOKABLE QVariantList linkedResources() const;
     // Merges fields into one line or speaker of the open script and saves it.
     Q_INVOKABLE bool scriptOnTimeline() const;
     Q_INVOKABLE bool updateScriptLine(const QString& lineId, const QJsonObject& fields);

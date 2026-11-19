@@ -130,6 +130,10 @@ private:
   bool writable_ = false;
 };
 
+// A workflow draft is `{"graph": {...}, "name": "..."}`, so a rename is
+// sent with the graph. A draft that is the graph alone, as drafts written
+// before the name was kept are, sends no name.
+//
 // Thread affinity: thread-safe, as TrpcCloudSaver.
 class WorkflowCloudSaver final : public TrpcCloudSaver {
 public:

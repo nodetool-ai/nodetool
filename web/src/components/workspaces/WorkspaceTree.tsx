@@ -21,12 +21,14 @@ import { useProjectFolder } from "../../hooks/useProjectFolder";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { fileManagerKind } from "../../utils/platform";
 import { useOpenProjectConnection } from "../../lib/websocket/openProjectSignal";
+import { serializeDragData } from "../../lib/dragdrop/serialization";
 import {
   folderEntryPath,
   isReservedProjectEntry,
   revealLabelKey
 } from "./projectFolderPaths";
 import WorkspaceTreeRow from "./WorkspaceTreeItem";
+import WorkspaceFilePreview from "./WorkspaceFilePreview";
 import {
   WorkspaceDeleteDialog,
   WorkspaceNameDialog,
@@ -40,24 +42,10 @@ import {
   countFilesUnder,
   createFolder,
   deleteEntry,
+  isDocumentFile,
   moveEntry,
   renameEntry
 } from "./workspaceTreeActions";
-
-/** File names of the documents that open in their own editor from Files. */
-const DOCUMENT_FILE_SUFFIXES = [
-  ".workflow.json",
-  ".timeline.json",
-  ".storyboard.json",
-  ".script.json",
-  ".app.json",
-  ".jsscript.json"
-] as const;
-
-const isDocumentFile = (path: string): boolean => {
-  const lower = path.toLowerCase();
-  return DOCUMENT_FILE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
-};
 
 /** Props forwarded onto a rendered tree row. */
 interface TreeViewItemSlotProps {
@@ -701,7 +689,16 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     }
     e.dataTransfer.setData(ENTRY_DRAG_TYPE, itemId);
     e.dataTransfer.effectAllowed = "move";
-  }, []);
+    // A file also drops onto the canvas: a media file as its asset's node, a
+    // document file as the constant that references the document.
+    const isFolder = isFolderItem(findItemInTree(filesRef.current, itemId));
+    if (!isFolder) {
+      serializeDragData(
+        { type: "project-file", payload: { projectId, path: itemId } },
+        e.dataTransfer
+      );
+    }
+  }, [projectId]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     const isEntry = carriesEntry(e);
@@ -825,6 +822,16 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     [visibleRows, selectedFilePath, expandedItems, toggleFolder, handleItemDoubleClick, virtualizer]
   );
 
+  // A selected file, not a folder or a placeholder row, gets a preview.
+  const selectedItem = findItemInTree(files, selectedFilePath);
+  const previewPath =
+    selectedFilePath &&
+    !isPlaceholderId(selectedFilePath) &&
+    selectedItem &&
+    !isFolderItem(selectedItem)
+      ? selectedFilePath
+      : null;
+
   return (
     <Box css={workspaceTreeStyles(theme)}>
       <PanelHeader
@@ -932,6 +939,10 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
           />
         )}
       </div>
+
+      {previewPath && (
+        <WorkspaceFilePreview projectId={projectId} path={previewPath} />
+      )}
 
       <ContextMenu
         open={menu !== null}

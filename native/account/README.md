@@ -38,6 +38,7 @@ nlohmann_json only. Three interfaces connect it to the rest of the app:
 | `nodetool/account/cloud_client.h` | `CloudClient`, the one request layer that attaches the credential (WP1.10) |
 | `nodetool/account/cloud_drafts.h` | `CloudDocumentSaver`, the saved-state rule (FR11). `DraftStore` and `LocalServerDraftStore`, the client of the local store |
 | `nodetool/account/cloud_savers.h` | `WorkflowCloudSaver` and `TimelineCloudSaver`, the save of each kind, and the schema versions this client writes |
+| `nodetool/account/cloud_transfer.h` | `LocalTransferClient`, the client of the bundled server's `cloudTransfer` router for Publish and Synchronize, and `TransferReview`, the rows and choices of the review sheet (WP2.8) |
 | `nodetool/account/policy.h` | `ManagedPolicy`, the managed policy file per platform and `checkServer` (WP1.9) |
 | `nodetool/account/crypto.h` | SHA-256, base64url, hex, random bytes, the server key |
 
@@ -170,8 +171,8 @@ revision as a version first.
 
 | Kind | Draft | Procedure | Sent with it |
 |---|---|---|---|
-| workflow | the graph, `{"nodes": [], "edges": []}` | `workflows.autosave` | `expected_updated_at`, `editing_instance`, `schema_version`, `force` |
-| timeline | the timeline document | `timeline.update` | `baseUpdatedAt`, `editingInstance`, `schemaVersion` |
+| workflow | `{"graph": {"nodes": [], "edges": []}, "name": "..."}`, or the graph alone in a draft kept before the name was | `workflows.autosave` | `expected_updated_at`, `editing_instance`, `schema_version`, `force`, and `name` when the draft has a non-empty one |
+| timeline | the timeline document, with `fps`, `width` and `height` | `timeline.update` | `baseUpdatedAt`, `editingInstance`, `schemaVersion`, and the three settings as the sequence's columns |
 
 A save the server refuses reports the server's API code, such as
 `ALREADY_EXISTS` for a stale base or `SCHEMA_DOWNGRADE`, or `HTTP_<status>`
@@ -306,6 +307,13 @@ needs Qt Core and Network.
   task thread, and gives QML the viewer and editor links with their
   statements, the people, the linked documents with whether each has a link
   of its own, and the secret warnings. QML creates it.
+- `TransferController` runs Publish to Cloud and Synchronize through the
+  app's own server on its task thread. It captures the send, and for a
+  linked project the receive, and gives QML the review rows. Synchronize
+  receives first with the person's choices, captures the send again when
+  the receive replaced a document, and answers the one refusal of each
+  document kept local with the cloud revision the sheet showed. QML
+  creates it.
 - `ServerToken.h` provides the token helper for the account and its hosts.
   `attachServerToken()` sets
   `Authorization: Bearer` only when the token is not empty and the request
@@ -322,10 +330,19 @@ needs Qt Core and Network.
 `qt/qml/` holds the QML both apps compile: `AccountControl.qml`, with the
 server menu and the Sign in to another server dialog, `CloudDocumentsPanel.qml`,
 `CloudSyncStatus.qml`, `SharePanel.qml` and `ShareDialog.qml`, which shows
-the panel in a dialog. The node editor shows the panel in its own overlay
-window from Workflow > Share or the header's Share button, and the timeline
-shows the dialog from Share in the document bar. Both show Share only on a
-cloud document the account owns.
+the panel in a dialog, and `TransferPanel.qml` with `TransferDialog.qml`, the
+review sheet of Publish and Synchronize. The node editor shows the panel in its
+own overlay window from Workflow > Share or the header's Share button, and the
+timeline shows the dialog from Share in the document bar. Both show Share only
+on a cloud document the account owns.
+
+Both apps open the review sheet from File > Publish to Cloud… and File >
+Synchronize…. The node editor shows `TransferPanel.qml` in its own overlay
+window, and the timeline shows `TransferDialog.qml` from its document bar. The
+sheet asks the local server's `cloudTransfer.link` whether the project is linked
+and publishes or synchronizes from the answer. The entries are enabled only for
+a project folder on the bundled server that the app's launch started, with a
+signed-in account.
 
 The controller runs the keychain, lock and server calls on one task
 thread. Results come back through an inbox guarded by a mutex, and a

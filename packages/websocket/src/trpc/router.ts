@@ -3,6 +3,8 @@ import { router, publicProcedure } from "./index.js";
 import { antigravityRouter } from "./routers/antigravity.js";
 import { assetsRouter } from "./routers/assets.js";
 import { cloudLocalRouter } from "./routers/cloud-local.js";
+import { cloudTransferRouter } from "./routers/cloud-transfer.js";
+import { deletedDocumentsRouter } from "./routers/deleted-documents.js";
 import { codeGenRouter } from "./routers/code-gen.js";
 import { segmentationRouter } from "./routers/segmentation.js";
 import { collectionsRouter } from "./routers/collections.js";
@@ -32,6 +34,8 @@ import { fontsRouter } from "./routers/fonts.js";
 import { openverseRouter } from "./routers/openverse.js";
 import { peopleRouter } from "./routers/people.js";
 import { storageRouter } from "./routers/storage.js";
+import { transfersRouter } from "./routers/transfers.js";
+import { receiveRouter } from "./routers/receive.js";
 import { threadsRouter } from "./routers/threads.js";
 import { memoriesRouter } from "./routers/memories.js";
 import { errorTracesRouter } from "./routers/error-traces.js";
@@ -88,6 +92,8 @@ type AppRouterRecord = {
   scripts: typeof scriptsRouter;
   settings: typeof settingsRouter;
   cloudLocal: typeof cloudLocalRouter;
+  cloudTransfer: typeof cloudTransferRouter;
+  deletedDocuments: typeof deletedDocumentsRouter;
   sketch: typeof sketchRouter;
   storyboards: typeof storyboardsRouter;
   sync: typeof syncRouter;
@@ -98,6 +104,8 @@ type AppRouterRecord = {
   appRuns: typeof appRunsRouter;
   resources: typeof resourcesRouter;
   storage: typeof storageRouter;
+  transfers: typeof transfersRouter;
+  receive: typeof receiveRouter;
   threads: typeof threadsRouter;
   memories: typeof memoriesRouter;
   errorTraces: typeof errorTracesRouter;
@@ -144,6 +152,8 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   scripts: scriptsRouter,
   settings: settingsRouter,
   cloudLocal: cloudLocalRouter,
+  cloudTransfer: cloudTransferRouter,
+  deletedDocuments: deletedDocumentsRouter,
   sketch: sketchRouter,
   storyboards: storyboardsRouter,
   sync: syncRouter,
@@ -154,6 +164,8 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   appRuns: appRunsRouter,
   resources: resourcesRouter,
   storage: storageRouter,
+  transfers: transfersRouter,
+  receive: receiveRouter,
   threads: threadsRouter,
   memories: memoriesRouter,
   errorTraces: errorTracesRouter,

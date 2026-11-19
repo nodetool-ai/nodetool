@@ -131,8 +131,11 @@ in place of the tail breakpoint. Cache hits show up as
 `cache_read_input_tokens` in usage.
 
 A cached prefix survives only while its bytes stay the same. Keep turn-scoped
-context out of the system prompt and append it to the last user message, as
-the chat turn does with memory, invoked skills, and the user's open documents.
+context out of the system prompt and append it to the user message it belongs
+to, as the chat turn does with memory, invoked skills, and the user's open
+documents. The chat turn stores that context on the message
+(`turn_context`) and replays it unchanged on later turns, and it sends a
+block again only when the block changed.
 
 Image input supports JPEG, PNG, GIF, and WebP through inline base64 blocks.
 Document input supports inline PDF data, HTTPS PDF URLs, and plain text, including

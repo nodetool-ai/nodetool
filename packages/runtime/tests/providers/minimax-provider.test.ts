@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { Agent as UndiciAgent } from "undici";
 import { MinimaxProvider } from "../../src/providers/minimax-provider.js";
 import type {
   ImageModel,
@@ -138,6 +139,44 @@ describe("MinimaxProvider", () => {
     expect(body.n).toBe(2);
     expect(body.aspect_ratio).toBe("1:1");
     expect(body.response_format).toBe("base64");
+  });
+
+  it.each([
+    ["MiniMax-H3-Image", "international", "api.minimax.io"],
+    ["MiniMax-H3-Image-Highspeed", "china", "api.minimax.cn"]
+  ])("generates with %s in %s", async (id, region, host) => {
+    const fetchFn = vi.fn().mockResolvedValue(Response.json({
+      data: [{ b64_json: "AQI=" }], request_id: "h3-1"
+    }));
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k", MINIMAX_IMAGE_REGION: region },
+      { client: {} as any, fetchFn }
+    );
+    const model = (await provider.getAvailableImageModels()).find((item) => item.id === id)!;
+    expect(model.supportedTasks).toEqual(["text_to_image"]);
+    expect(await provider.textToImage({ model, prompt: "a lighthouse", width: 2720, height: 1536 }))
+      .toEqual(Uint8Array.from([1, 2]));
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe(`https://${host}/v1/images/generations`);
+    expect(init.dispatcher).toBeInstanceOf(UndiciAgent);
+    expect(JSON.parse(init.body)).toEqual({
+      model: id, prompt: "a lighthouse", n: 1, response_format: "b64_json", size: "2720x1536"
+    });
+    await expect(provider.imageToImage([new Uint8Array([1])], { model, prompt: "edit" }))
+      .rejects.toThrow(/reference images/);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns the billed H3 images in a partially successful batch", async () => {
+    const fetchFn = vi.fn().mockResolvedValueOnce(Response.json({
+      data: [{ url: "https://8.8.8.8/image.jpg" }, { error: { message: "rejected" } }]
+    })).mockResolvedValueOnce(new Response(new Uint8Array([9])));
+    const provider = new MinimaxProvider({ MINIMAX_API_KEY: "k" }, { client: {} as any, fetchFn });
+    const model: ImageModel = { id: "MiniMax-H3-Image", name: "MiniMax H3", provider: "minimax" };
+    await expect(provider.textToImages({ model, prompt: "clouds" }, 10))
+      .resolves.toEqual([Uint8Array.from([9])]);
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body).response_format).toBe("url");
   });
 
   it("forwards every reference image as a subject_reference entry for image-to-image", async () => {

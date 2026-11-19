@@ -19,8 +19,38 @@ Rectangle {
     readonly property real rowHeight: Ui.Metrics.compact
     readonly property real thumbSize: Ui.Metrics.small
     readonly property real indent: Ui.Metrics.lg
+    // The media area of the preview, as the web FILE_PREVIEW_HEIGHT (168px).
+    readonly property real previewHeight: Ui.Metrics.xxl * 7
+    property bool previewExpanded: true
+    // The host's player for a video, audio or 3D model selection. The Files
+    // module has no player of its own. The loaded item gets two properties,
+    // `source` (url, the file's previewMediaUrl) and `kind` ("video", "audio"
+    // or "model3d"), and fills the media area. Without a delegate, or for a
+    // kind the delegate cannot show, the area shows the file's glyph.
+    property Component previewDelegate: null
+    // The kinds the host's delegate plays.
+    property var previewDelegateKinds: ["video", "audio"]
+    readonly property bool previewPlayable: previewDelegate !== null
+        && previewDelegateKinds.indexOf(files.previewKind) >= 0
+        && files.previewMediaUrl.toString() !== ""
     implicitWidth: Ui.Metrics.panelWidth
     color: Ui.Theme.surfacePanel
+
+    // A drop on the list (the web WorkspaceTree.tsx handleDrop): a row of this
+    // tree moves into the directory under the drop, and files from the OS are
+    // copied into it. `row` is -1 below the last row, which is the root.
+    readonly property string entryMime: "application/x-nodetool-project-entry"
+    // The list row under a point of the panel, or -1.
+    function rowAt(x: real, y: real): int {
+        const point = list.mapFromItem(root, x, y)
+        if (!list.visible || !list.contains(point)) return -1
+        return list.indexAt(point.x + list.contentX, point.y + list.contentY)
+    }
+    function dropOn(row: int, entryPath: string, urls: var): bool {
+        const directory = files.dropDirectory(row)
+        if (entryPath !== "") return files.moveEntry(entryPath, directory)
+        return files.copyIn(urls, directory) > 0
+    }
 
     function openMenu(path: string, item: Item, x: real, y: real) {
         menu.path = path
@@ -160,6 +190,22 @@ Rectangle {
                 // The focused row takes Enter, which opens a file, not the click that toggles.
                 Keys.onReturnPressed: root.files.activate(row.index)
                 Keys.onEnterPressed: root.files.activate(row.index)
+                // Drag a row onto a folder to move it, or a media file onto
+                // the workflow canvas to add its constant node.
+                // The mime data is built when a drag starts, not for every row.
+                Drag.dragType: Drag.Automatic
+                Drag.supportedActions: Qt.CopyAction | Qt.MoveAction
+                Drag.proposedAction: Qt.MoveAction
+                DragHandler {
+                    id: rowDrag
+                    objectName: "files-row-drag"
+                    target: null
+                    enabled: !row.placeholder
+                    onActiveChanged: {
+                        if (active) row.Drag.mimeData = root.files.dragData(row.index)
+                        row.Drag.active = active
+                    }
+                }
                 TapHandler {
                     acceptedButtons: Qt.RightButton
                     enabled: root.files.revealable
@@ -215,6 +261,123 @@ Rectangle {
                     elide: Text.ElideRight
                 }
             }
+        }
+        // The selected file at a glance (the web WorkspaceFilePreview.tsx).
+        // Hidden when the selection has nothing to preview. An image loads a
+        // picture, decoded off the UI thread at the area's size. Video and
+        // audio play in the host's previewDelegate. Other kinds show their glyph.
+        Ui.Separator {
+            visible: preview.visible
+            Layout.fillWidth: true
+        }
+        Ui.InspectorSection {
+            id: preview
+            objectName: "files-preview"
+            visible: root.files.previewKind !== ""
+            Layout.fillWidth: true
+            title: "Preview"
+            expanded: root.previewExpanded
+            onExpansionRequested: next => root.previewExpanded = next
+            Rectangle {
+                objectName: "files-preview-media"
+                width: preview.width
+                height: root.previewHeight
+                radius: Ui.Metrics.radiusControl
+                color: Ui.Theme.surfaceCanvas
+                clip: true
+                Ui.Icon {
+                    objectName: "files-preview-glyph"
+                    anchors.centerIn: parent
+                    visible: previewImage.status !== Image.Ready && !previewPlayer.active
+                    name: root.files.previewIcon
+                    size: Ui.Metrics.xxxl
+                }
+                Image {
+                    id: previewImage
+                    objectName: "files-preview-image"
+                    anchors.fill: parent
+                    visible: status === Image.Ready
+                    asynchronous: true
+                    cache: true
+                    smooth: true
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize: Qt.size(Math.ceil(width * Screen.devicePixelRatio), Math.ceil(height * Screen.devicePixelRatio))
+                    source: root.files.previewImageUrl
+                }
+                Loader {
+                    id: previewPlayer
+                    objectName: "files-preview-player"
+                    anchors.fill: parent
+                    anchors.margins: Ui.Metrics.xs
+                    active: root.previewPlayable && preview.expanded
+                    sourceComponent: root.previewDelegate
+                    onLoaded: {
+                        item.source = Qt.binding(() => root.files.previewMediaUrl)
+                        item.kind = Qt.binding(() => root.files.previewKind)
+                    }
+                }
+            }
+            // Name and details read as one block, closer than the gap to the media.
+            Column {
+                objectName: "files-preview-text"
+                width: preview.width
+                spacing: 0
+                Ui.Text {
+                    objectName: "files-preview-name"
+                    width: preview.width
+                    text: root.files.previewName
+                    textFormat: Text.PlainText
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Primary
+                    elide: Text.ElideMiddle
+                }
+                Ui.Text {
+                    objectName: "files-preview-details"
+                    width: preview.width
+                    text: root.files.previewDetails
+                    textFormat: Text.PlainText
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Secondary
+                    elide: Text.ElideRight
+                }
+                Ui.Text {
+                    objectName: "files-preview-summary"
+                    width: preview.width
+                    visible: text !== ""
+                    text: root.files.previewSummary
+                    textFormat: Text.PlainText
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Secondary
+                    elide: Text.ElideRight
+                }
+            }
+        }
+    }
+
+    // The drop target of a move or a copy in from the OS: the whole panel.
+    DropArea {
+        id: panelDrop
+        objectName: "files-drop-area"
+        anchors.fill: parent
+        enabled: root.files.hasFolder
+        onEntered: drag => {
+            const entry = drag.formats.indexOf(root.entryMime) >= 0
+            if (!entry && !drag.hasUrls) { drag.accepted = false; return }
+            drag.accept(entry ? Qt.MoveAction : Qt.CopyAction)
+        }
+        onDropped: drop => {
+            const entry = drop.formats.indexOf(root.entryMime) >= 0 ? drop.getDataAsString(root.entryMime) : ""
+            if (root.dropOn(root.rowAt(drop.x, drop.y), entry, drop.hasUrls ? drop.urls : []))
+                drop.accept(entry !== "" ? Qt.MoveAction : Qt.CopyAction)
+        }
+        Rectangle {
+            objectName: "files-drop-highlight"
+            anchors.fill: parent
+            visible: panelDrop.containsDrag
+            color: "transparent"
+            radius: Ui.Metrics.radiusControl
+            border.color: Ui.Theme.accentPrimary
+            border.width: Ui.Metrics.border
         }
     }
 

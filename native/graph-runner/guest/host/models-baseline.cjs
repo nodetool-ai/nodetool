@@ -16,3 +16,12 @@ exports.migrateMessageBranches = (database) => {
     }
   }
 };
+
+// The 20261130_000009 add_message_turn_context migration: the turn-scoped
+// blocks a chat turn sent after a user message, replayed on later turns.
+exports.migrateMessageTurnContext = (database) => {
+  const columns = database.pragma('table_info("nodetool_messages")');
+  if (!columns.some((column) => column.name === 'turn_context')) {
+    database.exec('ALTER TABLE nodetool_messages ADD COLUMN turn_context TEXT');
+  }
+};

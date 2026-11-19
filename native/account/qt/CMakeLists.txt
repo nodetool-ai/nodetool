@@ -15,6 +15,8 @@ add_library(nodetool_account_qt STATIC
   include/nodetool/account/qt/CloudDocument.h
   src/ShareController.cpp
   include/nodetool/account/qt/ShareController.h
+  src/TransferController.cpp
+  include/nodetool/account/qt/TransferController.h
   src/QtHttpTransport.cpp
   include/nodetool/account/qt/QtHttpTransport.h
   src/TaskQueue.h)
@@ -41,7 +43,7 @@ if(PROJECT_IS_TOP_LEVEL)
   # sign-out reaching the other app, and TC91's policy half.
   add_executable(account_qt_tests tests/tst_account_qt.cpp tests/header_alone.cpp)
   set_target_properties(account_qt_tests PROPERTIES AUTOMOC ON)
-  target_link_libraries(account_qt_tests PRIVATE nodetool_account_qt Qt6::Test)
+  target_link_libraries(account_qt_tests PRIVATE nodetool_account_qt nlohmann_json::nlohmann_json Qt6::Test)
   target_include_directories(account_qt_tests PRIVATE ../tests)
   add_test(NAME account_qt_tests COMMAND account_qt_tests)
   set(account_qt_test_env "QT_QPA_PLATFORM=offscreen")

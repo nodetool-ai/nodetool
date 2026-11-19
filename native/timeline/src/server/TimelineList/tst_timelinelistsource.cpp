@@ -105,6 +105,14 @@ private slots:
         QVERIFY(target->backupDir.startsWith(m_cache.path() + '/'));
         QVERIFY(target->backupDir.endsWith("/timelines"));
         QVERIFY2(loaded.timeline.has_value(), qPrintable(loaded.error));
+        // Media of a server timeline is read from the same server, with its
+        // token and instance. Its files go to the injected cache root.
+        const auto media = nt::server::mediaSource();
+        QVERIFY(media.has_value());
+        QCOMPARE(media->server, server.base());
+        QCOMPARE(media->token, QString("label-token"));
+        QCOMPARE(media->expectedInstance, QString("label-instance"));
+        QVERIFY(!media->authorizer);
     }
 
     void labelOpenAndReport() {
@@ -192,6 +200,23 @@ private slots:
         QCOMPARE(cloud->role, QString("editor"));
         QVERIFY(!nt::server::timelineCacheDirectory().isEmpty());
         QVERIFY(!nt::server::serverSaveTarget().has_value());
+
+        // Takes and mattes of a cloud timeline are read from the cloud
+        // server, each request asking the account for its credential.
+        int authorized = 0;
+        nt::server::setCloudToken("account-token", [&authorized] {
+            ++authorized;
+            return nt::server::RequestAuthorization{QStringLiteral("fresh-token"), {}};
+        });
+        const auto media = nt::server::mediaSource();
+        QVERIFY(media.has_value());
+        QCOMPARE(media->server, QUrl("https://cloud.example"));
+        QCOMPARE(media->token, QString("account-token"));
+        QVERIFY(media->expectedInstance.isEmpty());
+        QVERIFY(media->authorizer);
+        QCOMPARE(media->authorizer().token, QString("fresh-token"));
+        QCOMPARE(authorized, 1);
+        QVERIFY(media->client(1000) != nullptr);
 
         // The local server's token is never sent to the cloud, and the
         // account's token never goes to a plain HTTP address.

@@ -3,6 +3,11 @@
 #include "FakeProjectFiles.h"
 
 #include <QElapsedTimer>
+#include <QFile>
+#include <QJsonDocument>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include <QTemporaryDir>
 #include <QQuickItem>
 #include <QQuickView>
 #include <QSignalSpy>
@@ -104,6 +109,120 @@ private slots:
     files.toggle(0);
     QVERIFY(files.answer("alpha", {FakeProjectFiles::entry("alpha/.nodetool", true)}));
     QCOMPARE(names(files).at(1), QStringLiteral(".nodetool"));
+  }
+
+  void dragCarriesTheEntryAndACanvasPayloadForMediaFiles() {
+    FakeProjectFiles files;
+    files.setProject("p 1");
+    open(files, {FakeProjectFiles::entry("footage", true), FakeProjectFiles::entry("cut.timeline.json"),
+                 FakeProjectFiles::entry("clip.mp4")});
+    files.toggle(rowOf(files, "footage"));
+    QVERIFY(files.answer("footage", {FakeProjectFiles::entry("footage/shot.png")}));
+
+    const auto folder = files.dragData(rowOf(files, "footage"));
+    QCOMPARE(folder.value(ProjectFiles::EntryMime).toString(), QStringLiteral("footage"));
+    QVERIFY(!folder.contains(ProjectFiles::DragMime));
+    // A document file drags too: the canvas resolves it to its constant node.
+    const auto document = QJsonDocument::fromJson(files.dragData(rowOf(files, "cut.timeline.json")).value(ProjectFiles::DragMime).toString().toUtf8()).object();
+    QCOMPARE(document["type"].toString(), QStringLiteral("project-file"));
+    QCOMPARE(document["payload"].toObject()["path"].toString(), QStringLiteral("cut.timeline.json"));
+
+    const auto image = files.dragData(rowOf(files, "footage/shot.png"));
+    QCOMPARE(image.value(ProjectFiles::EntryMime).toString(), QStringLiteral("footage/shot.png"));
+    const auto drag = QJsonDocument::fromJson(image.value(ProjectFiles::DragMime).toString().toUtf8()).object();
+    QCOMPARE(drag["type"].toString(), QStringLiteral("project-file"));
+    const auto payload = drag["payload"].toObject();
+    QCOMPARE(payload["projectId"].toString(), QStringLiteral("p 1"));
+    QCOMPARE(payload["path"].toString(), QStringLiteral("footage/shot.png"));
+    QCOMPARE(payload["directoryId"].toString(), QStringLiteral("dir:p%201:footage"));
+    QCOMPARE(ProjectFiles::projectDirectoryId("p", "."), QStringLiteral("dir:p:"));
+  }
+
+  void dropOnARowTargetsItsFolder() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("footage", true), FakeProjectFiles::entry("notes.md")});
+    files.toggle(rowOf(files, "footage"));
+    QVERIFY(files.answer("footage", {FakeProjectFiles::entry("footage/shot.png")}));
+    QCOMPARE(files.dropDirectory(rowOf(files, "footage")), QStringLiteral("footage"));
+    QCOMPARE(files.dropDirectory(rowOf(files, "footage/shot.png")), QStringLiteral("footage"));
+    QCOMPARE(files.dropDirectory(rowOf(files, "notes.md")), QStringLiteral("."));
+    QCOMPARE(files.dropDirectory(-1), QStringLiteral("."));
+  }
+
+  void movesAnEntryIntoAFolderAndRefusesCycles() {
+    FakeProjectFiles files;
+    files.setProject("p1");
+    open(files, {FakeProjectFiles::entry("footage", true), FakeProjectFiles::entry("notes.md")});
+    files.toggle(rowOf(files, "footage"));
+    QVERIFY(files.answer("footage", {FakeProjectFiles::entry("footage/raw", true)}));
+
+    QVERIFY(files.moveEntry("notes.md", "footage"));
+    QVERIFY(!files.moveEntry("notes.md", "."));                  // already there
+    QVERIFY(!files.moveEntry("footage", "footage/raw"));         // into its own subfolder
+    QVERIFY(!files.moveEntry("footage", "footage"));             // into itself
+    QVERIFY(files.moveEntry("footage/raw", "."));
+    QCOMPARE(files.moves.size(), 2);
+    QCOMPARE(files.moves[0].source, QStringLiteral("notes.md"));
+    QVERIFY(!files.moves[0].isDirectory);
+    QCOMPARE(files.moves[0].directory, QStringLiteral("footage"));
+    QVERIFY(files.moves[1].isDirectory);
+
+    // A finished change lists the folder again. A failure is reported.
+    QSignalSpy failed(&files, &ProjectFiles::changeFailed);
+    files.changeFinished("ws1", "HTTP 500");
+    QCOMPARE(failed.size(), 1);
+    QVERIFY(files.answer(".", {FakeProjectFiles::entry("footage", true)}));
+  }
+
+  void copiesLocalFilesIntoTheDropFolder() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("footage", true)});
+    QTemporaryDir dir;
+    QFile file(dir.filePath("take.png"));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write("png");
+    file.close();
+    const QList<QUrl> urls{QUrl::fromLocalFile(file.fileName()), QUrl::fromLocalFile(dir.path()), QUrl("https://example.com/a.png")};
+    // Without a project there is nowhere to upload.
+    QCOMPARE(files.copyIn(urls, "footage"), 0);
+    files.setProject("p1");
+    QCOMPARE(files.copyIn(urls, "footage"), 1);
+    QCOMPARE(files.uploads.size(), 1);
+    QCOMPARE(files.uploads[0].first, file.fileName());
+    QCOMPARE(files.uploads[0].second, QStringLiteral("footage"));
+  }
+
+  void panelDropMovesOrCopiesIntoTheRowUnderThePointer() {
+    FakeProjectFiles files;
+    files.setProject("p1");
+    open(files, {FakeProjectFiles::entry("footage", true), FakeProjectFiles::entry("notes.md")});
+    auto view = panel(files);
+    QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+    auto *list = named(view->rootObject(), "files-list");
+    QVERIFY(named(view->rootObject(), "files-drop-area"));
+    QTRY_VERIFY(rowItem(list, "footage"));
+    const auto folder = view->rootObject()->mapFromScene(centerOf(rowItem(list, "footage")));
+    int row = -2;
+    QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "rowAt", Q_RETURN_ARG(int, row), Q_ARG(double, folder.x()), Q_ARG(double, folder.y())));
+    QCOMPARE(row, rowOf(files, "footage"));
+    QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "rowAt", Q_RETURN_ARG(int, row), Q_ARG(double, 1.0), Q_ARG(double, 1.0)));
+    QCOMPARE(row, -1);  // the header, outside the list
+
+    bool moved = false;
+    QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "dropOn", Q_RETURN_ARG(bool, moved), Q_ARG(int, rowOf(files, "footage")), Q_ARG(QString, QStringLiteral("notes.md")), Q_ARG(QVariant, QVariantList{})));
+    QVERIFY(moved);
+    QCOMPARE(files.moves.size(), 1);
+    QCOMPARE(files.moves[0].directory, QStringLiteral("footage"));
+
+    QTemporaryDir dir;
+    QFile file(dir.filePath("take.wav"));
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.close();
+    bool copied = false;
+    QVERIFY(QMetaObject::invokeMethod(view->rootObject(), "dropOn", Q_RETURN_ARG(bool, copied), Q_ARG(int, -1), Q_ARG(QString, QString()), Q_ARG(QVariant, QVariantList{QUrl::fromLocalFile(file.fileName())})));
+    QVERIFY(copied);
+    QCOMPARE(files.uploads.size(), 1);
+    QCOMPARE(files.uploads[0].second, QStringLiteral("."));
   }
 
   void comparesNamesNaturally() {
@@ -354,6 +473,180 @@ private slots:
     QTRY_VERIFY(!menu->property("visible").toBool());
     QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, centerOf(named(root, "files-close")));
     QCOMPARE(closed.size(), 1);
+  }
+
+  void previewKindsFollowTheWebPreview() {
+    QCOMPARE(ProjectFiles::previewKindOf("a.PNG"), QStringLiteral("image"));
+    QCOMPARE(ProjectFiles::previewKindOf("clip.mov"), QStringLiteral("video"));
+    QCOMPARE(ProjectFiles::previewKindOf("song.wav"), QStringLiteral("audio"));
+    QCOMPARE(ProjectFiles::previewKindOf("chair.glb"), QStringLiteral("model3d"));
+    QCOMPARE(ProjectFiles::previewKindOf("Timelines/Cut.timeline.json"), QStringLiteral("timeline"));
+    QCOMPARE(ProjectFiles::previewKindOf("Workflows/Flow.workflow.json"), QStringLiteral("workflow"));
+    QCOMPARE(ProjectFiles::previewKindOf("data.json"), QString());
+    QCOMPARE(ProjectFiles::previewKindOf("notes.md"), QString());
+    QCOMPARE(ProjectFiles::previewKindOf("doc.pdf"), QString());
+    QCOMPARE(ProjectFiles::formatSize(0), QStringLiteral("0 B"));
+    QCOMPARE(ProjectFiles::formatSize(512), QStringLiteral("512 B"));
+    QCOMPARE(ProjectFiles::formatSize(1536), QStringLiteral("1.5 KB"));
+    QCOMPARE(ProjectFiles::formatSize(3 * 1024 * 1024), QStringLiteral("3.0 MB"));
+    QCOMPARE(ProjectFiles::formatDuration(64000), QStringLiteral("1:04"));
+    QCOMPARE(ProjectFiles::formatDuration(-5), QStringLiteral("0:00"));
+  }
+
+  void previewFollowsTheSelection() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("Timelines", true), FakeProjectFiles::entry("a.png", false, 2048),
+                 FakeProjectFiles::entry("Cut.timeline.json", false, 900), FakeProjectFiles::entry("notes.md")});
+    QSignalSpy changed(&files, &ProjectFiles::previewChanged);
+    QCOMPARE(files.previewKind(), QString());
+
+    files.select(rowOf(files, "a.png"));
+    QCOMPARE(files.previewKind(), QStringLiteral("image"));
+    QCOMPARE(files.previewName(), QStringLiteral("a.png"));
+    QCOMPARE(files.previewDetails(), QStringLiteral("2.0 KB · image/png"));
+    QCOMPARE(files.previewImageUrl(), ProjectFiles::downloadUrl(Origin, "ws1", "a.png"));
+    QVERIFY(files.timelineRequests.isEmpty());
+
+    // A timeline reads its file once for the summary.
+    files.select(rowOf(files, "Cut.timeline.json"));
+    QCOMPARE(files.previewKind(), QStringLiteral("timeline"));
+    QCOMPARE(files.previewDetails(), QStringLiteral("900 B · Timeline"));
+    QCOMPARE(files.previewImageUrl(), QUrl());
+    QCOMPARE(files.previewSummary(), QString());
+    QCOMPARE(files.timelineRequests.size(), 1);
+    QCOMPARE(files.timelineRequests.first().path, QStringLiteral("Cut.timeline.json"));
+    const QJsonObject timeline{{"duration_ms", 64000},
+                               {"document", QJsonObject{{"tracks", QJsonArray{QJsonObject{}, QJsonObject{}}},
+                                                        {"clips", QJsonArray{QJsonObject{}}}}}};
+    QVERIFY(files.answerTimeline(timeline));
+    QCOMPARE(files.previewSummary(), QStringLiteral("1:04 · 2 tracks · 1 clip"));
+
+    // A refresh with the same size keeps the summary and reads nothing.
+    files.refresh();
+    QVERIFY(files.answer(".", {FakeProjectFiles::entry("Timelines", true), FakeProjectFiles::entry("a.png", false, 2048),
+                               FakeProjectFiles::entry("Cut.timeline.json", false, 900), FakeProjectFiles::entry("notes.md")}));
+    QCOMPARE(files.previewSummary(), QStringLiteral("1:04 · 2 tracks · 1 clip"));
+    QVERIFY(files.timelineRequests.isEmpty());
+
+    // A read that answers after the selection moved on is dropped.
+    files.select(rowOf(files, "a.png"));
+    files.select(rowOf(files, "Cut.timeline.json"));
+    QCOMPARE(files.timelineRequests.size(), 1);
+    const auto stale = files.timelineRequests.takeFirst();
+    files.select(rowOf(files, "a.png"));
+    files.timelineRequests.append(stale);
+    QVERIFY(files.answerTimeline(timeline));
+    QCOMPARE(files.previewSummary(), QString());
+
+    // A file or folder without a preview hides it.
+    files.select(rowOf(files, "notes.md"));
+    QCOMPARE(files.previewKind(), QString());
+    files.select(rowOf(files, "Timelines"));
+    QCOMPARE(files.previewKind(), QString());
+    QVERIFY(changed.size() > 0);
+  }
+
+  void panelShowsThePreviewOfTheSelection() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("clip.mp4", false, 4096), FakeProjectFiles::entry("notes.md")});
+    auto view = panel(files);
+    auto *root = view->rootObject();
+    QVERIFY2(root, "FilesPanel did not load");
+    QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+    auto *preview = named(root, "files-preview");
+    QVERIFY(preview);
+    QVERIFY(!preview->isVisible());
+
+    files.select(rowOf(files, "clip.mp4"));
+    QTRY_VERIFY(preview->isVisible());
+    QCOMPARE(named(root, "files-preview-name")->property("text").toString(), QStringLiteral("clip.mp4"));
+    QCOMPARE(named(root, "files-preview-details")->property("text").toString(), QStringLiteral("4.0 KB · video/mp4"));
+    QVERIFY(named(root, "files-preview-glyph")->isVisible());
+    QVERIFY(!named(root, "files-preview-summary")->isVisible());
+    auto *media = named(root, "files-preview-media");
+    QVERIFY(media->isVisible());
+    QVERIFY(media->height() > 0);
+    // The tree keeps its rows above the preview.
+    auto *list = named(root, "files-list");
+    QVERIFY(list->height() > 0);
+    QTRY_VERIFY2(list->mapToScene({0, list->height()}).y() <= preview->mapToScene({0, 0}).y() + 0.5,
+                 qPrintable(QStringLiteral("list bottom %1, preview top %2, preview height %3")
+                                .arg(list->mapToScene({0, list->height()}).y())
+                                .arg(preview->mapToScene({0, 0}).y())
+                                .arg(preview->height())));
+
+    // The section collapses to its header.
+    QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, centerOf(named(preview, "sectionToggle")));
+    QTRY_VERIFY(!media->isVisible());
+    QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, centerOf(named(preview, "sectionToggle")));
+    QTRY_VERIFY(media->isVisible());
+
+    files.select(rowOf(files, "notes.md"));
+    QTRY_VERIFY(!preview->isVisible());
+  }
+
+  void previewMediaUrlPicksTheLocalFileOrTheDownload() {
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    QFile clip(dir.filePath("clip.mp4"));
+    QVERIFY(clip.open(QIODevice::WriteOnly));
+    clip.close();
+    FakeProjectFiles files;
+    files.configure(Origin, "token", "user");
+    files.setFolder("ws1", dir.path());
+    QVERIFY(files.answer(".", {FakeProjectFiles::entry("clip.mp4", false, 10), FakeProjectFiles::entry("song.wav", false, 10),
+                               FakeProjectFiles::entry("a.png", false, 10)}));
+    files.select(rowOf(files, "clip.mp4"));
+    QCOMPARE(files.previewMediaUrl(), QUrl::fromLocalFile(QDir(dir.path()).filePath("clip.mp4")));
+    // The file is not on disk, so the server serves it.
+    files.select(rowOf(files, "song.wav"));
+    QCOMPARE(files.previewMediaUrl(), ProjectFiles::downloadUrl(Origin, "ws1", "song.wav"));
+    files.select(rowOf(files, "a.png"));
+    QCOMPARE(files.previewMediaUrl(), QUrl());
+  }
+
+  void previewDelegatePlaysVideoAndAudio() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("clip.mp4", false, 4096), FakeProjectFiles::entry("song.wav", false, 10),
+                 FakeProjectFiles::entry("chair.glb", false, 10)});
+    auto view = panel(files);
+    auto *root = view->rootObject();
+    QVERIFY2(root, "FilesPanel did not load");
+    QQmlComponent player(view->engine());
+    player.setData("import QtQuick\nItem { objectName: \"host-player\"; property url source; property string kind }", {});
+    QVERIFY2(player.isReady(), qPrintable(player.errorString()));
+    root->setProperty("previewDelegate", QVariant::fromValue(&player));
+    QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+
+    files.select(rowOf(files, "clip.mp4"));
+    QQuickItem *hosted = nullptr;
+    QTRY_VERIFY((hosted = named(root, "host-player")) && hosted->isVisible());
+    QCOMPARE(hosted->property("kind").toString(), QStringLiteral("video"));
+    QCOMPARE(hosted->property("source").toUrl(), ProjectFiles::downloadUrl(Origin, "ws1", "clip.mp4"));
+    QTRY_VERIFY(hosted->width() > 0 && hosted->height() > 0);
+    QVERIFY(!named(root, "files-preview-glyph")->isVisible());
+
+    files.select(rowOf(files, "song.wav"));
+    QTRY_COMPARE(named(root, "host-player")->property("kind").toString(), QStringLiteral("audio"));
+    QCOMPARE(named(root, "host-player")->property("source").toUrl(), ProjectFiles::downloadUrl(Origin, "ws1", "song.wav"));
+
+    // A kind the host does not play keeps the glyph.
+    files.select(rowOf(files, "chair.glb"));
+    QTRY_VERIFY(!named(root, "host-player"));
+    QVERIFY(named(root, "files-preview-glyph")->isVisible());
+  }
+
+  void previewWithoutDelegateShowsTheGlyph() {
+    FakeProjectFiles files;
+    open(files, {FakeProjectFiles::entry("clip.mp4", false, 4096)});
+    auto view = panel(files);
+    auto *root = view->rootObject();
+    QVERIFY2(root, "FilesPanel did not load");
+    QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+    files.select(rowOf(files, "clip.mp4"));
+    QTRY_VERIFY(named(root, "files-preview")->isVisible());
+    QVERIFY(named(root, "files-preview-glyph")->isVisible());
+    QVERIFY(!named(root, "files-preview-player")->property("active").toBool());
   }
 
   // The performance contract: a 5,000-entry folder with 3,000 images builds

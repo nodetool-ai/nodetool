@@ -2429,6 +2429,7 @@ void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
       auto ui = gestureUi_;
       ui["width"] = size.width();
       ui["height"] = size.height();
+      model_.markHandSized(id, ui);
       QJsonArray commands{QJsonObject{{"op", "setNodeField"}, {"id", model_.resourceId(id)}, {"field", "ui_properties"}, {"value", ui}}};
       if (position != gestureBounds_.topLeft()) {
         QJsonObject positions{{model_.resourceId(id), QJsonObject{{"x", position.x()}, {"y", position.y()}}}};

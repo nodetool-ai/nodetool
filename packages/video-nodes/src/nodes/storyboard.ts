@@ -500,6 +500,11 @@ type LoadStoryboardOutputs = {
 export class LoadStoryboardNode extends BaseNode {
   static readonly nodeType = "nodetool.storyboard.LoadStoryboard";
   static readonly title = "Load Storyboard";
+  // Replaced by nodetool.constant.Storyboard. Kept registered so saved
+  // graphs run, hidden because no other node yet reads a board's cast,
+  // style and models.
+  static readonly hidden = true;
+  static readonly replacedBy = "nodetool.constant.Storyboard";
   static readonly description =
     "Read a persisted storyboard's shots, cast and settings.\n    storyboard, board, shots, entities, load\n\n    Use cases:\n    - Feed a board's shots into a batch\n    - Read the cast a board was directed with\n    - Branch a workflow on a board's shot count";
   static readonly metadataOutputTypes = {

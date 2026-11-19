@@ -42,7 +42,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowRuntimeCheck } from "../../hooks/useWorkflowRuntimeCheck";
 import RuntimeInstallDialog from "./RuntimeInstallDialog";
 import { useAutoEnableNodePacks } from "../../hooks/useAutoEnableNodePacks";
-import { useRightPanelStore } from "../../stores/RightPanelStore";
+import { useRevealInspectorOnSelection } from "../../hooks/useRevealInspectorOnSelection";
 
 declare global {
   interface Window {
@@ -95,15 +95,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const redo = useTemporalNodes((state) => state.redo);
   const toggleInspectedNode = useInspectedNodeStore((state) => state.toggleInspectedNode);
 
-  // Auto-reveal the Inspector whenever a node becomes selected.
-  const revealInspectorForSelection = useRightPanelStore(
-    (state) => state.revealForSelection
-  );
-  useEffect(() => {
-    if (active && selectedNodeCount > 0) {
-      revealInspectorForSelection();
-    }
-  }, [active, selectedNodeCount, revealInspectorForSelection]);
+  useRevealInspectorOnSelection(active, selectedNodeCount);
 
   // Keyboard shortcut for Node Info Panel (Ctrl+I / Meta+I)
   const nodeInfoCombo = isMac() ? ["meta", "i"] : ["control", "i"];

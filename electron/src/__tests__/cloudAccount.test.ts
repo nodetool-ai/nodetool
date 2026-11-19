@@ -181,6 +181,9 @@ function setup(overrides: Partial<CloudAccountDeps> = {}) {
       return helper as unknown as ChildProcessWithoutNullStreams;
     },
     fetch: fetchImpl,
+    cloudFetch: jest.fn(),
+    localOrigin: () => "http://127.0.0.1:7777",
+    localClientToken: () => "local-token",
     openExternal,
     onState: (state) => states.push(state),
     setTimer: (fn, ms) => timers.push({ fn, ms }),

@@ -18278,7 +18278,9 @@
       "seek": "Procure",
       "playbackSpeed": "Velocidade de reprodução",
       "exitFullscreen": "Sair da tela cheia",
-      "enterFullscreen": "Entrar em tela cheia"
+      "enterFullscreen": "Entrar em tela cheia",
+      "mute": "Silenciar",
+      "unmute": "Ativar som"
     },
     "tagInput": {
       "placeholder": "Digite e pressione Enter para adicionar uma tag…",
@@ -20550,6 +20552,19 @@
       "retry": "Tentar novamente",
       "donePath": "Seus arquivos estão em {{path}}",
       "close": "Fechar"
+    },
+    "preview": {
+      "clips": "clipes",
+      "title": "Pré-visualização",
+      "tracks": "faixas",
+      "type": {
+        "app": "Miniapp",
+        "jsscript": "Script JS",
+        "script": "Roteiro",
+        "storyboard": "Storyboard",
+        "timeline": "Linha do tempo",
+        "workflow": "Fluxo de trabalho"
+      }
     }
   },
   "assetPicker": {

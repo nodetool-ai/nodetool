@@ -45,6 +45,11 @@ const CLOUD_LOCAL_WITHHELD =
   "accepted a draft would change what the app sends to the person's cloud " +
   "account, or drop edits that exist nowhere else.";
 
+const CLOUD_TRANSFER_WITHHELD =
+  "The native app's transfer client. It sends local documents to, or " +
+  "receives them from, the person's cloud account with an access token only " +
+  "the app holds, after the person's review.";
+
 /**
  * Every tRPC procedure path, and what sandboxed code can do about it.
  *
@@ -415,6 +420,14 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "cloudLocal.drafts.put": { withheld: CLOUD_LOCAL_WITHHELD },
   "cloudLocal.openState.get": { withheld: CLOUD_LOCAL_WITHHELD },
   "cloudLocal.openState.record": { withheld: CLOUD_LOCAL_WITHHELD },
+  "cloudTransfer.send.capture": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.send.run": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.send.cancel": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.receive.capture": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.receive.run": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.receive.cancel": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.link": { withheld: CLOUD_TRANSFER_WITHHELD },
+  "cloudTransfer.resume": { withheld: CLOUD_TRANSFER_WITHHELD },
   "codeGen.generate": {
     elsewhere:
       "Sandboxed code authors node bodies with validate_code / " +
@@ -1015,6 +1028,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "through its own `list_*` capability today; what it cannot do is " +
       "ask which of them belong together."
   },
+  "projects.fileThumbnail": {
+    elsewhere:
+      "A sketch file's thumbnail is a PNG inside its `.sketch.ora` zip. A run " +
+      "reads the file through its workspace, and `render_sketch` renders a " +
+      "sketch it needs to see."
+  },
   "projects.get": {
     gap:
       "Same grouping surface as `projects.create`. Carries the derived " +
@@ -1304,11 +1323,55 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Per-layer generation takes and layer editing are the editor's " +
       "own surface; edit_sketch covers the document."
   },
+  "storage.allowance": {
+    gap: "Storage use and the allowance show in the app; the agent has no capability that reads them."
+  },
+  "storage.files": {
+    gap: "The storage view lists stored files and what holds them in the app; the agent has no capability for it."
+  },
   "storage.signUrl": {
     withheld:
       "A signed URL grants whoever holds it direct object access, " +
       "outside every check in this table, for as long as it is valid. " +
       "read_asset returns the bytes to the run instead."
+  },
+  "transfers.open": {
+    withheld:
+      "A transfer publishes local documents and files into a cloud " +
+      "project. Only a person sending from the desktop app starts one."
+  },
+  "transfers.commit": {
+    withheld:
+      "A commit replaces and deletes cloud documents on the person's " +
+      "confirmation in the transfer review, which a run cannot give."
+  },
+  "transfers.status": {
+    withheld: "Transfer state belongs to the desktop app that opened the transfer."
+  },
+  "transfers.cancel": {
+    withheld: "Transfer state belongs to the desktop app that opened the transfer."
+  },
+  "receive.capture": {
+    withheld:
+      "A receive downloads a cloud project into a local project folder. " +
+      "Only the desktop app that holds that folder starts one."
+  },
+  "receive.document": {
+    withheld: "Revision sets belong to the desktop app that captured them."
+  },
+  "receive.release": {
+    withheld: "Revision sets belong to the desktop app that captured them."
+  },
+  "deletedDocuments.list": {
+    gap: "The app lists deleted documents for restore; the agent has no capability that reads them."
+  },
+  "deletedDocuments.restore": {
+    gap: "Restoring a deleted document is available in the app; the agent has no restore capability."
+  },
+  "deletedDocuments.endRestorePeriod": {
+    withheld:
+      "Ending the restore period destroys the kept copy for good. Only the " +
+      "person decides that, in the app."
   },
   "games.create": { capability: "create_native_game" },
   "games.draftBeforeChange": {

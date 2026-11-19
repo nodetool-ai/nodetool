@@ -17976,7 +17976,9 @@
       "seek": "Sök",
       "playbackSpeed": "Uppspelningshastighet",
       "exitFullscreen": "Avsluta helskärm",
-      "enterFullscreen": "Ange helskärm"
+      "enterFullscreen": "Ange helskärm",
+      "mute": "Ljud av",
+      "unmute": "Ljud på"
     },
     "tagInput": {
       "placeholder": "Skriv och tryck på Enter för att lägga till en tagg...",
@@ -20239,6 +20241,19 @@
       "retry": "Försök igen",
       "donePath": "Dina filer finns i {{path}}",
       "close": "Stäng"
+    },
+    "preview": {
+      "clips": "klipp",
+      "title": "Förhandsvisning",
+      "tracks": "spår",
+      "type": {
+        "app": "Miniapp",
+        "jsscript": "JS-skript",
+        "script": "Manus",
+        "storyboard": "Storyboard",
+        "timeline": "Tidslinje",
+        "workflow": "Arbetsflöde"
+      }
     }
   },
   "assetPicker": {

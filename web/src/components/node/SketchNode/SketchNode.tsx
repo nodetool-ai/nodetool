@@ -287,7 +287,20 @@ const readSketchDocumentFromValue = (value: unknown): SketchDocument | null => {
   if (!isObjectLike(value)) {
     return null;
   }
-  const candidates = [value.data, value.document, value.sketch, value];
+  // A sketch ref (`{type: "sketch", id}`) is a link, not a document. Parsing it
+  // would give an empty default sketch and hide the loaded one.
+  const isRef = value.type === "sketch" && isString(value.id);
+  // The server row wraps the sketch as `document: {sketch, layerBindings}`.
+  // The parser returns a default sketch for any shape and never throws, so
+  // the inner sketch must come first.
+  const persisted = isObjectLike(value.document) ? value.document : null;
+  const candidates = [
+    persisted?.sketch,
+    value.data,
+    value.document,
+    value.sketch,
+    ...(isRef ? [] : [value])
+  ];
   for (const candidate of candidates) {
     if (!candidate) {
       continue;

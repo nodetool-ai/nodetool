@@ -17976,7 +17976,9 @@
       "seek": "Springen",
       "playbackSpeed": "Wiedergabegeschwindigkeit",
       "exitFullscreen": "Vollbild beenden",
-      "enterFullscreen": "Vollbild öffnen"
+      "enterFullscreen": "Vollbild öffnen",
+      "mute": "Stummschalten",
+      "unmute": "Ton an"
     },
     "tagInput": {
       "placeholder": "Tippe einen Tag ein und drücke die Eingabetaste, um ihn hinzuzufügen …",
@@ -20239,6 +20241,19 @@
       "retry": "Erneut versuchen",
       "donePath": "Ihre Dateien befinden sich in {{path}}",
       "close": "Schließen"
+    },
+    "preview": {
+      "clips": "Clips",
+      "title": "Vorschau",
+      "tracks": "Spuren",
+      "type": {
+        "app": "Mini-App",
+        "jsscript": "JS-Skript",
+        "script": "Skript",
+        "storyboard": "Storyboard",
+        "timeline": "Timeline",
+        "workflow": "Workflow"
+      }
     }
   },
   "assetPicker": {

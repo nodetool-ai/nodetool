@@ -29,7 +29,12 @@ import {
 } from "@nodetool-ai/protocol";
 
 import { compactResourceIds } from "../codeact/compact-ids.js";
-import { extractErrorPayload, toTransferable } from "../codeact/tool-api.js";
+import {
+  extractErrorPayload,
+  isArgumentValidationFailure,
+  toTransferable,
+  type SignatureDisclosure
+} from "../codeact/tool-api.js";
 import { coerceCapabilityArgs } from "./args.js";
 import { listCapabilityModules, loadCapabilityModule } from "./registry.js";
 import type { CapabilityRun } from "./types.js";
@@ -68,7 +73,14 @@ export interface SandboxCapabilityDispatcher {
 export function createCapabilityDispatcher(
   run: CapabilityRun,
   moduleKeys: readonly string[] = listCapabilityModules(),
-  options: { signal?: AbortSignal } = {}
+  options: {
+    signal?: AbortSignal;
+    /**
+     * The action's disclosure state: a call that fails validating its
+     * arguments carries the capability's full signature, once per action.
+     */
+    disclosure?: SignatureDisclosure;
+  } = {}
 ): SandboxCapabilityDispatcher {
   const registered = new Set(listCapabilityModules());
   const bySpecifier = new Map<string, string>();
@@ -113,8 +125,11 @@ export function createCapabilityDispatcher(
       try {
         record = coerceCapabilityArgs(found.spec, args as unknown[]);
       } catch (error) {
+        // Every refusal here is about the arguments: a missing required key,
+        // or arguments in a shape the capability does not take.
+        const message = error instanceof Error ? error.message : String(error);
         throw new SandboxCapabilityError(
-          `${moduleKey}: ${error instanceof Error ? error.message : String(error)}`
+          `${moduleKey}: ${options.disclosure?.withSignature(found.spec, message) ?? message}`
         );
       }
       // Plain data out, exactly as the belt bridge hands it over, so the two
@@ -126,7 +141,11 @@ export function createCapabilityDispatcher(
       );
       const failure = extractErrorPayload(value);
       if (failure !== null) {
-        throw new SandboxCapabilityError(`${found.spec.name}: ${failure}`);
+        const message =
+          options.disclosure !== undefined && isArgumentValidationFailure(value)
+            ? options.disclosure.withSignature(found.spec, failure)
+            : failure;
+        throw new SandboxCapabilityError(`${found.spec.name}: ${message}`);
       }
       // Short ids from here on: the guest, and so the observation, reads the
       // 12-char form that every capability accepts back.

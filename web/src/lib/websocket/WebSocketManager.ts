@@ -59,6 +59,12 @@ export interface WebSocketConfig {
    * the server to route it back to. Falls back to `url` when it throws.
    */
   urlProvider?: () => string | Promise<string>;
+  /**
+   * Opens the socket. Defaults to the browser's `WebSocket`. The desktop app
+   * passes `CloudWebSocket` for a cloud document, whose socket the main
+   * process opens with the account's credential (D25).
+   */
+  createSocket?: (url: string, protocols?: string | string[]) => WebSocket;
 }
 
 export interface WebSocketMessage {
@@ -122,9 +128,10 @@ const STATE_TRANSITIONS: Record<string, ConnectionStateTransition> = {
 };
 
 export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
-  private config: Required<Omit<WebSocketConfig, "protocols" | "urlProvider">> & {
+  private config: Required<Omit<WebSocketConfig, "protocols" | "urlProvider" | "createSocket">> & {
     protocols?: string | string[];
     urlProvider?: () => string | Promise<string>;
+    createSocket?: (url: string, protocols?: string | string[]) => WebSocket;
   };
   private ws: WebSocket | null = null;
   private state: ConnectionState = "disconnected";
@@ -165,7 +172,8 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
       heartbeatInterval: config.heartbeatInterval ?? 45000,
       heartbeatTimeout: config.heartbeatTimeout ?? 10000,
       maxQueueSize: config.maxQueueSize ?? 100,
-      urlProvider: config.urlProvider
+      urlProvider: config.urlProvider,
+      createSocket: config.createSocket
     };
   }
 
@@ -532,7 +540,9 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
       this.connectionRejector = reject;
 
       try {
-        this.ws = new WebSocket(url, this.config.protocols);
+        this.ws = this.config.createSocket
+          ? this.config.createSocket(url, this.config.protocols)
+          : new WebSocket(url, this.config.protocols);
         this.ws.binaryType = this.config.binaryType;
         this.setupEventHandlers();
         this.startConnectionTimeout();

@@ -157,10 +157,13 @@ endif()
 if(NOT TARGET nodetool_storyboard)
     add_subdirectory(../storyboard ${CMAKE_CURRENT_BINARY_DIR}/storyboard)
 endif()
+if(NOT TARGET nodetool_script)
+    add_subdirectory(../script ${CMAKE_CURRENT_BINARY_DIR}/script)
+endif()
 # The timeline's Core-only code, shared by the app, timeline-ops and the tests.
 add_library(timeline_core STATIC ${NT_core})
 target_include_directories(timeline_core PUBLIC src)
-target_link_libraries(timeline_core PUBLIC nodetool_timeline_scene Qt6::Core)
+target_link_libraries(timeline_core PUBLIC nodetool_timeline_scene Qt6::Core nodetool_script_authoring)
 target_compile_options(timeline_core PRIVATE ${NT_WARNINGS})
 
 # The timeline's decode code over nodetool_timeline_decode: export

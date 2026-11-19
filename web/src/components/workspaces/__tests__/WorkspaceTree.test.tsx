@@ -106,6 +106,13 @@ jest.mock("../workspaceTreeActions", () => {
   };
 });
 
+jest.mock("../WorkspaceFilePreview", () => ({
+  __esModule: true,
+  default: ({ path }: { path: string }) => (
+    <div data-testid="file-preview">{path}</div>
+  )
+}));
+
 jest.mock("../../../hooks/useProjectFolder", () => ({
   useProjectFolder: (projectId: string) => folders[projectId]
 }));
@@ -139,6 +146,25 @@ describe("WorkspaceTree", () => {
     renderTree();
     expect(await screen.findByText("notes.md")).toBeInTheDocument();
     expect(listFiles).toHaveBeenCalledWith({ id: "ws-a", path: "." });
+  });
+
+  it("previews a selected file and nothing before a selection", async () => {
+    renderTree();
+    const row = await screen.findByText("notes.md");
+    expect(screen.queryByTestId("file-preview")).not.toBeInTheDocument();
+    await userEvent.click(row);
+    expect(await screen.findByTestId("file-preview")).toHaveTextContent(
+      "notes.md"
+    );
+  });
+
+  it("does not preview a selected folder", async () => {
+    listFiles.mockResolvedValue([
+      { name: "prompts", path: "prompts", is_dir: true, size: 0 }
+    ]);
+    renderTree();
+    await userEvent.click(await screen.findByText("prompts"));
+    expect(screen.queryByTestId("file-preview")).not.toBeInTheDocument();
   });
 
   it("offers no workspace picker or manage button", async () => {
@@ -581,6 +607,39 @@ describe("WorkspaceTree folder management", () => {
     await waitFor(() =>
       expect(mockActions.moveEntry).toHaveBeenCalledWith("project-a", "notes.md", false, "footage")
     );
+  });
+
+  const startDrag = (source: Element): Record<string, string> => {
+    const store: Record<string, string> = {};
+    const dataTransfer = {
+      types: [] as string[],
+      setData: (type: string, value: string) => {
+        store[type] = value;
+        dataTransfer.types.push(type);
+      },
+      getData: (type: string) => store[type] ?? "",
+      files: [],
+      dropEffect: "none",
+      effectAllowed: "all"
+    };
+    fireEvent.dragStart(source, { dataTransfer });
+    return store;
+  };
+
+  it("gives a dragged media file the canvas drag payload", async () => {
+    renderTree();
+    const store = startDrag(await screen.findByText("notes.md"));
+    expect(JSON.parse(store["application/x-nodetool-drag"])).toEqual({
+      type: "project-file",
+      payload: { projectId: "project-a", path: "notes.md" }
+    });
+  });
+
+  it("gives a dragged folder no canvas drag payload", async () => {
+    renderTree();
+    const store = startDrag(await screen.findByText("footage"));
+    expect(store["application/x-nodetool-drag"]).toBeUndefined();
+    expect(store["application/x-nodetool-project-entry"]).toBe("footage");
   });
 
   it("refuses to move a folder into its own subfolder", async () => {

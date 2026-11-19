@@ -708,6 +708,114 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "A reusable preset for provisioning a GPU worker: image, hardware spec, timeouts. Operator configuration shared by the whole install, with no column naming a person."
   },
   {
+    table: "access_epochs",
+    schemaExport: "accessEpochs",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "A counter per document and project that orders access changes against writes. It names a document or project id and a number, never a person."
+  },
+  {
+    table: "cloud_transfers",
+    schemaExport: "cloudTransfers",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which cloud project a person sent a transfer to, its state and its times. Operational state of the upload; the documents and files it carried are exported with their own tables. Deleted with the account."
+  },
+  {
+    table: "cloud_transfer_attempts",
+    schemaExport: "cloudTransferAttempts",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The recorded result of each commit attempt of a transfer: a digest and the outcome with refusal codes and document ids. Operational state; deleted with the account."
+  },
+  {
+    table: "transfer_placements",
+    schemaExport: "transferPlacements",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Files a committed transfer has yet to copy into its project's folder: a path and a hash. Short-lived operational state; the files are exported with the folder. Deleted with the account."
+  },
+  {
+    table: "recovery_copies",
+    schemaExport: "recoveryCopies",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which file a transfer replaced, with the hash of the replaced bytes, kept for 30 days. The bytes are in the blob store under that hash and go with the account's blob rows. Deleted with the account."
+  },
+  {
+    table: "transferred_conversations",
+    schemaExport: "transferredConversations",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which cloud conversation a transfer made from a conversation on the sending device: two thread ids. The conversation itself is exported with the threads. Deleted with the account."
+  },
+  {
+    table: "document_activity",
+    schemaExport: "documentActivity",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The person's accepted renames and moves of documents, with the names and project ids before and after. The documents carry their current names. Deleted with the account."
+  },
+  {
+    table: "revision_sets",
+    schemaExport: "revisionSets",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "A download the person started from a cloud project: the project id and when it expires, seven days after it began. Short-lived operational state. Deleted with the account."
+  },
+  {
+    table: "revision_set_entries",
+    schemaExport: "revisionSetEntries",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which revision of each document a download fixed: a version id, a content hash and the document's name and settings, which the document itself holds. Short-lived operational state. Deleted with the account."
+  },
+  {
+    table: "revision_set_files",
+    schemaExport: "revisionSetFiles",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which file hashes a download needs, by asset id. The files are exported with the assets that name them. Short-lived operational state. Deleted with the account."
+  },
+  {
+    table: "project_blobs",
+    schemaExport: "projectBlobs",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which file hashes and sizes each cloud project holds. The files themselves are exported with the assets that name them, so these rows add nothing to an export. Deleted with the account; the blob cleanup then deletes the objects no row names."
+  },
+  {
+    table: "nodetool_deleted_documents",
+    schemaExport: "deletedDocuments",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "Documents this person deleted, kept with their versions and sharing rows until the restore period ends. The content is the person's own work. Deleted with the account; exported because it is the only copy until the purge."
+  },
+  {
     table: "cloud_drafts",
     schemaExport: "cloudDrafts",
     disposition: "delete",
@@ -724,6 +832,51 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
     exported: true,
     justification:
       "The role, options and last contact the native app recorded for each cloud document the person opened. Deleted with the account; exported because it lists which documents the person worked on."
+  },
+  {
+    table: "cloud_links",
+    schemaExport: "cloudLinks",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which local project the native app linked to which cloud project, on which server and account. Bookkeeping the app needs to synchronize, and the cloud project lists the same link from its side. Deleted with the account."
+  },
+  {
+    table: "cloud_link_documents",
+    schemaExport: "cloudLinkDocuments",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The pair of local and cloud ids of each linked document and the content hash and revision of its last exchange. The documents themselves are exported. Deleted with the account."
+  },
+  {
+    table: "cloud_link_files",
+    schemaExport: "cloudLinkFiles",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The hash of the bytes the last exchange gave each asset of a linked project. The files are exported with their assets. Deleted with the account."
+  },
+  {
+    table: "cloud_receives",
+    schemaExport: "cloudReceives",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "A download from a cloud project that has not finished: the captured document list and the person's choices on the review sheet. Short-lived operational state that ends with the download. Deleted with the account."
+  },
+  {
+    table: "cloud_sends",
+    schemaExport: "cloudSends",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "An upload to a cloud project that has not finished: the captured documents and file list, which the local project still holds. Short-lived operational state that ends with the upload. Deleted with the account."
   },
   {
     table: "worker_instances",

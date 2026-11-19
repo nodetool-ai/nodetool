@@ -347,6 +347,7 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
     "nodeTypes": [
       "nodetool.compare.CompareImages",
       "nodetool.constant.ASRModelConstant",
+      "nodetool.constant.Application",
       "nodetool.constant.Audio",
       "nodetool.constant.AudioList",
       "nodetool.constant.Bool",
@@ -364,6 +365,7 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodetool.constant.ImageSize",
       "nodetool.constant.Integer",
       "nodetool.constant.JSON",
+      "nodetool.constant.JsScript",
       "nodetool.constant.LanguageModelConstant",
       "nodetool.constant.List",
       "nodetool.constant.Model3D",
@@ -378,6 +380,7 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodetool.constant.Video",
       "nodetool.constant.VideoList",
       "nodetool.constant.VideoModelConstant",
+      "nodetool.constant.Workflow",
       "nodetool.control.Chunk",
       "nodetool.control.Collect",
       "nodetool.control.Collection",

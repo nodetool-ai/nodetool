@@ -1,4 +1,5 @@
 #include "EditorWindow.h"
+#include "StoryWorkspace.h"
 #include <QJsonDocument>
 #include "document/ChildPorts.h"
 #include "EntryMenu.h"
@@ -8,6 +9,9 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSettings>
+#include <QDockWidget>
+#include <QBoxLayout>
+#include <QQuickItem>
 #include <QQuickWidget>
 #include <QShortcut>
 #include <QStackedWidget>
@@ -31,7 +35,8 @@ QVariantList EditorWindow::workflowTabs() const {
         result.append(QVariantMap{{"title", title},
                                   {"dirty", tab->hasUnsavedChanges()},
                                   {"running", tab->runActive() && !tab->instantUpdate_ && !tab->scrubbing_},
-                                  {"renamable", !tab->childParent_ && !tab->projectWorkflowFile()}});
+                                  {"renamable", !tab->storySource_ && !tab->childParent_ && !tab->projectWorkflowFile()},
+                                  {"kind", tab->storySource_ ? tab->storySource_->kind() : QStringLiteral("workflow")}});
     }
     return result;
 }
@@ -185,6 +190,46 @@ void EditorWindow::newTab() {
   connect(&tab->session_, &node_editor::WorkflowSession::errorOccurred, tab, [tab] { tab->closeAfterServerSave_ = false; });
   connect(&tab->session_, &node_editor::WorkflowSession::credentialsChanged, tab, [tab] { tab->closeAfterServerSave_ = false; });
   activateSurface(tabs_.size() - 1);
+}
+void EditorWindow::openStoryDocument(const QString &kind, const QString &id) {
+    if (tabOwner_) { tabOwner_->openStoryDocument(kind, id); return; }
+    if (id.isEmpty()) { return; }
+    for (int i = 0; i < tabs_.size(); ++i) {
+        if (tabs_[i]->storySource_ && tabs_[i]->storySource_->kind() == kind && tabs_[i]->storyId_ == id) {
+            activateSurface(i);
+            return;
+        }
+    }
+    const auto opener = activeEditor_;
+    newTab();
+    auto tab = activeEditor_;
+    if (!tab || tab == opener) { return; }
+    const auto &session = opener ? opener->session_ : tab->session_;
+    tab->storyId_ = id;
+    tab->storySource_ = new node_editor::StoryDocumentSource(kind, session.serverUrl(), session.token(), session.userId(), tab);
+    const auto file = kind == "scripts" ? QStringLiteral("qrc:/qt/qml/NodeTool/Script/qml/ScriptDocumentEditor.qml")
+                                        : QStringLiteral("qrc:/qt/qml/NodeTool/Storyboard/qml/StoryboardDocumentEditor.qml");
+    auto editor = tab->panel(file,
+                             {{"controller", QVariant::fromValue<QObject *>(tab->storySource_)}});
+    editor->setObjectName("story-document-editor");
+    if (auto root = editor->rootObject()) {
+        tab->storyWorkspace_ = root->property("workspace").value<QObject *>();
+    }
+    // The document replaces the canvas column, and the canvas docks hide.
+    for (auto dock : tab->dockHost_->findChildren<QDockWidget *>(Qt::FindDirectChildrenOnly)) { dock->hide(); }
+    // The canvas column keeps its widgets, because the tab still owns them.
+    auto column = tab->dockHost_->centralWidget();
+    for (auto child : column->findChildren<QWidget *>(Qt::FindDirectChildrenOnly)) { child->hide(); }
+    editor->setParent(column);
+    qobject_cast<QBoxLayout *>(column->layout())->addWidget(editor, 1);
+    editor->show();
+    const auto refresh = [this, tab] { tab->schedulePanelChanged(); notifyTabs(); };
+    connect(tab->storySource_, &node_editor::StoryDocumentSource::changed, tab, refresh);
+    if (auto drafts = qobject_cast<StoryWorkspace *>(tab->storyWorkspace_)) { connect(drafts, &StoryWorkspace::changed, tab, refresh); }
+    if (!tab->storySource_->load(id)) {
+        notify(QStringLiteral("warning"), tr("Connect to a server to open this document."));
+    }
+    notifyTabs();
 }
 void EditorWindow::activateTab(int index) {
     auto owner = tabOwner_ ? tabOwner_ : this;
@@ -408,13 +453,20 @@ bool EditorWindow::confirmTabClose(bool closeAfterSave) {
         return true;
     }
     tabOwner_->activateSurface(tabOwner_->tabs_.indexOf(this));
+    const auto title = !storySource_ ? tr("Unsaved workflow")
+        : storySource_->kind() == "scripts" ? tr("Unsaved script") : tr("Unsaved storyboard");
     const auto choice = QMessageBox::warning(
-        this, tr("Unsaved workflow"), tr("Save changes before closing?"),
+        this, title, tr("Save changes before closing?"),
         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
     if (choice == QMessageBox::Discard) {
         return true;
     }
     if (choice != QMessageBox::Save) {
+        return false;
+    }
+    if (storyWorkspace_) {
+        // The save confirms later, so the tab stays open with the draft.
+        QMetaObject::invokeMethod(storyWorkspace_, "save");
         return false;
     }
     if (session_.serverBound()) {
@@ -535,17 +587,65 @@ void EditorWindow::persistTabs() const {
         if (tab == active) {
             activeEntry = entries.size();
         }
-        entries.append(QJsonObject{{"file", tab->file_},
-                                   {"workflow", tab->session_.serverBound()
-                                                    ? tab->session_.workflow()["id"].toString()
-                                                    : tab->requestedWorkflow_},
-                                   {"origin", tab->session_.serverUrl().toString()},
-                                   {"project", tab->projectKey()}});
+        // A cloud tab reopens from its server under the same account, never
+        // as a workflow of the local server. Its drafts stay on that server.
+        QJsonObject entry;
+        if (!tab->cloudId_.isEmpty()) {
+            entry = QJsonObject{{"cloud", tab->cloudId_},
+                                {"cloudServer", tab->cloudOrigin_},
+                                {"role", tab->cloudRole_},
+                                {"origin", tab->session_.serverUrl().toString()},
+                                {"project", tab->projectKey()}};
+        } else {
+            entry = QJsonObject{{"file", tab->file_},
+                                {"workflow", tab->session_.serverBound()
+                                                 ? tab->session_.workflow()["id"].toString()
+                                                 : tab->requestedWorkflow_},
+                                {"origin", tab->session_.serverUrl().toString()},
+                                {"project", tab->projectKey()}};
+        }
+        // Written on every record, so a record without it is from a launch
+        // before the key existed.
+        entry["bundled"] = !bundledServer_.isEmpty() && tab->session_.serverUrl() == bundledServer_;
+        entries.append(entry);
     }
     QSettings settings;
     settings.setValue("workflowTabs/documents",
                       QJsonDocument(entries).toJson(QJsonDocument::Compact));
     settings.setValue("workflowTabs/active", activeEntry);
+}
+void EditorWindow::setBundledServer(const QUrl &url) {
+    if (tabOwner_) {
+        tabOwner_->setBundledServer(url);
+        return;
+    }
+    bundledServer_ = url;
+}
+namespace {
+// Whether a saved tab was connected to the bundled server, as the record's
+// "bundled" key says. A record saved before the key existed names only an
+// origin, and a loopback port says nothing about who started the server
+// there, so it stays on the URL it names (review F54).
+bool usedBundledServer(const QJsonObject &entry) {
+    return entry["bundled"].toBool(false);
+}
+}  // namespace
+EditorWindow::SavedTabServers EditorWindow::savedTabServers() {
+    const auto entries =
+        QJsonDocument::fromJson(QSettings().value("workflowTabs/documents").toByteArray()).array();
+    SavedTabServers servers;
+    for (const auto &value : entries) {
+        const auto entry = value.toObject();
+        if (entry["origin"].toString().isEmpty()) {
+            continue;
+        }
+        if (usedBundledServer(entry)) {
+            servers.bundled = true;
+        } else {
+            servers.own = true;
+        }
+    }
+    return servers;
 }
 void EditorWindow::restoreTabs() {
     if (tabOwner_) {
@@ -570,11 +670,18 @@ void EditorWindow::restoreTabs() {
         tab->syncOpenProject();
         const auto path = entry["file"].toString();
         const auto id = entry["workflow"].toString();
-        if (!path.isEmpty())
+        const auto cloudId = entry["cloud"].toString();
+        // A tab of the bundled server reconnects to this launch's port, not
+        // the port the last launch had.
+        const QUrl origin = usedBundledServer(entry) && !bundledServer_.isEmpty()
+                                ? bundledServer_
+                                : QUrl(entry["origin"].toString());
+        if (!cloudId.isEmpty()) {
+            tab->restoreCloudDocument(origin, entry["cloudServer"].toString(), cloudId, entry["role"].toString());
+        } else if (!path.isEmpty())
             tab->openFile(path);
         else if (!id.isEmpty()) {
-            tab->session_.connectToServer(QUrl(entry["origin"].toString()),
-                                          qEnvironmentVariable("NODETOOL_TOKEN"));
+            tab->session_.connectToServer(origin, qEnvironmentVariable("NODETOOL_TOKEN"));
             tab->requestedWorkflow_ = id;
             tab->session_.openWorkflow(id);
         }
@@ -714,6 +821,11 @@ void EditorWindow::renameTab(int index, const QString &name) {
     const auto trimmed = name.trimmed();
     // A project folder's workflow file is named by its file name, which a rename would move.
     if (!target || target->childParent_ || target->projectWorkflowFile() || trimmed.isEmpty() || trimmed == target->workflowName()) {
+        return;
+    }
+    // A viewer's cloud workflow cannot be renamed. An editor's rename below
+    // changes the document, whose next draft carries the name to the cloud.
+    if (target->cloud_ && target->cloud_->readOnly()) {
         return;
     }
     if (target->session_.serverBound()) {

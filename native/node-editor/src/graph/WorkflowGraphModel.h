@@ -53,6 +53,9 @@ public:
   node_editor::UntakenBranch untakenBranch() const;
   void setRuntimePreview(const QString &nodeId, const QImage &image);
   QImage runtimePreview(QtNodes::NodeId id) const;
+  // Writes the media ratio a hand-set size is for into ui, so the size holds
+  // until the card shows media of another ratio.
+  void markHandSized(QtNodes::NodeId id, QJsonObject &ui) const;
   // A status alone changes no card size. The web shows no status text on a card.
   bool hasRuntimeOutput(QtNodes::NodeId id) const;
   // The image value leaving a node's output handle: its run result, or the
@@ -227,6 +230,13 @@ private:
   // How many input nodes carry each name, for InputNodeNameWarning.tsx.
   QHash<QString, int> inputNames_;
   CardMediaStore cardMedia_;
+  // The width / height ratio of the media a card shows, or 0 when it shows none
+  // or its size is not known yet.
+  double mediaRatio(QtNodes::NodeId id) const;
+  // A hand-set card height holds while the card shows the media it was set for.
+  bool authoredHeightApplies(QtNodes::NodeId id, const QJsonObject &ui) const;
+  // The media ratio a saved card height without a fit key was first seen with.
+  mutable QHash<QtNodes::NodeId, double> legacyMediaFit_;
   // Rebuilds the cards that show the image leaving this node.
   void refreshSourceReaders(const QString &node);
   void refreshRuntimeNode(const QString &id);

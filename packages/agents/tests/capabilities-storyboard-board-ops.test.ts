@@ -153,7 +153,7 @@ it("rejects a stale Recipe edit without overwriting a concurrently edited direct
   const context = ctx();
   await edit(context, board.id, [{op: "set_board", motion_design: {direction: "User edited direction"}}]);
   const result = await editStoryboard.impl(run(context), {storyboard_id: board.id, expected_revision: board.revision, ops: [{op: "set_board", motion_design: {direction: "Stale Recipe direction"}}]});
-  expect(result).toMatchObject({error: expect.stringContaining("revision conflict")});
+  expect(result).toMatchObject({error: expect.stringContaining("Revision conflict"), revision: expect.any(Number)});
   expect((await reread(board.id)).screenplay?.motion_design?.direction).toBe("User edited direction");
 });
 

@@ -483,7 +483,7 @@ A plain chat turn without a `provider` and `model` pair is answered with an
 | `media_generation` | `{ "mode": ... }` where a mode other than `"chat"` produces an image, video, or audio message instead of an LLM reply |
 | `permission_mode` | `"plan"`, `"default"` (the fallback), or `"auto"`. Governs whether gated tool calls run, ask, or are blocked |
 | `reasoning_effort` | `"low"`, `"medium"`, or `"high"`. Sent only to models that `supportsReasoningEffort` in `@nodetool-ai/protocol` accepts, and dropped for the rest. Omit it for the provider default |
-| `system_prompt` | Extra system prompt text layered after the base prompt |
+| `system_prompt` | A surface's own instructions. They go with the turn's message, not into the system message, and are sent again only when they change |
 | `ui_context` | Which documents the user has open and which has focus |
 
 A new `chat_message` on a thread supersedes a turn still running there. Turns

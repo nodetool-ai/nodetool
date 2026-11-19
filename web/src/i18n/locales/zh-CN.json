@@ -17976,7 +17976,9 @@
       "seek": "定位",
       "playbackSpeed": "播放速度",
       "exitFullscreen": "退出全屏",
-      "enterFullscreen": "进入全屏"
+      "enterFullscreen": "进入全屏",
+      "mute": "静音",
+      "unmute": "取消静音"
     },
     "tagInput": {
       "placeholder": "输入并按 Enter 添加标签…",
@@ -20239,6 +20241,19 @@
       "retry": "重试",
       "donePath": "你的文件位于 {{path}}",
       "close": "关闭"
+    },
+    "preview": {
+      "clips": "个片段",
+      "title": "预览",
+      "tracks": "条轨道",
+      "type": {
+        "app": "迷你应用",
+        "jsscript": "JS 脚本",
+        "script": "脚本",
+        "storyboard": "故事板",
+        "timeline": "时间线",
+        "workflow": "工作流"
+      }
     }
   },
   "assetPicker": {

@@ -400,7 +400,8 @@ export {
   toolSignature,
   CODEACT_PRELUDE,
   CODEACT_INJECTED_GLOBALS,
-  DEFAULT_MAX_TOOL_CALLS_PER_ACTION
+  DEFAULT_MAX_TOOL_CALLS_PER_ACTION,
+  chatDirectToolNames
 } from "./codeact/tool-api.js";
 export {
   assembleSandboxToolbelt,
@@ -424,7 +425,9 @@ export {
 export {
   NODETOOL_API_NAMESPACE_TOOLS,
   NODETOOL_API_PRELUDE_FULL,
+  NODETOOL_FOCUS_NAMESPACES,
   buildNodetoolApiPromptSection,
+  renderNodetoolNamespaceLine,
   hasNodetoolApiTools,
   nodetoolApiCoveredToolNames
 } from "./codeact/nodetool-api.js";
@@ -450,6 +453,7 @@ export {
 export {
   findInvokedSkillNames,
   formatSkillCatalogForPrompt,
+  formatUserSkillsForPrompt,
   formatInvokedSkillsForPrompt
 } from "./skill-prompt.js";
 

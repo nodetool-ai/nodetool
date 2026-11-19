@@ -8,9 +8,11 @@
  * properties a run fills in, or which of two similar nodes produces a value
  * the next node can use. That knowledge lives here, rendered once and shared
  * by the chat CodeAct prompt and the headless graph-authoring sub-agent, so
- * the two cannot drift.
+ * the two cannot drift. The chat carries the essentials
+ * ({@link WORKFLOW_AUTHORING_KNOWLEDGE}); the sub-agent, which has no skills to
+ * load, also gets the worked examples.
  *
- * The generic AI catalog lives here too: it is the table the prompt renders
+ * The generic AI catalog lives here too: it is the list the prompt renders
  * and the list a registry check verifies, and keeping both against one array
  * is what stops the prompt from advertising a node that was renamed.
  */
@@ -190,17 +192,53 @@ export function resolveAvailableGenericNodes(
   return { available, missing };
 }
 
-function renderGenericNodeTable(nodes: readonly GenericAINode[]): string {
-  const rows = nodes.map(
-    (n) => `| ${n.task} | \`${n.type}\` | \`${n.capability}\` |`
-  );
-  return ["| Task | node_type | Capability |", "|---|---|---|", ...rows].join(
-    "\n"
-  );
+function renderGenericNodeList(nodes: readonly GenericAINode[]): string {
+  return nodes
+    .map((n) => `- \`${n.type}\`: ${n.acceptsModel ? n.capability : "no model"}`)
+    .join("\n");
 }
 
 /**
- * Render the shared knowledge section.
+ * The rules a graph fails without: node choice, model refs, handles, inputs
+ * and outputs, branching, and the Code node's dynamic handles.
+ *
+ * @param genericNodes the AI catalog to advertise; pass a registry-checked
+ *   subset so the prompt never names a node this install lacks.
+ */
+export function renderWorkflowAuthoringEssentials(
+  genericNodes: readonly GenericAINode[] = GENERIC_AI_NODES
+): string {
+  return `## Picking nodes
+Never guess a node type. \`nodetool.nodes.search(["what the step does"])\` takes
+a broad term ("image generation", not a class name), and a result's type is on
+\`type\`. \`nodetool.nodes.info(type)\` gives its properties and handles. Use a
+provider's own node only when the user named the provider
+(\`{include_provider_nodes: true}\`).
+
+For any AI generation or transform, use a generic node. Set its \`model\` to
+the \`ref\` that \`nodetool.models.pick(capability)\` returns:
+${renderGenericNodeList(genericNodes)}
+
+## Wiring rules
+- \`agent({system, prompt})\` is the LLM step and runs on the run's model, so
+  omit \`model\`. Fixed instructions go in \`system\` and data is wired into
+  \`prompt\`, since a handle cannot be interpolated into a string.
+- A node with several outputs has no default handle: \`.output("text")\` on an
+  Agent, \`.output("audio")\` on \`textToSpeech\`.
+- An input node's \`name\` must equal the runtime parameter key exactly, with
+  one typed input node per parameter (\`stringInput\`, \`imageInput\`, …).
+  \`output({name, value})\` is the only output node.
+- \`if_({condition, value})\` needs a real boolean. A string such as "greater"
+  is always truthy. Wire both \`if_true\` and \`if_false\`.
+- \`code\` and \`template\` take dynamic inputs: each extra property is an
+  input handle, as in \`template({string: "About {{topic}}", topic:
+  t.output()})\`. Each key a Code body returns is an output handle. Check
+  \`list_js_scripts\` for a saved body, and never paste a value you fetched
+  while authoring into one: the node has to fetch it when it runs.`;
+}
+
+/**
+ * The essentials plus the worked examples, for the graph-authoring sub-agent.
  *
  * @param genericNodes the AI catalog to advertise; pass a registry-checked
  *   subset so the prompt never names a node this install lacks.
@@ -208,102 +246,21 @@ function renderGenericNodeTable(nodes: readonly GenericAINode[]): string {
 export function renderWorkflowAuthoringKnowledge(
   genericNodes: readonly GenericAINode[] = GENERIC_AI_NODES
 ): string {
-  return `## Picking nodes
+  return `${renderWorkflowAuthoringEssentials(genericNodes)}
 
-Never guess a node type. \`nodetool.nodes.search(["what the step does"])\`
-with a broad category term ("image generation", "color filter" — not a guessed
-class name), then \`nodetool.nodes.info(type)\` for the exact properties and
-handles before you import that node's namespace.
+Prefer \`nodetool.*\` core nodes and the deterministic \`lib.*\` nodes. Non-AI
+work lives in ${CORE_BASELINE_NAMESPACES.map((ns) => `\`${ns}\``).join(", ")}
+and the \`lib.*\` namespaces.
 
-Prefer \`nodetool.*\` core nodes. Deterministic library nodes under \`lib.*\`
-(\`lib.image.filter.*\`, \`lib.image.color_grading.*\`, \`lib.grid.*\`,
-\`lib.svg.*\`) are fine too — they are not provider-locked. Provider-specific
-nodes are FORBIDDEN unless the user named that provider ("use OpenAI's image
-API"); they are hidden from search results until you pass
-\`{include_provider_nodes: true}\`.
+## Code nodes
 
-### Generic AI nodes — one of these for ANY AI generation or transform
-
-${renderGenericNodeTable(genericNodes)}
-
-Each takes a \`model\` property (a \`{provider, id}\` object) except
-\`nodetool.agents.Agent\`, which inherits the run's configured model when you
-omit \`model\`. Do not invent model ids: \`nodetool.models.pick(capability)\`
-returns one, and its \`ref\` field is the value the property wants.
-
-Deterministic, non-AI work lives in ${CORE_BASELINE_NAMESPACES.join(", ")},
-plus any \`lib.*\` namespace.
-
-## Agent steps
-
-\`agent({system, prompt})\` from \`nodetool.agents\` is the LLM step. Two rules
-it fails on otherwise:
-
-- **Omit \`model\`.** The run stamps its own model in at execution time; setting
-  one pins the node to that model forever.
-- **Read the text as \`.output("text")\`.** The node has \`text\`, \`chunk\`,
-  \`thinking\` and \`audio\` handles and no default, so a bare \`.output()\`
-  throws. The same holds for any multi-output node — \`textToSpeech\` needs
-  \`.output("audio")\`.
-
-Put the step's fixed instructions in \`system\` and wire the data into
-\`prompt\`. That split is what lets an upstream value reach the step at all,
-since a handle cannot be interpolated into a string.
-
-## Inputs and outputs
-
-An input node's \`name\` must equal the runtime parameter key **exactly** — the
-runtime matches parameters to input nodes by that name, so a hardcoded constant
-silently ignores what the caller passed. One input node per parameter, typed to
-the value: \`stringInput\`, \`integerInput\`, \`floatInput\`, \`booleanInput\`,
-\`imageInput\`, \`audioInput\`, … from \`nodetool.input\`.
-
-\`nodetool.output.Output\` — \`output({name, value})\` — is the ONLY output
-node. There is no \`StringOutput\`, \`ImageOutput\`, or any other per-type
-variant. It takes any value, and \`name\` is the key the result comes back
-under.
-
-## Branching
-
-\`if_({condition, value})\` from \`nodetool.control\` needs a real boolean on
-\`condition\`. A node that reports an *ordering* as a string ("equal",
-"greater", "less") is never a valid condition — it is truthy in every case.
-Produce the boolean itself, e.g. a \`code\` node whose body is
-\`return { output: inputs.a === inputs.b };\`, and wire that into
-\`condition\`.
-
-\`if_\` has TWO outputs, \`if_true\` and \`if_false\`, and emits only the taken
-branch. Wire BOTH to their destinations so each case is handled; do not fake
-the else-branch with an error handler.
-
-## \`nodetool.code.Code\` — the general-purpose transform
-
-\`code({...})\` runs vanilla JavaScript in the QuickJS sandbox. Reach for ONE
-Code node when the step is data shaping, parsing, formatting, arithmetic or
-string work — it replaces a chain of small nodes. Use a specialized node when
-the step wraps a model, a device, or an external service.
-
-- Before writing a body from scratch, call \`list_js_scripts\`: a saved script
-  already does the job when one matches, and a script carrying \`palette\` is
-  one of the user's own custom nodes.
-- **Inputs** are dynamic: any property you pass that is not \`code\` or
-  \`packages\` becomes an input handle, and the body reads it off the
-  \`inputs\` object.
-- **Outputs** are dynamic too: the body returns an object, and each key becomes
-  an output handle you read with \`.output("key")\`.
-- Sandbox API inside the body: \`fetch\`, \`workspace.*\`, \`crypto.*\`,
-  \`format.*\`, \`image.*\`, \`parallelMap\`, \`sleep\`, \`progress\`,
-  \`nodetool.secrets.get\`, plus core JavaScript.
-- **The toolbelt is in there too**, imported: \`import { run_apify_actor }
-  from "@nodetool-ai/sandbox-nodetool/apify";\`, plus the \`nodetool.*\` object
-  model. It is the same server-side belt an \`execute_code\` action has, minus
-  the browser-only \`ui_*\` tools, so a call you ran in an action runs the same
-  way inside a body. There is no \`tools.<name>()\` global.
-- **Never paste a value you fetched while authoring into a body.** The node has
-  to fetch it when it runs — a URL, id or result frozen into the code makes a
-  workflow that returns the same stale answer forever and looks like it works.
-  If the call you need is not available, say that; do not substitute a
-  hard-coded result for it.
+A Code body is vanilla JavaScript in the QuickJS sandbox, with \`fetch\`,
+\`workspace.*\`, \`crypto.*\`, \`format.*\`, \`image.*\`, \`parallelMap\`,
+\`sleep\`, \`progress\` and \`nodetool.secrets.get\`. It reaches the same
+server-side capabilities an \`execute_code\` action has, minus the browser-only
+\`ui_*\` tools, by static import: \`import { run_apify_actor } from
+"@nodetool-ai/sandbox-nodetool/apify";\`. If the call you need is not
+available, say so rather than hard-coding a result.
 
 \`\`\`js
 import { stringInput } from "@nodetool-ai/sandbox-dsl/nodetool.input";
@@ -321,44 +278,32 @@ const totals = code({
 return workflow(output({ name: "total", value: totals.output("total") }));
 \`\`\`
 
-### Libraries in a Code node
-
 A library is a sandbox pack: list its specifier in the node's \`packages\`
-property and \`import\` it at the top of the body. Nothing else resolves — no
-\`require\`, no dynamic \`import()\`, and a specifier this machine does not
-have fails validation. \`nodetool.packs.list()\` reports what is installed and
-\`nodetool.packs.docs(specifier)\` serves a pack's SKILL.md. When a step needs a
-library nobody installed, say so and build the closest thing the sandbox APIs
-allow.
+property and \`import\` it at the top of the body. Nothing else resolves, and a
+specifier this machine does not have fails validation. \`nodetool.packs.list()\`
+reports what is installed and \`nodetool.packs.docs(specifier)\` serves a pack's
+SKILL.md.
 
 ## Persistence
 
-Generic AI nodes auto-save images, audio and video as assets — no separate save
-node. Text an Agent step produces (a report, a summary, JSON) is not saved by
-anything: either give a Code node a body that calls
+Generic AI nodes save images, audio and video as assets. Text an Agent step
+produces is not saved: give a Code node a body that calls
 \`await workspace.write(path, text)\`, or list \`save_asset\` in the Agent
-node's tools so the artifact reaches the asset browser.
+node's tools.
 
 ## Patterns
 
-Match the request to one of these shapes before writing anything.
-
-- **Simple pipeline** — \`input → transform(s) → output\`. One source,
-  deterministic transforms: \`stringInput → posterize → output\`.
-- **AI generation + post-process** — a generic AI node, then a deterministic
-  filter, then \`output\`: \`textToImage({prompt, model}) →
+- Pipeline: \`stringInput → posterize → output\`.
+- Generation and post-process: \`textToImage({prompt, model}) →
   posterize({image, colors: 3}) → output\`.
-- **Multi-step LLM reasoning** — chained \`agent\` nodes, each reading the
-  previous one's \`.output("text")\`, instructions in \`system\` and data in
-  \`prompt\`.
-- **Branch** — a boolean-producing node → \`if_({condition, value})\` → both
-  \`if_true\` and \`if_false\` wired onward.
-- **Multi-modal chain** — \`audioInput → automaticSpeechRecognition → agent →
-  textToImage → output\`, or any permutation. Generic AI nodes of different
-  modalities connect through an Agent step when the middle needs reasoning.
+- Multi-step reasoning: chained \`agent\` nodes, each reading the previous
+  one's \`.output("text")\`.
+- Branch: a boolean-producing node, then \`if_\` with both outputs wired.
+- Multi-modal: \`audioInput → automaticSpeechRecognition → agent →
+  textToImage → output\`.
 
-Nodes with no data dependency between them run concurrently — do not serialize
-independent branches by chaining them.
+Nodes with no data dependency between them run concurrently, so do not chain
+independent branches.
 
 \`\`\`js
 import { workflow } from "@nodetool-ai/sandbox-dsl";
@@ -379,5 +324,5 @@ return workflow(output({ name: "result", value: polish.output("text") }));
 \`\`\``;
 }
 
-/** The knowledge section over the full generic-AI catalog. */
-export const WORKFLOW_AUTHORING_KNOWLEDGE = renderWorkflowAuthoringKnowledge();
+/** The essentials over the full generic-AI catalog, for the chat workflow guide. */
+export const WORKFLOW_AUTHORING_KNOWLEDGE = renderWorkflowAuthoringEssentials();

@@ -26,6 +26,7 @@
 #include "interfaces/ChatWindow.h"
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
+#include "server/StoryDocumentSource.h"
 #include "nodetool/account/qt/AccountController.h"
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudBrowser.h"
@@ -180,6 +181,20 @@ public:
   void showCompositorLayoutDialog(const QString &nodeId);
   void restoreTabs();
   void persistTabs() const;
+  // The server this launch started from the app package. It listens on a new
+  // port at every launch, so a tab connected to it is saved as "bundled" and
+  // restored to this launch's URL (review F3). Set before restoreTabs().
+  void setBundledServer(const QUrl &url);
+  // What the saved tabs connect to. `own`: some tab names a server of its
+  // own, which it keeps. `bundled`: some tab was connected to the bundled
+  // server, so the editor starts it even when other tabs name their own
+  // server (review F24). A record from before the "bundled" key counts as
+  // bundled when its origin has the bundled server's form.
+  struct SavedTabServers {
+    bool own = false;
+    bool bundled = false;
+  };
+  static SavedTabServers savedTabServers();
   EditorWindow *activeEditor() const;
 
   node_editor::WorkflowDocument *document() { return activeEditor() == this ? &document_ : activeEditor()->document(); }
@@ -200,6 +215,10 @@ public:
   bool libraryVisible() const;
   bool examplesVisible() const;
   void openWorkflow(const QString &id);
+  // Opens a document constant's document: a workflow in a new tab, other kinds in their editor.
+  void openLinkedDocument(const QString &kind, const QString &id);
+  // Opens a storyboard or a script ("storyboards" or "scripts") in a document tab.
+  void openStoryDocument(const QString &kind, const QString &id);
   void deleteWorkflows(const QStringList &ids);
   std::optional<QString> editOpenWorkflow(const QString &id, const QVariantMap &patch);
   void deleteWorkflow(const QString &id, const QString &name);
@@ -282,6 +301,12 @@ public:
     // Opens a cloud workflow of the current account in its own tab, or
     // switches to the tab that has it. `role` is owner, editor or viewer.
     void openCloudDocument(const QString &documentId, const QString &role);
+    // Reopens a cloud tab that persistTabs saved: connects the tab to the
+    // local server that keeps its drafts and opens the document with the
+    // account signed in to `cloudServer`. Without that account the tab
+    // keeps the document's id and says to sign in.
+    void restoreCloudDocument(const QUrl &localServer, const QString &cloudServer, const QString &documentId,
+                              const QString &role);
     // Opens the Report issue for a failed job in the queue history.
     void reportJob(const QString &jobId);
     // Opens a queue job output's get_url in the browser, resolved against the server.
@@ -316,6 +341,9 @@ public:
     bool hasUnsavedChanges() const {
         if (activeEditor() != this) {
             return activeEditor()->hasUnsavedChanges();
+        }
+        if (storyWorkspace_) {
+            return storyWorkspace_->property("dirty").toBool();
         }
         if (inlineChild_ && childParent_) {
             return childParent_->hasUnsavedChanges() || document_.graph() != syncedChildGraph_;
@@ -449,6 +477,10 @@ private:
   EditorWindow *activeEditor_ = nullptr;
   QStackedWidget *tabStack_ = nullptr;
   QString requestedWorkflow_;
+  // A document tab hosts a storyboard or a script editor in place of the canvas.
+  QPointer<node_editor::StoryDocumentSource> storySource_;
+  QPointer<QObject> storyWorkspace_;
+  QString storyId_;
   QPointer<EditorWindow> childParent_;
   QString childNode_;
     bool inlineChild_ = false;
@@ -502,6 +534,10 @@ private:
   void showServerSync();
   // The share dialog of the tab's cloud workflow, for its owner.
   void showShareDialog();
+  // The review sheet of Publish to Cloud and Synchronize for the active
+  // project (technical design WP2.8).
+  void showTransferDialog();
+  bool transferAvailable() const;
   void showRunTrace();
   void showGenerations();
   void showWorkers();
@@ -762,6 +798,8 @@ private:
   // owner creates them and its tabs borrow them, so the owner's destructor
   // ends them after the tabs.
   std::unique_ptr<nodetool::account::qt::AccountServers> accountServers_;
+  // Owner only: the bundled server of this launch, empty without one.
+  QUrl bundledServer_;
   // The Cloud and Shared with me groups the tabs' workflow browsers show,
   // for the current server's account. Owner only, declared after the
   // servers so it ends first.
@@ -772,6 +810,8 @@ private:
   // writes the last edit to disk.
   std::unique_ptr<nodetool::account::qt::CloudDocument> cloud_;
   QString cloudId_;
+  // `owner`, `editor` or `viewer`, as the Cloud list gave it.
+  QString cloudRole_;
   // The server the cloud workflow was opened from.
   QString cloudOrigin_;
   // The canonical server and the account the cloud document is open under.

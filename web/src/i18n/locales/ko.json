@@ -17976,7 +17976,9 @@
       "seek": "탐색",
       "playbackSpeed": "재생 속도",
       "exitFullscreen": "전체 화면 종료",
-      "enterFullscreen": "전체 화면으로 전환"
+      "enterFullscreen": "전체 화면으로 전환",
+      "mute": "음소거",
+      "unmute": "음소거 해제"
     },
     "tagInput": {
       "placeholder": "태그를 추가하려면 입력하고 Enter를 누르세요…",
@@ -20239,6 +20241,19 @@
       "retry": "다시 시도",
       "donePath": "파일은 {{path}}에 있습니다",
       "close": "닫기"
+    },
+    "preview": {
+      "clips": "클립",
+      "title": "미리 보기",
+      "tracks": "트랙",
+      "type": {
+        "app": "미니 앱",
+        "jsscript": "JS 스크립트",
+        "script": "스크립트",
+        "storyboard": "스토리보드",
+        "timeline": "타임라인",
+        "workflow": "워크플로"
+      }
     }
   },
   "assetPicker": {

@@ -687,6 +687,35 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         QVERIFY(installer.trigger("clearRecent"));
         QVERIFY(preferences.recentTimelines().isEmpty());
     }
+    // A cloud timeline reopens with its server, id and role, and only over HTTPS.
+    void recentCloud() {
+        Preferences preferences;
+        preferences.clearRecentTimelines();
+        nt::server::CloudSource cloud{QUrl("https://user:secret@cloud.example/ignored?q=1"), "cloud-id", "viewer", "/tmp/cache"};
+        QVERIFY(recordOpenedTimeline(preferences, {"timeline", "https://cloud.example#cloud_timeline=cloud-id"}, true,
+                                     "Shared cut", std::nullopt, cloud));
+        const auto entry = Preferences().recentTimelines().first().toMap();
+        QCOMPARE(entry.value("kind").toString(), QString("cloud"));
+        QCOMPARE(recentTimelineArguments(entry), QStringList({"--cloud-server", "https://cloud.example", "--cloud-timeline",
+                                                              "cloud-id", "--cloud-role", "viewer"}));
+        const auto menus = shellMenuDescription("premiere", preferences.recentTimelines());
+        QCOMPARE(menus[0].items[0].children[0].label, QString("Shared cut (cloud.example)"));
+        QVERIFY(menus[0].items[0].children[0].enabled);
+        // A plain HTTP address or an unknown role never becomes a cloud open.
+        QVERIFY(recentTimelineArguments({{"kind", "cloud"}, {"server", "http://cloud.example"}, {"timelineId", "x"},
+                                         {"role", "owner"}}).isEmpty());
+        QVERIFY(recentTimelineArguments({{"kind", "cloud"}, {"server", "https://cloud.example"}, {"timelineId", "x"},
+                                         {"role", "admin"}}).isEmpty());
+        // Opening it again moves it to the top instead of adding a second entry.
+        QVERIFY(recordOpenedTimeline(preferences, {"timeline", "x"}, true, "Shared cut", std::nullopt, cloud));
+        QCOMPARE(preferences.recentTimelines().size(), 1);
+        QFile settings(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));
+        QVERIFY(settings.open(QIODevice::ReadOnly));
+        const auto bytes = settings.readAll();
+        QVERIFY(bytes.contains("cloud-id"));
+        QVERIFY(!bytes.contains("secret"));
+        preferences.clearRecentTimelines();
+    }
     void recentBatchSafety() {
         Preferences preferences;
         const QString file = QStringLiteral(NT_FIXTURES_DIR "/av-sync.json");
@@ -845,7 +874,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         for (const auto& item : menu("File").items) {
             file << (item.separator ? QString("---") : item.label);
         }
-        QCOMPARE(file.mid(3), QStringList({"---", "Export Thing…", "---", "Project Settings…", "---", "Settings…", "Quit"}));
+        QCOMPARE(file.mid(3), QStringList({"---", "Export Thing…", "---", "Project Settings…", "---", "Publish to Cloud…", "Synchronize…", "---", "Settings…", "Quit"}));
         const auto inClip = [](const Menu& clipMenu) -> const ShellMenuItem& {
             return *std::find_if(clipMenu.items.begin(), clipMenu.items.end(), [](const ShellMenuItem& item) { return item.action == "nudgeLeft"; });
         };

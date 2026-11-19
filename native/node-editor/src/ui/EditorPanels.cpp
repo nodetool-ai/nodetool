@@ -81,6 +81,9 @@ void EditorWindow::initializePanels() {
     connect(canvasDrops_, &CanvasDropController::errorOccurred, this, [this](const QString &message) {
       notify(QStringLiteral("error"), message);
     });
+    connect(canvasDrops_, &CanvasDropController::warningOccurred, this, [this](const QString &message) {
+      notify(QStringLiteral("warning"), message);
+    });
   }
   connect(&session_, &node_editor::WorkflowSession::runEvent, this, [this](const QString &id, const QJsonObject &event) {
     const auto status = event["status"].toString();
@@ -117,8 +120,10 @@ void EditorWindow::initializePanels() {
     library_.setProject(projectFolder_.projectId());
     library_.setProjectWorkspace(projectFolder_.workspaceId());
     // Reveal needs the folder on this machine, as ProjectFolder::revealable says.
+    projectFiles_.setProject(projectFolder_.projectId());
     projectFiles_.setFolder(projectFolder_.workspaceId(), projectFolder_.revealable() ? projectFolder_.folderPath() : QString());
   });
+  connect(&projectFiles_, &files::ProjectFiles::changeFailed, this, [this](const QString &message) { notify("error", message); });
   syncOpenProject();
   connect(this, &EditorWindow::documentEpochChanged, this, [this] {
     runsTotal_ = runsCurrent_ = 0;
@@ -482,8 +487,35 @@ void EditorWindow::openCloudDocument(const QString &documentId, const QString &r
     notify("error", tr("Connect to the local server to open cloud workflows. It keeps their edits on this computer."));
     return;
   }
-  if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound() || cloud_) { owner->newTab(); }
+  if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound() || cloud_ ||
+      !cloudId_.isEmpty()) { owner->newTab(); }
   owner->activeEditor_->startCloudDocument(session, documentId, role);
+}
+
+void EditorWindow::restoreCloudDocument(const QUrl &localServer, const QString &cloudServer,
+                                        const QString &documentId, const QString &role) {
+  // Kept while the document cannot open, so the tab is restored again.
+  cloudId_ = documentId;
+  cloudOrigin_ = cloudServer;
+  cloudRole_ = role;
+  if (!localServer.isEmpty()) {
+    session_.connectToServer(localServer, qEnvironmentVariable("NODETOOL_TOKEN"));
+  }
+  auto *owner = tabOwner_ ? tabOwner_ : this;
+  auto *account = owner->accountServers_ ? owner->accountServers_->controllerFor(cloudServer) : nullptr;
+  // The start-up read: the controller has not read the keychain yet.
+  const auto session = account ? account->readSession() : nullptr;
+  if (!session) {
+    message_ = tr("Sign in to %1 to reopen this cloud workflow.").arg(QUrl(cloudServer).host());
+    schedulePanelChanged();
+    return;
+  }
+  if (session_.serverUrl().isEmpty()) {
+    message_ = tr("Connect to the local server to reopen this cloud workflow. It keeps its edits on this computer.");
+    schedulePanelChanged();
+    return;
+  }
+  startCloudDocument(session, documentId, role);
 }
 
 void EditorWindow::startCloudDocument(std::shared_ptr<nodetool::account::AccountSession> session,
@@ -495,6 +527,7 @@ void EditorWindow::startCloudDocument(std::shared_ptr<nodetool::account::Account
   cloudOrigin_ = QString::fromStdString(session->serverOrigin());
   cloudServerKey_ = QString::fromStdString(account::serverKey(session->serverOrigin()));
   cloudAccountId_ = QString::fromStdString(session->accountId());
+  cloudRole_ = role;
   account::qt::CloudDocumentServices services;
   services.session = std::move(session);
   services.store = account::makeLocalServerDraftStore(std::make_unique<account::qt::QtHttpTransport>(),
@@ -505,12 +538,23 @@ void EditorWindow::startCloudDocument(std::shared_ptr<nodetool::account::Account
   services.role = role.toStdString();
   cloud_ = std::make_unique<account::qt::CloudDocument>(std::move(services));
   cloudId_ = documentId;
-  connect(cloud_.get(), &account::qt::CloudDocument::stateChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(cloud_.get(), &account::qt::CloudDocument::stateChanged, this, [this] {
+    // The document replaces a kept role with the server's current one, and
+    // the tab keeps that one for the next restore (review F4).
+    if (cloud_) { cloudRole_ = cloud_->role(); }
+    schedulePanelChanged();
+  });
   connect(cloud_.get(), &account::qt::CloudDocument::opened, this, [this](const QString &revision, const QString &draft) {
     auto workflow = QJsonDocument::fromJson(revision.toUtf8()).object();
     // A draft this account left on this computer opens over the revision.
-    const auto graph = QJsonDocument::fromJson(draft.toUtf8()).object();
-    if (!graph.isEmpty()) { workflow["graph"] = graph; }
+    // It is {graph, name}, or the graph alone when kept by an earlier version.
+    const auto kept = QJsonDocument::fromJson(draft.toUtf8()).object();
+    if (kept.value("graph").isObject()) {
+      workflow["graph"] = kept.value("graph");
+      if (!kept.value("name").toString().isEmpty()) { workflow["name"] = kept.value("name"); }
+    } else if (!kept.isEmpty()) {
+      workflow["graph"] = kept;
+    }
     cloudLoading_ = true;
     openDocument(QJsonDocument(workflow).toJson(QJsonDocument::Compact), {});
     cloudLoading_ = false;

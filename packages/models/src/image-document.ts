@@ -15,6 +15,16 @@ import { getPortableDb } from "./db.js";
 import { imageDocuments } from "./schema/image-documents.js";
 import { ImageDocumentVersion } from "./image-document-version.js";
 import { removeDocumentSharing } from "./document-sharing.js";
+import { changingAccess } from "./access-epoch.js";
+import {
+  DocumentFileBinding,
+  etagWithoutFileState,
+  type DocumentFileFields
+} from "./document-file-binding.js";
+import type {
+  DocumentFileLocation,
+  DocumentFileSync
+} from "./document-file-sync.js";
 
 export interface ImageDocumentData {
   sketch: SketchDocumentLike;
@@ -70,6 +80,15 @@ export class ImageDocument extends DBModel {
   declare background_color: string;
   declare document: string;
   declare thumbnail_asset_id: string | null;
+  /** The sketch's file, relative to its project's folder. */
+  declare file_path: string | null;
+  /**
+   * SHA-256 of the sketch's zip as NodeTool last wrote or imported it. Any
+   * other hash means an edit NodeTool has not seen.
+   */
+  declare file_hash: string | null;
+  /** What the last reconcile found wrong with the file, or null. */
+  declare file_error: string | null;
   declare created_at: string;
   declare revision: number;
   declare updated_at: string;
@@ -122,7 +141,86 @@ export class ImageDocument extends DBModel {
     this.thumbnail_asset_id ??= null;
     this.created_at ??= now;
     this.revision ??= 0;
+    this.file_path ??= null;
+    this.file_hash ??= null;
+    this.file_error ??= null;
     this.updated_at ??= now;
+    imageDocumentFiles.remember(this);
+  }
+
+  override async delete(): Promise<void> {
+    await super.delete();
+    await imageDocumentFiles.deleted(this);
+  }
+
+  /** The etag of the sketch, without the state of its file. */
+  override getEtag(): string {
+    return etagWithoutFileState(this.toRow());
+  }
+
+  /** Every create and save of a sketch row writes its file afterwards. */
+  protected override async persist(event: ModelChangeEvent): Promise<this> {
+    const previous = await imageDocumentFiles.beforePersist(this);
+    await super.persist(event);
+    await this.syncFile(previous);
+    return this;
+  }
+
+  /**
+   * Write the file of this row, which a caller just wrote without `save()`.
+   * `previous` is the file the row had in the project it left, if it moved.
+   */
+  async syncFile(previous: DocumentFileLocation | null = null): Promise<void> {
+    await imageDocumentFiles.saved(this, previous);
+  }
+
+  /** Record the file state without touching `updated_at`. */
+  static setFileState(id: string, state: DocumentFileFields): Promise<void> {
+    return imageDocumentFiles.setFileState(id, state);
+  }
+
+  /** Whether a sketch of any user has exactly this ID. */
+  static existsExactly(id: string): Promise<boolean> {
+    return imageDocumentFiles.existsExactly(id);
+  }
+
+  /** The sketches whose files belong in the folder of `projectIds`. */
+  static listForProjects(
+    userId: string,
+    projectIds: readonly string[]
+  ): Promise<ImageDocument[]> {
+    return imageDocumentFiles.listForProjects(userId, projectIds);
+  }
+
+  /** The projects that hold a sketch whose file was never written. */
+  static projectsWithUnwrittenFiles(
+    userId?: string
+  ): Promise<Array<{ user_id: string; project_id: string; count: number }>> {
+    return imageDocumentFiles.projectsWithUnwrittenFiles(userId);
+  }
+
+  /**
+   * Insert a sketch only when no row has its ID. Returns null when a row
+   * with that ID exists, which is left exactly as it is, whoever owns it.
+   */
+  static async insertNew(
+    data: Record<string, unknown>
+  ): Promise<ImageDocument | null> {
+    const row = new ImageDocument(data);
+    row.beforeSave();
+    return imageDocumentFiles.insertNew(row);
+  }
+
+  /**
+   * Point a sketch the caller owns at `projectId` and take its file along.
+   * Returns false when the caller owns no such sketch.
+   */
+  static moveToProject(
+    userId: string,
+    id: string,
+    projectId: string
+  ): Promise<boolean> {
+    return imageDocumentFiles.moveToProject(userId, id, projectId);
   }
 
   override beforeSave(): void {
@@ -162,14 +260,16 @@ export class ImageDocument extends DBModel {
    * Missing and not-yours are the same answer, so a caller cannot probe ids.
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
-    const row = await ImageDocument.findById(id);
-    if (!row || row.user_id !== userId) return false;
-    await row.delete();
-    await removeDocumentSharing("sketch", row.id);
-    // Belt-and-braces with the FK cascade: version rows outliving their
-    // document would be unreachable garbage.
-    await ImageDocumentVersion.deleteForDocument(row.id);
-    return true;
+    return changingAccess([{ kind: "sketch", id }], async () => {
+      const row = await ImageDocument.findById(id);
+      if (!row || row.user_id !== userId) return false;
+      await row.delete();
+      await removeDocumentSharing("sketch", row.id);
+      // Belt-and-braces with the FK cascade: version rows outliving their
+      // document would be unreachable garbage.
+      await ImageDocumentVersion.deleteForDocument(row.id);
+      return true;
+    });
   }
 
   static async findById(id: string): Promise<ImageDocument | null> {
@@ -275,6 +375,7 @@ export class ImageDocument extends DBModel {
     if (!row) return null;
 
     const updated = new ImageDocument(row);
+    await updated.syncFile();
     ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
@@ -309,6 +410,7 @@ export class ImageDocument extends DBModel {
     }
 
     const updated = new ImageDocument(row);
+    await updated.syncFile();
     ModelObserver.notify(updated, ModelChangeEvent.UPDATED, meta);
     return updated;
   }
@@ -347,4 +449,19 @@ export class ImageDocument extends DBModel {
 
     throw new ImageDocumentConflictError(id);
   }
+}
+
+const imageDocumentFiles = new DocumentFileBinding<ImageDocument>(
+  imageDocuments,
+  (row) => new ImageDocument(row)
+);
+
+/**
+ * Install what writes a sketch's file in its project folder after the row is
+ * saved, and deletes it after the row is deleted. See {@link DocumentFileSync}.
+ */
+export function setImageDocumentFileSync(
+  sync: DocumentFileSync<ImageDocument> | null
+): void {
+  imageDocumentFiles.sync = sync;
 }

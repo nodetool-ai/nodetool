@@ -2,7 +2,7 @@
 #include "aiassist/AssistDocument.h"
 #include "aiassist/LinkedWorkflow.h"
 #include "aiassist/ScriptExtraction.h"
-#include "aiassist/ScriptAuthoring.h"
+#include "ScriptAuthoring.h"
 #include "aiassist/StoryboardAssembly.h"
 #include "app/EditRegistry.h"
 #include "server/ServerSource.h"
@@ -92,7 +92,7 @@ QVariantList AssistController::scriptRows() const {
         section.insert("lines", lines); sections[i] = section;
     }
     document.insert("sections", sections); script.insert("document", document);
-    auto rows = nt::aiassist::scriptPanelRows(script, m_model ? m_model->timeline().raw : QJsonObject{});
+    auto rows = nt::script::scriptPanelRows(script, m_model ? m_model->timeline().raw : QJsonObject{});
     QSet<QString> present;
     for (const auto& value : rows) { const auto row = value.toObject(); if (row.value("kind") == "line") { present.insert(row.value("id").toString()); } }
     bool orphanHeading = false;
@@ -110,12 +110,12 @@ QVariantList AssistController::scriptRows() const {
     }
     return rows.toVariantList();
 }
-QVariantMap AssistController::scriptHeader() const { return nt::aiassist::scriptPanelHeader(QJsonObject::fromVariantMap(m_result.toMap())).toVariantMap(); }
+QVariantMap AssistController::scriptHeader() const { return nt::script::scriptPanelHeader(QJsonObject::fromVariantMap(m_result.toMap())).toVariantMap(); }
 QUrl AssistController::scriptEditorUrl() const {
     const auto resource = QJsonObject::fromVariantMap(m_result.toMap());
     if (!resource.value("document").toObject().value("sections").isArray()) { return {}; }
     const auto target = nt::server::serverSaveTarget();
-    return target ? nt::aiassist::scriptEditorUrl(target->server, resource.value("id").toString()) : QUrl{};
+    return target ? nt::script::scriptEditorUrl(target->server, resource.value("id").toString()) : QUrl{};
 }
 bool AssistController::createLinkedScript() {
     if (!m_model) { return false; }
@@ -126,7 +126,7 @@ bool AssistController::createLinkedScript() {
 }
 bool AssistController::addScriptLine() {
     const auto source = QJsonObject::fromVariantMap(m_result.toMap());
-    const auto updated = nt::aiassist::addScriptLine(source);
+    const auto updated = nt::script::addScriptLine(source);
     return updated != source && saveScript(updated);
 }
 bool AssistController::hasScriptLineDraft(const QString& scriptId, const QString& lineId) const {
@@ -163,8 +163,8 @@ bool AssistController::saveScriptLineDraft(const QString& scriptId, const QStrin
     const auto resolved = nt::aiassist::resolveId(lineId, ids);
     if (!resolved) { emit changed(); return false; }
     const auto draft = drafts.value(*resolved);
-    auto updated = nt::aiassist::patchScriptLineText(source, {{"lineId", *resolved}, {"text", draft.text}});
-    if (draft.remove) { updated = nt::aiassist::removeEmptyScriptLine(updated, {{"lineId", *resolved}}); }
+    auto updated = nt::script::patchScriptLineText(source, {{"lineId", *resolved}, {"text", draft.text}});
+    if (draft.remove) { updated = nt::script::removeEmptyScriptLine(updated, {{"lineId", *resolved}}); }
     if (updated == source) {
         bool exists = false;
         for (const auto& section : source.value("document").toObject().value("sections").toArray()) {
@@ -542,4 +542,31 @@ bool AssistController::scriptDirty() const {
     const auto resource = QJsonObject::fromVariantMap(m_result.toMap());
     return resource.value("document").toObject().value("sections").isArray() &&
         !m_scriptDrafts.value(draftKey(resource.value("id").toString())).isEmpty();
+}
+
+QString AssistController::draftScope() const {
+    if (!m_model) { return {}; }
+    QByteArray scope;
+    if (const auto target = nt::server::serverSaveTarget()) {
+        scope = target->server.toEncoded() + '\0' + target->token.toUtf8() + '\0' + target->expectedInstance.toUtf8();
+    }
+    const auto timeline = m_model->timeline().raw;
+    scope += '\0' + timeline.value("projectId").toString().toUtf8() + '\0' + timeline.value("id").toString().toUtf8();
+    return QString::fromLatin1(scope.toBase64());
+}
+QVariantList AssistController::linkedResources() const {
+    QVariantList result;
+    if (!m_model) { return result; }
+    QSet<QString> seen;
+    for (const auto& value : m_model->timeline().raw.value("clips").toArray()) {
+        const auto clip = value.toObject();
+        for (const auto& field : {QStringLiteral("scriptId"), QStringLiteral("storyboardBoardId")}) {
+            const auto id = clip.value(field).toString();
+            const QString kind = field == "scriptId" ? "scripts" : "storyboards";
+            if (id.isEmpty() || seen.contains(kind + ':' + id)) { continue; }
+            seen.insert(kind + ':' + id);
+            result.append(QVariantMap{{"id", id}, {"kind", kind}});
+        }
+    }
+    return result;
 }

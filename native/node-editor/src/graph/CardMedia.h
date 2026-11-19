@@ -1,6 +1,7 @@
 #pragma once
 #include "NodeLayout.h"
 #include <QHash>
+#include <QJsonValue>
 #include <QVariant>
 class QPainter;
 
@@ -40,6 +41,9 @@ inline constexpr double badgeHeight = 18;
 inline constexpr double badgeInset = 4;
 // The asset actions: 28 px buttons 4 px from the zone's top right corner.
 inline constexpr double actionSize = 28;
+// A media area takes the media's width / height ratio, clamped to this range.
+inline constexpr double minimumRatio = 1.0 / 3.0;
+inline constexpr double maximumRatio = 3.0;
 } // namespace card_media
 
 // Thumbnails and load states of media values, by node, property and item.
@@ -62,6 +66,14 @@ QString cardMediaIdentity(const QVariant &locator);
 bool cardMediaBare(const QString &nodeType);
 // A constant Image or Video fills the card and grows with it.
 bool cardMediaFills(const QString &nodeType);
+
+// The width and height a media ref carries, on the ref or in its asset
+// metadata. A run result object is searched one level deep. Invalid when none.
+QSize cardMediaDimensions(const QJsonValue &value);
+// width / height clamped to the card range, or 0 for an invalid size.
+double cardMediaRatio(const QSize &natural);
+// The ratio a card was sized for, rounded so a thumbnail and its metadata agree.
+double cardMediaFitKey(double ratio);
 
 struct CardMediaField {
   QString node;

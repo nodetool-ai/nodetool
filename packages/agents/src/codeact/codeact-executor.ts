@@ -83,6 +83,7 @@ import {
   buildToolBridge,
   buildCoreProviderTools,
   splitCoreTools,
+  toolSearchDetail,
   toolSearchHit,
   CODEACT_PRELUDE,
   type ToolCallRecord,
@@ -916,11 +917,14 @@ export class CodeActExecutor {
           ? Math.max(1, Math.min(25, Math.floor(maxResults)))
           : 5;
         const byName = new Map(this.tools.map((t) => [t.name, t]));
-        const hits = searchTools(searchCatalog, String(query ?? ""), limit).map(
+        const text = String(query ?? "");
+        const detail = toolSearchDetail(text);
+        const hits = searchTools(searchCatalog, text, limit).map(
           (entry): ToolSearchHit =>
             toolSearchHit(
               byName.get(entry.name) as Tool,
-              capabilityModuleOf(entry.name) ?? graftedModuleFor(entry.name)
+              capabilityModuleOf(entry.name) ?? graftedModuleFor(entry.name),
+              detail
             )
         );
         return { ok: true, result: hits };
@@ -969,7 +973,9 @@ export class CodeActExecutor {
           toolCalls: 0
         } satisfies ActionObservation);
       }
-      const mountOptions: MountCapabilityModulesOptions = {};
+      const mountOptions: MountCapabilityModulesOptions = {
+        disclosure: bridge.signatureDisclosure
+      };
       if (this.signal !== undefined) mountOptions.signal = this.signal;
       if (sessionModules.length > 0) mountOptions.session = sessionModules;
       const platform = await mountCapabilityModules(

@@ -1,10 +1,10 @@
 /**
  * The MCP `tools/list` schema of a direct tool and the signature an
  * `execute_code` action reads from `nodetool.searchTools()` come from one
- * capability spec. If a parameter reaches one surface and not the other, an
- * MCP client cannot pass what the sandbox accepts (end_frame_file on
- * animate_image was reported missing from the MCP schema while the sandbox
- * signature showed it).
+ * capability spec (a `select:` lookup returns that signature). If a parameter
+ * reaches one surface and not the other, an MCP client cannot pass what the
+ * sandbox accepts (end_frame_file on animate_image was reported missing from
+ * the MCP schema while the sandbox signature showed it).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -109,7 +109,9 @@ describe("MCP tool schemas and sandbox signatures", () => {
       const result = await client.callTool({
         name: "execute_code",
         arguments: {
-          code: `const hits = await nodetool.searchTools("animate image into a video", 10);
+          // A keyword hit carries only a purpose line; `select:` returns the
+          // full signature the sandbox validates against.
+          code: `const hits = await nodetool.searchTools("select:animate_image");
 const hit = hits.find((h) => h.name === "animate_image");
 return hit ? hit.signature : null;`
         }

@@ -110,6 +110,7 @@ public:
   bool connected() const { return m_connected; }
   QUrl serverUrl() const { return m_base; }
   QString token() const { return m_token; }
+  QString userId() const { return m_userId; }
   Q_INVOKABLE void connectToServer(const QUrl &base, const QString &token,
                                    const QString &userId = "1");
   Q_INVOKABLE void disconnectFromServer();

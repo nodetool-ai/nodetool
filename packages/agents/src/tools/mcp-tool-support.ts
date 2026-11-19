@@ -285,12 +285,14 @@ export function normalizeWorkflowGraph(graph: unknown) {
           return value;
         }
         const edge = value as Record<string, unknown>;
-        const { source_output, target_input, ...rest } = edge;
+        // Validation reads `source_handle`/`target_handle` too, so a graph it
+        // accepts must keep those handles here.
+        const { source_output, target_input, source_handle, target_handle, ...rest } = edge;
         return {
           ...rest,
           id: edge["id"] ?? `edge-${index}`,
-          sourceHandle: edge["sourceHandle"] ?? source_output ?? "output",
-          targetHandle: edge["targetHandle"] ?? target_input
+          sourceHandle: edge["sourceHandle"] ?? source_handle ?? source_output ?? "output",
+          targetHandle: edge["targetHandle"] ?? target_handle ?? target_input
         };
       })
     : rawEdges;

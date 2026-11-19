@@ -1,7 +1,5 @@
-nt_qml_sources(src/storyworkspace/StoryWorkspace.h src/storyworkspace/StoryWorkspace.cpp)
 function(nt_storyworkspace_tests)
     qt_add_executable(tst_storyworkspace src/storyworkspace/tst_storyworkspace.cpp
-        src/storyworkspace/StoryWorkspace.h src/storyworkspace/StoryWorkspace.cpp
         src/aiassist/AssistController.h src/aiassist/AssistController.cpp src/aiassist/AssistEdits.cpp
         src/aiassist/ScriptVoicing.h src/aiassist/ScriptVoicing.cpp
         src/aiassist/CandidatePreview.h src/aiassist/CandidatePreview.cpp

@@ -16,6 +16,11 @@
 #include <QTimer>
 #include <QUuid>
 #include <algorithm>
+#ifdef NODETOOL_CHAT_MEDIA
+#include <QtQml/QQmlExtensionPlugin>
+// The inline player of audio and video results.
+Q_IMPORT_QML_PLUGIN(NodeTool_MediaPlayerPlugin)
+#endif
 namespace nt::chat {
 QVariantList ChatSession::markdownPages(const QString &text) const { return nt::chat::markdownPages(text); }
 void ChatSession::styleMarkdownLinks(QQuickTextDocument *document, const QColor &colour) {

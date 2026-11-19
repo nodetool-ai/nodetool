@@ -207,6 +207,45 @@ export function storyboard(inputs: StoryboardInputs): Promise<StoryboardOutputs>
   return callNode<StoryboardOutputs>("nodetool.constant.Storyboard", inputs);
 }
 
+// Workflow — nodetool.constant.Workflow
+export type WorkflowInputs = {
+  value?: unknown;
+};
+
+export interface WorkflowOutputs {
+  output: unknown;
+}
+
+export function workflow(inputs: WorkflowInputs): Promise<WorkflowOutputs> {
+  return callNode<WorkflowOutputs>("nodetool.constant.Workflow", inputs);
+}
+
+// Application — nodetool.constant.Application
+export type ApplicationInputs = {
+  value?: unknown;
+};
+
+export interface ApplicationOutputs {
+  output: unknown;
+}
+
+export function application(inputs: ApplicationInputs): Promise<ApplicationOutputs> {
+  return callNode<ApplicationOutputs>("nodetool.constant.Application", inputs);
+}
+
+// JS Script — nodetool.constant.JsScript
+export type JsScriptInputs = {
+  value?: unknown;
+};
+
+export interface JsScriptOutputs {
+  output: unknown;
+}
+
+export function jsScript(inputs: JsScriptInputs): Promise<JsScriptOutputs> {
+  return callNode<JsScriptOutputs>("nodetool.constant.JsScript", inputs);
+}
+
 // Entity — nodetool.constant.Entity
 export type EntityInputs = {
   value?: Entity;

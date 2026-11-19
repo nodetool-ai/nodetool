@@ -4,6 +4,8 @@
 // desktop app"). main.cpp connects it to stdin and stdout.
 #pragma once
 
+#include "pipe_transport.h"
+
 #include "nodetool/account/account_session.h"
 #include "nodetool/account/policy.h"
 #include "nodetool/account/sign_in.h"
@@ -23,11 +25,12 @@
 #include <optional>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace nodetool::account_helper {
 
-// What main.cpp hands the helper. The helper borrows `store` and
-// `endpoint`, which must outlive it.
+// What main.cpp hands the helper. The helper borrows `store`, `endpoint`
+// and `transport`, which must outlive it.
 struct HelperOptions {
   // The data folder the Qt apps share (sharedDataDir in data_dir.h).
   std::filesystem::path dataDir;
@@ -42,6 +45,9 @@ struct HelperOptions {
   // session in memory only.
   bool keychainAvailable = true;
   account::TokenEndpoint* endpoint = nullptr;
+  // Sends the cloud requests, transfer calls and their retries of protocol
+  // version 2. Null answers each of them OFFLINE.
+  PipeTransport* transport = nullptr;
   std::function<account::ManagedPolicy()> policy;
   // Test hook, passed to every AccountSession and sign-in.
   std::function<void(account::FaultPoint)> fault;
@@ -60,13 +66,16 @@ struct HelperOptions {
 // stdin. Keychain reads, the local sign-out steps and the state run in order
 // on one task thread, the server ends on a network thread, the wait for the
 // browser on its own thread, and a ticker thread queues the periodic check.
-// The helper never refreshes a token. The state they share is in Core,
+// The cloud requests, transfer calls and socket tokens of protocol version 2
+// run on a pool of request threads, which apply the request rule and renew
+// the access token through the session. The state they share is in Core,
 // under its mutex.
 //
 // Ownership: the helper owns its threads and joins them in its destructor,
-// after cancelling a sign-in that waits for the browser. It shares its Core
-// with the tasks it queues, which the threads run before they are joined.
-// The sessions the Core owns hold it weakly in their callbacks.
+// after cancelling a sign-in that waits for the browser and every request
+// in flight. It shares its Core with the tasks it queues, which the threads
+// run before they are joined. The sessions the Core owns hold it weakly in
+// their callbacks.
 class AccountHelper {
 public:
   using Emit = std::function<void(const nlohmann::json&)>;
@@ -76,7 +85,9 @@ public:
   ~AccountHelper();
 
   // One message from the main process: `signIn`, `cancelSignIn`,
-  // `browserResult`, `signOut` or `reload`. Unknown types are ignored.
+  // `browserResult`, `signOut`, `reload`, and from protocol version 2
+  // `request`, `transfer`, `socketToken` and `requestCancel` (README,
+  // "Protocol"). Unknown types are ignored.
   void handle(const nlohmann::json& message);
 
   // Runs `fn` on the task thread after every task queued before it, and
@@ -86,6 +97,7 @@ public:
 private:
   struct Core;
   void signIn();
+  void handleRequest(const std::string& name, const nlohmann::json& message);
 
   // Shared with the queued tasks and the sign-in thread, because each of
   // them runs on a thread of its own and must keep the state it uses alive
@@ -96,6 +108,7 @@ private:
   std::thread taskThread_;
   std::thread networkThread_;
   std::thread tickerThread_;
+  std::vector<std::thread> requestThreads_;
 };
 
 } // namespace nodetool::account_helper

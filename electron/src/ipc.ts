@@ -44,7 +44,7 @@ import { applyVaultSwitch } from "./vaultSwitch";
 import { setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
 import { getVstHost } from "./vstHost";
-import { getCloudAccount } from "./cloudAccount";
+import { getCloudAccount, getCloudSockets } from "./cloudAccount";
 import { showSystemNotification } from "./systemNotifications";
 import { IpcRequest } from "./types.d";
 import {
@@ -84,6 +84,32 @@ import {
 import { isBoolean, isNonEmptyString } from "./typePredicates";
 
 const nodePackInstallRequestSchema = z.object({ spec: z.string() }).strict();
+// A cloud request names no credential and no host: the path is checked
+// against the list of routes in cloudRequests.ts, and the helper adds the
+// account's token.
+const cloudRequestSchema = z
+  .object({
+    method: z.enum(["GET", "HEAD", "POST"]),
+    path: z.string().max(8192),
+    headers: z.record(z.string(), z.string()),
+    body: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
+  })
+  .strict();
+const cloudTransferSchema = z
+  .object({
+    procedure: z.string().max(200),
+    input: z.record(z.string(), z.unknown()),
+  })
+  .strict();
+const cloudSocketSendSchema = z
+  .object({
+    id: z.number().int().positive(),
+    data: z.union([z.string(), z.instanceof(Uint8Array)]),
+  })
+  .strict();
+const cloudSocketCloseSchema = z.object({ id: z.number().int().positive() }).strict();
+// The windows whose sockets close when they are destroyed.
+const watchedSocketOwners = new Set<number>();
 const nodePackUninstallRequestSchema = z.object({ name: z.string() }).strict();
 const nodePackTrustRequestSchema = z.object({ name: z.string() }).strict();
 
@@ -155,6 +181,12 @@ const QUIET_CHANNELS = [
   "frontend-log",
   // Renders carry plug-in state and note lists, one per clip edit.
   "vst-render",
+  // Cloud documents send one per query and save. Their bodies are document
+  // content, so they are never logged.
+  "cloud-request",
+  "cloud-transfer",
+  // One per frame of a cloud document's run.
+  "cloud-socket-send",
 ];
 /**
  * Defense-in-depth check for URLs passed to `shell.openExternal` / browser.
@@ -1028,6 +1060,47 @@ export function initializeIpcHandlers(): void {
   });
   createIpcMainHandler(IpcChannels.CLOUD_ACCOUNT_SIGN_OUT, async () => {
     getCloudAccount().signOut();
+  });
+  // Cloud requests and transfer calls of cloud documents (WP1.14). Neither
+  // the input nor the answer holds a token.
+  createIpcMainHandler(IpcChannels.CLOUD_REQUEST, async (_event, request) => {
+    const parsed = cloudRequestSchema.safeParse(request);
+    if (!parsed.success) {
+      return { ok: false, error: "REFUSED" } as const;
+    }
+    return getCloudAccount().request(parsed.data);
+  });
+  createIpcMainHandler(IpcChannels.CLOUD_TRANSFER, async (_event, request) => {
+    const parsed = cloudTransferSchema.safeParse(request);
+    if (!parsed.success) {
+      return { status: "refused", reason: "INVALID", data: null } as const;
+    }
+    return getCloudAccount().transfer(parsed.data.procedure, parsed.data.input);
+  });
+  // The workflow socket of a cloud document (D25). The window that opens a
+  // socket is the only one that can send on it or close it.
+  createIpcMainHandler(IpcChannels.CLOUD_SOCKET_OPEN, async (event) => {
+    const sender = event.sender;
+    const sockets = getCloudSockets();
+    const result = await sockets.open(sender.id);
+    if (result.ok && !watchedSocketOwners.has(sender.id)) {
+      watchedSocketOwners.add(sender.id);
+      sender.once("destroyed", () => {
+        watchedSocketOwners.delete(sender.id);
+        sockets.closeOwner(sender.id);
+      });
+    }
+    return result;
+  });
+  createIpcMainHandler(IpcChannels.CLOUD_SOCKET_SEND, async (event, request) => {
+    const parsed = cloudSocketSendSchema.safeParse(request);
+    return parsed.success ? getCloudSockets().send(event.sender.id, parsed.data.id, parsed.data.data) : false;
+  });
+  createIpcMainHandler(IpcChannels.CLOUD_SOCKET_CLOSE, async (event, request) => {
+    const parsed = cloudSocketCloseSchema.safeParse(request);
+    if (parsed.success) {
+      getCloudSockets().close(event.sender.id, parsed.data.id);
+    }
   });
 
   createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {

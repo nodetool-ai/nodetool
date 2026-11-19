@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { preload } from "react-dom";
 import type { ReactNode } from "react";
 import { Play } from "lucide-react";
 import { formatTimecode, isVertical, shotStarts } from "@/data/storyboards";
@@ -41,6 +42,9 @@ export default function StoryboardViewer({
   const active = shotAt(starts, time);
   const vertical = isVertical(board);
   const duration = board.video.duration;
+  // The poster is the LCP element. Fetch it from the document head, and keep
+  // the film itself from loading until the reader presses play.
+  preload(board.video.poster.src, { as: "image", fetchPriority: "high" });
 
   useEffect(() => {
     const video = videoRef.current;
@@ -104,7 +108,7 @@ export default function StoryboardViewer({
         poster={board.video.poster.src}
         controls
         playsInline
-        preload="metadata"
+        preload="none"
         aria-label={`${board.title}, the finished film`}
         className="block h-full w-full"
       />

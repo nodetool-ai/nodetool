@@ -212,7 +212,7 @@ describe("agent memory propagation", () => {
     // one documented form: the `nodetool.shared` object model.
     const sysPrompt = provider.calls[0].systemPrompt;
     expect(sysPrompt).toContain("nodetool.shared");
-    expect(sysPrompt).toContain("read(keys)");
+    expect(sysPrompt).toContain("this run's scratchpad: list, read, publish");
   });
 
   it("makes upstream task results visible in downstream task prompts (plan mode)", async () => {

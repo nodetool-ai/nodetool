@@ -18580,7 +18580,9 @@
       "seek": "Перемотка",
       "playbackSpeed": "Скорость воспроизведения",
       "exitFullscreen": "Выйти из полноэкранного режима",
-      "enterFullscreen": "Во весь экран"
+      "enterFullscreen": "Во весь экран",
+      "mute": "Выключить звук",
+      "unmute": "Включить звук"
     },
     "tagInput": {
       "placeholder": "Введите тег и нажмите Enter…",
@@ -20861,6 +20863,19 @@
       "retry": "Повторить",
       "donePath": "Ваши файлы находятся в {{path}}",
       "close": "Закрыть"
+    },
+    "preview": {
+      "clips": "клипы",
+      "title": "Предпросмотр",
+      "tracks": "дорожки",
+      "type": {
+        "app": "Мини-приложение",
+        "jsscript": "JS-скрипт",
+        "script": "Сценарий",
+        "storyboard": "Раскадровка",
+        "timeline": "Таймлайн",
+        "workflow": "Воркфлоу"
+      }
     }
   },
   "assetPicker": {

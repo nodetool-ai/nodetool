@@ -42,7 +42,26 @@ export enum ApiErrorCode {
    * The client's protocol version is below the lowest this server accepts
    * writes from. Listing and reading still work.
    */
-  CLIENT_TOO_OLD = "CLIENT_TOO_OLD"
+  CLIENT_TOO_OLD = "CLIENT_TOO_OLD",
+  /**
+   * A transfer's commit attempt id was recorded with other content. A retry
+   * must send what the first attempt sent, or take a new attempt id.
+   */
+  ATTEMPT_CONTENT_MISMATCH = "ATTEMPT_CONTENT_MISMATCH",
+  /**
+   * A receive's revision set expired, was released, or holds a revision or
+   * file an owner's action freed. The client captures a new set (Y7).
+   */
+  REVISION_SET_EXPIRED = "REVISION_SET_EXPIRED",
+  /**
+   * The local transfer client was handed a cloud access token the cloud no
+   * longer accepts. The app signs in again and hands a new one.
+   */
+  CLOUD_SIGNED_OUT = "CLOUD_SIGNED_OUT",
+  /** The cloud could not be reached or failed. The same call may succeed later. */
+  CLOUD_UNREACHABLE = "CLOUD_UNREACHABLE",
+  /** The cloud refused the local transfer client's request. Sending it again will not help. */
+  CLOUD_REFUSED = "CLOUD_REFUSED"
 }
 
 export interface ApiErrorResponse {

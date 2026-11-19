@@ -84,7 +84,7 @@ test('QML-only packages discover resources, singletons, panels and nested module
     for (const entry of ['packages', 'web']) {
       symlinkSync(path.resolve(source, '../..', entry), path.join(scratch, entry), 'dir');
     }
-    for (const sibling of ['account', 'chat', 'model-picker', 'ui_primitives', 'media', 'files', 'entities', 'storyboard', 'kernels', 'timeline-player']) {
+    for (const sibling of ['account', 'chat', 'model-picker', 'ui_primitives', 'media', 'files', 'entities', 'storyboard', 'script', 'kernels', 'timeline-player']) {
       symlinkSync(path.resolve(source, '..', sibling), path.join(scratch, 'native', sibling), 'dir');
     }
     for (const entry of readdirSync(source)) {
@@ -144,10 +144,10 @@ int main(int argc, char** argv) {
     assert.doesNotMatch(output, /Warning \(dev\)/);
     const expected = [...readdirSync(path.join(directory, 'qml'), { recursive: true })
       .filter(file => /\.(qml|js)$/.test(file) && !file.split(path.sep).includes('tests')).map(file => `qml/${file.split(path.sep).join("/")}`), 'src/app/PanelSlot.qml',
-      // The Account control and the cloud document views are compiled from
-      // native/account under these aliases.
+      // The Account control, the cloud document views and the transfer review
+      // sheet are compiled from native/account under these aliases.
       'AccountControl.qml', 'CloudDocumentsPanel.qml', 'CloudSyncStatus.qml', 'ShareDialog.qml',
-      'SharePanel.qml'].sort();
+      'SharePanel.qml', 'TransferDialog.qml', 'TransferPanel.qml'].sort();
     // The shared module keeps the complete discovered resource list for every host.
     for (const target of ['timeline_qml']) {
       const resources = readFileSync(path.join(build, '.qt', 'rcc', `${target}_raw_qml_0.qrc`), 'utf8');

@@ -6147,7 +6147,7 @@
         "createError": "Could not create the project: {{error}}",
         "openFolder": "Open folder…",
         "openFolderHint": "Already have a folder? Open it as a project. No files move.",
-        "openFolderTravels": "A folder copied from another machine opens with its workflows, timelines and assets. Chats, storyboards, scripts, sketches, apps and JS scripts do not travel with the folder.",
+        "openFolderTravels": "A folder copied from another machine opens with its documents and assets. Chats do not travel with the folder.",
         "openFolderError": "Could not open the folder: {{error}}"
       },
       "folder": {
@@ -17976,7 +17976,9 @@
       "seek": "Seek",
       "playbackSpeed": "Playback speed",
       "exitFullscreen": "Exit fullscreen",
-      "enterFullscreen": "Enter fullscreen"
+      "enterFullscreen": "Enter fullscreen",
+      "mute": "Mute",
+      "unmute": "Unmute"
     },
     "tagInput": {
       "placeholder": "Type and press Enter to add a tag…",
@@ -20239,6 +20241,19 @@
       "retry": "Try again",
       "donePath": "Your files are in {{path}}",
       "close": "Close"
+    },
+    "preview": {
+      "title": "Preview",
+      "tracks": "tracks",
+      "clips": "clips",
+      "type": {
+        "workflow": "Workflow",
+        "timeline": "Timeline",
+        "storyboard": "Storyboard",
+        "script": "Script",
+        "app": "Mini app",
+        "jsscript": "JS script"
+      }
     }
   },
   "assetPicker": {

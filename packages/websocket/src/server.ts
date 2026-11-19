@@ -91,6 +91,7 @@ import "@nodetool-ai/project-services/storyboard-file";
 import "@nodetool-ai/project-services/script-file";
 import "@nodetool-ai/project-services/app-file";
 import "@nodetool-ai/project-services/js-script-file";
+import "@nodetool-ai/project-services/sketch-file";
 import { serverModelInterfaces } from "./websocket-client-session.js";
 import {
   WorkerManager,
@@ -109,8 +110,17 @@ import {
   isAccessToken,
   McpOauthClient,
   migrateSqliteDb,
-  runSeeds
+  runSeeds,
+  parseStorageAllowance,
+  setDocumentRetentionDays,
+  setStorageAllowanceBytes
 } from "@nodetool-ai/models";
+import { cleanupBlobs } from "@nodetool-ai/asset-services/blob-store";
+import { startTransferPlacementSweeper } from "@nodetool-ai/project-services/transfer-files";
+import {
+  DELETED_DOCUMENT_RETENTION_DAYS,
+  purgeDueDeletedDocuments
+} from "./lib/deleted-documents.js";
 import {
   applyTransformersJsCacheSetting,
   resolveWorkerSettingsEnv
@@ -189,6 +199,8 @@ import workflowsRoutes from "./routes/workflows.js";
 import presetRoutes from "./routes/presets.js";
 import nodesRoutes from "./routes/nodes.js";
 import storageRoutes from "./routes/storage.js";
+import transferRoutes from "./routes/transfers.js";
+import receiveRoutes from "./routes/receive.js";
 import openaiRoutes from "./routes/openai.js";
 import oauthRoutes from "./routes/oauth.js";
 import { oauthAsRoutes } from "./routes/oauth-as.js";
@@ -210,7 +222,7 @@ import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
 import { createSdkV1Service } from "./sdk/sdk-v1-service.js";
 import { createSdkV1ImplementationBoundary } from "./sdk/sdk-v1-handler-map.js";
 import { createSdkV1TemporaryAssetService } from "./sdk/sdk-temporary-asset-service.js";
-import { getTempAdapter } from "./lib/storage.js";
+import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import { FrontendRendererRegistry } from "./frontend-renderer-registry.js";
 import workspaceRoutes from "./routes/workspace.js";
 import {
@@ -320,6 +332,7 @@ const startupT0 = performance.now();
 const PROCESS_STARTED_AT = new Date().toISOString();
 let stopGenerationReconcileWorker: (() => void) | null = null;
 let stopErrorTraceMaintenance: (() => void) | null = null;
+let stopPlacementSweeper: (() => void) | null = null;
 function startupMs(): string {
   return `${(performance.now() - startupT0).toFixed(0)}ms`;
 }
@@ -432,6 +445,14 @@ try {
     resolveSecret: (key, userId) => getSecret(key, userId)
   });
   stopErrorTraceMaintenance = startErrorTraceMaintenance();
+  // Files a transfer commit recorded and no placement wrote, after a crash
+  // (WP2.4). Only a production server takes transfers.
+  if (isProduction) stopPlacementSweeper = startTransferPlacementSweeper(getAssetAdapter());
+  // A production server keeps a deleted workflow, timeline or project for 30
+  // days so its owner can restore it (PRD D4). A desktop server deletes at once.
+  if (isProduction) setDocumentRetentionDays(DELETED_DOCUMENT_RETENTION_DAYS);
+  // One allowance for every owner (PRD D5). Unset means unlimited.
+  setStorageAllowanceBytes(parseStorageAllowance(process.env["NODETOOL_STORAGE_ALLOWANCE_BYTES"]));
 
   const runHistoryCleanup = (): void => {
     void runScheduledStorageCleanup(LOCAL_USER_ID)
@@ -443,6 +464,32 @@ try {
       .catch((error) => {
         log.warn(
           "Automatic history cleanup failed",
+          error instanceof Error ? error : new Error(String(error))
+        );
+      });
+    // Cloud project files: staged rows past seven days and objects no row
+    // names (WP2.1). Only a production server holds them.
+    if (isProduction) {
+      void cleanupBlobs(getAssetAdapter())
+        .then((result) => {
+          if (result.stagedRowsDeleted > 0 || result.objectsDeleted > 0) {
+            log.info("Blob store cleanup", { ...result });
+          }
+        })
+        .catch((error) => {
+          log.warn(
+            "Blob store cleanup failed",
+            error instanceof Error ? error : new Error(String(error))
+          );
+        });
+    }
+    void purgeDueDeletedDocuments()
+      .then((purged) => {
+        if (purged > 0) log.info("Purged deleted documents past their restore period", { purged });
+      })
+      .catch((error) => {
+        log.warn(
+          "Deleted document purge failed",
           error instanceof Error ? error : new Error(String(error))
         );
       });
@@ -1803,6 +1850,8 @@ await app.register(workflowsRoutes, routeOpts);
 await app.register(nodesRoutes, routeOpts);
 await app.register(presetRoutes);
 await app.register(storageRoutes, routeOpts);
+await app.register(transferRoutes, routeOpts);
+await app.register(receiveRoutes, routeOpts);
 await app.register(openaiRoutes, routeOpts);
 await app.register(oauthRoutes, routeOpts);
 // MCP OAuth 2.1 AS + well-known discovery routes (docs/mcp-oauth-design.md).
@@ -2197,6 +2246,7 @@ async function shutdown(signal: string): Promise<void> {
   stopJobCancelPoller();
   stopGenerationReconcileWorker?.();
   stopErrorTraceMaintenance?.();
+  stopPlacementSweeper?.();
   try {
     await triggerServices.stop();
   } catch (err) {
