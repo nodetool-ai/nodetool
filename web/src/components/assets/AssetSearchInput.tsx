@@ -6,7 +6,11 @@ import { registerTypeToFocus } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
-import { SearchInput, ToolbarIconButton } from "../ui_primitives";
+import {
+  FieldDensityContext,
+  SearchInput,
+  ToolbarIconButton
+} from "../ui_primitives";
 import { isNumber } from "../../utils/typePredicates";
 
 
@@ -237,9 +241,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
     });
   }, [focusOnTyping, debouncedSetSearchTerm]);
 
-  const effectivePlaceholder = isGlobalSearchMode
-    ? t("search.allAssets")
-    : t("search.currentFolder");
+  const effectivePlaceholder = t("search.allAssets");
 
   const toggleLabel = isGlobalSearchMode
     ? t("search.switchToLocal")
@@ -255,37 +257,39 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         maxWidth: isNumber(width) ? `${width}px` : width
       }}
     >
-      <SearchInput
-        ref={inputRef}
-        value={localSearchTerm}
-        onChange={handleInputChange}
-        onClear={clearSearch}
-        onKeyDown={handleInputKeyDown}
-        escapeClears={false}
-        placeholder={effectivePlaceholder}
-        fullWidth
-        loading={isSearching && isGlobalSearchMode && localSearchTerm.length >= 2}
-        clearTestId="asset-search-clear-btn"
-        startAdornment={
-          <ToolbarIconButton
-            icon={isGlobalSearchMode ? <Public /> : <Folder />}
-            tooltip={toggleLabel}
-            aria-label={toggleLabel}
-            active={isGlobalSearchMode}
-            onClick={toggleSearchMode}
-            data-testid="asset-search-mode-toggle"
-          />
-        }
-        inputProps={{
-          id: "asset-search-input",
-          autoCorrect: "off",
-          autoCapitalize: "none",
-          spellCheck: false,
-          autoComplete: "off",
-          "data-testid": "asset-search-input-field",
-          "data-search-mode": isGlobalSearchMode ? "global" : "local"
-        } as React.InputHTMLAttributes<HTMLInputElement>}
-      />
+      <FieldDensityContext.Provider value="compact">
+        <SearchInput
+          ref={inputRef}
+          value={localSearchTerm}
+          onChange={handleInputChange}
+          onClear={clearSearch}
+          onKeyDown={handleInputKeyDown}
+          escapeClears={false}
+          placeholder={effectivePlaceholder}
+          fullWidth
+          loading={isSearching && isGlobalSearchMode && localSearchTerm.length >= 2}
+          clearTestId="asset-search-clear-btn"
+          startAdornment={
+            <ToolbarIconButton
+              icon={isGlobalSearchMode ? <Public /> : <Folder />}
+              tooltip={toggleLabel}
+              aria-label={toggleLabel}
+              active={isGlobalSearchMode}
+              onClick={toggleSearchMode}
+              data-testid="asset-search-mode-toggle"
+            />
+          }
+          inputProps={{
+            id: "asset-search-input",
+            autoCorrect: "off",
+            autoCapitalize: "none",
+            spellCheck: false,
+            autoComplete: "off",
+            "data-testid": "asset-search-input-field",
+            "data-search-mode": isGlobalSearchMode ? "global" : "local"
+          } as React.InputHTMLAttributes<HTMLInputElement>}
+        />
+      </FieldDensityContext.Provider>
     </div>
   );
 };

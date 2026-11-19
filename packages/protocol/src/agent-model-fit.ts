@@ -33,17 +33,25 @@ export const AGENT_DEFAULT_MODELS: ReadonlyArray<{
   source: string;
 }> = [
   {
+    id: "claude-sonnet-5-5",
+    source: "RECOMMENDED_MODELS in packages/runtime"
+  },
+  {
+    id: "gpt-6.2",
+    source: "RECOMMENDED_MODELS in packages/runtime"
+  },
+  {
+    id: "gemini-4-neon-preview",
+    source: "RECOMMENDED_MODELS in packages/runtime"
+  },
+  {
     id: "claude-sonnet-5",
     source:
-      "Default model of .github/workflows/agent-eval.yml and app-build-eval.yml; RECOMMENDED_MODELS in packages/runtime"
+      "Default model of .github/workflows/agent-eval.yml and app-build-eval.yml"
   },
   {
     id: "gpt-5.4-mini",
     source: "Language model fixture of the CodeAct API eval (packages/agents/src/evals/codeact-api-core.ts)"
-  },
-  {
-    id: "gpt-5-mini",
-    source: "RECOMMENDED_MODELS in packages/runtime"
   }
 ];
 

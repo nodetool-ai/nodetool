@@ -148,6 +148,7 @@ export function rankedModelKeys(
       Number.NEGATIVE_INFINITY
     );
     const group = byCanonical.get(entry.canonical) ?? { best, keys: [] };
+    group.best = Math.max(group.best, best);
     group.keys.push(key);
     byCanonical.set(entry.canonical, group);
   }

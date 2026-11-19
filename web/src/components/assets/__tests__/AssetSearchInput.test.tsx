@@ -28,10 +28,16 @@ it("switches search scope with Tab, Enter and Space", async () => {
   await user.tab();
   expect(screen.getByRole("button", { name: "Switch to global search" })).toHaveFocus();
   await user.keyboard("{Enter}");
-  expect(screen.getByRole("textbox", { name: "Search all assets" })).toBeInTheDocument();
+  expect(screen.getByRole("textbox", { name: "Search all assets" })).toHaveAttribute(
+    "data-search-mode",
+    "global"
+  );
   expect(screen.getByRole("button", { name: "Switch to local search" })).toHaveFocus();
   await user.keyboard(" ");
-  expect(screen.getByRole("textbox", { name: "Search current folder" })).toBeInTheDocument();
+  expect(screen.getByRole("textbox", { name: "Search all assets" })).toHaveAttribute(
+    "data-search-mode",
+    "local"
+  );
 });
 
 it("clears a search by keyboard and returns focus to the input", async () => {
@@ -42,7 +48,7 @@ it("clears a search by keyboard and returns focus to the input", async () => {
       <AssetSearchInput onLocalSearchChange={onLocalSearchChange} />
     </ThemeProvider>
   );
-  const input = screen.getByRole("textbox", { name: "Search current folder" });
+  const input = screen.getByRole("textbox", { name: "Search all assets" });
   expect(screen.queryByRole("button", { name: "Clear search" })).toBeNull();
   await user.tab();
   await user.tab();
@@ -57,4 +63,15 @@ it("clears a search by keyboard and returns focus to the input", async () => {
   expect(screen.queryByRole("button", { name: "Clear search" })).toBeNull();
   await user.tab();
   expect(document.body).toHaveFocus();
+});
+
+it("uses the compact label font size to match toolbar controls", () => {
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <AssetSearchInput onLocalSearchChange={jest.fn()} />
+    </ThemeProvider>
+  );
+  expect(
+    screen.getByRole("textbox", { name: "Search all assets" })
+  ).toHaveStyle({ fontSize: "var(--fontSizeSmall)" });
 });

@@ -52,9 +52,20 @@ export const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     provider: "whisper_cpp"
   },
   {
-    id: "gpt-5-mini",
+    id: "claude-sonnet-5-5",
     type: "language_model",
-    name: "GPT-5 mini",
+    name: "Claude Sonnet 5.5",
+    repo_id: null,
+    path: null,
+    downloaded: false,
+    modality: "language",
+    task: "text_generation",
+    provider: "anthropic"
+  },
+  {
+    id: "gpt-6.2",
+    type: "language_model",
+    name: "GPT-6.2",
     repo_id: null,
     path: null,
     downloaded: false,
@@ -63,15 +74,15 @@ export const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     provider: "openai"
   },
   {
-    id: "claude-sonnet-5",
+    id: "gemini-4-neon-preview",
     type: "language_model",
-    name: "Claude Sonnet 5",
+    name: "Gemini 4 Neon Preview",
     repo_id: null,
     path: null,
     downloaded: false,
     modality: "language",
     task: "text_generation",
-    provider: "anthropic"
+    provider: "gemini"
   },
   {
     id: "text-embedding-3-small",
