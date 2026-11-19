@@ -14521,6 +14521,8 @@
       "tryAgainLater": "Spróbuj ponownie później.",
       "cloudLoadFailure": "Nie udało się wyświetlić dokumentów w chmurze: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool wciąż się uruchamia. Otwórz dokument w chmurze ponownie za chwilę.",
+      "cloudWindowSignedOut": "Zaloguj się do NodeTool Cloud, aby otworzyć ten dokument.",
       "noMatching": "Brak pasujących dokumentów",
       "noMatchingDescription": "Wyszukuje tylko dokumenty. Rozmowy znajdują się w Czatach, a przesłane pliki znajdują się w Bibliotece.",
       "noDocuments": "Nie ma jeszcze dokumentów",

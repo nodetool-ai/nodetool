@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import DocumentsTree from "../DocumentsTree";
 import { useDocumentTreeData } from "../../../hooks/useDocumentTreeData";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 
 const mockOpenTab = jest.fn();
 const mockSetVisibility = jest.fn();
@@ -40,7 +41,7 @@ jest.mock("../../../hooks/useCloudDocumentGroups", () => ({
 
 const mockOpenCloudDocument = jest.fn();
 jest.mock("../../../lib/cloud/openCloudDocument", () => ({
-  openCloudDocument: (document: unknown) => mockOpenCloudDocument(document)
+  openCloudDocument: (document: unknown) => Promise.resolve(mockOpenCloudDocument(document) ?? { ok: true })
 }));
 
 const mockOpenSharedDocument = jest.fn();
@@ -698,4 +699,29 @@ it("says when the cloud documents could not be listed, and keeps the local ones"
     screen.getByText("Cloud documents could not be listed: NodeTool Cloud could not be reached.")
   ).toBeInTheDocument();
   expect(screen.getByText("Campaign Generator")).toBeInTheDocument();
+});
+
+it("says when the cloud window cannot open yet", async () => {
+  mockOpenCloudDocument.mockReturnValueOnce({ ok: false, error: "STARTING" });
+  mockCloudGroups = {
+    groups: [
+      {
+        id: "cloud",
+        label: "Cloud",
+        children: [
+          { id: "workflow-1", name: "Cloud Flow", type: "workflow", typeLabel: "Workflow", origin: CLOUD }
+        ]
+      }
+    ],
+    error: null
+  };
+  const user = userEvent.setup();
+  renderTree();
+
+  await user.click(screen.getByRole("treeitem", { name: /^Cloud Flow Workflow$/ }));
+  await waitFor(() =>
+    expect(useNotificationStore.getState().notifications.map((n) => n.content)).toContain(
+      "NodeTool is still starting. Open the cloud document again in a moment."
+    )
+  );
 });

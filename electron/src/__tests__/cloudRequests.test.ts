@@ -119,6 +119,9 @@ describe("TC117, FC31: the list of routes", () => {
     ["GET", "/api/assets/0123456789abcdef0123456789abcdef"],
     ["HEAD", "/api/assets/a1/peaks"],
     ["GET", "/api/sync/capabilities"],
+    // The cloud window's boot reads (D27).
+    ["GET", "/api/config"],
+    ["GET", "/api/nodes/metadata?fields=full&limit=10000"],
     ["GET", "/api/storage/u1/0123456789abcdef0123456789abcdef.png"],
   ])("allows %s %s", (method, path) => {
     expect(cloudRouteAllowed(method, path)).toBe(true);
@@ -136,6 +139,10 @@ describe("TC117, FC31: the list of routes", () => {
     ["GET", "//evil.example/api/assets/a"],
     ["GET", "https://evil.example/api/assets/a"],
     ["GET", "/api/workflows"],
+    ["POST", "/api/config"],
+    ["GET", "/api/config/x"],
+    ["GET", "/api/nodes/metadata/secret"],
+    ["GET", "/api/nodes"],
     ["GET", "/api/assets/"],
     ["GET", "/api/storage/"],
     ["POST", "/api/storage/u1/a.png"],

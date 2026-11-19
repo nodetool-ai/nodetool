@@ -14037,6 +14037,8 @@
       "tryAgainLater": "बाद में फिर से कोशिश करें।",
       "cloudLoadFailure": "क्लाउड दस्तावेज़ों की सूची नहीं बन सकी: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool अभी शुरू हो रहा है। थोड़ी देर में क्लाउड दस्तावेज़ फिर से खोलें।",
+      "cloudWindowSignedOut": "यह दस्तावेज़ खोलने के लिए NodeTool Cloud में साइन इन करें।",
       "noMatching": "कोई मिलान दस्तावेज नहीं",
       "noMatchingDescription": "यह केवल दस्तावेजों की खोज करता है। वार्तालाप चैट में हैं और अपलोड लाइब्रेरी में हैं।",
       "noDocuments": "अभी तक कोई दस्तावेज नहीं",

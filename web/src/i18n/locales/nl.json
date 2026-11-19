@@ -14037,6 +14037,8 @@
       "tryAgainLater": "Probeer het later opnieuw.",
       "cloudLoadFailure": "Clouddocumenten konden niet worden weergegeven: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "NodeTool wordt nog gestart. Open het clouddocument zo opnieuw.",
+      "cloudWindowSignedOut": "Meld je aan bij NodeTool Cloud om dit document te openen.",
       "noMatching": "Geen overeenkomende documenten",
       "noMatchingDescription": "Hiermee worden alleen documenten doorzocht. Gesprekken vinden plaats in Chats en uploads staan ​​in de bibliotheek.",
       "noDocuments": "Nog geen documenten",

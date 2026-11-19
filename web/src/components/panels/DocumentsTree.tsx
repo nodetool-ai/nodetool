@@ -590,12 +590,23 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
         if (type === null) {
           return;
         }
-        openCloudDocument({
+        void openCloudDocument({
           origin: document.origin,
           type,
           id: document.id,
           name: document.name,
           role: document.sharedRole ?? "owner"
+        }).then((result) => {
+          if (result && !result.ok) {
+            addNotification({
+              type: "error",
+              content: t(
+                result.error === "STARTING"
+                  ? "i18n-next31.documents.cloudWindowStarting"
+                  : "i18n-next31.documents.cloudWindowSignedOut"
+              )
+            });
+          }
         });
         setVisibility(false);
         return;
@@ -647,7 +658,7 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
       }
       setVisibility(false);
     },
-    [location.pathname, navigate, openApplication, openTab, setVisibility]
+    [addNotification, location.pathname, navigate, openApplication, openTab, setVisibility, t]
   );
 
   const duplicateWorkflow = useDuplicateWorkflowDocument();

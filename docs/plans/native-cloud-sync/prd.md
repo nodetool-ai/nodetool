@@ -1048,7 +1048,7 @@ A requirement keeps its id across revisions. Every requirement is P0 for its pha
 
 | Code | Requirement | Phase | Defined in |
 | --- | --- | --- | --- |
-| FR83 | The desktop app browses, opens and edits cloud documents under FR9 to FR11, FR32 and FR33, for the kinds of D26. Its drafts are in its own local server and follow FR11 and FR28 unchanged. | 1 | The same flows in the desktop app |
+| FR83 | The desktop app browses, opens and edits cloud documents under FR9 to FR11, FR32 and FR33, for the kinds of D26, in its cloud window (D27). Its drafts are in its own local server and follow FR11 and FR28 unchanged. | 1 | The same flows in the desktop app |
 | FR84 | The desktop app shares documents with the dialog of FR21, FR23, FR48 and FR52. | 1 | Sharing |
 | FR85 | The desktop app publishes and synchronizes a local project under FR12 to FR18, FR20, FR26 and FR40, with a review sheet that has the sections of FR13. | 2 | The same flows in the desktop app |
 | FR86 | The desktop app shares a whole project under FR24, and the share page offers Open in NodeTool for it under FR25. | 4 | Sharing |
@@ -1350,7 +1350,7 @@ The web app's own sign-in is unchanged. These web and server changes are in scop
 | Link validation accepts a missing line as a warning in every caller | 5b |
 | Revocation handle issued at sign-in, and an endpoint that accepts it without a credential | 1 |
 | Electron desktop app: the shared sign-in in Settings, and `desktop` as an app on the consent page and in device sessions | 1 |
-| Electron desktop app: the Cloud and Shared with me groups, cloud document tabs with drafts and the two statuses, and the share dialog over a cloud client in the web app | 1 |
+| Electron desktop app: the Cloud and Shared with me groups, the cloud window (D27) with drafts and the two statuses, and the share dialog over a cloud client in the web app | 1 |
 | Electron desktop app: Publish to Cloud and Synchronize in the application menu, and the review sheet in the web app | 2 |
 | Electron desktop app: project sharing, and Open in NodeTool on the share page | 4 |
 | Options stored on the link and read at every request, one active link per role and scope, and the people list with effective role, options and source | 1 |
@@ -1452,12 +1452,19 @@ Each has a recommended default. The document is written as if the default is cho
 | D24 | Does the desktop app get cloud documents, sharing, Publish and Synchronize? | Yes, after the native apps. Decided by Matthias on 2026-11-18. | FR83 to FR87. In each phase the desktop app's work follows the native apps' work and does not hold the native exit criteria. Its own criteria are listed under Rollout. | Phases 1, 2 and 4 |
 | D25 | Where does Run on a cloud document go in the desktop app? | To the cloud server, as in the web app (Q11), over a connection the desktop app's main process opens | Runs use cloud credits and the cloud's providers, the same as in the browser. The main process holds an access token while it opens that connection. The alternative runs cloud documents on the local server with local keys, which makes the same document cost different things in different apps. | Phase 1 for the desktop app |
 | D26 | Which kinds open as cloud documents in the desktop app? | Workflows and timelines in phase 1, as in the native apps. Sketches, apps, JS scripts, scripts and storyboards once their reference sets exist (technical design WP2.10). Until then their rows offer Open in browser. | The desktop app never edits a kind whose file references the server cannot check. The alternative opens every kind the web app edits in phase 1 and leaves their file references unchecked. | Phase 1 for the desktop app |
+| D27 | Where does a cloud document open in the desktop app? | In a cloud window: a second window of the desktop app that talks only to the signed-in cloud server, through the main process. Decided by Matthias on 2026-11-19. | The local window lists the Cloud and Shared with me groups and opens their documents there. The editors and stores of the web app keep one client each, so the cloud window reuses them unchanged and its caches stay apart from the local ones. The alternative, cloud tabs in the local window, makes every editor and store choose a client per document. | Phase 1 for the desktop app |
 
 In review of the storyboard and script design you confirmed one behavior change that this document relies on: a new take or render no longer retimes the timeline. D8 and D9 were not addressed there.
 
 ## Decision and change log
 
 The sections above state only the current rules. This section holds the history of the document.
+
+Changes on 2026-11-19. Revision 5 is kept.
+
+| Topic | Before | After |
+| --- | --- | --- |
+| Where a cloud document opens in the desktop app | In an editor tab of the local window, beside local documents | In the cloud window (D27). FR83 and the rollout row name it. |
 
 Changes on 2026-11-18. Revision 5 is kept.
 

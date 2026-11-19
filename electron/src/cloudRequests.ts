@@ -101,8 +101,8 @@ const PROCEDURE = /^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z][A-Za-z0-9]*)+$/;
 
 /**
  * Whether the renderer may ask for `path` with `method`. The list of routes
- * a cloud document needs: tRPC, the asset file routes for reading, and the
- * sync capabilities. Anything else, another host, a dot segment, an encoded
+ * a cloud document needs: tRPC, the asset file routes for reading, the
+ * sync capabilities and the cloud window's boot reads. Anything else, another host, a dot segment, an encoded
  * slash or a fragment is refused (TC117).
  */
 /**
@@ -115,6 +115,12 @@ function isMediaPath(pathname: string): boolean {
     (prefix) => pathname.startsWith(prefix) && pathname.length > prefix.length,
   );
 }
+
+/**
+ * Reads outside tRPC: the sync capabilities, and the two boot reads of the
+ * cloud window, its server's runtime config and node metadata (D27).
+ */
+const CLOUD_READS = new Set(["/api/sync/capabilities", "/api/config", "/api/nodes/metadata"]);
 
 export function cloudRouteAllowed(method: string, path: string): boolean {
   if (path.length === 0 || path.length > 8192) {
@@ -151,7 +157,7 @@ export function cloudRouteAllowed(method: string, path: string): boolean {
   if (isMediaPath(pathname)) {
     return method === "GET" || method === "HEAD";
   }
-  if (pathname === "/api/sync/capabilities") {
+  if (CLOUD_READS.has(pathname)) {
     return method === "GET";
   }
   return false;

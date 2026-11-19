@@ -7,6 +7,8 @@ import type {} from "./window";
 
 // Early polyfills / globals must come before other imports.
 import "./cryptoUUIDPolyfill";
+// In the desktop app's cloud window, requests go to the cloud server (D27).
+import "./lib/cloud/installCloudWindowFetch";
 // `prismGlobal` (Prism core + 13 grammars) is NOT imported here: nothing on the
 // boot path highlights code. Every consumer — CodeBlock, CodeHighlightPlugin,
 // JSONRenderer, ToolCallRenderer — imports Prism and the grammars it needs
@@ -18,7 +20,7 @@ import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useMenuHandler } from "./hooks/useIpcRenderer";
-import type { MenuEventData } from "./window";
+import type { CloudDocumentRef, MenuEventData } from "./window";
 import ReactDOM from "react-dom/client";
 
 import {
@@ -53,6 +55,8 @@ import { loadRuntimeConfig, isAuthRequired } from "./lib/runtimeConfig";
 import { initProductAnalytics } from "./lib/analytics";
 import { initSupabaseFromConfig } from "./lib/supabaseClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
+import { isCloudWindow } from "./lib/cloud/cloudWindow";
+import { showCloudWindowDocument } from "./lib/cloud/openCloudDocument";
 import { startOpenProjectSignal } from "./lib/websocket/openProjectSignal";
 import { useSettingsStore } from "./stores/SettingsStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
@@ -666,6 +670,33 @@ const MenuNavigationBridge = () => {
   return null;
 };
 
+/**
+ * The desktop app's cloud window (D27): takes the documents the local window
+ * asked for and opens each as a tab, now and for every later one.
+ */
+let cloudWindowPending: Promise<CloudDocumentRef[]> | null = null;
+
+const CloudWindowBridge = () => {
+  useEffect(() => {
+    const cloud = window.api?.cloud;
+    if (!cloud) {
+      return;
+    }
+    const show = (document: CloudDocumentRef): void => {
+      showCloudWindowDocument(document);
+      if (!router.state.location.pathname.startsWith("/workspace")) {
+        void router.navigate("/workspace");
+      }
+    };
+    const unsubscribe = cloud.onWindowDocument(show);
+    // Taken once per page: the main process hands them over only once.
+    cloudWindowPending ??= cloud.windowReady();
+    void cloudWindowPending.then((documents) => documents.forEach(show));
+    return unsubscribe;
+  }, []);
+  return null;
+};
+
 const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   const { t } = useTranslation();
   const [status, setStatus] = useState<string>("pending");
@@ -744,6 +775,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
         <MobileClassProvider>
           <MenuProvider>
             <MenuNavigationBridge />
+            {status === "success" && isCloudWindow() && <CloudWindowBridge />}
             <CustomNodeMetadataBridge />
             <WorkflowManagerProvider queryClient={queryClient}>
               <KeyboardProvider active={true}>

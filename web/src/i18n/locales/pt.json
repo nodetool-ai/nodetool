@@ -14279,6 +14279,8 @@
       "tryAgainLater": "Tente novamente mais tarde.",
       "cloudLoadFailure": "Não foi possível listar os documentos da nuvem: {{error}}",
       "cloudLoadFailureSummary": "Cloud documents failed to list in the desktop app",
+      "cloudWindowStarting": "O NodeTool ainda está iniciando. Abra o documento da nuvem novamente em instantes.",
+      "cloudWindowSignedOut": "Entre no NodeTool Cloud para abrir este documento.",
       "noMatching": "Nenhum documento correspondente",
       "noMatchingDescription": "Isso pesquisa apenas documentos. As conversas estão nos bate-papos e os uploads estão na Biblioteca.",
       "noDocuments": "Ainda não há documentos",
