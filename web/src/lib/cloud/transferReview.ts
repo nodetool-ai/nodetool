@@ -96,6 +96,8 @@ export interface ReceiveDocument {
   /** The choice taken without the person, or null when the review asks. */
   decision: ReceiveChoice | null;
   missingFiles: number;
+  /** The hash of this computer's copy at the capture, empty when it has none (review F46). */
+  localHash: string;
   /** Files whose cloud bytes this folder does not hold (reviews F33, F51). */
   changedFiles: number;
 }
@@ -282,6 +284,7 @@ export const receiveDocumentsFrom = (documents: ReviewDocuments): ReceiveDocumen
     state: document.status,
     decision: document.decision,
     missingFiles: document.missing_files.length,
+    localHash: document.local_hash ?? "",
     changedFiles: document.changed_files
   }));
 
