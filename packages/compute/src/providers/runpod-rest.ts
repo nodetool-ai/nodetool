@@ -1,85 +1,149 @@
 /**
- * RunPod Pod management over the REST API (https://rest.runpod.io/v1).
+ * RunPod Pod management over the REST API v2 (https://api.runpod.io/v2).
  *
- * The serverless helpers in `runpod-api.ts` create templates/endpoints (the
- * job/queue model) and read the API key from `process.env`. This module manages
- * **persistent Pods** — the right shape for a long-lived NodeTool WebSocket
- * worker the server/CLI attaches to — and takes the API key **explicitly** so it
- * can be sourced from the per-user secret store (`getSecret`), never the
- * environment.
+ * This module manages **persistent Pods** — the right shape for a long-lived
+ * NodeTool WebSocket worker the server/CLI attaches to — and takes the API key
+ * **explicitly** so it can be sourced from the per-user secret store
+ * (`getSecret`), never the environment.
  *
- * REST surface used: POST /v1/pods, GET /v1/pods/{id}, POST /v1/pods/{id}/stop,
- * DELETE /v1/pods/{id}, GET /v1/pods.
+ * REST surface used: POST /v2/pods, GET /v2/pods/{id}, GET /v2/pods,
+ * POST /v2/pods/{id}/action (start / stop), DELETE /v2/pods/{id}.
  */
 
-const RUNPOD_REST_BASE_URL = "https://rest.runpod.io/v1";
+export const DEFAULT_RUNPOD_REST_BASE_URL = "https://api.runpod.io/v2";
+
+/**
+ * Resolve the RunPod REST API base URL. Honors `RUNPOD_REST_BASE_URL` when set
+ * so future API base changes can be overridden without a release.
+ */
+export function getRunpodRestBaseUrl(): string {
+  const configured = process.env.RUNPOD_REST_BASE_URL?.trim();
+  return (configured || DEFAULT_RUNPOD_REST_BASE_URL).replace(/\/+$/, "");
+}
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-/** Request body for POST /v1/pods (subset we use; see the REST reference). */
-export interface RunpodPodSpec {
-  name: string;
-  imageName?: string;
-  templateId?: string;
-  computeType?: "CPU" | "GPU";
-  // CPU pods
-  vcpuCount?: number;
-  cpuFlavorIds?: string[];
-  cpuFlavorPriority?: "availability" | "custom";
-  // GPU pods
-  gpuTypeIds?: string[];
-  gpuCount?: number;
-  /** CUDA versions the host driver must support (GPU pods only). */
+/** GPU configuration for POST /v2/pods (`CreateGpuConfig`). */
+export interface RunpodCreateGpuConfig {
+  id: string;
+  count?: number;
+  /** CUDA versions the host driver must support, as `major.minor`. */
   allowedCudaVersions?: string[];
-  // Common
-  ports?: string[]; // e.g. ["7777/http"] or ["7777/tcp"]
-  env?: Record<string, string>;
-  containerDiskInGb?: number;
-  volumeInGb?: number;
-  volumeMountPath?: string;
-  networkVolumeId?: string;
-  dockerEntrypoint?: string[];
-  dockerStartCmd?: string[];
-  supportPublicIp?: boolean;
-  globalNetworking?: boolean;
-  dataCenterIds?: string[];
+  minCudaVersion?: string;
+  minRamPerGpu?: number;
+  minVcpuCountPerGpu?: number;
 }
 
-/** Pod as returned by GET /v1/pods/{id} (fields we read). */
+/** CPU configuration for POST /v2/pods (`CreateCpuConfig`). */
+export interface RunpodCreateCpuConfig {
+  /** CPU flavor identifier, e.g. `"cpu5c"`. */
+  id: string;
+  /** Number of vCPUs (minimum 2, power of two). */
+  vcpuCount: number;
+}
+
+/** Host-local persistent volume mount (GPU pods only). */
+export interface RunpodPersistentMount {
+  /** Storage size in GB (minimum 10). */
+  size: number;
+  /** Mount path inside the container, e.g. `"/workspace"`. */
+  path: string;
+}
+
+/** Network volume mount attached to a pod. */
+export interface RunpodNetworkMount {
+  volumeId: string;
+  path: string;
+}
+
+/** Storage mounts for POST /v2/pods (`Mounts`). */
+export interface RunpodPodMounts {
+  persistent?: RunpodPersistentMount;
+  network?: RunpodNetworkMount[];
+  global?: { volumeId: string; path?: string }[];
+}
+
+/** Request body for POST /v2/pods (subset we use; see the v2 OpenAPI spec). */
+export interface RunpodPodSpec {
+  name: string;
+  image?: string;
+  templateId?: string;
+  cloud?: "SECURE" | "COMMUNITY";
+  // Exactly one of `gpu` or `cpu` must be set.
+  gpu?: RunpodCreateGpuConfig;
+  cpu?: RunpodCreateCpuConfig;
+  // Common container / placement fields
+  ports?: string[]; // e.g. ["7777/http"] or ["7777/tcp"]
+  env?: Record<string, string>;
+  /** Ephemeral container disk in GB (minimum 1). */
+  disk?: number;
+  mounts?: RunpodPodMounts;
+  entrypoint?: string[];
+  cmd?: string[];
+  args?: string;
+  globalNetworking?: boolean;
+  dataCenterIds?: string[];
+  startSsh?: boolean;
+  startJupyter?: boolean;
+}
+
+/** Lifecycle status of a pod in RunPod REST API v2. */
+export type RunpodPodStatus =
+  | "PROVISIONING"
+  | "STARTING"
+  | "RUNNING"
+  | "EXITED"
+  | "ERROR"
+  | "TERMINATED";
+
+/** Live port mapping entry in `pod.runtime.ports`. */
+export interface RunpodRuntimePort {
+  private: number;
+  public?: number | null;
+  type: string;
+  ip?: string | null;
+}
+
+/** Live runtime block returned by GET /v2/pods/{id} while RUNNING. */
+export interface RunpodPodRuntime {
+  uptime?: number;
+  ports?: RunpodRuntimePort[];
+  [k: string]: unknown;
+}
+
+/** Pod as returned by GET /v2/pods/{id} (fields we read). */
 export interface RunpodPod {
   id: string;
   name?: string;
-  desiredStatus?: "RUNNING" | "READYT" | "EXITED" | "TERMINATED" | string;
+  status?: RunpodPodStatus | string;
   image?: string;
-  /** Public IPv4; empty/null while the Pod is initializing. */
-  publicIp?: string | null;
-  /** Internal→external port map, e.g. {"7777": 41021}. */
-  portMappings?: Record<string, number> | null;
+  /** Live metrics and port mappings; null when not RUNNING or in list responses. */
+  runtime?: RunpodPodRuntime | null;
   ports?: string[];
-  /** Hourly cost (USD) RunPod bills for this pod's compute. */
-  costPerHr?: number;
+  /** Hourly compute rate (USD) RunPod bills for this pod. */
+  cost?: number;
   [k: string]: unknown;
 }
 
 // ---------------------------------------------------------------------------
-// REST transport (explicit key — no process.env)
+// REST transport (explicit key — no process.env for credentials)
 // ---------------------------------------------------------------------------
 
 type HttpMethod = "GET" | "POST" | "DELETE";
 
 /**
- * Call the RunPod REST API with an explicitly-supplied key.
+ * Call the RunPod REST API v2 with an explicitly-supplied key.
  *
  * @param apiKey   RunPod API key (from the per-user secret store).
- * @param endpoint Path under /v1, e.g. "pods" or "pods/<id>".
+ * @param endpoint Path under /v2, e.g. "pods" or "pods/<id>".
  */
 async function runpodRest(
   apiKey: string,
   endpoint: string,
   method: HttpMethod = "GET",
-  data?: RunpodPodSpec
+  data?: unknown
 ): Promise<Record<string, unknown>> {
   if (!apiKey) throw new Error("RunPod API key is required");
   const init: RequestInit = {
@@ -91,9 +155,9 @@ async function runpodRest(
     },
     signal: AbortSignal.timeout(60_000)
   };
-  if (data && method === "POST") init.body = JSON.stringify(data);
+  if (data !== undefined && method === "POST") init.body = JSON.stringify(data);
 
-  const response = await fetch(`${RUNPOD_REST_BASE_URL}/${endpoint}`, init);
+  const response = await fetch(`${getRunpodRestBaseUrl()}/${endpoint}`, init);
   if (!response.ok) {
     const body = await response.text().catch(() => "");
     throw new Error(
@@ -109,7 +173,7 @@ async function runpodRest(
 // Pod operations
 // ---------------------------------------------------------------------------
 
-/** Create (and deploy) a Pod. POST /v1/pods. */
+/** Create (and deploy) a Pod. POST /v2/pods. */
 export async function createPod(
   apiKey: string,
   spec: RunpodPodSpec
@@ -124,34 +188,62 @@ export async function createPod(
   return pod;
 }
 
-/** Get a Pod by id. GET /v1/pods/{id}. */
+/** Get a Pod by id. GET /v2/pods/{id}. */
 export async function getPod(apiKey: string, id: string): Promise<RunpodPod> {
   return (await runpodRest(apiKey, `pods/${id}`)) as RunpodPod;
 }
 
-/** List Pods. GET /v1/pods. */
+/** List Pods. GET /v2/pods (follows cursor pagination when present). */
 export async function listPods(apiKey: string): Promise<RunpodPod[]> {
-  const res = await runpodRest(apiKey, "pods");
-  if (Array.isArray(res)) return res as RunpodPod[];
-  const arr = res.pods;
-  return Array.isArray(arr) ? (arr as RunpodPod[]) : [];
+  const pods: RunpodPod[] = [];
+  let cursor: string | null = null;
+  const seenCursors = new Set<string>();
+
+  for (let page = 0; page < 100; page++) {
+    const endpoint = cursor
+      ? `pods?cursor=${encodeURIComponent(cursor)}`
+      : "pods";
+    const res = await runpodRest(apiKey, endpoint);
+    if (Array.isArray(res)) {
+      pods.push(...(res as RunpodPod[]));
+      break;
+    }
+    if (Array.isArray(res.pods)) {
+      pods.push(...(res.pods as RunpodPod[]));
+    }
+    const pagination = res.pagination as
+      | { hasNextPage?: boolean; nextCursor?: string | null }
+      | undefined;
+    if (
+      !pagination?.hasNextPage ||
+      typeof pagination.nextCursor !== "string" ||
+      !pagination.nextCursor ||
+      seenCursors.has(pagination.nextCursor)
+    ) {
+      break;
+    }
+    seenCursors.add(pagination.nextCursor);
+    cursor = pagination.nextCursor;
+  }
+
+  return pods;
 }
 
-/** Stop a Pod (releases compute, keeps the volume). POST /v1/pods/{id}/stop. */
+/** Stop a Pod (releases compute, keeps the volume). POST /v2/pods/{id}/action. */
 export async function stopPod(apiKey: string, id: string): Promise<void> {
-  await runpodRest(apiKey, `pods/${id}/stop`, "POST");
+  await runpodRest(apiKey, `pods/${id}/action`, "POST", { action: "stop" });
 }
 
 /**
  * Resume a stopped Pod (re-allocates compute, keeps the volume).
- * POST /v1/pods/{id}/start. May fail or return zero GPUs if RunPod capacity has
- * changed since the Pod was stopped.
+ * POST /v2/pods/{id}/action. May fail if RunPod capacity has changed since the
+ * Pod was stopped.
  */
 export async function startPod(apiKey: string, id: string): Promise<void> {
-  await runpodRest(apiKey, `pods/${id}/start`, "POST");
+  await runpodRest(apiKey, `pods/${id}/action`, "POST", { action: "start" });
 }
 
-/** Terminate a Pod (deletes it). DELETE /v1/pods/{id}. */
+/** Terminate a Pod (deletes it). DELETE /v2/pods/{id}. */
 export async function deletePod(apiKey: string, id: string): Promise<void> {
   await runpodRest(apiKey, `pods/${id}`, "DELETE");
 }
@@ -162,15 +254,16 @@ export async function deletePod(apiKey: string, id: string): Promise<void> {
 
 /**
  * Direct TCP WebSocket URL for an exposed `/tcp` port, or null while the Pod
- * lacks a public IP / port mapping. Preferred for large frames (no HTTP proxy).
+ * lacks a public IP / port mapping in `pod.runtime.ports`. Preferred for large
+ * frames (no HTTP proxy).
  */
 export function podDirectWsUrl(
   pod: RunpodPod,
   internalPort: number
 ): string | null {
-  const ext = pod.portMappings?.[String(internalPort)];
-  if (!pod.publicIp || !ext) return null;
-  return `ws://${pod.publicIp}:${ext}`;
+  const port = pod.runtime?.ports?.find((p) => p.private === internalPort);
+  if (!port?.ip || !port.public) return null;
+  return `ws://${port.ip}:${port.public}`;
 }
 
 /**
@@ -185,31 +278,30 @@ export function podProxyWsUrl(podId: string, internalPort: number): string {
 // High-level worker deploy
 // ---------------------------------------------------------------------------
 
-/**
- * Default GPUs requested for a GPU pod. RunPod's REST API does not document a
- * default for `gpuCount`, so we set it explicitly to avoid a "running" pod that
- * was allocated zero GPUs. One GPU is the right default for a single worker.
- */
+/** Default GPUs requested for a GPU pod. */
 export const DEFAULT_GPU_COUNT = 1;
 
-/**
- * Default vCPUs for a GPU pod. RunPod pairs vCPUs with the GPU on GPU pods, but
- * leaving `vcpuCount` undefined relies on undocumented defaults; pin a sane
- * value so the worker has CPU headroom for I/O and the bridge process.
- */
-export const DEFAULT_GPU_VCPU_COUNT = 8;
+/** Default CPU flavor identifier for a CPU pod (`GET /v2/catalog/cpus`). */
+export const DEFAULT_CPU_FLAVOR_ID = "cpu5c";
 
-/** Default vCPUs for a CPU pod. */
+/** Default vCPUs for a CPU pod (power of two, minimum 2). */
 export const DEFAULT_CPU_VCPU_COUNT = 4;
 
 /**
- * CUDA versions a GPU worker host must support. The worker image installs
- * PyPI's Linux torch, which is a CUDA 13.0 build and needs an NVIDIA driver
- * of 580 or newer. Without the filter RunPod may place the pod on an older
- * driver, where torch cannot use the GPU. RunPod's API lists 13.0 as its
- * newest value; add newer ones here as RunPod adds them.
+ * Minimum CUDA version a GPU worker host must support. The worker image
+ * installs PyPI's Linux torch, which is a CUDA 13.0 build and needs an NVIDIA
+ * driver of 580 or newer. Using `minCudaVersion` (rather than exact-match
+ * `allowedCudaVersions`) accepts 13.0 and any newer host CUDA version.
  */
-export const WORKER_CUDA_VERSIONS: readonly string[] = ["13.0"];
+export const WORKER_MIN_CUDA_VERSION = "13.0";
+
+/** @deprecated Use {@link WORKER_MIN_CUDA_VERSION} with `minCudaVersion`. */
+export const WORKER_CUDA_VERSIONS: readonly string[] = [WORKER_MIN_CUDA_VERSION];
+
+/** Matches RunPod's capacity-exhausted error responses across API versions. */
+export function isRunpodCapacityError(err: unknown): boolean {
+  return err instanceof Error && /no (?:longer any )?instances/i.test(err.message);
+}
 
 export interface DeployWorkerPodOptions {
   /** Pod name. */
@@ -224,18 +316,34 @@ export interface DeployWorkerPodOptions {
   internalPort?: number;
   /** Expose via RunPod HTTP proxy ("http" → wss proxy) or direct TCP. */
   exposure?: "http" | "tcp";
+  /**
+   * RunPod cloud tier. When omitted, tries `"SECURE"` first and falls back to
+   * `"COMMUNITY"` if Secure Cloud reports no available capacity.
+   */
+  cloud?: "SECURE" | "COMMUNITY";
   computeType?: "CPU" | "GPU";
+  /** CPU flavor identifier (CPU pods only). Defaults to {@link DEFAULT_CPU_FLAVOR_ID}. */
+  cpuFlavorId?: string;
+  /** vCPU count (exact on CPU pods; converted to minVcpuCountPerGpu on GPU pods). */
   vcpuCount?: number;
+  /** Single GPU type identifier (GPU pods only). */
+  gpuTypeId?: string;
+  /** @deprecated Prefer `gpuTypeId`; the first entry is used in API v2. */
   gpuTypeIds?: string[];
   /** GPUs per pod (GPU pods only). Defaults to {@link DEFAULT_GPU_COUNT}. */
   gpuCount?: number;
   /**
-   * CUDA versions the host must support (GPU pods only). Defaults to
-   * {@link WORKER_CUDA_VERSIONS}.
+   * Minimum CUDA version the host must support (GPU pods only). Defaults to
+   * {@link WORKER_MIN_CUDA_VERSION} unless `allowedCudaVersions` is supplied.
+   */
+  minCudaVersion?: string;
+  /**
+   * Exact CUDA versions the host must support (GPU pods only). Pass `[]` to
+   * disable the default {@link WORKER_MIN_CUDA_VERSION} floor.
    */
   allowedCudaVersions?: readonly string[];
   containerDiskInGb?: number;
-  /** Persistent volume size in GB (mounted at `volumeMountPath`). */
+  /** Persistent volume size in GB (GPU pods only; mounted at `volumeMountPath`). */
   volumeInGb?: number;
   /** Mount path for the persistent volume. Defaults to "/workspace". */
   volumeMountPath?: string;
@@ -263,8 +371,9 @@ export interface DeployedWorkerPod {
 
 /**
  * Deploy a NodeTool worker image as a persistent RunPod Pod and wait until it is
- * RUNNING with a resolvable WebSocket endpoint. Does NOT read process.env — pass
- * `apiKey` (from the secret store) and `workerToken` explicitly.
+ * RUNNING with a resolvable WebSocket endpoint. Does NOT read process.env for
+ * credentials — pass `apiKey` (from the secret store) and `workerToken`
+ * explicitly.
  *
  * Reaching RUNNING + having an endpoint does not guarantee the worker process
  * has finished loading nodes; the caller should connect with retry.
@@ -283,15 +392,43 @@ export async function deployWorkerPod(
   const isGpu = opts.computeType === "GPU";
   const spec: RunpodPodSpec = {
     name: opts.name,
-    ...(opts.templateId ? { templateId: opts.templateId } : { imageName: opts.image }),
-    computeType: opts.computeType ?? "CPU",
-    // Always pin vcpuCount explicitly rather than relying on RunPod defaults.
-    vcpuCount:
-      opts.vcpuCount ??
-      (isGpu ? DEFAULT_GPU_VCPU_COUNT : DEFAULT_CPU_VCPU_COUNT),
-    gpuTypeIds: opts.gpuTypeIds,
+    ...(opts.templateId ? { templateId: opts.templateId } : { image: opts.image }),
     env
   };
+  if (opts.cloud) {
+    spec.cloud = opts.cloud;
+  }
+
+  if (isGpu) {
+    const gpuId = opts.gpuTypeId ?? opts.gpuTypeIds?.[0];
+    if (!gpuId) {
+      throw new Error("RunPod GPU pod requires a GPU type id");
+    }
+    const gpuCount = opts.gpuCount ?? DEFAULT_GPU_COUNT;
+    const gpu: RunpodCreateGpuConfig = {
+      id: gpuId,
+      count: gpuCount
+    };
+    if (opts.vcpuCount !== undefined) {
+      gpu.minVcpuCountPerGpu = Math.max(1, Math.floor(opts.vcpuCount / gpuCount));
+    }
+    if (opts.minCudaVersion) {
+      gpu.minCudaVersion = opts.minCudaVersion;
+    } else if (opts.allowedCudaVersions !== undefined) {
+      if (opts.allowedCudaVersions.length > 0) {
+        gpu.allowedCudaVersions = [...opts.allowedCudaVersions];
+      }
+    } else {
+      gpu.minCudaVersion = WORKER_MIN_CUDA_VERSION;
+    }
+    spec.gpu = gpu;
+  } else {
+    spec.cpu = {
+      id: opts.cpuFlavorId ?? DEFAULT_CPU_FLAVOR_ID,
+      vcpuCount: opts.vcpuCount ?? DEFAULT_CPU_VCPU_COUNT
+    };
+  }
+
   // A template owns its ports and container disk, unless the caller overrides.
   if (!opts.templateId) {
     spec.ports = sshKey
@@ -299,26 +436,34 @@ export async function deployWorkerPod(
       : [`${internalPort}/${exposure}`];
   }
   if (!opts.templateId || opts.containerDiskInGb) {
-    spec.containerDiskInGb = opts.containerDiskInGb ?? 20;
-  }
-  // GPU pods must request an explicit gpuCount; without it RunPod may allocate
-  // zero GPUs while still reporting the pod as running.
-  if (isGpu) {
-    spec.gpuCount = opts.gpuCount ?? DEFAULT_GPU_COUNT;
-    const cudaVersions = opts.allowedCudaVersions ?? WORKER_CUDA_VERSIONS;
-    if (cudaVersions.length > 0) {
-      spec.allowedCudaVersions = [...cudaVersions];
-    }
-  }
-  // Persistent volume — survives stop/resume, holds the HF model cache.
-  if (opts.volumeInGb) {
-    spec.volumeInGb = opts.volumeInGb;
-    if (!opts.templateId || opts.volumeMountPath) {
-      spec.volumeMountPath = opts.volumeMountPath ?? "/workspace";
-    }
+    spec.disk = opts.containerDiskInGb ?? 20;
   }
 
-  const created = await createPod(apiKey, spec);
+  // Persistent volume — survives stop/resume, holds the HF model cache.
+  // RunPod API v2 disallows `mounts.persistent` on CPU pods and requires both
+  // `size` and `path` whenever `persistent` is set.
+  if (isGpu && opts.volumeInGb) {
+    spec.mounts = {
+      persistent: {
+        size: opts.volumeInGb,
+        path: opts.volumeMountPath ?? "/workspace"
+      }
+    };
+  }
+
+  let created: RunpodPod;
+  try {
+    created = await createPod(apiKey, spec);
+  } catch (err) {
+    // API v2 removed `cloudType: "ALL"` and defaults to `"SECURE"` only.
+    // When the caller did not pin a cloud tier and Secure Cloud has no
+    // capacity, retry once on Community Cloud.
+    if (!opts.cloud && isRunpodCapacityError(err)) {
+      created = await createPod(apiKey, { ...spec, cloud: "COMMUNITY" });
+    } else {
+      throw err;
+    }
+  }
   try {
     const { pod, wsUrl } = await waitForPodEndpoint(apiKey, created.id, {
       internalPort,
@@ -335,7 +480,7 @@ export async function deployWorkerPod(
   }
 }
 
-/** Poll GET /v1/pods/{id} until RUNNING with a resolvable endpoint. */
+/** Poll GET /v2/pods/{id} until RUNNING with a resolvable endpoint. */
 export async function waitForPodEndpoint(
   apiKey: string,
   id: string,
@@ -352,10 +497,14 @@ export async function waitForPodEndpoint(
   while (Date.now() < deadline) {
     const pod = await getPod(apiKey, id);
     last = pod;
-    if (pod.desiredStatus === "TERMINATED" || pod.desiredStatus === "EXITED") {
-      throw new Error(`Pod ${id} reached terminal status ${pod.desiredStatus}`);
+    if (
+      pod.status === "TERMINATED" ||
+      pod.status === "EXITED" ||
+      pod.status === "ERROR"
+    ) {
+      throw new Error(`Pod ${id} reached terminal status ${pod.status}`);
     }
-    if (pod.desiredStatus === "RUNNING" || pod.desiredStatus === "READYT") {
+    if (pod.status === "RUNNING") {
       if (opts.exposure === "http") {
         return { pod, wsUrl: podProxyWsUrl(id, opts.internalPort) };
       }
@@ -365,6 +514,6 @@ export async function waitForPodEndpoint(
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   throw new Error(
-    `Pod ${id} did not become reachable within the timeout (last status: ${last?.desiredStatus ?? "unknown"})`
+    `Pod ${id} did not become reachable within the timeout (last status: ${last?.status ?? "unknown"})`
   );
 }

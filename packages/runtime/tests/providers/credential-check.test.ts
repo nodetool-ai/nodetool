@@ -104,7 +104,7 @@ describe("checkCredential", () => {
     expect(result.status).toBe("invalid");
     expect(result.message).toContain("RunPod");
     const [url, init] = fetchImpl.mock.calls[0];
-    expect(url).toBe("https://rest.runpod.io/v1/pods");
+    expect(url).toBe("https://api.runpod.io/v2/pods");
     expect((init as RequestInit).headers).toEqual({
       Authorization: "Bearer rp-key"
     });

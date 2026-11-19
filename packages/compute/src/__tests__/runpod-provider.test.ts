@@ -45,13 +45,13 @@ function baseSpec(overrides: Partial<WorkerSpec> = {}): WorkerSpec {
 
 describe("RunpodPodProvider.provision", () => {
   it("creates a pod from the spec image, polls until running, and returns the attach handoff", async () => {
-    // 1) POST /v1/pods → created pod (initializing)
+    // 1) POST /v2/pods → created pod (initializing)
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "pod-123", desiredStatus: "EXITED" })
+      jsonResponse({ id: "pod-123", status: "PROVISIONING" })
     );
-    // 2) GET /v1/pods/pod-123 → RUNNING
+    // 2) GET /v2/pods/pod-123 → RUNNING
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "pod-123", desiredStatus: "RUNNING" })
+      jsonResponse({ id: "pod-123", status: "RUNNING" })
     );
 
     const provider = new RunpodPodProvider(API_KEY);
@@ -65,22 +65,23 @@ describe("RunpodPodProvider.provision", () => {
     });
 
     // The create call uses the spec image and passes the token as worker env.
-    const [, createInit] = mockFetch.mock.calls[0];
+    const [createUrl, createInit] = mockFetch.mock.calls[0];
+    expect(createUrl).toBe("https://api.runpod.io/v2/pods");
     const createBody = JSON.parse((createInit as RequestInit).body as string);
-    expect(createBody.imageName).toBe("ghcr.io/nodetool-ai/nodetool-worker:0.7.3");
+    expect(createBody.image).toBe("ghcr.io/nodetool-ai/nodetool-worker:0.7.3");
     expect(createBody.env.NODETOOL_WORKER_TOKEN).toBe("worker-secret");
   });
 
   it("deletes the created pod when polling fails before RUNNING (no billing orphan)", async () => {
-    // 1) POST /v1/pods → pod is created (billing starts), still initializing.
+    // 1) POST /v2/pods → pod is created (billing starts), still initializing.
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "pod-orphan", desiredStatus: "EXITED" })
+      jsonResponse({ id: "pod-orphan", status: "PROVISIONING" })
     );
-    // 2) GET /v1/pods/pod-orphan → terminal status, so polling throws.
+    // 2) GET /v2/pods/pod-orphan → terminal status, so polling throws.
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "pod-orphan", desiredStatus: "TERMINATED" })
+      jsonResponse({ id: "pod-orphan", status: "TERMINATED" })
     );
-    // 3) DELETE /v1/pods/pod-orphan → cleanup teardown succeeds.
+    // 3) DELETE /v2/pods/pod-orphan → cleanup teardown succeeds.
     mockFetch.mockResolvedValueOnce(jsonResponse({}, 204));
 
     const provider = new RunpodPodProvider(API_KEY);
@@ -91,18 +92,18 @@ describe("RunpodPodProvider.provision", () => {
     // The created pod must be torn down so it stops billing.
     const deleteCall = mockFetch.mock.calls.find(
       ([url, init]) =>
-        url === "https://rest.runpod.io/v1/pods/pod-orphan" &&
+        url === "https://api.runpod.io/v2/pods/pod-orphan" &&
         (init as RequestInit | undefined)?.method === "DELETE"
     );
     expect(deleteCall).toBeDefined();
   });
 
-  it("reports the pod's hourly cost from costPerHr", async () => {
+  it("reports the pod's hourly cost from cost", async () => {
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "pod-123", desiredStatus: "EXITED" })
+      jsonResponse({ id: "pod-123", status: "PROVISIONING" })
     );
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "pod-123", desiredStatus: "RUNNING", costPerHr: 0.44 })
+      jsonResponse({ id: "pod-123", status: "RUNNING", cost: 0.44 })
     );
 
     const provider = new RunpodPodProvider(API_KEY);
@@ -111,40 +112,45 @@ describe("RunpodPodProvider.provision", () => {
     expect(result.costUsd).toBe(0.44);
   });
 
-  it("provisions a persistent volume and points HF_HOME at it", async () => {
+  it("provisions a persistent volume on GPU pods and points HF_HOME at it", async () => {
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "pod-123", desiredStatus: "EXITED" })
+      jsonResponse({ id: "pod-123", status: "PROVISIONING" })
     );
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "pod-123", desiredStatus: "RUNNING" })
+      jsonResponse({ id: "pod-123", status: "RUNNING" })
     );
 
     const provider = new RunpodPodProvider(API_KEY);
-    await provider.provision(baseSpec({ disk: 200 }));
+    await provider.provision(
+      baseSpec({ gpu: "NVIDIA GeForce RTX 4090", disk: 200 })
+    );
 
     const createBody = JSON.parse(
       (mockFetch.mock.calls[0][1] as RequestInit).body as string
     );
-    expect(createBody.volumeInGb).toBe(200);
-    expect(createBody.volumeMountPath).toBe("/workspace");
+    expect(createBody.mounts).toEqual({
+      persistent: { size: 200, path: "/workspace" },
+    });
     expect(createBody.env.HF_HOME).toBe("/workspace/huggingface");
   });
 
-  it("defaults the volume size when the spec omits disk", async () => {
+  it("defaults the volume size on GPU pods when the spec omits disk", async () => {
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "pod-123", desiredStatus: "EXITED" })
+      jsonResponse({ id: "pod-123", status: "PROVISIONING" })
     );
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "pod-123", desiredStatus: "RUNNING" })
+      jsonResponse({ id: "pod-123", status: "RUNNING" })
     );
 
     const provider = new RunpodPodProvider(API_KEY);
-    await provider.provision(baseSpec());
+    await provider.provision(baseSpec({ gpu: "NVIDIA GeForce RTX 4090" }));
 
     const createBody = JSON.parse(
       (mockFetch.mock.calls[0][1] as RequestInit).body as string
     );
-    expect(createBody.volumeInGb).toBe(100); // DEFAULT_VOLUME_GB
+    expect(createBody.mounts).toEqual({
+      persistent: { size: 100, path: "/workspace" },
+    }); // DEFAULT_VOLUME_GB
   });
 });
 
@@ -153,32 +159,45 @@ describe("RunpodPodProvider.status", () => {
     const provider = new RunpodPodProvider(API_KEY);
 
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "p", desiredStatus: "RUNNING" })
+      jsonResponse({ id: "p", status: "RUNNING" })
     );
     expect(await provider.status("p")).toBe("running");
 
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "p", desiredStatus: "EXITED" })
+      jsonResponse({ id: "p", status: "EXITED" })
     );
     expect(await provider.status("p")).toBe("stopped");
 
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "p", desiredStatus: "TERMINATED" })
+      jsonResponse({ id: "p", status: "TERMINATED" })
     );
     expect(await provider.status("p")).toBe("stopped");
+
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ id: "p", status: "ERROR" })
+    );
+    expect(await provider.status("p")).toBe("error");
+
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ id: "p", status: "STARTING" })
+    );
+    expect(await provider.status("p")).toBe("provisioning");
   });
 });
 
 describe("RunpodPodProvider.stop", () => {
-  it("pauses the pod (POST /stop), keeping the volume", async () => {
+  it("pauses the pod (POST /action stop), keeping the volume", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
 
     const provider = new RunpodPodProvider(API_KEY);
     await provider.stop("pod-xyz");
 
     const [url, init] = mockFetch.mock.calls[0];
-    expect(url).toBe("https://rest.runpod.io/v1/pods/pod-xyz/stop");
+    expect(url).toBe("https://api.runpod.io/v2/pods/pod-xyz/action");
     expect((init as RequestInit).method).toBe("POST");
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({
+      action: "stop",
+    });
   });
 });
 
@@ -190,26 +209,29 @@ describe("RunpodPodProvider.terminate", () => {
     await provider.terminate("pod-xyz");
 
     const [url, init] = mockFetch.mock.calls[0];
-    expect(url).toBe("https://rest.runpod.io/v1/pods/pod-xyz");
+    expect(url).toBe("https://api.runpod.io/v2/pods/pod-xyz");
     expect((init as RequestInit).method).toBe("DELETE");
   });
 });
 
 describe("RunpodPodProvider.resume", () => {
-  it("starts the pod (POST /start) and re-derives the proxy ws URL", async () => {
-    // POST /start, then GET /pods/{id} → RUNNING.
+  it("starts the pod (POST /action start) and re-derives the proxy ws URL", async () => {
+    // POST /action start, then GET /pods/{id} → RUNNING.
     mockFetch.mockResolvedValueOnce(jsonResponse({}));
     mockFetch.mockResolvedValueOnce(
-      jsonResponse({ id: "pod-xyz", desiredStatus: "RUNNING", costPerHr: 0.4 })
+      jsonResponse({ id: "pod-xyz", status: "RUNNING", cost: 0.4 })
     );
 
     const provider = new RunpodPodProvider(API_KEY);
     const result = await provider.resume("pod-xyz");
 
     expect(mockFetch.mock.calls[0][0]).toBe(
-      "https://rest.runpod.io/v1/pods/pod-xyz/start"
+      "https://api.runpod.io/v2/pods/pod-xyz/action"
     );
     expect((mockFetch.mock.calls[0][1] as RequestInit).method).toBe("POST");
+    expect(
+      JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string)
+    ).toEqual({ action: "start" });
     expect(result.providerRef).toBe("pod-xyz");
     expect(result.wsUrl).toBe("wss://pod-xyz-7777.proxy.runpod.net");
     expect(result.status).toBe("running");
@@ -220,10 +242,13 @@ describe("RunpodPodProvider.resume", () => {
 describe("RunpodPodProvider.list", () => {
   it("returns the live pods as ProviderInstance[]", async () => {
     mockFetch.mockResolvedValueOnce(
-      jsonResponse([
-        { id: "pod-a", desiredStatus: "RUNNING" },
-        { id: "pod-b", desiredStatus: "EXITED" },
-      ])
+      jsonResponse({
+        pods: [
+          { id: "pod-a", status: "RUNNING" },
+          { id: "pod-b", status: "EXITED" },
+        ],
+        pagination: { hasNextPage: false, nextCursor: null },
+      })
     );
 
     const provider = new RunpodPodProvider(API_KEY);

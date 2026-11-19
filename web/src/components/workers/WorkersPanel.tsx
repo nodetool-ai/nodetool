@@ -3,10 +3,17 @@ import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { css } from "@emotion/react";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeveloperBoardIcon from "@mui/icons-material/DeveloperBoard";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import {
   FlexColumn,
   FlexRow,
   Card,
+  Chip,
   Text,
   Caption,
   LoadingSpinner,
@@ -18,13 +25,20 @@ import {
   StatusIndicator,
   AlertBanner,
   PanelHeader,
-  type StatusType, getSpacingPx, SPACING,
-  EmptyState
+  type StatusType, getSpacingPx, SPACING, BORDER_RADIUS,
+  EmptyState,
+  SectionHeader,
+  EditorMenu,
+  MenuItemPrimitive,
+  ToolbarIconButton,
+  Tooltip,
+  TruncatedText
 } from "../ui_primitives";
 import {
   useWorkers,
   useWorkerHealth,
   type ComfyPreset,
+  type GpuAvailability,
   type WorkerInstance,
   type WorkerProfile,
   type WorkerTarget
@@ -38,6 +52,28 @@ import WorkerApiKeySetup from "./WorkerApiKeySetup";
  * from a profile; and surfaces real teardown (Stop / Stop All) because GPU pods
  * bill continuously.
  */
+
+const TARGET_LABEL: Record<WorkerTarget, string> = {
+  runpod: "RunPod",
+  vast: "Vast.ai",
+  verda: "Verda"
+};
+
+function readStringField(
+  spec: Record<string, unknown> | undefined,
+  key: string
+): string | null {
+  const val = spec?.[key];
+  return typeof val === "string" && val.trim() ? val.trim() : null;
+}
+
+function readNumberField(
+  spec: Record<string, unknown> | undefined,
+  key: string
+): number | null {
+  const val = spec?.[key];
+  return typeof val === "number" && Number.isFinite(val) ? val : null;
+}
 
 const STATUS_TONE: Record<string, StatusType> = {
   provisioning: "running",
@@ -56,12 +92,35 @@ const panelStyles =
     ".workers-body": {
       flex: 1,
       minHeight: 0,
+      overflowY: "auto",
+      overflowX: "hidden",
       padding: getSpacingPx(SPACING.lg)
     },
+    ".workers-presets": {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+      gap: getSpacingPx(SPACING.md)
+    },
+    ".workers-table": {
+      border: "1px solid var(--palette-divider)",
+      borderRadius: BORDER_RADIUS.md,
+      overflow: "hidden"
+    },
+    ".workers-row": {
+      display: "grid",
+      gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr) auto",
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.lg),
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
+      borderTop: "1px solid var(--palette-divider)"
+    },
+    ".workers-head": {
+      borderTop: "none",
+      paddingTop: getSpacingPx(SPACING.sm),
+      paddingBottom: getSpacingPx(SPACING.sm)
+    },
     ".scrollable-content": {
-      flex: 1,
-      overflowY: "auto",
-      overflowX: "hidden"
+      flexShrink: 0
     }
   });
 
@@ -102,6 +161,37 @@ function formatUptime(
   });
 }
 
+function formatTimer(createdAt: string, now: number): string | null {
+  const startedMs = Date.parse(createdAt);
+  if (Number.isNaN(startedMs)) return null;
+  const totalSeconds = Math.max(0, Math.floor((now - startedMs) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const mm = String(minutes).padStart(2, "0");
+  const ss = String(seconds).padStart(2, "0");
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+function formatRunningCost(
+  hourlyRate: number | null,
+  createdAt: string,
+  now: number,
+  locale: string
+): string | null {
+  if (hourlyRate === null) return null;
+  const startedMs = Date.parse(createdAt);
+  if (Number.isNaN(startedMs)) return null;
+  const elapsedHours = Math.max(0, (now - startedMs) / 3_600_000);
+  const accrued = hourlyRate * elapsedHours;
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: accrued < 0.1 ? 4 : 2
+  }).format(accrued);
+}
+
 function formatCost(cost: number | null, locale: string, t: TFunction): string {
   if (cost === null) return t("screens4_8.workers.common.unavailable");
   return new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(cost);
@@ -112,6 +202,52 @@ function formatRate(cost: number, locale: string, t: TFunction): string {
   return t("screens4_8.workers.rate", { amount });
 }
 
+type StockLevel = "high" | "medium" | "low" | "none";
+
+const STOCK_RANK: Record<StockLevel, number> = { none: 0, low: 1, medium: 2, high: 3 };
+
+/** The better stock level of the two RunPod cloud tiers. */
+function stockLevel(entry: GpuAvailability | undefined): StockLevel {
+  const levels = [entry?.secure, entry?.community].map(
+    (value): StockLevel => (value ? (value.toLowerCase() as StockLevel) : "none")
+  );
+  return levels.reduce((best, level) =>
+    STOCK_RANK[level] > STOCK_RANK[best] ? level : best
+  );
+}
+
+const STOCK_COLOR: Record<StockLevel, "success" | "warning" | "error"> = {
+  high: "success",
+  medium: "success",
+  low: "warning",
+  none: "error"
+};
+
+interface GpuStockProps {
+  gpuId: string;
+  availability: GpuAvailability[];
+}
+
+/** A GPU name with its RunPod stock level. Renders the bare id while loading. */
+const GpuStock: React.FC<GpuStockProps> = ({ gpuId, availability }) => {
+  const { t } = useTranslation();
+  const entry = availability.find((candidate) => candidate.id === gpuId);
+  if (availability.length === 0) {
+    return <Caption size="small">{gpuId}</Caption>;
+  }
+  const level = stockLevel(entry);
+  return (
+    <FlexRow gap={SPACING.sm} align="center" justify="space-between">
+      <Caption size="small">{entry?.displayName ?? gpuId}</Caption>
+      <Chip
+        compact
+        color={STOCK_COLOR[level]}
+        label={t(`screens4_8.workers.stock.${level}`)}
+      />
+    </FlexRow>
+  );
+};
+
 function statusTone(status: string): StatusType {
   return STATUS_TONE[status] ?? "default";
 }
@@ -119,6 +255,7 @@ function statusTone(status: string): StatusType {
 interface ProvisionDialogProps {
   open: boolean;
   profiles: WorkerProfile[];
+  availability: GpuAvailability[];
   apiKeyStatus?: Record<WorkerTarget, boolean>;
   onProvision: (profileName: string) => void;
   onClose: () => void;
@@ -128,6 +265,7 @@ interface ProvisionDialogProps {
 const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
   open,
   profiles,
+  availability,
   apiKeyStatus,
   onProvision,
   onClose,
@@ -142,6 +280,11 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
   // here instead of after the click.
   const apiKeyMissing =
     profile !== undefined && apiKeyStatus?.[profile.target] === false;
+
+  const profileGpu =
+    profile?.target === "runpod"
+      ? readStringField(profile.spec as Record<string, unknown> | undefined, "gpu")
+      : null;
 
   const options = useMemo(
     () => profiles.map(({ name }) => ({ value: name, label: name })),
@@ -176,6 +319,9 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
         {profile && apiKeyMissing && (
           <WorkerApiKeySetup target={profile.target} />
         )}
+        {profileGpu && (
+          <GpuStock gpuId={profileGpu} availability={availability} />
+        )}
         {profile && (
           <Caption size="small">
             {profile.idle_timeout_minutes
@@ -192,6 +338,7 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
 
 interface ComfyPresetsSectionProps {
   presets: ComfyPreset[];
+  availability: GpuAvailability[];
   runningProfiles: ReadonlySet<string>;
   startingId: string | null;
   apiKeyMissing: boolean;
@@ -200,6 +347,7 @@ interface ComfyPresetsSectionProps {
 
 const ComfyPresetsSection: React.FC<ComfyPresetsSectionProps> = ({
   presets,
+  availability,
   runningProfiles,
   startingId,
   apiKeyMissing,
@@ -210,52 +358,67 @@ const ComfyPresetsSection: React.FC<ComfyPresetsSectionProps> = ({
     style: "currency",
     currency: "USD"
   });
+  if (presets.length === 0) return null;
+  const lifetimeHours = Math.round(presets[0].maxLifetimeMinutes / 60);
   return (
-    <FlexColumn gap={SPACING.sm} sx={{ mt: SPACING.md }}>
-      {apiKeyMissing && presets.length > 0 && (
-        <WorkerApiKeySetup target="runpod" />
-      )}
-      {presets.map((preset) => (
-        <Card key={preset.id} variant="outlined" padding="normal">
-          <FlexRow align="center" justify="space-between" gap={SPACING.lg}>
-            <FlexColumn gap={SPACING.micro}>
-              <Text size="normal" weight={600}>
-                {preset.label}
-              </Text>
-              <Caption size="small">
-                {t("screens4_8.workers.presets.summary", {
-                  min: money.format(preset.hourlyUsd.min),
-                  max: money.format(preset.hourlyUsd.max),
-                  count: Math.round(preset.maxLifetimeMinutes / 60)
-                })}
-              </Caption>
-            </FlexColumn>
-            <EditorButton
-              density="compact"
-              variant="outlined"
-              aria-label={t("screens4_8.workers.presets.startAria", {
-                name: preset.label
-              })}
-              disabled={
-                apiKeyMissing ||
-                startingId !== null ||
-                runningProfiles.has(preset.profileName)
-              }
-              onClick={() => onStart(preset.id)}
-            >
-              {startingId === preset.id
-                ? t("screens4_8.workers.presets.starting")
-                : t("screens4_8.workers.presets.start")}
-            </EditorButton>
-          </FlexRow>
-        </Card>
-      ))}
+    <FlexColumn gap={SPACING.sm} sx={{ mt: SPACING.xl }}>
+      <SectionHeader
+        title={t("screens4_8.workers.presets.sectionTitle")}
+        subtitle={t("screens4_8.workers.presets.sectionSubtitle", {
+          count: lifetimeHours
+        })}
+        size="small"
+      />
+      {apiKeyMissing && <WorkerApiKeySetup target="runpod" />}
+      <div className="workers-presets">
+        {presets.map((preset) => {
+          const running = runningProfiles.has(preset.profileName);
+          return (
+            <Card key={preset.id} variant="outlined" padding="normal">
+              <FlexColumn gap={SPACING.sm} fullHeight>
+                <FlexRow align="center" justify="space-between" gap={SPACING.sm}>
+                  <Text size="normal" weight={600}>
+                    {preset.label}
+                  </Text>
+                  <Caption size="small" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                    {t("screens4_8.workers.presets.priceRange", {
+                      min: money.format(preset.hourlyUsd.min),
+                      max: money.format(preset.hourlyUsd.max)
+                    })}
+                  </Caption>
+                </FlexRow>
+                <FlexColumn gap={SPACING.xs} sx={{ flex: 1 }}>
+                  {preset.gpus.map((gpu) => (
+                    <GpuStock key={gpu} gpuId={gpu} availability={availability} />
+                  ))}
+                </FlexColumn>
+                <EditorButton
+                  density="compact"
+                  variant="outlined"
+                  aria-label={t("screens4_8.workers.presets.startAria", {
+                    name: preset.label
+                  })}
+                  disabled={apiKeyMissing || startingId !== null || running}
+                  onClick={() => onStart(preset.id)}
+                >
+                  {running
+                    ? t("screens4_8.workers.presets.running")
+                    : startingId === preset.id
+                      ? t("screens4_8.workers.presets.starting")
+                      : t("screens4_8.workers.presets.start")}
+                </EditorButton>
+              </FlexColumn>
+            </Card>
+          );
+        })}
+      </div>
     </FlexColumn>
   );
 };
 
 interface InstanceRowProps {
   instance: WorkerInstance;
+  profile?: WorkerProfile;
   now: number;
   onStop: (id: string) => void;
   onResume: (id: string) => void;
@@ -271,6 +434,7 @@ interface InstanceRowProps {
 
 const InstanceRow: React.FC<InstanceRowProps> = ({
   instance,
+  profile,
   now,
   onStop,
   onResume,
@@ -286,6 +450,16 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
   const isAttached = instance.status === "attached";
   const isPaused = instance.status === "stopped";
   const isRunning = instance.status === "running";
+  const isBilling = BILLING_STATUSES.has(instance.status);
+  const timerText = isBilling ? formatTimer(instance.created_at, now) : null;
+  const runningCostText = isBilling
+    ? formatRunningCost(
+        instance.estimated_cost_usd,
+        instance.created_at,
+        now,
+        i18n.language
+      )
+    : null;
 
   // While a worker is `running` but not attached, "running" only means the
   // pod's port is mapped — not that the worker process is serving. Probe its
@@ -295,6 +469,47 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
   const isBooting = isRunning && !isHealthy;
   // A ComfyUI pod has no worker bridge to attach. Its URL goes in the node.
   const comfyEndpoint = healthQuery.data?.comfyEndpoint;
+  const profileSpec = profile?.spec as Record<string, unknown> | undefined;
+  const isComfy =
+    Boolean(comfyEndpoint) || readNumberField(profileSpec, "comfyPort") !== null;
+  const gpu = readStringField(profileSpec, "gpu");
+  const gpuCount = readNumberField(profileSpec, "gpuCount");
+  const vcpu = readNumberField(profileSpec, "vcpu");
+  const disk = readNumberField(profileSpec, "disk");
+  const region = readStringField(profileSpec, "region");
+  const endpointUrl = comfyEndpoint ?? instance.ws_url;
+  const healthError = !isHealthy ? healthQuery.data?.error : undefined;
+  const protocolVersion = healthQuery.data?.protocolVersion;
+
+  const hardwareParts: string[] = [];
+  if (gpu) {
+    hardwareParts.push(gpuCount && gpuCount > 1 ? `${gpu} ×${gpuCount}` : gpu);
+  }
+  if (vcpu) hardwareParts.push(`${vcpu} vCPU`);
+  if (disk) hardwareParts.push(`${disk} GB disk`);
+  if (region) hardwareParts.push(region);
+
+  const metaParts: string[] = [
+    `Provider ID: ${instance.provider_ref}`,
+    `Instance ID: ${instance.id}`
+  ];
+  if (instance.last_activity_at) {
+    metaParts.push(
+      `Last activity: ${formatUptime(instance.last_activity_at, now, i18n.language, t)} ago`
+    );
+  }
+  if (instance.attached_to) {
+    metaParts.push(`Attached: ${instance.attached_to}`);
+  }
+  if (protocolVersion !== undefined) {
+    metaParts.push(`Protocol: v${protocolVersion}`);
+  }
+  if (profile?.idle_timeout_minutes) {
+    metaParts.push(`Idle stop: ${profile.idle_timeout_minutes}m`);
+  }
+  if (profile?.max_lifetime_minutes) {
+    metaParts.push(`Max lifetime: ${profile.max_lifetime_minutes}m`);
+  }
 
   // Effective status presentation: the raw status, except a `running` worker is
   // shown as "booting" until it answers the probe, then "ready".
@@ -334,110 +549,186 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
     }
   }, [autoAttach, isRunning, isHealthy, busy, comfyEndpoint, onAutoAttach, instance.id]);
 
+  const [menuButton, setMenuButton] = useState<HTMLElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const runMenu = useCallback(
+    (action: () => void) => () => {
+      setMenuOpen(false);
+      action();
+    },
+    []
+  );
+
+  const hourlyText =
+    instance.estimated_cost_usd !== null
+      ? formatRate(instance.estimated_cost_usd, i18n.language, t)
+      : t("screens4_8.workers.common.unavailable");
+  const statusIcon = isPaused ? (
+    <PauseIcon fontSize="small" />
+  ) : isBooting ||
+    instance.status === "provisioning" ||
+    instance.status === "stopping" ? (
+    <LoadingSpinner size="small" />
+  ) : (
+    <PlayArrowIcon fontSize="small" color="success" />
+  );
+
+  const primaryAction = comfyEndpoint ? (
+    isRunning &&
+    isHealthy && (
+      <CopyButton
+        value={comfyEndpoint}
+        tooltip={t("screens4_8.workers.presets.copyEndpoint")}
+      />
+    )
+  ) : isAttached ? (
+    <EditorButton
+      density="compact"
+      variant="outlined"
+      aria-label={t("screens4_8.workers.instance.detachAria", { id: instance.id })}
+      disabled={busy}
+      onClick={onDetach}
+    >
+      {t("screens4_8.workers.instance.detach")}
+    </EditorButton>
+  ) : isPaused ? (
+    <EditorButton
+      density="compact"
+      variant="outlined"
+      aria-label={t("screens4_8.workers.instance.resumeAria", { id: instance.id })}
+      disabled={stopping}
+      onClick={() => onResume(instance.id)}
+    >
+      {t("screens4_8.workers.instance.resume")}
+    </EditorButton>
+  ) : (
+    <EditorButton
+      density="compact"
+      variant="outlined"
+      aria-label={t("screens4_8.workers.instance.attachAria", { id: instance.id })}
+      // Only enable once the worker is actually answering — attaching
+      // mid-boot just fails the handshake and rolls back.
+      disabled={busy || !isRunning || !isHealthy}
+      onClick={() => onAttach(instance.id)}
+    >
+      {isBooting
+        ? t("screens4_8.workers.status.bootingEllipsis")
+        : t("screens4_8.workers.instance.attach")}
+    </EditorButton>
+  );
+
+  const detailsTooltip = (
+    <FlexColumn gap={SPACING.micro}>
+      <Caption size="small">{displayLabel}</Caption>
+      {hardwareParts.length > 0 && (
+        <Caption size="small">{hardwareParts.join(" · ")}</Caption>
+      )}
+      {profile?.image && <Caption size="small">Image: {profile.image}</Caption>}
+      {endpointUrl && <Caption size="small">Endpoint: {endpointUrl}</Caption>}
+      {metaParts.map((part) => (
+        <Caption key={part} size="small">
+          {part}
+        </Caption>
+      ))}
+    </FlexColumn>
+  );
+
   return (
-    <Card variant="outlined" padding="normal">
-      <FlexRow align="center" justify="space-between" gap={SPACING.lg}>
-        <FlexColumn gap={SPACING.micro}>
-          <FlexRow gap={SPACING.md} align="center">
-            <Text size="normal" weight={600}>
+    <div className="workers-row" role="row">
+      <FlexColumn gap={SPACING.micro} role="cell" sx={{ minWidth: 0 }}>
+        <Tooltip title={detailsTooltip}>
+          <FlexRow gap={SPACING.sm} align="center" sx={{ minWidth: 0 }}>
+            {statusIcon}
+            <TruncatedText variant="body2" sx={{ fontWeight: 500 }}>
               {instance.profile_name}
-            </Text>
-            <StatusIndicator
-              status={displayTone}
-              label={displayLabel}
-              pulse={
-                instance.status === "provisioning" ||
-                instance.status === "stopping" ||
-                isBooting
-              }
-            />
-            {isBooting && <LoadingSpinner size="small" />}
+            </TruncatedText>
+            {isComfy && (
+              <Chip compact label={t("screens4_8.workers.presets.badge")} />
+            )}
           </FlexRow>
-          {statusHint ? (
-            <Caption size="small">{statusHint}</Caption>
-          ) : (
-            <Caption size="small">{instance.id}</Caption>
-          )}
-        </FlexColumn>
-        <FlexRow gap={SPACING.lg} align="center">
-          <Caption size="small">
-            {t("screens4_8.workers.instance.uptime", {
-              value: formatUptime(instance.created_at, now, i18n.language, t)
-            })}
+        </Tooltip>
+        <Caption size="small">
+          <span css={{ fontFamily: "var(--fontFamily2)" }}>{instance.provider_ref}</span>
+          {` · ${displayLabel}`}
+        </Caption>
+        {statusHint && <Caption size="small">{statusHint}</Caption>}
+        {healthError && (
+          <Caption size="small" sx={{ color: "error.main" }}>
+            {healthError}
           </Caption>
-          <Caption size="small">
-            {t("screens4_8.workers.instance.cost", {
-              value: formatCost(instance.estimated_cost_usd, i18n.language, t)
-            })}
-          </Caption>
-          {comfyEndpoint ? (
-            isRunning &&
-            isHealthy && (
-              <CopyButton
-                value={comfyEndpoint}
-                tooltip={t("screens4_8.workers.presets.copyEndpoint")}
-              />
-            )
-          ) : isAttached ? (
-            <EditorButton
-              density="compact"
-              variant="outlined"
-              aria-label={t("screens4_8.workers.instance.detachAria", { id: instance.id })}
-              disabled={busy}
-              onClick={onDetach}
-            >
-              {t("screens4_8.workers.instance.detach")}
-            </EditorButton>
-          ) : isPaused ? (
-            <EditorButton
-              density="compact"
-              variant="outlined"
-              aria-label={t("screens4_8.workers.instance.resumeAria", { id: instance.id })}
-              disabled={stopping}
-              onClick={() => onResume(instance.id)}
-            >
-              {t("screens4_8.workers.instance.resume")}
-            </EditorButton>
-          ) : (
-            <EditorButton
-              density="compact"
-              variant="outlined"
-              aria-label={t("screens4_8.workers.instance.attachAria", { id: instance.id })}
-              // Only enable once the worker is actually answering — attaching
-              // mid-boot just fails the handshake and rolls back.
-              disabled={busy || !isRunning || !isHealthy}
-              onClick={() => onAttach(instance.id)}
-            >
-              {isBooting
-                ? t("screens4_8.workers.status.bootingEllipsis")
-                : t("screens4_8.workers.instance.attach")}
-            </EditorButton>
+        )}
+      </FlexColumn>
+      <FlexColumn gap={SPACING.micro} role="cell">
+        <FlexRow gap={SPACING.xs} align="center">
+          <DeveloperBoardIcon fontSize="small" />
+          <Text size="normal">
+            {gpu ?? (vcpu ? `${vcpu} vCPU` : t("screens4_8.workers.instance.gpuUnknown"))}
+          </Text>
+          {gpu && (
+            <Caption size="small" sx={{ fontFamily: "var(--fontFamily2)" }}>
+              x{gpuCount ?? 1}
+            </Caption>
           )}
-          {/* Pause (keep the volume) — only meaningful while the pod runs. */}
-          {!isPaused && (
-            <EditorButton
-              density="compact"
-              variant="text"
-              aria-label={t("screens4_8.workers.instance.stopAria", { id: instance.id })}
-              disabled={stopping}
-              onClick={() => onStop(instance.id)}
-            >
-              {t("screens4_8.workers.instance.stop")}
-            </EditorButton>
-          )}
-          {/* Destroy the pod + volume. The real teardown. */}
-          <EditorButton
-            density="compact"
-            variant="text"
-            aria-label={t("screens4_8.workers.instance.terminateAria", { id: instance.id })}
-            disabled={stopping}
-            onClick={() => onTerminate(instance.id)}
-          >
-            {t("screens4_8.workers.instance.terminate")}
-          </EditorButton>
         </FlexRow>
+        <Caption size="small">{TARGET_LABEL[instance.target]}</Caption>
+      </FlexColumn>
+      <FlexColumn gap={SPACING.micro} role="cell">
+        <Text size="normal" sx={{ fontVariantNumeric: "tabular-nums" }}>
+          {hourlyText}
+        </Text>
+        <Caption size="small" sx={{ fontVariantNumeric: "tabular-nums" }}>
+          {runningCostText && timerText
+            ? `${runningCostText} · ${timerText}`
+            : isPaused
+              ? t("screens4_8.workers.instance.pausedCost")
+              : t("screens4_8.workers.instance.uptime", {
+                value: formatUptime(instance.created_at, now, i18n.language, t)
+              })}
+        </Caption>
+      </FlexColumn>
+      <FlexRow gap={SPACING.xs} align="center" justify="flex-end" role="cell">
+        {primaryAction}
+        <ToolbarIconButton
+          ref={setMenuButton}
+          icon={<MoreVertIcon fontSize="small" />}
+          tooltip={t("screens4_8.workers.instance.moreActions")}
+          ariaLabel={t("screens4_8.workers.instance.moreActions")}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(true)}
+        />
+        <EditorMenu
+          anchorEl={menuButton}
+          open={menuOpen}
+          onClose={closeMenu}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          {!isPaused && (
+            <MenuItemPrimitive
+              label={t("screens4_8.workers.instance.stop")}
+              icon={<PauseIcon fontSize="small" />}
+              disabled={stopping}
+              onClick={runMenu(() => onStop(instance.id))}
+            />
+          )}
+          <MenuItemPrimitive
+            label={t("screens4_8.workers.instance.copyId")}
+            icon={<ContentCopyIcon fontSize="small" />}
+            onClick={runMenu(() => {
+              void navigator.clipboard.writeText(instance.provider_ref);
+            })}
+          />
+          <MenuItemPrimitive
+            label={t("screens4_8.workers.instance.terminate")}
+            icon={<DeleteOutlineIcon fontSize="small" />}
+            disabled={stopping}
+            onClick={runMenu(() => onTerminate(instance.id))}
+          />
+        </EditorMenu>
       </FlexRow>
-    </Card>
+    </div>
   );
 };
 
@@ -475,6 +766,7 @@ const WorkersPanel: React.FC = () => {
     instancesQuery,
     apiKeyStatus,
     comfyPresets,
+    gpuAvailability,
     startComfyPreset,
     createProfile,
     deleteProfile,
@@ -503,12 +795,24 @@ const WorkersPanel: React.FC = () => {
   const [autoAttachIds, setAutoAttachIds] = useState<ReadonlySet<string>>(
     () => new Set()
   );
-  const now = Date.now();
+  const [now, setNow] = useState(() => Date.now());
 
   const shownInstances = useMemo(
     () => instances.filter((instance) => SHOWN_STATUSES.has(instance.status)),
     [instances]
   );
+
+  const hasLiveBilling = useMemo(
+    () =>
+      shownInstances.some((instance) => BILLING_STATUSES.has(instance.status)),
+    [shownInstances]
+  );
+
+  useEffect(() => {
+    if (!hasLiveBilling) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [hasLiveBilling]);
 
   const totalCost = useMemo(
     () =>
@@ -752,19 +1056,16 @@ const WorkersPanel: React.FC = () => {
           </AlertBanner>
         )}
 
-        <ComfyPresetsSection
-          presets={comfyPresets}
-          runningProfiles={runningProfiles}
-          startingId={startingPresetId}
-          apiKeyMissing={apiKeyStatus?.runpod === false}
-          onStart={handleStartPreset}
-        />
-
         <FlexColumn
           className="scrollable-content"
-          gap={SPACING.md}
+          gap={SPACING.sm}
           sx={{ mt: SPACING.md }}
         >
+          <SectionHeader
+            title={t("screens4_8.workers.list.title")}
+            subtitle={t("screens4_8.workers.list.subtitle")}
+            size="small"
+          />
           {instancesQuery.isLoading ? (
             <FlexRow justify="center" sx={{ py: SPACING.xl }}>
               <LoadingSpinner size="small" />
@@ -788,10 +1089,18 @@ const WorkersPanel: React.FC = () => {
               />
             )
           ) : (
-            shownInstances.map((instance) => (
+            <div className="workers-table" role="table">
+            <div className="workers-row workers-head" role="row">
+              <Caption size="small" role="columnheader">Name</Caption>
+              <Caption size="small" role="columnheader">Compute type</Caption>
+              <Caption size="small" role="columnheader">Cost</Caption>
+              <span role="columnheader" />
+            </div>
+            {shownInstances.map((instance) => (
               <InstanceRow
                 key={instance.id}
                 instance={instance}
+                profile={profiles.find((p) => p.name === instance.profile_name)}
                 now={now}
                 onStop={handleStop}
                 onResume={handleResume}
@@ -803,14 +1112,24 @@ const WorkersPanel: React.FC = () => {
                 autoAttach={autoAttachIds.has(instance.id)}
                 onAutoAttach={handleAutoAttach}
               />
-            ))
+            ))}
+            </div>
           )}
         </FlexColumn>
+        <ComfyPresetsSection
+          presets={comfyPresets}
+          availability={gpuAvailability}
+          runningProfiles={runningProfiles}
+          startingId={startingPresetId}
+          apiKeyMissing={apiKeyStatus?.runpod === false}
+          onStart={handleStartPreset}
+        />
       </FlexColumn>
 
       <ProvisionDialog
         open={dialogOpen}
         profiles={profiles}
+        availability={gpuAvailability}
         apiKeyStatus={apiKeyStatus}
         onProvision={handleProvision}
         onClose={() => setDialogOpen(false)}

@@ -61,7 +61,7 @@ async function main(): Promise<void> {
 
   if (action === "list") {
     const pods = await listPods(apiKey);
-    console.log(JSON.stringify(pods.map((p) => ({ id: p.id, name: p.name, status: p.desiredStatus, image: p.image })), null, 2));
+    console.log(JSON.stringify(pods.map((p) => ({ id: p.id, name: p.name, status: p.status, image: p.image })), null, 2));
     return;
   }
 
@@ -101,9 +101,8 @@ async function main(): Promise<void> {
           podId,
           wsUrl,
           token: token ?? null,
-          status: pod.desiredStatus,
-          publicIp: pod.publicIp ?? null,
-          portMappings: pod.portMappings ?? null
+          status: pod.status,
+          runtimePorts: pod.runtime?.ports ?? null
         },
         null,
         2
