@@ -1270,13 +1270,12 @@ scripts/build-ffmpeg-lgpl.sh      # FFmpeg 8.0 as LGPL shared libraries
 
 ### Releases
 
-Every NodeTool release ships the native timeline. The
 [NodeTool release workflow](../../.github/workflows/release.yaml), on a `v*`
 tag or a nightly, calls the
-[timeline release workflow](../../.github/workflows/native-timeline-release.yml),
-and its downloads join that GitHub release. The release publishes only when
-the timeline packages build and pass their smoke checks. A desktop recovery
-run with `source_tag` builds another commit than its own and skips the
+[timeline release workflow](../../.github/workflows/native-timeline-release.yml).
+The desktop release publishes as soon as its own checks pass. The Timeline
+downloads join it once every Timeline package has passed its checks. A desktop
+recovery run with `source_tag` builds another commit than its own and skips the
 timeline. The NodeTool release
 version names the downloads. `--version` reports `PROJECT_VERSION` from
 `CMakeLists.txt`.

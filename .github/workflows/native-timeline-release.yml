@@ -1,8 +1,8 @@
 name: Native timeline release
 
 # Called by release.yaml for every NodeTool release (v* tags and nightlies).
-# Its assets join that release: release.yaml's publish job downloads every
-# workflow artifact of the run, including timeline-<platform>. It builds the
+# A separate job attaches the verified timeline-<platform> artifacts after
+# the desktop release publishes. This workflow builds the
 # commit of the calling run. A ref input would let the restored caches of
 # setup-native-timeline meet a checkout chosen by a caller (CodeQL cache
 # poisoning), so release.yaml skips it when the release builds another commit.
@@ -42,7 +42,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-15
+          # The macOS 15 runner returned an internal XProtect error for the
+          # stapled app. Use the same runner family as the desktop release.
+          - os: macos-26
             platform: macos-arm64
           - os: windows-2022
             platform: windows-x64
@@ -120,6 +122,7 @@ jobs:
             --team-id "$APPLE_TEAM_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD"
       - name: Package and verify macOS
+        id: package-macos
         if: runner.os == 'macOS'
         run: |
           # Builds "NodeTool Timeline.app" through package-macos.sh, then the copy with the server inside.
@@ -147,6 +150,11 @@ jobs:
           python3 native/timeline/scripts/smoke-package.py "$app/Contents/MacOS/nodetool-timeline" \
             --package "$RUNNER_TEMP/release-extracted" --version "$APP_VERSION"
           node scripts/smoke-backend-bundle.mjs "$app/Contents/Resources/backend"
+      - name: Collect macOS distribution diagnostics
+        if: ${{ failure() && steps.package-macos.outcome == 'failure' }}
+        run: |
+          /usr/bin/log show --last 5m --info --style compact \
+            --predicate 'process == "syspolicyd" OR subsystem BEGINSWITH[c] "com.apple.xprotect"'
       - name: Package and verify Windows
         if: runner.os == 'Windows'
         run: |

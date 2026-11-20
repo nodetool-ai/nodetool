@@ -551,7 +551,7 @@ jobs:
 
       - name: Check workflow contracts
         if: matrix.check == 'lint'
-        run: node --test .github/tests/docker-deploy.test.mjs .github/tests/agent-workflows.test.mjs
+        run: node --test .github/tests/docker-deploy.test.mjs .github/tests/agent-workflows.test.mjs .github/tests/release-workflow.test.mjs
 
       # Template injection, unpinned actions, cache poisoning and over-broad
       # permissions in the workflows themselves. .github/zizmor.yml records
