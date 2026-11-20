@@ -1,3 +1,4 @@
+#include "ui/CanvasOverlay.h"
 // Comfy workflows in the editor window: the Comfy target control, the target's
 // node catalog and new Comfy workflows. See ComfyTargetSelector.tsx,
 // useComfyNodeMetadata.ts and useStartComfyWorkflow.ts on the web.

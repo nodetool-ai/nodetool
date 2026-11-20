@@ -1,7 +1,7 @@
 #include "SynthModules.h"
 #include "CardBodies.h"
 #include "CardBodyPainter.h"
-#include "EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include <QFile>
 #include <QFontMetricsF>
 #include <QJsonArray>

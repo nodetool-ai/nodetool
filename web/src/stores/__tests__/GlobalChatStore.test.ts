@@ -693,6 +693,25 @@ describe("GlobalChatStore", () => {
       expect(store.getState().getSelectedModel(threadId)).toEqual(claude);
     });
 
+    it("creating a new thread uses the last model a message was sent on", async () => {
+      mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(true);
+      mockGlobalWebSocketManager.isConnected = true;
+      mockGlobalWebSocketManager.send.mockResolvedValue(undefined);
+
+      store.getState().setSelectedModel(claude, "thread-a");
+      store.getState().setSelectedModel(gpt, "thread-b");
+
+      await store
+        .getState()
+        .sendMessage(
+          { role: "user", type: "message", content: "hi" } as Message,
+          "thread-a"
+        );
+
+      const nextThreadId = await store.getState().createNewThread();
+      expect(store.getState().getSelectedModel(nextThreadId)).toEqual(claude);
+    });
+
     it("forcedModel overrides both the thread pin and the last pick", () => {
       store.getState().setSelectedModel(gpt, "thread-a");
       store.getState().setSelectedModel(claude);

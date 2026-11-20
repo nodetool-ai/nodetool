@@ -38,7 +38,7 @@ export function check({ source = editorSource, build = process.env.NODETOOL_NODE
       throw new Error(`${command} ${args.join(" ")} failed (${result.signal || result.status}).`);
     }
   }
-  console.log("Native node editor prerequisites: CMake >= 3.28, C++20 compiler, Qt >= 6.12 including Multimedia, and the graph runner's native dependencies. QtNodes needs Git and network access on first configure, or a populated FetchContent cache.");
+  console.log("Native node editor prerequisites: CMake >= 3.28, C++20 compiler, Qt >= 6.12 including Multimedia, and the graph runner's native dependencies. Graph runner dependencies may need network access on first configure.");
   run(cmake, ["--version"]);
   run(ctest, ["--version"]);
   const prefix = qtPrefix();

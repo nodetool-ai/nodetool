@@ -70,6 +70,8 @@ export interface CreateWorkerProfileInput {
 
 /** A model that starts on a rented GPU with one click. */
 export type ComfyPreset = RouterOutputs["worker"]["comfyPresets"][number];
+export type GpuAvailability =
+  RouterOutputs["worker"]["gpuAvailability"][number];
 
 type WorkerConnection = RouterOutputs["worker"]["attach"];
 
@@ -85,6 +87,7 @@ const workerQueryKeys = {
   instances: ["workers", "instances"] as const,
   apiKeyStatus: ["workers", "api-key-status"] as const,
   comfyPresets: ["workers", "comfy-presets"] as const,
+  gpuAvailability: ["workers", "gpu-availability"] as const,
   health: (id: string) => ["workers", "health", id] as const
 };
 
@@ -101,6 +104,9 @@ const HEALTH_REFETCH_INTERVAL_MS = 4_000;
 const EMPTY_PROFILES: WorkerProfile[] = [];
 const EMPTY_INSTANCES: WorkerInstance[] = [];
 const EMPTY_PRESETS: ComfyPreset[] = [];
+const EMPTY_AVAILABILITY: GpuAvailability[] = [];
+/** RunPod stock changes within minutes, and the server caches 30 seconds. */
+const GPU_AVAILABILITY_REFETCH_INTERVAL_MS = 60_000;
 
 /**
  * Poll a worker's readiness while it is `running` but not yet attached. The
@@ -158,6 +164,8 @@ interface UseWorkersResult {
    */
   apiKeyStatus: Record<WorkerTarget, boolean> | undefined;
   comfyPresets: ComfyPreset[];
+  /** RunPod GPU stock for hosts that can run the worker image. */
+  gpuAvailability: GpuAvailability[];
   startComfyPreset: (presetId: string) => Promise<WorkerInstance>;
   createProfile: (input: CreateWorkerProfileInput) => Promise<WorkerProfile>;
   deleteProfile: (name: string) => Promise<void>;
@@ -196,6 +204,14 @@ export const useWorkers = (): UseWorkersResult => {
     queryFn: () => trpcClient.worker.comfyPresets.query(),
     enabled: WORKERS_AVAILABLE,
     staleTime: Infinity
+  });
+
+  const gpuAvailabilityQuery = useQuery<GpuAvailability[], Error>({
+    queryKey: workerQueryKeys.gpuAvailability,
+    queryFn: () => trpcClient.worker.gpuAvailability.query(),
+    enabled: WORKERS_AVAILABLE,
+    staleTime: 30_000,
+    refetchInterval: GPU_AVAILABILITY_REFETCH_INTERVAL_MS
   });
 
   const invalidateInstances = useCallback(
@@ -316,6 +332,7 @@ export const useWorkers = (): UseWorkersResult => {
     instancesQuery,
     apiKeyStatus: apiKeyStatusQuery.data,
     comfyPresets: comfyPresetsQuery.data ?? EMPTY_PRESETS,
+    gpuAvailability: gpuAvailabilityQuery.data ?? EMPTY_AVAILABILITY,
     startComfyPreset,
     createProfile,
     deleteProfile,

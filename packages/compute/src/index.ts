@@ -25,6 +25,14 @@ export type {
 } from "./worker-heartbeat.js";
 export type { ReaperDeps, ReaperHandle, ReaperManager } from "./reaper.js";
 export { RunpodPodProvider } from "./providers/runpod.js";
+export {
+  availabilityRank,
+  fetchRunpodGpuAvailability,
+} from "./providers/runpod-availability.js";
+export type {
+  RunpodGpuAvailability,
+  RunpodStockStatus,
+} from "./providers/runpod-availability.js";
 export { VastProvider } from "./providers/vast.js";
 export { VerdaProvider } from "./providers/verda.js";
 export { VerdaApiClient, VerdaApiError } from "./providers/verda-api.js";

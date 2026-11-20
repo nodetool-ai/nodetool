@@ -20,3 +20,8 @@ target_include_directories(node_editor_selection_layout_tests PRIVATE ../../src)
 target_link_libraries(node_editor_selection_layout_tests PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
 add_test(NAME node_editor_selection_layout COMMAND node_editor_selection_layout_tests)
 set_tests_properties(node_editor_selection_layout PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+if(NOT COMMAND nodetool_node_editor_test_sanitizers)
+    include(../../cmake/sanitizers/Tests.cmake)
+endif()
+nodetool_node_editor_test_sanitizers()

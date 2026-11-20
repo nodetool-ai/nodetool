@@ -1,10 +1,10 @@
+#include "../support/OverlayCanvasFixture.h"
+#include "../support/DarkCanvasTheme.h"
+#include "canvas/LineageItem.h"
 #include "graph/LineageLayer.h"
 #include "document/WorkflowDocument.h"
 #include <QApplication>
 #include <QContextMenuEvent>
-#include <QGraphicsObject>
-#include <QGraphicsScene>
-#include <QGraphicsView>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -12,6 +12,7 @@
 #include <QSignalSpy>
 #include <QtTest>
 #include <memory>
+using namespace nodetool;
 using namespace nodetool::node_editor;
 namespace {
 QJsonObject graph() {
@@ -63,26 +64,27 @@ private slots:
     QVERIFY(overlap.elementAt(2).x < 50);
   }
   void renderingSelectionMovementAndZoom() {
-    QGraphicsScene scene;
+    WorkflowGraphModel model;
+    test::OverlayCanvasFixture fixture(model);
+    auto &canvas = fixture.surface();
+    auto &scene = canvas.canvasScene();
     LineageLayer layer(scene);
     QVERIFY(layer.update(graph(), geometry()).isEmpty());
     QVERIFY(layer.linkItem("lineage"));
-    QCOMPARE(layer.linkItem("lineage")->zValue(), -100000.0);
-    QVERIFY(layer.linkItem("lineage")->shape().contains(QPointF(250, 31)));
-    QVERIFY(!layer.linkItem("lineage")->shape().contains(QPointF(250, 40)));
-    QGraphicsView view(&scene);
-    view.setSceneRect(-20, -50, 560, 170);
-    view.resize(700, 300);
-    view.show();
-    QApplication::processEvents();
+    QCOMPARE(layer.linkItem("lineage")->z(), -100000.0);
+    QVERIFY(layer.linkItem("lineage")->hitTest(QPointF(250, 31)));
+    QVERIFY(!layer.linkItem("lineage")->hitTest(QPointF(250, 40)));
+    fixture.show({700, 300}, {250, 35});
+    QVERIFY(QTest::qWaitForWindowExposed(&fixture.host()));
+    const auto viewport = &canvas.viewportWidget();
     QSignalSpy selected(&layer, &LineageLayer::selectionRequested),
         deleted(&layer, &LineageLayer::deleteRequested),
         menus(&layer, &LineageLayer::contextMenuRequested);
     const auto click = [&](Qt::MouseButton button,
                            Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
       QTest::mouseClick(
-          view.viewport(), button, modifiers,
-          view.mapFromScene(layer.linkPath("lineage").pointAtPercent(.5)));
+          viewport, button, modifiers,
+          canvas.mapFromScene(layer.linkPath("lineage").pointAtPercent(.5)));
     };
     click(Qt::LeftButton);
     QCOMPARE(selected.size(), 1);
@@ -92,21 +94,21 @@ private slots:
     QVERIFY(selected.last()[1].toBool());
     layer.setSelectedLinkIds({"lineage", "missing"});
     QCOMPARE(layer.selectedLinkIds(), QStringList{"lineage"});
-    QTest::keyClick(&view, Qt::Key_Delete);
+    QTest::keyClick(viewport, Qt::Key_Delete);
     QCOMPARE(deleted.size(), 1);
-    QTest::keyClick(&view, Qt::Key_Backspace);
+    QTest::keyClick(viewport, Qt::Key_Backspace);
     QCOMPARE(deleted.size(), 2);
-    QTest::keyClick(&view, Qt::Key_Space);
+    QTest::keyClick(viewport, Qt::Key_Space);
     QVERIFY(!selected.last()[1].toBool());
     click(Qt::MiddleButton);
     QCOMPARE(deleted.size(), 3);
-    const auto point = view.mapFromScene(QPointF(250, 25));
+    const auto point = canvas.mapFromScene(QPointF(250, 25));
     QContextMenuEvent context(QContextMenuEvent::Mouse, point,
-                              view.viewport()->mapToGlobal(point));
-    QApplication::sendEvent(view.viewport(), &context);
+                              viewport->mapToGlobal(point));
+    QApplication::sendEvent(viewport, &context);
     QCOMPARE(menus.size(), 1);
     const auto before = layer.linkPath("lineage");
-    view.scale(.5, .5);
+    canvas.setView(.5, canvas.center());
     click(Qt::LeftButton);
     QCOMPARE(selected.size(), 4);
     QCOMPARE(layer.linkPath("lineage"), before);
@@ -117,16 +119,18 @@ private slots:
     QCOMPARE(layer.linkPath("lineage").pointAtPercent(.5), QPointF(300, 105));
     const auto selectedCount = selected.size();
     // Ordinary node/wire input wins above the lineage layer.
-    auto *above = scene.addRect(QRectF(290, 95, 20, 20));
-    above->setFlag(QGraphicsItem::ItemIsSelectable);
-    above->setZValue(0);
+    model.project(QJsonObject{{"graph", QJsonObject{{"nodes", QJsonArray{
+        QJsonObject{{"id", "cover"}, {"type", "Node"},
+            {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 290}, {"y", 95}}}}}}}},
+        {"edges", QJsonArray{}}}}});
+    const auto above = *model.allNodeIds().begin();
     click(Qt::LeftButton);
     QCOMPARE(selected.size(), selectedCount);
-    QVERIFY(above->isSelected());
+    QVERIFY(canvas.selection().contains(above));
     QImage image(700, 300, QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::white);
     QPainter painter(&image);
-    scene.render(&painter);
+    layer.linkItem("lineage")->paintRaster(painter, 1);
     painter.end();
     qsizetype colored = 0;
     for (int y = 0; y < image.height(); ++y) {
@@ -139,7 +143,10 @@ private slots:
     QVERIFY(colored > 100);
   }
   void atomicValidationAndSceneResetOwnership() {
-    QGraphicsScene scene;
+    WorkflowGraphModel model;
+    test::OverlayCanvasFixture fixture(model);
+    auto &canvas = fixture.surface();
+    auto &scene = canvas.canvasScene();
     LineageLayer layer(scene);
     const auto original = graph();
     QVERIFY(layer.update(original, geometry()).isEmpty());
@@ -151,9 +158,9 @@ private slots:
     QVERIFY(!layer.update(malformed, geometry()).isEmpty());
     QCOMPARE(layer.linkPath("lineage"), path);
     layer.setSelectedLinkIds({"lineage"});
-    QPointer<QGraphicsObject> former = layer.linkItem("lineage");
-    scene.clear();
-    QVERIFY(former.isNull());
+    QPointer<QObject> former = layer.linkItem("lineage");
+    model.project(QJsonObject{{"graph", original}}, {}, true);
+    QCOMPARE(layer.linkItem("lineage"), former.data());
     QVERIFY(layer.update(original, geometry()).isEmpty());
     QVERIFY(layer.linkItem("lineage"));
     QCOMPARE(layer.selectedLinkIds(), QStringList{"lineage"});
@@ -170,10 +177,8 @@ private slots:
     QVERIFY(layer.update(empty, geometry()).isEmpty());
     QVERIFY(layer.selectedLinkIds().isEmpty());
     QVERIFY(!layer.linkItem("lineage"));
-    QObject owner;
-    auto disposable = std::make_unique<QGraphicsScene>();
-    // native-rules #3: object has both a QObject parent (&owner) and a std::unique_ptr
-    auto surviving = std::make_unique<LineageLayer>(*disposable, &owner);
+    auto disposable = std::make_unique<canvas::GraphCanvas>(model);
+    auto surviving = std::make_unique<LineageLayer>(disposable->scene());
     QVERIFY(surviving->update(original, geometry()).isEmpty());
     disposable.reset();
     QVERIFY(!surviving->update(original, geometry()).isEmpty());
@@ -182,7 +187,10 @@ private slots:
   void synchronousHostDeletionDuringEvent() {
     WorkflowDocument document;
     QVERIFY(document.load({{"graph", graph()}}));
-    QGraphicsScene scene;
+    WorkflowGraphModel model;
+    test::OverlayCanvasFixture fixture(model);
+    auto &canvas = fixture.surface();
+    auto &scene = canvas.canvasScene();
     LineageLayer layer(scene);
     QVERIFY(layer.update(document.graph(), geometry()).isEmpty());
     connect(
@@ -199,13 +207,11 @@ private slots:
               observedAfterDeletion = true;
             });
     QSignalSpy observer(&layer, &LineageLayer::deleteRequested);
-    QGraphicsView view(&scene);
-    view.setSceneRect(-20, -50, 560, 170);
-    view.resize(700, 300);
-    view.show();
-    QApplication::processEvents();
-    QTest::mouseClick(view.viewport(), Qt::MiddleButton, Qt::NoModifier,
-                      view.mapFromScene(QPointF(250, 25)));
+    fixture.show({700, 300}, {250, 35});
+    QVERIFY(QTest::qWaitForWindowExposed(&fixture.host()));
+    const auto viewport = &canvas.viewportWidget();
+    QTest::mouseClick(viewport, Qt::MiddleButton, Qt::NoModifier,
+                      canvas.mapFromScene(QPointF(250, 25)));
     QVERIFY(document.graph()["links"].toArray().isEmpty());
     QVERIFY(!layer.linkItem("lineage"));
     QVERIFY(observedAfterDeletion);
@@ -226,18 +232,22 @@ private slots:
                                {"label", "reference"}});
     }
     many["links"] = links;
-    QGraphicsScene scene;
+    WorkflowGraphModel model;
+    test::OverlayCanvasFixture fixture(model);
+    auto &canvas = fixture.surface();
+    auto &scene = canvas.canvasScene();
     LineageLayer layer(scene);
     QVERIFY(layer.update(many, geometry()).isEmpty());
-    QCOMPARE(scene.items().size(), count);
+    QCOMPARE(scene.itemsAt(QPointF(250, 25)).size(), count);
     LineageTheme theme;
     theme.stroke = Qt::blue;
     layer.setTheme(theme);
     QCOMPARE(layer.linkPath(QString::number(count - 1)).pointAtPercent(.5),
              QPointF(250, 25));
-    scene.clear();
+    layer.clear();
+    QVERIFY(scene.itemsAt(QPointF(250, 25)).isEmpty());
     QVERIFY(layer.update(many, geometry()).isEmpty());
-    QCOMPARE(scene.items().size(), count);
+    QCOMPARE(scene.itemsAt(QPointF(250, 25)).size(), count);
   }
   void documentCommandsPersistenceAndUndo() {
     WorkflowDocument document;
@@ -345,7 +355,10 @@ private slots:
                  .toObject()["future"]
                  .toInt(),
              42);
-    QGraphicsScene scene;
+    WorkflowGraphModel model;
+    test::OverlayCanvasFixture fixture(model);
+    auto &canvas = fixture.surface();
+    auto &scene = canvas.canvasScene();
     LineageLayer layer(scene);
     QVERIFY(layer.update(document.graph(), geometry()).isEmpty());
     QVERIFY(layer.linkItem("lineage"));

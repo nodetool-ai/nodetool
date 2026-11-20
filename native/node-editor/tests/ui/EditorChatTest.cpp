@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
 #include <QJsonDocument>
 #include <QPointer>
@@ -162,8 +163,8 @@ public:
 class EditorChatTest final : public QObject {
     Q_OBJECT
     QTemporaryDir settingsDir_;
-    static QQuickWidget *surface(nodetool::EditorWindow &window) {
-        return window.findChild<QQuickWidget *>("editor-chat-overlay");
+    static nodetool::test::OverlayProbe surface(nodetool::EditorWindow &window) {
+        return nodetool::test::overlay(window, "editor-chat-overlay", false, false);
     }
     static QQuickItem *findItem(QQuickItem *root, const QString &name) {
         if (root->objectName() == name) {
@@ -176,8 +177,9 @@ class EditorChatTest final : public QObject {
         }
         return nullptr;
     }
-    static void click(QQuickWidget *widget, const QString &name) {
-        auto *item = findItem(widget->quickWindow()->contentItem(), name);
+    static void click(nodetool::test::OverlayProbe widget, const QString &name) {
+        auto *item = findItem(widget->rootObject(), name);
+        if (!item) { item = findItem(widget->quickWindow()->contentItem(), name); }
         QVERIFY2(item, qPrintable(name));
         const auto point = item->mapToScene(QPointF(item->width() / 2, item->height() / 2));
         QTest::mouseClick(widget->quickWindow(), Qt::LeftButton, Qt::NoModifier, point.toPoint());
@@ -200,9 +202,9 @@ class EditorChatTest final : public QObject {
         }
         QTest::qWait(100);
         QVERIFY(surface(window));
-        QCOMPARE(surface(window)->status(), QQuickWidget::Ready);
+        QVERIFY(surface(window)->rootObject());
     }
-    static void type(QQuickWidget *widget, const QString &text) {
+    static void type(nodetool::test::OverlayProbe widget, const QString &text) {
         QTest::qWait(30);
         auto *input = widget->rootObject()->findChild<QQuickItem *>("chatInput");
         QVERIFY(input);
@@ -227,14 +229,14 @@ class EditorChatTest final : public QObject {
         return nullptr;
     }
     // Popup items live in the window overlay beside the content item.
-    static QQuickItem *visibleItem(QQuickWidget *widget, const QString &name) {
-        auto *root = widget->quickWindow()->contentItem();
+    static QQuickItem *visibleItem(nodetool::test::OverlayProbe widget, const QString &name) {
+        auto *root = widget->rootObject();
         while (root->parentItem()) {
             root = root->parentItem();
         }
         return findVisible(root, name);
     }
-    static void clickVisible(QQuickWidget *widget, const QString &name) {
+    static void clickVisible(nodetool::test::OverlayProbe widget, const QString &name) {
         QQuickItem *item = nullptr;
         QTRY_VERIFY2((item = visibleItem(widget, name)) != nullptr, qPrintable(name));
         // A control that just appeared waits for its layout pass.
@@ -285,7 +287,7 @@ class EditorChatTest final : public QObject {
             }
         }
     }
-    static void setReducedMotion(QQuickWidget *widget, bool reduced) {
+    static void setReducedMotion(nodetool::test::OverlayProbe widget, bool reduced) {
         auto *theme = widget->engine()->singletonInstance<QObject *>("NodeTool.UiPrimitives", "Theme");
         QVERIFY(theme);
         theme->setProperty("reducedMotion", reduced);
@@ -312,7 +314,7 @@ private slots:
     void geometryAndPersistence() {
         nodetool::EditorWindow window;
         setup(window);
-        auto *widget = surface(window);
+        auto widget = surface(window);
         const auto original = widget->geometry();
         auto *handle = widget->rootObject()->findChild<QQuickItem *>("chatDragHandle");
         QVERIFY(handle);
@@ -463,7 +465,7 @@ private slots:
         }
         QVERIFY(output);
         if (spanId.isEmpty()) {
-            click(output, "askRunAgent");
+            click({*output, *output->rootObject(), false}, "askRunAgent");
         } else {
             window.askRunAgent("run-fixture", spanId);
         }
@@ -655,7 +657,7 @@ private slots:
             nodetool::EditorWindow window;
             setup(window);
             auto *chat = window.chatSession();
-            auto *widget = surface(window);
+            auto widget = surface(window);
             chat->connectToServer(server.url());
             QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
             QTRY_VERIFY(!chat->historyLoading());
@@ -705,7 +707,7 @@ private slots:
         nodetool::EditorWindow window;
         setup(window);
         auto *chat = window.chatSession();
-        auto *widget = surface(window);
+        auto widget = surface(window);
         chat->connectToServer(server.url());
         QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
         QTRY_VERIFY(!chat->historyLoading());
@@ -760,7 +762,7 @@ private slots:
         nodetool::EditorWindow window;
         setup(window);
         auto *chat = window.chatSession();
-        auto *widget = surface(window);
+        auto widget = surface(window);
         setReducedMotion(widget, false);
         chat->connectToServer(server.url());
         QTRY_COMPARE(chat->selectedThreadId(), today);
@@ -820,7 +822,7 @@ private slots:
         chat->connectToServer(server.url());
         QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
         QTRY_VERIFY(!chat->historyLoading());
-        auto *widget = surface(window);
+        auto widget = surface(window);
         auto *input = widget->rootObject()->findChild<QQuickItem *>("chatInput");
         QVERIFY(input);
         QVERIFY(!input->hasActiveFocus());
@@ -887,7 +889,7 @@ private slots:
             QTRY_VERIFY(!window.chatSession()->historyLoading());
             window.setDarkTheme(dark);
             const auto prefix = dark ? QString("dark-") : QString("light-");
-            auto *widget = surface(window);
+            auto widget = surface(window);
             capture(window, prefix + "open-empty");
             click(widget, "showEditorThreads");
             QTRY_VERIFY(visibleItem(widget, "editorThreadGroup-Yesterday"));

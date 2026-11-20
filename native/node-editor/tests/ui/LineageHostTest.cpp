@@ -1,18 +1,17 @@
-#include "graph/EditorScene.h"
+#include "canvas/LineageItem.h"
+#include "../support/OverlayProbe.h"
+#include "../support/CanvasProbe.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/LineageLayer.h"
 #include "graph/NodeLayout.h"
 #include "ui/EditorWindow.h"
 #include <QDir>
-#include <QGraphicsView>
 #include <QMenu>
 #include <QPointer>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
 #include <QTemporaryDir>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionState.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace nodetool::node_editor;
@@ -57,20 +56,20 @@ QJsonObject fixture(bool links = true) {
                                                     {"future", 12}}}
                            : QJsonArray{}}}}};
 }
-QtNodes::NodeGraphicsObject *item(EditorWindow &window,
+nodetool::test::CardHandle item(EditorWindow &window,
                                   const QString &resource) {
   auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
   for (const auto id : model.allNodeIds()) {
     if (model.resourceId(id) == resource) {
-      return window.scene()->nodeGraphicsObject(id);
+      return nodetool::test::card(window, id);
     }
   }
-  return nullptr;
+  return {nullptr, QtNodes::InvalidNodeId};
 }
 bool select(EditorWindow &window, const QStringList &ids) {
   window.scene()->clearSelection();
   for (const auto &id : ids) {
-    auto *object = item(window, id);
+    auto object = item(window, id);
     if (!object) {
       return false;
     }
@@ -80,11 +79,11 @@ bool select(EditorWindow &window, const QStringList &ids) {
 }
 void clickLink(EditorWindow &window, LineageLayer &layer, const QString &id,
                Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
-  auto *view = window.findChild<QGraphicsView *>();
+  auto *view = &window.canvas();
   QVERIFY(view);
   QVERIFY(!layer.linkPath(id).isEmpty());
   const auto point = view->mapFromScene(layer.linkPath(id).pointAtPercent(.5));
-  QTest::mouseClick(view->viewport(), Qt::LeftButton, modifiers, point);
+  QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, modifiers, point);
 }
 QQuickItem *find(QQuickItem *root, const QString &name) {
   if (!root) {
@@ -121,9 +120,9 @@ private slots:
     clickLink(window, *layer, "ab");
     QTRY_COMPARE(layer->selectedLinkIds(), QStringList{"ab"});
     QCOMPARE(window.selectedCount(), 0);
-    auto *view = window.findChild<QGraphicsView *>();
+    auto *view = &window.canvas();
     QVERIFY(view);
-    QTest::keyClick(view, Qt::Key_Delete);
+    QTest::keyClick(&view->hostWidget(), Qt::Key_Delete);
     QTRY_COMPARE(window.document()->graph()["links"].toArray().size(), 1);
     QCOMPARE(window.document()->nodes().size(), 4);
     window.action("Undo");
@@ -131,7 +130,7 @@ private slots:
     QTRY_VERIFY(layer->linkItem("ab"));
     QSignalSpy middleDelete(layer, &LineageLayer::deleteRequested);
     QTest::mouseClick(
-        view->viewport(), Qt::MiddleButton, Qt::NoModifier,
+        &view->viewportWidget(), Qt::MiddleButton, Qt::NoModifier,
         view->mapFromScene(layer->linkPath("ab").pointAtPercent(.5)));
     QTRY_COMPARE(middleDelete.size(), 1);
     QCOMPARE(middleDelete.first()[0].toString(), QString("ab"));
@@ -202,13 +201,8 @@ private slots:
     QVERIFY(window.document()->graph()["links"].toArray().isEmpty());
     QVERIFY(select(window, {"b", "a"}));
     QCOMPARE(window.selectedCount(), 2);
-    QQuickWidget *toolbar = nullptr;
-    for (auto *panel : window.findChildren<QQuickWidget *>()) {
-      if (panel->source().fileName() == "SelectionToolbar.qml") {
-        toolbar = panel;
-      }
-    }
-    QVERIFY(toolbar);
+    test::OverlayProbe toolbar;
+    QTRY_VERIFY((toolbar = test::overlay(window, "SelectionToolbar.qml", true)));
     QQuickItem *linkButton =
         find(toolbar->rootObject(), "selection-link-selected");
     if (linkButton && linkButton->isVisible()) {
@@ -278,7 +272,7 @@ private slots:
     window.fit();
     QTest::qWait(80);
     auto *layer = window.findChild<LineageLayer *>();
-    auto *view = window.findChild<QGraphicsView *>();
+    auto *view = &window.canvas();
     QVERIFY(layer);
     QVERIFY(view);
     QVERIFY(!window.readOnly());
@@ -288,16 +282,16 @@ private slots:
     const QJsonValue childPosition =
         window.document()->node("a")["ui_properties"].toObject()["position"];
     QVERIFY(window.selectNode("outer"));
-    auto *frame = item(window, "outer");
+    auto frame = item(window, "outer");
     QVERIFY(frame);
     // A group drags by its label. Its body lets the pointer through (GroupNode.tsx).
-    const auto start = view->mapFromScene(window.scene()->groupLabelRect(frame->nodeId(), std::abs(view->transform().m11())).center());
-    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-    QTest::mouseMove(view->viewport(), start + QPoint(70, 45), 30);
+    const auto start = view->mapFromScene(window.scene()->groupLabelRect(frame->nodeId(), std::abs(view->zoom())).center());
+    QTest::mousePress(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mouseMove(&view->viewportWidget(), start + QPoint(70, 45), 30);
     QTRY_VERIFY(layer->linkPath("ab") != path);
     const auto transient = layer->linkPath("ab");
     QVERIFY(transient.pointAtPercent(0) != path.pointAtPercent(0));
-    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier,
+    QTest::mouseRelease(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier,
                         start + QPoint(70, 45));
     QTRY_VERIFY(window.document()->snapshot() != original);
     QCOMPARE(
@@ -312,7 +306,7 @@ private slots:
     window.action("Undo");
     QTRY_COMPARE(layer->linkPath("ab"), path);
     // Loading a new snapshot clears all scene-owned graphics items.
-    QPointer<QGraphicsObject> former = layer->linkItem("ab");
+    QPointer<QObject> former = layer->linkItem("ab");
     QVERIFY(window.document()->load(fixture()));
     QTRY_VERIFY(former.isNull());
     QTRY_VERIFY(layer->linkItem("cd"));
@@ -369,13 +363,13 @@ private slots:
     QTest::qWait(60);
     auto *scene = window.scene();
     auto &model = static_cast<WorkflowGraphModel &>(scene->graphModel());
-    const auto wire = [&]() -> QtNodes::ConnectionGraphicsObject * {
+    const auto wire = [&]() -> nodetool::test::WireHandle {
       for (const auto id : model.allNodeIds()) {
         for (const auto &connection : model.allConnectionIds(id)) {
-          if (model.edge(connection)["id"] == "ctl") { return scene->connectionGraphicsObject(connection); }
+          if (model.edge(connection)["id"] == "ctl") { return nodetool::test::wire(window, connection); }
         }
       }
-      return nullptr;
+      return {nullptr, {}};
     };
     QTRY_VERIFY(wire());
     const auto original = window.document()->snapshot();
@@ -397,7 +391,7 @@ private slots:
     const QRectF region = curve.boundingRect().adjusted(-8, -8, 8, 8);
     QImage image(region.size().toSize() * 2, QImage::Format_ARGB32);
     image.fill(Qt::transparent);
-    { QPainter painter(&image); scene->render(&painter, QRectF(QPointF(), QSizeF(image.size())), region); }
+    { QPainter painter(&image); nodetool::test::renderScene(window, painter, QRectF(QPointF(), QSizeF(image.size())), region); }
     int amber = 0;
     for (int y = 0; y < image.height(); ++y) {
       for (int x = 0; x < image.width(); ++x) {
@@ -406,12 +400,12 @@ private slots:
       }
     }
     QVERIFY2(amber > 100, qPrintable(QString::number(amber)));
-    auto *view = window.findChild<QGraphicsView *>();
+    auto *view = &window.canvas();
     QVERIFY(view);
     const auto middle = [&] { return view->mapFromScene(controlWireCurve(wire()->endPoint(QtNodes::PortType::Out), wire()->endPoint(QtNodes::PortType::In)).pointAtPercent(.5)); };
-    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, middle());
+    QTest::mouseClick(&view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, middle());
     QTRY_VERIFY(wire() && wire()->isSelected());
-    QTest::keyClick(view, Qt::Key_Delete);
+    QTest::keyClick(&view->hostWidget(), Qt::Key_Delete);
     QTRY_COMPARE(window.document()->graph()["edges"].toArray().size(), 0);
     QCOMPARE(window.document()->nodes().size(), 4);
     QCOMPARE(window.document()->undoStack()->count(), 1);
@@ -419,15 +413,15 @@ private slots:
     QCOMPARE(window.document()->snapshot(), original);
     QTRY_VERIFY(wire());
     // Middle click deletes, as the web's edge handler does.
-    QTest::mouseClick(view->viewport(), Qt::MiddleButton, Qt::NoModifier, middle());
+    QTest::mouseClick(&view->viewportWidget(), Qt::MiddleButton, Qt::NoModifier, middle());
     QTRY_COMPARE(window.document()->graph()["edges"].toArray().size(), 0);
     window.action("Undo");
     QCOMPARE(window.document()->snapshot(), original);
     // The edge menu names the control edge.
     QTRY_VERIFY(wire());
-    QSignalSpy menu(scene, &EditorScene::dataEdgeContextMenuRequested);
-    QContextMenuEvent request(QContextMenuEvent::Mouse, middle(), view->viewport()->mapToGlobal(middle()));
-    QApplication::sendEvent(view->viewport(), &request);
+    QSignalSpy menu(&scene->interaction(), &nodetool::canvas::CanvasInteraction::dataEdgeContextMenuRequested);
+    QContextMenuEvent request(QContextMenuEvent::Mouse, middle(), view->viewportWidget().mapToGlobal(middle()));
+    QApplication::sendEvent(&view->viewportWidget(), &request);
     QTRY_COMPARE(menu.size(), 1);
     QCOMPARE(menu.first()[0].toString(), QString("ctl"));
   }
@@ -470,7 +464,7 @@ private slots:
     auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
     const auto opacityOf = [&](const QString &resource) {
       for (const auto id : model.allNodeIds()) {
-        if (model.resourceId(id) == resource) { return window.scene()->nodeGraphicsObject(id)->opacity(); }
+        if (model.resourceId(id) == resource) { return window.canvas().nodeOpacity(id); }
       }
       return -1.0;
     };

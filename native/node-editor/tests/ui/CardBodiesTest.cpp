@@ -1,7 +1,10 @@
+#include "../support/OverlayCanvasFixture.h"
+#include "../support/CanvasProbe.h"
+#include "ui/CanvasSurface.h"
 #include "graph/CanvasDropController.h"
 #include "graph/CardBodies.h"
 #include "graph/CompositorGeometry.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/SynthModules.h"
 #include "graph/WorkflowGraphModel.h"
@@ -15,7 +18,6 @@
 #include <QDir>
 #include <QDropEvent>
 #include <QFile>
-#include <QGraphicsView>
 #include <QImage>
 #include <QJsonDocument>
 #include <QMimeData>
@@ -29,10 +31,9 @@
 #include <QTemporaryDir>
 #include <QUndoStack>
 #include <QUrlQuery>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
 #include <QtTest>
 #include <cmath>
+#include <utility>
 
 using namespace nodetool;
 using QtNodes::NodeId;
@@ -46,7 +47,7 @@ QJsonObject fixture() {
     return QJsonDocument::fromJson(file.readAll()).object();
 }
 
-// Answers the model catalog and asset upload procedures the card bodies call.
+// UI thread only. Answers the model catalog and asset upload procedures the card bodies call.
 class Server final : public QTcpServer {
 public:
     QHash<QString, QJsonObject> assets;
@@ -59,6 +60,7 @@ public:
     QByteArray comfyRequest;
     // The request heads of /api/workflows/<id>, to check the headers sent.
     QList<QByteArray> workflowRequests;
+    std::function<void()> beforeWorkflowListReply;
 
     Server() {
         listen(QHostAddress::LocalHost);
@@ -128,6 +130,7 @@ private:
             const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input").toUtf8()).object();
             data = applications.value(input["id"].toString());
         } else if (target.startsWith("/trpc/workflows.list")) {
+            if (beforeWorkflowListReply) { std::exchange(beforeWorkflowListReply, {})(); }
             QJsonArray rows;
             for (const auto &workflow : workflows) { rows.append(QJsonObject{{"id", workflow["id"]}, {"name", workflow["name"]}}); }
             data = QJsonObject{{"workflows", rows}, {"next", QJsonValue::Null}};
@@ -425,7 +428,7 @@ class CardBodiesTest final : public QObject {
 
     struct Host {
         EditorWindow window;
-        QGraphicsView *view = nullptr;
+        nodetool::CanvasSurface *view = nullptr;
 
         explicit Host(const QJsonObject &workflow = fixture()["workflow"].toObject(), const QJsonArray &catalog = fixture()["metadata"].toArray()) {
             window.setDarkTheme(true);
@@ -446,7 +449,7 @@ class CardBodiesTest final : public QObject {
                 window.action(QStringLiteral("Toggle nodes"));
             }
             settle();
-            view = window.findChild<QGraphicsView *>();
+            view = &window.canvas();
             Q_ASSERT(view);
         }
 
@@ -472,39 +475,23 @@ class CardBodiesTest final : public QObject {
 
         // A card-local point in viewport coordinates.
         QPoint point(const QString &resource, const QPointF &local) {
-            auto *item = window.scene()->nodeGraphicsObject(id(resource));
-            return view->mapFromScene(item->mapToScene(local));
+            return test::CanvasProbe(window).cardPoint(id(resource), local);
         }
 
         void click(const QString &resource, const QPointF &local) {
-            QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, point(resource, local));
+            test::CanvasProbe(window).click(point(resource, local));
             settle();
         }
 
         QJsonObject data(const QString &resource) { return window.document()->node(resource)["data"].toObject(); }
         int undoCount() { return window.document()->undoStack()->count(); }
 
-        QQuickWidget *overlay() {
-            for (auto *widget : window.findChildren<QQuickWidget *>()) {
-                if (widget->objectName() == QStringLiteral("inline-property-overlay") && widget->isVisible()) {
-                    return widget;
-                }
-            }
-            return nullptr;
+        test::OverlayProbe overlay() {
+            return test::overlay(window, "inline-property-overlay");
         }
 
         QImage render(const QString &resource) {
-            const auto size = model().layout(id(resource)).size;
-            QImage card(size, QImage::Format_ARGB32_Premultiplied);
-            card.fill(Qt::transparent);
-            QPainter painter(&card);
-            auto *item = window.scene()->nodeGraphicsObject(id(resource));
-            // The device cache can key a new image to an old one at the same address.
-            const auto cache = item->cacheMode();
-            item->setCacheMode(QGraphicsItem::NoCache);
-            window.scene()->render(&painter, QRectF(QPointF(), QSizeF(size)), QRectF(item->scenePos(), QSizeF(size)));
-            item->setCacheMode(cache);
-            return card;
+            return test::CanvasProbe(window).renderCard(id(resource));
         }
 
         // Removes a fixture connection through the canonical command, including hidden wires.
@@ -554,7 +541,7 @@ class CardBodiesTest final : public QObject {
         return nullptr;
     }
 
-    static void type(QQuickWidget *widget, const QString &text) {
+    static void type(test::OverlayProbe widget, const QString &text) {
         for (const auto c : text) {
             QKeyEvent press(QEvent::KeyPress, 0, Qt::NoModifier, QString(c));
             QKeyEvent release(QEvent::KeyRelease, 0, Qt::NoModifier, QString(c));
@@ -604,7 +591,7 @@ private slots:
         for (const auto node : host.model().allNodeIds()) {
             for (const auto edge : host.model().allConnectionIds(node)) {
                 if (edge.inNodeId != node) { continue; }
-                auto *wire = host.window.scene()->connectionGraphicsObject(edge);
+                auto wire = nodetool::test::wire(host.window, edge);
                 QVERIFY(wire);
                 const auto name = host.model().edge(edge)["id"].toString();
                 const bool expectedHidden = name == "e1" || name == "e3" || name == "e5";
@@ -615,12 +602,12 @@ private slots:
                     QVERIFY(wire->shape().isEmpty());
                     QVERIFY(!wire->isVisible());
                     QCOMPARE(geometry.checkPortHit(node, QtNodes::PortType::In, endpoint), QtNodes::InvalidPortIndex);
-                    const auto from = host.window.scene()->nodeGraphicsObject(edge.outNodeId)->mapToScene(
+                    const auto from = host.window.canvas().mapFromNode(edge.outNodeId,
                         geometry.portPosition(edge.outNodeId, QtNodes::PortType::Out, edge.outPortIndex));
-                    const auto to = host.window.scene()->nodeGraphicsObject(node)->mapToScene(endpoint);
+                    const auto to = host.window.canvas().mapFromNode(node, endpoint);
                     const auto middle = wireCurve(from, to).pointAtPercent(0.5);
                     host.window.scene()->clearSelection();
-                    QTest::mouseClick(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, host.view->mapFromScene(middle));
+                    QTest::mouseClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, host.view->mapFromScene(middle));
                     QVERIFY(!wire->isSelected());
                 } else {
                     ++visible;
@@ -654,8 +641,8 @@ private slots:
         for (const auto edge : host.model().allConnectionIds(host.id("prompt"))) {
             if (host.model().edge(edge)["id"] == "e1") {
                 ++restored;
-                QVERIFY(host.window.scene()->connectionGraphicsObject(edge)->shape().isEmpty());
-                QVERIFY(!host.window.scene()->connectionGraphicsObject(edge)->isVisible());
+                QVERIFY(nodetool::test::wire(host.window, edge)->shape().isEmpty());
+                QVERIFY(!nodetool::test::wire(host.window, edge)->isVisible());
             }
         }
         QCOMPARE(restored, 1);
@@ -674,7 +661,7 @@ private slots:
         for (const auto edge : host.model().allConnectionIds(generate)) {
             if (host.model().edge(edge)["id"] != "e3") { continue; }
             ++inspected;
-            auto *wire = host.window.scene()->connectionGraphicsObject(edge);
+            auto wire = nodetool::test::wire(host.window, edge);
             QVERIFY(wire->isVisible());
             QVERIFY(!wire->shape().isEmpty());
             wire->setSelected(true);
@@ -685,7 +672,7 @@ private slots:
         settle();
         for (const auto edge : host.model().allConnectionIds(generate)) {
             if (host.model().edge(edge)["id"] != "e3") { continue; }
-            auto *wire = host.window.scene()->connectionGraphicsObject(edge);
+            auto wire = nodetool::test::wire(host.window, edge);
             QVERIFY(!wire->isVisible());
             QVERIFY(!wire->isSelected());
             QVERIFY(wire->shape().isEmpty());
@@ -704,8 +691,14 @@ private slots:
         graph["edges"] = edges;
         workflow["graph"] = graph;
         WorkflowGraphModel model;
-        EditorScene scene(model);
+        test::OverlayCanvasFixture canvas(model);
         model.project(workflow, fixture()["metadata"].toArray());
+        const auto wireVisible = [&](const QtNodes::ConnectionId &id) {
+            return canvas.surface().canvasScene().connectionItem(id)->shown();
+        };
+        const auto wireShape = [&](const QtNodes::ConnectionId &id) {
+            return canvas.surface().canvasScene().connectionItem(id)->hitPath();
+        };
         int inspected = 0;
         for (const auto node : model.allNodeIds()) {
             for (const auto edge : model.allConnectionIds(node)) {
@@ -715,12 +708,12 @@ private slots:
                     ++inspected;
                     QVERIFY(model.portVisible(edge.outNodeId, QtNodes::PortType::Out, edge.outPortIndex));
                     QVERIFY(model.portVisible(node, QtNodes::PortType::In, edge.inPortIndex));
-                    QVERIFY(scene.connectionGraphicsObject(edge)->isVisible());
+                    QVERIFY(wireVisible(edge));
                 } else if (name == "output-body") {
                     ++inspected;
                     QVERIFY(!model.portVisible(edge.outNodeId, QtNodes::PortType::Out, edge.outPortIndex));
-                    QVERIFY(!scene.connectionGraphicsObject(edge)->isVisible());
-                    QVERIFY(scene.connectionGraphicsObject(edge)->shape().isEmpty());
+                    QVERIFY(!wireVisible(edge));
+                    QVERIFY(wireShape(edge).isEmpty());
                 }
             }
         }
@@ -893,13 +886,13 @@ private slots:
         QVERIFY(promptVariables(composer->value).contains(QStringLiteral("subject")));
         const auto before = host.undoCount();
         host.click("prompt", composer->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-multiline")));
         QTest::keyClick(overlay->quickWindow(), Qt::Key_A, Qt::ControlModifier);
         type(overlay, QStringLiteral("Paint {{ subject }} at noon"));
         // A click on empty canvas commits the draft.
-        QTest::mouseClick(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewport()->height() - 20));
+        QTest::mouseClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewportWidget().height() - 20));
         settle();
         QTRY_COMPARE(host.data("prompt")["prompt"].toString(), QStringLiteral("Paint {{ subject }} at noon"));
         QCOMPARE(host.undoCount(), before + 1);
@@ -957,11 +950,11 @@ private slots:
         QCOMPARE(select->value, QStringLiteral("Gaussian"));
         const auto undo = host.undoCount();
         host.click("blur", select->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-choice")));
-        QTest::keyClick(overlay, Qt::Key_Down);
-        QTest::keyClick(overlay, Qt::Key_Return);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Down);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Return);
         QTRY_COMPARE(host.data("blur")["blur_type"].toString(), QStringLiteral("box"));
         QCOMPARE(host.undoCount(), undo + 1);
         // A drag on the slider commits once, on release.
@@ -971,12 +964,12 @@ private slots:
         const auto track = sliderTrack(*slider);
         const auto start = host.point("blur", QPointF(track.left() + track.width() * 0.2, track.center().y()));
         const auto end = host.point("blur", QPointF(track.left() + track.width() * 0.5, track.center().y()));
-        QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-        QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &move);
+        QTest::mousePress(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+        QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewportWidget().mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&host.view->viewportWidget(), &move);
         QCOMPARE(host.window.scene()->sliderDraftProperty(), QStringLiteral("size"));
         QCOMPARE(host.undoCount(), undo + 1);
-        QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+        QTest::mouseRelease(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, end);
         settle();
         QVERIFY2(std::abs(host.data("blur")["size"].toDouble() - 50) <= 1, qPrintable(QString::number(host.data("blur")["size"].toDouble())));
         QCOMPARE(host.undoCount(), undo + 2);
@@ -1012,7 +1005,7 @@ private slots:
         const auto *width = host.row("resize", NodeRowKind::Field, "width");
         QVERIFY(width);
         host.click("resize", width->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-number")));
         QTest::keyClick(overlay->quickWindow(), Qt::Key_A, Qt::ControlModifier);
@@ -1036,7 +1029,7 @@ private slots:
         QVERIFY(host.window.document()->applyCommand({{"op", "addDynamicInput"}, {"id", "prompt"}, {"name", "subject"}}).ok);
         const auto *composer = host.row("prompt", NodeRowKind::Composer);
         host.click("prompt", composer->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QQuickItem *field = nullptr;
         QTRY_VERIFY((field = find(overlay->rootObject(), QStringLiteral("inline-multiline"))) != nullptr);
@@ -1057,9 +1050,26 @@ private slots:
         overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY((field = find(overlay->rootObject(), QStringLiteral("inline-multiline"))) != nullptr);
+        auto *expand = find(overlay->rootObject(), QStringLiteral("inline-expand"));
+        QVERIFY(expand);
+        const auto clickExpand = [&] {
+            QTest::mouseClick(overlay->inputWidget(), Qt::LeftButton, Qt::NoModifier,
+                              expand->mapToScene(QPointF(expand->width() / 2, expand->height() / 2)).toPoint());
+        };
+        clickExpand();
+        QTRY_COMPARE(expand->property("text").toString(), QStringLiteral("Collapse"));
+        const auto chipCenter = host.row("prompt", NodeRowKind::Action, "insertVariable")->rect.center();
+        const auto inputPoint = host.point("prompt", chipCenter);
+        QVERIFY(field->contains(field->mapFromScene(inputPoint)));
+        field->setProperty("cursorPosition", 0);
+        host.click("prompt", chipCenter);
+        QCOMPARE(field->property("text").toString(), before);
+        QVERIFY(field->property("cursorPosition").toInt() > 0);
+        clickExpand();
+        QTRY_COMPARE(expand->property("text").toString(), QStringLiteral("Expand"));
         field->setProperty("cursorPosition", 6);
         host.click("prompt", host.row("prompt", NodeRowKind::Action, "insertVariable")->rect.center());
-        QTest::mouseClick(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewport()->height() - 20));
+        QTest::mouseClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewportWidget().height() - 20));
         QTRY_COMPARE(host.data("prompt")["prompt"].toString(), QString(before).insert(6, QStringLiteral("{{ subject }}")));
         QCOMPARE(host.undoCount(), undo + 1);
         host.window.document()->undo();
@@ -1130,7 +1140,7 @@ private slots:
         QCOMPARE(chip->value, QStringLiteral("gpt-5-mini"));
         QVERIFY(chip->bare);
         host.click("agent", chip->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-model")));
         QQuickItem *choice = nullptr;
@@ -1203,12 +1213,12 @@ private slots:
         mime.setUrls({QUrl::fromLocalFile(path)});
         const QPointF position(host.point("reference", zone->rect.center()));
         QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &enter);
+        QApplication::sendEvent(&host.view->viewportWidget(), &enter);
         QVERIFY(enter.isAccepted());
         QDragMoveEvent move(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &move);
+        QApplication::sendEvent(&host.view->viewportWidget(), &move);
         QDropEvent drop(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &drop);
+        QApplication::sendEvent(&host.view->viewportWidget(), &drop);
         QVERIFY(drop.isAccepted());
         QTRY_VERIFY_WITH_TIMEOUT(!host.data("reference")["value"].toObject()["asset_id"].toString().isEmpty(), 10000);
         const auto value = host.data("reference")["value"].toObject();
@@ -1598,11 +1608,11 @@ private slots:
         QCOMPARE(host.model().nodeData(host.id("getter"), QtNodes::NodeRole::InPortCount).toUInt(), 1u);
         const auto undo = host.undoCount();
         host.click("getter", picker->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-choice")));
-        QTest::keyClick(overlay, Qt::Key_Down);
-        QTest::keyClick(overlay, Qt::Key_Return);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Down);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Return);
         QTRY_COMPARE(host.data("getter")["name"].toString(), QStringLiteral("mood"));
         QCOMPARE(host.undoCount(), undo + 1);
         // Without any Set Variable node the body shows the empty hint instead of a picker.
@@ -1697,14 +1707,14 @@ private slots:
         QCOMPARE(expand->rect, QRectF(223, 10.5, 21, 21));
         auto undo = host.undoCount();
         host.click("text", area->rect.center());
-        QPointer<QQuickWidget> overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-multiline")));
         // The editor covers the text area, as the web swaps its preview for a textarea.
         QCOMPARE(host.model().inlineFieldRect(host.id("text"), QStringLiteral("value")), area->rect);
         type(overlay, QStringLiteral("hello"));
         // A click on empty canvas commits the draft.
-        QTest::mouseClick(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewport()->height() - 20));
+        QTest::mouseClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, QPoint(20, host.view->viewportWidget().height() - 20));
         QTRY_COMPARE(host.data("text")["value"].toString(), QStringLiteral("hello"));
         QCOMPARE(host.undoCount(), ++undo);
         QCOMPARE(host.window.document()->node("text")["future_field"].toInt(), 7);
@@ -1714,11 +1724,14 @@ private slots:
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-multiline")));
         type(overlay, QStringLiteral("!"));
-        QTest::keyClick(overlay.data(), Qt::Key_Return, Qt::ControlModifier);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Return, Qt::ControlModifier);
         QTRY_COMPARE(host.data("text")["value"].toString().size(), 6);
         QVERIFY(host.data("text")["value"].toString().contains('!'));
         QCOMPARE(host.undoCount(), ++undo);
         // Copy puts the value on the clipboard and leaves the document alone.
+        host.window.action("Reset zoom");
+        host.view->centerOn(host.view->nodeBounds(host.id("text")).center());
+        settle();
         QGuiApplication::clipboard()->clear();
         host.click("text", host.row("text", NodeRowKind::Action, "copyValue")->rect.center());
         QCOMPARE(QGuiApplication::clipboard()->text(), host.data("text")["value"].toString());
@@ -1816,7 +1829,7 @@ private slots:
         QVERIFY(host.model().dimensionsLinked(host.id("resize2")));
         auto undo = host.undoCount();
         host.click("resize2", host.row("resize2", NodeRowKind::Field, "width")->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-number")));
         QTest::keyClick(overlay->quickWindow(), Qt::Key_A, Qt::ControlModifier);
@@ -1870,7 +1883,7 @@ private slots:
         QCOMPARE(host.row("paste", NodeRowKind::Field, "top")->rect.x(), 11.0 + 127 + 4);
         const auto undo = host.undoCount();
         host.click("paste", left->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-number")));
         QTest::keyClick(overlay->quickWindow(), Qt::Key_A, Qt::ControlModifier);
@@ -2017,10 +2030,10 @@ private slots:
         const auto drag = [&host](const QPointF &from, const QPointF &to) {
             const auto start = host.point("paint", from);
             const auto end = host.point("paint", to);
-            QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &move);
-            QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+            QTest::mousePress(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewportWidget().mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(&host.view->viewportWidget(), &move);
+            QTest::mouseRelease(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, end);
             settle();
         };
         const auto rect = canvas->rect;
@@ -2116,7 +2129,7 @@ private slots:
         QVERIFY(host.row("cutout", NodeRowKind::Preview)->media.isEmpty());
         QVERIFY(!host.model().canvasResultRect(cutout).isEmpty());
         // Recalculate mask selects only this card and asks to run it, with no document change.
-        QSignalSpy runs(host.window.scene(), &EditorScene::nodeRunRequested);
+        QSignalSpy runs(&host.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::nodeRunRequested);
         host.window.scene()->clearSelection();
         const auto undo = host.undoCount();
         const auto *run = host.row("cutout", NodeRowKind::Action, "runNode");
@@ -2126,7 +2139,7 @@ private slots:
         host.click("cutout", run->rect.center());
         QCOMPARE(runs.size(), 1);
         QCOMPARE(runs.first().first().toString(), QStringLiteral("cutout"));
-        QCOMPARE(host.window.scene()->selectedItems().size(), 1);
+        QCOMPARE(host.window.canvas().selection().count(), 1);
         QCOMPARE(host.undoCount(), undo);
         // Before shows the incoming image, and After, the default, the result.
         QVERIFY(!host.model().layout(host.id("invert")).sourceTab);
@@ -2207,10 +2220,10 @@ private slots:
         const auto undo = host.undoCount();
         const auto start = host.point("compare", rect.center());
         const auto end = host.point("compare", QPointF(rect.left() + rect.width() * 0.8, middle));
-        QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-        QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &move);
-        QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+        QTest::mousePress(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+        QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewportWidget().mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&host.view->viewportWidget(), &move);
+        QTest::mouseRelease(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, end);
         settle();
         QVERIFY(std::abs(host.row("compare", NodeRowKind::Compare)->number - 0.8) < 0.02);
         QCOMPARE(pixel(QPointF(rect.left() + rect.width() * 0.75, middle)), QColor(Qt::red));
@@ -2237,9 +2250,9 @@ private slots:
         const auto canvas = host.row("paint", NodeRowKind::Paint)->rect;
         const auto hover = [&host](const QPointF &local) {
             const auto point = host.point("paint", local);
-            QMouseEvent move(QEvent::MouseMove, QPointF(point), QPointF(host.view->viewport()->mapToGlobal(point)), Qt::NoButton, Qt::NoButton,
+            QMouseEvent move(QEvent::MouseMove, QPointF(point), QPointF(host.view->viewportWidget().mapToGlobal(point)), Qt::NoButton, Qt::NoButton,
                              Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &move);
+            QApplication::sendEvent(&host.view->viewportWidget(), &move);
             settle();
         };
         const auto before = host.render(QStringLiteral("paint"));
@@ -2269,11 +2282,11 @@ private slots:
         mime.setUrls({QUrl::fromLocalFile(path)});
         const QPointF position(host.point("paint", host.row("paint", NodeRowKind::Paint)->rect.center()));
         QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &enter);
+        QApplication::sendEvent(&host.view->viewportWidget(), &enter);
         QDragMoveEvent move(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &move);
+        QApplication::sendEvent(&host.view->viewportWidget(), &move);
         QDropEvent drop(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &drop);
+        QApplication::sendEvent(&host.view->viewportWidget(), &drop);
         QVERIFY(drop.isAccepted());
         QTRY_VERIFY_WITH_TIMEOUT(!host.data("paint")["image"].toObject()["asset_id"].toString().isEmpty(), 10000);
         QCOMPARE(host.data("paint")["image"].toObject()["type"].toString(), QStringLiteral("image"));
@@ -2571,10 +2584,10 @@ private slots:
         const auto drag = [&host](const QPointF &from, const QPointF &to) {
             const auto start = host.point("crop", from);
             const auto end = host.point("crop", to);
-            QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &move);
-            QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+            QTest::mousePress(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewportWidget().mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(&host.view->viewportWidget(), &move);
+            QTest::mouseRelease(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, end);
             settle();
         };
         if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
@@ -2768,9 +2781,17 @@ private slots:
         QCOMPARE(bars[200].toDouble(), 1.0);
         QCOMPARE(bars[0].toDouble(), 32768.0 / (98304 * 0.85));
         QCOMPARE(bars[100].toDouble(), 0.0);
+        // A preview image alone fills the histogram, while the result area remains blank
+        // until the node reports a run state.
+        const auto id = host.id("levels");
+        QVERIFY(host.model().runtimeState(id).isEmpty());
+        const auto resultArea = host.model().canvasResultRect(id);
+        QVERIFY(!resultArea.isEmpty());
+        const auto painted = host.render(QStringLiteral("levels"));
+        QCOMPARE(painted.pixelColor(resultArea.center().toPoint()), host.window.scene()->theme().node);
         if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
             QDir().mkpath(directory);
-            QVERIFY(host.render(QStringLiteral("levels")).save(directory + QStringLiteral("/Levels-dark.png")));
+            QVERIFY(painted.save(directory + QStringLiteral("/Levels-dark.png")));
         }
         // The channel never enters the document.
         QCOMPARE(host.undoCount(), undo);
@@ -2922,12 +2943,20 @@ private slots:
         const auto *row = host.row("workflow", NodeRowKind::Field, "workflow_id");
         QVERIFY(row);
         QVERIFY(row->placeholder);
+        QSignalSpy projection(&host.model(), &WorkflowGraphModel::projectionChanged);
+        QPointer<QQuickItem> chooser;
+        // Project an unrelated card while the chooser's network request is open.
+        server.beforeWorkflowListReply = [&] {
+            if (auto overlay = host.overlay()) {
+                chooser = find(overlay->rootObject(), QStringLiteral("inline-resource-select"));
+            }
+            QVERIFY(host.window.document()->applyCommand({{"op", "addNode"},
+                {"node", partTwoNode("unrelated", "nodetool.workflows.workflow_node.Workflow", QPointF(900, 900))}}));
+        };
         host.click("workflow", host.model().inlineFieldRect(host.id("workflow"), "workflow_id").center());
-        auto *overlay = host.overlay();
-        QVERIFY(overlay);
-        QQuickItem *chooser = nullptr;
-        QTRY_VERIFY((chooser = find(overlay->rootObject(), QStringLiteral("inline-resource-select"))) != nullptr);
-        QTRY_COMPARE(chooser->property("options").toList().size(), 2);
+        QTRY_VERIFY(!projection.isEmpty());
+        QVERIFY(chooser);
+        QTRY_VERIFY(chooser && chooser->property("options").toList().size() == 2);
         const auto undo = host.undoCount();
         QMetaObject::invokeMethod(chooser, "valueCommitted", Q_ARG(QVariant, QStringLiteral("wf1")));
         QTRY_COMPARE(host.data("workflow")["workflow_id"].toString(), QStringLiteral("wf1"));
@@ -2965,11 +2994,13 @@ private slots:
         const auto *row = host.row("app", NodeRowKind::Field, "app_id");
         QVERIFY(row);
         host.click("app", host.model().inlineFieldRect(host.id("app"), "app_id").center());
-        auto *overlay = host.overlay();
-        QVERIFY(overlay);
-        QQuickItem *chooser = nullptr;
-        QTRY_VERIFY((chooser = find(overlay->rootObject(), QStringLiteral("inline-resource-select"))) != nullptr);
-        QTRY_COMPARE(chooser->property("options").toList().size(), 1);
+        QPointer<QQuickItem> chooser;
+        // Resolve the current chooser while waiting for its server reply.
+        QTRY_VERIFY([&] {
+            const auto overlay = host.overlay();
+            chooser = overlay ? find(overlay->rootObject(), QStringLiteral("inline-resource-select")) : nullptr;
+            return chooser && chooser->property("options").toList().size() == 1;
+        }());
         QCOMPARE(chooser->property("options").toList().first().toMap()["label"].toString(), QStringLiteral("Poster maker"));
         const auto undo = host.undoCount();
         QMetaObject::invokeMethod(chooser, "valueCommitted", Q_ARG(QVariant, QStringLiteral("app1")));
@@ -3138,7 +3169,7 @@ private slots:
         const auto *chip = host.row("languagemodelconstant", NodeRowKind::ModelChip, "value");
         QVERIFY(chip);
         host.click("languagemodelconstant", chip->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-model")));
         QQuickItem *choice = nullptr;
@@ -3179,11 +3210,11 @@ private slots:
         QCOMPARE(bare->height, double(node_metrics::fieldHeight));
         const auto undo = host.undoCount();
         host.click("picked", host.model().inlineFieldRect(host.id("picked"), "value").center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QTRY_VERIFY(find(overlay->rootObject(), QStringLiteral("inline-choice")));
-        QTest::keyClick(overlay, Qt::Key_Down);
-        QTest::keyClick(overlay, Qt::Key_Return);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Down);
+        QTest::keyClick(overlay->inputWidget(), Qt::Key_Return);
         QTRY_COMPARE(host.data("picked")["value"].toString(), QStringLiteral("b"));
         QCOMPARE(host.undoCount(), undo + 1);
         QCOMPARE(host.data("picked")["options"].toArray(), options);
@@ -3274,7 +3305,7 @@ private slots:
                   constantsCatalog());
         const auto undo = host.undoCount();
         host.click("hd", host.row("hd", NodeRowKind::ImageSize, "value")->rect.center());
-        auto *overlay = host.overlay();
+        auto overlay = host.overlay();
         QVERIFY(overlay);
         QQuickItem *width = nullptr;
         QTRY_VERIFY((width = find(overlay->rootObject(), QStringLiteral("image-width-value"))) != nullptr);
@@ -3359,9 +3390,9 @@ private slots:
         mime.setUrls({QUrl::fromLocalFile(path)});
         const QPointF position(host.point("frame", zone->rect.center()));
         QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &enter);
+        QApplication::sendEvent(&host.view->viewportWidget(), &enter);
         QDropEvent drop(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-        QApplication::sendEvent(host.view->viewport(), &drop);
+        QApplication::sendEvent(&host.view->viewportWidget(), &drop);
         QVERIFY(drop.isAccepted());
         QTRY_VERIFY_WITH_TIMEOUT(host.data("frame")["value"].toObject()["columns"].toArray().size() == 2, 10000);
         const auto value = host.data("frame")["value"].toObject();
@@ -3408,7 +3439,7 @@ private slots:
             QVERIFY(edit->rect.top() >= linked->rect.bottom());
         }
         // Edit asks the window to open the linked document.
-        QSignalSpy opened(host.window.scene(), &EditorScene::documentOpenRequested);
+        QSignalSpy opened(&host.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::documentOpenRequested);
         host.click("settimeline", host.row("settimeline", NodeRowKind::Action, "openDocument")->rect.center());
         QCOMPARE(opened.count(), 1);
         QCOMPARE(opened.first().at(0).toString(), QStringLiteral("timeline"));
@@ -3647,11 +3678,11 @@ private slots:
             mime.setUrls({QUrl::fromLocalFile(path)});
             const QPointF position(host.point("tray", host.row("tray", NodeRowKind::DropZone, "items")->rect.center()));
             QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &enter);
+            QApplication::sendEvent(&host.view->viewportWidget(), &enter);
             QDragMoveEvent move(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &move);
+            QApplication::sendEvent(&host.view->viewportWidget(), &move);
             QDropEvent dropped(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
-            QApplication::sendEvent(host.view->viewport(), &dropped);
+            QApplication::sendEvent(&host.view->viewportWidget(), &dropped);
             QVERIFY(dropped.isAccepted());
         };
         drop(QStringLiteral("first.png"), true);
@@ -3771,11 +3802,11 @@ private slots:
         const auto drag = [&](double up, Qt::KeyboardModifiers modifiers) {
             const auto start = host.point("osc", face.center());
             const auto end = host.point("osc", face.center() - QPointF(0, up));
-            QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
-            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, modifiers);
-            QApplication::sendEvent(host.view->viewport(), &move);
+            QTest::mousePress(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewportWidget().mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, modifiers);
+            QApplication::sendEvent(&host.view->viewportWidget(), &move);
             QCOMPARE(host.window.scene()->sliderDraftProperty(), QStringLiteral("amplitude"));
-            QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, modifiers, end);
+            QTest::mouseRelease(&host.view->viewportWidget(), Qt::LeftButton, modifiers, end);
             settle();
         };
         auto undo = host.undoCount();
@@ -3789,7 +3820,7 @@ private slots:
         const auto fine = host.data("osc")["amplitude"].toDouble();
         QVERIFY2(fine > value && fine - value < 0.02, qPrintable(QString::number(fine)));
         QCOMPARE(host.undoCount(), ++undo);
-        QTest::mouseDClick(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, host.point("osc", face.center()));
+        QTest::mouseDClick(&host.view->viewportWidget(), Qt::LeftButton, Qt::NoModifier, host.point("osc", face.center()));
         settle();
         QTRY_COMPARE(host.data("osc")["amplitude"].toDouble(), 0.8);
         host.window.document()->undo();

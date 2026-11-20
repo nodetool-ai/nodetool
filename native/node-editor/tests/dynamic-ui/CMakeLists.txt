@@ -18,3 +18,6 @@ target_link_libraries(node_editor_dynamic_ui_tests PRIVATE nodetool_ui_primitive
 add_test(NAME node_editor_dynamic_ui COMMAND node_editor_dynamic_ui_tests)
 set_tests_properties(node_editor_dynamic_ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QSG_RHI_BACKEND=software")
 nodetool_use_ui_primitives(node_editor_dynamic_ui_tests)
+
+include(../../cmake/sanitizers/Tests.cmake)
+nodetool_node_editor_test_sanitizers()

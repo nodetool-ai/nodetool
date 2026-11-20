@@ -1,5 +1,5 @@
 #pragma once
-#include "EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "NodeLayout.h"
 #include <QString>
 class QPainter;

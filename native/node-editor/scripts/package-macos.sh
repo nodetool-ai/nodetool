@@ -3,7 +3,9 @@
 # macdeployqt, the Homebrew libraries the editor and the graph runner link,
 # and the graph runner guest bundle next to the binary. The bundle carries
 # only the ad-hoc signature that Apple silicon needs to run any binary. It
-# has no licence or source notices: it is not a release package.
+# holds the notices of the libraries compiled into the editor (licenses/,
+# copied to Contents/Resources/licenses) and no others: it is not a release
+# package.
 #
 #   scripts/package-macos.sh        # writes build-package/NodeTool Node Editor.app
 set -euo pipefail
@@ -34,6 +36,9 @@ rm -rf "$app"
 cp -R "$build/nodetool-node-editor.app" "$app"
 app=$(cd "$app" && pwd -P)
 cp "$guest" "$app/Contents/MacOS/guest.js"
+# The vendored QtNodes model and adapted canvas code require the BSD notice.
+mkdir -p "$app/Contents/Resources/licenses"
+cp licenses/*.txt "$app/Contents/Resources/licenses/"
 "$qt/bin/macdeployqt" "$app" -qmldir=qml -qmldir=../ui_primitives/qml -always-overwrite -verbose=1 \
     > "$build/package-deploy.log" 2>&1
 

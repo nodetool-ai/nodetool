@@ -1,7 +1,7 @@
 // F27 reconnect and live-running states. The web contracts are resumeInFlightJobs, handleJobResumed,
 // settleLostRun and isJobHalted in web/src/stores/workflowUpdates.ts.
 #include "FakeRunServer.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "server/ReconnectPolicy.h"
 #include "server/WorkflowSession.h"

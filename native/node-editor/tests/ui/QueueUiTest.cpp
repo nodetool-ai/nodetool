@@ -1,3 +1,5 @@
+#include "../support/OverlayProbe.h"
+#include "ui/CanvasSurface.h"
 #include "interfaces/RunState.h"
 #include "server/MsgPack.h"
 #include "ui/DockedOverlay.h"
@@ -6,7 +8,6 @@
 #include <QDateTime>
 #include <QDir>
 #include <QDockWidget>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include "EntryMenuSupport.h"
 #include <QQmlContext>
@@ -61,24 +62,16 @@ class QueueUiTest final : public QObject {
         }
         return nullptr;
     }
-    static QQuickWidget *panel(EditorWindow &w, const QString &file) {
-        for (auto widget : w.findChildren<QQuickWidget *>()) {
-            if (widget->isVisible() && widget->source().fileName() == file) {
-                return widget;
-            }
-        }
-        return nullptr;
+    static test::OverlayProbe panel(EditorWindow &window, const QString &file) {
+        return test::overlay(window, file, true);
     }
-    // The canvas overlay opened with no jobs, as its own list button leaves it.
-    static void openOverlay(EditorWindow &w) {
-        for (auto widget : w.findChildren<QQuickWidget *>()) {
-            if (widget->source().fileName() == "QueueOverlay.qml" && widget->rootObject()) {
-                widget->rootObject()->setProperty("opened", true);
-                widget->rootObject()->setProperty("expanded", true);
-            }
-        }
+    static void openOverlay(EditorWindow &window) {
+        const auto overlay = test::overlay(window, "QueueOverlay.qml", true, false);
+        QVERIFY(overlay);
+        overlay->rootObject()->setProperty("opened", true);
+        overlay->rootObject()->setProperty("expanded", true);
     }
-    static void click(QQuickWidget *widget, const QString &name) {
+    static void click(test::OverlayProbe widget, const QString &name) {
         QVERIFY(widget);
         auto item = find(widget->rootObject(), name);
         QVERIFY(item);
@@ -88,22 +81,15 @@ class QueueUiTest final : public QObject {
             item->mapToScene({item->width() / 2, item->height() / 2})
                 .toPoint());
     }
-    // The editor canvas: the largest graphics view in the window.
-    static QGraphicsView *canvas(EditorWindow &window) {
-        QGraphicsView *best = nullptr;
-        for (auto view : window.findChildren<QGraphicsView *>()) {
-            if (view->isVisible() && (!best || view->width() * view->height() > best->width() * best->height())) {
-                best = view;
-            }
-        }
-        return best;
+    static QWidget *canvas(EditorWindow &window) {
+        return &window.canvas().hostWidget();
     }
     static QRect canvasRect(EditorWindow &window, QWidget *parent) {
         auto view = canvas(window);
         return {view->mapTo(parent, QPoint(0, 0)), view->size()};
     }
     // Presses the item, passes the drag threshold, then moves the pointer by delta on screen.
-    static void drag(QQuickWidget *widget, const QString &name, QPoint delta) {
+    static void drag(test::OverlayProbe widget, const QString &name, QPoint delta) {
         auto item = find(widget->rootObject(), name);
         QVERIFY(item);
         auto *window = widget->quickWindow();
@@ -146,7 +132,7 @@ private slots:
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         openOverlay(window);
-        QQuickWidget *queue = nullptr;
+        test::OverlayProbe queue;
         QTRY_VERIFY((queue = panel(window, "QueueOverlay.qml")));
         auto *parent = queue->parentWidget();
         QTRY_COMPARE(queue->pos(), canvasRect(window, parent).topLeft() + QPoint(16, 16));
@@ -184,7 +170,7 @@ private slots:
             other.show();
             QVERIFY(QTest::qWaitForWindowExposed(&other));
             openOverlay(other);
-            QQuickWidget *otherQueue = nullptr;
+            test::OverlayProbe otherQueue;
             QTRY_VERIFY((otherQueue = panel(other, "QueueOverlay.qml")));
             QTRY_COMPARE(canvasRect(other, otherQueue->parentWidget()).right() - otherQueue->geometry().right(), rightGap);
         }
@@ -212,7 +198,7 @@ private slots:
         QTRY_VERIFY(window.queueVisible());
         auto *dock = window.findChild<QDockWidget *>("queue-dock");
         QVERIFY(dock);
-        QQuickWidget *queue = nullptr;
+        test::OverlayProbe queue;
         QTRY_VERIFY((queue = panel(window, "QueuePanel.qml")));
         // The list fills the panel: no drag grip and no collapse to a summary.
         auto *list = find(queue->rootObject(), "queue-panel-list");
@@ -296,7 +282,7 @@ private slots:
                      QString("2 jobs running"));
         QCOMPARE(find(root, "queue-queued-count")->property("text").toString(),
                  QString("1 queued"));
-        click(&widget, "queue-toggle");
+        click({widget, *widget.rootObject(), false}, "queue-toggle");
         QVERIFY(root->property("expanded").toBool());
         QCoreApplication::processEvents();
         const auto title = find(root, "queue-title");
@@ -318,7 +304,7 @@ private slots:
         QTRY_VERIFY(card->width() > 250);
         QVERIFY(card->property("focusable").toBool());
         QVERIFY(!find(root, "queue-focus-1")->property("focusable").toBool());
-        click(&widget, "queue-focus-0");
+        click({widget, *widget.rootObject(), false}, "queue-focus-0");
         QTRY_COMPARE(output.selectedRunId(), QString("a"));
         output.selectRun("b");
         card->forceActiveFocus();
@@ -327,15 +313,15 @@ private slots:
         output.selectRun("b");
         QTest::keyClick(widget.quickWindow(), Qt::Key_Space);
         QTRY_COMPARE(output.selectedRunId(), QString("a"));
-        click(&widget, "queue-focus-1");
+        click({widget, *widget.rootObject(), false}, "queue-focus-1");
         QCOMPARE(output.selectedRunId(), QString("a"));
         output.selectRun("b");
-        click(&widget, "queue-stop-0");
+        click({widget, *widget.rootObject(), false}, "queue-stop-0");
         QCOMPARE(session.stopped, QString("a"));
-        click(&widget, "queue-stop-2");
+        click({widget, *widget.rootObject(), false}, "queue-stop-2");
         QCOMPARE(session.stopped, QString("q"));
         QCOMPARE(output.selectedRunId(), QString("b"));
-        click(&widget, "queue-collapse");
+        click({widget, *widget.rootObject(), false}, "queue-collapse");
         QVERIFY(!root->property("expanded").toBool());
         session.setRows(
             {job("x", "cancelled"), job("c", "completed"), job("f", "failed")});
@@ -475,6 +461,10 @@ private slots:
         click(queue, "queue-toggle");
         click(queue, "queue-focus-0");
         QCOMPARE(window.runOutput()->selectedRunId(), first);
+        // Focusing the run opens the output dock and relays out the canvas.
+        QTRY_VERIFY(queue->rootObject()->findChild<QQuickItem *>("queue-stop-0") ||
+                    find(queue->rootObject(), "queue-stop-0"));
+        QTest::qWait(40);
         click(queue, "queue-stop-0");
         QTRY_COMPARE(cancellations, QStringList{first});
         update(first, "cancelled", 3);

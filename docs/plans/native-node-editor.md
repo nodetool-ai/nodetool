@@ -1,14 +1,12 @@
 # Native node graph editor
 
 Design for the [native workflow editor](../../native/node-editor/README.md).
-The implementation uses [QtNodes](https://github.com/paceholder/nodeeditor).
 The editor README distinguishes implemented behavior from deferred parity.
 
 ## Goal
 
 Build a native workflow editor that opens the same workflows as the web editor,
-edits their graphs, and runs them on the existing NodeTool server. QtNodes owns
-the canvas interaction. NodeTool owns document semantics and execution.
+edits their graphs, and runs them on the existing NodeTool server.
 
 The behavior reference is the [web workflow editor](../workflow-editor.md).
 The web editor is also the visual reference, and the
@@ -20,29 +18,22 @@ and narrow windows.
 
 ## Design decisions
 
-**D1. Use QtNodes for graph presentation.** Its model/view architecture supports
-a custom `AbstractGraphModel` and a Widgets graphics scene/view. Use that model
-extension rather than its optional dataflow execution implementation. Upstream
-supports dynamic ports and custom geometry. Exact integration hooks must be
-verified against the pinned revision. See the
-[upstream documentation](https://qtnodes.readthedocs.io/en/master/).
+**D1. Use Qt Quick for graph presentation.** The
+[Quick canvas plan](node-editor-quick-canvas/plan.md) describes scene ownership,
+painting and input. `WorkflowGraphModel` implements the
+[vendored QtNodes model interface](../../native/node-editor/third_party/qtnodes/README.md).
+Graph geometry and dynamic ports share that interface and its types.
 
-**D2. Start with a standalone Widgets host and Qt Quick panels.** Proposed
-location: `native/node-editor/`. A `QMainWindow` contains the QtNodes view and
-resizable docks. Panel content uses `NodeTool.UiPrimitives` through
-`QQuickWidget`. Keep graph painting in QtNodes and controls in the existing
-native primitives. This avoids requiring a Widgets canvas inside an existing
-Quick scene. Embedding in another native editor is a later integration step.
-The first prototype must prove focus, input methods, scaling, and rendering
-across Widgets and Quick before building the full inspector.
-The rail, tab strip, and status bar frame an inner dock host. The toolbar and
-zoom readout float over the canvas as transparent Quick overlays, and Fit uses
-the canvas area they leave free.
+**D2. Use a Widgets window for the standalone host.** A `QMainWindow` holds
+the canvas in a `QQuickWidget` and frames it with a rail, tab strip, status
+bar and resizable docks. The dock panels use `NodeTool.UiPrimitives` in
+`QQuickWidget`. The toolbar, zoom readout and card controls share the canvas
+scene. The [shell migration](node-editor-quick-canvas/plan.md#q7-shell-seam)
+covers the move to a Quick window.
 
-**D3. Keep the workflow format authoritative.** QtNodes scene JSON is not the
-saved document. A NodeTool document module owns graph data, undo, and import and
-export. Full resource IDs remain unchanged. Map them to QtNodes-local IDs only
-inside the adapter. Map stable port names to presentation indices, rebuilding
+**D3. Keep the workflow format authoritative.** The NodeTool document owns
+graph data, undo, import and export. The graph model maps full resource IDs
+to scene-local IDs. Map stable port names to presentation indices, rebuilding
 indices when dynamic ports change without reconnecting edges to different ports.
 
 **D4. Execute through NodeTool.** Use the existing server contracts for metadata,
@@ -112,10 +103,8 @@ A command either commits atomically or returns an error without a partial edit.
 The same interface serves the UI and headless replay. Selection and viewport
 are session state unless the canonical format explicitly persists them.
 
-The QtNodes adapter projects nodes, ports, and edges from that document and
-translates gestures into commands. Only one undo stack owns graph and inspector
-edits. QtNodes built-in commands must be routed into that policy or replaced at
-the interaction seam, never stacked alongside an independent document history.
+The graph model projects nodes, ports and edges from the document. Canvas
+gestures and inspector edits commit through the document's undo stack.
 A drag is one undo entry. Field preview is temporary, commit makes one entry,
 and Escape restores the previous value. Deleting a selection and its incident
 edges is one transaction. Paste remaps IDs and internal connections atomically.
@@ -151,13 +140,12 @@ are reference implementations, not dependencies of the C++ editor.
 
 ## Implementation sequence and acceptance
 
-**A1. Prove the host integration.** Pin a reviewed QtNodes revision and record its
-license and Qt compatibility. Build a canvas with two connected nodes and one
+**A1. Prove the host integration.** Build a canvas with two connected nodes and one
 Quick inspector. Verify focus traversal, IME, popups, light/dark theme, scaling,
 and offscreen rendering. Graph painting consumes native presentation roles
 through a native-owned bridge, with no imports of web presentation code.
 
-**A2. Establish lossless editing.** Implement the document and QtNodes adapter.
+**A2. Establish lossless editing.** Implement the document and graph projection.
 Round-trip fixtures from the web editor through native and back. Assert stable
 IDs, named ports, unknown fields, dynamic properties, groups, and links. Test
 rejected connections, duplicate/paste remapping, and undo of whole gestures.
@@ -182,13 +170,11 @@ installed-app rendering require separate acceptance on each supported platform.
 
 ## Risks to resolve in the prototype
 
-**R1. Mixed rendering and focus.** Quick panels and a Widgets canvas may behave
-differently across platforms. The host prototype is a prerequisite for choosing
-this integration permanently.
+**R1. Widgets and Quick focus.** Verify focus, popups and pointer delivery
+where the Qt Quick canvas meets the Widgets shell.
 
-**R2. Two command systems.** QtNodes convenience editing may bypass document
-transactions. Prove add, move, connect, delete, and undo through one history
-before adding more gestures.
+**R2. Command routing.** Prove add, move, connect, delete and undo through the
+document history before adding more gestures.
 
 **R3. Schema drift.** Node metadata and workflow fields evolve independently of
 the native binary. Preserve unknown data and test compatibility using server

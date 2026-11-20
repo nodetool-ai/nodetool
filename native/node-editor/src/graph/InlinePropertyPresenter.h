@@ -1,21 +1,22 @@
 #pragma once
+
+#include <memory>
 #include <QJsonObject>
 #include <QObject>
 #include <QPointer>
 #include <QRectF>
 #include <QVariantMap>
 #include <QVector>
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 #include <functional>
-class QGraphicsView;
 class QQmlEngine;
-class QQuickWidget;
 namespace nodetool {
+class CanvasOverlay;
+class QuickCanvas;
 namespace node_editor { class PropertyHost; }
 class WorkflowGraphModel;
-class EditorScene;
-// One lazily opened Quick editor overlays the active painted property. The
-// viewport remains a Graphics View and uses no Quick graphics proxy widgets.
+class EditorSceneApi;
+// UI thread only. Opens a Quick editor over the active painted property.
 // The property host is borrowed for its pickers: its owner, EditorWindow,
 // outlives this presenter.
 class InlinePropertyPresenter final : public QObject {
@@ -26,8 +27,8 @@ class InlinePropertyPresenter final : public QObject {
   Q_PROPERTY(int generation READ generation NOTIFY changed)
   Q_PROPERTY(bool expanded READ expanded NOTIFY changed)
 public:
-  InlinePropertyPresenter(WorkflowGraphModel &model, EditorScene &scene,
-                          QGraphicsView &view, QQmlEngine *engine,
+  InlinePropertyPresenter(WorkflowGraphModel &model, EditorSceneApi &scene,
+                          QuickCanvas &canvas, QQmlEngine *engine,
                           node_editor::PropertyHost &host, QObject *parent = nullptr);
   ~InlinePropertyPresenter() override;
   QVariantMap descriptor() const { return descriptor_; }
@@ -38,7 +39,6 @@ public:
   bool active() const { return !descriptor_.isEmpty(); }
   // True while a choice editor's dropdown list is open.
   bool popupOpen() const { return !popupRect_.isEmpty(); }
-  QQuickWidget *editorWidget() const;
   std::function<bool(const QString &, const QString &, const QVariant &)> commitProperty;
   // Applies a batch, such as a linked width and height, as one undo step.
   std::function<bool(const QJsonObject &)> commitCommand;
@@ -55,6 +55,7 @@ public slots:
   // The height an open structured editor needs, in card units.
   void setContentHeight(double height);
   void expand();
+  bool insertPromptVariableAt(QPointF viewportPoint);
   void popupRect(const QRectF &rect);
 signals:
   void changed();
@@ -64,12 +65,10 @@ protected:
   bool eventFilter(QObject *object, QEvent *event) override;
 private:
   WorkflowGraphModel &model_;
-  EditorScene &scene_;
-  QGraphicsView &view_;
+  QuickCanvas &canvas_;
   QPointer<QQmlEngine> engine_;
   node_editor::PropertyHost &host_;
-  QPointer<QQuickWidget> widget_;
-  QVector<QPointer<QQuickWidget>> retiredWidgets_;
+  std::unique_ptr<CanvasOverlay> widget_;
   QtNodes::NodeId node_ = QtNodes::InvalidNodeId;
   QString name_;
   QVariantMap descriptor_;
@@ -81,12 +80,14 @@ private:
   QVariant pendingValue_;
   // An applied change re-projects the document. The editor survives it.
   bool holding_ = false;
+  bool projectingResource_ = false;
   bool applyQueued_ = false;
   QVariant pendingApply_;
   double contentHeight_ = 0;
   void flushCommit();
   void flushApply();
   bool current() const;
-  void updateMask();
+  void updateInputRect();
+  QObject retiredQuickRoots_;
 };
 }

@@ -9526,6 +9526,7 @@
         "attachingHint": "Arbetaren är redo. Bifogar..."
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Cirka {{min}}–{{max}} per timme. Slutar efter {{count}} timme och raderar dess filer.",
         "summary_other": "Cirka {{min}}–{{max}} per timme. Slutar efter {{count}} timmar och raderar dess filer.",
         "start": "Starta",
@@ -9533,7 +9534,12 @@
         "startAria": "Starta {{name}} på en hyrd GPU",
         "bootingHint": "ComfyUI laddas. Den första starten kan ta flera minuter.",
         "readyHint": "Kopiera URL:en till Kör ComfyUI Workflow. Alla med denna URL kan använda podden.",
-        "copyEndpoint": "Kopiera ComfyUI URL"
+        "copyEndpoint": "Kopiera ComfyUI URL",
+        "sectionTitle": "Quick start: ComfyUI on RunPod",
+        "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
+        "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "priceRange": "{{min}}–{{max}}/hr",
+        "running": "Running"
       },
       "provision": {
         "title": "Starta en arbetare",
@@ -9555,7 +9561,11 @@
         "stopAria": "Stoppa arbetare {{id}}",
         "stop": "Sluta",
         "terminateAria": "Avsluta arbetare {{id}}",
-        "terminate": "Avsluta"
+        "terminate": "Avsluta",
+        "moreActions": "More actions",
+        "copyId": "Copy pod ID",
+        "gpuUnknown": "GPU not set",
+        "pausedCost": "When running"
       },
       "actions": {
         "manageProfiles": "Hantera profiler",
@@ -9603,6 +9613,16 @@
         "title": "Kör grafer på en hyrd GPU",
         "description": "Anslut RunPod en gång och välj en GPU. NodeTool kör sedan dina Python-noder på den och lediga arbetare pausar på egen hand.",
         "action": "Skapa en arbetare"
+      },
+      "stock": {
+        "high": "High stock",
+        "medium": "In stock",
+        "low": "Low stock",
+        "none": "Out of stock"
+      },
+      "list": {
+        "title": "Your workers",
+        "subtitle": "Pods you rented. Paused pods keep their files and bill only for storage."
       }
     }
   },

@@ -2,7 +2,7 @@
 #include <QHash>
 #include <QObject>
 #include <QSet>
-#include <QtNodes/Definitions>
+#include <qtnodes/Definitions.hpp>
 
 namespace nodetool {
 class WorkflowGraphModel;

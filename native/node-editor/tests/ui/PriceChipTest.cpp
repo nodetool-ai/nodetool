@@ -1,16 +1,16 @@
-#include "graph/EditorScene.h"
+#include "../support/OverlayProbe.h"
+#include "ui/CanvasSurface.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/ProviderPricing.h"
 #include "interfaces/PriceChip.h"
 #include "ui/EditorWindow.h"
 #include <QDir>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QtTest>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 using namespace nodetool;
 using namespace nodetool::node_editor;
 
@@ -89,7 +89,7 @@ private slots:
         QCOMPARE(falShort(fal(0.02, "units")), QString("pricing varies"));
         const auto now = QDateTime::fromString("2026-11-15T00:00:00Z", Qt::ISODate);
         auto dated = fal(0.02, "units");
-        dated["checked_at"] = "2026-08-15T00:00:00Z";
+        dated["checked_at"] = "2026-08-10T00:00:00Z";
         QCOMPARE(falDetails(dated, now), QString("$0.02 per units (SEE DETAILS)\n\nVaries by resolution and quality.\n"
                                                  "View on fal.ai to see detailed pricing.\n\nPrice from 3 months ago\n"
                                                  "Endpoint: fal-ai/x"));
@@ -153,7 +153,7 @@ private slots:
                                                                {"edges", QJsonArray{}}}}}));
         window.session()->connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {});
         window.action("Fit");
-        auto *overlay = window.activeEditor()->findChild<QQuickWidget *>("price-chip-overlay");
+        auto overlay = test::overlay(window, "price-chip-overlay", false, false);
         QVERIFY(overlay);
         QVERIFY(!overlay->isVisible());
 
@@ -168,10 +168,9 @@ private slots:
         for (const auto id : model.allNodeIds()) {
             if (model.resourceId(id) == "fal") { falId = id; }
         }
-        auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+        auto *view = &window.activeEditor()->canvas();
         const auto card = [&] {
-            const auto *item = window.activeEditor()->scene()->nodeGraphicsObject(falId);
-            return view->mapFromScene(QRectF(item->scenePos(), model.layout(falId).size)).boundingRect().translated(view->viewport()->pos());
+            return view->mapFromScene(window.activeEditor()->canvas().nodeRect(falId)).translated(view->viewportWidget().pos());
         };
         QTRY_COMPARE(overlay->geometry().top(), card().y() + card().height() + 5);
         QTRY_COMPARE(overlay->geometry().x() + overlay->width(), card().x() + card().width() - 4);
@@ -188,6 +187,17 @@ private slots:
         auto *popover = find(overlay->rootObject(), "price-chip-popover");
         QVERIFY(popover && popover->isVisible());
         QTRY_VERIFY(overlay->height() > popover->height());
+        // The popover's text padding is inside the frame and outside its links.
+        const auto point = popover->mapToScene(QPointF(6, 6)).toPoint();
+        auto *input = overlay->inputWidget();
+        QVERIFY(input->rect().contains(point));
+        const auto zoom = view->zoom();
+        QWheelEvent wheel(point, input->mapToGlobal(point), {}, {0, 120}, {}, {}, Qt::NoScrollPhase, false);
+        QApplication::sendEvent(input, &wheel);
+        QCOMPARE(view->zoom(), zoom);
+        QTest::mouseClick(input, Qt::LeftButton, {}, point);
+        QCOMPARE(view->selection().nodes(), QList<QtNodes::NodeId>{falId});
+        QVERIFY(chip->open());
         if (const auto directory = qEnvironmentVariable("NODETOOL_PRICE_CHIP_CAPTURE_DIR"); !directory.isEmpty()) {
             QTest::qWait(200);
             QDir().mkpath(directory);

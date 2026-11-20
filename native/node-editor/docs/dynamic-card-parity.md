@@ -44,7 +44,7 @@ hidden custom-body ports and stored edges are not rewritten for presentation.
 | --- | --- |
 | [NodeLayout.h](../src/graph/NodeLayout.h) | Dynamic label and edit-control hit rectangles |
 | [WorkflowGraphModel.cpp](../src/graph/WorkflowGraphModel.cpp) | Action rows, labels and rename geometry, with one static-name set per layout |
-| [EditorScene.cpp](../src/graph/EditorScene.cpp) | Pointer handling and add/rename requests |
+| [CanvasInteraction.cpp](../src/canvas/CanvasInteraction.cpp) | Pointer handling and add/rename requests |
 | [CompatibleNodePicker.cpp](../src/graph/CompatibleNodePicker.cpp) | Card-local forced-input drop detection and existing atomic connection path |
 | [EditorWindow.cpp](../src/ui/EditorWindow.cpp) | Pinned popup host, bounds and teardown |
 | [DynamicPortDialog.qml](../qml/DynamicPortDialog.qml) | Fields, keyboard submission, controlled type selection and validation |

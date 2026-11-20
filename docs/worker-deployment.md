@@ -65,7 +65,7 @@ If the secret store is unreachable, the manager falls back to environment variab
 
 | Target | Provider | URL form | Teardown |
 |--------|----------|----------|----------|
-| `runpod` | RunPod **pod** (REST `rest.runpod.io/v1/pods`) | `wss://<podid>-7777.proxy.runpod.net` | deletes the pod and its volume |
+| `runpod` | RunPod **pod** (REST `api.runpod.io/v2/pods`) | `wss://<podid>-7777.proxy.runpod.net` | deletes the pod and its volume |
 | `vast` | Vast.ai instance (`console.vast.ai/api/v0`) | `ws://<ip>:<port>` | destroys the instance and its disk |
 | `verda` | Verda **VM** (REST `api.verda.com/v1`) | `ws://<ip>:7777` | deletes the instance and permanently deletes its OS volume |
 

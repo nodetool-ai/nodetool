@@ -1,16 +1,15 @@
+#include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/CompatibleNodePicker.h"
 #include "../graph/BodyConnectionFixture.h"
-#include <QGraphicsView>
 #include <QMouseEvent>
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QSignalSpy>
+#include <QSettings>
 #include <QDir>
-#include <QtNodes/internal/AbstractNodeGeometry.hpp>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
-#include <QtNodes/internal/ConnectionGraphicsObject.hpp>
+#include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QtTest>
 using namespace nodetool;
 using namespace QtNodes;
@@ -20,7 +19,7 @@ QJsonObject workflow(const QString &type,const QJsonArray &edges={},const QJsonA
   for (const auto &value:extra) { nodes.append(value); }
   return {{"graph",QJsonObject{{"nodes",nodes},{"edges",edges}}}};
 }
-void drag(QGraphicsView &view,const QPoint &start,const QPoint &drop) {
+void drag(const nodetool::test::ViewHandle &view,const QPoint &start,const QPoint &drop) {
   QTest::mousePress(view.viewport(),Qt::LeftButton,Qt::NoModifier,start);
   QMouseEvent move(QEvent::MouseMove,QPointF(drop),QPointF(view.viewport()->mapToGlobal(drop)),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
   QApplication::sendEvent(view.viewport(),&move);
@@ -28,37 +27,38 @@ void drag(QGraphicsView &view,const QPoint &start,const QPoint &drop) {
 }
 struct Host {
   EditorWindow window;
-  QGraphicsView *view=nullptr;
+  nodetool::test::ViewHandle view{window};
   WorkflowGraphModel *model=nullptr;
   CompatibleNodePicker *picker=nullptr;
   explicit Host(const QJsonObject &snapshot) {
     window.setCatalog(body_fixture::catalog()); const auto loaded=window.document()->load(snapshot); Q_ASSERT(loaded.ok);
     window.show(); window.selectNode("origin"); window.action("Reset zoom"); QTest::qWait(80);
-    view=window.findChild<QGraphicsView *>(); model=&static_cast<WorkflowGraphModel &>(window.scene()->graphModel()); picker=window.findChild<CompatibleNodePicker *>();
-    view->fitInView(window.scene()->itemsBoundingRect().adjusted(-48,-48,48,48),Qt::KeepAspectRatio);
+    view=nodetool::test::view(window); model=&static_cast<WorkflowGraphModel &>(window.scene()->graphModel()); picker=window.findChild<CompatibleNodePicker *>();
+    view->fitInView(nodetool::test::itemsBoundingRect(window).adjusted(-48,-48,48,48),Qt::KeepAspectRatio);
   }
   QPoint port(const QString &resource,PortType side) const {
     const auto id=picker_fixture::id(*model,resource);
-    return view->mapFromScene(window.scene()->nodeGraphicsObject(id)->scenePos()+window.scene()->nodeGeometry().portPosition(id,side,0));
+    return view->mapFromScene(window.canvas().nodeOrigin(id)+window.scene()->nodeGeometry().portPosition(id,side,0));
   }
   QPoint body(const QString &resource) const {
-    return view->mapFromScene(window.scene()->nodeGraphicsObject(picker_fixture::id(*model,resource))->sceneBoundingRect().center());
+    return view->mapFromScene(window.canvas().nodeBounds(picker_fixture::id(*model,resource)).center());
   }
 };
 }
 class BodyDropHostTest final : public QObject {
   Q_OBJECT
 private slots:
+  void init() { QSettings().setValue("canvas-chat-dock/collapsed", true); }
   void reconnectInvalidTargetDeletesWithUndoAtZoom() {
     const QJsonObject original{{"id","original"},{"source","origin"},{"target","target"},{"sourceHandle","out"},{"targetHandle","message"},{"future",42}};
     for (const double zoom : {0.5, 1.0, 1.5}) {
       Host h(workflow("Sink",QJsonArray{original},QJsonArray{body_fixture::node("invalid","FloatOnly",500,350)}));
       h.view->resetTransform(); h.view->scale(zoom,zoom);
-      h.view->centerOn(h.window.scene()->itemsBoundingRect().center());
+      h.view->centerOn(nodetool::test::itemsBoundingRect(h.window).center());
       const auto before=h.window.document()->snapshot();
       const auto start=h.port("target",PortType::In),end=h.port("invalid",PortType::In);
       QVERIFY(h.view->viewport()->rect().contains(start)); QVERIFY(h.view->viewport()->rect().contains(end));
-      drag(*h.view,start,end);
+      drag(h.view,start,end);
       QTRY_VERIFY(h.window.document()->edges().isEmpty());
       QCOMPARE(h.window.document()->undoStack()->count(),1);
       h.window.action("Undo"); QCOMPARE(h.window.document()->snapshot(),before);
@@ -69,7 +69,7 @@ private slots:
     const QJsonObject prior{{"id","original"},{"source","origin"},{"target","target"},{"sourceHandle","out"},{"targetHandle","message"},{"future",QJsonObject{{"label","keep"}}}};
     Host h(workflow("Sink",QJsonArray{prior},QJsonArray{body_fixture::node("next","SinkHandle",500,350)}));
     const auto before=h.window.document()->snapshot();
-    drag(*h.view,h.port("target",PortType::In),h.port("next",PortType::In));
+    drag(h.view,h.port("target",PortType::In),h.port("next",PortType::In));
     QTRY_COMPARE(h.window.document()->edges().size(),1);
     QTRY_COMPARE(h.window.document()->edges().first().toObject()["target"].toString(),QString("next"));
     auto expected=prior; expected["target"]="next";
@@ -90,8 +90,8 @@ private slots:
       QVERIFY(h.view); QVERIFY(h.picker); const auto before=h.window.document()->snapshot();
       const auto start=h.port("origin",PortType::Out),target=h.body("target");
       QVERIFY(h.view->viewport()->rect().contains(start)); QVERIFY(h.view->viewport()->rect().contains(target));
-      QSignalSpy dropped(h.window.scene(),&EditorScene::wireBodyDropped);
-      drag(*h.view,start,target); QCOMPARE(dropped.count(),1);
+      QSignalSpy dropped(&h.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::wireBodyDropped);
+      drag(h.view,start,target); QCOMPARE(dropped.count(),1);
       QTRY_COMPARE(h.window.document()->edges().size(),type=="Collect" ? 2:1);
       QCOMPARE(h.window.document()->edges().last().toObject()["source"].toString(),QString("origin"));
       QCOMPARE(h.window.document()->undoStack()->count(),1);
@@ -101,22 +101,22 @@ private slots:
   }
   void ambiguousBodyPickerKeyboardAndSourceInvalidation() {
     Host h(workflow("Receiver")); const auto before=h.window.document()->snapshot();
-    drag(*h.view,h.port("origin",PortType::Out),h.body("target")); QTRY_VERIFY(h.picker->active()); QCOMPARE(h.picker->rows().size(),3);
-    auto popup=h.picker->widget(); QVERIFY(popup); QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
-    QTest::keyClicks(popup,"prompt"); QTest::keyClick(popup,Qt::Key_Return);
+    drag(h.view,h.port("origin",PortType::Out),h.body("target")); QTRY_VERIFY(h.picker->active()); QCOMPARE(h.picker->rows().size(),3);
+    auto popup=nodetool::test::overlay(h.window, "compatible-node-picker"); QVERIFY(popup); QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
+    QTest::keyClicks(popup->inputWidget(),"prompt"); QTest::keyClick(popup->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(h.window.document()->edges().size(),1); QCOMPARE(h.window.document()->edges().first().toObject()["targetHandle"].toString(),QString("prompt"));
     QCOMPARE(h.window.document()->undoStack()->count(),1); h.window.action("Undo"); QCOMPARE(h.window.document()->snapshot(),before);
     QVERIFY(h.window.selectNode("origin"));
-    drag(*h.view,h.port("origin",PortType::Out),h.body("target")); QTRY_VERIFY(h.picker->active()); const auto generation=h.picker->generation();
+    drag(h.view,h.port("origin",PortType::Out),h.body("target")); QTRY_VERIFY(h.picker->active()); const auto generation=h.picker->generation();
     h.window.session()->credentialsChanged(QUrl{}, {},"new-account"); QVERIFY(!h.picker->active());
     h.picker->choose("prompt",generation); QCOMPARE(h.window.document()->snapshot(),before);
   }
   void inputToExistingProducerChoosesExplicitOutput() {
     Host h(workflow("Producer")); const auto before=h.window.document()->snapshot();
-    QSignalSpy dropped(h.window.scene(),&EditorScene::wireBodyDropped);
-    drag(*h.view,h.port("origin",PortType::In),h.body("target")); QCOMPARE(dropped.count(),1); QTRY_VERIFY(h.picker->active()); QCOMPARE(h.picker->rows().size(),3);
-    auto popup=h.picker->widget(); QVERIFY(popup); QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
-    QTest::keyClicks(popup,"other"); QTest::keyClick(popup,Qt::Key_Return);
+    QSignalSpy dropped(&h.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::wireBodyDropped);
+    drag(h.view,h.port("origin",PortType::In),h.body("target")); QCOMPARE(dropped.count(),1); QTRY_VERIFY(h.picker->active()); QCOMPARE(h.picker->rows().size(),3);
+    auto popup=nodetool::test::overlay(h.window, "compatible-node-picker"); QVERIFY(popup); QTRY_VERIFY(popup->rootObject()->findChild<QQuickItem *>("compatible-search")->hasActiveFocus());
+    QTest::keyClicks(popup->inputWidget(),"other"); QTest::keyClick(popup->inputWidget(),Qt::Key_Return);
     QTRY_COMPARE(h.window.document()->edges().size(),1); const auto edge=h.window.document()->edges().first().toObject();
     QCOMPARE(edge["source"].toString(),QString("target")); QCOMPARE(edge["sourceHandle"].toString(),QString("other")); QCOMPARE(edge["target"].toString(),QString("origin"));
     QCOMPARE(h.window.document()->undoStack()->count(),1); h.window.action("Undo"); QCOMPARE(h.window.document()->snapshot(),before);
@@ -125,8 +125,8 @@ private slots:
     for (const bool output:{false,true}) {
       Host h(workflow(output ? "DynamicOut":"DynamicIn")); const auto before=h.window.document()->snapshot();
       const auto start=h.port("origin",output ? PortType::In:PortType::Out);
-      QSignalSpy dropped(h.window.scene(),&EditorScene::wireBodyDropped);
-      drag(*h.view,start,h.body("target")); QCOMPARE(dropped.count(),1);
+      QSignalSpy dropped(&h.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::wireBodyDropped);
+      drag(h.view,start,h.body("target")); QCOMPARE(dropped.count(),1);
       QTRY_COMPARE(h.window.document()->edges().size(),1);
       const auto edge=h.window.document()->edges().first().toObject();
       const auto handle=edge[output ? "sourceHandle":"targetHandle"].toString(); QCOMPARE(handle,QString("Fixed_1"));
@@ -136,24 +136,25 @@ private slots:
   }
   void invalidPhysicalHandleAndCycleDoNotLeaveSlots() {
     Host h(workflow("DynamicIn")); const auto before=h.window.document()->snapshot();
-    QSignalSpy dropped(h.window.scene(),&EditorScene::wireBodyDropped);
-    drag(*h.view,h.port("origin",PortType::Out),h.port("target",PortType::In));
+    QSignalSpy dropped(&h.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::wireBodyDropped);
+    drag(h.view,h.port("origin",PortType::Out),h.port("target",PortType::In));
     QApplication::processEvents(); QCOMPARE(dropped.count(),0); QCOMPARE(h.window.document()->snapshot(),before); QCOMPARE(h.window.document()->undoStack()->count(),0);
     const QJsonObject back{{"id","back"},{"source","target"},{"target","origin"},{"sourceHandle","out"},{"targetHandle","in"}};
     Host cycle(workflow("DynamicIn",QJsonArray{back})); const auto baseline=cycle.window.document()->snapshot();
-    drag(*cycle.view,cycle.port("origin",PortType::Out),cycle.body("target"));
+    drag(cycle.view,cycle.port("origin",PortType::Out),cycle.body("target"));
     QApplication::processEvents(); QCOMPARE(cycle.window.document()->snapshot(),baseline); QCOMPARE(cycle.window.document()->undoStack()->count(),0);
   }
   void draggedWireDrawsAboveEveryCard() {
     Host h(workflow("Sink",QJsonArray{}));
     QVERIFY(h.window.selectNode("target"));
     QTest::mousePress(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,h.port("origin",PortType::Out));
-    auto draft=qgraphicsitem_cast<ConnectionGraphicsObject *>(h.window.scene()->mouseGrabberItem()); QVERIFY(draft);
+    const nodetool::test::CanvasProbe probe(h.window);
+    QVERIFY(probe.draft());
     const auto move=h.view->viewport()->rect().center();
     QMouseEvent event(QEvent::MouseMove,QPointF(move),QPointF(h.view->viewport()->mapToGlobal(move)),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
     QApplication::sendEvent(h.view->viewport(),&event);
     for (const auto id:h.model->allNodeIds()) {
-      QVERIFY(draft->zValue()>h.window.scene()->nodeGraphicsObject(id)->zValue());
+      QVERIFY(probe.draftAbove(id));
     }
     QTest::mouseRelease(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,move); QApplication::processEvents();
   }
@@ -163,7 +164,7 @@ private slots:
     QVERIFY(h.window.selectNode("target"));
     auto before=h.window.document()->snapshot();
     QTest::mousePress(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,h.port("target",PortType::In));
-    QVERIFY(qgraphicsitem_cast<ConnectionGraphicsObject *>(h.window.scene()->mouseGrabberItem()));
+    QVERIFY(nodetool::test::CanvasProbe(h.window).draft());
     h.window.session()->credentialsChanged(QUrl{}, {},"switched-account");
     const auto move=h.view->viewport()->rect().center();
     QMouseEvent event(QEvent::MouseMove,QPointF(move),QPointF(h.view->viewport()->mapToGlobal(move)),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);
@@ -172,10 +173,10 @@ private slots:
     QCOMPARE(h.window.document()->snapshot(),before); QCOMPARE(h.window.document()->undoStack()->count(),0);
     auto source=picker_fixture::id(*h.model,"origin");
     QCOMPARE(h.model->allConnectionIds(source).size(),size_t(1));
-    QVERIFY(h.window.scene()->connectionGraphicsObject(*h.model->allConnectionIds(source).begin()));
+    QVERIFY(nodetool::test::CanvasProbe(h.window).wire(*h.model->allConnectionIds(source).begin()));
     QVERIFY(h.window.selectNode("target"));
     QTest::mousePress(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,h.port("target",PortType::In));
-    QVERIFY(qgraphicsitem_cast<ConnectionGraphicsObject *>(h.window.scene()->mouseGrabberItem()));
+    QVERIFY(nodetool::test::CanvasProbe(h.window).draft());
     auto graph=before["graph"].toObject(); auto nodes=graph["nodes"].toArray(); auto origin=nodes[0].toObject();
     auto ui=origin["ui_properties"].toObject(); auto position=ui["position"].toObject(); position["x"]=200; ui["position"]=position;
     origin["ui_properties"]=ui; origin["data"]=QJsonObject{{"new-source",true}}; nodes[0]=origin; graph["nodes"]=nodes; before["graph"]=graph;
@@ -183,16 +184,16 @@ private slots:
     QTRY_COMPARE(h.model->nodeData(picker_fixture::id(*h.model,"origin"),NodeRole::Position).toPointF().x(),200.0);
     QApplication::sendEvent(h.view->viewport(),&event); QTest::mouseRelease(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,move); QApplication::processEvents();
     QCOMPARE(h.window.document()->snapshot(),before); QCOMPARE(h.window.document()->undoStack()->count(),0); QVERIFY(!h.picker->active());
-    source=picker_fixture::id(*h.model,"origin"); QVERIFY(h.window.scene()->connectionGraphicsObject(*h.model->allConnectionIds(source).begin()));
+    source=picker_fixture::id(*h.model,"origin"); QVERIFY(nodetool::test::CanvasProbe(h.window).wire(*h.model->allConnectionIds(source).begin()));
   }
   void reconnectPaneDropDeletesWithUndo() {
     const QJsonObject prior{{"id","old"},{"source","origin"},{"target","target"},{"sourceHandle","out"},{"targetHandle","message"}};
     Host h(workflow("Sink",QJsonArray{prior})); const auto before=h.window.document()->snapshot();
     QVERIFY(h.window.selectNode("target")); const auto id=picker_fixture::id(*h.model,"target");
-    const auto bounds=h.window.scene()->nodeGraphicsObject(id)->sceneBoundingRect();
+    const auto bounds=h.window.canvas().nodeBounds(id);
     const auto drop=h.view->mapFromScene(QPointF(bounds.center().x(),bounds.bottom()+80));
-    QSignalSpy body(h.window.scene(),&EditorScene::wireBodyDropped),pane(h.window.scene(),&EditorScene::looseWireDropped);
-    drag(*h.view,h.port("target",PortType::In),drop); QApplication::processEvents();
+    QSignalSpy body(&h.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::wireBodyDropped),pane(&h.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::looseWireDropped);
+    drag(h.view,h.port("target",PortType::In),drop); QApplication::processEvents();
     QCOMPARE(body.count(),0); QCOMPARE(pane.count(),0); QVERIFY(!h.picker->active());
     QTRY_VERIFY(h.window.document()->edges().isEmpty()); QCOMPARE(h.window.document()->undoStack()->count(),1);
     h.window.action("Undo"); QCOMPARE(h.window.document()->snapshot(),before);
@@ -203,9 +204,9 @@ private slots:
       const QJsonObject occupant{{"id","occupant"},{"source","older"},{"target","next"},{"sourceHandle","out"},{"targetHandle","message"}};
       Host h(workflow(type,QJsonArray{original,occupant},QJsonArray{body_fixture::node("next",type,500,350),body_fixture::node("older","Fixed",100,350)}));
       const auto before=h.window.document()->snapshot();
-      drag(*h.view,h.port("target",PortType::In),h.port("target",PortType::In));
+      drag(h.view,h.port("target",PortType::In),h.port("target",PortType::In));
       QCoreApplication::processEvents(); QCOMPARE(h.window.document()->snapshot(),before); QCOMPARE(h.window.document()->undoStack()->count(),0);
-      drag(*h.view,h.port("target",PortType::In),h.port("next",PortType::In));
+      drag(h.view,h.port("target",PortType::In),h.port("next",PortType::In));
       QTRY_COMPARE(h.window.document()->undoStack()->count(),1);
       QCOMPARE(h.window.document()->edges().size(),type=="Collect" ? 2:1);
       auto moved=original; moved["target"]="next";
@@ -218,13 +219,13 @@ private slots:
     Host h(workflow("Sink",QJsonArray{original},QJsonArray{body_fixture::node("next","Fixed",100,350)}));
     const auto before=h.window.document()->snapshot();
     const auto source=picker_fixture::id(*h.model,"origin");
-    auto wire=h.window.scene()->connectionGraphicsObject(*h.model->allConnectionIds(source).begin()); QVERIFY(wire);
-    const auto out=h.window.scene()->nodeGraphicsObject(source)->scenePos()+h.window.scene()->nodeGeometry().portPosition(source,PortType::Out,0);
+    auto wire=nodetool::test::wire(h.window, *h.model->allConnectionIds(source).begin()); QVERIFY(wire);
+    const auto out=h.window.canvas().nodeOrigin(source)+h.window.scene()->nodeGeometry().portPosition(source,PortType::Out,0);
     const auto target=picker_fixture::id(*h.model,"target");
-    const auto in=h.window.scene()->nodeGraphicsObject(target)->scenePos()+h.window.scene()->nodeGeometry().portPosition(target,PortType::In,0);
+    const auto in=h.window.canvas().nodeOrigin(target)+h.window.scene()->nodeGeometry().portPosition(target,PortType::In,0);
     QTest::mouseClick(h.view->viewport(),Qt::LeftButton,Qt::NoModifier,h.view->mapFromScene(wireCurve(out,in).pointAtPercent(.5)));
     QVERIFY(wire->isSelected());
-    drag(*h.view,h.port("origin",PortType::Out),h.port("next",PortType::Out));
+    drag(h.view,h.port("origin",PortType::Out),h.port("next",PortType::Out));
     QTRY_COMPARE(h.window.document()->undoStack()->count(),1);
     auto moved=original; moved["source"]="next";
     QCOMPARE(h.window.document()->edges().first().toObject(),moved);
@@ -282,9 +283,9 @@ private slots:
   void refusedHandleReleaseReportsAndAddsNothing() {
     Host h(workflow("SinkHandle",{},QJsonArray{body_fixture::node("float","FloatOnly",500,350)}));
     const auto before=h.window.document()->snapshot();
-    QSignalSpy refused(h.window.scene(),&EditorScene::connectionRefused);
-    QSignalSpy body(h.window.scene(),&EditorScene::wireBodyDropped);
-    drag(*h.view,h.port("origin",PortType::Out),h.port("float",PortType::In));
+    QSignalSpy refused(&h.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::connectionRefused);
+    QSignalSpy body(&h.window.scene()->interaction(), &nodetool::canvas::CanvasInteraction::wireBodyDropped);
+    drag(h.view,h.port("origin",PortType::Out),h.port("float",PortType::In));
     QApplication::processEvents();
     QCOMPARE(refused.count(),1);
     QCOMPARE(body.count(),0);
@@ -292,7 +293,7 @@ private slots:
     QVERIFY(!h.picker->active());
     QCOMPARE(h.window.document()->snapshot(),before);
     QCOMPARE(h.window.document()->undoStack()->count(),0);
-    drag(*h.view,h.port("origin",PortType::Out),h.port("target",PortType::In));
+    drag(h.view,h.port("origin",PortType::Out),h.port("target",PortType::In));
     QTRY_COMPARE(h.window.document()->edges().size(),1);
     QCOMPARE(refused.count(),1);
   }
@@ -305,8 +306,8 @@ private slots:
     const auto midpoint=[&] {
       const auto source=picker_fixture::id(*h.model,"origin");
       const auto target=picker_fixture::id(*h.model,"target");
-      const auto out=h.window.scene()->nodeGraphicsObject(source)->scenePos()+h.window.scene()->nodeGeometry().portPosition(source,PortType::Out,0);
-      const auto in=h.window.scene()->nodeGraphicsObject(target)->scenePos()+h.window.scene()->nodeGeometry().portPosition(target,PortType::In,0);
+      const auto out=h.window.canvas().nodeOrigin(source)+h.window.scene()->nodeGeometry().portPosition(source,PortType::Out,0);
+      const auto in=h.window.canvas().nodeOrigin(target)+h.window.scene()->nodeGeometry().portPosition(target,PortType::In,0);
       return h.view->mapFromScene(wireCurve(out,in).pointAtPercent(.5));
     };
     auto point=midpoint();

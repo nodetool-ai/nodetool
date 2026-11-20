@@ -1,3 +1,4 @@
+#include "../support/OverlayProbe.h"
 #include "ui/EditorWindow.h"
 #include "server/MsgPack.h"
 #include "server/WorkflowVersions.h"
@@ -214,11 +215,12 @@ QPoint center(QQuickItem *item)
     return item->mapToScene({item->width() / 2, item->height() / 2}).toPoint();
 }
 
-void click(QQuickWidget *widget, const char *name)
+void click(QQuickItem *root, const char *name)
 {
-    auto *item = find(widget->rootObject(), name);
+    QVERIFY(root);
+    auto *item = find(root, name);
     if (!item) {
-        item = find(widget->quickWindow()->contentItem(), name);
+        item = find(root->window()->contentItem(), name);
     }
     QVERIFY(item);
     QVERIFY(item->isEnabled());
@@ -229,7 +231,13 @@ void click(QQuickWidget *widget, const char *name)
         }
     }
     QCoreApplication::processEvents();
-    QTest::mouseClick(widget->quickWindow(), Qt::LeftButton, Qt::NoModifier, center(item));
+    QTest::mouseClick(item->window(), Qt::LeftButton, Qt::NoModifier, center(item));
+}
+
+void click(QQuickWidget *widget, const char *name)
+{
+    QVERIFY(widget);
+    click(widget->rootObject(), name);
 }
 
 void wheel(QQuickWindow *window, QPoint position, int delta)
@@ -1203,11 +1211,11 @@ private slots:
         EditorWindow window;
         connectWorkflow(window, server);
         QTRY_VERIFY(window.session()->connected());
-        auto *toolbar = panel(window, "Toolbar.qml");
+        const auto toolbar = nodetool::test::overlay(window, "Toolbar.qml", true);
         QVERIFY(toolbar);
         QSignalSpy errors(window.session(), &nodetool::node_editor::WorkflowSession::errorOccurred);
 
-        click(toolbar, "run-workflow");
+        click(toolbar->rootObject(), "run-workflow");
         QTRY_COMPARE(server.count("workflows.autosave"), 1);
         const auto body = requestBody(server.requests[server.indexOf("workflows.autosave")]);
         QCOMPARE(body["id"].toString(), QString("bound"));
@@ -1275,7 +1283,9 @@ private slots:
         connectWorkflow(window, server);
         QTRY_VERIFY(window.session()->connected());
         QSignalSpy errors(window.session(), &nodetool::node_editor::WorkflowSession::errorOccurred);
-        click(panel(window, "Toolbar.qml"), "run-workflow");
+        const auto toolbar = nodetool::test::overlay(window, "Toolbar.qml", true);
+        QVERIFY(toolbar);
+        click(toolbar->rootObject(), "run-workflow");
         QTRY_COMPARE(server.count("workflows.autosave"), 1);
         QTRY_COMPARE_WITH_TIMEOUT(commands.size(), 1, 1000);
         QCOMPARE(commands.first()["command"].toString(), QString("run_job"));
@@ -1309,7 +1319,9 @@ private slots:
         EditorWindow window;
         connectWorkflow(window, server);
         QTRY_VERIFY(window.session()->connected());
-        click(panel(window, "Toolbar.qml"), "run-workflow");
+        const auto toolbar = nodetool::test::overlay(window, "Toolbar.qml", true);
+        QVERIFY(toolbar);
+        click(toolbar->rootObject(), "run-workflow");
         QTRY_COMPARE_WITH_TIMEOUT(commands.size(), 1, 1000);
         QCOMPARE(server.count("workflows.autosave"), 0);
     }

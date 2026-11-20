@@ -9545,7 +9545,11 @@
         "stopAria": "Worker {{id}} stoppen",
         "stop": "Anhalten",
         "terminateAria": "Worker {{id}} beenden",
-        "terminate": "Beenden"
+        "terminate": "Beenden",
+        "moreActions": "More actions",
+        "copyId": "Copy pod ID",
+        "gpuUnknown": "GPU not set",
+        "pausedCost": "When running"
       },
       "actions": {
         "manageProfiles": "Profile verwalten",
@@ -9595,6 +9599,7 @@
         "action": "Worker einrichten"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "Etwa {{min}}–{{max}} pro Stunde. Endet nach {{count}} Stunde und löscht seine Dateien.",
         "summary_other": "Etwa {{min}}–{{max}} pro Stunde. Endet nach {{count}} Stunden und löscht seine Dateien.",
         "start": "Starten",
@@ -9602,7 +9607,22 @@
         "startAria": "{{name}} auf einer gemieteten GPU starten",
         "bootingHint": "ComfyUI wird geladen. Der erste Start kann einige Minuten dauern.",
         "readyHint": "Kopiere die URL in „Run ComfyUI Workflow“. Jeder mit dieser URL kann den Pod nutzen.",
-        "copyEndpoint": "ComfyUI-URL kopieren"
+        "copyEndpoint": "ComfyUI-URL kopieren",
+        "sectionTitle": "Quick start: ComfyUI on RunPod",
+        "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
+        "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "priceRange": "{{min}}–{{max}}/hr",
+        "running": "Running"
+      },
+      "stock": {
+        "high": "High stock",
+        "medium": "In stock",
+        "low": "Low stock",
+        "none": "Out of stock"
+      },
+      "list": {
+        "title": "Your workers",
+        "subtitle": "Pods you rented. Paused pods keep their files and bill only for storage."
       }
     }
   },

@@ -1,5 +1,7 @@
+#include "../support/OverlayProbe.h"
+#include "ui/CanvasSurface.h"
 #include "document/ChildPorts.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "interfaces/RunState.h"
 #include "interfaces/StatusModel.h"
 #include "interfaces/WorkflowHeader.h"
@@ -11,7 +13,6 @@
 #include "EntryMenuSupport.h"
 #include <QQuickItem>
 #include <QQuickWidget>
-#include <QGraphicsView>
 #include <QQuickWindow>
 #include <QSettings>
 #include <QTcpServer>
@@ -113,30 +114,22 @@ class SubgraphTest : public QObject {
   static bool click(EditorWindow &w, QString name) {
     // Panels follow in the next pass and their layout in the pass after. The card
     // toolbar shows 200 ms after the selection settles (NodeSelectionToolbar.tsx).
-    QTest::qWaitFor([&] {
-      for (auto panel : w.findChildren<QQuickWidget *>()) {
-        if (!panel->isVisible() || !panel->rootObject()) continue;
-        auto item = find(panel->rootObject(), name);
-        if (item && item->isVisible()) return true;
+    const auto findTarget = [&]() -> test::OverlayProbe {
+      if (auto shared = test::overlay(w, name)) { return shared; }
+      for (auto *panel : w.findChildren<QQuickWidget *>()) {
+        if (!panel->isVisible() || !panel->rootObject()) { continue; }
+        auto *item = find(panel->rootObject(), name);
+        if (item && item->isVisible()) { return {*panel, *item, false}; }
       }
-      return false;
-    }, 1000);
-    for (auto panel : w.findChildren<QQuickWidget *>()) {
-      if (!panel->isVisible() || !panel->rootObject()) {
-        continue;
-      }
-      auto item = find(panel->rootObject(), name);
-      if (!item || !item->isVisible()) {
-        continue;
-      }
-      QTest::mouseClick(
-          panel->quickWindow(), Qt::LeftButton, Qt::NoModifier,
-          item->mapToScene(QPointF(item->width() / 2, item->height() / 2))
-              .toPoint());
-      QCoreApplication::processEvents();
-      return true;
-    }
-    return false;
+      return {};
+    };
+    test::OverlayProbe target;
+    if (!QTest::qWaitFor([&] { target = findTarget(); return bool(target); }, 1000)) { return false; }
+    const auto *item = target->rootObject();
+    QTest::mouseClick(target->quickWindow(), Qt::LeftButton, Qt::NoModifier,
+                      item->mapToScene({item->width() / 2, item->height() / 2}).toPoint());
+    QCoreApplication::processEvents();
+    return true;
   }
 private slots:
   void initTestCase() {
@@ -421,11 +414,11 @@ private slots:
             }
         }
         QVERIFY(strips);
-        auto view = window.activeEditor()->findChild<QGraphicsView *>();
+        auto view = &window.activeEditor()->canvas();
         QVERIFY(view);
-        QTRY_COMPARE(strips->width(), view->width());
-        QCOMPARE(strips->mapTo(&window, QPoint()).x(), view->mapTo(&window, QPoint()).x());
-        QCOMPARE(strips->mapTo(&window, QPoint(0, strips->height())).y(), view->mapTo(&window, QPoint()).y());
+        QTRY_COMPARE(strips->width(), view->hostWidget().width());
+        QCOMPARE(strips->mapTo(&window, QPoint()).x(), view->hostWidget().mapTo(&window, QPoint()).x());
+        QCOMPARE(strips->mapTo(&window, QPoint(0, strips->height())).y(), view->hostWidget().mapTo(&window, QPoint()).y());
         QCOMPARE(find(strips->rootObject(), "canvas-label-0-0")->property("text").toString(), QString("Workflow"));
         QCOMPARE(find(strips->rootObject(), "canvas-label-1-0")->property("text").toString(), first->workflowName());
       const auto entries = window.canvasStrips().first().toMap()["entries"].toList();
@@ -434,7 +427,7 @@ private slots:
           {{"op", "setProperty"}, {"id", "input"}, {"name", "name"}, {"value", "changed"}}));
       QTRY_VERIFY(!parent->undoStack()->isClean());
       // The web toolbar has no Save button. Ctrl+S saves the parent from a child surface.
-      QTest::keyClick(view->viewport(), Qt::Key_S, Qt::ControlModifier);
+      QTest::keyClick(&view->viewportWidget(), Qt::Key_S, Qt::ControlModifier);
       QVERIFY(parent->undoStack()->isClean());
       QVERIFY(!window.hasUnsavedChanges());
       window.persistTabs();

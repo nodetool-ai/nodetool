@@ -9526,6 +9526,7 @@
         "attachingHint": "作業員の準備は完了です。添付中…"
       },
       "presets": {
+        "badge": "ComfyUI",
         "summary_one": "1 時間あたり約 {{min}}–{{max}}。 {{count}} 時間後に終了し、ファイルを削除します。",
         "summary_other": "1 時間あたり約 {{min}}–{{max}}。 {{count}} 時間後に終了し、ファイルが削除されます。",
         "start": "スタート",
@@ -9533,7 +9534,12 @@
         "startAria": "レンタルした GPU で {{name}} を開始する",
         "bootingHint": "ComfyUI を読み込み中です。最初の起動には数分かかる場合があります。",
         "readyHint": "URL を「Run ComfyUI Workflow」にコピーします。この URL を知っている人は誰でもポッドを使用できます。",
-        "copyEndpoint": "ComfyUI URLをコピーする"
+        "copyEndpoint": "ComfyUI URLをコピーする",
+        "sectionTitle": "Quick start: ComfyUI on RunPod",
+        "sectionSubtitle_one": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hour and deletes its files.",
+        "sectionSubtitle_other": "Rents a GPU with a ready ComfyUI server. Ends after {{count}} hours and deletes its files.",
+        "priceRange": "{{min}}–{{max}}/hr",
+        "running": "Running"
       },
       "provision": {
         "title": "ワーカーを開始する",
@@ -9555,7 +9561,11 @@
         "stopAria": "ワーカー {{id}} を停止します",
         "stop": "停止",
         "terminateAria": "ワーカー {{id}} を終了します",
-        "terminate": "終了"
+        "terminate": "終了",
+        "moreActions": "More actions",
+        "copyId": "Copy pod ID",
+        "gpuUnknown": "GPU not set",
+        "pausedCost": "When running"
       },
       "actions": {
         "manageProfiles": "プロファイルの管理",
@@ -9603,6 +9613,16 @@
         "title": "レンタルした GPU でグラフを実行する",
         "description": "一度 RunPod を接続し、GPU を選択します。その後、NodeTool がその上で Python ノードを実行し、アイドル状態のワーカーは自動的に一時停止します。",
         "action": "ワーカーをセットアップする"
+      },
+      "stock": {
+        "high": "High stock",
+        "medium": "In stock",
+        "low": "Low stock",
+        "none": "Out of stock"
+      },
+      "list": {
+        "title": "Your workers",
+        "subtitle": "Pods you rented. Paused pods keep their files and bill only for storage."
       }
     }
   },

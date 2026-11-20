@@ -1,7 +1,7 @@
 #pragma once
 #include "graph/CardBodies.h"
 #include "graph/CompositorGeometry.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include <QImage>
 #include <QJsonObject>
 #include <QObject>

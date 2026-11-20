@@ -7,7 +7,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QGraphicsView>
+#include "ui/CanvasSurface.h"
 #include <QJsonDocument>
 #include <QMimeData>
 #include <QMimeDatabase>
@@ -17,7 +17,6 @@
 #include <QTimer>
 #include <QUrlQuery>
 #include <QUuid>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <cmath>
 #include <optional>
 #include <utility>
@@ -160,9 +159,9 @@ QJsonValue dataframe(QString text) {
   return QJsonObject{{"type", "dataframe"}, {"columns", columns}, {"data", data}};
 }
 }
-CanvasDropController::CanvasDropController(WorkflowGraphModel &model, QGraphicsView &view, QObject *parent)
-    : QObject(parent), model_(model), view_(view), uploader_(this), network_(this) {
-  view.viewport()->setAcceptDrops(true); view.viewport()->installEventFilter(this);
+CanvasDropController::CanvasDropController(WorkflowGraphModel &model, CanvasSurface &canvas, QObject *parent)
+    : QObject(parent), model_(model), canvas_(canvas), uploader_(this), network_(this) {
+  canvas_.viewportWidget().setAcceptDrops(true); canvas_.viewportWidget().installEventFilter(this);
   connect(&uploader_, &node_editor::AssetPickerController::progress, this, [this](const QString &key, qint64 sent, qint64 total) {
     if (!transfers_.contains(key)) return; auto &row = transfers_[key]; row.sent = sent; row.total = total; emit changed();
   });
@@ -175,7 +174,7 @@ CanvasDropController::CanvasDropController(WorkflowGraphModel &model, QGraphicsV
     transfers_[key].assetId = reference["asset_id"].toString(); fetchAsset(key);
   });
 }
-CanvasDropController::~CanvasDropController() { view_.viewport()->removeEventFilter(this); cancelAll(); }
+CanvasDropController::~CanvasDropController() { canvas_.viewportWidget().removeEventFilter(this); cancelAll(); }
 QVariantList CanvasDropController::transfers() const {
   QVariantList result;
   for (const auto &key : order_) {
@@ -224,7 +223,7 @@ bool CanvasDropController::accepts(const QMimeData *mime) const {
 }
 bool CanvasDropController::eventFilter(QObject *object, QEvent *event) {
   // A click on a drop zone opens a file picker. The scene still sees the click and selects the card.
-  if (object == view_.viewport() && (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonRelease)) {
+  if (object == &canvas_.viewportWidget() && (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonRelease)) {
     auto *mouse = static_cast<QMouseEvent *>(event);
     if (mouse->button() != Qt::LeftButton) return QObject::eventFilter(object, event);
     const auto point = mouse->position().toPoint();
@@ -244,7 +243,7 @@ bool CanvasDropController::eventFilter(QObject *object, QEvent *event) {
     }
     return QObject::eventFilter(object, event);
   }
-  if (object != view_.viewport() || (event->type() != QEvent::DragEnter && event->type() != QEvent::DragMove && event->type() != QEvent::Drop)) return QObject::eventFilter(object, event);
+  if (object != &canvas_.viewportWidget() || (event->type() != QEvent::DragEnter && event->type() != QEvent::DragMove && event->type() != QEvent::Drop)) return QObject::eventFilter(object, event);
   auto *dropEvent = static_cast<QDropEvent *>(event);
   if (dropEvent->mimeData()->hasFormat("application/x-nodetool-node-type")) return false;
   if (!accepts(dropEvent->mimeData())) {
@@ -256,12 +255,14 @@ bool CanvasDropController::eventFilter(QObject *object, QEvent *event) {
   const auto zone = document.id.isEmpty() ? dropZone(dropEvent->position().toPoint()) : QStringList{};
   const bool namesAsset = !assetIds(dragPayload(dropEvent->mimeData())).isEmpty() || !projectFileDrop(dragPayload(dropEvent->mimeData())).path.isEmpty();
   if ((namesAsset && zone.isEmpty()) || !document.id.isEmpty()) {
-    for (auto *entry : view_.items(dropEvent->position().toPoint())) for (auto *item = entry; item; item = item->parentItem())
-      if (qgraphicsitem_cast<QtNodes::NodeGraphicsObject *>(item)) { dropEvent->ignore(); return true; }
+    if (canvas_.nodeAt(dropEvent->position().toPoint(), true) != QtNodes::InvalidNodeId) {
+      dropEvent->ignore();
+      return true;
+    }
   }
   dropEvent->setDropAction(Qt::CopyAction); dropEvent->accept();
   if (event->type() == QEvent::Drop) {
-    bool invertible = false; const auto inverse = view_.viewportTransform().inverted(&invertible);
+    bool invertible = false; const auto inverse = canvas_.viewportTransform().inverted(&invertible);
     if (!invertible) { dropEvent->ignore(); return true; }
     drop(dropEvent->mimeData(), inverse.map(dropEvent->position()), zone);
   }
@@ -276,38 +277,31 @@ void CanvasDropController::pickFile(const QStringList &zone, const QPoint &viewp
         const QHash<QString, QString> filters{{"image", tr("Images (*.png *.jpg *.jpeg *.webp *.gif *.bmp)")},
                                               {"video", tr("Videos (*.mp4 *.mov *.webm *.mkv)")},
                                               {"audio", tr("Audio (*.wav *.mp3 *.ogg *.flac *.m4a)")}};
-        path = QFileDialog::getOpenFileName(view_.window(), tr("Choose %1").arg(kind), {}, filters.value(kind, tr("All files (*)")));
+        path = QFileDialog::getOpenFileName(canvas_.hostWidget().window(), tr("Choose %1").arg(kind), {}, filters.value(kind, tr("All files (*)")));
     }
     bool invertible = false;
-    const auto inverse = view_.viewportTransform().inverted(&invertible);
+    const auto inverse = canvas_.viewportTransform().inverted(&invertible);
     if (path.isEmpty() || !invertible) return;
     QMimeData mime;
     mime.setUrls({QUrl::fromLocalFile(path)});
     drop(&mime, inverse.map(QPointF(viewportPosition)), zone);
 }
 QStringList CanvasDropController::dropZone(const QPoint &viewportPosition) const {
-    for (auto *entry : view_.items(viewportPosition)) {
-        for (auto *item = entry; item; item = item->parentItem()) {
-            auto *node = qgraphicsitem_cast<QtNodes::NodeGraphicsObject *>(item);
-            if (!node) {
-                continue;
+    const auto node = canvas_.nodeAt(viewportPosition, true);
+    if (node == QtNodes::InvalidNodeId) { return {}; }
+    const auto local = canvas_.mapToNode(node, canvas_.mapToScene(viewportPosition));
+    const auto row = model_.dropZoneAt(node, local);
+    if (row < 0) {
+        // PainterBody's onAreaDrop: an image dropped on the paint area becomes its source image.
+        for (const auto &paint : model_.layout(node).rows) {
+            if (paint.kind == NodeRowKind::Paint && !model_.readOnly() && paint.parts.value(0, paint.rect).contains(local)) {
+                return {model_.resourceId(node), QStringLiteral("image"), QStringLiteral("image")};
             }
-            const auto local = node->mapFromScene(view_.mapToScene(viewportPosition));
-            const auto row = model_.dropZoneAt(node->nodeId(), local);
-            if (row < 0) {
-                // PainterBody's onAreaDrop: an image dropped on the paint area becomes its source image.
-                for (const auto &paint : model_.layout(node->nodeId()).rows) {
-                    if (paint.kind == NodeRowKind::Paint && !model_.readOnly() && paint.parts.value(0, paint.rect).contains(local)) {
-                        return {model_.resourceId(node->nodeId()), QStringLiteral("image"), QStringLiteral("image")};
-                    }
-                }
-                return {};
-            }
-            const auto &zone = model_.layout(node->nodeId()).rows[row];
-            return {model_.resourceId(node->nodeId()), zone.propertyName, zone.typeName};
         }
+        return {};
     }
-    return {};
+    const auto &zone = model_.layout(node).rows[row];
+    return {model_.resourceId(node), zone.propertyName, zone.typeName};
 }
 QStringList CanvasDropController::clickZone(const QPoint &viewportPosition) const {
     auto zone = dropZone(viewportPosition);
@@ -316,35 +310,28 @@ QStringList CanvasDropController::clickZone(const QPoint &viewportPosition) cons
     }
     // An empty zone opens the picker anywhere. A loaded image does so only from
     // its Replace action, as the web's dropped zone takes no click.
-    for (auto *entry : view_.items(viewportPosition)) {
-        for (auto *item = entry; item; item = item->parentItem()) {
-            auto *node = qgraphicsitem_cast<QtNodes::NodeGraphicsObject *>(item);
-            if (!node) {
-                continue;
-            }
-            const auto local = node->mapFromScene(view_.mapToScene(viewportPosition));
-            // The Painter canvas takes drops only, so a press there paints.
-            const auto index = model_.dropZoneAt(node->nodeId(), local);
-            if (index < 0) {
-                return {};
-            }
-            const auto &row = model_.layout(node->nodeId()).rows[index];
-            // A document constant changes only by a drop, so its zone takes no click.
-            if (documentZone(row.typeName)) {
-                return {};
-            }
-            // A Collection's grid holds its tiles, so only the empty grid opens the picker.
-            if (collectionZone(row.typeName)) {
-                return row.placeholder ? zone << QStringLiteral("pick") : QStringList{};
-            }
-            if (row.placeholder || row.mediaKind.isEmpty() || cardMediaActionRect(row, CardMediaAction::Replace).contains(local)) {
-                return zone << QStringLiteral("pick");
-            }
-            if (cardMediaActionRect(row, CardMediaAction::Copy).contains(local)) {
-                return zone << QStringLiteral("copy");
-            }
-            return {};
-        }
+    const auto node = canvas_.nodeAt(viewportPosition, true);
+    if (node == QtNodes::InvalidNodeId) { return {}; }
+    const auto local = canvas_.mapToNode(node, canvas_.mapToScene(viewportPosition));
+    // The Painter canvas takes drops only, so a press there paints.
+    const auto index = model_.dropZoneAt(node, local);
+    if (index < 0) {
+        return {};
+    }
+    const auto &row = model_.layout(node).rows[index];
+    // A document constant changes only by a drop, so its zone takes no click.
+    if (documentZone(row.typeName)) {
+        return {};
+    }
+    // A Collection's grid holds its tiles, so only the empty grid opens the picker.
+    if (collectionZone(row.typeName)) {
+        return row.placeholder ? zone << QStringLiteral("pick") : QStringList{};
+    }
+    if (row.placeholder || row.mediaKind.isEmpty() || cardMediaActionRect(row, CardMediaAction::Replace).contains(local)) {
+        return zone << QStringLiteral("pick");
+    }
+    if (cardMediaActionRect(row, CardMediaAction::Copy).contains(local)) {
+        return zone << QStringLiteral("copy");
     }
     return {};
 }

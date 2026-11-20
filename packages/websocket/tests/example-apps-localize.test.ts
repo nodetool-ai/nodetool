@@ -1,6 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ApplicationBundle } from "@nodetool-ai/app-runtime";
 import { localizeLanguageModels } from "../src/lib/example-apps.js";
+
+vi.mock(import("@nodetool-ai/runtime"), async (importOriginal) => ({
+  ...await importOriginal(),
+  RECOMMENDED_MODELS: (["openai", "anthropic"] as const).map((provider) => ({
+    type: "language_model",
+    provider,
+    id: `recommended-${provider}`,
+    name: `Recommended ${provider}`,
+    repo_id: null,
+    path: null,
+    downloaded: false,
+    modality: "language",
+    task: "text_generation"
+  }))
+}));
 
 const model = (provider: string, id: string) => ({
   type: "language_model",
@@ -30,7 +45,7 @@ describe("localizeLanguageModels", () => {
     );
     expect(modelOf(out)).toMatchObject({
       provider: "anthropic",
-      id: "claude-sonnet-5"
+      id: "recommended-anthropic"
     });
   });
 
@@ -56,7 +71,7 @@ describe("localizeLanguageModels, unselected models", () => {
       bundleWith(model("empty", "")),
       new Set(["openai"])
     );
-    expect(modelOf(out)).toMatchObject({ provider: "openai", id: "gpt-5-mini" });
+    expect(modelOf(out)).toMatchObject({ provider: "openai", id: "recommended-openai" });
   });
 
   it("leaves an unselected model alone when no provider is configured", () => {

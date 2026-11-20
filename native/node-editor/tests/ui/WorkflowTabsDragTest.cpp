@@ -1,15 +1,15 @@
+#include "ui/CanvasSurface.h"
 // Workspace tab strip behavior from web/src/components/workspace/WorkspaceTabBar.tsx,
 // WorkspaceTabItem.tsx and web/src/stores/WorkspaceTabsStore.ts, driven through
 // real pointer and key events on EditorWindow.
 #include "ui/EditorWindow.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "server/MsgPack.h"
 #include <QAbstractButton>
 #include <QAction>
 #include <QApplication>
 #include <QDir>
 #include <QFile>
-#include <QGraphicsView>
 #include <QJsonDocument>
 #include "EntryMenuSupport.h"
 #include <QMessageBox>
@@ -319,8 +319,8 @@ private slots:
         QCOMPARE(window.workflowName(), QString("Gamma"));
 
         const auto key = [&](Qt::Key code, Qt::KeyboardModifiers modifiers) {
-            auto view = window.scene()->views().first();
-            QTest::keyClick(view->viewport(), code, modifiers);
+            auto view = &window.canvas();
+            QTest::keyClick(&view->viewportWidget(), code, modifiers);
             QCoreApplication::processEvents();
         };
         openSaved(window, "Delta", false);

@@ -1,5 +1,7 @@
+#include "../support/CanvasProbe.h"
+#include "../support/OverlayCanvasFixture.h"
 #include "FakeRunServer.h"
-#include "graph/EditorScene.h"
+#include "canvas/CanvasStyle.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include <QDir>
@@ -10,7 +12,6 @@
 #include <QQuickWidget>
 #include <QSettings>
 #include <QStandardPaths>
-#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <QtTest>
 #include <algorithm>
 #include <cmath>
@@ -198,18 +199,19 @@ private slots:
         EditorWindow window;
         prepare(window, true, QSize(1440, 900), true);
         auto &model = graphModel(window);
-        auto *width = window.scene()->nodeGraphicsObject(nodeId(model, "width"));
-        auto *caption = window.scene()->nodeGraphicsObject(nodeId(model, "caption"));
+        auto width = nodetool::test::card(window, nodeId(model, "width"));
+        auto caption = nodetool::test::card(window, nodeId(model, "caption"));
         QVERIFY(width && caption);
         const auto overlap = width->sceneBoundingRect().intersected(caption->sceneBoundingRect());
         QVERIFY(!overlap.isEmpty());
-        const auto ordered = window.scene()->items(overlap.center(), Qt::IntersectsItemShape, Qt::DescendingOrder);
-        QVERIFY(ordered.indexOf(caption) < ordered.indexOf(width));
+        QVERIFY(window.canvas().visibleSceneRect().contains(overlap.center()));
+        QVERIFY(nodetool::test::CanvasProbe(window).above(caption.nodeId(), width.nodeId()));
     }
 
     void stackingTracksReorderedDocumentWithThreeOverlappingCards() {
         WorkflowGraphModel model;
-        EditorScene scene(model);
+        test::OverlayCanvasFixture fixture(model);
+        fixture.show({500, 360}, {100, 20});
         const QJsonObject declaration{{"node_type", "Fixture"}, {"title", "Fixture"}};
         const QJsonArray catalog{declaration};
         QHash<QString, QtNodes::NodeId> ids;
@@ -220,14 +222,15 @@ private slots:
             }
             model.project(QJsonObject{{"nodes", nodes}, {"edges", QJsonArray{}}}, catalog);
             for (const auto id : model.allNodeIds()) { ids.insert(model.resourceId(id), id); }
-            const auto stacked = scene.items(QPointF(100, 20), Qt::IntersectsItemShape, Qt::DescendingOrder);
+            const auto stacked = fixture.surface().visibleNodes();
             for (qsizetype i = 1; i < order.size(); ++i) {
-                auto *earlier = scene.nodeGraphicsObject(ids.value(order[i - 1]));
-                auto *later = scene.nodeGraphicsObject(ids.value(order[i]));
+                const auto earlier = ids.value(order[i - 1]);
+                const auto later = ids.value(order[i]);
                 QVERIFY(stacked.contains(earlier));
                 QVERIFY(stacked.contains(later));
                 QVERIFY(stacked.indexOf(later) < stacked.indexOf(earlier));
             }
+            QCOMPARE(fixture.surface().nodeAt(fixture.surface().mapFromScene(QPointF(100, 20))), ids.value(order.last()));
         }
     }
 
@@ -250,8 +253,8 @@ private slots:
             card.fill(Qt::transparent);
             {
                 QPainter painter(&card);
-                const auto position = window.scene()->nodeGraphicsObject(generate)->scenePos();
-                window.scene()->render(&painter, QRectF(QPointF(), QSizeF(size)), QRectF(position, QSizeF(size)));
+                const auto position = window.canvas().nodeOrigin(generate);
+                nodetool::test::renderScene(window, painter, QRectF(QPointF(), QSizeF(size)), QRectF(position, QSizeF(size)));
             }
             // 12 of 30 fills the bar to 40 percent in the web secondary color.
             const auto filled = card.pixelColor(11 + 50, size.height() - 22);
