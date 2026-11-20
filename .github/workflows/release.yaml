@@ -965,7 +965,7 @@ jobs:
             electron/dist/*.yml
 
   # The native timeline app with the NodeTool server inside, for macOS,
-  # Windows and Linux. Its assets join this release. It builds the
+  # Windows and Linux. Its assets join the published release separately. It builds the
   # run's own commit, so a desktop recovery from source_tag skips it.
   native-timeline:
     name: Native timeline
@@ -1037,8 +1037,8 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs: [preflight, release-build, native-timeline]
-    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (needs.native-timeline.result == 'success' || (needs.native-timeline.result == 'skipped' && needs.preflight.outputs.ref != github.sha)) && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
+    needs: [preflight, release-build]
+    if: ${{ !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -1051,7 +1051,7 @@ jobs:
       - name: Download release artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: '*'
+          pattern: '{electron-*,nodetool-*}'
           merge-multiple: true
           path: release-assets
 
@@ -1059,7 +1059,7 @@ jobs:
         run: node scripts/merge-mac-update-manifests.mjs release-assets
 
       - name: Validate release assets
-        run: node scripts/validate-release-assets.mjs release-assets "${{ needs.preflight.outputs.release_channel }}" ${{ needs.native-timeline.result == 'success' && '--with-timeline' || '' }}
+        run: node scripts/validate-release-assets.mjs release-assets "${{ needs.preflight.outputs.release_channel }}"
 
       - name: Smoke-test updater manifests
         run: node scripts/smoke-release-updater-assets.mjs release-assets "${{ needs.preflight.outputs.version }}" "${{ needs.preflight.outputs.release_channel }}"
@@ -1103,3 +1103,44 @@ jobs:
             release-assets/*.mcpb
             release-assets/nodetool-sdk-v1-contract-*.tar
           fail_on_unmatched_files: true
+
+  publish-native-timeline:
+    name: Attach native Timeline packages
+    needs: [preflight, publish-release, native-timeline]
+    if: ${{ !cancelled() && needs.publish-release.result == 'success' && needs.native-timeline.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified Timeline artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: timeline-*
+          merge-multiple: true
+          path: timeline-assets
+      - name: Attach Timeline packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          set -euo pipefail
+          assets=(
+            "nodetool-timeline-$VERSION-macos-arm64.zip"
+            "nodetool-timeline-$VERSION-windows-x64.zip"
+            "nodetool-timeline-$VERSION-linux-x64.AppImage"
+          )
+          for asset in "${assets[@]}"; do
+            test -s "timeline-assets/$asset" || { echo "::error::Missing Timeline package $asset"; exit 1; }
+          done
+          uploaded=$(gh release view "$TAG" --json assets --jq '.assets[] | select(.state == "uploaded") | .name')
+          pending=()
+          for asset in "${assets[@]}"; do
+            if ! grep -Fxq -- "$asset" <<< "$uploaded"; then
+              pending+=("timeline-assets/$asset")
+            fi
+          done
+          if (( ${#pending[@]} > 0 )); then
+            gh release upload "$TAG" "${pending[@]}"
+          fi
