@@ -143,6 +143,18 @@ double ReframeController::sourceMsAt(const QString& clipId, double timeMs) const
 }
 QJsonValue ReframeController::evaluate(const QJsonObject& request) const { return nt::reframe::evaluate(request); }
 
+bool ReframeController::hasReframe(const QStringList& selection) const {
+    if (!m_model || selection.size() != 1) {
+        return false;
+    }
+    const auto& timeline = m_model->timeline();
+    const auto id = selection.first().toStdString();
+    const auto clip = std::ranges::find(timeline.clips, id, &nt::Clip::id);
+    return clip != timeline.clips.end() && clip->raw.contains("reframe") &&
+           (clip->mediaType == nt::MediaType::Video || clip->mediaType == nt::MediaType::Image ||
+            clip->raw.value("mediaType") == "overlay");
+}
+
 QVariantMap ReframeController::previewState(const QStringList& selection, double timeMs) const {
     if (!m_model || selection.size() != 1) {
         return {};

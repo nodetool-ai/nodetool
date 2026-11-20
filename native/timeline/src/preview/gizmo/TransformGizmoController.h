@@ -79,6 +79,7 @@ protected:
     void keyReleaseEvent(QKeyEvent* event) override;
     void focusInEvent(QFocusEvent* event) override;
 private:
+    void onClockTimeChanged();
     void refresh();
     void clearPointerFeedback();
     QString targetAt(QPointF point) const;
@@ -122,4 +123,11 @@ private:
     QHash<QString, QString> m_pathVersions;
     QSet<QString> m_probing;
     quint64 m_probeEpoch = 0;
+    // Fast path for clock.timeChanged: when the selected clip has no
+    // time-varying transform/parent/camera/transition, skip activeLayersAt()
+    // while the playhead stays on the same side of [startMs, endMs).
+    bool m_clockStaticValid = false;
+    bool m_clockStaticInside = false;
+    double m_clockStaticStartMs = 0.0;
+    double m_clockStaticEndMs = 0.0;
 };
