@@ -8,6 +8,7 @@
 // A press seeks, a drag scrubs. A press on a flag reports the marker instead.
 
 #include <QColor>
+#include <QImage>
 #include <QQuickPaintedItem>
 #include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
@@ -99,6 +100,8 @@ protected:
 
 private:
     void changedValue();
+    void changedBackdrop();
+    void rebuildBackdrop(double dpr);
     void setScrubbing(bool on);
     double frameMs() const;
 
@@ -119,4 +122,8 @@ private:
     bool m_dragged = false;
     int m_pressedMarker = -1;
     int m_paintCount = 0;
+    // Cached ticks, in/out range, and marker flags (GUI thread only).
+    QImage m_backdrop;
+    bool m_backdropDirty = true;
+    double m_backdropDpr = 0.0;
 };

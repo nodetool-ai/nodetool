@@ -21,6 +21,7 @@ class ClipInspectorController : public QObject {
     // While false, `clip` and `locked` hold their last value and no model change reaches them.
     Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
     Q_PROPERTY(double playheadMs READ playheadMs NOTIFY playheadChanged)
+    Q_PROPERTY(bool playheadOnClip READ playheadOnClip NOTIFY playheadOnClipChanged)
     Q_PROPERTY(QVariantList rows READ rows CONSTANT)
   public:
     explicit ClipInspectorController(QObject* parent = nullptr) : QObject(parent) {
@@ -38,6 +39,7 @@ class ClipInspectorController : public QObject {
     bool active() const { return m_active; }
     void setActive(bool active);
     double playheadMs() const;
+    bool playheadOnClip() const { return m_playheadOnClip; }
     QVariantList rows() const;
     Q_INVOKABLE QVariantMap rowState(const QString& row) const;
     // The Effect Controls rows split rowState so a seek reads no keyframe list: `rowDocument`
@@ -64,6 +66,7 @@ class ClipInspectorController : public QObject {
   signals:
     void changed();
     void playheadChanged();
+    void playheadOnClipChanged();
     void activeChanged();
     // The user changed this row: the keyframe key now keys it.
     void rowEdited(const QString& row);
@@ -72,6 +75,7 @@ class ClipInspectorController : public QObject {
     QJsonObject selected() const;
     // Re-reads the selected clip and its lock. Emits `changed` only when either differs, or when forced.
     void refresh(bool force = false);
+    void updatePlayhead(bool forcePlayheadSignal = false);
     bool computeLocked(const QJsonObject& clip) const;
     QJsonObject payload(const QVariantMap& value) const;
     QPointer<TimelineModel> m_timeline;
@@ -83,6 +87,8 @@ class ClipInspectorController : public QObject {
     mutable bool m_clipMapValid = false;
     bool m_locked = true;
     bool m_active = true;
+    double m_lastPlayheadMs = -1.0;
+    bool m_playheadOnClip = false;
     bool m_gesturing = false;
     bool m_ignoreCommit = false;
     quint64 m_generation = 0;

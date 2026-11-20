@@ -1099,6 +1099,48 @@ class TestKeyframes : public QObject {
         model.undoStack()->undo();
         QCOMPARE(nt::evaluateScene(*model.snapshot(), 100).layers[0].opacity, 0.8);
     }
+    void playheadSignalsStayQuietOutsideClipAndOnClipTracksBoundary() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        PlaybackClock clock;
+        clock.setDurationMs(5000);
+        clock.seek(3000);
+        ClipInspectorController controller;
+        controller.setTimeline(&model);
+        controller.setClock(&clock);
+        controller.setClipId("c");
+        QCOMPARE(controller.playheadMs(), -1.0);
+        QVERIFY(!controller.playheadOnClip());
+
+        QSignalSpy playheadSpy(&controller, &ClipInspectorController::playheadChanged);
+        QSignalSpy onClipSpy(&controller, &ClipInspectorController::playheadOnClipChanged);
+        // Moving while outside the clip keeps playheadMs at -1 and emits neither signal.
+        clock.seek(3100);
+        clock.seek(3500);
+        clock.seek(4000);
+        QCOMPARE(playheadSpy.count(), 0);
+        QCOMPARE(onClipSpy.count(), 0);
+
+        // Entering the clip emits both signals once.
+        clock.seek(500);
+        QCOMPARE(controller.playheadMs(), 500.0);
+        QVERIFY(controller.playheadOnClip());
+        QCOMPARE(playheadSpy.count(), 1);
+        QCOMPARE(onClipSpy.count(), 1);
+
+        // Moving within the clip updates playheadMs without re-emitting playheadOnClipChanged.
+        clock.seek(600);
+        clock.seek(700);
+        clock.seek(800);
+        QCOMPARE(playheadSpy.count(), 4);
+        QCOMPARE(onClipSpy.count(), 1);
+
+        // Leaving the clip flips playheadOnClip back to false.
+        clock.seek(3500);
+        QCOMPARE(controller.playheadMs(), -1.0);
+        QVERIFY(!controller.playheadOnClip());
+        QCOMPARE(onClipSpy.count(), 2);
+    }
 };
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
