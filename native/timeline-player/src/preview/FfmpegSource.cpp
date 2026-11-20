@@ -18,9 +18,12 @@ extern "C" {
 #include <QByteArray>
 #include <QString>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <optional>
+#include <span>
 #include <utility>
 
 namespace nt {
@@ -218,17 +221,25 @@ YuvMatrix matrixFor(AVColorSpace cs, int height) {
     }
 }
 
-// The decoder state the worker owns: container, codec, and the timestamp
-// bookkeeping for one pass through the stream.
-struct Stream {
-    Opened o;
+// Codec-side state so Auto hybrid mode can share one open container between
+// the hardware and software AVCodecContexts (never used concurrently).
+struct CodecEngine {
     std::unique_ptr<AVCodecContext, CodecCloser> ctx;
     std::unique_ptr<AVBufferRef, BufferUnref> hwDevice;
-    bool hardware = false;   // decoding with VideoToolbox
-    bool gotFrame = false;   // a frame came out since the stream opened
+    bool hardware = false;   // decoding with hardware interop
+    bool gotFrame = false;   // a frame came out since the codec opened
+};
+
+// The decoder state the worker owns: container, active codec engine, and the
+// timestamp bookkeeping for one pass through the stream.
+struct Stream {
+    Opened o;
+    CodecEngine engine;
     double tb = 0.0;
     int64_t start = 0;
     double frameDur = 1.0 / 30.0;
+    int nalLengthSize = 0;       // AVCC/HVCC length prefix size (1..4), or 0
+    int hevcTemporalLayers = 0;  // HVCC numTemporalLayers (1..7), or 0 when unknown
     bool draining = false;
     bool eof = false;
     // True while decoding from the first packet: the first timestamp-less
@@ -237,13 +248,45 @@ struct Stream {
     std::optional<double> lastPts;  // unset until a frame is placed
 };
 
-// Sets up the platform's hardware decoder on `ctx` (D15, hw/HwInterop.h).
-// Empty on success, else why not.
-std::string setUpHardware(Stream& s) {
-    AVBufferRef* device = nullptr;
-    const std::string reason = hw::setUpDecoder(s.ctx.get(), s.o.codec, s.o.facts.codec, &device);
-    if (device) s.hwDevice.reset(device);
-    return reason;
+// Allocates and opens one codec context on an already-opened stream container.
+bool openCodecEngine(CodecEngine& eng, const Opened& o, bool hardware, std::string* hwReason,
+                     bool failHardwareForTest = false, std::string* errorOut = nullptr) {
+    eng.ctx.reset();
+    eng.hwDevice.reset();
+    eng.hardware = false;
+    eng.gotFrame = false;
+    eng.ctx.reset(avcodec_alloc_context3(o.codec));
+    if (!eng.ctx) {
+        if (errorOut) *errorOut = "codec alloc failed";
+        return false;
+    }
+    avcodec_parameters_to_context(eng.ctx.get(), o.stream->codecpar);
+    if (hardware) {
+        std::string reason;
+        if (failHardwareForTest) {
+            reason = std::string(hw::apiName()) + " setup failed (test)";
+        } else {
+            AVBufferRef* device = nullptr;
+            reason = hw::setUpDecoder(eng.ctx.get(), o.codec, o.facts.codec, &device);
+            if (device) eng.hwDevice.reset(device);
+        }
+        eng.hardware = reason.empty();
+        if (hwReason) *hwReason = reason;
+    }
+    if (eng.hardware) {
+        eng.ctx->thread_count = 1;  // VideoToolbox decodes on its own threads
+    } else {
+        // One thread per core (FFmpeg's automatic count): a seek decodes from
+        // the keyframe to the target, about 3x faster than with 2 threads.
+        eng.ctx->thread_count = 0;
+        eng.ctx->thread_type = FF_THREAD_FRAME;
+    }
+    const int rc = avcodec_open2(eng.ctx.get(), o.codec, nullptr);
+    if (rc < 0) {
+        if (errorOut) *errorOut = "codec open: " + avError(rc);
+        return false;
+    }
+    return true;
 }
 
 // Opens the container and the codec. With `hardware`, it tries VideoToolbox
@@ -251,29 +294,11 @@ std::string setUpHardware(Stream& s) {
 bool openDecoder(Stream& s, const std::string& path, const AVIOInterruptCB* interrupt, bool hardware,
                  std::string* hwReason, bool failHardwareForTest = false) {
     s.o = openStream(path, interrupt);
-    s.ctx.reset();
-    s.hwDevice.reset();
-    s.hardware = false;
-    s.gotFrame = false;
+    s.engine = CodecEngine{};
+    s.nalLengthSize = 0;
+    s.hevcTemporalLayers = 0;
     if (!s.o.facts.usable()) return false;
-    s.ctx.reset(avcodec_alloc_context3(s.o.codec));
-    avcodec_parameters_to_context(s.ctx.get(), s.o.stream->codecpar);
-    if (hardware) {
-        const std::string reason = failHardwareForTest ? std::string(hw::apiName()) + " setup failed (test)" : setUpHardware(s);
-        s.hardware = reason.empty();
-        if (hwReason) *hwReason = reason;
-    }
-    if (s.hardware) {
-        s.ctx->thread_count = 1;  // VideoToolbox decodes on its own threads
-    } else {
-        // One thread per core (FFmpeg's automatic count): a seek decodes from
-        // the keyframe to the target, about 3x faster than with 2 threads.
-        s.ctx->thread_count = 0;
-        s.ctx->thread_type = FF_THREAD_FRAME;
-    }
-    const int rc = avcodec_open2(s.ctx.get(), s.o.codec, nullptr);
-    if (rc < 0) {
-        s.o.facts.error = "codec open: " + avError(rc);
+    if (!openCodecEngine(s.engine, s.o, hardware, hwReason, failHardwareForTest, &s.o.facts.error)) {
         return false;
     }
     AVStream* st = s.o.stream;
@@ -281,17 +306,76 @@ bool openDecoder(Stream& s, const std::string& path, const AVIOInterruptCB* inte
     s.start = st->start_time == AV_NOPTS_VALUE ? 0 : st->start_time;
     // The codec's own rate (an H.264 VUI timing) is the better guess for a
     // raw stream, where the container rate is a default.
-    const double codecRate = rationalToDouble(s.ctx->framerate);
+    const double codecRate = rationalToDouble(s.engine.ctx->framerate);
     if (s.o.facts.frameRate <= 0.0 || (codecRate > 0.0 && st->start_time == AV_NOPTS_VALUE)) {
         s.o.facts.frameRate = codecRate > 0.0 ? codecRate : 30.0;
     }
     s.frameDur = 1.0 / s.o.facts.frameRate;
-    s.o.facts.decoder = s.hardware ? hw::decoderName() : "software";
+    const AVCodecParameters* par = st->codecpar;
+    if (par->extradata && par->extradata_size > 0) {
+        const std::span<const uint8_t> extra(par->extradata, static_cast<size_t>(par->extradata_size));
+        if (par->codec_id == AV_CODEC_ID_H264 && extra.size() >= 7 && extra[0] == 1) {
+            s.nalLengthSize = static_cast<int>(extra[4] & 0x03u) + 1;
+        } else if (par->codec_id == AV_CODEC_ID_HEVC && extra.size() >= 23 && extra[0] == 1) {
+            s.nalLengthSize = static_cast<int>(extra[21] & 0x03u) + 1;
+            s.hevcTemporalLayers = static_cast<int>((extra[21] >> 3) & 0x07u);
+        }
+    }
+    s.o.facts.decoder = s.engine.hardware ? hw::decoderName() : "software";
     s.draining = false;
     s.eof = false;
     s.fromStart = true;
     s.lastPts.reset();
     return true;
+}
+
+// True only when `pkt` is provably never referenced by any subsequent picture
+// in decoding order, so dropping it before avcodec_send_packet() during
+// software catch-up cannot affect any later frame's decoded pixels.
+bool isProvablyNonReferencePacket(AVCodecID codecId, const AVPacket* pkt, int nalLengthSize, int hevcTemporalLayers) {
+    if (!pkt || !pkt->data || pkt->size <= 0) return false;
+    if (pkt->flags & AV_PKT_FLAG_KEY) return false;
+    if (pkt->flags & AV_PKT_FLAG_DISPOSABLE) return true;
+    if (nalLengthSize <= 0 || nalLengthSize > 4) return false;
+    if (codecId != AV_CODEC_ID_H264 && codecId != AV_CODEC_ID_HEVC) return false;
+    if (codecId == AV_CODEC_ID_HEVC && hevcTemporalLayers <= 0) return false;
+
+    const std::span<const uint8_t> data(pkt->data, static_cast<size_t>(pkt->size));
+    size_t pos = 0;
+    bool sawVcl = false;
+    while (pos + static_cast<size_t>(nalLengthSize) <= data.size()) {
+        size_t nalSize = 0;
+        for (int i = 0; i < nalLengthSize; ++i) {
+            nalSize = (nalSize << 8) | data[pos + static_cast<size_t>(i)];
+        }
+        pos += static_cast<size_t>(nalLengthSize);
+        if (nalSize == 0 || nalSize > data.size() - pos) return false;
+        const uint8_t hdr = data[pos];
+        if (codecId == AV_CODEC_ID_H264) {
+            const uint8_t nalRefIdc = (hdr >> 5) & 0x03u;
+            const uint8_t nalType = hdr & 0x1Fu;
+            if (nalType == 5 || nalType == 7 || nalType == 8 || nalType == 13 || nalType == 15) return false;
+            if (nalType >= 1 && nalType <= 5) {
+                sawVcl = true;
+                if (nalRefIdc != 0) return false;
+            }
+        } else {
+            if (nalSize < 2) return false;
+            const uint8_t nalType = (hdr >> 1) & 0x3Fu;
+            const int temporalIdPlus1 = static_cast<int>(data[pos + 1] & 0x07u);
+            if (nalType == 32 || nalType == 33 || nalType == 34 || (nalType >= 16 && nalType <= 23)) return false;
+            if (nalType <= 31) {
+                sawVcl = true;
+                // ITU-T H.265 Table 7-1 sub-layer non-reference picture types at the
+                // highest temporal sub-layer cannot be referenced by any other picture.
+                const bool subLayerNonRef =
+                    nalType == 0 || nalType == 2 || nalType == 4 || nalType == 6 || nalType == 8;
+                if (!subLayerNonRef || temporalIdPlus1 < hevcTemporalLayers) return false;
+            }
+        }
+        pos += nalSize;
+    }
+    return sawVcl && pos == data.size();
 }
 
 // A container time base coarser than the frame grid rounds frame times: in
@@ -465,6 +549,14 @@ void FfmpegDecoder::testPush(double ptsSec) {
     m_ring.push(std::move(f));
 }
 
+void FfmpegDecoder::notifyWorker() {
+    {
+        std::lock_guard lock(m_wakeMutex);
+        m_wakePending = true;
+    }
+    m_wake.notify_one();
+}
+
 void FfmpegDecoder::reportImportFailure(const std::string& reason, bool hardwareFrameShown) {
     {
         std::lock_guard lock(m_importMutex);
@@ -472,11 +564,15 @@ void FfmpegDecoder::reportImportFailure(const std::string& reason, bool hardware
         m_importAfterShown = hardwareFrameShown;
     }
     m_importFailed = true;
-    m_wake.notify_one();
+    notifyWorker();
 }
 
 void FfmpegDecoder::requestStop() {
     m_stop = true;
+    {
+        std::lock_guard lock(m_wakeMutex);
+        m_wakePending = true;
+    }
     m_wake.notify_all();
 }
 
@@ -499,20 +595,63 @@ std::shared_ptr<const MediaFacts> FfmpegDecoder::facts() const {
     return m_facts;
 }
 
+void FfmpegDecoder::resetForClip(double targetSec) {
+    m_shown.reset();
+    m_exact = false;
+    m_nextFrameSec.reset();
+    m_settling = true;
+    m_forwardStreak = 0;
+    m_sequentialPlayback.store(false, std::memory_order_relaxed);
+    m_lastTargetSec = -1e300;
+    m_lastMoveDeltaSec = 0.0;
+    const long long genBefore = m_requestGen.load(std::memory_order_acquire);
+    clearLandedUpTo(genBefore);
+    m_shownLandedGen = genBefore;
+    (void)frameAt(targetSec);
+    if (m_exact) return;
+    // Target is not immediately exact: ensure no frame from the previous clip
+    // remains displayed or queued, and start seeking to `targetSec`.
+    m_shown.reset();
+    bool needWake = false;
+    {
+        std::lock_guard lock(m_requestMutex);
+        const long long genNow = m_requestGen.load(std::memory_order_relaxed);
+        if (genNow == genBefore) {
+            m_backwardScrub.store(false, std::memory_order_relaxed);
+            m_restartSec.store(targetSec, std::memory_order_release);
+            const long long nextGen = genNow + 1;
+            m_requestGen.store(nextGen, std::memory_order_release);
+            m_shownLandedGen = nextGen;
+            needWake = true;
+        }
+    }
+    if (needWake) notifyWorker();
+}
+
 std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec, FrameAccess access) {
     m_nextFrameSec.reset();
-    m_targetSec = targetSec;
-    if (m_lastTargetSec > -1e200 && std::abs(targetSec - m_lastTargetSec) > kTimestampEpsilonSec) {
-        m_lastMoveDeltaSec = targetSec - m_lastTargetSec;
+    m_cachedAccess.store(access == FrameAccess::Cached, std::memory_order_release);
+    m_targetSec.store(targetSec, std::memory_order_release);
+    const bool hadPrevTarget = m_lastTargetSec > -1e200;
+    const double stepDelta = hadPrevTarget ? targetSec - m_lastTargetSec : 0.0;
+    const bool targetChanged = !hadPrevTarget || std::abs(stepDelta) > kTimestampEpsilonSec;
+    if (hadPrevTarget && std::abs(stepDelta) > kTimestampEpsilonSec) {
+        m_lastMoveDeltaSec = stepDelta;
     }
-    if (targetSec < m_lastTargetSec - kTimestampEpsilonSec || targetSec - m_lastTargetSec > kSeekJumpSec) {
+    if (targetSec < m_lastTargetSec - kTimestampEpsilonSec || stepDelta > kSeekJumpSec) {
         m_settling = true;
+        m_forwardStreak = 0;
+        m_sequentialPlayback.store(false, std::memory_order_relaxed);
+    } else if (hadPrevTarget && stepDelta > kTimestampEpsilonSec && stepDelta <= 0.35 && !m_settling) {
+        if (++m_forwardStreak >= 3) {
+            m_sequentialPlayback.store(true, std::memory_order_relaxed);
+        }
     }
     m_lastTargetSec = targetSec;
     // One snapshot: the pick, whether a later frame is queued, end of
     // stream, and the generation they belong to (F1).
     auto snap = m_ring.pick(targetSec);
-    const long long gen = m_requestGen.load();
+    const long long gen = m_requestGen.load(std::memory_order_acquire);
     // A paused scrub checks the cache before it seeks (D19): a frame decoded
     // earlier that the cache proves is the D17 pick is shown now, exact, and
     // the decoder is left where it is.
@@ -545,7 +684,7 @@ std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec, FrameAcce
     // The decoder's position: where the last seek put it, or the frame it
     // has reached past that. Frames still catching up to a seek count as the
     // seek target, so a pending seek is not restarted every frame.
-    double position = m_restartSec;
+    double position = m_restartSec.load(std::memory_order_acquire);
     {
         // Frames before the skip floor may have been skipped: a target there
         // needs a new run.
@@ -566,16 +705,27 @@ std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec, FrameAcce
     const bool seekInFlight =
         m_hasWorker && access == FrameAccess::Cached && m_settledGen.load(std::memory_order_acquire) < gen;
     long long current = gen;
+    bool bumpedGen = false;
     if ((backward || farForward) && !seekInFlight) {
-        const bool backwardScrub =
-            backward && m_lastMoveDeltaSec < -kTimestampEpsilonSec && m_lastMoveDeltaSec >= -kMaxSequentialGapSec;
-        m_backwardScrub.store(backwardScrub, std::memory_order_relaxed);
-        m_restartSec = targetSec;
-        current = gen + 1;
-        m_requestGen = current;
-        snap = {};
+        std::lock_guard lock(m_requestMutex);
+        if (m_requestGen.load(std::memory_order_relaxed) == gen) {
+            const bool backwardScrub =
+                backward && m_lastMoveDeltaSec < -kTimestampEpsilonSec && m_lastMoveDeltaSec >= -kMaxSequentialGapSec;
+            m_backwardScrub.store(backwardScrub, std::memory_order_relaxed);
+            m_forwardStreak = 0;
+            m_sequentialPlayback.store(false, std::memory_order_relaxed);
+            m_restartSec.store(targetSec, std::memory_order_release);
+            current = gen + 1;
+            m_requestGen.store(current, std::memory_order_release);
+            bumpedGen = true;
+            snap = {};
+        } else {
+            current = m_requestGen.load(std::memory_order_acquire);
+        }
     }
-    m_wake.notify_one();
+    if (bumpedGen || targetChanged || (!seekInFlight && !queueHasPick)) {
+        notifyWorker();
+    }
     if (m_testHook) m_testHook();
 
     const bool pickReady = snap.front && snap.generation == current && snap.front->generation == current &&
@@ -615,7 +765,7 @@ void FfmpegDecoder::run() {
         std::string reason;
         bool ok = openDecoder(s, m_path, &interrupt, wantHardware, &reason, m_failHardwareOnOpen == opens++);
         const bool streamFine = s.o.facts.opened && s.o.facts.rejection.empty();
-        if (wantHardware && streamFine && (!ok || !s.hardware)) {
+        if (wantHardware && streamFine && (!ok || !s.engine.hardware)) {
             if (!ok) reason = s.o.facts.error;  // the codec did not open with VideoToolbox
             if (mode == DecodeMode::Hardware) {
                 MediaFacts failed = s.o.facts;
@@ -632,7 +782,7 @@ void FfmpegDecoder::run() {
         if (!ok && facts.error.empty() && facts.rejection.empty()) facts.error = "open failed";
         publishFacts(facts);
         beat();
-        m_hardwareActive = ok && s.hardware;
+        m_hardwareActive = ok && s.engine.hardware;
         return ok;
     };
     if (!openWithPolicy(mode != DecodeMode::Software)) {
@@ -640,21 +790,24 @@ void FfmpegDecoder::run() {
     }
     // Auto with VideoToolbox: a seek decodes to its target in software on
     // every core (about 3x faster than VideoToolbox, which takes one frame at
-    // a time), and playback goes back to VideoToolbox at the next keyframe.
-    // `parked` holds the decoder not in use.
-    bool hybrid = mode == DecodeMode::Auto && s.hardware && m_softwareSeeks;
-    Stream parked;
+    // a time), and sustained playback goes back to VideoToolbox at the next
+    // keyframe. `parkedEngine` shares `s.o` (one open container).
+    bool hybrid = mode == DecodeMode::Auto && s.engine.hardware && m_softwareSeeks;
+    CodecEngine parkedEngine;
     bool switching = false;            // the software decoder drains before the switch to VideoToolbox
     int64_t switchKeyTs = 0;           // the keyframe VideoToolbox starts at
     double switchFloorSec = -1e300;    // frames up to here were queued before the switch
 
     std::unique_ptr<AVPacket, PacketFree> pkt(av_packet_alloc());
+    std::unique_ptr<AVPacket, PacketFree> drainHeldPkt(av_packet_alloc());
     std::unique_ptr<AVFrame, FrameFree> frm(av_frame_alloc());
     std::unique_ptr<SwsContext, SwsFree> sws;
     long long workerGen = 0;
     double seekTarget = 0.0;
     bool workerSettled = false;
     bool allowSkip = m_skipNonReference;
+    bool backwardScrubRun = false;
+    double backwardCacheFloorSec = -1e300;
     // Latest frame decoded in this seek whose PTS starts by seekTarget.
     // Published to frameAt() when the seek lands so a superseded seek still paints.
     std::shared_ptr<DecodedFrame> seekPick;
@@ -663,6 +816,41 @@ void FfmpegDecoder::run() {
     // Every frame skipped in this run starts before this floor, so two frames
     // decoded at or after it are neighbours in presentation order.
     double runSkipFloor = -1e300;
+
+    // Early soft-drain state for software seeks: stops FF_THREAD_FRAME from
+    // decoding ~12 extra frames past seekTarget once the pick and its true
+    // immediate successor are provably already in the codec.
+    bool seekDraining = false;
+    bool seekDrained = false;
+    std::chrono::steady_clock::time_point seekDrainedAt{};
+    bool drainHasHeldPkt = false;
+    bool dtsValid = true;
+    bool sawFirstPacket = false;
+    double lastPacketDtsSec = -1e300;
+    double dtsMarginSec = 0.0;
+    bool sawPastTarget = false;
+    double minPastPts = 1e300;
+    double drainDtsCeiling = 1e300;
+    double drainLastEmittedPts = -1e300;
+    double resumeSkipUntilPts = -1e300;
+
+    const auto resetSeekDrainState = [&]() {
+        seekDraining = false;
+        seekDrained = false;
+        if (drainHasHeldPkt) {
+            av_packet_unref(drainHeldPkt.get());
+            drainHasHeldPkt = false;
+        }
+        dtsValid = true;
+        sawFirstPacket = false;
+        lastPacketDtsSec = -1e300;
+        dtsMarginSec = 0.0;
+        sawPastTarget = false;
+        minPastPts = 1e300;
+        drainDtsCeiling = 1e300;
+        drainLastEmittedPts = -1e300;
+        resumeSkipUntilPts = -1e300;
+    };
 
     // Open GOP: whether this run has decoded a frame that starts by the
     // target, and how far before the target the last re-seek went.
@@ -673,6 +861,28 @@ void FfmpegDecoder::run() {
         if (workerSettled) return;
         if (seekPick) publishLanded(std::move(seekPick), workerGen);
         workerSettled = true;
+        // Zero-idle self-chaining: if continuous dragging moved the target
+        // backward or past the sequential gap while this seek was in flight
+        // and the new target is not cached, start the next seek immediately
+        // instead of idling until the next vsync.
+        if (m_cachedAccess.load(std::memory_order_acquire)) {
+            const double latestTarget = m_targetSec.load(std::memory_order_acquire);
+            const bool needChain = latestTarget < seekTarget - kTimestampEpsilonSec ||
+                                   latestTarget - seekTarget > kMaxSequentialGapSec;
+            if (needChain && !FrameCache::shared().contains(m_path, latestTarget)) {
+                std::lock_guard lock(m_requestMutex);
+                if (m_requestGen.load(std::memory_order_relaxed) == workerGen) {
+                    const bool back = latestTarget < seekTarget - kTimestampEpsilonSec &&
+                                      seekTarget - latestTarget <= kMaxSequentialGapSec;
+                    m_backwardScrub.store(back, std::memory_order_relaxed);
+                    m_restartSec.store(latestTarget, std::memory_order_release);
+                    m_requestGen.store(workerGen + 1, std::memory_order_release);
+                    // Leave m_settledGen < workerGen + 1 so frameAt() keeps
+                    // seekInFlight true for the newly chained seek.
+                    return;
+                }
+            }
+        }
         m_settledGen.store(workerGen, std::memory_order_release);
     };
 
@@ -681,7 +891,10 @@ void FfmpegDecoder::run() {
     // `hardware` keeps or drops VideoToolbox.
     const auto reopen = [&](bool hardware) -> bool {
         ++m_reopenCount;
-        return openWithPolicy(hardware);
+        parkedEngine = CodecEngine{};
+        const bool ok = openWithPolicy(hardware);
+        hybrid = hybrid && ok && s.engine.hardware;
+        return ok;
     };
     bool pendingPacket = false;  // `pkt` holds a packet the decoder refused with EAGAIN
     // Seeks to the random access point at or before `sec`; on a failed seek,
@@ -691,14 +904,75 @@ void FfmpegDecoder::run() {
         const int64_t ts =
             s.start + av_rescale_q(std::llround(std::max(0.0, sec) * AV_TIME_BASE), AV_TIME_BASE_Q, st->time_base);
         if (av_seek_frame(s.o.fmt.get(), st->index, ts, AVSEEK_FLAG_BACKWARD) >= 0) {
-            avcodec_flush_buffers(s.ctx.get());
+            avcodec_flush_buffers(s.engine.ctx.get());
             s.draining = false;
             s.eof = false;
             s.fromStart = false;
             s.lastPts.reset();
             return true;
         }
-        return reopen(s.hardware);
+        return reopen(s.engine.hardware);
+    };
+    // Resumes forward decoding after an early seek soft-drain. On paused jumps
+    // that landed within kMaxSequentialGapSec forward (where frameAt did not
+    // bump m_requestGen), seeks directly to `target` instead of re-decoding the
+    // previous GOP from its keyframe. On intra/zero-reorder streams with a held
+    // keyframe and small steps, resumes with zero seek overhead.
+    const auto resumeFromSeekDrain = [&](double resumeGoal, long long activeGen, bool allowDirectJump) -> bool {
+        seekDrained = false;
+        const int reorderDelay = std::max({0, s.engine.ctx->has_b_frames, s.o.stream->codecpar->video_delay});
+        const bool heldFastKey = drainHasHeldPkt && (drainHeldPkt->flags & AV_PKT_FLAG_KEY) && reorderDelay == 0;
+        const bool directSeekJump =
+            allowDirectJump && m_cachedAccess.load(std::memory_order_acquire) &&
+            !m_sequentialPlayback.load(std::memory_order_relaxed) &&
+            (resumeGoal - seekTarget > kSeekJumpSec ||
+             (heldFastKey && resumeGoal - drainLastEmittedPts > 2.0 * s.frameDur));
+        if (directSeekJump) {
+            seekTarget = resumeGoal;
+            workerSettled = false;
+            seekPick.reset();
+            resetSeekDrainState();
+            backwardScrubRun = false;
+            backwardCacheFloorSec = -1e300;
+            allowSkip = m_skipNonReference;
+            lastCachedPts = -1.0;
+            anchorSec = -1e300;
+            runSkipFloor = -1e300;
+            runHasPick = false;
+            reseekBackSec = 0.0;
+            if (!seekTo(resumeGoal)) return false;
+            m_ring.reset(activeGen);
+            beat();
+            return true;
+        }
+        if (heldFastKey) {
+            avcodec_flush_buffers(s.engine.ctx.get());
+            s.draining = false;
+            s.eof = false;
+            av_packet_move_ref(pkt.get(), drainHeldPkt.get());
+            drainHasHeldPkt = false;
+            pendingPacket = true;
+            resumeSkipUntilPts = drainLastEmittedPts;
+            allowSkip = false;
+            backwardScrubRun = false;
+            backwardCacheFloorSec = -1e300;
+            return true;
+        }
+        if (drainHasHeldPkt) {
+            av_packet_unref(drainHeldPkt.get());
+            drainHasHeldPkt = false;
+        }
+        const double resumeTarget = drainLastEmittedPts > -1e200 ? drainLastEmittedPts : seekTarget;
+        if (!seekTo(resumeTarget)) return false;
+        resumeSkipUntilPts = drainLastEmittedPts;
+        runHasPick = false;
+        reseekBackSec = 0.0;
+        allowSkip = m_skipNonReference;
+        backwardScrubRun = false;
+        backwardCacheFloorSec = -1e300;
+        anchorSec = -1e300;
+        runSkipFloor = -1e300;
+        return true;
     };
     // Sends a packet; the test seam fails one send after N packets.
     int packetsSent = 0;
@@ -707,18 +981,18 @@ void FfmpegDecoder::run() {
     const int lossAfter = m_frameLossAfterFrames;
     int hwFramesSeen = 0;
     const auto sendPacket = [&](AVPacket* packet) -> int {
-        if (s.hardware && stallAfter >= 0 && stallAfter-- == 0) testStall();
+        if (s.engine.hardware && stallAfter >= 0 && stallAfter-- == 0) testStall();
         if (failAfter >= 0 && packetsSent++ >= failAfter) {
             failAfter = -1;
             return AVERROR_INVALIDDATA;
         }
-        return avcodec_send_packet(s.ctx.get(), packet);
+        return avcodec_send_packet(s.engine.ctx.get(), packet);
     };
     // VideoToolbox failed before its first frame: Auto continues in software
     // from the same position (D15), Hardware fails the clip.
     const auto hardwareFailed = [&](const std::string& reason, long long gen) -> bool {
         hybrid = false;
-        parked = Stream{};
+        parkedEngine = CodecEngine{};
         if (mode == DecodeMode::Hardware) {
             MediaFacts failed = s.o.facts;
             failed.error = "hardware decode: " + reason;
@@ -738,8 +1012,8 @@ void FfmpegDecoder::run() {
     // stream and sit there with the target never decoded. A worker blocked in
     // a call makes no progress either.
     while (!m_stop) {
-        const long long gen = m_requestGen.load();
-        const double target = m_targetSec.load();
+        const long long gen = m_requestGen.load(std::memory_order_acquire);
+        const double target = m_targetSec.load(std::memory_order_acquire);
         if (m_importFailed.exchange(false)) {
             std::string reason;
             bool afterShown = false;
@@ -748,10 +1022,11 @@ void FfmpegDecoder::run() {
                 reason = "GPU import: " + m_importFailure;
                 afterShown = m_importAfterShown;
             }
-            if ((s.hardware || hybrid) && mode == DecodeMode::Auto && !afterShown) {
+            if ((s.engine.hardware || hybrid) && mode == DecodeMode::Auto && !afterShown) {
                 hybrid = false;
-                parked = Stream{};
+                parkedEngine = CodecEngine{};
                 switching = false;
+                resetSeekDrainState();
                 fallback = reason;
                 if (!reopen(false)) return;
                 m_ring.reset(gen);
@@ -768,7 +1043,21 @@ void FfmpegDecoder::run() {
             seekTarget = target;
             workerSettled = false;
             seekPick.reset();
-            allowSkip = m_skipNonReference && !m_backwardScrub.load(std::memory_order_relaxed);
+            resetSeekDrainState();
+            backwardScrubRun = m_backwardScrub.load(std::memory_order_relaxed);
+            backwardCacheFloorSec = -1e300;
+            if (backwardScrubRun) {
+                // Only decode without skipping for the window behind seekTarget that fits
+                // in FrameCache (75% of budget), so 4K backward drags do not decode and
+                // immediately evict doomed frames at the start of a long GOP.
+                const size_t estBytes = std::max<size_t>(
+                    1u, static_cast<size_t>(std::max(1, s.o.facts.width)) *
+                            static_cast<size_t>(std::max(1, s.o.facts.height)) * 3u / 2u);
+                const size_t usableBudget = FrameCache::shared().budgetBytes() * 3u / 4u;
+                const double maxFramesInCache = std::max(4.0, static_cast<double>(usableBudget / estBytes));
+                backwardCacheFloorSec = seekTarget - maxFramesInCache * s.frameDur;
+            }
+            allowSkip = m_skipNonReference;
             lastCachedPts = -1.0;  // a seek breaks the run: no successor link across it
             anchorSec = -1e300;
             runSkipFloor = -1e300;
@@ -781,12 +1070,12 @@ void FfmpegDecoder::run() {
             // seek index (a raw Annex-B file).
             switching = false;
             switchFloorSec = -1e300;
-            if (hybrid && s.hardware) {
-                if (!parked.ctx && !openDecoder(parked, m_path, &interrupt, false, nullptr)) {
+            if (hybrid && s.engine.hardware) {
+                if (!parkedEngine.ctx && !openCodecEngine(parkedEngine, s.o, false, nullptr)) {
                     hybrid = false;  // VideoToolbox serves seeks as before
-                    parked = Stream{};
+                    parkedEngine = CodecEngine{};
                 } else {
-                    std::swap(s, parked);
+                    std::swap(s.engine, parkedEngine);
                     m_hardwareActive = false;
                     ++m_engineSwitches;
                 }
@@ -806,12 +1095,56 @@ void FfmpegDecoder::run() {
         // if m_targetSec moves behind it; otherwise wantsMoreFrames() could go
         // idle and never mark workerGen settled.
         const double decodeGoal = workerSettled ? target : seekTarget;
-        if (s.eof || !wantsMoreFrames(m_ring.size(), m_ring.newestPts(), decodeGoal)) {
+        const double newestQueued = m_ring.newestPts();
+        if (seekDraining && workerSettled && !wantsMoreFrames(m_ring.size(), newestQueued, decodeGoal)) {
+            seekDraining = false;
+            seekDrained = true;
+            seekDrainedAt = std::chrono::steady_clock::now();
+        }
+        if (seekDrained) {
+            const bool forwardAdvance = target > seekTarget + kTimestampEpsilonSec;
+            const bool backwardMove = target < seekTarget - kTimestampEpsilonSec;
+            // Match frameAt()'s farForward boundary (`target - max(position, newest)`)
+            // so a step in (1.0, 1.0 + frameDur] never deadlocks between seekDrained and frameAt().
+            const bool farAhead = target - std::max(seekTarget, newestQueued) > kMaxSequentialGapSec;
+            const bool wantMore = !backwardMove && !farAhead &&
+                                  wantsMoreFrames(m_ring.size(), newestQueued, target);
+            constexpr auto kDrainIdleResumeDelay = std::chrono::milliseconds(50);
+            const auto now = std::chrono::steady_clock::now();
+            const bool idleExpired = now - seekDrainedAt >= kDrainIdleResumeDelay;
+            if (wantMore && (forwardAdvance || idleExpired)) {
+                if (!resumeFromSeekDrain(target, gen, forwardAdvance)) return;
+                continue;
+            }
+            beat();
+            auto waitFor = std::chrono::milliseconds(10);
+            if (wantMore && !idleExpired) {
+                const auto rem = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    kDrainIdleResumeDelay - (now - seekDrainedAt));
+                waitFor = std::clamp(rem, std::chrono::milliseconds(1), std::chrono::milliseconds(50));
+            }
+            std::unique_lock lock(m_wakeMutex);
+            m_wake.wait_for(lock, waitFor, [&] {
+                return m_wakePending || m_stop.load(std::memory_order_relaxed) ||
+                       m_importFailed.load(std::memory_order_relaxed) ||
+                       m_requestGen.load(std::memory_order_acquire) != workerGen;
+            });
+            m_wakePending = false;
+            continue;
+        }
+        const bool farAheadSettled =
+            workerSettled && m_ring.size() > 0 && target - std::max(seekTarget, newestQueued) > kMaxSequentialGapSec;
+        if (s.eof || farAheadSettled || (!seekDraining && !wantsMoreFrames(m_ring.size(), newestQueued, decodeGoal))) {
             // A full queue is idle, not stalled. The end of the stream is no
             // progress: with a target still pending there, frames were lost.
             if (!s.eof) beat();
             std::unique_lock lock(m_wakeMutex);
-            m_wake.wait_for(lock, std::chrono::milliseconds(10));
+            m_wake.wait_for(lock, std::chrono::milliseconds(10), [&] {
+                return m_wakePending || m_stop.load(std::memory_order_relaxed) ||
+                       m_importFailed.load(std::memory_order_relaxed) ||
+                       m_requestGen.load(std::memory_order_acquire) != workerGen;
+            });
+            m_wakePending = false;
             continue;
         }
 
@@ -822,10 +1155,11 @@ void FfmpegDecoder::run() {
         // the reason, so the report never says "ok" over a frozen picture.
         const auto decodeError = [&](int code, const char* where) -> bool {
             const std::string reason = std::string(where) + ": " + avError(code);
-            if (s.hardware && !s.gotFrame) {
+            if (s.engine.hardware && !s.engine.gotFrame) {
                 if (!hardwareFailed(std::string(hw::apiName()) + " decode " + reason, gen)) return false;
                 pendingPacket = false;
                 av_packet_unref(pkt.get());
+                resetSeekDrainState();
                 workerGen = 0;  // seek the software decoder to the target
                 return true;
             }
@@ -841,9 +1175,13 @@ void FfmpegDecoder::run() {
         // continues from it. On a failed seek, software decodes on.
         const auto finishSwitch = [&]() {
             switching = false;
-            std::swap(s, parked);
+            if (!parkedEngine.ctx) {
+                hybrid = false;
+                return;
+            }
+            std::swap(s.engine, parkedEngine);
             if (av_seek_frame(s.o.fmt.get(), s.o.stream->index, switchKeyTs, AVSEEK_FLAG_BACKWARD) >= 0) {
-                avcodec_flush_buffers(s.ctx.get());
+                avcodec_flush_buffers(s.engine.ctx.get());
                 s.draining = false;
                 s.eof = false;
                 s.fromStart = false;
@@ -853,17 +1191,39 @@ void FfmpegDecoder::run() {
                 ++m_engineSwitches;
                 return;
             }
-            std::swap(s, parked);
+            std::swap(s.engine, parkedEngine);
             hybrid = false;
-            parked = Stream{};
+            parkedEngine = CodecEngine{};
             const double keySec = static_cast<double>(switchKeyTs - s.start) * s.tb;
             if (!seekTo(keySec)) m_stop = true;
             switchFloorSec = m_ring.newestPts();
         };
 
-        int rc = avcodec_receive_frame(s.ctx.get(), frm.get());
+        int rc = avcodec_receive_frame(s.engine.ctx.get(), frm.get());
         if (switching && (rc == AVERROR_EOF || (rc == AVERROR(EAGAIN) && s.draining))) {
             finishSwitch();
+            continue;
+        }
+        if (seekDraining && (rc == AVERROR_EOF || rc == AVERROR(EAGAIN))) {
+            seekDraining = false;
+            if (workerSettled) {
+                seekDrained = true;
+                seekDrainedAt = std::chrono::steady_clock::now();
+            } else if (!runHasPick && !s.fromStart && reseekBackSec < seekTarget) {
+                resetSeekDrainState();
+                reseekBackSec = reseekBackSec <= 0.0 ? 1.0 : 2.0 * reseekBackSec;
+                if (!seekTo(seekTarget - reseekBackSec)) return;
+                lastCachedPts = -1.0;
+                anchorSec = -1e300;
+                runSkipFloor = -1e300;
+                seekPick.reset();
+                m_ring.reset(gen);
+                ++m_seekCount;
+                beat();
+            } else {
+                dtsValid = false;
+                if (!resumeFromSeekDrain(seekTarget, gen, false)) return;
+            }
             continue;
         }
         if (rc == AVERROR(EAGAIN)) {
@@ -876,7 +1236,7 @@ void FfmpegDecoder::run() {
             if (!pendingPacket) {
                 rc = av_read_frame(s.o.fmt.get(), pkt.get());
                 if (rc == AVERROR_EOF) {
-                    const int drain = avcodec_send_packet(s.ctx.get(), nullptr);
+                    const int drain = avcodec_send_packet(s.engine.ctx.get(), nullptr);
                     if (drain < 0 && drain != AVERROR_EOF && !decodeError(drain, "drain")) return;
                     s.draining = true;
                     continue;
@@ -890,14 +1250,15 @@ void FfmpegDecoder::run() {
                     av_packet_unref(pkt.get());
                     continue;
                 }
-                // Playback after a software seek: at a keyframe, drain the
-                // software decoder and switch to VideoToolbox.
-                if (hybrid && !s.hardware && workerSettled && (pkt->flags & AV_PKT_FLAG_KEY) &&
-                    pkt->pts != AV_NOPTS_VALUE && m_targetSec.load() - seekTarget > kSeekJumpSec) {
+                // Sustained forward playback after a software seek: at a keyframe,
+                // drain the software decoder and switch to VideoToolbox.
+                if (hybrid && !s.engine.hardware && workerSettled && (pkt->flags & AV_PKT_FLAG_KEY) &&
+                    pkt->pts != AV_NOPTS_VALUE && m_sequentialPlayback.load(std::memory_order_relaxed) &&
+                    m_targetSec.load(std::memory_order_relaxed) - seekTarget > kSeekJumpSec) {
                     switchKeyTs = pkt->pts;
                     av_packet_unref(pkt.get());
                     switching = true;
-                    const int drain = avcodec_send_packet(s.ctx.get(), nullptr);
+                    const int drain = avcodec_send_packet(s.engine.ctx.get(), nullptr);
                     if (drain < 0 && drain != AVERROR_EOF) {
                         finishSwitch();
                     } else {
@@ -905,25 +1266,77 @@ void FfmpegDecoder::run() {
                     }
                     continue;
                 }
+                // Early soft-drain on software seeks: once a packet's monotonic DTS
+                // exceeds the smallest already-sent PTS past seekTarget (plus any
+                // unshifted reorder margin), every frame up to that successor is
+                // already in s.engine.ctx. Drain now instead of feeding ~12 extra
+                // frames through FF_THREAD_FRAME's pipeline.
+                if (!s.engine.hardware && !workerSettled && !s.fromStart && dtsValid) {
+                    if (pkt->pts == AV_NOPTS_VALUE || pkt->dts == AV_NOPTS_VALUE) {
+                        dtsValid = false;
+                    } else {
+                        const double psec = static_cast<double>(pkt->pts - s.start) * s.tb;
+                        const double dsec = static_cast<double>(pkt->dts - s.start) * s.tb;
+                        if (dsec < lastPacketDtsSec - kTimestampEpsilonSec || psec < dsec - kTimestampEpsilonSec) {
+                            dtsValid = false;
+                        } else {
+                            if (!sawFirstPacket) {
+                                sawFirstPacket = true;
+                                const int reorderDelay =
+                                    std::max({0, s.engine.ctx->has_b_frames, s.o.stream->codecpar->video_delay});
+                                if (reorderDelay > 0 && (psec - dsec) < reorderDelay * s.frameDur * 0.5) {
+                                    dtsMarginSec = reorderDelay * s.frameDur;
+                                } else {
+                                    dtsMarginSec = 0.0;
+                                }
+                            }
+                            lastPacketDtsSec = dsec;
+                            if (sawPastTarget && dsec > minPastPts + dtsMarginSec + s.tb + kTimestampEpsilonSec) {
+                                av_packet_move_ref(drainHeldPkt.get(), pkt.get());
+                                drainHasHeldPkt = true;
+                                drainDtsCeiling = dsec;
+                                const int drain = avcodec_send_packet(s.engine.ctx.get(), nullptr);
+                                if (drain < 0 && drain != AVERROR_EOF && !decodeError(drain, "drain")) return;
+                                seekDraining = true;
+                                continue;
+                            }
+                            if (psec > seekTarget + kTimestampEpsilonSec) {
+                                sawPastTarget = true;
+                                minPastPts = std::min(minPastPts, psec);
+                            }
+                        }
+                    }
+                }
                 pendingPacket = true;
                 // Catching up to a target after a seek, a non-reference frame
                 // is skipped only when it provably cannot be the D17 pick: a
                 // packet read earlier in this run starts later than it and by
-                // the target (its anchor). Reference status says nothing about
-                // display, so a frame before a long presentation gap decodes
-                // (review F2). The anchor becomes the run's skip floor: a
-                // target below it restarts the decoder.
+                // the anchor goal. Reference status says nothing about display,
+                // so a frame before a long presentation gap decodes (review F2).
+                // The anchor becomes the run's skip floor: a target below it
+                // restarts the decoder.
                 bool skip = false;
                 if (pkt->pts != AV_NOPTS_VALUE) {
                     const double packetSec = static_cast<double>(pkt->pts - s.start) * s.tb;
+                    const double anchorGoal =
+                        backwardScrubRun
+                            ? backwardCacheFloorSec
+                            : (resumeSkipUntilPts > -1e200 ? std::min(decodeGoal, resumeSkipUntilPts) : decodeGoal);
                     skip = allowSkip && packetSec < anchorSec - kTimestampEpsilonSec;
                     if (skip) {
                         publishSkipFloor(gen, anchorSec);
                         runSkipFloor = std::max(runSkipFloor, anchorSec);
                     }
-                    if (frameStartsBy(packetSec, decodeGoal)) anchorSec = std::max(anchorSec, packetSec);
+                    if (frameStartsBy(packetSec, anchorGoal)) anchorSec = std::max(anchorSec, packetSec);
                 }
-                s.ctx->skip_frame = skip ? AVDISCARD_NONREF : AVDISCARD_DEFAULT;
+                if (!s.engine.hardware && skip &&
+                    isProvablyNonReferencePacket(s.o.stream->codecpar->codec_id, pkt.get(), s.nalLengthSize,
+                                                 s.hevcTemporalLayers)) {
+                    av_packet_unref(pkt.get());
+                    pendingPacket = false;
+                    continue;
+                }
+                s.engine.ctx->skip_frame = skip ? AVDISCARD_NONREF : AVDISCARD_DEFAULT;
             }
             rc = sendPacket(pkt.get());
             if (rc == AVERROR(EAGAIN)) continue;  // receive first, then send it again
@@ -942,7 +1355,7 @@ void FfmpegDecoder::run() {
             if (!decodeError(rc, "receive")) return;
             continue;
         }
-        if (s.hardware && lossAfter >= 0 && hwFramesSeen++ >= lossAfter) {
+        if (s.engine.hardware && lossAfter >= 0 && hwFramesSeen++ >= lossAfter) {
             av_frame_unref(frm.get());  // test seam: the session loses its output
             continue;
         }
@@ -958,16 +1371,17 @@ void FfmpegDecoder::run() {
             }
         }
 #endif
-        if (s.hardware && !s.gotFrame) {
+        if (s.engine.hardware && !s.engine.gotFrame) {
             const std::string bad = checkHardwareFrame(frm.get());
             if (!bad.empty()) {
                 av_frame_unref(frm.get());
                 if (!hardwareFailed(bad, gen)) return;
+                resetSeekDrainState();
                 workerGen = 0;
                 continue;
             }
         }
-        s.gotFrame = true;
+        s.engine.gotFrame = true;
 
         // Presentation time: the frame's timestamp, else one frame after the
         // last placed frame, else 0 at the start of the stream. A frame with
@@ -987,7 +1401,8 @@ void FfmpegDecoder::run() {
                 av_packet_unref(pkt.get());
                 pendingPacket = false;
             }
-            if (!reopen(s.hardware)) return;
+            resetSeekDrainState();
+            if (!reopen(s.engine.hardware)) return;
             seekPick.reset();
             m_ring.reset(gen);
             continue;
@@ -997,7 +1412,8 @@ void FfmpegDecoder::run() {
         // before it. Those frames are dropped, so the first frame out starts
         // after the target and the pick never comes. Seek further back,
         // doubling the distance, instead of restarting at the same place.
-        const double wanted = decodeGoal;
+        const bool resumingDrain = resumeSkipUntilPts > -1e200;
+        const double wanted = resumingDrain ? resumeSkipUntilPts : decodeGoal;
         if (frameStartsBy(ptsSec, wanted)) {
             runHasPick = true;
         } else if (!runHasPick && !s.fromStart && reseekBackSec < wanted) {
@@ -1006,14 +1422,20 @@ void FfmpegDecoder::run() {
                 av_packet_unref(pkt.get());
                 pendingPacket = false;
             }
+            const double savedResumeSkip = resumeSkipUntilPts;
+            resetSeekDrainState();
             reseekBackSec = reseekBackSec <= 0.0 ? 1.0 : 2.0 * reseekBackSec;
             if (!seekTo(wanted - reseekBackSec)) return;
-            lastCachedPts = -1.0;
             anchorSec = -1e300;
             runSkipFloor = -1e300;
-            seekPick.reset();
-            m_ring.reset(gen);
-            ++m_seekCount;
+            if (resumingDrain) {
+                resumeSkipUntilPts = savedResumeSkip;
+            } else {
+                lastCachedPts = -1.0;
+                seekPick.reset();
+                m_ring.reset(gen);
+                ++m_seekCount;
+            }
             beat();
             continue;
         }
@@ -1021,7 +1443,30 @@ void FfmpegDecoder::run() {
             av_frame_unref(frm.get());  // queued already by the software decoder
             continue;
         }
+        if (resumingDrain) {
+            if (ptsSec <= resumeSkipUntilPts + kTimestampEpsilonSec) {
+                s.lastPts = ptsSec;
+                av_frame_unref(frm.get());  // already queued/cached before early drain
+                continue;
+            }
+            resumeSkipUntilPts = -1e300;
+        }
+        if (seekDraining && ptsSec >= drainDtsCeiling - kTimestampEpsilonSec) {
+            // Past the held trigger packet's DTS: an unsent packet could still
+            // belong before this frame, so do not queue or link it.
+            av_frame_unref(frm.get());
+            continue;
+        }
         s.lastPts = ptsSec;
+
+        // Intermediate catch-up frames strictly before both runSkipFloor and
+        // seekTarget can neither become the D17 pick nor enter FrameCache:
+        // drop before wrapping, cloning, sws_scale, or ring push.
+        if (!workerSettled && ptsSec < runSkipFloor - kTimestampEpsilonSec &&
+            ptsSec < seekTarget - kTimestampEpsilonSec) {
+            av_frame_unref(frm.get());
+            continue;
+        }
 
         auto out = std::make_shared<DecodedFrame>();
         out->generation = gen;
@@ -1043,12 +1488,22 @@ void FfmpegDecoder::run() {
             out->hardware = true;
             out->matrix = matrixFor(cs, frm->height);
             out->range = full ? YuvRange::Full : YuvRange::Limited;
-            out->frame = av_frame_clone(frm.get());
+            out->frame = av_frame_alloc();
+            if (!out->frame) {
+                av_frame_unref(frm.get());
+                continue;
+            }
+            av_frame_move_ref(out->frame, frm.get());
         } else if (fmt == AV_PIX_FMT_YUV420P || fmt == AV_PIX_FMT_YUVJ420P || fmt == AV_PIX_FMT_NV12) {
             out->layout = fmt == AV_PIX_FMT_NV12 ? PlaneLayout::Nv12 : PlaneLayout::I420;
             out->matrix = matrixFor(cs, frm->height);
             out->range = full ? YuvRange::Full : YuvRange::Limited;
-            out->frame = av_frame_clone(frm.get());
+            out->frame = av_frame_alloc();
+            if (!out->frame) {
+                av_frame_unref(frm.get());
+                continue;
+            }
+            av_frame_move_ref(out->frame, frm.get());
         } else if (const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(fmt);
                    desc && ((desc->flags & AV_PIX_FMT_FLAG_RGB) ||
                             (s.o.stream->codecpar->codec_id == AV_CODEC_ID_MJPEG &&
@@ -1062,19 +1517,26 @@ void FfmpegDecoder::run() {
                 sws_setColorspaceDetails(sws.get(), sws_getCoefficients(sourceSpace), full ? 1 : 0,
                                          sws_getCoefficients(sourceSpace), 1, 0, 1 << 16, 1 << 16);
             }
-            // native-rules #6: raw av_frame_alloc result, not wrapped at the call site, leaks if get_buffer fails
-            AVFrame* conv = av_frame_alloc();
+            std::unique_ptr<AVFrame, FrameFree> conv(av_frame_alloc());
+            if (!conv) {
+                av_frame_unref(frm.get());
+                continue;
+            }
             conv->format = AV_PIX_FMT_RGB0;
             conv->width = frm->width;
             conv->height = frm->height;
-            av_frame_get_buffer(conv, 32);
+            if (av_frame_get_buffer(conv.get(), 32) < 0) {
+                av_frame_unref(frm.get());
+                continue;
+            }
             sws_scale(sws.get(), frm->data, frm->linesize, 0, frm->height, conv->data, conv->linesize);
             for (int y = 0; y < conv->height; ++y) {  // RGB0 leaves the 4th byte undefined: make it opaque
                 uint8_t* row = conv->data[0] + static_cast<ptrdiff_t>(y) * conv->linesize[0];
                 for (int x = 0; x < conv->width; ++x) row[x * 4 + 3] = 255;
             }
             out->layout = PlaneLayout::Rgba;
-            out->frame = conv;
+            out->frame = conv.release();
+            av_frame_unref(frm.get());
         } else {
             // Any other YUV format (4:2:2, 4:4:4, more bits): convert to I420
             // on this worker. The conversion is configured explicitly (F5):
@@ -1086,53 +1548,65 @@ void FfmpegDecoder::run() {
             const int srcSpace = matrixFor(cs, frm->height) == YuvMatrix::Bt709 ? SWS_CS_ITU709 : SWS_CS_ITU601;
             sws_setColorspaceDetails(sws.get(), sws_getCoefficients(srcSpace), full ? 1 : 0,
                                      sws_getCoefficients(SWS_CS_ITU709), 0, 0, 1 << 16, 1 << 16);
-            // native-rules #6: raw av_frame_alloc result, not wrapped at the call site, leaks if get_buffer fails
-            AVFrame* conv = av_frame_alloc();
+            std::unique_ptr<AVFrame, FrameFree> conv(av_frame_alloc());
+            if (!conv) {
+                av_frame_unref(frm.get());
+                continue;
+            }
             conv->format = AV_PIX_FMT_YUV420P;
             conv->width = frm->width;
             conv->height = frm->height;
-            av_frame_get_buffer(conv, 32);
+            if (av_frame_get_buffer(conv.get(), 32) < 0) {
+                av_frame_unref(frm.get());
+                continue;
+            }
             sws_scale(sws.get(), frm->data, frm->linesize, 0, frm->height, conv->data, conv->linesize);
             out->layout = PlaneLayout::I420;
             out->matrix = YuvMatrix::Bt709;
             out->range = YuvRange::Limited;
-            out->frame = conv;
+            out->frame = conv.release();
+            av_frame_unref(frm.get());
         }
-        av_frame_unref(frm.get());
         const double pts = out->ptsSec;
-        std::shared_ptr<DecodedFrame> cached = out;
+        const bool shouldCache = pts >= runSkipFloor - kTimestampEpsilonSec &&
+                                 pts >= backwardCacheFloorSec - kTimestampEpsilonSec;
+        std::shared_ptr<DecodedFrame> cached;
+        if (shouldCache) {
+            cached = out;
 #if NT_HW_VAAPI || NT_HW_D3D11VA
-        if (out->hardware) {
-            // Cache independent storage: system memory for VAAPI, GPU
-            // textures for D3D11. A failed copy leaves playback unaffected.
-            cached.reset();
-            if (hw::CacheFrame copy = hw::cacheCopy(out->frame)) {
-                cached = std::make_shared<DecodedFrame>();
-                cached->frame = copy.release();  // DecodedFrame frees it
-                cached->ptsSec = out->ptsSec;
-                cached->generation = out->generation;
-                cached->layout = PlaneLayout::Nv12;
-                cached->matrix = out->matrix;
-                cached->range = out->range;
-                cached->transfer = out->transfer;
-                cached->width = out->width;
-                cached->height = out->height;
-                cached->hardware = cached->frame->format == hw::pixelFormat();
+            if (out->hardware) {
+                // Cache independent storage: system memory for VAAPI, GPU
+                // textures for D3D11. A failed copy leaves playback unaffected.
+                cached.reset();
+                if (hw::CacheFrame copy = hw::cacheCopy(out->frame)) {
+                    cached = std::make_shared<DecodedFrame>();
+                    cached->frame = copy.release();  // DecodedFrame frees it
+                    cached->ptsSec = out->ptsSec;
+                    cached->generation = out->generation;
+                    cached->layout = PlaneLayout::Nv12;
+                    cached->matrix = out->matrix;
+                    cached->range = out->range;
+                    cached->transfer = out->transfer;
+                    cached->width = out->width;
+                    cached->height = out->height;
+                    cached->hardware = cached->frame->format == hw::pixelFormat();
+                }
             }
-        }
 #endif
+        }
         const bool beforeSeekTarget = frameStartsBy(pts, seekTarget);
         if (!workerSettled && beforeSeekTarget) {
             seekPick = out;
         }
         const size_t bytes = cached ? frameBytes(*cached) : 0;
         if (m_ring.push(std::move(out))) {
+            drainLastEmittedPts = std::max(drainLastEmittedPts, pts);
             m_ring.prune(decodeGoal);  // keep only the newest frame behind the target
             // The scrub cache keeps frames after they leave the queue (D19);
-            // only frames at or after runSkipFloor can form a provable
-            // successor interval, so skipping earlier catch-up frames avoids
-            // evicting usable entries.
-            if (cached && pts >= runSkipFloor - kTimestampEpsilonSec) {
+            // only frames at or after runSkipFloor (and within the backward
+            // cache window) can form a provable successor interval without
+            // thrashing usable entries.
+            if (cached) {
                 const bool contiguous = lastCachedPts >= 0.0 && lastCachedPts >= runSkipFloor - kTimestampEpsilonSec;
                 FrameCache::shared().insert(m_path, pts, std::move(cached), bytes, contiguous ? lastCachedPts : -1.0);
                 lastCachedPts = pts;
@@ -1157,6 +1631,11 @@ FfmpegSource::~FfmpegSource() {
     // The displayed hardware frame may still be sampled by a command buffer
     // in flight: it goes to the retire queue, not straight to release (D11).
     if (m_retire && m_frameRef) m_retire->retire(std::move(m_frameRef), m_lastUseFrame);
+}
+
+void FfmpegSource::resetForClip(double targetSec, QSize nominalSize) {
+    m_nominalSize = nominalSize;
+    if (m_decoder) m_decoder->resetForClip(targetSec);
 }
 
 std::unique_ptr<FfmpegDecoder> FfmpegSource::takeDecoder() {

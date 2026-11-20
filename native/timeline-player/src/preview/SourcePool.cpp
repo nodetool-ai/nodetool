@@ -119,11 +119,43 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
 
     std::set<std::string> keep;
     for (const Want& w : wants) {
+        keep.insert(w.clip->id);
+    }
+    // Collect retiring entries first so a newly wanted clip using the same
+    // media file (e.g. scrubbing across split cuts) can adopt an open, healthy
+    // decoder and its GPU textures instead of reopening from disk.
+    std::vector<Entry> retiring;
+    for (auto it = m_entries.begin(); it != m_entries.end();) {
+        if (keep.count(it->first) == 0) {
+            retiring.push_back(std::move(it->second));
+            it = m_entries.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    const auto takeAdoptable = [&](const std::string& mediaPath, bool image) -> std::unique_ptr<FfmpegSource> {
+        const bool swOnly = m_softwareOnly.count(mediaPath) != 0;
+        for (auto it = retiring.begin(); it != retiring.end(); ++it) {
+            if (!it->decoder || it->mediaPath != mediaPath || it->image != image) continue;
+            if (it->decoder->decoder().stalled()) continue;
+            if (const auto facts = it->decoder->decoder().facts()) {
+                if (!facts->usable()) continue;
+                if (swOnly && facts->decoder != "software") continue;
+            } else if (swOnly) {
+                continue;
+            }
+            std::unique_ptr<FfmpegSource> adopted = std::move(it->decoder);
+            retiring.erase(it);
+            return adopted;
+        }
+        return nullptr;
+    };
+
+    for (const Want& w : wants) {
         const Clip& clip = *w.clip;
-        keep.insert(clip.id);
         auto it = m_entries.find(clip.id);
         if (it != m_entries.end() && it->second.mediaPath != clip.mediaPath) {
-            retire(it->second);
+            retiring.push_back(std::move(it->second));
             m_entries.erase(it);
             it = m_entries.end();
         }
@@ -135,8 +167,13 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
             e.nominal = QSize(clip.width.value_or(timeline.width), clip.height.value_or(timeline.height));
             // Pre-roll: decode from where the clip will start showing.
             const double startSourceMs = clip.inPointMs + std::max(0.0, timeMs - clip.startMs);
-            e.decoder = std::make_unique<FfmpegSource>(clip.mediaPath, startSourceMs / 1000.0, e.nominal,
-                                                       modeFor(clip.mediaPath), mediaLeases, m_readProbes.video);
+            if (auto adopted = takeAdoptable(clip.mediaPath, e.image)) {
+                adopted->resetForClip(startSourceMs / 1000.0, e.nominal);
+                e.decoder = std::move(adopted);
+            } else {
+                e.decoder = std::make_unique<FfmpegSource>(clip.mediaPath, startSourceMs / 1000.0, e.nominal,
+                                                           modeFor(clip.mediaPath), mediaLeases, m_readProbes.video);
+            }
             it = m_entries.emplace(clip.id, std::move(e)).first;
         }
         Entry& e = it->second;
@@ -153,13 +190,8 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
         }
         checkOpened(clip.id, e, clip.mediaPath, mediaLeases);
     }
-    for (auto it = m_entries.begin(); it != m_entries.end();) {
-        if (keep.count(it->first) == 0) {
-            retire(it->second);
-            it = m_entries.erase(it);
-        } else {
-            ++it;
-        }
+    for (Entry& leftover : retiring) {
+        retire(leftover);
     }
     int open = 0;
     for (const auto& [id, e] : m_entries) {

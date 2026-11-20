@@ -368,6 +368,79 @@ private slots:
         pool.update(tl, 5500.0);
         QVERIFY2(pool.sourceFor("a") == nullptr, "clip past kPrerollMs was not retired");
     }
+
+    // Jumping across split clips that share one media file adopts the retiring
+    // decoder instead of reopening from disk, and never flashes the old clip's frame.
+    void sameMediaClipAdoptsRetiringDecoder() {
+        FrameCache::shared().clear();
+        Timeline tl;
+        tl.durationMs = 8000;
+        Track track;
+        track.id = "t";
+        tl.tracks.push_back(track);
+        Clip a;
+        a.id = "cut-a";
+        a.trackId = "t";
+        a.startMs = 0;
+        a.durationMs = 2000;
+        a.inPointMs = 0;
+        a.mediaPath = media("numbered-a-1080p30.mp4");
+        Clip a2;
+        a2.id = "cut-a2";
+        a2.trackId = "t";
+        a2.startMs = 6000;
+        a2.durationMs = 2000;
+        a2.inPointMs = 15000;
+        a2.mediaPath = media("numbered-a-1080p30.mp4");
+        tl.clips.push_back(a);
+        tl.clips.push_back(a2);
+
+        std::atomic<int> videoOpens{0};
+        SourcePool pool(SourcePool::WorkerReadProbes{[&] { ++videoOpens; }, {}});
+        QElapsedTimer t;
+        t.start();
+        bool exact = false;
+        while (!exact && t.elapsed() < 4000) {
+            pool.update(tl, 500.0);
+            if (auto* src = dynamic_cast<FfmpegSource*>(pool.sourceFor("cut-a"))) {
+                auto f = src->decoder().frameAt(0.5);
+                exact = f && src->decoder().exact();
+            }
+            if (!exact) QThread::msleep(2);
+        }
+        QVERIFY(exact);
+        QCOMPARE(videoOpens.load(), 1);
+
+        // Jump past kPrerollMs to cut-a2 (source 16.0 s): cut-a retires and
+        // cut-a2 adopts its open decoder with no new file open and no stale frame flash.
+        pool.update(tl, 7000.0);
+        QVERIFY(pool.sourceFor("cut-a") == nullptr);
+        auto* adopted = dynamic_cast<FfmpegSource*>(pool.sourceFor("cut-a2"));
+        QVERIFY(adopted != nullptr);
+        QCOMPARE(videoOpens.load(), 1);
+        auto immediate = adopted->decoder().frameAt(16.0);
+        QVERIFY2(!immediate || std::abs(immediate->ptsSec - 16.0) < 0.05,
+                 "adopted decoder flashed previous clip's frame");
+
+        t.restart();
+        exact = false;
+        double pts = -1.0;
+        while (!exact && t.elapsed() < 4000) {
+            pool.update(tl, 7000.0);
+            auto* src = dynamic_cast<FfmpegSource*>(pool.sourceFor("cut-a2"));
+            QVERIFY(src != nullptr);
+            auto f = src->decoder().frameAt(16.0);
+            if (f && src->decoder().exact()) {
+                exact = true;
+                pts = f->ptsSec;
+            } else {
+                QThread::msleep(2);
+            }
+        }
+        QVERIFY(exact);
+        QCOMPARE(std::lround(pts * 30.0), 480L);
+        QCOMPARE(videoOpens.load(), 1);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestSourcePool)
