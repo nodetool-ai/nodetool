@@ -52,6 +52,7 @@ public:
     QString removedName() const;
     Q_INVOKABLE void clearActionError();
     Q_INVOKABLE void ensureLoaded();
+    Q_INVOKABLE void resetForDocument(bool reloadNow = false);
     Q_INVOKABLE void configure(const QUrl& server, const QString& token = {});
     Q_INVOKABLE void reload();
     Q_INVOKABLE void loadImages();

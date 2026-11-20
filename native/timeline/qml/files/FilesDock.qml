@@ -21,11 +21,41 @@ Item {
     readonly property bool docked: !!parent && !!parent.dock
     width: docked ? parent.width : implicitWidth
     height: docked ? parent.height : parent && parent.parent ? parent.parent.height : TimelineMetrics.trackHeight * 9
-    TimelineProjectFiles { id: source }
+    TimelineProjectFiles {
+        id: projectFiles
+        folder: host.editor ? host.editor.projectFolder : null
+        autosave: host.editor ? host.editor.saver : null
+        session: typeof nativeSession !== "undefined" ? nativeSession : null
+    }
     FilesPanel {
         anchors.fill: parent
-        files: source.files
+        files: projectFiles.files
         closable: false
+        singleClickOpenKinds: ["timeline"]
+        onRetryRequested: projectFiles.retry()
+        noticeDelegate: Component {
+            ColumnLayout {
+                spacing: Ui.Metrics.xs
+                visible: folderNotice.away || folderNotice.shown || projectFiles.openError !== ""
+                ProjectFolderNotice {
+                    id: folderNotice
+                    Layout.fillWidth: true
+                    folder: host.editor ? host.editor.projectFolder : null
+                    showRevealButton: false
+                    showMissingText: false
+                }
+                Ui.Banner {
+                    id: openErrorBanner
+                    objectName: "files-open-error"
+                    Layout.fillWidth: true
+                    visible: projectFiles.openError !== ""
+                    status: Ui.Status.Error
+                    message: projectFiles.openError
+                    actionText: "Dismiss"
+                    onActionTriggered: projectFiles.clearOpenError()
+                }
+            }
+        }
         previewDelegate: Component {
             Item {
                 id: player
@@ -128,11 +158,6 @@ Item {
         }
     }
     Component.onCompleted: Qt.callLater(() => {
-        const editor = Context.editorFor(host)
-        host.editor = editor
-        if (editor) {
-            source.folder = editor.projectFolder || null
-            source.autosave = editor.saver || null
-        }
+        host.editor = Context.editorFor(host)
     })
 }

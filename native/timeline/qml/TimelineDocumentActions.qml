@@ -13,26 +13,43 @@ Item {
     implicitHeight: buttons.implicitHeight
     readonly property string error: actions.error
     property var returnFocus: null
+    property var documentBar: null
+
+    function findDocumentBar() {
+        for (let p = root.parent; p; p = p.parent) {
+            if (p.objectName === "documentBar") return p
+        }
+        return null
+    }
+    Component.onCompleted: Qt.callLater(() => { root.documentBar = root.findDocumentBar() })
+    onParentChanged: root.documentBar = root.findDocumentBar()
+    Connections {
+        target: root.documentBar
+        function onOpenTimelinesRequested() { root.showList() }
+    }
 
     TimelineDocumentController {
         id: actions
         anchor: root
+        timeline: root.timeline
+        session: typeof nativeSession !== "undefined" ? nativeSession : null
         // main sets nativeAccountServers in the app. Without it the list
         // shows only the timelines on this computer.
         accountServers: typeof nativeAccountServers !== "undefined" ? nativeAccountServers : null
         listShown: listPopup.visible
         onOpenRequested: root.showList()
+        onSwitched: listPopup.close()
         onErrorChanged: { if (error) root.showList(false) }
     }
     function showList(refresh = true) {
         if (!listPopup.opened) returnFocus = root.Window.window ? root.Window.window.activeFocusItem : null
-        if (refresh) actions.controller.refresh()
+        if (refresh) actions.prepareList()
         listPopup.open()
     }
     Shortcut {
         sequence: "Ctrl+O"
         context: Qt.WindowShortcut
-        enabled: !listPopup.visible
+        enabled: !listPopup.visible && !actions.switching
         onActivated: root.showList()
     }
     component ActionButton: ToolButton { activeFocusOnTab: true }
@@ -45,6 +62,7 @@ Item {
             shortcut: "Ctrl+O"
             iconOnly: true
             iconName: "videocam"
+            enabled: !actions.switching
             onClicked: root.showList()
         }
         ActionButton {
@@ -52,6 +70,7 @@ Item {
             label: "New timeline"
             iconOnly: true
             iconName: "add"
+            enabled: !actions.switching
             onClicked: actions.createAndOpen()
         }
     }
@@ -68,18 +87,25 @@ Item {
         focus: true
         enter: null
         exit: null
-        closePolicy: Controls.Popup.CloseOnEscape | Controls.Popup.CloseOnPressOutside
+        closePolicy: actions.switching
+            ? Controls.Popup.NoAutoClose
+            : (Controls.Popup.CloseOnEscape | Controls.Popup.CloseOnPressOutside)
         onClosed: { if (root.returnFocus) root.returnFocus.forceActiveFocus() }
         contentItem: Column {
             Loader {
                 width: parent.width
-                height: parent.height - switchError.height - cloudList.height
+                height: parent.height
+                    - (switchStatus.visible ? switchStatus.implicitHeight : 0)
+                    - (switchError.visible ? switchError.implicitHeight : 0)
+                    - cloudList.height
                 active: listPopup.visible
+                enabled: !actions.switching
                 sourceComponent: TimelineListPanel {
                     controller: actions.controller
+                    activeTimelineId: root.timeline ? root.timeline.timelineId : ""
                     autoRefresh: false
                     dismissOnEscape: true
-                    onDismissRequested: listPopup.close()
+                    onDismissRequested: if (!actions.switching) listPopup.close()
                 }
             }
             // The account's Cloud and Shared with me timelines below the ones
@@ -91,6 +117,7 @@ Item {
                 height: item ? Math.min(item.contentHeight, listPopup.height / 2) : 0
                 active: listPopup.visible && actions.cloudBrowser !== null
                 visible: active
+                enabled: !actions.switching
                 sourceComponent: Flickable {
                     contentHeight: cloudPanel.implicitHeight
                     clip: true
@@ -104,10 +131,18 @@ Item {
                 }
             }
             Ui.Text {
+                id: switchStatus
+                objectName: "timelineSwitchStatus"
+                width: parent.width
+                visible: actions.switching
+                text: "Opening timeline…"
+                tone: Ui.Text.Secondary
+                role: Ui.Typography.SansLabel
+            }
+            Ui.Text {
                 id: switchError
                 objectName: "timelineSwitchError"
                 width: parent.width
-                height: visible ? implicitHeight : 0
                 visible: !!root.error
                 text: root.error
                 wrapMode: Text.WordWrap

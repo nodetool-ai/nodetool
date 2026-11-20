@@ -13,7 +13,7 @@ class CandidatePreview : public nt::assets::TimelineMediaConsumer {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
-    Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
+    Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(TimelineModel* previewTimeline READ previewTimeline CONSTANT)
     Q_PROPERTY(PlaybackClock* previewClock READ previewClock CONSTANT)
     Q_PROPERTY(bool ready READ ready NOTIFY changed)
@@ -40,6 +40,7 @@ public:
     Q_INVOKABLE bool previewFile(const QString& localPath, const QString& mediaType, double durationMs = 0);
     Q_INVOKABLE void close();
 signals:
+    void timelineChanged();
     void changed();
 private:
     QPointer<TimelineModel> m_timeline;

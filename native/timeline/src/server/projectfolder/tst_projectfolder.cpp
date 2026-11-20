@@ -242,6 +242,95 @@ private slots:
         QCOMPARE(folder.fileError(), QString("bad JSON"));
         QCOMPARE(server.lists(), 3);
     }
+    void archivedProjectResolvesFolder() {
+        Fixture server;
+        const QJsonArray archived{project("arch1", server.folder.path(), true)};
+        auto archRow = archived.first().toObject();
+        archRow.insert("name", "Archived Film");
+        server.projects = {project("personal:1", server.folder.path(), true, true)};
+        server.http.setJson([&](const QByteArray& path, const QUrl& url) {
+            if (path == "/trpc/projects.list") { return answer(server.projects); }
+            if (path == "/trpc/projects.archived") { return answer(QJsonArray{archRow}); }
+            if (path == "/trpc/projects.documents") {
+                server.documentsAsked << inputId(url);
+                return answer(QJsonArray{});
+            }
+            return QByteArray();
+        });
+        const auto model = timelineIn("arch1");
+        ProjectFolderState folder;
+        folder.setTarget({server.http.base(), {}, "seq", {}, {}});
+        folder.setTimeline(model.get());
+        folder.refresh();
+        QTRY_VERIFY(folder.loaded());
+        QVERIFY(folder.error().isEmpty());
+        QCOMPARE(folder.projectId(), QString("arch1"));
+        QCOMPARE(folder.projectName(), QString("Archived Film"));
+        QVERIFY(folder.hasFolder());
+        QVERIFY(!folder.isLocalFolder());
+        QCOMPARE(folder.workspaceId(), QString("ws-arch1"));
+        QCOMPARE(server.documentsAsked, QStringList{"arch1"});
+    }
+    void localFileFindsEnclosingProjectFolderAndIgnoresUnrelatedFixture() {
+        QTemporaryDir temp;
+        QVERIFY(temp.isValid());
+        QDir base(temp.path());
+        QVERIFY(base.mkpath("myproj/.nodetool"));
+        QVERIFY(base.mkpath("myproj/Timelines"));
+        QVERIFY(base.mkpath("standalone"));
+        {
+            QFile meta(base.filePath("myproj/.nodetool/project.json"));
+            QVERIFY(meta.open(QIODevice::WriteOnly));
+            meta.write(R"({"format":"nodetool.project","version":1,"id":"local-proj-1","name":"Local Doc"})");
+        }
+        const QByteArray timelineJson = R"({"format":"nodetool.timeline","version":1,"id":"t1","fps":30,"width":640,"height":360,"document":{"tracks":[],"clips":[]}})";
+        const QString inProjectPath = base.filePath("myproj/Timelines/cut.timeline.json");
+        {
+            QFile f(inProjectPath);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(timelineJson);
+        }
+        const QString standalonePath = base.filePath("standalone/loose.timeline.json");
+        {
+            QFile f(standalonePath);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(timelineJson);
+        }
+
+        const auto loaded = nt::loadTimelineFile(inProjectPath);
+        QVERIFY2(loaded.timeline.has_value(), qPrintable(loaded.error));
+        QCOMPARE(loaded.timeline->sourcePath, QFileInfo(inProjectPath).absoluteFilePath());
+
+        TimelineModel model;
+        model.setTimeline(*loaded.timeline);
+        QCOMPARE(model.sourcePath(), QFileInfo(inProjectPath).absoluteFilePath());
+        model.addMarker(100, "keep-source");
+        QCOMPARE(model.sourcePath(), QFileInfo(inProjectPath).absoluteFilePath());
+
+        ProjectFolderState folder;
+        QVERIFY(!folder.configured());
+        folder.setTimeline(&model);
+        folder.refresh();
+        QVERIFY(folder.loaded());
+        QVERIFY(folder.isLocalFolder());
+        QVERIFY(folder.hasFolder());
+        QCOMPARE(folder.projectId(), QString("local-proj-1"));
+        QCOMPARE(folder.projectName(), QString("Local Doc"));
+        QCOMPARE(folder.folderPath(), QFileInfo(base.filePath("myproj")).canonicalFilePath());
+        QVERIFY(folder.folderAccessible());
+        QVERIFY(folder.canReveal());
+        QVERIFY(!folder.canTransfer());
+
+        // Switching to a local file outside any project folder clears the state.
+        const auto standalone = nt::loadTimelineFile(standalonePath);
+        QVERIFY2(standalone.timeline.has_value(), qPrintable(standalone.error));
+        model.setTimeline(*standalone.timeline);
+        QVERIFY(!folder.loaded());
+        QVERIFY(!folder.isLocalFolder());
+        QVERIFY(!folder.hasFolder());
+        QVERIFY(folder.projectId().isEmpty());
+        QVERIFY(folder.projectName().isEmpty());
+    }
 };
 
 QTEST_MAIN(TestProjectFolder)

@@ -41,6 +41,7 @@ void CandidatePreview::setTimeline(TimelineModel* model) {
         connect(model, &TimelineModel::documentReplaced, this, &CandidatePreview::close);
         connect(model, &QObject::destroyed, this, &CandidatePreview::close);
     }
+    emit timelineChanged();
     emit changed();
 }
 void CandidatePreview::close() {

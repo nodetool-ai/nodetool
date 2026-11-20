@@ -9,6 +9,7 @@
 // `raw` and write back only the fields this model owns (DESIGN.md D4).
 
 #include <QJsonObject>
+#include <QString>
 
 #include <atomic>
 #include <cstdint>
@@ -162,6 +163,8 @@ struct Timeline {
 
     // Viewer-only qualifier matte selection. Never serialized into raw.
     std::string matteClipId, matteEffectId;
+    // Local file path when loaded from disk. Never serialized into raw.
+    QString sourcePath;
 
     // Builds `clipIndex` from `clips`. Call it after the ids or their order change.
     void indexClips() {

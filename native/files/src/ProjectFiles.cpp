@@ -9,9 +9,11 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocale>
+#include <QMetaObject>
 #include <QMimeDatabase>
 #include <QNetworkCookieJar>
 #include <QNetworkReply>
+#include <QPointer>
 #include <QUrlQuery>
 #include <algorithm>
 #include <memory>
@@ -72,14 +74,29 @@ QString iconOf(const QString &kind) {
 }
 }  // namespace
 
-ProjectFiles::ProjectFiles(QObject *parent) : QAbstractListModel(parent), m_network(this) {
+ProjectFiles::ProjectFiles(QObject *parent)
+    : QAbstractListModel(parent), m_network(this), m_watcher(this), m_watchDebounce(this) {
+  m_watchDebounce.setSingleShot(true);
+  m_watchDebounce.setInterval(200);
   connect(this, &ProjectFiles::selectionChanged, this, &ProjectFiles::updatePreview);
+  connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, [this] {
+    if (m_localOnly) { m_watchDebounce.start(); }
+  });
+  connect(&m_watchDebounce, &QTimer::timeout, this, [this] {
+    if (m_localOnly) { refresh(); }
+  });
 }
 
-ProjectFiles::~ProjectFiles() { clearRequests(); }
+ProjectFiles::~ProjectFiles() {
+  stopLocalWatch();
+  clearRequests();
+}
 
 void ProjectFiles::configure(const QUrl &origin, const QString &token, const QString &userId) {
+  stopLocalWatch();
   clearRequests();
+  m_localOnly = false;
+  m_localRootCanonical.clear();
   m_network.clearAccessCache();
   m_network.setCookieJar(new QNetworkCookieJar(&m_network));  // m_network owns the jar.
   m_origin = origin;
@@ -91,13 +108,17 @@ void ProjectFiles::configure(const QUrl &origin, const QString &token, const QSt
 }
 
 void ProjectFiles::setFolder(const QString &workspaceId, const QString &localPath) {
+  const bool wasLocalOnly = m_localOnly;
   const bool pathChanged = localPath != m_localPath;
   m_localPath = localPath;
-  if (workspaceId == m_workspace) {
+  if (!wasLocalOnly && workspaceId == m_workspace) {
     if (pathChanged) { emit folderChanged(); }
     return;
   }
+  stopLocalWatch();
   clearRequests();
+  m_localOnly = false;
+  m_localRootCanonical.clear();
   m_workspace = workspaceId;
   m_listings.clear();
   m_staged.clear();
@@ -118,6 +139,66 @@ void ProjectFiles::setFolder(const QString &workspaceId, const QString &localPat
   emit stateChanged();
 }
 
+void ProjectFiles::setLocalFolder(const QString &localPath) {
+  QString canonical;
+  if (!localPath.isEmpty()) {
+    const QFileInfo info(localPath);
+    if (info.isDir()) { canonical = info.canonicalFilePath(); }
+  }
+  const bool nextLocalOnly = !canonical.isEmpty();
+  if (m_workspace.isEmpty() && m_localOnly == nextLocalOnly && canonical == m_localRootCanonical && localPath == m_localPath) {
+    return;
+  }
+  stopLocalWatch();
+  clearRequests();
+  m_workspace.clear();
+  m_localPath = nextLocalOnly ? localPath : QString();
+  m_localRootCanonical = canonical;
+  m_localOnly = nextLocalOnly;
+  m_listings.clear();
+  m_staged.clear();
+  m_expanded.clear();
+  m_rootError.clear();
+  m_selected.clear();
+  m_refreshAgain = false;
+  beginResetModel();
+  m_rows.clear();
+  endResetModel();
+  if (m_localOnly) {
+    syncLocalWatch();
+    m_listings.insert(Root, {});
+    m_rootTicket = list(Root);
+  }
+  emit folderChanged();
+  emit countChanged();
+  emit selectionChanged();
+  emit stateChanged();
+}
+
+void ProjectFiles::setProjectName(const QString &projectName) {
+  if (projectName == m_projectName) { return; }
+  m_projectName = projectName;
+  emit folderChanged();
+}
+
+void ProjectFiles::setFolderResolving(bool resolving) {
+  if (resolving == m_folderResolving) { return; }
+  m_folderResolving = resolving;
+  emit stateChanged();
+}
+
+void ProjectFiles::setFolderUnavailable(bool unavailable) {
+  if (unavailable == m_folderUnavailable) { return; }
+  m_folderUnavailable = unavailable;
+  emit stateChanged();
+}
+
+void ProjectFiles::setFolderError(const QString &error) {
+  if (error == m_folderError) { return; }
+  m_folderError = error;
+  emit stateChanged();
+}
+
 bool ProjectFiles::revealable() const {
   return hasFolder() && !m_localPath.isEmpty() && QFileInfo(m_localPath).isDir();
 }
@@ -133,12 +214,14 @@ QString ProjectFiles::revealLabel() {
 }
 
 bool ProjectFiles::loading() const {
-  if (!hasFolder() || m_origin.isEmpty()) { return false; }
+  if (m_folderResolving) { return true; }
+  if (!hasFolder() || (!m_localOnly && m_origin.isEmpty())) { return false; }
   const auto root = m_listings.constFind(Root);
   return root == m_listings.cend() || root->state == Listing::Loading;
 }
 
 QString ProjectFiles::error() const {
+  if (!m_folderError.isEmpty()) { return m_folderError; }
   const auto root = m_listings.constFind(Root);
   return root != m_listings.cend() && root->state == Listing::Failed ? m_rootError : QString();
 }
@@ -164,7 +247,9 @@ QVariant ProjectFiles::data(const QModelIndex &index, int role) const {
   case KindRole: return row.kind;
   case IconRole: return row.icon;
   // Only image rows load a picture. The others leave the Image source empty.
-  case ThumbnailUrlRole: return row.kind == QLatin1String("image") ? downloadUrl(m_origin, m_workspace, row.path) : QUrl();
+  case ThumbnailUrlRole:
+    if (row.kind != QLatin1String("image")) { return QUrl(); }
+    return m_localOnly ? localFileUrl(row.path) : downloadUrl(m_origin, m_workspace, row.path);
   case SelectedRole: return !row.placeholder && row.path == m_selected;
   default: return {};
   }
@@ -257,12 +342,14 @@ QString ProjectFiles::timelineSummary(const QJsonObject &timeline) {
 }
 
 QUrl ProjectFiles::previewImageUrl() const {
-  return m_preview.kind == QLatin1String("image") ? downloadUrl(m_origin, m_workspace, m_preview.path) : QUrl();
+  if (m_preview.kind != QLatin1String("image")) { return {}; }
+  return m_localOnly ? localFileUrl(m_preview.path) : downloadUrl(m_origin, m_workspace, m_preview.path);
 }
 
 QUrl ProjectFiles::previewMediaUrl() const {
   static const QSet<QString> playable{"video", "audio", "model3d"};
   if (!playable.contains(m_preview.kind)) { return {}; }
+  if (m_localOnly) { return localFileUrl(m_preview.path); }
   if (!m_localPath.isEmpty() && QFileInfo(m_localPath).isDir()) {
     const auto file = QDir(m_localPath).filePath(QDir::cleanPath(m_preview.path));
     if (QFileInfo(file).canonicalFilePath().startsWith(QFileInfo(m_localPath).canonicalFilePath() + '/')) {
@@ -301,7 +388,7 @@ void ProjectFiles::updatePreview() {
   const bool reread = next.kind == QLatin1String("timeline") && (next.path != m_preview.path || next.size != m_preview.size);
   m_preview = next;
   m_timelineTicket = 0;
-  if (reread && next.size <= TimelineLimit && !m_origin.isEmpty()) {
+  if (reread && next.size <= TimelineLimit && (m_localOnly || !m_origin.isEmpty())) {
     m_timelineTicket = ++m_nextTicket;
     requestTimeline(m_timelineTicket, next.path);
   }
@@ -469,6 +556,7 @@ void ProjectFiles::setExpanded(int row, bool expanded) {
   if (expanded == m_expanded.contains(path)) { return; }
   if (!expanded) {
     m_expanded.remove(path);
+    if (m_localOnly) { syncLocalWatch(); }
     emitRowChanged(row, {ExpandedRole});
     const int end = childEnd(row);
     if (end > row + 1) {
@@ -481,6 +569,7 @@ void ProjectFiles::setExpanded(int row, bool expanded) {
     return;
   }
   m_expanded.insert(path);
+  if (m_localOnly) { syncLocalWatch(); }
   emitRowChanged(row, {ExpandedRole});
   // The first expand lists the folder. A failed one tries again.
   const auto listing = m_listings.constFind(path);
@@ -533,11 +622,17 @@ void ProjectFiles::reveal(const QString &path) {
   const auto relative = QDir::cleanPath(path.isEmpty() ? QStringLiteral(".") : path);
   if (QDir::isAbsolutePath(relative) || relative == QLatin1String("..") || relative.startsWith(QLatin1String("../"))) { return; }
   const QFileInfo target(root.filePath(relative));
-  QDesktopServices::openUrl(QUrl::fromLocalFile(target.isDir() ? target.absoluteFilePath() : target.absolutePath()));
+  const QString rootCanonical = QFileInfo(m_localPath).canonicalFilePath();
+  const QString targetCanonical = target.canonicalFilePath();
+  if (rootCanonical.isEmpty() || targetCanonical.isEmpty()
+      || (targetCanonical != rootCanonical && !targetCanonical.startsWith(rootCanonical + '/'))) {
+    return;
+  }
+  QDesktopServices::openUrl(QUrl::fromLocalFile(target.isDir() ? targetCanonical : QFileInfo(targetCanonical).absolutePath()));
 }
 
 void ProjectFiles::refresh() {
-  if (!hasFolder() || m_origin.isEmpty()) { return; }
+  if (!hasFolder() || (!m_localOnly && m_origin.isEmpty())) { return; }
   if (!m_refreshTickets.isEmpty()) {
     m_refreshAgain = true;
     return;
@@ -608,6 +703,7 @@ void ProjectFiles::receiveListing(quint64 ticket, const QJsonArray &entries, con
       }
     }
     m_expanded = present;
+    if (m_localOnly) { syncLocalWatch(); }
     if (indexOfPath(m_selected) < 0) { setSelected({}); }
     emit stateChanged();
     if (m_refreshAgain) { refresh(); }
@@ -624,7 +720,128 @@ void ProjectFiles::receiveListing(quint64 ticket, const QJsonArray &entries, con
   if (row >= 0 && m_expanded.contains(path)) { replaceChildren(row); }
 }
 
+void ProjectFiles::stopLocalWatch() {
+  m_watchDebounce.stop();
+  const auto dirs = m_watcher.directories();
+  if (!dirs.isEmpty()) { m_watcher.removePaths(dirs); }
+}
+
+void ProjectFiles::syncLocalWatch() {
+  if (!m_localOnly || m_localRootCanonical.isEmpty()) {
+    stopLocalWatch();
+    return;
+  }
+  QSet<QString> desired;
+  desired.insert(m_localRootCanonical);
+  constexpr int MaxWatchedDirs = 64;
+  for (const auto &path : std::as_const(m_expanded)) {
+    if (desired.size() >= MaxWatchedDirs) { break; }
+    const auto resolved = resolveLocalEntry(path, true);
+    if (!resolved.isEmpty()) { desired.insert(resolved); }
+  }
+  const auto current = m_watcher.directories();
+  QStringList toRemove;
+  for (const auto &dir : current) {
+    if (!desired.contains(dir)) { toRemove.append(dir); }
+  }
+  if (!toRemove.isEmpty()) { m_watcher.removePaths(toRemove); }
+  QStringList toAdd;
+  for (const auto &dir : std::as_const(desired)) {
+    if (!current.contains(dir)) { toAdd.append(dir); }
+  }
+  if (!toAdd.isEmpty()) { m_watcher.addPaths(toAdd); }
+}
+
+QString ProjectFiles::resolveLocalEntry(const QString &relativePath, bool requireDir) const {
+  if (!m_localOnly || m_localRootCanonical.isEmpty()) { return {}; }
+  if (relativePath.contains('\\') || QDir::isAbsolutePath(relativePath)) { return {}; }
+  const QString cleaned = QDir::cleanPath(relativePath.isEmpty() ? QStringLiteral(".") : relativePath);
+  if (cleaned == QLatin1String(Root)) {
+    return requireDir && QFileInfo(m_localRootCanonical).isDir() ? m_localRootCanonical : QString();
+  }
+  const auto segments = cleaned.split('/', Qt::SkipEmptyParts);
+  if (segments.isEmpty()) { return {}; }
+  QString current = m_localRootCanonical;
+  for (qsizetype i = 0; i < segments.size(); ++i) {
+    const auto &segment = segments.at(i);
+    if (segment == QLatin1String(".") || segment == QLatin1String("..") || segment == QLatin1String(Reserved)) {
+      return {};
+    }
+    const QFileInfo info(QDir(current).filePath(segment));
+    if (!info.exists()) { return {}; }
+    const QString canonical = info.canonicalFilePath();
+    if (canonical.isEmpty() || !canonical.startsWith(m_localRootCanonical + '/')) { return {}; }
+    const QString rel = canonical.mid(m_localRootCanonical.size() + 1);
+    for (const auto &part : rel.split('/', Qt::SkipEmptyParts)) {
+      if (part == QLatin1String(Reserved)) { return {}; }
+    }
+    const bool isLast = i + 1 == segments.size();
+    if (info.isDir()) {
+      if (QFileInfo::exists(QDir(canonical).filePath(QStringLiteral(".nodetool")))) { return {}; }
+      current = canonical;
+    } else {
+      if (!isLast || requireDir) { return {}; }
+      return canonical;
+    }
+  }
+  return requireDir ? current : QString();
+}
+
+QUrl ProjectFiles::localFileUrl(const QString &relativePath) const {
+  const QString resolved = resolveLocalEntry(relativePath, false);
+  return resolved.isEmpty() ? QUrl() : QUrl::fromLocalFile(resolved);
+}
+
+QJsonArray ProjectFiles::listLocalDirectory(const QString &relativePath, QString &error) const {
+  const QString dirPath = resolveLocalEntry(relativePath, true);
+  if (dirPath.isEmpty()) {
+    error = tr("Directory not found");
+    return {};
+  }
+  const QDir dir(dirPath);
+  if (!dir.isReadable()) {
+    error = tr("Access denied");
+    return {};
+  }
+  QJsonArray result;
+  const auto entries = dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
+  const bool isRoot = relativePath.isEmpty() || relativePath == QLatin1String(Root);
+  for (const auto &info : entries) {
+    const QString name = info.fileName();
+    if (name.isEmpty() || name == QLatin1String(Reserved)) { continue; }
+    const QString canonical = info.canonicalFilePath();
+    if (canonical.isEmpty() || !canonical.startsWith(m_localRootCanonical + '/')) { continue; }
+    const QString canonicalRel = canonical.mid(m_localRootCanonical.size() + 1);
+    if (canonicalRel == QLatin1String(Reserved) || canonicalRel.startsWith(QLatin1String(".nodetool/"))
+        || canonicalRel.contains(QLatin1String("/.nodetool/")) || canonicalRel.endsWith(QLatin1String("/.nodetool"))) {
+      continue;
+    }
+    const bool isDir = info.isDir();
+    if (isDir && QFileInfo::exists(QDir(canonical).filePath(QStringLiteral(".nodetool")))) { continue; }
+    if (!isDir && !info.isFile()) { continue; }
+    const QString entryPath = isRoot ? name : relativePath + '/' + name;
+    result.append(QJsonObject{
+        {"name", name},
+        {"path", entryPath},
+        {"is_dir", isDir},
+        {"size", isDir ? 0 : qint64(info.size())},
+    });
+  }
+  return result;
+}
+
 void ProjectFiles::requestListing(quint64 ticket, const QString &path) {
+  if (m_localOnly) {
+    QString error;
+    const QJsonArray entries = listLocalDirectory(path, error);
+    QMetaObject::invokeMethod(
+        this,
+        [guard = QPointer<ProjectFiles>(this), ticket, entries, error] {
+          if (guard) { guard->receiveListing(ticket, entries, error); }
+        },
+        Qt::QueuedConnection);
+    return;
+  }
   auto url = m_origin.resolved(QUrl("/trpc/workspace.listFiles"));
   QUrlQuery query;
   query.addQueryItem("input", QString::fromUtf8(QJsonDocument(QJsonObject{{"id", m_workspace}, {"path", path}})
@@ -657,6 +874,30 @@ void ProjectFiles::requestListing(quint64 ticket, const QString &path) {
 }
 
 void ProjectFiles::requestTimeline(quint64 ticket, const QString &path) {
+  if (m_localOnly) {
+    QJsonObject timeline;
+    QString error;
+    const QString resolved = resolveLocalEntry(path, false);
+    if (resolved.isEmpty()) {
+      error = tr("File not found");
+    } else {
+      QFile file(resolved);
+      if (!file.open(QIODevice::ReadOnly)) {
+        error = file.errorString();
+      } else if (file.size() > TimelineLimit) {
+        error = tr("File too large");
+      } else {
+        timeline = QJsonDocument::fromJson(file.readAll()).object();
+      }
+    }
+    QMetaObject::invokeMethod(
+        this,
+        [guard = QPointer<ProjectFiles>(this), ticket, timeline, error] {
+          if (guard) { guard->receiveTimeline(ticket, timeline, error); }
+        },
+        Qt::QueuedConnection);
+    return;
+  }
   QNetworkRequest request(downloadUrl(m_origin, m_workspace, path));
   request.setTransferTimeout(30000);
   request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
@@ -717,7 +958,7 @@ bool ProjectFiles::canMoveInto(const QString &source, const QString &directory) 
 }
 
 bool ProjectFiles::moveEntry(const QString &source, const QString &directory) {
-  if (m_project.isEmpty() || !canMoveInto(source, directory)) { return false; }
+  if (m_localOnly || m_origin.isEmpty() || m_project.isEmpty() || !canMoveInto(source, directory)) { return false; }
   const int row = indexOfPath(source);
   if (row < 0 || m_rows.at(row).placeholder) { return false; }
   requestMove(source, m_rows.at(row).isDir, directory);
@@ -725,7 +966,7 @@ bool ProjectFiles::moveEntry(const QString &source, const QString &directory) {
 }
 
 int ProjectFiles::copyIn(const QList<QUrl> &urls, const QString &directory) {
-  if (m_project.isEmpty()) { return 0; }
+  if (m_localOnly || m_origin.isEmpty() || m_project.isEmpty()) { return 0; }
   int started = 0;
   for (const auto &url : urls) {
     if (!url.isLocalFile() || !QFileInfo(url.toLocalFile()).isFile()) { continue; }
