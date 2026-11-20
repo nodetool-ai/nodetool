@@ -7,6 +7,7 @@
 #include <QVariant>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+// UI thread only.
 // Keeps unsubmitted edits only. The controller owns loaded resources, transport
 // and persistence, and the host app supplies it. A controller has the
 // properties result, busy and error, the signal changed(), and the invokable
@@ -72,4 +73,11 @@ private:
     QJsonObject m_submitted;
     QString m_error;
     QString m_observedKey;
+    QJsonObject m_observedResource;
+    QVariantList m_observedLinked;
+    QString m_observedError;
+    bool m_observedBusy = false;
+    bool m_hasObserved = false;
+    mutable QByteArray m_cachedScope;
+    mutable QString m_cachedScopeHash;
 };

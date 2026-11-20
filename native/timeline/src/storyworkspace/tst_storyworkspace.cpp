@@ -704,6 +704,35 @@ private slots:
         QVERIFY(!workspace.save()); QCOMPARE(writes, 0);
         workspace.discard(); QVERIFY(!workspace.dirty()); QVERIFY(QJsonDocument::fromJson(workspace.jsonDraft("shot", "production.references", QJsonArray{}).toUtf8()).array().isEmpty());
     }
+    void unchangedTimelineClipEditsDoNotReemitWorkspaceSignals() {
+        const QJsonObject doc{
+            {"id", "timeline"}, {"projectId", "project"}, {"fps", 30}, {"width", 640}, {"height", 360}, {"durationMs", 3000},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"name", "Video"}, {"type", "video"}, {"index", 0}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c1"}, {"trackId", "v"}, {"mediaType", "image"}, {"name", "Initial"}, {"startMs", 0}, {"durationMs", 1000}}}}
+        };
+        auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson());
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        AssistController controller(m_testCache.root());
+        controller.setModel(&model);
+        StoryWorkspace workspace;
+        workspace.setController(&controller);
+        // Trigger one initial observation so baseline state is captured.
+        auto clips = model.clipsJson();
+        auto c = clips[0].toObject();
+        c.insert("name", "First");
+        clips[0] = c;
+        QVERIFY(model.replaceClips(clips));
+
+        QSignalSpy changedSpy(&workspace, &StoryWorkspace::changed);
+        QSignalSpy resourceSpy(&workspace, &StoryWorkspace::resourceChanged);
+        c.insert("name", "Second");
+        clips[0] = c;
+        QVERIFY(model.replaceClips(clips));
+        QCOMPARE(changedSpy.count(), 0);
+        QCOMPARE(resourceSpy.count(), 0);
+    }
 };
 QTEST_MAIN(StoryWorkspaceTest)
 #include "tst_storyworkspace.moc"

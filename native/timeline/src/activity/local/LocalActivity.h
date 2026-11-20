@@ -3,6 +3,7 @@
 #include <QPointer>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+// UI thread only.
 class LocalActivity : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -19,5 +20,10 @@ public:
 signals:
     void changed();
 private:
+    QString scopeInputs() const;
+    QString resolvedScope() const;
+    void syncScope();
     QPointer<TimelineModel> m_timeline;
+    mutable QString m_scopeInputs;
+    mutable QString m_scope;
 };

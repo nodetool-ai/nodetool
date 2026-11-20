@@ -58,7 +58,14 @@ TransformGizmoController::TransformGizmoController(QQuickItem* parent) : QQuickP
     connect(this, &QQuickItem::yChanged, this, &TransformGizmoController::refresh);
     connect(this, &QQuickItem::activeFocusChanged, this, [this]() { update(); });
 }
-TransformGizmoController::~TransformGizmoController() { cancel(); }
+TransformGizmoController::~TransformGizmoController() {
+    if (m_timeline) { disconnect(m_timeline, nullptr, this, nullptr); }
+    if (m_drag && dragIntact()) {
+        m_drag.reset();
+        m_timeline->previewClips(QJsonArray{m_startClip});
+        m_timeline->settleTransient();
+    }
+}
 void TransformGizmoController::setTimeline(TimelineModel* value) {
     if (m_timeline == value) { return; }
     cancel();
@@ -66,19 +73,29 @@ void TransformGizmoController::setTimeline(TimelineModel* value) {
     m_timeline = value;
     ++m_probeEpoch;
     m_dimensions.clear();
+    m_pathVersions.clear();
     m_probing.clear();
     if (value) {
         connect(value, &TimelineModel::beforeCommand, this, &TransformGizmoController::cancel);
         connect(value, &TimelineModel::clipsChanged, this, [this]() {
             // Another edit owns the document now. Never restore a stale gesture over it.
-            if (m_drag && !m_writing && m_timeline->clipsJson() != m_lastPreview) { m_drag.reset(); clearPointerFeedback(); }
-            refresh();
+            if (m_drag && !m_writing && !dragIntact()) { m_drag.reset(); clearPointerFeedback(); }
+            if (!m_writing) {
+                m_pathVersions.clear();
+                refresh();
+            }
+        });
+        connect(value, &TimelineModel::previewChanged, this, [this]() {
+            if (m_writing) { return; }
+            if (m_drag && !dragIntact()) { m_drag.reset(); clearPointerFeedback(); }
+            if (m_active && !m_drag) { refresh(); }
         });
         connect(value, &TimelineModel::documentReplaced, this, [this]() {
             m_drag.reset();
             clearPointerFeedback();
             ++m_probeEpoch;
             m_dimensions.clear();
+            m_pathVersions.clear();
             m_probing.clear();
         });
         connect(value, &QObject::destroyed, this, [this]() { m_drag.reset(); clearPointerFeedback(); refresh(); });
@@ -91,7 +108,7 @@ void TransformGizmoController::setClock(PlaybackClock* value) {
     cancel();
     if (m_clock) { disconnect(m_clock, nullptr, this, nullptr); }
     m_clock = value;
-    if (value) { connect(value, &PlaybackClock::timeChanged, this, &TransformGizmoController::refresh); }
+    if (value && m_active) { connect(value, &PlaybackClock::timeChanged, this, &TransformGizmoController::refresh); }
     emit bindingsChanged();
     refresh();
 }
@@ -99,6 +116,17 @@ void TransformGizmoController::setSelection(const QStringList& value) {
     if (m_selection == value) { return; }
     cancel();
     m_selection = value;
+    emit bindingsChanged();
+    refresh();
+}
+void TransformGizmoController::setActive(bool value) {
+    if (m_active == value) { return; }
+    if (!value) { cancel(); }
+    m_active = value;
+    if (m_clock) {
+        disconnect(m_clock, nullptr, this, nullptr);
+        if (m_active) { connect(m_clock, &PlaybackClock::timeChanged, this, &TransformGizmoController::refresh); }
+    }
     emit bindingsChanged();
     refresh();
 }
@@ -153,8 +181,15 @@ void TransformGizmoController::discover() {
     }
     refresh();
 }
-void TransformGizmoController::probe(const QString& path) {
+QString TransformGizmoController::versionFor(const QString& path) {
+    const auto it = m_pathVersions.constFind(path);
+    if (it != m_pathVersions.cend()) { return *it; }
     const QString version = nt::ui::mediaVersionKey(path);
+    m_pathVersions.insert(path, version);
+    return version;
+}
+void TransformGizmoController::probe(const QString& path) {
+    const QString version = versionFor(path);
     if (path.isEmpty() || m_dimensions.contains(version) || m_probing.contains(version)) { return; }
     m_probing.insert(version);
     const QPointer<TransformGizmoController> self(this);
@@ -170,7 +205,7 @@ void TransformGizmoController::probe(const QString& path) {
         QMetaObject::invokeMethod(QCoreApplication::instance(), [self, path, version, epoch, size]() {
             if (!self || self->m_probeEpoch != epoch) { return; }
             self->m_probing.remove(version);
-            if (nt::ui::mediaVersionKey(path) != version) { self->refresh(); return; }
+            if (nt::ui::mediaVersionKey(path) != version) { self->m_pathVersions.remove(path); self->refresh(); return; }
             self->m_dimensions.insert(version, size);
             self->refresh();
         });
@@ -182,7 +217,7 @@ void TransformGizmoController::refresh() {
     const auto origin = m_monitor ? m_monitor->mapToItem(this, QPointF()) : QPointF();
     m_available = false;
     const auto frame = m_monitor ? m_monitor->size() : size();
-    if (m_timeline && m_clock && m_selection.size() == 1 && frame.width() > 0 && frame.height() > 0 &&
+    if (m_active && m_timeline && m_clock && m_selection.size() == 1 && frame.width() > 0 && frame.height() > 0 &&
         m_timeline->canvasWidth() > 0 && m_timeline->canvasHeight() > 0) {
         const auto& timeline = m_timeline->timeline();
         const auto id = m_selection.first().toStdString();
@@ -196,7 +231,7 @@ void TransformGizmoController::refresh() {
                 QSize dimensions(clip->width.value_or(0), clip->height.value_or(0));
                 if (dimensions.isEmpty() && !clip->mediaPath.empty()) {
                     const auto path = QString::fromStdString(clip->mediaPath);
-                    const auto version = nt::ui::mediaVersionKey(path);
+                    const auto version = versionFor(path);
                     dimensions = m_dimensions.value(version);
                     probe(path);
                 }
@@ -228,11 +263,15 @@ bool TransformGizmoController::begin(const QString& target, QPointF pointer) {
     if (!m_available || !m_timeline || (!scaleHandles.contains(target) && target != "body" && target != "pivot" && target != "rotate")) { return false; }
     end();
     m_before = m_timeline->clipsJson();
-    m_lastPreview = m_before;
     m_generation = m_timeline->documentGeneration();
-    for (const auto& value : m_before) {
-        if (value.toObject().value("id") == m_clipId) { m_startClip = value.toObject(); break; }
+    m_clipIndex = -1;
+    m_startClip = {};
+    for (int i = 0; i < m_before.size(); ++i) {
+        const auto obj = m_before[i].toObject();
+        if (obj.value("id") == m_clipId) { m_startClip = obj; m_clipIndex = i; break; }
     }
+    m_previewClip = m_startClip;
+    m_previewRevision = m_timeline->timeline().revision;
     m_drag = nt::gizmo::Drag{target, m_stored, m_display, m_space, pointer, m_box};
     m_lastPointer = pointer;
     m_lastShift = m_lastBypass = false;
@@ -242,21 +281,32 @@ bool TransformGizmoController::begin(const QString& target, QPointF pointer) {
     update();
     return true;
 }
+bool TransformGizmoController::dragIntact() const {
+    return m_timeline && m_generation == m_timeline->documentGeneration() &&
+           m_previewRevision == m_timeline->timeline().revision;
+}
 void TransformGizmoController::write(const nt::ClipTransform& next) {
-    if (!m_timeline || m_generation != m_timeline->documentGeneration()) { m_drag.reset(); clearPointerFeedback(); return; }
+    if (!dragIntact()) { m_drag.reset(); clearPointerFeedback(); return; }
     const double rel = (m_clock ? m_clock->currentTimeMs() : 0) - m_startClip.value("startMs").toDouble();
     const auto at = rel >= 0 && rel <= m_startClip.value("durationMs").toDouble() ? std::optional<double>(rel) : std::nullopt;
     const auto patch = nt::gizmo::transformPatch(m_startClip, next, at);
-    auto after = m_before;
     auto clip = m_startClip;
     for (auto it = patch.begin(); it != patch.end(); ++it) { clip.insert(it.key(), it.value()); }
-    for (int i = 0; i < after.size(); ++i) {
-        if (after[i].toObject().value("id") == m_startClip.value("id")) { after[i] = clip; break; }
-    }
-    m_lastPreview = after;
+    m_previewClip = clip;
     m_writing = true;
-    m_timeline->replaceClips(after);
+    m_timeline->previewClips(QJsonArray{clip});
     m_writing = false;
+    if (!m_timeline) { m_drag.reset(); clearPointerFeedback(); return; }
+    m_previewRevision = m_timeline->timeline().revision;
+    m_stored = nt::gizmo::transformOf(clip);
+    if (m_drag) {
+        m_display = m_drag->displayTransform(next);
+        const auto previousBox = m_box;
+        m_box = nt::gizmo::geometry(m_display, m_space);
+        if (m_box.corners != previousBox.corners || m_box.center != previousBox.center || m_box.pivot != previousBox.pivot) {
+            emit geometryChanged();
+        }
+    }
 }
 void TransformGizmoController::move(QPointF pointer, bool shift, bool bypass) {
     if (!m_drag) { return; }
@@ -305,16 +355,29 @@ void TransformGizmoController::end() {
     clearPointerFeedback();
     if (!m_drag) { return; }
     m_drag.reset();
-    if (m_timeline && m_generation == m_timeline->documentGeneration() && m_timeline->clipsJson() == m_lastPreview) {
-        m_timeline->commitEdit(tr("Transform"), m_before, m_lastPreview);
+    if (dragIntact()) {
+        QJsonArray after = m_before;
+        if (m_clipIndex >= 0 && m_clipIndex < after.size() &&
+            after[m_clipIndex].toObject().value("id") == m_clipId) {
+            after[m_clipIndex] = m_previewClip;
+        }
+        m_writing = true;
+        m_timeline->commitEdit(tr("Transform"), m_before, after);
+        m_timeline->settleTransient();
+        m_writing = false;
+        refresh();
     }
 }
 void TransformGizmoController::cancel() {
     clearPointerFeedback();
     if (!m_drag) { return; }
     m_drag.reset();
-    if (m_timeline && m_generation == m_timeline->documentGeneration() && m_timeline->clipsJson() == m_lastPreview) {
-        m_timeline->replaceClips(m_before);
+    if (dragIntact()) {
+        m_writing = true;
+        m_timeline->previewClips(QJsonArray{m_startClip});
+        m_timeline->settleTransient();
+        m_writing = false;
+        refresh();
     }
 }
 void TransformGizmoController::clearPointerFeedback() {
@@ -439,7 +502,9 @@ void TransformGizmoController::mouseReleaseEvent(QMouseEvent* event) { end(); ev
 void TransformGizmoController::mouseUngrabEvent() { cancel(); }
 void TransformGizmoController::hoverMoveEvent(QHoverEvent* event) {
     if (m_drag) { setCursor(QCursor(m_dragCursor)); return; }
-    m_hover = targetAt(event->position() - m_origin);
+    const auto nextHover = targetAt(event->position() - m_origin);
+    if (nextHover == m_hover) { return; }
+    m_hover = nextHover;
     setCursor(QCursor(cursorFor(m_hover, m_box)));
     update();
 }

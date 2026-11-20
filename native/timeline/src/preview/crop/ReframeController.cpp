@@ -19,8 +19,9 @@ void ReframeController::setModel(TimelineModel* model) {
     if (model) {
         connect(model, &TimelineModel::beforeCommand, this, &ReframeController::cancelGesture);
         // The model emits timelineChanged after every clipsChanged, so one connection hears both.
-        connect(model, &TimelineModel::timelineChanged, this, &ReframeController::refresh);
-        connect(model, &TimelineModel::documentReplaced, this, [this] { m_before = {}; });
+        connect(model, &TimelineModel::timelineChanged, this, [this] { if (!m_writing) { refresh(); } });
+        connect(model, &TimelineModel::previewChanged, this, [this] { if (!m_writing && !m_gesture) { refresh(); } });
+        connect(model, &TimelineModel::documentReplaced, this, [this] { m_before = {}; m_gesture = false; });
     }
     emit modelChanged();
     refresh();
@@ -51,14 +52,33 @@ void ReframeController::beginGesture(const QString& action, const QJsonObject& p
     m_lastPreview = m_model->clipsJson();
     m_payload = payload;
     m_generation = m_model->documentGeneration();
+    m_previewRevision = m_model->timeline().revision;
     m_action = action;
     m_gesture = true;
+}
+bool ReframeController::gestureIntact() const {
+    return m_model && m_generation == m_model->documentGeneration() &&
+           (m_previewRevision == m_model->timeline().revision || m_lastPreview == m_model->clipsJson());
+}
+void ReframeController::showClips(const QJsonArray& clips) {
+    QJsonArray changed;
+    bool sameShape = clips.size() == m_lastPreview.size();
+    for (qsizetype i = 0; sameShape && i < clips.size(); ++i) {
+        const auto next = clips[i].toObject();
+        const auto last = m_lastPreview[i].toObject();
+        sameShape = next.value(u"id") == last.value(u"id");
+        if (sameShape && next != last) { changed.append(next); }
+    }
+    m_writing = true;
+    if (!sameShape) { m_model->replaceClips(clips); }
+    else if (!changed.isEmpty()) { m_model->previewClips(changed); }
+    m_writing = false;
 }
 void ReframeController::preview(const QJsonObject& payload) {
     if (!m_model || !m_gesture || m_before.isEmpty() || m_generation != m_model->documentGeneration()) {
         return;
     }
-    if (m_lastPreview != m_model->clipsJson()) { m_gesture = false; m_cancelled = true; return; }
+    if (!gestureIntact()) { m_gesture = false; m_cancelled = true; return; }
     // The clip, crop edge and source time belong to the gesture's start.
     for (const auto& key : {"value", "x", "y", "zoom"}) {
         if (payload.contains(key)) {
@@ -67,8 +87,11 @@ void ReframeController::preview(const QJsonObject& payload) {
     }
     const auto edit = nt::app::findEdit(m_action);
     if (edit) {
-        m_lastPreview = edit(m_before, m_payload).value("clips").toArray();
-        m_model->replaceClips(m_lastPreview);
+        const auto next = edit(m_before, m_payload).value("clips").toArray();
+        showClips(next);
+        m_lastPreview = next;
+        m_previewRevision = m_model->timeline().revision;
+        refresh();
     }
 }
 void ReframeController::commit(const QString& action, const QJsonObject& payload) {
@@ -86,16 +109,24 @@ void ReframeController::finishGesture() {
     }
     m_gesture = false;
     const auto before = std::exchange(m_before, {});
-    if (m_model && !before.isEmpty() && m_generation == m_model->documentGeneration()) {
-        m_model->commitEdit(m_action, before.value("clips").toArray(), m_model->clipsJson());
+    if (m_model && !before.isEmpty() && gestureIntact()) {
+        m_writing = true;
+        m_model->commitEdit(m_action, before.value("clips").toArray(), m_lastPreview);
+        m_model->settleTransient();
+        m_writing = false;
+        refresh();
     }
 }
 void ReframeController::cancelGesture() {
     if (!m_gesture) { return; }
     m_gesture = false;
     m_cancelled = true;
-    if (m_model && m_generation == m_model->documentGeneration() && m_lastPreview == m_model->clipsJson()) {
-        m_model->replaceClips(m_before.value("clips").toArray());
+    if (m_model && gestureIntact()) {
+        showClips(m_before.value("clips").toArray());
+        m_writing = true;
+        m_model->settleTransient();
+        m_writing = false;
+        refresh();
     }
     m_before = {};
     m_lastPreview = {};
