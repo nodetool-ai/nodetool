@@ -350,7 +350,7 @@ const HOMEPAGE_FAQ_COPY: Record<string, { question: string; answerMd: string }> 
     answerMd: "Choose Studio to save projects on your computer and use online or local models. Choose Cloud to try NodeTool in your browser without installing it. Cloud is in alpha, and project transfer between editions is not yet complete. [Compare Studio and Cloud](/faq#editions-title).",
   },
   "do-i-need-a-gpu": {
-    question: "Do I need a powerful computer?",
+    question: "Do I need a GPU?",
     answerMd: "No dedicated GPU is needed when you use online AI providers. Running models locally depends on the model and your hardware. [Local model setup](/solutions/local-first).",
   },
   "use-chatgpt-claude-gemini-subscription": {

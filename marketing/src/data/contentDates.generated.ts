@@ -15,16 +15,16 @@ export const contentDates: {
       "hash": "8156191b6731ae30"
     },
     "/gamedev": {
-      "date": "2026-10-30",
-      "hash": "a64808b0e6373aae"
+      "date": "2026-11-20",
+      "hash": "fd3372bb7fe857d2"
     },
     "/gamedev/ai-game-engines": {
       "date": "2026-11-06",
       "hash": "11a4d9bec9749169"
     },
     "/ai-video-editor": {
-      "date": "2026-11-09",
-      "hash": "0bc1dca2aab8af1a"
+      "date": "2026-11-20",
+      "hash": "4f1f1682f47847f7"
     },
     "/ai-image-editor": {
       "date": "2026-11-09",

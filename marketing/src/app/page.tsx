@@ -143,7 +143,7 @@ export default function Home() {
                 href="/node-based-workflows"
                 className="mt-6 inline-flex items-center gap-2 rounded text-sm font-medium text-blue-300 hover:text-blue-200 focus-ring"
               >
-                Explore node workflows
+                Learn more
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </a>
             </div>

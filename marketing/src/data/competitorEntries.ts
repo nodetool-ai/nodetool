@@ -182,6 +182,8 @@ export type Competitor = {
 
   /** Hero headline and subline, when the category default in `alternativesVisuals.ts` does not fit. */
   hero?: { headline: string; subline: string };
+  /** Optional hero chips override when the shared defaults do not differentiate from this tool. */
+  heroChips?: string[];
 
   /** The short answer above the table, when the generic one in `shortAnswer` would only repeat the hero. */
   answer?: string;
@@ -1373,7 +1375,7 @@ export const competitors: Competitor[] = [
     related: ["figma-weave", "flora", "krea"],
     listFacts: "Runs locally or on Comfy Cloud · Open source (GPL-3.0)",
     listAnswer:
-      "For open-source software on your own computer, the closest ComfyUI alternatives are NodeTool, InvokeAI, SwarmUI, and Stable Diffusion WebUI Forge. For a hosted canvas in the browser, they are Figma Weave, Flora, and Krea. Each entry below says where the tool runs and under which licence.",
+      "For open-source software on your own computer, the closest ComfyUI alternatives are NodeTool, InvokeAI, SwarmUI, and Stable Diffusion WebUI Forge. For a hosted canvas in the browser, they are Figma Weave, Flora, and Krea. Each entry below says where the tool runs and under which license.",
     otherTools: {
       checked: "November 12, 2026",
       tools: [
@@ -1386,7 +1388,7 @@ export const competitors: Competitor[] = [
         {
           name: "SwarmUI",
           note: "A form-first interface for image and video models, with a Comfy Workflow tab that opens the raw graph.",
-          facts: "Windows, Linux, macOS on Apple silicon · Open source (MIT)",
+          facts: "Windows, Linux, macOS on Apple Silicon · Open source (MIT)",
           source: "https://github.com/mcmonkeyprojects/SwarmUI",
         },
         {
@@ -1408,7 +1410,7 @@ export const competitors: Competitor[] = [
     seo: {
       title: "ComfyUI Alternatives: NodeTool, Figma Weave, Flora, Krea",
       description:
-        "ComfyUI alternatives compared by platform and licence: NodeTool (open source, macOS, Windows, Linux), InvokeAI, SwarmUI, Forge, Figma Weave, Flora, and Krea.",
+        "ComfyUI alternatives compared by platform and license: NodeTool (open source, macOS, Windows, Linux), InvokeAI, SwarmUI, Forge, Figma Weave, Flora, and Krea.",
     },
     theme: "blue",
     category: "Node editor",
@@ -1420,17 +1422,20 @@ export const competitors: Competitor[] = [
     },
     competitorTagline: "Node editor for image and video generation",
     hero: {
-      headline: "Keep the ComfyUI graph. Add the editors around it.",
+      headline: "One installer. An agent that builds the graph. Visual editors around it.",
       subline:
-        "NodeTool runs a ComfyUI workflow exported in API format as one node. Its Load nodes become inputs, its Save nodes become outputs, and the images and video it returns land in the same project as your storyboard and timeline.",
+        "NodeTool replaces Python environments and broken custom nodes with a single open-source desktop app for cloud and local models, a built-in agent, a storyboard, and a timeline. Need an existing ComfyUI graph? Import it in API format and run it as a node.",
     },
+    heroChips: ["One desktop installer", "Built-in agent", "Runs ComfyUI API graphs"],
     answer:
       "ComfyUI is a node editor for image and video generation graphs, with fine control over every sampler and model setting. NodeTool is a creative workspace in which a generation graph is one editor beside a storyboard, layered sketch, script, and video timeline. It can call a ComfyUI server, a NodeTool GPU worker, or Comfy Cloud as a node in that graph.",
     rows: [
+      { label: "Setup", competitor: "Python environment & custom-node manager", nodetool: "Single desktop installer or Docker" },
+      { label: "Built-in agent", competitor: "Community nodes", nodetool: "Builds, validates, and repairs graphs" },
       { label: "Media types", competitor: "Image, video, audio via supported workflows", nodetool: "Image, video, audio, text" },
       { label: "Models", competitor: "Local and partner image/video models", nodetool: "Local and hosted models across media types" },
       { label: "Editing tools (masks, inpaint, relight, layers)", competitor: "Available through workflows and nodes", nodetool: "Integrated editors and nodes" },
-      { label: "Local models", competitor: true, nodetool: true },
+      { label: "Local models", competitor: "Broad local diffusion, LoRA, and ControlNet support", nodetool: "Ollama, MLX, llama.cpp, Flux, SD.cpp, Wan, plus hosted APIs" },
       { label: "Desktop + browser", competitor: "Local web interface and Comfy Cloud", nodetool: "Studio and Cloud (alpha)" },
       { label: "Open source", competitor: true, nodetool: true },
       { label: "Custom-node stability", competitor: "Third-party, versions can conflict", nodetool: "Built-in, one maintained codebase" },
@@ -1439,9 +1444,9 @@ export const competitors: Competitor[] = [
     ],
     explainerParagraph:
       "Choose ComfyUI when the graph itself is the work and you tune samplers, schedulers, and custom nodes by hand. It runs text-to-video and image-to-video as well as diffusion images. Shared graphs that use custom nodes need the same extensions and models on the next machine, and so do NodeTool workflows that call them.",
-    ctaHeading: "Bring one ComfyUI workflow.",
+    ctaHeading: "Replace the setup, keep the control.",
     ctaParagraph:
-      "Export it in API format and load it into the Run ComfyUI Workflow node in Studio. The rest of the graph, and the editors, work on what it returns.",
+      "Download Studio for macOS, Windows, or Linux. Build new graphs with the agent, or import an existing ComfyUI API workflow as a node.",
     faq: [
       {
         question: "Why do ComfyUI workflows break after sharing or updating?",
@@ -1456,7 +1461,7 @@ export const competitors: Competitor[] = [
       {
         question: "Is there a ComfyUI alternative for Mac or Linux?",
         answer:
-          "Yes. NodeTool Studio ships a .dmg for Apple Silicon and Intel Macs, a Windows installer, and a Linux AppImage. On Apple Silicon with macOS 14 or newer, local models can run on Apple's MLX framework. InvokeAI runs on macOS and Linux too, SwarmUI runs on Linux and on Apple silicon Macs, and Draw Things is a free app for Mac, iPhone, and iPad that runs image models offline.",
+          "Yes. NodeTool Studio ships a .dmg for Apple Silicon and Intel Macs, a Windows installer, and a Linux AppImage. On Apple Silicon with macOS 14 or newer, local models can run on Apple's MLX framework. InvokeAI runs on macOS and Linux too, SwarmUI runs on Linux and on Apple Silicon Macs, and Draw Things is a free app for Mac, iPhone, and iPad that runs image models offline.",
       },
       {
         question: "What is the best online alternative to ComfyUI?",
@@ -1557,21 +1562,65 @@ export const competitors: Competitor[] = [
       accent: "violet",
       subtitle: "The open-source, your own keys alternative to Figma Weave.",
     },
-    competitorTagline: "Hosted AI canvas in the Figma ecosystem",
+    competitorTagline: "Hosted AI canvas inside Figma's product suite",
+    sources: [
+      { title: "Figma Weave pricing", href: "https://weave.figma.com/pricing" },
+      { title: "NodeTool pricing calculator", href: "/pricing" },
+    ],
     rows: [
-      { label: "Pricing model", competitor: "AI credits", nodetool: "Your keys, provider prices" },
-      { label: "Models", competitor: "Hand-picked list", nodetool: "Every provider" },
+      { label: "Pricing model", competitor: "AI credits ($24–$60/mo plans)", nodetool: "Your keys, provider list prices" },
+      { label: "Models", competitor: "Hand-picked list", nodetool: "OpenAI, Anthropic, Google, fal.ai, Replicate, Kie.ai, local" },
       { label: "Source", competitor: "Closed", nodetool: "AGPL-3.0" },
-      { label: "Free tier", competitor: true, nodetool: "Studio is free" },
+      { label: "Free tier", competitor: "150 credits/mo (no video)", nodetool: "Studio is free" },
       { label: "Self-host", competitor: false, nodetool: true },
-      { label: "Desktop app / offline", competitor: false, nodetool: true },
+      { label: "Desktop app / offline", competitor: false, nodetool: "Desktop app; offline with local models" },
       { label: "Local models (Ollama, MLX, llama.cpp)", competitor: false, nodetool: true },
     ],
+    costComparison: {
+      checkedDate: "August 24, 2026",
+      competitorLabel: "Figma Weave Starter ($24/mo, 1,500 credits)",
+      byokLabel: "NodeTool + your provider key (list price)",
+      localLabel: "NodeTool local (your GPU)",
+      rows: [
+        {
+          output: "1 Flux 2 Pro image",
+          competitor: "5 credits ≈ $0.08",
+          byok: "$0.025 on Kie.ai",
+          local: "$0 (Flux / SD.cpp)",
+        },
+        {
+          output: "1 Seedream V5 image",
+          competitor: "4 credits ≈ $0.06",
+          byok: "$0.035 on Kie.ai",
+          local: "$0 (Flux / SD.cpp)",
+        },
+        {
+          output: "1 Kling 3 clip (8 s)",
+          competitor: "100 credits ≈ $1.60",
+          byok: "$0.56 on Kie.ai ($0.07/s)",
+          local: "$0 (Wan 2.2)",
+        },
+        {
+          output: "1 Seedance 1.5 clip (8 s)",
+          competitor: "31 credits ≈ $0.50",
+          byok: "$0.14 on Kie.ai ($0.0175/s)",
+          local: "$0 (Wan 2.2)",
+        },
+        {
+          output: "1 Veo 3.1 clip (8 s)",
+          competitor: "88 credits ≈ $1.41",
+          byok: "$1.60 on AtlasCloud ($0.20/s)",
+          local: "–",
+        },
+      ],
+      footnote:
+        "Figma Weave per-generation figures are derived from the Starter plan allowance (1,500 credits for $24/mo) on weave.figma.com/pricing, using 8 s as the video clip length. Provider list prices via genspend.io.",
+    },
     explainerParagraph:
       "Figma Weave fits a team that already designs in Figma and wants a hosted canvas with nothing to install. Choose it when a curated model list billed in credits suits how you budget.",
-    ctaHeading: "Build on a canvas nobody can acquire.",
+    ctaHeading: "Own your canvas and your workflows.",
     ctaParagraph:
-      "Download Studio — open source, your own keys, every provider at provider prices.",
+      "Download Studio: open source, your own keys, and major cloud or local providers at list price.",
     faq: [
       {
         question: "Is Figma Weave the same as Weavy?",
@@ -1579,23 +1628,23 @@ export const competitors: Competitor[] = [
           "Yes. Figma acquired Weavy in October 2025 and renamed it Figma Weave. It runs as a standalone product at weave.figma.com with its own AI credits and billing, separate from Figma, and is being integrated into the Figma platform over time.",
       },
       {
-        question: "Is there an open source alternative to Figma Weave?",
+        question: "Which image and video models can I run in NodeTool?",
         answer:
-          "NodeTool is one: an open-source (AGPL-3.0) visual canvas for image, video, audio, and text. It runs on your own keys — you call every major provider with your own keys at provider prices — and runs as a desktop app, in the browser, or self-hosted.",
+          "Flux, Seedream, GPT Image, Nano Banana, Recraft, Veo, Kling, Seedance, Sora, Hailuo, and Wan through providers such as fal.ai, Replicate, Kie.ai, AtlasCloud, OpenAI, and Google, plus local models via Ollama, MLX, and llama.cpp.",
       },
       {
         question: "Does NodeTool use credits like Figma Weave?",
         answer:
-          "No. NodeTool runs on your own keys — you bring your own API keys and pay each provider their list price directly. There are no credits, no markup, and no hand-picked list of models. You can also run local models for no per-call cost at all.",
+          "No. NodeTool sells no credits and adds nothing on your own keys. You connect your provider API keys and pay each provider its published list price directly, or run supported local models on your own hardware.",
       },
       {
-        question: "When is Figma Weave the better pick?",
+        question: "Can a team self-host NodeTool and share workflows?",
         answer:
-          "If your team already lives in Figma and wants a managed, hosted canvas with a hand-picked list of models and community workflows — and doesn't need self-hosting, local models, or pricing on your own keys — Figma Weave is a polished choice. NodeTool is for teams that want the same workflows with open source, their own keys, and their own machines.",
+          "Yes. NodeTool is AGPL-3.0 open source and runs on your own server with Docker or as a desktop app on macOS, Windows, and Linux. Workflows and projects are stored as files you can version, share, and rerun across machines.",
       },
     ],
     limitation:
-      "Figma Weave is a closed, hosted canvas billed in its own AI credits — you can't self-host it, and its roadmap now follows Figma's platform plans.",
+      "Figma Weave is a closed, hosted canvas billed in its own AI credits. You cannot self-host it, and its roadmap follows Figma's platform plans.",
     isNew: true,
   },
   {

@@ -185,11 +185,11 @@ The current advertising paragraph shows the pattern:
 Advertising and marketing (`/marketing`) is the current industry vertical.
 
 Game development (`/gamedev`) is the exception to the `<h1>` rule. Its hero
-leads with the outcome, "Make a world people can play.", and then with the
-shipped Kindle, Lumen, and Neon Drift games. Visitors can play a standalone
-browser export, then open the same example in Studio to edit its art, levels,
-and rules. Regenerate its browser exports with `npm run build:packages`, then
-`npm --prefix marketing run gen:games`.
+leads with the outcome, "Build a game with an agent. Keep editing it yourself.",
+and then with five shipped games (Kindle, Lumen, Neon Drift, RIDGELINE, and
+Sunrush Kart). Visitors can play a standalone browser export, then open the same
+example in Studio to edit its art, levels, and rules. Regenerate its browser
+exports with `npm run build:packages`, then `npm --prefix marketing run gen:games`.
 
 `/studio` is the desktop-edition page and `/agents` is the builder and
 operator page. Film production remains a strong demonstration on both routes,

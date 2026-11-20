@@ -48,7 +48,7 @@ Each page puts NodeTool next to one product: what the other product does well, w
 - [NodeTool vs Ideogram](https://nodetool.ai/alternatives/ideogram): Ideogram provides typography-focused models and creative apps. NodeTool is an alternative for managing the production graph and combining those kinds of tasks with other media and data.
 - [NodeTool vs Recraft](https://nodetool.ai/alternatives/recraft): Recraft specializes in image and vector design. NodeTool is an alternative when you need a reusable workflow connecting asset creation to other production stages.
 - [NodeTool vs Weavy](https://nodetool.ai/alternatives/weavy): Weavy — now Figma Weave after Figma's October 2025 acquisition — is a closed, hosted canvas billed in credits: you can't self-host it, and your work lives on their platform.
-- [NodeTool vs Figma Weave](https://nodetool.ai/alternatives/figma-weave): Figma Weave is a closed, hosted canvas billed in its own AI credits — you can't self-host it, and its roadmap now follows Figma's platform plans.
+- [NodeTool vs Figma Weave](https://nodetool.ai/alternatives/figma-weave): Figma Weave is a closed, hosted canvas billed in its own AI credits. You cannot self-host it, and its roadmap follows Figma's platform plans.
 - [NodeTool vs Flora](https://nodetool.ai/alternatives/flora): Flora is a closed, credit-metered hosted canvas. You can't self-host it or bring your own keys.
 - [NodeTool vs Krea](https://nodetool.ai/alternatives/krea): Krea is a closed, credit-based hosted studio built for real-time renders. It has no self-hosting, no option to bring your own keys, and covers image and video only.
 

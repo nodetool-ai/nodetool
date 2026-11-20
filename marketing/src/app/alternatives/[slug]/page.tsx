@@ -9,7 +9,7 @@ import FaqSection from "../../../components/FaqSection";
 import SearchStarter from "../../../components/SearchStarter";
 import HeroDemoPlayer from "../../../components/HeroDemoPlayer";
 import AlternativeMedia from "../../../components/AlternativeMedia";
-import { alternativeVisuals, HERO_REEL } from "../../../data/alternativesVisuals";
+import { alternativeVisuals } from "../../../data/alternativesVisuals";
 import { breadcrumbSchema, itemListSchema } from "../../../lib/jsonld";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import {
@@ -125,7 +125,7 @@ export default async function AlternativesPage({
               {visuals.subline}
             </p>
             <ul className="mt-6 flex flex-wrap justify-center gap-2 text-sm text-slate-200">
-              {HERO_CHIPS.map((chip) => (
+              {(c.heroChips ?? HERO_CHIPS).map((chip) => (
                 <li
                   key={chip}
                   className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1"
@@ -148,13 +148,21 @@ export default async function AlternativesPage({
               >
                 Compare with {c.name} <ArrowRight className="h-4 w-4" aria-hidden />
               </a>
+              {c.listAnswer && (
+                <a
+                  href="#alt-list-title"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-800 px-6 py-3.5 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-600 hover:text-white focus-ring"
+                >
+                  See all alternatives <ArrowRight className="h-4 w-4" aria-hidden />
+                </a>
+              )}
             </div>
           </div>
           <div className="mx-auto mt-12 max-w-5xl rounded-2xl border border-slate-800/70 bg-slate-900/40 p-2 shadow-2xl ring-1 ring-white/5">
             <HeroDemoPlayer
-              mediaBase={HERO_REEL.base}
-              alt={HERO_REEL.alt}
-              caption={HERO_REEL.caption}
+              mediaBase={visuals.heroReel.base}
+              alt={visuals.heroReel.alt}
+              caption={visuals.heroReel.caption}
             />
           </div>
         </section>
@@ -419,7 +427,7 @@ export default async function AlternativesPage({
           </ul>
           {c.otherTools && (
             <p className="mt-4 text-sm leading-relaxed text-slate-400">
-              Platforms and licences checked {c.otherTools.checked} on each
+              Platforms and licenses checked {c.otherTools.checked} on each
               project&apos;s page.
             </p>
           )}

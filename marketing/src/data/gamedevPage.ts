@@ -16,7 +16,7 @@ export const GAMEDEV_DESCRIPTION =
   "An open-source 2D and 3D game engine for AI agents. Claude Code or the built-in agent builds and playtests the game. You edit it and export it for the web.";
 
 export const GAMEDEV_LEAD =
-  "NodeTool has its own 2D and 3D game engine, built so an AI agent can make a game and a person can keep working on it. The agent builds the levels, rules, scripts, art, and sound through checked edits, then plays the game headlessly to test it. You open the same game in the Game Editor, change anything, and export it as a web build. NodeTool is free and open source under AGPL-3.0.";
+  "The agent builds 2D and 3D levels, scripts, art, and sound through checked edits, then playtests the game headlessly. You open the same game in the Game Editor, change anything, and export a standalone web or desktop build.";
 
 export const MCP_INSTALL_COMMAND = "npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install";
 
@@ -73,7 +73,7 @@ export const ASSET_KINDS: { title: string; body: string }[] = [
 
 export const ASSET_NOTES: string[] = [
   "Every asset is bound to a named slot, so the agent can regenerate one slot without touching the rest. It can also stage a 2D candidate and compare it before installing it.",
-  "Asset generators such as Ludo.ai and Scenario focus on making the asset. NodeTool also makes assets, then places each one into a game you can play, test, and edit.",
+  "Standalone game-asset generators focus on making the asset. NodeTool also makes assets, then places each one into a game you can play, test, and edit.",
   "For a trailer, the agent captures up to eight still frames from the game and can cut them on a timeline with generated clips. It does not record gameplay video.",
 ];
 
@@ -115,21 +115,6 @@ export const LIMITS: string[] = [
 export const LIMITS_SUMMARY =
   "For a commercial console or mobile release, a large open world, or an online game, use Unity, Unreal, Godot, or Roblox Studio. NodeTool fits when you want an agent to build and test a small web or desktop game that you keep editing.";
 
-export const PROCESS_STEPS: { title: string; body: string }[] = [
-  {
-    title: "Describe the game",
-    body: "Give the agent a world, a player, and a goal. It builds the levels, sets up how things move and react, and prepares the art and sound in a game project you can edit.",
-  },
-  {
-    title: "Play, change, play again",
-    body: "Change the art, adjust a jump, move an obstacle, or ask the agent to revise the rules. Play the result in the editor as you work.",
-  },
-  {
-    title: "Put it in someone else's hands",
-    body: "Export a web build: a folder with the player, the game, and its art and sound, ready to host on your own site over HTTPS. Players use a keyboard, a gamepad, or touch controls.",
-  },
-];
-
 export const GAMEDEV_FAQ: QaPair[] = [
   {
     question: "Can an AI agent build a playable game in NodeTool?",
@@ -138,7 +123,8 @@ export const GAMEDEV_FAQ: QaPair[] = [
   },
   {
     question: "Can Claude Code build a game in NodeTool?",
-    answer: `Yes. Run ${MCP_INSTALL_COMMAND} to register NodeTool as an MCP server in Claude Code, Codex, or OpenCode. The agent calls the game tools inside execute_code, NodeTool's sandboxed action tool, and looks at captured frames with view_image. The game skills appear in Claude Code as slash commands.`,
+    answer:
+      "Yes. Register NodeTool as an MCP server with the command above. Claude Code, Codex, and OpenCode get the same validated game tools, frame capture, and engine skills as the built-in agent, and the game opens in the Game Editor.",
   },
   {
     question: "Can I edit the game after the agent makes it?",
@@ -148,7 +134,7 @@ export const GAMEDEV_FAQ: QaPair[] = [
   {
     question: "Is NodeTool a replacement for Unity, Godot, or Unreal?",
     answer:
-      "No. Those engines export to mobile and consoles, support multiplayer, and have far larger toolsets and ecosystems. NodeTool is a smaller engine built for agent authoring: the agent edits a validated game document, tests it headlessly, and leaves you an editable project for the web or desktop.",
+      "No. Those engines export to mobile and consoles, support multiplayer, and have far larger toolsets and communities. NodeTool is a smaller engine built for agent authoring: the agent edits a validated game document, tests it headlessly, and leaves you an editable project for the web or desktop.",
   },
   {
     question: "Which platforms can I export to?",

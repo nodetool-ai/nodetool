@@ -90,7 +90,7 @@ export default function AiVideoEditorPage() {
 
           <section aria-labelledby="agent-title" className="mt-24 grid gap-10 border-t border-slate-700 pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <div>
-              <h2 id="agent-title" className={sectionTitle}>Let Claude Code or Codex edit the video.</h2>
+              <h2 id="agent-title" className={sectionTitle}>Let Claude Code or Codex edit the video</h2>
               <p className={`mt-4 max-w-sm ${bodyText}`}>The built-in agent and external agents use the same tools. Connect yours with the <a href="/mcp" className={inlineLink}>NodeTool MCP server</a>.</p>
             </div>
             <dl className="min-w-0 max-w-2xl space-y-5 break-words">
@@ -128,7 +128,7 @@ export default function AiVideoEditorPage() {
 
         <StoryboardTeaser
           slugs={["duel-in-the-wheat", "the-long-hallway", "mars-greenhouse", "the-interrogation"]}
-          heading="Films made in NodeTool."
+          heading="Films made in NodeTool"
           body="Each page shows the finished film, then every shot with its camera and direction."
         />
 

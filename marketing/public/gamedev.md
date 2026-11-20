@@ -7,7 +7,7 @@ product: NodeTool
 ---
 # NodeTool Game Development
 
-NodeTool has its own 2D and 3D game engine, built so an AI agent can make a game and a person can keep working on it. The agent builds the levels, rules, scripts, art, and sound through checked edits, then plays the game headlessly to test it. You open the same game in the Game Editor, change anything, and export it as a web build. NodeTool is free and open source under AGPL-3.0.
+The agent builds 2D and 3D levels, scripts, art, and sound through checked edits, then playtests the game headlessly. You open the same game in the Game Editor, change anything, and export a standalone web or desktop build.
 
 Play the example games at https://nodetool.ai/gamedev.
 
@@ -40,7 +40,7 @@ The agent makes the art and sound for the game and installs each piece where the
 - **3D models and colliders**: Generate a model on a provider node, or import your own glTF or GLB. Each 3D result is a candidate that you or the agent install on purpose.
 
 - Every asset is bound to a named slot, so the agent can regenerate one slot without touching the rest. It can also stage a 2D candidate and compare it before installing it.
-- Asset generators such as Ludo.ai and Scenario focus on making the asset. NodeTool also makes assets, then places each one into a game you can play, test, and edit.
+- Standalone game-asset generators focus on making the asset. NodeTool also makes assets, then places each one into a game you can play, test, and edit.
 - For a trailer, the agent captures up to eight still frames from the game and can cut them on a timeline with generated clips. It does not record gameplay video.
 
 ## The Game Editor
@@ -87,7 +87,7 @@ Yes. The agent creates the game, edits it through checked operations, generates 
 
 ### Can Claude Code build a game in NodeTool?
 
-Yes. Run npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install to register NodeTool as an MCP server in Claude Code, Codex, or OpenCode. The agent calls the game tools inside execute_code, NodeTool's sandboxed action tool, and looks at captured frames with view_image. The game skills appear in Claude Code as slash commands.
+Yes. Register NodeTool as an MCP server with the command above. Claude Code, Codex, and OpenCode get the same validated game tools, frame capture, and engine skills as the built-in agent, and the game opens in the Game Editor.
 
 ### Can I edit the game after the agent makes it?
 
@@ -95,7 +95,7 @@ Yes. The agent and the Game Editor change the same game document. Open it, selec
 
 ### Is NodeTool a replacement for Unity, Godot, or Unreal?
 
-No. Those engines export to mobile and consoles, support multiplayer, and have far larger toolsets and ecosystems. NodeTool is a smaller engine built for agent authoring: the agent edits a validated game document, tests it headlessly, and leaves you an editable project for the web or desktop.
+No. Those engines export to mobile and consoles, support multiplayer, and have far larger toolsets and communities. NodeTool is a smaller engine built for agent authoring: the agent edits a validated game document, tests it headlessly, and leaves you an editable project for the web or desktop.
 
 ### Which platforms can I export to?
 
