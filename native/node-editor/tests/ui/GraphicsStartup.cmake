@@ -2,6 +2,8 @@ file(MAKE_DIRECTORY "${OUTPUT_DIR}")
 set(screenshot "${OUTPUT_DIR}/editor.png")
 file(REMOVE "${screenshot}")
 set(ENV{XDG_CONFIG_HOME} "${OUTPUT_DIR}/config")
+# The assertions read Qt diagnostics from a captured pipe, without a terminal.
+set(ENV{QT_FORCE_STDERR_LOGGING} "1")
 
 if(MODE STREQUAL "fallback")
     set(ENV{QSG_RHI_BACKEND} vulkan)
