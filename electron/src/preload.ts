@@ -267,6 +267,10 @@ const api = {
   setMenuSnapToGrid: (enabled: boolean) =>
     ipcRenderer.send(IpcChannels.MENU_SET_SNAP_TO_GRID, enabled),
 
+  /** Enable File > Publish to Cloud and Synchronize for the main window's project. */
+  setMenuCloudTransfer: (enabled: boolean) =>
+    ipcRenderer.send(IpcChannels.MENU_SET_CLOUD_TRANSFER, enabled),
+
   // ============================================================================
   // server: Server lifecycle, logs, and status
   // ============================================================================

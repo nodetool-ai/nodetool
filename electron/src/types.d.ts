@@ -469,6 +469,7 @@ export enum IpcChannels {
   CLIPBOARD_AVAILABLE_FORMATS = "clipboard-available-formats",
   MENU_EVENT = "menu-event",
   MENU_SET_SNAP_TO_GRID = "menu-set-snap-to-grid",
+  MENU_SET_CLOUD_TRANSFER = "menu-set-cloud-transfer",
   ON_CREATE_WORKFLOW = "on-create-workflow",
   ON_UPDATE_WORKFLOW = "on-update-workflow",
   ON_DELETE_WORKFLOW = "on-delete-workflow",
@@ -816,6 +817,7 @@ export interface IpcRequest {
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
   [IpcChannels.MENU_SET_SNAP_TO_GRID]: boolean;
+  [IpcChannels.MENU_SET_CLOUD_TRANSFER]: boolean;
   [IpcChannels.CLIPBOARD_WRITE_TEXT]: { text: string; type?: ClipboardType };
   [IpcChannels.CLIPBOARD_READ_TEXT]: ClipboardType | undefined;
   [IpcChannels.CLIPBOARD_WRITE_IMAGE]: {
@@ -945,6 +947,7 @@ export interface IpcResponse {
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
   [IpcChannels.MENU_SET_SNAP_TO_GRID]: void;
+  [IpcChannels.MENU_SET_CLOUD_TRANSFER]: void;
   [IpcChannels.CLIPBOARD_WRITE_TEXT]: void;
   [IpcChannels.CLIPBOARD_READ_TEXT]: string;
   [IpcChannels.CLIPBOARD_WRITE_IMAGE]: void;

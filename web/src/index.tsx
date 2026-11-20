@@ -90,6 +90,9 @@ const InstallRuntimePackageDialog = React.lazy(
 const ProjectFolderMigrationHost = React.lazy(
   () => import("./components/projects/ProjectFolderMigrationHost")
 );
+const CloudTransferHost = React.lazy(
+  () => import("./components/cloud/CloudTransferHost")
+);
 import GitHubStarPrompt from "./components/onboarding/GitHubStarPrompt";
 import HelpDialogHost from "./components/content/Help/HelpDialogHost";
 import BugReportDialogHost from "./components/support/BugReportDialogHost";
@@ -890,6 +893,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <ProviderSignInDialog />
                       <InstallRuntimePackageDialog />
                       <ProjectFolderMigrationHost />
+                      <CloudTransferHost />
                       <GitHubStarPrompt />
                       <CommandMenuHost />
                       <ConfirmDialogHost />

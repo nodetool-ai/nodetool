@@ -73,6 +73,19 @@ const setMenuSnapToGrid = (enabled: boolean) => {
   buildMenu();
 };
 
+// The renderer knows the main window's project and whether the cloud account
+// is signed in. It pushes whether Publish to Cloud and Synchronize apply to
+// that project (technical design WP2.14), and the menu keeps a mirror.
+let cloudTransferEnabled = false;
+
+const setMenuCloudTransfer = (enabled: boolean) => {
+  if (cloudTransferEnabled === enabled) {
+    return;
+  }
+  cloudTransferEnabled = enabled;
+  buildMenu();
+};
+
 // Resolve the window at click time: the menu outlives the window it was built
 // with, and macOS recreates the main window on Dock activation.
 const sendMenuEvent = (event: { type: string }) => {
@@ -133,6 +146,17 @@ const buildMenu = () => {
               type: "close",
             });
           },
+        },
+        { type: "separator" },
+        {
+          label: "Publish to Cloud…",
+          enabled: cloudTransferEnabled,
+          click: () => sendMenuEvent({ type: "publishToCloud" }),
+        },
+        {
+          label: "Synchronize…",
+          enabled: cloudTransferEnabled,
+          click: () => sendMenuEvent({ type: "synchronizeProject" }),
         },
       ],
     },
@@ -383,4 +407,4 @@ Features & Versions
   }
 }
 
-export { buildMenu, setMenuSnapToGrid };
+export { buildMenu, setMenuCloudTransfer, setMenuSnapToGrid };

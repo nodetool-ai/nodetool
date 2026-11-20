@@ -20410,5 +20410,91 @@
       "waiting_one": "{{count}} 件のクラウドドキュメントにまだ送信されていない変更があります。",
       "unsent_one": "サーバーが {{count}} 件のクラウドドキュメントの変更を拒否しました。"
     }
+  },
+  "cloudTransfer": {
+    "title": {
+      "publish": "クラウドに公開",
+      "synchronize": "同期"
+    },
+    "capturing": "変更を読み込み中…",
+    "running": "送信と受信を実行中…",
+    "apply": {
+      "publish": "公開",
+      "synchronize": "同期"
+    },
+    "cancel": "キャンセル",
+    "close": "閉じる",
+    "tryAgain": "再試行",
+    "nothing": "送信または受信するものはありません。",
+    "section": {
+      "choice": "ここでもクラウドでも変更されました",
+      "receive": "クラウドから受信します",
+      "send": "クラウドへ送信します",
+      "deletion": "このコンピューターで削除されました",
+      "problem": "送信できません"
+    },
+    "choice": {
+      "label": "残す {{name}} のバージョン",
+      "receive": "クラウドのバージョン",
+      "keepLocal": "自分のものを残す"
+    },
+    "deletion": {
+      "confirm": "クラウドでも削除する",
+      "note": "クラウドでも削除しない限り、クラウドのバージョンがこのコンピューターに戻ります。"
+    },
+    "missing": {
+      "confirm": "このファイルなしで送信"
+    },
+    "row": {
+      "createDocument": "ここで新規作成、送信されます",
+      "replaceDocument": "ここで変更、送信されます",
+      "renameDocument": "{{name}} に名前を変更",
+      "keepBoth": "クラウドのバージョンの横にコピーとして送信されます",
+      "addVersions": "保存したバージョンが送信されます",
+      "putAssetFile": "ここでファイルが変更されました。送信されます",
+      "newInCloud": "クラウドで新規作成",
+      "cloudChanged": "クラウドで変更されました",
+      "cloudFileChanged": "使用しているファイルがクラウドで変更されました",
+      "bothChanged": "ここでもクラウドでも変更されました",
+      "deleted": "このコンピューターで削除されました",
+      "deletedCloudChanged": "このコンピューターで削除され、その後クラウドで変更されました",
+      "missingLocally": "必要なファイルがプロジェクトフォルダーにありません",
+      "tooLarge": "必要なファイルが大きすぎて送信できません",
+      "overAllowance": "必要なファイルがストレージの容量に収まりません",
+      "cannotSend": "送信できません: {{reason}}",
+      "documentFileMissing": "ファイルがプロジェクトフォルダーにないため、最後に保存したバージョンを送信します。"
+    },
+    "message": {
+      "signInToPublish": "このプロジェクトを公開するにはサインインしてください。",
+      "signInToSynchronize": "このプロジェクトを同期するにはサインインしてください。",
+      "noProject": "公開または同期するには、プロジェクトフォルダーを開いてください。",
+      "linkedElsewhere": "このプロジェクトは別のクラウドサーバーまたはアカウントにリンクされています。同期するにはそのアカウントでサインインしてください。",
+      "signedOut": "このプロジェクトを送信または受信するには、もう一度サインインしてください。",
+      "offline": "クラウドサーバーに接続できませんでした。オンラインになってから再試行してください。",
+      "localUnavailable": "このアプリのプロジェクトサーバーが応答しませんでした。",
+      "cancelled": "クラウドアカウントが変わったため、転送を停止しました。",
+      "refused": "サーバーが転送を拒否しました ({{reason}})。",
+      "collectFirst": "このプロジェクトが使用する一部のファイルがプロジェクトフォルダーの外にあります。フォルダーに集めてから再試行してください。",
+      "receiveExpired": "このウィンドウを開いている間にクラウドのプロジェクトが変更されました。もう一度同期してください。",
+      "receiveChangedWhileOpen": "このウィンドウを開いている間に変更がありました。選択をもう一度確認してください。",
+      "receivingChangedAgain": "受信中にクラウドのプロジェクトが再び変更されました。もう一度選択してください。",
+      "chooseAgain_one": "選択後に {{count}} 件のドキュメントがここまたはクラウドで変更されました。もう一度選択してください。",
+      "chooseAgain_other": "選択後に {{count}} 件のドキュメントがここまたはクラウドで変更されました。もう一度選択してください。",
+      "cloudChangedChooseAgain_one": "このウィンドウを読み込んだ後、{{count}} 件のドキュメントのクラウド版が変更されました。もう一度選択してください。",
+      "cloudChangedChooseAgain_other": "このウィンドウを読み込んだ後、{{count}} 件のドキュメントのクラウド版が変更されました。もう一度選択してください。",
+      "notPreparedAgain": "受信しました。ここでの変更を再準備できませんでした: {{reason}} 送信するにはもう一度同期してください。",
+      "sendChangedWhileOpen": "ウィンドウを開いている間にこのプロジェクトが変更されました。送信される内容を確認してください。",
+      "missingFilesUnconfirmed": "このプロジェクトに必要なファイルがありません。それぞれを確認すると、そのファイルなしで送信します。",
+      "sendRefused": "クラウドが送信を拒否しました: {{reasons}}"
+    },
+    "done": {
+      "published": "クラウドに公開しました。",
+      "synchronized": "同期しました。",
+      "received": "受信: {{names}}",
+      "notReceived": "未受信: {{names}}",
+      "changedDuringReceive": "受信中にここで変更されたため置き換えていません: {{names}}",
+      "missingFiles_one": "{{count}} 件のファイルを受信できませんでした。",
+      "missingFiles_other": "{{count}} 件のファイルを受信できませんでした。"
+    }
   }
 }

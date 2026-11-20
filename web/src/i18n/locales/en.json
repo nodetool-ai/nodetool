@@ -20410,5 +20410,91 @@
       "signOutNow": "Sign out now",
       "waitingNote": "Waiting for the changes to be sent. Keep the cloud window open."
     }
+  },
+  "cloudTransfer": {
+    "title": {
+      "publish": "Publish to Cloud",
+      "synchronize": "Synchronize"
+    },
+    "capturing": "Reading what changed…",
+    "running": "Sending and receiving…",
+    "apply": {
+      "publish": "Publish",
+      "synchronize": "Synchronize"
+    },
+    "cancel": "Cancel",
+    "close": "Close",
+    "tryAgain": "Try again",
+    "nothing": "Nothing to send or receive.",
+    "section": {
+      "choice": "Changed here and in the cloud",
+      "receive": "Received from the cloud",
+      "send": "Sent to the cloud",
+      "deletion": "Deleted on this computer",
+      "problem": "Cannot be sent"
+    },
+    "choice": {
+      "label": "Version of {{name}} to keep",
+      "receive": "Cloud version",
+      "keepLocal": "Keep mine"
+    },
+    "deletion": {
+      "confirm": "Delete in the cloud too",
+      "note": "Unless you choose to delete it in the cloud, the cloud version comes back to this computer."
+    },
+    "missing": {
+      "confirm": "Send without this file"
+    },
+    "row": {
+      "createDocument": "New here, will be sent",
+      "replaceDocument": "Changed here, will be sent",
+      "renameDocument": "Renamed to {{name}}",
+      "keepBoth": "Will be sent as a copy beside the cloud version",
+      "addVersions": "Saved versions will be sent",
+      "putAssetFile": "File changed here, will be sent",
+      "newInCloud": "New in the cloud",
+      "cloudChanged": "Changed in the cloud",
+      "cloudFileChanged": "A file it uses changed in the cloud",
+      "bothChanged": "Changed here and in the cloud",
+      "deleted": "Deleted on this computer",
+      "deletedCloudChanged": "Deleted on this computer, and changed in the cloud since",
+      "missingLocally": "A file it needs is missing from the project folder",
+      "tooLarge": "A file it needs is too large to send",
+      "overAllowance": "A file it needs does not fit in the storage allowance",
+      "cannotSend": "Cannot be sent: {{reason}}",
+      "documentFileMissing": "Its file is missing from the project folder, so its last saved version will be sent."
+    },
+    "message": {
+      "signInToPublish": "Sign in to publish this project.",
+      "signInToSynchronize": "Sign in to synchronize this project.",
+      "noProject": "Open a project folder to publish or synchronize it.",
+      "linkedElsewhere": "This project is linked to another cloud server or account. Sign in to that account to synchronize it.",
+      "signedOut": "Sign in again to send or receive this project.",
+      "offline": "The cloud server could not be reached. Try again when you are online.",
+      "localUnavailable": "The project server of this app did not answer.",
+      "cancelled": "The transfer stopped because the cloud account changed.",
+      "refused": "The server refused the transfer ({{reason}}).",
+      "collectFirst": "Some files this project uses are outside the project folder. Collect them into the folder, then try again.",
+      "receiveExpired": "The cloud project changed while this sheet was open. Synchronize again.",
+      "receiveChangedWhileOpen": "Something changed while this sheet was open. Check the choices again.",
+      "receivingChangedAgain": "The cloud project changed again while receiving. Choose again.",
+      "chooseAgain_one": "{{count}} document changed here or in the cloud since you chose. Choose again.",
+      "chooseAgain_other": "{{count}} documents changed here or in the cloud since you chose. Choose again.",
+      "cloudChangedChooseAgain_one": "The cloud version of {{count}} document changed since this sheet was read. Choose again.",
+      "cloudChangedChooseAgain_other": "The cloud version of {{count}} documents changed since this sheet was read. Choose again.",
+      "notPreparedAgain": "Received. The changes here could not be prepared again: {{reason}} Synchronize again to send them.",
+      "sendChangedWhileOpen": "This project changed while the sheet was open. Check what will be sent.",
+      "missingFilesUnconfirmed": "Files this project needs are missing. Confirm each one to send without it.",
+      "sendRefused": "The cloud refused the send: {{reasons}}"
+    },
+    "done": {
+      "published": "Published to the cloud.",
+      "synchronized": "Synchronized.",
+      "received": "Received: {{names}}",
+      "notReceived": "Not received: {{names}}",
+      "changedDuringReceive": "Changed here while receiving, so not replaced: {{names}}",
+      "missingFiles_one": "{{count}} file could not be received.",
+      "missingFiles_other": "{{count}} files could not be received."
+    }
   }
 }
