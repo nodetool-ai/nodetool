@@ -329,12 +329,6 @@ void EditorCanvasScene::moveDraft(const CanvasPointerEvent &event) {
   if (!wire || !wire->connectionState().requiresPort()) { return; }
   wire->setStackZ(kDraftWireZ);
   auto &state = wire->connectionState();
-  if (auto *card = nodeAt(event.scenePosition)) {
-    card->reactToConnection(wire);
-    state.setLastHoveredNode(card->nodeId());
-  } else {
-    state.resetLastHoveredNode();
-  }
   // move() keeps the fixed end on its port. The pointer positions the loose end.
   wire->move();
   wire->setEndPoint(state.requiredPort(), event.scenePosition);
@@ -359,7 +353,33 @@ void EditorCanvasScene::repaintNode(NodeId id) {
 
 void EditorCanvasScene::draftFeedbackChanged() {
   updateBranchDimming();
-  repaintCards();
+  // Connectable styling changes only the handles on non-group, non-comment
+  // cards (when zoomed in enough to draw handles) and non-control wires.
+  if (zoom() > zoomedOutThreshold) {
+    // paintHandles draws a halo of radius handleDiameter / 2 * handleConnectableScale + 2 (9.2)
+    // and focus ring of radius handleDiameter / 2 + 1 (7). Margin 12 covers antialiasing too.
+    constexpr double margin = 12;
+    for (auto *node : nodeItems()) {
+      const auto id = node->nodeId();
+      if (model_.isGroup(id) || model_.isComment(id)) { continue; }
+      const auto bounds = node->boundingRect();
+      const auto &layout = model_.layout(id);
+      QList<QRectF> handles;
+      for (const auto side : {PortType::In, PortType::Out}) {
+        const auto &rows = side == PortType::In ? layout.inputY : layout.outputY;
+        for (PortIndex index = 0; index < PortIndex(rows.size()); ++index) {
+          if (!model_.portVisible(id, side, index)) { continue; }
+          const auto pos = nodeGeometry().portPosition(id, side, index);
+          const auto rect = QRectF(pos.x() - margin, pos.y() - margin, 2 * margin, 2 * margin).intersected(bounds);
+          if (!rect.isEmpty()) { handles.append(rect); }
+        }
+      }
+      if (!handles.isEmpty()) { node->markDirty(handles); }
+    }
+  }
+  for (auto *wire : connectionItems()) {
+    if (!model_.isControlWire(wire->connectionId())) { wire->markDirty(); }
+  }
 }
 
 void EditorCanvasScene::setNodeCursor(NodeId id, std::optional<Qt::CursorShape> cursor) {

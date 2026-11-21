@@ -70,12 +70,12 @@ bool visitRasterTiles(const RasterGeometry &full, const QRectF &area, Visit visi
 }
 
 bool stagedCoverage(const CanvasImageItem &owner, const RasterGeometry &full, QPointF origin,
-                    const QRectF &visible, const QRectF &prefetch, bool draft) {
+                    const QRectF &visible, const QRectF &prefetch) {
   const auto &tiles = owner.stagedTiles();
   if (tiles.isEmpty() || full.device.isEmpty()) { return false; }
   const auto rect = full.localRect();
   const auto view = visible.translated(-origin);
-  const auto area = draft && !full.tiled ? rect : !draft && rect.intersects(view) ? view : prefetch.translated(-origin);
+  const auto area = rect.intersects(view) ? view : prefetch.translated(-origin);
   return rect.intersects(area) && visitRasterTiles(full, area, [&](QPoint key, const RasterGeometry &geometry) {
     const auto tile = tiles.constFind(key);
     return tile != tiles.cend() && tile->geometry == geometry;
@@ -202,6 +202,7 @@ GraphCanvas::GraphCanvas(WorkflowGraphModel &model, QQuickItem *parent)
   connect(&still_, &QTimer::timeout, this, &GraphCanvas::settleMotion);
   connect(&model_, &AbstractGraphModel::nodePositionUpdated, this, &GraphCanvas::startMotion);
   connect(scene_.get(), &CanvasScene::rasterRequested, this, &GraphCanvas::invalidateRasterWork);
+  connect(scene_.get(), &CanvasScene::draftRasterRequested, this, &GraphCanvas::invalidateDraftRaster);
   connect(scene_.get(), &EditorCanvasScene::foregroundChanged, this, &GraphCanvas::invalidateRasterWork);
   connect(scene_.get(), &EditorCanvasScene::themeChanged, this, [this] {
     grid_.setTheme(scene_->theme());
@@ -460,6 +461,7 @@ void GraphCanvas::viewChanged(bool zoomed) {
       (visible != plannedVisible_ && (!staging_.isEmpty() || offscreenBytes() > rasterCacheBudget_))) {
     invalidateRasterWork();
   }
+  if (scene_->draftConnection()) { invalidateDraftRaster(); }
   if (!viewportCovered(visible)) { scheduleRaster(); }
   if (window() && window()->rendererInterface()->graphicsApi() != QSGRendererInterface::Software) {
     // The image nodes round their edges in viewport coordinates. A change
@@ -501,7 +503,7 @@ void GraphCanvas::flushRaster() {
     settleMotion();
   }
   // A publication during the flush can bring stale tiles that need a plan.
-  for (int pass = 0; pass < 4 && (pass == 0 || rasterWorkDirty_); ++pass) { rasterPass(true); }
+  for (int pass = 0; pass < 4 && (pass == 0 || rasterWorkDirty_ || draftRasterDirty_); ++pass) { rasterPass(true); }
 }
 
 QPointF GraphCanvas::viewPhase() const {
@@ -568,6 +570,11 @@ void GraphCanvas::updateRasterCoverage(const QRectF &visible) {
 
 void GraphCanvas::invalidateRasterWork() {
   rasterWorkDirty_ = true;
+  scheduleRaster();
+}
+
+void GraphCanvas::invalidateDraftRaster() {
+  draftRasterDirty_ = true;
   scheduleRaster();
 }
 
@@ -676,7 +683,7 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
   QList<Wanted> wanted;
   rasterJobs_.reserve(newJob + near_.size());
   staging_.reserve(near_.size());
-  const auto enqueue = [&](Image &owner, QPointF origin, const QRectF &bounds, RasterJob::Kind kind, bool draft,
+  const auto enqueue = [&](Image &owner, QPointF origin, const QRectF &bounds, RasterJob::Kind kind,
                            bool group, bool clip) {
     const auto &published = owner.tiles();
     const auto *shown = published.isEmpty() ? nullptr : &published.cbegin()->geometry;
@@ -705,11 +712,10 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
     const auto toScene = [&](const Image::RasterGeometry &geometry) { return geometry.localRect().translated(origin); };
     const auto sceneBounds = bounds.translated(origin);
     wanted.clear();
-    if (sceneBounds.intersects(prefetchArea_) || draft) {
-      const auto area = draft && !tiled ? full.localRect() : prefetchArea_.translated(-origin);
-      visitRasterTiles(full, area, [&](QPoint key, const RasterGeometry &geometry) {
+    if (sceneBounds.intersects(prefetchArea_)) {
+      visitRasterTiles(full, prefetchArea_.translated(-origin), [&](QPoint key, const RasterGeometry &geometry) {
         const auto rect = toScene(geometry);
-        wanted.append({key, geometry, rect, draft || rect.intersects(visible)});
+        wanted.append({key, geometry, rect, rect.intersects(visible)});
         return true;
       });
     }
@@ -720,7 +726,7 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
         if (it->geometry != rasterTile(full, it.key())) { obsolete.append(it.key()); }
       }
       for (const auto key : obsolete) { owner.removeStagedTile(key); }
-      if (stagedCoverage(owner, full, origin, visible, prefetchArea_, draft)) {
+      if (stagedCoverage(owner, full, origin, visible, prefetchArea_)) {
         owner.publishStagedTiles();
         staging = false;
       } else {
@@ -738,7 +744,7 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
     };
     const auto &target = staging ? owner.stagedTiles() : published;
     for (const auto &tile : std::as_const(wanted)) {
-      int priority = draft ? 0 : tile.visible ? 1 : 3;
+      int priority = tile.visible ? 1 : 3;
       const auto existing = target.constFind(tile.key);
       if (existing != target.cend()) {
         // A staged tile publishes at any revision and repaints afterwards.
@@ -759,10 +765,10 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
     for (auto it = owner.stagedTiles().cbegin(); it != owner.stagedTiles().cend(); ++it) {
       const auto rect = toScene(it->geometry);
       cachedRasterBytes_ += it->bytes();
-      if (!rect.intersects(visible) && !draft) {
+      if (!rect.intersects(visible)) {
         offscreenTiles.append({&owner, it.key(), rect, true});
         offscreenRasterBytes_ += it->bytes();
-      } else if (!draft) {
+      } else {
         plannedVisibleTiles_.append({rect, it->bytes()});
       }
     }
@@ -785,10 +791,10 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
         continue;
       }
       cachedRasterBytes_ += it->bytes();
-      if (!rect.intersects(visible) && !draft) {
+      if (!rect.intersects(visible)) {
         offscreenTiles.append({&owner, it.key(), rect});
         offscreenRasterBytes_ += it->bytes();
-      } else if (!draft) {
+      } else {
         plannedVisibleTiles_.append({rect, it->bytes()});
       }
     }
@@ -798,13 +804,17 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
   for (const auto key : std::as_const(near_)) {
     auto *item = scene_->item(key);
     if (!item) { continue; }
+    if (item == draft) {
+      for (const auto &tile : item->tiles()) { cachedRasterBytes_ += tile.bytes(); }
+      continue;
+    }
     const auto *node = item->kind() == CanvasItem::Kind::Node ? static_cast<NodeItem *>(item) : nullptr;
     const bool wire = item->kind() == CanvasItem::Kind::Connection;
     enqueue(*item, item->scenePosition(), item->rasterBounds(), node ? RasterJob::Card : wire ? RasterJob::Wire : RasterJob::Other,
-            item == draft, node && model_.isGroup(node->nodeId()), wire || item->kind() == CanvasItem::Kind::Lineage);
+            node && model_.isGroup(node->nodeId()), wire || item->kind() == CanvasItem::Kind::Lineage);
   }
   for (const auto &[key, item] : foregroundParts_) {
-    enqueue(*item, item->position(), item->part().bounds, RasterJob::Foreground, false, true, false);
+    enqueue(*item, item->position(), item->part().bounds, RasterJob::Foreground, true, false);
   }
 
   if (offscreenRasterBytes_ > rasterCacheBudget_) {
@@ -838,6 +848,104 @@ void GraphCanvas::sortRasterJobs() {
   });
 }
 
+bool GraphCanvas::rasterDraft(const QRectF &visible, double scale, double zoom, bool settled, double dpr) {
+  draftRasterDirty_ = false;
+  auto *draft = scene_->draftConnection();
+  if (!draft) { return false; }
+  if (!near_.contains(draft->indexKey())) {
+    near_.insert(draft->indexKey());
+    draft->setVisible(true);
+  }
+  draft->discardStagedTiles();
+  staging_.remove(reinterpret_cast<quintptr>(draft));
+
+  using Image = CanvasImageItem;
+  const auto origin = draft->scenePosition();
+  const auto bounds = draft->rasterBounds();
+  auto full = Image::rasterGeometry(bounds, origin, scale, devicePhase_);
+  const auto &published = draft->tiles();
+  const auto *shown = published.isEmpty() ? nullptr : &published.cbegin()->geometry;
+  if (shown && !settled) {
+    full = Image::rasterGeometryOnGrid(bounds, *shown);
+  }
+  full.tiled = usesCells(full);
+  const bool tiled = full.tiled;
+  const auto compatible = [&](const Image::RasterGeometry &geometry) {
+    return geometry.tiled == tiled && geometry.scale == full.scale && geometry.viewportPhase == full.viewportPhase &&
+           (geometry.phase == full.phase || (motion_ && !tiled));
+  };
+  const bool singleTileSwap = shown && !shown->tiled && !tiled;
+  // A moving draft wire changes bounds on every pointer move, so a staged grid
+  // swap can deadlock while dragging across the tile-size threshold. Replace
+  // the grid directly and paint every visible curve tile in one pass.
+  if (shown && !compatible(*shown) && !singleTileSwap) {
+    for (const auto &tile : published) {
+      if (!tile.pixels.isNull()) { keepSpare(tile.pixels); }
+      cachedRasterBytes_ -= tile.bytes();
+    }
+    draft->clearImage();
+  }
+
+  const auto area = tiled ? visible.translated(-origin) : full.localRect();
+  const auto padding = 1 / full.scale;
+  QSet<QPoint> keepKeys;
+  QList<std::pair<QPoint, Image::RasterGeometry>> toPaint;
+  visitRasterTiles(full, area, [&](QPoint key, const Image::RasterGeometry &geometry) {
+    keepKeys.insert(key);
+    const bool empty = tiled && !draft->mayPaint(geometry.paintRect().adjusted(-padding, -padding, padding, padding));
+    const auto existing = draft->tiles().constFind(key);
+    if (existing != draft->tiles().cend()) {
+      const bool sameZoom = !settled || zoomedOut(existing->zoom) == zoomedOut(zoom);
+      const bool sameRaster = existing->geometry == geometry || (motion_ && !tiled && compatible(existing->geometry));
+      if (draft->tileCurrent(*existing) && sameRaster && sameZoom) { return true; }
+      if (empty && existing->pixels.isNull() && existing->geometry == geometry && sameZoom) { return true; }
+    }
+    if (empty) {
+      if (existing != draft->tiles().cend()) {
+        if (!existing->pixels.isNull()) { keepSpare(existing->pixels); }
+        cachedRasterBytes_ -= existing->bytes();
+      }
+      Image::Tile tile{geometry, {}, draft->rasterRevision(), zoom, {}};
+      cachedRasterBytes_ += tile.bytes();
+      stats_.peakBytes = std::max(stats_.peakBytes, cachedRasterBytes_);
+      draft->setTile(key, std::move(tile));
+      return true;
+    }
+    toPaint.append({key, geometry});
+    return true;
+  });
+
+  QList<QPoint> discarded;
+  for (auto it = draft->tiles().cbegin(); it != draft->tiles().cend(); ++it) {
+    if (!keepKeys.contains(it.key())) { discarded.append(it.key()); }
+  }
+  for (const auto key : discarded) {
+    const auto found = draft->tiles().constFind(key);
+    if (found != draft->tiles().cend()) {
+      if (!found->pixels.isNull()) { keepSpare(found->pixels); }
+      cachedRasterBytes_ -= found->bytes();
+    }
+    draft->removeTile(key);
+  }
+
+  const auto paint = [&](QPainter &painter) { draft->paintRaster(painter, zoom); };
+  for (const auto &[key, geometry] : toPaint) {
+    ++stats_.wires;
+    ++stats_.visible;
+    const auto existing = draft->tiles().constFind(key);
+    const auto oldBytes = existing == draft->tiles().cend() ? 0 : existing->bytes();
+    auto image = Image::rasterize(geometry, dpr, paint, {}, {}, spareImage(geometry.device.size()));
+    if (!image.isNull()) {
+      if (existing != draft->tiles().cend() && !existing->pixels.isNull()) { keepSpare(existing->pixels); }
+      Image::Tile tile{geometry, std::move(image), draft->rasterRevision(), zoom, {}};
+      cachedRasterBytes_ += tile.bytes() - oldBytes;
+      stats_.peakBytes = std::max(stats_.peakBytes, cachedRasterBytes_);
+      draft->setTile(key, std::move(tile));
+    }
+  }
+  return !toPaint.isEmpty();
+}
+
 void GraphCanvas::rasterPass(bool flush) {
   QElapsedTimer clock;
   clock.start();
@@ -860,6 +968,12 @@ void GraphCanvas::rasterPass(bool flush) {
   // Finish the previous ordering before a replan carries the queued ages over.
   if (rasterJobsNeedSort_) { sortRasterJobs(); }
   if (planned) { rebuildRasterWork(visible, scale, zoom, settled); }
+  bool painted = false;
+  if (scene_->draftConnection()) {
+    if (planned || draftRasterDirty_) { painted = rasterDraft(visible, scale, zoom, settled, dpr); }
+  } else {
+    draftRasterDirty_ = false;
+  }
   const auto urgentBudget = rasterTimeBudgetNs_ * kUrgentRasterNs / kFrameRasterNs;
   // If planning alone used the whole slot, finish ordering in the next
   // polish. As before, covered tiles may wait while missing tiles use the
@@ -874,11 +988,10 @@ void GraphCanvas::rasterPass(bool flush) {
   const auto predict = [this](const RasterJob &job) {
     return qint64(double(job.geometry.bytes() / 4) * nsPerPixel_[job.kind] * 1.5) + kJobOverheadNs;
   };
-  plannedWithoutPainting_ = deferSort || (planned && !flush && !consecutive && rasterTimeBudgetNs_ > 0 &&
+  plannedWithoutPainting_ = deferSort || (!painted && planned && !flush && !consecutive && rasterTimeBudgetNs_ > 0 &&
                             nextRasterJob_ < rasterJobs_.size() &&
                             clock.nsecsElapsed() + predict(rasterJobs_[nextRasterJob_]) >= (urgentFirst ? urgentBudget : rasterTimeBudgetNs_));
   if (plannedWithoutPainting_) { planOnly_.start(); }
-  bool painted = false;
   while (!plannedWithoutPainting_ && nextRasterJob_ < rasterJobs_.size()) {
     const auto &job = rasterJobs_[nextRasterJob_];
     const auto limit = job.priority <= 1 ? urgentBudget : rasterTimeBudgetNs_;
@@ -906,7 +1019,7 @@ void GraphCanvas::rasterPass(bool flush) {
     const auto &target = staged ? owner->stagedTiles() : owner->tiles();
     const auto existing = target.constFind(job.tile.key);
     const auto oldBytes = existing == target.cend() ? 0 : existing->bytes();
-    const bool visibleNow = job.priority == 0 || job.tile.sceneRect.intersects(visible);
+    const bool visibleNow = job.tile.sceneRect.intersects(visible);
     const auto estimatedBytes = job.geometry.bytes() + sizeof(CanvasImageItem::Tile) - oldBytes;
     if (!visibleNow && offscreenRasterBytes_ + estimatedBytes > rasterCacheBudget_) {
       deferredTiles_.append(job.tile.sceneRect);
@@ -920,7 +1033,7 @@ void GraphCanvas::rasterPass(bool flush) {
                            !existing->damage.isEmpty() && existing->geometry == job.geometry && !existing->pixels.isNull();
       const auto paint = [&](QPainter &painter) { owner->paintRaster(painter, zoom); };
       // A tile of a long wire away from its path stays empty, which saves
-      // painting most tiles of a diagonal draft on every pointer move.
+      // painting most tiles of a diagonal wire.
       const auto padding = 1 / job.geometry.scale;
       const bool empty = job.geometry.tiled &&
                          !owner->mayPaint(job.geometry.paintRect().adjusted(-padding, -padding, padding, padding));
@@ -950,16 +1063,13 @@ void GraphCanvas::rasterPass(bool flush) {
             plannedVisibleTiles_.append({rect, bytes});
           }
         };
-        const bool draft = job.priority == 0;
         const auto *item = job.kind == RasterJob::Foreground ? nullptr : static_cast<const CanvasItem *>(owner);
         const auto origin = item ? item->scenePosition() : owner->position();
-        if (!draft) {
-          if (existing != target.cend() && existing->geometry.localRect() != job.geometry.localRect()) {
-            accountViewBytes(existing->geometry.localRect().translated(origin), -oldBytes);
-            accountViewBytes(job.tile.sceneRect, tile.bytes());
-          } else {
-            accountViewBytes(job.tile.sceneRect, additional);
-          }
+        if (existing != target.cend() && existing->geometry.localRect() != job.geometry.localRect()) {
+          accountViewBytes(existing->geometry.localRect().translated(origin), -oldBytes);
+          accountViewBytes(job.tile.sceneRect, tile.bytes());
+        } else {
+          accountViewBytes(job.tile.sceneRect, additional);
         }
         stats_.peakBytes = std::max(stats_.peakBytes, cachedRasterBytes_);
         if (staged) {
@@ -970,11 +1080,11 @@ void GraphCanvas::rasterPass(bool flush) {
           const auto stageKey = reinterpret_cast<quintptr>(owner);
           // Changed bounds need a new plan to drop obsolete cells and queue
           // replacements. A pan can reuse this plan if its tiles cover the view.
-          if (staging_.value(stageKey) == full.device && stagedCoverage(*owner, full, origin, visible, prefetchArea_, draft)) {
+          if (staging_.value(stageKey) == full.device && stagedCoverage(*owner, full, origin, visible, prefetchArea_)) {
             staging_.remove(stageKey);
             for (const auto &previous : owner->tiles()) {
               cachedRasterBytes_ -= previous.bytes();
-              if (!draft) { accountViewBytes(previous.geometry.localRect().translated(origin), -previous.bytes()); }
+              accountViewBytes(previous.geometry.localRect().translated(origin), -previous.bytes());
             }
             owner->publishStagedTiles();
             // Stale tiles may publish so animated content cannot block a grid swap.
@@ -998,7 +1108,9 @@ void GraphCanvas::rasterPass(bool flush) {
   ++stats_.passes;
   updateCardOverlayRendering();
   update();
-  if (nextRasterJob_ < rasterJobs_.size() || rasterWorkDirty_) { QTimer::singleShot(0, this, &GraphCanvas::scheduleRaster); }
+  if (nextRasterJob_ < rasterJobs_.size() || rasterWorkDirty_ || draftRasterDirty_) {
+    QTimer::singleShot(0, this, &GraphCanvas::scheduleRaster);
+  }
 }
 
 QImage GraphCanvas::spareImage(QSize size) {
@@ -1086,12 +1198,14 @@ void GraphCanvas::mousePressEvent(QMouseEvent *event) {
 
 bool GraphCanvas::moveGrabbedCard(QMouseEvent &event) {
   const auto *grabber = scene_->mouseGrabber();
-  if (!grabber || grabber->kind() != CanvasItem::Kind::Node || event.buttons() != Qt::LeftButton ||
+  const bool directDrag = grabber &&
+                          (grabber->kind() == CanvasItem::Kind::Node || grabber == scene_->draftConnection());
+  if (!directDrag || event.buttons() != Qt::LeftButton ||
       event.source() != Qt::MouseEventNotSynthesized || !window() || window()->mouseGrabberItem() != this) {
     return false;
   }
   // The widget and the Quick window have already agreed on the grab.
-  // A plain card move can go straight to the existing canvas dispatcher.
+  // A plain card or draft-wire move can go straight to the existing canvas dispatcher.
   mouseMoveEvent(&event);
   return true;
 }
