@@ -248,6 +248,8 @@ qt_add_executable(nodetool-node-editor src/main.cpp)
 option(NT_MACOS_BUNDLE "macOS: build nodetool-node-editor as an .app bundle" OFF)
 set_target_properties(nodetool-node-editor PROPERTIES MACOSX_BUNDLE ${NT_MACOS_BUNDLE}
     MACOSX_BUNDLE_GUI_IDENTIFIER ai.nodetool.node-editor MACOSX_BUNDLE_BUNDLE_NAME "NodeTool Node Editor")
+include(../account/cmake/MacCodeSign.cmake)
+nodetool_macos_dev_sign(nodetool-node-editor "ai.nodetool.node-editor")
 nodetool_stage_graph_runner_runtime(nodetool-node-editor)
 target_link_libraries(nodetool-node-editor PRIVATE node_editor_core)
 nodetool_use_ui_primitives(nodetool-node-editor)

@@ -50,12 +50,28 @@ bool keychainCompiledIn() { return true; }
 bool KeychainStore::available() const { return true; }
 
 std::optional<std::string> KeychainStore::read(std::string_view service, std::string_view account) {
+  SecretReadResult result = readResult(service, account);
+  if (result.status != SecretReadStatus::Ok) {
+    return std::nullopt;
+  }
+  return std::move(result.value);
+}
+
+SecretReadResult KeychainStore::readResult(std::string_view service, std::string_view account) {
   const std::wstring target = targetName(service, account);
   CredentialHolder cred;
   if (!CredReadW(target.c_str(), CRED_TYPE_GENERIC, 0, &cred.value)) {
-    return std::nullopt;
+    const DWORD error = GetLastError();
+    if (error == ERROR_NOT_FOUND) {
+      return {SecretReadStatus::NotFound, {}};
+    }
+    if (error == ERROR_ACCESS_DENIED || error == ERROR_CANCELLED) {
+      return {SecretReadStatus::AccessDenied, {}};
+    }
+    return {SecretReadStatus::Error, {}};
   }
-  return std::string(reinterpret_cast<const char*>(cred.value->CredentialBlob), cred.value->CredentialBlobSize);
+  return {SecretReadStatus::Ok,
+          std::string(reinterpret_cast<const char*>(cred.value->CredentialBlob), cred.value->CredentialBlobSize)};
 }
 
 bool KeychainStore::write(std::string_view service, std::string_view account, std::string_view value) {

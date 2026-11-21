@@ -43,6 +43,15 @@ struct SessionRecord {
   void forgetHandle(std::string_view handle);
 };
 
+struct SessionRecordRead {
+  SecretReadStatus status = SecretReadStatus::NotFound;
+  std::optional<SessionRecord> record;
+  bool storeFailed() const {
+    return status == SecretReadStatus::AccessDenied || status == SecretReadStatus::Error;
+  }
+};
+
+SessionRecordRead readSessionRecordResult(SecretStore& store, std::string_view keychainAccount);
 std::optional<SessionRecord> readSessionRecord(SecretStore& store, std::string_view keychainAccount);
 bool writeSessionRecord(SecretStore& store, std::string_view keychainAccount, const SessionRecord& record);
 
