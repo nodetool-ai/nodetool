@@ -130,12 +130,18 @@ void AssetBrowser::relinkAsset(const QString& id, const QUrl& file) {
 
 void AssetBrowser::resetDocumentState() {
     ++m_documentEpoch;
+    m_projectCheck.invalidate();
+    if (const auto live = nt::server::serverSaveTarget()) {
+        m_target = live;
+    }
     m_thumbnails.clear(); m_originals.clear(); m_details.clear();
     emit thumbnailsChanged();
     m_settlements.clear();
     const auto project = projectId();
-    if (m_libraryProject != project) {
+    const QUrl server = m_target ? m_target->server : QUrl{};
+    if (m_libraryProject != project || m_libraryServer != server) {
         m_libraryProject = project;
+        m_libraryServer = server;
         m_folderId.clear();
         m_folderPath.clear();
         m_pending.clear();

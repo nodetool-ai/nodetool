@@ -11,14 +11,40 @@
 #
 #   scripts/sign-macos.sh "build-package/NodeTool Timeline.app"
 # Environment: MACOS_SIGN_IDENTITY (default "Developer ID Application"),
-# NOTARY_PROFILE (default AC_PASSWORD).
+# NOTARY_PROFILE (default AC_PASSWORD), MACOS_PROVISIONING_PROFILE (optional
+# .provisionprofile embedded for Data Protection keychain sharing),
+# MACOS_KEYCHAIN_ACCESS_GROUP (optional, default "<TEAM_ID>.ai.nodetool.native"
+# when MACOS_PROVISIONING_PROFILE is set).
 set -euo pipefail
 
 [[ $# == 1 && -d "$1" ]] || { echo "usage: $0 APP" >&2; exit 2; }
 app=$(cd "$1" && pwd -P)
 identity=${MACOS_SIGN_IDENTITY:-Developer ID Application}
 profile=${NOTARY_PROFILE:-AC_PASSWORD}
+profile_file=${MACOS_PROVISIONING_PROFILE:-}
+access_group=${MACOS_KEYCHAIN_ACCESS_GROUP:-}
 entitlements="$(cd "$(dirname "$0")/../../.." && pwd)/electron/entitlements.mac.plist"
+tmp_entitlements=""
+cleanup() {
+    [[ -n "$tmp_entitlements" && -f "$tmp_entitlements" ]] && rm -f "$tmp_entitlements"
+}
+trap cleanup EXIT
+if [[ -n "$profile_file" ]]; then
+    [[ -f "$profile_file" ]] || { echo "error: provisioning profile not found: $profile_file" >&2; exit 2; }
+    cp "$profile_file" "$app/Contents/embedded.provisionprofile"
+    if [[ -z "$access_group" ]]; then
+        team_id=$(security cms -D -i "$profile_file" 2>/dev/null \
+            | /usr/libexec/PlistBuddy -c "Print :ApplicationIdentifierPrefix:0" /dev/stdin 2>/dev/null || true)
+        [[ -n "$team_id" ]] || { echo "error: could not read ApplicationIdentifierPrefix from $profile_file" >&2; exit 2; }
+        access_group="${team_id}.ai.nodetool.native"
+    fi
+    tmp_entitlements="${TMPDIR:-/tmp}/nodetool-entitlements-$$.plist"
+    cp "$entitlements" "$tmp_entitlements"
+    /usr/libexec/PlistBuddy -c "Delete :keychain-access-groups" "$tmp_entitlements" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Add :keychain-access-groups array" "$tmp_entitlements"
+    /usr/libexec/PlistBuddy -c "Add :keychain-access-groups:0 string $access_group" "$tmp_entitlements"
+    entitlements="$tmp_entitlements"
+fi
 sign=(codesign --force --timestamp --options runtime --sign "$identity")
 
 # Inside out: every Mach-O file, then each framework, then the app. A file

@@ -92,6 +92,11 @@ void AccountSession::adopt(const Held& next) {
 
 uint64_t AccountSession::signOutMarker() const { return readGenerationFile(signOutMarkerPath()).generation; }
 
+void AccountSession::invalidateStatusCache() {
+  const std::lock_guard lock(mutex_);
+  cachedStatus_.reset();
+}
+
 bool AccountSession::publishSignOut(SessionRecord record, uint64_t atLeast) {
   const GenerationStamp stamp = readGenerationFile(generationPath());
   const uint64_t next = std::max({stamp.generation, record.generation, signOutMarker(), atLeast}) + 1;
@@ -112,45 +117,57 @@ bool AccountSession::publishSignOut(SessionRecord record, uint64_t atLeast) {
       }
     }
   }
+  invalidateStatusCache();
   Held signedOut;
   signedOut.generation = next;
   adopt(signedOut);
   return saved && recordSaved;
 }
 
-void AccountSession::repairLocked() {
+SessionRecordRead AccountSession::repairLocked() {
   const GenerationStamp stamp = readGenerationFile(generationPath());
-  auto record = readSessionRecord(store_, keychainAccount_);
-  if (record && record->state == SessionState::SignedIn && record->generation <= signOutMarker()) {
+  SessionRecordRead read = readSessionRecordResult(store_, keychainAccount_);
+  if (read.storeFailed()) {
+    // A denied or failed keychain read does not mean the record was deleted.
+    // Leave session.gen untouched so other apps keep their session.
+    return read;
+  }
+  if (read.record && read.record->state == SessionState::SignedIn && read.record->generation <= signOutMarker()) {
     // A refresh published after a sign-out that did not hold the lock. The
     // sign-out wins.
-    publishSignOut(*record, 0);
-    return;
+    publishSignOut(*read.record, 0);
+    signOutRecord(*read.record, readGenerationFile(generationPath()).generation);
+    return read;
   }
-  if (!record) {
+  if (!read.record) {
     // No record: nothing to sign in with. A file that still says signed in
     // is set to signed out so the other app stops too.
     if (stamp.state == SessionState::SignedIn) {
       writeGenerationFile(generationPath(), {stamp.generation + 1, SessionState::SignedOut});
+      invalidateStatusCache();
     }
-    return;
+    return read;
   }
-  if (stamp.generation > record->generation) {
+  if (stamp.generation > read.record->generation) {
     if (stamp.state == SessionState::SignedOut) {
       // A sign-out stopped between its two writes. Complete it.
-      signOutRecord(*record, stamp.generation);
-      writeSessionRecord(store_, keychainAccount_, *record);
+      signOutRecord(*read.record, stamp.generation);
+      writeSessionRecord(store_, keychainAccount_, *read.record);
+      invalidateStatusCache();
     } else {
       // A refresh stopped between its two writes. The record still holds
       // the refresh token the server rotated, which the lost-rotation rule
       // accepts once more.
-      writeGenerationFile(generationPath(), {record->generation, record->state});
+      writeGenerationFile(generationPath(), {read.record->generation, read.record->state});
+      invalidateStatusCache();
     }
-  } else if (stamp.generation < record->generation ||
-             (stamp.generation == record->generation && stamp.state != record->state)) {
+  } else if (stamp.generation < read.record->generation ||
+             (stamp.generation == read.record->generation && stamp.state != read.record->state)) {
     // A sign-in stopped between its two writes, or the file was lost.
-    writeGenerationFile(generationPath(), {record->generation, record->state});
+    writeGenerationFile(generationPath(), {read.record->generation, read.record->state});
+    invalidateStatusCache();
   }
+  return read;
 }
 
 Credential AccountSession::credentialForRequest() {
@@ -232,11 +249,14 @@ RefreshOutcome AccountSession::refresh(std::string_view rejectedAccessToken) {
     if (!lock) {
       return RefreshOutcome::Offline;
     }
-    repairLocked();
+    SessionRecordRead read = repairLocked();
+    if (read.storeFailed()) {
+      return RefreshOutcome::Offline;
+    }
     // Step 2.
     const GenerationStamp before = readGenerationFile(generationPath());
-    auto record = readSessionRecord(store_, keychainAccount_);
-    if (!record || record->state == SessionState::SignedOut) {
+    auto& record = read.record;
+    if (!record || record->state == SessionState::SignedOut || record->generation <= signOutMarker()) {
       Held signedOut;
       signedOut.generation = before.generation;
       adopt(signedOut);
@@ -272,6 +292,7 @@ RefreshOutcome AccountSession::refresh(std::string_view rejectedAccessToken) {
       if (!writeSessionRecord(store_, keychainAccount_, *record)) {
         return RefreshOutcome::Offline;
       }
+      invalidateStatusCache();
       // A sign-out without the lock may have written its marker after step
       // 5, and its stamp and record before ours. It wins.
       if (signOutMarker() >= next) {
@@ -311,6 +332,7 @@ bool AccountSession::signOutLocally() {
 
 ServerEnd AccountSession::endPendingSessions() {
   std::vector<std::string> handles;
+  bool readFailed = false;
   {
     // Held for the local steps only: a sign-out never waits for a server
     // end that the server holds. Ending a handle twice is harmless.
@@ -319,11 +341,15 @@ ServerEnd AccountSession::endPendingSessions() {
     // with its handle unmarked. The repair rule completes it and marks the
     // handle pending, so an app that only retries the server end, and makes
     // no request, still ends that session.
+    SessionRecordRead read;
     if (const auto lock = AccountLock::acquire(lockPath(), options_.lockTimeout)) {
-      repairLocked();
+      read = repairLocked();
+    } else {
+      read = readSessionRecordResult(store_, keychainAccount_);
     }
-    if (const auto record = readSessionRecord(store_, keychainAccount_)) {
-      handles = record->pendingHandles();
+    readFailed = read.storeFailed();
+    if (read.record) {
+      handles = read.record->pendingHandles();
     }
   }
   {
@@ -334,7 +360,7 @@ ServerEnd AccountSession::endPendingSessions() {
       }
     }
   }
-  bool allEnded = true;
+  bool allEnded = !readFailed;
   for (const std::string& handle : handles) {
     const EndSessionStatus status = endpoint_.endSession(handle);
     if (status == EndSessionStatus::Offline) {
@@ -353,12 +379,24 @@ ServerEnd AccountSession::endPendingSessions() {
       allEnded = false;
       continue;
     }
-    if (auto current = readSessionRecord(store_, keychainAccount_)) {
+    const SessionRecordRead currentRead = readSessionRecordResult(store_, keychainAccount_);
+    if (currentRead.storeFailed()) {
+      allEnded = false;
+      continue;
+    }
+    if (auto current = currentRead.record) {
       const auto pending = current->pendingHandles();
       if (std::find(pending.begin(), pending.end(), handle) != pending.end()) {
         current->forgetHandle(handle);
-        if (!writeSessionRecord(store_, keychainAccount_, *current)) {
+        if (current->state == SessionState::SignedOut && current->pendingHandles().empty()) {
+          // Every token and handle is gone: drop the empty keychain item so
+          // later launches while signed out do not prompt on macOS.
+          store_.remove(kKeychainService, keychainAccount_);
+          invalidateStatusCache();
+        } else if (!writeSessionRecord(store_, keychainAccount_, *current)) {
           allEnded = false;
+        } else {
+          invalidateStatusCache();
         }
       }
     }
@@ -387,17 +425,38 @@ bool AccountSession::checkGenerationFile() {
 }
 
 AccountSession::Status AccountSession::status() {
+  const GenerationStamp stamp = readGenerationFile(generationPath());
+  const uint64_t marker = signOutMarker();
+  {
+    const std::lock_guard lock(mutex_);
+    if (cachedStatus_ && cachedStatus_->stamp == stamp && cachedStatus_->marker == marker &&
+        (!cachedStatus_->status.serverEndPending || cachedStatus_->status.storeAccessDenied)) {
+      return cachedStatus_->status;
+    }
+  }
   Status out;
-  const auto record = readSessionRecord(store_, keychainAccount_);
-  if (!record) {
+  const SessionRecordRead read = readSessionRecordResult(store_, keychainAccount_);
+  if (read.storeFailed()) {
+    out.storeAccessDenied = true;
+    const std::lock_guard lock(mutex_);
+    cachedStatus_ = CachedStatus{stamp, marker, out};
     return out;
   }
-  const GenerationStamp stamp = readGenerationFile(generationPath());
-  const bool fileSignedOut = (stamp.generation > record->generation && stamp.state == SessionState::SignedOut) ||
-                             (record->state == SessionState::SignedIn && record->generation <= signOutMarker());
-  out.state = fileSignedOut ? SessionState::SignedOut : record->state;
-  out.displayName = record->displayName;
-  out.serverEndPending = !record->pendingHandles().empty() || (fileSignedOut && !record->revocationHandle.empty());
+  if (!read.record) {
+    const std::lock_guard lock(mutex_);
+    cachedStatus_ = CachedStatus{stamp, marker, out};
+    return out;
+  }
+  const SessionRecord& record = *read.record;
+  const bool fileSignedOut = (stamp.generation > record.generation && stamp.state == SessionState::SignedOut) ||
+                             (record.state == SessionState::SignedIn && record.generation <= marker);
+  out.state = fileSignedOut ? SessionState::SignedOut : record.state;
+  out.displayName = record.displayName;
+  out.serverEndPending = !record.pendingHandles().empty() || (fileSignedOut && !record.revocationHandle.empty());
+  {
+    const std::lock_guard lock(mutex_);
+    cachedStatus_ = CachedStatus{stamp, marker, out};
+  }
   return out;
 }
 

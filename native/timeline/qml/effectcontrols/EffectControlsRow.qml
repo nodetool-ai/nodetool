@@ -15,7 +15,7 @@ Column {
     // The text compares equal through a value preview, which keeps the lane's delegates and drags.
     readonly property string docKey: { const revision = controller.revision; return JSON.stringify(controller.rowDocument(rowId)) }
     readonly property var doc: JSON.parse(docKey)
-    readonly property var live: { const revision = controller.revision; const playhead = controller.playheadMs; return controller.rowLive(rowId) }
+    readonly property var live: { const revision = controller.revision; if (doc.keyframed) { const playhead = controller.playheadMs; } return controller.rowLive(rowId) }
     readonly property bool editable: !panel.locked && !bypassed && !doc.blocked
     readonly property bool active: panel.activeRow === rowId
     property bool graphsOpen: false
@@ -66,9 +66,9 @@ Column {
                 Layout.preferredHeight: Ui.Metrics.iconLg
                 iconName: "timer"
                 active: root.doc.keyframed
-                enabled: root.editable && root.controller.playheadMs >= 0
+                enabled: root.editable && root.controller.playheadOnClip
                 label: root.doc.blocked ? "An animation on this clip drives " + root.row.label
-                    : root.controller.playheadMs < 0 ? "Move the playhead onto the clip to animate" : (root.doc.keyframed ? "Stop animating " : "Animate ") + root.row.label
+                    : !root.controller.playheadOnClip ? "Move the playhead onto the clip to animate" : (root.doc.keyframed ? "Stop animating " : "Animate ") + root.row.label
                 onClicked: { root.selectRow(); root.controller.write({action: "stopwatch", row: root.rowId}) }
             }
             Ui.Text {
@@ -107,7 +107,7 @@ Column {
                     active: root.live.here
                     // As in Premiere, the navigator shows on an animated property only.
                     opacity: root.doc.keyframed ? 1 : 0
-                    enabled: root.editable && root.controller.playheadMs >= 0
+                    enabled: root.editable && root.controller.playheadOnClip
                     onClicked: { root.selectRow(); root.controller.write({action: "toggle", row: root.rowId}) }
                 }
                 KeyframeButton {
@@ -140,7 +140,7 @@ Column {
                     quiet: true
                     quietColor: TimelineVisuals.editBlue
                     ariaLabel: modelData.label
-                    disabled: !root.editable || (root.doc.keyframed && root.controller.playheadMs < 0)
+                    disabled: !root.editable || (root.doc.keyframed && !root.controller.playheadOnClip)
                     scrub: ({step: modelData.step, min: modelData.min, max: modelData.max})
                     function payload(raw) { return {action: "input", row: root.rowId, input: index, value: Number(raw) / displayScale} }
                     function usable(raw) { return raw.trim() !== "" && Number.isFinite(Number(raw)) }

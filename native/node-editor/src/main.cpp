@@ -172,7 +172,11 @@ int main(int argc, char **argv) {
 }
 namespace {
 int runEditor(QApplication &app, const QCommandLineParser &parser, GraphicsStartup *graphics) {
-  nodetool::EditorWindow window;
+  // An interactive start connects to the local server and cloud account, as
+  // the web app does. Headless export and replay runs stay offline unless
+  // --server is given and never read the OS keychain.
+  const bool headless = isExport(parser);
+  nodetool::EditorWindow window(nullptr, {.cloudAccount = !headless});
   if (parser.isSet("theme")) { window.setDarkTheme(parser.value("theme") != "light"); }
   if (graphics) {
     // Check the actual top-level widget before starting a server or restoring
@@ -186,9 +190,6 @@ int runEditor(QApplication &app, const QCommandLineParser &parser, GraphicsStart
     window.hide();
   }
   const bool restore = !parser.isSet("open") && !parser.isSet("workflow");
-  // An interactive start connects to the local server, as the web app does.
-  // Headless export and replay runs stay offline unless --server is given.
-  const bool headless = isExport(parser);
   // A package with a bundled backend starts that server instead. It starts
   // before the tabs are restored, so a tab saved on the bundled server
   // reconnects to this launch's port (review F3). It starts whenever a

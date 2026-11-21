@@ -68,12 +68,16 @@ void SessionRecord::forgetHandle(std::string_view handle) {
   }
 }
 
-std::optional<SessionRecord> readSessionRecord(SecretStore& store, std::string_view keychainAccount) {
-  const auto value = store.read(kKeychainService, keychainAccount);
-  if (!value) {
-    return std::nullopt;
+SessionRecordRead readSessionRecordResult(SecretStore& store, std::string_view keychainAccount) {
+  const SecretReadResult raw = store.readResult(kKeychainService, keychainAccount);
+  if (raw.status != SecretReadStatus::Ok) {
+    return {raw.status, std::nullopt};
   }
-  return SessionRecord::fromJson(*value);
+  return {SecretReadStatus::Ok, SessionRecord::fromJson(raw.value)};
+}
+
+std::optional<SessionRecord> readSessionRecord(SecretStore& store, std::string_view keychainAccount) {
+  return readSessionRecordResult(store, keychainAccount).record;
 }
 
 bool writeSessionRecord(SecretStore& store, std::string_view keychainAccount, const SessionRecord& record) {

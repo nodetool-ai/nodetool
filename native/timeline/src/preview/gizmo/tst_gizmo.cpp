@@ -692,6 +692,97 @@ TransformGizmoController { width: 200; height: 100; selection: ["picture"] })", 
         QCOMPARE(modelChanges.count(), 0);
         QCOMPARE(model.timeline().revision, revision);
     }
+    void inactiveGizmoSkipsClockRefreshes() {
+        TimelineModel model;
+        load(model);
+        PlaybackClock clock;
+        TransformGizmoController controller;
+        bind(controller, model, clock);
+        QVERIFY(controller.available());
+        controller.setActive(false);
+        QVERIFY(!controller.available());
+        QSignalSpy geometryChanges(&controller, &TransformGizmoController::geometryChanged);
+        clock.seek(50);
+        clock.seek(1100);
+        clock.seek(1500);
+        QCOMPARE(geometryChanges.count(), 0);
+        QVERIFY(!controller.available());
+        controller.setActive(true);
+        QVERIFY(controller.available());
+        QCOMPARE(geometryChanges.count(), 1);
+    }
+    void dragUsesTransientPreviewUntilRelease() {
+        TimelineModel model;
+        load(model);
+        PlaybackClock clock;
+        TransformGizmoController controller;
+        bind(controller, model, clock);
+        TransformGizmoController peer;
+        bind(peer, model, clock);
+        QVERIFY(controller.available());
+        QVERIFY(peer.available());
+
+        QSignalSpy clipsChanged(&model, &TimelineModel::clipsChanged);
+        QSignalSpy timelineChanged(&model, &TimelineModel::timelineChanged);
+        QSignalSpy previewChanged(&model, &TimelineModel::previewChanged);
+        QSignalSpy geometryChanged(&controller, &TransformGizmoController::geometryChanged);
+        QSignalSpy peerGeometry(&peer, &TransformGizmoController::geometryChanged);
+
+        const auto startCenter = controller.box().center;
+        const auto before = model.documentJson();
+        QVERIFY(controller.begin("body", startCenter));
+        for (int i = 1; i <= 5; ++i) {
+            controller.move(startCenter + QPointF(i * 4.0, i * 2.0));
+        }
+        QCOMPARE(clipsChanged.count(), 0);
+        QCOMPARE(timelineChanged.count(), 0);
+        QCOMPARE(previewChanged.count(), 5);
+        QCOMPARE(geometryChanged.count(), 5);
+        QCOMPARE(peerGeometry.count(), 5);
+        near(controller.box().center, startCenter + QPointF(20.0, 10.0));
+        near(peer.box().center, controller.box().center);
+        QCOMPARE(model.undoStack()->count(), 0);
+
+        controller.end();
+        QCOMPARE(clipsChanged.count(), 1);
+        QCOMPARE(timelineChanged.count(), 1);
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(transformOf(model.clipsJson()[0].toObject()).position.x, 20.0);
+        QCOMPARE(transformOf(model.clipsJson()[0].toObject()).position.y, 10.0);
+
+        // Cancel restores the original clip and settles once with no undo entry.
+        clipsChanged.clear();
+        timelineChanged.clear();
+        previewChanged.clear();
+        const auto settledCenter = controller.box().center;
+        const auto committed = model.documentJson();
+        QVERIFY(controller.begin("body", settledCenter));
+        controller.move(settledCenter + QPointF(15.0, 0.0));
+        QCOMPARE(clipsChanged.count(), 0);
+        QCOMPARE(timelineChanged.count(), 0);
+        QCOMPARE(previewChanged.count(), 1);
+        controller.cancel();
+        QCOMPARE(clipsChanged.count(), 1);
+        QCOMPARE(timelineChanged.count(), 1);
+        QCOMPARE(model.documentJson(), committed);
+        QCOMPARE(model.undoStack()->count(), 1);
+        near(controller.box().center, settledCenter);
+
+        // Click without movement emits nothing and pushes no undo entry.
+        clipsChanged.clear();
+        timelineChanged.clear();
+        previewChanged.clear();
+        QVERIFY(controller.begin("body", settledCenter));
+        controller.end();
+        QCOMPARE(clipsChanged.count(), 0);
+        QCOMPARE(timelineChanged.count(), 0);
+        QCOMPARE(previewChanged.count(), 0);
+        QCOMPARE(model.undoStack()->count(), 1);
+
+        // Undo restores the initial document cleanly.
+        model.undoStack()->undo();
+        QCOMPARE(model.documentJson(), before);
+    }
 };
 QTEST_MAIN(TestGizmo)
 #include "tst_gizmo.moc"

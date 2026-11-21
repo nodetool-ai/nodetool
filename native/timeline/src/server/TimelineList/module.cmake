@@ -1,4 +1,4 @@
-nt_qml_sources(src/server/TimelineList/TimelineDocumentController.h src/server/TimelineList/TimelineDocumentController.cpp src/server/TimelineList/ProjectSettingsEdit.cpp src/server/TimelineList/ProjectSettingsValues.h)
+nt_qml_sources(src/server/TimelineList/TimelineDocumentController.h src/server/TimelineList/TimelineDocumentController.cpp src/server/TimelineList/TimelineSession.h src/server/TimelineList/TimelineSession.cpp src/server/TimelineList/ProjectSettingsEdit.cpp src/server/TimelineList/ProjectSettingsValues.h)
 nt_sources(app src/server/TimelineList/TimelineListStartup.cpp src/server/TimelineList/TimelineListCheck.cpp src/server/TimelineList/TimelineDocumentCheck.cpp)
 nt_sources(server
     src/server/BundledServer.h
@@ -46,8 +46,10 @@ function(nt_timeline_list_tests)
     add_test(NAME tst_timelinelistsettings COMMAND tst_timelinelistui settingsPanelRegistered settingsOpenFromDocumentBar settingsOpenFromKeyboard settingsKeepsEditorShortcuts projectSettingsPersistence panelKeepsCppOwnership settingsCommitAndUndo)
     add_test(NAME tst_timelineliststartup COMMAND tst_timelinelistui startupListWithoutServer)
     add_test(NAME tst_timelinelistpush COMMAND tst_timelinelistui documentFilePushRefreshesShownList)
+    add_test(NAME tst_timelinelistproject COMMAND tst_timelinelistui projectSelectionFollowsOpenTimelineAndDocumentBar)
+    add_test(NAME tst_timelinelistswitch COMMAND tst_timelinelistui inPlaceSwitchUpdatesWindowAndProject)
     add_test(NAME tst_timelinelistlayout COMMAND tst_timelinelistui layoutAndStills unnamedRowLabel emptySearchDescription offsetError)
-    set_tests_properties(tst_timelinelistsettings tst_timelinelistlayout tst_timelineliststartup tst_timelinelistpush PROPERTIES
+    set_tests_properties(tst_timelinelistsettings tst_timelinelistlayout tst_timelineliststartup tst_timelinelistpush tst_timelinelistproject tst_timelinelistswitch PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endfunction()
 nt_tests(nt_timeline_list_tests)

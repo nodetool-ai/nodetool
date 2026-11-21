@@ -89,4 +89,15 @@ std::optional<MediaSource> mediaSource();
 // Returns nullopt for a fixture file.
 std::optional<SaveTarget> serverSaveTarget();
 
+// Updates the active server target in place after loading another server
+// timeline inside the same window. UI thread only.
+void setActiveServerTarget(const QUrl& server, const QString& timelineId, const QString& token,
+                           const QString& cacheDir);
+// Clears an in-place loaded target (test isolation). UI thread only.
+void clearActiveServerTarget();
+// Writes the loader report JSON (when rawDocument or explicitReportPath is set)
+// and prints the summary line to stderr.
+void writeLoaderReport(const QUrl& server, const QString& timelineId, const QJsonObject& report,
+                       const QString& explicitReportPath = {});
+
 }  // namespace nt::server

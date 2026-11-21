@@ -50,12 +50,12 @@ try {
     try {
       assert.equal(processResult.status, 0, `${mode}: ${processResult.stderr}`);
       const switches = mode.startsWith("open-") || mode.startsWith("new-");
-      assert.equal(fs.existsSync(capture), switches, `${mode}: switch capture`);
+      assert.equal(fs.existsSync(capture), false, `${mode}: local server timeline switches in place without relaunching`);
       if (switches) {
-        const args = JSON.parse(fs.readFileSync(capture, "utf8"));
-        assert.deepEqual(args.slice(0, 3), ["--server", server.base, "--timeline"]);
-        const id = args[3];
+        const loaded = JSON.parse(fs.readFileSync(result, "utf8"));
+        const id = loaded.id;
         if (mode.startsWith("open-")) assert.equal(id, chosen.id);
+        else assert.notEqual(id, current.id);
         const saved = await session.query(server.base, "timeline.get", {id: current.id});
         assert.equal(saved.width, 1280, "pending edit must be saved before switching");
         assert.equal(saved.height, 720);
@@ -68,12 +68,8 @@ try {
           assert.equal(created.fps, 30);
           for (const key of ["tracks", "clips", "markers"]) assert.deepEqual(created[key], []);
           assert.equal(created.projectId, projectId);
+          assert.equal(loaded.windowTitle, "NodeTool Timeline — Untitled video");
         }
-        // Launch the real switched-to editor, with its own cache, under our supervision.
-        const opened = run(args, {...runEnv, NT_TIMELINE_DOCUMENT_CHECK: "opened", NODETOOL_TIMELINE_CACHE_DIR: path.join(dir, "child-cache"), XDG_CACHE_HOME: path.join(dir, "child-qt-cache")});
-        assert.equal(opened.status, 0, opened.stderr);
-        const loaded = JSON.parse(fs.readFileSync(result, "utf8"));
-        assert.equal(loaded.id, id);
         assert.equal(loaded.recent[0].timelineId, id);
         assert.ok(loaded.recentMenuEntries > 1, "Open Recent menu must contain the opened document");
       } else if (mode === "flush-failure") {

@@ -198,6 +198,8 @@ option(NT_MACOS_BUNDLE "macOS: build nodetool-timeline as an .app bundle" OFF)
 set_target_properties(nodetool-timeline PROPERTIES MACOSX_BUNDLE ${NT_MACOS_BUNDLE}
     MACOSX_BUNDLE_GUI_IDENTIFIER ai.nodetool.timeline MACOSX_BUNDLE_BUNDLE_NAME "NodeTool Timeline"
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION} MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION})
+include(../account/cmake/MacCodeSign.cmake)
+nodetool_macos_dev_sign(nodetool-timeline "ai.nodetool.timeline")
 target_compile_options(nodetool-timeline PRIVATE ${NT_WARNINGS})
 target_link_libraries(nodetool-timeline PRIVATE
     ${NT_APP_PLATFORM_LIBS} timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)

@@ -16,8 +16,10 @@
 
 #include <atomic>
 #include <deque>
+#include <map>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 namespace nodetool::account::qt {
 
@@ -38,6 +40,9 @@ struct AccountController::Core : std::enable_shared_from_this<Core> {
   std::mutex mutex;
   // Guarded by mutex. Replaced at sign-in.
   std::shared_ptr<AccountSession> session;
+  // Guarded by mutex. Reuses one AccountSession per listed userId so each
+  // account keeps its generation-keyed status cache across reconcile ticks.
+  std::map<std::string, std::shared_ptr<AccountSession>> sessionsByUser;
   // Guarded by mutex. The sign-in that waits for the browser, owned by its
   // task. Set and cleared by that task.
   SignInFlow* flow = nullptr;
@@ -98,34 +103,83 @@ struct AccountController::Core : std::enable_shared_from_this<Core> {
     return options;
   }
 
+  struct IndexSelection {
+    std::shared_ptr<AccountSession> session;
+    AccountSession::Status status;
+  };
+
+  std::shared_ptr<AccountSession> sessionForUser(const std::string& userId) {
+    {
+      const std::lock_guard lock(mutex);
+      if (session && session->accountId() == userId) {
+        sessionsByUser[userId] = session;
+        return session;
+      }
+      if (const auto it = sessionsByUser.find(userId); it != sessionsByUser.end()) {
+        return it->second;
+      }
+    }
+    auto created = std::make_shared<AccountSession>(*services.store, *services.endpoint, options(userId));
+    const std::lock_guard lock(mutex);
+    auto& slot = sessionsByUser[userId];
+    if (!slot) {
+      slot = std::move(created);
+    }
+    return slot;
+  }
+
+  void invalidateStatusCaches() {
+    std::vector<std::shared_ptr<AccountSession>> sessions;
+    {
+      const std::lock_guard lock(mutex);
+      if (session) {
+        sessions.push_back(session);
+      }
+      for (const auto& [userId, s] : sessionsByUser) {
+        if (s && s != session) {
+          sessions.push_back(s);
+        }
+      }
+    }
+    for (const auto& s : sessions) {
+      s->invalidateStatusCache();
+    }
+  }
+
   // The session of the account signed in to this server, read again from
-  // `accounts.json` and the records at each call, so an account the other
-  // app signed in to replaces the one held here. With none signed in, the
-  // held session stays, or the first listed account's. Null when the index
-  // lists none.
-  std::shared_ptr<AccountSession> sessionFromIndex() {
+  // `accounts.json` and the generation-cached status at each call, so an
+  // account the other app signed in to replaces the one held here without
+  // re-reading the keychain when `session.gen` has not changed. With none
+  // signed in, the held session stays, or the first listed account's. Null
+  // when the index lists none.
+  IndexSelection sessionFromIndex() {
     const std::shared_ptr<AccountSession> held = currentSession();
     const std::string origin = normalizeOrigin(services.serverOrigin);
-    std::shared_ptr<AccountSession> first;
+    IndexSelection first;
+    std::optional<AccountSession::Status> heldStatus;
     for (const AccountEntry& entry : AccountsIndex(services.dataDir).list()) {
       if (normalizeOrigin(entry.serverOrigin) != origin) {
         continue;
       }
-      std::shared_ptr<AccountSession> candidate =
-          held && held->accountId() == entry.userId
-              ? held
-              : std::make_shared<AccountSession>(*services.store, *services.endpoint, options(entry.userId));
-      if (candidate->status().state == SessionState::SignedIn) {
-        return adopt(held, std::move(candidate));
+      std::shared_ptr<AccountSession> candidate = sessionForUser(entry.userId);
+      const AccountSession::Status status = candidate->status();
+      if (status.state == SessionState::SignedIn) {
+        return {adopt(held, std::move(candidate)), status};
       }
-      if (!first) {
-        first = std::move(candidate);
+      if (candidate == held) {
+        heldStatus = status;
+      }
+      if (!first.session) {
+        first = {std::move(candidate), status};
       }
     }
-    if (held || !first) {
-      return held;
+    if (held) {
+      return {held, heldStatus ? *heldStatus : held->status()};
     }
-    return adopt(held, std::move(first));
+    if (!first.session) {
+      return {};
+    }
+    return {adopt(held, std::move(first.session)), first.status};
   }
 
   // Holds `next` unless another thread replaced `expected` meanwhile.
@@ -253,8 +307,8 @@ std::shared_ptr<AccountSession> AccountController::readSession() {
   if (!core_->policyAllows.load(std::memory_order_acquire)) {
     return nullptr;
   }
-  const std::shared_ptr<AccountSession> session = core_->sessionFromIndex();
-  if (!session || session->status().state != SessionState::SignedIn) {
+  const auto selection = core_->sessionFromIndex();
+  if (!selection.session || selection.status.state != SessionState::SignedIn) {
     return nullptr;
   }
   return this->session();
@@ -291,6 +345,7 @@ bool AccountController::readPolicy() {
 
 void AccountController::reload() {
   readPolicy();
+  tasks_->post([core = core_] { core->invalidateStatusCaches(); });
   refreshState();
 }
 
@@ -300,14 +355,16 @@ void AccountController::refreshState() {
   const quint64 sequence = ++refreshSequence_;
   tasks_->post([core = core_, sequence] {
     Snapshot snapshot;
-    if (const auto session = core->sessionFromIndex()) {
+    if (const auto selection = core->sessionFromIndex(); selection.session) {
       const bool allowed = core->policyAllows.load(std::memory_order_acquire);
-      // A session the policy holds back is not adopted: only its display
-      // and a pending server end are read from the record.
-      if (allowed) {
-        session->checkGenerationFile();
+      const AccountSession::Status& status = selection.status;
+      // Only check the generation file on sign-out when the store was not
+      // denied: this cancels in-flight requests and emits signedOut() without
+      // touching the keychain, while idle polling never triggers a token
+      // refresh or re-reads the keychain.
+      if (allowed && !status.storeAccessDenied && status.state == SessionState::SignedOut) {
+        selection.session->checkGenerationFile();
       }
-      const AccountSession::Status status = session->status();
       snapshot.state = allowed && status.state == SessionState::SignedIn ? State::SignedIn : State::SignedOut;
       snapshot.displayName = QString::fromStdString(status.displayName);
       snapshot.serverEndPending = status.serverEndPending;
@@ -417,6 +474,7 @@ void AccountController::signIn() {
         return;
       }
       const std::lock_guard lock(core->mutex);
+      core->sessionsByUser[result.userId] = session;
       core->session = std::move(session);
       break;
     }

@@ -82,7 +82,7 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
     struct Want {
         const Clip* clip;
         double distanceMs;  // 0 when on screen
-        bool required;
+        int priority;       // 0 = required, 1 = upcoming lookahead, 2 = recently passed
     };
     std::vector<Want> wants;
     for (const Clip& clip : timeline.clips) {
@@ -90,19 +90,30 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
         const Track* track = timeline.findTrack(clip.trackId);
         if (!track || !track->visible) continue;
         const bool needed = required.contains(clip.id);
-        if (!needed && timeMs >= clip.endMs()) continue;
-        const double distance = needed ? 0.0 : std::max(0.0, clip.startMs - timeMs);
-        if (!needed && distance > kPrerollMs) continue;
-        wants.push_back({&clip, distance, needed});
+        if (needed) {
+            wants.push_back({&clip, 0.0, 0});
+            continue;
+        }
+        if (timeMs < clip.endMs()) {
+            const double distance = std::max(0.0, clip.startMs - timeMs);
+            if (distance <= kPrerollMs) wants.push_back({&clip, distance, 1});
+            continue;
+        }
+        // Keep an already-open decoder briefly behind the playhead so scrubbing
+        // back across a cut reuses it instead of reopening from disk.
+        const double behind = timeMs - clip.endMs();
+        if (behind <= kPrerollMs && m_entries.contains(clip.id)) {
+            wants.push_back({&clip, behind, 2});
+        }
     }
-    // At the cap, the clips furthest from the playhead lose their decoder.
+    // At the cap, required clips stay, then upcoming lookahead, then recently passed clips.
     std::stable_sort(wants.begin(), wants.end(),
                      [](const Want& a, const Want& b) {
-                         if (a.required != b.required) return a.required;
+                         if (a.priority != b.priority) return a.priority < b.priority;
                          return a.distanceMs < b.distanceMs;
                      });
     const auto requiredCount = static_cast<size_t>(std::count_if(wants.begin(), wants.end(),
-        [](const Want& want) { return want.required; }));
+        [](const Want& want) { return want.priority == 0; }));
     const auto limit = std::max(static_cast<size_t>(kMaxOpenDecoders), requiredCount);
     if (wants.size() > limit) wants.resize(limit);
 

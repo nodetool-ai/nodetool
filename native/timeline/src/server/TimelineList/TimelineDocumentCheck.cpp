@@ -68,6 +68,7 @@ void drive(QQuickWindow *window, QQuickItem *editor, const QString &mode) {
                            {"width", model->canvasWidth()},
                            {"height", model->canvasHeight()},
                            {"fps", model->fps()},
+                           {"windowTitle", window->title()},
                            {"recent", QJsonArray::fromVariantList(menu->preferences()->recentTimelines())},
                            {"recentMenuEntries", static_cast<int>(menus.front().items.front().children.size())}};
         QFile file(qEnvironmentVariable("NT_TIMELINE_DOCUMENT_RESULT"));
@@ -98,7 +99,41 @@ void drive(QQuickWindow *window, QQuickItem *editor, const QString &mode) {
                            save->dirty(),
                        "switch must start with an edit pending inside autosave debounce");
     };
+    const auto waitForSwitch = [window, editor, model, finish](const QString &beforeId,
+                                                               const QString &expectedId) {
+        auto *poll = new QTimer(window);
+        poll->setInterval(25);
+        QElapsedTimer elapsed;
+        elapsed.start();
+        const int configuredTimeout = qEnvironmentVariableIntValue("NT_TIMELINE_DOCUMENT_TIMEOUT_MS");
+        const int switchTimeoutMs = configuredTimeout > 0 ? configuredTimeout / 2 : 10000;
+        auto *context = QQmlEngine::contextForObject(editor);
+        QObject *session = context ? context->contextProperty(QStringLiteral("nativeSession")).value<QObject *>() : nullptr;
+        QObject::connect(poll, &QTimer::timeout, window,
+                         [poll, elapsed, switchTimeoutMs, window, editor, model, session, beforeId,
+                          expectedId, finish]() mutable {
+                             const QString currentId = model->timelineId();
+                             const bool idReady = expectedId.isEmpty() ? (!currentId.isEmpty() && currentId != beforeId)
+                                                                       : (currentId == expectedId);
+                             const bool switching = session && session->property("switching").toBool();
+                             auto *currentSaver = qobject_cast<nt::server::AutosaveController *>(
+                                 editor->property("saver").value<QObject *>());
+                             auto *panel = findItem(window->contentItem(), "TimelineListPanel");
+                             const bool listClosed = !panel || !panel->isVisible();
+                             if (idReady && !switching && currentSaver && !currentSaver->dirty() && listClosed) {
+                                 poll->stop();
+                                 finish();
+                                 return;
+                             }
+                             if (elapsed.hasExpired(switchTimeoutMs)) {
+                                 poll->stop();
+                                 require(false, "in-place timeline switch timed out");
+                             }
+                         });
+        poll->start();
+    };
     const bool newTimeline = mode.startsWith("new-");
+    const QString beforeId = model->timelineId();
     if (newTimeline && !edit()) {
         return;
     }
@@ -135,10 +170,10 @@ void drive(QQuickWindow *window, QQuickItem *editor, const QString &mode) {
         key(window, Qt::Key_O, Qt::ControlModifier);
     }
     if (newTimeline) {
-        QTimer::singleShot(1500, window, [] { require(false, "New Timeline must switch and quit"); });
+        waitForSwitch(beforeId, {});
         return;
     }
-    QTimer::singleShot(200, window, [window, editor, mode, finish, edit, previousFocus] {
+    QTimer::singleShot(200, window, [window, editor, mode, finish, edit, previousFocus, waitForSwitch, beforeId] {
         auto *panel = findItem(window->contentItem(), "TimelineListPanel");
         if (!require(panel && panel->isVisible(), "Ctrl+O/menu/button must open the list over the document")) {
             return;
@@ -244,7 +279,7 @@ void drive(QQuickWindow *window, QQuickItem *editor, const QString &mode) {
             }
             finish();
         } else {
-            QTimer::singleShot(1500, window, [] { require(false, "choosing a timeline must switch and quit"); });
+            waitForSwitch(beforeId, qEnvironmentVariable("NT_TIMELINE_DOCUMENT_CHOOSE"));
         }
     });
 }

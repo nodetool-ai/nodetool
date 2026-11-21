@@ -3,6 +3,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QQuickWindow>
 
 #include <algorithm>
 #include <array>
@@ -37,8 +38,8 @@ bool assign(T& field, const T& value) {
 MonitorMiniTimeline::MonitorMiniTimeline(QQuickItem* parent) : QQuickPaintedItem(parent) {
     setAntialiasing(true);
     setAcceptedMouseButtons(Qt::LeftButton | Qt::RightButton);
-    connect(this, &QQuickItem::widthChanged, this, &MonitorMiniTimeline::changedValue);
-    connect(this, &QQuickItem::heightChanged, this, &MonitorMiniTimeline::changedValue);
+    connect(this, &QQuickItem::widthChanged, this, &MonitorMiniTimeline::changedBackdrop);
+    connect(this, &QQuickItem::heightChanged, this, &MonitorMiniTimeline::changedBackdrop);
 }
 
 void MonitorMiniTimeline::changedValue() {
@@ -46,19 +47,24 @@ void MonitorMiniTimeline::changedValue() {
     update();
 }
 
-void MonitorMiniTimeline::setDurationMs(double v) { if (assign(m_durationMs, std::max(0.0, v))) { changedValue(); } }
-void MonitorMiniTimeline::setFps(double v) { if (v > 0 && assign(m_fps, v)) { changedValue(); } }
+void MonitorMiniTimeline::changedBackdrop() {
+    m_backdropDirty = true;
+    changedValue();
+}
+
+void MonitorMiniTimeline::setDurationMs(double v) { if (assign(m_durationMs, std::max(0.0, v))) { changedBackdrop(); } }
+void MonitorMiniTimeline::setFps(double v) { if (v > 0 && assign(m_fps, v)) { changedBackdrop(); } }
 void MonitorMiniTimeline::setTimeMs(double v) { if (assign(m_timeMs, v)) { changedValue(); } }
-void MonitorMiniTimeline::setZoomStart(double v) { if (assign(m_zoomStart, std::clamp(v, 0.0, 1.0))) { changedValue(); } }
-void MonitorMiniTimeline::setZoomEnd(double v) { if (assign(m_zoomEnd, std::clamp(v, 0.0, 1.0))) { changedValue(); } }
-void MonitorMiniTimeline::setRangeInMs(double v) { if (assign(m_rangeInMs, v)) { changedValue(); } }
-void MonitorMiniTimeline::setRangeOutMs(double v) { if (assign(m_rangeOutMs, v)) { changedValue(); } }
-void MonitorMiniTimeline::setMarkers(const QVariantList& v) { if (assign(m_markers, v)) { changedValue(); } }
-void MonitorMiniTimeline::setUiScale(double v) { if (v > 0 && assign(m_scale, v)) { changedValue(); } }
-void MonitorMiniTimeline::setTickColor(const QColor& c) { if (assign(m_tick, c)) { changedValue(); } }
-void MonitorMiniTimeline::setRangeColor(const QColor& c) { if (assign(m_range, c)) { changedValue(); } }
-void MonitorMiniTimeline::setPlayheadColor(const QColor& c) { if (assign(m_playhead, c)) { changedValue(); } }
-void MonitorMiniTimeline::setMarkerColor(const QColor& c) { if (assign(m_marker, c)) { changedValue(); } }
+void MonitorMiniTimeline::setZoomStart(double v) { if (assign(m_zoomStart, std::clamp(v, 0.0, 1.0))) { changedBackdrop(); } }
+void MonitorMiniTimeline::setZoomEnd(double v) { if (assign(m_zoomEnd, std::clamp(v, 0.0, 1.0))) { changedBackdrop(); } }
+void MonitorMiniTimeline::setRangeInMs(double v) { if (assign(m_rangeInMs, v)) { changedBackdrop(); } }
+void MonitorMiniTimeline::setRangeOutMs(double v) { if (assign(m_rangeOutMs, v)) { changedBackdrop(); } }
+void MonitorMiniTimeline::setMarkers(const QVariantList& v) { if (assign(m_markers, v)) { changedBackdrop(); } }
+void MonitorMiniTimeline::setUiScale(double v) { if (v > 0 && assign(m_scale, v)) { changedBackdrop(); } }
+void MonitorMiniTimeline::setTickColor(const QColor& c) { if (assign(m_tick, c)) { changedBackdrop(); } }
+void MonitorMiniTimeline::setRangeColor(const QColor& c) { if (assign(m_range, c)) { changedBackdrop(); } }
+void MonitorMiniTimeline::setPlayheadColor(const QColor& c) { if (assign(m_playhead, c)) { changedBackdrop(); } }
+void MonitorMiniTimeline::setMarkerColor(const QColor& c) { if (assign(m_marker, c)) { changedBackdrop(); } }
 
 double MonitorMiniTimeline::frameMs() const { return 1000.0 / m_fps; }
 
@@ -106,15 +112,21 @@ QVariantList MonitorMiniTimeline::tickSteps() const {
     return {QVariant::fromValue(minorIt != steps.end() ? *minorIt : major), QVariant::fromValue(major)};
 }
 
-void MonitorMiniTimeline::paint(QPainter* painter) {
-    ++m_paintCount;
+void MonitorMiniTimeline::rebuildBackdrop(double dpr) {
     const double w = width();
     const double h = height();
     const double s = m_scale;
-    if (w <= 0 || h <= 0 || m_durationMs <= 0) {
-        emit painted();
-        return;
+    const QSize pixelSize(std::max(1, static_cast<int>(std::ceil(w * dpr))),
+                          std::max(1, static_cast<int>(std::ceil(h * dpr))));
+    if (m_backdrop.size() != pixelSize || m_backdrop.format() != QImage::Format_ARGB32_Premultiplied) {
+        m_backdrop = QImage(pixelSize, QImage::Format_ARGB32_Premultiplied);
     }
+    m_backdrop.setDevicePixelRatio(dpr);
+    m_backdrop.fill(Qt::transparent);
+
+    QPainter bp(&m_backdrop);
+    bp.setRenderHint(QPainter::Antialiasing, true);
+
     const double startMs = shownStartMs();
     const double endMs = shownEndMs();
     const auto shows = [&](double ms) { return ms >= startMs && ms <= endMs; };
@@ -126,7 +138,7 @@ void MonitorMiniTimeline::paint(QPainter* painter) {
     QPen tickPen(m_tick);
     tickPen.setWidthF(1.0);
     tickPen.setCapStyle(Qt::FlatCap);
-    painter->setPen(tickPen);
+    bp.setPen(tickPen);
     qint64 frame = static_cast<qint64>(std::floor(startMs / frameMs())) / minor * minor;
     for (int i = 0; i < kMaxTicks; ++i, frame += minor) {
         const double ms = static_cast<double>(frame) * frameMs();
@@ -134,7 +146,7 @@ void MonitorMiniTimeline::paint(QPainter* painter) {
         if (ms < startMs - 0.5) { continue; }
         const double x = std::round(xForTime(ms)) + 0.5;
         const double tick = (frame % major == 0 ? kMajorTick : kMinorTick) * s;
-        painter->drawLine(QPointF(x, h - tick), QPointF(x, h));
+        bp.drawLine(QPointF(x, h - tick), QPointF(x, h));
     }
 
     // The in/out range. Out includes its frame, so the band ends at the next boundary.
@@ -146,11 +158,11 @@ void MonitorMiniTimeline::paint(QPainter* painter) {
         const double a = xForTime(inMs);
         const double b = std::max(a, xForTime(outMs));
         const double top = kRangeTop * s;
-        painter->fillRect(QRectF(a, top, b - a, h - top), m_range);
+        bp.fillRect(QRectF(a, top, b - a, h - top), m_range);
         QPen bracePen(m_playhead);
         bracePen.setWidthF(1.0);
-        painter->setPen(bracePen);
-        painter->setBrush(Qt::NoBrush);
+        bp.setPen(bracePen);
+        bp.setBrush(Qt::NoBrush);
         const double mid = (top + h) / 2;
         struct Edge { bool set; double x; double direction; double ms; };
         for (const Edge edge : std::array{Edge{hasIn, a, 1.0, inMs}, Edge{hasOut, b, -1.0, outMs}}) {
@@ -159,30 +171,54 @@ void MonitorMiniTimeline::paint(QPainter* painter) {
             const std::array points{at(kBraceArm, top), at(2.8, top), at(2.0, top + s), at(2.0, mid - 2 * s),
                                     at(1.4, mid - s), at(0.0, mid), at(1.4, mid + s), at(2.0, mid + 2 * s),
                                     at(2.0, h - s), at(2.8, h), at(kBraceArm, h)};
-            painter->drawPolyline(points.data(), static_cast<int>(points.size()));
+            bp.drawPolyline(points.data(), static_cast<int>(points.size()));
         }
     }
 
     // Marker flags: a pentagon in the marker's colour.
-    painter->setPen(Qt::NoPen);
+    bp.setPen(Qt::NoPen);
     const double half = kFlagWidth * s / 2;
     for (const QVariant& value : std::as_const(m_markers)) {
         const QVariantMap marker = value.toMap();
         const double ms = marker.value(QStringLiteral("timeMs")).toDouble();
         if (!shows(ms)) { continue; }
         const QString color = marker.value(QStringLiteral("color")).toString();
-        painter->setBrush(color.isEmpty() ? m_marker : QColor(color));
+        bp.setBrush(color.isEmpty() ? m_marker : QColor(color));
         const double x = xForTime(ms);
         const std::array flag{QPointF(x - half, 0), QPointF(x + half, 0), QPointF(x + half, kFlagShoulder * s),
                               QPointF(x, kFlagHeight * s), QPointF(x - half, kFlagShoulder * s)};
-        painter->drawPolygon(flag.data(), static_cast<int>(flag.size()));
+        bp.drawPolygon(flag.data(), static_cast<int>(flag.size()));
     }
 
+    m_backdropDpr = dpr;
+    m_backdropDirty = false;
+}
+
+void MonitorMiniTimeline::paint(QPainter* painter) {
+    ++m_paintCount;
+    const double w = width();
+    const double h = height();
+    const double s = m_scale;
+    if (w <= 0 || h <= 0 || m_durationMs <= 0) {
+        emit painted();
+        return;
+    }
+    const double dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
+    const QSize pixelSize(std::max(1, static_cast<int>(std::ceil(w * dpr))),
+                          std::max(1, static_cast<int>(std::ceil(h * dpr))));
+    if (m_backdropDirty || m_backdrop.size() != pixelSize || std::abs(m_backdropDpr - dpr) > 1e-6) {
+        rebuildBackdrop(dpr);
+    }
+    painter->drawImage(QPointF(0, 0), m_backdrop);
+
+    const double startMs = shownStartMs();
+    const double endMs = shownEndMs();
     // The playhead: a pentagon over a 1 px line.
-    if (shows(m_timeMs)) {
+    if (m_timeMs >= startMs && m_timeMs <= endMs) {
         const double x = xForTime(m_timeMs);
         const double hy = h - kPlayheadRise * s;
         const double hw = kPlayheadWidth * s / 2;
+        painter->setPen(Qt::NoPen);
         painter->setBrush(m_playhead);
         const std::array head{QPointF(x - hw, hy), QPointF(x + hw, hy), QPointF(x + hw, hy + kPlayheadShoulder * s),
                               QPointF(x, hy + kPlayheadHeight * s), QPointF(x - hw, hy + kPlayheadShoulder * s)};

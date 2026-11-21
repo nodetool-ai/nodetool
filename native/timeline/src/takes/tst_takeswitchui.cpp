@@ -435,6 +435,12 @@ private slots:
         mount();
         monitor()->setDisplayMode("takes");
         QTRY_VERIFY(grid());
+        // A new document resolves the takes' media again in the background, and
+        // registering it changes the clips. Let it land so the spies see playback only.
+        for (const auto* asset : {"asset-a", "asset-b", "asset-short", "asset-d"}) {
+            QTRY_VERIFY(!switcher()->mediaPath(asset, false).isEmpty());
+        }
+        QCoreApplication::processEvents();
         QSignalSpy clips(&model, &TimelineModel::clipsChanged);
         QSignalSpy timeline(&model, &TimelineModel::timelineChanged);
         QSignalSpy gridChanges(grid(), &TakeGrid::changed);

@@ -117,6 +117,10 @@ void ConnectionItem::move(NodeId moved) {
 }
 
 void ConnectionItem::geometryMoved() {
+  if (state_.requiresPort()) {
+    if (auto *scene = canvasScene()) { scene->draftMoved(*this); }
+    return;
+  }
   reindex();
   markDirty();
 }
@@ -156,7 +160,12 @@ bool ConnectionItem::mayPaint(const QRectF &area) const {
   if (!path_.valid || path_.out != out_ || path_.in != in_ || path_.revision != rasterRevision() || path_.draft != draft) {
     path_ = {out_, in_, rasterRevision(), draft, true, {}};
     for (const auto &polygon : scene->connectionPath(*this).toSubpathPolygons()) {
+      if (polygon.size() == 1) { path_.segments.append(QRectF(polygon[0], QSizeF(0, 0))); }
       for (qsizetype i = 1; i < polygon.size(); ++i) { path_.segments.append(QRectF(polygon[i - 1], polygon[i]).normalized()); }
+    }
+    if (draft) {
+      path_.segments.append(QRectF(out_, QSizeF(0, 0)));
+      path_.segments.append(QRectF(in_, QSizeF(0, 0)));
     }
   }
   // Strokes, glows and the draft's end dot reach at most 7 from the centre
@@ -184,12 +193,6 @@ void ConnectionItem::mousePress(CanvasMouseEvent &event) {
 void ConnectionItem::mouseMove(CanvasMouseEvent &event) {
   auto *scene = canvasScene();
   if (!scene) { return; }
-  if (auto *node = scene->nodeAt(event.scenePos)) {
-    node->reactToConnection(this);
-    state_.setLastHoveredNode(node->nodeId());
-  } else {
-    state_.resetLastHoveredNode();
-  }
   if (const auto requiredPort = state_.requiredPort(); requiredPort != PortType::None) {
     setEndPoint(requiredPort, event.scenePos);
   }

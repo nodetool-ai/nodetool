@@ -943,6 +943,58 @@ void signOutElsewhereDuringHelperRefresh(TestContext& t) {
   main.pipe().close();
 }
 
+// Ticker refreshes reuse cached status across ticks without hitting the
+// keychain again, and a denied keychain read neither loops nor corrupts
+// session.gen.
+void tickerCachesStatusAndDoesNotLoopOnDenial(TestContext& t) {
+  class CountingDeniedStore final : public SecretStore {
+  public:
+    explicit CountingDeniedStore(SecretStore& inner) : inner_(inner) {}
+    bool available() const override { return true; }
+    std::optional<std::string> read(std::string_view s, std::string_view a) override {
+      const SecretReadResult r = readResult(s, a);
+      return r.status == SecretReadStatus::Ok ? std::optional<std::string>(r.value) : std::nullopt;
+    }
+    SecretReadResult readResult(std::string_view s, std::string_view a) override {
+      ++reads;
+      if (denyReads.load()) {
+        return {SecretReadStatus::AccessDenied, {}};
+      }
+      return inner_.readResult(s, a);
+    }
+    bool write(std::string_view s, std::string_view a, std::string_view v) override { return inner_.write(s, a, v); }
+    void remove(std::string_view s, std::string_view a) override { inner_.remove(s, a); }
+    std::atomic<int> reads{0};
+    std::atomic<bool> denyReads{false};
+
+  private:
+    SecretStore& inner_;
+  };
+
+  Computer pc;
+  pc.signInElsewhere("u1", "Ada");
+  CountingDeniedStore denied(pc.keychain);
+  denied.denyReads = true;
+  HelperOptions o = pc.helperOptions();
+  o.store = &denied;
+  Outbox out;
+  AccountHelper helper(o, out.emit());
+  CHECK(out.waitForState(signedOut));
+  const int afterStart = denied.reads.load();
+  CHECK(afterStart == 1);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  CHECK(denied.reads.load() == afterStart);
+  CHECK(readGenerationFile(accountDir(pc.data.path(), kServer, "u1") / "session.gen").state == SessionState::SignedIn);
+
+  denied.denyReads = false;
+  helper.handle({{"type", "reload"}});
+  CHECK(out.waitForState([](const auto& s) { return signedInAs(s, "Ada"); }));
+  const int afterReload = denied.reads.load();
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  CHECK(denied.reads.load() == afterReload);
+}
+
 } // namespace
 
 int main() {
@@ -969,5 +1021,6 @@ int main() {
       {"socketTokenFollowsTheSession", socketTokenFollowsTheSession},
       {"threeAppsRenewOnce", threeAppsRenewOnce},
       {"signOutElsewhereDuringHelperRefresh", signOutElsewhereDuringHelperRefresh},
+      {"tickerCachesStatusAndDoesNotLoopOnDenial", tickerCachesStatusAndDoesNotLoopOnDenial},
   });
 }

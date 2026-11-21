@@ -18,6 +18,9 @@ void StoryWorkspace::setController(QObject* controller) {
     if (m_controller == controller) { return; }
     if (m_controller) { disconnect(m_controller, nullptr, this, nullptr); }
     m_controller = controller;
+    m_hasObserved = false;
+    m_cachedScope.clear();
+    m_cachedScopeHash.clear();
     if (controller) { connect(controller, SIGNAL(changed()), this, SLOT(observe())); }
     emit resourceChanged(); emit changed();
 }
@@ -25,15 +28,25 @@ bool StoryWorkspace::busy() const { return m_controller && m_controller->propert
 QString StoryWorkspace::controllerError() const { return m_controller ? m_controller->property("error").toString() : QString{}; }
 QString StoryWorkspace::key() const {
     if (!m_controller) { return {}; }
-    QByteArray scope = invoke(m_controller.data(), "draftScope", QString{}).toUtf8();
+    const QByteArray scope = invoke(m_controller.data(), "draftScope", QString{}).toUtf8();
+    if (m_cachedScopeHash.isEmpty() || scope != m_cachedScope) {
+        m_cachedScope = scope;
+        m_cachedScopeHash = QString::fromLatin1(QCryptographicHash::hash(scope, QCryptographicHash::Sha256).toHex());
+    }
     const auto loaded = current();
     const auto document = loaded.value("document").toObject();
     const QString kind = document.contains("shots") ? "storyboard" : document.contains("sections") ? "script" : "entity";
-    return QString::fromLatin1(QCryptographicHash::hash(scope, QCryptographicHash::Sha256).toHex()) + ':' + kind + ':' + loaded.value("id").toString();
+    return m_cachedScopeHash + ':' + kind + ':' + loaded.value("id").toString();
 }
 QJsonObject StoryWorkspace::current() const { return m_controller ? QJsonObject::fromVariantMap(m_controller->property("result").toMap()) : QJsonObject{}; }
-QVariantMap StoryWorkspace::resource() const { return m_drafts.contains(key()) ? m_drafts.value(key()).edited.toVariantMap() : current().toVariantMap(); }
-bool StoryWorkspace::dirty() const { return m_drafts.contains(key()) || !m_jsonDrafts.value(key()).isEmpty(); }
+QVariantMap StoryWorkspace::resource() const {
+    const auto draftKey = key();
+    return m_drafts.contains(draftKey) ? m_drafts.value(draftKey).edited.toVariantMap() : current().toVariantMap();
+}
+bool StoryWorkspace::dirty() const {
+    const auto draftKey = key();
+    return m_drafts.contains(draftKey) || !m_jsonDrafts.value(draftKey).isEmpty();
+}
 bool StoryWorkspace::retain(const QJsonObject& edited, const QString& error) {
     m_error = error;
     if (!error.isEmpty() || current().value("id").toString().isEmpty() || !m_controller || busy()) { emit changed(); return false; }
@@ -114,7 +127,9 @@ bool StoryWorkspace::save() {
     return started;
 }
 void StoryWorkspace::observe() {
+    bool submissionSettled = false;
     if (!m_submitting.isEmpty() && m_controller && !busy()) {
+        submissionSettled = true;
         const auto saved = current();
         const bool entity = m_submitted.value("metadata").isObject();
         const auto field = entity ? QStringLiteral("metadata") : QStringLiteral("document");
@@ -123,11 +138,24 @@ void StoryWorkspace::observe() {
         } else { m_error = "Save was not confirmed. Your draft is retained. Retry after reconnecting, or reopen to check for conflicts."; }
         m_submitting.clear(); m_submitted = {};
     }
+    const auto loaded = current();
     const auto activeKey = key();
+    const bool busyNow = busy();
+    const auto errorNow = controllerError();
+    const auto linked = linkedResources();
+    if (!submissionSettled && m_hasObserved && activeKey == m_observedKey && loaded == m_observedResource &&
+        busyNow == m_observedBusy && errorNow == m_observedError && linked == m_observedLinked) {
+        return;
+    }
     if (m_observedKey != activeKey) {
         m_observedKey = activeKey; m_error.clear();
         for (const auto& raw : m_jsonDrafts.value(activeKey)) { if (!raw.error.isEmpty()) { m_error = raw.error; break; } }
     }
+    m_hasObserved = true;
+    m_observedResource = loaded;
+    m_observedBusy = busyNow;
+    m_observedError = errorNow;
+    m_observedLinked = linked;
     emit resourceChanged(); emit changed();
 }
 void StoryWorkspace::discard() { if (!m_controller || busy()) { return; } m_drafts.remove(key()); m_jsonDrafts.remove(key()); m_error.clear(); emit resourceChanged(); emit changed(); }

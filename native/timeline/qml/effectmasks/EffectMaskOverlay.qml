@@ -54,13 +54,14 @@ Item {
         id: gizmo
         objectName: "effectMaskGizmo"
         visible: false
+        active: overlay.clipId !== ""
         anchors.fill: parent
         Component.onCompleted: Qt.callLater(discover)
     }
     ClipInspectorController {
         id: inspector
         timeline: overlay.timeline
-        clock: overlay.clock
+        clock: overlay.clipId !== "" ? overlay.clock : null
         clipId: overlay.clipId
     }
     ClipFx.ClipEffectsEdits {

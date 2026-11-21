@@ -32,12 +32,16 @@ void roundTrip(TestContext& t) {
   KeychainStore store;
   const std::string account = freshAccount();
   CHECK(!store.read(kService, account).has_value());
+  CHECK(store.readResult(kService, account).status == SecretReadStatus::NotFound);
   CHECK(store.write(kService, account, "first"));
   CHECK(store.read(kService, account) == std::optional<std::string>("first"));
+  const SecretReadResult hit = store.readResult(kService, account);
+  CHECK(hit.status == SecretReadStatus::Ok && hit.value == "first");
   CHECK(store.write(kService, account, "second"));
   CHECK(store.read(kService, account) == std::optional<std::string>("second"));
   store.remove(kService, account);
   CHECK(!store.read(kService, account).has_value());
+  CHECK(store.readResult(kService, account).status == SecretReadStatus::NotFound);
   store.remove(kService, account);
 }
 

@@ -60,6 +60,7 @@ nt::Timeline copyWithoutClips(const nt::Timeline& t) {
     next.clipIndex = t.clipIndex;
     next.matteClipId = t.matteClipId;
     next.matteEffectId = t.matteEffectId;
+    next.sourcePath = t.sourcePath;
     return next;
 }
 
@@ -690,6 +691,7 @@ bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
     }
     next.matteClipId = previous->matteClipId;
     next.matteEffectId = previous->matteEffectId;
+    next.sourcePath = previous->sourcePath;
     next.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
     if (clipsSame) {

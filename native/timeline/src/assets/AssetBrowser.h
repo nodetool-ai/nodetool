@@ -23,7 +23,7 @@ class AssetBrowser : public nt::assets::TimelineMediaConsumer {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
     QML_ELEMENT
-    Q_PROPERTY(bool configured READ configured CONSTANT)
+    Q_PROPERTY(bool configured READ configured NOTIFY libraryScopeChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap thumbnails READ thumbnails NOTIFY thumbnailsChanged)
@@ -201,6 +201,7 @@ private:
     std::shared_ptr<std::atomic_bool> m_activeQueryCancel;
     bool m_hasQueried = false;
     QString m_libraryProject;
+    QUrl m_libraryServer;
     QHash<QString, QString> m_folderNames;
     QVariantList m_transfers;
     QHash<QString, QueuedImport> m_imports;

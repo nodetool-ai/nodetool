@@ -136,8 +136,9 @@ const QMap<QString, node_editor::layout::SelectionAction> selectionActions{
     {"Stack selection", node_editor::layout::SelectionAction::Stack},
     {"Arrange grid", node_editor::layout::SelectionAction::Grid}};
 } // namespace
-EditorWindow::EditorWindow(QWidget *parent) : EditorWindow(parent, nullptr) {}
-EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
+EditorWindow::EditorWindow(QWidget *parent, EditorWindowOptions options)
+    : EditorWindow(parent, nullptr, options) {}
+EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner, EditorWindowOptions options)
     : QMainWindow(parent), tabOwner_(tabOwner), dynamicPorts_(&document_, tabOwner ? this : nullptr), model_(tabOwner ? this : nullptr) {
   if (tabOwner_) {
     projectFolder_.setLocks(tabOwner_->projectLocks_.get());
@@ -148,32 +149,36 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     tabStack_ = new QStackedWidget(this);
     setCentralWidget(tabStack_);
     engine_ = new QQmlEngine(this);
-    accountServers_ = std::make_unique<nodetool::account::qt::AccountServers>(
-        nodetool::account::qt::sharedDataDir(), nodetool::account::qt::cloudServerOrigin(),
-        [](const std::string &origin) {
-          nodetool::account::qt::AccountServices services;
-          services.dataDir = nodetool::account::qt::sharedDataDir();
-          services.serverOrigin = origin;
-          services.app = "node-editor";
-          return services;
-        },
-        QSettings().value(QStringLiteral("cloud/server")).toString().toStdString());
-    cloudBrowser_ = std::make_unique<nodetool::account::qt::CloudBrowser>("workflow");
-    cloudBrowser_->setAccount(accountServers_->current());
-    connect(accountServers_.get(), &nodetool::account::qt::AccountServers::currentChanged, this, [this] {
-      QSettings().setValue(QStringLiteral("cloud/server"), accountServers_->currentServer());
+    // Interactive runs only, so offscreen tests and headless export/capture
+    // runs never read the user's OS keychain (matching native/timeline).
+    if (options.cloudAccount && QGuiApplication::platformName() != QLatin1String("offscreen")) {
+      accountServers_ = std::make_unique<nodetool::account::qt::AccountServers>(
+          nodetool::account::qt::sharedDataDir(), nodetool::account::qt::cloudServerOrigin(),
+          [](const std::string &origin) {
+            nodetool::account::qt::AccountServices services;
+            services.dataDir = nodetool::account::qt::sharedDataDir();
+            services.serverOrigin = origin;
+            services.app = "node-editor";
+            return services;
+          },
+          QSettings().value(QStringLiteral("cloud/server")).toString().toStdString());
+      cloudBrowser_ = std::make_unique<nodetool::account::qt::CloudBrowser>("workflow");
       cloudBrowser_->setAccount(accountServers_->current());
-    });
-    connect(cloudBrowser_.get(), &nodetool::account::qt::CloudBrowser::openRequested, this,
-            [this](const QString &kind, const QString &documentId, const QString &, const QString &role) {
-              if (kind == QLatin1String("workflow")) { openCloudDocument(documentId, role); }
-            });
-    connect(accountServers_.get(), &nodetool::account::qt::AccountServers::browserRequested, this,
-            [](const QUrl &url, nodetool::account::qt::AccountController *account) {
-              if (!QDesktopServices::openUrl(url)) {
-                account->browserNotOpened();
-              }
-            });
+      connect(accountServers_.get(), &nodetool::account::qt::AccountServers::currentChanged, this, [this] {
+        QSettings().setValue(QStringLiteral("cloud/server"), accountServers_->currentServer());
+        cloudBrowser_->setAccount(accountServers_->current());
+      });
+      connect(cloudBrowser_.get(), &nodetool::account::qt::CloudBrowser::openRequested, this,
+              [this](const QString &kind, const QString &documentId, const QString &, const QString &role) {
+                if (kind == QLatin1String("workflow")) { openCloudDocument(documentId, role); }
+              });
+      connect(accountServers_.get(), &nodetool::account::qt::AccountServers::browserRequested, this,
+              [](const QUrl &url, nodetool::account::qt::AccountController *account) {
+                if (!QDesktopServices::openUrl(url)) {
+                  account->browserNotOpened();
+                }
+              });
+    }
     // Panels are QQuickWidgets sized to their strip, so an overlay tooltip clips there.
     // Ui.Tooltip hands its text to the window, which forwards it to the active tab.
     if (auto *tooltips = engine_->singletonInstance<QObject *>("NodeTool.UiPrimitives", "TooltipHost")) {
