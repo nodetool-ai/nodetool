@@ -132,6 +132,9 @@ public:
   void registerItem(CanvasItem &item);
   void unregisterItem(CanvasItem &item);
   void updateIndex(CanvasItem &item);
+  // Updates the draft wire's index entry and asks the view to repaint only it,
+  // without invalidating viewport coverage or notifying the mini-map.
+  void draftMoved(CanvasItem &item);
   // Asks the view for a raster pass and repaint.
   void requestRaster();
   // Coalesces QGraphicsScene::changed for the mini-map and other listeners.
@@ -155,6 +158,7 @@ signals:
   // Items changed position, size or content.
   void changed();
   void rasterRequested();
+  void draftRasterRequested();
 
 public slots:
   void onConnectionDeleted(const QtNodes::ConnectionId &id);
