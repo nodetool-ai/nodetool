@@ -20410,5 +20410,91 @@
       "signOutNow": "Jetzt abmelden",
       "waitingNote": "Warte, bis die Änderungen gesendet sind. Lass das Cloud-Fenster geöffnet."
     }
+  },
+  "cloudTransfer": {
+    "title": {
+      "publish": "In der Cloud veröffentlichen",
+      "synchronize": "Synchronisieren"
+    },
+    "capturing": "Änderungen werden gelesen…",
+    "running": "Senden und Empfangen…",
+    "apply": {
+      "publish": "Veröffentlichen",
+      "synchronize": "Synchronisieren"
+    },
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "tryAgain": "Erneut versuchen",
+    "nothing": "Nichts zu senden oder zu empfangen.",
+    "section": {
+      "choice": "Hier und in der Cloud geändert",
+      "receive": "Aus der Cloud empfangen",
+      "send": "In die Cloud gesendet",
+      "deletion": "Auf diesem Computer gelöscht",
+      "problem": "Kann nicht gesendet werden"
+    },
+    "choice": {
+      "label": "Zu behaltende Version von {{name}}",
+      "receive": "Cloud-Version",
+      "keepLocal": "Meine behalten"
+    },
+    "deletion": {
+      "confirm": "Auch in der Cloud löschen",
+      "note": "Wenn du es nicht auch in der Cloud löschst, kommt die Cloud-Version auf diesen Computer zurück."
+    },
+    "missing": {
+      "confirm": "Ohne diese Datei senden"
+    },
+    "row": {
+      "createDocument": "Hier neu, wird gesendet",
+      "replaceDocument": "Hier geändert, wird gesendet",
+      "renameDocument": "Umbenannt in {{name}}",
+      "keepBoth": "Wird als Kopie neben der Cloud-Version gesendet",
+      "addVersions": "Gespeicherte Versionen werden gesendet",
+      "putAssetFile": "Datei hier geändert, wird gesendet",
+      "newInCloud": "Neu in der Cloud",
+      "cloudChanged": "In der Cloud geändert",
+      "cloudFileChanged": "Eine verwendete Datei wurde in der Cloud geändert",
+      "bothChanged": "Hier und in der Cloud geändert",
+      "deleted": "Auf diesem Computer gelöscht",
+      "deletedCloudChanged": "Auf diesem Computer gelöscht und seitdem in der Cloud geändert",
+      "missingLocally": "Eine benötigte Datei fehlt im Projektordner",
+      "tooLarge": "Eine benötigte Datei ist zu groß zum Senden",
+      "overAllowance": "Eine benötigte Datei passt nicht in das Speicherkontingent",
+      "cannotSend": "Kann nicht gesendet werden: {{reason}}",
+      "documentFileMissing": "Die Datei fehlt im Projektordner, daher wird die zuletzt gespeicherte Version gesendet."
+    },
+    "message": {
+      "signInToPublish": "Melde dich an, um dieses Projekt zu veröffentlichen.",
+      "signInToSynchronize": "Melde dich an, um dieses Projekt zu synchronisieren.",
+      "noProject": "Öffne einen Projektordner, um ihn zu veröffentlichen oder zu synchronisieren.",
+      "linkedElsewhere": "Dieses Projekt ist mit einem anderen Cloud-Server oder Konto verknüpft. Melde dich bei diesem Konto an, um es zu synchronisieren.",
+      "signedOut": "Melde dich erneut an, um dieses Projekt zu senden oder zu empfangen.",
+      "offline": "Der Cloud-Server war nicht erreichbar. Versuche es erneut, wenn du online bist.",
+      "localUnavailable": "Der Projektserver dieser App hat nicht geantwortet.",
+      "cancelled": "Die Übertragung wurde beendet, weil sich das Cloud-Konto geändert hat.",
+      "refused": "Der Server hat die Übertragung abgelehnt ({{reason}}).",
+      "collectFirst": "Einige Dateien dieses Projekts liegen außerhalb des Projektordners. Sammle sie im Ordner und versuche es dann erneut.",
+      "receiveExpired": "Das Cloud-Projekt hat sich geändert, während dieses Fenster offen war. Synchronisiere erneut.",
+      "receiveChangedWhileOpen": "Etwas hat sich geändert, während dieses Fenster offen war. Prüfe die Auswahl erneut.",
+      "receivingChangedAgain": "Das Cloud-Projekt hat sich beim Empfangen erneut geändert. Wähle erneut.",
+      "chooseAgain_one": "{{count}} Dokument wurde seit deiner Auswahl hier oder in der Cloud geändert. Wähle erneut.",
+      "chooseAgain_other": "{{count}} Dokumente wurden seit deiner Auswahl hier oder in der Cloud geändert. Wähle erneut.",
+      "cloudChangedChooseAgain_one": "Die Cloud-Version von {{count}} Dokument hat sich geändert, seit dieses Fenster gelesen wurde. Wähle erneut.",
+      "cloudChangedChooseAgain_other": "Die Cloud-Version von {{count}} Dokumenten hat sich geändert, seit dieses Fenster gelesen wurde. Wähle erneut.",
+      "notPreparedAgain": "Empfangen. Die Änderungen hier konnten nicht erneut vorbereitet werden: {{reason}} Synchronisiere erneut, um sie zu senden.",
+      "sendChangedWhileOpen": "Dieses Projekt hat sich geändert, während das Fenster offen war. Prüfe, was gesendet wird.",
+      "missingFilesUnconfirmed": "Dateien, die dieses Projekt braucht, fehlen. Bestätige jede einzelne, um ohne sie zu senden.",
+      "sendRefused": "Die Cloud hat das Senden abgelehnt: {{reasons}}"
+    },
+    "done": {
+      "published": "In der Cloud veröffentlicht.",
+      "synchronized": "Synchronisiert.",
+      "received": "Empfangen: {{names}}",
+      "notReceived": "Nicht empfangen: {{names}}",
+      "changedDuringReceive": "Beim Empfangen hier geändert, daher nicht ersetzt: {{names}}",
+      "missingFiles_one": "{{count}} Datei konnte nicht empfangen werden.",
+      "missingFiles_other": "{{count}} Dateien konnten nicht empfangen werden."
+    }
   }
 }

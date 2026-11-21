@@ -45,9 +45,66 @@ export function isPreReleaseVersion(version: string): boolean {
   return tokenizeVersion(version).some(isPreReleaseTag);
 }
 
+const PEP440 =
+  /^v?(\d+(?:\.\d+)*)(?:[-_.]?(a|alpha|b|beta|c|rc|pre|preview)[-_.]?(\d*))?(?:[-_.]?post[-_.]?(\d*))?(?:[-_.]?dev[-_.]?(\d*))?(?:\+.*)?$/i;
+
+const PRE_PHASE: Record<string, number> = { a: 0, alpha: 0, b: 1, beta: 1, c: 2, rc: 2, pre: 2, preview: 2 };
+
+interface ParsedVersion {
+  release: number[];
+  /** Sorts a bare `.devN` before any pre-release, a final release after all of them. */
+  phase: number;
+  pre: number;
+  post: number;
+  dev: number;
+}
+
+function parsePep440(version: string): ParsedVersion | null {
+  const m = PEP440.exec(version.trim());
+  if (!m) return null;
+  const release = m[1].split(".").map(Number);
+  while (release.length > 1 && release[release.length - 1] === 0) release.pop();
+  const hasPre = m[2] !== undefined;
+  const hasPost = m[4] !== undefined;
+  const hasDev = m[5] !== undefined;
+  return {
+    release,
+    phase: hasPre ? PRE_PHASE[m[2].toLowerCase()] : !hasPost && hasDev ? -1 : 3,
+    pre: Number(m[3] || 0),
+    post: hasPost ? Number(m[4] || 0) : -1,
+    dev: hasDev ? Number(m[5] || 0) : Infinity
+  };
+}
+
+function compareNumbers(a: number, b: number): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function comparePep440(a: ParsedVersion, b: ParsedVersion): number {
+  const length = Math.max(a.release.length, b.release.length);
+  for (let i = 0; i < length; i += 1) {
+    const cmp = compareNumbers(a.release[i] ?? 0, b.release[i] ?? 0);
+    if (cmp !== 0) return cmp;
+  }
+  return (
+    compareNumbers(a.phase, b.phase) ||
+    compareNumbers(a.pre, b.pre) ||
+    compareNumbers(a.post, b.post) ||
+    compareNumbers(a.dev, b.dev)
+  );
+}
+
 /** Compare two PEP 440-style versions: negative, zero or positive. */
 export function compareVersions(a: string, b: string): number {
   if (a === b) return 0;
+  const parsedA = parsePep440(a);
+  const parsedB = parsePep440(b);
+  if (parsedA && parsedB) return comparePep440(parsedA, parsedB);
+  return compareTokens(a, b);
+}
+
+/** Fallback for strings PEP 440 does not describe. */
+function compareTokens(a: string, b: string): number {
   const tokensA = tokenizeVersion(a);
   const tokensB = tokenizeVersion(b);
   const length = Math.max(tokensA.length, tokensB.length);

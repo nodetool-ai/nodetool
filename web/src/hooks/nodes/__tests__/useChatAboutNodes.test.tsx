@@ -15,8 +15,12 @@ import {
   useChatAboutNodes
 } from "../useChatAboutNodes";
 
-const chatState = {
-  currentThreadId: null as string | null,
+const chatState: {
+  currentThreadId: string | null;
+  openWorkflowThread: jest.Mock;
+  createNewThread: jest.Mock;
+} = {
+  currentThreadId: null,
   openWorkflowThread: jest.fn(),
   createNewThread: jest.fn()
 };

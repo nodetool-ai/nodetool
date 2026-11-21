@@ -52,7 +52,7 @@ const jetBrainsMono = localFont({
 export const metadata: Metadata = {
   title: "NodeTool | Open-source AI film studio, agents, node workflows",
   description:
-    "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
+    "Open-source AI film studio with agents and node workflows. Write a brief, approve stills before paying for video, edit on a multi-track timeline, and run on your own keys.",
   metadataBase: new URL("https://nodetool.ai"),
   // hreflang: the home page and /ja list each other. Every other route sets
   // its own `alternates`, which replaces this object, so the languages stay on
@@ -62,7 +62,6 @@ export const metadata: Metadata = {
     languages: HOME_LANGUAGE_ALTERNATES,
   },
   keywords: [
-    "agent-first creative workspace",
     "agent-first creative workspace",
     "open source creative AI",
     "agents that build workflows",
@@ -91,7 +90,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "NodeTool | Open-source AI film studio, agents, node workflows",
     description:
-      "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
+      "Open-source AI film studio with agents and node workflows. Write a brief, approve stills before paying for video, edit on a multi-track timeline, and run on your own keys.",
     url: "https://nodetool.ai",
     siteName: "NodeTool",
     images: DEFAULT_OG_IMAGES,

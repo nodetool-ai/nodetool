@@ -2,10 +2,10 @@ import { Edge } from "@xyflow/react";
 import { edgesFrom, edgesTargeting, isHandleConnected } from "../edgeIndex";
 
 const edge = (id: string, target: string, targetHandle?: string): Edge =>
-  ({ id, source: "s", target, targetHandle } as Edge);
+  ({ id, source: "s", target, targetHandle });
 
 const fromTo = (id: string, source: string, target: string): Edge =>
-  ({ id, source, target } as Edge);
+  ({ id, source, target });
 
 describe("edgeIndex", () => {
   it("groups edges by target in graph order", () => {

@@ -25,3 +25,43 @@ slot-required-connected ok
 slot-no-values required:s
 slot-no-values-optional ok
 slot-mismatch dynamic_type_mismatch:s
+scalar-int-integer ok
+scalar-int-fraction property_type_mismatch:p:Property "p" is 1.5, but it takes a whole number.
+scalar-int-numeric-string ok
+scalar-int-padded-string ok
+scalar-int-fraction-string property_type_mismatch:p:Property "p" is "1.5", but it takes a whole number.
+scalar-int-word property_type_mismatch:p:Property "p" is "four", but it takes a whole number.
+scalar-int-nan property_type_mismatch:p:Property "p" is null, but it takes a whole number.
+scalar-int-infinity property_type_mismatch:p:Property "p" is null, but it takes a whole number.
+scalar-int-boolean property_type_mismatch:p:Property "p" is true, but it takes a whole number.
+scalar-int-list property_type_mismatch:p:Property "p" is [1], but it takes a whole number.
+scalar-int-null ok
+scalar-int-blank ok
+scalar-int-zero ok
+scalar-float-integer ok
+scalar-float-fraction ok
+scalar-float-numeric-string ok
+scalar-float-padded-string ok
+scalar-float-fraction-string ok
+scalar-float-word property_type_mismatch:p:Property "p" is "four", but it takes a number.
+scalar-float-nan property_type_mismatch:p:Property "p" is null, but it takes a number.
+scalar-float-infinity property_type_mismatch:p:Property "p" is null, but it takes a number.
+scalar-float-boolean property_type_mismatch:p:Property "p" is true, but it takes a number.
+scalar-float-list property_type_mismatch:p:Property "p" is [1], but it takes a number.
+scalar-float-null ok
+scalar-float-blank ok
+scalar-float-zero ok
+scalar-bool-true ok
+scalar-bool-false ok
+scalar-bool-true-string ok
+scalar-bool-false-string ok
+scalar-bool-zero ok
+scalar-bool-one ok
+scalar-bool-two property_type_mismatch:p:Property "p" is 2, but it takes true or false.
+scalar-bool-zero-string property_type_mismatch:p:Property "p" is "0", but it takes true or false.
+scalar-bool-word property_type_mismatch:p:Property "p" is "yes", but it takes true or false.
+scalar-bool-upper-string property_type_mismatch:p:Property "p" is "TRUE", but it takes true or false.
+scalar-bool-list property_type_mismatch:p:Property "p" is [], but it takes true or false.
+scalar-bool-null ok
+scalar-bool-blank ok
+scalar-str-number ok

@@ -20410,5 +20410,91 @@
       "signOutNow": "Nu afmelden",
       "waitingNote": "Wachten tot de wijzigingen zijn verzonden. Houd het cloudvenster open."
     }
+  },
+  "cloudTransfer": {
+    "title": {
+      "publish": "Publiceren in de cloud",
+      "synchronize": "Synchroniseren"
+    },
+    "capturing": "Wijzigingen lezen…",
+    "running": "Verzenden en ontvangen…",
+    "apply": {
+      "publish": "Publiceren",
+      "synchronize": "Synchroniseren"
+    },
+    "cancel": "Annuleren",
+    "close": "Sluiten",
+    "tryAgain": "Opnieuw proberen",
+    "nothing": "Niets te verzenden of te ontvangen.",
+    "section": {
+      "choice": "Hier en in de cloud gewijzigd",
+      "receive": "Ontvangen uit de cloud",
+      "send": "Verzonden naar de cloud",
+      "deletion": "Verwijderd op deze computer",
+      "problem": "Kan niet worden verzonden"
+    },
+    "choice": {
+      "label": "Te behouden versie van {{name}}",
+      "receive": "Cloudversie",
+      "keepLocal": "Mijn versie behouden"
+    },
+    "deletion": {
+      "confirm": "Ook in de cloud verwijderen",
+      "note": "Tenzij je ervoor kiest het in de cloud te verwijderen, komt de cloudversie terug naar deze computer."
+    },
+    "missing": {
+      "confirm": "Verzenden zonder dit bestand"
+    },
+    "row": {
+      "createDocument": "Nieuw hier, wordt verzonden",
+      "replaceDocument": "Hier gewijzigd, wordt verzonden",
+      "renameDocument": "Hernoemd naar {{name}}",
+      "keepBoth": "Wordt verzonden als kopie naast de cloudversie",
+      "addVersions": "Opgeslagen versies worden verzonden",
+      "putAssetFile": "Bestand hier gewijzigd, wordt verzonden",
+      "newInCloud": "Nieuw in de cloud",
+      "cloudChanged": "Gewijzigd in de cloud",
+      "cloudFileChanged": "Een bestand dat het gebruikt is gewijzigd in de cloud",
+      "bothChanged": "Hier en in de cloud gewijzigd",
+      "deleted": "Verwijderd op deze computer",
+      "deletedCloudChanged": "Verwijderd op deze computer en sindsdien gewijzigd in de cloud",
+      "missingLocally": "Een benodigd bestand ontbreekt in de projectmap",
+      "tooLarge": "Een benodigd bestand is te groot om te verzenden",
+      "overAllowance": "Een benodigd bestand past niet in de opslagruimte",
+      "cannotSend": "Kan niet worden verzonden: {{reason}}",
+      "documentFileMissing": "Het bestand ontbreekt in de projectmap, dus de laatst opgeslagen versie wordt verzonden."
+    },
+    "message": {
+      "signInToPublish": "Meld je aan om dit project te publiceren.",
+      "signInToSynchronize": "Meld je aan om dit project te synchroniseren.",
+      "noProject": "Open een projectmap om die te publiceren of te synchroniseren.",
+      "linkedElsewhere": "Dit project is gekoppeld aan een andere cloudserver of een ander account. Meld je aan bij dat account om het te synchroniseren.",
+      "signedOut": "Meld je opnieuw aan om dit project te verzenden of te ontvangen.",
+      "offline": "De cloudserver was niet bereikbaar. Probeer het opnieuw als je online bent.",
+      "localUnavailable": "De projectserver van deze app heeft niet geantwoord.",
+      "cancelled": "De overdracht is gestopt omdat het cloudaccount is gewijzigd.",
+      "refused": "De server heeft de overdracht geweigerd ({{reason}}).",
+      "collectFirst": "Sommige bestanden van dit project staan buiten de projectmap. Verzamel ze in de map en probeer het opnieuw.",
+      "receiveExpired": "Het cloudproject is gewijzigd terwijl dit venster open was. Synchroniseer opnieuw.",
+      "receiveChangedWhileOpen": "Er is iets gewijzigd terwijl dit venster open was. Controleer de keuzes opnieuw.",
+      "receivingChangedAgain": "Het cloudproject is tijdens het ontvangen opnieuw gewijzigd. Kies opnieuw.",
+      "chooseAgain_one": "{{count}} document is sinds je keuze hier of in de cloud gewijzigd. Kies opnieuw.",
+      "chooseAgain_other": "{{count}} documenten zijn sinds je keuze hier of in de cloud gewijzigd. Kies opnieuw.",
+      "cloudChangedChooseAgain_one": "De cloudversie van {{count}} document is gewijzigd sinds dit venster werd gelezen. Kies opnieuw.",
+      "cloudChangedChooseAgain_other": "De cloudversie van {{count}} documenten is gewijzigd sinds dit venster werd gelezen. Kies opnieuw.",
+      "notPreparedAgain": "Ontvangen. De wijzigingen hier konden niet opnieuw worden voorbereid: {{reason}} Synchroniseer opnieuw om ze te verzenden.",
+      "sendChangedWhileOpen": "Dit project is gewijzigd terwijl het venster open was. Controleer wat er wordt verzonden.",
+      "missingFilesUnconfirmed": "Bestanden die dit project nodig heeft ontbreken. Bevestig elk bestand om zonder te verzenden.",
+      "sendRefused": "De cloud heeft het verzenden geweigerd: {{reasons}}"
+    },
+    "done": {
+      "published": "Gepubliceerd in de cloud.",
+      "synchronized": "Gesynchroniseerd.",
+      "received": "Ontvangen: {{names}}",
+      "notReceived": "Niet ontvangen: {{names}}",
+      "changedDuringReceive": "Hier gewijzigd tijdens het ontvangen, dus niet vervangen: {{names}}",
+      "missingFiles_one": "{{count}} bestand kon niet worden ontvangen.",
+      "missingFiles_other": "{{count}} bestanden konden niet worden ontvangen."
+    }
   }
 }

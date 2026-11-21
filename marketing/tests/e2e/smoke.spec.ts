@@ -173,7 +173,7 @@ test.describe("marketing smoke", () => {
     await expect(page.getByText("Still to review")).toHaveCount(0);
   });
 
-  test("every impossible product worlds step shows a source visual", async ({
+  test("the impossible product worlds guide lists its stages", async ({
     page
   }) => {
     await page.goto("/recipes/impossible-product-worlds");
@@ -181,27 +181,6 @@ test.describe("marketing smoke", () => {
     await expect(
       page.locator("#guided-flow ol").first().locator("li span:last-child")
     ).toHaveText(["Brief", "Timing", "Reference", "Generate", "Review"]);
-
-    for (const name of [
-      "01 Product",
-      "02 Brief",
-      "03 Timing",
-      "04 Reference",
-      "05 Generate",
-      "06 Review",
-      "07 Delivery"
-    ]) {
-      await page.getByRole("button", { name, exact: true }).click();
-      const image = page.locator(
-        '#recipe-step-content img[src*="impossible-product-worlds-dreamina/steps/"]'
-      );
-      await expect(image).toBeVisible();
-      await expect
-        .poll(() =>
-          image.evaluate((element: HTMLImageElement) => element.naturalWidth)
-        )
-        .toBeGreaterThan(0);
-    }
   });
 
   test("the UGC recipe exposes its playable live run", async ({ page }) => {
@@ -227,26 +206,8 @@ test.describe("marketing smoke", () => {
     expect(duration).toBeLessThan(15.2);
   });
 
-  test("every UGC recipe step shows its source visual", async ({ page }) => {
+  test("the UGC recipe keeps portrait and landscape proof shapes", async ({ page }) => {
     await page.goto("/recipes/ugc-product-video");
-
-    for (const name of [
-      "01 Angle",
-      "02 Creator",
-      "03 Product",
-      "04 Generate",
-      "05 Edit",
-      "06 Review"
-    ]) {
-      await page.getByRole("button", { name, exact: true }).click();
-      const image = page.locator("#recipe-step-content figure img");
-      await expect(image).toBeVisible();
-      await expect
-        .poll(() =>
-          image.evaluate((element: HTMLImageElement) => element.naturalWidth)
-        )
-        .toBeGreaterThan(0);
-    }
 
     const hero = page.getByRole("img", {
       name: "Creator speaking to camera in her kitchen while holding an olive travel cup."
@@ -260,27 +221,32 @@ test.describe("marketing smoke", () => {
     expect(proofBox?.height ?? Infinity).toBeLessThan(proofBox?.width ?? 0);
   });
 
-  test("every directed campaign step shows its source visual", async ({
+  test("every recipe step shows a step diagram with loaded pictures", async ({
     page
   }) => {
-    await page.goto("/recipes/directed-campaign-kit");
-
-    for (const name of [
-      "01 Product image",
-      "02 AI draft",
-      "03 A, B, or C",
-      "04 Generate",
-      "05 1:1 and 9:16",
-      "06 Compare"
-    ]) {
-      await page.getByRole("button", { name, exact: true }).click();
-      const image = page.locator("#recipe-step-content figure img");
-      await expect(image).toBeVisible();
-      await expect
-        .poll(() =>
-          image.evaluate((element: HTMLImageElement) => element.naturalWidth)
-        )
-        .toBeGreaterThan(0);
+    test.slow();
+    for (const recipe of recipeEntries) {
+      await page.goto(recipe.route);
+      const nav = page.getByRole("navigation", { name: "Recipe steps" });
+      const buttons = nav.getByRole("button");
+      await expect(buttons).toHaveCount(recipe.guide.steps.length);
+      for (let index = 0; index < recipe.guide.steps.length; index++) {
+        await buttons.nth(index).click();
+        const diagram = page.locator("#recipe-step-content [data-step-visual]");
+        await expect(
+          diagram,
+          `${recipe.slug} step ${recipe.guide.steps[index].id}`
+        ).toBeVisible();
+        await expect
+          .poll(() =>
+            diagram.evaluate((element) =>
+              Array.from(element.querySelectorAll("img")).every(
+                (image) => image.complete && image.naturalWidth > 0
+              )
+            )
+          )
+          .toBe(true);
+      }
     }
   });
 
@@ -356,26 +322,6 @@ test.describe("marketing smoke", () => {
       );
     });
     expect(inputsPrecedeSteps).toBe(true);
-
-    for (const step of [
-      "01 Idea",
-      "02 Story",
-      "03 Entities",
-      "04 Look",
-      "05 References",
-      "06 Clips",
-      "07 Review",
-      "08 Timeline"
-    ]) {
-      await guide.getByRole("button", { name: step }).click();
-      const image = guide.locator('img[src*="photographic-commercial/steps/"]');
-      await expect(image).toBeVisible();
-      await expect
-        .poll(() =>
-          image.evaluate((node) => (node as HTMLImageElement).naturalWidth)
-        )
-        .toBeGreaterThan(0);
-    }
   });
 
   test("no hidden duplicate-H1 SEO block remains", async ({ page }) => {

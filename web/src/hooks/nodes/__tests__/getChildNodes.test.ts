@@ -55,7 +55,9 @@ describe("getChildNodes", () => {
 
   it("returns empty array for nodes with null parentId", () => {
     const nodes: Node<NodeData>[] = [
-      { ...createMockNode("node-1"), parentId: null as any }
+      // SAFETY: persisted graphs can carry a null parentId although the type
+      // says string | undefined; this fixture proves the lookup survives it.
+      { ...createMockNode("node-1"), parentId: null as never }
     ];
     const result = getChildNodes(nodes, "parent-1");
     expect(result).toEqual([]);
@@ -73,24 +75,25 @@ describe("getChildNodes", () => {
   });
 
   it("preserves node data in returned children", () => {
+    const data = {
+      properties: {},
+      selectable: true,
+      dynamic_properties: {},
+      workflow_id: "test-workflow",
+      customProp: "test"
+    };
     const nodes: Node<NodeData>[] = [
       {
         id: "node-1",
         type: "custom",
         position: { x: 100, y: 200 },
-        data: {
-          properties: {},
-          selectable: true,
-          dynamic_properties: {},
-          workflow_id: "test-workflow",
-          customProp: "test"
-        } as any,
+        data,
         parentId: "parent-1"
       }
     ];
     const result = getChildNodes(nodes, "parent-1");
     expect(result).toHaveLength(1);
-    expect((result[0].data as any).customProp).toBe("test");
+    expect(result[0].data).toBe(data);
     expect(result[0].position).toEqual({ x: 100, y: 200 });
   });
 });

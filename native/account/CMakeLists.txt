@@ -45,6 +45,7 @@ add_library(nodetool_account STATIC
   src/http_token_endpoint.cpp
   src/origin.cpp
   src/policy.cpp
+  src/project_lock.cpp
   src/session_record.cpp
   src/sign_in.cpp
   src/storage.cpp)
@@ -121,6 +122,11 @@ if(PROJECT_IS_TOP_LEVEL)
   target_link_libraries(account_policy_tests PRIVATE nodetool_account)
   target_include_directories(account_policy_tests PRIVATE tests)
   add_test(NAME account_policy_tests COMMAND account_policy_tests)
+  # The project lock file .nodetool/open.lock and its stale rules (WP2.13).
+  add_executable(account_project_lock_tests tests/project_lock.cpp)
+  target_link_libraries(account_project_lock_tests PRIVATE nodetool_account)
+  target_include_directories(account_project_lock_tests PRIVATE tests)
+  add_test(NAME account_project_lock_tests COMMAND account_project_lock_tests)
   # The platform keychain store against the real credential store. It
   # passes without checking anything when no store answers, and says so.
   add_executable(account_keychain_tests tests/keychain.cpp)

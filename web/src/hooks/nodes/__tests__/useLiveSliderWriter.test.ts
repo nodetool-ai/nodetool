@@ -1,4 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
+import { installGlobal } from "../../../test-utils/doubles";
 
 // ---- controllable mock state -------------------------------------------------
 let instantUpdate = true;
@@ -6,7 +7,10 @@ let browserEligible = true;
 const mockUpdateNodeProperties = jest.fn();
 const mockOnPropertyChange = jest.fn();
 const mockOnPropertyChangeComplete = jest.fn();
-const mockRunBrowserGraphJob = jest.fn();
+const mockRunBrowserGraphJob = jest.fn<
+  Promise<{ success: boolean; outputs: object } | undefined>,
+  [{ jobId: string }]
+>();
 const mockNotifyScrubActivity = jest.fn();
 const mockBeginGroup = jest.fn();
 const mockEndGroup = jest.fn();
@@ -69,17 +73,18 @@ jest.mock("../../../stores/reactFlowEdgeToGraphEdge", () => ({
 
 jest.mock("../../../lib/workflow/browserWorkflowRunner", () => ({
   browserSupportsSync: () => true,
-  runBrowserGraphJob: (opts: unknown) => mockRunBrowserGraphJob(opts),
+  runBrowserGraphJob: (opts: { jobId: string }) => mockRunBrowserGraphJob(opts),
   preloadBrowserRunner: jest.fn()
 }));
 
 // useLiveSliderWriter generates preview job ids via crypto.randomUUID(); stub
 // it for stable assertions (jsdom may not provide a native randomUUID).
-if (typeof globalThis.crypto === "undefined") {
-  (globalThis as { crypto: Crypto }).crypto = {} as Crypto;
-}
-(globalThis.crypto as { randomUUID: () => string }).randomUUID = () =>
-  "preview-job-1";
+installGlobal(
+  "crypto",
+  Object.assign(Object.create(globalThis.crypto ?? null), {
+    randomUUID: (): string => "preview-job-1"
+  })
+);
 
 jest.mock("../../../stores/LiveRunStore", () => ({
   useLiveRunStore: <T,>(
@@ -160,7 +165,10 @@ describe("useLiveSliderWriter", () => {
     let resolveFirst!: () => void;
     mockRunBrowserGraphJob
       .mockImplementationOnce(
-        () => new Promise<void>((res) => (resolveFirst = res))
+        () =>
+          new Promise<undefined>((res) => {
+            resolveFirst = () => res(undefined);
+          })
       )
       .mockResolvedValue(undefined);
 
@@ -210,7 +218,7 @@ describe("useLiveSliderWriter", () => {
     });
 
     const jobIds = mockRunBrowserGraphJob.mock.calls.map(
-      (c) => (c[0] as { jobId: string }).jobId
+      ([opts]) => opts.jobId
     );
     expect(new Set(jobIds)).toEqual(new Set(["preview-job-1"]));
   });

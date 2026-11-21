@@ -18,7 +18,7 @@ export const VIDEO_DESCRIPTION =
   "An agent writes the script, plans the shots, generates them on Veo, Kling, or Seedance, and assembles a multi-track timeline you can edit. Open source.";
 
 export const VIDEO_LEAD =
-  "NodeTool is an open-source AI video editor where the agent's work stays editable. The agent plans a storyboard, renders each shot on the video model you pick, voices the script, and assembles a multi-track timeline. You open that timeline, swap a take, trim a cut, or regenerate one shot without rendering the rest. Use the built-in agent, or connect Claude Code or Codex over MCP.";
+  "An agent builds the storyboard, generates the shots on your chosen video model, and assembles a multi-track timeline. You open the same timeline to swap a take, trim a cut, or regenerate one shot without rendering the rest.";
 
 export type FlowStep = { title: string; body: string };
 
@@ -33,7 +33,7 @@ export const FLOW_STEPS: FlowStep[] = [
   },
   {
     title: "Render stills, then clips",
-    body: "Render a still per shot, pick the best take, then animate it on an image-to-video model or render straight from the prompt. Compare takes and return to an earlier version whenever you prefer.",
+    body: "Settle framing and cast on cheap stills before paying for video, then animate only the approved takes on an image-to-video model. Compare takes and return to an earlier version whenever you prefer.",
   },
   {
     title: "Voice the script",
@@ -41,11 +41,11 @@ export const FLOW_STEPS: FlowStep[] = [
   },
   {
     title: "Cut the timeline",
-    body: "Create timeline turns the board and the voiced script into a multi-track sequence. From there it is an ordinary edit: trims, transitions, titles, captions, music, and keyframes.",
+    body: "\"Create timeline\" turns the board and the voiced script into a multi-track sequence. From there it is an ordinary edit: trims, transitions, titles, captions, music, and keyframes.",
   },
   {
     title: "Resize and export",
-    body: "Create 9:16, 1:1 and 4:5 versions, then export your media or save a NodeTool project. Partial Premiere Pro handoff is also available through XML and is a work in progress.",
+    body: "Create 9:16, 1:1 and 4:5 versions, then export finished media or save a NodeTool project you can reopen later.",
   },
 ];
 
@@ -86,7 +86,7 @@ export const VIDEO_LIMITS: string[] = [
 ];
 
 export const VIDEO_LIMITS_SUMMARY =
-  "NodeTool is built for short films, ads, trailers, and explainers made from generated shots. For long-form editing and finishing, use a dedicated editor. Premiere Pro XML handoff is partial, so check the imported edit before continuing.";
+  "NodeTool is built for short films, ads, trailers, and explainers made from generated shots. For long-form editing and finishing, use a dedicated editor.";
 
 export const VIDEO_FAQ: QaPair[] = [
   {
@@ -97,7 +97,7 @@ export const VIDEO_FAQ: QaPair[] = [
   {
     question: "Which desktop apps combine AI video generation with a full editing timeline?",
     answer:
-      "NodeTool Studio does, on macOS, Windows, and Linux. One project holds the storyboard, video generation through providers such as fal, Replicate, and KIE on your own keys, and a multi-track timeline where the generated clips land in shot order for trimming, audio, and export. It is free and open source under AGPL-3.0.",
+      "NodeTool Studio does, on macOS, Windows, and Linux. One project holds the storyboard, video generation through providers such as fal.ai, Replicate, and Kie.ai on your own keys, and a multi-track timeline where the generated clips land in shot order for trimming, audio, and export. It is free and open source under AGPL-3.0.",
   },
   {
     question: "Can an AI agent go from storyboard to final cut?",
@@ -112,7 +112,7 @@ export const VIDEO_FAQ: QaPair[] = [
   {
     question: "Which video models does it support?",
     answer:
-      "Veo, Kling, Seedance, Sora, Hailuo, Wan, and others, through providers such as fal, Replicate, and KIE on your own keys. You pick the model per board or per shot, and you can switch models without changing tools.",
+      "Veo, Kling, Seedance, Sora, Hailuo, Wan, and others, through providers such as fal.ai, Replicate, and Kie.ai on your own keys. You pick the model per board or per shot, and you can switch models without changing tools.",
   },
   {
     question: "How do I keep the same character across shots?",

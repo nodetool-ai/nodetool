@@ -7,16 +7,16 @@ product: NodeTool
 ---
 # NodeTool AI Video Editor
 
-NodeTool is an open-source AI video editor where the agent's work stays editable. The agent plans a storyboard, renders each shot on the video model you pick, voices the script, and assembles a multi-track timeline. You open that timeline, swap a take, trim a cut, or regenerate one shot without rendering the rest. Use the built-in agent, or connect Claude Code or Codex over MCP.
+An agent builds the storyboard, generates the shots on your chosen video model, and assembles a multi-track timeline. You open the same timeline to swap a take, trim a cut, or regenerate one shot without rendering the rest.
 
 ## From brief to finished cut
 
 - **Plan the shots**: A storyboard holds the scenes and shots, each with its camera, prompt, and duration. The agent can write it from a brief or a script, and you can edit any shot on the board.
 - **Keep characters consistent**: Save characters, locations, styles and products as entities, each with a reference image and a description. Reuse these entities across shots.
-- **Render stills, then clips**: Render a still per shot, pick the best take, then animate it on an image-to-video model or render straight from the prompt. Compare takes and return to an earlier version whenever you prefer.
+- **Render stills, then clips**: Settle framing and cast on cheap stills before paying for video, then animate only the approved takes on an image-to-video model. Compare takes and return to an earlier version whenever you prefer.
 - **Voice the script**: Generate dialogue for the script. When you edit a line, regenerate its voice recording without redoing the others.
-- **Cut the timeline**: Create timeline turns the board and the voiced script into a multi-track sequence. From there it is an ordinary edit: trims, transitions, titles, captions, music, and keyframes.
-- **Resize and export**: Create 9:16, 1:1 and 4:5 versions, then export your media or save a NodeTool project. Partial Premiere Pro handoff is also available through XML and is a work in progress.
+- **Cut the timeline**: "Create timeline" turns the board and the voiced script into a multi-track sequence. From there it is an ordinary edit: trims, transitions, titles, captions, music, and keyframes.
+- **Resize and export**: Create 9:16, 1:1 and 4:5 versions, then export finished media or save a NodeTool project you can reopen later.
 
 ## The timeline
 
@@ -56,7 +56,7 @@ These work in the built-in agent and over the MCP server (https://nodetool.ai/mc
 - Without WebGPU the preview skips chroma key, vignette, and sharpen.
 - Generation runs on your own provider accounts, so render costs are the provider's prices. NodeTool shows estimates on render buttons.
 
-NodeTool is built for short films, ads, trailers, and explainers made from generated shots. For long-form editing and finishing, use a dedicated editor. Premiere Pro XML handoff is partial, so check the imported edit before continuing.
+NodeTool is built for short films, ads, trailers, and explainers made from generated shots. For long-form editing and finishing, use a dedicated editor.
 
 ## Questions
 
@@ -66,7 +66,7 @@ Yes. In NodeTool the agent's storyboard, script, and timeline are the same docum
 
 ### Which desktop apps combine AI video generation with a full editing timeline?
 
-NodeTool Studio does, on macOS, Windows, and Linux. One project holds the storyboard, video generation through providers such as fal, Replicate, and KIE on your own keys, and a multi-track timeline where the generated clips land in shot order for trimming, audio, and export. It is free and open source under AGPL-3.0.
+NodeTool Studio does, on macOS, Windows, and Linux. One project holds the storyboard, video generation through providers such as fal.ai, Replicate, and Kie.ai on your own keys, and a multi-track timeline where the generated clips land in shot order for trimming, audio, and export. It is free and open source under AGPL-3.0.
 
 ### Can an AI agent go from storyboard to final cut?
 
@@ -78,7 +78,7 @@ Yes. Run npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install to add NodeT
 
 ### Which video models does it support?
 
-Veo, Kling, Seedance, Sora, Hailuo, Wan, and others, through providers such as fal, Replicate, and KIE on your own keys. You pick the model per board or per shot, and you can switch models without changing tools.
+Veo, Kling, Seedance, Sora, Hailuo, Wan, and others, through providers such as fal.ai, Replicate, and Kie.ai on your own keys. You pick the model per board or per shot, and you can switch models without changing tools.
 
 ### How do I keep the same character across shots?
 

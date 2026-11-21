@@ -265,3 +265,10 @@ test("marketing links to the ad library and the recipes", async ({
     more.getByRole("link", { name: /^Guided recipes/ })
   ).toHaveAttribute("href", "/recipes");
 });
+
+test("marketing shows the ad library in its hero", async ({ page }) => {
+  await page.goto("/marketing");
+  const hero = page.getByRole("link", { name: /^Open the ad library/ });
+  await expect(hero).toHaveAttribute("href", "/ad-library");
+  await expect(hero.locator("video")).toHaveCount(3);
+});

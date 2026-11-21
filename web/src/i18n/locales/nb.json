@@ -20410,5 +20410,91 @@
       "signOutNow": "Logg ut nå",
       "waitingNote": "Venter på at endringene sendes. Hold skyvinduet åpent."
     }
+  },
+  "cloudTransfer": {
+    "title": {
+      "publish": "Publiser i skyen",
+      "synchronize": "Synkroniser"
+    },
+    "capturing": "Leser hva som er endret…",
+    "running": "Sender og mottar…",
+    "apply": {
+      "publish": "Publiser",
+      "synchronize": "Synkroniser"
+    },
+    "cancel": "Avbryt",
+    "close": "Lukk",
+    "tryAgain": "Prøv igjen",
+    "nothing": "Ingenting å sende eller motta.",
+    "section": {
+      "choice": "Endret her og i skyen",
+      "receive": "Mottas fra skyen",
+      "send": "Sendes til skyen",
+      "deletion": "Slettet på denne datamaskinen",
+      "problem": "Kan ikke sendes"
+    },
+    "choice": {
+      "label": "Versjon av {{name}} som skal beholdes",
+      "receive": "Skyversjonen",
+      "keepLocal": "Behold min"
+    },
+    "deletion": {
+      "confirm": "Slett i skyen også",
+      "note": "Hvis du ikke velger å slette den i skyen, kommer skyversjonen tilbake til denne datamaskinen."
+    },
+    "missing": {
+      "confirm": "Send uten denne filen"
+    },
+    "row": {
+      "createDocument": "Ny her, sendes",
+      "replaceDocument": "Endret her, sendes",
+      "renameDocument": "Nytt navn: {{name}}",
+      "keepBoth": "Sendes som en kopi ved siden av skyversjonen",
+      "addVersions": "Lagrede versjoner sendes",
+      "putAssetFile": "Filen er endret her, sendes",
+      "newInCloud": "Ny i skyen",
+      "cloudChanged": "Endret i skyen",
+      "cloudFileChanged": "En fil den bruker er endret i skyen",
+      "bothChanged": "Endret her og i skyen",
+      "deleted": "Slettet på denne datamaskinen",
+      "deletedCloudChanged": "Slettet på denne datamaskinen og endret i skyen siden",
+      "missingLocally": "En fil den trenger mangler i prosjektmappen",
+      "tooLarge": "En fil den trenger er for stor til å sendes",
+      "overAllowance": "En fil den trenger får ikke plass i lagringskvoten",
+      "cannotSend": "Kan ikke sendes: {{reason}}",
+      "documentFileMissing": "Filen mangler i prosjektmappen, så den sist lagrede versjonen sendes."
+    },
+    "message": {
+      "signInToPublish": "Logg inn for å publisere dette prosjektet.",
+      "signInToSynchronize": "Logg inn for å synkronisere dette prosjektet.",
+      "noProject": "Åpne en prosjektmappe for å publisere eller synkronisere den.",
+      "linkedElsewhere": "Dette prosjektet er koblet til en annen skyserver eller konto. Logg inn på den kontoen for å synkronisere det.",
+      "signedOut": "Logg inn igjen for å sende eller motta dette prosjektet.",
+      "offline": "Skyserveren kunne ikke nås. Prøv igjen når du er tilkoblet.",
+      "localUnavailable": "Prosjektserveren til denne appen svarte ikke.",
+      "cancelled": "Overføringen stoppet fordi skykontoen ble endret.",
+      "refused": "Serveren avviste overføringen ({{reason}}).",
+      "collectFirst": "Noen filer prosjektet bruker ligger utenfor prosjektmappen. Samle dem i mappen og prøv igjen.",
+      "receiveExpired": "Skyprosjektet ble endret mens dette vinduet var åpent. Synkroniser igjen.",
+      "receiveChangedWhileOpen": "Noe ble endret mens dette vinduet var åpent. Sjekk valgene igjen.",
+      "receivingChangedAgain": "Skyprosjektet ble endret igjen under mottak. Velg igjen.",
+      "chooseAgain_one": "{{count}} dokument ble endret her eller i skyen etter at du valgte. Velg igjen.",
+      "chooseAgain_other": "{{count}} dokumenter ble endret her eller i skyen etter at du valgte. Velg igjen.",
+      "cloudChangedChooseAgain_one": "Skyversjonen av {{count}} dokument ble endret etter at vinduet ble lest. Velg igjen.",
+      "cloudChangedChooseAgain_other": "Skyversjonen av {{count}} dokumenter ble endret etter at vinduet ble lest. Velg igjen.",
+      "notPreparedAgain": "Mottatt. Endringene her kunne ikke forberedes på nytt: {{reason}} Synkroniser igjen for å sende dem.",
+      "sendChangedWhileOpen": "Prosjektet ble endret mens vinduet var åpent. Sjekk hva som sendes.",
+      "missingFilesUnconfirmed": "Filer prosjektet trenger mangler. Bekreft hver av dem for å sende uten den.",
+      "sendRefused": "Skyen avviste sendingen: {{reasons}}"
+    },
+    "done": {
+      "published": "Publisert i skyen.",
+      "synchronized": "Synkronisert.",
+      "received": "Mottatt: {{names}}",
+      "notReceived": "Ikke mottatt: {{names}}",
+      "changedDuringReceive": "Endret her under mottak, derfor ikke erstattet: {{names}}",
+      "missingFiles_one": "{{count}} fil kunne ikke mottas.",
+      "missingFiles_other": "{{count}} filer kunne ikke mottas."
+    }
   }
 }

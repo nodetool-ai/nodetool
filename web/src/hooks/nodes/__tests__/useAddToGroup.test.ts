@@ -48,7 +48,7 @@ import { useNodes } from "../../../contexts/NodeContext";
 import { getGroupBounds } from "../getGroupBounds";
 
 const mockUseNodes = asMock(useNodes);
-const mockGetGroupBounds = getGroupBounds as jest.MockedFunction<typeof getGroupBounds>;
+const mockGetGroupBounds = asMock(getGroupBounds);
 
 describe("useAddToGroup", () => {
   const mockUpdateNode = jest.fn();

@@ -164,12 +164,12 @@ The hero of an industry page has a fixed grammar:
    names. Derive a number from the data that renders the proof, so it cannot
    drift. The advertising page counts `adRecipes` from `src/data/adLibrary.ts`
    and names the video models.
-4. **The download CTA and one anchor to the proof below.**
+4. **The download CTA and one link to the proof.**
 
-The proof follows the hero directly. On the advertising page that is one
-campaign end to end: the Directed Campaign Kit run, its three formats, and the
-one revision note sent back. The ad library, storyboards, and recipes are
-links under it.
+On the advertising page the hero's picture is the ad library: three of its
+rendered ads beside the copy, linked to `/ad-library`. One campaign end to end
+follows the hero: the Directed Campaign Kit run, its three formats, and the
+one revision note sent back. Storyboards and recipes are links under it.
 
 A vertical page argues about the industry's job, never about a competitor.
 What makes ours different from a hosted platform's is stated as fact in the
@@ -185,11 +185,11 @@ The current advertising paragraph shows the pattern:
 Advertising and marketing (`/marketing`) is the current industry vertical.
 
 Game development (`/gamedev`) is the exception to the `<h1>` rule. Its hero
-leads with the outcome, "Make a world people can play.", and then with the
-shipped Kindle, Lumen, and Neon Drift games. Visitors can play a standalone
-browser export, then open the same example in Studio to edit its art, levels,
-and rules. Regenerate its browser exports with `npm run build:packages`, then
-`npm --prefix marketing run gen:games`.
+leads with the outcome, "Build a game with an agent. Keep editing it yourself.",
+and then with five shipped games (Kindle, Lumen, Neon Drift, RIDGELINE, and
+Sunrush Kart). Visitors can play a standalone browser export, then open the same
+example in Studio to edit its art, levels, and rules. Regenerate its browser
+exports with `npm run build:packages`, then `npm --prefix marketing run gen:games`.
 
 `/studio` is the desktop-edition page and `/agents` is the builder and
 operator page. Film production remains a strong demonstration on both routes,

@@ -20724,5 +20724,94 @@
       "waiting_many": "{{count}} documents cloud contiennent des modifications pas encore envoyées.",
       "unsent_many": "Le serveur a refusé les modifications de {{count}} documents cloud."
     }
+  },
+  "cloudTransfer": {
+    "title": {
+      "publish": "Publier dans le cloud",
+      "synchronize": "Synchroniser"
+    },
+    "capturing": "Lecture des modifications…",
+    "running": "Envoi et réception…",
+    "apply": {
+      "publish": "Publier",
+      "synchronize": "Synchroniser"
+    },
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "tryAgain": "Réessayer",
+    "nothing": "Rien à envoyer ni à recevoir.",
+    "section": {
+      "choice": "Modifié ici et dans le cloud",
+      "receive": "Reçu du cloud",
+      "send": "Envoyé vers le cloud",
+      "deletion": "Supprimé sur cet ordinateur",
+      "problem": "Ne peut pas être envoyé"
+    },
+    "choice": {
+      "label": "Version de {{name}} à conserver",
+      "receive": "Version du cloud",
+      "keepLocal": "Garder la mienne"
+    },
+    "deletion": {
+      "confirm": "Supprimer aussi dans le cloud",
+      "note": "Sauf si vous choisissez de le supprimer dans le cloud, la version du cloud revient sur cet ordinateur."
+    },
+    "missing": {
+      "confirm": "Envoyer sans ce fichier"
+    },
+    "row": {
+      "createDocument": "Nouveau ici, sera envoyé",
+      "replaceDocument": "Modifié ici, sera envoyé",
+      "renameDocument": "Renommé en {{name}}",
+      "keepBoth": "Sera envoyé comme copie à côté de la version du cloud",
+      "addVersions": "Les versions enregistrées seront envoyées",
+      "putAssetFile": "Fichier modifié ici, sera envoyé",
+      "newInCloud": "Nouveau dans le cloud",
+      "cloudChanged": "Modifié dans le cloud",
+      "cloudFileChanged": "Un fichier qu’il utilise a changé dans le cloud",
+      "bothChanged": "Modifié ici et dans le cloud",
+      "deleted": "Supprimé sur cet ordinateur",
+      "deletedCloudChanged": "Supprimé sur cet ordinateur, et modifié dans le cloud depuis",
+      "missingLocally": "Un fichier nécessaire manque dans le dossier du projet",
+      "tooLarge": "Un fichier nécessaire est trop volumineux pour être envoyé",
+      "overAllowance": "Un fichier nécessaire ne tient pas dans l’espace de stockage disponible",
+      "cannotSend": "Ne peut pas être envoyé : {{reason}}",
+      "documentFileMissing": "Son fichier manque dans le dossier du projet, la dernière version enregistrée sera donc envoyée."
+    },
+    "message": {
+      "signInToPublish": "Connectez-vous pour publier ce projet.",
+      "signInToSynchronize": "Connectez-vous pour synchroniser ce projet.",
+      "noProject": "Ouvrez un dossier de projet pour le publier ou le synchroniser.",
+      "linkedElsewhere": "Ce projet est lié à un autre serveur ou compte cloud. Connectez-vous à ce compte pour le synchroniser.",
+      "signedOut": "Reconnectez-vous pour envoyer ou recevoir ce projet.",
+      "offline": "Le serveur cloud est injoignable. Réessayez une fois en ligne.",
+      "localUnavailable": "Le serveur de projets de cette app n’a pas répondu.",
+      "cancelled": "Le transfert s’est arrêté, car le compte cloud a changé.",
+      "refused": "Le serveur a refusé le transfert ({{reason}}).",
+      "collectFirst": "Certains fichiers de ce projet sont hors du dossier du projet. Rassemblez-les dans le dossier, puis réessayez.",
+      "receiveExpired": "Le projet cloud a changé pendant que cette fenêtre était ouverte. Synchronisez à nouveau.",
+      "receiveChangedWhileOpen": "Quelque chose a changé pendant que cette fenêtre était ouverte. Vérifiez à nouveau les choix.",
+      "receivingChangedAgain": "Le projet cloud a encore changé pendant la réception. Choisissez à nouveau.",
+      "chooseAgain_one": "{{count}} document a changé ici ou dans le cloud depuis votre choix. Choisissez à nouveau.",
+      "chooseAgain_other": "{{count}} documents ont changé ici ou dans le cloud depuis votre choix. Choisissez à nouveau.",
+      "cloudChangedChooseAgain_one": "La version cloud de {{count}} document a changé depuis la lecture de cette fenêtre. Choisissez à nouveau.",
+      "cloudChangedChooseAgain_other": "La version cloud de {{count}} documents a changé depuis la lecture de cette fenêtre. Choisissez à nouveau.",
+      "notPreparedAgain": "Reçu. Les modifications d’ici n’ont pas pu être préparées à nouveau : {{reason}} Synchronisez à nouveau pour les envoyer.",
+      "sendChangedWhileOpen": "Ce projet a changé pendant que la fenêtre était ouverte. Vérifiez ce qui sera envoyé.",
+      "missingFilesUnconfirmed": "Des fichiers nécessaires à ce projet manquent. Confirmez chacun pour envoyer sans lui.",
+      "sendRefused": "Le cloud a refusé l’envoi : {{reasons}}",
+      "chooseAgain_many": "{{count}} documents ont changé ici ou dans le cloud depuis votre choix. Choisissez à nouveau.",
+      "cloudChangedChooseAgain_many": "La version cloud de {{count}} documents a changé depuis la lecture de cette fenêtre. Choisissez à nouveau."
+    },
+    "done": {
+      "published": "Publié dans le cloud.",
+      "synchronized": "Synchronisé.",
+      "received": "Reçus : {{names}}",
+      "notReceived": "Non reçus : {{names}}",
+      "changedDuringReceive": "Modifiés ici pendant la réception, donc non remplacés : {{names}}",
+      "missingFiles_one": "{{count}} fichier n’a pas pu être reçu.",
+      "missingFiles_other": "{{count}} fichiers n’ont pas pu être reçus.",
+      "missingFiles_many": "{{count}} fichiers n’ont pas pu être reçus."
+    }
   }
 }

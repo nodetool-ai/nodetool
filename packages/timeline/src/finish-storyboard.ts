@@ -73,28 +73,30 @@ export function validateProducedTimeline(
   for (const clip of document.clips) {
     if (clip.storyboardBoardId !== input.boardId || !clip.storyboardShotId || !clip.storyboardElementId) continue;
     const key = identity(clip.storyboardShotId, clip.storyboardElementId);
-    layers.set(key, [...(layers.get(key) ?? []), clip]);
+    const group = layers.get(key);
+    if (group) group.push(clip);
+    else layers.set(key, [clip]);
   }
   const tracks = new Map(document.tracks.map((track) => [track.id, track]));
   const globalTransforms = hasGlobalTransforms(document);
   for (const shot of input.shots) {
+    const elements = activeStoryboardGraphics(shot);
     const protectedInputs = new Map((resolveEffectiveProductionRequirement(input.production, shot.production)?.protected_inputs ?? []).map((value) => [value.id, value]));
-    const referencedProtection = new Set(activeStoryboardGraphics(shot).map((element) => element.protected_input_id));
+    const referencedProtection = new Set(elements.map((element) => element.protected_input_id));
     for (const protection of protectedInputs.values()) {
       if (globalTransforms) {
         issues.push({ code: "forbidden_transform", shotId: shot.id, elementId: protection.id, message: `Global camera or media tracking transforms on ${protection.id} cannot be proven faithful. Remove these transforms before production validation.` });
       }
       if (!referencedProtection.has(protection.id)) issues.push({ code: "missing_element", shotId: shot.id, elementId: protection.id, message: `Protected input ${protection.id} has no editable visible graphics element.` });
     }
-    for (const element of activeStoryboardGraphics(shot)) {
+    for (const element of elements) {
       const clips = layers.get(identity(shot.id, element.id)) ?? [];
       const issue = (code: ProducedTimelineIssue["code"], message: string): void => {
         issues.push({ code, shotId: shot.id, elementId: element.id, message });
       };
       if (clips.length === 0) { issue("missing_element", `Missing ${shot.id}/${element.id}.`); continue; }
       if (clips.length > 1) { issue("duplicate_element", `Duplicate ${shot.id}/${element.id}.`); continue; }
-      const clip = clips[0];
-      validateElementClip(element, clip, tracks.get(clip.trackId), protectedInputs, input, issue);
+      validateElementClip(element, clips[0], tracks.get(clips[0].trackId), protectedInputs, input, issue);
     }
   }
   return issues;

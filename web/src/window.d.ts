@@ -78,7 +78,9 @@ export type MenuEventType =
   | "openHelp"
   | "openDownloads"
   | "openModelManager"
-  | "openPackageManager";
+  | "openPackageManager"
+  | "publishToCloud"
+  | "synchronizeProject";
 
 export interface MenuEventData {
   type: MenuEventType;
@@ -233,6 +235,8 @@ declare global {
       unregisterMenuEvent: (callback: (data: MenuEventData) => void) => void;
       /** Mirror the snap-to-grid setting onto the desktop View menu checkbox. */
       setMenuSnapToGrid?: (enabled: boolean) => void;
+      /** Enable File > Publish to Cloud and Synchronize for this window's project. Main window only. */
+      setMenuCloudTransfer?: (enabled: boolean) => void;
       onCreateWorkflow: (workflow: Workflow) => Promise<void>;
       onUpdateWorkflow: (workflow: Workflow) => Promise<void>;
       onDeleteWorkflow: (workflow: Workflow) => Promise<void>;

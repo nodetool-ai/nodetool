@@ -29,7 +29,7 @@ const pillars = [
   },
   {
     title: "A live timeline",
-    body: "Bind a workflow to a clip. Change one of its inputs and the clip shows it is out of date, so you regenerate that take while the rest of the cut stays.",
+    body: "Every clip stays linked to the workflow that made it. Change a prompt or reference and only the affected clip flags for regeneration, while the rest of the cut stays.",
     href: "/ai-video-editor",
     linkLabel: "About the video editor",
     icon: Layers,
@@ -108,9 +108,8 @@ export default function NodeToolHero() {
           />
         </div>
         <p className="mt-4 text-pretty text-center text-sm text-slate-400">
-          One sentence becomes a short film. The agent outlines the story,
-          designs the characters, draws a storyboard, generates the clips, and
-          edits them together.
+          One brief becomes a beat sheet, reusable cast references, a storyboard
+          of stills and clips, and a multi-track cut you can keep editing.
         </p>
       </div>
 

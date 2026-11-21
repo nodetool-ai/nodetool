@@ -41,7 +41,7 @@ const makeEdge = (
     sourceHandle,
     target,
     targetHandle
-  } as RFEdge);
+  });
 
 const center = { x: 0, y: 0 };
 
@@ -185,7 +185,7 @@ describe("buildPlan (Group into Subgraph cut-set)", () => {
     expect(plan.outerEdgesToRemove).toEqual([]);
     // Selection nodes themselves still get moved inside (as inner nodes).
     expect(plan.innerNodes).toHaveLength(1);
-    expect((plan.innerNodes[0] as { id: string }).id).toBe("x");
+    expect(plan.innerNodes[0].id).toBe("x");
   });
 
   it("handles mixed crossing + internal edges in a single pass", () => {

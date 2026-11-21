@@ -22,7 +22,6 @@ import {
   LIMITS,
   LIMITS_SUMMARY,
   MCP_INSTALL_COMMAND,
-  PROCESS_STEPS,
   SPEC_ROWS,
 } from "@/data/gamedevPage";
 import PageUpdated from "@/components/PageUpdated";
@@ -99,7 +98,7 @@ export default function GameDevelopmentPage() {
 
           <section aria-labelledby="game-editor-title" className="mt-24 grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <div>
-              <h2 id="game-editor-title" className={sectionTitle}>Edit the level where you play it.</h2>
+              <h2 id="game-editor-title" className={sectionTitle}>Edit the level where you play it</h2>
               <p className={`mt-4 max-w-md ${bodyText}`}>The Game Editor opens each game in its own tab. The same editor builds 2D and 3D games.</p>
               <ul className="mt-5 max-w-md list-disc space-y-2 pl-5 text-slate-300">
                 {EDITOR_POINTS.map((point) => <li key={point}>{point}</li>)}
@@ -117,7 +116,7 @@ export default function GameDevelopmentPage() {
           </section>
 
           <section aria-labelledby="mcp-title" className="mt-24 grid gap-10 border-t border-slate-700 pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-            <h2 id="mcp-title" className={sectionTitle}>Build it from Claude Code or Codex.</h2>
+            <h2 id="mcp-title" className={sectionTitle}>Build it from Claude Code or Codex</h2>
             <div className="min-w-0 max-w-2xl break-words">
               <p className={bodyText}>One command registers NodeTool as an MCP server in Claude Code, Codex, and OpenCode. For Cursor or another MCP client, <code className="font-mono text-cyan-200">nodetool-mcp config</code> prints the block to paste. The desktop app is optional.</p>
               <pre className="mt-5 overflow-x-auto rounded-lg border border-slate-700 bg-slate-900 p-4 font-mono text-sm text-slate-100"><code>{MCP_INSTALL_COMMAND}</code></pre>
@@ -162,15 +161,6 @@ export default function GameDevelopmentPage() {
               </ul>
               <p className={`mt-5 ${bodyText}`}>{LIMITS_SUMMARY} <a href="/gamedev/ai-game-engines" className={inlineLink}>Compare AI game engines</a>.</p>
             </div>
-          </section>
-
-          <section aria-labelledby="game-process-title" className="mt-24 grid gap-10 border-t border-slate-700 pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-            <h2 id="game-process-title" className={sectionTitle}>From first idea to the next level.</h2>
-            <ol className="space-y-8">
-              {PROCESS_STEPS.map((step) => (
-                <li key={step.title}><h3 className="text-xl font-medium">{step.title}</h3><p className={`mt-2 max-w-xl ${bodyText}`}>{step.body}</p></li>
-              ))}
-            </ol>
           </section>
 
           <FaqSection items={GAMEDEV_FAQ} heading="Questions about building games with AI" className="mt-24 max-w-3xl" id="gamedev-faq" />
