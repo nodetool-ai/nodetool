@@ -77,7 +77,7 @@ type ResolvedLink = { href: string; label: string; external: boolean; english: b
 function resolveLink(locale: Locale, link: PageLink): ResolvedLink {
   const { href } = link;
   if (/^https?:\/\//.test(href)) {
-    const english = href.startsWith("https://docs.nodetool.ai");
+    const english = new URL(href).hostname === "docs.nodetool.ai";
     return { href, label: link.label, external: true, english };
   }
   if (href.startsWith(`/${locale}`) || href.startsWith("#")) {
