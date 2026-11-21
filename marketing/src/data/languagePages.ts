@@ -1,13 +1,13 @@
 /**
- * Copy for the translated overview pages (/ja, /zh, /hi, /es, /pt).
+ * Copy for the translated overview pages (/ja, /zh, /hi, /es, /pt, /ko).
  *
  * Every sentence translates copy already published on the English site (home
  * hero, home cards, landing FAQ in faqEntries.ts), so no page makes a claim
  * the English pages do not. The one added fact is the interface language:
  * web/src/i18n/locales.ts lists each of these locales in the Settings →
  * General → Appearance selector, and untranslated screens fall back to
- * English. web/src/i18n/README.md marks the Japanese, Hindi, Spanish and
- * Portuguese catalogs as machine translated, so those pages say so. The menu
+ * English. web/src/i18n/README.md marks the Japanese, Hindi, Spanish,
+ * Portuguese and Korean catalogs as machine translated, so those pages say so. The menu
  * path on each page uses the labels from that locale's catalog.
  *
  * The provider list on /ja, /zh and /hi translates docs/providers.md: each
@@ -26,7 +26,7 @@
  */
 import type { QaPair } from "@/lib/jsonld";
 
-export type LanguageCode = "ja" | "zh" | "hi" | "es" | "pt";
+export type LanguageCode = "ja" | "zh" | "hi" | "es" | "pt" | "ko";
 
 type LinkedBlock = { title: string; body: string; linkLabel: string };
 
@@ -612,6 +612,101 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       },
     ],
     closing: "O NodeTool Studio é grátis e de código aberto.",
+  },
+
+  ko: {
+    path: "/ko",
+    hreflang: "ko",
+    ogLocale: "ko_KR",
+    label: "한국어",
+    title: "NodeTool | 오픈소스 AI 영화 스튜디오, 에이전트, 노드 워크플로",
+    description:
+      "한 문장으로 AI 단편 영화를 만들고 샷마다 편집하세요. macOS, Windows, Linux용 무료 오픈소스입니다. ChatGPT나 Claude 플랜, 내 API 키, 로컬 모델로 실행됩니다.",
+    badge: "오픈소스 AI 영화 스튜디오",
+    h1: "AI 영화를 샷 단위로 연출하세요.",
+    lead: "한 문장으로 시작하세요. 에이전트가 이야기를 쓰고, 샷마다 스틸 이미지를 그리고, 타임라인에서 클립을 편집합니다. 클립 비용을 내기 전에 스틸을 확인하고 승인할 수 있고, 어떤 샷이든 따로 다시 만들 수 있습니다. 잘 된 과정은 다시 실행할 수 있는 워크플로로 저장하세요.",
+    setup:
+      "데스크톱 앱에서 ChatGPT 또는 Claude 플랜으로 로그인하면 에이전트가 그 플랜으로 실행됩니다. 내 프로바이더 API 키를 추가해 추가 요금 없이 정가로 결제할 수도 있습니다.",
+    platforms: "macOS, Windows, Linux용 무료 오픈소스입니다. 브라우저 버전은 알파 단계입니다.",
+    download: "무료 다운로드",
+    tryBrowser: "브라우저에서 사용해 보기",
+    videoAlt: "NodeTool: 한 문장이 비트 시트, 등장인물, 스틸과 클립으로 된 스토리보드, 완성된 편집본이 되기까지",
+    cardsLabel: "NodeTool로 만들 수 있는 것",
+    cards: [
+      {
+        title: "영화",
+        body: "대본을 쓰고, 모든 샷의 스토리보드를 만들고, 타임라인에서 클립을 편집합니다. 모두 하나의 프로젝트 안에 있습니다.",
+        linkLabel: "데스크톱 앱 알아보기(영어)",
+      },
+      {
+        title: "에이전트",
+        body: "바꾸고 싶은 점을 평소 말투로 전하면 에이전트가 프로젝트를 편집합니다. 언제든 직접 이어서 작업할 수 있습니다.",
+        linkLabel: "에이전트 작동 방식(영어)",
+      },
+      {
+        title: "라이브 타임라인",
+        body: "클립에 워크플로를 연결합니다. 입력 하나를 바꾸면 그 클립이 오래된 것으로 표시되므로 그 테이크만 다시 생성하고 나머지 편집은 그대로 둡니다.",
+        linkLabel: "동영상 편집기 알아보기(영어)",
+      },
+    ],
+    storyboard: {
+      title: "클립 비용을 내기 전에 스틸을 승인하세요.",
+      body: "스토리보드에는 샷마다 스틸 이미지가 한 장씩 있습니다. 승인한 샷만 동영상이 됩니다.",
+      linkLabel: "NodeTool로 만든 영화 보기(영어)",
+    },
+    workflow: {
+      title: "모든 프로젝트 아래에는 노드 그래프가 있습니다.",
+      body: "같은 그래프를 다음 에피소드나 광고 변형 20개에 실행하고, 가지고 있는 ComfyUI 워크플로를 가져오거나, 에이전트에게 그래프를 만들게 할 수 있습니다.",
+      linkLabel: "노드 워크플로 알아보기(영어)",
+    },
+    local: {
+      title: "프로젝트는 내 컴퓨터에 저장됩니다.",
+      body: `NodeTool Studio는 워크스페이스, 워크플로, 파일, 설정한 자격 증명을 내 컴퓨터에 저장합니다. 지원되는 오픈 웨이트 모델은 ${LOCAL_RUNTIMES}로 로컬에서 실행할 수 있습니다. 호스팅 모델을 호출하면 요청이 해당 프로바이더로 전송됩니다.`,
+      linkLabel: "Studio 알아보기(영어)",
+    },
+    language: {
+      title: "앱을 한국어로 사용할 수 있습니다.",
+      body: "설정 → 일반 → 외관에서 표시 언어를 한국어로 바꿀 수 있습니다. 번역은 기계 번역이라 아직 영어로 표시되는 화면도 있습니다. 이 페이지 외의 사이트와 문서는 영어입니다.",
+      linkLabel: "문서(영어)",
+    },
+    faqHeading: "자주 묻는 질문",
+    faq: [
+      {
+        question: "NodeTool은 무엇인가요?",
+        answer:
+          "NodeTool은 이미지, 오디오, 텍스트, 노드 워크플로 도구를 갖춘 오픈소스 AI 동영상 편집기입니다. 에이전트에게 프로젝트를 만들거나 편집해 달라고 요청한 다음 직접 수정할 수 있습니다. ChatGPT나 Claude 플랜으로 로그인하거나, 내 프로바이더 키를 쓰거나, 지원되는 모델을 로컬에서 실행하세요.",
+      },
+      {
+        question: "비용이 드나요?",
+        answer:
+          "Studio는 무료 오픈소스입니다. Cloud는 알파 기간 동안 무료이며 이후 요금은 아직 발표되지 않았습니다. 프로바이더 API 요금은 별도이고, 구독으로 실행한 작업은 해당 플랜의 한도에 포함됩니다. 로컬 모델은 내 하드웨어와 전기로 실행되며 호출당 프로바이더 요금이 없습니다.",
+      },
+      {
+        question: "NodeTool은 오픈소스인가요?",
+        answer:
+          "네. 소스 코드는 GitHub에 AGPL-3.0 라이선스로 공개되어 있습니다. Studio와 Cloud는 같은 소스를 사용하며, NodeTool을 직접 호스팅할 수도 있습니다.",
+      },
+      {
+        question: "한국어로 사용할 수 있나요?",
+        answer:
+          "네. 설정 → 일반 → 외관에서 표시 언어를 한국어로 바꾸세요. 기계 번역이라 아직 영어로 표시되는 화면도 있습니다. 문서는 영어입니다.",
+      },
+      {
+        question: "ChatGPT나 Claude 구독을 쓸 수 있나요?",
+        answer:
+          "네, Studio에서 쓸 수 있습니다. ChatGPT 또는 Claude로 로그인하면 에이전트가 API 키 대신 그 구독으로 실행됩니다. 이 실행은 플랜의 사용 한도에 포함됩니다.",
+      },
+      {
+        question: "GPU가 필요한가요?",
+        answer:
+          "아니요. Studio는 호스팅 프로바이더를 사용할 수 있으므로 모델은 프로바이더의 하드웨어에서 실행됩니다. GPU는 지원되는 오픈 웨이트 모델을 내 컴퓨터에서 실행할 때만 필요하며, 필요한 성능은 모델과 실행 환경에 따라 다릅니다.",
+      },
+      {
+        question: "어떤 모델을 지원하나요?",
+        answer: `${MODELS} 등 주요 모델을 ${PROVIDERS} 같은 프로바이더를 통해 사용할 수 있습니다. ${LOCAL_RUNTIMES}로 내 컴퓨터에서 실행할 수도 있습니다.`,
+      },
+    ],
+    closing: "NodeTool Studio는 무료 오픈소스입니다.",
   },
 };
 

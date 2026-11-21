@@ -4,7 +4,7 @@
  * replaces only the text, so every cut uses the same real film, stills,
  * clips and reference images, and the clock is shared.
  *
- * The Japanese cut keeps the English reel's models. The Chinese cut swaps the agent's model for DeepSeek V3, which NodeTool
+ * The Japanese and Korean cuts keep the English reel's models. The Chinese cut swaps the agent's model for DeepSeek V3, which NodeTool
  * calls directly and which mainland users can reach. The still and clip
  * models stay Seedream 4 and Seedance Pro, because those made the film.
  * Product terms follow the app's zh-CN catalog (web/src/i18n/locales).
@@ -25,7 +25,7 @@ import {
   type EntityKind
 } from "./data";
 
-export type HeroLocale = "en" | "zh" | "ja";
+export type HeroLocale = "en" | "zh" | "ja" | "ko";
 
 type BeatText = Pick<Beat, "label" | "slug" | "line" | "framing" | "movement">;
 type EntityText = Pick<Entity, "name" | "descriptor">;
@@ -119,8 +119,8 @@ const EN: HeroCopy = {
 };
 
 /**
- * Inter draws the Latin and the digits. The Chinese and Japanese glyphs come
- * from Noto Sans SC and Noto Sans JP, pinned as subsets under
+ * Inter draws the Latin and the digits. The Chinese, Japanese and Korean
+ * glyphs come from Noto Sans SC, JP and KR, pinned as subsets under
  * demo/public/promo/ (see cjkFont.ts), with the common system faces behind.
  */
 const ZH_FONT =
@@ -323,7 +323,106 @@ const JA: HeroCopy = {
   }
 };
 
-export const COPY: Record<HeroLocale, HeroCopy> = { en: EN, zh: ZH, ja: JA };
+const KO_FONT =
+  "Inter, 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+
+const KO: HeroCopy = {
+  brief:
+    "15초 단편을 만들어 줘: 여자아이가 손전등으로 침대 밑을 비추자, 자기보다 더 겁먹은 괴물을 발견한다.",
+  title: "침대 밑",
+  model: MODEL,
+  stillModel: STILL_MODEL,
+  clipModel: CLIP_MODEL,
+  score: "오르골",
+  entities: {
+    mia: { name: "미아", descriptor: "7살쯤 된 여자아이. 검은 곱슬머리, 노란 별무늬 잠옷" },
+    monster: {
+      name: "괴물",
+      descriptor: "작고 털이 복슬복슬한 보라색 괴물. 커다란 초록 눈, 짧은 뿔"
+    },
+    teddy: { name: "곰인형", descriptor: "오래된 꿀색 곰. 빨간 나비넥타이" },
+    flashlight: {
+      name: "손전등",
+      descriptor: "검은색 어린이용 손전등. 불빛은 늘 따뜻한 노란색"
+    },
+    bedroom: {
+      name: "미아의 방",
+      descriptor: "창문으로 드는 달빛, 러그 위 장난감, 별무늬 침구"
+    },
+    style: {
+      name: "달빛 3D",
+      descriptor: "스타일라이즈드 가족 애니메이션. 푸른 달빛, 부드러운 음영"
+    }
+  },
+  beats: [
+    {
+      label: "도입",
+      slug: "달빛 비친 침실",
+      line: "{mia}가 {bedroom}에서 몸을 일으킨다. 손에는 {flashlight}.",
+      framing: "와이드",
+      movement: "고정"
+    },
+    {
+      label: "탐색",
+      slug: "손전등을 켜다",
+      line: "{mia}가 침대 가장자리로 몸을 내민다. 불빛이 어둠을 비춘다.",
+      framing: "미디엄",
+      movement: "천천히 푸시 인"
+    },
+    {
+      label: "발견",
+      slug: "침대 밑의 눈",
+      line: "불빛 속에서 초록 눈 두 개가 뜬다.",
+      framing: "시점 샷",
+      movement: "핸드헬드"
+    },
+    {
+      label: "반전",
+      slug: "겁먹은 괴물",
+      line: "{monster}이 앞발로 얼굴을 가리고 떤다.",
+      framing: "클로즈업",
+      movement: "고정"
+    },
+    {
+      label: "친구",
+      slug: "곰인형",
+      line: "{mia}가 {teddy}을 내민다. {monster}이 손을 뻗는다.",
+      framing: "미디엄",
+      movement: "고정"
+    }
+  ],
+  font: KO_FONT,
+  ui: {
+    agent: "에이전트",
+    ask: "오늘은 무엇을 만들까요?",
+    steps: ["프롬프트", "비트 시트", "엔터티", "스토리보드", "타임라인"],
+    beatSheet: "비트 시트",
+    entities: "엔터티",
+    storyboard: (title) => `${title} — 스토리보드`,
+    finalCut: (title) => `${title} — 최종 편집본`,
+    kind: { character: "캐릭터", location: "장소", prop: "소품", style: "스타일" },
+    pill: {
+      queued: "대기 중",
+      rendering: "생성 중",
+      animating: "동영상 생성 중",
+      clip: "클립",
+      still: "스틸"
+    },
+    shot: (n, label) => `샷 ${n} · ${label}`,
+    aspect: (s) => `16:9 · ${s}초`,
+    writingBeats: (i, n) => `비트 작성 중 · ${i}/${n}`,
+    beatsWritten: (n) => `비트 ${n}개 작성 완료`,
+    renderingRefs: (i, n) => `참조 이미지 생성 중 · ${i}/${n}`,
+    refsReady: (n) => `참조 이미지 ${n}개 준비됨`,
+    renderingStills: (i, n) => `스틸 생성 중 · ${i}/${n}`,
+    animatingClips: (i, n) => `클립 생성 중 · ${i}/${n}`,
+    clipsReady: (n) => `클립 ${n}개 준비됨`,
+    assembling: "편집본 조립 중",
+    assembled: (s) => `편집 완료 · ${s.toFixed(1)}초`
+  }
+};
+
+export const COPY: Record<HeroLocale, HeroCopy> = { en: EN, zh: ZH, ja: JA, ko: KO };
 
 export const HeroLocaleContext = React.createContext<HeroLocale>("en");
 

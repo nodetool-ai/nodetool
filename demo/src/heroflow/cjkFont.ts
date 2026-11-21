@@ -1,10 +1,10 @@
 /**
- * Loads the Noto Sans faces for the Chinese and Japanese cuts. The files
+ * Loads the Noto Sans faces for the Chinese, Japanese and Korean cuts. The files
  * under demo/public/promo/ are subsets that hold only the glyphs the copy
  * uses, so a render container without CJK fonts still draws the same type.
- * After changing Chinese or Japanese text in locale.ts or VerticalCut.tsx,
+ * After changing Chinese, Japanese or Korean text in locale.ts or VerticalCut.tsx,
  * regenerate them with `npm run font:cjk` (scripts/subset-cjk-font.sh).
- * Noto Sans SC and JP are licensed under the SIL Open Font License 1.1,
+ * Noto Sans SC, JP and KR are licensed under the SIL Open Font License 1.1,
  * which permits subsets.
  */
 import { staticFile } from "remotion";
@@ -15,7 +15,8 @@ const WEIGHTS = ["400", "500", "600", "800"] as const;
 
 const FAMILY: Partial<Record<HeroLocale, { family: string; file: string }>> = {
   zh: { family: "Noto Sans SC", file: "NotoSansSC" },
-  ja: { family: "Noto Sans JP", file: "NotoSansJP" }
+  ja: { family: "Noto Sans JP", file: "NotoSansJP" },
+  ko: { family: "Noto Sans KR", file: "NotoSansKR" }
 };
 
 const loading = new Map<HeroLocale, Promise<void>>();

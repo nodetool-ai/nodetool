@@ -1,8 +1,9 @@
 /**
  * A localized hero cut for 9:16 feeds (Bilibili, Xiaohongshu and Douyin for
- * Chinese; TikTok, Reels and X for Japanese): the 16:9 reel at full width,
+ * Chinese; TikTok, Reels and X for Japanese; Shorts, Reels and TikTok for
+ * Korean): the 16:9 reel at full width,
  * with the language page's headline above and what it runs on below. Every
- * line here is copy the /zh or /ja page already makes, so the post and the
+ * line here is copy the /zh, /ja or /ko page already makes, so the post and the
  * page agree.
  */
 import React from "react";
@@ -16,7 +17,7 @@ const REEL_W = 1080;
 const REEL_H = (REEL_W * 9) / 16;
 const REEL_TOP = 640;
 
-type VerticalLocale = Extract<HeroLocale, "zh" | "ja">;
+type VerticalLocale = Extract<HeroLocale, "zh" | "ja" | "ko">;
 
 type VerticalText = {
   badge: string;
@@ -48,6 +49,15 @@ const TEXT: Record<VerticalLocale, VerticalText> = {
     runsOn: ["ChatGPTやClaudeのプラン、", "自分のAPIキー、ローカルモデルで動きます。"],
     platforms: "無料のオープンソース · macOS、Windows、Linux",
     url: "nodetool.ai/ja"
+  },
+  ko: {
+    badge: "오픈소스 AI 영화 스튜디오",
+    headline: ["AI 영화를", "샷 단위로 연출하세요."],
+    headlineSize: 84,
+    lead: ["한 문장으로 시작하세요.", "에이전트가 쓰고, 그리고, 편집합니다."],
+    runsOn: ["ChatGPT나 Claude 플랜, 내 API 키,", "로컬 모델로 실행됩니다."],
+    platforms: "무료 오픈소스 · macOS, Windows, Linux",
+    url: "nodetool.ai/ko"
   }
 };
 

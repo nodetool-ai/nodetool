@@ -100,9 +100,10 @@ const REELS = [
   // The landing hero: one brief to a finished short (src/heroflow), posted
   // on the storyboard with every clip playing.
   { master: "heroflow", slug: "hero-flow", frame: 600, widths: [[1920, ""], [960, "-960"]] },
-  // The Chinese and Japanese cuts of the same reel, for /zh and /ja.
+  // The Chinese, Japanese and Korean cuts of the same reel, for /zh, /ja and /ko.
   { master: "heroflow-zh", slug: "hero-flow-zh", frame: 600, widths: [[1920, ""], [960, "-960"]] },
   { master: "heroflow-ja", slug: "hero-flow-ja", frame: 600, widths: [[1920, ""], [960, "-960"]] },
+  { master: "heroflow-ko", slug: "hero-flow-ko", frame: 600, widths: [[1920, ""], [960, "-960"]] },
   // The "Seven editors" tabs (src/heroflow/editors), each posted on its
   // finished state.
   ...["storyboard", "script", "timeline", "sketch", "3d", "game", "nodes"].map((id) => ({
