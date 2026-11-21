@@ -27,6 +27,11 @@ public:
     void setProjectId(const QString& id);
     Q_INVOKABLE void refresh();
     Q_INVOKABLE QVariantMap createTimeline();
+    // New music project (docs/MUSIC-MODE.md section 15): a sequence named
+    // "Untitled music" with the music object, the tempo and key, and four role
+    // tracks. `settings` is {bpm, beatsPerBar, beatUnit, keyTonic, keyMode}.
+    // Empty on a refusal or a server error, which `error` then names.
+    Q_INVOKABLE QVariantMap createMusicTimeline(const QVariantMap& settings);
     Q_INVOKABLE bool renameTimeline(const QString& id, const QString& name);
     Q_INVOKABLE void requestDelete(const QString& id);
     Q_INVOKABLE void cancelDelete();

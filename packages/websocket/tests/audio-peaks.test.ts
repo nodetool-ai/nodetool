@@ -30,6 +30,7 @@ vi.mock("@nodetool-ai/asset-services/storage", async (orig) => ({
 }));
 
 import { handleAssetPeaks, computeAudioPeaks } from "../src/lib/audio-peaks.js";
+import { encodeFloatWav } from "../src/lib/float-wav.js";
 import { lookupExternalAssetPath } from "../src/lib/external-asset-lookup.js";
 
 const USER = "user-1";
@@ -102,6 +103,23 @@ describe("computeAudioPeaks", () => {
     // The first half is silence and the second half a loud sine.
     for (const p of result!.peaks.slice(0, 4)) expect(p).toBe(0);
     for (const p of result!.peaks.slice(6)) expect(p).toBeGreaterThan(0.5);
+  });
+
+  it("reads a 48 kHz stereo 32-bit float WAV, the music take format (MR11)", async () => {
+    // 1 s of silence, then 1 s of a 0.75 sine on the left channel only, so a
+    // reader that took the right channel or misread the format would differ.
+    const frames = 96000;
+    const samples = new Float32Array(frames * 2);
+    for (let frame = 48000; frame < frames; frame += 1) {
+      samples[frame * 2] = 0.75 * Math.sin((2 * Math.PI * 440 * frame) / 48000);
+    }
+    const file = path.join(tmp, "take-float.wav");
+    await fs.writeFile(file, encodeFloatWav(samples, 48000, 2));
+    const result = await computeAudioPeaks(file, 10);
+    expect(result).not.toBeNull();
+    expect(result!.duration_ms).toBeCloseTo(2000, 0);
+    for (const p of result!.peaks.slice(0, 5)) expect(p).toBe(0);
+    for (const p of result!.peaks.slice(5)) expect(p).toBeCloseTo(0.75, 3);
   });
 
   it("answers null for a file with no audio stream", async () => {

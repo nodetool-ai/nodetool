@@ -1168,6 +1168,7 @@ export type RuntimePackageId =
   | "rust"
   | "manimgx"
   | "sd-cpp"
+  | "acestep"
   | "wan2gp"
   | "transformers-js"
   | "node-llama-cpp"

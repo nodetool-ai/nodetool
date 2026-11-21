@@ -13,6 +13,10 @@ export interface RuntimeLocations {
   readonly uvTools: { readonly tools: string; readonly bin: string; readonly python: string } | null;
   /** Where the stable-diffusion.cpp `sd-server` release is unpacked. */
   readonly sdCpp: string | null;
+  /** The ace-server install, `null` where no installer runs. */
+  readonly aceStep: string | null;
+  /** The ACE-Step GGUF models, outside the install so an update keeps them. */
+  readonly aceStepModels: string | null;
   /** Where the Wan2GP source and its Python environment are installed. */
   readonly wan2gp: string | null;
   readonly micromambaRoot: string | null;
@@ -65,7 +69,7 @@ export function runtimeLocations(
   if (!isNodetoolHost(hostValue)) { throw new Error(`Unknown NODETOOL_HOST: ${hostValue}`); }
   const host = hostValue;
   if (host === "docker") {
-    return { host, optionalNodeRoot: null, uvTools: null, sdCpp: null, wan2gp: null, micromambaRoot: null, condaEnv: null };
+    return { host, optionalNodeRoot: null, uvTools: null, sdCpp: null, aceStep: null, aceStepModels: null, wan2gp: null, micromambaRoot: null, condaEnv: null };
   }
   const platform = options.platform ?? safeProcessPlatform();
   const paths = nodePaths(platform);
@@ -101,6 +105,8 @@ export function runtimeLocations(
     optionalNodeRoot: paths.join(root, "optional-node"),
     uvTools: { tools: paths.join(uvRoot, "tools"), bin: paths.join(uvRoot, "bin"), python: paths.join(uvRoot, "python") },
     sdCpp: paths.join(root, "sd-cpp"),
+    aceStep: paths.join(root, "acestep"),
+    aceStepModels: paths.join(root, "acestep-models"),
     wan2gp: paths.join(root, "wan2gp"),
     micromambaRoot: paths.join(root, "micromamba"),
     condaEnv: condaOverride ?? options.condaEnv ?? configuredConda ?? defaultConda

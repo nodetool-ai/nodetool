@@ -1,4 +1,5 @@
 #pragma once
+#include "ui/PeakLevels.h"
 
 // The clip pictures of the tracks (M2b): audio waveforms and video
 // filmstrips, as the web draws them (ClipBody.tsx WaveformCanvas and the
@@ -62,18 +63,15 @@ void setLocalIoStallForTesting(LocalIoHook hook);
 int outstandingLocalIoForTesting();
 #endif
 
-inline constexpr int FULL_ASSET_PEAK_COUNT = 2000;
+// Count for computeAudioPeaks: the finest level follows the duration, and the
+// coarser levels are filled (PeakLevels.h).
+inline constexpr int AUTO_PEAK_COUNT = -1;
 inline constexpr int THUMBNAIL_COUNT = 24;     // SOURCE_COUNT
 inline constexpr int THUMBNAIL_WIDTH_PX = 160;  // THUMB_WIDTH_PX
 inline constexpr int FILMSTRIP_CELL_PX = 60;
 // How long a file's open and stream probe may take: a stalled read (a slow
 // disk, a pipe) gives up after it. 0: no limit.
 inline constexpr int OPEN_TIMEOUT_MS = 20000;
-
-struct AudioPeaks {
-    std::vector<float> peaks;
-    double durationMs = 0;
-};
 
 struct Thumbnail {
     double timeSec = 0;

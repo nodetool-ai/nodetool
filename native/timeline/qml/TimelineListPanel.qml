@@ -246,6 +246,16 @@ Rectangle {
             anchors.leftMargin: Ui.Metrics.lg
             anchors.rightMargin: Ui.Metrics.lg
             text: "Timelines"
+            // New music project (docs/MUSIC-MODE.md section 15, UI-1).
+            ProjectSettingsDialog.TimelineListButton {
+                id: createMusic
+                objectName: "createMusicProject"
+                iconName: "piano"
+                accessibleLabel: "New music project"
+                description: "A timeline with a bar ruler, four role tracks and the music panel"
+                enabled: root.controller && !root.controller.busy && !!root.controller.projectId
+                onClicked: { musicDialog.returnFocusTo = createMusic; musicDialog.open() }
+            }
             ProjectSettingsDialog.TimelineListButton {
                 objectName: "createTimeline"
                 iconName: "add"
@@ -268,6 +278,20 @@ Rectangle {
         documents: root.documents
         listController: root.controller
         activeId: root.activeTimelineId
+    }
+    NewMusicProjectDialog {
+        id: musicDialog
+        busy: root.controller ? root.controller.busy : false
+        onCreateRequested: settings => {
+            if (!root.controller) return
+            const created = root.controller.createMusicTimeline(settings)
+            if (created.id) {
+                musicDialog.close()
+                root.controller.openTimeline(created.id)
+            } else {
+                musicDialog.error = root.controller.error
+            }
+        }
     }
     ProjectSettingsDialog.TimelineListDialog {
         title: "Delete timeline"

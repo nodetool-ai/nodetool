@@ -4,6 +4,11 @@
 #include <cmath>
 
 namespace nt::assets {
+bool isGenerationContextAsset(const QJsonObject& asset) {
+    const auto context = asset.value(u"metadata").toObject().value(u"generation_context");
+    return context.isString() && !context.toString().isEmpty();
+}
+
 QString assetMediaType(const QJsonObject& asset) {
     const auto type = asset.value("content_type").toString();
     const auto name = asset.value("name").toString().toLower();

@@ -15,7 +15,12 @@ import {
   IMAGE_MIME_TO_EXT,
   messageText
 } from "@nodetool-ai/runtime";
-import type { GenerationReceipt } from "@nodetool-ai/protocol";
+import type {
+  GenerationReceipt,
+  MusicGenerationRequest,
+  MusicGenerationTiming,
+  MusicTakeResult
+} from "@nodetool-ai/protocol";
 import { linkGenerationAssets } from "@nodetool-ai/execution";
 import type {
   BaseProvider,
@@ -50,6 +55,7 @@ import {
   generateSpeechBytes,
   generateMusicBytes
 } from "./media-generation.js";
+import { runMusicGeneration } from "./music-generation.js";
 
 const log = createLogger("nodetool.websocket.runner");
 
@@ -99,6 +105,12 @@ export interface DirectMediaGenerationRequest {
   language?: string;
   instructions?: string;
   audioFormat?: string;
+  /**
+   * Music mode operation (MUSIC-MODE.md section 10). With `mode: "music"`
+   * it selects the music_task path; without it the plain text-to-music path
+   * runs (MD17).
+   */
+  music?: MusicGenerationRequest;
   /**
    * The RPC request id the client correlates the reply on.
    *
@@ -177,6 +189,10 @@ export interface DirectMediaGenerationResult {
   media_edit_references?: { referenceAssetIds: string[]; entityIds: string[] };
   /** Set when idempotency found an already accepted generation. */
   existing_generation_id?: string;
+  /** Music mode takes, candidate by candidate and segment by segment. */
+  music_takes?: MusicTakeResult[];
+  /** Music mode backend timing. */
+  timing?: MusicGenerationTiming;
 }
 
 interface VideoEditReferences {
@@ -817,6 +833,9 @@ export class DirectInferenceHandler {
     if (!promptOptional && (!req.prompt || !req.prompt.trim())) {
       throw new Error("prompt is required");
     }
+    if (req.music && req.mode !== "music") {
+      throw new Error("A music object requires music mode");
+    }
     if (req.mode !== "video_edit" && (req.referenceAssetIds?.length || req.entityIds?.length)) {
       throw new Error("Entity and reference asset ids require video_edit mode");
     }
@@ -1077,7 +1096,7 @@ export class DirectInferenceHandler {
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
 
     req.signal?.throwIfAborted();
-    const { generate, seamAssetId, storeAsset } = createGenerationRun({
+    const { generate, seamAssetId, storeAsset, discardAsset } = createGenerationRun({
       presets,
       userId,
       providerId: req.provider,
@@ -1368,6 +1387,18 @@ export class DirectInferenceHandler {
         result.media_edit_references = referenceProvenance;
       }
       return result;
+    }
+
+    if (req.mode === "music" && req.music) {
+      return runMusicGeneration({
+        userId,
+        provider,
+        providerId: req.provider,
+        model: req.model,
+        prompt,
+        music: req.music,
+        run: { generate, storeAsset, discardAsset }
+      });
     }
 
     if (req.mode === "audio" || req.mode === "music") {

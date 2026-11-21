@@ -1,0 +1,205 @@
+// nt-panel: slot=clipBody id=musicClipJob order=25 title="Music job"
+// Music job state on a clip (docs/MUSIC-MODE.md sections 9.1, 9.2 and 15, GN-7,
+// AL-4): a placeholder clip shows a hatched fill, the job's title and its state;
+// a clip under a running Regenerate job shows a hatched band over the bars being
+// replaced; a music clip with takes shows its active take, the take count
+// ("1/4") and a drift badge when that take drifts in place of the name band's
+// contents, as in the music mode mockup. TakeBadge leaves music clips to this
+// header. The job state comes from the timeline's MusicJobs and is never
+// written to the document.
+pragma ComponentBehavior: Bound
+import QtQuick
+import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
+
+Item {
+    id: root
+    property var clip: ({})
+    property var timeline: null
+    property var gestures: null
+    property var viewState: null
+    anchors.fill: parent
+
+    // Only music clips ask for the timeline's job module.
+    readonly property bool musicClip: clip.audioRole === "music" || clip.status === "queued"
+    readonly property var jobs: musicClip && timeline ? MusicJobsRegistry.forTimeline(timeline) : null
+    readonly property var job: jobs ? jobs.clipJobs[clip.id] : undefined
+    readonly property bool placeholder: clip.status === "queued"
+    readonly property var bands: jobs ? jobs.bands.filter(band => band.clipId === clip.id) : []
+    readonly property var activeTake: {
+        const versions = clip.versions || []
+        let byAsset = null
+        for (const take of versions) {
+            if (take.id === clip.activeTakeId && take.assetId === clip.currentAssetId) return take
+            if (!byAsset && take.assetId === clip.currentAssetId) byAsset = take
+        }
+        return byAsset
+    }
+    readonly property bool takeHeader: musicClip && !placeholder && !!activeTake
+    readonly property string takeCount: takeHeader ? TakeInfo.badge(clip) : ""
+    readonly property bool selected: !!gestures && gestures.selection.indexOf(clip.id) >= 0
+    // ClipBody's tint under the name band, so the header covers the clip's own name and duration.
+    readonly property color bandFill: {
+        const fill = clip.labelColor ? clip.labelColor : TimelineVisuals.clipFill(clip.mediaType || "audio")
+        return selected ? Qt.lighter(fill, 1.18) : fill
+    }
+    readonly property bool drifting: !!activeTake && !!activeTake.musicGeneration && !!activeTake.musicGeneration.alignment
+        && activeTake.musicGeneration.alignment.drifting === true
+
+    function stateText(state) {
+        switch (state) {
+        case "rendering": return qsTr("Rendering context")
+        case "queued": return qsTr("Queued")
+        case "running": return qsTr("Running")
+        case "placing": return qsTr("Placing")
+        case "failed": return qsTr("Failed · see the job list")
+        default: return ""
+        }
+    }
+
+    component Hatch: Item {
+        id: hatch
+        clip: true
+        readonly property real step: Ui.Metrics.md
+        Rectangle {
+            anchors.fill: parent
+            color: Ui.Theme.actionSelected
+        }
+        Repeater {
+            model: hatch.visible ? Math.ceil((hatch.width + hatch.height) / hatch.step) : 0
+            delegate: Rectangle {
+                required property int index
+                x: index * hatch.step - hatch.height
+                y: hatch.height / 2 - height / 2
+                width: Ui.Metrics.border
+                height: hatch.height * Math.SQRT2
+                rotation: 45
+                transformOrigin: Item.Center
+                color: TimelineVisuals.clipText
+                opacity: 0.35
+            }
+        }
+    }
+
+    // The placeholder: hatched, its job and its state (GN-7).
+    Hatch {
+        objectName: "musicPlaceholder-" + root.clip.id
+        visible: root.placeholder
+        anchors.fill: parent
+        anchors.topMargin: Ui.Metrics.xl
+    }
+    Column {
+        visible: root.placeholder
+        x: Ui.Metrics.sm
+        y: Ui.Metrics.xl + Ui.Metrics.xs
+        width: parent.width - 2 * Ui.Metrics.sm
+        Ui.Text {
+            width: parent.width
+            text: root.job ? root.job.title : qsTr("Generate")
+            elide: Text.ElideRight
+            role: Ui.Typography.SansCaption
+            domainColor: TimelineVisuals.clipText
+        }
+        Ui.Text {
+            objectName: "musicPlaceholderState-" + root.clip.id
+            width: parent.width
+            text: root.job ? root.stateText(root.job.state) : qsTr("Result undone · redo to restore")
+            elide: Text.ElideRight
+            role: Ui.Typography.MonoCaption
+            domainColor: TimelineVisuals.clipText
+        }
+    }
+
+    // The name band of a music clip: the active take, its count and drift.
+    Rectangle {
+        objectName: "musicTakeHeader-" + root.clip.id
+        visible: root.takeHeader
+        x: Ui.Metrics.border
+        y: Ui.Metrics.border
+        width: Math.max(0, root.width - 2 * Ui.Metrics.border)
+        height: TimelineMetrics.clipNameBandHeight - Ui.Metrics.border
+        color: root.bandFill
+        clip: true
+        Row {
+            x: Ui.Metrics.xs
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Ui.Metrics.xs
+            Ui.Text {
+                objectName: "musicTakeLabel-" + root.clip.id
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.activeTake ? root.activeTake.label || root.clip.name || "" : ""
+                role: Ui.Typography.SansCaption
+                domainColor: TimelineVisuals.clipText
+            }
+            Rectangle {
+                objectName: "musicTakeCount-" + root.clip.id
+                visible: root.takeCount !== ""
+                anchors.verticalCenter: parent.verticalCenter
+                width: countLabel.implicitWidth + 2 * Ui.Metrics.xs
+                height: countLabel.implicitHeight
+                radius: Ui.Metrics.radiusControl
+                color: Ui.Theme.surfaceOverlay
+                Accessible.role: Accessible.StaticText
+                Accessible.name: qsTr("Take %1").arg(root.takeCount.replace("/", " of "))
+                Ui.Text {
+                    id: countLabel
+                    objectName: "musicTakeCountText"
+                    anchors.centerIn: parent
+                    text: root.takeCount
+                    role: Ui.Typography.MonoCaption
+                    tone: Ui.Text.Primary
+                }
+            }
+            Rectangle {
+                objectName: "musicDrift-" + root.clip.id
+                visible: root.drifting
+                anchors.verticalCenter: parent.verticalCenter
+                width: driftLabel.implicitWidth + 2 * Ui.Metrics.xs
+                height: driftLabel.implicitHeight
+                radius: Ui.Metrics.radiusControl
+                color: Ui.Theme.statusWarningSurface
+                Accessible.role: Accessible.StaticText
+                Accessible.name: qsTr("The active take drifts off the grid")
+                Ui.Text {
+                    id: driftLabel
+                    anchors.centerIn: parent
+                    text: qsTr("drift")
+                    role: Ui.Typography.MonoCaption
+                    domainColor: Ui.Theme.statusWarningOnSurface
+                }
+            }
+        }
+    }
+
+    // A running Regenerate: the bars being replaced (section 9.2).
+    Repeater {
+        model: root.bands
+        delegate: Hatch {
+            id: band
+            required property var modelData
+            readonly property double startMs: modelData.startFrame / 48
+            readonly property double endMs: modelData.endFrame / 48
+            objectName: "musicBand-" + modelData.jobId
+            x: root.clip.durationMs > 0 ? (startMs - root.clip.startMs) / root.clip.durationMs * root.width : 0
+            width: root.clip.durationMs > 0 ? (endMs - startMs) / root.clip.durationMs * root.width : 0
+            y: Ui.Metrics.xl
+            height: root.height - y
+            Rectangle {
+                x: Ui.Metrics.xs
+                y: Ui.Metrics.xs
+                width: bandLabel.implicitWidth + 2 * Ui.Metrics.xs
+                height: bandLabel.implicitHeight
+                radius: Ui.Metrics.radiusControl
+                color: Ui.Theme.surfaceOverlay
+                Ui.Text {
+                    id: bandLabel
+                    objectName: "musicBandLabel"
+                    anchors.centerIn: parent
+                    text: band.modelData.state === "running" ? qsTr("Repainting %1").arg(band.modelData.bars) : root.stateText(band.modelData.state)
+                    role: Ui.Typography.MonoCaption
+                    tone: Ui.Text.Primary
+                }
+            }
+        }
+    }
+}

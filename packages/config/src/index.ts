@@ -68,6 +68,39 @@ export {
 } from "./runtime-locations.js";
 
 export {
+  ACESTEP_COMMIT,
+  ACESTEP_COMMIT_SHORT,
+  ACESTEP_RELEASE_TAG,
+  ACESTEP_SHA256,
+  AceStepInstallError,
+  aceStepAsset,
+  aceStepAssetUrl,
+  aceServerPath,
+  aceStepInstallStatus,
+  installAceStep,
+  uninstallAceStep,
+  type AceStepAsset,
+  type AceStepInstallErrorCode,
+  type AceStepInstallEvent,
+  type AceStepInstallOptions,
+  type AceStepInstallStatus
+} from "./acestep-runtime.js";
+
+export {
+  ACESTEP_ADD_INSTRUMENT_ROLES,
+  ACESTEP_DEFAULT_LM_SIZE,
+  ACESTEP_FIRST_RUN_ROLES,
+  ACESTEP_MODELS_REPO,
+  aceStepModelFile,
+  aceStepModelFiles,
+  aceStepModelStatus,
+  type AceStepLmSize,
+  type AceStepModelFile,
+  type AceStepModelRole,
+  type AceStepModelStatus
+} from "./acestep-models.js";
+
+export {
   SD_CPP_RELEASE_TAG,
   sdCppAsset,
   sdCppAssetUrl,

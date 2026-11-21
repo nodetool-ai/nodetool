@@ -30,6 +30,9 @@ Item {
         || beatUnitValue !== initialTempo.timeSignature.beatUnit
         || Number(offsetField.text) !== initialTempo.offsetMs
     readonly property bool opened: settingsPopup.visible
+    // MD6 and MD9 (docs/MUSIC-MODE.md): why the edit would refuse this tempo.
+    readonly property string tempoRefusal: timeline && tempoDirty && allValid
+        ? values.tempoRefusal(timeline, editedTempo()) : ""
     ToolButton {
         id: settingsButton
         objectName: "projectSettingsButton"
@@ -65,12 +68,15 @@ Item {
         settingsPopup.open()
     }
     function close() { settingsPopup.close() }
+    function editedTempo() {
+        return {bpm: Number(bpmField.text), offsetMs: Number(offsetField.text),
+            timeSignature: {beatsPerBar: Number(beatsField.text), beatUnit: beatUnitValue}}
+    }
     function commit() {
-        if (!timeline || !allValid || (!canvasDirty && !tempoDirty)) return
+        if (!timeline || !allValid || (!canvasDirty && !tempoDirty) || tempoRefusal !== "") return
         let patch = {width: Number(widthText), height: Number(heightText), fps: Number(fpsText)}
         if (tempoDirty) {
-            patch.tempo = {bpm: Number(bpmField.text), offsetMs: Number(offsetField.text),
-                timeSignature: {beatsPerBar: Number(beatsField.text), beatUnit: beatUnitValue}}
+            patch.tempo = editedTempo()
         }
         if (timeline.applyEdit("setProjectSettings", patch)) close()
     }
@@ -200,7 +206,7 @@ Item {
         id: settingsPopup
         returnFocusTo: settingsButton
         title: "Project settings"
-        confirmEnabled: root.allValid && (root.canvasDirty || root.tempoDirty)
+        confirmEnabled: root.allValid && (root.canvasDirty || root.tempoDirty) && root.tempoRefusal === ""
         onConfirmed: root.commit()
         onCancelled: root.close()
         content: Column {
@@ -286,6 +292,15 @@ Item {
                             }
                         }
                         NumberField { id: offsetField; objectName: "offsetField"; label: "Beat one at"; errorMessage: "0 or more"; integer: false; minimum: 0; maximum: Infinity; width: Math.min(Ui.Metrics.standard * 7, parent.width) }
+                        Ui.Text {
+                            objectName: "tempoRefusal"
+                            width: parent.width
+                            visible: root.tempoRefusal !== ""
+                            text: root.tempoRefusal
+                            wrapMode: Text.WordWrap
+                            role: Ui.Typography.SansCaption
+                            tone: Ui.Text.Error
+                        }
                     }
                 }
                 Ui.Text {

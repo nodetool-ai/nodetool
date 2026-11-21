@@ -86,6 +86,7 @@ const LOCAL_PROVIDER_IDS = new Set([
   "llama_cpp",
   "node_llama_cpp",
   "stable_diffusion_cpp",
+  "acestep",
   "wangp",
   "whisper_cpp",
   "whisper_cpp_server"

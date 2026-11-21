@@ -16,7 +16,17 @@
 // The null backend renders in real time to no device at all: every
 // automated check uses it, so no test makes a sound. The system backend is
 // the default output device and is used only by the interactive app and by
-// scripts/window-checks.sh.
+// scripts/window-checks.sh. The manual backend opens no device either: the
+// caller runs the device callback with `renderManual`, on a time line of its
+// own, so a check can play hours of audio in seconds.
+//
+// A loop at rate 1 (TransportCommand::loopStartMs, MUSIC-MODE.md MD19) is
+// crossed in the callback with no seek. The worker keeps a second session,
+// primed from the loop start, in a second slot. At the loop end the callback
+// mixes the frames before the wrap from the current session and the frames
+// after it from the wrap session, and fades out the current session past the
+// loop end over 3 ms. The worker then makes the wrap session current and
+// primes the next one.
 
 #include "audio/Mixer.h"
 #include "audio/OutputLatency.h"
@@ -26,6 +36,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -33,10 +44,14 @@ namespace nt::audio {
 
 class LoudnessReadout;
 
-// native-rules #9: shared by the UI thread, the decode worker and the device callback, no affinity comment
+// Thread affinity: one control thread (the GUI thread in the app) calls
+// start, stop, setTimeline, stats, recording and the simulate calls. The
+// device callback and the decode worker are the engine's own threads and
+// meet only through atomics and the plan mutex (Impl). On the manual
+// backend, one thread stands in for the device and calls renderManual.
 class AudioEngine {
 public:
-    enum class Backend { Null, System };
+    enum class Backend { Null, System, Manual };
     struct Options {
         Backend backend = Backend::Null;
         int sampleRate = 48000;  // 0: the device's own rate (system backend)
@@ -64,13 +79,17 @@ public:
         std::int64_t playedFrames = 0;
         // Play starts that passed the 300 ms deadline before the PCM was ready.
         std::int64_t lateStarts = 0;
+        // Loop ends the callback crossed to the loop start with no seek, and
+        // loop ends it reached with no wrap PCM primed (the transport then seeks).
+        std::int64_t loopWraps = 0;
+        std::int64_t loopMisses = 0;
         // Command to the first frame of the last play start, plus the output
         // latency: the time until that frame is heard.
         double lastPlayStartMs = -1.0;
         double sampleRate = 0.0;
         double outputLatencySec = 0.0;
         std::uint64_t generation = 0;
-        // Mix snapshots allocated for seeks and timeline edits.
+        // Mix snapshots allocated for seeks, timeline edits and loop wraps.
         std::int64_t sessions = 0;
         // Mix plans built by setTimeline, and worker loop iterations.
         std::int64_t planBuilds = 0;
@@ -110,16 +129,21 @@ public:
     playback::AudioClockFeed& feed();
     Stats stats() const;
 
-    // Null backend only: a device change with a new output latency. The
+    // Null and manual backends only: a device change with a new output latency. The
     // device facts get a new generation, as a reroute gives them.
     void simulateDeviceChange(double latencySec);
-    // Null backend only: run the handler of miniaudio's `started` (true) or
+    // Null and manual backends only: run the handler of miniaudio's `started` (true) or
     // `stopped` (false) notification.
     void simulateDeviceNotification(bool started);
 
     // The recorded device output (interleaved stereo); frame 0 is the first
     // frame the device rendered. Read it after stop().
     std::vector<float> recording() const;
+
+    // Manual backend only: run the device callback once to fill `out`
+    // (interleaved stereo, out.size() / 2 frames), as a device would at
+    // monotonic time `hostNs`. Calls come from one thread and never overlap.
+    void renderManual(std::span<float> out, std::int64_t hostNs);
 
 private:
     std::uint64_t publishPlan(std::shared_ptr<const Timeline> timeline);

@@ -44,10 +44,11 @@ function(nt_timeline_list_tests)
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_timelinelistui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_timelinelistui_qml/NodeTool/Timeline)
     add_test(NAME tst_timelinelistsettings COMMAND tst_timelinelistui settingsPanelRegistered settingsOpenFromDocumentBar settingsOpenFromKeyboard settingsKeepsEditorShortcuts projectSettingsPersistence panelKeepsCppOwnership settingsCommitAndUndo)
+    add_test(NAME tst_timelinelistmusictempo COMMAND tst_timelinelistui musicTempoRules)
     add_test(NAME tst_timelineliststartup COMMAND tst_timelinelistui startupListWithoutServer)
     add_test(NAME tst_timelinelistpush COMMAND tst_timelinelistui documentFilePushRefreshesShownList)
     add_test(NAME tst_timelinelistlayout COMMAND tst_timelinelistui layoutAndStills unnamedRowLabel emptySearchDescription offsetError)
-    set_tests_properties(tst_timelinelistsettings tst_timelinelistlayout tst_timelineliststartup tst_timelinelistpush PROPERTIES
+    set_tests_properties(tst_timelinelistsettings tst_timelinelistlayout tst_timelineliststartup tst_timelinelistmusictempo tst_timelinelistpush PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endfunction()
 nt_tests(nt_timeline_list_tests)

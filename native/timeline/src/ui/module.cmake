@@ -47,6 +47,7 @@ nt_sources(qml
     src/ui/MonitorZoomBar.cpp
     src/ui/MediaPreviews.h
     src/ui/MediaPreviews.cpp
+    src/ui/PeakLevels.h
     src/ui/ThumbnailDiskCache.h
     src/ui/ThumbnailDiskCache.cpp
     src/ui/BenchMedia.h
@@ -81,6 +82,17 @@ function(nt_ui_tests)
         Qt6::Qml Qt6::Quick Qt6::Test PkgConfig::FFMPEG)
     add_test(NAME tst_thumbnailcache COMMAND tst_thumbnailcache)
     set_tests_properties(tst_thumbnailcache PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+    # Waveform peaks at more than one resolution (AU-7).
+    qt_add_executable(tst_peaklevels src/ui/tst_peaklevels.cpp
+        src/ui/ThumbnailDiskCache.cpp src/ui/MediaPreviews.cpp src/ui/MediaPreviews.h src/ui/PeakLevels.h
+        src/ui/TimelineViewState.cpp src/ui/TimelineViewState.h)
+    set_target_properties(tst_peaklevels PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_peaklevels PRIVATE ${NT_WARNINGS})
+    target_link_libraries(tst_peaklevels PRIVATE timeline_core Qt6::Gui Qt6::GuiPrivate
+        Qt6::Qml Qt6::Quick Qt6::Test PkgConfig::FFMPEG)
+    add_test(NAME tst_peaklevels COMMAND tst_peaklevels)
+    set_tests_properties(tst_peaklevels PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 
     nt_qt_test(tst_timelinewheel LIBS timeline_core timeline_decode Qt6::Test
         DEFINES NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")

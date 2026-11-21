@@ -391,6 +391,7 @@ describe("TimelineSequence model", () => {
         volumeDb: -3,
         effects: [{ id: "fx1", type: "gain", enabled: true, gainDb: -1 }]
       },
+      music: { promptHistory: ["slow strings"] },
       templateId: "tl_template",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -410,6 +411,7 @@ describe("TimelineSequence model", () => {
     // silently retime every midi clip on the next read.
     expect(roundTripped.tempo).toEqual(original.tempo);
     expect(roundTripped.master).toEqual(original.master);
+    expect(roundTripped.music).toEqual(original.music);
     // Lineage rides the same JSON; dropping it here loses the link back to the
     // sequence this one was retargeted from.
     expect(roundTripped.templateId).toBe(original.templateId);

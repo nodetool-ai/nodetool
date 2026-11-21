@@ -129,6 +129,12 @@ private:
     // with a seek command when the device is usable. Caller holds m_mutex.
     void anchorLocked(double ms, std::int64_t nowNs);
     void sendCommandLocked(bool seek, double seekMs, std::int64_t nowNs);
+    // Whether the device crosses the loop itself (MUSIC-MODE.md MD19): the
+    // loop is on, the rate is 1 and the device is the clock. The commands
+    // then carry the loop range. Caller holds m_mutex.
+    bool engineLoopsLocked() const;
+    // Sends the loop range to the device when it changed while playing.
+    void refreshEngineLoopLocked();
     bool spanActive() const { return m_spanToMs >= 0.0; }
     void clearSpanLocked();
 

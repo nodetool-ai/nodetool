@@ -45,6 +45,7 @@
 #include "server/BundledServer.h"
 #include "server/ServerSource.h"
 #include "server/TimelineAssetCacheContext.h"
+#include "music/MusicJobs.h"
 #include "takes/TakeSwitcher.h"
 
 #include "aiassist/AgentBridge.h"
@@ -1054,11 +1055,14 @@ int main(int argc, char** argv) {
     TimelineModel model;
     model.setTimeline(*loaded.timeline);
     TakeSwitcher::attach(model, assetCache);
+    nt::music::MusicJobs::attach(model, assetCache);
     PlaybackClock clock;
     clock.setDurationMs(model.durationMs());
     clock.seek(parser.value(seekOpt).toDouble());
     nt::audio::AppAudio audio;
     audio.setPublishLoudness(true);
+    // A music project mixes at 48 kHz on the system device (MUSIC-MODE.md 14.1).
+    audio.setFollowDocumentRate(true);
     {
         // From the parsed options, so `--opt=value` and `--opt value` agree.
         const QString mode = nt::audio::resolveAudioMode(parser);

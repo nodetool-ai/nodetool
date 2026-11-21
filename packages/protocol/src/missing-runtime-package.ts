@@ -16,6 +16,7 @@ export type RuntimePackageId =
   | "rust"
   | "manimgx"
   | "sd-cpp"
+  | "acestep"
   | "wan2gp"
   | "transformers-js"
   | "node-llama-cpp"
@@ -42,6 +43,7 @@ export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> =
   rust: "Rust",
   manimgx: "ManimGX",
   "sd-cpp": "stable-diffusion.cpp",
+  acestep: "ACE-Step (ace-server)",
   wan2gp: "Wan2GP",
   "transformers-js": "Transformers.js",
   "node-llama-cpp": "llama.cpp (in-process)",
@@ -137,6 +139,9 @@ export function missingRuntimePackageDetails(
   } else if (runtimePackage === "sd-cpp") {
     managed = runtimeAdd ?? managed;
     bringYourOwn = "Or set SD_CPP_SERVER_PATH to an sd-server binary from https://github.com/leejet/stable-diffusion.cpp/releases.";
+  } else if (runtimePackage === "acestep") {
+    managed = runtimeAdd ?? managed;
+    bringYourOwn = "Or set ACESTEP_SERVER_PATH to an ace-server binary built from https://github.com/ServeurpersoCom/acestep.cpp.";
   } else if (runtimePackage === "wan2gp") {
     managed = runtimeAdd ?? managed;
     bringYourOwn = "Or set WAN2GP_MCP_URL to the MCP endpoint of a Wan2GP server you run (python wgp.py --mcp --mcp-async --mcp-transport streamable-http).";
@@ -248,6 +253,7 @@ export function runtimePackageForBinary(binary: string): RuntimePackageId | null
     case "yt-dlp": return "yt-dlp";
     case "manimgx": return "manimgx";
     case "sd-server": return "sd-cpp";
+    case "ace-server": return "acestep";
     default: return null;
   }
 }

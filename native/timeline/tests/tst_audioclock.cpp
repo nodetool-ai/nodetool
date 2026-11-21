@@ -10,7 +10,10 @@
 //   - while audio plays, the playhead is the timeline time of the frame that
 //     is audible at that moment, within the callback jitter;
 //   - over an hour on a device 100 ppm fast, that error does not grow
-//     (drift 0), while the monotonic clock would be off by 360 ms.
+//     (drift 0), while the monotonic clock would be off by 360 ms;
+//   - the callback wraps a loop at the first frame at or past its end for
+//     fractional loop lengths and play starts at 48 and 44.1 kHz, and counts
+//     one miss per pass that ends with no wrap.
 
 #include "playback/AudioClockFeed.h"
 #include "audio/AvSyncInterpolation.h"
@@ -472,6 +475,135 @@ private slots:
         // than the wall clock.
         const double expected = 3600.0 * 1000.0 * 1.0001;
         QVERIFY2(std::abs(sim.clock.time() - expected) < 30.0, qPrintable(QString::number(sim.clock.time() - expected)));
+    }
+
+    // MUSIC-MODE.md MD19: the callback wraps at the first frame at or past
+    // the loop end, for any loop length and any play start. An end inside
+    // the last frame of a block wraps at frame 0 of the next block.
+    void loopWrapsAtEveryEnd_data() {
+        QTest::addColumn<double>("rate");
+        QTest::addColumn<int>("period");
+        QTest::addColumn<double>("loopIn");
+        QTest::addColumn<double>("loopOut");
+        QTest::newRow("48 kHz, whole-frame loop") << 48000.0 << 480 << 1000.0 << 1500.0;
+        QTest::newRow("48 kHz, one beat at 130 bpm") << 48000.0 << 480 << 1000.0 << 1000.0 + 60000.0 / 130.0;
+        QTest::newRow("48 kHz, Alt-placed range") << 48000.0 << 1024 << 1000.0 << 1777.777;
+        QTest::newRow("48 kHz, end in the last frame of a block") << 48000.0 << 480 << 1000.0
+                                                                   << 1000.0 + 22559.5 / 48.0;
+        QTest::newRow("44.1 kHz, 1000 to 2001 ms") << 44100.0 << 441 << 1000.0 << 2001.0;
+        QTest::newRow("44.1 kHz, 25 frames at 24 fps") << 44100.0 << 512 << 0.0 << 25000.0 / 24.0;
+    }
+    void loopWrapsAtEveryEnd() {
+        QFETCH(double, rate);
+        QFETCH(int, period);
+        QFETCH(double, loopIn);
+        QFETCH(double, loopOut);
+        const double msPerFrame = 1000.0 / rate;
+        const double loopFrames = (loopOut - loopIn) * rate / 1000.0;
+        const auto spacing = static_cast<std::int64_t>(std::ceil(loopFrames - 1e-6));
+        std::mt19937_64 rng(11);
+        std::uniform_real_distribution<double> anywhere(loopIn, loopOut);
+        constexpr int kStarts = 40;
+        constexpr int kWrapsPerStart = 100;
+        int wrapsSeen = 0;
+        for (int start = 0; start < kStarts; ++start) {
+            // A start on the loop in, half a frame before the end, with the
+            // end in the last frame of the first block, then random ones.
+            const double seekMs = start == 0   ? loopIn
+                                  : start == 1 ? loopOut - 0.5 * msPerFrame
+                                  : start == 2 ? loopOut - (period - 0.5) * msPerFrame
+                                               : anywhere(rng);
+            AudioClockFeed feed;
+            CallbackClockDriver driver(feed);
+            TransportCommand cmd;
+            cmd.seq = 1;
+            cmd.seekSeq = 1;
+            cmd.playing = true;
+            cmd.seekMs = seekMs;
+            cmd.loopStartMs = loopIn;
+            cmd.loopEndMs = loopOut;
+            feed.command.store(cmd);
+            std::int64_t lastWrap = -1;
+            int wraps = 0;
+            for (std::int64_t frame = 0; wraps < kWrapsPerStart; frame += period) {
+                QVERIFY2(frame < static_cast<std::int64_t>((kWrapsPerStart + 2) * (loopFrames + period)),
+                         qPrintable(QStringLiteral("start %1 ms: the loop stopped wrapping").arg(seekMs, 0, 'f', 6)));
+                const AudioAnchor a = driver.beginBlock(
+                    frame, period, rate, [](std::uint64_t) { return true; }, [](std::uint64_t, double) { return true; });
+                QVERIFY(!driver.wrapMissed());
+                const std::int64_t w = driver.wrapOffset();
+                const std::int64_t played = w >= 0 ? w : period;
+                // No frame at or past the loop end plays from the pass it ends.
+                if (played > 0) {
+                    const double last = CallbackClockDriver::timelineAt(a, frame + played - 1, rate);
+                    QVERIFY2(last < loopOut,
+                             qPrintable(QStringLiteral("start %1 ms, frame %2: %3 ms played past the loop end")
+                                            .arg(seekMs, 0, 'f', 6)
+                                            .arg(frame + played - 1)
+                                            .arg(last - loopOut)));
+                }
+                if (w < 0) continue;
+                // No early wrap either: the wrap frame is at or past the end.
+                QVERIFY(CallbackClockDriver::timelineAt(a, frame + w, rate) >= loopOut - 1e-5 * msPerFrame);
+                if (lastWrap >= 0) QCOMPARE(frame + w - lastWrap, spacing);
+                lastWrap = frame + w;
+                ++wraps;
+            }
+            wrapsSeen += wraps;
+        }
+        QCOMPARE(wrapsSeen, kStarts * kWrapsPerStart);
+    }
+
+    // A loop end with no wrap PCM ready is one counted miss per pass,
+    // wherever the end falls in the block, and the block plays on from the
+    // pass it ends. An end the playhead is already past when the loop range
+    // arrives counts once as well.
+    void loopMissIsCounted_data() {
+        QTest::addColumn<double>("endInBlock");  // the loop end, in frames from the start of the first block
+        QTest::newRow("inside the block") << 100.25;
+        QTest::newRow("in the last frame of the block") << 479.5;
+        QTest::newRow("on the block boundary") << 480.0;
+        QTest::newRow("a thousandth of a frame before the boundary") << 479.999;
+    }
+    void loopMissIsCounted() {
+        QFETCH(double, endInBlock);
+        const double msPerFrame = 1000.0 / kNominalRate;
+        const double loopIn = 1000.0;
+        const double loopOut = 1500.0;
+        AudioClockFeed feed;
+        CallbackClockDriver driver(feed);
+        TransportCommand cmd;
+        cmd.seq = 1;
+        cmd.seekSeq = 1;
+        cmd.playing = true;
+        cmd.seekMs = loopOut - endInBlock * msPerFrame;
+        cmd.loopStartMs = loopIn;
+        cmd.loopEndMs = loopOut;
+        feed.command.store(cmd);
+        const auto ready = [](std::uint64_t) { return true; };
+        const auto notReady = [](std::uint64_t, double) { return false; };
+        int misses = 0;
+        std::int64_t frame = 0;
+        for (int i = 0; i < 20; ++i, frame += kBlock) {
+            driver.beginBlock(frame, kBlock, kNominalRate, ready, notReady);
+            QCOMPARE(driver.wrapOffset(), std::int64_t(-1));
+            if (driver.wrapMissed()) ++misses;
+        }
+        QCOMPARE(misses, 1);
+
+        // The playhead is now about 19 blocks past the end. A loop range
+        // that ends behind it arrives with a command that keeps the timeline.
+        cmd.seq = 2;
+        cmd.loopStartMs = 1000.0;
+        cmd.loopEndMs = 1400.0;
+        feed.command.store(cmd);
+        misses = 0;
+        for (int i = 0; i < 20; ++i, frame += kBlock) {
+            driver.beginBlock(frame, kBlock, kNominalRate, ready, [](std::uint64_t, double) { return true; });
+            QCOMPARE(driver.wrapOffset(), std::int64_t(-1));
+            if (driver.wrapMissed()) ++misses;
+        }
+        QCOMPARE(misses, 1);
     }
 
     // With no device the monotonic clock runs, as before M3.

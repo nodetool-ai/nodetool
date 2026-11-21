@@ -11,6 +11,9 @@ ImportResult importFile(nt::server::ServerClient& client, const QString& file, c
     for (const auto& key : {QStringLiteral("workflow_id"), QStringLiteral("parent_id"), QStringLiteral("project_id")}) {
         if (!fields.value(key).toString().isEmpty()) { json.insert(key, fields.value(key)); }
     }
+    // The asset row's `metadata` (assetCreateBodySchema), for example the
+    // generation-context mark of a music bounce (MUSIC-MODE.md MR10).
+    if (fields.value("metadata").isObject()) { json.insert("metadata", fields.value("metadata")); }
     const auto uploaded = client.upload(json, file, contentType);
     if (!uploaded.ok()) { return {{}, uploaded.describe(), {}, false}; }
     ImportResult result;

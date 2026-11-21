@@ -159,6 +159,24 @@ void TimelineDocumentController::createAndOpen() {
     }
     m_list.openTimeline(created.value("id").toString());
 }
+void TimelineDocumentController::createMusicAndOpen(const QVariantMap& settings) {
+    if (m_switching || m_list.busy()) {
+        return;
+    }
+    m_error.clear();
+    emit errorChanged();
+    m_list.refresh();
+    if (!m_list.error().isEmpty()) {
+        fail(m_list.error());
+        return;
+    }
+    const auto created = m_list.createMusicTimeline(settings);
+    if (created.isEmpty()) {
+        fail(m_list.error());
+        return;
+    }
+    m_list.openTimeline(created.value("id").toString());
+}
 bool TimelineDocumentController::leaveCurrent() {
     bind();
     if (!m_menus || !m_menus->preferences()) {

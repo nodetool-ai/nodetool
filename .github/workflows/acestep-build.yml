@@ -148,8 +148,13 @@ jobs:
           mkdir "$RUNNER_TEMP/check"
           ditto -x -k "release-assets/$ARCHIVE" "$RUNNER_TEMP/check"
           codesign --verify --strict "$RUNNER_TEMP/check/ace-server"
-          # Without arguments ace-server prints its usage and exits.
-          "$RUNNER_TEMP/check/ace-server" 2>&1 | grep -q 'Usage:'
+          # Without arguments ace-server prints its usage and exits with 1.
+          usage=$("$RUNNER_TEMP/check/ace-server" 2>&1 || true)
+          if ! grep -q 'Usage:' <<< "$usage"; then
+            echo "::error::The unpacked ace-server did not print its usage:"
+            echo "$usage"
+            exit 1
+          fi
           digest=$(shasum -a 256 "release-assets/$ARCHIVE" | cut -d' ' -f1)
           size=$(stat -f %z "release-assets/$ARCHIVE")
           echo "$digest  $ARCHIVE" > "release-assets/$ARCHIVE.sha256"

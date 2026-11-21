@@ -37,7 +37,9 @@ std::vector<ExportPreset> builtinExportPresets() {
         {"square-1x1", "Square", "For feed posts.", true, Settings{.width = 1080, .height = 1080}},
         {"review-720p", "Small review copy", "A light file to send for feedback.", true,
             Settings{.width = 1280, .height = 720, .videoBitrateKbps = 2500}},
-        {"audio-wav", "Audio only (WAV)", "The mixdown as a 16-bit WAV.", true, Settings{.format = QStringLiteral("wav")}}
+        {"audio-wav", "Audio only (WAV)", "The mixdown as a 16-bit WAV.", true, Settings{.format = QStringLiteral("wav")}},
+        {"audio-wav-24", "Full mix (24-bit WAV)", "The mixdown as a 24-bit WAV, for mastering and music delivery.", true,
+            Settings{.format = QStringLiteral("wav"), .audioBitDepth = 24}}
     };
 }
 }

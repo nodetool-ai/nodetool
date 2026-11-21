@@ -15,6 +15,8 @@ struct Settings {
     double fps = 0;
     int videoBitrateKbps = 0;
     QString scaleMode = QStringLiteral("fit");
+    // PCM depth of a WAV export: 16 or 24. Other formats ignore it.
+    int audioBitDepth = 16;
 };
 QVariantMap toVariant(const Settings& settings);
 Settings settingsFromVariant(const QVariantMap& values);

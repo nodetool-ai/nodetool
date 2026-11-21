@@ -26,6 +26,7 @@
  */
 
 import { z } from "zod";
+import type { MusicGenerationRecord } from "./api-schemas/timeline.js";
 import { missingRuntimeDetailsSchema } from "./missing-runtime-package.js";
 import { missingPackDetailsSchema } from "./missing-pack.js";
 import { isRecord, isString } from "./predicates.js";
@@ -967,6 +968,25 @@ export interface GetNodeRequest {
 export interface GenerateMediaResponse {
   asset_ids: string[];
   existing_generation_id?: string;
+  /** Music mode takes, candidate by candidate and segment by segment. */
+  music_takes?: MusicTakeResult[];
+  /** Music mode backend timing. */
+  timing?: MusicGenerationTiming;
+}
+
+/** One take of a music mode response (MUSIC-MODE.md section 10). */
+export interface MusicTakeResult {
+  asset_id: string;
+  candidate: number;
+  segment: number;
+  /** The server fills seed, audio codes, alignment, gain and backend. */
+  record: MusicGenerationRecord;
+}
+
+export interface MusicGenerationTiming {
+  queue_ms: number;
+  lm_ms: number;
+  synth_ms: number;
 }
 
 /**

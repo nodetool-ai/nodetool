@@ -1,6 +1,6 @@
 import { accessSync, constants, statSync } from "node:fs";
 import { delimiter, join } from "node:path";
-import { runtimeLocations, sdServerPath } from "@nodetool-ai/config";
+import { aceServerPath, runtimeLocations, sdServerPath } from "@nodetool-ai/config";
 
 /**
  * Credential requirements of the remote providers the runtime registers
@@ -138,6 +138,19 @@ function hasSdCppRuntime(env: NodeJS.ProcessEnv): boolean {
   return candidates.some(candidate => candidate !== undefined && isExecutable(candidate));
 }
 
+/** Check the same binary locations as the acestep provider, without starting ace-server. */
+function hasAceStepRuntime(env: NodeJS.ProcessEnv): boolean {
+  if (env.ACESTEP_SERVER_URL?.trim()) { return true; }
+  const directories = [runtimeLocations(env).aceStep, runtimeLocations({ ...env, NODETOOL_HOST: "cli" }).aceStep];
+  const executable = process.platform === "win32" ? "ace-server.exe" : "ace-server";
+  const candidates = [
+    env.ACESTEP_SERVER_PATH?.trim(),
+    ...directories.filter((directory): directory is string => directory !== null).map(directory => aceServerPath(directory)),
+    ...(env.PATH ?? "").split(delimiter).filter(Boolean).map(directory => join(directory, executable))
+  ];
+  return candidates.some(candidate => candidate !== undefined && isExecutable(candidate));
+}
+
 /** Credential state of every known provider, without reading any secret value. */
 export function providerStates(input: ProviderStateInput): ProviderState[] {
   const keyed = KEYED_PROVIDERS.map(provider => {
@@ -147,9 +160,11 @@ export function providerStates(input: ProviderStateInput): ProviderState[] {
   });
   const claude = findClaudeCli(input.env) !== null;
   const sdCpp = hasSdCppRuntime(input.env);
+  const aceStep = hasAceStepRuntime(input.env);
   const local: ProviderState[] = [
     { id: "claude_agent_sdk", name: "Claude (claude CLI login)", requires: "claude CLI", usable: claude, source: claude ? "claude CLI" : null },
     { id: "stable_diffusion_cpp", name: "stable-diffusion.cpp (local images)", requires: "runtime sd-cpp (`nodetool runtime add sd-cpp`) or SD_CPP_SERVER_PATH", usable: sdCpp, source: sdCpp ? "runtime" : null },
+    { id: "acestep", name: "ACE-Step (local music)", requires: "runtime acestep (`nodetool runtime add acestep`), ACESTEP_SERVER_PATH or ACESTEP_SERVER_URL", usable: aceStep, source: aceStep ? "runtime" : null },
     ...PACK_PROVIDERS.map(provider => {
       const installed = input.installedPacks.has(provider.pack);
       return { id: provider.id, name: provider.name, requires: `pack ${provider.pack}`, usable: installed, source: installed ? "pack" as const : null };

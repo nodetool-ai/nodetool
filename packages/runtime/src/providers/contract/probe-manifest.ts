@@ -39,6 +39,7 @@ import {
   kieEnvelopeError
 } from "../kie-provider.js";
 import { decodeReplicateOutput } from "../replicate-provider.js";
+import { decodeAceJobStatus } from "../acestep-provider.js";
 import {
   anthropicContextExceeded,
   geminiContextExceeded,
@@ -53,7 +54,8 @@ export type ProbeProvider =
   | "gemini"
   | "fal_ai"
   | "kie"
-  | "replicate";
+  | "replicate"
+  | "acestep";
 
 /** The one live HTTP request an entry may make per run. */
 export interface LiveProbeSpec {
@@ -516,6 +518,36 @@ export const PROBE_MANIFEST: ProbeManifestEntry[] = [
     liveGap:
       "Replicate has no free endpoint that answers a finished prediction — " +
       "obtaining one means paying for a generation."
+  },
+  {
+    // The acestep provider resubmits a job once when ace-server forgets it
+    // (MUSIC-MODE.md 12.3). It recognises that answer with this decoder, so a
+    // changed answer would turn the resubmit into a hard failure.
+    id: "acestep.unknown-job",
+    provider: "acestep",
+    target: "GET <ace-server>/job?id=<unknown id> (acestep.cpp 07abf07)",
+    decoder: "decodeAceJobStatus",
+    fixture: "acestep/unknown-job.json",
+    check: (raw) => {
+      const state = decodeAceJobStatus(raw);
+      expect(state === "lost", `GET /job for an unknown id decoded to "${state}", expected "lost"`);
+    },
+    requiredFields: ["error"],
+    live: {
+      // The base URL of a running ace-server. scripts/provider-contract-probe.mjs
+      // starts the installed one when this is unset, and the entry skips
+      // where no ace-server is installed.
+      credential: "ACESTEP_PROBE_URL",
+      maxRequests: 1,
+      maxCostUsd: 0,
+      estimatedCostUsd: 0,
+      // ace-server answers an unknown id with HTTP 404 and its error body.
+      acceptsHttpError: true,
+      request: (_env, baseUrl) => ({
+        url: `${baseUrl.replace(/\/+$/, "")}/job?id=0000000000000000`,
+        init: { method: "GET", redirect: "error" }
+      })
+    }
   }
 ];
 

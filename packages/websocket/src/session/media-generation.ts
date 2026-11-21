@@ -21,7 +21,7 @@ import {
 } from "@nodetool-ai/presets";
 import { createLogger } from "@nodetool-ai/config";
 import { encryptFernet, getMasterKey } from "@nodetool-ai/security";
-import { Prediction } from "@nodetool-ai/models";
+import { Asset, Prediction } from "@nodetool-ai/models";
 import {
   attachRunCostLedger,
   createFalGenerationLifecycleHooks,
@@ -39,7 +39,13 @@ import type {
 import type { GenerationReceipt } from "@nodetool-ai/protocol";
 
 import { createAssetModelInterface } from "../lib/asset-model-interface.js";
-import { saveProjectAsset } from "@nodetool-ai/asset-services/project-asset";
+import { thumbnailKey } from "../lib/thumbnail.js";
+import { assetObjectKey } from "@nodetool-ai/storage";
+import { getAssetAdapter } from "../lib/storage.js";
+import {
+  deleteProjectAssetFile,
+  saveProjectAsset
+} from "@nodetool-ai/asset-services/project-asset";
 
 const log = createLogger("nodetool.websocket.media-generation");
 
@@ -121,6 +127,11 @@ export interface GenerationRun {
     contentType: string,
     ext: string
   ): Promise<string>;
+  /**
+   * Delete an asset {@link storeAsset} stored, with its bytes and thumbnail,
+   * when the request that stored it fails.
+   */
+  discardAsset(assetId: string): Promise<void>;
 }
 
 /** Most words of a prompt that name its file. */
@@ -291,6 +302,20 @@ export function createGenerationRun(
         parentId: userId
       });
       return asset.id;
+    },
+
+    async discardAsset(assetId) {
+      const asset = await Asset.find(userId, assetId);
+      if (!asset) return;
+      // The project file storeAsset wrote goes before its row, then the
+      // thumbnail object.
+      await deleteProjectAssetFile(asset);
+      const adapter = getAssetAdapter();
+      const thumb = adapter.uriForKey(assetObjectKey(userId, thumbnailKey(asset.id)));
+      if (await adapter.exists(thumb)) {
+        await adapter.delete(thumb);
+      }
+      await asset.delete();
     }
   };
 }

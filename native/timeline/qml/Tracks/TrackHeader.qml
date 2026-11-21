@@ -1,7 +1,8 @@
 // Mirrors web/src/components/timeline/Tracks/TrackHeader.tsx: the left strip
 // of a track row. Top row: reorder grip, type glyph, name, index chip (V1,
 // A1). Bottom row: the visibility, lock, sync-lock, mute, solo, effects,
-// automation and delete buttons.
+// automation and delete buttons. An audio track with a music role shows the
+// role as a chip before its name (docs/MUSIC-MODE.md MD4, UI-3).
 import QtQuick
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
@@ -18,6 +19,8 @@ Rectangle {
     required property bool solo
     required property int typedIndex
     required property double rowHeight
+    // The raw track (TrackListModel's `track` role).
+    required property var track
     property TimelineModel timeline: null
     property ClipGestureController gestures: null
     property TimelineViewState viewState: null
@@ -190,6 +193,29 @@ Rectangle {
             onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackSolo", {trackId: header.trackId, solo: !header.solo}) }
         }
         Item { width: Ui.Metrics.xs; height: 1 }
+        Rectangle {
+            id: roleChip
+            objectName: "trackRole-" + header.trackId
+            readonly property string musicRole: header.track && header.track.musicRole ? header.track.musicRole : ""
+            readonly property string label: musicRole !== "" ? MusicProjectRules.roleLabel(musicRole) : ""
+            visible: label !== "" && header.trackType === "audio"
+            anchors.verticalCenter: parent.verticalCenter
+            width: roleText.implicitWidth + 2 * Ui.Metrics.sm
+            height: Ui.Metrics.iconMd
+            radius: Ui.Metrics.radiusPill
+            color: Ui.Theme.actionSelected
+            border.width: Ui.Metrics.border
+            border.color: Ui.Theme.borderSubtle
+            Accessible.role: Accessible.StaticText
+            Accessible.name: "Role: " + label
+            Ui.Text {
+                id: roleText
+                anchors.centerIn: parent
+                text: roleChip.label
+                role: Ui.Typography.SansCaption
+            }
+        }
+        Item { visible: roleChip.visible; width: Ui.Metrics.xs; height: 1 }
         Ui.Text {
             id: nameText
             objectName: "trackName-" + header.trackId

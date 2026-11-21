@@ -45,6 +45,8 @@ export const MEDIA_ONLY_EXEMPTIONS: Record<string, string> = {
   wangp: "Wan2GP video and image generation over MCP; generateMessage(s) always throws.",
   stable_diffusion_cpp:
     "Local image generation through a spawned sd-server; generateMessage(s) always throws.",
+  acestep:
+    "Music mode generation through a spawned or remote ace-server; generateMessage(s) always throws.",
   higgsfield:
     "Image/video generation provider; generateMessage(s) always throws.",
   useapi:
