@@ -21,11 +21,12 @@ import {
   VIDEO_TITLE,
 } from "@/data/videoEditorPage";
 import PageUpdated from "@/components/PageUpdated";
+import { languageAlternates } from "@/i18n/routes";
 
 export const metadata: Metadata = {
   title: VIDEO_TITLE,
   description: VIDEO_DESCRIPTION,
-  alternates: { canonical: "/ai-video-editor" },
+  alternates: { canonical: "/ai-video-editor", languages: languageAlternates("/ai-video-editor") },
   openGraph: { title: VIDEO_TITLE, description: VIDEO_DESCRIPTION, url: "https://nodetool.ai/ai-video-editor", siteName: "NodeTool", type: "website", images: [{ url: "/surface-timeline-poster.webp", alt: "The NodeTool timeline with generated clips on several tracks" }] },
   twitter: { card: "summary_large_image", title: VIDEO_TITLE, description: VIDEO_DESCRIPTION, images: ["/surface-timeline-poster.webp"] },
 };

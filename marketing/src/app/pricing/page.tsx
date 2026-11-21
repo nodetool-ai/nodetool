@@ -9,12 +9,13 @@ import { breadcrumbSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import ByokCalculator from "../../components/ByokCalculator";
 import SubscriptionSection from "../../components/SubscriptionSection";
+import { languageAlternates } from "@/i18n/routes";
 
 export const metadata: Metadata = {
   title: "Pricing — free Studio, free Cloud alpha, pay providers directly | NodeTool",
   description:
     "NodeTool Studio is free and open source. Current Cloud alpha access is free, and future Cloud pricing has not been announced. Provider charges remain separate in both editions.",
-  alternates: { canonical: "/pricing" },
+  alternates: { canonical: "/pricing", languages: languageAlternates("/pricing") },
   openGraph: {
     title: "NodeTool Pricing — free Studio, your own supported provider accounts",
     description:

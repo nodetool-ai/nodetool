@@ -7,6 +7,14 @@ import { track } from "../lib/analytics";
 import { useGithubStars, formatStars } from "../lib/useGithubStars";
 import { EDITIONS } from "../data/editions";
 import AnnouncementBar from "./AnnouncementBar";
+import {
+  englishRoute,
+  LOCALES,
+  localeOfPath,
+  localizedPath,
+  type Locale,
+} from "../i18n/routes";
+import { ZH_HEADER, ZH_NAV_GROUPS, ZH_NAV_LABELS } from "../i18n/zh/chrome";
 
 /**
  * Single shared site header used by every route (P3). Replaces the per-page
@@ -68,6 +76,53 @@ const NAV: NavEntry[] = [
 ];
 
 const isGroup = (entry: NavEntry): entry is NavGroup => "links" in entry;
+
+const ENGLISH_HEADER = {
+  skip: "Skip to content",
+  star: "Star on GitHub",
+  starLabel: "Star NodeTool on GitHub",
+  openMenu: "Open menu",
+  closeMenu: "Close menu",
+  menu: "Site menu",
+  home: "NodeTool home",
+};
+
+const HEADER_COPY: Record<Locale, typeof ENGLISH_HEADER> = { zh: ZH_HEADER };
+const NAV_GROUPS: Record<Locale, Record<string, string>> = { zh: ZH_NAV_GROUPS };
+const NAV_LABELS: Record<Locale, Record<string, string>> = { zh: ZH_NAV_LABELS };
+
+/**
+ * The nav in a page's language: translated labels, and links to the
+ * translated page where one exists. Other links stay on the English page.
+ */
+function localizeNav(locale: Locale): NavEntry[] {
+  const link = (entry: NavLink): NavLink => ({
+    ...entry,
+    name: NAV_LABELS[locale][entry.href] ?? entry.name,
+    href: entry.external ? entry.href : (localizedPath(locale, entry.href) ?? entry.href),
+  });
+  return NAV.map((entry) =>
+    isGroup(entry)
+      ? { name: NAV_GROUPS[locale][entry.name] ?? entry.name, links: entry.links.map(link) }
+      : link(entry)
+  );
+}
+
+type LanguageSwitch = { href: string; label: string; lang: string };
+
+/**
+ * A translated page links its English page, and an English page with a
+ * translation links that. Pages with neither show no switch.
+ */
+function languageSwitch(pathname: string | null): LanguageSwitch | null {
+  if (!pathname) return null;
+  const locale = localeOfPath(pathname);
+  if (locale) {
+    return { href: englishRoute(pathname), label: "English", lang: "en" };
+  }
+  const zh = localizedPath("zh", pathname);
+  return zh ? { href: zh, label: "中文", lang: LOCALES.zh.hreflang } : null;
+}
 
 /** A section is current on its own page and on every page under it. */
 const isCurrentSection = (pathname: string | null, link: NavLink): boolean =>
@@ -169,12 +224,12 @@ function NavDropdown({
 
 const GITHUB_URL = "https://github.com/nodetool-ai/nodetool";
 
-function Wordmark() {
+function Wordmark({ href, label }: { href: string; label: string }) {
   return (
     <a
-      href="/"
+      href={href}
       className="group flex items-center gap-2 rounded focus-ring"
-      aria-label="NodeTool home"
+      aria-label={label}
     >
       <Image
         src="/logo_small.webp"
@@ -283,6 +338,11 @@ function MobileNavLink({
 export default function SiteHeader() {
   const pathname = usePathname();
   const stars = useGithubStars();
+  const locale = localeOfPath(pathname);
+  const nav = locale ? localizeNav(locale) : NAV;
+  const copy = locale ? HEADER_COPY[locale] : ENGLISH_HEADER;
+  const homeHref = locale ? `/${locale}` : "/";
+  const switchTo = languageSwitch(pathname);
 
   return (
     <header>
@@ -290,7 +350,7 @@ export default function SiteHeader() {
         href="#content"
         className="sr-only fixed left-4 top-4 z-[100] rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white focus:not-sr-only focus-ring"
       >
-        Skip to content
+        {copy.skip}
       </a>
       <script dangerouslySetInnerHTML={{ __html: NAV_MENU_SCRIPT }} />
       <AnnouncementBar />
@@ -301,11 +361,11 @@ export default function SiteHeader() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8 py-2 sm:py-3">
           <div className="flex items-center justify-between gap-4 w-full min-h-[44px] sm:min-h-[56px]">
             <div className="shrink-0 flex items-center h-9 sm:h-10">
-              <Wordmark />
+              <Wordmark href={homeHref} label={copy.home} />
             </div>
 
             <ul className="hidden xl:flex items-center gap-1 rounded-full bg-slate-900/40 ring-1 ring-white/5 px-2 py-1 border border-slate-800/50">
-              {NAV.map((entry) => {
+              {nav.map((entry) => {
                 if (isGroup(entry)) {
                   return (
                     <NavDropdown
@@ -343,17 +403,27 @@ export default function SiteHeader() {
                 data-nav="open"
                 aria-controls="mobile-site-menu"
                 aria-expanded={false}
-                aria-label="Open menu"
+                aria-label={copy.openMenu}
               >
                 <Bars3Icon className="h-5 w-5" aria-hidden="true" />
               </button>
+              {switchTo && (
+                <a
+                  href={switchTo.href}
+                  hrefLang={switchTo.lang}
+                  lang={switchTo.lang}
+                  className="inline-flex items-center rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/70 focus-ring"
+                >
+                  {switchTo.label}
+                </a>
+              )}
               <a
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => track("Star GitHub")}
                 className="hidden sm:inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/70 px-3.5 py-2 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/70 focus-ring"
-                aria-label="Star NodeTool on GitHub"
+                aria-label={copy.starLabel}
               >
                 <Image
                   src="/github-mark-white.svg"
@@ -362,7 +432,7 @@ export default function SiteHeader() {
                   height={18}
                   role="presentation"
                 />
-                <span>Star on GitHub</span>
+                <span>{copy.star}</span>
                 {stars !== null && (
                   <span className="ml-1 rounded-md bg-slate-800 px-1.5 py-0.5 text-xs font-medium text-slate-300">
                     {formatStars(stars)}
@@ -379,29 +449,29 @@ export default function SiteHeader() {
         className="site-nav-overlay fixed inset-0 z-[70]"
         role="dialog"
         aria-modal="true"
-        aria-label="Site menu"
+        aria-label={copy.menu}
       >
         <button
           type="button"
           className="absolute inset-0 bg-slate-950/90"
           data-nav="close"
-          aria-label="Close menu"
+          aria-label={copy.closeMenu}
         />
         <div className="mobile-menu-panel absolute inset-y-0 right-0 w-full overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-950 px-6 py-6 sm:max-w-sm border-l border-slate-800/60">
           <div className="flex items-center justify-between">
-            <Wordmark />
+            <Wordmark href={homeHref} label={copy.home} />
             <button
               type="button"
               className="rounded-md p-2 text-slate-300 hover:bg-slate-800/60 transition-colors focus-ring"
               data-nav="close"
               data-nav-initial-focus
-              aria-label="Close menu"
+              aria-label={copy.closeMenu}
             >
               <XMarkIcon className="h-6 w-6" aria-hidden="true" />
             </button>
           </div>
           <div className="mt-6 space-y-2">
-            {NAV.map((entry) =>
+            {nav.map((entry) =>
               isGroup(entry) ? (
                 <section
                   key={entry.name}
@@ -430,7 +500,7 @@ export default function SiteHeader() {
               onClick={() => track("Star GitHub")}
               className="block px-3 py-3 text-base font-medium text-slate-200 hover:bg-slate-800/60 hover:text-white rounded-lg transition-colors focus-ring"
             >
-              Star on GitHub
+              {copy.star}
             </a>
           </div>
         </div>
