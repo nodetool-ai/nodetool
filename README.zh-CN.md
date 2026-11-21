@@ -1,6 +1,6 @@
 # NodeTool
 
-[English](README.md) · 简体中文
+[English](README.md) · 简体中文 · [日本語](README.ja.md)
 
 **开源 AI 电影工作室 · 智能体 + 节点工作流**
 
@@ -11,7 +11,7 @@
 **[中文介绍](https://nodetool.ai/zh)** ·
 **[文档（英文）](https://docs.nodetool.ai/)**
 
-![NodeTool：一句话变成节拍表、角色、由静帧和片段组成的故事板，以及完成的剪辑](marketing/public/hero-flow-readme.gif)
+![NodeTool：一句话变成节拍表、角色、由静帧和片段组成的故事板，以及完成的剪辑](marketing/public/hero-flow-zh-readme.gif)
 
 Studio 免费且开源，支持 macOS、Windows 和 Linux。
 
