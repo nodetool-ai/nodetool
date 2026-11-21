@@ -4,9 +4,9 @@ import {
   isRecord,
   isString
 } from "@nodetool-ai/protocol";
+import { DiscoveredCompatProvider } from "./discovered-compat-provider.js";
 import { safeFetch } from "./safe-url.js";
 import {
-  OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
 import type { ProviderCapability } from "./base-provider.js";
@@ -41,13 +41,7 @@ interface ImageGenerationRequest {
  * with the `endpoints` it serves; the ones on `/v1/images/generations` back
  * text-to-image here.
  */
-export class UberLLMProvider extends OpenAICompatProvider {
-  /** `supported_parameters` includes `"tools"`, per model id, from the last discovery. */
-  private toolSupport = new Map<string, boolean>();
-  /** `context_length` per model id, from the last discovery. */
-  private contextWindows = new Map<string, number>();
-  private discoveryLoad: Promise<unknown> | null = null;
-
+export class UberLLMProvider extends DiscoveredCompatProvider {
   protected override declaredCapabilities(): readonly ProviderCapability[] {
     return ["text_to_image"];
   }
@@ -74,28 +68,6 @@ export class UberLLMProvider extends OpenAICompatProvider {
 
   override getContainerEnv(): Record<string, string> {
     return { UBERLLM_API_KEY: this.apiKey };
-  }
-
-  /** Runs discovery once per instance when the model was not listed yet. */
-  private async ensureDiscovered(model: string): Promise<void> {
-    if (this.toolSupport.has(model)) return;
-    this.discoveryLoad ??= this.getAvailableLanguageModels();
-    await this.discoveryLoad;
-  }
-
-  /**
-   * A row whose `supported_parameters` omits `"tools"` turns native tools off;
-   * a model the listing did not describe keeps them on.
-   */
-  override async hasToolSupport(model: string): Promise<boolean> {
-    await this.ensureDiscovered(model);
-    return this.toolSupport.get(model) ?? true;
-  }
-
-  /** The `context_length` the listing reports, or null for an unlisted model. */
-  override async getContextWindow(model: string): Promise<number | null> {
-    await this.ensureDiscovered(model);
-    return this.contextWindows.get(model) ?? null;
   }
 
   /**
