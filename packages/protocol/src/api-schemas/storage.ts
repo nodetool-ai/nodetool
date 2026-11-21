@@ -190,3 +190,51 @@ export const uneraseFileOutput = z.object({
 });
 
 export type UneraseFileOutput = z.infer<typeof uneraseFileOutput>;
+
+// ── storage.projectFileLists ─────────────────────────────────────────────────
+// The Incomplete list and the erased list of a cloud project, filtered for the
+// caller (WP2.9, PRD X7, SR32, AC73). A row appears only when content the
+// caller may read refers to it, and names only those documents. Counts and
+// sizes cover the returned rows.
+
+export const projectFileListsInput = z.object({
+  project_id: z.string().regex(/^[0-9a-f]{32}$/)
+});
+
+const listedDocument = z.object({
+  kind: z.enum(["workflow", "timeline"]),
+  document_id: z.string(),
+  name: z.string()
+});
+
+export const projectFileListsOutput = z.object({
+  /** The Incomplete mark: true while the caller's missing-file list is not empty. */
+  incomplete: z.boolean(),
+  missing_files: z.array(
+    z.object({
+      asset_id: z.string(),
+      /** The hash and size the sender knew, or null. */
+      hash: z.string().nullable(),
+      size: z.number().nullable(),
+      reason: z.enum(["missing_locally", "too_large", "over_allowance"]),
+      documents: z.array(listedDocument)
+    })
+  ),
+  /** The sum of the known sizes of the listed missing files. */
+  missing_bytes: z.number(),
+  erased_files: z.array(
+    z.object({
+      hash: z.string(),
+      size: z.number(),
+      /** The assets with this content that the caller's documents refer to. */
+      asset_ids: z.array(z.string()),
+      /** The owner, the only person who erases. */
+      erased_by: z.string(),
+      erased_at: z.string(),
+      documents: z.array(listedDocument)
+    })
+  ),
+  erased_bytes: z.number()
+});
+
+export type ProjectFileListsOutput = z.infer<typeof projectFileListsOutput>;

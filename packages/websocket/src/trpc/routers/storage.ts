@@ -19,6 +19,8 @@ import {
   eraseFileInput,
   eraseFileOutput,
   erasePreviewOutput,
+  projectFileListsInput,
+  projectFileListsOutput,
   uneraseFileOutput,
   signUrlInput,
   signUrlOutput,
@@ -40,6 +42,7 @@ import {
   type EraseHost
 } from "@nodetool-ai/project-services/project-erase";
 import { effectiveAccess, loadAccessDocument } from "../../lib/document-access.js";
+import { projectFileLists, ProjectFileListsNotFound } from "../../lib/project-file-lists.js";
 import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
 
 // ── Key validation (mirrors storage-api.ts) ──────────────────────────────────
@@ -240,6 +243,22 @@ export const storageRouter = router({
     .input(eraseFileInput)
     .output(eraseFileOutput)
     .mutation(({ ctx, input }) => withEraseRefusal(() => eraseProjectFile(eraseHost(), ctx.userId, input))),
+
+  /**
+   * The project's Incomplete and erased lists as the caller may see them:
+   * only files that content the caller may read refers to (SR32, AC73).
+   */
+  projectFileLists: protectedProcedure
+    .input(projectFileListsInput)
+    .output(projectFileListsOutput)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await projectFileLists(ctx.userId, input.project_id);
+      } catch (error) {
+        if (error instanceof ProjectFileListsNotFound) throwApiError(ApiErrorCode.NOT_FOUND, error.message);
+        throw error;
+      }
+    }),
 
   /** Takes a file off the project's erased list. Owner only. */
   unerase: protectedProcedure
