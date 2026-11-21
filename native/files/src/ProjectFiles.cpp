@@ -768,7 +768,9 @@ QString ProjectFiles::resolveLocalEntry(const QString &relativePath, bool requir
       return {};
     }
     const QFileInfo info(QDir(current).filePath(segment));
-    if (!info.exists()) { return {}; }
+    // canonicalFilePath does not follow a Windows .lnk shortcut, so a shortcut
+    // would pass the containment checks below as an ordinary file.
+    if (!info.exists() || info.isShortcut()) { return {}; }
     const QString canonical = info.canonicalFilePath();
     if (canonical.isEmpty() || !canonical.startsWith(m_localRootCanonical + '/')) { return {}; }
     const QString rel = canonical.mid(m_localRootCanonical.size() + 1);
@@ -808,7 +810,7 @@ QJsonArray ProjectFiles::listLocalDirectory(const QString &relativePath, QString
   const bool isRoot = relativePath.isEmpty() || relativePath == QLatin1String(Root);
   for (const auto &info : entries) {
     const QString name = info.fileName();
-    if (name.isEmpty() || name == QLatin1String(Reserved)) { continue; }
+    if (name.isEmpty() || name == QLatin1String(Reserved) || info.isShortcut()) { continue; }
     const QString canonical = info.canonicalFilePath();
     if (canonical.isEmpty() || !canonical.startsWith(m_localRootCanonical + '/')) { continue; }
     const QString canonicalRel = canonical.mid(m_localRootCanonical.size() + 1);

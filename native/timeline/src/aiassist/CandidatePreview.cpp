@@ -76,6 +76,9 @@ bool CandidatePreview::previewFile(const QString& localPath, const QString& medi
     if (localPath.isEmpty() || !QFileInfo(localPath).isFile()) { return false; }
     return start(PendingPreview{{}, QFileInfo(localPath).absoluteFilePath(), mediaType, durationMs});
 }
+bool CandidatePreview::previewUrl(const QUrl& url, const QString& mediaType, double durationMs) {
+    return url.isLocalFile() && previewFile(url.toLocalFile(), mediaType, durationMs);
+}
 bool CandidatePreview::start(const PendingPreview& request) {
     const auto& [assetId, localPath, mediaType, durationMs] = request;
     // A local file needs no server.

@@ -5,6 +5,7 @@
 #include "assets/AssetMedia.h"
 #include "audio/AppAudio.h"
 #include <QPointer>
+#include <QUrl>
 #include <optional>
 #include <QtQmlIntegration/qqmlintegration.h>
 class QThread;
@@ -38,6 +39,9 @@ public:
     // Plays a file on this machine, such as a project folder file, with no
     // server read. A durationMs of 0 takes the file's own duration.
     Q_INVOKABLE bool previewFile(const QString& localPath, const QString& mediaType, double durationMs = 0);
+    // previewFile for a file:// URL. QUrl::toLocalFile gives the platform path,
+    // so a Windows drive letter does not keep a leading slash.
+    Q_INVOKABLE bool previewUrl(const QUrl& url, const QString& mediaType, double durationMs = 0);
     Q_INVOKABLE void close();
 signals:
     void timelineChanged();
