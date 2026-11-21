@@ -20,7 +20,7 @@
  */
 
 import { z } from "zod";
-import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
+
 import type {
   CameraDirection,
   Screenplay,
@@ -32,7 +32,7 @@ import {
   joinLineTexts
 } from "@nodetool-ai/protocol";
 import { storyboards } from "@nodetool-ai/protocol/api-schemas";
-import type { HeadlessTool } from "../tool-loop-bridge.js";
+import { closedParams, parseBridgeArgs, type HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
@@ -248,6 +248,7 @@ function tool<TResult>(
   parameters: z.ZodTypeAny,
   impl: (args: Record<string, unknown>) => Promise<TResult>
 ): HeadlessTool {
+  const closed = closedParams(parameters);
   return {
     name,
     description,
@@ -255,7 +256,7 @@ function tool<TResult>(
     // Async so a parameter-validation failure reaches the caller as a rejected
     // promise, the way a failure inside the impl does.
     execute: async (args) => {
-      const parsed = parseWithTypeCoercion(parameters, args ?? {}) as Record<
+      const parsed = parseBridgeArgs(closed, args) as Record<
         string,
         unknown
       >;

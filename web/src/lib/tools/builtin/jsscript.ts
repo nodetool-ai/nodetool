@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { FrontendToolRegistry } from "../frontendTools";
-import { getJsScriptAgentHandler } from "../../../components/jsScript/jsScriptAgentBridge";
+import {
+  getJsScriptAgentHandler,
+  type JsScriptIssue
+} from "../../../components/jsScript/jsScriptAgentBridge";
 
 /**
  * Frontend tools that let the agent author the open JS script document — its
@@ -13,6 +16,24 @@ import { getJsScriptAgentHandler } from "../../../components/jsScript/jsScriptAg
  * Unlike the Code node assistant, these edits are the document: they autosave.
  * Run and test flush the live document first, then execute the saved row.
  */
+
+/**
+ * The fields a run or test adds when the saved document has validation
+ * errors. A body written to an old contract can still execute, and reporting
+ * that as `ok: true` told the agent the script was done.
+ */
+const invalidDocument = (
+  issues: readonly JsScriptIssue[]
+): { error: string; validationErrors: JsScriptIssue[] } | null => {
+  const errors = issues.filter((issue) => issue.severity === "error");
+  if (errors.length === 0) {return null;}
+  return {
+    error:
+      "The script does not validate, so this result does not count: " +
+      errors.map((issue) => `${issue.code}: ${issue.message}`).join("; "),
+    validationErrors: errors
+  };
+};
 
 const scriptIdParam = z
   .string()
@@ -194,13 +215,12 @@ FrontendToolRegistry.register({
       )
   }),
   async execute({ script_id, inputs, input_streams }) {
-    const outcome = await getJsScriptAgentHandler(script_id).run(
-      inputs ?? {},
-      input_streams
-    );
+    const handler = getJsScriptAgentHandler(script_id);
+    const outcome = await handler.run(inputs ?? {}, input_streams);
+    const invalid = invalidDocument(handler.getSnapshot().issues);
     // The nested `run.ok` is what the body did. Mirror it on the tool
     // result so a failed run is not a successful tool call.
-    return { ok: outcome.ok, run: outcome };
+    return { ok: outcome.ok && invalid === null, run: outcome, ...invalid };
   }
 });
 
@@ -210,7 +230,9 @@ FrontendToolRegistry.register({
     "Flush the live document, then run every saved test case and return the grade report: how many passed and failed, and for each case its outputs, emitted stream, logs, error, and the mismatches. Fails when there are no saved cases. Add cases first with ui_jsscript_set_tests.",
   parameters: z.object({ script_id: scriptIdParam }),
   async execute({ script_id }) {
-    const report = await getJsScriptAgentHandler(script_id).test();
-    return { ok: true, ...report };
+    const handler = getJsScriptAgentHandler(script_id);
+    const report = await handler.test();
+    const invalid = invalidDocument(handler.getSnapshot().issues);
+    return { ok: invalid === null, ...report, ...invalid };
   }
 });

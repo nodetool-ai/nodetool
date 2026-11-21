@@ -58,7 +58,7 @@ const APP = "app-under-test";
 // --- createAppToolBridge -----------------------------------------------------
 
 describe("createAppToolBridge", () => {
-  it("exposes exactly the 19 ui_app_* tools the frontend registers", () => {
+  it("exposes exactly the 20 ui_app_* tools the frontend registers", () => {
     const bridge = createAppToolBridge();
     const names = bridge.tools.map((t) => t.name).sort();
     expect(names).toEqual(
@@ -66,6 +66,7 @@ describe("createAppToolBridge", () => {
         "ui_app_add_component",
         "ui_app_add_operation",
         "ui_app_add_resource",
+        "ui_app_debug",
         "ui_app_declare_variable",
         "ui_app_get_binding_targets",
         "ui_app_get_snapshot",
@@ -196,25 +197,17 @@ describe("createAppToolBridge", () => {
     expect(text?.slot).toBe("content");
   });
 
-  it("add with an unknown parent silently no-ops (matches the real tool)", async () => {
+  it("add with an unknown parent is refused and inserts nothing (matches the real tool)", async () => {
     const bridge = createAppToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
-
-    // The real puckDataOps.addComponent leaves the tree unchanged for an
-    // unknown parent and still returns ok:true, echoing the caller's slot.
-    const added = (await byName["ui_app_add_component"].execute({
-      application_id: APP,
-      type: "Text",
-      parent_id: "does-not-exist",
-      slot: "content"
-    })) as {
-      ok: boolean;
-      component: { parentId: string | null; slot: string | null };
-    };
-    expect(added.ok).toBe(true);
-    expect(added.component.parentId).toBe("does-not-exist");
-    expect(added.component.slot).toBe("content");
-    // Nothing was actually inserted, and the phantom node isn't selected.
+    await expect(
+      byName["ui_app_add_component"].execute({
+        application_id: APP,
+        type: "Text",
+        parent_id: "does-not-exist",
+        slot: "content"
+      })
+    ).rejects.toThrow('no widget with id "does-not-exist"');
     expect(bridge.finalState().components).toHaveLength(0);
     expect(bridge.finalState().selectedId).toBeNull();
   });
@@ -405,6 +398,11 @@ describe("createAppToolBridge document meta", () => {
     })) as { ok: boolean; removed_id: string | null };
     expect(removed.ok).toBe(true);
     expect(bridge.finalState().operations).toEqual([]);
+    // With nothing declared, the implicit operation on the loaded workflow runs.
+    const implicit = (await byName["ui_app_list_operations"].execute({
+      application_id: APP
+    })) as { operations: { id: string; implicit?: boolean }[] };
+    expect(implicit.operations).toEqual([expect.objectContaining({ id: "main", implicit: true })]);
   });
 
   it("update_operation returns an error result for an unknown id", async () => {
@@ -552,6 +550,24 @@ describe("createAppToolBridge document meta", () => {
 // --- APP_TOOL_LOOP_CASES via runToolLoopEval ---------------------------------
 
 describe("APP_TOOL_LOOP_CASES", () => {
+  it("relabel-and-remove: a retry answered ok:false does not clear the earlier error", async () => {
+    const testCase = APP_TOOL_LOOP_CASES.find((c) => c.id === "relabel-and-remove");
+    if (!testCase) throw new Error("case missing");
+    const script: ScriptedCall[] = [
+      { name: "ui_app_update_component", args: { application_id: APP, id: "btn-1", props: { label: "Submit" } } },
+      { name: "ui_app_remove_component", args: { application_id: APP, id: "text-1" } },
+      { name: "ui_app_remove_component", args: { application_id: APP } },
+      { name: "ui_app_remove_component", args: { application_id: APP, id: "missing" } }
+    ];
+    const report = await runToolLoopEval({
+      provider: createScriptedProvider(script),
+      model: "test-model",
+      cases: [testCase]
+    });
+    const byName = Object.fromEntries(report.cases[0]!.checks.map((c) => [c.name, c.pass]));
+    expect(byName["no-error-results"]).toBe(false);
+  });
+
   it("build-form: title + heading + text input + button passes", async () => {
     const script: ScriptedCall[] = [
       { name: "ui_app_set_title", args: { application_id: APP, title: "Ask the AI" } },

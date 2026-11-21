@@ -21,6 +21,18 @@ import { isString } from "../utils/type-guards.js";
 export const DEFAULT_MAX_ITERATIONS = 12;
 
 /** One tool call the model made, with its result and whether it errored. */
+/**
+ * True for a tool result that reports a failure: an `error` field, or
+ * `ok: false` (a tool that answers a call it could not do without throwing).
+ * The no-error check lets a later success clear an error, so a failure must
+ * never count as that success.
+ */
+export function isFailedToolResult(result: unknown): boolean {
+  if (typeof result !== "object" || result === null) return false;
+  const { error, ok } = result as { error?: unknown; ok?: unknown };
+  return (error !== undefined && error !== null) || ok === false;
+}
+
 export interface ToolLoopCallRecord {
   name: string;
   args: Record<string, unknown>;
@@ -116,6 +128,7 @@ export async function runToolLoop(
       let isError = false;
       try {
         result = await tool.execute(args ?? {});
+        isError = isFailedToolResult(result);
       } catch (e) {
         isError = true;
         result = { error: e instanceof Error ? e.message : String(e) };

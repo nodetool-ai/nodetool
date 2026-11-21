@@ -91,7 +91,10 @@ export interface ToolLoopEvalExpectations<TFinal = unknown> {
   minToolCalls?: number;
   /** Maximum total tool calls across the run (efficiency ceiling). */
   maxToolCalls?: number;
-  /** When true, no tool call may have returned an error result. */
+  /**
+   * When true, every tool call that returned an error must be followed by a
+   * successful call of the same tool. A caught and repaired error passes.
+   */
   noErrorResults?: boolean;
   /**
    * Expectations over the interactive-escalation exchanges. Only meaningful
@@ -303,6 +306,23 @@ export function countCriticalFailures(checks: readonly EvalCheck[]): number {
   return checks.filter((c) => !c.pass && c.severity === "critical").length;
 }
 
+/** Errored calls that no later successful call of the same tool repaired. */
+function unrecoveredErrors(
+  calls: readonly ToolLoopCallRecord[]
+): ToolLoopCallRecord[] {
+  const recovered = new Set<string>();
+  const unrecovered: ToolLoopCallRecord[] = [];
+  for (let i = calls.length - 1; i >= 0; i--) {
+    const call = calls[i];
+    if (!call.isError) {
+      recovered.add(call.name);
+    } else if (!recovered.has(call.name)) {
+      unrecovered.push(call);
+    }
+  }
+  return unrecovered.reverse();
+}
+
 /**
  * Score a completed run against a case's structural expectations. Pure and
  * fully unit-testable: it takes an {@link ToolLoopObservation} and never calls
@@ -386,15 +406,15 @@ export function checkToolLoopExpectations<TFinal>(
   }
 
   if (expect.noErrorResults) {
-    const errored = observation.toolCalls.filter((c) => c.isError);
+    const unrecovered = unrecoveredErrors(observation.toolCalls);
     checks.push({
       name: "no-error-results",
-      pass: errored.length === 0,
+      pass: unrecovered.length === 0,
       severity: "standard",
       detail:
-        errored.length === 0
+        unrecovered.length === 0
           ? undefined
-          : `${errored.length} errored: ${errored.map((c) => c.name).join(", ")}`
+          : `${unrecovered.length} errored with no later success: ${unrecovered.map((c) => c.name).join(", ")}`
     });
   }
 

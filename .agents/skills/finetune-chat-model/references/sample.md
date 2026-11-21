@@ -89,5 +89,12 @@ Local models sample the same way: `-p ollama --models qwen3.5:9b` with
   that the teacher always fails has a wrong grader or a harness gap. Fix that
   before sampling more of it.
 - `maxPrompt` stays below the training `--max-seq` (65,536). `train.py` drops
-  longer records.
+  longer records. Sample with `--context-window 65536` so the chat turn
+  compacts against the student's serving window, not the teacher's. Compaction
+  cuts only at a user message, so a single-request run never compacts.
+- `sample` refuses to start when the installed sandbox catalog serves other
+  packs than `packages/websocket/scripts/finetune-sandbox-packs.json`. Build the
+  missing packs. Rewrite the pin with `ft-data.sh packs` only after a
+  deliberate change, and sample the teacher and evaluate every model on one
+  pin.
 - The spend matches the estimate (`total=` on the last line of each lane log).

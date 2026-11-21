@@ -46,7 +46,7 @@ import {
   type AudioEffect,
   type EffectParams
 } from "./audioEffects";
-import { useEditHistory } from "./useEditHistory";
+import { MAX_HISTORY, useEditHistory } from "./useEditHistory";
 import { validateAudioEffectParams } from "@nodetool-ai/protocol/api-schemas/asset-editor-tool-contracts.js";
 import { applyAudioEdit, summarizePeaks } from "./audioAgentOps";
 import {
@@ -623,12 +623,23 @@ const AudioSampleEditor = ({
   const savedSampleRef = useRef(savedSample);
   savedSampleRef.current = savedSample;
   const commitHistory = history.commit;
+  const undoHistory = history.undo;
+  const historyPrevious = history.previous;
+  const historyCurrent = history.current;
+  /**
+   * The agent's own steps, newest last: the sample before and after each.
+   * Undo walks back only while the editor still shows the agent's result, so
+   * it never takes back an edit the user made.
+   */
+  const agentStepsRef = useRef<Array<{ before: AudioSample; after: AudioSample }>>([]);
   const assetId = asset.id;
   const assetName = asset.name;
   useEffect(() => {
     if (!serveAgentTools || !ready) return;
+    // The history, not the rendered sample: a user edit or undo in the same
+    // batch has already moved it, and the agent must see that.
     const current = (): AudioSample => {
-      const value = sampleRef.current;
+      const value = historyCurrent();
       if (!value) throw new Error("The audio is not loaded yet.");
       return value;
     };
@@ -650,10 +661,16 @@ const AudioSampleEditor = ({
     };
     // Tool calls in one turn can outrun a render, so the ref moves with the
     // commit instead of waiting for it.
+    const agentSteps = agentStepsRef.current;
     const commit = (next: AudioSample) => {
-      if (next === sampleRef.current) return;
+      if (next === historyCurrent()) return;
+      const before = current();
       commitHistory(next);
       sampleRef.current = next;
+      agentSteps.push({ before, after: next });
+      // The editor keeps MAX_HISTORY past states. An agent step older than
+      // that cannot be undone there, so it must not be undoable here.
+      if (agentSteps.length > MAX_HISTORY) agentSteps.shift();
     };
     const handler: AudioAgentHandler = {
       getSnapshot: snapshot,
@@ -680,7 +697,7 @@ const AudioSampleEditor = ({
           range?.start,
           range?.end
         );
-        if (sampleRef.current !== before) {
+        if (historyCurrent() !== before) {
           throw new Error(
             "The audio changed while the effect rendered, so the result was dropped. Read it again with ui_audio_get_state and retry."
           );
@@ -690,6 +707,26 @@ const AudioSampleEditor = ({
           setSelection(null);
           selectionRef.current = null;
         }
+        return snapshot();
+      },
+      undo: () => {
+        const last = agentSteps.at(-1);
+        if (!last) {
+          throw new Error("Nothing you applied to this audio is left to undo.");
+        }
+        // The editor must show the agent's result, with the state before it
+        // as the one step its undo returns to. The user may have edited since,
+        // or pushed that step out of the history.
+        if (historyCurrent() !== last.after || historyPrevious() !== last.before) {
+          throw new Error(
+            "The user changed the audio after your last edit, so it was not undone. Read it again with ui_audio_get_state."
+          );
+        }
+        undoHistory();
+        agentSteps.pop();
+        sampleRef.current = last.before;
+        setSelection(null);
+        selectionRef.current = null;
         return snapshot();
       },
       save: async () => {
@@ -708,7 +745,7 @@ const AudioSampleEditor = ({
     };
     setAudioAgentHandler(assetId, handler);
     return () => setAudioAgentHandler(assetId, null);
-  }, [serveAgentTools, ready, assetId, assetName, commitHistory, save, playhead]);
+  }, [serveAgentTools, ready, assetId, assetName, commitHistory, undoHistory, historyPrevious, historyCurrent, save, playhead]);
   const bar = documentBar?.(
     ready
       ? {

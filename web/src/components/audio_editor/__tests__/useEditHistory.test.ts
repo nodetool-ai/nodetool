@@ -35,6 +35,29 @@ describe("useEditHistory", () => {
     expect(result.current.present).toBe(2);
   });
 
+  it("records no undo step for a commit that changes nothing", () => {
+    const { result } = renderHook(() => useEditHistory<number>());
+    act(() => result.current.reset(1));
+    act(() => result.current.commit(2));
+    act(() => result.current.commit(2));
+    act(() => result.current.undo());
+    expect(result.current.present).toBe(1);
+    expect(result.current.canUndo).toBe(false);
+  });
+
+  it("answers the state one undo returns to before the next render", () => {
+    const { result } = renderHook(() => useEditHistory<number>());
+    act(() => {
+      result.current.reset(1);
+      result.current.commit(2);
+      result.current.commit(3);
+      expect(result.current.previous()).toBe(2);
+      result.current.undo();
+      expect(result.current.previous()).toBe(1);
+    });
+    expect(result.current.present).toBe(2);
+  });
+
   it("clears the redo branch on a new commit", () => {
     const { result } = renderHook(() => useEditHistory<number>());
     act(() => result.current.reset(1));

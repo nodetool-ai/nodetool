@@ -220,7 +220,9 @@ so many valid tool orderings pass.
 `critical`/`standard`/`advisory`, `scoreToolLoopChecks`). Whether the required
 tools were called, what the final state looks like, and every escalation check
 are `critical`; ordering and no-error-results are `standard`; the tool-call
-budgets are `advisory`. A run that fails any critical check is additionally
+budgets are `advisory`. no-error-results counts only errors that no later
+successful call of the same tool repaired, so a caught and fixed mistake
+passes. A run that fails any critical check is additionally
 capped at `CRITICAL_FAILURE_SCORE_CAP` (0.5).
 
 The flat pass-fraction this replaced made scores non-comparable. A live sonnet

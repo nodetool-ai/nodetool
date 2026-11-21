@@ -183,10 +183,10 @@ describe("an imported capability", () => {
       (entry) => entry.spec.name === "list_workflows"
     )?.spec as ToolSignatureSource;
     const first = await dispatcher
-      .call(WORKFLOWS, "list_workflows", [{ limit: "x" }])
+      .call(WORKFLOWS, "list_workflows", [{ limit: 5 }])
       .catch((e: Error) => e.message);
     const second = await dispatcher
-      .call(WORKFLOWS, "list_workflows", [{ limit: "y" }])
+      .call(WORKFLOWS, "list_workflows", [{ limit: 6 }])
       .catch((e: Error) => e.message);
     expect(first).toContain(focusedToolSignature(spec));
     expect(second).toContain("limit: expected number");

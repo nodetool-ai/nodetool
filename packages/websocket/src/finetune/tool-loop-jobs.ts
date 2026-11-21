@@ -10,6 +10,7 @@
  */
 import {
   checkToolLoopExpectations,
+  isFailedToolResult,
   type ErasedJob,
   type HeadlessTool,
   type OutcomeResult,
@@ -62,7 +63,7 @@ export function toolLoopCaseJob<TFinal>(
           calls.push(record);
           try {
             record.result = await tool.execute(args);
-            record.isError = isErrorResult(record.result);
+            record.isError = isFailedToolResult(record.result);
             return record.result;
           } catch (err) {
             record.isError = true;
@@ -100,14 +101,4 @@ export function suiteJobs<TFinal>(
   surface?: string
 ): ErasedJob[] {
   return cases.filter(isChatRunnable).map((c) => toolLoopCaseJob(suite, c, surface));
-}
-
-function isErrorResult(result: unknown): boolean {
-  return (
-    typeof result === "object" &&
-    result !== null &&
-    "error" in result &&
-    (result as { error?: unknown }).error !== undefined &&
-    (result as { error?: unknown }).error !== null
-  );
 }

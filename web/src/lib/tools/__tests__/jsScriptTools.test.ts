@@ -33,7 +33,7 @@ const snapshot = (
 });
 
 const createMockHandler = (): jest.Mocked<JsScriptAgentHandler> => ({
-  getSnapshot: jest.fn(),
+  getSnapshot: jest.fn(() => snapshot()),
   setCode: jest.fn(),
   setPorts: jest.fn(),
   setMeta: jest.fn(),
@@ -289,5 +289,35 @@ describe("ui_jsscript_* tools", () => {
 
     expect(result.passed).toBe(1);
     expect(result.failed).toBe(1);
+  });
+
+  it("fails a run and a test of a script that does not validate", async () => {
+    const handler = createMockHandler();
+    handler.getSnapshot.mockReturnValue(
+      snapshot({
+        issues: [
+          { severity: "error", code: "js_script_legacy_contract", message: "Write top-level statements." },
+          { severity: "warning", code: "js_script_no_tests", message: "No tests." }
+        ]
+      })
+    );
+    handler.run.mockResolvedValue({ ok: true, outputs: { out: "x" }, logs: [], duration_ms: 1 });
+    handler.test.mockResolvedValue({ passed: 1, failed: 0, cases: [] });
+    setJsScriptAgentHandler(SCRIPT_ID, handler);
+
+    const run = (await FrontendToolRegistry.call("ui_jsscript_run", { script_id: SCRIPT_ID }, "tc-9", ctx)) as {
+      ok: boolean;
+      error: string;
+      validationErrors: { code: string }[];
+    };
+    expect(run.ok).toBe(false);
+    expect(run.error).toContain("js_script_legacy_contract: Write top-level statements.");
+    expect(run.validationErrors.map((issue) => issue.code)).toEqual(["js_script_legacy_contract"]);
+
+    const test = (await FrontendToolRegistry.call("ui_jsscript_test", { script_id: SCRIPT_ID }, "tc-10", ctx)) as {
+      ok: boolean;
+      passed: number;
+    };
+    expect(test).toMatchObject({ ok: false, passed: 1 });
   });
 });

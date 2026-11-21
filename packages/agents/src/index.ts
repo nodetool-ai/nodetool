@@ -712,6 +712,7 @@ export type {
 } from "./app-build/bridge.js";
 export {
   runToolLoop,
+  isFailedToolResult,
   DEFAULT_MAX_ITERATIONS as DEFAULT_TOOL_LOOP_ITERATIONS
 } from "./app-build/tool-loop.js";
 export type {

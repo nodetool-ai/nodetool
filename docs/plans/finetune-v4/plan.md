@@ -97,6 +97,11 @@ Every later decision depends on these numbers, so this comes first.
   65,536 tokens. Sample the teacher with the window forced to 64k, export each
   post-compaction segment as its own record, and report dropped-record counts
   for the existing 391 runs and for every new export.
+  Measured: `train.py check --max-seq 65536` drops none of the 391 v3 records
+  (longest 64,104 Qwen tokens). Compaction cuts only at a user message, so a
+  single-request run never compacts. Segments matter for the sessions in
+  Phase 2. Teacher token counts run 0.77–1.14 times the student's, so the
+  drop count uses the student's tokenizer.
 - Rescore the stored traces where the check can be recomputed from the trace.
   Otherwise re-run.
 - Noise: from here on, evaluate with two samples per task (262 runs). Adjacent
@@ -182,6 +187,23 @@ enums, richer argument shapes) are absorbed by change C9 of the prompt diet in 3
 - H17. An undo for audio effects.
 - Written alongside the prompt diet and awaiting review: missing-import messages,
   wrong-module hints, revision-conflict details and run-behaviour counters.
+
+### 3.4a Open after the first Phase 1 pass
+
+- H10 needs a document-sync hook per surface: the job writes the bridge's
+  document to a server row after each edit. Timeline, JS script and workflow
+  bridges can export their document. The sketch bridge cannot yet.
+- The browser JS-script tools check run and test results against the
+  document-shape issues only. `js_script_legacy_contract` comes from the
+  execution validator, which they do not run.
+- The headless JS-script tools refuse `input_streams` on a run and
+  `inputStreams` in a saved case, which the browser accepts. Share the shapes
+  and forward staged streams through the headless runner.
+- An audio effect whose range clamps to nothing records an undo step in the
+  headless bridge but not in the browser editor.
+- `sample` records the requested `--context-window`, not the threshold in
+  effect. `NODETOOL_CHAT_COMPACTION_TOKENS` overrides it, so two resumed runs
+  can compact at different sizes under the same recorded window.
 
 ### 3.5 Prompt diet
 

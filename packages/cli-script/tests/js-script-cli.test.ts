@@ -52,18 +52,20 @@ function save(directory: string, document: unknown): string {
 
 describe("JS script CLI contracts", () => {
   it.each([
-    { tool: "test", code: script.code, failure: { ok: false, failed: 1 } },
+    // ui_jsscript_test takes no arguments; the saved cases carry the inputs.
+    { tool: "test", input: {}, code: script.code, failure: { ok: false, failed: 1 } },
     {
       tool: "run",
+      input: { inputs: { n: 1 } },
       code: 'await output("total", inputs.n + 1); throw new Error("Deliberate local failure");',
       failure: { ok: false, run: { ok: false, error: "Deliberate local failure" } }
     }
-  ])("fails debug when $tool reports an operation failure", ({ tool, code, failure }) => {
+  ])("fails debug when $tool reports an operation failure", ({ tool, input, code, failure }) => {
     const directory = workspace();
     const file = save(directory, { ...script, code });
     const out = join(directory, "bundle");
     const debug = run(directory, "debug", file, "--interact",
-      JSON.stringify([{ tool, input: { inputs: { n: 1 } } }]), "--out", out, "--json");
+      JSON.stringify([{ tool, input }]), "--out", out, "--json");
     expect(debug.status, debug.stderr).toBe(1);
     const report = JSON.parse(debug.stdout);
     expect(report.validation.ok).toBe(true);
