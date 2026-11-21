@@ -2,6 +2,9 @@
 #include "model/TimelineJson.h"
 #include "TestHttpServer.h"
 
+#include "nodetool/account/project_lock.h"
+#include "nodetool/account/storage.h"
+
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSignalSpy>
@@ -112,6 +115,51 @@ private slots:
         model->setProjectId("personal:1");
         QTRY_COMPARE(server.lists(), 2);
         QTRY_COMPARE(folder.projectId(), QString("personal:1"));
+    }
+    // WP2.13, AC25: another computer's app holds the project, so the
+    // timeline opens read-only until the person takes the lock over.
+    void heldProjectOpensReadOnly() {
+        namespace acc = nodetool::account;
+        Fixture server;
+        const auto folderPath = std::filesystem::path(server.folder.path().toStdU16String());
+        acc::writeFileAtomically(acc::projectLockPath(folderPath),
+                                 acc::serializeProjectLock({"node-editor", 4242, "laptop", "1.0", "p1"}));
+        const auto model = timelineIn("p1");
+        ProjectFolderState folder;
+        folder.setTarget({server.http.base(), {}, "seq", {}, {}});
+        folder.setTimeline(model.get());
+        folder.refresh();
+        QTRY_VERIFY(folder.loaded());
+        QCOMPARE(folder.lock()->state(), QString("heldElsewhere"));
+        QCOMPARE(folder.lock()->holderHost(), QString("laptop"));
+        QVERIFY(model->readOnly());
+        QVERIFY(model->addMarker(10, "edit").isEmpty());
+        folder.lock()->takeOver();
+        QCOMPARE(folder.lock()->state(), QString("writing"));
+        QVERIFY(!model->readOnly());
+        const auto bytes = acc::readWholeFile(acc::projectLockPath(folderPath));
+        QVERIFY(bytes.has_value());
+        QCOMPARE(QString::fromStdString(acc::parseProjectLock(*bytes)->app), QString("timeline"));
+    }
+    // A lock left by a process that is gone is replaced, and the timeline
+    // stays editable. Closing the editor gives the lock back.
+    void staleLockIsReplaced() {
+        namespace acc = nodetool::account;
+        Fixture server;
+        const auto folderPath = std::filesystem::path(server.folder.path().toStdU16String());
+        acc::writeFileAtomically(acc::projectLockPath(folderPath),
+                                 acc::serializeProjectLock({"node-editor", 0, acc::currentHostName(), "gone", "p1"}));
+        const auto model = timelineIn("p1");
+        {
+            ProjectFolderState folder;
+            folder.setTarget({server.http.base(), {}, "seq", {}, {}});
+            folder.setTimeline(model.get());
+            folder.refresh();
+            QTRY_VERIFY(folder.loaded());
+            QCOMPARE(folder.lock()->state(), QString("writing"));
+            QVERIFY(!model->readOnly());
+        }
+        QVERIFY(!std::filesystem::exists(acc::projectLockPath(folderPath)));
     }
     void looseTimelineIsInPersonal() {
         Fixture server;
@@ -241,6 +289,137 @@ private slots:
         QTRY_VERIFY(!folder.busy());
         QCOMPARE(folder.fileError(), QString("bad JSON"));
         QCOMPARE(server.lists(), 3);
+    }
+    void archivedProjectResolvesFolder() {
+        Fixture server;
+        const QJsonArray archived{project("arch1", server.folder.path(), true)};
+        auto archRow = archived.first().toObject();
+        archRow.insert("name", "Archived Film");
+        server.projects = {project("personal:1", server.folder.path(), true, true)};
+        server.http.setJson([&](const QByteArray& path, const QUrl& url) {
+            if (path == "/trpc/projects.list") { return answer(server.projects); }
+            if (path == "/trpc/projects.archived") { return answer(QJsonArray{archRow}); }
+            if (path == "/trpc/projects.documents") {
+                server.documentsAsked << inputId(url);
+                return answer(QJsonArray{});
+            }
+            return QByteArray();
+        });
+        const auto model = timelineIn("arch1");
+        ProjectFolderState folder;
+        folder.setTarget({server.http.base(), {}, "seq", {}, {}});
+        folder.setTimeline(model.get());
+        folder.refresh();
+        QTRY_VERIFY(folder.loaded());
+        QVERIFY(folder.error().isEmpty());
+        QCOMPARE(folder.projectId(), QString("arch1"));
+        QCOMPARE(folder.projectName(), QString("Archived Film"));
+        QVERIFY(folder.hasFolder());
+        QVERIFY(!folder.isLocalFolder());
+        QCOMPARE(folder.workspaceId(), QString("ws-arch1"));
+        QCOMPARE(server.documentsAsked, QStringList{"arch1"});
+    }
+    void localFileFindsEnclosingProjectFolderAndIgnoresUnrelatedFixture() {
+        QTemporaryDir temp;
+        QVERIFY(temp.isValid());
+        QDir base(temp.path());
+        QVERIFY(base.mkpath("myproj/.nodetool"));
+        QVERIFY(base.mkpath("myproj/Timelines"));
+        QVERIFY(base.mkpath("standalone"));
+        {
+            QFile meta(base.filePath("myproj/.nodetool/project.json"));
+            QVERIFY(meta.open(QIODevice::WriteOnly));
+            meta.write(R"({"format":"nodetool.project","version":1,"id":"local-proj-1","name":"Local Doc"})");
+        }
+        const QByteArray timelineJson = R"({"format":"nodetool.timeline","version":1,"id":"t1","fps":30,"width":640,"height":360,"document":{"tracks":[],"clips":[]}})";
+        const QString inProjectPath = base.filePath("myproj/Timelines/cut.timeline.json");
+        {
+            QFile f(inProjectPath);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(timelineJson);
+        }
+        const QString standalonePath = base.filePath("standalone/loose.timeline.json");
+        {
+            QFile f(standalonePath);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(timelineJson);
+        }
+
+        const auto loaded = nt::loadTimelineFile(inProjectPath);
+        QVERIFY2(loaded.timeline.has_value(), qPrintable(loaded.error));
+        QCOMPARE(loaded.timeline->sourcePath, QFileInfo(inProjectPath).absoluteFilePath());
+
+        TimelineModel model;
+        model.setTimeline(*loaded.timeline);
+        QCOMPARE(model.sourcePath(), QFileInfo(inProjectPath).absoluteFilePath());
+        model.addMarker(100, "keep-source");
+        QCOMPARE(model.sourcePath(), QFileInfo(inProjectPath).absoluteFilePath());
+
+        ProjectFolderState folder;
+        QVERIFY(!folder.configured());
+        folder.setTimeline(&model);
+        folder.refresh();
+        QVERIFY(folder.loaded());
+        QVERIFY(folder.isLocalFolder());
+        QVERIFY(folder.hasFolder());
+        QCOMPARE(folder.projectId(), QString("local-proj-1"));
+        QCOMPARE(folder.projectName(), QString("Local Doc"));
+        QCOMPARE(folder.folderPath(), QFileInfo(base.filePath("myproj")).canonicalFilePath());
+        QVERIFY(folder.folderAccessible());
+        QVERIFY(folder.canReveal());
+        QVERIFY(!folder.canTransfer());
+
+        // Switching to a local file outside any project folder clears the state.
+        const auto standalone = nt::loadTimelineFile(standalonePath);
+        QVERIFY2(standalone.timeline.has_value(), qPrintable(standalone.error));
+        model.setTimeline(*standalone.timeline);
+        QVERIFY(!folder.loaded());
+        QVERIFY(!folder.isLocalFolder());
+        QVERIFY(!folder.hasFolder());
+        QVERIFY(folder.projectId().isEmpty());
+        QVERIFY(folder.projectName().isEmpty());
+    }
+    // A timeline file inside a project folder takes the project lock with no
+    // server, the same as a server project with a folder on this computer.
+    void localFileTakesTheProjectLock() {
+        namespace acc = nodetool::account;
+        QTemporaryDir temp;
+        QVERIFY(temp.isValid());
+        QDir base(temp.path());
+        QVERIFY(base.mkpath("myproj/.nodetool"));
+        QVERIFY(base.mkpath("standalone"));
+        {
+            QFile meta(base.filePath("myproj/.nodetool/project.json"));
+            QVERIFY(meta.open(QIODevice::WriteOnly));
+            meta.write(R"({"format":"nodetool.project","version":1,"id":"local-proj-1","name":"Local Doc"})");
+        }
+        const QByteArray timelineJson = R"({"format":"nodetool.timeline","version":1,"id":"t1","fps":30,"width":640,"height":360,"document":{"tracks":[],"clips":[]}})";
+        for (const auto* name : {"myproj/cut.timeline.json", "standalone/loose.timeline.json"}) {
+            QFile f(base.filePath(name));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(timelineJson);
+        }
+        const auto folderPath = std::filesystem::path(QFileInfo(base.filePath("myproj")).canonicalFilePath().toStdU16String());
+        acc::writeFileAtomically(acc::projectLockPath(folderPath),
+                                 acc::serializeProjectLock({"node-editor", 4242, "laptop", "1.0", "local-proj-1"}));
+
+        const auto inProject = nt::loadTimelineFile(base.filePath("myproj/cut.timeline.json"));
+        QVERIFY2(inProject.timeline.has_value(), qPrintable(inProject.error));
+        TimelineModel model;
+        model.setTimeline(*inProject.timeline);
+        ProjectFolderState folder;
+        folder.setTimeline(&model);
+        folder.refresh();
+        QVERIFY(folder.isLocalFolder());
+        QCOMPARE(folder.lock()->state(), QString("heldElsewhere"));
+        QVERIFY(model.readOnly());
+
+        // A file outside any project folder leaves the lock and is editable.
+        const auto standalone = nt::loadTimelineFile(base.filePath("standalone/loose.timeline.json"));
+        QVERIFY2(standalone.timeline.has_value(), qPrintable(standalone.error));
+        model.setTimeline(*standalone.timeline);
+        QCOMPARE(folder.lock()->state(), QString());
+        QVERIFY(!model.readOnly());
     }
 };
 

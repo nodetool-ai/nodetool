@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { isImeComposing } from "../../utils/ime";
 
 interface EditableInputProps {
   value: string;
@@ -109,7 +110,7 @@ const EditableInput: React.FC<EditableInputProps> = ({
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (event.key === "Enter" || event.code === "NumpadEnter") {
+      if ((event.key === "Enter" || event.code === "NumpadEnter") && !isImeComposing(event)) {
         event.preventDefault();
         event.stopPropagation();
         inputRef.current?.blur();

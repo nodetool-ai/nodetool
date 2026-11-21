@@ -10,6 +10,7 @@ import {
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import useAssets from "../../serverState/useAssets";
+import { isImeComposing } from "../../utils/ime";
 
 interface AssetRenameConfirmationProps {
   assets: string[];
@@ -107,7 +108,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
     await mutation.mutateAsync(updatedAssetsToRename);
     setDialogOpen(false);
     refetchAssets();
-  }, [baseNewName, assets, mutation, setDialogOpen, refetchAssets]);
+  }, [baseNewName, assets, mutation, setDialogOpen, refetchAssets, t]);
 
   const count = assets?.length ?? 0;
   return (
@@ -146,7 +147,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
           inputRef={inputRef}
           value={baseNewName}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
+            if (e.key === "Enter" && !isImeComposing(e)) {
               handleRename();
             }
           }}

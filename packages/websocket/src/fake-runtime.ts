@@ -35,6 +35,7 @@ import {
   getRegisteredProvider,
   getProvider,
   type BaseProvider,
+  type CredentialCheckContext,
   type CredentialCheckResult,
   type ImageModel,
   type EncodedAudioResult,
@@ -49,6 +50,7 @@ import {
   type TextToVideoParams,
   FakeProvider as RuntimeFakeProvider
 } from "@nodetool-ai/runtime";
+import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
 import {
@@ -209,6 +211,27 @@ const FAKE_MODEL_CATALOG: Record<
   }
 };
 
+/**
+ * Providers a mainland China user can reach, with model names as their
+ * consoles show them. Listed only with `NODETOOL_FAKE_CHINA_PROVIDERS=1`, so
+ * other studies keep two short pickers.
+ */
+const CHINA_MODEL_CATALOG: typeof FAKE_MODEL_CATALOG = {
+  deepseek: { language: ["deepseek-chat"], image: [], speech: [], video: [] },
+  alibaba: {
+    language: ["qwen-plus"],
+    image: ["qwen-image"],
+    speech: [],
+    video: ["wan2.2-t2v-plus"]
+  },
+  moonshot: { language: ["kimi-k2"], image: [], speech: [], video: [] },
+  zai: { language: ["glm-4.6"], image: ["glm-image"], speech: [], video: [] }
+};
+
+if (process.env.NODETOOL_FAKE_CHINA_PROVIDERS === "1") {
+  Object.assign(FAKE_MODEL_CATALOG, CHINA_MODEL_CATALOG);
+}
+
 /** The runtime's no-cost fake, which owns the playable test clip. */
 const CLIP_SOURCE = new RuntimeFakeProvider({ includeLanguageModels: false });
 
@@ -243,7 +266,10 @@ export class FakeProvider extends ScriptedProvider {
   /** The provider id this fake stands in for. */
   readonly fakeProviderId: string;
 
-  constructor(_kwargs?: Record<string, unknown>, providerId = "fake") {
+  /** The stored credentials and settings the provider was built with. */
+  private readonly kwargs: Record<string, unknown>;
+
+  constructor(kwargs?: Record<string, unknown>, providerId = "fake") {
     const inner = autoScript({
       plan: {
         title: "Agent task",
@@ -262,8 +288,24 @@ export class FakeProvider extends ScriptedProvider {
         );
         return inner(messages, tools);
       }
-    ]);
+    ], { providerId });
     this.fakeProviderId = providerId;
+    this.kwargs = kwargs ?? {};
+  }
+
+  /**
+   * A mainland-only key (see {@link mainlandOnlyKeys}) sent to the
+   * international host fails as the real request does: 401 on every call.
+   */
+  private rejectWrongRegion(): void {
+    const entries = Object.entries(this.kwargs);
+    const key = entries.find(([name]) => name.endsWith("_API_KEY"))?.[1];
+    if (typeof key !== "string" || !mainlandOnlyKeys().includes(key)) return;
+    const region = entries.find(([name]) => name.endsWith("_REGION"))?.[1];
+    if (region === "china") return;
+    throw Object.assign(new Error("401 Incorrect API key provided."), {
+      status: 401
+    });
   }
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
@@ -321,6 +363,7 @@ export class FakeProvider extends ScriptedProvider {
 
   /** A two-second clip that plays, so a video generation has a result to show. */
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
+    this.rejectWrongRegion();
     return CLIP_SOURCE.textToVideo(params);
   }
 
@@ -343,6 +386,7 @@ export class FakeProvider extends ScriptedProvider {
   }
 
   override async textToImage(_params: TextToImageParams): Promise<Uint8Array> {
+    this.rejectWrongRegion();
     return new Uint8Array(Buffer.from(FAKE_IMAGE_PNG_BASE64, "base64"));
   }
 
@@ -351,6 +395,7 @@ export class FakeProvider extends ScriptedProvider {
     _images: Uint8Array[],
     _params: ImageToImageParams
   ): Promise<Uint8Array> {
+    this.rejectWrongRegion();
     return new Uint8Array(Buffer.from(FAKE_IMAGE_PNG_BASE64, "base64"));
   }
 
@@ -365,6 +410,7 @@ export class FakeProvider extends ScriptedProvider {
       toolChoice?: string;
     }
   ): AsyncGenerator<ProviderStreamItem> {
+    this.rejectWrongRegion();
     // A caller that forces one tool wants structured output (`generate_text`
     // with a schema, the image flow's brief). Answer with a call whose
     // arguments satisfy that tool's schema, as a real model must.
@@ -451,9 +497,36 @@ export function fakeAllProviders({
  * contacts the provider reads to a first-time user as one where AI is off.
  */
 export async function acceptCredential(
-  _secretKey: string
+  _secretKey: string,
+  value: string,
+  context: CredentialCheckContext
 ): Promise<CredentialCheckResult> {
+  if (mainlandOnlyKeys().includes(value)) {
+    const region = Object.entries(context.settings).find(([key]) =>
+      key.endsWith("_REGION")
+    )?.[1];
+    if (region !== "china") {
+      // The real probe calls the international host, which answers 401 for a
+      // key from the mainland console. The message is the real check's.
+      return {
+        status: "invalid",
+        message: `${context.label ?? "The provider"} rejected the key (401). Check that you copied it in full and that it is still active.`
+      };
+    }
+  }
   return { status: "valid", message: "The key was accepted." };
+}
+
+/**
+ * Keys that `NODETOOL_FAKE_MAINLAND_KEYS` (comma-separated) marks as created
+ * in a provider's mainland China console. They pass the check only once the
+ * provider's region setting is `china`, as real region-scoped keys do.
+ */
+function mainlandOnlyKeys(): string[] {
+  return (process.env.NODETOOL_FAKE_MAINLAND_KEYS ?? "")
+    .split(",")
+    .map((key) => key.trim())
+    .filter((key) => key.length > 0);
 }
 
 /**
@@ -461,11 +534,20 @@ export async function acceptCredential(
  * in {@link realProviderIds}, which resolves to the real registered provider.
  */
 export const resolveFakeProvider = async (
-  providerId?: string
-): Promise<BaseProvider> =>
-  providerId && realProviderIds().includes(providerId)
-    ? getProvider(providerId, async (key) => process.env[key] ?? null)
-    : new FakeProvider();
+  providerId?: string,
+  userId?: string
+): Promise<BaseProvider> => {
+  if (providerId && realProviderIds().includes(providerId)) {
+    return getProvider(providerId, async (key) => process.env[key] ?? null);
+  }
+  // With mainland-only keys configured, build the registered fake from the
+  // user's stored key and region, so a key saved for the wrong region fails
+  // when it is used, as it does on the real host.
+  if (providerId && userId && mainlandOnlyKeys().length > 0 && getRegisteredProvider(providerId)) {
+    return getProvider(providerId, async (key) => getStoredSecret(key, userId));
+  }
+  return new FakeProvider();
+};
 
 // ── Executor faking ─────────────────────────────────────────────────────────
 

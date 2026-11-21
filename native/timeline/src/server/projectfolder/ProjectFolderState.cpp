@@ -4,11 +4,16 @@
 #include "server/ServerSource.h"
 
 #include <QDesktopServices>
+#include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QRegularExpression>
 
 namespace {
+constexpr qint64 MaxProjectMetadataBytes = 64 * 1024;
+
 bool loose(const QString& projectId) { return projectId.isEmpty() || projectId == u"default"; }
 
 // The projects.list row of `projectId`, or Personal's for a loose timeline.
@@ -22,6 +27,37 @@ std::optional<QJsonObject> findProject(const QJsonArray& rows, const QString& pr
     return std::nullopt;
 }
 }  // namespace
+
+std::optional<ProjectFolderState::LocalProject> ProjectFolderState::findEnclosingProjectFolder(const QString& filePath) {
+    if (filePath.isEmpty()) { return std::nullopt; }
+    const QFileInfo startInfo(filePath);
+    QDir dir = startInfo.isDir() ? QDir(startInfo.absoluteFilePath()) : startInfo.absoluteDir();
+    if (!dir.exists()) { return std::nullopt; }
+    while (true) {
+        const QFileInfo metaInfo(dir.filePath(QStringLiteral(".nodetool/project.json")));
+        if (metaInfo.isFile() && metaInfo.size() <= MaxProjectMetadataBytes) {
+            QFile file(metaInfo.filePath());
+            if (file.open(QIODevice::ReadOnly)) {
+                QJsonParseError parseError{};
+                const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseError);
+                if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
+                    const QJsonObject obj = doc.object();
+                    const QJsonValue version = obj.value(u"version");
+                    const QString id = obj.value(u"id").toString().trimmed();
+                    if (obj.value(u"format").toString() == u"nodetool.project"
+                        && version.isDouble() && version.toDouble() == 1.0 && !id.isEmpty()) {
+                        QString name = obj.value(u"name").toString().trimmed();
+                        if (name.isEmpty()) { name = dir.dirName(); }
+                        const QString canonical = QFileInfo(dir.absolutePath()).canonicalFilePath();
+                        return LocalProject{id, name, canonical.isEmpty() ? dir.absolutePath() : canonical};
+                    }
+                }
+            }
+        }
+        if (!dir.cdUp()) { break; }
+    }
+    return std::nullopt;
+}
 
 void ProjectFolderState::Worker::run() {
     nt::server::ServerClient client(m_target.server, m_target.token, 10000);
@@ -41,7 +77,12 @@ bool ProjectFolderState::canTransfer() const {
 }
 
 ProjectFolderState::ProjectFolderState(QObject* parent)
-    : QObject(parent), m_target(nt::server::serverSaveTarget()) {}
+    : QObject(parent), m_target(nt::server::serverSaveTarget()) {
+    connect(&m_lock, &nodetool::account::qt::ProjectLockState::changed, this, [this] {
+        applyLock();
+        emit changed();
+    });
+}
 
 ProjectFolderState::~ProjectFolderState() {
     if (auto* thread = m_thread.data()) {
@@ -65,6 +106,7 @@ void ProjectFolderState::setTimeline(TimelineModel* timeline) {
         connect(timeline, &TimelineModel::timelineChanged, this, &ProjectFolderState::documentChanged);
     }
     emit timelineChanged();
+    applyLock();
     documentChanged();
 }
 
@@ -89,9 +131,67 @@ QString ProjectFolderState::documentTimeline() const {
     return m_timeline ? m_timeline->timeline().raw.value("id").toString() : QString{};
 }
 
+QString ProjectFolderState::documentSourcePath() const {
+    return m_timeline ? m_timeline->sourcePath() : QString{};
+}
+
+QString ProjectFolderState::documentKey() const {
+    return (m_target ? m_target->server.toString() : QString{}) + QChar(0) + documentProject() + QChar(0)
+           + documentTimeline() + QChar(0) + documentSourcePath();
+}
+
 void ProjectFolderState::documentChanged() {
-    // Every edit notifies. Only a new project or timeline asks the server again.
-    if (m_wanted && documentProject() + QChar(0) + documentTimeline() != m_requestKey) { refresh(); }
+    if (!m_explicitTarget) {
+        m_target = nt::server::serverSaveTarget();
+    }
+    // Every edit notifies. Only a new server, project, timeline or local file refreshes.
+    if (m_wanted && documentKey() != m_requestKey) { refresh(); }
+}
+
+void ProjectFolderState::applyLocalFolder() {
+    m_requestKey = documentKey();
+    m_error.clear();
+    m_locateError.clear();
+    m_restoreError.clear();
+    m_workspaceId.clear();
+    m_fileState.clear();
+    m_filePath.clear();
+    m_fileError.clear();
+    if (const auto local = findEnclosingProjectFolder(documentSourcePath())) {
+        m_loaded = true;
+        m_localFolder = true;
+        m_projectId = local->id;
+        m_projectName = local->name;
+        m_folderPath = local->folderPath;
+        m_folderAccessible = QFileInfo(m_folderPath).isDir();
+    } else {
+        m_loaded = false;
+        m_localFolder = false;
+        m_projectId.clear();
+        m_projectName.clear();
+        m_folderPath.clear();
+        m_folderAccessible = true;
+    }
+    updateLock();
+    emit changed();
+}
+
+void ProjectFolderState::updateLock() {
+    const bool local = !m_projectId.isEmpty() && m_folderAccessible && canReveal();
+    m_lock.setTarget(local ? m_folderPath : QString(), local ? m_projectId : QString());
+}
+
+void ProjectFolderState::applyLock() {
+    // Only a read-only state this object set is lifted, so a cloud
+    // timeline's own read-only state is left alone.
+    if (!m_timeline) { return; }
+    if (m_lock.readOnly()) {
+        m_timeline->setReadOnly(true);
+        m_lockedTimeline = true;
+    } else if (m_lockedTimeline) {
+        m_timeline->setReadOnly(false);
+        m_lockedTimeline = false;
+    }
 }
 
 bool ProjectFolderState::canReveal() const {
@@ -114,12 +214,16 @@ bool ProjectFolderState::reveal() {
 
 void ProjectFolderState::refresh() {
     m_wanted = true;
-    if (!m_target || !m_timeline) { return; }
+    if (!m_timeline) { return; }
+    if (!m_target) {
+        applyLocalFolder();
+        return;
+    }
     if (busy()) {
         m_refreshPending = true;
         return;
     }
-    m_requestKey = documentProject() + QChar(0) + documentTimeline();
+    m_requestKey = documentKey();
     run([project = documentProject(), timeline = documentTimeline()](nt::server::ServerClient& client) {
         Result result;
         const auto projects = client.query(QStringLiteral("projects.list"), {});
@@ -128,6 +232,12 @@ void ProjectFolderState::refresh() {
             return result;
         }
         result.project = findProject(projects.data.toArray(), project);
+        if (!result.project && !loose(project)) {
+            const auto archived = client.query(QStringLiteral("projects.archived"), {});
+            if (archived.ok()) {
+                result.project = findProject(archived.data.toArray(), project);
+            }
+        }
         if (!result.project || timeline.isEmpty()) { return result; }
         const auto documents = client.query(QStringLiteral("projects.documents"),
                                             {{"id", result.project->value("id").toString()}});
@@ -209,6 +319,7 @@ void ProjectFolderState::receive(const Result& result) {
     }
     if (!result.error.isEmpty()) { return; }
     m_loaded = true;
+    m_localFolder = false;
     const auto project = result.project.value_or(QJsonObject{});
     m_projectId = project.value("id").toString();
     m_projectName = project.value("name").toString();
@@ -222,4 +333,5 @@ void ProjectFolderState::receive(const Result& result) {
         m_filePath = file.value("path").toString();
         m_fileError = file.value("error").toString();
     }
+    updateLock();
 }

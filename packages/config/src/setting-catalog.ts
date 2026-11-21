@@ -387,10 +387,39 @@ s(
   ["serpapi", "dataforseo", "brave", "apify", "openai", "gemini"]
 );
 s(
+  "MINIMAX_REGION",
+  "MiniMax",
+  "MiniMax API host: international (api.minimax.io, the default) or china (api.minimax.cn, for keys from platform.minimaxi.com). Applies to chat, image, video, speech and music. Keys are not shared between the two",
+  ["international", "china"]
+);
+s(
   "MINIMAX_IMAGE_REGION",
   "MiniMax",
-  "API region for MiniMax H3 image generation",
+  "API region for MiniMax H3 image generation. Leave empty to follow MINIMAX_REGION",
   ["international", "china"]
+);
+s(
+  "KIMI_REGION",
+  "Kimi",
+  "Kimi (Moonshot) API host: international (api.moonshot.ai, the default) or china (api.moonshot.cn). Keys are not shared between the two",
+  ["international", "china"]
+);
+s(
+  "KLING_REGION",
+  "Kling AI",
+  "Kling AI API host: international (api-singapore.klingai.com, the default) or china (api-beijing.klingai.com). Keys are not shared between the two",
+  ["international", "china"]
+);
+s(
+  "DASHSCOPE_REGION",
+  "Alibaba Cloud",
+  "Alibaba Cloud Model Studio region: international (dashscope-intl.aliyuncs.com, Singapore, the default) or china (dashscope.aliyuncs.com, Beijing). Keys are not shared between regions. DASHSCOPE_BASE_URL, when set, takes precedence",
+  ["international", "china"]
+);
+s(
+  "HF_ENDPOINT",
+  "HF",
+  "Hugging Face Hub host for model downloads and Hub searches (default: https://huggingface.co). Set a mirror such as https://hf-mirror.com where huggingface.co is unreachable. Your HF token is sent to this host"
 );
 s(
   "ZAI_REGION",
@@ -464,7 +493,7 @@ sec(
 s(
   "DASHSCOPE_BASE_URL",
   "Alibaba Cloud",
-  "Base URL for Alibaba Cloud Model Studio's OpenAI-compatible endpoint. Model Studio keys are region-scoped; set this to your region's endpoint (default: https://dashscope-intl.aliyuncs.com/compatible-mode/v1, the international/Singapore region). Media generation uses the same host's native /api/v1 endpoint"
+  "Base URL for Alibaba Cloud Model Studio's OpenAI-compatible endpoint. Overrides DASHSCOPE_REGION. Model Studio keys are region-scoped; set DASHSCOPE_REGION for the Singapore or Beijing endpoint, or this for any other (default: https://dashscope-intl.aliyuncs.com/compatible-mode/v1, the international/Singapore region). Media generation uses the same host's native /api/v1 endpoint"
 );
 sec(
   "BYTEPLUS_ARK_API_KEY",
@@ -574,7 +603,7 @@ sec(
 sec(
   "KIMI_API_KEY",
   "Kimi",
-  "Kimi (Moonshot) API key for accessing Kimi models via the OpenAI-compatible endpoint. Get yours at https://platform.moonshot.ai/console/api-keys"
+  "Kimi (Moonshot) API key for accessing Kimi models via the OpenAI-compatible endpoint. Get an international key at https://platform.moonshot.ai/console/api-keys, or a mainland China key at https://platform.moonshot.cn/console/api-keys and set KIMI_REGION to china"
 );
 sec(
   "SARVAM_API_KEY",

@@ -18,6 +18,7 @@ import {
   clearSecretCache,
   isOnePasswordReference,
   resolveUserSecretValue,
+  getSecret,
   getSecrets
 } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
@@ -248,13 +249,28 @@ const secretsRouter = router({
         };
       }
 
-      const result = await checkCredential(input.key, value);
+      // Region and base-URL settings pick the host the key is checked on.
+      const result = await checkCredential(input.key, value, {
+        getSetting: (key) => getSecret(key, ctx.userId)
+      });
       const output: z.infer<typeof secretValidateOutput> = {
         status: result.status,
         valid: result.status === "valid",
         message: result.message
       };
       if (result.account) output.account = result.account;
+      if (result.region) {
+        // The key belongs to another regional host. Save that region so the
+        // provider calls the host the key was issued for.
+        await Setting.upsert({
+          userId: ctx.userId,
+          key: result.region.setting,
+          value: result.region.value
+        });
+        clearSecretCache(ctx.userId, result.region.setting);
+        clearProviderCache();
+        output.region = result.region;
+      }
       return output;
     })
 });

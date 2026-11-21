@@ -14548,7 +14548,9 @@
       "connect": "Connettiti",
       "getKey": "Ottieni una chiave da {{provider}}",
       "saveAnyway": "Risparmia comunque",
-      "rejectedKey": "Il provider ha rifiutato questa chiave."
+      "rejectedKey": "Il provider ha rifiutato questa chiave.",
+      "regionSwitched": "{{provider}} ha accettato questa chiave sul suo server per la Cina continentale. NodeTool ora usa quel server.",
+      "hfMirrorNote": "huggingface.co non è raggiungibile? Imposta un mirror come https://hf-mirror.com in Impostazioni → Integrazioni → HF endpoint."
     },
     "hardware": {
       "autoDetect": "Rilevamento automatico",
@@ -14602,6 +14604,19 @@
       "installed": "Installato",
       "download": "Scarica",
       "memoryEstimate_many": "{{count}} GB di memoria"
+    },
+    "providerSetup": {
+      "chat": "La chat richiede un modello linguistico. Collega un provider per iniziare.",
+      "image": "Generare immagini richiede un provider di immagini. Collegane uno per continuare.",
+      "image_edit": "Modificare immagini richiede un provider di immagini. Collegane uno per continuare.",
+      "video": "Generare video richiede un provider video. Collegane uno per continuare.",
+      "image_to_video": "Animare immagini richiede un provider video. Collegane uno per continuare.",
+      "reference_to_video": "Da riferimento a video richiede un provider video. Collegane uno per continuare.",
+      "retake": "Ripetere la ripresa richiede un provider video. Collegane uno per continuare.",
+      "extend": "Estendere un video richiede un provider video. Collegane uno per continuare.",
+      "audio_to_video": "Il lipsync richiede un provider di lipsync. Collegane uno per continuare.",
+      "music": "Generare musica richiede un provider musicale. Collegane uno per continuare.",
+      "audio": "Generare voce richiede un provider di sintesi vocale. Collegane uno per continuare."
     }
   },
   "i18n-next29": {
@@ -17870,7 +17885,11 @@
         "allResults": "Tutti i risultati",
         "home": "Casa",
         "local": "Locale",
-        "providers": "Fornitori"
+        "providers": "Fornitori",
+        "resultsInPath": "Risultati in {{path}}: {{count}} · Corrispondenze totali per «{{term}}»: {{total}}",
+        "resultsRelevant": "Risultati: {{count}} · Prima i più pertinenti per «{{term}}»",
+        "nodesInPath": "Nodi in {{path}}: {{count}}",
+        "nodesMatchFilters": "Nodi che corrispondono ai filtri: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Sfoglia i nodi",
@@ -20033,7 +20052,8 @@
       },
       "openInSketch": "Apri nello sketch",
       "reusePrompt": "Riusa il prompt",
-      "sketchTitle": "Immagine creata"
+      "sketchTitle": "Immagine creata",
+      "keyRejected": "Il provider ha rifiutato la chiave API. Controllala in Impostazioni → Modelli e provider."
     },
     "takes_many": "{{count}} prende",
     "kindLabel": "Cosa creare",

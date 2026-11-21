@@ -18,6 +18,9 @@
  * account plus one storyboard with a still on every shot and an OpenAI key.
  * `--state timeline` is the empty account plus one photo timeline with music.
  * Reset any of them between sessions with `POST /api/test/reset` on the backend port.
+ * Each server gets its own project folders under a new temporary directory, so a
+ * second server never shows its files to the first one's participants. Reset
+ * clears the database, not that directory.
  *
  * Usage (from web/):
  *   npx tsx tests/agentic-qa/serveApp.ts [--state empty|failing-run|other-provider|working-run|unwired-run|storyboard|timeline|seeded-demo]
@@ -27,9 +30,11 @@
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
+import { mkdtempSync } from "node:fs";
 import { createRequire } from "node:module";
 import * as net from "node:net";
-import { dirname, resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
@@ -112,6 +117,9 @@ async function main(): Promise<void> {
         SECRETS_MASTER_KEY: process.env.SECRETS_MASTER_KEY ?? TEST_MASTER_KEY,
         NODETOOL_FAKE_PROVIDERS: process.env.NODETOOL_FAKE_PROVIDERS ?? "1",
         NODETOOL_QA_STATE: state,
+        NODETOOL_WORKSPACES_DIR:
+          process.env.NODETOOL_WORKSPACES_DIR ??
+          mkdtempSync(join(tmpdir(), "nodetool-qa-workspaces-")),
         METADATA_ROOTS: ""
       },
       stdio: ["ignore", "inherit", "inherit"]

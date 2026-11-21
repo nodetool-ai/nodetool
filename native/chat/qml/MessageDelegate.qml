@@ -443,6 +443,7 @@ ColumnLayout {
             // of rows on a rail, not as a stack of cards.
             readonly property bool toolRow: !!part.tool
             readonly property bool railed: toolRow || kind === "tool_timeline"
+            readonly property bool appEvent: kind === "app_event"
             readonly property bool toolExpandable: toolRow && (!!part.grouped
                 || (part.subAgent ? (!!part.objective || !!part.argumentsText || !!part.resultText || !!part.childModel)
                     : (!!part.argumentsText || !!part.resultText || !!part.code || !!part.searchResults || !!part.childModel)))
@@ -451,10 +452,23 @@ ColumnLayout {
             // A row after another tool row sits close under it, and a run
             // listed call by call sits flush.
             Layout.topMargin: railed && part.afterTool ? (part.tight ? -root.spacing : Ui.Metrics.xs - root.spacing) : Ui.Metrics.none
-            implicitHeight: partContent.implicitHeight + (railed ? Ui.Metrics.none : Ui.Metrics.md * 2)
+            implicitHeight: appEvent ? appEventChip.implicitHeight + Ui.Metrics.xs * 2
+                : partContent.implicitHeight + (railed ? Ui.Metrics.none : Ui.Metrics.md * 2)
             Ui.Surface {
                 anchors.fill: parent
-                visible: !partFrame.railed
+                visible: !partFrame.railed && !partFrame.appEvent
+            }
+            // ChatAppEventChip.tsx: an app event renders as a right-aligned compact chip.
+            Ui.Chip {
+                id: appEventChip
+                objectName: "chatAppEventChip"
+                visible: partFrame.appEvent
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                variant: Ui.Chip.Tone
+                tone: Ui.Text.Secondary
+                text: partFrame.appEvent ? (partFrame.part.label || "") : ""
+                maximumWidth: parent.width
             }
             // ToolRowRail: the category glyph and the hairline to the next row.
             Item {
@@ -493,6 +507,7 @@ ColumnLayout {
             }
             ColumnLayout {
                 id: partContent
+                visible: !partFrame.appEvent
                 anchors.fill: parent
                 anchors.margins: partFrame.railed ? Ui.Metrics.none : Ui.Metrics.md
                 anchors.leftMargin: partFrame.railed ? ChatMetrics.toolRail + Ui.Metrics.lg : Ui.Metrics.md

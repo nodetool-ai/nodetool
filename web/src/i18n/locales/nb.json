@@ -14302,7 +14302,9 @@
       "connect": "Koble til",
       "getKey": "Få en nøkkel fra {{provider}}",
       "saveAnyway": "Lagre uansett",
-      "rejectedKey": "Leverandøren avviste denne nøkkelen."
+      "rejectedKey": "Leverandøren avviste denne nøkkelen.",
+      "regionSwitched": "{{provider}} godtok denne nøkkelen på verten for Fastlands-Kina. NodeTool bruker nå den verten.",
+      "hfMirrorNote": "Kommer du ikke til huggingface.co? Angi et speil, for eksempel https://hf-mirror.com, under Innstillinger → Integrasjoner → HF endpoint."
     },
     "hardware": {
       "autoDetect": "Automatisk gjenkjenning",
@@ -14355,6 +14357,19 @@
       "memoryEstimate_other": "{{count}} GB minne",
       "installed": "Installert",
       "download": "Last ned"
+    },
+    "providerSetup": {
+      "chat": "Chat trenger en språkmodell. Koble til en leverandør for å starte.",
+      "image": "Å lage bilder krever en bildeleverandør. Koble til en for å fortsette.",
+      "image_edit": "Å redigere bilder krever en bildeleverandør. Koble til en for å fortsette.",
+      "video": "Å lage videoer krever en videoleverandør. Koble til en for å fortsette.",
+      "image_to_video": "Å animere bilder krever en videoleverandør. Koble til en for å fortsette.",
+      "reference_to_video": "Referanse til video krever en videoleverandør. Koble til en for å fortsette.",
+      "retake": "Nytt opptak krever en videoleverandør. Koble til en for å fortsette.",
+      "extend": "Å forlenge en video krever en videoleverandør. Koble til en for å fortsette.",
+      "audio_to_video": "Leppesynk krever en leverandør av leppesynk. Koble til en for å fortsette.",
+      "music": "Å lage musikk krever en musikkleverandør. Koble til en for å fortsette.",
+      "audio": "Å lage tale krever en leverandør av tekst til tale. Koble til en for å fortsette."
     }
   },
   "i18n-next29": {
@@ -17570,7 +17585,11 @@
         "allResults": "Alle resultater",
         "home": "Hjem",
         "local": "Lokalt",
-        "providers": "Leverandører"
+        "providers": "Leverandører",
+        "resultsInPath": "Resultater i {{path}}: {{count}} · Treff for «{{term}}» totalt: {{total}}",
+        "resultsRelevant": "Resultater: {{count}} · Mest relevante for «{{term}}» først",
+        "nodesInPath": "Noder i {{path}}: {{count}}",
+        "nodesMatchFilters": "Noder som samsvarer med filtrene: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Bla gjennom noder",
@@ -19722,7 +19741,8 @@
       },
       "openInSketch": "Åpne i skisse",
       "reusePrompt": "Bruk prompten på nytt",
-      "sketchTitle": "Laget bilde"
+      "sketchTitle": "Laget bilde",
+      "keyRejected": "Leverandøren avviste API-nøkkelen. Sjekk den under Innstillinger → Modeller og leverandører."
     },
     "kindLabel": "Hva du vil lage",
     "modeLabel": "Hvordan det lages",

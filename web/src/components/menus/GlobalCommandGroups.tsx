@@ -108,7 +108,7 @@ export const SwitchTabCommands = memo(function SwitchTabCommands() {
     [tabs, activeProjectId, activeTabId, onWorkspace]
   );
   const values = useMemo(
-    () => uniqueValues(targets.map((tab) => t("screens4_4.globalCommands.goToTab", { title: tabDisplayTitle(tab) }))),
+    () => uniqueValues(targets.map((tab) => t("screens4_4.globalCommands.goToTab", { title: tabDisplayTitle(tab, t) }))),
     [targets, t]
   );
 
@@ -133,7 +133,7 @@ export const SwitchTabCommands = memo(function SwitchTabCommands() {
           keywords={[tab.type]}
           onSelect={() => runCommandAndClose(() => switchTo(tab))}
         >
-          <Glyph>{TYPE_GLYPH[tab.type]}</Glyph> {tabDisplayTitle(tab)}
+          <Glyph>{TYPE_GLYPH[tab.type]}</Glyph> {tabDisplayTitle(tab, t)}
         </Command.Item>
       ))}
     </Command.Group>

@@ -96,6 +96,15 @@ runner's desktop when its X11 tools are installed.
 and the coordinate bounds follow it, so the system prompt hash differs between
 viewport sizes.
 
+`locale` (default `en-US`) and `timezoneId` set the browser's language and
+time zone, so the app picks its catalog the way it does for a real user in
+that country. `blockedHosts` lists host names whose requests fail with a
+connection error, as a national firewall does. A host also blocks its
+subdomains. The contract in `summary.json` records all three. For a mainland
+China session use `"locale": "zh-CN"`, `"timezoneId": "Asia/Shanghai"` and
+block the Google, OpenAI, Anthropic, Hugging Face, YouTube, X, Discord and
+Facebook hosts.
+
 `kind` is `discovery`, `task`, or `continuation`. `assets` is optional. The
 participant sees asset names only. `credentials` is optional: keys the persona
 owns and may paste when the app asks. Use it with `--state empty`, where the
@@ -208,6 +217,12 @@ Vite compiles the app on its first page load, so the first session after a
 start sees a black viewport for several seconds. Load the app once in a
 scripted browser before that session, then reset the backend.
 
+Each `serveApp.ts` gets its own project-folder directory
+(`NODETOOL_WORKSPACES_DIR` under the system temporary directory). Reset clears
+the database, not those folders, so a file a participant saved stays for the
+next session on the same server. Clear the directory between sessions when
+that matters.
+
 Restart `serveApp.ts` after changing backend source such as
 `fake-runtime.ts`. Vite reloads web changes without a restart. To stop it, end
 the `serveApp.ts` process by its PID. `pkill -f` with a pattern that also
@@ -252,7 +267,14 @@ goal completable, with placeholder content:
 - "Test Voice Model" (voices `alloy` and `verse`) reads text as silence,
   a quarter second per word and at least one second, so a voiced line shows
   a clip with a duration.
-- Any key passes the onboarding key check without a network call, and the
+- `NODETOOL_FAKE_CHINA_PROVIDERS=1` adds models from providers that work in
+  mainland China: DeepSeek, Alibaba Cloud (Qwen, Wan), Kimi and Z.ai (GLM).
+- `NODETOOL_FAKE_MAINLAND_KEYS` is a comma-separated list of keys that work
+  only on a provider's mainland China host. The Settings test rejects such a
+  key until a `*_REGION` setting is `china` (the real check then saves the
+  region), and every generation with it fails with a 401, as the real
+  international host answers. Use it to study the region setting.
+- Any other key passes the onboarding key check without a network call, and the
   Settings "Test" button answers "The key was accepted.", as a real check
   that passes does. Text that a participant can see must read like the real
   product: a fixture that says it is fake steers the participant away from

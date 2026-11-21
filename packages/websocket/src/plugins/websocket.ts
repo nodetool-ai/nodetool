@@ -285,7 +285,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       log.info("Download WebSocket client connected");
 
       import("@nodetool-ai/huggingface")
-        .then(({ getDownloadManager, resolveWorkerHfToken }) => {
+        .then(({ getDownloadManager, resolveWorkerHfToken, resolveStoredHfEndpoint }) => {
           // TJS downloads are bookkept here so cancel can abort them.
           const tjsAborts = new Map<string, AbortController>();
           // In-flight worker-scoped downloads, keyed by the same composite id
@@ -323,7 +323,17 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                   return;
                 }
                 if (modelType && modelType.startsWith("tjs.")) {
-                  await handleTjsDownload(socket, repoId, modelType, tjsAborts);
+                  const endpoint = await resolveStoredHfEndpoint((key) =>
+                    getStoredSecret(key, req.userId ?? "1")
+                  );
+                  await handleTjsDownload(
+                    socket,
+                    repoId,
+                    modelType,
+                    tjsAborts,
+                    (repo, type, signal, onProgress) =>
+                      runTransformersJsModelDownload(repo, type, signal, onProgress, endpoint)
+                  );
                   return;
                 }
                 if (modelType && modelType.startsWith(WAN2GP_DOWNLOAD_PREFIX)) {
@@ -337,9 +347,14 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                 const token = await resolveWorkerHfToken((key) =>
                   getStoredSecret(key, userId)
                 );
+                // A mirror set in Settings (HF_ENDPOINT) is per user too.
+                const endpoint = await resolveStoredHfEndpoint((key) =>
+                  getStoredSecret(key, userId)
+                );
                 await manager.startDownload(repoId, {
                   path: msg.path ?? null,
                   token: token ?? null,
+                  endpoint,
                   allowPatterns: msg.allow_patterns ?? null,
                   ignorePatterns: msg.ignore_patterns ?? null,
                   // No client-chosen cache_dir: the Model Manager, the

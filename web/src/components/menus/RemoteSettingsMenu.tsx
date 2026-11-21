@@ -347,9 +347,22 @@ interface RemoteSettingsProps {
   search?: string;
 }
 
+/**
+ * Words people search for a setting by that its label and description lack,
+ * such as 镜像 (mirror) for the Hugging Face endpoint (study 22).
+ */
+const SETTING_SEARCH_ALIASES: Readonly<Record<string, string>> = {
+  HF_ENDPOINT: "hugging face huggingface mirror 镜像 下载 download",
+  DASHSCOPE_REGION: "alibaba cloud 阿里云 百炼 通义 qwen 地域 区域 中国 china mainland",
+  KIMI_REGION: "moonshot 月之暗面 地域 区域 中国 china mainland",
+  MINIMAX_REGION: "海螺 地域 区域 中国 china mainland",
+  ZAI_REGION: "智谱 glm 地域 区域 中国 china mainland",
+  KLING_REGION: "可灵 地域 区域 中国 china mainland"
+};
+
 const settingMatches = (setting: SettingWithValue, search: string): boolean =>
   matchesSearch(
-    `${formatSettingLabel(setting.env_var)} ${setting.env_var} ${setting.description ?? ""}`,
+    `${formatSettingLabel(setting.env_var)} ${setting.env_var} ${setting.description ?? ""} ${SETTING_SEARCH_ALIASES[setting.env_var] ?? ""}`,
     search
   );
 

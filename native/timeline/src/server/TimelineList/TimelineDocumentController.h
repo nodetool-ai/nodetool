@@ -1,5 +1,6 @@
 #pragma once
 
+#include "model/TimelineModel.h"
 #include "server/AutosaveController.h"
 #include "server/TimelineList/TimelineListController.h"
 #include "nodetool/account/qt/AccountServers.h"
@@ -12,10 +13,15 @@
 
 namespace nt::app { class ShellMenus; }
 namespace nt::server {
+class TimelineSession;
+// UI thread only.
 class TimelineDocumentController : public QObject {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(QQuickItem* anchor READ anchor WRITE setAnchor NOTIFY anchorChanged)
+    Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
+    Q_PROPERTY(QObject* session READ session WRITE setSession NOTIFY sessionChanged)
+    Q_PROPERTY(bool switching READ switching NOTIFY switchingChanged)
     Q_PROPERTY(QObject* controller READ controller CONSTANT)
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
     // The list is on screen. A `documentfile` push of the open timeline's
@@ -31,8 +37,16 @@ public:
     ~TimelineDocumentController() override;
     QQuickItem* anchor() const { return m_anchor; }
     void setAnchor(QQuickItem* anchor);
+    TimelineModel* timeline() const { return m_timeline; }
+    void setTimeline(TimelineModel* timeline);
+    QObject* session() const;
+    void setSession(QObject* session);
+    bool switching() const;
     QObject* controller() { return &m_list; }
     QString error() const { return m_error; }
+    // Resets any browse-only project selection to the open timeline's project
+    // and refreshes the list.
+    Q_INVOKABLE void prepareList();
     Q_INVOKABLE void createAndOpen();
     // New music project from the editor: creates the music sequence and opens it (MUSIC-MODE.md section 15).
     Q_INVOKABLE void createMusicAndOpen(const QVariantMap& settings);
@@ -50,9 +64,14 @@ signals:
     void listShownChanged();
     void openRequested();
     void anchorChanged();
+    void timelineChanged();
+    void sessionChanged();
+    void switchingChanged();
+    void switched(const QString& timelineId);
     void errorChanged();
     void cloudChanged();
 private:
+    void syncPreferredProject();
     bool leaveCurrent();
     void launch(QStringList arguments, const QProcessEnvironment& environment);
     void bind();
@@ -60,6 +79,8 @@ private:
     void fail(const QString& error);
     AutosaveController* findAutosave() const;
     QPointer<QQuickItem> m_anchor;
+    QPointer<TimelineModel> m_timeline;
+    QPointer<TimelineSession> m_session;
     QPointer<nt::app::ShellMenus> m_menus;
     QPointer<AutosaveController> m_autosave;
     bool m_listShown = false;

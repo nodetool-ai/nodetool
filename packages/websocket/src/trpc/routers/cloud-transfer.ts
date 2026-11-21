@@ -139,7 +139,8 @@ function reviewDocument(document: PlannedDocument) {
     changed_files: document.changedFiles,
     decision: document.decision,
     files: document.files,
-    missing_files: document.missingFiles
+    missing_files: document.missingFiles,
+    erased_files: document.erasedFiles ?? []
   };
 }
 
@@ -164,6 +165,7 @@ function receiveOutput(outcome: ReceiveOutcome): RunReceiveOutput {
         kept_path: entry.keptPath
       })),
       missing_files: result.missingFiles,
+      erased_files: result.erasedFiles ?? [],
       file_kept: result.fileKept
     }
   };

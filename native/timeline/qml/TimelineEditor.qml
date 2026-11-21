@@ -12,7 +12,8 @@ Controls.Control {
     id: root
     required property TimelineModel timeline
     required property PlaybackClock clock
-    property QtObject saver: typeof autosave !== "undefined" ? autosave : null
+    property QtObject saver: typeof nativeSession !== "undefined" && nativeSession !== null
+        ? nativeSession.autosave : (typeof autosave !== "undefined" ? autosave : null)
     // main sets nativeAccountServers for the app. Tests without it show no
     // Account control.
     property AccountServers accountServers: typeof nativeAccountServers !== "undefined" ? nativeAccountServers : null
@@ -34,7 +35,7 @@ Controls.Control {
     readonly property ProjectFolderState projectFolder: ProjectFolderState {
         timeline: root.timeline
         autosave: root.saver
-        Component.onCompleted: if (configured) refresh()
+        Component.onCompleted: refresh()
     }
     // One per editor, because each runs a helper process while in use.
     readonly property FrameCapture frameCapture: FrameCapture { timeline: root.timeline }
@@ -244,6 +245,7 @@ Controls.Control {
         }
         SaveBanners { Layout.fillWidth: true; autosave: root.saver }
         DocumentFileBanner { Layout.fillWidth: true; folder: root.projectFolder }
+        ProjectLockBanner { Layout.fillWidth: true; Layout.leftMargin: Ui.Metrics.md; Layout.rightMargin: Ui.Metrics.md; lock: root.projectFolder.lock }
         DockCanvas {
             id: dockCanvas
             Layout.fillWidth: true

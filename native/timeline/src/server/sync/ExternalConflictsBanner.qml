@@ -7,9 +7,13 @@ import NodeTool.UiPrimitives as Ui
 Item {
     id: root
     objectName: "externalConflictsBanner"
-    readonly property var controller: typeof autosave !== "undefined" ? autosave : null
+    property var hostEditor: null
+    readonly property var controller: hostEditor ? hostEditor.saver : (typeof autosave !== "undefined" ? autosave : null)
     readonly property var conflicts: controller ? controller.externalConflicts : []
     visible: conflicts.length > 0
+
+    Component.onCompleted: Qt.callLater(() => { root.hostEditor = root.editorAbove() })
+    onParentChanged: root.hostEditor = root.editorAbove()
 
     function editorAbove() {
         let item = parent

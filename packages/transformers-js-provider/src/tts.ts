@@ -4,12 +4,14 @@ import {
   generateKokoroSpeech,
   getKokoro,
   getPipeline,
+  getTransformersJsHubEndpoint,
   isKokoroRepo,
   isSpeechT5Repo,
   type KokoroSpeechOptions,
   type KokoroVoice
 } from "@nodetool-ai/transformers-js-nodes";
 import type { EncodedAudioResult } from "@nodetool-ai/runtime";
+import { rewriteHfHubUrl } from "@nodetool-ai/config";
 
 const SPEECHT5_DEFAULT_EMBEDDINGS =
   "https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/speaker_embeddings.bin";
@@ -83,7 +85,10 @@ export async function textToSpeechEncoded(
 
     const opts: TtsPipelineOptions = {};
     if (isSpeechT5Repo(args.model)) {
-      opts.speaker_embeddings = SPEECHT5_DEFAULT_EMBEDDINGS;
+      opts.speaker_embeddings = rewriteHfHubUrl(
+        SPEECHT5_DEFAULT_EMBEDDINGS,
+        getTransformersJsHubEndpoint()
+      );
     }
 
     const result = await pipeline(args.text, opts);

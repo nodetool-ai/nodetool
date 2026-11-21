@@ -15,7 +15,11 @@ Rectangle {
     required property ProjectFiles files
     // A host whose dock has its own close control hides the panel's button.
     property bool closable: true
+    // Optional notice rendered below the panel header (for example a project
+    // folder path or "Folder not found" banner from the host).
+    property Component noticeDelegate: null
     signal closeRequested()
+    signal retryRequested()
     readonly property real rowHeight: Ui.Metrics.compact
     readonly property real thumbSize: Ui.Metrics.small
     readonly property real indent: Ui.Metrics.lg
@@ -30,6 +34,8 @@ Rectangle {
     property Component previewDelegate: null
     // The kinds the host's delegate plays.
     property var previewDelegateKinds: ["video", "audio"]
+    // File kinds that open on a single click in addition to double-click/Enter.
+    property var singleClickOpenKinds: []
     readonly property bool previewPlayable: previewDelegate !== null
         && previewDelegateKinds.indexOf(files.previewKind) >= 0
         && files.previewMediaUrl.toString() !== ""
@@ -63,30 +69,52 @@ Rectangle {
         anchors.fill: parent
         anchors.margins: Ui.Metrics.md
         spacing: Ui.Metrics.sm
-        Ui.PanelHeader {
-            objectName: "files-header"
+        ColumnLayout {
             Layout.fillWidth: true
-            text: "Files"
-            Ui.ToolbarIconButton {
-                objectName: "files-refresh"
-                visible: root.files.hasFolder
-                iconName: "refresh"
-                accessibleName: "Refresh files"
-                description: accessibleName
-                loading: root.files.busy
-                onClicked: root.files.refresh()
+            spacing: 0
+            Ui.PanelHeader {
+                objectName: "files-header"
+                Layout.fillWidth: true
+                text: root.files.projectName !== "" ? qsTr("Files · %1").arg(root.files.projectName) : qsTr("Files")
+                Ui.ToolbarIconButton {
+                    objectName: "files-header-reveal"
+                    visible: root.files.revealable
+                    iconName: "folderOutlined"
+                    accessibleName: root.files.revealLabel
+                    description: accessibleName
+                    onClicked: root.files.reveal(".")
+                }
+                Ui.ToolbarIconButton {
+                    objectName: "files-refresh"
+                    visible: root.files.hasFolder
+                    iconName: "refresh"
+                    accessibleName: "Refresh files"
+                    description: accessibleName
+                    loading: root.files.busy
+                    onClicked: root.files.refresh()
+                }
+                Ui.CloseButton {
+                    objectName: "files-close"
+                    visible: root.closable
+                    accessibleName: "Close files"
+                    description: accessibleName
+                    onClicked: root.closeRequested()
+                }
             }
-            Ui.CloseButton {
-                objectName: "files-close"
-                visible: root.closable
-                accessibleName: "Close files"
-                description: accessibleName
-                onClicked: root.closeRequested()
+            Loader {
+                id: noticeLoader
+                objectName: "files-notice"
+                Layout.fillWidth: true
+                Layout.topMargin: item && item.visible ? Ui.Metrics.sm : 0
+                Layout.preferredHeight: item && item.visible ? item.implicitHeight : 0
+                active: root.noticeDelegate !== null
+                visible: active
+                sourceComponent: root.noticeDelegate
             }
         }
         Item {
             objectName: "files-state"
-            visible: list.count === 0
+            visible: list.count === 0 && !root.files.folderUnavailable
             Layout.fillWidth: true
             Layout.fillHeight: true
             Ui.BusyIndicator {
@@ -98,7 +126,7 @@ Rectangle {
             Ui.EmptyState {
                 objectName: "files-no-folder"
                 anchors.centerIn: parent
-                visible: !root.files.hasFolder
+                visible: !root.files.loading && !root.files.hasFolder && root.files.error === ""
                 maxTextWidth: Math.min(parent.width, Ui.Metrics.panelWidth)
                 title: "No project folder"
                 message: "This project has no folder yet."
@@ -106,7 +134,7 @@ Rectangle {
             Ui.EmptyState {
                 objectName: "files-empty"
                 anchors.centerIn: parent
-                visible: root.files.hasFolder && root.files.empty
+                visible: !root.files.loading && root.files.hasFolder && root.files.empty
                 maxTextWidth: Math.min(parent.width, Ui.Metrics.panelWidth)
                 title: "Project folder is empty"
                 message: "Add files to the project folder to see them here."
@@ -114,13 +142,21 @@ Rectangle {
             Ui.EmptyState {
                 objectName: "files-error"
                 anchors.centerIn: parent
-                visible: root.files.hasFolder && root.files.error !== ""
+                visible: !root.files.loading && root.files.error !== ""
                 maxTextWidth: Math.min(parent.width, Ui.Metrics.panelWidth)
                 title: "The project folder was not listed"
                 message: root.files.error
                 actionText: "Try again"
-                onActionTriggered: root.files.refresh()
+                onActionTriggered: {
+                    if (root.files.hasFolder) root.files.refresh()
+                    else root.retryRequested()
+                }
             }
+        }
+        Item {
+            visible: list.count === 0 && root.files.folderUnavailable
+            Layout.fillWidth: true
+            Layout.fillHeight: true
         }
         ListView {
             id: list
@@ -185,6 +221,9 @@ Rectangle {
                 onClicked: {
                     list.forceActiveFocus()
                     root.files.click(row.index)
+                    if (!row.isDir && root.singleClickOpenKinds.indexOf(root.files.previewKindOf(row.name)) >= 0) {
+                        root.files.activate(row.index)
+                    }
                 }
                 onDoubleClicked: root.files.activate(row.index)
                 // The focused row takes Enter, which opens a file, not the click that toggles.
@@ -359,7 +398,7 @@ Rectangle {
         id: panelDrop
         objectName: "files-drop-area"
         anchors.fill: parent
-        enabled: root.files.hasFolder
+        enabled: root.files.hasFolder && !root.files.localOnly
         onEntered: drag => {
             const entry = drag.formats.indexOf(root.entryMime) >= 0
             if (!entry && !drag.hasUrls) { drag.accepted = false; return }

@@ -569,12 +569,20 @@ the FFmpeg plugin caller.
 
 [CompositionTest](tests/ui/CompositionTest.cpp) compares a scene capture
 (`QWidget::grab()`) with a screen capture (`QScreen::grabWindow()`) through
-[`CanvasCapture`](src/ui/CanvasCapture.h). It covers a playing media preview
+[`CanvasCapture`](src/ui/CanvasCapture.h). It covers a decoded media preview
 under a stacked card, under the chat window and under the inline note editor,
 and the translucent header controls of a group. `node_editor_composition`
-runs it on the software backend. The disabled `node_editor_composition_rhi`
-registration preserves the Vulkan check for the
-[renderer qualification step](../../docs/plans/node-editor-quick-canvas/plan.md#q10-rhi).
+runs it on the software backend. On Linux, configure the build with
+`-DNODETOOL_NODE_EDITOR_RHI_TESTS=ON` to add the OpenGL and Vulkan cases and
+the GPU startup and fallback checks. They require Xvfb, xauth, and working
+OpenGL and Vulkan drivers. Build `node_editor_composition_tests` and
+`nodetool-node-editor`, then run the checks with
+`ctest --test-dir <build> -L render --output-on-failure`.
+
+The desktop editor uses Qt's default graphics API. Set
+`QT_QUICK_BACKEND=software` to use software rendering explicitly, or
+`QSG_RHI_BACKEND` to select another Qt graphics API. If the graphics API
+cannot initialize, the editor retries once with software rendering.
 
 ## Live backend verification
 

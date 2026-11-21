@@ -183,6 +183,9 @@ private:
     void publishFacts(const MediaFacts& facts);
     void beat();
     void publishSkipFloor(long long gen, double floorSec);
+    void publishLanded(std::shared_ptr<DecodedFrame> frame, long long gen);
+    std::shared_ptr<DecodedFrame> takeLandedAfter(long long& shownGen);
+    void clearLandedUpTo(long long gen);
     static int interruptCallback(void* opaque);
 
     // Shared with the preview snapshot. The decoder can outlive that
@@ -205,7 +208,26 @@ private:
     // Requests from the render thread.
     std::atomic<double> m_targetSec;
     std::atomic<long long> m_requestGen{1};
+    // Highest seek generation whose worker run has delivered its target pick
+    // (or hit EOF / exited). Checked by frameAt() so continuous scrubbing lets
+    // each in-flight seek paint instead of restarting from the keyframe on
+    // every frame.
+    std::atomic<long long> m_settledGen{0};
+    // True when the current seek is a short backward scrub step: the worker
+    // decodes the GOP without skipping non-reference frames so the contiguous
+    // frames behind the playhead populate FrameCache for instant backward hits.
+    std::atomic<bool> m_backwardScrub{false};
+    bool m_hasWorker = true;
     double m_restartSec;  // target of the newest restart (render thread)
+
+    // Guards m_landedFrame and m_landedGen. Worker writes when an in-flight
+    // seek lands its exact pick; render thread consumes in frameAt() so a
+    // superseded seek still paints before the next seek starts (D17).
+    std::mutex m_landedMutex;
+    // Shared with FrameCache and render-thread m_shown; unique ownership is
+    // impossible because the cache and display can hold the same frame.
+    std::shared_ptr<DecodedFrame> m_landedFrame;
+    long long m_landedGen = 0;
 
     std::atomic<long long> m_seekCount{0};
     std::atomic<long long> m_engineSwitches{0};
@@ -242,12 +264,14 @@ private:
     // Render thread only.
     // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<DecodedFrame> m_shown;
+    long long m_shownLandedGen = 0;
     bool m_exact = false;
     std::optional<double> m_nextFrameSec;
     // A jump of the target (a seek, not playback) holds the shown frame until
     // the exact pick lands, so the frames decoded on the way never show.
     bool m_settling = false;
     double m_lastTargetSec = -1e300;
+    double m_lastMoveDeltaSec = 0.0;
     int m_lastQueued = 0;
     double m_lastNewest = -1e300;
 

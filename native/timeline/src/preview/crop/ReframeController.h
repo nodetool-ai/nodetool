@@ -2,6 +2,7 @@
 #include "model/TimelineModel.h"
 #include <QPointer>
 #include <QtQmlIntegration/qqmlintegration.h>
+// UI thread only.
 class ReframeController : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -34,6 +35,8 @@ class ReframeController : public QObject {
 
   private:
     QPointer<TimelineModel> m_model;
+    bool gestureIntact() const;
+    void showClips(const QJsonArray& clips);
     void cancelGesture();
     void refresh();
     QJsonArray m_lastPreview;
@@ -43,6 +46,8 @@ class ReframeController : public QObject {
     QJsonObject m_payload;
     QString m_action;
     quint64 m_generation = 0;
+    quint64 m_previewRevision = 0;
+    bool m_writing = false;
     bool m_gesture = false;
     bool m_cancelled = false;
 };

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -69,6 +69,23 @@ describe("InlineEditableText", () => {
     expect(onCommit).toHaveBeenCalledTimes(1);
     expect(onCommit).toHaveBeenCalledWith("Drums");
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("ignores the Enter that confirms an input method's characters", async () => {
+    const user = userEvent.setup();
+    const onCommit = jest.fn();
+    renderWithTheme(<Harness onCommit={onCommit} />);
+    const input = screen.getByRole("textbox", { name: "Track name" });
+
+    await user.clear(input);
+    await user.type(input, "鼓");
+    fireEvent.keyDown(input, { key: "Enter", isComposing: true });
+    fireEvent.keyDown(input, { key: "Enter", keyCode: 229 });
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+
+    fireEvent.keyDown(input, { key: "Enter", keyCode: 13 });
+    expect(onCommit).toHaveBeenCalledWith("鼓");
   });
 
   it("commits on blur", async () => {

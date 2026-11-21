@@ -41,6 +41,7 @@ void CandidatePreview::setTimeline(TimelineModel* model) {
         connect(model, &TimelineModel::documentReplaced, this, &CandidatePreview::close);
         connect(model, &QObject::destroyed, this, &CandidatePreview::close);
     }
+    emit timelineChanged();
     emit changed();
 }
 void CandidatePreview::close() {
@@ -74,6 +75,9 @@ bool CandidatePreview::preview(const QString& assetId, const QString& mediaType,
 bool CandidatePreview::previewFile(const QString& localPath, const QString& mediaType, double durationMs) {
     if (localPath.isEmpty() || !QFileInfo(localPath).isFile()) { return false; }
     return start(PendingPreview{{}, QFileInfo(localPath).absoluteFilePath(), mediaType, durationMs});
+}
+bool CandidatePreview::previewUrl(const QUrl& url, const QString& mediaType, double durationMs) {
+    return url.isLocalFile() && previewFile(url.toLocalFile(), mediaType, durationMs);
 }
 bool CandidatePreview::start(const PendingPreview& request) {
     const auto& [assetId, localPath, mediaType, durationMs] = request;

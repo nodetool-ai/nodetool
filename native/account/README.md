@@ -40,6 +40,7 @@ nlohmann_json only. Three interfaces connect it to the rest of the app:
 | `nodetool/account/cloud_savers.h` | `WorkflowCloudSaver` and `TimelineCloudSaver`, the save of each kind, and the schema versions this client writes |
 | `nodetool/account/cloud_transfer.h` | `LocalTransferClient`, the client of the bundled server's `cloudTransfer` router for Publish and Synchronize, and `TransferReview`, the rows and choices of the review sheet (WP2.8) |
 | `nodetool/account/project_lock.h` | The project lock file `.nodetool/open.lock`: `acquireProjectLock` with the stale rules, `takeOverProjectLock`, `releaseProjectLock`, `ProjectLocks` (the locks of one process, counted per window), and the process start time of each platform (WP2.13) |
+| `nodetool/account/qt/ProjectLockState.h` | `ProjectLockState`, the project lock of one window, which `qml/ProjectLockBanner.qml` shows in both apps |
 | `nodetool/account/policy.h` | `ManagedPolicy`, the managed policy file per platform and `checkServer` (WP1.9) |
 | `nodetool/account/crypto.h` | SHA-256, base64url, hex, random bytes, the server key |
 
@@ -110,16 +111,29 @@ its requests and close its sockets at once.
 - The generation file is read with a 16-byte file read on every request.
   WP0.2 may replace this with a shared memory mapping.
 - The credential store calls the platform APIs directly instead of
-  QtKeychain, so the library needs no Qt. It matches keytar item for item:
+  QtKeychain, so the library needs no Qt. It matches keytar item for item
+  when falling back to the legacy login keychain:
 
   | Platform | API | Item |
   |---|---|---|
-  | macOS | Security framework, generic password (`SecItem*`) | `kSecAttrService` = service, `kSecAttrAccount` = account |
+  | macOS | Security framework, generic password (`SecItem*`) | Data Protection keychain (`kSecUseDataProtectionKeychain`) with `kSecAttrAccessGroup` when the binary carries a validated `keychain-access-groups` entitlement for `*.ai.nodetool.native`, otherwise legacy login keychain with `kSecAttrService` and `kSecAttrAccount` |
   | Windows | Credential Manager, `CRED_TYPE_GENERIC` | target `<service>/<account>`, user name `<account>`, `CRED_PERSIST_ENTERPRISE` |
   | Linux | libsecret, schema `org.freedesktop.Secret.Generic` | attributes `service` and `account`, label `<service>/<account>`, default collection |
 
   A value longer than 2,560 bytes, the Windows limit, is refused on every
   platform. A session record with three pending handles is under 1 KB.
+- `AccountSession::status()` caches its result against `session.gen` and
+  `signout.gen`, so periodic reconcile ticks only read those 16-byte files
+  and do not hit the OS keychain while idle. A denied or failed keychain read
+  is distinguished from a missing item: `repairLocked()` leaves `session.gen`
+  untouched on a store error, and background ticks do not re-prompt until the
+  generation files change or `reload()` runs. When `endPendingSessions()`
+  clears the last pending handle on a signed-out record, it removes the empty
+  keychain item.
+- `cmake/MacCodeSign.cmake` signs bare local macOS executables with a stable
+  `Apple Development` identity when one is installed (skipping CI and
+  `NT_MACOS_BUNDLE=ON` builds) so macOS Keychain "Always Allow" entries
+  survive rebuilds. Set `-DNODETOOL_MACOS_DEV_SIGN_IDENTITY=OFF` to disable.
 
 ## The request layer and the saved state
 

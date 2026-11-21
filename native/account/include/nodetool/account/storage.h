@@ -22,6 +22,20 @@ namespace nodetool::account {
 // account, and its value is one opaque string.
 //
 // Thread affinity: implementations are thread-safe.
+enum class SecretReadStatus {
+  Ok,
+  NotFound,
+  // The OS credential store denied access (user cancelled or locked store).
+  AccessDenied,
+  // The OS credential store returned an unexpected error.
+  Error,
+};
+
+struct SecretReadResult {
+  SecretReadStatus status = SecretReadStatus::NotFound;
+  std::string value;
+};
+
 class SecretStore {
 public:
   virtual ~SecretStore() = default;
@@ -29,6 +43,14 @@ public:
   // Secret Service. The tokens then stay in the memory of one app (SR2).
   virtual bool available() const = 0;
   virtual std::optional<std::string> read(std::string_view service, std::string_view account) = 0;
+  // Reads the item and reports whether a miss was an absent item or a store
+  // access error. Default delegates to `read()`.
+  virtual SecretReadResult readResult(std::string_view service, std::string_view account) {
+    if (auto value = read(service, account)) {
+      return {SecretReadStatus::Ok, std::move(*value)};
+    }
+    return {SecretReadStatus::NotFound, {}};
+  }
   // Returns false when the store refused the write.
   virtual bool write(std::string_view service, std::string_view account, std::string_view value) = 0;
   virtual void remove(std::string_view service, std::string_view account) = 0;

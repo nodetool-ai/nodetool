@@ -86,7 +86,17 @@ const PacketSchema = z.object({
       width: z.number().int().min(320),
       height: z.number().int().min(320)
     })
-    .default(DEFAULT_VIEWPORT)
+    .default(DEFAULT_VIEWPORT),
+  /** The browser's language, as a person's system sets it, such as `zh-CN`. */
+  locale: z.string().default("en-US"),
+  /** The browser's time zone, such as `Asia/Shanghai`. Host time zone when unset. */
+  timezoneId: z.string().optional(),
+  /**
+   * Hosts the persona's network cannot reach, such as `huggingface.co` behind
+   * a national firewall. Every request to one (or a subdomain) fails as a
+   * network error, and the private log records it.
+   */
+  blockedHosts: z.array(z.string()).default([])
 });
 type Packet = z.infer<typeof PacketSchema>;
 
@@ -205,8 +215,19 @@ class BrowserSession implements ParticipantSurface {
     this.context = await browser.newContext({
       viewport: this.packet.viewport,
       deviceScaleFactor: 1,
-      locale: "en-US"
+      locale: this.packet.locale,
+      ...(this.packet.timezoneId ? { timezoneId: this.packet.timezoneId } : {})
     });
+    if (this.packet.blockedHosts.length > 0) {
+      const blocked = this.packet.blockedHosts;
+      await this.context.route(
+        (url) => blocked.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`)),
+        async (route) => {
+          await this.privateLog("blocked-host", { url: route.request().url() });
+          await route.abort("connectionfailed");
+        }
+      );
+    }
     await installOriginGuard(this.context, this.packet.allowedOrigins, async (url) => {
       this.pendingEvents.push(
         `A page outside the permitted sites did not open (${originOf(url) ?? url}).`
@@ -538,7 +559,7 @@ async function main(): Promise<void> {
       sessionId: packet.sessionId,
       kind: packet.kind,
       packet,
-      browser: { engine: "chromium", viewport: packet.viewport, deviceScaleFactor: 1, locale: "en-US", freshContext: true }
+      browser: { engine: "chromium", viewport: packet.viewport, deviceScaleFactor: 1, locale: packet.locale, timezoneId: packet.timezoneId, blockedHosts: packet.blockedHosts, freshContext: true }
     },
     summary: () => ({ browserMs: session.browserMs })
   });

@@ -22,6 +22,7 @@ import {
   TruncatedText
 } from "../ui_primitives";
 import { isElectron } from "../../lib/env";
+import { isImeComposing } from "../../utils/ime";
 
 interface OpenedProject {
   id: string;
@@ -253,7 +254,7 @@ const NewProjectDialog = ({ open, onClose }: NewProjectDialogProps) => {
             setError(undefined);
           }}
           onKeyDown={(event) => {
-            if (event.key === "Enter") {
+            if (event.key === "Enter" && !isImeComposing(event)) {
               event.preventDefault();
               void create();
             }

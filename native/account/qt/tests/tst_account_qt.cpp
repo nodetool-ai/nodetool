@@ -10,6 +10,8 @@
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/CloudDocument.h"
+#include "nodetool/account/project_lock.h"
+#include "nodetool/account/qt/ProjectLockState.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
 #include "nodetool/account/qt/ServerToken.h"
 #include "nodetool/account/qt/ShareController.h"
@@ -146,14 +148,15 @@ HttpResponse sendOffThread(const HttpRequest& request) {
 // Thread affinity: thread-safe, as the wrapped object.
 class SharedStore final : public SecretStore {
 public:
-  explicit SharedStore(MemorySecretStore& store) : store_(store) {}
-  bool available() const override { return true; }
+  explicit SharedStore(SecretStore& store) : store_(store) {}
+  bool available() const override { return store_.available(); }
   std::optional<std::string> read(std::string_view s, std::string_view a) override { return store_.read(s, a); }
+  SecretReadResult readResult(std::string_view s, std::string_view a) override { return store_.readResult(s, a); }
   bool write(std::string_view s, std::string_view a, std::string_view v) override { return store_.write(s, a, v); }
   void remove(std::string_view s, std::string_view a) override { store_.remove(s, a); }
 
 private:
-  MemorySecretStore& store_;
+  SecretStore& store_;
 };
 
 class SharedEndpoint final : public TokenEndpoint {
@@ -2223,6 +2226,152 @@ private slots:
     QVERIFY(syncStatusText(S::NotSaving, 1, {}, {}).startsWith("Not saving"));
     QCOMPARE(syncStatusText(S::Unsent, 1, {}, "SCHEMA_DOWNGRADE"),
              QString("Unsent edits: stored in a newer format than this app writes"));
+  }
+
+  // The 2-second reconcile timer must not re-read the keychain when nothing
+  // changed, and a denied keychain read must neither re-prompt on reconcile
+  // ticks nor overwrite session.gen for other apps.
+  void reconcileCachesStatusAndStopsLoopingOnDenial() {
+    class CountingDeniedStore final : public SecretStore {
+    public:
+      explicit CountingDeniedStore(SecretStore& inner) : inner_(inner) {}
+      bool available() const override { return true; }
+      std::optional<std::string> read(std::string_view s, std::string_view a) override {
+        const SecretReadResult r = readResult(s, a);
+        return r.status == SecretReadStatus::Ok ? std::optional<std::string>(r.value) : std::nullopt;
+      }
+      SecretReadResult readResult(std::string_view s, std::string_view a) override {
+        ++reads;
+        if (denyReads.load()) {
+          return {SecretReadStatus::AccessDenied, {}};
+        }
+        return inner_.readResult(s, a);
+      }
+      bool write(std::string_view s, std::string_view a, std::string_view v) override { return inner_.write(s, a, v); }
+      void remove(std::string_view s, std::string_view a) override { inner_.remove(s, a); }
+      std::atomic<int> reads{0};
+      std::atomic<bool> denyReads{false};
+
+    private:
+      SecretStore& inner_;
+    };
+
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    signInWith(this, *editor, "code-1");
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+    // Add a second signed-out entry to verify multi-account indexes also reuse
+    // cached sessions instead of re-reading the keychain every reconcile tick.
+    QVERIFY(AccountsIndex(computer.data.path()).upsert({kServer, "u0", "Old"}, std::chrono::seconds(1)));
+
+    CountingDeniedStore denied(computer.keychain);
+    denied.denyReads = true;
+    AccountServices services = computer.services("timeline");
+    services.store = std::make_unique<SharedStore>(denied);
+    AccountController timeline(std::move(services));
+    QTRY_VERIFY(denied.reads.load() >= 2);
+    const int readsAfterStart = denied.reads.load();
+    QCOMPARE(readsAfterStart, 2);
+    QCOMPARE(timeline.state(), AccountController::State::SignedOut);
+
+    // Wait past a full 2-second reconcile tick: zero additional keychain reads,
+    // and editor's session.gen remains SignedIn.
+    QTest::qWait(2300);
+    QCOMPARE(denied.reads.load(), readsAfterStart);
+    QCOMPARE(readGenerationFile(accountDir(computer.data.path(), kServer, "u1") / "session.gen").state,
+             SessionState::SignedIn);
+
+    // Once access is granted and reload() runs, timeline picks up the session
+    // and subsequent reconcile ticks still make zero keychain reads.
+    denied.denyReads = false;
+    timeline.reload();
+    QTRY_COMPARE(timeline.state(), AccountController::State::SignedIn);
+    const int readsAfterReload = denied.reads.load();
+    QTest::qWait(2300);
+    QCOMPARE(denied.reads.load(), readsAfterReload);
+  }
+
+  // WP2.13, TC105 through the window state: the second app's window opens
+  // read-only and names the first, then writes once the first closed it.
+  void projectLockNamesTheOtherApp() {
+    account_test::TempDir folder;
+    const QString path = QString::fromStdU16String(folder.path().u16string());
+    const QString project(32, 'a');
+    const std::vector<std::pair<int64_t, std::string>> table{{10, "boot:10"}, {20, "boot:20"}};
+    const auto probe = [table](int64_t pid) -> std::optional<std::string> {
+      for (const auto& [id, start] : table) {
+        if (id == pid) return start;
+      }
+      return std::nullopt;
+    };
+    auto timelineLocks = std::make_unique<ProjectLocks>(ProjectLockHolder{"timeline", 10, "studio", "boot:10", ""}, probe);
+    ProjectLocks editorLocks(ProjectLockHolder{"node-editor", 20, "studio", "boot:20", ""}, probe);
+    auto timeline = std::make_unique<ProjectLockState>(timelineLocks.get());
+    timeline->setTarget(path, project);
+    QCOMPARE(timeline->state(), QString("writing"));
+    QVERIFY(!timeline->readOnly());
+    QVERIFY(timeline->message().isEmpty());
+
+    ProjectLockState editor(&editorLocks);
+    QSignalSpy changed(&editor, &ProjectLockState::changed);
+    editor.setTarget(path, project);
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(editor.state(), QString("heldHere"));
+    QVERIFY(editor.readOnly());
+    QCOMPARE(editor.holderApp(), QString("timeline"));
+    QVERIFY(editor.message().contains("The timeline app"));
+    // Taking over is only for another computer.
+    editor.takeOver();
+    QCOMPARE(editor.state(), QString("heldHere"));
+
+    // The timeline closes the project, so Check again writes.
+    timeline.reset();
+    QVERIFY(!std::filesystem::exists(projectLockPath(folder.path())));
+    editor.retry();
+    QCOMPARE(editor.state(), QString("writing"));
+    QVERIFY(!editor.readOnly());
+    // Leaving the project gives the lock back.
+    editor.setTarget({}, {});
+    QCOMPARE(editor.state(), QString());
+    QVERIFY(!std::filesystem::exists(projectLockPath(folder.path())));
+  }
+
+  void projectLockFromAnotherComputerIsTakenOver() {
+    account_test::TempDir folder;
+    const QString path = QString::fromStdU16String(folder.path().u16string());
+    const QString project(32, 'b');
+    writeFileAtomically(projectLockPath(folder.path()),
+                        serializeProjectLock({"timeline", 10, "laptop", "boot:10", project.toStdString()}));
+    ProjectLocks locks(ProjectLockHolder{"node-editor", 20, "studio", "boot:20", ""},
+                       [](int64_t pid) -> std::optional<std::string> {
+                         return pid == 20 ? std::optional<std::string>("boot:20") : std::nullopt;
+                       });
+    ProjectLockState state(&locks);
+    state.setTarget(path, project);
+    QCOMPARE(state.state(), QString("heldElsewhere"));
+    QVERIFY(state.readOnly());
+    QCOMPARE(state.holderHost(), QString("laptop"));
+    QVERIFY(state.message().contains("laptop"));
+    state.retry();
+    QCOMPARE(state.state(), QString("heldElsewhere"));
+    state.takeOver();
+    QCOMPARE(state.state(), QString("writing"));
+    const auto bytes = readWholeFile(projectLockPath(folder.path()));
+    QVERIFY(bytes && parseProjectLock(*bytes)->host == "studio");
+  }
+
+  void projectLockNeedsAFolderOnThisComputer() {
+    account_test::TempDir folder;
+    ProjectLocks locks("node-editor");
+    ProjectLockState state(&locks);
+    state.setTarget(QString::fromStdU16String((folder.path() / "gone").u16string()), QString(32, 'c'));
+    QCOMPARE(state.state(), QString());
+    QVERIFY(!state.readOnly());
+    ProjectLockState noLocks(nullptr);
+    noLocks.setTarget(QString::fromStdU16String(folder.path().u16string()), QString(32, 'c'));
+    QCOMPARE(noLocks.state(), QString());
+    QVERIFY(!std::filesystem::exists(projectLockPath(folder.path())));
   }
 };
 

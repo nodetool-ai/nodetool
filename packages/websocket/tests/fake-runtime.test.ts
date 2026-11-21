@@ -422,3 +422,48 @@ describe("FakeProvider as a stand-in provider", () => {
     unregisterProvider("qa-test-provider");
   });
 });
+
+describe("mainland-only fake keys", () => {
+  it("accepts the key only on the china region and saves nothing itself", async () => {
+    const { acceptCredential } = await import("../src/fake-runtime.js");
+    const { checkCredential, setCredentialCheckOverride } = await import(
+      "@nodetool-ai/runtime"
+    );
+    process.env.NODETOOL_FAKE_MAINLAND_KEYS = "sk-bj";
+    setCredentialCheckOverride(acceptCredential);
+    try {
+      const result = await checkCredential("DASHSCOPE_API_KEY", "sk-bj", {
+        getSetting: async () => null
+      });
+      expect(result.status).toBe("valid");
+      expect(result.region).toEqual({ setting: "DASHSCOPE_REGION", value: "china" });
+
+      const other = await checkCredential("DASHSCOPE_API_KEY", "sk-intl", {
+        getSetting: async () => null
+      });
+      expect(other).toEqual({ status: "valid", message: "The key was accepted." });
+    } finally {
+      setCredentialCheckOverride(null);
+      delete process.env.NODETOOL_FAKE_MAINLAND_KEYS;
+    }
+  });
+
+  it("fails a generation with a mainland key until the region is china", async () => {
+    process.env.NODETOOL_FAKE_MAINLAND_KEYS = "sk-bj";
+    try {
+      const wrong = new FakeProvider({ DASHSCOPE_API_KEY: "sk-bj" }, "alibaba");
+      await expect(
+        wrong.generateMessage({ messages: [], model: "qwen-plus" } as never)
+      ).rejects.toMatchObject({ status: 401 });
+      const right = new FakeProvider(
+        { DASHSCOPE_API_KEY: "sk-bj", DASHSCOPE_REGION: "china" },
+        "alibaba"
+      );
+      await expect(
+        right.generateMessage({ messages: [], model: "qwen-plus" } as never)
+      ).resolves.toBeDefined();
+    } finally {
+      delete process.env.NODETOOL_FAKE_MAINLAND_KEYS;
+    }
+  });
+});

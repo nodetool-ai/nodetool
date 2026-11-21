@@ -14,6 +14,8 @@
 #include <QtQml/QQmlExtensionPlugin>
 #include <QtTest>
 #include <algorithm>
+#include <filesystem>
+#include <system_error>
 
 Q_IMPORT_QML_PLUGIN(NodeTool_FilesPlugin)
 
@@ -475,6 +477,123 @@ private slots:
     QCOMPARE(closed.size(), 1);
   }
 
+  void localFolderListsOnlyProjectAndSkipsNestedProjectsAndSymlinks() {
+    QTemporaryDir outside;
+    QVERIFY(outside.isValid());
+    {
+      QFile secret(outside.filePath("secret.txt"));
+      QVERIFY(secret.open(QIODevice::WriteOnly));
+      secret.write("secret");
+    }
+
+    QTemporaryDir projectRoot;
+    QVERIFY(projectRoot.isValid());
+    QDir rootDir(projectRoot.path());
+    QVERIFY(rootDir.mkpath(".nodetool"));
+    QVERIFY(rootDir.mkpath("nested/.nodetool"));
+    QVERIFY(rootDir.mkpath("footage/subnested/.nodetool"));
+    const auto writeFile = [&](const QString &rel, const QByteArray &data) {
+      QFile f(rootDir.filePath(rel));
+      QVERIFY(f.open(QIODevice::WriteOnly));
+      QCOMPARE(f.write(data), data.size());
+    };
+    writeFile(".nodetool/project.json", R"({"format":"nodetool.project","version":1,"id":"p-local","name":"Film"})");
+    writeFile("nested/.nodetool/project.json", R"({"format":"nodetool.project","version":1,"id":"p-nested","name":"Nested"})");
+    writeFile("nested/other.txt", "nested");
+    writeFile("footage/take.png", "png");
+    writeFile("footage/subnested/.nodetool/project.json", R"({"format":"nodetool.project","version":1,"id":"p-sub","name":"Sub"})");
+    writeFile("cut.timeline.json", R"({"format":"nodetool.timeline","version":1,"duration_ms":64000,"document":{"tracks":[{},{}],"clips":[{}]}})");
+    // QFile::link writes a shell shortcut on Windows, which is an ordinary file
+    // unless its name ends in .lnk. std::filesystem makes a real symbolic link.
+    const auto symlink = [](const QString &target, const QString &link, bool directory) {
+      std::error_code error;
+      const std::filesystem::path from(target.toStdU16String());
+      const std::filesystem::path to(link.toStdU16String());
+      if (directory) {
+        std::filesystem::create_directory_symlink(from, to, error);
+      } else {
+        std::filesystem::create_symlink(from, to, error);
+      }
+      return !error;
+    };
+    const bool linked = symlink(outside.filePath("secret.txt"), rootDir.filePath("escape.txt"), false)
+                        && symlink(outside.path(), rootDir.filePath("escape_dir"), true)
+                        && symlink(rootDir.filePath(".nodetool/project.json"), rootDir.filePath("sneak_meta"), false)
+                        && symlink(rootDir.filePath(".nodetool/project.json"), rootDir.filePath("footage/sneak_meta"), false);
+    if (!linked) { QSKIP("Creating symbolic links needs Developer Mode or administrator rights on Windows"); }
+
+    ProjectFiles files;
+    files.setProject("p-local");
+    files.setProjectName("Film");
+    files.setLocalFolder(projectRoot.path());
+    QVERIFY(files.hasFolder());
+    QVERIFY(files.isLocalOnly());
+    QVERIFY(files.revealable());
+    QCOMPARE(files.projectName(), QStringLiteral("Film"));
+    QTRY_VERIFY(!files.loading());
+    QVERIFY(files.error().isEmpty());
+    QCOMPARE(names(files), (QStringList{"footage", "cut.timeline.json"}));
+
+    files.toggle(rowOf(files, "footage"));
+    QTRY_COMPARE(names(files), (QStringList{"footage", "take.png", "cut.timeline.json"}));
+    const QString canonicalTake = QFileInfo(rootDir.filePath("footage/take.png")).canonicalFilePath();
+    QCOMPARE(role(files, rowOf(files, "footage/take.png"), ProjectFiles::ThumbnailUrlRole).toUrl(),
+             QUrl::fromLocalFile(canonicalTake));
+
+    files.select(rowOf(files, "footage/take.png"));
+    QCOMPARE(files.previewImageUrl(), QUrl::fromLocalFile(canonicalTake));
+
+    files.select(rowOf(files, "cut.timeline.json"));
+    QTRY_COMPARE(files.previewSummary(), QStringLiteral("1:04 · 2 tracks · 1 clip"));
+
+    // Local-only mode refuses server asset mutations.
+    QVERIFY(!files.moveEntry("cut.timeline.json", "footage"));
+    QCOMPARE(files.copyIn({QUrl::fromLocalFile(outside.filePath("secret.txt"))}, "."), 0);
+
+    // Clearing the folder exits local-only mode.
+    files.setFolder({});
+    QVERIFY(!files.hasFolder());
+    QVERIFY(!files.isLocalOnly());
+    QCOMPARE(files.rowCount(), 0);
+  }
+
+  void panelShowsProjectHeaderRevealLoadingAndUnavailableStates() {
+    FakeProjectFiles files;
+    files.configure(Origin, {}, {});
+    auto view = panel(files);
+    auto *root = view->rootObject();
+    QVERIFY2(root, "FilesPanel did not load");
+    QCOMPARE(named(root, "files-header")->property("text").toString(), QStringLiteral("Files"));
+    QVERIFY(!named(root, "files-header-reveal")->isVisible());
+    QVERIFY(named(root, "files-no-folder")->isVisible());
+
+    files.setFolderResolving(true);
+    QVERIFY(files.loading());
+    QVERIFY(named(root, "files-loading")->isVisible());
+    QVERIFY(!named(root, "files-no-folder")->isVisible());
+
+    files.setFolderResolving(false);
+    files.setFolderError("Server offline");
+    QVERIFY(named(root, "files-error")->isVisible());
+    QVERIFY(!named(root, "files-no-folder")->isVisible());
+    QSignalSpy retried(root, SIGNAL(retryRequested()));
+    QMetaObject::invokeMethod(named(root, "files-error"), "actionTriggered");
+    QCOMPARE(retried.size(), 1);
+
+    files.setFolderError({});
+    files.setProjectName("Feature Film");
+    files.setFolderUnavailable(true);
+    QCOMPARE(named(root, "files-header")->property("text").toString(), QStringLiteral("Files · Feature Film"));
+    QVERIFY(!named(root, "files-state")->isVisible());
+    QVERIFY(!named(root, "files-no-folder")->isVisible());
+
+    files.setFolderUnavailable(false);
+    QTemporaryDir local;
+    QVERIFY(local.isValid());
+    files.setFolder("ws1", local.path());
+    QVERIFY(named(root, "files-header-reveal")->isVisible());
+  }
+
   void previewKindsFollowTheWebPreview() {
     QCOMPARE(ProjectFiles::previewKindOf("a.PNG"), QStringLiteral("image"));
     QCOMPARE(ProjectFiles::previewKindOf("clip.mov"), QStringLiteral("video"));
@@ -728,6 +847,31 @@ private slots:
     qInfo("files bench: root listing applied %.2f ms, first frame %.2f ms", listed, firstFrame);
     qInfo("files bench: toggle 200-row folder + frame median %.2f ms (max %.2f ms)", median(toggles), *std::max_element(toggles.cbegin(), toggles.cend()));
     qInfo("files bench: scroll 100 rows + frame median %.2f ms (max %.2f ms)", median(scrolls), *std::max_element(scrolls.cbegin(), scrolls.cend()));
+  }
+
+  void singleClickOpenKindsActivatesMatchingFilesOnly() {
+    FakeProjectFiles files;
+    files.configure(Origin, {}, {});
+    files.setFolder("ws1");
+    auto view = panel(files);
+    QVERIFY2(view->rootObject(), "FilesPanel did not load");
+    auto *root = view->rootObject();
+    root->setProperty("singleClickOpenKinds", QVariantList{QStringLiteral("timeline")});
+    QVERIFY(files.answer(".", {FakeProjectFiles::entry("cut.timeline.json"), FakeProjectFiles::entry("notes.md")}));
+    auto *list = named(root, "files-list");
+    QVERIFY(list);
+    QTRY_VERIFY(rowItem(list, "cut.timeline.json"));
+    QTRY_VERIFY(rowItem(list, "notes.md"));
+
+    QSignalSpy opened(&files, &ProjectFiles::openFileRequested);
+    QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, centerOf(rowItem(list, "notes.md")));
+    QCOMPARE(files.selectedPath(), QStringLiteral("notes.md"));
+    QCOMPARE(opened.size(), 0);
+
+    QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, centerOf(rowItem(list, "cut.timeline.json")));
+    QCOMPARE(files.selectedPath(), QStringLiteral("cut.timeline.json"));
+    QCOMPARE(opened.size(), 1);
+    QCOMPARE(opened.first().first().toString(), QStringLiteral("cut.timeline.json"));
   }
 };
 

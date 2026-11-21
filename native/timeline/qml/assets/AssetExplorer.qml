@@ -88,8 +88,8 @@ Ui.Surface {
         const editor = Context.editorFor(explorer)
         if (editor) {
             explorer.timeline = editor.timeline
-            explorer.projectFolder = editor.projectFolder || null
-            explorer.saver = editor.saver || null
+            explorer.projectFolder = Qt.binding(() => editor.projectFolder || null)
+            explorer.saver = Qt.binding(() => editor.saver || null)
         }
         browserModel.refresh()
     })
@@ -461,6 +461,7 @@ Ui.Surface {
     AssetBrowser {
         id: destinationBrowser
         timeline: explorer.timeline
+        autosave: explorer.saver
         typeFilter: "folder"
     }
     Ui.Dialog {

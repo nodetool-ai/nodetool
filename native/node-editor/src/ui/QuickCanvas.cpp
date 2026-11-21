@@ -148,9 +148,15 @@ QuickCanvas::QuickCanvas(WorkflowGraphModel &model, QWidget &parent, QQmlEngine 
   // overlays share the GraphCanvas scene graph.
   auto *widget = engine ? new QQuickWidget(engine, &parent) : new QQuickWidget(&parent);
   widget->setObjectName(QStringLiteral("quick-canvas"));
+  widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
   widget->setFocusPolicy(Qt::StrongFocus);
   widget->setAcceptDrops(true);
   widget->setMouseTracking(true);
+  // QQuickWidget recreates its offscreen window on reparent under RHI and only
+  // carries its registered root item across. The widget owns this host item.
+  auto *root = new QQuickItem();
+  root->setParent(widget);
+  widget->setContent(QUrl(), nullptr, root);
   host_ = widget;
   widget_ = widget;
   canvas_ = std::make_unique<canvas::GraphCanvas>(model);
@@ -159,7 +165,7 @@ QuickCanvas::QuickCanvas(WorkflowGraphModel &model, QWidget &parent, QQmlEngine 
     return host && focus && focus != host && host->isAncestorOf(focus);
   });
   canvas_->setClip(true);
-  canvas_->setParentItem(widget->quickWindow()->contentItem());
+  canvas_->setParentItem(root);
   canvas_->setSize(widget->size());
   widget->installEventFilter(this);
   auto &graph = *canvas_;

@@ -11,9 +11,12 @@
  *
  * The CLI runs its own agent with its own tools. A turn that offers NodeTool
  * tools runs on `agy acp` instead, where the tools are served to the CLI as an
- * MCP server (see acp-session.ts). Every other turn uses `stream-json`,
- * which cannot add tools. Images also go through `agy acp`, by way of the
- * CLI's `image-generator` subagent (see `generateImageViaAcp`). It runs in a dedicated empty scratch directory, never the
+ * MCP server (see acp-session.ts). Those turns select the `nodetool-mcp`
+ * agent, written into the scratch workspace, which has no built-in tools. The
+ * host rejects any call to them, and a rejected call ends the turn without a
+ * reply. Every other turn uses `stream-json`, which cannot add tools. Images
+ * also go through `agy acp`, by way of the CLI's `image-generator` subagent
+ * (see `generateImageViaAcp`). It runs in a dedicated empty scratch directory, never the
  * server's working directory, because headless runs auto-allow file reads and
  * writes inside the active workspace. Shell commands stay soft-denied: the
  * provider never passes `--dangerously-skip-permissions`.
@@ -61,6 +64,34 @@ const INSTALLER_BIN_DIR = [".local", "bin"];
 
 /** The one image model. The CLI picks the underlying model itself. */
 export const IMAGE_MODEL_ID = "image-generator";
+
+/** The `agy` agent for ACP tool turns. It has none of the CLI's own tools. */
+export const ACP_AGENT_NAME = "nodetool-mcp";
+
+/** `agy` reads workspace agents from `.agents/agents/<name>/agent.md`. */
+export const ACP_AGENT_FILE = `---
+name: ${ACP_AGENT_NAME}
+description: NodeTool ACP host agent with built-in tools disabled
+mainAgent: true
+tools: []
+---
+Use only the MCP tools provided by the \`nodetool\` server.
+`;
+
+/** `agy acp` flags for a tool turn: the tool-less agent and nothing else. */
+export const ACP_TOOL_TURN_ARGS = [
+  "acp",
+  "--agent",
+  ACP_AGENT_NAME,
+  "--include-default-customizations=false"
+];
+
+/**
+ * Image generation runs in its own scratch directory on plain `agy acp`: it
+ * needs the CLI's default `image-generator` subagent, and must not see the
+ * tool-less agent written for tool turns.
+ */
+const IMAGE_SCRATCH_NAME = "nodetool-antigravity-image";
 
 /** How long a finished run may take to exit before it is stopped. */
 const RESULT_EXIT_GRACE_MS = 30_000;
@@ -121,7 +152,7 @@ export type AntigravityCliRunner = (
 export interface AntigravityProviderOptions {
   /** Replaces the real subprocess, for tests. */
   runCli?: AntigravityCliRunner;
-  /** Replaces the `agy acp` subprocess, for tests. */
+  /** Replaces the `agy acp` subprocess, for tests. Used for images too. */
   spawnAcp?: AcpSpawner;
   /** Where `agy` saves generated images. Defaults to the CLI's own directory. */
   imageBrainDir?: string;
@@ -151,7 +182,10 @@ export class AntigravityProvider extends AcpCliProvider {
   protected readonly spawnAcp: AcpSpawner;
   protected readonly cliName = "Antigravity CLI";
   protected readonly cliLabel = "agy";
-  protected readonly acpArgs = ["acp"];
+  protected readonly acpArgs = ACP_TOOL_TURN_ARGS;
+  protected override readonly hostToolsOnlyPrompt = true;
+  /** Spawns plain `agy acp`, which keeps the `image-generator` subagent. */
+  private readonly spawnImageAcp: AcpSpawner;
   protected readonly scratchName = "nodetool-antigravity";
   private readonly imageOptions: Pick<
     AntigravityProviderOptions,
@@ -177,19 +211,28 @@ export class AntigravityProvider extends AcpCliProvider {
       imagePollMs: options.imagePollMs,
       imageSettleMs: options.imageSettleMs
     };
-    this.spawnAcp =
-      options.spawnAcp ??
-      (async ({ cwd, signal }) => {
-        const run = await this.runCli(["acp"], {
-          stdin: "",
-          cwd,
-          signal,
-          interactive: true
-        });
-        const write = run.write;
-        if (!write) throw new AntigravityCliError("The runner cannot keep stdin open");
-        return { lines: run.lines, exit: run.exit, kill: run.kill, write } satisfies AcpProcess;
+    this.spawnAcp = options.spawnAcp ?? this.acpSpawner(ACP_TOOL_TURN_ARGS);
+    this.spawnImageAcp = options.spawnAcp ?? this.acpSpawner(["acp"]);
+  }
+
+  private acpSpawner(args: string[]): AcpSpawner {
+    return async ({ cwd, signal }) => {
+      const run = await this.runCli(args, {
+        stdin: "",
+        cwd,
+        signal,
+        interactive: true
       });
+      const write = run.write;
+      if (!write) throw new AntigravityCliError("The runner cannot keep stdin open");
+      return { lines: run.lines, exit: run.exit, kill: run.kill, write } satisfies AcpProcess;
+    };
+  }
+
+  /** Writes the tool-less `nodetool-mcp` agent that tool turns select. */
+  protected override async prepareAcpWorkspace(cwd: string | null): Promise<void> {
+    if (!cwd) return;
+    await writeAcpAgent(cwd);
   }
 
   /** The CLI's credentials never leave this process. */
@@ -346,8 +389,8 @@ export class AntigravityProvider extends AcpCliProvider {
     if (!prompt) throw new AntigravityCliError("The input prompt cannot be empty.");
     const negative = params.negativePrompt?.trim();
     const run = await generateImageViaAcp({
-      spawn: this.spawnAcp,
-      cwd: await scratchWorkspace(),
+      spawn: this.spawnImageAcp,
+      cwd: await scratchWorkspace(IMAGE_SCRATCH_NAME),
       prompt: negative ? `${prompt}\nAvoid: ${negative}` : prompt,
       aspectRatio: params.aspectRatio,
       signal: params.signal,
@@ -540,6 +583,23 @@ export function buildCliArgs(plan: {
     );
   }
   return args;
+}
+
+/**
+ * Writes the `nodetool-mcp` agent into `workspace`. Rewritten on every turn so
+ * a stale or edited copy cannot re-enable built-in tools.
+ */
+export async function writeAcpAgent(workspace: string): Promise<string> {
+  const [fs, path] = await Promise.all([
+    importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises"),
+    importNodeBuiltin<typeof import("node:path")>("node:path")
+  ]);
+  if (!fs || !path) throw new AntigravityCliError("The Antigravity provider requires Node.js");
+  const dir = path.join(workspace, ".agents", "agents", ACP_AGENT_NAME);
+  await fs.mkdir(dir, { recursive: true });
+  const file = path.join(dir, "agent.md");
+  await fs.writeFile(file, ACP_AGENT_FILE, "utf8");
+  return file;
 }
 
 /** Every stdout line of a short-lived `agy` command. */

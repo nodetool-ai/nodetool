@@ -11,12 +11,14 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 
 class ClipGestureController;
+// UI thread only.
 class TransformGizmoController : public QQuickPaintedItem {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY bindingsChanged)
     Q_PROPERTY(PlaybackClock* clock READ clock WRITE setClock NOTIFY bindingsChanged)
     Q_PROPERTY(QStringList selection READ selection WRITE setSelection NOTIFY bindingsChanged)
+    Q_PROPERTY(bool active READ active WRITE setActive NOTIFY bindingsChanged)
     Q_PROPERTY(bool available READ available NOTIFY geometryChanged)
     // The clip picture's corners (top-left, top-right, bottom-right, bottom-left) in this item's
     // coordinates. Effect mask overlays map clip-normalized points through them.
@@ -35,6 +37,8 @@ public:
     void setTimeline(TimelineModel* value);
     void setClock(PlaybackClock* value);
     void setSelection(const QStringList& value);
+    bool active() const { return m_active; }
+    void setActive(bool value);
     bool available() const { return m_available; }
     bool alignmentEnabled() const { return m_alignmentEnabled; }
     void setAlignmentEnabled(bool value);
@@ -79,7 +83,9 @@ private:
     void clearPointerFeedback();
     QString targetAt(QPointF point) const;
     void write(const nt::ClipTransform& next);
+    bool dragIntact() const;
     void probe(const QString& path);
+    QString versionFor(const QString& path);
     QPointer<TimelineModel> m_timeline;
     QPointer<PlaybackClock> m_clock;
     QPointer<QQuickItem> m_monitor;
@@ -87,15 +93,18 @@ private:
     QSizeF m_frame;
     QList<QMetaObject::Connection> m_monitorConnections;
     QStringList m_selection;
+    bool m_active = true;
     bool m_available = false;
     nt::gizmo::Space m_space;
     nt::gizmo::Geometry m_box;
     nt::ClipTransform m_stored;
     nt::ClipTransform m_display;
     QString m_clipId;
+    int m_clipIndex = -1;
     QJsonObject m_startClip;
+    QJsonObject m_previewClip;
     QJsonArray m_before;
-    QJsonArray m_lastPreview;
+    quint64 m_previewRevision = 0;
     bool m_writing = false;
     std::optional<nt::gizmo::Drag> m_drag;
     quint64 m_generation = 0;
@@ -110,6 +119,7 @@ private:
     bool m_lastBypass = false;
     bool m_focusVisible = false;
     QHash<QString, QSize> m_dimensions;
+    QHash<QString, QString> m_pathVersions;
     QSet<QString> m_probing;
     quint64 m_probeEpoch = 0;
 };

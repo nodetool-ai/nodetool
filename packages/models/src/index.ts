@@ -828,12 +828,31 @@ export {
   type ProjectBlobRow
 } from "./project-blob.js";
 export {
+  assetIdsWithContentHash,
+  deleteProjectBlobRows,
+  deleteStagedErasedBlobs,
+  deletedDocumentsOfProject,
+  erasedFilesOf,
+  getErasedFile,
+  listErasedFiles,
+  listMissingFiles,
+  projectFilesWithContentHash,
+  recordErasedFile,
+  recordMissingFiles,
+  removeErasedFile,
+  removeMissingFiles,
+  type MissingFileReason,
+  type ProjectErasedFileRow,
+  type ProjectMissingFileRow
+} from "./project-file-lists.js";
+export {
   STORAGE_WARNING_FRACTION,
   exceedsStorageAllowance,
   parseStorageAllowance,
   setStorageAllowanceBytes,
   storageAllowanceBytes,
   storageFiles,
+  deletedDocumentRefFiles,
   storageAllowanceStatus,
   storageUse,
   type StorageFile,

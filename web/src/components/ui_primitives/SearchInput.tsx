@@ -15,6 +15,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
+import { isImeComposing } from "../../utils/ime";
 
 export interface SearchInputProps {
   /** Current search value */
@@ -228,7 +229,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
     if (e.defaultPrevented) {
       return;
     }
-    if (e.key === "Enter" && onSubmit) {
+    if (e.key === "Enter" && onSubmit && !isImeComposing(e)) {
       onSubmit(localValue);
     }
     if (escapeClears && e.key === "Escape" && localValue) {

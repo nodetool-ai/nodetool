@@ -17,9 +17,23 @@ import type {
   VideoModel
 } from "./types.js";
 
-// Global endpoint for servers outside mainland China.
-// https://kling.ai/document-api/api/get-started/authentication.md
-const BASE_URL = "https://api-singapore.klingai.com";
+/**
+ * `KLING_REGION` → API host. `international` is the global endpoint for
+ * servers outside mainland China
+ * (https://kling.ai/document-api/api/get-started/authentication.md). `china` is
+ * the Beijing endpoint, listed as "China API Endpoint" in
+ * https://kling.ai/llms.txt. Keys are not shared between the two platforms.
+ */
+export const KLING_BASE_URLS = {
+  international: "https://api-singapore.klingai.com",
+  china: "https://api-beijing.klingai.com"
+} as const;
+
+/** `KLING_REGION` → API host. Empty or unknown values use the international host. */
+export function resolveKlingBaseURL(region?: string | null): string {
+  const key = (region ?? "").trim().toLowerCase();
+  return key === "china" ? KLING_BASE_URLS.china : KLING_BASE_URLS.international;
+}
 
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, index) => from + index);
 
@@ -186,6 +200,7 @@ function encodeImage(bytes: Uint8Array, role: string, maxBytes: number): string 
  */
 export class KlingProvider extends BaseProvider {
   private readonly apiKey: string;
+  private readonly baseURL: string;
 
   protected override declaredCapabilities(): readonly ProviderCapability[] {
     return ["text_to_image", "image_to_image", "text_to_video", "image_to_video"];
@@ -202,6 +217,7 @@ export class KlingProvider extends BaseProvider {
       throw new Error("KLING_API_KEY is required");
     }
     this.apiKey = apiKey.trim();
+    this.baseURL = resolveKlingBaseURL(typeof secrets.KLING_REGION === "string" ? secrets.KLING_REGION : undefined);
   }
 
   override getContainerEnv(): Record<string, string> {
@@ -366,7 +382,7 @@ export class KlingProvider extends BaseProvider {
     signal?.throwIfAborted();
     // Creation is billed, so it is never retried.
     const createdData = await this.unwrap(
-      await fetch(`${BASE_URL}${path}`, { method: "POST", headers: this.headers(true), body: JSON.stringify(body), signal }),
+      await fetch(`${this.baseURL}${path}`, { method: "POST", headers: this.headers(true), body: JSON.stringify(body), signal }),
       "video creation"
     );
     const created = z.object({ id: z.string(), status: z.string() }).safeParse(createdData);
@@ -375,7 +391,7 @@ export class KlingProvider extends BaseProvider {
     await recordGenerationReceiptAsync({ provider_request_id: id });
 
     const task = await this.poll<VideoTask>(
-      `${BASE_URL}/tasks?task_ids=${encodeURIComponent(id)}`,
+      `${this.baseURL}/tasks?task_ids=${encodeURIComponent(id)}`,
       { id, status: created.data.status },
       (data) => {
         const tasks = z.array(VideoTaskSchema).safeParse(data);
@@ -401,7 +417,7 @@ export class KlingProvider extends BaseProvider {
   private async generateImage(spec: ImageSpec, body: Record<string, unknown>, signal?: AbortSignal): Promise<Uint8Array> {
     signal?.throwIfAborted();
     const createdData = await this.unwrap(
-      await fetch(`${BASE_URL}${spec.path}`, { method: "POST", headers: this.headers(true), body: JSON.stringify(body), signal }),
+      await fetch(`${this.baseURL}${spec.path}`, { method: "POST", headers: this.headers(true), body: JSON.stringify(body), signal }),
       "image creation"
     );
     const created = ImageTaskSchema.safeParse(createdData);
@@ -410,7 +426,7 @@ export class KlingProvider extends BaseProvider {
     await recordGenerationReceiptAsync({ provider_request_id: id });
 
     const task = await this.poll<ImageTask>(
-      `${BASE_URL}${spec.path}/${encodeURIComponent(id)}`,
+      `${this.baseURL}${spec.path}/${encodeURIComponent(id)}`,
       created.data,
       (data) => {
         const parsed = ImageTaskSchema.safeParse(data);

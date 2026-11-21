@@ -14302,7 +14302,9 @@
       "connect": "连接",
       "getKey": "从 {{provider}} 获取密钥",
       "saveAnyway": "仍然保存",
-      "rejectedKey": "服务商拒绝了此密钥。"
+      "rejectedKey": "服务商拒绝了此密钥。",
+      "regionSwitched": "{{provider}} 在中国大陆地域接受了此密钥，NodeTool 已改用该地域。",
+      "hfMirrorNote": "无法访问 huggingface.co？请在 设置 → 集成 → HF endpoint 中填写镜像地址，例如 https://hf-mirror.com。"
     },
     "hardware": {
       "autoDetect": "自动检测",
@@ -14355,6 +14357,19 @@
       "memoryEstimate_other": "{{count}} GB 内存",
       "installed": "已安装",
       "download": "下载"
+    },
+    "providerSetup": {
+      "chat": "聊天需要语言模型。请连接一个提供方后开始。",
+      "image": "生成图片需要图片提供方。请连接一个后继续。",
+      "image_edit": "编辑图片需要图片提供方。请连接一个后继续。",
+      "video": "生成视频需要视频提供方。请连接一个后继续。",
+      "image_to_video": "让图片动起来需要视频提供方。请连接一个后继续。",
+      "reference_to_video": "参考生成视频需要视频提供方。请连接一个后继续。",
+      "retake": "重拍需要视频提供方。请连接一个后继续。",
+      "extend": "延长视频需要视频提供方。请连接一个后继续。",
+      "audio_to_video": "口型同步需要口型同步提供方。请连接一个后继续。",
+      "music": "生成音乐需要音乐提供方。请连接一个后继续。",
+      "audio": "生成语音需要语音合成提供方。请连接一个后继续。"
     }
   },
   "i18n-next29": {
@@ -17570,7 +17585,11 @@
         "allResults": "全部结果",
         "home": "主页",
         "local": "本地",
-        "providers": "提供商"
+        "providers": "提供商",
+        "resultsInPath": "{{path}} 中的结果：{{count}} · 与“{{term}}”匹配的总数：{{total}}",
+        "resultsRelevant": "结果：{{count}} · 与“{{term}}”最相关的排在前面",
+        "nodesInPath": "{{path}} 中的节点：{{count}}",
+        "nodesMatchFilters": "符合筛选条件的节点：{{count}}"
       },
       "renderNodes": {
         "browseNodes": "浏览节点",
@@ -19722,7 +19741,8 @@
       },
       "openInSketch": "在草图中打开",
       "reusePrompt": "重用提示词",
-      "sketchTitle": "创建的图片"
+      "sketchTitle": "创建的图片",
+      "keyRejected": "服务商拒绝了 API 密钥。请在 设置 → 模型和提供方 中检查。"
     },
     "kindLabel": "要创建什么",
     "modeLabel": "如何创建",

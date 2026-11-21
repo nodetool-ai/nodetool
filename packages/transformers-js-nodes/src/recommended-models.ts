@@ -99,7 +99,8 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
   // Cross-encoders: the provider scores query/document pairs with them.
   "tjs.text_ranking": [
     { repo_id: "mixedbread-ai/mxbai-rerank-xsmall-v1" },
-    { repo_id: "jinaai/jina-reranker-v2-base-multilingual" }
+    { repo_id: "jinaai/jina-reranker-v2-base-multilingual" },
+    { repo_id: "syntriq/lupe-multilingual-reranker-small" }
   ],
 
   "tjs.zero_shot_classification": [

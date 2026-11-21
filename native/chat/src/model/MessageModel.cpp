@@ -328,6 +328,52 @@ QJsonObject mediaPresentation(QJsonObject part) {
   }
   return part;
 }
+// packages/app-runtime/src/chat-app.ts parseChatAppEvent + ChatAppEventChip.tsx:
+// a user turn prefixed with "[app event] " carries JSON for the model and
+// renders as a compact chip for the user.
+QString appEventLabel(const QJsonObject &m) {
+  if (m["role"] != "user" || m["execution_event_type"] == "compaction") {
+    return {};
+  }
+  const auto text = textOf(m["content"]);
+  static const QString prefix = QStringLiteral("[app event] ");
+  if (!text.startsWith(prefix)) {
+    return {};
+  }
+  QJsonParseError error;
+  const auto doc = QJsonDocument::fromJson(text.mid(prefix.size()).toUtf8(), &error);
+  if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+    return {};
+  }
+  const auto obj = doc.object();
+  if (!obj["control"].isString() || !obj["requests"].isArray()) {
+    return {};
+  }
+  const auto settledVal = obj["settled"];
+  if (settledVal.isObject()) {
+    const auto settled = settledVal.toObject();
+    if (settled["operationId"].isString() && settled["status"].isString()) {
+      const auto opId = settled["operationId"].toString();
+      const auto status = settled["status"].toString();
+      if (status == "completed") { return opId + QStringLiteral(" finished"); }
+      if (status == "failed") { return opId + QStringLiteral(" failed"); }
+      if (status == "cancelled") { return opId + QStringLiteral(" was stopped"); }
+    }
+  }
+  QStringList segments;
+  segments << QStringLiteral("Pressed \u201C%1\u201D").arg(obj["control"].toString());
+  for (const auto &value : obj["requests"].toArray()) {
+    if (!value.isObject()) { continue; }
+    const auto request = value.toObject();
+    const auto kind = request["kind"].toString();
+    if (kind == "step" && request["step"].isString()) {
+      segments << QStringLiteral("go to %1").arg(request["step"].toString());
+    } else if (kind == "run" && request["operationId"].isString()) {
+      segments << QStringLiteral("run %1").arg(request["operationId"].toString());
+    }
+  }
+  return segments.join(QStringLiteral(" \u00B7 "));
+}
 QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject> &results, const QList<qsizetype> &offsets) {
   QJsonArray parts;
   if (m["execution_event_type"] == "compaction") {
@@ -344,6 +390,9 @@ QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject
     if (summary.startsWith(header)) { summary = summary.mid(header.size()).trimmed(); }
     return {QJsonObject{{"type", "compaction"}, {"label", "Earlier conversation summarized"},
                         {"collapsible", true}, {"text", summary.isEmpty() ? "No summary available." : summary}}};
+  }
+  if (const auto label = appEventLabel(m); !label.isEmpty()) {
+    return {QJsonObject{{"type", "app_event"}, {"label", label}}};
   }
   const auto contentPlan = parsePlanDocument(m["content"]);
   if (!contentPlan.isEmpty()) {
@@ -820,10 +869,10 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
   case TextRole:
     return textOf(m["content"]);
   case DisplayTextRole:
-    if (m["role"] == "user" && m["content"].isArray() && m["execution_event_type"] != "compaction" && parsePlanDocument(m["content"]).isEmpty()) {
+    if (m["role"] == "user" && m["content"].isArray() && m["execution_event_type"] != "compaction" && parsePlanDocument(m["content"]).isEmpty() && appEventLabel(m).isEmpty()) {
       return textOf(m["content"]);
     }
-    return m["execution_event_type"] == "compaction" || !parsePlanDocument(m["content"]).isEmpty() || m["content"].isArray() || !m["parts"].toArray().isEmpty() || textOf(m["content"]).contains("<think>") ? QString() : textOf(m["content"]);
+    return m["execution_event_type"] == "compaction" || !parsePlanDocument(m["content"]).isEmpty() || !appEventLabel(m).isEmpty() || m["content"].isArray() || !m["parts"].toArray().isEmpty() || textOf(m["content"]).contains("<think>") ? QString() : textOf(m["content"]);
   case TimestampRole:
     return m["created_at"].toString();
   case PartsRole: {
@@ -1109,8 +1158,8 @@ QString MessageModel::upsert(const QJsonObject &message) {
     emit dataChanged(index(i), index(i));
     return id;
   }
-  if (!message["temporary"].toBool() && message["role"] == "assistant" &&
-      !m_rows.isEmpty() && m_rows.last()["temporary"].toBool()) {
+  if (!message.value("temporary").toBool() && message["role"] == "assistant" &&
+      !m_rows.isEmpty() && m_rows.last().value("temporary").toBool()) {
     const auto i = rowCount() - 1;
     const auto oldKey = m_projectionKeys.last();
     m_indices.remove(oldKey);

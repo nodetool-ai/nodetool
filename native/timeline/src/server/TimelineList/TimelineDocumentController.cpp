@@ -1,9 +1,11 @@
 #include "TimelineDocumentController.h"
 #include "TimelineLaunch.h"
+#include "TimelineSession.h"
 #include "app/Menus/ShellMenus.h"
 #include "app/Preferences/Preferences.h"
 #include "server/BundledServer.h"
 #include "server/ServerSource.h"
+#include "server/projectfolder/ProjectFolderState.h"
 #include <QCoreApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -25,6 +27,42 @@ TimelineDocumentController::TimelineDocumentController(QObject* parent)
     connect(&m_list, &TimelineListController::openRequested, this, &TimelineDocumentController::switchTo);
 }
 TimelineDocumentController::~TimelineDocumentController() = default;
+QObject* TimelineDocumentController::session() const { return m_session; }
+bool TimelineDocumentController::switching() const {
+    return m_switching || (m_session && m_session->switching());
+}
+void TimelineDocumentController::setSession(QObject* object) {
+    auto* session = qobject_cast<TimelineSession*>(object);
+    if (m_session == session) {
+        return;
+    }
+    if (m_session) {
+        disconnect(m_session, nullptr, this, nullptr);
+    }
+    m_session = session;
+    if (session) {
+        connect(session, &TimelineSession::autosaveChanged, this, [this] {
+            if (m_session) {
+                watch(m_session->autosaveController());
+            }
+        });
+        connect(session, &TimelineSession::switchingChanged, this, &TimelineDocumentController::switchingChanged);
+        connect(session, &TimelineSession::switched, this, [this](const QString& id) {
+            if (!m_error.isEmpty()) {
+                m_error.clear();
+                emit errorChanged();
+            }
+            emit switched(id);
+        });
+        connect(session, &TimelineSession::switchFailed, this, &TimelineDocumentController::fail);
+        if (m_menus && m_menus->preferences()) {
+            session->setPreferences(m_menus->preferences());
+        }
+        watch(session->autosaveController());
+    }
+    emit sessionChanged();
+    emit switchingChanged();
+}
 QObject* TimelineDocumentController::accountServers() const { return m_servers; }
 QObject* TimelineDocumentController::cloudBrowser() const { return m_cloud.get(); }
 void TimelineDocumentController::setAccountServers(QObject* object) {
@@ -69,6 +107,38 @@ void TimelineDocumentController::setAnchor(QQuickItem* anchor) {
     QTimer::singleShot(0, this, &TimelineDocumentController::bind);
     emit anchorChanged();
 }
+void TimelineDocumentController::setTimeline(TimelineModel* timeline) {
+    if (m_timeline == timeline) {
+        return;
+    }
+    if (m_timeline) {
+        disconnect(m_timeline, nullptr, this, nullptr);
+    }
+    m_timeline = timeline;
+    if (timeline) {
+        connect(timeline, &TimelineModel::timelineChanged, this, &TimelineDocumentController::syncPreferredProject);
+    }
+    syncPreferredProject();
+    emit timelineChanged();
+}
+void TimelineDocumentController::syncPreferredProject() {
+    if (!m_timeline) {
+        m_list.setPreferredProjectId({});
+        return;
+    }
+    QString projectId = m_timeline->projectId();
+    if (projectId.isEmpty() || projectId == u"default") {
+        if (const auto local = ProjectFolderState::findEnclosingProjectFolder(m_timeline->sourcePath())) {
+            projectId = local->id;
+        }
+    }
+    m_list.setPreferredProjectId(projectId);
+}
+void TimelineDocumentController::prepareList() {
+    syncPreferredProject();
+    m_list.resetProjectSelection();
+    m_list.refresh();
+}
 void TimelineDocumentController::setListShown(bool shown) {
     if (m_listShown == shown) {
         return;
@@ -95,8 +165,14 @@ void TimelineDocumentController::watch(AutosaveController* autosave) {
     }
 }
 AutosaveController* TimelineDocumentController::findAutosave() const {
+    if (m_session) {
+        return m_session->autosaveController();
+    }
     for (auto* item = m_anchor.data(); item; item = item->parentItem()) {
         if (auto* save = qobject_cast<AutosaveController*>(item->property("autosave").value<QObject*>())) {
+            return save;
+        }
+        if (auto* save = qobject_cast<AutosaveController*>(item->property("saver").value<QObject*>())) {
             return save;
         }
     }
@@ -135,6 +211,9 @@ void TimelineDocumentController::bind() {
     if (menus) {
         connect(menus, &nt::app::ShellMenus::openTimelineRequested, this, &TimelineDocumentController::openRequested);
         connect(menus, &nt::app::ShellMenus::newTimelineRequested, this, &TimelineDocumentController::createAndOpen);
+        if (m_session && menus->preferences()) {
+            m_session->setPreferences(menus->preferences());
+        }
     }
 }
 void TimelineDocumentController::fail(const QString& error) {
@@ -142,11 +221,13 @@ void TimelineDocumentController::fail(const QString& error) {
     emit errorChanged();
 }
 void TimelineDocumentController::createAndOpen() {
-    if (m_switching || m_list.busy()) {
+    if (switching() || m_list.busy()) {
         return;
     }
     m_error.clear();
     emit errorChanged();
+    syncPreferredProject();
+    m_list.resetProjectSelection();
     m_list.refresh();
     if (!m_list.error().isEmpty()) {
         fail(m_list.error());
@@ -160,11 +241,13 @@ void TimelineDocumentController::createAndOpen() {
     m_list.openTimeline(created.value("id").toString());
 }
 void TimelineDocumentController::createMusicAndOpen(const QVariantMap& settings) {
-    if (m_switching || m_list.busy()) {
+    if (switching() || m_list.busy()) {
         return;
     }
     m_error.clear();
     emit errorChanged();
+    syncPreferredProject();
+    m_list.resetProjectSelection();
     m_list.refresh();
     if (!m_list.error().isEmpty()) {
         fail(m_list.error());
@@ -211,18 +294,12 @@ void TimelineDocumentController::openCloud(const QString& id, const QString& rol
     launch(std::move(arguments), environment);
 }
 void TimelineDocumentController::switchTo(const QString& source) {
-    if (m_switching || !m_anchor || !m_anchor->window()) {
-        return;
-    }
-    const QScopedValueRollback switching(m_switching, true);
-    if (!leaveCurrent()) {
+    if (switching() || !m_anchor || !m_anchor->window()) {
         return;
     }
     const QUrl url(source);
     const auto id = url.fragment().sliced(QStringLiteral("timeline=").size());
     const auto server = url.adjusted(QUrl::RemoveFragment);
-    const QVariantMap entry{{"kind", "server"}, {"server", server.toString()}, {"timelineId", id}};
-    auto arguments = nt::app::recentTimelineArguments(entry);
     QString label = QStringLiteral("Untitled video");
     for (const auto& value : m_list.documents()) {
         const auto row = value.toMap();
@@ -231,6 +308,23 @@ void TimelineDocumentController::switchTo(const QString& source) {
             break;
         }
     }
+    if (m_session && m_session->canSwitchInPlace()) {
+        bind();
+        if (!m_error.isEmpty()) {
+            m_error.clear();
+            emit errorChanged();
+        }
+        const auto target = listTarget();
+        m_session->switchToServerTimeline(server, id, target.token, target.expectedInstance, label,
+                                          m_menus ? m_menus->preferences() : nullptr);
+        return;
+    }
+    const QScopedValueRollback inProgress(m_switching, true);
+    if (!leaveCurrent()) {
+        return;
+    }
+    const QVariantMap entry{{"kind", "server"}, {"server", server.toString()}, {"timelineId", id}};
+    auto arguments = nt::app::recentTimelineArguments(entry);
     m_menus->preferences()->addRecentServer(label, {server, {}, id, {}, {}});
     launch(std::move(arguments), timelineLaunchEnvironment(listTarget()));
 }

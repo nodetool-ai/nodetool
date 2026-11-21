@@ -43,9 +43,11 @@
 #include "server/FieldAudit.h"
 #include "server/SaveCli.h"
 #include "server/BundledServer.h"
+#include <QCryptographicHash>
 #include "server/ServerSource.h"
 #include "server/TimelineAssetCacheContext.h"
 #include "music/MusicJobs.h"
+#include "server/TimelineList/TimelineSession.h"
 #include "takes/TakeSwitcher.h"
 
 #include "aiassist/AgentBridge.h"
@@ -693,6 +695,12 @@ static int showUnsupportedColorVersion(QGuiApplication& app, const QString& vers
 }
 
 int main(int argc, char** argv) {
+    // Qt 6.12 + OpenSSL 4 unloads and reloads the default provider on every
+    // QCryptographicHash::hash() call when no hash instance stays alive,
+    // causing unbounded method-store growth. Pinning one unused instance on
+    // main's stack keeps the default provider loaded for the process lifetime.
+    const QCryptographicHash openSslDefaultProviderPin(QCryptographicHash::Sha256);
+    Q_UNUSED(openSslDefaultProviderPin);
     nt::app::registerCliMode({"--save", nt::server::saveCli});
     nt::app::registerCliMode({"--dump-plan", dumpPlan});
     nt::app::registerCliMode({"--probe-media", probeMediaReport});
@@ -1138,40 +1146,48 @@ int main(int argc, char** argv) {
         QObject::connect(cloudSaver.get(), &nt::account::CloudTimelineSaver::errorChanged, &app,
                          [saver = cloudSaver.get()] { qWarning().noquote() << saver->error(); });
     }
+    // Owns the active server timeline's AutosaveController and switches server
+    // timelines in place inside this window. Declared before the view so QML
+    // tears down before the session and its autosave controller.
+    nt::server::TimelineSession session(model, clock, assetCache, cloudSource.has_value());
+    std::unique_ptr<nt::motion::MatteResolver> matteResolver;
+    std::unique_ptr<nt::app::LocalDocumentSaver> localSaver;
+    // Mattes are read from the server the timeline came from, the cloud included.
+    const auto refreshMedia = [&matteResolver, &model, &assetCache] {
+        matteResolver.reset();
+        if (const auto media = nt::server::mediaSource()) {
+            matteResolver = std::make_unique<nt::motion::MatteResolver>(model, *media, assetCache);
+        }
+    };
+    const bool allowLocalSave = !bench && !parser.isSet(realtimeOpt) && !parser.isSet(teardownOpt);
+    const auto attachLocal = [&localSaver, &matteResolver, &model, &app, allowLocalSave](const QString& path) {
+        localSaver.reset();
+        matteResolver.reset();
+        if (allowLocalSave && QFileInfo(path).isFile()) {
+            localSaver = std::make_unique<nt::app::LocalDocumentSaver>(model, path);
+            QObject::connect(localSaver.get(), &nt::app::LocalDocumentSaver::saveFailed, &app,
+                             [](const QString& error) { qWarning().noquote() << error; });
+        }
+    };
+    refreshMedia();
+    session.attachInitialServer(loaded.timeline->raw.value(u"updatedAt").toString());
+    if (!session.autosaveController() && allowLocalSave && QFileInfo(source).isFile()) {
+        attachLocal(source);
+    }
+    session.setFlushLocalCallback([&localSaver] { return !localSaver || localSaver->flush(); });
+    session.setAttachLocalCallback(attachLocal);
+    session.setRefreshMediaCallback([&localSaver, &refreshMedia] {
+        localSaver.reset();
+        refreshMedia();
+    });
     QQuickView view;
     nt::server::TimelineAssetCacheContext::install(*view.engine(), assetCache);
     nt::hw::prepareWindow(&view);
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.setColor(QColor(18, 18, 20));
-    view.setTitle(QStringLiteral("NodeTool Timeline — %1").arg(model.name()));
+    session.setWindow(&view);
     view.setInitialProperties({{QStringLiteral("timeline"), QVariant::fromValue(&model)},
                                {QStringLiteral("clock"), QVariant::fromValue(&clock)}});
-    // A server timeline saves itself (D34); QML reads `autosave` for its state.
-    std::unique_ptr<nt::server::AutosaveController> autosave;
-    std::unique_ptr<nt::motion::MatteResolver> matteResolver;
-    std::unique_ptr<nt::app::LocalDocumentSaver> localSaver;
-    // Mattes are read from the server the timeline came from, the cloud included.
-    if (const auto media = nt::server::mediaSource()) {
-        matteResolver = std::make_unique<nt::motion::MatteResolver>(model, *media, assetCache);
-    }
-    if (const auto target = nt::server::serverSaveTarget()) {
-        autosave = std::make_unique<nt::server::AutosaveController>(
-            assetCache, *target, model.undoStack(), [&model]() { return model.timeline().raw; },
-            loaded.timeline->raw.value(u"updatedAt").toString());
-        QObject::connect(&model, &TimelineModel::commandSettled, autosave.get(),
-                         &nt::server::AutosaveController::documentChanged);
-        QObject::connect(autosave.get(), &nt::server::AutosaveController::projectChanged, &model,
-                         &TimelineModel::setProjectId);
-        // The Library's project check can also move the document (AssetBrowser::receive).
-        QObject::connect(&model, &TimelineModel::timelineChanged, autosave.get(),
-                         &nt::server::AutosaveController::syncOpenProject);
-    }
-    if (!autosave && !bench && !parser.isSet(realtimeOpt) && !parser.isSet(teardownOpt) &&
-        QFileInfo(source).isFile()) {
-        localSaver = std::make_unique<nt::app::LocalDocumentSaver>(model, source);
-        QObject::connect(localSaver.get(), &nt::app::LocalDocumentSaver::saveFailed, &app,
-                         [](const QString& error) { qWarning().noquote() << error; });
-    }
     nt::chat::ChatSession chatSession;
     nt::chat::TimelineChatHost chatHost(model, clock);
     AssistantSession assistantTools;
@@ -1268,7 +1284,11 @@ int main(int argc, char** argv) {
     view.rootContext()->setContextProperty(QStringLiteral("nativeChatHost"), &chatHost);
     view.rootContext()->setContextProperty(QStringLiteral("nativeAssistantTools"), &assistantTools);
     view.rootContext()->setContextProperty(QStringLiteral("nativeChatInitiallyOpen"), parser.isSet(chatOpt));
-    view.rootContext()->setContextProperty(QStringLiteral("autosave"), autosave.get());
+    view.rootContext()->setContextProperty(QStringLiteral("nativeSession"), &session);
+    view.rootContext()->setContextProperty(QStringLiteral("autosave"), session.autosave());
+    QObject::connect(&session, &nt::server::TimelineSession::autosaveChanged, &view, [&view, &session] {
+        view.rootContext()->setContextProperty(QStringLiteral("autosave"), session.autosave());
+    });
     view.rootContext()->setContextProperty(QStringLiteral("nativeAccountServers"), accountServers.get());
     view.rootContext()->setContextProperty(QStringLiteral("nativeCloudDocument"),
                                            cloudSaver ? cloudSaver->document() : nullptr);
@@ -1583,8 +1603,9 @@ int main(int argc, char** argv) {
 
     // Unsaved server edits: save them (at most 5 s) or leave a recovery file;
     // exit code 4 when no folder took them.
+    const int appRc = app.exec();
     const int rc = nt::app::exitCodeAfterLocalSave(localSaver.get(),
-        nt::server::exitCodeAfterQuit(autosave.get(), app.exec(), 5000));
+        nt::server::exitCodeAfterQuit(session.autosaveController(), appRc, 5000));
     // The save above may need the bundled server, so it stops only now.
     nt::server::stopBundledServer();
     if ((bench || parser.isSet(teardownOpt)) && !*completed) {

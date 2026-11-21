@@ -11,6 +11,7 @@
 
 #include "canvas/CanvasItem.h"
 #include "canvas/GridIndex.h"
+#include "canvas/WirePainter.h"
 #include <qtnodes/ConnectionIdHash.hpp>
 #include <qtnodes/Definitions.hpp>
 #include <QHash>
@@ -19,6 +20,7 @@
 #include <QPointer>
 #include <QSet>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 class QPainter;
@@ -69,6 +71,12 @@ public:
   // marks can reach farther than half the widest stroke from it.
   virtual QPainterPath connectionPath(const ConnectionItem &) const { return {}; }
   virtual bool connectionPaintsOffPath(const ConnectionItem &) const { return true; }
+  // GPU vector geometry support for RHI wires without off-path badges.
+  virtual bool supportsVectorConnections() const { return false; }
+  virtual std::optional<WirePaintState> connectionPaintState(const ConnectionItem &, double) const {
+    return std::nullopt;
+  }
+  virtual const CanvasTheme *vectorTheme() const { return nullptr; }
   // The logical zoom of the view, which painting reads.
   double zoom() const { return zoom_; }
   void setZoom(double zoom) { zoom_ = zoom; }
@@ -124,6 +132,9 @@ public:
   void registerItem(CanvasItem &item);
   void unregisterItem(CanvasItem &item);
   void updateIndex(CanvasItem &item);
+  // Updates the draft wire's index entry and asks the view to repaint only it,
+  // without invalidating viewport coverage or notifying the mini-map.
+  void draftMoved(CanvasItem &item);
   // Asks the view for a raster pass and repaint.
   void requestRaster();
   // Coalesces QGraphicsScene::changed for the mini-map and other listeners.
@@ -147,6 +158,7 @@ signals:
   // Items changed position, size or content.
   void changed();
   void rasterRequested();
+  void draftRasterRequested();
 
 public slots:
   void onConnectionDeleted(const QtNodes::ConnectionId &id);

@@ -59,8 +59,27 @@ function getH3Dispatcher(): Promise<Dispatcher> {
   return h3Dispatcher;
 }
 
-const MINIMAX_BASE_URL = "https://api.minimax.io";
-const MINIMAX_OPENAI_BASE_URL = `${MINIMAX_BASE_URL}/v1`;
+/**
+ * `MINIMAX_REGION` → API host. The international platform serves
+ * https://api.minimax.io
+ * (https://platform.minimax.io/docs/api-reference/text-chat-openai.md). The
+ * mainland China platform (platform.minimaxi.com, which redirects to
+ * platform.minimax.cn) serves every endpoint family, including H3 image and
+ * video, from https://api.minimax.cn
+ * (https://platform.minimax.cn/docs/api-reference/text-chat-openai.md,
+ * https://platform.minimax.cn/docs/guides/image-generation.md). Keys are not
+ * shared between the two platforms.
+ */
+export const MINIMAX_BASE_URLS = {
+  international: "https://api.minimax.io",
+  china: "https://api.minimax.cn"
+} as const;
+
+/** `MINIMAX_REGION` → API host. Empty or unknown values use the international host. */
+export function resolveMinimaxBaseURL(region?: string | null): string {
+  const key = (region ?? "").trim().toLowerCase();
+  return key === "china" ? MINIMAX_BASE_URLS.china : MINIMAX_BASE_URLS.international;
+}
 
 /**
  * The endpoint families `callEndpoint` accepts as `route`, and the API path
@@ -231,11 +250,16 @@ export class MinimaxProvider extends OpenAICompatProvider {
     return ["MINIMAX_API_KEY"];
   }
 
+  private readonly _baseUrl: string;
   private readonly _h3BaseUrl: string;
   private readonly _minimaxFetch: typeof fetch;
 
   constructor(
-    secrets: { MINIMAX_API_KEY?: string; MINIMAX_IMAGE_REGION?: string },
+    secrets: {
+      MINIMAX_API_KEY?: string;
+      MINIMAX_REGION?: string;
+      MINIMAX_IMAGE_REGION?: string;
+    },
     options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.MINIMAX_API_KEY;
@@ -244,17 +268,23 @@ export class MinimaxProvider extends OpenAICompatProvider {
     }
 
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+    const baseUrl = resolveMinimaxBaseURL(secrets.MINIMAX_REGION);
 
     super(
       {
         providerId: "minimax",
         apiKey,
-        baseURL: MINIMAX_OPENAI_BASE_URL
+        baseURL: `${baseUrl}/v1`
       },
       { ...options, fetchFn }
     );
 
-    this._h3BaseUrl = secrets.MINIMAX_IMAGE_REGION === "china" ? "https://api.minimax.cn" : MINIMAX_BASE_URL;
+    this._baseUrl = baseUrl;
+    // MINIMAX_IMAGE_REGION predates MINIMAX_REGION and still overrides it for
+    // H3 image requests. Unset, H3 follows MINIMAX_REGION.
+    this._h3BaseUrl = secrets.MINIMAX_IMAGE_REGION?.trim()
+      ? resolveMinimaxBaseURL(secrets.MINIMAX_IMAGE_REGION)
+      : baseUrl;
     this._minimaxFetch = fetchFn;
   }
 
@@ -292,7 +322,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
     if (isH3) init.dispatcher = await getH3Dispatcher();
     if (signal) init.signal = signal;
     const res = await this._minimaxFetch(
-      `${isH3 ? this._h3BaseUrl : MINIMAX_BASE_URL}/v1/${path}`,
+      `${isH3 ? this._h3BaseUrl : this._baseUrl}/v1/${path}`,
       init
     );
     if (!res.ok) {
@@ -872,7 +902,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
     signal?: AbortSignal
   ): Promise<string> {
     const submit = await this._minimaxFetch(
-      `${MINIMAX_BASE_URL}/v1/video_generation`,
+      `${this._baseUrl}/v1/video_generation`,
       {
         method: "POST",
         headers: this.headers(),
@@ -904,7 +934,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
     signal?: AbortSignal,
     onProgress?: (event: EndpointProgress) => void
   ): Promise<string> {
-    const url = `${MINIMAX_BASE_URL}/v1/query/video_generation?task_id=${encodeURIComponent(
+    const url = `${this._baseUrl}/v1/query/video_generation?task_id=${encodeURIComponent(
       taskId
     )}`;
     const pollOptions: Parameters<
@@ -975,7 +1005,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
     fileId: string,
     signal?: AbortSignal
   ): Promise<{ reply: Record<string, unknown>; downloadUrl: string }> {
-    const url = `${MINIMAX_BASE_URL}/v1/files/retrieve?file_id=${encodeURIComponent(
+    const url = `${this._baseUrl}/v1/files/retrieve?file_id=${encodeURIComponent(
       fileId
     )}`;
     const request: RequestInit = { headers: this.headers() };

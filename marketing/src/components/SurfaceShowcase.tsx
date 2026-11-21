@@ -226,11 +226,14 @@ export default function SurfaceShowcase({
     setActive((at) => (at + 1) % surfaces.length);
   }, [surfaces.length]);
 
-  // Fallback for a refused play(): without frames there is no `ended`, so
-  // the posters rotate on the loop's length instead.
+  // Fallback for a loop that never sends `ended`. A refused play() paints no
+  // frames, so the posters rotate on the loop's length. A loop that starts and
+  // then stalls on buffering also never ends, so it gets a few seconds more
+  // than its length before the next tab opens.
   useEffect(() => {
-    if (!autoAdvance || !inView || playingIndex === active) return;
-    const timer = window.setTimeout(advance, 6000);
+    if (!autoAdvance || !inView) return;
+    const wait = playingIndex === active ? 9000 : 6000;
+    const timer = window.setTimeout(advance, wait);
     return () => window.clearTimeout(timer);
   }, [active, advance, autoAdvance, inView, playingIndex]);
 

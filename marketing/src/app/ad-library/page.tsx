@@ -4,12 +4,13 @@ import AdLibraryOverview from "@/components/AdLibraryOverview";
 import JsonLd from "@/components/JsonLd";
 import { adLibraryEntries, adRecipes } from "@/data/adLibrary";
 import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
+import { languageAlternates } from "@/i18n/routes";
 
 const entry = adLibraryEntries[0];
 export const metadata: Metadata = {
   title: entry.title,
   description: entry.description,
-  alternates: { canonical: "https://nodetool.ai/ad-library" },
+  alternates: { canonical: "https://nodetool.ai/ad-library", languages: languageAlternates("/ad-library") },
   openGraph: {
     images: DEFAULT_OG_IMAGES,
     title: entry.title,

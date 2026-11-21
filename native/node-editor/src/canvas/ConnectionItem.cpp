@@ -12,8 +12,13 @@
 #include <qtnodes/ConnectionIdUtils.hpp>
 #include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QPainter>
+#include <QQuickWindow>
+#include <QSGGeometryNode>
+#include <QSGRendererInterface>
+#include <QSGVertexColorMaterial>
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <stdexcept>
 
 namespace nodetool::canvas {
@@ -112,6 +117,10 @@ void ConnectionItem::move(NodeId moved) {
 }
 
 void ConnectionItem::geometryMoved() {
+  if (state_.requiresPort()) {
+    if (auto *scene = canvasScene()) { scene->draftMoved(*this); }
+    return;
+  }
   reindex();
   markDirty();
 }
@@ -151,7 +160,12 @@ bool ConnectionItem::mayPaint(const QRectF &area) const {
   if (!path_.valid || path_.out != out_ || path_.in != in_ || path_.revision != rasterRevision() || path_.draft != draft) {
     path_ = {out_, in_, rasterRevision(), draft, true, {}};
     for (const auto &polygon : scene->connectionPath(*this).toSubpathPolygons()) {
+      if (polygon.size() == 1) { path_.segments.append(QRectF(polygon[0], QSizeF(0, 0))); }
       for (qsizetype i = 1; i < polygon.size(); ++i) { path_.segments.append(QRectF(polygon[i - 1], polygon[i]).normalized()); }
+    }
+    if (draft) {
+      path_.segments.append(QRectF(out_, QSizeF(0, 0)));
+      path_.segments.append(QRectF(in_, QSizeF(0, 0)));
     }
   }
   // Strokes, glows and the draft's end dot reach at most 7 from the centre
@@ -179,12 +193,6 @@ void ConnectionItem::mousePress(CanvasMouseEvent &event) {
 void ConnectionItem::mouseMove(CanvasMouseEvent &event) {
   auto *scene = canvasScene();
   if (!scene) { return; }
-  if (auto *node = scene->nodeAt(event.scenePos)) {
-    node->reactToConnection(this);
-    state_.setLastHoveredNode(node->nodeId());
-  } else {
-    state_.resetLastHoveredNode();
-  }
   if (const auto requiredPort = state_.requiredPort(); requiredPort != PortType::None) {
     setEndPoint(requiredPort, event.scenePos);
   }
@@ -217,6 +225,91 @@ void ConnectionItem::hoverLeave(const CanvasMouseEvent &) {
   state_.setHovered(false);
   markDirty();
   if (auto *scene = canvasScene()) { emit scene->connectionHoverLeft(id_); }
+}
+
+namespace {
+// Render thread only. Owned by the scene graph. Embeds its geometry and vertex
+// color material so every vector wire shares one material and batches into one
+// GPU draw call.
+class WireVectorNode final : public QSGGeometryNode {
+public:
+  struct Key {
+    QPointF out, in;
+    QRgb sourceColor = 0, targetColor = 0, controlColor = 0;
+    double animationPhase = 0;
+    double feather = 0;
+    bool visible = false, control = false, draft = false, draftFromOutput = false;
+    bool selected = false, endpointSelected = false, hovered = false, bypassed = false;
+    bool streaming = false, flowing = false, messageSent = false, connecting = false;
+    bool animationActive = false, zoomedOut = false;
+    bool operator==(const Key &) const = default;
+  };
+
+  WireVectorNode() : geometry_(QSGGeometry::defaultAttributes_ColoredPoint2D(), 0, 0, QSGGeometry::UnsignedShortType) {
+    geometry_.setDrawingMode(QSGGeometry::DrawTriangles);
+    setGeometry(&geometry_);
+    setMaterial(&material_);
+  }
+
+  void sync(const CanvasTheme &theme, const WirePaintState &state, double feather) {
+    const Key next{
+        state.out, state.in, state.sourceColor.rgba(), state.targetColor.rgba(), theme.controlWire.rgba(),
+        state.animationPhase, feather, state.visible, state.control, state.draft, state.draftFromOutput,
+        state.selected, state.endpointSelected, state.hovered, state.bypassed, state.streaming, state.flowing,
+        state.messageSent, state.connecting, state.animationActive, state.zoom <= zoomedOutThreshold};
+    if (valid_ && key_ == next) { return; }
+    key_ = next;
+    valid_ = true;
+    WirePainter::buildGeometry(geometry_, theme, state, feather);
+    markDirty(DirtyGeometry);
+  }
+
+private:
+  QSGGeometry geometry_;
+  QSGVertexColorMaterial material_;
+  Key key_{};
+  bool valid_ = false;
+};
+} // namespace
+
+bool ConnectionItem::isVectorPainted() const {
+  auto *view = window();
+  auto *scene = canvasScene();
+  return view && view->rendererInterface()->graphicsApi() != QSGRendererInterface::Software &&
+         scene && scene->supportsVectorConnections() && !scene->connectionPaintsOffPath(*this);
+}
+
+QSGNode *ConnectionItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) {
+  if (!isVectorPainted()) {
+    if (old && old->type() == QSGNode::GeometryNodeType) {
+      std::unique_ptr<QSGNode> previous(old);
+      old = nullptr;
+    }
+    return CanvasImageItem::updatePaintNode(old, data);
+  }
+  auto *view = window();
+  auto *scene = canvasScene();
+  const auto *theme = scene ? scene->vectorTheme() : nullptr;
+  const auto state = scene ? scene->connectionPaintState(*this, scene->zoom()) : std::nullopt;
+  if (!view || !theme || !state || !state->visible) {
+    std::unique_ptr<QSGNode> previous(old);
+    return nullptr;
+  }
+  if (old && old->type() != QSGNode::GeometryNodeType) {
+    std::unique_ptr<QSGNode> previous(old);
+    old = nullptr;
+  }
+  auto node = old ? std::unique_ptr<WireVectorNode>(static_cast<WireVectorNode *>(old))
+                  : std::make_unique<WireVectorNode>();
+  const double zoom = std::max(scene->zoom(), 1e-4);
+  const double dpr = std::max(view->effectiveDevicePixelRatio(), 1.0);
+  node->sync(*theme, *state, 1.0 / (zoom * dpr));
+  return node.release();
+}
+
+void ConnectionItem::itemChange(ItemChange change, const ItemChangeData &value) {
+  CanvasItem::itemChange(change, value);
+  if (change == ItemSceneChange && value.window && isVectorPainted()) { update(); }
 }
 
 } // namespace nodetool::canvas

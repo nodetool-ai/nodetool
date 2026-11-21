@@ -123,6 +123,8 @@ void EditorWindow::initializePanels() {
     // Reveal needs the folder on this machine, as ProjectFolder::revealable says.
     projectFiles_.setProject(projectFolder_.projectId());
     projectFiles_.setFolder(projectFolder_.workspaceId(), projectFolder_.revealable() ? projectFolder_.folderPath() : QString());
+    // The project lock decides whether the tab is read-only.
+    schedulePanelChanged();
   });
   connect(&projectFiles_, &files::ProjectFiles::changeFailed, this, [this](const QString &message) { notify("error", message); });
   syncOpenProject();
@@ -464,7 +466,7 @@ void EditorWindow::openWorkflowDocument(const QJsonObject &workflow) {
 void EditorWindow::openCloudDocument(const QString &documentId, const QString &role) {
   if (!tabOwner_) { activeEditor_->openCloudDocument(documentId, role); return; }
   auto *owner = tabOwner_;
-  auto *account = owner->accountServers_->current();
+  auto *account = owner->accountServers_ ? owner->accountServers_->current() : nullptr;
   const auto session = account && account->state() == nodetool::account::qt::AccountController::State::SignedIn
                            ? account->session()
                            : nullptr;

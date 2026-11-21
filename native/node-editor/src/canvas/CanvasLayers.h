@@ -22,6 +22,8 @@ public:
   void setTheme(const CanvasTheme &theme);
   // Re-reads the viewport after a pan, zoom or resize.
   void sync();
+  // While zooming, use a single-period cell texture instead of searching up to 8x.
+  void setZooming(bool zooming) { zooming_ = zooming; }
   // Texture rasters of the RHI grid.
   int rasterCount() const { return rasters_; }
 
@@ -43,6 +45,8 @@ private:
   double imageZoom_ = 0;
   double imageDpr_ = 0;
   QPointF imagePhase_;
+  bool zooming_ = false;
+  bool imageZooming_ = false;
   int rasters_ = 0;
 };
 

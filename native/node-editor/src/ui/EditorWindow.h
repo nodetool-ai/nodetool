@@ -78,6 +78,11 @@ class CanvasMediaPresenter;
 class CardMediaLoader;
 class CanvasDropController;
 class CompatibleNodePicker;
+struct EditorWindowOptions {
+  // False for headless CLI invocations (--screenshot, --dump, --save, --replay)
+  // so they never read the user's shared data folder or OS keychain.
+  bool cloudAccount = true;
+};
 // UI thread only.
 class EditorWindow final : public QMainWindow, private canvas::CanvasViewportHost {
   Q_OBJECT
@@ -107,7 +112,7 @@ public:
     void beginChatGeometry();
     void resetChatPosition();
     void changeChatGeometry(int dx, int dy, int edges, bool finished);
-  explicit EditorWindow(QWidget *parent = nullptr);
+  explicit EditorWindow(QWidget *parent = nullptr, EditorWindowOptions options = {});
   ~EditorWindow() override;
   bool guideStarted() const { return guideStarted_; }
   bool guideVisible() const { return session_.connected() && setup_.firstWorkflowEligible() && !guideDismissed_ && (emptyCanvas() || guideStarted_); }
@@ -470,7 +475,7 @@ private:
   void clearDynamicPortDialogs();
   void showDynamicTypeMenu(const QString &id, const QString &name, const QRectF &sceneAnchor);
   QPointer<QDialog> dynamicPortDialog_;
-  EditorWindow(QWidget *parent, EditorWindow *tabOwner);
+  EditorWindow(QWidget *parent, EditorWindow *tabOwner, EditorWindowOptions options = {});
   EditorWindow *tabOwner_ = nullptr;
   std::optional<QPointF> catalogPoint_;
   void armCatalogPlacement(const QPointF &scenePosition) override;
@@ -801,6 +806,10 @@ private:
   // owner creates them and its tabs borrow them, so the owner's destructor
   // ends them after the tabs.
   std::unique_ptr<nodetool::account::qt::AccountServers> accountServers_;
+  // The tab owner's project locks (WP2.13), which every tab's ProjectFolder
+  // borrows. The owner deletes its tabs before its members, so they give
+  // their counts back first.
+  std::unique_ptr<nodetool::account::ProjectLocks> projectLocks_;
   // Owner only: the bundled server of this launch, empty without one.
   QUrl bundledServer_;
   // The Cloud and Shared with me groups the tabs' workflow browsers show,

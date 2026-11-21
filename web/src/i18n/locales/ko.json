@@ -14302,7 +14302,9 @@
       "connect": "연결하다",
       "getKey": "{{provider}}에서 키 가져오기",
       "saveAnyway": "무시하고 저장",
-      "rejectedKey": "공급자가 이 키를 거부했습니다."
+      "rejectedKey": "공급자가 이 키를 거부했습니다.",
+      "regionSwitched": "{{provider}}이(가) 중국 본토 호스트에서 이 키를 승인했습니다. 이제 NodeTool은 해당 호스트를 사용합니다.",
+      "hfMirrorNote": "huggingface.co에 접속할 수 없나요? 설정 → 통합 → HF endpoint에서 https://hf-mirror.com 같은 미러를 지정하세요."
     },
     "hardware": {
       "autoDetect": "자동 감지",
@@ -14355,6 +14357,19 @@
       "memoryEstimate_other": "{{count}}GB 메모리",
       "installed": "설치됨",
       "download": "다운로드"
+    },
+    "providerSetup": {
+      "chat": "채팅에는 언어 모델이 필요합니다. 제공업체를 연결해 시작하세요.",
+      "image": "이미지 생성에는 이미지 제공업체가 필요합니다. 하나를 연결해 계속하세요.",
+      "image_edit": "이미지 편집에는 이미지 제공업체가 필요합니다. 하나를 연결해 계속하세요.",
+      "video": "동영상 생성에는 동영상 제공업체가 필요합니다. 하나를 연결해 계속하세요.",
+      "image_to_video": "이미지 애니메이션에는 동영상 제공업체가 필요합니다. 하나를 연결해 계속하세요.",
+      "reference_to_video": "참조 기반 동영상에는 동영상 제공업체가 필요합니다. 하나를 연결해 계속하세요.",
+      "retake": "리테이크에는 동영상 제공업체가 필요합니다. 하나를 연결해 계속하세요.",
+      "extend": "동영상 연장에는 동영상 제공업체가 필요합니다. 하나를 연결해 계속하세요.",
+      "audio_to_video": "립싱크에는 립싱크 제공업체가 필요합니다. 하나를 연결해 계속하세요.",
+      "music": "음악 생성에는 음악 제공업체가 필요합니다. 하나를 연결해 계속하세요.",
+      "audio": "음성 생성에는 음성 합성 제공업체가 필요합니다. 하나를 연결해 계속하세요."
     }
   },
   "i18n-next29": {
@@ -17570,7 +17585,11 @@
         "allResults": "모든 결과",
         "home": "홈",
         "local": "지역",
-        "providers": "공급자"
+        "providers": "공급자",
+        "resultsInPath": "{{path}} 결과: {{count}} · '{{term}}' 전체 일치: {{total}}",
+        "resultsRelevant": "결과: {{count}} · '{{term}}'와 가장 관련된 항목부터 표시",
+        "nodesInPath": "{{path}}의 노드: {{count}}",
+        "nodesMatchFilters": "필터와 일치하는 노드: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "노드 찾아보기",
@@ -19722,7 +19741,8 @@
       },
       "openInSketch": "스케치에서 열기",
       "reusePrompt": "프롬프트 다시 사용",
-      "sketchTitle": "만든 이미지"
+      "sketchTitle": "만든 이미지",
+      "keyRejected": "제공업체가 API 키를 거부했습니다. 설정 → 모델 및 제공업체에서 확인하세요."
     },
     "kindLabel": "만들 것",
     "modeLabel": "만드는 방법",

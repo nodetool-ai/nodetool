@@ -55,6 +55,7 @@ import {
   PROVIDER_META,
   getProviderMeta,
   isProviderAvailable,
+  providerMatchesSearch,
   type ProviderMeta
 } from "./providerCatalog";
 
@@ -284,14 +285,14 @@ const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
           <Caption size="small" sx={{ lineHeight: 1.5 }}>
             {meta.description}
           </Caption>
-          {meta.note && (
+          {(meta.noteKey || meta.note) && (
             <Caption
               size="smaller"
               sx={{
                 lineHeight: 1.4
               }}
             >
-              {meta.note}
+              {meta.noteKey ? t(meta.noteKey) : meta.note}
             </Caption>
           )}
         </FlexColumn>
@@ -645,7 +646,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       // If it's a multi-field provider, create a synthetic secret that represents all fields
       if (meta.fields) {
         const isConfigured = areAllFieldsConfigured(meta, configuredKeys);
-        if (!lowerSearch || meta.name.toLowerCase().includes(lowerSearch) || meta.description.toLowerCase().includes(lowerSearch)) {
+        if (providerMatchesSearch(meta, lowerSearch)) {
           results.push({
             secret: {
               key: meta.key,
@@ -661,7 +662,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         }
       } else {
         // Single-field provider
-        if (!lowerSearch || meta.name.toLowerCase().includes(lowerSearch) || meta.description.toLowerCase().includes(lowerSearch)) {
+        if (providerMatchesSearch(meta, lowerSearch)) {
           results.push({ secret, meta });
           processed.add(meta.key);
         }
@@ -687,9 +688,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         isProviderAvailable(p) &&
         !listed.has(p.key) &&
         !areAllFieldsConfigured(p, configuredKeys) &&
-        (!lowerSearch ||
-          p.name.toLowerCase().includes(lowerSearch) ||
-          p.description.toLowerCase().includes(lowerSearch))
+        providerMatchesSearch(p, lowerSearch)
     );
   }, [configuredKeys, lowerSearch, matchedProviders]);
 
@@ -763,6 +762,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
 
     setSavingSecret(true);
     let accountNote: string | null = null;
+    let regionNote: string | null = null;
     try {
       if (meta?.fields) {
         // Multi-field provider: update all fields
@@ -803,6 +803,11 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
             return;
           }
           accountNote = accountWarning(validation);
+          if (validation.region) {
+            regionNote = t("i18n-next33.provider.regionSwitched", {
+              provider: meta?.name ?? editingSecret.key
+            });
+          }
         }
         await updateSecret(editingSecret.key, trimmed);
       }
@@ -813,6 +818,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         type: accountNote ? "warning" : "success",
         content:
           accountNote ??
+          regionNote ??
           t("i18n-cont-settings-01.apiKeys.apiKeyUpdated", { provider: meta?.name || editingSecret.key }),
         alert: true
       });

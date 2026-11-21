@@ -258,10 +258,11 @@ void CanvasMediaPresenter::refresh() {
     }
     if (!present) { closeImageViewer(); }
   }
+  updatePlayerNodes();
+  if (sources_.isEmpty() && playerNodes_.isEmpty() && active_.isEmpty() && players_.isEmpty()) { return; }
   const auto viewport = canvas_.viewportWidget().rect();
   const auto transform = canvas_.viewportTransform();
   const auto zoom = std::clamp(std::abs(canvas_.zoom()), 0.08, 8.0);
-  updatePlayerNodes();
   QSet<QString> visible, visiblePlayers;
   QRegion covered;
   for (const auto node : canvas_.visibleNodes()) {

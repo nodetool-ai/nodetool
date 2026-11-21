@@ -58,6 +58,24 @@ TakeSwitcher::TakeSwitcher(TimelineModel* model, const nt::server::AssetCacheRoo
     m_resolver = [protection](const QJsonObject& rawClip, const QString& assetId) {
         return resolveFromServer(rawClip, assetId, protection);
     };
+    if (model) {
+        connect(model, &TimelineModel::documentReplaced, this, [this] {
+            if (m_recording) {
+                m_recording = false;
+                if (m_clock) {
+                    disconnect(m_clock, nullptr, this, nullptr);
+                    m_clock.clear();
+                }
+                emit recordingChanged();
+            }
+            endPass();
+            m_resolved.clear();
+            m_failed.clear();
+            m_mediaQueue.clear();
+            m_page = 0;
+            setMessage({});
+        });
+    }
 }
 
 TakeSwitcher::~TakeSwitcher() {

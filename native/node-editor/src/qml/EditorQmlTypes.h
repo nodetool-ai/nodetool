@@ -31,6 +31,7 @@
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/CloudDocument.h"
+#include "nodetool/account/qt/ProjectLockState.h"
 #include "nodetool/account/qt/ShareController.h"
 #include "nodetool/account/qt/TransferController.h"
 
@@ -52,6 +53,13 @@ struct AccountServersForeign {
     QML_FOREIGN(nodetool::account::qt::AccountServers)
     QML_NAMED_ELEMENT(AccountServers)
     QML_UNCREATABLE("AccountServers comes from its owner.")
+};
+
+struct ProjectLockStateForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::ProjectLockState)
+    QML_NAMED_ELEMENT(ProjectLockState)
+    QML_UNCREATABLE("A ProjectLockState comes from its tab's ProjectFolder.")
 };
 
 struct CloudBrowserForeign {
