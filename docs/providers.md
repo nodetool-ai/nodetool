@@ -145,7 +145,7 @@ Cerebras runs chat models. Text only. Cloud only, keyed by `CEREBRAS_API_KEY`. S
 
 ## Alibaba Cloud
 
-Alibaba Cloud Model Studio serves the Qwen chat models (qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl vision line) with streaming and tool calling. Cloud only, keyed by `DASHSCOPE_API_KEY`, over the DashScope OpenAI-compatible endpoint (default `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, the international/Singapore region); chat models are fetched live from its `/models` endpoint. Model Studio keys are region-scoped. Set `DASHSCOPE_BASE_URL` to your region's `/compatible-mode/v1` endpoint when the key was created outside Singapore. Tool calling is gated per model family: Qwen-Math, QVQ, OCR, translation, and audio models are outside Alibaba's function-calling list and are not sent tools. Get a key at [Model Studio](https://modelstudio.console.alibabacloud.com/). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+Alibaba Cloud Model Studio serves the Qwen chat models (qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl vision line) with streaming and tool calling. Cloud only, keyed by `DASHSCOPE_API_KEY`, over the DashScope OpenAI-compatible endpoint (default `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, the international/Singapore region); chat models are fetched live from its `/models` endpoint. Model Studio keys are region-scoped. Set `DASHSCOPE_REGION` to `china` for a key from the Beijing region (`https://dashscope.aliyuncs.com/compatible-mode/v1`), or set `DASHSCOPE_BASE_URL` to any other region's `/compatible-mode/v1` endpoint. `DASHSCOPE_BASE_URL` wins when both are set. Tool calling is gated per model family: Qwen-Math, QVQ, OCR, translation, and audio models are outside Alibaba's function-calling list and are not sent tools. Get a key at [Model Studio](https://modelstudio.console.alibabacloud.com/). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 The same key generates media through DashScope's native API, on the same regional host with `/api/v1` in place of `/compatible-mode/v1`:
 
@@ -207,7 +207,7 @@ Together AI covers chat, manifest-driven image and video generation, TTS (Orpheu
 
 ## Moonshot (Kimi)
 
-Moonshot runs Kimi chat models over its OpenAI-compatible endpoint (`https://api.moonshot.ai/v1`). Text only. Cloud only, keyed by `KIMI_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+Moonshot runs Kimi chat models over its OpenAI-compatible endpoint (`https://api.moonshot.ai/v1`). Text only. Cloud only, keyed by `KIMI_API_KEY`. Set `KIMI_REGION` to `china` for a key from platform.moonshot.cn, which uses `https://api.moonshot.cn/v1`. Keys from one platform do not work on the other. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 ## Sarvam AI
 
@@ -221,7 +221,7 @@ Sarvam's translation, transliteration, and batch speech-to-text APIs are not wir
 
 ## MiniMax
 
-MiniMax covers chat, image (Image-01), video (Hailuo 2.3), TTS, and music generation. ASR and embeddings exist in MiniMax's API but are disabled in NodeTool's provider (embeddings need a GroupId NodeTool doesn't manage). Use another provider for those. Cloud only, keyed by `MINIMAX_API_KEY`. See the [MiniMax provider guide](developer/providers/minimax.md).
+MiniMax covers chat, image (Image-01), video (Hailuo 2.3), TTS, and music generation. ASR and embeddings exist in MiniMax's API but are disabled in NodeTool's provider (embeddings need a GroupId NodeTool doesn't manage). Use another provider for those. Cloud only, keyed by `MINIMAX_API_KEY`. Set `MINIMAX_REGION` to `china` for a key from the mainland platform (platform.minimaxi.com), which moves every MiniMax request to `https://api.minimax.cn`. `MINIMAX_IMAGE_REGION`, when set, still overrides the host for H3 image requests. See the [MiniMax provider guide](developer/providers/minimax.md).
 
 ## Z.ai
 
@@ -291,7 +291,7 @@ ToAPIs (toapis.com) is an independent API gateway for third-party image and vide
 
 ## Kling AI
 
-The `kling` provider calls Kling AI (Kuaishou) directly at its global endpoint, `api-singapore.klingai.com`. Video covers Kling 4.0, 4.0 Flash, 3.0 Turbo, 3.0, 3.0 Omni, O1, and 2.6, each for text-to-video and image-to-video. Kling 4.0, 3.0, 3.0 Omni, O1, and 2.6 also take a last frame. Images cover Kling Image 3.0 (`kling-v3`), Image 3.0 Omni (`kling-v3-omni`), and Image O1 (`kling-image-o1`), for text-to-image and image-to-image. Image 3.0 takes one reference image and the two omni models take up to ten. Kling has no model listing endpoint, so these models are a static list kept in `kling-provider.ts`. Every generation is an asynchronous task that NodeTool polls, then downloads. Kling keeps results for 30 days. Kling has no cancel endpoint, so a stopped run stops waiting but the task still finishes and is billed. No chat. Cloud only, keyed by `KLING_API_KEY`, an API key from the Kling AI console. The older Access Key and Secret Key pair is not supported, because Kling's newer video endpoints accept only API keys. Kling models are also reachable through kie.ai and other gateways, which use their own keys.
+The `kling` provider calls Kling AI (Kuaishou) directly at its global endpoint, `api-singapore.klingai.com`. Video covers Kling 4.0, 4.0 Flash, 3.0 Turbo, 3.0, 3.0 Omni, O1, and 2.6, each for text-to-video and image-to-video. Kling 4.0, 3.0, 3.0 Omni, O1, and 2.6 also take a last frame. Images cover Kling Image 3.0 (`kling-v3`), Image 3.0 Omni (`kling-v3-omni`), and Image O1 (`kling-image-o1`), for text-to-image and image-to-image. Image 3.0 takes one reference image and the two omni models take up to ten. Kling has no model listing endpoint, so these models are a static list kept in `kling-provider.ts`. Every generation is an asynchronous task that NodeTool polls, then downloads. Kling keeps results for 30 days. Kling has no cancel endpoint, so a stopped run stops waiting but the task still finishes and is billed. No chat. Cloud only, keyed by `KLING_API_KEY`, an API key from the Kling AI console. Set `KLING_REGION` to `china` for a mainland key, which uses `api-beijing.klingai.com`. The older Access Key and Secret Key pair is not supported, because Kling's newer video endpoints accept only API keys. Kling models are also reachable through kie.ai and other gateways, which use their own keys.
 
 ## Replicate
 
@@ -370,7 +370,7 @@ An edit model receives the source image as a reference. Other models denoise fro
 
 ## Transformers.js
 
-Transformers.js (provider id `transformers_js`) runs small ONNX models in-process: chat, TTS, music (MusicGen, instrumental only), ASR, and embeddings. Models download from the Hugging Face Hub on first use into `<data-dir>/transformers-js-cache`, or the directory in `TRANSFORMERS_JS_CACHE_DIR`. Tool calling is off. No key. Local only. The matching workflow nodes are the `transformers.*` nodes in [HuggingFace Integration](huggingface.md#transformersjs-nodes-local-onnx).
+Transformers.js (provider id `transformers_js`) runs small ONNX models in-process: chat, TTS, music (MusicGen, instrumental only), ASR, and embeddings. Models download from the Hugging Face Hub, or the mirror in `HF_ENDPOINT`, on first use into `<data-dir>/transformers-js-cache`, or the directory in `TRANSFORMERS_JS_CACHE_DIR`. Tool calling is off. No key. Local only. The matching workflow nodes are the `transformers.*` nodes in [HuggingFace Integration](huggingface.md#transformersjs-nodes-local-onnx).
 
 ## Local Python providers
 

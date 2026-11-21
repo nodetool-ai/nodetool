@@ -7,6 +7,8 @@
 
 import { fileDownloadInfo } from "@huggingface/hub";
 
+import { resolveHfEndpoint } from "@nodetool-ai/config";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -31,17 +33,21 @@ export interface HFFileRequest {
  *
  * @param requests  The files to query.
  * @param token     Optional HuggingFace bearer token for gated repos.
+ * @param endpoint  Hub host; default: {@link resolveHfEndpoint}.
  * @returns         Metadata for each requested file, including its size in bytes.
  */
 export async function getHuggingfaceFileInfos(
   requests: HFFileRequest[],
-  token?: string
+  token?: string,
+  endpoint?: string | null
 ): Promise<HFFileInfo[]> {
+  const hubUrl = resolveHfEndpoint(endpoint);
   return Promise.all(
     requests.map(async (req) => {
       const args: Parameters<typeof fileDownloadInfo>[0] = {
         repo: { name: req.repo_id, type: "model" },
-        path: req.path.replace(/^\/+/, "")
+        path: req.path.replace(/^\/+/, ""),
+        hubUrl
       };
       if (token) {
         args.accessToken = token;

@@ -57,8 +57,17 @@ export interface CredentialCheckResult {
 interface CredentialProbe {
   /** Provider label used in messages. */
   label: string;
-  /** Endpoint to GET. Receives the credential for providers that key the URL. */
-  url: (value: string) => string;
+  /**
+   * Endpoint to GET. Receives the credential for providers that key the URL,
+   * and the resolved values of `settings`.
+   */
+  url: (value: string, settings: Readonly<Record<string, string | undefined>>) => string;
+  /**
+   * Non-secret settings that pick the endpoint, such as a region. A key from
+   * one region is rejected on another region's host, so the probe must follow
+   * the same setting the provider does.
+   */
+  settings?: readonly string[];
   /** Auth headers for the request. */
   headers: (value: string) => Record<string, string>;
 }
@@ -149,12 +158,15 @@ const PROBES: Record<string, CredentialProbe> = {
   },
   DASHSCOPE_API_KEY: {
     label: "Alibaba Cloud",
-    url: () => `${resolveAlibabaBaseURL()}/models`,
+    url: (_v, settings) =>
+      `${resolveAlibabaBaseURL(settings.DASHSCOPE_BASE_URL, settings.DASHSCOPE_REGION)}/models`,
+    settings: ["DASHSCOPE_BASE_URL", "DASHSCOPE_REGION"],
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
   BYTEPLUS_ARK_API_KEY: {
     label: "BytePlus",
-    url: () => `${resolveBytePlusBaseURL()}/models`,
+    url: (_v, settings) => `${resolveBytePlusBaseURL(settings.BYTEPLUS_ARK_BASE_URL)}/models`,
+    settings: ["BYTEPLUS_ARK_BASE_URL"],
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
   CEREBRAS_API_KEY: {
@@ -218,6 +230,29 @@ export interface CheckCredentialOptions {
   timeoutMs?: number;
   /** Injected for tests. Defaults to the global `fetch`. */
   fetchImpl?: typeof fetch;
+  /**
+   * Reads a stored setting, such as `DASHSCOPE_REGION`, the way provider
+   * construction does. Unset or empty values fall back to `process.env`.
+   */
+  getSetting?: (key: string) => Promise<string | null | undefined>;
+}
+
+async function resolveProbeSettings(
+  keys: readonly string[] | undefined,
+  getSetting: CheckCredentialOptions["getSetting"]
+): Promise<Record<string, string | undefined>> {
+  const settings: Record<string, string | undefined> = {};
+  for (const key of keys ?? []) {
+    let stored: string | null | undefined;
+    try {
+      stored = await getSetting?.(key);
+    } catch {
+      // An unreadable setting falls back to the environment, as an unset one does.
+      stored = undefined;
+    }
+    settings[key] = stored || process.env[key] || undefined;
+  }
+  return settings;
 }
 
 const DEFAULT_TIMEOUT_MS = 6000;
@@ -269,7 +304,8 @@ export async function checkCredential(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await doFetch(probe.url(value), {
+    const settings = await resolveProbeSettings(probe.settings, options.getSetting);
+    const response = await doFetch(probe.url(value, settings), {
       method: "GET",
       headers: probe.headers(value),
       signal: controller.signal

@@ -207,6 +207,15 @@ provider's own credential, so the rule that matters for them is the opposite
 one: a URL that is *not* fixed must not inherit that credential. Each is listed
 in the data module with its auth scope.
 
+A region setting (`MINIMAX_REGION`, `KIMI_REGION`, `KLING_REGION`,
+`DASHSCOPE_REGION`, `ZAI_REGION`) picks one of two constant hosts, so those
+providers stay fixed hosts. `DASHSCOPE_BASE_URL`, `BYTEPLUS_ARK_BASE_URL` and
+`HF_ENDPOINT` name an operator-configured host instead. They are the same case
+as a configured embedding or storage endpoint: the setting holder picks the
+host and receives the provider credential there. `HF_ENDPOINT` moves Model
+Manager downloads, Hub search, llama.cpp GGUF downloads and Transformers.js
+model downloads to a mirror, and the HF token goes with them.
+
 FAL webhook verification fetches only
 `https://rest.fal.ai/.well-known/jwks.json`. It sends no credentials, aborts
 after five seconds, coalesces concurrent refreshes, and caps key-cache freshness
