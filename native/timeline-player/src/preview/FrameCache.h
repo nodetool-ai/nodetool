@@ -67,10 +67,11 @@ private:
         // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
         std::shared_ptr<DecodedFrame> frame;
         size_t bytes = 0;
-        double successorPts = -1.0;  // negative: unknown
+        double predecessorPts = -1.0;  // negative: unknown
+        double successorPts = -1.0;    // negative: unknown
     };
     using Lru = std::list<Entry>;
-    void evictLocked();
+    void evictLocked(std::vector<std::shared_ptr<DecodedFrame>>& retired);
 
     size_t m_budget;
     mutable std::mutex m_mutex;

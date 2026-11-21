@@ -1,8 +1,10 @@
 #pragma once
 #include <QAbstractListModel>
+#include <QFileSystemWatcher>
 #include <QHash>
 #include <QNetworkAccessManager>
 #include <QSet>
+#include <QTimer>
 #include <QUrl>
 #include <QVector>
 #include <QtQml/qqmlregistration.h>
@@ -26,11 +28,17 @@ class ProjectFiles : public QAbstractListModel {
   QML_ELEMENT
   QML_UNCREATABLE("ProjectFiles comes from its owner.")
   Q_PROPERTY(QString workspaceId READ workspaceId NOTIFY folderChanged)
+  Q_PROPERTY(QString projectName READ projectName NOTIFY folderChanged)
   Q_PROPERTY(bool hasFolder READ hasFolder NOTIFY folderChanged)
+  Q_PROPERTY(bool localOnly READ isLocalOnly NOTIFY folderChanged)
   // Whether the folder is on this machine, so a file manager can show it.
   Q_PROPERTY(bool revealable READ revealable NOTIFY folderChanged)
   Q_PROPERTY(QString revealLabel READ revealLabel CONSTANT)
-  // The root listing is in flight and nothing is shown yet.
+  // The host is still resolving which project folder the document belongs to.
+  Q_PROPERTY(bool folderResolving READ folderResolving NOTIFY stateChanged)
+  // The project has a folder, but the server cannot reach it on disk.
+  Q_PROPERTY(bool folderUnavailable READ folderUnavailable NOTIFY stateChanged)
+  // The root listing (or project folder resolution) is in flight and nothing is shown yet.
   Q_PROPERTY(bool loading READ loading NOTIFY stateChanged)
   // A root listing or refresh is in flight.
   Q_PROPERTY(bool busy READ busy NOTIFY stateChanged)
@@ -87,6 +95,14 @@ public:
   // folder, and its absolute path when it is on this machine. A new id lists
   // its root.
   void setFolder(const QString &workspaceId, const QString &localPath = {});
+  // Browses a local project folder directly from disk without a server,
+  // constrained strictly to `localPath` and skipping `.nodetool` and nested
+  // project folders.
+  void setLocalFolder(const QString &localPath);
+  void setProjectName(const QString &projectName);
+  void setFolderResolving(bool resolving);
+  void setFolderUnavailable(bool unavailable);
+  void setFolderError(const QString &error);
 
   // The project that owns the folder. Moves, uploads and canvas drags name
   // its files through the project's asset API, so they need it.
@@ -94,7 +110,11 @@ public:
   QString projectId() const { return m_project; }
 
   QString workspaceId() const { return m_workspace; }
-  bool hasFolder() const { return !m_workspace.isEmpty(); }
+  QString projectName() const { return m_projectName; }
+  bool hasFolder() const { return !m_workspace.isEmpty() || (m_localOnly && !m_localRootCanonical.isEmpty()); }
+  bool isLocalOnly() const { return m_localOnly; }
+  bool folderResolving() const { return m_folderResolving; }
+  bool folderUnavailable() const { return m_folderUnavailable; }
   bool revealable() const;
   static QString revealLabel();
   bool loading() const;
@@ -134,6 +154,9 @@ public:
   // Opens the file manager at the entry: the folder itself, or the folder
   // that holds a file. Only when revealable.
   Q_INVOKABLE void reveal(const QString &path);
+  // Resolves a relative file path inside a local-only project folder to its
+  // canonical absolute path, or empty when invalid or outside the project.
+  QString resolveLocalFile(const QString &relativePath) const { return resolveLocalEntry(relativePath, false); }
 
   // Drag and drop (the web WorkspaceTree.tsx).
   // The mime data of a row's drag: { mime: text }. Empty for a placeholder.
@@ -163,7 +186,7 @@ public:
   static QString kindOf(const QString &name);
   // The preview kind of a file by its name, or empty: the media kinds that
   // have a picture or a player, and the timeline and workflow documents.
-  static QString previewKindOf(const QString &name);
+  Q_INVOKABLE static QString previewKindOf(const QString &name);
   // "0 B", "512 B", "1.2 KB", "3.4 MB": the web formatFileSize.
   static QString formatSize(qint64 bytes);
   // "m:ss": the web projectStatus formatDuration.
@@ -241,11 +264,21 @@ private:
   void emitRowChanged(int row, const QList<int> &roles);
   void setSelected(const QString &path);
   void updatePreview();
+  QString resolveLocalEntry(const QString &relativePath, bool requireDir) const;
+  QUrl localFileUrl(const QString &relativePath) const;
+  QJsonArray listLocalDirectory(const QString &relativePath, QString &error) const;
+  void stopLocalWatch();
+  void syncLocalWatch();
 
   QNetworkAccessManager m_network;
   QUrl m_origin;
-  QString m_project;
-  QString m_token, m_user, m_workspace, m_localPath, m_selected, m_rootError;
+  QString m_project, m_projectName;
+  QString m_token, m_user, m_workspace, m_localPath, m_localRootCanonical, m_selected, m_rootError, m_folderError;
+  bool m_localOnly = false;
+  bool m_folderResolving = false;
+  bool m_folderUnavailable = false;
+  QFileSystemWatcher m_watcher;
+  QTimer m_watchDebounce;
   QHash<QString, Listing> m_listings;
   QSet<QString> m_expanded;
   QVector<Row> m_rows;

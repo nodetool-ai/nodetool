@@ -148,14 +148,15 @@ HttpResponse sendOffThread(const HttpRequest& request) {
 // Thread affinity: thread-safe, as the wrapped object.
 class SharedStore final : public SecretStore {
 public:
-  explicit SharedStore(MemorySecretStore& store) : store_(store) {}
-  bool available() const override { return true; }
+  explicit SharedStore(SecretStore& store) : store_(store) {}
+  bool available() const override { return store_.available(); }
   std::optional<std::string> read(std::string_view s, std::string_view a) override { return store_.read(s, a); }
+  SecretReadResult readResult(std::string_view s, std::string_view a) override { return store_.readResult(s, a); }
   bool write(std::string_view s, std::string_view a, std::string_view v) override { return store_.write(s, a, v); }
   void remove(std::string_view s, std::string_view a) override { store_.remove(s, a); }
 
 private:
-  MemorySecretStore& store_;
+  SecretStore& store_;
 };
 
 class SharedEndpoint final : public TokenEndpoint {
@@ -2226,6 +2227,71 @@ private slots:
     QCOMPARE(syncStatusText(S::Unsent, 1, {}, "SCHEMA_DOWNGRADE"),
              QString("Unsent edits: stored in a newer format than this app writes"));
   }
+
+  // The 2-second reconcile timer must not re-read the keychain when nothing
+  // changed, and a denied keychain read must neither re-prompt on reconcile
+  // ticks nor overwrite session.gen for other apps.
+  void reconcileCachesStatusAndStopsLoopingOnDenial() {
+    class CountingDeniedStore final : public SecretStore {
+    public:
+      explicit CountingDeniedStore(SecretStore& inner) : inner_(inner) {}
+      bool available() const override { return true; }
+      std::optional<std::string> read(std::string_view s, std::string_view a) override {
+        const SecretReadResult r = readResult(s, a);
+        return r.status == SecretReadStatus::Ok ? std::optional<std::string>(r.value) : std::nullopt;
+      }
+      SecretReadResult readResult(std::string_view s, std::string_view a) override {
+        ++reads;
+        if (denyReads.load()) {
+          return {SecretReadStatus::AccessDenied, {}};
+        }
+        return inner_.readResult(s, a);
+      }
+      bool write(std::string_view s, std::string_view a, std::string_view v) override { return inner_.write(s, a, v); }
+      void remove(std::string_view s, std::string_view a) override { inner_.remove(s, a); }
+      std::atomic<int> reads{0};
+      std::atomic<bool> denyReads{false};
+
+    private:
+      SecretStore& inner_;
+    };
+
+    Computer computer;
+    computer.server.addCode("code-1", "u1", "Ada");
+    auto editor = computer.app("node-editor");
+    signInWith(this, *editor, "code-1");
+    QTRY_COMPARE(editor->state(), AccountController::State::SignedIn);
+    // Add a second signed-out entry to verify multi-account indexes also reuse
+    // cached sessions instead of re-reading the keychain every reconcile tick.
+    QVERIFY(AccountsIndex(computer.data.path()).upsert({kServer, "u0", "Old"}, std::chrono::seconds(1)));
+
+    CountingDeniedStore denied(computer.keychain);
+    denied.denyReads = true;
+    AccountServices services = computer.services("timeline");
+    services.store = std::make_unique<SharedStore>(denied);
+    AccountController timeline(std::move(services));
+    QTRY_VERIFY(denied.reads.load() >= 2);
+    const int readsAfterStart = denied.reads.load();
+    QCOMPARE(readsAfterStart, 2);
+    QCOMPARE(timeline.state(), AccountController::State::SignedOut);
+
+    // Wait past a full 2-second reconcile tick: zero additional keychain reads,
+    // and editor's session.gen remains SignedIn.
+    QTest::qWait(2300);
+    QCOMPARE(denied.reads.load(), readsAfterStart);
+    QCOMPARE(readGenerationFile(accountDir(computer.data.path(), kServer, "u1") / "session.gen").state,
+             SessionState::SignedIn);
+
+    // Once access is granted and reload() runs, timeline picks up the session
+    // and subsequent reconcile ticks still make zero keychain reads.
+    denied.denyReads = false;
+    timeline.reload();
+    QTRY_COMPARE(timeline.state(), AccountController::State::SignedIn);
+    const int readsAfterReload = denied.reads.load();
+    QTest::qWait(2300);
+    QCOMPARE(denied.reads.load(), readsAfterReload);
+  }
+
   // WP2.13, TC105 through the window state: the second app's window opens
   // read-only and names the first, then writes once the first closed it.
   void projectLockNamesTheOtherApp() {

@@ -372,7 +372,8 @@ FfmpegDecoder::FfmpegDecoder(std::string path, double initialSec, std::optional<
     });
 }
 
-FfmpegDecoder::FfmpegDecoder(NoWorkerForTest) : m_targetSec(0.0), m_restartSec(0.0), m_done(true) {
+FfmpegDecoder::FfmpegDecoder(NoWorkerForTest)
+    : m_targetSec(0.0), m_hasWorker(false), m_restartSec(0.0), m_done(true) {
     m_ring.reset(m_requestGen.load());
 }
 
@@ -383,6 +384,36 @@ void FfmpegDecoder::publishSkipFloor(long long gen, double floorSec) {
         m_skipFloorSec = floorSec;
     } else {
         m_skipFloorSec = std::max(m_skipFloorSec, floorSec);
+    }
+}
+
+void FfmpegDecoder::publishLanded(std::shared_ptr<DecodedFrame> frame, long long gen) {
+    std::shared_ptr<DecodedFrame> retired;
+    {
+        std::lock_guard lock(m_landedMutex);
+        if (gen >= m_landedGen) {
+            retired = std::exchange(m_landedFrame, std::move(frame));
+            m_landedGen = gen;
+        }
+    }
+}
+
+std::shared_ptr<DecodedFrame> FfmpegDecoder::takeLandedAfter(long long& shownGen) {
+    std::lock_guard lock(m_landedMutex);
+    if (m_landedGen <= shownGen || !m_landedFrame) {
+        return nullptr;
+    }
+    shownGen = m_landedGen;
+    return std::exchange(m_landedFrame, nullptr);
+}
+
+void FfmpegDecoder::clearLandedUpTo(long long gen) {
+    std::shared_ptr<DecodedFrame> retired;
+    {
+        std::lock_guard lock(m_landedMutex);
+        if (m_landedGen <= gen) {
+            retired = std::exchange(m_landedFrame, nullptr);
+        }
     }
 }
 
@@ -413,9 +444,15 @@ bool FfmpegDecoder::stopWithin(std::unique_ptr<FfmpegDecoder> decoder, std::chro
     // session). Its queued frames, and their decoder surfaces, go now; the
     // frame in its own call stack stays until the call returns.
     decoder->m_ring.reset(decoder->m_requestGen.load() + 1);
+    std::shared_ptr<DecodedFrame> retiredLanded;
+    {
+        std::lock_guard landedLock(decoder->m_landedMutex);
+        retiredLanded = std::exchange(decoder->m_landedFrame, nullptr);
+    }
     decoder->m_abandoned = true;
     decoder->m_thread.detach();
     lock.unlock();
+    retiredLanded.reset();
     // native-rules #1: unique_ptr released, the detached worker becomes the owner
     (void)decoder.release();  // the worker deletes it if it ever returns
     return false;
@@ -465,6 +502,9 @@ std::shared_ptr<const MediaFacts> FfmpegDecoder::facts() const {
 std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec, FrameAccess access) {
     m_nextFrameSec.reset();
     m_targetSec = targetSec;
+    if (m_lastTargetSec > -1e200 && std::abs(targetSec - m_lastTargetSec) > kTimestampEpsilonSec) {
+        m_lastMoveDeltaSec = targetSec - m_lastTargetSec;
+    }
     if (targetSec < m_lastTargetSec - kTimestampEpsilonSec || targetSec - m_lastTargetSec > kSeekJumpSec) {
         m_settling = true;
     }
@@ -478,14 +518,25 @@ std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec, FrameAcce
     // the decoder is left where it is.
     const bool queueHasPick = snap.front && snap.generation == gen && snap.front->generation == gen &&
                               frameStartsBy(snap.front->ptsSec, targetSec) && (snap.frameAfter || snap.eof);
+    if (queueHasPick) {
+        m_shownLandedGen = std::max(m_shownLandedGen, gen);
+        clearLandedUpTo(gen);
+    }
     if (!queueHasPick && access == FrameAccess::Cached) {
         if (auto cached = FrameCache::shared().lookup(m_path, targetSec)) {
             m_shown = std::move(cached);
+            m_shownLandedGen = std::max(m_shownLandedGen, gen);
+            clearLandedUpTo(gen);
             m_exact = true;
             m_settling = false;
             m_lastQueued = snap.size;
             m_lastNewest = snap.newestPts;
             return m_shown;
+        }
+        // D17: a superseded seek that finished before the next seek starts still
+        // paints, so continuous scrubbing updates the monitor instead of freezing.
+        if (auto landed = takeLandedAfter(m_shownLandedGen)) {
+            m_shown = std::move(landed);
         }
     }
     const bool queueCurrent = snap.generation == gen;
@@ -509,8 +560,16 @@ std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec, FrameAcce
     const double newest = queueCurrent ? snap.newestPts : -1e300;
     const bool backward = targetSec < position - kTimestampEpsilonSec;
     const bool farForward = targetSec - std::max(position, newest) > kMaxSequentialGapSec;
+    // Let an in-flight seek finish and paint before starting the next seek:
+    // restarting on every display tick during a drag starves the decoder on
+    // 60 Hz and 120 Hz screens.
+    const bool seekInFlight =
+        m_hasWorker && access == FrameAccess::Cached && m_settledGen.load(std::memory_order_acquire) < gen;
     long long current = gen;
-    if (backward || farForward) {
+    if ((backward || farForward) && !seekInFlight) {
+        const bool backwardScrub =
+            backward && m_lastMoveDeltaSec < -kTimestampEpsilonSec && m_lastMoveDeltaSec >= -kMaxSequentialGapSec;
+        m_backwardScrub.store(backwardScrub, std::memory_order_relaxed);
         m_restartSec = targetSec;
         current = gen + 1;
         m_requestGen = current;
@@ -533,6 +592,11 @@ std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec, FrameAcce
 }
 
 void FfmpegDecoder::run() {
+    struct SettleOnExit {
+        std::atomic<long long>& requestGen;
+        std::atomic<long long>& settledGen;
+        ~SettleOnExit() { settledGen.store(requestGen.load(std::memory_order_acquire), std::memory_order_release); }
+    } settleOnExit{m_requestGen, m_settledGen};
     if (auto beforeRead = std::exchange(m_beforeRead, {})) {
         beforeRead();
     }
@@ -589,6 +653,11 @@ void FfmpegDecoder::run() {
     std::unique_ptr<SwsContext, SwsFree> sws;
     long long workerGen = 0;
     double seekTarget = 0.0;
+    bool workerSettled = false;
+    bool allowSkip = m_skipNonReference;
+    // Latest frame decoded in this seek whose PTS starts by seekTarget.
+    // Published to frameAt() when the seek lands so a superseded seek still paints.
+    std::shared_ptr<DecodedFrame> seekPick;
     double lastCachedPts = -1.0;  // the frame this run cached last
     double anchorSec = -1e300;  // the latest packet start of this run that starts by the target
     // Every frame skipped in this run starts before this floor, so two frames
@@ -599,6 +668,13 @@ void FfmpegDecoder::run() {
     // target, and how far before the target the last re-seek went.
     bool runHasPick = false;
     double reseekBackSec = 0.0;
+
+    const auto markSettled = [&]() {
+        if (workerSettled) return;
+        if (seekPick) publishLanded(std::move(seekPick), workerGen);
+        workerSettled = true;
+        m_settledGen.store(workerGen, std::memory_order_release);
+    };
 
     // Reopens the input to decode from its first packet: the recovery when a
     // seek fails, or when frames after a seek carry no timestamps (F3, F4).
@@ -690,6 +766,9 @@ void FfmpegDecoder::run() {
         }
         if (gen != workerGen) {
             seekTarget = target;
+            workerSettled = false;
+            seekPick.reset();
+            allowSkip = m_skipNonReference && !m_backwardScrub.load(std::memory_order_relaxed);
             lastCachedPts = -1.0;  // a seek breaks the run: no successor link across it
             anchorSec = -1e300;
             runSkipFloor = -1e300;
@@ -723,7 +802,11 @@ void FfmpegDecoder::run() {
             ++m_seekCount;
             beat();
         }
-        if (s.eof || !wantsMoreFrames(m_ring.size(), m_ring.newestPts(), target)) {
+        // While a seek is still settling, keep decoding toward seekTarget even
+        // if m_targetSec moves behind it; otherwise wantsMoreFrames() could go
+        // idle and never mark workerGen settled.
+        const double decodeGoal = workerSettled ? target : seekTarget;
+        if (s.eof || !wantsMoreFrames(m_ring.size(), m_ring.newestPts(), decodeGoal)) {
             // A full queue is idle, not stalled. The end of the stream is no
             // progress: with a target still pending there, frames were lost.
             if (!s.eof) beat();
@@ -787,6 +870,7 @@ void FfmpegDecoder::run() {
             if (s.draining) {
                 s.eof = true;
                 m_ring.setEof(gen);
+                markSettled();
                 continue;
             }
             if (!pendingPacket) {
@@ -808,8 +892,8 @@ void FfmpegDecoder::run() {
                 }
                 // Playback after a software seek: at a keyframe, drain the
                 // software decoder and switch to VideoToolbox.
-                if (hybrid && !s.hardware && (pkt->flags & AV_PKT_FLAG_KEY) && pkt->pts != AV_NOPTS_VALUE &&
-                    m_targetSec.load() - seekTarget > kSeekJumpSec) {
+                if (hybrid && !s.hardware && workerSettled && (pkt->flags & AV_PKT_FLAG_KEY) &&
+                    pkt->pts != AV_NOPTS_VALUE && m_targetSec.load() - seekTarget > kSeekJumpSec) {
                     switchKeyTs = pkt->pts;
                     av_packet_unref(pkt.get());
                     switching = true;
@@ -832,12 +916,12 @@ void FfmpegDecoder::run() {
                 bool skip = false;
                 if (pkt->pts != AV_NOPTS_VALUE) {
                     const double packetSec = static_cast<double>(pkt->pts - s.start) * s.tb;
-                    skip = m_skipNonReference && packetSec < anchorSec - kTimestampEpsilonSec;
+                    skip = allowSkip && packetSec < anchorSec - kTimestampEpsilonSec;
                     if (skip) {
                         publishSkipFloor(gen, anchorSec);
                         runSkipFloor = std::max(runSkipFloor, anchorSec);
                     }
-                    if (frameStartsBy(packetSec, m_targetSec.load())) anchorSec = std::max(anchorSec, packetSec);
+                    if (frameStartsBy(packetSec, decodeGoal)) anchorSec = std::max(anchorSec, packetSec);
                 }
                 s.ctx->skip_frame = skip ? AVDISCARD_NONREF : AVDISCARD_DEFAULT;
             }
@@ -851,6 +935,7 @@ void FfmpegDecoder::run() {
         if (rc == AVERROR_EOF) {
             s.eof = true;
             m_ring.setEof(gen);
+            markSettled();
             continue;
         }
         if (rc < 0) {
@@ -903,6 +988,7 @@ void FfmpegDecoder::run() {
                 pendingPacket = false;
             }
             if (!reopen(s.hardware)) return;
+            seekPick.reset();
             m_ring.reset(gen);
             continue;
         }
@@ -911,7 +997,7 @@ void FfmpegDecoder::run() {
         // before it. Those frames are dropped, so the first frame out starts
         // after the target and the pick never comes. Seek further back,
         // doubling the distance, instead of restarting at the same place.
-        const double wanted = m_targetSec.load();
+        const double wanted = decodeGoal;
         if (frameStartsBy(ptsSec, wanted)) {
             runHasPick = true;
         } else if (!runHasPick && !s.fromStart && reseekBackSec < wanted) {
@@ -925,6 +1011,7 @@ void FfmpegDecoder::run() {
             lastCachedPts = -1.0;
             anchorSec = -1e300;
             runSkipFloor = -1e300;
+            seekPick.reset();
             m_ring.reset(gen);
             ++m_seekCount;
             beat();
@@ -1034,19 +1121,26 @@ void FfmpegDecoder::run() {
             }
         }
 #endif
+        const bool beforeSeekTarget = frameStartsBy(pts, seekTarget);
+        if (!workerSettled && beforeSeekTarget) {
+            seekPick = out;
+        }
         const size_t bytes = cached ? frameBytes(*cached) : 0;
         if (m_ring.push(std::move(out))) {
-            m_ring.prune(m_targetSec.load());  // keep only the newest frame behind the target
-            // The scrub cache keeps it after it leaves the queue (D19); the
-            // previous frame of this run is its proven predecessor.
-            // Two frames are neighbours only when no skipped frame can lie
-            // between them: skipped frames all start before the run's floor.
-            const bool contiguous = lastCachedPts >= runSkipFloor - kTimestampEpsilonSec;
-            if (cached) {
+            m_ring.prune(decodeGoal);  // keep only the newest frame behind the target
+            // The scrub cache keeps frames after they leave the queue (D19);
+            // only frames at or after runSkipFloor can form a provable
+            // successor interval, so skipping earlier catch-up frames avoids
+            // evicting usable entries.
+            if (cached && pts >= runSkipFloor - kTimestampEpsilonSec) {
+                const bool contiguous = lastCachedPts >= 0.0 && lastCachedPts >= runSkipFloor - kTimestampEpsilonSec;
                 FrameCache::shared().insert(m_path, pts, std::move(cached), bytes, contiguous ? lastCachedPts : -1.0);
                 lastCachedPts = pts;
             } else {
                 lastCachedPts = -1.0;  // the next frame has no cached predecessor
+            }
+            if (!workerSettled && !beforeSeekTarget) {
+                markSettled();
             }
         }
     }

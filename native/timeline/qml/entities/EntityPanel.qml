@@ -26,6 +26,7 @@ Ui.Surface {
     // The Library image whose entity the editor should open on once the list has loaded.
     property string pendingEditId: ""
     property var referenceDialog: null
+    property var hostEditor: null
     // True when the Library asked to edit an entity that the loaded list does not contain.
     property bool entityMissing: false
     readonly property bool configured: store.configured
@@ -138,7 +139,26 @@ Ui.Surface {
     }
     // The panel loads when first shown and refreshes whenever it is shown again.
     onVisibleChanged: if (visible) store.reload()
-    Component.onCompleted: if (visible) store.ensureLoaded()
+    onParentChanged: panel.hostEditor = Context.editorFor(panel)
+    Component.onCompleted: {
+        Qt.callLater(() => { panel.hostEditor = Context.editorFor(panel) })
+        if (visible) store.ensureLoaded()
+    }
+    Connections {
+        target: panel.hostEditor ? panel.hostEditor.timeline : null
+        function onDocumentReplaced() {
+            panel.selectedId = ""
+            panel.revealId = ""
+            panel.focusedId = ""
+            panel.restoreId = ""
+            panel.pendingEditId = ""
+            panel.entityMissing = false
+            if (editor.opened) editor.close()
+            if (picker.opened) picker.close()
+            if (panel.referenceDialog && panel.referenceDialog.opened) panel.referenceDialog.close()
+            store.resetForDocument(panel.visible)
+        }
+    }
 
     Connections {
         target: panel.Window.window

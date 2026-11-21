@@ -25,6 +25,9 @@ class TimelineModel : public TimelineSource {
     QML_ELEMENT
     QML_UNCREATABLE("Created by main")
     Q_PROPERTY(QString effectMatteId READ effectMatteId NOTIFY effectMatteChanged)
+    Q_PROPERTY(QString timelineId READ timelineId NOTIFY timelineChanged)
+    Q_PROPERTY(QString projectId READ projectId NOTIFY timelineChanged)
+    Q_PROPERTY(QString sourcePath READ sourcePath NOTIFY timelineChanged)
     Q_PROPERTY(QString name READ name NOTIFY timelineChanged)
     Q_PROPERTY(double fps READ fps NOTIFY timelineChanged)
     Q_PROPERTY(bool dropFrame READ dropFrame NOTIFY timelineChanged)
@@ -68,6 +71,9 @@ public:
     // document makes a new snapshot; an old one stays valid while held.
     std::shared_ptr<const nt::Timeline> snapshot() const override { return m_timeline; }
 
+    QString timelineId() const { return QString::fromStdString(m_timeline->id); }
+    QString projectId() const { return m_timeline->raw.value(u"projectId").toString(); }
+    QString sourcePath() const { return m_timeline->sourcePath; }
     QString name() const { return QString::fromStdString(m_timeline->name); }
     double fps() const { return m_timeline->fps; }
     bool dropFrame() const { return m_timeline->dropFrame; }

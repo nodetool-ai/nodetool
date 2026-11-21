@@ -13,12 +13,14 @@ ColumnLayout {
     id: root
     objectName: "projectFolderNotice"
     property ProjectFolderState folder: null
+    property bool showRevealButton: true
+    property bool showMissingText: true
     readonly property bool known: folder !== null && folder.loaded && folder.projectId !== ""
     readonly property bool away: known && folder.hasFolder && !folder.folderAccessible
     readonly property bool shown: known && folder.hasFolder && folder.folderAccessible && folder.folderPath !== ""
     readonly property bool noFolder: known && !folder.hasFolder
     spacing: Ui.Metrics.xs
-    visible: away || shown || noFolder
+    visible: away || shown || (showMissingText && noFolder)
 
     RowLayout {
         Layout.fillWidth: true
@@ -36,7 +38,7 @@ ColumnLayout {
         }
         Ui.EditorButton {
             objectName: "projectFolderReveal"
-            visible: root.folder !== null && root.folder.canReveal
+            visible: root.showRevealButton && root.folder !== null && root.folder.canReveal
             density: Ui.EditorButton.Compact
             text: root.folder !== null ? root.folder.revealLabel() : ""
             onClicked: root.folder.reveal()
@@ -65,7 +67,7 @@ ColumnLayout {
     Ui.Text {
         objectName: "projectFolderMissing"
         Layout.fillWidth: true
-        visible: root.noFolder
+        visible: root.showMissingText && root.noFolder
         text: "No project folder. This project has no folder yet."
         wrapMode: Text.WordWrap
         role: Ui.Typography.SansCaption

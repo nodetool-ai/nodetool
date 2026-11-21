@@ -255,10 +255,16 @@ ParseResult loadTimelineFile(const QString& path) {
         return result;
     }
     const QByteArray bytes = file.readAll();
-    const QString baseDir = QFileInfo(path).absolutePath();
+    const QFileInfo info(path);
+    const QString baseDir = info.absolutePath();
+    const QString absolutePath = info.absoluteFilePath();
     const QJsonObject root = QJsonDocument::fromJson(bytes).object();
     if (!isTimelineFile(root)) {
-        return parseTimelineJson(bytes, baseDir);
+        auto result = parseTimelineJson(bytes, baseDir);
+        if (result.timeline) {
+            result.timeline->sourcePath = absolutePath;
+        }
+        return result;
     }
     const QJsonValue version = root.value(u"version");
     if (version.toInt(-1) != kTimelineFileVersion || !version.isDouble()) {
@@ -273,11 +279,15 @@ ParseResult loadTimelineFile(const QString& path) {
         result.error = QStringLiteral("%1: \"document\" must be an object").arg(path);
         return result;
     }
-    QString name = QFileInfo(path).fileName();
+    QString name = info.fileName();
     if (name.endsWith(kTimelineFileSuffix)) {
         name.chop(kTimelineFileSuffix.size());
     }
-    return parseTimeline(timelineFileSequence(root, name), baseDir);
+    auto result = parseTimeline(timelineFileSequence(root, name), baseDir);
+    if (result.timeline) {
+        result.timeline->sourcePath = absolutePath;
+    }
+    return result;
 }
 
 }  // namespace nt

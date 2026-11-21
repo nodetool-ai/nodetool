@@ -323,6 +323,51 @@ private slots:
         QCOMPARE(r.decoder, std::string(hw::decoderName()));
         QCOMPARE(r.fallback, std::string());
     }
+
+    // Scrubbing back across a cut reuses the recently passed clip's open
+    // decoder within kPrerollMs instead of reopening it from disk.
+    void recentlyPassedClipStaysOpenForBackwardScrub() {
+        Timeline tl;
+        tl.durationMs = 6000;
+        Track track;
+        track.id = "t";
+        tl.tracks.push_back(track);
+        Clip a;
+        a.id = "a";
+        a.trackId = "t";
+        a.startMs = 0;
+        a.durationMs = 3000;
+        a.mediaPath = media("numbered-a-1080p30.mp4");
+        Clip b;
+        b.id = "b";
+        b.trackId = "t";
+        b.startMs = 3000;
+        b.durationMs = 3000;
+        b.mediaPath = media("numbered-b-1080p30.mp4");
+        tl.clips.push_back(a);
+        tl.clips.push_back(b);
+
+        std::atomic<int> videoOpens{0};
+        SourcePool pool(SourcePool::WorkerReadProbes{[&] { ++videoOpens; }, {}});
+        pool.update(tl, 2500.0);
+        QTRY_COMPARE_WITH_TIMEOUT(videoOpens.load(), 2, 4000);
+        QVERIFY(pool.sourceFor("a") != nullptr);
+        QVERIFY(pool.sourceFor("b") != nullptr);
+
+        // 1 s past clip a's end (within kPrerollMs): a stays open.
+        pool.update(tl, 4000.0);
+        QVERIFY2(pool.sourceFor("a") != nullptr, "recently passed clip was evicted immediately");
+        QVERIFY(pool.sourceFor("b") != nullptr);
+
+        // Scrubbing back onto clip a reuses the existing decoder with no reopen.
+        pool.update(tl, 2500.0);
+        QVERIFY(pool.sourceFor("a") != nullptr);
+        QCOMPARE(videoOpens.load(), 2);
+
+        // Past kPrerollMs (2.5 s behind), clip a is retired.
+        pool.update(tl, 5500.0);
+        QVERIFY2(pool.sourceFor("a") == nullptr, "clip past kPrerollMs was not retired");
+    }
 };
 
 QTEST_GUILESS_MAIN(TestSourcePool)

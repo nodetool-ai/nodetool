@@ -648,11 +648,42 @@ public:
   std::optional<std::string> read(std::string_view service, std::string_view account) override {
     return inner_.read(service, account);
   }
+  SecretReadResult readResult(std::string_view service, std::string_view account) override {
+    return inner_.readResult(service, account);
+  }
   bool write(std::string_view service, std::string_view account, std::string_view value) override {
     return !refuse && inner_.write(service, account, value);
   }
   void remove(std::string_view service, std::string_view account) override { inner_.remove(service, account); }
   std::atomic<bool> refuse{false};
+
+private:
+  SecretStore& inner_;
+};
+
+// Counts store reads and can deny them, standing in for a macOS Keychain
+// prompt where the user clicked Deny.
+class CountingDeniedStore final : public SecretStore {
+public:
+  explicit CountingDeniedStore(SecretStore& inner) : inner_(inner) {}
+  bool available() const override { return true; }
+  std::optional<std::string> read(std::string_view service, std::string_view account) override {
+    const SecretReadResult r = readResult(service, account);
+    return r.status == SecretReadStatus::Ok ? std::optional<std::string>(r.value) : std::nullopt;
+  }
+  SecretReadResult readResult(std::string_view service, std::string_view account) override {
+    ++reads;
+    if (denyReads.load()) {
+      return {SecretReadStatus::AccessDenied, {}};
+    }
+    return inner_.readResult(service, account);
+  }
+  bool write(std::string_view service, std::string_view account, std::string_view value) override {
+    return inner_.write(service, account, value);
+  }
+  void remove(std::string_view service, std::string_view account) override { inner_.remove(service, account); }
+  std::atomic<int> reads{0};
+  std::atomic<bool> denyReads{false};
 
 private:
   SecretStore& inner_;
@@ -781,6 +812,72 @@ void retryDelays(TestContext& t) {
   CHECK(endSessionRetryDelay(100) == std::chrono::seconds(900));
 }
 
+// status() caches against session.gen and signout.gen so repeated polls read
+// the keychain once per generation, and a clean sign-out removes the empty
+// keychain item.
+void statusCachesAndCleansKeychainOnSignOut(TestContext& t) {
+  Computer pc;
+  pc.signIn();
+  CountingDeniedStore store(pc.keychain);
+  AccountSession app(store, pc.server, pc.options());
+  for (int i = 0; i < 5; ++i) {
+    const auto s = app.status();
+    CHECK(s.state == SessionState::SignedIn);
+    CHECK(!s.storeAccessDenied);
+  }
+  CHECK(store.reads.load() == 1);
+
+  // Another app rotates the token and bumps session.gen: one new read.
+  AccountSession other(pc.keychain, pc.server, pc.options());
+  pc.clock.advance(15 * 60 * 1000);
+  CHECK(other.credentialForRequest().status == CredentialStatus::Ready);
+  CHECK(app.status().state == SessionState::SignedIn);
+  CHECK(app.status().state == SessionState::SignedIn);
+  CHECK(store.reads.load() == 2);
+
+  // A clean sign-out removes the empty keychain item so signed-out startups do
+  // not hit an existing item ACL.
+  CHECK(other.signOut() == ServerEnd::Ended);
+  CHECK(!pc.keychain.read(kKeychainService, keychainAccount(kServer, "u1")).has_value());
+  CHECK(app.status().state == SessionState::SignedOut);
+  CHECK(!app.status().serverEndPending);
+  const int afterSignOut = store.reads.load();
+  CHECK(app.status().state == SessionState::SignedOut);
+  CHECK(store.reads.load() == afterSignOut);
+}
+
+// A denied keychain read is cached without re-prompting, never overwrites
+// session.gen to SignedOut, and recovers once access is allowed and the cache
+// is cleared.
+void deniedReadPreservesSessionAndCachesDenial(TestContext& t) {
+  Computer pc;
+  pc.signIn();
+  AccountSession appA(pc.keychain, pc.server, pc.options());
+  CHECK(appA.credentialForRequest().status == CredentialStatus::Ready);
+
+  CountingDeniedStore deniedStore(pc.keychain);
+  deniedStore.denyReads = true;
+  AccountSession appB(deniedStore, pc.server, pc.options());
+  for (int i = 0; i < 5; ++i) {
+    const auto s = appB.status();
+    CHECK(s.state == SessionState::SignedOut);
+    CHECK(s.storeAccessDenied);
+  }
+  CHECK(deniedStore.reads.load() == 1);
+
+  // refresh() returns Offline and leaves session.gen SignedIn so appA stays
+  // signed in.
+  CHECK(appB.refresh() == RefreshOutcome::Offline);
+  CHECK(readGenerationFile(pc.genPath()).state == SessionState::SignedIn);
+  CHECK(appA.credentialForRequest().status == CredentialStatus::Ready);
+
+  deniedStore.denyReads = false;
+  appB.invalidateStatusCache();
+  const auto recovered = appB.status();
+  CHECK(recovered.state == SessionState::SignedIn);
+  CHECK(!recovered.storeAccessDenied);
+}
+
 } // namespace
 
 int main() {
@@ -804,5 +901,7 @@ int main() {
       {"signOutCancelsAuthorizedRequests", signOutCancelsAuthorizedRequests},
       {"accountListedWhenTheIndexCannotBeWritten", accountListedWhenTheIndexCannotBeWritten},
       {"retryDelays", retryDelays},
+      {"statusCachesAndCleansKeychainOnSignOut", statusCachesAndCleansKeychainOnSignOut},
+      {"deniedReadPreservesSessionAndCachesDenial", deniedReadPreservesSessionAndCachesDenial},
   });
 }

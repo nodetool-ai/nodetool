@@ -489,6 +489,32 @@ class TestReframe : public QObject {
         model.undoStack()->undo();
         QCOMPARE(model.clipsJson(), doc["clips"].toArray());
     }
+    void dragUsesTransientPreviewUntilCommit() {
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(QJsonDocument(document()).toJson());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        ReframeController controller;
+        controller.setModel(&model);
+        QSignalSpy clipsChanged(&model, &TimelineModel::clipsChanged);
+        QSignalSpy timelineChanged(&model, &TimelineModel::timelineChanged);
+        QSignalSpy previewChanged(&model, &TimelineModel::previewChanged);
+        QSignalSpy docChanged(&controller, &ReframeController::documentChanged);
+
+        controller.beginGesture("addClipReframeKeyframe", {{"clipId", "c"}, {"sourceMs", 400}});
+        controller.preview({{"x", 0.6}, {"y", 0.5}});
+        controller.preview({{"x", 0.7}, {"y", 0.4}});
+        QCOMPARE(clipsChanged.count(), 0);
+        QCOMPARE(timelineChanged.count(), 0);
+        QCOMPARE(previewChanged.count(), 2);
+        QCOMPARE(docChanged.count(), 2);
+        QCOMPARE(model.undoStack()->count(), 0);
+
+        controller.finishGesture();
+        QCOMPARE(clipsChanged.count(), 1);
+        QCOMPARE(timelineChanged.count(), 1);
+        QCOMPARE(model.undoStack()->count(), 1);
+    }
 };
 int main(int argc, char** argv) {
     QGuiApplication app(argc, argv);

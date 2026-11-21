@@ -134,6 +134,9 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
   account::SignInFlow* flow = nullptr;
   // Shared with the tasks that use it while the index may replace it.
   std::shared_ptr<AccountSession> session;
+  // Reuses one AccountSession per listed userId so each account keeps its
+  // generation-keyed status cache across ticker ticks.
+  std::map<std::string, std::shared_ptr<AccountSession>> sessionsByUser;
   unsigned serverEndAttempt = 0;
   std::optional<int64_t> nextServerEndMs;
   std::optional<nlohmann::json> lastState;
@@ -315,14 +318,59 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
     return session;
   }
 
+  struct IndexSelection {
+    std::shared_ptr<AccountSession> session;
+    AccountSession::Status status;
+  };
+
+  std::shared_ptr<AccountSession> sessionForUser(const std::string& userId) {
+    {
+      const std::lock_guard lock(mutex);
+      if (session && session->accountId() == userId) {
+        sessionsByUser[userId] = session;
+        return session;
+      }
+      if (const auto it = sessionsByUser.find(userId); it != sessionsByUser.end()) {
+        return it->second;
+      }
+    }
+    auto created = std::make_shared<AccountSession>(*options.store, *options.endpoint, sessionOptions(userId));
+    const std::lock_guard lock(mutex);
+    auto& slot = sessionsByUser[userId];
+    if (!slot) {
+      slot = std::move(created);
+    }
+    return slot;
+  }
+
+  void invalidateStatusCaches() {
+    std::vector<std::shared_ptr<AccountSession>> sessions;
+    {
+      const std::lock_guard lock(mutex);
+      if (session) {
+        sessions.push_back(session);
+      }
+      for (const auto& [userId, s] : sessionsByUser) {
+        if (s && s != session) {
+          sessions.push_back(s);
+        }
+      }
+    }
+    for (const auto& s : sessions) {
+      s->invalidateStatusCache();
+    }
+  }
+
   // The session of the account signed in to this server, read again from
-  // `accounts.json` and the records at each call, so an account another app
-  // signed in to replaces the one held here. With none signed in, the held
-  // session stays, or the first listed account's.
-  std::shared_ptr<AccountSession> sessionFromIndex() {
+  // `accounts.json` and the generation-cached status at each call, so an
+  // account another app signed in to replaces the one held here without
+  // re-reading the keychain when `session.gen` has not changed. With none
+  // signed in, the held session stays, or the first listed account's.
+  IndexSelection sessionFromIndex() {
     const std::shared_ptr<AccountSession> held = currentSession();
     const std::string origin = account::normalizeOrigin(options.serverOrigin);
-    std::shared_ptr<AccountSession> first;
+    IndexSelection first;
+    std::optional<AccountSession::Status> heldStatus;
     for (const account::AccountEntry& entry : account::AccountsIndex(options.dataDir).list()) {
       if (account::normalizeOrigin(entry.serverOrigin) != origin) {
         continue;
@@ -335,21 +383,25 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
           !account::readSessionRecord(*options.store, account::keychainAccount(options.serverOrigin, entry.userId))) {
         continue;
       }
-      std::shared_ptr<AccountSession> candidate =
-          held && held->accountId() == entry.userId
-              ? held
-              : std::make_shared<AccountSession>(*options.store, *options.endpoint, sessionOptions(entry.userId));
-      if (candidate->status().state == SessionState::SignedIn) {
-        return adopt(held, std::move(candidate));
+      std::shared_ptr<AccountSession> candidate = sessionForUser(entry.userId);
+      const AccountSession::Status status = candidate->status();
+      if (status.state == SessionState::SignedIn) {
+        return {adopt(held, std::move(candidate)), status};
       }
-      if (!first) {
-        first = std::move(candidate);
+      if (candidate == held) {
+        heldStatus = status;
+      }
+      if (!first.session) {
+        first = {std::move(candidate), status};
       }
     }
-    if (held || !first) {
-      return held;
+    if (held) {
+      return {held, heldStatus ? *heldStatus : held->status()};
     }
-    return adopt(held, std::move(first));
+    if (!first.session) {
+      return {};
+    }
+    return {adopt(held, std::move(first.session)), first.status};
   }
 
   // Holds `next` unless a sign-in replaced `expected` meanwhile.
@@ -375,7 +427,8 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
       emitStateLocked(lock);
       return;
     }
-    const std::shared_ptr<AccountSession> current = sessionFromIndex();
+    const IndexSelection selection = sessionFromIndex();
+    const std::shared_ptr<AccountSession>& current = selection.session;
     State next = State::SignedOut;
     std::string name;
     std::string id;
@@ -384,8 +437,8 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
       const bool allowed = policyAllows.load(std::memory_order_acquire);
       // The state comes from the record and the generation file. Reading it
       // never renews a token: only a cloud request does (TC112).
-      const AccountSession::Status status = current->status();
-      if (status.state == SessionState::SignedOut) {
+      const AccountSession::Status& status = selection.status;
+      if (!status.storeAccessDenied && status.state == SessionState::SignedOut) {
         // A sign-out in another app. The session adopts it, which stops the
         // cloud requests it authorized that are still on the wire (TC119).
         // With the file signed out this makes no server call.
@@ -484,6 +537,7 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
         return;
       }
       const std::lock_guard lock(mutex);
+      sessionsByUser[result.userId] = signedIn;
       session = std::move(signedIn);
       break;
     }
@@ -588,7 +642,7 @@ struct AccountHelper::Core : std::enable_shared_from_this<Core> {
     }
     std::shared_ptr<AccountSession> current = currentSession();
     if (!current) {
-      current = sessionFromIndex();
+      current = sessionFromIndex().session;
     }
     return current;
   }
@@ -831,6 +885,7 @@ void AccountHelper::handle(const nlohmann::json& message) {
   } else if (name == "reload") {
     core_->post([core = core_] {
       core->readPolicy();
+      core->invalidateStatusCaches();
       core->refresh();
     });
   }

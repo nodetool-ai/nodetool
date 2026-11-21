@@ -223,6 +223,52 @@ std::optional<MediaSource> mediaSource() {
     return MediaSource{target->server, target->token, {}, target->expectedInstance};
 }
 
+void setActiveServerTarget(const QUrl& server, const QString& timelineId, const QString& token,
+                           const QString& cacheDir) {
+    Args next;
+    next.active = true;
+    next.server = server.toString();
+    next.timeline = timelineId;
+    next.token = token;
+    next.cacheDir = cacheDir;
+    loadedSource() = std::move(next);
+}
+
+void clearActiveServerTarget() {
+    loadedSource().reset();
+}
+
+void writeLoaderReport(const QUrl& server, const QString& timelineId, const QJsonObject& report,
+                       const QString& explicitReportPath) {
+    QString reportPath = explicitReportPath;
+    if (reportPath.isEmpty()) {
+        const QString raw = report.value(u"rawDocument").toString();
+        reportPath = raw.isEmpty() ? QString() : QFileInfo(raw).absolutePath() + u'/' +
+                                                     QFileInfo(raw).completeBaseName() + QStringLiteral(".report.json");
+    }
+    if (!reportPath.isEmpty()) {
+        QDir().mkpath(QFileInfo(reportPath).absolutePath());
+        QFile f(reportPath);
+        if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            f.write(QJsonDocument(report).toJson(QJsonDocument::Indented));
+        }
+    }
+    if (report.contains(QStringLiteral("rawDocumentError"))) {
+        std::fprintf(stderr, "loader: warning: raw document backup failed: %s\n",
+                     qPrintable(report.value(u"rawDocumentError").toString()));
+    }
+    const QJsonObject s = report.value(u"summary").toObject();
+    const QJsonObject t = report.value(u"timings").toObject();
+    std::fprintf(stderr,
+                 "loader: %s timeline %s: %d clips, %d media clips, %d unsupported fields, %d missing assets, "
+                 "%d rejected media, %d downloads, %d cache hits, %.0f ms; report %s\n",
+                 qPrintable(server.toString()), qPrintable(timelineId), s.value(u"clips").toInt(),
+                 s.value(u"mediaClips").toInt(), s.value(u"unsupportedFields").toInt(),
+                 s.value(u"missingAssets").toInt(), s.value(u"rejectedMedia").toInt(),
+                 s.value(u"downloads").toInt(), s.value(u"cacheHits").toInt(),
+                 t.value(u"totalMs").toDouble(), qPrintable(reportPath));
+}
+
 ParseResult loadTimelineSource(const QString& source, const AssetCacheRoot& cache) {
     Args selected = args();
     if (!selected.active || source.toStdString() != selected.label) {
@@ -248,33 +294,7 @@ ParseResult loadTimelineSource(const QString& source, const AssetCacheRoot& cach
         .token = a.token, .expectedInstance = {}, .authorizer = a.authorizer,
     };
     ServerOpenResult opened = openProbedServerTimeline(options);
-
-    QString reportPath = a.reportPath;
-    if (reportPath.isEmpty()) {
-        const QString raw = opened.report.value(u"rawDocument").toString();
-        reportPath = raw.isEmpty() ? QString() : QFileInfo(raw).absolutePath() + u'/' +
-                                                     QFileInfo(raw).completeBaseName() + QStringLiteral(".report.json");
-    }
-    if (!reportPath.isEmpty()) {
-        QDir().mkpath(QFileInfo(reportPath).absolutePath());
-        QFile f(reportPath);
-        if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            f.write(QJsonDocument(opened.report).toJson(QJsonDocument::Indented));
-        }
-    }
-    if (opened.report.contains(QStringLiteral("rawDocumentError"))) {
-        std::fprintf(stderr, "loader: warning: raw document backup failed: %s\n",
-                     qPrintable(opened.report.value(u"rawDocumentError").toString()));
-    }
-    const QJsonObject s = opened.report.value(u"summary").toObject();
-    const QJsonObject t = opened.report.value(u"timings").toObject();
-    std::fprintf(stderr,
-                 "loader: %s timeline %s: %d clips, %d media clips, %d unsupported fields, %d missing assets, "
-                 "%d rejected media, %d downloads, %d cache hits, %.0f ms; report %s\n",
-                 qPrintable(a.server), qPrintable(a.timeline), s.value(u"clips").toInt(), s.value(u"mediaClips").toInt(),
-                 s.value(u"unsupportedFields").toInt(), s.value(u"missingAssets").toInt(),
-                 s.value(u"rejectedMedia").toInt(), s.value(u"downloads").toInt(), s.value(u"cacheHits").toInt(),
-                 t.value(u"totalMs").toDouble(), qPrintable(reportPath));
+    writeLoaderReport(QUrl(a.server), a.timeline, opened.report, a.reportPath);
 
     ParseResult result;
     if (!opened.timeline) {

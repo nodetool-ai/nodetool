@@ -51,7 +51,7 @@ Rectangle {
         // A hidden dock panel keeps its state; the controller refreshes when the panel shows again.
         active: root.visible
         timeline: root.editor ? root.editor.timeline : null
-        clock: root.editor ? root.editor.clock : null
+        clock: root.editor && root.visible ? root.editor.clock : null
         clipId: root.selection.length === 1 ? root.selection[0] : root.transitionClipId
         onRowEdited: row => { if (root.gestures) root.gestures.keyframeRow = row }
     }

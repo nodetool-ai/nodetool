@@ -42,7 +42,7 @@ class ProjectFolderState : public QObject {
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     // The AutosaveController of the open server timeline, or null.
     Q_PROPERTY(QObject* autosave READ autosave WRITE setAutosave NOTIFY autosaveChanged)
-    Q_PROPERTY(bool configured READ configured CONSTANT)
+    Q_PROPERTY(bool configured READ configured NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(bool loaded READ loaded NOTIFY changed)
     // The project the server answered for: Personal for a loose timeline.
@@ -50,6 +50,9 @@ class ProjectFolderState : public QObject {
     Q_PROPERTY(QString projectName READ projectName NOTIFY changed)
     // False until the project is known, and for a project without a folder.
     Q_PROPERTY(bool hasFolder READ hasFolder NOTIFY changed)
+    // True when a local timeline file opened from disk sits inside a folder with
+    // `.nodetool/project.json` and there is no server save target.
+    Q_PROPERTY(bool localFolder READ isLocalFolder NOTIFY changed)
     // Absolute on the server's disk; empty for a cloud folder.
     Q_PROPERTY(QString folderPath READ folderPath NOTIFY changed)
     Q_PROPERTY(bool folderAccessible READ folderAccessible NOTIFY changed)
@@ -78,6 +81,14 @@ public:
     explicit ProjectFolderState(QObject* parent = nullptr);
     ~ProjectFolderState() override;
 
+    struct LocalProject {
+        QString id;
+        QString name;
+        QString folderPath;
+    };
+    // Walks up from a local file path looking for `.nodetool/project.json`.
+    static std::optional<LocalProject> findEnclosingProjectFolder(const QString& filePath);
+
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* timeline);
     QObject* autosave() const { return m_autosave; }
@@ -87,7 +98,8 @@ public:
     bool loaded() const { return m_loaded; }
     QString projectId() const { return m_projectId; }
     QString projectName() const { return m_projectName; }
-    bool hasFolder() const { return !m_workspaceId.isEmpty(); }
+    bool hasFolder() const { return !m_workspaceId.isEmpty() || m_localFolder; }
+    bool isLocalFolder() const { return m_localFolder; }
     QString folderPath() const { return m_folderPath; }
     bool folderAccessible() const { return m_folderAccessible; }
     QString workspaceId() const { return m_workspaceId; }
@@ -113,7 +125,11 @@ public:
     Q_INVOKABLE static QString revealLabel();
 
     // Test seam: the server, instead of the open timeline's (serverSaveTarget).
-    void setTarget(const nt::server::SaveTarget& target) { m_target = target; }
+    void setTarget(const nt::server::SaveTarget& target) {
+        m_explicitTarget = true;
+        m_target = target;
+        emit changed();
+    }
 
 signals:
     void timelineChanged();
@@ -146,21 +162,26 @@ private:
     };
     void run(Work work);
     void receive(const Result& result);
+    void applyLocalFolder();
     void documentChanged();
     QString documentProject() const;
     QString documentTimeline() const;
+    QString documentSourcePath() const;
+    QString documentKey() const;
     // Names the folder to the lock when it is on this computer.
     void updateLock();
     // The timeline is read-only while another app holds the lock.
     void applyLock();
 
     std::optional<nt::server::SaveTarget> m_target;
+    bool m_explicitTarget = false;
     QPointer<TimelineModel> m_timeline;
     QPointer<nt::server::AutosaveController> m_autosave;
     QPointer<Worker> m_thread;  // a child of this object while it runs
     bool m_refreshPending = false;
     bool m_wanted = false;  // refresh() was asked once, so document changes refresh
     bool m_loaded = false;
+    bool m_localFolder = false;
     QString m_requestKey;  // the project and timeline the last refresh asked for
     QString m_projectId;  // the project the server answered for, Personal for a loose timeline
     QString m_projectName;

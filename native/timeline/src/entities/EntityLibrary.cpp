@@ -55,6 +55,12 @@ void EntityLibrary::clearActionError() {
     emit changed();
 }
 void EntityLibrary::ensureLoaded() { if (!m_loaded) reload(); }
+void EntityLibrary::resetForDocument(bool reloadNow) {
+    reset();
+    if (reloadNow) {
+        reload();
+    }
+}
 bool EntityLibrary::configured() const { return !targetFor(m_server, m_token).server.isEmpty(); }
 void EntityLibrary::reset() {
     ++m_scopeEpoch;

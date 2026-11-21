@@ -1,6 +1,7 @@
 #pragma once
 #include "preview/layers/LayerRegistry.h"
 #include "preview/effects/Masks.h"
+#include <QCryptographicHash>
 #include <QJsonArray>
 #include <QRect>
 #include <QString>
@@ -89,6 +90,7 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationCo
 void decorateTrackEffects(QJsonObject &ext, const Track *track);
 bool decorateAdjustment(SceneAdjustment &, const Clip &, const SceneDecorationContext &);
 class DrawCache;
+// Render thread only.
 class ClipEffectStage final : public LayerEffectStage {
   public:
     bool applies(const QJsonObject &ext) const override;
@@ -98,6 +100,8 @@ class ClipEffectStage final : public LayerEffectStage {
   private:
     friend class TestEffectResources;
     struct Lut;
+    QByteArray sha256(QByteArrayView data);
+    QCryptographicHash m_hasher{QCryptographicHash::Sha256};
     std::shared_ptr<DrawCache> m_drawCache;
     std::shared_ptr<DrawCache> m_denoiseCache;
     std::shared_ptr<DrawCache> m_maskCache;

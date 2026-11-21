@@ -1939,6 +1939,77 @@ private slots:
     QVERIFY(image.pixelColor(100, 75).alpha() > 0);
   }
 
+  // A draft wire crossing the tile-size threshold (untiled <-> tiled) in any
+  // direction must never stall in staging, miss its endpoint pixels, repaint
+  // cards passed under the cursor, or trigger mini-map rebuilds on each move.
+  void draftDragPastTileBoundary() {
+    Fixture f(snapshot({node("source", kSource, 500, 200), node("middle", kMulti, 760, 260),
+                        node("target", kTarget, 1100, 400)}),
+              QSize(1390, 900));
+    const auto dpr = f.window.effectiveDevicePixelRatio();
+    const auto bg = test::darkCanvasTheme().canvas;
+    GraphCanvas::RasterTestHooks hooks(*f.canvas);
+    // Tight frame budget: a staged multi-tile swap cannot complete in one pass.
+    hooks.setTimeBudget(80'000);
+    f.canvas->setView(1.0, QPointF(850, 350));
+    f.canvas->flushRaster();
+    f.window.grabWindow();
+
+    auto &scene = f.canvas->scene();
+    const auto start = f.port("source", PortType::Out);
+    const auto hasEndpointInk = [&](const QImage &frame, QPointF scenePoint) {
+      const auto ep = (QPointF(f.view(scenePoint)) * dpr).toPoint();
+      const auto patch = QRect(ep - QPoint(8, 8), QSize(17, 17)).intersected(frame.rect());
+      if (patch.isEmpty()) { return false; }
+      for (int y = patch.top(); y <= patch.bottom(); ++y) {
+        for (int x = patch.left(); x <= patch.right(); ++x) {
+          if (frame.pixelColor(x, y) != bg) { return true; }
+        }
+      }
+      return false;
+    };
+
+    f.press(start);
+    QVERIFY(scene.draftConnection());
+    f.move(start + QPointF(10, 5));
+    // Let the initial draft-feedback handle updates settle before measuring moves.
+    f.canvas->flushRaster();
+    f.window.grabWindow();
+
+    QSignalSpy sceneChanged(&scene, &CanvasScene::changed);
+    f.canvas->resetRasterStats();
+
+    // Drag right/down past 512 device px (crossing middle card), then back inside
+    // the untiled range, then left into reverse-wire territory.
+    QList<QPointF> route;
+    for (int i = 1; i <= 40; ++i) { route.append(start + QPointF(i * 12.0, i * 6.0)); }
+    for (int i = 39; i >= 4; --i) { route.append(start + QPointF(i * 12.0, i * 6.0)); }
+    for (int i = 1; i <= 30; ++i) { route.append(start + QPointF(-i * 12.0, i * 4.0)); }
+
+    for (const auto &pointer : route) {
+      f.move(pointer);
+      const auto frame = f.window.grabWindow();
+      const auto *wire = scene.draftConnection();
+      QVERIFY(wire);
+      QVERIFY2(wire->stagedTiles().isEmpty(), "Draft wire entered staging during drag");
+      QVERIFY2(hasEndpointInk(frame, pointer),
+               qPrintable(QString("Missing draft wire pixels at (%1, %2)").arg(pointer.x()).arg(pointer.y())));
+    }
+    QCOMPARE(f.canvas->rasterStats().cards, 0);
+    QCoreApplication::processEvents();
+    QCOMPARE(sceneChanged.count(), 0);
+    f.release(route.last());
+    QVERIFY(!scene.draftConnection());
+
+    // Cancelling a draft before polish runs must not leave rasterPending() spinning.
+    f.press(start);
+    QVERIFY(scene.draftConnection());
+    f.move(start + QPointF(20, 10));
+    f.release(start + QPointF(20, 10));
+    QVERIFY(!scene.draftConnection());
+    QTRY_VERIFY_WITH_TIMEOUT(!f.canvas->rasterPending(), 2000);
+  }
+
   // Reparenting QuickCanvas into another widget tree (as EditorWindow moves it
   // into dockHost_) can make QQuickWidget recreate its offscreen window under
   // RHI. The GraphCanvas must stay attached to the current Quick window.

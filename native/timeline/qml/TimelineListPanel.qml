@@ -135,7 +135,7 @@ Rectangle {
         Controls.ScrollView {
             y: searchContainer.height
             width: parent.width
-            height: parent.height - y
+            height: Math.max(0, parent.height - y - (listError.visible ? listError.height + Ui.Metrics.sm : 0))
             visible: !panel.busy && panel.rows.length > 0
             contentWidth: availableWidth
             clip: true
@@ -205,8 +205,10 @@ Rectangle {
                 role: Ui.Typography.SansLabel
             }
         }
-        // Mutation failures keep the rows visible and show the server's error.
+        // Mutation and open failures keep the rows visible and show the server's error.
         Ui.Text {
+            id: listError
+            objectName: "timelineListError"
             anchors.bottom: parent.bottom
             width: parent.width
             visible: panel.errorMessage !== "" && panel.rows.length > 0
@@ -214,6 +216,7 @@ Rectangle {
             wrapMode: Text.WordWrap
             tone: Ui.Text.Error
             role: Ui.Typography.SansLabel
+            Accessible.role: Accessible.AlertMessage
         }
         Ui.ContextMenu {
             id: contextMenu
@@ -227,6 +230,7 @@ Rectangle {
         height: root.controller && root.controller.projects.length > 1 ? 36 : 0
         visible: height > 0
         Ui.Select {
+            objectName: "timelineListProjectSelect"
             anchors.fill: parent
             anchors.margins: Ui.Metrics.xs
             options: root.controller ? root.controller.projects.map(project => ({label: project.name, value: project.id})) : []

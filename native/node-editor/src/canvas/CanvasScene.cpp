@@ -92,6 +92,7 @@ ConnectionItem &CanvasScene::makeDraftConnection(const ConnectionId &incomplete)
   resetDraftConnection();
   draft_ = std::make_unique<ConnectionItem>(*this, incomplete);
   grabMouse(*draft_);
+  emit draftRasterRequested();
   return *draft_;
 }
 
@@ -502,6 +503,21 @@ void CanvasScene::updateIndex(CanvasItem &item) {
     index_.remove(key);
   }
   ++indexRevision_;
+}
+
+void CanvasScene::draftMoved(CanvasItem &item) {
+  const auto key = item.indexKey();
+  if (!items_.contains(key)) { return; }
+  const bool wasIndexed = index_.contains(key);
+  if (item.effectivelyShown()) {
+    const auto bounds = item.sceneBoundingRect();
+    if (!wasIndexed || index_.bounds(key) != bounds) { index_.insert(key, bounds); }
+  } else if (wasIndexed) {
+    index_.remove(key);
+  }
+  if (!wasIndexed && index_.contains(key)) { ++indexRevision_; }
+  item.invalidateImage();
+  emit draftRasterRequested();
 }
 
 void CanvasScene::forgetItem(CanvasItem &item) { unregisterItem(item); }
