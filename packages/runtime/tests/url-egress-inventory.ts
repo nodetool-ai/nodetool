@@ -533,13 +533,13 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "packages/runtime/src/providers/alibaba-provider.ts",
     "Alibaba Model Studio Wan, Qwen-Image and Qwen TTS result downloads",
     "provider-response",
-    "video_url, image and audio URLs from DashScope replies are screened; create and poll use the operator's DashScope region host."
+    "video_url, image and audio URLs from DashScope replies are screened; create and poll use the DashScope host picked by DASHSCOPE_REGION, or the operator's DASHSCOPE_BASE_URL."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/kling-provider.ts",
     "Kling AI video and image result downloads",
     "provider-response",
-    "Task result URLs are screened; create and poll use the fixed API host."
+    "Task result URLs are screened; create and poll use the fixed API host picked by KLING_REGION."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/byteplus-provider.ts",
@@ -563,7 +563,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "packages/runtime/src/providers/minimax-provider.ts",
     "MiniMax provider downloads",
     "provider-response",
-    "download_url, image_urls and hosted-audio URLs, for the provider's own calls and through downloadMedia for minimax-nodes, fetched with the provider's injected fetch under the same screening."
+    "download_url, image_urls and hosted-audio URLs, for the provider's own calls and through downloadMedia for minimax-nodes, fetched with the provider's injected fetch under the same screening. API calls use the fixed host picked by MINIMAX_REGION."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/zai-provider.ts",
@@ -1132,7 +1132,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "packages/huggingface/src/llama-cpp-download.ts",
     "GGUF model download",
     "HF_TOKEN",
-    "huggingface.co, path from the repo id the operator picked."
+    "huggingface.co, or the operator's HF_ENDPOINT mirror, path from the repo id the operator picked."
   ),
   fixedHost(
     "packages/llm-nodes/src/nodes/gemini.ts",
@@ -1246,7 +1246,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "packages/websocket/src/trpc/routers/models.ts",
     "model tRPC router",
     "provider keys",
-    "Provider catalog endpoints from constants."
+    "Provider catalog endpoints from constants; Hub search uses huggingface.co or the operator's HF_ENDPOINT mirror."
   ),
   fixedHost(
     "packages/runtime/src/providers/kie-provider.ts",

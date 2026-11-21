@@ -40,19 +40,33 @@ import {
   type WanVideoRequest
 } from "./alibaba-media.js";
 
-export const ALIBABA_DEFAULT_BASE_URL =
-  "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+/**
+ * `DASHSCOPE_REGION` → OpenAI-compatible base URL. Model Studio keys are
+ * region-scoped: "Each region has its own endpoint, API Key, and model list.
+ * These cannot be used across regions."
+ * https://www.alibabacloud.com/help/en/model-studio/base-url and
+ * https://help.aliyun.com/en/model-studio/regions/
+ */
+export const DASHSCOPE_BASE_URLS = {
+  international: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+  china: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+} as const;
+
+export const ALIBABA_DEFAULT_BASE_URL = DASHSCOPE_BASE_URLS.international;
 
 /**
  * Resolve the DashScope base URL for the key's region. Precedence: explicit
  * override (the stored `DASHSCOPE_BASE_URL` setting) > `DASHSCOPE_BASE_URL`
- * env var > the international (Singapore) default. Shared with
- * `credential-check.ts` so key verification probes the same endpoint the
- * provider talks to.
+ * env var > `DASHSCOPE_REGION` (`china` picks Beijing; empty or unknown picks
+ * the international Singapore default). Shared with `credential-check.ts` so
+ * key verification probes the same endpoint the provider talks to.
  */
-export function resolveAlibabaBaseURL(override?: string): string {
-  const raw =
-    override || process.env["DASHSCOPE_BASE_URL"] || ALIBABA_DEFAULT_BASE_URL;
+export function resolveAlibabaBaseURL(override?: string, region?: string | null): string {
+  const regionURL =
+    (region ?? "").trim().toLowerCase() === "china"
+      ? DASHSCOPE_BASE_URLS.china
+      : DASHSCOPE_BASE_URLS.international;
+  const raw = override || process.env["DASHSCOPE_BASE_URL"] || regionURL;
   return trimTrailingSlashes(raw);
 }
 
@@ -141,7 +155,11 @@ export class AlibabaProvider extends OpenAICompatProvider {
   }
 
   constructor(
-    secrets: { DASHSCOPE_API_KEY?: string; DASHSCOPE_BASE_URL?: string },
+    secrets: {
+      DASHSCOPE_API_KEY?: string;
+      DASHSCOPE_BASE_URL?: string;
+      DASHSCOPE_REGION?: string;
+    },
     options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.DASHSCOPE_API_KEY;
@@ -152,7 +170,10 @@ export class AlibabaProvider extends OpenAICompatProvider {
     // Precedence mirrors LMStudioProvider: resolved settings (secret store,
     // then env) arrive as `secrets`, so honoring `secrets.DASHSCOPE_BASE_URL`
     // is what lets users point the provider at their key's region.
-    const baseURL = resolveAlibabaBaseURL(secrets.DASHSCOPE_BASE_URL);
+    const baseURL = resolveAlibabaBaseURL(
+      secrets.DASHSCOPE_BASE_URL,
+      secrets.DASHSCOPE_REGION
+    );
 
     super({ providerId: PROVIDER_IDS.ALIBABA, apiKey, baseURL }, options);
   }

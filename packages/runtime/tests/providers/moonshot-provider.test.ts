@@ -129,4 +129,44 @@ describe("MoonshotProvider", () => {
 
     expect(items.length).toBeGreaterThanOrEqual(1);
   });
+
+  describe("KIMI_REGION", () => {
+    const urlOf = (call: unknown[]) => {
+      const input = call[0];
+      return input instanceof Request ? input.url : String(input);
+    };
+
+    it.each([
+      [undefined, "https://api.moonshot.ai/v1"],
+      ["", "https://api.moonshot.ai/v1"],
+      ["mars", "https://api.moonshot.ai/v1"],
+      ["international", "https://api.moonshot.ai/v1"],
+      ["china", "https://api.moonshot.cn/v1"],
+      [" China ", "https://api.moonshot.cn/v1"]
+    ])("region %j sends chat and the model list to %s", async (region, base) => {
+      const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+        const url = input instanceof Request ? input.url : String(input);
+        return url.endsWith("/models")
+          ? chatJsonResponse({ data: [{ id: "kimi-k2.5" }] })
+          : chatJsonResponse({
+              choices: [{ message: { content: "ok", tool_calls: null } }]
+            });
+      });
+      const provider = new MoonshotProvider(
+        { KIMI_API_KEY: "k", KIMI_REGION: region },
+        { fetchFn: fetchMock as unknown as typeof fetch }
+      );
+
+      await provider.generateMessage({
+        messages: [{ role: "user", content: "hi" }],
+        model: "kimi-k2.5"
+      });
+      await provider.getAvailableLanguageModels();
+
+      expect(fetchMock.mock.calls.map(urlOf)).toEqual([
+        `${base}/chat/completions`,
+        `${base}/models`
+      ]);
+    });
+  });
 });

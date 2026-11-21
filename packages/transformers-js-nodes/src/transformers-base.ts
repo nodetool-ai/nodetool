@@ -1,7 +1,11 @@
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as joinPath } from "node:path";
-import { createLogger, importOptionalModule } from "@nodetool-ai/config";
+import {
+  createLogger,
+  importOptionalModule,
+  resolveHfEndpoint
+} from "@nodetool-ai/config";
 import { parseWavBytes } from "@nodetool-ai/audio-nodes";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import { decodeAudioToPcm } from "@nodetool-ai/runtime/media";
@@ -54,6 +58,8 @@ export type TransformersHandle = object;
 
 type TransformersEnv = {
   cacheDir?: string;
+  /** Hub host models are fetched from, with a trailing slash. */
+  remoteHost?: string;
   allowRemoteModels?: boolean;
   allowLocalModels?: boolean;
 };
@@ -106,6 +112,33 @@ type TransformersModule = {
 };
 
 let cachedModule: Promise<TransformersModule> | null = null;
+let remoteHostOverride: string | null = null;
+
+/** The Hub host transformers.js downloads from, without a trailing slash. */
+export function getTransformersJsHubEndpoint(): string {
+  return resolveHfEndpoint(remoteHostOverride);
+}
+
+/** transformers.js joins `remoteHost` and the file path, so it needs a trailing slash. */
+function transformersRemoteHost(): string {
+  return `${getTransformersJsHubEndpoint()}/`;
+}
+
+/**
+ * Point model downloads at a Hub host, such as a mirror from the user's stored
+ * `HF_ENDPOINT` setting. `null` reverts to `HF_ENDPOINT` from the environment,
+ * else the public Hub. Applies to the loaded module and to later loads.
+ */
+export async function setTransformersJsRemoteHost(endpoint: string | null): Promise<void> {
+  remoteHostOverride = endpoint?.trim() || null;
+  if (!cachedModule) return;
+  try {
+    const mod = await cachedModule;
+    if (mod.env) mod.env.remoteHost = transformersRemoteHost();
+  } catch {
+    // The module failed to load. The next load applies the host.
+  }
+}
 // The cache directory lives in its own module, so model-load-progress.ts can
 // read it without importing this file.
 export { getTransformersJsCacheDir, setTransformersJsCacheDir } from "./cache-dir.js";
@@ -146,6 +179,7 @@ export async function loadTransformers(): Promise<TransformersModule> {
         mod.env.cacheDir = cacheDir;
         mod.env.allowRemoteModels = true;
         mod.env.allowLocalModels = true;
+        mod.env.remoteHost = transformersRemoteHost();
       }
 
       return mod;

@@ -18,7 +18,11 @@ import type { RepoType } from "@huggingface/hub";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
-import { getHfHubCacheDir } from "@nodetool-ai/config";
+import {
+  DEFAULT_HF_ENDPOINT,
+  getHfHubCacheDir,
+  resolveHfEndpoint
+} from "@nodetool-ai/config";
 
 import { resolveHfToken } from "./hf-auth.js";
 
@@ -26,7 +30,8 @@ import { resolveHfToken } from "./hf-auth.js";
 // Constants
 // ---------------------------------------------------------------------------
 
-export const HF_ENDPOINT = "https://huggingface.co";
+/** The public Hub. Downloads use {@link resolveHfEndpoint}, which honors `HF_ENDPOINT`. */
+export const HF_ENDPOINT = DEFAULT_HF_ENDPOINT;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -41,6 +46,12 @@ interface AsyncHfDownloadOptions {
   chunkSize?: number;
   progressCallback?: (deltaBytes: number, totalBytes: number | null) => void;
   cancelSignal?: AbortSignal;
+  /**
+   * Hub host, such as a mirror from the stored `HF_ENDPOINT` setting. Default:
+   * {@link resolveHfEndpoint}. The token goes to this host, which is either
+   * the public Hub or one the user configured.
+   */
+  endpoint?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -73,7 +84,7 @@ export function hfHubFileUrl(
   filename: string,
   revision: string = "main",
   repoType: RepoType = "model",
-  endpoint: string = HF_ENDPOINT
+  endpoint: string = resolveHfEndpoint()
 ): string {
   let prefix: string;
   if (repoType === "model") {
@@ -178,7 +189,8 @@ export async function asyncHfDownload(
     token: rawToken,
     cacheDir,
     progressCallback,
-    cancelSignal
+    cancelSignal,
+    endpoint
   } = opts;
 
   const tokenStr = await resolveHfToken(rawToken);
@@ -195,7 +207,8 @@ export async function asyncHfDownload(
     repo: { name: repoId, type: repoType },
     path: filename,
     revision,
-    cacheDir: cacheDir ?? getHfHubCacheDir()
+    cacheDir: cacheDir ?? getHfHubCacheDir(),
+    hubUrl: resolveHfEndpoint(endpoint)
   };
   if (tokenStr) {
     args.accessToken = tokenStr;
@@ -241,7 +254,8 @@ export async function dropBlobCopiedToSnapshot(
       revision: args.revision,
       expand: true,
       accessToken: args.accessToken,
-      fetch: args.fetch
+      fetch: args.fetch,
+      hubUrl: args.hubUrl
     });
     const etag = info?.lfs?.oid ?? info?.xetHash ?? info?.oid;
     if (!etag) {

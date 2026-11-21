@@ -11,7 +11,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 
-import { getHfHomeDir } from "@nodetool-ai/config";
+import { getHfHomeDir, resolveHfEndpoint } from "@nodetool-ai/config";
 
 // ---------------------------------------------------------------------------
 // In-memory cache
@@ -187,4 +187,24 @@ export async function resolveWorkerHfToken(
   }
   const local = await getHfToken();
   return local && local.trim() ? local.trim() : undefined;
+}
+
+/**
+ * The Hub host for a user's downloads and Hub searches: their stored
+ * `HF_ENDPOINT` setting, else `HF_ENDPOINT` from the environment, else the
+ * public Hub. The token resolved alongside it is sent to this host, which is
+ * always the public Hub or one the user or operator set.
+ */
+export async function resolveStoredHfEndpoint(
+  readSecret?: SecretReader
+): Promise<string> {
+  let stored: string | undefined;
+  if (readSecret) {
+    try {
+      stored = (await readSecret("HF_ENDPOINT"))?.trim() || undefined;
+    } catch {
+      // An unreadable setting falls back to the environment, as an unset one does.
+    }
+  }
+  return resolveHfEndpoint(stored);
 }

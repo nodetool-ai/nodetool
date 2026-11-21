@@ -152,6 +152,12 @@ export {
 } from "./paths.js";
 
 export {
+  DEFAULT_HF_ENDPOINT,
+  resolveHfEndpoint,
+  rewriteHfHubUrl
+} from "./hf-endpoint.js";
+
+export {
   loadAssetStorageConfig,
   loadTempStorageConfig,
   SIGNED_URL_TTL,
