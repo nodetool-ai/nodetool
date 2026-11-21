@@ -32,7 +32,7 @@ import {
   joinLineTexts
 } from "@nodetool-ai/protocol";
 import { storyboards } from "@nodetool-ai/protocol/api-schemas";
-import { closedParams, parseBridgeArgs, type HeadlessTool } from "../tool-loop-bridge.js";
+import { closedParams, parseBridgeArgs, withHostField, type HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
@@ -248,11 +248,12 @@ function tool<TResult>(
   parameters: z.ZodTypeAny,
   impl: (args: Record<string, unknown>) => Promise<TResult>
 ): HeadlessTool {
-  const closed = closedParams(parameters);
+  const advertised = withHostField(parameters, "storyboard_id");
+  const closed = closedParams(advertised);
   return {
     name,
     description,
-    parameters,
+    parameters: advertised,
     // Async so a parameter-validation failure reaches the caller as a rejected
     // promise, the way a failure inside the impl does.
     execute: async (args) => {

@@ -36,4 +36,11 @@ describe("bridge argument parsing", () => {
       setTests.execute({ tests: [{ name: "adds", inputs: { a: 1 }, expected: { sum: 1 } }] })
     ).rejects.toThrow(/expected/);
   });
+
+  it("accepts the document id the browser's copy of the tool takes, and still refuses other keys", async () => {
+    const bridge = createScriptToolBridge();
+    const addLine = bridge.tools.find((t) => t.name === "ui_script_add_line")!;
+    await expect(addLine.execute({ script_id: "script-eval", text: "Hello" })).resolves.toMatchObject({ ok: true });
+    await expect(addLine.execute({ scriptId: "script-eval", text: "Hello" })).rejects.toThrow(/scriptId/);
+  });
 });

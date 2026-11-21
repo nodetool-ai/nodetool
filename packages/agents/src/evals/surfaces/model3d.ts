@@ -204,6 +204,22 @@ export function createModel3DToolBridge(
     ),
 
     tool(
+      "ui_3d_get_object",
+      "Read one object in the 3D editor in full: its transform, parent and children, its material color, and its type. Call this before changing an object to see its current values.",
+      z.object({ target: targetParam }),
+      async ({ target }) => {
+        const node = resolveTarget(target as string);
+        return {
+          ok: true,
+          object: {
+            ...serialize(node),
+            children: nodes.filter((n) => n.parentUuid === node.uuid).map((n) => n.uuid)
+          }
+        };
+      }
+    ),
+
+    tool(
       "ui_3d_add_object",
       "Add a primitive object to the 3D editor scene and select it. `kind` is one of box, sphere, plane, cylinder, torus, directionalLight, pointLight. Optionally provide a name; otherwise a unique default name is assigned.",
       z.object({

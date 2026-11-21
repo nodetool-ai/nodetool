@@ -13,7 +13,7 @@ import {
   isRecord,
   isString
 } from "../utils/type-guards.js";
-import { closedParams, parseBridgeArgs } from "../capabilities/bridge-args.js";
+import { closedParams, parseBridgeArgs, withHostField } from "../capabilities/bridge-args.js";
 
 export interface HeadlessNode {
   id: string;
@@ -49,7 +49,7 @@ export interface ToolLoopFinalState {
   edges: HeadlessEdge[];
 }
 
-export { closedParams, parseBridgeArgs };
+export { closedParams, parseBridgeArgs, withHostField };
 
 export interface HeadlessTool {
   category?: PermissionCategory;

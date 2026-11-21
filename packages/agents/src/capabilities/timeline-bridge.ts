@@ -21,7 +21,7 @@ import {
   type TransitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
-import { closedParams, parseBridgeArgs } from "./bridge-args.js";
+import { closedParams, parseBridgeArgs, withHostField } from "./bridge-args.js";
 import {
   ANIMATED_PROPERTIES,
   DEFAULT_BEAT_TOLERANCE_MS,
@@ -475,11 +475,12 @@ function tool<TResult>(
   parameters: z.ZodTypeAny,
   impl: (args: Record<string, unknown>) => Promise<TResult>
 ): TimelineBridgeTool {
-  const closed = closedParams(parameters);
+  const advertised = withHostField(parameters, "timeline_id");
+  const closed = closedParams(advertised);
   return {
     name,
     description,
-    parameters,
+    parameters: advertised,
     execute: (args) => {
       const parsed = parseBridgeArgs(closed, args) as Record<
         string,

@@ -201,6 +201,9 @@ enums, richer argument shapes) are absorbed by change C9 of the prompt diet in 3
   and forward staged streams through the headless runner.
 - An audio effect whose range clamps to nothing records an undo step in the
   headless bridge but not in the browser editor.
+- The headless 3D bridge serves 10 of the browser's 18 `ui_3d_*` tools. It
+  lacks capture_view, duplicate_object, redo, set_geometry, set_light,
+  set_material, set_parent and undo, which answer that nothing is open.
 - `sample` records the requested `--context-window`, not the threshold in
   effect. `NODETOOL_CHAT_COMPACTION_TOKENS` overrides it, so two resumed runs
   can compact at different sizes under the same recorded window.

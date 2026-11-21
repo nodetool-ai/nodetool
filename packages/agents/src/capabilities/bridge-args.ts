@@ -33,3 +33,21 @@ export function parseBridgeArgs(
   } = args ?? {};
   return parseWithTypeCoercion(closed, rest) as Record<string, unknown>;
 }
+
+/**
+ * Add the document-id field the browser's copy of a tool takes (`asset_id`,
+ * `sketch_id`, `timeline_id`, …) as an optional string. A headless bridge
+ * edits one implicit document, so it accepts any value. Without the field a
+ * model that passes the id, as the product requires, would be refused by
+ * {@link closedParams}.
+ */
+export function withHostField(parameters: z.ZodTypeAny, field: string): z.ZodTypeAny {
+  if (!(parameters instanceof z.ZodObject) || field in parameters.shape) return parameters;
+  return parameters.extend({
+    [field]: z
+      .string()
+      .optional()
+      .describe("Id of the open document, as the ui_context block lists it.")
+  });
+}
+

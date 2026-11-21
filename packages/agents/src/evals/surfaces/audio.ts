@@ -18,6 +18,7 @@
 
 
 import {
+  AUDIO_ASSETLESS_TOOL_NAMES,
   AUDIO_TOOL_CONTRACTS,
   assertAudioEditChanges,
   audioRangeFromArgs,
@@ -28,7 +29,7 @@ import {
   type AudioToolRange
 } from "@nodetool-ai/protocol/api-schemas/asset-editor-tool-contracts.js";
 import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
-import { closedParams, parseBridgeArgs, type HeadlessTool } from "../tool-loop-bridge.js";
+import { closedParams, parseBridgeArgs, withHostField, type HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
@@ -71,7 +72,10 @@ function tool(
   name: AudioToolName,
   impl: (args: Record<string, unknown>) => Promise<unknown>
 ): HeadlessTool {
-  const parameters = uiToolParams(AUDIO_TOOL_CONTRACTS[name]);
+  const contract = uiToolParams(AUDIO_TOOL_CONTRACTS[name]);
+  const parameters = AUDIO_ASSETLESS_TOOL_NAMES.includes(name)
+    ? contract
+    : withHostField(contract, "asset_id");
   const closed = closedParams(parameters);
   return {
     name,

@@ -39,7 +39,7 @@ import {
   type SubtitleFormat,
   type SubtitleGranularity
 } from "@nodetool-ai/timeline";
-import { closedParams, parseBridgeArgs, type HeadlessTool } from "../tool-loop-bridge.js";
+import { closedParams, parseBridgeArgs, withHostField, type HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase,
@@ -159,11 +159,12 @@ function tool<TResult>(
   parameters: z.ZodTypeAny,
   impl: (args: Record<string, unknown>) => Promise<TResult>
 ): HeadlessTool {
-  const closed = closedParams(parameters);
+  const advertised = withHostField(parameters, "script_id");
+  const closed = closedParams(advertised);
   return {
     name,
     description,
-    parameters,
+    parameters: advertised,
     execute: async (args) =>
       impl(parseBridgeArgs(closed, args) as Record<
         string,

@@ -67,7 +67,7 @@ import {
 } from "@nodetool-ai/image-editor/raster.js";
 import { z } from "zod";
 
-import { closedParams, parseBridgeArgs, type HeadlessTool } from "../tool-loop-bridge.js";
+import { closedParams, parseBridgeArgs, withHostField, type HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
@@ -335,11 +335,12 @@ function tool<TResult>(
   parameters: z.ZodTypeAny,
   impl: (args: Record<string, unknown>) => Promise<TResult>
 ): HeadlessTool {
-  const closed = closedParams(parameters);
+  const advertised = withHostField(parameters, "sketch_id");
+  const closed = closedParams(advertised);
   return {
     name,
     description,
-    parameters,
+    parameters: advertised,
     execute: (args) => {
       const parsed = parseBridgeArgs(closed, args) as Record<
         string,

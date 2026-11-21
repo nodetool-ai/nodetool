@@ -272,6 +272,7 @@ export const MODEL3D_BUILD: TaskFamily<Model3DBridgeFinalState> = {
 
 export const MODEL3D_EDIT: TaskFamily<Model3DBridgeFinalState> = {
   id: "model3d-edit",
+  surface: "model3d",
   make(pick) {
     const names = pick.some(OBJECT_NAMES, pick.int(3, 5));
     const seed = names.map((name) => ({ name, kind: pick.one(MESH_KINDS) }));
