@@ -19,6 +19,8 @@ import {
   committedHashesOfOwner,
   deletedDocumentExists,
   deleteStagedBlobsOfTransfer,
+  deleteStagedErasedBlobs,
+  erasedFilesOf,
   exceedsStorageAllowance,
   findCloudTransferAttempt,
   getCloudTransfer,
@@ -31,6 +33,8 @@ import {
   Project,
   readableProjectBlob,
   recordCloudTransferAttempt,
+  recordMissingFiles,
+  removeMissingFiles,
   setCloudTransferState,
   storageAllowanceStatus,
   withTransaction,
@@ -102,16 +106,19 @@ function atLeast(role: TransferRole | null, minimum: TransferRole): boolean {
   return role !== null && ROLE_RANK[role] >= ROLE_RANK[minimum];
 }
 
-/** Every file the manifest needs staged, by hash: the referenced files and the files it puts. */
-function stagedFiles(manifest: TransferManifest): { hash: string; size: number }[] {
+/**
+ * Every file the manifest needs staged, by hash: the referenced files that
+ * are not on the erased list and the files it puts.
+ */
+function stagedFiles(manifest: TransferManifest, erased: ReadonlySet<string>): { hash: string; size: number }[] {
   return [
-    ...manifest.required_files,
+    ...manifest.required_files.filter((file) => !erased.has(file.hash)),
     ...(manifest.file_operations ?? []).flatMap((op) => (op.op === "delete_workspace_file" ? [] : [op]))
   ];
 }
 
-function requiredHashes(manifest: TransferManifest): string[] {
-  return [...new Set(stagedFiles(manifest).map((file) => file.hash))];
+function requiredHashes(manifest: TransferManifest, erased: ReadonlySet<string>): string[] {
+  return [...new Set(stagedFiles(manifest, erased).map((file) => file.hash))];
 }
 
 async function ownedTransfer(userId: string, transferId: string) {
@@ -147,9 +154,11 @@ export async function openTransfer(
   if (!transfer) throw new TransferRequestError("CONFLICT", "The transfer id is taken");
   if (transfer.state !== "open") throw new TransferRequestError("CONFLICT", `The transfer is ${transfer.state}`);
 
-  const hashes = requiredHashes(input.manifest);
+  // A file on the erased list is not required and not staged again (FR79).
+  const erased = input.first_publication ? new Set<string>() : (await erasedFilesOf(input.project_id)).hashes;
+  const hashes = requiredHashes(input.manifest, erased);
   const needed = new Set(await hashesToSend(host.storage, userId, hashes));
-  for (const file of stagedFiles(input.manifest)) {
+  for (const file of stagedFiles(input.manifest, erased)) {
     if (needed.has(file.hash)) continue;
     const staged = await stageKnownBlob(host.storage, {
       projectId: input.project_id,
@@ -355,6 +364,13 @@ export async function commitTransfer(
       return refuse([failure("TRANSFER_CANCELLED", "The transfer was cancelled")]);
     }
 
+    // The project's files before any document row, the order an erase
+    // takes them in, so the two never wait on each other.
+    await lockProjectFiles(transfer.project_id);
+    const erased = transfer.first_publication
+      ? { hashes: new Set<string>(), assetIds: new Set<string>() }
+      : await erasedFilesOf(transfer.project_id);
+
     const failures: TransferFailure[] = [];
     const operations = input.manifest.operations;
 
@@ -365,7 +381,8 @@ export async function commitTransfer(
     }
     const listed = new Set([
       ...input.manifest.required_files.map((file) => file.asset_id),
-      ...input.missing_files.map((file) => file.asset_id)
+      ...input.missing_files.map((file) => file.asset_id),
+      ...erased.assetIds
     ]);
     const versionPayloads = new Map<string, TransferPayloadContent>();
     for (const version of input.versions ?? []) {
@@ -452,8 +469,8 @@ export async function commitTransfer(
     const project = await Project.get<Project>(projectId);
     if (transfer.first_publication) {
       if (project) return refuse([failure("PROJECT_EXISTS", "A project with this id exists")]);
-      const committed = await committedHashesOfOwner(userId, requiredHashes(input.manifest));
-      const sizes = new Map(stagedFiles(input.manifest).map((file) => [file.hash, file.size]));
+      const committed = await committedHashesOfOwner(userId, requiredHashes(input.manifest, erased.hashes));
+      const sizes = new Map(stagedFiles(input.manifest, erased.hashes).map((file) => [file.hash, file.size]));
       let added = 0;
       for (const [hash, size] of sizes) if (!committed.has(hash)) added += size;
       if (await exceedsStorageAllowance(userId, added)) {
@@ -640,10 +657,13 @@ export async function commitTransfer(
       }
     }
 
-    // Step 6: every required file is staged or committed, or confirmed missing.
+    // Step 6: every required file is staged or committed, confirmed missing,
+    // or on the erased list (X7).
     const missing = new Set(input.missing_files.map((file) => file.asset_id));
+    const isErased = (file: { asset_id: string; hash?: string }) =>
+      erased.assetIds.has(file.asset_id) || (file.hash !== undefined && erased.hashes.has(file.hash));
     for (const file of input.manifest.required_files) {
-      if (missing.has(file.asset_id)) continue;
+      if (missing.has(file.asset_id) || isErased(file)) continue;
       const row = await readableProjectBlob({ projectId, hash: file.hash, transferId: transfer.id });
       if (!row) {
         failures.push(failure("FILE_NOT_STAGED", "The file was not staged", { asset_id: file.asset_id, hash: file.hash }));
@@ -659,7 +679,6 @@ export async function commitTransfer(
     // Step 7 for files: each put and delete against what the cloud holds at its path.
     // A first publication has no folder yet, so every path is free.
     const now = new Date();
-    if (fileOperations.length > 0) await lockProjectFiles(projectId);
     const filePlan = await planFileOperations({
       projectId,
       userId,
@@ -767,7 +786,30 @@ export async function commitTransfer(
       const key = documentKey(target.kind, target.id);
       if (!deleted.has(key)) written.push({ ...target, toAdmit: admissions.get(key) ?? [] });
     }
+    // The erased list wins over a file staged before the erase (TC81). A
+    // file the transfer also puts in the folder keeps its row for the placement.
+    const putHashes = new Set(fileOperations.flatMap((op) => (op.op === "delete_workspace_file" ? [] : [op.hash])));
+    await deleteStagedErasedBlobs(
+      projectId,
+      transfer.id,
+      new Set([...erased.hashes].filter((hash) => !putHashes.has(hash)))
+    );
     await commitProjectBlobs(projectId, transfer.id);
+    // The Incomplete list: the files this attempt confirmed missing, less
+    // those the transfer supplied (X7).
+    await recordMissingFiles({
+      projectId,
+      userId,
+      transferId: transfer.id,
+      files: input.missing_files
+        .filter((file) => !isErased(file))
+        .map((file) => ({ assetId: file.asset_id, hash: file.hash, size: file.size, reason: file.reason })),
+      now
+    });
+    await removeMissingFiles(
+      projectId,
+      input.manifest.required_files.filter((file) => !missing.has(file.asset_id)).map((file) => file.asset_id)
+    );
     const keptBeside = await applyFileOperations(filePlan, { projectId, userId, transferId: transfer.id, now });
     placing = filePlan.placements.length > 0;
     const addedConversations = await applyConversations(input.manifest, conversations, {

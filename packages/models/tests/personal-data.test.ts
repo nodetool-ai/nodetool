@@ -578,6 +578,8 @@ describe("exportPersonalData", () => {
       "nodetool_team_tasks",
       "oauth_pending_entries",
       "project_blobs",
+      "project_erased_files",
+      "project_missing_files",
       "recovery_copies",
       "resource_change_outbox",
       "revision_set_entries",

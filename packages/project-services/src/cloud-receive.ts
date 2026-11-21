@@ -15,7 +15,9 @@ import {
   addRevisionSetEntry,
   createRevisionSet,
   deleteRevisionSet,
+  erasedFilesOf,
   getDatabase,
+  getErasedFile,
   getLiveRevisionSet,
   getRevisionSet,
   getRevisionSetEntry,
@@ -136,7 +138,11 @@ async function captureDocument(
   const held = await handler.holdRevision(id);
   if (!held || held.projectId !== set.project_id) return null;
   const files = await host.readableFiles(userId, kind, id, handler.content(held.payload));
-  const present = files.filter((file): file is ReceiveFileInfo & { hash: string } => file.hash !== null);
+  // An erased file is not served, so the set does not name it (FR79).
+  const erased = (await erasedFilesOf(set.project_id)).hashes;
+  const present = files.filter(
+    (file): file is ReceiveFileInfo & { hash: string } => file.hash !== null && !erased.has(file.hash)
+  );
   const contentHash = identityHash(held.payload);
   await addRevisionSetEntry(set, {
     kind,
@@ -160,7 +166,8 @@ async function captureDocument(
       content_type: file.contentType,
       path: file.path
     })),
-    missing_files: files.filter((file) => file.hash === null).map((file) => file.assetId)
+    missing_files: files.filter((file) => file.hash === null).map((file) => file.assetId),
+    erased_files: files.filter((file) => file.hash !== null && erased.has(file.hash)).map((file) => file.assetId)
   };
 }
 
@@ -308,6 +315,9 @@ export async function receiveFile(
     }
   }
   if (!authorized) throw new ReceiveRequestError("NOT_FOUND", "File not found");
+  // The owner erased it after the capture. The object may still exist for
+  // another project or another set, but this project serves it to nobody (SR33).
+  if (await getErasedFile(set.project_id, input.hash)) return ERASED;
   const bytes = await host.storage.retrieve(host.storage.uriForKey(blobKey(input.hash)));
   return bytes ?? ERASED;
 }

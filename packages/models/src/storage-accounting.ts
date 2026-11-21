@@ -154,8 +154,8 @@ function fileOfRow(row: unknown): string | null {
   return typeof row.file === "string" ? row.file : null;
 }
 
-/** Document refs rows a deleted document's payload kept, by file. */
-function payloadRefFiles(payload: string): Set<string> {
+/** The files the reference rows in a deleted document's payload name, by asset id. */
+export function deletedDocumentRefFiles(payload: string): Set<string> {
   const files = new Set<string>();
   let parsed: unknown;
   try {
@@ -287,7 +287,7 @@ export async function storageFiles(
       deletedProjects.set(row.document_id, { name: row.name, purgeAt: row.purge_at });
       continue;
     }
-    for (const file of payloadRefFiles(row.payload)) {
+    for (const file of deletedDocumentRefFiles(row.payload)) {
       const hash = hashOfAsset.get(file);
       if (hash === undefined) continue;
       const key = [hash, "deleted", row.kind, row.document_id].join("\u0000");

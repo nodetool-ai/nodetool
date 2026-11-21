@@ -129,6 +129,8 @@ export interface PlannedDocument {
   decision: ReceiveDecision | null;
   files: RevisionSetDocument["files"];
   missingFiles: string[];
+  /** Files the owner erased in the cloud (FR79). A plan written before erases has none. */
+  erasedFiles?: string[];
   /**
    * Files of the document whose cloud bytes the folder does not hold, so a
    * receive has work for the document even when its own content is the same
@@ -168,6 +170,11 @@ export interface ReceiveResult {
   keptBeside: Array<{ assetId: string; path: string; keptPath: string }>;
   /** Asset ids the cloud holds no bytes for. */
   missingFiles: string[];
+  /**
+   * Asset ids the owner erased in the cloud. Their entries show File erased.
+   * A result recorded before erases has none.
+   */
+  erasedFiles?: string[];
   /** Documents whose file held an edit that is not valid, so the file was left as it was. */
   fileKept: Array<{ kind: TransferDocumentKind; id: string }>;
   /**
@@ -207,7 +214,7 @@ export type ReceiveOutcome =
   | { status: "waiting_for_review"; setId: string; documents?: PlannedDocument[] };
 
 function emptyResult(): ReceiveResult {
-  return { received: [], changedDuringReceive: [], notReceived: [], keptBeside: [], missingFiles: [], fileKept: [] };
+  return { received: [], changedDuringReceive: [], notReceived: [], keptBeside: [], missingFiles: [], erasedFiles: [], fileKept: [] };
 }
 
 function statusOf(contentHash: string, baseHash: string | null, localHash: string | null): ReceiveDocumentStatus {
@@ -347,6 +354,7 @@ export async function captureReceive(
       decision: defaultDecision(status),
       files: document.files,
       missingFiles: document.missing_files,
+      erasedFiles: document.erased_files,
       changedFiles
     });
   }
@@ -556,6 +564,7 @@ async function commit(
       const seen = new Set<string>();
       for (const document of received(plan)) {
         result.missingFiles.push(...document.missingFiles);
+        (result.erasedFiles ??= []).push(...(document.erasedFiles ?? []));
         for (const file of document.files) {
           if (seen.has(file.asset_id)) continue;
           seen.add(file.asset_id);

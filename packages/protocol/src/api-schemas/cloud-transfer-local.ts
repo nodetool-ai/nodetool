@@ -154,7 +154,9 @@ export const receiveReviewDocument = z.object({
   /** The decision taken without the person, or null when the review sheet must ask. */
   decision: receiveDecision.nullable(),
   files: z.array(revisionSetFile),
-  missing_files: z.array(z.string())
+  missing_files: z.array(z.string()),
+  /** Files the owner erased in the cloud, whose entries show File erased. */
+  erased_files: z.array(z.string())
 });
 
 export const captureReceiveOutput = z.object({
@@ -180,6 +182,7 @@ export const receiveResult = z.object({
   not_received: z.array(documentNamed.extend({ status: receiveDocumentStatus })),
   kept_beside: z.array(z.object({ asset_id: z.string(), path: z.string(), kept_path: z.string() })),
   missing_files: z.array(z.string()),
+  erased_files: z.array(z.string()),
   file_kept: z.array(z.object({ kind: transferDocumentKind, id: z.string() }))
 });
 
