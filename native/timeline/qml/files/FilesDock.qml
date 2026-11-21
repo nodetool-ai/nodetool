@@ -66,7 +66,7 @@ Item {
                 readonly property bool local: source.toString().startsWith("file:")
                 function load() {
                     review.close()
-                    if (local && (kind === "video" || kind === "audio")) review.previewFile(decodeURIComponent(source.toString().replace(/^file:\/\//, "")), kind, 0)
+                    if (local && (kind === "video" || kind === "audio")) review.previewUrl(source, kind, 0)
                 }
                 onSourceChanged: Qt.callLater(load)
                 onKindChanged: Qt.callLater(load)
