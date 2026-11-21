@@ -20,8 +20,8 @@ const EXPECTED: Record<string, string> = {
   ...Object.fromEntries(PAGES.map((page) => [page.hreflang.toLowerCase(), `https://nodetool.ai${page.path}`])),
 };
 
-test("there are five language pages", () => {
-  expect(PAGES.map((page) => page.path).sort()).toEqual(["/es", "/hi", "/ja", "/pt", "/zh"]);
+test("there are six language pages", () => {
+  expect(PAGES.map((page) => page.path).sort()).toEqual(["/es", "/hi", "/ja", "/ko", "/pt", "/zh"]);
 });
 
 test("home and every language page list all versions as hreflang alternates", async ({ request }) => {

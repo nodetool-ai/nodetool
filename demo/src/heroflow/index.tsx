@@ -36,10 +36,10 @@ export function HeroFlowRoot(): React.JSX.Element {
         width={1920}
         height={1080}
       />
-      {/* The Chinese and Japanese cuts for /zh, /ja and video feeds: same
+      {/* The Chinese, Japanese and Korean cuts for their pages and video feeds: same
           film and timing, localized copy. The Chinese cut shows DeepSeek as
           the agent's model. */}
-      {(["zh", "ja"] as const).map((locale) => (
+      {(["zh", "ja", "ko"] as const).map((locale) => (
         <React.Fragment key={locale}>
           <Composition
             id={`HeroFlow-${locale}`}

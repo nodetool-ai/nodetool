@@ -320,13 +320,13 @@ The encode writes `hero-flow.{mp4,webm}` and the posters into
 `marketing/public/`. The README GIF, `marketing/public/hero-flow-readme.gif`,
 comes from the same master at 720 px and 8 fps.
 
-The Chinese and Japanese cuts, played on `/zh` and `/ja`, are the same reel
+The Chinese, Japanese and Korean cuts, played on `/zh`, `/ja` and `/ko`, are the same reel
 with the text from `locale.ts`: the brief, beat sheet, entity names and UI
 labels. The Chinese cut also shows DeepSeek V3 as the agent's model. The
-film, clips and timing are shared. `HeroFlow-<zh|ja>-Vertical` frames a cut
+film, clips and timing are shared. `HeroFlow-<zh|ja|ko>-Vertical` frames a cut
 at 9:16 with the language page's headline, for short-video feeds. The CJK
-glyphs come from Noto Sans SC and JP subsets in `public/promo/`; run
-`npm run font:cjk` after changing any Chinese or Japanese text.
+glyphs come from Noto Sans SC, JP and KR subsets in `public/promo/`; run
+`npm run font:cjk` after changing any Chinese, Japanese or Korean text.
 
 ```bash
 npm run render:heroflow:zh -- --concurrency=4            # → out/heroflow-zh.mp4
@@ -335,6 +335,8 @@ npm run render:heroflow:ja -- --concurrency=4            # → out/heroflow-ja.m
 npm run render:heroflow:ja:vertical -- --concurrency=4   # → out/heroflow-ja-vertical.mp4
 npm run encode:hero -- --only hero-flow-zh
 npm run encode:hero -- --only hero-flow-ja
+npm run render:heroflow:ko -- --concurrency=4            # and :ko:vertical
+npm run encode:hero -- --only hero-flow-ko
 ```
 
 The site plays only the 16:9 cuts. Upload the vertical masters as rendered.
