@@ -241,6 +241,7 @@ Controls.Control {
         }
         SaveBanners { Layout.fillWidth: true; autosave: root.saver }
         DocumentFileBanner { Layout.fillWidth: true; folder: root.projectFolder }
+        ProjectLockBanner { Layout.fillWidth: true; Layout.leftMargin: Ui.Metrics.md; Layout.rightMargin: Ui.Metrics.md; lock: root.projectFolder.lock }
         DockCanvas {
             id: dockCanvas
             Layout.fillWidth: true

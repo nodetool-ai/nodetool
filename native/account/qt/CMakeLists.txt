@@ -13,6 +13,8 @@ add_library(nodetool_account_qt STATIC
   include/nodetool/account/qt/CloudBrowser.h
   src/CloudDocument.cpp
   include/nodetool/account/qt/CloudDocument.h
+  src/ProjectLockState.cpp
+  include/nodetool/account/qt/ProjectLockState.h
   src/ShareController.cpp
   include/nodetool/account/qt/ShareController.h
   src/TransferController.cpp

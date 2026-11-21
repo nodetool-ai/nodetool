@@ -6,6 +6,7 @@
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/CloudDocument.h"
+#include "nodetool/account/qt/ProjectLockState.h"
 #include "nodetool/account/qt/ShareController.h"
 #include "nodetool/account/qt/TransferController.h"
 
@@ -46,6 +47,13 @@ struct CloudDocumentForeign {
     QML_FOREIGN(nodetool::account::qt::CloudDocument)
     QML_NAMED_ELEMENT(CloudDocument)
     QML_UNCREATABLE("A CloudDocument comes from its owner.")
+};
+
+struct ProjectLockStateForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::account::qt::ProjectLockState)
+    QML_NAMED_ELEMENT(ProjectLockState)
+    QML_UNCREATABLE("A ProjectLockState comes from its window's project folder.")
 };
 
 // The share dialog creates its own controller.
