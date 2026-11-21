@@ -3622,7 +3622,8 @@ void EditorWindow::action(const QString &name) {
     apply({{"op", "batch"}, {"commands", commands}});
     return;
   }
-  if (name == "Command menu" || name == "Keyboard shortcuts") { showActionMenu(name == "Command menu" ? "command" : "shortcuts", canvas_->viewportWidget().mapToGlobal(unobstructedViewport().center().toPoint())); return; }
+  if (name == "Command menu") { toggleCommandMenu(); return; }
+  if (name == "Keyboard shortcuts") { showActionMenu("shortcuts", canvas_->viewportWidget().mapToGlobal(unobstructedViewport().center().toPoint())); return; }
   if (name == "Disable toggle") { action(selectionMostlyDisabled() ? "Enable selected" : "Disable selected"); return; }
   if (name == "Select all") {
     const auto ids = model_.allNodeIds();

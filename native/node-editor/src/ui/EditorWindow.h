@@ -694,6 +694,7 @@ private:
   friend class ContextMenuBuilder;
   QQuickWidget *showEntryMenu(const EntryMenuRequest &request);
   void showContextMenu(const QString &kind, const QPoint &globalPosition, const QString &nodeId = {}, const QString &edgeId = {}, const QPointF &scenePosition = {});
+  void toggleCommandMenu();
   void showFindPanel();
   void revealFound(const QString &resourceId);
   // NodeInfoPanel.tsx: Ctrl+I shows the first selected node's info beside it.
@@ -714,6 +715,7 @@ private:
   void selectSameType(const QString &nodeId);
   void convertNodeType(const QString &nodeId, const QString &type, const QString &inputName);
   QPointer<QQuickWidget> contextMenuHost_;
+  QPointer<QQuickWidget> commandPanel_;
   QPointer<QQuickWidget> findPanel_;
   QPointer<QObject> viewAnimation_;
 

@@ -895,6 +895,13 @@ void EditorWindow::installTabShortcuts() {
     for (int n = 1; n <= 9; ++n) {
         bind(QString("Ctrl+%1").arg(n), [this, n] { activateTab(n - 1); });
     }
+    // web/src/components/menus/CommandMenuHost.tsx: Cmd+K (macOS) / Ctrl+K opens
+    // or closes the command menu from any focused surface in the window.
+    bind(QStringLiteral("Ctrl+K"), [this] {
+        if (auto *editor = activeEditor()) {
+            editor->userAction(QStringLiteral("Command menu"));
+        }
+    });
 }
 void EditorWindow::harvestProjects(const QJsonArray &projects) {
     QJsonArray named;
