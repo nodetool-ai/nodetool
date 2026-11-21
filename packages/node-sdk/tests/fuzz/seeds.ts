@@ -1665,5 +1665,205 @@ export const SEED_PROPERTY_CASES: readonly PropertySeed[] = [
     properties: {},
     dynamicSlots: { s: { type: { type: "int" } } },
     dynamicValues: { s: "text" }
+  },
+  {
+    id: "scalar-int-integer",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: 4 }
+  },
+  {
+    id: "scalar-int-fraction",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: 1.5 }
+  },
+  {
+    id: "scalar-int-numeric-string",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: "7" }
+  },
+  {
+    id: "scalar-int-padded-string",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: " 7 " }
+  },
+  {
+    id: "scalar-int-fraction-string",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: "1.5" }
+  },
+  {
+    id: "scalar-int-word",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: "four" }
+  },
+  {
+    id: "scalar-int-nan",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: Number.NaN }
+  },
+  {
+    id: "scalar-int-infinity",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: Number.POSITIVE_INFINITY }
+  },
+  {
+    id: "scalar-int-boolean",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: true }
+  },
+  {
+    id: "scalar-int-list",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: [1] }
+  },
+  {
+    id: "scalar-int-null",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: null }
+  },
+  {
+    id: "scalar-int-blank",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: "" }
+  },
+  {
+    id: "scalar-int-zero",
+    declared: [{ name: "p", type: "int" }],
+    properties: { p: 0 }
+  },
+  {
+    id: "scalar-float-integer",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: 4 }
+  },
+  {
+    id: "scalar-float-fraction",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: 1.5 }
+  },
+  {
+    id: "scalar-float-numeric-string",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: "7" }
+  },
+  {
+    id: "scalar-float-padded-string",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: " 7 " }
+  },
+  {
+    id: "scalar-float-fraction-string",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: "1.5" }
+  },
+  {
+    id: "scalar-float-word",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: "four" }
+  },
+  {
+    id: "scalar-float-nan",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: Number.NaN }
+  },
+  {
+    id: "scalar-float-infinity",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: Number.POSITIVE_INFINITY }
+  },
+  {
+    id: "scalar-float-boolean",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: true }
+  },
+  {
+    id: "scalar-float-list",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: [1] }
+  },
+  {
+    id: "scalar-float-null",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: null }
+  },
+  {
+    id: "scalar-float-blank",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: "" }
+  },
+  {
+    id: "scalar-float-zero",
+    declared: [{ name: "p", type: "float" }],
+    properties: { p: 0 }
+  },
+  {
+    id: "scalar-bool-true",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: true }
+  },
+  {
+    id: "scalar-bool-false",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: false }
+  },
+  {
+    id: "scalar-bool-true-string",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: "true" }
+  },
+  {
+    id: "scalar-bool-false-string",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: "false" }
+  },
+  {
+    id: "scalar-bool-zero",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: 0 }
+  },
+  {
+    id: "scalar-bool-one",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: 1 }
+  },
+  {
+    id: "scalar-bool-two",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: 2 }
+  },
+  {
+    id: "scalar-bool-zero-string",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: "0" }
+  },
+  {
+    id: "scalar-bool-word",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: "yes" }
+  },
+  {
+    id: "scalar-bool-upper-string",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: "TRUE" }
+  },
+  {
+    id: "scalar-bool-list",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: [] }
+  },
+  {
+    id: "scalar-bool-null",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: null }
+  },
+  {
+    id: "scalar-bool-blank",
+    declared: [{ name: "p", type: "bool" }],
+    properties: { p: "" }
+  },
+  {
+    id: "scalar-str-number",
+    declared: [{ name: "p", type: "str" }],
+    properties: { p: 4 }
   }
 ];
