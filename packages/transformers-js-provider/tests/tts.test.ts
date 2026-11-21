@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 const ttsPipelineFn = vi.fn();
 
 vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
+  getTransformersJsHubEndpoint: () => "https://huggingface.co",
   KOKORO_VOICES: ["af_heart", "af_bella"],
   encodeWav: (samples: Float32Array, rate: number) => {
     const buf = Buffer.alloc(44 + samples.length * 2);
