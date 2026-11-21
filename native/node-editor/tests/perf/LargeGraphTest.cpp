@@ -439,6 +439,281 @@ private slots:
         QVERIFY2(stats.slowestPass <= 4'000'000 * kTimingScale, "Zoom settle exceeded its timing budget");
         qInfo().nospace() << "zoom_settle_us=" << settle.nsecsElapsed() / 1000.0;
     }
+    void zoom() {
+        QFile file(QStringLiteral(WINDOW_PARITY_FIXTURE));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto fixture = QJsonDocument::fromJson(file.readAll()).object();
+        auto workflow = fixture["workflow"].toObject();
+        const auto graph = workflow["graph"].toObject();
+        QJsonArray nodes;
+        QJsonArray edges;
+        for (int copy = 0; copy < 4; ++copy) {
+            const auto suffix = QStringLiteral("-%1").arg(copy);
+            const double ox = (copy % 2) * 1950;
+            const double oy = (copy / 2) * 760;
+            QJsonObject group{{"id", QStringLiteral("grp%1").arg(copy)},
+                              {"type", QStringLiteral("nodetool.workflows.base_node.Group")},
+                              {"data", QJsonObject{{"headline", QStringLiteral("Workflow Group %1").arg(copy)}}},
+                              {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", ox - 40}, {"y", oy - 50}}},
+                                                            {"width", 1900}, {"height", 720}}}};
+            nodes.append(group);
+            for (const auto &value : graph["nodes"].toArray()) {
+                auto node = value.toObject();
+                node["id"] = node["id"].toString() + suffix;
+                auto ui = node["ui_properties"].toObject();
+                auto position = ui["position"].toObject();
+                position["x"] = position["x"].toDouble() + ox;
+                position["y"] = position["y"].toDouble() + oy;
+                ui["position"] = position;
+                node["ui_properties"] = ui;
+                nodes.append(node);
+            }
+            for (const auto &value : graph["edges"].toArray()) {
+                auto edge = value.toObject();
+                for (const auto key : {"id", "source", "target"}) { edge[key] = edge[key].toString() + suffix; }
+                edges.append(edge);
+            }
+        }
+        workflow["graph"] = QJsonObject{{"nodes", nodes}, {"edges", edges}};
+        QSettings().setValue(QStringLiteral("canvas-chat-dock/collapsed"), true);
+        nodetool::EditorWindow window;
+        window.resize(1440, 900);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        window.setCatalog(fixture["metadata"].toArray());
+        QVERIFY(window.document()->load(workflow).ok);
+        QTest::qWait(50);
+        auto &quickGraph = window.canvas().graphCanvas();
+        auto &canvas = window.canvas();
+        auto *viewport = &canvas.viewportWidget();
+        const QPoint center = viewport->rect().center();
+        StepClock clock(window);
+
+        const auto measureZoom = [&](const char *label, double startZoom, QPointF focus, int steps, int notchY) {
+            canvas.setView(startZoom, focus);
+            quickGraph.flushRaster();
+            clock.step([] {});
+            quickGraph.resetRasterStats();
+            const auto polish0 = clock.rasterPartNs, sync0 = clock.syncPartNs;
+            const auto render0 = clock.renderPartNs, input0 = clock.inputNs, blit0 = clock.blitNs;
+            double totalUs = 0, maxUs = 0;
+            for (int i = 0; i < steps; ++i) {
+                const auto us = clock.step([&] {
+                    QWheelEvent wheel(QPointF(center), QPointF(viewport->mapToGlobal(center)), QPoint(), QPoint(0, notchY),
+                                      Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+                    QApplication::sendEvent(viewport, &wheel);
+                });
+                totalUs += us;
+                maxUs = std::max(maxUs, us);
+            }
+            const auto gestureStats = quickGraph.rasterStats();
+            qInfo().nospace() << label << "_gesture dpr=" << window.devicePixelRatio() << " end_zoom=" << canvas.zoom()
+                              << " per_step_us=" << totalUs / steps << " max_step_us=" << maxUs
+                              << " input_us=" << (clock.inputNs - input0) / 1000.0 / steps
+                              << " polish_us=" << (clock.rasterPartNs - polish0) / 1000.0 / steps
+                              << " sync_us=" << (clock.syncPartNs - sync0) / 1000.0 / steps
+                              << " render_us=" << (clock.renderPartNs - render0) / 1000.0 / steps
+                              << " blit_us=" << (clock.blitNs - blit0) / 1000.0 / steps
+                              << " cards=" << gestureStats.cards << " wires=" << gestureStats.wires;
+
+            quickGraph.resetRasterStats();
+            QElapsedTimer settleTimer;
+            settleTimer.start();
+            const double targetScale = canvas.zoom() * window.devicePixelRatio();
+            qint64 visibleSharpMs = -1;
+            const auto allVisibleSharp = [&] {
+                const auto visible = canvas.visibleSceneRect();
+                for (const auto *item : quickGraph.scene().itemsIn(visible)) {
+                    if (item->kind() != nodetool::canvas::CanvasItem::Kind::Node) { continue; }
+                    if (item->tiles().isEmpty()) { return false; }
+                    for (const auto &tile : item->tiles()) {
+                        if (!qFuzzyCompare(tile.geometry.scale, targetScale)) { return false; }
+                    }
+                }
+                return true;
+            };
+            while ((quickGraph.zoomSettling() || quickGraph.rasterPending()) && settleTimer.elapsed() < 5000) {
+                QCoreApplication::processEvents(QEventLoop::AllEvents, 2);
+                if (visibleSharpMs < 0 && !quickGraph.zoomSettling() && allVisibleSharp()) {
+                    visibleSharpMs = settleTimer.elapsed();
+                }
+            }
+            const auto fullSettleMs = settleTimer.elapsed();
+            const auto s = quickGraph.rasterStats();
+            qInfo().nospace() << label << "_settle visible_sharp_ms=" << visibleSharpMs
+                              << " full_settle_ms=" << fullSettleMs
+                              << " passes=" << s.passes << " cards=" << s.cards << " wires=" << s.wires
+                              << " foreground=" << s.foreground << " raster_ms=" << s.nanoseconds / 1e6
+                              << " slowest_pass_ms=" << s.slowestPass / 1e6;
+            QVERIFY2(!quickGraph.zoomSettling() && !quickGraph.rasterPending(), "Zoom settle did not complete");
+            QVERIFY2(visibleSharpMs >= 0, "Visible cards did not reach the settled raster scale");
+            QVERIFY2(s.slowestPass <= 4'000'000 * kTimingScale, "Zoom settle pass exceeded its 4 ms timing budget");
+            QVERIFY2(visibleSharpMs <= 300 * kTimingScale, "Visible card text took too long to sharpen after zoom");
+        };
+
+        measureZoom("zoom_05_to_15", 0.5, QPointF(800, 320), 8, 120);
+        measureZoom("zoom_10_to_30", 1.0, QPointF(680, 260), 8, 120);
+        measureZoom("zoom_15_to_05", 1.5, QPointF(800, 320), 8, -120);
+    }
+
+    // Dense long-wire graph (95 nodes, 162 edges spanning up to ~7500 px vertically,
+    // matching Comfy multi-angle templates). Measures zoom gesture and settle cost.
+    void denseWiresZoom() {
+        QJsonObject workflow;
+        QJsonArray catalog;
+        const QString envPath = qEnvironmentVariable("NT_BENCH_WORKFLOW");
+        if (!envPath.isEmpty()) {
+            QFile file(envPath);
+            QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(envPath));
+            workflow = QJsonDocument::fromJson(file.readAll()).object();
+            const auto graph = workflow["graph"].toObject();
+            QHash<QString, QString> nodeTypeById;
+            for (const auto &v : graph["nodes"].toArray()) {
+                const auto n = v.toObject();
+                nodeTypeById.insert(n["id"].toString(), n["type"].toString());
+            }
+            QHash<QString, QSet<QString>> ins, outs;
+            for (const auto &v : graph["edges"].toArray()) {
+                const auto e = v.toObject();
+                const auto srcType = nodeTypeById.value(e["source"].toString());
+                const auto dstType = nodeTypeById.value(e["target"].toString());
+                if (!srcType.isEmpty()) { outs[srcType].insert(e["sourceHandle"].toString("output")); }
+                if (!dstType.isEmpty()) { ins[dstType].insert(e["targetHandle"].toString("input")); }
+            }
+            QSet<QString> allTypes(nodeTypeById.cbegin(), nodeTypeById.cend());
+            const QJsonObject anyType{{"type", "any"}};
+            for (const auto &t : allTypes) {
+                QJsonArray props, outputs;
+                for (const auto &h : ins.value(t)) { props.append(QJsonObject{{"name", h}, {"type", anyType}}); }
+                for (const auto &h : outs.value(t)) { outputs.append(QJsonObject{{"name", h}, {"type", anyType}}); }
+                catalog.append(QJsonObject{{"node_type", t}, {"title", t.section('.', -1)}, {"properties", props}, {"outputs", outputs}});
+            }
+        } else {
+            const QJsonObject anyType{{"type", "any"}};
+            catalog.append(QJsonObject{
+                {"node_type", "fixture.Dense"},
+                {"title", "Dense"},
+                {"properties", QJsonArray{QJsonObject{{"name", "a"}, {"type", anyType}},
+                                          QJsonObject{{"name", "b"}, {"type", anyType}},
+                                          QJsonObject{{"name", "c"}, {"type", anyType}},
+                                          QJsonObject{{"name", "d"}, {"type", anyType}}}},
+                {"outputs", QJsonArray{QJsonObject{{"name", "out"}, {"type", anyType}}}}});
+            QJsonArray nodes, edges;
+            // 8 columns x 12 rows = 96 nodes over ~2400 x 8000 px, with fan-out hubs
+            // creating ~160 long vertical/diagonal edges like Comfy multi-angle graphs.
+            for (int col = 0; col < 8; ++col) {
+                for (int row = 0; row < 12; ++row) {
+                    const QString id = QStringLiteral("n_%1_%2").arg(col).arg(row);
+                    nodes.append(QJsonObject{
+                        {"id", id},
+                        {"type", "fixture.Dense"},
+                        {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", col * 340.0}, {"y", row * 680.0}}},
+                                                      {"width", 280}}}});
+                }
+            }
+            int edgeIdx = 0;
+            const auto addEdge = [&](const QString &src, const QString &dst, const QString &inHandle) {
+                edges.append(QJsonObject{{"id", QStringLiteral("e%1").arg(edgeIdx++)},
+                                         {"source", src}, {"target", dst},
+                                         {"sourceHandle", "out"}, {"targetHandle", inHandle}});
+            };
+            // Fan-out from top-left and mid-left hubs across all 12 rows (tall vertical bundles).
+            for (int row = 0; row < 12; ++row) {
+                addEdge("n_0_0", QStringLiteral("n_1_%1").arg(row), "a");
+                addEdge("n_0_9", QStringLiteral("n_2_%1").arg(row), "b");
+                addEdge("n_0_10", QStringLiteral("n_2_%1").arg(row), "c");
+                addEdge("n_0_11", QStringLiteral("n_3_%1").arg(row), "a");
+                addEdge("n_1_0", QStringLiteral("n_4_%1").arg(row), "a");
+                addEdge("n_2_0", QStringLiteral("n_5_%1").arg(row), "b");
+                addEdge("n_0_9", QStringLiteral("n_6_%1").arg(row), "c");
+                addEdge("n_6_0", QStringLiteral("n_7_%1").arg(row), "a");
+            }
+            // Cross-column pipelines (64 more edges).
+            for (int row = 0; row < 8; ++row) {
+                for (int col = 0; col < 7; ++col) {
+                    addEdge(QStringLiteral("n_%1_%2").arg(col).arg(row),
+                            QStringLiteral("n_%1_%2").arg(col + 1).arg((row + col) % 12), "d");
+                }
+            }
+            workflow = QJsonObject{{"id", "dense-wires"}, {"name", "Dense Wires"},
+                                   {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}};
+        }
+
+        QSettings().setValue(QStringLiteral("canvas-chat-dock/collapsed"), true);
+        nodetool::EditorWindow window;
+        window.resize(1440, 900);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        window.setCatalog(catalog);
+        QVERIFY(window.document()->load(workflow).ok);
+        QTest::qWait(50);
+        auto &quickGraph = window.canvas().graphCanvas();
+        auto &canvas = window.canvas();
+        auto *viewport = &canvas.viewportWidget();
+        const QPoint center = viewport->rect().center();
+        StepClock clock(window);
+
+        const auto measureZoom = [&](const char *label, double startZoom, QPointF focus, int steps, int notchY) {
+            canvas.setView(startZoom, focus);
+            quickGraph.flushRaster();
+            clock.step([] {});
+            quickGraph.resetRasterStats();
+            const auto polish0 = clock.rasterPartNs, sync0 = clock.syncPartNs;
+            const auto render0 = clock.renderPartNs, input0 = clock.inputNs, blit0 = clock.blitNs;
+            double totalUs = 0, maxUs = 0;
+            for (int i = 0; i < steps; ++i) {
+                const auto us = clock.step([&] {
+                    QWheelEvent wheel(QPointF(center), QPointF(viewport->mapToGlobal(center)), QPoint(), QPoint(0, notchY),
+                                      Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+                    QApplication::sendEvent(viewport, &wheel);
+                });
+                totalUs += us;
+                maxUs = std::max(maxUs, us);
+            }
+            const auto gestureStats = quickGraph.rasterStats();
+            const double perStepUs = totalUs / steps;
+            qInfo().nospace() << label << "_gesture dpr=" << window.devicePixelRatio()
+                              << " nodes=" << window.document()->nodes().size()
+                              << " edges=" << window.document()->edges().size()
+                              << " start_zoom=" << startZoom << " end_zoom=" << canvas.zoom()
+                              << " per_step_us=" << perStepUs << " max_step_us=" << maxUs
+                              << " input_us=" << (clock.inputNs - input0) / 1000.0 / steps
+                              << " polish_us=" << (clock.rasterPartNs - polish0) / 1000.0 / steps
+                              << " sync_us=" << (clock.syncPartNs - sync0) / 1000.0 / steps
+                              << " render_us=" << (clock.renderPartNs - render0) / 1000.0 / steps
+                              << " blit_us=" << (clock.blitNs - blit0) / 1000.0 / steps
+                              << " cards=" << gestureStats.cards << " wires=" << gestureStats.wires
+                              << " cached_mb=" << quickGraph.cachedRasterBytes() / (1024.0 * 1024.0);
+            const double stepBudgetUs = (window.devicePixelRatio() > 1.0 ? 12000.0 : 6000.0) * kTimingScale;
+            QVERIFY2(perStepUs < stepBudgetUs, "Dense-wire zoom gesture exceeded its frame budget");
+
+            quickGraph.resetRasterStats();
+            QElapsedTimer settleTimer;
+            settleTimer.start();
+            while ((quickGraph.zoomSettling() || quickGraph.rasterPending()) && settleTimer.elapsed() < 5000) {
+                QCoreApplication::processEvents(QEventLoop::AllEvents, 2);
+            }
+            const auto s = quickGraph.rasterStats();
+            qInfo().nospace() << label << "_settle full_settle_ms=" << settleTimer.elapsed()
+                              << " passes=" << s.passes << " cards=" << s.cards << " wires=" << s.wires
+                              << " raster_ms=" << s.nanoseconds / 1e6
+                              << " slowest_pass_ms=" << s.slowestPass / 1e6
+                              << " cached_mb=" << quickGraph.cachedRasterBytes() / (1024.0 * 1024.0);
+            QVERIFY2(s.slowestPass <= 4'000'000 * kTimingScale, "Dense-wire zoom settle exceeded its pass budget");
+            if (window.canvas().quickWidget().quickWindow()->rendererInterface()->graphicsApi() ==
+                QSGRendererInterface::Software) {
+                QCOMPARE(gestureStats.wires, 0);
+                QCOMPARE(s.wires, 0);
+            }
+        };
+
+        // 1. Fit zoom (0.14) zooming IN (matches screenshot overview -> zoom in)
+        measureZoom("dense_fit_in", 0.14, QPointF(1200, 3600), 10, 120);
+        // 2. Mid zoom (0.55) zooming OUT toward full overview
+        measureZoom("dense_mid_out", 0.55, QPointF(1200, 3600), 10, -120);
+        // 3. Zoomed-in (1.0) zooming OUT to 0.25
+        measureZoom("dense_10_out", 1.0, QPointF(1200, 2000), 10, -120);
+    }
 
     void complexWireZoom() {
         const QJsonObject anyType{{"type", "any"}};

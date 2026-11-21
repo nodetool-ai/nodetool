@@ -18,17 +18,15 @@ struct Uniforms {
     std::array<float, 16> params{};
 };
 static_assert(sizeof(Uniforms) == 256);
-struct Draw {
-    std::unique_ptr<QRhiBuffer> uniforms;
-    std::unique_ptr<QRhiShaderResourceBindings> bindings;
-};
 struct Resources {
+    // Retains DrawCache (pooled uniform buffers, SRBs, pipelines, sampler, vertices)
+    // until RetireQueue collects this frame.
     std::shared_ptr<DrawCache> cache;
-    // native-rules #1: type-erased shared_ptr without a comment on why unique ownership is impossible
+    // Shared with ClipEffectStage's LUT/mask LRU caches so textures survive eviction
+    // until in-flight command buffers finish.
     std::vector<std::shared_ptr<void>> luts;
-    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
+    // Shared with ScratchPool so scratch render targets stay alive until completion.
     std::vector<std::shared_ptr<nt::motion::ScratchPool::Surface>> surfaces;
-    std::vector<std::unique_ptr<Draw>> draws;
 };
 LayerFrame frameFor(QRhiTexture *texture, bool flip) {
     LayerFrame frame;
@@ -41,7 +39,7 @@ LayerFrame frameFor(QRhiTexture *texture, bool flip) {
 class Encoder {
     const EffectContext &m_ctx;
     std::shared_ptr<Resources> m_resources = std::make_shared<Resources>();
-    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
+    // Shared with DrawCache so the pool outlives the stage while frames are in flight.
     std::shared_ptr<nt::motion::ScratchPool> m_scratch;
     nt::motion::ScratchPool::Lease m_lease;
 
@@ -70,28 +68,18 @@ class Encoder {
     void retain(const std::shared_ptr<void> &lut) { m_resources->luts.push_back(lut); }
     bool draw(const LayerFrame &input, QRhiTextureRenderTarget &output, const Pass &pass, QSize logical,
               QPoint logicalOrigin, QRhiTexture *other = nullptr, const QRect *copy = nullptr, QPoint readOrigin = {}, QRhiTexture *third = nullptr, bool boundedCrop = false) {
-        auto draw = std::make_unique<Draw>();
         auto *rhi = m_ctx.rhi;
-        draw->uniforms.reset(rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(Uniforms)));
-        if (!draw->uniforms->create()) {
-            return false;
-        }
         const auto plane = [&](int index) { return input.planes[index] ? input.planes[index] : input.planes[0]; };
-        draw->bindings.reset(rhi->newShaderResourceBindings());
-        draw->bindings->setBindings(
-            {QRhiShaderResourceBinding::uniformBuffer(
-                 0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
-                 draw->uniforms.get()),
-             QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage, plane(0),
-                                                       m_resources->cache->sampler()),
-             QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage,
-                                                       other ? other : plane(1), m_resources->cache->sampler()),
-             QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, third ? third : plane(2),
-                                                       m_resources->cache->sampler())});
-        if (!draw->bindings->create()) {
+        const std::array<QRhiTexture *, 3> textures{
+            plane(0),
+            other ? other : plane(1),
+            third ? third : plane(2),
+        };
+        const auto slot = m_resources->cache->acquireDraw(rhi, m_ctx.frameNumber, sizeof(Uniforms), textures);
+        if (!slot.uniforms || !slot.bindings) {
             return false;
         }
-        auto *pipeline = m_resources->cache->pipeline(rhi, output, draw->bindings.get());
+        auto *pipeline = m_resources->cache->pipeline(rhi, output, slot.bindings);
         if (!pipeline) {
             return false;
         }
@@ -114,17 +102,16 @@ class Encoder {
         }
         u.params = pass.params;
         auto *updates = rhi->nextResourceUpdateBatch();
-        updates->updateDynamicBuffer(draw->uniforms.get(), 0, sizeof(u), &u);
+        updates->updateDynamicBuffer(slot.uniforms, 0, sizeof(u), &u);
         auto *cb = m_ctx.commands;
         cb->beginPass(&output, Qt::transparent, {1, 0}, updates);
         cb->setGraphicsPipeline(pipeline);
         cb->setViewport({0, 0, float(output.pixelSize().width()), float(output.pixelSize().height())});
-        cb->setShaderResources(draw->bindings.get());
+        cb->setShaderResources(slot.bindings);
         const QRhiCommandBuffer::VertexInput vertices(m_resources->cache->vertices(), 0);
         cb->setVertexInput(0, 1, &vertices);
         cb->draw(3);
         cb->endPass();
-        m_resources->draws.push_back(std::move(draw));
         return true;
     }
 };
@@ -133,13 +120,62 @@ struct ClipEffectStage::Lut {
     Cube cube;
     std::unique_ptr<QRhiTexture> texture;
 };
+const ClipEffectStage::CachedPlan &ClipEffectStage::cachedPlan(const QJsonObject &ext) const {
+    static const CachedPlan kEmpty;
+    const auto clipVal = ext.value(u"clipEffects");
+    const auto trackVal = ext.value(u"trackEffects");
+    if (!clipVal.isArray() && !trackVal.isArray()) {
+        return kEmpty;
+    }
+    const QJsonArray clipEffects = clipVal.toArray();
+    const QJsonArray trackEffects = trackVal.toArray();
+    if (clipEffects.isEmpty() && trackEffects.isEmpty()) {
+        return kEmpty;
+    }
+    for (size_t i = 0; i < m_planCache.size(); ++i) {
+        if (m_planCache[i].clipEffects == clipEffects && m_planCache[i].trackEffects == trackEffects) {
+            if (i > 0) {
+                std::rotate(m_planCache.begin(), m_planCache.begin() + static_cast<ptrdiff_t>(i),
+                            m_planCache.begin() + static_cast<ptrdiff_t>(i + 1));
+            }
+            return m_planCache.front();
+        }
+    }
+    CachedPlan plan;
+    plan.clipEffects = clipEffects;
+    plan.trackEffects = trackEffects;
+    plan.chain = planChain(clipEffects, trackEffects);
+    plan.outset = chainOutset(clipEffects);
+    plan.lutKeys.resize(plan.chain.size());
+    plan.maskPayloads.resize(plan.chain.size());
+    for (size_t i = 0; i < plan.chain.size(); ++i) {
+        const Pass &pass = plan.chain[i];
+        if (pass.op == Op::Lut || pass.op == Op::Curves || pass.op == Op::SecondaryColor || pass.op == Op::HueSatCurves) {
+            const bool isCurve = pass.op != Op::Lut;
+            plan.lutKeys[i] = sha256(
+                isCurve ? QByteArray("curve:") + QByteArray::number(int(pass.op)) + ':' +
+                              QJsonDocument(pass.curve).toJson(QJsonDocument::Compact)
+                        : pass.cube.toUtf8());
+        }
+        if (!pass.masks.isEmpty()) {
+            plan.maskPayloads[i] = QJsonDocument(pass.masks).toJson(QJsonDocument::Compact);
+        }
+    }
+    constexpr size_t kMaxPlanCache = 32;
+    if (m_planCache.size() >= kMaxPlanCache) {
+        m_planCache.pop_back();
+    }
+    m_planCache.insert(m_planCache.begin(), std::move(plan));
+    ++m_planCacheMisses;
+    return m_planCache.front();
+}
 bool ClipEffectStage::applies(const QJsonObject &ext) const {
-    return !planChain(ext.value("clipEffects").toArray(), ext.value("trackEffects").toArray()).empty();
+    return !cachedPlan(ext).chain.empty();
 }
 QMargins ClipEffectStage::outset(const QJsonObject &ext, QSize) const {
-    return chainOutset(ext.value("clipEffects").toArray());
+    return cachedPlan(ext).outset;
 }
-QByteArray ClipEffectStage::sha256(QByteArrayView data) {
+QByteArray ClipEffectStage::sha256(QByteArrayView data) const {
     m_hasher.reset();
     m_hasher.addData(data);
     return m_hasher.result();
@@ -149,11 +185,11 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
     if (!ctx.rhi || !ctx.commands || !ctx.retire || !input.planes[0] || input.size.isEmpty()) {
         return false;
     }
-    const auto effects = ext.value("clipEffects").toArray();
-    const auto chain = planChain(effects, ext.value("trackEffects").toArray());
+    const CachedPlan &plan = cachedPlan(ext);
+    const auto &chain = plan.chain;
     const auto crop = cropPixels(ext, input.size);
     const bool boundedCrop = ext.value("effectSourceCropped").toBool() || crop != QRect(QPoint{}, input.size);
-    const auto margins = outset(ext, input.size);
+    const auto margins = plan.outset;
     const QSize workingSize = crop.size() + QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
     const QPoint pad{margins.left(), margins.top()};
     if (!m_drawCache) {
@@ -190,7 +226,8 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
         current = active.result(target);
         return true;
     };
-    for (auto pass : chain) {
+    for (size_t passIndex = 0; passIndex < chain.size(); ++passIndex) {
+        auto pass = chain[passIndex];
         if (pass.op==Op::DenoiseTemporal) {
             if (!ctx.sources) { return false; }
             const auto before=ctx.sources->find("denoise:before"),after=ctx.sources->find("denoise:after");
@@ -230,9 +267,8 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
         }
         QRhiTexture *other = nullptr;
         if (pass.op == Op::Lut || pass.op == Op::Curves || pass.op == Op::SecondaryColor || pass.op == Op::HueSatCurves) {
-            const bool isCurve=pass.op!=Op::Lut;
-            const auto key = sha256(isCurve ? QByteArray("curve:")+QByteArray::number(int(pass.op))+':'+QJsonDocument(pass.curve).toJson(QJsonDocument::Compact)
-                                            : pass.cube.toUtf8());
+            const bool isCurve = pass.op != Op::Lut;
+            const QByteArray &key = plan.lutKeys[passIndex];
             auto found = std::ranges::find(m_luts, key, &decltype(m_luts)::value_type::first);
             if (found == m_luts.end()) {
                 auto lut = std::make_shared<Lut>();
@@ -310,7 +346,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
             const int sourceH = original.isEmpty() ? input.size.height() : original[1].toInt();
             const int ox = (origin.isEmpty() ? 0 : origin[0].toInt()) + crop.x() - pad.x();
             const int oy = (origin.isEmpty() ? 0 : origin[1].toInt()) + crop.y() - pad.y();
-            const auto key = sha256(QJsonDocument(pass.masks).toJson(QJsonDocument::Compact) +
+            const auto key = sha256(plan.maskPayloads[passIndex] +
                 QByteArray::number(sourceW) + 'x' + QByteArray::number(sourceH) + ':' + QByteArray::number(ox) + ',' +
                 QByteArray::number(oy) + ':' + QByteArray::number(workingSize.width()) + 'x' + QByteArray::number(workingSize.height()));
             auto found = std::ranges::find(m_maskTextures, key, &decltype(m_maskTextures)::value_type::first);

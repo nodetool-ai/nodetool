@@ -5,6 +5,7 @@
 // The rules are pure functions over presentation times, so they are unit
 // tested without a decoder.
 
+#include <array>
 #include <deque>
 #include <memory>
 #include <mutex>
@@ -54,11 +55,13 @@ bool wantsMoreFrames(int queued, double newestPtsSec, double targetSec);
 // generation they belong to and the end-of-stream flag, so the consumer reads
 // all of them as one snapshot. `Frame` must expose `double ptsSec` and
 // `long long generation`.
+// Thread-safe: shared between one decode worker (producer) and the render
+// thread (consumer). All mutable state is guarded by `m_mutex`.
 template <typename Frame>
-// native-rules #9: shared by the worker and the render thread, no thread affinity comment
 class FrameRing {
 public:
-    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
+    // Shared across the decode queue, FrameCache, and render-thread display;
+    // unique ownership is impossible because multiple owners hold the same frame.
     using Ptr = std::shared_ptr<Frame>;
 
     // What the consumer sees in one read.
@@ -72,12 +75,16 @@ public:
         double newestPts = -1e300;
     };
 
-    // Worker: empties the queue for a new seek generation.
+    // Worker: empties the queue for a new seek generation. Destroyed frames
+    // are released outside the mutex so av_frame_free never stalls pick().
     void reset(long long generation) {
-        std::lock_guard lock(m_mutex);
-        m_frames.clear();
-        m_generation = generation;
-        m_eof = false;
+        std::deque<Ptr> retired;
+        {
+            std::lock_guard lock(m_mutex);
+            retired.swap(m_frames);
+            m_generation = generation;
+            m_eof = false;
+        }
     }
 
     // Worker: queues a frame of the current generation; drops a stale one.
@@ -96,14 +103,16 @@ public:
     // Drops frames behind `targetSec` (the front stays when no later frame
     // starts by the target).
     void prune(double targetSec) {
+        RetiredFrames retired;
         std::lock_guard lock(m_mutex);
-        pruneLocked(targetSec);
+        pruneLocked(targetSec, retired);
     }
 
     // Consumer: prunes, then reads the pick and its context under one lock.
     Snapshot pick(double targetSec) {
+        RetiredFrames retired;
         std::lock_guard lock(m_mutex);
-        pruneLocked(targetSec);
+        pruneLocked(targetSec, retired);
         Snapshot s;
         s.front = m_frames.empty() ? nullptr : m_frames.front();
         for (const auto& f : m_frames) {
@@ -132,11 +141,24 @@ public:
     }
 
 private:
-    void pruneLocked(double targetSec) {
-        std::vector<double> pts;
-        pts.reserve(m_frames.size());
-        for (const auto& f : m_frames) pts.push_back(f->ptsSec);
-        for (int i = framesBehindTarget(pts, targetSec); i > 0; --i) m_frames.pop_front();
+    struct RetiredFrames {
+        std::array<Ptr, 8> inlineFrames{};
+        size_t count = 0;
+        std::vector<Ptr> overflow;
+        void push(Ptr f) {
+            if (count < inlineFrames.size()) {
+                inlineFrames[count++] = std::move(f);
+            } else {
+                overflow.push_back(std::move(f));
+            }
+        }
+    };
+
+    void pruneLocked(double targetSec, RetiredFrames& retired) {
+        while (m_frames.size() > 1 && frameStartsBy(m_frames[1]->ptsSec, targetSec)) {
+            retired.push(std::move(m_frames.front()));
+            m_frames.pop_front();
+        }
     }
 
     mutable std::mutex m_mutex;

@@ -40,6 +40,7 @@ Rectangle {
     }
     readonly property var visibleRows: help ? helpRows : filtered
     color: Ui.Theme.surfaceOverlay
+    radius: Ui.Metrics.radiusOverlay
     border.color: Ui.Theme.borderControl
     border.width: Ui.Metrics.border
     function activate() {
@@ -50,7 +51,7 @@ Rectangle {
         }
     }
     function choose() {
-        if (!help && list.currentIndex >= 0 && filtered[list.currentIndex].available) {
+        if (!help && list.currentIndex >= 0 && list.currentIndex < filtered.length && filtered[list.currentIndex].available) {
             dispatch.choose(filtered[list.currentIndex].label)
         }
     }

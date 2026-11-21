@@ -14,6 +14,7 @@
 #include <QPainter>
 #include <QQuickWindow>
 #include <QSGGeometryNode>
+#include <QSGRenderNode>
 #include <QSGRendererInterface>
 #include <QSGVertexColorMaterial>
 #include <algorithm>
@@ -23,6 +24,41 @@
 
 namespace nodetool::canvas {
 using namespace QtNodes;
+namespace {
+// Render thread only. The scene graph owns this node and its copied value
+// paint state and theme. Used when individual software rendering interleaves
+// live card overlays with canvas items.
+class SoftwareWireNode final : public QSGRenderNode {
+public:
+  explicit SoftwareWireNode(QQuickWindow &window) : window_(window) {}
+  void sync(const QRectF &bounds, const CanvasTheme &theme, const WirePaintState &state) {
+    if (bounds_ == bounds && theme_ == theme && state_ == state) { return; }
+    bounds_ = bounds;
+    theme_ = theme;
+    state_ = state;
+    markDirty(DirtyGeometry | DirtyMaterial);
+  }
+  QRectF rect() const override { return bounds_; }
+  RenderingFlags flags() const override { return BoundedRectRendering; }
+  void render(const RenderState *state) override {
+    auto *painter = static_cast<QPainter *>(
+        window_.rendererInterface()->getResource(&window_, QSGRendererInterface::PainterResource));
+    if (!painter || !state_.visible) { return; }
+    painter->save();
+    if (const auto *clip = state->clipRegion()) { painter->setClipRegion(*clip, Qt::ReplaceClip); }
+    painter->setTransform(matrix()->toTransform());
+    painter->setOpacity(inheritedOpacity());
+    WirePainter::paint(painter, theme_, state_);
+    painter->restore();
+  }
+
+private:
+  QQuickWindow &window_;
+  QRectF bounds_;
+  CanvasTheme theme_;
+  WirePaintState state_;
+};
+} // namespace
 
 ConnectionItem::ConnectionItem(CanvasScene &scene, const ConnectionId &id)
     : CanvasItem(scene, Kind::Connection, &scene.layer()), id_(id), state_(*this) {
@@ -80,6 +116,20 @@ QPainterPath ConnectionItem::hitPath() const {
     hit_ = {out_, in_, rasterRevision(), draft, true, scene->connectionStroke(*this)};
   }
   return hit_.path;
+}
+
+std::optional<WirePaintState> ConnectionItem::paintState(double zoom) const {
+  auto *scene = canvasScene();
+  if (!scene) { return std::nullopt; }
+  const bool draft = state_.requiresPort();
+  if (!paint_.valid || paint_.out != out_ || paint_.in != in_ || paint_.revision != rasterRevision() ||
+      paint_.draft != draft) {
+    paint_ = {out_, in_, rasterRevision(), draft, true, scene->connectionPaintState(*this, zoom)};
+  }
+  if (!paint_.state) { return std::nullopt; }
+  auto state = *paint_.state;
+  if (!state.draft && !state.control) { state.zoom = zoom; }
+  return state;
 }
 
 bool ConnectionItem::hitTest(const QPointF &scenePoint) const {
@@ -280,6 +330,17 @@ bool ConnectionItem::isVectorPainted() const {
 }
 
 QSGNode *ConnectionItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) {
+  if (auto *view = window(); view && view->rendererInterface()->graphicsApi() == QSGRendererInterface::Software) {
+    auto node = std::unique_ptr<SoftwareWireNode>(static_cast<SoftwareWireNode *>(old));
+    if (!individualSoftwareRendering_) { return nullptr; }
+    auto *scene = canvasScene();
+    const auto *theme = scene ? scene->canvasTheme() : nullptr;
+    const auto state = scene && theme ? paintState(scene->zoom()) : std::nullopt;
+    if (!state || !state->visible) { return nullptr; }
+    if (!node) { node = std::make_unique<SoftwareWireNode>(*view); }
+    node->sync(boundingRect(), *theme, *state);
+    return node.release();
+  }
   if (!isVectorPainted()) {
     if (old && old->type() == QSGNode::GeometryNodeType) {
       std::unique_ptr<QSGNode> previous(old);
@@ -289,7 +350,7 @@ QSGNode *ConnectionItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *data
   }
   auto *view = window();
   auto *scene = canvasScene();
-  const auto *theme = scene ? scene->vectorTheme() : nullptr;
+  const auto *theme = scene ? scene->canvasTheme() : nullptr;
   const auto state = scene ? scene->connectionPaintState(*this, scene->zoom()) : std::nullopt;
   if (!view || !theme || !state || !state->visible) {
     std::unique_ptr<QSGNode> previous(old);

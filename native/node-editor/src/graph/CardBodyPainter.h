@@ -23,6 +23,8 @@ struct CardBodyPaintState {
     std::optional<QRectF> cropDraft;
     // The pointer is over the card, which shows media badges and actions.
     bool hovered = false;
+    // Non-owning per-scene SVG icon cache, borrowed for this paint call.
+    CanvasIconCache *icons = nullptr;
 };
 
 // Paints a bespoke row, a placeholder, a model chip or a drop zone by choosing

@@ -360,9 +360,12 @@ bool QuickCanvas::eventFilter(QObject *object, QEvent *event) {
   case QEvent::UngrabMouse:
     canvas_->cancelPointerGrab();
     break;
-  case QEvent::MouseMove:
-    if (canvas_->moveGrabbedCard(*static_cast<QMouseEvent *>(event))) { return true; }
+  case QEvent::MouseMove: {
+    auto &move = *static_cast<QMouseEvent *>(event);
+    if (canvas_->moveGrabbedCard(move)) { return true; }
+    if (move.buttons() == Qt::NoButton) { canvas_->notePointerMove(); }
     break;
+  }
   case QEvent::MouseButtonDblClick:
     canvas_->expectDoubleClick();
     break;

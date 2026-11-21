@@ -238,7 +238,7 @@ add_library(node_editor_core STATIC
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
- src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp
+ src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/CommandScore.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp
  src/ui/CanvasCapture.cpp src/ui/CanvasCapture.h
  src/ui/CanvasOverlay.h src/ui/CanvasSurface.h
  src/ui/QuickCanvas.cpp src/ui/QuickCanvas.h)
@@ -298,7 +298,7 @@ if(BUILD_TESTING)
     target_compile_definitions(node_editor_slider_preview_profile PRIVATE GUEST_BUNDLE="${NODETOOL_GUEST_BUNDLE}"
         REPO_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../..")
     nodetool_use_ui_primitives(node_editor_slider_preview_profile)
-    set_tests_properties(node_editor_large_graph PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    set_tests_properties(node_editor_large_graph PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_MAX_CACHED_GLYPH_SIZE=256")
     qt_add_executable(node_editor_dynamic_card_tests tests/ui/DynamicCardTest.cpp)
     target_link_libraries(node_editor_dynamic_card_tests PRIVATE node_editor_core Qt6::Test)
     nodetool_use_ui_primitives(node_editor_dynamic_card_tests)
@@ -942,7 +942,7 @@ if(BUILD_TESTING)
     target_link_libraries(node_editor_quick_canvas_tests PRIVATE node_editor_core Qt6::Test)
     nodetool_use_ui_primitives(node_editor_quick_canvas_tests)
     add_test(NAME node_editor_quick_canvas COMMAND node_editor_quick_canvas_tests)
-    set_tests_properties(node_editor_quick_canvas PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    set_tests_properties(node_editor_quick_canvas PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_MAX_CACHED_GLYPH_SIZE=256")
     foreach(scale IN ITEMS 1.25 1.5 2)
         set(density_tests settledCardTextMatchesDevicePixels rasterInvariants)
         if(scale EQUAL 2)
@@ -950,7 +950,7 @@ if(BUILD_TESTING)
         endif()
         add_test(NAME node_editor_quick_canvas_dpr${scale} COMMAND node_editor_quick_canvas_tests ${density_tests})
         set_tests_properties(node_editor_quick_canvas_dpr${scale} PROPERTIES
-            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_SCALE_FACTOR=${scale}")
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_MAX_CACHED_GLYPH_SIZE=256;QT_SCALE_FACTOR=${scale}")
     endforeach()
     # The large-raster rows enforce a wall-clock polish limit.
     set_tests_properties(node_editor_quick_canvas node_editor_quick_canvas_dpr1.25

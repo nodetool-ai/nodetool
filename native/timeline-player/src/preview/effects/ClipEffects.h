@@ -100,13 +100,27 @@ class ClipEffectStage final : public LayerEffectStage {
   private:
     friend class TestEffectResources;
     struct Lut;
-    QByteArray sha256(QByteArrayView data);
-    QCryptographicHash m_hasher{QCryptographicHash::Sha256};
+    struct CachedPlan {
+        QJsonArray clipEffects;
+        QJsonArray trackEffects;
+        std::vector<Pass> chain;
+        QMargins outset;
+        // Precomputed per-pass LUT/curve SHA-256 keys and serialized mask JSON
+        // so steady-state frames avoid re-serializing and hashing every tick.
+        std::vector<QByteArray> lutKeys;
+        std::vector<QByteArray> maskPayloads;
+    };
+    const CachedPlan &cachedPlan(const QJsonObject &ext) const;
+    QByteArray sha256(QByteArrayView data) const;
+    mutable QCryptographicHash m_hasher{QCryptographicHash::Sha256};
+    mutable std::vector<CachedPlan> m_planCache;
+    mutable long long m_planCacheMisses = 0;
     std::shared_ptr<DrawCache> m_drawCache;
     std::shared_ptr<DrawCache> m_denoiseCache;
     std::shared_ptr<DrawCache> m_maskCache;
     std::list<std::pair<QByteArray, std::shared_ptr<QRhiTexture>>> m_maskTextures;
-    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
+    // Shared with active Encoders so LUT textures stay alive through RetireQueue
+    // after LRU eviction while an in-flight command buffer still samples them.
     std::list<std::pair<QByteArray, std::shared_ptr<Lut>>> m_luts;
 };
 class AdjustmentTreatment {

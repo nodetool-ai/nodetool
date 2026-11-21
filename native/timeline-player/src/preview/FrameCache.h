@@ -30,7 +30,8 @@ namespace nt {
 
 struct DecodedFrame;
 
-// native-rules #9: shared by every decoder thread and the render thread, no thread affinity comment
+// Thread-safe: shared by every decoder worker thread and the render thread.
+// All mutable state is guarded by `m_mutex`.
 class FrameCache {
 public:
     static constexpr size_t kDefaultBudgetBytes = 256u * 1024u * 1024u;
@@ -49,6 +50,10 @@ public:
     // The proven D17 pick for `targetSec`, or null.
     std::shared_ptr<DecodedFrame> lookup(const std::string& source, double targetSec);
 
+    // Non-mutating check: true when `lookup(source, targetSec)` would return a
+    // proven D17 pick, without updating LRU order or hit/miss counters.
+    bool contains(const std::string& source, double targetSec) const;
+
     size_t bytes() const;
     size_t peakBytes() const;                // the most held after eviction
     size_t peakBeforeEvictionBytes() const;  // the most held at any moment
@@ -64,13 +69,15 @@ private:
     struct Entry {
         std::string source;
         double pts = 0.0;
-        // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
+        // Shared with decoder queues and render-thread display; unique ownership
+        // is impossible because multiple owners can hold the same frame.
         std::shared_ptr<DecodedFrame> frame;
         size_t bytes = 0;
         double predecessorPts = -1.0;  // negative: unknown
         double successorPts = -1.0;    // negative: unknown
     };
     using Lru = std::list<Entry>;
+    const Entry* findProvenLocked(const std::string& source, double targetSec, Lru::iterator* outIt = nullptr) const;
     void evictLocked(std::vector<std::shared_ptr<DecodedFrame>>& retired);
 
     size_t m_budget;

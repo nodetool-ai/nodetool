@@ -496,6 +496,9 @@ class TestReframe : public QObject {
         model.setTimeline(std::move(*parsed.timeline));
         ReframeController controller;
         controller.setModel(&model);
+        QVERIFY(!controller.hasReframe({}));
+        QVERIFY(!controller.hasReframe({"c"}));
+        QVERIFY(!controller.hasReframe({"c", "other"}));
         QSignalSpy clipsChanged(&model, &TimelineModel::clipsChanged);
         QSignalSpy timelineChanged(&model, &TimelineModel::timelineChanged);
         QSignalSpy previewChanged(&model, &TimelineModel::previewChanged);
@@ -503,6 +506,7 @@ class TestReframe : public QObject {
 
         controller.beginGesture("addClipReframeKeyframe", {{"clipId", "c"}, {"sourceMs", 400}});
         controller.preview({{"x", 0.6}, {"y", 0.5}});
+        QVERIFY(controller.hasReframe({"c"}));
         controller.preview({{"x", 0.7}, {"y", 0.4}});
         QCOMPARE(clipsChanged.count(), 0);
         QCOMPARE(timelineChanged.count(), 0);
@@ -514,6 +518,9 @@ class TestReframe : public QObject {
         QCOMPARE(clipsChanged.count(), 1);
         QCOMPARE(timelineChanged.count(), 1);
         QCOMPARE(model.undoStack()->count(), 1);
+        QVERIFY(controller.hasReframe({"c"}));
+        QVERIFY(model.applyEdit("clearClipReframe", {{"clipId", "c"}}));
+        QVERIFY(!controller.hasReframe({"c"}));
     }
 };
 int main(int argc, char** argv) {

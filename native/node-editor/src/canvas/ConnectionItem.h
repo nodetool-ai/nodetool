@@ -10,8 +10,10 @@
 
 #include "canvas/CanvasItem.h"
 #include "canvas/CanvasState.h"
+#include "canvas/WirePainter.h"
 #include <qtnodes/Definitions.hpp>
 #include <QPainterPath>
+#include <optional>
 #include <utility>
 
 namespace nodetool::canvas {
@@ -26,11 +28,14 @@ public:
   const QtNodes::ConnectionId &connectionId() const { return id_; }
   ConnectionState &connectionState() { return state_; }
   const ConnectionState &connectionState() const { return state_; }
-  QRectF boundingRect() const;
+  QRectF boundingRect() const override;
   QRectF sceneBoundingRect() const override { return boundingRect(); }
   // The wire's stroke for hit tests. It is kept until the end points or the
   // wire's content change, so hit tests during a card drag reuse it.
   QPainterPath hitPath() const;
+  // Cached value paint state for direct vector wire rendering on software
+  // backends. Rebuilt only when endpoints, draft mode, or raster revision change.
+  std::optional<WirePaintState> paintState(double zoom) const;
   bool hitTest(const QPointF &scenePoint) const override;
   const QPointF &endPoint(QtNodes::PortType side) const;
   void setEndPoint(QtNodes::PortType side, const QPointF &point);
@@ -77,6 +82,14 @@ private:
     QPainterPath path;
   };
   mutable HitCache hit_;
+  struct PaintCache {
+    QPointF out, in;
+    quint64 revision = 0;
+    bool draft = false;
+    bool valid = false;
+    std::optional<WirePaintState> state;
+  };
+  mutable PaintCache paint_;
 };
 
 } // namespace nodetool::canvas
