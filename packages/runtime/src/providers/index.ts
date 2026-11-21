@@ -67,10 +67,7 @@ import {
   BYTEPLUS_DEFAULT_BASE_URL,
   BytePlusProvider
 } from "./byteplus-provider.js";
-import {
-  ALIBABA_DEFAULT_BASE_URL,
-  AlibabaProvider
-} from "./alibaba-provider.js";
+import { AlibabaProvider } from "./alibaba-provider.js";
 import { CerebrasProvider } from "./cerebras-provider.js";
 import { EvolinkProvider } from "./evolink-provider.js";
 import { GMIProvider } from "./gmi-provider.js";
@@ -682,13 +679,26 @@ registerBuiltinProvider(PROVIDER_IDS.GROQ, GroqProvider, { GROQ_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MISTRAL, MistralProvider, {
   MISTRAL_API_KEY: ""
 });
-registerBuiltinProvider(PROVIDER_IDS.MOONSHOT, MoonshotProvider, {
-  KIMI_API_KEY: ""
-});
+// Kimi: KIMI_REGION picks the international (api.moonshot.ai) or China
+// (api.moonshot.cn) host.
+registerBuiltinProvider(
+  PROVIDER_IDS.MOONSHOT,
+  MoonshotProvider,
+  { KIMI_API_KEY: "" },
+  { KIMI_REGION: "" }
+);
 registerBuiltinProvider(PROVIDER_IDS.SARVAM, SarvamProvider, {
   SARVAM_API_KEY: ""
 });
-registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, { MINIMAX_API_KEY: "" }, { MINIMAX_IMAGE_REGION: "" });
+// MiniMax: MINIMAX_REGION picks the international (api.minimax.io) or China
+// (api.minimax.cn) host for every endpoint. MINIMAX_IMAGE_REGION, when set,
+// still overrides it for H3 image requests.
+registerBuiltinProvider(
+  PROVIDER_IDS.MINIMAX,
+  MinimaxProvider,
+  { MINIMAX_API_KEY: "" },
+  { MINIMAX_REGION: "", MINIMAX_IMAGE_REGION: "" }
+);
 // Z.ai GLM: ZAI_REGION picks the international (api.z.ai) or China
 // (open.bigmodel.cn) host.
 registerBuiltinProvider(
@@ -746,9 +756,13 @@ registerBuiltinProvider(PROVIDER_IDS.VGENV, VgenvProvider, {
 registerBuiltinProvider(PROVIDER_IDS.TOAPIS, ToapisProvider, {
   TOAPIS_API_KEY: ""
 });
-registerBuiltinProvider(PROVIDER_IDS.KLING, KlingProvider, {
-  KLING_API_KEY: ""
-});
+// Kling: KLING_REGION picks the Singapore (international) or Beijing (China) host.
+registerBuiltinProvider(
+  PROVIDER_IDS.KLING,
+  KlingProvider,
+  { KLING_API_KEY: "" },
+  { KLING_REGION: "" }
+);
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, {
   MESHY_API_KEY: ""
@@ -783,11 +797,14 @@ registerBuiltinProvider(PROVIDER_IDS.UBERLLM, UberLLMProvider, {
 registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, {
   TOGETHER_API_KEY: ""
 });
+// Alibaba Model Studio: DASHSCOPE_REGION picks the international (Singapore)
+// or China (Beijing) endpoint. A set DASHSCOPE_BASE_URL wins over the region,
+// so its fallback is empty and the provider applies the default.
 registerBuiltinProvider(
   PROVIDER_IDS.ALIBABA,
   AlibabaProvider,
   { DASHSCOPE_API_KEY: "" },
-  { DASHSCOPE_BASE_URL: ALIBABA_DEFAULT_BASE_URL }
+  { DASHSCOPE_BASE_URL: "", DASHSCOPE_REGION: "" }
 );
 registerBuiltinProvider(
   PROVIDER_IDS.BYTEPLUS,

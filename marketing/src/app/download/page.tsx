@@ -9,6 +9,7 @@ import DownloadPanel from "@/components/DownloadPanel";
 import DownloadStarter from "@/components/DownloadStarter";
 import { breadcrumbSchema } from "@/lib/jsonld";
 import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
+import { languageAlternates } from "@/i18n/routes";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   title: "Download NodeTool Studio — free for macOS, Windows and Linux",
   description:
     "Get the NodeTool Studio installer for your machine, with what it needs to run and how to open it on each system. Free and open source under AGPL-3.0.",
-  alternates: { canonical: `${BASE_URL}/download` },
+  alternates: { canonical: `${BASE_URL}/download`, languages: languageAlternates("/download") },
   openGraph: {
     images: DEFAULT_OG_IMAGES,
     title: "Download NodeTool Studio",

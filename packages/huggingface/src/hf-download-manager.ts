@@ -9,6 +9,7 @@
  */
 
 import { listFiles } from "@huggingface/hub";
+import { resolveHfEndpoint } from "@nodetool-ai/config";
 
 import { asyncHfDownload, hfRepoCacheDir } from "./hf-downloader.js";
 import { downloadLlamaCppModel } from "./llama-cpp-download.js";
@@ -45,6 +46,11 @@ interface StartDownloadOptions {
   modelType?: string | null;
   /** Token for this download, in place of the manager's. See resolveWorkerHfToken. */
   token?: string | null;
+  /**
+   * Hub host for this download, such as a mirror from the user's stored
+   * `HF_ENDPOINT` setting. Default: `resolveHfEndpoint()`.
+   */
+  endpoint?: string | null;
   onProgress?: ProgressCallback;
 }
 
@@ -326,8 +332,10 @@ export class DownloadManager {
       cacheDir = null,
       modelType = null,
       token: requestToken = null,
+      endpoint: requestEndpoint = null,
       onProgress
     } = opts;
+    const endpoint = resolveHfEndpoint(requestEndpoint);
 
     const id = filePath ? `${repoId}/${filePath}` : repoId;
 
@@ -380,7 +388,8 @@ export class DownloadManager {
       const treeEntries: HfTreeEntry[] = [];
       const listArgs: Parameters<typeof listFiles>[0] = {
         repo: { name: repoId, type: "model" },
-        recursive: true
+        recursive: true,
+        hubUrl: endpoint
       };
       if (token) {
         listArgs.accessToken = token;
@@ -442,12 +451,14 @@ export class DownloadManager {
         if (modelType === "llama_cpp") {
           await downloadLlamaCppModel(repoId, file.path, {
             token,
+            endpoint,
             progressCallback: onChunk,
             cancelSignal: abortController.signal
           });
         } else {
           await asyncHfDownload(repoId, file.path, {
             token,
+            endpoint,
             cacheDir: cacheDir ?? undefined,
             progressCallback: onChunk,
             cancelSignal: abortController.signal

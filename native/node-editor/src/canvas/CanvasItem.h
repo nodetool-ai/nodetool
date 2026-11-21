@@ -185,6 +185,8 @@ public:
   void markDirty();
   // Asks the raster pass to repaint only the given item rectangles.
   void markDirty(const QList<QRectF> &region);
+  // True when the item renders directly with GPU vector geometry instead of CPU tiles.
+  virtual bool isVectorPainted() const { return false; }
 
 protected:
   void itemChange(ItemChange change, const ItemChangeData &value) override;

@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
+import { AdLibraryFan } from "@/components/AdLibraryOverview";
 import Image from "next/image";
 import { Sparkles, Play, ArrowRight, Check, Download } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
@@ -14,8 +15,9 @@ import FaqSection from "@/components/FaqSection";
 /*
  * One campaign, end to end (site-editorial.spec.md § Page ownership). The
  * images are the accepted run 2026-09-14-directed-campaign-kit-gpt25; the
- * revision note is the recorded prompt in its asset-manifest.json. The ad
- * library, storyboards, recipes, and other workflows sit behind links.
+ * revision note is the recorded prompt in its asset-manifest.json. The hero
+ * shows three rendered ads from the ad library; storyboards, recipes, and
+ * other workflows sit behind links.
  */
 export default function MarketingSegmentPage() {
   return (
@@ -46,61 +48,77 @@ export default function MarketingSegmentPage() {
       <SiteHeader />
 
       <div className="relative pt-28">
-        {/* Hero */}
-        <section className="relative pt-16 pb-24 lg:pt-24 lg:pb-32 overflow-hidden">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="mx-auto max-w-5xl text-center">
-              <motion.div
-                initial={false}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
+        {/* Hero: the copy beside the ad library's rendered ads */}
+        <section className="relative pt-12 pb-24 lg:pt-16 lg:pb-32 overflow-hidden">
+          <div className="mx-auto grid max-w-7xl items-center gap-x-14 gap-y-10 px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:grid-rows-[auto_auto] lg:px-8">
+            {/* On a phone the ads sit between the headline and the lead. */}
+            <div className="text-center lg:col-start-1 lg:row-start-1 lg:self-end lg:text-left">
+              <div className="relative inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-amber-500/30 bg-gradient-to-r from-amber-500/[0.08] via-emerald-500/[0.05] to-cyan-500/[0.08] mb-8 lg:mb-10 shadow-[0_0_40px_-10px_rgba(245,158,11,0.35)]">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span className="text-sm font-medium text-white tracking-wide">
+                  Advertising and marketing
+                </span>
+              </div>
+
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.05]">
+                <span className="text-white">AI for</span>{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-emerald-300 to-cyan-400">
+                  advertising.
+                </span>
+              </h1>
+            </div>
+
+            <figure className="m-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+              <a
+                href="/ad-library"
+                aria-label={`Open the ad library: ${adRecipes.length} video ad templates`}
+                className="focus-ring block rounded-3xl"
               >
-                <div className="relative inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-amber-500/30 bg-gradient-to-r from-amber-500/[0.08] via-emerald-500/[0.05] to-cyan-500/[0.08] mb-10 shadow-[0_0_40px_-10px_rgba(245,158,11,0.35)]">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span className="text-sm font-medium text-white tracking-wide">
-                    Advertising and marketing
-                  </span>
-                </div>
+                <AdLibraryFan className="h-[340px] max-w-[320px] sm:h-[480px] sm:max-w-[450px]" />
+              </a>
+              <figcaption className="mt-4 text-center text-sm text-slate-400">
+                Three of the {adRecipes.length} templates in the{" "}
+                <a
+                  href="/ad-library"
+                  className="focus-ring rounded text-amber-300 underline decoration-amber-300/40 underline-offset-4 hover:decoration-amber-300"
+                >
+                  ad library
+                </a>
+                , each rendered from an editable NodeTool timeline.
+              </figcaption>
+            </figure>
 
-                <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-[1.05] mb-10">
-                  <span className="text-white">AI for</span>{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-emerald-300 to-cyan-400">
-                    advertising.
-                  </span>
-                </h1>
+            <div className="text-center lg:col-start-1 lg:row-start-2 lg:self-start lg:text-left">
+              <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                {MARKETING_LEAD}
+              </p>
 
-                <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-3xl mx-auto leading-relaxed">
-                  {MARKETING_LEAD}
-                </p>
+              {/* Two countable credibility chips beside the CTA
+                  (NARRATIVE.md § Vertical pages). */}
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-12 text-sm">
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-slate-300">
+                  <Check className="h-4 w-4 text-emerald-400" />
+                  {adRecipes.length} example ads you can open and edit
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-slate-300">
+                  <Check className="h-4 w-4 text-emerald-400" />
+                  Flux, Veo, Kling, and Seedance on your keys
+                </span>
+              </div>
 
-                {/* Two countable credibility chips beside the CTA
-                    (NARRATIVE.md § Vertical pages). */}
-                <div className="flex flex-wrap items-center justify-center gap-3 mb-12 text-sm">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-slate-300">
-                    <Check className="h-4 w-4 text-emerald-400" />
-                    {adRecipes.length} example ads you can open and edit
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-slate-300">
-                    <Check className="h-4 w-4 text-emerald-400" />
-                    Flux, Veo, Kling, and Seedance on your keys
-                  </span>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <SmartDownloadButton
-                    icon={<Download className="w-5 h-5" />}
-                    classNameOverride="group relative inline-flex items-center gap-2.5 px-9 py-4 rounded-full bg-amber-500 text-white font-semibold transition-all shadow-[0_10px_30px_-10px_rgba(245,158,11,0.6)] hover:bg-amber-400 hover:shadow-[0_14px_40px_-10px_rgba(245,158,11,0.75)]"
-                  />
-                  <a
-                    href="#campaign"
-                    className="inline-flex items-center gap-2.5 px-9 py-4 rounded-full border border-white/15 bg-[#0a0a14]/70 backdrop-blur-xs text-white font-semibold hover:bg-white/5 hover:border-white/25 transition-all"
-                  >
-                    <Play className="w-5 h-5" />
-                    See the campaign
-                  </a>
-                </div>
-
-              </motion.div>
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                <SmartDownloadButton
+                  icon={<Download className="w-5 h-5" />}
+                  classNameOverride="group relative inline-flex items-center gap-2.5 px-9 py-4 rounded-full bg-amber-500 text-white font-semibold transition-all shadow-[0_10px_30px_-10px_rgba(245,158,11,0.6)] hover:bg-amber-400 hover:shadow-[0_14px_40px_-10px_rgba(245,158,11,0.75)]"
+                />
+                <a
+                  href="/ad-library"
+                  className="inline-flex items-center gap-2.5 px-9 py-4 rounded-full border border-white/15 bg-[#0a0a14]/70 backdrop-blur-xs text-white font-semibold hover:bg-white/5 hover:border-white/25 transition-all"
+                >
+                  <Play className="w-5 h-5" />
+                  Browse the ad library
+                </a>
+              </div>
             </div>
           </div>
         </section>

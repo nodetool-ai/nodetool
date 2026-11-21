@@ -7,6 +7,7 @@ import { createNodeStore } from "../../../stores/NodeStore";
 import type { NodeStore } from "../../../stores/NodeStore";
 import type { NodeData } from "../../../stores/NodeData";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
+import { stub } from "../../../test-utils/doubles";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useConfirmStore } from "../../../stores/ConfirmStore";
 import { useExposedInputToggle } from "../useExposedInputToggle";
@@ -16,7 +17,7 @@ const prop = (name: string, type: string) => ({
   type: { type, optional: false, type_args: [] }
 });
 
-const metadata = {
+const metadata = stub<NodeMetadata>({
   node_type: "test.Gen",
   namespace: "test",
   title: "Gen",
@@ -27,12 +28,9 @@ const metadata = {
   input_fields: [],
   inline_fields: [],
   recommended_models: [],
-  basic_fields: [],
-  is_dynamic: false,
   is_streaming_output: false,
-  expose_as_tool: false,
   supports_dynamic_outputs: false
-} as unknown as NodeMetadata;
+});
 
 const makeNode = (id: string, data: Partial<NodeData> = {}): Node<NodeData> => ({
   id,

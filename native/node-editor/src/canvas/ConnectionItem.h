@@ -45,6 +45,7 @@ public:
   bool isSelected() const;
   void paintRaster(QPainter &painter, double zoom) const override;
   bool mayPaint(const QRectF &area) const override;
+  bool isVectorPainted() const override;
   void setStackZ(double z);
 
   void mousePress(CanvasMouseEvent &event) override;
@@ -55,6 +56,7 @@ public:
 
 protected:
   QSGNode *updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) override;
+  void itemChange(ItemChange change, const ItemChangeData &value) override;
 
 private:
   void initializePosition();

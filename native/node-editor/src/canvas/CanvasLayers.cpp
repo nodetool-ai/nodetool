@@ -46,21 +46,24 @@ void GridItem::raster(double dpr, QPointF phase) {
   imageZoom_ = zoom_;
   imageDpr_ = dpr;
   imagePhase_ = phase;
+  imageZooming_ = zooming_;
   const auto gap = gridGap(zoom_);
   const auto devicePeriod = gap * zoom_ * dpr;
   int crosses = 1;
-  double error = 1;
-  for (int count = 1; count <= 8; ++count) {
-    const auto pixels = devicePeriod * count;
-    const auto off = std::abs(pixels - std::round(pixels));
-    if (off < error - 1e-9 && pixels <= 2048) {
-      crosses = count;
-      error = off;
+  if (!zooming_) {
+    double error = 1;
+    for (int count = 1; count <= 8; ++count) {
+      const auto pixels = devicePeriod * count;
+      const auto off = std::abs(pixels - std::round(pixels));
+      if (off < error - 1e-9 && pixels <= 2048) {
+        crosses = count;
+        error = off;
+      }
+      if (error < 1e-6) { break; }
     }
-    if (error < 1e-6) { break; }
   }
   const auto side = std::max(1, int(std::round(devicePeriod * crosses)));
-  QImage image(side, side, QImage::Format_ARGB32_Premultiplied);
+  QImage image(side, side, QImage::Format_RGB32);
   image.fill(canvas_);
   QPainter painter(&image);
   painter.setRenderHint(QPainter::Antialiasing, false);
@@ -156,7 +159,7 @@ public:
   // repeating pattern.
   void sync(QQuickWindow &window, const QImage &image, const QRectF &bounds, QPointF offset, double dpr) {
     if (imageKey_ != image.cacheKey()) {
-      auto texture = std::unique_ptr<QSGTexture>(window.createTextureFromImage(image));
+      auto texture = std::unique_ptr<QSGTexture>(window.createTextureFromImage(image, QQuickWindow::TextureIsOpaque));
       if (!texture) { return; }
       material_.setTexture(texture.get());
       texture_ = std::move(texture);
@@ -172,7 +175,7 @@ public:
 
 private:
   QSGGeometry geometry_{QSGGeometry::defaultAttributes_TexturedPoint2D(), 4};
-  QSGTextureMaterial material_;
+  QSGOpaqueTextureMaterial material_;
   std::unique_ptr<QSGTexture> texture_;
   qint64 imageKey_ = 0;
 };
@@ -196,7 +199,9 @@ QSGNode *GridItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
   const auto device = QPointF(scroll_) * dpr;
   const auto whole = QPointF(std::floor(device.x()), std::floor(device.y()));
   const auto phase = device - whole;
-  if (image_.isNull() || imageZoom_ != zoom_ || imageDpr_ != dpr || imagePhase_ != phase) { raster(dpr, phase); }
+  if (image_.isNull() || imageZoom_ != zoom_ || imageDpr_ != dpr || imagePhase_ != phase || imageZooming_ != zooming_) {
+    raster(dpr, phase);
+  }
   if (!root) {
     root = std::make_unique<QSGNode>();
     root->appendChildNode(std::make_unique<RepeatingGridNode>().release());

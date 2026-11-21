@@ -488,17 +488,7 @@ export type {
 } from "./image-document.js";
 
 export { OAuthCredential } from "./oauth-credential.js";
-export {
-  resolveCodexAccessToken,
-  discoverChatGptOAuth,
-  chatGptAccountKey,
-  parseChatGptAccountKey,
-  hasChatGptPlanScope,
-  isUsableChatGptCredential,
-  findChatGptRegistration,
-  resetChatGptDiscoveryForTests,
-  type ChatGptOAuthEndpoints
-} from "./codex-token.js";
+export { resolveCodexAccessToken } from "./codex-token.js";
 export {
   GOOGLE_ACCESS_TOKEN_KEY,
   GOOGLE_CREDENTIAL_PROVIDER,

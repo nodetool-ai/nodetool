@@ -9,7 +9,11 @@
  * one reader.
  */
 
-import { readEntityMarker, type Entity } from "@nodetool-ai/protocol";
+import {
+  readEntityMarker,
+  type Entity,
+  type ImageRef
+} from "@nodetool-ai/protocol";
 
 import type { Asset } from "./asset.js";
 import { LOOSE_PROJECT_ID } from "./project.js";
@@ -52,19 +56,22 @@ export function entityFromAsset(
   const marker = readEntityMarker(asset.metadata);
   if (!marker) return null;
 
-  const { reference_asset_id: swapped, ...fields } = marker;
+  const { reference_asset_id: swapped, thumbnail, ...fields } = marker;
   const ext = MIME_TO_EXT[asset.content_type] ?? "png";
   // A swapped picture is another asset, whose content type is not in hand
   // here — `asset://<id>` with no extension is what the web library writes
-  // too, and resolves through the extension-tolerant asset lookup.
-  const referenceImage =
+  // too, and resolves through the extension-tolerant asset lookup. A shipped
+  // preset's marker asset has no bytes, so it shows its package thumbnail.
+  const referenceImage: ImageRef =
     swapped && swapped !== asset.id
-      ? { type: "image" as const, asset_id: swapped, uri: `asset://${swapped}` }
-      : {
-          type: "image" as const,
-          asset_id: asset.id,
-          uri: `asset://${asset.id}.${ext}`
-        };
+      ? { type: "image", asset_id: swapped, uri: `asset://${swapped}` }
+      : thumbnail
+        ? { type: "image", uri: thumbnail }
+        : {
+            type: "image",
+            asset_id: asset.id,
+            uri: `asset://${asset.id}.${ext}`
+          };
   const entity: Entity = {
     ...fields,
     type: "entity",

@@ -47,6 +47,12 @@ const sectionTitle = "text-2xl font-semibold tracking-tight md:text-3xl";
 const bodyText = "leading-relaxed text-slate-300";
 const cardLink = "focus-ring mt-4 inline-flex items-center gap-1 rounded font-medium text-cyan-200 hover:text-cyan-100";
 
+/** Language pages with a localized hero reel. The rest play the English one. */
+const HERO_REEL: Partial<Record<LanguageCode, string>> = {
+  zh: "/hero-flow-zh",
+  ja: "/hero-flow-ja",
+};
+
 export default function LanguageOverview({ locale }: { locale: LanguageCode }) {
   const page = LANGUAGE_PAGES[locale];
   const downloadHref = `/download?from=${locale}`;
@@ -80,7 +86,11 @@ export default function LanguageOverview({ locale }: { locale: LanguageCode }) {
           </section>
 
           <div className="mt-14">
-            <HeroDemoPlayer mediaBase="/hero-flow" alt={page.videoAlt} />
+            {/* /zh and /ja play their own cut of the reel (demo/src/heroflow/locale.ts). */}
+            <HeroDemoPlayer
+              mediaBase={HERO_REEL[locale] ?? "/hero-flow"}
+              alt={page.videoAlt}
+            />
           </div>
 
           <ul aria-label={page.cardsLabel} className="mt-16 grid gap-8 md:grid-cols-3">
@@ -113,7 +123,7 @@ export default function LanguageOverview({ locale }: { locale: LanguageCode }) {
             <section aria-labelledby={`${locale}-providers`} className="mt-20 grid gap-6 border-t border-slate-700 pt-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
               <h2 id={`${locale}-providers`} className={sectionTitle}>{page.providers.title}</h2>
               <div>
-                <p className={bodyText}>{page.providers.body}</p>
+                <p className={`${bodyText} [overflow-wrap:anywhere]`}>{page.providers.body}</p>
                 <ul className="mt-6 space-y-4">
                   {page.providers.items.map((item) => (
                     <li key={item.provider}>

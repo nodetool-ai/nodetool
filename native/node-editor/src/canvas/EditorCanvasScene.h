@@ -57,6 +57,7 @@ public:
   QPainterPath connectionStroke(const ConnectionItem &item) const override;
   QPainterPath connectionPath(const ConnectionItem &item) const override;
   bool connectionPaintsOffPath(const ConnectionItem &item) const override;
+  bool supportsVectorConnections() const override { return true; }
   // Group labels, the drop hint and the port
   // names of selected and hovered cards, in scene coordinates.
   void paintForeground(QPainter &painter, const QRectF &sceneArea, double zoom) const;

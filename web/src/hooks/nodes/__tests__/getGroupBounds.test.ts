@@ -1,5 +1,5 @@
 import { getGroupBounds } from "../getGroupBounds";
-import { stub } from "../../../test-utils/doubles";
+import { asMock, stub } from "../../../test-utils/doubles";
 import { getChildNodes } from "../getChildNodes";
 import { Node, getNodesBounds } from "@xyflow/react";
 import { NodeData } from "../../../stores/NodeData";
@@ -13,8 +13,8 @@ jest.mock("../getChildNodes", () => ({
   getChildNodes: jest.fn()
 }));
 
-const mockGetNodesBounds = getNodesBounds as jest.MockedFunction<typeof getNodesBounds>;
-const mockGetChildNodes = getChildNodes as jest.MockedFunction<typeof getChildNodes>;
+const mockGetNodesBounds = asMock(getNodesBounds);
+const mockGetChildNodes = asMock(getChildNodes);
 
 describe("getGroupBounds", () => {
   const createMockNode = (
@@ -40,20 +40,14 @@ describe("getGroupBounds", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetNodesBounds.mockImplementation((nodes) => {
+    mockGetNodesBounds.mockImplementation((nodes: Node<NodeData>[]) => {
       // These tests only ever pass node objects, never the id form the
       // ReactFlow signature also accepts.
-      const sized = nodes as Array<{
-        position?: { x: number; y: number };
-        width?: number;
-        height?: number;
-        measured?: { width?: number; height?: number };
-      }>;
       if (nodes.length === 0) {
         return { x: 0, y: 0, width: 0, height: 0 };
       }
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      sized.forEach((node) => {
+      nodes.forEach((node) => {
         const x = node.position?.x || 0;
         const y = node.position?.y || 0;
         const w = node.width || node.measured?.width || 100;
@@ -73,7 +67,9 @@ describe("getGroupBounds", () => {
   });
 
   it("returns null when parentNode is undefined", () => {
-    const result = getGroupBounds([], undefined as any);
+    // SAFETY: proves getGroupBounds survives a missing parent, which the
+    // signature forbids but a stale selection can still produce.
+    const result = getGroupBounds([], undefined as never);
     expect(result).toBeNull();
   });
 

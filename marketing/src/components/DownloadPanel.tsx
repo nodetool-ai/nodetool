@@ -18,7 +18,7 @@ import { detectBrowserPlatform } from "../lib/browserPlatform";
 const REPO = "nodetool-ai/nodetool";
 const RELEASES_URL = `https://github.com/${REPO}/releases/latest`;
 
-type PlatformId = "mac-arm" | "mac-intel" | "windows" | "linux";
+export type PlatformId = "mac-arm" | "mac-intel" | "windows" | "linux";
 
 interface Platform {
   id: PlatformId;
@@ -114,7 +114,30 @@ function detectPlatform(): PlatformId | "mobile" | null {
   return null;
 }
 
-export default function DownloadPanel() {
+/** Visible strings, so a translated page can reuse the picker. */
+export interface DownloadPanelCopy {
+  /** Primary card heading. `{platform}` is replaced with the platform name. */
+  downloadFor: string;
+  notes: Record<PlatformId, string>;
+  onMobile: string;
+  pickBuild: string;
+  releasesBefore: string;
+  releasesLink: string;
+  releasesAfter: string;
+}
+
+const ENGLISH_COPY: DownloadPanelCopy = {
+  downloadFor: "Download for {platform}",
+  notes: Object.fromEntries(PLATFORMS.map((p) => [p.id, p.note])) as Record<PlatformId, string>,
+  onMobile:
+    "Open this page on your desktop to install NodeTool Studio. Choose a build for macOS, Windows, or Linux below.",
+  pickBuild: "Pick the build for your machine.",
+  releasesBefore: "Every build, its release notes, and the checksums are on ",
+  releasesLink: "the GitHub releases page",
+  releasesAfter: ".",
+};
+
+export default function DownloadPanel({ copy = ENGLISH_COPY }: { copy?: DownloadPanelCopy }) {
   const [release, setRelease] = useState<Release | null>(null);
   const [current, setCurrent] = useState<PlatformId | "mobile" | null>(null);
 
@@ -160,10 +183,10 @@ export default function DownloadPanel() {
         />
         <span className="min-w-0">
           <span className="block font-semibold text-white">
-            {primary ? `Download for ${platform.name}` : platform.name}
+            {primary ? copy.downloadFor.replace("{platform}", platform.name) : platform.name}
           </span>
           <span className="mt-0.5 block text-xs text-slate-400">
-            {platform.note}
+            {copy.notes[platform.id]}
             {asset ? ` · ${formatSize(asset.size)}` : ""}
             {version ? ` · ${version}` : ""}
           </span>
@@ -182,9 +205,7 @@ export default function DownloadPanel() {
         card(recommended, true)
       ) : (
         <p className="rounded-2xl border border-white/10 bg-slate-900/40 px-6 py-5 text-sm text-slate-300">
-          {current === "mobile"
-            ? "Open this page on your desktop to install NodeTool Studio. Choose a build for macOS, Windows, or Linux below."
-            : "Pick the build for your machine."}
+          {current === "mobile" ? copy.onMobile : copy.pickBuild}
         </p>
       )}
 
@@ -193,7 +214,7 @@ export default function DownloadPanel() {
       </div>
 
       <p className="text-xs text-slate-500">
-        Every build, its release notes, and the checksums are on{" "}
+        {copy.releasesBefore}
         <a
           href={RELEASES_URL}
           target="_blank"
@@ -201,9 +222,9 @@ export default function DownloadPanel() {
           onClick={() => track("Browse Releases", { placement: "release-notes" })}
           className="text-slate-400 underline underline-offset-2 hover:text-slate-200"
         >
-          the GitHub releases page
+          {copy.releasesLink}
         </a>
-        .
+        {copy.releasesAfter}
       </p>
     </div>
   );

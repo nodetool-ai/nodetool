@@ -52,6 +52,9 @@ import {
   readCredentialEnv
 } from "@nodetool-ai/runtime";
 
+/** The settings lookup the router hands checkCredential for region-aware probes. */
+const SETTINGS_LOOKUP = expect.objectContaining({ getSetting: expect.any(Function) });
+
 // Permission flags are covered in permissions.test.ts. Here every flag is held.
 vi.mock("../src/lib/permissions.js", () => ({
   requirePermission: async () => undefined,
@@ -527,7 +530,8 @@ describe("settings router", () => {
 
       expect(checkCredential).toHaveBeenCalledWith(
         "OPENAI_API_KEY",
-        "sk-candidate"
+        "sk-candidate",
+        SETTINGS_LOOKUP
       );
       expect(Secret.find).not.toHaveBeenCalled();
       expect(res).toEqual({
@@ -555,7 +559,7 @@ describe("settings router", () => {
         key: "GROQ_API_KEY"
       });
 
-      expect(checkCredential).toHaveBeenCalledWith("GROQ_API_KEY", "stored-key");
+      expect(checkCredential).toHaveBeenCalledWith("GROQ_API_KEY", "stored-key", SETTINGS_LOOKUP);
       expect(res.status).toBe("invalid");
       expect(res.valid).toBe(false);
     });
@@ -582,7 +586,8 @@ describe("settings router", () => {
       );
       expect(checkCredential).toHaveBeenCalledWith(
         "OPENAI_API_KEY",
-        "sk-from-1password"
+        "sk-from-1password",
+        SETTINGS_LOOKUP
       );
       expect(res.valid).toBe(true);
     });
@@ -671,7 +676,8 @@ describe("settings router", () => {
 
       expect(checkCredential).toHaveBeenCalledWith(
         "MISTRAL_API_KEY",
-        "env-key"
+        "env-key",
+        SETTINGS_LOOKUP
       );
       expect(res.valid).toBe(true);
     });

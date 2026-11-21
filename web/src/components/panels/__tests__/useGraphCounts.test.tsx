@@ -20,7 +20,6 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: {}
 }));
 jest.mock("../TracePanel", () => () => null);
-jest.mock("../LogPanel", () => () => null);
 jest.mock("../jobs/QueuePanel", () => () => null);
 jest.mock("../../workers/WorkersPanel", () => () => null);
 jest.mock("../../workers/WorkerStatusIndicator", () => () => null);

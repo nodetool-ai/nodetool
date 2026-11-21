@@ -1,5 +1,6 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
+import { languageAlternates } from "@/i18n/routes";
 
 const TITLE = "Open-Source Creative Harness for AI Agents | NodeTool";
 const DESCRIPTION =
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/agents",
+    languages: languageAlternates("/agents"),
   },
   keywords: [
     "open-source creative harness",

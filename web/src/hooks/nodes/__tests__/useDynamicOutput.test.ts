@@ -202,15 +202,15 @@ describe("useDynamicOutput", () => {
   });
 
   it("memoizes callbacks based on dependencies", () => {
+    type Props = { nodeId: string; dynamicOutputs: Record<string, TypeMetadata> };
+    const initialProps: Props = {
+      nodeId: "node-1",
+      dynamicOutputs: { output1: { type: "text", optional: false, type_args: [] } }
+    };
     const { result, rerender } = renderHook(
-      ({ nodeId, dynamicOutputs }: { nodeId: string; dynamicOutputs: Record<string, TypeMetadata> }) =>
+      ({ nodeId, dynamicOutputs }: Props) =>
         useDynamicOutput(nodeId, dynamicOutputs),
-      {
-        initialProps: {
-          nodeId: "node-1",
-          dynamicOutputs: { output1: { type: "text", optional: false, type_args: [] } }
-        }
-      }
+      { initialProps }
     );
 
     const firstDelete = result.current.handleDeleteOutput;
@@ -220,7 +220,7 @@ describe("useDynamicOutput", () => {
     rerender({
       nodeId: "node-1",
       dynamicOutputs: { output2: { type: "image", optional: false, type_args: [] } }
-    } as any);
+    });
 
     expect(result.current.handleDeleteOutput).not.toBe(firstDelete);
     expect(result.current.handleAddOutput).not.toBe(firstAdd);

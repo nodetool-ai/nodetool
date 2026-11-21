@@ -10,9 +10,12 @@
  * and the whole layout closes up.
  */
 import React, { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 
 import { track } from "../lib/analytics";
+import { localeOfPath } from "../i18n/routes";
+import { ZH_ANNOUNCEMENT } from "../i18n/zh/chrome";
 
 /** Bump the id when the message changes so a past dismissal does not hide it. */
 const ANNOUNCEMENT = {
@@ -21,13 +24,19 @@ const ANNOUNCEMENT = {
   short: "NodeTool Cloud is in alpha.",
   href: "/cloud",
   cta: "Try it",
+  dismiss: "Dismiss announcement",
 };
+
+/** The same message on translated pages. */
+const TRANSLATED = { zh: ZH_ANNOUNCEMENT };
 
 const STORAGE_KEY = "nodetool:announcement-dismissed";
 const DISMISSED_CLASS = "announcement-dismissed";
 
 export default function AnnouncementBar() {
   const [dismissed, setDismissed] = useState(false);
+  const locale = localeOfPath(usePathname());
+  const copy = locale ? { ...ANNOUNCEMENT, ...TRANSLATED[locale] } : ANNOUNCEMENT;
 
   useEffect(() => {
     let stored: string | null = null;
@@ -58,20 +67,20 @@ export default function AnnouncementBar() {
     <div className="fixed inset-x-0 top-0 z-[60] h-[var(--announce-h)] border-b border-slate-800/60 bg-slate-950/95 backdrop-blur">
       <div className="mx-auto flex h-full max-w-7xl items-center justify-center gap-3 px-10 sm:px-8">
         <p className="truncate text-xs text-slate-300 sm:text-sm">
-          <span className="hidden sm:inline">{ANNOUNCEMENT.text}</span>
-          <span className="sm:hidden">{ANNOUNCEMENT.short}</span>{" "}
+          <span className="hidden sm:inline">{copy.text}</span>
+          <span className="sm:hidden">{copy.short}</span>{" "}
           <a
-            href={ANNOUNCEMENT.href}
+            href={copy.href}
             onClick={() => track("Cloud CTA", { placement: "announcement" })}
             className="font-semibold text-blue-300 underline underline-offset-2 hover:text-blue-200 focus-ring"
           >
-            {ANNOUNCEMENT.cta} →
+            {copy.cta} →
           </a>
         </p>
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Dismiss announcement"
+          aria-label={copy.dismiss}
           className="absolute right-3 rounded p-1 text-slate-500 hover:text-slate-200 focus-ring sm:right-6"
         >
           <X className="h-4 w-4" aria-hidden />

@@ -43,8 +43,10 @@ export {
   extractRepoId,
   getPipeline,
   getTransformersJsCacheDir,
+  getTransformersJsHubEndpoint,
   loadTransformers,
   setTransformersJsCacheDir,
+  setTransformersJsRemoteHost,
   tjsModelDefault,
   type HfModelRef,
   type RawImage

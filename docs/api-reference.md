@@ -94,6 +94,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Providers | `/api/kie/pricing`                | `GET`             | Session auth                     | no                          | Credit price per kie.ai model, one or more `?model_id=`; cached an hour |
 | Providers | `/api/kie/resolve-dynamic-schema` | `POST`            | Session auth                     | no                          | Pasted kie.ai model docs to a node's dynamic properties, inputs, and outputs |
 | Providers | `/api/comfy/resolve-workflow`     | `POST`            | Session auth                     | no                          | A ComfyUI API-format workflow (`workflow`) or exported PNG (`png_base64`) to the Comfy runners' dynamic inputs, outputs, and exposable params |
+| Providers | `/api/comfy/import-graph`         | `POST`            | Session auth                     | no                          | A ComfyUI API-format workflow (`workflow`) as a graph of `comfy.*` nodes and edges, laid out by dependency depth |
 | JS Scripts | `/api/js-scripts/{id}/run`       | `POST`            | Session auth                     | no                          | Run a saved JS script document in the sandbox and return its outputs |
 | SDK       | `/api/sdk/v1/capabilities`        | `GET`             | Session auth                     | no                          | What this server supports — profiles, encodings, execution options, limits |
 | SDK       | `/api/sdk/v1/node-types`          | `GET`             | Session auth                     | no                          | Paged inventory of the pin types in the registry and which nodes use them |
@@ -129,6 +130,9 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Sandbox   | `/api/sandbox-modules/*`          | `GET`             | Session auth                                   | no                          | Guest module source for the browser sandbox, by module id |
 | MCP       | `/mcp`                            | `GET`, `POST`, `DELETE` | Session auth, or an `ntk_` or `nta_` token | SSE                         | MCP over HTTP. See [MCP in production](mcp-production.md) |
 | Config    | `/api/config`                     | `GET`             | none                                           | no                          | How this server is configured, for a client that has not signed in yet: auth mode, Supabase URL and anon key, Google Workspace scopes, version |
+| Config    | `/api/sync/capabilities`          | `GET`             | none                                           | no                          | Sync protocol versions and the document schema versions this server reads and writes, for a client that has not signed in |
+| Config    | `/api/server/features`            | `GET`             | Session auth                                   | no                          | The command features and capabilities this server was started with |
+| Config    | `/api/presets`                    | `GET`             | Session auth                                   | no                          | The generation preset and studio catalogue: shipped entries plus installed preset packs |
 | Admin     | `/admin/secrets/import`           | `POST`            | Session auth                                   | no                          | Stub — always `501`. Bulk secret import is not part of the standalone server |
 | Health    | `/health`                         | `GET`             | none                                           | no                          | JSON: `{status, timestamp, uptime, turns, jobs, services}`. `503` when the database check fails or the server is draining |
 | Health    | `/api/health`                     | `GET`             | none                                           | no                          | JSON: `{version, uptime}` |
@@ -2633,6 +2637,89 @@ response. `ssoProviderName` is the sign-in button label from
 `NODETOOL_GOOGLE_WORKSPACE` in [Configuration](configuration.md)). When it is,
 `googleScopes` lists the OAuth scopes the connect step must request; when it is
 not, that array is empty.
+
+### Sync Capabilities
+
+A client that keeps its own copy of a workflow or timeline needs the server's
+sync versions before it saves. `GET /api/sync/capabilities` needs no session, so
+the client can tell an update prompt from a sign-in prompt. The response is sent
+with `cache-control: no-store`.
+
+```bash
+curl "http://localhost:7777/api/sync/capabilities"
+```
+
+```json
+{
+  "protocol_version": 1,
+  "min_client_protocol_version": 1,
+  "kinds": {
+    "workflow": { "read": [1], "write": [1], "modes": ["whole"] },
+    "timeline": { "read": [1], "write": [1], "modes": ["whole"] }
+  }
+}
+```
+
+`min_client_protocol_version` is the lowest client protocol whose writes the
+server accepts. Under `kinds`, `read` and `write` list the document schema
+versions this server reads and writes. The same answer is available to signed-in
+clients as the `sync.capabilities` tRPC query.
+
+### Server Features
+
+`GET /api/server/features` reports which command features the server was
+started with.
+
+```bash
+curl "http://localhost:7777/api/server/features"
+```
+
+```json
+{ "configured": false, "features": [], "capabilities": [] }
+```
+
+`configured` is `true` when the server was given an explicit feature selection.
+`features` then lists the feature ids (such as `cli-workflow`) and `capabilities`
+lists the sorted, de-duplicated capabilities those features declare. Both are
+empty when the server runs without a selection.
+
+### Generation Presets
+
+`GET /api/presets` returns the catalogue as one JSON array: every preset
+(`kind` of `camera`, `look` or `effect`) followed by every studio
+(`kind: "studio"`). It includes presets from installed preset packs. A pack that
+fails validation is skipped.
+
+```bash
+curl "http://localhost:7777/api/presets"
+```
+
+Each entry carries `id`, `version`, `kind`, `name`, `description` and `tags`.
+Presets also carry `slot`, `modes`, `inputs`, `stackable`, `conflicts`,
+`aliases`, a `prompt` map keyed by model family, and `params`. Studios carry a
+`target` and `preset_ids`. The CLI equivalent is `nodetool presets list`, see
+[Generation presets](cli.md#generation-presets).
+
+### Importing a ComfyUI Graph
+
+`POST /api/comfy/import-graph` converts a ComfyUI API-format workflow into a
+graph of `comfy.*` nodes. Send the workflow as an object, or as a JSON string,
+in `workflow`.
+
+```bash
+curl -X POST "http://localhost:7777/api/comfy/import-graph" \
+  -H "Content-Type: application/json" \
+  -d '{"workflow": {"1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "sd.safetensors"}}, "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "a cat", "clip": ["1", 1]}}}}'
+```
+
+The response is `{nodes, edges}`. Each node has `type` `comfy.<class_type>`, its
+literal inputs in `data`, and a `position` set by dependency depth. Each
+linked input becomes an edge, here `output_1` of node `1` into `clip` of node
+`2`. The server asks the saved ComfyUI server for its node catalogue to name
+output handles. When none is reachable, handles fall back to `output_<index>`.
+A `workflow` that is not an object returns `400` with
+`{"code": "INVALID_INPUT", "detail": "workflow must be a ComfyUI API-format object"}`.
+To resolve a workflow for the runners instead, use `/api/comfy/resolve-workflow`.
 
 ### Exporting or Erasing Your Account Data
 

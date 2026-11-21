@@ -21,7 +21,8 @@ import {
   type UseMutationResult,
   type UseQueryResult
 } from "@tanstack/react-query";
-import type { Entity, EntityKind } from "@nodetool-ai/protocol";
+import { parsePackageAssetUri } from "@nodetool-ai/protocol";
+import type { Entity, EntityKind, ImageRef } from "@nodetool-ai/protocol";
 import type { Asset } from "../stores/ApiTypes";
 import { mediaRefFromAsset } from "../utils/mediaRef";
 import { trpcClient } from "../trpc/client";
@@ -43,6 +44,8 @@ interface EntityMarker {
   palette?: Entity["palette"];
   /** The image the entity shows, when it is not the marker asset's own bytes. */
   reference_asset_id?: string;
+  /** `package://` picture of a shipped system entity, whose asset has no bytes. */
+  thumbnail?: string;
 }
 
 const ENTITY_METADATA_KEY = "nodetool_entity";
@@ -96,19 +99,33 @@ export function readEntityMarker(
     reference_asset_id:
       isString(obj.reference_asset_id) && obj.reference_asset_id.trim() !== ""
         ? obj.reference_asset_id.trim()
+        : undefined,
+    thumbnail:
+      obj.system === true &&
+      isString(obj.thumbnail) &&
+      parsePackageAssetUri(obj.thumbnail.trim())
+        ? obj.thumbnail.trim()
         : undefined
   };
 }
 
 /**
  * Map a marked asset to an {@link Entity}, using the marker's swapped reference
- * image when it names one and the asset's own bytes otherwise.
+ * image when it names one, a shipped preset's package thumbnail next, and the
+ * asset's own bytes otherwise.
  */
 export function assetToEntity(asset: Asset): Entity | null {
   const marker = readEntityMarker(asset.metadata);
   if (!marker) {
     return null;
   }
+  const referenceImage: ImageRef =
+    !marker.reference_asset_id && marker.thumbnail
+      ? { type: "image", uri: marker.thumbnail }
+      : mediaRefFromAsset(
+          { id: marker.reference_asset_id ?? asset.id },
+          "image"
+        );
   return {
     type: "entity",
     id: asset.id,
@@ -121,9 +138,7 @@ export function assetToEntity(asset: Asset): Entity | null {
     tags: marker.tags,
     lora: marker.lora ?? null,
     palette: marker.palette ?? null,
-    reference_images: [
-      mediaRefFromAsset({ id: marker.reference_asset_id ?? asset.id }, "image")
-    ],
+    reference_images: [referenceImage],
     created_at: asset.created_at
   };
 }

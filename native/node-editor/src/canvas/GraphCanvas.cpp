@@ -578,6 +578,7 @@ void GraphCanvas::viewChanged(bool zoomed) {
       longZoom && ((rasterWorkScale_ > 0 && rasterScale() >= rasterWorkScale_ * 2.0) ||
                    (rasterWorkZoomedOut_ && !zoomedOut(viewport_.zoom())));
   scene_->setZoom(viewport_.zoom());
+  grid_.setZooming(settle_.isActive());
   grid_.sync();
   update();
   const auto visible = viewport_.visibleSceneRect();
@@ -604,14 +605,33 @@ void GraphCanvas::viewChanged(bool zoomed) {
   }
   if (scene_->draftConnection()) { invalidateDraftRaster(); }
   if (!viewportCovered(visible)) { scheduleRaster(); }
-  if (window() && window()->rendererInterface()->graphicsApi() != QSGRendererInterface::Software) {
-    // The image nodes round their edges in viewport coordinates. A change
-    // to the ancestor transform invalidates those positions on RHI.
-    for (auto *item : scene_->itemsIn(visible)) { item->update(); }
-    for (const auto &[key, item] : foregroundParts_) { item->update(); }
+  if (zoomed && window() && window()->rendererInterface()->graphicsApi() != QSGRendererInterface::Software) {
+    const double zoom = viewport_.zoom();
+    const double scale = zoom * dpr;
+    const bool overview = zoomedOut(zoom);
+    const bool featherStale =
+        !(lastWireFeatherScale_ > 0) || scale >= lastWireFeatherScale_ * 1.5 || scale <= lastWireFeatherScale_ / 1.5;
+    if (overview != lastWireZoomedOut_ || featherStale) {
+      lastWireZoomedOut_ = overview;
+      lastWireFeatherScale_ = scale;
+      for (const auto key : std::as_const(near_)) {
+        if (auto *item = scene_->item(key); item && item->isVectorPainted()) { item->update(); }
+      }
+    }
   }
   emit viewportMoved();
   updateCardOverlayRendering();
+}
+
+void GraphCanvas::syncRhiItems() {
+  if (!window() || window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software) { return; }
+  const double dpr = window()->effectiveDevicePixelRatio();
+  lastWireZoomedOut_ = zoomedOut(viewport_.zoom());
+  lastWireFeatherScale_ = viewport_.zoom() * dpr;
+  for (const auto key : std::as_const(near_)) {
+    if (auto *item = scene_->item(key)) { item->update(); }
+  }
+  for (const auto &[key, item] : foregroundParts_) { item->update(); }
 }
 
 void GraphCanvas::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) {
@@ -649,6 +669,10 @@ void GraphCanvas::flushRaster() {
   rasterTimer_.stop();
   lastZoom_.invalidate();
   zoomGestureStart_.invalidate();
+  grid_.setZooming(false);
+  if (window() && window()->rendererInterface()->graphicsApi() != QSGRendererInterface::Software) {
+    grid_.sync();
+  }
   if (still_.isActive()) {
     still_.stop();
     lastMotion_.invalidate();
@@ -656,6 +680,7 @@ void GraphCanvas::flushRaster() {
   }
   // A publication during the flush can bring stale tiles that need a plan.
   for (int pass = 0; pass < 4 && (pass == 0 || rasterWorkDirty_ || draftRasterDirty_); ++pass) { rasterPass(true); }
+  syncRhiItems();
 }
 
 void GraphCanvas::finishZoomGesture() {
@@ -663,6 +688,7 @@ void GraphCanvas::finishZoomGesture() {
   settle_.stop();
   lastZoom_.invalidate();
   zoomGestureStart_.invalidate();
+  endGridZoom();
   scheduleRasterNow();
 }
 
@@ -673,7 +699,16 @@ void GraphCanvas::settleZoom() {
   }
   lastZoom_.invalidate();
   zoomGestureStart_.invalidate();
+  endGridZoom();
   scheduleRasterNow();
+}
+
+void GraphCanvas::endGridZoom() {
+  grid_.setZooming(false);
+  if (window() && window()->rendererInterface()->graphicsApi() != QSGRendererInterface::Software) {
+    grid_.sync();
+    syncRhiItems();
+  }
 }
 
 QPointF GraphCanvas::viewPhase() const {
@@ -726,15 +761,18 @@ void GraphCanvas::updateRasterCoverage(const QRectF &visible) {
     }
     it = near_.erase(it);
   }
+  const bool isRhi = window() && window()->rendererInterface()->graphicsApi() != QSGRendererInterface::Software;
   for (auto *item : scene_->itemsIn(prefetchArea_)) {
     if (!near_.contains(item->indexKey())) {
       near_.insert(item->indexKey());
       item->setVisible(true);
+      if (isRhi && item->kind() == CanvasItem::Kind::Connection && item->isVectorPainted()) { item->update(); }
     }
   }
   if (auto *draft = scene_->draftConnection()) {
     near_.insert(draft->indexKey());
     draft->setVisible(true);
+    if (isRhi && draft->isVectorPainted()) { draft->update(); }
   }
 }
 
@@ -1013,17 +1051,19 @@ bool GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
       owner.removeTile(key);
     }
   };
+  const bool isRhi = window() && window()->rendererInterface()->graphicsApi() != QSGRendererInterface::Software;
   const auto *draft = scene_->draftConnection();
   const bool directWires = directSoftwareWires();
   for (const auto key : std::as_const(near_)) {
     auto *item = scene_->item(key);
     if (!item) { continue; }
     const bool wire = item->kind() == CanvasItem::Kind::Connection;
-    if (wire && directWires) {
+    if (wire && (directWires || (isRhi && item->isVectorPainted()))) {
       if (item->hasImage()) { visibleChanged = true; }
       item->clearImage();
       continue;
     }
+    // rasterDraft paints the draft wire outside the staged tile plan.
     if (item == draft) {
       for (const auto &tile : item->tiles()) { cachedRasterBytes_ += tile.bytes(); }
       continue;
@@ -1090,6 +1130,12 @@ bool GraphCanvas::rasterDraft(const QRectF &visible, double scale, double zoom, 
   }
   draft->discardStagedTiles();
   staging_.remove(reinterpret_cast<quintptr>(draft));
+  // On a GPU backend the draft is drawn as vectors, like every other wire.
+  if (draft->isVectorPainted()) {
+    draft->clearImage();
+    draft->update();
+    return false;
+  }
 
   using Image = CanvasImageItem;
   const auto origin = draft->scenePosition();
@@ -1458,10 +1504,13 @@ void GraphCanvas::itemChange(ItemChange change, const ItemChangeData &value) {
     if (value.window) {
       // A queued polish belonged to the previous window.
       rasterQueued_ = false;
+      lastWireFeatherScale_ = 0;
+      syncRhiItems();
       invalidateRasterWork();
     }
   }
   if (change == ItemDevicePixelRatioHasChanged) {
+    lastWireFeatherScale_ = 0;
     invalidateRasterWork();
     viewChanged(true);
   }

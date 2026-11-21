@@ -45,26 +45,29 @@ the poster, a hover or focus loop and the model that rendered it.
 - A model id the generator has no display name for fails the run. Add its name
   to `MODEL_LABELS` in `scripts/generate-preset-showcase.mjs`.
 
-## Guided Step Images
+## Guided Step Diagrams
 
-Every recipe step must have an image that explains that step. Prefer a real
-NodeTool screen showing the named stage, entity, storyboard, rendered clip,
-review state, or timeline. A finished beauty shot alone does not explain how
-the project was made.
+Every recipe step shows a diagram that explains what the step does: what goes
+in, where in NodeTool it happens and what it does, and what comes out. Each
+recipe has its own file in `src/components/recipeSteps/`, keyed by the guide
+step ids in `scripts/recipe-guides.mjs`, and registered by slug in
+`src/components/recipeSteps/index.ts`. Build diagrams from the shared parts in
+`StepDiagram.tsx`.
 
-- Place the image in the active step panel, below the step navigation and
-  before the short instruction. The image should occupy the panel area that
-  would otherwise be empty.
-- Use one image per step and give it an accurate alt text and a short caption.
-- Store the exact intrinsic width and height in the guide data.
-- Use landscape UI captures around 1960 pixels wide when possible. Preserve
-  enough of the NodeTool chrome to identify the product and stage.
-- Do not display a full 9:16 screenshot at unrestricted height. Use a bounded
-  presentation or a crop that keeps the relevant UI readable.
+- Ground every picture and value in the recipe's accepted run. Pictures are
+  frames or resizes of run files, made by
+  `scripts/build-recipe-step-media.sh` into `public/recipes/step-media/`.
+  Quoted fields, shot text, lines and timings come from the run's documents.
+- Draw timelines to scale from recorded start and end times. Mark planned or
+  pending work as planned, and say when a step happened outside NodeTool.
+- Name a model or provider only when the run record names it.
 - Keep each step description to one or two short sentences and each action to
   one direct verb phrase. Move production history into the example note.
-- Add an end-to-end assertion that opens every step, finds its image, and
-  checks that `naturalWidth` is greater than zero.
+- A step may keep an `image` in the guide data when it is a real capture of
+  that step. The page links to it below the diagram. Store its exact
+  intrinsic width and height.
+- `tests/e2e/smoke.spec.ts` opens every step of every recipe and checks that
+  the diagram is visible and its pictures load.
 
 ## Production Media
 
@@ -140,6 +143,31 @@ when its rendered film exists in
   scale the planned shot lengths to the measured duration.
 - Add `StoryboardTeaser` to a landing page with a hand-picked `slugs` list that
   matches the page's topic.
+
+## Translated Pages
+
+`/zh/<route>` pages translate English pages into Simplified Chinese. They are
+data: `src/i18n/routes.ts` lists the translated routes, `src/i18n/zh/pages/`
+holds one content file per page, and `components/localized/LocalizedPage.tsx`
+renders all of them. The language overviews (`/ja`, `/zh`, …) are a separate
+set in `src/data/languagePages.ts` and pair with the home page.
+
+- Add a page: its English route in `TRANSLATED_ROUTES`, a content file in
+  `src/i18n/zh/pages/` registered in `src/i18n/zh/index.ts`, and a route
+  file under `src/app/zh/`. Pass `languageAlternates(route)` as the English
+  page's `alternates.languages`. `tests/e2e/zh-pages.spec.ts` checks all four.
+- Translate published English copy. Read prices and counts through the
+  `{token}` placeholders in `LocalizedPage.tsx`, never as typed numbers.
+- Lead provider lines with DeepSeek, Qwen (DashScope) and GLM, and reuse the
+  mainland notes in `src/i18n/zh/shared.ts`. They name the `*_REGION` and
+  `HF_ENDPOINT` settings, which the spec checks against the setting catalog.
+  ChatGPT and Claude plans are not sold in mainland China, so only
+  `/zh/pricing` mentions plan sign-in. BytePlus stays 国际版 until it has a
+  mainland host.
+- Links name English routes. The renderer sends a link to the translated page
+  when there is one and marks the rest `hrefLang="en"` with （英文）.
+- The header, footer, announcement bar and demo player read the locale from
+  the path. Their Chinese strings are in `src/i18n/zh/chrome.ts`.
 
 ## Page and Film Dates
 

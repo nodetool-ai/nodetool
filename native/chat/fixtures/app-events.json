@@ -1,0 +1,28 @@
+{
+  "events": [
+    {
+      "type": "message",
+      "id": "11111111111111111111111111111111",
+      "role": "user",
+      "content": "[app event] {\"step\":\"start\",\"control\":\"Suggest options\",\"requests\":[{\"kind\":\"run\",\"operationId\":\"suggest\"}]}"
+    },
+    {
+      "type": "message",
+      "id": "22222222222222222222222222222222",
+      "role": "user",
+      "content": "[app event] {\"control\":\"Continue\",\"requests\":[{\"kind\":\"run\",\"operationId\":\"render\"},{\"kind\":\"step\",\"step\":\"review\"}]}"
+    },
+    {
+      "type": "message",
+      "id": "33333333333333333333333333333333",
+      "role": "user",
+      "content": "[app event] {\"control\":\"Generate\",\"requests\":[],\"settled\":{\"operationId\":\"render\",\"status\":\"completed\"}}"
+    },
+    {
+      "type": "message",
+      "id": "44444444444444444444444444444444",
+      "role": "user",
+      "content": "[app event] not json"
+    }
+  ]
+}

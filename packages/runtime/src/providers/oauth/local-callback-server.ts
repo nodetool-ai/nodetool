@@ -172,8 +172,7 @@ export class LocalCallbackServer {
         }
 
         this.respond(res, true);
-        const clientId = url.searchParams.get("client_id");
-        finish(() => resolve(clientId ? { code, state, clientId } : { code, state }));
+        finish(() => resolve({ code, state }));
       };
 
       server.on("request", onRequest);

@@ -1,5 +1,6 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
+import { languageAlternates } from "@/i18n/routes";
 
 const TITLE = "NodeTool Studio | Make media with an AI agent. Keep every project.";
 const DESCRIPTION =
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/studio",
+    languages: languageAlternates("/studio"),
   },
   keywords: [
     "NodeTool Studio",

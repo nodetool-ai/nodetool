@@ -15,6 +15,7 @@ import { solutionRegistryEntries } from "./landingEntries";
 import { taskRegistryEntries } from "./taskEntries";
 import { showcasePageEntries } from "./showcasePages";
 import { blogPageEntries } from "./blogEntries";
+import { localizedEntries } from "./localizedEntries";
 
 /**
  * A page engine's contribution to the registry. `sample`, when set, is a
@@ -48,6 +49,7 @@ export const registryModules: RegistryModule[] = [
   { name: "solutions", entries: solutionRegistryEntries },
   { name: "tasks", entries: taskRegistryEntries },
   { name: "blog", entries: blogPageEntries },
+  { name: "localized", entries: localizedEntries },
   // Consumers that need a bounded interactive sample can use the first 12
   // showcase entries, with hub + filter pages ordered first.
   { name: "showcase", entries: showcasePageEntries, sample: 12 },
