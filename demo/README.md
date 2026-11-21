@@ -318,7 +318,10 @@ npm run encode:hero -- --only hero-flow
 
 The encode writes `hero-flow.{mp4,webm}` and the posters into
 `marketing/public/`. The README GIF, `marketing/public/hero-flow-readme.gif`,
-comes from the same master at 720 px and 8 fps.
+comes from the same master at 720 px and 8 fps. The Chinese and Japanese
+READMEs show `hero-flow-zh-readme.gif` and `hero-flow-ja-readme.gif`, made
+from the 16:9 cuts below at 640 px and 6 fps with a 128-colour palette, which
+keeps each under 8 MB.
 
 The Chinese and Japanese cuts, played on `/zh` and `/ja`, are the same reel
 with the text from `locale.ts`: the brief, beat sheet, entity names and UI
