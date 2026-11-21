@@ -1422,7 +1422,7 @@ export const competitors: Competitor[] = [
     },
     competitorTagline: "Node editor for image and video generation",
     hero: {
-      headline: "One installer. An agent that builds the graph. Visual editors around it.",
+      headline: "Keep the ComfyUI graph. Add the editors around it.",
       subline:
         "NodeTool replaces Python environments and broken custom nodes with a single open-source desktop app for cloud and local models, a built-in agent, a storyboard, and a timeline. Need an existing ComfyUI graph? Import it in API format and run it as a node.",
     },
