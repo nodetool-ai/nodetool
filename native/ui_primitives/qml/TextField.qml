@@ -46,37 +46,43 @@ Basic.TextField {
     selectionColor: Theme.accentPrimary
     selectedTextColor: Theme.textOnAccent
     text: value
-    Ui.Icon {
-        id: leadingGlyph
+    // Most fields have no icon or clear button, and long lists build one field
+    // per row, so these parts exist only while they are shown.
+    Loader {
         LayoutMirroring.enabled: false
-        visible: root.hasLeadingIcon
-        name: root.leadingIcon
-        size: Metrics.iconSm
-        tone: !root.enabled ? Ui.Text.Disabled : root.activeFocus ? Ui.Text.Primary : Ui.Text.Secondary
+        active: root.hasLeadingIcon
         anchors.left: root.LayoutMirroring.enabled ? undefined : parent.left
         anchors.right: root.LayoutMirroring.enabled ? parent.right : undefined
         anchors.leftMargin: Metrics.md
         anchors.rightMargin: Metrics.md
         anchors.verticalCenter: parent.verticalCenter
+        sourceComponent: Ui.Icon {
+            LayoutMirroring.enabled: false
+            name: root.leadingIcon
+            size: Metrics.iconSm
+            tone: !root.enabled ? Ui.Text.Disabled : root.activeFocus ? Ui.Text.Primary : Ui.Text.Secondary
+        }
     }
     Ui.Text { id: suffixLabel; LayoutMirroring.enabled: false; anchors.left: root.LayoutMirroring.enabled ? parent.left : undefined; anchors.right: root.LayoutMirroring.enabled ? undefined : parent.right; anchors.leftMargin: root.hasClearButton ? Metrics.small + Metrics.md : Metrics.md; anchors.rightMargin: root.hasClearButton ? Metrics.small + Metrics.md : Metrics.md; anchors.verticalCenter: parent.verticalCenter; text: root.suffix; visible: text !== ""; role: Typography.SansCaption; tone: Ui.Text.Secondary }
-    Ui.ToolbarIconButton {
-        id: clearButton
-        objectName: "textFieldClear"
+    Loader {
         LayoutMirroring.enabled: false
-        visible: root.hasClearButton
-        iconName: "close"
-        iconSize: Metrics.iconXs
-        implicitWidth: Metrics.small
-        implicitHeight: Metrics.small
-        focusPolicy: Qt.NoFocus
-        accessibleName: qsTr("Clear")
+        active: root.hasClearButton
         anchors.left: root.LayoutMirroring.enabled ? parent.left : undefined
         anchors.right: root.LayoutMirroring.enabled ? undefined : parent.right
         anchors.leftMargin: Metrics.xs
         anchors.rightMargin: Metrics.xs
         anchors.verticalCenter: parent.verticalCenter
-        onClicked: root.clearField()
+        sourceComponent: Ui.ToolbarIconButton {
+            objectName: "textFieldClear"
+            LayoutMirroring.enabled: false
+            iconName: "close"
+            iconSize: Metrics.iconXs
+            implicitWidth: Metrics.small
+            implicitHeight: Metrics.small
+            focusPolicy: Qt.NoFocus
+            accessibleName: qsTr("Clear")
+            onClicked: root.clearField()
+        }
     }
     background: Rectangle {
         color: root.variant === Ui.TextField.Node ? (!root.enabled ? Theme.fieldSurfaceDisabled : root.activeFocus ? Theme.fieldSurfaceFocus : Theme.fieldSurface)
