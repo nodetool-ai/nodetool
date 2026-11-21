@@ -74,6 +74,9 @@ $S/run-detached.sh glm-pass3 data/glm-pass3/run.log \
   lane's `--out` file.
 - The sampler appends one line per run and skips a (model, task, sample) it
   already has, so a stopped lane restarts where it left off.
+- A run whose requests all went unanswered (a provider outage, a refused key)
+  prints `RETRY …` and is not recorded, so a restart samples it again. After
+  five in a row the lane stops. Wait for the provider, then rerun the lane.
 - `--samples` and `--temperature` give several different passing runs per task
   to select from.
 

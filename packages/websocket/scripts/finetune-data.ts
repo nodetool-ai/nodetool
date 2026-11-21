@@ -80,6 +80,9 @@ const VALIDATION_MANIFEST = new URL("./finetune-validation-set.json", import.met
  * without a built pack refuses its imports: teacher runs once had
  * `@nodetool-ai/sandbox-dsl` refused while the eval allowed it.
  */
+/** Runs in a row with no answered request after which `sample` stops. */
+const MAX_UNANSWERED_RUNS = 5;
+
 const SANDBOX_PACKS_MANIFEST = new URL("./finetune-sandbox-packs.json", import.meta.url);
 
 /** The pack names the loaded sandbox catalog serves, sorted. */
@@ -242,6 +245,7 @@ async function cmdSample(): Promise<void> {
   await mkdir(dirname(values.out), { recursive: true });
   // A paid teacher stops at --budget (USD), counting the runs already in --out.
   const budget = values.budget ? Number(values.budget) : Infinity;
+  let unanswered = 0;
   let spent = (await readJsonl<ChatTrace>(values.out))
     .reduce(
       (sum, t) => sum + (t.compactionCostUsd ?? 0) + t.replies.reduce((s, r) => s + (r.costUsd ?? 0), 0),
@@ -270,6 +274,24 @@ async function cmdSample(): Promise<void> {
         // A compaction's summarizer call is captured too. It costs, but it is
         // not a step of the run, so it stays out of the replies and segments.
         const { chat, summaryCostUsd } = splitCompactionRequests(exchanges);
+        if (chat.length === 0) {
+          // No request was answered: the provider was down or refused the
+          // call. The run says nothing about the model, so it is not
+          // recorded, and a resumed sample retries it. A run of these is an
+          // outage, and sampling stops rather than burn through the tasks.
+          unanswered += 1;
+          const statuses = exchanges.map((x) => `${x.status}${x.reply.content ? ` ${x.reply.content.slice(0, 200)}` : ""}`);
+          console.log(
+            `RETRY ${model} ${key.split("|").slice(1).join(" ")} no request was answered` +
+              ` (${statuses.length > 0 ? `responses: ${statuses.join(" | ")}` : "no request was sent"})` +
+              `${report.error ? `: ${report.error}` : ""}`
+          );
+          if (unanswered >= MAX_UNANSWERED_RUNS) {
+            throw new Error(`${unanswered} runs in a row got no answer from the provider; stopping. Resume once it answers again.`);
+          }
+          continue;
+        }
+        unanswered = 0;
         const last = chat.at(-1);
         const segments = traceSegments(chat);
         const trace: ChatTraceLine = {
