@@ -1,32 +1,36 @@
 import { renderHook } from "@testing-library/react";
+import { stub } from "../../../test-utils/doubles";
+import type { NodeMetadata } from "../../../stores/ApiTypes";
 import { useNodeTileDrag } from "../useNodeTileDrag";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import useMetadataStore from "../../../stores/MetadataStore";
 import { useDragDropStore } from "../../../lib/dragdrop/store";
 
-const metadata = { node_type: "test.Node" } as never;
+const metadata = stub<NodeMetadata>({ node_type: "test.Node" });
 
-const dragEvent = (nodeType?: string) => {
-  const dataTransfer = {
+type DragEventDouble = React.DragEvent<HTMLDivElement> & {
+  preventDefault: jest.Mock;
+  stopPropagation: jest.Mock;
+};
+
+const dragEvent = (nodeType?: string): DragEventDouble => {
+  const dataTransfer: Pick<DataTransfer, "setData" | "effectAllowed"> = {
     setData: jest.fn(),
     effectAllowed: "none"
   };
-  return {
+  return stub<DragEventDouble>({
     currentTarget: { dataset: nodeType ? { nodeType } : {} },
     dataTransfer,
     preventDefault: jest.fn(),
     stopPropagation: jest.fn()
-  } as never as React.DragEvent<HTMLDivElement> & {
-    preventDefault: jest.Mock;
-    stopPropagation: jest.Mock;
-  };
+  });
 };
 
 describe("useNodeTileDrag", () => {
   beforeEach(() => {
     useMetadataStore.setState({
       getMetadata: (type: string) => (type === "test.Node" ? metadata : undefined)
-    } as never);
+    });
   });
 
   it("cancels the drag when the tile has no node type", () => {

@@ -1,5 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
-import { asMock, asMockStore } from "../../../test-utils/doubles";
+import { asMock, asMockStore, stub } from "../../../test-utils/doubles";
+import type { Node } from "@xyflow/react";
+import type { NodeData } from "../../../stores/NodeData";
 import { useRunFromHere } from "../useRunFromHere";
 
 jest.mock("../../../contexts/NodeContext", () => ({
@@ -34,7 +36,7 @@ import useMetadataStore from "../../../stores/MetadataStore";
 import { runInlineGraphJob } from "../../../lib/workflow/runInlineGraphJob";
 import type { Generation } from "../../../utils/nodeGenerations";
 
-const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
+const mockUseNodeStoreRef = asMock(useNodeStoreRef);
 const mockResultsGetState = asMockStore(useResultsStore)
   .getState;
 const mockAssetsGetState = asMockStore(useWorkflowAssetStore).getState;
@@ -56,6 +58,9 @@ describe("useRunFromHere (Run Node)", () => {
       selected_generations?: string[];
     };
   };
+
+  const flowNode = (node: TestNode): Node<NodeData> =>
+    stub<Node<NodeData>>(node);
 
   // Live generations keyed by `${workflowId}:${nodeId}`, the same key
   // getNodeGenerations reads from ResultsStore.
@@ -80,7 +85,7 @@ describe("useRunFromHere (Run Node)", () => {
   };
   const mockAddNotification = jest.fn();
   // Source-node classification; default non-generative.
-  const mockGetMetadata = jest.fn(() => ({ title: "Chat" }) as unknown);
+  const mockGetMetadata = jest.fn((): { title: string; auto_save_asset?: boolean } => ({ title: "Chat" }));
 
   const nodeA: TestNode = {
     id: "node-a",
@@ -101,7 +106,10 @@ describe("useRunFromHere (Run Node)", () => {
       targetHandle: "value"
     }
   ];
-  const workflow = { id: "workflow-1", name: "WF" };
+  const workflow: { id: string; name: string; project_id?: string } = {
+    id: "workflow-1",
+    name: "WF"
+  };
   let nodeStoreState: {
     edges: typeof edges;
     nodes: TestNode[];
@@ -148,7 +156,7 @@ describe("useRunFromHere (Run Node)", () => {
   });
 
   it("dispatches just the clicked node as an inline job", () => {
-    const { result } = renderHook(() => useRunFromHere(nodeA as never));
+    const { result } = renderHook(() => useRunFromHere(flowNode(nodeA)));
 
     act(() => {
       result.current.runFromHere();
@@ -165,8 +173,8 @@ describe("useRunFromHere (Run Node)", () => {
   });
 
   it("runs in the project of the workflow it belongs to", () => {
-    nodeStoreState.workflow = { ...workflow, project_id: "project-a" } as typeof workflow;
-    const { result } = renderHook(() => useRunFromHere(nodeA as never));
+    nodeStoreState.workflow = { ...workflow, project_id: "project-a" };
+    const { result } = renderHook(() => useRunFromHere(flowNode(nodeA)));
 
     act(() => {
       result.current.runFromHere();
@@ -190,7 +198,7 @@ describe("useRunFromHere (Run Node)", () => {
     // generative so its cached generation is inlined rather than re-run.
     mockGetMetadata.mockReturnValue({ auto_save_asset: true, title: "Chat" });
     seedGeneration("node-a", { output: "cached" });
-    const { result } = renderHook(() => useRunFromHere(nodeB as never));
+    const { result } = renderHook(() => useRunFromHere(flowNode(nodeB)));
 
     act(() => {
       result.current.runFromHere();
@@ -238,7 +246,7 @@ describe("useRunFromHere (Run Node)", () => {
       findNode: (id: string) => nodeStoreState.nodes.find((n) => n.id === id)
     };
 
-    const { result } = renderHook(() => useRunFromHere(consumerNode as never));
+    const { result } = renderHook(() => useRunFromHere(flowNode(consumerNode)));
 
     act(() => {
       result.current.runFromHere();
@@ -294,7 +302,7 @@ describe("useRunFromHere (Run Node)", () => {
     // Stale generation left over from a prior run with the old prompt text.
     seedGeneration("prompt", { output: "Say B" });
 
-    const { result } = renderHook(() => useRunFromHere(agentNode as never));
+    const { result } = renderHook(() => useRunFromHere(flowNode(agentNode)));
 
     act(() => {
       result.current.runFromHere();
@@ -318,7 +326,7 @@ describe("useRunFromHere (Run Node)", () => {
       title: "Image Gen"
     });
 
-    const { result } = renderHook(() => useRunFromHere(nodeB as never));
+    const { result } = renderHook(() => useRunFromHere(flowNode(nodeB)));
 
     act(() => {
       result.current.runFromHere();
@@ -335,7 +343,7 @@ describe("useRunFromHere (Run Node)", () => {
   });
 
   it("shows a notification", () => {
-    const { result } = renderHook(() => useRunFromHere(nodeA as never));
+    const { result } = renderHook(() => useRunFromHere(flowNode(nodeA)));
 
     act(() => {
       result.current.runFromHere();
@@ -347,12 +355,12 @@ describe("useRunFromHere (Run Node)", () => {
   });
 
   it("reports isWorkflowRunning as false (independent jobs are never gated)", () => {
-    const { result } = renderHook(() => useRunFromHere(nodeA as never));
+    const { result } = renderHook(() => useRunFromHere(flowNode(nodeA)));
     expect(result.current.isWorkflowRunning).toBe(false);
   });
 
   it("records a full-graph input signature for the single submitted node", () => {
-    const { result } = renderHook(() => useRunFromHere(nodeA as never));
+    const { result } = renderHook(() => useRunFromHere(flowNode(nodeA)));
 
     act(() => {
       result.current.runFromHere();
@@ -368,7 +376,7 @@ describe("useRunFromHere (Run Node)", () => {
   it("records signatures for every submitted node, including re-run upstreams", () => {
     // Run from node-b; node-a is a non-generative upstream, so it is submitted
     // (re-run) alongside the target — each node gets a signature keyed by id.
-    const { result } = renderHook(() => useRunFromHere(nodeB as never));
+    const { result } = renderHook(() => useRunFromHere(flowNode(nodeB)));
 
     act(() => {
       result.current.runFromHere();

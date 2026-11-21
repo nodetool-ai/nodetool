@@ -1,6 +1,8 @@
 import { renderHook } from "@testing-library/react";
 import { useIsConnectedSelector } from "../useIsConnected";
 import { Edge } from "@xyflow/react";
+import { stub } from "../../../test-utils/doubles";
+import type { NodeStoreState } from "../../../stores/NodeStore";
 
 describe("useIsConnectedSelector", () => {
   const makeEdge = (source: string, target: string, targetHandle: string): Edge => ({
@@ -10,8 +12,8 @@ describe("useIsConnectedSelector", () => {
     targetHandle
   });
 
-  const makeState = (edges: Edge[]) =>
-    ({ edges });
+  const makeState = (edges: Edge[]): NodeStoreState =>
+    stub<NodeStoreState>({ edges });
 
   it("returns true when a matching edge exists", () => {
     const { result } = renderHook(() =>
@@ -20,7 +22,7 @@ describe("useIsConnectedSelector", () => {
     const selector = result.current;
 
     const state = makeState([makeEdge("node-0", "node-1", "input_0")]);
-    expect(selector(state as never)).toBe(true);
+    expect(selector(state)).toBe(true);
   });
 
   it("returns false when no matching edge exists", () => {
@@ -30,7 +32,7 @@ describe("useIsConnectedSelector", () => {
     const selector = result.current;
 
     const state = makeState([makeEdge("node-0", "node-2", "input_0")]);
-    expect(selector(state as never)).toBe(false);
+    expect(selector(state)).toBe(false);
   });
 
   it("returns false for empty edges", () => {
@@ -40,7 +42,7 @@ describe("useIsConnectedSelector", () => {
     const selector = result.current;
 
     const state = makeState([]);
-    expect(selector(state as never)).toBe(false);
+    expect(selector(state)).toBe(false);
   });
 
   it("distinguishes between different target handles on same node", () => {
@@ -50,7 +52,7 @@ describe("useIsConnectedSelector", () => {
     const selector = result.current;
 
     const state = makeState([makeEdge("node-0", "node-1", "input_0")]);
-    expect(selector(state as never)).toBe(false);
+    expect(selector(state)).toBe(false);
   });
 
   it("caches result when edges array reference is unchanged", () => {
@@ -62,8 +64,8 @@ describe("useIsConnectedSelector", () => {
     const edges = [makeEdge("node-0", "node-1", "input_0")];
     const state = makeState(edges);
 
-    const firstCall = selector(state as never);
-    const secondCall = selector(state as never);
+    const firstCall = selector(state);
+    const secondCall = selector(state);
 
     expect(firstCall).toBe(true);
     expect(secondCall).toBe(true);
@@ -77,9 +79,9 @@ describe("useIsConnectedSelector", () => {
     const selector = result.current;
 
     const state1 = makeState([makeEdge("node-0", "node-1", "input_0")]);
-    expect(selector(state1 as never)).toBe(true);
+    expect(selector(state1)).toBe(true);
 
     const state2 = makeState([]);
-    expect(selector(state2 as never)).toBe(false);
+    expect(selector(state2)).toBe(false);
   });
 });

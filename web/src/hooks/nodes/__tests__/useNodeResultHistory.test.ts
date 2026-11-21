@@ -6,17 +6,18 @@ import {
   assetsToPreviewValue,
   nodeAssetsQueryKey
 } from "../useNodeResultHistory";
+import { stub } from "../../../test-utils/doubles";
 import type { Asset } from "../../../stores/ApiTypes";
 
-const makeAsset = (overrides: Partial<Asset> = {}) =>
-  ({
+const makeAsset = (overrides: Partial<Asset> = {}): Asset =>
+  stub<Asset>({
     id: "asset-1",
     name: "test-asset.png",
     content_type: "image/png",
     get_url: "https://example.com/asset.png",
     thumb_url: "https://example.com/thumb.png",
     ...overrides
-  }) as never;
+  });
 
 describe("nodeAssetsQueryKey", () => {
   it("scopes the key to the workflow and the node", () => {
