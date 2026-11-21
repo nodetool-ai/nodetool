@@ -28,6 +28,20 @@ using namespace nt;
 
 namespace {
 
+// ThreadSanitizer slows 4K HEVC software decode several times over, so scrub
+// throughput thresholds measure the build, not the seek policy.
+#if defined(__SANITIZE_THREAD__)
+constexpr bool kThreadSanitizer = true;
+#elif defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+constexpr bool kThreadSanitizer = true;
+#else
+constexpr bool kThreadSanitizer = false;
+#endif
+#else
+constexpr bool kThreadSanitizer = false;
+#endif
+
 std::string media(const char* name) {
     return std::string(NT_FIXTURES_DIR) + "/media/" + name;
 }
@@ -1083,8 +1097,12 @@ private slots:
         const long long hits = FrameCache::shared().hits();
         qInfo("4k-bwd-60hz: distinctShown=%d hits=%lld seeks=%lld cacheMB=%zu",
               distinctShown, hits, d.seeks(), FrameCache::shared().bytes() / 1048576);
-        QVERIFY2(distinctShown >= 8, qPrintable(QStringLiteral("only %1 distinct 4K frames shown").arg(distinctShown)));
-        QVERIFY2(hits >= 5, qPrintable(QStringLiteral("only %1 4K cache hits").arg(hits)));
+        // A drag that freezes until release shows only its first frame.
+        const int minDistinct = kThreadSanitizer ? 4 : 8;
+        const int minHits = kThreadSanitizer ? 3 : 5;
+        QVERIFY2(distinctShown >= minDistinct,
+                 qPrintable(QStringLiteral("only %1 distinct 4K frames shown").arg(distinctShown)));
+        QVERIFY2(hits >= minHits, qPrintable(QStringLiteral("only %1 4K cache hits").arg(hits)));
         QVERIFY(FrameCache::shared().peakBytes() <= FrameCache::shared().budgetBytes());
         auto settled = waitExact(d, 8.5, 6000);
         QVERIFY(settled);
