@@ -4,6 +4,7 @@ import { Composition, Still, registerRoot } from "remotion";
 import { DURATION_FRAMES, FPS } from "./clock";
 import { HeroFlow } from "./HeroFlow";
 import { MOCKUPS, MockupFrame, MockupOverview } from "./Mockups";
+import { VerticalCut } from "./VerticalCut";
 import { LOOP_FRAMES } from "./editors/common";
 import { GameLoop } from "./editors/GameLoop";
 import { Model3DLoop } from "./editors/Model3DLoop";
@@ -34,6 +35,25 @@ export function HeroFlowRoot(): React.JSX.Element {
         fps={FPS}
         width={1920}
         height={1080}
+      />
+      {/* The Chinese cut for /zh and Chinese video sites: same film and
+          timing, Chinese copy, DeepSeek as the agent's model. */}
+      <Composition
+        id="HeroFlow-zh"
+        component={HeroFlow}
+        defaultProps={{ locale: "zh" as const }}
+        durationInFrames={DURATION_FRAMES}
+        fps={FPS}
+        width={1920}
+        height={1080}
+      />
+      <Composition
+        id="HeroFlow-zh-Vertical"
+        component={VerticalCut}
+        durationInFrames={DURATION_FRAMES}
+        fps={FPS}
+        width={1080}
+        height={1920}
       />
       {SURFACE_LOOPS.map((loop) => (
         <Composition

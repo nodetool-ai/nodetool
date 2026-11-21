@@ -320,6 +320,21 @@ The encode writes `hero-flow.{mp4,webm}` and the posters into
 `marketing/public/`. The README GIF, `marketing/public/hero-flow-readme.gif`,
 comes from the same master at 720 px and 8 fps.
 
+The Chinese cut, played on `/zh`, is the same reel with the text from
+`locale.ts`: a Chinese brief, beat sheet, entity names and UI labels, and
+DeepSeek V3 as the agent's model. The film, clips and timing are shared.
+`HeroFlow-zh-Vertical` frames it at 9:16 with the `/zh` headline, for
+Chinese video feeds. The Chinese glyphs come from Noto Sans SC subsets in
+`public/promo/`; run `npm run font:zh` after changing any Chinese text.
+
+```bash
+npm run render:heroflow:zh -- --concurrency=4            # → out/heroflow-zh.mp4
+npm run render:heroflow:zh:vertical -- --concurrency=4   # → out/heroflow-zh-vertical.mp4
+npm run encode:hero -- --only hero-flow-zh
+```
+
+The site plays only the 16:9 cut. Upload the vertical master as rendered.
+
 The "Seven editors" tabs play six-second loops from `editors/`, one per
 editor, on the same project. Each loop is one action on look-alike
 surfaces: approve and animate shots, re-voice a changed line, trim and

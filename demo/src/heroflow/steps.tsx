@@ -8,23 +8,16 @@ import { AbsoluteFill, Img } from "remotion";
 
 import {
   BEATS,
-  BRIEF,
-  CLIP_MODEL,
-  ENTITIES,
   KIND_COLOR,
-  MODEL,
-  STILL_MODEL,
-  SCORE,
-  TITLE,
   TOTAL_SECONDS,
   LINES,
-  entity,
   shotAt,
   shotLength,
   shotStart,
   timecode,
   type Entity
 } from "./data";
+import { useBeats, useCopy, useEntities, useEntityOf } from "./locale";
 import { ACCENT_GRADIENT, C, MONO, R, heroAsset } from "./theme";
 import {
   BeatText,
@@ -58,7 +51,10 @@ export const ComposerStep: React.FC<{
   caret?: boolean;
   /** The send button's press, 0..1. */
   press?: number;
-}> = ({ typed = BRIEF.length, sent = false, caret = true, press = 0 }) => (
+}> = ({ typed, sent = false, caret = true, press = 0 }) => {
+  const copy = useCopy();
+  const brief = copy.brief;
+  return (
   <AbsoluteFill style={center}>
     <div
       style={{ width: 1360, display: "flex", flexDirection: "column", gap: 34 }}
@@ -72,7 +68,7 @@ export const ComposerStep: React.FC<{
           paddingLeft: 8
         }}
       >
-        What are we making today?
+        {copy.ui.ask}
       </div>
       <Panel
         hf="composer-panel"
@@ -92,7 +88,7 @@ export const ComposerStep: React.FC<{
             minHeight: 190
           }}
         >
-          {BRIEF.slice(0, typed)}
+          {brief.slice(0, typed ?? brief.length)}
           {sent ? null : (
             <span
               style={{
@@ -117,8 +113,13 @@ export const ComposerStep: React.FC<{
         >
           <Icon name="clip" size={26} color={C.dim} />
           <div style={{ width: 8 }} />
-          <MetaChip icon="sparkle" label="Agent" color={C.fuchsia} size={18} />
-          <MetaChip label={MODEL} size={18} />
+          <MetaChip
+            icon="sparkle"
+            label={copy.ui.agent}
+            color={C.fuchsia}
+            size={18}
+          />
+          <MetaChip label={copy.model} size={18} />
           <div style={{ flex: 1 }} />
           <div
             style={{
@@ -138,7 +139,8 @@ export const ComposerStep: React.FC<{
       </Panel>
     </div>
   </AbsoluteFill>
-);
+  );
+};
 
 // ─── 2 · Beat sheet ─────────────────────────────────────────────────────────
 
@@ -148,10 +150,11 @@ const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
  * `rows` is how far the agent has written, in beats: row i is half written
  * at i + 0.5. `dim` fades the prose (not the mentions) for the hand-off.
  */
-export const BeatSheetStep: React.FC<{ rows?: number; dim?: number }> = ({
-  rows = BEATS.length,
-  dim = 0
-}) => (
+export const BeatSheetStep: React.FC<{ rows?: number; dim?: number }> = ({ rows = BEATS.length, dim = 0 }) => {
+  const copy = useCopy();
+  const beats = useBeats();
+  const entity = useEntityOf();
+  return (
   <AbsoluteFill style={center}>
     <Panel hf="beats-panel" style={{ width: 1500 }}>
       <div
@@ -164,10 +167,10 @@ export const BeatSheetStep: React.FC<{ rows?: number; dim?: number }> = ({
           lineHeight: 1
         }}
       >
-        Beat sheet
+        {copy.ui.beatSheet}
       </div>
       <div style={{ padding: "8px 28px 26px" }}>
-        {BEATS.map((b, i) => {
+        {beats.map((b, i) => {
           const p = clamp01(rows - i);
           const head = clamp01(p / 0.25) * (1 - dim * 0.7);
           return (
@@ -237,7 +240,8 @@ export const BeatSheetStep: React.FC<{ rows?: number; dim?: number }> = ({
       </div>
     </Panel>
   </AbsoluteFill>
-);
+  );
+};
 
 // ─── 3 · Entities ───────────────────────────────────────────────────────────
 
@@ -396,15 +400,17 @@ export const EntitiesStep: React.FC<{
   const W = 1840;
   const pad = 28;
   const gap = 20;
-  const characters = ENTITIES.filter((e) => e.kind === "character");
-  const others = ENTITIES.filter((e) => e.kind !== "character");
+  const copy = useCopy();
+  const entities = useEntities();
+  const characters = entities.filter((e) => e.kind === "character");
+  const others = entities.filter((e) => e.kind !== "character");
   const charW =
     (W - 2 * pad - gap * (characters.length - 1)) / characters.length;
   const otherW = (W - 2 * pad - gap * (others.length - 1)) / others.length;
   return (
     <AbsoluteFill style={center}>
       <Panel hf="entities-panel" style={{ width: W }}>
-        <PanelHeader icon="person" title="Entities" accent={C.primary} />
+        <PanelHeader icon="person" title={copy.ui.entities} accent={C.primary} />
         <div
           style={{
             display: "flex",
@@ -457,7 +463,9 @@ export const ShotCard: React.FC<{
   /** Shows the approve toggle; true when the still is approved. */
   approved?: boolean;
 }> = ({ index, width, state, progress = 0.5, reveal = 1, video, approved }) => {
-  const beat = BEATS[index];
+  const copy = useCopy();
+  const beat = useBeats()[index];
+  const entity = useEntityOf();
   const hf = useHf();
   const media = hf(`card-media-${index}`);
   const h = Math.round((width * 9) / 16);
@@ -551,7 +559,7 @@ export const ShotCard: React.FC<{
               color: C.textual
             }}
           >
-            Shot {index + 1} · {beat.label}
+            {copy.ui.shot(index + 1, beat.label)}
           </div>
           <div
             style={{
@@ -652,6 +660,7 @@ export const StoryboardStep: React.FC<{
   /** A control at the end of the header, after the meta chips. */
   action?: React.ReactNode;
 }> = ({ states, progress = 0.62, reveal, video, approved, action }) => {
+  const copy = useCopy();
   const cardW = 528;
   const stills = states.filter(
     (s) => s !== "queued" && s !== "still-rendering"
@@ -662,21 +671,21 @@ export const StoryboardStep: React.FC<{
       <Panel hf="board-panel" style={{ width: 1680 }}>
         <PanelHeader
           icon="grid"
-          title={`${TITLE} — Storyboard`}
+          title={copy.ui.storyboard(copy.title)}
           accent={C.fuchsia}
           meta={
             <div style={{ display: "flex", gap: 10 }}>
               <MetaChip
                 icon="image"
-                label={`${STILL_MODEL} · ${stills}/${BEATS.length}`}
+                label={`${copy.stillModel} · ${stills}/${BEATS.length}`}
                 color={C.image}
               />
               <MetaChip
                 icon="film"
-                label={`${CLIP_MODEL} · ${clips}/${BEATS.length}`}
+                label={`${copy.clipModel} · ${clips}/${BEATS.length}`}
                 color={C.video}
               />
-              <MetaChip label={`16:9 · ${TOTAL_SECONDS} s`} />
+              <MetaChip label={copy.ui.aspect(TOTAL_SECONDS)} />
               {action}
             </div>
           }
@@ -760,6 +769,9 @@ export const TimelineStep: React.FC<{
   total = TOTAL_SECONDS
 }) => {
   const hf = useHf();
+  const copy = useCopy();
+  const beats = useBeats();
+  const entity = useEntityOf();
   const W = 1760;
   const headerW = 96;
   const laneW = W - headerW - 40;
@@ -772,7 +784,7 @@ export const TimelineStep: React.FC<{
       <Panel hf="timeline-panel" style={{ width: W }}>
         <PanelHeader
           icon="cut"
-          title={`${TITLE} — Final cut`}
+          title={copy.ui.finalCut(copy.title)}
           accent={C.video}
           meta={
             <div style={{ display: "flex", gap: 10 }}>
@@ -825,7 +837,7 @@ export const TimelineStep: React.FC<{
                   ruler < 1 ? `inset(0 ${(1 - ruler) * 100}% 0 0)` : undefined
               }}
             >
-              {BEATS.map((b, i) => (
+              {beats.map((b, i) => (
                 <div
                   key={b.label}
                   style={{
@@ -867,7 +879,7 @@ export const TimelineStep: React.FC<{
             headerW={headerW}
             height={96}
           >
-            {BEATS.map((b, i) =>
+            {beats.map((b, i) =>
               i < placed ? (
                 <div
                   key={b.label}
@@ -1007,7 +1019,7 @@ export const TimelineStep: React.FC<{
                   color: C.text
                 }}
               >
-                {SCORE}
+                {copy.score}
               </div>
             </div>
           </TrackRow>
