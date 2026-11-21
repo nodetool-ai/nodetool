@@ -57,7 +57,7 @@ import {
   type HeroCopy,
   type HeroLocale
 } from "./locale";
-import { ensureZhFontLoaded } from "./zhFont";
+import { ensureCjkFontLoaded } from "./cjkFont";
 import { MOCKUPS } from "./Mockups";
 import {
   BeatSheetStep,
@@ -292,7 +292,7 @@ const useMeasured = (
     let alive = true;
     Promise.all([
       ensureInterLoaded(),
-      locale === "zh" ? ensureZhFontLoaded() : Promise.resolve()
+      ensureCjkFontLoaded(locale)
     ])
       .catch(() => undefined)
       .then(() => document.fonts.ready)

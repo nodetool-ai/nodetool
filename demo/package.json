@@ -85,7 +85,9 @@
     "render:heroflow": "remotion render src/heroflow/index.tsx HeroFlow out/heroflow.mp4",
     "render:heroflow:zh": "remotion render src/heroflow/index.tsx HeroFlow-zh out/heroflow-zh.mp4",
     "render:heroflow:zh:vertical": "remotion render src/heroflow/index.tsx HeroFlow-zh-Vertical out/heroflow-zh-vertical.mp4",
-    "font:zh": "bash scripts/subset-zh-font.sh",
+    "render:heroflow:ja": "remotion render src/heroflow/index.tsx HeroFlow-ja out/heroflow-ja.mp4",
+    "render:heroflow:ja:vertical": "remotion render src/heroflow/index.tsx HeroFlow-ja-Vertical out/heroflow-ja-vertical.mp4",
+    "font:cjk": "bash scripts/subset-cjk-font.sh",
     "studio:nodeshero": "remotion studio src/nodeshero/index.tsx",
     "render:nodeshero": "remotion render src/nodeshero/index.tsx NodesHero out/nodes-hero.mp4 --concurrency=4 --crf=16"
   },
