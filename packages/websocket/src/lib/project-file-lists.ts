@@ -29,7 +29,8 @@ import {
   Workflow,
   WorkflowVersion
 } from "@nodetool-ai/models";
-import { refsOf, type RefDocumentKind } from "@nodetool-ai/protocol";
+import { refsOf } from "@nodetool-ai/protocol";
+import type { TransferDocumentKind } from "@nodetool-ai/protocol/api-schemas/transfer.js";
 import type { EffectiveAccessItem } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import type { ProjectFileListsOutput } from "@nodetool-ai/protocol/api-schemas/storage.js";
 import { effectiveAccess } from "./document-access.js";
@@ -38,7 +39,7 @@ import { effectiveAccess } from "./document-access.js";
 const VERSION_LIMIT = 1000;
 
 interface NamedDocument {
-  kind: RefDocumentKind;
+  kind: TransferDocumentKind;
   document_id: string;
   name: string;
 }
@@ -55,7 +56,7 @@ function readsVersions(access: EffectiveAccessItem): boolean {
   return access.role !== "viewer" || access.options.allow_history;
 }
 
-async function versionContents(kind: RefDocumentKind, id: string): Promise<unknown[]> {
+async function versionContents(kind: TransferDocumentKind, id: string): Promise<unknown[]> {
   if (kind === "workflow") {
     return (await WorkflowVersion.listForWorkflow(id, { limit: VERSION_LIMIT })).map((v) => v.graph as unknown);
   }
@@ -74,7 +75,7 @@ async function readableReferences(
     Workflow.listForProjects(project.user_id, [project.id]),
     TimelineSequence.listForProjects(project.user_id, [project.id])
   ]);
-  const documents: Array<{ kind: RefDocumentKind; id: string; name: string; content: unknown }> = [
+  const documents: Array<{ kind: TransferDocumentKind; id: string; name: string; content: unknown }> = [
     ...workflows.map((w) => ({ kind: "workflow" as const, id: w.id, name: w.name, content: w.graph as unknown })),
     ...timelines.map((t) => ({ kind: "timeline" as const, id: t.id, name: t.name, content: t.document as unknown }))
   ];
