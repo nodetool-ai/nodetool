@@ -80,7 +80,11 @@ export default function LanguageOverview({ locale }: { locale: LanguageCode }) {
           </section>
 
           <div className="mt-14">
-            <HeroDemoPlayer mediaBase="/hero-flow" alt={page.videoAlt} />
+            {/* /zh plays the Chinese cut of the reel (demo/src/heroflow/locale.ts). */}
+            <HeroDemoPlayer
+              mediaBase={locale === "zh" ? "/hero-flow-zh" : "/hero-flow"}
+              alt={page.videoAlt}
+            />
           </div>
 
           <ul aria-label={page.cardsLabel} className="mt-16 grid gap-8 md:grid-cols-3">
