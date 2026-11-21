@@ -14548,7 +14548,9 @@
       "connect": "Conectar",
       "getKey": "Obtener una clave de {{provider}}",
       "saveAnyway": "Guardar de todos modos",
-      "rejectedKey": "El proveedor rechazó esta clave."
+      "rejectedKey": "El proveedor rechazó esta clave.",
+      "regionSwitched": "{{provider}} aceptó esta clave en su servidor de China continental. NodeTool ahora usa ese servidor.",
+      "hfMirrorNote": "¿No puedes acceder a huggingface.co? Indica un espejo como https://hf-mirror.com en Ajustes → Integraciones → HF endpoint."
     },
     "hardware": {
       "autoDetect": "Detección automática",
@@ -14602,6 +14604,19 @@
       "installed": "Instalado",
       "download": "Descargar",
       "memoryEstimate_many": "{{count}} GB de memoria"
+    },
+    "providerSetup": {
+      "chat": "El chat necesita un modelo de lenguaje. Conecta un proveedor para empezar.",
+      "image": "Generar imágenes requiere un proveedor de imágenes. Conecta uno para continuar.",
+      "image_edit": "Editar imágenes requiere un proveedor de imágenes. Conecta uno para continuar.",
+      "video": "Generar vídeos requiere un proveedor de vídeo. Conecta uno para continuar.",
+      "image_to_video": "Animar imágenes requiere un proveedor de vídeo. Conecta uno para continuar.",
+      "reference_to_video": "Referencia a vídeo requiere un proveedor de vídeo. Conecta uno para continuar.",
+      "retake": "Repetir toma requiere un proveedor de vídeo. Conecta uno para continuar.",
+      "extend": "Alargar un vídeo requiere un proveedor de vídeo. Conecta uno para continuar.",
+      "audio_to_video": "La sincronización labial requiere un proveedor de sincronización labial. Conecta uno para continuar.",
+      "music": "Generar música requiere un proveedor de música. Conecta uno para continuar.",
+      "audio": "Generar voz requiere un proveedor de texto a voz. Conecta uno para continuar."
     }
   },
   "i18n-next29": {
@@ -17870,7 +17885,11 @@
         "allResults": "Todos los resultados",
         "home": "Inicio",
         "local": "locales",
-        "providers": "Proveedores"
+        "providers": "Proveedores",
+        "resultsInPath": "Resultados en {{path}}: {{count}} · Coincidencias totales para «{{term}}»: {{total}}",
+        "resultsRelevant": "Resultados: {{count}} · Primero los más relevantes para «{{term}}»",
+        "nodesInPath": "Nodos en {{path}}: {{count}}",
+        "nodesMatchFilters": "Nodos que cumplen los filtros: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Explorar nodos",
@@ -20033,7 +20052,8 @@
       },
       "openInSketch": "Abrir en el boceto",
       "reusePrompt": "Reutilizar prompt",
-      "sketchTitle": "Imagen creada"
+      "sketchTitle": "Imagen creada",
+      "keyRejected": "El proveedor rechazó la clave de API. Revísala en Ajustes → Modelos y proveedores."
     },
     "takes_many": "{{count}} toma",
     "kindLabel": "Qué crear",

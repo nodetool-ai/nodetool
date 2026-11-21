@@ -14302,7 +14302,9 @@
       "connect": "Verbinden",
       "getKey": "API-Schlüssel von {{provider}} abrufen",
       "saveAnyway": "Trotzdem speichern",
-      "rejectedKey": "Der Anbieter hat diesen Schlüssel abgelehnt."
+      "rejectedKey": "Der Anbieter hat diesen Schlüssel abgelehnt.",
+      "regionSwitched": "{{provider}} hat diesen Schlüssel auf seinem Host für Festlandchina akzeptiert. NodeTool verwendet jetzt diesen Host.",
+      "hfMirrorNote": "huggingface.co nicht erreichbar? Tragen Sie unter Einstellungen → Integrationen → HF endpoint einen Mirror wie https://hf-mirror.com ein."
     },
     "hardware": {
       "autoDetect": "Automatisch erkennen",
@@ -14355,6 +14357,19 @@
       "memoryEstimate_other": "{{count}} GB Arbeitsspeicher",
       "installed": "Installiert",
       "download": "Herunterladen"
+    },
+    "providerSetup": {
+      "chat": "Für den Chat brauchen Sie ein Sprachmodell. Verbinden Sie einen Anbieter, um zu beginnen.",
+      "image": "Zum Erzeugen von Bildern brauchen Sie einen Bildanbieter. Verbinden Sie einen, um fortzufahren.",
+      "image_edit": "Zum Bearbeiten von Bildern brauchen Sie einen Bildanbieter. Verbinden Sie einen, um fortzufahren.",
+      "video": "Zum Erzeugen von Videos brauchen Sie einen Videoanbieter. Verbinden Sie einen, um fortzufahren.",
+      "image_to_video": "Zum Animieren von Bildern brauchen Sie einen Videoanbieter. Verbinden Sie einen, um fortzufahren.",
+      "reference_to_video": "Für Referenz zu Video brauchen Sie einen Videoanbieter. Verbinden Sie einen, um fortzufahren.",
+      "retake": "Für einen neuen Take brauchen Sie einen Videoanbieter. Verbinden Sie einen, um fortzufahren.",
+      "extend": "Zum Verlängern eines Videos brauchen Sie einen Videoanbieter. Verbinden Sie einen, um fortzufahren.",
+      "audio_to_video": "Für Lippensynchronisation brauchen Sie einen Anbieter für Lippensynchronisation. Verbinden Sie einen, um fortzufahren.",
+      "music": "Zum Erzeugen von Musik brauchen Sie einen Musikanbieter. Verbinden Sie einen, um fortzufahren.",
+      "audio": "Zum Erzeugen von Sprache brauchen Sie einen Anbieter für Sprachausgabe. Verbinden Sie einen, um fortzufahren."
     }
   },
   "i18n-next29": {
@@ -17570,7 +17585,11 @@
         "allResults": "Alle Ergebnisse",
         "home": "Startseite",
         "local": "Lokal",
-        "providers": "Anbieter"
+        "providers": "Anbieter",
+        "resultsInPath": "Ergebnisse in {{path}}: {{count}} · Treffer für „{{term}}“ insgesamt: {{total}}",
+        "resultsRelevant": "Ergebnisse: {{count}} · Die relevantesten für „{{term}}“ zuerst",
+        "nodesInPath": "Knoten in {{path}}: {{count}}",
+        "nodesMatchFilters": "Knoten, die den Filtern entsprechen: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Knoten durchsuchen",
@@ -19722,7 +19741,8 @@
       },
       "openInSketch": "Im Sketch öffnen",
       "reusePrompt": "Prompt wiederverwenden",
-      "sketchTitle": "Erstelltes Bild"
+      "sketchTitle": "Erstelltes Bild",
+      "keyRejected": "Der Anbieter hat den API-Schlüssel abgelehnt. Prüfen Sie ihn unter Einstellungen → Modelle und Anbieter."
     },
     "kindLabel": "Was entstehen soll",
     "modeLabel": "Wie es entstehen soll",

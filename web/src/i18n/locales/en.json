@@ -14302,7 +14302,9 @@
       "connect": "Connect",
       "getKey": "Get a key from {{provider}}",
       "saveAnyway": "Save anyway",
-      "rejectedKey": "The provider rejected this key."
+      "rejectedKey": "The provider rejected this key.",
+      "regionSwitched": "{{provider}} accepted this key on its mainland China host. NodeTool now uses that host.",
+      "hfMirrorNote": "Can't reach huggingface.co? Set a mirror such as https://hf-mirror.com under Settings → Integrations → HF endpoint."
     },
     "hardware": {
       "autoDetect": "Auto-detect",
@@ -14355,6 +14357,19 @@
       "memoryEstimate_other": "{{count}} GB memory",
       "installed": "Installed",
       "download": "Download"
+    },
+    "providerSetup": {
+      "chat": "Chat needs a language model. Connect a provider to start.",
+      "image": "Generating images needs an image provider. Connect one to continue.",
+      "image_edit": "Editing images needs an image provider. Connect one to continue.",
+      "video": "Generating videos needs a video provider. Connect one to continue.",
+      "image_to_video": "Animating images needs a video provider. Connect one to continue.",
+      "reference_to_video": "Reference to video needs a video provider. Connect one to continue.",
+      "retake": "Retake needs a video provider. Connect one to continue.",
+      "extend": "Extending a video needs a video provider. Connect one to continue.",
+      "audio_to_video": "Lipsync needs a lipsync provider. Connect one to continue.",
+      "music": "Generating music needs a music provider. Connect one to continue.",
+      "audio": "Generating speech needs a text-to-speech provider. Connect one to continue."
     }
   },
   "i18n-next29": {
@@ -17570,7 +17585,11 @@
         "allResults": "All results",
         "home": "Home",
         "local": "Local",
-        "providers": "Providers"
+        "providers": "Providers",
+        "resultsInPath": "Results in {{path}}: {{count}} · Total matches for '{{term}}': {{total}}",
+        "resultsRelevant": "Results: {{count}} · Most relevant for '{{term}}' first",
+        "nodesInPath": "Nodes in {{path}}: {{count}}",
+        "nodesMatchFilters": "Nodes matching the filters: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Browse nodes",
@@ -19722,7 +19741,8 @@
       },
       "openInSketch": "Open in sketch",
       "reusePrompt": "Reuse prompt",
-      "sketchTitle": "Created picture"
+      "sketchTitle": "Created picture",
+      "keyRejected": "The provider rejected the API key. Check it in Settings → Models & providers."
     },
     "kindLabel": "What to create",
     "modeLabel": "How to create it",

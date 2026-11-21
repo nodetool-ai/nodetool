@@ -14302,7 +14302,9 @@
       "connect": "Anslut",
       "getKey": "Få en nyckel från {{provider}}",
       "saveAnyway": "Spara ändå",
-      "rejectedKey": "Leverantören avvisade denna nyckel."
+      "rejectedKey": "Leverantören avvisade denna nyckel.",
+      "regionSwitched": "{{provider}} godkände den här nyckeln på värden för Fastlandskina. NodeTool använder nu den värden.",
+      "hfMirrorNote": "Når du inte huggingface.co? Ange en spegel som https://hf-mirror.com under Inställningar → Integrationer → HF endpoint."
     },
     "hardware": {
       "autoDetect": "Automatisk upptäckt",
@@ -14355,6 +14357,19 @@
       "memoryEstimate_other": "{{count}} GB minne",
       "installed": "Installerad",
       "download": "Ladda ner"
+    },
+    "providerSetup": {
+      "chat": "Chatten behöver en språkmodell. Anslut en leverantör för att börja.",
+      "image": "Att skapa bilder kräver en bildleverantör. Anslut en för att fortsätta.",
+      "image_edit": "Att redigera bilder kräver en bildleverantör. Anslut en för att fortsätta.",
+      "video": "Att skapa videor kräver en videoleverantör. Anslut en för att fortsätta.",
+      "image_to_video": "Att animera bilder kräver en videoleverantör. Anslut en för att fortsätta.",
+      "reference_to_video": "Referens till video kräver en videoleverantör. Anslut en för att fortsätta.",
+      "retake": "Ny tagning kräver en videoleverantör. Anslut en för att fortsätta.",
+      "extend": "Att förlänga en video kräver en videoleverantör. Anslut en för att fortsätta.",
+      "audio_to_video": "Läppsynk kräver en leverantör av läppsynk. Anslut en för att fortsätta.",
+      "music": "Att skapa musik kräver en musikleverantör. Anslut en för att fortsätta.",
+      "audio": "Att skapa tal kräver en leverantör av text till tal. Anslut en för att fortsätta."
     }
   },
   "i18n-next29": {
@@ -17570,7 +17585,11 @@
         "allResults": "Alla resultat",
         "home": "Hem",
         "local": "Lokalt",
-        "providers": "Leverantörer"
+        "providers": "Leverantörer",
+        "resultsInPath": "Resultat i {{path}}: {{count}} · Träffar för ”{{term}}” totalt: {{total}}",
+        "resultsRelevant": "Resultat: {{count}} · Mest relevanta för ”{{term}}” först",
+        "nodesInPath": "Noder i {{path}}: {{count}}",
+        "nodesMatchFilters": "Noder som matchar filtren: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Bläddra noder",
@@ -19722,7 +19741,8 @@
       },
       "openInSketch": "Öppna i skiss",
       "reusePrompt": "Återanvänd prompten",
-      "sketchTitle": "Skapad bild"
+      "sketchTitle": "Skapad bild",
+      "keyRejected": "Leverantören avvisade API-nyckeln. Kontrollera den under Inställningar → Modeller och leverantörer."
     },
     "kindLabel": "Vad du vill skapa",
     "modeLabel": "Hur det skapas",

@@ -148,6 +148,41 @@ describe("ProviderOnboardingCard", () => {
     );
   });
 
+  it("says so when the key works on the provider's mainland China host", async () => {
+    validateSecret.mockResolvedValue({
+      status: "valid",
+      valid: true,
+      message: "Anthropic accepted the key on its china host.",
+      region: { setting: "DASHSCOPE_REGION", value: "china" }
+    });
+    renderCard(anthropic);
+    await userEvent.click(screen.getByRole("button", { name: /add api key/i }));
+    await userEvent.type(screen.getByPlaceholderText(/paste your anthropic api key/i), "sk-bj");
+    await userEvent.click(screen.getByRole("button", { name: /^connect$/i }));
+
+    await waitFor(() =>
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "success",
+          content: "Anthropic accepted this key on its mainland China host. NodeTool now uses that host."
+        })
+      )
+    );
+  });
+
+  it("marks a stored rejected key with an error icon, not a check mark", async () => {
+    validateSecret.mockResolvedValue({
+      status: "invalid",
+      valid: false,
+      message: "rejected"
+    });
+    renderCard(anthropic, { configured: true });
+    await userEvent.click(screen.getByRole("button", { name: /^recheck$/i }));
+    await waitFor(() => expect(screen.getByText(/^rejected$/i)).toBeInTheDocument());
+    expect(screen.getByTestId("ErrorOutlineRoundedIcon")).toBeInTheDocument();
+    expect(screen.queryByTestId("CheckCircleRoundedIcon")).not.toBeInTheDocument();
+  });
+
   it("saves a key nothing could verify, and says so", async () => {
     validateSecret.mockResolvedValue({
       status: "unverifiable",

@@ -305,3 +305,11 @@ export const canRetake = (item: CreateFeedItem): boolean =>
   RETAKE_MODES.has(String(item.request.mode)) &&
   typeof item.request.provider === "string" &&
   typeof item.request.model === "string";
+
+/**
+ * A provider's own answer to a key it does not accept. It arrives in English
+ * from the provider, so the card states it in the interface language and
+ * keeps the original text in the tooltip.
+ */
+export const isRejectedKeyError = (error: string): boolean =>
+  /\b401\b|\b(incorrect|invalid) api key\b|\bunauthori[sz]ed\b/i.test(error);

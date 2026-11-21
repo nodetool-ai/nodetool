@@ -40,7 +40,7 @@ import {
 } from "../ui_primitives";
 import type { GenerationActivityStatus } from "../../stores/GenerationActivityStore";
 import { canOpenAsWorkflow } from "./createActions";
-import { canRetake, type CreateFeedItem } from "./createFeed";
+import { canRetake, isRejectedKeyError, type CreateFeedItem } from "./createFeed";
 
 const PILL_TONE: Record<GenerationActivityStatus, StatusPillTone> = {
   generating: "rendering",
@@ -194,7 +194,9 @@ const CreateGridItem = memo(function CreateGridItem({
         {item.status === "failed" && item.error ? (
           <Tooltip title={item.error}>
             <Caption color="error" noWrap>
-              {item.error}
+              {isRejectedKeyError(item.error)
+                ? t("create_view.item.keyRejected")
+                : item.error}
             </Caption>
           </Tooltip>
         ) : (

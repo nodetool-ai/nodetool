@@ -56,6 +56,23 @@ export interface ProviderMeta {
   mono?: boolean;
   /** Extra hint rendered under the description (e.g. required key scope). */
   note?: string;
+  /** Catalog key of a translated hint, shown in place of `note`. */
+  noteKey?: string;
+  /**
+   * Other names people search for: the provider's name in another language
+   * or the product its console is known by, such as 百炼 for Alibaba Cloud.
+   */
+  aliases?: readonly string[];
+  /**
+   * Also generates images, video or speech, though it is listed with the
+   * language models, so a media connect dialog offers it.
+   */
+  media?: boolean;
+  /**
+   * Reachable from mainland China without a VPN and sells keys there. The
+   * connect dialog lists these first when the interface is in Chinese.
+   */
+  mainlandChina?: boolean;
   /** Provider supports OAuth sign-in in place of (or alongside) an API key. */
   oauth?: "openai" | "hf" | "claude";
   /**
@@ -101,6 +118,13 @@ export interface ProviderMeta {
    */
   oauthProviderId?: ProviderId;
 }
+
+/** Whether a search for `query` (already lower-cased) names this provider. */
+export const providerMatchesSearch = (meta: ProviderMeta, query: string): boolean =>
+  !query ||
+  [meta.name, meta.description, meta.key, ...(meta.aliases ?? [])].some((text) =>
+    text.toLowerCase().includes(query)
+  );
 
 /** Hosted deployments can't finish a same-machine sign-in — hide those cards. */
 export const isProviderAvailable = (meta: ProviderMeta): boolean =>
@@ -251,7 +275,9 @@ export const PROVIDER_META: ProviderMeta[] = [
     description: "State-of-the-art open models.",
     section: "language",
     docsUrl: "https://platform.deepseek.com/docs",
-    icon: deepseekColorIcon
+    icon: deepseekColorIcon,
+    aliases: ["深度求索"],
+    mainlandChina: true
   },
   {
     key: "XAI_API_KEY",
@@ -327,7 +353,9 @@ export const PROVIDER_META: ProviderMeta[] = [
     section: "language",
     docsUrl: "https://platform.moonshot.cn/docs",
     icon: moonshotIcon,
-    mono: true
+    mono: true,
+    aliases: ["月之暗面", "Moonshot"],
+    mainlandChina: true
   },
   {
     key: "SARVAM_API_KEY",
@@ -345,7 +373,10 @@ export const PROVIDER_META: ProviderMeta[] = [
     description: "GLM chat, GLM-Image, CogVideoX video and GLM-ASR.",
     section: "language",
     docsUrl: "https://docs.z.ai/",
-    icon: zhipuColorIcon
+    icon: zhipuColorIcon,
+    aliases: ["智谱", "智谱清言", "Zhipu", "ChatGLM", "BigModel"],
+    media: true,
+    mainlandChina: true
   },
   {
     key: "MINIMAX_API_KEY",
@@ -354,7 +385,10 @@ export const PROVIDER_META: ProviderMeta[] = [
     description: "MiniMax AI models.",
     section: "language",
     docsUrl: "https://platform.minimax.chat/",
-    icon: minimaxColorIcon
+    icon: minimaxColorIcon,
+    aliases: ["海螺", "稀宇", "Hailuo"],
+    media: true,
+    mainlandChina: true
   },
   {
     key: "DASHSCOPE_API_KEY",
@@ -363,7 +397,20 @@ export const PROVIDER_META: ProviderMeta[] = [
     description: "Qwen chat, Qwen-Image, Wan video, and Qwen TTS via Alibaba Cloud Model Studio.",
     section: "language",
     docsUrl: "https://www.alibabacloud.com/help/en/model-studio/",
-    icon: alibabacloudColorIcon
+    icon: alibabacloudColorIcon,
+    aliases: [
+      "阿里云",
+      "阿里云百炼",
+      "百炼",
+      "通义千问",
+      "千问",
+      "通义万相",
+      "万相",
+      "DashScope",
+      "Bailian"
+    ],
+    media: true,
+    mainlandChina: true
   },
   {
     key: "BYTEPLUS_ARK_API_KEY",
@@ -371,7 +418,8 @@ export const PROVIDER_META: ProviderMeta[] = [
     name: "BytePlus",
     description: "Seed chat, Seedream images, and Seedance video via BytePlus ModelArk.",
     section: "language",
-    docsUrl: "https://docs.byteplus.com/en/docs/ModelArk/"
+    docsUrl: "https://docs.byteplus.com/en/docs/ModelArk/",
+    media: true
   },
   {
     key: "HF_TOKEN",
@@ -381,7 +429,9 @@ export const PROVIDER_META: ProviderMeta[] = [
     section: "language",
     docsUrl: "https://huggingface.co/docs",
     icon: huggingfaceColorIcon,
-    oauth: "hf"
+    oauth: "hf",
+    noteKey: "i18n-next33.provider.hfMirrorNote",
+    aliases: ["镜像", "mirror", "hf-mirror"]
   },
   {
     key: "COHERE_API_KEY",
@@ -512,7 +562,8 @@ export const PROVIDER_META: ProviderMeta[] = [
     name: "Kling AI",
     description: "Kling 4.0, 3.0, O1, and 2.6 video, and Kling Image 3.0 and O1.",
     section: "media",
-    docsUrl: "https://kling.ai/document-api/api/get-started/authentication"
+    docsUrl: "https://kling.ai/document-api/api/get-started/authentication",
+    aliases: ["可灵"]
   },
   {
     key: "REVE_API_KEY",

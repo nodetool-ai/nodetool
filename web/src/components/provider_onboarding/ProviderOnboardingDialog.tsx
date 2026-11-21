@@ -15,10 +15,15 @@ import { openSettingsTab } from "../workspace/openPageTab";
 import ProviderOnboardingCard from "./ProviderOnboardingCard";
 import ProviderDirectory from "./ProviderDirectory";
 import LocalModelsRow from "./LocalModelsRow";
-import { directoryProviders, providersForCapability } from "./providerOnboardingCatalog";
+import {
+  directoryProviders,
+  isChineseLanguage,
+  mainlandChinaProviders,
+  providersForCapability
+} from "./providerOnboardingCatalog";
 
 const ProviderOnboardingDialog: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { open, capability, stepCapabilities, reason, highlightSecretKey, dismiss } =
     useProviderOnboardingStore(useShallow((s) => ({
@@ -37,14 +42,33 @@ const ProviderOnboardingDialog: React.FC = () => {
   const forStep = (stepCapabilities?.length ?? 0) > 0;
   // A step only some providers run keeps its short list (study 12): the
   // registry cannot say which of the others run it.
+  // In Chinese the short list starts with providers that work in mainland
+  // China. The curated ones are blocked there (study 22).
+  const chinaFirst = isChineseLanguage(i18n.language) && !forStep;
+  const chinaProviders = useMemo(
+    () => (chinaFirst ? mainlandChinaProviders(capability) : []),
+    [chinaFirst, capability]
+  );
   const moreProviders = useMemo(
-    () => (forStep ? [] : directoryProviders(capability)),
-    [forStep, capability]
+    () =>
+      forStep
+        ? []
+        : directoryProviders(capability).filter(
+            (provider) =>
+              !chinaProviders.some((first) => first.secretKey === provider.secretKey)
+          ),
+    [forStep, capability, chinaProviders]
   );
   const groups = [
     { title: t("batch2_7.providerOnboarding.signInGroup"), providers: providers.filter((p) => p.oauth) },
-    { title: t("batch2_7.providerOnboarding.apiKeyGroup"), providers: providers.filter((p) => !p.oauth) }
+    {
+      title: t("batch2_7.providerOnboarding.apiKeyGroup"),
+      providers: [...chinaProviders, ...providers.filter((p) => !p.oauth)]
+    }
   ];
+  if (chinaFirst) {
+    groups.reverse();
+  }
   const showLocal = (isElectron || isLocalhost) &&
     (!capability || capability === "generate_message" || capability === "generate_embedding");
   const handleOpenSettings = useCallback(() => {

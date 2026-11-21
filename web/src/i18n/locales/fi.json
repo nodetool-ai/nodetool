@@ -14302,7 +14302,9 @@
       "connect": "Yhdistä",
       "getKey": "Hanki avain palvelusta {{provider}}",
       "saveAnyway": "Tallenna silti",
-      "rejectedKey": "Palveluntarjoaja hylkäsi tämän avaimen."
+      "rejectedKey": "Palveluntarjoaja hylkäsi tämän avaimen.",
+      "regionSwitched": "{{provider}} hyväksyi tämän avaimen Manner-Kiinan palvelimellaan. NodeTool käyttää nyt sitä palvelinta.",
+      "hfMirrorNote": "Eikö huggingface.co vastaa? Aseta peilipalvelin, kuten https://hf-mirror.com, kohdassa Asetukset → Integraatiot → HF endpoint."
     },
     "hardware": {
       "autoDetect": "Tunnista automaattisesti",
@@ -14355,6 +14357,19 @@
       "memoryEstimate_other": "{{count}} Gt muistia",
       "installed": "Asennettu",
       "download": "Lataa"
+    },
+    "providerSetup": {
+      "chat": "Keskustelu tarvitsee kielimallin. Yhdistä palveluntarjoaja aloittaaksesi.",
+      "image": "Kuvien luominen vaatii kuvapalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "image_edit": "Kuvien muokkaus vaatii kuvapalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "video": "Videoiden luominen vaatii videopalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "image_to_video": "Kuvien animointi vaatii videopalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "reference_to_video": "Viitteestä videoksi vaatii videopalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "retake": "Uusintaotto vaatii videopalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "extend": "Videon jatkaminen vaatii videopalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "audio_to_video": "Huulisynkronointi vaatii huulisynkronoinnin palveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "music": "Musiikin luominen vaatii musiikkipalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "audio": "Puheen luominen vaatii puhesynteesin palveluntarjoajan. Yhdistä sellainen jatkaaksesi."
     }
   },
   "i18n-next29": {
@@ -17570,7 +17585,11 @@
         "allResults": "Kaikki tulokset",
         "home": "Koti",
         "local": "Paikallinen",
-        "providers": "Palveluntarjoajat"
+        "providers": "Palveluntarjoajat",
+        "resultsInPath": "Tulokset kohteessa {{path}}: {{count}} · Osumia haulle ”{{term}}” yhteensä: {{total}}",
+        "resultsRelevant": "Tulokset: {{count}} · Osuvimmat haulle ”{{term}}” ensin",
+        "nodesInPath": "Solmut kohteessa {{path}}: {{count}}",
+        "nodesMatchFilters": "Suodattimia vastaavat solmut: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Selaa solmuja",
@@ -19722,7 +19741,8 @@
       },
       "openInSketch": "Avaa luonnoksessa",
       "reusePrompt": "Käytä kehotetta uudelleen",
-      "sketchTitle": "Luotu kuva"
+      "sketchTitle": "Luotu kuva",
+      "keyRejected": "Palveluntarjoaja hylkäsi API-avaimen. Tarkista se kohdassa Asetukset → Mallit ja palveluntarjoajat."
     },
     "kindLabel": "Mitä luodaan",
     "modeLabel": "Miten se luodaan",

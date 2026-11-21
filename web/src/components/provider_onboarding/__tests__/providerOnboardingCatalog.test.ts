@@ -2,7 +2,9 @@ import {
   ONBOARDING_PROVIDERS,
   CAPABILITY_LABELS,
   directoryProviders,
+  isChineseLanguage,
   isOnboardingProviderAvailable,
+  mainlandChinaProviders,
   matchesProviderQuery,
   providersForCapability
 } from "../providerOnboardingCatalog";
@@ -169,4 +171,43 @@ it("matches a provider query on name and description, ignoring case", () => {
   expect(matchesProviderQuery(groq, "fast")).toBe(true);
   expect(matchesProviderQuery(groq, "video")).toBe(false);
   expect(matchesProviderQuery(groq, "")).toBe(true);
+});
+
+it("finds Chinese providers by the names people in China use", () => {
+  const byKey = new Map(directoryProviders().map((p) => [p.secretKey, p]));
+  const alibaba = byKey.get("DASHSCOPE_API_KEY")!;
+  for (const query of ["百炼", "阿里云", "通义千问", "千问", "万相", "DashScope", "qwen"]) {
+    expect(matchesProviderQuery(alibaba, query)).toBe(true);
+  }
+  expect(matchesProviderQuery(byKey.get("KIMI_API_KEY")!, "月之暗面")).toBe(true);
+  expect(matchesProviderQuery(byKey.get("ZAI_API_KEY")!, "智谱")).toBe(true);
+  expect(matchesProviderQuery(byKey.get("DEEPSEEK_API_KEY")!, "深度求索")).toBe(true);
+  expect(matchesProviderQuery(alibaba, "月之暗面")).toBe(false);
+});
+
+it("offers an image provider listed with the language models for images", () => {
+  const image = directoryProviders("text_to_image").map((p) => p.secretKey);
+  expect(image).toContain("DASHSCOPE_API_KEY");
+  expect(image).toContain("ZAI_API_KEY");
+  expect(image).not.toContain("DEEPSEEK_API_KEY");
+});
+
+describe("mainlandChinaProviders", () => {
+  it("lists providers sold in mainland China for the capability", () => {
+    const text = mainlandChinaProviders("generate_message").map((p) => p.secretKey);
+    expect(text).toEqual(
+      expect.arrayContaining(["DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY", "KIMI_API_KEY", "ZAI_API_KEY", "MINIMAX_API_KEY"])
+    );
+    expect(text).not.toContain("GROQ_API_KEY");
+    const image = mainlandChinaProviders("text_to_image").map((p) => p.secretKey);
+    expect(image).toContain("DASHSCOPE_API_KEY");
+    expect(image).not.toContain("KIMI_API_KEY");
+  });
+
+  it("applies to every Chinese interface language", () => {
+    expect(isChineseLanguage("zh-CN")).toBe(true);
+    expect(isChineseLanguage("zh")).toBe(true);
+    expect(isChineseLanguage("ja")).toBe(false);
+    expect(isChineseLanguage(undefined)).toBe(false);
+  });
 });

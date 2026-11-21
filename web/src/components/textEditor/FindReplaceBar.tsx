@@ -17,6 +17,7 @@ import {
   SPACING,
   TYPOGRAPHY
 } from "../ui_primitives";
+import { isImeComposing } from "../../utils/ime";
 
 const MAX_SEARCH_LENGTH = 1000;
 
@@ -97,7 +98,7 @@ const FindReplaceBar = ({
   }, [searchTerm, onFind]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !isImeComposing(e)) {
       if (e.shiftKey) {
         onPrevious?.();
       } else {

@@ -139,7 +139,7 @@ const WorkspaceTabItem = ({
     [isEditing]
   );
 
-  const displayTitle = tabDisplayTitle(tab);
+  const displayTitle = tabDisplayTitle(tab, t);
 
   const handleTabKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {

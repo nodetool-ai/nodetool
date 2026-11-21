@@ -491,6 +491,7 @@ export {
 export type {
   CredentialCheckStatus,
   CredentialCheckResult,
+  CredentialCheckContext,
   CredentialAccount,
   CredentialAccountState,
   CheckCredentialOptions

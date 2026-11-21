@@ -16,6 +16,7 @@
 import { classifyProviderFailure } from "@nodetool-ai/protocol";
 import { resolveAlibabaBaseURL } from "./alibaba-provider.js";
 import { resolveBytePlusBaseURL } from "./byteplus-provider.js";
+import { resolveKimiBaseURL } from "./moonshot-provider.js";
 
 /**
  * - `valid` — the provider accepted the credential.
@@ -52,6 +53,12 @@ export interface CredentialCheckResult {
    * answered. Absent means nothing was learned about credit or quota.
    */
   account?: CredentialAccount;
+  /**
+   * Set when the key was rejected on the configured region's host and
+   * accepted on another region's. The caller stores `value` under `setting`
+   * so the provider calls the host the key belongs to.
+   */
+  region?: { setting: string; value: string };
 }
 
 interface CredentialProbe {
@@ -70,6 +77,12 @@ interface CredentialProbe {
   settings?: readonly string[];
   /** Auth headers for the request. */
   headers: (value: string) => Record<string, string>;
+  /**
+   * The setting that picks the region, and its values. Keys are scoped to one
+   * region, so a key rejected on the configured host is tried on the others.
+   * A set `pinnedBy` setting (an explicit base URL) turns the retry off.
+   */
+  region?: { setting: string; values: readonly string[]; pinnedBy?: string };
 }
 
 /**
@@ -161,7 +174,19 @@ const PROBES: Record<string, CredentialProbe> = {
     url: (_v, settings) =>
       `${resolveAlibabaBaseURL(settings.DASHSCOPE_BASE_URL, settings.DASHSCOPE_REGION)}/models`,
     settings: ["DASHSCOPE_BASE_URL", "DASHSCOPE_REGION"],
-    headers: (v) => ({ Authorization: `Bearer ${v}` })
+    headers: (v) => ({ Authorization: `Bearer ${v}` }),
+    region: {
+      setting: "DASHSCOPE_REGION",
+      values: ["international", "china"],
+      pinnedBy: "DASHSCOPE_BASE_URL"
+    }
+  },
+  KIMI_API_KEY: {
+    label: "Kimi",
+    url: (_v, settings) => `${resolveKimiBaseURL(settings.KIMI_REGION)}/models`,
+    settings: ["KIMI_REGION"],
+    headers: (v) => ({ Authorization: `Bearer ${v}` }),
+    region: { setting: "KIMI_REGION", values: ["international", "china"] }
   },
   BYTEPLUS_ARK_API_KEY: {
     label: "BytePlus",
@@ -257,9 +282,18 @@ async function resolveProbeSettings(
 
 const DEFAULT_TIMEOUT_MS = 6000;
 
+/** What an override sees of the probe it replaces. */
+export interface CredentialCheckContext {
+  /** The provider's display name, as the real check's messages use it. */
+  label?: string;
+  /** The probe's region and base-URL settings, resolved as the probe would. */
+  settings: Record<string, string | undefined>;
+}
+
 type CredentialChecker = (
   secretKey: string,
-  value: string
+  value: string,
+  context: CredentialCheckContext
 ) => Promise<CredentialCheckResult>;
 
 let checkerOverride: CredentialChecker | null = null;
@@ -284,10 +318,55 @@ export async function checkCredential(
   value: string,
   options: CheckCredentialOptions = {}
 ): Promise<CredentialCheckResult> {
-  if (checkerOverride) {
-    return checkerOverride(secretKey, value);
-  }
   const probe = PROBES[secretKey];
+  const settings = await resolveProbeSettings(probe?.settings, options.getSetting);
+  const first = await checkOnce(secretKey, value, settings, options);
+  const region = probe?.region;
+  if (
+    first.status !== "invalid" ||
+    !probe ||
+    !region ||
+    !value ||
+    (region.pinnedBy && settings[region.pinnedBy])
+  ) {
+    return first;
+  }
+  // A key from one region's console is rejected on the other region's host.
+  // Try the other regions before calling the key wrong.
+  const configured = settings[region.setting];
+  const current = region.values.includes(configured ?? "")
+    ? configured
+    : region.values[0];
+  for (const other of region.values) {
+    if (other === current) continue;
+    const retry = await checkOnce(
+      secretKey,
+      value,
+      { ...settings, [region.setting]: other },
+      options
+    );
+    if (retry.status === "valid") {
+      return {
+        ...retry,
+        message: `${probe.label} accepted the key on its ${other} host, so ${region.setting} is now ${other}.`,
+        region: { setting: region.setting, value: other }
+      };
+    }
+  }
+  return first;
+}
+
+/** One probe against the host that `settings` pick. */
+async function checkOnce(
+  secretKey: string,
+  value: string,
+  settings: Record<string, string | undefined>,
+  options: CheckCredentialOptions
+): Promise<CredentialCheckResult> {
+  const probe = PROBES[secretKey];
+  if (checkerOverride) {
+    return checkerOverride(secretKey, value, { label: probe?.label, settings });
+  }
   if (!probe) {
     return {
       status: "unverifiable",
@@ -304,7 +383,6 @@ export async function checkCredential(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const settings = await resolveProbeSettings(probe.settings, options.getSetting);
     const response = await doFetch(probe.url(value, settings), {
       method: "GET",
       headers: probe.headers(value),

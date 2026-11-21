@@ -187,7 +187,7 @@ const MobileDocumentSelector = ({
         aria-expanded={open}
         aria-label={
           activeTab
-            ? t("i18n-next51.documents.openDocument", { title: tabDisplayTitle(activeTab) })
+            ? t("i18n-next51.documents.openDocument", { title: tabDisplayTitle(activeTab, t) })
             : homeIsActive
               ? t("i18n-next51.documents.projectHomeSwitch")
               : t("i18n-next51.documents.openDocuments")
@@ -207,7 +207,7 @@ const MobileDocumentSelector = ({
         )}
         <span className="doc-title">
           {activeTab
-            ? tabDisplayTitle(activeTab)
+            ? tabDisplayTitle(activeTab, t)
             : homeIsActive
               ? t("i18n-next51.documents.projectHome")
               : t("i18n-next51.documents.noDocumentOpen")}
@@ -250,12 +250,12 @@ const MobileDocumentSelector = ({
                     {typeGlyph[tab.type]}
                   </span>
                 }
-                primary={tabDisplayTitle(tab)}
+                primary={tabDisplayTitle(tab, t)}
                 secondary={tab.type}
                 secondaryAction={
                   <CloseButton
                     className="row-close"
-                    tooltip={t("i18n-next51.documents.closeDocument", { title: tabDisplayTitle(tab) })}
+                    tooltip={t("i18n-next51.documents.closeDocument", { title: tabDisplayTitle(tab, t) })}
                     onClick={() => onClose(tab)}
                   />
                 }

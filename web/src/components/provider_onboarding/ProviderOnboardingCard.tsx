@@ -3,6 +3,7 @@ import { memo, useCallback, useEffect, useState, useId } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import LoginIcon from "@mui/icons-material/Login";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
@@ -145,7 +146,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
         content: accountNote
           ? accountNote
           : status === "verified"
-            ? t("i18n-next33.provider.connected", { provider: provider.name })
+            ? notificationDetail ?? t("i18n-next33.provider.connected", { provider: provider.name })
             : t("i18n-next33.provider.keySaved", { provider: provider.name, status: t(`i18n-next33.provider.status.${statusTranslationKey[status]}`) }),
         alert: true
       });
@@ -177,7 +178,9 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
         statusFromValidation(result),
         result.status === "unverifiable"
           ? t("i18n-next33.provider.keyUnverified")
-          : null,
+          : result.region
+            ? t("i18n-next33.provider.regionSwitched", { provider: provider.name })
+            : null,
         accountWarning(result)
       );
     } catch {
@@ -323,13 +326,23 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
               )
             ) : hasStoredKey ? (
               <FlexRow align="center" gap={SPACING.micro}>
-                <CheckCircleRoundedIcon
-                  sx={{
-                    fontSize: "1.2em",
-                    color:
-                      theme.vars.palette[statusColor[storedStatus]].main
-                  }}
-                />
+                {/* A check mark on a rejected key read as "connected" (study 22). */}
+                {storedStatus === "rejected" ? (
+                  <ErrorOutlineRoundedIcon
+                    sx={{
+                      fontSize: "1.2em",
+                      color: theme.vars.palette.error.main
+                    }}
+                  />
+                ) : (
+                  <CheckCircleRoundedIcon
+                    sx={{
+                      fontSize: "1.2em",
+                      color:
+                        theme.vars.palette[statusColor[storedStatus]].main
+                    }}
+                  />
+                )}
                 <Caption size="small">
                   {t(`i18n-next33.provider.status.${statusTranslationKey[storedStatus]}`)}
                 </Caption>
