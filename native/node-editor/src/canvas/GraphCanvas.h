@@ -150,6 +150,7 @@ private:
   bool viewportCovered(const QRectF &visible) const;
   void updateRasterCoverage(const QRectF &visible);
   void viewChanged(bool zoomed);
+  void syncRhiItems();
   void rasterPass(bool flush);
   void scheduleRaster();
   void invalidateRasterWork();
@@ -219,6 +220,8 @@ private:
   QElapsedTimer planOnly_;
   bool rasterWorkSettled_ = false;
   double rasterWorkScale_ = 0;
+  double lastWireFeatherScale_ = 0;
+  bool lastWireZoomedOut_ = false;
   QPointF devicePhase_;
   QRectF rasterCoverage_;
   QRectF prefetchArea_;

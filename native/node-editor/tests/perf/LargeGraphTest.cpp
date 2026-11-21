@@ -9,6 +9,7 @@
 #include <QPointer>
 #include <QQuickWidget>
 #include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QApplication>
 #include <QElapsedTimer>
 #include <QFile>
@@ -437,6 +438,148 @@ private slots:
                           << " raster_us=" << stats.nanoseconds / 1000.0 << " slowest_pass_us=" << stats.slowestPass / 1000.0;
         QVERIFY2(stats.slowestPass <= 4'000'000 * kTimingScale, "Zoom settle exceeded its timing budget");
         qInfo().nospace() << "zoom_settle_us=" << settle.nsecsElapsed() / 1000.0;
+    }
+
+    void complexWireZoom() {
+        const QJsonObject anyType{{"type", "any"}};
+        QJsonArray props;
+        for (int p = 0; p < 4; ++p) {
+            props.append(QJsonObject{{"name", QStringLiteral("in_%1").arg(p)}, {"type", anyType}});
+        }
+        QJsonArray outs;
+        for (int p = 0; p < 2; ++p) {
+            outs.append(QJsonObject{{"name", QStringLiteral("out_%1").arg(p)}, {"type", anyType}});
+        }
+        const QJsonArray catalog{QJsonObject{
+            {"node_type", "fixture.Complex"}, {"title", "ImageCrop"},
+            {"properties", props}, {"outputs", outs}}};
+        constexpr int cols = 9, rows = 8;
+        QJsonArray nodes, edges;
+        for (int r = 0; r < rows; ++r) {
+            for (int c = 0; c < cols; ++c) {
+                const auto id = QStringLiteral("n_%1_%2").arg(c).arg(r);
+                nodes.append(QJsonObject{
+                    {"id", id}, {"type", "fixture.Complex"},
+                    {"ui_properties", QJsonObject{
+                        {"position", QJsonObject{{"x", c * 420.0}, {"y", r * 320.0}}},
+                        {"title", QStringLiteral("Crop %1-%2").arg(c).arg(r)}}}});
+            }
+        }
+        int edgeId = 0;
+        // Fan-out long crossing wires from left columns to right columns across all rows.
+        for (int srcCol = 0; srcCol < 4; ++srcCol) {
+            for (int srcRow = 0; srcRow < 4; ++srcRow) {
+                for (int dstRow = 0; dstRow < rows; ++dstRow) {
+                    if ((srcCol + srcRow + dstRow) % 2 != 0) { continue; }
+                    const int dstCol = 4 + ((srcCol + srcRow + dstRow) % 4);
+                    edges.append(QJsonObject{
+                        {"id", QStringLiteral("e_%1").arg(edgeId++)},
+                        {"source", QStringLiteral("n_%1_%2").arg(srcCol).arg(srcRow)},
+                        {"target", QStringLiteral("n_%1_%2").arg(dstCol).arg(dstRow)},
+                        {"sourceHandle", QStringLiteral("out_%1").arg(dstRow % 2)},
+                        {"targetHandle", QStringLiteral("in_%1").arg((srcCol + srcRow) % 4)}});
+                }
+            }
+        }
+        // Extra long vertical/diagonal wires spanning almost the whole graph.
+        for (int r = 0; r < rows; ++r) {
+            edges.append(QJsonObject{
+                {"id", QStringLiteral("e_%1").arg(edgeId++)},
+                {"source", QStringLiteral("n_2_0")},
+                {"target", QStringLiteral("n_5_%1").arg(r)},
+                {"sourceHandle", "out_0"},
+                {"targetHandle", "in_0"}});
+            edges.append(QJsonObject{
+                {"id", QStringLiteral("e_%1").arg(edgeId++)},
+                {"source", QStringLiteral("n_3_1")},
+                {"target", QStringLiteral("n_6_%1").arg(rows - 1 - r)},
+                {"sourceHandle", "out_1"},
+                {"targetHandle", "in_1"}});
+            edges.append(QJsonObject{
+                {"id", QStringLiteral("e_%1").arg(edgeId++)},
+                {"source", QStringLiteral("n_1_2")},
+                {"target", QStringLiteral("n_7_%1").arg(r)},
+                {"sourceHandle", "out_0"},
+                {"targetHandle", "in_2"}});
+            edges.append(QJsonObject{
+                {"id", QStringLiteral("e_%1").arg(edgeId++)},
+                {"source", QStringLiteral("n_0_0")},
+                {"target", QStringLiteral("n_8_%1").arg(r)},
+                {"sourceHandle", "out_1"},
+                {"targetHandle", "in_3"}});
+        }
+        const QJsonObject workflow{{"name", "ComplexWires"}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}};
+        QSettings().setValue(QStringLiteral("canvas-chat-dock/collapsed"), true);
+        nodetool::EditorWindow window;
+        window.resize(1440, 900);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        window.setCatalog(catalog);
+        QVERIFY(window.document()->load(workflow).ok);
+        QTest::qWait(200);
+        auto &canvas = window.canvas();
+        auto &graph = canvas.graphCanvas();
+        auto *viewport = &canvas.viewportWidget();
+        canvas.setView(1.0, QPointF(1600, 1100));
+        QTRY_VERIFY_WITH_TIMEOUT(!graph.rasterPending(), 5000);
+
+        StepClock clock(window);
+        const bool isRhi = canvas.quickWidget().quickWindow()->rendererInterface()->graphicsApi() !=
+                           QSGRendererInterface::Software;
+        const auto runZoom = [&](const char *name, int steps, double factor) {
+            clock.step([] {});
+            const auto before = clock.stats();
+            const auto beforeGrid = graph.gridRasters();
+            const auto polish = clock.rasterPartNs, sync = clock.syncPartNs;
+            const auto render = clock.renderPartNs, input = clock.inputNs, blit = clock.blitNs;
+            double total = 0, slowest = 0;
+            QElapsedTimer wall;
+            wall.start();
+            for (int i = 0; i < steps; ++i) {
+                const auto step = clock.step([&] {
+                    const QPointF center(viewport->rect().center());
+                    QNativeGestureEvent gesture(Qt::ZoomNativeGesture, QPointingDevice::primaryPointingDevice(), 0,
+                                                center, center, viewport->mapToGlobal(center), factor - 1.0, {0, 0}, 0);
+                    QApplication::sendEvent(viewport, &gesture);
+                });
+                total += step;
+                slowest = std::max(slowest, step);
+            }
+            const auto wallMs = wall.nsecsElapsed() / 1e6;
+            const auto after = clock.stats();
+            const double renderUs = (clock.renderPartNs - render) / 1000.0 / steps;
+            const int wireRasters = after.wires - before.wires;
+            qInfo().nospace() << name << " nodes=" << nodes.size() << " edges=" << edges.size()
+                << " zoom=" << canvas.zoom()
+                << " per_step_us=" << total / steps << " max_step_us=" << slowest
+                << " wall_per_step_ms=" << wallMs / steps
+                << " input_us=" << (clock.inputNs - input) / 1000.0 / steps
+                << " polish_us=" << (clock.rasterPartNs - polish) / 1000.0 / steps
+                << " sync_us=" << (clock.syncPartNs - sync) / 1000.0 / steps
+                << " render_us=" << renderUs
+                << " blit_us=" << (clock.blitNs - blit) / 1000.0 / steps
+                << " cards=" << (after.cards - before.cards)
+                << " wires=" << wireRasters
+                << " grid=" << (graph.gridRasters() - beforeGrid)
+                << " peak_mb=" << after.peakBytes / (1024.0 * 1024.0);
+            if (isRhi) {
+                QCOMPARE(wireRasters, 0);
+                QVERIFY2(after.peakBytes < 64 * 1024 * 1024, "RHI tile cache exceeded budget on complex-wire graph");
+                QVERIFY2(renderUs < 3000 * kTimingScale, "RHI zoom render exceeded budget on complex-wire graph");
+            }
+        };
+        runZoom("zoom_out_1_to_0.25", 30, 0.955);
+        QVERIFY(canvas.zoom() < 0.3);
+        QTest::qWait(400);
+        QTRY_VERIFY_WITH_TIMEOUT(!graph.rasterPending(), 5000);
+        runZoom("zoom_in_0.25_to_1", 30, 1.0 / 0.955);
+        QVERIFY(canvas.zoom() > 0.9);
+        QTest::qWait(400);
+        QTRY_VERIFY_WITH_TIMEOUT(!graph.rasterPending(), 5000);
+        canvas.setView(0.42, QPointF(1800, 1200));
+        QTRY_VERIFY_WITH_TIMEOUT(!graph.rasterPending(), 5000);
+        runZoom("zoom_mid_out", 20, 0.96);
+        runZoom("zoom_mid_in", 20, 1.0 / 0.96);
     }
 };
 QTEST_MAIN(LargeGraphTest)
