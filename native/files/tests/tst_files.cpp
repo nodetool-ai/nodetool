@@ -14,6 +14,8 @@
 #include <QtQml/QQmlExtensionPlugin>
 #include <QtTest>
 #include <algorithm>
+#include <filesystem>
+#include <system_error>
 
 Q_IMPORT_QML_PLUGIN(NodeTool_FilesPlugin)
 
@@ -501,10 +503,24 @@ private slots:
     writeFile("footage/take.png", "png");
     writeFile("footage/subnested/.nodetool/project.json", R"({"format":"nodetool.project","version":1,"id":"p-sub","name":"Sub"})");
     writeFile("cut.timeline.json", R"({"format":"nodetool.timeline","version":1,"duration_ms":64000,"document":{"tracks":[{},{}],"clips":[{}]}})");
-    QFile::link(outside.filePath("secret.txt"), rootDir.filePath("escape.txt"));
-    QFile::link(outside.path(), rootDir.filePath("escape_dir"));
-    QFile::link(rootDir.filePath(".nodetool/project.json"), rootDir.filePath("sneak_meta"));
-    QFile::link(rootDir.filePath(".nodetool/project.json"), rootDir.filePath("footage/sneak_meta"));
+    // QFile::link writes a shell shortcut on Windows, which is an ordinary file
+    // unless its name ends in .lnk. std::filesystem makes a real symbolic link.
+    const auto symlink = [](const QString &target, const QString &link, bool directory) {
+      std::error_code error;
+      const std::filesystem::path from(target.toStdU16String());
+      const std::filesystem::path to(link.toStdU16String());
+      if (directory) {
+        std::filesystem::create_directory_symlink(from, to, error);
+      } else {
+        std::filesystem::create_symlink(from, to, error);
+      }
+      return !error;
+    };
+    const bool linked = symlink(outside.filePath("secret.txt"), rootDir.filePath("escape.txt"), false)
+                        && symlink(outside.path(), rootDir.filePath("escape_dir"), true)
+                        && symlink(rootDir.filePath(".nodetool/project.json"), rootDir.filePath("sneak_meta"), false)
+                        && symlink(rootDir.filePath(".nodetool/project.json"), rootDir.filePath("footage/sneak_meta"), false);
+    if (!linked) { QSKIP("Creating symbolic links needs Developer Mode or administrator rights on Windows"); }
 
     ProjectFiles files;
     files.setProject("p-local");
