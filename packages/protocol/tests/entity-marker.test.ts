@@ -33,3 +33,33 @@ describe("readEntityMarker source", () => {
     expect(read?.source).toBeUndefined();
   });
 });
+
+describe("readEntityMarker thumbnail", () => {
+  const preset = {
+    kind: "style",
+    name: "Flat / Vector",
+    descriptor: "flat shapes",
+    system: true,
+    preset_id: "flat-vector",
+    thumbnail: "package://nodetool-base/styles/flat-vector.jpg"
+  };
+
+  it("keeps the package thumbnail a shipped preset carries", () => {
+    expect(readEntityMarker(marker(preset))?.thumbnail).toBe(
+      "package://nodetool-base/styles/flat-vector.jpg"
+    );
+  });
+
+  it("drops a thumbnail that is not a package asset URI", () => {
+    const read = readEntityMarker(
+      marker({ ...preset, thumbnail: "https://example.com/a.jpg" })
+    );
+    expect(read?.name).toBe("Flat / Vector");
+    expect(read).not.toHaveProperty("thumbnail");
+  });
+
+  it("drops a thumbnail on a marker that is not a system entity", () => {
+    const { system: _system, ...ordinary } = preset;
+    expect(readEntityMarker(marker(ordinary))).not.toHaveProperty("thumbnail");
+  });
+});
