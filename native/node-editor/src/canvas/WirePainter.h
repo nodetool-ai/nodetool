@@ -3,6 +3,7 @@
 #include "CanvasStyle.h"
 
 class QPainter;
+class QSGGeometry;
 
 namespace nodetool::canvas {
 // UI thread only. Endpoints and the hit stroke use the painter's local coordinates.
@@ -33,6 +34,11 @@ struct WirePaintState {
 class WirePainter {
 public:
   static void paint(QPainter *painter, const CanvasTheme &theme, const WirePaintState &state);
+  // Populates a ColoredPoint2D DrawTriangles geometry (UnsignedShortType) in
+  // scene coordinates with analytic edge antialiasing of width `feather`
+  // (in scene units, typically 1 / (zoom * dpr)).
+  static void buildGeometry(QSGGeometry &geometry, const CanvasTheme &theme, const WirePaintState &state,
+                            double feather);
   static QPainterPath hitStroke(const WirePaintState &state);
   // The centre line that paint() strokes, empty for a hidden wire.
   static QPainterPath path(const WirePaintState &state);

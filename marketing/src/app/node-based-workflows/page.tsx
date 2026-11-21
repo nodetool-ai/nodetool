@@ -11,6 +11,7 @@ import { breadcrumbSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import { competitors } from "../../data/competitorEntries";
 import { STAGE_COSTS } from "../../data/stageCosts";
+import { languageAlternates } from "@/i18n/routes";
 
 /**
  * `/node-based-workflows` — the landing page for people searching for
@@ -42,7 +43,7 @@ export const metadata: Metadata = {
     "ai workflow nodes",
     "node based ai workflow",
   ],
-  alternates: { canonical: "/node-based-workflows" },
+  alternates: { canonical: "/node-based-workflows", languages: languageAlternates("/node-based-workflows") },
   openGraph: {
     title: "Node-based workflows — NodeTool",
     description: DESCRIPTION,

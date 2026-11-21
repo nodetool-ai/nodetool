@@ -7,7 +7,7 @@
 // `remotion render` writes visually lossless masters (a 22 s reel comes out
 // around 12 MB); the hero autoplays on first paint, so it ships re-encoded at
 // roughly a third of that, in both codecs, with the WebP posters the
-// <img> srcSet needs. Reads `out/hero-project*.mp4`, `out/sizzle.mp4`, `out/heroflow.mp4`, `out/nodes-hero.mp4` and `out/redo.mp4`, and
+// <img> srcSet needs. Reads `out/hero-project*.mp4`, `out/sizzle.mp4`, `out/heroflow*.mp4`, `out/nodes-hero.mp4` and `out/redo.mp4`, and
 // writes into `marketing/public/`.
 //
 // ffmpeg comes from Remotion's bundled binary, so this needs nothing on PATH
@@ -100,6 +100,9 @@ const REELS = [
   // The landing hero: one brief to a finished short (src/heroflow), posted
   // on the storyboard with every clip playing.
   { master: "heroflow", slug: "hero-flow", frame: 600, widths: [[1920, ""], [960, "-960"]] },
+  // The Chinese and Japanese cuts of the same reel, for /zh and /ja.
+  { master: "heroflow-zh", slug: "hero-flow-zh", frame: 600, widths: [[1920, ""], [960, "-960"]] },
+  { master: "heroflow-ja", slug: "hero-flow-ja", frame: 600, widths: [[1920, ""], [960, "-960"]] },
   // The "Seven editors" tabs (src/heroflow/editors), each posted on its
   // finished state.
   ...["storyboard", "script", "timeline", "sketch", "3d", "game", "nodes"].map((id) => ({

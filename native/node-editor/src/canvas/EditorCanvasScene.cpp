@@ -409,17 +409,23 @@ void EditorCanvasScene::paintNode(QPainter &painter, const NodeItem &item, doubl
   NodePainter::paint(&painter, cardPaintState(*this, model_, cardItem(item, zoom)));
 }
 
-void EditorCanvasScene::paintConnection(QPainter &painter, const ConnectionItem &item, double zoom) const {
+std::optional<WirePaintState> EditorCanvasScene::connectionPaintState(const ConnectionItem &item, double zoom) const {
   const auto id = item.connectionId();
   auto state = wireGeometry(model_, id, item.endPoint(PortType::Out), item.endPoint(PortType::In),
                             item.connectionState().requiresPort());
-  if (!state.visible) { return; }
+  if (!state.visible) { return state; }
   const auto nodeSelected = [this](NodeId node) {
     const auto *card = nodeItem(node);
     return card && card->isSelected();
   };
   fillWirePaintState(state, *this, model_, id, item.isSelected(), item.connectionState().hovered(), zoom, nodeSelected);
-  WirePainter::paint(&painter, theme_, state);
+  return state;
+}
+
+void EditorCanvasScene::paintConnection(QPainter &painter, const ConnectionItem &item, double zoom) const {
+  const auto state = connectionPaintState(item, zoom);
+  if (!state || !state->visible) { return; }
+  WirePainter::paint(&painter, theme_, *state);
 }
 
 QPainterPath EditorCanvasScene::connectionStroke(const ConnectionItem &item) const {

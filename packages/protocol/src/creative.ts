@@ -22,6 +22,7 @@ import type {
   ProductionRequirement,
   ProductionTakeMetadata
 } from "./production-authoring.js";
+import { parsePackageAssetUri } from "./package-assets.js";
 import { ENTITY_METADATA_KEY } from "./style-presets.js";
 
 // ---------------------------------------------------------------------------
@@ -108,6 +109,12 @@ export interface EntityMarker {
    * entity that changed asset would leave every one of them dangling.
    */
   reference_asset_id?: string;
+  /**
+   * `package://` path of a shipped system entity's picture. A seeded preset's
+   * marker asset stores no bytes, so this is the image it shows when no
+   * {@link reference_asset_id} replaces it. Read only off a `system` marker.
+   */
+  thumbnail?: string;
   /** Set only on an entity a graph created or derived. */
   source?: EntitySource;
 }
@@ -152,6 +159,8 @@ const entityMarkerSchema = z.object({
     .optional()
     .catch(null),
   reference_asset_id: z.string().optional().catch(undefined),
+  system: z.boolean().optional().catch(undefined),
+  thumbnail: z.string().optional().catch(undefined),
   source: z
     .object({
       workflow_id: z.string().optional(),
@@ -192,6 +201,10 @@ export function readEntityMarker(
   const swapped = parsed.data.reference_asset_id?.trim();
   if (swapped) {
     marker.reference_asset_id = swapped;
+  }
+  const thumbnail = parsed.data.thumbnail?.trim();
+  if (parsed.data.system === true && parsePackageAssetUri(thumbnail)) {
+    marker.thumbnail = thumbnail;
   }
   if (parsed.data.source !== undefined) {
     marker.source = parsed.data.source;

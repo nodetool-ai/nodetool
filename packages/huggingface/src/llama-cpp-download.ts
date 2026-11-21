@@ -23,7 +23,7 @@ import * as fsp from "node:fs/promises";
 import * as path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
-import { getLlamaCppCacheDir } from "@nodetool-ai/config";
+import { getLlamaCppCacheDir, resolveHfEndpoint } from "@nodetool-ai/config";
 
 // ---------------------------------------------------------------------------
 // Cache directory helpers
@@ -83,6 +83,8 @@ interface DownloadLlamaCppModelOptions {
   progressCallback?: (deltaBytes: number, totalBytes: number | null) => void;
   cancelSignal?: AbortSignal;
   tag?: string;
+  /** Hub host; default: {@link resolveHfEndpoint}. */
+  endpoint?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -104,7 +106,13 @@ export async function downloadLlamaCppModel(
   filename: string,
   opts: DownloadLlamaCppModelOptions = {}
 ): Promise<string> {
-  const { token = null, progressCallback, cancelSignal, tag = "latest" } = opts;
+  const {
+    token = null,
+    progressCallback,
+    cancelSignal,
+    tag = "latest",
+    endpoint
+  } = opts;
 
   const cacheDir = getLlamaCppCacheDir();
   await fsp.mkdir(cacheDir, { recursive: true });
@@ -122,8 +130,8 @@ export async function downloadLlamaCppModel(
     `manifest=${org}=${repo}=${tag}.json`
   );
 
-  // Build HuggingFace URL
-  const hfUrl = `https://huggingface.co/${repoId}/resolve/main/${filename.replace(/^\/+/, "")}`;
+  // Build the Hub URL on the configured host (the public Hub or a mirror).
+  const hfUrl = `${resolveHfEndpoint(endpoint)}/${repoId}/resolve/main/${filename.replace(/^\/+/, "")}`;
 
   const headers: Record<string, string> = {};
   if (token) {

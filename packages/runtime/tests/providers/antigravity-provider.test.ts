@@ -1,9 +1,11 @@
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { getAntigravityBinaryPath } from "@nodetool-ai/antigravity-cli";
 import { describe, it, expect, vi } from "vitest";
 import {
+  ACP_AGENT_FILE,
+  ACP_TOOL_TURN_ARGS,
   AntigravityProvider,
   buildCliArgs,
   buildFreshPrompt,
@@ -16,6 +18,8 @@ import type {
   ProviderSession,
   ProviderStreamItem
 } from "../../src/providers/types.js";
+import { HOST_TOOLS_ONLY_NOTICE } from "../../src/providers/acp-cli-provider.js";
+import { bridgeCall, fakeAcp, text, tool } from "./fake-acp.js";
 
 interface Call {
   args: string[];
@@ -401,6 +405,106 @@ describe("AntigravityProvider", () => {
   });
 });
 
+describe("AntigravityProvider over agy acp", () => {
+  const agentPath = (cwd: string) => join(cwd, ".agents", "agents", "nodetool-mcp", "agent.md");
+
+  /** A runner that records each `agy` invocation and serves it with a fake ACP server. */
+  function acpRunner(cli: ReturnType<typeof fakeAcp>, onSpawn?: (args: string[], cwd: string | null) => Promise<void>) {
+    const calls: Array<{ args: string[]; cwd: string | null }> = [];
+    const runCli: AntigravityCliRunner = async (args, options) => {
+      if (args[0] === "models") {
+        return {
+          lines: (async function* () {
+            yield "gemini-3.8-flash-low";
+          })(),
+          exit: Promise.resolve({ code: 0, stderr: "" }),
+          kill: () => undefined
+        };
+      }
+      calls.push({ args, cwd: options.cwd });
+      await onSpawn?.(args, options.cwd);
+      return cli.spawn({ cwd: options.cwd, signal: options.signal });
+    };
+    return { runCli, calls };
+  }
+
+  it("runs tool turns on the tool-less nodetool-mcp agent written before agy starts", async () => {
+    const cli = fakeAcp(async ({ env, update }) => {
+      await bridgeCall(env, "/call", { name: "secret_word", arguments: {} });
+      update(text("PINEAPPLE"));
+    });
+    let agentAtSpawn = "";
+    const { runCli, calls } = acpRunner(cli, async (_args, cwd) => {
+      agentAtSpawn = await readFile(agentPath(cwd ?? ""), "utf8");
+    });
+    const provider = new AntigravityProvider({}, { runCli });
+    const items = await collect(
+      provider.generateLoop({
+        messages: [user("what is the word")],
+        model: "gemini-3.8-flash-low",
+        tools: [tool("secret_word")],
+        executeTool: async () => "PINEAPPLE"
+      })
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].args).toEqual(["acp", "--agent", "nodetool-mcp", "--include-default-customizations=false"]);
+    expect(ACP_TOOL_TURN_ARGS).toEqual(calls[0].args);
+    expect(basename(calls[0].cwd ?? "")).toBe("nodetool-antigravity");
+    expect(agentAtSpawn).toBe(ACP_AGENT_FILE);
+    expect(agentAtSpawn).toMatch(/^---\nname: nodetool-mcp\n[\s\S]*mainAgent: true\ntools: \[\]\n---\n/);
+    const prompt = cli.requests.find((r) => r.method === "session/prompt")?.params["prompt"][0].text;
+    expect(prompt).toContain(HOST_TOOLS_ONLY_NOTICE);
+    expect(items.at(-1)).toEqual({ type: "chunk", content: "", done: true });
+  });
+
+  it("rewrites an edited agent file on the next tool turn", async () => {
+    const cli = fakeAcp(async ({ update }) => update(text("ok")));
+    const { runCli, calls } = acpRunner(cli);
+    const provider = new AntigravityProvider({}, { runCli });
+    const turn = () =>
+      provider.generateLoop({
+        messages: [user("hi")],
+        model: "gemini-3.8-flash-low",
+        tools: [tool("secret_word")],
+        executeTool: async () => "x"
+      });
+    await collect(turn());
+    const file = agentPath(calls[0].cwd ?? "");
+    await writeFile(file, "---\nname: nodetool-mcp\ntools: [run_command]\n---\n");
+    await collect(turn());
+    expect(await readFile(file, "utf8")).toBe(ACP_AGENT_FILE);
+  });
+
+  it("generates images on plain agy acp, away from the tool-less agent", async () => {
+    const brainDir = await mkdtemp(join(tmpdir(), "agy-brain-"));
+    try {
+      await mkdir(join(brainDir, "s1"));
+      const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 7]);
+      const cli = fakeAcp(async () => {
+        setTimeout(() => void writeFile(join(brainDir, "s1", "i.png"), png), 10);
+      });
+      const { runCli, calls } = acpRunner(cli);
+      const provider = new AntigravityProvider(
+        {},
+        { runCli, imageBrainDir: brainDir, imagePollMs: 10, imageSettleMs: 40, imageTimeoutMs: 5000 }
+      );
+      const [model] = await provider.getAvailableImageModels();
+      const bytes = await provider.textToImage({ model, prompt: "fox" });
+
+      expect([...bytes]).toEqual([...png]);
+      expect(calls).toHaveLength(1);
+      expect(calls[0].args).toEqual(["acp"]);
+      expect(basename(calls[0].cwd ?? "")).toBe("nodetool-antigravity-image");
+      await expect(stat(agentPath(calls[0].cwd ?? ""))).rejects.toThrow();
+      const prompt = cli.requests.find((r) => r.method === "session/prompt")?.params["prompt"][0].text;
+      expect(prompt).toContain("image-generator");
+    } finally {
+      await rm(brainDir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("antigravity helpers", () => {
   it("parseModelSlugs skips headers and duplicates", () => {
     expect(parseModelSlugs(["Models", "gemini-3.6-flash-low", "gemini-3.6-flash-low"])).toEqual([
@@ -423,6 +527,15 @@ describe("antigravity helpers", () => {
 
   it("buildFreshPrompt sends a lone user turn verbatim", () => {
     expect(buildFreshPrompt([user("hi")], "")).toBe("hi");
+  });
+
+  it("buildFreshPrompt adds the host-tools notice to the instructions on tool turns", () => {
+    expect(buildFreshPrompt([user("hi")], "Be brief.", "Antigravity CLI", { hostToolsOnly: true })).toBe(
+      `<instructions>\nBe brief.\n\n${HOST_TOOLS_ONLY_NOTICE}\n</instructions>\n\nhi`
+    );
+    expect(buildFreshPrompt([user("hi")], "", "Antigravity CLI", { hostToolsOnly: true })).toBe(
+      `<instructions>\n${HOST_TOOLS_ONLY_NOTICE}\n</instructions>\n\nhi`
+    );
   });
 });
 

@@ -201,7 +201,8 @@ QSGNode *CanvasImageItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
     }
     auto *node = entry->node;
     const auto rect = mapRectToScene(it->geometry.localRect());
-    node->setRect(mapRectFromScene(tileTarget(rect, it->pixels, window()->effectiveDevicePixelRatio())));
+    const auto target = mapRectFromScene(tileTarget(rect, it->pixels, window()->effectiveDevicePixelRatio()));
+    if (node->rect() != target) { node->setRect(target); }
   }
   return root.release();
 }
@@ -272,6 +273,12 @@ void CanvasItem::reindex() {
 
 void CanvasItem::markDirty() {
   invalidateImage();
+  if (kind_ == Kind::Connection && isVectorPainted()) {
+    clearImage();
+    update();
+    if (scene_) { scene_->notifyChanged(); }
+    return;
+  }
   if (scene_) {
     scene_->requestRaster();
     scene_->notifyChanged();

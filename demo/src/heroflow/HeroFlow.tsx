@@ -43,14 +43,21 @@ import {
 } from "./clock";
 import {
   BEATS,
-  BRIEF,
   ENTITIES,
   FILM,
   KIND_COLOR,
   TOTAL_SECONDS,
-  entity,
   type Entity
 } from "./data";
+import {
+  COPY,
+  HeroLocaleContext,
+  useCopy,
+  useEntityOf,
+  type HeroCopy,
+  type HeroLocale
+} from "./locale";
+import { ensureCjkFontLoaded } from "./cjkFont";
 import { MOCKUPS } from "./Mockups";
 import {
   BeatSheetStep,
@@ -247,7 +254,8 @@ const StepLayer: React.FC<{
  * measures the hand-off boxes from it.
  */
 const LayoutLayer = React.forwardRef<HTMLDivElement>((_, ref) => {
-  const status = { text: "Rendering references · 6 of 6" };
+  const { ui } = useCopy();
+  const status = { text: ui.renderingRefs(ENTITIES.length, ENTITIES.length) };
   return (
     <AbsoluteFill ref={ref} style={{ visibility: "hidden" }}>
       <HfContext.Provider value={() => undefined}>
@@ -275,13 +283,17 @@ LayoutLayer.displayName = "LayoutLayer";
 /** Measures every `data-hf` box once, in stage pixels, after the fonts land. */
 const useMeasured = (
   root: React.RefObject<HTMLDivElement | null>,
-  layout: React.RefObject<HTMLDivElement | null>
+  layout: React.RefObject<HTMLDivElement | null>,
+  locale: HeroLocale
 ): Rects | null => {
   const [rects, setRects] = useState<Rects | null>(null);
   const [handle] = useState(() => delayRender("heroflow: measure"));
   useEffect(() => {
     let alive = true;
-    ensureInterLoaded()
+    Promise.all([
+      ensureInterLoaded(),
+      ensureCjkFontLoaded(locale)
+    ])
       .catch(() => undefined)
       .then(() => document.fonts.ready)
       .then(
@@ -315,7 +327,7 @@ const useMeasured = (
     return () => {
       alive = false;
     };
-  }, [handle, root, layout]);
+  }, [handle, root, layout, locale]);
   return rects;
 };
 
@@ -450,42 +462,57 @@ const ShotToClip: React.FC<{ index: number; rect: Rect; p: number }> = ({
 
 // ─── The reel ───────────────────────────────────────────────────────────────
 
-const agentForBeats = (rows: number): AgentStatus =>
+type Ui = HeroCopy["ui"];
+
+const agentForBeats = (ui: Ui, rows: number): AgentStatus =>
   rows >= BEATS.length
-    ? { text: `${BEATS.length} beats written`, done: true }
-    : { text: `Writing beats · ${Math.floor(rows) + 1} of ${BEATS.length}` };
+    ? { text: ui.beatsWritten(BEATS.length), done: true }
+    : { text: ui.writingBeats(Math.floor(rows) + 1, BEATS.length) };
 
-const agentForEntities = (done: number): AgentStatus =>
+const agentForEntities = (ui: Ui, done: number): AgentStatus =>
   done >= ENTITIES.length
-    ? { text: `${ENTITIES.length} references ready`, done: true }
-    : { text: `Rendering references · ${done} of ${ENTITIES.length}` };
+    ? { text: ui.refsReady(ENTITIES.length), done: true }
+    : { text: ui.renderingRefs(done, ENTITIES.length) };
 
-const agentForBoard = (b: ReturnType<typeof board>): AgentStatus => {
+const agentForBoard = (ui: Ui, b: ReturnType<typeof board>): AgentStatus => {
   const n = BEATS.length;
   const stills = b.states.filter(
     (s) => s !== "queued" && s !== "still-rendering"
   ).length;
   const clips = b.states.filter((s) => s === "clip").length;
   if (clips >= n) {
-    return { text: `${n} clips ready`, done: true };
+    return { text: ui.clipsReady(n), done: true };
   }
   if (stills < n || b.states.every((s) => s === "still")) {
-    return { text: `Rendering stills · ${stills} of ${n}` };
+    return { text: ui.renderingStills(stills, n) };
   }
-  return { text: `Animating clips · ${clips} of ${n}` };
+  return { text: ui.animatingClips(clips, n) };
 };
 
-export const HeroFlow: React.FC = () => {
+export type HeroFlowProps = {
+  /** Which words the reel shows. The media and timing are shared. */
+  locale?: HeroLocale;
+};
+
+export const HeroFlow: React.FC<HeroFlowProps> = ({ locale = "en" }) => (
+  <HeroLocaleContext.Provider value={locale}>
+    <HeroFlowReel locale={locale} />
+  </HeroLocaleContext.Provider>
+);
+
+const HeroFlowReel: React.FC<{ locale: HeroLocale }> = ({ locale }) => {
   useInterFont();
+  const copy = COPY[locale];
+  const { ui } = copy;
   const frame = useCurrentFrame();
   const t = frame / FPS;
   const root = useRef<HTMLDivElement>(null);
   const layout = useRef<HTMLDivElement>(null);
-  const rects = useMeasured(root, layout);
+  const rects = useMeasured(root, layout, locale);
   const r = (id: string): Rect => rects?.[id] ?? FULL;
 
   // Step 1 · Prompt
-  const composer = composerState(t, BRIEF.length);
+  const composer = composerState(t, copy.brief.length);
   const composerIn = expoOut(span(t, T.composerIn[0], T.composerIn[1]));
   const composerOpacity = composerIn * (1 - span(t, T.t1[0], T.t1[0] + 0.3));
 
@@ -534,7 +561,10 @@ export const HeroFlow: React.FC = () => {
 
   return (
     <Stage>
-      <AbsoluteFill ref={root}>
+      <AbsoluteFill
+        ref={root}
+        style={copy.font ? { fontFamily: copy.font } : undefined}
+      >
         {rects ? null : <LayoutLayer ref={layout} />}
         <HfContext.Provider value={hfStyle(t)}>
           <AbsoluteFill style={{ transform: `scale(${camera(t)})` }}>
@@ -562,7 +592,7 @@ export const HeroFlow: React.FC = () => {
               scale={SCALE.beats}
               opacity={beatsOpacity}
               clip={clipFor("beats-panel")}
-              agent={agentForBeats(rows)}
+              agent={agentForBeats(ui, rows)}
             >
               <BeatSheetStep rows={rows} dim={dim} />
             </StepLayer>
@@ -571,7 +601,7 @@ export const HeroFlow: React.FC = () => {
               scale={SCALE.entities}
               opacity={entitiesOpacity}
               clip={clipFor("entities-panel")}
-              agent={agentForEntities(entitiesDone(t))}
+              agent={agentForEntities(ui, entitiesDone(t))}
             >
               <EntitiesStep tile={(src) => tileState(t, src)} />
             </StepLayer>
@@ -580,7 +610,7 @@ export const HeroFlow: React.FC = () => {
               scale={SCALE.board}
               opacity={boardOpacity}
               clip={clipFor("board-panel")}
-              agent={agentForBoard(b)}
+              agent={agentForBoard(ui, b)}
             >
               <StoryboardStep
                 states={b.states}
@@ -613,11 +643,8 @@ export const HeroFlow: React.FC = () => {
               transform={`scale(${1 - 0.03 * expand})`}
               agent={
                 t < T.t4[1]
-                  ? { text: "Assembling cut" }
-                  : {
-                      text: `Cut assembled · ${TOTAL_SECONDS.toFixed(1)} s`,
-                      done: true
-                    }
+                  ? { text: ui.assembling }
+                  : { text: ui.assembled(TOTAL_SECONDS), done: true }
               }
             >
               <TimelineStep
@@ -704,6 +731,7 @@ const Flights: React.FC<{ t: number; r: (id: string) => Rect }> = ({
   t,
   r
 }) => {
+  const entity = useEntityOf();
   const live = (f: Flight): boolean => t >= f.start && t < f.end;
   const p = (f: Flight): number => inOut(span(t, f.start, f.end));
   // Style has no mention: its chip rises out of the sheet's title.

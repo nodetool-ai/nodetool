@@ -295,20 +295,15 @@ describe("useDynamicProperty", () => {
   });
 
   it("memoizes callbacks based on dependencies", () => {
+    type Props = { nodeId: string; dynamicProperties: Record<string, string> };
+    const initialProps: Props = {
+      nodeId: "node-1",
+      dynamicProperties: { prop1: "value1" }
+    };
     const { result, rerender } = renderHook(
-      ({
-        nodeId,
-        dynamicProperties
-      }: {
-        nodeId: string;
-        dynamicProperties: Record<string, string>;
-      }) => useDynamicProperty(nodeId, dynamicProperties),
-      {
-        initialProps: {
-          nodeId: "node-1",
-          dynamicProperties: { prop1: "value1" } as Record<string, string>
-        }
-      }
+      ({ nodeId, dynamicProperties }: Props) =>
+        useDynamicProperty(nodeId, dynamicProperties),
+      { initialProps }
     );
 
     const firstDelete = result.current.handleDeleteProperty;

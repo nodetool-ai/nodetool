@@ -182,6 +182,47 @@ private slots:
         QVERIFY(partAt(parts, 0)["expanded"].toBool());
         QCOMPARE(model.snapshot(), QJsonArray{raw});
     }
+    void appEventProjection() {
+        MessageModel model;
+        const QJsonObject runEvent{{"id", "ev1"}, {"role", "user"},
+            {"content", QStringLiteral("[app event] {\"step\":\"start\",\"control\":\"Suggest options\",\"requests\":[{\"kind\":\"run\",\"operationId\":\"suggest\"}]}")},
+            {"unknown", 7}};
+        const QJsonObject stepEvent{{"id", "ev2"}, {"role", "user"},
+            {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", QStringLiteral("[app event] {\"control\":\"Next\",\"requests\":[{\"kind\":\"step\",\"step\":\"review\"}]}")}}}}};
+        const QJsonObject settledDone{{"id", "ev3"}, {"role", "user"},
+            {"content", QStringLiteral("[app event] {\"control\":\"Run\",\"requests\":[],\"settled\":{\"operationId\":\"render\",\"status\":\"completed\"}}")}};
+        const QJsonObject settledFail{{"id", "ev4"}, {"role", "user"},
+            {"content", QStringLiteral("[app event] {\"control\":\"Run\",\"requests\":[],\"settled\":{\"operationId\":\"render\",\"status\":\"failed\"}}")}};
+        const QJsonObject settledStop{{"id", "ev5"}, {"role", "user"},
+            {"content", QStringLiteral("[app event] {\"control\":\"Run\",\"requests\":[],\"settled\":{\"operationId\":\"render\",\"status\":\"cancelled\"}}")}};
+        const QJsonObject settledUnknown{{"id", "ev6"}, {"role", "user"},
+            {"content", QStringLiteral("[app event] {\"control\":\"Run\",\"requests\":[],\"settled\":{\"operationId\":\"render\",\"status\":\"queued\"}}")}};
+        const QJsonObject invalidJson{{"id", "ev7"}, {"role", "user"},
+            {"content", QStringLiteral("[app event] not json")}};
+        const QJsonObject assistantTurn{{"id", "ev8"}, {"role", "assistant"},
+            {"content", QStringLiteral("[app event] {\"control\":\"Suggest options\",\"requests\":[]}")}};
+        for (const auto &row : {runEvent, stepEvent, settledDone, settledFail, settledStop, settledUnknown, invalidJson, assistantTurn}) {
+            model.upsert(row);
+        }
+        auto checkChip = [&](int row, const QString &expected) {
+            QVERIFY(model.data(model.index(row), MessageModel::DisplayTextRole).toString().isEmpty());
+            auto *parts = partsFor(model, row);
+            QCOMPARE(parts->rowCount(), 1);
+            QCOMPARE(partAt(parts, 0)["type"].toString(), QStringLiteral("app_event"));
+            QCOMPARE(partAt(parts, 0)["label"].toString(), expected);
+        };
+        checkChip(0, QStringLiteral("Pressed \u201CSuggest options\u201D \u00B7 run suggest"));
+        checkChip(1, QStringLiteral("Pressed \u201CNext\u201D \u00B7 go to review"));
+        checkChip(2, QStringLiteral("render finished"));
+        checkChip(3, QStringLiteral("render failed"));
+        checkChip(4, QStringLiteral("render was stopped"));
+        checkChip(5, QStringLiteral("Pressed \u201CRun\u201D"));
+        QCOMPARE(model.data(model.index(6), MessageModel::DisplayTextRole).toString(), QStringLiteral("[app event] not json"));
+        QCOMPARE(partsFor(model, 6)->rowCount(), 0);
+        QCOMPARE(model.data(model.index(7), MessageModel::DisplayTextRole).toString(), QStringLiteral("[app event] {\"control\":\"Suggest options\",\"requests\":[]}"));
+        QCOMPARE(partsFor(model, 7)->rowCount(), 0);
+        QCOMPARE(model.snapshot(), QJsonArray({runEvent, stepEvent, settledDone, settledFail, settledStop, settledUnknown, invalidJson, assistantTurn}));
+    }
     void approvalSafety() {
         QWebSocketServer server("approval-test", QWebSocketServer::NonSecureMode);
         QVERIFY(server.listen(QHostAddress::LocalHost, 0));

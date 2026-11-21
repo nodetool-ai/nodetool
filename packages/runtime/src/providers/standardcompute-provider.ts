@@ -1,9 +1,9 @@
 import { createLogger } from "@nodetool-ai/config";
 import { isString } from "@nodetool-ai/protocol";
 import {
-  OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
+import { DiscoveredCompatProvider } from "./discovered-compat-provider.js";
 import type { LanguageModel } from "./types.js";
 import { classifyListedModel } from "./custom-model-kinds.js";
 
@@ -19,13 +19,7 @@ const STANDARD_COMPUTE_BASE_URL = "https://api.stdcmpt.com/v1";
  * request can pin. Rows carry `display_name`, `context_length`,
  * `supported_parameters` and, for pinned models, `architecture` modalities.
  */
-export class StandardComputeProvider extends OpenAICompatProvider {
-  /** `supported_parameters` includes `"tools"`, per model id, from the last discovery. */
-  private toolSupport = new Map<string, boolean>();
-  /** `context_length` per model id, from the last discovery. */
-  private contextWindows = new Map<string, number>();
-  private discoveryLoad: Promise<unknown> | null = null;
-
+export class StandardComputeProvider extends DiscoveredCompatProvider {
   static override requiredSecrets(): string[] {
     return ["STANDARDCOMPUTE_API_KEY"];
   }
@@ -48,28 +42,6 @@ export class StandardComputeProvider extends OpenAICompatProvider {
 
   override getContainerEnv(): Record<string, string> {
     return { STANDARDCOMPUTE_API_KEY: this.apiKey };
-  }
-
-  /** Runs discovery once per instance when the model was not listed yet. */
-  private async ensureDiscovered(model: string): Promise<void> {
-    if (this.toolSupport.has(model)) return;
-    this.discoveryLoad ??= this.getAvailableLanguageModels();
-    await this.discoveryLoad;
-  }
-
-  /**
-   * A row whose `supported_parameters` omits `"tools"` turns native tools off;
-   * a model the listing did not describe keeps them on.
-   */
-  override async hasToolSupport(model: string): Promise<boolean> {
-    await this.ensureDiscovered(model);
-    return this.toolSupport.get(model) ?? true;
-  }
-
-  /** The `context_length` the listing reports, or null for an unlisted model. */
-  override async getContextWindow(model: string): Promise<number | null> {
-    await this.ensureDiscovered(model);
-    return this.contextWindows.get(model) ?? null;
   }
 
   /**

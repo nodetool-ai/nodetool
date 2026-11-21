@@ -75,10 +75,10 @@ because the media, inline editor and picker overlays still live in widgets.
 - **D5. No usable GPU device.** Recommended: the canvas uses only scene graph
   nodes that the software backend can draw, so the whole editor works on
   `QT_QUICK_BACKEND=software`. At start, the editor probes the RHI backend.
-  If the probe fails, it selects the software backend and shows a notice. If
-  the scene graph fails later (`QQuickWindow::sceneGraphError`), the editor
-  relaunches itself with the software backend. On the software backend the
-  timeline player reports `status: unavailable`.
+  If initialization fails, the editor relaunches once with software
+  rendering and shows a notice. Later scene graph errors are logged while
+  the editor stays open so users can save their work. On the software backend
+  the timeline player reports `status: unavailable`.
 - **D6. How tests run offscreen.** Recommended: logic tests keep
   `QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software`, as all 91 ctest
   entries set today. A new `render` label holds the tests that need a device.
@@ -92,11 +92,10 @@ because the media, inline editor and picker overlays still live in widgets.
   [The timeline player plan](#the-timeline-player-plan). Recommended: the
   timeline plan's S0 to S4 and S6 continue now. This plan runs in parallel up
   to Q9. S5 shrinks and S7 lands after Q10.
-- **D9. RHI inside `QQuickWidget` as an early step.** After Q6, no
-  `QQuickWidget` overlaps the canvas, so the app could switch to RHI before
-  the shell port. The timeline player would then render in the editor with
-  software decode. Recommended: do not. The black window on a failed device
-  and the missing device configuration remain until Q10.
+- **D9. RHI inside `QQuickWidget` as an early step.** The desktop app enables
+  RHI before the shell port. The launch probe checks the editor canvas and
+  retries with software if initialization fails. Device configuration for
+  shared timeline textures still requires the Quick window.
 
 ## Findings
 
@@ -627,16 +626,15 @@ Medium: mostly deletion.
 
 Medium: about 500 lines, plus CI.
 
-- Remove `setGraphicsApi(Software)` from `main.cpp`. Add the backend choice
-  of D5: environment first, then a probe, then software.
-- Call `nt::hw::selectGraphicsApi` and `nt::hw::prepareWindow` from the
-  shared decode library.
-- Enable the RHI variant of `node_editor_composition`. Add the `render`
-  label and run it in CI on lavapipe under `xvfb`. Logic tests keep the
-  software environment.
-- Gate: the full ctest on software. The `render` label on Vulkan and
-  OpenGL. A manual start with an invalid `VK_ICD_FILENAMES` shows the
-  software fallback and the notice.
+- The desktop startup uses Qt's platform graphics API, with the software
+  override and fallback described in D5.
+- Once the shell owns a Quick window, call `nt::hw::selectGraphicsApi` and
+  `nt::hw::prepareWindow` from the shared decode library to configure
+  device sharing.
+- The OpenGL and Vulkan composition tests and desktop startup checks use
+  the `render` label and run under Xvfb in Linux CI. Logic tests keep the
+  software environment. The render tests include a startup with an invalid
+  Vulkan driver to exercise the software retry.
 
 ### Q11. Edges and run animation on the GPU
 

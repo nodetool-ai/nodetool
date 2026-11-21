@@ -169,3 +169,37 @@ test("the tabs rotate when a loop ends and stop on the first click", async ({
     "true"
   );
 });
+
+test("a loop that stalls on buffering still hands over to the next tab", async ({
+  page,
+}) => {
+  // A stalled loop stays "playing" (no pause event) but never reaches `ended`.
+  // Holding the playback rate at 0 once it starts reproduces that state.
+  await page.addInitScript(() => {
+    const real = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function play(this: HTMLMediaElement) {
+      this.addEventListener(
+        "playing",
+        () => {
+          this.playbackRate = 0;
+        },
+        { once: true }
+      );
+      return real.call(this);
+    };
+  });
+
+  await page.goto("/studio", { waitUntil: "load" });
+  await page
+    .getByRole("tablist", { name: "Editing surfaces" })
+    .evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await expect(page.locator(`${PANEL} video`)).toHaveClass(/opacity-100/, {
+    timeout: 15_000,
+  });
+
+  await expect(page.locator("#surface-tab-script")).toHaveAttribute(
+    "aria-selected",
+    "true",
+    { timeout: 15_000 }
+  );
+});

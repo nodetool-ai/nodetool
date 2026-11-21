@@ -6,7 +6,7 @@ import { browserRunnablePrefix } from "../buildDownstreamRunGraph";
 const node = (id: string, type: string): Node<NodeData> =>
   stub<Node<NodeData>>({ id, type, data: {} });
 const edge = (source: string, target: string): Edge =>
-  ({ id: `${source}-${target}`, source, target }) as Edge;
+  ({ id: `${source}-${target}`, source, target });
 
 const BROWSER = new Set(["browser"]);
 const isBrowser = (type: string | undefined): boolean =>

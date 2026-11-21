@@ -32,6 +32,7 @@
 #include <QQuickPaintedItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
+#include <QSGGeometry>
 #include <QSGRendererInterface>
 #include <QSignalSpy>
 #include <QToolTip>
@@ -2007,6 +2008,121 @@ private slots:
     f.release(start + QPointF(20, 10));
     QVERIFY(!scene.draftConnection());
     QTRY_VERIFY_WITH_TIMEOUT(!f.canvas->rasterPending(), 2000);
+  }
+
+  // Reparenting QuickCanvas into another widget tree (as EditorWindow moves it
+  // into dockHost_) can make QQuickWidget recreate its offscreen window under
+  // RHI. The GraphCanvas must stay attached to the current Quick window.
+  void reparentKeepsCanvasAttached() {
+    QWidget initialParent;
+    QWidget targetWindow;
+    targetWindow.resize(640, 480);
+    auto *container = new QWidget(&targetWindow);
+    container->resize(640, 480);
+    WorkflowGraphModel model;
+    model.project(pair(), catalog());
+    QuickCanvas surface(model, initialParent);
+    QVERIFY(surface.quickWidget().rootObject() != nullptr);
+    QCOMPARE(surface.graphCanvas().parentItem(), surface.quickWidget().rootObject());
+    QCOMPARE(surface.graphCanvas().window(), surface.quickWidget().quickWindow());
+
+    surface.hostWidget().setParent(container);
+    surface.hostWidget().resize(640, 480);
+    targetWindow.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&targetWindow));
+    QCOMPARE(surface.quickWidget().rootObject()->parentItem(),
+             surface.quickWidget().quickWindow()->contentItem());
+    QCOMPARE(surface.graphCanvas().parentItem(), surface.quickWidget().rootObject());
+    QCOMPARE(surface.graphCanvas().window(), surface.quickWidget().quickWindow());
+  }
+
+  void vectorWireGeometry() {
+    const auto theme = test::darkCanvasTheme();
+    auto checkGeometry = [&](const canvas::WirePaintState &state, bool expectNonEmpty) {
+      QSGGeometry geom(QSGGeometry::defaultAttributes_ColoredPoint2D(), 0, 0, QSGGeometry::UnsignedShortType);
+      geom.setDrawingMode(QSGGeometry::DrawTriangles);
+      canvas::WirePainter::buildGeometry(geom, theme, state, 0.5);
+      if (!expectNonEmpty) {
+        QCOMPARE(geom.vertexCount(), 0);
+        QCOMPARE(geom.indexCount(), 0);
+        return;
+      }
+      QVERIFY(geom.vertexCount() > 0);
+      QVERIFY(geom.vertexCount() <= 65535);
+      QVERIFY(geom.indexCount() > 0);
+      QCOMPARE(geom.indexCount() % 3, 0);
+      const auto *indices = geom.indexDataAsUShort();
+      for (int i = 0; i < geom.indexCount(); ++i) {
+        QVERIFY(int(indices[i]) < geom.vertexCount());
+      }
+    };
+
+    canvas::WirePaintState base;
+    base.out = {0, 0};
+    base.in = {1200, 800};
+    base.sourceColor = QColor("#60a5fa");
+    base.targetColor = QColor("#60a5fa");
+    base.visible = true;
+    checkGeometry(base, true);
+
+    auto hidden = base;
+    hidden.visible = false;
+    checkGeometry(hidden, false);
+
+    auto gradient = base;
+    gradient.targetColor = QColor("#f59e0b");
+    checkGeometry(gradient, true);
+
+    auto selectedHovered = base;
+    selectedHovered.selected = true;
+    selectedHovered.hovered = true;
+    checkGeometry(selectedHovered, true);
+
+    auto overview = base;
+    overview.zoom = 0.25;
+    checkGeometry(overview, true);
+
+    auto bypassed = base;
+    bypassed.bypassed = true;
+    checkGeometry(bypassed, true);
+
+    auto streaming = base;
+    streaming.streaming = true;
+    checkGeometry(streaming, true);
+
+    auto flowingA = base;
+    flowingA.flowing = true;
+    flowingA.animationActive = true;
+    flowingA.animationPhase = 0.0;
+    auto flowingB = flowingA;
+    flowingB.animationPhase = 0.08;
+    QSGGeometry geomA(QSGGeometry::defaultAttributes_ColoredPoint2D(), 0, 0, QSGGeometry::UnsignedShortType);
+    QSGGeometry geomB(QSGGeometry::defaultAttributes_ColoredPoint2D(), 0, 0, QSGGeometry::UnsignedShortType);
+    canvas::WirePainter::buildGeometry(geomA, theme, flowingA, 0.5);
+    canvas::WirePainter::buildGeometry(geomB, theme, flowingB, 0.5);
+    QVERIFY(geomA.vertexCount() > 0 && geomB.vertexCount() > 0);
+    const auto *va = geomA.vertexDataAsColoredPoint2D();
+    const auto *vb = geomB.vertexDataAsColoredPoint2D();
+    bool shifted = geomA.vertexCount() != geomB.vertexCount();
+    for (int i = 0; !shifted && i < geomA.vertexCount(); ++i) {
+      if (va[i].x != vb[i].x || va[i].y != vb[i].y) { shifted = true; }
+    }
+    QVERIFY(shifted);
+
+    auto control = base;
+    control.control = true;
+    control.selected = true;
+    checkGeometry(control, true);
+
+    auto draft = base;
+    draft.draft = true;
+    draft.draftFromOutput = true;
+    checkGeometry(draft, true);
+
+    // Extreme length dashed wire must stay within UnsignedShortType vertex bounds.
+    auto extreme = bypassed;
+    extreme.in = {40000, 30000};
+    checkGeometry(extreme, true);
   }
 };
 

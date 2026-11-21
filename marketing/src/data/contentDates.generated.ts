@@ -7,12 +7,12 @@ export const contentDates: {
 } = {
   "routes": {
     "/agents": {
-      "date": "2026-11-14",
-      "hash": "3cab6ea699b4b90c"
+      "date": "2026-11-21",
+      "hash": "4bb19192b76ad026"
     },
     "/marketing": {
-      "date": "2026-11-12",
-      "hash": "8156191b6731ae30"
+      "date": "2026-11-21",
+      "hash": "9588275884052993"
     },
     "/gamedev": {
       "date": "2026-11-20",
@@ -23,28 +23,28 @@ export const contentDates: {
       "hash": "11a4d9bec9749169"
     },
     "/ai-video-editor": {
-      "date": "2026-11-20",
-      "hash": "4f1f1682f47847f7"
+      "date": "2026-11-21",
+      "hash": "7a98b54705c83e41"
     },
     "/ai-image-editor": {
       "date": "2026-11-09",
       "hash": "46c7726eaecfadf0"
     },
     "/mcp": {
-      "date": "2026-11-14",
-      "hash": "27442daffaef219e"
+      "date": "2026-11-21",
+      "hash": "2bbb613b0f51816d"
     },
     "/developers": {
       "date": "2026-11-09",
       "hash": "f6cbe1983f0825ce"
     },
     "/studio": {
-      "date": "2026-11-11",
-      "hash": "b19bf2ea276f5de6"
+      "date": "2026-11-21",
+      "hash": "ef442002e1ec4a03"
     },
     "/storyboards": {
-      "date": "2026-11-12",
-      "hash": "d856073c685a1fae"
+      "date": "2026-11-21",
+      "hash": "a732ef5f361741a4"
     },
     "/storyboards/bowl-time": {
       "date": "2026-10-06",

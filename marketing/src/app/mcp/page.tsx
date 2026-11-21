@@ -22,11 +22,12 @@ import PageUpdated from "@/components/PageUpdated";
 import McpSessionMock from "@/components/McpSessionMock";
 import McpInstallCommand from "@/components/agents/McpInstallCommand";
 import { SurfaceCard, type Surface } from "@/components/agents/AgentSurfaceGrid";
+import { languageAlternates } from "@/i18n/routes";
 
 export const metadata: Metadata = {
   title: MCP_TITLE,
   description: MCP_DESCRIPTION,
-  alternates: { canonical: "/mcp" },
+  alternates: { canonical: "/mcp", languages: languageAlternates("/mcp") },
   openGraph: { title: MCP_TITLE, description: MCP_DESCRIPTION, url: "https://nodetool.ai/mcp", siteName: "NodeTool", type: "website", images: DEFAULT_OG_IMAGES },
   twitter: { card: "summary_large_image", title: MCP_TITLE, description: MCP_DESCRIPTION },
 };

@@ -1,12 +1,15 @@
 #include "server/BundledServer.h"
 #include "ui/EditorWindow.h"
-#include "ui/CanvasSurface.h"
+#include "ui/QuickCanvas.h"
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QElapsedTimer>
+#include <QEventLoop>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QQuickWindow>
+#include <QProcess>
+#include <QQuickWidget>
 #include <QTimer>
 #include <chrono>
 #include <cstdio>
@@ -15,14 +18,115 @@ namespace {
 // How long native host jobs of local runs get to finish after the editor
 // closed, as in the graph runner CLI.
 constexpr auto kLaneShutdownGrace = std::chrono::seconds(2);
+constexpr auto kGraphicsStartupTimeout = std::chrono::seconds(5);
+constexpr auto kSoftwareRetry = "NODETOOL_NODE_EDITOR_SOFTWARE_RETRY";
+constexpr auto kGraphicsFailure = 7;
+
+const char *graphicsApiName(QSGRendererInterface::GraphicsApi api) {
+  switch (api) {
+  case QSGRendererInterface::OpenGL: return "OpenGL";
+  case QSGRendererInterface::Direct3D11: return "Direct3D11";
+  case QSGRendererInterface::Direct3D12: return "Direct3D12";
+  case QSGRendererInterface::Vulkan: return "Vulkan";
+  case QSGRendererInterface::Metal: return "Metal";
+  default: return "unknown RHI backend";
+  }
+}
+
+// UI thread only. Qt initializes Quick widget scene graphs after polish.
+// Once editing can begin, a failed dock or dialog must leave the editor open.
+class GraphicsStartup final : public QObject {
+public:
+  bool eventFilter(QObject *object, QEvent *event) override {
+    if (event->type() == QEvent::Polish) {
+      if (auto *quick = qobject_cast<QQuickWidget *>(object)) {
+        connect(quick, &QQuickWidget::sceneGraphError, this, &GraphicsStartup::sceneGraphError,
+                Qt::UniqueConnection);
+      }
+    }
+    return false;
+  }
+
+  bool waitForCanvas(nodetool::EditorWindow &window) {
+    QElapsedTimer elapsed;
+    elapsed.start();
+    QEventLoop loop;
+    QTimer poll;
+    connect(&poll, &QTimer::timeout, &loop, [&] {
+      const auto &widget = window.canvas().quickWidget();
+      auto *quick = widget.quickWindow();
+      const auto *handle = window.windowHandle();
+      auto *renderer = quick->rendererInterface();
+      if (!error_.isEmpty()) {
+        loop.quit();
+      } else if (handle && handle->isExposed() && quick->isSceneGraphInitialized() &&
+                 renderer->graphicsApi() != QSGRendererInterface::Null &&
+                 renderer->getResource(quick, QSGRendererInterface::RhiResource)) {
+        qInfo("nodetool-node-editor: using %s rendering.", graphicsApiName(renderer->graphicsApi()));
+        loop.quit();
+      } else if (elapsed.durationElapsed() >= kGraphicsStartupTimeout) {
+        sceneGraphError(QQuickWindow::ContextNotAvailable, tr("The graphics renderer did not initialize."));
+        loop.quit();
+      }
+    });
+    poll.start(25);
+    if (error_.isEmpty()) {
+      loop.exec(QEventLoop::ExcludeUserInputEvents);
+    }
+    startupComplete_ = error_.isEmpty();
+    return error_.isEmpty();
+  }
+
+  const QString &error() const { return error_; }
+
+private:
+  void sceneGraphError(QQuickWindow::SceneGraphError, const QString &message) {
+    if (startupComplete_) {
+      qWarning().noquote() << "nodetool-node-editor:" << message;
+    } else if (error_.isEmpty()) {
+      error_ = message.isEmpty() ? tr("The graphics renderer did not initialize.") : message;
+    }
+  }
+
+  QString error_;
+  bool startupComplete_ = false;
+};
+
+bool isExport(const QCommandLineParser &parser) {
+  return parser.isSet("screenshot") || parser.isSet("dump") ||
+         parser.isSet("save") || parser.isSet("replay");
+}
+
+int retryInSoftware(const QStringList &arguments, bool wait, const QString &error) {
+  qWarning().noquote() << "nodetool-node-editor: restarting with software rendering." << error;
+  QProcess retry;
+  auto environment = QProcessEnvironment::systemEnvironment();
+  environment.insert("QT_QUICK_BACKEND", "software");
+  environment.insert("QT_QPA_PLATFORM", QGuiApplication::platformName());
+  environment.insert(kSoftwareRetry, "1");
+  retry.setProcessEnvironment(environment);
+  retry.setProgram(QCoreApplication::applicationFilePath());
+  retry.setArguments(arguments);
+  retry.setProcessChannelMode(QProcess::ForwardedChannels);
+  if (!wait && retry.startDetached()) {
+    return 0;
+  }
+  if (wait) {
+    retry.start();
+    if (retry.waitForStarted() && retry.waitForFinished(-1) && retry.exitStatus() == QProcess::NormalExit) {
+      return retry.exitCode();
+    }
+  }
+  qCritical().noquote() << "nodetool-node-editor: software retry failed." << retry.errorString();
+  return kGraphicsFailure;
+}
 // Shows the editor until it quits. Returns the exit status. The window, its
 // tabs and their sessions are destroyed on return, and with the last session
 // the in-process runner, whose destructor cancels its run and joins its
 // worker thread.
-int runEditor(QApplication &app, const QCommandLineParser &parser);
+int runEditor(QApplication &app, const QCommandLineParser &parser, GraphicsStartup *graphics);
 }
 int main(int argc, char **argv) {
-  QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
   QApplication app(argc, argv);
   QCoreApplication::setApplicationName("nodetool-node-editor");
   QCommandLineParser parser;
@@ -38,12 +142,26 @@ int main(int argc, char **argv) {
   if (parser.isSet("guest-bundle")) {
     nodetool::node_editor::WorkflowSession::setGuestBundlePath(parser.value("guest-bundle"));
   }
-  const int status = runEditor(app, parser);
+  const bool softwareRetry = qEnvironmentVariableIsSet(kSoftwareRetry);
+  const auto platform = QGuiApplication::platformName();
+  const bool software = softwareRetry || platform == "offscreen" || platform == "minimal" ||
+                        qEnvironmentVariable("QT_QUICK_BACKEND") == "software";
+  if (software) {
+    QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
+  }
+  GraphicsStartup graphics;
+  if (!software) {
+    app.installEventFilter(&graphics);
+  }
+  int status = runEditor(app, parser, software ? nullptr : &graphics);
   // A native host job of a local run that ignores its stop request keeps
   // running after the runner is gone. Static destructors could run under it,
   // so the editor then ends without them.
   const auto live = nodetool::node_editor::WorkflowSession::finishLocalRunJobs(
       std::chrono::steady_clock::now() + kLaneShutdownGrace);
+  if (status == kGraphicsFailure && !graphics.error().isEmpty()) {
+    status = retryInSoftware(app.arguments().mid(1), isExport(parser), graphics.error());
+  }
   if (live > 0) {
     std::fprintf(stderr, "nodetool-node-editor: %zu host lane threads still running a job, exiting without static teardown\n", live);
     std::fflush(stdout);
@@ -53,12 +171,24 @@ int main(int argc, char **argv) {
   return status;
 }
 namespace {
-int runEditor(QApplication &app, const QCommandLineParser &parser) {
+int runEditor(QApplication &app, const QCommandLineParser &parser, GraphicsStartup *graphics) {
   // An interactive start connects to the local server and cloud account, as
   // the web app does. Headless export and replay runs stay offline unless
   // --server is given and never read the OS keychain.
-  const bool headless = parser.isSet("screenshot") || parser.isSet("dump") || parser.isSet("save") || parser.isSet("replay");
+  const bool headless = isExport(parser);
   nodetool::EditorWindow window(nullptr, {.cloudAccount = !headless});
+  if (parser.isSet("theme")) { window.setDarkTheme(parser.value("theme") != "light"); }
+  if (graphics) {
+    // Check the actual top-level widget before starting a server or restoring
+    // documents. A retry in a new process then has no session to recover.
+    window.show();
+    if (!graphics->waitForCanvas(window)) {
+      return kGraphicsFailure;
+    }
+    // Server startup can process events. Keep the window out of reach until
+    // the requested document or restored tabs have been loaded.
+    window.hide();
+  }
   const bool restore = !parser.isSet("open") && !parser.isSet("workflow");
   // A package with a bundled backend starts that server instead. It starts
   // before the tabs are restored, so a tab saved on the bundled server
@@ -129,10 +259,12 @@ int runEditor(QApplication &app, const QCommandLineParser &parser) {
       }
     }
   }
-  if (parser.isSet("theme")) { window.setDarkTheme(parser.value("theme") != "light"); }
+  if (qEnvironmentVariableIsSet(kSoftwareRetry)) {
+    window.notify("warning", QCoreApplication::translate("EditorWindow",
+        "The graphics renderer could not start. The editor is using software rendering."));
+  }
   window.show();
-  if (parser.isSet("screenshot") || parser.isSet("dump") ||
-      parser.isSet("save") || parser.isSet("replay")) {
+  if (headless) {
     QTimer::singleShot(500, &window, [&] {
       int status = 0;
       window.fit();

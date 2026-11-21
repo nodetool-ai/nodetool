@@ -40,7 +40,8 @@ import {
   getModelsByHfType,
   filterModelsByHfType,
   deleteCachedHfModel,
-  isLlamaCppModelCached as isFlatLlamaCppModelCached
+  isLlamaCppModelCached as isFlatLlamaCppModelCached,
+  resolveStoredHfEndpoint
 } from "@nodetool-ai/huggingface";
 import type { TjsModelRef } from "@nodetool-ai/transformers-js-nodes";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
@@ -710,14 +711,16 @@ function hubModelToUnified(
 }
 
 /**
- * Search the live HuggingFace Hub (https://huggingface.co/api/models) by
- * free-text and/or pipeline tag. Returns downloadable repos sorted by
- * popularity. Network/HTTP failures degrade to an empty list.
+ * Search the live HuggingFace Hub (`<endpoint>/api/models`, where the endpoint
+ * is https://huggingface.co or the user's `HF_ENDPOINT` mirror) by free-text
+ * and/or pipeline tag. Returns downloadable repos sorted by popularity.
+ * Network/HTTP failures degrade to an empty list.
  */
 async function searchHuggingFaceHub(
   query: string | undefined,
   pipelineTag: string | undefined,
-  limit: number
+  limit: number,
+  endpoint: string
 ): Promise<UnifiedModel[]> {
   if (!query && !pipelineTag) return [];
   const params = new URLSearchParams();
@@ -733,7 +736,7 @@ async function searchHuggingFaceHub(
 
   try {
     const res = await fetch(
-      `https://huggingface.co/api/models?${params.toString()}`,
+      `${endpoint}/api/models?${params.toString()}`,
       { headers }
     );
     if (!res.ok) {
@@ -1413,11 +1416,15 @@ export const modelsRouter = router({
   huggingfaceHubSearch: protectedProcedure
     .input(hfHubSearchInput)
     .output(modelsListOutput)
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      const endpoint = await resolveStoredHfEndpoint((key) =>
+        getStoredSecret(key, ctx.userId)
+      );
       return await searchHuggingFaceHub(
         input.query,
         input.pipeline_tag,
-        input.limit ?? 50
+        input.limit ?? 50,
+        endpoint
       );
     }),
 

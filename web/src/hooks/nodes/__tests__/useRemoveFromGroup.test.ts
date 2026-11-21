@@ -133,7 +133,7 @@ describe("useRemoveFromGroup", () => {
       createMockNode("node-1", { x: 50, y: 60 }, "parent-1")
     ];
 
-    mockFindNode.mockReturnValue({ id: "parent-1", position: undefined } as any);
+    mockFindNode.mockReturnValue({ id: "parent-1", position: undefined });
 
     act(() => {
       result.current(nodesToRemove);
@@ -190,7 +190,15 @@ describe("useRemoveFromGroup", () => {
     const { result } = renderHook(() => useRemoveFromGroup());
     const parentNode = createMockNode("parent-1", { x: 50, y: 50 });
     const nodesToRemove = [
-      { id: "node-1", type: "default", position: undefined, parentId: "parent-1", data: {} } as any
+      // SAFETY: deliberately invalid fixture; a node with no position proves
+      // the hook skips it instead of throwing.
+      {
+        id: "node-1",
+        type: "default",
+        position: undefined,
+        parentId: "parent-1",
+        data: {}
+      } as never
     ];
 
     mockFindNode.mockReturnValue(parentNode);

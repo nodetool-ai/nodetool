@@ -388,10 +388,12 @@ jobs:
           # The editor compiles the runner as a subproject, so it needs the
           # runner's compiler (see Configure above).
           cmake -S native/node-editor -B native/node-editor/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DNODETOOL_NODE_EDITOR_RHI_TESTS=ON \
             -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build native/node-editor/build --parallel 2 --target nodetool-node-editor \
-            node_editor_menus_tests node_editor_canvas_media_host_tests node_editor_media_ui_tests node_editor_local_run_tests
+            node_editor_menus_tests node_editor_canvas_media_host_tests node_editor_media_ui_tests node_editor_local_run_tests \
+            node_editor_composition_tests
           QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
             native/node-editor/build/node_editor_menus_tests examplesMenuOpensEachBundledExample
           QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
@@ -399,3 +401,7 @@ jobs:
           QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
             native/node-editor/build/node_editor_media_ui_tests longWaveformStaysBounded
           ctest --test-dir native/node-editor/build -R '^node_editor_local_run$' --output-on-failure
+          driver=$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)
+          test -n "$driver"
+          VK_DRIVER_FILES="$driver" VK_ICD_FILENAMES="$driver" LIBGL_ALWAYS_SOFTWARE=1 \
+            ctest --test-dir native/node-editor/build -L render --output-on-failure --no-tests=error

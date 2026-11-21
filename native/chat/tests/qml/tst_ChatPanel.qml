@@ -327,6 +327,18 @@ TestCase {
         tryVerify(() => findText(panel, "Hide details") !== null)
         if (directory) grabImage(panel).save(directory + "/compaction-expanded.png")
     }
+    function test_appEventChip() {
+        testDriver.replay("app-events")
+        tryVerify(() => findText(panel, "Pressed \u201CSuggest options\u201D \u00B7 run suggest") !== null)
+        verify(findText(panel, "Pressed \u201CContinue\u201D \u00B7 run render \u00B7 go to review") !== null)
+        verify(findText(panel, "render finished") !== null)
+        verify(findText(panel, "[app event] not json") !== null)
+        const firstRow = findVisible(panel, "message_11111111111111111111111111111111")
+        verify(firstRow !== null)
+        verify(findVisible(firstRow, "chatAppEventChip") !== null)
+        verify(findVisible(firstRow, "messageActions") === null)
+        verify(findText(firstRow, "operationId") === null)
+    }
     function test_subAgentTranscript() {
         testDriver.replay("sub-agents")
         tryVerify(() => findText(panel, "Audit the config loader") !== null)

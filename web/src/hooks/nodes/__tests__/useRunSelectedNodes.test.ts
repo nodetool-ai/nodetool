@@ -44,12 +44,12 @@ import {
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createRunResolver } from "../../../utils/runResolver";
 
-const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
-const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
-const mockGetWorkflowRunnerStore = getWorkflowRunnerStore as jest.Mock;
+const mockUseNodeStoreRef = asMock(useNodeStoreRef);
+const mockUseWebsocketRunner = asMock(useWebsocketRunner);
+const mockGetWorkflowRunnerStore = asMock(getWorkflowRunnerStore);
 const mockUseNotificationStore = asMock(useNotificationStore);
 const mockMetadataGetState = asMockStore(useMetadataStore).getState;
-const mockCreateRunResolver = createRunResolver as jest.Mock;
+const mockCreateRunResolver = asMock(createRunResolver);
 
 type RunnerState = {
   state: "idle" | "running" | "error" | "cancelled" | "connecting";

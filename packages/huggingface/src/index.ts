@@ -5,7 +5,8 @@ export {
   getHfToken,
   resolveHfToken,
   clearHfTokenCache,
-  resolveWorkerHfToken
+  resolveWorkerHfToken,
+  resolveStoredHfEndpoint
 } from "./hf-auth.js";
 export type { SecretReader } from "./hf-auth.js";
 

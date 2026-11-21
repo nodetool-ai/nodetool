@@ -12,8 +12,13 @@
 #include <qtnodes/ConnectionIdUtils.hpp>
 #include <qtnodes/AbstractNodeGeometry.hpp>
 #include <QPainter>
+#include <QQuickWindow>
+#include <QSGGeometryNode>
+#include <QSGRendererInterface>
+#include <QSGVertexColorMaterial>
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <stdexcept>
 
 namespace nodetool::canvas {
@@ -220,6 +225,91 @@ void ConnectionItem::hoverLeave(const CanvasMouseEvent &) {
   state_.setHovered(false);
   markDirty();
   if (auto *scene = canvasScene()) { emit scene->connectionHoverLeft(id_); }
+}
+
+namespace {
+// Render thread only. Owned by the scene graph. Embeds its geometry and vertex
+// color material so every vector wire shares one material and batches into one
+// GPU draw call.
+class WireVectorNode final : public QSGGeometryNode {
+public:
+  struct Key {
+    QPointF out, in;
+    QRgb sourceColor = 0, targetColor = 0, controlColor = 0;
+    double animationPhase = 0;
+    double feather = 0;
+    bool visible = false, control = false, draft = false, draftFromOutput = false;
+    bool selected = false, endpointSelected = false, hovered = false, bypassed = false;
+    bool streaming = false, flowing = false, messageSent = false, connecting = false;
+    bool animationActive = false, zoomedOut = false;
+    bool operator==(const Key &) const = default;
+  };
+
+  WireVectorNode() : geometry_(QSGGeometry::defaultAttributes_ColoredPoint2D(), 0, 0, QSGGeometry::UnsignedShortType) {
+    geometry_.setDrawingMode(QSGGeometry::DrawTriangles);
+    setGeometry(&geometry_);
+    setMaterial(&material_);
+  }
+
+  void sync(const CanvasTheme &theme, const WirePaintState &state, double feather) {
+    const Key next{
+        state.out, state.in, state.sourceColor.rgba(), state.targetColor.rgba(), theme.controlWire.rgba(),
+        state.animationPhase, feather, state.visible, state.control, state.draft, state.draftFromOutput,
+        state.selected, state.endpointSelected, state.hovered, state.bypassed, state.streaming, state.flowing,
+        state.messageSent, state.connecting, state.animationActive, state.zoom <= zoomedOutThreshold};
+    if (valid_ && key_ == next) { return; }
+    key_ = next;
+    valid_ = true;
+    WirePainter::buildGeometry(geometry_, theme, state, feather);
+    markDirty(DirtyGeometry);
+  }
+
+private:
+  QSGGeometry geometry_;
+  QSGVertexColorMaterial material_;
+  Key key_{};
+  bool valid_ = false;
+};
+} // namespace
+
+bool ConnectionItem::isVectorPainted() const {
+  auto *view = window();
+  auto *scene = canvasScene();
+  return view && view->rendererInterface()->graphicsApi() != QSGRendererInterface::Software &&
+         scene && scene->supportsVectorConnections() && !scene->connectionPaintsOffPath(*this);
+}
+
+QSGNode *ConnectionItem::updatePaintNode(QSGNode *old, UpdatePaintNodeData *data) {
+  if (!isVectorPainted()) {
+    if (old && old->type() == QSGNode::GeometryNodeType) {
+      std::unique_ptr<QSGNode> previous(old);
+      old = nullptr;
+    }
+    return CanvasImageItem::updatePaintNode(old, data);
+  }
+  auto *view = window();
+  auto *scene = canvasScene();
+  const auto *theme = scene ? scene->vectorTheme() : nullptr;
+  const auto state = scene ? scene->connectionPaintState(*this, scene->zoom()) : std::nullopt;
+  if (!view || !theme || !state || !state->visible) {
+    std::unique_ptr<QSGNode> previous(old);
+    return nullptr;
+  }
+  if (old && old->type() != QSGNode::GeometryNodeType) {
+    std::unique_ptr<QSGNode> previous(old);
+    old = nullptr;
+  }
+  auto node = old ? std::unique_ptr<WireVectorNode>(static_cast<WireVectorNode *>(old))
+                  : std::make_unique<WireVectorNode>();
+  const double zoom = std::max(scene->zoom(), 1e-4);
+  const double dpr = std::max(view->effectiveDevicePixelRatio(), 1.0);
+  node->sync(*theme, *state, 1.0 / (zoom * dpr));
+  return node.release();
+}
+
+void ConnectionItem::itemChange(ItemChange change, const ItemChangeData &value) {
+  CanvasItem::itemChange(change, value);
+  if (change == ItemSceneChange && value.window && isVectorPainted()) { update(); }
 }
 
 } // namespace nodetool::canvas

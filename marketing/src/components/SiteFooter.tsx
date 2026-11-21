@@ -1,10 +1,13 @@
 "use client";
 import React from "react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { track } from "../lib/analytics";
 import { footerCompareLinks } from "../data/competitorEntries";
 import { EDITIONS } from "../data/editions";
 import { LANGUAGE_PAGES } from "../data/languagePages";
+import { localeOfPath, localizedPath, type Locale } from "../i18n/routes";
+import { ZH_FOOTER, ZH_NAV_GROUPS, ZH_NAV_LABELS } from "../i18n/zh/chrome";
 
 /**
  * Single shared site footer used by every route (P3/C4). Gives consistent
@@ -80,14 +83,41 @@ const COLUMNS: Col[] = [
   },
 ];
 
+const ENGLISH_FOOTER = {
+  blurb:
+    "Free, open-source software built alongside working artists, designers, and video editors. Describe what you want to create, watch the agent build it, and save the project files.",
+  builtInOpen: "Built in the open.",
+  languages: "Languages",
+};
+
+const FOOTER_COPY: Record<Locale, typeof ENGLISH_FOOTER> = { zh: ZH_FOOTER };
+
+/**
+ * The columns in a page's language: translated labels, and links to the
+ * translated page where one exists. Comparison names stay as they are.
+ */
+function localizeColumns(locale: Locale): Col[] {
+  return COLUMNS.map((col) => ({
+    title: ZH_NAV_GROUPS[col.title] ?? col.title,
+    links: col.links.map((link) => ({
+      ...link,
+      name: link.external ? link.name : (ZH_NAV_LABELS[link.href] ?? link.name),
+      href: link.external ? link.href : (localizedPath(locale, link.href) ?? link.href),
+    })),
+  }));
+}
+
 export default function SiteFooter() {
+  const locale = localeOfPath(usePathname());
+  const columns = locale ? localizeColumns(locale) : COLUMNS;
+  const copy = locale ? FOOTER_COPY[locale] : ENGLISH_FOOTER;
   return (
     <footer className="relative border-t border-slate-800/50 bg-slate-950/80">
       <div className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-blue-800/40 to-transparent" />
       <div className="mx-auto max-w-7xl px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-6">
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
-            <a href="/" className="inline-flex items-center gap-2 focus-ring rounded" aria-label="NodeTool home">
+            <a href={locale ? `/${locale}` : "/"} className="inline-flex items-center gap-2 focus-ring rounded" aria-label="NodeTool home">
               <Image
                 src="/logo_small.webp"
                 alt=""
@@ -99,14 +129,10 @@ export default function SiteFooter() {
                 nodetool
               </span>
             </a>
-            <p className="mt-3 max-w-xs text-sm text-slate-300">
-              Free, open-source software built alongside working artists,
-              designers, and video editors. Describe what you want to create,
-              watch the agent build it, and save the project files.
-            </p>
+            <p className="mt-3 max-w-xs text-sm text-slate-300">{copy.blurb}</p>
           </div>
 
-          {COLUMNS.map((col) => (
+          {columns.map((col) => (
             <div key={col.title}>
               <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
                 {col.title}
@@ -136,9 +162,9 @@ export default function SiteFooter() {
             <span className="text-rose-400" aria-hidden>
               ♥
             </span>
-            Built in the open.
+            {copy.builtInOpen}
           </p>
-          <nav aria-label="Languages">
+          <nav aria-label={copy.languages}>
             <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
               {Object.values(LANGUAGE_PAGES).map((page) => (
                 <li key={page.path}>

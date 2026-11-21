@@ -37,8 +37,10 @@ test("each language page marks its content with its language and shows its own h
     expect(html, page.path).toMatch(new RegExp(`<main[^>]*\\blang="${page.hreflang}"`));
     expect(html, page.path).toContain(page.h1);
   }
-  const studio = await (await request.get("/studio")).text();
-  expect(Object.keys(alternates(studio))).toHaveLength(0);
+  // A page without a translation lists no alternates. Translated pages are
+  // checked in zh-pages.spec.ts.
+  const developers = await (await request.get("/developers")).text();
+  expect(Object.keys(alternates(developers))).toHaveLength(0);
 });
 
 test("the sitemap lists every language version for each language page", async ({ request }) => {

@@ -408,7 +408,15 @@ it(`${GRAPH} reports the same property issues for every property case`, async ()
         dynamicValues: seed.dynamicValues
       }
     );
-    return `${seed.id} ${issues.map((issue) => `${issue.code}:${issue.property}`).join(",") || "ok"}`;
+    return `${seed.id} ${
+      issues
+        .map((issue) =>
+          issue.code === "property_type_mismatch"
+            ? `${issue.code}:${issue.property}:${issue.message}`
+            : `${issue.code}:${issue.property}`
+        )
+        .join(",") || "ok"
+    }`;
   });
   await expectPinned(lines.join("\n"), "property-issues.txt");
 });
