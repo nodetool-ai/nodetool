@@ -113,7 +113,7 @@ export default function LanguageOverview({ locale }: { locale: LanguageCode }) {
             <section aria-labelledby={`${locale}-providers`} className="mt-20 grid gap-6 border-t border-slate-700 pt-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
               <h2 id={`${locale}-providers`} className={sectionTitle}>{page.providers.title}</h2>
               <div>
-                <p className={bodyText}>{page.providers.body}</p>
+                <p className={`${bodyText} [overflow-wrap:anywhere]`}>{page.providers.body}</p>
                 <ul className="mt-6 space-y-4">
                   {page.providers.items.map((item) => (
                     <li key={item.provider}>
