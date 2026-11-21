@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import type { ReactNode } from "react";
 import {
   ArrowRight,
   Check,
   ChevronRight,
   Copy,
+  ExternalLink,
   Pause,
   Play
 } from "lucide-react";
@@ -16,9 +17,15 @@ import { track } from "@/lib/analytics";
 interface RecipeGuideProps {
   guide: Guide;
   recipe: string;
+  /** One diagram per step id, from components/recipeSteps. */
+  visuals: Readonly<Record<string, ReactNode>>;
 }
 
-export default function RecipeGuide({ guide, recipe }: RecipeGuideProps) {
+export default function RecipeGuide({
+  guide,
+  recipe,
+  visuals
+}: RecipeGuideProps) {
   const [selected, setSelected] = useState(0);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
@@ -231,29 +238,17 @@ export default function RecipeGuide({ guide, recipe }: RecipeGuideProps) {
               </span>
             </button>
           </div>
+          <div className="mt-5">{visuals[step.id]}</div>
           {step.image && (
-            <figure className="mt-5">
-              <a
-                href={step.image.src}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="focus-ring block w-full overflow-hidden rounded-xl border border-white/15 bg-slate-950"
-                aria-label={`Open full-size screenshot: ${step.title}`}
-              >
-                <Image
-                  src={step.image.src}
-                  alt={step.image.alt}
-                  width={step.image.width ?? 3200}
-                  height={step.image.height ?? 2000}
-                  quality={90}
-                  sizes="(min-width: 1280px) 1152px, calc(100vw - 48px)"
-                  className="h-auto w-full"
-                />
-              </a>
-              <figcaption className="mt-3 text-sm leading-relaxed text-slate-400">
-                {step.image.caption} Open the image to inspect it at full size.
-              </figcaption>
-            </figure>
+            <a
+              href={step.image.src}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="focus-ring mt-3 inline-flex items-center gap-1.5 rounded text-sm text-slate-400 hover:text-slate-100"
+            >
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              Open the recorded image for this step
+            </a>
           )}
           <div
             id="recipe-step-details"

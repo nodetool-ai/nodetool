@@ -8,6 +8,7 @@ import JsonLd from "@/components/JsonLd";
 import RecipeProductionRun from "@/components/RecipeProductionRun";
 import RecipeGuide from "@/components/RecipeGuide";
 import RecipeCard from "@/components/RecipeCard";
+import { recipeStepVisuals } from "@/components/recipeSteps";
 import { recipeEntries } from "@/data/recipes";
 import { runDate } from "@/data/contentDates";
 import { videoUploadDate } from "@/lib/jsonld";
@@ -172,7 +173,11 @@ export default async function RecipePage({ params }: RecipePageProps) {
         {entry.productionRun && (
           <RecipeProductionRun run={entry.productionRun} />
         )}
-        <RecipeGuide guide={entry.guide} recipe={entry.slug} />
+        <RecipeGuide
+          guide={entry.guide}
+          recipe={entry.slug}
+          visuals={recipeStepVisuals[entry.slug] ?? {}}
+        />
         <section className="py-16">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="flex flex-col justify-between gap-6 border-y border-white/10 py-8 md:flex-row md:items-center">

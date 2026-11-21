@@ -482,14 +482,7 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "Idea",
           "title": "Choose a moment the product belongs in",
           "description": "Describe the person, place, product action, format, and sound.",
-          "action": "Write the brief",
-          "image": {
-            "src": "/recipes/runs/2026-09-14-photographic-commercial/steps/01-idea.jpg",
-            "alt": "NodeTool Storyboard setup showing the commercial idea prompt.",
-            "caption": "Start the commercial from one clear product moment.",
-            "width": 1960,
-            "height": 1225
-          }
+          "action": "Write the brief"
         },
         {
           "id": "story",
@@ -497,14 +490,7 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "Story",
           "title": "Plan the cuts and the sound together",
           "description": "Give each shot one action: pour, pause, leave. Add the sound heard in each cut.",
-          "action": "Review the story",
-          "image": {
-            "src": "/recipes/runs/2026-09-14-photographic-commercial/steps/02-story.jpg",
-            "alt": "NodeTool Storyboard showing a generated commercial story and shot plan.",
-            "caption": "The story turns the brief into a short sequence of shots.",
-            "width": 1960,
-            "height": 1225
-          }
+          "action": "Review the story"
         },
         {
           "id": "entities",
@@ -512,14 +498,7 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "Entities",
           "title": "Keep the product, person and room consistent",
           "description": "Attach the cup, woman, and kitchen as reusable entities before rendering.",
-          "action": "Choose the entities",
-          "image": {
-            "src": "/recipes/runs/2026-09-14-photographic-commercial/steps/03-entities.jpg",
-            "alt": "NodeTool Entities step with product and character references selected for the commercial.",
-            "caption": "Shared entities keep the cast and product available across shots.",
-            "width": 1960,
-            "height": 1225
-          }
+          "action": "Choose the entities"
         },
         {
           "id": "look",
@@ -527,14 +506,7 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "Look",
           "title": "Make the reference look photographed",
           "description": "Choose 16:9, soft window light, natural texture, and a restrained camera style.",
-          "action": "Set the look",
-          "image": {
-            "src": "/recipes/runs/2026-09-14-photographic-commercial/steps/04-look.jpg",
-            "alt": "NodeTool Look step showing visual style choices for the product commercial.",
-            "caption": "The Look step sets one visual language for every shot.",
-            "width": 1960,
-            "height": 1225
-          }
+          "action": "Set the look"
         },
         {
           "id": "detail",
@@ -542,14 +514,7 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "References",
           "title": "Check the physical interaction at close range",
           "description": "Review the board before video. Check the cup, hand, framing, and continuity.",
-          "action": "Approve the board",
-          "image": {
-            "src": "/recipes/runs/2026-09-14-photographic-commercial/steps/05-board.jpg",
-            "alt": "NodeTool storyboard showing generated reference frames for the olive cup commercial.",
-            "caption": "Reference frames make continuity problems visible before motion.",
-            "width": 1960,
-            "height": 1225
-          }
+          "action": "Approve the board"
         },
         {
           "id": "motion",
@@ -557,14 +522,7 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "Clips",
           "title": "Render a directed scene",
           "description": "Render each approved frame with simple subject, camera, and sound direction.",
-          "action": "Render the clips",
-          "image": {
-            "src": "/recipes/runs/2026-09-14-photographic-commercial/steps/06-clips.jpg",
-            "alt": "NodeTool storyboard showing rendered video clips beside their source frames.",
-            "caption": "Rendered clips stay connected to their storyboard shots.",
-            "width": 1960,
-            "height": 1225
-          }
+          "action": "Render the clips"
         },
         {
           "id": "review",
@@ -572,14 +530,7 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "Review",
           "title": "Judge movement as carefully as the still",
           "description": "Watch every take with sound. Check motion, hands, cup shape, and continuity.",
-          "action": "Select the takes",
-          "image": {
-            "src": "/recipes/runs/2026-09-14-photographic-commercial/steps/07-review.jpg",
-            "alt": "NodeTool review view showing the selected commercial clips before editing.",
-            "caption": "Review the returned footage before committing it to the edit.",
-            "width": 1960,
-            "height": 1225
-          }
+          "action": "Select the takes"
         },
         {
           "id": "timeline",
@@ -587,14 +538,7 @@ export const recipeEntries: RecipeEntry[] = [
           "stage": "Timeline",
           "title": "Finish the actual returned footage",
           "description": "Trim the three shots, balance their sound, and export the 13-second commercial.",
-          "action": "Finish the timeline",
-          "image": {
-            "src": "/recipes/runs/2026-09-14-photographic-commercial/steps/08-timeline.jpg",
-            "alt": "NodeTool timeline with the product commercial clips arranged for export.",
-            "caption": "The timeline holds the final picture and sound edit.",
-            "width": 1960,
-            "height": 1225
-          }
+          "action": "Finish the timeline"
         }
       ]
     },
