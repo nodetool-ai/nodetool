@@ -15,6 +15,12 @@
  * provider with a /providers/<slug> page links there, the others link to
  * their section of the providers reference in the docs.
  *
+ * /zh leads with the providers a mainland China key reaches and moves the
+ * ChatGPT/Claude plan sign-in last, since neither plan is sold there. Its
+ * mainland notes come from packages/config/src/setting-catalog.ts
+ * (DASHSCOPE_BASE_URL, ZAI_REGION). Moonshot, MiniMax chat and video, Kling
+ * and BytePlus call international hosts only, so the list marks them 国际版.
+ *
  * Add a language: add an entry here, a route that renders
  * <LanguageOverview locale="…" />, and its key in LANDING_PAGES.
  */
@@ -208,12 +214,12 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
     label: "简体中文",
     title: "NodeTool | 开源 AI 电影工作室、智能体与节点工作流",
     description:
-      "用一句话生成可逐镜头编辑的 AI 短片。开源，免费支持 macOS、Windows 和 Linux。可使用 ChatGPT 或 Claude 订阅、自己的 API 密钥或本地模型。",
+      "用一句话生成可逐镜头编辑的 AI 短片。开源，免费支持 macOS、Windows 和 Linux。可使用 DeepSeek、通义千问、智谱 GLM 等服务商的 API 密钥，或在本地运行模型。",
     badge: "开源 AI 电影工作室",
     h1: "逐个镜头，导演你的 AI 电影。",
     lead: "从一句话开始。智能体编写故事，为每个镜头绘制一张静帧，并在时间线上剪辑片段。在为片段付费之前先审批静帧，任何镜头都可以单独重拍，把有效的做法保存为可以再次运行的工作流。",
     setup:
-      "在桌面应用中，用你的 ChatGPT 或 Claude 订阅登录，智能体就在该订阅上运行。你也可以添加自己的服务商 API 密钥，按官方价格付费，不加价。",
+      "添加 DeepSeek、阿里云百炼（通义千问）或智谱 GLM 的 API 密钥，按官方价格付费，不加价。也可以通过 Ollama、llama.cpp 等在本地运行开放权重模型。在桌面应用中，你还可以用 ChatGPT 或 Claude 订阅登录。",
     platforms: "免费开源，支持 macOS、Windows 和 Linux。浏览器版本处于 alpha 阶段。",
     download: "免费下载",
     tryBrowser: "在浏览器中试用",
@@ -257,16 +263,16 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       linkLabel: "文档（英文）",
     },
     providers: {
-      title: "直接连接 DeepSeek、通义千问和可灵。",
-      body: "在设置中添加服务商的 API 密钥，NodeTool 就会直接调用该服务商。链接指向英文页面。",
+      title: "直接连接 DeepSeek、通义千问和智谱 GLM。",
+      body: "在设置中添加服务商的 API 密钥，NodeTool 就会直接调用该服务商。使用阿里云百炼国内站的密钥时，把 DASHSCOPE_BASE_URL 设为 https://dashscope.aliyuncs.com/compatible-mode/v1；使用智谱开放平台（bigmodel.cn）的密钥时，把 ZAI_REGION 设为 china。月之暗面、MiniMax、可灵和 BytePlus 目前需要国际版平台的密钥。链接指向英文页面。",
       items: [
         { provider: "deepseek", name: "DeepSeek", does: "对话（V3 和 R1 推理模型）" },
-        { provider: "alibaba", name: "阿里云（通义千问 Qwen、通义万相 Wan）", does: "Qwen 对话，Qwen-Image 和 Wan 图像生成，Wan 视频生成，Qwen TTS 语音合成" },
-        { provider: "moonshot", name: "月之暗面（Kimi）", does: "Kimi 对话" },
-        { provider: "minimax", name: "MiniMax", does: "对话、图像生成、海螺 Hailuo 视频生成、语音合成" },
-        { provider: "zai", name: "智谱 Z.ai（GLM）", does: "GLM 对话，GLM-Image 图像生成，CogVideoX 视频生成，语音识别" },
-        { provider: "kling", name: "可灵 Kling AI", does: "可灵视频生成和图像生成" },
-        { provider: "byteplus", name: "BytePlus ModelArk", does: "Seed 对话，Seedream 图像生成和编辑，Seedance 视频生成" },
+        { provider: "alibaba", name: "阿里云百炼（通义千问 Qwen、通义万相 Wan）", does: "Qwen 对话，Qwen-Image 和 Wan 图像生成，Wan 视频生成，Qwen TTS 语音合成" },
+        { provider: "zai", name: "智谱 GLM（Z.ai / bigmodel.cn）", does: "GLM 对话，GLM-Image 图像生成，CogVideoX 视频生成，语音识别" },
+        { provider: "moonshot", name: "月之暗面（Kimi，国际版）", does: "Kimi 对话" },
+        { provider: "minimax", name: "MiniMax（国际版）", does: "对话、图像生成、海螺 Hailuo 视频生成、语音合成" },
+        { provider: "kling", name: "可灵 Kling AI（国际版）", does: "可灵视频生成和图像生成" },
+        { provider: "byteplus", name: "BytePlus ModelArk（国际版）", does: "Seed 对话，Seedream 图像生成和编辑，Seedance 视频生成" },
       ],
     },
     faqHeading: "常见问题",
@@ -274,7 +280,7 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       {
         question: "NodeTool 是什么？",
         answer:
-          "NodeTool 是一款开源 AI 视频编辑器，同时提供图像、音频、文本和节点工作流工具。你可以让智能体创建或编辑项目，然后自己修改。可以用 ChatGPT 或 Claude 订阅登录，使用自己的服务商密钥，或在本地运行受支持的模型。",
+          "NodeTool 是一款开源 AI 视频编辑器，同时提供图像、音频、文本和节点工作流工具。你可以让智能体创建或编辑项目，然后自己修改。可以使用自己的服务商密钥，在本地运行受支持的模型，或用 ChatGPT 或 Claude 订阅登录。",
       },
       {
         question: "NodeTool 收费吗？",
@@ -294,7 +300,7 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       {
         question: "可以使用我的 ChatGPT 或 Claude 订阅吗？",
         answer:
-          "可以，在 Studio 中使用。用 ChatGPT 或 Claude 登录后，智能体会使用该订阅而不是 API 密钥运行。这些运行计入你订阅方案的额度。",
+          "可以，在 Studio 中使用。用 ChatGPT 或 Claude 登录后，智能体会使用该订阅而不是 API 密钥运行。这些运行计入你订阅方案的额度。没有这些订阅时，智能体也可以使用 DeepSeek、通义千问、智谱 GLM 等服务商的 API 密钥或本地模型运行。",
       },
       {
         question: "需要 GPU 吗？",
