@@ -144,6 +144,31 @@ when its rendered film exists in
 - Add `StoryboardTeaser` to a landing page with a hand-picked `slugs` list that
   matches the page's topic.
 
+## Translated Pages
+
+`/zh/<route>` pages translate English pages into Simplified Chinese. They are
+data: `src/i18n/routes.ts` lists the translated routes, `src/i18n/zh/pages/`
+holds one content file per page, and `components/localized/LocalizedPage.tsx`
+renders all of them. The language overviews (`/ja`, `/zh`, …) are a separate
+set in `src/data/languagePages.ts` and pair with the home page.
+
+- Add a page: its English route in `TRANSLATED_ROUTES`, a content file in
+  `src/i18n/zh/pages/` registered in `src/i18n/zh/index.ts`, and a route
+  file under `src/app/zh/`. Pass `languageAlternates(route)` as the English
+  page's `alternates.languages`. `tests/e2e/zh-pages.spec.ts` checks all four.
+- Translate published English copy. Read prices and counts through the
+  `{token}` placeholders in `LocalizedPage.tsx`, never as typed numbers.
+- Lead provider lines with DeepSeek, Qwen (DashScope) and GLM, and reuse the
+  mainland notes in `src/i18n/zh/shared.ts`. They name the `*_REGION` and
+  `HF_ENDPOINT` settings, which the spec checks against the setting catalog.
+  ChatGPT and Claude plans are not sold in mainland China, so only
+  `/zh/pricing` mentions plan sign-in. BytePlus stays 国际版 until it has a
+  mainland host.
+- Links name English routes. The renderer sends a link to the translated page
+  when there is one and marks the rest `hrefLang="en"` with （英文）.
+- The header, footer, announcement bar and demo player read the locale from
+  the path. Their Chinese strings are in `src/i18n/zh/chrome.ts`.
+
 ## Page and Film Dates
 
 `src/data/contentDates.generated.ts` holds the commit day each capability page
