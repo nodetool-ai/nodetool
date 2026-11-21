@@ -25,8 +25,10 @@ Set `MINIMAX_API_KEY` in NodeTool's secret store (Settings → API Keys) or as a
 environment variable. Node code never reads the key.
 
 For text-to-image, select `MiniMax-H3-Image` or `MiniMax-H3-Image-Highspeed` to
-use H3. Set `MINIMAX_IMAGE_REGION` to `china` for a China API key. The default
-is `international`.
+use H3. Set `MINIMAX_REGION` to `china` for a key from the mainland platform.
+It moves every MiniMax request, H3 included, to `api.minimax.cn`. The default is
+`international`. `MINIMAX_IMAGE_REGION`, when set, overrides the host for H3
+image requests only.
 
 > MiniMax chat models and the generic Text to Image / Text to Video / Text to
 > Speech nodes also work through the built-in MiniMax provider; this pack adds

@@ -845,3 +845,83 @@ describe("MinimaxProvider endpoint calls", () => {
     ).rejects.toThrow("minimax does not support media uploads");
   });
 });
+
+describe("MinimaxProvider region", () => {
+  const INTL = "https://api.minimax.io";
+  const CN = "https://api.minimax.cn";
+  const urlOf = (input: unknown) =>
+    input instanceof Request ? input.url : String(input);
+
+  /** One reply that satisfies every MiniMax endpoint family the provider calls. */
+  const reply = (url: string): Response => {
+    if (url.endsWith("/chat/completions")) {
+      return chatJsonResponse({
+        choices: [{ message: { content: "ok", tool_calls: null } }]
+      });
+    }
+    if (url.includes("/v1/query/video_generation")) {
+      return Response.json({ status: "Success", file_id: "file-1" });
+    }
+    if (url.includes("/v1/files/retrieve")) {
+      return Response.json({
+        file: { download_url: "https://cdn.minimax.io/v.mp4" },
+        base_resp: { status_code: 0 }
+      });
+    }
+    if (url.endsWith("/v1/images/generations")) {
+      return Response.json({ data: [{ b64_json: "AQI=" }] });
+    }
+    return Response.json({
+      task_id: "task-1",
+      data: { audio: "0102" },
+      base_resp: { status_code: 0 }
+    });
+  };
+
+  async function hostsFor(secrets: Record<string, string | undefined>) {
+    const fetchFn = vi.fn(async (input: unknown) => reply(urlOf(input)));
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k", ...secrets },
+      { fetchFn: fetchFn as unknown as typeof fetch }
+    );
+    await provider.generateMessage({
+      messages: [{ role: "user", content: "hi" }],
+      model: "MiniMax-M2"
+    });
+    for (const route of ["tts", "music", "image", "video"]) {
+      await provider.callEndpoint({ model: "m", route, input: {} });
+    }
+    const h3: ImageModel = { id: "MiniMax-H3-Image", name: "H3", provider: "minimax" };
+    await provider.textToImage({ model: h3, prompt: "p", width: 1024, height: 1024 });
+    return fetchFn.mock.calls.map((call) => urlOf(call[0]));
+  }
+
+  const paths = (base: string, h3Base = base) => [
+    `${base}/v1/chat/completions`,
+    `${base}/v1/t2a_v2`,
+    `${base}/v1/music_generation`,
+    `${base}/v1/image_generation`,
+    `${base}/v1/video_generation`,
+    `${base}/v1/query/video_generation?task_id=task-1`,
+    `${base}/v1/files/retrieve?file_id=file-1`,
+    `${h3Base}/v1/images/generations`
+  ];
+
+  it.each([[undefined], [""], ["mars"], ["international"]])(
+    "keeps every endpoint on the international host for MINIMAX_REGION=%j",
+    async (region) => {
+      expect(await hostsFor({ MINIMAX_REGION: region })).toEqual(paths(INTL));
+    }
+  );
+
+  it("moves chat, speech, music, image, video and H3 to the China host", async () => {
+    expect(await hostsFor({ MINIMAX_REGION: "china" })).toEqual(paths(CN));
+  });
+
+  it("lets MINIMAX_IMAGE_REGION override MINIMAX_REGION for H3 only", async () => {
+    expect(
+      await hostsFor({ MINIMAX_REGION: "china", MINIMAX_IMAGE_REGION: "international" })
+    ).toEqual(paths(CN, INTL));
+    expect(await hostsFor({ MINIMAX_IMAGE_REGION: "china" })).toEqual(paths(INTL, CN));
+  });
+});

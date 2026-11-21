@@ -213,3 +213,21 @@ describe("AlibabaProvider", () => {
     expect(items.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe("Alibaba provider registration", () => {
+  // The registry resolves optional settings before construction. A non-empty
+  // DASHSCOPE_BASE_URL fallback would hide DASHSCOPE_REGION.
+  it.each([
+    [{}, undefined],
+    [{ DASHSCOPE_REGION: "china" }, "https://dashscope.aliyuncs.com/compatible-mode/v1"],
+    [
+      { DASHSCOPE_REGION: "china", DASHSCOPE_BASE_URL: "https://example.aliyuncs.com/compatible-mode/v1" },
+      "https://example.aliyuncs.com/compatible-mode/v1"
+    ]
+  ])("resolves settings %j to base URL %s", async (settings, baseURL) => {
+    const { getProvider } = await import("../../src/providers/index.js");
+    const stored: Record<string, string> = { DASHSCOPE_API_KEY: "k", ...settings };
+    const provider = await getProvider("alibaba", async (key) => stored[key] ?? null);
+    expect(provider.getContainerEnv()["DASHSCOPE_BASE_URL"]).toBe(baseURL);
+  });
+});

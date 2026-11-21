@@ -360,3 +360,34 @@ describe("KlingProvider", () => {
     await expect(settle(run)).rejects.toThrow("stopped");
   });
 });
+
+describe("KlingProvider KLING_REGION", () => {
+  const imageDone = (id: string) =>
+    imageTask(id, "succeed", { task_result: { images: [{ index: 0, url: RESULT_URL }] } });
+
+  async function hostsFor(region: string | undefined): Promise<string[]> {
+    const fetchMock = stubFetch(videoCreated("t1"), videoDone("t1"), imageCreated("i1"), imageDone("i1"));
+    const kling = new KlingProvider({ KLING_API_KEY: "kling_test", KLING_REGION: region });
+    await settle(kling.textToVideo({ model: video("kling-3.0"), prompt: "waves" }));
+    await settle(kling.textToImage({ model: image("kling-v3"), prompt: "a bicycle" }));
+    return fetchMock.mock.calls.map(([url]) => String(url));
+  }
+
+  const paths = (base: string) => [
+    `${base}/text-to-video/kling-3.0`,
+    `${base}/tasks?task_ids=t1`,
+    `${base}/v1/images/generations`,
+    `${base}/v1/images/generations/i1`
+  ];
+
+  it.each([[undefined], [""], ["mars"], ["international"]])(
+    "keeps video and image calls on the Singapore host for %j",
+    async (region) => {
+      expect(await hostsFor(region)).toEqual(paths("https://api-singapore.klingai.com"));
+    }
+  );
+
+  it("sends video and image calls to the Beijing host for china", async () => {
+    expect(await hostsFor("china")).toEqual(paths("https://api-beijing.klingai.com"));
+  });
+});

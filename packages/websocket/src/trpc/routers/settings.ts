@@ -18,6 +18,7 @@ import {
   clearSecretCache,
   isOnePasswordReference,
   resolveUserSecretValue,
+  getSecret,
   getSecrets
 } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
@@ -248,7 +249,10 @@ const secretsRouter = router({
         };
       }
 
-      const result = await checkCredential(input.key, value);
+      // Region and base-URL settings pick the host the key is checked on.
+      const result = await checkCredential(input.key, value, {
+        getSetting: (key) => getSecret(key, ctx.userId)
+      });
       const output: z.infer<typeof secretValidateOutput> = {
         status: result.status,
         valid: result.status === "valid",
