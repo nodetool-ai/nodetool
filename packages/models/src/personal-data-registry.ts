@@ -807,6 +807,24 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Which file hashes and sizes each cloud project holds. The files themselves are exported with the assets that name them, so these rows add nothing to an export. Deleted with the account; the blob cleanup then deletes the objects no row names."
   },
   {
+    table: "project_erased_files",
+    schemaExport: "projectErasedFiles",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The files an owner erased from a cloud project: a hash, a size, asset ids and when. Operational state of the project's storage; the documents that refer to the files are exported with their own tables. Deleted with the account."
+  },
+  {
+    table: "project_missing_files",
+    schemaExport: "projectMissingFiles",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The files a committed transfer confirmed missing from a cloud project: an asset id, the hash and size the sender knew, and the reason. Operational state of the project's Incomplete mark. Deleted with the account."
+  },
+  {
     table: "nodetool_deleted_documents",
     schemaExport: "deletedDocuments",
     disposition: "delete",

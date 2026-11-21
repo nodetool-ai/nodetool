@@ -49,7 +49,12 @@ export const revisionSetDocument = z.object({
   content_hash: sha256,
   files: z.array(revisionSetFile),
   /** Files the revision names that the cloud holds no bytes for. */
-  missing_files: z.array(fullId)
+  missing_files: z.array(fullId),
+  /**
+   * Files the revision names that the owner erased (FR79). They are not
+   * served, and their entries show File erased.
+   */
+  erased_files: z.array(fullId).default([])
 });
 export type RevisionSetDocument = z.infer<typeof revisionSetDocument>;
 

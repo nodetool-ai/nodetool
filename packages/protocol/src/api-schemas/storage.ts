@@ -125,3 +125,68 @@ export const storageFilesOutput = z.object({
 });
 
 export type StorageFilesOutput = z.infer<typeof storageFilesOutput>;
+
+// ── storage.erasePreview, storage.erase, storage.unerase ────────────────────
+// Erasing a file of a cloud project (WP2.9, PRD FR79, SR33). Owner only. The
+// erase is refused while current content shows the file, and the refusal
+// names that content. The file goes on the project's erased list until the
+// owner takes it off.
+
+const fileHash = z.string().regex(/^[0-9a-f]{64}$/);
+
+export const eraseFileInput = z.object({
+  project_id: z.string().regex(/^[0-9a-f]{32}$/),
+  hash: fileHash
+});
+
+export type EraseFileInput = z.infer<typeof eraseFileInput>;
+
+/** Current content that shows the file: a document's current revision, or a file in the project's folder. */
+export const eraseBlockerSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("workflow"), document_id: z.string(), name: z.string() }),
+  z.object({ kind: z.literal("timeline"), document_id: z.string(), name: z.string() }),
+  z.object({ kind: z.literal("file"), asset_id: z.string(), path: z.string() })
+]);
+
+export type EraseBlocker = z.infer<typeof eraseBlockerSchema>;
+
+/** Content that refers to the file and shows File erased afterwards. */
+export const eraseReferenceSchema = z.object({
+  kind: z.string(),
+  document_id: z.string(),
+  name: z.string(),
+  where: z.enum(["version", "deleted"]),
+  version_ids: z.array(z.string())
+});
+
+export const erasePreviewOutput = z.object({
+  hash: fileHash,
+  size: z.number(),
+  asset_ids: z.array(z.string()),
+  /** Empty when the erase may go ahead. */
+  current: z.array(eraseBlockerSchema),
+  references: z.array(eraseReferenceSchema)
+});
+
+export type ErasePreviewOutput = z.infer<typeof erasePreviewOutput>;
+
+export const eraseFileOutput = z.discriminatedUnion("outcome", [
+  z.object({
+    outcome: z.literal("erased"),
+    hash: fileHash,
+    size: z.number(),
+    asset_ids: z.array(z.string()),
+    references: z.array(eraseReferenceSchema),
+    erased_at: z.string()
+  }),
+  z.object({ outcome: z.literal("refused"), hash: fileHash, current: z.array(eraseBlockerSchema) })
+]);
+
+export type EraseFileOutput = z.infer<typeof eraseFileOutput>;
+
+export const uneraseFileOutput = z.object({
+  /** False when the file was not on the erased list. */
+  removed: z.boolean()
+});
+
+export type UneraseFileOutput = z.infer<typeof uneraseFileOutput>;

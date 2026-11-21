@@ -795,6 +795,43 @@ const CLOUD_SENDS_DDL: readonly string[] = [
     ON cloud_sends (user_id, project_id)`
 ];
 
+/**
+ * The erased list and the Incomplete list of cloud projects
+ * (docs/plans/native-cloud-sync/technical-design.md, "Deletion, restore and
+ * storage", WP2.9). Applied by the `add_project_file_lists` migration. Sizes
+ * are SQLite INTEGERs; the migration writes BIGINT on PostgreSQL.
+ */
+const PROJECT_FILE_LISTS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS project_erased_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    asset_ids TEXT NOT NULL,
+    erased_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_project_erased_files_entry
+    ON project_erased_files (project_id, hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_erased_files_user
+    ON project_erased_files (user_id)`,
+  `CREATE TABLE IF NOT EXISTS project_missing_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    asset_id TEXT NOT NULL,
+    hash TEXT,
+    size INTEGER,
+    reason TEXT NOT NULL,
+    transfer_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_project_missing_files_entry
+    ON project_missing_files (project_id, asset_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_missing_files_user
+    ON project_missing_files (user_id)`
+];
+
 const REVISION_SETS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS revision_sets (
     id TEXT PRIMARY KEY NOT NULL,
@@ -924,7 +961,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...REVISION_SETS_DDL,
   ...CLOUD_LINKS_DDL,
   ...CLOUD_SENDS_DDL,
-  MESSAGE_TURN_CONTEXT_DDL
+  MESSAGE_TURN_CONTEXT_DDL,
+  ...PROJECT_FILE_LISTS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5542,6 +5580,21 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // The column stays: without it a thread's next turn resends every block.
+    }
+  },
+  {
+    version: "20261130_000010",
+    name: "add_project_file_lists",
+    createsTables: ["project_erased_files", "project_missing_files"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of PROJECT_FILE_LISTS_DDL) {
+        await db.execute(db.dbType === "sqlite" ? statement : statement.replace(/size INTEGER/g, "size BIGINT"));
+      }
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS project_missing_files");
+      await db.execute("DROP TABLE IF EXISTS project_erased_files");
     }
   }
 ];

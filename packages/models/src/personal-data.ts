@@ -88,6 +88,7 @@ import {
 import { cloudDrafts, cloudOpenState } from "./schema/cloud-local.js";
 import { deletedDocuments } from "./schema/deleted-documents.js";
 import { projectBlobs } from "./schema/project-blobs.js";
+import { projectErasedFiles, projectMissingFiles } from "./schema/project-file-lists.js";
 import { recoveryCopies, transferPlacements, transferredConversations } from "./schema/transfer-files.js";
 import { documentActivity } from "./schema/document-activity.js";
 import { revisionSetEntries, revisionSetFiles, revisionSets } from "./schema/revision-sets.js";
@@ -561,6 +562,8 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   directStep("cloud_link_files", cloudLinkFiles, cloudLinkFiles.user_id),
   directStep("cloud_link_documents", cloudLinkDocuments, cloudLinkDocuments.user_id),
   directStep("cloud_links", cloudLinks, cloudLinks.user_id),
+  directStep("project_missing_files", projectMissingFiles, projectMissingFiles.user_id),
+  directStep("project_erased_files", projectErasedFiles, projectErasedFiles.user_id),
   directStep("project_blobs", projectBlobs, projectBlobs.user_id),
   directStep("cloud_transfer_attempts", cloudTransferAttempts, cloudTransferAttempts.user_id),
   directStep("cloud_transfers", cloudTransfers, cloudTransfers.user_id),

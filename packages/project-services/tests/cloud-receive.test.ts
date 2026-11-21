@@ -9,6 +9,7 @@ import {
   closeDb,
   initTestDb,
   Project,
+  recordErasedFile,
   TimelineSequence,
   TimelineSequenceVersion,
   Workflow,
@@ -155,7 +156,8 @@ function receiveSuite(name: string, init: () => Promise<void>): void {
           revision_id: expect.stringMatching(/^[0-9a-f]{32}$/),
           content_hash: identityHash(captured),
           files: [{ asset_id: assetId, hash, size: bytes.byteLength, name: "still.png", content_type: "image/png", path: null }],
-          missing_files: []
+          missing_files: [],
+          erased_files: []
         }
       ]);
 
@@ -349,6 +351,24 @@ function receiveSuite(name: string, init: () => Promise<void>): void {
 
       await host.storage.delete(host.storage.uriForKey(blobKey(hash)));
       expect(await receiveFile(host, OWNER, { set_id: set.set_id, hash })).toBe(ERASED);
+    });
+
+    it("answers ERASED for a file on the erased list while its object lives on, and names it erased in a new capture", async () => {
+      const projectId = await cloudProject();
+      const assetId = id();
+      const bytes = new Uint8Array(randomBytes(16));
+      const hash = await storeBlob(host, assetId, bytes);
+      const workflow = await workflowIn(projectId, assetId);
+      const set = await captureRevisionSet(host, OWNER, { kind: "workflow", document_id: workflow.id });
+      expect(await receiveFile(host, OWNER, { set_id: set.set_id, hash })).toEqual(bytes);
+
+      // The owner erased it. Another project or set may keep the object.
+      await recordErasedFile({ projectId, userId: OWNER, hash, size: bytes.byteLength, assetIds: [assetId] });
+      expect(await host.storage.exists(host.storage.uriForKey(blobKey(hash)))).toBe(true);
+      expect(await receiveFile(host, OWNER, { set_id: set.set_id, hash })).toBe(ERASED);
+
+      const again = await captureRevisionSet(host, OWNER, { kind: "workflow", document_id: workflow.id });
+      expect(again.documents[0]).toMatchObject({ files: [], missing_files: [], erased_files: [assetId] });
     });
 
     it("treats a set past its lifetime as expired", async () => {

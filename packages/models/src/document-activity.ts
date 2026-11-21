@@ -10,7 +10,8 @@ import { createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
 import { documentActivity } from "./schema/document-activity.js";
 
-export type DocumentActivityType = "rename" | "move";
+/** `file_erased` records an erase on each document that referred to the file (FR79). */
+export type DocumentActivityType = "rename" | "move" | "file_erased";
 
 export interface DocumentActivityEntry {
   id: string;
