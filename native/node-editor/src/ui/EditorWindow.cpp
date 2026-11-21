@@ -4,6 +4,7 @@
 #include "document/ChildPorts.h"
 #include "properties/CodeHighlighter.h"
 #include "EditorWindow.h"
+#include "nodetool/account/project_lock.h"
 #include "media/LocalMediaStore.h"
 #include "graph/CardBodies.h"
 #include "document/GroupIntoSubgraph.h"
@@ -138,7 +139,11 @@ const QMap<QString, node_editor::layout::SelectionAction> selectionActions{
 EditorWindow::EditorWindow(QWidget *parent) : EditorWindow(parent, nullptr) {}
 EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     : QMainWindow(parent), tabOwner_(tabOwner), dynamicPorts_(&document_, tabOwner ? this : nullptr), model_(tabOwner ? this : nullptr) {
+  if (tabOwner_) {
+    projectFolder_.setLocks(tabOwner_->projectLocks_.get());
+  }
   if (!tabOwner_) {
+    projectLocks_ = std::make_unique<nodetool::account::ProjectLocks>("node-editor");
     resize(1440, 900);
     tabStack_ = new QStackedWidget(this);
     setCentralWidget(tabStack_);
@@ -2495,6 +2500,9 @@ QString EditorWindow::readOnlyReason() const {
   if (!tabOwner_) { return activeEditor_->readOnlyReason(); }
   if (cloud_ && cloud_->readOnly()) {
     return tr("Read-only: %1").arg(cloud_->readOnlyReason());
+  }
+  if (projectFolder_.lock()->readOnly()) {
+    return projectFolder_.lock()->message();
   }
   if (document_.isReadOnly()) {
     return document_.readOnlyReason();

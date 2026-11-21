@@ -4,13 +4,14 @@ import NodeTool.UiPrimitives as Ui
 
 // What is wrong with the file of the open workflow in its project folder,
 // above the canvas: web/src/components/workspace/DocumentFileNotice.tsx. An
-// invalid file shows its error, and a missing one offers Restore. It takes no
-// height while the file is fine.
+// invalid file shows its error, and a missing one offers Restore. The project
+// lock banner names another app that has the project open, which makes the
+// tab read-only (WP2.13). It takes no height while all is fine.
 Rectangle {
     id: root
     required property ProjectFolder folder
     EditorRoles { id: roles }
-    readonly property bool shown: folder.fileState === "invalid" || folder.fileState === "missing" || folder.restoreError !== ""
+    readonly property bool shown: folder.fileState === "invalid" || folder.fileState === "missing" || folder.restoreError !== "" || lockBanner.visible
     color: roles.panel
     implicitHeight: shown ? content.implicitHeight + Ui.Metrics.sm * 2 : 0
     visible: shown
@@ -25,6 +26,11 @@ Rectangle {
         anchors.fill: parent
         anchors.margins: Ui.Metrics.sm
         spacing: Ui.Metrics.xs
+        ProjectLockBanner {
+            id: lockBanner
+            Layout.fillWidth: true
+            lock: root.folder.lock
+        }
         Ui.Banner {
             objectName: "document-file-invalid"
             Layout.fillWidth: true

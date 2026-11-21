@@ -123,6 +123,8 @@ void EditorWindow::initializePanels() {
     // Reveal needs the folder on this machine, as ProjectFolder::revealable says.
     projectFiles_.setProject(projectFolder_.projectId());
     projectFiles_.setFolder(projectFolder_.workspaceId(), projectFolder_.revealable() ? projectFolder_.folderPath() : QString());
+    // The project lock decides whether the tab is read-only.
+    schedulePanelChanged();
   });
   connect(&projectFiles_, &files::ProjectFiles::changeFailed, this, [this](const QString &message) { notify("error", message); });
   syncOpenProject();

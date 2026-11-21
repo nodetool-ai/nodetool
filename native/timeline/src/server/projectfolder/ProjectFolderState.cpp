@@ -41,7 +41,12 @@ bool ProjectFolderState::canTransfer() const {
 }
 
 ProjectFolderState::ProjectFolderState(QObject* parent)
-    : QObject(parent), m_target(nt::server::serverSaveTarget()) {}
+    : QObject(parent), m_target(nt::server::serverSaveTarget()) {
+    connect(&m_lock, &nodetool::account::qt::ProjectLockState::changed, this, [this] {
+        applyLock();
+        emit changed();
+    });
+}
 
 ProjectFolderState::~ProjectFolderState() {
     if (auto* thread = m_thread.data()) {
@@ -65,6 +70,7 @@ void ProjectFolderState::setTimeline(TimelineModel* timeline) {
         connect(timeline, &TimelineModel::timelineChanged, this, &ProjectFolderState::documentChanged);
     }
     emit timelineChanged();
+    applyLock();
     documentChanged();
 }
 
@@ -92,6 +98,24 @@ QString ProjectFolderState::documentTimeline() const {
 void ProjectFolderState::documentChanged() {
     // Every edit notifies. Only a new project or timeline asks the server again.
     if (m_wanted && documentProject() + QChar(0) + documentTimeline() != m_requestKey) { refresh(); }
+}
+
+void ProjectFolderState::updateLock() {
+    const bool local = !m_projectId.isEmpty() && m_folderAccessible && canReveal();
+    m_lock.setTarget(local ? m_folderPath : QString(), local ? m_projectId : QString());
+}
+
+void ProjectFolderState::applyLock() {
+    // Only a read-only state this object set is lifted, so a cloud
+    // timeline's own read-only state is left alone.
+    if (!m_timeline) { return; }
+    if (m_lock.readOnly()) {
+        m_timeline->setReadOnly(true);
+        m_lockedTimeline = true;
+    } else if (m_lockedTimeline) {
+        m_timeline->setReadOnly(false);
+        m_lockedTimeline = false;
+    }
 }
 
 bool ProjectFolderState::canReveal() const {
@@ -222,4 +246,5 @@ void ProjectFolderState::receive(const Result& result) {
         m_filePath = file.value("path").toString();
         m_fileError = file.value("error").toString();
     }
+    updateLock();
 }

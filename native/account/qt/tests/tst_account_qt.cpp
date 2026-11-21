@@ -10,6 +10,8 @@
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/CloudDocument.h"
+#include "nodetool/account/project_lock.h"
+#include "nodetool/account/qt/ProjectLockState.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
 #include "nodetool/account/qt/ServerToken.h"
 #include "nodetool/account/qt/ShareController.h"
@@ -2223,6 +2225,87 @@ private slots:
     QVERIFY(syncStatusText(S::NotSaving, 1, {}, {}).startsWith("Not saving"));
     QCOMPARE(syncStatusText(S::Unsent, 1, {}, "SCHEMA_DOWNGRADE"),
              QString("Unsent edits: stored in a newer format than this app writes"));
+  }
+  // WP2.13, TC105 through the window state: the second app's window opens
+  // read-only and names the first, then writes once the first closed it.
+  void projectLockNamesTheOtherApp() {
+    account_test::TempDir folder;
+    const QString path = QString::fromStdU16String(folder.path().u16string());
+    const QString project(32, 'a');
+    const std::vector<std::pair<int64_t, std::string>> table{{10, "boot:10"}, {20, "boot:20"}};
+    const auto probe = [table](int64_t pid) -> std::optional<std::string> {
+      for (const auto& [id, start] : table) {
+        if (id == pid) return start;
+      }
+      return std::nullopt;
+    };
+    auto timelineLocks = std::make_unique<ProjectLocks>(ProjectLockHolder{"timeline", 10, "studio", "boot:10", ""}, probe);
+    ProjectLocks editorLocks(ProjectLockHolder{"node-editor", 20, "studio", "boot:20", ""}, probe);
+    auto timeline = std::make_unique<ProjectLockState>(timelineLocks.get());
+    timeline->setTarget(path, project);
+    QCOMPARE(timeline->state(), QString("writing"));
+    QVERIFY(!timeline->readOnly());
+    QVERIFY(timeline->message().isEmpty());
+
+    ProjectLockState editor(&editorLocks);
+    QSignalSpy changed(&editor, &ProjectLockState::changed);
+    editor.setTarget(path, project);
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(editor.state(), QString("heldHere"));
+    QVERIFY(editor.readOnly());
+    QCOMPARE(editor.holderApp(), QString("timeline"));
+    QVERIFY(editor.message().contains("The timeline app"));
+    // Taking over is only for another computer.
+    editor.takeOver();
+    QCOMPARE(editor.state(), QString("heldHere"));
+
+    // The timeline closes the project, so Check again writes.
+    timeline.reset();
+    QVERIFY(!std::filesystem::exists(projectLockPath(folder.path())));
+    editor.retry();
+    QCOMPARE(editor.state(), QString("writing"));
+    QVERIFY(!editor.readOnly());
+    // Leaving the project gives the lock back.
+    editor.setTarget({}, {});
+    QCOMPARE(editor.state(), QString());
+    QVERIFY(!std::filesystem::exists(projectLockPath(folder.path())));
+  }
+
+  void projectLockFromAnotherComputerIsTakenOver() {
+    account_test::TempDir folder;
+    const QString path = QString::fromStdU16String(folder.path().u16string());
+    const QString project(32, 'b');
+    writeFileAtomically(projectLockPath(folder.path()),
+                        serializeProjectLock({"timeline", 10, "laptop", "boot:10", project.toStdString()}));
+    ProjectLocks locks(ProjectLockHolder{"node-editor", 20, "studio", "boot:20", ""},
+                       [](int64_t pid) -> std::optional<std::string> {
+                         return pid == 20 ? std::optional<std::string>("boot:20") : std::nullopt;
+                       });
+    ProjectLockState state(&locks);
+    state.setTarget(path, project);
+    QCOMPARE(state.state(), QString("heldElsewhere"));
+    QVERIFY(state.readOnly());
+    QCOMPARE(state.holderHost(), QString("laptop"));
+    QVERIFY(state.message().contains("laptop"));
+    state.retry();
+    QCOMPARE(state.state(), QString("heldElsewhere"));
+    state.takeOver();
+    QCOMPARE(state.state(), QString("writing"));
+    const auto bytes = readWholeFile(projectLockPath(folder.path()));
+    QVERIFY(bytes && parseProjectLock(*bytes)->host == "studio");
+  }
+
+  void projectLockNeedsAFolderOnThisComputer() {
+    account_test::TempDir folder;
+    ProjectLocks locks("node-editor");
+    ProjectLockState state(&locks);
+    state.setTarget(QString::fromStdU16String((folder.path() / "gone").u16string()), QString(32, 'c'));
+    QCOMPARE(state.state(), QString());
+    QVERIFY(!state.readOnly());
+    ProjectLockState noLocks(nullptr);
+    noLocks.setTarget(QString::fromStdU16String(folder.path().u16string()), QString(32, 'c'));
+    QCOMPARE(noLocks.state(), QString());
+    QVERIFY(!std::filesystem::exists(projectLockPath(folder.path())));
   }
 };
 

@@ -801,6 +801,10 @@ private:
   // owner creates them and its tabs borrow them, so the owner's destructor
   // ends them after the tabs.
   std::unique_ptr<nodetool::account::qt::AccountServers> accountServers_;
+  // The tab owner's project locks (WP2.13), which every tab's ProjectFolder
+  // borrows. The owner deletes its tabs before its members, so they give
+  // their counts back first.
+  std::unique_ptr<nodetool::account::ProjectLocks> projectLocks_;
   // Owner only: the bundled server of this launch, empty without one.
   QUrl bundledServer_;
   // The Cloud and Shared with me groups the tabs' workflow browsers show,
