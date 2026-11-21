@@ -55,7 +55,7 @@ if(NODETOOL_ACCOUNT_HELPER_TESTS)
 
   # The account library's own tests, so this workflow also builds the
   # keychain store of each platform.
-  foreach(name unit session cloud policy keychain)
+  foreach(name unit session cloud policy keychain project_lock)
     add_executable(account_${name}_tests ../account/tests/${name}.cpp)
     target_link_libraries(account_${name}_tests PRIVATE nodetool_account nlohmann_json::nlohmann_json)
     target_include_directories(account_${name}_tests PRIVATE ../account/tests)
