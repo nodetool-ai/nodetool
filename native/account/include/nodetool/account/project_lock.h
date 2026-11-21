@@ -17,9 +17,12 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <map>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace nodetool::account {
 
@@ -90,5 +93,43 @@ ProjectLockResult takeOverProjectLock(const std::filesystem::path& projectFolder
 // Removes the file when it still names `self`. A lock another process took
 // over in the meantime stays.
 void releaseProjectLock(const std::filesystem::path& projectFolder, const ProjectLockHolder& self);
+
+// The project locks of one process, counted per folder and project, so two
+// windows of one app on one project remove the file only when the last one
+// lets go. Each app keeps one, owned by its main window or main(), and every
+// window borrows it.
+//
+// Thread affinity: thread-safe. `mutex_` guards `counts_`.
+//
+// Ownership: the object owns no file handle. Its destructor releases every
+// lock it still counts.
+class ProjectLocks {
+public:
+  explicit ProjectLocks(std::string app, ProcessStartTime startTimeOf = processStartTime);
+  ~ProjectLocks();
+  ProjectLocks(const ProjectLocks&) = delete;
+  ProjectLocks& operator=(const ProjectLocks&) = delete;
+
+  // acquireProjectLock for this process. An Acquired outcome counts one
+  // holder, which release() gives back.
+  ProjectLockResult acquire(const std::filesystem::path& projectFolder, std::string_view projectId);
+  // takeOverProjectLock for this process, counted like acquire().
+  ProjectLockResult takeOver(const std::filesystem::path& projectFolder, std::string_view projectId);
+  // Gives back one count. The last one removes the file.
+  void release(const std::filesystem::path& projectFolder, std::string_view projectId);
+  // The holder this process writes for `projectId`.
+  ProjectLockHolder self(std::string_view projectId) const;
+
+private:
+  using Key = std::pair<std::string, std::string>;
+  static Key key(const std::filesystem::path& projectFolder, std::string_view projectId);
+  ProjectLockResult count(const Key& key, ProjectLockResult result);
+
+  const std::string app_;
+  const ProcessStartTime startTimeOf_;
+  const ProjectLockHolder process_;
+  std::mutex mutex_;
+  std::map<Key, int> counts_;
+};
 
 } // namespace nodetool::account

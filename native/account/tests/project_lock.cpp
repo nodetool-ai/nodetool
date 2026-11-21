@@ -231,6 +231,38 @@ void realProcessesAreRecognized(TestContext& t) {
   CHECK(onDisk(dir) == std::optional<ProjectLockHolder>(self));
 }
 
+void processCountsWindowsPerProject(TestContext& t) {
+  TempDir dir;
+  ProjectLocks locks("node-editor");
+  // Two windows of one app on one project.
+  CHECK(locks.acquire(dir.path(), kProject).outcome == ProjectLockOutcome::Acquired);
+  CHECK(locks.acquire(dir.path(), kProject).outcome == ProjectLockOutcome::Acquired);
+  CHECK(onDisk(dir) == std::optional<ProjectLockHolder>(locks.self(kProject)));
+  locks.release(dir.path(), kProject);
+  CHECK(std::filesystem::exists(projectLockPath(dir.path())));
+  // The same folder written another way counts as the same lock.
+  locks.release(dir.path() / "." / "", kProject);
+  CHECK(!std::filesystem::exists(projectLockPath(dir.path())));
+  // A release without a count leaves another holder's file alone.
+  const auto remote = holder(30, "laptop", "boot:300");
+  placeLock(dir, remote);
+  locks.release(dir.path(), kProject);
+  CHECK(onDisk(dir) == std::optional<ProjectLockHolder>(remote));
+  CHECK(locks.acquire(dir.path(), kProject).outcome == ProjectLockOutcome::HeldOnOtherHost);
+  CHECK(locks.takeOver(dir.path(), kProject).outcome == ProjectLockOutcome::Acquired);
+  CHECK(onDisk(dir) == std::optional<ProjectLockHolder>(locks.self(kProject)));
+}
+
+void processReleasesItsLocksWhenItEnds(TestContext& t) {
+  TempDir dir;
+  {
+    ProjectLocks locks("timeline");
+    CHECK(locks.acquire(dir.path(), kProject).outcome == ProjectLockOutcome::Acquired);
+    CHECK(std::filesystem::exists(projectLockPath(dir.path())));
+  }
+  CHECK(!std::filesystem::exists(projectLockPath(dir.path())));
+}
+
 } // namespace
 
 int main() {
@@ -246,5 +278,7 @@ int main() {
       {"releaseRemovesOnlyItsOwnLock", releaseRemovesOnlyItsOwnLock},
       {"twoOpenersAtOnceHaveOneWinner", twoOpenersAtOnceHaveOneWinner},
       {"realProcessesAreRecognized", realProcessesAreRecognized},
+      {"processCountsWindowsPerProject", processCountsWindowsPerProject},
+      {"processReleasesItsLocksWhenItEnds", processReleasesItsLocksWhenItEnds},
   });
 }

@@ -39,7 +39,7 @@ nlohmann_json only. Three interfaces connect it to the rest of the app:
 | `nodetool/account/cloud_drafts.h` | `CloudDocumentSaver`, the saved-state rule (FR11). `DraftStore` and `LocalServerDraftStore`, the client of the local store |
 | `nodetool/account/cloud_savers.h` | `WorkflowCloudSaver` and `TimelineCloudSaver`, the save of each kind, and the schema versions this client writes |
 | `nodetool/account/cloud_transfer.h` | `LocalTransferClient`, the client of the bundled server's `cloudTransfer` router for Publish and Synchronize, and `TransferReview`, the rows and choices of the review sheet (WP2.8) |
-| `nodetool/account/project_lock.h` | The project lock file `.nodetool/open.lock`: `acquireProjectLock` with the stale rules, `takeOverProjectLock`, `releaseProjectLock`, and the process start time of each platform (WP2.13) |
+| `nodetool/account/project_lock.h` | The project lock file `.nodetool/open.lock`: `acquireProjectLock` with the stale rules, `takeOverProjectLock`, `releaseProjectLock`, `ProjectLocks` (the locks of one process, counted per window), and the process start time of each platform (WP2.13) |
 | `nodetool/account/policy.h` | `ManagedPolicy`, the managed policy file per platform and `checkServer` (WP1.9) |
 | `nodetool/account/crypto.h` | SHA-256, base64url, hex, random bytes, the server key |
 

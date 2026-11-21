@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <system_error>
+#include <utility>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -242,6 +243,63 @@ void releaseProjectLock(const std::filesystem::path& projectFolder, const Projec
   if (readHolder(path) == std::optional<ProjectLockHolder>(self)) {
     std::error_code ec;
     std::filesystem::remove(path, ec);
+  }
+}
+
+ProjectLocks::ProjectLocks(std::string app, ProcessStartTime startTimeOf)
+    : app_(std::move(app)), startTimeOf_(std::move(startTimeOf)), process_(currentProcessHolder(app_, "")) {}
+
+ProjectLocks::~ProjectLocks() {
+  std::lock_guard lock(mutex_);
+  for (const auto& [key, held] : counts_) {
+    releaseProjectLock(key.first, self(key.second));
+  }
+}
+
+ProjectLockHolder ProjectLocks::self(std::string_view projectId) const {
+  ProjectLockHolder holder = process_;
+  holder.projectId = std::string(projectId);
+  return holder;
+}
+
+ProjectLocks::Key ProjectLocks::key(const std::filesystem::path& projectFolder, std::string_view projectId) {
+  std::error_code ec;
+  auto normal = std::filesystem::weakly_canonical(projectFolder, ec);
+  if (ec) {
+    normal = projectFolder.lexically_normal();
+  }
+  return {normal.string(), std::string(projectId)};
+}
+
+ProjectLockResult ProjectLocks::count(const Key& key, ProjectLockResult result) {
+  if (result.outcome == ProjectLockOutcome::Acquired) {
+    ++counts_[key];
+  }
+  return result;
+}
+
+ProjectLockResult ProjectLocks::acquire(const std::filesystem::path& projectFolder, std::string_view projectId) {
+  const auto k = key(projectFolder, projectId);
+  std::lock_guard lock(mutex_);
+  return count(k, acquireProjectLock(k.first, self(projectId), startTimeOf_));
+}
+
+ProjectLockResult ProjectLocks::takeOver(const std::filesystem::path& projectFolder, std::string_view projectId) {
+  const auto k = key(projectFolder, projectId);
+  std::lock_guard lock(mutex_);
+  return count(k, takeOverProjectLock(k.first, self(projectId)));
+}
+
+void ProjectLocks::release(const std::filesystem::path& projectFolder, std::string_view projectId) {
+  const auto k = key(projectFolder, projectId);
+  std::lock_guard lock(mutex_);
+  const auto it = counts_.find(k);
+  if (it == counts_.end()) {
+    return;
+  }
+  if (--it->second == 0) {
+    counts_.erase(it);
+    releaseProjectLock(k.first, self(projectId));
   }
 }
 
