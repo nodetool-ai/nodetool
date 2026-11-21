@@ -154,7 +154,8 @@ export {
 export {
   DEFAULT_HF_ENDPOINT,
   resolveHfEndpoint,
-  rewriteHfHubUrl
+  rewriteHfHubUrl,
+  stripTrailingSlashes
 } from "./hf-endpoint.js";
 
 export {

@@ -21,7 +21,8 @@ import * as path from "node:path";
 import {
   DEFAULT_HF_ENDPOINT,
   getHfHubCacheDir,
-  resolveHfEndpoint
+  resolveHfEndpoint,
+  stripTrailingSlashes
 } from "@nodetool-ai/config";
 
 import { resolveHfToken } from "./hf-auth.js";
@@ -97,7 +98,7 @@ export function hfHubFileUrl(
     throw new Error(`Unsupported repoType "${repoType}"`);
   }
   const cleanFilename = filename.replace(/^\/+/, "");
-  const base = endpoint.replace(/\/+$/, "");
+  const base = stripTrailingSlashes(endpoint);
   return `${base}/${prefix}${repoId}/resolve/${revision}/${cleanFilename}`;
 }
 

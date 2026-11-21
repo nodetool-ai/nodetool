@@ -16,7 +16,19 @@ export const DEFAULT_HF_ENDPOINT = "https://huggingface.co";
 export function resolveHfEndpoint(override?: string | null): string {
   const raw =
     override?.trim() || process.env["HF_ENDPOINT"]?.trim() || DEFAULT_HF_ENDPOINT;
-  return raw.replace(/\/+$/, "");
+  return stripTrailingSlashes(raw);
+}
+
+/**
+ * Remove trailing `/` characters. A loop rather than `/\/+$/`, which
+ * backtracks quadratically on a long run of slashes.
+ */
+export function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end -= 1;
+  }
+  return value.slice(0, end);
 }
 
 /**

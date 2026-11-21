@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { resolveHfEndpoint, rewriteHfHubUrl } from "../hf-endpoint.js";
+import { resolveHfEndpoint, rewriteHfHubUrl, stripTrailingSlashes } from "../hf-endpoint.js";
 
 const FILE =
   "https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/speaker_embeddings.bin";
@@ -29,5 +29,18 @@ describe("HF endpoint", () => {
     expect(rewriteHfHubUrl("https://example.com/e.bin", "https://hf-mirror.com")).toBe(
       "https://example.com/e.bin"
     );
+  });
+});
+
+describe("stripTrailingSlashes", () => {
+  it("removes every trailing slash and keeps inner ones", () => {
+    expect(stripTrailingSlashes("https://hf-mirror.com///")).toBe("https://hf-mirror.com");
+    expect(stripTrailingSlashes("a/b")).toBe("a/b");
+    expect(stripTrailingSlashes("///")).toBe("");
+  });
+
+  it("handles a long run of slashes in linear time", () => {
+    const input = `x${"/".repeat(200_000)}y${"/".repeat(200_000)}`;
+    expect(stripTrailingSlashes(input)).toBe(`x${"/".repeat(200_000)}y`);
   });
 });
