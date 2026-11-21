@@ -43,6 +43,41 @@ function pick(ids: readonly string[]): AdConceptSummary[] {
 const durations = adRecipes.map((recipe) => recipe.duration_ms / 1000);
 const DURATION_RANGE = `${Math.min(...durations)}–${Math.max(...durations)}s`;
 
+/**
+ * Three rendered ads fanned out, the centre one in front. Decorative: the
+ * surrounding copy names the library. Frame sizes scale with the container
+ * width, so callers set the height and maximum width.
+ */
+export function AdLibraryFan({ className = "" }: { className?: string }) {
+  const [left, center, right] = pick(HERO_CONCEPT_IDS);
+  if (!center) {
+    return null;
+  }
+  return (
+    <div
+      aria-hidden="true"
+      className={`relative mx-auto w-full ${className}`}
+    >
+      {left && (
+        <AutoPlayFrame
+          concept={left}
+          className="absolute left-0 top-[12%] w-[40%] -rotate-6 opacity-70"
+        />
+      )}
+      {right && (
+        <AutoPlayFrame
+          concept={right}
+          className="absolute right-0 top-[12%] w-[40%] rotate-6 opacity-70"
+        />
+      )}
+      <AutoPlayFrame
+        concept={center}
+        className="absolute left-1/2 top-0 w-[54%] -translate-x-1/2"
+      />
+    </div>
+  );
+}
+
 function ConceptGrid({ concepts }: { concepts: AdConceptSummary[] }) {
   return (
     <ul className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4 lg:gap-y-14">
@@ -96,7 +131,6 @@ export default function AdLibraryOverview({
   if (compact) {
     return <CompactOverview />;
   }
-  const [left, center, right] = pick(HERO_CONCEPT_IDS);
   return (
     <>
       <section
@@ -154,29 +188,7 @@ export default function AdLibraryOverview({
               </div>
             </dl>
           </div>
-          {center && (
-            <div
-              aria-hidden="true"
-              className="relative mx-auto hidden h-[520px] w-full max-w-[480px] lg:block"
-            >
-              {left && (
-                <AutoPlayFrame
-                  concept={left}
-                  className="absolute left-0 top-16 w-[190px] -rotate-6 opacity-70"
-                />
-              )}
-              {right && (
-                <AutoPlayFrame
-                  concept={right}
-                  className="absolute right-0 top-16 w-[190px] rotate-6 opacity-70"
-                />
-              )}
-              <AutoPlayFrame
-                concept={center}
-                className="absolute left-1/2 top-0 w-[260px] -translate-x-1/2"
-              />
-            </div>
-          )}
+          <AdLibraryFan className="hidden h-[520px] max-w-[480px] lg:block" />
         </div>
       </section>
       <section
