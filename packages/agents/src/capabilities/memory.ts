@@ -436,8 +436,38 @@ const memoryUpdate: CapabilityExport = {
         return { success: false, error: `Memory not found: ${memoryId}` };
       }
 
+      if (params.resources !== undefined && params.resources !== null && !Array.isArray(params.resources)) {
+        return {
+          success: false,
+          error: "memory_update: resources must be a list of resources. Pass [] to remove them all."
+        };
+      }
+      const content = isString(params.content) ? params.content.trim() : undefined;
+      if (content === "") {
+        return {
+          success: false,
+          error:
+            "memory_update: content is empty, and a memory needs content. To remove " +
+            `the memory, call memory_delete({memory_id: "${memoryId}"}).`
+        };
+      }
+      const changes =
+        content !== undefined ||
+        isString(params.title) ||
+        params.kind !== undefined ||
+        params.resources !== undefined;
+      if (!changes) {
+        return {
+          success: false,
+          error:
+            `memory_update: nothing to change in memory ${memoryId}. Pass the new ` +
+            "content, title, kind or resources. To remove the memory, call " +
+            `memory_delete({memory_id: "${memoryId}"}).`
+        };
+      }
+
       let dropped: MemoryResource[] = [];
-      if (isString(params.content)) memory.content = params.content.trim();
+      if (content !== undefined) memory.content = content;
       if (isString(params.title)) memory.title = params.title.trim();
       if (params.kind !== undefined) memory.kind = coerceKind(params.kind);
       if (params.resources !== undefined) {

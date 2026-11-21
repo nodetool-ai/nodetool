@@ -1,7 +1,6 @@
 /** Headless executor for the frontend workflow-tool evaluation suite. */
 import { z } from "zod";
 import type { PermissionCategory } from "../capabilities/types.js";
-import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
 import { uiToolSchemas, type NodeMetadata } from "@nodetool-ai/protocol";
 import type { Graph } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import {
@@ -14,6 +13,7 @@ import {
   isRecord,
   isString
 } from "../utils/type-guards.js";
+import { closedParams, parseBridgeArgs, withHostField } from "../capabilities/bridge-args.js";
 
 export interface HeadlessNode {
   id: string;
@@ -48,6 +48,8 @@ export interface ToolLoopFinalState {
   nodes: HeadlessNode[];
   edges: HeadlessEdge[];
 }
+
+export { closedParams, parseBridgeArgs, withHostField };
 
 export interface HeadlessTool {
   category?: PermissionCategory;
@@ -186,13 +188,13 @@ export function createToolLoopBridge(
     if (!contract) {
       throw new Error(`No shared schema in uiToolSchemas for tool "${name}"`);
     }
-    const parameters = z.object(contract.parameters);
+    const parameters = closedParams(z.object(contract.parameters));
     return {
       name,
       description: contract.description,
       parameters,
       execute: async (args: Record<string, unknown>): Promise<unknown> => {
-        const parsed = parseWithTypeCoercion(parameters, args ?? {});
+        const parsed = parseBridgeArgs(parameters, args);
         if (name === "ui_search_nodes") return searchNodes(state, parsed);
         const applied = applyWorkflowDocumentTool(
           toGraph(state),

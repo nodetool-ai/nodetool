@@ -23,6 +23,9 @@
  * local models; `-p llamacpp` runs the llama-server at FINETUNE_LLAMA_CPP_URL;
  * `-p openrouter` runs a teacher, with its key in the file named by
  * FINETUNE_OPENROUTER_KEY_FILE. `--split val` runs the frozen validation split.
+ * `--context-window 65536` samples under the student's serving window, so the
+ * chat turn compacts where the student's would. Count the records that do not
+ * fit with `train.py check --max-seq`.
  */
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
@@ -34,7 +37,7 @@ import { listCapabilitySpecs, type ErasedJob } from "@nodetool-ai/agents";
 import { runChatJob, type ClientToolManifestEntry } from "../src/chat-jtbd.js";
 import { capturingOllamaFetch, type WireExchange } from "../src/finetune/ollama-capture.js";
 import { capturingOpenAIFetch } from "../src/finetune/openai-capture.js";
-import { exportSft, type ChatTrace, type ChatTraceLine } from "../src/finetune/sft-export.js";
+import { exportSft, splitCompactionRequests, traceSegments, type ChatTrace, type ChatTraceLine } from "../src/finetune/sft-export.js";
 import { runnableSplit } from "../src/finetune/task-sets.js";
 import { bootstrapNodeRegistry } from "../src/node-registry-setup.js";
 import { getSandboxCatalog, refreshSandboxCatalog } from "../src/sandbox-catalog.js";
@@ -61,6 +64,7 @@ const { values } = parseArgs({
     traces: { type: "string" },
     tasks: { type: "string" },
     timeout: { type: "string" },
+    "context-window": { type: "string" },
     split: { type: "string", default: "train" }
   }
 });
@@ -69,6 +73,37 @@ const serverToolNames = new Set(listCapabilitySpecs().map((spec) => spec.name));
 
 /** The frozen validation split, checked in so it cannot drift unnoticed. */
 const VALIDATION_MANIFEST = new URL("./finetune-validation-set.json", import.meta.url);
+
+/**
+ * The sandbox packs every sampled and evaluated run sees. A session's package
+ * allowlist comes from what the install's catalog serves, so a machine
+ * without a built pack refuses its imports: teacher runs once had
+ * `@nodetool-ai/sandbox-dsl` refused while the eval allowed it.
+ */
+/** Runs in a row with no answered request after which `sample` stops. */
+const MAX_UNANSWERED_RUNS = 5;
+
+const SANDBOX_PACKS_MANIFEST = new URL("./finetune-sandbox-packs.json", import.meta.url);
+
+/** The pack names the loaded sandbox catalog serves, sorted. */
+function servedSandboxPacks(): string[] {
+  return [...new Set((getSandboxCatalog()?.summaries() ?? []).map((s) => s.packName))].sort();
+}
+
+/** Refuse to sample when this install serves other packs than the pinned set. */
+async function assertSandboxPacksPinned(): Promise<void> {
+  const pinned = JSON.parse(await readFile(SANDBOX_PACKS_MANIFEST, "utf8")) as string[];
+  const served = servedSandboxPacks();
+  const missing = pinned.filter((name) => !served.includes(name));
+  const extra = served.filter((name) => !pinned.includes(name));
+  if (missing.length > 0 || extra.length > 0) {
+    throw new Error(
+      `the sandbox catalog differs from ${SANDBOX_PACKS_MANIFEST.pathname}: ` +
+        `missing ${missing.join(", ") || "none"}, extra ${extra.join(", ") || "none"}. ` +
+        "Build the missing packs (npm run build:packages), or rewrite the pin with `packs` after a deliberate change."
+    );
+  }
+}
 
 const splitRunnable = () => runnableSplit(Number(values.generated));
 
@@ -175,11 +210,28 @@ async function cmdSample(): Promise<void> {
   const extraManifest = values.manifest
     ? (JSON.parse(await readFile(values.manifest, "utf8")) as ClientToolManifestEntry[])
     : [];
-  const done = new Set(
-    (await readJsonl<ChatTrace>(values.out)).map((t) => `${t.model}|${t.taskId}|${t.sample}`)
-  );
+  const existing = await readJsonl<ChatTrace>(values.out);
+  const done = new Set(existing.map((t) => `${t.model}|${t.taskId}|${t.sample}`));
+  const requestedWindow = values["context-window"] ? Number(values["context-window"]) : null;
+  const otherWindow = existing.find((t) => (t.contextWindow ?? null) !== requestedWindow);
+  if (otherWindow) {
+    // A resumed shard keeps one window, or its runs are not comparable.
+    throw new Error(
+      `${values.out} holds runs sampled with context window ${otherWindow.contextWindow ?? "default"}, ` +
+        `not ${requestedWindow ?? "default"}. Resume with the same --context-window or start a new file.`
+    );
+  }
   let exchanges: WireExchange[] = [];
   const provider = buildProvider(() => exchanges);
+  const contextWindow = values["context-window"] ? Number(values["context-window"]) : null;
+  if (contextWindow !== null) {
+    if (!Number.isInteger(contextWindow) || contextWindow <= 0) {
+      throw new Error(`--context-window must be a positive token count, not ${values["context-window"]}`);
+    }
+    // The chat turn sizes compaction from the provider's window. The student's
+    // llama-server window (serve-local.sh) is the one its sessions will have.
+    provider.getContextWindow = async () => contextWindow;
+  }
   // The product's node catalog, so search_nodes and validate_workflow answer
   // as they do in a real session. Installed third-party packs stay out.
   const nodeRegistry = await bootstrapNodeRegistry({ loadPacks: false });
@@ -189,12 +241,16 @@ async function cmdSample(): Promise<void> {
   // harness does too, before the first run.
   await refreshSandboxCatalog();
   assertSandboxCatalogLoaded();
+  await assertSandboxPacksPinned();
   await mkdir(dirname(values.out), { recursive: true });
   // A paid teacher stops at --budget (USD), counting the runs already in --out.
   const budget = values.budget ? Number(values.budget) : Infinity;
+  let unanswered = 0;
   let spent = (await readJsonl<ChatTrace>(values.out))
-    .flatMap((t) => t.replies)
-    .reduce((sum, r) => sum + (r.costUsd ?? 0), 0);
+    .reduce(
+      (sum, t) => sum + (t.compactionCostUsd ?? 0) + t.replies.reduce((s, r) => s + (r.costUsd ?? 0), 0),
+      0
+    );
 
   for (const model of values.models.split(",")) {
     for (let sample = 0; sample < samples; sample++) {
@@ -215,7 +271,29 @@ async function cmdSample(): Promise<void> {
           nodeRegistry,
           timeoutMs: Number(values.timeout ?? 20 * 60_000)
         });
-        const last = exchanges.at(-1);
+        // A compaction's summarizer call is captured too. It costs, but it is
+        // not a step of the run, so it stays out of the replies and segments.
+        const { chat, summaryCostUsd } = splitCompactionRequests(exchanges);
+        if (chat.length === 0) {
+          // No request was answered: the provider was down or refused the
+          // call. The run says nothing about the model, so it is not
+          // recorded, and a resumed sample retries it. A run of these is an
+          // outage, and sampling stops rather than burn through the tasks.
+          unanswered += 1;
+          const statuses = exchanges.map((x) => `${x.status}${x.reply.content ? ` ${x.reply.content.slice(0, 200)}` : ""}`);
+          console.log(
+            `RETRY ${model} ${key.split("|").slice(1).join(" ")} no request was answered` +
+              ` (${statuses.length > 0 ? `responses: ${statuses.join(" | ")}` : "no request was sent"})` +
+              `${report.error ? `: ${report.error}` : ""}`
+          );
+          if (unanswered >= MAX_UNANSWERED_RUNS) {
+            throw new Error(`${unanswered} runs in a row got no answer from the provider; stopping. Resume once it answers again.`);
+          }
+          continue;
+        }
+        unanswered = 0;
+        const last = chat.at(-1);
+        const segments = traceSegments(chat);
         const trace: ChatTraceLine = {
           taskId: job.id,
           objective: job.objective,
@@ -228,7 +306,7 @@ async function cmdSample(): Promise<void> {
           toolCallCount: report.toolCalls.length,
           durationMs: report.durationMs,
           ...(report.error ? { error: report.error } : {}),
-          replies: exchanges.map((x) => ({
+          replies: chat.map((x) => ({
             reply: x.reply,
             doneReason: x.doneReason,
             promptTokens: x.promptTokens,
@@ -238,17 +316,20 @@ async function cmdSample(): Promise<void> {
             messageCount: x.messages.length
           })),
           finalRequest: last ? { messages: last.messages, tools: last.tools } : null,
+          ...(segments.length > 0 ? { segments } : {}),
+          ...(summaryCostUsd > 0 ? { compactionCostUsd: summaryCostUsd } : {}),
+          contextWindow,
           ...report.behaviour
         };
         await appendFile(values.out, `${JSON.stringify(trace)}\n`);
         done.add(key);
         const cost = exchanges.reduce((sum, x) => sum + (x.costUsd ?? 0), 0);
         spent += cost;
-        const prompt = exchanges.map((x) => x.promptTokens ?? 0);
+        const prompt = chat.map((x) => x.promptTokens ?? 0);
         console.log(
           `${report.achieved ? "PASS" : "FAIL"} ${model} ${key.split("|").slice(1).join(" ")} ` +
-            `${Math.round(report.durationMs / 1000)}s requests=${exchanges.length} calls=${report.toolCalls.length} ` +
-            `maxPrompt=${Math.max(0, ...prompt)} stops=${exchanges.map((x) => x.doneReason ?? "?").join(",")}` +
+            `${Math.round(report.durationMs / 1000)}s requests=${chat.length} calls=${report.toolCalls.length} ` +
+            `maxPrompt=${Math.max(0, ...prompt)} stops=${chat.map((x) => x.doneReason ?? "?").join(",")}` +
             `${cost > 0 ? ` cost=$${cost.toFixed(4)} total=$${spent.toFixed(2)}` : ""}` +
             ` repeated=${report.behaviour.repeatedCalls} refErrors=${report.behaviour.referenceErrors}` +
             ` importErrors=${report.behaviour.importErrors} unknownOps=${report.behaviour.unknownOps}` +
@@ -258,6 +339,16 @@ async function cmdSample(): Promise<void> {
       }
     }
   }
+}
+
+/** Write the packs this install's sandbox catalog serves as the pinned set. */
+async function cmdPacks(): Promise<void> {
+  await bootstrapNodeRegistry({ loadPacks: false });
+  await refreshSandboxCatalog();
+  assertSandboxCatalogLoaded();
+  const packs = servedSandboxPacks();
+  await writeOut(SANDBOX_PACKS_MANIFEST.pathname, JSON.stringify(packs, null, 1) + "\n");
+  console.log(`${packs.length} sandbox packs written to ${SANDBOX_PACKS_MANIFEST.pathname}`);
 }
 
 /** Write the current validation split as the frozen manifest. */
@@ -296,7 +387,8 @@ const commands: Record<string, () => Promise<void>> = {
   tasks: cmdTasks,
   sample: cmdSample,
   export: cmdExport,
-  valset: cmdValset
+  valset: cmdValset,
+  packs: cmdPacks
 };
 const run = commands[command];
 if (!run) throw new Error(`usage: finetune-data.ts <${Object.keys(commands).join("|")}> [options]`);

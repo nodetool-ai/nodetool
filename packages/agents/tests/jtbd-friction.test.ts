@@ -179,6 +179,57 @@ describe("the job registry", () => {
     }
   });
 
+  it("sketch-layered-artwork: shapes and fills count as drawing, and each part needs its own painted layer", async () => {
+    const job = findJob("sketch-layered-artwork");
+    if (!job) throw new Error("sketch-layered-artwork is not registered");
+    const world = await job.start();
+    const tool = Object.fromEntries(world.tools.map((t) => [t.name, t]));
+    const run = (name: string, args: Record<string, unknown>) =>
+      tool[name].execute(args);
+    await run("ui_sketch_add_layer", { name: "Sky", fillColor: "#88bbee" });
+    await run("ui_sketch_add_layer", { name: "Hills" });
+    await run("ui_sketch_add_layer", { name: "Sun" });
+    await run("ui_sketch_draw_shape", {
+      target: "Sun", shape: "ellipse", x: 20, y: 20, width: 40, height: 40, fill: "#ffcc00"
+    });
+
+    const unpaintedHills = Object.fromEntries(
+      world.grade().map((o) => [o.name, o.passed])
+    );
+    expect(unpaintedHills["actually-drawn"]).toBe(true);
+    expect(unpaintedHills["parts-on-their-layers"]).toBe(false);
+
+    await run("ui_sketch_draw_shape", {
+      target: "Hills", shape: "rect", x: 0, y: 200, width: 400, height: 100, fill: "#336633"
+    });
+    expect(world.grade().every((o) => o.passed)).toBe(true);
+  });
+
+  it("sketch-layered-artwork: one layer named for every part does not count as three", async () => {
+    const job = findJob("sketch-layered-artwork");
+    if (!job) throw new Error("sketch-layered-artwork is not registered");
+    const world = await job.start();
+    const tool = Object.fromEntries(world.tools.map((t) => [t.name, t]));
+    await tool["ui_sketch_add_layer"].execute({ name: "Sky Hills Sun", fillColor: "#88bbee" });
+    await tool["ui_sketch_add_layer"].execute({ name: "Foreground" });
+    await tool["ui_sketch_add_layer"].execute({ name: "Details" });
+    const graded = Object.fromEntries(world.grade().map((o) => [o.name, o.passed]));
+    expect(graded["parts-on-their-layers"]).toBe(false);
+  });
+
+  it("sketch-layered-artwork: a fully transparent layer does not count as painted", async () => {
+    const job = findJob("sketch-layered-artwork");
+    if (!job) throw new Error("sketch-layered-artwork is not registered");
+    const world = await job.start();
+    const tool = Object.fromEntries(world.tools.map((t) => [t.name, t]));
+    for (const name of ["Sky", "Hills", "Sun"]) {
+      await tool["ui_sketch_add_layer"].execute({ name, fillColor: "#88bbee" });
+    }
+    await tool["ui_sketch_set_layer_props"].execute({ target: "Sun", opacity: 0 });
+    const graded = Object.fromEntries(world.grade().map((o) => [o.name, o.passed]));
+    expect(graded["parts-on-their-layers"]).toBe(false);
+  });
+
   it("motion-title-sequence: a solved world passes every outcome", async () => {
     // The untouched-world rule above proves the job's checks can fail. This is
     // the other half: a beat grid, three animated titles inside a group, and a
@@ -210,14 +261,12 @@ describe("the job registry", () => {
     // before the source starts. Move the starts, then trim the ends back.
     await run("ui_timeline_snap_to_beats", {
       bpm: 120,
-      count: 31,
       mode: "start",
       action: "move",
       tolerance_ms: 250
     });
     await run("ui_timeline_snap_to_beats", {
       bpm: 120,
-      count: 31,
       mode: "end",
       action: "trim",
       tolerance_ms: 250

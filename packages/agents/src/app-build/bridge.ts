@@ -48,6 +48,7 @@ import {
   widgetFields,
   widgetSlots,
   WIDGET_CATALOG,
+  implicitOperation,
   type AppDocMeta,
   type BindableWorkflow,
   type BindingTargets,
@@ -141,6 +142,12 @@ export interface AppBridgeInitialState {
    * no bindable surface.
    */
   workflows?: Readonly<Record<string, BindableWorkflow>>;
+  /**
+   * Refuse an operation on a workflow this editor has not loaded. A headless
+   * world that seeds every workflow there is sets this. The product leaves it
+   * off, because an app may bind any workflow the user owns.
+   */
+  onlyLoadedWorkflows?: boolean;
   /**
    * Offer `ui_app_finish` so the model can end the loop deliberately. Off by
    * default: the eval surface exposes the frontend contract and nothing else.
@@ -344,6 +351,70 @@ export function createAppToolBridge(
     ...Object.entries(initial.workflows ?? {})
   ]);
 
+  const loadedWorkflowList = (): string =>
+    loadedWorkflows.size === 0
+      ? "no workflow"
+      : [...loadedWorkflows.keys()].map((id) => `"${id}"`).join(", ");
+
+  /**
+   * The static half of `ui_app_debug`: bindings that name no target and run
+   * events that name no operation. Bindings into a workflow this editor has
+   * not loaded cannot be checked and are reported as such.
+   */
+  const wiringReport = () => {
+    const targets = allBindingTargets();
+    const valid = new Set<string>([
+      ...targets.operations.flatMap((op) => [
+        ...op.inputs.map((t) => t.binding),
+        ...op.outputs.map((t) => t.binding),
+        ...op.execution.map((t) => t.binding)
+      ]),
+      ...targets.variables.map((v) => v.binding)
+    ]);
+    const operationIds = new Set(targets.operations.map((op) => op.operationId));
+    const unchecked = new Set(
+      targets.operations.filter((op) => !op.ioAvailable).map((op) => op.operationId)
+    );
+    const issues: string[] = [];
+    const warnings: string[] = [];
+    for (const c of flattenComponents(content)) {
+      const binding = c.props.binding;
+      // As in app-runtime's resolver, `main` names the app's one declared
+      // operation when that operation has another id.
+      const only = meta.operations.length === 1 ? meta.operations[0]!.id : undefined;
+      const resolved =
+        typeof binding === "string" && only !== undefined && only !== "main"
+          ? binding.replace(/^op:main\//, `op:${only}/`)
+          : binding;
+      if (typeof resolved === "string" && /^op:[^/]+\/prop:/.test(resolved)) {
+        // A node-property binding needs the graph's node metadata, which this
+        // editor does not hold.
+        warnings.push(`${c.id}: ${resolved} binds a node property, which this check cannot verify.`);
+      } else if (typeof resolved === "string" && /^(op|var):/.test(resolved) && !valid.has(resolved)) {
+        const op = /^op:([^/]+)\//.exec(resolved)?.[1];
+        if (op !== undefined && unchecked.has(op)) {
+          warnings.push(`${c.id}: ${binding} binds into a workflow this editor has not loaded.`);
+        } else {
+          issues.push(
+            `${c.id} (${c.type}) is bound to ${binding}, which names no target. Read ui_app_get_binding_targets for the tokens.`
+          );
+        }
+      }
+      const events = Array.isArray(c.props.events) ? (c.props.events as Array<Record<string, unknown>>) : [];
+      for (const event of events) {
+        if (event.kind !== "run") continue;
+        // A run with no operation id runs the first operation, as the runtime does.
+        const id = event.operationId ?? targets.operations[0]?.operationId;
+        if (typeof id !== "string" || !operationIds.has(id)) {
+          issues.push(
+            `${c.id} (${c.type}) runs operation ${String(id)}, which the app does not have. Its operations: ${[...operationIds].join(", ") || "none"}.`
+          );
+        }
+      }
+    }
+    return { verdict: issues.length === 0 ? "pass" : "fail", issues, warnings, simulated: "wiring only" };
+  };
+
   /** Binding targets across every loaded workflow. */
   const allBindingTargets = (): BindingTargets =>
     bindingTargets(
@@ -490,11 +561,25 @@ export function createAppToolBridge(
         const wanted = (slot as string | null | undefined) ?? null;
         const at = index as number | undefined;
 
-        // Mirror puckDataOps.addComponent exactly: an unknown parent id or a
-        // parent with no slots silently no-ops (the node is not inserted) — the
-        // real tool never errors on these, it just leaves the tree unchanged.
-        // Adding a widget does NOT change the selection either, matching
+        // Mirror puckDataOps.addComponent: an unknown parent id, or a parent
+        // with no slots, is refused rather than dropping the widget. Adding a
+        // widget does NOT change the selection, matching
         // PuckAgentBinder.addComponent (only ui_app_select_component does).
+        if (parentId) {
+          const parent = flattenComponents(content).find((c) => c.id === parentId);
+          if (!parent) {
+            throw new Error(
+              `ui_app_add_component: no widget with id "${parentId}". Read ` +
+                "ui_app_get_snapshot for the ids, or omit parent_id to add at the top level."
+            );
+          }
+          if (widgetSlots(parent.type).length === 0) {
+            throw new Error(
+              `ui_app_add_component: "${parentId}" is a ${parent.type}, which holds no ` +
+                "children. Nest inside a Panel, Accordion, Columns or Tabs widget."
+            );
+          }
+        }
         if (!parentId) {
           content = insertInto(content, node, at);
         } else {
@@ -638,7 +723,15 @@ export function createAppToolBridge(
         "run, with its input and output mappings and its concurrency policy. " +
         "Widget bindings address an operation by id (op:<opId>/in:<nodeId>).",
       z.object({ application_id: applicationIdParam }),
-      async () => ({ ok: true, operations: meta.operations })
+      async () => ({
+        ok: true,
+        // An app that declares no operation runs the implicit one on the
+        // loaded workflow, the same one ui_app_get_binding_targets reports.
+        operations:
+          meta.operations.length > 0
+            ? meta.operations
+            : [{ ...implicitOperation(hostWorkflowId), implicit: true }]
+      })
     ),
 
     tool(
@@ -675,10 +768,23 @@ export function createAppToolBridge(
         timeout_ms: z.number().int().optional()
       }),
       async (args) => {
+        const target = (args.target_workflow_id as string).trim();
+        if (target === "") {
+          throw new Error(
+            "ui_app_add_operation: target_workflow_id is empty. Pass the id of the " +
+              `workflow to run; the editor has loaded ${loadedWorkflowList()}.`
+          );
+        }
+        if (initial.onlyLoadedWorkflows && !loadedWorkflows.has(target)) {
+          throw new Error(
+            `ui_app_add_operation: no workflow "${target}" is loaded. ` +
+              `The editor has loaded ${loadedWorkflowList()}.`
+          );
+        }
         const result = addOperation(meta, {
           id: args.id as string | undefined,
           name: args.name as string | undefined,
-          workflowId: args.target_workflow_id as string,
+          workflowId: target,
           workflowVersion: args.workflow_version as number | undefined,
           policy: args.policy as OperationPolicy | undefined,
           inputs: args.inputs as Record<string, InputMapping> | undefined,
@@ -927,6 +1033,30 @@ export function createAppToolBridge(
     ),
 
     /* -------------------------------------------------------- binding targets */
+
+    tool(
+      "ui_app_debug",
+      "Check the app's wiring against the in-memory draft: every widget " +
+        "binding must name a real target, and every run event an operation " +
+        "the app has. Call it after any binding, operation, or variable change " +
+        "and fix what it names. `run: true` (executing the workflows) is not " +
+        "available in this editor.",
+      z.object({
+        application_id: applicationIdParam,
+        run: z.boolean().optional(),
+        params: z.record(z.string(), z.unknown()).optional(),
+        interact: z.array(z.unknown()).optional(),
+        timeout_ms: z.number().int().optional()
+      }),
+      async ({ run }) => {
+        if (run === true) {
+          throw new Error(
+            "ui_app_debug: run: true is not available in this editor. Call it without run for the wiring check."
+          );
+        }
+        return { ok: true, ...wiringReport() };
+      }
+    ),
 
     tool(
       "ui_app_get_binding_targets",

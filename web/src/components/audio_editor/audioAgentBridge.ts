@@ -55,6 +55,11 @@ export interface AudioAgentHandler {
     params: Record<string, number>,
     range?: AudioRange
   ) => Promise<AudioSnapshot>;
+  /**
+   * Step back over the agent's last edit or effect. Throws when none is left,
+   * or when the user changed the audio after it.
+   */
+  undo: () => AudioSnapshot;
   /** Write the draft back to the asset as WAV. */
   save: () => Promise<AudioSnapshot>;
 }

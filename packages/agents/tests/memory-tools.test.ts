@@ -131,6 +131,37 @@ describe("memory tools", () => {
     expect(reloaded!.kind).toBe("fact");
   });
 
+  it("refuses an update that changes nothing and points at memory_delete", async () => {
+    const save = toolForCapabilityName("memory_save");
+    const saved = (await save.process(ctx(), { content: "original" })) as {
+      memory_id: string;
+    };
+    const update = toolForCapabilityName("memory_update");
+    const result = (await update.process(ctx(), {
+      memory_id: saved.memory_id,
+      content: null
+    })) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(`memory_delete({memory_id: "${saved.memory_id}"})`);
+    expect((await Memory.find("u1", saved.memory_id))!.content).toBe("original");
+
+    const blank = (await update.process(ctx(), {
+      memory_id: saved.memory_id,
+      content: " ",
+      title: "Renamed"
+    })) as { success: boolean; error: string };
+    expect(blank.success).toBe(false);
+    expect(blank.error).toContain("content is empty");
+    expect((await Memory.find("u1", saved.memory_id))!.title).not.toBe("Renamed");
+
+    const badResources = (await update.process(ctx(), {
+      memory_id: saved.memory_id,
+      resources: false
+    })) as { success: boolean; error: string };
+    expect(badResources.success).toBe(false);
+    expect(badResources.error).toContain("Pass [] to remove them all");
+  });
+
   it("deletes a memory", async () => {
     const save = toolForCapabilityName("memory_save");
     const saved = (await save.process(ctx(), { content: "temp" })) as {

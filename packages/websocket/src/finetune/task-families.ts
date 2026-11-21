@@ -224,6 +224,7 @@ const sameColor = (a: string | undefined, b: string) => (a ?? "").toLowerCase() 
 
 export const MODEL3D_BUILD: TaskFamily<Model3DBridgeFinalState> = {
   id: "model3d-build",
+  surface: "model3d",
   make(pick) {
     const meshes = pick.some(OBJECT_NAMES, pick.int(2, 4)).map((name) => ({
       name,
@@ -271,6 +272,7 @@ export const MODEL3D_BUILD: TaskFamily<Model3DBridgeFinalState> = {
 
 export const MODEL3D_EDIT: TaskFamily<Model3DBridgeFinalState> = {
   id: "model3d-edit",
+  surface: "model3d",
   make(pick) {
     const names = pick.some(OBJECT_NAMES, pick.int(3, 5));
     const seed = names.map((name) => ({ name, kind: pick.one(MESH_KINDS) }));
@@ -448,6 +450,11 @@ const TITLE_TEXTS = [
 const ENTRANCES = ["fade", "slide", "pop", "typewriter", "wipe", "blur"];
 const SHOT_NAMES = ["Intro", "Wide", "Close-up", "Reaction", "Detail", "Outro", "B-roll", "Cutaway"];
 const clipsNamed = (s: TimelineBridgeFinalState, name: string) => s.clips.filter((c) => c.name === name);
+/** Clips whose displayed text is `text`. A text clip's name is a label the model may choose freely. */
+const clipsShowing = (s: TimelineBridgeFinalState, text: string) => {
+  const ids = new Set(s.documentClips.filter((c) => c.textStyle?.text.trim() === text).map((c) => c.id));
+  return s.clips.filter((c) => ids.has(c.id));
+};
 
 export const TIMELINE_TITLES: TaskFamily<TimelineBridgeFinalState> = {
   id: "timeline-titles",
@@ -467,13 +474,13 @@ export const TIMELINE_TITLES: TaskFamily<TimelineBridgeFinalState> = {
       {
         name: `"${t.text}" at ${t.startMs}ms for ${t.durationMs}ms`,
         test: (s: TimelineBridgeFinalState) =>
-          clipsNamed(s, t.text).some((c) => c.mediaType === "text" && c.startMs === t.startMs && Math.abs(c.durationMs - t.durationMs) <= 1)
+          clipsShowing(s, t.text).some((c) => c.mediaType === "text" && c.startMs === t.startMs && Math.abs(c.durationMs - t.durationMs) <= 1)
       },
       ...(t.entrance
         ? [{
             name: `"${t.text}" ${t.entrance} entrance`,
             test: (s: TimelineBridgeFinalState) =>
-              clipsNamed(s, t.text).some((c) => c.animations.some((a) => a.role === "in" && a.preset.includes(t.entrance!)))
+              clipsShowing(s, t.text).some((c) => c.animations.some((a) => a.role === "in" && a.preset.includes(t.entrance!)))
           }]
         : [])
     ]);

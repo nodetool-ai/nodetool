@@ -77,6 +77,15 @@ describe("puckDataOps", () => {
     expect(content.map((c) => c.props.id)).toEqual(["t2", "t3"]);
   });
 
+  it("refuses a parent that does not exist or holds no children", () => {
+    expect(() =>
+      addComponent(baseData(), slotFields, { type: "Text", id: "t3", parentId: "missing" })
+    ).toThrow('No widget with id "missing"');
+    expect(() =>
+      addComponent(baseData(), slotFields, { type: "Text", id: "t3", parentId: "t2" })
+    ).toThrow('"t2" is a Text, which holds no children');
+  });
+
   it("updates props of a nested component without changing its id", () => {
     const { data, node } = updateComponentProps(baseData(), slotFields, "t2", {
       text: "changed",

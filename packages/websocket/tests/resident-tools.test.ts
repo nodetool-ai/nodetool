@@ -128,6 +128,10 @@ describe("resident toolbelt", () => {
 
   it("does not add UI tools when no document has focus", () => {
     expect(focusedUiToolNames(null, ["ui_app_add_component"])).toEqual([]);
+    // The 3D editor has no focus type; its chat source selects its tools.
+    expect(
+      focusedUiToolNames({ source: "model3d_assistant" }, ["ui_3d_add_object", "ui_app_add_component"])
+    ).toEqual(["ui_3d_add_object"]);
   });
 
   it("teaches the build-and-verify loop as `nodetool.*` code", () => {
