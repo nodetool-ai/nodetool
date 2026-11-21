@@ -65,6 +65,18 @@ export abstract class AcpCliProvider extends BaseProvider {
     return undefined;
   }
 
+  /**
+   * Adds {@link HOST_TOOLS_ONLY_NOTICE} to tool-turn prompts. For CLIs whose
+   * own tools stay visible to the model even though the host rejects them.
+   */
+  protected readonly hostToolsOnlyPrompt: boolean = false;
+
+  /**
+   * Prepares the scratch workspace before the ACP server starts, for example
+   * by writing CLI configuration into it. The default does nothing.
+   */
+  protected async prepareAcpWorkspace(_cwd: string | null): Promise<void> {}
+
   /** The model id to select in the ACP session. Empty keeps the CLI default. */
   protected acpModelId(model: string): string {
     return model;
@@ -120,8 +132,11 @@ export abstract class AcpCliProvider extends BaseProvider {
     const history = args.loadFullHistory
       ? await args.loadFullHistory()
       : args.messages;
-    const prompt = buildFreshPrompt(history, systemPrompt, this.cliName);
+    const prompt = buildFreshPrompt(history, systemPrompt, this.cliName, {
+      hostToolsOnly: this.hostToolsOnlyPrompt
+    });
     const cwd = await scratchWorkspace(this.scratchName);
+    await this.prepareAcpWorkspace(cwd);
     const byName = new Map(tools.map((t) => [t.name, t]));
     const abort = new AbortController();
     const onExternalAbort = () => abort.abort();
@@ -271,14 +286,26 @@ export function extractSystemPrompt(messages: readonly Message[]): string {
 }
 
 /**
+ * Tells the model on an ACP tool turn that only NodeTool's tools exist. The
+ * host rejects every other permission request, and a rejected call can end
+ * the CLI's turn without a reply.
+ */
+export const HOST_TOOLS_ONLY_NOTICE =
+  "Only the tools from the `nodetool` MCP server (named `mcp_nodetool_*`) are available. " +
+  "The CLI's built-in shell, file and search tools, such as `run_command` and `read_file`, " +
+  "are disabled. Do not call them.";
+
+/**
  * The prompt for a fresh conversation. The CLI has no system-prompt flag and
  * cannot import earlier turns, so instructions and prior history are sent as
- * delimited blocks ahead of the new user turn.
+ * delimited blocks ahead of the new user turn. `hostToolsOnly` adds
+ * {@link HOST_TOOLS_ONLY_NOTICE} to the instructions.
  */
 export function buildFreshPrompt(
   messages: readonly Message[],
   systemPrompt: string,
-  cliName = "Antigravity CLI"
+  cliName = "Antigravity CLI",
+  options: { hostToolsOnly?: boolean } = {}
 ): string {
   const convo = messages.filter((m) => m.role === "user" || m.role === "assistant");
   assertTextOnly(convo, cliName);
@@ -292,8 +319,11 @@ export function buildFreshPrompt(
     })
     .filter(Boolean)
     .join("\n\n");
+  const instructions = [systemPrompt, options.hostToolsOnly ? HOST_TOOLS_ONLY_NOTICE : ""]
+    .filter(Boolean)
+    .join("\n\n");
   return [
-    systemPrompt ? `<instructions>\n${systemPrompt}\n</instructions>` : "",
+    instructions ? `<instructions>\n${instructions}\n</instructions>` : "",
     transcript ? `<conversation_so_far>\n${transcript}\n</conversation_so_far>` : "",
     newTurn
   ]
