@@ -89,7 +89,8 @@ double layoutCardMedia(NodeRow &row, const CardMediaField &field, double top, do
                        const CardMediaStore &store);
 // A filling constant grows with an authored card height.
 void stretchCardMedia(NodeLayout &layout, const QString &nodeType);
-void paintCardMedia(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, bool hovered);
+class CanvasIconCache;
+void paintCardMedia(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, bool hovered, CanvasIconCache *icons = nullptr);
 // PropertyDropzone's hover actions on a loaded image: Copy and Replace. Empty
 // for other rows.
 enum class CardMediaAction { Copy, Replace };

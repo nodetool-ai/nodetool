@@ -15,6 +15,7 @@
 class QKeyEvent;
 
 namespace nodetool {
+class CanvasIconCache;
 class WorkflowGraphModel;
 }
 
@@ -51,6 +52,8 @@ public:
 
   void paintNode(QPainter &painter, const NodeItem &item, double zoom) const override;
   void paintConnection(QPainter &painter, const ConnectionItem &item, double zoom) const override;
+  std::optional<WirePaintState> connectionPaintState(const ConnectionItem &item, double zoom) const override;
+  const CanvasTheme *canvasTheme() const override { return &theme_; }
   QPainterPath connectionStroke(const ConnectionItem &item) const override;
   QPainterPath connectionPath(const ConnectionItem &item) const override;
   bool connectionPaintsOffPath(const ConnectionItem &item) const override;
@@ -158,6 +161,7 @@ private:
   bool branchDimmingPending_ = false;
   QSet<QtNodes::NodeId> dimmedNodes_;
   QHash<QtNodes::NodeId, QString> toolTips_;
+  std::unique_ptr<CanvasIconCache> iconCache_;
 };
 
 } // namespace nodetool::canvas

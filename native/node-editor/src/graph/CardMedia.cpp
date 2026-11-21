@@ -90,24 +90,24 @@ QRectF actionRect(const QRectF &zone, int index) {
                   cm::actionSize, cm::actionSize);
 }
 
-void paintActions(QPainter *painter, const CanvasTheme &theme, const QRectF &zone) {
+void paintActions(QPainter *painter, const CanvasTheme &theme, const QRectF &zone, CanvasIconCache *icons) {
     for (const auto &[icon, index] : {std::pair{QStringLiteral("contentCopy"), 1}, std::pair{QStringLiteral("folderOpen"), 0}}) {
         const auto button = actionRect(zone, index);
         painter->setPen(Qt::NoPen);
         painter->setBrush(theme.mediaScrim);
         painter->drawRoundedRect(button, nm::fieldRadius, nm::fieldRadius);
         paintMaterialIcon(painter, icon, QRectF(button.center().x() - nm::iconSize / 2.0, button.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize),
-                          theme.mediaScrimInk);
+                          theme.mediaScrimInk, icons);
     }
 }
 
 // A player's place while its overlay is not shown: a dark frame with a play mark.
-void paintPlayerPlace(QPainter *painter, const CanvasTheme &theme, const QRectF &rect, double radius) {
+void paintPlayerPlace(QPainter *painter, const CanvasTheme &theme, const QRectF &rect, double radius, CanvasIconCache *icons) {
     painter->setPen(Qt::NoPen);
     painter->setBrush(theme.mediaScrim);
     painter->drawRoundedRect(rect, radius, radius);
     paintMaterialIcon(painter, QStringLiteral("playArrow"), QRectF(rect.center().x() - nm::iconSize / 2.0, rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize),
-                      theme.mediaScrimInk);
+                      theme.mediaScrimInk, icons);
 }
 
 QString filename(const QVariant &locator) {
@@ -322,7 +322,7 @@ void stretchCardMedia(NodeLayout &layout, const QString &nodeType) {
     }
 }
 
-void paintCardMedia(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, bool hovered) {
+void paintCardMedia(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, bool hovered, CanvasIconCache *icons) {
     painter->save();
     painter->setRenderHint(QPainter::SmoothPixmapTransform);
     if (!row.bare) {
@@ -346,7 +346,7 @@ void paintCardMedia(QPainter *painter, const CanvasTheme &theme, const NodeRow &
                 painter->restore();
             } else if (row.mediaKind == "video") {
                 paintMaterialIcon(painter, QStringLiteral("playArrow"), QRectF(inside.center().x() - nm::iconSize / 2.0, inside.center().y() - nm::iconSize / 2.0,
-                                                                          nm::iconSize, nm::iconSize), theme.mediaScrimInk);
+                                                                          nm::iconSize, nm::iconSize), theme.mediaScrimInk, icons);
             }
         }
         paintPrompt(painter, theme, row.listZone, row.value, true);
@@ -383,10 +383,10 @@ void paintCardMedia(QPainter *painter, const CanvasTheme &theme, const NodeRow &
             paintPrompt(painter, theme, item.rect, row.value, false);
         } else if (item.state == CardMediaState::Ready && hovered) {
             paintBadge(painter, theme, item.rect, row.value);
-            paintActions(painter, theme, row.rect);
+            paintActions(painter, theme, row.rect, icons);
         }
     } else if (row.mediaKind == "video") {
-        paintPlayerPlace(painter, theme, item.rect, radius);
+        paintPlayerPlace(painter, theme, item.rect, radius, icons);
     }
     painter->restore();
 }

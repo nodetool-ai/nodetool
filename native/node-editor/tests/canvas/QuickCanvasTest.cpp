@@ -620,8 +620,15 @@ private slots:
     f.canvas->setView(.12, QPointF(3200, 2400));
     f.canvas->flushRaster();
     const auto *wire = f.canvas->scene().connectionItems().first();
-    QVERIFY(wire->hasImage());
-    QVERIFY2(wire->rasterBytes() < 8 * 1024 * 1024, qPrintable(QString::number(wire->rasterBytes())));
+    const bool software = f.window.rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
+    if (software) {
+      // Software renders wires directly as vector paths without allocating wire tiles.
+      QVERIFY(!wire->hasImage());
+      QCOMPARE(wire->rasterBytes(), 0);
+    } else {
+      QVERIFY(wire->hasImage());
+      QVERIFY2(wire->rasterBytes() < 8 * 1024 * 1024, qPrintable(QString::number(wire->rasterBytes())));
+    }
     QVERIFY(!lineage.hasImage());
     qInfo() << "Long wire bytes" << wire->rasterBytes();
     QVERIFY(f.canvas->offscreenRasterBytes() <= GraphCanvas::rasterCacheBudget);
@@ -716,13 +723,18 @@ private slots:
     qInfo() << "Large raster DPR" << f.window.effectiveDevicePixelRatio()
             << "slowest polish (ms)" << stats.slowestPass / 1e6 << "cache bytes" << bytes
             << "card/wire/foreground jobs" << stats.cards << stats.wires << stats.foreground;
-    QVERIFY(stats.cards > 0 && stats.wires > 0 && stats.foreground > 0);
+    const bool software = f.window.rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
+    QVERIFY(stats.cards > 0 && stats.foreground > 0 && (software ? stats.wires == 0 : stats.wires > 0));
     QVERIFY(stats.slowestPass < 4'000'000 * gr::test::kSanitizerTimeScale);
     QVERIFY(f.canvas->offscreenRasterBytes() <= GraphCanvas::rasterCacheBudget);
     const auto *largeCard = f.item("left");
     const auto *wire = f.canvas->scene().connectionItems().first();
     QVERIFY(largeCard->tiles().size() > 1);
-    QVERIFY(wire->tiles().size() > 1);
+    if (software) {
+      QVERIFY(wire->tiles().isEmpty());
+    } else {
+      QVERIFY(wire->tiles().size() > 1);
+    }
     const auto dpr = f.window.effectiveDevicePixelRatio();
     for (const auto *item : {static_cast<const CanvasItem *>(largeCard), static_cast<const CanvasItem *>(wire)}) {
       for (const auto &tile : item->tiles()) {
@@ -742,9 +754,12 @@ private slots:
     };
     const auto left = compare({8, 6}, {100, 46});
     const auto right = compare({612, 295}, {80, 46});
-    qInfo() << "Large raster label error" << left << right;
+    const auto wirePath = wireCurve(wire->endPoint(PortType::Out), wire->endPoint(PortType::In));
+    const auto wireErr = compare(wirePath.pointAtPercent(.5) - QPointF(60, 40), {120, 80});
+    qInfo() << "Large raster label error" << left << right << "wire error" << wireErr;
     QVERIFY(left < .02);
     QVERIFY(right < .02);
+    QVERIFY(wireErr < .02);
 
     // A resize must discard the old coverage. Once it settles, a small pan
     // in the new view uses the existing exact-scale tiles.
@@ -1151,6 +1166,14 @@ private slots:
       const QRect frame(QPoint(), (QSizeF(f.window.size()) * dpr).toSize());
       const auto items = f.canvas->scene().itemsIn(f.canvas->viewport().visibleSceneRect());
       for (const auto *item : items) {
+        if (software && item->kind() == CanvasItem::Kind::Connection) {
+          // Software renders connections directly as vector paths without tile images.
+          if (!item->tiles().isEmpty() && exact) {
+            QDebug(&inexact) << "software wire allocated tiles" << item->indexKey();
+            exact = false;
+          }
+          continue;
+        }
         const auto origin = item->scenePosition();
         // The item bounds include an antialiasing margin. Exclude the
         // outermost two pixels when comparing the old grid during scaling.
@@ -1423,7 +1446,7 @@ private slots:
       QVERIFY2(f.canvas->rasterStats().slowestPass < 4'000'000 * gr::test::kSanitizerTimeScale,
                qPrintable(QString::number(f.canvas->rasterStats().slowestPass)));
       const auto *wire = f.canvas->scene().draftConnection();
-      QVERIFY(wire && wire->hasImage());
+      QVERIFY(wire && (software ? !wire->hasImage() : wire->hasImage()));
       QCOMPARE(f.view(wire->endPoint(PortType::In)), f.view(pointer));
       const auto endpoint = (QPointF(f.view(pointer)) * dpr).toPoint();
       const auto frameWithWire = f.window.grabWindow();
@@ -1509,12 +1532,17 @@ private slots:
       f.item("source")->markDirty();
       f.canvas->flushRaster();
     }
+    const bool software = f.window.rendererInterface()->graphicsApi() == QSGRendererInterface::Software;
     QVERIFY(f.item("source")->hasImage());
     QVERIFY(f.item("target")->hasImage());
     QVERIFY(f.item("target2")->hasImage());
-    QVERIFY(f.canvas->scene().connectionItems().first()->hasImage());
+    if (software) {
+      QVERIFY(!f.canvas->scene().connectionItems().first()->hasImage());
+    } else {
+      QVERIFY(f.canvas->scene().connectionItems().first()->hasImage());
+    }
     QCOMPARE(first.cards, 3);
-    QCOMPARE(first.wires, 1);
+    QCOMPARE(first.wires, software ? 0 : 1);
     QCOMPARE(f.canvas->rasterStats().cards - first.cards, 5);
     QCOMPARE(f.canvas->rasterStats().wires, first.wires);
     QVERIFY(!f.item("prefetch")->hasImage());

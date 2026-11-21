@@ -11,6 +11,7 @@
 
 #include "canvas/CanvasItem.h"
 #include "canvas/GridIndex.h"
+#include "canvas/WirePainter.h"
 #include <qtnodes/ConnectionIdHash.hpp>
 #include <qtnodes/Definitions.hpp>
 #include <QHash>
@@ -19,6 +20,7 @@
 #include <QPointer>
 #include <QSet>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 
 class QPainter;
@@ -64,6 +66,12 @@ public:
   // Painting and the connection shape, supplied by the editor scene.
   virtual void paintNode(QPainter &painter, const NodeItem &item, double zoom) const = 0;
   virtual void paintConnection(QPainter &painter, const ConnectionItem &item, double zoom) const = 0;
+  // Value paint state and theme for direct vector wire rendering on software
+  // backends. Returns std::nullopt when hidden or unsupported by a test scene.
+  virtual std::optional<WirePaintState> connectionPaintState(const ConnectionItem &, double) const {
+    return std::nullopt;
+  }
+  virtual const CanvasTheme *canvasTheme() const { return nullptr; }
   virtual QPainterPath connectionStroke(const ConnectionItem &item) const = 0;
   // The centre line the connection painter strokes, and whether the painted
   // marks can reach farther than half the widest stroke from it.

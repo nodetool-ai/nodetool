@@ -467,6 +467,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner, EditorWindow
   canvas_->graphCanvas().viewportWheel = [this](QWheelEvent &wheel) {
     canvas_->scene().interaction().viewportWheel(wheel.pixelDelta(), wheel.angleDelta(),
                                                  wheel.phase(), wheel.modifiers(), *this);
+    if (wheel.phase() == Qt::ScrollEnd && canvas_->graphCanvas().zoomSettling()) {
+      canvas_->graphCanvas().finishZoomGesture();
+    }
   };
   // The canvas dispatches to the item under the press before starting a viewport gesture.
   canvas_->graphCanvas().viewportPointer = [this](canvas::PointerAction action, QMouseEvent &mouse) {
@@ -621,7 +624,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner, EditorWindow
   connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::inlineEditRequested, inlineTitle_, &InlineTitlePresenter::cancel);
   canvasMedia_ = new CanvasMediaPresenter(model_, *canvas_, engine_, mediaResolver_, this);
   cardMediaLoader_ = new CardMediaLoader(model_, mediaResolver_, this);
-  connect(this, &EditorWindow::zoomChanged, canvasMedia_, &CanvasMediaPresenter::refresh);
+  connect(this, &EditorWindow::zoomChanged, canvasMedia_, &CanvasMediaPresenter::schedule);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, canvasMedia_, &CanvasMediaPresenter::clear);
   compatiblePicker_ = new CompatibleNodePicker(model_, canvas_->scene(), *canvas_, engine_, this);
   compatiblePicker_->applyCommand = [this](const QJsonObject &command) { return apply(command); };
@@ -2117,10 +2120,16 @@ QJsonArray EditorWindow::expandParentCommands(const QJsonObject &positions, cons
 
 void EditorWindow::positionSelectionToolbar() {
   if (!selectionOverlay_ || !canvas_) { return; }
+  bool visible = selectedCount() > 0 && !browserVisible();
+  if (!visible && !selectionOverlay_->isVisible()) {
+    selectionToolbarFloating_ = false;
+    toolbarSelectedAt_.clear();
+    positionPriceChip();
+    return;
+  }
   const auto area = canvas_->hostWidget().rect();
   const auto selection = selectionOverlay_->sizeHint();
   QPoint origin(std::max(0, (area.width() - selection.width()) / 2), 30);
-  bool visible = selectedCount() > 0 && !browserVisible();
   selectionToolbarFloating_ = false;
   // NodeSelectionToolbar.tsx shows the card toolbar only for one selected card
   // that is not being dragged, centered above it with an 8 px gap.
@@ -4258,6 +4267,10 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     }
     if (type == QEvent::NativeGesture) {
       const auto &gesture = *static_cast<QNativeGestureEvent *>(event);
+      if (gesture.gestureType() == Qt::EndNativeGesture && canvas_->graphCanvas().zoomSettling()) {
+        canvas_->graphCanvas().finishZoomGesture();
+        return false;
+      }
       if (gesture.gestureType() != Qt::ZoomNativeGesture) { return false; }
       zoomUnderCursor(1.0 + gesture.value());
       return true;

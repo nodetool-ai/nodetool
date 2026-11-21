@@ -23,6 +23,12 @@ int runEditor(QApplication &app, const QCommandLineParser &parser);
 }
 int main(int argc, char **argv) {
   QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
+  // Qt's raster paint engine stops caching glyphs above 64 device pixels and
+  // falls back to per-call vector outlines (~34x slower). Raise the cap so
+  // zoomed cards stay on the cached glyph path across the 0.08..8.0 zoom range.
+  if (!qEnvironmentVariableIsSet("QT_MAX_CACHED_GLYPH_SIZE")) {
+    qputenv("QT_MAX_CACHED_GLYPH_SIZE", "256");
+  }
   QApplication app(argc, argv);
   QCoreApplication::setApplicationName("nodetool-node-editor");
   QCommandLineParser parser;

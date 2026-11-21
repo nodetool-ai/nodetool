@@ -17,20 +17,34 @@
 #include <QStyleHints>
 #include <algorithm>
 #include <cmath>
+#include <utility>
+#include <variant>
 
 namespace nodetool::canvas {
 using namespace QtNodes;
 namespace {
-// A zoom gesture scales textures; they are painted again after this pause.
+// A zoom gesture scales textures; exact-scale rasters start after this pause.
+constexpr int kZoomSettleMs = 40;
+// After a continuous zoom gesture has run this long, visible items that zoomed
+// in >= 2x or left overview mode sharpen live mid-gesture. Fast wheel bursts
+// finish below this threshold and paint once at the exact settled scale.
+constexpr qint64 kMidZoomUpgradeMs = 120;
+// Moving items and pans keep their sub-pixel phase until still for this pause.
 constexpr int kSettleMs = 100;
 // Tiles that would leave a visible area blank may use 3 ms of the 4 ms
 // settle budget, which leaves room for one tile slower than predicted.
-// Other work stops at the 1.4 ms frame budget. The urgent budget keeps this
-// ratio to the frame budget, which tests scale for sanitizer builds.
+// Other work (including zoom-settle sharpening, which keeps visible items
+// ahead of prefetch in priority order) stops at the 1.4 ms frame budget.
+// The urgent budget keeps this ratio to the frame budget, which tests scale
+// for sanitizer builds.
 constexpr qint64 kUrgentRasterNs = 3'000'000;
 constexpr qint64 kFrameRasterNs = 1'400'000;
 // The fixed cost of a raster job: the painter, the card's paint state and the tile.
 constexpr qint64 kJobOverheadNs = 30'000;
+// Minimum pixel denominator when updating nsPerPixel_ for tiled items: edge
+// slivers below 1/4 of a 512x512 cell must not inflate the per-pixel cost of
+// full tiles, while untiled items (such as overview cards) keep their true area.
+constexpr qsizetype kMinTiledSamplePixels = 65'536;
 // Passes this close together come from consecutive frames.
 constexpr qint64 kConsecutiveMs = 50;
 // A staged tile counts as shown when the published grid covers this share of it.
@@ -115,26 +129,43 @@ private:
 };
 
 // Render thread only. The scene graph owns this node and its frame of
-// implicitly shared QImages. Sync copies the handles while the GUI is blocked.
+// implicitly shared QImages and copied wire paint states. Sync copies the
+// handles and value states while the GUI thread is blocked.
 class SoftwareCanvasNode final : public QSGRenderNode {
 public:
   explicit SoftwareCanvasNode(QQuickWindow &window) : window_(window) {}
   struct Image {
     QRectF rect;
     QImage pixels;
+    QRect contentRect;
+    QColor solidColor;
     qreal opacity;
     bool unscaled;
     bool operator==(const Image &other) const {
-      return pixels.cacheKey() == other.pixels.cacheKey() && rect == other.rect && opacity == other.opacity && unscaled == other.unscaled;
+      return pixels.cacheKey() == other.pixels.cacheKey() && rect == other.rect && contentRect == other.contentRect &&
+             solidColor == other.solidColor && opacity == other.opacity && unscaled == other.unscaled;
     }
   };
-  void sync(QRectF bounds) {
+  struct Wire {
+    WirePaintState state;
+    qreal opacity;
+    bool operator==(const Wire &) const = default;
+  };
+  using Draw = std::variant<Image, Wire>;
+  void sync(QRectF bounds, const QTransform &sceneTransform, const CanvasTheme &theme) {
+    const bool hadWires = hasWires_;
+    hasWires_ = nextHasWires;
+    nextHasWires = false;
     const bool moved = bounds_ != bounds;
+    const bool wireTransformChanged = (hadWires || hasWires_) && sceneTransform_ != sceneTransform;
+    const bool themeChanged = (hadWires || hasWires_) && theme_ != theme;
     const bool changed = current_ != next;
     if (changed) { current_.swap(next); }
     next.clear();
     if (moved) { bounds_ = bounds; }
-    if (moved || changed) { markDirty(DirtyGeometry | DirtyMaterial); }
+    if (wireTransformChanged) { sceneTransform_ = sceneTransform; }
+    if (themeChanged) { theme_ = theme; }
+    if (moved || changed || wireTransformChanged || themeChanged) { markDirty(DirtyGeometry | DirtyMaterial); }
   }
   QRectF rect() const override { return bounds_; }
   RenderingFlags flags() const override { return BoundedRectRendering; }
@@ -153,26 +184,85 @@ public:
     // device pixel ratios.
     const auto dpr = painter->device()->devicePixelRatio();
     const auto device = QTransform::fromScale(1 / dpr, 1 / dpr);
-    for (const auto &image : current_) {
-      painter->setOpacity(inheritedOpacity() * image.opacity);
-      if (image.unscaled) {
-        painter->setTransform(device);
-        const auto topLeft = transform.map(image.rect.topLeft()) * dpr;
-        painter->drawImage(QRectF(QPointF(topLeft.toPoint()), QSizeF(image.pixels.size())), image.pixels,
-                           QRectF(image.pixels.rect()));
-        painter->setTransform(transform);
+    const auto wireTransform = sceneTransform_ * transform;
+    const auto baseOpacity = inheritedOpacity();
+    QRect singleDeviceClip;
+    const QRect *wireClip = nullptr;
+    if (hasWires_) {
+      if (const auto *img = dynamic_cast<QImage *>(painter->device())) {
+        const auto clipReg = painter->clipRegion();
+        if (clipReg.isEmpty()) {
+          painter->restore();
+          return;
+        }
+        if (clipReg.rectCount() == 1) {
+          const QRectF devRect = painter->deviceTransform().mapRect(painter->clipBoundingRect());
+          const int left = int(std::floor(devRect.left() + 0.5));
+          const int top = int(std::floor(devRect.top() + 0.5));
+          const int right = int(std::floor(devRect.right() + 0.5));
+          const int bottom = int(std::floor(devRect.bottom() + 0.5));
+          singleDeviceClip = QRect(left, top, right - left, bottom - top).intersected(img->rect());
+          wireClip = &singleDeviceClip;
+        }
+      }
+    }
+    bool inWireMode = false;
+    for (const auto &draw : current_) {
+      if (const auto *wire = std::get_if<Wire>(&draw)) {
+        if (!inWireMode) {
+          painter->setTransform(wireTransform);
+          painter->setRenderHint(QPainter::Antialiasing, true);
+          inWireMode = true;
+        }
+        painter->setOpacity(baseOpacity * wire->opacity);
+        WirePainter::paint(painter, theme_, wire->state, wireClip);
       } else {
-        painter->drawImage(image.rect, image.pixels);
+        if (inWireMode) {
+          painter->setTransform(transform);
+          painter->setRenderHint(QPainter::Antialiasing, false);
+          inWireMode = false;
+        }
+        const auto &image = std::get<Image>(draw);
+        painter->setOpacity(baseOpacity * image.opacity);
+        if (image.solidColor.isValid()) {
+          painter->setTransform(device);
+          const auto topLeft = (transform.map(image.rect.topLeft()) * dpr).toPoint();
+          const auto bottomRight = (transform.map(image.rect.bottomRight()) * dpr).toPoint();
+          painter->fillRect(QRectF(QPointF(topLeft), QSizeF(bottomRight.x() - topLeft.x(), bottomRight.y() - topLeft.y())),
+                            image.solidColor);
+          painter->setTransform(transform);
+        } else if (image.unscaled) {
+          painter->setTransform(device);
+          const auto topLeft = (transform.map(image.rect.topLeft()) * dpr).toPoint();
+          const QRect src = image.contentRect.isValid() ? image.contentRect : image.pixels.rect();
+          painter->drawImage(QRectF(QPointF(topLeft + src.topLeft()), QSizeF(src.size())), image.pixels, QRectF(src));
+          painter->setTransform(transform);
+        } else if (image.contentRect.isValid() && image.contentRect != image.pixels.rect()) {
+          // Pad by 1 source pixel so SmoothPixmapTransform samples the exact
+          // transparent border pixels around sparse tiles (wires, labels).
+          const QRect padded = image.contentRect.adjusted(-1, -1, 1, 1).intersected(image.pixels.rect());
+          const double sx = image.rect.width() / image.pixels.width();
+          const double sy = image.rect.height() / image.pixels.height();
+          const QRectF dst(image.rect.left() + padded.left() * sx, image.rect.top() + padded.top() * sy,
+                           padded.width() * sx, padded.height() * sy);
+          painter->drawImage(dst, image.pixels, QRectF(padded));
+        } else {
+          painter->drawImage(image.rect, image.pixels);
+        }
       }
     }
     painter->restore();
   }
-  QList<Image> next;
+  QList<Draw> next;
+  bool nextHasWires = false;
 
 private:
   QQuickWindow &window_;
   QRectF bounds_;
-  QList<Image> current_;
+  QTransform sceneTransform_;
+  CanvasTheme theme_;
+  bool hasWires_ = false;
+  QList<Draw> current_;
 };
 
 bool zoomedOut(double zoom) { return zoom <= zoomedOutThreshold; }
@@ -195,8 +285,11 @@ GraphCanvas::GraphCanvas(WorkflowGraphModel &model, QQuickItem *parent)
   foreground_.setParentItem(&content_);
   foreground_.setZ(2e6);
   settle_.setSingleShot(true);
-  settle_.setInterval(kSettleMs);
-  connect(&settle_, &QTimer::timeout, this, &GraphCanvas::scheduleRaster);
+  settle_.setInterval(kZoomSettleMs);
+  connect(&settle_, &QTimer::timeout, this, &GraphCanvas::settleZoom);
+  rasterTimer_.setSingleShot(true);
+  rasterTimer_.setInterval(0);
+  connect(&rasterTimer_, &QTimer::timeout, this, [this] { rasterPass(false); });
   still_.setSingleShot(true);
   still_.setInterval(kSettleMs);
   connect(&still_, &QTimer::timeout, this, &GraphCanvas::settleMotion);
@@ -217,6 +310,7 @@ GraphCanvas::GraphCanvas(WorkflowGraphModel &model, QQuickItem *parent)
 
 GraphCanvas::~GraphCanvas() {
   settle_.stop();
+  rasterTimer_.stop();
   still_.stop();
   disconnect(&model_, nullptr, this, nullptr);
   disconnect(scene_.get(), nullptr, this, nullptr);
@@ -297,6 +391,7 @@ void GraphCanvas::updateCardOverlayRendering() {
 }
 
 QSGNode *GraphCanvas::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
+  rasterBurst_.invalidate();
   auto *view = window();
   if (!view || individualSoftwareRendering_ || view->rendererInterface()->graphicsApi() != QSGRendererInterface::Software) {
     std::unique_ptr<QSGNode> previous(old);
@@ -327,17 +422,22 @@ QSGNode *GraphCanvas::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
   QTransform transform;
   transform.translate(content_.x(), content_.y());
   transform.scale(content_.scale(), content_.scale());
+  const auto sceneTransform = viewport_.viewportTransform();
+  const auto zoom = viewport_.zoom();
+  const auto scroll = QPointF(viewport_.scroll());
+  const auto wirePad = zoom > 0 ? 1.0 / (zoom * dpr) : 1.0;
+  const auto visible = viewport_.visibleSceneRect();
   const QRectF frame(QPointF(), size());
   const auto append = [&](const CanvasImageItem &owner, QPointF position, double opacity) {
     for (const auto &tile : owner.tiles()) {
-      if (tile.pixels.isNull()) { continue; }
+      if (tile.pixels.isNull() || (tile.contentRect.isNull() && !tile.solidColor.isValid())) { continue; }
       const auto rect = transform.mapRect(tile.geometry.localRect().translated(position));
       const auto target = CanvasImageItem::tileTarget(rect, tile.pixels, dpr);
       const auto clip = target.intersected(frame);
       if (clip.isEmpty()) { continue; }
       const auto unscaled = tile.pixels.devicePixelRatio() == dpr &&
                             qFuzzyCompare(target.size(), tile.pixels.deviceIndependentSize());
-      const SoftwareCanvasNode::Image image{target, tile.pixels, opacity, unscaled};
+      const SoftwareCanvasNode::Image image{target, tile.pixels, tile.contentRect, tile.solidColor, opacity, unscaled};
       const auto firstRow = int(clip.top() / side);
       const auto lastRow = std::min(rows, int(std::ceil(clip.bottom() / side)));
       const auto firstColumn = int(clip.left() / side);
@@ -347,14 +447,47 @@ QSGNode *GraphCanvas::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
       }
     }
   };
-  for (const auto *item : orderedItems(viewport_.visibleSceneRect())) {
-    if (item->isVisible()) { append(*item, item->scenePosition(), itemOpacity(*item)); }
+  const auto appendWire = [&](const ConnectionItem &wire, double opacity) {
+    if (!(zoom > 0)) { return; }
+    const auto state = wire.paintState(zoom);
+    if (!state || !state->visible) { return; }
+    const auto clip = sceneTransform.mapRect(wire.boundingRect()).intersected(frame);
+    if (clip.isEmpty()) { return; }
+    const auto firstRow = int(clip.top() / side);
+    const auto lastRow = std::min(rows, int(std::ceil(clip.bottom() / side)));
+    const auto firstColumn = int(clip.left() / side);
+    const auto lastColumn = std::min(columns, int(std::ceil(clip.right() / side)));
+    const SoftwareCanvasNode::Wire draw{*state, opacity};
+    if (rows == 1 && columns == 1) {
+      if (!wire.mayPaint(visible.adjusted(-wirePad, -wirePad, wirePad, wirePad))) { return; }
+      blocks[0]->next.append(draw);
+      blocks[0]->nextHasWires = true;
+      return;
+    }
+    for (int y = firstRow; y < lastRow; ++y) {
+      for (int x = firstColumn; x < lastColumn; ++x) {
+        const QRectF blockView = QRectF(x * side, y * side, side, side).intersected(frame);
+        const QRectF blockScene((blockView.topLeft() + scroll) / zoom, blockView.size() / zoom);
+        if (!wire.mayPaint(blockScene.adjusted(-wirePad, -wirePad, wirePad, wirePad))) { continue; }
+        auto *block = blocks[y * columns + x];
+        block->next.append(draw);
+        block->nextHasWires = true;
+      }
+    }
+  };
+  for (const auto *item : orderedItems(visible)) {
+    if (item->kind() == CanvasItem::Kind::Connection) {
+      appendWire(*static_cast<const ConnectionItem *>(item), itemOpacity(*item));
+    } else if (item->isVisible()) {
+      append(*item, item->scenePosition(), itemOpacity(*item));
+    }
   }
   for (const auto &[key, part] : foregroundParts_) { append(*part, part->position(), 1); }
+  const auto &theme = scene_->theme();
   for (int y = 0; y < rows; ++y) {
     for (int x = 0; x < columns; ++x) {
       const QRectF bounds(x * side, y * side, side, side);
-      blocks[y * columns + x]->sync(bounds.intersected(frame));
+      blocks[y * columns + x]->sync(bounds.intersected(frame), sceneTransform, theme);
     }
   }
   return root.release();
@@ -431,10 +564,18 @@ void GraphCanvas::viewChanged(bool zoomed) {
   // is still. The snapped translation keeps every retained pixel aligned.
   if (zoomed) {
     devicePhase_ = translation - snapped;
-    settle_.start();
+    lastZoom_.start();
+    if (!settle_.isActive()) {
+      zoomGestureStart_.start();
+      settle_.start(kZoomSettleMs);
+    }
   } else {
     startMotion();
   }
+  const bool longZoom = zoomed && zoomGestureStart_.isValid() && zoomGestureStart_.elapsed() >= kMidZoomUpgradeMs;
+  const bool midZoomUpgrade =
+      longZoom && ((rasterWorkScale_ > 0 && rasterScale() >= rasterWorkScale_ * 2.0) ||
+                   (rasterWorkZoomedOut_ && !zoomedOut(viewport_.zoom())));
   scene_->setZoom(viewport_.zoom());
   grid_.sync();
   update();
@@ -456,7 +597,7 @@ void GraphCanvas::viewChanged(bool zoomed) {
     }
     return bytes;
   };
-  if (pendingVisible || std::ranges::any_of(deferredTiles_, newlyVisible) ||
+  if (pendingVisible || midZoomUpgrade || std::ranges::any_of(deferredTiles_, newlyVisible) ||
       (visible != plannedVisible_ && (!staging_.isEmpty() || offscreenBytes() > rasterCacheBudget_))) {
     invalidateRasterWork();
   }
@@ -488,6 +629,14 @@ void GraphCanvas::scheduleRaster() {
   polish();
 }
 
+void GraphCanvas::scheduleRasterNow() {
+  if (window() && (window()->isVisible() || viewShown_)) {
+    if (!rasterTimer_.isActive()) { rasterTimer_.start(0); }
+    return;
+  }
+  scheduleRaster();
+}
+
 void GraphCanvas::updatePolish() {
   rasterQueued_ = false;
   rasterPass(false);
@@ -495,6 +644,9 @@ void GraphCanvas::updatePolish() {
 
 void GraphCanvas::flushRaster() {
   settle_.stop();
+  rasterTimer_.stop();
+  lastZoom_.invalidate();
+  zoomGestureStart_.invalidate();
   if (still_.isActive()) {
     still_.stop();
     lastMotion_.invalidate();
@@ -502,6 +654,24 @@ void GraphCanvas::flushRaster() {
   }
   // A publication during the flush can bring stale tiles that need a plan.
   for (int pass = 0; pass < 4 && (pass == 0 || rasterWorkDirty_); ++pass) { rasterPass(true); }
+}
+
+void GraphCanvas::finishZoomGesture() {
+  if (!settle_.isActive()) { return; }
+  settle_.stop();
+  lastZoom_.invalidate();
+  zoomGestureStart_.invalidate();
+  scheduleRasterNow();
+}
+
+void GraphCanvas::settleZoom() {
+  if (lastZoom_.isValid() && lastZoom_.elapsed() < kZoomSettleMs) {
+    settle_.start(int(kZoomSettleMs - lastZoom_.elapsed()));
+    return;
+  }
+  lastZoom_.invalidate();
+  zoomGestureStart_.invalidate();
+  scheduleRasterNow();
 }
 
 QPointF GraphCanvas::viewPhase() const {
@@ -571,12 +741,14 @@ void GraphCanvas::invalidateRasterWork() {
   scheduleRaster();
 }
 
-void GraphCanvas::syncForeground(const QRectF &area, double zoom) {
+bool GraphCanvas::syncForeground(const QRectF &area, double zoom) {
+  bool changed = false;
   auto current = foregroundParts_.begin();
   ForegroundItem *previous = nullptr;
   for (auto &part : scene_->foregroundParts(area, zoom)) {
     while (current != foregroundParts_.end() && current->first < part.key) {
       current = foregroundParts_.erase(current);
+      changed = true;
     }
     if (current == foregroundParts_.end() || current->first != part.key) {
       const auto added = foregroundParts_.emplace_hint(current, part.key, std::make_unique<ForegroundItem>(*scene_, foreground_));
@@ -586,12 +758,18 @@ void GraphCanvas::syncForeground(const QRectF &area, double zoom) {
         added->second->stackBefore(current->second.get());
       }
       current = added;
+      changed = true;
     }
+    if (current->second->part() != part) { changed = true; }
     current->second->setPart(std::move(part));
     previous = current->second.get();
     ++current;
   }
-  foregroundParts_.erase(current, foregroundParts_.end());
+  if (current != foregroundParts_.end()) {
+    foregroundParts_.erase(current, foregroundParts_.end());
+    changed = true;
+  }
+  return changed;
 }
 
 // The raster scheduler's states.
@@ -624,20 +802,29 @@ void GraphCanvas::syncForeground(const QRectF &area, double zoom) {
 // repaint only those rectangles.
 //
 // Priorities. 0 is the draft wire. 1 is a visible area with nothing on
-// screen. 2 includes stale visible tiles and missing tiles within one tile
-// of the view. These share age order so animation cannot starve prefetch
-// along the viewport edges. 3 is other offscreen work, nearest first.
-// Priorities 0 and 1 may use the settle
-// budget, and the rest stop at the frame budget. Only offscreen tiles are
-// deferred or evicted to stay within the byte budget.
+// screen. 2 is visible zoom-settle sharpening (foreground labels, then cards
+// closest to the viewport centre, then wires, keeping each item's tiles
+// together so staged cards publish at once). 3 includes same-scale stale
+// visible tiles, mid-gesture large zoom-in upgrades, and missing tiles within
+// one tile of the view, sharing age order so animation cannot starve prefetch
+// along the viewport edges. 4 is other offscreen work, nearest first.
+// Priorities 0 and 1 (when settled) may use the urgent budget, and the rest
+// stop at the frame budget. Only offscreen tiles are deferred or evicted to
+// stay within the byte budget.
 //
 // Identity. A model reset keeps the items of nodes and connections that
 // still exist (CanvasScene::onModelReset), so their tiles stay on screen
 // until their replacements are painted.
-void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double zoom, bool settled) {
+bool GraphCanvas::directSoftwareWires() const {
+  return window() ? window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software
+                  : QQuickWindow::graphicsApi() == QSGRendererInterface::Software;
+}
+
+bool GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double zoom, bool settled) {
   rasterWorkDirty_ = false;
   rasterWorkSettled_ = settled;
   rasterWorkScale_ = scale;
+  rasterWorkZoomedOut_ = zoomedOut(zoom);
   plannedVisible_ = visible;
   // Keep the age of work deferred across edits, using guarded references to
   // avoid retaining deleted cards or foreground labels in the queue.
@@ -656,15 +843,20 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
   QList<TileRef> offscreenTiles;
   cachedRasterBytes_ = 0;
   offscreenRasterBytes_ = 0;
-  syncForeground(prefetchArea_, zoom);
+  bool visibleChanged = syncForeground(prefetchArea_, zoom);
 
   using Image = CanvasImageItem;
   constexpr auto side = Image::tileSide;
   const auto prefetchDistance = side / scale;
+  const auto visibleCenter = visible.center();
   const auto distanceToView = [&visible](const QRectF &rect) {
     const auto dx = std::max({0., visible.left() - rect.right(), rect.left() - visible.right()});
     const auto dy = std::max({0., visible.top() - rect.bottom(), rect.top() - visible.bottom()});
     return dx * dx + dy * dy;
+  };
+  const auto distanceToCenter = [&visibleCenter](const QRectF &rect) {
+    const auto delta = rect.center() - visibleCenter;
+    return delta.x() * delta.x() + delta.y() * delta.y();
   };
   struct Wanted {
     QPoint key;
@@ -679,9 +871,23 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
   const auto enqueue = [&](Image &owner, QPointF origin, const QRectF &bounds, RasterJob::Kind kind, bool draft,
                            bool group, bool clip) {
     const auto &published = owner.tiles();
-    const auto *shown = published.isEmpty() ? nullptr : &published.cbegin()->geometry;
-    auto full = Image::rasterGeometry(bounds, origin, scale, devicePhase_);
-    if (shown && !settled) {
+    const auto *shownTile = published.isEmpty() ? nullptr : &(*published.cbegin());
+    const auto *shown = shownTile ? &shownTile->geometry : nullptr;
+    const auto sceneBounds = bounds.translated(origin);
+    const bool itemVisible = draft || sceneBounds.intersects(visible);
+    // During a zoom gesture keep the shown grid unless the gesture has been
+    // running long enough to merit live sharpening and a visible item has
+    // zoomed in by at least 2x or crossed out of overview mode. Use a zero
+    // viewport phase while zooming so staged tiles survive across zoom ticks
+    // within the same √2 bucket.
+    auto full = Image::rasterGeometry(bounds, origin, scale, settled ? devicePhase_ : QPointF());
+    const bool allowMidZoomUpgrade =
+        !settled && zoomGestureStart_.isValid() && zoomGestureStart_.elapsed() >= kMidZoomUpgradeMs;
+    const bool keepDuringZoom = shown && !settled &&
+                                (!itemVisible || !allowMidZoomUpgrade ||
+                                 (scale < shown->scale * 2.0 &&
+                                  (zoomedOut(shownTile->zoom) == zoomedOut(zoom) || zoomedOut(zoom))));
+    if (keepDuringZoom) {
       full = Image::rasterGeometryOnGrid(bounds, *shown);
     } else if (shown && motion_ && (usesCells(full) || shown->tiled) &&
                shown->scale == full.scale && shown->viewportPhase == full.viewportPhase) {
@@ -703,7 +909,6 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
       owner.discardStagedTiles();
     }
     const auto toScene = [&](const Image::RasterGeometry &geometry) { return geometry.localRect().translated(origin); };
-    const auto sceneBounds = bounds.translated(origin);
     wanted.clear();
     if (sceneBounds.intersects(prefetchArea_) || draft) {
       const auto area = draft && !tiled ? full.localRect() : prefetchArea_.translated(-origin);
@@ -722,6 +927,7 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
       for (const auto key : obsolete) { owner.removeStagedTile(key); }
       if (stagedCoverage(owner, full, origin, visible, prefetchArea_, draft)) {
         owner.publishStagedTiles();
+        if (itemVisible) { visibleChanged = true; }
         staging = false;
       } else {
         staging_.insert(reinterpret_cast<quintptr>(&owner), full.device);
@@ -736,9 +942,12 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
       }
       return area >= kCoveredShare * rect.width() * rect.height();
     };
+    const bool scaleUpgrade =
+        shown && (!qFuzzyCompare(shown->scale, full.scale) || zoomedOut(shownTile->zoom) != zoomedOut(zoom));
+    const double ownerCenterDist = distanceToCenter(sceneBounds);
     const auto &target = staging ? owner.stagedTiles() : published;
     for (const auto &tile : std::as_const(wanted)) {
-      int priority = draft ? 0 : tile.visible ? 1 : 3;
+      int priority = draft ? 0 : tile.visible ? 1 : 4;
       const auto existing = target.constFind(tile.key);
       if (existing != target.cend()) {
         // A staged tile publishes at any revision and repaints afterwards.
@@ -746,14 +955,15 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
         const bool sameZoom = !settled || (zoomedOut(existing->zoom) == zoomedOut(zoom) && (!group || existing->zoom == zoom));
         const bool sameRaster = existing->geometry == tile.geometry || (motion_ && !tiled && compatible(existing->geometry));
         if (owner.tileCurrent(*existing) && sameRaster && sameZoom) { continue; }
-        if (priority == 1) { priority = 2; }
-      } else if (priority == 3 && !staging && distanceToView(tile.rect) <= prefetchDistance * prefetchDistance) {
-        priority = 2;
+        if (priority == 1) { priority = scaleUpgrade ? 2 : 3; }
+      } else if (priority == 4 && !staging && distanceToView(tile.rect) <= prefetchDistance * prefetchDistance) {
+        priority = 3;
       } else if (staging && priority == 1 && shownArea(tile.rect)) {
-        priority = 2;
+        priority = scaleUpgrade ? 2 : 3;
       }
+      const double sortDist = priority == 2 ? ownerCenterDist : distanceToView(tile.rect);
       rasterJobs_.append({{&owner, tile.key, tile.rect, staging}, tile.geometry, kind, priority,
-                          age.value({&owner, tile.key}, newJob), distanceToView(tile.rect)});
+                          age.value({&owner, tile.key}, newJob), sortDist, group && kind == RasterJob::Card});
     }
 
     for (auto it = owner.stagedTiles().cbegin(); it != owner.stagedTiles().cend(); ++it) {
@@ -792,14 +1002,23 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
         plannedVisibleTiles_.append({rect, it->bytes()});
       }
     }
-    for (const auto key : discarded) { owner.removeTile(key); }
+    for (const auto key : discarded) {
+      if (itemVisible) { visibleChanged = true; }
+      owner.removeTile(key);
+    }
   };
   const auto *draft = scene_->draftConnection();
+  const bool directWires = directSoftwareWires();
   for (const auto key : std::as_const(near_)) {
     auto *item = scene_->item(key);
     if (!item) { continue; }
     const auto *node = item->kind() == CanvasItem::Kind::Node ? static_cast<NodeItem *>(item) : nullptr;
     const bool wire = item->kind() == CanvasItem::Kind::Connection;
+    if (wire && directWires) {
+      if (item->hasImage()) { visibleChanged = true; }
+      item->clearImage();
+      continue;
+    }
     enqueue(*item, item->scenePosition(), item->rasterBounds(), node ? RasterJob::Card : wire ? RasterJob::Wire : RasterJob::Other,
             item == draft, node && model_.isGroup(node->nodeId()), wire || item->kind() == CanvasItem::Kind::Lineage);
   }
@@ -827,66 +1046,93 @@ void GraphCanvas::rebuildRasterWork(const QRectF &visible, double scale, double 
   }
 
   rasterJobsNeedSort_ = rasterJobs_.size() > 1;
+  return visibleChanged;
 }
 
 void GraphCanvas::sortRasterJobs() {
   rasterJobsNeedSort_ = false;
-  std::stable_sort(rasterJobs_.begin(), rasterJobs_.end(), [](const RasterJob &left, const RasterJob &right) {
-    const auto leftDistance = left.priority == 3 ? left.distance : 0;
-    const auto rightDistance = right.priority == 3 ? right.distance : 0;
-    return std::tie(left.priority, leftDistance, left.age) < std::tie(right.priority, rightDistance, right.age);
+  const auto kindRank = [](RasterJob::Kind kind) {
+    switch (kind) {
+    case RasterJob::Foreground: return 0;
+    case RasterJob::Card: return 1;
+    case RasterJob::Other: return 2;
+    case RasterJob::Wire: return 3;
+    }
+    return 4;
+  };
+  std::stable_sort(rasterJobs_.begin(), rasterJobs_.end(), [&](const RasterJob &left, const RasterJob &right) {
+    const int leftKind = left.priority == 2 ? kindRank(left.kind) : 0;
+    const int rightKind = right.priority == 2 ? kindRank(right.kind) : 0;
+    const double leftDistance = (left.priority == 2 || left.priority == 4) ? left.distance : 0.0;
+    const double rightDistance = (right.priority == 2 || right.priority == 4) ? right.distance : 0.0;
+    return std::tie(left.priority, leftKind, leftDistance, left.age) <
+           std::tie(right.priority, rightKind, rightDistance, right.age);
   });
 }
 
 void GraphCanvas::rasterPass(bool flush) {
+  rasterTimer_.stop();
   QElapsedTimer clock;
   clock.start();
+  if (!rasterBurst_.isValid()) { rasterBurst_.start(); }
   const auto zoom = viewport_.zoom();
   const auto scale = rasterScale();
   const bool settled = !settle_.isActive();
   const double dpr = window() ? window()->effectiveDevicePixelRatio() : 1.0;
   const auto visible = viewport_.visibleSceneRect();
-  const bool refresh = !viewportCovered(visible) || rasterWorkSettled_ != settled;
+  const bool settledChanged = rasterWorkSettled_ != settled;
+  const bool refresh = !viewportCovered(visible) || settledChanged;
   if (refresh) { updateRasterCoverage(visible); }
   // Large culls can use the raster slot. Start tile painting in the next
   // pass when a typical job would not fit after planning. In that next pass,
   // edits wait for one more pass and the existing queue paints first, so no
   // pass both plans a large view and paints. A changed view or scale plans
-  // at once and paints its first job. Blank visible areas may paint until
-  // the settle budget is spent.
+  // at once and paints its first job. Blank visible areas and zoom-settled
+  // visible tiles may paint until the settle budget is spent.
   const bool consecutive = plannedWithoutPainting_ && planOnly_.isValid() && planOnly_.elapsed() < kConsecutiveMs;
   const bool rescaled = rasterWorkScale_ != scale;
   const bool planned = refresh || rescaled || (rasterWorkDirty_ && (flush || !consecutive));
   // Finish the previous ordering before a replan carries the queued ages over.
   if (rasterJobsNeedSort_) { sortRasterJobs(); }
-  if (planned) { rebuildRasterWork(visible, scale, zoom, settled); }
+  bool publishedVisible = flush || settledChanged;
+  if (planned) { publishedVisible |= rebuildRasterWork(visible, scale, zoom, settled); }
   const auto urgentBudget = rasterTimeBudgetNs_ * kUrgentRasterNs / kFrameRasterNs;
+  const auto budgetFor = [&](int priority) {
+    if (priority == 0) { return urgentBudget; }
+    if (priority == 1) { return settled ? urgentBudget : rasterTimeBudgetNs_; }
+    return rasterTimeBudgetNs_;
+  };
   // If planning alone used the whole slot, finish ordering in the next
   // polish. As before, covered tiles may wait while missing tiles use the
   // larger budget. Consecutive plans and synchronous flushes always finish.
   const bool deferSort = rasterJobsNeedSort_ && !consecutive && !flush && rasterTimeBudgetNs_ > 0 &&
                          clock.nsecsElapsed() >= urgentBudget;
   if (rasterJobsNeedSort_ && !deferSort) { sortRasterJobs(); }
-  const bool urgentFirst = nextRasterJob_ < rasterJobs_.size() && rasterJobs_[nextRasterJob_].priority <= 1;
   // A job's cost follows its pixel count and its kind: a wire tile is mostly
   // empty, a card tile is full. Tiles of one item can differ a lot, so each
   // job is predicted from its own area, with a margin.
   const auto predict = [this](const RasterJob &job) {
     return qint64(double(job.geometry.bytes() / 4) * nsPerPixel_[job.kind] * 1.5) + kJobOverheadNs;
   };
-  plannedWithoutPainting_ = deferSort || (planned && !flush && !consecutive && rasterTimeBudgetNs_ > 0 &&
+  const bool draftFirst = nextRasterJob_ < rasterJobs_.size() && rasterJobs_[nextRasterJob_].priority == 0;
+  plannedWithoutPainting_ = deferSort || (planned && !flush && !consecutive && !draftFirst && rasterTimeBudgetNs_ > 0 &&
                             nextRasterJob_ < rasterJobs_.size() &&
-                            clock.nsecsElapsed() + predict(rasterJobs_[nextRasterJob_]) >= (urgentFirst ? urgentBudget : rasterTimeBudgetNs_));
+                            clock.nsecsElapsed() + predict(rasterJobs_[nextRasterJob_]) >=
+                                budgetFor(rasterJobs_[nextRasterJob_].priority));
   if (plannedWithoutPainting_) { planOnly_.start(); }
   bool painted = false;
   while (!plannedWithoutPainting_ && nextRasterJob_ < rasterJobs_.size()) {
     const auto &job = rasterJobs_[nextRasterJob_];
-    const auto limit = job.priority <= 1 ? urgentBudget : rasterTimeBudgetNs_;
-    // Every pass that does not only plan paints at least one job.
-    if (!flush && painted && clock.nsecsElapsed() + predict(job) >= limit) { break; }
-    painted = true;
-    ++nextRasterJob_;
     auto *owner = job.tile.owner.data();
+    const auto padding = 1 / job.geometry.scale;
+    const bool empty = !owner || (job.geometry.tiled &&
+                                  !owner->mayPaint(job.geometry.paintRect().adjusted(-padding, -padding, padding, padding)));
+    const auto limit = budgetFor(job.priority);
+    // Every pass that does not only plan paints at least one job. Empty tiles
+    // cost almost nothing, so they never stop a pass early.
+    if (!flush && painted && !empty && clock.nsecsElapsed() + predict(job) >= limit) { break; }
+    if (!empty) { painted = true; }
+    ++nextRasterJob_;
     if (!owner) { continue; }
     // A staged job paints into the published grid once its grid was
     // published, and is dropped once another grid is being staged.
@@ -921,9 +1167,6 @@ void GraphCanvas::rasterPass(bool flush) {
       const auto paint = [&](QPainter &painter) { owner->paintRaster(painter, zoom); };
       // A tile of a long wire away from its path stays empty, which saves
       // painting most tiles of a diagonal draft on every pointer move.
-      const auto padding = 1 / job.geometry.scale;
-      const bool empty = job.geometry.tiled &&
-                         !owner->mayPaint(job.geometry.paintRect().adjusted(-padding, -padding, padding, padding));
       auto image = empty     ? QImage()
                    : partial ? CanvasImageItem::rasterize(job.geometry, dpr, paint, existing->pixels, existing->damage)
                              : CanvasImageItem::rasterize(job.geometry, dpr, paint, {}, {}, spareImage(job.geometry.device.size()));
@@ -934,13 +1177,51 @@ void GraphCanvas::rasterPass(bool flush) {
       if (empty || !image.isNull()) {
         // The replaced image is reused once the scene graph has let go of it.
         if (existing != target.cend() && !existing->pixels.isNull()) { keepSpare(existing->pixels); }
-        // A tile of a long wire or wide label can miss its path. Keep the
-        // validity of such an empty tile without its pixels.
-        if (!image.isNull() && job.kind != RasterJob::Card && job.geometry.tiled) {
-          const auto *pixels = reinterpret_cast<const QRgb *>(image.constBits());
-          if (std::all_of(pixels, pixels + image.width() * image.height(), [](QRgb pixel) { return pixel == 0; })) { image = {}; }
+        QRect contentRect;
+        QColor solidColor;
+        if (!image.isNull()) {
+          if (job.kind != RasterJob::Card) {
+            // Find the non-transparent bounding box of sparse wire/label tiles
+            // so SoftwareCanvasNode skips blending transparent margins, and drop
+            // tiled cells whose pixels are all zero.
+            const int w = image.width(), h = image.height();
+            int minX = w, minY = h, maxX = -1, maxY = -1;
+            for (int y = 0; y < h; ++y) {
+              const auto *row = reinterpret_cast<const QRgb *>(image.constScanLine(y));
+              int x = 0;
+              while (x < w && row[x] == 0) { ++x; }
+              if (x == w) { continue; }
+              if (minY > y) { minY = y; }
+              maxY = y;
+              if (x < minX) { minX = x; }
+              int rx = w - 1;
+              while (rx > maxX && row[rx] == 0) { --rx; }
+              if (rx > maxX) { maxX = rx; }
+            }
+            if (maxX < 0) {
+              if (job.geometry.tiled) { image = {}; }
+            } else {
+              contentRect = QRect(minX, minY, maxX - minX + 1, maxY - minY + 1);
+            }
+          } else {
+            contentRect = image.rect();
+            if (job.group && job.geometry.tiled) {
+              const auto *item = static_cast<const CanvasItem *>(owner);
+              const double border = std::max(6.0, 2.0 / std::max(zoom, 0.08) + 2.0);
+              const QRectF interior = QRectF(QPointF(), item->size()).adjusted(border, border, -std::max(border, 20.0), -std::max(border, 20.0));
+              if (interior.contains(job.geometry.paintRect())) {
+                const auto *top = reinterpret_cast<const QRgb *>(image.constScanLine(0));
+                const auto *bot = reinterpret_cast<const QRgb *>(image.constScanLine(image.height() - 1));
+                const QRgb first = top[0];
+                if (qAlpha(first) > 0 && top[image.width() - 1] == first && bot[0] == first && bot[image.width() - 1] == first) {
+                  const QRgb unprem = qUnpremultiply(first);
+                  if (qPremultiply(unprem) == first) { solidColor = QColor::fromRgba(unprem); }
+                }
+              }
+            }
+          }
         }
-        CanvasImageItem::Tile tile{job.geometry, std::move(image), owner->rasterRevision(), zoom, {}};
+        CanvasImageItem::Tile tile{job.geometry, std::move(image), owner->rasterRevision(), zoom, {}, contentRect, solidColor};
         const auto additional = tile.bytes() - oldBytes;
         cachedRasterBytes_ += additional;
         const auto accountViewBytes = [&](const QRectF &rect, qsizetype bytes) {
@@ -973,10 +1254,12 @@ void GraphCanvas::rasterPass(bool flush) {
           if (staging_.value(stageKey) == full.device && stagedCoverage(*owner, full, origin, visible, prefetchArea_, draft)) {
             staging_.remove(stageKey);
             for (const auto &previous : owner->tiles()) {
+              if (!previous.pixels.isNull()) { keepSpare(previous.pixels); }
               cachedRasterBytes_ -= previous.bytes();
               if (!draft) { accountViewBytes(previous.geometry.localRect().translated(origin), -previous.bytes()); }
             }
             owner->publishStagedTiles();
+            if (draft || bounds.translated(origin).intersects(visible)) { publishedVisible = true; }
             // Stale tiles may publish so animated content cannot block a grid swap.
             if (std::ranges::any_of(owner->tiles(), [&](const auto &tile) { return !owner->tileCurrent(tile); })) {
               rasterWorkDirty_ = true;
@@ -984,21 +1267,52 @@ void GraphCanvas::rasterPass(bool flush) {
           }
         } else {
           owner->setTile(job.tile.key, std::move(tile));
+          if (visibleNow) { publishedVisible = true; }
         }
       }
     }
     if (paintedPixels > 0) {
-      const auto perPixel = double(clock.nsecsElapsed() - before) / double(paintedPixels);
-      nsPerPixel_[job.kind] += (perPixel - nsPerPixel_[job.kind]) / 8;
+      const bool sliver = job.geometry.tiled && paintedPixels < kMinTiledSamplePixels;
+      if (!sliver || nsPerPixel_[job.kind] == 0) {
+        const auto jobNs = std::max<qint64>(0, clock.nsecsElapsed() - before - kJobOverheadNs);
+        const auto denom = job.geometry.tiled ? std::max(paintedPixels, kMinTiledSamplePixels) : paintedPixels;
+        double perPixel = double(jobNs) / double(denom);
+        if (job.geometry.tiled) {
+          const double maxSample = 40.0 * std::max(1.0, double(rasterTimeBudgetNs_) / double(kFrameRasterNs));
+          perPixel = std::min(perPixel, maxSample);
+        }
+        if (nsPerPixel_[job.kind] == 0) {
+          nsPerPixel_[job.kind] = perPixel;
+        } else {
+          nsPerPixel_[job.kind] += (perPixel - nsPerPixel_[job.kind]) / 8;
+        }
+      }
     }
   }
   const auto elapsed = clock.nsecsElapsed();
   stats_.nanoseconds += elapsed;
   stats_.slowestPass = std::max(stats_.slowestPass, elapsed);
   ++stats_.passes;
-  updateCardOverlayRendering();
-  update();
-  if (nextRasterJob_ < rasterJobs_.size() || rasterWorkDirty_) { QTimer::singleShot(0, this, &GraphCanvas::scheduleRaster); }
+  if (publishedVisible) {
+    updateCardOverlayRendering();
+    update();
+  }
+  if (!flush && (nextRasterJob_ < rasterJobs_.size() || rasterWorkDirty_) && window() &&
+      (window()->isVisible() || viewShown_)) {
+    const bool hasVisibleWork =
+        rasterWorkDirty_ || (nextRasterJob_ < rasterJobs_.size() && rasterJobs_[nextRasterJob_].priority <= 2);
+    // While settled, drive budgeted slices across event-loop turns without
+    // VSync-stalling between staged or prefetch tiles, yielding a frame once
+    // newly-published visible tiles have accumulated ~10 ms (or once all
+    // visible work has finished so sharp text paints before prefetch). During
+    // an active zoom gesture, stay on one slice per frame so gesture frame
+    // time stays low.
+    if (!settled || (publishedVisible && (!hasVisibleWork || rasterBurst_.elapsed() >= 10))) {
+      QTimer::singleShot(0, this, &GraphCanvas::scheduleRaster);
+    } else {
+      rasterTimer_.start(0);
+    }
+  }
 }
 
 QImage GraphCanvas::spareImage(QSize size) {
@@ -1024,10 +1338,13 @@ void GraphCanvas::keepSpare(const QImage &image) {
 
 void GraphCanvas::itemChange(ItemChange change, const ItemChangeData &value) {
   QQuickItem::itemChange(change, value);
-  if (change == ItemSceneChange && value.window) {
-    // A queued polish belonged to the previous window.
-    rasterQueued_ = false;
-    invalidateRasterWork();
+  if (change == ItemSceneChange) {
+    rasterTimer_.stop();
+    if (value.window) {
+      // A queued polish belonged to the previous window.
+      rasterQueued_ = false;
+      invalidateRasterWork();
+    }
   }
   if (change == ItemDevicePixelRatioHasChanged) {
     invalidateRasterWork();
@@ -1102,7 +1419,16 @@ void GraphCanvas::mouseMoveEvent(QMouseEvent *event) {
   pointerMove(event->position(), event->globalPosition(), event->buttons(), event->modifiers());
 }
 
+void GraphCanvas::hoverEnterEvent(QHoverEvent *event) {
+  if (!std::exchange(pointerMoved_, false)) {
+    QQuickItem::hoverEnterEvent(event);
+    return;
+  }
+  hoverMoveEvent(event);
+}
+
 void GraphCanvas::hoverMoveEvent(QHoverEvent *event) {
+  pointerMoved_ = false;
   // Qt Quick sends synthetic hover moves at the last cursor position when
   // items move under it, also while a button is held. A view gets no moves
   // without buttons while the mouse is grabbed, so those are dropped.
@@ -1111,6 +1437,7 @@ void GraphCanvas::hoverMoveEvent(QHoverEvent *event) {
 }
 
 void GraphCanvas::hoverLeaveEvent(QHoverEvent *) {
+  pointerMoved_ = false;
   if (buttonsDown_) { return; }
   cursorPoint_.reset();
   scene_->clearHover();
@@ -1228,6 +1555,8 @@ void GraphCanvas::setViewShown(bool shown) {
     viewport_.show();
     viewChanged(false);
   } else {
+    rasterTimer_.stop();
+    pointerMoved_ = false;
     cancelPointerGrab();
   }
 }

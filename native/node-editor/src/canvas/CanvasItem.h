@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QHash>
 #include <QImage>
 #include <QPointer>
@@ -52,6 +53,11 @@ public:
     double zoom;
     // Item coordinates to repaint at the current revision, from region invalidations.
     QRectF damage;
+    // Bounding box of non-transparent pixels inside pixels; empty skips drawing.
+    QRect contentRect;
+    // Valid when every pixel in the tile shares one premultiplied color (e.g.
+    // interior group tiles), allowing SoftwareCanvasNode to fill without scaling.
+    QColor solidColor;
     // Empty tiles have a smaller retained cost but still consume cache space.
     qsizetype bytes() const { return pixels.sizeInBytes() + sizeof(Tile); }
   };

@@ -3,9 +3,12 @@
 #include "CanvasStyle.h"
 
 class QPainter;
+class QRect;
 
 namespace nodetool::canvas {
-// UI thread only. Endpoints and the hit stroke use the painter's local coordinates.
+// Value state built on the UI thread and copied into software render nodes
+// during scene graph sync. Endpoints and the hit stroke use the painter's local
+// coordinates.
 struct WirePaintState {
   QPointF out;
   QPointF in;
@@ -27,12 +30,17 @@ struct WirePaintState {
   bool messageSent = false;
   bool connecting = false;
   bool animationActive = false;
+  bool operator==(const WirePaintState &) const = default;
 };
 
-// UI thread only.
+// Stateless painter reading only its value arguments. Safe to call from
+// software QSGRenderNode::render() as well as UI-thread rasterization.
 class WirePainter {
 public:
   static void paint(QPainter *painter, const CanvasTheme &theme, const WirePaintState &state);
+  // Overload accepting an optional pre-resolved device-pixel clip rectangle to
+  // avoid repeated clip queries when painting many wires in one software batch.
+  static void paint(QPainter *painter, const CanvasTheme &theme, const WirePaintState &state, const QRect *deviceClip);
   static QPainterPath hitStroke(const WirePaintState &state);
   // The centre line that paint() strokes, empty for a hidden wire.
   static QPainterPath path(const WirePaintState &state);
