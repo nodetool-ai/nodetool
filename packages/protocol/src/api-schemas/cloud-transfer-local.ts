@@ -155,8 +155,11 @@ export const receiveReviewDocument = z.object({
   decision: receiveDecision.nullable(),
   files: z.array(revisionSetFile),
   missing_files: z.array(z.string()),
-  /** Files the owner erased in the cloud, whose entries show File erased. */
-  erased_files: z.array(z.string())
+  /**
+   * Files the owner erased in the cloud, whose entries show File erased.
+   * Optional so a client built before erases still reads the review.
+   */
+  erased_files: z.array(z.string()).optional()
 });
 
 export const captureReceiveOutput = z.object({
@@ -182,7 +185,8 @@ export const receiveResult = z.object({
   not_received: z.array(documentNamed.extend({ status: receiveDocumentStatus })),
   kept_beside: z.array(z.object({ asset_id: z.string(), path: z.string(), kept_path: z.string() })),
   missing_files: z.array(z.string()),
-  erased_files: z.array(z.string()),
+  /** Files the owner erased in the cloud. Optional as in the review document. */
+  erased_files: z.array(z.string()).optional(),
   file_kept: z.array(z.object({ kind: transferDocumentKind, id: z.string() }))
 });
 
