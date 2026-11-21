@@ -114,8 +114,10 @@ class FfmpegDecoder {
 public:
     // Starts the worker, which opens `path` and pre-rolls to `initialSec`.
     // `mode` overrides the --decode mode for this decoder.
+    // `softwareThreads` caps FFmpeg's software decode thread count (0 = auto).
     FfmpegDecoder(std::string path, double initialSec, std::optional<DecodeMode> mode = std::nullopt,
-                  std::shared_ptr<void> mediaLeases = {}, std::function<void()> beforeRead = {});
+                  std::shared_ptr<void> mediaLeases = {}, std::function<void()> beforeRead = {},
+                  int softwareThreads = 0);
     // Stops the worker: an interrupt callback ends blocking FFmpeg I/O, then
     // the thread is joined. Call it off the render thread (SourcePool retires
     // decoders on its own thread).
@@ -133,6 +135,11 @@ public:
     // same media file without reopening the container or codec, clearing the
     // previous clip's displayed frame so it cannot flash during the seek.
     void resetForClip(double targetSec);
+
+    // Render thread. Updates the software decode thread budget (0 = auto).
+    // Applied lazily on the next software seek without reopening the container.
+    void setSoftwareThreads(int threads);
+    int softwareThreads() const { return m_softwareThreads.load(std::memory_order_relaxed); }
 
     // Sequential analysis consumes actual PTS, including variable-rate frames.
     // After an exact sequential pick, null means end of stream.
@@ -211,6 +218,9 @@ private:
     bool m_skipNonReference = true;
     // Auto mode decodes seeks in software (NT_SEEK_SOFTWARE=off disables).
     bool m_softwareSeeks = true;
+    // Software FFmpeg thread count budget (0 = auto / all cores). Updated by
+    // SourcePool as simultaneous open video decoders change.
+    std::atomic<int> m_softwareThreads{0};
     FrameRing<DecodedFrame> m_ring;
 
     // Requests from the render thread (and worker self-chaining when a drag
@@ -306,7 +316,8 @@ private:
 class FfmpegSource final : public LayerSource {
 public:
     FfmpegSource(std::string path, double initialSec, QSize nominalSize,
-                 std::optional<DecodeMode> mode = std::nullopt, std::shared_ptr<void> mediaLeases = {}, std::function<void()> beforeRead = {});
+                 std::optional<DecodeMode> mode = std::nullopt, std::shared_ptr<void> mediaLeases = {},
+                 std::function<void()> beforeRead = {}, int softwareThreads = 0);
     ~FfmpegSource() override;
 
     QSize frameSize() const override;
@@ -314,6 +325,7 @@ public:
 
     FfmpegDecoder& decoder() { return *m_decoder; }
     void resetForClip(double targetSec, QSize nominalSize);
+    void setSoftwareThreads(int threads);
     std::unique_ptr<FfmpegDecoder> takeDecoder();
 
 private:

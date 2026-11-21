@@ -250,7 +250,8 @@ struct Stream {
 
 // Allocates and opens one codec context on an already-opened stream container.
 bool openCodecEngine(CodecEngine& eng, const Opened& o, bool hardware, std::string* hwReason,
-                     bool failHardwareForTest = false, std::string* errorOut = nullptr) {
+                     bool failHardwareForTest = false, std::string* errorOut = nullptr,
+                     int softwareThreads = 0) {
     eng.ctx.reset();
     eng.hwDevice.reset();
     eng.hardware = false;
@@ -276,9 +277,10 @@ bool openCodecEngine(CodecEngine& eng, const Opened& o, bool hardware, std::stri
     if (eng.hardware) {
         eng.ctx->thread_count = 1;  // VideoToolbox decodes on its own threads
     } else {
-        // One thread per core (FFmpeg's automatic count): a seek decodes from
-        // the keyframe to the target, about 3x faster than with 2 threads.
-        eng.ctx->thread_count = 0;
+        // Software decode thread budget: 0 lets FFmpeg use every core for a
+        // solo clip, while SourcePool scales down per decoder when multiple
+        // tracks seek concurrently to avoid thread oversubscription.
+        eng.ctx->thread_count = softwareThreads > 0 ? softwareThreads : 0;
         eng.ctx->thread_type = FF_THREAD_FRAME;
     }
     const int rc = avcodec_open2(eng.ctx.get(), o.codec, nullptr);
@@ -292,13 +294,14 @@ bool openCodecEngine(CodecEngine& eng, const Opened& o, bool hardware, std::stri
 // Opens the container and the codec. With `hardware`, it tries VideoToolbox
 // first and writes why not into `hwReason` when that fails.
 bool openDecoder(Stream& s, const std::string& path, const AVIOInterruptCB* interrupt, bool hardware,
-                 std::string* hwReason, bool failHardwareForTest = false) {
+                 std::string* hwReason, bool failHardwareForTest = false, int softwareThreads = 0) {
     s.o = openStream(path, interrupt);
     s.engine = CodecEngine{};
     s.nalLengthSize = 0;
     s.hevcTemporalLayers = 0;
     if (!s.o.facts.usable()) return false;
-    if (!openCodecEngine(s.engine, s.o, hardware, hwReason, failHardwareForTest, &s.o.facts.error)) {
+    if (!openCodecEngine(s.engine, s.o, hardware, hwReason, failHardwareForTest, &s.o.facts.error,
+                         softwareThreads)) {
         return false;
     }
     AVStream* st = s.o.stream;
@@ -424,7 +427,8 @@ DecodedFrame::~DecodedFrame() {
 }
 
 FfmpegDecoder::FfmpegDecoder(std::string path, double initialSec, std::optional<DecodeMode> mode,
-                             std::shared_ptr<void> mediaLeases, std::function<void()> beforeRead)
+                             std::shared_ptr<void> mediaLeases, std::function<void()> beforeRead,
+                             int softwareThreads)
     : m_mediaLeases(std::move(mediaLeases)),
       m_beforeRead(std::move(beforeRead)),
       m_path(std::move(path)),
@@ -435,6 +439,7 @@ FfmpegDecoder::FfmpegDecoder(std::string path, double initialSec, std::optional<
       m_frameLossAfterFrames(g_testFrameLossAfterFrames.load()),
       m_skipNonReference(qEnvironmentVariable("NT_DECODE_SKIP") != QLatin1String("off")),
       m_softwareSeeks(qEnvironmentVariable("NT_SEEK_SOFTWARE") != QLatin1String("off")),
+      m_softwareThreads(std::max(0, softwareThreads)),
       m_targetSec(initialSec),
       m_restartSec(initialSec) {
     beat();
@@ -593,6 +598,10 @@ void FfmpegDecoder::publishFacts(const MediaFacts& facts) {
 std::shared_ptr<const MediaFacts> FfmpegDecoder::facts() const {
     std::lock_guard lock(m_factsMutex);
     return m_facts;
+}
+
+void FfmpegDecoder::setSoftwareThreads(int threads) {
+    m_softwareThreads.store(std::max(0, threads), std::memory_order_relaxed);
 }
 
 void FfmpegDecoder::resetForClip(double targetSec) {
@@ -756,14 +765,17 @@ void FfmpegDecoder::run() {
     Stream s;
     std::string fallback;  // why VideoToolbox is not used, in Auto
     int opens = 0;
+    int activeSwThreads = m_softwareThreads.load(std::memory_order_relaxed);
     // One open policy for the first open and every reopen (F4). With
     // VideoToolbox wanted, a setup or codec-open failure fails the clip in
     // Hardware mode and continues in software in Auto, with the reason.
     const auto openWithPolicy = [&](bool wantHardware) -> bool {
         beat();
         m_hardwareActive = false;
+        activeSwThreads = m_softwareThreads.load(std::memory_order_relaxed);
         std::string reason;
-        bool ok = openDecoder(s, m_path, &interrupt, wantHardware, &reason, m_failHardwareOnOpen == opens++);
+        bool ok = openDecoder(s, m_path, &interrupt, wantHardware, &reason, m_failHardwareOnOpen == opens++,
+                              activeSwThreads);
         const bool streamFine = s.o.facts.opened && s.o.facts.rejection.empty();
         if (wantHardware && streamFine && (!ok || !s.engine.hardware)) {
             if (!ok) reason = s.o.facts.error;  // the codec did not open with VideoToolbox
@@ -775,7 +787,7 @@ void FfmpegDecoder::run() {
                 return false;
             }
             fallback = reason;
-            if (!ok) ok = openDecoder(s, m_path, &interrupt, false, nullptr);
+            if (!ok) ok = openDecoder(s, m_path, &interrupt, false, nullptr, false, activeSwThreads);
         }
         MediaFacts facts = s.o.facts;
         facts.fallback = fallback;
@@ -1071,16 +1083,35 @@ void FfmpegDecoder::run() {
             switching = false;
             switchFloorSec = -1e300;
             if (hybrid && s.engine.hardware) {
-                if (!parkedEngine.ctx && !openCodecEngine(parkedEngine, s.o, false, nullptr)) {
+                const int wantedSw = m_softwareThreads.load(std::memory_order_relaxed);
+                if (!parkedEngine.ctx &&
+                    !openCodecEngine(parkedEngine, s.o, false, nullptr, false, nullptr, wantedSw)) {
                     hybrid = false;  // VideoToolbox serves seeks as before
                     parkedEngine = CodecEngine{};
                 } else {
+                    if (parkedEngine.ctx && wantedSw != activeSwThreads) {
+                        CodecEngine resized;
+                        if (openCodecEngine(resized, s.o, false, nullptr, false, nullptr, wantedSw)) {
+                            parkedEngine = std::move(resized);
+                        }
+                    }
+                    activeSwThreads = wantedSw;
                     std::swap(s.engine, parkedEngine);
                     m_hardwareActive = false;
                     ++m_engineSwitches;
                 }
             }
             const bool decodeThrough = s.fromStart && !s.lastPts && target <= kMaxSequentialGapSec;
+            if (!s.engine.hardware && !decodeThrough) {
+                const int wantedSw = m_softwareThreads.load(std::memory_order_relaxed);
+                if (wantedSw != activeSwThreads) {
+                    CodecEngine resized;
+                    if (openCodecEngine(resized, s.o, false, nullptr, false, nullptr, wantedSw)) {
+                        s.engine = std::move(resized);
+                        activeSwThreads = wantedSw;
+                    }
+                }
+            }
             runHasPick = false;
             reseekBackSec = 0.0;
             if (!decodeThrough && !seekTo(target)) {
@@ -1622,9 +1653,9 @@ void FfmpegDecoder::run() {
 
 FfmpegSource::FfmpegSource(std::string path, double initialSec, QSize nominalSize,
                            std::optional<DecodeMode> mode, std::shared_ptr<void> mediaLeases,
-                           std::function<void()> beforeRead)
+                           std::function<void()> beforeRead, int softwareThreads)
     : m_decoder(std::make_unique<FfmpegDecoder>(std::move(path), initialSec, mode, std::move(mediaLeases),
-                                                std::move(beforeRead))),
+                                                std::move(beforeRead), softwareThreads)),
       m_nominalSize(nominalSize) {}
 
 FfmpegSource::~FfmpegSource() {
@@ -1636,6 +1667,10 @@ FfmpegSource::~FfmpegSource() {
 void FfmpegSource::resetForClip(double targetSec, QSize nominalSize) {
     m_nominalSize = nominalSize;
     if (m_decoder) m_decoder->resetForClip(targetSec);
+}
+
+void FfmpegSource::setSoftwareThreads(int threads) {
+    if (m_decoder) m_decoder->setSoftwareThreads(threads);
 }
 
 std::unique_ptr<FfmpegDecoder> FfmpegSource::takeDecoder() {

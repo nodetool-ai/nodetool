@@ -151,8 +151,38 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
         return nullptr;
     };
 
+    const int hwCores = std::max(1, static_cast<int>(std::thread::hardware_concurrency()));
+    int activeVideoCount = 0;
+    int upcomingVideoCount = 0;
+    for (const Want& w : wants) {
+        if (w.clip->mediaType == MediaType::Image) continue;
+        if (w.priority == 0 || w.distanceMs <= 0.0) {
+            ++activeVideoCount;
+        } else if (w.priority == 1) {
+            ++upcomingVideoCount;
+        }
+    }
+    const int multiThreads = std::clamp((hwCores * 2) / 3, std::min(4, hwCores), 8);
+    const auto softwareThreadsFor = [&](const Want& w, bool image) -> int {
+        if (image) return 1;
+        const bool activeNow = w.priority == 0 || w.distanceMs <= 0.0;
+        if (activeNow) {
+            if (activeVideoCount <= 1) return 0;  // solo clip gets FFmpeg auto (all cores)
+            // Keep enough frame-thread wavefront depth so staggered GOP stragglers
+            // do not stall, while capping below FFmpeg auto (ncpu+1) to cut
+            // multi-track DPB memory and cross-core contention.
+            return multiThreads;
+        }
+        // Upcoming lookahead matches the budget it will need when it becomes
+        // active so crossing a cut does not rebuild the codec mid-seek.
+        if (activeVideoCount >= 2 || upcomingVideoCount >= 2) return multiThreads;
+        return 0;
+    };
+
     for (const Want& w : wants) {
         const Clip& clip = *w.clip;
+        const bool isImage = clip.mediaType == MediaType::Image;
+        const int swThreads = softwareThreadsFor(w, isImage);
         auto it = m_entries.find(clip.id);
         if (it != m_entries.end() && it->second.mediaPath != clip.mediaPath) {
             retiring.push_back(std::move(it->second));
@@ -163,18 +193,24 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
             Entry e;
             e.label = clip.name;
             e.mediaPath = clip.mediaPath;
-            e.image = clip.mediaType == MediaType::Image;
+            e.image = isImage;
             e.nominal = QSize(clip.width.value_or(timeline.width), clip.height.value_or(timeline.height));
             // Pre-roll: decode from where the clip will start showing.
             const double startSourceMs = clip.inPointMs + std::max(0.0, timeMs - clip.startMs);
             if (auto adopted = takeAdoptable(clip.mediaPath, e.image)) {
+                adopted->setSoftwareThreads(swThreads);
                 adopted->resetForClip(startSourceMs / 1000.0, e.nominal);
                 e.decoder = std::move(adopted);
             } else {
                 e.decoder = std::make_unique<FfmpegSource>(clip.mediaPath, startSourceMs / 1000.0, e.nominal,
-                                                           modeFor(clip.mediaPath), mediaLeases, m_readProbes.video);
+                                                           modeFor(clip.mediaPath), mediaLeases, m_readProbes.video,
+                                                           swThreads);
             }
             it = m_entries.emplace(clip.id, std::move(e)).first;
+        } else if (it->second.decoder && w.priority != 2) {
+            // Keep idle recently-passed decoders at their open thread budget so
+            // scrubbing back across a cut never triggers a codec reopen.
+            it->second.decoder->setSoftwareThreads(swThreads);
         }
         Entry& e = it->second;
         if (e.decoder && e.decoder->decoder().stalled()) {
@@ -186,7 +222,8 @@ void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<
             retire(e, true);
             const double sourceMs = clip.inPointMs + std::max(0.0, timeMs - clip.startMs);
             e.decoder = std::make_unique<FfmpegSource>(clip.mediaPath, sourceMs / 1000.0, e.nominal,
-                                                       DecodeMode::Software, mediaLeases, m_readProbes.video);
+                                                       DecodeMode::Software, mediaLeases, m_readProbes.video,
+                                                       swThreads);
         }
         checkOpened(clip.id, e, clip.mediaPath, mediaLeases);
     }
