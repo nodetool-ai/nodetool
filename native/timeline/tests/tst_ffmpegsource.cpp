@@ -1065,11 +1065,19 @@ private slots:
     void continuous4kHevcBackwardScrubUpdatesLive() {
         FrameCache::shared().clear();
         FfmpegDecoder d(media("numbered-a-2160p30-hevc.mp4"), 10.0);
+        QElapsedTimer seekTimer;
+        seekTimer.start();
         auto first = waitExact(d, 10.0, 6000);
         QVERIFY(first);
+        const qint64 seekMs = seekTimer.elapsed();
         double lastShownPts = first->ptsSec;
         int distinctShown = 1;
         const int steps = 60;
+        // The opening decode is one seek from a keyframe. The drag lasts at
+        // least six seeks, so sanitizer builds slow it down, and each step
+        // still comes ten times faster than a seek lands. A decoder that
+        // cancels every seek in flight shows only the first frame.
+        const qint64 stepMs = std::max<qint64>(16, seekMs * 6 / steps);
         for (int i = 1; i <= steps; ++i) {
             const double target = 10.0 - 1.5 * (static_cast<double>(i) / steps);
             auto f = d.frameAt(target);
@@ -1078,14 +1086,11 @@ private slots:
                 lastShownPts = f->ptsSec;
                 ++distinctShown;
             }
-            QThread::msleep(16);
+            QThread::msleep(static_cast<unsigned long>(stepMs));
         }
         const long long hits = FrameCache::shared().hits();
-        qInfo("4k-bwd-60hz: distinctShown=%d hits=%lld seeks=%lld cacheMB=%zu",
-              distinctShown, hits, d.seeks(), FrameCache::shared().bytes() / 1048576);
-        // 4K HEVC software decode speed sets how many seeks land during the
-        // drag: CI runners show 5 to 7 frames in every build type. A drag that
-        // freezes until release shows only its first frame.
+        qInfo("4k-bwd: seekMs=%lld stepMs=%lld distinctShown=%d hits=%lld seeks=%lld cacheMB=%zu",
+              seekMs, stepMs, distinctShown, hits, d.seeks(), FrameCache::shared().bytes() / 1048576);
         QVERIFY2(distinctShown >= 3, qPrintable(QStringLiteral("only %1 distinct 4K frames shown").arg(distinctShown)));
         QVERIFY2(hits >= 2, qPrintable(QStringLiteral("only %1 4K cache hits").arg(hits)));
         QVERIFY(FrameCache::shared().peakBytes() <= FrameCache::shared().budgetBytes());
