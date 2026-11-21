@@ -351,6 +351,8 @@ private slots:
     QVERIFY(presenter->editorRect().height() <= view->viewportWidget().height());
     QVERIFY(window.unobstructedViewport().contains(presenter->editorRect()));
     for (const auto *file : {"Toolbar.qml", "SelectionToolbar.qml"}) {
+      // Single-card selection delays SelectionToolbar.qml by 200 ms (toolbarShowDelayMs).
+      QTRY_VERIFY(test::overlay(window, file, true));
       const auto chrome = test::overlay(window, file, true);
       QVERIFY(chrome);
       const auto bounds = QRectF(view->viewportWidget().mapFromGlobal(chrome->mapToGlobal(chrome->rootObject()->mapToScene({0, 0}).toPoint())),

@@ -1,4 +1,6 @@
 #include "ui/CanvasOverlay.h"
+#include "ui/QuickCanvas.h"
+#include "canvas/GraphCanvas.h"
 #include "EditorWindow.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QEasingCurve>
@@ -57,6 +59,7 @@ void EditorWindow::moveViewTo(double zoom, const QPointF &viewCenter, int durati
   const bool arrived = std::abs(fromZoom - zoom) < 1e-9 && QLineF(fromCenter, viewCenter).length() * zoom < 0.5;
   if (durationMs <= 0 || canvasReducedMotion_ || !isVisible() || arrived) {
     place(zoom, viewCenter);
+    canvas_->graphCanvas().finishZoomGesture();
     return;
   }
   auto *animation = new QVariantAnimation(this);
@@ -67,10 +70,11 @@ void EditorWindow::moveViewTo(double zoom, const QPointF &viewCenter, int durati
   animation->setEasingCurve(QEasingCurve::InOutCubic);
   animation->setStartValue(0.0);
   animation->setEndValue(1.0);
-  connect(animation, &QVariantAnimation::valueChanged, this, [place, fromZoom, fromCenter, zoom, viewCenter](const QVariant &value) {
+  connect(animation, &QVariantAnimation::valueChanged, this, [this, place, fromZoom, fromCenter, zoom, viewCenter](const QVariant &value) {
     const double t = value.toDouble();
     if (t >= 1.0) {
       place(zoom, viewCenter);
+      canvas_->graphCanvas().finishZoomGesture();
       return;
     }
     place(fromZoom + (zoom - fromZoom) * t, fromCenter + (viewCenter - fromCenter) * t);

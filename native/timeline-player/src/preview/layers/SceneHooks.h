@@ -43,5 +43,6 @@ struct SceneHooks {
     std::vector<ClipAnimationProvider> clipAnimations;
 };
 SceneHooks sceneHooks();
+std::uint64_t sceneHooksVersion();
 std::optional<double> mappedSourceTime(const Clip& clip, double timeMs);
 }

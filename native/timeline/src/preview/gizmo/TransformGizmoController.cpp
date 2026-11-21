@@ -1,6 +1,7 @@
 #include "TransformGizmoController.h"
 #include "edit/ClipGestureController.h"
 #include "preview/FfmpegSource.h"
+#include "scene/ClipScene.h"
 #include "ui/MediaVersion.h"
 
 #include <QCoreApplication>
@@ -108,7 +109,9 @@ void TransformGizmoController::setClock(PlaybackClock* value) {
     cancel();
     if (m_clock) { disconnect(m_clock, nullptr, this, nullptr); }
     m_clock = value;
-    if (value && m_active) { connect(value, &PlaybackClock::timeChanged, this, &TransformGizmoController::refresh); }
+    if (value && m_active) {
+        connect(value, &PlaybackClock::timeChanged, this, &TransformGizmoController::onClockTimeChanged);
+    }
     emit bindingsChanged();
     refresh();
 }
@@ -125,7 +128,9 @@ void TransformGizmoController::setActive(bool value) {
     m_active = value;
     if (m_clock) {
         disconnect(m_clock, nullptr, this, nullptr);
-        if (m_active) { connect(m_clock, &PlaybackClock::timeChanged, this, &TransformGizmoController::refresh); }
+        if (m_active) {
+            connect(m_clock, &PlaybackClock::timeChanged, this, &TransformGizmoController::onClockTimeChanged);
+        }
     }
     emit bindingsChanged();
     refresh();
@@ -211,7 +216,16 @@ void TransformGizmoController::probe(const QString& path) {
         });
     });
 }
+void TransformGizmoController::onClockTimeChanged() {
+    if (m_clockStaticValid && m_clock) {
+        const double t = m_clock->time();
+        const bool inside = t >= m_clockStaticStartMs && t < m_clockStaticEndMs;
+        if (inside == m_clockStaticInside) { return; }
+    }
+    refresh();
+}
 void TransformGizmoController::refresh() {
+    m_clockStaticValid = false;
     const bool wasAvailable = m_available;
     const auto previousBox = m_box;
     const auto origin = m_monitor ? m_monitor->mapToItem(this, QPointF()) : QPointF();
@@ -223,7 +237,8 @@ void TransformGizmoController::refresh() {
         const auto id = m_selection.first().toStdString();
         const auto clip = std::find_if(timeline.clips.begin(), timeline.clips.end(), [&](const auto& c) { return c.id == id; });
         if (clip != timeline.clips.end() && (clip->mediaType == nt::MediaType::Video || clip->mediaType == nt::MediaType::Image)) {
-            const auto layers = nt::activeLayersAt(timeline, m_clock->time());
+            const double clockMs = m_clock->time();
+            const auto layers = nt::activeLayersAt(timeline, clockMs);
             const auto layer = std::find_if(layers.begin(), layers.end(), [&](const auto& l) {
                 return l.clipId == id && (l.kind == "video" || l.kind == "image");
             });
@@ -243,6 +258,31 @@ void TransformGizmoController::refresh() {
                                layer->parentMatrix, clip->raw.value("crop").toObject()};
                     m_box = nt::gizmo::geometry(m_display, m_space);
                     m_available = true;
+                }
+            }
+            // Check whether this clip's gizmo geometry is time-invariant on
+            // each side of [startMs, endMs), so scrubbing skips activeLayersAt().
+            const auto* cs = clip->scene.get();
+            const bool hasCamera = timeline.scene && timeline.scene->camera2d;
+            const bool clipStatic =
+                !hasCamera &&
+                (!cs || (cs->parentId.empty() && (!cs->animations || cs->animations->empty()) &&
+                         !cs->paramCurves && !cs->repeater && !cs->temporalEcho && !cs->steppedFps &&
+                         !cs->matteSource)) &&
+                !clip->raw.contains(u"transitionIn") && !clip->raw.contains(u"transitionOut") &&
+                !clip->raw.contains(u"reframe") && !clip->raw.contains(u"links") &&
+                !clip->raw.contains(u"trackBinding") && !clip->raw.contains(u"audioLinks") &&
+                !clip->raw.contains(u"beat") && !clip->raw.contains(u"flex");
+            if (clipStatic) {
+                const bool trackHasTransitions = std::any_of(timeline.clips.begin(), timeline.clips.end(), [&](const auto& c) {
+                    return c.trackId == clip->trackId &&
+                           (c.raw.contains(u"transitionIn") || c.raw.contains(u"transitionOut"));
+                });
+                if (!trackHasTransitions) {
+                    m_clockStaticStartMs = clip->startMs;
+                    m_clockStaticEndMs = clip->endMs();
+                    m_clockStaticInside = clockMs >= m_clockStaticStartMs && clockMs < m_clockStaticEndMs;
+                    m_clockStaticValid = true;
                 }
             }
         }

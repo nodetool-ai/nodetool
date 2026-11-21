@@ -107,13 +107,17 @@ size_t frameBytes(const DecodedFrame& f);
 // no progress for this long is stalled.
 inline constexpr std::chrono::milliseconds kDecoderStallLimit{1000};
 
-// native-rules #9: shared by the worker thread and the render thread, no thread affinity comment
+// Thread affinity: public control/query methods (`frameAt`, `exact`, `stalled`,
+// `reportImportFailure`) run on the render thread; `run()` executes on the
+// owned worker thread. Cross-thread state is atomic or guarded by documented mutexes.
 class FfmpegDecoder {
 public:
     // Starts the worker, which opens `path` and pre-rolls to `initialSec`.
     // `mode` overrides the --decode mode for this decoder.
+    // `softwareThreads` caps FFmpeg's software decode thread count (0 = auto).
     FfmpegDecoder(std::string path, double initialSec, std::optional<DecodeMode> mode = std::nullopt,
-                  std::shared_ptr<void> mediaLeases = {}, std::function<void()> beforeRead = {});
+                  std::shared_ptr<void> mediaLeases = {}, std::function<void()> beforeRead = {},
+                  int softwareThreads = 0);
     // Stops the worker: an interrupt callback ends blocking FFmpeg I/O, then
     // the thread is joined. Call it off the render thread (SourcePool retires
     // decoders on its own thread).
@@ -127,6 +131,16 @@ public:
     enum class FrameAccess { Cached, Sequential };
     // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<DecodedFrame> frameAt(double targetSec, FrameAccess access = FrameAccess::Cached);
+    // Render thread. Retargets an adopted decoder for another clip using the
+    // same media file without reopening the container or codec, clearing the
+    // previous clip's displayed frame so it cannot flash during the seek.
+    void resetForClip(double targetSec);
+
+    // Render thread. Updates the software decode thread budget (0 = auto).
+    // Applied lazily on the next software seek without reopening the container.
+    void setSoftwareThreads(int threads);
+    int softwareThreads() const { return m_softwareThreads.load(std::memory_order_relaxed); }
+
     // Sequential analysis consumes actual PTS, including variable-rate frames.
     // After an exact sequential pick, null means end of stream.
     std::optional<double> nextFrameSec() const { return m_nextFrameSec; }
@@ -182,6 +196,7 @@ private:
     void run();
     void publishFacts(const MediaFacts& facts);
     void beat();
+    void notifyWorker();
     void publishSkipFloor(long long gen, double floorSec);
     void publishLanded(std::shared_ptr<DecodedFrame> frame, long long gen);
     std::shared_ptr<DecodedFrame> takeLandedAfter(long long& shownGen);
@@ -203,9 +218,16 @@ private:
     bool m_skipNonReference = true;
     // Auto mode decodes seeks in software (NT_SEEK_SOFTWARE=off disables).
     bool m_softwareSeeks = true;
+    // Software FFmpeg thread count budget (0 = auto / all cores). Updated by
+    // SourcePool as simultaneous open video decoders change.
+    std::atomic<int> m_softwareThreads{0};
     FrameRing<DecodedFrame> m_ring;
 
-    // Requests from the render thread.
+    // Requests from the render thread (and worker self-chaining when a drag
+    // moves the target while a seek is in flight).
+    // `m_requestMutex` guards coordinated updates to `m_requestGen`,
+    // `m_restartSec`, and `m_backwardScrub`.
+    std::mutex m_requestMutex;
     std::atomic<double> m_targetSec;
     std::atomic<long long> m_requestGen{1};
     // Highest seek generation whose worker run has delivered its target pick
@@ -214,11 +236,16 @@ private:
     // every frame.
     std::atomic<long long> m_settledGen{0};
     // True when the current seek is a short backward scrub step: the worker
-    // decodes the GOP without skipping non-reference frames so the contiguous
-    // frames behind the playhead populate FrameCache for instant backward hits.
+    // decodes the frames within the cache window behind the target without
+    // skipping non-reference frames so FrameCache delivers instant backward hits.
     std::atomic<bool> m_backwardScrub{false};
+    // True when the most recent frameAt() used FrameAccess::Cached.
+    std::atomic<bool> m_cachedAccess{true};
+    // True only during sustained forward playback steps (not paused jumps),
+    // gating hybrid Auto switches from software seek back to VideoToolbox.
+    std::atomic<bool> m_sequentialPlayback{false};
     bool m_hasWorker = true;
-    double m_restartSec;  // target of the newest restart (render thread)
+    std::atomic<double> m_restartSec;  // target of the newest restart
 
     // Guards m_landedFrame and m_landedGen. Worker writes when an in-flight
     // seek lands its exact pick; render thread consumes in frameAt() so a
@@ -257,8 +284,10 @@ private:
     bool m_done = false;
     bool m_abandoned = false;
 
+    // Guards `m_wakePending` to prevent lost wakeups between frameAt() and run().
     std::mutex m_wakeMutex;
     std::condition_variable m_wake;
+    bool m_wakePending = false;
     std::atomic<bool> m_stop{false};
 
     // Render thread only.
@@ -272,6 +301,7 @@ private:
     bool m_settling = false;
     double m_lastTargetSec = -1e300;
     double m_lastMoveDeltaSec = 0.0;
+    int m_forwardStreak = 0;
     int m_lastQueued = 0;
     double m_lastNewest = -1e300;
 
@@ -286,13 +316,16 @@ private:
 class FfmpegSource final : public LayerSource {
 public:
     FfmpegSource(std::string path, double initialSec, QSize nominalSize,
-                 std::optional<DecodeMode> mode = std::nullopt, std::shared_ptr<void> mediaLeases = {}, std::function<void()> beforeRead = {});
+                 std::optional<DecodeMode> mode = std::nullopt, std::shared_ptr<void> mediaLeases = {},
+                 std::function<void()> beforeRead = {}, int softwareThreads = 0);
     ~FfmpegSource() override;
 
     QSize frameSize() const override;
     LayerFrame frameAt(const FrameContext& ctx, double sourceTimeMs) override;
 
     FfmpegDecoder& decoder() { return *m_decoder; }
+    void resetForClip(double targetSec, QSize nominalSize);
+    void setSoftwareThreads(int threads);
     std::unique_ptr<FfmpegDecoder> takeDecoder();
 
 private:

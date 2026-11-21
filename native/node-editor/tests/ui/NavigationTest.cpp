@@ -269,6 +269,86 @@ private slots:
     QTRY_COMPARE(controller->property("status").toString(), QString("No nodes found"));
     QVERIFY(window.selection().isEmpty());
   }
+  // Pinch/scroll end clears zoom settle at once, and wheel zoom ignores macOS
+  // momentum coasting while trackpad pan keeps momentum.
+  void zoomGestureEndAndMomentum() {
+    QSettings().setValue("canvas/navigation", "trackpad");
+    EditorWindow window;
+    window.resize(1200, 800);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QJsonArray commands;
+    for (int i = 0; i < 4; ++i) {
+      commands.append(QJsonObject{
+          {"op", "addNode"},
+          {"node", QJsonObject{{"id", QString("n%1").arg(i)},
+                               {"type", "nodetool.workflows.base_node.Comment"},
+                               {"data", QJsonObject{{"comment", "Sample text for zoom sharpening"}}},
+                               {"ui_properties", QJsonObject{{"width", 220}, {"height", 120},
+                                                             {"position", QJsonObject{{"x", (i % 2) * 280}, {"y", (i / 2) * 180}}}}}}}});
+    }
+    QVERIFY(window.document()->applyCommand({{"op", "batch"}, {"commands", commands}}));
+    auto canvas = nodetool::test::view(window);
+    auto &graph = window.canvas().graphCanvas();
+    canvas->centerOn(nodetool::test::itemsBoundingRect(window).center());
+    graph.flushRaster();
+
+    const auto center = canvas->viewport()->rect().center();
+    const QPointF local = canvas->viewport()->mapTo(&window, center);
+    const QPointF global = canvas->viewport()->mapToGlobal(center);
+    QPointingDevice touchpad("touchpad", 1, QInputDevice::DeviceType::TouchPad, QPointingDevice::PointerType::Finger,
+                             QInputDevice::Capability::Position, 2, 0);
+    QNativeGestureEvent pinch(Qt::ZoomNativeGesture, &touchpad, 2, local, local, global, 0.8, {}, 0);
+    QApplication::sendEvent(window.windowHandle(), &pinch);
+    QVERIFY(graph.zoomSettling());
+
+    QElapsedTimer sharpenTimer;
+    sharpenTimer.start();
+    QNativeGestureEvent pinchEnd(Qt::EndNativeGesture, &touchpad, 2, local, local, global, 0.0, {}, 0);
+    QApplication::sendEvent(window.windowHandle(), &pinchEnd);
+    QVERIFY(!graph.zoomSettling());
+    while (graph.rasterPending() && sharpenTimer.elapsed() < 1000) {
+      QCoreApplication::processEvents(QEventLoop::AllEvents, 1);
+    }
+    QVERIFY(!graph.rasterPending());
+    const auto sharpMs = sharpenTimer.elapsed();
+    qInfo() << "small_graph_pinch_end_sharp_ms" << sharpMs;
+    const double expectedScale = window.canvas().zoom() * window.devicePixelRatio();
+    for (const auto *item : graph.scene().itemsIn(window.canvas().visibleSceneRect())) {
+      if (item->kind() != nodetool::canvas::CanvasItem::Kind::Node) { continue; }
+      QVERIFY(!item->tiles().isEmpty());
+      for (const auto &tile : item->tiles()) {
+        QVERIFY(qFuzzyCompare(tile.geometry.scale, expectedScale));
+      }
+    }
+
+    // Zoom wheel ignores ScrollMomentum; ScrollEnd clears zoom settle immediately.
+    const double zoomBefore = canvas->transform().m11();
+    QWheelEvent zoomUpdate(QPointF(center), global, QPoint(), QPoint(0, 120), Qt::NoButton, Qt::ControlModifier,
+                           Qt::ScrollUpdate, false);
+    QApplication::sendEvent(canvas->viewport(), &zoomUpdate);
+    const double zoomAfterUpdate = canvas->transform().m11();
+    QVERIFY(zoomAfterUpdate > zoomBefore);
+    QVERIFY(graph.zoomSettling());
+
+    QWheelEvent zoomMomentum(QPointF(center), global, QPoint(), QPoint(0, 120), Qt::NoButton, Qt::ControlModifier,
+                             Qt::ScrollMomentum, false);
+    QApplication::sendEvent(canvas->viewport(), &zoomMomentum);
+    QCOMPARE(canvas->transform().m11(), zoomAfterUpdate);
+
+    QWheelEvent zoomEnd(QPointF(center), global, QPoint(), QPoint(), Qt::NoButton, Qt::ControlModifier,
+                        Qt::ScrollEnd, false);
+    QApplication::sendEvent(canvas->viewport(), &zoomEnd);
+    QVERIFY(!graph.zoomSettling());
+
+    // Trackpad panning preserves ScrollMomentum.
+    const int scrollYBefore = canvas->verticalScrollBar()->value();
+    QWheelEvent panMomentum(QPointF(center), global, QPoint(0, 30), QPoint(0, 120), Qt::NoButton, Qt::NoModifier,
+                            Qt::ScrollMomentum, false);
+    QApplication::sendEvent(canvas->viewport(), &panMomentum);
+    QCOMPARE(canvas->verticalScrollBar()->value(), scrollYBefore - 30);
+    QSettings().remove("canvas/navigation");
+  }
 };
 QTEST_MAIN(NavigationTest)
 #include "NavigationTest.moc"

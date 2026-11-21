@@ -66,6 +66,13 @@ public:
   // Painting and the connection shape, supplied by the editor scene.
   virtual void paintNode(QPainter &painter, const NodeItem &item, double zoom) const = 0;
   virtual void paintConnection(QPainter &painter, const ConnectionItem &item, double zoom) const = 0;
+  // Value paint state and theme for vector wires, drawn directly on the
+  // software backend and as geometry on GPU backends. A hidden wire's state
+  // has visible false. Returns std::nullopt in scenes without vector wires.
+  virtual std::optional<WirePaintState> connectionPaintState(const ConnectionItem &, double) const {
+    return std::nullopt;
+  }
+  virtual const CanvasTheme *canvasTheme() const { return nullptr; }
   virtual QPainterPath connectionStroke(const ConnectionItem &item) const = 0;
   // The centre line the connection painter strokes, and whether the painted
   // marks can reach farther than half the widest stroke from it.
@@ -73,10 +80,6 @@ public:
   virtual bool connectionPaintsOffPath(const ConnectionItem &) const { return true; }
   // GPU vector geometry support for RHI wires without off-path badges.
   virtual bool supportsVectorConnections() const { return false; }
-  virtual std::optional<WirePaintState> connectionPaintState(const ConnectionItem &, double) const {
-    return std::nullopt;
-  }
-  virtual const CanvasTheme *vectorTheme() const { return nullptr; }
   // The logical zoom of the view, which painting reads.
   double zoom() const { return zoom_; }
   void setZoom(double zoom) { zoom_ = zoom; }

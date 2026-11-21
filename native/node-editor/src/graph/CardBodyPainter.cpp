@@ -174,7 +174,7 @@ void paintHistogram(QPainter *painter, const CanvasTheme &theme, const NodeRow &
 
 // RunModelButton: dark ink on the primary fill with a play icon, and a darker
 // fill with light ink while the node runs.
-void paintRunButton(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, bool running) {
+void paintRunButton(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, bool running, CanvasIconCache *icons) {
     painter->setPen(Qt::NoPen);
     painter->setBrush(running ? theme.primary.darker(130) : theme.primary);
     painter->drawRoundedRect(row.rect, nm::chipRadius, nm::chipRadius);
@@ -183,7 +183,7 @@ void paintRunButton(QPainter *painter, const CanvasTheme &theme, const NodeRow &
     const auto labelWidth = painter->fontMetrics().horizontalAdvance(row.label);
     const auto content = std::min(row.rect.width() - 2 * nm::runButtonPadding, nm::iconSize + nm::runButtonGap + double(labelWidth));
     const auto left = row.rect.center().x() - content / 2;
-    paintMaterialIcon(painter, QStringLiteral("playArrow"), QRectF(left, row.rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize), ink);
+    paintMaterialIcon(painter, QStringLiteral("playArrow"), QRectF(left, row.rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize), ink, icons);
     painter->setPen(ink);
     const QRectF text(left + nm::iconSize + nm::runButtonGap, row.rect.y(), content - nm::iconSize - nm::runButtonGap, row.rect.height());
     painter->drawText(text, Qt::AlignLeft | Qt::AlignVCenter, painter->fontMetrics().elidedText(row.label, Qt::ElideRight, int(text.width())));
@@ -193,7 +193,7 @@ void paintRunButton(QPainter *painter, const CanvasTheme &theme, const NodeRow &
 namespace {
 // A body header: a 12 px icon, the title and an accent such as the collection's
 // type. A placeholder is the list's centered empty state instead.
-void paintBodyCaption(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+void paintBodyCaption(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, CanvasIconCache *icons) {
     painter->setFont(sans(theme, nm::fontValue));
     if (row.placeholder) {
         painter->setPen(faded(theme.textSecondary, 0.7));
@@ -203,7 +203,7 @@ void paintBodyCaption(QPainter *painter, const CanvasTheme &theme, const NodeRow
     constexpr double icon = 12;
     auto x = row.rect.x();
     if (!row.icon.isEmpty()) {
-        paintMaterialIcon(painter, row.icon, QRectF(x, row.rect.center().y() - icon / 2, icon, icon), theme.textSecondary);
+        paintMaterialIcon(painter, row.icon, QRectF(x, row.rect.center().y() - icon / 2, icon, icon), theme.textSecondary, icons);
         x += icon + nm::chipGap + nm::micro;
     }
     painter->setPen(theme.textSecondary);
@@ -225,7 +225,7 @@ void paintBodyCaption(QPainter *painter, const CanvasTheme &theme, const NodeRow
 
 // A List Generator row: the index badge, the item's first line, the chevron, and
 // the full text below once the row is open. Rows are divided by a 1 px rule.
-void paintListItem(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+void paintListItem(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, CanvasIconCache *icons) {
     if (row.parts.size() < 4) {
         return;
     }
@@ -245,7 +245,7 @@ void paintListItem(QPainter *painter, const CanvasTheme &theme, const NodeRow &r
     painter->translate(chevron.center());
     painter->rotate(row.checked ? 90 : 0);
     paintMaterialIcon(painter, QStringLiteral("chevronRight"), QRectF(-chevron.width() / 2, -chevron.height() / 2, chevron.width(), chevron.height()),
-                      theme.textSecondary);
+                      theme.textSecondary, icons);
     painter->restore();
     if (row.checked) {
         painter->save();
@@ -261,7 +261,7 @@ void paintListItem(QPainter *painter, const CanvasTheme &theme, const NodeRow &r
 
 // A Collection tile: the image thumbnail cropped to the square, or the item's
 // kind or name, with its 1-based index in the top left corner.
-void paintCollectionTile(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+void paintCollectionTile(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, CanvasIconCache *icons) {
     QPainterPath tile;
     tile.addRoundedRect(row.rect.adjusted(0.5, 0.5, -0.5, -0.5), nm::chipRadius, nm::chipRadius);
     painter->setPen(QPen(theme.divider, nm::borderWidth));
@@ -282,7 +282,7 @@ void paintCollectionTile(QPainter *painter, const CanvasTheme &theme, const Node
     } else if (row.typeName == QStringLiteral("video") || row.typeName == QStringLiteral("audio")) {
         const auto icon = row.typeName == QStringLiteral("video") ? QStringLiteral("movie") : QStringLiteral("equalizer");
         paintMaterialIcon(painter, icon, QRectF(inside.center().x() - nm::iconSize / 2.0, inside.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize),
-                          theme.textSecondary);
+                          theme.textSecondary, icons);
     } else {
         painter->setPen(faded(theme.textSecondary, 0.7));
         painter->setFont(sans(theme, nm::fontValue));
@@ -301,12 +301,12 @@ void paintCollectionTile(QPainter *painter, const CanvasTheme &theme, const Node
 }
 
 // A tile's remove button shows while the pointer is over the card, on a scrim over the thumbnail.
-void paintTileRemove(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+void paintTileRemove(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, CanvasIconCache *icons) {
     painter->setPen(Qt::NoPen);
     painter->setBrush(theme.mediaScrim);
     painter->drawRoundedRect(row.rect, nm::chipRadius, nm::chipRadius);
     const double icon = nm::headerButtonIcon;
-    paintMaterialIcon(painter, row.icon, QRectF(row.rect.center().x() - icon / 2, row.rect.center().y() - icon / 2, icon, icon), theme.mediaScrimInk);
+    paintMaterialIcon(painter, row.icon, QRectF(row.rect.center().x() - icon / 2, row.rect.center().y() - icon / 2, icon, icon), theme.mediaScrimInk, icons);
 }
 
 // The Collection's empty grid: a dashed box with the drop prompt and its hint.
@@ -356,7 +356,7 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
         if (layout.body == CardBody::Preview) {
             area.setBottom(layout.size.height() - inset);
         }
-        paintPlaceholder(painter, theme, area, row.icon.isEmpty() ? layout.icon : row.icon, row.value);
+        paintPlaceholder(painter, theme, area, row.icon.isEmpty() ? layout.icon : row.icon, row.value, state.icons);
         return true;
     }
     case NodeRowKind::Overlay: {
@@ -438,14 +438,14 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
     case NodeRowKind::Action:
         if (row.action == QStringLiteral("removeCollectionItem")) {
             if (state.hovered) {
-                paintTileRemove(painter, theme, row);
+                paintTileRemove(painter, theme, row, state.icons);
             }
             return true;
         }
         if (row.action == QStringLiteral("runNode")) {
-            paintRunButton(painter, theme, row, state.running);
+            paintRunButton(painter, theme, row, state.running, state.icons);
         } else {
-            paintAction(painter, theme, row);
+            paintAction(painter, theme, row, state.icons);
         }
         return true;
     case NodeRowKind::Paint:
@@ -458,13 +458,13 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
         paintHistogram(painter, theme, row);
         return true;
     case NodeRowKind::BodyCaption:
-        paintBodyCaption(painter, theme, row);
+        paintBodyCaption(painter, theme, row, state.icons);
         return true;
     case NodeRowKind::ListItem:
-        paintListItem(painter, theme, row);
+        paintListItem(painter, theme, row, state.icons);
         return true;
     case NodeRowKind::CollectionTile:
-        paintCollectionTile(painter, theme, row);
+        paintCollectionTile(painter, theme, row, state.icons);
         return true;
     case NodeRowKind::Segmented:
         paintSegmented(painter, theme, row);
@@ -474,22 +474,22 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
         return true;
     case NodeRowKind::Lock: {
         const auto ink = row.checked ? theme.textPrimary : theme.textSecondary;
-        paintMaterialIcon(painter, row.icon, QRectF(row.rect.center().x() - nm::iconSize / 2.0, row.rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize), ink);
+        paintMaterialIcon(painter, row.icon, QRectF(row.rect.center().x() - nm::iconSize / 2.0, row.rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize), ink, state.icons);
         return true;
     }
     case NodeRowKind::ModelChip:
         paintModelChip(painter, theme, row);
         return true;
     case NodeRowKind::ImageSize:
-        paintImageSize(painter, theme, row);
+        paintImageSize(painter, theme, row, state.icons);
         return true;
     case NodeRowKind::DropZone:
         if (layout.body == CardBody::Collection) {
             paintCollectionZone(painter, theme, row);
         } else if (row.mediaKind.isEmpty()) {
-            paintDropZone(painter, theme, row);
+            paintDropZone(painter, theme, row, state.icons);
         } else {
-            paintCardMedia(painter, theme, row, state.hovered);
+            paintCardMedia(painter, theme, row, state.hovered, state.icons);
         }
         return true;
     case NodeRowKind::Swatch:

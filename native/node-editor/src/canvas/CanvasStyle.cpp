@@ -48,9 +48,14 @@ void paintGrid(QPainter &painter, const QRectF &exposed, const QRectF &area, dou
   };
   const auto lastX = std::min(exposed.right(), area.right() + half);
   const auto lastY = std::min(exposed.bottom(), area.bottom() + half);
+  const auto startX = first(exposed.left(), area.left());
+  const auto startY = first(exposed.top(), area.top());
+  const auto countX = lastX >= startX ? int((lastX - startX) / gap) + 1 : 0;
+  const auto countY = lastY >= startY ? int((lastY - startY) / gap) + 1 : 0;
   QVector<QLineF> crosses;
-  for (auto x = first(exposed.left(), area.left()); x <= lastX; x += gap) {
-    for (auto y = first(exposed.top(), area.top()); y <= lastY; y += gap) {
+  crosses.reserve(qsizetype(countX) * countY * 2);
+  for (auto x = startX; x <= lastX; x += gap) {
+    for (auto y = startY; y <= lastY; y += gap) {
       crosses.append({x - half, y, x + half, y});
       crosses.append({x, y - half, x, y + half});
     }

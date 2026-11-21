@@ -385,7 +385,11 @@ private slots:
         const double large = medianRuntime(pointers, 32000);
         const double ratio = large / small;
         qInfo("median 2000=%.6fs, 32000=%.6fs, ratio=%.2f", small, large, ratio);
-        QVERIFY2(ratio < 40, qPrintable(QStringLiteral("scaling ratio %1 must be below 40").arg(ratio)));
+        // 16 times the clips costs 16 times as much when linear and 256 times
+        // when quadratic. Each call builds a hash map of every clip, which
+        // leaves the cache at 32000 clips: macOS and Windows CI measure 53 to
+        // 103 for the linear pass, Linux stays under 40.
+        QVERIFY2(ratio < 128, qPrintable(QStringLiteral("scaling ratio %1 must be below 128").arg(ratio)));
     }
 };
 

@@ -91,34 +91,47 @@ void FrameCache::evictLocked(std::vector<std::shared_ptr<DecodedFrame>>& retired
     }
 }
 
-std::shared_ptr<DecodedFrame> FrameCache::lookup(const std::string& source, double targetSec) {
-    std::lock_guard lock(m_mutex);
+const FrameCache::Entry* FrameCache::findProvenLocked(const std::string& source, double targetSec,
+                                                      Lru::iterator* outIt) const {
     const auto bySource = m_index.find(source);
     if (bySource == m_index.end() || bySource->second.empty()) {
-        ++m_misses;
         return nullptr;
     }
     // The newest cached frame that starts by the target.
     auto it = bySource->second.upper_bound(targetSec + kTimestampEpsilonSec);
     if (it == bySource->second.begin()) {
-        ++m_misses;
         return nullptr;
     }
     --it;
     const Entry& e = *it->second;
 #if NT_HW_D3D11VA
     if (e.frame->hardware && !hw::cacheDeviceMatches(e.frame->frame)) {
-        ++m_misses;
         return nullptr;
     }
 #endif
     if (e.successorPts < 0.0 || frameStartsBy(e.successorPts, targetSec)) {
+        return nullptr;
+    }
+    if (outIt) *outIt = it->second;
+    return &e;
+}
+
+std::shared_ptr<DecodedFrame> FrameCache::lookup(const std::string& source, double targetSec) {
+    std::lock_guard lock(m_mutex);
+    Lru::iterator lruIt;
+    const Entry* e = findProvenLocked(source, targetSec, &lruIt);
+    if (!e) {
         ++m_misses;
         return nullptr;
     }
     ++m_hits;
-    m_lru.splice(m_lru.begin(), m_lru, it->second);
-    return e.frame;
+    m_lru.splice(m_lru.begin(), m_lru, lruIt);
+    return e->frame;
+}
+
+bool FrameCache::contains(const std::string& source, double targetSec) const {
+    std::lock_guard lock(m_mutex);
+    return findProvenLocked(source, targetSec) != nullptr;
 }
 
 size_t FrameCache::bytes() const {

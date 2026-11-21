@@ -69,6 +69,8 @@ private:
   std::map<QtNodes::NodeId, std::unique_ptr<CanvasNote>> notes_;
   std::map<QtNodes::NodeId, std::unique_ptr<CanvasOverlay>> controls_;
   void repositionControls();
+  void scheduleRepositionControls();
+  bool controlsRepositionScheduled_ = false;
   QtNodes::NodeId node_ = QtNodes::InvalidNodeId;
   QString text_;
   bool group_ = false, reroute_ = false, comment_ = false, header_ = false, committing_ = false;
