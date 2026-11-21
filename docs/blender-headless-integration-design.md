@@ -130,7 +130,7 @@ isolation boundary exists.
 - `packages/protocol/src/bridge-frames.ts` and `packages/runtime` gain
   `blender.execute` in the worker stage.
 - `packages/config/src/setting-catalog.ts` gains `BLENDER_PATH`, and
-  `start.sh doctor` a Blender line, in Stage 1.
+  `npm run doctor` a Blender line, in Stage 1.
 
 ## Assumptions
 
@@ -805,7 +805,7 @@ implementation can keep.
    `run-job.ts`, `run_job.py` with `render_image` and `framing.py`, asset
    dir registration, `base-nodes` registration, `resolveModelBytes` move,
    registry surface, CI Blender install, the `BLENDER_PATH` settings
-   catalog entry, and a Blender line in `start.sh doctor`. Tests: T2, T2b, T3, T4,
+   catalog entry, and a Blender line in `npm run doctor`. Tests: T2, T2b, T3, T4,
    T5, T6b, T7, T9.
 3. Stage 2, `RenderPasses` and `RenderAnimation`. Compositor node tree for
    passes with the D4 contracts, FFMPEG output, `Fra:` progress. Tests: T2

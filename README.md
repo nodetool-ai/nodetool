@@ -392,10 +392,11 @@ UI from the prepared checkout:
 npm run dev
 ```
 
-For an automatic install, build, and launch from a fresh checkout, use
-`./start.sh full`. To start only the API, use `./start.sh`. To inspect the
-environment without changing it, use `./start.sh doctor`. None of these launch
-the Electron desktop app.
+A fresh checkout installs dependencies, rebuilds `better-sqlite3`, builds the
+backend packages and creates `.env` on the first `npm run dev` or
+`npm start`. To start only the API, use `npm start`. To inspect the environment
+without changing it, use `npm run doctor`. None of these launch the Electron
+desktop app.
 
 In a separate terminal, launch the desktop shell with `npm run electron`.
 The Node.js version is pinned in [`.nvmrc`](.nvmrc). Python 3.11 or newer is
