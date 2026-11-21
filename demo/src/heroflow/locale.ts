@@ -4,7 +4,7 @@
  * replaces only the text, so every cut uses the same real film, stills,
  * clips and reference images, and the clock is shared.
  *
- * The Chinese cut swaps the agent's model for DeepSeek V3, which NodeTool
+ * The Japanese cut keeps the English reel's models. The Chinese cut swaps the agent's model for DeepSeek V3, which NodeTool
  * calls directly and which mainland users can reach. The still and clip
  * models stay Seedream 4 and Seedance Pro, because those made the film.
  * Product terms follow the app's zh-CN catalog (web/src/i18n/locales).
@@ -25,7 +25,7 @@ import {
   type EntityKind
 } from "./data";
 
-export type HeroLocale = "en" | "zh";
+export type HeroLocale = "en" | "zh" | "ja";
 
 type BeatText = Pick<Beat, "label" | "slug" | "line" | "framing" | "movement">;
 type EntityText = Pick<Entity, "name" | "descriptor">;
@@ -119,9 +119,9 @@ const EN: HeroCopy = {
 };
 
 /**
- * Inter draws the Latin and the digits. The Chinese glyphs come from Noto
- * Sans SC, pinned as a subset under demo/public/promo/ (see zhFont.ts), with
- * the common system faces behind it.
+ * Inter draws the Latin and the digits. The Chinese and Japanese glyphs come
+ * from Noto Sans SC and Noto Sans JP, pinned as subsets under
+ * demo/public/promo/ (see cjkFont.ts), with the common system faces behind.
  */
 const ZH_FONT =
   "Inter, 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'WenQuanYi Zen Hei', sans-serif";
@@ -216,7 +216,114 @@ const ZH: HeroCopy = {
   }
 };
 
-export const COPY: Record<HeroLocale, HeroCopy> = { en: EN, zh: ZH };
+const JA_FONT =
+  "Inter, 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif";
+
+const JA: HeroCopy = {
+  brief:
+    "15秒の短編を作って：女の子が懐中電灯でベッドの下を照らすと、彼女よりも怖がっているモンスターがいた。",
+  title: "ベッドの下",
+  model: MODEL,
+  stillModel: STILL_MODEL,
+  clipModel: CLIP_MODEL,
+  score: "オルゴール",
+  entities: {
+    mia: {
+      name: "ミア",
+      descriptor: "7歳くらいの女の子。黒い巻き毛、黄色い星柄のパジャマ"
+    },
+    monster: {
+      name: "モンスター",
+      descriptor: "小さくてふわふわの紫のモンスター。大きな緑の目、短い角"
+    },
+    teddy: { name: "テディ", descriptor: "使い込んだはちみつ色のクマ。赤い蝶ネクタイ" },
+    flashlight: {
+      name: "懐中電灯",
+      descriptor: "子ども用の黒いライト。光はいつも温かい黄色"
+    },
+    bedroom: {
+      name: "ミアの部屋",
+      descriptor: "窓から月明かり、ラグの上におもちゃ、星柄の寝具"
+    },
+    style: {
+      name: "月夜の3D",
+      descriptor: "様式化したファミリーアニメ。青い月明かり、柔らかい陰影"
+    }
+  },
+  beats: [
+    {
+      label: "導入",
+      slug: "月明かりの寝室",
+      line: "{mia}が{bedroom}で身を起こす。手には{flashlight}。",
+      framing: "ワイド",
+      movement: "固定"
+    },
+    {
+      label: "探索",
+      slug: "懐中電灯をつける",
+      line: "{mia}がベッドの端から身を乗り出す。光が暗がりを照らす。",
+      framing: "ミディアム",
+      movement: "ゆっくりプッシュイン"
+    },
+    {
+      label: "発見",
+      slug: "ベッドの下の目",
+      line: "光の中で、緑の目が二つ開く。",
+      framing: "主観",
+      movement: "手持ち"
+    },
+    {
+      label: "反転",
+      slug: "怖がるモンスター",
+      line: "{monster}が前足で顔を隠して震える。",
+      framing: "クローズアップ",
+      movement: "固定"
+    },
+    {
+      label: "友だち",
+      slug: "テディ",
+      line: "{mia}が{teddy}を差し出す。{monster}が手を伸ばす。",
+      framing: "ミディアム",
+      movement: "固定"
+    }
+  ],
+  font: JA_FONT,
+  ui: {
+    agent: "エージェント",
+    ask: "今日は何を作りますか？",
+    steps: ["プロンプト", "ビートシート", "エンティティ", "絵コンテ", "タイムライン"],
+    beatSheet: "ビートシート",
+    entities: "エンティティ",
+    storyboard: (title) => `${title} — 絵コンテ`,
+    finalCut: (title) => `${title} — 完成版`,
+    kind: {
+      character: "キャラクター",
+      location: "場所",
+      prop: "プロップ",
+      style: "スタイル"
+    },
+    pill: {
+      queued: "待機中",
+      rendering: "生成中",
+      animating: "動画を生成中",
+      clip: "クリップ",
+      still: "静止画"
+    },
+    shot: (n, label) => `ショット ${n} · ${label}`,
+    aspect: (s) => `16:9 · ${s}秒`,
+    writingBeats: (i, n) => `ビートを執筆中 · ${i}/${n}`,
+    beatsWritten: (n) => `${n}つのビートを執筆済み`,
+    renderingRefs: (i, n) => `参照画像を生成中 · ${i}/${n}`,
+    refsReady: (n) => `${n}件の参照画像が完成`,
+    renderingStills: (i, n) => `静止画を生成中 · ${i}/${n}`,
+    animatingClips: (i, n) => `クリップを生成中 · ${i}/${n}`,
+    clipsReady: (n) => `${n}本のクリップが完成`,
+    assembling: "編集を組み立て中",
+    assembled: (s) => `編集完了 · ${s.toFixed(1)}秒`
+  }
+};
+
+export const COPY: Record<HeroLocale, HeroCopy> = { en: EN, zh: ZH, ja: JA };
 
 export const HeroLocaleContext = React.createContext<HeroLocale>("en");
 
