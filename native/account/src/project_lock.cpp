@@ -246,8 +246,10 @@ void releaseProjectLock(const std::filesystem::path& projectFolder, const Projec
   }
 }
 
-ProjectLocks::ProjectLocks(std::string app, ProcessStartTime startTimeOf)
-    : app_(std::move(app)), startTimeOf_(std::move(startTimeOf)), process_(currentProcessHolder(app_, "")) {}
+ProjectLocks::ProjectLocks(std::string app) : ProjectLocks(currentProcessHolder(app, ""), processStartTime) {}
+
+ProjectLocks::ProjectLocks(ProjectLockHolder process, ProcessStartTime startTimeOf)
+    : startTimeOf_(std::move(startTimeOf)), process_(std::move(process)) {}
 
 ProjectLocks::~ProjectLocks() {
   std::lock_guard lock(mutex_);

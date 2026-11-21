@@ -105,7 +105,10 @@ void releaseProjectLock(const std::filesystem::path& projectFolder, const Projec
 // lock it still counts.
 class ProjectLocks {
 public:
-  explicit ProjectLocks(std::string app, ProcessStartTime startTimeOf = processStartTime);
+  explicit ProjectLocks(std::string app);
+  // Test seam: `process` stands in for this process (its project id is
+  // ignored), and `startTimeOf` for the process table.
+  ProjectLocks(ProjectLockHolder process, ProcessStartTime startTimeOf);
   ~ProjectLocks();
   ProjectLocks(const ProjectLocks&) = delete;
   ProjectLocks& operator=(const ProjectLocks&) = delete;
@@ -125,7 +128,6 @@ private:
   static Key key(const std::filesystem::path& projectFolder, std::string_view projectId);
   ProjectLockResult count(const Key& key, ProjectLockResult result);
 
-  const std::string app_;
   const ProcessStartTime startTimeOf_;
   const ProjectLockHolder process_;
   std::mutex mutex_;

@@ -7,6 +7,7 @@
 #include "test_support.h"
 
 #include <atomic>
+#include <memory>
 #include <thread>
 #include <vector>
 
@@ -263,6 +264,28 @@ void processReleasesItsLocksWhenItEnds(TestContext& t) {
   CHECK(!std::filesystem::exists(projectLockPath(dir.path())));
 }
 
+// TC105 with two apps standing in as two ProjectLocks on one host.
+void secondAppOpensReadOnlyUntilTheFirstEnds(TestContext& t) {
+  TempDir original;
+  TempDir copy;
+  std::vector<std::pair<int64_t, std::string>> table{{10, "boot:100"}, {20, "boot:200"}};
+  auto first = std::make_unique<ProjectLocks>(holder(10, "studio", "boot:100"), runningProcesses(table));
+  ProjectLocks second(ProjectLockHolder{"node-editor", 20, "studio", "boot:200", ""}, runningProcesses(table));
+  CHECK(first->acquire(original.path(), kProject).outcome == ProjectLockOutcome::Acquired);
+  // The copy carries the original's lock file, under the original's project id.
+  writeFileAtomically(projectLockPath(copy.path()), serializeProjectLock(first->self(kProject)));
+  CHECK(second.acquire(copy.path(), "fedcba9876543210fedcba9876543210").outcome == ProjectLockOutcome::Acquired);
+  const auto held = second.acquire(original.path(), kProject);
+  CHECK(held.outcome == ProjectLockOutcome::HeldOnThisHost);
+  CHECK(held.holder.has_value() && held.holder->app == "timeline");
+  // The first app is killed: its process leaves the table and its lock stays.
+  first.reset();
+  writeFileAtomically(projectLockPath(original.path()), serializeProjectLock(holder(10, "studio", "boot:100")));
+  table.erase(table.begin());
+  ProjectLocks reopened(ProjectLockHolder{"node-editor", 20, "studio", "boot:200", ""}, runningProcesses(table));
+  CHECK(reopened.acquire(original.path(), kProject).outcome == ProjectLockOutcome::Acquired);
+}
+
 } // namespace
 
 int main() {
@@ -280,5 +303,6 @@ int main() {
       {"realProcessesAreRecognized", realProcessesAreRecognized},
       {"processCountsWindowsPerProject", processCountsWindowsPerProject},
       {"processReleasesItsLocksWhenItEnds", processReleasesItsLocksWhenItEnds},
+      {"secondAppOpensReadOnlyUntilTheFirstEnds", secondAppOpensReadOnlyUntilTheFirstEnds},
   });
 }
