@@ -20,6 +20,7 @@ import {
   THEMES,
   type FeatureRow,
 } from "../../../data/competitorEntries";
+import { languageAlternates } from "@/i18n/routes";
 
 export function generateStaticParams() {
   return competitors.map((c) => ({ slug: c.slug }));
@@ -40,7 +41,10 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: `/alternatives/${c.slug}` },
+    alternates: {
+      canonical: `/alternatives/${c.slug}`,
+      languages: languageAlternates(`/alternatives/${c.slug}`),
+    },
     openGraph: {
       title,
       description,
