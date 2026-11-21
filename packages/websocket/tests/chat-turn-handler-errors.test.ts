@@ -433,6 +433,19 @@ describe("provider failure message branches", () => {
         "Authentication failed: openai rejected the configured credentials. Check the API key in Settings → Models & Providers."
       );
     });
+    it("names the region setting for a provider with mainland China keys", async () => {
+      const frame = await failureFor(
+        "t-auth-region",
+        annotateProviderError(
+          Object.assign(new Error("Incorrect API key"), { status: 401 }),
+          { provider: "alibaba", model: "qwen-plus" }
+        ),
+        { provider: "alibaba", model: "qwen-plus" }
+      );
+      expect(frame.message).toBe(
+        "Authentication failed: alibaba rejected the configured credentials. Check the API key in Settings → Models & Providers. A key from the mainland China console also needs DASHSCOPE_REGION set to china in Settings → Integrations → Other."
+      );
+    });
   });
 
   describe("without a status", () => {

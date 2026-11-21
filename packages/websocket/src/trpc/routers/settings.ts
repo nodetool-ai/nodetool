@@ -259,6 +259,18 @@ const secretsRouter = router({
         message: result.message
       };
       if (result.account) output.account = result.account;
+      if (result.region) {
+        // The key belongs to another regional host. Save that region so the
+        // provider calls the host the key was issued for.
+        await Setting.upsert({
+          userId: ctx.userId,
+          key: result.region.setting,
+          value: result.region.value
+        });
+        clearSecretCache(ctx.userId, result.region.setting);
+        clearProviderCache();
+        output.region = result.region;
+      }
       return output;
     })
 });

@@ -35,32 +35,24 @@ export const capabilityForMode = (
   }
 };
 
-/** One-liner shown in the setup banner and passed to the onboarding dialog. */
-export const setupReasonForMode = (mode: MediaMode): string | null => {
-  switch (mode) {
-    case "chat":
-      return "Chat needs a language model. Connect a provider to start.";
-    case "image":
-      return "Generating images needs an image provider. Connect one to continue.";
-    case "image_edit":
-      return "Editing images needs an image provider. Connect one to continue.";
-    case "video":
-      return "Generating videos needs a video provider. Connect one to continue.";
-    case "image_to_video":
-      return "Animating images needs a video provider. Connect one to continue.";
-    case "reference_to_video":
-      return "Reference to video needs a video provider. Connect one to continue.";
-    case "retake":
-      return "Retake needs a video provider. Connect one to continue.";
-    case "extend":
-      return "Extending a video needs a video provider. Connect one to continue.";
-    case "audio_to_video":
-      return "Lipsync needs a lipsync provider. Connect one to continue.";
-    case "music":
-      return "Generating music needs a music provider. Connect one to continue.";
-    case "audio":
-      return "Generating speech needs a text-to-speech provider. Connect one to continue.";
-    default:
-      return null;
-  }
-};
+/** Modes whose setup banner has copy, keyed as the catalog keys them. */
+const SETUP_REASON_MODES: ReadonlySet<MediaMode> = new Set<MediaMode>([
+  "chat",
+  "image",
+  "image_edit",
+  "video",
+  "image_to_video",
+  "reference_to_video",
+  "retake",
+  "extend",
+  "audio_to_video",
+  "music",
+  "audio"
+]);
+
+/**
+ * Catalog key of the one-liner shown in the setup banner and passed to the
+ * onboarding dialog, or null for a mode that is never gated.
+ */
+export const setupReasonKeyForMode = (mode: MediaMode): string | null =>
+  SETUP_REASON_MODES.has(mode) ? `i18n-next33.providerSetup.${mode}` : null;

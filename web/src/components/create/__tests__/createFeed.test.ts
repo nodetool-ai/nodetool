@@ -1,7 +1,7 @@
 import type { Asset, Message } from "../../../stores/ApiTypes";
 import type { GenerationActivity } from "../../../stores/GenerationActivityStore";
 import { extractGenerationTurns } from "../../chat/generation/extractGenerationTurns";
-import { buildCreateFeed, buildSessionFeed, canRetake, requestFromAsset } from "../createFeed";
+import { buildCreateFeed, buildSessionFeed, canRetake, isRejectedKeyError, requestFromAsset } from "../createFeed";
 
 const generation = (
   id: string,
@@ -180,5 +180,18 @@ describe("buildSessionFeed with a media thread's messages", () => {
       model: "flux",
       request: null
     });
+  });
+});
+
+describe("isRejectedKeyError", () => {
+  it("recognizes a provider's answer to a key it does not accept", () => {
+    expect(isRejectedKeyError("401 Incorrect API key provided. — alibaba/qwen-image")).toBe(true);
+    expect(isRejectedKeyError("Invalid API key")).toBe(true);
+    expect(isRejectedKeyError("Unauthorized")).toBe(true);
+  });
+
+  it("leaves other failures as the provider wrote them", () => {
+    expect(isRejectedKeyError("Content blocked by the safety filter")).toBe(false);
+    expect(isRejectedKeyError("Request failed after 4010 ms")).toBe(false);
   });
 });

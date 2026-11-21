@@ -24,6 +24,11 @@ export interface SecretValidation {
     state: "ok" | "no_credit" | "no_quota" | "free_tier";
     message: string;
   };
+  /**
+   * Set when the key works only on the provider's other regional host. The
+   * server has already saved this region setting.
+   */
+  region?: { setting: string; value: string };
 }
 
 /** The account warning to show for a validation, or null when there is none. */

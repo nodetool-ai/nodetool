@@ -9,6 +9,7 @@ import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { isMac } from "../../utils/platform";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import type { NodeMetadata } from "../../stores/ApiTypes";
+import { isImeComposing } from "../../utils/ime";
 
 interface SearchInputProps {
   onSearchChange: (value: string) => void;
@@ -148,7 +149,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         onPressArrowUp?.();
         return;
       }
-      if (event.key === "Enter") {
+      if (event.key === "Enter" && !isImeComposing(event)) {
         event.preventDefault();
         pressEnter();
         return;

@@ -35,6 +35,7 @@ import { Box } from "./Box";
 import { Tooltip } from "./Tooltip";
 import { BORDER_RADIUS } from "./tokens";
 import { SPACING, getSpacingPx } from "./spacing";
+import { isImeComposing } from "../../utils/ime";
 
 export interface InlineEditableTextProps {
   /** The committed text. Seeds the draft each time editing starts. */
@@ -202,7 +203,7 @@ export const InlineEditableText = ({
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      if (event.key === "Enter") {
+      if (event.key === "Enter" && !isImeComposing(event)) {
         if (multiline && !(event.metaKey || event.ctrlKey)) {
           return;
         }

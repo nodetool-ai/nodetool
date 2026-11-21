@@ -682,6 +682,28 @@ describe("settings router", () => {
       expect(res.valid).toBe(true);
     });
 
+    it("saves the region a key was accepted in", async () => {
+      (Setting.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({});
+      mockCheck().mockResolvedValue({
+        status: "valid",
+        message: "Alibaba Cloud accepted the key on its china host, so DASHSCOPE_REGION is now china.",
+        region: { setting: "DASHSCOPE_REGION", value: "china" }
+      });
+
+      const caller = createCaller(makeCtx());
+      const res = await caller.settings.secrets.validate({
+        key: "DASHSCOPE_API_KEY",
+        value: "sk-mainland"
+      });
+
+      expect(Setting.upsert).toHaveBeenCalledWith({
+        userId: "user-1",
+        key: "DASHSCOPE_REGION",
+        value: "china"
+      });
+      expect(res.region).toEqual({ setting: "DASHSCOPE_REGION", value: "china" });
+    });
+
     it("rejects unauthenticated callers", async () => {
       const caller = createCaller(makeCtx({ userId: null }));
       await expect(

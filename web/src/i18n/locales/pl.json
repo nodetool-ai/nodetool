@@ -14794,7 +14794,9 @@
       "connect": "Połącz",
       "getKey": "Zdobądź klucz od {{provider}}",
       "saveAnyway": "Mimo to zapisz",
-      "rejectedKey": "Dostawca odrzucił ten klucz."
+      "rejectedKey": "Dostawca odrzucił ten klucz.",
+      "regionSwitched": "{{provider}} zaakceptował ten klucz na serwerze dla Chin kontynentalnych. NodeTool używa teraz tego serwera.",
+      "hfMirrorNote": "Brak dostępu do huggingface.co? Ustaw serwer lustrzany, np. https://hf-mirror.com, w Ustawienia → Integracje → HF endpoint."
     },
     "hardware": {
       "autoDetect": "Automatyczne wykrywanie",
@@ -14849,6 +14851,19 @@
       "download": "Pobierz",
       "memoryEstimate_few": "{{count}} GB pamięci",
       "memoryEstimate_many": "{{count}} GB pamięci"
+    },
+    "providerSetup": {
+      "chat": "Czat wymaga modelu językowego. Połącz dostawcę, aby zacząć.",
+      "image": "Generowanie obrazów wymaga dostawcy obrazów. Połącz jednego, aby kontynuować.",
+      "image_edit": "Edycja obrazów wymaga dostawcy obrazów. Połącz jednego, aby kontynuować.",
+      "video": "Generowanie wideo wymaga dostawcy wideo. Połącz jednego, aby kontynuować.",
+      "image_to_video": "Animowanie obrazów wymaga dostawcy wideo. Połącz jednego, aby kontynuować.",
+      "reference_to_video": "Wideo z referencji wymaga dostawcy wideo. Połącz jednego, aby kontynuować.",
+      "retake": "Powtórka ujęcia wymaga dostawcy wideo. Połącz jednego, aby kontynuować.",
+      "extend": "Wydłużanie wideo wymaga dostawcy wideo. Połącz jednego, aby kontynuować.",
+      "audio_to_video": "Synchronizacja ust wymaga dostawcy synchronizacji ust. Połącz jednego, aby kontynuować.",
+      "music": "Generowanie muzyki wymaga dostawcy muzyki. Połącz jednego, aby kontynuować.",
+      "audio": "Generowanie mowy wymaga dostawcy zamiany tekstu na mowę. Połącz jednego, aby kontynuować."
     }
   },
   "i18n-next29": {
@@ -18170,7 +18185,11 @@
         "allResults": "Wszystkie wyniki",
         "home": "Dom",
         "local": "Lokalny",
-        "providers": "Dostawcy"
+        "providers": "Dostawcy",
+        "resultsInPath": "Wyniki w {{path}}: {{count}} · Łącznie dopasowań do „{{term}}”: {{total}}",
+        "resultsRelevant": "Wyniki: {{count}} · Najpierw najtrafniejsze dla „{{term}}”",
+        "nodesInPath": "Węzły w {{path}}: {{count}}",
+        "nodesMatchFilters": "Węzły pasujące do filtrów: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Przeglądaj węzły",
@@ -20344,7 +20363,8 @@
       },
       "openInSketch": "Otwórz w szkicu",
       "reusePrompt": "Użyj promptu ponownie",
-      "sketchTitle": "Utworzony obraz"
+      "sketchTitle": "Utworzony obraz",
+      "keyRejected": "Dostawca odrzucił klucz API. Sprawdź go w Ustawienia → Modele i dostawcy."
     },
     "takes_few": "{{count}} ujęcia",
     "takes_many": "{{count}} ujęć",

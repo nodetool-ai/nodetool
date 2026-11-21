@@ -14302,7 +14302,9 @@
       "connect": "接続する",
       "getKey": "{{provider}} からキーを取得します",
       "saveAnyway": "とにかく保存する",
-      "rejectedKey": "プロバイダーはこのキーを拒否しました。"
+      "rejectedKey": "プロバイダーはこのキーを拒否しました。",
+      "regionSwitched": "{{provider}} は中国本土のホストでこのキーを受け付けました。NodeTool はそのホストを使うようになりました。",
+      "hfMirrorNote": "huggingface.co に接続できない場合は、設定 → 統合 → HF endpoint で https://hf-mirror.com などのミラーを指定してください。"
     },
     "hardware": {
       "autoDetect": "自動検出",
@@ -14355,6 +14357,19 @@
       "memoryEstimate_other": "{{count}} GB メモリ",
       "installed": "インストール済み",
       "download": "ダウンロード"
+    },
+    "providerSetup": {
+      "chat": "チャットには言語モデルが必要です。プロバイダーを接続して始めてください。",
+      "image": "画像の生成には画像プロバイダーが必要です。接続して続けてください。",
+      "image_edit": "画像の編集には画像プロバイダーが必要です。接続して続けてください。",
+      "video": "動画の生成には動画プロバイダーが必要です。接続して続けてください。",
+      "image_to_video": "画像のアニメーション化には動画プロバイダーが必要です。接続して続けてください。",
+      "reference_to_video": "参照から動画には動画プロバイダーが必要です。接続して続けてください。",
+      "retake": "リテイクには動画プロバイダーが必要です。接続して続けてください。",
+      "extend": "動画の延長には動画プロバイダーが必要です。接続して続けてください。",
+      "audio_to_video": "リップシンクにはリップシンクのプロバイダーが必要です。接続して続けてください。",
+      "music": "音楽の生成には音楽プロバイダーが必要です。接続して続けてください。",
+      "audio": "音声の生成には音声合成プロバイダーが必要です。接続して続けてください。"
     }
   },
   "i18n-next29": {
@@ -17570,7 +17585,11 @@
         "allResults": "すべての結果",
         "home": "ホーム",
         "local": "ローカル",
-        "providers": "プロバイダー"
+        "providers": "プロバイダー",
+        "resultsInPath": "{{path}} の結果: {{count}} · 「{{term}}」の一致数の合計: {{total}}",
+        "resultsRelevant": "結果: {{count}} · 「{{term}}」に最も関連するものから表示",
+        "nodesInPath": "{{path}} のノード: {{count}}",
+        "nodesMatchFilters": "フィルターに一致するノード: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "ノードの参照",
@@ -19722,7 +19741,8 @@
       },
       "openInSketch": "スケッチで開く",
       "reusePrompt": "プロンプトを再利用",
-      "sketchTitle": "作成した画像"
+      "sketchTitle": "作成した画像",
+      "keyRejected": "プロバイダーが API キーを拒否しました。設定 → モデルとプロバイダー で確認してください。"
     },
     "kindLabel": "作るもの",
     "modeLabel": "作り方",

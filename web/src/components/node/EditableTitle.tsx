@@ -15,6 +15,7 @@ import {
   Z_INDEX,
   Tooltip
 } from "../ui_primitives";
+import { isImeComposing } from "../../utils/ime";
 
 interface EditableTitleProps {
   nodeId: string;
@@ -220,7 +221,7 @@ const EditableTitle = memo(function EditableTitle({
       e.currentTarget.style.height = "auto";
       e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
 
-      if (e.key === "Enter" && !e.shiftKey) {
+      if (e.key === "Enter" && !e.shiftKey && !isImeComposing(e)) {
         if (e.currentTarget.value !== title) {
           updateNodeData(nodeId, { title: e.currentTarget.value });
         }

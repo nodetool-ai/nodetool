@@ -42,6 +42,10 @@ export interface OnboardingProvider {
   localOnly?: boolean;
   /** Short, plain-language description of what the provider is good for. */
   tagline: string;
+  /** Other names a search finds the provider by, such as 百炼. */
+  aliases?: readonly string[];
+  /** Reachable and sold in mainland China. Listed first in Chinese. */
+  mainlandChina?: boolean;
   /** Capabilities this provider unlocks (matches the providers endpoint). */
   capabilities: OnboardingCapability[];
   /**
@@ -355,6 +359,8 @@ const toOnboardingProvider = (meta: ProviderMeta): OnboardingProvider => ({
   oauthOnly: meta.oauthOnly,
   localOnly: meta.localOnly,
   tagline: meta.description,
+  aliases: meta.aliases,
+  mainlandChina: meta.mainlandChina,
   capabilities: [],
   keyUrl: meta.docsUrl,
   pricingUrl: meta.docsUrl,
@@ -378,20 +384,45 @@ export const directoryProviders = (
     : TEXT_CAPABILITIES.includes(capability)
       ? DIRECTORY_SECTIONS.filter((s) => s !== "media")
       : DIRECTORY_SECTIONS.filter((s) => s === "media" || s === "gateways");
+  const mediaOnly = capability !== undefined && !TEXT_CAPABILITIES.includes(capability);
   return PROVIDER_META.filter(
     (meta) =>
       meta.providerId !== undefined &&
-      sections.includes(meta.section) &&
+      (sections.includes(meta.section) ||
+        (mediaOnly && meta.media === true && DIRECTORY_SECTIONS.includes(meta.section))) &&
       !curatedKeys.has(meta.key) &&
       isProviderAvailable(meta)
   )
     .sort(
       (a, b) =>
-        sections.indexOf(a.section) - sections.indexOf(b.section) ||
+        sectionRank(sections, a) - sectionRank(sections, b) ||
         a.name.localeCompare(b.name)
     )
     .map(toOnboardingProvider);
 };
+
+/** A media-capable language provider sorts with the media section. */
+const sectionRank = (
+  sections: readonly ProviderMeta["section"][],
+  meta: ProviderMeta
+): number => {
+  const rank = sections.indexOf(meta.section);
+  return rank >= 0 ? rank : sections.indexOf("media");
+};
+
+/**
+ * Providers people in mainland China can reach and pay for, for the connect
+ * dialog's short list when the interface is in Chinese. The curated list
+ * holds none of them, and its providers are blocked there (study 22).
+ */
+export const mainlandChinaProviders = (
+  capability?: OnboardingCapability
+): OnboardingProvider[] =>
+  directoryProviders(capability).filter((provider) => provider.mainlandChina);
+
+/** Whether an interface language is Chinese, as `i18n.language` reports it. */
+export const isChineseLanguage = (language: string | undefined): boolean =>
+  (language ?? "").toLowerCase().startsWith("zh");
 
 /** Case-insensitive match on a provider's name and description. */
 export const matchesProviderQuery = (
@@ -402,5 +433,8 @@ export const matchesProviderQuery = (
   if (!needle) {
     return true;
   }
-  return `${provider.name} ${provider.tagline}`.toLowerCase().includes(needle);
+  return [provider.name, provider.tagline, ...(provider.aliases ?? [])]
+    .join(" ")
+    .toLowerCase()
+    .includes(needle);
 };

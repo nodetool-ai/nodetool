@@ -116,7 +116,12 @@ export const secretValidateOutput = z.object({
       state: z.enum(["ok", "no_credit", "no_quota", "free_tier"]),
       message: z.string()
     })
-    .optional()
+    .optional(),
+  /**
+   * Set when the key failed on the configured regional host and worked on
+   * another one. The server has already saved this region setting.
+   */
+  region: z.object({ setting: z.string(), value: z.string() }).optional()
 });
 export type SecretValidateOutput = z.infer<typeof secretValidateOutput>;
 
