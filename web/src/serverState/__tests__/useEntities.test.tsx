@@ -28,9 +28,10 @@ jest.mock("../../stores/WorkspaceTabsStore", () => ({
   ): T => selector({ activeProjectId })
 }));
 
+import type { Asset } from "../../stores/ApiTypes";
 import { asMock } from "../../test-utils/doubles";
 import { trpcClient } from "../../trpc/client";
-import { useDeleteEntity, useSaveEntity } from "../useEntities";
+import { assetToEntity, useDeleteEntity, useSaveEntity } from "../useEntities";
 
 const getQuery = asMock(trpcClient.assets.get.query);
 const updateMutate = asMock(trpcClient.assets.update.mutate);
@@ -149,5 +150,48 @@ describe("useDeleteEntity", () => {
     expect(updateMutate).toHaveBeenCalledWith(
       expect.objectContaining({ id: asset.id })
     );
+  });
+});
+
+describe("assetToEntity", () => {
+  const preset = {
+    kind: "style",
+    name: "Flat / Vector",
+    descriptor: "flat shapes",
+    system: true,
+    preset_id: "flat-vector",
+    thumbnail: "package://nodetool-base/styles/flat-vector.jpg"
+  };
+  const withMarker = (marker: Record<string, unknown>): Asset => ({
+    ...asset,
+    workflow_id: null,
+    get_url: null,
+    thumb_url: null,
+    metadata: { nodetool_entity: marker }
+  });
+
+  it("shows a system preset's package thumbnail, not its empty marker asset", () => {
+    expect(assetToEntity(withMarker(preset))?.reference_images).toEqual([
+      { type: "image", uri: "package://nodetool-base/styles/flat-vector.jpg" }
+    ]);
+  });
+
+  it("prefers a swapped picture over the thumbnail", () => {
+    expect(
+      assetToEntity(withMarker({ ...preset, reference_asset_id: "a9" }))
+        ?.reference_images?.[0]?.asset_id
+    ).toBe("a9");
+  });
+
+  it("ignores a thumbnail on an ordinary entity or one that is not a package URI", () => {
+    const { system: _system, ...ordinary } = preset;
+    for (const marker of [
+      ordinary,
+      { ...preset, thumbnail: "https://example.com/a.jpg" }
+    ]) {
+      expect(assetToEntity(withMarker(marker))?.reference_images?.[0]).toEqual(
+        expect.objectContaining({ asset_id: asset.id })
+      );
+    }
   });
 });

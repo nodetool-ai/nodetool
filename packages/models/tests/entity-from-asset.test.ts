@@ -76,4 +76,40 @@ describe("entityFromAsset", () => {
       entityFromAsset(assetRow({ nodetool_entity: { kind: "vehicle" } }))
     ).toBeNull();
   });
+
+  it("shows a system preset's package thumbnail instead of its empty marker asset", () => {
+    const entity = entityFromAsset(
+      assetRow({
+        nodetool_entity: {
+          kind: "style",
+          name: "Flat / Vector",
+          descriptor: "flat shapes",
+          system: true,
+          preset_id: "flat-vector",
+          thumbnail: "package://nodetool-base/styles/flat-vector.jpg"
+        }
+      })
+    );
+    expect(entity?.reference_images).toEqual([
+      { type: "image", uri: "package://nodetool-base/styles/flat-vector.jpg" }
+    ]);
+    expect(entity).not.toHaveProperty("thumbnail");
+  });
+
+  it("prefers a swapped picture over a system preset's thumbnail", () => {
+    expect(
+      entityFromAsset(
+        assetRow({
+          nodetool_entity: {
+            kind: "style",
+            name: "Flat / Vector",
+            descriptor: "flat shapes",
+            system: true,
+            thumbnail: "package://nodetool-base/styles/flat-vector.jpg",
+            reference_asset_id: "a9"
+          }
+        })
+      )?.reference_images
+    ).toEqual([{ type: "image", asset_id: "a9", uri: "asset://a9" }]);
+  });
 });
