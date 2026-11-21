@@ -464,7 +464,7 @@ void EditorWindow::openWorkflowDocument(const QJsonObject &workflow) {
 void EditorWindow::openCloudDocument(const QString &documentId, const QString &role) {
   if (!tabOwner_) { activeEditor_->openCloudDocument(documentId, role); return; }
   auto *owner = tabOwner_;
-  auto *account = owner->accountServers_->current();
+  auto *account = owner->accountServers_ ? owner->accountServers_->current() : nullptr;
   const auto session = account && account->state() == nodetool::account::qt::AccountController::State::SignedIn
                            ? account->session()
                            : nullptr;

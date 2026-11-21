@@ -39,6 +39,8 @@ endif()
 # The shipped helper: the platform keychain, or memory when there is none.
 add_executable(nodetool-account-helper src/main.cpp)
 target_link_libraries(nodetool-account-helper PRIVATE nodetool_account_helper_core)
+include(../account/cmake/MacCodeSign.cmake)
+nodetool_macos_dev_sign(nodetool-account-helper "ai.nodetool.account-helper")
 
 if(NODETOOL_ACCOUNT_HELPER_TESTS)
   enable_testing()

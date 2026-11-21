@@ -54,11 +54,12 @@ int main(int argc, char **argv) {
 }
 namespace {
 int runEditor(QApplication &app, const QCommandLineParser &parser) {
-  nodetool::EditorWindow window;
-  const bool restore = !parser.isSet("open") && !parser.isSet("workflow");
-  // An interactive start connects to the local server, as the web app does.
-  // Headless export and replay runs stay offline unless --server is given.
+  // An interactive start connects to the local server and cloud account, as
+  // the web app does. Headless export and replay runs stay offline unless
+  // --server is given and never read the OS keychain.
   const bool headless = parser.isSet("screenshot") || parser.isSet("dump") || parser.isSet("save") || parser.isSet("replay");
+  nodetool::EditorWindow window(nullptr, {.cloudAccount = !headless});
+  const bool restore = !parser.isSet("open") && !parser.isSet("workflow");
   // A package with a bundled backend starts that server instead. It starts
   // before the tabs are restored, so a tab saved on the bundled server
   // reconnects to this launch's port (review F3). It starts whenever a
