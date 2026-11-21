@@ -11,8 +11,8 @@ export const contentDates: {
       "hash": "3cab6ea699b4b90c"
     },
     "/marketing": {
-      "date": "2026-11-12",
-      "hash": "8156191b6731ae30"
+      "date": "2026-11-21",
+      "hash": "665d94a20d950b22"
     },
     "/gamedev": {
       "date": "2026-11-20",
