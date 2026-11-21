@@ -2,6 +2,9 @@
 #include "model/TimelineJson.h"
 #include "TestHttpServer.h"
 
+#include "nodetool/account/project_lock.h"
+#include "nodetool/account/storage.h"
+
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSignalSpy>
@@ -112,6 +115,51 @@ private slots:
         model->setProjectId("personal:1");
         QTRY_COMPARE(server.lists(), 2);
         QTRY_COMPARE(folder.projectId(), QString("personal:1"));
+    }
+    // WP2.13, AC25: another computer's app holds the project, so the
+    // timeline opens read-only until the person takes the lock over.
+    void heldProjectOpensReadOnly() {
+        namespace acc = nodetool::account;
+        Fixture server;
+        const auto folderPath = std::filesystem::path(server.folder.path().toStdU16String());
+        acc::writeFileAtomically(acc::projectLockPath(folderPath),
+                                 acc::serializeProjectLock({"node-editor", 4242, "laptop", "1.0", "p1"}));
+        const auto model = timelineIn("p1");
+        ProjectFolderState folder;
+        folder.setTarget({server.http.base(), {}, "seq", {}, {}});
+        folder.setTimeline(model.get());
+        folder.refresh();
+        QTRY_VERIFY(folder.loaded());
+        QCOMPARE(folder.lock()->state(), QString("heldElsewhere"));
+        QCOMPARE(folder.lock()->holderHost(), QString("laptop"));
+        QVERIFY(model->readOnly());
+        QVERIFY(model->addMarker(10, "edit").isEmpty());
+        folder.lock()->takeOver();
+        QCOMPARE(folder.lock()->state(), QString("writing"));
+        QVERIFY(!model->readOnly());
+        const auto bytes = acc::readWholeFile(acc::projectLockPath(folderPath));
+        QVERIFY(bytes.has_value());
+        QCOMPARE(QString::fromStdString(acc::parseProjectLock(*bytes)->app), QString("timeline"));
+    }
+    // A lock left by a process that is gone is replaced, and the timeline
+    // stays editable. Closing the editor gives the lock back.
+    void staleLockIsReplaced() {
+        namespace acc = nodetool::account;
+        Fixture server;
+        const auto folderPath = std::filesystem::path(server.folder.path().toStdU16String());
+        acc::writeFileAtomically(acc::projectLockPath(folderPath),
+                                 acc::serializeProjectLock({"node-editor", 0, acc::currentHostName(), "gone", "p1"}));
+        const auto model = timelineIn("p1");
+        {
+            ProjectFolderState folder;
+            folder.setTarget({server.http.base(), {}, "seq", {}, {}});
+            folder.setTimeline(model.get());
+            folder.refresh();
+            QTRY_VERIFY(folder.loaded());
+            QCOMPARE(folder.lock()->state(), QString("writing"));
+            QVERIFY(!model->readOnly());
+        }
+        QVERIFY(!std::filesystem::exists(acc::projectLockPath(folderPath)));
     }
     void looseTimelineIsInPersonal() {
         Fixture server;

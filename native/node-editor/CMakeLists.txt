@@ -80,6 +80,7 @@ list(APPEND node_editor_qml_files
     ../account/qt/qml/AccountControl.qml
     ../account/qt/qml/CloudDocumentsPanel.qml
     ../account/qt/qml/CloudSyncStatus.qml
+    ../account/qt/qml/ProjectLockBanner.qml
     ../account/qt/qml/ShareDialog.qml
     ../account/qt/qml/SharePanel.qml
     ../account/qt/qml/TransferPanel.qml)
