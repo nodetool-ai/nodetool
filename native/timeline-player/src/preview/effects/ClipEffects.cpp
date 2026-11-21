@@ -139,6 +139,11 @@ bool ClipEffectStage::applies(const QJsonObject &ext) const {
 QMargins ClipEffectStage::outset(const QJsonObject &ext, QSize) const {
     return chainOutset(ext.value("clipEffects").toArray());
 }
+QByteArray ClipEffectStage::sha256(QByteArrayView data) {
+    m_hasher.reset();
+    m_hasher.addData(data);
+    return m_hasher.result();
+}
 bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, QRhiTextureRenderTarget &output,
                              const QJsonObject &ext) {
     if (!ctx.rhi || !ctx.commands || !ctx.retire || !input.planes[0] || input.size.isEmpty()) {
@@ -226,8 +231,8 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
         QRhiTexture *other = nullptr;
         if (pass.op == Op::Lut || pass.op == Op::Curves || pass.op == Op::SecondaryColor || pass.op == Op::HueSatCurves) {
             const bool isCurve=pass.op!=Op::Lut;
-            const auto key = QCryptographicHash::hash(isCurve ? QByteArray("curve:")+QByteArray::number(int(pass.op))+':'+QJsonDocument(pass.curve).toJson(QJsonDocument::Compact)
-                                                              : pass.cube.toUtf8(), QCryptographicHash::Sha256);
+            const auto key = sha256(isCurve ? QByteArray("curve:")+QByteArray::number(int(pass.op))+':'+QJsonDocument(pass.curve).toJson(QJsonDocument::Compact)
+                                            : pass.cube.toUtf8());
             auto found = std::ranges::find(m_luts, key, &decltype(m_luts)::value_type::first);
             if (found == m_luts.end()) {
                 auto lut = std::make_shared<Lut>();
@@ -305,10 +310,9 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
             const int sourceH = original.isEmpty() ? input.size.height() : original[1].toInt();
             const int ox = (origin.isEmpty() ? 0 : origin[0].toInt()) + crop.x() - pad.x();
             const int oy = (origin.isEmpty() ? 0 : origin[1].toInt()) + crop.y() - pad.y();
-            const auto key = QCryptographicHash::hash(QJsonDocument(pass.masks).toJson(QJsonDocument::Compact) +
+            const auto key = sha256(QJsonDocument(pass.masks).toJson(QJsonDocument::Compact) +
                 QByteArray::number(sourceW) + 'x' + QByteArray::number(sourceH) + ':' + QByteArray::number(ox) + ',' +
-                QByteArray::number(oy) + ':' + QByteArray::number(workingSize.width()) + 'x' + QByteArray::number(workingSize.height()),
-                QCryptographicHash::Sha256);
+                QByteArray::number(oy) + ':' + QByteArray::number(workingSize.width()) + 'x' + QByteArray::number(workingSize.height()));
             auto found = std::ranges::find(m_maskTextures, key, &decltype(m_maskTextures)::value_type::first);
             if (found == m_maskTextures.end()) {
                 const auto coverage = effectMaskCoverage(pass.masks, sourceW, sourceH, workingSize.width(), workingSize.height(), ox, oy);

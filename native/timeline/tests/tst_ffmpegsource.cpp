@@ -881,6 +881,106 @@ private slots:
         }
         QCOMPARE(d.seeks(), 1LL);  // 1.0, 1.5 and 2.0 decode through
     }
+
+    // Continuous backward drag at 120 Hz must keep painting frames instead of
+    // cancelling every in-flight seek before it finishes decoding from its keyframe.
+    void continuousBackwardScrubUpdatesLive() {
+        FrameCache::shared().clear();
+        FfmpegDecoder d(media("numbered-a-1080p30.mp4"), 10.0);
+        auto first = waitExact(d, 10.0);
+        QVERIFY(first);
+        double lastShownPts = first->ptsSec;
+        int distinctShown = 1;
+        int exactCount = 0;
+        int stallSteps = 0;
+        int maxStallSteps = 0;
+        const int steps = 187;
+        for (int i = 1; i <= steps; ++i) {
+            const double target = 10.0 - 3.0 * (static_cast<double>(i) / steps);
+            auto f = d.frameAt(target);
+            QVERIFY(f);
+            if (d.exact()) ++exactCount;
+            if (std::abs(f->ptsSec - lastShownPts) > 1e-6) {
+                lastShownPts = f->ptsSec;
+                ++distinctShown;
+                stallSteps = 0;
+            } else {
+                ++stallSteps;
+                maxStallSteps = std::max(maxStallSteps, stallSteps);
+            }
+            QThread::msleep(8);
+        }
+        const long long hits = FrameCache::shared().hits();
+        const long long seeks = d.seeks();
+        qInfo("bwd-120hz: distinctShown=%d exact=%d hits=%lld seeks=%lld maxStallSteps=%d",
+              distinctShown, exactCount, hits, seeks, maxStallSteps);
+        QVERIFY2(distinctShown >= 15, qPrintable(QStringLiteral("only %1 distinct frames shown").arg(distinctShown)));
+        QVERIFY2(hits >= 15, qPrintable(QStringLiteral("only %1 cache hits").arg(hits)));
+        QVERIFY2(seeks <= 30, qPrintable(QStringLiteral("too many seeks: %1").arg(seeks)));
+        auto settled = waitExact(d, 7.0);
+        QVERIFY(settled);
+        QCOMPARE(std::lround(settled->ptsSec * 30.0), 210L);
+    }
+
+    // Continuous fast-forward jumps (> kMaxSequentialGapSec per step) must let
+    // in-flight seeks land and paint instead of freezing until release.
+    void continuousFastForwardJumpScrubUpdatesLive() {
+        FrameCache::shared().clear();
+        FfmpegDecoder d(media("numbered-a-1080p30.mp4"), 0.0);
+        auto first = waitExact(d, 0.0);
+        QVERIFY(first);
+        double lastShownPts = first->ptsSec;
+        int distinctShown = 1;
+        for (int i = 1; i <= 16; ++i) {
+            const double target = std::min(19.5, i * 1.25);
+            auto f = d.frameAt(target);
+            QVERIFY(f);
+            if (std::abs(f->ptsSec - lastShownPts) > 1e-6) {
+                lastShownPts = f->ptsSec;
+                ++distinctShown;
+            }
+            QThread::msleep(16);
+        }
+        qInfo("fwd-jump-60hz: distinctShown=%d seeks=%lld", distinctShown, d.seeks());
+        QVERIFY2(distinctShown >= 3, qPrintable(QStringLiteral("only %1 distinct frames shown").arg(distinctShown)));
+        auto settled = waitExact(d, 19.5);
+        QVERIFY(settled);
+        QCOMPARE(std::lround(settled->ptsSec * 30.0), 585L);
+    }
+
+    // Evicting a frame clears its predecessor's successor link in O(log N),
+    // and skipped catch-up frames before runSkipFloor do not pollute the cache.
+    void cacheEvictionMaintainsLinksAndSkipsUnprovableCatchup() {
+        FrameCache cache(300);
+        const auto make = [](double pts) {
+            auto f = std::make_shared<DecodedFrame>();
+            f->ptsSec = pts;
+            return f;
+        };
+        cache.insert("s", 0.0, make(0.0), 100, -1.0);
+        cache.insert("s", 0.1, make(0.1), 100, 0.0);
+        cache.insert("s", 0.2, make(0.2), 100, 0.1);
+        // Refresh 0.0 and 0.1 so 0.2 becomes the LRU victim.
+        QVERIFY(cache.lookup("s", 0.05));
+        QVERIFY(cache.lookup("s", 0.15));
+        cache.insert("s", 0.3, make(0.3), 100, -1.0);
+        QVERIFY2(!cache.lookup("s", 0.15), "0.1 kept a stale successor link after 0.2 was evicted");
+        QVERIFY2(cache.lookup("s", 0.05) != nullptr, "0.0 lost its valid link to 0.1");
+
+        FrameCache::shared().clear();
+        FfmpegDecoder d(media("seek-360p30.mp4"), 0.0);
+        QVERIFY(waitExact(d, 0.0));
+        FrameCache::shared().clear();
+        auto f = waitExact(d, 5.9);
+        QVERIFY(f);
+        QVERIFY(!FrameCache::shared().lookup(media("seek-360p30.mp4"), 4.5));
+        const size_t singleFrameBytes = frameBytes(*f);
+        QVERIFY(singleFrameBytes > 0);
+        QVERIFY2(FrameCache::shared().bytes() < 25 * singleFrameBytes,
+                 qPrintable(QStringLiteral("cache retained %1 bytes (~%2 frames) of skipped catch-up")
+                                .arg(FrameCache::shared().bytes())
+                                .arg(FrameCache::shared().bytes() / singleFrameBytes)));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestFfmpegSource)

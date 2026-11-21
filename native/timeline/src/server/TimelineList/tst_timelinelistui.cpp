@@ -8,8 +8,14 @@
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
+#include "server/ServerSource.h"
 #include "server/TimelineList/TimelineListController.h"
 #include "server/TimelineList/TimelineDocumentController.h"
+#include "server/TimelineList/TimelineSession.h"
+#include "server/projectfolder/ProjectFolderState.h"
+#include <QMutex>
+#include <QMutexLocker>
+#include <QUrlQuery>
 #include <QGuiApplication>
 #include <QCommandLineParser>
 #include <QQuickView>
@@ -219,6 +225,144 @@ private slots:
         actions.watch(nullptr);
         emit save.documentFileChanged(file);
         QCOMPARE(lists(), 2);
+    }
+    void projectSelectionFollowsOpenTimelineAndDocumentBar() {
+        QTemporaryDir folderDir;
+        QVERIFY(folderDir.isValid());
+        TestHttpServer server;
+        QJsonObject createInput;
+        server.setJson([&](const QByteArray& path, const QUrl& url) {
+            if (path == "/trpc/projects.list") {
+                const QJsonArray projects{
+                    QJsonObject{{"id", "personal:1"}, {"name", "Personal"}, {"isPersonal", true},
+                                {"folder", QJsonObject{{"workspace_id", "ws-personal"}, {"path", folderDir.path()}, {"is_accessible", true}}}},
+                    QJsonObject{{"id", "p2"}, {"name", "Film"}, {"isPersonal", false},
+                                {"folder", QJsonObject{{"workspace_id", "ws-p2"}, {"path", folderDir.path()}, {"is_accessible", true}}}},
+                };
+                return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", projects}}}}).toJson(QJsonDocument::Compact);
+            }
+            if (path == "/trpc/projects.documents") {
+                return QByteArray(R"({"result":{"data":[]}})");
+            }
+            if (path == "/trpc/timeline.list") {
+                const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
+                const auto pid = input.value("projectId").toString();
+                const QJsonArray rows = pid == "p2"
+                    ? QJsonArray{
+                        QJsonObject{{"id", "t-p2"}, {"name", "Opening"}, {"updatedAt", "2026-10-26T12:00:00Z"}},
+                        QJsonObject{{"id", "t-broken"}, {"name", "Legacy"}, {"updatedAt", "2026-10-26T11:00:00Z"}},
+                    }
+                    : QJsonArray{QJsonObject{{"id", "t-personal"}, {"name", "Scratch"}, {"updatedAt", "2026-10-26T12:00:00Z"}}};
+                return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", rows}}}}).toJson(QJsonDocument::Compact);
+            }
+            if (path == "/trpc/timeline.get") {
+                const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
+                const auto id = input.value("id").toString();
+                if (id == "t-broken") {
+                    return QByteArray(R"({"error":{"message":"Output validation failed","data":{"code":"INTERNAL_SERVER_ERROR","httpStatus":500}}})");
+                }
+                return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", QJsonObject{
+                    {"id", id}, {"name", "Valid"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+                    {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}}}}}}).toJson(QJsonDocument::Compact);
+            }
+            return QByteArray(R"({"result":{"data":[]}})");
+        });
+        server.setPost([&](const QByteArray& path, const QByteArray& body) {
+            if (path == "/trpc/timeline.create") {
+                createInput = QJsonDocument::fromJson(body).object();
+                auto created = createInput;
+                created.insert("updatedAt", "2026-10-26T12:00:00Z");
+                return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", created}}}}).toJson(QJsonDocument::Compact);
+            }
+            return QByteArray(R"({"result":{"data":{}}})");
+        });
+        qputenv("NODETOOL_SERVER_URL", server.base().toString().toUtf8());
+        const auto restore = qScopeGuard([] { qunsetenv("NODETOOL_SERVER_URL"); });
+
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(R"({"id":"t-p2","projectId":"p2","name":"Opening","width":640,"height":360,"fps":30,"tracks":[],"clips":[],"markers":[]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        QQmlEngine engine;
+        m_testCache.install(engine);
+        auto editor = make(engine, "TimelineEditor", {{"timeline", QVariant::fromValue(&model)},
+            {"clock", QVariant::fromValue(&clock)}});
+        QVERIFY2(editor, "TimelineEditor must load");
+        QQuickWindow window;
+        show(window, editor.get(), 1280, 800);
+
+        auto* projectFolder = editor->property("projectFolder").value<ProjectFolderState*>();
+        QVERIFY(projectFolder);
+        projectFolder->setTarget({server.base(), {}, "t-p2", {}, {}});
+        projectFolder->refresh();
+        QTRY_VERIFY(projectFolder->loaded());
+        QCOMPARE(projectFolder->projectId(), QString("p2"));
+
+        auto* bar = item(editor.get(), "documentBar");
+        QVERIFY(bar);
+        auto* projectButton = item(bar, "documentProjectButton");
+        QVERIFY(projectButton);
+        QTRY_VERIFY(projectButton->isVisible());
+        QCOMPARE(projectButton->property("text").toString(), QString("Film"));
+        QCOMPARE(projectButton->property("trailingIconName").toString(), QString("arrowDropDown"));
+
+        // Clicking the project button opens the timeline list pre-selected to the open timeline's project.
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier,
+            projectButton->mapToScene(QPointF(projectButton->width() / 2, projectButton->height() / 2)).toPoint());
+        QTRY_VERIFY(item(window.contentItem(), "TimelineListPanel"));
+        auto* panel = item(window.contentItem(), "TimelineListPanel");
+        QCOMPARE(panel->property("activeTimelineId").toString(), QString("t-p2"));
+        auto* listCtrl = qobject_cast<nt::server::TimelineListController*>(panel->property("controller").value<QObject*>());
+        QVERIFY(listCtrl);
+        QCOMPARE(listCtrl->projectId(), QString("p2"));
+        QTRY_VERIFY(item(panel, "TimelineListItem_t-p2"));
+        QVERIFY(item(panel, "TimelineListItem_t-p2")->property("active").toBool());
+
+        // Clicking an unreadable timeline keeps the editor and popover open and shows the error.
+        auto* brokenRow = item(panel, "TimelineListItem_t-broken");
+        QVERIFY(brokenRow);
+        {
+            QList<QQuickItem*> ancestors;
+            for (auto* ancestor = brokenRow; ancestor; ancestor = ancestor->parentItem()) { ancestors.prepend(ancestor); }
+            for (auto* ancestor : ancestors) { ancestor->ensurePolished(); }
+        }
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier,
+            brokenRow->mapToScene(QPointF(brokenRow->width() / 2, brokenRow->height() / 2)).toPoint());
+        auto* errorText = item(panel, "timelineListError");
+        QVERIFY(errorText);
+        QTRY_VERIFY2(errorText->isVisible(), qPrintable(QStringLiteral("listError='%1' brokenPos=(%2,%3) size=(%4,%5)")
+            .arg(listCtrl->error())
+            .arg(brokenRow->mapToScene({0, 0}).x()).arg(brokenRow->mapToScene({0, 0}).y())
+            .arg(brokenRow->width()).arg(brokenRow->height())));
+        QVERIFY(errorText->property("text").toString().contains("Output validation failed"));
+        QVERIFY(item(window.contentItem(), "TimelineListPanel"));
+
+        // Switching the project dropdown is browse-only: projectFolder stays on p2,
+        // and reopening the popover resets the dropdown back to p2.
+        listCtrl->setProjectId("personal:1");
+        QCOMPARE(listCtrl->projectId(), QString("personal:1"));
+        QCOMPARE(projectFolder->projectId(), QString("p2"));
+        QTRY_VERIFY(item(panel, "TimelineListItem_t-personal"));
+
+        QTest::keyClick(&window, Qt::Key_Escape);
+        QTRY_VERIFY(!item(window.contentItem(), "TimelineListPanel"));
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier,
+            projectButton->mapToScene(QPointF(projectButton->width() / 2, projectButton->height() / 2)).toPoint());
+        QTRY_VERIFY(item(window.contentItem(), "TimelineListPanel"));
+        QCOMPARE(listCtrl->projectId(), QString("p2"));
+
+        // New Timeline (createAndOpen) always creates in the open timeline's project.
+        nt::server::TimelineDocumentController docActions;
+        docActions.setTimeline(&model);
+        docActions.prepareList();
+        auto* docList = qobject_cast<nt::server::TimelineListController*>(docActions.controller());
+        QVERIFY(docList);
+        QCOMPARE(docList->projectId(), QString("p2"));
+        docList->setProjectId("personal:1");
+        QCOMPARE(docList->projectId(), QString("personal:1"));
+        docActions.createAndOpen();
+        QCOMPARE(createInput.value("projectId").toString(), QString("p2"));
     }
     void settingsPanelRegistered() {
         const auto panels = PanelRegistry().forSlot("documentBar");
@@ -594,6 +738,176 @@ Item {
         // The xs dialog shrinks to fit narrow windows, retaining a 16 px margin.
         settingsWindow.resize(360, 800);
         QTRY_COMPARE(paper->width(), 328.0);
+    }
+    void inPlaceSwitchUpdatesWindowAndProject() {
+        QTemporaryDir tempDir;
+        QVERIFY(tempDir.isValid());
+        const auto savedPrefs = qgetenv("NODETOOL_TIMELINE_PREFERENCES");
+        const auto hadPrefs = qEnvironmentVariableIsSet("NODETOOL_TIMELINE_PREFERENCES");
+        qputenv("NODETOOL_TIMELINE_PREFERENCES", tempDir.filePath("prefs.ini").toUtf8());
+        const auto restoreEnv = qScopeGuard([savedPrefs, hadPrefs] {
+            nt::server::clearActiveServerTarget();
+            if (hadPrefs) {
+                qputenv("NODETOOL_TIMELINE_PREFERENCES", savedPrefs);
+            } else {
+                qunsetenv("NODETOOL_TIMELINE_PREFERENCES");
+            }
+        });
+
+        QMutex flushMutex;
+        QString flushedId;
+        int flushedWidth = 0;
+        int flushedHeight = 0;
+        double flushedFps = 0.0;
+
+        TestHttpServer server;
+        QVERIFY(server.base().port() > 0);
+        server.setJson([](const QByteArray& path, const QUrl& url) -> QByteArray {
+            const auto rawInput = QUrlQuery(url).queryItemValue("input", QUrl::FullyDecoded).toUtf8();
+            const auto input = QJsonDocument::fromJson(rawInput).object();
+            if (path == "/trpc/projects.list") {
+                return R"({"result":{"data":[)"
+                       R"({"id":"p1","name":"Alpha","isPersonal":true,"folder":{"workspace_id":"ws1","path":"/tmp/ws1","is_accessible":true}},)"
+                       R"({"id":"p2","name":"Beta","isPersonal":false,"folder":{"workspace_id":"ws2","path":"/tmp/ws2","is_accessible":true}}]}})";
+            }
+            if (path == "/trpc/projects.documents") {
+                return R"({"result":{"data":[]}})";
+            }
+            if (path == "/trpc/timeline.list") {
+                const auto projectId = input.value("projectId").toString();
+                if (projectId == "p2") {
+                    return R"({"result":{"data":[)"
+                           R"({"id":"t2","name":"Second Cut","projectId":"p2","updatedAt":"2026-01-02T00:00:00.000Z"}]}})";
+                }
+                return R"({"result":{"data":[)"
+                       R"({"id":"t1","name":"First Cut","projectId":"p1","updatedAt":"2026-01-01T00:00:00.000Z"}]}})";
+            }
+            if (path == "/trpc/timeline.get") {
+                const auto id = input.value("id").toString();
+                if (id == "t2") {
+                    return R"({"result":{"data":{"id":"t2","name":"Second Cut","projectId":"p2","width":1920,"height":1080,"fps":24,"durationMs":4000,"updatedAt":"2026-01-02T00:00:00.000Z","tracks":[],"clips":[],"markers":[]}}})";
+                }
+                if (id == "t-v2") {
+                    return R"({"result":{"data":{"id":"t-v2","name":"Future","projectId":"p2","workingColorSpaceVersion":2,"width":1920,"height":1080,"fps":24,"tracks":[],"clips":[],"markers":[]}}})";
+                }
+                return R"({"result":{"data":{"id":"t1","name":"First Cut","projectId":"p1","width":640,"height":360,"fps":30,"durationMs":6000,"updatedAt":"2026-01-01T00:00:00.000Z","tracks":[],"clips":[],"markers":[]}}})";
+            }
+            return R"({"result":{"data":{}}})";
+        });
+        server.setPost([&](const QByteArray& path, const QByteArray& body) -> QByteArray {
+            if (path == "/trpc/timeline.update") {
+                const auto obj = QJsonDocument::fromJson(body).object();
+                QMutexLocker lock(&flushMutex);
+                flushedId = obj.value("id").toString();
+                flushedWidth = obj.value("width").toInt();
+                flushedHeight = obj.value("height").toInt();
+                flushedFps = obj.value("fps").toDouble();
+                return R"({"result":{"data":{"updatedAt":"2026-01-01T00:01:00.000Z"}}})";
+            }
+            return R"({"result":{"data":{}}})";
+        });
+
+        const nt::server::AssetCacheRoot cacheRoot(tempDir.filePath("cache"));
+        nt::server::setActiveServerTarget(server.base(), QStringLiteral("t1"), {}, cacheRoot.path());
+
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(
+            R"({"id":"t1","name":"First Cut","projectId":"p1","width":640,"height":360,"fps":30,"durationMs":6000,"updatedAt":"2026-01-01T00:00:00.000Z","tracks":[],"clips":[],"markers":[]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+
+        PlaybackClock clock;
+        clock.setDurationMs(6000);
+        clock.seek(1234.0);
+        clock.play();
+
+        nt::server::TimelineSession session(model, clock, cacheRoot);
+        session.attachInitialServer(QStringLiteral("2026-01-01T00:00:00.000Z"));
+        QVERIFY(session.autosaveController());
+        session.autosaveController()->setExternalSync(false);
+        session.autosaveController()->setAutosave(false);
+
+        QQmlEngine engine;
+        m_testCache.install(engine);
+        engine.rootContext()->setContextProperty(QStringLiteral("nativeSession"), &session);
+        QQuickWindow window;
+        auto editor = make(engine, "TimelineEditor", {{"timeline", QVariant::fromValue(&model)},
+                                                      {"clock", QVariant::fromValue(&clock)}});
+        QVERIFY(editor);
+        show(window, editor.get(), 1400, 800);
+        session.setWindow(&window);
+
+        QCOMPARE(window.title(), QStringLiteral("NodeTool Timeline — First Cut"));
+        QCOMPARE(editor->property("saver").value<QObject*>(), session.autosave());
+        auto* projectButton = item(editor.get(), "documentProjectButton");
+        QVERIFY(projectButton);
+        QTRY_COMPARE(projectButton->property("text").toString(), QStringLiteral("Alpha"));
+
+        QVERIFY(model.applyEdit("setProjectSettings", {{"width", 1280}, {"height", 720}, {"fps", 24}}));
+        QVERIFY(session.autosaveController()->dirty());
+        QSignalSpy autosaveSpy(&session, &nt::server::TimelineSession::autosaveChanged);
+
+        const auto clickItem = [&](QQuickItem* target) {
+            QList<QQuickItem*> ancestors;
+            for (QQuickItem* p = target; p; p = p->parentItem()) {
+                ancestors.prepend(p);
+            }
+            for (QQuickItem* p : ancestors) {
+                p->ensurePolished();
+            }
+            QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier,
+                              target->mapToScene({target->width() / 2, target->height() / 2}).toPoint());
+        };
+
+        clickItem(projectButton);
+        QTRY_VERIFY(item(window.contentItem(), "TimelineListPanel"));
+        auto* panel = item(window.contentItem(), "TimelineListPanel");
+        auto* listController = qobject_cast<nt::server::TimelineListController*>(
+            panel->property("controller").value<QObject*>());
+        QVERIFY(listController);
+        QTRY_COMPARE(listController->projectId(), QStringLiteral("p1"));
+
+        listController->setProjectId(QStringLiteral("p2"));
+        QTRY_VERIFY(item(window.contentItem(), "TimelineListItem_t2"));
+        clickItem(item(window.contentItem(), "TimelineListItem_t2"));
+
+        QTRY_COMPARE(model.timelineId(), QStringLiteral("t2"));
+        QTRY_VERIFY(!session.switching());
+        QCOMPARE(model.projectId(), QStringLiteral("p2"));
+        QCOMPARE(model.name(), QStringLiteral("Second Cut"));
+        QCOMPARE(model.canvasWidth(), 1920);
+        QCOMPARE(model.canvasHeight(), 1080);
+        QCOMPARE(model.fps(), 24.0);
+        QVERIFY(!clock.playing());
+        QCOMPARE(clock.time(), 0.0);
+        QVERIFY(session.autosaveController() != nullptr);
+        QVERIFY(!session.autosaveController()->dirty());
+        QVERIFY(autosaveSpy.count() >= 2);
+        QCOMPARE(editor->property("saver").value<QObject*>(), session.autosave());
+        QCOMPARE(window.title(), QStringLiteral("NodeTool Timeline — Second Cut"));
+        QTRY_COMPARE(projectButton->property("text").toString(), QStringLiteral("Beta"));
+        auto* folder = editor->property("projectFolder").value<ProjectFolderState*>();
+        QVERIFY(folder);
+        QTRY_COMPARE(folder->projectId(), QStringLiteral("p2"));
+        QTRY_VERIFY(!item(window.contentItem(), "TimelineListPanel") ||
+                    !item(window.contentItem(), "TimelineListPanel")->isVisible());
+        {
+            QMutexLocker lock(&flushMutex);
+            QCOMPARE(flushedId, QStringLiteral("t1"));
+            QCOMPARE(flushedWidth, 1280);
+            QCOMPARE(flushedHeight, 720);
+            QCOMPARE(flushedFps, 24.0);
+        }
+
+        // A failed in-place load must leave the open timeline and autosave intact.
+        auto* keptAutosave = session.autosaveController();
+        QVERIFY(session.switchToServerTimeline(server.base(), QStringLiteral("t-v2"), {}, {},
+                                               QStringLiteral("Future"), nullptr));
+        QTRY_VERIFY(!session.switching());
+        QVERIFY(session.switchError().contains(QStringLiteral("color version 2")));
+        QCOMPARE(model.timelineId(), QStringLiteral("t2"));
+        QCOMPARE(session.autosaveController(), keptAutosave);
+        QCOMPARE(window.title(), QStringLiteral("NodeTool Timeline — Second Cut"));
     }
 };
 QTEST_MAIN(TestTimelineListUi)

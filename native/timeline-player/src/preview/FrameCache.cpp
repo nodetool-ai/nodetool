@@ -19,48 +19,74 @@ FrameCache& FrameCache::shared() {
 
 void FrameCache::insert(const std::string& source, double ptsSec, std::shared_ptr<DecodedFrame> frame,
                         size_t bytes, double previousPtsSec) {
-    std::lock_guard lock(m_mutex);
+    // Destroy evicted frames outside the lock so av_frame_free / surface release
+    // never blocks the render thread's lookup().
+    std::vector<std::shared_ptr<DecodedFrame>> retired;
+    {
+        std::lock_guard lock(m_mutex);
 #if NT_HW_D3D11VA
-    // Decoder-bound D3D11 frames retain slots in FFmpeg's fixed surface pool.
-    // Admit only independent copies belonging to the current renderer device.
-    if (frame->hardware && (!hw::isCacheFrame(frame->frame) || !hw::cacheDeviceMatches(frame->frame))) {
-        return;
-    }
+        // Decoder-bound D3D11 frames retain slots in FFmpeg's fixed surface pool.
+        // Admit only independent copies belonging to the current renderer device.
+        if (frame->hardware && (!hw::isCacheFrame(frame->frame) || !hw::cacheDeviceMatches(frame->frame))) {
+            return;
+        }
 #endif
-    auto& bySource = m_index[source];
-    if (previousPtsSec >= 0.0) {
-        const auto prev = bySource.find(previousPtsSec);
-        if (prev != bySource.end()) prev->second->successorPts = ptsSec;
+        auto& bySource = m_index[source];
+        double linkedPredecessor = -1.0;
+        if (previousPtsSec >= 0.0) {
+            const auto prev = bySource.find(previousPtsSec);
+            if (prev != bySource.end()) {
+                if (prev->second->successorPts >= 0.0 && prev->second->successorPts != ptsSec) {
+                    const auto oldNext = bySource.find(prev->second->successorPts);
+                    if (oldNext != bySource.end() && oldNext->second->predecessorPts == previousPtsSec) {
+                        oldNext->second->predecessorPts = -1.0;
+                    }
+                }
+                prev->second->successorPts = ptsSec;
+                linkedPredecessor = previousPtsSec;
+            }
+        }
+        const auto existing = bySource.find(ptsSec);
+        if (existing != bySource.end()) {
+            if (linkedPredecessor >= 0.0) existing->second->predecessorPts = linkedPredecessor;
+            m_lru.splice(m_lru.begin(), m_lru, existing->second);  // already cached: refresh
+            return;
+        }
+        m_lru.push_front(Entry{source, ptsSec, std::move(frame), bytes, linkedPredecessor, -1.0});
+        // A frame cached earlier that comes next in time is this frame's successor
+        // only when a decode run linked them; a seek may have skipped frames.
+        bySource[ptsSec] = m_lru.begin();
+        if (m_evicted.size() > 256) {
+            std::erase_if(m_evicted, [](const Evicted& e) { return e.frame.expired(); });
+        }
+        m_bytes += bytes;
+        m_peakBeforeEviction = std::max(m_peakBeforeEviction, m_bytes);
+        evictLocked(retired);
+        m_peak = std::max(m_peak, m_bytes);  // after eviction: what the cache holds
     }
-    const auto existing = bySource.find(ptsSec);
-    if (existing != bySource.end()) {
-        m_lru.splice(m_lru.begin(), m_lru, existing->second);  // already cached: refresh
-        return;
-    }
-    m_lru.push_front(Entry{source, ptsSec, std::move(frame), bytes, -1.0});
-    // A frame cached earlier that comes next in time is this frame's successor
-    // only when a decode run linked them; a seek may have skipped frames.
-    bySource[ptsSec] = m_lru.begin();
-    if (m_evicted.size() > 256) {
-        std::erase_if(m_evicted, [](const Evicted& e) { return e.frame.expired(); });
-    }
-    m_bytes += bytes;
-    m_peakBeforeEviction = std::max(m_peakBeforeEviction, m_bytes);
-    evictLocked();
-    m_peak = std::max(m_peak, m_bytes);  // after eviction: what the cache holds
 }
 
-void FrameCache::evictLocked() {
+void FrameCache::evictLocked(std::vector<std::shared_ptr<DecodedFrame>>& retired) {
     while (m_bytes > m_budget && !m_lru.empty()) {
-        const Entry& victim = m_lru.back();
+        Entry& victim = m_lru.back();
         auto& bySource = m_index[victim.source];
         // A frame whose successor link points at the victim loses it.
-        for (auto& [pts, it] : bySource) {
-            if (it->successorPts == victim.pts) it->successorPts = -1.0;
+        if (victim.predecessorPts >= 0.0) {
+            const auto prev = bySource.find(victim.predecessorPts);
+            if (prev != bySource.end() && prev->second->successorPts == victim.pts) {
+                prev->second->successorPts = -1.0;
+            }
+        }
+        if (victim.successorPts >= 0.0) {
+            const auto next = bySource.find(victim.successorPts);
+            if (next != bySource.end() && next->second->predecessorPts == victim.pts) {
+                next->second->predecessorPts = -1.0;
+            }
         }
         bySource.erase(victim.pts);
         m_bytes -= victim.bytes;
         if (victim.frame.use_count() > 1) m_evicted.push_back({victim.frame, victim.bytes});
+        retired.push_back(std::move(victim.frame));
         m_lru.pop_back();
     }
 }
@@ -129,27 +155,36 @@ long long FrameCache::misses() const {
 }
 
 void FrameCache::eraseSource(const std::string& source) {
-    std::lock_guard lock(m_mutex);
-    const auto bySource = m_index.find(source);
-    if (bySource == m_index.end()) return;
-    for (auto& [pts, it] : bySource->second) {
-        m_bytes -= it->bytes;
-        if (it->frame.use_count() > 1) m_evicted.push_back({it->frame, it->bytes});
-        m_lru.erase(it);
+    std::vector<std::shared_ptr<DecodedFrame>> retired;
+    {
+        std::lock_guard lock(m_mutex);
+        const auto bySource = m_index.find(source);
+        if (bySource == m_index.end()) return;
+        for (auto& [pts, it] : bySource->second) {
+            m_bytes -= it->bytes;
+            if (it->frame.use_count() > 1) m_evicted.push_back({it->frame, it->bytes});
+            retired.push_back(std::move(it->frame));
+            m_lru.erase(it);
+        }
+        m_index.erase(bySource);
     }
-    m_index.erase(bySource);
 }
 
 void FrameCache::clear() {
-    std::lock_guard lock(m_mutex);
-    m_lru.clear();
-    m_index.clear();
-    m_bytes = 0;
-    m_hits = 0;
-    m_misses = 0;
-    m_peak = 0;
-    m_peakBeforeEviction = 0;
-    m_evicted.clear();
+    std::vector<std::shared_ptr<DecodedFrame>> retired;
+    {
+        std::lock_guard lock(m_mutex);
+        retired.reserve(m_lru.size());
+        for (Entry& e : m_lru) retired.push_back(std::move(e.frame));
+        m_lru.clear();
+        m_index.clear();
+        m_bytes = 0;
+        m_hits = 0;
+        m_misses = 0;
+        m_peak = 0;
+        m_peakBeforeEviction = 0;
+        m_evicted.clear();
+    }
 }
 
 }  // namespace nt

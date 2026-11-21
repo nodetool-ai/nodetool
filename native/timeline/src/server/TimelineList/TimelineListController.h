@@ -6,6 +6,7 @@
 #include <memory>
 
 namespace nt::server {
+// UI thread only. Owns ServerClient by unique_ptr.
 class TimelineListController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList documents READ documents NOTIFY changed)
@@ -25,6 +26,12 @@ public:
     bool busy() const { return m_busy; }
     QVariantMap deleteTarget() const { return m_deleteTarget; }
     void setProjectId(const QString& id);
+    // The project the open timeline sits in, used on initial refresh and after
+    // resetProjectSelection(). Empty or "default" resolves to Personal.
+    void setPreferredProjectId(const QString& id);
+    // Drops any browse-only selection so the next refresh() returns to the
+    // preferred project (or Personal).
+    void resetProjectSelection();
     Q_INVOKABLE void refresh();
     Q_INVOKABLE QVariantMap createTimeline();
     // New music project (docs/MUSIC-MODE.md section 15): a sequence named
@@ -51,6 +58,7 @@ private:
     QVariantList m_documents;
     QVariantList m_projects;
     QString m_projectId;
+    QString m_preferredProjectId;
     QString m_error;
     bool m_busy = false;
     QVariantMap m_deleteTarget;

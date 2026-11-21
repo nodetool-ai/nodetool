@@ -168,13 +168,20 @@ public:
   // adopt the record as the request rule would. Returns true when it changed.
   bool checkGenerationFile();
 
-  // The display state, read from the record without changing anything.
+  // The display state, read from the record and cached against `session.gen`
+  // and `signout.gen` so idle polling does not re-read the OS keychain.
   struct Status {
     SessionState state = SessionState::SignedOut;
     std::string displayName;
     bool serverEndPending = false;
+    // True when the credential store refused access or failed on this read.
+    // Cached until the generation files change or invalidateStatusCache() runs.
+    bool storeAccessDenied = false;
   };
   Status status();
+  // Drops any cached status (including a recorded store denial) so the next
+  // status() call reads the credential store again.
+  void invalidateStatusCache();
 
   std::filesystem::path accountDir() const { return dir_; }
   // The canonical HTTPS form of the server origin the session signed in
@@ -201,8 +208,9 @@ private:
 
   int64_t now() const;
   void fault(FaultPoint point) const;
-  // Run the repair rule. Call with `account.lock` held.
-  void repairLocked();
+  // Run the repair rule and return the record read from the store. Call with
+  // `account.lock` held.
+  SessionRecordRead repairLocked();
   uint64_t signOutMarker() const;
   // Write the signed-out stamp and record at a generation above every
   // earlier one, and adopt it. Returns false when a write failed.
@@ -211,6 +219,12 @@ private:
   // from signed in to signed out.
   void adopt(const Held& next);
   Held heldFrom(const SessionRecord& record) const;
+
+  struct CachedStatus {
+    GenerationStamp stamp;
+    uint64_t marker = 0;
+    Status status;
+  };
 
   SecretStore& store_;
   TokenEndpoint& endpoint_;
@@ -222,9 +236,10 @@ private:
   const bool endpointMismatch_;
 
   std::mutex operationMutex_;
-  // Guards held_, requests_ and unsavedHandles_.
+  // Guards held_, cachedStatus_, requests_ and unsavedHandles_.
   std::mutex mutex_;
   std::optional<Held> held_;
+  std::optional<CachedStatus> cachedStatus_;
   // The requests authorized while signed in. Cancelled and cleared when this
   // app moves to signed out.
   std::vector<std::weak_ptr<RequestCancel>> requests_;

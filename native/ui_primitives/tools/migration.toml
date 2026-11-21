@@ -147,12 +147,12 @@ replacement = "NodeTool.UiPrimitives: Ui.BusyIndicator, Ui.Text, Ui.ToolbarIconB
 [[file]]
 path = "native/timeline/qml/DocumentBar.qml"
 category = "chrome"
-controls = ["Rectangle", "Ui.Text", "ToolButton", "Loader", "AccountControl", "ShareDialog"]
-signals = []
+controls = ["Rectangle", "Ui.EditorButton", "Ui.Text", "ToolButton", "Loader", "AccountControl", "ShareDialog"]
+signals = ["openTimelinesRequested"]
 test_host = "tst_wiringedit"
 test_scope = "build/import"
 qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
-replacement = "NodeTool.UiPrimitives: Ui.Text"
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text"
 
 [[file]]
 path = "native/timeline/qml/ExportVideoDialog.qml"
@@ -4832,8 +4832,8 @@ replacement = "NodeTool.UiPrimitives"
 [[file]]
 path = "native/files/qml/FilesPanel.qml"
 category = "chrome"
-controls = ["Rectangle", "ColumnLayout", "Ui.PanelHeader", "Ui.ToolbarIconButton", "Ui.CloseButton", "Item", "Ui.BusyIndicator", "Ui.EmptyState", "ListView", "Ui.ScrollBar", "Connections", "Ui.ListRow", "TapHandler", "Ui.Icon", "Image", "Ui.Text", "Ui.ContextMenu", "Ui.MenuItem"]
-signals = ["closeRequested"]
+controls = ["Rectangle", "ColumnLayout", "Ui.PanelHeader", "Ui.ToolbarIconButton", "Ui.CloseButton", "Loader", "Item", "Ui.BusyIndicator", "Ui.EmptyState", "ListView", "Ui.ScrollBar", "Connections", "Ui.ListRow", "TapHandler", "Ui.Icon", "Image", "Ui.Text", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = ["closeRequested", "retryRequested"]
 test_host = "files-tests"
 test_scope = "interaction"
 qml_callers = []
@@ -4850,7 +4850,7 @@ reason = "A right click on a tree row selects it and opens the Reveal menu at th
 [[file]]
 path = "native/timeline/qml/files/FilesDock.qml"
 category = "chrome"
-controls = ["Item", "TimelineProjectFiles", "FilesPanel"]
+controls = ["Item", "TimelineProjectFiles", "FilesPanel", "ProjectFolderNotice", "Ui.Banner"]
 signals = []
 test_host = "tst_projectfiles"
 test_scope = "interaction"

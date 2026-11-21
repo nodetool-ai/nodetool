@@ -77,7 +77,7 @@ public:
   // Whether polish still has queued raster work, or the view or an item
   // moved and the settled rasters have not caught up yet.
   bool rasterPending() const {
-    return rasterQueued_ || rasterWorkDirty_ || nextRasterJob_ < rasterJobs_.size() || still_.isActive();
+    return rasterQueued_ || rasterWorkDirty_ || draftRasterDirty_ || nextRasterJob_ < rasterJobs_.size() || still_.isActive();
   }
   // QGraphicsScene::render of a scene area at a zoom: background, items and
   // foreground painted directly, without textures.
@@ -151,8 +151,10 @@ private:
   void updateRasterCoverage(const QRectF &visible);
   void viewChanged(bool zoomed);
   void rasterPass(bool flush);
+  bool rasterDraft(const QRectF &visible, double scale, double zoom, bool settled, double dpr);
   void scheduleRaster();
   void invalidateRasterWork();
+  void invalidateDraftRaster();
   void syncForeground(const QRectF &area, double zoom);
   void sortRasterJobs();
   void rebuildRasterWork(const QRectF &visible, double scale, double zoom, bool settled);
@@ -214,6 +216,7 @@ private:
   QList<std::pair<QRectF, qsizetype>> plannedVisibleTiles_;
   QRectF plannedVisible_;
   bool rasterWorkDirty_ = true;
+  bool draftRasterDirty_ = false;
   bool plannedWithoutPainting_ = false;
   // When the last pass that only planned ran.
   QElapsedTimer planOnly_;

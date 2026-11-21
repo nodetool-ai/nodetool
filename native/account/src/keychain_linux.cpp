@@ -69,16 +69,27 @@ bool KeychainStore::available() const {
 }
 
 std::optional<std::string> KeychainStore::read(std::string_view service, std::string_view account) {
+  SecretReadResult result = readResult(service, account);
+  if (result.status != SecretReadStatus::Ok) {
+    return std::nullopt;
+  }
+  return std::move(result.value);
+}
+
+SecretReadResult KeychainStore::readResult(std::string_view service, std::string_view account) {
   const std::string s(service);
   const std::string a(account);
   ErrorHolder error;
   SecretHolder value;
   value.value = secret_password_lookup_sync(keytarSchema(), nullptr, &error.error, "service", s.c_str(),
                                             "account", a.c_str(), nullptr);
-  if (error.error || !value.value) {
-    return std::nullopt;
+  if (error.error) {
+    return {SecretReadStatus::Error, {}};
   }
-  return std::string(value.value);
+  if (!value.value) {
+    return {SecretReadStatus::NotFound, {}};
+  }
+  return {SecretReadStatus::Ok, std::string(value.value)};
 }
 
 bool KeychainStore::write(std::string_view service, std::string_view account, std::string_view value) {
@@ -109,6 +120,9 @@ void KeychainStore::remove(std::string_view service, std::string_view account) {
 bool keychainCompiledIn() { return false; }
 bool KeychainStore::available() const { return false; }
 std::optional<std::string> KeychainStore::read(std::string_view, std::string_view) { return std::nullopt; }
+SecretReadResult KeychainStore::readResult(std::string_view, std::string_view) {
+  return {SecretReadStatus::Error, {}};
+}
 bool KeychainStore::write(std::string_view, std::string_view, std::string_view) { return false; }
 void KeychainStore::remove(std::string_view, std::string_view) {}
 

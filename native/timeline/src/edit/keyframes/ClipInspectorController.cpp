@@ -29,7 +29,7 @@ void ClipInspectorController::setTimeline(TimelineModel* model) {
             m_gesturing = false;
             m_before = {};
             m_preview = {};
-            emit playheadChanged();
+            updatePlayhead(true);
         });
         connect(model, &QObject::destroyed, this, [this] {
             m_gesturing = false;
@@ -37,10 +37,11 @@ void ClipInspectorController::setTimeline(TimelineModel* model) {
             m_locked = true;
             m_clipMapValid = false;
             emit changed();
+            updatePlayhead(false);
         });
     }
     refresh(true);
-    emit playheadChanged();
+    updatePlayhead(true);
 }
 void ClipInspectorController::setActive(bool active) {
     if (active == m_active) {
@@ -62,6 +63,21 @@ void ClipInspectorController::refresh(bool force) {
     m_locked = lockedNow;
     m_clipMapValid = false;
     emit changed();
+    updatePlayhead(false);
+}
+void ClipInspectorController::updatePlayhead(bool forcePlayheadSignal) {
+    const double next = playheadMs();
+    const bool onClip = next >= 0;
+    const bool changedMs = next != m_lastPlayheadMs;
+    const bool changedOnClip = onClip != m_playheadOnClip;
+    m_lastPlayheadMs = next;
+    m_playheadOnClip = onClip;
+    if (forcePlayheadSignal || changedMs) {
+        emit playheadChanged();
+    }
+    if (changedOnClip) {
+        emit playheadOnClipChanged();
+    }
 }
 void ClipInspectorController::setClock(PlaybackClock* clock) {
     if (m_clock == clock) {
@@ -72,10 +88,10 @@ void ClipInspectorController::setClock(PlaybackClock* clock) {
     }
     m_clock = clock;
     if (clock) {
-        connect(clock, &PlaybackClock::timeChanged, this, &ClipInspectorController::playheadChanged);
-        connect(clock, &QObject::destroyed, this, &ClipInspectorController::playheadChanged);
+        connect(clock, &PlaybackClock::timeChanged, this, [this] { updatePlayhead(false); });
+        connect(clock, &QObject::destroyed, this, [this] { updatePlayhead(true); });
     }
-    emit playheadChanged();
+    updatePlayhead(true);
 }
 void ClipInspectorController::setClipId(const QString& id) {
     if (id == m_clipId) {
@@ -84,7 +100,7 @@ void ClipInspectorController::setClipId(const QString& id) {
     cancelGesture();
     m_clipId = id;
     refresh(true);
-    emit playheadChanged();
+    updatePlayhead(true);
 }
 QJsonObject ClipInspectorController::selected() const {
     if (!m_timeline || m_clipId.isEmpty()) {

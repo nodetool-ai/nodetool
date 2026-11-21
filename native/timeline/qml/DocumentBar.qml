@@ -23,10 +23,13 @@ Rectangle {
     // which shows the current server's account.
     property AccountServers accountServers: null
     readonly property AccountController account: accountServers ? accountServers.current : null
-    // The folder of the open server timeline's project. With an account and
+    // The folder of the open timeline's project. With an account and
     // a project folder on the bundled server, File > Publish to Cloud and
     // Synchronize open the review sheet.
     property ProjectFolderState projectFolder: null
+    readonly property bool hasProjectBadge: projectFolder !== null && projectFolder.projectName !== ""
+    readonly property bool canSwitchProject: projectFolder !== null && projectFolder.configured
+    signal openTimelinesRequested()
     // Controls after Undo and Redo, such as the layout menu.
     default property alias leading: leadingRow.data
 
@@ -43,6 +46,34 @@ Rectangle {
         x: Ui.Metrics.lg
         anchors.verticalCenter: parent.verticalCenter
         spacing: Ui.Metrics.md
+        Ui.EditorButton {
+            id: documentProjectButton
+            objectName: "documentProjectButton"
+            anchors.verticalCenter: parent.verticalCenter
+            visible: bar.hasProjectBadge
+            density: Ui.EditorButton.Compact
+            variant: Ui.EditorButton.Flat
+            iconName: "folderOutlined"
+            iconColor: Ui.Theme.projectAccent
+            trailingIconName: bar.canSwitchProject ? "arrowDropDown" : ""
+            width: Math.min(implicitWidth, bar.width > 0 ? bar.width / 4 : implicitWidth)
+            text: bar.projectFolder ? bar.projectFolder.projectName : ""
+            accessibleName: bar.canSwitchProject
+                ? qsTr("Project %1, open timelines").arg(text)
+                : qsTr("Project %1").arg(text)
+            description: bar.canSwitchProject
+                ? qsTr("Open timelines in %1").arg(text)
+                : (bar.projectFolder && bar.projectFolder.canReveal ? bar.projectFolder.revealLabel() : "")
+            enabled: bar.canSwitchProject || (bar.projectFolder !== null && bar.projectFolder.canReveal)
+            onClicked: {
+                if (bar.canSwitchProject) bar.openTimelinesRequested()
+                else if (bar.projectFolder && bar.projectFolder.canReveal) bar.projectFolder.reveal()
+            }
+        }
+        ToolbarDivider {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: documentProjectButton.visible
+        }
         Ui.Text {
             objectName: "documentTitle"
             anchors.verticalCenter: parent.verticalCenter

@@ -1,4 +1,5 @@
 #include "TimelineListController.h"
+#include "model/TimelineJson.h"
 
 #include "music/MusicProject.h"
 
@@ -119,13 +120,33 @@ void TimelineListController::refresh() {
         return;
     }
     m_projects = projects.data.toArray().toVariantList();
+    const QString desired = !m_projectId.isEmpty() ? m_projectId : m_preferredProjectId;
+    const bool wantPersonal = desired.isEmpty() || desired == u"default";
     bool selected = false;
     QString personal;
     for (const auto& project : m_projects) {
         const auto row = project.toMap();
-        selected = selected || row.value("id").toString() == m_projectId;
+        const auto id = row.value("id").toString();
+        if (!wantPersonal && id == desired) {
+            m_projectId = id;
+            selected = true;
+        }
         if (row.value("isPersonal").toBool()) {
-            personal = row.value("id").toString();
+            personal = id;
+        }
+    }
+    if (!selected && !wantPersonal) {
+        const auto archived = m_client->query(QStringLiteral("projects.archived"), {});
+        if (archived.ok()) {
+            for (const auto& value : archived.data.toArray()) {
+                const auto row = value.toObject().toVariantMap();
+                if (row.value("id").toString() == desired) {
+                    m_projects.push_back(row);
+                    m_projectId = desired;
+                    selected = true;
+                    break;
+                }
+            }
         }
     }
     if (!selected) {
@@ -137,6 +158,23 @@ void TimelineListController::refresh() {
     }
     reloadDocuments();
     finish(m_error);
+}
+
+void TimelineListController::setPreferredProjectId(const QString& id) {
+    m_preferredProjectId = (id == u"default") ? QString{} : id;
+}
+
+void TimelineListController::resetProjectSelection() {
+    if (m_busy) {
+        return;
+    }
+    if (m_projectId.isEmpty() && m_documents.isEmpty() && m_deleteTarget.isEmpty()) {
+        return;
+    }
+    m_projectId.clear();
+    m_documents.clear();
+    m_deleteTarget.clear();
+    emit changed();
 }
 
 void TimelineListController::setProjectId(const QString& id) {
@@ -251,9 +289,24 @@ bool TimelineListController::confirmDelete() {
 }
 
 QString TimelineListController::openTimeline(const QString& id) {
-    if (m_busy || find(id).isEmpty()) {
+    if (m_busy || find(id).isEmpty() || !begin()) {
         return {};
     }
+    const auto fetched = m_client->getTimeline(id);
+    if (!fetched.ok()) {
+        finish(QStringLiteral("Could not open timeline: %1").arg(fetched.describe()));
+        return {};
+    }
+    if (!fetched.data.isObject()) {
+        finish(QStringLiteral("Could not open timeline: invalid server response."));
+        return {};
+    }
+    const auto parsed = nt::parseTimeline(fetched.data.toObject());
+    if (!parsed.timeline && !parsed.unsupportedColorSpaceVersion) {
+        finish(QStringLiteral("Could not open timeline: %1").arg(parsed.error));
+        return {};
+    }
+    finish();
     QUrl source = m_server;
     source.setFragment(QStringLiteral("timeline=") + id);
     const QString label = source.toString();

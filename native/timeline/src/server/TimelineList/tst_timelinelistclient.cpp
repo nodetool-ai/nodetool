@@ -174,6 +174,111 @@ private slots:
         QVERIFY(list.error().contains("WRONG_SERVER"));
         QCOMPARE(server.countRequests("POST", "/trpc/"), 0);
     }
+    void preferredProjectSelectionAndArchivedFallback() {
+        TestHttpServer server;
+        QStringList listedProjects;
+        server.setJson([&](const QByteArray& path, const QUrl& url) {
+            if (path == "/trpc/projects.list") {
+                return answer(QJsonArray{
+                    QJsonObject{{"id", "personal:1"}, {"name", "Personal"}, {"isPersonal", true}},
+                    QJsonObject{{"id", "p2"}, {"name", "Film"}, {"isPersonal", false}},
+                });
+            }
+            if (path == "/trpc/projects.archived") {
+                return answer(QJsonArray{
+                    QJsonObject{{"id", "arch1"}, {"name", "Old Cut"}, {"isPersonal", false}},
+                });
+            }
+            if (path == "/trpc/timeline.list") {
+                const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
+                const auto pid = input.value("projectId").toString();
+                listedProjects << pid;
+                return answer(QJsonArray{QJsonObject{{"id", "tl-" + pid}, {"name", "Cut " + pid}, {"updatedAt", "2026-10-26T12:00:00Z"}}});
+            }
+            return answer(QJsonArray{});
+        });
+
+        nt::server::TimelineListController list(server.base(), "token", "");
+        list.setPreferredProjectId("p2");
+        list.refresh();
+        QCOMPARE(list.projectId(), QString("p2"));
+        QCOMPARE(listedProjects.last(), QString("p2"));
+
+        // Browsing switches temporarily; reset returns to the preferred project.
+        list.setProjectId("personal:1");
+        QCOMPARE(list.projectId(), QString("personal:1"));
+        list.resetProjectSelection();
+        list.refresh();
+        QCOMPARE(list.projectId(), QString("p2"));
+
+        // Archived project is resolved via projects.archived and included in projects().
+        list.setPreferredProjectId("arch1");
+        list.resetProjectSelection();
+        list.refresh();
+        QCOMPARE(list.projectId(), QString("arch1"));
+        QCOMPARE(list.projects().size(), 3);
+
+        // Loose ("default") and unknown projects fall back to Personal.
+        list.setPreferredProjectId("default");
+        list.resetProjectSelection();
+        list.refresh();
+        QCOMPARE(list.projectId(), QString("personal:1"));
+
+        list.setPreferredProjectId("unknown-project");
+        list.resetProjectSelection();
+        list.refresh();
+        QCOMPARE(list.projectId(), QString("personal:1"));
+    }
+    void openTimelineRefusesUnreadableServerTimeline() {
+        TestHttpServer server;
+        server.setJson([&](const QByteArray& path, const QUrl& url) {
+            if (path == "/trpc/projects.list") {
+                return answer(QJsonArray{QJsonObject{{"id", "personal:1"}, {"name", "Personal"}, {"isPersonal", true}}});
+            }
+            if (path == "/trpc/timeline.list") {
+                return answer(QJsonArray{
+                    QJsonObject{{"id", "bad-id"}, {"name", "Broken"}, {"updatedAt", "2026-10-26T12:00:00Z"}},
+                    QJsonObject{{"id", "future-color"}, {"name", "Future"}, {"updatedAt", "2026-10-26T11:00:00Z"}},
+                    QJsonObject{{"id", "good-id"}, {"name", "Good"}, {"updatedAt", "2026-10-26T10:00:00Z"}},
+                });
+            }
+            if (path == "/trpc/timeline.get") {
+                const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
+                const auto id = input.value("id").toString();
+                if (id == "bad-id") {
+                    return QByteArray(R"({"error":{"message":"Output validation failed","data":{"code":"INTERNAL_SERVER_ERROR","httpStatus":500}}})");
+                }
+                if (id == "future-color") {
+                    return answer(QJsonObject{{"id", "future-color"}, {"name", "Future"}, {"workingColorSpaceVersion", 2},
+                                              {"fps", 30}, {"width", 1920}, {"height", 1080}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}});
+                }
+                return answer(QJsonObject{{"id", "good-id"}, {"name", "Good"},
+                                          {"fps", 30}, {"width", 1920}, {"height", 1080}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}});
+            }
+            return answer(QJsonObject{});
+        });
+
+        nt::server::TimelineListController list(server.base(), "token", "");
+        list.refresh();
+        QCOMPARE(list.documents().size(), 3);
+        QSignalSpy opened(&list, &nt::server::TimelineListController::openRequested);
+
+        // A server output-validation failure must not emit openRequested or drop the list.
+        QVERIFY(list.openTimeline("bad-id").isEmpty());
+        QCOMPARE(opened.size(), 0);
+        QVERIFY2(list.error().contains("Output validation failed"), qPrintable(list.error()));
+        QCOMPARE(list.documents().size(), 3);
+
+        // An unsupported workingColorSpaceVersion still opens so main can show its dedicated message.
+        QCOMPARE(list.openTimeline("future-color"), server.base().toString() + "#timeline=future-color");
+        QCOMPARE(opened.size(), 1);
+        QVERIFY(list.error().isEmpty());
+
+        // A valid timeline opens cleanly after a prior failure.
+        QCOMPARE(list.openTimeline("good-id"), server.base().toString() + "#timeline=good-id");
+        QCOMPARE(opened.size(), 2);
+        QVERIFY(list.error().isEmpty());
+    }
 };
 QTEST_GUILESS_MAIN(TestTimelineListClient)
 #include "tst_timelinelistclient.moc"
