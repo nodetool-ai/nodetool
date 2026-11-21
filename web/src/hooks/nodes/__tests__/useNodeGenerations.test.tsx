@@ -11,8 +11,8 @@ const { renderHook } = nodeStoreRenderers(
     })
 );
 beforeEach(() => {
-  useResultsStore.setState({ liveGenerations: {} } as never);
-  useWorkflowAssetStore.setState({ assetsByWorkflow: {} } as never);
+  useResultsStore.setState({ liveGenerations: {} });
+  useWorkflowAssetStore.setState({ assetsByWorkflow: {} });
 });
 
 it("returns merged generations with latest as current", () => {

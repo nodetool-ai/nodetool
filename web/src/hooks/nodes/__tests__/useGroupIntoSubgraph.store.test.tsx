@@ -102,13 +102,15 @@ describe("useGroupIntoSubgraph against a real NodeStore", () => {
 
   it("keeps both the incoming and the outgoing edge of the grouped node", () => {
     const { result } = renderGroup();
-    let created: { subgraphNodeId: string } | null = null;
+    const createdIds: string[] = [];
     act(() => {
-      created = result.current(["b"]);
+      const created = result.current(["b"]);
+      if (created) {
+        createdIds.push(created.subgraphNodeId);
+      }
     });
-    expect(created).not.toBeNull();
-    const subgraphId = (created as unknown as { subgraphNodeId: string })
-      .subgraphNodeId;
+    expect(createdIds).toHaveLength(1);
+    const [subgraphId] = createdIds;
 
     const { nodes, edges } = store.getState();
     expect(nodes.map((n) => n.id).sort()).toEqual(

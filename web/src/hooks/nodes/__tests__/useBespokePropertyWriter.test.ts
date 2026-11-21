@@ -1,3 +1,4 @@
+import { asMock } from "../../../test-utils/doubles";
 import { makeNodeStore, nodeStoreRenderers } from "../../../test-utils/nodeStore";
 import { act } from "@testing-library/react";
 import { useBespokePropertyWriter } from "../useBespokePropertyWriter";
@@ -8,9 +9,7 @@ jest.mock("../useInputNodeAutoRun", () => ({
 
 import { useNodeAutoRun } from "../useInputNodeAutoRun";
 
-const mockUseNodeAutoRun = useNodeAutoRun as jest.MockedFunction<
-  typeof useNodeAutoRun
->;
+const mockUseNodeAutoRun = asMock(useNodeAutoRun);
 
 const mockUpdateNodePropertiesFn = jest.fn();
 const mockBeginGroup = jest.fn();

@@ -37,8 +37,8 @@ import { useWorkflowAssetStore } from "../../../stores/WorkflowAssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import type { Generation } from "../../../utils/nodeGenerations";
 
-const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
-const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
+const mockUseNodeStoreRef = asMock(useNodeStoreRef);
+const mockUseWebsocketRunner = asMock(useWebsocketRunner);
 const mockResultsGetState = asMockStore(useResultsStore).getState;
 const mockAssetsGetState = asMockStore(useWorkflowAssetStore).getState;
 const mockUseNotificationStore = asMock(useNotificationStore);

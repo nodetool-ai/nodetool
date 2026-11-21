@@ -47,7 +47,7 @@ const createScript = jest.fn(async (input: CreateScriptInput) => ({
   name: input.name,
   document: scriptDocument
 }));
-const versionsList = jest.fn(async () => [] as { version: number }[]);
+const versionsList = jest.fn(async (): Promise<{ version: number }[]> => []);
 const versionsGet = jest.fn(async () => ({ document: scriptDocument }));
 const scriptGet = jest.fn(async () => ({
   id: "s1",
@@ -57,8 +57,8 @@ const scriptGet = jest.fn(async () => ({
 }));
 const updateScript = jest.fn(async () => ({ id: "s1" }));
 
-const data = (properties: Record<string, unknown> = {}): NodeData =>
-  ({ properties }) as NodeData;
+const data = (properties: NodeData["properties"] = {}): NodeData =>
+  stub<NodeData>({ properties });
 
 const { renderHook } = nodeStoreRenderers(
   makeNodeStore({
