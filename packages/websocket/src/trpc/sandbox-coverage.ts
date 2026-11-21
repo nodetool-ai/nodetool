@@ -1332,6 +1332,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "storage.erasePreview": {
     gap: "The storage view shows what refers to a file before an erase; the agent has no capability for it."
   },
+  "storage.projectFileLists": {
+    gap: "The app shows a project's Incomplete and erased lists; the agent has no capability that reads them."
+  },
   "storage.erase": {
     withheld:
       "Erasing deletes a file's stored bytes for everyone who shares the " +
