@@ -13,11 +13,12 @@
  * requested application has no app builder open.
  */
 import { z } from "zod";
-import type {
-  InputMapping,
-  OperationPatch,
-  OutputMapping,
-  VariablePatch
+import {
+  implicitOperation,
+  type InputMapping,
+  type OperationPatch,
+  type OutputMapping,
+  type VariablePatch
 } from "@nodetool-ai/app-runtime";
 
 import { FrontendToolRegistry } from "../frontendTools";
@@ -345,9 +346,15 @@ FrontendToolRegistry.register({
     "Widget bindings address an operation by id (op:<opId>/in:<nodeId>).",
   parameters: z.object({ application_id: applicationIdParam }),
   async execute({ application_id }) {
+    const handler = getPuckAgentHandler(application_id);
+    const declared = handler.listOperations();
+    if (declared.length > 0) {return { ok: true, operations: declared };}
+    // An app that declares no operation runs the implicit one on the host
+    // workflow, the same one ui_app_get_binding_targets reports.
+    const host = handler.getBindingTargets().operations[0];
     return {
       ok: true,
-      operations: getPuckAgentHandler(application_id).listOperations()
+      operations: host ? [{ ...implicitOperation(host.workflowId), implicit: true }] : []
     };
   }
 });
@@ -403,6 +410,11 @@ FrontendToolRegistry.register({
     outputs,
     timeout_ms
   }) {
+    if (target_workflow_id.trim() === "") {
+      throw new Error(
+        "target_workflow_id is empty. Pass the id of the workflow this operation runs."
+      );
+    }
     const operation = getPuckAgentHandler(application_id).addOperation({
       id,
       name,

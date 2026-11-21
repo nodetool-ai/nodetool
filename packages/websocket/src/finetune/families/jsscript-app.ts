@@ -527,12 +527,64 @@ const PANEL_TITLES = ["Settings", "Inputs", "Options", "Details"];
 const HEADINGS = ["Make something new", "Welcome", "Start here", "Your studio", "Try it out"];
 
 const labelOf = (name: string) => name.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, " ");
-const widgetsBoundTo = (s: AppBridgeFinalState, binding: string) => s.components.filter((c) => c.props.binding === binding);
-const runsMain = (c: AppComponentSummary) =>
-  Array.isArray(c.props.events) &&
-  (c.props.events as Array<Record<string, unknown>>).some(
-    (e) => e.trigger === "click" && e.kind === "run" && e.operationId === "main"
+const APP_WORKFLOW_ID = "wf-app";
+/**
+ * Operation ids that run the task's workflow: the implicit `main` while the
+ * app declares no operation, otherwise each declared one on that workflow.
+ * The implicit operation disappears once any operation is declared.
+ */
+const workflowOps = (s: AppBridgeFinalState) =>
+  s.operations.length === 0
+    ? new Set(["main"])
+    : new Set(s.operations.filter((o) => o.workflowId === APP_WORKFLOW_ID).map((o) => o.id));
+/**
+ * True when `c` is bound to `port` (`in:<node>` or `out:<node>`) through one
+ * of `ops`, by default any operation on the task's workflow.
+ */
+const boundTo = (
+  s: AppBridgeFinalState,
+  c: AppComponentSummary | undefined,
+  port: string,
+  ops: ReadonlySet<string> = workflowOps(s)
+) => {
+  const match = /^op:([^/]+)\/(.+)$/.exec(typeof c?.props.binding === "string" ? c.props.binding : "");
+  return match !== null && match[2] === port && ops.has(resolvedOp(s, match[1]!));
+};
+/**
+ * The operation a binding's id addresses. As in app-runtime's resolver, `main`
+ * names the app's one declared operation when that operation has another id.
+ */
+const resolvedOp = (s: AppBridgeFinalState, id: string) =>
+  id === "main" && s.operations.length === 1 && s.operations[0]!.id !== "main" ? s.operations[0]!.id : id;
+/** The operation `c`'s binding resolves to, if it binds one. */
+const boundOp = (s: AppBridgeFinalState, c: AppComponentSummary | undefined) => {
+  const match = /^op:([^/]+)\//.exec(typeof c?.props.binding === "string" ? c.props.binding : "");
+  return match === null ? undefined : resolvedOp(s, match[1]!);
+};
+/**
+ * Operations on the task's workflow that a click on `c` runs. A run event
+ * with no operation id runs the app's first operation, as the runtime does.
+ */
+const clickRuns = (s: AppBridgeFinalState, c: AppComponentSummary): Set<string> => {
+  const ops = workflowOps(s);
+  const defaultOp = s.operations[0]?.id ?? "main";
+  const events = Array.isArray(c.props.events) ? (c.props.events as Array<Record<string, unknown>>) : [];
+  return new Set(
+    events
+      // A click fires in the change phase; a release-paced event waits for a
+      // commit phase a button never reaches.
+      .filter((e) => e.trigger === "click" && e.kind === "run" && e.pace !== "release")
+      .map((e) => (typeof e.operationId === "string" ? e.operationId : defaultOp))
+      .filter((id) => ops.has(id))
   );
+};
+
+/** True when `op` feeds input `nodeId` from its bound widget, the default when it maps nothing. */
+const takesWidgetValue = (s: AppBridgeFinalState, op: string, nodeId: string) => {
+  const mapping = s.operations.find((o) => o.id === op)?.inputs[nodeId];
+  return mapping === undefined || mapping.from === "widget";
+};
+const runsWorkflow = (s: AppBridgeFinalState, c: AppComponentSummary) => clickRuns(s, c).size > 0;
 const parentOf = (s: AppBridgeFinalState, c: AppComponentSummary) => s.components.find((p) => p.id === c.parentId);
 
 export const APP_BUILD: TaskFamily<AppBridgeFinalState> = {
@@ -560,14 +612,49 @@ export const APP_BUILD: TaskFamily<AppBridgeFinalState> = {
     const layout = pick.one(["flat", "panel", "columns"] as const);
     const panelTitle = pick.one(PANEL_TITLES);
 
-    const inToken = (p: (typeof ins)[number]) => `op:main/in:${p.nodeId}`;
-    const outToken = (p: (typeof outs)[number]) => `op:main/out:${p.nodeId}`;
+    const inToken = (p: (typeof ins)[number]) => `in:${p.nodeId}`;
+    const outToken = (p: (typeof outs)[number]) => `out:${p.nodeId}`;
     const fits = (c: AppComponentSummary, kind: PortKind) => kind.widgets.includes(c.type);
     const placedIn = (s: AppBridgeFinalState, c: AppComponentSummary, side: "controls" | "results") => {
       if (layout === "flat") return true;
       const parent = parentOf(s, c);
       if (layout === "panel") return side === "results" || (parent?.type === "Container" && c.slot === "content" && parent.props.title === panelTitle);
       return parent?.type === "Columns" && c.slot === (side === "controls" ? "left" : "right");
+    };
+
+    // The runtime reads inputs and publishes outputs per operation, so every
+    // widget must go through one operation that one requested button runs. A
+    // field bound to another operation never reaches that run.
+    const portOk = (s: AppBridgeFinalState, p: (typeof ins)[number] | (typeof outs)[number], side: "controls" | "results", op: string) =>
+      (side === "results" || takesWidgetValue(s, op, p.nodeId)) &&
+      s.components.some(
+        (c) =>
+          boundTo(s, c, side === "controls" ? inToken(p as (typeof ins)[number]) : outToken(p as (typeof outs)[number]), new Set([op])) &&
+          fits(c, p.kind) &&
+          placedIn(s, c, side)
+      );
+    const runOps = (s: AppBridgeFinalState): string[] => [
+      ...new Set(
+        s.components
+          .filter((c) => c.type === "Button" && c.props.label === button && placedIn(s, c, "controls"))
+          .flatMap((c) => [...clickRuns(s, c)])
+      )
+    ];
+    /** The operation one requested button runs that every widget goes through, if any. */
+    const completeOp = (s: AppBridgeFinalState): string | undefined =>
+      runOps(s).find(
+        (op) => ins.every((p) => portOk(s, p, "controls", op)) && outs.every((p) => portOk(s, p, "results", op))
+      );
+    /** The operations a binding check may count: the one run that wires everything when there is one. */
+    const countedOps = (s: AppBridgeFinalState): Set<string> => {
+      const complete = completeOp(s);
+      if (complete !== undefined) return new Set([complete]);
+      const candidates = runOps(s);
+      return candidates.length > 0 ? new Set(candidates) : workflowOps(s);
+    };
+    const widgetsBoundTo = (s: AppBridgeFinalState, port: string) => {
+      const ops = countedOps(s);
+      return s.components.filter((c) => boundTo(s, c, port, ops));
     };
 
     const checks: Check<AppBridgeFinalState>[] = [
@@ -582,8 +669,9 @@ export const APP_BUILD: TaskFamily<AppBridgeFinalState> = {
       })),
       {
         name: `${button} button runs the workflow`,
-        test: (s) => s.components.some((c) => c.type === "Button" && c.props.label === button && runsMain(c) && placedIn(s, c, "controls"))
-      }
+        test: (s) => s.components.some((c) => c.type === "Button" && c.props.label === button && runsWorkflow(s, c) && placedIn(s, c, "controls"))
+      },
+      { name: `one ${button} run takes the inputs and shows the outputs`, test: (s) => completeOp(s) !== undefined }
     ];
     if (heading) checks.push({ name: `heading ${heading}`, test: (s) => s.components.some((c) => c.type === "Heading" && c.props.text === heading) });
 
@@ -601,7 +689,7 @@ export const APP_BUILD: TaskFamily<AppBridgeFinalState> = {
 
     return {
       objective,
-      createBridge: () => createAppToolBridge({ workflowId: "wf-app", workflow }),
+      createBridge: () => createAppToolBridge({ workflowId: APP_WORKFLOW_ID, workflow, onlyLoadedWorkflows: true }),
       checks,
       solve: async (call) => {
         const app = { application_id: "app-eval" };
@@ -721,7 +809,7 @@ export const APP_EDIT: TaskFamily<AppBridgeFinalState> = {
         ? [() => ({
             touches: "image-1",
             ask: "bind the Preview image to the workflow's image output",
-            check: { name: "image bound to out-1", test: (s: AppBridgeFinalState) => byId(s, "image-1")?.props.binding === "op:main/out:out-1" },
+            check: { name: "image bound to out-1", test: (s: AppBridgeFinalState) => boundTo(s, byId(s, "image-1"), "out:out-1") },
             step: async (call: (n: string, a: Record<string, unknown>) => Promise<unknown>) =>
               void (await call("ui_app_update_component", { ...app, id: "image-1", props: { binding: "op:main/out:out-1" } }))
           })]
@@ -746,7 +834,13 @@ export const APP_EDIT: TaskFamily<AppBridgeFinalState> = {
         ? [() => ({
             touches: "input-1",
             ask: `bind the ${labelOf(promptName)} text field to the workflow's ${promptName} input`,
-            check: { name: `input bound to ${promptName}`, test: (s: AppBridgeFinalState) => byId(s, "input-1")?.props.binding === "op:main/in:in-1" },
+            check: {
+              name: `input bound to ${promptName}`,
+              test: (s: AppBridgeFinalState) => {
+                const op = boundOp(s, byId(s, "input-1"));
+                return boundTo(s, byId(s, "input-1"), "in:in-1") && op !== undefined && takesWidgetValue(s, op, "in-1");
+              }
+            },
             step: async (call: (n: string, a: Record<string, unknown>) => Promise<unknown>) =>
               void (await call("ui_app_update_component", { ...app, id: "input-1", props: { binding: "op:main/in:in-1" } }))
           })]
@@ -782,7 +876,7 @@ export const APP_EDIT: TaskFamily<AppBridgeFinalState> = {
     const objective = `The open app "${title}" has ${list(widgets.map((w) => w.says))}. Please ${list(ops.map((o) => o.ask))}. Leave everything else as it is.`;
     return {
       objective,
-      createBridge: () => createAppToolBridge({ title, workflowId: "wf-app", workflow, components: widgets.map((w) => w.seed) }),
+      createBridge: () => createAppToolBridge({ title, workflowId: APP_WORKFLOW_ID, workflow, onlyLoadedWorkflows: true, components: widgets.map((w) => w.seed) }),
       checks,
       solve: async (call) => {
         for (const op of ops) await op.step(call);

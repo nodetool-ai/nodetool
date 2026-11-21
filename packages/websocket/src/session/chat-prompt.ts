@@ -244,7 +244,12 @@ export function focusedUiToolNames(
   toolNames: Iterable<string>
 ): string[] {
   const type = uiContext?.focused?.type;
-  if (!type) return [];
+  if (!type) {
+    // An editor with no focus type: the 3D editor's chat sends only its
+    // source, and its tools would otherwise never reach the turn block.
+    const prefix = uiContext?.source === "model3d_assistant" ? "ui_3d_" : null;
+    return prefix === null ? [] : [...toolNames].filter((name) => name.startsWith(prefix));
+  }
 
   const prefix = `ui_${type}_`;
   return [...toolNames].filter(

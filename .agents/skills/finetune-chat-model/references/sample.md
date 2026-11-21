@@ -74,6 +74,9 @@ $S/run-detached.sh glm-pass3 data/glm-pass3/run.log \
   lane's `--out` file.
 - The sampler appends one line per run and skips a (model, task, sample) it
   already has, so a stopped lane restarts where it left off.
+- A run whose requests all went unanswered (a provider outage, a refused key)
+  prints `RETRY …` and is not recorded, so a restart samples it again. After
+  five in a row the lane stops. Wait for the provider, then rerun the lane.
 - `--samples` and `--temperature` give several different passing runs per task
   to select from.
 
@@ -89,5 +92,12 @@ Local models sample the same way: `-p ollama --models qwen3.5:9b` with
   that the teacher always fails has a wrong grader or a harness gap. Fix that
   before sampling more of it.
 - `maxPrompt` stays below the training `--max-seq` (65,536). `train.py` drops
-  longer records.
+  longer records. Sample with `--context-window 65536` so the chat turn
+  compacts against the student's serving window, not the teacher's. Compaction
+  cuts only at a user message, so a single-request run never compacts.
+- `sample` refuses to start when the installed sandbox catalog serves other
+  packs than `packages/websocket/scripts/finetune-sandbox-packs.json`. Build the
+  missing packs. Rewrite the pin with `ft-data.sh packs` only after a
+  deliberate change, and sample the teacher and evaluate every model on one
+  pin.
 - The spend matches the estimate (`total=` on the last line of each lane log).

@@ -225,3 +225,43 @@ describe("every capability spec", () => {
     expect(contradictory).toEqual([]);
   });
 });
+
+describe("optional argument types", () => {
+  const UPDATE = {
+    name: "memory_update",
+    inputSchema: {
+      type: "object",
+      properties: {
+        memory_id: { type: "string" },
+        content: { type: "string" },
+        limit: { type: "integer" },
+        pinned: { type: "boolean" }
+      },
+      required: ["memory_id"]
+    } as JsonSchema
+  };
+
+  it("refuses an optional argument of the wrong type", () => {
+    expect(() => coerceCapabilityArgs(UPDATE, [{ memory_id: "m1", content: 5 }])).toThrow(
+      "memory_update: content must be string, got number."
+    );
+  });
+
+  it("reads numeric and boolean strings as their type, and passes null, objects and arrays through", () => {
+    expect(
+      coerceCapabilityArgs(UPDATE, [{ memory_id: "m1", content: null, limit: "3", pinned: "true" }])
+    ).toEqual({ memory_id: "m1", content: null, limit: 3, pinned: true });
+    // A find_model hit where the schema says string reaches the implementation.
+    const model = { provider: "openai", id: "gpt-image-2" };
+    expect(coerceCapabilityArgs(UPDATE, [{ memory_id: "m1", content: model }])).toEqual({
+      memory_id: "m1",
+      content: model
+    });
+  });
+
+  it("refuses a non-numeric string for a number", () => {
+    expect(() => coerceCapabilityArgs(UPDATE, [{ memory_id: "m1", limit: "many" }])).toThrow(
+      "memory_update: limit must be integer, got string."
+    );
+  });
+});

@@ -43,10 +43,9 @@ export function evalSuiteTasks(): ErasedJob[] {
     ...suiteJobs("js-script-tools", JS_SCRIPT_TOOL_LOOP_CASES, "jsscript"),
     ...suiteJobs("svg-tools", SVG_TOOL_LOOP_CASES, "svg"),
     ...suiteJobs("audio-tools", AUDIO_TOOL_LOOP_CASES, "audio"),
-    // The 3D editor has no focus type. The memory suite is left out: its world
-    // re-creates the database the chat session is using, and its tools are
-    // server capabilities in any case.
-    ...suiteJobs("model3d-tools", MODEL3D_TOOL_LOOP_CASES)
+    // The memory suite is left out: its world re-creates the database the
+    // chat session is using, and its tools are server capabilities in any case.
+    ...suiteJobs("model3d-tools", MODEL3D_TOOL_LOOP_CASES, "model3d")
   ];
 }
 

@@ -225,3 +225,134 @@ describe("widget event authoring", () => {
     }
   );
 });
+
+describe("calls that would change nothing", () => {
+  const workflow = { inputs: [], outputs: [], variables: [] };
+
+  it("refuses a parent id that is not in the app, or holds no children", async () => {
+    const bridge = createAppToolBridge();
+    const tools = toolsOf(bridge);
+    await expect(
+      tools["ui_app_add_component"].execute({ application_id: APP, type: "Text", parent_id: "Panel-9" })
+    ).rejects.toThrow('no widget with id "Panel-9"');
+    const heading = (await tools["ui_app_add_component"].execute({ application_id: APP, type: "Heading" })) as {
+      component: { id: string };
+    };
+    await expect(
+      tools["ui_app_add_component"].execute({ application_id: APP, type: "Text", parent_id: heading.component.id })
+    ).rejects.toThrow("which holds no children");
+    expect(bridge.finalState().components).toHaveLength(1);
+  });
+
+  it("refuses an empty workflow id, and an unloaded one when the world knows every workflow", async () => {
+    const open = toolsOf(createAppToolBridge({ workflowId: "wf-a", workflow }));
+    await expect(
+      open["ui_app_add_operation"].execute({ application_id: APP, target_workflow_id: " " })
+    ).rejects.toThrow('target_workflow_id is empty. Pass the id of the workflow to run; the editor has loaded "wf-a"');
+    await expect(
+      open["ui_app_add_operation"].execute({ application_id: APP, target_workflow_id: "wf-b" })
+    ).resolves.toMatchObject({ ok: true });
+
+    const padded = (await open["ui_app_add_operation"].execute({
+      application_id: APP,
+      id: "padded",
+      target_workflow_id: " wf-a "
+    })) as { operation: { workflowId: string } };
+    expect(padded.operation.workflowId).toBe("wf-a");
+
+    const closed = toolsOf(createAppToolBridge({ workflowId: "wf-a", workflow, onlyLoadedWorkflows: true }));
+    await expect(
+      closed["ui_app_add_operation"].execute({ application_id: APP, target_workflow_id: "wf-b" })
+    ).rejects.toThrow('no workflow "wf-b" is loaded. The editor has loaded "wf-a"');
+  });
+});
+
+describe("ui_app_debug", () => {
+  const workflow = {
+    inputs: [{ nodeId: "in-1", name: "prompt", label: "Prompt" }],
+    outputs: [{ nodeId: "out-1", name: "image", label: "Image" }],
+    variables: []
+  };
+
+  it("passes sound wiring and names a binding or run event that resolves to nothing", async () => {
+    const bridge = createAppToolBridge({ workflowId: "wf-a", workflow });
+    const tools = toolsOf(bridge);
+    await tools["ui_app_add_component"].execute({
+      application_id: APP,
+      type: "TextInput",
+      props: { binding: "op:main/in:in-1" }
+    });
+    await tools["ui_app_add_component"].execute({
+      application_id: APP,
+      type: "Button",
+      props: { label: "Go", events: [{ trigger: "click", kind: "run", operationId: "main" }] }
+    });
+    await expect(tools["ui_app_debug"].execute({ application_id: APP })).resolves.toMatchObject({
+      verdict: "pass",
+      issues: []
+    });
+
+    await tools["ui_app_add_component"].execute({
+      application_id: APP,
+      type: "Image",
+      props: { binding: "op:main/out:out-9" }
+    });
+    await tools["ui_app_add_component"].execute({
+      application_id: APP,
+      type: "Button",
+      props: { label: "Other", events: [{ trigger: "click", kind: "run", operationId: "generate" }] }
+    });
+    const report = (await tools["ui_app_debug"].execute({ application_id: APP })) as {
+      verdict: string;
+      issues: string[];
+    };
+    expect(report.verdict).toBe("fail");
+    expect(report.issues).toEqual([
+      expect.stringContaining("is bound to op:main/out:out-9, which names no target"),
+      expect.stringContaining("runs operation generate, which the app does not have. Its operations: main.")
+    ]);
+  });
+
+  it("reads a run event with no operation id as running the first operation", async () => {
+    const tools = toolsOf(createAppToolBridge({ workflowId: "wf-a", workflow }));
+    await tools["ui_app_add_component"].execute({
+      application_id: APP,
+      type: "Button",
+      props: { label: "Go", events: [{ trigger: "click", kind: "run" }] }
+    });
+    await expect(tools["ui_app_debug"].execute({ application_id: APP })).resolves.toMatchObject({ verdict: "pass" });
+  });
+
+  it("resolves op:main to the app's one declared operation, as the runtime does", async () => {
+    const tools = toolsOf(createAppToolBridge({ workflowId: "wf-a", workflow }));
+    await tools["ui_app_add_operation"].execute({ application_id: APP, id: "generate", target_workflow_id: "wf-a" });
+    await tools["ui_app_add_component"].execute({
+      application_id: APP,
+      type: "TextInput",
+      props: { binding: "op:main/in:in-1" }
+    });
+    await expect(tools["ui_app_debug"].execute({ application_id: APP })).resolves.toMatchObject({ verdict: "pass" });
+  });
+
+  it("reports a node-property binding as unchecked rather than wrong", async () => {
+    const tools = toolsOf(createAppToolBridge({ workflowId: "wf-a", workflow }));
+    await tools["ui_app_add_component"].execute({
+      application_id: APP,
+      type: "TextInput",
+      props: { binding: "op:main/prop:node-1#prompt" }
+    });
+    const report = (await tools["ui_app_debug"].execute({ application_id: APP })) as {
+      verdict: string;
+      warnings: string[];
+    };
+    expect(report.verdict).toBe("pass");
+    expect(report.warnings).toEqual([expect.stringContaining("binds a node property")]);
+  });
+
+  it("refuses to run the workflows", async () => {
+    const tools = toolsOf(createAppToolBridge({ workflowId: "wf-a", workflow }));
+    await expect(tools["ui_app_debug"].execute({ application_id: APP, run: true })).rejects.toThrow(
+      "run: true is not available"
+    );
+  });
+});

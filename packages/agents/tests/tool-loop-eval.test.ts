@@ -634,6 +634,23 @@ describe("checkToolLoopExpectations", () => {
     expect(byName["no-error-results"]).toBe(false);
   });
 
+  it("passes no-error-results when a later call of the same tool succeeds", () => {
+    const obs = observation(["ui_connect_nodes", "ui_add_node", "ui_connect_nodes"]);
+    obs.toolCalls[0].isError = true;
+    const checks = checkToolLoopExpectations(obs, { noErrorResults: true });
+    expect(checks).toEqual([
+      expect.objectContaining({ name: "no-error-results", pass: true })
+    ]);
+  });
+
+  it("fails no-error-results when an error is never followed by a success of that tool", () => {
+    const obs = observation(["ui_connect_nodes", "ui_add_node", "ui_connect_nodes"]);
+    obs.toolCalls[2].isError = true;
+    const [check] = checkToolLoopExpectations(obs, { noErrorResults: true });
+    expect(check.pass).toBe(false);
+    expect(check.detail).toContain("1 errored with no later success: ui_connect_nodes");
+  });
+
   it("fails a final-state predicate that throws, surfacing the error", () => {
     const checks = checkToolLoopExpectations(observation([]), {
       finalState: [

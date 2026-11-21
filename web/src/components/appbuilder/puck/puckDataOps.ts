@@ -152,6 +152,20 @@ export const addComponent = (
     };
   }
 
+  // Inserting nothing used to report success: the caller read back an id
+  // for a widget that never reached the tree.
+  const parent = findComponent(data, slotFields, input.parentId);
+  if (!parent) {
+    throw new Error(
+      `No widget with id "${input.parentId}". Read ui_app_get_snapshot for the ids, or omit parent_id to add at the top level.`
+    );
+  }
+  if ((slotFields[parent.type] ?? []).length === 0) {
+    throw new Error(
+      `"${input.parentId}" is a ${parent.type}, which holds no children. Nest inside a Panel, Accordion, Columns or Tabs widget.`
+    );
+  }
+
   const slotName = input.slot;
   const content = mapTree(
     data.content,

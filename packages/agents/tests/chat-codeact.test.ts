@@ -345,6 +345,27 @@ return { secret: secret === undefined ? null : secret, fetchError, workspaceErro
     expect(obs.result).toContain("always fails");
   });
 
+  it("names the calls a failed action completed, so a retry does not repeat them", async () => {
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `import { ui_add, ui_always_fails } from "@nodetool-ai/sandbox-nodetool/ui";\n` +
+        `await ui_add({ a: 1, b: 1 });\nawait ui_add({ a: 2, b: 2 });\nawait ui_always_fails({});`
+    );
+    expect(obs.ok).toBe(false);
+    expect(obs.error).toContain(
+      "Before the error, this action completed 2 tool calls: ui_add ×2. Their effects persist."
+    );
+  });
+
+  it("adds no note when the action failed before any call completed", async () => {
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const obs = await runAction(session, `throw new Error("boom");`);
+    expect(obs.error).not.toContain("Before the error");
+  });
+
   it("injects no state global — cross-action carry is thread memory", async () => {
     const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
     const session = makeSession(GENERIC_TOOLS, executeTool);

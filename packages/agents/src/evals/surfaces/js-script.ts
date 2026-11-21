@@ -20,7 +20,7 @@
 
 import { z } from "zod";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
-import { PERMISSION_GATE_CONTEXT_KEY, parseWithTypeCoercion, ProcessingContext, headlessGate } from "@nodetool-ai/runtime";
+import { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import {
   emptyJsScriptDocument,
@@ -41,7 +41,7 @@ import {
   missingDeclaredJsScriptOutputs,
   type JsScriptValidation
 } from "@nodetool-ai/execution/js-script-debug";
-import type { HeadlessTool } from "../tool-loop-bridge.js";
+import { closedParams, parseBridgeArgs, withHostField, type HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
@@ -88,18 +88,20 @@ function tool<TResult>(
   parameters: z.ZodTypeAny,
   impl: (args: Record<string, unknown>) => Promise<TResult>
 ): HeadlessTool {
+  const advertised = withHostField(parameters, "script_id");
+  const closed = closedParams(advertised);
   return {
     name,
     description,
-    parameters,
+    parameters: advertised,
     execute: async (args) =>
       impl(
-        parseWithTypeCoercion(parameters, args ?? {}) as Record<string, unknown>
+        parseBridgeArgs(closed, args) as Record<string, unknown>
       )
   };
 }
 
-const portParam = z.object({
+const portParam = z.strictObject({
   name: z.string().describe("Port name, readable as `inputs.<name>`."),
   type: z
     .string()
@@ -108,7 +110,7 @@ const portParam = z.object({
     )
 });
 
-const testParam = z.object({
+const testParam = z.strictObject({
   name: z.string().describe("Case label."),
   inputs: z
     .record(z.string(), z.unknown())
@@ -121,7 +123,7 @@ const testParam = z.object({
       "Expected final value per declared output, compared structurally."
     ),
   expectedStreamed: z
-    .array(z.object({ name: z.string(), value: z.unknown() }))
+    .array(z.strictObject({ name: z.string(), value: z.unknown() }))
     .optional()
     .describe("Every value the body must emit, in call order.")
 });
@@ -131,6 +133,23 @@ const testParam = z.object({
  * contract (minus `js_script_id`) but run headlessly against a single implicit
  * script document.
  */
+/**
+ * The fields a run or test adds when the document has validation errors. A
+ * body written to an old contract can still execute, and reporting that as
+ * `ok: true` told the model the script was done.
+ */
+function invalidDocument(
+  validation: JsScriptValidation
+): { error: string; validationErrors: JsScriptValidation["errors"] } | null {
+  if (validation.ok) return null;
+  return {
+    error:
+      "The script does not validate, so this result does not count: " +
+      validation.errors.map((issue) => `${issue.code}: ${issue.message}`).join("; "),
+    validationErrors: validation.errors
+  };
+}
+
 export function createJsScriptToolBridge(
   initial: JsScriptBridgeInitialState = {}
 ): JsScriptToolBridge {
@@ -321,13 +340,13 @@ export function createJsScriptToolBridge(
         const result = await execute(
           (inputs as Record<string, unknown> | undefined) ?? {}
         );
-        const run: NonNullable<JsScriptBridgeFinalState["lastRun"]> = {
-          ok: result.ok
-        };
+        const invalid = invalidDocument(await validate());
+        const ok = result.ok && invalid === null;
+        const run: NonNullable<JsScriptBridgeFinalState["lastRun"]> = { ok };
         if (result.outputs !== undefined) run.outputs = result.outputs;
         if (result.error !== undefined) run.error = result.error;
         lastRun = run;
-        return { ok: result.ok, run: result };
+        return { ok, run: result, ...(invalid ?? {}) };
       }
     ),
 
@@ -342,12 +361,14 @@ export function createJsScriptToolBridge(
           );
         }
         const report = await runTests();
+        const invalid = invalidDocument(await validate());
+        const ok = report.ok && invalid === null;
         lastTest = {
-          ok: report.ok,
+          ok,
           passed: report.passed,
           failed: report.failed
         };
-        return report;
+        return { ...report, ok, ...(invalid ?? {}) };
       }
     )
   ];
