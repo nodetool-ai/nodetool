@@ -1,6 +1,6 @@
 # NodeTool
 
-[English](README.md) · [简体中文](README.zh-CN.md) · 日本語
+[English](README.md) · [简体中文](README.zh-CN.md) · 日本語 · [한국어](README.ko.md)
 
 **オープンソースのAI映画スタジオ · エージェント + ノードワークフロー**
 
