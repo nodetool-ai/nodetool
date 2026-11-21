@@ -673,6 +673,8 @@ As built (WP2.7, receive half): the client is `packages/project-services/src/clo
 
 A lock file `.nodetool/open.lock`, held by the process that opened the project for writing, names the app, its process id, the host, the process start time and the project id. A second process opens the project read-only and names the holder (AC25). A copied folder carries the file. A lock that names another project id, or a process on this host that is not running with that start time, is therefore stale and is replaced. A lock from another host cannot be checked: the app offers to open read-only, or to take over after the person confirms that no other computer has the project open. The folder lock of RF22 is in-process and cannot give AC25. TC105.
 
+As built (WP2.13, lock file): `native/account/include/nodetool/account/project_lock.h` holds the lock file both native apps link. The file is JSON with `app`, `pid`, `host`, `start_time` and `project_id`. The start time is a token of the platform, compared only for equality: the boot id and the start ticks on Linux, the start seconds and microseconds on macOS, and the creation time on Windows. A process that runs but whose start time cannot be read counts as the holder, so a lock is never replaced while its holder may still write. The check and the write run under an operating system lock on `.nodetool/open.lock.guard`, so two apps that open the folder at the same moment cannot both take it. Release removes the file only while it still names the releasing process. `account_project_lock_tests` runs the stale rules, the take-over and the race on all three platforms. Read-only opening in the two apps follows.
+
 ### Tests for phase 2
 
 | Code | Scenario | Expected outcome | AC |
