@@ -20,6 +20,7 @@ const mockClient = {
   },
   timeline: { list: { query: jest.fn() } },
   jsScripts: { list: { query: jest.fn() } },
+  scripts: { list: { query: jest.fn() } },
   documentSharing: { sharedWithMe: { query: jest.fn() } }
 };
 
@@ -52,6 +53,9 @@ beforeEach(() => {
   mockClient.jsScripts.list.query.mockResolvedValue([
     { id: "js-1", projectId: "p", name: "Tidy", description: "", inputs: [], outputs: [], updatedAt: "2026-01-15T00:00:00Z" }
   ]);
+  mockClient.scripts.list.query.mockResolvedValue([
+    { id: "sc-1", projectId: "p", name: "Pilot", lineCount: 3, updatedAt: "2026-01-10T00:00:00Z" }
+  ]);
   mockClient.workflows.sharing.sharedWithMe.query.mockResolvedValue({
     workflows: [{ id: "wf-s", name: "Their Flow", updated_at: "2026-02-02T00:00:00Z", shared_role: "editor" }]
   });
@@ -59,12 +63,13 @@ beforeEach(() => {
     documents: [
       { type: "timeline", id: "tl-s", name: "Their Cut", owner_id: "u2", role: "viewer", updated_at: "2026-02-03T00:00:00Z" },
       { type: "sketch", id: "sk-s", name: "Their Sketch", owner_id: "u2", role: "editor" },
-      { type: "jsscript", id: "js-s", name: "Their Script", owner_id: "u2", role: "editor", updated_at: "2026-01-20T00:00:00Z" }
+      { type: "jsscript", id: "js-s", name: "Their Script", owner_id: "u2", role: "editor", updated_at: "2026-01-20T00:00:00Z" },
+      { type: "script", id: "sc-s", name: "Their Pilot", owner_id: "u2", role: "viewer", updated_at: "2026-01-05T00:00:00Z" }
     ]
   });
 });
 
-test("lists own workflows over every page, own timelines and JS scripts, newest first, with their origin", async () => {
+test("lists own workflows over every page, own timelines, JS scripts and scripts, newest first, with their origin", async () => {
   const { result } = setup();
   await waitFor(() => expect(result.current.groups).toHaveLength(2));
   const [own, shared] = result.current.groups;
@@ -73,6 +78,7 @@ test("lists own workflows over every page, own timelines and JS scripts, newest 
     ["wf-new", "Launch", "workflow"],
     ["tl-1", "Cut", "timeline"],
     ["js-1", "Tidy", "jsscript"],
+    ["sc-1", "Pilot", "script"],
     ["wf-old", "Untitled workflow", "workflow"]
   ]);
   expect(own.children.every((leaf) => leaf.origin === ORIGIN && !leaf.sharedRole)).toBe(true);
@@ -90,7 +96,8 @@ test("lists own workflows over every page, own timelines and JS scripts, newest 
   expect(shared.children.map((leaf) => [leaf.id, leaf.type, leaf.sharedRole])).toEqual([
     ["tl-s", "timeline", "viewer"],
     ["wf-s", "workflow", "editor"],
-    ["js-s", "jsscript", "editor"]
+    ["js-s", "jsscript", "editor"],
+    ["sc-s", "script", "viewer"]
   ]);
 });
 

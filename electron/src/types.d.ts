@@ -613,7 +613,7 @@ export type CloudResponse =
 /** The workflow socket of a cloud document, opened by the main process (D25). */
 /** A document of the signed-in cloud server that opens in the cloud window (D26, D27). */
 export interface CloudDocumentRef {
-  type: "workflow" | "timeline" | "jsscript";
+  type: "workflow" | "timeline" | "jsscript" | "script";
   id: string;
 }
 
