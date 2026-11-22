@@ -52,6 +52,15 @@ npm run electron:dev        # Start against web Vite server (requires active con
 This workspace has no Playwright suite — main-process behavior is covered by
 the Jest tests in `src/__tests__/`. Browser-level E2E lives in `web/`.
 
+`src/__tests__/ipc.surface.test.ts` (harness `electron-ipc-surface`) reads the
+preloads and the main-process sources and fails when an IPC channel has one
+end missing: an `invoke` with no handler, a `send` with no `ipcMain.on`, a
+subscription with no emitter, or the reverse of each. It recognizes
+`ipcRenderer.invoke`/`send`/`sendSync`, `createEventSubscription`,
+`createIpcMainHandler`/`ipcMain.handle`, `ipcMain.on`, `webContents.send` and
+`broadcastToWindows`. A new call shape fails the suite until the scanner
+learns it.
+
 ## Key Technologies
 
 | Library | Version | Purpose |

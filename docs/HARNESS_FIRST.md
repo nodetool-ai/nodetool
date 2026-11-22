@@ -240,10 +240,11 @@ second, driftable copy of the selection logic.
 
 ## Current gaps
 
-Run `nodetool harness audit` for the live surface gaps: the mobile app (the
-tool contract exists — drive it headlessly like the tool-loop evals do) and
-the Electron shell (unit tests only; a harness would boot the packaged shell
-under Playwright's Electron driver).
+Run `nodetool harness audit` for the live surface gaps. Two app surfaces are
+covered only in part. The mobile harness drives the storyboard document tools,
+not the screens or chat transport. The Electron harness checks the IPC
+contract from source, and nothing boots the packaged shell under Playwright's
+Electron driver yet.
 
 For the path-claim layer below that — a package with no harness *and* no
 surface even naming it — read `UNCLAIMED_PATHS` in the registry directly: each
