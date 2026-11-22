@@ -58,6 +58,11 @@ export interface SketchInstance {
   session: SketchSessionStoreApi;
   canvasRef: SketchCanvasRefStoreApi;
   documentSync: { current: DocumentSyncController | null };
+  /**
+   * Whether editor or binding state changed since the last save attempt. The
+   * document sync sets and clears it. The cloud window's drafts read it.
+   */
+  unsavedEdits: { current: boolean };
 }
 
 /**
@@ -70,7 +75,8 @@ export const createSketchInstance = (): SketchInstance => ({
   editor: createSketchStore(),
   session: createSketchSessionStore(),
   canvasRef: createSketchCanvasRefStore(),
-  documentSync: { current: null }
+  documentSync: { current: null },
+  unsavedEdits: { current: false }
 });
 
 // A lazily-built default instance backs hooks used outside any provider
