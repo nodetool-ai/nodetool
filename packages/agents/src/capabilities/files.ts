@@ -135,6 +135,22 @@ function wasRead(
  * there and its contents are missing. That is what sent an agent hunting for a
  * "ghost" file — it was the folder it had just created.
  */
+/**
+ * Keep the version a write replaces when the file is a Markdown document
+ * (PRD R8, R11). Loaded on demand, so a write to any other file pays nothing.
+ */
+async function recordDocumentVersionBeforeWrite(
+  context: ProcessingContext,
+  key: string,
+  previous: string
+): Promise<void> {
+  if (!/\.(md|markdown)$/i.test(key)) return;
+  const { recordDocumentVersionBeforeFileWrite } = await import(
+    "./text-documents.js"
+  );
+  await recordDocumentVersionBeforeFileWrite(context, key, previous);
+}
+
 async function isDirectory(
   workspace: Workspace,
   path: string
@@ -339,6 +355,16 @@ const writeFileCapability: CapabilityExport = {
     }
 
     try {
+      if (exists) {
+        const previous = await workspace.readText(filePath);
+        if (previous !== null && previous !== content) {
+          await recordDocumentVersionBeforeWrite(
+            context,
+            workspace.key(filePath),
+            previous
+          );
+        }
+      }
       await workspace.write(filePath, content, mimeForPath(filePath));
       // After a successful write, treat the file as "read" — the model knows
       // its current contents (it just wrote them) and shouldn't have to re-read
@@ -840,6 +866,11 @@ const editFile: CapabilityExport = {
           content.slice(firstIdx + searchString.length);
       }
 
+      await recordDocumentVersionBeforeWrite(
+        context,
+        workspace.key(rawPath),
+        content
+      );
       await workspace.write(rawPath, newContent, mimeForPath(rawPath));
       // An edit is a read plus a write: `write_file` must not go on to demand a
       // read of the file this call just showed the model and rewrote.

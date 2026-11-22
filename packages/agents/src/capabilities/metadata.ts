@@ -41,6 +41,7 @@ import { sketchesSpecs } from "./sketches.specs.js";
 import { storyboardsSpecs } from "./storyboards.specs.js";
 import { threadsSpecs } from "./threads.specs.js";
 import { timelinesSpecs } from "./timelines.specs.js";
+import { textDocumentsSpecs } from "./text-documents.specs.js";
 import { trashSpecs } from "./trash.specs.js";
 import { uiSpecs } from "./ui.specs.js";
 import { webSpecs } from "./web.specs.js";
@@ -74,6 +75,7 @@ export const CAPABILITY_SPECS = {
   threads: threadsSpecs,
   projects: projectsSpecs,
   trash: trashSpecs,
+  "text-documents": textDocumentsSpecs,
   "example-timelines": exampleTimelinesSpecs,
   timelines: timelinesSpecs,
   fonts: fontsSpecs,

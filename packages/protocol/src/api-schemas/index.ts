@@ -33,6 +33,7 @@ export * as threads from "./threads.js";
 export * as memories from "./memories.js";
 export * as cloudLocal from "./cloud-local.js";
 export * as deletedDocuments from "./deleted-documents.js";
+export * as textDocuments from "./text-documents.js";
 export * as transfer from "./transfer.js";
 export * as receive from "./receive.js";
 export * as cloudTransferLocal from "./cloud-transfer-local.js";

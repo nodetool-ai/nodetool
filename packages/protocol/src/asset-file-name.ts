@@ -14,6 +14,7 @@ const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {
   "image/bmp": "bmp",
   "text/plain": "txt",
   "text/csv": "csv",
+  "text/markdown": "md",
   "text/html": "html",
   "application/json": "json",
   "application/pdf": "pdf",
@@ -54,8 +55,9 @@ export function getAssetFileName(
 }
 
 /**
- * Names to try when reading an asset, newest first. Models and fonts used
- * to be stored as `.bin` before their content types had extension mappings.
+ * Names to try when reading an asset, newest first. Models, fonts and
+ * Markdown used to be stored as `.bin` before their content types had
+ * extension mappings.
  */
 export function assetFileNameCandidates(
   assetId: string,
@@ -63,7 +65,8 @@ export function assetFileNameCandidates(
 ): string[] {
   const canonical = getAssetFileName(assetId, contentType);
   if (canonical.endsWith(".glb") || canonical.endsWith(".gltf") ||
-      canonical.endsWith(".ttf") || canonical.endsWith(".otf")) {
+      canonical.endsWith(".ttf") || canonical.endsWith(".otf") ||
+      canonical.endsWith(".md")) {
     return [canonical, `${assetId}.bin`];
   }
   return [canonical];

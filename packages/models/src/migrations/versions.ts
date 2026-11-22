@@ -978,6 +978,30 @@ const CLOUD_LOCAL_STORE_DDL: readonly string[] = [
     ON cloud_open_state (user_id, server_key, account_id, kind, document_id)`
 ];
 
+/**
+ * DDL for `text_document_versions` (document editor PRD R11), valid on both
+ * dialects. Applied by its migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const TEXT_DOCUMENT_VERSIONS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS text_document_versions (
+    id TEXT PRIMARY KEY NOT NULL,
+    asset_id TEXT NOT NULL REFERENCES nodetool_assets (id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
+    name TEXT,
+    version INTEGER NOT NULL DEFAULT 1,
+    save_type TEXT NOT NULL DEFAULT 'manual',
+    cause_id TEXT,
+    content TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  "CREATE INDEX IF NOT EXISTS idx_tdv_asset ON text_document_versions (asset_id)",
+  "CREATE INDEX IF NOT EXISTS idx_tdv_user ON text_document_versions (user_id)",
+  "CREATE INDEX IF NOT EXISTS idx_tdv_asset_cause ON text_document_versions (asset_id, cause_id)",
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_tdv_asset_version ON text_document_versions (asset_id, version)"
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
@@ -1022,7 +1046,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   MESSAGE_TURN_CONTEXT_DDL,
   ...PROJECT_FILE_LISTS_DDL,
   ...CLOUD_LINK_WORKSPACE_FILES_DDL,
-  ...RECEIVE_WORKSPACE_FILES_DDL
+  ...RECEIVE_WORKSPACE_FILES_DDL,
+  ...TEXT_DOCUMENT_VERSIONS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5711,6 +5736,25 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // The constraint stays dropped: restoring it would reject published rows.
+    }
+  },
+  // ── Create text_document_versions ───────────────────────────────────
+  // Whole-Markdown history of a document (a text asset), document editor
+  // PRD R11. The cascade drops a deleted asset's history with it.
+  {
+    version: "20261202_000001",
+    name: "create_text_document_versions",
+    createsTables: ["text_document_versions"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of TEXT_DOCUMENT_VERSIONS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_tdv_asset_version");
+      await db.execute("DROP INDEX IF EXISTS idx_tdv_asset_cause");
+      await db.execute("DROP INDEX IF EXISTS idx_tdv_user");
+      await db.execute("DROP INDEX IF EXISTS idx_tdv_asset");
+      await db.execute("DROP TABLE IF EXISTS text_document_versions");
     }
   }
 ];

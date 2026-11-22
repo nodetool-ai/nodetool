@@ -1373,6 +1373,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "receive.release": {
     withheld: "Revision sets belong to the desktop app that captured them."
   },
+  "textDocuments.versions": { capability: "list_document_versions" },
+  "textDocuments.version": {
+    gap: "The agent reads the current document; a stored version's content has no read capability."
+  },
+  "textDocuments.createVersion": { capability: "create_document_version" },
+  "textDocuments.restore": { capability: "restore_document_version" },
   "deletedDocuments.list": { capability: "list_deleted_documents" },
   "deletedDocuments.restore": { capability: "restore_deleted_document" },
   "deletedDocuments.endRestorePeriod": {

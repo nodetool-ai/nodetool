@@ -1,0 +1,54 @@
+import { z } from "zod";
+
+// Stored versions of Markdown documents (docs/document-editor/prd.md, R11).
+// A version is a complete copy of the document's Markdown.
+
+export const textDocumentSaveType = z.enum([
+  "agent_turn",
+  "workflow_run",
+  "manual",
+  "autosave",
+  "restore"
+]);
+export type TextDocumentSaveTypeValue = z.infer<typeof textDocumentSaveType>;
+
+export const textDocumentVersionResponse = z.object({
+  version: z.number().int(),
+  name: z.string().nullable(),
+  save_type: z.string(),
+  cause_id: z.string().nullable(),
+  created_at: z.string(),
+  content_hash: z.string()
+});
+export type TextDocumentVersionResponse = z.infer<typeof textDocumentVersionResponse>;
+
+export const textDocumentRef = z.object({
+  asset_id: z.string().min(1).max(256)
+});
+
+export const listTextDocumentVersionsOutput = z.object({
+  versions: z.array(textDocumentVersionResponse)
+});
+
+export const getTextDocumentVersionInput = textDocumentRef.extend({
+  version: z.number().int().min(1)
+});
+export const getTextDocumentVersionOutput = textDocumentVersionResponse.extend({
+  content: z.string()
+});
+
+export const createTextDocumentVersionInput = textDocumentRef.extend({
+  /** `manual` for "Save version", `autosave` for the editor's interval versions. */
+  save_type: z.enum(["manual", "autosave"]).default("manual"),
+  name: z.string().max(200).optional()
+});
+export const createTextDocumentVersionOutput = z.object({
+  /** Null when the content equals the newest version and nothing was stored. */
+  version: textDocumentVersionResponse.nullable()
+});
+
+export const restoreTextDocumentVersionInput = getTextDocumentVersionInput;
+export const restoreTextDocumentVersionOutput = z.object({
+  restored_version: z.number().int(),
+  updated_at: z.string()
+});
