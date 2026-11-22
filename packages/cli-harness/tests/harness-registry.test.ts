@@ -553,6 +553,22 @@ describe("harness gate", () => {
     expect(plan.unmappedFiles).toEqual([]);
   });
 
+  it("maps a web feature-area change onto its Jest selfcheck and journey", () => {
+    const plan = planGate([
+      "web/src/components/chat/containers/ChatView.tsx",
+      "web/src/stores/SecretsStore.ts"
+    ]);
+    const surfaces = plan.surfaces.map((s) => s.id);
+    expect(surfaces).toEqual(expect.arrayContaining(["web-chat", "web-settings", "web-editor"]));
+    expect(surfaces).not.toContain("web-library");
+    const checks = plan.checks.map((c) => c.harnessId);
+    expect(checks).toEqual(expect.arrayContaining(["web-chat-ui", "web-settings-ui"]));
+    expect(checks).not.toContain("web-library-ui");
+    // The journeys start a server and a browser, so they are manual work.
+    expect(plan.manual.map((m) => m.harnessId)).toContain("web-chat-browser");
+    expect(plan.unmappedFiles).toEqual([]);
+  });
+
   it("maps a script↔storyboard link change onto both surfaces and their selfcheck", () => {
     const plan = planGate([
       "packages/protocol/src/script-link.ts",
