@@ -100,8 +100,9 @@ override that does not call `super`.
 and logs the refusal. In `auto` the ladder allows read, write, execute and
 external outright, so that approver is reached only by an escalation the ladder
 itself raises: `admitCodeAction` asks before a high-risk `execute_code` action
-in auto, and the Apify actor policy asks before an actor the install has not
-allowlisted. Resolving `"allow"` would grant what those escalations exist to
+in auto, the Apify actor policy asks before an actor the install has not
+allowlisted, and `download_hf_model` asks before every download with the
+repository and its size, under the rule key `download_hf_model:<repo>`. Resolving `"allow"` would grant what those escalations exist to
 withhold, and never resolving would hang the run (invariant I-4).
 `headlessDenialReason` is exported so a host that runs headless on purpose can
 print the same sentence once at the start instead of once per denied call.
@@ -147,7 +148,7 @@ How a saved rule meets each mode:
 |---|---|---|
 | `plan` | blocked | blocked, because the category decides before any allow-list is read |
 | `default` | prompt | runs |
-| `auto` | runs, except the escalations (`admitCodeAction` for a high-risk `execute_code`, an un-allowlisted Apify actor) | runs, and the escalation for that key is skipped |
+| `auto` | runs, except the escalations (`admitCodeAction` for a high-risk `execute_code`, an un-allowlisted Apify actor, every `download_hf_model` call) | runs, and the escalation for that key is skipped |
 
 Read-class tools never ask, so they have no rule. Hosts other than the chat
 turn set no `alwaysAllow`, and their behaviour is unchanged.

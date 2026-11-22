@@ -59,11 +59,14 @@ export {
 export type {
   DownloadUpdate,
   ProgressCallback,
-  DownloadStateSnapshot
+  DownloadStateSnapshot,
+  HfDownloadPlan,
+  HfDownloadPlanOptions
 } from "./hf-download-manager.js";
 export {
   ALWAYS_IGNORE_PATTERNS,
   DownloadManager,
+  planHfDownload,
   getDownloadManager,
   getExistingDownloadManager,
   hfDownloadConcurrency

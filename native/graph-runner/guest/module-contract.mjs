@@ -309,6 +309,7 @@ export const MODULES = {
       getDefaultAssetsPath: unavailable("server-only", "a data directory of the server"),
       getDefaultVectorstoreDbPath: impl("shims/config.cjs"),
       getEnv: impl("shims/config.cjs"),
+      getHfHubCacheDir: unavailable("server-only", "the server's Hugging Face cache directory"),
       getManagedWorkspaceDir: unavailable("server-only", "a data directory of the server"),
       getNodeBuiltinSync: impl("shims/config.cjs"),
       getNodetoolCacheDir: unavailable("server-only", "a data directory of the server"),
@@ -388,6 +389,7 @@ export const MODULES = {
     exports: Object.fromEntries(
       ["access", "default", "lstat", "mkdir", "mkdtemp", "open", "readFile", "readdir", "realpath", "rename", "rm", "stat", "unlink", "writeFile"]
         .map((name) => [name, impl("host/fs-promises.mjs")])
+        .concat([["statfs", unavailable("server-only", "reads free space on the server's disks")]])
     )
   },
   "node:path": {
@@ -525,6 +527,10 @@ export const MODULES = {
   // Server packages the guest does not load.
   "@nodetool-ai/asset-services": {
     whole: unavailable("server-only", "keeps asset files in the server's project folders"),
+    subpaths: true
+  },
+  "@nodetool-ai/huggingface": {
+    whole: unavailable("server-only", "downloads into the server's Hugging Face cache"),
     subpaths: true
   },
 

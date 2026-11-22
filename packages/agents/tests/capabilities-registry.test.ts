@@ -171,6 +171,8 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   get_cost_summary: "read",
   list_deleted_documents: "read",
   list_fonts: "read",
+  download_hf_model: "external",
+  get_hf_download: "read",
   restore_deleted_document: "write",
   list_workers: "read",
   get_worker_status: "read",

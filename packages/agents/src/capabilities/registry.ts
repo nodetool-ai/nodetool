@@ -153,6 +153,10 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
     loader: () => import("./fonts.js").then((m) => m.module),
     specs: CAPABILITY_SPECS["fonts"]
   },
+  "hf-downloads": {
+    loader: () => import("./hf-downloads.js").then((m) => m.module),
+    specs: CAPABILITY_SPECS["hf-downloads"]
+  },
   sketches: {
     loader: () => import("./sketches.js").then((m) => m.module),
     specs: CAPABILITY_SPECS["sketches"]
