@@ -1,14 +1,17 @@
 /**
  * Text documents router: the stored versions of a Markdown document
  * (docs/document-editor/prd.md, R11) and the workflows that reference it
- * (R15). The editor lists versions, saves one on
+ * (R15), and imports and exports (R17-R19). The editor lists versions, saves one on
  * "Save version" and at an interval while the user edits, and restores one.
  * Reads and writes go through `@nodetool-ai/asset-services/text-documents`,
  * the service the `text-documents` agent capabilities call.
  */
 
 import {
+  Asset,
+  GOOGLE_ACCESS_TOKEN_KEY,
   TextDocumentVersion,
+  getSecret,
   textDocumentContentHash,
   workflowsReferencingDocument
 } from "@nodetool-ai/models";
@@ -22,6 +25,12 @@ import {
 import {
   createTextDocumentVersionInput,
   createTextDocumentVersionOutput,
+  exportGoogleDocInput,
+  exportGoogleDocOutput,
+  exportTextDocumentInput,
+  importGoogleDocInput,
+  importTextDocumentInput,
+  textDocumentFileOutput,
   getTextDocumentVersionInput,
   getTextDocumentVersionOutput,
   listTextDocumentVersionsOutput,
@@ -55,6 +64,37 @@ async function loadDocument(userId: string, assetId: string) {
     }
     throw error;
   }
+}
+
+const transfer = () => import("@nodetool-ai/agents/text-document-transfer");
+
+function fileResponse(asset: Asset) {
+  return { asset_id: asset.id, name: asset.name, path: asset.workspace_path ?? null };
+}
+
+/** Run an import or export, answering a source it cannot handle as invalid input. */
+async function transferring<T>(body: () => Promise<T>): Promise<T> {
+  const { DocumentTransferError } = await transfer();
+  try {
+    return await body();
+  } catch (error) {
+    if (error instanceof DocumentTransferError || error instanceof TextDocumentError) {
+      throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+    }
+    throw error;
+  }
+}
+
+/** The user's Google access token, or an error that asks them to sign in. */
+async function googleToken(userId: string): Promise<string> {
+  const token = await getSecret(GOOGLE_ACCESS_TOKEN_KEY, userId);
+  if (!token) {
+    throwApiError(
+      ApiErrorCode.UNAUTHORIZED,
+      "Sign in with Google in Settings to use Google Docs."
+    );
+  }
+  return token;
 }
 
 export const textDocumentsRouter = router({
@@ -133,5 +173,58 @@ export const textDocumentsRouter = router({
         }
         throw error;
       }
+    }),
+
+  import: protectedProcedure
+    .input(importTextDocumentInput)
+    .output(textDocumentFileOutput)
+    .mutation(async ({ ctx, input }) => {
+      const { importAssetAsDocument } = await transfer();
+      const created = await transferring(() =>
+        importAssetAsDocument({ userId: ctx.userId, sourceAssetId: input.asset_id, name: input.name })
+      );
+      return fileResponse(created);
+    }),
+
+  export: protectedProcedure
+    .input(exportTextDocumentInput)
+    .output(textDocumentFileOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      const { exportDocumentFile } = await transfer();
+      return fileResponse(await transferring(() => exportDocumentFile(asset, input.format)));
+    }),
+
+  importGoogleDoc: protectedProcedure
+    .input(importGoogleDocInput)
+    .output(textDocumentFileOutput)
+    .mutation(async ({ ctx, input }) => {
+      const { googleDocIdOf, importGoogleDoc } = await transfer();
+      const documentId = googleDocIdOf(input.document);
+      if (!documentId) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Paste a Google Doc link or its id.");
+      }
+      const token = await googleToken(ctx.userId);
+      const created = await transferring(() =>
+        importGoogleDoc({
+          userId: ctx.userId,
+          token,
+          documentId,
+          projectId: input.project_id,
+          directory: input.directory
+        })
+      );
+      return fileResponse(created);
+    }),
+
+  exportGoogleDoc: protectedProcedure
+    .input(exportGoogleDocInput)
+    .output(exportGoogleDocOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      const token = await googleToken(ctx.userId);
+      const { exportGoogleDoc } = await transfer();
+      const doc = await exportGoogleDoc({ token, document: asset, title: input.title });
+      return { document_id: doc.id, name: doc.name, url: doc.url };
     })
 });

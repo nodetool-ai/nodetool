@@ -20640,6 +20640,22 @@
     "convert": {
       "label": "Gör om till dokument",
       "tooltip": "Flytta texten till ett projektdokument och hänvisa till det från den här noden"
+    },
+    "export": {
+      "label": "Exportera",
+      "pdf": "Exportera som PDF",
+      "html": "Exportera som HTML",
+      "googleDoc": "Exportera till Google Dokument"
+    },
+    "importGoogleDoc": {
+      "title": "Importera Google-dokument",
+      "confirm": "Importera",
+      "link": "Länk till Google-dokumentet",
+      "help": "Klistra in länken till dokumentet från webbläsaren. Du måste vara inloggad med Google."
+    },
+    "import": {
+      "asDocument": "Importera som dokument",
+      "asDocumentTooltip": "Skapa ett redigerbart Markdown-dokument från filen. Själva filen ändras inte."
     }
   }
 }

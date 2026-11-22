@@ -156,6 +156,105 @@ export const restoreDocumentVersionSpec: CapabilitySpec = {
   userMessage: (params) => `Restoring document version ${String(params["version"])}`
 };
 
+export const importDocumentSpec: CapabilitySpec = {
+  name: "import_document",
+  description:
+    "Import a .md, .txt, .html, .docx or .pdf file as a new Markdown " +
+    "document beside it, and return the document's asset_id and path. DOCX " +
+    "keeps headings, lists, tables, links and emphasis. PDF keeps the text " +
+    "only. The source file is not changed.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      asset_id: {
+        type: "string",
+        description: "The source file's asset id (full or the 12-character short id)."
+      },
+      path: {
+        type: "string",
+        description:
+          "The source file's path in the project folder, such as inbox/brief.docx. Used when asset_id is absent."
+      },
+      name: {
+        type: "string",
+        description: "Name of the new document. Defaults to the source file's name."
+      }
+    },
+    additionalProperties: false
+  },
+  category: "write",
+  userMessage: () => "Importing a document"
+};
+
+export const exportDocumentSpec: CapabilitySpec = {
+  name: "export_document",
+  description:
+    "Export a Markdown document as a PDF or HTML file next to it in the " +
+    "project folder, and return the new file's asset_id and path. A name " +
+    "that exists gets a numbered copy.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      ...documentTarget,
+      format: { type: "string", enum: ["pdf", "html"], description: "The file format." }
+    },
+    required: ["format"],
+    additionalProperties: false
+  },
+  category: "write",
+  userMessage: (params) => `Exporting a document as ${String(params["format"]).toUpperCase()}`
+};
+
+export const importGoogleDocSpec: CapabilitySpec = {
+  name: "import_google_doc",
+  description:
+    "Import a Google Doc as a new Markdown document in the project folder, " +
+    "keeping headings, lists, tables, links and emphasis. Needs the user's " +
+    "Google sign-in. Returns the document's asset_id and path.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      document_id: {
+        type: "string",
+        description: "The Google Doc's id, or its docs.google.com URL."
+      },
+      directory: {
+        type: "string",
+        description: "Directory in the project folder. Defaults to the root."
+      },
+      project_id: {
+        type: "string",
+        description: "Project to create it in. Defaults to the run's project."
+      }
+    },
+    required: ["document_id"],
+    additionalProperties: false
+  },
+  category: "external",
+  userMessage: () => "Importing a Google Doc"
+};
+
+export const exportGoogleDocSpec: CapabilitySpec = {
+  name: "export_google_doc",
+  description:
+    "Export a Markdown document to a new Google Doc in the user's Drive, " +
+    "keeping headings, lists, tables, links and emphasis. Needs the user's " +
+    "Google sign-in. Returns the doc's id and URL.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      ...documentTarget,
+      title: {
+        type: "string",
+        description: "Title of the Google Doc. Defaults to the document's name."
+      }
+    },
+    additionalProperties: false
+  },
+  category: "external",
+  userMessage: () => "Exporting a document to Google Docs"
+};
+
 /** Every spec this module declares, in declaration order. */
 export const textDocumentsSpecs: readonly CapabilitySpec[] = [
   createDocumentSpec,
@@ -163,5 +262,9 @@ export const textDocumentsSpecs: readonly CapabilitySpec[] = [
   editDocumentSpec,
   listDocumentVersionsSpec,
   createDocumentVersionSpec,
-  restoreDocumentVersionSpec
+  restoreDocumentVersionSpec,
+  importDocumentSpec,
+  exportDocumentSpec,
+  importGoogleDocSpec,
+  exportGoogleDocSpec
 ];

@@ -5,7 +5,8 @@
  * shortcuts cover the rest, and the Markdown view edits the same file as
  * text. Edits autosave; blocks nobody touched keep their exact bytes.
  *
- * Beside the page dock the assistant (R7) and the version history (R11).
+ * Beside the page dock the assistant (R7) and the version history (R11),
+ * and the bar exports the document (R18, R19).
  * Blocks an agent or another writer changed stay marked until the user
  * edits or dismisses them (R9), and a selection opens a prompt (R10).
  */
@@ -89,6 +90,7 @@ import {
 import { DocumentSelectionAssistPlugin } from "./DocumentSelectionAssistPlugin";
 import DocumentAgentPanel from "./DocumentAgentPanel";
 import DocumentVersionsPanel from "./DocumentVersionsPanel";
+import DocumentExportMenu from "./DocumentExportMenu";
 
 type DocumentView = "formatted" | "markdown";
 
@@ -371,6 +373,7 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
           aria-pressed={panel === "history"}
           onClick={() => togglePanel("history")}
         />
+        <DocumentExportMenu assetId={asset.id} flush={flush} />
       </>
     )
   };

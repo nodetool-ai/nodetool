@@ -7,7 +7,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createLocalWorkspace,
   setProjectFolderResolver,
@@ -24,9 +24,14 @@ const PROJECT = "doc-project";
 let root: string;
 let workspace: Workspace;
 
-function contextFor(jobId: string, threadId: string | null = "thread-1"): ProcessingContext {
+function contextFor(
+  jobId: string,
+  threadId: string | null = "thread-1",
+  googleToken: string | null = null
+): ProcessingContext {
   const values = new Map<string, unknown>();
   return {
+    getSecret: async (key: string) => (key === "GOOGLE_ACCESS_TOKEN" ? googleToken : null),
     userId: USER,
     projectId: PROJECT,
     jobId,
@@ -60,6 +65,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.unstubAllGlobals();
   ModelObserver.clear();
   setProjectFolderResolver(null);
   await rm(root, { recursive: true, force: true });
@@ -148,5 +154,90 @@ describe("text-documents capabilities", () => {
     expect(versions.map((v) => v.content)).toEqual(["one\n"]);
     const read = await call("read_document", { asset_id: id });
     expect(read["content"]).toBe("three\n");
+  });
+
+  it("imports an HTML file as a Markdown document beside it", async () => {
+    const { saveProjectAsset } = await import("@nodetool-ai/asset-services");
+    await saveProjectAsset({
+      userId: USER,
+      projectId: PROJECT,
+      name: "brief.html",
+      contentType: "text/html",
+      directory: "inbox",
+      bytes: new TextEncoder().encode("<h1>Brief</h1><p>Ship <strong>it</strong>.</p>")
+    });
+    const imported = await call("import_document", { path: "inbox/brief.html" });
+    expect(imported["path"]).toBe("inbox/brief.md");
+    const read = await call("read_document", { asset_id: imported["asset_id"] });
+    expect(String(read["content"])).toMatch(/^# Brief/);
+    expect(String(read["content"])).toContain("**it**");
+  });
+
+  it("refuses to import a file type it cannot read", async () => {
+    const { saveProjectAsset } = await import("@nodetool-ai/asset-services");
+    const saved = await saveProjectAsset({
+      userId: USER,
+      projectId: PROJECT,
+      name: "clip.wav",
+      contentType: "audio/wav",
+      bytes: new Uint8Array([1, 2, 3])
+    });
+    const result = await call("import_document", { asset_id: saved.id });
+    expect(String(result["error"])).toMatch(/cannot be imported/);
+  });
+
+  it("exports a document as an HTML file next to it", async () => {
+    const created = await call("create_document", {
+      name: "Notes",
+      content: "# Notes\n\nOne *two*.\n",
+      directory: "docs"
+    });
+    const exported = await call("export_document", { asset_id: created["asset_id"], format: "html" });
+    expect(exported["path"]).toBe("docs/Notes.html");
+    const html = await workspace.read("docs/Notes.html");
+    const text = new TextDecoder().decode(html);
+    expect(text).toContain("<h1");
+    expect(text).toContain("<em>two</em>");
+  });
+
+  it("imports a Google Doc by its URL as a Markdown document", async () => {
+    const fetchMock = vi.fn(async (url: string) =>
+      url.includes("/export")
+        ? new Response("# Brief\n\n- one\n")
+        : Response.json({ id: "doc123abcdef", name: "Brief", mimeType: "application/vnd.google-apps.document" })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await call(
+      "import_google_doc",
+      { document_id: "https://docs.google.com/document/d/doc123abcdef/edit" },
+      contextFor("turn-1", "thread-1", "token-1")
+    );
+    expect(result["path"]).toBe("Brief.md");
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain("/files/doc123abcdef/export");
+    const read = await call("read_document", { asset_id: result["asset_id"] });
+    expect(read["content"]).toBe("# Brief\n\n- one\n");
+  });
+
+  it("exports a document to a new Google Doc", async () => {
+    const created = await call("create_document", { name: "Out", content: "# Out\n" });
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) =>
+      Response.json({ id: "g1", name: "Out", webViewLink: "https://docs.google.com/document/d/g1" })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await call(
+      "export_google_doc",
+      { asset_id: created["asset_id"] },
+      contextFor("turn-1", "thread-1", "token-1")
+    );
+    expect(result).toEqual({ document_id: "g1", name: "Out", url: "https://docs.google.com/document/d/g1" });
+    const body = String(fetchMock.mock.calls[0]?.[1]?.body);
+    expect(body).toContain("application/vnd.google-apps.document");
+    expect(body).toContain("# Out");
+  });
+
+  it("answers a Google Docs call with no sign-in with an error", async () => {
+    const created = await call("create_document", { name: "N", content: "x\n" });
+    const result = await call("export_google_doc", { asset_id: created["asset_id"] });
+    expect(typeof result["error"]).toBe("string");
   });
 });

@@ -20640,6 +20640,22 @@
     "convert": {
       "label": "In Dokument umwandeln",
       "tooltip": "Diesen Text in ein Projektdokument verschieben und von diesem Knoten aus darauf verweisen"
+    },
+    "export": {
+      "label": "Exportieren",
+      "pdf": "Als PDF exportieren",
+      "html": "Als HTML exportieren",
+      "googleDoc": "Nach Google Docs exportieren"
+    },
+    "importGoogleDoc": {
+      "title": "Google Doc importieren",
+      "confirm": "Importieren",
+      "link": "Link zum Google Doc",
+      "help": "Füge den Link des Dokuments aus deinem Browser ein. Du musst mit Google angemeldet sein."
+    },
+    "import": {
+      "asDocument": "Als Dokument importieren",
+      "asDocumentTooltip": "Aus dieser Datei ein bearbeitbares Markdown-Dokument erstellen. Die Datei selbst bleibt unverändert."
     }
   }
 }

@@ -136,4 +136,42 @@ describe("textDocuments router", () => {
       workflows: [{ workflow_id: "wf-brief", name: "Uses the brief", node_ids: ["doc"] }]
     });
   });
+
+  it("imports a text file and exports the document as HTML", async () => {
+    const { saveProjectAsset } = await import("@nodetool-ai/asset-services");
+    const source = await saveProjectAsset({
+      userId: OWNER,
+      projectId: "p1",
+      name: "draft.txt",
+      contentType: "text/plain",
+      bytes: new TextEncoder().encode("# Draft\n\nHello.\n")
+    });
+    const imported = await caller().textDocuments.import({ asset_id: source.id });
+    expect(imported).toMatchObject({ name: "draft.md", path: source.workspace_path?.replace(/txt$/, "md") });
+
+    const exported = await caller().textDocuments.export({
+      asset_id: imported.asset_id,
+      format: "html"
+    });
+    expect(exported).toMatchObject({ name: "draft.html", path: source.workspace_path?.replace(/txt$/, "html") });
+  });
+
+  it("asks for a Google sign-in before a Google Docs export", async () => {
+    const asset = await createTextDocument({
+      userId: OWNER,
+      projectId: "p1",
+      name: "g.md",
+      content: "x\n"
+    });
+    await expect(
+      caller().textDocuments.exportGoogleDoc({ asset_id: asset.id })
+    ).rejects.toThrow(/Sign in with Google/);
+  });
+
+  it("refuses a Google Docs import that names no document", async () => {
+    await expect(
+      caller().textDocuments.importGoogleDoc({ document: "not a doc", project_id: "p1" })
+    ).rejects.toThrow(/Google Doc link/);
+  });
 });
+

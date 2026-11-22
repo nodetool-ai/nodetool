@@ -20640,6 +20640,22 @@
     "convert": {
       "label": "Gjør om til dokument",
       "tooltip": "Flytt denne teksten til et prosjektdokument og henvis til det fra denne noden"
+    },
+    "export": {
+      "label": "Eksporter",
+      "pdf": "Eksporter som PDF",
+      "html": "Eksporter som HTML",
+      "googleDoc": "Eksporter til Google Dokumenter"
+    },
+    "importGoogleDoc": {
+      "title": "Importer Google-dokument",
+      "confirm": "Importer",
+      "link": "Lenke til Google-dokumentet",
+      "help": "Lim inn lenken til dokumentet fra nettleseren. Du må være logget på med Google."
+    },
+    "import": {
+      "asDocument": "Importer som dokument",
+      "asDocumentTooltip": "Lag et redigerbart Markdown-dokument fra denne filen. Selve filen endres ikke."
     }
   }
 }

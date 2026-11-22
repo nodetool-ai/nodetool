@@ -20640,6 +20640,22 @@
     "convert": {
       "label": "문서로 변환",
       "tooltip": "이 텍스트를 프로젝트 문서로 옮기고 이 노드에서 참조합니다"
+    },
+    "export": {
+      "label": "내보내기",
+      "pdf": "PDF로 내보내기",
+      "html": "HTML로 내보내기",
+      "googleDoc": "Google 문서로 내보내기"
+    },
+    "importGoogleDoc": {
+      "title": "Google 문서 가져오기",
+      "confirm": "가져오기",
+      "link": "Google 문서 링크",
+      "help": "브라우저에서 문서 링크를 붙여 넣으세요. Google로 로그인되어 있어야 합니다."
+    },
+    "import": {
+      "asDocument": "문서로 가져오기",
+      "asDocumentTooltip": "이 파일로 편집 가능한 Markdown 문서를 만듭니다. 파일 자체는 바뀌지 않습니다."
     }
   }
 }

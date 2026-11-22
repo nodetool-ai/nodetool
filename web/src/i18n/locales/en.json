@@ -20640,6 +20640,22 @@
     "convert": {
       "label": "Convert to document",
       "tooltip": "Move this text into a project document and reference it from this node"
+    },
+    "export": {
+      "label": "Export",
+      "pdf": "Export as PDF",
+      "html": "Export as HTML",
+      "googleDoc": "Export to Google Docs"
+    },
+    "importGoogleDoc": {
+      "title": "Import Google Doc",
+      "confirm": "Import",
+      "link": "Google Doc link",
+      "help": "Paste the doc's link from your browser. You need to be signed in with Google."
+    },
+    "import": {
+      "asDocument": "Import as document",
+      "asDocumentTooltip": "Make an editable Markdown document from this file. The file itself is not changed."
     }
   }
 }

@@ -20640,6 +20640,22 @@
     "convert": {
       "label": "Muunna asiakirjaksi",
       "tooltip": "Siirrä tämä teksti projektin asiakirjaan ja viittaa siihen tästä solmusta"
+    },
+    "export": {
+      "label": "Vie",
+      "pdf": "Vie PDF-tiedostona",
+      "html": "Vie HTML-tiedostona",
+      "googleDoc": "Vie Google Docsiin"
+    },
+    "importGoogleDoc": {
+      "title": "Tuo Google-dokumentti",
+      "confirm": "Tuo",
+      "link": "Google-dokumentin linkki",
+      "help": "Liitä dokumentin linkki selaimesta. Sinun on oltava kirjautunut Googlella."
+    },
+    "import": {
+      "asDocument": "Tuo asiakirjaksi",
+      "asDocumentTooltip": "Tee tästä tiedostosta muokattava Markdown-asiakirja. Itse tiedosto ei muutu."
     }
   }
 }

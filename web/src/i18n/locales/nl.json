@@ -20640,6 +20640,22 @@
     "convert": {
       "label": "Omzetten naar document",
       "tooltip": "Verplaats deze tekst naar een projectdocument en verwijs ernaar vanuit deze node"
+    },
+    "export": {
+      "label": "Exporteren",
+      "pdf": "Exporteren als PDF",
+      "html": "Exporteren als HTML",
+      "googleDoc": "Exporteren naar Google Documenten"
+    },
+    "importGoogleDoc": {
+      "title": "Google-document importeren",
+      "confirm": "Importeren",
+      "link": "Link naar het Google-document",
+      "help": "Plak de link van het document uit je browser. Je moet met Google zijn ingelogd."
+    },
+    "import": {
+      "asDocument": "Importeren als document",
+      "asDocumentTooltip": "Maak van dit bestand een bewerkbaar Markdown-document. Het bestand zelf verandert niet."
     }
   }
 }

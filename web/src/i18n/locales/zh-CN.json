@@ -20640,6 +20640,22 @@
     "convert": {
       "label": "转换为文档",
       "tooltip": "将此文本移入项目文档，并从此节点引用它"
+    },
+    "export": {
+      "label": "导出",
+      "pdf": "导出为 PDF",
+      "html": "导出为 HTML",
+      "googleDoc": "导出到 Google 文档"
+    },
+    "importGoogleDoc": {
+      "title": "导入 Google 文档",
+      "confirm": "导入",
+      "link": "Google 文档链接",
+      "help": "从浏览器粘贴文档链接。你需要已使用 Google 登录。"
+    },
+    "import": {
+      "asDocument": "作为文档导入",
+      "asDocumentTooltip": "用此文件创建可编辑的 Markdown 文档。文件本身不会改变。"
     }
   }
 }

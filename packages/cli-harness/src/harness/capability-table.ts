@@ -2223,6 +2223,46 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "import_document",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "1d06c5bb1795",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "export_document",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "b4d77aff4483",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "import_google_doc",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "f38a1d7bb96b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "export_google_doc",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "17db2467c3c7",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
     name: "list_example_timelines",
     module: "example-timelines",
     impl: "packages/agents/src/capabilities/example-timelines.ts",

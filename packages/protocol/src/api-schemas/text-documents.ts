@@ -64,3 +64,42 @@ export const textDocumentReferencesOutput = z.object({
   )
 });
 export type TextDocumentReferencesOutput = z.infer<typeof textDocumentReferencesOutput>;
+
+/** A file in the project folder, as an import or export returns it. */
+export const textDocumentFileOutput = z.object({
+  asset_id: z.string(),
+  name: z.string(),
+  path: z.string().nullable()
+});
+export type TextDocumentFileOutput = z.infer<typeof textDocumentFileOutput>;
+
+/** Import a .md, .txt, .html, .docx or .pdf file as a new document (PRD R17). */
+export const importTextDocumentInput = z.object({
+  /** The source file's asset id. */
+  asset_id: z.string().min(1),
+  name: z.string().optional()
+});
+
+/** Export a document as a file next to it (PRD R18). */
+export const exportTextDocumentInput = textDocumentRef.extend({
+  format: z.enum(["pdf", "html"])
+});
+
+/** Import a Google Doc as a new document (PRD R19). */
+export const importGoogleDocInput = z.object({
+  /** The Google Doc's id or its docs.google.com URL. */
+  document: z.string().min(1),
+  project_id: z.string().nullable(),
+  directory: z.string().optional()
+});
+
+/** Export a document to a new Google Doc (PRD R19). */
+export const exportGoogleDocInput = textDocumentRef.extend({
+  title: z.string().optional()
+});
+export const exportGoogleDocOutput = z.object({
+  document_id: z.string(),
+  name: z.string(),
+  url: z.string().nullable()
+});
+export type ExportGoogleDocOutput = z.infer<typeof exportGoogleDocOutput>;

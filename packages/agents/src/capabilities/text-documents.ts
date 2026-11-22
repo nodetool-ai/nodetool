@@ -18,6 +18,10 @@ import {
   createDocumentSpec,
   createDocumentVersionSpec,
   editDocumentSpec,
+  exportDocumentSpec,
+  exportGoogleDocSpec,
+  importDocumentSpec,
+  importGoogleDocSpec,
   listDocumentVersionsSpec,
   readDocumentSpec,
   restoreDocumentVersionSpec
@@ -226,13 +230,137 @@ const restoreDocumentVersion: CapabilityExport = {
   }
 };
 
+const transfer = () => import("../text-document-transfer.js");
+
+/** Run `body`, answering a document or transfer error as an `{ error }` result. */
+async function transferring<T>(body: () => Promise<T>): Promise<T | { error: string }> {
+  const { DocumentTransferError } = await transfer();
+  return answering(async () => {
+    try {
+      return await body();
+    } catch (error) {
+      if (error instanceof DocumentTransferError) return { error: error.message };
+      throw error;
+    }
+  });
+}
+
+/** The file a call names by asset_id or path, in the run's project. */
+async function findFileAssetId(
+  run: CapabilityRun,
+  params: Record<string, unknown>
+): Promise<string | { error: string }> {
+  const assetId = params["asset_id"];
+  if (isNonBlankString(assetId)) return assetId.trim();
+  const path = params["path"];
+  if (!isNonBlankString(path)) return { error: "Pass asset_id or path." };
+  const { Asset } = await import("@nodetool-ai/models");
+  const projectId = await resolveReadProjectId(run, params);
+  const [row] = await Asset.findByWorkspacePath(userIdOf(run.context), projectId, normalizePath(path));
+  return row ? row.id : { error: `No file at ${path} in this project.` };
+}
+
+const importDocument: CapabilityExport = {
+  spec: importDocumentSpec,
+  impl: async (run, params) => {
+    const sourceAssetId = await findFileAssetId(run, params);
+    if (typeof sourceAssetId !== "string") return sourceAssetId;
+    const name = params["name"];
+    const { importAssetAsDocument } = await transfer();
+    return transferring(async () =>
+      describe(
+        await importAssetAsDocument({
+          userId: userIdOf(run.context),
+          sourceAssetId,
+          projectId: resolveProjectId(run, params),
+          name: isNonBlankString(name) ? name : undefined
+        })
+      )
+    );
+  }
+};
+
+const exportDocument: CapabilityExport = {
+  spec: exportDocumentSpec,
+  impl: async (run, params) => {
+    const format = params["format"];
+    if (format !== "pdf" && format !== "html") return { error: "format must be pdf or html." };
+    const asset = await findDocument(run, params);
+    if ("error" in asset) return asset;
+    const { exportDocumentFile } = await transfer();
+    return transferring(async () => describe(await exportDocumentFile(asset, format)));
+  }
+};
+
+/** The user's Google access token, or an error naming the sign-in. */
+async function googleToken(run: CapabilityRun): Promise<string | { error: string }> {
+  const { requireGoogleAccessToken } = await import("@nodetool-ai/runtime");
+  try {
+    return await requireGoogleAccessToken(run.context);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+const importGoogleDocCapability: CapabilityExport = {
+  spec: importGoogleDocSpec,
+  impl: async (run, params) => {
+    const { googleDocIdOf, importGoogleDoc } = await transfer();
+    const raw = params["document_id"];
+    const documentId = isNonBlankString(raw) ? googleDocIdOf(raw) : null;
+    if (!documentId) return { error: "document_id must be a Google Doc id or its URL." };
+    const token = await googleToken(run);
+    if (typeof token !== "string") return token;
+    const directory = params["directory"];
+    try {
+      return describe(
+        await importGoogleDoc({
+          userId: userIdOf(run.context),
+          token,
+          documentId,
+          projectId: resolveProjectId(run, params),
+          directory: isNonBlankString(directory) ? normalizePath(directory) : undefined
+        })
+      );
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+};
+
+const exportGoogleDocCapability: CapabilityExport = {
+  spec: exportGoogleDocSpec,
+  impl: async (run, params) => {
+    const asset = await findDocument(run, params);
+    if ("error" in asset) return asset;
+    const token = await googleToken(run);
+    if (typeof token !== "string") return token;
+    const title = params["title"];
+    const { exportGoogleDoc } = await transfer();
+    try {
+      const doc = await exportGoogleDoc({
+        token,
+        document: asset,
+        title: isNonBlankString(title) ? title : undefined
+      });
+      return { document_id: doc.id, name: doc.name, url: doc.url };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+};
+
 export const TEXT_DOCUMENT_CAPABILITIES: readonly CapabilityExport[] = [
   createDocument,
   readDocument,
   editDocument,
   listDocumentVersions,
   createDocumentVersion,
-  restoreDocumentVersion
+  restoreDocumentVersion,
+  importDocument,
+  exportDocument,
+  importGoogleDocCapability,
+  exportGoogleDocCapability
 ];
 
 export const module: CapabilityModule = {

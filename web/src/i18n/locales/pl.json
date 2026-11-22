@@ -21274,6 +21274,22 @@
     "convert": {
       "label": "Zamień na dokument",
       "tooltip": "Przenieś ten tekst do dokumentu projektu i odwołuj się do niego z tego węzła"
+    },
+    "export": {
+      "label": "Eksportuj",
+      "pdf": "Eksportuj jako PDF",
+      "html": "Eksportuj jako HTML",
+      "googleDoc": "Eksportuj do Dokumentów Google"
+    },
+    "importGoogleDoc": {
+      "title": "Importuj dokument Google",
+      "confirm": "Importuj",
+      "link": "Link do dokumentu Google",
+      "help": "Wklej link do dokumentu z przeglądarki. Musisz być zalogowany przez Google."
+    },
+    "import": {
+      "asDocument": "Importuj jako dokument",
+      "asDocumentTooltip": "Utwórz z tego pliku edytowalny dokument Markdown. Sam plik się nie zmienia."
     }
   }
 }

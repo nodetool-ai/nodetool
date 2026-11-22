@@ -20640,6 +20640,22 @@
     "convert": {
       "label": "ドキュメントに変換",
       "tooltip": "このテキストをプロジェクトのドキュメントに移し、このノードから参照します"
+    },
+    "export": {
+      "label": "エクスポート",
+      "pdf": "PDF としてエクスポート",
+      "html": "HTML としてエクスポート",
+      "googleDoc": "Google ドキュメントにエクスポート"
+    },
+    "importGoogleDoc": {
+      "title": "Google ドキュメントをインポート",
+      "confirm": "インポート",
+      "link": "Google ドキュメントのリンク",
+      "help": "ブラウザからドキュメントのリンクを貼り付けてください。Google でサインインしている必要があります。"
+    },
+    "import": {
+      "asDocument": "ドキュメントとしてインポート",
+      "asDocumentTooltip": "このファイルから編集できる Markdown ドキュメントを作成します。ファイル自体は変更されません。"
     }
   }
 }

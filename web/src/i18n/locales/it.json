@@ -20957,6 +20957,22 @@
     "convert": {
       "label": "Converti in documento",
       "tooltip": "Sposta questo testo in un documento del progetto e fai riferimento a esso da questo nodo"
+    },
+    "export": {
+      "label": "Esporta",
+      "pdf": "Esporta come PDF",
+      "html": "Esporta come HTML",
+      "googleDoc": "Esporta in Google Docs"
+    },
+    "importGoogleDoc": {
+      "title": "Importa documento Google",
+      "confirm": "Importa",
+      "link": "Link del documento Google",
+      "help": "Incolla il link del documento dal browser. Devi aver effettuato l'accesso con Google."
+    },
+    "import": {
+      "asDocument": "Importa come documento",
+      "asDocumentTooltip": "Crea un documento Markdown modificabile da questo file. Il file non viene modificato."
     }
   }
 }

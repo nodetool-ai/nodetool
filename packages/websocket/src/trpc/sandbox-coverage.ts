@@ -1382,6 +1382,10 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "textDocuments.createVersion": { capability: "create_document_version" },
   "textDocuments.restore": { capability: "restore_document_version" },
+  "textDocuments.import": { capability: "import_document" },
+  "textDocuments.export": { capability: "export_document" },
+  "textDocuments.importGoogleDoc": { capability: "import_google_doc" },
+  "textDocuments.exportGoogleDoc": { capability: "export_google_doc" },
   "deletedDocuments.list": { capability: "list_deleted_documents" },
   "deletedDocuments.restore": { capability: "restore_deleted_document" },
   "deletedDocuments.endRestorePeriod": {

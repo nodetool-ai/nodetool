@@ -71,8 +71,11 @@ export async function requireTextDocument(
   return asset;
 }
 
-/** The document's Markdown as it is saved now. */
-export async function readTextDocument(asset: Asset): Promise<string> {
+/**
+ * The bytes of any file asset: from its project folder, or under its storage
+ * key for an asset that predates project folders.
+ */
+export async function readAssetFileBytes(asset: Asset): Promise<Uint8Array> {
   if (asset.workspace_path) {
     const file = await projectAssetFile(asset);
     if (!file) {
@@ -80,11 +83,11 @@ export async function readTextDocument(asset: Asset): Promise<string> {
         `The file of ${asset.name} cannot be reached in its project folder.`
       );
     }
-    const text = await file.workspace.readText(file.path);
-    if (text === null) {
+    const bytes = await file.workspace.read(file.path);
+    if (bytes === null) {
       throw new TextDocumentError(`The file of ${asset.name} is missing.`);
     }
-    return text;
+    return bytes;
   }
   const bytes = await retrieveAssetBytes(
     getAssetAdapter(),
@@ -95,7 +98,12 @@ export async function readTextDocument(asset: Asset): Promise<string> {
   if (!bytes) {
     throw new TextDocumentError(`${asset.name} has no stored content.`);
   }
-  return decoder.decode(bytes);
+  return bytes;
+}
+
+/** The document's Markdown as it is saved now. */
+export async function readTextDocument(asset: Asset): Promise<string> {
+  return decoder.decode(await readAssetFileBytes(asset));
 }
 
 /** Why a version is recorded, and the turn or run it belongs to. */

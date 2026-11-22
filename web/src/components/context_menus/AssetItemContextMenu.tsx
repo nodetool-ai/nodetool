@@ -17,6 +17,7 @@ import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -28,6 +29,10 @@ import { openPageTab } from "../workspace/openPageTab";
 import { assetTabType } from "../workspace/assetTabType";
 import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
 import { useSetAssetFavorite } from "../../serverState/useAssetFavorite";
+import {
+  isImportableAsDocument,
+  useTextDocumentImport
+} from "../../serverState/useTextDocumentTransfer";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import AssetInfoPanel from "./AssetInfoPanel";
@@ -244,6 +249,20 @@ const AssetItemContextMenu = () => {
   const transformCandidate =
     singleAsset && transformKindOfAsset(singleAsset) ? singleAsset : null;
 
+  // A .docx, .pdf, .html or .txt file becomes a Markdown document beside it
+  // (document editor PRD R17).
+  const { importAsset } = useTextDocumentImport();
+  const importCandidate =
+    singleAsset && isImportableAsDocument(singleAsset.name) ? singleAsset : null;
+
+  const handleImportAsDocument = withMenuClose(() => {
+    if (importCandidate) {
+      void importAsset(importCandidate.id, importCandidate.project_id).then((created) => {
+        if (created) navigate("/workspace");
+      });
+    }
+  });
+
   const handleTransform = withMenuClose(() => {
     if (transformCandidate) {
       openTransformDialog(transformCandidate);
@@ -308,6 +327,14 @@ const AssetItemContextMenu = () => {
             label={t("screen_editor.sendToWorkflow")}
             IconComponent={<AccountTreeOutlinedIcon />}
             tooltip={t("screen_editor.sendMediaToWorkflowTooltip")}
+          />
+        )}
+        {importCandidate && (
+          <ContextMenuItem
+            onClick={handleImportAsDocument}
+            label={t("documentEditor.import.asDocument")}
+            IconComponent={<DescriptionOutlinedIcon />}
+            tooltip={t("documentEditor.import.asDocumentTooltip")}
           />
         )}
         {transformCandidate && (
