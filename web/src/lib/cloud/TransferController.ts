@@ -162,7 +162,14 @@ const sendRunOf = async (
   review: TransferReview,
   keep: readonly KeepLocalDecision[]
 ): Promise<NonNullable<Applied["send"]>> => {
-  const run = await runSend(call, transferId, keep, review.confirmedDeletes(), review.confirmedMissingFiles());
+  const run = await runSend(
+    call,
+    transferId,
+    keep,
+    review.confirmedDeletes(),
+    review.confirmedMissingFiles(),
+    review.confirmedFileDeletes()
+  );
   if (run.status !== "ok") {
     return run;
   }
@@ -487,7 +494,11 @@ export class TransferController {
       transferId: this.transferId,
       setId: this.received ? "" : this.setId,
       refusals: this.linked ? this.review.refusalsToReceive() : [],
-      sendWork: this.sendWork || !this.linked || this.review.confirmedDeletes().length > 0,
+      sendWork:
+        this.sendWork ||
+        !this.linked ||
+        this.review.confirmedDeletes().length > 0 ||
+        this.review.confirmedFileDeletes().length > 0,
       approved: this.approved,
       approvedFiles: this.approvedFiles
     });
@@ -587,7 +598,8 @@ export class TransferController {
       sendWork =
         again.data.operations.length > 0 ||
         again.data.fileOperations.length > 0 ||
-        review.confirmedDeletes().length > 0;
+        review.confirmedDeletes().length > 0 ||
+        review.confirmedFileDeletes().length > 0;
     }
     if (sendWork) {
       const keep = review.keepLocalDecisions();

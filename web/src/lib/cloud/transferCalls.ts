@@ -26,6 +26,7 @@ import {
 import type { CloudTransferResult } from "../../window";
 import type {
   DeleteConfirmation,
+  TransferDeletedFile,
   KeepLocalDecision,
   ReceiveDecision,
   TransferMissingFile
@@ -84,7 +85,8 @@ export const runSend = (
   transferId: string,
   decisions: readonly KeepLocalDecision[],
   confirmDeletes: readonly DeleteConfirmation[],
-  confirmMissing: readonly TransferMissingFile[]
+  confirmMissing: readonly TransferMissingFile[],
+  confirmFileDeletes: readonly TransferDeletedFile[] = []
 ): Promise<TransferAnswer<RunSendOutput>> => {
   const input: Record<string, unknown> = {
     transfer_id: transferId,
@@ -94,7 +96,9 @@ export const runSend = (
       kind: item.kind,
       cloud_id: item.cloudId,
       cloud_hash: item.cloudHash
-    }))
+    })),
+    // Also always complete, for the same reason.
+    confirm_workspace_deletes: confirmFileDeletes.map((item) => ({ path: item.path, base_hash: item.baseHash }))
   };
   if (decisions.length > 0) {
     input.decisions = decisions.map((item) => ({

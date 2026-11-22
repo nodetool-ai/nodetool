@@ -61,6 +61,16 @@ export interface TransferDeleted {
   baseHash: string;
 }
 
+/**
+ * A workspace file sent earlier and deleted from the project folder since.
+ * A confirmed deletion names it with the same base hash, the delete's
+ * precondition.
+ */
+export interface TransferDeletedFile {
+  path: string;
+  baseHash: string;
+}
+
 export interface SendCapture {
   transferId: string;
   firstPublication: boolean;
@@ -71,6 +81,7 @@ export interface SendCapture {
   missingFiles: TransferMissingFile[];
   skipped: TransferSkipped[];
   deletedLocally: TransferDeleted[];
+  deletedWorkspaceFiles: TransferDeletedFile[];
   /** Documents sent from their last saved row, since their file is missing (CF3, review F56). */
   missingDocumentFiles: TransferSkipped[];
 }
@@ -264,6 +275,10 @@ export const sendCaptureFrom = (captured: CapturedSend): SendCapture => ({
     cloudId: item.cloud_id,
     baseHash: item.base_hash
   })),
+  deletedWorkspaceFiles: (captured.deleted_workspace_files ?? []).map((item) => ({
+    path: item.path,
+    baseHash: item.base_hash
+  })),
   missingDocumentFiles: captured.missing_document_files.map((item) => ({
     kind: item.kind,
     id: item.id,
@@ -317,6 +332,7 @@ const EMPTY_SEND: SendCapture = {
   missingFiles: [],
   skipped: [],
   deletedLocally: [],
+  deletedWorkspaceFiles: [],
   missingDocumentFiles: []
 };
 
@@ -433,6 +449,14 @@ export class TransferReview {
       if (row.seenHash === "") {
         row.seenHash = deleted.baseHash;
       }
+    }
+    // A workspace file deleted here stays in the cloud unless the person
+    // confirms it, like a document.
+    for (const deleted of sent.deletedWorkspaceFiles) {
+      const row = deletionRow("file", deleted.path);
+      row.name = deleted.path;
+      row.sendListed = true;
+      row.seenHash = deleted.baseHash;
     }
     for (const skipped of sent.skipped) {
       rows.push({
@@ -630,8 +654,15 @@ export class TransferReview {
   /** The deletions the person confirmed, each with the cloud revision the sheet showed. */
   confirmedDeletes(): DeleteConfirmation[] {
     return this.rowList
-      .filter((row) => row.section === "deletion" && row.sendListed && row.confirmed)
+      .filter((row) => row.section === "deletion" && row.kind !== "file" && row.sendListed && row.confirmed)
       .map((row) => ({ kind: row.kind, cloudId: row.cloudId, cloudHash: row.seenHash }));
+  }
+
+  /** The workspace file deletions the person confirmed. */
+  confirmedFileDeletes(): TransferDeletedFile[] {
+    return this.rowList
+      .filter((row) => row.section === "deletion" && row.kind === "file" && row.sendListed && row.confirmed)
+      .map((row) => ({ path: row.documentId, baseHash: row.seenHash }));
   }
 
   /** The capture's missing files once each one is confirmed, or empty. */

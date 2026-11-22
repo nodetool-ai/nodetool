@@ -2110,6 +2110,51 @@ private slots:
     QCOMPARE(again["confirm_deletes"], nlohmann::json::array());
   }
 
+  // A workspace file deleted here shows as a deletion. Confirming it is the
+  // only work of the send, and the send names it with its base hash.
+  void aConfirmedWorkspaceFileDeletionIsSent() {
+    Computer computer;
+    computer.server.addCode("code-x", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-x");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string base(64, 'b');
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("file_operations":[],"documents":[],"missing_files":[],"missing_document_files":[],)"
+                           R"("skipped":[],"deleted_locally":[],"deleted_workspace_files":[{"path":"notes/plan.md",)"
+                           R"("base_hash":")" + base + R"("}]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.send.run", trpcData(R"({"status":"committed","transfer_id":"t1","result":{}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 1);
+    QCOMPARE(transfer.rows().at(0).toMap().value("section").toString(), QString("deletion"));
+    QCOMPARE(transfer.rows().at(0).toMap().value("name").toString(), QString("notes/plan.md"));
+    QVERIFY(transfer.rows().at(0).toMap().value("canKeepDeletion").toBool());
+    QVERIFY(transfer.confirmDeletion(0, true));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    QCOMPARE(server.calls().back(), std::string("cloudTransfer.send.run"));
+    const auto sent = nlohmann::json::parse(server.body("cloudTransfer.send.run", 0));
+    QCOMPARE(sent["confirm_workspace_deletes"],
+             nlohmann::json::array({{{"path", "notes/plan.md"}, {"base_hash", base}}}));
+    QCOMPARE(sent["confirm_deletes"], nlohmann::json::array());
+  }
+
   // A confirmed deletion names the cloud revision the sheet showed. When the
   // cloud refuses it because the document changed there since, the sheet
   // withdraws the confirmation and asks again for the newer revision

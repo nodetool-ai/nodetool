@@ -319,12 +319,16 @@ SendCapture LocalTransferClient::captureSend(const std::string& projectId, const
     out.deletedLocally.push_back(
         {str(item, "kind"), str(item, "local_id"), str(item, "cloud_id"), str(item, "base_hash")});
   }
+  for (const json& item : data.value("deleted_workspace_files", json::array())) {
+    out.deletedWorkspaceFiles.push_back({str(item, "path"), str(item, "base_hash")});
+  }
   return out;
 }
 
 SendRun LocalTransferClient::runSend(const std::string& transferId, const std::vector<KeepLocalDecision>& decisions,
                                      const std::vector<DeleteConfirmation>& confirmDeletes,
-                                     const std::vector<TransferMissingFile>& confirmMissing) {
+                                     const std::vector<TransferMissingFile>& confirmMissing,
+                                     const std::vector<TransferDeletedFile>& confirmFileDeletes) {
   json input{{"transfer_id", transferId}};
   if (!decisions.empty()) {
     json list = json::array();
@@ -346,6 +350,14 @@ SendRun LocalTransferClient::runSend(const std::string& transferId, const std::v
           {{"kind", confirmation.kind}, {"cloud_id", confirmation.cloudId}, {"cloud_hash", confirmation.cloudHash}});
     }
     input["confirm_deletes"] = std::move(list);
+  }
+  {
+    // Also always complete, for the same reason.
+    json list = json::array();
+    for (const TransferDeletedFile& file : confirmFileDeletes) {
+      list.push_back({{"path", file.path}, {"base_hash", file.baseHash}});
+    }
+    input["confirm_workspace_deletes"] = std::move(list);
   }
   if (!confirmMissing.empty()) {
     json list = json::array();
@@ -683,6 +695,14 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
       row.seenHash = deleted.baseHash;
     }
   }
+  // A workspace file deleted here stays in the cloud unless the person
+  // confirms it, like a document.
+  for (const TransferDeletedFile& deleted : send.deletedWorkspaceFiles) {
+    ReviewRow& row = deletionRow("file", deleted.path);
+    row.name = deleted.path;
+    row.sendListed = true;
+    row.seenHash = deleted.baseHash;
+  }
   for (const TransferSkipped& skipped : send.skipped) {
     ReviewRow row;
     row.section = ReviewSection::Problem;
@@ -870,8 +890,18 @@ std::vector<KeepLocalDecision> TransferReview::keepLocalDecisions() const {
 std::vector<DeleteConfirmation> TransferReview::confirmedDeletes() const {
   std::vector<DeleteConfirmation> out;
   for (const ReviewRow& row : rows_) {
-    if (row.section == ReviewSection::Deletion && row.sendListed && row.confirmed) {
+    if (row.section == ReviewSection::Deletion && row.kind != "file" && row.sendListed && row.confirmed) {
       out.push_back({row.kind, row.cloudId, row.seenHash});
+    }
+  }
+  return out;
+}
+
+std::vector<TransferDeletedFile> TransferReview::confirmedFileDeletes() const {
+  std::vector<TransferDeletedFile> out;
+  for (const ReviewRow& row : rows_) {
+    if (row.section == ReviewSection::Deletion && row.kind == "file" && row.sendListed && row.confirmed) {
+      out.push_back({row.documentId, row.seenHash});
     }
   }
   return out;
