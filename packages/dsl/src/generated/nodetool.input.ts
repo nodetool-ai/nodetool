@@ -290,10 +290,11 @@ export type DocumentInputInputs = {
 
 export interface DocumentInputOutputs {
   output: unknown;
+  text: string;
 }
 
-export function documentInput(inputs: DocumentInputInputs, options?: NodeOptions): NodeWithOutputs<DocumentInputOutputs, "output"> {
-  return createNode("nodetool.input.DocumentInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"document"}, defaultOutput: "output" });
+export function documentInput(inputs: DocumentInputInputs, options?: NodeOptions): NodeWithOutputs<DocumentInputOutputs> {
+  return createNode("nodetool.input.DocumentInput", inputs, { id: options?.id, outputNames: ["output", "text"], outputTypes: {"output":"document","text":"str"} });
 }
 
 // Image Input — nodetool.input.ImageInput

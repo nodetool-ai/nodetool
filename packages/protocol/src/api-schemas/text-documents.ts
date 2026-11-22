@@ -52,3 +52,15 @@ export const restoreTextDocumentVersionOutput = z.object({
   restored_version: z.number().int(),
   updated_at: z.string()
 });
+
+/** The workflows that reference a document (PRD R15). */
+export const textDocumentReferencesOutput = z.object({
+  workflows: z.array(
+    z.object({
+      workflow_id: z.string(),
+      name: z.string(),
+      node_ids: z.array(z.string())
+    })
+  )
+});
+export type TextDocumentReferencesOutput = z.infer<typeof textDocumentReferencesOutput>;

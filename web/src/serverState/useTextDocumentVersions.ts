@@ -105,3 +105,21 @@ export async function saveAutosaveVersion(assetId: string): Promise<void> {
     save_type: "autosave"
   });
 }
+
+export type TextDocumentReference =
+  RouterOutputs["textDocuments"]["references"]["workflows"][number];
+
+/** The workflows that reference the document (PRD R15). */
+export function useTextDocumentReferences(
+  assetId: string,
+  enabled = true
+): { workflows: TextDocumentReference[]; isLoading: boolean } {
+  const query = useQuery({
+    queryKey: ["textDocuments", assetId, "references"] as const,
+    queryFn: async () =>
+      (await trpcClient.textDocuments.references.query({ asset_id: assetId })).workflows,
+    enabled,
+    staleTime: 30 * 1000
+  });
+  return { workflows: query.data ?? [], isLoading: query.isLoading };
+}

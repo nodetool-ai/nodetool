@@ -272,6 +272,11 @@ interface DocumentSyncSubscriber {
    * row. Defaults to nothing; surfaces surface deletions themselves.
    */
   onExternalChange?: (notice: DocumentChangeNotice) => void;
+  /**
+   * Save the draft now. A workflow run started from the app calls it first,
+   * so the run reads what the user sees (document editor PRD R12).
+   */
+  flush?: () => Promise<void>;
 }
 
 const subscribers = new Map<string, Map<string, DocumentSyncSubscriber>>();
@@ -335,6 +340,27 @@ export function handleDocumentResourceChange(
     }
     if (subscriber.onExternalChange) subscriber.onExternalChange(notice);
   }
+}
+
+/**
+ * Save every open editor's unsaved draft. A failed save is logged and does
+ * not stop the others: the caller goes ahead with what is stored. Returns
+ * null, without waiting, when no editor holds a draft.
+ */
+export function flushDocumentDrafts(): Promise<void> | null {
+  const pending: Promise<void>[] = [];
+  for (const entry of subscribers.values()) {
+    for (const subscriber of entry.values()) {
+      if (subscriber.flush && subscriber.isDirty()) {
+        pending.push(
+          subscriber.flush().catch((error: unknown) => {
+            console.error("Failed to save a document draft before a run", error);
+          })
+        );
+      }
+    }
+  }
+  return pending.length > 0 ? Promise.all(pending).then(() => undefined) : null;
 }
 
 /** Test seam: drop every registration. */

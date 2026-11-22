@@ -6,7 +6,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ModelObserver, initTestDb } from "@nodetool-ai/models";
+import { ModelObserver, Workflow, initTestDb } from "@nodetool-ai/models";
 import { createLocalWorkspace, setProjectFolderResolver } from "@nodetool-ai/runtime";
 import {
   createTextDocument,
@@ -108,5 +108,32 @@ describe("textDocuments router", () => {
     await expect(
       caller("someone-else").textDocuments.versions({ asset_id: asset.id })
     ).rejects.toThrow(/not found/);
+  });
+
+  it("lists the workflows that reference the document", async () => {
+    const asset = await createTextDocument({
+      userId: OWNER,
+      projectId: "p1",
+      name: "brief.md",
+      content: "x\n"
+    });
+    await Workflow.create<Workflow>({
+      id: "wf-brief",
+      user_id: OWNER,
+      name: "Uses the brief",
+      graph: {
+        nodes: [
+          {
+            id: "doc",
+            type: "nodetool.constant.Document",
+            data: { value: { type: "document", asset_id: asset.id } }
+          }
+        ],
+        edges: []
+      }
+    });
+    expect(await caller().textDocuments.references({ asset_id: asset.id })).toEqual({
+      workflows: [{ workflow_id: "wf-brief", name: "Uses the brief", node_ids: ["doc"] }]
+    });
   });
 });

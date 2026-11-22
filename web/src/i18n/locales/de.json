@@ -20593,7 +20593,8 @@
         "manual": "Gespeichert",
         "autosave": "Intervall",
         "restore": "Vor Wiederherstellung"
-      }
+      },
+      "usedIn": "Verwendet in Workflows: {{count}}"
     },
     "changes": {
       "title": "Markierte Änderungen: {{count}}",
@@ -20627,6 +20628,18 @@
       "noModel": "Wählen Sie zuerst im Chat ein Modell.",
       "failed": "Die Anfrage ist fehlgeschlagen."
     },
-    "resizePanel": "Seitenleiste in der Größe ändern"
+    "resizePanel": "Seitenleiste in der Größe ändern",
+    "picker": {
+      "label": "Projektdokument",
+      "none": "Keins",
+      "placeholder": "Projektdokument wählen",
+      "loading": "Wird geladen…",
+      "error": "Die Dokumente konnten nicht geladen werden.",
+      "empty": "Keine Markdown-Dokumente in diesem Projekt"
+    },
+    "convert": {
+      "label": "In Dokument umwandeln",
+      "tooltip": "Diesen Text in ein Projektdokument verschieben und von diesem Knoten aus darauf verweisen"
+    }
   }
 }

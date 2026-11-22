@@ -140,10 +140,11 @@ export type DocumentInputs = {
 
 export interface DocumentOutputs {
   output: unknown;
+  text: string;
 }
 
-export function document(inputs: DocumentInputs, options?: NodeOptions): NodeWithOutputs<DocumentOutputs, "output"> {
-  return createNode("nodetool.constant.Document", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"document"}, defaultOutput: "output" });
+export function document(inputs: DocumentInputs, options?: NodeOptions): NodeWithOutputs<DocumentOutputs> {
+  return createNode("nodetool.constant.Document", inputs, { id: options?.id, outputNames: ["output", "text"], outputTypes: {"output":"document","text":"str"} });
 }
 
 // Sketch — nodetool.constant.Sketch

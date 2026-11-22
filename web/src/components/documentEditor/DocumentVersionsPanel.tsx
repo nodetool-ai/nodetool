@@ -2,16 +2,19 @@
  * The document's stored versions (document editor PRD R11), docked beside
  * the page. Lists each version with its cause, previews its Markdown, saves
  * a named version and restores one. A restore keeps the current content as
- * a version first, so it can be undone from this list.
+ * a version first, so it can be undone from this list. Below the list, the
+ * workflows that use the document (R15) open in a tab.
  */
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  useTextDocumentReferences,
   useTextDocumentVersionContent,
   useTextDocumentVersions,
   type TextDocumentVersionItem
 } from "../../serverState/useTextDocumentVersions";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { notifyMutationError } from "../../utils/notifyMutationError";
 import ErrorBanner from "../support/ErrorBanner";
@@ -65,6 +68,34 @@ const VersionRow = ({
       </FlexRow>
       <Caption color="secondary">{relativeTime(version.created_at)}</Caption>
     </SelectableListItem>
+  );
+};
+
+/** The workflows that reference the document, each a link to its tab. */
+const DocumentUsedIn = ({ assetId }: { assetId: string }) => {
+  const { t } = useTranslation();
+  const { workflows } = useTextDocumentReferences(assetId);
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  if (workflows.length === 0) return null;
+  return (
+    <FlexColumn gap={GAP.tight} sx={{ padding: PADDING.compact, borderTop: 1, borderColor: "divider" }}>
+      <Caption color="secondary">
+        {t("documentEditor.versions.usedIn", { count: workflows.length })}
+      </Caption>
+      {workflows.map((workflow) => (
+        <EditorButton
+          key={workflow.workflow_id}
+          variant="text"
+          density="compact"
+          sx={{ justifyContent: "flex-start" }}
+          onClick={() =>
+            openTab({ type: "workflow", ref: workflow.workflow_id, mode: "edit", title: workflow.name })
+          }
+        >
+          {workflow.name}
+        </EditorButton>
+      ))}
+    </FlexColumn>
   );
 };
 
@@ -167,6 +198,7 @@ const DocumentVersionsPanel = ({ assetId, flush, onBeforeRestore }: DocumentVers
           </FlexRow>
         </FlexColumn>
       )}
+      <DocumentUsedIn assetId={assetId} />
     </FlexColumn>
   );
 };

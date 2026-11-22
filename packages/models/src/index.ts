@@ -474,6 +474,15 @@ export {
   textDocumentContentHash,
   type TextDocumentSaveType
 } from "./text-document-version.js";
+export {
+  documentAssetIdOf,
+  documentReferencesInGraph,
+  workflowsReferencingDocument
+} from "./document-index.js";
+export type {
+  DocumentReference,
+  DocumentReferencingWorkflow
+} from "./document-index.js";
 export type { JsScriptSaveType } from "./js-script-version.js";
 export { createJsScriptResolver } from "./js-script-resolver.js";
 export type {

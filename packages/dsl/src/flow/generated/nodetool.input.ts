@@ -292,6 +292,7 @@ export type DocumentInputInputs = {
 
 export interface DocumentInputOutputs {
   output: unknown;
+  text: string;
 }
 
 export function documentInput(inputs: DocumentInputInputs): Promise<DocumentInputOutputs> {

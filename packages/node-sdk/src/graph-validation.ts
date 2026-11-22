@@ -106,6 +106,7 @@ export interface GraphValidationIssue {
    * "cycle" | "type_mismatch" | "fan_in" | "untyped_dynamic_slot" |
    * "dynamic_type_mismatch" | "unknown_provider" | "missing_provider" |
    * "unknown_model" | "missing_secret" | "slot_type_alias" | "invalid_choice" |
+   * "missing_document" (added by validate_workflow, which can read assets) |
    * "invalid_graph", plus the `code_*`
    * categories a Code node body produces (see {@link validateCodeNodeBody}).
    *

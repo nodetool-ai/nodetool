@@ -27,7 +27,8 @@ import {
   readTextDocument,
   requireTextDocument,
   restoreTextDocumentVersion,
-  writeTextDocument
+  writeTextDocument,
+  writeTextDocumentModelInterface
 } from "../src/text-documents.js";
 
 vi.mock("../src/storage.js", () => ({ getAssetAdapter: vi.fn() }));
@@ -174,5 +175,65 @@ describe("applyTextDocumentEdits", () => {
     expect(() =>
       applyTextDocumentEdits("a", [{ old_text: "z", new_text: "b" }])
     ).toThrow(/not found/);
+  });
+});
+
+describe("workflow run writes (R13)", () => {
+  it("appends, keeps one pre-run version per job and records the writer", async () => {
+    const asset = await createTextDocument({
+      userId: USER,
+      projectId: PROJECT,
+      name: "log.md",
+      content: "# Log\n"
+    });
+    const write = (content: string, causeId: string) =>
+      writeTextDocumentModelInterface({
+        userId: USER,
+        assetId: asset.id,
+        content,
+        mode: "append",
+        causeId,
+        provenance: { workflowId: "wf", nodeId: "save", jobId: causeId }
+      });
+    await write("first", "job-1");
+    await write("second", "job-1");
+    const saved = await requireTextDocument(USER, asset.id);
+    expect(await readTextDocument(saved)).toBe("# Log\n\nfirst\n\nsecond");
+    const versions = await TextDocumentVersion.listForAsset(asset.id);
+    expect(versions.map((version) => version.content)).toEqual(["# Log\n"]);
+    expect(versions[0].save_type).toBe("workflow_run");
+    expect(saved.metadata?.written_by).toMatchObject({
+      workflow_id: "wf",
+      node_id: "save",
+      job_id: "job-1"
+    });
+
+    await writeTextDocumentModelInterface({
+      userId: USER,
+      assetId: asset.id,
+      content: "replaced",
+      mode: "replace",
+      causeId: "job-2"
+    });
+    expect(await readTextDocument(await requireTextDocument(USER, asset.id))).toBe("replaced");
+    expect(await TextDocumentVersion.listForAsset(asset.id)).toHaveLength(2);
+  });
+
+  it("returns null for another user's document", async () => {
+    const asset = await createTextDocument({
+      userId: USER,
+      projectId: PROJECT,
+      name: "private.md",
+      content: "x"
+    });
+    expect(
+      await writeTextDocumentModelInterface({
+        userId: "intruder",
+        assetId: asset.id,
+        content: "y",
+        mode: "replace",
+        causeId: null
+      })
+    ).toBeNull();
   });
 });

@@ -21227,7 +21227,8 @@
         "manual": "Zapisana",
         "autosave": "Okresowa",
         "restore": "Przed przywróceniem"
-      }
+      },
+      "usedIn": "Używany w przepływach: {{count}}"
     },
     "changes": {
       "title": "Oznaczone zmiany: {{count}}",
@@ -21261,6 +21262,18 @@
       "noModel": "Najpierw wybierz model w czacie.",
       "failed": "Żądanie nie powiodło się."
     },
-    "resizePanel": "Zmień rozmiar panelu bocznego"
+    "resizePanel": "Zmień rozmiar panelu bocznego",
+    "picker": {
+      "label": "Dokument projektu",
+      "none": "Brak",
+      "placeholder": "Wybierz dokument projektu",
+      "loading": "Ładowanie…",
+      "error": "Nie udało się wczytać dokumentów.",
+      "empty": "Brak dokumentów Markdown w tym projekcie"
+    },
+    "convert": {
+      "label": "Zamień na dokument",
+      "tooltip": "Przenieś ten tekst do dokumentu projektu i odwołuj się do niego z tego węzła"
+    }
   }
 }

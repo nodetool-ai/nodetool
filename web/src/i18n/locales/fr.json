@@ -20910,7 +20910,8 @@
         "manual": "Enregistrée",
         "autosave": "Intervalle",
         "restore": "Avant restauration"
-      }
+      },
+      "usedIn": "Utilisé dans les workflows : {{count}}"
     },
     "changes": {
       "title": "Modifications marquées : {{count}}",
@@ -20944,6 +20945,18 @@
       "noModel": "Choisissez d'abord un modèle dans le chat.",
       "failed": "La demande a échoué."
     },
-    "resizePanel": "Redimensionner le panneau latéral"
+    "resizePanel": "Redimensionner le panneau latéral",
+    "picker": {
+      "label": "Document du projet",
+      "none": "Aucun",
+      "placeholder": "Choisir un document du projet",
+      "loading": "Chargement…",
+      "error": "Les documents n'ont pas pu être chargés.",
+      "empty": "Aucun document Markdown dans ce projet"
+    },
+    "convert": {
+      "label": "Convertir en document",
+      "tooltip": "Déplacer ce texte dans un document du projet et y faire référence depuis ce nœud"
+    }
   }
 }

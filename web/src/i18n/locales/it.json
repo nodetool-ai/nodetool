@@ -20910,7 +20910,8 @@
         "manual": "Salvata",
         "autosave": "Intervallo",
         "restore": "Prima del ripristino"
-      }
+      },
+      "usedIn": "Usato nei workflow: {{count}}"
     },
     "changes": {
       "title": "Modifiche segnate: {{count}}",
@@ -20944,6 +20945,18 @@
       "noModel": "Scegli prima un modello nella chat.",
       "failed": "La richiesta non è riuscita."
     },
-    "resizePanel": "Ridimensiona il pannello laterale"
+    "resizePanel": "Ridimensiona il pannello laterale",
+    "picker": {
+      "label": "Documento del progetto",
+      "none": "Nessuno",
+      "placeholder": "Scegli un documento del progetto",
+      "loading": "Caricamento…",
+      "error": "Impossibile caricare i documenti.",
+      "empty": "Nessun documento Markdown in questo progetto"
+    },
+    "convert": {
+      "label": "Converti in documento",
+      "tooltip": "Sposta questo testo in un documento del progetto e fai riferimento a esso da questo nodo"
+    }
   }
 }

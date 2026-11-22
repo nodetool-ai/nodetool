@@ -310,6 +310,9 @@ export function useMarkdownDocumentSync(
     const unwatchServer = registerDocumentSync("asset", assetId, {
       localRevision: () => revision,
       isDirty,
+      flush: async () => {
+        await controller.flush();
+      },
       reload: () => {
         void reload().catch((error: unknown) => {
           console.error("Failed to reload document", error);

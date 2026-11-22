@@ -20593,7 +20593,8 @@
         "manual": "Saved",
         "autosave": "Interval",
         "restore": "Before restore"
-      }
+      },
+      "usedIn": "Used in workflows: {{count}}"
     },
     "changes": {
       "title": "Marked changes: {{count}}",
@@ -20627,6 +20628,18 @@
       "noModel": "Pick a model in the chat first.",
       "failed": "The request failed."
     },
-    "resizePanel": "Resize the side panel"
+    "resizePanel": "Resize the side panel",
+    "picker": {
+      "label": "Project document",
+      "none": "None",
+      "placeholder": "Pick a project document",
+      "loading": "Loading…",
+      "error": "Documents could not be loaded.",
+      "empty": "No Markdown documents in this project"
+    },
+    "convert": {
+      "label": "Convert to document",
+      "tooltip": "Move this text into a project document and reference it from this node"
+    }
   }
 }

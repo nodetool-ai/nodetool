@@ -270,3 +270,100 @@ export function applyTextDocumentEdits(
   });
   return { text: result, replacements };
 }
+
+/** The text between appended content and what was there. */
+export function appendSeparator(previous: string): string {
+  if (previous === "" || previous.endsWith("\n\n")) return "";
+  return previous.endsWith("\n") ? "\n" : "\n\n";
+}
+
+/** Arguments of the `writeTextDocument` model interface. */
+export interface WriteTextDocumentInterfaceArgs {
+  userId: string;
+  assetId: string;
+  content: string;
+  mode: "replace" | "append";
+  causeId: string | null;
+  provenance?: {
+    workflowId?: string | null;
+    nodeId?: string | null;
+    jobId?: string | null;
+  };
+}
+
+/**
+ * A workflow run's write to a document (PRD R13): replace or append, keep
+ * the content before the run's first write as one version, and record the
+ * workflow, node and job on the asset (R15).
+ */
+export async function writeTextDocumentModelInterface(
+  args: WriteTextDocumentInterfaceArgs
+): Promise<{
+  id: string;
+  content_type: string;
+  name: string;
+  metadata: Record<string, unknown> | null;
+} | null> {
+  const found = await Asset.find(args.userId, args.assetId);
+  if (!found) return null;
+  const asset = await requireTextDocument(args.userId, found.id);
+  const previous = await readTextDocument(asset);
+  const next =
+    args.mode === "append"
+      ? previous + appendSeparator(previous) + args.content
+      : args.content;
+  if (args.provenance) {
+    asset.metadata = {
+      ...(asset.metadata ?? {}),
+      written_by: {
+        workflow_id: args.provenance.workflowId ?? null,
+        node_id: args.provenance.nodeId ?? null,
+        job_id: args.provenance.jobId ?? null,
+        written_at: new Date().toISOString()
+      }
+    };
+  }
+  const saved = await writeTextDocument(asset, next, {
+    cause: { saveType: "workflow_run", causeId: args.causeId }
+  });
+  return {
+    id: saved.id,
+    content_type: saved.content_type,
+    name: saved.name,
+    metadata: saved.metadata ?? null
+  };
+}
+
+/** The `findProjectAsset` model interface: the asset of a project file. */
+export async function findProjectAssetModelInterface(args: {
+  userId: string;
+  projectId: string;
+  path: string;
+}): Promise<{
+  id: string;
+  content_type: string;
+  name: string;
+  metadata: Record<string, unknown> | null;
+} | null> {
+  const path = args.path.replaceAll("\\", "/").replace(/^(\.\/)+/, "").replace(/^\/+/, "");
+  if (!path || path.split("/").includes("..")) return null;
+  const [asset] = await Asset.findByWorkspacePath(args.userId, args.projectId, path);
+  if (!asset) return null;
+  return {
+    id: asset.id,
+    content_type: asset.content_type,
+    name: asset.name,
+    metadata: asset.metadata ?? null
+  };
+}
+
+/** The document model interfaces a workflow run host installs. */
+export function textDocumentModelInterfaces(): {
+  writeTextDocument: typeof writeTextDocumentModelInterface;
+  findProjectAsset: typeof findProjectAssetModelInterface;
+} {
+  return {
+    writeTextDocument: writeTextDocumentModelInterface,
+    findProjectAsset: findProjectAssetModelInterface
+  };
+}

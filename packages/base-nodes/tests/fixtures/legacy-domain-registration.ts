@@ -4856,6 +4856,13 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'document',
           type_args: []
         }
+      },
+      {
+        name: 'text',
+        type: {
+          type: 'str',
+          type_args: []
+        }
       }
     ],
     recommended_models: [],
@@ -9394,6 +9401,13 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'document',
           type_args: []
         }
+      },
+      {
+        name: 'text',
+        type: {
+          type: 'str',
+          type_args: []
+        }
       }
     ],
     recommended_models: [],
@@ -12042,7 +12056,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Load Document File',
-    description: 'Read a document from disk.\n    files, document, read, input, load, file',
+    description: 'Read a document from disk.\n' +
+      '    files, document, read, input, load, file',
     namespace: 'nodetool.document',
     node_type: 'nodetool.document.LoadDocumentFile',
     layout: 'default',
@@ -12108,8 +12123,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Save Document File',
-    description: 'Write a document to disk.\n' +
-      '    files, document, write, output, save, file\n' +
+    description: 'Write a document to disk, or into a project document.\n' +
+      '    files, document, write, output, save, file, markdown\n' +
+      '\n' +
+      '    With a target document, the content replaces or is appended to that document, and each run keeps the content before it as a version. Without a target the node writes folder plus filename.\n' +
       '\n' +
       '    The filename can include time and date variables:\n' +
       '    %Y - Year, %m - Month, %d - Day\n' +
@@ -12139,6 +12156,64 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           data: null,
           metadata: null
         }
+      },
+      {
+        name: 'text',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Text',
+        description: 'Markdown text to save. Used instead of the document input when it is not empty.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'target',
+        type: {
+          type: 'document',
+          type_args: []
+        },
+        required: false,
+        title: 'Target',
+        description: 'A project document to write into. Leave empty to write a new file to folder plus filename.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'document',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
+        name: 'mode',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            'replace',
+            'append'
+          ]
+        },
+        required: false,
+        title: 'Mode',
+        description: "Replace the target document's content, or append to it.",
+        min: undefined,
+        max: undefined,
+        values: [
+          'replace',
+          'append'
+        ],
+        json_schema_extra: undefined,
+        default: 'replace'
       },
       {
         name: 'save_to_workspace',
@@ -12194,12 +12269,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     outputs: [],
     recommended_models: [],
     inline_fields: [
+      'target',
+      'mode',
       'save_to_workspace',
       'folder',
       'filename'
     ],
     input_fields: [
-      'document'
+      'document',
+      'text'
     ],
     required_settings: [],
     required_runtimes: [],
@@ -12231,7 +12309,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'List Documents',
-    description: 'List documents in a directory.\n    files, list, directory',
+    description: "List documents in a directory. A folder relative to the project lists the project's documents.\n" +
+      '    files, list, directory',
     namespace: 'nodetool.document',
     node_type: 'nodetool.document.ListDocuments',
     layout: 'default',
@@ -12245,7 +12324,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         },
         required: false,
         title: 'Folder',
-        description: 'Directory to scan',
+        description: 'Directory to scan. A relative path, such as notes or ., is a folder in the project.',
         min: undefined,
         max: undefined,
         values: undefined,

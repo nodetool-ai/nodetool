@@ -20593,7 +20593,8 @@
         "manual": "Sparad",
         "autosave": "Intervall",
         "restore": "Före återställning"
-      }
+      },
+      "usedIn": "Används i arbetsflöden: {{count}}"
     },
     "changes": {
       "title": "Markerade ändringar: {{count}}",
@@ -20627,6 +20628,18 @@
       "noModel": "Välj en modell i chatten först.",
       "failed": "Begäran misslyckades."
     },
-    "resizePanel": "Ändra storlek på sidopanelen"
+    "resizePanel": "Ändra storlek på sidopanelen",
+    "picker": {
+      "label": "Projektdokument",
+      "none": "Inget",
+      "placeholder": "Välj ett projektdokument",
+      "loading": "Läser in…",
+      "error": "Dokumenten kunde inte läsas in.",
+      "empty": "Inga Markdown-dokument i det här projektet"
+    },
+    "convert": {
+      "label": "Gör om till dokument",
+      "tooltip": "Flytta texten till ett projektdokument och hänvisa till det från den här noden"
+    }
   }
 }

@@ -44,6 +44,7 @@ import { clearRunSignatures, recordRunSignatures } from "./runSignatures";
 import { computeRunSignatures } from "../utils/computeRunSignatures";
 import { getNodeGenerations } from "./nodeGenerationAccessor";
 import { noteWorkflowRunStarted } from "../lib/analytics";
+import { flushDocumentDrafts } from "./documentSync";
 
 /**
  * Title for a run: the node's name for a single-node run, otherwise the
@@ -555,6 +556,13 @@ export const createWorkflowRunnerStore = (
           }
           throw error instanceof Error ? error : new Error(String(error));
         }
+      }
+
+      // A run reads saved files: save the open document drafts first
+      // (document editor PRD R12). After the claim, so a second run() queues.
+      const savingDrafts = flushDocumentDrafts();
+      if (savingDrafts) {
+        await savingDrafts;
       }
 
       // Stop can be requested while auth/session resolution is pending. Do

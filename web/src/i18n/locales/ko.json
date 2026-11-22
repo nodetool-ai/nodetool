@@ -20593,7 +20593,8 @@
         "manual": "저장됨",
         "autosave": "주기",
         "restore": "복원 전"
-      }
+      },
+      "usedIn": "사용 중인 워크플로: {{count}}"
     },
     "changes": {
       "title": "표시된 변경: {{count}}",
@@ -20627,6 +20628,18 @@
       "noModel": "먼저 채팅에서 모델을 선택하세요.",
       "failed": "요청이 실패했습니다."
     },
-    "resizePanel": "사이드 패널 크기 조정"
+    "resizePanel": "사이드 패널 크기 조정",
+    "picker": {
+      "label": "프로젝트 문서",
+      "none": "없음",
+      "placeholder": "프로젝트 문서 선택",
+      "loading": "불러오는 중…",
+      "error": "문서를 불러올 수 없습니다.",
+      "empty": "이 프로젝트에 Markdown 문서가 없습니다"
+    },
+    "convert": {
+      "label": "문서로 변환",
+      "tooltip": "이 텍스트를 프로젝트 문서로 옮기고 이 노드에서 참조합니다"
+    }
   }
 }

@@ -18,6 +18,9 @@ export function loadDocumentFile(inputs: LoadDocumentFileInputs, options?: NodeO
 // Save Document File — nodetool.document.SaveDocumentFile
 export type SaveDocumentFileInputs = {
   document?: Connectable<unknown>;
+  text?: Connectable<string>;
+  target?: Connectable<unknown>;
+  mode?: Connectable<"replace" | "append">;
   save_to_workspace?: Connectable<boolean>;
   folder?: Connectable<string>;
   filename?: Connectable<string>;

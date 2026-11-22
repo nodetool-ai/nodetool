@@ -20,6 +20,9 @@ export function loadDocumentFile(inputs: LoadDocumentFileInputs): Promise<LoadDo
 // Save Document File — nodetool.document.SaveDocumentFile
 export type SaveDocumentFileInputs = {
   document?: unknown;
+  text?: string;
+  target?: unknown;
+  mode?: "replace" | "append";
   save_to_workspace?: boolean;
   folder?: string;
   filename?: string;

@@ -55,7 +55,7 @@ function dataframeInput(inputs, options) {
   return createNode("nodetool.input.DataframeInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "dataframe" }, defaultOutput: "output" });
 }
 function documentInput(inputs, options) {
-  return createNode("nodetool.input.DocumentInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "document" }, defaultOutput: "output" });
+  return createNode("nodetool.input.DocumentInput", inputs, { id: options?.id, outputNames: ["output", "text"], outputTypes: { "output": "document", "text": "str" } });
 }
 function imageInput(inputs, options) {
   return createNode("nodetool.input.ImageInput", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });

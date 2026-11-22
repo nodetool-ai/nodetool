@@ -4,6 +4,7 @@
  */
 import {
   clearDocumentSyncSubscribers,
+  flushDocumentDrafts,
   handleDocumentResourceChange,
   registerDocumentSync
 } from "../documentSync";
@@ -481,5 +482,44 @@ describe("createDocumentSyncController", () => {
       updatedAt: "rev-1"
     });
     expect(save).not.toHaveBeenCalled();
+  });
+});
+
+describe("flushDocumentDrafts", () => {
+  afterEach(() => clearDocumentSyncSubscribers());
+
+  it("returns null when no editor holds a draft", () => {
+    registerDocumentSync("asset", "clean", {
+      localRevision: () => null,
+      isDirty: () => false,
+      reload: jest.fn(),
+      flush: jest.fn(async () => undefined)
+    });
+    expect(flushDocumentDrafts()).toBeNull();
+  });
+
+  it("saves every dirty draft and survives a failed save", async () => {
+    const saved = jest.fn(async () => undefined);
+    const failed = jest.fn(async () => {
+      throw new Error("offline");
+    });
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    registerDocumentSync("asset", "a", {
+      localRevision: () => null,
+      isDirty: () => true,
+      reload: jest.fn(),
+      flush: saved
+    });
+    registerDocumentSync("asset", "b", {
+      localRevision: () => null,
+      isDirty: () => true,
+      reload: jest.fn(),
+      flush: failed
+    });
+    await flushDocumentDrafts();
+    expect(saved).toHaveBeenCalledTimes(1);
+    expect(failed).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 });

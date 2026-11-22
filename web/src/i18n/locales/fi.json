@@ -20593,7 +20593,8 @@
         "manual": "Tallennettu",
         "autosave": "Väliaika",
         "restore": "Ennen palautusta"
-      }
+      },
+      "usedIn": "Käytössä työnkuluissa: {{count}}"
     },
     "changes": {
       "title": "Merkityt muutokset: {{count}}",
@@ -20627,6 +20628,18 @@
       "noModel": "Valitse ensin malli keskustelussa.",
       "failed": "Pyyntö epäonnistui."
     },
-    "resizePanel": "Muuta sivupaneelin kokoa"
+    "resizePanel": "Muuta sivupaneelin kokoa",
+    "picker": {
+      "label": "Projektin asiakirja",
+      "none": "Ei mitään",
+      "placeholder": "Valitse projektin asiakirja",
+      "loading": "Ladataan…",
+      "error": "Asiakirjoja ei voitu ladata.",
+      "empty": "Tässä projektissa ei ole Markdown-asiakirjoja"
+    },
+    "convert": {
+      "label": "Muunna asiakirjaksi",
+      "tooltip": "Siirrä tämä teksti projektin asiakirjaan ja viittaa siihen tästä solmusta"
+    }
   }
 }

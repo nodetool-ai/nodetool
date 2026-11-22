@@ -20593,7 +20593,8 @@
         "manual": "已保存",
         "autosave": "定时",
         "restore": "恢复前"
-      }
+      },
+      "usedIn": "使用此文档的工作流：{{count}}"
     },
     "changes": {
       "title": "已标记的更改：{{count}}",
@@ -20627,6 +20628,18 @@
       "noModel": "请先在聊天中选择模型。",
       "failed": "请求失败。"
     },
-    "resizePanel": "调整侧边栏大小"
+    "resizePanel": "调整侧边栏大小",
+    "picker": {
+      "label": "项目文档",
+      "none": "无",
+      "placeholder": "选择项目文档",
+      "loading": "正在加载…",
+      "error": "无法加载文档。",
+      "empty": "此项目中没有 Markdown 文档"
+    },
+    "convert": {
+      "label": "转换为文档",
+      "tooltip": "将此文本移入项目文档，并从此节点引用它"
+    }
   }
 }

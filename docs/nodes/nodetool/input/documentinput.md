@@ -31,6 +31,7 @@ Accepts a reference to a document asset for workflows, specified by a 'DocumentR
 | Output | Type | Description |
 |--------|------|-------------|
 | output | `document` |  |
+| text | `str` |  |
 
 ## Related Nodes
 

@@ -65,3 +65,9 @@ export type {
 } from "./save-target.js";
 
 export * from "./file-watch-match.js";
+
+export {
+  isProjectRelativePath,
+  projectDocumentRef
+} from "./project-document.js";
+export type { ProjectDocumentContext } from "./project-document.js";

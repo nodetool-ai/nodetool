@@ -20593,7 +20593,8 @@
         "manual": "Lagret",
         "autosave": "Intervall",
         "restore": "Før gjenoppretting"
-      }
+      },
+      "usedIn": "Brukt i arbeidsflyter: {{count}}"
     },
     "changes": {
       "title": "Merkede endringer: {{count}}",
@@ -20627,6 +20628,18 @@
       "noModel": "Velg en modell i chatten først.",
       "failed": "Forespørselen mislyktes."
     },
-    "resizePanel": "Endre størrelse på sidepanelet"
+    "resizePanel": "Endre størrelse på sidepanelet",
+    "picker": {
+      "label": "Prosjektdokument",
+      "none": "Ingen",
+      "placeholder": "Velg et prosjektdokument",
+      "loading": "Laster…",
+      "error": "Dokumentene kunne ikke lastes.",
+      "empty": "Ingen Markdown-dokumenter i dette prosjektet"
+    },
+    "convert": {
+      "label": "Gjør om til dokument",
+      "tooltip": "Flytt denne teksten til et prosjektdokument og henvis til det fra denne noden"
+    }
   }
 }

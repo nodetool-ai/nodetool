@@ -15,6 +15,13 @@ import DocumentProperty from "../DocumentProperty";
 const assetId = "0123456789abcdef0123456789abcdef";
 let mockAsset: Asset | undefined;
 
+// The project document list is tested on its own; here it needs no server.
+jest.mock("../ProjectDocumentSelect", () => ({
+  __esModule: true,
+  default: () => null,
+  projectDocumentValue: (assetId: string) => ({ type: "document", uri: `asset://${assetId}`, asset_id: assetId })
+}));
+
 jest.mock("../../../serverState/useAsset", () => ({
   useAsset: () => ({ asset: mockAsset, uri: "https://example.com/report.pdf" })
 }));

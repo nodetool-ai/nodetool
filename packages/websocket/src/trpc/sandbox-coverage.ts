@@ -1373,6 +1373,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "receive.release": {
     withheld: "Revision sets belong to the desktop app that captured them."
   },
+  "textDocuments.references": {
+    gap: "The editor lists the workflows that use a document. An agent finds them with list_workflows and get_workflow, and validate_workflow reports a deleted one."
+  },
   "textDocuments.versions": { capability: "list_document_versions" },
   "textDocuments.version": {
     gap: "The agent reads the current document; a stored version's content has no read capability."

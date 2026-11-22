@@ -20593,7 +20593,8 @@
         "manual": "Opgeslagen",
         "autosave": "Interval",
         "restore": "Vóór herstel"
-      }
+      },
+      "usedIn": "Gebruikt in workflows: {{count}}"
     },
     "changes": {
       "title": "Gemarkeerde wijzigingen: {{count}}",
@@ -20627,6 +20628,18 @@
       "noModel": "Kies eerst een model in de chat.",
       "failed": "Het verzoek is mislukt."
     },
-    "resizePanel": "Zijpaneel vergroten of verkleinen"
+    "resizePanel": "Zijpaneel vergroten of verkleinen",
+    "picker": {
+      "label": "Projectdocument",
+      "none": "Geen",
+      "placeholder": "Kies een projectdocument",
+      "loading": "Laden…",
+      "error": "De documenten konden niet worden geladen.",
+      "empty": "Geen Markdown-documenten in dit project"
+    },
+    "convert": {
+      "label": "Omzetten naar document",
+      "tooltip": "Verplaats deze tekst naar een projectdocument en verwijs ernaar vanuit deze node"
+    }
   }
 }

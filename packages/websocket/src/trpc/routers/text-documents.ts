@@ -1,12 +1,17 @@
 /**
  * Text documents router: the stored versions of a Markdown document
- * (docs/document-editor/prd.md, R11). The editor lists them, saves one on
+ * (docs/document-editor/prd.md, R11) and the workflows that reference it
+ * (R15). The editor lists versions, saves one on
  * "Save version" and at an interval while the user edits, and restores one.
  * Reads and writes go through `@nodetool-ai/asset-services/text-documents`,
  * the service the `text-documents` agent capabilities call.
  */
 
-import { TextDocumentVersion, textDocumentContentHash } from "@nodetool-ai/models";
+import {
+  TextDocumentVersion,
+  textDocumentContentHash,
+  workflowsReferencingDocument
+} from "@nodetool-ai/models";
 import {
   TextDocumentError,
   readTextDocument,
@@ -22,6 +27,7 @@ import {
   listTextDocumentVersionsOutput,
   restoreTextDocumentVersionInput,
   restoreTextDocumentVersionOutput,
+  textDocumentReferencesOutput,
   textDocumentRef
 } from "@nodetool-ai/protocol/api-schemas/text-documents.js";
 import { ApiErrorCode } from "../../error-codes.js";
@@ -52,6 +58,21 @@ async function loadDocument(userId: string, assetId: string) {
 }
 
 export const textDocumentsRouter = router({
+  references: protectedProcedure
+    .input(textDocumentRef)
+    .output(textDocumentReferencesOutput)
+    .query(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      const workflows = await workflowsReferencingDocument(ctx.userId, asset.id);
+      return {
+        workflows: workflows.map((workflow) => ({
+          workflow_id: workflow.workflowId,
+          name: workflow.name,
+          node_ids: workflow.nodes.map((node) => node.nodeId)
+        }))
+      };
+    }),
+
   versions: protectedProcedure
     .input(textDocumentRef)
     .output(listTextDocumentVersionsOutput)
