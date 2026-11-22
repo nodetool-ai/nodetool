@@ -962,6 +962,43 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "compute-provider-lifecycle",
+    title:
+      "GPU worker lifecycle (provision, poll, reap) against a fake RunPod and Vast.ai API",
+    command:
+      "npm run test --workspace=packages/compute -- provider-lifecycle-harness",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § GPU worker and self-hosted rollout fixtures",
+    selfcheck: {
+      // The real WorkerManager, providers and HTTP transports against a
+      // stateful fake of both provider APIs installed as `fetch`. Asserts the
+      // exact provider calls; any unrouted call fails the case.
+      command:
+        "npm run test --workspace=packages/compute -- provider-lifecycle-harness",
+      cost: "cheap",
+      suiteOnly: true
+    }
+  },
+  {
+    id: "deploy-rollout",
+    title: "Self-hosted Docker rollout (plan, apply) over a fake SSH host",
+    command:
+      "npm run test --workspace=packages/deploy -- self-hosted-rollout-harness",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § GPU worker and self-hosted rollout fixtures",
+    selfcheck: {
+      // DockerDeployer with the real SSHConnection, DockerRunGenerator and
+      // StateManager; only the ssh2 transport is faked. Asserts the exact
+      // command sequence a rollout sends over SSH.
+      command:
+        "npm run test --workspace=packages/deploy -- self-hosted-rollout-harness",
+      cost: "cheap",
+      suiteOnly: true
+    }
+  },
+  {
     id: "affected",
     title: "Changed-file → workspace mapping",
     command: "nodetool affected [--base main]",
@@ -2223,6 +2260,18 @@ export const SURFACES: SurfaceEntry[] = [
     paths: ["packages/blender-nodes/"]
   },
   {
+    id: "compute-workers",
+    title: "Rented GPU workers (profiles, RunPod/Vast/Verda providers, reaper)",
+    harnesses: ["compute-provider-lifecycle"],
+    paths: ["packages/compute/"]
+  },
+  {
+    id: "self-hosted-deploy",
+    title: "Self-hosted Docker deployments (`nodetool deploy`)",
+    harnesses: ["deploy-rollout"],
+    paths: ["packages/deploy/"]
+  },
+  {
     id: "manimgx",
     title: "ManimGX scenes (runner, nodes, authoring skill)",
     harnesses: ["manimgx"],
@@ -2723,7 +2772,7 @@ export const SURFACES: SurfaceEntry[] = [
     // its esbuild metafile. A new import of a host package in any of them
     // must be classified in guest/module-contract.mjs, and the native
     // workflow does not run for most of them. packages/compute is bundled
-    // too and stays in UNCLAIMED_PATHS.
+    // too and is claimed by the compute-workers surface.
     paths: [
       "native/graph-runner/guest/",
       "packages/agents/src/", "packages/app-runtime/src/", "packages/asset-services/src/",
@@ -2838,15 +2887,6 @@ export const UNCLAIMED_PATHS: Record<string, string> = {
     "editor work, kept out of the gate on purpose. Its runner needs a Qt " +
     "build and Chromium. `npm run test:affected` runs its census check and " +
     "unit tests for a diff here (PATH_CHECKS in scripts/test-affected.mjs).",
-  "packages/compute/":
-    "Provisions and reaps real RunPod/Vast.ai GPU workers; only its hermetic " +
-    "unit tests run headlessly today. A harness needs a recorded-fixture " +
-    "mode against a fake provider API, the way `blender` and " +
-    "`provider-contract` fake their externals.",
-  "packages/deploy/":
-    "The `nodetool deploy` toolkit (Docker/SSH/RunPod/GCP/Supabase " +
-    "self-hosting) needs a real target to prove a rollout; only its " +
-    "planning-logic unit tests run headlessly today.",
   "packages/sdk/":
     "Generated TypeScript client re-exporting the tRPC/WebSocket surface; " +
     "has no test script of its own (build + lint only) — exercised " +

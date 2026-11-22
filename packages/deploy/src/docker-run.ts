@@ -112,7 +112,10 @@ export class DockerRunGenerator {
 
   /** Generate docker run command as a string. */
   generateCommand(): string {
-    const parts: string[] = [`${shellEscape(this.runtimeCommand)} run`];
+    // The runtime is a shell fragment chosen by the deployer (`docker`,
+    // `podman`, or the remote probe that picks one), never user input.
+    // Quoting it would turn the probe into a literal command name.
+    const parts: string[] = [`${this.runtimeCommand} run`];
 
     parts.push("-d");
 

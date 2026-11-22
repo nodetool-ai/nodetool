@@ -2188,6 +2188,38 @@ survives. Manifest:
 `packages/runtime/src/providers/contract/probe-manifest.ts`. Details:
 [docs/provider-contract-probes.md](provider-contract-probes.md).
 
+### GPU worker and self-hosted rollout fixtures
+
+Two keyless harnesses drive the remote-compute packages against fakes of
+their external systems. Neither needs a provider key, a GPU, Docker or a
+reachable host.
+
+```bash
+npm run test --workspace=packages/compute -- provider-lifecycle-harness
+npm run test --workspace=packages/deploy -- self-hosted-rollout-harness
+```
+
+- **GPU workers (`packages/compute`).** The real `WorkerManager`, the RunPod
+  and Vast.ai providers and their HTTP transports run against a stateful fake
+  of both APIs, installed as the global `fetch`
+  (`src/__tests__/fixtures/fake-provider-api.ts`). Each case provisions a
+  worker, polls it to running, then lets `runReaperOnce` pause it at the idle
+  window and destroy it at the hard TTL. It asserts the exact provider calls
+  and request bodies. Failure cases cover a pod or instance that dies while
+  polling: it must be deleted and no instance row written. A call the fake
+  does not route is recorded as unexpected and fails the case. The Verda
+  provider is not driven by the fake and relies on its unit tests.
+- **Self-hosted Docker (`packages/deploy`).** `DockerDeployer.plan()` and
+  `apply()` run with the real `SSHConnection`, `DockerRunGenerator` and
+  `StateManager` on a temporary `deployment.yaml`. Only the ssh2 transport is
+  replaced, through `_setClientCtorForTest`, by a fake host that answers from a
+  small simulated Docker state. The cases assert the exact command sequence of
+  a first rollout, a redeploy that replaces the old and a legacy container,
+  and a rollout whose health probe never passes. A dry run must open no
+  connection. The image transfer from a local Docker daemon is not covered.
+
+Both run as selfchecks for diffs under their package.
+
 ### Pause points, races and process kills
 
 Crash and race tests for the cloud transfer and the access rules stop code at
