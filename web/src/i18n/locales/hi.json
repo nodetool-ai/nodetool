@@ -20429,6 +20429,12 @@
       "cancel": "रद्द करें",
       "signOutNow": "अभी साइन आउट करें",
       "waitingNote": "बदलाव भेजे जाने की प्रतीक्षा है। क्लाउड विंडो खुली रखें।"
+    },
+    "syncStatus": {
+      "savedToCloud": "क्लाउड में सहेजा गया",
+      "changesWaiting": "बदलाव प्रतीक्षा में",
+      "offline": "ऑफ़लाइन",
+      "notSaving": "सहेजा नहीं जा रहा"
     }
   },
   "cloudTransfer": {

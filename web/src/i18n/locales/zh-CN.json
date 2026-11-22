@@ -20429,6 +20429,12 @@
       "waitingNote": "正在等待更改发送。请保持云窗口打开。",
       "waiting_one": "{{count}} 个云文档有尚未发送的更改。",
       "unsent_one": "服务器拒绝了 {{count}} 个云文档的更改。"
+    },
+    "syncStatus": {
+      "savedToCloud": "已保存到云端",
+      "changesWaiting": "有待发送的更改",
+      "offline": "离线",
+      "notSaving": "无法保存"
     }
   },
   "cloudTransfer": {

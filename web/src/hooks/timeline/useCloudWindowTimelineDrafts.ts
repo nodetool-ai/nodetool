@@ -16,6 +16,7 @@ import { CLOUD_WINDOW } from "../../lib/cloud/cloudWindow";
 import { SAVER_TICK_MS, type StoredDraft } from "../../lib/cloud/CloudDocumentSaver";
 import { desktopCloudLocalDraftsClient, LocalDraftStore, serverKeyOf } from "../../lib/cloud/localDraftStore";
 import { useTimelineStoreApi, type TimelineStoreState } from "../../stores/timeline/TimelineStore";
+import { cloudSyncStatusKey, reportCloudSyncStatus } from "../../stores/CloudSyncStatusStore";
 import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
 import { withHistoryPaused } from "./timelineExternalMerge";
 import { isTimelineDocumentDirty } from "./useTimelineAutosave";
@@ -110,6 +111,9 @@ export const useCloudWindowTimelineDrafts = (): void => {
         lastFields = fields;
       }
       if (state.sequenceId !== sequenceId) {
+        if (sequenceId) {
+          reportCloudSyncStatus(cloudSyncStatusKey("timeline", sequenceId), null);
+        }
         sequenceId = state.sequenceId;
         mirror = null;
         loading = false;
@@ -118,7 +122,13 @@ export const useCloudWindowTimelineDrafts = (): void => {
         return;
       }
       if (mirror) {
-        void mirror.update(snapshot(state), Date.now());
+        const current = mirror;
+        const id = sequenceId;
+        void current.update(snapshot(state), Date.now()).then(() => {
+          if (mirror === current) {
+            reportCloudSyncStatus(cloudSyncStatusKey("timeline", id), current.status(snapshot(store.getState())));
+          }
+        });
       } else if (!loading) {
         loading = true;
         void open(sequenceId);
@@ -129,6 +139,10 @@ export const useCloudWindowTimelineDrafts = (): void => {
     return () => {
       window.clearInterval(timer);
       unsubscribe();
+      mirror = null;
+      if (sequenceId) {
+        reportCloudSyncStatus(cloudSyncStatusKey("timeline", sequenceId), null);
+      }
     };
   }, [store]);
 };

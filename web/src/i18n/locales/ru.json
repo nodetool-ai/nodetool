@@ -21057,6 +21057,12 @@
       "cancel": "Отмена",
       "signOutNow": "Выйти сейчас",
       "waitingNote": "Ожидание отправки изменений. Не закрывайте облачное окно."
+    },
+    "syncStatus": {
+      "savedToCloud": "Сохранено в облаке",
+      "changesWaiting": "Изменения ожидают отправки",
+      "offline": "Не в сети",
+      "notSaving": "Не сохраняется"
     }
   },
   "cloudTransfer": {

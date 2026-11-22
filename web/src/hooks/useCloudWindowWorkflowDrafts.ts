@@ -15,6 +15,7 @@ import { CloudDraftMirror, type EditorSnapshot } from "../lib/cloud/CloudDraftMi
 import { CLOUD_WINDOW } from "../lib/cloud/cloudWindow";
 import { SAVER_TICK_MS, type CloudDocumentKey, type StoredDraft } from "../lib/cloud/CloudDocumentSaver";
 import { desktopCloudLocalDraftsClient, LocalDraftStore, serverKeyOf } from "../lib/cloud/localDraftStore";
+import { cloudSyncStatusKey, reportCloudSyncStatus } from "../stores/CloudSyncStatusStore";
 import { graphEdgeToReactFlowEdge } from "../stores/graphEdgeToReactFlowEdge";
 import { graphNodeToReactFlowNode } from "../stores/graphNodeToReactFlowNode";
 import type { NodeStore } from "../stores/NodeStore";
@@ -109,14 +110,20 @@ export const useCloudWindowWorkflowDrafts = (manager: WorkflowManagerStore): voi
           }
           continue;
         }
-        if (entry.mirror) {
-          void entry.mirror.update(workflowSnapshot(nodeStore), now);
+        const mirror = entry.mirror;
+        if (mirror) {
+          void mirror.update(workflowSnapshot(nodeStore), now).then(() => {
+            if (entries.get(id)?.mirror === mirror) {
+              reportCloudSyncStatus(cloudSyncStatusKey("workflow", id), mirror.status(workflowSnapshot(nodeStore)));
+            }
+          });
         }
       }
       for (const id of [...entries.keys()]) {
         if (!nodeStores[id]) {
           // The tab closed. A draft that stays is taken up when the workflow opens again.
           entries.delete(id);
+          reportCloudSyncStatus(cloudSyncStatusKey("workflow", id), null);
         }
       }
     };
@@ -125,6 +132,10 @@ export const useCloudWindowWorkflowDrafts = (manager: WorkflowManagerStore): voi
     return () => {
       window.clearInterval(timer);
       unsubscribe();
+      for (const id of entries.keys()) {
+        reportCloudSyncStatus(cloudSyncStatusKey("workflow", id), null);
+      }
+      entries.clear();
     };
   }, [manager]);
 };

@@ -20429,6 +20429,12 @@
       "cancel": "Peruuta",
       "signOutNow": "Kirjaudu ulos nyt",
       "waitingNote": "Odotetaan muutosten lähettämistä. Pidä pilvi-ikkuna auki."
+    },
+    "syncStatus": {
+      "savedToCloud": "Tallennettu pilveen",
+      "changesWaiting": "Muutoksia odottaa",
+      "offline": "Ei yhteyttä",
+      "notSaving": "Ei tallenneta"
     }
   },
   "cloudTransfer": {

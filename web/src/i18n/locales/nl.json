@@ -20429,6 +20429,12 @@
       "cancel": "Annuleren",
       "signOutNow": "Nu afmelden",
       "waitingNote": "Wachten tot de wijzigingen zijn verzonden. Houd het cloudvenster open."
+    },
+    "syncStatus": {
+      "savedToCloud": "Opgeslagen in de cloud",
+      "changesWaiting": "Wijzigingen wachten",
+      "offline": "Offline",
+      "notSaving": "Wordt niet opgeslagen"
     }
   },
   "cloudTransfer": {

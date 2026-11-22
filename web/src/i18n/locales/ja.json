@@ -20429,6 +20429,12 @@
       "waitingNote": "変更の送信を待っています。クラウドウィンドウを開いたままにしてください。",
       "waiting_one": "{{count}} 件のクラウドドキュメントにまだ送信されていない変更があります。",
       "unsent_one": "サーバーが {{count}} 件のクラウドドキュメントの変更を拒否しました。"
+    },
+    "syncStatus": {
+      "savedToCloud": "クラウドに保存済み",
+      "changesWaiting": "変更は送信待ち",
+      "offline": "オフライン",
+      "notSaving": "保存できません"
     }
   },
   "cloudTransfer": {
