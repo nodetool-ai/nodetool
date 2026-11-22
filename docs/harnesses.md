@@ -148,6 +148,13 @@ npm run dev:nodetool -- serve --host 0.0.0.0      # Bind all interfaces
 npm run dev:nodetool -- serve --port 8080          # Custom port
 ```
 
+The `api-routes` selfcheck runs the whole websocket suite and needs
+`--expensive`. The `api-access-control` selfcheck runs only the router files
+that check who may call a procedure: document sharing, agent access, cloud
+drafts, bug reports, MCP config, project folder migration and app instances.
+`test:affected` already runs these files for an API diff, so the gate lists the
+check as a suite and runs it with `--include-suites`.
+
 ### MCP bundle (.mcpb) for Claude Desktop
 
 ```bash
