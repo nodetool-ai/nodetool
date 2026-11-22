@@ -30,6 +30,7 @@ public:
 
     void prepareToPlay(double sampleRate, int) override {
         rate_ = sampleRate;
+        logPath_ = juce::SystemStats::getEnvironmentVariable("NT_TONE_MIDI_LOG", {});
         notes_.clear();
         setLatencySamples(latency_->get());
         delay_.assign(static_cast<size_t>(getLatencySamples()), 0.0f);
@@ -47,6 +48,7 @@ public:
             const auto msg = meta.getMessage();
             if (msg.isNoteOn()) notes_[msg.getNoteNumber()] = 0.0;
             else if (msg.isNoteOff()) notes_.erase(msg.getNoteNumber());
+            log(msg);
         }
         render(buffer, pos, buffer.getNumSamples());
         if (!delay_.empty()) {
@@ -67,6 +69,23 @@ public:
     }
 
 private:
+    // Test hook: when NT_TONE_MIDI_LOG names a file, every MIDI message the plug-in
+    // receives is appended there as "<kind> ch=<1..16> <values>", so a host test
+    // can see what reached a plug-in through the VST3 event path.
+    void log(const juce::MidiMessage& msg) {
+        if (logPath_.isEmpty()) return;
+        juce::String line;
+        const auto ch = " ch=" + juce::String(msg.getChannel());
+        if (msg.isNoteOn()) line = "noteOn" + ch + " " + juce::String(msg.getNoteNumber()) + " " + juce::String(msg.getVelocity());
+        else if (msg.isNoteOff()) line = "noteOff" + ch + " " + juce::String(msg.getNoteNumber()) + " " + juce::String(msg.getVelocity());
+        else if (msg.isController()) line = "cc" + ch + " " + juce::String(msg.getControllerNumber()) + " " + juce::String(msg.getControllerValue());
+        else if (msg.isPitchWheel()) line = "bend" + ch + " " + juce::String(msg.getPitchWheelValue());
+        else if (msg.isChannelPressure()) line = "chanPressure" + ch + " " + juce::String(msg.getChannelPressureValue());
+        else if (msg.isAftertouch()) line = "polyPressure" + ch + " " + juce::String(msg.getNoteNumber()) + " " + juce::String(msg.getAfterTouchValue());
+        else return;
+        juce::File(logPath_).appendText(line + "\n");
+    }
+
     void render(juce::AudioBuffer<float>& buffer, int from, int to) {
         const float gain = 0.2f * level_->get();
         for (auto& [pitch, phase] : notes_) {
@@ -84,6 +103,7 @@ private:
     std::vector<float> delay_;
     size_t delayAt_ = 0;
     std::map<int, double> notes_;
+    juce::String logPath_;
     double rate_ = 48000;
 };
 

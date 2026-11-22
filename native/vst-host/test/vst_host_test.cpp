@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include "../source/VstHost.h"
 
 using namespace vsthost;
@@ -132,13 +133,176 @@ int main(int argc, char** argv) {
         check(copy.render(rate, renderFrames, held, reference, error), "restores the held-note reference", error);
     }
 
+    std::printf("\n== NodeToolVstHost: live MIDI forwarding ==\n");
+    {
+        // Note-off release velocity, channel nibble, pitch bend, CC, pressure and
+        // note expression through processLiveBlock. The tone plug-in logs what it receives.
+        const auto log = juce::File::createTempFile(".midilog");
+        log.deleteFile();
+        ::setenv("NT_TONE_MIDI_LOG", log.getFullPathName().toRawUTF8(), 1);
+        Instance live;
+        check(live.load(path, inst.uid(), error), "loads the live instrument", error);
+        check(live.prepareLive(rate, 256, error), "prepares live streaming", error);
+        const auto event = [](int offset, std::uint8_t status, std::uint8_t d1, std::uint8_t d2) {
+            return ShmMidiEvent{ offset, status, d1, d2, 0, kShmNoNoteId, 0.0f };
+        };
+        ShmMidiEvent expression = event(5, kShmStatusNoteExpression, kShmExprTuning, 0);
+        expression.noteId = 7;
+        expression.value = 0.75f;
+        // 8191 + 8192 = 16383: LSB 127, MSB 127.
+        const ShmMidiEvent midi[] = {
+            event(0, 0x92, 64, 90),   event(1, 0xB2, 1, 99),  event(2, 0xE2, 127, 127), event(3, 0xD2, 55, 0),
+            event(4, 0xA2, 64, 44),   expression,             event(10, 0x82, 64, 33),  event(11, 0x80, 60, 0) };
+        std::vector<float> zeros(256, 0.0f), outL(256), outR(256);
+        juce::AudioBuffer<float> scratch(4, 512);
+        juce::MidiBuffer scratchMidi;
+        check(live.processLiveBlock(rate, 256, true, zeros.data(), zeros.data(), outL.data(), outR.data(),
+                                    midi, static_cast<int>(std::size(midi)), scratch, scratchMidi),
+              "processes a live block with events");
+        const auto text = log.loadFileAsString();
+        check(text.contains("noteOn ch=3 64 90"), "note-on keeps its channel", text);
+        check(text.contains("cc ch=3 1 99"), "control change reaches the plug-in on its channel");
+        check(text.contains("bend ch=3 16383"), "pitch bend reaches the plug-in as a 14-bit value");
+        check(text.contains("chanPressure ch=3 55"), "channel pressure reaches the plug-in");
+        check(text.contains("polyPressure ch=3 64 44"), "poly pressure reaches the plug-in");
+        check(text.contains("noteOff ch=3 64 33"), "release velocity value is 33");
+        check(text.contains("noteOff ch=1 60 0"), "note-off without release velocity sends 0");
+        check(live.droppedNoteExpression() == 1, "note expression is counted as undeliverable through JUCE",
+              juce::String(static_cast<juce::int64>(live.droppedNoteExpression())));
+        NoteExpressionValue expressionOut;
+        check(decodeNoteExpression(expression, expressionOut) && expressionOut.noteId == 7 && expressionOut.typeId == 2 &&
+              std::abs(expressionOut.value - 0.75f) < 1e-6f, "decodes a tuning expression to the VST3 type id");
+        ::unsetenv("NT_TONE_MIDI_LOG");
+        log.deleteFile();
+    }
+
+    std::printf("\n== NodeToolVstHost: transport reset ==\n");
+    {
+        // A discontinuous seek releases sustain and centres pitch bend on every
+        // channel, before the chase events of the same block.
+        const auto log = juce::File::createTempFile(".resetlog");
+        log.deleteFile();
+        ::setenv("NT_TONE_MIDI_LOG", log.getFullPathName().toRawUTF8(), 1);
+        Instance live;
+        check(live.load(path, inst.uid(), error), "loads the reset instrument", error);
+        check(live.prepareLive(rate, 256, error), "prepares reset streaming", error);
+        const ShmMidiEvent chase{ 0, 0xB0, 1, 77, 0, kShmNoNoteId, 0.0f };
+        std::vector<float> zeros(256, 0.0f), outL(256), outR(256);
+        juce::AudioBuffer<float> scratch(4, 512);
+        juce::MidiBuffer scratchMidi;
+        check(live.processLiveBlock(rate, 256, true, zeros.data(), zeros.data(), outL.data(), outR.data(),
+                                    &chase, 1, scratch, scratchMidi), "processes a reset block", error);
+        const auto text = log.loadFileAsString();
+        const auto chasePos = text.indexOf("cc ch=1 1 77");
+        bool allChannels = chasePos > 0;
+        for (int ch = 1; ch <= 16 && allChannels; ++ch) {
+            const auto tag = " ch=" + juce::String(ch) + " ";
+            const auto notesOff = text.indexOf("cc" + tag + "123 0");
+            const auto sustain = text.indexOf("cc" + tag + "64 0");
+            const auto bend = text.indexOf("bend" + tag + "8192");
+            allChannels = notesOff >= 0 && sustain >= 0 && bend >= 0 &&
+                          notesOff < chasePos && sustain < chasePos && bend < chasePos;
+        }
+        check(allChannels, "reset sends all-notes-off, sustain 0 and centred bend on 16 channels before the chase", text);
+        ::unsetenv("NT_TONE_MIDI_LOG");
+        log.deleteFile();
+    }
+
+    std::printf("\n== NodeToolVstHost: live rate is prepared by the control side ==\n");
+    {
+        Instance live;
+        check(live.load(path, inst.uid(), error), "loads the rate instrument", error);
+        std::vector<float> zeros(256, 0.0f), outL(256), outR(256);
+        juce::AudioBuffer<float> scratch(4, 512);
+        juce::MidiBuffer scratchMidi;
+        int latency = -1;
+        check(!live.processLiveBlock(rate, 256, false, zeros.data(), zeros.data(), outL.data(), outR.data(),
+                                     nullptr, 0, scratch, scratchMidi, &latency),
+              "an unprepared instance drops the block instead of preparing on the worker");
+        check(live.prepareLive(rate, 256, error), "prepares live streaming at the rate", error);
+        check(!live.processLiveBlock(rate * 0.91875, 256, false, zeros.data(), zeros.data(), outL.data(), outR.data(),
+                                     nullptr, 0, scratch, scratchMidi, &latency),
+              "a mismatched rate drops the block instead of preparing on the worker");
+        check(live.processLiveBlock(rate, 256, false, zeros.data(), zeros.data(), outL.data(), outR.data(),
+                                    nullptr, 0, scratch, scratchMidi, &latency) && latency >= 0,
+              "the prepared rate processes and reports latency under the lock");
+        check(live.prepareLive(rate * 0.91875, 256, error), "re-prepares at the device rate", error);
+        check(live.processLiveBlock(rate * 0.91875, 256, false, zeros.data(), zeros.data(), outL.data(), outR.data(),
+                                    nullptr, 0, scratch, scratchMidi, &latency),
+              "the new rate processes after the control-side prepare");
+    }
+
     std::printf("\n== NodeToolVstHost: output file ==\n");
     const auto file = juce::File::createTempFile(".f32");
     check(writePlanarF32(a, file) && file.getSize() == (juce::int64)(2 * 48000 * sizeof(float)), "writes planar float32");
     juce::FileInputStream in(file);
     in.setPosition((juce::int64)(48000 + 10000) * 4);
     check(std::abs(in.readFloat() - a.getSample(1, 10000)) < 1e-9f, "right channel follows every left frame");
+    juce::AudioBuffer<float> roundTripped;
+    check(readPlanarF32(file, roundTripped, 48000) &&
+          std::abs(roundTripped.getSample(1, 10000) - a.getSample(1, 10000)) < 1e-9f, "reads planar float32 back");
     file.deleteFile();
+
+    if (argc >= 4) {
+        std::printf("\n== NodeToolVstHost: audio effect ==\n");
+        const juce::String fxPath = juce::File::getCurrentWorkingDirectory().getChildFile(argv[3]).getFullPathName();
+        const auto fxScan = scan({ juce::File(fxPath).getParentDirectory().getFullPathName() }, false);
+        const PluginInfo* gainFx = nullptr;
+        for (auto& p : fxScan) if (p.path == fxPath) gainFx = &p;
+        check(gainFx != nullptr && !gainFx->isInstrument && gainFx->name == "NodeTool Test Gain",
+              "scans audio effect plug-in when includeEffects is enabled", gainFx ? gainFx->name : juce::String());
+
+        Instance fx;
+        error.clear();
+        check(fx.load(fxPath, gainFx ? gainFx->uid : juce::String(), error) && !fx.isInstrument(),
+              "loads audio effect plug-in", error);
+        if (fx.plugin()) {
+            constexpr int n = 1024;
+            juce::AudioBuffer<float> dry(2, n), wet;
+            for (int i = 0; i < n; ++i) {
+                dry.setSample(0, i, 0.4f);
+                dry.setSample(1, i, -0.8f);
+            }
+            check(fx.process(rate, dry, wet, error), "processes stereo audio", error);
+            check(wet.getNumChannels() == 2 && wet.getNumSamples() == n, "effect output matches length");
+            check(std::abs(wet.getSample(0, 100) - 0.2f) < 1e-5f && std::abs(wet.getSample(1, 100) + 0.4f) < 1e-5f,
+                  "applies default 0.5x stereo gain", juce::String(wet.getSample(0, 100)));
+
+            // State change & processWithState
+            auto fxParams = fx.plugin()->getParameters();
+            check(fxParams.size() >= 2, "effect exposes gain and latency parameters");
+            if (fxParams.size() >= 2) {
+                const auto defaultFxState = fx.getState();
+                fxParams[0]->setValueNotifyingHost(1.0f); // max = 2.0x gain
+                const auto boostedState = fx.getState();
+                check(boostedState != defaultFxState, "effect parameter change updates state");
+                juce::AudioBuffer<float> boosted;
+                check(processWithState(fx, true, boostedState, rate, dry, boosted, error), "processes with saved state", error);
+                check(std::abs(boosted.getSample(0, 100) - 0.8f) < 1e-5f, "boosted state applies 2.0x gain",
+                      juce::String(boosted.getSample(0, 100)));
+
+                // Latency compensation on effect
+                Instance delayedFx;
+                check(delayedFx.load(fxPath, fx.uid(), error), "loads delayed effect", error);
+                auto delayedParams = delayedFx.plugin()->getParameters();
+                delayedParams[1]->setValueNotifyingHost(733.0f / 2048.0f);
+                juce::AudioBuffer<float> impulse(2, 1003), delayedWet;
+                impulse.clear();
+                for (int i = 0; i < 1003; ++i) {
+                    impulse.setSample(0, i, static_cast<float>(std::sin(0.05 * i)));
+                    impulse.setSample(1, i, static_cast<float>(std::cos(0.05 * i)));
+                }
+                check(delayedFx.process(rate, impulse, delayedWet, error), "processes with latency", error);
+                check(delayedFx.plugin()->getLatencySamples() == 733, "effect reports latency after preparation");
+                double maxErr = 0;
+                for (int i = 0; i < 1003; ++i) {
+                    maxErr = std::max(maxErr, std::abs(delayedWet.getSample(0, i) - 0.5 * impulse.getSample(0, i)));
+                    maxErr = std::max(maxErr, std::abs(delayedWet.getSample(1, i) - 0.5 * impulse.getSample(1, i)));
+                }
+                check(maxErr < 1e-5, "effect latency compensation aligns output", juce::String(maxErr));
+            }
+        }
+    }
 
     std::printf("\n%s (%d failed)\n", g_fail ? "FAILED" : "ALL PASSED", g_fail);
     return g_fail ? 1 : 0;

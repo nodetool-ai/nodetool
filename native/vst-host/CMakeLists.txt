@@ -59,15 +59,35 @@ if(VSTHOST_BUILD_TESTS)
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags)
 
+    # A stereo gain audio effect the test loads, so CI needs no third-party plug-in.
+    juce_add_plugin(GainEffect
+        PRODUCT_NAME "NodeTool Test Gain"
+        COMPANY_NAME "NodeTool"
+        PLUGIN_MANUFACTURER_CODE Ndtl
+        PLUGIN_CODE Gain
+        FORMATS VST3
+        IS_SYNTH FALSE
+        NEEDS_MIDI_INPUT FALSE
+        COPY_PLUGIN_AFTER_BUILD FALSE)
+    set_target_properties(GainEffect PROPERTIES OBJCXX_VISIBILITY_PRESET hidden)
+    target_sources(GainEffect PRIVATE test/gain/GainEffect.cpp)
+    target_compile_definitions(GainEffect PUBLIC
+        JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
+    target_link_libraries(GainEffect PRIVATE
+        juce::juce_audio_utils
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags)
+
     juce_add_console_app(vst_host_test PRODUCT_NAME "vst_host_test")
     target_sources(vst_host_test PRIVATE test/vst_host_test.cpp source/VstHost.cpp)
     target_compile_definitions(vst_host_test PRIVATE ${VSTHOST_DEFS})
     target_link_libraries(vst_host_test PRIVATE ${VSTHOST_LIBS})
-    add_dependencies(vst_host_test ToneInstrument_VST3)
+    add_dependencies(vst_host_test ToneInstrument_VST3 GainEffect_VST3)
     set(VSTHOST_TEST_PLUGIN "${CMAKE_BINARY_DIR}/ToneInstrument_artefacts/$<CONFIG>/VST3/NodeTool Test Tone.vst3")
+    set(VSTHOST_TEST_EFFECT "${CMAKE_BINARY_DIR}/GainEffect_artefacts/$<CONFIG>/VST3/NodeTool Test Gain.vst3")
     set(VSTHOST_TEST_STATE "${CMAKE_BINARY_DIR}/nondefault-state.txt")
     add_test(NAME vst_host_test
-        COMMAND vst_host_test "${VSTHOST_TEST_PLUGIN}" "${VSTHOST_TEST_STATE}")
+        COMMAND vst_host_test "${VSTHOST_TEST_PLUGIN}" "${VSTHOST_TEST_STATE}" "${VSTHOST_TEST_EFFECT}")
     set_tests_properties(vst_host_test PROPERTIES FIXTURES_SETUP vst_nondefault_state)
     find_program(NODE_EXECUTABLE node REQUIRED)
     add_test(NAME vst_editor_state
