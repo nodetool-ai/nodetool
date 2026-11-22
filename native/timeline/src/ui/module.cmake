@@ -47,6 +47,8 @@ nt_sources(qml
     src/ui/MonitorZoomBar.cpp
     src/ui/MediaPreviews.h
     src/ui/MediaPreviews.cpp
+    src/ui/MidiNoteLines.h
+    src/ui/MidiNoteLines.cpp
     src/ui/PeakLevels.h
     src/ui/ThumbnailDiskCache.h
     src/ui/ThumbnailDiskCache.cpp
@@ -93,6 +95,26 @@ function(nt_ui_tests)
         Qt6::Qml Qt6::Quick Qt6::Test PkgConfig::FFMPEG)
     add_test(NAME tst_peaklevels COMMAND tst_peaklevels)
     set_tests_properties(tst_peaklevels PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+    # The midi note lines of a clip body: geometry and the drawing item.
+    qt_add_executable(tst_midinotelines tests/tst_midinotelines.cpp src/ui/MidiNoteLines.cpp src/ui/MidiNoteLines.h
+        src/model/TimelineModel.h src/model/TimelineModel.cpp src/model/TrackListModel.h src/model/TrackListModel.cpp)
+    set_target_properties(tst_midinotelines PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_midinotelines PRIVATE ${NT_WARNINGS})
+    target_link_libraries(tst_midinotelines PRIVATE timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate
+        Qt6::Qml Qt6::Quick Qt6::Test PkgConfig::FFMPEG)
+    add_test(NAME tst_midinotelines COMMAND tst_midinotelines)
+    set_tests_properties(tst_midinotelines PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+    # The track header's color strip, icon and volume slider.
+    qt_add_executable(tst_trackheadervolume tests/tst_trackheadervolume.cpp ${NT_app})
+    set_target_properties(tst_trackheadervolume PROPERTIES MACOSX_BUNDLE FALSE)
+    target_include_directories(tst_trackheadervolume PRIVATE tests)
+    target_link_libraries(tst_trackheadervolume PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_trackheadervolume OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_trackheadervolume_qml/NodeTool/Timeline)
+    add_test(NAME tst_trackheadervolume COMMAND tst_trackheadervolume)
+    set_tests_properties(tst_trackheadervolume PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 
     nt_qt_test(tst_timelinewheel LIBS timeline_core timeline_decode Qt6::Test
         DEFINES NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
