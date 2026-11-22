@@ -93,10 +93,10 @@ static QString transferRowDetail(const ReviewRow& row) {
       return TransferController::tr("File changed here, will be sent");
     }
     if (d == "put_workspace_file") {
-      return TransferController::tr("Changed in the project folder, will be sent");
+      return TransferController::tr("Changed in the project folder");
     }
     if (d == "new_workspace_file") {
-      return TransferController::tr("New in the project folder, will be sent");
+      return TransferController::tr("New in the project folder");
     }
     break;
   case ReviewSection::Receive:
@@ -330,6 +330,7 @@ QVariantList TransferController::rows() const {
                              {QStringLiteral("choice"), choice},
                              {QStringLiteral("confirmed"), row.confirmed},
                              {QStringLiteral("canKeepDeletion"), row.sendListed},
+                             {QStringLiteral("optional"), row.optional},
                              {QStringLiteral("canRestore"), row.receiveListed},
                              {QStringLiteral("canSendWithout"), !row.assetId.empty()},
                              {QStringLiteral("canReceive"), linked_ || row.cloudHash.empty()}});
@@ -487,7 +488,7 @@ void TransferController::finishCapture(quint64 sequence, const Captured& capture
     return;
   }
   setId_ = captured.receive.setId;
-  sendWork_ = !captured.send.operations.empty() || !captured.send.fileOperations.empty();
+  sendWork_ = hasRequiredWork(captured.send);
   review_ = TransferReview(captured.send, captured.receive);
   sendCapture_ = captured.send;
   approved_ = captured.send.operations;
@@ -534,6 +535,17 @@ bool TransferController::confirmMissingFile(int index, bool confirmed) {
   return true;
 }
 
+bool TransferController::includeFile(int index, bool included) {
+  if (index < 0 || stage_ != Stage::Reviewing) {
+    return false;
+  }
+  if (!review_.includeFile(static_cast<std::size_t>(index), included)) {
+    return false;
+  }
+  emit rowsChanged();
+  return true;
+}
+
 bool TransferController::confirmDeletion(int index, bool confirmed) {
   if (index < 0 || stage_ != Stage::Reviewing) {
     return false;
@@ -568,7 +580,7 @@ void TransferController::apply() {
                 setId = received_ ? std::string() : setId_,
                 refusals = linked_ ? review_.refusalsToReceive() : std::vector<TransferReview::RefusalReceive>{},
                 sendWork = sendWork_ || !linked_ || !review_.confirmedDeletes().empty() ||
-                           !review_.confirmedFileDeletes().empty(),
+                           !review_.confirmedFileDeletes().empty() || !review_.includedFiles().empty(),
                 approved = approved_, approvedFiles = approvedFiles_, projectId = projectId_.toStdString(), name = projectName_.toStdString(),
                 sequence]() mutable {
     LocalTransferClient client(*state->transport, origin, headers, *current, cancel);
@@ -673,8 +685,8 @@ void TransferController::apply() {
           report();
           return;
         }
-        sendWork = !applied.recaptured->operations.empty() || !applied.recaptured->fileOperations.empty() ||
-                   !review.confirmedDeletes().empty() || !review.confirmedFileDeletes().empty();
+        sendWork = hasRequiredWork(*applied.recaptured) || !review.confirmedDeletes().empty() ||
+                   !review.confirmedFileDeletes().empty() || !review.includedFiles().empty();
       }
     }
     if (sendWork) {
@@ -682,14 +694,15 @@ void TransferController::apply() {
       const std::vector<DeleteConfirmation> deletes = review.confirmedDeletes();
       const std::vector<TransferMissingFile> missing = review.confirmedMissingFiles();
       const std::vector<TransferDeletedFile> fileDeletes = review.confirmedFileDeletes();
-      SendRun run = client.runSend(transferId, keep, deletes, missing, fileDeletes);
+      const std::vector<IncludedFile> included = review.includedFiles();
+      SendRun run = client.runSend(transferId, keep, deletes, missing, fileDeletes, included);
       if (run.status == TransferStatus::Ok && !run.committed) {
         // Documents kept local are refused once: their base is older than
         // the cloud revision the person saw.
         const std::vector<KeepLocalDecision> answered = review.answeredRefusals(run.failures);
         if (!answered.empty() && answered.size() == run.failures.size()) {
           keep.insert(keep.end(), answered.begin(), answered.end());
-          run = client.runSend(transferId, keep, deletes, missing, fileDeletes);
+          run = client.runSend(transferId, keep, deletes, missing, fileDeletes, included);
         }
       }
       applied.send = std::move(run);
@@ -792,7 +805,7 @@ void TransferController::finishApply(quint64 sequence, const Applied& applied) {
       return;
     }
     transferId_ = again.transferId;
-    sendWork_ = !again.operations.empty() || !again.fileOperations.empty();
+    sendWork_ = hasRequiredWork(again);
     if (!applied.unreviewed.empty() || !applied.unreviewedFiles.empty()) {
       // The receive is done. The send shows again with what changed here.
       review_ = TransferReview(again, ReceiveCapture{TransferStatus::Ok, {}, {}, {}});

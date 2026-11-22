@@ -166,9 +166,15 @@ describe("CloudTransferSheet", () => {
     await act(() => controller.start());
 
     expect(screen.getByText("notes/plan.md")).toBeInTheDocument();
-    expect(screen.getByText("Changed in the project folder, will be sent")).toBeInTheDocument();
+    expect(screen.getByText("Changed in the project folder")).toBeInTheDocument();
     expect(screen.getByText("data/new.csv")).toBeInTheDocument();
-    expect(screen.getByText("New in the project folder, will be sent")).toBeInTheDocument();
+    expect(screen.getByText("New in the project folder")).toBeInTheDocument();
+    // Each is off by default (SR7), and ticking one includes it.
+    const boxes = screen.getAllByRole("checkbox", { name: "Send" });
+    expect(boxes).toHaveLength(2);
+    for (const box of boxes) expect(box).not.toBeChecked();
+    await userEvent.click(boxes[0]);
+    expect(controller.snapshot.rows[0]).toMatchObject({ label: "notes/plan.md", confirmed: true });
   });
 
   it("offers Collect for linked files and shows the sheet after it", async () => {

@@ -250,6 +250,7 @@ export const cloudTransferRouter = router({
             baseHash: entry.base_hash
           }));
         }
+        if (input.include_workspace_files) options.includeWorkspaceFiles = input.include_workspace_files;
         if (input.confirm_missing_files) options.confirmMissingFiles = input.confirm_missing_files;
         const outcome = await reachingCloud(() => runSend(transport, input.transfer_id, options));
         return sendOutput(outcome);

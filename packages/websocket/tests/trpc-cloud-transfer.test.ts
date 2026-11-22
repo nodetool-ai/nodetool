@@ -365,7 +365,15 @@ describe("cloudTransfer router", () => {
     await folder.write("notes.txt", notes);
     const first = await caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT });
     if (first.status !== "captured") throw new Error("expected a capture");
-    await caller.cloudTransfer.send.run({ ...SESSION, transfer_id: first.transfer_id });
+    // Workspace files are off by default (SR7), so the first send includes it.
+    const [put] = first.file_operations;
+    expect(put).toMatchObject({ op: "put_workspace_file", path: "notes.txt" });
+    await caller.cloudTransfer.send.run({
+      ...SESSION,
+      transfer_id: first.transfer_id,
+      include_workspace_files: [{ path: "notes.txt", hash: put!.op === "put_workspace_file" ? put!.hash : "" }]
+    });
+    expect(cloud.lastCommit?.manifest.file_operations).toMatchObject([{ op: "put_workspace_file", path: "notes.txt" }]);
     await folder.delete("notes.txt");
 
     const review = await caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT });

@@ -104,6 +104,15 @@ export const runSendInput = cloudTransferSession.extend({
     .array(z.object({ path: z.string(), base_hash: z.string().regex(/^[0-9a-f]{64}$/) }))
     .max(100_000)
     .optional(),
+  /**
+   * The workspace files the review included, each with the hash the capture
+   * listed. They are optional and off by default (SR7), so a reviewed send
+   * puts only these.
+   */
+  include_workspace_files: z
+    .array(z.object({ path: z.string(), hash: z.string().regex(/^[0-9a-f]{64}$/) }))
+    .max(100_000)
+    .optional(),
   /** The missing files the review confirmed, exactly as the capture listed them (X7, review F36). */
   confirm_missing_files: z.array(transferMissingFile).max(100_000).optional()
 });

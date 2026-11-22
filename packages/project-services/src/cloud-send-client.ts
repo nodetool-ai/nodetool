@@ -164,6 +164,13 @@ interface SendPlan {
   files: CapturedFile[];
   /** Absent on a plan recorded before workspace files were sent. */
   workspaceFiles?: CapturedWorkspaceFile[];
+  /**
+   * Every workspace file put the capture offered. Each is optional and off
+   * by default (SR7): a reviewed attempt sends only the ones the person
+   * included. Absent on a plan recorded before that, which sends its
+   * manifest's puts as they are.
+   */
+  offeredWorkspacePuts?: TransferFileOperation[];
   /** Absent on a plan recorded before workspace file deletions were sent. */
   deletedWorkspaceFiles?: DeletedWorkspaceFile[];
   missingFiles: TransferMissingFile[];
@@ -624,6 +631,7 @@ async function planFiles(
     documents,
     files,
     workspaceFiles: workspaceFiles.files,
+    offeredWorkspacePuts: workspaceFiles.operations,
     deletedWorkspaceFiles: workspaceFiles.deleted,
     missingFiles,
     skipped,
@@ -682,8 +690,14 @@ async function finishCommitted(
     // A workspace file kept beside a changed cloud file went to another path;
     // the cloud file at this path is not the one sent.
     const keptPaths = new Set((result.kept_beside ?? []).filter((entry) => !entry.asset_id).map((entry) => entry.path));
+    const sentPaths = new Set(
+      (plan.manifest.file_operations ?? []).flatMap((operation) =>
+        operation.op === "put_workspace_file" ? [operation.path] : []
+      )
+    );
     for (const file of plan.workspaceFiles ?? []) {
-      if (keptPaths.has(file.path)) continue;
+      // A file the person left out keeps its old base, so it is offered again.
+      if (keptPaths.has(file.path) || !sentPaths.has(file.path)) continue;
       await setCloudLinkWorkspaceFileBase(link, { path: file.path, hash: file.hash, size: file.size, mtimeMs: file.mtimeMs });
     }
     for (const operation of plan.manifest.file_operations ?? []) {
@@ -737,6 +751,12 @@ export interface SendRunOptions {
    */
   confirmWorkspaceDeletes?: DeletedWorkspaceFile[];
   /**
+   * The workspace files the person included, each with the hash the review
+   * showed. Workspace files are optional and off by default (SR7), so a
+   * reviewed attempt sends only these.
+   */
+  includeWorkspaceFiles?: Array<{ path: string; hash: string }>;
+  /**
    * Set only by {@link resumeSends}: the run continues an attempt a crash
    * interrupted, with the approvals recorded for it. Every other run is a
    * reviewed attempt, and its deletions are exactly `confirmDeletes`, none
@@ -773,7 +793,8 @@ export async function runSend(transport: SendTransport, transferId: string, opti
       recorded?.outcome === "refused" &&
       !options.decisions &&
       !options.confirmDeletes &&
-      !options.confirmWorkspaceDeletes
+      !options.confirmWorkspaceDeletes &&
+      !options.includeWorkspaceFiles
     ) {
       return { status: "refused", transferId, failures: recorded.failures };
     }
@@ -805,9 +826,16 @@ export async function runSend(transport: SendTransport, transferId: string, opti
       });
     }
     const confirmFiles = options.confirmWorkspaceDeletes ?? [];
+    const included = options.includeWorkspaceFiles ?? [];
+    const offered = plan.offeredWorkspacePuts;
     const fileOperations: TransferFileOperation[] = (plan.manifest.file_operations ?? []).filter(
-      (operation) => operation.op !== "delete_workspace_file"
+      (operation) =>
+        operation.op !== "delete_workspace_file" && (offered === undefined || operation.op !== "put_workspace_file")
     );
+    for (const put of offered ?? []) {
+      if (put.op !== "put_workspace_file") continue;
+      if (included.some((entry) => entry.path === put.path && entry.hash === put.hash)) fileOperations.push(put);
+    }
     for (const deleted of plan.deletedWorkspaceFiles ?? []) {
       const confirmed = confirmFiles.some((entry) => entry.path === deleted.path && entry.baseHash === deleted.baseHash);
       if (confirmed) fileOperations.push({ op: "delete_workspace_file", path: deleted.path, base_hash: deleted.baseHash });

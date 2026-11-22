@@ -102,6 +102,12 @@ std::vector<TransferOperation> unreviewedOperations(const std::vector<TransferOp
   return out;
 }
 
+bool hasRequiredWork(const SendCapture& send) {
+  return !send.operations.empty() ||
+         std::ranges::any_of(send.fileOperations,
+                             [](const TransferFileOperation& op) { return op.op != "put_workspace_file"; });
+}
+
 std::vector<TransferFileOperation> unreviewedFileOperations(const std::vector<TransferFileOperation>& approved,
                                                             const std::vector<TransferFileOperation>& recaptured) {
   const auto same = [](const TransferFileOperation& a, const TransferFileOperation& b) {
@@ -328,7 +334,8 @@ SendCapture LocalTransferClient::captureSend(const std::string& projectId, const
 SendRun LocalTransferClient::runSend(const std::string& transferId, const std::vector<KeepLocalDecision>& decisions,
                                      const std::vector<DeleteConfirmation>& confirmDeletes,
                                      const std::vector<TransferMissingFile>& confirmMissing,
-                                     const std::vector<TransferDeletedFile>& confirmFileDeletes) {
+                                     const std::vector<TransferDeletedFile>& confirmFileDeletes,
+                                     const std::vector<IncludedFile>& includeFiles) {
   json input{{"transfer_id", transferId}};
   if (!decisions.empty()) {
     json list = json::array();
@@ -358,6 +365,14 @@ SendRun LocalTransferClient::runSend(const std::string& transferId, const std::v
       list.push_back({{"path", file.path}, {"base_hash", file.baseHash}});
     }
     input["confirm_workspace_deletes"] = std::move(list);
+  }
+  {
+    // Complete as well: a file left out on this attempt is not put.
+    json list = json::array();
+    for (const IncludedFile& file : includeFiles) {
+      list.push_back({{"path", file.path}, {"hash", file.hash}});
+    }
+    input["include_workspace_files"] = std::move(list);
   }
   if (!confirmMissing.empty()) {
     json list = json::array();
@@ -685,6 +700,10 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     row.documentId = workspaceFile ? op.path : op.assetId;
     row.name = op.path;
     row.detail = workspaceFile && op.baseHash.empty() ? "new_workspace_file" : op.op;
+    if (workspaceFile) {
+      row.optional = true;
+      row.seenHash = op.hash;
+    }
     rows_.push_back(std::move(row));
   }
   for (const TransferDeleted& deleted : send.deletedLocally) {
@@ -829,6 +848,14 @@ bool TransferReview::confirmDeletion(std::size_t index, bool confirmed) {
   return true;
 }
 
+bool TransferReview::includeFile(std::size_t index, bool included) {
+  if (index >= rows_.size() || !rows_[index].optional) {
+    return false;
+  }
+  rows_[index].confirmed = included;
+  return true;
+}
+
 bool TransferReview::confirmMissingFile(std::size_t index, bool confirmed) {
   if (index >= rows_.size() || rows_[index].section != ReviewSection::Problem || rows_[index].assetId.empty()) {
     return false;
@@ -892,6 +919,16 @@ std::vector<DeleteConfirmation> TransferReview::confirmedDeletes() const {
   for (const ReviewRow& row : rows_) {
     if (row.section == ReviewSection::Deletion && row.kind != "file" && row.sendListed && row.confirmed) {
       out.push_back({row.kind, row.cloudId, row.seenHash});
+    }
+  }
+  return out;
+}
+
+std::vector<IncludedFile> TransferReview::includedFiles() const {
+  std::vector<IncludedFile> out;
+  for (const ReviewRow& row : rows_) {
+    if (row.optional && row.confirmed) {
+      out.push_back({row.documentId, row.seenHash});
     }
   }
   return out;

@@ -27,6 +27,7 @@ import type { CloudTransferResult } from "../../window";
 import type {
   DeleteConfirmation,
   TransferDeletedFile,
+  IncludedFile,
   KeepLocalDecision,
   ReceiveDecision,
   TransferMissingFile
@@ -86,7 +87,8 @@ export const runSend = (
   decisions: readonly KeepLocalDecision[],
   confirmDeletes: readonly DeleteConfirmation[],
   confirmMissing: readonly TransferMissingFile[],
-  confirmFileDeletes: readonly TransferDeletedFile[] = []
+  confirmFileDeletes: readonly TransferDeletedFile[] = [],
+  includeFiles: readonly IncludedFile[] = []
 ): Promise<TransferAnswer<RunSendOutput>> => {
   const input: Record<string, unknown> = {
     transfer_id: transferId,
@@ -98,7 +100,9 @@ export const runSend = (
       cloud_hash: item.cloudHash
     })),
     // Also always complete, for the same reason.
-    confirm_workspace_deletes: confirmFileDeletes.map((item) => ({ path: item.path, base_hash: item.baseHash }))
+    confirm_workspace_deletes: confirmFileDeletes.map((item) => ({ path: item.path, base_hash: item.baseHash })),
+    // Complete as well: a file left out on this attempt is not put.
+    include_workspace_files: includeFiles.map((item) => ({ path: item.path, hash: item.hash }))
   };
   if (decisions.length > 0) {
     input.decisions = decisions.map((item) => ({

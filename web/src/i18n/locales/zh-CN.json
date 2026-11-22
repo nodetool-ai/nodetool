@@ -20440,6 +20440,7 @@
     "running": "正在发送和接收…",
     "collect": "收集",
     "collecting": "正在将链接的文件复制到项目文件夹…",
+    "include": "发送",
     "apply": {
       "publish": "发布",
       "synchronize": "同步"
@@ -20474,8 +20475,8 @@
       "keepBoth": "将作为副本发送到云端版本旁边",
       "addVersions": "将发送已保存的版本",
       "putAssetFile": "文件在此处已更改，将发送",
-      "putWorkspaceFile": "已在项目文件夹中更改，将被发送",
-      "newWorkspaceFile": "项目文件夹中的新文件，将被发送",
+      "putWorkspaceFile": "已在项目文件夹中更改",
+      "newWorkspaceFile": "项目文件夹中的新文件",
       "newInCloud": "云端新建",
       "cloudChanged": "云端已更改",
       "cloudFileChanged": "它使用的文件在云端已更改",

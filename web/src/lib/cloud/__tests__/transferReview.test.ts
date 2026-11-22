@@ -2,6 +2,7 @@
 // so the desktop sheet and the native sheets ask the same questions.
 import type { CaptureReceiveOutput, CaptureSendOutput } from "@nodetool-ai/protocol/api-schemas/cloud-transfer-local.js";
 import {
+  hasRequiredWork,
   receiveCaptureFrom,
   sendCaptureFrom,
   TransferReview,
@@ -225,6 +226,12 @@ describe("TransferReview", () => {
     expect(countOf(review, "send")).toBe(2);
     expect(review.rows[0]).toMatchObject({ documentId: "notes/plan.md", detail: "put_workspace_file" });
     expect(review.rows[1]).toMatchObject({ documentId: "data/new.csv", detail: "new_workspace_file" });
+    // Optional and off by default (SR7): only an included file is listed for the send.
+    expect(review.includedFiles()).toEqual([]);
+    expect(review.includeFile(1, true)).toBe(true);
+    expect(review.includedFiles()).toEqual([{ path: "data/new.csv", hash: "h3" }]);
+    expect(hasRequiredWork(send({ fileOperations }))).toBe(false);
+    expect(hasRequiredWork(send({ fileOperations: [...fileOperations, { op: "put_asset_file", assetId: "a1", path: "m.png", hash: "h", baseHash: "b" }] }))).toBe(true);
   });
 
   it("lists a deleted workspace file as a deletion that only a confirmation sends", () => {

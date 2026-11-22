@@ -20754,6 +20754,7 @@
     "running": "Invio e ricezione…",
     "collect": "Raccogli",
     "collecting": "Copia dei file collegati nella cartella del progetto…",
+    "include": "Invia",
     "apply": {
       "publish": "Pubblica",
       "synchronize": "Sincronizza"
@@ -20788,8 +20789,8 @@
       "keepBoth": "Verrà inviato come copia accanto alla versione del cloud",
       "addVersions": "Le versioni salvate verranno inviate",
       "putAssetFile": "File modificato qui, verrà inviato",
-      "putWorkspaceFile": "Modificato nella cartella del progetto, verrà inviato",
-      "newWorkspaceFile": "Nuovo nella cartella del progetto, verrà inviato",
+      "putWorkspaceFile": "Modificato nella cartella del progetto",
+      "newWorkspaceFile": "Nuovo nella cartella del progetto",
       "newInCloud": "Nuovo nel cloud",
       "cloudChanged": "Modificato nel cloud",
       "cloudFileChanged": "Un file che usa è cambiato nel cloud",
