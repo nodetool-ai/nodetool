@@ -666,6 +666,25 @@ The lock is held from the comparison to the last placement, so no comparison in 
 
 As built (WP2.7, receive half): the client is `packages/project-services/src/cloud-receive-client.ts` and its rows are `cloud_links`, `cloud_link_documents`, `cloud_link_files` and `cloud_receives`. The capture records each document's status against its base and the local copy, and the decisions it takes without the person: a document only the cloud changed is received, one only the local side changed is kept, and one both sides changed is received only when the person says so. A pending placement is a `transfer_placements` row with the set id, the same row the server uses, so the comparison treats the path as in flux without a `placement_pending` column. A placement copies the staged file to a free path with `absorbNew`. When the target holds the hash of the last exchange in `cloud_link_files`, the client first renames the target into the staging folder and hashes the moved bytes. Bytes another app saved since the check go back to the path, and the received file goes beside it. Only bytes that still equal the base are replaced. After a crash in that step, the moved bytes are put back before the placement repeats. The folder lock is reentrant within one task, which lets the receive run the comparison and write document files while it holds the lock. The capture output names each file's name, content type and path, which the client needs for a file it has no asset for.
 
+### Receiving workspace files
+
+Revision 5 sends workspace files (CF2, CF5) but its receive endpoints name only documents and the files they require. This section closes that gap for phase 2. It adds no endpoint. `receive.capture` and `receive.file` gain the rules below.
+
+| Code | Rule | Failure it prevents |
+| --- | --- | --- |
+| RW1 | Only the project's owner receives workspace files in phase 2. A workspace file outside every closure is never shared (PRD, Dependency closure), and project grants come in phase 4. A capture by anyone else lists none. | A collaborator downloads the owner's notes or data files that no shared document uses. |
+| RW2 | The capture lists the cloud folder with the index's `scanFolder` and the exclusions of CF2 and CF5: asset paths, document `file_path`s, `*.workflow.json`, `*.timeline.json`, `.nodetool/`, dot directories and paths with a `transfer_placements` row. | A receive writes a second copy of a timeline file, or a file still being placed. |
+| RW3 | The server keeps `project_workspace_hashes` with path, size, modification time and hash. A file whose size and time match its row is not read. Any other file is hashed as a stream, outside every lock, and its row written. | Every capture reads every byte of a large folder from object storage. |
+| RW4 | The capture copies each listed file to `blobs/<hash>` when the blob store lacks it and writes a `revision_set_workspace_files` row with path, hash and size. The row is a retention root like a file row (Y1). | A file a cloud run replaced after the capture is gone before the client downloads it. |
+| RW5 | `receive.file` serves a hash that a workspace row of the set names when the caller still owns the project. It authorizes again on every call (Y6). | A former owner keeps downloading through a live set. |
+| RW6 | The client compares each listed path with its base in `cloud_link_workspace_files` and the local file. Cloud equal to base: nothing. Local equal to base or absent with no base: the file is received. Local changed and cloud equal to base: nothing. Both changed: the received file goes beside the local one under the device and date, and the path is listed (V11). Local deleted and cloud changed: the file is received and listed. | An edit on either side is overwritten without a trace. |
+| RW7 | Received workspace files are optional, as on the send side (SR7). The sheet lists each as a Receive row with a Receive box, off by default. A file left out keeps its base, so the next capture offers it again. | A receive fills the folder with files the person never asked for. |
+| RW8 | Placement is the WP2.7 placement for asset files: staged under `.nodetool/cloud-staging/`, a `transfer_placements` row per path, replaced only while the target still has the base hash. A placed file's base is written with its new size and time. | A crash between placement and the base write makes the next capture report a local change. |
+
+A path with a base and no cloud file was deleted in the cloud. The receive lists it and keeps the local file. Deleting local files on receive needs the destructive changes section of the sheet, which this section does not add (OQ14).
+
+TC126 covers RW1 and RW5 with a collaborator's capture and a former owner's download. TC127 covers RW6 with the five cases. TC128 covers RW7 with a file left out and offered again.
+
 ### Deletion, restore and storage
 
 | Item | Design |
@@ -732,6 +751,9 @@ Tests for the project folder.
 | TC104 | Hold a receive after the comparison of its commit step. Edit the received workflow's file in another app. Release. | The row and the file hold the received graph. The edit is a version named "File edit replaced by a save". The receive result lists the workflow. | Receive window |
 | TC105 | Open a project in one app. Copy its folder and open the copy in the second app. Then kill the first app and open the original in the second. | The copy opens for writing, because its lock names another project id. While the first app runs, the original opens read-only and names it. After the kill it opens for writing. | Lock file |
 | TC108 | Change one asset's bytes in place on this computer, and in another way through a second linked copy that has synchronized. Synchronize. | Both are kept: the received bytes are a new asset under a name with the device and date, documents keep the local id, and the path is listed. The cloud's replaced bytes are readable as a recovery copy for 30 days. | Put asset file, V22 |
+| TC126 | Capture a receive of a project as a collaborator with an editor grant, and download a workspace file through a live set after the owner transferred the project | The collaborator's set lists no workspace file, and the download answers not found | RW1, RW5 |
+| TC127 | Prepare five paths against their bases: cloud unchanged, only the cloud changed, only the local file changed, both changed, and local deleted with the cloud changed. Receive with every file included. | Nothing, received, nothing, kept beside with the path listed, received and listed | RW6 |
+| TC128 | Receive with one offered workspace file left out, then capture again | The file is not placed, its base is unchanged, and the next capture offers it again | RW7 |
 
 Tests added in revision 5 for transfers from the desktop app.
 
@@ -1300,7 +1322,7 @@ Work packages added in revision 3.
 | WP2.12 | Placement under the folder lock, document files through the document file sync, `placement_pending` and the server sweeper | M | WP2.5, WP2.7 |
 | WP2.13 | The lock file `.nodetool/open.lock` with the stale rules, and read-only opening in both native apps | S | WP0.4 |
 
-WP2.1, WP2.2 and WP2.6 can start during phase 1. Exit: the PRD's phase 2 exit criteria, TC20 to TC31, TC95 to TC105, TC108, and the kill tests at every named step.
+WP2.1, WP2.2 and WP2.6 can start during phase 1. Exit: the PRD's phase 2 exit criteria, TC20 to TC31, TC95 to TC105, TC108, TC126 to TC128, and the kill tests at every named step.
 
 Work package added in revision 5.
 
@@ -1438,6 +1460,7 @@ Questions added in revision 3.
 | OQ11 | Should capture rehash every file, rather than trust a stored `content_hash` whose size and modification time still match? | No. A full rehash of a large project is slow. The CF4 limit stands, and a rehash runs on HASH\_MISMATCH. |
 | OQ12 | Opening a folder whose ids match a cloud project of the same account: offer to link it? | Not in phase 2. It opens unlinked, and linking it is a later feature. |
 | OQ13 | Should a copied folder's timelines drop their script and storyboard references (PG13)? | Yes, as Duplicate does. The design of the storyboard and script CRDT asks the same as Q10. |
+| OQ14 | Should a receive offer to delete a local workspace file that was deleted in the cloud? | Not in phase 2. The receive lists it and keeps the file. A later change adds it to the destructive changes section. |
 
 ### Not verified
 
