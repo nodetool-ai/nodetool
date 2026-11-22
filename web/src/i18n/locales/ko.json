@@ -20429,6 +20429,12 @@
       "waitingNote": "변경 사항이 전송되기를 기다리는 중입니다. 클라우드 창을 열어 두세요.",
       "waiting_one": "클라우드 문서 {{count}}개에 아직 보내지 않은 변경 사항이 있습니다.",
       "unsent_one": "서버가 클라우드 문서 {{count}}개의 변경 사항을 거부했습니다."
+    },
+    "syncStatus": {
+      "savedToCloud": "클라우드에 저장됨",
+      "changesWaiting": "변경 사항 대기 중",
+      "offline": "오프라인",
+      "notSaving": "저장되지 않음"
     }
   },
   "cloudTransfer": {

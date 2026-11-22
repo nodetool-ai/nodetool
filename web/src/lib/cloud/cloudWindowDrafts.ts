@@ -14,7 +14,7 @@
  *
  * Thread affinity: the renderer's event loop. One driver per open document.
  */
-import { CloudDraftMirror, type EditorSnapshot } from "./CloudDraftMirror";
+import { CloudDraftMirror, type EditorSnapshot, type MirrorStatus } from "./CloudDraftMirror";
 import type { CloudDocumentKey, StoredDraft } from "./CloudDocumentSaver";
 import type { LocalDraftStore } from "./localDraftStore";
 
@@ -70,6 +70,11 @@ export class CloudWindowDraftDriver {
       this.opening = true;
       await this.open();
     }
+  }
+
+  /** What the mirror holds of the editor's edits. Null while no mirror runs: before the load, or for an unsent draft. */
+  status(): MirrorStatus | null {
+    return this.mirror ? this.mirror.status(this.snapshot()) : null;
   }
 
   private key(): CloudDocumentKey {

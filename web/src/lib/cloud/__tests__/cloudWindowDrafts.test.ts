@@ -87,6 +87,21 @@ describe("CloudWindowDraftDriver", () => {
     expect(store.accepted).toEqual(["d1"]);
   });
 
+  it("reports no status until the mirror runs, then what it holds", async () => {
+    const editor = new FakeEditor();
+    const store = new FakeStore();
+    const driver = new CloudWindowDraftDriver(editor, store, OWNER);
+    expect(driver.status()).toBeNull();
+    await driver.tick(0);
+    expect(driver.status()).toBe("clean");
+    editor.text = "ab";
+    editor.isDirty = true;
+    await driver.tick(10);
+    expect(driver.status()).toBe("storing");
+    await driver.tick(400);
+    expect(driver.status()).toBe("stored");
+  });
+
   it("waits for the document to load before it asks for a draft", async () => {
     const editor = new FakeEditor();
     editor.rev = null;

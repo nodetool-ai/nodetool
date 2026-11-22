@@ -10,6 +10,7 @@ import { CloudWindowDraftDriver, type DraftableEditor } from "../lib/cloud/cloud
 import { CLOUD_WINDOW } from "../lib/cloud/cloudWindow";
 import { SAVER_TICK_MS } from "../lib/cloud/CloudDocumentSaver";
 import { desktopCloudLocalDraftsClient, LocalDraftStore, serverKeyOf } from "../lib/cloud/localDraftStore";
+import { cloudSyncStatusKey, reportCloudSyncStatus } from "../stores/CloudSyncStatusStore";
 
 export const useCloudWindowDrafts = (
   documentId: string,
@@ -22,18 +23,28 @@ export const useCloudWindowDrafts = (
       return;
     }
     const origin = CLOUD_WINDOW;
+    const editor = makeEditor(documentId);
+    const statusKey = cloudSyncStatusKey(editor.kind, documentId);
     let driver: CloudWindowDraftDriver | null = null;
     let disposed = false;
     void serverKeyOf(origin.server).then((serverKey) => {
       if (!disposed) {
-        driver = new CloudWindowDraftDriver(makeEditor(documentId), new LocalDraftStore(client), {
+        driver = new CloudWindowDraftDriver(editor, new LocalDraftStore(client), {
           serverKey,
           accountId: origin.account
         });
       }
     });
     const tick = (): void => {
-      void driver?.tick(Date.now());
+      const current = driver;
+      if (!current) {
+        return;
+      }
+      void current.tick(Date.now()).then(() => {
+        if (!disposed) {
+          reportCloudSyncStatus(statusKey, current.status());
+        }
+      });
     };
     const timer = window.setInterval(tick, SAVER_TICK_MS);
     const unsubscribe = subscribe(tick);
@@ -41,6 +52,7 @@ export const useCloudWindowDrafts = (
       disposed = true;
       window.clearInterval(timer);
       unsubscribe();
+      reportCloudSyncStatus(statusKey, null);
     };
   }, [documentId, makeEditor, subscribe]);
 };

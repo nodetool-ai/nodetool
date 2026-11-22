@@ -11,7 +11,9 @@ import {
   type WorkspaceTabMode,
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
+import { useCloudSyncStatusStore, cloudSyncStatusKey } from "../../stores/CloudSyncStatusStore";
 import { useRenameDocument } from "../../hooks/useRenameDocument";
+import { CloudSyncStatusLabel } from "../cloud/CloudSyncStatusLabel";
 import { DocumentBar, ModeSwitch } from "../ui_primitives";
 import type { DocumentBarProps } from "../ui_primitives";
 import { tabCanRename } from "./tabRename";
@@ -101,6 +103,11 @@ const WorkspaceDocumentBar = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const renameDocument = useRenameDocument();
+  // In the cloud window the synchronization status replaces the editor's save
+  // readout, so Saved shows only once the server holds the edits.
+  const cloudStatus = useCloudSyncStatusStore(
+    (state) => state.statuses[cloudSyncStatusKey(tab.type, tab.ref)]
+  );
   const canRename = tabCanRename(tab.type);
   const rename = useCallback(
     (name: string) => {
@@ -127,6 +134,7 @@ const WorkspaceDocumentBar = ({
       onRename={canRename ? rename : undefined}
       mode={modeSlot}
       {...slots}
+      status={cloudStatus ? <CloudSyncStatusLabel status={cloudStatus} /> : slots.status}
     />
   );
 };

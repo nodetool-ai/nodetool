@@ -20429,6 +20429,12 @@
       "cancel": "Cancel",
       "signOutNow": "Sign out now",
       "waitingNote": "Waiting for the changes to be sent. Keep the cloud window open."
+    },
+    "syncStatus": {
+      "savedToCloud": "Saved to cloud",
+      "changesWaiting": "Changes waiting",
+      "offline": "Offline",
+      "notSaving": "Not saving"
     }
   },
   "cloudTransfer": {

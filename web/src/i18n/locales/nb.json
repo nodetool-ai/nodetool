@@ -20429,6 +20429,12 @@
       "cancel": "Avbryt",
       "signOutNow": "Logg ut nå",
       "waitingNote": "Venter på at endringene sendes. Hold skyvinduet åpent."
+    },
+    "syncStatus": {
+      "savedToCloud": "Lagret i skyen",
+      "changesWaiting": "Endringer venter",
+      "offline": "Frakoblet",
+      "notSaving": "Lagres ikke"
     }
   },
   "cloudTransfer": {

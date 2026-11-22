@@ -20743,6 +20743,12 @@
       "waitingNote": "En attente de l'envoi des modifications. Gardez la fenêtre cloud ouverte.",
       "waiting_many": "{{count}} documents cloud contiennent des modifications pas encore envoyées.",
       "unsent_many": "Le serveur a refusé les modifications de {{count}} documents cloud."
+    },
+    "syncStatus": {
+      "savedToCloud": "Enregistré dans le cloud",
+      "changesWaiting": "Modifications en attente",
+      "offline": "Hors ligne",
+      "notSaving": "Enregistrement impossible"
     }
   },
   "cloudTransfer": {

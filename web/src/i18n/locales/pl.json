@@ -21057,6 +21057,12 @@
       "cancel": "Anuluj",
       "signOutNow": "Wyloguj teraz",
       "waitingNote": "Oczekiwanie na wysłanie zmian. Nie zamykaj okna chmury."
+    },
+    "syncStatus": {
+      "savedToCloud": "Zapisano w chmurze",
+      "changesWaiting": "Zmiany czekają",
+      "offline": "Offline",
+      "notSaving": "Nie zapisuje"
     }
   },
   "cloudTransfer": {
