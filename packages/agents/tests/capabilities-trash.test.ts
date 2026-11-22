@@ -115,6 +115,8 @@ describe("restore_deleted_document", () => {
       kind: "sketch",
       document_id: "abc"
     });
-    expect(result["error"]).toBeDefined();
+    expect(result).toEqual({
+      error: "kind must be one of workflow, timeline, project."
+    });
   });
 });
