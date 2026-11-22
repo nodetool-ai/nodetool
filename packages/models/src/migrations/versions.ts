@@ -823,6 +823,42 @@ const CLOUD_LINK_WORKSPACE_FILES_DDL: readonly string[] = [
     ON cloud_link_workspace_files (link_id, path)`
 ];
 
+/**
+ * The server's hashes of a cloud folder's workspace files and the workspace
+ * files of a revision set (docs/plans/native-cloud-sync/technical-design.md,
+ * "Receiving workspace files", RW3 and RW4). Applied by the
+ * `add_receive_workspace_files` migration, which writes BIGINT on PostgreSQL.
+ */
+const RECEIVE_WORKSPACE_FILES_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS project_workspace_hashes (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    mtime_ms INTEGER NOT NULL,
+    hash TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_project_workspace_hashes_path
+    ON project_workspace_hashes (project_id, path)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_workspace_hashes_user
+    ON project_workspace_hashes (user_id)`,
+  `CREATE TABLE IF NOT EXISTS revision_set_workspace_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    set_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    size INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_set_workspace_files_set
+    ON revision_set_workspace_files (set_id, hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_set_workspace_files_hash
+    ON revision_set_workspace_files (hash)`
+];
+
 const PROJECT_FILE_LISTS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS project_erased_files (
     id TEXT PRIMARY KEY NOT NULL,
@@ -985,7 +1021,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...CLOUD_SENDS_DDL,
   MESSAGE_TURN_CONTEXT_DDL,
   ...PROJECT_FILE_LISTS_DDL,
-  ...CLOUD_LINK_WORKSPACE_FILES_DDL
+  ...CLOUD_LINK_WORKSPACE_FILES_DDL,
+  ...RECEIVE_WORKSPACE_FILES_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5634,6 +5671,23 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS cloud_link_workspace_files");
+    }
+  },
+  {
+    version: "20261130_000012",
+    name: "add_receive_workspace_files",
+    createsTables: ["project_workspace_hashes", "revision_set_workspace_files"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of RECEIVE_WORKSPACE_FILES_DDL) {
+        await db.execute(
+          db.dbType === "sqlite" ? statement : statement.replace(/(size|mtime_ms) INTEGER/g, "$1 BIGINT")
+        );
+      }
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS revision_set_workspace_files");
+      await db.execute("DROP TABLE IF EXISTS project_workspace_hashes");
     }
   }
 ];

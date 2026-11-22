@@ -58,11 +58,25 @@ export const revisionSetDocument = z.object({
 });
 export type RevisionSetDocument = z.infer<typeof revisionSetDocument>;
 
+/**
+ * A workspace file of the owner's cloud folder: a file no asset or document
+ * names (technical design, "Receiving workspace files", RW2). Its bytes come
+ * from the same REST route as a document's file.
+ */
+export const revisionSetWorkspaceFile = z.object({
+  path: workspacePath,
+  hash: sha256,
+  size: z.number().int().nonnegative()
+});
+export type RevisionSetWorkspaceFile = z.infer<typeof revisionSetWorkspaceFile>;
+
 export const captureRevisionSetOutput = z.object({
   set_id: fullId,
   project_id: fullId,
   expires_at: z.string(),
-  documents: z.array(revisionSetDocument)
+  documents: z.array(revisionSetDocument),
+  /** Only a capture of a whole project by its owner lists workspace files (RW1). */
+  workspace_files: z.array(revisionSetWorkspaceFile).default([])
 });
 export type CaptureRevisionSetOutput = z.infer<typeof captureRevisionSetOutput>;
 

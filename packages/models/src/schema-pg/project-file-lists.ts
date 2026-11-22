@@ -40,3 +40,21 @@ export const projectMissingFiles = pgTable(
     index("idx_project_missing_files_user").on(table.user_id)
   ]
 );
+
+export const projectWorkspaceHashes = pgTable(
+  "project_workspace_hashes",
+  {
+    id: text("id").primaryKey(),
+    project_id: text("project_id").notNull(),
+    user_id: text("user_id").notNull(),
+    path: text("path").notNull(),
+    size: bigint("size", { mode: "number" }).notNull(),
+    mtime_ms: bigint("mtime_ms", { mode: "number" }).notNull(),
+    hash: text("hash").notNull(),
+    updated_at: text("updated_at").notNull()
+  },
+  (table) => [
+    uniqueIndex("idx_project_workspace_hashes_path").on(table.project_id, table.path),
+    index("idx_project_workspace_hashes_user").on(table.user_id)
+  ]
+);
