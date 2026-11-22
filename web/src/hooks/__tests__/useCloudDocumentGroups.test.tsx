@@ -23,6 +23,7 @@ const mockClient = {
   scripts: { list: { query: jest.fn() } },
   storyboards: { list: { query: jest.fn() } },
   sketch: { list: { query: jest.fn() } },
+  applications: { list: { query: jest.fn() } },
   documentSharing: { sharedWithMe: { query: jest.fn() } }
 };
 
@@ -64,6 +65,19 @@ beforeEach(() => {
   mockClient.sketch.list.query.mockResolvedValue([
     { id: "sk-1", projectId: "p", name: "Poster", updatedAt: "2026-01-06T00:00:00Z" }
   ]);
+  mockClient.applications.list.query.mockResolvedValue([
+    {
+      id: "ap-1",
+      projectId: "p",
+      name: "Booth",
+      description: "",
+      operationCount: 2,
+      isRecipe: false,
+      recipeSlug: null,
+      recipeCategory: null,
+      updatedAt: "2026-01-04T00:00:00Z"
+    }
+  ]);
   mockClient.workflows.sharing.sharedWithMe.query.mockResolvedValue({
     workflows: [{ id: "wf-s", name: "Their Flow", updated_at: "2026-02-02T00:00:00Z", shared_role: "editor" }]
   });
@@ -91,6 +105,7 @@ test("lists own workflows over every page, own timelines and the D26 kinds, newe
     ["sc-1", "Pilot", "script"],
     ["sb-1", "Boards", "storyboard"],
     ["sk-1", "Poster", "sketch"],
+    ["ap-1", "Booth", "application"],
     ["wf-old", "Untitled workflow", "workflow"]
   ]);
   expect(own.children.every((leaf) => leaf.origin === ORIGIN && !leaf.sharedRole)).toBe(true);
@@ -103,7 +118,6 @@ test("lists own workflows over every page, own timelines and the D26 kinds, newe
     expect.anything()
   );
 
-  // D26: a shared app does not open in the desktop app yet, so it is not listed.
   expect(shared.id).toBe("cloudShared");
   expect(shared.children.map((leaf) => [leaf.id, leaf.type, leaf.sharedRole])).toEqual([
     ["tl-s", "timeline", "viewer"],
@@ -111,7 +125,8 @@ test("lists own workflows over every page, own timelines and the D26 kinds, newe
     ["js-s", "jsscript", "editor"],
     ["sc-s", "script", "viewer"],
     ["sb-s", "storyboard", "editor"],
-    ["sk-s", "sketch", "editor"]
+    ["sk-s", "sketch", "editor"],
+    ["ap-s", "application", "editor"]
   ]);
 });
 
