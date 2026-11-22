@@ -1831,12 +1831,27 @@ export const HARNESSES: HarnessEntry[] = [
   }
 ];
 
+/**
+ * Why `nodetool models download-hf` and `hf-cache` have no agent capability.
+ * Kept beside the CLI surface so an audit that finds the asymmetry finds the
+ * decision too.
+ */
+const CLI_MODELS_HF_GAP =
+  "Hugging Face downloads (`models download-hf`) and cache listing (`models hf-cache`) are CLI-only on purpose. " +
+  "packages/websocket/src/trpc/sandbox-coverage.ts withholds models.huggingfaceList, huggingfaceCacheStatus, " +
+  "huggingfaceDelete, huggingfaceByType and pullOllamaModel from agents: model management writes gigabytes to host " +
+  "disk from a third party, and a run that can start or delete a download can fill the disk or remove a model other " +
+  "runs depend on. The production server also refuses every download (/ws/download is unregistered and the SDK " +
+  "download service is disabled). An agent capability needs that verdict changed first, with a disk quota and a " +
+  "per-download approval that names the repo and its size.";
+
 export const SURFACES: SurfaceEntry[] = [
   ...CLI_COMMAND_PACKAGES.map((name): SurfaceEntry => ({
     id: `${name}-module`,
     title: `Command package ${name}`,
     harnesses: [`${name}-module`],
-    paths: [`packages/${name}/`]
+    paths: [`packages/${name}/`],
+    ...(name === "cli-models" && { gap: CLI_MODELS_HF_GAP })
   })),
   {
     id: "runtime-install",
@@ -2444,7 +2459,12 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/workspace/svgAgentBridge.ts",
       "web/src/components/workspace/AssetAgentPanel.tsx",
       "web/src/lib/tools/builtin/svg.ts"
-    ]
+    ],
+    gap:
+      "Only an open SvgSurface can edit an SVG asset: the ui_svg_* tools route to its live handler. " +
+      "The headless bridge in packages/agents/src/evals/surfaces/svg.ts holds a draft string for the tool-loop eval " +
+      "and is not reachable from the CLI, MCP or a chat with no editor open. A headless driver would load the asset, " +
+      "apply the same SVG_TOOL_CONTRACTS edits and save it back as a capability."
   },
   {
     id: "audio-editor",
@@ -2457,7 +2477,12 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/workspace/AudioSurface.tsx",
       "web/src/components/workspace/AssetAgentPanel.tsx",
       "web/src/lib/tools/builtin/audio.ts"
-    ]
+    ],
+    gap:
+      "Only an open AudioSurface can apply ui_audio_* edits (trim, fade, normalize, effects) to an audio asset. " +
+      "The headless bridge in packages/agents/src/evals/surfaces/audio.ts serves the tool-loop eval only. " +
+      "media_edit covers trim, fade and normalize as new workspace files, not as edits of the asset in place, and " +
+      "none of the editor's effects. A headless driver would decode the asset, run the shared effect catalog and save it back."
   },
   {
     id: "native-game",
@@ -2958,7 +2983,36 @@ export const SURFACES: SurfaceEntry[] = [
     id: "lipsync-studio",
     title: "Lipsync studio",
     harnesses: ["lipsync-studio"],
-    paths: ["web/src/components/lipsync/", "web/src/stores/LipsyncStudioStore.ts", "web/tests/journeys/lipsync-studio.spec.ts"]
+    paths: ["web/src/components/lipsync/", "web/src/stores/LipsyncStudioStore.ts", "web/tests/journeys/lipsync-studio.spec.ts"],
+    gap:
+      "The studio is a browser flow: LipsyncStudioStore chains two generate_media calls (speech, then audio_to_video " +
+      "with person_consent) and its harness is a Playwright journey plus store tests. No CLI command or agent " +
+      "capability runs that chain. An agent has generate_speech, and lip_sync only for a timeline clip with an " +
+      "accepted voice-replacement candidate. A headless form would be one capability that takes text, voice, source " +
+      "image and consent and runs the same two requests."
+  },
+  {
+    id: "effects-gallery",
+    title: "Effects gallery (effect presets applied to one picture)",
+    harnesses: [],
+    paths: ["web/src/components/effects/", "web/src/stores/EffectsGalleryStore.ts"],
+    gap:
+      "UI-only flow. effectsRun.ts picks the mode and model and builds the generate_media request in the browser; " +
+      "only Jest suites (effectsRun, EffectsGallery, EffectsGalleryStore) cover it, and no harness owns it. An agent " +
+      "reaches the same result with list_presets plus edit_image or animate_image and preset_ids, but not through " +
+      "the gallery's choices. A harness would move effectsRun into a shared package and check its requests against " +
+      "the preset catalog."
+  },
+  {
+    id: "chain-editor",
+    title: "Chain editor (linear workflow editor)",
+    harnesses: [],
+    paths: ["web/src/components/chain_editor/", "web/src/components/workspace/WorkflowChainSurface.tsx"],
+    gap:
+      "UI-only editor. The chain-to-graph conversion (chainTypes.ts: autoMapInputs, buildConnections, chainToGraph) " +
+      "lives in the web bundle and only Jest suites cover it. The saved result is an ordinary workflow, so " +
+      "create_workflow, update_workflow and nodetool validate cover the output, not the chain model. A headless " +
+      "driver would move chainTypes into protocol and expose chain edits as workflow operations."
   },
   {
     id: "presets",
