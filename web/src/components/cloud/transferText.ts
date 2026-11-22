@@ -57,6 +57,10 @@ export const transferMessageText = (t: TFunction, message: TransferMessage): str
       return t("cloudTransfer.message.missingFilesUnconfirmed");
     case "sendRefused":
       return t("cloudTransfer.message.sendRefused", { reasons: message.reasons.join("; ") });
+    case "notCollected":
+      return t("cloudTransfer.message.notCollected", { files: message.files.join("; ") });
+    case "collectInterrupted":
+      return t("cloudTransfer.message.collectInterrupted");
   }
 };
 

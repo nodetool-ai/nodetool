@@ -20438,6 +20438,8 @@
     },
     "capturing": "Leser hva som er endret…",
     "running": "Sender og mottar…",
+    "collect": "Samle",
+    "collecting": "Kopierer koblede filer til prosjektmappen…",
     "apply": {
       "publish": "Publiser",
       "synchronize": "Synkroniser"
@@ -20494,7 +20496,7 @@
       "localUnavailable": "Prosjektserveren til denne appen svarte ikke.",
       "cancelled": "Overføringen stoppet fordi skykontoen ble endret.",
       "refused": "Serveren avviste overføringen ({{reason}}).",
-      "collectFirst": "Noen filer prosjektet bruker ligger utenfor prosjektmappen. Samle dem i mappen og prøv igjen.",
+      "collectFirst": "Noen filer dette prosjektet bruker, ligger utenfor prosjektmappen. Samle kopierer dem til Imported-mappen og leser prosjektet på nytt.",
       "receiveExpired": "Skyprosjektet ble endret mens dette vinduet var åpent. Synkroniser igjen.",
       "receiveChangedWhileOpen": "Noe ble endret mens dette vinduet var åpent. Sjekk valgene igjen.",
       "receivingChangedAgain": "Skyprosjektet ble endret igjen under mottak. Velg igjen.",
@@ -20505,7 +20507,9 @@
       "notPreparedAgain": "Mottatt. Endringene her kunne ikke forberedes på nytt: {{reason}} Synkroniser igjen for å sende dem.",
       "sendChangedWhileOpen": "Prosjektet ble endret mens vinduet var åpent. Sjekk hva som sendes.",
       "missingFilesUnconfirmed": "Filer prosjektet trenger mangler. Bekreft hver av dem for å sende uten den.",
-      "sendRefused": "Skyen avviste sendingen: {{reasons}}"
+      "sendRefused": "Skyen avviste sendingen: {{reasons}}",
+      "notCollected": "Disse koblede filene kunne ikke kopieres til prosjektmappen: {{files}}",
+      "collectInterrupted": "Kopieringen stoppet før alle koblede filer ble forsøkt. Prøv igjen."
     },
     "done": {
       "published": "Publisert i skyen.",

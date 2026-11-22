@@ -339,7 +339,7 @@ void TransferController::fail(const QString& message) {
 }
 
 void TransferController::start() {
-  if (stage_ == Stage::Capturing || stage_ == Stage::Running) {
+  if (stage_ == Stage::Capturing || stage_ == Stage::Running || stage_ == Stage::Collecting) {
     return;
   }
   const std::shared_ptr<AccountSession> current = session();
@@ -395,6 +395,53 @@ void TransferController::start() {
       self.finishCapture(sequence, captured);
     });
   });
+}
+
+void TransferController::collect() {
+  if (stage_ != Stage::CollectFirst) {
+    return;
+  }
+  const std::shared_ptr<AccountSession> current = session();
+  if (!current) {
+    fail(linked_ ? tr("Sign in to synchronize this project.") : tr("Sign in to publish this project."));
+    return;
+  }
+  const quint64 sequence = ++sequence_;
+  stage_ = Stage::Collecting;
+  message_.clear();
+  emit stateChanged();
+  tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(),
+                headers = headers(), projectId = projectId_.toStdString(), sequence]() {
+    LocalTransferClient client(*state->transport, origin, headers, *current, cancel);
+    LocalTransferClient::Collect collected = client.collectLinked(projectId);
+    state->toUi([sequence, collected = std::move(collected)](TransferController& self) {
+      self.finishCollect(sequence, collected);
+    });
+  });
+}
+
+void TransferController::finishCollect(quint64 sequence, const LocalTransferClient::Collect& collected) {
+  if (sequence != sequence_) {
+    return;
+  }
+  if (collected.status != TransferStatus::Ok) {
+    fail(failure(collected.status, collected.reason));
+    return;
+  }
+  if (!collected.notCollected.empty() || collected.interrupted) {
+    QString text = tr("These linked files could not be copied into the project folder:");
+    for (const std::string& file : collected.notCollected) {
+      text += QStringLiteral("\n") + QString::fromStdString(file);
+    }
+    if (collected.interrupted) {
+      text += QStringLiteral("\n") + tr("Copying stopped before every file was tried.");
+    }
+    fail(text);
+    return;
+  }
+  // Every linked file is in the folder now: read the project again.
+  stage_ = Stage::Idle;
+  start();
 }
 
 void TransferController::finishCapture(quint64 sequence, const Captured& captured) {
