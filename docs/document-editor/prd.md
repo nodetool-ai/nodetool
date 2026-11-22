@@ -250,23 +250,33 @@ plan.
   of the Markdown and does not depend on replicated state, so history survives
   a change of sync design (storage may deduplicate or compress blobs
   underneath).
-- **R12 — Document as workflow input.** A node references a document by its
-  id and outputs its current text at run time. Renaming or moving the file
-  does not break the reference. The node shows the document name and opens
-  the editor tab on click. The picker lists the project's documents, so no
-  upload step exists.
-- **R13 — Write back to a document.** A save node takes a document as its
-  target and replaces or appends to its content. Repeated runs update one file
-  and record one version per run (multiple writes to the same target within a
-  single run still record one pre-run version). If the document is open with
-  unsaved user edits when a run writes to it, ADR 0001 applies: the user's
-  dirty blocks win and the workflow's conflicting blocks are listed as
-  conflicts. `SaveTextFile` keeps its current behavior for timestamped output
-  files.
+- **R12 — Document as workflow input.** In a workflow a Markdown document is a
+  `document` value, the type the existing document nodes carry. No new value
+  type and no new reference node is added. `nodetool.constant.Document` and
+  `nodetool.input.DocumentInput` reference a document by its asset id.
+  Renaming or moving the file does not break the reference. The node shows the
+  document name and opens the editor tab on click. The picker lists the
+  project's documents, so no upload step exists. Both nodes gain a `text`
+  output that carries the document's Markdown as a string, because no node
+  turns a document other than a PDF into text today. A run reads the saved
+  file, and a run started from the app flushes an open draft first, as R8 does
+  for an agent turn.
+- **R13 — Write back to a document.** `nodetool.document.SaveDocumentFile`
+  gains a target: a document picked as in R12. With a target it replaces or
+  appends to that document's content, and it accepts Markdown text or a
+  `document` value as the content. Repeated runs update one file and record
+  one version per run (multiple writes to the same target within a single run
+  still record one pre-run version). If the document is open with unsaved user
+  edits when a run writes to it, ADR 0001 applies: the user's dirty blocks win
+  and the workflow's conflicting blocks are listed as conflicts. Without a
+  target the node writes folder plus filename as today, and in the project
+  folder a name that exists gets a numbered copy. `SaveTextFile` keeps its
+  current behavior for timestamped output files.
 - **R14 — Convert a String node.** The String editor offers "Convert to
   document". It creates a document from the node's text and replaces the
-  stored string with a reference to it. After that, the node's editor is the
-  document tab.
+  String node with a `nodetool.constant.Document` node that references it. The
+  new node's `text` output takes over the String node's outgoing edges. After
+  that, the node's editor is the document tab.
 - **R15 — Provenance and validation.** A document written by a run records
   workflow, node and job ids. A document lists the workflows that reference
   it, backed by a reverse index in `packages/models/src/document-index.ts`.
@@ -301,6 +311,36 @@ plan.
   document, a workflow run) is turned into block operations by comparing it
   with the content NodeTool last saved. An unchanged block produces no
   operation and keeps its id.
+
+### Document nodes
+
+R23 to R25 cover the remaining nodes that carry a `document` value. The table
+lists every such node. Two nodes with "Document" in their name are unrelated:
+`vector.GetDocuments` returns vector store entries and `lib.svg.Document`
+builds an SVG.
+
+| Node | Today | With this PRD |
+| --- | --- | --- |
+| `nodetool.constant.Document`, `nodetool.input.DocumentInput` | Hold a document reference. The property already opens a text asset in the `text` tab. No output carries text. | R12 |
+| `nodetool.document.SaveDocumentFile` | Writes folder plus filename. In the project folder, a name that exists gets a numbered copy. | R13 |
+| `nodetool.input.DocumentFileInput` | Turns a local path into a `file://` reference. | R23 |
+| `nodetool.document.LoadDocumentFile` | Reads a path from the host disk and returns the bytes. | R23 |
+| `nodetool.document.ListDocuments` | Scans a host folder, `~` by default, for seven extensions including `.md`. Emits `file://` references. | R24 |
+| `lib.pdf.ExtractText`, `ExtractMarkdown`, `ExtractTables`, `ExtractStyledText`, `Screenshot`, `Pdftoppm`, `ExtractOcr` | Take a PDF as a `document` value. | R25 |
+
+- **R23 — Paths resolve to documents.** `DocumentFileInput` and
+  `LoadDocumentFile` given a path to a document in the project output that
+  document's asset id, so the value is the same document the editor and R12
+  use. A project-relative path is read through `context.workspace`, which
+  makes both nodes work in cloud projects. A path outside the project behaves
+  as today.
+- **R24 — Listing returns documents.** `ListDocuments` given a
+  project-relative folder lists it through `context.workspace` and emits each
+  project document with its asset id. A host folder behaves as today.
+- **R25 — PDF nodes stay PDF.** The `lib.pdf` nodes keep a PDF input. Given a
+  Markdown document they fail with an error that names the format, not with a
+  PDF parse error. The string output of `lib.pdf.ExtractMarkdown` connects to
+  the content input of R13, which makes PDF import (R17) a two-node workflow.
 
 ### Non-functional
 
@@ -364,7 +404,7 @@ Four phases. Each one ships alone.
 2. **Agent and versions.** R7 to R11, and the document tools of R16. Versions
    ship with the agent because R9's per-block revert and Goal 4's per-turn
    restore both read from the pre-turn version.
-3. **Workflow references.** R12 to R15.
+3. **Workflow references.** R12 to R15 and R23 to R25.
 4. **Import and export.** R17 to R19.
 
 Phases 1 and 2 answer the main request. Phase 3 removes the copies. The
@@ -381,8 +421,9 @@ sketches.
 - **Q1 — Name.** "Document" is taken twice: the `document` tab previews PDF
   files (`DocumentSurface.tsx`), and `DocumentRef` in
   `packages/protocol/src/api-types.ts` is a binary document. The proposal is
-  the user-facing label "Document" for this kind, with `text` kept as the
-  code name. The PDF tab needs another label.
+  the user-facing label "Document" for this kind, with `text` kept as the code
+  name. R12 reuses the `document` value type in workflows, so the label and
+  the type agree there. The PDF tab needs another label.
 - **Q2 — Images.** Phase 1 blocker for the write path. An image in a document
   can be stored as a path relative to the project folder or as an asset id. A
   relative path keeps the file readable in other Markdown editors. An asset id
