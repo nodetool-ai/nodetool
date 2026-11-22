@@ -676,7 +676,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           // A live device plays the notes as they are; its sound follows the
           // instrument without rescheduling, so only the notes and tempo key it.
           if (liveDeviceFactory(instrumentForTrack(state.tracks, clip.trackId))) {
-            return JSON.stringify({ notes: clip.notes ?? [], bpm: resolveTempo(state).bpm });
+            return JSON.stringify({ notes: clip.notes ?? [], controllers: clip.controllers ?? [], loopLengthMs: clip.loopLengthMs ?? null, bpm: resolveTempo(state).bpm });
           }
           return midiRenderKey({
             clip,
@@ -693,6 +693,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           trackId: clip.trackId,
           startMs: clip.startMs,
           durationMs: clip.durationMs,
+          loopLengthMs: clip.loopLengthMs ?? null,
           inPointMs: clip.inPointMs ?? 0,
           outPointMs: clip.outPointMs ?? null,
           speedMultiplier: clip.speedMultiplier ?? 1,

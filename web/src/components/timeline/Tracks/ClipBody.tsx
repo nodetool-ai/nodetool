@@ -18,9 +18,16 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LoopOutlinedIcon from "@mui/icons-material/LoopOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
-import { canClipFade, resolveTempo } from "@nodetool-ai/timeline";
+import {
+  activeLoopMs,
+  canClipFade,
+  loopRepeatOffsets,
+  resolveTempo,
+  sourceRate
+} from "@nodetool-ai/timeline";
 import type { TimelineClip, ClipStatus } from "@nodetool-ai/timeline";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { CLIP_NAME_BAR_PX, CLIP_TOP_PX } from "./automation/automationLayout";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   StatusIndicator,
@@ -45,6 +52,13 @@ import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
 import { GroupBracket } from "./GroupBracket";
 import { ClipKeyframeDiamonds } from "./ClipKeyframeDiamonds";
 import { MidiNotesCanvas } from "./MidiNotesCanvas";
+import {
+  canLoopClip,
+  ClipLoopHandle,
+  ClipLoopMarks,
+  MIN_LOOP_HANDLE_CLIP_WIDTH_PX
+} from "./ClipLoopHandle";
+import { ChordClipStrip } from "../daw/harmony/ChordClipStrip";
 import { deriveClipAnimationMarkers } from "./clipAnimationMarkers";
 import { deriveClipFadeMarkers } from "./clipFadeGeometry";
 import type { ClipFadeHandlers } from "./useClipFade";
@@ -94,7 +108,7 @@ const clipStyles = (
 ) =>
   css({
     position: "absolute",
-    top: 6,
+    top: CLIP_TOP_PX,
     bottom: 6,
     borderRadius: CLIP_RADIUS_PX,
     overflow: "hidden",
@@ -136,7 +150,7 @@ const clipHeaderRowStyles = css({
   top: 0,
   left: 0,
   right: 0,
-  height: 18,
+  height: CLIP_NAME_BAR_PX,
   display: "flex",
   alignItems: "center",
   gap: getSpacingPx(SPACING.sm),
@@ -1013,7 +1027,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           />
         )}
 
-        {clip.mediaType === "audio" && (
+        {clip.mediaType === "audio" && activeLoopMs(clip) === undefined && (
           <WaveformCanvas
             assetId={clip.currentAssetId}
             url={audioUrl}
@@ -1023,15 +1037,55 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           />
         )}
 
+        {clip.mediaType === "audio" && activeLoopMs(clip) !== undefined && (
+          // A looped clip draws its window once per repeat; the last repeat
+          // may be partial.
+          <>
+            {loopRepeatOffsets(clip, activeLoopMs(clip)!).map((offset) => {
+              const repeatMs = Math.min(
+                activeLoopMs(clip)!,
+                clip.durationMs - offset
+              );
+              return (
+                <div
+                  key={offset}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    bottom: 0,
+                    left: offset / msPerPx,
+                    width: repeatMs / msPerPx,
+                    overflow: "hidden"
+                  }}
+                >
+                  <WaveformCanvas
+                    assetId={clip.currentAssetId}
+                    url={audioUrl}
+                    inPointMs={clip.inPointMs ?? 0}
+                    outPointMs={(clip.inPointMs ?? 0) + repeatMs * sourceRate(clip)}
+                    widthPx={repeatMs / msPerPx}
+                  />
+                </div>
+              );
+            })}
+          </>
+        )}
+
         {clip.mediaType === "midi" && (
           <MidiNotesCanvas
             notes={clip.notes}
+            controllers={clip.controllers}
             inPointMs={clip.inPointMs ?? 0}
             durationMs={clip.durationMs}
+            loopLengthMs={clip.loopLengthMs}
             bpm={bpm}
             widthPx={widthPx}
           />
         )}
+
+        {canLoopClip(clip) && <ClipLoopMarks clip={clip} msPerPx={msPerPx} />}
+
+        {clip.mediaType === "midi" && <ChordClipStrip clip={clip} />}
 
         {animationMarkers.inZone && (
           <button
@@ -1112,6 +1166,15 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           data-testid={`clip-trim-end-${clipId}`}
           data-focus-id={`timeline-trim-end-${clipId}`}
         />
+
+        {canLoopClip(clip) &&
+          widthPx >= MIN_LOOP_HANDLE_CLIP_WIDTH_PX && (
+            <ClipLoopHandle
+              clip={clip}
+              msPerPx={msPerPx}
+              interactionLocked={interactionLocked}
+            />
+          )}
 
         {(clip.mediaType === "video" ||
           clip.mediaType === "overlay" ||

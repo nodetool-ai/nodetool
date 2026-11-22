@@ -40,6 +40,7 @@ import {
   type TimelineUIState,
   type TimelineUIStoreApi
 } from "./TimelineUIStore";
+import { getAutomationRecorder } from "./automationRecorder";
 import {
   createTimelinePlaybackStore,
   type TimelinePlaybackState,
@@ -207,6 +208,14 @@ export const TimelineProvider = ({
   );
 
   useEffect(() => attachUiPruning(instance.doc, instance.ui), [instance]);
+
+  // One recording-pass recorder per instance, alive while the provider is,
+  // whether or not a mixer strip or readout is mounted (automation AU7).
+  useEffect(() => {
+    const recorder = getAutomationRecorder(instance.doc, instance.playback);
+    recorder.attach();
+    return () => recorder.dispose();
+  }, [instance]);
 
   useEffect(() => {
     if (!active) return;

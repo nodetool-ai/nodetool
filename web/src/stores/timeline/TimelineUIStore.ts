@@ -17,8 +17,130 @@ import { create, type StoreApi, type UseBoundStore } from "zustand";
 import type {
   DropMode,
   KeyframeProperty,
+  QuantizeDivision,
   TempoGridDivision
 } from "@nodetool-ai/timeline";
+
+/** The note value a Time Quantize snaps to. */
+export type QuantizeValue = QuantizeDivision;
+
+export interface QuantizeSettings {
+  value: QuantizeValue;
+  /** 0..100 percent. */
+  strengthPct: number;
+  /** 0..100 percent. */
+  swingPct: number;
+}
+
+export const DEFAULT_QUANTIZE_SETTINGS: QuantizeSettings = {
+  value: "1/16",
+  strengthPct: 100,
+  swingPct: 0
+};
+
+/** The tools of the piano roll. */
+export type PianoRollTool =
+  | "pointer"
+  | "pencil"
+  | "eraser"
+  | "brush"
+  | "scissors"
+  | "glue"
+  | "mute"
+  | "velocity"
+  | "quantize";
+
+/** What the piano roll snaps to: the zoom-driven step, or a fixed grid. */
+export type PianoRollSnapValue = "smart" | TempoGridDivision;
+
+/** UI state of the piano roll. In memory only, like the grid division. */
+export interface PianoRollSettings {
+  snapOn: boolean;
+  snapValue: PianoRollSnapValue;
+  /** The tool a plain left click uses. */
+  tool: PianoRollTool;
+  /** The tool a Cmd-click (Ctrl on Windows and Linux) uses. */
+  altTool: PianoRollTool;
+  collapse: boolean;
+  /** The lane area under the grid. */
+  midiDraw: boolean;
+  midiOut: boolean;
+  catchPlayhead: boolean;
+  link: boolean;
+  /** `null` = the default for the panel width. */
+  inspector: boolean | null;
+  noteColor: "velocity" | "clip";
+  dragMode: "overlap" | "noOverlap";
+  /** Pitch class of the scale root. `null` = the document key, else C. */
+  scaleRoot: number | null;
+  /** `"chromatic"` or a `SCALES` id. */
+  scaleId: string;
+  snapToScale: boolean;
+}
+
+export const DEFAULT_PIANO_ROLL_SETTINGS: PianoRollSettings = {
+  snapOn: true,
+  snapValue: "smart",
+  tool: "pointer",
+  altTool: "pencil",
+  collapse: false,
+  midiDraw: true,
+  midiOut: true,
+  catchPlayhead: true,
+  link: true,
+  inspector: null,
+  noteColor: "velocity",
+  dragMode: "overlap",
+  scaleRoot: null,
+  scaleId: "chromatic",
+  snapToScale: false
+};
+
+/** The two views of the clip-editor panel. */
+export type ClipEditorTab = "pianoRoll" | "stepEditor";
+
+/** The tools of the Step Editor. */
+export type StepEditorTool = "pointer" | "pencil" | "line" | "eraser";
+
+/** Which lanes the Step Editor lists. */
+export type StepLaneSet = "automatic" | "gmDrums";
+
+/** Per-lane Step Editor parameters. In memory only. */
+export interface StepLaneParams {
+  grid: QuantizeDivision;
+  /** Beam width in px, 1..16. */
+  penWidth: number;
+  style: "noFrames" | "frames";
+  /** Length of a note the editor creates, in ticks. `null` = one grid step. */
+  length: number | null;
+}
+
+export const DEFAULT_STEP_LANE_PARAMS: StepLaneParams = {
+  grid: "1/16",
+  penWidth: 5,
+  style: "noFrames",
+  length: null
+};
+
+/** UI state of the Step Editor. In memory only. MIDI Out and Catch follow the piano roll. */
+export interface StepEditorSettings {
+  laneSet: StepLaneSet;
+  tool: StepEditorTool;
+  /** The tool a Cmd-click (Ctrl on Windows and Linux) uses. */
+  altTool: StepEditorTool;
+  /** `null` = the default for the panel width. */
+  inspector: boolean | null;
+  /** Parameters by lane key. A lane without an entry has the defaults. */
+  laneParams: Record<string, StepLaneParams>;
+}
+
+export const DEFAULT_STEP_EDITOR_SETTINGS: StepEditorSettings = {
+  laneSet: "automatic",
+  tool: "pointer",
+  altTool: "pencil",
+  inspector: null,
+  laneParams: {}
+};
 
 /**
  * Pointer tools, after Premiere's Tools panel. "select" moves, trims and
@@ -141,6 +263,10 @@ export interface TimelineUIState {
    * ("1/16"), a beat, or a bar. Read against the document tempo.
    */
   gridDivision: TempoGridDivision;
+  /** The piano roll's quantize settings: the Q buttons and the Q key read them. */
+  quantizeSettings: QuantizeSettings;
+  /** The piano roll's view, tool and snap state. */
+  pianoRollSettings: PianoRollSettings;
   /**
    * Visible width of the lanes viewport (px), written by the tracks region's
    * resize observer. The tempo grid is built for what is on screen, so a
@@ -187,10 +313,14 @@ export interface TimelineUIState {
    */
   expandedFxTrackId: string | null;
   /**
-   * Tracks whose automation lanes are shown under the track row. Several can
-   * be open at once, as in a DAW arrangement.
+   * Show Automation: every track that supports it draws its automation header
+   * row and the curve of its shown parameter on the main lane. Off by default.
    */
-  shownAutomationTrackIds: string[];
+  showAutomation: boolean;
+  /** The shown parameter per track, as an `automationTargetKey`. */
+  automationShownParams: Record<string, string>;
+  /** Tracks whose sub-lanes are open. Counts only while `showAutomation` is on. */
+  automationOpenTrackIds: string[];
 
   /** Id of the track currently being drag-reordered, or null. */
   draggingTrackId: string | null;
@@ -298,6 +428,15 @@ export interface TimelineUIState {
   setRulerMode: (mode: RulerMode) => void;
   toggleRulerMode: () => void;
   setGridDivision: (division: TempoGridDivision) => void;
+  setQuantizeSettings: (patch: Partial<QuantizeSettings>) => void;
+  setPianoRollSettings: (patch: Partial<PianoRollSettings>) => void;
+  /** Which view the clip-editor panel shows. Default the piano roll. */
+  clipEditorTab: ClipEditorTab;
+  setClipEditorTab: (tab: ClipEditorTab) => void;
+  stepEditorSettings: StepEditorSettings;
+  setStepEditorSettings: (patch: Partial<StepEditorSettings>) => void;
+  /** Merge a patch into one lane's Step Editor parameters. */
+  setStepLaneParams: (laneKey: string, patch: Partial<StepLaneParams>) => void;
   setLanesViewportWidthPx: (px: number) => void;
   /** Resize the desktop track-header column, clamped to its bounds. */
   setTrackHeaderWidthPx: (px: number) => void;
@@ -323,10 +462,12 @@ export interface TimelineUIState {
   setExpandedFxTrackId: (trackId: string | null) => void;
   /** Toggle the inline DSP chain editor for the given track. */
   toggleExpandedFx: (trackId: string) => void;
-  /** Show or hide a track's automation lanes. */
-  toggleTrackAutomation: (trackId: string) => void;
-  /** Show a track's automation lanes (no-op when shown). */
-  showTrackAutomation: (trackId: string) => void;
+  /** Turn Show Automation on or off. */
+  setShowAutomation: (show: boolean) => void;
+  /** Choose the parameter a track's main lane shows. */
+  setAutomationShownParam: (trackId: string, key: string) => void;
+  /** Open or close a track's sub-lanes. */
+  toggleAutomationSubLanes: (trackId: string) => void;
 
   // ── Piano roll ────────────────────────────────────────────────────────────
 
@@ -437,6 +578,10 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     followPlayhead: true,
     rulerMode: "timecode",
     gridDivision: "beat",
+    quantizeSettings: DEFAULT_QUANTIZE_SETTINGS,
+    pianoRollSettings: DEFAULT_PIANO_ROLL_SETTINGS,
+    clipEditorTab: "pianoRoll",
+    stepEditorSettings: DEFAULT_STEP_EDITOR_SETTINGS,
     lanesViewportWidthPx: 0,
     trackHeaderWidthPx: DEFAULT_TRACK_HEADER_WIDTH_PX,
     keyframeProperty: "opacity",
@@ -451,7 +596,9 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     previewFullscreenRequest: 0,
     matteViewEnabled: false,
     expandedFxTrackId: null,
-    shownAutomationTrackIds: [],
+    showAutomation: false,
+    automationShownParams: {},
+    automationOpenTrackIds: [],
     expandedInstrumentTrackId: null,
     panelTab: "inspector",
     panelTabRequest: 0,
@@ -599,6 +746,38 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
 
     setGridDivision: (division) => set({ gridDivision: division }),
 
+    setQuantizeSettings: (patch) =>
+      set((state) => ({
+        quantizeSettings: { ...state.quantizeSettings, ...patch }
+      })),
+
+    setPianoRollSettings: (patch) =>
+      set((state) => ({
+        pianoRollSettings: { ...state.pianoRollSettings, ...patch }
+      })),
+
+    setClipEditorTab: (tab) => set({ clipEditorTab: tab }),
+
+    setStepEditorSettings: (patch) =>
+      set((state) => ({
+        stepEditorSettings: { ...state.stepEditorSettings, ...patch }
+      })),
+
+    setStepLaneParams: (laneKey, patch) =>
+      set((state) => ({
+        stepEditorSettings: {
+          ...state.stepEditorSettings,
+          laneParams: {
+            ...state.stepEditorSettings.laneParams,
+            [laneKey]: {
+              ...(state.stepEditorSettings.laneParams[laneKey] ??
+                DEFAULT_STEP_LANE_PARAMS),
+              ...patch
+            }
+          }
+        }
+      })),
+
     setLanesViewportWidthPx: (px) =>
       set((state) =>
         state.lanesViewportWidthPx === px
@@ -630,19 +809,21 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
         expandedFxTrackId: state.expandedFxTrackId === trackId ? null : trackId
       })),
 
-    toggleTrackAutomation: (trackId) =>
-      set((state) => ({
-        shownAutomationTrackIds: state.shownAutomationTrackIds.includes(trackId)
-          ? state.shownAutomationTrackIds.filter((id) => id !== trackId)
-          : [...state.shownAutomationTrackIds, trackId]
-      })),
+    setShowAutomation: (showAutomation) => set({ showAutomation }),
 
-    showTrackAutomation: (trackId) =>
+    setAutomationShownParam: (trackId, key) =>
       set((state) =>
-        state.shownAutomationTrackIds.includes(trackId)
+        state.automationShownParams[trackId] === key
           ? state
-          : { shownAutomationTrackIds: [...state.shownAutomationTrackIds, trackId] }
+          : { automationShownParams: { ...state.automationShownParams, [trackId]: key } }
       ),
+
+    toggleAutomationSubLanes: (trackId) =>
+      set((state) => ({
+        automationOpenTrackIds: state.automationOpenTrackIds.includes(trackId)
+          ? state.automationOpenTrackIds.filter((id) => id !== trackId)
+          : [...state.automationOpenTrackIds, trackId]
+      })),
 
     openPianoRoll: (clipId) => set({ pianoRollClipId: clipId }),
 

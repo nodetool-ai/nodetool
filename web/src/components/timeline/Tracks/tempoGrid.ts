@@ -31,6 +31,22 @@ export function tempoGridIntervalMs(
   return ticksToMs(divisionToTicks(division), tempo.bpm);
 }
 
+/**
+ * How far a nudge moves clips in the music layout (D50): one grid step, or one
+ * bar with Shift. `direction` is -1 (earlier) or 1 (later).
+ */
+export function musicNudgeDeltaMs(
+  tempo: TimelineTempo,
+  division: TempoGridDivision,
+  direction: 1 | -1,
+  oneBar: boolean
+): number {
+  const stepMs = oneBar
+    ? barDurationMs(tempo)
+    : tempoGridIntervalMs(tempo, division);
+  return direction * stepMs;
+}
+
 export interface VisibleTempoGridSpec {
   tempo: TimelineTempo;
   division: TempoGridDivision;

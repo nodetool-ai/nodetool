@@ -71,8 +71,11 @@ import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { layoutTrackRows, scriptVoiceoverTrackId } from "./trackWindow";
+import { AutomationCurveOverlay } from "./automation/AutomationCurveOverlay";
+import type { AutomationLayoutInput } from "./automation/automationLayout";
 import { trackRowHeightPx } from "./trackHeight";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
+import { useTimelineSimpleMode } from "../../../stores/timeline/TimelineEditorMode";
 import { snapAssetDropMs } from "./dropSnap";
 import { dropShotOnTrack, isShotDrag } from "../dnd/shotToClipAdapter";
 import { trackSelectDirection, trackSelectIds } from "./trackSelect";
@@ -159,11 +162,16 @@ interface TrackLaneProps {
   track: TimelineTrack;
   virtualizeClips?: boolean;
   collapsedFolderIds?: ReadonlySet<string>;
+  /**
+   * Show Automation is on for this track: the lane draws the shown
+   * parameter's curve over its clips, this many px wide.
+   */
+  automationWidthPx?: number;
 }
 
 const CLIP_OVERSCAN_PX = 320;
 
-export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClips = false, collapsedFolderIds }) => {
+export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClips = false, collapsedFolderIds, automationWidthPx }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const timelineStore = useTimelineStoreApi();
@@ -227,6 +235,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
   const importVideoWithAudio = useVideoAudioImport();
 
   const dawMode = useTimelineLayoutStore((s) => s.dawMode);
+  const simpleMode = useTimelineSimpleMode();
   const heightPx = trackRowHeightPx(track, dawMode) * verticalZoom;
 
   const laneRef = useRef<HTMLDivElement>(null);
@@ -641,15 +650,21 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       const bounds = new Map<string, { top: number; bottom: number }>();
       if (containerEl.dataset.virtualizedTracks) {
         const document = useTimelineStore.getState();
+        const ui = useTimelineUIStore.getState();
+        const automation: AutomationLayoutInput = {
+          show: ui.showAutomation && !simpleMode,
+          openTrackIds: ui.automationOpenTrackIds,
+          shownParams: ui.automationShownParams
+        };
         const { rows } = layoutTrackRows(
           document.tracks,
           document.scriptEnabled,
-          useTimelineUIStore.getState().expandedFxTrackId,
-          useTimelineUIStore.getState().verticalZoom,
+          ui.expandedFxTrackId,
+          ui.verticalZoom,
           document.trackFolders,
           collapsedFolderIds,
           useTimelineLayoutStore.getState().dawMode,
-          useTimelineUIStore.getState().shownAutomationTrackIds,
+          automation,
           scriptVoiceoverTrackId(document.clips)
         );
         rows.forEach((row) => {
@@ -692,7 +707,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       // inside the scrolling element, so localX is already content-space.
       seek(clampToSequence(Math.round(localX * msPerPx)));
     },
-    [clampToSequence, clearSelection, laneLongPress, msPerPx, seek, track.id]
+    [clampToSequence, clearSelection, laneLongPress, msPerPx, seek, track.id, simpleMode]
   );
 
   // Apply the rubber-band selection for the given content-space range. Deduped
@@ -983,6 +998,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       {clipIds.map((id) => (
         <Clip key={id} clipId={id} />
       ))}
+      {automationWidthPx !== undefined && (
+        <AutomationCurveOverlay track={track} widthPx={automationWidthPx} heightPx={heightPx} />
+      )}
 
       {/* Right-click context menu (lane background) */}
       <ContextMenu

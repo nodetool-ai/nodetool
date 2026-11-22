@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 
 import { layoutTrackRows, scriptVoiceoverTrackId } from "../trackWindow";
+import { NO_AUTOMATION_LAYOUT } from "../automation/automationLayout";
 
 const rowIds = (rows: ReturnType<typeof layoutTrackRows>["rows"]) =>
   rows.map((row) => (row.kind === "track" ? row.track.id : row.kind));
@@ -14,7 +15,7 @@ describe("script lane placement", () => {
   ];
 
   it("sits directly above the script's voiceover track", () => {
-    const { rows } = layoutTrackRows(tracks, true, null, 1, [], new Set(), false, [], "vo");
+    const { rows } = layoutTrackRows(tracks, true, null, 1, [], new Set(), false, NO_AUTOMATION_LAYOUT, "vo");
     expect(rowIds(rows)).toEqual(["v1", "music", "script", "vo"]);
   });
 
@@ -35,7 +36,7 @@ describe("script lane placement", () => {
       [{ id: "f", name: "Voice" }],
       new Set(["f"]),
       false,
-      [],
+      NO_AUTOMATION_LAYOUT,
       "vo"
     );
     expect(rowIds(rows)).toEqual(["v1", "script", "music", "folder"]);

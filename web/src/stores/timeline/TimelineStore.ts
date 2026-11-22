@@ -1,4 +1,4 @@
-import { assertTimelineColorSpaceSupported } from "@nodetool-ai/timeline";
+import { assertTimelineColorSpaceSupported, automationModeOf } from "@nodetool-ai/timeline";
 import { DEFAULT_TIMELINE_INSTRUMENT } from "./instrumentPresets";
 /**
  * TimelineStore
@@ -31,6 +31,9 @@ import { create } from "zustand";
 import { temporal } from "../temporal";
 import type { TemporalState } from "../temporal";
 import {
+  activeLoopMs,
+  unrollLoopedClip,
+  unrollLoopedClips,
   isGroupClip,
   groupDescendantIds,
   moveGroup,
@@ -68,6 +71,8 @@ import {
   hasTimeRemap,
   isHoldRemap,
   MIDI_MAX_NOTES_PER_CLIP,
+  validateControllerLanes,
+  validateNotes,
   quantizeNotes,
   msToTicks,
   rescaleClipsForTempo,
@@ -111,7 +116,9 @@ import type {
   ClipAnimation,
   ClipGeneratedMatte,
   AutomationLane,
+  AutomationMode,
   MidiInstrument,
+  MidiControllerLane,
   MidiNote,
   TimelineChord,
   ClipHarmony,
@@ -577,6 +584,8 @@ export interface TimelineStoreState {
    * its lanes. An empty list removes the field.
    */
   setTrackAutomation: (trackId: string, automation: AutomationLane[]) => void;
+  /** Set a track's automation mode. One undo entry; `read` clears the field. */
+  setTrackAutomationMode: (trackId: string, mode: AutomationMode) => void;
   /** Replace a chord track's chord regions (sorted by onset). */
   setTrackChords: (trackId: string, chords: TimelineChord[]) => void;
   /** Set or clear (`undefined`) a midi clip's arp, comp and scale settings. */
@@ -602,6 +611,12 @@ export interface TimelineStoreState {
       Pick<MidiNote, "pitch" | "startTick" | "durationTick"> & Partial<MidiNote>
     >
   ) => void;
+  /**
+   * Replace a midi clip's controller lanes. Lanes are checked with
+   * `validateControllerLanes`: an invalid list is refused with a notice and
+   * nothing is written. One undo entry, like `setClipNotes`.
+   */
+  setClipControllers: (clipId: string, lanes: MidiControllerLane[]) => void;
   /**
    * Move every note in a midi clip by whole semitones, clamped to the 0..127
    * MIDI range. Ids survive, so the selection still points at the same notes.
@@ -660,6 +675,16 @@ export interface TimelineStoreState {
     deltaMs: number,
     maxSourceDurationMs?: number
   ) => void;
+
+  /**
+   * Region loop (CE3): extend a midi or audio clip to end at `endMs` and
+   * repeat its window until then. The window is the clip's current loop
+   * length, or its whole length when it does not loop yet. An end at or
+   * before the window's end removes the loop. A drag passes `windowMs`, the
+   * window it started with, so shrinking and growing again keeps it. Invalid
+   * input no-ops.
+   */
+  loopClipToEnd: (clipId: string, endMs: number, windowMs?: number) => void;
 
   /**
    * Trim an edge and ripple: every clip on an unlocked track that started at
@@ -793,7 +818,12 @@ export interface TimelineStoreState {
   ) => string;
 
   /** Split the clip at the given time. The clip must contain that time. */
-  splitClipAtTime: (clipId: string, atMs: number) => void;
+  splitClipAtTime: (
+    clipId: string,
+    atMs: number,
+    /** A midi note crossing the cut: end it at the cut (default) or also continue it on the right. */
+    crossing?: "shorten" | "split"
+  ) => void;
 
   /**
    * Split all selected clips at the current playhead (passed as argument).
@@ -816,7 +846,12 @@ export interface TimelineStoreState {
    *
    * Returns the IDs of the newly created clips so callers can update selection.
    */
-  duplicateSelected: (selectedIds: Set<string>, offsetMs?: number) => string[];
+  duplicateSelected: (
+    selectedIds: Set<string>,
+    offsetMs?: number,
+    /** Copies, 1..64. Each starts where the previous copy ends (D51). */
+    count?: number
+  ) => string[];
 
   /** Delete selected clips. */
   deleteSelected: (selectedIds: Set<string>) => void;
@@ -1420,6 +1455,12 @@ function editMidiNotes(
       notifyNoteLimit(notes.length);
       return state;
     }
+    // A list that fails the save schema fails every autosave after it.
+    const problems = validateNotes(notes);
+    if (problems.length > 0) {
+      notifyControllerLimit(problems[0].message);
+      return state;
+    }
     return {
       clips: state.clips.map((c) => (c.id === clipId ? { ...c, notes } : c))
     };
@@ -1438,6 +1479,22 @@ function notifyNoteLimit(count: number): void {
   });
 }
 
+/** Tell the user a controller edit was refused. */
+function notifyControllerLimit(message: string): void {
+  useNotificationStore.getState().addNotification({
+    type: "warning",
+    content: message
+  });
+}
+
+/** Whether two lane lists are equal, field for field. */
+function sameControllers(
+  a: readonly MidiControllerLane[],
+  b: readonly MidiControllerLane[]
+): boolean {
+  return a === b || JSON.stringify(a) === JSON.stringify(b);
+}
+
 /** Whether two note lists carry the same notes, field for field. */
 function sameNotes(a: readonly MidiNote[], b: readonly MidiNote[]): boolean {
   if (a.length !== b.length) return false;
@@ -1448,7 +1505,12 @@ function sameNotes(a: readonly MidiNote[], b: readonly MidiNote[]): boolean {
       note.pitch === other.pitch &&
       note.velocity === other.velocity &&
       note.startTick === other.startTick &&
-      note.durationTick === other.durationTick
+      note.durationTick === other.durationTick &&
+      Boolean(note.muted) === Boolean(other.muted) &&
+      (note.channel ?? 0) === (other.channel ?? 0) &&
+      note.releaseVelocity === other.releaseVelocity &&
+      JSON.stringify(note.expression ?? null) ===
+        JSON.stringify(other.expression ?? null)
     );
   });
 }
@@ -1664,7 +1726,15 @@ function clampEndTrimDeltaToSource(
   deltaMs: number,
   maxSourceDurationMs: number | undefined
 ): number {
-  if (isHoldRemap(clip) || maxSourceDurationMs === undefined || deltaMs <= 0) return deltaMs;
+  // An end trim of a looped clip repeats the window and reads no more source.
+  if (
+    isHoldRemap(clip) ||
+    activeLoopMs(clip) !== undefined ||
+    maxSourceDurationMs === undefined ||
+    deltaMs <= 0
+  ) {
+    return deltaMs;
+  }
   const rate = sourceRate(clip);
   const inPointMs = clip.inPointMs ?? 0;
   const currentOutPointMs =
@@ -1732,7 +1802,8 @@ function splitClipsLinkAware(
   clips: TimelineClip[],
   mediaTracks: MediaTrack[],
   atMs: number,
-  targetIds: string[]
+  targetIds: string[],
+  options?: { bpm?: number; crossing?: "shorten" | "split" }
 ): { clips: TimelineClip[]; mediaTracks: MediaTrack[] } {
   // A group is a transform parent, not media: `splitClip` refuses it, so it is
   // never a target and its children are split individually.
@@ -1789,10 +1860,28 @@ function splitClipsLinkAware(
 
   const next: TimelineClip[] = [];
   let nextMediaTracks = mediaTracks;
-  for (const clip of clips) {
-    if (toSplit.has(clip.id)) {
+  for (const original of clips) {
+    if (toSplit.has(original.id)) {
+      // A looped clip is written out as plain copies first (CE3); the cut
+      // lands in the copy that holds it, as part of the same set.
+      const loopMs = activeLoopMs(original);
+      const pieces =
+        loopMs === undefined
+          ? [original]
+          : unrollLoopedClip(original, options?.bpm ?? 120, loopMs, {
+              newId: createTimeOrderedUuid
+            });
+      const clip = pieces.find(
+        (p) => atMs > p.startMs && atMs < p.startMs + p.durationMs
+      );
+      if (!clip) {
+        // The cut falls on a repeat boundary: the unroll is the split.
+        next.push(...pieces);
+        continue;
+      }
+      next.push(...pieces.filter((p) => p !== clip && p.startMs < clip.startMs));
       try {
-        const [left, right] = splitClip(clip, atMs);
+        const [left, right] = splitClip(clip, atMs, options);
         if (clip.linkId !== undefined) {
           left.linkId = groupLink(leftLinkByGroup, clip.linkId);
           right.linkId = groupLink(rightLinkByGroup, clip.linkId);
@@ -1813,8 +1902,9 @@ function splitClipsLinkAware(
         // atMs outside this clip's bounds — leave it untouched.
         next.push(clip);
       }
+      next.push(...pieces.filter((p) => p.startMs > clip.startMs));
     } else {
-      next.push(clip);
+      next.push(original);
     }
   }
   return { clips: next, mediaTracks: nextMediaTracks };
@@ -1853,6 +1943,8 @@ function mergeClipsAtTime(
   for (const right of clips) {
     if (removed.has(right.id)) continue;
     if (Math.abs(right.startMs - timeMs) > EPS) continue;
+    // A looped clip is not half of a split: its repeats are not contiguous source.
+    if (activeLoopMs(right) !== undefined) continue;
 
     const key = `${right.trackId}::${right.currentAssetId}`;
     const potentialLefts = candidatesByTrackAsset.get(key);
@@ -1863,6 +1955,7 @@ function mergeClipsAtTime(
         if (
           c.id !== right.id &&
           !removed.has(c.id) &&
+          activeLoopMs(c) === undefined &&
           // Source contiguity: the left half's source out-point must meet the
           // right half's source in-point. Use outPointMs (set on every split half)
           // rather than inPointMs + durationMs, which only holds at 1× speed.
@@ -3143,9 +3236,10 @@ export const createTimelineStore = (
         // and drops windows that fall off the end at sample time.
         trimClipStart: (clipId, deltaMs) =>
           set((state) => {
-            const clip = state.clips.find((c) => c.id === clipId);
+            const original = state;
+            let clip = state.clips.find((c) => c.id === clipId);
             if (!clip) {
-              return state;
+              return original;
             }
             if (
               !editableUserTargets(
@@ -3158,7 +3252,28 @@ export const createTimelineStore = (
                 }
               ).has(clipId)
             ) {
-              return state;
+              return original;
+            }
+            // A start trim of a looped clip writes it out as plain copies
+            // first (CE3): the first copy keeps the id and takes the trim. The
+            // unroll is kept only when the trim succeeds, so a refused trim
+            // leaves the loop alone.
+            const bpm = resolveTempo(state).bpm;
+            let unrolled = state.clips;
+            const unrollSet = new Set([clipId]);
+            if (state.linkedSelection && clip.linkId !== undefined) {
+              for (const c of state.clips) {
+                if (c.linkId === clip.linkId) unrollSet.add(c.id);
+              }
+            }
+            if (!isGroupClip(clip)) {
+              unrolled = unrollLoopedClips(
+                state.clips,
+                unrollSet,
+                bpm,
+                createTimeOrderedUuid
+              );
+              clip = unrolled.find((c) => c.id === clipId)!;
             }
             // Trimming a group pulls its children inside the new window; an
             // invalid trim throws and leaves the document alone (D4).
@@ -3168,7 +3283,7 @@ export const createTimelineStore = (
                   clips: trimGroup(state.clips, clipId, "start", deltaMs)
                 };
               } catch {
-                return state;
+                return original;
               }
             }
             const linkId = state.linkedSelection ? clip.linkId : undefined;
@@ -3178,17 +3293,59 @@ export const createTimelineStore = (
             try {
               trimmed.set(clip.id, trimClip(clip, "start", deltaMs));
               if (linkId !== undefined) {
-                for (const c of state.clips) {
+                for (const c of unrolled) {
                   if (c.id !== clipId && c.linkId === linkId) {
                     trimmed.set(c.id, trimClip(c, "start", deltaMs));
                   }
                 }
               }
             } catch {
-              return state;
+              return original;
             }
             return {
-              clips: state.clips.map((c) => trimmed.get(c.id) ?? c)
+              clips: unrolled.map((c) => trimmed.get(c.id) ?? c)
+            };
+          }),
+
+        loopClipToEnd: (clipId, endMs, windowArg) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (
+              !clip ||
+              (clip.mediaType !== "midi" && clip.mediaType !== "audio") ||
+              !Number.isFinite(endMs) ||
+              !editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clipId]),
+                { followLinks: false, includeGroupDescendants: false }
+              ).has(clipId)
+            ) {
+              return state;
+            }
+            // A time remap plays no loop, so the grip does nothing there.
+            if (hasTimeRemap(clip)) {
+              return state;
+            }
+            const windowMs =
+              windowArg ?? clip.loopLengthMs ?? clip.durationMs;
+            const durationMs = Math.max(1, endMs - clip.startMs);
+            if (durationMs === clip.durationMs) {
+              return state;
+            }
+            const next: TimelineClip = { ...clip, durationMs };
+            if (durationMs > windowMs) {
+              next.loopLengthMs = windowMs;
+            } else {
+              delete next.loopLengthMs;
+            }
+            if (clip.mediaType === "audio" && clip.outPointMs !== undefined) {
+              next.outPointMs =
+                (clip.inPointMs ?? 0) +
+                Math.min(windowMs, durationMs) * sourceRate(clip);
+            }
+            return {
+              clips: state.clips.map((c) => (c.id === clipId ? next : c))
             };
           }),
 
@@ -3270,6 +3427,7 @@ export const createTimelineStore = (
             try {
               return {
                 clips: rippleTrim(state.clips, clipId, "start", deltaMs, {
+                  bpm: resolveTempo(state).bpm,
                   lockedTrackIds: rippleFrozenTrackIds(
                     state,
                     linkedTrackIds(state.clips, clipId, state.linkedSelection)
@@ -3360,6 +3518,7 @@ export const createTimelineStore = (
               );
               return {
                 clips: rollEdit(state.clips, clipId, edge, deltaMs, {
+                  bpm: resolveTempo(state).bpm,
                   followLinks: state.linkedSelection
                 })
               };
@@ -3417,7 +3576,8 @@ export const createTimelineStore = (
                     followLinks: true,
                     includeGroupDescendants: false
                   })
-                ]
+                ],
+                { bpm: resolveTempo(state).bpm }
               );
             }
             const inside = new Set(
@@ -3479,6 +3639,7 @@ export const createTimelineStore = (
             if (moved.size === 0) return state;
             return {
               clips: resolveDrop(state.clips, moved, mode, {
+                bpm: resolveTempo(state).bpm,
                 lockedTrackIds: rippleFrozenTrackIds(
                   state,
                   state.clips
@@ -3688,7 +3849,7 @@ export const createTimelineStore = (
           return ranged.id;
         },
 
-        splitClipAtTime: (clipId, atMs) =>
+        splitClipAtTime: (clipId, atMs, crossing) =>
           set((state) => {
             if (
               !editableUserTargets(
@@ -3707,7 +3868,8 @@ export const createTimelineStore = (
               state.clips,
               state.mediaTracks,
               atMs,
-              [clipId]
+              [clipId],
+              { bpm: resolveTempo(state).bpm, crossing }
             );
             return next.clips === state.clips ? state : next;
           }),
@@ -3740,7 +3902,8 @@ export const createTimelineStore = (
               state.clips,
               state.mediaTracks,
               currentTimeMs,
-              [...targetIds]
+              [...targetIds],
+              { bpm: resolveTempo(state).bpm }
             );
             if (next.clips === state.clips) return state;
             const oldIds = new Set(state.clips.map((c) => c.id));
@@ -3763,7 +3926,7 @@ export const createTimelineStore = (
           return rightHalfIds;
         },
 
-        duplicateSelected: (selectedIds, offsetMs = 0) => {
+        duplicateSelected: (selectedIds, offsetMs = 0, count = 1) => {
           const newIds: string[] = [];
           set((state) => {
             // A selected group brings its children, or the copy is empty.
@@ -3790,10 +3953,16 @@ export const createTimelineStore = (
               Math.min(...sources.map((c) => c.startMs));
             // cloneClips remaps parentId to the copied parent (or drops it)
             // and gives fully-duplicated link groups a fresh shared linkId.
-            const newClips = cloneClips(sources).map((c) => ({
-              ...c,
-              startMs: c.startMs + spanMs + offsetMs
-            }));
+            const copies = Math.min(64, Math.max(1, Math.floor(count)));
+            const newClips: TimelineClip[] = [];
+            for (let n = 1; n <= copies; n++) {
+              newClips.push(
+                ...cloneClips(sources).map((c) => ({
+                  ...c,
+                  startMs: c.startMs + n * (spanMs + offsetMs)
+                }))
+              );
+            }
             newIds.push(...newClips.map((c) => c.id));
             return { clips: [...state.clips, ...newClips] };
           });
@@ -3929,6 +4098,19 @@ export const createTimelineStore = (
             };
           }),
 
+        setTrackAutomationMode: (trackId, mode) =>
+          set((state) => {
+            const track = state.tracks.find((t) => t.id === trackId);
+            if (!track || track.locked || automationModeOf(track) === mode) {
+              return state;
+            }
+            return {
+              tracks: patchById(state.tracks, trackId, {
+                automationMode: mode === "read" ? undefined : mode
+              })
+            };
+          }),
+
         setTrackChords: (trackId, chords) =>
           set((state) => {
             const track = state.tracks.find((t) => t.id === trackId);
@@ -3981,6 +4163,36 @@ export const createTimelineStore = (
 
         setClipNotes: (clipId, notes) =>
           editMidiNotes(set, clipId, () => notes.map(createMidiNote)),
+
+        setClipControllers: (clipId, lanes) =>
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (
+              !clip ||
+              clip.mediaType !== "midi" ||
+              clipLockError(state, clipId) !== null
+            ) {
+              return state;
+            }
+            if (sameControllers(clip.controllers ?? [], lanes)) {
+              return state;
+            }
+            const problems = validateControllerLanes(lanes);
+            if (problems.length > 0) {
+              notifyControllerLimit(problems[0].message);
+              return state;
+            }
+            return {
+              clips: state.clips.map((c) => {
+                if (c.id !== clipId) {
+                  return c;
+                }
+                const { controllers: _previous, ...rest } = c;
+                void _previous;
+                return lanes.length > 0 ? { ...rest, controllers: lanes } : rest;
+              })
+            };
+          }),
 
         transposeClip: (clipId, semitones) =>
           editMidiNotes(set, clipId, (notes) =>
@@ -4142,6 +4354,11 @@ export const createTimelineStore = (
             for (const { m, newRate, targetMs } of planned) {
               const durationMs = Math.max(1, targetMs - overflowMs);
               const retimed: TimelineClip = { ...m, speedMultiplier, durationMs };
+              // The loop window keeps its source length, so it scales too.
+              if (m.loopLengthMs !== undefined) {
+                retimed.loopLengthMs =
+                  (m.loopLengthMs * sourceRate(m)) / newRate;
+              }
               if (overflowMs > 0 && m.outPointMs !== undefined) {
                 retimed.outPointMs = (m.inPointMs ?? 0) + durationMs * newRate;
               }
@@ -5105,6 +5322,8 @@ export const createTimelineStore = (
               lastGeneratedHash: undefined,
               inPointMs: undefined,
               outPointMs: undefined,
+              // The fresh generation has no window to repeat.
+              loopLengthMs: undefined,
               versions: []
             });
             newId = clone.id;
@@ -5177,7 +5396,8 @@ export const createTimelineStore = (
               state.clips,
               state.mediaTracks,
               Math.round(timeMs),
-              [...editableAllClips(state)]
+              [...editableAllClips(state)],
+              { bpm: resolveTempo(state).bpm }
             )
           })),
 

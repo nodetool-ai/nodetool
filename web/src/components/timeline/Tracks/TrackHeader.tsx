@@ -25,7 +25,6 @@ import VolumeOffOutlinedIcon from "@mui/icons-material/VolumeOffOutlined";
 import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
-import ShowChartOutlinedIcon from "@mui/icons-material/ShowChartOutlined";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
@@ -80,7 +79,6 @@ import {
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { MAX_TRACK_HEIGHT_PX, MIN_TRACK_HEIGHT_PX, trackRowHeightPx } from "./trackHeight";
-import { trackSupportsAutomation } from "./automation/automationTargets";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { useTimelineSimpleMode } from "../../../stores/timeline/TimelineEditorMode";
 import { trackTypeMeta, trackTypeAccent } from "./trackVisuals";
@@ -674,15 +672,6 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
       toggleExpandedFx(track.id);
     }, [toggleExpandedFx, track.id]);
 
-    const supportsAutomation = trackSupportsAutomation(track);
-    const automationShown = useTimelineUIStore((s) =>
-      s.shownAutomationTrackIds.includes(track.id)
-    );
-    const toggleTrackAutomation = useTimelineUIStore((s) => s.toggleTrackAutomation);
-    const handleAutomationToggle = useCallback(() => {
-      toggleTrackAutomation(track.id);
-    }, [toggleTrackAutomation, track.id]);
-    const automationCount = track.automation?.length ?? 0;
 
     // Drag-reorder: the grip is the HTML5 drag source; the whole header is the drop target.
     // Reordering is constrained to same-type tracks (see trackReorder). The drop
@@ -1075,35 +1064,6 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                   data-testid={`track-fx-${track.id}`}
                 >
                   <GraphicEqOutlinedIcon />
-                </button>
-              </Tooltip>
-            )}
-
-            {supportsAutomation && (
-              <Tooltip
-                title={
-                  automationShown
-                    ? t("timelineAutomation.hideLanes")
-                    : t("timelineAutomation.showLanes")
-                }
-              >
-                <button
-                  type="button"
-                  css={
-                    automationCount > 0 || automationShown
-                      ? iconButtonOnCss
-                      : iconButtonOffCss
-                  }
-                  onClick={handleAutomationToggle}
-                  aria-label={
-                    automationShown
-                      ? t("timelineAutomation.hideLanes")
-                      : t("timelineAutomation.showLanes")
-                  }
-                  aria-pressed={automationShown}
-                  data-testid={`track-automation-${track.id}`}
-                >
-                  <ShowChartOutlinedIcon />
                 </button>
               </Tooltip>
             )}

@@ -4788,7 +4788,11 @@
         "length": "Länge",
         "velocity": "Anschlagstärke",
         "velocityShort": "Stärke",
-        "mixed": "Gemischt"
+        "mixed": "Gemischt",
+        "releaseVelocity": "Release velocity (note-off)",
+        "releaseVelocityShort": "Rel",
+        "channel": "MIDI channel",
+        "channelShort": "Ch"
       },
       "empty": {
         "clickToAddNote": "Klicken, um eine Note hinzuzufügen"
@@ -4814,8 +4818,208 @@
         "toggleOrMarquee": "Umschalt-Klick — Auswahl umschalten · Leeren Bereich ziehen — Noten auswählen",
         "duplicateOrBypassSnap": "Wahltaste-Ziehen — Auswahl duplizieren · ⌘/Strg-Ziehen — Einrasten umgehen",
         "noteFields": "Notenfelder — Tonhöhe und Start verschieben die Auswahl gemeinsam; Länge und Anschlagstärke legen den Wert für alle ausgewählten Noten fest",
-        "windowsControl": "Unter Windows ersetzt Strg die Taste ⌘."
+        "windowsControl": "Unter Windows ersetzt Strg die Taste ⌘.",
+        "muteNotes": "M — Mute / unmute selected notes"
+      },
+      "lanes": {
+        "label": "Lane",
+        "hint": "Click adds a point · drag moves · Shift-drag draws · Delete or double-click removes · Ctrl/⌘ bypasses snap",
+        "ccNumber": "CC number",
+        "step": "Step",
+        "aria": "{{name}} lane",
+        "options": {
+          "velocity": "Velocity lane",
+          "pitchBend": "Pitch bend",
+          "cc1": "Modulation (CC 1)",
+          "cc7": "Volume (CC 7)",
+          "cc10": "Pan (CC 10)",
+          "cc11": "Expression (CC 11)",
+          "cc64": "Sustain (CC 64)",
+          "channelPressure": "Channel pressure",
+          "otherCc": "Other CC…",
+          "expr_pitch": "Note pitch",
+          "expr_volume": "Note volume",
+          "expr_pan": "Note pan",
+          "expr_brightness": "Note brightness"
+        }
+      },
+      "logic": {
+        "menu": {
+          "edit": "Edit",
+          "functions": "Functions",
+          "view": "View",
+          "undo": "Undo",
+          "redo": "Redo",
+          "cut": "Cut",
+          "copy": "Copy",
+          "paste": "Paste",
+          "delete": "Delete",
+          "selectAll": "Select All",
+          "deselectAll": "Deselect All",
+          "selectFollowing": "Select All Following",
+          "selectSamePitch": "Select Same Pitch",
+          "selectMuted": "Select Muted Notes",
+          "invertSelection": "Invert Selection",
+          "quantize": "Quantize",
+          "quantizeLengths": "Quantize Starts and Lengths",
+          "scaleQuantize": "Scale Quantize",
+          "transposeUp": "Transpose Semitone Up",
+          "transposeDown": "Transpose Semitone Down",
+          "octaveUp": "Transpose Octave Up",
+          "octaveDown": "Transpose Octave Down",
+          "forceLegato": "Force Legato",
+          "removeOverlaps": "Remove Overlaps",
+          "deleteDuplicates": "Delete Duplicates",
+          "muteToggle": "Mute/Unmute",
+          "localInspector": "Local Inspector",
+          "midiDraw": "MIDI Draw",
+          "collapseMode": "Collapse Mode",
+          "catchPlayhead": "Catch Playhead",
+          "link": "Link",
+          "noteColor": "Note Color",
+          "noteColorVelocity": "Velocity",
+          "noteColorClip": "Clip",
+          "zoomToFit": "Zoom to Fit",
+          "keyboardShortcuts": "Keyboard Shortcuts"
+        },
+        "toggle": {
+          "collapseMode": "Collapse Mode",
+          "midiDraw": "MIDI Draw",
+          "midiOut": "MIDI Out",
+          "catch": "Catch",
+          "link": "Link"
+        },
+        "tool": {
+          "left": "Left-click tool",
+          "cmd": "Command-click tool",
+          "ctrl": "Ctrl-click tool",
+          "pointer": "Pointer",
+          "pencil": "Pencil",
+          "eraser": "Eraser",
+          "brush": "Brush",
+          "scissors": "Scissors",
+          "glue": "Glue",
+          "mute": "Mute",
+          "velocity": "Velocity",
+          "quantize": "Quantize"
+        },
+        "snap": {
+          "label": "Snap:",
+          "toggle": "Snap on or off",
+          "value": "Snap value",
+          "smart": "Smart"
+        },
+        "dragMode": {
+          "label": "Drag:",
+          "title": "Drag mode",
+          "overlap": "Overlap",
+          "noOverlap": "No Overlap"
+        },
+        "zoom": {
+          "horizontal": "Horizontal zoom",
+          "vertical": "Vertical zoom"
+        },
+        "quantizeValues": {
+          "quarter": "1/4 Note",
+          "eighth": "1/8 Note",
+          "sixteenth": "1/16 Note",
+          "thirtySecond": "1/32 Note",
+          "eighthTriplet": "1/8 Triplet",
+          "sixteenthTriplet": "1/16 Triplet"
+        },
+        "inspector": {
+          "onTrack": "on Track {{track}}",
+          "timeQuantize": "Time Quantize",
+          "quantizeValue": "Quantize value",
+          "quantizeApply": "Quantize notes",
+          "strength": "Strength",
+          "swing": "Swing",
+          "scaleQuantize": "Scale Quantize",
+          "scaleRoot": "Scale root",
+          "scaleName": "Scale",
+          "chromatic": "Chromatic",
+          "scaleQuantizeApply": "Quantize notes to the scale",
+          "snapToScale": "Snap to Scale",
+          "velocity": "Velocity",
+          "note": "Note"
+        }
       }
+    },
+    "stepEditor": {
+      "tab": {
+        "aria": "Clip editor view",
+        "pianoRoll": "Piano Roll",
+        "stepEditor": "Step Editor"
+      },
+      "aria": {
+        "editor": "Step Editor for {{name}}"
+      },
+      "menu": {
+        "lanes": "Lanes",
+        "newControllerLane": "New Controller Lane",
+        "otherCc": "Other CC...",
+        "newNoteLane": "New Note Lane",
+        "deleteLane": "Delete Lane",
+        "scaleValues": "Scale Values...",
+        "setToValue": "Set to Value...",
+        "thinOut": "Thin Out",
+        "laneInspector": "Lane Inspector"
+      },
+      "tool": {
+        "line": "Line"
+      },
+      "laneNames": {
+        "volume": "Volume",
+        "modulation": "Modulation",
+        "pan": "Pan",
+        "expression": "Expression",
+        "sustain": "Sustain",
+        "cc": "CC {{n}}",
+        "pitchBend": "Pitch Bend",
+        "channelPressure": "Channel Pressure",
+        "polyPressure": "Poly Pressure {{note}}"
+      },
+      "inspector": {
+        "clip": "Clip:",
+        "lane": "Lane:",
+        "laneSet": "Lane Set",
+        "laneSetAutomatic": "Automatic",
+        "laneSetGmDrums": "GM Drums",
+        "grid": "Grid",
+        "penWidth": "Pen Width",
+        "style": "Style",
+        "styleNoFrames": "No Frames",
+        "styleFrames": "Frames",
+        "length": "Length",
+        "status": "Status",
+        "midiChannel": "MIDI Channel",
+        "number": "Number",
+        "noLane": "This clip has no lane to show.",
+        "statusValues": {
+          "note": "Note",
+          "control": "Control",
+          "pitchBend": "Pitch Bend",
+          "channelPressure": "Channel Pressure",
+          "polyPressure": "Poly Pressure"
+        }
+      },
+      "dialogs": {
+        "otherCcTitle": "New Controller Lane",
+        "ccNumber": "Controller number (0-127)",
+        "newNoteTitle": "New Note Lane",
+        "pitch": "Pitch (0-127)",
+        "scaleTitle": "Scale Values",
+        "percent": "Percent (0-200)",
+        "setValueTitle": "Set to Value",
+        "value": "Value",
+        "deleteLaneTitle": "Delete lane?",
+        "deleteLaneBody": "This removes the lane and all of its events from the clip.",
+        "create": "Create",
+        "apply": "Apply",
+        "delete": "Delete",
+        "cancel": "Cancel"
+      },
+      "empty": "No lanes yet. Use Lanes to add a controller lane or a note lane."
     }
   },
   "pass3_21": {
@@ -4824,12 +5028,6 @@
         "panel": {
           "resizeNoteEditor": "Noteneditorgröße ändern",
           "backToTracks": "Zurück zu den Spuren",
-          "midiClip": "MIDI-Clip",
-          "noteCount_one": "{{count}} Note",
-          "noteCount_other": "{{count}} Noten",
-          "noteGrid": "Notenraster",
-          "snapNotes": "Noten einrasten lassen",
-          "snap": "Einrasten",
           "closeNoteEditor": "Noteneditor schließen"
         },
         "ruler": {
@@ -17621,6 +17819,7 @@
       "openEntranceAnimation": "Steuerelemente für die Eingangsanimation öffnen",
       "openExitAnimation": "Steuerelemente für die Ausgangsanimation öffnen",
       "openLoopAnimation": "Steuerelemente für Schleifen- und Betonungsanimation öffnen",
+      "loopHandle": "Ziehen, um den Clip zu wiederholen",
       "trimStart": "Clipanfang trimmen",
       "trimEnd": "Clipende trimmen",
       "locked": "Clip gesperrt"
@@ -17759,6 +17958,25 @@
         "autoOption": "AUTO",
         "keyHint": "GESCHRIEBENE NOTEN WERDEN BEI DER WIEDERGABE ANGEPASST",
         "chordsHint": "JEDER AKKORD BESTIMMT DIE TONLEITER · LÜCKEN NUTZEN DAS ZENTRUM"
+      },
+      "chordRows": {
+        "signature": "Taktart",
+        "chord": "Akkord",
+        "menu": "Akkordaktionen",
+        "applyProgression": "Akkordfolge anwenden...",
+        "detect": "Akkorde aus Auswahl erkennen",
+        "transpose": "Akkorde transponieren...",
+        "clear": "Akkorde löschen",
+        "empty": "Noch keine Akkorde. Bitte den Assistenten um eine Akkordfolge oder wähle eine aus.",
+        "selectClip": "Wähle zuerst einen MIDI- oder Audioclip aus.",
+        "noTimeline": "Es ist keine Timeline geöffnet.",
+        "pickerMode": "Akkordart",
+        "triads": "Dreiklänge",
+        "sevenths": "Septakkorde",
+        "symbol": "Akkordsymbol",
+        "semitones": "Halbtöne",
+        "transposeApply": "Transponieren",
+        "target": "DIE AKKORDSPUR"
       }
     },
     "mixer": {
@@ -19189,7 +19407,17 @@
     "removeLane": "Spur entfernen",
     "missingTarget": "Entferntes Gerät",
     "laneLabel": "Automationsspur: {{name}}",
-    "deletePoint": "Punkt löschen"
+    "deletePoint": "Punkt löschen",
+    "showAutomation": "Show automation",
+    "mode": "Automation mode",
+    "parameter": "Automation parameter",
+    "modes": {
+      "off": "Off",
+      "read": "Read",
+      "touch": "Touch",
+      "latch": "Latch",
+      "write": "Write"
+    }
   },
   "preset_chip": {
     "label": "Presets",
