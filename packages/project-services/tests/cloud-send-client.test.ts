@@ -294,6 +294,40 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     ]);
   });
 
+  it("deletes a workspace file on the cloud only once the review confirms it", async () => {
+    const { workflow } = await workflowWithFile(null);
+    await folder.write("graph.json", new TextEncoder().encode("{}"));
+    const notes = new TextEncoder().encode("shot list");
+    await folder.write("notes.txt", notes);
+    await folder.write("keep.txt", new TextEncoder().encode("keep"));
+    await runSend(cloud, (await captureSend(TARGET)).transferId);
+    await folder.delete("notes.txt");
+    // A file that a document now names stays, so it is no deletion.
+    workflow.file_path = "graph.json";
+    await workflow.save();
+    const deletes = () =>
+      (cloud.commits.at(-1)!.manifest.file_operations ?? []).filter((op) => op.op === "delete_workspace_file");
+
+    // Not confirmed: nothing is deleted, and the next capture lists it again.
+    const review = await captureSend(TARGET);
+    expect(review.deletedWorkspaceFiles).toEqual([{ path: "notes.txt", baseHash: sha(notes) }]);
+    expect(review.fileOperations).toEqual([]);
+    expect(await runSend(cloud, review.transferId)).toMatchObject({ status: "committed" });
+    expect(deletes()).toEqual([]);
+
+    // A confirmation for another base hash deletes nothing.
+    const again = await captureSend(TARGET);
+    expect(again.deletedWorkspaceFiles).toEqual([{ path: "notes.txt", baseHash: sha(notes) }]);
+    await runSend(cloud, again.transferId, { confirmWorkspaceDeletes: [{ path: "notes.txt", baseHash: "0".repeat(64) }] });
+    expect(deletes()).toEqual([]);
+
+    const confirmed = await captureSend(TARGET);
+    await runSend(cloud, confirmed.transferId, { confirmWorkspaceDeletes: confirmed.deletedWorkspaceFiles });
+    expect(deletes()).toEqual([{ op: "delete_workspace_file", path: "notes.txt", base_hash: sha(notes) }]);
+    // The committed delete forgets the base, so the path is not listed again.
+    expect((await captureSend(TARGET)).deletedWorkspaceFiles).toEqual([]);
+  });
+
   it("captures again when a workspace file changes while it is read (CF4)", async () => {
     await workflowWithFile(null);
     await folder.write("notes.txt", new TextEncoder().encode("first"));

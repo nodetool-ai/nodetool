@@ -924,6 +924,7 @@ export {
   createCloudReceive,
   createCloudSend,
   deleteCloudLinkDocument,
+  deleteCloudLinkWorkspaceFile,
   deleteCloudReceive,
   deleteCloudSend,
   getCloudLink,

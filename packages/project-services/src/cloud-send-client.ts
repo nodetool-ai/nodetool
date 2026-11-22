@@ -25,6 +25,7 @@ import {
   createCloudLink,
   createCloudSend,
   deleteCloudLinkDocument,
+  deleteCloudLinkWorkspaceFile,
   DOCUMENT_FILE_MISSING,
   deleteCloudSend,
   getCloudLink,
@@ -124,6 +125,12 @@ export interface DeletedLocally {
   baseHash: string;
 }
 
+/** A workspace file sent earlier and gone from the folder since, with the hash the cloud had then. */
+export interface DeletedWorkspaceFile {
+  path: string;
+  baseHash: string;
+}
+
 interface CapturedDocument {
   kind: TransferDocumentKind;
   localId: string;
@@ -157,6 +164,8 @@ interface SendPlan {
   files: CapturedFile[];
   /** Absent on a plan recorded before workspace files were sent. */
   workspaceFiles?: CapturedWorkspaceFile[];
+  /** Absent on a plan recorded before workspace file deletions were sent. */
+  deletedWorkspaceFiles?: DeletedWorkspaceFile[];
   missingFiles: TransferMissingFile[];
   skipped: SkippedDocument[];
   missingDocumentFiles: MissingDocumentFile[];
@@ -189,6 +198,8 @@ export interface SendReview {
   missingDocumentFiles: MissingDocumentFile[];
   /** Documents gone here that the deletion review must confirm before a send deletes them. */
   deletedLocally: DeletedLocally[];
+  /** Workspace files gone here that the deletion review must confirm before a send deletes them. */
+  deletedWorkspaceFiles: DeletedWorkspaceFile[];
 }
 
 /** What {@link runSend} ended with. */
@@ -348,7 +359,8 @@ export async function captureSend(target: SendTarget): Promise<SendReview> {
     missingFiles: plan.missingFiles,
     skipped: plan.skipped,
     missingDocumentFiles: plan.missingDocumentFiles,
-    deletedLocally: plan.deletedLocally
+    deletedLocally: plan.deletedLocally,
+    deletedWorkspaceFiles: plan.deletedWorkspaceFiles ?? []
   };
 }
 
@@ -499,7 +511,7 @@ async function planWorkspaceFiles(
   link: CloudLinkRow | null,
   workspace: Workspace,
   found: readonly FolderFile[]
-): Promise<{ operations: TransferFileOperation[]; files: CapturedWorkspaceFile[] } | null> {
+): Promise<{ operations: TransferFileOperation[]; files: CapturedWorkspaceFile[]; deleted: DeletedWorkspaceFile[] } | null> {
   const bases = link ? await listCloudLinkWorkspaceFiles(link.id) : new Map<string, CloudLinkWorkspaceFileRow>();
   const operations: TransferFileOperation[] = [];
   const files: CapturedWorkspaceFile[] = [];
@@ -520,7 +532,16 @@ async function planWorkspaceFiles(
     });
     files.push({ path: file.path, hash, size: file.size, mtimeMs: file.modifiedAt });
   }
-  return { operations, files };
+  // A path with a base and no file is a deletion for the review to confirm.
+  // A path that still holds a file which is no longer a workspace file, such
+  // as one an asset now names, is not deleted.
+  const listed = new Set(found.map((file) => file.path));
+  const deleted: DeletedWorkspaceFile[] = [];
+  for (const [path, base] of bases) {
+    if (listed.has(path) || (await workspace.stat(path))) continue;
+    deleted.push({ path, baseHash: base.base_hash });
+  }
+  return { operations, files, deleted };
 }
 
 /**
@@ -603,6 +624,7 @@ async function planFiles(
     documents,
     files,
     workspaceFiles: workspaceFiles.files,
+    deletedWorkspaceFiles: workspaceFiles.deleted,
     missingFiles,
     skipped,
     missingDocumentFiles,
@@ -664,6 +686,9 @@ async function finishCommitted(
       if (keptPaths.has(file.path)) continue;
       await setCloudLinkWorkspaceFileBase(link, { path: file.path, hash: file.hash, size: file.size, mtimeMs: file.mtimeMs });
     }
+    for (const operation of plan.manifest.file_operations ?? []) {
+      if (operation.op === "delete_workspace_file") await deleteCloudLinkWorkspaceFile(link.id, operation.path);
+    }
     await deleteCloudSend(row.id);
   });
 }
@@ -706,6 +731,12 @@ export interface SendRunOptions {
    */
   confirmDeletes?: DeleteConfirmation[];
   /**
+   * Workspace files the deletion review confirmed for deletion on the cloud,
+   * each with the base hash the review showed. That hash is the delete's
+   * precondition, so a file changed on the cloud since is not deleted.
+   */
+  confirmWorkspaceDeletes?: DeletedWorkspaceFile[];
+  /**
    * Set only by {@link resumeSends}: the run continues an attempt a crash
    * interrupted, with the approvals recorded for it. Every other run is a
    * reviewed attempt, and its deletions are exactly `confirmDeletes`, none
@@ -738,7 +769,12 @@ export async function runSend(transport: SendTransport, transferId: string, opti
       return { status: "committed", transferId, result: recorded };
     }
     await updateCloudSend(transferId, { state: "open", attemptId: null });
-    if (recorded?.outcome === "refused" && !options.decisions && !options.confirmDeletes) {
+    if (
+      recorded?.outcome === "refused" &&
+      !options.decisions &&
+      !options.confirmDeletes &&
+      !options.confirmWorkspaceDeletes
+    ) {
       return { status: "refused", transferId, failures: recorded.failures };
     }
   }
@@ -768,6 +804,15 @@ export async function runSend(transport: SendTransport, transferId: string, opti
         confirmed: true
       });
     }
+    const confirmFiles = options.confirmWorkspaceDeletes ?? [];
+    const fileOperations: TransferFileOperation[] = (plan.manifest.file_operations ?? []).filter(
+      (operation) => operation.op !== "delete_workspace_file"
+    );
+    for (const deleted of plan.deletedWorkspaceFiles ?? []) {
+      const confirmed = confirmFiles.some((entry) => entry.path === deleted.path && entry.baseHash === deleted.baseHash);
+      if (confirmed) fileOperations.push({ op: "delete_workspace_file", path: deleted.path, base_hash: deleted.baseHash });
+    }
+    plan.manifest.file_operations = fileOperations;
   }
 
   if (!plan.opened && !plan.openAttempted) {

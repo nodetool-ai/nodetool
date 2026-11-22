@@ -358,6 +358,31 @@ describe("cloudTransfer router", () => {
     ]);
   });
 
+  it("lists a deleted workspace file and deletes it on the cloud once confirmed", async () => {
+    const caller = createCaller(makeCtx(USER));
+    const folder = createLocalWorkspace(join(root, PROJECT));
+    const notes = new TextEncoder().encode("shot list");
+    await folder.write("notes.txt", notes);
+    const first = await caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT });
+    if (first.status !== "captured") throw new Error("expected a capture");
+    await caller.cloudTransfer.send.run({ ...SESSION, transfer_id: first.transfer_id });
+    await folder.delete("notes.txt");
+
+    const review = await caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT });
+    if (review.status !== "captured") throw new Error("expected a capture");
+    const hash = createHash("sha256").update(notes).digest("hex");
+    expect(review.deleted_workspace_files).toEqual([{ path: "notes.txt", base_hash: hash }]);
+    const outcome = await caller.cloudTransfer.send.run({
+      ...SESSION,
+      transfer_id: review.transfer_id,
+      confirm_workspace_deletes: review.deleted_workspace_files
+    });
+    expect(outcome.status).toBe("committed");
+    expect(cloud.lastCommit?.manifest.file_operations).toEqual([
+      { op: "delete_workspace_file", path: "notes.txt", base_hash: hash }
+    ]);
+  });
+
   it("cancels a send the cloud never opened without calling it, and releases a closed receive (review F41)", async () => {
     const caller = createCaller(makeCtx(USER));
     const review = await caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT });

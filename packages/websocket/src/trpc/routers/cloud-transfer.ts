@@ -213,6 +213,10 @@ export const cloudTransferRouter = router({
               local_id: entry.localId,
               cloud_id: entry.cloudId,
               base_hash: entry.baseHash
+            })),
+            deleted_workspace_files: review.deletedWorkspaceFiles.map((entry) => ({
+              path: entry.path,
+              base_hash: entry.baseHash
             }))
           };
         } catch (error) {
@@ -238,6 +242,12 @@ export const cloudTransferRouter = router({
             kind: entry.kind,
             cloudId: entry.cloud_id,
             cloudHash: entry.cloud_hash
+          }));
+        }
+        if (input.confirm_workspace_deletes) {
+          options.confirmWorkspaceDeletes = input.confirm_workspace_deletes.map((entry) => ({
+            path: entry.path,
+            baseHash: entry.base_hash
           }));
         }
         if (input.confirm_missing_files) options.confirmMissingFiles = input.confirm_missing_files;
