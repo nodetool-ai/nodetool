@@ -180,9 +180,10 @@ export const receiveReviewWorkspaceFile = z.object({
 export const captureReceiveOutput = z.object({
   set_id: z.string(),
   documents: z.array(receiveReviewDocument),
-  workspace_files: z.array(receiveReviewWorkspaceFile).default([]),
+  /** Optional so a client built before workspace files still reads the review. */
+  workspace_files: z.array(receiveReviewWorkspaceFile).optional(),
   /** Paths with a base that the cloud folder no longer lists. The local files are kept (OQ14). */
-  cloud_deleted_workspace_files: z.array(z.string()).default([])
+  cloud_deleted_workspace_files: z.array(z.string()).optional()
 });
 export type CaptureReceiveOutput = z.infer<typeof captureReceiveOutput>;
 
