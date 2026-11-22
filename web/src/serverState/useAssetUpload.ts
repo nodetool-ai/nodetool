@@ -5,7 +5,7 @@ import { useRecentAssetsStore } from "../stores/RecentAssetsStore";
 import { UploadSource } from "../utils/imageUploadValidation";
 import { creationProjectId } from "../stores/WorkspaceTabsStore";
 
-type UploadFileInput = {
+export type UploadFileInput = {
   id?: string;
   file: File;
   workflow_id?: string;

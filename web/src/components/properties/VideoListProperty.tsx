@@ -4,7 +4,6 @@ import { memo, useCallback, useState, useMemo, useRef, ChangeEvent } from "react
 import { useTranslation } from "react-i18next";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
-import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { listDropzoneStyles } from "./shared/listDropzoneStyles";
@@ -13,6 +12,7 @@ import isEqual from "../../utils/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { settleUploads } from "./shared/settleUploads";
+import { readNativeFile, uploadMediaFile } from "./shared/uploadMediaFile";
 import { isElectron } from "../../utils/browser";
 import {
   deserializeDragData,
@@ -225,21 +225,7 @@ const VideoListProperty = (props: PropertyProps<VideoItem[] | null>) => {
 
       const uploadPromises = files.map(
         (file) =>
-          new Promise<VideoItem>((resolve, reject) => {
-            uploadAsset({
-              file,
-              onCompleted: (asset: Asset) => {
-                if (!asset.id) {
-                  reject(new Error("Asset id is missing"));
-                  return;
-                }
-                resolve(mediaRefFromAsset(asset, "video"));
-              },
-              onFailed: (error: string) => {
-                reject(new Error(error));
-              }
-            });
-          })
+          uploadMediaFile(uploadAsset, file, "video")
       );
 
       try {
@@ -276,35 +262,9 @@ const VideoListProperty = (props: PropertyProps<VideoItem[] | null>) => {
       });
 
       if (!result.canceled && result.filePaths.length > 0) {
-        const uploadPromises = result.filePaths.map(async (filePath: string) => {
-          const result = await window.api.clipboard?.readFileBuffer(filePath);
-          if (!result) {
-            throw new Error("Failed to read file");
-          }
-
-          const pathSegments = filePath.split(/[\\/]/);
-          const fileName = pathSegments[pathSegments.length - 1] || "video.mp4";
-
-          const fileBytes = new Uint8Array(result.buffer.byteLength);
-          fileBytes.set(result.buffer);
-          const file = new File([fileBytes], fileName, { type: result.mimeType });
-
-          return new Promise<VideoItem>((resolve, reject) => {
-            uploadAsset({
-              file,
-              onCompleted: (asset: Asset) => {
-                if (!asset.id) {
-                  reject(new Error("Asset id is missing"));
-                  return;
-                }
-                resolve(mediaRefFromAsset(asset, "video"));
-              },
-              onFailed: (error: string) => {
-                reject(new Error(error));
-              }
-            });
-          });
-        });
+        const uploadPromises = result.filePaths.map(async (filePath: string) =>
+          uploadMediaFile(uploadAsset, await readNativeFile(filePath, "video.mp4"), "video")
+        );
 
         const newVideos = await settleUploads(uploadPromises, "videos", addNotification);
         handleAddVideos(newVideos);
@@ -328,21 +288,7 @@ const VideoListProperty = (props: PropertyProps<VideoItem[] | null>) => {
 
     const uploadPromises = files.map(
       (file) =>
-        new Promise<VideoItem>((resolve, reject) => {
-          uploadAsset({
-            file,
-            onCompleted: (asset: Asset) => {
-              if (!asset.id) {
-                reject(new Error("Asset id is missing"));
-                return;
-              }
-              resolve(mediaRefFromAsset(asset, "video"));
-            },
-            onFailed: (error: string) => {
-              reject(new Error(error));
-            }
-          });
-        })
+        uploadMediaFile(uploadAsset, file, "video")
     );
 
     try {
