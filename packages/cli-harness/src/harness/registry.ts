@@ -262,6 +262,39 @@ const GRAPH_RESOURCES_SUITES =
   "npm run test --workspace=packages/core-nodes -- entity-nodes && " +
   "npm run test --workspace=packages/video-nodes -- storyboard-nodes script-nodes";
 
+/**
+ * Jest suites for the web feature areas outside the graph canvas. Each
+ * positional argument is a Jest path pattern; together they select the related
+ * component, store, hook and server-state tests for one surface. One constant
+ * per surface so the entry's `command` and its `selfcheck` cannot drift.
+ */
+const WEB_CHAT_SUITES =
+  "npm run test --workspace=web -- src/components/chat/ src/__tests__/components/chat/ " +
+  "src/core/chat/ src/hooks/chat/ src/lib/chat/ stores/__tests__/GlobalChatStore " +
+  "stores/__tests__/CanvasChatDockStore stores/__tests__/ChatDraftStore serverState/__tests__/useThreadVersions";
+const WEB_LIBRARY_SUITES =
+  "npm run test --workspace=web -- src/components/assets/ src/components/asset_viewer/ " +
+  "src/components/collections/ src/components/workflows/ stores/__tests__/AssetStore " +
+  "stores/__tests__/AssetGridStore stores/__tests__/CollectionStore.test stores/__tests__/RecentAssetsStore " +
+  "stores/__tests__/WorkflowAssetStore stores/__tests__/WorkflowListViewStore " +
+  "stores/__tests__/FavoriteWorkflowsStore serverState/__tests__/useAsset";
+const WEB_MODELS_SUITES =
+  "npm run test --workspace=web -- src/components/hugging_face/ src/components/model_menu/ " +
+  "src/components/provider_onboarding/ stores/__tests__/Model stores/__tests__/HfCacheStatusStore " +
+  "stores/__tests__/ProviderOnboardingStore stores/__tests__/ProviderCallFailureStore " +
+  "stores/__tests__/UnavailableModelStore hooks/__tests__/useProviders hooks/__tests__/useModelsByProvider " +
+  "serverState/__tests__/checkHfCacheStatus";
+const WEB_SETTINGS_SUITES =
+  "npm run test --workspace=web -- src/components/settings/ src/components/menus/ src/components/costs/ " +
+  "src/components/workers/ src/components/packages/ src/components/sharing/ stores/__tests__/SecretsStore " +
+  "stores/__tests__/SettingsStore stores/__tests__/RemoteSettingStore stores/__tests__/PacksStore " +
+  "stores/__tests__/NodePacksStore stores/__tests__/OptionalNodePacksStore stores/__tests__/RuntimePackage " +
+  "stores/__tests__/WorkflowShareDialogStore hooks/__tests__/useSecrets hooks/__tests__/useApiKeyValidation";
+const WEB_PROJECT_FILES_SUITES =
+  "npm run test --workspace=web -- src/components/projects/ src/components/workspaces/ " +
+  "src/components/textEditor/ stores/__tests__/DocumentDraftStore stores/__tests__/SidebarDocumentActionsStore " +
+  "stores/__tests__/AssetStore.projectFolders serverState/__tests__/useAssetUploadProject";
+
 const LEAN_SERVER_PACKAGES = [
   "cli", "pack-core", "pack-manager", "sandbox-runtime", "server-feature-packs",
   "database-postgres", "database-sqlite", "document-processing", "execution-core",
@@ -553,6 +586,94 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["browser"],
     docs: "docs/harnesses.md § App instances and history phase 5"
+  },
+  {
+    id: "web-chat-ui",
+    title: "Chat panel, thread runtime and chat stores check",
+    command: WEB_CHAT_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_CHAT_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-chat-browser",
+    title: "Chat history, streamed reply and phone layout journeys",
+    command: "npm run test:journeys --workspace=web -- chat.spec.ts mobile-chat.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
+  },
+  {
+    id: "web-library-ui",
+    title: "Asset browser, collections and workflow library check",
+    command: WEB_LIBRARY_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_LIBRARY_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-library-browser",
+    title: "Workflow library and asset browser journey",
+    command: "npm run test:journeys --workspace=web -- library.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
+  },
+  {
+    id: "web-models-ui",
+    title: "Model menu, Hugging Face downloads and provider onboarding check",
+    command: WEB_MODELS_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_MODELS_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-settings-ui",
+    title: "Settings, secrets, costs, workers and node packs check",
+    command: WEB_SETTINGS_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_SETTINGS_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-project-files-ui",
+    title: "Projects, workspace file tree and text editor check",
+    command: WEB_PROJECT_FILES_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_PROJECT_FILES_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-project-files-browser",
+    title: "Project files, generated files, text file and Home creation journeys",
+    command:
+      "npm run test:journeys --workspace=web -- project-files.spec.ts project-generate.spec.ts text-file.spec.ts home-creation.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
+  },
+  {
+    id: "storyboard-browser",
+    title: "Storyboard design, phone layout and scene clip journeys",
+    command:
+      "npm run test:journeys --workspace=web -- storyboard-design.spec.ts storyboard-mobile.spec.ts storyboard-scene-clip.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
+  },
+  {
+    id: "web-editor-browser",
+    title: "Graph editor, canvas selection, subgraph and phone editor journeys",
+    command:
+      "npm run test:journeys --workspace=web -- editor.spec.ts canvas-selection.spec.ts subgraph.spec.ts mobile-editor.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
   },
   {
     id: "app-build",
@@ -2103,7 +2224,8 @@ export const SURFACES: SurfaceEntry[] = [
       "script-storyboard-link",
       "timeline-validate",
       "validate",
-      "eval"
+      "eval",
+      "storyboard-browser"
     ],
     paths: [
       "packages/protocol/src/script-link.ts",
@@ -2133,7 +2255,10 @@ export const SURFACES: SurfaceEntry[] = [
       "scripts/example-storyboards/",
       "web/src/components/storyboard/",
       "web/src/lib/tools/builtin/storyboard.ts",
-      "web/src/studio/"
+      "web/src/studio/",
+      "web/tests/journeys/storyboard-design.spec.ts",
+      "web/tests/journeys/storyboard-mobile.spec.ts",
+      "web/tests/journeys/storyboard-scene-clip.spec.ts"
     ]
   },
   {
@@ -2296,8 +2421,124 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "web-editor",
     title: "Web editor (graph canvas, run rendering)",
-    harnesses: ["debug", "docker-smoke"],
+    harnesses: ["debug", "docker-smoke", "web-editor-browser"],
     paths: ["web/"]
+  },
+  // The web feature areas outside the canvas. Each overlaps `web-editor`
+  // (web/), so a diff here runs the area's Jest suites as well as the canvas
+  // checks. The browser journeys need a server and Playwright, so they are
+  // manual like `run-inspection-browser`.
+  {
+    id: "web-chat",
+    title: "Web chat (thread view, composer, chat stores)",
+    harnesses: ["web-chat-ui", "web-chat-browser"],
+    paths: [
+      "web/src/components/chat/",
+      "web/src/__tests__/components/chat/",
+      "web/src/core/chat/",
+      "web/src/hooks/chat/",
+      "web/src/lib/chat/",
+      "web/src/stores/GlobalChatStore.ts",
+      "web/src/stores/CanvasChatDockStore.ts",
+      "web/src/stores/ChatDraftStore.ts",
+      "web/src/serverState/useThreadVersions.ts",
+      "web/tests/journeys/chat.spec.ts",
+      "web/tests/journeys/mobile-chat.spec.ts"
+    ]
+  },
+  {
+    id: "web-library",
+    title: "Web library (asset browser, collections, workflow list)",
+    harnesses: ["web-library-ui", "web-library-browser"],
+    paths: [
+      "web/src/components/assets/",
+      "web/src/components/asset_viewer/",
+      "web/src/components/collections/",
+      "web/src/components/workflows/",
+      "web/src/stores/AssetStore.ts",
+      "web/src/stores/AssetGridStore.ts",
+      "web/src/stores/AssetRevisionStore.ts",
+      "web/src/stores/CollectionStore.ts",
+      "web/src/stores/RecentAssetsStore.ts",
+      "web/src/stores/WorkflowAssetStore.ts",
+      "web/src/stores/WorkflowListViewStore.ts",
+      "web/src/stores/FavoriteWorkflowsStore.ts",
+      "web/src/serverState/useAsset.ts",
+      "web/src/serverState/useAssetById.ts",
+      "web/src/serverState/useAssetDeletion.ts",
+      "web/src/serverState/useAssetFavorite.ts",
+      "web/src/serverState/useAssetSearch.ts",
+      "web/src/serverState/useAssetUpdate.ts",
+      "web/src/serverState/useAssetUpload.ts",
+      "web/src/serverState/useAssets.ts",
+      "web/tests/journeys/library.spec.ts"
+    ]
+  },
+  {
+    id: "web-models",
+    title: "Web model menu, Hugging Face downloads and provider onboarding",
+    harnesses: ["web-models-ui"],
+    paths: [
+      "web/src/components/hugging_face/",
+      "web/src/components/model_menu/",
+      "web/src/components/provider_onboarding/",
+      "web/src/stores/ModelCalloutStore.ts",
+      "web/src/stores/ModelDownloadStore.ts",
+      "web/src/stores/ModelFiltersStore.ts",
+      "web/src/stores/ModelManagerStore.ts",
+      "web/src/stores/ModelMenuStore.ts",
+      "web/src/stores/ModelPreferencesStore.ts",
+      "web/src/stores/HfCacheStatusStore.ts",
+      "web/src/stores/ProviderOnboardingStore.ts",
+      "web/src/stores/ProviderSignInStore.ts",
+      "web/src/stores/ProviderCallFailureStore.ts",
+      "web/src/stores/UnavailableModelStore.ts",
+      "web/src/hooks/useProviders.ts",
+      "web/src/hooks/useModelsByProvider.ts",
+      "web/src/serverState/useProviderCredits.ts"
+    ]
+  },
+  {
+    id: "web-settings",
+    title: "Web settings (secrets, API keys, costs, workers, node packs, sharing)",
+    harnesses: ["web-settings-ui"],
+    paths: [
+      "web/src/components/settings/",
+      "web/src/components/menus/",
+      "web/src/components/costs/",
+      "web/src/components/workers/",
+      "web/src/components/packages/",
+      "web/src/components/sharing/",
+      "web/src/stores/SecretsStore.ts",
+      "web/src/stores/SettingsStore.ts",
+      "web/src/stores/SettingsPageStore.ts",
+      "web/src/stores/RemoteSettingStore.ts",
+      "web/src/stores/PacksStore.ts",
+      "web/src/stores/NodePacksStore.ts",
+      "web/src/stores/OptionalNodePacksStore.ts",
+      "web/src/stores/RuntimePackagesStore.ts",
+      "web/src/stores/RuntimePackagePromptStore.ts",
+      "web/src/stores/WorkflowShareDialogStore.ts",
+      "web/src/hooks/useSecrets.ts",
+      "web/src/hooks/useApiKeyValidation.ts"
+    ]
+  },
+  {
+    id: "web-project-files",
+    title: "Web projects, workspace file tree and text editor",
+    harnesses: ["web-project-files-ui", "web-project-files-browser"],
+    paths: [
+      "web/src/components/projects/",
+      "web/src/components/workspaces/",
+      "web/src/components/textEditor/",
+      "web/src/stores/DocumentDraftStore.ts",
+      "web/src/stores/SidebarDocumentActionsStore.ts",
+      "web/src/serverState/useProjectDocumentFile.ts",
+      "web/tests/journeys/project-files.spec.ts",
+      "web/tests/journeys/project-generate.spec.ts",
+      "web/tests/journeys/text-file.spec.ts",
+      "web/tests/journeys/home-creation.spec.ts"
+    ]
   },
   {
     id: "tutorial-rendering",

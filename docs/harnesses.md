@@ -2326,6 +2326,29 @@ also carries a fingerprint of what each capability *declares*, so
 mapping untouched while saying nothing about an ordinary refactor. See
 [packages/agents/docs/capabilities.md § Capability coverage](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/capabilities.md#capability-coverage--every-capability-names-its-check).
 
+### Web feature suites
+
+The web app's feature areas outside the graph canvas each have a surface in the
+registry: chat, the library (assets, collections, workflow list), models and
+provider onboarding, settings (secrets, API keys, costs, workers, node packs,
+sharing), and project files. A diff in one of them runs that area's Jest suites
+as a cheap selfcheck, in addition to the `web-editor` checks that claim all of
+`web/`.
+
+| Harness | Runs |
+| --- | --- |
+| `web-chat-ui` | Chat components, thread runtime, chat hooks and stores |
+| `web-library-ui` | Asset browser, asset viewer, collections, workflow list and their stores |
+| `web-models-ui` | Model menu, Hugging Face model list, provider onboarding and model stores |
+| `web-settings-ui` | Settings menus, costs, workers, packages, sharing, secrets and pack stores |
+| `web-project-files-ui` | Projects, workspace file tree, text editor and document stores |
+
+The matching [user journeys](../web/tests/journeys/README.md) are manual
+harnesses, because each one starts the seeded backend and a browser:
+`web-chat-browser`, `web-library-browser`, `web-project-files-browser`,
+`storyboard-browser` and `web-editor-browser`. Their commands run
+`npm run test:journeys --workspace=web -- <spec files>`.
+
 ### nodetool reliability (Cross-Surface Journey Diffs)
 
 Runs a journey from `reliability/journeys/` on every execution surface it
