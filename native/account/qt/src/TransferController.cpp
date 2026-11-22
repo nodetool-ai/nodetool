@@ -109,6 +109,21 @@ static QString transferRowDetail(const ReviewRow& row) {
     if (d == "cloud_file_changed") {
       return TransferController::tr("A file it uses changed in the cloud");
     }
+    if (d == "workspace_new") {
+      return TransferController::tr("New in the cloud");
+    }
+    if (d == "workspace_cloud_changed") {
+      return TransferController::tr("Changed in the cloud");
+    }
+    if (d == "workspace_both_changed") {
+      return TransferController::tr("Changed here and in the cloud. The cloud file goes beside yours");
+    }
+    if (d == "workspace_local_deleted") {
+      return TransferController::tr("Deleted here, changed in the cloud");
+    }
+    if (d == "workspace_cloud_deleted") {
+      return TransferController::tr("Deleted in the cloud. Your file stays here");
+    }
     break;
   case ReviewSection::Choice:
     return TransferController::tr("Changed here and in the cloud");
@@ -592,7 +607,7 @@ void TransferController::apply() {
     };
     bool replaced = false;
     if (!setId.empty()) {
-      applied.receive = client.runReceive(setId, review.receiveDecisions());
+      applied.receive = client.runReceive(setId, review.receiveDecisions(), review.includedReceiveFiles());
       if (applied.receive->status != TransferStatus::Ok || applied.receive->outcome != "finished") {
         report();
         return;
