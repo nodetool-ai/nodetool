@@ -25,6 +25,7 @@ import { createTimeOrderedUuid } from "./defaults.js";
 import { curveValueAtT } from "./keyframes.js";
 import type {
   AutomationLane,
+  AutomationMode,
   AutomationPoint,
   AutomationTarget,
   TimelineClip,
@@ -75,12 +76,22 @@ export function createAutomationLane(target: AutomationTarget): AutomationLane {
   return { id: createTimeOrderedUuid(), target, points: [] };
 }
 
-function asKeyframes(points: readonly AutomationPoint[]) {
-  return points.map((p) =>
+type PointKeyframe = { t: number; value: number; easing?: string };
+
+// A lane's points are replaced, never edited in place, so one conversion
+// serves every read of the same array (a readout reads once per frame).
+const keyframeCache = new WeakMap<readonly AutomationPoint[], PointKeyframe[]>();
+
+function asKeyframes(points: readonly AutomationPoint[]): PointKeyframe[] {
+  const cached = keyframeCache.get(points);
+  if (cached) return cached;
+  const keyframes = points.map((p) =>
     p.easing === undefined
       ? { t: p.timeMs, value: p.value }
       : { t: p.timeMs, value: p.value, easing: p.easing }
   );
+  keyframeCache.set(points, keyframes);
+  return keyframes;
 }
 
 /** The lane's value at `timeMs`, or `fallback` when it has no points. */
@@ -336,6 +347,8 @@ export function applyTrackAutomation(
   const lanesByTrack = new Map<string, { track: TimelineTrack; lanes: AutomationLane[] }>();
   for (const track of tracks) {
     if (!PICTURE_TRACK_TYPES.has(track.type)) continue;
+    // Off plays no lane of the track (AU6).
+    if (!automationModePlays(automationModeOf(track))) continue;
     const lanes = (track.automation ?? []).filter(
       (lane) => lane.target.kind === "clip" && isAutomationLaneActive(lane)
     );
@@ -356,4 +369,105 @@ export function applyTrackAutomation(
   }
   byClips.set(clips, result);
   return result;
+}
+
+// ── Modes and passes ────────────────────────────────────────────────────────
+
+/** The track's automation mode, `read` when it has none. */
+export function automationModeOf(track: Pick<TimelineTrack, "automationMode">): AutomationMode {
+  return track.automationMode ?? "read";
+}
+
+/** Whether lanes play in `mode`. */
+export function automationModePlays(mode: AutomationMode): boolean {
+  return mode !== "off";
+}
+
+/** One recorded control value. */
+export interface AutomationSample {
+  timeMs: number;
+  value: number;
+}
+
+/**
+ * Ramer-Douglas-Peucker thinning. The distance of a sample is measured in
+ * value units against the straight line between the kept ends. The first and
+ * last samples stay. Fewer than three samples come back unchanged.
+ */
+export function thinAutomationSamples(
+  samples: readonly AutomationSample[],
+  tolerance: number
+): AutomationSample[] {
+  if (samples.length < 3) return samples.map((s) => ({ ...s }));
+  const keep = new Array<boolean>(samples.length).fill(false);
+  keep[0] = true;
+  keep[samples.length - 1] = true;
+  const stack: [number, number][] = [[0, samples.length - 1]];
+  while (stack.length > 0) {
+    const [lo, hi] = stack.pop()!;
+    const a = samples[lo];
+    const b = samples[hi];
+    const span = b.timeMs - a.timeMs;
+    let worst = -1;
+    let worstDist = tolerance;
+    for (let i = lo + 1; i < hi; i++) {
+      const p = samples[i];
+      const line = span === 0 ? a.value : a.value + ((b.value - a.value) * (p.timeMs - a.timeMs)) / span;
+      const dist = Math.abs(p.value - line);
+      if (dist > worstDist) {
+        worst = i;
+        worstDist = dist;
+      }
+    }
+    if (worst >= 0) {
+      keep[worst] = true;
+      stack.push([lo, worst], [worst, hi]);
+    }
+  }
+  return samples.filter((_, i) => keep[i]).map((s) => ({ ...s }));
+}
+
+/** A recorded pass: the samples lie inside `[startMs, endMs]`, sorted. */
+export interface AutomationPass {
+  startMs: number;
+  endMs: number;
+  samples: readonly AutomationSample[];
+}
+
+/**
+ * Write a pass into a lane. The old points from the pass start to
+ * `returnMs` after its end go away, the thinned samples take their place, and
+ * a point at `endMs + returnMs` returns to the old curve (or to `baseValue`
+ * when the lane had no points).
+ */
+export function writeAutomationPass(
+  points: readonly AutomationPoint[],
+  pass: AutomationPass,
+  baseValue: number,
+  returnMs: number,
+  tolerance: number
+): AutomationPoint[] {
+  const returnAt = pass.endMs + returnMs;
+  const after = automationValueAt(points, returnAt, baseValue);
+  const kept = points.filter((p) => p.timeMs < pass.startMs || p.timeMs > returnAt);
+  const written = thinAutomationSamples(pass.samples, tolerance).map((s) => ({
+    timeMs: s.timeMs,
+    value: s.value
+  }));
+  return [...kept, ...written, { timeMs: returnAt, value: after }].sort(
+    (a, b) => a.timeMs - b.timeMs
+  );
+}
+
+/** The theme role a parameter's curve is drawn in. */
+export type AutomationColorRole = "warning" | "success" | "info" | "secondary" | "primary" | "error";
+
+const ROTATION: readonly AutomationColorRole[] = ["info", "secondary", "primary", "error"];
+
+export function automationParamColorRole(
+  targetIndex: number,
+  target: AutomationTarget
+): AutomationColorRole {
+  if (target.kind === "mixer") return target.param === "volumeDb" ? "warning" : "success";
+  return ROTATION[((targetIndex % 4) + 4) % 4];
 }

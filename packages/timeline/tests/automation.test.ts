@@ -188,6 +188,14 @@ describe("applyTrackAutomation", () => {
     expect(automated.find((c) => c.id === "b")).toBe(clips[1]);
   });
 
+  it("plays no picture lane of a track whose automation mode is off", () => {
+    const off = [makeTrack({ id: "v", type: "video", automation: [opacityLane], automationMode: "off" })];
+    const offClips = [videoClip({ id: "a", startMs: 1000, durationMs: 1000 })];
+    expect(applyTrackAutomation(off, offClips)).toBe(offClips);
+    const [layer] = computeActiveLayers(off, offClips, 1000);
+    expect(resolveAnimatedLayerProps(layer, 1000, CANVAS).opacity).toBeCloseTo(1);
+  });
+
   it("reaches the layers every renderer composes", () => {
     const [layer] = computeActiveLayers(tracks, clips, 1500).filter((l) => l.clipId === "a");
     expect(resolveAnimatedLayerProps(layer, 1500, CANVAS).opacity).toBeCloseTo(0.75);
