@@ -742,7 +742,16 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "static",
     capabilities: ["json", "no-db"],
     agentTool: "validate_sketch",
-    docs: "docs/harnesses.md § nodetool sketch validate / debug"
+    docs: "docs/harnesses.md § nodetool sketch validate / debug",
+    selfcheck: {
+      // The validator rules and report in execution, then the CLI wiring:
+      // command registration, the validation renderer, and target resolution
+      // for an id or a file.
+      command:
+        "npm run test --workspace=packages/execution -- sketch-debug && " +
+        "npm run test --workspace=packages/cli-sketch -- sketch-command sketch-target",
+      cost: "cheap"
+    }
   },
   {
     id: "sketch-debug",
@@ -750,7 +759,13 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool sketch debug <id|file.json> --interact '[...]'",
     kind: "execution",
     capabilities: ["json", "interact", "no-db"],
-    docs: "docs/harnesses.md § nodetool sketch validate / debug"
+    docs: "docs/harnesses.md § nodetool sketch validate / debug",
+    selfcheck: {
+      // Interaction-script parsing and the validate/debug runners on
+      // in-memory and on-disk documents.
+      command: "npm run test --workspace=packages/cli-sketch -- sketch-harness",
+      cost: "cheap"
+    }
   },
   {
     id: "sketch-render",
@@ -759,7 +774,17 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json", "no-db"],
     agentTool: "render_sketch",
-    docs: "docs/harnesses.md § nodetool sketch render"
+    docs: "docs/harnesses.md § nodetool sketch render",
+    selfcheck: {
+      // The paint core (types, dependency hashing, raster ops, compositing)
+      // the renderer draws with, the agent render capability, and the CLI
+      // command that writes PNG and PSD files.
+      command:
+        "npm run test --workspace=packages/image-editor && " +
+        "npm run test --workspace=packages/agents -- capabilities-sketch-render && " +
+        "npm run test --workspace=packages/cli-sketch -- sketch-render-command",
+      cost: "cheap"
+    }
   },
   {
     id: "sketch-versions",
@@ -769,7 +794,15 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json"],
     agentTool: "restore_sketch_version",
-    docs: "docs/harnesses.md § nodetool sketch versions"
+    docs: "docs/harnesses.md § nodetool sketch versions",
+    selfcheck: {
+      // The agent version tools on an in-memory test database and the CLI
+      // subcommands on a mocked client: no server, no keys.
+      command:
+        "npm run test --workspace=packages/agents -- sketch-version-tools && " +
+        "npm run test --workspace=packages/cli-sketch -- sketch-versions-command",
+      cost: "cheap"
+    }
   },
   {
     id: "jsscript-validate",
