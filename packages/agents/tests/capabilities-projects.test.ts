@@ -433,7 +433,10 @@ describe("projects capability behaviour", () => {
         type: "workflow",
         id: "x"
       })) as { error?: string };
-      expect(result.error).toBeTruthy();
+      expect(result).toEqual({
+        error:
+          "type must be one of asset, entity, storyboard, script, timeline, sketch, application, jsscript."
+      });
     });
   });
 
