@@ -13,9 +13,8 @@
  * {@link resumeSends} asks the cloud for that attempt's recorded result, and
  * a committed attempt only updates the local bases.
  *
- * This half captures documents and the asset files they need. Workspace
- * files that no document names, and the folder rules CF1 to CF6 in full, are
- * WP2.11.
+ * This half captures documents, the asset files they need, and the
+ * workspace files of the folder: files that no asset names (CF2, CF5).
  */
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
@@ -34,14 +33,18 @@ import {
   getCloudLinkFile,
   getCloudSend,
   listCloudLinkDocuments,
+  listCloudLinkWorkspaceFiles,
   listCloudSends,
+  pendingPlacementPaths,
   setCloudLinkDocumentBase,
   setCloudLinkFileBase,
+  setCloudLinkWorkspaceFileBase,
   TimelineSequence,
   updateCloudSend,
   withTransaction,
   Workflow,
   type CloudLinkRow,
+  type CloudLinkWorkspaceFileRow,
   type CloudSendRow
 } from "@nodetool-ai/models";
 import type { Workspace } from "@nodetool-ai/runtime";
@@ -65,7 +68,7 @@ import type {
   TransferStatusOutput
 } from "@nodetool-ai/protocol/api-schemas/transfer.js";
 import { CloudRequestError } from "./cloud-http-transport.js";
-import { reconcileInBackground } from "./project-index.js";
+import { reconcileInBackground, scanFolder, type FolderFile } from "./project-index.js";
 import { identityHash, TRANSFER_DOCUMENT_KINDS, transferPayloadOf } from "./transfer-documents.js";
 
 const log = createLogger("nodetool.project-services.cloud-send-client");
@@ -137,6 +140,14 @@ interface CapturedFile {
   path: string;
 }
 
+/** A workspace file the send puts, with the size and modification time it had when read. */
+interface CapturedWorkspaceFile {
+  path: string;
+  hash: string;
+  size: number;
+  mtimeMs: number;
+}
+
 interface SendPlan {
   version: 1;
   firstPublication: boolean;
@@ -144,6 +155,8 @@ interface SendPlan {
   payloads: TransferPayload[];
   documents: CapturedDocument[];
   files: CapturedFile[];
+  /** Absent on a plan recorded before workspace files were sent. */
+  workspaceFiles?: CapturedWorkspaceFile[];
   missingFiles: TransferMissingFile[];
   skipped: SkippedDocument[];
   missingDocumentFiles: MissingDocumentFile[];
@@ -263,6 +276,7 @@ interface LocalDocument {
   id: string;
   name: string;
   fileError: string | null;
+  filePath: string | null;
 }
 
 async function localDocuments(userId: string, projectId: string): Promise<LocalDocument[]> {
@@ -271,8 +285,20 @@ async function localDocuments(userId: string, projectId: string): Promise<LocalD
     TimelineSequence.listForProjects(userId, [projectId])
   ]);
   return [
-    ...workflows.map((row) => ({ kind: "workflow" as const, id: row.id, name: row.name, fileError: row.file_error ?? null })),
-    ...timelines.map((row) => ({ kind: "timeline" as const, id: row.id, name: row.name, fileError: row.file_error ?? null }))
+    ...workflows.map((row) => ({
+      kind: "workflow" as const,
+      id: row.id,
+      name: row.name,
+      fileError: row.file_error ?? null,
+      filePath: row.file_path ?? null
+    })),
+    ...timelines.map((row) => ({
+      kind: "timeline" as const,
+      id: row.id,
+      name: row.name,
+      fileError: row.file_error ?? null,
+      filePath: row.file_path ?? null
+    }))
   ];
 }
 
@@ -343,6 +369,37 @@ interface CapturedDocuments {
   missingDocumentFiles: MissingDocumentFile[];
   files: Array<{ assetId: string; asset: Asset | null; content: AssetContent; referrers: Referrer[] }>;
   external: string[];
+  /** The folder's workspace files as the scan under the lock found them. */
+  workspaceFiles: FolderFile[];
+}
+
+/** Files that travel as documents only, whatever row names them (CF2). */
+const DOCUMENT_FILE_SUFFIXES = [".workflow.json", ".timeline.json"];
+
+/**
+ * The workspace files of the folder under the lock: every file the index's
+ * own scan finds (CF5), except a file an asset names, a workflow or timeline
+ * file (CF2), and a path a receive is still placing.
+ */
+async function workspaceFilesOf(
+  target: SendTarget,
+  workspace: Workspace,
+  locals: readonly LocalDocument[]
+): Promise<FolderFile[]> {
+  const excluded = new Set<string>(await pendingPlacementPaths(target.projectId));
+  for (const asset of await Asset.listProjectFiles(target.userId, target.projectId)) {
+    if (asset.workspace_path) excluded.add(asset.workspace_path);
+  }
+  for (const local of locals) {
+    if (local.filePath) excluded.add(local.filePath);
+  }
+  const out: FolderFile[] = [];
+  for (const file of (await scanFolder(workspace)).values()) {
+    if (excluded.has(file.path)) continue;
+    if (DOCUMENT_FILE_SUFFIXES.some((suffix) => file.path.endsWith(suffix))) continue;
+    out.push(file);
+  }
+  return out.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 async function captureDocuments(target: SendTarget, link: CloudLinkRow | null, workspace: Workspace): Promise<CapturedDocuments> {
@@ -418,7 +475,52 @@ async function captureDocuments(target: SendTarget, link: CloudLinkRow | null, w
     const content = asset && asset.project_id === target.projectId ? await contentOfAsset(workspace, asset) : null;
     referenced.push({ assetId, asset, content, referrers });
   }
-  return { operations, payloads, documents, skipped, deletedLocally, missingDocumentFiles, files: referenced, external };
+  return {
+    operations,
+    payloads,
+    documents,
+    skipped,
+    deletedLocally,
+    missingDocumentFiles,
+    files: referenced,
+    external,
+    workspaceFiles: await workspaceFilesOf(target, workspace, locals)
+  };
+}
+
+/**
+ * The workspace files to put: each file whose bytes differ from the base of
+ * its path, and each new path. A file with the size and modification time
+ * its base recorded is not read. Any other file is hashed outside the lock
+ * and must still have the size and time the scan saw, or the capture runs
+ * again. Null in that case.
+ */
+async function planWorkspaceFiles(
+  link: CloudLinkRow | null,
+  workspace: Workspace,
+  found: readonly FolderFile[]
+): Promise<{ operations: TransferFileOperation[]; files: CapturedWorkspaceFile[] } | null> {
+  const bases = link ? await listCloudLinkWorkspaceFiles(link.id) : new Map<string, CloudLinkWorkspaceFileRow>();
+  const operations: TransferFileOperation[] = [];
+  const files: CapturedWorkspaceFile[] = [];
+  for (const file of found) {
+    const base = bases.get(file.path);
+    if (base && Number(base.size) === file.size && Number(base.mtime_ms) === file.modifiedAt) continue;
+    const hash = await contentHashOfWorkspaceFile(workspace, file.path);
+    await pausePoint("send.capture.workspace-file-read");
+    const after = await workspace.stat(file.path);
+    if (!after || after.size !== file.size || after.modifiedAt !== file.modifiedAt) return null;
+    if (base?.base_hash === hash) continue;
+    operations.push({
+      op: "put_workspace_file",
+      path: file.path,
+      hash,
+      size: file.size,
+      base_hash: base?.base_hash ?? null
+    });
+    files.push({ path: file.path, hash, size: file.size, mtimeMs: file.modifiedAt });
+  }
+  return { operations, files };
 }
 
 /**
@@ -482,6 +584,10 @@ async function planFiles(
     }
   }
 
+  const workspaceFiles = await planWorkspaceFiles(link, workspace, captured.workspaceFiles);
+  if (!workspaceFiles) return null;
+  fileOperations.push(...workspaceFiles.operations);
+
   const manifest: TransferManifest = {
     operations,
     required_files: requiredFiles,
@@ -496,6 +602,7 @@ async function planFiles(
     payloads,
     documents,
     files,
+    workspaceFiles: workspaceFiles.files,
     missingFiles,
     skipped,
     missingDocumentFiles,
@@ -549,6 +656,13 @@ async function finishCommitted(
       // A file kept beside a changed cloud file is a new cloud asset; this one's base is the cloud's, unchanged.
       if (keptAssets.has(file.assetId)) continue;
       await setCloudLinkFileBase(link, { assetId: file.assetId, cloudAssetId: file.assetId, hash: file.hash });
+    }
+    // A workspace file kept beside a changed cloud file went to another path;
+    // the cloud file at this path is not the one sent.
+    const keptPaths = new Set((result.kept_beside ?? []).filter((entry) => !entry.asset_id).map((entry) => entry.path));
+    for (const file of plan.workspaceFiles ?? []) {
+      if (keptPaths.has(file.path)) continue;
+      await setCloudLinkWorkspaceFileBase(link, { path: file.path, hash: file.hash, size: file.size, mtimeMs: file.mtimeMs });
     }
     await deleteCloudSend(row.id);
   });
@@ -675,7 +789,7 @@ export async function runSend(transport: SendTransport, transferId: string, opti
   const needed = new Set(opened.needed_hashes);
   if (needed.size > 0) {
     const { workspace } = await requireProjectFolder(row.project_id, row.user_id);
-    for (const file of plan.files) {
+    for (const file of [...plan.files, ...(plan.workspaceFiles ?? [])]) {
       if (!needed.has(file.hash)) continue;
       needed.delete(file.hash);
       await transport.stageFile(

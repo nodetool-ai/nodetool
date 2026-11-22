@@ -8,11 +8,19 @@
 import { and, asc, eq } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
-import { cloudLinkDocuments, cloudLinkFiles, cloudLinks, cloudReceives, cloudSends } from "./schema/cloud-links.js";
+import {
+  cloudLinkDocuments,
+  cloudLinkFiles,
+  cloudLinks,
+  cloudLinkWorkspaceFiles,
+  cloudReceives,
+  cloudSends
+} from "./schema/cloud-links.js";
 
 export type CloudLinkRow = typeof cloudLinks.$inferSelect;
 export type CloudLinkDocumentRow = typeof cloudLinkDocuments.$inferSelect;
 export type CloudLinkFileRow = typeof cloudLinkFiles.$inferSelect;
+export type CloudLinkWorkspaceFileRow = typeof cloudLinkWorkspaceFiles.$inferSelect;
 export type CloudReceiveRow = typeof cloudReceives.$inferSelect;
 export type CloudReceiveState = CloudReceiveRow["state"];
 export type CloudSendRow = typeof cloudSends.$inferSelect;
@@ -171,6 +179,44 @@ export async function setCloudLinkFileBase(
     .onConflictDoUpdate({
       target: [cloudLinkFiles.link_id, cloudLinkFiles.asset_id],
       set: { cloud_asset_id: input.cloudAssetId, base_hash: input.hash, updated_at: now }
+    });
+}
+
+/** The bases of a link's workspace files, by path. */
+export async function listCloudLinkWorkspaceFiles(linkId: string): Promise<Map<string, CloudLinkWorkspaceFileRow>> {
+  const rows = await getPortableDb()
+    .select()
+    .from(cloudLinkWorkspaceFiles)
+    .where(eq(cloudLinkWorkspaceFiles.link_id, linkId));
+  return new Map(rows.map((row) => [row.path, row]));
+}
+
+/**
+ * Records the bytes the last exchange gave a workspace file of a link: their
+ * hash, and the size and modification time the file had, so a later capture
+ * reads only a file whose size or time changed.
+ */
+export async function setCloudLinkWorkspaceFileBase(
+  link: CloudLinkRow,
+  input: { path: string; hash: string; size: number; mtimeMs: number; now?: Date }
+): Promise<void> {
+  const now = (input.now ?? new Date()).toISOString();
+  await getPortableDb()
+    .insert(cloudLinkWorkspaceFiles)
+    .values({
+      id: createTimeOrderedUuid(),
+      link_id: link.id,
+      user_id: link.user_id,
+      project_id: link.project_id,
+      path: input.path,
+      base_hash: input.hash,
+      size: input.size,
+      mtime_ms: input.mtimeMs,
+      updated_at: now
+    })
+    .onConflictDoUpdate({
+      target: [cloudLinkWorkspaceFiles.link_id, cloudLinkWorkspaceFiles.path],
+      set: { base_hash: input.hash, size: input.size, mtime_ms: input.mtimeMs, updated_at: now }
     });
 }
 

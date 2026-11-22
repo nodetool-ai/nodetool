@@ -75,4 +75,11 @@ export { cloudTransfers, cloudTransferAttempts } from "./cloud-transfers.js";
 export { transferPlacements, recoveryCopies, transferredConversations } from "./transfer-files.js";
 export { documentActivity } from "./document-activity.js";
 export { revisionSets, revisionSetEntries, revisionSetFiles } from "./revision-sets.js";
-export { cloudLinks, cloudLinkDocuments, cloudLinkFiles, cloudReceives, cloudSends } from "./cloud-links.js";
+export {
+  cloudLinks,
+  cloudLinkDocuments,
+  cloudLinkFiles,
+  cloudLinkWorkspaceFiles,
+  cloudReceives,
+  cloudSends
+} from "./cloud-links.js";

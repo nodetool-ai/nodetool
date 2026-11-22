@@ -801,6 +801,28 @@ const CLOUD_SENDS_DDL: readonly string[] = [
  * storage", WP2.9). Applied by the `add_project_file_lists` migration. Sizes
  * are SQLite INTEGERs; the migration writes BIGINT on PostgreSQL.
  */
+/**
+ * The bases of a linked project's workspace files
+ * (docs/plans/native-cloud-sync/technical-design.md, "Capture from the
+ * project folder", WP2.11). Applied by the `add_cloud_link_workspace_files`
+ * migration, which writes BIGINT on PostgreSQL.
+ */
+const CLOUD_LINK_WORKSPACE_FILES_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS cloud_link_workspace_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    link_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    base_hash TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    mtime_ms INTEGER NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_link_workspace_files_path
+    ON cloud_link_workspace_files (link_id, path)`
+];
+
 const PROJECT_FILE_LISTS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS project_erased_files (
     id TEXT PRIMARY KEY NOT NULL,
@@ -962,7 +984,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...CLOUD_LINKS_DDL,
   ...CLOUD_SENDS_DDL,
   MESSAGE_TURN_CONTEXT_DDL,
-  ...PROJECT_FILE_LISTS_DDL
+  ...PROJECT_FILE_LISTS_DDL,
+  ...CLOUD_LINK_WORKSPACE_FILES_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5595,6 +5618,22 @@ export const migrations: MigrationDef[] = [
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS project_missing_files");
       await db.execute("DROP TABLE IF EXISTS project_erased_files");
+    }
+  },
+  {
+    version: "20261130_000011",
+    name: "add_cloud_link_workspace_files",
+    createsTables: ["cloud_link_workspace_files"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of CLOUD_LINK_WORKSPACE_FILES_DDL) {
+        await db.execute(
+          db.dbType === "sqlite" ? statement : statement.replace(/(size|mtime_ms) INTEGER/g, "$1 BIGINT")
+        );
+      }
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS cloud_link_workspace_files");
     }
   }
 ];
