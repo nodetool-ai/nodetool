@@ -1,9 +1,17 @@
-import { describe, it, expect } from "@jest/globals";
+import { beforeEach, describe, it, expect, jest } from "@jest/globals";
 
+import type { CloudDraftMirror, MirrorStatus } from "../../lib/cloud/CloudDraftMirror";
+import { CloudSendPacer } from "../../lib/cloud/CloudSendPacer";
 import { createNodeStore } from "../../stores/NodeStore";
+import type { WorkflowManagerStore } from "../../stores/WorkflowManagerStore";
 import type { StoredDraft } from "../../lib/cloud/CloudDocumentSaver";
 import type { Workflow } from "../../stores/ApiTypes";
-import { resumeWorkflowDraft, workflowSnapshot } from "../useCloudWindowWorkflowDrafts";
+import { resumeWorkflowDraft, sendWhenDue, workflowSnapshot } from "../useCloudWindowWorkflowDrafts";
+
+const mockAutosave = jest.fn(async (..._args: unknown[]): Promise<void> => undefined);
+jest.mock("../useWorkflowAutosave", () => ({
+  autosaveIfDirty: (...args: unknown[]) => mockAutosave(...args)
+}));
 
 const workflow = {
   id: "w1",
@@ -47,5 +55,36 @@ describe("cloud window workflow drafts", () => {
     expect(resumeWorkflowDraft(store, stored("{"))).toBe(false);
     expect(resumeWorkflowDraft(store, stored(JSON.stringify({ tracks: [] })))).toBe(false);
     expect(store.getState().workflowIsDirty).toBe(false);
+  });
+});
+
+describe("sending a cloud workflow's waiting changes", () => {
+  const mirrorWith = (status: MirrorStatus): CloudDraftMirror =>
+    ({ status: () => status }) as unknown as CloudDraftMirror;
+  const manager = {} as WorkflowManagerStore;
+
+  beforeEach(() => {
+    mockAutosave.mockClear();
+  });
+
+  it("saves through the editor's autosave once the edits are stored and the computer is online", async () => {
+    const store = createNodeStore(workflow);
+    const pacer = new CloudSendPacer();
+    expect(sendWhenDue(store, manager, mirrorWith("storing"), pacer, 0, true)).toBeNull();
+    expect(sendWhenDue(store, manager, mirrorWith("stored"), pacer, 0, false)).toBeNull();
+    expect(mockAutosave).not.toHaveBeenCalled();
+
+    await sendWhenDue(store, manager, mirrorWith("stored"), pacer, 0, true);
+    expect(mockAutosave).toHaveBeenCalledTimes(1);
+    expect(mockAutosave.mock.calls[0][0]).toBe(store);
+  });
+
+  it("does not start a second save while one runs", () => {
+    const store = createNodeStore(workflow);
+    const pacer = new CloudSendPacer();
+    mockAutosave.mockImplementationOnce(() => new Promise(() => undefined));
+    expect(sendWhenDue(store, manager, mirrorWith("stored"), pacer, 0, true)).not.toBeNull();
+    expect(sendWhenDue(store, manager, mirrorWith("stored"), pacer, 10_000, true)).toBeNull();
+    expect(mockAutosave).toHaveBeenCalledTimes(1);
   });
 });
