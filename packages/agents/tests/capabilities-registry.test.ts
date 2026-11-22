@@ -202,7 +202,9 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   get_job_logs: "read",
   get_error_trace: "read",
   list_error_traces: "read",
+  export_document: "write",
   export_error_report: "read",
+  export_google_doc: "external",
   get_js_script: "read",
   get_js_script_version: "read",
   get_message: "read",
@@ -390,6 +392,8 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   yt_dlp: "external",
   prepare_video_production: "write",
   submit_video_production: "write",
+  import_document: "write",
+  import_google_doc: "external",
   inspect_video_production_candidates: "read",
   accept_video_production_candidates: "write"
 };

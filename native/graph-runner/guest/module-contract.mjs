@@ -115,6 +115,8 @@ export const MODULES = {
       detectImageMime: realRuntime("providers/image-mime.js"),
       docsAppendText: google,
       docsCreateDocument: google,
+      docsCreateFromMarkdown: google,
+      docsExportMarkdown: google,
       docsGetDocument: google,
       driveCreateFile: google,
       driveGetFile: google,

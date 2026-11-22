@@ -6,7 +6,7 @@
 import type { DocumentRef } from "@nodetool-ai/protocol";
 
 /** A document value as nodes receive it: the ref plus any inline bytes. */
-type DocumentValue = Partial<DocumentRef> & { data?: unknown };
+type DocumentValue = Partial<DocumentRef> & { data?: unknown; text?: unknown };
 
 /** The context members this reader uses. */
 export interface DocumentTextContext {
@@ -69,6 +69,9 @@ export async function readDocumentText(
   context?: DocumentTextContext
 ): Promise<string> {
   if (!value) return "";
+  // A value built in a graph can carry its text inline, as SaveDocument
+  // accepts it.
+  if (typeof value.text === "string") return value.text;
   const bytes = await documentBytes(value, context);
   if (!bytes || bytes.length === 0 || looksBinary(bytes)) return "";
   return new TextDecoder("utf-8").decode(bytes);

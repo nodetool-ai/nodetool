@@ -6195,8 +6195,8 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.image.SaveImageFile",
-        "label": "Save Image File",
+        "type": "nodetool.image.SaveImage",
+        "label": "Save Image",
         "count": 1
       }
     ],
@@ -6263,8 +6263,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "save",
-          "type": "nodetool.image.SaveImageFile",
-          "title": "Save Image File",
+          "type": "nodetool.image.SaveImage",
+          "title": "Save Image",
           "x": 1600,
           "y": 388,
           "width": 300
@@ -12929,8 +12929,8 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.image.SaveImageFile",
-        "label": "Save Image File",
+        "type": "nodetool.image.SaveImage",
+        "label": "Save Image",
         "count": 1
       },
       {
@@ -13087,8 +13087,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "frame-png",
-          "type": "nodetool.image.SaveImageFile",
-          "title": "Save Image File",
+          "type": "nodetool.image.SaveImage",
+          "title": "Save Image",
           "x": 3524,
           "y": 1132,
           "width": 280
@@ -22921,8 +22921,8 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.image.SaveImageFile",
-        "label": "Save Image File",
+        "type": "nodetool.image.SaveImage",
+        "label": "Save Image",
         "count": 1
       },
       {
@@ -22991,8 +22991,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "save",
-          "type": "nodetool.image.SaveImageFile",
-          "title": "Save Image File",
+          "type": "nodetool.image.SaveImage",
+          "title": "Save Image",
           "x": 1200,
           "y": 427,
           "width": 300
