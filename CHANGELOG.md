@@ -9,6 +9,201 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.15] - 2026-11-20
+
+NodeTool 0.8.15 adds a Files panel for project folders, opens media and workflow files in editable tabs, and introduces desktop installers for Windows, macOS, and Linux.
+
+### Added
+
+- A Files panel that shows the folder your project uses for media and documents.
+- Direct opening of workflow and timeline files, and opening an existing folder as a project.
+- Editable asset tabs for media files. Space plays or pauses audio.
+- A canvas assistant that builds and runs a workflow in the open editor.
+- **Always allow** rules in chat for tool permissions you want to reuse.
+- Desktop installers for Windows, macOS, and Linux.
+
+### Changed
+
+- Workflow runs and agents write to the same project folder, so their output sits beside the source files.
+- A desktop or local server upgrade shows the planned file move before you confirm. You can change the destination, defer the move, or pause and resume it.
+- The node menu lists basic nodes first.
+
+### Known issues
+
+- The separate native Timeline downloads are pending macOS package verification.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.13...v0.8.15
+
+## [0.8.14] - 2026-11-19
+
+NodeTool 0.8.14 adds cloud documents and sharing to the desktop app, makes the Quick canvas the default node editor, and adds a fine-tuning harness for chat models. This release has no GitHub release page, so this entry is compiled from the commits between v0.8.13 and v0.8.14.
+
+### Added
+
+- Cloud documents open in a separate cloud window. The desktop app adds Cloud and Shared with me groups, a renderer cloud client, and a saver for cloud documents.
+- Unsent workflow and timeline edits stay as drafts in the cloud window.
+- A Publish and Synchronize review sheet, reachable from File > Publish to Cloud and Synchronize and from the timeline File menu. The native apps include the same sheet, a share dialog, and a transfer client.
+- Scripts, storyboards, mini apps, and JS scripts save as JSON files in the project folder.
+- A Files panel preview, media player, and drag-and-drop support.
+- MiniMax H3 text-to-image generation.
+- A fine-tuning harness with graded chat runs, SFT export, QLoRA training, and evaluation.
+
+### Changed
+
+- The Quick canvas is the default node editor canvas. The QtNodes renderer is removed.
+- RunPod pod management uses the REST API v2.
+- The chat prompt is shorter, and its prefix stays stable across turns to improve prompt caching.
+
+### Fixed
+
+- Document delete, restore, and purge run as single atomic operations.
+- Deleting a document removes its row and file under one folder lock.
+- The Sketch node previews its linked sketch.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.13...v0.8.14
+
+## [0.8.13] - 2026-11-14
+
+NodeTool 0.8.13 adds per-tab sessions in Create, more model providers, and support for NodeTool mini apps inside MCP hosts.
+
+### Added
+
+- Image, video, and audio sessions started from Home. Each **Create** tab keeps its own session and reopens earlier takes.
+- **Open in Create** carries a prompt and its media from a chat reply into Create as references.
+- Providers for Alibaba DashScope, BytePlus ModelArk, and Z.ai.
+- A ComfyUI examples section.
+- NodeTool mini apps open inside MCP hosts that support MCP Apps.
+
+### Changed
+
+- Sketch layers can be reordered by dragging them in Simple mode.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.12...v0.8.13
+
+## [0.8.12] - 2026-11-05
+
+NodeTool 0.8.12 adds an agent-driven Trailer Room and Film Studio, a Comfy run target setting, and RunPod templates for video models.
+
+### Added
+
+- The Trailer Room and Film Studio example apps run with an agent. Batch generation shows each take as it finishes.
+- A workflow-step widget that shows progress in your own mini apps.
+- RunPod templates for MiniMax H3, Wan 2.2, and LTX 2.3 in the Workers panel.
+
+### Changed
+
+- The Comfy run target can be Cloud, a server, or a worker.
+- Mini apps stop with a message when a required model is not yet selected.
+- The interface adds eleven languages, and first-run setup has fewer steps.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.11...v0.8.12
+
+## [0.8.11] - 2026-11-04
+
+NodeTool 0.8.11 renders storyboard shots on Comfy Cloud and makes Simple mode the default for Timeline and Sketch.
+
+### Added
+
+- Storyboard shot rendering through Comfy Cloud, including the Wan 2.2 and LTX 2.3 workflow models.
+- Reference selection for scene clips, a look preset carried across shots, and playback beside the scene form.
+- A Studios list on the start page.
+- A full-screen gallery for the image feed in Chat.
+
+### Changed
+
+- Timeline and Sketch open in Simple mode. Switch to Expert mode for the full editor controls.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.10...v0.8.11
+
+## [0.8.10] - 2026-11-01
+
+NodeTool 0.8.10 adds cloud worker setup in the Workers panel and 1Password support for provider keys.
+
+### Added
+
+- Cloud worker setup in the Workers panel. Enter a RunPod or Vast key, choose a GPU, and select **Create and start**. NodeTool checks the key and attaches the worker when it responds.
+- Worker status for provisioning and booting, with an explanation of the idle timeout.
+- **Use 1Password** in the provider-key dialog on local installs. NodeTool saves a reference to the chosen field.
+
+### Changed
+
+- Node packs install into a dedicated npm project, where they resolve their own dependencies.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.9...v0.8.10
+
+## [0.8.9] - 2026-11-01
+
+NodeTool 0.8.9 splits the CLI into smaller core and optional command features, and adds Finnish and Russian.
+
+### Added
+
+- The interface is available in Finnish and Russian.
+- Agents can rename timelines, sketches, storyboards, and scripts as part of a task.
+- Workflow packs with alternatives to Higgsfield for common generation jobs, including comparison tables.
+
+### Changed
+
+- The base CLI and execution server install without authoring, chat, MCP, and other command features. Add those features separately when you need them.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.8...v0.8.9
+
+## [0.8.8] - 2026-10-25
+
+NodeTool 0.8.8 adds audio mixing and export to the timeline and expands sharing across projects.
+
+### Added
+
+- Play installed VST3 instruments on MIDI tracks in the desktop app, with an instrument and preset per track and a limiter in the mixer.
+- Export timeline audio as WAV or MP3.
+- Linked scripts keep their timeline in sync when you edit the script.
+- Share storyboards, scripts, timelines, sketches, mini apps, and JS scripts.
+- The project menu lists the project's documents.
+- Desktop notifications when work finishes while the window is unfocused.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.7...v0.8.8
+
+## [0.8.7] - 2026-10-23
+
+NodeTool 0.8.7 connects storyboards to the timeline, adds a Transform with workflow action, and adds games and 3D scenes to Home.
+
+### Added
+
+- Drag a shot from the Storyboard panel onto a video track, or press Enter to place it at the playhead. The clip stays linked to its shot, and a video shot brings its audio along.
+- **Transform with workflow** on a timeline clip, sketch, storyboard shot, 3D scene, or audio sample. Results return to the editor, for example as a sketch layer or another take.
+- **Chat about node** opens the floating assistant from the node you are editing.
+- Starting points for games and 3D scenes on Home, including Sunrush Kart in a browser tab.
+- Export a game as an Expo project.
+- German and Simplified Chinese interface languages.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.6...v0.8.7
+
+## [0.8.6] - 2026-10-18
+
+NodeTool 0.8.6 adds Ripple Edit, Rolling Edit, Rate Stretch, and Slip to the timeline, and a command to render sketches.
+
+### Added
+
+- Timeline toolbar tools: Ripple Edit, Rolling Edit, Rate Stretch, and Slip. Use **Q** and **W** to ripple-trim to the playhead, and **Page Up** and **Page Down** to jump between edits.
+- Link, group, or disable clips in place.
+- `nodetool sketch render` exports a sketch to PNG, exports an inpainting mask, or saves a layered PSD. The renderer follows the sketch editor's layer and compositing rules.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.5...v0.8.6
+
+## [0.8.5] - 2026-10-18
+
+NodeTool 0.8.5 adds keyframe animation in the Timeline inspector, text files and Markdown notes, and opt-in anonymous analytics.
+
+### Added
+
+- Keyframes for opacity, position, scale, and rotation in the Timeline inspector. Drag keyframes to retime a move, and choose easing from their context menu.
+- Channel faders and live instrument controls in the Timeline audio mixer, following the timeline tempo.
+- Text files alongside other documents, and toolbar buttons for headings, bold text, and lists in Markdown notes.
+- **Use as entity** on an image in the Library starts an entity with that reference.
+- Duplicate or delete a 3D part from the inspector.
+- Anonymous product analytics, opt-in. Review recent events and change your choice in **Settings → Privacy**.
+
+**Full changes:** https://github.com/nodetool-ai/nodetool/compare/v0.8.4...v0.8.5
+
 ## [0.8.4]
 
 NodeTool 0.8.4 adds on-demand node packs, direct CLI authoring tools, new cloud and local providers, and more controls for native games. It also improves project navigation, media search, timeline playback, and standalone exports.
