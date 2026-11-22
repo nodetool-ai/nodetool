@@ -288,6 +288,7 @@ exclude:
   - image-editor-prd.md
   - creation-flows/
   - timeline-editor-prd.md
+  - document-editor/
   # Cites repository source and excluded docs, which no built page can resolve.
   - project-folders/
   - correlation-design.md
