@@ -1070,7 +1070,7 @@ import { ContextMenu, MenuItemPrimitive } from "../ui_primitives";
 | Row | `MenuItemPrimitive`: `TYPOGRAPHY.sans.label` (13px / 500), 28px tall, inset 4px from the frame with `BORDER_RADIUS.sm`. One density. There is no compact or dense row |
 | States | Hover and keyboard focus `action.hover`. A picked option `action.selected`, not primary text |
 | Label | Sentence case, a verb or the option name: "Delete node", "Add input node". An ellipsis only when the row opens a dialog that asks for more |
-| Icon | Optional, 16px, `text.secondary`, 8px before the label. If one row in a group has an icon, give the others one too |
+| Icon | Optional, 16px, `text.secondary`, 8px before the label. Icons are all or none for the whole menu: if one row has an icon, every row has one (D64) |
 | Secondary line | `secondary`, in caption type and `text.secondary` |
 | Shortcut | `shortcut`, right-aligned in `TYPOGRAPHY.mono.caption` and `text.secondary` |
 | Submenu | `hasSubmenu` draws the chevron at the end of the row |
@@ -1846,6 +1846,7 @@ Some systems separate `duration.fast = 120ms` from `easing.standard = ease` to a
 
 ## Related Documents
 
+- **[Music Editor UI](design/MUSIC_EDITOR_UI.md)** — Shared web and native rules for tracks, regions, piano roll, automation, mixer and music menus
 - **[UI Primitives Strategy](../web/src/components/ui_primitives/STRATEGY.md)** — Primitives-first policy, decision tree, migration rules, full 90+ component catalog
 - **[UI Primitives README](../web/src/components/ui_primitives/README.md)** — Component API reference
 - **[UI Primitives EXAMPLES](../web/src/components/ui_primitives/EXAMPLES.md)** — Practical code examples for every primitive

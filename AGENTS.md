@@ -108,6 +108,7 @@ Claim an issue only when the user asks you to work on it or to pick one.
 - **[Marketing site](marketing/AGENTS.md)** — Recipe pages, production media, generated catalog data, and media verification
 - **[Workflow Runner Example](examples/workflow_runner/AGENTS.md)** — Embeddable workflow-runner example app
 - **[Error Tracing](docs/error-tracing.md)** — Redacted error traces in the deployment database: capture points, redaction, agent tools, Supabase RLS and opt-in sync
+- **[Agent Model Routing](docs/agent-model-routing.md)** — Which model implements, fixes and reviews delegated agent work, the review pipeline and fix-agent prompt rules
 - **[Product Analytics](docs/analytics.md)** — Opt-in anonymous analytics: the typed event schema, consent per client, the ingest route, retention
 - **[URL Egress Inventory](docs/url-egress-inventory.md)** — Every surface that fetches a caller-provided URL, the one address table, and the SSRF policy each surface applies
 - **[Writing Style](docs/WRITING_STYLE.md)** — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown
