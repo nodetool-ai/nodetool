@@ -23,7 +23,8 @@ export function cloudDocumentRef(type: WorkspaceTabType, id: string): CloudDocum
     type === "jsscript" ||
     type === "script" ||
     type === "storyboard" ||
-    type === "sketch"
+    type === "sketch" ||
+    type === "application"
     ? { type, id }
     : null;
 }
