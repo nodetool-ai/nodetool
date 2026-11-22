@@ -7,11 +7,14 @@ import { Play } from "lucide-react";
 import { formatTimecode, isVertical, shotStarts } from "@/data/storyboards";
 import type { Storyboard } from "@/data/storyboards";
 import { usePrefersReducedMotion } from "@/lib/useGridParallax";
+import { EN_STORYBOARD_LABELS, fmt } from "@/i18n/detailLabels";
+import type { StoryboardViewerLabels } from "@/i18n/detailLabels";
 
 interface StoryboardViewerProps {
   readonly board: Storyboard;
   /** Title, summary and facts. Sits beside a vertical film, above a wide one. */
   readonly children: ReactNode;
+  readonly labels?: StoryboardViewerLabels;
 }
 
 /** The shot that is on screen at `time`, given each shot's start. */
@@ -33,7 +36,8 @@ function shotAt(starts: readonly number[], time: number): number {
  */
 export default function StoryboardViewer({
   board,
-  children
+  children,
+  labels = EN_STORYBOARD_LABELS.viewer
 }: StoryboardViewerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [time, setTime] = useState(0);
@@ -109,7 +113,7 @@ export default function StoryboardViewer({
         controls
         playsInline
         preload="none"
-        aria-label={`${board.title}, the finished film`}
+        aria-label={fmt(labels.film, { title: board.title })}
         className="block h-full w-full"
       />
     </div>
@@ -117,7 +121,7 @@ export default function StoryboardViewer({
 
   const timeline = (
     <ol
-      aria-label="Shots in the film"
+      aria-label={labels.shotsInFilm}
       className="flex gap-1.5"
       style={{ minWidth: 0 }}
     >
@@ -138,7 +142,7 @@ export default function StoryboardViewer({
             <button
               type="button"
               onClick={() => playShot(index)}
-              aria-label={`Play shot ${shot.number}: ${shot.title}`}
+              aria-label={fmt(labels.playShot, { n: shot.number, title: shot.title })}
               aria-current={isActive ? "true" : undefined}
               className="focus-ring group block w-full rounded-lg text-left"
             >
@@ -187,7 +191,7 @@ export default function StoryboardViewer({
           >
             <Image
               src={shot.image.src}
-              alt={`Shot ${shot.number}, ${shot.title}: the storyboard still`}
+              alt={fmt(labels.stillAlt, { n: shot.number, title: shot.title })}
               width={shot.image.width}
               height={shot.image.height}
               sizes={
@@ -198,7 +202,7 @@ export default function StoryboardViewer({
               className="h-full w-full object-cover"
             />
             <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 font-jetbrains text-[11px] font-medium text-white backdrop-blur">
-              Shot {shot.number}
+              {fmt(labels.shot, { n: shot.number })}
             </span>
           </div>
         );
@@ -208,18 +212,18 @@ export default function StoryboardViewer({
               <span className="text-amber-300">
                 {formatTimecode(starts[index])}
               </span>
-              <span>{shot.seconds}s</span>
+              <span>{fmt(labels.seconds, { n: shot.seconds })}</span>
             </p>
             <h3 className="mt-2 text-xl font-semibold tracking-tight text-white md:text-2xl">
               {shot.title}
             </h3>
             <dl className="mt-4 flex flex-wrap gap-2 text-xs">
               <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-slate-200">
-                <dt className="sr-only">Framing</dt>
+                <dt className="sr-only">{labels.framing}</dt>
                 <dd>{shot.framing}</dd>
               </div>
               <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-slate-200">
-                <dt className="sr-only">Camera movement</dt>
+                <dt className="sr-only">{labels.movement}</dt>
                 <dd>{shot.movement}</dd>
               </div>
             </dl>
@@ -236,7 +240,7 @@ export default function StoryboardViewer({
               className="focus-ring mt-5 inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-slate-100 transition-colors hover:border-amber-300/60 hover:text-amber-200"
             >
               <Play className="h-3.5 w-3.5" aria-hidden="true" />
-              Play this shot
+              {labels.playThis}
             </button>
           </div>
         );
@@ -291,12 +295,10 @@ export default function StoryboardViewer({
           id="storyboard-heading"
           className="text-3xl font-semibold tracking-tight text-white md:text-4xl"
         >
-          The storyboard
+          {labels.heading}
         </h2>
         <p className="mt-3 max-w-2xl text-slate-400">
-          {board.shots.length} shots, {board.plannedSeconds} seconds planned.
-          Each still is the keyframe for its shot. The direction beside it
-          describes the action and the camera.
+          {fmt(labels.summary, { shots: board.shots.length, seconds: board.plannedSeconds })}
         </p>
         <div className="mt-12">{panels}</div>
       </section>

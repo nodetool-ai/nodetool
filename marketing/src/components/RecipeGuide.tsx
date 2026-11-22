@@ -13,18 +13,28 @@ import {
 } from "lucide-react";
 import type { RecipeGuide as Guide } from "@/data/recipes";
 import { track } from "@/lib/analytics";
+import { EN_RECIPE_LABELS, fmt } from "@/i18n/detailLabels";
+import type { RecipeGuideLabels } from "@/i18n/detailLabels";
 
 interface RecipeGuideProps {
   guide: Guide;
   recipe: string;
   /** One diagram per step id, from components/recipeSteps. */
   visuals: Readonly<Record<string, ReactNode>>;
+  labels?: RecipeGuideLabels;
+  /** Language of the example brief when it differs from the page. */
+  briefLang?: string;
+  /** Shown above the step diagrams when they keep the run's English labels. */
+  diagramNote?: string;
 }
 
 export default function RecipeGuide({
   guide,
   recipe,
-  visuals
+  visuals,
+  labels = EN_RECIPE_LABELS.guide,
+  briefLang,
+  diagramNote
 }: RecipeGuideProps) {
   const [selected, setSelected] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -104,7 +114,7 @@ export default function RecipeGuide({
           id="guide-title"
           className="text-3xl font-semibold tracking-tight md:text-4xl"
         >
-          Follow the {guide.entry} guide
+          {fmt(labels.follow, { entry: guide.entry })}
         </h2>
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-300">
           {guide.introduction}
@@ -126,7 +136,7 @@ export default function RecipeGuide({
         <div className="mt-6 grid gap-6 border-t border-white/10 pt-6 lg:grid-cols-[260px_minmax(0,1fr)]">
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-              Bring to this recipe
+              {labels.bring}
             </h3>
             <ul className="mt-3 space-y-2 text-sm leading-snug text-slate-300">
               {guide.inputs.map((input) => (
@@ -143,9 +153,7 @@ export default function RecipeGuide({
           <div className="min-w-0 rounded-xl border border-white/10 bg-slate-900/40 p-5">
             <div className="flex items-center justify-between gap-4">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-                {guide.entry === "Script"
-                  ? "Try the example script"
-                  : "Try the example brief"}
+                {guide.entry === "Script" ? labels.tryScript : labels.tryBrief}
               </h3>
               <button
                 type="button"
@@ -157,21 +165,20 @@ export default function RecipeGuide({
                 ) : (
                   <Copy className="h-4 w-4" aria-hidden="true" />
                 )}
-                {copied ? "Copied" : "Copy"}
+                {copied ? labels.copied : labels.copy}
               </button>
             </div>
             <p
               className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-300"
-              lang={guide.entry === "Script" ? "es" : undefined}
+              lang={guide.entry === "Script" ? "es" : briefLang}
             >
               {guide.brief}
             </p>
+            {labels.briefNote && (
+              <p className="mt-2 text-xs text-slate-500">{labels.briefNote}</p>
+            )}
             <p role="status" className="mt-2 text-sm text-slate-400">
-              {copyError
-                ? "Select the text above and copy it to use this example."
-                : copied
-                  ? "Copied to clipboard."
-                  : ""}
+              {copyError ? labels.copyError : copied ? labels.copiedStatus : ""}
             </p>
           </div>
         </div>
@@ -181,7 +188,7 @@ export default function RecipeGuide({
               className="h-4 w-4 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none"
               aria-hidden="true"
             />
-            About this example
+            {labels.about}
           </summary>
           <p className="mt-2 pl-6 leading-relaxed">{guide.note}</p>
         </details>
@@ -192,7 +199,7 @@ export default function RecipeGuide({
         >
           <div className="flex items-center gap-3 border-y border-white/10 py-2">
             <nav
-              aria-label="Recipe steps"
+              aria-label={labels.steps}
               className="min-w-0 flex-1 overflow-x-auto"
             >
               <ol className="flex min-w-max items-center gap-1">
@@ -221,10 +228,10 @@ export default function RecipeGuide({
               aria-pressed={autoplayEnabled && !prefersReducedMotion}
               aria-label={
                 prefersReducedMotion
-                  ? "Autoplay disabled by reduced motion preference"
+                  ? labels.autoplayOff
                   : autoplayEnabled
-                    ? "Pause step autoplay"
-                    : "Resume step autoplay"
+                    ? labels.pause
+                    : labels.resume
               }
               className="focus-ring inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/5 hover:text-slate-200 disabled:cursor-default disabled:opacity-50"
             >
@@ -234,11 +241,16 @@ export default function RecipeGuide({
                 <Play className="h-4 w-4" aria-hidden="true" />
               )}
               <span className="hidden sm:inline">
-                {autoplayEnabled && !prefersReducedMotion ? "Auto" : "Paused"}
+                {autoplayEnabled && !prefersReducedMotion ? labels.auto : labels.paused}
               </span>
             </button>
           </div>
-          <div className="mt-5">{visuals[step.id]}</div>
+          {diagramNote && (
+            <p className="mt-4 text-xs text-slate-500">{diagramNote}</p>
+          )}
+          <div className="mt-5" lang={diagramNote ? "en" : undefined}>
+            {visuals[step.id]}
+          </div>
           {step.image && (
             <a
               href={step.image.src}
@@ -247,7 +259,7 @@ export default function RecipeGuide({
               className="focus-ring mt-3 inline-flex items-center gap-1.5 rounded text-sm text-slate-400 hover:text-slate-100"
             >
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
-              Open the recorded image for this step
+              {labels.recordedImage}
             </a>
           )}
           <div
@@ -258,7 +270,7 @@ export default function RecipeGuide({
           >
             <div>
               <p className="text-sm text-amber-300">
-                Step {selected + 1} of {guide.steps.length} · {step.phase}
+                {fmt(labels.stepOf, { n: selected + 1, total: guide.steps.length, phase: step.phase })}
               </p>
               <h3 className="mt-2 text-2xl font-semibold tracking-tight">
                 {step.title}

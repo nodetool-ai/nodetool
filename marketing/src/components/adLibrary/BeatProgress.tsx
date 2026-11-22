@@ -1,5 +1,6 @@
 "use client";
 import { formatKey } from "@/data/adLibrary";
+import { fmt } from "@/i18n/detailLabels";
 
 interface ProgressBeat {
   readonly id: string;
@@ -14,6 +15,9 @@ interface BeatProgressProps {
   /** When set, each segment becomes a button that selects its beat. */
   readonly onSelect?: (index: number) => void;
   readonly className?: string;
+  /** "Show beat {n}: {role}", with role names by key. */
+  readonly showBeatLabel?: string;
+  readonly keyLabels?: Readonly<Record<string, string>>;
 }
 
 /** Segments sized by beat length. The active segment fills in real time. */
@@ -21,7 +25,9 @@ export function BeatProgress({
   beats,
   elapsedMs,
   onSelect,
-  className = ""
+  className = "",
+  showBeatLabel = "Show beat {n}: {role}",
+  keyLabels = {}
 }: BeatProgressProps) {
   return (
     <div className={`flex gap-1 ${className}`}>
@@ -55,7 +61,7 @@ export function BeatProgress({
             key={beat.id}
             type="button"
             onClick={() => onSelect(index)}
-            aria-label={`Show beat ${index + 1}: ${formatKey(beat.role)}`}
+            aria-label={fmt(showBeatLabel, { n: index + 1, role: keyLabels[beat.role] ?? formatKey(beat.role) })}
             className="focus-ring group block rounded py-2"
             style={{ flexGrow: length, flexBasis: 0 }}
           >

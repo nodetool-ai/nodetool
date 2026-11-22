@@ -146,28 +146,46 @@ when its rendered film exists in
 
 ## Translated Pages
 
-`/zh/<route>` pages translate English pages into Simplified Chinese. They are
-data: `src/i18n/routes.ts` lists the translated routes, `src/i18n/zh/pages/`
-holds one content file per page, and `components/localized/LocalizedPage.tsx`
-renders all of them. The language overviews (`/ja`, `/zh`, …) are a separate
+`/zh/<route>`, `/ja/<route>` and `/ko/<route>` pages translate English pages
+into Simplified Chinese, Japanese and Korean. They are data:
+`src/i18n/routes.ts` lists the translated routes per locale,
+`src/i18n/<locale>/pages/` holds one content file per page, and
+`components/localized/LocalizedPage.tsx` renders all of them. The language overviews (`/ja`, `/zh`, …) are a separate
 set in `src/data/languagePages.ts` and pair with the home page.
 
 - Add a page: its English route in `TRANSLATED_ROUTES`, a content file in
-  `src/i18n/zh/pages/` registered in `src/i18n/zh/index.ts`, and a route
-  file under `src/app/zh/`. Pass `languageAlternates(route)` as the English
-  page's `alternates.languages`. `tests/e2e/zh-pages.spec.ts` checks all four.
+  `src/i18n/<locale>/pages/` registered in `src/i18n/<locale>/index.ts`, and
+  a route file under `src/app/<locale>/`. Pass `languageAlternates(route)` as
+  the English page's `alternates.languages`. `tests/e2e/zh-pages.spec.ts` and
+  `tests/e2e/ja-ko-pages.spec.ts` check all four.
 - Translate published English copy. Read prices and counts through the
   `{token}` placeholders in `LocalizedPage.tsx`, never as typed numbers.
-- Lead provider lines with DeepSeek, Qwen (DashScope) and GLM, and reuse the
+- Chinese pages only: lead provider lines with DeepSeek, Qwen (DashScope) and GLM, and reuse the
   mainland notes in `src/i18n/zh/shared.ts`. They name the `*_REGION` and
   `HF_ENDPOINT` settings, which the spec checks against the setting catalog.
   ChatGPT and Claude plans are not sold in mainland China, so only
   `/zh/pricing` mentions plan sign-in. BytePlus stays 国际版 until it has a
   mainland host.
+- Japanese and Korean pages follow the English provider lines, including
+  ChatGPT, Claude and Gemini plan sign-in, which is sold in both countries.
+  The app UI in both languages is machine translated and partial, so say so
+  where a page mentions the interface language.
 - Links name English routes. The renderer sends a link to the translated page
-  when there is one and marks the rest `hrefLang="en"` with （英文）.
+  when there is one and marks the rest `hrefLang="en"` with the locale's
+  `englishSuffix`.
 - The header, footer, announcement bar and demo player read the locale from
-  the path. Their Chinese strings are in `src/i18n/zh/chrome.ts`.
+  the path. Their strings are in `src/i18n/<locale>/chrome.ts`, and the
+  catalog card words are in `LocalizedCatalog.tsx`. An English page shows a
+  switch to each of its translations.
+- Detail pages (`/zh/storyboards/<slug>`, `/zh/recipes/<slug>`,
+  `/zh/ad-library/<slug>`) render the English page's component with a
+  translated entry. `src/i18n/details.ts` picks each entry's visible text, the
+  translation in `src/i18n/zh/details/*.json` holds that shape per slug, and
+  the page's fixed words are in `src/i18n/zh/detailLabels.ts`.
+  `TRANSLATED_DETAIL_SECTIONS` lists the sections.
+  `tests/e2e/zh-detail-pages.spec.ts` fails when an English entry gains,
+  loses or renames a shot, beat, step or slug, so translate the change in the
+  same PR. Recipe step diagrams and example briefs stay in the run's English.
 
 ## Page and Film Dates
 
