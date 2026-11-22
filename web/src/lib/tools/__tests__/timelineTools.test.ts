@@ -515,7 +515,7 @@ describe("ui_timeline_* tools", () => {
       ctx
     )) as { ok: boolean; clips: TimelineClipNode[] };
 
-    expect(handler.splitClip).toHaveBeenCalledWith("Clip 1", 1000);
+    expect(handler.splitClip).toHaveBeenCalledWith("Clip 1", 1000, {});
     expect(result.clips.map((c) => c.id)).toEqual(["left", "right"]);
   });
 

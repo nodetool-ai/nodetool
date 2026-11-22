@@ -44,6 +44,11 @@ let mockUi: TimelineUIStoreApi;
 let mockPlayback: TimelinePlaybackStoreApi;
 const mockStartEdit = jest.fn();
 const mockAssetGet = jest.fn();
+const mockDecodeAssetAudio = jest.fn();
+jest.mock("../useDetectClipBeats", () => ({
+  ...jest.requireActual("../useDetectClipBeats"),
+  decodeAssetAudio: (assetId: string) => mockDecodeAssetAudio(assetId)
+}));
 // The hook reads its three stores off the surrounding editor's contexts; a test
 // hands it standalone instances instead of mounting a whole TimelineEditor.
 jest.mock("../../../stores/timeline/TimelineStore", () => ({
@@ -1120,3 +1125,102 @@ describe("useTimelineAgentBridge target resolution", () => {
     expect(mockDoc.getState().clips).toEqual([]);
   });
 });
+
+describe("detect_chords on an audio clip through the web handler", () => {
+  it("reads the chords of the decoded clip audio", async () => {
+    const sampleRate = 22050;
+    const hz = (p: number) => 440 * 2 ** ((p - 69) / 12);
+    // 120 bpm 4/4: one bar is 2 s. C then G.
+    const samples = new Float32Array(4 * sampleRate);
+    [[60, 64, 67], [55, 59, 62]].forEach((pitches, bar) => {
+      for (let i = 0; i < 2 * sampleRate; i++) {
+        const at = bar * 2 * sampleRate + i;
+        samples[at] =
+          pitches.reduce(
+            (a, p) => a + Math.sin((2 * Math.PI * hz(p) * at) / sampleRate),
+            0
+          ) / 6;
+      }
+    });
+    mockDecodeAssetAudio.mockResolvedValue({ samples, sampleRate });
+    mockDoc.getState().addTrack("audio", "Stem");
+    const trackId = mockDoc.getState().tracks[0].id;
+    mockDoc.getState().addClip(
+      makeClip({
+        id: "stem",
+        name: "Stem",
+        trackId,
+        mediaType: "audio",
+        sourceType: "imported",
+        currentAssetId: "asset-1",
+        startMs: 0,
+        durationMs: 4000
+      })
+    );
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const result = await getTimelineAgentHandler(SEQ_ID).applyOp({
+      op: "detect_chords",
+      clipIds: ["stem"],
+      write: false
+    });
+    expect(mockDecodeAssetAudio).toHaveBeenCalledWith("asset-1");
+    expect(mockDecodeAssetAudio).toHaveBeenCalledTimes(1);
+    expect(result.chart).toBe("| C | G |");
+  });
+
+  const addStem = () => {
+    mockDoc.getState().addTrack("audio", "Stem");
+    const trackId = mockDoc.getState().tracks[0].id;
+    mockDoc.getState().addClip(
+      makeClip({
+        id: "stem",
+        name: "Stem",
+        trackId,
+        mediaType: "audio",
+        sourceType: "imported",
+        currentAssetId: "asset-1",
+        startMs: 0,
+        durationMs: 4000
+      })
+    );
+  };
+
+  it("does not commit an edit when a silent range wrote nothing", async () => {
+    mockDecodeAssetAudio.mockResolvedValue({
+      samples: new Float32Array(4 * 22050),
+      sampleRate: 22050
+    });
+    addStem();
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const before = mockDoc.getState().clips;
+    const result = await getTimelineAgentHandler(SEQ_ID).applyOp({
+      op: "detect_chords",
+      clipIds: ["stem"]
+    });
+    expect(result.written).toBe(false);
+    expect(mockDoc.getState().clips).toBe(before);
+  });
+
+  it("reports an unreadable file with the clip named, and decodes again on a retry", async () => {
+    mockDecodeAssetAudio.mockReset();
+    mockDecodeAssetAudio.mockRejectedValueOnce(new Error("bad data"));
+    addStem();
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    await expect(
+      handler.applyOp({ op: "detect_chords", clipIds: ["stem"], write: false })
+    ).rejects.toThrow(/Could not read the audio of clip "Stem"/);
+    mockDecodeAssetAudio.mockResolvedValueOnce({
+      samples: new Float32Array(22050),
+      sampleRate: 22050
+    });
+    const retry = await handler.applyOp({
+      op: "detect_chords",
+      clipIds: ["stem"],
+      write: false
+    });
+    expect(retry.ok).toBe(true);
+    expect(mockDecodeAssetAudio).toHaveBeenCalledTimes(2);
+  });
+});
+

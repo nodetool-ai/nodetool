@@ -25,7 +25,9 @@ import type {
   TimelineTrack
 } from "@nodetool-ai/timeline";
 import {
+  activeLoopMs,
   createTimeOrderedUuid,
+  loopRepeatCount,
   presetIdForInstrument,
   resolveTempo
 } from "@nodetool-ai/timeline";
@@ -88,6 +90,7 @@ import { useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
 import { trpcClient } from "../../trpc/client";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import { persistAdaptedTimeline } from "./useCreateFormatAdaptation";
+import { decodeAssetAudio } from "./useDetectClipBeats";
 import { useModel3DBake } from "./useModel3DBake";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
 
@@ -179,6 +182,9 @@ function toClipNode(
     endMs: clip.startMs + clip.durationMs,
     inPointMs: clip.inPointMs,
     outPointMs: clip.outPointMs,
+    loopLengthMs: clip.loopLengthMs,
+    loopRepeats:
+      activeLoopMs(clip) !== undefined ? loopRepeatCount(clip) : undefined,
     status: clip.status,
     hasRender: !!clip.currentAssetId,
     activeTakeId: clip.activeTakeId,
@@ -317,6 +323,10 @@ export const useTimelineAgentBridge = (
       };
       const task = pending.then(async () => {
         const assets = new Map<string, TimelineOpAsset | null>();
+        const decodedAudio = new Map<
+          string,
+          Promise<{ samples: Float32Array; sampleRate: number } | null>
+        >();
         const ids = new Map<string, string[]>();
         let positions = new Map<string, number>();
         const context: TimelineOpContext = {
@@ -332,6 +342,23 @@ export const useTimelineAgentBridge = (
           followLinks: doc.getState().linkedSelection,
           parseSvgPath,
           allowUnknownMediaDuration: true,
+          decodeClipAudio: async (clip) => {
+            if (!clip.currentAssetId) {
+              return null;
+            }
+            const assetId = clip.currentAssetId;
+            let decoded = decodedAudio.get(assetId);
+            if (!decoded) {
+              // An unreadable file reads as no audio, as on the headless host,
+              // and a failure is not kept, so a retry decodes again.
+              decoded = decodeAssetAudio(assetId).catch(() => {
+                decodedAudio.delete(assetId);
+                return null;
+              });
+              decodedAudio.set(assetId, decoded);
+            }
+            return decoded;
+          },
           resolveAsset: async (ref) => {
             if (assets.has(ref)) {
               return assets.get(ref) ?? null;
@@ -398,6 +425,13 @@ export const useTimelineAgentBridge = (
           op.op !== "list_instruments" &&
           op.op !== "list_tracks" &&
           op.op !== "list_takes" &&
+          op.op !== "list_progressions" &&
+          op.op !== "list_harmony_presets" &&
+          !(
+            op.op === "detect_chords" &&
+            (op.write === false ||
+              (outcome.result as { written?: unknown }).written === false)
+          ) &&
           op.op !== "retarget_format" &&
           op.op !== "select_clip" &&
           op.op !== "seek"
@@ -935,8 +969,13 @@ export const useTimelineAgentBridge = (
         return clipNode(reReadClip(clip.id));
       },
 
-      async splitClip(target, atMs) {
-        const result = await editOp({ op: "split_clip", target, atMs });
+      async splitClip(target, atMs, extra) {
+        const result = await editOp({
+          op: "split_clip",
+          target,
+          atMs,
+          ...extra
+        });
         if (!Array.isArray(result.clips)) {
           throw new Error("Split returned no clips.");
         }
@@ -961,8 +1000,13 @@ export const useTimelineAgentBridge = (
         return node;
       },
 
-      async duplicateClip(target, gapMs) {
-        const result = await editOp({ op: "duplicate_clip", target, gapMs });
+      async duplicateClip(target, gapMs, extra) {
+        const result = await editOp({
+          op: "duplicate_clip",
+          target,
+          gapMs,
+          ...extra
+        });
         return clipNode(reReadClip(resultClipId(result)));
       },
 
@@ -1184,7 +1228,11 @@ export const useTimelineAgentBridge = (
             pitch: note.pitch,
             start_tick: note.startTick,
             duration_tick: note.durationTick,
-            velocity: note.velocity
+            velocity: note.velocity,
+            muted: note.muted,
+            channel: note.channel,
+            release_velocity: note.releaseVelocity,
+            expression: note.expression
           }))
         });
         return clipNode(reReadClip(resultClipId(result)));
@@ -1199,7 +1247,11 @@ export const useTimelineAgentBridge = (
             pitch: note.pitch,
             start_tick: note.startTick,
             duration_tick: note.durationTick,
-            velocity: note.velocity
+            velocity: note.velocity,
+            muted: note.muted,
+            channel: note.channel,
+            release_velocity: note.releaseVelocity,
+            expression: note.expression
           }))
         });
         return clipNode(requireClip(target));

@@ -100,6 +100,10 @@ export interface TimelineClipNode {
   endMs: number;
   inPointMs?: number;
   outPointMs?: number;
+  /** The repeating window of a looped clip (ms), when it loops. */
+  loopLengthMs?: number;
+  /** How many windows a looped clip plays. */
+  loopRepeats?: number;
   status: string;
   /** Whether the clip has a rendered asset (generated clips). */
   hasRender: boolean;
@@ -318,7 +322,13 @@ interface TimelineClipBindingPatch {
   regenerate?: boolean;
 }
 
-interface TimelineTrimPatch {
+/** A time as a bar position (D49): `atBar` and `beat` count from 1. */
+interface TimelineBarTime {
+  atBar?: number;
+  beat?: number;
+}
+
+interface TimelineTrimPatch extends TimelineBarTime {
   /** New clip duration on the timeline (ms). */
   durationMs?: number;
   /** Source-time trim start (ms). */
@@ -327,7 +337,7 @@ interface TimelineTrimPatch {
   outPointMs?: number;
 }
 
-interface TimelineMovePatch {
+interface TimelineMovePatch extends TimelineBarTime {
   /** New absolute start on the timeline (ms). */
   startMs?: number;
   /** Reassign the clip to a different track. */
@@ -412,7 +422,7 @@ export interface TimelineAddMidiClipOptions {
 }
 
 /** Place an asset the library already holds as a clip. */
-export interface TimelineAddMediaClipOptions {
+export interface TimelineAddMediaClipOptions extends TimelineBarTime {
   /** Asset id or `asset://<id>.<ext>` URI. */
   asset: string;
   trackId?: string;
@@ -522,7 +532,11 @@ export interface TimelineAgentHandler {
    */
   bakeModel3DClip: (target: string) => Promise<TimelineClipNode>;
   /** Split a clip at the given time (defaults to the playhead). */
-  splitClip: (target: string, atMs?: number) => Promise<TimelineClipNode[]>;
+  splitClip: (
+    target: string,
+    atMs?: number,
+    extra?: TimelineBarTime & { crossing?: "shorten" | "split" }
+  ) => Promise<TimelineClipNode[]>;
   trimClip: (
     target: string,
     patch: TimelineTrimPatch
@@ -532,7 +546,11 @@ export interface TimelineAgentHandler {
     patch: TimelineMovePatch
   ) => Promise<TimelineClipNode>;
   deleteClip: (target: string) => Promise<TimelineClipNode>;
-  duplicateClip: (target: string, gapMs?: number) => Promise<TimelineClipNode>;
+  duplicateClip: (
+    target: string,
+    gapMs?: number,
+    extra?: TimelineBarTime & { count?: number }
+  ) => Promise<TimelineClipNode>;
   setClipParams: (
     target: string,
     patch: TimelineClipParamsPatch
