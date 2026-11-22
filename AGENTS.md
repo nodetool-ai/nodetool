@@ -541,6 +541,7 @@ from `packages/agents/src/tools/mcp-tools.ts` over shell commands.
 | [Probe provider contracts](docs/harnesses.md#npm-run-probeproviders-provider-contract-probes) | `npm run probe:providers` |
 | [Measure agent task completion](docs/harnesses.md#nodetool-jtbd-jobs-to-be-done--the-optimization-loop) | `nodetool jtbd run` / `jtbd optimize` |
 | [Find mutants the tests miss](docs/harnesses.md#npm-run-mutate-mutation-testing-for-typescript) | `npm run mutate -- --base origin/main packages/<name>/src` |
+| [Check GPU worker and self-hosted rollout fixtures](docs/harnesses.md#gpu-worker-and-self-hosted-rollout-fixtures) | `npm run test --workspace=packages/compute -- provider-lifecycle-harness` / `--workspace=packages/deploy -- self-hosted-rollout-harness` |
 | [Run shipped resource fixtures](docs/harnesses.md#graph-resource-fixtures) | `npm run fixtures:graph-resources` |
 | [Inspect generation status, cost, and assets](docs/harnesses.md#nodetool-generations) | `nodetool generations list\|get\|await\|cancel\|reconcile\|sweep` |
 

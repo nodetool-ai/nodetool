@@ -666,7 +666,7 @@ describe("harness gate", () => {
       );
       expect(plan.changedFiles).toEqual(["packages/timeline/src/script.ts"]);
     }
-    expect(isUnclaimedPath("./packages/compute/src/index.ts")).toBe(true);
+    expect(isUnclaimedPath("./packages/sdk/src/index.ts")).toBe(true);
   });
 
   it("reports files no surface claims", () => {
