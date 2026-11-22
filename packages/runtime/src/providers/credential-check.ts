@@ -16,6 +16,7 @@
 import { classifyProviderFailure } from "@nodetool-ai/protocol";
 import { resolveAlibabaBaseURL } from "./alibaba-provider.js";
 import { resolveBytePlusBaseURL } from "./byteplus-provider.js";
+import { resolveKlingBaseURL } from "./kling-provider.js";
 import { resolveKimiBaseURL } from "./moonshot-provider.js";
 
 /**
@@ -187,6 +188,21 @@ const PROBES: Record<string, CredentialProbe> = {
     settings: ["KIMI_REGION"],
     headers: (v) => ({ Authorization: `Bearer ${v}` }),
     region: { setting: "KIMI_REGION", values: ["international", "china"] }
+  },
+  // GET /account/costs lists resource packs and is free to call
+  // (https://kling.ai/document-api/api/assets/account-usage.md). An invalid
+  // key answers 401 with service code 1000-1004
+  // (https://kling.ai/document-api/api/get-started/error-codes.md).
+  KLING_API_KEY: {
+    label: "Kling",
+    url: (_v, settings) => {
+      const end = Date.now();
+      const start = end - 24 * 60 * 60 * 1000;
+      return `${resolveKlingBaseURL(settings.KLING_REGION)}/account/costs?start_time=${start}&end_time=${end}`;
+    },
+    settings: ["KLING_REGION"],
+    headers: (v) => ({ Authorization: `Bearer ${v}` }),
+    region: { setting: "KLING_REGION", values: ["international", "china"] }
   },
   BYTEPLUS_ARK_API_KEY: {
     label: "BytePlus",
