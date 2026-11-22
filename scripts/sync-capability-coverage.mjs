@@ -59,11 +59,11 @@ const SUITE_EXTRAS = [
   "js-scripts-capabilities.test.ts",
   "apify-capabilities.test.ts",
   "serpapi-capabilities.test.ts",
-  "game-asset-pipeline.test.ts"
-  // `media-read-bytes.test.ts` drives `read_media_bytes` by guest import but
-  // is not in the `capability-suites` selfcheck's filter list
-  // (packages/cli-harness/src/harness/registry.ts), and a suite the table names must
-  // be one that selfcheck runs. Add it there before adding it here.
+  "game-asset-pipeline.test.ts",
+  // Drives `read_media_bytes` by guest import from a chat action. Named in the
+  // `capability-suites` filter list (packages/cli-harness/src/harness/registry.ts)
+  // so the selfcheck runs it.
+  "media-read-bytes.test.ts"
 ];
 
 /**

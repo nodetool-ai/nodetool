@@ -260,7 +260,7 @@ const CAPABILITY_SUITES =
   "npm run test --workspace=packages/agents -- capabilities capability " +
   "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
   "sandbox-package-docs sandbox-package-listing browser-tools " +
-  "timelines-op-input timeline-video-flow game-asset-pipeline";
+  "media-read-bytes timelines-op-input timeline-video-flow game-asset-pipeline";
 
 /**
  * The pure derivations behind the graph-resource nodes plus the node suites
