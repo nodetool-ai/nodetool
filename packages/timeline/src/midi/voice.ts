@@ -21,8 +21,15 @@ import { instrumentTailMs } from "./instrument.js";
 import { renderBassVoices } from "./engines/bl1.js";
 import { renderDrumVoice } from "./engines/dr1.js";
 import { renderWavetableVoice } from "./engines/wt1.js";
-import { visibleNotes } from "./notes.js";
-import { noteWindowMs } from "./ticks.js";
+import { expandMidiLoop } from "../clipLoop.js";
+import { playableNotes } from "./notes.js";
+import { noteWindowMs, ticksToMs } from "./ticks.js";
+import {
+  MIDI_EXPRESSION_SPEC,
+  controllerLaneKey,
+  MIDI_PITCH_BEND_RANGE_SEMITONES,
+  midiClipControllerEvents
+} from "./controllers.js";
 
 /** How long the anti-click ramp at the window end lasts. */
 export const MIDI_END_RAMP_MS = 5;
@@ -291,6 +298,125 @@ export interface VoiceEvent {
   /** Frame the note is released on — the window end gates a note that runs
    * past it. */
   gateOffFrame: number;
+  /**
+   * Per-note expression as curves on the frame clock. `renderVoiceEvents`
+   * applies pitch (semitones) and volume (linear gain) per sample. The other
+   * engines ignore it.
+   */
+  expression?: {
+    pitch?: ReadonlyArray<FramePoint>;
+    volume?: ReadonlyArray<FramePoint>;
+  };
+}
+
+/** One point of a curve on the frame clock. */
+export interface FramePoint {
+  frame: number;
+  value: number;
+}
+
+/**
+ * A value that changes over the render, as points on the frame clock. `step`
+ * holds each value until the next point, otherwise the value blends linearly.
+ */
+class FrameCurve {
+  private cursor = 0;
+  constructor(
+    private readonly points: ReadonlyArray<FramePoint>,
+    private readonly neutral: number,
+    private readonly step: boolean
+  ) {}
+
+  at(frame: number): number {
+    const pts = this.points;
+    if (pts.length === 0) return this.neutral;
+    if (this.cursor > 0 && pts[this.cursor].frame > frame) this.cursor = 0;
+    while (this.cursor + 1 < pts.length && pts[this.cursor + 1].frame <= frame) {
+      this.cursor++;
+    }
+    const a = pts[this.cursor];
+    if (frame < a.frame) return this.neutral;
+    const b = pts[this.cursor + 1];
+    if (this.step || !b || b.frame <= a.frame) return a.value;
+    return a.value + ((b.value - a.value) * (frame - a.frame)) / (b.frame - a.frame);
+  }
+}
+
+/**
+ * What a clip's controller lanes do to a render, on the frame clock. Both
+ * tracks are step curves: the lane events say when a value changes.
+ */
+export interface MidiRenderControls {
+  /** Summed pitch bend of every pitch-bend lane, in semitones. */
+  pitchBendSemitones?: ReadonlyArray<FramePoint>;
+  /** Product of the cc 7 (`(v/127)^2`) and cc 11 (`v/127`) lane gains. */
+  gain?: ReadonlyArray<FramePoint>;
+  /** Frames at which the sustain pedal (cc 64, any lane >= 64) goes down or up. */
+  pedal?: ReadonlyArray<{ frame: number; down: boolean }>;
+}
+
+/**
+ * Fold a clip's controller events into the tracks the renderer reads. Frames
+ * count from the window start. Pitch bend ignores the channel and uses
+ * `MIDI_PITCH_BEND_RANGE_SEMITONES`.
+ */
+export function midiClipRenderControls(
+  clip: Pick<
+    TimelineClip,
+    "controllers" | "inPointMs" | "durationMs" | "loopLengthMs"
+  >,
+  bpm: number,
+  sampleRate: number
+): MidiRenderControls {
+  const events = midiClipControllerEvents({ ...clip, startMs: 0 }, bpm);
+  const bend = new Map<string, number>();
+  const gain = new Map<string, number>();
+  const pedal = new Map<string, boolean>();
+  const controls: MidiRenderControls = {};
+  const bendTrack: FramePoint[] = [];
+  const gainTrack: FramePoint[] = [];
+  const pedalTrack: { frame: number; down: boolean }[] = [];
+  const push = (track: FramePoint[], frame: number, value: number): void => {
+    const last = track[track.length - 1];
+    if (last && last.frame === frame) last.value = value;
+    else track.push({ frame, value });
+  };
+  for (const event of events) {
+    const frame = Math.round((event.timeMs / 1000) * sampleRate);
+    if (event.kind === "pitchBend") {
+      bend.set(controllerLaneKey(event), (event.value / 8192) * MIDI_PITCH_BEND_RANGE_SEMITONES);
+      let sum = 0;
+      for (const v of bend.values()) sum += v;
+      push(bendTrack, frame, sum);
+    } else if (event.kind === "cc" && (event.cc === 7 || event.cc === 11)) {
+      gain.set(
+        controllerLaneKey(event),
+        event.cc === 7 ? (event.value / 127) ** 2 : event.value / 127
+      );
+      let product = 1;
+      for (const v of gain.values()) product *= v;
+      push(gainTrack, frame, product);
+    } else if (event.kind === "cc" && event.cc === 64) {
+      pedal.set(controllerLaneKey(event), event.value >= 64);
+      const down = [...pedal.values()].some(Boolean);
+      const last = pedalTrack[pedalTrack.length - 1];
+      if ((last?.down ?? false) !== down) pedalTrack.push({ frame, down });
+    }
+  }
+  if (bendTrack.length > 0) controls.pitchBendSemitones = bendTrack;
+  if (gainTrack.length > 0) controls.gain = gainTrack;
+  if (pedalTrack.length > 0) controls.pedal = pedalTrack;
+  return controls;
+}
+
+/** Multiply `out` by the gain track, in place. */
+function applyGainTrack(
+  out: Float32Array,
+  track: ReadonlyArray<FramePoint> | undefined
+): void {
+  if (!track || track.length === 0) return;
+  const curve = new FrameCurve(track, 1, true);
+  for (let frame = 0; frame < out.length; frame++) out[frame] *= curve.at(frame);
 }
 
 /**
@@ -338,7 +464,8 @@ export function renderVoiceEvents(
   events: ReadonlyArray<VoiceEvent>,
   totalFrames: number,
   instrument: SubtractiveMidiInstrument,
-  sampleRate: number
+  sampleRate: number,
+  controls: MidiRenderControls = {}
 ): Float32Array {
   const out = new Float32Array(Math.max(0, totalFrames));
   if (out.length === 0) return out;
@@ -353,8 +480,17 @@ export function renderVoiceEvents(
   for (const event of events) {
     const startFrame = Math.max(0, event.startFrame);
     if (startFrame >= out.length) continue;
-    const dt = pitchToHz(event.pitch) / sampleRate;
+    const baseDt = pitchToHz(event.pitch) / sampleRate;
     const amplitude = event.velocity / 127;
+    const bendCurve = controls.pitchBendSemitones
+      ? new FrameCurve(controls.pitchBendSemitones, 0, true)
+      : undefined;
+    const pitchCurve = event.expression?.pitch
+      ? new FrameCurve(event.expression.pitch, MIDI_EXPRESSION_SPEC.pitch.neutral, false)
+      : undefined;
+    const volumeCurve = event.expression?.volume
+      ? new FrameCurve(event.expression.volume, MIDI_EXPRESSION_SPEC.volume.neutral, false)
+      : undefined;
     const envelope = createEnvelope(instrument, sampleRate);
     const filter = createBiquadState();
     let phase = 0;
@@ -362,14 +498,25 @@ export function renderVoiceEvents(
     for (let frame = startFrame; frame < out.length; frame++) {
       const level = stepEnvelope(envelope, frame < event.gateOffFrame);
       if (envelope.stage === "done") break;
+      let dt = baseDt;
+      if (bendCurve || pitchCurve) {
+        const semitones = (bendCurve?.at(frame) ?? 0) + (pitchCurve?.at(frame) ?? 0);
+        if (semitones !== 0) dt = baseDt * 2 ** (semitones / 12);
+      }
       const sample = oscillator(instrument.waveform, phase, dt);
-      out[frame] += stepBiquad(coeffs, filter, sample * level * amplitude);
+      const voiceGain = volumeCurve ? volumeCurve.at(frame) : 1;
+      out[frame] += stepBiquad(
+        coeffs,
+        filter,
+        sample * level * amplitude * voiceGain
+      );
       phase += dt;
-      if (phase >= 1) phase -= 1;
+      phase -= Math.floor(phase);
     }
     if (envelope.stage !== "done") soundingAtEnd = true;
   }
 
+  applyGainTrack(out, controls.gain);
   return finishBuffer(out, instrument.gainDb, soundingAtEnd, sampleRate);
 }
 
@@ -385,10 +532,11 @@ export function renderInstrumentEvents(
   totalFrames: number,
   instrument: MidiInstrument,
   sampleRate: number,
-  samples: SamplerSamples = {}
+  samples: SamplerSamples = {},
+  controls: MidiRenderControls = {}
 ): Float32Array {
   if (instrument.type === "subtractive") {
-    return renderVoiceEvents(events, totalFrames, instrument, sampleRate);
+    return renderVoiceEvents(events, totalFrames, instrument, sampleRate, controls);
   }
   const out = new Float32Array(Math.max(0, totalFrames));
   if (out.length === 0) return out;
@@ -420,12 +568,16 @@ export function renderInstrumentEvents(
       return out;
   }
 
+  applyGainTrack(out, controls.gain);
   return finishBuffer(out, instrument.gainDb, soundingAtEnd, sampleRate);
 }
 
 export interface RenderMidiClipInput {
   samples?: SamplerSamples;
-  clip: Pick<TimelineClip, "notes" | "inPointMs" | "durationMs">;
+  clip: Pick<
+    TimelineClip,
+    "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs"
+  >;
   bpm: number;
   instrument: MidiInstrument;
   sampleRate: number;
@@ -440,13 +592,15 @@ export interface RenderMidiClipInput {
  * silences it without deleting it.
  */
 export function renderMidiClip(input: RenderMidiClipInput): Float32Array {
-  const { clip, bpm, instrument, sampleRate } = input;
+  const { bpm, instrument, sampleRate } = input;
+  const clip = expandMidiLoop(input.clip, bpm);
   return renderInstrumentEvents(
     midiClipVoiceEvents(clip, bpm, sampleRate),
     midiClipFrames(clip, sampleRate),
     instrument,
     sampleRate,
-    input.samples
+    input.samples,
+    midiClipRenderControls(clip, bpm, sampleRate)
   );
 }
 
@@ -463,22 +617,38 @@ export function midiClipFrames(
  * that renders an instrument itself (a VST plug-in) plays these.
  */
 export function midiClipVoiceEvents(
-  clip: Pick<TimelineClip, "notes" | "inPointMs" | "durationMs">,
+  source: Pick<
+    TimelineClip,
+    "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs"
+  >,
   bpm: number,
   sampleRate: number
 ): VoiceEvent[] {
+  const clip = expandMidiLoop(source, bpm);
   const windowStartMs = clip.inPointMs ?? 0;
   const windowEndMs = windowStartMs + clip.durationMs;
 
-  return visibleNotes(clip, bpm).map((note) => {
+  const totalFrames = midiClipFrames(clip, sampleRate);
+  const pedal = midiClipRenderControls(clip, bpm, sampleRate).pedal ?? [];
+  const toFrame = (ms: number): number => Math.round((ms / 1000) * sampleRate);
+
+  return playableNotes(clip, bpm).map((note) => {
     const { startMs, endMs } = noteWindowMs(note, bpm);
-    const startFrame = Math.round(
-      ((startMs - windowStartMs) / 1000) * sampleRate
-    );
-    const gateOffFrame = Math.round(
-      ((Math.min(endMs, windowEndMs) - windowStartMs) / 1000) * sampleRate
-    );
-    return {
+    const startFrame = toFrame(startMs - windowStartMs);
+    let gateOffFrame = toFrame(Math.min(endMs, windowEndMs) - windowStartMs);
+    // Sustain pedal: a note released while the pedal is down rings until the
+    // pedal comes up, or until the window ends.
+    let held = false;
+    let releaseAt = totalFrames;
+    for (const change of pedal) {
+      if (change.frame <= gateOffFrame) held = change.down;
+      else if (held && !change.down) {
+        releaseAt = change.frame;
+        break;
+      }
+    }
+    if (held) gateOffFrame = Math.max(gateOffFrame, releaseAt);
+    const event: VoiceEvent = {
       pitch: note.pitch,
       velocity: note.velocity,
       startFrame,
@@ -486,6 +656,23 @@ export function midiClipVoiceEvents(
       // rather than being triggered and immediately released.
       gateOffFrame: Math.max(gateOffFrame, startFrame + 1)
     };
+    const curve = (
+      points: ReadonlyArray<{ tick: number; value: number }> | undefined
+    ): FramePoint[] | undefined =>
+      points && points.length > 0
+        ? points.map((p) => ({
+            frame: startFrame + toFrame(ticksToMs(p.tick, bpm)),
+            value: p.value
+          }))
+        : undefined;
+    const pitch = curve(note.expression?.pitch);
+    const volume = curve(note.expression?.volume);
+    if (pitch || volume) {
+      event.expression = {};
+      if (pitch) event.expression.pitch = pitch;
+      if (volume) event.expression.volume = volume;
+    }
+    return event;
   });
 }
 

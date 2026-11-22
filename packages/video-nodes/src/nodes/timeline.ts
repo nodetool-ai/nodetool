@@ -55,6 +55,7 @@ import {
   type SamplerAudio,
   resolveTempo,
   timeRemapAudioSegments,
+  activeLoopMs,
   type TimeRemapAudioSegment,
   type TimelineClip,
   clipAudioTailSec,
@@ -832,7 +833,12 @@ async function mixAudioInto(opts: {
     // Only a clip that plays at source rate can use the plain chain: a
     // speedMultiplier is a rate too, and without atempo (and the wider source
     // window it needs) a 2x clip's audio ran on past the clip.
-    if (!hasTimeRemap(clip) && sourceRate(clip) === 1) {
+    if (
+      !hasTimeRemap(clip) &&
+      sourceRate(clip) === 1 &&
+      // A midi clip's WAV already holds every repeat of its window.
+      (clip.mediaType === "midi" || activeLoopMs(clip) === undefined)
+    ) {
       inputs.push({ filePath: audioPath, kind: "audio", label: `${inputIndex}:a` });
       const label = `a${i}`;
       filters.push(audioClipFilter(clip, inputIndex, label));

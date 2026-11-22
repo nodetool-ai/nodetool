@@ -9,6 +9,7 @@
  */
 
 import type { MidiNote } from "../types.js";
+import { fitExpressionToDuration } from "./notesEdit.js";
 import { MIDI_PPQ } from "./ticks.js";
 
 /** The grids a quantize may snap to. `T` is a triplet: three in the space of two. */
@@ -72,6 +73,13 @@ export type QuantizeTarget = "start" | "start_and_length";
 
 export interface QuantizeOptions {
   division: QuantizeDivision;
+  /**
+   * Delay of every odd grid step, 0..1 of half a step. Default 0. Only the
+   * onset moves: lengths still round to whole steps.
+   */
+  swing?: number;
+  /** Quantize only these notes. Default: every note. */
+  noteIds?: ReadonlySet<string> | ReadonlyArray<string>;
   /** How far toward the grid each note travels, 0..1. Default 1 (all the way). */
   strength?: number;
   /** Default `"start"`. */
@@ -94,9 +102,27 @@ export interface QuantizeOptions {
  */
 export function quantizeNotes(
   notes: ReadonlyArray<MidiNote>,
-  options: QuantizeOptions
+  options: Omit<QuantizeOptions, "division"> & {
+    /** The grid step. Required unless `stepTicks` is given. */
+    division?: QuantizeDivision;
+    /** The grid step in ticks. Wins over `division`; for grids such as a bar. */
+    stepTicks?: number;
+  }
 ): MidiNote[] {
-  const grid = divisionToTicks(options.division);
+  const grid =
+    options.stepTicks ??
+    (options.division === undefined
+      ? Number.NaN
+      : divisionToTicks(options.division));
+  if (!Number.isFinite(grid) || grid <= 0) {
+    throw new Error("quantize needs a division or a positive stepTicks.");
+  }
+  const swing = options.swing ?? 0;
+  if (!Number.isFinite(swing) || swing < 0 || swing > 1) {
+    throw new Error(`swing must be between 0 and 1; got ${String(swing)}.`);
+  }
+  const only =
+    options.noteIds === undefined ? null : new Set(options.noteIds);
   const strength = options.strength ?? 1;
   if (!Number.isFinite(strength) || strength < 0 || strength > 1) {
     throw new Error(`strength must be between 0 and 1; got ${String(strength)}.`);
@@ -105,8 +131,11 @@ export function quantizeNotes(
   const phase = options.phaseTick ?? 0;
 
   return notes.map((note) => {
+    if (only !== null && !only.has(note.id)) return note;
+    const k = Math.round((note.startTick - phase) / grid);
+    const odd = ((k % 2) + 2) % 2 === 1;
     const startTarget =
-      phase + Math.round((note.startTick - phase) / grid) * grid;
+      phase + k * grid + (odd ? Math.round((swing * grid) / 2) : 0);
     const startTick = Math.max(
       0,
       Math.round(note.startTick + (startTarget - note.startTick) * strength)
@@ -121,7 +150,7 @@ export function quantizeNotes(
       1,
       Math.round(note.durationTick + (lengthTarget - note.durationTick) * strength)
     );
-    return { ...note, startTick, durationTick };
+    return fitExpressionToDuration({ ...note, startTick, durationTick });
   });
 }
 

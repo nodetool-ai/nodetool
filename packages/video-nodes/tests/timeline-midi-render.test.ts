@@ -330,4 +330,22 @@ describe("RenderTimeline — midi tracks", () => {
     expect(rms(samples, 0, 4 * QUARTER_MS)).toBeGreaterThan(0.01);
     expect(rms(samples, 4 * QUARTER_MS + 200, CLIP_MS)).toBeLessThan(0.001);
   });
+
+  it("mixes a looped, slipped clip's rendered WAV without a second trim or repeat slice", async () => {
+    const seq = sequence({
+      tracks: [MIDI_TRACK],
+      clips: [
+        midiClip({
+          inPointMs: 1000,
+          durationMs: 4 * QUARTER_MS * 2,
+          loopLengthMs: 4 * QUARTER_MS
+        })
+      ]
+    });
+    await render(seq);
+
+    // `renderMidiClip` already wrote every repeat of the window.
+    expect(mixArgs()).toContain(`atrim=start=0:end=${CLIP_MS / 1000}`);
+    expect(mixArgs()).not.toContain("atrim=start=1");
+  });
 });

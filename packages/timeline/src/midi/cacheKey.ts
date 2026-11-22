@@ -7,6 +7,7 @@
  * that plays back as whatever was rendered before it changed.
  */
 
+import { activeLoopMs } from "../clipLoop.js";
 import type { MidiInstrument, TimelineClip } from "../types.js";
 import { instrumentSignature } from "./instrument.js";
 import { sortNotes } from "./notes.js";
@@ -36,7 +37,10 @@ export function fnv1a(input: string): string {
 }
 
 export interface MidiRenderKeyInput {
-  clip: Pick<TimelineClip, "notes" | "inPointMs" | "durationMs">;
+  clip: Pick<
+    TimelineClip,
+    "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs"
+  >;
   bpm: number;
   instrument: MidiInstrument;
   sampleRate: number;
@@ -50,12 +54,27 @@ export function midiRenderKey(input: MidiRenderKeyInput): string {
     note.pitch,
     note.velocity,
     note.startTick,
-    note.durationTick
+    note.durationTick,
+    note.muted ? 1 : 0,
+    note.channel ?? 0,
+    note.releaseVelocity ?? -1,
+    note.expression ?? null
+  ]);
+  const controllers = (clip.controllers ?? []).map((lane) => [
+    lane.id,
+    lane.kind,
+    lane.cc ?? -1,
+    lane.pitch ?? -1,
+    lane.channel ?? 0,
+    lane.interpolation ?? "linear",
+    lane.points.map((p) => [p.id, p.tick, p.value])
   ]);
   const canonical = JSON.stringify({
     notes,
+    controllers,
     inPointMs: clip.inPointMs ?? 0,
     durationMs: clip.durationMs,
+    ...(activeLoopMs(clip) !== undefined ? { loopLengthMs: clip.loopLengthMs } : {}),
     bpm,
     instrument: instrumentSignature(instrument),
     sampleRate
