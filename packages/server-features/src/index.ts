@@ -96,7 +96,7 @@ function checkDescriptor(descriptor: FeatureDescriptor): void {
     throw new FeatureConfigurationError(`Feature ${descriptor.id} requires unsupported API ${descriptor.apiVersion}`);
   }
   for (const values of [descriptor.requires, descriptor.capabilities, descriptor.nodeTypes]) {
-    if (values?.some((value) => typeof value !== "string" || !value) || new Set(values).size !== (values?.length ?? 0)) {
+    if (values?.some((value) => !value) || new Set(values).size !== (values?.length ?? 0)) {
       throw new FeatureConfigurationError(`Feature ${descriptor.id} contains empty or duplicate declarations`);
     }
   }
