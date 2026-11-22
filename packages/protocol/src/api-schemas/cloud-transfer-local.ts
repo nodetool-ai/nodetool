@@ -64,7 +64,12 @@ export const capturedSend = z.object({
   ),
   deleted_locally: z.array(
     z.object({ kind: transferDocumentKind, local_id: z.string(), cloud_id: z.string(), base_hash: z.string() })
-  )
+  ),
+  /**
+   * Workspace files sent earlier and gone from the folder since, for the
+   * deletion review. Absent from a server that predates them.
+   */
+  deleted_workspace_files: z.array(z.object({ path: z.string(), base_hash: z.string() })).optional()
 });
 
 /**
@@ -89,6 +94,15 @@ export const runSendInput = cloudTransferSession.extend({
   confirm_deletes: z
     .array(z.object({ kind: transferDocumentKind, cloud_id: fullId, cloud_hash: z.string().regex(/^[0-9a-f]{64}$/) }))
     .max(10_000)
+    .optional(),
+  /**
+   * Workspace files the deletion review confirmed for deletion on the cloud,
+   * each with the base hash the capture listed. Only the project's owner
+   * deletes a file.
+   */
+  confirm_workspace_deletes: z
+    .array(z.object({ path: z.string(), base_hash: z.string().regex(/^[0-9a-f]{64}$/) }))
+    .max(100_000)
     .optional(),
   /** The missing files the review confirmed, exactly as the capture listed them (X7, review F36). */
   confirm_missing_files: z.array(transferMissingFile).max(100_000).optional()

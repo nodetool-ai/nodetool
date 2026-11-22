@@ -220,6 +220,13 @@ export async function setCloudLinkWorkspaceFileBase(
     });
 }
 
+/** Forgets the base of a workspace file whose deletion the cloud committed. */
+export async function deleteCloudLinkWorkspaceFile(linkId: string, path: string): Promise<void> {
+  await getPortableDb()
+    .delete(cloudLinkWorkspaceFiles)
+    .where(and(eq(cloudLinkWorkspaceFiles.link_id, linkId), eq(cloudLinkWorkspaceFiles.path, path)));
+}
+
 /** Starts the record of a receive, in state `staging`. */
 export async function createCloudReceive(
   link: CloudLinkRow,
