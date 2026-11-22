@@ -4,13 +4,15 @@
  * `applyAgentEdit`, so one gesture or command is one undo entry and goes
  * through the same code path as the agent tools.
  *
- * Runs are serialized: each starts from the state the previous one wrote, so
- * concurrent edits never overwrite each other (F2). Each run is one gesture
+ * Runs are serialized per document, across every hook instance: each starts
+ * from the state the previous one wrote, so concurrent edits never overwrite
+ * each other (F2, F55). A run whose document changed while it awaited library
+ * ops starts again from the new state. Each run is one gesture
  * and one undo entry (F48), and fails alone (F49). Callers group a MIDI chord
  * into one run at the chord boundary.
  */
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { createTimeOrderedUuid } from "@nodetool-ai/timeline";
 import {
   applyTimelineOp,
@@ -36,6 +38,18 @@ const READ_ONLY_OPS = new Set<TimelineOp["op"]>([
   "delete_step_pattern_folder",
   "move_step_pattern"
 ]);
+
+/** Attempts before a run gives up rebasing onto a document that keeps changing. */
+const MAX_REBASES = 3;
+
+/** The document fields a run reads; a change to any of them makes the run stale. */
+const DOCUMENT_KEYS = [
+  "fps", "width", "height", "tracks", "trackFolders", "clips", "markers", "mediaTracks", "tempo", "music",
+  "master", "setup", "transcript", "scriptEnabled", "camera2d", "storyboardMaterializations"
+] as const;
+
+/** One queue per document store, shared by every hook instance (F55). */
+const documentQueues = new WeakMap<object, Promise<void>>();
 
 /** An op, or a function that builds one from the results of the ops before it. */
 export type StepPatternOpStep = TimelineOp | ((previous: readonly TimelineOpResult[]) => TimelineOp);
@@ -67,7 +81,11 @@ export function useStepPatternOps(): StepPatternOps {
   }, []);
 
   const apply = useCallback(
-    async (ops: readonly StepPatternOpStep[], options?: StepPatternRunOptions): Promise<TimelineOpResult[]> => {
+    async (
+      ops: readonly StepPatternOpStep[],
+      options?: StepPatternRunOptions,
+      attempt = 0
+    ): Promise<TimelineOpResult[]> => {
       const s = doc.getState();
       let state: TimelineOpState = {
         fps: s.fps,
@@ -107,6 +125,12 @@ export function useStepPatternOps(): StepPatternOps {
         }
       }
       if (wrote) {
+        const now = doc.getState();
+        const stale = DOCUMENT_KEYS.some((key) => s[key] !== now[key]);
+        if (stale && attempt < MAX_REBASES) {
+          return apply(ops, options, attempt + 1);
+        }
+        if (stale) throw new Error("The timeline changed during the edit. Try again.");
         const next = state;
         const write = () =>
           doc.getState().applyAgentEdit({ ...next, mediaTracks: next.mediaTracks ?? [] }, { preserveTiming: true });
@@ -117,6 +141,10 @@ export function useStepPatternOps(): StepPatternOps {
           runAsOneUndoEntry(doc, () => {
             write();
             afterWrite(created);
+            // The resolution can move clips, so the duration follows it (F56).
+            const after = doc.getState();
+            const durationMs = after.clips.reduce((end, c) => Math.max(end, c.startMs + c.durationMs), 0);
+            if (durationMs !== after.durationMs) doc.setState({ durationMs });
           });
         } else {
           write();
@@ -127,20 +155,22 @@ export function useStepPatternOps(): StepPatternOps {
     [doc, ui, library]
   );
 
-  const chain = useRef<Promise<void>>(Promise.resolve());
-
   // One run is one gesture: it applies atomically and writes one undo entry.
   // A failed run rejects alone and leaves the runs queued after it intact.
   const run = useCallback(
     (ops: readonly StepPatternOpStep[], options?: StepPatternRunOptions): Promise<TimelineOpResult[]> => {
-      const result = chain.current.then(() => apply(ops, options));
-      chain.current = result.then(
-        () => undefined,
-        () => undefined
+      const tail = documentQueues.get(doc) ?? Promise.resolve();
+      const result = tail.then(() => apply(ops, options));
+      documentQueues.set(
+        doc,
+        result.then(
+          () => undefined,
+          () => undefined
+        )
       );
       return result;
     },
-    [apply]
+    [doc, apply]
   );
 
   return useMemo(() => ({ run }), [run]);

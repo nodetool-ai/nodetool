@@ -212,3 +212,43 @@ describe("Step tab (SQ31 items 1 and 2)", () => {
     fireEvent.blur(condition);
   });
 });
+
+describe("Round 9 (F60, F61)", () => {
+  const loopRows = () =>
+    makePattern([
+      { id: "a", assignment: { type: "note", pitch: 36 }, loopStart: 0, loopEnd: 12 },
+      { id: "b", assignment: { type: "note", pitch: 38 }, loopStart: 4, loopEnd: 16 }
+    ]);
+
+  it("F60: a relative mixed Pattern Loop Start moves each row by the same amount", async () => {
+    const user = userEvent.setup();
+    const { runOps, inspector } = renderInspector({ pattern: loopRows() });
+    const start = within(inspector).getByLabelText("Loop Start") as HTMLInputElement;
+    expect(start.value).toBe("*");
+    await commit(user, start, "+1");
+    expect(runOps).toHaveBeenLastCalledWith([
+      { op: "set_pattern_row", clipId: CLIP, row: "a", loopStart: 2 },
+      { op: "set_pattern_row", clipId: CLIP, row: "b", loopStart: 6 }
+    ]);
+  });
+
+  it("F60: a relative mixed Pattern Loop End moves each row by the same amount", async () => {
+    const user = userEvent.setup();
+    const { runOps, inspector } = renderInspector({ pattern: loopRows() });
+    await commit(user, within(inspector).getByLabelText("Loop End") as HTMLInputElement, "-2");
+    expect(runOps).toHaveBeenLastCalledWith([
+      { op: "set_pattern_row", clipId: CLIP, row: "a", loopEnd: 10 },
+      { op: "set_pattern_row", clipId: CLIP, row: "b", loopEnd: 14 }
+    ]);
+  });
+
+  it("F61: a device parameter value keeps its fraction", async () => {
+    const user = userEvent.setup();
+    const pattern = makePattern([
+      { id: "d", assignment: { type: "automation", target: { kind: "device", deviceId: "eq", param: "gain" } }, steps: [{ on: true, value: 0.5 }] }
+    ]);
+    const { runOps, inspector } = renderInspector({ pattern, steps: [["d", [0]]] });
+    await commit(user, within(inspector).getByLabelText("Value"), "0.25");
+    expect(runOps).toHaveBeenLastCalledWith([{ op: "set_steps", clipId: CLIP, row: "d", steps: [1], values: { value: 0.25 } }]);
+  });
+});

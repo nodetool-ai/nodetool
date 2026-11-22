@@ -63,6 +63,7 @@ import {
   ToolbarIconButton
 } from "../../ui_primitives";
 import ErrorBanner from "../../support/ErrorBanner";
+import { StepLearnKeyboard } from "./StepLearnKeyboard";
 import { MenuButton, type MenuRow } from "../pianoRoll/PianoRollMenus";
 import { isMacPlatform } from "../pianoRoll/pianoRollTools";
 import { playAuditionNote } from "../preview/audition";
@@ -148,6 +149,21 @@ interface Props {
 const barStyles = css({ flexShrink: 0, flexWrap: "nowrap", overflow: "hidden" });
 const iconSx = { fontSize: ICON_SIZE.sm };
 
+
+/**
+ * A row rename or reassignment changes the keys of the kept sort, so the run
+ * re-applies the sort unless it already sorts or moves rows (F29, F59).
+ */
+function withKeptSort(list: TimelineOp[], pattern: StepPattern | undefined): TimelineOp[] {
+  const sort = patternRowSort(pattern);
+  if (!sort) return list;
+  const touchesKeys = list.some((op) => op.op === "set_pattern_row" && ("name" in op || "assignment" in op));
+  const placesRows = list.some((op) => op.op === "set_pattern_row_sort" || op.op === "move_pattern_row");
+  if (!touchesKeys || placesRows) return list;
+  const clipId = list.find((op) => op.op === "set_pattern_row")!.clipId;
+  return [...list, ...sortOps(clipId, sort)];
+}
+
 export const StepSequencer: React.FC<Props> = memo(({ clipId, toolbarStart, toolbarEnd }) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -212,7 +228,7 @@ export const StepSequencer: React.FC<Props> = memo(({ clipId, toolbarStart, tool
   const runOps = useCallback(
     (list: TimelineOp[]): Promise<void> => {
       if (list.length === 0) return Promise.resolve();
-      return ops.run(list).then(
+      return ops.run(withKeptSort(list, clipRef.current?.pattern)).then(
         () => setError(null),
         (err: unknown) => setError(err instanceof Error ? err.message : String(err))
       );
@@ -621,49 +637,63 @@ export const StepSequencer: React.FC<Props> = memo(({ clipId, toolbarStart, tool
   // Step-recorded notes of one chord collect here and write as one run, so
   // the chord is one undo entry at the chord boundary (F2).
   const chordOps = useRef<TimelineOp[]>([]);
+  // A mode change ends the chord: notes held while it changes are dropped (F57).
+  useEffect(() => {
+    chordOps.current = [];
+  }, [learn, stepRecord]);
+  // Learn (Add) assignments queued but not yet written, so a burst adds once (F58).
+  const pendingLearn = useRef(new Set<string>());
+  const learnAdd = (key: string, list: TimelineOp[]) => {
+    if (pendingLearn.current.has(key)) return;
+    pendingLearn.current.add(key);
+    void runOps(list).finally(() => pendingLearn.current.delete(key));
+  };
   /** A controller, pitch bend or pressure event in Learn or step recording (SQ38). */
   const learnAutomation = (target: StepAutomationTarget, value: number) => {
     if (!pattern) return;
     const existing = pattern.rows.find((r) => r.assignment.type === "automation" && sameAutomationTarget(r.assignment.target, target));
     const assignment = { type: "automation" as const, target };
-    if (learn === "add" && !existing) void runOps([{ op: "add_pattern_rows", clipId, rows: [{ assignment }] }, ...sortOps(clipId, rowSort)]);
+    if (learn === "add" && !existing) learnAdd(JSON.stringify(assignment), [{ op: "add_pattern_rows", clipId, rows: [{ assignment }] }, ...sortOps(clipId, rowSort)]);
     else if (learn === "assign" && focusRowIds[0]) void runOps([{ op: "set_pattern_row", clipId, row: focusRowIds[0], assignment }]);
     else if (stepRecord && existing && anchor)
       void runOps([{ op: "set_steps", clipId, row: existing.id, steps: [parseStepKey(anchor).step + 1], values: { value } }]);
+  };
+  /** A played note from hardware MIDI or the on-screen keyboard (SQ38, SQ40). */
+  const playNote = (pitch: number, velocity: number) => {
+    if (!pattern) return;
+    const target = learnTarget(pattern, instrument, pitch);
+    if (learn === "add") {
+      if ("add" in target) learnAdd(JSON.stringify(target.add), [{ op: "add_pattern_rows", clipId, rows: [target.add] }, ...sortOps(clipId, rowSort)]);
+      return;
+    }
+    if (learn === "assign") {
+      const rowId = focusRowIds[0];
+      const assignment = "add" in target && "pad" in target.add ? { type: "kit" as const, pad: target.add.pad } : { type: "note" as const, pitch };
+      if (rowId) void runOps([{ op: "set_pattern_row", clipId, row: rowId, assignment }]);
+      return;
+    }
+    // Step recording ships in P2 (D102); it writes onto existing rows only.
+    if (stepRecord && anchor && "rowId" in target) {
+      const { step } = parseStepKey(anchor);
+      chordOps.current.push({ op: "set_steps", clipId, row: target.rowId, steps: [step + 1], values: { on: true, velocity } });
+    }
+  };
+  const releaseChord = () => {
+    const chord = chordOps.current;
+    chordOps.current = [];
+    if (chord.length > 0 && stepRecord) void runOps(chord);
+    if (stepRecord) handleUi({ type: "move", dx: 1, dy: 0, extend: false });
   };
   // Learn and step recording from hardware MIDI (SQ38, SQ40).
   useStepMidiInput({
     enabled: learn !== "off" || stepRecord,
     onUnavailable: (reason) => {
-      setLearn("off");
+      // Learn keeps the on-screen keyboard without Web MIDI (F23).
       setStepRecord(false);
       setError(t("stepSequencer.midiUnavailable", { reason }));
     },
-    onNote: (pitch, velocity) => {
-      if (!pattern) return;
-      const target = learnTarget(pattern, instrument, pitch);
-      if (learn === "add") {
-        if ("add" in target) void runOps([{ op: "add_pattern_rows", clipId, rows: [target.add] }, ...sortOps(clipId, rowSort)]);
-        return;
-      }
-      if (learn === "assign") {
-        const rowId = focusRowIds[0];
-        const assignment = "add" in target && "pad" in target.add ? { type: "kit" as const, pad: target.add.pad } : { type: "note" as const, pitch };
-        if (rowId) void runOps([{ op: "set_pattern_row", clipId, row: rowId, assignment }]);
-        return;
-      }
-      // Step recording ships in P2 (D102); it writes onto existing rows only.
-      if (stepRecord && anchor && "rowId" in target) {
-        const { step } = parseStepKey(anchor);
-        chordOps.current.push({ op: "set_steps", clipId, row: target.rowId, steps: [step + 1], values: { on: true, velocity } });
-      }
-    },
-    onChordReleased: () => {
-      const chord = chordOps.current;
-      chordOps.current = [];
-      if (chord.length > 0) void runOps(chord);
-      if (stepRecord) handleUi({ type: "move", dx: 1, dy: 0, extend: false });
-    },
+    onNote: (pitch, velocity) => playNote(pitch, velocity),
+    onChordReleased: () => releaseChord(),
     onController: (cc, value) => learnAutomation({ kind: "cc", cc }, value),
     onPitchBend: (value) => learnAutomation({ kind: "pitchBend" }, Math.round((value / 16383) * 127)),
     onPressure: (value) => learnAutomation({ kind: "channelPressure" }, value)
@@ -1040,6 +1070,7 @@ export const StepSequencer: React.FC<Props> = memo(({ clipId, toolbarStart, tool
           onPick={(v) => runOps([{ op: "set_pattern", clipId, lengthSteps: Number(v) }])}
         />
       </Toolbar>
+      {learn !== "off" && <StepLearnKeyboard onNote={playNote} onRelease={releaseChord} />}
       {error && (
         <ErrorBanner report={{ source: "operation-failure", summary: t("stepSequencer.editFailed"), errorText: error }}>{error}</ErrorBanner>
       )}

@@ -90,6 +90,23 @@ describe("Pattern Browser folders (SQ43)", () => {
     expect(await browser().findByTestId(`browser-folder-${ROOT}/Beats`)).toBeInTheDocument();
   });
 
+  it("F63: a failed rename shows the error and reloads the library", async () => {
+    const user = userEvent.setup();
+    const { library, run, onError } = setup();
+    fireEvent.contextMenu(await browser().findByTestId(`browser-folder-${ROOT}/Drums`));
+    await user.click(await screen.findByRole("menuitem", { name: "Rename Folder" }));
+    const input = await screen.findByRole("textbox", { name: "Folder name" });
+    library.renameFolder = async () => {
+      throw new Error("HTTP 500");
+    };
+    const lists = () => run.mock.calls.filter(([ops]) => ops[0]?.op === "list_step_patterns").length;
+    const before = lists();
+    await user.clear(input);
+    await user.type(input, "Beats{Enter}");
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.stringContaining("HTTP 500")));
+    await waitFor(() => expect(lists()).toBeGreaterThan(before));
+  });
+
   it("Delete removes the folder and moves its patterns to the parent", async () => {
     const user = userEvent.setup();
     const { library } = setup();

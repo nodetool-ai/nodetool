@@ -152,7 +152,11 @@ export const StepPatternBrowser: React.FC<Props> = memo(({ clipId, patternName, 
           if (renamed && selectedFolder === folder.folder) setSelectedFolder(renamed);
           reload();
         })
-        .catch(fail);
+        .catch((err: unknown) => {
+          // The library rolls back a failed rename; reload shows what it holds (F63).
+          fail(err);
+          reload();
+        });
     },
     [run, selectedFolder, reload, fail]
   );

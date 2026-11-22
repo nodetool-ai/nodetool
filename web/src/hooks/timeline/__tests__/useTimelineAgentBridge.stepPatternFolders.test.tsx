@@ -326,6 +326,30 @@ describe("SQ43 step pattern library folder operations (browser)", () => {
     ]);
   });
 
+  it("F63: a failed folder rename rolls back the moves it made", async () => {
+    const storeMock = installMockAssetStore();
+    const lib = createBrowserStepPatternLibrary();
+    await lib.createFolder({ kind: "pattern", name: "Drums" });
+    const pattern = patternFromText("Kick: x... x... x... x...", { name: "A" });
+    await lib.save({ name: "A", kind: "pattern", folder: "Drums", pattern });
+    const second = await lib.save({ name: "B", kind: "pattern", folder: "Drums", pattern });
+    const update = storeMock.updateSpy.getMockImplementation()!;
+    let failOnce = true;
+    storeMock.updateSpy.mockImplementation(async (patch) => {
+      if (patch.id === second.id && failOnce) {
+        failOnce = false;
+        throw new Error("HTTP 500");
+      }
+      return update(patch);
+    });
+    await expect(lib.renameFolder({ folder: "Drums", newName: "Perc" })).rejects.toThrow("HTTP 500");
+    expect((await lib.list()).map((p) => p.folder)).toEqual([
+      "Step Patterns/Patterns/Drums",
+      "Step Patterns/Patterns/Drums"
+    ]);
+    expect((await lib.listFolders()).map((f) => f.folder)).toEqual(["Step Patterns/Patterns/Drums"]);
+  });
+
   it("refuses ambiguous 12-char IDs, root modifications, factory moves, and cross-kind moves on browser library", async () => {
     const sharedPrefix = "deadbeef1234";
     installMockAssetStore({

@@ -255,9 +255,9 @@ const AUDITION_THROTTLE_MS = 120;
 /**
  * Audition for a value drag (F31, SQ37): a new step plays at once, so a drag
  * plays one note per step it crosses. A changed value on the same step plays
- * at most once per AUDITION_THROTTLE_MS.
+ * at most once per AUDITION_THROTTLE_MS, and the last one always plays.
  */
-function dragAudition(
+export function dragAudition(
   row: StepRow,
   mode: StepEditMode,
   play: ((row: StepRow, step: number, values?: Partial<Step>) => void) | undefined
@@ -267,14 +267,31 @@ function dragAudition(
   let lastStep = -1;
   let lastValue = NaN;
   let lastAt = -Infinity;
-  return (step, value) => {
-    if (!play) return;
-    const now = performance.now();
-    if (step === lastStep && (value === lastValue || now - lastAt < AUDITION_THROTTLE_MS)) return;
+  let trailing: ReturnType<typeof setTimeout> | null = null;
+  const sound = (step: number, value: number) => {
     lastStep = step;
     lastValue = value;
-    lastAt = now;
-    play(row, step, field ? ({ [field]: value } as Partial<Step>) : undefined);
+    lastAt = performance.now();
+    play?.(row, step, field ? ({ [field]: value } as Partial<Step>) : undefined);
+  };
+  return (step, value) => {
+    if (!play) return;
+    if (trailing !== null) {
+      clearTimeout(trailing);
+      trailing = null;
+    }
+    if (step === lastStep && value === lastValue) return;
+    const wait = lastAt + AUDITION_THROTTLE_MS - performance.now();
+    if (step === lastStep && wait > 0) {
+      // The last suppressed value plays when the window ends, so the final
+      // value is always heard (F62).
+      trailing = setTimeout(() => {
+        trailing = null;
+        sound(step, value);
+      }, wait);
+      return;
+    }
+    sound(step, value);
   };
 }
 

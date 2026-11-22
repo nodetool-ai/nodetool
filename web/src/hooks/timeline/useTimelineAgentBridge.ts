@@ -628,38 +628,59 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
         newName,
         ...(kind !== undefined ? { kind } : {})
       });
-      for (const marker of folderAssets) {
-        if (
-          marker.kind === plan.kind &&
-          isWithinStepPatternFolder(marker.folder, plan.previousFolder)
-        ) {
-          const nextFolder = remapStepPatternFolderPath(
-            marker.folder,
-            plan.previousFolder,
-            plan.folder
-          );
-          await rewriteBrowserFolderMarker(marker, nextFolder);
-        }
-      }
+      // Each asset moves with its own request, so a failure undoes the moves
+      // already made. The server has no atomic folder rename (F63).
+      const undo: Array<() => Promise<void>> = [];
       const movedPatterns: Array<{ id: string; name: string; folder: string }> =
         [];
-      for (const item of patternAssets) {
-        if (
-          item.entry.kind === plan.kind &&
-          isWithinStepPatternFolder(item.entry.folder, plan.previousFolder)
-        ) {
-          const nextFolder = remapStepPatternFolderPath(
-            item.entry.folder!,
-            plan.previousFolder,
-            plan.folder
-          );
-          await rewriteBrowserPatternFolder(item, nextFolder);
-          movedPatterns.push({
-            id: item.entry.id,
-            name: item.entry.name,
-            folder: nextFolder
-          });
+      try {
+        for (const marker of folderAssets) {
+          if (
+            marker.kind === plan.kind &&
+            isWithinStepPatternFolder(marker.folder, plan.previousFolder)
+          ) {
+            const nextFolder = remapStepPatternFolderPath(
+              marker.folder,
+              plan.previousFolder,
+              plan.folder
+            );
+            await rewriteBrowserFolderMarker(marker, nextFolder);
+            undo.push(() => rewriteBrowserFolderMarker(marker, marker.folder));
+          }
         }
+        for (const item of patternAssets) {
+          if (
+            item.entry.kind === plan.kind &&
+            isWithinStepPatternFolder(item.entry.folder, plan.previousFolder)
+          ) {
+            const previous = item.entry.folder!;
+            const nextFolder = remapStepPatternFolderPath(
+              previous,
+              plan.previousFolder,
+              plan.folder
+            );
+            await rewriteBrowserPatternFolder(item, nextFolder);
+            undo.push(() => rewriteBrowserPatternFolder(item, previous));
+            movedPatterns.push({
+              id: item.entry.id,
+              name: item.entry.name,
+              folder: nextFolder
+            });
+          }
+        }
+      } catch (err) {
+        const failed: string[] = [];
+        for (const restore of undo.reverse()) {
+          await restore().catch((e: unknown) =>
+            failed.push(e instanceof Error ? e.message : String(e))
+          );
+        }
+        const reason = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          failed.length > 0
+            ? `${reason} (${failed.length} moved items could not be restored)`
+            : reason
+        );
       }
       return {
         ...(plan.current.id !== undefined ? { id: plan.current.id } : {}),

@@ -40,7 +40,7 @@ import {
 } from "../../ui_primitives";
 import { RowAssignmentMenu } from "./RowAssignmentMenu";
 import { assignmentChoiceId, type AssignmentChoice, type AssignmentGroup } from "./stepRowAssignments";
-import { modeRange, stepModeValue } from "./stepSequencerModel";
+import { isDeviceValue, modeRange, stepModeValue } from "./stepSequencerModel";
 
 export type InspectorTab = "pattern" | "row" | "step";
 
@@ -66,11 +66,12 @@ const MIXED = "*";
 /** Wide enough for "Mixed" and a note or controller name. */
 const ASSIGNMENT_BUTTON_MIN_WIDTH = CONTROL.height.xl * 2 + CONTROL.paddingX.compact;
 
-type Range = { min: number; max: number };
+/** `fraction` keeps decimals, as device parameters (0..1) need (F61). */
+type Range = { min: number; max: number; fraction?: boolean };
 type Normalized = ReturnType<typeof normalizeStep>;
 type Condition = Normalized["condition"];
 
-const clamp = (v: number, r: Range): number => Math.max(r.min, Math.min(r.max, Math.round(v)));
+const clamp = (v: number, r: Range): number => Math.max(r.min, Math.min(r.max, r.fraction ? v : Math.round(v)));
 
 /** A typed number, or null. `+10` and `-5` read as signed numbers. */
 function parseNumber(raw: string): number | null {
@@ -194,8 +195,12 @@ export const StepSequencerInspector: React.FC<Props> = memo(
             onCommit={(raw) => {
               const v = parseNumber(raw);
               if (v === null) return;
-              const next = patternLoopStart === MIXED ? maxRowStart + v : v;
-              setPattern({ loopStart: clamp(next, { min: 1, max: minRowEnd }) });
+              // A mixed value moves each row by the typed amount (F60).
+              if (patternLoopStart === MIXED) {
+                runOps(patternRows.map((r) => ({ op: "set_pattern_row", clipId, row: r.id, loopStart: clamp(r.loopStart + 1 + v, { min: 1, max: r.loopEnd }) }) as TimelineOp));
+                return;
+              }
+              setPattern({ loopStart: clamp(v, { min: 1, max: minRowEnd }) });
             }}
           />
         </InspectorFieldRow>
@@ -206,8 +211,11 @@ export const StepSequencerInspector: React.FC<Props> = memo(
             onCommit={(raw) => {
               const v = parseNumber(raw);
               if (v === null) return;
-              const next = patternLoopEnd === MIXED ? minRowEnd + v : v;
-              setPattern({ loopEnd: clamp(next, { min: maxRowStart, max: pattern.lengthSteps }) });
+              if (patternLoopEnd === MIXED) {
+                runOps(patternRows.map((r) => ({ op: "set_pattern_row", clipId, row: r.id, loopEnd: clamp(r.loopEnd + v, { min: r.loopStart + 1, max: r.lengthSteps }) }) as TimelineOp));
+                return;
+              }
+              setPattern({ loopEnd: clamp(v, { min: maxRowStart, max: pattern.lengthSteps }) });
             }}
           />
         </InspectorFieldRow>
@@ -391,7 +399,7 @@ export const StepSequencerInspector: React.FC<Props> = memo(
       const modeField = (label: string, items: Item[], mode: "velocity" | "value" | "gate" | "note" | "octave" | "repeat" | "chance" | "offset", unit?: string) =>
         items.length === 0
           ? null
-          : numberField(label, items, (i) => stepModeValue(i.row, i.step, mode), (i) => modeRange(i.row, mode), (c) => stepOps(c, mode), unit);
+          : numberField(label, items, (i) => stepModeValue(i.row, i.step, mode), (i) => ({ ...modeRange(i.row, mode), fraction: isDeviceValue(i.row, mode) }), (c) => stepOps(c, mode), unit);
       const rawField = (label: string, items: Item[], field: string, get: (i: Item) => number, range: Range, unit?: string) =>
         items.length === 0 ? null : numberField(label, items, get, () => range, (c) => stepOps(c, field), unit);
       const flag = (label: string, items: Item[], field: "on" | "tie" | "skip") =>
