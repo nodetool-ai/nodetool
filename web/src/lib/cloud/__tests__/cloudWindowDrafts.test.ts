@@ -102,6 +102,30 @@ describe("CloudWindowDraftDriver", () => {
     expect(driver.status()).toBe("stored");
   });
 
+  it("writes the latest edit at once when flushed, and nothing for an unsent draft", async () => {
+    const editor = new FakeEditor();
+    const store = new FakeStore();
+    const driver = new CloudWindowDraftDriver(editor, store, OWNER);
+    await driver.tick(0);
+    editor.text = "ab";
+    editor.isDirty = true;
+    await driver.tick(10);
+    expect(store.puts).toHaveLength(0);
+    await driver.flush();
+    expect(store.puts.map((put) => put.draft)).toEqual(["ab"]);
+    // An edit no tick has seen yet is written too.
+    editor.text = "abc";
+    await driver.flush();
+    expect(store.puts.map((put) => put.draft)).toEqual(["ab", "abc"]);
+
+    const refused = new FakeStore();
+    refused.stored = waiting("unsent");
+    const off = new CloudWindowDraftDriver(new FakeEditor(), refused, OWNER);
+    await off.tick(0);
+    await off.flush();
+    expect(refused.puts).toHaveLength(0);
+  });
+
   it("waits for the document to load before it asks for a draft", async () => {
     const editor = new FakeEditor();
     editor.rev = null;

@@ -10,6 +10,7 @@ import { CloudWindowDraftDriver, type DraftableEditor } from "../lib/cloud/cloud
 import { CLOUD_WINDOW } from "../lib/cloud/cloudWindow";
 import { SAVER_TICK_MS } from "../lib/cloud/CloudDocumentSaver";
 import { desktopCloudLocalDraftsClient, LocalDraftStore, serverKeyOf } from "../lib/cloud/localDraftStore";
+import { registerCloudWindowFlush } from "../lib/cloud/cloudWindowClosing";
 import { cloudSyncStatusKey, reportCloudSyncStatus } from "../stores/CloudSyncStatusStore";
 
 export const useCloudWindowDrafts = (
@@ -48,10 +49,12 @@ export const useCloudWindowDrafts = (
     };
     const timer = window.setInterval(tick, SAVER_TICK_MS);
     const unsubscribe = subscribe(tick);
+    const unregister = registerCloudWindowFlush(async () => driver?.flush());
     return () => {
       disposed = true;
       window.clearInterval(timer);
       unsubscribe();
+      unregister();
       reportCloudSyncStatus(statusKey, null);
     };
   }, [documentId, makeEditor, subscribe]);

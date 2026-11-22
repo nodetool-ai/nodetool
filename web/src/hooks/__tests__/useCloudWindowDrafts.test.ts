@@ -6,6 +6,7 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { renderHook, waitFor } from "@testing-library/react";
 
 import type { DraftableEditor } from "../../lib/cloud/cloudWindowDrafts";
+import { flushCloudWindow } from "../../lib/cloud/cloudWindowClosing";
 import { useCloudSyncStatusStore } from "../../stores/CloudSyncStatusStore";
 import { useCloudWindowDrafts } from "../useCloudWindowDrafts";
 
@@ -20,7 +21,8 @@ jest.mock("../../lib/cloud/localDraftStore", () => ({
     async load() {
       return { draft: null };
     }
-    async put() {
+    async put(_key: unknown, _base: unknown, draft: string) {
+      mockPuts.push(draft);
       return "d1";
     }
     async accept() {
@@ -31,6 +33,8 @@ jest.mock("../../lib/cloud/localDraftStore", () => ({
     }
   }
 }));
+
+const mockPuts: string[] = [];
 
 const editor = {
   dirty: false,
@@ -61,5 +65,18 @@ describe("useCloudWindowDrafts", () => {
 
     unmount();
     expect(useCloudSyncStatusStore.getState().statuses["jsscript:j1"]).toBeUndefined();
+  });
+
+  it("writes the open document's latest edit when the window closes", async () => {
+    editor.text = "a";
+    editor.dirty = false;
+    mockPuts.length = 0;
+    const { unmount } = renderHook(() => useCloudWindowDrafts("j2", makeEditor, subscribe));
+    await waitFor(() => expect(useCloudSyncStatusStore.getState().statuses["jsscript:j2"]).toBe("savedToCloud"));
+    editor.text = "closing edit";
+    editor.dirty = true;
+    await flushCloudWindow();
+    expect(mockPuts).toContain("closing edit");
+    unmount();
   });
 });

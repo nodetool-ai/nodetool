@@ -18,6 +18,7 @@ import { useEffect } from "react";
 
 import { CloudDraftMirror, type EditorSnapshot } from "../lib/cloud/CloudDraftMirror";
 import { CloudSendPacer } from "../lib/cloud/CloudSendPacer";
+import { registerCloudWindowFlush } from "../lib/cloud/cloudWindowClosing";
 import { CLOUD_WINDOW } from "../lib/cloud/cloudWindow";
 import { SAVER_TICK_MS, type CloudDocumentKey, type StoredDraft } from "../lib/cloud/CloudDocumentSaver";
 import { desktopCloudLocalDraftsClient, LocalDraftStore, serverKeyOf } from "../lib/cloud/localDraftStore";
@@ -169,7 +170,17 @@ export const useCloudWindowWorkflowDrafts = (manager: WorkflowManagerStore): voi
     const timer = window.setInterval(tick, SAVER_TICK_MS);
     const unsubscribe = manager.subscribe(tick);
     window.addEventListener("online", reconnected);
+    const unregister = registerCloudWindowFlush(async () => {
+      const nodeStores = manager.getState().nodeStores;
+      await Promise.allSettled(
+        [...entries].map(([id, entry]) => {
+          const nodeStore = nodeStores[id];
+          return entry.mirror && nodeStore ? entry.mirror.flush(workflowSnapshot(nodeStore)) : Promise.resolve(true);
+        })
+      );
+    });
     return () => {
+      unregister();
       window.clearInterval(timer);
       unsubscribe();
       window.removeEventListener("online", reconnected);

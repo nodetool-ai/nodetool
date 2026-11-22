@@ -146,7 +146,9 @@ are in [native/account-helper](../../native/account-helper/README.md).
   main decides which window that is: the page reads its server and account
   once at boot (IPC `CLOUD_WINDOW_ORIGIN`). The window uses its own session
   partition, so its persisted stores never mix with the local window's, and
-  closes when the account signs out or changes. A request, transfer or
+  closes when the account signs out or changes. A ready page is told first
+  (IPC `CLOUD_WINDOW_CLOSING`) and writes its drafts, then answers
+  (`CLOUD_WINDOW_FLUSHED`), or the window closes after `CLOSE_GRACE_MS`. A request, transfer or
   socket from a cloud window of another account is refused, and another
   account signing in ends the pending requests and sockets of the first.
   The window's session has no local client token, so its drafts go through

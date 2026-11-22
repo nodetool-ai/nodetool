@@ -56,11 +56,7 @@ export class CloudWindowDraftDriver {
 
   /** Call on every change of the editor and on a timer of at most 250 ms. */
   async tick(nowMs: number): Promise<void> {
-    const content = this.editor.content();
-    if (content !== this.lastContent) {
-      this.generation += 1;
-      this.lastContent = content;
-    }
+    this.notice();
     if (this.off || this.editor.revision() === null) {
       return;
     }
@@ -75,6 +71,23 @@ export class CloudWindowDraftDriver {
   /** What the mirror holds of the editor's edits. Null while no mirror runs: before the load, or for an unsent draft. */
   status(): MirrorStatus | null {
     return this.mirror ? this.mirror.status(this.snapshot()) : null;
+  }
+
+  /** Writes the editor's latest edits to the drafts store now, such as when the window closes. */
+  async flush(): Promise<void> {
+    this.notice();
+    if (this.mirror) {
+      await this.mirror.flush(this.snapshot());
+    }
+  }
+
+  /** Counts an edit made since the last look. */
+  private notice(): void {
+    const content = this.editor.content();
+    if (content !== this.lastContent) {
+      this.generation += 1;
+      this.lastContent = content;
+    }
   }
 
   private key(): CloudDocumentKey {
