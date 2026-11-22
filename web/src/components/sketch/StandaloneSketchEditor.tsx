@@ -51,6 +51,7 @@ import SaveToFolderMenu from "../assets/SaveToFolderMenu";
 import { trpc } from "../../trpc/client";
 import type { SketchDocument } from "./types";
 import { useStandaloneSketchDocument } from "../../stores/sketch/SketchSessionStore";
+import { useCloudWindowSketchDrafts } from "../../hooks/sketch/useCloudWindowSketchDrafts";
 import {
   SketchProvider,
   useSketchSessionStoreApi
@@ -184,6 +185,7 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
       documentQuery.data,
       !!documentId
     );
+    useCloudWindowSketchDrafts(documentId);
 
     useEffect(() => {
       if (seed?.id === documentId) return;

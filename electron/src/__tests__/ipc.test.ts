@@ -788,10 +788,10 @@ describe('fileUrlToLocalPath', () => {
 
 describe('cloudDocumentRefSchema', () => {
   it('opens the kinds of D26 in the cloud window and nothing else', () => {
-    for (const type of ['workflow', 'timeline', 'jsscript', 'script', 'storyboard']) {
+    for (const type of ['workflow', 'timeline', 'jsscript', 'script', 'storyboard', 'sketch']) {
       expect(cloudDocumentRefSchema.safeParse({ type, id: 'a1' }).success).toBe(true);
     }
-    expect(cloudDocumentRefSchema.safeParse({ type: 'sketch', id: 'a1' }).success).toBe(false);
+    expect(cloudDocumentRefSchema.safeParse({ type: 'application', id: 'a1' }).success).toBe(false);
     expect(cloudDocumentRefSchema.safeParse({ type: 'jsscript', id: '../x' }).success).toBe(false);
   });
 });
