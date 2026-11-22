@@ -37,7 +37,7 @@ which file format backs it.
 ## Decisions
 
 D1 to D3 were agreed before this PRD was written. D4 was agreed after a
-comparison of seven replication options.
+comparison of seven replication options. D5 was agreed during review.
 
 - **D1 — Markdown is the document.** The saved file is plain Markdown. The
   editor state is derived from it on open. This is the reverse of the
@@ -50,6 +50,10 @@ comparison of seven replication options.
   replicated, each block is an entity in the cloud sync plan's core and its
   Markdown is one value. The first release saves whole files. No second
   stored CRDT is added for documents. See Relation to the CRDT plan.
+- **D5 — One save node per type.** Each pair of save nodes merges into the
+  name without "File". Old workflows keep working because their nodes are
+  mapped to the new types on load. The DSL functions named after the old types
+  are removed. See Save node consolidation.
 
 ## Goals
 
@@ -389,24 +393,24 @@ effect.
 | `SaveDocumentFile` | `SaveDocument` | None |
 | `SaveImage`, `SaveAudio`, `SaveVideo`, `SaveModel3D`, `SaveText` saved in the old plain form | The same type | `name` becomes `filename`. `folder` keeps its saved folder reference. |
 
-Three points need a design decision before implementation.
+Four design points are decided.
 
-- **The plain form and the merged node share a type name.** A migration
-  entry is selected by type today, so it cannot tell a `SaveImage` saved in
-  the old form from a new one. The old form has `name` and no `filename`,
-  and the mapping has to select on that. This is a small extension to the
-  migration mechanism.
-- **Folder references.** The merged node must accept a saved folder
-  reference beside a path string. For `SaveImage` the reference names an
-  asset folder, and the merged node has to save into that folder's path in
-  the project to keep old workflows writing to the same place.
+- **Selecting the old plain form.** The plain form and the merged node share a
+  type name, and a migration entry is selected by type today. The migration
+  mechanism is extended so that an entry can also select on shape. The old
+  form has `name` and no `filename`.
+- **Folder references.** The merged node accepts a saved folder reference
+  beside a path string. A reference to an asset folder resolves to that
+  folder's path in the project, so an old `SaveImage` keeps writing to the
+  same place.
 - **Outputs.** `SaveAudioFile` returns the path as a string on an output
   declared as audio. `SaveDocumentFile` returns the path on `output` and
   declares no output type. Under R26 `output` carries the saved value and
   `path` the string, which changes what those two old nodes emit on `output`.
-
-The DSL functions named after the old types, such as `saveImageFile`, would
-disappear with them. Whether they stay as deprecated aliases is open.
+- **DSL names.** The DSL functions named after the old types, such as
+  `saveImageFile`, are removed with them, and no alias is kept. A DSL script
+  that calls one has to be changed to the new name. The mapping of R27 covers
+  stored workflow graphs, not DSL source files.
 
 ### Non-functional
 
