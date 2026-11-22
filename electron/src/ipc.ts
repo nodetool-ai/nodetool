@@ -111,9 +111,9 @@ const cloudSocketSendSchema = z
   .strict();
 const cloudSocketCloseSchema = z.object({ id: z.number().int().positive() }).strict();
 // A cloud document id is one path segment of a tRPC input, never a URL.
-const cloudDocumentRefSchema = z
+export const cloudDocumentRefSchema = z
   .object({
-    type: z.enum(["workflow", "timeline"]),
+    type: z.enum(["workflow", "timeline", "jsscript"]),
     id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
   })
   .strict();
