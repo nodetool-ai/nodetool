@@ -1387,6 +1387,25 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "api-access-control",
+    title: "API access control (sharing, agent access, per-user tRPC routers)",
+    command:
+      "npm run test --workspace=packages/websocket -- trpc-document-sharing trpc-agent-access trpc-cloud-local trpc-bug-reports trpc-mcp-config trpc-project-folder-migration app-runs-phase1-api",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § nodetool serve",
+    selfcheck: {
+      // The router files that assert who may call what: an owner succeeds, a
+      // collaborator, another user or no session is refused, and a share id
+      // or token reaches only its own document. Seconds, against the
+      // multi-minute full websocket suite of api-routes.
+      command:
+        "npm run test --workspace=packages/websocket -- trpc-document-sharing trpc-agent-access trpc-cloud-local trpc-bug-reports trpc-mcp-config trpc-project-folder-migration app-runs-phase1-api",
+      cost: "cheap",
+      suiteOnly: true
+    }
+  },
+  {
     id: "data-models",
     title: "Data models (Drizzle ORM persistence layer)",
     command: "npm run test --workspace=packages/models",
@@ -2727,7 +2746,7 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "api-server",
     title: "API server (Fastify HTTP + WebSocket routes)",
-    harnesses: ["api-routes"],
+    harnesses: ["api-routes", "api-access-control"],
     paths: [
       "packages/websocket/", "packages/asset-services/", "packages/document-services/",
       "packages/error-trace-services/", "packages/pack-host/", "packages/project-services/",
