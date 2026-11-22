@@ -181,6 +181,7 @@ bool TimelineModel::rebaseHistory(const HistoryRebase& rebase) {
 }
 
 void TimelineModel::installTimeline(nt::Timeline timeline, const HistoryRebase* rebase) {
+    clearMixerOverrides();
     timeline.matteClipId.clear();
     timeline.matteEffectId.clear();
     m_media.clear();
@@ -831,4 +832,53 @@ bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
         return true;
     }
     return false;
+}
+
+std::shared_ptr<const nt::Timeline> TimelineModel::snapshot() const {
+    if (m_mixerOverrides.isEmpty()) { return m_timeline; }
+    auto next = std::make_shared<nt::Timeline>(*m_timeline);
+    for (auto& track : next->tracks) { track.mixerOverride = m_mixerOverrides.value(QString::fromStdString(track.id)); }
+    return next;
+}
+void TimelineModel::setMixerOverride(const QString& trackId, const QString& param, std::optional<double> value) {
+    if (param != "volumeDb" && param != "pan") { return; }
+    auto state = m_mixerOverrides.value(trackId);
+    bool changed = false;
+    if (!state) {
+        if (!value) { return; }
+        state = std::make_shared<nt::MixerOverride>();
+        m_mixerOverrides.insert(trackId,state);
+        changed = true;
+    }
+    auto& slot = param == "volumeDb" ? state->volumeDb : state->pan;
+    const double nextValue=value.value_or(std::numeric_limits<double>::quiet_NaN());
+    const double previousValue=slot.exchange(nextValue,std::memory_order_relaxed);
+    if (std::isnan(state->volumeDb.load(std::memory_order_relaxed)) && std::isnan(state->pan.load(std::memory_order_relaxed))) {
+        m_mixerOverrides.remove(trackId); changed = true;
+    }
+    if (changed) {
+        auto next=std::make_shared<nt::Timeline>(*m_timeline);
+        next->revision=nt::nextTimelineRevision();
+        m_timeline=std::move(next);
+        m_tracks->rebind(m_timeline.get());
+        emit sourceChanged();
+    }
+    if (previousValue!=nextValue && !(std::isnan(previousValue) && std::isnan(nextValue))) {
+        emit mixerOverrideChanged(trackId,param);
+    }
+}
+
+TimelineModel::~TimelineModel() { clearMixerOverrides(); }
+void TimelineModel::clearMixerOverrides() {
+    for (const auto& state : m_mixerOverrides) {
+        state->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_relaxed);
+        state->pan.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_relaxed);
+    }
+    m_mixerOverrides.clear();
+}
+std::optional<double> TimelineModel::mixerOverrideValue(const QString& trackId, const QString& param) const {
+    const auto state=m_mixerOverrides.value(trackId);
+    if (!state) { return {}; }
+    const double value=(param=="pan" ? state->pan : state->volumeDb).load(std::memory_order_relaxed);
+    return std::isfinite(value) ? std::optional<double>(value) : std::nullopt;
 }

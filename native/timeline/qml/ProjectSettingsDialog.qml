@@ -37,6 +37,7 @@ Item {
         id: settingsButton
         objectName: "projectSettingsButton"
         label: "Project settings"
+        iconOnly: true
         iconName: "straighten"
         activeFocusOnTab: true
         onClicked: root.open()

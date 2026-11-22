@@ -247,25 +247,21 @@ private slots:
         const auto before = item("lanesContent")->height();
         click("track-fx-a");
         QTRY_VERIFY(item("track-effects-panel-a") && item("track-effects-panel-a")->isVisible());
-        auto* panel = item("track-effects-panel-a");
-        QCOMPARE(panel->height(), 280.0);
-        QTRY_COMPARE(item("lanesContent")->height(), before + 280);
-        auto* viewport = item("lanesViewport");
-        QCOMPARE(panel->mapToItem(viewport, QPointF{}).x(), 0.0);
-        QCOMPARE(panel->width(), viewport->width());
-        auto* lane = item("trackLane-a");
-        QCOMPARE(panel->mapToScene(QPointF{}).y(), lane->mapToScene({0, lane->height()}).y());
+        QVERIFY(item("dockTab_trackEffects") && item("dockTab_trackEffects")->isVisible());
+        // Effect chain opens in its own dock panel rather than expanding under the track lane.
+        QCOMPARE(item("lanesContent")->height(), before);
+        QVERIFY(item("trackLane-a") && item("trackLane-a")->isVisible());
         QCOMPARE(accessible->text(QAccessible::Name), QString("Hide effects chain"));
         QVERIFY(accessible->state().checked);
         QCOMPARE(header->property("tone").toString(), QString("idle"));
-        gestures()->viewState()->setScrollLeftPx(140);
-        QCoreApplication::processEvents();
-        QCOMPARE(panel->mapToItem(viewport, QPointF{}).x(), 0.0);
-        click("track-fx-a"); QTRY_VERIFY(!panel->isVisible());
-        QTRY_COMPARE(item("lanesContent")->height(), before);
-        click("track-fx-a"); click("track-fx-v");
-        QTRY_VERIFY(!panel->isVisible());
-        QVERIFY(item("track-effects-panel-v")->isVisible());
+        click("track-fx-a");
+        QTRY_VERIFY(!item("track-effects-panel-a") || !item("track-effects-panel-a")->isVisible());
+        QCOMPARE(item("lanesContent")->height(), before);
+        click("track-fx-a");
+        QTRY_VERIFY(item("track-effects-panel-a") && item("track-effects-panel-a")->isVisible());
+        click("track-fx-v");
+        QTRY_VERIFY(item("track-effects-panel-v") && item("track-effects-panel-v")->isVisible());
+        QVERIFY(!item("track-effects-panel-a"));
         click("fx-add-v");
         for (const auto* type : {"colorCorrection", "videoBlur", "sharpen", "vignette", "chromaKey"}) {
             QVERIFY(item("fx-add-type-v-" + QString::fromLatin1(type)));

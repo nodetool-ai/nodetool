@@ -1014,13 +1014,12 @@ bool ClipGestureController::beginRange(const QString& trackId, const QString& cl
     cancelGesture();
     clearToolHover();
     if (parentItem()) { parentItem()->forceActiveFocus(Qt::MouseFocusReason); }
-    // A range is a target for audio generation, so it sits on audio tracks only.
-    bool audio = false;
+    bool hasTrack = false;
     for (const auto& value : m_timeline->timeline().raw.value("tracks").toArray()) {
-        if (value.toObject().value("id").toString() == trackId) { audio = value.toObject().value("type").toString() == u"audio"; }
+        if (value.toObject().value("id").toString() == trackId) { hasTrack = true; break; }
     }
     const auto tempo = nt::music::sequenceTempo(m_timeline->timeline().raw);
-    if (!audio || !tempo) {
+    if (!hasTrack || !tempo) {
         m_musicSelection->clear();
         return true;
     }

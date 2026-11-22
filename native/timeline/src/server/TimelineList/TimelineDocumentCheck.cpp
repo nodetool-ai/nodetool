@@ -205,7 +205,7 @@ void drive(QQuickWindow *window, QQuickItem *editor, const QString &mode) {
                     return;
                 }
                 if (mode == "keyboard") {
-                    for (const auto &name : {"openTimelineButton", "newTimelineButton"}) {
+                    for (const auto &name : {"openTimelineButton"}) {
                         auto *button = findItem(window->contentItem(), name);
                         if (!require(button && button->activeFocusOnTab(),
                                      "buttons must participate in Tab navigation")) {

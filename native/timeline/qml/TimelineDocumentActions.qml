@@ -79,14 +79,6 @@ Item {
             enabled: !actions.switching
             onClicked: root.showList()
         }
-        ActionButton {
-            objectName: "newTimelineButton"
-            label: "New timeline"
-            iconOnly: true
-            iconName: "add"
-            enabled: !actions.switching
-            onClicked: actions.createAndOpen()
-        }
     }
     Ui.Popover {
         id: listPopup

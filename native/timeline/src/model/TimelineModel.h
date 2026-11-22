@@ -50,6 +50,7 @@ class TimelineModel : public TimelineSource {
 
 public:
     explicit TimelineModel(QObject* parent = nullptr);
+    ~TimelineModel() override;
 
     void setTimeline(nt::Timeline timeline);
     // Rewrites one undo checkpoint (a raw sequence) for an adopted external change.
@@ -69,7 +70,10 @@ public:
     const nt::Timeline& timeline() const { return *m_timeline; }
     // An immutable snapshot the render thread keeps by pointer (D8). A new
     // document makes a new snapshot; an old one stays valid while held.
-    std::shared_ptr<const nt::Timeline> snapshot() const override { return m_timeline; }
+    std::shared_ptr<const nt::Timeline> snapshot() const override;
+    // UI-thread writes, audio-thread atomic reads. Never changes document/undo.
+    std::optional<double> mixerOverrideValue(const QString& trackId, const QString& param) const;
+    void setMixerOverride(const QString& trackId, const QString& param, std::optional<double> value);
 
     QString timelineId() const { return QString::fromStdString(m_timeline->id); }
     QString projectId() const { return m_timeline->raw.value(u"projectId").toString(); }
@@ -160,6 +164,7 @@ public:
     Q_INVOKABLE bool deleteMarker(const QString& markerId);
 
 signals:
+    void mixerOverrideChanged(const QString& trackId, const QString& param);
     void beforeCommand();
     void timelineChanged();
     void commandSettled();
@@ -193,6 +198,9 @@ private:
     // Marks only these clips and tracks changed, with no takes change.
     void markClipsChanged(QSet<QString> clipIds, QSet<QString> trackIds);
     std::optional<QSet<QString>> m_changedClipIds;
+    // UI-only map. The model and published plans share each atomic handoff.
+    QHash<QString, std::shared_ptr<nt::MixerOverride>> m_mixerOverrides;
+    void clearMixerOverrides();
     QSet<QString> m_changedTrackIds;
     quint64 m_takesRevision = 0;
     // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible

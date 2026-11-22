@@ -7,10 +7,13 @@
 //   footer slot                               (a layout's hint line, 0 px when none)
 //   Playhead over the ruler and the lanes
 //
-// Three slots let a layout add chrome without forking this file: an item in
+// Four slots let a layout add chrome without forking this file: an item in
 // `toolbarVariant` that reports a width replaces ToolToggle, `rulerOverlay`
-// draws over the ruler without taking input, and `tracksFooter` takes its
-// height from the lanes.
+// draws over the ruler without taking input, `tracksFooter` takes its
+// height from the lanes, and `markerRow` is a full-width row between the ruler
+// and the first track row (the Music layout's Marker lane). The row takes the
+// height it reports from the rows below it, and gives it back at 0. It gets
+// `headerWidth` to split its header part from its lane part.
 //
 // Rows: a TrackWindowModel keeps only the rows in view plus 3 of overscan
 // (D27); the headers and the lanes are two Repeaters over it, scrolled by the
@@ -45,7 +48,10 @@ Rectangle {
             : columnPreferences.trackHeaderWidth > 0 ? columnPreferences.trackHeaderWidth * Ui.Theme.uiScale
             : TimelineMetrics.trackHeaderWidth))
     readonly property double footerHeight: tracksFooter.implicitHeight
-    readonly property double lanesHeight: Math.max(0, height - TimelineMetrics.toolbarHeight - TimelineMetrics.rulerHeight - TimelineMetrics.scrollbarHeight - footerHeight)
+    // The row between the ruler and the first track row (the markerRow slot), 0 px when no panel shows one.
+    readonly property double markerRowHeight: markerRow.implicitHeight
+    readonly property double rowsTop: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight + markerRowHeight
+    readonly property double lanesHeight: Math.max(0, height - rowsTop - TimelineMetrics.scrollbarHeight - footerHeight)
     // A layout's tool row (the toolbarVariant slot) is showing in place of ToolToggle.
     readonly property bool toolbarReplaced: toolbarVariant.implicitWidth > 0
 
@@ -53,6 +59,8 @@ Rectangle {
     color: Ui.Theme.surfaceCanvas
     clip: true
     Preferences { id: columnPreferences }
+    AutomationRecorder { id: automationRecorder; timeline: region.timeline; clock: region.clock }
+    Binding { target: AutomationUIState; property: "recorder"; value: automationRecorder }
 
     function saveHeaderWidth(value) {
         headerWidthDraft = value
@@ -216,6 +224,14 @@ Rectangle {
             anchors.rightMargin: Ui.Metrics.lg
             anchors.verticalCenter: parent.verticalCenter
             spacing: Ui.Metrics.micro
+            Ui.ToolbarIconButton {
+                objectName: "show-automation"
+                anchors.verticalCenter: parent.verticalCenter
+                iconName: "timeline"
+                accessibleName: "Show Automation"
+                active: AutomationUIState.showAutomation
+                onClicked: AutomationUIState.showAutomation = !AutomationUIState.showAutomation
+            }
             ToolButton {
                 objectName: "addTextButton"
                 anchors.verticalCenter: parent.verticalCenter
@@ -234,6 +250,7 @@ Rectangle {
             }
             TimelineZoomControls {
                 anchors.verticalCenter: parent.verticalCenter
+                visible: !region.toolbarReplaced   // the Music toolbar has its own zoom
                 compact: toolbar.narrow
                 viewState: view
                 clock: region.clock
@@ -293,6 +310,7 @@ Rectangle {
             spacing: Ui.Metrics.sm
             TrackHeightSlider {
                 anchors.verticalCenter: parent.verticalCenter
+                visible: !region.toolbarReplaced   // the Music toolbar has its own height slider
                 width: Math.max(0, Math.min(Ui.Metrics.standard * 3, tracksHeader.width - headerContent.width - 3 * Ui.Metrics.lg - countChip.width - addTrack.width - 3 * Ui.Metrics.sm))
                 viewState: view
             }
@@ -349,7 +367,7 @@ Rectangle {
     Item {
         id: headerColumn
         objectName: "headerColumn"
-        y: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight
+        y: region.rowsTop
         width: region.headerWidth
         height: region.lanesHeight
         clip: true
@@ -497,7 +515,7 @@ Rectangle {
         id: lanesArea
         objectName: "lanesViewport"
         x: region.headerWidth
-        y: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight
+        y: region.rowsTop
         width: region.width - region.headerWidth
         height: region.lanesHeight
         clip: true
@@ -684,8 +702,20 @@ Rectangle {
         height: region.height - TimelineMetrics.toolbarHeight - region.footerHeight
         viewState: view
         rulerTop: 0
-        rowsTop: TimelineMetrics.rulerHeight
+        rowsTop: TimelineMetrics.rulerHeight + region.markerRowHeight
         lanesLeft: region.headerWidth
+    }
+
+    // The row under the ruler: a layout's own lane over the headers and the lanes.
+    SlotItems {
+        id: markerRow
+        y: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight
+        width: region.width
+        height: implicitHeight
+        vertical: true
+        slot: "markerRow"
+        slotProperties: ({ timeline: region.timeline, gestures: clipGestures, viewState: view,
+                           clock: region.clock, headerWidth: region.headerWidth })
     }
 
     SlotItems {
@@ -704,7 +734,7 @@ Rectangle {
         x: region.headerWidth
         y: TimelineMetrics.toolbarHeight
         width: region.width - region.headerWidth
-        height: TimelineMetrics.rulerHeight + region.lanesHeight
+        height: TimelineMetrics.rulerHeight + region.markerRowHeight + region.lanesHeight
         clip: true
         Playhead {
             height: parent.height

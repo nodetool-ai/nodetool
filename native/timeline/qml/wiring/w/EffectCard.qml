@@ -11,12 +11,14 @@ Ui.Surface {
     required property Item rackRow
     property var draft: ({})
     readonly property var edited: Object.assign({}, effect, draft)
-    readonly property string effectLabel: panel.strings.labels[effect.type === "fable" ? effect.kind : effect.type]
+    readonly property string effectLabel: effect.type === "vst"
+        ? ((effect.plugin && effect.plugin.name) || "VST3 Plugin")
+        : panel.strings.labels[effect.type === "fable" ? effect.kind : effect.type]
     readonly property bool ignoredDuplicate: panel.isVideo && effect.enabled
         && ["chromaKey", "sharpen", "vignette"].includes(effect.type)
         && panel.effects.find(candidate => candidate.type === effect.type && candidate.enabled)?.id !== effect.id
     objectName: "effect-" + effect.id
-    width: effect.type === "fable" ? panel.reference.fableWidths[effect.kind] : panel.reference.widths[effect.type]
+    width: effect.type === "vst" ? 260 : effect.type === "fable" ? panel.reference.fableWidths[effect.kind] : panel.reference.widths[effect.type]
     opacity: panel.draggingIndex === effectIndex ? 0.4 : 1
     InspectorEdits { id: edits; model: card.panel.timeline }
     function payload(patch) { return {trackId: panel.track.id, effectId: effect.id, patch: patch} }
@@ -111,7 +113,10 @@ Ui.Surface {
             iconName: "deleteOutline"
             accessibleName: card.panel.strings.remove.replace("{{label}}", card.effectLabel)
             description: card.panel.strings.removeHelp
-            onClicked: card.panel.timeline.applyEdit("removeTrackEffect", {trackId: card.panel.track.id, effectId: card.effect.id})
+            onClicked: {
+                if (card.effect.type === "vst") VstHost.closeEditor("fx:" + card.panel.track.id + ":" + card.effect.id)
+                card.panel.timeline.applyEdit("removeTrackEffect", {trackId: card.panel.track.id, effectId: card.effect.id})
+            }
         }
     }
     Ui.Text {
@@ -146,6 +151,7 @@ Ui.Surface {
         TrackEffectParams {
             id: params
             width: parent.width
+            trackId: card.panel.track.id
             effect: card.edited
             disabled: !card.effect.enabled
             onPreview: patch => card.preview(patch)

@@ -43,9 +43,9 @@ Rectangle {
     }
 
     Row {
-        x: Ui.Metrics.lg
+        x: Ui.Metrics.md
         anchors.verticalCenter: parent.verticalCenter
-        spacing: Ui.Metrics.md
+        spacing: Ui.Metrics.sm
         Ui.EditorButton {
             id: documentProjectButton
             objectName: "documentProjectButton"
@@ -129,14 +129,14 @@ Rectangle {
         Row {
             id: leadingRow
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Ui.Metrics.md
+            spacing: Ui.Metrics.sm
         }
     }
     Row {
         anchors.right: parent.right
         anchors.rightMargin: Ui.Metrics.md
         anchors.verticalCenter: parent.verticalCenter
-        spacing: Ui.Metrics.md
+        spacing: Ui.Metrics.xs
         ToolButton {
             objectName: "shareButton"
             anchors.verticalCenter: parent.verticalCenter

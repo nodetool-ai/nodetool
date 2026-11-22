@@ -174,6 +174,7 @@ target_compile_options(timeline_decode PRIVATE ${NT_WARNINGS})
 
 # The app's audio controller and editing features use the shared engine.
 add_library(timeline_audio STATIC ${NT_audio})
+target_include_directories(timeline_audio PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../vst-host/source")
 target_link_libraries(timeline_audio PUBLIC timeline_core nodetool_timeline_audio PRIVATE Qt6::Gui)
 target_compile_options(timeline_audio PRIVATE ${NT_WARNINGS})
 # Clang on arm64 contracts by default, which changes a remix's features and plan from every other platform's.

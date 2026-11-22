@@ -1,12 +1,18 @@
 // Mirrors web/src/components/timeline/Tracks/TrackHeader.tsx: the left strip
 // of a track row. Top row: reorder grip, type glyph, name, index chip (V1,
 // A1). Bottom row: the visibility, lock, sync-lock, mute, solo, effects,
-// automation and delete buttons. An audio track with a music role shows the
-// role as a chip before its name (docs/MUSIC-MODE.md MD4, UI-3).
+// and delete buttons. An audio track with a music role shows the
+// role as a chip before its name (docs/MUSIC-MODE.md MD4, UI-3). A color strip
+// on the left edge shows the track color. An audio or midi track also shows an
+// instrument icon and a volume slider with a level meter on a second row. The
+// slider writes the mixer's `setTrackVolume` edit, once per drag, and hides when
+// the header is too narrow.
 import QtQuick
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
+import "../mixer/faderTaper.js" as Taper
+import "../mixer/meterLevels.js" as Levels
 
 Rectangle {
     id: header
@@ -34,8 +40,18 @@ Rectangle {
     readonly property bool patched: patchKind === "video" ? SourceViewerState.patchedVideoTrackId === trackId
                                   : patchKind === "audio" && SourceViewerState.patchedAudioTrackId === trackId
     readonly property bool isSoundTrack: trackType === "audio" || trackType === "midi"
-    readonly property bool automationShown: AutomationUIState.shownAutomationTrackIds.includes(trackId)
+    readonly property bool automationShown: AutomationUIState.showAutomation && AutomationUIState.shownAutomationTrackIds.includes(trackId)
     readonly property color accent: TimelineVisuals.trackAccent(trackType)
+    // The track's own color when the document has one, else the type accent.
+    readonly property color stripColor: track && track.color ? track.color : accent
+    readonly property real stripWidth: Ui.Metrics.xs
+    // The volume row: below the top row, while the header has the width and
+    // the height for it.
+    readonly property real volumeMinWidth: Ui.Metrics.xxxl * 3
+    readonly property real volumeRowY: topRow.y + topRow.height
+    readonly property real volumeRowHeight: Ui.Metrics.small
+    readonly property bool volumeShown: isSoundTrack && volumeSlider.width >= volumeMinWidth
+                                        && height >= volumeRowY + volumeRowHeight + Ui.Metrics.sm
 
     objectName: "trackHeader-" + trackId
     height: rowHeight
@@ -44,16 +60,24 @@ Rectangle {
     border.color: Ui.Theme.borderFocus
     clip: true
 
+    // The track color strip along the left edge.
+    Rectangle {
+        objectName: "trackColorStrip-" + header.trackId
+        width: header.stripWidth
+        height: parent.height
+        color: header.stripColor
+    }
+
     HoverHandler { id: headerHover }
     AutomationController { id: automation; timeline: header.timeline; trackId: header.trackId }
 
     // One compact row, as a conventional NLE track header: grip, source
     // patch, lock, track target, sync lock, visibility, mute, solo, the name,
-    // then effects, automation and delete. The row stays at the top of a
+    // then effects and delete. The row stays at the top of a
     // tall track.
     Row {
         id: topRow
-        x: Ui.Metrics.xs
+        x: header.stripWidth + Ui.Metrics.xs
         y: Math.max(0, Math.min(Ui.Metrics.xs, (header.height - height) / 2))
         height: Ui.Metrics.compact
         spacing: Ui.Metrics.micro
@@ -235,7 +259,100 @@ Rectangle {
         }
     }
 
-    // Effects, automation and delete show while the pointer is on the
+    // The instrument icon, the volume slider and its level meter. The slider
+    // shares the mixer's gain (`channel.volumeDb`), its dB taper and its
+    // `setTrackVolume` edit. A drag previews a draft and commits once on
+    // release, so it is one undo step. A double-click resets to 0 dB.
+    Ui.Icon {
+        id: instrumentIcon
+        objectName: "trackInstrumentIcon-" + header.trackId
+        visible: header.isSoundTrack
+        x: topRow.x
+        y: header.volumeRowY + (header.volumeRowHeight - height) / 2
+        name: header.trackType === "midi" ? "piano" : "graphicEq"
+        size: Ui.Metrics.iconSm
+        domainColor: header.stripColor
+    }
+    Item {
+        id: volumeSlider
+        objectName: "trackVolume-" + header.trackId
+        readonly property real channelDb: automation.channel.volumeDb || 0
+        property real draftDb: channelDb
+        readonly property real displayDb: slider.editing ? draftDb : channelDb
+        property var levels: [0, 0]
+        x: instrumentIcon.x + instrumentIcon.width + Ui.Metrics.sm
+        y: header.volumeRowY
+        width: Math.max(0, header.width - x - Ui.Metrics.sm)
+        height: header.volumeRowHeight
+        visible: header.volumeShown
+        Ui.Slider {
+            id: slider
+            objectName: "trackVolumeSlider-" + header.trackId
+            width: parent.width
+            height: Ui.Metrics.iconMd
+            from: 0
+            to: 1
+            origin: 0
+            resetValue: Taper.dbToFaderPosition(0)
+            resetOnDoubleTap: true
+            value: Taper.dbToFaderPosition(volumeSlider.channelDb)
+            accessibleName: header.name + " volume"
+            enabled: header.timeline !== null
+            onValuePreviewed: position => volumeSlider.draftDb = Taper.faderPositionToDb(position)
+            onValueCommitted: position => {
+                const db = Taper.faderPositionToDb(position)
+                if (db !== volumeSlider.channelDb) { automation.edit("setTrackVolume", {db: db}) }
+            }
+            onEditCanceled: volumeSlider.draftDb = volumeSlider.channelDb
+        }
+        Ui.Text {
+            id: volumeReadout
+            objectName: "trackVolumeReadout-" + header.trackId
+            visible: slider.editing
+            anchors.right: parent.right
+            anchors.bottom: slider.top
+            text: Taper.formatDb(volumeSlider.displayDb)
+            role: Ui.Typography.MonoCaption
+            tone: Ui.Text.Secondary
+        }
+        // The level meter under the slider track: left and right peaks, the
+        // mixer's meter source and taper.
+        Column {
+            id: meter
+            objectName: "trackMeter-" + header.trackId
+            y: slider.height + Ui.Metrics.micro
+            width: parent.width
+            spacing: Ui.Metrics.border
+            Repeater {
+                model: 2
+                delegate: Rectangle {
+                    id: bar
+                    required property int index
+                    readonly property real level: Taper.dbToFaderPosition(Levels.db(volumeSlider.levels[index] || 0))
+                    width: parent.width
+                    height: Ui.Metrics.micro
+                    color: Ui.Theme.borderSubtle
+                    Rectangle {
+                        width: parent.width * Math.max(0, Math.min(1, bar.level))
+                        height: parent.height
+                        color: bar.level >= 1 ? Ui.Theme.statusError : bar.level >= 0.86 ? Ui.Theme.statusWarning : Ui.Theme.statusSuccess
+                    }
+                }
+            }
+        }
+        Timer {
+            interval: 33
+            running: header.volumeShown && header.visible
+            repeat: true
+            onTriggered: {
+                const next = AutomationMeters.take(header.trackId)
+                const held = volumeSlider.levels
+                volumeSlider.levels = [Math.max(next[0], (held[0] || 0) * 0.85), Math.max(next[1], (held[1] || 0) * 0.85)]
+            }
+        }
+    }
+
+    // Effects and delete show while the pointer is on the
     // header, or while a lane is open, so the name keeps the space. They
     // sit over the end of the name on the header colour.
     Rectangle {
@@ -257,21 +374,6 @@ Rectangle {
             visible: header.isSoundTrack || header.trackType === "video"
             trackId: header.trackId
             timeline: header.timeline
-        }
-        Loader {
-            active: header.isSoundTrack || header.trackType === "video" || header.trackType === "overlay"
-            visible: active
-            sourceComponent: TrackIconButton {
-                objectName: "track-automation-" + header.trackId
-                iconKey: "showChart"
-                tone: (automation.channel.automation || []).length > 0 || header.automationShown ? "idle" : "dim"
-                readonly property string automationLabel: header.automationShown ? "Hide automation lanes" : "Show automation lanes"
-                accessibleName: automationLabel
-                Accessible.checkable: true
-                Accessible.checked: header.automationShown
-                onClicked: AutomationUIState.toggleTrackAutomation(header.trackId)
-                description: automationLabel
-            }
         }
         TrackIconButton {
             objectName: "track-delete-" + header.trackId
