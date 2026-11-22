@@ -76,7 +76,7 @@ const TransferRow: React.FC<RowProps> = ({ row, controller }) => {
           compact
           checked={row.confirmed}
           onChange={(event) => controller.includeFile(row.index, event.target.checked)}
-          label={t("cloudTransfer.include")}
+          label={row.section === "receive" ? t("cloudTransfer.includeReceive") : t("cloudTransfer.include")}
         />
       )}
       {row.section === "deletion" && row.canKeepDeletion && (

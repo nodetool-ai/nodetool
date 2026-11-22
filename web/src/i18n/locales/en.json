@@ -20441,6 +20441,7 @@
     "collect": "Collect",
     "collecting": "Copying linked files into the project folder…",
     "include": "Send",
+    "includeReceive": "Receive",
     "apply": {
       "publish": "Publish",
       "synchronize": "Synchronize"
@@ -20477,6 +20478,9 @@
       "putAssetFile": "File changed here, will be sent",
       "putWorkspaceFile": "Changed in the project folder",
       "newWorkspaceFile": "New in the project folder",
+      "workspaceBothChanged": "Changed here and in the cloud. The cloud file goes beside yours",
+      "workspaceLocalDeleted": "Deleted here, changed in the cloud",
+      "workspaceCloudDeleted": "Deleted in the cloud. Your file stays here",
       "newInCloud": "New in the cloud",
       "cloudChanged": "Changed in the cloud",
       "cloudFileChanged": "A file it uses changed in the cloud",

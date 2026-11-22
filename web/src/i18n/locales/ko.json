@@ -20441,6 +20441,7 @@
     "collect": "수집",
     "collecting": "연결된 파일을 프로젝트 폴더로 복사하는 중…",
     "include": "전송",
+    "includeReceive": "받기",
     "apply": {
       "publish": "게시",
       "synchronize": "동기화"
@@ -20477,6 +20478,9 @@
       "putAssetFile": "여기서 파일이 변경됨, 보냄",
       "putWorkspaceFile": "프로젝트 폴더에서 변경됨",
       "newWorkspaceFile": "프로젝트 폴더에 새로 추가됨",
+      "workspaceBothChanged": "여기와 클라우드에서 모두 변경됨. 클라우드 파일은 내 파일 옆에 저장됩니다",
+      "workspaceLocalDeleted": "여기서 삭제됨, 클라우드에서 변경됨",
+      "workspaceCloudDeleted": "클라우드에서 삭제됨. 내 파일은 여기에 남습니다",
       "newInCloud": "클라우드에서 새로 만듦",
       "cloudChanged": "클라우드에서 변경됨",
       "cloudFileChanged": "사용하는 파일이 클라우드에서 변경됨",

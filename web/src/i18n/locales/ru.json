@@ -21069,6 +21069,7 @@
     "collect": "Собрать",
     "collecting": "Связанные файлы копируются в папку проекта…",
     "include": "Отправить",
+    "includeReceive": "Получить",
     "apply": {
       "publish": "Опубликовать",
       "synchronize": "Синхронизировать"
@@ -21105,6 +21106,9 @@
       "putAssetFile": "Файл изменён здесь, будет отправлен",
       "putWorkspaceFile": "Изменён в папке проекта",
       "newWorkspaceFile": "Новый в папке проекта",
+      "workspaceBothChanged": "Изменён здесь и в облаке. Файл из облака будет сохранён рядом с вашим",
+      "workspaceLocalDeleted": "Удалён здесь, изменён в облаке",
+      "workspaceCloudDeleted": "Удалён в облаке. Ваш файл остаётся здесь",
       "newInCloud": "Новый в облаке",
       "cloudChanged": "Изменён в облаке",
       "cloudFileChanged": "Используемый файл изменился в облаке",

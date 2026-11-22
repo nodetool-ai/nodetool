@@ -21069,6 +21069,7 @@
     "collect": "Zbierz",
     "collecting": "Kopiowanie połączonych plików do folderu projektu…",
     "include": "Wyślij",
+    "includeReceive": "Odbierz",
     "apply": {
       "publish": "Opublikuj",
       "synchronize": "Synchronizuj"
@@ -21105,6 +21106,9 @@
       "putAssetFile": "Plik zmieniony tutaj, zostanie wysłany",
       "putWorkspaceFile": "Zmieniono w folderze projektu",
       "newWorkspaceFile": "Nowy w folderze projektu",
+      "workspaceBothChanged": "Zmieniony tutaj i w chmurze. Plik z chmury trafi obok twojego",
+      "workspaceLocalDeleted": "Usunięty tutaj, zmieniony w chmurze",
+      "workspaceCloudDeleted": "Usunięty w chmurze. Twój plik zostaje tutaj",
       "newInCloud": "Nowy w chmurze",
       "cloudChanged": "Zmieniony w chmurze",
       "cloudFileChanged": "Używany plik zmienił się w chmurze",

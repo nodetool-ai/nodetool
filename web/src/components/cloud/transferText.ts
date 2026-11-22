@@ -108,8 +108,17 @@ const detailText = (t: TFunction, row: TransferRowView): string => {
     case "send":
       return sendText(t, row);
     case "receive":
-      if (row.detail === "new") {
+      if (row.detail === "new" || row.detail === "workspace_new") {
         return t("cloudTransfer.row.newInCloud");
+      }
+      if (row.detail === "workspace_both_changed") {
+        return t("cloudTransfer.row.workspaceBothChanged");
+      }
+      if (row.detail === "workspace_local_deleted") {
+        return t("cloudTransfer.row.workspaceLocalDeleted");
+      }
+      if (row.detail === "workspace_cloud_deleted") {
+        return t("cloudTransfer.row.workspaceCloudDeleted");
       }
       if (row.detail === "cloud_file_changed") {
         return t("cloudTransfer.row.cloudFileChanged");

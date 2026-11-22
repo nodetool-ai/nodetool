@@ -20755,6 +20755,7 @@
     "collect": "Rassembler",
     "collecting": "Copie des fichiers liés dans le dossier du projet…",
     "include": "Envoyer",
+    "includeReceive": "Recevoir",
     "apply": {
       "publish": "Publier",
       "synchronize": "Synchroniser"
@@ -20791,6 +20792,9 @@
       "putAssetFile": "Fichier modifié ici, sera envoyé",
       "putWorkspaceFile": "Modifié dans le dossier du projet",
       "newWorkspaceFile": "Nouveau dans le dossier du projet",
+      "workspaceBothChanged": "Modifié ici et dans le cloud. Le fichier du cloud est placé à côté du vôtre",
+      "workspaceLocalDeleted": "Supprimé ici, modifié dans le cloud",
+      "workspaceCloudDeleted": "Supprimé dans le cloud. Votre fichier reste ici",
       "newInCloud": "Nouveau dans le cloud",
       "cloudChanged": "Modifié dans le cloud",
       "cloudFileChanged": "Un fichier qu’il utilise a changé dans le cloud",

@@ -20441,6 +20441,7 @@
     "collect": "収集",
     "collecting": "リンクされたファイルをプロジェクトフォルダーにコピーしています…",
     "include": "送信",
+    "includeReceive": "受信",
     "apply": {
       "publish": "公開",
       "synchronize": "同期"
@@ -20477,6 +20478,9 @@
       "putAssetFile": "ここでファイルが変更されました。送信されます",
       "putWorkspaceFile": "プロジェクトフォルダーで変更",
       "newWorkspaceFile": "プロジェクトフォルダーに新規",
+      "workspaceBothChanged": "ここでもクラウドでも変更されました。クラウドのファイルはあなたのファイルの隣に置かれます",
+      "workspaceLocalDeleted": "ここで削除され、クラウドで変更されました",
+      "workspaceCloudDeleted": "クラウドで削除されました。あなたのファイルはここに残ります",
       "newInCloud": "クラウドで新規作成",
       "cloudChanged": "クラウドで変更されました",
       "cloudFileChanged": "使用しているファイルがクラウドで変更されました",

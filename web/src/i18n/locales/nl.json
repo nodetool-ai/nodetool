@@ -20441,6 +20441,7 @@
     "collect": "Verzamelen",
     "collecting": "Gekoppelde bestanden worden naar de projectmap gekopieerd…",
     "include": "Verzenden",
+    "includeReceive": "Ontvangen",
     "apply": {
       "publish": "Publiceren",
       "synchronize": "Synchroniseren"
@@ -20477,6 +20478,9 @@
       "putAssetFile": "Bestand hier gewijzigd, wordt verzonden",
       "putWorkspaceFile": "Gewijzigd in de projectmap",
       "newWorkspaceFile": "Nieuw in de projectmap",
+      "workspaceBothChanged": "Hier en in de cloud gewijzigd. Het cloudbestand komt naast het jouwe",
+      "workspaceLocalDeleted": "Hier verwijderd, gewijzigd in de cloud",
+      "workspaceCloudDeleted": "Verwijderd in de cloud. Je bestand blijft hier",
       "newInCloud": "Nieuw in de cloud",
       "cloudChanged": "Gewijzigd in de cloud",
       "cloudFileChanged": "Een bestand dat het gebruikt is gewijzigd in de cloud",
