@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# usage: ft-data.sh <tasks|sample|export|valset> [finetune-data.ts options]
+# usage: ft-data.sh <tasks|sample|export|valset|packs> [finetune-data.ts options]
 #
 # Runs packages/websocket/scripts/finetune-data.ts from this repository with a
 # clean environment: every provider key and DISPLAY unset, temp files in

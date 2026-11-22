@@ -21,7 +21,7 @@ import {
   type TransitionParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
 import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
-import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
+import { closedParams, parseBridgeArgs, withHostField } from "./bridge-args.js";
 import {
   ANIMATED_PROPERTIES,
   DEFAULT_BEAT_TOLERANCE_MS,
@@ -475,12 +475,14 @@ function tool<TResult>(
   parameters: z.ZodTypeAny,
   impl: (args: Record<string, unknown>) => Promise<TResult>
 ): TimelineBridgeTool {
+  const advertised = withHostField(parameters, "timeline_id");
+  const closed = closedParams(advertised);
   return {
     name,
     description,
-    parameters,
+    parameters: advertised,
     execute: (args) => {
-      const parsed = parseWithTypeCoercion(parameters, args ?? {}) as Record<
+      const parsed = parseBridgeArgs(closed, args) as Record<
         string,
         unknown
       >;
@@ -1840,11 +1842,13 @@ export function createTimelineToolBridge(
   // relative to a preview, which a tally cannot answer. The push happens
   // before the call, so a tool that throws is still in the transcript.
   let pending: Promise<unknown> = Promise.resolve();
-  const recorded: TimelineBridgeTool[] = tools.map((entry) => ({
+  const recorded: TimelineBridgeTool[] = tools.map((entry) => {
+    const closed = closedParams(entry.parameters);
+    return {
     ...entry,
     execute: (args: Record<string, unknown>) => {
       toolLog.push(entry.name);
-      const parsed: unknown = parseWithTypeCoercion(entry.parameters, args);
+      const parsed: unknown = parseBridgeArgs(closed, args);
       if (!isRecordValue(parsed)) {
         throw new Error("Timeline tool arguments must be an object.");
       }
@@ -1852,7 +1856,8 @@ export function createTimelineToolBridge(
       pending = result.catch(() => undefined);
       return result;
     }
-  }));
+    };
+  });
 
   return {
     tools: recorded,

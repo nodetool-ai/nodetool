@@ -1,4 +1,5 @@
 #include "ui/CanvasOverlay.h"
+#include "ui/CommandScore.h"
 #include "EditorWindow.h"
 #include "EntryMenu.h"
 #include "document/ChildPorts.h"
@@ -117,6 +118,364 @@ private:
     QVariantList results_;
     int selectedIndex_ = 0;
     bool pending_ = false;
+};
+
+// UI thread only. Parented to its QQuickWidget host. Owns the command entries,
+// cmdk-compatible fuzzy filtering/ranking, and keyboard selection cursor.
+class CommandMenuController final : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString query READ query NOTIFY queryChanged)
+    Q_PROPERTY(QVariantList rows READ rows NOTIFY rowsChanged)
+    Q_PROPERTY(int selectedIndex READ selectedIndex NOTIFY selectionChanged)
+public:
+    struct Entry {
+        QString id;
+        QString label;
+        QString section;
+        QString icon;
+        QStringList shortcuts;
+        QStringList keywords;
+        bool available = true;
+        bool guardDocument = true;
+        std::function<void()> run;
+    };
+
+    explicit CommandMenuController(QObject *parent) : QObject(parent) {}
+
+    std::function<void()> onClose;
+    std::function<void(const Entry &)> onActivate;
+
+    void setEntries(std::vector<Entry> entries) {
+        entries_ = std::move(entries);
+        sectionOrder_.clear();
+        for (const auto &entry : entries_) {
+            if (!sectionOrder_.contains(entry.section)) {
+                sectionOrder_.append(entry.section);
+            }
+        }
+        rebuild();
+    }
+
+    QString query() const { return query_; }
+    QVariantList rows() const { return rows_; }
+    int selectedIndex() const { return selectedIndex_; }
+
+    Q_INVOKABLE void setQuery(const QString &query) {
+        if (query_ == query) {
+            return;
+        }
+        query_ = query;
+        emit queryChanged();
+        rebuild();
+    }
+
+    Q_INVOKABLE void selectIndex(int index) {
+        if (index < 0 || index >= static_cast<int>(visible_.size())) {
+            return;
+        }
+        if (!entries_[visible_[static_cast<std::size_t>(index)]].available) {
+            return;
+        }
+        if (selectedIndex_ != index) {
+            selectedIndex_ = index;
+            emit selectionChanged();
+        }
+    }
+
+    Q_INVOKABLE void selectFirst() {
+        const int next = firstEnabled();
+        if (next != selectedIndex_) {
+            selectedIndex_ = next;
+            emit selectionChanged();
+        }
+    }
+
+    Q_INVOKABLE void selectLast() {
+        const int next = lastEnabled();
+        if (next != selectedIndex_) {
+            selectedIndex_ = next;
+            emit selectionChanged();
+        }
+    }
+
+    Q_INVOKABLE void move(int delta) {
+        if (visible_.empty() || delta == 0) {
+            return;
+        }
+        const int step = delta > 0 ? 1 : -1;
+        if (selectedIndex_ < 0) {
+            const int fallback = step > 0 ? firstEnabled() : lastEnabled();
+            if (fallback >= 0) {
+                selectedIndex_ = fallback;
+                emit selectionChanged();
+            }
+            return;
+        }
+        for (int index = selectedIndex_ + step; index >= 0 && index < static_cast<int>(visible_.size()); index += step) {
+            if (entries_[visible_[static_cast<std::size_t>(index)]].available) {
+                selectedIndex_ = index;
+                emit selectionChanged();
+                return;
+            }
+        }
+    }
+
+    Q_INVOKABLE void movePage(int delta) {
+        if (visible_.empty() || delta == 0) {
+            return;
+        }
+        constexpr int kPageSteps = 6;
+        const int step = delta > 0 ? 1 : -1;
+        int target = selectedIndex_ < 0 ? (step > 0 ? firstEnabled() : lastEnabled()) : selectedIndex_;
+        if (target < 0) {
+            return;
+        }
+        int remaining = kPageSteps;
+        for (int index = target + step; index >= 0 && index < static_cast<int>(visible_.size()) && remaining > 0; index += step) {
+            if (entries_[visible_[static_cast<std::size_t>(index)]].available) {
+                target = index;
+                --remaining;
+            }
+        }
+        if (target != selectedIndex_) {
+            selectedIndex_ = target;
+            emit selectionChanged();
+        }
+    }
+
+    Q_INVOKABLE void moveGroup(int delta) {
+        if (visible_.empty() || delta == 0) {
+            return;
+        }
+        const int step = delta > 0 ? 1 : -1;
+        if (selectedIndex_ < 0) {
+            move(step);
+            return;
+        }
+        const QString currentSection = entries_[visible_[static_cast<std::size_t>(selectedIndex_)]].section;
+        if (step > 0) {
+            for (int index = selectedIndex_ + 1; index < static_cast<int>(visible_.size()); ++index) {
+                const auto &entry = entries_[visible_[static_cast<std::size_t>(index)]];
+                if (entry.section != currentSection && entry.available) {
+                    selectedIndex_ = index;
+                    emit selectionChanged();
+                    return;
+                }
+            }
+        } else {
+            // Find the previous section that contains at least one enabled item,
+            // then land on that section's first enabled item (matching cmdk).
+            QString previousSection;
+            int firstInPrevious = -1;
+            for (int index = selectedIndex_ - 1; index >= 0; --index) {
+                const auto &entry = entries_[visible_[static_cast<std::size_t>(index)]];
+                if (entry.section == currentSection) {
+                    continue;
+                }
+                if (previousSection.isEmpty()) {
+                    if (!entry.available) {
+                        continue;
+                    }
+                    previousSection = entry.section;
+                    firstInPrevious = index;
+                } else if (entry.section == previousSection) {
+                    if (entry.available) {
+                        firstInPrevious = index;
+                    }
+                } else {
+                    break;
+                }
+            }
+            if (firstInPrevious >= 0) {
+                selectedIndex_ = firstInPrevious;
+                emit selectionChanged();
+                return;
+            }
+        }
+        move(step);
+    }
+
+    Q_INVOKABLE void activate(int index) {
+        if (index < 0 || index >= static_cast<int>(visible_.size())) {
+            return;
+        }
+        const auto &entry = entries_[visible_[static_cast<std::size_t>(index)]];
+        if (!entry.available) {
+            return;
+        }
+        if (onActivate) {
+            onActivate(entry);
+        }
+    }
+
+    Q_INVOKABLE void activateCurrent() {
+        activate(selectedIndex_);
+    }
+
+    Q_INVOKABLE void close() {
+        if (onClose) {
+            onClose();
+        }
+    }
+
+signals:
+    void queryChanged();
+    void rowsChanged();
+    void selectionChanged();
+
+private:
+    int firstEnabled() const {
+        for (int index = 0; index < static_cast<int>(visible_.size()); ++index) {
+            if (entries_[visible_[static_cast<std::size_t>(index)]].available) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    int lastEnabled() const {
+        for (int index = static_cast<int>(visible_.size()) - 1; index >= 0; --index) {
+            if (entries_[visible_[static_cast<std::size_t>(index)]].available) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    void rebuild() {
+        visible_.clear();
+        const QString trimmed = query_.trimmed();
+        if (trimmed.isEmpty()) {
+            visible_.reserve(entries_.size());
+            for (std::size_t i = 0; i < entries_.size(); ++i) {
+                visible_.push_back(i);
+            }
+        } else {
+            struct Scored {
+                std::size_t index;
+                double score;
+            };
+            QHash<QString, std::vector<Scored>> bySection;
+            for (std::size_t i = 0; i < entries_.size(); ++i) {
+                const auto &entry = entries_[i];
+                const double labelScore = command_menu::commandScore(entry.label, trimmed);
+                QStringList keywords = entry.keywords;
+                keywords.append(entry.section);
+                const double combinedScore = command_menu::commandScore(entry.label, trimmed, keywords);
+                const double score = std::max(labelScore, combinedScore * 0.99);
+                if (score > 0.0) {
+                    bySection[entry.section].push_back({i, score});
+                }
+            }
+            struct RankedSection {
+                QString name;
+                double maxScore;
+                int order;
+            };
+            std::vector<RankedSection> sections;
+            sections.reserve(static_cast<std::size_t>(bySection.size()));
+            for (int order = 0; order < sectionOrder_.size(); ++order) {
+                const QString &name = sectionOrder_.at(order);
+                auto it = bySection.find(name);
+                if (it == bySection.end() || it->empty()) {
+                    continue;
+                }
+                auto &items = it.value();
+                std::stable_sort(items.begin(), items.end(), [](const Scored &a, const Scored &b) {
+                    return a.score > b.score;
+                });
+                sections.push_back({name, items.front().score, order});
+            }
+            std::stable_sort(sections.begin(), sections.end(), [](const RankedSection &a, const RankedSection &b) {
+                if (a.maxScore != b.maxScore) {
+                    return a.maxScore > b.maxScore;
+                }
+                return a.order < b.order;
+            });
+            for (const auto &section : sections) {
+                for (const auto &item : bySection[section.name]) {
+                    visible_.push_back(item.index);
+                }
+            }
+        }
+
+        rows_.clear();
+        rows_.reserve(static_cast<qsizetype>(visible_.size()));
+        for (const std::size_t index : visible_) {
+            const auto &entry = entries_[index];
+            rows_.append(QVariantMap{
+                {QStringLiteral("id"), entry.id},
+                {QStringLiteral("label"), entry.label},
+                {QStringLiteral("section"), entry.section},
+                {QStringLiteral("icon"), entry.icon},
+                {QStringLiteral("keys"), entry.shortcuts.join(QStringLiteral(" / "))},
+                {QStringLiteral("shortcuts"), entry.shortcuts},
+                {QStringLiteral("available"), entry.available}
+            });
+        }
+        selectedIndex_ = firstEnabled();
+        emit rowsChanged();
+        emit selectionChanged();
+    }
+
+    std::vector<Entry> entries_;
+    QStringList sectionOrder_;
+    std::vector<std::size_t> visible_;
+    QVariantList rows_;
+    QString query_;
+    int selectedIndex_ = -1;
+};
+
+// UI thread only. Keeps the full-window command palette overlay sized to its
+// owner window across resizes. Parented to the overlay widget.
+class CommandPanelFilter final : public QObject {
+    Q_OBJECT
+public:
+    CommandPanelFilter(QQuickWidget *panel, QWidget *owner)
+        : QObject(panel), panel_(panel), owner_(owner) {
+        if (owner_) {
+            owner_->installEventFilter(this);
+        }
+    }
+    ~CommandPanelFilter() override {
+        if (owner_) {
+            owner_->removeEventFilter(this);
+        }
+    }
+protected:
+    bool eventFilter(QObject *object, QEvent *event) override {
+        if (object == owner_ && event->type() == QEvent::Resize && panel_) {
+            panel_->setGeometry(owner_->rect());
+        }
+        return false;
+    }
+private:
+    QPointer<QQuickWidget> panel_;
+    QPointer<QWidget> owner_;
+};
+
+// UI thread only. Frameless dialog for the keyboard shortcuts help panel that
+// re-activates Quick focus once the native window becomes active.
+class ShortcutsDialog final : public QDialog {
+    Q_OBJECT
+public:
+    explicit ShortcutsDialog(QWidget *parent) : QDialog(parent, Qt::Dialog | Qt::FramelessWindowHint) {
+        setAttribute(Qt::WA_TranslucentBackground);
+        setAttribute(Qt::WA_DeleteOnClose);
+    }
+    QPointer<QQuickWidget> quick;
+protected:
+    bool event(QEvent *event) override {
+        const bool handled = QDialog::event(event);
+        if (event->type() == QEvent::WindowActivate && !focused_ && quick && quick->rootObject()) {
+            focused_ = true;
+            quick->setFocus(Qt::PopupFocusReason);
+            QMetaObject::invokeMethod(quick->rootObject(), "activate", Qt::QueuedConnection);
+        }
+        return handled;
+    }
+private:
+    bool focused_ = false;
 };
 
 // Closes the find panel on a press outside it, and keeps it at the window's
@@ -976,18 +1335,488 @@ void EditorWindow::showNodeMenu(const QPointF &global) {
     showContextMenu("node", global.toPoint(), ids.first());
 }
 
+void EditorWindow::toggleCommandMenu() {
+    if (!tabOwner_) {
+        if (activeEditor_) {
+            activeEditor_->toggleCommandMenu();
+        }
+        return;
+    }
+    auto *owner = tabOwner_;
+    if (owner->commandPanel_) {
+        if (auto *root = owner->commandPanel_->rootObject()) {
+            if (auto *controller = qvariant_cast<QObject *>(root->property("controller"))) {
+                QMetaObject::invokeMethod(controller, "close");
+                return;
+            }
+        }
+        owner->commandPanel_->hide();
+        owner->commandPanel_->deleteLater();
+        return;
+    }
+    if (contextMenuHost_) {
+        contextMenuHost_->hide();
+        contextMenuHost_->deleteLater();
+    }
+
+    const auto epoch = documentEpoch_;
+    const auto credentials = credentialsEpoch_;
+    const auto selection = selectedIds();
+    const QPointer<QWidget> prior = QApplication::focusWidget();
+    const QPointer<EditorWindow> editor(this);
+    const QPointer<EditorWindow> hostOwner(owner);
+
+    // Collect native shortcut keycaps from the canonical table, keeping alternate bindings.
+    QHash<QString, QStringList> shortcutMap;
+    for (const auto &entry : shortcuts) {
+        const auto name = QString::fromLatin1(entry.command);
+        const auto text = QKeySequence(QString::fromLatin1(entry.keys)).toString(QKeySequence::NativeText);
+        if (!shortcutMap[name].contains(text)) {
+            shortcutMap[name].append(text);
+        }
+    }
+    const auto keysFor = [&](const QString &name, const QStringList &fallback = {}) {
+        const auto found = shortcutMap.value(name);
+        if (!found.isEmpty()) {
+            return found;
+        }
+        QStringList rendered;
+        for (const auto &seq : fallback) {
+            rendered.append(QKeySequence(seq).toString(QKeySequence::NativeText));
+        }
+        return rendered;
+    };
+
+    std::vector<CommandMenuController::Entry> entries;
+    QSet<QString> usedLabels;
+    const auto uniqueLabel = [&](const QString &base) {
+        if (!usedLabels.contains(base)) {
+            usedLabels.insert(base);
+            return base;
+        }
+        int suffix = 2;
+        while (usedLabels.contains(QStringLiteral("%1 (%2)").arg(base).arg(suffix))) {
+            ++suffix;
+        }
+        const auto candidate = QStringLiteral("%1 (%2)").arg(base).arg(suffix);
+        usedLabels.insert(candidate);
+        return candidate;
+    };
+
+    const auto addAction = [&](const QString &label,
+                               const QString &section,
+                               const QString &icon,
+                               const QStringList &keywords = {},
+                               const QStringList &fallbackKeys = {},
+                               const QString &actionName = {}) {
+        const QString target = actionName.isEmpty() ? label : actionName;
+        entries.push_back({
+            .id = QStringLiteral("action:%1").arg(target),
+            .label = uniqueLabel(label),
+            .section = section,
+            .icon = icon,
+            .shortcuts = keysFor(target, fallbackKeys),
+            .keywords = keywords,
+            .available = menuActionEnabled(target),
+            .guardDocument = true,
+            .run = [editor, target] {
+                if (editor && editor->menuActionEnabled(target)) {
+                    editor->userAction(target);
+                }
+            }
+        });
+    };
+
+    const auto addCustom = [&](const QString &id,
+                               const QString &label,
+                               const QString &section,
+                               const QString &icon,
+                               const QStringList &keywords,
+                               const QStringList &fallbackKeys,
+                               bool available,
+                               bool guardDocument,
+                               std::function<void()> run) {
+        entries.push_back({
+            .id = id,
+            .label = uniqueLabel(label),
+            .section = section,
+            .icon = icon,
+            .shortcuts = keysFor(label, fallbackKeys),
+            .keywords = keywords,
+            .available = available,
+            .guardDocument = guardDocument,
+            .run = std::move(run)
+        });
+    };
+
+    // 1. Open tabs (GlobalCommandGroups.tsx SwitchTabCommands).
+    const auto tabs = owner->workflowTabs();
+    const int currentTab = owner->activeTab();
+    if (tabs.size() > 1) {
+        for (int index = 0; index < tabs.size(); ++index) {
+            if (index == currentTab) {
+                continue;
+            }
+            const auto tab = tabs.at(index).toMap();
+            const auto title = tab.value(QStringLiteral("title")).toString();
+            const auto kind = tab.value(QStringLiteral("kind")).toString();
+            const QString icon = kind == QStringLiteral("storyboard") ? QStringLiteral("viewCarouselOutlined")
+                : kind == QStringLiteral("script") ? QStringLiteral("descriptionOutlined")
+                : QStringLiteral("accountTree");
+            addCustom(
+                QStringLiteral("tab:%1").arg(index),
+                title.isEmpty() ? tr("Untitled workflow") : title,
+                tr("Open tabs"),
+                icon,
+                {QStringLiteral("tab"), QStringLiteral("switch"), QStringLiteral("go to"), kind},
+                {},
+                true,
+                false,
+                [hostOwner, index] {
+                    if (hostOwner) {
+                        hostOwner->activateTab(index);
+                    }
+                });
+        }
+    }
+
+    // 2. Workflow (CommandMenu.tsx WorkflowCommands + native workflow actions).
+    const QString wf = tr("Workflow");
+    addAction(QStringLiteral("Run"), wf, QStringLiteral("playArrow"),
+              {QStringLiteral("run entire workflow"), QStringLiteral("execute"), QStringLiteral("start")});
+    addAction(QStringLiteral("Run selected"), wf, QStringLiteral("playArrow"),
+              {QStringLiteral("partial"), QStringLiteral("selection")});
+    addAction(QStringLiteral("Stop"), wf, QStringLiteral("stop"),
+              {QStringLiteral("cancel workflow"), QStringLiteral("abort")});
+    addAction(QStringLiteral("Save"), wf, QStringLiteral("saveOutlined"),
+              {QStringLiteral("save workflow")});
+    addAction(QStringLiteral("Save local copy as"), wf, QStringLiteral("fileDownload"),
+              {QStringLiteral("save as"), QStringLiteral("download workflow json"), QStringLiteral("export")},
+              {QStringLiteral("Ctrl+Shift+S")});
+    addCustom(QStringLiteral("workflow:new"), tr("New workflow"), wf, QStringLiteral("add"),
+              {QStringLiteral("create"), QStringLiteral("new tab")}, {QStringLiteral("Ctrl+T")}, true, false,
+              [hostOwner] { if (hostOwner) { hostOwner->newTab(); } });
+    addCustom(QStringLiteral("workflow:new-comfy"), tr("New Comfy workflow"), wf, QStringLiteral("add"),
+              {QStringLiteral("create"), QStringLiteral("comfyui")}, {}, true, false,
+              [hostOwner] { if (hostOwner) { hostOwner->newComfyWorkflow(); } });
+    addCustom(QStringLiteral("workflow:close"), tr("Close workflow"), wf, QStringLiteral("closeOutlined"),
+              {QStringLiteral("close tab")}, {QStringLiteral("Ctrl+W")}, true, false,
+              [hostOwner] { if (hostOwner) { hostOwner->closeTab(hostOwner->activeTab()); } });
+    addAction(QStringLiteral("Open file"), wf, QStringLiteral("folderOutlined"),
+              {QStringLiteral("import workflow json"), QStringLiteral("open local")}, {QStringLiteral("Ctrl+O")});
+    addCustom(QStringLiteral("workflow:copy-json"), tr("Copy workflow JSON"), wf, QStringLiteral("copy"),
+              {QStringLiteral("clipboard"), QStringLiteral("export"), QStringLiteral("json")}, {}, true, true,
+              [editor] {
+                  if (!editor) { return; }
+                  QApplication::clipboard()->setText(QString::fromUtf8(
+                      QJsonDocument(editor->document_.snapshot()).toJson(QJsonDocument::Indented)));
+                  editor->notify(QStringLiteral("info"), tr("Copied workflow JSON to clipboard."));
+              });
+    addAction(QStringLiteral("Auto layout"), wf, QStringLiteral("autoFixHigh"),
+              {QStringLiteral("arrange"), QStringLiteral("organize")});
+    addAction(instantUpdate_ ? QStringLiteral("Instant Update: On") : QStringLiteral("Instant Update: Off"),
+              wf, QStringLiteral("autoFixHigh"),
+              {QStringLiteral("instant update"), QStringLiteral("live preview"), QStringLiteral("auto run")});
+    addAction(QStringLiteral("Server Open"), wf, QStringLiteral("folderOutlined"),
+              {QStringLiteral("open from server"), QStringLiteral("workflows")});
+    addAction(QStringLiteral("Server Save"), wf, QStringLiteral("saveOutlined"),
+              {QStringLiteral("save to server")});
+    addAction(QStringLiteral("Server sync"), wf, QStringLiteral("sync"),
+              {QStringLiteral("sync"), QStringLiteral("conflict")});
+    addAction(QStringLiteral("Share"), wf, QStringLiteral("link"),
+              {QStringLiteral("share workflow")});
+    addAction(QStringLiteral("Publish to cloud"), wf, QStringLiteral("fileUpload"),
+              {QStringLiteral("cloud"), QStringLiteral("publish")});
+    addAction(QStringLiteral("Synchronize"), wf, QStringLiteral("sync"),
+              {QStringLiteral("cloud"), QStringLiteral("sync")});
+    addAction(QStringLiteral("Connect"), wf, QStringLiteral("link"),
+              {QStringLiteral("server"), QStringLiteral("url")});
+    addAction(QStringLiteral("Reconnect"), wf, QStringLiteral("refresh"),
+              {QStringLiteral("server")});
+    addAction(QStringLiteral("Version history"), wf, QStringLiteral("history"),
+              {QStringLiteral("versions"), QStringLiteral("checkpoints")});
+    addAction(QStringLiteral("Workflow metadata"), wf, QStringLiteral("info"),
+              {QStringLiteral("workflow settings"), QStringLiteral("name"), QStringLiteral("description")});
+    addAction(QStringLiteral("Linked workflows"), wf, QStringLiteral("accountTree"),
+              {QStringLiteral("subgraphs"), QStringLiteral("references")});
+    addAction(QStringLiteral("Canvas uploads"), wf, QStringLiteral("fileUpload"),
+              {QStringLiteral("uploads"), QStringLiteral("drops")});
+    addAction(QStringLiteral("Run trace"), wf, QStringLiteral("timeline"),
+              {QStringLiteral("trace"), QStringLiteral("spans"), QStringLiteral("logs")});
+    addAction(QStringLiteral("Examples"), wf, QStringLiteral("exploreOutlined"),
+              {QStringLiteral("templates"), QStringLiteral("samples")});
+
+    // 3. Edit (CommandMenu.tsx EditCommands + native node editing commands).
+    const QString edit = tr("Edit");
+    addAction(QStringLiteral("Undo"), edit, QStringLiteral("undo"));
+    addAction(QStringLiteral("Redo"), edit, QStringLiteral("redo"));
+    addAction(QStringLiteral("Copy"), edit, QStringLiteral("copy"));
+    addAction(QStringLiteral("Cut"), edit, QStringLiteral("contentCut"));
+    addAction(QStringLiteral("Paste"), edit, QStringLiteral("contentPaste"));
+    addAction(QStringLiteral("Select all"), edit, QStringLiteral("selectAll"));
+    addAction(QStringLiteral("Delete"), edit, QStringLiteral("deleteOutline"),
+              {QStringLiteral("delete selected"), QStringLiteral("remove")});
+    addAction(QStringLiteral("Duplicate"), edit, QStringLiteral("queue"),
+              {QStringLiteral("clone")});
+    addAction(QStringLiteral("Duplicate vertical"), edit, QStringLiteral("south"),
+              {QStringLiteral("duplicate vertically")});
+    addAction(QStringLiteral("Group selection"), edit, QStringLiteral("groupWork"),
+              {QStringLiteral("group selected"), QStringLiteral("surround")});
+    addAction(QStringLiteral("Group into subgraph"), edit, QStringLiteral("schema"),
+              {QStringLiteral("subgraph"), QStringLiteral("extract")});
+    addAction(QStringLiteral("Open child"), edit, QStringLiteral("openInNew"),
+              {QStringLiteral("open subgraph")});
+    addAction(QStringLiteral("Ungroup"), edit, QStringLiteral("groupRemove"));
+    addAction(QStringLiteral("Remove from group"), edit, QStringLiteral("groupRemove"),
+              {QStringLiteral("detach")});
+    addAction(QStringLiteral("Disable toggle"), edit, QStringLiteral("block"),
+              {QStringLiteral("bypass"), QStringLiteral("disable selected nodes"), QStringLiteral("enable")});
+    addAction(QStringLiteral("Disable selected"), edit, QStringLiteral("block"),
+              {QStringLiteral("bypass"), QStringLiteral("disable selected nodes")});
+    addAction(QStringLiteral("Enable selected"), edit, QStringLiteral("power"),
+              {QStringLiteral("unbypass")});
+    addAction(QStringLiteral("Toggle collapse"), edit, QStringLiteral("unfoldLess"),
+              {QStringLiteral("collapse"), QStringLiteral("expand")});
+    addAction(QStringLiteral("Find node"), edit, QStringLiteral("search"),
+              {QStringLiteral("find in workflow"), QStringLiteral("search")});
+    addAction(QStringLiteral("Add node"), edit, QStringLiteral("addCircle"),
+              {QStringLiteral("node menu"), QStringLiteral("insert")});
+    addAction(QStringLiteral("Add comment"), edit, QStringLiteral("addComment"),
+              {QStringLiteral("note")});
+    addAction(QStringLiteral("Edit note"), edit, QStringLiteral("editNote"),
+              {QStringLiteral("comment")});
+    addAction(QStringLiteral("Rename node"), edit, QStringLiteral("rename"));
+    addAction(QStringLiteral("Rename group"), edit, QStringLiteral("rename"));
+    addAction(QStringLiteral("Edit comment"), edit, QStringLiteral("editOutlined"));
+    addAction(QStringLiteral("Link selected"), edit, QStringLiteral("link"),
+              {QStringLiteral("lineage")});
+    addAction(QStringLiteral("Node info"), edit, QStringLiteral("info"),
+              {QStringLiteral("documentation"), QStringLiteral("help")});
+    addAction(QStringLiteral("Select all connected"), edit, QStringLiteral("callSplit"),
+              {QStringLiteral("connected")});
+    addAction(QStringLiteral("Select inputs"), edit, QStringLiteral("arrowBack"),
+              {QStringLiteral("upstream")});
+    addAction(QStringLiteral("Select outputs"), edit, QStringLiteral("arrowForward"),
+              {QStringLiteral("downstream")});
+    addAction(QStringLiteral("Add Prompt"), edit, QStringLiteral("add"),
+              {QStringLiteral("quick add")});
+    addAction(QStringLiteral("Add Text to Image"), edit, QStringLiteral("image"),
+              {QStringLiteral("quick add")});
+    addAction(QStringLiteral("Add Text to Video"), edit, QStringLiteral("movie"),
+              {QStringLiteral("quick add")});
+    addAction(QStringLiteral("Add Agent"), edit, QStringLiteral("smartToy"),
+              {QStringLiteral("quick add")});
+
+    // 4. Layout & Alignment (CommandMenu.tsx LayoutCommands).
+    const QString layoutSection = tr("Layout & Alignment");
+    addAction(QStringLiteral("Align"), layoutSection, QStringLiteral("formatAlignLeft"),
+              {QStringLiteral("align nodes")});
+    addAction(QStringLiteral("Align with spacing"), layoutSection, QStringLiteral("linearScale"),
+              {QStringLiteral("align nodes with spacing"), QStringLiteral("arrange")});
+    addAction(QStringLiteral("Align left"), layoutSection, QStringLiteral("alignHorizontalLeft"));
+    addAction(QStringLiteral("Align center"), layoutSection, QStringLiteral("alignHorizontalCenter"));
+    addAction(QStringLiteral("Align right"), layoutSection, QStringLiteral("alignHorizontalRight"));
+    addAction(QStringLiteral("Align top"), layoutSection, QStringLiteral("verticalAlignTop"));
+    addAction(QStringLiteral("Align middle"), layoutSection, QStringLiteral("verticalAlignCenter"));
+    addAction(QStringLiteral("Align bottom"), layoutSection, QStringLiteral("verticalAlignBottom"));
+    addAction(QStringLiteral("Distribute horizontally"), layoutSection, QStringLiteral("viewColumn"));
+    addAction(QStringLiteral("Stack selection"), layoutSection, QStringLiteral("layers"));
+    addAction(QStringLiteral("Arrange grid"), layoutSection, QStringLiteral("all"));
+    addAction(QStringLiteral("Layout selection"), layoutSection, QStringLiteral("autoFixHigh"));
+
+    // 5. View (CommandMenu.tsx ViewCommands + native viewport/focus navigation).
+    const QString viewSection = tr("View");
+    addAction(QStringLiteral("Toggle mini-map"), viewSection, QStringLiteral("map"),
+              {QStringLiteral("show mini map"), QStringLiteral("hide mini map"), QStringLiteral("minimap")});
+    addAction(QStringLiteral("Fit"), viewSection, QStringLiteral("fitScreen"),
+              {QStringLiteral("fit view"), QStringLiteral("fit screen")});
+    addAction(QStringLiteral("Fit selection"), viewSection, QStringLiteral("filterCenterFocus"));
+    addAction(QStringLiteral("Zoom in"), viewSection, QStringLiteral("zoomIn"));
+    addAction(QStringLiteral("Zoom out"), viewSection, QStringLiteral("zoomOut"));
+    addAction(QStringLiteral("Reset zoom"), viewSection, QStringLiteral("restartAlt"));
+    addAction(QStringLiteral("Zoom to 50%"), viewSection, QStringLiteral("zoomOut"));
+    addAction(QStringLiteral("Zoom to 100%"), viewSection, QStringLiteral("zoomIn"));
+    addAction(QStringLiteral("Zoom to 200%"), viewSection, QStringLiteral("zoomIn"));
+    addAction(QStringLiteral("Zoom presets"), viewSection, QStringLiteral("zoomIn"));
+    addAction(QStringLiteral("Focus node"), viewSection, QStringLiteral("centerFocusStrong"));
+    addAction(QStringLiteral("Focus next node"), viewSection, QStringLiteral("myLocation"));
+    addAction(QStringLiteral("Focus previous node"), viewSection, QStringLiteral("myLocation"));
+    addAction(QStringLiteral("Focus node above"), viewSection, QStringLiteral("myLocation"));
+    addAction(QStringLiteral("Focus node below"), viewSection, QStringLiteral("myLocation"));
+    addAction(QStringLiteral("Focus node left"), viewSection, QStringLiteral("myLocation"));
+    addAction(QStringLiteral("Focus node right"), viewSection, QStringLiteral("myLocation"));
+    addAction(QStringLiteral("Focus back"), viewSection, QStringLiteral("myLocation"));
+    addAction(QStringLiteral("Select focused node"), viewSection, QStringLiteral("centerFocusStrong"));
+    addAction(QStringLiteral("Move left"), viewSection, QStringLiteral("swapHoriz"));
+    addAction(QStringLiteral("Move right"), viewSection, QStringLiteral("swapHoriz"));
+    addAction(QStringLiteral("Move up"), viewSection, QStringLiteral("swapHoriz"));
+    addAction(QStringLiteral("Move down"), viewSection, QStringLiteral("swapHoriz"));
+    addCustom(QStringLiteral("view:fullscreen"), tr("Toggle full screen"), viewSection, QStringLiteral("fullscreen"),
+              {QStringLiteral("fullscreen")}, {QKeySequence(QKeySequence::FullScreen).toString()}, true, false,
+              [hostOwner] {
+                  if (!hostOwner) { return; }
+                  if (hostOwner->isFullScreen()) { hostOwner->showNormal(); }
+                  else { hostOwner->showFullScreen(); }
+              });
+
+    // 6. Panels (CommandMenu.tsx PanelCommands + native docks).
+    const QString panelsSection = tr("Panels");
+    addAction(QStringLiteral("Toggle inspector"), panelsSection, QStringLiteral("tune"),
+              {QStringLiteral("properties"), QStringLiteral("right panel")});
+    addAction(QStringLiteral("Toggle nodes"), panelsSection, QStringLiteral("panelLeft"),
+              {QStringLiteral("catalog"), QStringLiteral("library"), QStringLiteral("nodes panel")});
+    addAction(QStringLiteral("Workflows"), panelsSection, QStringLiteral("accountTree"),
+              {QStringLiteral("toggle workflows panel")});
+    addCustom(QStringLiteral("panel:chat"), tr("Toggle chat"), panelsSection, QStringLiteral("forumOutlined"),
+              {QStringLiteral("toggle conversation"), QStringLiteral("assistant"), QStringLiteral("ai")},
+              {}, true, false,
+              [hostOwner] { if (hostOwner) { hostOwner->toggleChat(); } });
+    addAction(QStringLiteral("Library"), panelsSection, QStringLiteral("collectionsOutlined"),
+              {QStringLiteral("toggle assets"), QStringLiteral("media")});
+    addAction(QStringLiteral("Files"), panelsSection, QStringLiteral("folderOutlined"),
+              {QStringLiteral("project files")});
+    addAction(QStringLiteral("Output"), panelsSection, QStringLiteral("playlistPlay"),
+              {QStringLiteral("run output"), QStringLiteral("logs")});
+    addAction(QStringLiteral("Queue"), panelsSection, QStringLiteral("schedule"),
+              {QStringLiteral("jobs")});
+    addAction(QStringLiteral("Settings"), panelsSection, QStringLiteral("settings"),
+              {QStringLiteral("preferences")});
+
+    // 7. Projects (GlobalCommandGroups.tsx ProjectCommands).
+    const QString currentProject = owner->activeProject();
+    if (!currentProject.isEmpty() || !owner->projects_.isEmpty()) {
+        const QString projectsSection = tr("Projects");
+        if (!currentProject.isEmpty()) {
+            addCustom(QStringLiteral("project:personal"), tr("Personal"), projectsSection, QStringLiteral("toolProjects"),
+                      {QStringLiteral("switch to project"), QStringLiteral("project")}, {}, true, false,
+                      [hostOwner] { if (hostOwner) { hostOwner->selectProject({}); } });
+        }
+        for (const auto &value : owner->projects_) {
+            const auto row = value.toObject();
+            const auto id = row.value(QStringLiteral("id")).toString();
+            const auto name = row.value(QStringLiteral("name")).toString();
+            if (id.isEmpty() || id == currentProject || name.isEmpty()) {
+                continue;
+            }
+            addCustom(QStringLiteral("project:%1").arg(id), name, projectsSection, QStringLiteral("toolProjects"),
+                      {QStringLiteral("switch to project"), QStringLiteral("project")}, {}, true, false,
+                      [hostOwner, id] { if (hostOwner) { hostOwner->selectProject(id); } });
+        }
+    }
+
+    // 8. Help (GlobalCommandGroups.tsx HelpCommands).
+    const QString helpSection = tr("Help");
+    addAction(QStringLiteral("Keyboard shortcuts"), helpSection, QStringLiteral("keyboard"),
+              {QStringLiteral("hotkeys"), QStringLiteral("keybindings"), QStringLiteral("help")});
+    addCustom(QStringLiteral("help:report-bug"), tr("Report bug"), helpSection, QStringLiteral("reportProblem"),
+              {QStringLiteral("issue"), QStringLiteral("feedback")}, {}, true, false,
+              [editor] { if (editor) { editor->reportBug({}); } });
+
+    // Host directly on the root EditorWindow as a full-window overlay so Qt Quick
+    // keeps active keyboard focus reliably across macOS/Windows/Linux without popup
+    // window activation bugs, and draws the full-window modal scrim like the web dialog.
+    // Parented to owner, which destroys it on close or shutdown.
+    auto *host = new QQuickWidget(engine_, owner);
+    owner->commandPanel_ = host;
+    host->setObjectName(QStringLiteral("command-panel"));
+    host->setAttribute(Qt::WA_AlwaysStackOnTop);
+    host->setAttribute(Qt::WA_TranslucentBackground);
+    host->setClearColor(Qt::transparent);
+    host->setFocusPolicy(Qt::StrongFocus);
+    host->setResizeMode(QQuickWidget::SizeRootObjectToView);
+    host->setGeometry(owner->rect());
+
+    // Parented to host so it outlives the QML root during teardown.
+    auto *controller = new CommandMenuController(host);
+    controller->setEntries(std::move(entries));
+    // Parented to host; keeps host sized to owner on window resize.
+    new CommandPanelFilter(host, owner);
+
+    const QPointer<QQuickWidget> guardedHost(host);
+    const auto dismiss = [guardedHost, hostOwner, editor, prior] {
+        if (!guardedHost || !guardedHost->isVisible()) {
+            return false;
+        }
+        if (hostOwner && hostOwner->commandPanel_ == guardedHost) {
+            hostOwner->commandPanel_.clear();
+        }
+        guardedHost->hide();
+        guardedHost->deleteLater();
+        if (prior && prior != guardedHost && !guardedHost->isAncestorOf(prior) && prior->isVisible()) {
+            prior->setFocus(Qt::OtherFocusReason);
+        } else if (editor && editor->canvas_) {
+            editor->canvas_->setFocus(Qt::OtherFocusReason);
+        }
+        return true;
+    };
+
+    controller->onClose = [dismiss] { dismiss(); };
+    controller->onActivate = [dismiss, editor, hostOwner, epoch, credentials, selection](const CommandMenuController::Entry &entry) {
+        auto run = entry.run;
+        const bool guardDocument = entry.guardDocument;
+        if (!dismiss()) {
+            return;
+        }
+        if (guardDocument) {
+            if (!editor || epoch != editor->documentEpoch_ || credentials != editor->credentialsEpoch_ || selection != editor->selectedIds()) {
+                return;
+            }
+        } else if (!hostOwner) {
+            return;
+        }
+        if (run) {
+            run();
+        }
+    };
+
+    connect(this, &EditorWindow::documentEpochChanged, host, [controller] { controller->close(); });
+    connect(this, &EditorWindow::credentialsEpochChanged, host, [controller] { controller->close(); });
+    connect(this, &QObject::destroyed, host, [controller] { controller->close(); });
+
+    host->setInitialProperties({{QStringLiteral("controller"), QVariant::fromValue(controller)}});
+    host->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/CommandMenu.qml")));
+    if (!host->rootObject()) {
+        if (owner->commandPanel_ == host) {
+            owner->commandPanel_.clear();
+        }
+        host->deleteLater();
+        return;
+    }
+
+    host->show();
+    host->raise();
+    host->setFocus(Qt::PopupFocusReason);
+    QMetaObject::invokeMethod(host->rootObject(), "activate");
+    // Re-assert focus on the next event-loop turn so opening via a toolbar click or
+    // menu dismissal never steals focus back from the search field.
+    QTimer::singleShot(0, host, [guardedHost] {
+        if (guardedHost && guardedHost->isVisible()) {
+            guardedHost->setFocus(Qt::PopupFocusReason);
+            if (auto *root = guardedHost->rootObject()) {
+                QMetaObject::invokeMethod(root, "activate");
+            }
+        }
+    });
+}
+
 void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
  if (kind == "pane" || kind == "node" || kind == "group" || kind == "selection") {
   showContextMenu(kind == "group" ? QString("node") : kind, position, kind == "pane" || kind == "selection" ? QString() : selectedIds().value(0));
   return;
  }
+ if (kind == "command") {
+  toggleCommandMenu();
+  return;
+ }
  const auto epoch = documentEpoch_, credentials = credentialsEpoch_;
  const auto selection = selectedIds();
- if (kind == "command" || kind == "shortcuts") {
-  auto *panel = new QDialog(this, Qt::Popup | Qt::FramelessWindowHint);
-  panel->setObjectName(kind + "-panel");
-  panel->setAttribute(Qt::WA_TranslucentBackground);
-  panel->setAttribute(Qt::WA_DeleteOnClose);
+ if (kind == "shortcuts") {
+  auto *panel = new ShortcutsDialog(this);
+  panel->setObjectName(QStringLiteral("shortcuts-panel"));
+  const QPointer<QWidget> prior = QApplication::focusWidget();
+  connect(panel, &QDialog::finished, this, [prior] {
+   if (prior && prior->isVisible()) { prior->setFocus(Qt::OtherFocusReason); }
+  });
   auto *dispatch = new MenuDispatch(panel);
   dispatch->invoke = [this, panel, epoch, credentials, selection](const QString &name) {
    if (!panel->isVisible() || epoch != documentEpoch_ || credentials != credentialsEpoch_ || selection != selectedIds()) { return; }
@@ -1006,7 +1835,6 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
    keys[name].append(QKeySequence(QString::fromLatin1(entry.keys)).toString(QKeySequence::NativeText));
    combos[name].append(webKeys(QString::fromLatin1(entry.keys)));
   }
-  if (kind == "command") { names += QStringList{"Add comment", "Run selected", "Disable selected", "Enable selected", "Auto layout", "Zoom in", "Zoom out", "Reset zoom", "Stop", "Open file", "Examples", "Layout selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Output", "Toggle nodes", "Toggle mini-map", "Fit selection", "Focus node", "Zoom presets", "Connect", "Server Open", "Server Save", "Reconnect", "Server sync", "Share", "Publish to cloud", "Synchronize", "Run trace", "Version history", "Workflow metadata", "Canvas uploads", "Link selected", "Group into subgraph", "Open child", "Linked workflows"}; }
   names.removeDuplicates();
   const auto group = [](const QString &name) {
    if (name.startsWith("Align") || name.startsWith("Distribute") || name == "Stack selection" || name == "Arrange grid") { return QString("Layout & Alignment"); }
@@ -1025,6 +1853,7 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
    }
   }
   auto *quick = new QQuickWidget(engine_, panel);
+  panel->quick = quick;
   quick->setResizeMode(QQuickWidget::SizeRootObjectToView);
   quick->setAttribute(Qt::WA_TranslucentBackground);
   quick->setClearColor(Qt::transparent);
@@ -1034,14 +1863,13 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
 #else
   const QString platform = "win";
 #endif
-  quick->setInitialProperties({{"dispatch", QVariant::fromValue(dispatch)}, {"rows", rows}, {"help", kind == "shortcuts"}, {"os", platform}, {"layoutName", german ? "german" : "english"}});
+  quick->setInitialProperties({{"dispatch", QVariant::fromValue(dispatch)}, {"rows", rows}, {"help", true}, {"os", platform}, {"layoutName", german ? "german" : "english"}});
   quick->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ActionPanel.qml"));
   auto *layout = new QVBoxLayout(panel); layout->setContentsMargins(0,0,0,0); layout->addWidget(quick);
-  const bool help = kind == "shortcuts";
-  const QSize wanted = help ? QSize(880, 760) : QSize(560, 620);
+  const QSize wanted(880, 760);
   panel->resize(wanted.boundedTo(size() - QSize(32, 32)));
   panel->move(mapToGlobal(rect().center()) - QPoint(panel->width() / 2, panel->height() / 2));
-  panel->show(); quick->setFocus();
+  panel->show(); quick->setFocus(Qt::PopupFocusReason);
   QMetaObject::invokeMethod(quick->rootObject(), "activate");
   return;
  }

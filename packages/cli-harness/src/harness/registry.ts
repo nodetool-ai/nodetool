@@ -2436,7 +2436,6 @@ export const SURFACES: SurfaceEntry[] = [
     paths: [
       "Dockerfile",
       "docker-compose.yml",
-      "fly.toml",
       "scripts/docker-smoke.mjs"
     ]
   },

@@ -1,4 +1,5 @@
 #include "../support/OverlayProbe.h"
+#include "ui/CommandScore.h"
 #include "ui/EditorWindow.h"
 #include "../graph/BodyConnectionFixture.h"
 #include "canvas/CanvasStyle.h"
@@ -154,25 +155,169 @@ private slots:
         }
         QVERIFY(inspected > 0);
     }
+    void commandScoreMatchesCmdkBehavior() {
+        using nodetool::command_menu::commandScore;
+        QCOMPARE(commandScore("Delete", ""), 1.0);
+        QCOMPARE(commandScore("Delete", "Delete"), 1.0);
+        QVERIFY(commandScore("Delete", "del") > commandScore("Disable selected", "del"));
+        QVERIFY(commandScore("Zoom to 100%", "z100") > 0.0);
+        QVERIFY(commandScore("Align left", "al l") > commandScore("Auto layout", "al l"));
+        QVERIFY(commandScore("Toggle mini-map", "minimap", {"minimap"}) > 0.0);
+        QCOMPARE(commandScore("Save", "zzz"), 0.0);
+    }
     void commandShortcut() {
-        EditorWindow window; window.show(); QTest::qWait(50);
-        auto *canvas = view(window); QVERIFY(canvas);
-        canvas->setFocus(); QTest::keyClick(&canvas->viewportWidget(), Qt::Key_K, Qt::ControlModifier);
-        QTRY_VERIFY(window.findChild<QDialog *>("command-panel"));
-        auto *panel = window.findChild<QDialog *>("command-panel");
-        auto *quick = panel->findChild<QQuickWidget *>(); QVERIFY(quick);
-        QCOMPARE(quick->status(), QQuickWidget::Ready);
+        EditorWindow window;
+        window.resize(1200, 800);
+        window.show();
         QTest::qWait(50);
-        auto *search = quick->rootObject()->findChild<QQuickItem *>("action-search"); QVERIFY(search);
-        const auto point = search->mapToScene(QPointF(search->width()/2, search->height()/2)).toPoint();
-        QTest::mouseClick(quick, Qt::LeftButton, Qt::NoModifier, point);
-        QTest::keyClicks(quick, "Delete");
-        QTRY_COMPARE(quick->rootObject()->property("query").toString(), QString("Delete"));
-        QTest::keyClick(quick, Qt::Key_Return);
+        auto *canvas = view(window); QVERIFY(canvas);
+        canvas->setFocus();
+        QTest::keyClick(&canvas->viewportWidget(), Qt::Key_K, Qt::ControlModifier);
+        QTRY_VERIFY(window.findChild<QQuickWidget *>("command-panel"));
+        auto *panel = window.findChild<QQuickWidget *>("command-panel");
+        QCOMPARE(panel->status(), QQuickWidget::Ready);
+        QTest::qWait(30);
+        auto *search = panel->rootObject()->findChild<QQuickItem *>("action-search");
+        QVERIFY(search);
+        // Typing works immediately without clicking the search input.
+        QTRY_VERIFY(search->hasActiveFocus());
+        QTest::keyClicks(panel, "Delete");
+        QTRY_COMPARE(panel->rootObject()->property("query").toString(), QString("Delete"));
+        // With nothing selected, Delete is disabled so Return leaves the menu open and undo untouched.
+        QCOMPARE(panel->rootObject()->property("selectedIndex").toInt(), -1);
+        QTest::keyClick(panel, Qt::Key_Return);
         QVERIFY(panel->isVisible());
         QCOMPARE(window.document()->undoStack()->index(), 0);
-        QTest::keyClick(quick, Qt::Key_Escape);
-        QTRY_VERIFY(!panel->isVisible());
+        QTest::keyClick(panel, Qt::Key_Escape);
+        QTRY_VERIFY(!window.findChild<QQuickWidget *>("command-panel") || !panel->isVisible());
+    }
+    void commandMenuTypingFuzzySearchNavigationAndToggle() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "cmd"}, {"graph", QJsonObject{{"nodes", QJsonArray{
+            node("a", "Fixed", 0, 0), node("b", "Sink", 500, 0)}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1400, 900);
+        window.show();
+        window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowActive(&window));
+        QTest::qWait(40);
+
+        // Open globally from a non-canvas panel (catalog search) via Ctrl+K.
+        window.action("Toggle nodes");
+        QTRY_VERIFY(window.catalogVisible());
+        auto *catalogPanel = window.findChild<QQuickWidget *>("catalog-panel");
+        QVERIFY(catalogPanel);
+        catalogPanel->setFocus();
+        QTest::keyClick(catalogPanel, Qt::Key_K, Qt::ControlModifier);
+        auto commandPanel = [&]() { return window.findChild<QQuickWidget *>("command-panel"); };
+        QTRY_VERIFY(commandPanel() && commandPanel()->isVisible());
+        auto *panel = commandPanel();
+        auto *search = panel->rootObject()->findChild<QQuickItem *>("action-search");
+        QVERIFY(search);
+        QTRY_VERIFY(search->hasActiveFocus());
+
+        // Second Ctrl+K toggles the command menu closed.
+        QTest::keyClick(panel, Qt::Key_K, Qt::ControlModifier);
+        QTRY_VERIFY(!commandPanel() || !commandPanel()->isVisible());
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
+        // Reopen and type fuzzy query without clicking.
+        window.action("Command menu");
+        QTRY_VERIFY(commandPanel() && commandPanel()->isVisible());
+        panel = commandPanel();
+        search = panel->rootObject()->findChild<QQuickItem *>("action-search");
+        QTRY_VERIFY(search->hasActiveFocus());
+        QTest::keyClicks(panel, "minimap");
+        QTRY_COMPARE(panel->rootObject()->property("query").toString(), QString("minimap"));
+        const auto miniRows = panel->rootObject()->property("rows").toList();
+        QVERIFY(!miniRows.isEmpty());
+        QCOMPARE(miniRows.first().toMap()["label"].toString(), QString("Toggle mini-map"));
+        const bool beforeMiniMap = window.miniMapVisible();
+        QTest::keyClick(panel, Qt::Key_Return);
+        QTRY_VERIFY(!commandPanel() || !commandPanel()->isVisible());
+        QCOMPARE(window.miniMapVisible(), !beforeMiniMap);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
+        // Navigation keys skip disabled entries, Alt+Down jumps groups, Ctrl+A edits search
+        // without selecting canvas nodes, Clear button resets query and keeps search focus.
+        window.action("Clear selection");
+        QCOMPARE(window.selectedCount(), 0);
+        window.action("Command menu");
+        QTRY_VERIFY(commandPanel() && commandPanel()->isVisible());
+        panel = commandPanel();
+        search = panel->rootObject()->findChild<QQuickItem *>("action-search");
+        QTRY_VERIFY(search->hasActiveFocus());
+        const auto rows = panel->rootObject()->property("rows").toList();
+        const int firstSelected = panel->rootObject()->property("selectedIndex").toInt();
+        QVERIFY(firstSelected >= 0);
+        QVERIFY(rows.at(firstSelected).toMap()["available"].toBool());
+        const QString firstSection = rows.at(firstSelected).toMap()["section"].toString();
+
+        // Down lands on an enabled row.
+        QTest::keyClick(panel, Qt::Key_Down);
+        const int afterDown = panel->rootObject()->property("selectedIndex").toInt();
+        QVERIFY(afterDown > firstSelected);
+        QVERIFY(rows.at(afterDown).toMap()["available"].toBool());
+
+        // Alt+Down jumps to the next group's first enabled item, Alt+Up jumps back.
+        QTest::keyClick(panel, Qt::Key_Down, Qt::AltModifier);
+        const int nextGroupIndex = panel->rootObject()->property("selectedIndex").toInt();
+        QVERIFY(nextGroupIndex > afterDown);
+        QVERIFY(rows.at(nextGroupIndex).toMap()["section"].toString() != firstSection);
+        QVERIFY(rows.at(nextGroupIndex).toMap()["available"].toBool());
+        QTest::keyClick(panel, Qt::Key_Up, Qt::AltModifier);
+        QCOMPARE(panel->rootObject()->property("selectedIndex").toInt(), firstSelected);
+
+        // End/Home jump to last/first enabled item when query is empty.
+        QTest::keyClick(panel, Qt::Key_End);
+        const int lastIndex = panel->rootObject()->property("selectedIndex").toInt();
+        QVERIFY(lastIndex > nextGroupIndex);
+        QVERIFY(rows.at(lastIndex).toMap()["available"].toBool());
+        QTest::keyClick(panel, Qt::Key_Home);
+        QCOMPARE(panel->rootObject()->property("selectedIndex").toInt(), firstSelected);
+
+        // Typing + Ctrl+A + Backspace stays inside search without selecting canvas nodes.
+        QTest::keyClicks(panel, "zzzunknown");
+        QTRY_COMPARE(panel->rootObject()->property("rows").toList().size(), 0);
+        QCOMPARE(panel->rootObject()->property("selectedIndex").toInt(), -1);
+        QTest::keyClick(panel, Qt::Key_Return);
+        QVERIFY(panel->isVisible());
+        QTest::keyClick(panel, Qt::Key_A, Qt::ControlModifier);
+        QCOMPARE(window.selectedCount(), 0);
+        // Clear button clears the query and keeps search focused for further typing.
+        auto *clearBtn = visualChild(panel->rootObject(), "textFieldClear");
+        QVERIFY(clearBtn && clearBtn->isVisible());
+        QTest::mouseClick(panel, Qt::LeftButton, Qt::NoModifier, centre(clearBtn));
+        QTRY_COMPARE(panel->rootObject()->property("query").toString(), QString());
+        QTRY_VERIFY(search->hasActiveFocus());
+
+        // Clicking the modal scrim outside the card closes the menu.
+        QTest::mouseClick(panel, Qt::LeftButton, Qt::NoModifier, QPoint(8, 8));
+        QTRY_VERIFY(!commandPanel() || !commandPanel()->isVisible());
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
+        // Open tabs section switches between open workflow tabs.
+        window.newTab();
+        QTRY_COMPARE(window.workflowTabs().size(), 2);
+        QCOMPARE(window.activeTab(), 1);
+        window.action("Command menu");
+        QTRY_VERIFY(commandPanel() && commandPanel()->isVisible());
+        panel = commandPanel();
+        const auto tabRows = panel->rootObject()->property("rows").toList();
+        QVERIFY(!tabRows.isEmpty());
+        QCOMPARE(tabRows.first().toMap()["section"].toString(), QString("Open tabs"));
+        QTest::keyClick(panel, Qt::Key_Return);
+        QTRY_VERIFY(!commandPanel() || !commandPanel()->isVisible());
+        QCOMPARE(window.activeTab(), 0);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
+        // Stale document load closes an open command menu.
+        window.action("Command menu");
+        QTRY_VERIFY(commandPanel() && commandPanel()->isVisible());
+        QPointer<QQuickWidget> stale = commandPanel();
+        QVERIFY(window.document()->load(QJsonObject{{"id", "replaced"}, {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}}));
+        QTRY_VERIFY(!stale || !stale->isVisible());
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     }
 
     // PaneContextMenu.tsx: Paste, Fit screen, constant and input submenus, then the add rows.
@@ -633,7 +778,7 @@ private slots:
         EditorWindow window; window.show(); QTest::qWait(50);
         window.action("More");
         QTRY_VERIFY(entry_menu::host(window, "more"));
-        QVERIFY(!window.findChild<QDialog *>("command-panel"));
+        QVERIFY(!window.findChild<QQuickWidget *>("command-panel"));
         auto labels = entry_menu::labels(entry_menu::host(window, "more"));
         // The More menu holds the document's own settings and views. The Node and
         // Workflow menus of the application menu hold the other commands.
@@ -1160,20 +1305,23 @@ private slots:
                         QTest::keyClicks(shown, "sink");
                         QTest::qWait(300);
                     }
+                } else if (surface == "command") {
+                    window.action("Command menu");
+                    shown = window.findChild<QQuickWidget *>("command-panel");
                 } else {
-                    window.action(surface == "command" ? "Command menu" : "Keyboard shortcuts");
-                    shown = window.findChild<QDialog *>(surface + "-panel");
+                    window.action("Keyboard shortcuts");
+                    shown = window.findChild<QDialog *>("shortcuts-panel");
                 }
                 QVERIFY2(shown, qPrintable(surface));
                 QTest::qWait(100);
                 if (surface == "command" || surface == "shortcuts") {
-                    auto *quick = shown->findChild<QQuickWidget *>(); QVERIFY(quick);
+                    auto *quick = surface == "command" ? qobject_cast<QQuickWidget *>(shown) : shown->findChild<QQuickWidget *>(); QVERIFY(quick);
                     QCOMPARE(quick->status(), QQuickWidget::Ready);
                     const auto rows = quick->rootObject()->property("rows").toList();
                     QSet<QString> seen;
                     for (const auto &value : rows) {
                         const auto row = value.toMap(); const auto label = row["label"].toString();
-                        QVERIFY(!seen.contains(label)); seen.insert(label);
+                        QVERIFY2(!seen.contains(label), qPrintable(label)); seen.insert(label);
                         if (surface == "shortcuts") {
                             QVERIFY(!row["keys"].toString().isEmpty());
                             QVERIFY(!row["combos"].toList().isEmpty());
@@ -1186,14 +1334,14 @@ private slots:
                 }
                 if (!directory.isEmpty()) {
                     QPixmap capture = window.grab();
-                    if (surface == "command" || surface == "shortcuts") {
+                    if (surface == "shortcuts") {
                         QPainter painter(&capture); painter.drawPixmap(window.mapFromGlobal(shown->pos()), shown->grab()); painter.end();
                     }
                     QVERIFY(capture.save(directory + "/" + surface + "-" + theme + ".png"));
                 }
-                if (surface == "command" || surface == "shortcuts") {
+                if (surface == "shortcuts") {
                     shown->close();
-                } else if (surface == "find") {
+                } else if (surface == "command" || surface == "find") {
                     QTest::keyClick(shown, Qt::Key_Escape);
                 } else {
                     QTest::keyClick(shown, Qt::Key_Escape);

@@ -16,6 +16,7 @@ import {
   silenceRange,
   type AudioSample
 } from "./audioSample";
+import { assertAudioEditChanges } from "@nodetool-ai/protocol/api-schemas/asset-editor-tool-contracts.js";
 import type { AudioEditOp, AudioRange } from "./audioAgentBridge";
 
 /** At most this many windows in a level summary. */
@@ -42,6 +43,7 @@ export const applyAudioEdit = (
   gainDb?: number
 ): AudioSample => {
   const duration = sampleDuration(sample);
+  assertAudioEditChanges(op, range, duration, sample.sampleRate);
   const start = range?.start;
   const end = range?.end;
   switch (op) {

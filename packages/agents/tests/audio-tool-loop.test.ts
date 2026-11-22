@@ -129,6 +129,38 @@ describe("createAudioToolBridge", () => {
     await expect(
       tools.ui_audio_apply_effect.execute({ effect_id: "reverb", params: { mix: 500 } })
     ).rejects.toThrow('"mix" must be between 0 and 100');
+    await expect(
+      tools.ui_audio_edit.execute({ op: "trim", start: 0, end: 1 })
+    ).rejects.toThrow("covers the whole audio");
+    await expect(
+      tools.ui_audio_edit.execute({ op: "delete", start: 1, end: 2 })
+    ).rejects.toThrow("nothing would be removed");
+  });
+
+  it("undoes its own edits and effects, newest first", async () => {
+    const bridge = createAudioToolBridge({
+      segments: [
+        { seconds: 1, level: 0 },
+        { seconds: 1, level: 0.5 }
+      ]
+    });
+    const tools = toolsOf(bridge);
+    await tools.ui_audio_edit.execute({ op: "trim", start: 1, end: 2 });
+    await tools.ui_audio_apply_effect.execute({ effect_id: "reverb" });
+    expect(bridge.finalState()).toMatchObject({ durationSeconds: 1, effects: [{ effectId: "reverb" }] });
+
+    await tools.ui_audio_undo.execute({});
+    expect(bridge.finalState()).toMatchObject({ durationSeconds: 1, effects: [], edits: [{ op: "trim" }] });
+    await tools.ui_audio_undo.execute({});
+    expect(bridge.finalState()).toMatchObject({ durationSeconds: 2, edits: [], dirty: false });
+    await expect(tools.ui_audio_undo.execute({})).rejects.toThrow("Nothing you applied");
+  });
+
+  it("keeps no more undo steps than the browser editor", async () => {
+    const tools = toolsOf(createAudioToolBridge({ segments: [{ seconds: 0.1, level: 0.5 }] }));
+    for (let i = 0; i < 51; i++) await tools.ui_audio_edit.execute({ op: "reverse" });
+    for (let i = 0; i < 50; i++) await tools.ui_audio_undo.execute({});
+    await expect(tools.ui_audio_undo.execute({})).rejects.toThrow("Nothing you applied");
   });
 
   it("lists the shared effect catalog and fills in defaults", async () => {

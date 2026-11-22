@@ -5,7 +5,7 @@
  * world must fail at least one.
  */
 import { describe, it, expect } from "vitest";
-import { TASK_FAMILIES, generateTasks, svgElement } from "../src/finetune/task-families.js";
+import { Picker, TASK_FAMILIES, TIMELINE_TITLES, generateTasks, seededRandom, svgElement } from "../src/finetune/task-families.js";
 
 const SEEDS = Array.from({ length: 40 }, (_, i) => i + 1);
 
@@ -44,5 +44,22 @@ describe("svg attribute reader", () => {
       attrs: { id: "a", width: "10", style: "fill: #ff0000; stroke:none", fill: "#ff0000", stroke: "none" }
     });
     expect(svgElement(markup, "b")).toBeNull();
+  });
+});
+
+describe("timeline-titles", () => {
+  it("finds a title by the text it shows, whatever the clip is named", async () => {
+    for (const seed of SEEDS.slice(0, 10)) {
+      const task = TIMELINE_TITLES.make(new Picker(seededRandom(seed)));
+      const bridge = await task.createBridge();
+      const tools = new Map(bridge.tools.map((t) => [t.name, t]));
+      await task.solve(async (name, args) => {
+        const named = name === "ui_timeline_add_text_clip" ? { ...args, name: "Title card" } : args;
+        return tools.get(name)!.execute(named);
+      });
+      const state = bridge.finalState();
+      const failed = task.checks.filter((c) => !c.test(state)).map((c) => c.name);
+      expect({ seed, failed }).toEqual({ seed, failed: [] });
+    }
   });
 });

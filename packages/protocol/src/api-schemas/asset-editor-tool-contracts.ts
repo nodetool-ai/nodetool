@@ -139,6 +139,40 @@ export function audioRangeFromArgs(
   return { start, end };
 }
 
+/**
+ * Refuse a trim or delete whose range would leave the audio as it is: a trim
+ * that keeps the whole audio, or a delete that starts past the end. Both hosts
+ * call it, so the agent reads an error instead of a success that did nothing.
+ */
+export function assertAudioEditChanges(
+  op: AudioEditOp,
+  range: AudioToolRange | undefined,
+  durationSeconds: number,
+  sampleRate: number
+): void {
+  if (!range) return;
+  // Compared in frames, the unit the edit cuts in: a range that differs from
+  // the whole audio by less than one frame changes nothing either.
+  const total = Math.round(durationSeconds * sampleRate);
+  const frame = (seconds: number) => Math.max(0, Math.min(total, Math.round(seconds * sampleRate)));
+  const whole = `the audio is ${durationSeconds.toFixed(2)} s long`;
+  if (op === "trim" && frame(range.start) >= frame(range.end)) {
+    throw new Error(
+      `trim over ${range.start}–${range.end} s covers no whole sample of the audio (${whole}), so it would keep nothing.`
+    );
+  }
+  if (op === "trim" && frame(range.start) === 0 && frame(range.end) === total) {
+    throw new Error(
+      `trim keeps only the range, and ${range.start}–${range.end} s covers the whole audio (${whole}), so nothing would change. Start the range where the part to keep begins: read the peaks from ui_audio_get_state.`
+    );
+  }
+  if (op === "delete" && frame(range.start) >= frame(range.end)) {
+    throw new Error(
+      `delete over ${range.start}–${range.end} s covers no whole sample of the audio (${whole}), so nothing would be removed.`
+    );
+  }
+}
+
 /** Edits that make no sense over the whole audio. */
 export const AUDIO_RANGE_REQUIRED_OPS: readonly AudioEditOp[] = [
   "trim",
@@ -183,6 +217,11 @@ export const AUDIO_TOOL_CONTRACTS = {
         .describe("Parameter values keyed by parameter key."),
       ...rangeShape
     }
+  },
+  ui_audio_undo: {
+    description:
+      "Undo the last edit or effect you applied to the audio, one step per call. It fails when nothing you applied is left to undo, or when the user changed the audio since your last edit.",
+    shape: {}
   },
   ui_audio_save: {
     description:

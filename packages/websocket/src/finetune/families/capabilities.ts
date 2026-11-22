@@ -125,6 +125,33 @@ async function serverWorld(seed: (call: CallTool) => Promise<void>): Promise<Tas
 
 const lower = (s: string) => s.toLowerCase();
 const mentions = (haystack: string, needle: string) => lower(haystack).includes(lower(needle));
+/** Other names a value may be written as, such as a language's name for itself. */
+const VALUE_ALIASES: Record<string, string[]> = {
+  German: ["Deutsch", "alemán", "allemand", "tedesco"],
+  Spanish: ["español", "espagnol", "Spanisch", "spagnolo"],
+  French: ["français", "francés", "Französisch", "francese"],
+  Japanese: ["日本語", "japonés", "japonais", "Japanisch", "giapponese"]
+};
+const spellings = (value: string) => [value, ...(VALUE_ALIASES[value] ?? [])].map(lower);
+/** The words before a value that mark it as replaced: "French, not Japanese", "Juno (previously Biscuit)". */
+const REPLACED_BEFORE = /\b(?:not|no longer|instead of|rather than|previously|formerly|was|replacing|replaced|changed from|from)[^\w.!?;]+(?:(?!(?:to|now|into|currently|today|presently)\b)\w+[^\w.!?;]+){0,2}$/;
+/** True when `memory` names `value` under any spelling, in any context. */
+export const namesValue = (memory: string, value: string) => spellings(value).some((v) => lower(memory).includes(v));
+/** True when `memory` holds `value` as current: it names it outside a clause that marks it as replaced. */
+export const holdsValue = (memory: string, value: string) => {
+  const text = lower(memory);
+  return spellings(value).some((v) => {
+    for (let at = text.indexOf(v); at !== -1; at = text.indexOf(v, at + 1)) {
+      if (!REPLACED_BEFORE.test(text.slice(Math.max(0, at - 40), at))) return true;
+    }
+    return false;
+  });
+};
+/** Descriptions compare without surrounding whitespace or a closing full stop. */
+export const sameDescription = (actual: string | undefined, expected: string) => {
+  const norm = (d: string) => d.trim().replace(/\s+/g, " ").replace(/[.!]+$/, "");
+  return actual !== undefined && norm(actual) === norm(expected);
+};
 const quoted = (s: string) => `"${s}"`;
 const sentence = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
 
@@ -489,7 +516,7 @@ export const MEMORY_EDIT: TaskFamily<ServerState> = {
         if (!fact) continue;
         const value = pick.one(fact.values);
         asks.push(`remember that ${fact.say(value)}`);
-        checks.push({ name: `remembers ${fact.topic} ${value}`, test: (s) => s.memories.some((m) => mentions(m, value)) });
+        checks.push({ name: `remembers ${fact.topic} ${value}`, test: (s) => s.memories.some((m) => holdsValue(m, value)) });
         steps.push(async (call) => {
           await call("memory_save", { content: sentence(fact.say(value)) + "." });
         });
@@ -499,14 +526,14 @@ export const MEMORY_EDIT: TaskFamily<ServerState> = {
         if (op === "update") {
           const value = pick.one(target.fact.values.filter((v) => v !== target.value));
           asks.push(`${target.fact.say(value)} now, not ${target.value}, so update what you remember`);
-          checks.push({ name: `${target.fact.topic} is ${value}`, test: (s) => s.memories.some((m) => mentions(m, value)) });
-          checks.push({ name: `${target.fact.topic} ${target.value} gone`, test: (s) => !s.memories.some((m) => mentions(m, target.value)) });
+          checks.push({ name: `${target.fact.topic} is ${value}`, test: (s) => s.memories.some((m) => holdsValue(m, value)) });
+          checks.push({ name: `${target.fact.topic} ${target.value} gone`, test: (s) => !s.memories.some((m) => holdsValue(m, target.value)) });
           steps.push(async (call, ids) => {
             await call("memory_update", { memory_id: ids.get(target.fact.topic), content: sentence(target.fact.say(value)) + "." });
           });
         } else {
           asks.push(`forget what you know about my ${target.fact.topic}`);
-          checks.push({ name: `${target.fact.topic} forgotten`, test: (s) => !s.memories.some((m) => mentions(m, target.value)) });
+          checks.push({ name: `${target.fact.topic} forgotten`, test: (s) => !s.memories.some((m) => namesValue(m, target.value)) });
           steps.push(async (call, ids) => {
             await call("memory_delete", { memory_id: ids.get(target.fact.topic) });
           });
@@ -517,13 +544,13 @@ export const MEMORY_EDIT: TaskFamily<ServerState> = {
       const fact = fresh[0]!;
       const value = fact.values[0]!;
       asks.push(`remember that ${fact.say(value)}`);
-      checks.push({ name: `remembers ${fact.topic} ${value}`, test: (s) => s.memories.some((m) => mentions(m, value)) });
+      checks.push({ name: `remembers ${fact.topic} ${value}`, test: (s) => s.memories.some((m) => holdsValue(m, value)) });
       steps.push(async (call) => {
         await call("memory_save", { content: sentence(fact.say(value)) + "." });
       });
     }
     for (const s of seeded.filter((x) => !touched.has(x.fact.topic))) {
-      checks.push({ name: `${s.fact.topic} kept`, test: (state) => state.memories.some((m) => mentions(m, s.value)) });
+      checks.push({ name: `${s.fact.topic} kept`, test: (state) => state.memories.some((m) => holdsValue(m, s.value)) });
     }
     return {
       objective: `${sentence(list(asks))}.`,
@@ -599,7 +626,7 @@ export const SKILL_CREATE: TaskFamily<ServerState> = {
       createBridge: () => serverWorld(async () => {}),
       checks: [
         { name: `skill ${name} exists`, test: (s) => !!skillNamed(s, name) },
-        { name: `${name} description`, test: (s) => skillNamed(s, name)?.description.trim() === description },
+        { name: `${name} description`, test: (s) => sameDescription(skillNamed(s, name)?.description, description) },
         ...rules.map((r) => ({ name: `${name} says ${r.key}`, test: (s: ServerState) => mentions(skillNamed(s, name)?.content ?? "", r.key) }))
       ],
       solve: async (call) => {
@@ -638,7 +665,7 @@ export const SKILL_EDIT: TaskFamily<ServerState> = {
         const description = `${t.description} for the ${pick.one(["spring", "holiday", "launch", "summer"])} campaign`;
         steps.push(["update_skill", { name: t.name, description }]);
         asks.push(`change the description of ${quoted(t.name)} to ${quoted(description)}`);
-        checks.push({ name: `${t.name} description`, test: (s) => skillNamed(s, t.name)?.description.trim() === description && keepsRules(skillNamed(s, t.name)?.content, t.rules) });
+        checks.push({ name: `${t.name} description`, test: (s) => sameDescription(skillNamed(s, t.name)?.description, description) && keepsRules(skillNamed(s, t.name)?.content, t.rules) });
       } else {
         steps.push(["delete_skill", { name: t.name }]);
         asks.push(`delete ${quoted(t.name)}`);
@@ -646,7 +673,7 @@ export const SKILL_EDIT: TaskFamily<ServerState> = {
       }
     });
     for (const k of seed.filter((x) => !targets.includes(x))) {
-      checks.push({ name: `${k.name} left alone`, test: (s) => skillNamed(s, k.name)?.description === k.description && keepsRules(skillNamed(s, k.name)?.content, k.rules) });
+      checks.push({ name: `${k.name} left alone`, test: (s) => sameDescription(skillNamed(s, k.name)?.description, k.description) && keepsRules(skillNamed(s, k.name)?.content, k.rules) });
     }
     return {
       objective: `In my skills, ${list(asks)}. Don't change the other skills.`,

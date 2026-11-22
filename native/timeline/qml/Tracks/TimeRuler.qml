@@ -66,8 +66,12 @@ Rectangle {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         preventStealing: true
-        function seekTo(mx) {
-            ruler.scrubRequested(Math.max(0, mx * ruler.viewState.msPerPx + ruler.viewState.scrollLeftPx * ruler.viewState.msPerPx))
+        property double lastScrubMs: -1
+        function seekTo(mx, force) {
+            const ms = Math.max(0, mx * ruler.viewState.msPerPx + ruler.viewState.scrollLeftPx * ruler.viewState.msPerPx)
+            if (!force && ms === lastScrubMs) return
+            lastScrubMs = ms
+            ruler.scrubRequested(ms)
         }
         onPressed: mouse => {
             if (mouse.button === Qt.RightButton) {
@@ -75,12 +79,14 @@ Rectangle {
                 if (MenuRegistry.query("ruler", rulerMenu.context).length > 0) rulerMenu.popupAt(this, mouse.x, mouse.y)
             } else {
                 MarkerSession.clearSelection()
-                seekTo(mouse.x)
+                seekTo(mouse.x, true)
             }
         }
         onPositionChanged: mouse => {
-            if (pressed && (pressedButtons & Qt.LeftButton)) seekTo(mouse.x)
+            if (pressed && (pressedButtons & Qt.LeftButton)) seekTo(mouse.x, false)
         }
+        onReleased: lastScrubMs = -1
+        onCanceled: lastScrubMs = -1
     }
 
     RegistryContextMenu {

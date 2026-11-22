@@ -36,6 +36,7 @@ const createMockHandler = (): jest.Mocked<AudioAgentHandler> => ({
     Promise<AudioSnapshot>,
     Parameters<AudioAgentHandler["applyEffect"]>
   >(async () => snapshot({ dirty: true })),
+  undo: jest.fn(() => snapshot({ dirty: false })),
   save: jest.fn(async () => snapshot())
 });
 
@@ -60,7 +61,8 @@ describe("ui_audio_* tools", () => {
       "ui_audio_edit",
       "ui_audio_get_state",
       "ui_audio_list_effects",
-      "ui_audio_save"
+      "ui_audio_save",
+      "ui_audio_undo"
     ]);
     for (const tool of tools) {
       if (tool.name === "ui_audio_list_effects") continue;
@@ -163,5 +165,17 @@ describe("ui_audio_* tools", () => {
       call("ui_audio_save", { asset_id: ASSET_ID })
     ).resolves.toEqual({ ok: true, dirty: false, url: "asset://audio-1" });
     expect(handler.save).toHaveBeenCalledTimes(1);
+  });
+
+  it("undoes through the editor", async () => {
+    const handler = createMockHandler();
+    setAudioAgentHandler(ASSET_ID, handler);
+    await expect(call("ui_audio_undo", { asset_id: ASSET_ID })).resolves.toEqual({
+      ok: true,
+      durationSeconds: 4,
+      dirty: false,
+      url: "asset://audio-1"
+    });
+    expect(handler.undo).toHaveBeenCalledTimes(1);
   });
 });

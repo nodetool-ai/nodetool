@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { initTestDb } from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import { findJob } from "@nodetool-ai/agents";
-import { runChatJob, jobUiContext } from "../src/chat-jtbd.js";
+import { runChatJob, jobUiContext, unservedToolError } from "../src/chat-jtbd.js";
 import { borrowedLoopBudgetMembers } from "./chat-turn-test-harness.js";
 
 /** A provider that runs `code` as one `execute_code` action, then answers. */
@@ -149,5 +149,17 @@ await ui_3d_add_object({ kind: "sphere", name: "Apple" });`
     const job = findJob("timeline-assemble-cut");
     if (!job) throw new Error("job missing");
     expect(jobUiContext(job)?.focused?.type).toBe("timeline");
+    const scene = findJob("model3d-compose-scene");
+    if (!scene) throw new Error("job missing");
+    expect(jobUiContext(scene)).toEqual({ source: "model3d_assistant" });
+  });
+
+  it("answers a browser tool the job does not serve with what is open", () => {
+    const job = findJob("timeline-assemble-cut");
+    if (!job) throw new Error("job missing");
+    expect(unservedToolError("ui_svg_save", jobUiContext(job), ["ui_timeline_get_state", "ui_timeline_add_clip"])).toBe(
+      'ui_svg_save has nothing to act on: the document it edits is not open. The open document is the timeline "timeline-eval", ' +
+        "and the tools that act on it are ui_timeline_get_state, ui_timeline_add_clip."
+    );
   });
 });

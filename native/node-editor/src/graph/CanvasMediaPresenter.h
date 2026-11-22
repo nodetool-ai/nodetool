@@ -35,6 +35,7 @@ public slots:
   void setSources(const QVariantList &sources);
   void setCollections(const QVariantList &collections);
   void refresh();
+  void schedule();
   void clear();
 signals:
   void changed();
@@ -73,7 +74,6 @@ private:
   QVariantMap imageViewerSource_;
   quint64 serial_ = 0;
   bool scheduled_ = false;
-  void schedule();
   bool canOpenImageViewer(QtNodes::NodeId id) const;
   bool openImageViewer(QtNodes::NodeId id);
   void closeImageViewer();

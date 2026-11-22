@@ -671,6 +671,25 @@ TransformGizmoController { width: 200; height: 100; selection: ["picture"] })", 
         geometryChanges.clear();
         clock.seek(60);
         QCOMPARE(geometryChanges.count(), 0);
+        // Crossing back into [startMs, endMs) restores availability cleanly.
+        clock.seek(500);
+        QVERIFY(controller.available());
+        QCOMPARE(geometryChanges.count(), 1);
+        // Animated clips must still re-evaluate geometry on every clock tick.
+        auto animated = clip();
+        animated.insert("animations", QJsonArray{QJsonObject{
+            {"id", "anim"}, {"preset", "custom"}, {"role", "emphasis"}, {"durationMs", 2000},
+            {"params", QJsonObject{{"keyframed", true}}}, {"easing", "linear"},
+            {"custom", QJsonObject{{"curves", QJsonArray{
+                QJsonObject{{"property", "offsetX"}, {"keyframes", QJsonArray{
+                    QJsonObject{{"t", 0}, {"value", 0}}, QJsonObject{{"t", 1}, {"value", 100}}
+                }}}
+            }}}}}});
+        load(model, animated);
+        clock.seek(100);
+        const auto startCenter = controller.box().center;
+        clock.seek(1100);
+        QVERIFY(std::abs(controller.box().center.x() - startCenter.x()) > 10.0);
     }
     void selectionAndPlayheadDoNotEdit() {
         TimelineModel model;

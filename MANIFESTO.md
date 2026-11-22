@@ -1,55 +1,38 @@
 # NodeTool Manifesto
 
-## Vision
+Most AI creative apps ask you to pay for a roll and hand back a flat file. When the lighting on shot four is wrong or a voice line drags, you regenerate and hope the next roll
+matches. That works for a one-off test. It breaks on real production work, where the job is revising one detail while keeping everything else intact.
 
-AI belongs on your machine, next to your work.
-Not behind a paywall. Not in someone else's cloud.
-Transparent. Flexible. Yours.
+## Return an editable project
 
-## Mission
+When an agent builds a film, an ad, a sketch, or a game, it leaves behind the working documents: the storyboard, script, takes, and multi-track timeline for video, the layers for a
+sketch, the scene for 3D, or the entities and scripts for a game. Every piece stays open. Change one shot or update an upstream input, and only the stale work reruns.
 
-Build an open-source visual platform where creative artists design and run AI workflows. Privacy by default. Cloud when you choose. The graph is yours, the models are yours, the output is yours.
+## Put agents and people in the same editors
 
-## Principles
+A chat window that tells you which buttons to click still leaves the manual work on your desk. In NodeTool, the agent edits the storyboard, script, timeline, sketch, 3D, game, and
+node documents directly, using the same actions you trigger by hand. External agents such as Claude Code, Codex, and Cursor reach the same toolbelt over MCP. Let an agent build the
+first pass, take over to tighten the cut, and send the project back with a note when you want another round.
 
-- **Build visually.** Connect blocks, not code.
-- **The graph is the source of truth.** What runs is what you see.
-- **Your data stays yours.** It does not leave unless you send it.
-- **See every step.** Watch the workflow execute in real time.
-- **Mix your tools.** Local models alongside cloud APIs.
-- **Power before abstraction.** See and control the workflow before we simplify it.
-- **Optimize for the second session.** A workflow you open in a week should still make sense.
-- **Generative output deserves drama.** When the image, video, or audio lands, the tool gets out of the way.
-- **Own your infrastructure.** Run on your hardware. Ship to your server.
+## Turn one good result into a repeatable pipeline
 
-## What NodeTool Is
+Generating a single clip is easy. Shipping twenty ad variants or keeping a character steady across ten episodes requires a pipeline you can rerun. When a step works, you can inspect
+the typed node graph behind it, bind it to a timeline clip or sketch layer, and execute the same pipeline headlessly from the CLI, an API, or a mini app. What worked on one piece
+runs again next week without retyping the brief.
 
-A visual workflow builder and AI runtime, on desktop and web, that lets you:
+## Pay providers directly, or run locally
 
-- Generate images, video, audio, text, and 3D with the models of your choice.
-- Run locally (Flux, SDXL, Whisper, LLMs via Ollama and MLX) or call cloud APIs (OpenAI, Anthropic, Replicate, FAL, HuggingFace).
-- Compose multi-step pipelines once and reuse them across projects.
-- Share workflows as Mini-Apps or deploy them as APIs.
+Models change every month, so a creative tool should stay out of the middle of your model bill. In Studio, run the agent on the ChatGPT, Claude, or Gemini plan you already pay for,
+within that plan's limits. Call cloud models through your own API keys at each provider's published price. When privacy or offline work matters, run open-weight models on your own
+GPU or Apple Silicon through Ollama, llama.cpp, MLX, or local Python runtimes, bounded by your hardware memory. NodeTool Cloud (in alpha) adds optional hosted storage and hosted
+credits for trying the workspace in a browser without setup, while Studio and self-hosted installs carry no platform billing.
 
-## What NodeTool Is Not
+## Show the mechanics, then step back for the output
 
-- A subscription that owns your work.
-- A closed platform with vendor lock-in.
-- A cloud-only service.
-- A black box that hides what the model is doing.
+A project you open a week later should still make sense. Inputs, types, model choices, cost estimates, and stale clips stay visible in the document, with no silent prompt rewrites.
+We expose how a run works before wrapping it in shortcuts. Once the image, clip, or audio lands, the interface gets out of the way so you can judge the work on its own.
 
-## Who It Is For
+## Keep the source open under AGPL-3.0
 
-Creative artists working with generative AI: designers, illustrators, photographers, video editors, motion artists, audio producers, and independent creators. People who want to wire models and editing steps into one reusable canvas, produce better work faster, and keep control of how, where, and on whose hardware their workflows run.
-
-## Roadmap
-
-- **Workflow templates.** Ready examples for common creative pipelines.
-- **Version control.** Track changes, compare versions, roll back.
-- **Batch processing.** Run a workflow across many inputs and variations.
-- **Community hub.** Share workflows, discover patterns, learn from other creators.
-
-## Promise
-
-Open source. Privacy first.
-Your workflows, your data, everything you build.
+Creative tools outlive their vendors only when anyone can read the code, modify it, and run it on their own hardware. NodeTool is licensed under AGPL-3.0. Studio is free to
+download, self-hosting requires no permission, and modifications to a hosted deployment stay open under the same license.

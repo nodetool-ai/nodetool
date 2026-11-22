@@ -43,6 +43,8 @@ struct CardPaintState {
   QImage preview;
   CardBodyPaintState body;
   QList<HandlePaintState> handles;
+  // Non-owning per-scene SVG icon cache, borrowed for this paint call.
+  CanvasIconCache *icons = nullptr;
 };
 
 // UI thread only. Paints a card in card-local coordinates.

@@ -12,7 +12,14 @@ import { capabilityModuleOf, listCapabilitySpecs } from "@nodetool-ai/agents";
 import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 import { runChatJob } from "../src/chat-jtbd.js";
 import { Picker, generateTasks, seededRandom } from "../src/finetune/task-families.js";
-import { CAPABILITY_FAMILIES, SKILL_CREATE, WORKFLOW_BUILD } from "../src/finetune/families/capabilities.js";
+import {
+  CAPABILITY_FAMILIES,
+  SKILL_CREATE,
+  WORKFLOW_BUILD,
+  holdsValue,
+  namesValue,
+  sameDescription
+} from "../src/finetune/families/capabilities.js";
 import { borrowedLoopBudgetMembers } from "./chat-turn-test-harness.js";
 
 const SEEDS = Array.from({ length: 40 }, (_, i) => i + 1);
@@ -21,6 +28,34 @@ const SEEDS = Array.from({ length: 40 }, (_, i) => i + 1);
 // one task seeing another's rows.
 beforeAll(() => {
   initTestDb();
+});
+
+describe("memory and skill text matching", () => {
+  it("reads a value marked as replaced as gone, and an alias as the value", () => {
+    expect(holdsValue("I prefer answers in French, not Japanese.", "Japanese")).toBe(false);
+    expect(holdsValue("I prefer answers in French, not Japanese.", "French")).toBe(true);
+    expect(holdsValue("My dog is called Juno (previously Biscuit).", "Biscuit")).toBe(false);
+    expect(holdsValue("Je préfère les réponses en français.", "French")).toBe(true);
+    expect(holdsValue("I prefer answers in Japanese.", "Japanese")).toBe(true);
+    // A marker does not reach past the end of its sentence.
+    expect(holdsValue("Previously Japanese. French is preferred now.", "French")).toBe(true);
+    // "from X to Y": the clause ends at "to", so Y is current.
+    expect(holdsValue("I moved from Lisbon to Berlin.", "Berlin")).toBe(true);
+    expect(holdsValue("I moved from Lisbon to Berlin.", "Lisbon")).toBe(false);
+    expect(holdsValue("Formerly Lisbon, currently Berlin.", "Berlin")).toBe(true);
+  });
+
+  it("treats any mention as remembered when the user asked to forget", () => {
+    expect(namesValue("My name was Sam.", "Sam")).toBe(true);
+    expect(namesValue("I live in Berlin.", "Sam")).toBe(false);
+  });
+
+  it("compares descriptions without a closing full stop or extra whitespace", () => {
+    expect(sameDescription("How we design video thumbnails.", "How we design video thumbnails")).toBe(true);
+    expect(sameDescription("  How we  design video thumbnails ", "How we design video thumbnails")).toBe(true);
+    expect(sameDescription("How we write podcast show notes. Use whenever drafting.", "How we write podcast show notes")).toBe(false);
+    expect(sameDescription(undefined, "How we write podcast show notes")).toBe(false);
+  });
 });
 
 describe.each(CAPABILITY_FAMILIES.map((family) => [family.id, family] as const))("%s", (_id, family) => {

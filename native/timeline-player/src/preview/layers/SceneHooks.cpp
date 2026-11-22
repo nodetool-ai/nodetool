@@ -1,5 +1,6 @@
 #include "preview/layers/SceneHooks.h"
 #include <algorithm>
+#include <atomic>
 #include <mutex>
 
 namespace nt {
@@ -18,6 +19,7 @@ struct Registry {
     std::mutex mutex;
     std::vector<Hook> hooks;
     SceneHookToken next = 1;
+    std::atomic<std::uint64_t> version{0};
 };
 // native-rules #14: static process-wide mutable registry
 Registry& registry() { static Registry value; return value; }
@@ -26,6 +28,7 @@ SceneHookToken add(Hook hook) {
     const std::scoped_lock lock(r.mutex);
     hook.token = r.next++;
     r.hooks.push_back(std::move(hook));
+    r.version.fetch_add(1, std::memory_order_release);
     return r.hooks.back().token;
 }
 }
@@ -52,7 +55,12 @@ SceneHookToken registerClipAnimationProvider(ClipAnimationProvider provider) {
 void unregisterSceneHook(SceneHookToken token) {
     auto& r = registry();
     const std::scoped_lock lock(r.mutex);
-    std::erase_if(r.hooks, [token](const Hook& hook) { return hook.token == token; });
+    if (std::erase_if(r.hooks, [token](const Hook& hook) { return hook.token == token; }) > 0) {
+        r.version.fetch_add(1, std::memory_order_release);
+    }
+}
+std::uint64_t sceneHooksVersion() {
+    return registry().version.load(std::memory_order_acquire);
 }
 SceneHooks sceneHooks() {
     auto& r = registry();

@@ -223,6 +223,9 @@ void CanvasInteraction::viewportWheel(QPoint pixels, QPoint angle, Qt::ScrollPha
   // A physical wheel reports no scroll phase and no pixel delta.
   const bool physicalWheel = phase == Qt::NoScrollPhase && pixels.isNull();
   if (host.usesMouseNavigation() || physicalWheel || modifiers.testAnyFlags(Qt::ControlModifier | Qt::MetaModifier)) {
+    // Ignore macOS momentum coasting on zoom gestures so zoom stops when fingers
+    // lift instead of overshooting and delaying sharp font rasterization.
+    if (phase == Qt::ScrollMomentum) { return; }
     if (angle.y() != 0) { host.zoomUnderCursor(angle.y() > 0 ? 1.15 : 1.0 / 1.15); }
   } else {
     host.panBy(pixels.isNull() ? angle / 2 : pixels);

@@ -64,13 +64,22 @@ $T export --traces data/traces.jsonl --out data/sft.jsonl
   measurement, because that is how the fine-tuned model runs.
 - `--manifest` takes the browser's full `ui_*` manifest. Without it, the prompt
   lists only the task's own tools and is shorter than a real session's.
+- `--context-window <tokens>` sets the window the chat turn compacts against.
+  Pass the student's serving window (65,536 in `serve-local.sh`), so a long
+  session compacts where the student's would.
+- `sample` refuses to start when the installed sandbox catalog serves other
+  packs than `packages/websocket/scripts/finetune-sandbox-packs.json`, because
+  a session's package allowlist comes from that catalog. Rewrite the pin with
+  `packs` only after a deliberate change.
 - `export` keeps a run only if all of these hold:
   - its checks passed;
   - it ended with a text reply;
-  - its history was not rewritten before the last request.
+  - each request replays what the model said earlier in its stretch.
 
-  It also drops runs that duplicate another run's output, and every run of a
-  validation task (see [Measure](#4-measure)).
+  A compaction rewrites the history, so `sample` records the last request
+  before each one, and `export` writes one record per stretch between
+  compactions. It also drops records that duplicate another run's output, and
+  every run of a validation task (see [Measure](#4-measure)).
 
 Use teachers whose licence allows training on their output. Gemma, Qwen and
 gpt-oss allow it. Do not use the `claude_agent_sdk` provider without checking
@@ -121,7 +130,8 @@ venv/bin/python scripts/finetune/train.py export --adapter runs/v1/adapter --out
 ```
 
 Records are as long as a chat turn: a turn's first request is already about
-21k Gemma tokens. `train` drops any record longer than `--max-seq`. Whether a
+21k Gemma tokens. `train` drops any record longer than `--max-seq`, and
+`check --max-seq` counts those records in advance (`over_max_seq`). Whether a
 12B model fits that length on a given GPU is measured, not assumed. Run
 `train` once with a few records and watch the memory before a full run.
 

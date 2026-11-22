@@ -5,7 +5,6 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QPainter>
-#include <QSvgRenderer>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -15,6 +14,233 @@
 namespace nodetool::canvas {
 namespace {
 namespace nm = node_metrics;
+
+inline QRgb scalePremul(QRgb pixel, int alpha255) {
+  if (alpha255 <= 0) { return 0; }
+  if (alpha255 >= 255) { return pixel; }
+  return qRgba((qRed(pixel) * alpha255 + 127) / 255, (qGreen(pixel) * alpha255 + 127) / 255,
+               (qBlue(pixel) * alpha255 + 127) / 255, (qAlpha(pixel) * alpha255 + 127) / 255);
+}
+
+inline QRgb sourceOverPremul(QRgb dst, QRgb src) {
+  const int sa = qAlpha(src);
+  if (sa == 0) { return dst; }
+  if (sa == 255 || dst == 0) { return src; }
+  const int inv = 255 - sa;
+  return qRgba(std::min(255, qRed(src) + (qRed(dst) * inv + 127) / 255),
+               std::min(255, qGreen(src) + (qGreen(dst) * inv + 127) / 255),
+               std::min(255, qBlue(src) + (qBlue(dst) * inv + 127) / 255),
+               std::min(255, sa + (qAlpha(dst) * inv + 127) / 255));
+}
+
+// Fast software rasterization of a solid-border (or borderless) rounded rectangle.
+// Qt's QPainter::drawRoundedRect runs QPainterPathStroker over the full outline
+// even when only one 512px tile of a zoomed card or group is being painted.
+// Partitioning along integer device-pixel lines lets straight bands hit SIMD
+// fillRect and rasterizes only the intersecting corner quadrants with an analytic
+// signed-distance field, producing identical pixels across tiled and full renders.
+void paintSolidRoundedRect(QPainter *painter, const QRectF &rect, double radius, const QColor &fill,
+                           const QColor &border, double borderWidth) {
+  const bool hasFill = !fill.isValid() || fill.alpha() > 0;
+  const bool hasBorder = borderWidth > 0 && (!border.isValid() || border.alpha() > 0);
+  if (!hasFill && !hasBorder) { return; }
+
+  const auto fallback = [&] {
+    painter->setPen(hasBorder ? QPen(border, borderWidth) : QPen(Qt::NoPen));
+    painter->setBrush(hasFill ? QBrush(fill) : QBrush(Qt::NoBrush));
+    painter->drawRoundedRect(rect, radius, radius);
+  };
+
+  if (!fill.isValid() || (borderWidth > 0 && !border.isValid())) {
+    fallback();
+    return;
+  }
+
+  const auto *dev = painter->device();
+  const auto devTx = painter->deviceTransform();
+  const double dpr = dev ? dev->devicePixelRatio() : 1.0;
+  if (!dev || dpr <= 0 || devTx.type() > QTransform::TxScale || devTx.m11() <= 0 ||
+      !qFuzzyCompare(devTx.m11(), devTx.m22()) || !painter->testRenderHint(QPainter::Antialiasing)) {
+    fallback();
+    return;
+  }
+
+  const double s = devTx.m11(), dx = devTx.dx(), dy = devTx.dy();
+  const double halfPen = hasBorder ? borderWidth * 0.5 : 0.0;
+  const double devL = rect.left() * s + dx;
+  const double devT = rect.top() * s + dy;
+  const double devR = rect.right() * s + dx;
+  const double devB = rect.bottom() * s + dy;
+  const double devFillR = radius * s;
+  const double devHalfPen = halfPen * s;
+  const double cxL = devL + devFillR;
+  const double cxR = devR - devFillR;
+  const double cyT = devT + devFillR;
+  const double cyB = devB - devFillR;
+
+  const int devX1 = int(std::ceil(cxL));
+  const int devX2 = int(std::floor(cxR));
+  const int devY1 = int(std::ceil(cyT));
+  const int devY2 = int(std::floor(cyB));
+  if (devX1 >= devX2 || devY1 >= devY2 || devFillR < 1.5) {
+    fallback();
+    return;
+  }
+
+  QRect clipDev(0, 0, dev->width(), dev->height());
+  if (painter->hasClipping()) {
+    const auto clipLocal = painter->clipBoundingRect();
+    if (clipLocal.isEmpty()) { return; }
+    clipDev &= devTx.mapRect(clipLocal).toAlignedRect();
+  }
+  if (clipDev.isEmpty()) { return; }
+
+  const double devOuterL = devL - devHalfPen;
+  const double devOuterT = devT - devHalfPen;
+  const double devOuterR = devR + devHalfPen;
+  const double devOuterB = devB + devHalfPen;
+  const double devStrokeW = borderWidth * s;
+  const double invDpr = 1.0 / dpr;
+  const double opacity = painter->opacity();
+
+  painter->save();
+  painter->setWorldTransform(QTransform());
+  painter->setRenderHint(QPainter::Antialiasing, false);
+
+  const auto fillDeviceRect = [&](double x0, double y0, double x1, double y1, const QColor &color) {
+    if (x1 <= x0 || y1 <= y0 || color.alpha() == 0) { return; }
+    const int cx0 = std::max(clipDev.left(), int(std::floor(x0)));
+    const int cx1 = std::min(clipDev.right() + 1, int(std::ceil(x1)));
+    const int cy0 = std::max(clipDev.top(), int(std::floor(y0)));
+    const int cy1 = std::min(clipDev.bottom() + 1, int(std::ceil(y1)));
+    if (cx0 >= cx1 || cy0 >= cy1) { return; }
+    const int ix0 = std::clamp(int(std::ceil(x0)), cx0, cx1);
+    const int ix1 = std::clamp(int(std::floor(x1)), ix0, cx1);
+    const int iy0 = std::clamp(int(std::ceil(y0)), cy0, cy1);
+    const int iy1 = std::clamp(int(std::floor(y1)), iy0, cy1);
+    const auto fillScaled = [&](int rx, int ry, int rw, int rh, double cov) {
+      if (rw <= 0 || rh <= 0 || cov <= 0.0) { return; }
+      const QRectF r(rx * invDpr, ry * invDpr, rw * invDpr, rh * invDpr);
+      if (cov >= 1.0 - 1e-6) {
+        painter->fillRect(r, color);
+      } else {
+        QColor scaled = color;
+        scaled.setAlphaF(color.alphaF() * cov);
+        if (scaled.alpha() > 0) { painter->fillRect(r, scaled); }
+      }
+    };
+    if (cx1 - cx0 == 1 || cy1 - cy0 == 1) {
+      for (int y = cy0; y < cy1; ++y) {
+        const double yCov = std::clamp(std::min(y1, double(y + 1)) - std::max(y0, double(y)), 0.0, 1.0);
+        for (int x = cx0; x < cx1; ++x) {
+          const double xCov = std::clamp(std::min(x1, double(x + 1)) - std::max(x0, double(x)), 0.0, 1.0);
+          fillScaled(x, y, 1, 1, xCov * yCov);
+        }
+      }
+      return;
+    }
+    fillScaled(ix0, iy0, ix1 - ix0, iy1 - iy0, 1.0);
+    if (cy0 < iy0) {
+      fillScaled(ix0, cy0, ix1 - ix0, 1, std::clamp(std::min(y1, double(cy0 + 1)) - std::max(y0, double(cy0)), 0.0, 1.0));
+    }
+    if (iy1 < cy1) {
+      fillScaled(ix0, iy1, ix1 - ix0, 1, std::clamp(std::min(y1, double(iy1 + 1)) - std::max(y0, double(iy1)), 0.0, 1.0));
+    }
+    if (cx0 < ix0) {
+      fillScaled(cx0, iy0, 1, iy1 - iy0, std::clamp(std::min(x1, double(cx0 + 1)) - std::max(x0, double(cx0)), 0.0, 1.0));
+    }
+    if (ix1 < cx1) {
+      fillScaled(ix1, iy0, 1, iy1 - iy0, std::clamp(std::min(x1, double(ix1 + 1)) - std::max(x0, double(ix1)), 0.0, 1.0));
+    }
+    const int xs[2] = {cx0 < ix0 ? cx0 : -1, ix1 < cx1 ? ix1 : -1};
+    const int ys[2] = {cy0 < iy0 ? cy0 : -1, iy1 < cy1 ? iy1 : -1};
+    for (int y : ys) {
+      if (y < 0) { continue; }
+      const double yCov = std::clamp(std::min(y1, double(y + 1)) - std::max(y0, double(y)), 0.0, 1.0);
+      for (int x : xs) {
+        if (x < 0) { continue; }
+        const double xCov = std::clamp(std::min(x1, double(x + 1)) - std::max(x0, double(x)), 0.0, 1.0);
+        fillScaled(x, y, 1, 1, xCov * yCov);
+      }
+    }
+  };
+
+  if (hasFill) {
+    fillDeviceRect(devX1, devT, devX2, devY1, fill);
+    fillDeviceRect(devL, devY1, devR, devY2, fill);
+    fillDeviceRect(devX1, devY2, devX2, devB, fill);
+  }
+  if (hasBorder) {
+    fillDeviceRect(devX1, devOuterT, devX2, devOuterT + devStrokeW, border);
+    fillDeviceRect(devX1, devB - devHalfPen, devX2, devOuterB, border);
+    fillDeviceRect(devOuterL, devY1, devOuterL + devStrokeW, devY2, border);
+    fillDeviceRect(devR - devHalfPen, devY1, devOuterR, devY2, border);
+  }
+
+  const int boxL = int(std::floor(devOuterL));
+  const int boxT = int(std::floor(devOuterT));
+  const int boxR = int(std::ceil(devOuterR));
+  const int boxB = int(std::ceil(devOuterB));
+  const double devInnerStrokeR = std::max(0.0, devFillR - devHalfPen);
+  const double devOuterStrokeR = devFillR + devHalfPen;
+  QColor opFill = fill, opBorder = border;
+  if (opacity < 1.0 - 1e-6) {
+    opFill.setAlphaF(fill.alphaF() * opacity);
+    opBorder.setAlphaF(border.alphaF() * opacity);
+  }
+  const QRgb fillPm = qPremultiply(opFill.rgba());
+  const QRgb borderPm = qPremultiply(opBorder.rgba());
+
+  struct CornerSpec {
+    QRect devBox;
+    double cx, cy;
+    bool right, bottom;
+  };
+  const CornerSpec corners[4] = {
+      {QRect(boxL, boxT, devX1 - boxL, devY1 - boxT), cxL, cyT, false, false},
+      {QRect(devX2, boxT, boxR - devX2, devY1 - boxT), cxR, cyT, true, false},
+      {QRect(boxL, devY2, devX1 - boxL, boxB - devY2), cxL, cyB, false, true},
+      {QRect(devX2, devY2, boxR - devX2, boxB - devY2), cxR, cyB, true, true},
+  };
+
+  bool resetOpacity = false;
+  for (const auto &c : corners) {
+    const QRect box = c.devBox.intersected(clipDev);
+    if (box.isEmpty()) { continue; }
+    if (!resetOpacity && opacity < 1.0 - 1e-6) {
+      painter->setOpacity(1.0);
+      resetOpacity = true;
+    }
+    QImage cornerImg(box.size(), QImage::Format_ARGB32_Premultiplied);
+    cornerImg.setDevicePixelRatio(dpr);
+    const int w = box.width(), h = box.height();
+    for (int py = 0; py < h; ++py) {
+      auto *scan = reinterpret_cast<QRgb *>(cornerImg.scanLine(py));
+      const double y = box.top() + py + 0.5;
+      const double qy = c.bottom ? std::max(0.0, y - c.cy) : std::max(0.0, c.cy - y);
+      const double qy2 = qy * qy;
+      for (int px = 0; px < w; ++px) {
+        const double x = box.left() + px + 0.5;
+        const double qx = c.right ? std::max(0.0, x - c.cx) : std::max(0.0, c.cx - x);
+        const double dist = (qx > 0 && qy > 0) ? std::sqrt(qx * qx + qy2) : std::max(qx, qy);
+        QRgb out = 0;
+        if (hasFill) {
+          const double cov = std::clamp(devFillR - dist + 0.5, 0.0, 1.0);
+          if (cov > 0.0) { out = scalePremul(fillPm, int(cov * 255.0 + 0.5)); }
+        }
+        if (hasBorder) {
+          const double covOut = std::clamp(devOuterStrokeR - dist + 0.5, 0.0, 1.0);
+          const double covIn = std::clamp(dist - devInnerStrokeR + 0.5, 0.0, 1.0);
+          const double cov = std::min(covOut, covIn);
+          if (cov > 0.0) { out = sourceOverPremul(out, scalePremul(borderPm, int(cov * 255.0 + 0.5))); }
+        }
+        scan[px] = out;
+      }
+    }
+    painter->drawImage(QPointF(box.topLeft()) * invDpr, cornerImg);
+  }
+  painter->restore();
+}
 
 // BaseNode's .loading::before: a 3px conic ring 4px outside the card with the
 // xl radius, its stops evenly spaced and closed on the first color.
@@ -41,12 +267,11 @@ void paintRunningRing(QPainter *painter, const QRectF &box, const QVector<QColor
 // The painted twin of CodePropertyEditor.qml: the field fill, a right-aligned
 // line gutter and highlighted monospace text, with the same font and offsets.
 // Only the lines that fit are laid out, so a long source paints in constant time.
-void paintCodeField(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+void paintCodeField(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, const QRectF &paintClip,
+                    CanvasIconCache *icons) {
   const auto field = row.rect;
   painter->save();
-  painter->setPen(Qt::NoPen);
-  painter->setBrush(theme.field);
-  painter->drawRoundedRect(field, nm::fieldRadius, nm::fieldRadius);
+  paintSolidRoundedRect(painter, field, nm::fieldRadius, theme.field, Qt::transparent, 0);
   painter->setClipRect(field.adjusted(0, 0, -nm::borderWidth, -nm::borderWidth));
   auto font = canvasFont(theme, nm::codeFontSize, QFont::Normal);
   font.setFamily(theme.monoFamily);
@@ -54,46 +279,116 @@ void paintCodeField(QPainter *painter, const CanvasTheme &theme, const NodeRow &
   const QFontMetricsF metrics(font);
   const auto visible = int(std::ceil((field.height() - nm::codePaddingY) / metrics.lineSpacing())) + 1;
   const auto lines = row.value.split(QLatin1Char('\n'));
-  const auto shown = QStringList(lines.mid(0, visible)).join(QLatin1Char('\n'));
-  QTextDocument document;
-  document.setDocumentMargin(0);
-  document.setDefaultFont(font);
-  document.setUndoRedoEnabled(false);
-  QTextOption option;
-  option.setWrapMode(QTextOption::NoWrap);
-  document.setDefaultTextOption(option);
-  document.setPlainText(shown);
-  node_editor::CodeHighlighter highlighter;
-  highlighter.setKeyword(theme.info);
-  highlighter.setLiteral(theme.success);
-  highlighter.setComment(theme.textSecondary);
-  highlighter.setDocument(&document);
-  highlighter.rehighlight();
+  const auto shownCount = std::min<int>(visible, int(lines.size()));
+  const auto shown = QStringList(lines.mid(0, shownCount)).join(QLatin1Char('\n'));
+  auto populate = [&](QTextDocument &document) {
+    document.setDocumentMargin(0);
+    document.setDefaultFont(font);
+    document.setUndoRedoEnabled(false);
+    QTextOption option;
+    option.setWrapMode(QTextOption::NoWrap);
+    document.setDefaultTextOption(option);
+    document.setPlainText(shown);
+    node_editor::CodeHighlighter highlighter;
+    highlighter.setKeyword(theme.info);
+    highlighter.setLiteral(theme.success);
+    highlighter.setComment(theme.textSecondary);
+    highlighter.setDocument(&document);
+    highlighter.rehighlight();
+  };
+  QTextDocument localDoc;
+  QTextDocument *docPtr = &localDoc;
+  if (icons) {
+    const auto key = QStringLiteral("code|%1|%2|%3|%4|%5|%6")
+                         .arg(theme.monoFamily)
+                         .arg(nm::codeFontSize)
+                         .arg(theme.info.rgba(), 0, 16)
+                         .arg(theme.success.rgba(), 0, 16)
+                         .arg(theme.textSecondary.rgba(), 0, 16)
+                         .arg(shown);
+    docPtr = icons->textDocument(key, populate);
+  } else {
+    populate(localDoc);
+  }
   painter->setFont(font);
   painter->setPen(theme.textSecondary);
   const auto top = field.top() + nm::codePaddingY;
-  for (int line = 0; line < std::min<int>(visible, lines.size()); ++line) {
-    const auto block = document.findBlockByNumber(line);
-    const auto y = top + document.documentLayout()->blockBoundingRect(block).top();
-    painter->drawText(QRectF(field.left(), y, nm::codeGutterWidth - nm::codeTextGap / 2.0, metrics.lineSpacing()),
-                      Qt::AlignRight | Qt::AlignVCenter, QString::number(line + 1));
+  const QRectF gutterBounds(field.left(), top, nm::codeGutterWidth - nm::codeTextGap / 2.0, field.height());
+  if (gutterBounds.intersects(paintClip)) {
+    for (int line = 0; line < shownCount; ++line) {
+      const auto block = docPtr->findBlockByNumber(line);
+      const auto y = top + docPtr->documentLayout()->blockBoundingRect(block).top();
+      const QRectF lineRect(field.left(), y, nm::codeGutterWidth - nm::codeTextGap / 2.0, metrics.lineSpacing());
+      if (lineRect.intersects(paintClip)) {
+        painter->drawText(lineRect, Qt::AlignRight | Qt::AlignVCenter, QString::number(line + 1));
+      }
+    }
   }
-  painter->translate(field.left() + nm::codeGutterWidth + nm::codeTextGap, top);
+  const double textOriginX = field.left() + nm::codeGutterWidth + nm::codeTextGap;
+  painter->translate(textOriginX, top);
   QAbstractTextDocumentLayout::PaintContext context;
   context.palette.setColor(QPalette::Text, theme.textPrimary);
-  document.documentLayout()->draw(painter, context);
+  context.clip = paintClip.translated(-textOriginX, -top);
+  docPtr->documentLayout()->draw(painter, context);
   painter->restore();
 }
 
-void paintIcon(QPainter *painter, const QString &name, const QRectF &rect, QColor color) {
-  const auto path = iconPath(name);
-  if (path.isEmpty()) { return; }
-  const auto svg = QStringLiteral("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"%1\" "
-                                  "fill-opacity=\"%2\" d=\"%3\"/></svg>")
-                       .arg(color.name())
-                       .arg(color.alphaF())
-                       .arg(path);
-  QSvgRenderer(svg.toUtf8()).render(painter, rect);
+// Visible paint area in card-local coordinates, so tiled rasters skip rows,
+// icons and text that lie completely outside the current 512px tile.
+QRectF localPaintClip(const QPainter *painter, const QRectF &fallback) {
+  if (!painter || !painter->device()) { return fallback; }
+  const double dpr = painter->device()->devicePixelRatio();
+  const QRectF device(QPointF(), QSizeF(painter->device()->width(), painter->device()->height()) / (dpr > 0 ? dpr : 1.0));
+  bool invertible = false;
+  const auto inverse = painter->worldTransform().inverted(&invertible);
+  if (!invertible) { return fallback; }
+  QRectF clip = inverse.mapRect(device).adjusted(-2, -2, 2, 2);
+  if (painter->hasClipping()) {
+    const auto painterClip = painter->clipBoundingRect();
+    if (!painterClip.isEmpty()) { clip &= painterClip.adjusted(-2, -2, 2, 2); }
+  }
+  return clip;
+}
+
+// Conservative card-local bounds of a row across all generic and bespoke kinds.
+QRectF rowPaintBounds(const NodeLayout &layout, const NodeRow &row) {
+  QRectF bounds;
+  const auto unite = [&](const QRectF &r) {
+    if (!r.isEmpty()) { bounds = bounds.isEmpty() ? r : bounds.united(r); }
+  };
+  unite(row.rect);
+  for (const auto &part : row.parts) { unite(part); }
+  unite(row.renameLabelRect);
+  unite(row.renameButtonRect);
+  unite(row.typeChipRect);
+  unite(row.removeButtonRect);
+  unite(row.listZone);
+  if (row.kind != NodeRowKind::Handle || row.conditionalUnavailable) {
+    const double w = layout.size.width();
+    const double rowH = row.conditionalUnavailable ? 2 * nm::rowHeight : nm::rowHeight;
+    unite(QRectF(0, row.y, w, rowH));
+    if (row.height > 0) { unite(QRectF(0, row.fieldY, w, row.height)); }
+  }
+  if (row.kind == NodeRowKind::ModelChip && !row.bare && !row.rect.isEmpty()) {
+    unite(QRectF(row.rect.x(), row.rect.y() - nm::rowHeight, row.rect.width(), nm::rowHeight));
+  } else if (row.kind == NodeRowKind::ImageSize && !row.rect.isEmpty()) {
+    unite(QRectF(0, row.y, layout.size.width(), row.rect.bottom() + nm::imageSizeCaptionHeight - row.y));
+  } else if (row.kind == NodeRowKind::DropZone && !row.rect.isEmpty()) {
+    unite(QRectF(0, row.y, layout.size.width(), nm::rowHeight));
+  } else if (row.kind == NodeRowKind::Preview) {
+    const double inset = nm::borderWidth + nm::padding;
+    unite(QRectF(inset, row.y, layout.size.width() - 2 * inset,
+                 layout.body == CardBody::Preview ? layout.size.height() - inset - row.y : row.height));
+  } else if (row.kind == NodeRowKind::Knob && !row.rect.isEmpty()) {
+    unite(row.rect.adjusted(-nm::padding, 0, nm::padding, nm::fontValue * 2 + nm::micro * 2));
+  } else if (row.kind == NodeRowKind::Field && !row.bare && !row.rect.isEmpty()) {
+    unite(QRectF(0, row.rect.y(), row.rect.right(), row.rect.height()));
+  }
+  return bounds.adjusted(-2, -2, 2, 2);
+}
+
+void paintIcon(QPainter *painter, const QString &name, const QRectF &rect, QColor color, CanvasIconCache *icons) {
+  paintMaterialIcon(painter, name, rect, color, icons);
 }
 
 // A square icon centered in a row control, as the web's 14 px action icons.
@@ -211,7 +506,8 @@ QColor withOpacity(QColor color, double opacity) {
   return color;
 }
 
-void paintRow(QPainter *painter, const CanvasTheme &theme, const NodeLayout &layout, const NodeRow &row, double inset) {
+void paintRow(QPainter *painter, const CanvasTheme &theme, const NodeLayout &layout, const NodeRow &row, double inset,
+              const QRectF &paintClip, CanvasIconCache *icons) {
   const auto width = layout.size.width() - 2 * inset;
   if (row.conditionalUnavailable) {
     painter->setPen(theme.textSecondary);
@@ -241,12 +537,10 @@ void paintRow(QPainter *painter, const CanvasTheme &theme, const NodeLayout &lay
     painter->setBrush(row.checked ? QColor(Qt::white) : theme.textSecondary);
     painter->drawEllipse(QPointF(track.x() + (row.checked ? 21 : 7), track.center().y()), 5, 5);
   } else if (row.code) {
-    paintCodeField(painter, theme, row);
+    paintCodeField(painter, theme, row, paintClip, icons);
   } else if (row.kind == NodeRowKind::Field || row.kind == NodeRowKind::Multiline) {
     const QRectF field(inset, row.fieldY, width, row.height);
-    painter->setPen(Qt::NoPen);
-    painter->setBrush(theme.field);
-    painter->drawRoundedRect(field, nm::fieldRadius, nm::fieldRadius);
+    paintSolidRoundedRect(painter, field, nm::fieldRadius, theme.field, Qt::transparent, 0);
     painter->setPen(row.placeholder ? theme.textSecondary : theme.textPrimary);
     painter->setFont(canvasFont(theme, nm::fontValue, QFont::Normal));
     const auto text = field.adjusted(8, row.kind == NodeRowKind::Multiline ? 6 : 0, row.choice ? -24 : -8,
@@ -269,11 +563,13 @@ void paintRow(QPainter *painter, const CanvasTheme &theme, const NodeLayout &lay
     }
   }
 }
-void paintHandles(QPainter *painter, const CardPaintState &state) {
+void paintHandles(QPainter *painter, const CardPaintState &state, const QRectF &paintClip) {
   const auto &theme = state.theme;
   if (state.zoom <= zoomedOutThreshold) { return; }
+  const double hitMargin = nm::handleDiameter / 2 * handleConnectableScale + 4;
   for (const auto &handle : state.handles) {
     const auto [x, y] = std::pair(handle.position.x(), handle.position.y());
+    if (!QRectF(x - hitMargin, y - hitMargin, 2 * hitMargin, 2 * hitMargin).intersects(paintClip)) { continue; }
     const auto &color = handle.color;
     auto fill = color;
     painter->save();
@@ -299,10 +595,20 @@ void paintHandles(QPainter *painter, const CardPaintState &state) {
       painter->translate(-x, -y);
       painter->setOpacity(painter->opacity() * handleHoverOpacity);
     }
-    painter->setPen(QPen(theme.node, nm::handleRing));
-    painter->setBrush(fill);
-    const auto r = nm::handleDiameter / 2 - nm::handleRing / 2;
-    painter->drawEllipse(QPointF(x, y), r, r);
+    if (theme.node.alpha() == 255 && fill.alpha() == 255 && painter->opacity() >= 1.0 - 1e-6) {
+      painter->setPen(Qt::NoPen);
+      painter->setBrush(theme.node);
+      const double outerR = nm::handleDiameter / 2.0;
+      painter->drawEllipse(QPointF(x, y), outerR, outerR);
+      painter->setBrush(fill);
+      const double innerR = outerR - nm::handleRing;
+      painter->drawEllipse(QPointF(x, y), innerR, innerR);
+    } else {
+      painter->setPen(QPen(theme.node, nm::handleRing));
+      painter->setBrush(fill);
+      const auto r = nm::handleDiameter / 2 - nm::handleRing / 2;
+      painter->drawEllipse(QPointF(x, y), r, r);
+    }
     if (handle.collect) {
       // .collect-handle: a card-colored core, radial-gradient(bg 0 2px, transparent 2.5px).
       QRadialGradient core(QPointF(x, y), handleCollectFeather);
@@ -330,6 +636,7 @@ void paintHandles(QPainter *painter, const CardPaintState &state) {
 void paintCard(QPainter *painter, const CardPaintState &state) {
   const auto &theme = state.theme;
   const auto &layout = state.layout;
+  const auto paintClip = localPaintClip(painter, state.bounds);
   if (state.kind == CardKind::Reroute) {
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
@@ -346,7 +653,7 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
     painter->setBrush(background);
     painter->setPen(QPen(state.selected ? theme.primary : theme.rerouteBorder, nm::borderWidth));
     painter->drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), nm::rerouteHeight / 2, nm::rerouteHeight / 2);
-    paintHandles(painter, state);
+    paintHandles(painter, state, paintClip);
     painter->restore();
     return;
   }
@@ -368,80 +675,103 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
     auto hoverEdge = theme.primary;
     hoverEdge.setAlphaF(0.6);
     painter->setOpacity(painter->opacity() * state.groupOpacity);
-    painter->setPen(group || state.selected ? QPen(state.selected ? theme.primary
-                                                   : dropTarget   ? hoverEdge
-                                                                  : border,
-                                                   group ? 1 / zoom : 1)
-                                            : QPen(Qt::NoPen));
-    painter->drawRoundedRect(QRectF(QPointF(), layout.size), 4, 4);
+    const QRectF groupBox(QPointF(), layout.size);
+    const bool drawBorder = group || state.selected;
+    const QColor groupBorder = state.selected ? theme.primary
+                               : dropTarget   ? hoverEdge
+                                              : border;
+    paintSolidRoundedRect(painter, groupBox, 4.0, fill, drawBorder ? groupBorder : QColor(Qt::transparent),
+                          drawBorder ? (group ? 1.0 / zoom : 1.0) : 0.0);
     if (group) {
       // The foreground paints the zoom-compensated label outside this item's
       // exposed rectangle, which QtNodes clips before calling the painter.
-    } else {
-      QTextDocument text;
-      text.setDefaultFont(canvasFont(theme, 15, QFont::Normal));
+    } else if (QRectF(8, 16, std::max(0, layout.size.width() - 40), std::max(0, layout.size.height() - 32)).intersects(paintClip)) {
       const auto value = state.comment;
-      if (value.isString()) {
-        text.setMarkdown(value.toString());
-      } else {
-        // Lexical stores formatting on leaf text and block kind on parents.
-        struct Frame {
-          QJsonObject node;
-          bool closing;
-        };
-        QVector<Frame> pending{{value.toObject()["root"].toObject(), false}};
-        QString html;
-        while (!pending.isEmpty()) {
-          const auto frame = pending.takeLast();
-          const auto node = frame.node;
-          const auto type = node["type"].toString();
-          auto tag = type == "paragraph"  ? QString("p")
-                     : type == "quote"    ? QString("blockquote")
-                     : type == "listitem" ? QString("li")
-                     : type == "list"     ? node["tag"].toString("ul")
-                     : type == "heading"  ? node["tag"].toString("h2")
-                                          : QString{};
-          if (tag != "p" && tag != "blockquote" && tag != "li" && tag != "ul" && tag != "ol" && tag != "h1" &&
-              tag != "h2" && tag != "h3" && tag != "h4" && tag != "h5" && tag != "h6") {
-            tag.clear();
-          }
-          if (frame.closing) {
-            if (!tag.isEmpty()) { html += "</" + tag + ">"; }
-            continue;
-          }
-          if (!tag.isEmpty()) {
-            html += "<" + tag + ">";
-            pending.append({node, true});
-          }
-          if (type == "linebreak") { html += "<br>"; }
-          auto leaf = node["text"].toString().toHtmlEscaped();
-          const auto format = node["format"].toInt();
-          if (format & 1) { leaf = "<b>" + leaf + "</b>"; }
-          if (format & 2) { leaf = "<i>" + leaf + "</i>"; }
-          if (format & 8) { leaf = "<u>" + leaf + "</u>"; }
-          if (format & 4) { leaf = "<s>" + leaf + "</s>"; }
-          if (format & 16) { leaf = "<code>" + leaf + "</code>"; }
-          html += leaf;
-          const auto children = node["children"].toArray();
-          for (auto i = children.size(); i > 0; --i) { pending.append({children[i - 1].toObject(), false}); }
-        }
-        text.setHtml(html);
-      }
       const auto ink =
           layout.accent.isValid()
               ? ((0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue()) > 127.5 ? QColor(Qt::black)
                                                                                               : QColor(Qt::white))
               : theme.textPrimary;
-      text.setDefaultStyleSheet("body { color: " + ink.name() + "; }");
-      text.setTextWidth(std::max(1, layout.size.width() - 40));
+      const int textWidth = std::max(1, layout.size.width() - 40);
+      auto populate = [&](QTextDocument &text) {
+        text.setDefaultFont(canvasFont(theme, 15, QFont::Normal));
+        if (value.isString()) {
+          text.setMarkdown(value.toString());
+        } else {
+          // Lexical stores formatting on leaf text and block kind on parents.
+          struct Frame {
+            QJsonObject node;
+            bool closing;
+          };
+          QVector<Frame> pending{{value.toObject()["root"].toObject(), false}};
+          QString html;
+          while (!pending.isEmpty()) {
+            const auto frame = pending.takeLast();
+            const auto node = frame.node;
+            const auto type = node["type"].toString();
+            auto tag = type == "paragraph"  ? QString("p")
+                       : type == "quote"    ? QString("blockquote")
+                       : type == "listitem" ? QString("li")
+                       : type == "list"     ? node["tag"].toString("ul")
+                       : type == "heading"  ? node["tag"].toString("h2")
+                                            : QString{};
+            if (tag != "p" && tag != "blockquote" && tag != "li" && tag != "ul" && tag != "ol" && tag != "h1" &&
+                tag != "h2" && tag != "h3" && tag != "h4" && tag != "h5" && tag != "h6") {
+              tag.clear();
+            }
+            if (frame.closing) {
+              if (!tag.isEmpty()) { html += "</" + tag + ">"; }
+              continue;
+            }
+            if (!tag.isEmpty()) {
+              html += "<" + tag + ">";
+              pending.append({node, true});
+            }
+            if (type == "linebreak") { html += "<br>"; }
+            auto leaf = node["text"].toString().toHtmlEscaped();
+            const auto format = node["format"].toInt();
+            if (format & 1) { leaf = "<b>" + leaf + "</b>"; }
+            if (format & 2) { leaf = "<i>" + leaf + "</i>"; }
+            if (format & 8) { leaf = "<u>" + leaf + "</u>"; }
+            if (format & 4) { leaf = "<s>" + leaf + "</s>"; }
+            if (format & 16) { leaf = "<code>" + leaf + "</code>"; }
+            html += leaf;
+            const auto children = node["children"].toArray();
+            for (auto i = children.size(); i > 0; --i) { pending.append({children[i - 1].toObject(), false}); }
+          }
+          text.setHtml(html);
+        }
+        text.setDefaultStyleSheet("body { color: " + ink.name() + "; }");
+        text.setTextWidth(textWidth);
+      };
+      QTextDocument localDoc;
+      QTextDocument *docPtr = &localDoc;
+      if (state.icons) {
+        const QString bodyKey = value.isString()
+                                    ? QStringLiteral("md:") + value.toString()
+                                    : QStringLiteral("lx:") +
+                                          QString::fromUtf8(QJsonDocument(value.toObject()).toJson(QJsonDocument::Compact));
+        const auto cacheKey = QStringLiteral("comment|%1|%2|%3|%4")
+                                  .arg(theme.sansFamily)
+                                  .arg(textWidth)
+                                  .arg(ink.rgba(), 0, 16)
+                                  .arg(bodyKey);
+        docPtr = state.icons->textDocument(cacheKey, populate);
+      } else {
+        populate(localDoc);
+      }
       painter->translate(8, 16);
-      painter->setClipRect(QRectF(0, 0, layout.size.width() - 40, layout.size.height() - 32));
+      const QRectF textArea(0, 0, layout.size.width() - 40, layout.size.height() - 32);
+      painter->setClipRect(textArea);
       QAbstractTextDocumentLayout::PaintContext context;
       context.palette.setColor(QPalette::Text, ink);
-      text.documentLayout()->draw(painter, context);
+      context.clip = textArea.intersected(paintClip.translated(-8, -16));
+      docPtr->documentLayout()->draw(painter, context);
     }
     painter->restore();
-    if (!state.readOnly) { paintResizeHandle(painter, layout.size, theme.textSecondary); }
+    if (!state.readOnly && QRectF(layout.size.width() - 18, layout.size.height() - 18, 18, 18).intersects(paintClip)) {
+      paintResizeHandle(painter, layout.size, theme.textSecondary);
+    }
     return;
   }
   const bool disabled = state.bypassed;
@@ -482,10 +812,8 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
     for (int spread = 3; spread >= 1; --spread) {
       auto shade = theme.selectionShadow;
       shade.setAlphaF(shade.alphaF() / 3.0);
-      painter->setPen(Qt::NoPen);
-      painter->setBrush(shade);
-      painter->drawRoundedRect(box.adjusted(-spread, 1 - spread, spread, 1 + spread), nm::radius + spread,
-                               nm::radius + spread);
+      paintSolidRoundedRect(painter, box.adjusted(-spread, 1 - spread, spread, 1 + spread), nm::radius + spread, shade,
+                            Qt::transparent, 0);
     }
   }
   auto borderColor = theme.divider;
@@ -501,13 +829,19 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
   const auto selectedEdge = previewCard ? theme.previewSelected : outputCard ? theme.outputSelected : layout.accent;
   // selectionStyles.ts: the keyboard-focused card is edged dashed in warning.
   const bool focused = state.focused;
-  painter->setPen(QPen(focused          ? theme.warning
-                       : state.selected ? (layout.subgraph ? theme.subgraphAccent : selectedEdge)
-                                        : borderColor,
-                       layout.subgraph && state.selected ? 2 * nm::borderWidth : nm::borderWidth,
-                       disabled || focused ? Qt::DashLine : Qt::SolidLine));
-  painter->setBrush(grouped && !loading ? theme.groupFill : theme.node);
-  painter->drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), nm::radius - 0.5, nm::radius - 0.5);
+  const QColor edgeColor = focused          ? theme.warning
+                           : state.selected ? (layout.subgraph ? theme.subgraphAccent : selectedEdge)
+                                            : borderColor;
+  const double edgeWidth = layout.subgraph && state.selected ? 2 * nm::borderWidth : nm::borderWidth;
+  const QColor fillColor = grouped && !loading ? theme.groupFill : theme.node;
+  if (disabled || focused) {
+    painter->setPen(QPen(edgeColor, edgeWidth, Qt::DashLine));
+    painter->setBrush(fillColor);
+    painter->drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), nm::radius - 0.5, nm::radius - 0.5);
+  } else {
+    paintSolidRoundedRect(painter, box.adjusted(0.5, 0.5, -0.5, -0.5), nm::radius - 0.5, fillColor, edgeColor,
+                          edgeWidth);
+  }
   if (disabled) { paintBypassStripes(painter, box, theme); }
   if (focused) {
     // BaseNode's "Focused" badge, centered 20 px above the card.
@@ -530,18 +864,22 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
   iconColor.setAlphaF(0.65);
   const QRectF iconBox(inset + 2, inset + 4, nm::iconSize, nm::iconSize);
   // nodes.zoomed.css hides the icon and sets the title to grey 200 at full opacity.
-  if (zoomedOut) {
-  } else if (layout.subgraph) {
-    paintIcon(painter, layout.icon, iconBox, theme.subgraphAccent);
-  } else {
-    paintCardIcon(painter, layout.typeIcon, layout.icon, iconBox, iconColor);
+  if (!zoomedOut && iconBox.intersects(paintClip)) {
+    if (layout.subgraph) {
+      paintIcon(painter, layout.icon, iconBox, theme.subgraphAccent, state.icons);
+    } else {
+      paintCardIcon(painter, layout.typeIcon, layout.icon, iconBox, iconColor, state.icons);
+    }
   }
   const QRectF headerBox(inset, inset, layout.size.width() - 2 * inset, nm::headerHeight);
-  const auto chipFont = canvasFont(theme, nm::fontValue, QFont::Normal);
-  const auto chipLabel = QObject::tr("Disabled");
-  const auto chip = disabledChipRect(headerBox, QFontMetricsF(chipFont).horizontalAdvance(chipLabel));
-  painter->setPen(zoomedOut ? theme.zoomedTitle : theme.textPrimary);
-  painter->setFont(canvasFont(theme, nm::fontTitle, QFont::Normal));
+  QFont chipFont;
+  QString chipLabel;
+  QRectF chip;
+  if (disabled) {
+    chipFont = canvasFont(theme, nm::fontValue, QFont::Normal);
+    chipLabel = QObject::tr("Disabled");
+    chip = disabledChipRect(headerBox, QFontMetricsF(chipFont).horizontalAdvance(chipLabel));
+  }
   // The chip keeps its 6 px left margin (nodes.states.css .bypass-badge).
   const bool headerButton = !layout.headerAction.isEmpty() && !layout.collapsed && !zoomedOut;
   const QRectF title(inset + nm::titleOffset, inset,
@@ -549,7 +887,9 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
                          (disabled ? chip.width() + disabledChipMargin : 0) -
                          (headerButton ? layout.headerActionRect().width() : 0),
                      nm::headerHeight);
-  {
+  if (title.intersects(paintClip)) {
+    painter->setPen(zoomedOut ? theme.zoomedTitle : theme.textPrimary);
+    painter->setFont(canvasFont(theme, nm::fontTitle, QFont::Normal));
     // nodes.states.css: a bypassed title is drawn at 0.8 inside the card's own 0.8.
     const auto cardOpacity = painter->opacity();
     if (disabled && !zoomedOut) { painter->setOpacity(cardOpacity * nm::disabledOpacity); }
@@ -558,8 +898,8 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
     painter->setOpacity(cardOpacity);
   }
 
-  if (disabled) { paintDisabledBadge(painter, chip, theme, chipFont, chipLabel); }
-  if (headerButton && !state.readOnly) {
+  if (disabled && chip.intersects(paintClip)) { paintDisabledBadge(painter, chip, theme, chipFont, chipLabel); }
+  if (headerButton && !state.readOnly && layout.headerActionRect().intersects(paintClip)) {
     // ComfyWorkflowLoader's ToolbarIconButton: secondary ink, primary ink on an overlay when hovered.
     const auto button = layout.headerActionRect();
     const bool hovered = state.headerActionHovered;
@@ -569,12 +909,13 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
       painter->drawRoundedRect(button, 4, 4);
     }
     paintIcon(painter, QStringLiteral("uploadFile"), button.adjusted(4, 4, -4, -4),
-              hovered ? theme.textPrimary : theme.textSecondary);
+              hovered ? theme.textPrimary : theme.textSecondary, state.icons);
   }
   for (const auto &row : layout.rows) {
+    if (!rowPaintBounds(layout, row).intersects(paintClip)) { continue; }
     if (!paintCardBodyRow(painter, theme, layout, row, state.body)) {
       // nodes.zoomed.css hides property rows and their labels at overview zoom.
-      if (!zoomedOut) { paintRow(painter, theme, layout, row, inset); }
+      if (!zoomedOut) { paintRow(painter, theme, layout, row, inset, paintClip, state.icons); }
     }
     if (!row.renameLabelRect.isEmpty() && !zoomedOut) {
       if (row.kind == NodeRowKind::Handle) {
@@ -582,31 +923,31 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
         painter->setFont(canvasFont(theme, nm::fontLabel, QFont::Normal));
         painter->drawText(row.renameLabelRect, Qt::AlignLeft | Qt::AlignVCenter, row.label);
       }
-      if (!state.readOnly) { paintIcon(painter, "edit", iconSquare(row.renameButtonRect), theme.textSecondary); }
+      if (!state.readOnly) { paintIcon(painter, "edit", iconSquare(row.renameButtonRect), theme.textSecondary, state.icons); }
       if (!row.typeChipRect.isEmpty()) { paintTypeChip(painter, theme, row); }
       if (!row.removeButtonRect.isEmpty()) {
-        paintIcon(painter, "close", iconSquare(row.removeButtonRect), theme.textSecondary);
+        paintIcon(painter, "close", iconSquare(row.removeButtonRect), theme.textSecondary, state.icons);
       }
     }
   }
-  if (layout.addOutput) {
+  if (layout.addOutput && layout.outputFormRect().intersects(paintClip)) {
     painter->setPen(theme.textSecondary);
     painter->setFont(canvasFont(theme, nm::fontValue, QFont::Normal));
     painter->drawText(layout.outputFormRect(), Qt::AlignLeft | Qt::AlignVCenter, QObject::tr("+ Add output"));
   }
-  if (layout.subgraph) {
+  if (layout.subgraph && layout.footerRect().adjusted(-1, -1, 1, 1).intersects(paintClip)) {
     const auto footer = layout.footerRect();
     if (state.footerHovered) { painter->fillRect(footer.adjusted(1, 1, -1, -1), theme.field); }
     painter->setPen(theme.divider);
     painter->drawLine(footer.topLeft(), footer.topRight());
     painter->setPen(theme.textSecondary);
     painter->setFont(canvasFont(theme, nm::fontValue, QFont::Normal));
-    paintIcon(painter, "accountTree", QRectF(inset, footer.y() + 7, 14, 14), theme.textSecondary);
+    paintIcon(painter, "accountTree", QRectF(inset, footer.y() + 7, 14, 14), theme.textSecondary, state.icons);
     painter->drawText(footer.adjusted(inset + 18, 0, -32, 0), Qt::AlignLeft | Qt::AlignVCenter,
                       QObject::tr("Open subgraph"));
     painter->drawText(footer.adjusted(inset, 0, -32, 0), Qt::AlignRight | Qt::AlignVCenter, layout.childCount);
   }
-  paintHandles(painter, state);
+  paintHandles(painter, state, paintClip);
   auto runtime = state.runtime;
   // A collapsed strip keeps its status ring and drops the result body.
   if (layout.collapsed && !runtime.isEmpty()) { runtime = QJsonObject{{"status", runtime["status"]}}; }
@@ -614,11 +955,11 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
     // A constant or a content card shows its own value, not the run result.
     const auto output = state.outputRect;
     const auto &image = state.preview;
-    if (!output.isEmpty() && !image.isNull()) {
+    if (!output.isEmpty() && output.intersects(paintClip) && !image.isNull()) {
       auto target = QRectF(QPointF(), image.size().scaled(output.size().toSize(), Qt::KeepAspectRatio));
       target.moveCenter(output.center());
       painter->drawImage(target, image);
-    } else if (!output.isEmpty()) {
+    } else if (!output.isEmpty() && output.intersects(paintClip)) {
       auto outputText = runtime["error"].toString();
       if (outputText.isEmpty()) { outputText = runtime["text"].toString(); }
       if (outputText.isEmpty() && runtime["result"].isObject()) {
@@ -675,15 +1016,20 @@ void paintCard(QPainter *painter, const CardPaintState &state) {
       painter->fillRect(QRectF(track.topLeft(), QSizeF(track.width() * fraction, track.height())), theme.progress);
       label = progressLabel(runtime);
     }
-    painter->drawText(box.adjusted(inset, 0, -inset, -2 - bottomInset), Qt::AlignRight | Qt::AlignBottom, label);
-    if (const auto report = reportErrorRect(state.runtime, layout); !report.isEmpty()) {
+    if (!label.isEmpty()) {
+      painter->drawText(box.adjusted(inset, 0, -inset, -2 - bottomInset), Qt::AlignRight | Qt::AlignBottom, label);
+    }
+    if (const auto report = reportErrorRect(state.runtime, layout); !report.isEmpty() && report.intersects(paintClip)) {
       auto font = canvasFont(theme, nm::fontValue, QFont::Medium);
       font.setUnderline(true);
       painter->setFont(font);
       painter->drawText(report, Qt::AlignLeft | Qt::AlignBottom, QObject::tr("Report"));
     }
   }
-  if (!state.readOnly && !layout.collapsed) { paintResizeHandle(painter, layout.size, theme.textSecondary); }
+  if (!state.readOnly && !layout.collapsed &&
+      QRectF(layout.size.width() - 18, layout.size.height() - 18, 18, 18).intersects(paintClip)) {
+    paintResizeHandle(painter, layout.size, theme.textSecondary);
+  }
   painter->restore();
 }
 
@@ -725,9 +1071,10 @@ void NodePainter::paint(QPainter *painter, const CardPaintState &state) {
     paintCard(painter, state);
     return;
   }
-  // Apply the bypass filter to the whole card, including each handle. Keep
-  // view zoom in the state because the temporary image has its own scale.
-  const auto &bounds = state.bounds;
+  // Apply the bypass filter only to the clipped portion of the card so tiled
+  // rasters do not allocate and saturate a full-card temporary buffer per tile.
+  const auto bounds = state.bounds.intersected(localPaintClip(painter, state.bounds));
+  if (bounds.isEmpty()) { return; }
   const double scale =
       std::max(0.01, std::abs(painter->worldTransform().m11()) * painter->device()->devicePixelRatio());
   QImage image(QSize(int(std::ceil(bounds.width() * scale)), int(std::ceil(bounds.height() * scale))),
