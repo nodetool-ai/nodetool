@@ -37,6 +37,8 @@ import {
   type PianoRollGeometry
 } from "./pianoRollGeometry";
 
+/** Bar lines over the beats: strong, short of full text strength. */
+const BAR_LINE_ALPHA = 0.6;
 /** How round a note bar's corners are, in px. */
 
 /** A note needs this much room before it shows its velocity line. */
@@ -225,6 +227,7 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
       }
       ctx.stroke();
       ctx.globalAlpha = 1;
+      ctx.strokeStyle = colors.beatLine;
       ctx.beginPath();
       for (const tick of beatTicks) {
         const x = Math.round(tickToX(tick, geometry)) + 0.5;
@@ -233,6 +236,7 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
       }
       ctx.stroke();
       ctx.strokeStyle = colors.barLine;
+      ctx.globalAlpha = BAR_LINE_ALPHA;
       ctx.beginPath();
       for (const tick of barTicks) {
         const x = Math.round(tickToX(tick, geometry)) + 0.5;
@@ -240,6 +244,7 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
         ctx.lineTo(x, heightPx);
       }
       ctx.stroke();
+      ctx.globalAlpha = 1;
 
       // Everything outside the clip's window is stored but never played, so it
       // is shaded rather than hidden: a trim hides notes, it does not delete

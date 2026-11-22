@@ -183,3 +183,27 @@ export function assignmentChoiceId(a: StepRowAssignment): string {
       return `device.${a.target.deviceId}.${a.target.param}`;
   }
 }
+
+/**
+ * A row rename, reassignment or copy changes the keys of the kept sort, so
+ * the run re-applies the sort unless it already sorts or moves rows (F29, F59).
+ * A copied row lands in its target clip, so that clip is re-sorted.
+ */
+export function withKeptSort(list: TimelineOp[], pattern: StepPattern | undefined): TimelineOp[] {
+  const sort = patternRowSort(pattern);
+  if (!sort) return list;
+  let clipId: string | null = null;
+  for (const op of list) {
+    if (op.op === "copy_pattern_row") {
+      clipId = op.toClipId ?? op.clipId;
+      break;
+    }
+    if (op.op === "set_pattern_row" && ("name" in op || "assignment" in op)) {
+      clipId = op.clipId;
+      break;
+    }
+  }
+  const placesRows = list.some((op) => op.op === "set_pattern_row_sort" || op.op === "move_pattern_row");
+  if (clipId === null || placesRows) return list;
+  return [...list, ...sortOps(clipId, sort)];
+}

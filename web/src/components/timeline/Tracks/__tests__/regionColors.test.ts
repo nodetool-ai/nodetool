@@ -23,3 +23,17 @@ describe("regionColors", () => {
     expect(luma(light.content)).toBeLessThan(luma(light.body) - 200);
   });
 });
+
+describe("muted region palette", () => {
+  it("keeps the band less saturated than a bright track color in both modes", () => {
+    const common = { black: "#000000", white: "#ffffff" };
+    const spread = (hex: string): number => {
+      const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+      return Math.max(...c) - Math.min(...c);
+    };
+    for (const mode of ["dark", "light"] as const) {
+      const { band } = regionColors("#22d3ee", mode, mode === "dark" ? "#101113" : "#ffffff", common);
+      expect(spread(band)).toBeLessThan(spread("#22d3ee") / 2);
+    }
+  });
+});

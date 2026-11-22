@@ -22,3 +22,22 @@ it("plays the last suppressed value after the throttle window", () => {
     jest.useRealTimers();
   }
 });
+
+/** F64: a cancelled gesture or an unmount drops the pending trailing audition. */
+it("drops the trailing audition when the gesture is cancelled", () => {
+  jest.useFakeTimers();
+  try {
+    const row = normalizePattern({ lengthSteps: 16, rows: [{ id: "k", assignment: { type: "note", pitch: 36 } } as StepRow] }).rows[0]!;
+    const play = jest.fn();
+    const hear = dragAudition(row, "velocity", play);
+    hear(0, 40);
+    jest.advanceTimersByTime(50);
+    hear(0, 90);
+    hear.cancel();
+    jest.advanceTimersByTime(200);
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(0);
+  } finally {
+    jest.useRealTimers();
+  }
+});

@@ -261,7 +261,7 @@ export function dragAudition(
   row: StepRow,
   mode: StepEditMode,
   play: ((row: StepRow, step: number, values?: Partial<Step>) => void) | undefined
-): (step: number, value: number) => void {
+): DragAudition {
   const spec = MODE_SPECS[mode];
   const field = spec.kind === "number" ? spec.field : null;
   let lastStep = -1;
@@ -274,12 +274,15 @@ export function dragAudition(
     lastAt = performance.now();
     play?.(row, step, field ? ({ [field]: value } as Partial<Step>) : undefined);
   };
-  return (step, value) => {
-    if (!play) return;
+  const clearTrailing = () => {
     if (trailing !== null) {
       clearTimeout(trailing);
       trailing = null;
     }
+  };
+  const hear = (step: number, value: number) => {
+    if (!play) return;
+    clearTrailing();
     if (step === lastStep && value === lastValue) return;
     const wait = lastAt + AUDITION_THROTTLE_MS - performance.now();
     if (step === lastStep && wait > 0) {
@@ -293,11 +296,17 @@ export function dragAudition(
     }
     sound(step, value);
   };
+  return Object.assign(hear, { cancel: clearTrailing });
 }
+
+/** Auditions a dragged value; `cancel` drops a pending trailing audition (F64). */
+export type DragAudition = ((step: number, value: number) => void) & { cancel: () => void };
 
 interface Gesture {
   move: (ev: PointerEvent) => void;
   commit: () => TimelineOp[];
+  /** Runs when the gesture is cancelled or the strip unmounts mid-gesture. */
+  cancel?: () => void;
 }
 
 const StepStrip: React.FC<StripProps> = memo((props) => {
@@ -415,6 +424,7 @@ const StepStrip: React.FC<StripProps> = memo((props) => {
     };
     const cancel = () => {
       cleanup();
+      g.cancel?.();
       setPreview(null);
     };
     const cancelEv = (ev: PointerEvent) => {
@@ -502,6 +512,7 @@ const StepStrip: React.FC<StripProps> = memo((props) => {
       const hear = dragAudition(row, mode, onStepAudition);
       hear(start, from);
       return track(target, {
+        cancel: hear.cancel,
         move: (ev) => {
           last = localStep(ev.clientX);
           toVal = valueFromFraction(row, mode, localFraction(ev.clientY));
@@ -634,6 +645,7 @@ const StepStrip: React.FC<StripProps> = memo((props) => {
       setPreview({ rowId: row.id, mode, values, readout: start });
       const hear = dragAudition(row, mode, onStepAudition);
       return track(target, {
+        cancel: hear.cancel,
         move: (ev) => {
           values = sharedDeltaValues(row, selected, mode, ((startY - ev.clientY) / span) * (max - min));
           setPreview({ rowId: row.id, mode, values, readout: start });
@@ -648,6 +660,7 @@ const StepStrip: React.FC<StripProps> = memo((props) => {
     const hear = dragAudition(row, mode, onStepAudition);
     hear(start, values.get(start)!);
     return track(target, {
+      cancel: hear.cancel,
       move: (ev) => {
         values.set(start, valueFromFraction(row, mode, localFraction(ev.clientY)));
         setPreview({ rowId: row.id, mode, values: new Map(values), readout: start });

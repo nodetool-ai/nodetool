@@ -1,6 +1,6 @@
 /**
- * Region colors (spec 2.1). A region takes its track's color: the name band
- * at full strength, the body as a darker tint, the note lines as a lighter
+ * Region colors (spec 2.1). A region takes its track's color, muted: the name
+ * band at the muted color, the body as a darker tint, the note lines as a lighter
  * tint. A clip `labelColor` overrides the track color.
  *
  * Canvas 2D cannot resolve `var(--…)` or `color-mix()`, so these helpers
@@ -70,12 +70,61 @@ export function mixHex(color: string, toward: string, amount: number): string {
 }
 
 export interface RegionColors {
-  /** Name band, full strength. */
+  /** Name band: the muted track color. */
   band: string;
   /** Body fill: a darker tint in dark mode, a lighter tint in light mode. */
   body: string;
   /** Note lines and curves: reads against `body` in both modes. */
   content: string;
+}
+
+function toHsl([r, g, b]: [number, number, number]): [number, number, number] {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) {
+    return [0, 0, l];
+  }
+  const d = max - min;
+  const sat = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h =
+    max === rn ? (gn - bn) / d + (gn < bn ? 6 : 0) : max === gn ? (bn - rn) / d + 2 : (rn - gn) / d + 4;
+  return [h / 6, sat, l];
+}
+
+function fromHsl(h: number, sat: number, l: number): string {
+  const q = l < 0.5 ? l * (1 + sat) : l + sat - l * sat;
+  const p = 2 * l - q;
+  const hue = (t: number): number => {
+    const tt = t < 0 ? t + 1 : t > 1 ? t - 1 : t;
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+    if (tt < 1 / 2) return q;
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+    return p;
+  };
+  const channel = (v: number): string =>
+    Math.round(Math.min(1, Math.max(0, v)) * 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${channel(hue(h + 1 / 3))}${channel(hue(h))}${channel(hue(h - 1 / 3))}`;
+}
+
+/**
+ * The track color muted for a region: the hue kept, saturation and lightness
+ * pulled to a narrow band so neighbouring regions read as one calm palette.
+ */
+export function muteRegionColor(color: string, mode: SchemeMode): string {
+  const rgb = parseHex(color);
+  if (!rgb) {
+    return color;
+  }
+  const [h, sat] = toHsl(rgb);
+  return mode === "dark"
+    ? fromHsl(h, Math.min(sat, 0.85) * 0.5, 0.4)
+    : fromHsl(h, Math.min(sat, 0.85) * 0.55, 0.62);
 }
 
 export function regionColors(
@@ -84,16 +133,17 @@ export function regionColors(
   paper: string,
   common: { black: string; white: string }
 ): RegionColors {
+  const band = muteRegionColor(base, mode);
   if (mode === "light") {
     return {
-      band: base,
-      body: mixHex(base, paper, 0.72),
-      content: mixHex(base, common.black, 0.45)
+      band,
+      body: mixHex(band, paper, 0.62),
+      content: mixHex(band, common.black, 0.6)
     };
   }
   return {
-    band: base,
-    body: mixHex(base, paper, 0.62),
-    content: mixHex(base, common.white, 0.62)
+    band,
+    body: mixHex(band, paper, 0.5),
+    content: mixHex(band, common.white, 0.72)
   };
 }

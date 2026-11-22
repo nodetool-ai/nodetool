@@ -34,6 +34,8 @@ const FALLBACK_TRACKS_HEIGHT_PX = 240;
 const KEYBOARD_RESIZE_STEP_PX = 20;
 /** Phone default: the dock takes a little under half the workspace. */
 const MOBILE_DOCK_FRACTION = 0.45;
+/** Share of the workspace an unresized desktop dock takes, at least the default. */
+const DESKTOP_DOCK_FRACTION = 0.45;
 
 export interface DawWorkspaceProps {
   onGenerate?: () => void;
@@ -91,8 +93,13 @@ export const DawWorkspace: React.FC<DawWorkspaceProps> = memo(({ onGenerate }) =
   const mobileDefault = Math.round(
     Math.max(MIN_DAW_DOCK_HEIGHT_PX, columnHeight * MOBILE_DOCK_FRACTION)
   );
+  // A desktop that never picked a height gives the dock a larger share on a
+  // tall window, so the tracks do not end over a wide empty field.
+  const desktopDefault = Math.round(
+    Math.max(DEFAULT_DAW_DOCK_HEIGHT_PX, columnHeight * DESKTOP_DOCK_FRACTION)
+  );
   const chosenHeight =
-    isMobile && dockHeight === DEFAULT_DAW_DOCK_HEIGHT_PX ? mobileDefault : dockHeight;
+    dockHeight === DEFAULT_DAW_DOCK_HEIGHT_PX ? (isMobile ? mobileDefault : desktopDefault) : dockHeight;
   const effectiveDockHeight = Math.min(chosenHeight, maxDockHeight);
 
   // A drag records the latest height and commits once per animation frame,

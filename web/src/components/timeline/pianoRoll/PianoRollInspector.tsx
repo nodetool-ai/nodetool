@@ -13,6 +13,7 @@ import type { MidiNote, QuantizeDivision } from "@nodetool-ai/timeline";
 import {
   Caption,
   Checkbox,
+  CollapsibleSection,
   Divider,
   EditorButton,
   FlexColumn,
@@ -24,6 +25,7 @@ import {
   TruncatedText
 } from "../../ui_primitives";
 import type { QuantizeSettings } from "../../../stores/timeline/TimelineUIStore";
+import { usePersistedFold } from "../Inspector/usePersistedFold";
 import { NoteSelectionInspector } from "./NoteSelectionInspector";
 import { SCALE_ROOT_OPTIONS, scaleOptions } from "./pianoRollTools";
 
@@ -65,6 +67,25 @@ interface PianoRollInspectorProps {
   onVelocityEnd: () => void;
 }
 
+/** One inspector group that folds by its title; the fold state persists. */
+const Group: React.FC<{ id: string; title: string; children: React.ReactNode }> = ({ id, title, children }) => {
+  const [open, setOpen] = usePersistedFold(`pianoRoll.inspector.${id}`, true);
+  return (
+    <CollapsibleSection
+      compact
+      iconPosition="end"
+      open={open}
+      onToggle={setOpen}
+      title={<Text size="small" weight={500}>{title}</Text>}
+      data-testid={`piano-roll-inspector-${id}`}
+    >
+      <FlexColumn gap={SPACING.sm} sx={{ pt: SPACING.xs }}>
+        {children}
+      </FlexColumn>
+    </CollapsibleSection>
+  );
+};
+
 const ValueRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <FlexRow justify="space-between" align="center">
     <Caption color="muted">{label}</Caption>
@@ -105,8 +126,7 @@ export const PianoRollInspector: React.FC<PianoRollInspectorProps> = memo((props
         </FlexColumn>
       </FlexRow>
       <Divider spacing="none" />
-      <FlexColumn gap={SPACING.sm}>
-        <Text size="small" weight={500}>{L("timeQuantize")}</Text>
+      <Group id="time" title={L("timeQuantize")}>
         <FlexRow gap={SPACING.sm} align="center">
           <SelectField
             label={L("quantizeValue")}
@@ -140,10 +160,9 @@ export const PianoRollInspector: React.FC<PianoRollInspectorProps> = memo((props
           value={props.quantize.swingPct}
           onChange={(_, value) => props.onQuantizeSettings({ swingPct: value as number })}
         />
-      </FlexColumn>
+      </Group>
       <Divider spacing="none" />
-      <FlexColumn gap={SPACING.sm}>
-        <Text size="small" weight={500}>{L("scaleQuantize")}</Text>
+      <Group id="scale" title={L("scaleQuantize")}>
         <FlexRow gap={SPACING.sm} align="center">
           <SelectField
             label={L("scaleRoot")}
@@ -177,10 +196,10 @@ export const PianoRollInspector: React.FC<PianoRollInspectorProps> = memo((props
           checked={props.snapToScale}
           onChange={(event) => props.onSnapToScale(event.target.checked)}
         />
-      </FlexColumn>
+      </Group>
       <Divider spacing="none" />
-      <FlexColumn gap={SPACING.sm}>
-        <ValueRow label={L("velocity")} value={props.velocity === null ? "" : String(props.velocity)} />
+      <Group id="velocity" title={L("velocity")}>
+        <ValueRow label="" value={props.velocity === null ? "" : String(props.velocity)} />
         <Slider
           aria-label={t("pass3_20.pianoRoll.accessibility.selectedNoteVelocity")}
           density="compact"
@@ -194,17 +213,16 @@ export const PianoRollInspector: React.FC<PianoRollInspectorProps> = memo((props
           onChangeCommitted={props.onVelocityEnd}
           onPointerCancel={props.onVelocityEnd}
         />
-      </FlexColumn>
+      </Group>
       <Divider spacing="none" />
-      <FlexColumn gap={SPACING.sm}>
-        <Text size="small" weight={500}>{L("note")}</Text>
+      <Group id="note" title={L("note")}>
         <NoteSelectionInspector
           notes={props.notes}
           selectedIds={props.selectedIds}
           beatTicks={props.beatTicks}
           onChange={props.onNotesChange}
         />
-      </FlexColumn>
+      </Group>
     </FlexColumn>
   );
 });

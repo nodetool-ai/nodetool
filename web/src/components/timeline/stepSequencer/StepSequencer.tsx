@@ -112,6 +112,7 @@ import {
   assignRowOps,
   assignmentGroups,
   patternRowSort,
+  withKeptSort,
   sortOps,
   type AssignmentChoice
 } from "./stepRowAssignments";
@@ -149,20 +150,6 @@ interface Props {
 const barStyles = css({ flexShrink: 0, flexWrap: "nowrap", overflow: "hidden" });
 const iconSx = { fontSize: ICON_SIZE.sm };
 
-
-/**
- * A row rename or reassignment changes the keys of the kept sort, so the run
- * re-applies the sort unless it already sorts or moves rows (F29, F59).
- */
-function withKeptSort(list: TimelineOp[], pattern: StepPattern | undefined): TimelineOp[] {
-  const sort = patternRowSort(pattern);
-  if (!sort) return list;
-  const touchesKeys = list.some((op) => op.op === "set_pattern_row" && ("name" in op || "assignment" in op));
-  const placesRows = list.some((op) => op.op === "set_pattern_row_sort" || op.op === "move_pattern_row");
-  if (!touchesKeys || placesRows) return list;
-  const clipId = list.find((op) => op.op === "set_pattern_row")!.clipId;
-  return [...list, ...sortOps(clipId, sort)];
-}
 
 export const StepSequencer: React.FC<Props> = memo(({ clipId, toolbarStart, toolbarEnd }) => {
   const { t } = useTranslation();

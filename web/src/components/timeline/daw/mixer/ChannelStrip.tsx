@@ -51,7 +51,16 @@ import {
 import { InsertSlots } from "./InsertSlots";
 
 /** D67: a strip is 72 px wide and never grows (spec 7.1). */
-export const MIXER_STRIP_WIDTH_PX = 72;
+export const MIXER_STRIP_WIDTH_PX = 88;
+
+/**
+ * The instrument name a narrow slot shows: the model code ("WT-1 ") dropped
+ * when a product name follows it. The tooltip keeps the full name.
+ */
+export function shortInstrumentName(name: string): string {
+  const short = name.replace(/^[A-Z]{1,4}-\d+\s+/, "");
+  return short.length > 0 ? short : name;
+}
 /** Width of the pan, mute and solo column beside the fader. */
 const SIDE_PX = CONTROL.height.lg;
 /**
@@ -170,6 +179,7 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
       flexShrink: 0
     },
     ".strip__spacer": { display: "none" },
+    ".strip__buttons-spacer": { height: TOGGLE_PX, flexShrink: 0 },
     // A 72 px strip stacks pan, mute and solo above the fader at every width.
     "&": {
       ".strip__body": {
@@ -191,7 +201,7 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
         display: "grid",
         gridTemplateColumns: "1fr 1fr"
       },
-      // The master has no pan, mute or solo; this keeps its fader level with
+      // A strip without pan, mute or solo; this keeps its fader level with
       // the tracks' faders so every scale lines up across the mixer.
       ".strip__spacer": {
         display: "block",
@@ -396,7 +406,7 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
             onClick={props.onOpenDevice}
             aria-label={t("batch2_26.daw.mixer.openTrackInstrument", { channel: channel.name, instrument: channel.instrument })}
           >
-            {channel.instrument}
+            {shortInstrumentName(channel.instrument)}
           </button>
         </Tooltip>
       ) : (
@@ -463,7 +473,11 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
                   </button>
                 </Tooltip>
               </div>
-            ) : null}
+            ) : (
+              // The master has pan but no mute or solo; this keeps its fader
+              // level with the tracks' faders.
+              <div className="strip__buttons-spacer" aria-hidden="true" />
+            )}
           </div>
         ) : (
           <div className="strip__spacer" aria-hidden="true" />
@@ -638,16 +652,19 @@ export interface MasterStripProps {
 export const MasterStrip: React.FC<MasterStripProps> = memo(({ readLevels, onOpenEffect }) => {
   const master = useTimelineStore((s) => s.master);
   const setMasterVolume = useTimelineStore((s) => s.setMasterVolume);
+  const setMasterPan = useTimelineStore((s) => s.setMasterPan);
   const addMasterEffect = useTimelineStore((s) => s.addMasterEffect);
   const updateMasterEffect = useTimelineStore((s) => s.updateMasterEffect);
   const removeMasterEffect = useTimelineStore((s) => s.removeMasterEffect);
   const volume = useBatchedGesture<number>(setMasterVolume);
+  const pan = useBatchedGesture<number>(setMasterPan);
 
   const channel = useMemo<StripChannel>(
     () => ({
       name: "Master",
       type: "master",
       volumeDb: master?.volumeDb ?? 0,
+      pan: master?.pan ?? 0,
       effects: master?.effects ?? NO_EFFECTS
     }),
     [master]
@@ -658,13 +675,16 @@ export const MasterStrip: React.FC<MasterStripProps> = memo(({ readLevels, onOpe
       onVolume: volume.schedule,
       onVolumeEnd: () => volume.commit(),
       onVolumeCommit: setMasterVolume,
+      onPanStart: pan.begin,
+      onPan: pan.schedule,
+      onPanEnd: () => pan.commit(),
       onAddEffect: addMasterEffect,
       onToggleEffect: (effectId: string, enabled: boolean) =>
         updateMasterEffect(effectId, { enabled }),
       onOpenEffect: (effectId: string, anchor: HTMLElement) => onOpenEffect(null, effectId, anchor),
       onRemoveEffect: removeMasterEffect
     }),
-    [volume, setMasterVolume, addMasterEffect, updateMasterEffect, removeMasterEffect, onOpenEffect]
+    [volume, pan, setMasterVolume, addMasterEffect, updateMasterEffect, removeMasterEffect, onOpenEffect]
   );
   return <ChannelStripView channel={channel} readLevels={readLevels} {...handlers} />;
 });

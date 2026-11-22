@@ -44,5 +44,5 @@ export const chordHue = (root: number): number => root * 30;
  */
 export const chordColor = (root: number, strength: "block" | "strip" = "block"): string =>
   strength === "strip"
-    ? `hsl(${chordHue(root)} 45% 28%)`
+    ? `hsl(${chordHue(root)} 28% 26%)`
     : `hsl(${chordHue(root)} 50% 40%)`;

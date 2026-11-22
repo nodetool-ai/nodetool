@@ -119,6 +119,15 @@ describe("MixerView", () => {
     expect(timelineTemporalOf(instance.doc).pastStates).toHaveLength(depth + 1);
   });
 
+  it("pans the master through the master op", () => {
+    const instance = setup();
+    const knob = screen.getByRole("slider", { name: "Master pan" });
+    act(() => {
+      fireEvent.keyDown(knob, { key: "ArrowRight" });
+    });
+    expect(doc(instance).master?.pan).toBeGreaterThan(0);
+  });
+
   it("takes a typed level in the readout", async () => {
     const instance = setup();
     await userEvent.click(screen.getByRole("button", { name: /Vox level -6.0 dB, edit/ }));

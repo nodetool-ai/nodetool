@@ -20,7 +20,9 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import {
   activeLoopMs,
+  applyClipHarmony,
   canClipFade,
+  isHarmonyActive,
   loopRepeatOffsets,
   resolveTempo,
   sourceRate
@@ -62,7 +64,8 @@ import {
   ClipLoopMarks,
   MIN_LOOP_HANDLE_CLIP_WIDTH_PX
 } from "./ClipLoopHandle";
-import { ChordClipStrip } from "../daw/harmony/ChordClipStrip";
+import { CHORD_STRIP_PX, ChordClipStrip } from "../daw/harmony/ChordClipStrip";
+import { followsChordTrack } from "../daw/harmony/chordRows";
 import { deriveClipAnimationMarkers } from "./clipAnimationMarkers";
 import { deriveClipFadeMarkers } from "./clipFadeGeometry";
 import type { ClipFadeHandlers } from "./useClipFade";
@@ -194,7 +197,7 @@ const clipNameStyles = (theme: Theme, ink: string) =>
     overflow: "hidden",
     textOverflow: "ellipsis",
     pointerEvents: "none",
-    lineHeight: 1.4,
+    lineHeight: 1.2,
     flex: "1 1 auto",
     minWidth: 0
   });
@@ -704,6 +707,20 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
       (s) => resolveTempo(s).timeSignature?.beatsPerBar ?? 4
     );
     const musicMode = useTimelineLayoutStore((s) => s.dawMode);
+    // A region that follows harmony (an arp, a chord voicing) shows the notes
+    // it plays, not its empty source. Other clips do not read the tracks.
+    const harmonyActive =
+      clip.mediaType === "midi" && !clip.pattern && isHarmonyActive(clip.harmony);
+    const harmonyTracks = useTimelineStore((s) => (harmonyActive ? s.tracks : null));
+    const harmonyTempo = useTimelineStore((s) => (harmonyActive ? s.tempo : undefined));
+    const playedNotes = useMemo(
+      () =>
+        harmonyActive && harmonyTracks
+          ? applyClipHarmony(clip, { tracks: harmonyTracks, tempo: harmonyTempo }).notes
+          : clip.notes,
+      [harmonyActive, harmonyTracks, harmonyTempo, clip]
+    );
+    const chordStripShown = musicMode && clip.mediaType === "midi" && followsChordTrack(clip.harmony);
 
     const videoThumbnails = useClipThumbnails(videoUrl);
     // A 3D clip has no video to seek: its strip is rendered from the glTF, at
@@ -1132,7 +1149,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         )}
         {clip.mediaType === "midi" && !clip.pattern && (
           <MidiNotesCanvas
-            notes={clip.notes}
+            notes={playedNotes}
             controllers={clip.controllers}
             inPointMs={clip.inPointMs ?? 0}
             durationMs={clip.durationMs}
@@ -1145,6 +1162,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
             bpm={bpm}
             widthPx={widthPx}
             color={region.content}
+            bottomInsetPx={chordStripShown ? CHORD_STRIP_PX : 0}
           />
         )}
 

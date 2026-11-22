@@ -99,7 +99,7 @@ export const DEFAULT_PIANO_ROLL_SETTINGS: PianoRollSettings = {
   inspector: null,
   noteColor: "velocity",
   noteNames: false,
-  laneHeightPx: 56,
+  laneHeightPx: 80,
   dragMode: "overlap",
   scaleRoot: null,
   scaleId: "chromatic",

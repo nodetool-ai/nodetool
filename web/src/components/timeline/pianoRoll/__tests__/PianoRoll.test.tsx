@@ -552,6 +552,7 @@ it("Option-drags a selection as copies, preserves originals, and undoes once", a
 it("changes selected velocities relatively from the lane and restores one gesture", async () => {
   const user = userEvent.setup();
   const instance = setup();
+  act(() => instance.ui.getState().setPianoRollSettings({ laneHeightPx: 56 }));
   act(() => instance.doc.getState().setClipNotes(CLIP_ID, seedNotes().map((n, i) => ({...n, velocity: [40, 70, 100][i]}))));
   await user.click(screen.getByTestId("piano-roll"));
   await user.keyboard("{Meta>}a{/Meta}");
@@ -698,6 +699,7 @@ describe("PianoRoll controller lanes", () => {
   it("creates a lane with the first point, one undo entry per gesture, and removes it with the last", async () => {
     const user = userEvent.setup();
     const instance = setup();
+    act(() => instance.ui.getState().setPianoRollSettings({ laneHeightPx: 56 }));
     const lane = await openLane(user, "Modulation (CC 1)");
     expect(controllersOf(instance)).toBeUndefined();
 
@@ -1065,12 +1067,12 @@ describe("PianoRoll lane resize", () => {
     const user = userEvent.setup();
     const instance = setup();
     const handle = screen.getByRole("separator", { name: "Resize lane" });
-    expect(handle).toHaveAttribute("aria-valuenow", "56");
+    expect(handle).toHaveAttribute("aria-valuenow", "80");
 
     handle.focus();
     await user.keyboard("{ArrowUp}");
-    expect(instance.ui.getState().pianoRollSettings.laneHeightPx).toBe(64);
-    expect(screen.getByRole("separator", { name: "Resize lane" })).toHaveAttribute("aria-valuenow", "64");
+    expect(instance.ui.getState().pianoRollSettings.laneHeightPx).toBe(88);
+    expect(screen.getByRole("separator", { name: "Resize lane" })).toHaveAttribute("aria-valuenow", "88");
 
     act(() => instance.ui.getState().setPianoRollSettings({ laneHeightPx: 44 }));
     screen.getByRole("separator", { name: "Resize lane" }).focus();

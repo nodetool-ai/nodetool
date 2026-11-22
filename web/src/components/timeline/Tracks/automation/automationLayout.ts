@@ -5,7 +5,7 @@ export const AUTOMATION_LANE_HEIGHT_PX = 56;
 /** Height of the automation header row under a track's header controls. */
 export const AUTOMATION_HEADER_ROW_PX = 32;
 /** Height of the strip at the top of a clip that draws its name. */
-export const CLIP_NAME_BAR_PX = 18;
+export const CLIP_NAME_BAR_PX = 14;
 /** Gap between the top of a lane and the top of its clips. */
 export const CLIP_TOP_PX = 6;
 /** Where a clip's name bar ends, from the top of its lane. */

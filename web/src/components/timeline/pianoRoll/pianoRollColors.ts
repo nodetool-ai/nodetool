@@ -18,7 +18,9 @@ export interface PianoRollColors {
   outsideWindow: string;
   /** A subdivision line. */
   gridLine: string;
-  /** A bar line — stronger than a subdivision. */
+  /** A beat line, between a subdivision and a bar line. */
+  beatLine: string;
+  /** A bar line — the strongest grid line. */
   barLine: string;
   /** A note bar. */
   note: string;
@@ -35,7 +37,8 @@ const DARK_FALLBACK: PianoRollColors = {
   blackRow: "rgb(17, 18, 20)",
   outsideWindow: "rgba(0, 0, 0, 0.45)",
   gridLine: "rgba(255, 255, 255, 0.08)",
-  barLine: "rgba(255, 255, 255, 0.22)",
+  beatLine: "rgba(255, 255, 255, 0.22)",
+  barLine: "rgba(255, 255, 255, 0.55)",
   note: "rgb(91, 155, 213)",
   noteSelected: "rgb(240, 240, 240)",
   text: "rgb(160, 160, 160)",
@@ -47,7 +50,8 @@ const LIGHT_FALLBACK: PianoRollColors = {
   blackRow: "rgb(238, 236, 233)",
   outsideWindow: "rgba(0, 0, 0, 0.12)",
   gridLine: "rgba(0, 0, 0, 0.08)",
-  barLine: "rgba(0, 0, 0, 0.22)",
+  beatLine: "rgba(0, 0, 0, 0.22)",
+  barLine: "rgba(0, 0, 0, 0.55)",
   note: "rgb(25, 118, 210)",
   noteSelected: "rgb(20, 20, 20)",
   text: "rgb(90, 85, 80)",
@@ -66,7 +70,8 @@ export function pickPianoRollColors(
     blackRow: palette?.background?.default ?? fallback.blackRow,
     outsideWindow: fallback.outsideWindow,
     gridLine: palette?.divider ?? fallback.gridLine,
-    barLine: palette?.text?.disabled ?? fallback.barLine,
+    beatLine: palette?.text?.disabled ?? fallback.beatLine,
+    barLine: palette?.text?.secondary ?? fallback.barLine,
     note: palette?.primary?.main ?? fallback.note,
     noteSelected: palette?.text?.primary ?? fallback.noteSelected,
     text: palette?.text?.secondary ?? fallback.text,

@@ -205,7 +205,7 @@ export const PianoRollVelocityLane: React.FC<PianoRollVelocityLaneProps> = memo(
       <canvas
         ref={canvasRef}
         css={canvasStyles}
-        style={{ height: heightPx }}
+        style={{ height: heightPx, flexShrink: 0 }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

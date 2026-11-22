@@ -38,6 +38,8 @@ const canvasStyles = css({
   width: "100%",
   height: `calc(100% - ${CLIP_NAME_BAR_PX}px)`
 });
+const insetCanvasStyles = (bottomPx: number) =>
+  css({ bottom: bottomPx, height: `calc(100% - ${CLIP_NAME_BAR_PX + bottomPx}px)` });
 
 interface MidiNotesCanvasProps {
   notes: MidiNote[] | undefined;
@@ -58,10 +60,12 @@ interface MidiNotesCanvasProps {
   widthPx: number;
   /** Line color: the region's content tint, a plain color for canvas. */
   color: string;
+  /** Space kept free at the bottom of the body, such as for the chord strip. */
+  bottomInsetPx?: number;
 }
 
 export const MidiNotesCanvas: React.FC<MidiNotesCanvasProps> = memo(
-  ({ notes, controllers, inPointMs, durationMs, loopLengthMs, transpose, velocityOffset, quantize, startMs, gridOffsetMs = 0, bpm, widthPx, color }) => {
+  ({ notes, controllers, inPointMs, durationMs, loopLengthMs, transpose, velocityOffset, quantize, startMs, gridOffsetMs = 0, bpm, widthPx, color, bottomInsetPx = 0 }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     useEffect(() => {
@@ -144,9 +148,15 @@ export const MidiNotesCanvas: React.FC<MidiNotesCanvasProps> = memo(
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
-    }, [notes, controllers, inPointMs, durationMs, loopLengthMs, transpose, velocityOffset, quantize, startMs, gridOffsetMs, bpm, widthPx, color]);
+    }, [notes, controllers, inPointMs, durationMs, loopLengthMs, transpose, velocityOffset, quantize, startMs, gridOffsetMs, bpm, widthPx, color, bottomInsetPx]);
 
-    return <canvas ref={canvasRef} css={canvasStyles} aria-hidden />;
+    return (
+      <canvas
+        ref={canvasRef}
+        css={bottomInsetPx > 0 ? [canvasStyles, insetCanvasStyles(bottomInsetPx)] : canvasStyles}
+        aria-hidden
+      />
+    );
   }
 );
 

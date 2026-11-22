@@ -397,7 +397,7 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
       <canvas
         ref={canvasRef}
         css={canvasStyles}
-        style={{ height: heightPx }}
+        style={{ height: heightPx, flexShrink: 0 }}
         tabIndex={0}
         role="application"
         data-testid="piano-roll-curve-lane"
