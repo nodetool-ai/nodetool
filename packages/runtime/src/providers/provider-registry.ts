@@ -161,8 +161,15 @@ export async function getProvider(
   const credential = secretKey ? kwargs[secretKey] : undefined;
   // Test doubles registered here need not extend BaseProvider.
   if (typeof provider.bindCreditAccount === "function") {
+    const settings: Record<string, string> = {};
+    for (const key of Object.keys(registration.optionalKwargs)) {
+      const value = kwargs[key];
+      if (typeof value === "string") settings[key] = value;
+    }
     provider.bindCreditAccount(
-      creditAccountFor(providerId, typeof credential === "string" ? credential : undefined)
+      creditAccountFor(providerId, typeof credential === "string" ? credential : undefined, {
+        settings
+      })
     );
   }
   return provider;

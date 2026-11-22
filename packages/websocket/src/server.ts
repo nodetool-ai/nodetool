@@ -121,7 +121,9 @@ import {
   DELETED_DOCUMENT_RETENTION_DAYS,
   purgeDueDeletedDocuments
 } from "./lib/deleted-documents.js";
+import { isCloudProfile } from "./lib/cloud-profile.js";
 import {
+  applyHfEndpointSetting,
   applyTransformersJsCacheSetting,
   resolveWorkerSettingsEnv
 } from "./worker-settings-env.js";
@@ -425,6 +427,22 @@ try {
     log.warn("Could not read TRANSFORMERS_JS_CACHE_DIR from Settings", {
       error: err instanceof Error ? err.message : String(err)
     });
+  }
+
+  // A Hugging Face mirror saved in Settings reaches the in-process Hub calls
+  // that read the environment, such as Transformers.js models a workflow
+  // fetches on first run. The cloud keeps the operator's environment.
+  if (!isCloudProfile()) {
+    try {
+      const hfEndpoint = await applyHfEndpointSetting(LOCAL_USER_ID);
+      if (hfEndpoint) {
+        log.info("Hugging Face Hub host from Settings", { endpoint: hfEndpoint });
+      }
+    } catch (err) {
+      log.warn("Could not read HF_ENDPOINT from Settings", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
   }
 
   // Bookkeeping for media generations: close the rows a restart orphaned, and

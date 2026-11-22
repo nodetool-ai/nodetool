@@ -181,6 +181,21 @@ describe("checkCredential region settings", () => {
     ).toBe("https://ark.eu-west.example.com/api/v3/models");
   });
 
+  it("probes Kling's free resource-pack listing on the host KLING_REGION picks", async () => {
+    const international = new URL(await probedUrl("KLING_API_KEY", {}));
+    expect(`${international.origin}${international.pathname}`).toBe(
+      "https://api-singapore.klingai.com/account/costs"
+    );
+    const start = Number(international.searchParams.get("start_time"));
+    const end = Number(international.searchParams.get("end_time"));
+    expect(end - start).toBe(24 * 60 * 60 * 1000);
+
+    const mainland = new URL(await probedUrl("KLING_API_KEY", { KLING_REGION: "china" }));
+    expect(`${mainland.origin}${mainland.pathname}`).toBe(
+      "https://api-beijing.klingai.com/account/costs"
+    );
+  });
+
   it("falls back to the environment when the setting cannot be read", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(respond(401));
     const result = await checkCredential("DASHSCOPE_API_KEY", "k", {
@@ -223,6 +238,18 @@ describe("checkCredential cross-region retry", () => {
     });
     expect(result.status).toBe("valid");
     expect(result.region).toEqual({ setting: "KIMI_REGION", value: "china" });
+  });
+
+  it("finds a mainland Kling key on the Beijing host", async () => {
+    const fetchImpl = vi.fn(async (url: string) =>
+      respond(String(url).startsWith("https://api-beijing.klingai.com") ? 200 : 401));
+    const result = await checkCredential("KLING_API_KEY", "k", {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getSetting: async () => null
+    });
+    expect(result.status).toBe("valid");
+    expect(result.region).toEqual({ setting: "KLING_REGION", value: "china" });
+    expect(fetchImpl.mock.calls[0][1]).toMatchObject({ headers: { Authorization: "Bearer k" } });
   });
 
   it("reports the first rejection when every region rejects the key", async () => {

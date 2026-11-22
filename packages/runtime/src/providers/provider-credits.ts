@@ -17,6 +17,8 @@
 // No Node built-ins here: `base-provider.ts` imports this module, and the
 // runtime barrel reaches the browser worker bundle.
 
+import { KIMI_BASE_URLS, resolveKimiBaseURL } from "./moonshot-region.js";
+
 /**
  * - `available`: the account has credit.
  * - `low`: credit is left, but less than a tenth of the limit, or under one
@@ -45,10 +47,14 @@ export interface ProviderCredit {
   checkedAt: number;
 }
 
+/** Region and base-URL settings a fetcher reads, such as `KIMI_REGION`. */
+export type CreditSettings = Readonly<Record<string, string | undefined>>;
+
 type CreditFetcher = (
   value: string,
   fetchImpl: typeof fetch,
-  signal: AbortSignal
+  signal: AbortSignal,
+  settings: CreditSettings
 ) => Promise<ProviderCredit | null>;
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -181,10 +187,15 @@ const CREDIT_ENDPOINTS: Record<string, CreditFetcher> = {
     });
   },
 
-  moonshot: async (value, fetchImpl, signal) => {
+  // GET /v1/users/me/balance on the host `KIMI_REGION` selects. The two
+  // platforms bill in different currencies: USD on platform.kimi.ai
+  // (https://platform.kimi.ai/docs/api/balance.md), CNY on the mainland
+  // platform.kimi.com (https://platform.kimi.com/docs/api/balance.md).
+  moonshot: async (value, fetchImpl, signal, settings) => {
+    const baseURL = resolveKimiBaseURL(settings.KIMI_REGION);
     const body = await getJson(
       fetchImpl,
-      "https://api.moonshot.ai/v1/users/me/balance",
+      `${baseURL}/users/me/balance`,
       { Authorization: `Bearer ${value}` },
       signal
     );
@@ -194,7 +205,7 @@ const CREDIT_ENDPOINTS: Record<string, CreditFetcher> = {
       label: "Moonshot",
       remaining,
       unit: "currency",
-      currency: "USD"
+      currency: baseURL === KIMI_BASE_URLS.china ? "CNY" : "USD"
     });
   },
 
@@ -348,6 +359,11 @@ export const creditEndpointProviderIds = (): string[] => Object.keys(CREDIT_ENDP
 
 export interface FetchProviderCreditOptions {
   timeoutMs?: number;
+  /**
+   * The provider's region settings, resolved as provider construction
+   * resolves them. A fetcher whose provider has regions reads its host here.
+   */
+  settings?: CreditSettings;
   /** Injected for tests. Defaults to the global `fetch`. */
   fetchImpl?: typeof fetch;
 }
@@ -369,7 +385,7 @@ export async function fetchProviderCredit(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   try {
-    return await fetcher(value, options.fetchImpl ?? fetch, controller.signal);
+    return await fetcher(value, options.fetchImpl ?? fetch, controller.signal, options.settings ?? {});
   } catch {
     return null;
   } finally {

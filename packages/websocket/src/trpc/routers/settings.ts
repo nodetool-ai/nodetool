@@ -404,19 +404,29 @@ export const settingsRouter = router({
         if (input?.provider && provider !== input.provider) return [];
         if (isCustomProviderId(provider) || (cloud && !isCloudProvider(provider))) return [];
         const secretKey = getProviderSecretKey(provider);
-        return secretKey ? [{ provider, secretKey }] : [];
+        const registration = getRegisteredProvider(provider);
+        const settingKeys = registration && hasCreditEndpoint(provider)
+          ? Object.keys(registration.optionalKwargs)
+          : [];
+        return secretKey ? [{ provider, secretKey, settingKeys }] : [];
       });
       const credentials = await getSecrets(
         [...new Set(targets.map((t) => t.secretKey))],
         ctx.userId
       );
       const rows = await Promise.all(
-        targets.map(async ({ provider, secretKey }) => {
+        targets.map(async ({ provider, secretKey, settingKeys }) => {
           const value = await resolveCredentialValue(secretKey, (key) =>
             credentials.get(key));
           if (!value) return null;
+          // Region settings such as KIMI_REGION pick the balance host.
+          const settings: Record<string, string> = {};
+          for (const key of settingKeys) {
+            const setting = (await getSecret(key, ctx.userId))?.trim();
+            if (setting) settings[key] = setting;
+          }
           const credit = await readProviderCredit(
-            creditAccountFor(provider, value),
+            creditAccountFor(provider, value, { settings }),
             { refresh: input?.refresh === true }
           );
           return { provider, supported: hasCreditEndpoint(provider), credit };

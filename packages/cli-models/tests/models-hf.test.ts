@@ -13,6 +13,18 @@ const searchHfHub = vi.fn();
 const listAllHfModels = vi.fn();
 const readCachedHfModels = vi.fn();
 const startDownload = vi.fn();
+const storedSettings = new Map<string, string>();
+const resolveStoredHfEndpoint = vi.fn(
+  async (read?: (key: string) => Promise<string | null>) =>
+    (await read?.("HF_ENDPOINT")) ?? "https://huggingface.co"
+);
+
+vi.mock("@nodetool-ai/cli-local/local-db", () => ({
+  setupLocalDb: vi.fn(async () => undefined)
+}));
+vi.mock("@nodetool-ai/cli-local/local-secrets", () => ({
+  resolveLocalSecret: vi.fn(async (key: string) => storedSettings.get(key) ?? null)
+}));
 
 class FakeDownloadManager {
   startDownload = startDownload;
@@ -22,6 +34,7 @@ vi.mock("@nodetool-ai/huggingface", () => ({
   searchHfHub,
   listAllHfModels,
   readCachedHfModels,
+  resolveStoredHfEndpoint,
   DownloadManager: FakeDownloadManager,
   SUPPORTED_MODEL_TYPES: ["qwen2", "llama", "hf.text_to_image"] as const,
   GENERIC_HF_TYPES: new Set([
@@ -136,6 +149,7 @@ beforeEach(() => {
   listAllHfModels.mockReset();
   readCachedHfModels.mockReset();
   startDownload.mockReset();
+  storedSettings.clear();
 });
 
 afterEach(() => {
@@ -189,8 +203,19 @@ describe("models list-hf", () => {
     expect(searchHfHub).toHaveBeenCalledWith({
       modelType: "hf.text_to_image",
       task: "text-to-image",
-      limit: 7
+      limit: 7,
+      endpoint: "https://huggingface.co"
     });
+  });
+
+  it("searches the Hub mirror saved in Settings", async () => {
+    storedSettings.set("HF_ENDPOINT", "https://hf-mirror.com");
+    searchHfHub.mockResolvedValueOnce([]);
+    const program = await buildProgram();
+    await captureOutput(() =>
+      program.parseAsync(["node", "cli", "models", "list-hf", "qwen2"])
+    );
+    expect(searchHfHub.mock.calls[0]![0]).toMatchObject({ endpoint: "https://hf-mirror.com" });
   });
 
   it("exits(1) when searchHfHub throws", async () => {
@@ -276,8 +301,19 @@ describe("models download-hf", () => {
       path: null,
       allowPatterns: null,
       ignorePatterns: null,
-      cacheDir: null
+      cacheDir: null,
+      endpoint: "https://huggingface.co"
     });
+  });
+
+  it("downloads from the Hub mirror saved in Settings", async () => {
+    storedSettings.set("HF_ENDPOINT", "https://hf-mirror.com");
+    startDownload.mockResolvedValueOnce(undefined);
+    const program = await buildProgram();
+    await captureOutput(() =>
+      program.parseAsync(["node", "cli", "models", "download-hf", "--repo-id", "foo/bar"])
+    );
+    expect(startDownload.mock.calls[0]![1]).toMatchObject({ endpoint: "https://hf-mirror.com" });
   });
 
   it("collects repeated --allow-patterns / --ignore-patterns", async () => {

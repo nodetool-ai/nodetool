@@ -77,6 +77,28 @@ describe("fetchProviderCredit", () => {
       .toMatchObject({ remaining: 42.5, currency: "USD" });
   });
 
+  it("reads a mainland Kimi balance on api.moonshot.cn, in CNY", async () => {
+    const fetchImpl = fetchReturning(200, { code: 0, data: { available_balance: 49.58 } });
+    const credit = await fetchProviderCredit("moonshot", "key-123", {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      settings: { KIMI_REGION: "china" }
+    });
+    expect(fetchImpl.mock.calls[0][0]).toBe("https://api.moonshot.cn/v1/users/me/balance");
+    expect(credit).toMatchObject({ remaining: 49.58, currency: "CNY" });
+  });
+
+  it("keeps the international Kimi balance host for an empty or unknown region", async () => {
+    for (const KIMI_REGION of [undefined, "", "mars"]) {
+      const fetchImpl = fetchReturning(200, { code: 0, data: { available_balance: 2 } });
+      const credit = await fetchProviderCredit("moonshot", "key-123", {
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        settings: { KIMI_REGION }
+      });
+      expect(fetchImpl.mock.calls[0][0]).toBe("https://api.moonshot.ai/v1/users/me/balance");
+      expect(credit?.currency).toBe("USD");
+    }
+  });
+
   it("treats a KIE error body sent with HTTP 200 as unknown", async () => {
     expect((await read("kie", { code: 401, msg: "Unauthorized" })).credit).toBeNull();
   });
@@ -223,6 +245,21 @@ describe("provider instances", () => {
     const credit = await provider.creditStatus({ cachedOnly: true });
     expect(credit?.state).toBe("exhausted");
     expect(cachedProviderCredit(creditAccountKey("credit-test", "sk-test"))?.source).toBe("call_failure");
+  });
+
+  it("reads the balance on the host the provider's region setting picks", async () => {
+    const fetchImpl = fetchReturning(200, { code: 0, data: { available_balance: 12 } });
+    vi.stubGlobal("fetch", fetchImpl);
+    registerProvider("moonshot", PaymentFailingProvider as never, { KIMI_API_KEY: "" }, { KIMI_REGION: "" });
+    try {
+      const provider = await getProvider("moonshot", (key) =>
+        key === "KIMI_REGION" ? "china" : "sk-test");
+      expect(await provider.creditStatus({ refresh: true })).toMatchObject({ currency: "CNY" });
+      expect(fetchImpl.mock.calls[0][0]).toBe("https://api.moonshot.cn/v1/users/me/balance");
+    } finally {
+      unregisterProvider("moonshot");
+      vi.unstubAllGlobals();
+    }
   });
 
   it("does not mark a provider exhausted on a rate limit", async () => {
