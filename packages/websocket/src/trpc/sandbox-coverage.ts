@@ -604,10 +604,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
     elsewhere:
       "The sandbox has its own contained list_directory and glob."
   },
-  "fonts.list": {
-    gap:
-      "Font discovery for the editor; no headless consumer yet."
-  },
+  "fonts.list": { capability: "list_fonts" },
   "healthz": {
     elsewhere:
       "Liveness of a server the in-process capabilities do not use."
@@ -1376,12 +1373,8 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "receive.release": {
     withheld: "Revision sets belong to the desktop app that captured them."
   },
-  "deletedDocuments.list": {
-    gap: "The app lists deleted documents for restore; the agent has no capability that reads them."
-  },
-  "deletedDocuments.restore": {
-    gap: "Restoring a deleted document is available in the app; the agent has no restore capability."
-  },
+  "deletedDocuments.list": { capability: "list_deleted_documents" },
+  "deletedDocuments.restore": { capability: "restore_deleted_document" },
   "deletedDocuments.endRestorePeriod": {
     withheld:
       "Ending the restore period destroys the kept copy for good. Only the " +

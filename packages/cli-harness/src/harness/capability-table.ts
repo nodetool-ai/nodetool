@@ -2202,6 +2202,26 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "list_deleted_documents",
+    module: "trash",
+    impl: "packages/agents/src/capabilities/trash.ts",
+    contract: "2b845dae241b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-trash.test.ts",
+    ],
+  },
+  {
+    name: "restore_deleted_document",
+    module: "trash",
+    impl: "packages/agents/src/capabilities/trash.ts",
+    contract: "e9db2af2477b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-trash.test.ts",
+    ],
+  },
+  {
     name: "list_example_timelines",
     module: "example-timelines",
     impl: "packages/agents/src/capabilities/example-timelines.ts",
@@ -2543,6 +2563,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "list_fonts",
+    module: "fonts",
+    impl: "packages/agents/src/capabilities/fonts.ts",
+    contract: "70617d11f8ca",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-fonts.test.ts",
     ],
   },
   {

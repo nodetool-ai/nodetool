@@ -254,6 +254,7 @@ lazy implementation table disagree.
 | `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `generate_music`, `transcribe_audio`, `embed_text`, `read_media_bytes`, `critique_image`, `compare_images`, `score_image_adherence`, `understand_video`, `media_edit`, `media_probe`, `yt_dlp` |
 | `analysis` | `analyze_audio`, `analyze_audio_spectrum`, `detect_audio_events`, `analyze_video`, `detect_video_scenes` |
 | `timelines` | `list_timelines`, `create_timeline`, `get_timeline`, `set_timeline_document`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `delete_timeline_version`, `edit_timeline`, `validate_timeline`, `preview_timeline_frame`, `compare_timeline_frames`, `render_timeline`, `delete_timeline` |
+| `fonts` | `list_fonts` — the families a text clip can name, from `listFontFamilies` (`@nodetool-ai/timeline/fonts/list`), the listing the editor's font picker reads |
 | `compositions` | `list_compositions`, `get_composition`, `save_composition`, `delete_composition` — group clips with parameters stored as JSON assets; `edit_timeline`'s `insert_composition` op instantiates one |
 | `sketches` | `list_sketches`, `create_sketch`, `get_sketch`, `list_sketch_versions`, `get_sketch_version`, `create_sketch_version`, `restore_sketch_version`, `delete_sketch_version`, `edit_sketch`, `validate_sketch`, `render_sketch`, `delete_sketch` |
 | `model3d` | `list_model3ds`, `create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d`, `render_model3d` |
@@ -262,6 +263,7 @@ lazy implementation table disagree.
 | `entities` | `list_entities`, `get_entity`, `apply_entities`, `create_entity`, `update_entity`, `delete_entity` |
 | `memory` | `memory_save`, `memory_get`, `memory_list`, `memory_search`, `memory_update`, `memory_delete` — durable notes scoped to the **user**, not the thread. A memory saved in one conversation is readable from every later one; `memory_search` is a keyword match over title and content — every word must appear. The turn's prompt block carries this thread's memories in full plus a count of the ones held elsewhere. |
 | `threads` | `list_threads`, `get_thread`, `get_message` |
+| `trash` | `list_deleted_documents`, `restore_deleted_document` — the caller's deleted workflows, timelines and projects inside their restore period, through the functions the tRPC `deletedDocuments` router calls. Ending a restore period early stays in the app |
 | `projects` | `list_projects`, `search_projects`, `create_project`, `update_project`, `move_to_project`, `delete_project` — `delete_project` runs the server's full delete, injected as `deleteProject` through `getAllMcpTools`, and refuses the Personal project and the run's own project |
 | `shared` | `list_shared`, `read_shared`, `share_result` |
 | `agents` | `run_subtask`, `run_search`, `start_subtask`, `wait_subtasks`, `create_plan`, `execute_plan` |
