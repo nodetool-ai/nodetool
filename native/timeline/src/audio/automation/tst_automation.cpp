@@ -25,6 +25,53 @@ QJsonObject lane(QString kind, QString param, QJsonArray points) {
 class TestAutomation : public QObject {
     Q_OBJECT
 private slots:
+    void modeAndPassVectors() {
+        auto json = [](const char* text) { return QJsonDocument::fromJson(text).array(); };
+        QCOMPARE(call("automationModeOf", {QJsonObject{}}).toString(), "read");
+        QCOMPARE(call("automationModePlays", {"off"}).toBool(true), false);
+        for (const auto* mode : {"read","touch","latch","write"}) { QVERIFY(call("automationModePlays", {mode}).toBool()); }
+        QJsonArray large;
+        for (int i=0;i<20000;++i) { large.append(QJsonObject{{"timeMs",i},{"value",i*.01}}); }
+        const auto thin=call("thinAutomationSamples",{large,.001}).toArray();
+        QCOMPARE(thin.size(),2); QCOMPARE(thin.first(),large.first()); QCOMPARE(thin.last(),large.last());
+        const auto samples = json(R"([{"timeMs":0,"value":0},{"timeMs":100,"value":1},{"timeMs":200,"value":2},{"timeMs":300,"value":3},{"timeMs":400,"value":0}])");
+        QCOMPARE(call("thinAutomationSamples", {samples,.01}).toArray(), QJsonArray({samples[0],samples[3],samples[4]}));
+        const auto flat = json(R"([{"timeMs":0,"value":5},{"timeMs":100,"value":5}])");
+        QCOMPARE(call("thinAutomationSamples", {flat,.01}).toArray(), flat);
+        const auto take = json(R"([{"timeMs":1000,"value":0},{"timeMs":1500,"value":-6},{"timeMs":2000,"value":-6}])");
+        QCOMPARE(call("writeAutomationPass", {QJsonArray{},QJsonObject{{"startMs",1000},{"endMs",2000},{"samples",take}},0,200,.01}).toArray(),
+                 json(R"([{"timeMs":1000,"value":0},{"timeMs":1500,"value":-6},{"timeMs":2000,"value":-6},{"timeMs":2200,"value":0}])"));
+        const auto old = json(R"([{"timeMs":0,"value":-3},{"timeMs":4000,"value":-3}])");
+        const auto ramp = json(R"([{"timeMs":1000,"value":-3},{"timeMs":2000,"value":-10}])");
+        QCOMPARE(call("writeAutomationPass", {old,QJsonObject{{"startMs",1000},{"endMs",2000},{"samples",ramp}},0,200,.01}).toArray(),
+                 json(R"([{"timeMs":0,"value":-3},{"timeMs":1000,"value":-3},{"timeMs":2000,"value":-10},{"timeMs":2200,"value":-3},{"timeMs":4000,"value":-3}])"));
+        const auto curve = json(R"([{"timeMs":0,"value":0},{"timeMs":1100,"value":-20},{"timeMs":1500,"value":-20},{"timeMs":5000,"value":0}])");
+        const auto shortTake = json(R"([{"timeMs":1000,"value":-2},{"timeMs":1200,"value":-4}])");
+        QCOMPARE(call("writeAutomationPass", {curve,QJsonObject{{"startMs",1000},{"endMs",1200},{"samples",shortTake}},0,200,.01}).toArray(),
+                 json(R"([{"timeMs":0,"value":0},{"timeMs":1000,"value":-2},{"timeMs":1200,"value":-4},{"timeMs":1400,"value":-20},{"timeMs":1500,"value":-20},{"timeMs":5000,"value":0}])"));
+        QCOMPARE(call("automationParamColorRole", {0,QJsonObject{{"kind","mixer"},{"param","volumeDb"}}}).toString(), "warning");
+        QCOMPARE(call("automationParamColorRole", {0,QJsonObject{{"kind","mixer"},{"param","pan"}}}).toString(), "success");
+        QCOMPARE(call("automationParamColorRole", {5,QJsonObject{{"kind","clip"}}}).toString(), "secondary");
+    }
+    void offAndLiveOverridePlayback() {
+        auto raw=document();
+        auto tracks=raw["tracks"].toArray(); auto t=tracks[0].toObject();
+        t["automation"]=QJsonArray{lane("mixer","pan",{QJsonObject{{"timeMs",0},{"value",.5}}})};
+        t["automationMode"]="off"; tracks[0]=t; raw["tracks"]=tracks;
+        auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson()); QVERIFY(parsed.timeline);
+        auto plan=nt::audio::buildMixPlan(*parsed.timeline);
+        QVERIFY(!plan.tracks[0].panSource);
+        t["automationMode"]="read"; tracks[0]=t; raw["tracks"]=tracks;
+        parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson()); QVERIFY(parsed.timeline);
+        auto state=std::make_shared<nt::MixerOverride>();
+        parsed.timeline->tracks[0].mixerOverride=state;
+        plan=nt::audio::buildMixPlan(*parsed.timeline);
+        QVERIFY(plan.tracks[0].panSource);
+        QCOMPARE(plan.tracks[0].panSource->valueAt(0,0),.5);
+        state->pan.store(-.25); QCOMPARE(plan.tracks[0].panSource->valueAt(0,0),-.25);
+        state->pan.store(std::numeric_limits<double>::quiet_NaN());
+        QCOMPARE(plan.tracks[0].panSource->valueAt(0,0),.5);
+    }
     void pictureSegmentCrossesClipEdges() {
         const auto doc = QJsonDocument::fromJson(R"({"fps":30,"durationMs":1000,
             "tracks":[{"id":"v","type":"video","index":0,"automation":[{
@@ -32,12 +79,16 @@ private slots:
                 "points":[{"timeMs":0,"value":1},{"timeMs":1000,"value":0,"easing":"easeInOut"}]}]}],
             "clips":[{"id":"c","trackId":"v","mediaType":"video","status":"generated",
                 "currentAssetId":"opaque-source","startMs":200,"durationMs":600,"opacity":1}]})").object();
-        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson());
+        auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson());
         QVERIFY(parsed.timeline);
         const auto scene = nt::evaluateScene(*parsed.timeline, 250);
         QCOMPARE(scene.layers.size(), std::size_t(1));
         // Full segment easeInOut(0.25) = 0.0625, even though both keys lie outside the clip.
         QCOMPARE(scene.layers[0].opacity, 0.9375);
+        auto off=doc; auto tracks=off["tracks"].toArray(); auto track=tracks[0].toObject();
+        track["automationMode"]="off"; tracks[0]=track; off["tracks"]=tracks;
+        parsed=nt::parseTimelineJson(QJsonDocument(off).toJson()); QVERIFY(parsed.timeline);
+        QCOMPARE(nt::evaluateScene(*parsed.timeline,250).layers[0].opacity,1.);
     }
     void valuesAndBreakpoints() {
         const QJsonArray points{QJsonObject{{"timeMs",0},{"value",-20}},QJsonObject{{"timeMs",100},{"value",0},{"easing","hold"}}};

@@ -20,10 +20,20 @@ for(const kind of ['mixer','device','clip']) {
  for(const type of ['audio','midi','video','overlay','subtitle','chord']) for(const effects of [[],[{id:'fx'}]]) add('trackAcceptsAutomationTarget',[{type,effects},target]);
 }
 add('trackAcceptsAutomationTarget',[{type:'midi'},{kind:'device',deviceId:'instrument',param:'cutoff'}]);
+for (const mode of [undefined, 'off', 'read', 'touch', 'latch', 'write']) {
+ add('automationModeOf', [mode ? {automationMode:mode} : {}]);
+ if (mode) add('automationModePlays', [mode]);
+}
+for (let index=-4;index<8;++index) for (const target of [{kind:'mixer',param:'volumeDb'},{kind:'mixer',param:'pan'},{kind:'clip',property:'opacity'}]) {
+ add('automationParamColorRole',[index,target]);
+}
 const easings=['linear','hold','easeIn','easeOut','easeInOut','unknown','cubic-bezier(0.2,0.7,0.8,0.4)'];
 for(let c=0;c<200;++c) {
  let t=0;
  const points=Array.from({length:c%9},(_,i)=>({timeMs:t+=c%7===0?0:rand()*1000,value:rand()*80-60,...(i%3?{easing:easings[c%easings.length]}:{})}));
+ const samples = Array.from({length:20},(_,i)=>({timeMs:1000+i*50,value:rand()*20-10}));
+ add('thinAutomationSamples',[samples,.01]);
+ add('writeAutomationPass',[points,{startMs:1000,endMs:1950,samples},0,200,.01]);
  for(const time of [-10,0,10,rand()*t,t,t+10]) add('automationValueAt',[points,time,19]);
  for(const from of [-10,0,rand()*t,t,t+5]) for(const subdivideLinear of [false,true]) add('automationBreakpoints',[points,from,{maxStepMs:c%3===0?-2:c%3===1?10:200,subdivideLinear}]);
  add('addAutomationPoint',[points,{timeMs:-3,value:9,easing:'linear'}]);

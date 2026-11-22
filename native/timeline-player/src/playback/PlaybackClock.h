@@ -99,6 +99,7 @@ public slots:
     void tick();
 
 signals:
+    void aboutToSeek(double fromMs);
     void scrubAudioChanged();
     void keepShuttlePitchChanged();
     void timeChanged();

@@ -5,6 +5,12 @@
 #include <QString>
 
 namespace nt::automation {
+// Control/UI-thread pure document operations. Returned JSON owns its storage.
+QString automationModeOf(const QJsonObject& track);
+bool automationModePlays(const QString& mode);
+QJsonArray thinAutomationSamples(const QJsonArray& samples, double tolerance);
+QJsonArray writeAutomationPass(const QJsonArray& points, const QJsonObject& pass, double baseValue, double returnMs, double tolerance);
+QString automationParamColorRole(int targetIndex, const QJsonObject& target);
 QString automationTargetKey(const QJsonObject& target);
 QJsonObject addAutomationPoint(const QJsonArray& points, const QJsonObject& point);
 QJsonArray moveAutomationPoint(QJsonArray points, int index, double timeMs, double value);

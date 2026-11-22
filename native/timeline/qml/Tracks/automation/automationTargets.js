@@ -7,7 +7,7 @@ function spec(target, label, group, min, max, value, curve) {
     return {target: target, key: key(target), label: label, group: group,
         min: min, max: max, value: value === undefined ? min : value, curve: curve || "lin"}
 }
-var EFFECT_LABELS = {gain:"Gain", eq3:"3-Band EQ", filter:"Filter", compressor:"Compressor"}
+var EFFECT_LABELS = {gain:"Gain", eq3:"3-Band EQ", filter:"Filter", compressor:"Compressor", vst:"VST3 Plugin"}
 function automationTargetSpecs(track) {
     var result = []
     if (track.type === "audio" || track.type === "midi") {
@@ -61,4 +61,9 @@ function format(spec, value) {
     if (p === "opacity") return Math.round(value*100)+"%"
     if (p === "rotation") return (value*180/Math.PI).toFixed(1)+"°"
     return value.toFixed(2)
+}
+
+function color(theme, role) {
+    return ({warning:theme.statusWarning, success:theme.statusSuccess, info:theme.statusInfo,
+        secondary:theme.accentSecondary, primary:theme.accentPrimary, error:theme.statusError})[role]
 }

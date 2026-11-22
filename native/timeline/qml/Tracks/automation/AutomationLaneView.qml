@@ -9,12 +9,19 @@ Rectangle {
     property var track: ({})
     property var lane: ({id:"",target:{},points:[]})
     property real msPerPx: 10
+    property bool mainLane: false
+    property real viewportLeft: 0
+    property real viewportWidth: width
+    readonly property string targetKey: Targets.key(lane.target)
+    readonly property color parameterColor: spec ? Targets.color(Ui.Theme,controller.call("automationParamColorRole",[Targets.automationTargetSpecs(currentTrack).findIndex(s => s.key === targetKey),lane.target])) : Ui.Theme.textDisabled
     readonly property var currentTrack: controller.channel.id ? controller.channel : track
+    readonly property bool storedLane: (controller.channel.automation || []).some(l => l.id === lane.id)
     readonly property var currentLane: (currentTrack.automation || []).find(l => l.id === lane.id) || lane
     readonly property var spec: Targets.automationTargetSpec(currentTrack, lane.target)
     readonly property bool editable: spec !== null && !currentTrack.locked
-    readonly property bool on: currentLane.enabled !== false && spec !== null
+    readonly property bool on: currentLane.enabled !== false && spec !== null && currentTrack.automationMode !== "off"
     readonly property var points: dragging ? draft : (currentLane.points || [])
+    readonly property real labelValue: curveLabelValue()
     property var draft: []
     property int selected: -1
     property bool dragging: false
@@ -22,14 +29,27 @@ Rectangle {
     property var gestureGeneration: 0
     objectName: "automation-lane-" + lane.id
     implicitHeight: 56; height: implicitHeight
-    color: Ui.Theme.surfaceCanvas; clip: true; activeFocusOnTab: true
+    color: mainLane ? Qt.alpha(Ui.Theme.surfaceCanvas,.4) : Ui.Theme.surfaceCanvas; clip: true; activeFocusOnTab: true
     Accessible.role: Accessible.Grouping
     Accessible.name: "Automation lane: " + (spec ? spec.group + " " + spec.label : "Removed device")
     AutomationController { id: controller; timeline: root.timeline; trackId: root.track.id || "" }
-    function yOf(value) { return spec ? 6 + (1-Targets.automationValueToNorm(spec,value))*44 : 28 }
-    function valueAtY(y) { return Targets.automationNormToValue(spec,1-(y-6)/44) }
+    function yOf(value) { return spec ? 6 + (1-Targets.automationValueToNorm(spec,value))*Math.max(1,height-12) : 28 }
+    function valueAtY(y) { return Targets.automationNormToValue(spec,1-(y-6)/Math.max(1,height-12)) }
+    function curveLabelValue() {
+        if (!spec) { return 0 }
+        if (dragging && selected>=0 && points[selected]) { return points[selected].value }
+        if (!points.length) { return spec.value }
+        const time = viewportLeft*msPerPx
+        return storedLane ? controller.laneValueAt(lane.id,time,spec.value)
+            : controller.call("automationValueAt",[points,time,spec.value])
+    }
+    function clipOwnsPointer(x,y) {
+        // The clip inset is timeline geometry, independent of UI scale.
+        const bottom = 6+Math.min(TimelineMetrics.clipNameBandHeight,Math.max(0,height-12))
+        return mainLane && y>=6 && y<bottom && controller.clipNameAt(x*msPerPx)
+    }
     function hitIndex(x,y) {
-        var hit=-1, distance=7
+        var hit=-1, distance=7*Ui.Theme.uiScale
         points.forEach(function(p,i) {
             var d=Math.hypot(p.timeMs/msPerPx-x,root.yOf(p.value)-y)
             if(d<=distance) { hit=i; distance=d }
@@ -37,6 +57,7 @@ Rectangle {
         return hit
     }
     function commit(next) { controller.setPoints(lane.id,next,controller.generation()) }
+    onTargetKeyChanged: { cancel(); selected=-1; easingMenu.close(); curve.requestPaint() }
     function removeAt(index) {
         if (!editable || index<0) return
         commit(controller.call("removeAutomationPoints",[currentLane.points || [],[index]])); selected=-1
@@ -49,15 +70,20 @@ Rectangle {
         if (!dragging) return
         var next=draft
         dragging=false
-        controller.setPoints(lane.id,next,gestureGeneration)
+        if (!(root.currentTrack.automation || []).some(l => l.id === lane.id)) controller.createWithPoints(lane.target,next,gestureGeneration)
+        else controller.setPoints(lane.id,next,gestureGeneration)
     }
     function cancel() { if (dragging) { dragging = false; draft = []; curve.requestPaint() } }
     onActiveFocusChanged: if (!activeFocus) finish()
     onPointsChanged: curve.requestPaint()
     onWidthChanged: curve.requestPaint()
+    onHeightChanged: curve.requestPaint()
+    onSelectedChanged: curve.requestPaint()
     onMsPerPxChanged: curve.requestPaint()
     onSpecChanged: curve.requestPaint()
     onOnChanged: curve.requestPaint()
+    onParameterColorChanged: curve.requestPaint()
+    Connections { target: Ui.Theme; function onUiScaleChanged() { curve.requestPaint() } }
     Connections { target: root.timeline; function onDocumentReplaced() { root.dragging=false; root.selected=-1 } }
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Escape && dragging) { cancel(); event.accepted = true; return }
@@ -72,7 +98,7 @@ Rectangle {
             var ps=root.points, vertices=[]
             if(ps.length) vertices=controller.call("automationBreakpoints",[ps,0,{maxStepMs:Math.max(1,root.msPerPx*3)}])
             if (!vertices.length) vertices=[{timeMs:0,value:root.spec?root.spec.value:0}]
-            var stroke=root.on?Ui.Theme.accentPrimary:Ui.Theme.textDisabled
+            var stroke=root.on?root.parameterColor:Ui.Theme.textDisabled
             ctx.beginPath()
             if (ps.length) {
                 vertices.forEach(function(p,i){ var x=p.timeMs/root.msPerPx,y=root.yOf(p.value); if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y) })
@@ -80,40 +106,33 @@ Rectangle {
             var last=vertices[vertices.length-1]
             ctx.lineTo(width,root.spec?root.yOf(last.value):28)
             ctx.strokeStyle=stroke; ctx.lineWidth=1.5
-            if(!ps.length)ctx.setLineDash([4,4])
             ctx.stroke()
-            if(ps.length) {
-                ctx.lineTo(width,height); ctx.lineTo(0,height); ctx.closePath()
-                ctx.globalAlpha=root.on ? .12 : .06; ctx.fillStyle=stroke; ctx.fill()
-            }
-        }
-    }
-    Repeater {
-        model: root.points
-        delegate: Rectangle {
-            required property var modelData
-            required property int index
-            x: modelData.timeMs/root.msPerPx-width/2; y: root.yOf(modelData.value)-height/2
-            width: 9; height: 9; radius: width/2
-            color: !root.on ? Ui.Theme.textDisabled : index === root.selected ? Ui.Theme.textPrimary : Ui.Theme.accentPrimary
-            border.color: index === root.selected ? Ui.Theme.accentPrimary : Ui.Theme.surfaceCanvas; border.width: index === root.selected ? Ui.Metrics.focus : Ui.Metrics.border
+            ctx.globalAlpha=.12; ctx.fillStyle=stroke; ctx.fillRect(0,0,width,height)
+            ctx.globalAlpha=1
+            ps.forEach(function(p,i) {
+                ctx.beginPath(); ctx.arc(p.timeMs/root.msPerPx,root.yOf(p.value),Ui.Metrics.sm/2,0,2*Math.PI)
+                ctx.fillStyle=root.on && i === root.selected ? Ui.Theme.textOnAccent : stroke; ctx.fill()
+                if (i === root.selected) { ctx.strokeStyle=stroke; ctx.lineWidth=Ui.Metrics.focus; ctx.stroke() }
+            })
         }
     }
     Rectangle {
-        visible: root.dragging && root.selected>=0 && root.spec !== null
-        x: root.selected>=0 && root.points[root.selected] ? root.points[root.selected].timeMs/root.msPerPx+9 : 0
-        y: root.selected>=0 && root.points[root.selected] ? Math.max(0,Math.min(38,root.yOf(root.points[root.selected].value)-9)) : 0
-        width: readout.implicitWidth+2*Ui.Metrics.xs; height: 18; radius: Ui.Metrics.xs; color: Ui.Theme.surfacePanel
-        Ui.Text { id: readout; anchors.centerIn: parent; text: root.spec && root.points[root.selected] ? Targets.format(root.spec,root.points[root.selected].value) : ""; role: Ui.Typography.MonoCaption }
+        objectName: "automation-value-label"
+        visible: root.spec !== null
+        x: Math.max(root.viewportLeft,Math.min(root.viewportLeft+root.viewportWidth-width,root.dragging && root.selected>=0 ? root.points[root.selected].timeMs/root.msPerPx : root.viewportLeft))
+        y: Math.max(0,Math.min(root.height-height,root.yOf(root.labelValue)-height/2))
+        width: readout.implicitWidth+2*Ui.Metrics.xs; height: Ui.Metrics.iconMd; radius: Ui.Metrics.xs; color: Ui.Theme.surfacePanel
+        Ui.Text { id: readout; anchors.centerIn: parent; text: root.spec ? Targets.format(root.spec,root.labelValue) : ""; domainColor: root.on ? root.parameterColor : Ui.Theme.textDisabled; role: Ui.Typography.MonoCaption }
     }
     MouseArea {
         anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
         property bool playheadPassthrough: true
         cursorShape: root.editable ? Qt.CrossCursor : Qt.ArrowCursor
         onPressed: event => {
+            var hit=root.hitIndex(event.x,event.y)
+            if (hit<0 && root.clipOwnsPointer(event.x,event.y)) { event.accepted=false; return }
             root.forceActiveFocus()
             if (!root.editable) return
-            var hit=root.hitIndex(event.x,event.y)
             if (event.button===Qt.RightButton) {
                 if (hit>=0) { root.selected=hit; easingMenu.popup(event.x,event.y) }
                 return
@@ -121,6 +140,7 @@ Rectangle {
             root.gestureGeneration=controller.generation()
             root.draft=root.currentLane.points || []
             if(hit<0) {
+                if (!root.draft.length && !(root.currentTrack.automation || []).some(l => l.id === root.lane.id)) root.draft=[{timeMs:0,value:root.spec.value}]
                 var added=controller.call("addAutomationPoint",[root.draft,{timeMs:Math.round(Math.max(0,event.x*root.msPerPx)),value:root.valueAtY(event.y)}])
                 root.draft=added.points; hit=added.index
             }

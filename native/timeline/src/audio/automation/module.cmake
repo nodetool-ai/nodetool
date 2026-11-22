@@ -1,4 +1,4 @@
-nt_qml_sources(src/audio/automation/AutomationController.h src/audio/automation/AutomationController.cpp)
+nt_qml_sources(src/audio/automation/AutomationRecorder.h src/audio/automation/AutomationRecorder.cpp src/audio/automation/AutomationController.h src/audio/automation/AutomationController.cpp)
 nt_sources(core src/audio/automation/Automation.h src/audio/automation/Automation.cpp src/audio/automation/AutomationEdits.cpp src/audio/automation/MeterReadings.cpp)
 nt_sources(audio src/audio/automation/Meters.cpp)
 nt_sources(app src/audio/automation/Registrations.cpp ${NT_PLAYBACK_REGISTRAR})

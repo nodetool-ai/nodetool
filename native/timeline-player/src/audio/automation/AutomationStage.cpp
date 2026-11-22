@@ -35,6 +35,22 @@ public:
 private:
     std::vector<Breakpoint> points_;
 };
+// Audio reads the atomic handoff. UI/model and old plans share its lifetime.
+class LiveParameter final : public audio::ParameterSource {
+public:
+    LiveParameter(std::shared_ptr<MixerOverride> state, std::shared_ptr<const audio::ParameterSource> curve, bool gain)
+        : state_(std::move(state)), curve_(std::move(curve)), gain_(gain) {}
+    double valueAt(double time, double base) const noexcept override {
+        const double value = (gain_ ? state_->volumeDb : state_->pan).load(std::memory_order_relaxed);
+        if (std::isfinite(value)) { return gain_ ? std::pow(10.,value/20.) : value; }
+        return curve_ ? curve_->valueAt(time,base) : base;
+    }
+private:
+    // Shared because immutable plans can outlive the model and each other.
+    std::shared_ptr<MixerOverride> state_;
+    std::shared_ptr<const audio::ParameterSource> curve_;
+    bool gain_;
+};
 struct Parameter {
     std::string name;
     Ramp ramp;
@@ -88,7 +104,7 @@ bool supports(const QString& type,const QString& param) {
 void attach(const nt::Timeline& tl,audio::MixPlan& plan) {
     for (auto& bus : plan.tracks) {
         const auto* track=tl.findTrack(bus.trackId);
-        if (!track || (track->type!=TrackType::Audio && track->type!=TrackType::Midi)) { continue; }
+        if (!track || track->raw["automationMode"] == "off" || (track->type!=TrackType::Audio && track->type!=TrackType::Midi)) { continue; }
         const auto lanes=track->raw["automation"].toArray();
         for (const auto& v : lanes) {
             const auto lane=v.toObject(),target=lane["target"].toObject();
@@ -97,6 +113,10 @@ void attach(const nt::Timeline& tl,audio::MixPlan& plan) {
             const bool gain=target["param"]=="volumeDb";
             auto source=std::make_shared<Ramp>(points,gain,gain,!gain);
             if (gain) { bus.gainSource=std::move(source); } else { bus.panSource=std::move(source); }
+        }
+        if (track->mixerOverride) {
+            bus.gainSource = std::make_shared<LiveParameter>(track->mixerOverride,bus.gainSource,true);
+            bus.panSource = std::make_shared<LiveParameter>(track->mixerOverride,bus.panSource,false);
         }
         for (auto& processor : bus.processors) {
             QString type;

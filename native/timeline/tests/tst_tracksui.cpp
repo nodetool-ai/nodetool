@@ -3119,8 +3119,8 @@ private slots:
         };
         QVERIFY(!find("documentAccount")->property("active").toBool());
         root->setProperty("servers", QVariant::fromValue(&servers));
-        QTRY_VERIFY(find("account-sign-in") && find("account-sign-in")->isVisible());
-        QVERIFY(!find("account-sign-in")->property("enabled").toBool());
+        QTRY_VERIFY(find("account-server-button") && find("account-server-button")->isVisible());
+        QVERIFY(!find("account-sign-in") || !find("account-sign-in")->isVisible());
         QTRY_COMPARE(find("account-status")->property("text").toString(),
                      QStringLiteral("Cloud features are turned off on this computer"));
     }

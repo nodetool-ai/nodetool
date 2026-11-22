@@ -320,6 +320,9 @@ void PlaybackClock::stop() {
 }
 
 void PlaybackClock::playInToOut() {
+    if (playing() && (m_rangeInMs >= 0.0 ? m_rangeInMs : 0.0) != time()) {
+        emit aboutToSeek(currentTimeMs());
+    }
     bool started = false;
     bool rateChangedNow = false;
     bool rangeModeChanged = false;
@@ -356,6 +359,9 @@ void PlaybackClock::playInToOut() {
 }
 
 void PlaybackClock::playSpan(double fromMs, double toMs, double restMs, bool looping) {
+    if (playing() && clampTime(toMs) > clampTime(fromMs) && clampTime(fromMs) != time()) {
+        emit aboutToSeek(currentTimeMs());
+    }
     bool started = false;
     bool rateChangedNow = false;
     bool rangeModeEnded = false;
@@ -442,6 +448,7 @@ void PlaybackClock::shuttleStop() {
 }
 
 void PlaybackClock::seek(double ms) {
+    if (clampTime(ms) != time()) { emit aboutToSeek(currentTimeMs()); }
     bool sourceChanged = false;
     {
         std::lock_guard lock(m_mutex);
@@ -518,6 +525,7 @@ void PlaybackClock::tick() {
     bool stopped = false;
     bool rangeModeCleared = false;
     bool sourceChanged = false;
+    double beforeRestMs = -1.0;
     {
         std::lock_guard lock(m_mutex);
         if (!m_playing) {
@@ -573,6 +581,7 @@ void PlaybackClock::tick() {
         }
         if (stopped && spanActive()) {
             if (m_spanRestMs >= 0.0) {
+                beforeRestMs = m_timeMs;
                 m_timeMs = clampTime(m_spanRestMs);
                 ++m_seekSerial;
                 sendCommandLocked(true, m_timeMs, now);
@@ -582,6 +591,8 @@ void PlaybackClock::tick() {
         }
         sourceChanged = wasAudio != (m_source == Source::Audio);
     }
+    // Notify outside the clock lock, before stop/time observers see the rest position.
+    if (beforeRestMs >= 0.0) { emit aboutToSeek(beforeRestMs); }
     if (stopped) {
         emit playingChanged();
     }

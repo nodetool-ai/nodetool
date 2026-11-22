@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -60,6 +61,13 @@ struct ClipTransitionIn {
 enum class TrackType { Video, Audio, Overlay, Subtitle, Midi, Chord };
 enum class MediaType { Image, Video, Audio, Overlay, Text, Shape, Model3d, Group, Adjustment, Midi };
 
+// UI writes atomics, audio reads them. Shared by immutable mix plans so an old
+// plan can finish after the model releases its reference. NaN releases a target.
+struct MixerOverride {
+    static_assert(std::atomic<double>::is_always_lock_free);
+    std::atomic<double> volumeDb{std::numeric_limits<double>::quiet_NaN()};
+    std::atomic<double> pan{std::numeric_limits<double>::quiet_NaN()};
+};
 struct Track {
     std::string id;
     std::string name;
@@ -74,6 +82,8 @@ struct Track {
     double volumeDb = 0.0;
     double pan = 0.0;
     QJsonObject raw;
+    // Runtime only. Model and mix plans share the atomic handoff lifetime.
+    std::shared_ptr<MixerOverride> mixerOverride;
 };
 
 struct TimeRemapKeyframe {

@@ -1,4 +1,5 @@
 #include "audio/automation/Automation.h"
+#include <QStringList>
 #include "app/EditRegistry.h"
 #include <QUuid>
 #include <algorithm>
@@ -12,6 +13,7 @@ QJsonObject makeTrackEffect(const QString& type) {
     else if (type=="eq3") { defaults={{"lowFreq",200},{"lowGainDb",0},{"midFreq",1000},{"midQ",1},{"midGainDb",0},{"highFreq",5000},{"highGainDb",0}}; }
     else if (type=="filter") { defaults={{"mode","lowpass"},{"frequency",1000},{"q",1}}; }
     else if (type=="compressor") { defaults={{"thresholdDb",-24},{"ratio",4},{"attackMs",3},{"releaseMs",250},{"kneeDb",30}}; }
+    else if (type=="vst") { defaults={{"plugin",QJsonValue::Null},{"state",QJsonValue::Null},{"wet",1.0}}; }
     else if (type=="fable") { defaults={{"kind","eq"},{"params",QJsonObject{}}}; }
     else if (type=="colorCorrection") { defaults={{"brightness",0},{"contrast",1},{"saturation",1},{"hue",0},{"temperature",0},{"tint",0},{"shadows",0},{"highlights",0}}; }
     else if (type=="videoBlur") { defaults={{"radius",4}}; }
@@ -29,6 +31,25 @@ double mixerDb(const QJsonValue& value) {
 QJsonObject editChannel(QJsonObject channel,const QString& action,const QJsonObject& p,bool master) {
     if (action=="setTrackVolume" || action=="setMasterVolume") { channel["volumeDb"]=mixerDb(p["db"]); }
     else if (action=="setTrackPan") { const double pan=p["pan"].toDouble(); channel["pan"]=std::isfinite(pan)?std::clamp(pan,-1.,1.):0; }
+    else if (action=="writeTrackAutomationPass") {
+        if (channel["locked"].toBool()) { return channel; }
+        const auto param=p["param"].toString();
+        if (param!="volumeDb" && param!="pan") { return channel; }
+        const QJsonObject target{{"kind","mixer"},{"param",param}};
+        auto lanes=channel["automation"].toArray();
+        qsizetype index=-1;
+        for (qsizetype i=0;i<lanes.size();++i) { if (automationTargetKey(lanes[i].toObject()["target"].toObject())==automationTargetKey(target)) { index=i; break; } }
+        auto lane=index<0 ? QJsonObject{{"id",QUuid::createUuid().toString(QUuid::Id128)},{"target",target}} : lanes[index].toObject();
+        lane["points"]=writeAutomationPass(lane["points"].toArray(),p["pass"].toObject(),channel[param].toDouble(),200,(param=="pan" ? 2 : 66)*.005);
+        lane.remove("enabled");
+        if (index<0) { lanes.append(lane); } else { lanes[index]=lane; }
+        channel["automation"]=lanes;
+        if (p["wasWrite"].toBool() && automationModeOf(channel)=="write") { channel["automationMode"]="latch"; }
+    }
+    else if (action=="setTrackAutomationMode") {
+        const auto mode=p["mode"].toString();
+        if (!channel["locked"].toBool() && QStringList{"off","read","touch","latch","write"}.contains(mode)) { channel["automationMode"]=mode; }
+    }
     else if (action=="setTrackAutomation") {
         if (channel["locked"].toBool()) { return channel; }
         if (p["automation"].toArray().empty()) { channel.remove("automation"); } else { channel["automation"]=p["automation"]; }
@@ -77,7 +98,7 @@ QJsonObject edit(QJsonObject doc,const QString& name,const QJsonObject& payload)
 }
 void registerEdits() {
     static const bool registered = [] {
-        for (const auto* action : {"setTrackVolume", "setTrackPan", "setMasterVolume", "addMasterEffect", "updateMasterEffect", "removeMasterEffect", "setTrackAutomation"}) {
+        for (const auto* action : {"setTrackVolume", "setTrackPan", "setTrackAutomationMode", "writeTrackAutomationPass", "setMasterVolume", "addMasterEffect", "updateMasterEffect", "removeMasterEffect", "setTrackAutomation"}) {
             const auto name = QString::fromLatin1(action);
             nt::app::registerEdit(name, [name](QJsonObject doc, const QJsonObject& payload) { return edit(std::move(doc), name, payload); });
         }
