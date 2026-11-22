@@ -70,12 +70,12 @@ export { userPermissions } from "./user-permissions.js";
 export { cloudDrafts, cloudOpenState } from "./cloud-local.js";
 export { deletedDocuments } from "./deleted-documents.js";
 export { projectBlobs } from "./project-blobs.js";
-export { projectErasedFiles, projectMissingFiles } from "./project-file-lists.js";
+export { projectErasedFiles, projectMissingFiles, projectWorkspaceHashes } from "./project-file-lists.js";
 export { accessEpochs } from "./access-epochs.js";
 export { cloudTransfers, cloudTransferAttempts } from "./cloud-transfers.js";
 export { transferPlacements, recoveryCopies, transferredConversations } from "./transfer-files.js";
 export { documentActivity } from "./document-activity.js";
-export { revisionSets, revisionSetEntries, revisionSetFiles } from "./revision-sets.js";
+export { revisionSets, revisionSetEntries, revisionSetFiles, revisionSetWorkspaceFiles } from "./revision-sets.js";
 export {
   cloudLinks,
   cloudLinkDocuments,

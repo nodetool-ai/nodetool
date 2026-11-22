@@ -685,6 +685,8 @@ A path with a base and no cloud file was deleted in the cloud. The receive lists
 
 TC126 covers RW1 and RW5 with a collaborator's capture and a former owner's download. TC127 covers RW6 with the five cases. TC128 covers RW7 with a file left out and offered again.
 
+As built (WP2.11, receive of workspace files, server half): `captureRevisionSet` in `packages/project-services/src/cloud-receive.ts` adds `workspace_files` (path, hash, size) to the capture of a whole project by its owner. A capture of one document, or by anyone else, lists none. The folder is listed with `listWorkspaceFiles` in `workspace-files.ts`, which the send's capture uses too. A project without a folder lists none. `project_workspace_hashes` holds the hash with the size and the modification time in whole milliseconds. Paths the folder no longer holds lose their rows. A file whose hash is on the erased list is left out (FR79). The `revision_set_workspace_files` row is written under the hash's blob lock before the copy, and `isHashInLiveRevisionSet` counts it. A file whose bytes changed between the hash and the copy is left out of the set. The client's comparison, placement and Receive rows are not built yet.
+
 ### Deletion, restore and storage
 
 | Item | Design |

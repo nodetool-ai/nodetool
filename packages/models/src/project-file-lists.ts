@@ -11,10 +11,11 @@ import { getPortableDb } from "./db.js";
 import { assets } from "./schema/assets.js";
 import { deletedDocuments } from "./schema/deleted-documents.js";
 import { projectBlobs } from "./schema/project-blobs.js";
-import { projectErasedFiles, projectMissingFiles } from "./schema/project-file-lists.js";
+import { projectErasedFiles, projectMissingFiles, projectWorkspaceHashes } from "./schema/project-file-lists.js";
 
 export type ProjectErasedFileRow = typeof projectErasedFiles.$inferSelect;
 export type ProjectMissingFileRow = typeof projectMissingFiles.$inferSelect;
+export type ProjectWorkspaceHashRow = typeof projectWorkspaceHashes.$inferSelect;
 
 export type MissingFileReason = "missing_locally" | "too_large" | "over_allowance";
 
@@ -214,4 +215,56 @@ export async function deletedDocumentsOfProject(
   return rows
     .filter((row) => row.kind !== "project")
     .map((row) => ({ kind: row.kind, documentId: row.document_id, name: row.name, payload: row.payload }));
+}
+
+/** The hashes the server read from the project's workspace files, by path (RW3). */
+export async function listProjectWorkspaceHashes(projectId: string): Promise<Map<string, ProjectWorkspaceHashRow>> {
+  const rows = await getPortableDb()
+    .select()
+    .from(projectWorkspaceHashes)
+    .where(eq(projectWorkspaceHashes.project_id, projectId));
+  return new Map(rows.map((row) => [row.path, row]));
+}
+
+/** Records the hash a workspace file had at a size and modification time. */
+export async function setProjectWorkspaceHash(input: {
+  projectId: string;
+  userId: string;
+  path: string;
+  size: number;
+  mtimeMs: number;
+  hash: string;
+  now?: Date;
+}): Promise<void> {
+  const now = (input.now ?? new Date()).toISOString();
+  await getPortableDb()
+    .insert(projectWorkspaceHashes)
+    .values({
+      id: createTimeOrderedUuid(),
+      project_id: input.projectId,
+      user_id: input.userId,
+      path: input.path,
+      size: input.size,
+      mtime_ms: input.mtimeMs,
+      hash: input.hash,
+      updated_at: now
+    })
+    .onConflictDoUpdate({
+      target: [projectWorkspaceHashes.project_id, projectWorkspaceHashes.path],
+      set: { size: input.size, mtime_ms: input.mtimeMs, hash: input.hash, updated_at: now }
+    });
+}
+
+/** Deletes the hash rows of paths the folder no longer holds as workspace files. */
+export async function deleteProjectWorkspaceHashes(projectId: string, paths: readonly string[]): Promise<void> {
+  for (let i = 0; i < paths.length; i += IN_LIST_CHUNK) {
+    await getPortableDb()
+      .delete(projectWorkspaceHashes)
+      .where(
+        and(
+          eq(projectWorkspaceHashes.project_id, projectId),
+          inArray(projectWorkspaceHashes.path, paths.slice(i, i + IN_LIST_CHUNK))
+        )
+      );
+  }
 }

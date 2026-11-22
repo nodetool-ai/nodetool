@@ -825,6 +825,7 @@ export {
   deleteUnnamedBlob,
   readableProjectBlob,
   stageProjectBlob,
+  withBlobLock,
   type ProjectBlobRow
 } from "./project-blob.js";
 export {
@@ -834,16 +835,20 @@ export {
   deletedDocumentsOfProject,
   erasedFilesOf,
   getErasedFile,
+  deleteProjectWorkspaceHashes,
   listErasedFiles,
   listMissingFiles,
+  listProjectWorkspaceHashes,
   projectFilesWithContentHash,
   recordErasedFile,
   recordMissingFiles,
   removeErasedFile,
   removeMissingFiles,
+  setProjectWorkspaceHash,
   type MissingFileReason,
   type ProjectErasedFileRow,
-  type ProjectMissingFileRow
+  type ProjectMissingFileRow,
+  type ProjectWorkspaceHashRow
 } from "./project-file-lists.js";
 export {
   STORAGE_WARNING_FRACTION,
@@ -905,6 +910,7 @@ export {
 } from "./document-activity.js";
 export {
   addRevisionSetEntry,
+  addRevisionSetWorkspaceFile,
   createRevisionSet,
   deleteExpiredRevisionSets,
   deleteRevisionSet,
@@ -912,12 +918,15 @@ export {
   getRevisionSet,
   getRevisionSetEntry,
   isHashInLiveRevisionSet,
+  removeRevisionSetWorkspaceFile,
   revisionSetFilesWithHash,
+  revisionSetWorkspaceFilesWithHash,
   REVISION_SET_LIFETIME_MS,
   type RevisionSetEntryInput,
   type RevisionSetEntryRow,
   type RevisionSetFileRow,
-  type RevisionSetRow
+  type RevisionSetRow,
+  type RevisionSetWorkspaceFileRow
 } from "./revision-set.js";
 export {
   createCloudLink,
