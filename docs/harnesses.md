@@ -1082,6 +1082,17 @@ schema, so what it used to pass is not what it passes now — a restore whose
 document no longer validates exits non-zero and prints the issues. Layer
 bitmaps stay opaque to that check.
 
+`nodetool harness gate` runs a keyless selfcheck for each of the four sketch
+harnesses when a diff touches the sketch surface, `packages/image-editor/`
+included. These are the checked-in suites, not a run against a saved sketch:
+
+| Harness | Suites |
+| --- | --- |
+| `sketch-validate` | `execution` sketch-debug; `cli-sketch` sketch-command, sketch-target |
+| `sketch-debug` | `cli-sketch` sketch-harness |
+| `sketch-render` | all of `image-editor`; `agents` capabilities-sketch-render; `cli-sketch` sketch-render-command |
+| `sketch-versions` | `agents` sketch-version-tools; `cli-sketch` sketch-versions-command |
+
 ### nodetool jsscript (JS Script Harness)
 
 A JS script is a named, versioned script document — a body plus declared ports,

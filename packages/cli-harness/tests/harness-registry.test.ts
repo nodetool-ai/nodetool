@@ -537,8 +537,22 @@ describe("harness gate", () => {
       "packages/cli-sketch/src/commands/sketch-versions.ts"
     ]);
     expect(plan.surfaces.map((s) => s.id)).toContain("sketch");
-    expect(plan.manual.map((m) => m.harnessId)).toContain("sketch-versions");
+    expect(plan.checks.map((c) => c.harnessId)).toContain("sketch-versions");
     expect(plan.unmappedFiles).toEqual([]);
+  });
+
+  it("runs every sketch harness selfcheck for a paint-core change", () => {
+    const plan = planGate(["packages/image-editor/src/render/compose.ts"]);
+    expect(plan.unmappedFiles).toEqual([]);
+    const checks = plan.checks.filter((c) => c.surfaces.includes("sketch"));
+    expect(checks.map((c) => c.harnessId).sort()).toEqual([
+      "sketch-debug",
+      "sketch-render",
+      "sketch-validate",
+      "sketch-versions"
+    ]);
+    for (const check of checks) expect(check.cost).toBe("cheap");
+    expect(plan.manual.map((m) => m.harnessId)).not.toContain("sketch-validate");
   });
 
   it("maps a JS-script change onto the jsscript surface and its cheap selfcheck", () => {
