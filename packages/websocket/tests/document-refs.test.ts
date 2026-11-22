@@ -16,12 +16,16 @@ import { randomBytes } from "node:crypto";
 import {
   Asset,
   DocumentRefs,
+  ImageDocument,
+  ImageDocumentVersion,
   ModelObserver,
+  Storyboard,
   TimelineSequence,
   initTestDb,
   recordSignIn
 } from "@nodetool-ai/models";
 import type { AccessGrantItem } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { encodeSketchLayerData } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -213,6 +217,66 @@ describe("reference sets and file authorization", () => {
 
     expect(await guestReads(foreign, OTHER)).toBe(false);
     expect(await currentFiles(seq.id, "viewer")).toEqual([]);
+  });
+
+  it("serves the files a shared sketch shows, and its versions once history is on (WP2.10)", async () => {
+    const layer = await assetOf(OWNER);
+    const thumbnail = await assetOf(OWNER);
+    const old = await assetOf(OWNER);
+    const stray = await assetOf(OWNER);
+    const bounds = { x: 0, y: 0, width: 8, height: 8 };
+    const sketchOf = (file: string) =>
+      JSON.stringify({
+        sketch: { layers: [{ id: "l1", data: encodeSketchLayerData(`asset://${file}.png`, bounds) }] },
+        // An id under a field that names no asset is not a reference.
+        layerBindings: [{ layerId: "l1", workflowId: stray }]
+      });
+    const created = await owner().sketch.create({ name: "Poster", projectId: "default", width: 8, height: 8 });
+    const doc = (await ImageDocument.findById(created.id))!;
+    doc.document = sketchOf(old);
+    await doc.save();
+    await ImageDocumentVersion.snapshot(doc, { saveType: "manual" });
+    doc.document = sketchOf(layer);
+    doc.thumbnail_asset_id = thumbnail;
+    await doc.save();
+    const link = await owner().documentSharing.createLink({ type: "sketch", id: doc.id, role: "viewer" });
+    await guest().documentSharing.accept({ token: link.token });
+
+    expect(await guestReads(layer)).toBe(true);
+    expect(await guestReads(thumbnail)).toBe(true);
+    expect(await guestReads(old)).toBe(false);
+    expect(await guestReads(stray)).toBe(false);
+
+    await owner().documentSharing.setLinkOptions({
+      type: "sketch",
+      id: doc.id,
+      share_id: link.id,
+      options: { allow_history: true }
+    });
+    expect(await guestReads(old)).toBe(true);
+    expect(await guestReads(stray)).toBe(false);
+  });
+
+  it("serves the cast and takes of a shared storyboard, and nothing else its row names (WP2.10)", async () => {
+    const cast = await assetOf(OWNER);
+    const take = await assetOf(OWNER);
+    const stray = await assetOf(OWNER);
+    const board = (await Storyboard.create({
+      user_id: OWNER,
+      project_id: "default",
+      name: "Board",
+      document: JSON.stringify({
+        entityIds: [cast],
+        shots: [{ id: "s1", keyframe: { type: "image", asset_id: take } }],
+        templateId: stray
+      })
+    })) as Storyboard;
+    const link = await owner().documentSharing.createLink({ type: "storyboard", id: board.id, role: "viewer" });
+    await guest().documentSharing.accept({ token: link.token });
+
+    expect(await guestReads(cast)).toBe(true);
+    expect(await guestReads(take)).toBe(true);
+    expect(await guestReads(stray)).toBe(false);
   });
 
   describe("attach rule (TC19)", () => {

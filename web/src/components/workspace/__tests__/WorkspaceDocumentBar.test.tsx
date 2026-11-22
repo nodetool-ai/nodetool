@@ -3,6 +3,7 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import type { WorkspaceTab } from "../../../stores/WorkspaceTabsStore";
+import { useCloudSyncStatusStore } from "../../../stores/CloudSyncStatusStore";
 import WorkspaceDocumentBar from "../WorkspaceDocumentBar";
 
 let phone = false;
@@ -34,6 +35,15 @@ const renderBar = () =>
 describe("WorkspaceDocumentBar", () => {
   afterEach(() => {
     phone = false;
+    useCloudSyncStatusStore.setState({ statuses: {} });
+  });
+
+  it("shows the cloud window's synchronization status in place of the editor's save readout", () => {
+    useCloudSyncStatusStore.getState().report("text:a", "changesWaiting");
+    renderBar();
+
+    expect(screen.getByRole("status")).toHaveTextContent("Changes waiting");
+    expect(screen.queryByText("status")).toBeNull();
   });
 
   it("leaves the name to the tab on desktop", () => {

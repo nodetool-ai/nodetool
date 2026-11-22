@@ -798,6 +798,24 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Which file hashes a download needs, by asset id. The files are exported with the assets that name them. Short-lived operational state. Deleted with the account."
   },
   {
+    table: "revision_set_workspace_files",
+    schemaExport: "revisionSetWorkspaceFiles",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "Which workspace files of the owner's cloud folder a download needs, by path and hash. The files are in the exported folder. Short-lived operational state. Deleted with the account."
+  },
+  {
+    table: "project_workspace_hashes",
+    schemaExport: "projectWorkspaceHashes",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The hash, size and modification time the server read from each workspace file of a cloud project's folder, so a later download does not read it again. The files are in the exported folder. Deleted with the account."
+  },
+  {
     table: "project_blobs",
     schemaExport: "projectBlobs",
     disposition: "delete",
@@ -877,6 +895,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
     exported: false,
     justification:
       "The hash of the bytes the last exchange gave each asset of a linked project. The files are exported with their assets. Deleted with the account."
+  },
+  {
+    table: "cloud_link_workspace_files",
+    schemaExport: "cloudLinkWorkspaceFiles",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The hash, size and modification time of the bytes the last exchange gave each workspace file of a linked project. The files are in the exported folder. Deleted with the account."
   },
   {
     table: "cloud_receives",

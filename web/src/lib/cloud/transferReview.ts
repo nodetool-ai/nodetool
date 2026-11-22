@@ -61,6 +61,16 @@ export interface TransferDeleted {
   baseHash: string;
 }
 
+/**
+ * A workspace file sent earlier and deleted from the project folder since.
+ * A confirmed deletion names it with the same base hash, the delete's
+ * precondition.
+ */
+export interface TransferDeletedFile {
+  path: string;
+  baseHash: string;
+}
+
 export interface SendCapture {
   transferId: string;
   firstPublication: boolean;
@@ -71,6 +81,7 @@ export interface SendCapture {
   missingFiles: TransferMissingFile[];
   skipped: TransferSkipped[];
   deletedLocally: TransferDeleted[];
+  deletedWorkspaceFiles: TransferDeletedFile[];
   /** Documents sent from their last saved row, since their file is missing (CF3, review F56). */
   missingDocumentFiles: TransferSkipped[];
 }
@@ -102,9 +113,20 @@ export interface ReceiveDocument {
   changedFiles: number;
 }
 
+/** A workspace file of the owner's cloud folder that changed since the last exchange (RW6). */
+export interface ReceiveWorkspaceFile {
+  path: string;
+  hash: string;
+  state: "same" | "new" | "cloud_changed" | "both_changed" | "local_deleted";
+}
+
 export interface ReceiveCapture {
   setId: string;
   documents: ReceiveDocument[];
+  /** Absent for a router built before workspace files. */
+  workspaceFiles?: ReceiveWorkspaceFile[];
+  /** Paths deleted in the cloud since the last exchange. The local files stay (OQ14). */
+  cloudDeletedWorkspaceFiles?: string[];
 }
 
 export interface TransferFailure {
@@ -177,6 +199,12 @@ export interface ReviewRow {
   seenHash: string;
   /** For a missing-file Problem row: the file. */
   assetId: string;
+  /**
+   * A Send or Receive row of a workspace file. It is optional and off by
+   * default, and only an included one is sent or received (PRD SR7, RW7).
+   * `confirmed` is the inclusion and `seenHash` the file's hash.
+   */
+  optional: boolean;
 }
 
 const emptyRow = (section: ReviewSection): ReviewRow => ({
@@ -193,7 +221,8 @@ const emptyRow = (section: ReviewSection): ReviewRow => ({
   cloudHash: "",
   documentFileMissing: false,
   seenHash: "",
-  assetId: ""
+  assetId: "",
+  optional: false
 });
 
 const sameOperation = (a: TransferOperation, b: TransferOperation): boolean =>
@@ -217,6 +246,20 @@ export const unreviewedOperations = (
 
 const sameFileOperation = (a: TransferFileOperation, b: TransferFileOperation): boolean =>
   a.op === b.op && a.assetId === b.assetId && a.path === b.path && a.hash === b.hash && a.baseHash === b.baseHash;
+
+/** A workspace file the person included in a send, with the hash the capture listed. */
+export interface IncludedFile {
+  path: string;
+  hash: string;
+}
+
+/**
+ * Whether the capture holds work that is sent without a choice: a document
+ * operation, or a file operation other than an optional workspace file put
+ * (PRD SR7).
+ */
+export const hasRequiredWork = (send: Pick<SendCapture, "operations" | "fileOperations">): boolean =>
+  send.operations.length > 0 || send.fileOperations.some((op) => op.op !== "put_workspace_file");
 
 /** The file operations of `recaptured` that are not in `approved` (review F33). */
 export const unreviewedFileOperations = (
@@ -264,6 +307,10 @@ export const sendCaptureFrom = (captured: CapturedSend): SendCapture => ({
     cloudId: item.cloud_id,
     baseHash: item.base_hash
   })),
+  deletedWorkspaceFiles: (captured.deleted_workspace_files ?? []).map((item) => ({
+    path: item.path,
+    baseHash: item.base_hash
+  })),
   missingDocumentFiles: captured.missing_document_files.map((item) => ({
     kind: item.kind,
     id: item.id,
@@ -288,16 +335,29 @@ export const receiveDocumentsFrom = (documents: ReviewDocuments): ReceiveDocumen
     changedFiles: document.changed_files
   }));
 
+type ReviewWorkspaceFiles = NonNullable<CaptureReceiveOutput["workspace_files"]>;
+
+const receiveWorkspaceFilesFrom = (files: ReviewWorkspaceFiles | undefined): ReceiveWorkspaceFile[] =>
+  (files ?? []).map((file) => ({ path: file.path, hash: file.hash, state: file.status }));
+
 export const receiveCaptureFrom = (captured: CaptureReceiveOutput): ReceiveCapture => ({
   setId: captured.set_id,
-  documents: receiveDocumentsFrom(captured.documents)
+  documents: receiveDocumentsFrom(captured.documents),
+  workspaceFiles: receiveWorkspaceFilesFrom(captured.workspace_files),
+  cloudDeletedWorkspaceFiles: captured.cloud_deleted_workspace_files ?? []
 });
 
 /** The review a waiting receive asks for, or null when the router named no documents (review F50). */
 export const waitingReceiveFrom = (
   run: Extract<RunReceiveOutput, { status: "waiting_for_review" }>
 ): ReceiveCapture | null =>
-  run.documents === undefined ? null : { setId: run.set_id, documents: receiveDocumentsFrom(run.documents) };
+  run.documents === undefined
+    ? null
+    : {
+        setId: run.set_id,
+        documents: receiveDocumentsFrom(run.documents),
+        workspaceFiles: receiveWorkspaceFilesFrom(run.workspace_files)
+      };
 
 export const failuresFrom = (failures: readonly ProtocolFailure[]): TransferFailure[] =>
   failures.map((failure) => ({
@@ -317,6 +377,7 @@ const EMPTY_SEND: SendCapture = {
   missingFiles: [],
   skipped: [],
   deletedLocally: [],
+  deletedWorkspaceFiles: [],
   missingDocumentFiles: []
 };
 
@@ -371,6 +432,25 @@ export class TransferReview {
         detail: document.state === "same" ? "cloud_file_changed" : document.state
       });
     }
+    // A workspace file the cloud changed is offered, off by default (RW7).
+    // One the folder holds already needs no row.
+    for (const file of receive?.workspaceFiles ?? []) {
+      if (file.state === "same") {
+        continue;
+      }
+      rows.push({
+        ...emptyRow("receive"),
+        kind: "file",
+        documentId: file.path,
+        name: file.path,
+        detail: `workspace_${file.state}`,
+        optional: true,
+        seenHash: file.hash
+      });
+    }
+    for (const path of receive?.cloudDeletedWorkspaceFiles ?? []) {
+      rows.push({ ...emptyRow("receive"), kind: "file", documentId: path, name: path, detail: "workspace_cloud_deleted" });
+    }
     for (const op of sent.operations) {
       const row = { ...emptyRow("send"), kind: op.kind, documentId: op.documentId, detail: op.op };
       // An operation names the cloud id, which is the local id until the
@@ -410,12 +490,23 @@ export class TransferReview {
       }
     }
     // A file sent over its earlier version gets a row, also when no document
-    // that uses it changed (review F33). A new file goes with its document.
+    // that uses it changed (review F33). A new asset file goes with its
+    // document. A workspace file belongs to no document, so a new one gets a
+    // row too, keyed by its path (CF5).
     for (const op of sent.fileOperations) {
-      if (op.baseHash === "") {
+      const workspaceFile = op.op === "put_workspace_file";
+      if (op.baseHash === "" && !workspaceFile) {
         continue;
       }
-      rows.push({ ...emptyRow("send"), kind: "file", documentId: op.assetId, name: op.path, detail: op.op });
+      rows.push({
+        ...emptyRow("send"),
+        kind: "file",
+        documentId: workspaceFile ? op.path : op.assetId,
+        name: op.path,
+        detail: workspaceFile && op.baseHash === "" ? "new_workspace_file" : op.op,
+        optional: workspaceFile,
+        seenHash: workspaceFile ? op.hash : ""
+      });
     }
     for (const deleted of sent.deletedLocally) {
       const row = deletionRow(deleted.kind, deleted.localId);
@@ -424,6 +515,14 @@ export class TransferReview {
       if (row.seenHash === "") {
         row.seenHash = deleted.baseHash;
       }
+    }
+    // A workspace file deleted here stays in the cloud unless the person
+    // confirms it, like a document.
+    for (const deleted of sent.deletedWorkspaceFiles) {
+      const row = deletionRow("file", deleted.path);
+      row.name = deleted.path;
+      row.sendListed = true;
+      row.seenHash = deleted.baseHash;
     }
     for (const skipped of sent.skipped) {
       rows.push({
@@ -558,6 +657,30 @@ export class TransferReview {
     return true;
   }
 
+  /** Includes or leaves out the workspace file of an optional Send or Receive row. */
+  includeFile(index: number, included: boolean): boolean {
+    const row = this.rowList[index];
+    if (row === undefined || !row.optional) {
+      return false;
+    }
+    row.confirmed = included;
+    return true;
+  }
+
+  /** The workspace files the person included in the send. */
+  includedFiles(): IncludedFile[] {
+    return this.rowList
+      .filter((row) => row.section === "send" && row.optional && row.confirmed)
+      .map((row) => ({ path: row.documentId, hash: row.seenHash }));
+  }
+
+  /** The cloud's workspace files the person included in the receive (RW7). */
+  includedReceiveFiles(): IncludedFile[] {
+    return this.rowList
+      .filter((row) => row.section === "receive" && row.optional && row.confirmed)
+      .map((row) => ({ path: row.documentId, hash: row.seenHash }));
+  }
+
   /** Confirms or withdraws the deletion of Deletion row `index`. Returns false for another row. */
   confirmDeletion(index: number, confirmed: boolean): boolean {
     const row = this.rowList[index];
@@ -621,8 +744,15 @@ export class TransferReview {
   /** The deletions the person confirmed, each with the cloud revision the sheet showed. */
   confirmedDeletes(): DeleteConfirmation[] {
     return this.rowList
-      .filter((row) => row.section === "deletion" && row.sendListed && row.confirmed)
+      .filter((row) => row.section === "deletion" && row.kind !== "file" && row.sendListed && row.confirmed)
       .map((row) => ({ kind: row.kind, cloudId: row.cloudId, cloudHash: row.seenHash }));
+  }
+
+  /** The workspace file deletions the person confirmed. */
+  confirmedFileDeletes(): TransferDeletedFile[] {
+    return this.rowList
+      .filter((row) => row.section === "deletion" && row.kind === "file" && row.sendListed && row.confirmed)
+      .map((row) => ({ path: row.documentId, baseHash: row.seenHash }));
   }
 
   /** The capture's missing files once each one is confirmed, or empty. */

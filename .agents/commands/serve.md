@@ -5,7 +5,7 @@ allowed-tools: Bash, Read
 
 Start the NodeTool backend and confirm it is actually serving.
 
-1. Run `./start.sh` with `run_in_background: true`. First run installs
+1. Run `npm start` with `run_in_background: true`. First run installs
    dependencies and builds packages, which takes several minutes — that is
    expected, not a hang.
 2. Poll `curl -s http://localhost:7777/health` until it responds (the server is

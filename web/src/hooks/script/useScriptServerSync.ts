@@ -135,7 +135,7 @@ export async function flushScriptSync(scriptId: string): Promise<void> {
 type ScriptWireDocument = ScriptResponse["document"];
 
 /** The saved payload: the script minus identity and transient UI state. */
-const scriptToDocument = (script: ScriptDraft): ScriptWireDocument => {
+export const scriptToDocument = (script: ScriptDraft): ScriptWireDocument => {
   const document = {
     cast: script.cast,
     sections: script.sections,
@@ -154,8 +154,8 @@ const scriptToDocument = (script: ScriptDraft): ScriptWireDocument => {
   return document;
 };
 
-const responseToScript = (
-  res: ScriptResponse
+export const responseToScript = (
+  res: Pick<ScriptResponse, "name" | "document" | "timelineId" | "storyboardId">
 ): Omit<ScriptDraft, "id" | "updatedAt"> => {
   const doc = res.document;
   const draft: Omit<ScriptDraft, "id" | "updatedAt"> = {

@@ -14,7 +14,9 @@ import { getSecret } from "@nodetool-ai/models";
 /** Settings the worker or its node packs read with `os.environ`. */
 export const WORKER_ENV_SETTINGS = [
   // nodetool-core: torch device for every node (cuda, cuda:N, mps, cpu).
-  "NODETOOL_TORCH_DEVICE"
+  "NODETOOL_TORCH_DEVICE",
+  // huggingface_hub: Hub host for every download, such as https://hf-mirror.com.
+  "HF_ENDPOINT"
 ] as const;
 
 /** The user whose settings a single-user (local) server applies. */
@@ -49,5 +51,23 @@ export async function applyTransformersJsCacheSetting(
     return null;
   }
   process.env["TRANSFORMERS_JS_CACHE_DIR"] = value;
+  return value;
+}
+
+/**
+ * Copy a Hugging Face mirror saved in Settings (`HF_ENDPOINT`) into
+ * `process.env` at server start. Model Manager downloads read the setting per
+ * request, but Transformers.js models a workflow fetches on first run, and
+ * other in-process Hub calls, resolve the host from the environment. Returns
+ * the applied value, if any.
+ */
+export async function applyHfEndpointSetting(
+  userId: string = LOCAL_USER_ID
+): Promise<string | null> {
+  const value = (await getSecret("HF_ENDPOINT", userId))?.trim();
+  if (!value) {
+    return null;
+  }
+  process.env["HF_ENDPOINT"] = value;
   return value;
 }

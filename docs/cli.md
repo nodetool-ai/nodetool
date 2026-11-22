@@ -510,7 +510,7 @@ nodetool chat --url ws://localhost:7777/ws
 
 Manage workflows. Reads the local database by default; `--api-url` targets a remote server.
 
-**Subcommands:** `list` and `get` (both take `--api-url <url>` and `--json`, and `list` takes `--limit <n>`, default 100), `run`, `export-dsl`, `export-script`, `export-example`, `export-bundle`, `import-bundle`,
+**Subcommands:** `list` and `get` (both take `--api-url <url>` and `--json`, and `list` takes `--limit <n>`, default 100), `run`, `examples`, `export-dsl`, `export-script`, `export-example`, `export-bundle`, `import-bundle`,
 `migrate-code-inputs`
 
 ```bash
@@ -526,6 +526,29 @@ nodetool workflows run <workflow_id_or_file>
 
 # Export as a TypeScript DSL file (see above)
 nodetool workflows export-dsl <workflow_id_or_file>
+```
+
+#### `nodetool workflows examples`
+
+List the example workflows shipped with the CLI. The table shows each example's name, what it needs (`nothing`, or the providers its nodes call), and its tags.
+
+| Option | Purpose |
+|---|---|
+| `--search <text>` | Only examples whose name, description or tags contain the text |
+| `--no-keys` | Only examples that need no model and no API key |
+| `--provider <id>` | Only examples that call this provider |
+| `--json` | Output as JSON |
+
+`nodetool workflows examples get <name>` writes one example as a workflow file. The name matches an example's name or its file name, ignoring case. `-o, --output <file>` writes to a file instead of stdout.
+
+```bash
+# Examples that run without any API key
+nodetool workflows examples --no-keys
+
+# Save one, then check and run it
+nodetool workflows examples get "A Gradient Card as PNG" -o wf.json
+nodetool validate wf.json
+nodetool run wf.json
 ```
 
 #### `nodetool workflows export-example <workflow_id_or_file>`

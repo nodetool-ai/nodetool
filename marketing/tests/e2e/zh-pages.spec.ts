@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { test, expect } from "@playwright/test";
-import { TRANSLATED_ROUTES } from "../../src/i18n/routes";
+import { LOCALES, TRANSLATED_ROUTES, type Locale } from "../../src/i18n/routes";
 import { localizedPages } from "../../src/i18n/pages";
 import { storyboards } from "../../src/data/storyboards";
 import { adRecipes } from "../../src/data/adLibrary";
@@ -27,9 +27,14 @@ function mainOf(html: string): string {
 }
 
 const ROUTES = TRANSLATED_ROUTES.zh;
+/** Every language version of a route, as hreflang keys in lower case. */
 const expected = (route: string) => ({
   en: `https://nodetool.ai${route}`,
-  "zh-hans": `https://nodetool.ai/zh${route}`,
+  ...Object.fromEntries(
+    (Object.keys(LOCALES) as Locale[])
+      .filter((locale) => TRANSLATED_ROUTES[locale].includes(route))
+      .map((locale) => [LOCALES[locale].hreflang.toLowerCase(), `https://nodetool.ai/${locale}${route}`])
+  ),
   "x-default": `https://nodetool.ai${route}`,
 });
 

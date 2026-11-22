@@ -13,9 +13,12 @@ import {
   SUPPORTED_MODEL_TYPES,
   listAllHfModels,
   readCachedHfModels,
+  resolveStoredHfEndpoint,
   searchHfHub,
   type DownloadUpdate
 } from "@nodetool-ai/huggingface";
+import { setupLocalDb } from "@nodetool-ai/cli-local/local-db";
+import { resolveLocalSecret } from "@nodetool-ai/cli-local/local-secrets";
 
 import { asJson, printTable } from "@nodetool-ai/cli-common/commands/output";
 
@@ -47,6 +50,20 @@ function parseLimit(raw: string | undefined): number | undefined {
 
 function collectOption(value: string, previous: string[] | undefined): string[] {
   return previous ? [...previous, value] : [value];
+}
+
+/**
+ * The Hub host the server would use: a mirror saved in Settings
+ * (`HF_ENDPOINT`), else the environment variable, else huggingface.co. A
+ * database that cannot be opened falls back to the environment.
+ */
+export async function cliHfEndpoint(): Promise<string> {
+  try {
+    await setupLocalDb();
+    return await resolveStoredHfEndpoint(resolveLocalSecret);
+  } catch {
+    return resolveStoredHfEndpoint();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -112,7 +129,8 @@ function registerListHf(models: Command): void {
           const results = await searchHfHub({
             modelType,
             task: opts.task,
-            limit
+            limit,
+            endpoint: await cliHfEndpoint()
           });
           if (opts.json) {
             asJson(results);
@@ -282,6 +300,7 @@ function registerDownloadHf(models: Command): void {
 
         try {
           await mgr.startDownload(opts.repoId, {
+            endpoint: await cliHfEndpoint(),
             path: opts.filePath ?? null,
             allowPatterns: opts.allowPatterns ?? null,
             ignorePatterns: opts.ignorePatterns ?? null,

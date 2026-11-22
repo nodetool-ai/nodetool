@@ -1132,15 +1132,20 @@ function hasMetadataLayout(root: string): boolean {
   );
 }
 
-function detectNearbyMetadataRoots(cwd: string): string[] {
-  const candidates = new Set<string>();
+function ancestorDirs(cwd: string): string[] {
+  const dirs: string[] = [];
   let cur = path.resolve(cwd);
   for (let i = 0; i < 8; i++) {
-    candidates.add(cur);
+    dirs.push(cur);
     const parent = path.dirname(cur);
     if (parent === cur) break;
     cur = parent;
   }
+  return dirs;
+}
+
+function detectNearbyMetadataRoots(cwd: string): string[] {
+  const candidates = new Set<string>(ancestorDirs(cwd));
 
   // Also inspect siblings in the parent workspace (e.g. nodetool-* repos).
   const workspaceRoot = path.resolve(cwd, "..", "..", "..", "..");
@@ -1172,14 +1177,7 @@ function hasNodetoolBaseExamplesLayout(root: string): boolean {
 }
 
 function detectNearbyNodetoolBaseRoot(cwd: string): string | null {
-  const candidates = new Set<string>();
-  let cur = path.resolve(cwd);
-  for (let i = 0; i < 8; i++) {
-    candidates.add(cur);
-    const parent = path.dirname(cur);
-    if (parent === cur) break;
-    cur = parent;
-  }
+  const candidates = new Set<string>(ancestorDirs(cwd));
 
   // Also check packages/base-nodes relative to the monorepo root
   for (const candidate of [...candidates]) {
@@ -1208,29 +1206,20 @@ function detectNearbyNodetoolBaseRoot(cwd: string): string | null {
   return null;
 }
 
-function resolveExamplesDir(options: TestUiServerOptions): string | null {
-  if (options.examplesDir && existsSync(options.examplesDir))
-    return options.examplesDir;
-  if (
-    process.env.NODETOOL_BASE_EXAMPLES_DIR &&
-    existsSync(process.env.NODETOOL_BASE_EXAMPLES_DIR)
-  ) {
-    return process.env.NODETOOL_BASE_EXAMPLES_DIR;
-  }
+export function resolveExamplesDir(options: TestUiServerOptions): string | null {
+  const explicit = [
+    options.examplesDir,
+    process.env.NODETOOL_BASE_EXAMPLES_DIR
+  ].find((dir) => dir && existsSync(dir));
+  if (explicit) return explicit;
   const baseRoot = detectNearbyNodetoolBaseRoot(process.cwd());
   if (!baseRoot) return null;
-  // Try monorepo layout first (packages/base-nodes/nodetool/examples/nodetool-base)
-  const monoDir = path.join(baseRoot, "nodetool", "examples", "nodetool-base");
-  if (existsSync(monoDir)) return monoDir;
-  // Fall back to installed/editable layout (src/nodetool/examples/nodetool-base)
-  const srcDir = path.join(
-    baseRoot,
-    "src",
-    "nodetool",
-    "examples",
-    "nodetool-base"
-  );
-  return existsSync(srcDir) ? srcDir : null;
+  // Monorepo layout first, then installed/editable layout.
+  const layouts = [
+    path.join(baseRoot, "nodetool", "examples", "nodetool-base"),
+    path.join(baseRoot, "src", "nodetool", "examples", "nodetool-base")
+  ];
+  return layouts.find((dir) => existsSync(dir)) ?? null;
 }
 
 /**

@@ -135,6 +135,7 @@ import {
   createIpcMainHandler,
   initializeIpcHandlers,
   fileUrlToLocalPath,
+  cloudDocumentRefSchema,
 } from '../ipc';
 import type {
   ClipboardContentInfo,
@@ -782,5 +783,15 @@ describe('fileUrlToLocalPath', () => {
 
   it('rejects what is not a local file URL', () => {
     expect(fileUrlToLocalPath('https://example.com/a.txt')).toBeNull();
+  });
+});
+
+describe('cloudDocumentRefSchema', () => {
+  it('opens the kinds of D26 in the cloud window and nothing else', () => {
+    for (const type of ['workflow', 'timeline', 'jsscript', 'script', 'storyboard', 'sketch', 'application']) {
+      expect(cloudDocumentRefSchema.safeParse({ type, id: 'a1' }).success).toBe(true);
+    }
+    expect(cloudDocumentRefSchema.safeParse({ type: 'text', id: 'a1' }).success).toBe(false);
+    expect(cloudDocumentRefSchema.safeParse({ type: 'jsscript', id: '../x' }).success).toBe(false);
   });
 });

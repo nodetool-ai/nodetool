@@ -52,6 +52,15 @@ npm run electron:dev        # Start against web Vite server (requires active con
 This workspace has no Playwright suite — main-process behavior is covered by
 the Jest tests in `src/__tests__/`. Browser-level E2E lives in `web/`.
 
+`src/__tests__/ipc.surface.test.ts` (harness `electron-ipc-surface`) reads the
+preloads and the main-process sources and fails when an IPC channel has one
+end missing: an `invoke` with no handler, a `send` with no `ipcMain.on`, a
+subscription with no emitter, or the reverse of each. It recognizes
+`ipcRenderer.invoke`/`send`/`sendSync`, `createEventSubscription`,
+`createIpcMainHandler`/`ipcMain.handle`, `ipcMain.on`, `webContents.send` and
+`broadcastToWindows`. A new call shape fails the suite until the scanner
+learns it.
+
 ## Key Technologies
 
 | Library | Version | Purpose |
@@ -146,7 +155,9 @@ are in [native/account-helper](../../native/account-helper/README.md).
   main decides which window that is: the page reads its server and account
   once at boot (IPC `CLOUD_WINDOW_ORIGIN`). The window uses its own session
   partition, so its persisted stores never mix with the local window's, and
-  closes when the account signs out or changes. A request, transfer or
+  closes when the account signs out or changes. A ready page is told first
+  (IPC `CLOUD_WINDOW_CLOSING`) and writes its drafts, then answers
+  (`CLOUD_WINDOW_FLUSHED`), or the window closes after `CLOSE_GRACE_MS`. A request, transfer or
   socket from a cloud window of another account is refused, and another
   account signing in ends the pending requests and sockets of the first.
   The window's session has no local client token, so its drafts go through

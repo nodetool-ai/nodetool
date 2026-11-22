@@ -20429,6 +20429,12 @@
       "cancel": "Abbrechen",
       "signOutNow": "Jetzt abmelden",
       "waitingNote": "Warte, bis die Änderungen gesendet sind. Lass das Cloud-Fenster geöffnet."
+    },
+    "syncStatus": {
+      "savedToCloud": "In der Cloud gespeichert",
+      "changesWaiting": "Änderungen warten",
+      "offline": "Offline",
+      "notSaving": "Wird nicht gespeichert"
     }
   },
   "cloudTransfer": {
@@ -20438,6 +20444,10 @@
     },
     "capturing": "Änderungen werden gelesen…",
     "running": "Senden und Empfangen…",
+    "collect": "Sammeln",
+    "collecting": "Verknüpfte Dateien werden in den Projektordner kopiert…",
+    "include": "Senden",
+    "includeReceive": "Empfangen",
     "apply": {
       "publish": "Veröffentlichen",
       "synchronize": "Synchronisieren"
@@ -20472,6 +20482,11 @@
       "keepBoth": "Wird als Kopie neben der Cloud-Version gesendet",
       "addVersions": "Gespeicherte Versionen werden gesendet",
       "putAssetFile": "Datei hier geändert, wird gesendet",
+      "putWorkspaceFile": "Im Projektordner geändert",
+      "newWorkspaceFile": "Neu im Projektordner",
+      "workspaceBothChanged": "Hier und in der Cloud geändert. Die Cloud-Datei wird neben deiner abgelegt",
+      "workspaceLocalDeleted": "Hier gelöscht, in der Cloud geändert",
+      "workspaceCloudDeleted": "In der Cloud gelöscht. Deine Datei bleibt hier",
       "newInCloud": "Neu in der Cloud",
       "cloudChanged": "In der Cloud geändert",
       "cloudFileChanged": "Eine verwendete Datei wurde in der Cloud geändert",
@@ -20494,7 +20509,7 @@
       "localUnavailable": "Der Projektserver dieser App hat nicht geantwortet.",
       "cancelled": "Die Übertragung wurde beendet, weil sich das Cloud-Konto geändert hat.",
       "refused": "Der Server hat die Übertragung abgelehnt ({{reason}}).",
-      "collectFirst": "Einige Dateien dieses Projekts liegen außerhalb des Projektordners. Sammle sie im Ordner und versuche es dann erneut.",
+      "collectFirst": "Einige Dateien dieses Projekts liegen außerhalb des Projektordners. Sammeln kopiert sie in den Ordner „Imported“ und liest das Projekt dann erneut.",
       "receiveExpired": "Das Cloud-Projekt hat sich geändert, während dieses Fenster offen war. Synchronisiere erneut.",
       "receiveChangedWhileOpen": "Etwas hat sich geändert, während dieses Fenster offen war. Prüfe die Auswahl erneut.",
       "receivingChangedAgain": "Das Cloud-Projekt hat sich beim Empfangen erneut geändert. Wähle erneut.",
@@ -20505,7 +20520,9 @@
       "notPreparedAgain": "Empfangen. Die Änderungen hier konnten nicht erneut vorbereitet werden: {{reason}} Synchronisiere erneut, um sie zu senden.",
       "sendChangedWhileOpen": "Dieses Projekt hat sich geändert, während das Fenster offen war. Prüfe, was gesendet wird.",
       "missingFilesUnconfirmed": "Dateien, die dieses Projekt braucht, fehlen. Bestätige jede einzelne, um ohne sie zu senden.",
-      "sendRefused": "Die Cloud hat das Senden abgelehnt: {{reasons}}"
+      "sendRefused": "Die Cloud hat das Senden abgelehnt: {{reasons}}",
+      "notCollected": "Diese verknüpften Dateien konnten nicht in den Projektordner kopiert werden: {{files}}",
+      "collectInterrupted": "Das Kopieren wurde beendet, bevor alle verknüpften Dateien versucht wurden. Versuche es erneut."
     },
     "done": {
       "published": "In der Cloud veröffentlicht.",

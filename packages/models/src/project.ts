@@ -712,16 +712,19 @@ export class Project extends DBModel {
         "nodetool_predictions",
         // The blob cleanup deletes the objects no row names any more.
         "project_blobs",
+        "project_workspace_hashes",
         "transfer_placements",
         "recovery_copies",
         "transferred_conversations",
         "revision_set_files",
+        "revision_set_workspace_files",
         "revision_set_entries",
         "revision_sets",
         // A local project's link to a cloud project goes with it.
         "cloud_receives",
         "cloud_sends",
         "cloud_link_files",
+        "cloud_link_workspace_files",
         "cloud_link_documents",
         "cloud_links"
       ]) {

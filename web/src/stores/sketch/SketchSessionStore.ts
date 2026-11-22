@@ -950,10 +950,11 @@ export function useStandaloneSketchDocument(
   const instance = useSketchInstance();
   const editorStore = instance.editor;
   const sessionStore = instance.session;
-  // Whether editor/binding state changed since the last save attempt. Store
-  // mutations only flip this flag — the expensive serialize/hash runs once
-  // inside the debounced save (`saveSnapshot`), never on the mutation path.
-  const pendingDirtyRef = useRef(false);
+  // `instance.unsavedEdits`: whether editor/binding state changed since the
+  // last save attempt. Store mutations only flip this flag — the expensive
+  // serialize/hash runs once inside the debounced save (`saveSnapshot`), never
+  // on the mutation path. It lives on the instance so the cloud window's
+  // drafts can read it.
   // Saves still waiting for the server. Kept outside the sync controller,
   // which is rebuilt whenever the cached response changes, so a save started
   // by an earlier controller still counts.
@@ -982,7 +983,7 @@ export function useStandaloneSketchDocument(
       toPersistedSketchEditorState(initialState),
       response.document.layerBindings ?? []
     );
-    pendingDirtyRef.current = false;
+    instance.unsavedEdits.current = false;
     const session = sessionStore.getState();
     session.setLoadedDocument(
       {
@@ -1002,7 +1003,7 @@ export function useStandaloneSketchDocument(
       }
     );
     session.setBindings(response.document.layerBindings ?? []);
-  }, [enabled, initialState, response, sessionStore]);
+  }, [enabled, initialState, response, sessionStore, instance]);
 
   useEffect(() => {
     if (!enabled || !response || !initialState) {
@@ -1124,7 +1125,7 @@ export function useStandaloneSketchDocument(
           (conflict) => conflict.reason === "replaced"
         );
         if (!replaced) {
-          pendingDirtyRef.current = true;
+          instance.unsavedEdits.current = true;
           schedule();
         }
 
@@ -1144,7 +1145,7 @@ export function useStandaloneSketchDocument(
             },
             onDiscard: () => {
               if (replaced) {
-                pendingDirtyRef.current = true;
+                instance.unsavedEdits.current = true;
                 schedule();
               }
             }
@@ -1216,7 +1217,7 @@ export function useStandaloneSketchDocument(
     const unwatchDocument = registerDocumentSync("imagedocument", response.id, {
       localRevision: () => sessionStore.getState().baseUpdatedAt,
       isDirty: () =>
-        pendingDirtyRef.current ||
+        instance.unsavedEdits.current ||
         controller.isSaving() ||
         savesInFlightRef.current.size > 0 ||
         sessionStore.getState().hasConflict,
@@ -1240,9 +1241,9 @@ export function useStandaloneSketchDocument(
       debounceMs: SKETCH_DOCUMENT_AUTOSAVE_DEBOUNCE_MS,
       getDraft: () => buildSnapshot(editorStore),
       getRevision: () => sessionStore.getState().baseUpdatedAt,
-      isDirty: () => pendingDirtyRef.current,
+      isDirty: () => instance.unsavedEdits.current,
       save: async (_draft, revision) => {
-        pendingDirtyRef.current = false;
+        instance.unsavedEdits.current = false;
         const current = sessionStore.getState();
         let saved: Awaited<ReturnType<typeof saveSnapshot>>;
         const pending = saveSnapshot(
@@ -1261,7 +1262,7 @@ export function useStandaloneSketchDocument(
           // The edits were not persisted: keep them dirty so the retry and
           // the unmount flush still save, and an external change merges
           // instead of reloading over them.
-          pendingDirtyRef.current = true;
+          instance.unsavedEdits.current = true;
           throw error;
         } finally {
           savesInFlightRef.current.delete(pending);
@@ -1305,7 +1306,7 @@ export function useStandaloneSketchDocument(
         return;
       }
       prevSelected = nextSelected;
-      pendingDirtyRef.current = true;
+      instance.unsavedEdits.current = true;
       schedule();
     });
 
@@ -1315,7 +1316,7 @@ export function useStandaloneSketchDocument(
     const unsubscribeSession = sessionStore.subscribe((state) => {
       if (state.bindings === prevBindings) return;
       prevBindings = state.bindings;
-      pendingDirtyRef.current = true;
+      instance.unsavedEdits.current = true;
       schedule();
     });
 

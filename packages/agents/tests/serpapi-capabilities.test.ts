@@ -261,6 +261,41 @@ describe("locations", () => {
   });
 });
 
+describe("account", () => {
+  it("reads the plan and the searches left, so a fan-out can be budgeted", async () => {
+    searchBody = {
+      account_email: "owner@example.com",
+      plan_name: "Developer",
+      searches_per_month: 5000,
+      this_month_usage: 1234,
+      total_searches_left: 3766,
+      api_key: KEY
+    };
+    const result = await invoke(keyed(), "get_serpapi_account");
+
+    expect(requested).toHaveLength(1);
+    const url = new URL(requested[0]);
+    expect(`${url.origin}${url.pathname}`).toBe("https://serpapi.com/account.json");
+    expect(url.searchParams.get("api_key")).toBe(KEY);
+    // Only the quota fields cross back; the echoed key and the owner's email
+    // stay on the host.
+    expect(result).toEqual({
+      ok: true,
+      plan: "Developer",
+      searchesPerMonth: 5000,
+      thisMonthUsage: 1234,
+      totalSearchesLeft: 3766
+    });
+  });
+
+  it("reports a missing key as a setting to change before calling SerpAPI", async () => {
+    const result = await invoke(runWith(), "get_serpapi_account");
+    expect(result.ok).toBe(false);
+    expect(result.error_kind).toBe("auth");
+    expect(requested).toEqual([]);
+  });
+});
+
 describe("the sandbox surface", () => {
   it("serves the module to guest code without handing it the key", async () => {
     const run = keyed();

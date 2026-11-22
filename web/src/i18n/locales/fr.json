@@ -20743,6 +20743,12 @@
       "waitingNote": "En attente de l'envoi des modifications. Gardez la fenêtre cloud ouverte.",
       "waiting_many": "{{count}} documents cloud contiennent des modifications pas encore envoyées.",
       "unsent_many": "Le serveur a refusé les modifications de {{count}} documents cloud."
+    },
+    "syncStatus": {
+      "savedToCloud": "Enregistré dans le cloud",
+      "changesWaiting": "Modifications en attente",
+      "offline": "Hors ligne",
+      "notSaving": "Enregistrement impossible"
     }
   },
   "cloudTransfer": {
@@ -20752,6 +20758,10 @@
     },
     "capturing": "Lecture des modifications…",
     "running": "Envoi et réception…",
+    "collect": "Rassembler",
+    "collecting": "Copie des fichiers liés dans le dossier du projet…",
+    "include": "Envoyer",
+    "includeReceive": "Recevoir",
     "apply": {
       "publish": "Publier",
       "synchronize": "Synchroniser"
@@ -20786,6 +20796,11 @@
       "keepBoth": "Sera envoyé comme copie à côté de la version du cloud",
       "addVersions": "Les versions enregistrées seront envoyées",
       "putAssetFile": "Fichier modifié ici, sera envoyé",
+      "putWorkspaceFile": "Modifié dans le dossier du projet",
+      "newWorkspaceFile": "Nouveau dans le dossier du projet",
+      "workspaceBothChanged": "Modifié ici et dans le cloud. Le fichier du cloud est placé à côté du vôtre",
+      "workspaceLocalDeleted": "Supprimé ici, modifié dans le cloud",
+      "workspaceCloudDeleted": "Supprimé dans le cloud. Votre fichier reste ici",
       "newInCloud": "Nouveau dans le cloud",
       "cloudChanged": "Modifié dans le cloud",
       "cloudFileChanged": "Un fichier qu’il utilise a changé dans le cloud",
@@ -20808,7 +20823,7 @@
       "localUnavailable": "Le serveur de projets de cette app n’a pas répondu.",
       "cancelled": "Le transfert s’est arrêté, car le compte cloud a changé.",
       "refused": "Le serveur a refusé le transfert ({{reason}}).",
-      "collectFirst": "Certains fichiers de ce projet sont hors du dossier du projet. Rassemblez-les dans le dossier, puis réessayez.",
+      "collectFirst": "Certains fichiers utilisés par ce projet sont en dehors du dossier du projet. Rassembler les copie dans son dossier Imported, puis relit le projet.",
       "receiveExpired": "Le projet cloud a changé pendant que cette fenêtre était ouverte. Synchronisez à nouveau.",
       "receiveChangedWhileOpen": "Quelque chose a changé pendant que cette fenêtre était ouverte. Vérifiez à nouveau les choix.",
       "receivingChangedAgain": "Le projet cloud a encore changé pendant la réception. Choisissez à nouveau.",
@@ -20820,6 +20835,8 @@
       "sendChangedWhileOpen": "Ce projet a changé pendant que la fenêtre était ouverte. Vérifiez ce qui sera envoyé.",
       "missingFilesUnconfirmed": "Des fichiers nécessaires à ce projet manquent. Confirmez chacun pour envoyer sans lui.",
       "sendRefused": "Le cloud a refusé l’envoi : {{reasons}}",
+      "notCollected": "Ces fichiers liés n’ont pas pu être copiés dans le dossier du projet : {{files}}",
+      "collectInterrupted": "La copie s’est arrêtée avant que tous les fichiers liés aient été essayés. Réessayez.",
       "chooseAgain_many": "{{count}} documents ont changé ici ou dans le cloud depuis votre choix. Choisissez à nouveau.",
       "cloudChangedChooseAgain_many": "La version cloud de {{count}} documents a changé depuis la lecture de cette fenêtre. Choisissez à nouveau."
     },

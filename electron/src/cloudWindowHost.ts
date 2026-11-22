@@ -33,6 +33,11 @@ function windowLike(window: BrowserWindow): WindowLike {
         window.webContents.send(IpcChannels.CLOUD_WINDOW_DOCUMENT, document);
       }
     },
+    sendClosing: () => {
+      if (!window.isDestroyed()) {
+        window.webContents.send(IpcChannels.CLOUD_WINDOW_CLOSING);
+      }
+    },
     onClosed: (listener) => {
       window.on("closed", listener);
     },
@@ -49,6 +54,10 @@ export function getCloudWindow(): CloudWindow {
       createWindow: () => windowLike(createCloudBrowserWindow()),
       appUrl: webAppUrl,
       log: (message, level) => logMessage(message, level),
+      after: (ms, run) => {
+        const timer = setTimeout(run, ms);
+        return () => clearTimeout(timer);
+      },
     });
     account.onStateChange((state) => cloudWindow.stateChanged(state));
     shared = cloudWindow;

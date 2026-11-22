@@ -2,6 +2,7 @@
 // so the desktop sheet and the native sheets ask the same questions.
 import type { CaptureReceiveOutput, CaptureSendOutput } from "@nodetool-ai/protocol/api-schemas/cloud-transfer-local.js";
 import {
+  hasRequiredWork,
   receiveCaptureFrom,
   sendCaptureFrom,
   TransferReview,
@@ -24,6 +25,7 @@ const send = (overrides: Partial<SendCapture>): SendCapture => ({
   missingFiles: [],
   skipped: [],
   deletedLocally: [],
+  deletedWorkspaceFiles: [],
   missingDocumentFiles: [],
   ...overrides
 });
@@ -213,6 +215,65 @@ describe("TransferReview", () => {
     expect(
       unreviewedFileOperations(fileOperations, [{ ...fileOperations[0], hash: "h4" }])
     ).toHaveLength(1);
+  });
+
+  it("shows new and changed workspace files as send rows keyed by path (CF5)", () => {
+    const fileOperations = [
+      { op: "put_workspace_file", assetId: "", path: "notes/plan.md", hash: "h2", baseHash: "h1" },
+      { op: "put_workspace_file", assetId: "", path: "data/new.csv", hash: "h3", baseHash: "" }
+    ];
+    const review = new TransferReview(send({ fileOperations }), null);
+    expect(countOf(review, "send")).toBe(2);
+    expect(review.rows[0]).toMatchObject({ documentId: "notes/plan.md", detail: "put_workspace_file" });
+    expect(review.rows[1]).toMatchObject({ documentId: "data/new.csv", detail: "new_workspace_file" });
+    // Optional and off by default (SR7): only an included file is listed for the send.
+    expect(review.includedFiles()).toEqual([]);
+    expect(review.includeFile(1, true)).toBe(true);
+    expect(review.includedFiles()).toEqual([{ path: "data/new.csv", hash: "h3" }]);
+    expect(hasRequiredWork(send({ fileOperations }))).toBe(false);
+    expect(hasRequiredWork(send({ fileOperations: [...fileOperations, { op: "put_asset_file", assetId: "a1", path: "m.png", hash: "h", baseHash: "b" }] }))).toBe(true);
+  });
+
+  it("offers the cloud's changed workspace files as Receive rows, off by default (RW7)", () => {
+    const captured: CaptureReceiveOutput = {
+      set_id: "s1",
+      documents: [],
+      workspace_files: [
+        { path: "notes.txt", hash: "h1", size: 5, local_hash: null, status: "new", included: false },
+        { path: "same.txt", hash: "h2", size: 5, local_hash: "h2", status: "same", included: true },
+        { path: "both.txt", hash: "h3", size: 5, local_hash: "h9", status: "both_changed", included: false }
+      ],
+      cloud_deleted_workspace_files: ["old.txt"]
+    };
+    const sendFile = { op: "put_workspace_file", assetId: "", path: "mine.txt", hash: "h4", baseHash: "" };
+    const review = new TransferReview(send({ fileOperations: [sendFile] }), receiveCaptureFrom(captured));
+    const receiveRows = review.rows.filter((row) => row.section === "receive");
+    expect(receiveRows.map((row) => [row.documentId, row.detail, row.optional, row.confirmed])).toEqual([
+      ["notes.txt", "workspace_new", true, false],
+      ["both.txt", "workspace_both_changed", true, false],
+      ["old.txt", "workspace_cloud_deleted", false, false]
+    ]);
+    expect(review.includedReceiveFiles()).toEqual([]);
+    const both = review.rows.findIndex((row) => row.documentId === "both.txt");
+    const mine = review.rows.findIndex((row) => row.documentId === "mine.txt");
+    expect(review.includeFile(both, true)).toBe(true);
+    expect(review.includeFile(mine, true)).toBe(true);
+    // A ticked Receive row goes to the receive only, a ticked Send row to the send only.
+    expect(review.includedReceiveFiles()).toEqual([{ path: "both.txt", hash: "h3" }]);
+    expect(review.includedFiles()).toEqual([{ path: "mine.txt", hash: "h4" }]);
+    expect(review.includeFile(review.rows.findIndex((row) => row.documentId === "old.txt"), true)).toBe(false);
+  });
+
+  it("lists a deleted workspace file as a deletion that only a confirmation sends", () => {
+    const review = new TransferReview(
+      send({ deletedWorkspaceFiles: [{ path: "notes/plan.md", baseHash: "h1" }] }),
+      null
+    );
+    expect(countOf(review, "deletion")).toBe(1);
+    expect(review.confirmedFileDeletes()).toEqual([]);
+    expect(review.confirmDeletion(0, true)).toBe(true);
+    expect(review.confirmedFileDeletes()).toEqual([{ path: "notes/plan.md", baseHash: "h1" }]);
+    expect(review.confirmedDeletes()).toEqual([]);
   });
 
   it("flags a document sent from its last saved row (CF3, review F56)", () => {

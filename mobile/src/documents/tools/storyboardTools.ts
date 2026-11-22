@@ -303,6 +303,7 @@ MobileToolRegistry.register<SelectShotArgs>({
       storyboard_id: storyboardIdProperty,
       target: {
         ...targetProperty,
+        type: ['string', 'null'],
         description: `${targetProperty.description} Pass null to clear the selection.`,
       },
     },

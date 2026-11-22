@@ -138,4 +138,4 @@ node scripts/ensure-dev-env.mjs || log "could not prepare .env — run 'node scr
 # Example media lives on media.nodetool.ai; tests and example checks read it from disk.
 node scripts/package-media.mjs pull || log "could not pull package media — run 'npm run media:pull'"
 
-log "ready — ./start.sh serves the API on http://localhost:7777"
+log "ready — npm start serves the API on http://localhost:7777"

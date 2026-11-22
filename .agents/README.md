@@ -149,13 +149,12 @@ infer improved task success from a smaller prompt alone.
 ## Running things
 
 ```bash
-./start.sh          # API on :7777 — installs and builds on first run
-./start.sh full     # API + web UI on :3000
-./start.sh check    # typecheck + lint + test
-./start.sh doctor   # what's set up, what isn't
+npm start           # API on :7777, installs and builds on first run
+npm run dev         # API + web UI on :3000
+npm run doctor      # what's set up, what isn't
 ```
 
 Agents set up a fresh container with `scripts/setup-agent-env.sh`, as described
 in [AGENTS.md § Prerequisites](../AGENTS.md#prerequisites). It prepares the same
-tree `./start.sh` uses. To run it automatically in Claude Code on the web, set
+tree `npm run bootstrap` prepares. To run it automatically in Claude Code on the web, set
 it as the environment's setup script.

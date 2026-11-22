@@ -67,7 +67,7 @@ A token pasted in Settings covers Model Manager downloads. For a gated repo, dow
 
 ### Hub mirror
 
-Where huggingface.co is unreachable, set `HF_ENDPOINT` to a mirror such as `https://hf-mirror.com`, in **Settings** under HF or in the environment. Model Manager downloads, Hub search, llama.cpp GGUF downloads, and Transformers.js model downloads then use that host, and your HF token is sent to it. The Settings value applies to downloads the server starts. `nodetool models` commands and Transformers.js models a workflow fetches on first run read the environment variable only. Inference Providers, sign-in, and the token check stay on huggingface.co.
+Where huggingface.co is unreachable, set `HF_ENDPOINT` to a mirror such as `https://hf-mirror.com`, in **Settings** under HF or in the environment. Model Manager downloads, Hub search, llama.cpp GGUF downloads, and Transformers.js model downloads then use that host, and your HF token is sent to it. The Settings value applies to downloads the server starts, `nodetool models list-hf` and `download-hf`, and Python node downloads. Transformers.js models a workflow fetches on first run, and Python nodes, read it when the server starts, so restart NodeTool after you change it. Inference Providers, sign-in, and the token check stay on huggingface.co.
 
 ### Gated models
 

@@ -26,6 +26,8 @@ import {
 import type { CloudTransferResult } from "../../window";
 import type {
   DeleteConfirmation,
+  TransferDeletedFile,
+  IncludedFile,
   KeepLocalDecision,
   ReceiveDecision,
   TransferMissingFile
@@ -84,7 +86,9 @@ export const runSend = (
   transferId: string,
   decisions: readonly KeepLocalDecision[],
   confirmDeletes: readonly DeleteConfirmation[],
-  confirmMissing: readonly TransferMissingFile[]
+  confirmMissing: readonly TransferMissingFile[],
+  confirmFileDeletes: readonly TransferDeletedFile[] = [],
+  includeFiles: readonly IncludedFile[] = []
 ): Promise<TransferAnswer<RunSendOutput>> => {
   const input: Record<string, unknown> = {
     transfer_id: transferId,
@@ -94,7 +98,11 @@ export const runSend = (
       kind: item.kind,
       cloud_id: item.cloudId,
       cloud_hash: item.cloudHash
-    }))
+    })),
+    // Also always complete, for the same reason.
+    confirm_workspace_deletes: confirmFileDeletes.map((item) => ({ path: item.path, base_hash: item.baseHash })),
+    // Complete as well: a file left out on this attempt is not put.
+    include_workspace_files: includeFiles.map((item) => ({ path: item.path, hash: item.hash }))
   };
   if (decisions.length > 0) {
     input.decisions = decisions.map((item) => ({
@@ -119,7 +127,8 @@ export const captureReceive = (call: TransferCall, projectId: string): Promise<T
 export const runReceive = (
   call: TransferCall,
   setId: string,
-  decisions: readonly ReceiveDecision[]
+  decisions: readonly ReceiveDecision[],
+  includeFiles: readonly IncludedFile[] = []
 ): Promise<TransferAnswer<RunReceiveOutput>> => {
   const input: Record<string, unknown> = { set_id: setId };
   if (decisions.length > 0) {
@@ -129,6 +138,8 @@ export const runReceive = (
       decision: item.choice
     }));
   }
+  // Always named, so a receive leaves out every workspace file the person did not tick (RW7).
+  input.include_workspace_files = includeFiles.map((file) => ({ path: file.path, hash: file.hash }));
   return answer(call, "cloudTransfer.receive.run", input, runReceiveOutput);
 };
 

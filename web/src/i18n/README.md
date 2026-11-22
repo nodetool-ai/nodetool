@@ -18,6 +18,23 @@ French, Italian, Portuguese, and Spanish also need `_many`.
 The Spanish, Portuguese, French, Italian, Polish, Swedish, Norwegian Bokmål,
 Dutch, Korean, Japanese, and Hindi catalogs are machine translated and need
 native-speaker review for terminology and grammar.
+Product terms in the Korean, Japanese, and Simplified Chinese catalogs match
+the localized READMEs and the marketing pages under `/ko`, `/ja`, and `/zh`:
+
+| English | Korean | Japanese | Chinese |
+|---|---|---|---|
+| Agent | 에이전트 | エージェント | 智能体 |
+| Workflow | 워크플로 | ワークフロー | 工作流 |
+| Node | 노드 | ノード | 节点 |
+| Timeline | 타임라인 | タイムライン | 时间线 |
+| Storyboard | 스토리보드 | 絵コンテ | 故事板 |
+| Asset | 에셋 | アセット | 素材 |
+| Entity | 엔터티 | エンティティ | 实体 |
+| Provider | 프로바이더 | プロバイダー | 服务商 |
+| Skill | 스킬 | スキル | 技能 |
+| Secret | 시크릿 | シークレット | 密钥 |
+| Generations (history) | 생성 기록 | 生成履歴 | 生成记录 |
+
 Use semantic keys grouped by feature. Translate complete sentences and preserve
 interpolation names. Pass counts to i18next for plurals instead of joining words.
 

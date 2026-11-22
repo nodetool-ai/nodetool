@@ -1,0 +1,61 @@
+/**
+ * In the desktop app's cloud window, runs the drafts driver for one open
+ * document of a D26 kind (FR11). Does nothing in any other window.
+ *
+ * `makeEditor` and `subscribe` must be stable, such as module functions.
+ */
+import { useEffect } from "react";
+
+import { CloudWindowDraftDriver, type DraftableEditor } from "../lib/cloud/cloudWindowDrafts";
+import { CLOUD_WINDOW } from "../lib/cloud/cloudWindow";
+import { SAVER_TICK_MS } from "../lib/cloud/CloudDocumentSaver";
+import { desktopCloudLocalDraftsClient, LocalDraftStore, serverKeyOf } from "../lib/cloud/localDraftStore";
+import { registerCloudWindowFlush } from "../lib/cloud/cloudWindowClosing";
+import { cloudSyncStatusKey, reportCloudSyncStatus } from "../stores/CloudSyncStatusStore";
+
+export const useCloudWindowDrafts = (
+  documentId: string,
+  makeEditor: (documentId: string) => DraftableEditor,
+  subscribe: (listener: () => void) => () => void
+): void => {
+  useEffect(() => {
+    const client = desktopCloudLocalDraftsClient();
+    if (!CLOUD_WINDOW || !client) {
+      return;
+    }
+    const origin = CLOUD_WINDOW;
+    const editor = makeEditor(documentId);
+    const statusKey = cloudSyncStatusKey(editor.kind, documentId);
+    let driver: CloudWindowDraftDriver | null = null;
+    let disposed = false;
+    void serverKeyOf(origin.server).then((serverKey) => {
+      if (!disposed) {
+        driver = new CloudWindowDraftDriver(editor, new LocalDraftStore(client), {
+          serverKey,
+          accountId: origin.account
+        });
+      }
+    });
+    const tick = (): void => {
+      const current = driver;
+      if (!current) {
+        return;
+      }
+      void current.tick(Date.now()).then(() => {
+        if (!disposed) {
+          reportCloudSyncStatus(statusKey, current.status());
+        }
+      });
+    };
+    const timer = window.setInterval(tick, SAVER_TICK_MS);
+    const unsubscribe = subscribe(tick);
+    const unregister = registerCloudWindowFlush(async () => driver?.flush());
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+      unsubscribe();
+      unregister();
+      reportCloudSyncStatus(statusKey, null);
+    };
+  }, [documentId, makeEditor, subscribe]);
+};

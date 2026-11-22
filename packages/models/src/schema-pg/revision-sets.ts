@@ -53,3 +53,20 @@ export const revisionSetFiles = pgTable(
     index("idx_revision_set_files_hash").on(table.hash)
   ]
 );
+
+export const revisionSetWorkspaceFiles = pgTable(
+  "revision_set_workspace_files",
+  {
+    id: text("id").primaryKey(),
+    set_id: text("set_id").notNull(),
+    user_id: text("user_id").notNull(),
+    project_id: text("project_id").notNull(),
+    path: text("path").notNull(),
+    hash: text("hash").notNull(),
+    size: bigint("size", { mode: "number" }).notNull()
+  },
+  (table) => [
+    index("idx_revision_set_workspace_files_set").on(table.set_id, table.hash),
+    index("idx_revision_set_workspace_files_hash").on(table.hash)
+  ]
+);

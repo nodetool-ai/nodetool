@@ -46,6 +46,7 @@ import {
 } from "./puck/puckAgentBridge";
 import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
+import { useCloudWindowApplicationDrafts } from "../../hooks/useCloudWindowApplicationDrafts";
 
 interface ApplicationAppBuilderProps {
   applicationId: string;
@@ -121,6 +122,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   useEffect(() => {
     if (application?.updatedAt) revisionRef.current = application.updatedAt;
   }, [application?.updatedAt]);
+  useCloudWindowApplicationDrafts(applicationId, revisionRef);
 
   // The document this canvas last read or saved — the merge base and the
   // reference point for the dirty check. JSON form: the live Puck document

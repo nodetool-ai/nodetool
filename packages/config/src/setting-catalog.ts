@@ -419,7 +419,7 @@ s(
 s(
   "HF_ENDPOINT",
   "HF",
-  "Hugging Face Hub host for model downloads and Hub searches (default: https://huggingface.co). Set a mirror such as https://hf-mirror.com where huggingface.co is unreachable. Your HF token is sent to this host"
+  "Hugging Face Hub host for model downloads and Hub searches (default: https://huggingface.co). Set a mirror such as https://hf-mirror.com where huggingface.co is unreachable. Your HF token is sent to this host. Python node downloads read it when the worker starts, so restart the backend after changing it"
 );
 s(
   "ZAI_REGION",

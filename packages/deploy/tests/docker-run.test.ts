@@ -114,6 +114,13 @@ describe("DockerRunGenerator constructor", () => {
     const gen = new DockerRunGenerator(makeDeployment(), "podman");
     expect(gen.runtimeCommand).toBe("podman");
   });
+
+  it("leaves a runtime probe fragment unquoted so the remote shell runs it", () => {
+    const probe =
+      "$((command -v docker >/dev/null 2>&1 && echo docker) || echo podman)";
+    const command = new DockerRunGenerator(makeDeployment(), probe).generateCommand();
+    expect(command.startsWith(`${probe} run \\\n`)).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -275,6 +275,18 @@ storyboard through client tools:
 4. Handlers mutate the same store the screen renders from, so an agent edit
    repaints immediately and `ui_storyboard_save` is the Save button's code path.
 
+The handler lives in `storyboardAgentHandler.ts`, with no React dependency.
+The `mobile-document-tools` harness
+(`packages/agents/tests/mobile-storyboard-tool-loop.test.ts`) builds the same
+handler over a document store backed by an in-memory `resources.*` server,
+drives every `ui_storyboard_*` tool through `executeToolCall` with scripted
+calls checked against the manifest schemas, and validates the saved board with
+the protocol's `storyboardDocument` schema. It also covers bad ids, unknown
+tools, and a save over a newer revision. It runs from the root tree with
+`npm run test --workspace=packages/agents -- mobile-storyboard-tool-loop`, so
+it needs no mobile install. Add a case there when you add a storyboard tool:
+the suite fails when a manifest tool is never called.
+
 Storyboards get shot and board editing but not generation or timeline assembly,
 which stay on desktop where a long paid job can be supervised. The server agent
 can still edit a timeline with its own `edit_timeline` tools, which write the

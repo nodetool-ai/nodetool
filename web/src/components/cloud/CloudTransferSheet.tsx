@@ -71,6 +71,14 @@ const TransferRow: React.FC<RowProps> = ({ row, controller }) => {
           <ToggleOption value="keep_local">{t("cloudTransfer.choice.keepLocal")}</ToggleOption>
         </ToggleGroup>
       )}
+      {row.optional && (
+        <Checkbox
+          compact
+          checked={row.confirmed}
+          onChange={(event) => controller.includeFile(row.index, event.target.checked)}
+          label={row.section === "receive" ? t("cloudTransfer.includeReceive") : t("cloudTransfer.include")}
+        />
+      )}
       {row.section === "deletion" && row.canKeepDeletion && (
         <Checkbox
           compact
@@ -133,7 +141,7 @@ const CloudTransferSheet: React.FC<CloudTransferSheetProps> = ({ controller, onC
   const { t } = useTranslation();
   const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot);
   const { stage, rows, message, linked } = snapshot;
-  const busy = stage === "capturing" || stage === "running";
+  const busy = stage === "capturing" || stage === "running" || stage === "collecting";
 
   const handleClose = useCallback(() => {
     if (stage === "running") {
@@ -148,6 +156,9 @@ const CloudTransferSheet: React.FC<CloudTransferSheetProps> = ({ controller, onC
   const handleRetry = useCallback(() => {
     void controller.start();
   }, [controller]);
+  const handleCollect = useCallback(() => {
+    void controller.collect();
+  }, [controller]);
 
   const messageText = message === null ? null : transferMessageText(t, message);
   const actions =
@@ -160,9 +171,18 @@ const CloudTransferSheet: React.FC<CloudTransferSheetProps> = ({ controller, onC
           {linked ? t("cloudTransfer.apply.synchronize") : t("cloudTransfer.apply.publish")}
         </EditorButton>
       </FlexRow>
+    ) : stage === "collectFirst" && controller.canCollect ? (
+      <FlexRow gap={SPACING.sm}>
+        <EditorButton variant="text" onClick={handleClose}>
+          {t("cloudTransfer.cancel")}
+        </EditorButton>
+        <EditorButton variant="contained" onClick={handleCollect}>
+          {t("cloudTransfer.collect")}
+        </EditorButton>
+      </FlexRow>
     ) : (
       <EditorButton variant={stage === "finished" ? "contained" : "text"} onClick={handleClose} disabled={stage === "running"}>
-        {stage === "capturing" ? t("cloudTransfer.cancel") : t("cloudTransfer.close")}
+        {stage === "capturing" || stage === "collecting" ? t("cloudTransfer.cancel") : t("cloudTransfer.close")}
       </EditorButton>
     );
 
@@ -177,7 +197,13 @@ const CloudTransferSheet: React.FC<CloudTransferSheetProps> = ({ controller, onC
         {busy && (
           <FlexRow gap={SPACING.sm} align="center">
             <LoadingSpinner size="small" />
-            <Text>{stage === "capturing" ? t("cloudTransfer.capturing") : t("cloudTransfer.running")}</Text>
+            <Text>
+              {stage === "capturing"
+                ? t("cloudTransfer.capturing")
+                : stage === "collecting"
+                  ? t("cloudTransfer.collecting")
+                  : t("cloudTransfer.running")}
+            </Text>
           </FlexRow>
         )}
         {stage === "failed" && messageText !== null && (

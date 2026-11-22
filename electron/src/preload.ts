@@ -749,6 +749,10 @@ const api = {
     windowReady: (): Promise<CloudDocumentRef[]> => ipcRenderer.invoke(IpcChannels.CLOUD_WINDOW_READY),
     /** Documents opened in the cloud window after it was ready. */
     onWindowDocument: createEventSubscription(IpcChannels.CLOUD_WINDOW_DOCUMENT),
+    /** The cloud window closes because its account signed out or changed: write the drafts, then call windowFlushed. */
+    onWindowClosing: createEventSubscription(IpcChannels.CLOUD_WINDOW_CLOSING),
+    /** The closing cloud window wrote its drafts. */
+    windowFlushed: (): Promise<void> => ipcRenderer.invoke(IpcChannels.CLOUD_WINDOW_FLUSHED),
     /** In the cloud window, a `cloudLocal.*` call on this computer's server. */
     local: (procedure: string, input: Record<string, unknown>): Promise<CloudLocalResult> =>
       ipcRenderer.invoke(IpcChannels.CLOUD_LOCAL_CALL, { procedure, input }),

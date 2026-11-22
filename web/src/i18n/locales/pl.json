@@ -21057,6 +21057,12 @@
       "cancel": "Anuluj",
       "signOutNow": "Wyloguj teraz",
       "waitingNote": "Oczekiwanie na wysłanie zmian. Nie zamykaj okna chmury."
+    },
+    "syncStatus": {
+      "savedToCloud": "Zapisano w chmurze",
+      "changesWaiting": "Zmiany czekają",
+      "offline": "Offline",
+      "notSaving": "Nie zapisuje"
     }
   },
   "cloudTransfer": {
@@ -21066,6 +21072,10 @@
     },
     "capturing": "Odczytywanie zmian…",
     "running": "Wysyłanie i odbieranie…",
+    "collect": "Zbierz",
+    "collecting": "Kopiowanie połączonych plików do folderu projektu…",
+    "include": "Wyślij",
+    "includeReceive": "Odbierz",
     "apply": {
       "publish": "Opublikuj",
       "synchronize": "Synchronizuj"
@@ -21100,6 +21110,11 @@
       "keepBoth": "Zostanie wysłany jako kopia obok wersji z chmury",
       "addVersions": "Zapisane wersje zostaną wysłane",
       "putAssetFile": "Plik zmieniony tutaj, zostanie wysłany",
+      "putWorkspaceFile": "Zmieniono w folderze projektu",
+      "newWorkspaceFile": "Nowy w folderze projektu",
+      "workspaceBothChanged": "Zmieniony tutaj i w chmurze. Plik z chmury trafi obok twojego",
+      "workspaceLocalDeleted": "Usunięty tutaj, zmieniony w chmurze",
+      "workspaceCloudDeleted": "Usunięty w chmurze. Twój plik zostaje tutaj",
       "newInCloud": "Nowy w chmurze",
       "cloudChanged": "Zmieniony w chmurze",
       "cloudFileChanged": "Używany plik zmienił się w chmurze",
@@ -21122,7 +21137,7 @@
       "localUnavailable": "Serwer projektów tej aplikacji nie odpowiedział.",
       "cancelled": "Przesyłanie zostało przerwane, ponieważ zmieniło się konto w chmurze.",
       "refused": "Serwer odrzucił przesyłanie ({{reason}}).",
-      "collectFirst": "Niektóre pliki tego projektu są poza folderem projektu. Zbierz je w folderze i spróbuj ponownie.",
+      "collectFirst": "Niektóre pliki używane przez ten projekt są poza folderem projektu. Zbierz kopiuje je do jego folderu Imported, a potem ponownie odczytuje projekt.",
       "receiveExpired": "Projekt w chmurze zmienił się, gdy to okno było otwarte. Zsynchronizuj ponownie.",
       "receiveChangedWhileOpen": "Coś się zmieniło, gdy to okno było otwarte. Sprawdź ponownie wybory.",
       "receivingChangedAgain": "Projekt w chmurze zmienił się ponownie podczas odbierania. Wybierz ponownie.",
@@ -21134,6 +21149,8 @@
       "sendChangedWhileOpen": "Ten projekt zmienił się, gdy okno było otwarte. Sprawdź, co zostanie wysłane.",
       "missingFilesUnconfirmed": "Brakuje plików potrzebnych temu projektowi. Potwierdź każdy, aby wysłać bez niego.",
       "sendRefused": "Chmura odrzuciła wysyłanie: {{reasons}}",
+      "notCollected": "Tych połączonych plików nie udało się skopiować do folderu projektu: {{files}}",
+      "collectInterrupted": "Kopiowanie zatrzymało się, zanim wypróbowano wszystkie połączone pliki. Spróbuj ponownie.",
       "chooseAgain_few": "{{count}} dokumenty zmieniły się tutaj lub w chmurze po Twoim wyborze. Wybierz ponownie.",
       "chooseAgain_many": "{{count}} dokumentów zmieniło się tutaj lub w chmurze po Twoim wyborze. Wybierz ponownie.",
       "cloudChangedChooseAgain_few": "Wersja w chmurze {{count}} dokumentów zmieniła się od odczytu tego okna. Wybierz ponownie.",

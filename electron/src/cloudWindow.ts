@@ -8,8 +8,12 @@
  * make a window a cloud window or point it at another server.
  *
  * The window belongs to one server and one account. It closes when the
- * account signs out or another account signs in. A document asked for before
- * the page is ready waits here until the page takes it.
+ * account signs out or another account signs in. A ready page is first told
+ * that it closes, so it can write the edits it holds in memory to the local
+ * drafts store (FR11, AC77). It closes once it answers, or after
+ * CLOSE_GRACE_MS. Its cloud requests are refused from the account change on,
+ * and only its drafts calls on this computer still go through. A document
+ * asked for before the page is ready waits here until the page takes it.
  */
 import type { CloudAccountState, CloudDocumentRef, CloudWindowOpenResult, CloudWindowOrigin } from "./types.d";
 
@@ -26,6 +30,8 @@ export interface WindowLike {
   close(): void;
   loadURL(url: string): void;
   send(document: CloudDocumentRef): void;
+  /** Tells the page that the window closes. */
+  sendClosing(): void;
   onClosed(listener: () => void): void;
 }
 
@@ -36,6 +42,8 @@ export interface CloudWindowDeps {
   /** The URL of the web app on the local server, or null while it starts. */
   appUrl: () => string | null;
   log: (message: string, level?: "info" | "warn" | "error") => void;
+  /** Runs `run` after `ms`. Returns a function that cancels it. */
+  after: (ms: number, run: () => void) => () => void;
 }
 
 /** The server and account of a signed-in state, or null. */
@@ -49,6 +57,9 @@ export function originOfState(state: CloudAccountState): CloudWindowOrigin | nul
 /** Documents a page may hold at once before it is ready. */
 const MAX_PENDING_DOCUMENTS = 32;
 
+/** How long a closing page may take to write its drafts. AC77 allows 5 seconds until Signed out shows. */
+export const CLOSE_GRACE_MS = 3_000;
+
 /**
  * Thread affinity: Electron's main process, on its event loop only. Owns at
  * most one cloud window, which it closes in stateChanged() when the account
@@ -59,6 +70,8 @@ export class CloudWindow {
   private origin: CloudWindowOrigin | null = null;
   private ready = false;
   private pending: CloudDocumentRef[] = [];
+  /** Set while a ready page writes its drafts before the window closes: cancels the grace timer. */
+  private cancelClose: (() => void) | null = null;
   /**
    * Every page this launch opened as a cloud window, closed ones included.
    * Electron never reuses a webContents id within a process, so the set
@@ -74,7 +87,13 @@ export class CloudWindow {
     if (!origin) {
       return { ok: false, error: "SIGNED_OUT" };
     }
-    if (this.window && !this.window.isDestroyed() && this.origin && sameOrigin(this.origin, origin)) {
+    if (
+      this.window &&
+      !this.window.isDestroyed() &&
+      !this.cancelClose &&
+      this.origin &&
+      sameOrigin(this.origin, origin)
+    ) {
       this.deliver(document);
       if (this.window.isMinimized()) {
         this.window.restore();
@@ -140,11 +159,33 @@ export class CloudWindow {
     return pending;
   }
 
-  /** The account changed: a window of another server or account closes. */
+  /**
+   * The account changed: a window of another server or account closes. A
+   * ready page first writes its drafts.
+   */
   stateChanged(state: CloudAccountState): void {
     const origin = originOfState(state);
-    if (this.window && this.origin && (!origin || !sameOrigin(origin, this.origin))) {
-      this.deps.log("Closing the cloud window: the account it was opened for is no longer signed in");
+    const window = this.window;
+    if (!window || !this.origin || (origin && sameOrigin(origin, this.origin)) || this.cancelClose) {
+      return;
+    }
+    this.deps.log("Closing the cloud window: the account it was opened for is no longer signed in");
+    if (!this.ready) {
+      this.closeWindow();
+      return;
+    }
+    this.cancelClose = this.deps.after(CLOSE_GRACE_MS, () => {
+      if (this.window === window) {
+        this.deps.log("The cloud window did not finish writing its drafts in time", "warn");
+        this.closeWindow();
+      }
+    });
+    window.sendClosing();
+  }
+
+  /** The closing page `webContentsId` wrote its drafts: the window closes now. */
+  flushed(webContentsId: number): void {
+    if (this.cancelClose && this.originFor(webContentsId)) {
       this.closeWindow();
     }
   }
@@ -170,6 +211,8 @@ export class CloudWindow {
   }
 
   private forget(): void {
+    this.cancelClose?.();
+    this.cancelClose = null;
     this.window = null;
     this.origin = null;
     this.ready = false;

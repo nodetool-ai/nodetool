@@ -64,7 +64,12 @@ export const capturedSend = z.object({
   ),
   deleted_locally: z.array(
     z.object({ kind: transferDocumentKind, local_id: z.string(), cloud_id: z.string(), base_hash: z.string() })
-  )
+  ),
+  /**
+   * Workspace files sent earlier and gone from the folder since, for the
+   * deletion review. Absent from a server that predates them.
+   */
+  deleted_workspace_files: z.array(z.object({ path: z.string(), base_hash: z.string() })).optional()
 });
 
 /**
@@ -89,6 +94,24 @@ export const runSendInput = cloudTransferSession.extend({
   confirm_deletes: z
     .array(z.object({ kind: transferDocumentKind, cloud_id: fullId, cloud_hash: z.string().regex(/^[0-9a-f]{64}$/) }))
     .max(10_000)
+    .optional(),
+  /**
+   * Workspace files the deletion review confirmed for deletion on the cloud,
+   * each with the base hash the capture listed. Only the project's owner
+   * deletes a file.
+   */
+  confirm_workspace_deletes: z
+    .array(z.object({ path: z.string(), base_hash: z.string().regex(/^[0-9a-f]{64}$/) }))
+    .max(100_000)
+    .optional(),
+  /**
+   * The workspace files the review included, each with the hash the capture
+   * listed. They are optional and off by default (SR7), so a reviewed send
+   * puts only these.
+   */
+  include_workspace_files: z
+    .array(z.object({ path: z.string(), hash: z.string().regex(/^[0-9a-f]{64}$/) }))
+    .max(100_000)
     .optional(),
   /** The missing files the review confirmed, exactly as the capture listed them (X7, review F36). */
   confirm_missing_files: z.array(transferMissingFile).max(100_000).optional()
@@ -162,9 +185,28 @@ export const receiveReviewDocument = z.object({
   erased_files: z.array(z.string()).optional()
 });
 
+/**
+ * A workspace file of the owner's cloud folder that changed since the base
+ * (technical design, "Receiving workspace files", RW6). Received workspace
+ * files are optional: `included` is false until the person ticks the row,
+ * except for a `same` file, which only records its base (RW7).
+ */
+export const receiveReviewWorkspaceFile = z.object({
+  path: z.string(),
+  hash: z.string(),
+  size: z.number().int().nonnegative(),
+  local_hash: z.string().nullable(),
+  status: z.enum(["same", "new", "cloud_changed", "both_changed", "local_deleted"]),
+  included: z.boolean()
+});
+
 export const captureReceiveOutput = z.object({
   set_id: z.string(),
-  documents: z.array(receiveReviewDocument)
+  documents: z.array(receiveReviewDocument),
+  /** Optional so a client built before workspace files still reads the review. */
+  workspace_files: z.array(receiveReviewWorkspaceFile).optional(),
+  /** Paths with a base that the cloud folder no longer lists. The local files are kept (OQ14). */
+  cloud_deleted_workspace_files: z.array(z.string()).optional()
 });
 export type CaptureReceiveOutput = z.infer<typeof captureReceiveOutput>;
 
@@ -173,6 +215,11 @@ export const runReceiveInput = cloudTransferSession.extend({
   set_id: fullId,
   decisions: z
     .array(z.object({ kind: transferDocumentKind, document_id: fullId, decision: receiveDecision }))
+    .max(10_000)
+    .optional(),
+  /** The workspace files the person ticked, by path and the hash the sheet showed (RW7). */
+  include_workspace_files: z
+    .array(z.object({ path: z.string(), hash: z.string() }))
     .max(10_000)
     .optional()
 });
@@ -187,7 +234,15 @@ export const receiveResult = z.object({
   missing_files: z.array(z.string()),
   /** Files the owner erased in the cloud. Optional as in the review document. */
   erased_files: z.array(z.string()).optional(),
-  file_kept: z.array(z.object({ kind: transferDocumentKind, id: z.string() }))
+  file_kept: z.array(z.object({ kind: transferDocumentKind, id: z.string() })),
+  /** Workspace files placed at their paths. */
+  received_workspace_files: z.array(z.string()).optional(),
+  /** Workspace files changed on both sides, received beside the local file (V11). */
+  kept_beside_workspace_files: z.array(z.object({ path: z.string(), kept_path: z.string() })).optional(),
+  /** Workspace files the person left out. The next receive offers them again. */
+  not_received_workspace_files: z.array(z.string()).optional(),
+  /** Workspace files deleted in the cloud. The local files are kept. */
+  cloud_deleted_workspace_files: z.array(z.string()).optional()
 });
 
 export const runReceiveOutput = z.discriminatedUnion("status", [
@@ -202,7 +257,8 @@ export const runReceiveOutput = z.discriminatedUnion("status", [
   z.object({
     status: z.literal("waiting_for_review"),
     set_id: z.string(),
-    documents: z.array(receiveReviewDocument).optional()
+    documents: z.array(receiveReviewDocument).optional(),
+    workspace_files: z.array(receiveReviewWorkspaceFile).optional()
   })
 ]);
 export type RunReceiveOutput = z.infer<typeof runReceiveOutput>;
