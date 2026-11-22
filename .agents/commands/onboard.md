@@ -17,7 +17,7 @@ and pitfalls. Then find and report:
 - **The nearest existing example.** The closest analogous code already in the
   repo, so the change matches surrounding conventions instead of inventing new
   ones.
-- **What to run to see it work.** The specific command — `./start.sh`, a
+- **What to run to see it work.** The specific command — `npm start`, a
   targeted test file, `npm run dev:nodetool -- node run <type>`.
 - **The pitfalls that apply here.** From `AGENTS.md § Common Pitfalls`: the
   `dist/` decorator packages, MsgPack framing on the WebSocket, `ui_primitives`

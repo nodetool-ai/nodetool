@@ -325,8 +325,9 @@ links workspaces missing from a cached tree, and creates `.env` with a
 installs only when the file system cannot clone. It is idempotent, so run it
 at the start of every session. Then run `npm run build:packages`.
 
-`./start.sh` performs setup and starts the API on port 7777 (`full`, `web`,
-`check`, `doctor` modes). Python 3.11+ with conda is optional for Python nodes.
+`npm start` performs first-run setup (`npm run bootstrap`) and starts the API
+on port 7777. `npm run dev` adds the web UI and `npm run doctor` reports
+environment state. Python 3.11+ with conda is optional for Python nodes.
 Slash commands are in [.claude/README.md](.claude/README.md).
 
 - On missing-module/type-definition failures in untouched files, install
