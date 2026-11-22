@@ -42,7 +42,8 @@ import {
   DocumentImageNode
 } from "./nodes/DocumentImageNode";
 
-const escapeAlt = (text: string): string => text.replace(/([[\]])/g, "\\$1");
+/** Escape the characters that end or escape image alt text. */
+const escapeAlt = (text: string): string => text.replace(/([\\[\]])/g, "\\$1");
 
 export const IMAGE: TextMatchTransformer = {
   dependencies: [DocumentImageNode],
@@ -58,7 +59,7 @@ export const IMAGE: TextMatchTransformer = {
   replace: (textNode, match) => {
     const [, alt, src, title] = match;
     textNode.replace(
-      $createDocumentImageNode(src, alt.replace(/\\([[\]])/g, "$1"), title ?? "")
+      $createDocumentImageNode(src, alt.replace(/\\([\\[\]])/g, "$1"), title ?? "")
     );
   },
   trigger: ")",
@@ -118,14 +119,19 @@ function $createCell(markdown: string, header: boolean): TableCellNode {
   const cell = $createTableCellNode(
     header ? TableCellHeaderStates.ROW : TableCellHeaderStates.NO_STATUS
   );
-  $convertFromMarkdownString(markdown.replace(/\\\|/g, "|"), [IMAGE, ...CELL_TRANSFORMERS], cell);
+  // Undo the export's escape: 2k+1 backslashes and a pipe are k and a pipe.
+  const content = markdown.replace(/(\\+)\|/g, (_match, run: string) =>
+    `${"\\".repeat(Math.floor((run.length - 1) / 2))}|`
+  );
+  $convertFromMarkdownString(content, [IMAGE, ...CELL_TRANSFORMERS], cell);
   return cell;
 }
 
 function exportCell(cell: ElementNode): string {
   return $convertToMarkdownString([IMAGE, ...CELL_TRANSFORMERS], cell)
     .replace(/\n+/g, " ")
-    .replace(/\|/g, "\\|");
+    // A pipe ends the cell: escape it, doubling the backslashes before it.
+    .replace(/(\\*)\|/g, (_match, run: string) => `${run}${run}\\|`);
 }
 
 export const TABLE: MultilineElementTransformer = {
