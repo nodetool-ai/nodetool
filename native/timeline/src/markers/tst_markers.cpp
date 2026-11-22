@@ -6,6 +6,7 @@
 #include "server/FieldAudit.h"
 #include "wiring/WiringFixture.h"
 #include <QQmlEngine>
+#include <functional>
 #include <QTemporaryDir>
 
 class TestMarkers : public WiringFixture {
@@ -58,6 +59,63 @@ class TestMarkers : public WiringFixture {
     // NT_SHOT_DIR=<dir> saves what the tests show, for a look at the layout.
     void shot(const QString& name) {
         if (qEnvironmentVariableIsSet("NT_SHOT_DIR")) { view->grabWindow().save(qEnvironmentVariable("NT_SHOT_DIR") + "/" + name + ".png"); }
+    }
+
+    // ── The Marker lane of the Music layout ──
+    static QJsonObject musicDocument(const QJsonArray& markers) {
+        return {{"id", "timeline"}, {"name", "Night Drive"}, {"fps", 30}, {"width", 640}, {"height", 360},
+                {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0},
+                                      {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}},
+                {"music", QJsonObject{{"promptHistory", QJsonArray{}}}},
+                {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"name", "Drums"}, {"type", "audio"}, {"index", 0}, {"visible", true},
+                                                  {"locked", false}, {"muted", false}, {"solo", false}, {"heightPx", 64}}}},
+                {"markers", markers},
+                {"clips", QJsonArray{QJsonObject{{"id", "c1"}, {"trackId", "a"}, {"name", "c1"}, {"mediaType", "audio"}, {"startMs", 0},
+                                                 {"durationMs", 12000}, {"currentAssetId", "asset-c1"}}}}};
+    }
+    DockLayoutStore* dockStore() const {
+        return qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
+    }
+    void openMusic(const QJsonArray& markers) {
+        view.reset();
+        auto parsed = nt::parseTimeline(musicDocument(markers));
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        clock.pause();
+        clock.seek(0);
+        view = std::make_unique<QQuickView>();
+        m_testCache.install(*view->engine());
+        view->setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});
+        view->loadFromModule("NodeTool.Timeline", "TimelineEditor");
+        QVERIFY2(view->status() == QQuickView::Ready, qPrintable(view->errors().isEmpty() ? QString() : view->errors().first().toString()));
+        view->setResizeMode(QQuickView::SizeRootObjectToView);
+        view->resize(1800, 1000);
+        view->show();
+        QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+        QTRY_VERIFY(gestures());
+        QTRY_COMPARE(dockStore()->workspace(), QStringLiteral("Music"));
+        gestures()->viewState()->zoomTo(10, 0);
+        gestures()->viewState()->setScrollLeftPx(0);
+        gestures()->viewState()->flush();
+        settle();
+    }
+    QList<QQuickItem*> blocks() const {
+        QList<QQuickItem*> found;
+        std::function<void(QQuickItem*)> walk = [&](QQuickItem* parent) {
+            for (auto* child : parent->childItems()) {
+                if (child->objectName() == "markerBlock" && child->isVisible()) { found << child; }
+                walk(child);
+            }
+        };
+        walk(view->contentItem());
+        std::sort(found.begin(), found.end(), [](QQuickItem* a, QQuickItem* b) {
+            return a->property("startMs").toDouble() < b->property("startMs").toDouble();
+        });
+        return found;
+    }
+    QQuickItem* block(const QString& id) const {
+        for (auto* b : blocks()) { if (b->property("markerId").toString() == id) { return b; } }
+        return nullptr;
     }
 
 private slots:
@@ -408,6 +466,104 @@ private slots:
         markers[0] = first;
         bad.insert("markers", markers);
         QVERIFY(QJsonDocument(nt::server::auditTimelineFields(bad)).toJson(QJsonDocument::Compact).contains("\"unknown\""));
+    }
+
+    // A block runs from its marker to its duration, else to the next marker, else to the sequence end.
+    void markerBlocksFollowTheExtentRule() {
+        openMusic({marker("a", 1000, "Intro"), marker("b", 4000, "Verse", {{"durationMs", 1500}, {"color", "#E5484D"}}),
+                   marker("c", 7000, "")});
+        QCOMPARE(blocks().size(), 3);
+        const double msPerPx = gestures()->viewState()->msPerPx();
+        const auto extent = [&](const char* id) { return std::pair{block(id)->property("startMs").toDouble(), block(id)->property("endMs").toDouble()}; };
+        QCOMPARE(extent("a"), (std::pair{1000.0, 4000.0}));
+        QCOMPARE(extent("b"), (std::pair{4000.0, 5500.0}));
+        QCOMPARE(extent("c"), (std::pair{7000.0, 12000.0}));
+        QCOMPARE(block("a")->x(), 1000 / msPerPx);
+        QCOMPARE(block("a")->width(), 3000 / msPerPx - 1);  // one border of gap before the next block
+        QCOMPARE(block("a")->property("label").toString(), QStringLiteral("Intro"));
+        QCOMPARE(block("c")->property("label").toString(), QStringLiteral("Marker"));
+        QCOMPARE(block("b")->property("blockColor").value<QColor>(), QColor("#E5484D"));
+        // The lane scrolls with the track lanes.
+        const double before = block("a")->mapToScene(QPointF(0, 0)).x();
+        gestures()->viewState()->setScrollLeftPx(50);
+        gestures()->viewState()->flush();
+        settle();
+        QCOMPARE(block("a")->mapToScene(QPointF(0, 0)).x(), before - 50);
+    }
+    void thePlusButtonAddsAMarkerAtThePlayhead() {
+        openMusic({});
+        clock.seek(2500);
+        const int base = model.undoStack()->count();
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("markerAddButton")));
+        QCOMPARE(model.markersJson().size(), 1);
+        QCOMPARE(model.markersJson().at(0).toObject().value("timeMs").toDouble(), 2500.0);
+        QCOMPARE(model.undoStack()->count(), base + 1);
+        QTRY_COMPARE(blocks().size(), 1);
+    }
+    void theMarkerRowIsHiddenOutsideTheMusicWorkspace() {
+        // The video fixture shows the Editing layout.
+        QCOMPARE(dockStore()->workspace(), QStringLiteral("Editing"));
+        QVERIFY(!item("markerLane")->isVisible());
+        QCOMPARE(item("markerLane")->implicitHeight(), 0.0);
+        QCOMPARE(blocks().size(), 0);
+        // The Music layout shows it, and the Editing layout takes it back.
+        openMusic({marker("a", 1000, "Intro")});
+        QVERIFY(item("markerLane")->isVisible());
+        dockStore()->switchWorkspace(int(dockStore()->workspaces().indexOf("Editing")));
+        QTRY_VERIFY(!item("markerLane")->isVisible());
+        QCOMPARE(item("markerLane")->implicitHeight(), 0.0);
+    }
+    void theTrackRowsMoveDownByTheRowHeight() {
+        openMusic({marker("a", 1000, "Intro")});
+        const double rowHeight = item("markerLane")->implicitHeight();
+        QVERIFY(rowHeight > 0);
+        const auto rowsY = [&] { return item("headerColumn")->mapToScene(QPointF(0, 0)).y(); };
+        const auto lanesY = [&] { return item("lanesViewport")->mapToScene(QPointF(0, 0)).y(); };
+        const double rulerBottom = item("tracksSectionHeader")->mapToScene(QPointF(0, item("tracksSectionHeader")->height())).y();
+        QCOMPARE(rowsY(), rulerBottom + rowHeight);
+        QCOMPARE(lanesY(), rulerBottom + rowHeight);
+        QCOMPARE(item("markerLane")->mapToScene(QPointF(0, 0)).y(), rulerBottom);
+        // The Music toolbar has its own zoom and height sliders, so the region's copies hide.
+        QVERIFY(!item("timelineZoomControls")->isVisible());
+        QVERIFY(!item("trackHeightSlider")->isVisible());
+        dockStore()->switchWorkspace(int(dockStore()->workspaces().indexOf("Editing")));
+        QTRY_VERIFY(item("timelineZoomControls")->isVisible());
+        QVERIFY(item("trackHeightSlider")->isVisible());
+        QTRY_COMPARE(item("tracksRegion")->property("markerRowHeight").toDouble(), 0.0);
+        // The Editing layout docks the timeline elsewhere, so measure from its own ruler.
+        const double editingRulerBottom = item("tracksSectionHeader")->mapToScene(QPointF(0, item("tracksSectionHeader")->height())).y();
+        QCOMPARE(rowsY(), editingRulerBottom);
+        QCOMPARE(lanesY(), editingRulerBottom);
+    }
+    void clickSeeksDoubleClickEditsAndDragMovesInOneUndoStep() {
+        openMusic({marker("a", 1000, "Intro"), marker("b", 4000, "Verse")});
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(block("b")));
+        QCOMPARE(session()->selectedIds(), QStringList{"b"});
+        QCOMPARE(clock.time(), 4000.0);
+        QTest::mouseDClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(block("a")));
+        QVERIFY(item("markerEditHost")->property("editDialog").value<QObject*>()->property("visible").toBool());
+        item("markerEditHost")->property("editDialog").value<QObject*>()->setProperty("visible", false);
+        settle();
+        // Alt bypasses the snap, so the move lands where the pointer lands (1000 ms = 100 px).
+        const int base = model.undoStack()->count();
+        const QPoint from = center(block("b"));
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::AltModifier, from);
+        QTest::mouseMove(view.get(), from + QPoint(50, 0), 20);
+        QTest::mouseMove(view.get(), from + QPoint(100, 0), 20);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::AltModifier, from + QPoint(100, 0));
+        settle();
+        QCOMPARE(markerById("b").value("timeMs").toDouble(), 5000.0);
+        QCOMPARE(model.undoStack()->count(), base + 1);
+        model.undoStack()->undo();
+        QCOMPARE(markerById("b").value("timeMs").toDouble(), 4000.0);
+        // A drag that snaps lands on a beat line (500 ms at 120 BPM).
+        const QPoint start = center(block("b"));
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, start);
+        QTest::mouseMove(view.get(), start + QPoint(30, 0), 20);
+        QTest::mouseMove(view.get(), start + QPoint(37, 0), 20);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, start + QPoint(37, 0));
+        settle();
+        QCOMPARE(markerById("b").value("timeMs").toDouble(), 4500.0);
     }
 };
 QTEST_MAIN(TestMarkers)

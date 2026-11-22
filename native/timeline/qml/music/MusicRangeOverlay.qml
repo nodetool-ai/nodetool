@@ -53,19 +53,41 @@ Item {
             text: root.shown ? sequence.barLabel(root.selection.endFrame) : ""
             role: Ui.Typography.MonoCaption
         }
-        Ui.EditorButton {
-            objectName: "musicRangeLoop-" + (root.track.id || "")
+        Row {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.margins: Ui.Metrics.xs
+            spacing: Ui.Metrics.xs
             visible: band.width > Ui.Metrics.compact + 2 * Ui.Metrics.xs && band.height > Ui.Metrics.compact + 2 * Ui.Metrics.xs
-            density: Ui.EditorButton.Compact
-            variant: Ui.EditorButton.Flat
-            iconName: "repeat"
-            active: root.looping
-            accessibleName: root.looping ? qsTr("Loop is on for this range") : qsTr("Loop this range")
-            description: qsTr("Play this range in a loop, from its In to its Out point")
-            onClicked: if (root.gestures) root.gestures.loopMusicSelection()
+
+            Ui.EditorButton {
+                objectName: "musicRangeCreateMidi-" + (root.track.id || "")
+                visible: root.track.type === "midi" && !root.track.locked
+                density: Ui.EditorButton.Compact
+                variant: Ui.EditorButton.Flat
+                iconName: "add"
+                accessibleName: qsTr("Create MIDI clip")
+                description: qsTr("Create an empty MIDI clip on this range")
+                onClicked: {
+                    if (!root.timeline || !root.selection) return
+                    const ok = root.timeline.applyEdit("music.createMidiClip", {
+                        trackId: root.selection.trackId,
+                        startMs: root.selection.startMs,
+                        durationMs: root.selection.endMs - root.selection.startMs
+                    })
+                    if (ok) root.selection.clear()
+                }
+            }
+            Ui.EditorButton {
+                objectName: "musicRangeLoop-" + (root.track.id || "")
+                density: Ui.EditorButton.Compact
+                variant: Ui.EditorButton.Flat
+                iconName: "repeat"
+                active: root.looping
+                accessibleName: root.looping ? qsTr("Loop is on for this range") : qsTr("Loop this range")
+                description: qsTr("Play this range in a loop, from its In to its Out point")
+                onClicked: if (root.gestures) root.gestures.loopMusicSelection()
+            }
         }
     }
 }

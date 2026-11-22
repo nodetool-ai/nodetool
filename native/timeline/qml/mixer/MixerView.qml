@@ -26,6 +26,7 @@ Ui.Surface {
                     width: root.stripWidth; height: channels.height
                     trackId: modelData; timeline: root.timeline; compact: root.compact
                     onOpenEffect: (trackId,effectId,anchor) => effectPopover.show(trackId,effectId,anchor)
+                    onOpenInstrument: (trackId,anchor) => instrumentPopover.show(trackId,anchor)
                 }
             }
         }
@@ -45,4 +46,5 @@ Ui.Surface {
         onOpenEffect: (trackId,effectId,anchor) => effectPopover.show(trackId,effectId,anchor)
     }
     EffectDevicePopover { id: effectPopover; timeline: root.timeline }
+    InstrumentDevicePopover { id: instrumentPopover; timeline: root.timeline }
 }

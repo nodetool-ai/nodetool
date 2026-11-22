@@ -82,7 +82,7 @@ Rectangle {
                     required property int index
                     readonly property string panelId: root.panels[index]
                     readonly property bool selected: root.activeId === panelId
-                    readonly property bool closable: panelId !== "program" && panelId !== "tracks"
+                    readonly property bool closable: panelId !== "tracks"
                     readonly property bool showClose: closable && selected
                     objectName: "dockTab_" + panelId
                     width: Math.min(Ui.Metrics.small * 10 + Ui.Metrics.md,

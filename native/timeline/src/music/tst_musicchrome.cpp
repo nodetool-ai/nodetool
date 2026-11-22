@@ -117,6 +117,17 @@ class TestMusicChrome : public WiringFixture {
         lane->ensurePolished();
         return lane->mapToScene(QPointF(ms / gestures()->viewState()->msPerPx(), lane->height() / 2)).toPoint();
     }
+    // Opens a menu from its button and chooses one of its items, as a person does.
+    void chooseFromMenu(const QString& button, const QString& entry) {
+        auto* opener = item(button);
+        QVERIFY2(opener, qPrintable(button));
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(opener));
+        QTRY_VERIFY2(item(entry) && item(entry)->isVisible(), qPrintable(entry));
+        auto* target = item(entry);
+        target->ensurePolished();
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(target));
+        QCoreApplication::processEvents();
+    }
     // Focuses a Ui.Select and types `key` into it, as a person picks by the first letter.
     void typeInto(const QString& name, Qt::Key key) {
         auto* select = item(name);
@@ -135,22 +146,27 @@ private slots:
     void toolbarReplacesTheToolsInTheMusicLayout() {
         openDocument(musicDocument({audioClip("a1", "a", barMs(1), 16000)}));
         QVERIFY(!item("toolToggle")->isVisible());
-        QCOMPARE(item("musicProjectName")->property("text").toString(), QStringLiteral("Night Drive"));
-        QCOMPARE(item("musicProjectSubtitle")->property("text").toString(), QStringLiteral("Music project"));
-        // The tools carry their keys from the keymap.
-        QCOMPARE(item("musicTool_range")->property("chip").toString(), gestures()->shortcutFor("rangeTool"));
-        QCOMPARE(item("musicTool_select")->property("chip").toString(), gestures()->shortcutFor("selectTool"));
-        QVERIFY(!item("musicTool_rangeKey")->property("text").toString().isEmpty());
-        QVERIFY(item("musicTool_range")->property("active").toBool());
-        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("musicTool_select")));
+        // Logic shows the project name in the window title; the document bar carries it here.
+        QCOMPARE(item("documentTitle")->property("text").toString(), QStringLiteral("Night Drive"));
+        QVERIFY(!item("musicProjectName"));
+        // The tool menu lists the tools with their keys from the keymap.
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("musicToolMenuButton")));
+        QTRY_VERIFY(item("musicTool_range") && item("musicTool_range")->isVisible());
+        QCOMPARE(item("musicTool_range")->property("shortcutText").toString(), gestures()->shortcutFor("rangeTool"));
+        QCOMPARE(item("musicTool_select")->property("shortcutText").toString(), gestures()->shortcutFor("selectTool"));
+        QVERIFY(item("musicTool_range")->property("checked").toBool());
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        chooseFromMenu("musicToolMenuButton", "musicTool_select");
         QCOMPARE(gestures()->activeTool(), QStringLiteral("select"));
-        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("musicTool_range")));
+        chooseFromMenu("musicToolMenuButton", "musicTool_range");
         QCOMPARE(gestures()->activeTool(), QStringLiteral("range"));
-        // The position readout: bar 3, beat 2, the first quarter of the beat.
+        // The position readout: bar 3, beat 2.
         clock.seek(barMs(3) + 500 + 10);
-        QTRY_COMPARE(item("musicPosition")->property("text").toString(), QStringLiteral("3.2.1"));
+        QTRY_COMPARE(item("musicPosition")->property("text").toString(), QStringLiteral("3.2"));
+        QCOMPARE(item("musicPositionBarValue")->property("text").toString(), QStringLiteral("3"));
+        QCOMPARE(item("musicPositionBeatValue")->property("text").toString(), QStringLiteral("2"));
         clock.seek(0);
-        QTRY_COMPARE(item("musicPosition")->property("text").toString(), QStringLiteral("1.1.1"));
+        QTRY_COMPARE(item("musicPosition")->property("text").toString(), QStringLiteral("1.1"));
         // Play and pause through the clock.
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("musicPlay")));
         QVERIFY(clock.playing());
@@ -160,6 +176,7 @@ private slots:
         dockStore()->switchWorkspace(int(dockStore()->workspaces().indexOf("Editing")));
         QTRY_VERIFY(item("toolToggle")->isVisible());
         QVERIFY(!item("musicToolbar")->isVisible());
+        QVERIFY(!item("musicControlBar")->isVisible());
         QVERIFY(!item("musicHint")->isVisible());
         QCOMPARE(item("musicHint")->implicitHeight(), 0.0);
     }
@@ -176,10 +193,10 @@ private slots:
         QTRY_COMPARE(item("musicKeySelect")->property("value").toString(), QStringLiteral("C major"));
         // The timing is untouched.
         QCOMPARE(doc().value("tempo").toObject().value("bpm").toDouble(), 120.0);
-        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("musicUndo")));
+        chooseFromMenu("musicEditMenuButton", "musicUndo");
         QCOMPARE(doc().value("tempo").toObject().value("key").toObject(), (QJsonObject{{"tonic", "A"}, {"mode", "minor"}}));
         QTRY_COMPARE(item("musicKeySelect")->property("value").toString(), QStringLiteral("A minor"));
-        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("musicRedo")));
+        chooseFromMenu("musicEditMenuButton", "musicRedo");
         QCOMPARE(doc().value("tempo").toObject().value("key").toObject().value("tonic").toString(), QStringLiteral("C"));
         // "No key" removes it.
         typeInto("musicKeySelect", Qt::Key_N);
@@ -208,20 +225,132 @@ private slots:
         QTRY_COMPARE(chip->property("iconName").toString(), QString());
     }
 
-    // Snap beat makes a range drag end on a beat line; Snap bar on a bar line.
+    // Snap beat makes a range drag end on a beat line; Snap bar on a bar line. Smart, the
+    // default, picks the bar at this zoom.
     void snapChangesWhereARangeEnds() {
         openDocument(musicDocument({}));
+        QCOMPARE(item("musicSnapSelect")->property("value").toString(), QStringLiteral("smart"));
         QCOMPARE(gestures()->viewState()->gridDivision(), QStringLiteral("bar"));
         drag(lanePoint("c", barMs(2) + 100), lanePoint("c", barMs(2) + 1100));
         QCOMPARE(selection()->startFrame(), barStartFrame(2, kTempo));
         QCOMPARE(selection()->endFrame(), barStartFrame(3, kTempo));
         typeInto("musicSnapSelect", Qt::Key_Down);
+        QCOMPARE(item("musicSnapSelect")->property("value").toString(), QStringLiteral("bar"));
+        typeInto("musicSnapSelect", Qt::Key_Down);
+        QCOMPARE(item("musicSnapSelect")->property("value").toString(), QStringLiteral("beat"));
         QCOMPARE(gestures()->viewState()->gridDivision(), QStringLiteral("beat"));
         drag(lanePoint("c", barMs(2) + 100), lanePoint("c", barMs(2) + 1100));
         QCOMPARE(selection()->startFrame(), beatStartFrame(5, kTempo));
         QCOMPARE(selection()->endFrame(), beatStartFrame(7, kTempo));
         typeInto("musicSnapSelect", Qt::Key_Up);
         QCOMPARE(gestures()->viewState()->gridDivision(), QStringLiteral("bar"));
+        // The power toggle is the controller's snap switch.
+        QVERIFY(gestures()->snapEnabled());
+        click("musicSnapPower");
+        QVERIFY(!gestures()->snapEnabled());
+        click("musicSnapPower");
+        QVERIFY(gestures()->snapEnabled());
+    }
+
+    // Smart snap takes the finest step whose lines stay 16 px apart (smartSnapTicks): at
+    // 120 BPM 4/4 a tick is 0.52 ms, so 80 ms/px gives the bar, 20 ms/px the beat and
+    // 2 ms/px 120 ticks. The ruler's division follows the step.
+    void smartSnapFollowsTheZoom() {
+        openDocument(musicDocument({}));
+        auto* toolbar = item("musicToolbar");
+        auto* view = gestures()->viewState();
+        QCOMPARE(toolbar->property("smartTicks").toDouble(), 3840.0);
+        QCOMPARE(view->gridDivision(), QStringLiteral("bar"));
+        view->zoomTo(20, 0);
+        view->flush();
+        QTRY_COMPARE(toolbar->property("smartTicks").toDouble(), 960.0);
+        QTRY_COMPARE(view->gridDivision(), QStringLiteral("beat"));
+        view->zoomTo(2, 0);
+        view->flush();
+        QTRY_COMPARE(toolbar->property("smartTicks").toDouble(), 120.0);
+        QTRY_COMPARE(view->gridDivision(), QStringLiteral("1/32"));
+        // A fixed value stops following the zoom.
+        typeInto("musicSnapSelect", Qt::Key_Down);
+        QCOMPARE(view->gridDivision(), QStringLiteral("bar"));
+        view->zoomTo(20, 0);
+        view->flush();
+        QTRY_COMPARE(toolbar->property("smartTicks").toDouble(), 960.0);
+        QCOMPARE(view->gridDivision(), QStringLiteral("bar"));
+    }
+
+    // Rewind and Forward move to bar lines, Stop stops and then returns to 0.
+    void transportMovesByBars() {
+        openDocument(musicDocument({audioClip("a1", "a", barMs(1), 16000)}));
+        clock.seek(barMs(3) + 500);
+        click("musicRewind");
+        QCOMPARE(clock.time(), barMs(3));
+        click("musicRewind");
+        QCOMPARE(clock.time(), barMs(2));
+        click("musicRewind");
+        QCOMPARE(clock.time(), 0.0);
+        click("musicRewind");
+        QCOMPARE(clock.time(), 0.0);
+        click("musicForward");
+        QCOMPARE(clock.time(), barMs(2));
+        click("musicForward");
+        QCOMPARE(clock.time(), barMs(3));
+        clock.seek(barMs(3) + 1);
+        click("musicForward");
+        QCOMPARE(clock.time(), barMs(4));
+        // Stop pauses in place, a second Stop returns to 0.
+        clock.seek(barMs(3) + 500);
+        click("musicPlay");
+        QVERIFY(clock.playing());
+        click("musicStop");
+        QVERIFY(!clock.playing());
+        QVERIFY(clock.time() >= barMs(3) + 500);
+        click("musicStop");
+        QVERIFY(!clock.playing());
+        QCOMPARE(clock.time(), 0.0);
+    }
+
+    // Catch is the tracks region's followPlayhead.
+    void catchTogglesFollowPlayhead() {
+        openDocument(musicDocument({}));
+        auto* region = item("tracksRegion");
+        QVERIFY(region);
+        QVERIFY(region->property("followPlayhead").toBool());
+        QVERIFY(item("musicCatch")->property("active").toBool());
+        click("musicCatch");
+        QVERIFY(!region->property("followPlayhead").toBool());
+        QVERIFY(!item("musicCatch")->property("active").toBool());
+        region->setProperty("followPlayhead", true);
+        QTRY_VERIFY(item("musicCatch")->property("active").toBool());
+        click("musicCatch");
+        QVERIFY(!region->property("followPlayhead").toBool());
+    }
+
+    // The drag select is the controller's drop mode.
+    void dragSelectSetsTheDropMode() {
+        openDocument(musicDocument({}));
+        QCOMPARE(item("musicDragSelect")->property("value").toString(), QStringLiteral("overwrite"));
+        typeInto("musicDragSelect", Qt::Key_Down);
+        QCOMPARE(gestures()->dropMode(), QStringLiteral("insert"));
+    }
+
+    // The control bar and the tracks toolbar show in the Music layout only.
+    void controlsShowOnlyInTheMusicLayout() {
+        openDocument(musicDocument({audioClip("a1", "a", barMs(1), 16000)}));
+        QVERIFY(item("musicControlBar")->isVisible());
+        QVERIFY(item("musicToolbar")->isVisible());
+        QVERIFY(item("musicDisplay")->isVisible());
+        QCOMPARE(item("musicTimeSignature")->property("text").toString(), QStringLiteral("4/4"));
+        QCOMPARE(item("musicTempoValue")->property("text").toString(), QStringLiteral("120"));
+        dockStore()->switchWorkspace(int(dockStore()->workspaces().indexOf("Editing")));
+        QTRY_VERIFY(!item("musicControlBar")->isVisible());
+        QVERIFY(!item("musicToolbar")->isVisible());
+        QCOMPARE(item("musicControlBar")->implicitWidth(), 0.0);
+        QVERIFY(item("toolToggle")->isVisible());
+        QVERIFY(!item("musicRewind")->isVisible());
+        QVERIFY(!item("musicCatch")->isVisible());
+        dockStore()->switchWorkspace(int(dockStore()->workspaces().indexOf("Music")));
+        QTRY_VERIFY(item("musicControlBar")->isVisible());
+        QTRY_VERIFY(item("musicCatch")->isVisible());
     }
 
     // Loop range makes the range the loop, as the range band's control does.
@@ -312,9 +441,9 @@ private slots:
             QCoreApplication::processEvents();
         };
         QTRY_COMPARE(gestures()->keymapContext(), QStringLiteral("music"));
-        QTRY_COMPARE(item("musicTool_range")->property("chip").toString(), QStringLiteral("R"));
-        QCOMPARE(item("musicTool_select")->property("chip").toString(), QStringLiteral("V"));
-        QCOMPARE(item("musicLoopRange")->property("chip").toString(), QStringLiteral("L"));
+        QTRY_COMPARE(gestures()->shortcutFor("rangeTool"), QStringLiteral("R"));
+        QCOMPARE(gestures()->shortcutFor("selectTool"), QStringLiteral("V"));
+        QTRY_COMPARE(item("musicLoopRange")->property("shortcut").toString(), QStringLiteral("L"));
         QVERIFY(item("musicHintKey_["));
         QVERIFY(item("musicHintKey_]"));
         press('v');

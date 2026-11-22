@@ -439,8 +439,10 @@ private slots:
         QCOMPARE(tabs.at(tabs.indexOf("assistant") + 1), QString("ai"));
         const auto left = group("left").value("panels").toStringList();
         QCOMPARE(left.at(left.indexOf("assets") + 1), QString("effects"));
-        // Only the music panel arrives hidden: it belongs to the Music workspace (MUSIC-MODE.md section 15).
-        QCOMPARE(store->layout().value("hidden").toStringList(), QStringList{"music"});
+        // Music belongs to the Music workspace, and trackEffects opens on demand from a track header.
+        auto hidden = store->layout().value("hidden").toStringList();
+        hidden.sort();
+        QCOMPARE(hidden, QStringList({"music", "trackEffects"}));
     }
     void colorAndAudioWorkspaces() {
         TimelineModel model;
@@ -861,9 +863,12 @@ private slots:
         QCOMPARE(store->workspace(), QString("Script"));
         QVERIFY(QMetaObject::invokeMethod(layoutMenu, "clicked"));
         render();
-        auto* requiredPanel = named(window.contentItem(), "dockToggle_program");
+        auto* requiredPanel = named(window.contentItem(), "dockToggle_tracks");
         QVERIFY(requiredPanel);
         QVERIFY(!requiredPanel->isEnabled());
+        auto* programToggle = named(window.contentItem(), "dockToggle_program");
+        QVERIFY(programToggle);
+        QVERIFY(programToggle->isEnabled());
         auto* inspectorToggle = named(window.contentItem(), "dockToggle_inspector");
         QVERIFY(inspectorToggle);
         click(inspectorToggle);

@@ -5,10 +5,13 @@ import "faderTaper.js" as Taper
 FocusScope {
     id: root
     property real value: 0
+    property real minimumDb: -120
+    property real maximumDb: 24
     property string label: "Volume"
     property real draft: value
     property real editBaseline: value
     property alias dragging: fader.editing
+    signal started()
     signal preview(real db)
     signal commit(real db)
     signal canceled()
@@ -25,9 +28,9 @@ FocusScope {
         accessibleValueText: Taper.formatDb(editing ? root.draft : root.value)
         resetValue: Taper.dbToFaderPosition(0)
         customEndKey: true
-        onEditStarted: { root.editBaseline = root.value; root.draft = root.value }
+        onEditStarted: { root.started(); root.editBaseline = root.value; root.draft = root.value }
         onValuePreviewed: position => {
-            root.draft = Taper.faderPositionToDb(position)
+            root.draft = Math.max(root.minimumDb,Math.min(root.maximumDb,Taper.faderPositionToDb(position)))
             root.preview(root.draft)
         }
         onValueCommitted: root.commit(root.draft)
@@ -35,7 +38,7 @@ FocusScope {
         onEndKeyRequested: {
             begin()
             draft = 1
-            root.draft = Math.max(6, root.value)
+            root.draft = Math.min(root.maximumDb,Math.max(6, root.value))
             root.preview(root.draft)
         }
     }

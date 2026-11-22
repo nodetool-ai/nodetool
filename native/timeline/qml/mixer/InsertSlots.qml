@@ -37,7 +37,9 @@ Item {
                         density: Ui.EditorButton.Compact
                         variant: Ui.EditorButton.Flat
                         contentAlignment: Qt.AlignLeft
-                        text: ({gain:"Gain",eq3:"3-Band EQ",filter:"Filter",compressor:"Compressor"})[modelData.type] || modelData.type
+                        text: modelData.type === "vst"
+                            ? ((modelData.plugin && modelData.plugin.name) || "VST3 Plugin")
+                            : (({gain:"Gain",eq3:"3-Band EQ",filter:"Filter",compressor:"Compressor"})[modelData.type] || modelData.type)
                         textTone: modelData.enabled ? Ui.Text.Primary : Ui.Text.Disabled
                         onClicked: root.open(modelData.id, effectName)
                     }
@@ -58,11 +60,12 @@ Item {
             id: addMenu
             returnFocusTo: addButton
             Repeater {
-                model: [{type:"gain",label:"Gain"},{type:"eq3",label:"3-Band EQ"},{type:"filter",label:"Filter"},{type:"compressor",label:"Compressor"}]
+                model: [{type:"gain",label:"Gain"},{type:"eq3",label:"3-Band EQ"},{type:"filter",label:"Filter"},{type:"compressor",label:"Compressor"},{type:"vst",label:"VST3 Plugin"}]
                 delegate: Ui.MenuItem {
                     required property var modelData
                     objectName: "add-" + modelData.type + "-" + root.channelId
-                    text: modelData.label; onTriggered: root.add(modelData.type)
+                    text: modelData.label
+                    onTriggered: root.add(modelData.type === "vst" ? VstHost.makeVstEffect() : modelData.type)
                 }
             }
         }

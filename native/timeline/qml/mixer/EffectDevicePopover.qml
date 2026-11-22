@@ -3,6 +3,7 @@ import NodeTool.UiPrimitives as Ui
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import "../Tracks/automation/automationTargets.js" as Targets
+import "../vst"
 Ui.Popover {
     id: root
     property TimelineModel timeline: null
@@ -18,7 +19,7 @@ Ui.Popover {
         filter:[{param:"frequency",label:"Frequency",min:20,max:20000,step:10,unit:"Hz"},{param:"q",label:"Q",min:.1,max:20,step:.1,digits:1}],
         compressor:[{param:"attackMs",label:"Attack",min:0,max:500,step:1,unit:"ms"},{param:"releaseMs",label:"Release",min:0,max:2000,step:1,unit:"ms"},{param:"kneeDb",label:"Knee",min:0,max:40,step:.5,digits:1,unit:"dB"}]
     })[effect.type] || [] : []
-    width: Math.min(parent?parent.width:420,effect ? ({gain:200,eq3:420,filter:240,compressor:380})[effect.type] || 320 : 320)
+    width: Math.min(parent?parent.width:420,effect ? ({gain:200,eq3:420,filter:240,compressor:380,vst:300})[effect.type] || 320 : 320)
     height: Math.min(implicitHeight,parent?parent.height*.9:implicitHeight)
     onAboutToHide:root.finishGestures()
     AutomationController { id:controller; timeline:root.timeline; trackId:root.trackId; master:root.trackId==="" }
@@ -45,7 +46,7 @@ Ui.Popover {
             id:params; width:parent.width; spacing:Ui.Metrics.md
             Row {
                 width:parent.width
-                Ui.Text { role: Ui.Typography.SansLabel; width:parent.width-24; text:root.effect?(Targets.EFFECT_LABELS[root.effect.type] || root.effect.type)+" device":"";}
+                Ui.Text { role: Ui.Typography.SansLabel; width:parent.width-24; elide: Text.ElideRight; text:root.effect?(root.effect.type==="vst"?((root.effect.plugin && root.effect.plugin.name) || "VST3 Plugin"):(Targets.EFFECT_LABELS[root.effect.type] || root.effect.type)+" device"):"";}
                 Ui.ToolbarIconButton { objectName:"close-effect-popover"; iconName:"close"; accessibleName:qsTr("Close effect"); onClicked:root.close() }
             }
             Loader {
@@ -133,8 +134,23 @@ Ui.Popover {
                     onChange:value=>{var p={};p[modelData.param]=root.fieldValue(modelData,value);root.patch(p)}
                 }
             }
+            Loader {
+                width:parent.width; active:root.effect!==null && root.effect.type==="vst"
+                sourceComponent: VstPluginControl {
+                    width: parent.width
+                    instrumentMode: false
+                    instanceId: root.trackId === "" ? ("master-fx:" + root.effectId) : ("fx:" + root.trackId + ":" + root.effectId)
+                    editorTitle: root.effect && root.effect.plugin && root.effect.plugin.name ? root.effect.plugin.name : "VST3 Effect"
+                    plugin: root.effect ? (root.effect.plugin || null) : null
+                    pluginState: root.effect ? (root.effect.state || null) : null
+                    wet: root.effect && root.effect.wet !== undefined ? root.effect.wet : 1.0
+                    disabled: root.effect === null || root.effect.enabled === false
+                    onPluginChosen: pluginRef => root.patch({ plugin: pluginRef, state: null })
+                    onWetChangedRequested: value => root.patch({ wet: value })
+                }
+            }
             Ui.Text { role: Ui.Typography.SansCaption; width:parent.width;visible:root.effect!==null && root.effect.type==="compressor";text:"Drag T = threshold · R = ratio · scroll T = knee";wrapMode:Text.WordWrap;tone: Ui.Text.Secondary;}
-            Ui.EditorButton { objectName:"remove-effect";variant:Ui.EditorButton.Destructive;text:"Remove effect";onClicked:{controller.edit(root.trackId===""?"removeMasterEffect":"removeTrackEffect",{effectId:root.effectId});root.close()} }
+            Ui.EditorButton { objectName:"remove-effect";variant:Ui.EditorButton.Destructive;text:"Remove effect";onClicked:{if (root.effect && root.effect.type === "vst") VstHost.closeEditor(root.trackId === "" ? ("master-fx:" + root.effectId) : ("fx:" + root.trackId + ":" + root.effectId)); controller.edit(root.trackId===""?"removeMasterEffect":"removeTrackEffect",{effectId:root.effectId});root.close()} }
         }
     }
 }

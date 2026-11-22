@@ -85,7 +85,7 @@ Rectangle {
         Ui.MenuItem {
             objectName: "dockMenuClose_" + root.group.id
             text: "Close " + root.dock.title(root.menuPanel)
-            enabled: root.menuPanel !== "program" && root.menuPanel !== "tracks"
+            enabled: root.menuPanel !== "tracks"
             onTriggered: root.dock.store.dispatch({type: "hide", panelId: root.menuPanel})
         }
         Ui.MenuItem {

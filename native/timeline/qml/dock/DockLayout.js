@@ -6,16 +6,16 @@ var workspaces = ["Editing", "Script", "Assistant", "Review"];
 // above must match TIMELINE_WORKSPACES, which dock-conformance.mjs checks.
 var nativeWorkspaces = ["Color", "Audio", "Music"];
 var sidePanels = ["inspector", "effectControls", "motion", "color", "shot", "instruments", "assistant", "ai", "history", "code"];
-var requiredPanels = ["program", "tracks"];
+var requiredPanels = ["tracks"];
 // Panels only this editor has, which a ported preset would otherwise show. Review leaves the
 // right side empty for the picture, and the port above keeps its own list of what it hides.
 // The music panel belongs to the Music workspace (docs/MUSIC-MODE.md section 15), and Music
 // leaves out the picture tools.
 var nativeHidden = {
-    Editing: ["music"], Script: ["music"], Assistant: ["music"],
-    Review: ["effectControls", "effects", "motion", "ai", "color", "audio", "music"],
-    Color: ["music"], Audio: ["music"],
-    Music: ["effectControls", "motion", "ai", "color", "scopes"]
+    Editing: ["music", "trackEffects"], Script: ["music", "trackEffects"], Assistant: ["music", "trackEffects"],
+    Review: ["effectControls", "effects", "motion", "ai", "color", "audio", "music", "trackEffects"],
+    Color: ["music", "trackEffects"], Audio: ["music", "trackEffects"],
+    Music: ["effectControls", "motion", "ai", "color", "scopes", "trackEffects"]
 };
 // The tab a native panel takes its place beside when a layout first meets it. A panel the layout
 // already places, as a saved layout may, stays where it is.

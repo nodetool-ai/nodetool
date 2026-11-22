@@ -51,7 +51,7 @@ ToolButton {
                 text: modelData.title
                 checkable: true
                 checked: root.store.layout.hidden.indexOf(modelData.id) < 0
-                enabled: modelData.id !== "program" && modelData.id !== "tracks"
+                enabled: modelData.id !== "tracks"
                 onTriggered: root.store.dispatch({type: checked ? "reveal" : "hide", panelId: modelData.id})
             }
         }

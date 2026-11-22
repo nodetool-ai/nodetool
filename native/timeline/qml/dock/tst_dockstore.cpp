@@ -54,9 +54,12 @@ private slots:
         store.resizeRegion("left", -100, 900, 200);
         QCOMPARE(store.layout().value("sizes").toMap().value("left").toInt(), 100);
         QSignalSpy changes(&store, &DockLayoutStore::changed);
-        QVERIFY(!store.dispatch({{"type", "hide"}, {"panelId", "program"}}));
         QVERIFY(!store.dispatch({{"type", "hide"}, {"panelId", "tracks"}}));
         QCOMPARE(changes.count(), 0);
+        QVERIFY(store.dispatch({{"type", "hide"}, {"panelId", "program"}}));
+        QVERIFY(store.layout().value("hidden").toStringList().contains("program"));
+        QVERIFY(store.dispatch({{"type", "reveal"}, {"panelId", "program"}}));
+        QVERIFY(!store.layout().value("hidden").toStringList().contains("program"));
     }
     void nativeWorkspacesFollowTheWebList() {
         QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));

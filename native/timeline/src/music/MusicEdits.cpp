@@ -8,6 +8,7 @@
 #include <QCryptographicHash>
 #include <QJsonArray>
 #include <QSet>
+#include <QUuid>
 
 #include <cmath>
 
@@ -353,11 +354,64 @@ QJsonObject deleteTake(QJsonObject raw, const QJsonObject& payload) {
 }
 
 namespace {
+QJsonObject createMidiClip(QJsonObject raw, const QJsonObject& payload) {
+    const auto trackId = payload.value(u"trackId").toString();
+    const double startMs = payload.value(u"startMs").toDouble(std::nan(""));
+    const double durationMs = payload.value(u"durationMs").toDouble(std::nan(""));
+    if (trackId.isEmpty() || !std::isfinite(startMs) || startMs < 0 || !std::isfinite(durationMs) || durationMs <= 0) {
+        return raw;
+    }
+    const auto track = findTrack(raw, trackId);
+    if (track.isEmpty() || track.value(u"type").toString() != u"midi" || track.value(u"locked").toBool()) {
+        return raw;
+    }
+    const auto clips = raw.value(u"clips").toArray();
+    const auto startFrame = msToFrame(startMs);
+    const auto endFrame = startFrame + msToFrame(durationMs);
+    for (const auto& value : clips) {
+        const auto other = value.toObject();
+        if (other.value(u"trackId").toString() != trackId) {
+            continue;
+        }
+        const auto otherStart = msToFrame(other.value(u"startMs").toDouble());
+        const auto otherEnd = otherStart + msToFrame(other.value(u"durationMs").toDouble());
+        if (otherStart < endFrame && otherEnd > startFrame) {
+            return raw;
+        }
+    }
+    const auto name = payload.value(u"name").toString().trimmed();
+    auto clipId = payload.value(u"id").toString();
+    if (clipId.isEmpty()) {
+        clipId = QUuid::createUuid().toString(QUuid::Id128);
+    }
+    QJsonObject clip{{"id", clipId},
+                     {"trackId", trackId},
+                     {"name", name.isEmpty() ? QStringLiteral("MIDI clip") : name},
+                     {"startMs", startMs},
+                     {"durationMs", durationMs},
+                     {"inPointMs", 0.0},
+                     {"outPointMs", durationMs},
+                     {"mediaType", "midi"},
+                     {"sourceType", "generated"},
+                     {"status", "ready"},
+                     {"locked", false},
+                     {"notes", QJsonArray{}}};
+    auto nextClips = clips;
+    nextClips.append(clip);
+    raw.insert("clips", nextClips);
+    const double endMs = startMs + durationMs;
+    if (endMs > raw.value(u"durationMs").toDouble()) {
+        raw.insert("durationMs", endMs);
+    }
+    return raw;
+}
+
 const bool placeholderRegistered = nt::app::registerEdit("music.insertPlaceholder", insertPlaceholder);
 const bool resultRegistered = nt::app::registerEdit("music.applyResult", applyResult);
 const bool promptRegistered = nt::app::registerEdit("music.recordPrompt", recordPrompt);
 const bool selectRegistered = nt::app::registerEdit("music.selectTake", selectTake);
 const bool deleteRegistered = nt::app::registerEdit("music.deleteTake", deleteTake);
+const bool midiClipRegistered = nt::app::registerEdit("music.createMidiClip", createMidiClip);
 }  // namespace
 
 }  // namespace nt::music

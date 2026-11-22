@@ -27,6 +27,11 @@ class MusicSequenceState : public QObject {
     Q_PROPERTY(QString tempoText READ tempoText NOTIFY changed)
     // "120 BPM 4/4", empty without a readable tempo.
     Q_PROPERTY(QString tempoChip READ tempoChip NOTIFY changed)
+    // The tempo fields the control bar shows, 0 and an empty text without a readable tempo.
+    Q_PROPERTY(double bpm READ bpm NOTIFY changed)
+    Q_PROPERTY(double beatsPerBar READ beatsPerBar NOTIFY changed)
+    Q_PROPERTY(double beatUnit READ beatUnit NOTIFY changed)
+    Q_PROPERTY(QString timeSignature READ timeSignature NOTIFY changed)
     // "A minor", or empty when the sequence has no key.
     Q_PROPERTY(QString keyText READ keyText NOTIFY changed)
     // MD6: an audio clip holds the tempo, so only the key can change.
@@ -45,6 +50,10 @@ public:
     QString tempoText() const { return m_tempoText; }
     QString tempoChip() const { return m_tempoChip; }
     QString keyText() const { return m_keyText; }
+    double bpm() const { return m_bpm; }
+    double beatsPerBar() const { return m_beatsPerBar; }
+    double beatUnit() const { return m_beatUnit; }
+    QString timeSignature() const { return m_timeSignature; }
     bool tempoLocked() const { return m_tempoLocked; }
     QStringList promptHistory() const { return m_promptHistory; }
     int openedDocuments() const { return m_openedDocuments; }
@@ -53,6 +62,13 @@ public:
     Q_INVOKABLE QString barLabel(double frame) const;
     // "5.3.2": bar, beat and quarter beat of a time in milliseconds; empty without a readable tempo.
     Q_INVOKABLE QString positionLabel(double ms) const;
+    // The time in milliseconds on the nearest grid line of the ruler division ("bar", or a beat
+    // for any finer one). The time unchanged without a readable tempo.
+    Q_INVOKABLE double snapMs(double ms, const QString& rulerDivision) const;
+    // The bar line before (direction < 0) or after (direction > 0) a time in milliseconds. From
+    // exactly on a bar line, the previous one is one bar back. Never below 0. Returns the time
+    // unchanged without a readable tempo.
+    Q_INVOKABLE double adjacentBarMs(double ms, int direction) const;
 
 signals:
     void timelineChanged();
@@ -68,6 +84,10 @@ private:
     QString m_tempoText;
     QString m_tempoChip;
     QString m_keyText;
+    double m_bpm = 0;
+    double m_beatsPerBar = 0;
+    double m_beatUnit = 0;
+    QString m_timeSignature;
     bool m_tempoLocked = false;
     QStringList m_promptHistory;
     int m_openedDocuments = 0;

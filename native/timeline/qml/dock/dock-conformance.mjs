@@ -72,7 +72,7 @@ for (const action of actions) {
   compare('transition', [layout, action], expected);
   layout = expected;
 }
-for (const invalid of [null, {}, { ...layout, version: 2 }, { ...layout, hidden: ['program'] },
+for (const invalid of [null, {}, { ...layout, version: 2 }, { ...layout, hidden: ['tracks'] },
   { ...layout, hidden: ['inspector', 'inspector'] }, { ...layout, extra: true },
   { ...layout, sizes: { ...layout.sizes, left: 99 } },
   { ...layout, regions: { ...layout.regions, right: [{ id: 'bad', panels: ['inspector'], activePanelId: 'shot' }] } }]) {
@@ -101,7 +101,6 @@ for (const region of ['left', 'right', 'bottom', 'viewport']) {
 console.log(`Dock drag targets: ${comparisons} comparisons passed`);
 
 for (const action of [
-  { type: 'hide', panelId: 'program' },
   { type: 'hide', panelId: 'tracks' },
   { type: 'activate', panelId: 'program' },
   { type: 'resize', region: 'bottom', size: 300 },
