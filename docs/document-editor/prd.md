@@ -64,9 +64,10 @@ Agreed before this PRD was written.
 
 - **No page layout.** Fonts, text colour, alignment, margins and page breaks
   are outside what Markdown stores. D1 excludes them.
-- **No multi-user realtime editing.** No CRDT is installed, and
-  [multiplayer-design.md](../multiplayer-design.md) covers the workflow canvas
-  only. Two tabs on one document keep the existing compare-and-swap behavior.
+- **No realtime co-editing in this PRD.** The cloud sync plan owns
+  replication (see Relation to the CRDT plan). This PRD ships whole-document
+  saves with the existing compare-and-swap, and meets R20 to R22 so the
+  document can become a replicated document later.
 - **No suggestion mode and no comment threads.** See D2.
 - **No merge of script or storyboard into this editor.** Both keep their
   schemas and their editors. The editor shell is built so the storyboard Text
@@ -74,6 +75,38 @@ Agreed before this PRD was written.
 - **No change to code and data files.** JSON, YAML, CSV, TSV and source files
   stay in the Monaco editor. Plain `.txt` stays there too (see Open
   questions).
+
+## Relation to the CRDT plan
+
+The [cloud sync PRD](../plans/native-cloud-sync/prd.md) plans replicated
+documents: timelines in its phase 3, scripts and storyboards in its phase 5.
+Its two designs
+([timeline](../plans/native-cloud-sync/timeline-crdt-design.md),
+[storyboard and script](../plans/native-cloud-sync/storyboard-script-crdt-design.md))
+share one core, and each document kind supplies a profile of entities and
+registers. The core library, Automerge or a custom core, is chosen after that
+plan's phase 0. A separate draft,
+[multiplayer-design.md](../multiplayer-design.md), proposes Yjs for the
+workflow canvas.
+
+Neither design covers this document kind. The cloud sync PRD treats a
+Markdown file as a media asset or a workspace file: when both sides changed
+it, both files are kept. `text` is also absent from
+`SHARED_DOCUMENT_TYPES` in `packages/models/src/document-sharing.ts`, so a
+document has no viewer or editor role today.
+
+This PRD does not build replication. It fixes four points so that a profile
+for documents can be added without changing the editor or the file format.
+
+| This PRD | Rule in the CRDT designs | Match |
+| --- | --- | --- |
+| A block is the merge unit (R5). | Entities with registers, ordered by run-preserving order keys (E2). | A block becomes an entity. Its content and its position become registers. |
+| An agent edit applies directly, and a block the person changed keeps the person's text (R8). | A generated write defers to a person's concurrent value and is offered as an alternative (E6, rule J5). | Same outcome. D2 holds whenever no person edited the block concurrently. |
+| A restore creates a new version (R11). | A restore is a new transaction and never rewinds (amendment A3). | Same rule. |
+| A write from outside the editor is compared with the last saved content (R22). | A whole-document save is converted relative to the base the client was sent (rules V1 to V3). | The same conversion, with the Markdown file as the whole document. |
+
+Two points need a decision from the owners of the CRDT designs. They are Q5
+and Q8 under Open questions.
 
 ## Terms
 
@@ -148,7 +181,8 @@ Agreed before this PRD was written.
   path, not only for document-specific tools. Where the user and the agent
   changed the same block, [ADR 0001](../adr/0001-document-sync-draft-wins.md)
   applies: the user's draft wins and the agent's value is listed as a
-  conflict.
+  conflict. This is the outcome extension E6 of the CRDT designs specifies for
+  generated writes.
 - **R9 — Direct edits with a trail.** Agent edits apply at once (D2). Each
   changed block is marked until the user edits it or dismisses the mark. Each
   mark offers a revert that restores the block's previous content. A revert
@@ -194,6 +228,19 @@ Agreed before this PRD was written.
   `google_docs_read`, `google_docs_create` and `google_docs_append` exist and
   exchange plain text. R19 needs transfers that keep formatting and a file
   picker in the web app.
+- **R20 — Stable block ids.** Every block has an id that survives saving,
+  reopening, and edits to other blocks. The ids are stored outside the
+  Markdown file, which stays plain Markdown (D1).
+- **R21 — One operation set.** The editor, the agent tools and the file
+  reconcile all change a document through the same block operations: create,
+  delete, move and set content. The editor does not depend on a
+  library-specific collaboration binding such as `@lexical/yjs`, because the
+  core library is not chosen yet.
+- **R22 — Outside writes convert against a base.** A write that did not come
+  through the editor (another Markdown editor, `edit_file` on a closed
+  document, a workflow run) is turned into block operations by comparing it
+  with the content NodeTool last saved. An unchanged block produces no
+  operation and keeps its id.
 
 ### Non-functional
 
@@ -240,6 +287,12 @@ Four phases. Each one ships alone.
 Phases 1 and 2 answer the main request. Phase 3 removes the copies. The
 reporter called phase 4 secondary.
 
+R20 to R22 ship with phase 1, since the block model of phase 1 defines ids and
+operations. Replication of documents is a later phase of the cloud sync plan,
+after a document profile is designed. Until then a document is a whole-document
+format with today's merge behavior, as that plan describes for workflows and
+sketches.
+
 ## Open questions
 
 - **Q1 — Name.** "Document" is taken twice: the `document` tab previews PDF
@@ -257,12 +310,22 @@ reporter called phase 4 secondary.
   "Convert to document".
 - **Q4 — Tab identity.** A `.md` file can open as a `text` tab (by asset id)
   or a `workspace-file` tab (by path). R8 and R12 need one identity per file.
-- **Q5 — Same-block conflicts.** Under ADR 0001 the user's draft wins a
-  block that both sides changed. For prose, a paragraph may be too large a
-  unit when the user is typing in the paragraph the agent was asked to fix.
+- **Q5 — Text inside a block.** The storyboard and script design makes text
+  a whole-value register (its D2): two people who edit one line get a
+  conflict, and no merged sentence is produced. Two of its three reasons are
+  about voiced takes and do not apply to prose. A block here is a paragraph,
+  so two people in one paragraph would conflict on every edit. A sequence type
+  for block content would merge them. This choice bears on the core library
+  decision, because Automerge has a text type and the custom core has none
+  specified. That design's own Q1 asks the same about its long `brief` field.
 - **Q6 — Version retention.** Interval checkpoints need a cap or a thinning
   rule. The existing version tables are the reference.
 - **Q7 — Google sign-in on local installs.** Google access requires the
   Supabase Google login ([Google Workspace](../google-workspace.md)), which a
   local install without a login does not have. R19 may be cloud-only at
   first.
+- **Q8 — Sharing and cloud status.** For a document to be a cloud document
+  with viewer and editor roles, `text` must join `SHARED_DOCUMENT_TYPES`, and
+  the cloud sync PRD's capability matrix needs a row for it. Until then a
+  linked project transfers a document as a file and keeps both copies when
+  both sides changed.
