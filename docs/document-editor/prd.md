@@ -36,7 +36,8 @@ which file format backs it.
 
 ## Decisions
 
-Agreed before this PRD was written.
+D1 to D3 were agreed before this PRD was written. D4 was agreed after a
+comparison of seven replication options.
 
 - **D1 — Markdown is the document.** The saved file is plain Markdown. The
   editor state is derived from it on open. This is the reverse of the
@@ -45,6 +46,10 @@ Agreed before this PRD was written.
   mode is a non-goal for this version.
 - **D3 — Workflows reference documents.** A workflow reads and writes the
   document file itself. This is in scope for the first release.
+- **D4 — Blocks replicate as whole values.** When documents become
+  replicated, each block is an entity in the cloud sync plan's core and its
+  Markdown is one value. The first release saves whole files. No second
+  stored CRDT is added for documents. See Relation to the CRDT plan.
 
 ## Goals
 
@@ -105,11 +110,10 @@ for documents can be added without changing the editor or the file format.
 | A restore creates a new version (R11). | A restore is a new transaction and never rewinds (amendment A3). | Same rule. |
 | A write from outside the editor is compared with the last saved content (R22). | A whole-document save is converted relative to the base the client was sent (rules V1 to V3). | The same conversion, with the Markdown file as the whole document. |
 
-### Proposed target
+### Replication target
 
-This direction is proposed and not yet agreed. It came out of comparing seven
-options, including Yjs with the Lexical binding and a text sequence in
-Automerge or Loro.
+D4 came out of comparing seven options, including Yjs with the Lexical
+binding and a text sequence in Automerge or Loro.
 
 - **Replicated state.** Each block is an entity in the cloud sync plan's
   core. Its content register holds the block's raw Markdown as a whole value.
@@ -307,12 +311,11 @@ plan.
 
 ## Experiments
 
-Three short tests decide whether the proposed target holds. Each is one to
-three days.
+Three short tests check D4. Each is one to three days.
 
 - **A1 — Byte-stable round trip.** Build the block codec of R4 for 20 to 30
   real Markdown files with tables, nested lists, code fences and reference
-  links. Edit one paragraph in Lexical and save. The target fails if keeping
+  links. Edit one paragraph in Lexical and save. D4 fails if keeping
   untouched blocks byte-identical requires working against Lexical's own
   normalization on every update.
 - **A2 — Outside edits against a dirty draft.** Replay 50 recorded agent
@@ -363,8 +366,7 @@ sketches.
   "Convert to document".
 - **Q4 — Tab identity.** A `.md` file can open as a `text` tab (by asset id)
   or a `workspace-file` tab (by path). R8 and R12 need one identity per file.
-- **Q5 — Whole-value blocks.** The proposed target treats a block's Markdown
-  as one value, as the storyboard and script design does for a line (its D2).
+- **Q5 — Whole-value blocks.** D4 treats a block's Markdown as one value, as the storyboard and script design does for a line (its D2).
   Three points stay open. First, two people who type in one paragraph at the
   same time get a conflict on that block. If that becomes a main use, the
   options are a sequence type in the plan's core or a live session layered
