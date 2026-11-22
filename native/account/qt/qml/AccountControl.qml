@@ -80,6 +80,14 @@ RowLayout {
             }
             Basic.MenuSeparator { padding: Ui.Metrics.xs; contentItem: Ui.Separator {} }
             Ui.MenuItem {
+                objectName: "account-menu-sign-in"
+                visible: !root.signedIn && !root.signingIn
+                height: visible ? implicitHeight : 0
+                enabled: root.account.cloudAvailable
+                text: root.servers ? "Sign in to " + root.serverLabel(root.servers.currentServer) : "Sign in"
+                onTriggered: root.account.signIn()
+            }
+            Ui.MenuItem {
                 objectName: "account-add-server"
                 text: "Sign in to another server…"
                 onTriggered: {
@@ -92,7 +100,7 @@ RowLayout {
     }
     Ui.EditorButton {
         objectName: "account-sign-in"
-        visible: !root.signedIn && !root.signingIn
+        visible: root.servers === null && !root.signedIn && !root.signingIn
         enabled: root.account.cloudAvailable
         text: "Sign in"
         iconName: "personOutline"

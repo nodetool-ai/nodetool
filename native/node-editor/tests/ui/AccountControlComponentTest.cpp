@@ -316,7 +316,7 @@ private slots:
         view.resize(1200, 28);
         view.show();
         QVERIFY(named(view.rootObject(), "status-account")->property("active").toBool());
-        QTRY_VERIFY(shown(view.rootObject(), "account-sign-in"));
+        QVERIFY(!shown(view.rootObject(), "account-sign-in"));
         QTRY_VERIFY(shown(view.rootObject(), "account-server-button"));
         QCOMPARE(named(view.rootObject(), "account-server-button")->property("text").toString(), QString("NodeTool Cloud"));
     }
