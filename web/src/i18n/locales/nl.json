@@ -20474,6 +20474,8 @@
       "keepBoth": "Wordt verzonden als kopie naast de cloudversie",
       "addVersions": "Opgeslagen versies worden verzonden",
       "putAssetFile": "Bestand hier gewijzigd, wordt verzonden",
+      "putWorkspaceFile": "Gewijzigd in de projectmap, wordt verzonden",
+      "newWorkspaceFile": "Nieuw in de projectmap, wordt verzonden",
       "newInCloud": "Nieuw in de cloud",
       "cloudChanged": "Gewijzigd in de cloud",
       "cloudFileChanged": "Een bestand dat het gebruikt is gewijzigd in de cloud",
