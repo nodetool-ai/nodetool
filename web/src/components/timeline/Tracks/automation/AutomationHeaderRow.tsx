@@ -31,22 +31,27 @@ import {
   type AutomationMenuTone
 } from "./AutomationMenuButton";
 import { AutomationValueReadout } from "./AutomationValueReadout";
+import { AutomationAddLaneButton } from "./AutomationLaneHeader";
 
 export const AUTOMATION_MODES: readonly AutomationMode[] = ["off", "read", "touch", "latch", "write"];
 
-/** The fill of the mode select: Off is neutral, the others carry a status color. */
-export function automationModeTone(mode: AutomationMode): AutomationMenuTone {
+/**
+ * The mode select: a neutral button with a small dot in the mode color
+ * (spec 5). Off is gray, the others carry a status color.
+ */
+export function automationModeTone(mode: AutomationMode, theme: Theme): AutomationMenuTone {
+  const p = theme.vars.palette;
   switch (mode) {
     case "off":
-      return { kind: "neutral" };
+      return { kind: "indicator", color: p.text.disabled };
     case "read":
-      return { kind: "fill", role: "success" };
+      return { kind: "indicator", color: p.success.main };
     case "touch":
-      return { kind: "fill", role: "warning" };
+      return { kind: "indicator", color: p.warning.main };
     case "latch":
-      return { kind: "fill", role: "secondary" };
+      return { kind: "indicator", color: p.secondary.main };
     case "write":
-      return { kind: "fill", role: "error" };
+      return { kind: "indicator", color: p.error.main };
   }
 }
 
@@ -130,7 +135,7 @@ export const AutomationHeaderRow: React.FC<Props> = memo(({ track }) => {
         value={mode}
         entries={modeEntries}
         onSelect={selectMode}
-        tone={automationModeTone(mode)}
+        tone={automationModeTone(mode, theme)}
         ariaLabel={t("timelineAutomation.mode")}
         testId={`automation-mode-${track.id}`}
         disabled={track.locked}
@@ -147,6 +152,7 @@ export const AutomationHeaderRow: React.FC<Props> = memo(({ track }) => {
         grow
       />
       {spec && <AutomationValueReadout track={track} spec={spec} color={color} />}
+      <AutomationAddLaneButton track={track} />
     </div>
   );
 });

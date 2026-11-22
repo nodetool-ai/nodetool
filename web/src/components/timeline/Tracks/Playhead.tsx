@@ -40,20 +40,12 @@ import {
 } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
-import {
-  FONT_SIZE_MONO,
-  FONT_WEIGHT,
-  MOTION,
-  TYPOGRAPHY,
-  Z_INDEX,
-  SPACING,
-  getSpacingPx
-} from "../../ui_primitives";
+import { MOTION, Z_INDEX } from "../../ui_primitives";
 
-const LINE_WIDTH_PX = 1.5;
+const LINE_WIDTH_PX = 1;
 const HIT_AREA_WIDTH_PX = 16;
-const PILL_HEIGHT_PX = 20;
+const HEAD_WIDTH_PX = 12;
+const HEAD_HEIGHT_PX = 8;
 
 /**
  * Outer element — it spans the full height and draws the line (`::before`)
@@ -86,7 +78,6 @@ const hitAreaStyles = (theme: Theme) =>
       transform: "translateX(-50%)",
       width: LINE_WIDTH_PX,
       backgroundColor: theme.vars.palette.secondary.main,
-      boxShadow: `0 0 10px ${theme.vars.palette.secondary.main}66`,
       pointerEvents: "none"
     },
     "&:focus-visible": {
@@ -106,30 +97,21 @@ const grabZoneStyles = (dragging: boolean) =>
     pointerEvents: "auto"
   });
 
+// D66: the head is a small triangle in the ruler. The position readout
+// lives in the control bar, so the ruler labels stay uncovered.
 const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
   css({
     position: "absolute",
-    top: 4,
+    top: 0,
     left: "50%",
     transform: "translateX(-50%)",
-    height: PILL_HEIGHT_PX,
-    padding: `0 ${getSpacingPx(SPACING.md)}`,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: PILL_HEIGHT_PX / 2,
-    backgroundColor: theme.vars.palette.secondary.main,
-    color: theme.vars.palette.secondary.contrastText,
-    fontFamily: TYPOGRAPHY.mono.caption.fontFamily,
-    fontSize: FONT_SIZE_MONO.caption,
-    fontWeight: FONT_WEIGHT.semibold,
-    letterSpacing: "0",
-    whiteSpace: "nowrap",
-    boxShadow:
-      dragging || hovered
-        ? `0 0 0 3px ${theme.vars.palette.secondary.main}33, 0 4px 12px ${theme.vars.palette.c_scrim}`
-        : `0 2px 6px ${theme.vars.palette.c_scrim_soft}`,
-    transition: `box-shadow ${MOTION.fast}`,
+    width: 0,
+    height: 0,
+    borderLeft: `${HEAD_WIDTH_PX / 2}px solid transparent`,
+    borderRight: `${HEAD_WIDTH_PX / 2}px solid transparent`,
+    borderTop: `${HEAD_HEIGHT_PX}px solid ${theme.vars.palette.secondary.main}`,
+    filter: dragging || hovered ? `drop-shadow(0 0 3px ${theme.vars.palette.secondary.main})` : "none",
+    transition: `filter ${MOTION.fast}`,
     pointerEvents: "none"
   });
 
@@ -213,10 +195,9 @@ export const Playhead: React.FC<PlayheadProps> = memo(
     trackAreaOffsetRef.current = trackAreaOffsetPx;
     fpsRef.current = fps;
 
-    // Last-written aria bucket / pill text, so the throttled DOM writes below
+    // Last-written aria bucket, so the throttled DOM writes below
     // only fire when the displayed value actually changes.
     const lastAriaBucketRef = useRef<number | null>(null);
-    const lastPillTextRef = useRef<string | null>(null);
     // Pill and viewport widths, kept by a ResizeObserver so placing the pill
     // never reads layout during playback.
     const pillWidthRef = useRef(0);
@@ -246,11 +227,6 @@ export const Playhead: React.FC<PlayheadProps> = memo(
       }
       const pill = pillRef.current;
       if (pill) {
-        const text = formatTimecode(timeMs, fpsRef.current);
-        if (text !== lastPillTextRef.current) {
-          lastPillTextRef.current = text;
-          pill.textContent = text;
-        }
         const shift = Math.round(
           pillShiftPx(leftPx, pillWidthRef.current, viewportWidthRef.current)
         );
@@ -427,7 +403,7 @@ export const Playhead: React.FC<PlayheadProps> = memo(
           ref={pillRef}
           css={pillCss}
           aria-hidden
-          data-testid="playhead-pill"
+          data-testid="playhead-head"
         />
       </div>
     );

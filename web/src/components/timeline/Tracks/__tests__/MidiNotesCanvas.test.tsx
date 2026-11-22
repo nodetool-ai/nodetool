@@ -122,6 +122,7 @@ describe("MidiNotesCanvas curve", () => {
           durationMs={4000}
           bpm={120}
           widthPx={400}
+          color="#3d68a8"
         />
       </ThemeProvider>
     );

@@ -39,6 +39,7 @@ export type TimelineTypedDocument = Pick<
   | "tempo"
   | "master"
   | "setup"
+  | "music"
 >;
 
 export const timelineTypedDocumentOf = (
@@ -63,7 +64,8 @@ export const timelineMergeDocumentOf = (
   camera2d: state.camera2d ?? null,
   tempo: state.tempo,
   master: state.master,
-  setup: state.setup ?? null
+  setup: state.setup ?? null,
+  music: state.music
 });
 
 /**
@@ -88,6 +90,7 @@ export const timelineMergeDocumentOfSequence = (
     tempo?: TimelineMergeDoc["tempo"];
     master?: TimelineMergeDoc["master"];
     setup?: TimelineMergeDoc["setup"];
+    music?: TimelineMergeDoc["music"];
   },
   base: TimelineMergeDoc
 ): TimelineMergeDoc => ({
@@ -105,7 +108,8 @@ export const timelineMergeDocumentOfSequence = (
   camera2d: sequence.camera2d ?? null,
   tempo: sequence.tempo ?? base.tempo,
   master: sequence.master ?? base.master,
-  setup: sequence.setup ?? null
+  setup: sequence.setup ?? null,
+  music: sequence.music ?? base.music
 });
 
 /**
@@ -217,6 +221,12 @@ export function applyAcceptedTimelineConflict(
       });
       return;
     }
+    if (conflict.unit.id === "music") {
+      state.applyExternalMerge({
+        music: conflict.external as TimelineStoreState["music"]
+      });
+      return;
+    }
     if (conflict.unit.id === "setup") {
       state.applyExternalMerge({
         setup: (conflict.external ?? null) as TimelineStoreState["setup"]
@@ -290,7 +300,8 @@ export function rebaseTimelineSnapshots(
       camera2d: snapshot.camera2d ?? null,
       tempo: snapshot.tempo,
       master: snapshot.master,
-      setup: snapshot.setup ?? null
+      setup: snapshot.setup ?? null,
+      music: snapshot.music
     })),
     before,
     after,
@@ -316,6 +327,7 @@ export function rebaseTimelineSnapshots(
       storyboardMaterializations: typedNext.storyboardMaterializations,
       camera2d: typedNext.camera2d ?? null,
       tempo: typedNext.tempo,
+      music: typedNext.music,
       master: typedNext.master,
       setup: typedNext.setup ?? null,
       durationMs: reflowed.durationMs

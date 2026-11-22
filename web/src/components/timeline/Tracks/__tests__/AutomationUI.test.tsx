@@ -22,7 +22,6 @@ import { ShowAutomationButton } from "../ShowAutomationButton";
 import {
   AUTOMATION_HEADER_ROW_PX,
   AUTOMATION_LANE_HEIGHT_PX,
-  AUTOMATION_FOOTER_HEIGHT_PX,
   CLIP_NAME_BAR_BOTTOM_PX,
   CLIP_NAME_BAR_PX,
   CLIP_TOP_PX,
@@ -93,7 +92,7 @@ describe("layout", () => {
     const lanes = { ...audio, automation: [volumeLane(), panLane()] };
     expect(automationSectionHeightPx(lanes, shown())).toBe(AUTOMATION_HEADER_ROW_PX);
     expect(automationSectionHeightPx(lanes, { show: true, openTrackIds: ["a"], shownParams: {} })).toBe(
-      AUTOMATION_HEADER_ROW_PX + AUTOMATION_LANE_HEIGHT_PX + AUTOMATION_FOOTER_HEIGHT_PX
+      AUTOMATION_HEADER_ROW_PX + AUTOMATION_LANE_HEIGHT_PX
     );
   });
 
@@ -181,9 +180,10 @@ describe("AutomationCurveOverlay", () => {
     instance.ui.setState({ msPerPx: 10 });
     render(wrap(instance, <AutomationCurveOverlay track={track(instance)} widthPx={2000} heightPx={100} />));
     const hit = screen.getByTestId(`automation-hit-${track(instance).id}`);
-    fireEvent.pointerDown(hit, { button: 0, pointerId: 1, clientX: 100, clientY: 50 });
-    fireEvent.pointerMove(hit, { pointerId: 1, clientX: 120, clientY: 50 });
-    fireEvent.pointerUp(hit, { pointerId: 1, clientX: 120, clientY: 50 });
+    // The flat line at -4 dB: 6px inset + (1 - 56/66) of 88px.
+    fireEvent.pointerDown(hit, { button: 0, pointerId: 1, clientX: 100, clientY: 19 });
+    fireEvent.pointerMove(hit, { pointerId: 1, clientX: 120, clientY: 19 });
+    fireEvent.pointerUp(hit, { pointerId: 1, clientX: 120, clientY: 19 });
     const points = track(instance).automation?.[0].points ?? [];
     expect(points).toHaveLength(2);
     expect(points[0]).toEqual({ timeMs: 0, value: -4 });

@@ -53,13 +53,12 @@ import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePl
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import {
+  BORDER_RADIUS,
   Caption,
   ConfirmDialog,
   FlexColumn,
   FlexRow,
-  SPACING,
-  StatusDot,
-  Text
+  SPACING
 } from "../../ui_primitives";
 import { playAuditionNote } from "../preview/audition";
 import { partitionTimelineWheel } from "../Tracks/timelineWheel";
@@ -82,6 +81,7 @@ import { StepEditorToolbar } from "./StepEditorToolbar";
 import { StepEditorInspector } from "./StepEditorInspector";
 import { NumberDialog } from "./StepEditorDialogs";
 import { beamColors, pickStepEditorColors } from "./stepEditorColors";
+import { StepLaneHeader } from "./StepLaneHeader";
 import {
   buildStepLanes,
   controllerLaneView,
@@ -144,7 +144,20 @@ const playheadStyles = (theme: Theme) =>
     bottom: 0,
     width: 1,
     pointerEvents: "none",
-    backgroundColor: theme.vars.palette.primary.main
+    backgroundColor: theme.vars.palette.secondary.main
+  });
+
+const stepFrameStyles = (theme: Theme) =>
+  css({
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    visibility: "hidden",
+    pointerEvents: "none",
+    boxSizing: "border-box",
+    border: `2px solid ${theme.vars.palette.secondary.main}`,
+    borderRadius: BORDER_RADIUS.xs
   });
 
 const isNoteControl = (target: EventTarget) =>
@@ -184,6 +197,22 @@ type Gesture =
       startY: number;
       moved: boolean;
     };
+
+/** Below this width a step is drawn as a line, not a cell. */
+const MIN_CELL_PX = 8;
+/** Gap between a step cell and its grid line, on each side. */
+const CELL_GAP_PX = 1;
+/** Opacity of an on step's cell tint behind its value bar. */
+const ON_CELL_ALPHA = 0.28;
+
+/**
+ * How wide a lane's beams draw and hit: a full step cell when the grid step is
+ * wider than the pen, so an on step reads as a filled cell.
+ */
+function beamWidthPx(params: StepLaneParams, pxPerTick: number): number {
+  const cell = divisionToTicks(params.grid) * pxPerTick - CELL_GAP_PX * 2;
+  return cell >= MIN_CELL_PX ? Math.max(params.penWidth, Math.floor(cell)) : params.penWidth;
+}
 
 interface Overlay {
   line?: { laneIndex: number; x0: number; y0: number; x1: number; y1: number };
@@ -312,6 +341,7 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
     const eventsRef = useRef<HTMLDivElement | null>(null);
     const rootRef = useRef<HTMLDivElement | null>(null);
     const playheadRef = useRef<HTMLDivElement | null>(null);
+    const stepFrameRef = useRef<HTMLDivElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const positionRef = useRef<HTMLSpanElement | null>(null);
     const hoveringRef = useRef(false);
@@ -387,10 +417,25 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
         const x = tickToX(timelineMsToTick(timeMs), geometryRef.current);
         node.style.transform = `translateX(${x}px)`;
         node.style.visibility = x >= 0 && x <= size.width ? "visible" : "hidden";
+        // The playing step: a frame around the step column under the playhead.
+        const frame = stepFrameRef.current;
+        if (frame) {
+          const geo = geometryRef.current;
+          const tick = timelineMsToTick(timeMs);
+          const stepStart = Math.floor((tick - gridPhaseTick) / gridStepTicks) * gridStepTicks + gridPhaseTick;
+          const left = tickToX(stepStart, geo);
+          const width = gridStepTicks * geo.pxPerTick;
+          frame.style.transform = `translateX(${left}px)`;
+          frame.style.width = `${width}px`;
+          frame.style.visibility =
+            playbackApi.getState().isPlaying && width >= MIN_CELL_PX && left + width >= 0 && left <= size.width
+              ? "visible"
+              : "hidden";
+        }
       };
       apply(playbackApi.getState().getTimeMs());
       return playbackApi.getState().subscribeTime(apply);
-    }, [playbackApi, timelineMsToTick, size.width, geometry]);
+    }, [playbackApi, timelineMsToTick, size.width, geometry, gridStepTicks, gridPhaseTick]);
 
     // Catch: keep the playhead on screen while the transport plays.
     useEffect(() => {
@@ -477,6 +522,7 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
       canvas.width = size.width * dpr;
       canvas.height = size.height * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const cellRadius = (parseFloat(getComputedStyle(canvas).borderRadius) || 0) / 2;
       ctx.fillStyle = colors.whiteRow;
       ctx.fillRect(0, 0, size.width, size.height);
       const windowStartX = tickToX(windowFromTick, geometry);
@@ -495,10 +541,25 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
         ctx.lineWidth = 1;
         ctx.strokeStyle = colors.gridLine;
         ctx.beginPath();
-        for (const tick of stepLines) {
-          const x = Math.round(tickToX(tick, geometry)) + 0.5;
-          ctx.moveTo(x, top);
-          ctx.lineTo(x, top + rowHeightPx);
+        const cellPx = gridStepTicks * geometry.pxPerTick;
+        if (cellPx >= MIN_CELL_PX) {
+          // Off steps: one framed cell per grid step, no fill.
+          for (const tick of stepLines) {
+            const x = Math.round(tickToX(tick, geometry));
+            ctx.roundRect(
+              x + CELL_GAP_PX + 0.5,
+              top + CELL_GAP_PX + 0.5,
+              Math.max(1, Math.round(cellPx) - CELL_GAP_PX * 2 - 1),
+              rowHeightPx - CELL_GAP_PX * 2 - 1,
+              cellRadius
+            );
+          }
+        } else {
+          for (const tick of stepLines) {
+            const x = Math.round(tickToX(tick, geometry)) + 0.5;
+            ctx.moveTo(x, top);
+            ctx.lineTo(x, top + rowHeightPx);
+          }
         }
         ctx.stroke();
         ctx.strokeStyle = colors.barLine;
@@ -513,9 +574,10 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
         ctx.stroke();
 
         const params = settings.laneParams[lane.key] ?? DEFAULT_STEP_LANE_PARAMS;
+        const width = beamWidthPx(params, geometry.pxPerTick);
         for (const event of eventsByLane[i] ?? []) {
-          const x = tickToX(event.tick, geometry);
-          if (x + params.penWidth < 0 || x > size.width) continue;
+          const x = tickToX(event.tick, geometry) + (width > params.penWidth ? CELL_GAP_PX : 0);
+          if (x + width < 0 || x > size.width) continue;
           const box = beamBox(lane, event.value, rowHeightPx);
           const palette = beamColors(
             colors,
@@ -524,10 +586,22 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
           );
           ctx.globalAlpha = event.muted ? colors.mutedAlpha : 1;
           ctx.fillStyle = palette.fill;
-          ctx.fillRect(x, top + box.top, params.penWidth, box.height);
-          if (params.style === "frames") {
-            ctx.strokeStyle = palette.frame;
-            ctx.strokeRect(x + 0.5, top + box.top + 0.5, Math.max(0, params.penWidth - 1), Math.max(0, box.height - 1));
+          if (width > params.penWidth) {
+            // An on step tints its whole cell; the value bar rises inside it.
+            ctx.globalAlpha = (event.muted ? colors.mutedAlpha : 1) * ON_CELL_ALPHA;
+            ctx.beginPath();
+            ctx.roundRect(x, top + CELL_GAP_PX, width, rowHeightPx - CELL_GAP_PX * 2, cellRadius);
+            ctx.fill();
+            ctx.globalAlpha = event.muted ? colors.mutedAlpha : 1;
+          }
+          ctx.beginPath();
+          ctx.roundRect(x, top + box.top, width, box.height, width > params.penWidth ? cellRadius : 0);
+          ctx.fill();
+          if (params.style === "frames" || selectedIds.has(event.id)) {
+            ctx.strokeStyle = selectedIds.has(event.id) ? colors.noteSelected : palette.frame;
+            ctx.beginPath();
+            ctx.roundRect(x + 0.5, top + box.top + 0.5, Math.max(0, width - 1), Math.max(0, box.height - 1), width > params.penWidth ? cellRadius : 0);
+            ctx.stroke();
           }
           ctx.globalAlpha = 1;
         }
@@ -551,7 +625,7 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
     }, [
       theme, activeMode, size, geometry, lanes, eventsByLane, selectedLane?.key, selectedIds,
       settings.laneParams, barTicks, stepLines, scrollTop, rowHeightPx, overlay,
-      windowFromTick, windowToTick
+      windowFromTick, windowToTick, gridStepTicks
     ]);
 
     // ── Writing ───────────────────────────────────────────────────────────
@@ -674,7 +748,7 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
         laneEvents(g.lane, current),
         rowHeightRef.current,
         tickToXNow,
-        g.params.penWidth,
+        beamWidthPx(g.params, geometryRef.current.pxPerTick),
         rect
       );
       if (ids.length === 0) return;
@@ -740,7 +814,7 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
       // Pointer
       const current = latestDoc();
       const events = laneEvents(lane, current);
-      const hit = hitBeam(lane, events, rowHeightRef.current, tickToXNow, params.penWidth, x, yIn);
+      const hit = hitBeam(lane, events, rowHeightRef.current, tickToXNow, beamWidthPx(params, geometryRef.current.pxPerTick), x, yIn);
       if (hit) {
         const was = selectedIdsRef.current;
         if (e.shiftKey) {
@@ -820,7 +894,7 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
           laneEvents(g.lane, latestDoc()),
           rowHeightRef.current,
           tickToXNow,
-          paramsOf(g.lane).penWidth,
+          beamWidthPx(paramsOf(g.lane), geometryRef.current.pxPerTick),
           rect
         );
         selectIds(new Set([...g.baseIds, ...ids]));
@@ -911,6 +985,26 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
       selectIds(new Set());
       setSelectedLaneKey(null);
     }, [applyDoc, latestDoc, selectIds, selectedLane]);
+
+    /** Mute or unmute every note of a note lane. */
+    const toggleLaneMute = useCallback(
+      (lane: StepLaneView) => {
+        if (lane.pitch === undefined) {
+          return;
+        }
+        const pitch = lane.pitch;
+        const stored = latestDoc();
+        const mute = !stored.notes.filter((n) => n.pitch === pitch).every((n) => n.muted);
+        applyDoc(
+          {
+            notes: stored.notes.map((n) => (n.pitch === pitch ? { ...n, muted: mute } : n)),
+            controllers: stored.controllers
+          },
+          stored
+        );
+      },
+      [applyDoc, latestDoc]
+    );
 
     const requestDeleteLane = useCallback(() => {
       const lane = selectedLane;
@@ -1049,6 +1143,16 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
         run: requestDeleteLane
       }
     ];
+    const laneRowMenu: MenuRow[] = [
+      { id: "newNote", label: S("menu.newNoteLane"), run: () => setDialog("newNote") },
+      {
+        id: "deleteLane",
+        label: S("menu.deleteLane"),
+        disabled: settings.laneSet !== "automatic",
+        dividerBefore: true,
+        run: requestDeleteLane
+      }
+    ];
     const editMenu: MenuRow[] = [
       { id: "undo", label: L("menu.undo"), shortcut: `${mod}Z`, run: handleUndo },
       { id: "redo", label: L("menu.redo"), shortcut: mac ? "⇧⌘Z" : "Ctrl+Y", run: handleRedo },
@@ -1183,36 +1287,21 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
             <div style={{ height: PIANO_ROLL_RULER_HEIGHT_PX + REGION_STRIP_HEIGHT_PX, flexShrink: 0 }} />
             <div style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden" }}>
               <div style={{ transform: `translateY(${-scrollTop}px)` }}>
-                {lanes.map((lane) => {
-                  const selected = lane.key === selectedLane?.key;
+                {lanes.map((lane, index) => {
+                  const events = eventsByLane[index] ?? [];
                   return (
-                    <FlexRow
+                    <StepLaneHeader
                       key={lane.key}
-                      role="button"
-                      tabIndex={0}
-                      aria-pressed={selected}
-                      data-testid={`step-editor-lane-${lane.key}`}
-                      align="center"
-                      gap={SPACING.xs}
-                      onClick={() => selectLane(lane.key)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          selectLane(lane.key);
-                        }
-                      }}
-                      sx={{
-                        height: rowHeightPx,
-                        px: SPACING.sm,
-                        cursor: "pointer",
-                        overflow: "hidden",
-                        borderBottom: `1px solid ${theme.vars.palette.divider}`,
-                        backgroundColor: selected ? theme.vars.palette.action.hover : "transparent"
-                      }}
-                    >
-                      <StatusDot tone={selected ? "primary" : "neutral"} />
-                      <Text size="small" truncate>{laneName(lane)}</Text>
-                    </FlexRow>
+                      laneKey={lane.key}
+                      name={laneName(lane)}
+                      type={lane.type}
+                      heightPx={rowHeightPx}
+                      selected={lane.key === selectedLane?.key}
+                      muted={events.length > 0 && events.every((event) => event.muted)}
+                      onToggleMute={lane.type === "note" && events.length > 0 ? () => toggleLaneMute(lane) : null}
+                      onSelect={() => selectLane(lane.key)}
+                      menuRows={laneRowMenu}
+                    />
                   );
                 })}
               </div>
@@ -1252,7 +1341,7 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
               <canvas
                 ref={canvasRef}
                 data-testid="step-editor-canvas"
-                style={{ display: "block", width: "100%", height: "100%" }}
+                style={{ display: "block", width: "100%", height: "100%", borderRadius: BORDER_RADIUS.xs }}
                 aria-hidden
               />
               {lanes.length === 0 && (
@@ -1264,6 +1353,7 @@ export const StepEditor: React.FC<StepEditorProps> = memo(
                   <Caption color="muted">{S("empty")}</Caption>
                 </FlexRow>
               )}
+              <div ref={stepFrameRef} css={stepFrameStyles(theme)} data-testid="step-editor-playing-step" aria-hidden />
               <div ref={playheadRef} css={playheadStyles(theme)} aria-hidden />
             </div>
           </FlexColumn>

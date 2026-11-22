@@ -621,6 +621,27 @@ describe("useTimelineAgentBridge midi", () => {
       })
     ).rejects.toThrow(/midi track/i);
   });
+  it("shows the chord chart of a chord track, as headless get_state does", () => {
+    mockDoc.getState().addTrack("chord", "Chords");
+    const trackId = mockDoc.getState().tracks[0].id;
+    mockDoc.setState({
+      tracks: mockDoc.getState().tracks.map((t) =>
+        t.id === trackId
+          ? {
+              ...t,
+              chords: [
+                { id: "c1", startTick: 0, durationTick: 3840, root: 0, quality: "maj", inversion: 0 }
+              ]
+            }
+          : t
+      )
+    } as never);
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const node = getTimelineAgentHandler(SEQ_ID).getSnapshot().tracks[0];
+    expect(node.chordCount).toBe(1);
+    expect(node.chordChart).toBeDefined();
+    expect(node.signature).toBe("4/4");
+  });
   it("reports the resolved tempo even when the document stores none", async () => {
     await seedMidi();
     expect(getTimelineAgentHandler(SEQ_ID).getSnapshot().tempo).toEqual({
@@ -657,6 +678,43 @@ describe("useTimelineAgentBridge midi", () => {
     const clip = snapshot.clips.find((c) => c.id === clipId)!;
     expect(clip.startMs).toBe(2000);
     expect(clip.durationMs).toBe(4000);
+  });
+  it("writes the master bus, the key, the crossfade, automation and controllers through the shared ops", async () => {
+    const clipId = await seedMidi();
+    mockDoc.setState({ music: {} });
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    const trackId = clipById(clipId).trackId;
+    await handler.applyOp({ op: "set_track", track: "master", volumeDb: -4 } as never);
+    await handler.applyOp({
+      op: "set_tempo",
+      bpm: 120,
+      key: { tonic: "D", mode: "minor" },
+      auto_crossfade_ms: 30
+    } as never);
+    await handler.applyOp({
+      op: "set_track",
+      track: trackId,
+      automationMode: "write",
+      automation: [
+        { target: { kind: "mixer", param: "pan" }, points: [{ timeMs: 0, value: 0.5 }] }
+      ]
+    } as never);
+    await handler.applyOp({
+      op: "set_notes",
+      clip: clipId,
+      controllers: [{ kind: "cc", cc: 1, points: [{ tick: 0, value: 50 }] }]
+    } as never);
+    const state = mockDoc.getState();
+    expect(state.master?.volumeDb).toBe(-4);
+    expect(state.tempo?.key).toEqual({ tonic: "D", mode: "minor" });
+    expect(state.music?.autoCrossfadeMs).toBe(30);
+    const track = state.tracks.find((t) => t.id === trackId)!;
+    expect(track.automationMode).toBe("write");
+    expect(track.automation).toHaveLength(1);
+    expect(clipById(clipId).controllers).toHaveLength(1);
+    const snapshot = handler.getSnapshot();
+    expect(snapshot.master?.volumeDb).toBe(-4);
+    expect(snapshot.tracks.find((t) => t.id === trackId)?.automationLaneCount).toBe(1);
   });
   it("sets a midi track's instrument and reports it in the snapshot", async () => {
     await seedMidi();
@@ -880,6 +938,9 @@ describe("shared timeline fixtures through the web handler", () => {
       expect(state.mediaTracks).toEqual(expected.state.mediaTracks ?? []);
       expect(state.setup).toEqual(expected.state.setup);
       expect(state.tempo).toEqual(expected.state.tempo);
+      expect(state.master).toEqual(expected.state.master);
+      expect(state.music).toEqual(expected.state.music);
+      expect(state.trackFolders).toEqual(expected.state.trackFolders ?? []);
     });
   }
   for (const fixture of HOST_OP_FIXTURES) {
@@ -1224,3 +1285,26 @@ describe("detect_chords on an audio clip through the web handler", () => {
   });
 });
 
+describe("useTimelineAgentBridge duplicateClip parity", () => {
+  it("returns every copy in `clips` when count is above 1", async () => {
+    mockDoc.getState().addTrack("video", "Video 1");
+    const trackId = mockDoc.getState().tracks[0].id;
+    mockDoc.getState().addClip(
+      makeClip({
+        id: "src",
+        name: "Src",
+        trackId,
+        mediaType: "video",
+        sourceType: "imported",
+        startMs: 0,
+        durationMs: 500
+      })
+    );
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const result = await getTimelineAgentHandler(SEQ_ID).duplicateClip("src", 0, {
+      count: 3
+    });
+    expect(result.clips).toHaveLength(3);
+    expect(result.clips?.[0].id).toBe(result.id);
+  });
+});

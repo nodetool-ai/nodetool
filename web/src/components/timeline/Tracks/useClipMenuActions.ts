@@ -44,7 +44,8 @@ export interface ClipMenuActions {
   /** Audio and video clips can set the tempo from their own beat. */
   canDetectBeats: boolean;
 
-  splitAtPlayhead: () => void;
+  /** MIDI only: `crossing: "split"` also continues a crossing note on the right (D46). */
+  splitAtPlayhead: (crossing?: "shorten" | "split") => void;
   duplicate: () => void;
   /** CE4: act on the time span of the selection, on every track. */
   insertSilence: () => void;
@@ -84,12 +85,12 @@ export function useClipMenuActions(
   const playbackApi = useTimelinePlaybackStoreApi();
   const timelineApi = useTimelineStoreApi();
 
-  const splitAtPlayhead = useCallback(() => {
+  const splitAtPlayhead = useCallback((crossing?: "shorten" | "split") => {
     const current = findClipById(timelineApi.getState().clips, clipId);
     if (!current) return;
     const at = playbackApi.getState().getTimeMs();
     if (at > current.startMs && at < current.startMs + current.durationMs) {
-      splitClipAtTime(clipId, at);
+      splitClipAtTime(clipId, at, crossing);
     } else {
       onError("Move the playhead inside the clip to split it.");
     }
@@ -122,11 +123,16 @@ export function useClipMenuActions(
         op === "insert_time"
           ? { atMs: fromMs, ms: toMs - fromMs }
           : { fromMs, toMs };
-      getTimelineAgentHandler(state.sequenceId)
-        .applyOp({ op, ...args } as never)
-        .catch((err: unknown) =>
-          onError(err instanceof Error ? err.message : "Section edit failed")
-        );
+      const fail = (err: unknown): void =>
+        onError(err instanceof Error ? err.message : "Section edit failed");
+      try {
+        // The handler lookup throws when the editor has no handler for the sequence.
+        getTimelineAgentHandler(state.sequenceId)
+          .applyOp({ op, ...args } as never)
+          .catch(fail);
+      } catch (err) {
+        fail(err);
+      }
     },
     [clipId, onError, timelineApi]
   );

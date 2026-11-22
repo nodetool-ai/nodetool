@@ -304,3 +304,45 @@ describe("Functions", () => {
     expect(pointsOf(instance).map((p) => p.value)).toEqual([10, 50]);
   });
 });
+
+describe("row header", () => {
+  it("mutes and unmutes every note of a note row with one undo step each", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    const row = screen.getByTestId("step-editor-lane-note:36");
+    const mute = within(row).getByRole("button", { name: "Mute lane" });
+    expect(mute).toHaveAttribute("aria-pressed", "false");
+    const before = undoDepth(instance);
+
+    await user.click(mute);
+    expect(notesOf(instance).filter((n) => n.pitch === 36).every((n) => n.muted)).toBe(true);
+    expect(notesOf(instance).find((n) => n.pitch === 38)?.muted).toBeFalsy();
+    expect(undoDepth(instance)).toBe(before + 1);
+    expect(within(screen.getByTestId("step-editor-lane-note:36")).getByRole("button", { name: "Mute lane" })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(within(screen.getByTestId("step-editor-lane-note:36")).getByRole("button", { name: "Mute lane" }));
+    expect(notesOf(instance).filter((n) => n.pitch === 36).some((n) => n.muted)).toBe(false);
+  });
+
+  it("shows no mute on a controller row", () => {
+    setup();
+    expect(within(screen.getByTestId(`step-editor-lane-${VOLUME_LANE_KEY}`)).queryByRole("button", { name: "Mute lane" })).toBeNull();
+  });
+});
+
+describe("playing step", () => {
+  it("frames the step under the playhead only while the transport plays", () => {
+    const instance = setup();
+    const frame = screen.getByTestId("step-editor-playing-step");
+    act(() => instance.playback.getState().seek(0));
+    expect(frame.style.visibility).not.toBe("visible");
+
+    act(() => {
+      instance.playback.getState().setIsPlaying(true);
+      instance.playback.getState().seek(0);
+    });
+    expect(frame.style.visibility).toBe("visible");
+    // A 1/16 step is 240 ticks, 24 px at 0.1 px per tick.
+    expect(frame.style.width).toBe("24px");
+  });
+});

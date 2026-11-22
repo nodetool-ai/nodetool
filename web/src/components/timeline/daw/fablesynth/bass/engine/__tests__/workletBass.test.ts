@@ -197,4 +197,27 @@ describe("BL-1 worklet timeline protocol", () => {
     r.quantum();
     expect(r.proc.gate).toBe(false);
   });
+
+  it("F44: applies mid-quantum CC11 mute only from the event sample onward", () => {
+    // Hold a note past the lookahead limiter latency (4 quanta = 512 frames),
+    // then drop CC11 from 127 to 0 at sample 64 of quantum 4 (frame 576).
+    const r = makeRunner({
+      events: ev([0, 1, 36, 0.9]),
+      controllers: ev([0, 2, 11, 127], [512 + 64, 2, 11, 0])
+    });
+    for (let i = 0; i < 5; i++) r.quantum();
+    expect(rms(r.left, 512, 512 + 64)).toBeGreaterThan(0.01);
+    expect(rms(r.left, 512 + 64, 512 + 128)).toBe(0);
+  });
+
+  it("F44: preserves a down/up CC11 dip within a single render quantum", () => {
+    const r = makeRunner({
+      events: ev([0, 1, 36, 0.9]),
+      controllers: ev([0, 2, 11, 127], [512 + 32, 2, 11, 0], [512 + 96, 2, 11, 127])
+    });
+    for (let i = 0; i < 5; i++) r.quantum();
+    expect(rms(r.left, 512, 512 + 32)).toBeGreaterThan(0.01);
+    expect(rms(r.left, 512 + 32, 512 + 96)).toBe(0);
+    expect(rms(r.left, 512 + 96, 512 + 128)).toBeGreaterThan(0.01);
+  });
 });

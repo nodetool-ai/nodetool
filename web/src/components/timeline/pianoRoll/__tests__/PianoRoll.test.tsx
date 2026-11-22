@@ -207,10 +207,10 @@ describe("PianoRoll", () => {
     await user.type(velocity, "50");
 
     await user.pointer([
-      { keys: "[MouseLeft>]", target: grid, coords: { clientX: 100, clientY: 134 } },
-      { target: grid, coords: { clientX: 148, clientY: 134 } },
-      { target: grid, coords: { clientX: 196, clientY: 134 } },
-      { keys: "[/MouseLeft]", target: grid, coords: { clientX: 196, clientY: 134 } }
+      { keys: "[MouseLeft>]", target: grid, coords: { clientX: 110, clientY: 134 } },
+      { target: grid, coords: { clientX: 158, clientY: 134 } },
+      { target: grid, coords: { clientX: 206, clientY: 134 } },
+      { keys: "[/MouseLeft]", target: grid, coords: { clientX: 206, clientY: 134 } }
     ]);
 
     expect(notesOf(instance).find((n) => n.id === "n2")).toMatchObject({
@@ -251,10 +251,10 @@ describe("PianoRoll", () => {
 
     // One beat is 960 ticks — 96 px at this zoom.
     await user.pointer([
-      { keys: "[MouseLeft>]", target: grid, coords: { clientX: 100, clientY: 134 } },
-      { target: grid, coords: { clientX: 148, clientY: 134 } },
-      { target: grid, coords: { clientX: 196, clientY: 134 } },
-      { keys: "[/MouseLeft]", target: grid, coords: { clientX: 196, clientY: 134 } }
+      { keys: "[MouseLeft>]", target: grid, coords: { clientX: 110, clientY: 134 } },
+      { target: grid, coords: { clientX: 158, clientY: 134 } },
+      { target: grid, coords: { clientX: 206, clientY: 134 } },
+      { keys: "[/MouseLeft]", target: grid, coords: { clientX: 206, clientY: 134 } }
     ]);
 
     expect(notesOf(instance).find((n) => n.id === "n2")).toMatchObject({
@@ -578,7 +578,8 @@ it("edits selection fields, preserves group spacing, and handles mixed values an
   act(() => instance.doc.getState().setClipNotes(CLIP_ID, seedNotes().map((n, i) => ({...n, durationTick: 480 + i * 240, velocity: 40 + i * 20}))));
   await user.click(screen.getByTestId("piano-roll"));
   await user.keyboard("{Meta>}a{/Meta}");
-  expect(screen.getByRole("spinbutton", {name: "Length (beats)"})).toHaveAttribute("placeholder", "Mixed");
+  expect(screen.getByRole("spinbutton", {name: "Length (beats)"})).toHaveAttribute("placeholder", "*");
+  expect(screen.getByRole("spinbutton", {name: "Length (beats)"})).toHaveAttribute("title", "Mixed");
   expect(screen.getByRole("spinbutton", {name: "Velocity"})).toHaveValue(null);
   const edit = async (name: string, value: string) => {
     const field = screen.getByRole("spinbutton", {name});
@@ -1056,5 +1057,67 @@ describe("PianoRoll Logic-style tools and inspector", () => {
     ]);
     expect(notesOf(instance).map((n) => n.id)).toEqual(["n3"]);
     expect(undoDepth(instance)).toBe(before + 1);
+  });
+});
+
+describe("PianoRoll lane resize", () => {
+  it("resizes the velocity lane with the arrow keys inside its bounds", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    const handle = screen.getByRole("separator", { name: "Resize lane" });
+    expect(handle).toHaveAttribute("aria-valuenow", "56");
+
+    handle.focus();
+    await user.keyboard("{ArrowUp}");
+    expect(instance.ui.getState().pianoRollSettings.laneHeightPx).toBe(64);
+    expect(screen.getByRole("separator", { name: "Resize lane" })).toHaveAttribute("aria-valuenow", "64");
+
+    act(() => instance.ui.getState().setPianoRollSettings({ laneHeightPx: 44 }));
+    screen.getByRole("separator", { name: "Resize lane" }).focus();
+    await user.keyboard("{ArrowDown}{ArrowDown}");
+    expect(instance.ui.getState().pianoRollSettings.laneHeightPx).toBe(40);
+  });
+});
+
+describe("PianoRoll note start resize", () => {
+  it("drags a note's left edge to move its start, keeps its end and shows a help tag", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    const grid = screen.getByTestId("piano-roll-grid");
+    // n2 starts at 960 ticks (x 96); its first 8 px are the start zone.
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: grid, coords: { clientX: 98, clientY: 134 } },
+      { target: grid, coords: { clientX: 50, clientY: 134 } },
+      { target: grid, coords: { clientX: 2, clientY: 134 } }
+    ]);
+    expect(screen.getByTestId("piano-roll-help-tag")).toBeInTheDocument();
+    await user.pointer({ keys: "[/MouseLeft]", target: grid, coords: { clientX: 2, clientY: 134 } });
+    expect(notesOf(instance).find((n) => n.id === "n2")).toMatchObject({ startTick: 0, durationTick: 1440 });
+    expect(screen.queryByTestId("piano-roll-help-tag")).toBeNull();
+  });
+});
+
+describe("PianoRoll inspector toggle", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("collapses and shows the inspector from the toolbar and keeps the choice", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    expect(screen.getByTestId("piano-roll-inspector")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Local Inspector" }));
+    expect(screen.queryByTestId("piano-roll-inspector")).toBeNull();
+    expect(instance.ui.getState().pianoRollSettings.inspector).toBe(false);
+    expect(localStorage.getItem("nodetool.pianoRoll.inspector")).toBe("false");
+
+    await user.click(screen.getByRole("button", { name: "Local Inspector" }));
+    expect(screen.getByTestId("piano-roll-inspector")).toBeInTheDocument();
+    expect(localStorage.getItem("nodetool.pianoRoll.inspector")).toBe("true");
+  });
+
+  it("restores a saved collapsed inspector on open", () => {
+    localStorage.setItem("nodetool.pianoRoll.inspector", "false");
+    setup();
+    expect(screen.queryByTestId("piano-roll-inspector")).toBeNull();
   });
 });

@@ -993,6 +993,15 @@ class BassProcessor extends AudioWorkletProcessor {
     // Timeline note events, sorted by frame (note-offs first within a frame).
     this.evq = [];
     this.evHead = 0;
+    this.cevq = [];
+    this.cevHead = 0;
+    this.bend = 0;
+    this.noteBend = 0;
+    this.cc7 = 1;
+    this.cc11 = 1;
+    this.ccGain = 1;
+    this.ccGainBuf = new Float32Array(128);
+    this.controllerTags = new Set();
     this.eventHeld = new Map();
     this.liveEventTag = Symbol();
     this.bpm = 120;
@@ -1055,7 +1064,8 @@ class BassProcessor extends AudioWorkletProcessor {
     if (Array.isArray(opts.tables)) this.setTables(opts.tables);
     if (Number.isFinite(opts.bpm)) this.bpm = opts.bpm;
     if (Number.isFinite(opts.anchor)) this.anchor = opts.anchor;
-    if (opts.events) this.queueEvents(opts.events);
+    if (opts.events) this.queueEvents(opts.events, undefined, opts.eventPitchOffsets);
+    if (opts.controllers) this.queueControllers(opts.controllers);
     this.port.postMessage({ t: 'latency', n: this.fx.latencySamples });
     this.port.postMessage({ t: 'ready' });
     // Timeline automation lanes (devices/param-automation-worklet.js).
@@ -1082,18 +1092,51 @@ class BassProcessor extends AudioWorkletProcessor {
   }
 
   // ev: flat [frame, on, pitch, velocity] quadruples (any order).
-  queueEvents(ev, tag) {
+  queueEvents(ev, tag, pitchOffsets) {
     const pending = this.evq.slice(this.evHead);
     for (let i = 0; i + 3 < ev.length; i += 4) {
-      pending.push({ f: ev[i], on: ev[i + 1] > 0.5, pitch: ev[i + 2] | 0, vel: ev[i + 3], tag });
+      const po = pitchOffsets && Number.isFinite(pitchOffsets[i >> 2]) ? pitchOffsets[i >> 2] : 0;
+      pending.push({ f: ev[i], on: ev[i + 1] > 0.5, pitch: ev[i + 2] | 0, vel: ev[i + 3], tag, pitchOffset: po });
     }
     pending.sort((a, b) => a.f - b.f || (a.on ? 1 : 0) - (b.on ? 1 : 0));
     this.evq = pending;
     this.evHead = 0;
   }
 
+  queueControllers(ev, tag) {
+    const pending = this.cevq.slice(this.cevHead);
+    let added = false;
+    for (let i = 0; i + 3 < ev.length; i += 4) {
+      if (!Number.isFinite(ev[i])) continue;
+      pending.push({ f: ev[i], kind: ev[i + 1] | 0, param: ev[i + 2] | 0, v: ev[i + 3], tag });
+      added = true;
+    }
+    if (added && tag !== undefined) this.controllerTags.add(tag);
+    pending.sort((a, b) => a.f - b.f);
+    this.cevq = pending;
+    this.cevHead = 0;
+  }
+
+  applyController(e) {
+    if (e.kind === 1) {
+      if (Number.isFinite(e.v)) this.bend = e.v;
+    } else if (e.kind === 2 && e.param === 7) {
+      const x = Math.min(1, Math.max(0, e.v / 127));
+      this.cc7 = x * x;
+      this.ccGain = this.cc7 * this.cc11;
+    } else if (e.kind === 2 && e.param === 11) {
+      this.cc11 = Math.min(1, Math.max(0, e.v / 127));
+      this.ccGain = this.cc7 * this.cc11;
+    }
+  }
+
   applyEvent(e) {
-    this.applyTaggedEvent(e, e.pitch, () => this.keyOn(e.pitch - ROOT_MIDI, e.vel), () => this.keyOff(e.pitch - ROOT_MIDI));
+    this.applyTaggedEvent(
+      e,
+      e.pitch,
+      () => this.keyOn(e.pitch - ROOT_MIDI, e.vel, e.pitchOffset || 0),
+      () => this.keyOff(e.pitch - ROOT_MIDI)
+    );
   }
 
   applyTaggedEvent(e, pitch, on, off) {
@@ -1112,6 +1155,15 @@ class BassProcessor extends AudioWorkletProcessor {
   clearEventTag(tag) {
     this.evq = this.evq.slice(this.evHead).filter((e) => e.tag !== tag);
     this.evHead = 0;
+    const hadControllerTag = this.controllerTags.delete(tag);
+    this.cevq = this.cevq.slice(this.cevHead).filter((e) => e.tag !== tag);
+    this.cevHead = 0;
+    if (hadControllerTag && this.cevq.length === 0 && this.controllerTags.size === 0) {
+      this.bend = 0;
+      this.cc7 = 1;
+      this.cc11 = 1;
+      this.ccGain = 1;
+    }
     const held = this.eventHeld.get(tag);
     this.eventHeld.delete(tag);
     if (held) for (const pitch of held) {
@@ -1144,12 +1196,19 @@ class BassProcessor extends AudioWorkletProcessor {
         this.setTables(d.list);
         break;
       case 'evs':
-        this.queueEvents(d.ev, d.tag);
+        this.queueEvents(d.ev, d.tag, d.pitchOffsets);
+        break;
+      case 'cevs':
+        this.queueControllers(d.ev, d.tag);
         break;
       case 'evclear':
         if (d.tag !== undefined) { this.clearEventTag(d.tag); break; }
         this.eventHeld.clear();
         this.evq = []; this.evHead = 0;
+        this.cevq = []; this.cevHead = 0;
+        this.controllerTags.clear();
+        this.bend = 0; this.noteBend = 0;
+        this.cc7 = 1; this.cc11 = 1; this.ccGain = 1;
         this.held.length = 0;
         this.release();
         break;
@@ -1225,7 +1284,8 @@ class BassProcessor extends AudioWorkletProcessor {
 
   // A note over a held one slides into it; a note at or above the accent
   // velocity is an accent, on a fresh note and on a slide alike.
-  keyOn(semi, vel) {
+  keyOn(semi, vel, pitchOffset = 0) {
+    this.noteBend = Number.isFinite(pitchOffset) ? pitchOffset : 0;
     const v = Number.isFinite(vel) ? Math.max(0, Math.min(1, vel)) : PLAIN_VEL;
     const thr = Number.isFinite(this.p['acc.vel']) ? this.p['acc.vel'] : 100;
     const acc = v * 127 >= thr - 1e-6;
@@ -1665,7 +1725,7 @@ class BassProcessor extends AudioWorkletProcessor {
         this.semi += (this.semiTarget - this.semi) * glide;
         if (Math.abs(this.semiTarget - this.semi) < 0.001) this.semi = this.semiTarget;
       }
-      const noteRootAbs = ROOT_MIDI + this.semi;
+      const noteRootAbs = ROOT_MIDI + this.semi + this.noteBend + this.bend;
       const noteAbs = noteRootAbs + p['osc.tune'] + p['osc.fine'] / 100;
       if (this.setupOsc(noteAbs, count)) {
         if (!this.oscMono) mono = false;
@@ -1744,6 +1804,10 @@ class BassProcessor extends AudioWorkletProcessor {
 
     const start = currentFrame;
     if (this.pauto) this.pauto.tick(start, this.pautoSet);
+    const cq = this.cevq;
+    while (this.cevHead < cq.length && cq[this.cevHead].f < start) {
+      this.applyController(cq[this.cevHead++]);
+    }
     const q = this.evq;
     // Events whose frame has passed: a note-on is dropped, a note-off still
     // applies so no note hangs.
@@ -1751,16 +1815,35 @@ class BassProcessor extends AudioWorkletProcessor {
       const e = q[this.evHead++];
       if (!e.on) this.applyEvent(e);
     }
+    if (this.ccGainBuf.length < n) this.ccGainBuf = new Float32Array(n);
+    const ccGainBuf = this.ccGainBuf;
+    let hasCcGain = false;
     let pos = 0;
     while (pos < n) {
+      while (this.cevHead < cq.length && cq[this.cevHead].f <= start + pos) this.applyController(cq[this.cevHead++]);
       while (this.evHead < q.length && q[this.evHead].f <= start + pos) this.applyEvent(q[this.evHead++]);
       let run = n - pos;
+      if (this.cevHead < cq.length) run = Math.min(run, cq[this.cevHead].f - (start + pos));
       if (this.evHead < q.length) run = Math.min(run, q[this.evHead].f - (start + pos));
       run = Math.max(1, Math.ceil(run));
       this.songPos = start + pos - this.anchor;
       this.advanceLfoClock();
       this.renderVoice(L, R, pos, run);
+      const segGain = this.ccGain;
+      if (segGain !== 1) {
+        if (!hasCcGain) {
+          ccGainBuf.fill(1, 0, pos);
+          hasCcGain = true;
+        }
+        ccGainBuf.fill(segGain, pos, pos + run);
+      } else if (hasCcGain) {
+        ccGainBuf.fill(1, pos, pos + run);
+      }
       pos += run;
+    }
+    if (this.cevHead > 256 && this.cevHead * 2 > cq.length) {
+      this.cevq = cq.slice(this.cevHead);
+      this.cevHead = 0;
     }
     if (this.evHead > 256 && this.evHead * 2 > q.length) {
       this.evq = q.slice(this.evHead);
@@ -1775,6 +1858,13 @@ class BassProcessor extends AudioWorkletProcessor {
       this.fxDirty = false;
     }
     this.fx.process(L, R, n);
+    if (hasCcGain) {
+      for (let i = 0; i < n; i++) {
+        const g = ccGainBuf[i];
+        L[i] *= g;
+        R[i] *= g;
+      }
+    }
 
     // Telemetry is deliberately emitted at ~30 Hz and only after an explicit
     // subscription. It reports measured stage/bus levels, never simulated

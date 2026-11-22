@@ -32,6 +32,8 @@ export const KEYBOARD_WIDTH_PX = 56;
 const BLACK_KEY_WIDTH_RATIO = 0.62;
 /** A row narrower than this has no room for a name. */
 const MIN_LABEL_ROW_HEIGHT_PX = 9;
+/** A key name's gap from the keyboard's right edge. */
+const KEY_LABEL_INSET_PX = 4;
 
 const canvasStyles = css({
   ...TYPOGRAPHY.mono.caption,
@@ -45,10 +47,12 @@ interface PianoRollKeyboardProps {
   geometry: PianoRollGeometry;
   heightPx: number;
   instrument: MidiInstrument | undefined;
+  /** Click a key: select every note of that pitch. Shift adds to the selection. */
+  onSelectPitch?: (pitch: number, additive: boolean) => void;
 }
 
 export const PianoRollKeyboard: React.FC<PianoRollKeyboardProps> = memo(
-  ({ geometry, heightPx, instrument }) => {
+  ({ geometry, heightPx, instrument, onSelectPitch }) => {
     const { t } = useTranslation();
     const theme = useTheme();
     const { mode, systemMode } = useColorScheme();
@@ -92,21 +96,31 @@ export const PianoRollKeyboard: React.FC<PianoRollKeyboardProps> = memo(
             geometry.rowHeightPx
           );
         }
-        // The keys stay ivory in both modes, so the seam between two rows is
-        // drawn with the light scheme's divider: the dark one vanishes on white.
+        // The keys stay ivory in both modes, so seams use the light scheme's
+        // divider. Two white keys meet under the middle of a black key, and
+        // directly at E-F and B-C, as on a real keyboard.
         ctx.strokeStyle = theme.colorSchemes?.light?.palette.divider ?? colors.gridLine;
-        ctx.beginPath();
-        ctx.moveTo(0, y + geometry.rowHeightPx + 0.5);
-        ctx.lineTo(KEYBOARD_WIDTH_PX, y + geometry.rowHeightPx + 0.5);
-        ctx.stroke();
+        const pc = pitch % 12;
+        const seamY = isBlackKey(pitch)
+          ? Math.round(y + geometry.rowHeightPx / 2) + 0.5
+          : pc === 0 || pc === 5
+            ? Math.round(y + geometry.rowHeightPx) + 0.5
+            : null;
+        if (seamY !== null) {
+          ctx.beginPath();
+          ctx.moveTo(isBlackKey(pitch) ? KEYBOARD_WIDTH_PX * BLACK_KEY_WIDTH_RATIO : 0, seamY);
+          ctx.lineTo(KEYBOARD_WIDTH_PX, seamY);
+          ctx.stroke();
+        }
         // Only C is labelled: every row named turns the column into a wall of
         // text, and C is what you count octaves from. Collapse Mode shows few
         // rows, so it names every one.
         if ((geometry.rows || pitch % 12 === 0) && geometry.rowHeightPx >= MIN_LABEL_ROW_HEIGHT_PX) {
           ctx.fillStyle = theme.colorSchemes?.light?.palette.text.primary ?? colors.blackRow;
+          ctx.textAlign = "right";
           ctx.fillText(
             pitchName(pitch),
-            KEYBOARD_WIDTH_PX * BLACK_KEY_WIDTH_RATIO + 3,
+            KEYBOARD_WIDTH_PX - KEY_LABEL_INSET_PX,
             y + geometry.rowHeightPx / 2
           );
         }
@@ -115,13 +129,15 @@ export const PianoRollKeyboard: React.FC<PianoRollKeyboardProps> = memo(
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
-        if (e.button !== 0 || !instrument) return;
+        if (e.button !== 0) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const pitch = yToPitch(e.clientY - rect.top, geometry);
         if (pitch < 0 || pitch > 127) return;
+        onSelectPitch?.(pitch, e.shiftKey);
+        if (!instrument) return;
         void playAuditionNote(instrument, pitch).catch(() => undefined);
       },
-      [geometry, instrument]
+      [geometry, instrument, onSelectPitch]
     );
 
     return (

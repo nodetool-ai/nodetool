@@ -82,7 +82,7 @@ describe("ClipContextMenu", () => {
     const onDelete = jest.fn();
     const onClose = jest.fn();
     renderMenu({ onDelete, onClose });
-    await userEvent.click(screen.getByText("Delete"));
+    await userEvent.click(screen.getByRole("menuitem", { name: /^Delete( Delete)?$/ }));
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -105,6 +105,55 @@ describe("ClipContextMenu", () => {
     expect(screen.getByText("Lock")).toBeTruthy();
     expect(screen.getByText("Replace clip…")).toBeTruthy();
     expect(screen.getByText("Open in node editor")).toBeTruthy();
+  });
+
+  it("offers the MIDI split that continues crossing notes only for midi", async () => {
+    const actions = makeActions({ isMidi: true });
+    mockUseClipMenuActions.mockReturnValue(actions);
+    renderMenu();
+    await userEvent.click(screen.getByText("Split, continue crossing notes"));
+    expect(actions.splitAtPlayhead).toHaveBeenCalledWith("split");
+  });
+
+  it("plain split keeps the default crossing and non-midi has no option", async () => {
+    const actions = makeActions();
+    mockUseClipMenuActions.mockReturnValue(actions);
+    renderMenu();
+    expect(screen.queryByText("Split, continue crossing notes")).toBeNull();
+    await userEvent.click(screen.getByText("Split at playhead"));
+    expect(actions.splitAtPlayhead).toHaveBeenCalledWith();
+  });
+
+  it("repeat, rename and color open their dialog", async () => {
+    renderMenu();
+    await userEvent.click(screen.getByText("Repeat…"));
+    expect(screen.getByRole("spinbutton", { name: /copies/i })).toBeTruthy();
+  });
+
+  it("rename patches the clip name", async () => {
+    useTimelineStore.setState({
+      clips: [
+        {
+          id: "clip-1",
+          trackId: "t1",
+          name: "Old",
+          startMs: 0,
+          durationMs: 1000,
+          mediaType: "audio",
+          sourceType: "imported"
+        } as TimelineClip
+      ]
+    });
+    renderMenu();
+    await userEvent.click(screen.getByText("Rename…"));
+    const field = screen.getByRole("textbox", { name: /name/i });
+    await userEvent.clear(field);
+    await userEvent.type(field, "New");
+    await userEvent.click(screen.getByRole("button", { name: "Rename" }));
+    expect(
+      useTimelineStore.getState().clips.find((c) => c.id === "clip-1")?.name
+    ).toBe("New");
+    useTimelineStore.setState({ clips: [] });
   });
 
   it("offers Detect beats only for a clip it can measure", async () => {

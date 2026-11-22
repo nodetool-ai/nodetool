@@ -18,13 +18,17 @@ import type { TimelineOp, TimelineOpResult } from "@nodetool-ai/timeline/ops";
  */
 
 import type {
+  AutomationMode,
   ClipModel3DStylePatch,
   ClipShapeStyle,
   ClipTextStyle,
   MidiInstrument,
   MidiNote,
+  MusicRole,
   QuantizeOptions,
   StaggerUnit,
+  TimelineMasterChannel,
+  TimelineMusic,
   TimelineTempo,
   TimelineBeat,
   TimelineSetup,
@@ -71,6 +75,26 @@ export interface TimelineTrackNode {
    * lookup by sound — absent means the voice was edited by hand.
    */
   presetId?: string;
+  /** The channel fader and pan of an audio or midi track. */
+  volumeDb?: number;
+  pan?: number;
+  heightPx?: number;
+  folderId?: string;
+  /** The stem the track holds in a music project. */
+  musicRole?: MusicRole;
+  /** How many insert effects the track carries. */
+  effectCount?: number;
+  automationMode?: AutomationMode;
+  /** How many automation lanes the track carries. Read them with `get_state` and `track`. */
+  automationLaneCount?: number;
+  /** Chord tracks only: how many chords the track holds. */
+  chordCount?: number;
+  /** Chord tracks only: the chart from bar 1, as `get_state` shows it. */
+  chordChart?: unknown;
+  /** Chord tracks only: the key label, or null when the document has none. */
+  key?: string | null;
+  /** Chord tracks only: the time signature label. */
+  signature?: string;
 }
 
 /** Serializable view of a single timeline clip (editor-friendly units). */
@@ -102,6 +126,10 @@ export interface TimelineClipNode {
   outPointMs?: number;
   /** The repeating window of a looped clip (ms), when it loops. */
   loopLengthMs?: number;
+  /** Midi region parameters (CE6). */
+  transpose?: number;
+  velocityOffset?: number;
+  quantize?: import("@nodetool-ai/timeline").MidiRegionQuantize;
   /** How many windows a looped clip plays. */
   loopRepeats?: number;
   status: string;
@@ -146,6 +174,14 @@ export interface TimelineClipNode {
    * clip it actually wants to edit.
    */
   noteCount?: number;
+  /** How many controller lanes a midi clip carries. */
+  controllerLaneCount?: number;
+  /** Step sequencer pattern summary (e.g. "4 rows x 16 @1/16") when present. */
+  pattern?: string;
+  /** Step sequencer pattern display name when present. */
+  patternName?: string;
+  /** Expanded audible note count inside the clip's play window. */
+  audibleNoteCount?: number;
 }
 
 /** Serializable view of one motion-design animation on a clip. */
@@ -206,6 +242,17 @@ export interface TimelineSnapshot {
   /** The tempo the midi clips are read against — always resolved, so a
    *  document that stores none still reports the 120 BPM it plays at. */
   tempo: TimelineTempo;
+  /** Music-project settings when present. */
+  music?: TimelineMusic;
+  /** Crossfade length in ms for touching audio clips (0 outside music mode). */
+  autoCrossfadeMs?: number;
+  /** Formatted project key ("D minor"), or null when unset. */
+  key?: string | null;
+  /** Formatted time signature ("4/4"). */
+  signature?: string;
+  /** The master bus: fader and insert chain. */
+  master?: TimelineMasterChannel;
+  trackFolders?: { id: string; name: string }[];
 }
 
 /** Direct-generation kinds the agent can spawn. */
@@ -329,6 +376,8 @@ interface TimelineBarTime {
 }
 
 interface TimelineTrimPatch extends TimelineBarTime {
+  /** New absolute start on the timeline for a head trim (ms). */
+  startMs?: number;
   /** New clip duration on the timeline (ms). */
   durationMs?: number;
   /** Source-time trim start (ms). */
@@ -550,7 +599,14 @@ export interface TimelineAgentHandler {
     target: string,
     gapMs?: number,
     extra?: TimelineBarTime & { count?: number }
-  ) => Promise<TimelineClipNode>;
+  ) => Promise<
+    TimelineClipNode & {
+      /** The first copy of each source, when `count` is above 1. */
+      clips?: TimelineClipNode[];
+      /** The other copies, when a group was duplicated. */
+      children?: string[];
+    }
+  >;
   setClipParams: (
     target: string,
     patch: TimelineClipParamsPatch

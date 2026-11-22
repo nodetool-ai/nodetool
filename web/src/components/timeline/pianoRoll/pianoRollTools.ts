@@ -349,3 +349,41 @@ export function stepLineTicks(
 }
 
 const MAX_STEP_LINES = 4000;
+
+/**
+ * Move the start of each chosen note by `deltaTick` and keep its end, as a
+ * drag on a note's left edge does. A note never gets shorter than `minTick`
+ * and never starts before tick 0.
+ */
+export function resizeNoteStarts(
+  notes: ReadonlyArray<MidiNote>,
+  ids: ReadonlyArray<string>,
+  deltaTick: number,
+  minTick: number
+): MidiNote[] {
+  const chosen = new Set(ids);
+  return notes.map((note) => {
+    if (!chosen.has(note.id)) {
+      return note;
+    }
+    const end = note.startTick + note.durationTick;
+    const start = Math.max(0, Math.min(end - Math.max(1, minTick), note.startTick + deltaTick));
+    return { ...note, startTick: start, durationTick: end - start };
+  });
+}
+
+/** A signed semitone count for the drag help tag: "+3", "−2", "0". */
+export function semitoneText(delta: number): string {
+  if (delta > 0) {
+    return `+${delta}`;
+  }
+  return delta < 0 ? `−${-delta}` : "0";
+}
+
+/** A length in ticks as beats, sixteenths and ticks: "1 2 0". */
+export function lengthText(ticks: number): string {
+  const sixteenth = MIDI_PPQ / 4;
+  const beats = Math.floor(ticks / MIDI_PPQ);
+  const division = Math.floor((ticks % MIDI_PPQ) / sixteenth);
+  return `${beats} ${division} ${Math.round(ticks % sixteenth)}`;
+}

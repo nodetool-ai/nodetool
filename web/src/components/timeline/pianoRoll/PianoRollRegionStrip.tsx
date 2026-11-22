@@ -6,13 +6,33 @@
 
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 
 import { Caption, SPACING } from "../../ui_primitives";
-import { parseCssColor, readableOn } from "./pianoRollColors";
 import { tickToX, type PianoRollGeometry } from "./pianoRollGeometry";
+
+/**
+ * One short badge per active region parameter (CE6, D53), so a clip that
+ * plays differently from its stored notes says so where the notes are drawn.
+ */
+export function regionParamBadges(
+  clip: Pick<TimelineClip, "transpose" | "velocityOffset" | "quantize">
+): string[] {
+  const badges: string[] = [];
+  const t = clip.transpose ?? 0;
+  if (t !== 0) badges.push(`${t > 0 ? "+" : ""}${t} st`);
+  const v = clip.velocityOffset ?? 0;
+  if (v !== 0) badges.push(`Vel ${v > 0 ? "+" : ""}${v}`);
+  if (clip.quantize && clip.quantize.strength > 0) {
+    badges.push(`Q ${clip.quantize.grid} ${clip.quantize.strength}%`);
+  }
+  return badges;
+}
 
 /** Height of the strip. */
 export const REGION_STRIP_HEIGHT_PX = 14;
+/** How much of the clip color the strip shows: the region at low weight, as in Logic. */
+const REGION_TINT_PERCENT = 30;
 
 interface PianoRollRegionStripProps {
   geometry: PianoRollGeometry;
@@ -22,20 +42,16 @@ interface PianoRollRegionStripProps {
   name: string;
   /** A plain clip color. Absent falls back to the theme primary color. */
   clipColor?: string;
+  /** Active region parameters, from {@link regionParamBadges}. */
+  badges?: readonly string[];
 }
 
 export const PianoRollRegionStrip: React.FC<PianoRollRegionStripProps> = memo(
-  ({ geometry, widthPx, windowFromTick, windowToTick, name, clipColor }) => {
+  ({ geometry, widthPx, windowFromTick, windowToTick, name, clipColor, badges = [] }) => {
     const theme = useTheme();
     const left = Math.max(0, tickToX(windowFromTick, geometry));
     const right = Math.min(widthPx, tickToX(windowToTick, geometry));
-    const rgb = parseCssColor(clipColor);
     const fill = clipColor ?? theme.vars.palette.primary.main;
-    const textColor = rgb
-      ? readableOn(rgb) === "dark"
-        ? theme.vars.palette.common.black
-        : theme.vars.palette.common.white
-      : theme.vars.palette.primary.contrastText;
     return (
       <div
         data-testid="piano-roll-region-strip"
@@ -59,11 +75,21 @@ export const PianoRollRegionStrip: React.FC<PianoRollRegionStripProps> = memo(
               alignItems: "center",
               justifyContent: "space-between",
               overflow: "hidden",
-              backgroundColor: fill,
-              color: textColor
+              backgroundColor: `color-mix(in srgb, ${fill} ${REGION_TINT_PERCENT}%, transparent)`,
+              borderTop: `2px solid ${fill}`,
+              color: theme.vars.palette.text.primary
             }}
           >
             <Caption color="inherit" sx={{ whiteSpace: "nowrap", px: SPACING.xs, lineHeight: 1 }}>{name}</Caption>
+            {badges.length > 0 && (
+              <Caption
+                color="inherit"
+                data-testid="piano-roll-region-badges"
+                sx={{ whiteSpace: "nowrap", px: SPACING.xs, lineHeight: 1 }}
+              >
+                {badges.join(" · ")}
+              </Caption>
+            )}
             <Caption color="inherit" sx={{ whiteSpace: "nowrap", px: SPACING.xs, lineHeight: 1 }}>{name}</Caption>
           </div>
         )}

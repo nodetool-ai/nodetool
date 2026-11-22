@@ -132,6 +132,16 @@ export const DawDock: React.FC<DawDockProps> = memo(({ heightPx }) => {
     [uiApi, setTab]
   );
 
+  // D67: a plug-in editor opens in the docked Devices panel, never as a
+  // popover over the strips.
+  const openEffectInDock = useCallback(
+    (trackId: string | null) => {
+      setDeviceTarget(trackId ? { kind: "track", trackId } : { kind: "master" });
+      setTab("devices");
+    },
+    [setDeviceTarget, setTab]
+  );
+
   const dockCss = useMemo(() => dockStyles(theme), [theme]);
   const handleTab = useCallback((value: string) => setTab(value as DawDockTab), [setTab]);
   const dockTabs: TabItem[] = [
@@ -160,7 +170,7 @@ export const DawDock: React.FC<DawDockProps> = memo(({ heightPx }) => {
       <FlexColumn fullWidth sx={{ flex: "1 1 0", minHeight: 0, overflow: "hidden" }}>
         <PanelErrorBoundary panelName={dockTabs.find((item) => item.value === tab)?.label ?? t("batch2_26.daw.dock.dock")}>
           {tab === "mixer" ? (
-            <MixerView />
+            <MixerView onOpenEffect={openEffectInDock} />
           ) : tab === "devices" ? (
             <DeviceChainView target={deviceTarget} onTargetChange={setDeviceTarget} />
           ) : tab === "pianoRoll" ? (

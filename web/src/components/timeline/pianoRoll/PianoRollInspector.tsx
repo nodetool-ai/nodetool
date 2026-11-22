@@ -28,7 +28,7 @@ import { NoteSelectionInspector } from "./NoteSelectionInspector";
 import { SCALE_ROOT_OPTIONS, scaleOptions } from "./pianoRollTools";
 
 /** Width of the inspector column. */
-export const INSPECTOR_WIDTH_PX = 216;
+export const INSPECTOR_WIDTH_PX = 176;
 
 const QUANTIZE_VALUE_KEYS: Record<QuantizeDivision, string> = {
   "1/4": "quarter",
@@ -86,12 +86,12 @@ export const PianoRollInspector: React.FC<PianoRollInspectorProps> = memo((props
   return (
     <FlexColumn
       data-testid="piano-roll-inspector"
-      gap={SPACING.md}
+      gap={SPACING.sm}
       sx={{
         width: INSPECTOR_WIDTH_PX,
         flexShrink: 0,
         overflowY: "auto",
-        p: SPACING.md,
+        p: SPACING.sm,
         borderRight: `1px solid ${theme.vars.palette.divider}`
       }}
     >

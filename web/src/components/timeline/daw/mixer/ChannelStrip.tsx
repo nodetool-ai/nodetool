@@ -50,8 +50,8 @@ import {
 } from "./faderTaper";
 import { InsertSlots } from "./InsertSlots";
 
-/** Strip width on a roomy mixer, from the spacing scale (120 px). */
-const STRIP_UNITS = 30;
+/** D67: a strip is 72 px wide and never grows (spec 7.1). */
+export const MIXER_STRIP_WIDTH_PX = 72;
 /** Width of the pan, mute and solo column beside the fader. */
 const SIDE_PX = CONTROL.height.lg;
 /**
@@ -80,7 +80,7 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
     flexDirection: "column",
     alignItems: "stretch",
     flexShrink: 0,
-    width: theme.spacing(STRIP_UNITS),
+    width: MIXER_STRIP_WIDTH_PX,
     height: "100%",
     minHeight: 0,
     boxSizing: "border-box",
@@ -170,7 +170,8 @@ const stripStyles = (theme: Theme, accent: string, master: boolean) =>
       flexShrink: 0
     },
     ".strip__spacer": { display: "none" },
-    [`@container daw-mixer (max-width: ${MIXER_PHONE_MAX_PX}px)`]: {
+    // A 72 px strip stacks pan, mute and solo above the fader at every width.
+    "&": {
       ".strip__body": {
         flexDirection: "column",
         minHeight: 0

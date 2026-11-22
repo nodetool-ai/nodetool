@@ -140,7 +140,7 @@ describe("AudioGraph automation", () => {
       { timeMs: 2000, value: 1 }
     ]);
     await graph.scheduleClips([], [audioTrack([pan])], 0, undefined, 2);
-    const ramps = ctx.pans[0].calls.filter(([name]) => name === "ramp");
+    const ramps = ctx.pans[1].calls.filter(([name]) => name === "ramp");
     expect(ramps).toEqual([["ramp", 1, 11]]);
   });
 
@@ -170,7 +170,7 @@ describe("AudioGraph automation", () => {
     const edited = { ...pan, points: [{ timeMs: 0, value: 0 }, { timeMs: 1000, value: -1 }] };
     graph.updateTracks([audioTrack([edited])]);
     await Promise.resolve();
-    const calls = ctx.pans[0].calls;
+    const calls = ctx.pans[1].calls;
     const lastSet = calls.filter(([name]) => name === "set").at(-1)!;
     expect(lastSet[1]).toBeCloseTo(-0.25);
     expect(lastSet[2]).toBeCloseTo(10.25);
@@ -207,7 +207,7 @@ describe("AudioGraph automation", () => {
     const off = { ...lane({ kind: "mixer", param: "pan" }, [{ timeMs: 0, value: 1 }]), enabled: false };
     const empty = lane({ kind: "mixer", param: "volumeDb" }, []);
     await graph.scheduleClips([], [audioTrack([off, empty])], 0);
-    expect(ctx.pans[0].calls.some(([name]) => name === "set")).toBe(false);
+    expect(ctx.pans[1].calls.some(([name]) => name === "set")).toBe(false);
     expect(ctx.gains.some((g) => g.calls.some(([name]) => name === "ramp" || name === "set"))).toBe(false);
   });
 
@@ -234,7 +234,7 @@ describe("AudioGraph automation", () => {
       g.calls.some(([name, value]) => name === "target" && Math.abs(value - dbToGain(-4)) < 1e-9)
     );
     expect(fader).toBeDefined();
-    expect(ctx.pans[0].calls.some(([name]) => name === "ramp")).toBe(true);
+    expect(ctx.pans[1].calls.some(([name]) => name === "ramp")).toBe(true);
     graph.setMixerOverride("a1", "volumeDb", null);
   });
 

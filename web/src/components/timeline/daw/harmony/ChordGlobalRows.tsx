@@ -33,6 +33,7 @@ import {
   FlexColumn,
   FlexRow,
   MenuItemPrimitive,
+  MOTION,
   Popover,
   SPACING,
   Text,
@@ -43,8 +44,11 @@ import {
   Z_INDEX,
   getSpacingPx
 } from "../../../ui_primitives";
-import { beatTicks, chordColor, docTickToMs, msToDocTick } from "./chordGrid";
+import { beatTicks, docTickToMs, msToDocTick } from "./chordGrid";
+import { previewChord } from "./chordPreview";
+import { useHarmonyUIStore } from "./harmonyUIStore";
 import {
+  chordNumeral,
   diatonicChords,
   keyShort,
   withBoundaryAt,
@@ -55,7 +59,7 @@ import { ProgressionBrowser } from "./ProgressionBrowser";
 import "./harmony.css";
 
 export const SIGNATURE_ROW_PX = 22;
-export const CHORD_ROW_PX = 30;
+export const CHORD_ROW_PX = 24;
 /** Height the two rows add under the ruler. */
 export const CHORD_GLOBAL_ROWS_PX = SIGNATURE_ROW_PX + CHORD_ROW_PX;
 
@@ -100,6 +104,8 @@ export const ChordGlobalRows: React.FC<ChordGlobalRowsProps> = ({ headerWidth, t
   const [browserKey, setBrowserKey] = useState(() => diatonicChords(tempoState?.key, false)[0].root);
   const [transposeAt, setTransposeAt] = useState<HTMLElement | null>(null);
   const [semitones, setSemitones] = useState("1");
+  const showNumerals = useHarmonyUIStore((s) => s.showNumerals);
+  const setShowNumerals = useHarmonyUIStore((s) => s.setShowNumerals);
 
   const stored = useMemo(() => sortChords(track?.chords ?? []), [track?.chords]);
   const chords = draft ?? stored;
@@ -176,6 +182,26 @@ export const ChordGlobalRows: React.FC<ChordGlobalRowsProps> = ({ headerWidth, t
       return;
     }
     commitChoice(chordId, parsed);
+  };
+
+  /** Tab in the picker: keep a changed symbol, then edit the next (or, with Shift, the previous) chord. */
+  const pickNext = (chordId: string, step: 1 | -1): void => {
+    if (symbol.trim() && symbol !== chordSymbol(stored.find((c) => c.id === chordId) ?? stored[0])) {
+      const parsed = parseChordSymbol(symbol);
+      if (!parsed.ok) {
+        setSymbolError(parsed.error);
+        return;
+      }
+      if (track) setTrackChords(track.id, withChordChoice(stored, chordId, parsed));
+    }
+    const index = stored.findIndex((c) => c.id === chordId);
+    const next = stored[index + step];
+    const anchor = next ? laneRef.current?.querySelector<HTMLElement>(`[data-chord-id="${CSS.escape(next.id)}"]`) : null;
+    if (next && anchor) {
+      openPicker(next, anchor);
+    } else {
+      setPicker(null);
+    }
   };
 
   const openPicker = (chord: TimelineChord, anchor: HTMLElement): void => {
@@ -272,6 +298,7 @@ export const ChordGlobalRows: React.FC<ChordGlobalRowsProps> = ({ headerWidth, t
             {chords.map((chord, index) => {
               const left = tickToX(chord.startTick);
               const width = tickToX(chord.startTick + chord.durationTick) - left;
+              const isOpen = picker?.chordId === chord.id;
               return (
                 <Box
                   key={chord.id}
@@ -286,11 +313,12 @@ export const ChordGlobalRows: React.FC<ChordGlobalRowsProps> = ({ headerWidth, t
                       openPicker(chord, event.currentTarget);
                     }
                   }}
-                  style={{ left, width: Math.max(2, width - 1), backgroundColor: chordColor(chord.root) }}
+                  data-open={isOpen || undefined}
+                  style={{ left, width: Math.max(2, width - 1) }}
                   sx={{
                     position: "absolute",
-                    top: getSpacingPx(SPACING.micro),
-                    bottom: getSpacingPx(SPACING.micro),
+                    top: 0,
+                    bottom: 0,
                     display: "flex",
                     alignItems: "center",
                     paddingInline: getSpacingPx(SPACING.sm),
@@ -298,13 +326,18 @@ export const ChordGlobalRows: React.FC<ChordGlobalRowsProps> = ({ headerWidth, t
                     whiteSpace: "nowrap",
                     cursor: locked ? "default" : "pointer",
                     borderRadius: BORDER_RADIUS.xs,
+                    // One chord color for every chord, as in Logic. The name carries the root.
+                    backgroundColor: "c_timeline_chord_fill",
+                    boxShadow: (theme) => `inset 0 0 0 1px ${isOpen ? theme.vars.palette.text.primary : theme.vars.palette.divider}`,
                     color: "text.primary",
-                    "&:focus-visible": { outline: (theme) => `2px solid ${theme.vars.palette.primary.main}` }
+                    transition: MOTION.background,
+                    "&:hover": { backgroundImage: (theme) => `linear-gradient(${theme.vars.palette.c_overlay_strong}, ${theme.vars.palette.c_overlay_strong})` },
+                    "&:focus-visible": { outline: (theme) => `1px solid ${theme.vars.palette.primary.main}`, outlineOffset: -1 }
                   }}
                 >
                   {width > 18 && (
                     <Text size="smaller" weight={600} color="inherit" truncate>
-                      {chordName(chord)}
+                      {showNumerals ? chordNumeral(chord, tempo.key) : chordName(chord)}
                     </Text>
                   )}
                   {index > 0 && (
@@ -326,7 +359,8 @@ export const ChordGlobalRows: React.FC<ChordGlobalRowsProps> = ({ headerWidth, t
                         left: 0,
                         width: LINE_HIT_PX,
                         cursor: locked ? "default" : "col-resize",
-                        borderLeft: (theme) => `2px solid ${theme.vars.palette.text.secondary}`
+                        borderLeft: (theme) => `1px solid ${theme.vars.palette.text.disabled}`,
+                        "&:hover": { borderLeftColor: locked ? undefined : "text.primary" }
                       }}
                     />
                   )}
@@ -367,6 +401,12 @@ export const ChordGlobalRows: React.FC<ChordGlobalRowsProps> = ({ headerWidth, t
         <MenuItemPrimitive
           label={t("i18n-next77.harmony.chordRows.detect")}
           onClick={afterMenu(detectFromSelection)}
+        />
+        <MenuItemPrimitive
+          label={t("i18n-next77.harmony.chordRows.showNumerals")}
+          checkable="checkbox"
+          checked={showNumerals}
+          onClick={afterMenu(() => setShowNumerals(!showNumerals))}
         />
         <MenuItemPrimitive
           label={t("i18n-next77.harmony.chordRows.transpose")}
@@ -438,9 +478,18 @@ export const ChordGlobalRows: React.FC<ChordGlobalRowsProps> = ({ headerWidth, t
                 if (event.key === "Enter") {
                   event.preventDefault();
                   submitSymbol(pickerChord.id);
+                } else if (event.key === "Tab") {
+                  event.preventDefault();
+                  pickNext(pickerChord.id, event.shiftKey ? -1 : 1);
                 }
               }}
             />
+            <FlexRow justify="space-between" align="center">
+              <Text size="smaller" color="secondary">{t("i18n-next77.harmony.chordRows.tabHint")}</Text>
+              <EditorButton density="compact" onClick={() => previewChord(pickerChord)} data-testid="chord-preview">
+                {t("i18n-next77.harmony.chordRows.preview")}
+              </EditorButton>
+            </FlexRow>
           </FlexColumn>
         )}
       </Popover>

@@ -23,13 +23,14 @@ import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { resolveTempo } from "@nodetool-ai/timeline";
+import { barDurationMs, resolveTempo } from "@nodetool-ai/timeline";
 import type { TimelineMarker } from "@nodetool-ai/timeline";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   BORDER_RADIUS,
+  MOTION,
   FONT_SIZE_MONO,
   SPACING,
   TYPOGRAPHY,
@@ -37,12 +38,16 @@ import {
   Tooltip
 } from "../../ui_primitives";
 import { computeBarRulerTicks } from "./tempoGrid";
+import { SectionRangeMenu } from "./SectionRangeMenu";
+import { hasSectionClipboard } from "./sectionRange";
+import { useAlertNotifier } from "../../../hooks/useAlertNotifier";
 
 interface RulerColors {
   bg: string;
   text: string;
   tick: string;
   marker: string;
+  range: string;
 }
 
 /**
@@ -62,7 +67,8 @@ function pickRulerColors(theme: Theme, mode: "light" | "dark"): RulerColors {
       palette?.divider ??
       (mode === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)"),
     marker:
-      palette?.primary?.main ?? (mode === "dark" ? "#5b9bd5" : "#1976d2")
+      palette?.primary?.main ?? (mode === "dark" ? "#5b9bd5" : "#1976d2"),
+    range: palette?.c_timeline_range ?? (mode === "dark" ? "#2d8ceb" : "#1a6fc4")
   };
 }
 
@@ -155,6 +161,46 @@ const markerFlagStyles = (theme: Theme) =>
       display: "inline"
     }
   });
+
+/** The picked range as a band in the ruler, like a DAW's marquee ruler strip. */
+const rangeBandStyles = (theme: Theme) =>
+  css({
+    position: "absolute",
+    bottom: 0,
+    height: "40%",
+    backgroundColor: theme.vars.palette.c_timeline_range_fill,
+    borderTop: `1px solid ${theme.vars.palette.c_timeline_range}`,
+    borderLeft: `1px solid ${theme.vars.palette.c_timeline_range}`,
+    borderRight: `1px solid ${theme.vars.palette.c_timeline_range}`,
+    borderRadius: `${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0 0`,
+    pointerEvents: "none",
+    // A grip on each edge moves that end of the range.
+    "& [data-range-edge]": {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      width: RANGE_EDGE_HIT_PX,
+      cursor: "ew-resize",
+      pointerEvents: "auto",
+      touchAction: "none"
+    },
+    "& [data-range-edge]::after": {
+      content: '""',
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: "50%",
+      width: 2,
+      marginLeft: -1,
+      backgroundColor: theme.vars.palette.c_timeline_range,
+      opacity: 0,
+      transition: `opacity ${MOTION.fast}`
+    },
+    "& [data-range-edge]:hover::after": { opacity: 1 }
+  });
+
+/** Width of the grab area on each range edge. */
+const RANGE_EDGE_HIT_PX = 8;
 
 const canvasStyles = css({
   // The draw pass reads the resolved size and family back through
@@ -340,6 +386,10 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     const activeMode = mode === "system" ? systemMode : mode;
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const ownsGestureRef = useRef(false);
+    // Shift+drag picks a range across all tracks (CE4, D48).
+    const rangeAnchorMsRef = useRef<number | null>(null);
+    const [rangeMenu, setRangeMenu] = useState<{ x: number; y: number } | null>(null);
+    const reportRangeError = useAlertNotifier("error");
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
@@ -463,11 +513,11 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
         const outPx = rangeOut === null ? w : rangeOut / mpp - scrollLeft;
         ctx.save();
         ctx.globalAlpha = 0.18;
-        ctx.fillStyle = colors.marker;
+        ctx.fillStyle = colors.range;
         ctx.fillRect(Math.max(0, inPx), 0, Math.min(w, outPx) - Math.max(0, inPx), h);
         ctx.restore();
-        ctx.strokeStyle = colors.marker;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = colors.range;
+        ctx.lineWidth = 1;
         for (const px of [rangeIn === null ? null : inPx, rangeOut === null ? null : outPx]) {
           if (px === null || px < 0 || px > w) continue;
           ctx.beginPath();
@@ -595,6 +645,26 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       [msPerPx, scrollLeftPx]
     );
 
+    // Bars mode snaps a range edge to the nearest bar line.
+    const snapRangeMs = useCallback(
+      (ms: number): number => {
+        if (rulerMode !== "bars") {
+          return ms;
+        }
+        const bar = barDurationMs(tempo);
+        return Math.max(
+          0,
+          tempo.offsetMs + Math.round((ms - tempo.offsetMs) / bar) * bar
+        );
+      },
+      [rulerMode, tempo]
+    );
+    const setSectionRange = useTimelineUIStore((s) => s.setSectionRange);
+    const sectionRange = useTimelineUIStore((s) => s.sectionRange);
+    const rangeBandCss = useMemo(() => rangeBandStyles(theme), [theme]);
+    // The fixed end while an edge of the range is dragged.
+    const edgeAnchorMsRef = useRef<number | null>(null);
+
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
         // Right and middle presses must not move the playhead.
@@ -603,9 +673,15 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
         }
         e.currentTarget.setPointerCapture(e.pointerId);
         ownsGestureRef.current = true;
+        if (e.shiftKey) {
+          rangeAnchorMsRef.current = snapRangeMs(pxToMs(e.clientX));
+          setSectionRange(null);
+          return;
+        }
+        rangeAnchorMsRef.current = null;
         seek(pxToMs(e.clientX));
       },
-      [pxToMs, seek]
+      [pxToMs, seek, setSectionRange, snapRangeMs]
     );
 
     const handlePointerMove = useCallback(
@@ -615,14 +691,70 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
         if (!ownsGestureRef.current || e.buttons !== 1) {
           return;
         }
+        const anchor = rangeAnchorMsRef.current;
+        if (anchor !== null) {
+          const here = snapRangeMs(pxToMs(e.clientX));
+          const fromMs = Math.min(anchor, here);
+          const toMs = Math.max(anchor, here);
+          setSectionRange(toMs > fromMs ? { fromMs, toMs } : null);
+          return;
+        }
         seek(pxToMs(e.clientX));
       },
-      [pxToMs, seek]
+      [pxToMs, seek, setSectionRange, snapRangeMs]
     );
 
     const handlePointerEnd = useCallback(() => {
       ownsGestureRef.current = false;
+      rangeAnchorMsRef.current = null;
     }, []);
+
+    const handleEdgePointerDown = useCallback(
+      (e: React.PointerEvent<HTMLDivElement>) => {
+        const range = useTimelineUIStore.getState().sectionRange;
+        if (e.button !== 0 || !range) return;
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        edgeAnchorMsRef.current =
+          e.currentTarget.dataset.rangeEdge === "start"
+            ? range.toMs
+            : range.fromMs;
+      },
+      []
+    );
+
+    const handleEdgePointerMove = useCallback(
+      (e: React.PointerEvent<HTMLDivElement>) => {
+        const anchor = edgeAnchorMsRef.current;
+        if (anchor === null || e.buttons !== 1) return;
+        e.stopPropagation();
+        const here = snapRangeMs(pxToMs(e.clientX));
+        // Dragging an edge past the other one flips the range.
+        const fromMs = Math.min(anchor, here);
+        const toMs = Math.max(anchor, here);
+        if (toMs > fromMs) setSectionRange({ fromMs, toMs });
+      },
+      [pxToMs, setSectionRange, snapRangeMs]
+    );
+
+    const handleEdgePointerEnd = useCallback(() => {
+      edgeAnchorMsRef.current = null;
+    }, []);
+
+    const handleContextMenu = useCallback(
+      (e: React.MouseEvent<HTMLCanvasElement>) => {
+        // Paste stays reachable while the clipboard holds a section.
+        if (
+          useTimelineUIStore.getState().sectionRange === null &&
+          !hasSectionClipboard()
+        ) {
+          return;
+        }
+        e.preventDefault();
+        setRangeMenu({ x: e.clientX, y: e.clientY });
+      },
+      []
+    );
 
     return (
       <div
@@ -639,12 +771,49 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           onPointerUp={handlePointerEnd}
           onPointerCancel={handlePointerEnd}
           onLostPointerCapture={handlePointerEnd}
+          onContextMenu={handleContextMenu}
           aria-label={
             rulerMode === "bars"
               ? t("i18n-next73.ruler.barsHint")
               : t("i18n-next73.ruler.timeHint")
           }
         />
+        {sectionRange && (
+          <div
+            css={rangeBandCss}
+            data-testid="time-ruler-section-range"
+            style={{
+              left: headerWidthPx + sectionRange.fromMs / msPerPx - scrollLeftPx,
+              width: (sectionRange.toMs - sectionRange.fromMs) / msPerPx
+            }}
+          >
+            {(["start", "end"] as const).map((edge) => (
+              <div
+                key={edge}
+                data-range-edge={edge}
+                data-testid={`time-ruler-range-${edge}`}
+                role="slider"
+                aria-label={t(
+                  edge === "start"
+                    ? "i18n-next73.ruler.rangeStart"
+                    : "i18n-next73.ruler.rangeEnd"
+                )}
+                aria-valuenow={Math.round(
+                  edge === "start" ? sectionRange.fromMs : sectionRange.toMs
+                )}
+                style={
+                  edge === "start"
+                    ? { left: -RANGE_EDGE_HIT_PX / 2 }
+                    : { right: -RANGE_EDGE_HIT_PX / 2 }
+                }
+                onPointerDown={handleEdgePointerDown}
+                onPointerMove={handleEdgePointerMove}
+                onPointerUp={handleEdgePointerEnd}
+                onPointerCancel={handleEdgePointerEnd}
+              />
+            ))}
+          </div>
+        )}
         <MarkerOverlay
           markers={markers}
           msPerPx={msPerPx}
@@ -654,6 +823,13 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           onSeek={seek}
           onRemove={deleteMarker}
         />
+        {rangeMenu && (
+          <SectionRangeMenu
+            position={rangeMenu}
+            onClose={() => setRangeMenu(null)}
+            onError={reportRangeError}
+          />
+        )}
       </div>
     );
   }

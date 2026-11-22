@@ -1,13 +1,14 @@
 /** @jsxImportSource @emotion/react */
 /**
  * The header-column side of a track's automation: one row per lane naming
- * the control it drives, with its on switch and remove button, and a last row
+ * the control it drives, with its on switch and remove button, and the "+"
  * that picks a control for a new lane.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useTranslation } from "react-i18next";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import {
@@ -19,9 +20,8 @@ import {
 
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
-import { Autocomplete, ToolbarIconButton } from "../../../ui_primitives";
+import { ToolbarIconButton } from "../../../ui_primitives";
 import {
-  AUTOMATION_FOOTER_HEIGHT_PX,
   AUTOMATION_LANE_HEIGHT_PX,
   shownAutomationKey
 } from "./automationLayout";
@@ -29,8 +29,7 @@ import {
   automationNormToValue,
   automationRoleOf,
   automationTargetSpecs,
-  automationValueToNorm,
-  type AutomationTargetSpec
+  automationValueToNorm
 } from "./automationTargets";
 import { AutomationMenuButton, type AutomationMenuEntry } from "./AutomationMenuButton";
 import { AutomationValueReadout } from "./AutomationValueReadout";
@@ -158,16 +157,20 @@ export const AutomationLaneHeader: React.FC<LaneHeaderProps> = memo(({ track, la
 
 AutomationLaneHeader.displayName = "AutomationLaneHeader";
 
-interface FooterProps {
+interface AddLaneProps {
   track: TimelineTrack;
 }
 
-/** The row under a track's lanes that adds one for a picked control. */
-export const AutomationAddLaneHeader: React.FC<FooterProps> = memo(({ track }) => {
-  const theme = useTheme();
+/**
+ * The "+" of the automation header row: a menu of the controls without a
+ * lane. A pick adds the lane and opens the track's sub-lanes. *Logic.*
+ */
+export const AutomationAddLaneButton: React.FC<AddLaneProps> = memo(({ track }) => {
   const { t } = useTranslation();
   const setTrackAutomation = useTimelineStore((s) => s.setTrackAutomation);
   const storedKey = useTimelineUIStore((s) => s.automationShownParams[track.id]);
+  const open = useTimelineUIStore((s) => s.automationOpenTrackIds.includes(track.id));
+  const toggleOpen = useTimelineUIStore((s) => s.toggleAutomationSubLanes);
   const options = useMemo(() => {
     // The shown parameter lives on the main lane, so it is not added here.
     const used = new Set((track.automation ?? []).map((lane) => automationTargetKey(lane.target)));
@@ -175,34 +178,33 @@ export const AutomationAddLaneHeader: React.FC<FooterProps> = memo(({ track }) =
     used.add(shownAutomationKey(track, storedKey, new Set(specs.map((s) => s.key))));
     return specs.filter((spec) => !used.has(spec.key));
   }, [track, t, storedKey]);
+  const entries = useMemo<AutomationMenuEntry[]>(
+    () => options.map((s) => ({ key: s.key, label: s.label, group: s.group })),
+    [options]
+  );
 
   const add = useCallback(
-    (_event: React.SyntheticEvent, spec: AutomationTargetSpec | null) => {
+    (key: string) => {
+      const spec = options.find((s) => s.key === key);
       if (!spec) return;
       setTrackAutomation(track.id, [...(track.automation ?? []), createAutomationLane(spec.target)]);
+      if (!open) toggleOpen(track.id);
     },
-    [setTrackAutomation, track.id, track.automation]
+    [options, setTrackAutomation, track.id, track.automation, open, toggleOpen]
   );
 
   return (
-    <div css={automationRowStyles(theme, AUTOMATION_FOOTER_HEIGHT_PX)} data-testid={`automation-add-${track.id}`}>
-      <Autocomplete<AutomationTargetSpec>
-        compact
-        value={null}
-        options={options}
-        groupBy={(spec) => spec.group}
-        getOptionLabel={(spec) => spec.label}
-        isOptionEqualToValue={(a, b) => a.key === b.key}
-        onChange={add}
-        disabled={track.locked || options.length === 0}
-        blurOnSelect
-        clearOnBlur
-        placeholder={t("timelineAutomation.addLane")}
-        aria-label={t("timelineAutomation.addLane")}
-        sx={{ flex: 1, minWidth: 0 }}
-      />
-    </div>
+    <AutomationMenuButton
+      label={t("timelineAutomation.addLane")}
+      value=""
+      entries={entries}
+      onSelect={add}
+      tone={{ kind: "icon", icon: <AddIcon /> }}
+      ariaLabel={t("timelineAutomation.addLane")}
+      testId={`automation-add-${track.id}`}
+      disabled={track.locked || options.length === 0}
+    />
   );
 });
 
-AutomationAddLaneHeader.displayName = "AutomationAddLaneHeader";
+AutomationAddLaneButton.displayName = "AutomationAddLaneButton";

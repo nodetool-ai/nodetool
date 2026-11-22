@@ -101,6 +101,7 @@ import { TrackLane } from "./TrackLane";
 import { ChordLane } from "./ChordLane";
 import { CHORD_GLOBAL_ROWS_PX, ChordGlobalRows } from "../daw/harmony/ChordGlobalRows";
 import { RubberBandOverlay } from "./RubberBandOverlay";
+import { SectionRangeOverlay } from "./SectionRangeOverlay";
 import { SnapGuideOverlay } from "./SnapGuideOverlay";
 import { GestureReadout } from "./GestureReadout";
 import { TimeRuler } from "./TimeRuler";
@@ -116,11 +117,10 @@ import {
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
 import { ScriptLane, ScriptLaneHeader } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX, steppedTrackHeightPx } from "./trackHeight";
-import { AutomationAddLaneHeader, AutomationLaneHeader } from "./automation/AutomationLaneHeader";
+import { AutomationLaneHeader } from "./automation/AutomationLaneHeader";
 import { AutomationHeaderRow } from "./automation/AutomationHeaderRow";
 import { AutomationSubLane } from "./automation/AutomationCurveOverlay";
 import {
-  AUTOMATION_FOOTER_HEIGHT_PX,
   AUTOMATION_HEADER_ROW_PX,
   automationSubLanes,
   shownAutomationKey,
@@ -158,6 +158,9 @@ import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport
 import { deserializeDragData } from "../../../lib/dragdrop";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { dropShotOnTrack, isShotDrag } from "../dnd/shotToClipAdapter";
+import { isStepPatternDrag, patternDropOps, snapPatternDropMs } from "./stepPatternDrop";
+import { STEP_PATTERN_DRAG_TYPE } from "../stepSequencer/StepPatternBrowser";
+import { useStepPatternOps } from "../stepSequencer/useStepPatternOps";
 import { getSourceCapMs } from "./useClipSourceDuration";
 import { buildTypedIndexMap } from "./trackVisuals";
 import {
@@ -331,7 +334,7 @@ const trackCountChipStyles = (theme: Theme) =>
     letterSpacing: "0"
   });
 
-/** The lanes side of a track's add-lane row: a strip under its last lane. */
+/** The lanes side of a track's automation header row. */
 const automationFooterStyles = (theme: Theme) =>
   css({
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
@@ -541,9 +544,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       );
     }, []);
 
+    const patternOps = useStepPatternOps();
+
     const handleEmptyAreaDragOver = useCallback(
       (e: React.DragEvent<HTMLDivElement>) => {
-        if (!isAssetDrag(e) && !isShotDrag(e.dataTransfer)) return;
+        if (!isAssetDrag(e) && !isShotDrag(e.dataTransfer) && !isStepPatternDrag(e.dataTransfer)) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
       },
@@ -553,9 +558,23 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const handleEmptyAreaDrop = useCallback(
       (e: React.DragEvent<HTMLDivElement>) => {
         const shotDrag = isShotDrag(e.dataTransfer);
-        if (!isAssetDrag(e) && !shotDrag) return;
+        const patternDrag = isStepPatternDrag(e.dataTransfer);
+        if (!isAssetDrag(e) && !shotDrag && !patternDrag) return;
         e.preventDefault();
         e.stopPropagation();
+
+        // A Pattern Browser entry below the last track: a new MIDI track
+        // holding the pattern region, in one undo step (SQ43).
+        if (patternDrag) {
+          const patternId = e.dataTransfer.getData(STEP_PATTERN_DRAG_TYPE);
+          const scroller = scrollableRef.current;
+          if (!patternId || !scroller) return;
+          const left = scroller.getBoundingClientRect().left;
+          const pointerMs = (Math.max(0, e.clientX - left) + scroller.scrollLeft) * msPerPx;
+          const atMs = snapPatternDropMs(pointerMs, docStore.getState(), uiStoreApi.getState());
+          void patternOps.run(patternDropOps(patternId, atMs, null)).catch(() => undefined);
+          return;
+        }
 
         const dragData = deserializeDragData(e.dataTransfer);
         if (!dragData) return;
@@ -614,7 +633,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         addImportedClip,
         importVideoWithAudio,
         docStore,
-        uiStoreApi
+        uiStoreApi,
+        patternOps
       ]
     );
 
@@ -2533,7 +2553,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                           ).map((lane) => (
                             <AutomationLaneHeader key={lane.id} track={row.track} lane={lane} />
                           ))}
-                          <AutomationAddLaneHeader track={row.track} />
                         </>
                       )}
                     </>
@@ -2627,11 +2646,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                                 widthPx={totalWidthPx}
                               />
                             ))}
-                            <div
-                              style={{ height: AUTOMATION_FOOTER_HEIGHT_PX }}
-                              css={automationFooterStyles(theme)}
-                              aria-hidden="true"
-                            />
                           </>
                         )}
                       </>
@@ -2643,6 +2657,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               {/* Marquee rect — drawn here, above every lane, because a band
                   started on one lane may cover several. */}
               <RubberBandOverlay />
+              <SectionRangeOverlay />
               <SnapGuideOverlay />
             </div>
             {/* Empty-sequence guidance. pointer-events:none keeps the whole

@@ -401,3 +401,15 @@ describe("bakedAudioAnimationField", () => {
     expect(adopted.conflicts).toEqual([]);
   });
 });
+
+describe("music settings merge (F1)", () => {
+  it("takes an external change to the music marker", () => {
+    const base = { ...docOf([], []), music: { autoCrossfadeMs: 10 } };
+    const server = { ...base, music: { autoCrossfadeMs: 25 } };
+    const result = mergeTimelineDocuments(base, base, server, undefined, {
+      mergeWithoutOps: true
+    });
+    expect(result.doc.music).toEqual({ autoCrossfadeMs: 25 });
+  });
+});
+

@@ -11,12 +11,20 @@
  * stays addressable by id. The handler is cleared on unmount.
  */
 
-import { isShortResourceId } from "@nodetool-ai/protocol";
+import {
+  isFullResourceId,
+  isShortResourceId,
+  listsByDirectory,
+  projectDirectoryId
+} from "@nodetool-ai/protocol";
+import { midiInstrument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type {
   ClipAnimation,
   ClipModel3DStylePatch,
   MidiInstrument,
   QuantizeOptions,
+  StepPattern,
+  StepPatternLibraryKind,
   TimelineBeat,
   TimelineClip,
   TimelineMarker,
@@ -25,20 +33,46 @@ import type {
   TimelineTrack
 } from "@nodetool-ai/timeline";
 import {
+  STEP_PATTERN_ASSET_CONTENT_TYPE,
+  STEP_PATTERN_FOLDER_METADATA_KEY,
+  STEP_PATTERN_METADATA_KEY,
   activeLoopMs,
+  autoCrossfadeMsOf,
+  chordTrackFor,
   createTimeOrderedUuid,
+  expandMidiLoop,
+  isWithinStepPatternFolder,
   loopRepeatCount,
+  normalizePattern,
+  normalizeStepPatternFolderPath,
+  parentStepPatternFolder,
   presetIdForInstrument,
-  resolveTempo
+  remapStepPatternFolderPath,
+  resolveTempo,
+  stepPatternFolderName,
+  stepPatternRootFolder,
+  visibleNotes
 } from "@nodetool-ai/timeline";
 import {
   applyTimelineOp,
+  collectStepPatternFolders,
   resolveBeatTarget,
+  resolveCreateStepPatternFolderTarget,
+  resolveMoveDestinationFolder,
+  resolveRenameStepPatternFolderTarget,
+  resolveStepPatternFolderRef,
+  resolveUserStepPatternRef,
+  chordTrackFields,
+  keyLabel,
+  serializeMaster,
+  signatureLabel,
+  type FullStepPatternLibrary,
   type TimelineOp,
   type TimelineOpAsset,
   type TimelineOpContext,
   type TimelineOpResult,
-  type TimelineOpState
+  type TimelineOpState,
+  type TimelineOpUserStepPattern
 } from "@nodetool-ai/timeline/ops";
 import { parseSvgPath } from "@nodetool-ai/timeline/scene";
 import { useEffect, useMemo } from "react";
@@ -164,16 +198,562 @@ function sourceTimeForTimelineTime(
   return Math.max(0, inPointMs + (timelineTimeMs - clipStart) * speed);
 }
 
+function slugForBrowserPatternFile(name: string, fallback: string): string {
+  return (
+    name
+      .trim()
+      .replace(/[^\w.-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || fallback
+  );
+}
+
+/**
+ * Browser-backed step pattern library (SQ43, SQ44, D92).
+ * Exposes `list`, `save`, `listFolders`, `createFolder`, `renameFolder`,
+ * `deleteFolder`, and `movePattern` for both the `ui_timeline_*` agent tools
+ * and the Pattern Browser UI.
+ */
+export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
+  const scanLibrary = async () => {
+    const store = useAssetStore.getState();
+    const { assets } = await store.load({
+      content_type: STEP_PATTERN_ASSET_CONTENT_TYPE
+    });
+
+    type BrowserFolderAsset = {
+      type: "folder";
+      id: string;
+      kind: StepPatternLibraryKind;
+      name: string;
+      folder: string;
+      asset: (typeof assets)[number];
+    };
+    type BrowserPatternAsset = {
+      type: "pattern";
+      entry: TimelineOpUserStepPattern;
+      asset: (typeof assets)[number];
+    };
+
+    const read = async (
+      asset: (typeof assets)[number]
+    ): Promise<BrowserFolderAsset | BrowserPatternAsset | null> => {
+      const folderMeta =
+        asset.metadata &&
+        typeof asset.metadata === "object" &&
+        typeof asset.metadata[STEP_PATTERN_FOLDER_METADATA_KEY] === "object" &&
+        asset.metadata[STEP_PATTERN_FOLDER_METADATA_KEY] !== null
+          ? (asset.metadata[STEP_PATTERN_FOLDER_METADATA_KEY] as Record<
+              string,
+              unknown
+            >)
+          : null;
+      if (folderMeta && typeof folderMeta.folder === "string") {
+        const kind: StepPatternLibraryKind =
+          folderMeta.kind === "template" ? "template" : "pattern";
+        const folder = normalizeStepPatternFolderPath(kind, folderMeta.folder);
+        const name =
+          typeof folderMeta.name === "string"
+            ? folderMeta.name
+            : stepPatternFolderName(folder);
+        return { type: "folder", id: asset.id, kind, name, folder, asset };
+      }
+
+      const url = getAssetUrl(asset);
+      if (!url) return null;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const parsed = (await response.json()) as unknown;
+        if (!parsed || typeof parsed !== "object") {
+          return null;
+        }
+        const rec = parsed as Record<string, unknown>;
+        if (rec.entryType === "folder" && typeof rec.folder === "string") {
+          const kind: StepPatternLibraryKind =
+            rec.kind === "template" ? "template" : "pattern";
+          const folder = normalizeStepPatternFolderPath(kind, rec.folder);
+          const name =
+            typeof rec.name === "string"
+              ? rec.name
+              : stepPatternFolderName(folder);
+          return { type: "folder", id: asset.id, kind, name, folder, asset };
+        }
+        if (!rec.pattern || typeof rec.pattern !== "object") {
+          return null;
+        }
+        const meta =
+          asset.metadata &&
+          typeof asset.metadata === "object" &&
+          typeof asset.metadata[STEP_PATTERN_METADATA_KEY] === "object" &&
+          asset.metadata[STEP_PATTERN_METADATA_KEY] !== null
+            ? (asset.metadata[STEP_PATTERN_METADATA_KEY] as Record<
+                string,
+                unknown
+              >)
+            : {};
+        const name =
+          typeof meta.name === "string"
+            ? meta.name
+            : typeof rec.name === "string"
+              ? rec.name
+              : asset.name;
+        const kind: StepPatternLibraryKind =
+          meta.kind === "template" || rec.kind === "template"
+            ? "template"
+            : "pattern";
+        const category =
+          typeof rec.category === "string"
+            ? rec.category
+            : kind === "template"
+              ? "templates"
+              : "user";
+        const tags = Array.isArray(rec.tags)
+          ? rec.tags.filter((t): t is string => typeof t === "string")
+          : [kind, "user"];
+        const rawFolder =
+          typeof meta.folder === "string"
+            ? meta.folder
+            : typeof rec.folder === "string"
+              ? rec.folder
+              : undefined;
+        const folder =
+          rawFolder !== undefined
+            ? normalizeStepPatternFolderPath(kind, rawFolder)
+            : undefined;
+        const parsedInstrument =
+          rec.instrument !== undefined
+            ? midiInstrument.safeParse(rec.instrument)
+            : null;
+        const rawInstrumentPreset =
+          typeof rec.instrumentPreset === "string"
+            ? rec.instrumentPreset.trim()
+            : typeof meta.instrumentPreset === "string"
+              ? meta.instrumentPreset.trim()
+              : "";
+        const instrumentPreset =
+          rawInstrumentPreset.length > 0 ? rawInstrumentPreset : undefined;
+        return {
+          type: "pattern",
+          asset,
+          entry: {
+            id: asset.id,
+            name,
+            kind,
+            category,
+            tags,
+            ...(folder !== undefined ? { folder } : {}),
+            pattern: normalizePattern(rec.pattern as Partial<StepPattern>),
+            ...(parsedInstrument?.success
+              ? { instrument: parsedInstrument.data as MidiInstrument }
+              : {}),
+            ...(instrumentPreset !== undefined ? { instrumentPreset } : {})
+          }
+        };
+      } catch {
+        // Skip unreadable user pattern assets without breaking the library list.
+        return null;
+      }
+    };
+
+    const items = await Promise.all(assets.map(read));
+    const folderAssets: BrowserFolderAsset[] = [];
+    const patternAssets: BrowserPatternAsset[] = [];
+    for (const item of items) {
+      if (!item) continue;
+      if (item.type === "folder") folderAssets.push(item);
+      else patternAssets.push(item);
+    }
+    return { folderAssets, patternAssets };
+  };
+
+  const rewriteBrowserPatternFolder = async (
+    item: {
+      entry: TimelineOpUserStepPattern;
+      asset: {
+        id: string;
+        project_id?: string;
+        metadata?: Record<string, unknown> | null;
+      };
+    },
+    nextFolder: string
+  ): Promise<void> => {
+    const store = useAssetStore.getState();
+    const category =
+      item.entry.category ??
+      (item.entry.kind === "template" ? "templates" : "user");
+    const tags = [...(item.entry.tags ?? [item.entry.kind, "user"])];
+    const nextEnvelope = {
+      version: 1 as const,
+      name: item.entry.name,
+      kind: item.entry.kind,
+      category,
+      tags,
+      folder: nextFolder,
+      pattern: item.entry.pattern,
+      ...(item.entry.instrument
+        ? { instrument: structuredClone(item.entry.instrument) }
+        : {}),
+      ...(item.entry.instrumentPreset
+        ? { instrumentPreset: item.entry.instrumentPreset }
+        : {})
+    };
+    const prevMeta =
+      item.asset.metadata &&
+      typeof item.asset.metadata === "object" &&
+      typeof item.asset.metadata[STEP_PATTERN_METADATA_KEY] === "object" &&
+      item.asset.metadata[STEP_PATTERN_METADATA_KEY] !== null
+        ? (item.asset.metadata[STEP_PATTERN_METADATA_KEY] as Record<
+            string,
+            unknown
+          >)
+        : {};
+    await store.update({
+      id: item.asset.id,
+      ...(listsByDirectory(item.asset.project_id)
+        ? { parent_id: projectDirectoryId(item.asset.project_id, nextFolder) }
+        : {}),
+      metadata: {
+        ...(item.asset.metadata ?? {}),
+        [STEP_PATTERN_METADATA_KEY]: {
+          ...prevMeta,
+          name: item.entry.name,
+          kind: item.entry.kind,
+          folder: nextFolder,
+          category,
+          tags,
+          ...(item.entry.instrumentPreset
+            ? { instrumentPreset: item.entry.instrumentPreset }
+            : {})
+        }
+      },
+      data: `${JSON.stringify(nextEnvelope, null, 2)}\n`
+    });
+  };
+
+  const rewriteBrowserFolderMarker = async (
+    item: {
+      id: string;
+      kind: StepPatternLibraryKind;
+      asset: {
+        id: string;
+        project_id?: string;
+        metadata?: Record<string, unknown> | null;
+      };
+    },
+    nextFolder: string
+  ): Promise<void> => {
+    const store = useAssetStore.getState();
+    const nextName = stepPatternFolderName(nextFolder);
+    const nextEnvelope = {
+      version: 1 as const,
+      entryType: "folder" as const,
+      kind: item.kind,
+      name: nextName,
+      folder: nextFolder
+    };
+    await store.update({
+      id: item.asset.id,
+      ...(listsByDirectory(item.asset.project_id)
+        ? { parent_id: projectDirectoryId(item.asset.project_id, nextFolder) }
+        : {}),
+      metadata: {
+        ...(item.asset.metadata ?? {}),
+        [STEP_PATTERN_FOLDER_METADATA_KEY]: {
+          kind: item.kind,
+          name: nextName,
+          folder: nextFolder
+        }
+      },
+      data: `${JSON.stringify(nextEnvelope, null, 2)}\n`
+    });
+  };
+
+  return {
+    async list(): Promise<TimelineOpUserStepPattern[]> {
+      const { patternAssets } = await scanLibrary();
+      return patternAssets.map((p) => p.entry);
+    },
+    async listFolders() {
+      const { folderAssets, patternAssets } = await scanLibrary();
+      return collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        patternAssets.map((p) => p.entry)
+      );
+    },
+    async save({ name, kind, folder, pattern, instrument, instrumentPreset }) {
+      let folderInput = folder;
+      const trimmedFolder = folderInput?.trim();
+      if (
+        trimmedFolder &&
+        (isShortResourceId(trimmedFolder) || isFullResourceId(trimmedFolder))
+      ) {
+        const { folderAssets, patternAssets } = await scanLibrary();
+        const allFolders = collectStepPatternFolders(
+          folderAssets.map((f) => ({
+            id: f.id,
+            kind: f.kind,
+            folder: f.folder
+          })),
+          patternAssets.map((p) => p.entry)
+        );
+        folderInput = resolveMoveDestinationFolder(
+          allFolders,
+          kind,
+          trimmedFolder
+        );
+      }
+      const fullFolder = normalizeStepPatternFolderPath(kind, folderInput);
+      const category = kind === "template" ? "templates" : "user";
+      const tags = [kind, "user"];
+      const savedInstrument = instrument ? structuredClone(instrument) : undefined;
+      const savedInstrumentPreset =
+        instrumentPreset ??
+        (savedInstrument ? presetIdForInstrument(savedInstrument) : undefined);
+      const envelope = {
+        version: 1 as const,
+        name,
+        kind,
+        category,
+        tags,
+        folder: fullFolder,
+        pattern: normalizePattern(structuredClone(pattern)),
+        ...(savedInstrument ? { instrument: savedInstrument } : {}),
+        ...(savedInstrumentPreset
+          ? { instrumentPreset: savedInstrumentPreset }
+          : {})
+      };
+      const fileSlug = slugForBrowserPatternFile(name, "pattern");
+      const file = new File(
+        [`${JSON.stringify(envelope, null, 2)}\n`],
+        `${fileSlug}.step-pattern.json`,
+        { type: STEP_PATTERN_ASSET_CONTENT_TYPE }
+      );
+      const store = useAssetStore.getState();
+      const created = await store.createAsset(
+        file,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        fullFolder
+      );
+      if (typeof store.update === "function") {
+        await store
+          .update({
+            id: created.id,
+            metadata: {
+              ...(created.metadata ?? {}),
+              [STEP_PATTERN_METADATA_KEY]: {
+                name,
+                kind,
+                folder: fullFolder,
+                category,
+                tags,
+                ...(savedInstrumentPreset
+                  ? { instrumentPreset: savedInstrumentPreset }
+                  : {})
+              }
+            }
+          })
+          .catch(() => undefined);
+      }
+      return { id: created.id, assetId: created.id, folder: fullFolder };
+    },
+    async createFolder({ kind, name, parentFolder }) {
+      const { folderAssets, patternAssets } = await scanLibrary();
+      const allFolders = collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        patternAssets.map((p) => p.entry)
+      );
+      const target = resolveCreateStepPatternFolderTarget(allFolders, {
+        ...(kind !== undefined ? { kind } : {}),
+        name,
+        ...(parentFolder !== undefined ? { parentFolder } : {})
+      });
+      const envelope = {
+        version: 1 as const,
+        entryType: "folder" as const,
+        kind: target.kind,
+        name: target.name,
+        folder: target.folder
+      };
+      const fileSlug = slugForBrowserPatternFile(target.name, "folder");
+      const file = new File(
+        [`${JSON.stringify(envelope, null, 2)}\n`],
+        `folder-${fileSlug}.step-pattern.json`,
+        { type: STEP_PATTERN_ASSET_CONTENT_TYPE }
+      );
+      const store = useAssetStore.getState();
+      const created = await store.createAsset(
+        file,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        target.folder
+      );
+      if (typeof store.update === "function") {
+        await store
+          .update({
+            id: created.id,
+            metadata: {
+              ...(created.metadata ?? {}),
+              [STEP_PATTERN_FOLDER_METADATA_KEY]: {
+                kind: target.kind,
+                name: target.name,
+                folder: target.folder
+              }
+            }
+          })
+          .catch(() => undefined);
+      }
+      return {
+        id: created.id,
+        name: target.name,
+        kind: target.kind,
+        folder: target.folder,
+        parentFolder: target.parentFolder
+      };
+    },
+    async renameFolder({ folder, newName, kind }) {
+      const { folderAssets, patternAssets } = await scanLibrary();
+      const allFolders = collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        patternAssets.map((p) => p.entry)
+      );
+      const plan = resolveRenameStepPatternFolderTarget(allFolders, {
+        folder,
+        newName,
+        ...(kind !== undefined ? { kind } : {})
+      });
+      for (const marker of folderAssets) {
+        if (
+          marker.kind === plan.kind &&
+          isWithinStepPatternFolder(marker.folder, plan.previousFolder)
+        ) {
+          const nextFolder = remapStepPatternFolderPath(
+            marker.folder,
+            plan.previousFolder,
+            plan.folder
+          );
+          await rewriteBrowserFolderMarker(marker, nextFolder);
+        }
+      }
+      const movedPatterns: Array<{ id: string; name: string; folder: string }> =
+        [];
+      for (const item of patternAssets) {
+        if (
+          item.entry.kind === plan.kind &&
+          isWithinStepPatternFolder(item.entry.folder, plan.previousFolder)
+        ) {
+          const nextFolder = remapStepPatternFolderPath(
+            item.entry.folder!,
+            plan.previousFolder,
+            plan.folder
+          );
+          await rewriteBrowserPatternFolder(item, nextFolder);
+          movedPatterns.push({
+            id: item.entry.id,
+            name: item.entry.name,
+            folder: nextFolder
+          });
+        }
+      }
+      return {
+        ...(plan.current.id !== undefined ? { id: plan.current.id } : {}),
+        name: plan.name,
+        kind: plan.kind,
+        previousFolder: plan.previousFolder,
+        folder: plan.folder,
+        parentFolder: plan.parentFolder,
+        movedPatternCount: movedPatterns.length,
+        movedPatterns
+      };
+    },
+    async deleteFolder({ folder, kind }) {
+      const { folderAssets, patternAssets } = await scanLibrary();
+      const allFolders = collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        patternAssets.map((p) => p.entry)
+      );
+      const target = resolveStepPatternFolderRef(allFolders, folder, kind);
+      const parentFolder = parentStepPatternFolder(target.kind, target.folder);
+      const movedPatterns: Array<{ id: string; name: string; folder: string }> =
+        [];
+      for (const item of patternAssets) {
+        if (
+          item.entry.kind === target.kind &&
+          isWithinStepPatternFolder(item.entry.folder, target.folder)
+        ) {
+          await rewriteBrowserPatternFolder(item, parentFolder);
+          movedPatterns.push({
+            id: item.entry.id,
+            name: item.entry.name,
+            folder: parentFolder
+          });
+        }
+      }
+      const store = useAssetStore.getState();
+      for (const marker of folderAssets) {
+        if (
+          marker.kind === target.kind &&
+          isWithinStepPatternFolder(marker.folder, target.folder)
+        ) {
+          await store.delete(marker.id);
+        }
+      }
+      return {
+        kind: target.kind,
+        deletedFolder: target.folder,
+        parentFolder,
+        movedPatternCount: movedPatterns.length,
+        movedPatterns
+      };
+    },
+    async movePattern({ pattern, folder }) {
+      const { folderAssets, patternAssets } = await scanLibrary();
+      const allFolders = collectStepPatternFolders(
+        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
+        patternAssets.map((p) => p.entry)
+      );
+      const match = resolveUserStepPatternRef(
+        patternAssets.map((p) => p.entry),
+        pattern
+      );
+      const targetFolder = resolveMoveDestinationFolder(
+        allFolders,
+        match.kind,
+        folder
+      );
+      const previousFolder = match.folder ?? stepPatternRootFolder(match.kind);
+      const item = patternAssets.find((p) => p.entry.id === match.id)!;
+      await rewriteBrowserPatternFolder(item, targetFolder);
+      return {
+        id: match.id,
+        name: match.name,
+        kind: match.kind,
+        previousFolder,
+        folder: targetFolder
+      };
+    }
+  };
+}
+
 /** Serialize a clip to the agent-facing shape. */
 function toClipNode(
   clip: TimelineClip,
-  trackById: Map<string, TimelineTrack>
+  trackById: Map<string, TimelineTrack>,
+  tempo: TimelineTempo,
+  tracks: readonly TimelineTrack[]
 ): TimelineClipNode {
+  const track = trackById.get(clip.trackId);
   return {
     id: clip.id,
     name: clip.name,
     trackId: clip.trackId,
-    trackName: trackById.get(clip.trackId)?.name ?? null,
+    trackName: track?.name ?? null,
     mediaType: clip.mediaType,
     sourceType: clip.sourceType,
     bindingKind: clip.bindingKind,
@@ -183,6 +763,9 @@ function toClipNode(
     inPointMs: clip.inPointMs,
     outPointMs: clip.outPointMs,
     loopLengthMs: clip.loopLengthMs,
+    transpose: clip.transpose,
+    velocityOffset: clip.velocityOffset,
+    quantize: clip.quantize,
     loopRepeats:
       activeLoopMs(clip) !== undefined ? loopRepeatCount(clip) : undefined,
     status: clip.status,
@@ -219,7 +802,30 @@ function toClipNode(
           keyframeCount: clip.reframe.keyframes?.length ?? 0
         }
       : undefined,
-    noteCount: clip.mediaType === "midi" ? (clip.notes?.length ?? 0) : undefined
+    noteCount: clip.mediaType === "midi" ? (clip.notes?.length ?? 0) : undefined,
+    controllerLaneCount: clip.controllers?.length,
+    pattern: clip.pattern
+      ? `${clip.pattern.rows.length} rows x ${clip.pattern.lengthSteps} @${clip.pattern.stepRate}`
+      : undefined,
+    patternName: clip.pattern?.name,
+    audibleNoteCount:
+      clip.mediaType === "midi"
+        ? (() => {
+            const chords = clip.pattern
+              ? chordTrackFor(clip.harmony, tracks)?.chords
+              : undefined;
+            return visibleNotes(
+              expandMidiLoop(
+                clip,
+                tempo.bpm,
+                tempo.offsetMs,
+                track?.instrument,
+                { chords, key: tempo.key }
+              ),
+              tempo.bpm
+            ).length;
+          })()
+        : undefined
   };
 }
 
@@ -256,7 +862,8 @@ function toMarkerNode(marker: TimelineMarker): TimelineMarkerNode {
 
 function toTrackNode(
   track: TimelineTrack,
-  clipCount: number
+  clipCount: number,
+  tempoDoc?: { tempo?: TimelineTempo }
 ): TimelineTrackNode {
   return {
     id: track.id,
@@ -268,11 +875,23 @@ function toTrackNode(
     muted: !!track.muted,
     solo: !!track.solo,
     clipCount,
+    volumeDb: track.volumeDb,
+    pan: track.pan,
+    heightPx: track.heightPx,
+    folderId: track.folderId,
+    musicRole: track.musicRole,
+    effectCount: track.effects?.length ?? 0,
+    automationMode: track.automationMode,
+    automationLaneCount: track.automation?.length ?? 0,
     instrument: track.type === "midi" ? track.instrument : undefined,
     presetId:
       track.type === "midi" && track.instrument
         ? presetIdForInstrument(track.instrument)
-        : undefined
+        : undefined,
+    // The chart that headless `get_state` returns, so a section edit can be read back.
+    ...(track.type === "chord" && tempoDoc
+      ? chordTrackFields(tempoDoc as never, track)
+      : {})
   };
 }
 
@@ -299,6 +918,8 @@ export const useTimelineAgentBridge = (
         markers: state.markers,
         mediaTracks: state.mediaTracks,
         tempo: state.tempo,
+        music: state.music,
+        master: state.master,
         setup: state.setup,
         transcript: state.transcript,
         scriptEnabled: state.scriptEnabled,
@@ -384,6 +1005,7 @@ export const useTimelineAgentBridge = (
             assets.set(ref, resolved);
             return resolved;
           },
+          stepPatternLibrary: createBrowserStepPatternLibrary(),
           ...opContextOverrides
         };
         if (
@@ -406,10 +1028,29 @@ export const useTimelineAgentBridge = (
             name: sequence.name
           });
         }
+        const skipsDocumentWrite =
+          op.op === "get_state" ||
+          op.op === "list_animation_presets" ||
+          op.op === "list_instruments" ||
+          op.op === "list_tracks" ||
+          op.op === "list_takes" ||
+          op.op === "list_progressions" ||
+          op.op === "list_harmony_presets" ||
+          op.op === "get_pattern" ||
+          op.op === "list_step_patterns" ||
+          op.op === "save_step_pattern" ||
+          op.op === "create_step_pattern_folder" ||
+          op.op === "rename_step_pattern_folder" ||
+          op.op === "delete_step_pattern_folder" ||
+          op.op === "move_step_pattern" ||
+          op.op === "retarget_format" ||
+          op.op === "select_clip" ||
+          op.op === "seek" ||
+          (op.op === "detect_chords" && op.write === false);
         assertSameSequence();
         let before = doc.getState();
         let outcome = await applyTimelineOp(stateOf(), op, context);
-        while (doc.getState() !== before && op.op !== "retarget_format") {
+        while (doc.getState() !== before && !skipsDocumentWrite) {
           assertSameSequence();
           before = doc.getState();
           positions = new Map();
@@ -420,21 +1061,11 @@ export const useTimelineAgentBridge = (
           throw new Error(outcome.error);
         }
         if (
-          op.op !== "get_state" &&
-          op.op !== "list_animation_presets" &&
-          op.op !== "list_instruments" &&
-          op.op !== "list_tracks" &&
-          op.op !== "list_takes" &&
-          op.op !== "list_progressions" &&
-          op.op !== "list_harmony_presets" &&
+          !skipsDocumentWrite &&
           !(
             op.op === "detect_chords" &&
-            (op.write === false ||
-              (outcome.result as { written?: unknown }).written === false)
-          ) &&
-          op.op !== "retarget_format" &&
-          op.op !== "select_clip" &&
-          op.op !== "seek"
+            (outcome.result as { written?: unknown }).written === false
+          )
         ) {
           doc.getState().applyAgentEdit(
             {
@@ -650,8 +1281,10 @@ export const useTimelineAgentBridge = (
       throw new Error(`Track not found on the timeline: ${target}`);
     };
 
-    const clipNode = (clip: TimelineClip): TimelineClipNode =>
-      toClipNode(clip, trackMap());
+    const clipNode = (clip: TimelineClip): TimelineClipNode => {
+      const state = doc.getState();
+      return toClipNode(clip, trackMap(), resolveTempo(state), state.tracks);
+    };
 
     const reReadClip = (id: string): TimelineClip => {
       const clip = doc.getState().clips.find((c) => c.id === id);
@@ -696,6 +1329,7 @@ export const useTimelineAgentBridge = (
             (clipCountByTrack.get(c.trackId) ?? 0) + 1
           );
         }
+        const tempo = resolveTempo(state);
         return {
           sequenceId: state.sequenceId,
           fps: state.fps,
@@ -705,9 +1339,9 @@ export const useTimelineAgentBridge = (
           playheadMs: Math.round(playback.getState().getTimeMs()),
           selectedClipIds: [...ui.getState().selectedClipIds],
           tracks: tracks.map((t) =>
-            toTrackNode(t, clipCountByTrack.get(t.id) ?? 0)
+            toTrackNode(t, clipCountByTrack.get(t.id) ?? 0, state)
           ),
-          clips: state.clips.map((c) => toClipNode(c, map)),
+          clips: state.clips.map((c) => toClipNode(c, map, tempo, tracks)),
           markers: state.markers.map(toMarkerNode),
           mediaTracks: state.mediaTracks.map((track) => ({
             id: track.id,
@@ -716,7 +1350,13 @@ export const useTimelineAgentBridge = (
             kind: track.kind,
             status: track.status
           })),
-          tempo: resolveTempo(state)
+          tempo,
+          music: state.music,
+          autoCrossfadeMs: autoCrossfadeMsOf(state),
+          key: keyLabel(tempo) ?? null,
+          signature: signatureLabel(tempo),
+          master: serializeMaster(state.master),
+          trackFolders: state.trackFolders ?? []
         };
       },
 
@@ -1007,7 +1647,20 @@ export const useTimelineAgentBridge = (
           gapMs,
           ...extra
         });
-        return clipNode(reReadClip(resultClipId(result)));
+        const node = clipNode(reReadClip(resultClipId(result)));
+        const copies = Array.isArray(result.clips)
+          ? (result.clips as { id?: unknown }[]).flatMap((c) =>
+              typeof c.id === "string" ? [clipNode(reReadClip(c.id))] : []
+            )
+          : undefined;
+        const children = Array.isArray(result.children)
+          ? (result.children as string[])
+          : undefined;
+        return {
+          ...node,
+          ...(copies ? { clips: copies } : {}),
+          ...(children ? { children } : {})
+        };
       },
 
       async setClipParams(target, patch) {
@@ -1263,7 +1916,8 @@ export const useTimelineAgentBridge = (
           bpm: tempo.bpm,
           beats_per_bar: tempo.timeSignature.beatsPerBar,
           beat_unit: tempo.timeSignature.beatUnit,
-          offset_ms: tempo.offsetMs
+          offset_ms: tempo.offsetMs,
+          key: tempo.key ?? null
         });
         return handlerImpl.getSnapshot();
       },

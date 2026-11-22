@@ -96,9 +96,10 @@ function setup() {
   const ctx = new FakeContext();
   const graph = new AudioGraph(ctx as unknown as BaseAudioContext);
   graph.getContext();
-  // Listener volume, mix bus, master fader: made with the context.
+  // Listener volume, mix bus, master fader and master panner: made with the context.
   const [listener, mixBus, masterFader] = ctx.of("gain");
-  return { ctx, graph, listener, mixBus, masterFader };
+  const [masterPanner] = ctx.of("panner");
+  return { ctx, graph, listener, mixBus, masterFader, masterPanner };
 }
 
 /** The four nodes of one track channel, in creation order. */
@@ -107,7 +108,8 @@ function channelOf(ctx: FakeContext, trackIndex: number) {
   return {
     trackGain: gains[trackIndex * 2],
     fader: gains[trackIndex * 2 + 1],
-    panner: ctx.of("panner")[trackIndex],
+    // The master panner comes first.
+    panner: ctx.of("panner")[trackIndex + 1],
     // The master analyser comes first.
     analyser: ctx.of("analyser")[trackIndex + 1]
   };
@@ -183,7 +185,7 @@ describe("AudioGraph mixer", () => {
   });
 
   it("makes a stereo meter tap on demand, once per channel", () => {
-    const { ctx, graph, masterFader } = setup();
+    const { ctx, graph, masterPanner } = setup();
     expect(graph.getTrackMeter("a")).toBeNull();
     graph.updateTracks([track("a")]);
     expect(ctx.of("splitter")).toHaveLength(0);
@@ -196,21 +198,22 @@ describe("AudioGraph mixer", () => {
     expect(splitter.connect).toHaveBeenCalledWith(tap.right, 1);
 
     const master = graph.getMasterMeter()!;
-    expect(feeds(masterFader, master.splitter)).toBe(true);
+    expect(feeds(masterPanner, master.splitter)).toBe(true);
 
     graph.updateTracks([]);
     expect(splitter.disconnect).toHaveBeenCalled();
     expect(graph.getTrackMeter("a")).toBeNull();
   });
 
-  it("runs the mix bus through the master fader into the listener volume", () => {
-    const { ctx, graph, listener, mixBus, masterFader } = setup();
+  it("runs the mix bus through the master fader and panner into the listener volume", () => {
+    const { ctx, graph, listener, mixBus, masterFader, masterPanner } = setup();
     expect(feeds(mixBus, masterFader)).toBe(true);
-    expect(feeds(masterFader, listener)).toBe(true);
+    expect(feeds(masterFader, masterPanner)).toBe(true);
+    expect(feeds(masterPanner, listener)).toBe(true);
     expect(feeds(listener, ctx.destination)).toBe(true);
-    // The master meter is post-fader.
+    // The master meter is post-fader and post-panner.
     const [masterAnalyser] = ctx.of("analyser");
-    expect(feeds(masterFader, masterAnalyser)).toBe(true);
+    expect(feeds(masterPanner, masterAnalyser)).toBe(true);
     expect(graph.getMasterAnalyser()).toBe(masterAnalyser);
   });
 
@@ -271,5 +274,34 @@ describe("AudioGraph mixer", () => {
     const trimAfter = ctx.of("gain").at(-1)!;
     expect(feeds(mixBus, trimAfter)).toBe(true);
     expect(feeds(trimAfter, masterFader)).toBe(true);
+  });
+
+  it("routes the master fader through a stereo panner and applies master.pan", () => {
+    const preCtx = new FakeContext();
+    const preGraph = new AudioGraph(preCtx as unknown as BaseAudioContext);
+    preGraph.setMaster({ volumeDb: -6, pan: -0.5 });
+    preGraph.getContext();
+    const [preMasterPanner] = preCtx.of("panner");
+    expect(preMasterPanner).toBeDefined();
+    expect(preMasterPanner.channelCount).toBe(2);
+    expect(preMasterPanner.channelCountMode).toBe("explicit");
+    expect((preMasterPanner.pan as Param).value).toBe(-0.5);
+
+    const { ctx, graph, listener, masterFader, masterPanner } = setup();
+    const [masterAnalyser] = ctx.of("analyser");
+    expect(masterPanner).toBeDefined();
+    expect(feeds(masterFader, masterPanner)).toBe(true);
+    expect(feeds(masterPanner, listener)).toBe(true);
+    expect(feeds(masterPanner, masterAnalyser)).toBe(true);
+    expect(feeds(masterPanner, graph.getMasterMeter()!.splitter)).toBe(true);
+
+    graph.setMaster({ volumeDb: 0, pan: 0.75 });
+    expect(lastTarget(masterPanner.pan as Param)).toBe(0.75);
+
+    graph.setMaster({ volumeDb: 0, pan: 3 });
+    expect(lastTarget(masterPanner.pan as Param)).toBe(1);
+
+    graph.setMaster(undefined);
+    expect(lastTarget(masterPanner.pan as Param)).toBe(0);
   });
 });

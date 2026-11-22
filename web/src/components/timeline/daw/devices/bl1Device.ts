@@ -17,7 +17,12 @@ import { bl1ParamRecord, changedBl1Params } from "./bl1Params";
 import { bl1ProcessorTables } from "./bl1Tables";
 import type { LiveDeviceFactory } from "./liveDevice";
 import { loadFableWorklets } from "./loadFableWorklets";
-import { encodeLiveEvents, WorkletInstrumentDevice } from "./workletDevice";
+import {
+  encodeLiveControllers,
+  encodeLiveEvents,
+  encodeLivePitchOffsets,
+  WorkletInstrumentDevice
+} from "./workletDevice";
 
 /** What the processor reports about its voice, about 23 times a second. */
 export interface Bl1Viz {
@@ -178,6 +183,10 @@ export const createBl1Device: LiveDeviceFactory = async (ctx, instrument, option
   }
   await loadFableWorklets(ctx, ["pauto", "ott", "bl1"]);
   const params = bl1ParamRecord(instrument);
+  const eventPitchOffsets = encodeLivePitchOffsets(options?.events);
+  const controllers = options?.controllers?.length
+    ? encodeLiveControllers(options.controllers, ctx.sampleRate)
+    : undefined;
   const node = new AudioWorkletNode(ctx, "fable-bl", {
     numberOfInputs: 0,
     numberOfOutputs: 1,
@@ -185,7 +194,9 @@ export const createBl1Device: LiveDeviceFactory = async (ctx, instrument, option
     processorOptions: {
       params,
       tables: bl1ProcessorTables(),
-      events: options?.events ? encodeLiveEvents(options.events, ctx.sampleRate) : undefined
+      events: options?.events ? encodeLiveEvents(options.events, ctx.sampleRate) : undefined,
+      ...(eventPitchOffsets ? { eventPitchOffsets } : {}),
+      ...(controllers ? { controllers } : {})
     }
   });
   const device = new Bl1Device(ctx, node, params);

@@ -24,6 +24,7 @@ import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import PianoIcon from "@mui/icons-material/Piano";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
@@ -65,20 +66,6 @@ export const TOOL_ICONS: Record<PianoRollTool, React.ReactElement> = {
 /** The slider range of the zoom sliders. The horizontal one is log-scaled by the caller. */
 export const ZOOM_SLIDER_STEPS = 1000;
 export const ZOOM_SLIDER_WIDTH_PX = 72;
-
-export type ToggleColor = "success" | "primary" | "warning";
-
-export const toggleSx = (theme: Theme, active: boolean, color: ToggleColor) =>
-  active
-    ? {
-        backgroundColor: theme.vars.palette[color].main,
-        color: theme.vars.palette[color].contrastText,
-        "&:hover": {
-          backgroundColor: theme.vars.palette[color].dark,
-          color: theme.vars.palette[color].contrastText
-        }
-      }
-    : undefined;
 
 interface ToolMenuProps {
   tool: PianoRollTool;
@@ -134,6 +121,8 @@ export interface PianoRollToolbarProps extends Omit<PianoRollMenusProps, "hasNot
   onVZoom: (factor: number) => void;
   minVZoom: number;
   maxVZoom: number;
+  /** Whether the inspector column shows. */
+  inspectorVisible: boolean;
   /** Leading controls, such as the phone Back button. */
   start?: ReactNode;
   /** Trailing controls, such as Close. */
@@ -141,7 +130,7 @@ export interface PianoRollToolbarProps extends Omit<PianoRollMenusProps, "hasNot
 }
 
 export const PianoRollToolbar: React.FC<PianoRollToolbarProps> = memo(
-  ({ positionRef, hZoom, onHZoom, vZoom, onVZoom, minVZoom, maxVZoom, start, end, ...menus }) => {
+  ({ inspectorVisible, positionRef, hZoom, onHZoom, vZoom, onVZoom, minVZoom, maxVZoom, start, end, ...menus }) => {
     const { t } = useTranslation();
     const theme = useTheme();
     const { settings, setSettings, mac } = menus;
@@ -155,15 +144,13 @@ export const PianoRollToolbar: React.FC<PianoRollToolbarProps> = memo(
       icon: ReactNode,
       label: string,
       active: boolean,
-      onToggle: () => void,
-      color?: ToggleColor
+      onToggle: () => void
     ) => (
       <ToolbarIconButton
         key={id}
         tooltip={label}
         aria-label={label}
         active={active}
-        sx={color ? toggleSx(theme, active, color) : undefined}
         onClick={onToggle}
       >
         {icon}
@@ -185,12 +172,13 @@ export const PianoRollToolbar: React.FC<PianoRollToolbarProps> = memo(
         }}
       >
         {start}
+        {toggle("inspector", <ViewSidebarOutlinedIcon />, L("menu.localInspector"), inspectorVisible, () => setSettings({ inspector: !inspectorVisible }))}
         <PianoRollMenus {...menus} />
         {toggle("collapse", <UnfoldLessIcon />, L("toggle.collapseMode"), settings.collapse, () => setSettings({ collapse: !settings.collapse }))}
         {toggle("midiDraw", <ShowChartIcon />, L("toggle.midiDraw"), settings.midiDraw, () => setSettings({ midiDraw: !settings.midiDraw }))}
-        {toggle("midiOut", <PianoIcon />, L("toggle.midiOut"), settings.midiOut, () => setSettings({ midiOut: !settings.midiOut }), "success")}
-        {toggle("catch", <CenterFocusStrongIcon />, L("toggle.catch"), settings.catchPlayhead, () => setSettings({ catchPlayhead: !settings.catchPlayhead }), "primary")}
-        {toggle("link", <LinkIcon />, L("toggle.link"), settings.link, () => setSettings({ link: !settings.link }), "warning")}
+        {toggle("midiOut", <PianoIcon />, L("toggle.midiOut"), settings.midiOut, () => setSettings({ midiOut: !settings.midiOut }))}
+        {toggle("catch", <CenterFocusStrongIcon />, L("toggle.catch"), settings.catchPlayhead, () => setSettings({ catchPlayhead: !settings.catchPlayhead }))}
+        {toggle("link", <LinkIcon />, L("toggle.link"), settings.link, () => setSettings({ link: !settings.link }))}
         <ToolMenu tool={settings.tool} label={L("tool.left")} onPick={(tool) => setSettings({ tool })} />
         <ToolMenu tool={settings.altTool} label={mac ? L("tool.cmd") : L("tool.ctrl")} onPick={(altTool) => setSettings({ altTool })} />
         <Caption
@@ -207,7 +195,7 @@ export const PianoRollToolbar: React.FC<PianoRollToolbarProps> = memo(
           size="small"
           value={settings.snapValue}
           options={snapOptions}
-          css={css({ width: "14ch" })}
+          css={css({ width: "11ch" })}
           onChange={(value) => setSettings({ snapValue: value as "smart" | TempoGridDivision })}
         />
         <Caption color="muted">{L("dragMode.label")}</Caption>
@@ -220,7 +208,7 @@ export const PianoRollToolbar: React.FC<PianoRollToolbarProps> = memo(
             { value: "overlap", label: L("dragMode.overlap") },
             { value: "noOverlap", label: L("dragMode.noOverlap") }
           ]}
-          css={css({ width: "14ch" })}
+          css={css({ width: "11ch" })}
           onChange={(value) => setSettings({ dragMode: value as PianoRollSettings["dragMode"] })}
         />
         <FlexRow align="center" gap={SPACING.xs}>

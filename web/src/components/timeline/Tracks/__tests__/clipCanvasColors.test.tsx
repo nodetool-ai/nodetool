@@ -108,7 +108,7 @@ const makeClip = (overrides: Partial<TimelineClip>): TimelineClip => ({
 });
 
 describe("clip canvases resolve theme colours to plain values", () => {
-  it("draws midi notes in the primary colour, not a CSS variable", () => {
+  it("draws midi notes in the colour it is given", () => {
     render(
       <ThemeProvider theme={cssVarTheme}>
         <MidiNotesCanvas
@@ -120,6 +120,7 @@ describe("clip canvases resolve theme colours to plain values", () => {
           durationMs={4000}
           bpm={120}
           widthPx={400}
+          color={PRIMARY}
         />
       </ThemeProvider>
     );
@@ -156,6 +157,7 @@ describe("clip canvases resolve theme colours to plain values", () => {
           onKeyframeClick={jest.fn()}
           onKeyframeMove={jest.fn()}
           interactionLocked={false}
+          trackIndex={0}
         />
       </ThemeProvider>
     );

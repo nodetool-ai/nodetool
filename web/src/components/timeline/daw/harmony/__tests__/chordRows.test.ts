@@ -2,6 +2,7 @@ import { MIDI_PPQ, resolveTempo } from "@nodetool-ai/timeline";
 import type { TimelineChord } from "@nodetool-ai/timeline";
 
 import {
+  chordNumeral,
   chordStripCells,
   diatonicChords,
   followsChordTrack,
@@ -107,5 +108,13 @@ describe("chordStripCells", () => {
   it("makes no cell without chords", () => {
     const tempo = resolveTempo({});
     expect(chordStripCells([], { startMs: 0, durationMs: 1000 }, tempo, 10)).toEqual([]);
+  });
+});
+
+describe("chordNumeral", () => {
+  it("names a chord by its step in the key, lower case for minor", () => {
+    expect(chordNumeral({ root: 9, quality: "min" }, { tonic: "C", mode: "major" })).toBe("vi");
+    expect(chordNumeral({ root: 7, quality: "dom7" }, { tonic: "C", mode: "major" })).toBe("V7");
+    expect(chordNumeral({ root: 0, quality: "maj" }, { tonic: "G", mode: "major" })).toBe("IV");
   });
 });

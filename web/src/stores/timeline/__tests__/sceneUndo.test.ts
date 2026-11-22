@@ -50,3 +50,28 @@ describe("scene undo grouping", () => {
     expect(store.getState().clips).toHaveLength(2);
   });
 });
+
+describe("addScene on the tempo grid (F23)", () => {
+  it("bakes a clip quantize at tempo.offsetMs", () => {
+    const store = createTimelineStore();
+    store.setState({
+      tempo: { bpm: 120, offsetMs: 100, timeSignature: { beatsPerBar: 4, beatUnit: 4 } },
+      clips: [
+        makeClip({
+          id: "m",
+          trackId: "v",
+          mediaType: "midi",
+          startMs: 0,
+          durationMs: 2000,
+          quantize: { grid: "1/4", strength: 100 },
+          notes: [{ id: "n", pitch: 60, velocity: 90, startTick: 960, durationTick: 100 }]
+        })
+      ]
+    });
+    store.getState().addScene(1000, "Scene");
+    const first = store.getState().clips.find((c) => c.startMs === 0)!;
+    // The 100 ms offset puts a grid line at tick 192, so 960 rounds to 1152.
+    expect(first.notes![0]!.startTick).toBe(1152);
+  });
+});
+

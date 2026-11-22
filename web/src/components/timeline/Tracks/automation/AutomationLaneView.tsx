@@ -40,12 +40,15 @@ import {
 
 import { useTimelineStore, useTimelineStoreApi } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
+import { useSettingsStore } from "../../../../stores/SettingsStore";
+import { formatActionShortcut } from "../../timelineKeymap";
 import { useTimelineHistoryBatch } from "../../../../stores/timeline/useTimelineHistoryBatch";
 import {
   BORDER_RADIUS,
   ContextMenu,
   FONT_SIZE_MONO,
   MenuItemPrimitive,
+  MOTION,
   SPACING,
   Z_INDEX,
   getSpacingPx
@@ -66,10 +69,17 @@ import {
 const INSET_PX = 6;
 /** How close (px) a press must land to a point to grab it. */
 const HIT_PX = 7;
-const POINT_PX = 7;
+/** Diameter of a point. */
+const POINT_PX = 6;
+/** Height of the bar under a selected point. */
+const SELECTED_BAR_PX = 2;
 /** The curve is dimmed over clips by this share, toward the lane background. */
-const CLIP_DIM_OPACITY = 0.4;
-const TINT_OPACITY = 0.12;
+const CLIP_DIM_OPACITY = 0.5;
+/** A quiet lane tint, so the curve and points carry the parameter color. */
+const TINT_OPACITY = 0.05;
+/** Width and strength of the halo under the curve on a main lane. */
+const HALO_PX = 4;
+const HALO_OPACITY = 0.7;
 
 const laneStyles = (theme: Theme, heightPx: number) =>
   css({
@@ -113,11 +123,34 @@ const pointStyles = (theme: Theme, color: string) =>
     border: `1px solid ${theme.vars.palette.background.default}`,
     background: color,
     zIndex: Z_INDEX.base + 1,
+    transition: MOTION.transform,
+    "&.is-hover": { transform: "scale(1.5)" },
     "&.is-selected": {
-      background: theme.vars.palette.common.white,
-      boxShadow: `0 0 0 2px ${color}`
+      background: theme.vars.palette.text.primary,
+      boxShadow: `0 0 0 1px ${color}`
     },
     "&.is-off": { background: theme.vars.palette.text.disabled }
+  });
+
+/** The bar at the lane's foot under a selected point. */
+const selectedBarStyles = (color: string) =>
+  css({
+    position: "absolute",
+    bottom: 0,
+    width: POINT_PX * 2,
+    height: SELECTED_BAR_PX,
+    marginLeft: -POINT_PX,
+    background: color,
+    pointerEvents: "none"
+  });
+
+/** The selection box: a 1px dashed frame, no fill (spec 1.3). */
+const boxStyles = (theme: Theme) =>
+  css({
+    position: "absolute",
+    border: `1px dashed ${theme.vars.palette.text.secondary}`,
+    pointerEvents: "none",
+    zIndex: Z_INDEX.base + 2
   });
 
 const readoutStyles = (theme: Theme) =>
@@ -152,10 +185,53 @@ interface AutomationLaneViewProps {
   clips?: readonly { startMs: number; durationMs: number }[];
 }
 
-interface Drag {
-  pointerId: number;
-  index: number;
-  startTimeMs: number;
+/** A press that moves the selected points, draws a selection box, or bends a segment. */
+type Drag =
+  | {
+      kind: "move";
+      pointerId: number;
+      /** The point under the pointer, for the value tag. */
+      grab: number;
+      startX: number;
+      startY: number;
+      /** The points and the selection when the drag began. */
+      base: AutomationPoint[];
+      selection: number[];
+    }
+  | { kind: "box"; pointerId: number; x0: number; y0: number; initial: number[] }
+  | { kind: "bend"; pointerId: number; index: number; startY: number; base: AutomationPoint[] };
+
+/** Pointer travel (px) before a bend picks an easing. */
+const BEND_SLOP_PX = 4;
+
+/**
+ * The selected points moved together by `dtMs` and `dNorm` (a share of the
+ * lane's range). The time shift stops where a selected point would pass an
+ * unselected neighbour, so the order of the points never changes.
+ */
+export function moveAutomationSelection(
+  base: readonly AutomationPoint[],
+  selection: readonly number[],
+  dtMs: number,
+  dNorm: number,
+  toNorm: (value: number) => number,
+  fromNorm: (norm: number) => number
+): AutomationPoint[] {
+  const chosen = new Set(selection);
+  let lo = Number.NEGATIVE_INFINITY;
+  let hi = Number.POSITIVE_INFINITY;
+  base.forEach((p, i) => {
+    if (!chosen.has(i)) return;
+    if (i === 0) lo = Math.max(lo, -p.timeMs);
+    else if (!chosen.has(i - 1)) lo = Math.max(lo, base[i - 1].timeMs - p.timeMs);
+    if (i < base.length - 1 && !chosen.has(i + 1)) hi = Math.min(hi, base[i + 1].timeMs - p.timeMs);
+  });
+  const dt = Math.round(Math.min(hi, Math.max(lo, dtMs)));
+  return base.map((p, i) =>
+    chosen.has(i)
+      ? { ...p, timeMs: p.timeMs + dt, value: fromNorm(Math.min(1, Math.max(0, toNorm(p.value) + dNorm))) }
+      : p
+  );
 }
 
 const NO_POINTS: AutomationPoint[] = [];
@@ -182,10 +258,15 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
     const history = useTimelineHistoryBatch();
     const rootRef = useRef<HTMLDivElement>(null);
     const dragRef = useRef<Drag | null>(null);
-    const [selected, setSelected] = useState<number | null>(null);
-    const [dragging, setDragging] = useState(false);
+    const [selection, setSelection] = useState<number[]>([]);
+    /** The point a move drag holds, for the value tag. */
+    const [grabbed, setGrabbed] = useState<number | null>(null);
+    const [box, setBox] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+    const dragging = grabbed !== null;
+    const [hovered, setHovered] = useState<number | null>(null);
     const [menu, setMenu] = useState<{ x: number; y: number; index: number } | null>(null);
     const overlay = variant === "overlay";
+    const keyPreset = useSettingsStore((s) => s.settings.timelineKeyboardPreset);
 
     const target = targetProp ?? lane?.target;
     const points = lane?.points ?? NO_POINTS;
@@ -259,6 +340,51 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
       [points, msPerPx, yOf]
     );
 
+    /** Whether (x, y) lies on the drawn curve. */
+    const onCurve = useCallback(
+      (x: number, y: number): boolean => {
+        if (!spec) return false;
+        return Math.abs(yOf(automationValueAt(points, x * msPerPx, spec.value)) - y) <= HIT_PX;
+      },
+      [spec, points, msPerPx, yOf]
+    );
+
+    const toNorm = useCallback((v: number) => (spec ? automationValueToNorm(spec, v) : 0), [spec]);
+    const fromNorm = useCallback((n: number) => (spec ? automationNormToValue(spec, n) : 0), [spec]);
+
+    /** Add a point at (x, y), creating the lane when it has none. Returns its index. */
+    const addAt = useCallback(
+      (x: number, y: number): number => {
+        if (!spec) return 0;
+        // A lane that does not exist yet starts at the control's own value.
+        const base: AutomationPoint[] = freshLane() ? freshPoints() : [{ timeMs: 0, value: spec.value }];
+        const added = addAutomationPoint(base, {
+          timeMs: Math.round(Math.max(0, x * msPerPx)),
+          value: valueAtY(y)
+        });
+        commit(added.points);
+        return added.index;
+      },
+      [spec, freshLane, freshPoints, msPerPx, valueAtY, commit]
+    );
+
+    const beginMove = useCallback(
+      (e: React.PointerEvent<HTMLDivElement>, grab: number, sel: number[], x: number, y: number) => {
+        dragRef.current = {
+          kind: "move",
+          pointerId: e.pointerId,
+          grab,
+          startX: x,
+          startY: y,
+          base: freshPoints(),
+          selection: sel
+        };
+        setSelection(sel);
+        setGrabbed(grab);
+      },
+      [freshPoints]
+    );
+
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLDivElement>) => {
         if (e.button !== 0) return;
@@ -266,36 +392,80 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
         rootRef.current?.focus({ preventScroll: true });
         if (!editable || !spec) return;
         const { x, y } = localPoint(e);
-        let index = hitIndex(x, y);
-        history.begin();
-        if (index === null) {
-          // A lane that does not exist yet starts at the control's own value.
-          const base: AutomationPoint[] = freshLane() ? freshPoints() : [{ timeMs: 0, value: spec.value }];
-          const added = addAutomationPoint(base, {
-            timeMs: Math.round(Math.max(0, x * msPerPx)),
-            value: valueAtY(y)
-          });
-          commit(added.points);
-          index = added.index;
+        const index = hitIndex(x, y);
+        if (index !== null) {
+          if (e.shiftKey) {
+            // Shift-click adds the point to the selection or takes it out.
+            setSelection((sel) => (sel.includes(index) ? sel.filter((i) => i !== index) : [...sel, index]));
+            return;
+          }
+          history.begin();
+          beginMove(e, index, selection.includes(index) ? selection : [index], x, y);
+        } else if (e.ctrlKey && e.shiftKey && onCurve(x, y)) {
+          // Control-Shift-drag on a segment bends it: the easing of the
+          // segment arriving at the next point follows the drag.
+          const base = freshPoints();
+          const next = base.findIndex((p) => p.timeMs > x * msPerPx);
+          if (next < 1) return;
+          history.begin();
+          dragRef.current = { kind: "bend", pointerId: e.pointerId, index: next, startY: y, base };
+        } else if (onCurve(x, y)) {
+          // A click on the curve adds a point there and keeps dragging it.
+          history.begin();
+          const added = addAt(x, y);
+          beginMove(e, added, [added], x, y);
+        } else {
+          // A drag on empty space draws a selection box. Shift adds to the selection.
+          const initial = e.shiftKey ? selection : [];
+          dragRef.current = { kind: "box", pointerId: e.pointerId, x0: x, y0: y, initial };
+          setSelection(initial);
+          setBox({ x0: x, y0: y, x1: x, y1: y });
         }
-        const point = freshPoints()[index];
-        dragRef.current = { pointerId: e.pointerId, index, startTimeMs: point?.timeMs ?? 0 };
-        setSelected(index);
-        setDragging(true);
         e.currentTarget.setPointerCapture(e.pointerId);
       },
-      [editable, spec, localPoint, hitIndex, history, freshLane, freshPoints, msPerPx, valueAtY, commit]
+      [editable, spec, localPoint, hitIndex, history, beginMove, selection, onCurve, freshPoints, msPerPx, addAt]
     );
 
     const handlePointerMove = useCallback(
       (e: React.PointerEvent<HTMLDivElement>) => {
         const drag = dragRef.current;
-        if (!drag || drag.pointerId !== e.pointerId) return;
         const { x, y } = localPoint(e);
-        const timeMs = e.shiftKey ? drag.startTimeMs : Math.round(Math.max(0, x * msPerPx));
-        commit(moveAutomationPoint(freshPoints(), drag.index, timeMs, valueAtY(y)));
+        if (!drag || drag.pointerId !== e.pointerId) {
+          if (editable) {
+            const index = hitIndex(x, y);
+            setHovered((prev) => (prev === index ? prev : index));
+          }
+          return;
+        }
+        if (drag.kind === "move") {
+          // Shift keeps the points' times.
+          const dtMs = e.shiftKey ? 0 : (x - drag.startX) * msPerPx;
+          const dNorm = -(y - drag.startY) / innerPx;
+          commit(moveAutomationSelection(drag.base, drag.selection, dtMs, dNorm, toNorm, fromNorm));
+        } else if (drag.kind === "box") {
+          setBox({ x0: drag.x0, y0: drag.y0, x1: x, y1: y });
+          const [left, right] = [Math.min(drag.x0, x), Math.max(drag.x0, x)];
+          const [top, bottom] = [Math.min(drag.y0, y), Math.max(drag.y0, y)];
+          const inside = points
+            .map((p, i) => ({ px: p.timeMs / msPerPx, py: yOf(p.value), i }))
+            .filter(({ px, py }) => px >= left && px <= right && py >= top && py <= bottom)
+            .map(({ i }) => i);
+          setSelection([...new Set([...drag.initial, ...inside])]);
+        } else {
+          const dy = y - drag.startY;
+          const from = drag.base[drag.index - 1];
+          const to = drag.base[drag.index];
+          let easing = "linear";
+          if (Math.abs(dy) >= BEND_SLOP_PX) {
+            // A bow toward the end value reaches it early (ease out).
+            const bowUp = dy < 0;
+            const rising = to.value > from.value;
+            easing = bowUp === rising ? "easeOut" : "easeIn";
+          }
+          commit(setAutomationPointEasing(drag.base, drag.index, easing));
+        }
       },
-      [localPoint, msPerPx, commit, freshPoints, valueAtY]
+      [localPoint, editable, hitIndex, msPerPx, innerPx, commit, toNorm, fromNorm, points, yOf]
     );
 
     const endDrag = useCallback(
@@ -303,18 +473,19 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
         const drag = dragRef.current;
         if (!drag || drag.pointerId !== e.pointerId) return;
         dragRef.current = null;
-        setDragging(false);
-        history.end();
+        setGrabbed(null);
+        setBox(null);
+        if (drag.kind !== "box") history.end();
       },
       [history]
     );
 
-    const removeAt = useCallback(
-      (index: number) => {
+    const removeIndices = useCallback(
+      (indices: number[]) => {
         history.begin();
-        commit(removeAutomationPoints(freshPoints(), [index]));
+        commit(removeAutomationPoints(freshPoints(), indices));
         history.end();
-        setSelected(null);
+        setSelection([]);
       },
       [history, commit, freshPoints]
     );
@@ -324,21 +495,29 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
         if (!editable) return;
         const { x, y } = localPoint(e);
         const index = hitIndex(x, y);
-        if (index !== null) removeAt(index);
+        if (index !== null) {
+          removeIndices([index]);
+        } else if (!onCurve(x, y)) {
+          // A double-click on empty space adds a point there.
+          history.begin();
+          const added = addAt(x, y);
+          history.end();
+          setSelection([added]);
+        }
       },
-      [editable, localPoint, hitIndex, removeAt]
+      [editable, localPoint, hitIndex, removeIndices, onCurve, history, addAt]
     );
 
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (!editable || selected === null) return;
+        if (!editable || selection.length === 0) return;
         if (e.key === "Delete" || e.key === "Backspace") {
           e.preventDefault();
           e.stopPropagation();
-          removeAt(selected);
+          removeIndices(selection);
         }
       },
-      [editable, selected, removeAt]
+      [editable, selection, removeIndices]
     );
 
     const handleContextMenu = useCallback(
@@ -349,10 +528,10 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
         if (index === null) return;
         e.preventDefault();
         e.stopPropagation();
-        setSelected(index);
+        if (!selection.includes(index)) setSelection([index]);
         setMenu({ x: e.clientX, y: e.clientY, index });
       },
-      [editable, localPoint, hitIndex]
+      [editable, localPoint, hitIndex, selection]
     );
 
     const setEasing = useCallback(
@@ -366,22 +545,30 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
       [menu, history, commit, freshPoints]
     );
 
+    // Ramps and curves draw at 1.5px, stepped (hold) segments at 1px.
     const curve = useMemo(() => {
       const endPx = Math.max(widthPx, ...points.map((p) => p.timeMs / msPerPx));
       if (points.length === 0) {
         const y = spec ? yOf(spec.value) : heightPx / 2;
-        return { line: `M0 ${y} H${endPx}` };
+        return { line: `M0 ${y} H${endPx}`, steps: "" };
       }
-      const breakpoints = automationBreakpoints(points, 0, {
-        maxStepMs: Math.max(1, msPerPx * 3)
-      });
-      const coords = breakpoints.map((bp) => `${bp.timeMs / msPerPx} ${yOf(bp.value)}`);
-      const lastY = yOf(breakpoints[breakpoints.length - 1].value);
-      return { line: `M${coords.join(" L")} L${endPx} ${lastY}` };
+      const opts = { maxStepMs: Math.max(1, msPerPx * 3) };
+      const first = points[0];
+      const last = points[points.length - 1];
+      const line = [`M0 ${yOf(first.value)} L${first.timeMs / msPerPx} ${yOf(first.value)}`];
+      const steps: string[] = [];
+      for (let i = 1; i < points.length; i++) {
+        const coords = automationBreakpoints([points[i - 1], points[i]], points[i - 1].timeMs, opts).map(
+          (bp) => `${bp.timeMs / msPerPx} ${yOf(bp.value)}`
+        );
+        (points[i].easing === "hold" ? steps : line).push(`M${coords.join(" L")}`);
+      }
+      line.push(`M${last.timeMs / msPerPx} ${yOf(last.value)} L${endPx} ${yOf(last.value)}`);
+      return { line: line.join(" "), steps: steps.join(" ") };
     }, [points, msPerPx, widthPx, spec, yOf, heightPx]);
 
     const color = on ? theme.vars.palette[colorRole].main : theme.vars.palette.text.disabled;
-    const readoutIndex = dragging ? selected : null;
+    const readoutIndex = grabbed;
     const readoutPoint = readoutIndex !== null ? points[readoutIndex] : undefined;
 
     // The main lane labels the curve at its left edge: at the first point, or
@@ -410,6 +597,7 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
       onPointerMove: handlePointerMove,
       onPointerUp: endDrag,
       onPointerCancel: endDrag,
+      onPointerLeave: () => setHovered(null),
       onLostPointerCapture: endDrag,
       onDoubleClick: handleDoubleClick,
       onContextMenu: handleContextMenu
@@ -437,7 +625,9 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
       <div
         ref={rootRef}
         css={overlay ? overlayStyles : laneStyles(theme, heightPx)}
-        style={overlay ? undefined : { cursor: editable ? "crosshair" : "default" }}
+        style={
+          overlay ? undefined : { cursor: !editable ? "default" : hovered !== null ? "grab" : "crosshair" }
+        }
         tabIndex={overlay ? -1 : 0}
         role="group"
         aria-label={t("timelineAutomation.laneLabel", { name: laneName })}
@@ -465,6 +655,17 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
             fill={color}
             fillOpacity={on ? TINT_OPACITY : TINT_OPACITY / 2}
           />
+          {overlay && (
+            // A dark halo under the curve keeps it readable over a region's fill.
+            <path
+              d={`${curve.line} ${curve.steps}`}
+              fill="none"
+              stroke={theme.vars.palette.background.default}
+              strokeOpacity={HALO_OPACITY}
+              strokeWidth={HALO_PX}
+              strokeLinejoin="round"
+            />
+          )}
           <path
             d={curve.line}
             fill="none"
@@ -472,6 +673,7 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
             strokeWidth={1.5}
             strokeDasharray={!overlay && points.length === 0 ? "4 4" : undefined}
           />
+          {curve.steps && <path d={curve.steps} fill="none" stroke={color} strokeWidth={1} />}
         </svg>
         {overlay &&
           hitRects.map((rect, i) => (
@@ -483,18 +685,44 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
                 top: rect.y,
                 width: rect.width,
                 height: rect.height,
-                cursor: "crosshair"
+                cursor: hovered !== null ? "grab" : "crosshair"
               }}
               data-testid={i === 0 ? `automation-hit-${track.id}` : undefined}
               data-playhead-passthrough
               {...pointerHandlers}
             />
           ))}
+        {selection.map((i) =>
+          points[i] ? (
+            <div
+              key={`bar-${i}`}
+              css={selectedBarStyles(color)}
+              style={{ left: points[i].timeMs / msPerPx }}
+              data-testid={`automation-selected-bar-${lane?.id ?? track.id}`}
+            />
+          ) : null
+        )}
+        {box && (
+          <div
+            css={boxStyles(theme)}
+            data-testid={`automation-box-${lane?.id ?? track.id}`}
+            style={{
+              left: Math.min(box.x0, box.x1),
+              top: Math.min(box.y0, box.y1),
+              width: Math.abs(box.x1 - box.x0),
+              height: Math.abs(box.y1 - box.y0)
+            }}
+          />
+        )}
         {points.map((p, i) => (
           <div
             key={i}
             css={pointStyles(theme, color)}
-            className={[i === selected ? "is-selected" : "", on ? "" : "is-off"].join(" ")}
+            className={[
+              selection.includes(i) ? "is-selected" : "",
+              i === hovered && !dragging ? "is-hover" : "",
+              on ? "" : "is-off"
+            ].join(" ")}
             style={{ left: p.timeMs / msPerPx, top: yOf(p.value) }}
             data-testid={`automation-point-${lane?.id ?? track.id}`}
             data-playhead-passthrough
@@ -540,10 +768,11 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
           ))}
           <MenuItemPrimitive
             label={t("timelineAutomation.deletePoint")}
+            shortcut={formatActionShortcut(keyPreset, "deleteSelected") ?? undefined}
             color="error"
             dividerBefore
             onClick={() => {
-              if (menu) removeAt(menu.index);
+              if (menu) removeIndices(selection.includes(menu.index) ? selection : [menu.index]);
               setMenu(null);
             }}
           />

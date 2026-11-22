@@ -41,6 +41,12 @@ declare module "@mui/material/styles" {
     c_overlay_subtle?: string;
     c_overlay?: string;
     c_overlay_strong?: string;
+    // Chord regions on the music view's chord row (native TimelineVisuals.chord)
+    c_timeline_chord?: string;
+    c_timeline_chord_fill?: string;
+    // Range (marquee) band on lanes and ruler, D63 (native TimelineVisuals.editBlue / rangeFill)
+    c_timeline_range?: string;
+    c_timeline_range_fill?: string;
     // Multiplier on every elevation shadow's opacity (SHADOW, --shadow-*)
     c_shadow_alpha?: string;
     c_provider_api?: string;
@@ -122,6 +128,12 @@ declare module "@mui/material/styles" {
     c_overlay_subtle?: string;
     c_overlay?: string;
     c_overlay_strong?: string;
+    // Chord regions on the music view's chord row (native TimelineVisuals.chord)
+    c_timeline_chord?: string;
+    c_timeline_chord_fill?: string;
+    // Range (marquee) band on lanes and ruler, D63 (native TimelineVisuals.editBlue / rangeFill)
+    c_timeline_range?: string;
+    c_timeline_range_fill?: string;
     // Multiplier on every elevation shadow's opacity (SHADOW, --shadow-*)
     c_shadow_alpha?: string;
     c_provider_api?: string;
@@ -242,6 +254,10 @@ export const paletteDark: PaletteOptions = {
   c_overlay_subtle: "rgba(255, 255, 255, 0.03)",
   c_overlay: "rgba(255, 255, 255, 0.06)",
   c_overlay_strong: "rgba(255, 255, 255, 0.15)",
+  c_timeline_chord: "#ffd591",
+  c_timeline_chord_fill: "rgba(255, 213, 145, 0.2)",
+  c_timeline_range: "#2d8ceb",
+  c_timeline_range_fill: "rgba(45, 140, 235, 0.18)",
   c_shadow_alpha: "1",
   c_provider_api: "#93C5FD",
   c_provider_local: "#86EFAC",

@@ -39,7 +39,11 @@ export type AutomationMenuTone =
   /** Filled with a theme role. */
   | { kind: "fill"; role: "success" | "warning" | "secondary" | "error" }
   /** Plain button, the label in this CSS color. */
-  | { kind: "text"; color: string };
+  | { kind: "text"; color: string }
+  /** Neutral button, a small dot in this CSS color before the label. */
+  | { kind: "indicator"; color: string }
+  /** An icon button; the label is its tooltip and accessible name. */
+  | { kind: "icon"; icon: React.ReactNode };
 
 interface Props {
   /** The text on the button. */
@@ -61,12 +65,18 @@ interface Props {
 const DOT_PX = 6;
 
 const buttonStyles = (theme: Theme, tone: AutomationMenuTone, grow: boolean) => {
+  const p = theme.vars.palette;
   const fill =
     tone.kind === "fill"
-      ? { background: theme.vars.palette[tone.role].main, color: theme.vars.palette[tone.role].contrastText }
+      ? { background: p[tone.role].main, color: p[tone.role].contrastText }
       : tone.kind === "neutral"
-        ? { background: theme.vars.palette.action.disabledBackground, color: theme.vars.palette.text.disabled }
-        : { background: theme.vars.palette.action.hover, color: tone.color };
+        ? { background: p.action.disabledBackground, color: p.text.disabled }
+        : tone.kind === "text"
+          ? { background: p.action.hover, color: tone.color }
+          : tone.kind === "indicator"
+            ? { background: p.action.hover, color: p.text.secondary }
+            : { background: "transparent", color: p.text.secondary };
+  const icon = tone.kind === "icon";
   return css({
     display: "flex",
     alignItems: "center",
@@ -74,27 +84,30 @@ const buttonStyles = (theme: Theme, tone: AutomationMenuTone, grow: boolean) => 
     minWidth: 0,
     flex: grow ? 1 : "0 0 auto",
     height: CONTROL.height.xs,
-    padding: `0 ${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.sm)}`,
+    width: icon ? CONTROL.height.xs : undefined,
+    justifyContent: icon ? "center" : undefined,
+    padding: icon ? 0 : `0 ${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.sm)}`,
     border: "none",
     borderRadius: BORDER_RADIUS.sm,
     cursor: "pointer",
     fontSize: FONT_SIZE_SANS.caption,
     fontWeight: FONT_WEIGHT.medium,
     ...fill,
+    "&:hover:not(:disabled)": { background: p.action.focus },
     "&:disabled": { cursor: "default", opacity: 0.6 },
     "& .label": { flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "left" },
-    "& svg": { flexShrink: 0, fontSize: "1em" }
+    "& svg": { flexShrink: 0, fontSize: icon ? "1.4em" : "1em" }
   });
 };
 
-const dotStyles = (theme: Theme, visible: boolean) =>
+const dotStyles = (theme: Theme, visible: boolean, color?: string) =>
   css({
     display: "inline-block",
     flexShrink: 0,
     width: DOT_PX,
     height: DOT_PX,
     borderRadius: BORDER_RADIUS.circle,
-    background: visible ? theme.vars.palette.text.secondary : "transparent"
+    background: visible ? (color ?? theme.vars.palette.text.secondary) : "transparent"
   });
 
 export const AutomationMenuButton: React.FC<Props> = memo(
@@ -119,13 +132,29 @@ export const AutomationMenuButton: React.FC<Props> = memo(
           disabled={disabled}
           onClick={open}
           aria-label={ariaLabel}
+          title={tone.kind === "icon" ? label : undefined}
           aria-haspopup="menu"
           aria-expanded={position !== null}
           data-testid={testId}
         >
-          {dot && <span css={dotStyles(theme, true)} aria-hidden="true" />}
-          <span className="label">{label}</span>
-          <UnfoldMoreIcon />
+          {tone.kind === "icon" ? (
+            tone.icon
+          ) : (
+            <>
+              {tone.kind === "indicator" ? (
+                <span css={dotStyles(theme, true, tone.color)} aria-hidden="true" />
+              ) : (
+                dot && (
+                  <span
+                    css={dotStyles(theme, true, tone.kind === "text" ? tone.color : undefined)}
+                    aria-hidden="true"
+                  />
+                )
+              )}
+              <span className="label">{label}</span>
+              <UnfoldMoreIcon />
+            </>
+          )}
         </button>
         <ContextMenu open={position !== null} position={position} onClose={close} maxHeight="60vh">
           {entries.flatMap((entry, index) => {

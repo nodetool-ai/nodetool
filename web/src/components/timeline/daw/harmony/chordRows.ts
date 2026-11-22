@@ -6,6 +6,7 @@
 
 import {
   isHarmonyActive,
+  stepNumeral,
   placeChord,
   sortChords,
   type ChordQuality,
@@ -47,6 +48,12 @@ export function diatonicChords(key: MusicKey | undefined, sevenths: boolean): Ch
 }
 
 /** The key as the Signature row shows it: "C", "Am", or "" without a key. */
+/** A chord as a Roman numeral in the key (`vi`, `IV`, `V7`). No key reads as C major. */
+export function chordNumeral(chord: ChordChoice, key: MusicKey | undefined): string {
+  const tonic = key ? TONIC_PC[key.tonic] : 0;
+  return stepNumeral(chord.root - tonic, chord.quality);
+}
+
 export function keyShort(key: MusicKey | undefined): string {
   return key ? `${key.tonic}${key.mode === "minor" ? "m" : ""}` : "";
 }

@@ -91,6 +91,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       (s.tracks.find((t) => t.id === trackId)?.locked ?? false)
   );
   const interactionLocked = (clip?.locked ?? false) || trackLocked;
+  // Primitive selector: the track's position picks the default region color.
+  const trackIndex = useTimelineStore((s) =>
+    trackId === undefined ? 0 : Math.max(0, s.tracks.findIndex((t) => t.id === trackId))
+  );
 
   const isSelected = useIsClipSelected(clipId);
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
@@ -381,6 +385,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     <>
       <ClipBody
         clip={clip}
+        trackIndex={trackIndex}
         leftPx={leftPx}
         widthPx={widthPx}
         msPerPx={msPerPx}

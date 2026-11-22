@@ -179,13 +179,15 @@ describe("renderTimelineAudio — mixer", () => {
 
   it("routes a clip through its track's fader and panner", async () => {
     const { path } = await render();
-    const panner = [...path].find((n) => n.kind === "panner");
-    expect(panner).toBeDefined();
-    expect((panner!.pan as Param).setTargetAtTime).toHaveBeenCalledWith(
-      0.3,
-      0,
-      0.01
+    const panners = [...path].filter(
+      (n) =>
+        n.kind === "panner" &&
+        (n.pan as Param).setTargetAtTime.mock.calls.some(
+          ([value, time, constant]) =>
+            value === 0.3 && time === 0 && constant === 0.01
+        )
     );
+    expect(panners).toHaveLength(1);
     const faders = [...path].filter(
       (n) =>
         n.kind === "gain" &&
@@ -214,5 +216,19 @@ describe("renderTimelineAudio — mixer", () => {
     const { path } = await render(undefined);
     const gains = [...path].filter((n) => n.kind === "gain");
     expect(gains.every((n) => (n.gain as Param).value === 1)).toBe(true);
+  });
+
+  it("renders master.pan on the master stereo panner", async () => {
+    const { path } = await render({ ...master, pan: -0.4 });
+    const gains = [...path].filter((n) => n.kind === "gain");
+    const masterFader = gains.find(
+      (n) => Math.abs((n.gain as Param).value - dbToGain(-4)) < 1e-9
+    );
+    expect(masterFader).toBeDefined();
+    const masterPanner = [...path].find(
+      (n) => n.kind === "panner" && masterFader!.targets.includes(n)
+    );
+    expect(masterPanner).toBeDefined();
+    expect((masterPanner!.pan as Param).value).toBe(-0.4);
   });
 });

@@ -21,6 +21,7 @@ import {
 import type {
   MidiInstrument,
   MidiNote,
+  MidiRenderControls,
   TimelineClip
 } from "@nodetool-ai/timeline";
 import type {
@@ -34,8 +35,9 @@ import { renderVstBuffer } from "./vstRender";
 /** The slice of a clip a render reads. */
 export type MidiRenderClip = Pick<
   TimelineClip,
-  "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs"
->;
+  "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs" | "transpose" | "velocityOffset" | "quantize"
+> &
+  Pick<Partial<TimelineClip>, "startMs">;
 
 /**
  * LRU cap on rendered midi buffers. A rendered phrase is mono and typically a
@@ -60,9 +62,15 @@ function renderSamples(request: Omit<MidiRenderRequest, "id">): Promise<Float32A
           controllers: request.controllers,
           inPointMs: request.inPointMs,
           durationMs: request.durationMs,
-          loopLengthMs: request.loopLengthMs
+          loopLengthMs: request.loopLengthMs,
+          startMs: request.startMs,
+          transpose: request.transpose,
+          velocityOffset: request.velocityOffset,
+          quantize: request.quantize
         },
         bpm: request.bpm,
+        gridOffsetMs: request.gridOffsetMs,
+        controls: request.controls,
         instrument: request.instrument,
         sampleRate: request.sampleRate,
         samples: request.samples
@@ -107,10 +115,20 @@ export async function getMidiClipBuffer(
   ctx: BaseAudioContext,
   clip: MidiRenderClip,
   bpm: number,
-  instrument: MidiInstrument
+  instrument: MidiInstrument,
+  /** `tempo.offsetMs`, the origin of the grid a region quantize snaps to. */
+  gridOffsetMs = 0,
+  controls?: Partial<MidiRenderControls>
 ): Promise<AudioBuffer> {
   const sampleRate = ctx.sampleRate;
-  const key = midiRenderKey({ clip, bpm, instrument, sampleRate });
+  const key = midiRenderKey({
+    clip,
+    bpm,
+    gridOffsetMs,
+    controls,
+    instrument,
+    sampleRate
+  });
 
   const cached = cache.get(key);
   if (cached) {
@@ -130,10 +148,10 @@ export async function getMidiClipBuffer(
       ? renderVstBuffer(
           ctx,
           instrument,
-          midiClipVoiceEvents(clip, bpm, sampleRate),
+          midiClipVoiceEvents(clip, bpm, sampleRate, gridOffsetMs),
           midiClipFrames(clip, sampleRate)
         )
-      : renderMonoBuffer(ctx, clip, notes, bpm, instrument);
+      : renderMonoBuffer(ctx, clip, notes, bpm, instrument, gridOffsetMs, controls);
   const promise = rendered
     .then((buffer) => {
       cache.set(key, buffer);
@@ -160,16 +178,24 @@ function renderMonoBuffer(
   clip: MidiRenderClip,
   notes: MidiNote[],
   bpm: number,
-  instrument: MidiInstrument
+  instrument: MidiInstrument,
+  gridOffsetMs: number,
+  controls?: Partial<MidiRenderControls>
 ): Promise<AudioBuffer> {
   const sampleRate = ctx.sampleRate;
   return getSamplerAudio(ctx, instrument).then(samples => renderSamples({
     notes,
     controllers: clip.controllers,
+    controls,
     inPointMs: clip.inPointMs ?? 0,
     durationMs: clip.durationMs,
     loopLengthMs: clip.loopLengthMs,
+    startMs: clip.startMs,
+    transpose: clip.transpose,
+    velocityOffset: clip.velocityOffset,
+    quantize: clip.quantize,
     bpm,
+    gridOffsetMs,
     instrument,
     sampleRate,
     samples
@@ -185,6 +211,31 @@ function renderMonoBuffer(
       buffer.getChannelData(0).set(samples);
       return buffer;
     });
+}
+
+/**
+ * What a live-device schedule reads from a midi clip: the notes, the region
+ * parameters that act on them, and where the clip sits on the tempo grid. An
+ * inactive quantize (strength 0) reads as none, as in `midiRenderKey`.
+ */
+export function liveMidiScheduleKey(
+  clip: MidiRenderClip,
+  bpm: number,
+  gridOffsetMs: number
+): string {
+  const quantize = clip.quantize && clip.quantize.strength > 0 ? clip.quantize : null;
+  return JSON.stringify({
+    notes: clip.notes ?? [],
+    controllers: clip.controllers ?? [],
+    loopLengthMs: clip.loopLengthMs ?? null,
+    transpose: clip.transpose ?? 0,
+    velocityOffset: clip.velocityOffset ?? 0,
+    quantize,
+    bpm,
+    // The grid only reaches the notes through quantize.
+    gridOffsetMs: quantize ? gridOffsetMs : 0,
+    startMs: quantize ? (clip.startMs ?? 0) : 0
+  });
 }
 
 /** Drop every cached render. Exported for tests and teardown. */

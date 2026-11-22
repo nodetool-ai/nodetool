@@ -1,23 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
-import MusicNoteOutlinedIcon from "@mui/icons-material/MusicNoteOutlined";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
-import LockIcon from "@mui/icons-material/Lock";
-import LockOpenIcon from "@mui/icons-material/LockOpen";
-import ImageIcon from "@mui/icons-material/Image";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import LinkOffIcon from "@mui/icons-material/LinkOff";
-import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
-import GradientOutlinedIcon from "@mui/icons-material/GradientOutlined";
-import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
-import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
-import QueueMusicOutlinedIcon from "@mui/icons-material/QueueMusicOutlined";
-import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
 import { canClipFade } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -29,6 +11,9 @@ import { clipEnabledPatch, isClipDisabled } from "./clipEnabled";
 import { canTransformClip } from "./TransformClipDialog";
 
 import { ContextMenu, MenuItemPrimitive } from "../../ui_primitives";
+import { useSettingsStore } from "../../../stores/SettingsStore";
+import { formatActionShortcut, type TimelineAction } from "../timelineKeymap";
+import { ClipMenuDialog, type ClipMenuDialogApply } from "./ClipMenuDialog";
 import {
   useClipMenuActions,
   type ClipMenuActionCallbacks
@@ -69,6 +54,10 @@ export function ClipContextMenu({
   onError
 }: ClipContextMenuProps) {
   const { t } = useTranslation();
+  // The keys shown beside an item follow the chosen keyboard preset.
+  const preset = useSettingsStore((s) => s.settings.timelineKeyboardPreset);
+  const keyFor = (action: TimelineAction): string | undefined =>
+    formatActionShortcut(preset, action) ?? undefined;
   const actions = useClipMenuActions(clipId, { onRequestReplace, onError });
   const hasTransition = useTimelineStore(
     (s) => (findClipById(s.clips, clipId)?.transitionIn?.durationMs ?? 0) > 0
@@ -91,6 +80,12 @@ export function ClipContextMenu({
     return clip ? isClipDisabled(clip) : false;
   });
   const patchClip = useTimelineStore((s) => s.patchClip);
+  const duplicateSelected = useTimelineStore((s) => s.duplicateSelected);
+  const selectClip = useTimelineUIStore((s) => s.selectClip);
+  const [dialog, setDialog] = useState<"repeat" | "rename" | "color" | null>(
+    null
+  );
+  const dialogClip = useTimelineStore((s) => findClipById(s.clips, clipId));
   const applyFades = useTimelineStore((s) => s.applyFades);
   const clearFades = useTimelineStore((s) => s.clearFades);
   // A right-click inside the selection acts on the whole selection, like the
@@ -113,34 +108,66 @@ export function ClipContextMenu({
     onClose();
   };
 
+  const applyDialog = (result: ClipMenuDialogApply) => {
+    if ("count" in result) {
+      const ids = duplicateSelected(new Set([clipId]), 0, result.count);
+      const last = ids[ids.length - 1];
+      if (last) selectClip(last);
+    } else if ("name" in result) {
+      patchClip(clipId, { name: result.name });
+    } else {
+      patchClip(clipId, { labelColor: result.labelColor ?? undefined });
+    }
+    onClose();
+  };
+
   return (
-    <ContextMenu open position={position} onClose={onClose}>
+    <>
+    <ContextMenu open={dialog === null} position={position} onClose={onClose}>
       <MenuItemPrimitive
         label={t("i18n-next59.clipMenu.splitAtPlayhead")}
-        icon={<ContentCutOutlinedIcon fontSize="small" />}
-        onClick={run(actions.splitAtPlayhead)}
+        shortcut={keyFor("splitAtPlayhead")}
+        onClick={run(() => actions.splitAtPlayhead())}
       />
       {actions.isMidi && (
         <MenuItemPrimitive
+          label={t("i18n-next59.clipMenu.splitKeepNotes")}
+          onClick={run(() => actions.splitAtPlayhead("split"))}
+        />
+      )}
+      {actions.isMidi && (
+        <MenuItemPrimitive
           label={t("i18n-next59.clipMenu.editNotes")}
-          icon={<MusicNoteOutlinedIcon fontSize="small" />}
           onClick={run(actions.editNotes)}
         />
       )}
       {actions.canEditVideo && (
         <MenuItemPrimitive
           label={t("i18n-next59.clipMenu.editVideo")}
-          icon={<AutoAwesomeOutlinedIcon fontSize="small" />}
           onClick={run(actions.openAiEdit)}
         />
       )}
       <MenuItemPrimitive
         label={t("i18n-next59.clipMenu.duplicate")}
-        icon={<ContentCopyIcon fontSize="small" />}
+        shortcut={keyFor("duplicate")}
+        dividerBefore
         onClick={run(actions.duplicate)}
       />
       <MenuItemPrimitive
+        label={t("i18n-next59.clipMenu.repeat")}
+        onClick={() => setDialog("repeat")}
+      />
+      <MenuItemPrimitive
+        label={t("i18n-next59.clipMenu.rename")}
+        onClick={() => setDialog("rename")}
+      />
+      <MenuItemPrimitive
+        label={t("i18n-next59.clipMenu.color")}
+        onClick={() => setDialog("color")}
+      />
+      <MenuItemPrimitive
         label={t("i18n-next59.clipMenu.insertSilence")}
+        dividerBefore
         onClick={run(actions.insertSilence)}
       />
       <MenuItemPrimitive
@@ -153,7 +180,7 @@ export function ClipContextMenu({
       />
       <MenuItemPrimitive
         label={t(hasTransition ? "i18n-next59.clipMenu.removeTransition" : "i18n-next59.clipMenu.crossFadeIn")}
-        icon={<GradientOutlinedIcon fontSize="small" />}
+        dividerBefore
         onClick={run(() =>
           hasTransition
             ? removeTransition(clipId)
@@ -163,7 +190,6 @@ export function ClipContextMenu({
       {canFade && (
         <MenuItemPrimitive
           label={t(hasFade ? "i18n-next59.clipMenu.removeFades" : "i18n-next59.clipMenu.fadeInOut")}
-          icon={<GraphicEqOutlinedIcon fontSize="small" />}
           onClick={run(() =>
             hasFade
               ? clearFades(new Set([clipId]))
@@ -174,38 +200,24 @@ export function ClipContextMenu({
       {actions.canDetectBeats && (
         <MenuItemPrimitive
           label={t("i18n-next59.clipMenu.detectBeats")}
-          icon={<QueueMusicOutlinedIcon fontSize="small" />}
           onClick={run(actions.detectBeats)}
         />
       )}
       {actions.isGenerated && (
         <MenuItemPrimitive
           label={t("i18n-next59.clipMenu.regenerateClip")}
-          icon={<AutoAwesomeMotionIcon fontSize="small" />}
           onClick={run(actions.regenerateAsCopy)}
         />
       )}
       <MenuItemPrimitive
         label={t(actions.locked ? "i18n-next59.clipMenu.unlock" : "i18n-next59.clipMenu.lock")}
-        icon={
-          actions.locked ? (
-            <LockIcon fontSize="small" />
-          ) : (
-            <LockOpenIcon fontSize="small" />
-          )
-        }
+        dividerBefore
         onClick={run(actions.toggleLock)}
       />
       {!actions.locked && (
         <MenuItemPrimitive
           label={t(disabled ? "i18n-next59.clipMenu.enable" : "i18n-next59.clipMenu.disable")}
-          icon={
-            disabled ? (
-              <VisibilityOutlinedIcon fontSize="small" />
-            ) : (
-              <VisibilityOffOutlinedIcon fontSize="small" />
-            )
-          }
+        shortcut={keyFor("toggleClipEnabled")}
           onClick={run(() => {
             const clip = findClipById(clips, clipId);
             if (clip) patchClip(clipId, clipEnabledPatch(clip, disabled));
@@ -215,45 +227,50 @@ export function ClipContextMenu({
       {actions.canReplace && (
         <MenuItemPrimitive
           label={t("i18n-next59.clipMenu.replaceClip")}
-          icon={<ImageIcon fontSize="small" />}
           onClick={run(actions.openReplace)}
         />
       )}
       {canTransform && (
         <MenuItemPrimitive
           label={t("transformWithWorkflow.open")}
-          icon={<AutoFixHighOutlinedIcon fontSize="small" />}
           onClick={run(onRequestTransform)}
         />
       )}
       {!inStudio && workflowMedia.length > 0 && (
         <MenuItemPrimitive
           label={t("i18n-next59.clipMenu.sendClipsToWorkflow", { count: workflowMedia.length })}
-          icon={<AccountTreeOutlinedIcon fontSize="small" />}
           onClick={run(() => onSendToWorkflow(workflowMedia, position))}
         />
       )}
       {actions.canOpenInNodeEditor && (
         <MenuItemPrimitive
           label={t("i18n-next59.clipMenu.openNodeEditor")}
-          icon={<OpenInNewIcon fontSize="small" />}
           onClick={run(actions.openInNodeEditor)}
         />
       )}
       {isLinked && (
         <MenuItemPrimitive
           label={t("i18n-next59.clipMenu.unlink")}
-          icon={<LinkOffIcon fontSize="small" />}
           onClick={run(onUnlink)}
         />
       )}
       <MenuItemPrimitive
         label={t("i18n-next59.clipMenu.delete")}
-        icon={<DeleteOutlineOutlinedIcon fontSize="small" />}
+        shortcut={keyFor("deleteSelected")}
         color="error"
         dividerBefore
         onClick={run(onDelete)}
       />
     </ContextMenu>
+    {dialog && (
+      <ClipMenuDialog
+        mode={dialog}
+        clipName={dialogClip?.name ?? ""}
+        currentColor={dialogClip?.labelColor}
+        onApply={applyDialog}
+        onClose={onClose}
+      />
+    )}
+    </>
   );
 }

@@ -18,7 +18,12 @@ import { factoryTables, type GeneratedTable } from "../fablesynth/engine/wavetab
 import type { ParamValues } from "../fablesynth/params";
 import type { LiveDeviceFactory, LiveDeviceOptions } from "./liveDevice";
 import { loadFableWorklets } from "./loadFableWorklets";
-import { encodeLiveEvents, WorkletInstrumentDevice } from "./workletDevice";
+import {
+  encodeLiveControllers,
+  encodeLiveEvents,
+  encodeLivePitchOffsets,
+  WorkletInstrumentDevice
+} from "./workletDevice";
 import { wt1ParamsFromInstrument } from "./wt1Params";
 
 /** Wavetable positions of the voice the displays follow, and the voice count. */
@@ -277,6 +282,10 @@ export const createWt1Device: LiveDeviceFactory = async (
   const events = options?.events?.length
     ? encodeLiveEvents(options.events, ctx.sampleRate)
     : undefined;
+  const eventPitchOffsets = encodeLivePitchOffsets(options?.events);
+  const controllers = options?.controllers?.length
+    ? encodeLiveControllers(options.controllers, ctx.sampleRate)
+    : undefined;
   const node = new AudioWorkletNode(ctx, "fable-wt", {
     // The side-chain key bus; unconnected in the timeline.
     numberOfInputs: 1,
@@ -288,7 +297,9 @@ export const createWt1Device: LiveDeviceFactory = async (
     processorOptions: {
       params: { ...params },
       tables: tables.map(tablePayload),
-      events
+      events,
+      ...(eventPitchOffsets ? { eventPitchOffsets } : {}),
+      ...(controllers ? { controllers } : {})
     }
   });
   const output = ctx.createGain();

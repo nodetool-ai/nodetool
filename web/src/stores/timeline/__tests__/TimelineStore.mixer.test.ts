@@ -172,4 +172,19 @@ describe("TimelineStore — mixer", () => {
     });
     expect(doc.master).toEqual({ volumeDb: -3 });
   });
+
+  it("sets, clamps and preserves master pan across effect edits and save payload round-trip", () => {
+    const { store } = seed();
+    store.getState().setMasterPan(-0.4);
+    expect(store.getState().master).toEqual({
+      volumeDb: 0,
+      pan: -0.4
+    });
+    store.getState().addMasterEffect("gain");
+    expect(store.getState().master?.pan).toBe(-0.4);
+    store.getState().setMasterPan(2);
+    expect(store.getState().master?.pan).toBe(1);
+    const reloaded = reload(buildTimelineDocumentPayload(store.getState()));
+    expect(reloaded.getState().master?.pan).toBe(1);
+  });
 });

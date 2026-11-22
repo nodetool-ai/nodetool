@@ -29,6 +29,7 @@ import {
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import {
   CloseButton,
+  FieldDensityContext,
   FlexColumn,
   MOTION,
   TabGroup,
@@ -36,6 +37,8 @@ import {
 } from "../../ui_primitives";
 import { PianoRoll } from "./PianoRoll";
 import { StepEditor } from "../stepEditor/StepEditor";
+import { StepSequencer } from "../stepSequencer/StepSequencer";
+import { PatternRegionNotice } from "../stepSequencer/PatternRegionNotice";
 
 const HANDLE_HEIGHT_PX = 6;
 /** Arrow-key step for keyboard resizing. */
@@ -102,6 +105,24 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
       clipId ? findClipById(s.clips, clipId) : undefined
     );
     const isEditable = clip !== undefined && clip.mediaType === "midi";
+    const isPattern = clip?.pattern !== undefined;
+    // A pattern region opens on the Step Sequencer tab (SQ27). When the open
+    // clip stops being a pattern (converted, or a plain MIDI clip is linked
+    // in), the editor leaves the Step Sequencer for the Piano Roll (F21).
+    const wasPattern = useRef(isPattern);
+    const editorTabRef = useRef(editorTab);
+    editorTabRef.current = editorTab;
+    useEffect(() => {
+      if (clipId !== null && isPattern) setEditorTab("stepSequencer");
+      else if (clipId !== null && wasPattern.current && editorTabRef.current === "stepSequencer") {
+        setEditorTab("pianoRoll");
+      }
+      wasPattern.current = isPattern;
+    }, [clipId, isPattern, setEditorTab]);
+    // Selecting a pattern region opens the editor on it (SQ27).
+    useEffect(() => {
+      if (clipId === null && selectedClip?.pattern !== undefined) openPianoRoll(selectedClip.id);
+    }, [clipId, selectedClip, openPianoRoll]);
     useEffect(() => {
       if (clipId !== null && !isEditable) closePianoRoll();
     }, [clipId, isEditable, closePianoRoll]);
@@ -223,12 +244,18 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
             data-testid="clip-editor-tabs"
             tabs={[
               { value: "pianoRoll", label: t("pass3_20.stepEditor.tab.pianoRoll") },
-              { value: "stepEditor", label: t("pass3_20.stepEditor.tab.stepEditor") }
+              { value: "stepEditor", label: t("pass3_20.stepEditor.tab.stepEditor") },
+              { value: "stepSequencer", label: t("stepSequencer.tab") }
             ]}
             value={editorTab}
             onChange={(value) => setEditorTab(value as ClipEditorTab)}
           />
-          {editorTab === "stepEditor" ? (
+          <FieldDensityContext.Provider value="compact">
+          {editorTab === "stepSequencer" ? (
+            <StepSequencer clipId={clipId} toolbarStart={toolbarStart} toolbarEnd={toolbarEnd} />
+          ) : isPattern ? (
+            <PatternRegionNotice clipId={clipId} view={editorTab === "stepEditor" ? "stepEditor" : "pianoRoll"} />
+          ) : editorTab === "stepEditor" ? (
             <StepEditor
               clipId={clipId}
               onClose={closePianoRoll}
@@ -245,6 +272,7 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
               toolbarEnd={toolbarEnd}
             />
           )}
+          </FieldDensityContext.Provider>
         </FlexColumn>
       </>
     );

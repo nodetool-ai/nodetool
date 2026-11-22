@@ -10,6 +10,7 @@
 import type {
   TimelineClip,
   TimelineMasterChannel,
+  TimelineMusic,
   TimelineTempo,
   TimelineTrack
 } from "@nodetool-ai/timeline";
@@ -80,6 +81,8 @@ interface RenderTimelineAudioFileOptions {
   resolveUrl: (assetId: string) => Promise<string | undefined>;
   tempo?: TimelineTempo;
   master?: TimelineMasterChannel;
+  /** The document's music marker; a music project crossfades touching clips (CE7). */
+  music?: TimelineMusic;
   signal?: AbortSignal;
   onProgress?: (progress: RenderProgress) => void;
 }
@@ -102,6 +105,7 @@ export async function renderTimelineAudioFile(
     resolveUrl: opts.resolveUrl,
     tempo: opts.tempo,
     master: opts.master,
+    music: opts.music,
     signal
   });
   if (signal?.aborted) {

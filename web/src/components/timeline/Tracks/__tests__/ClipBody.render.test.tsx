@@ -71,6 +71,7 @@ const renderBody = (
         onKeyframeClick={jest.fn()}
         onKeyframeMove={jest.fn()}
         interactionLocked={false}
+        trackIndex={0}
       />
     </ThemeProvider>
   );

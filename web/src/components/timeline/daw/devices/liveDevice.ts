@@ -9,7 +9,7 @@
  * event is known before rendering starts.
  */
 
-import type { MidiInstrument } from "@nodetool-ai/timeline";
+import type { MidiControllerKind, MidiInstrument } from "@nodetool-ai/timeline";
 
 export interface LiveNoteEvent {
   /** When it happens, in seconds on the device's context clock. */
@@ -18,6 +18,21 @@ export interface LiveNoteEvent {
   /** 1..127 for a note-on, ignored for a note-off. */
   velocity: number;
   on: boolean;
+  /** Per-note pitch bend in semitones from `note.expression.pitch` (SQ42, D90). */
+  pitchOffset?: number;
+}
+
+/** One MIDI controller event on the device's context clock (pitch bend, CC, pressure). */
+export interface LiveControllerEvent {
+  /** When it happens, in seconds on the device's context clock. */
+  timeSec: number;
+  kind: MidiControllerKind;
+  /** Set for `cc` events (0..127). */
+  cc?: number;
+  /** Set for `polyPressure` events (0..127). */
+  pitch?: number;
+  /** Raw MIDI controller value (-8192..8191 for pitchBend, 0..127 otherwise). */
+  value: number;
 }
 
 /** One automated device parameter as ramps on the device's context clock. */
@@ -38,6 +53,11 @@ export interface LiveInstrumentDevice {
    * withdraw one clip's events with `clear(tag)` and leave the others queued.
    */
   schedule(events: LiveNoteEvent[], tag: string): void;
+  /**
+   * Queue MIDI controller events (pitch bend, CC, channel/poly pressure) on the
+   * context clock, tagged by clip id so `clear(tag)` removes them cleanly.
+   */
+  scheduleControllers?(events: LiveControllerEvent[], tag: string): void;
   /**
    * Withdraw queued events (one clip's, or all when `tag` is absent) and
    * release the notes they started.
@@ -67,6 +87,11 @@ export interface LiveDeviceOptions {
    * construction so none arrives after rendering has started.
    */
   events?: LiveNoteEvent[];
+  /**
+   * Every MIDI controller event of an offline render, delivered alongside
+   * `events` before the first quantum.
+   */
+  controllers?: LiveControllerEvent[];
 }
 
 export type LiveDeviceFactory = (

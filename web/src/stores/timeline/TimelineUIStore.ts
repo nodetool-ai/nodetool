@@ -70,6 +70,10 @@ export interface PianoRollSettings {
   /** `null` = the default for the panel width. */
   inspector: boolean | null;
   noteColor: "velocity" | "clip";
+  /** Show each note's pitch name inside it. Off by default, as in Logic. */
+  noteNames: boolean;
+  /** Height of the velocity or controller lane under the grid, in px. */
+  laneHeightPx: number;
   dragMode: "overlap" | "noOverlap";
   /** Pitch class of the scale root. `null` = the document key, else C. */
   scaleRoot: number | null;
@@ -77,6 +81,10 @@ export interface PianoRollSettings {
   scaleId: string;
   snapToScale: boolean;
 }
+
+/** Bounds of the piano roll's resizable velocity or controller lane. */
+export const MIN_PIANO_ROLL_LANE_HEIGHT_PX = 40;
+export const MAX_PIANO_ROLL_LANE_HEIGHT_PX = 240;
 
 export const DEFAULT_PIANO_ROLL_SETTINGS: PianoRollSettings = {
   snapOn: true,
@@ -90,14 +98,16 @@ export const DEFAULT_PIANO_ROLL_SETTINGS: PianoRollSettings = {
   link: true,
   inspector: null,
   noteColor: "velocity",
+  noteNames: false,
+  laneHeightPx: 56,
   dragMode: "overlap",
   scaleRoot: null,
   scaleId: "chromatic",
   snapToScale: false
 };
 
-/** The two views of the clip-editor panel. */
-export type ClipEditorTab = "pianoRoll" | "stepEditor";
+/** The views of the clip-editor panel. */
+export type ClipEditorTab = "pianoRoll" | "stepEditor" | "stepSequencer";
 
 /** The tools of the Step Editor. */
 export type StepEditorTool = "pointer" | "pencil" | "line" | "eraser";
@@ -362,6 +372,13 @@ export interface TimelineUIState {
   rubberBand: TimelineRubberBand | null;
   /** Set (or clear, with null) the rubber-band rect. */
   setRubberBand: (rect: TimelineRubberBand | null) => void;
+  /**
+   * The time range picked across all tracks (CE4, D48): Shift+drag in the
+   * ruler. Section actions (Cut, Copy, Paste, Delete, Insert Silence,
+   * Duplicate Section) act on it.
+   */
+  sectionRange: { fromMs: number; toMs: number } | null;
+  setSectionRange: (range: { fromMs: number; toMs: number } | null) => void;
 
   // ── Gesture feedback ─────────────────────────────────────────────────────
 
@@ -666,6 +683,10 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     rubberBand: null,
 
     setRubberBand: (rect) => set({ rubberBand: rect }),
+
+    sectionRange: null,
+
+    setSectionRange: (range) => set({ sectionRange: range }),
 
     snapGuideMs: null,
 

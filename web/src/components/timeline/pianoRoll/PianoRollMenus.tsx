@@ -40,6 +40,7 @@ export interface MenuRow {
   dividerBefore?: boolean;
   /** A row with a submenu opens it on click and runs nothing itself. */
   submenu?: MenuRow[];
+  testId?: string;
   run: () => void;
 }
 
@@ -77,6 +78,7 @@ export const MenuButton: React.FC<MenuButtonProps> = ({ label, rows }) => {
             checkable={row.checked === undefined ? undefined : row.radio ? "radio" : "checkbox"}
             checked={row.checked}
             hasSubmenu={row.submenu !== undefined}
+            data-testid={row.testId}
             onClick={(event) => {
               if (row.submenu) {
                 setSub({ anchor: event.currentTarget, rows: row.submenu });
@@ -88,12 +90,23 @@ export const MenuButton: React.FC<MenuButtonProps> = ({ label, rows }) => {
           />
         ))}
       </ContextMenu>
-      <ContextMenu open={sub !== null} anchorEl={sub?.anchor ?? null} onClose={close}>
+      <ContextMenu
+        open={sub !== null}
+        anchorEl={sub?.anchor ?? null}
+        onClose={close}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+      >
         {(sub?.rows ?? []).map((row) => (
           <MenuItemPrimitive
             key={row.id}
             label={row.label}
+            shortcut={row.shortcut}
             disabled={row.disabled}
+            dividerBefore={row.dividerBefore}
+            checkable={row.checked === undefined ? undefined : row.radio ? "radio" : "checkbox"}
+            checked={row.checked}
+            data-testid={row.testId}
             onClick={() => {
               close();
               row.run();
@@ -149,6 +162,7 @@ export const PianoRollMenus: React.FC<PianoRollMenusProps> = memo(
       { id: "link", label: L("menu.link"), checked: settings.link, run: () => setSettings({ link: !settings.link }) },
       { id: "colorVelocity", label: `${L("menu.noteColor")}: ${L("menu.noteColorVelocity")}`, checked: settings.noteColor === "velocity", radio: true, dividerBefore: true, run: () => setSettings({ noteColor: "velocity" }) },
       { id: "colorClip", label: `${L("menu.noteColor")}: ${L("menu.noteColorClip")}`, checked: settings.noteColor === "clip", radio: true, run: () => setSettings({ noteColor: "clip" }) },
+      { id: "noteNames", label: L("menu.noteNames"), checked: settings.noteNames, dividerBefore: true, run: () => setSettings({ noteNames: !settings.noteNames }) },
       { id: "zoomFit", label: L("menu.zoomToFit"), disabled: !hasNotes, dividerBefore: true, run: onZoomToFit },
       { id: "shortcuts", label: L("menu.keyboardShortcuts"), run: onShortcuts }
     ];

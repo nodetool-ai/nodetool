@@ -8,7 +8,9 @@ import type { MidiNote } from "@nodetool-ai/timeline";
 import {
   DEFAULT_HIGH_PITCH,
   DEFAULT_LOW_PITCH,
+  FIT_MARGIN_ROWS,
   NOTE_END_GRIP_PX,
+  fitPitchView,
   hitTestNote,
   initialTopPitch,
   isBlackKey,
@@ -92,6 +94,12 @@ describe("hitTestNote", () => {
     expect(hitTestNote(notes, 95, 148, geometry)?.edge).toBe("end");
   });
 
+  it("returns the start for a point inside the first 8px of a wide note", () => {
+    expect(hitTestNote(notes, 0, 148, geometry)?.edge).toBe("start");
+    expect(hitTestNote(notes, 7, 148, geometry)?.edge).toBe("start");
+    expect(hitTestNote(notes, 8, 148, geometry)?.edge).toBe("body");
+  });
+
   it("never lets the grip swallow a note narrower than twice its width", () => {
     // 80 ticks is 8px wide — the grip is capped at half, so 0..4 still moves.
     const narrow = [note({ id: "n", durationTick: 80 })];
@@ -149,5 +157,32 @@ describe("initialTopPitch", () => {
   it("never scrolls past either end of the MIDI range", () => {
     expect(initialTopPitch([note({ pitch: 127 })], 10)).toBe(127);
     expect(initialTopPitch([note({ pitch: 0 })], 10)).toBe(9);
+  });
+});
+
+describe("fitPitchView", () => {
+  const span = (low: number, high: number) => [
+    note({ id: "lo", pitch: low }),
+    note({ id: "hi", pitch: high })
+  ];
+
+  it("zooms out so a two-octave range and its margin fit the panel", () => {
+    // 24 semitones + 1 row + 2 x 2 margin rows = 29 rows in 240 px.
+    const fit = fitPitchView(span(48, 72), 240, 16, 0.5, 1);
+    expect(fit.vZoom).toBeCloseTo(240 / (29 * 16));
+    const rows = 240 / Math.round(16 * fit.vZoom);
+    expect(fit.topPitch).toBeGreaterThanOrEqual(72 + FIT_MARGIN_ROWS);
+    expect(fit.topPitch - rows + 1).toBeLessThanOrEqual(48 - FIT_MARGIN_ROWS + 1);
+  });
+
+  it("keeps the standard row height for a short range and centres it", () => {
+    const fit = fitPitchView(span(60, 64), 240, 16, 0.5, 1);
+    expect(fit.vZoom).toBe(1);
+    // 15 rows centred on 62: the top row is 70, the bottom row 56.
+    expect(fit.topPitch).toBe(70);
+  });
+
+  it("never zooms out past the minimum", () => {
+    expect(fitPitchView(span(0, 127), 240, 16, 0.5, 1).vZoom).toBe(0.5);
   });
 });

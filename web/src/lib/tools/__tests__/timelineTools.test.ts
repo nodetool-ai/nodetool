@@ -142,7 +142,7 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => {
       {
         ...current,
         mediaTracks: [],
-        clips: current.clips.map((clip) =>
+        clips: current.clips.map(({ pattern: _patternSummary, ...clip }) =>
           makeClip({ ...clip, status: "draft", bindingKind: undefined, versions: [] })
         )
       },
@@ -1115,12 +1115,13 @@ describe("ui_timeline_set_time_remap", () => {
 
   it("passes a note's id and velocity through when given", async () => {
     const handler = createMockHandler();
-    handler.setNotes.mockResolvedValue(
-      clipNode({ mediaType: "midi", noteCount: 1 })
-    );
+    handler.applyOp.mockResolvedValue({
+      ok: true,
+      clip: clipNode({ id: "clip-midi", mediaType: "midi", noteCount: 1 })
+    });
     setTimelineAgentHandler(SEQ_ID, handler);
 
-    await FrontendToolRegistry.call(
+    const result = (await FrontendToolRegistry.call(
       "ui_timeline_set_notes",
       {
         timeline_id: SEQ_ID,
@@ -1137,30 +1138,161 @@ describe("ui_timeline_set_time_remap", () => {
       },
       "tc-midi-2",
       ctx
-    );
+    )) as { url: string };
 
-    expect(handler.setNotes).toHaveBeenCalledWith("Riff", [
-      { id: "n1", velocity: 80, pitch: 62, startTick: 240, durationTick: 240 }
-    ]);
+    expect(handler.applyOp).toHaveBeenCalledWith({
+      op: "set_notes",
+      clip: "Riff",
+      notes: [
+        {
+          id: "n1",
+          velocity: 80,
+          pitch: 62,
+          start_tick: 240,
+          duration_tick: 240
+        }
+      ]
+    });
+    expect(handler.setNotes).not.toHaveBeenCalled();
+    expect(result.url).toContain("clip=clip-midi");
   });
 
-  it("fills in the time signature and offset set_tempo leaves out", async () => {
+  it("runs set_tempo through the shared op, which keeps what the call leaves out", async () => {
     const handler = createMockHandler();
-    handler.setTempo.mockResolvedValue(snapshot());
     setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
       "ui_timeline_set_tempo",
-      { timeline_id: SEQ_ID, bpm: 90 },
+      { timeline_id: SEQ_ID, bpm: 90, key: { tonic: "A", mode: "minor" } },
       "tc-midi-3",
       ctx
     );
 
-    expect(handler.setTempo).toHaveBeenCalledWith({
+    expect(handler.applyOp).toHaveBeenCalledWith({
+      op: "set_tempo",
       bpm: 90,
-      offsetMs: 0,
-      timeSignature: { beatsPerBar: 4, beatUnit: 4 }
+      key: { tonic: "A", mode: "minor" }
     });
+    expect(handler.setTempo).not.toHaveBeenCalled();
+  });
+
+  it("sends a note function, controller lanes and a selection to the shared op", async () => {
+    const handler = createMockHandler();
+    setTimelineAgentHandler(SEQ_ID, handler);
+    handler.applyOp.mockResolvedValue({ ok: true });
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_notes",
+      { timeline_id: SEQ_ID, clip: "Riff", function: "legato", note_ids: ["n1"] },
+      "tc-midi-4",
+      ctx
+    );
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_notes",
+      {
+        timeline_id: SEQ_ID,
+        clip: "Riff",
+        controllers: [{ kind: "cc", cc: 1, points: [{ tick: 0, value: 9 }] }]
+      },
+      "tc-midi-5",
+      ctx
+    );
+
+    expect(handler.applyOp).toHaveBeenNthCalledWith(1, {
+      op: "set_notes",
+      clip: "Riff",
+      function: "legato",
+      note_ids: ["n1"]
+    });
+    expect(handler.applyOp).toHaveBeenNthCalledWith(2, {
+      op: "set_notes",
+      clip: "Riff",
+      controllers: [{ kind: "cc", cc: 1, points: [{ tick: 0, value: 9 }] }]
+    });
+    expect(handler.setNotes).not.toHaveBeenCalled();
+  });
+
+  it("sends track automation and the master bus to the shared op", async () => {
+    const handler = createMockHandler();
+    setTimelineAgentHandler(SEQ_ID, handler);
+    handler.applyOp.mockResolvedValue({ ok: true });
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_track",
+      { timeline_id: SEQ_ID, track: "master", volumeDb: -3 },
+      "tc-mix-1",
+      ctx
+    );
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_track",
+      {
+        timeline_id: SEQ_ID,
+        track: "Bass",
+        automationMode: "touch",
+        automation: [
+          { target: { kind: "mixer", param: "pan" }, points: [{ timeMs: 0, value: 0 }] }
+        ]
+      },
+      "tc-mix-2",
+      ctx
+    );
+
+    expect(handler.applyOp).toHaveBeenNthCalledWith(1, {
+      op: "set_track",
+      track: "master",
+      volumeDb: -3
+    });
+    expect(handler.applyOp).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      op: "set_track",
+      automationMode: "touch"
+    }));
+  });
+
+  it("forwards master pan through ui_timeline_set_track and mentions pan in its contract", async () => {
+    const handler = createMockHandler();
+    setTimelineAgentHandler(SEQ_ID, handler);
+    handler.applyOp.mockResolvedValue({ ok: true, master: { volumeDb: 0, pan: -0.35 } });
+
+    const def = FrontendToolRegistry.get("ui_timeline_set_track");
+    expect(def?.description).toMatch(/master[^.]*pan/i);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_track",
+      { timeline_id: SEQ_ID, track: "master", pan: -0.35 },
+      "tc-master-pan",
+      ctx
+    );
+    expect(handler.applyOp).toHaveBeenCalledWith({
+      op: "set_track",
+      track: "master",
+      pan: -0.35
+    });
+  });
+
+  it("reads a midi clip and a track in full through get_state", async () => {
+    const handler = createMockHandler();
+    handler.getSnapshot.mockReturnValue(snapshot());
+    setTimelineAgentHandler(SEQ_ID, handler);
+    handler.applyOp.mockResolvedValue({
+      ok: true,
+      clipDetail: { id: "c1", notes: [], controllers: [] },
+      trackDetail: { id: "t1", automation: [], effects: [] }
+    });
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_get_state",
+      { timeline_id: SEQ_ID, clip: "Riff", track: "Bass" },
+      "tc-state-1",
+      ctx
+    )) as { clipDetail: unknown; trackDetail: unknown };
+
+    expect(handler.applyOp).toHaveBeenCalledWith({
+      op: "get_state",
+      clip: "Riff",
+      track: "Bass"
+    });
+    expect(result.clipDetail).toEqual({ id: "c1", notes: [], controllers: [] });
+    expect(result.trackDetail).toEqual({ id: "t1", automation: [], effects: [] });
   });
 
   it("forwards a track instrument unchanged", async () => {
@@ -1234,19 +1366,28 @@ describe("ui_timeline_set_time_remap", () => {
 
   it("transposes a clip by whole semitones", async () => {
     const handler = createMockHandler();
-    handler.transposeClip.mockResolvedValue(
-      clipNode({ mediaType: "midi", noteCount: 2 })
-    );
+    handler.applyOp.mockResolvedValue({
+      ok: true,
+      clip: clipNode({ id: "clip-midi", mediaType: "midi", noteCount: 2 }),
+      noteCount: 2
+    });
     setTimelineAgentHandler(SEQ_ID, handler);
 
-    await FrontendToolRegistry.call(
+    const result = (await FrontendToolRegistry.call(
       "ui_timeline_transpose_clip",
       { timeline_id: SEQ_ID, clip: "Riff", semitones: -12 },
       "tc-midi-7",
       ctx
-    );
+    )) as { noteCount: number; url: string };
 
-    expect(handler.transposeClip).toHaveBeenCalledWith("Riff", -12);
+    expect(handler.applyOp).toHaveBeenCalledWith({
+      op: "transpose_clip",
+      clip: "Riff",
+      semitones: -12
+    });
+    expect(handler.transposeClip).not.toHaveBeenCalled();
+    expect(result.noteCount).toBe(2);
+    expect(result.url).toContain("clip=clip-midi");
   });
 
   it("refuses a transpose that is not a whole number of semitones", async () => {
@@ -1261,25 +1402,33 @@ describe("ui_timeline_set_time_remap", () => {
         ctx
       )
     ).rejects.toThrow();
-    expect(handler.transposeClip).not.toHaveBeenCalled();
+    expect(handler.applyOp).not.toHaveBeenCalled();
   });
 
   it("passes only the quantize options the caller named", async () => {
     const handler = createMockHandler();
-    handler.quantizeClip.mockResolvedValue(
-      clipNode({ mediaType: "midi", noteCount: 2 })
-    );
+    handler.applyOp.mockResolvedValue({
+      ok: true,
+      clip: clipNode({ id: "clip-midi", mediaType: "midi", noteCount: 2 }),
+      noteCount: 2,
+      movedNoteCount: 1
+    });
     setTimelineAgentHandler(SEQ_ID, handler);
 
-    await FrontendToolRegistry.call(
+    const first = (await FrontendToolRegistry.call(
       "ui_timeline_quantize_notes",
       { timeline_id: SEQ_ID, clip: "Riff", division: "1/16" },
       "tc-midi-9",
       ctx
-    );
-    expect(handler.quantizeClip).toHaveBeenCalledWith("Riff", {
+    )) as { noteCount: number; movedNoteCount: number; url: string };
+    expect(handler.applyOp).toHaveBeenCalledWith({
+      op: "quantize_notes",
+      clip: "Riff",
       division: "1/16"
     });
+    expect(first.noteCount).toBe(2);
+    expect(first.movedNoteCount).toBe(1);
+    expect(first.url).toContain("clip=clip-midi");
 
     await FrontendToolRegistry.call(
       "ui_timeline_quantize_notes",
@@ -1293,28 +1442,40 @@ describe("ui_timeline_set_time_remap", () => {
       "tc-midi-10",
       ctx
     );
-    expect(handler.quantizeClip).toHaveBeenLastCalledWith("Riff", {
+    expect(handler.applyOp).toHaveBeenLastCalledWith({
+      op: "quantize_notes",
+      clip: "Riff",
       division: "1/8T",
       strength: 0.5,
       target: "start_and_length"
     });
+    expect(handler.quantizeClip).not.toHaveBeenCalled();
   });
 
   it("scales a clip's velocities", async () => {
     const handler = createMockHandler();
-    handler.scaleClipVelocity.mockResolvedValue(
-      clipNode({ mediaType: "midi", noteCount: 2 })
-    );
+    handler.applyOp.mockResolvedValue({
+      ok: true,
+      clip: clipNode({ id: "clip-midi", mediaType: "midi", noteCount: 2 }),
+      noteCount: 2
+    });
     setTimelineAgentHandler(SEQ_ID, handler);
 
-    await FrontendToolRegistry.call(
+    const result = (await FrontendToolRegistry.call(
       "ui_timeline_scale_velocity",
       { timeline_id: SEQ_ID, clip: "Riff", factor: 1.2 },
       "tc-midi-11",
       ctx
-    );
+    )) as { noteCount: number; url: string };
 
-    expect(handler.scaleClipVelocity).toHaveBeenCalledWith("Riff", 1.2);
+    expect(handler.applyOp).toHaveBeenCalledWith({
+      op: "scale_velocity",
+      clip: "Riff",
+      factor: 1.2
+    });
+    expect(handler.scaleClipVelocity).not.toHaveBeenCalled();
+    expect(result.noteCount).toBe(2);
+    expect(result.url).toContain("clip=clip-midi");
   });
 
   it("refuses a velocity factor outside 0.1..4", async () => {
@@ -1329,7 +1490,7 @@ describe("ui_timeline_set_time_remap", () => {
         ctx
       )
     ).rejects.toThrow();
-    expect(handler.scaleClipVelocity).not.toHaveBeenCalled();
+    expect(handler.applyOp).not.toHaveBeenCalled();
   });
 
   it("routes nondestructive reframe tools through the open timeline", async () => {
@@ -1409,5 +1570,46 @@ describe("ui_timeline_set_time_remap", () => {
       zoom: 1.2
     });
     expect(handler.clearReframe).toHaveBeenCalledWith("clip-1");
+  });
+
+  it("routes step sequencer tools through applyOp on the open timeline (SQ48–SQ54)", async () => {
+    const handler = createMockHandler();
+    handler.getSnapshot.mockReturnValue({
+      ...snapshot(),
+      tracks: [
+        trackNode({
+          id: "track-drums",
+          name: "Drums",
+          type: "midi" as TimelineTrackNode["type"],
+          clipCount: 0
+        })
+      ],
+      clips: []
+    });
+    setTimelineAgentHandler(SEQ_ID, handler);
+
+    const created = (await FrontendToolRegistry.call(
+      "ui_timeline_create_pattern_region",
+      {
+        timeline_id: SEQ_ID,
+        trackId: "Drums",
+        atBar: 1,
+        bars: 2,
+        text: "Kick: x... x... x... x..."
+      },
+      "tc-sq-1",
+      ctx
+    )) as { ok: boolean; clip: { id: string; pattern?: string } };
+    expect(created.ok).toBe(true);
+    expect(created.clip.pattern).toBe("1 rows x 16 @1/16");
+
+    const listed = (await FrontendToolRegistry.call(
+      "ui_timeline_list_step_patterns",
+      { timeline_id: SEQ_ID, query: "Boom Bap" },
+      "tc-sq-2",
+      ctx
+    )) as { ok: boolean; entries: Array<{ name: string }> };
+    expect(listed.ok).toBe(true);
+    expect(listed.entries.some((e) => e.name === "Boom Bap")).toBe(true);
   });
 });

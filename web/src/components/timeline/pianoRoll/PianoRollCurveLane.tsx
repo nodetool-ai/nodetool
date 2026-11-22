@@ -46,6 +46,8 @@ const canvasStyles = css({
 });
 
 interface Props {
+  /** Lane height in px. */
+  heightPx: number;
   curve: LaneCurve;
   geometry: PianoRollGeometry;
   widthPx: number;
@@ -78,6 +80,7 @@ type Gesture =
 
 export const PianoRollCurveLane: React.FC<Props> = memo(
   ({
+    heightPx,
     curve,
     geometry,
     widthPx,
@@ -118,9 +121,9 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
       const dpr =
         typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
       canvas.width = widthPx * dpr;
-      canvas.height = CURVE_LANE_HEIGHT_PX * dpr;
+      canvas.height = heightPx * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const h = CURVE_LANE_HEIGHT_PX;
+      const h = heightPx;
       ctx.fillStyle = colors.whiteRow;
       ctx.fillRect(0, 0, widthPx, h);
       if (extent) {
@@ -193,7 +196,8 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
       windowFromTick,
       windowToTick,
       extent,
-      selectedTick
+      selectedTick,
+      heightPx
     ]);
 
     const localTick = useCallback(
@@ -231,7 +235,7 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
         const y = e.clientY - rect.top;
         const c = curveRef.current;
         const bypass = e.ctrlKey || e.metaKey;
-        const hit = hitTestCurvePoint(c, x, y, geometry, CURVE_LANE_HEIGHT_PX);
+        const hit = hitTestCurvePoint(c, x, y, geometry, heightPx);
         let gesture: Gesture;
         if (hit) {
           setSelectedTick(c.points.find((p) => p.id === hit)?.tick ?? null);
@@ -246,7 +250,7 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
           };
         } else if (e.shiftKey) {
           const tick = localTick(x, bypass);
-          const value = yToValue(y, c, CURVE_LANE_HEIGHT_PX);
+          const value = yToValue(y, c, heightPx);
           const id = createTimeOrderedUuid();
           const base = c.points.filter((p) => p.tick !== tick);
           const points = [...base, { id, tick, value }];
@@ -255,7 +259,7 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
           onChange(points);
         } else {
           const tick = localTick(x, bypass);
-          const value = yToValue(y, c, CURVE_LANE_HEIGHT_PX);
+          const value = yToValue(y, c, heightPx);
           const existing = c.points.find((p) => p.tick === tick);
           const id = existing?.id ?? createTimeOrderedUuid();
           const points = existing
@@ -281,7 +285,7 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
           // No capture: the drag still works while the pointer stays inside.
         }
       },
-      [geometry, localTick, onChange, onGestureStart]
+      [geometry, localTick, onChange, onGestureStart, heightPx]
     );
 
     const handlePointerMove = useCallback(
@@ -294,7 +298,7 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
         const c = curveRef.current;
         const bypass = e.ctrlKey || e.metaKey;
         const tick = localTick(x, bypass);
-        const value = yToValue(y, c, CURVE_LANE_HEIGHT_PX);
+        const value = yToValue(y, c, heightPx);
         if (gesture.kind === "drag") {
           if (!gesture.begun) {
             if (
@@ -335,7 +339,7 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
         gesture.lastTick = tick;
         onChange(points);
       },
-      [gridStepTicks, localTick, onChange, onGestureStart, snapEnabled]
+      [gridStepTicks, localTick, onChange, onGestureStart, snapEnabled, heightPx]
     );
 
     const handlePointerUp = useCallback(() => {
@@ -365,7 +369,7 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
           e.clientX - rect.left,
           e.clientY - rect.top,
           geometry,
-          CURVE_LANE_HEIGHT_PX
+          heightPx
         );
         if (!hit) return;
         if (hit === lastAddedRef.current) {
@@ -374,7 +378,7 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
         }
         removePoint(hit);
       },
-      [geometry, onGestureEnd, removePoint]
+      [geometry, onGestureEnd, removePoint, heightPx]
     );
 
     const handleKeyDown = useCallback(
@@ -393,7 +397,7 @@ export const PianoRollCurveLane: React.FC<Props> = memo(
       <canvas
         ref={canvasRef}
         css={canvasStyles}
-        style={{ height: CURVE_LANE_HEIGHT_PX }}
+        style={{ height: heightPx }}
         tabIndex={0}
         role="application"
         data-testid="piano-roll-curve-lane"

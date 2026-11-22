@@ -14,9 +14,10 @@ import MusicNoteOutlinedIcon from "@mui/icons-material/MusicNoteOutlined";
 
 import {
   QUANTIZE_DIVISIONS,
+  expandMidiLoop,
   formatBarsBeats,
-  noteWindowMs,
-  resolveTempo
+  resolveTempo,
+  visibleNotes
 } from "@nodetool-ai/timeline";
 import type {
   QuantizeDivision,
@@ -85,14 +86,53 @@ export const ClipMidiSection: React.FC<ClipMidiSectionProps> = memo(
     const notes = clip.notes ?? [];
     // A note the clip's window does not reach is stored but never heard —
     // trimming hides notes rather than deleting them, so the two counts differ.
-    const audibleCount = useMemo(() => {
-      const fromMs = clip.inPointMs ?? 0;
-      const toMs = fromMs + clip.durationMs;
-      return notes.filter((note) => {
-        const { startMs, endMs } = noteWindowMs(note, tempo.bpm);
-        return endMs > fromMs && startMs < toMs;
-      }).length;
-    }, [notes, clip.inPointMs, clip.durationMs, tempo.bpm]);
+    // The count is what playback plays: repeats written out, the region
+    // quantize applied on the tempo grid, and only onsets inside the window.
+    const audibleCount = useMemo(
+      () =>
+        visibleNotes(
+          expandMidiLoop(clip, tempo.bpm, tempo.offsetMs),
+          tempo.bpm
+        ).length,
+      [clip, tempo.bpm, tempo.offsetMs]
+    );
+
+    const setRegionParams = useTimelineStore((s) => s.setMidiRegionParams);
+    const regionGrid = clip.quantize?.grid ?? "off";
+    const handleRegionTranspose = useCallback(
+      (v: number) => setRegionParams(clip.id, { transpose: v }),
+      [clip.id, setRegionParams]
+    );
+    const handleRegionVelocity = useCallback(
+      (v: number) => setRegionParams(clip.id, { velocityOffset: v }),
+      [clip.id, setRegionParams]
+    );
+    const handleRegionGrid = useCallback(
+      (value: string) =>
+        setRegionParams(clip.id, {
+          quantize:
+            value === "off"
+              ? null
+              : {
+                  grid: value as QuantizeDivision,
+                  strength: clip.quantize?.strength ?? 100
+                }
+        }),
+      [clip.id, clip.quantize?.strength, setRegionParams]
+    );
+    const handleRegionStrength = useCallback(
+      (v: number) =>
+        clip.quantize
+          ? setRegionParams(clip.id, {
+              quantize: { grid: clip.quantize.grid, strength: v }
+            })
+          : undefined,
+      [clip.id, clip.quantize, setRegionParams]
+    );
+    const regionGridOptions = [
+      { value: "off", label: t("pass3_25.timeline.inspector.midi.regionOff") },
+      ...DIVISION_OPTIONS
+    ];
 
     const handleEditNotes = useCallback(
       () => openPianoRoll(clip.id),
@@ -161,6 +201,52 @@ export const ClipMidiSection: React.FC<ClipMidiSectionProps> = memo(
                 {t("pass3_25.timeline.inspector.midi.editNotes")}
               </Button>
             </FlexRow>
+
+            <InspectorSliderRow
+              label={t("pass3_25.timeline.inspector.midi.regionTranspose")}
+              min={-48}
+              max={48}
+              step={1}
+              value={clip.transpose ?? 0}
+              display={stepLabel(clip.transpose ?? 0)}
+              origin={0}
+              onChange={handleRegionTranspose}
+            />
+            <InspectorSliderRow
+              label={t("pass3_25.timeline.inspector.midi.regionVelocity")}
+              min={-127}
+              max={127}
+              step={1}
+              value={clip.velocityOffset ?? 0}
+              display={stepLabel(clip.velocityOffset ?? 0)}
+              origin={0}
+              onChange={handleRegionVelocity}
+            />
+            <InspectorRow
+              label={t("pass3_25.timeline.inspector.midi.regionQuantize")}
+            >
+              <InspectorSelect
+                label={t("pass3_25.timeline.inspector.midi.regionQuantizeGrid")}
+                value={regionGrid}
+                options={regionGridOptions}
+                onChange={handleRegionGrid}
+              />
+            </InspectorRow>
+            {clip.quantize && (
+              <InspectorSliderRow
+                label={t("pass3_25.timeline.inspector.midi.regionStrength")}
+                min={0}
+                max={100}
+                step={5}
+                value={clip.quantize.strength}
+                display={`${clip.quantize.strength}%`}
+                resetValue={100}
+                onChange={handleRegionStrength}
+              />
+            )}
+            <Caption color="muted">
+              {t("pass3_25.timeline.inspector.midi.regionHelp")}
+            </Caption>
 
             <InspectorRow
               label={t("pass3_25.timeline.inspector.midi.transpose")}

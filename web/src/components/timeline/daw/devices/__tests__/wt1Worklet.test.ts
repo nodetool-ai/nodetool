@@ -9,7 +9,14 @@ import { join } from "path";
 
 import { generateTables } from "../../fablesynth/engine/wavetables";
 import { defaultParams } from "../../fablesynth/params";
-import { WorkletInstrumentDevice } from "../workletDevice";
+import { defaultDrumParams } from "../../fablesynth/drum/params";
+import { generateDrumTables } from "../../fablesynth/drum/engine/drumtables";
+import {
+  encodeLiveControllers,
+  encodeLiveEvents,
+  encodeLivePitchOffsets,
+  WorkletInstrumentDevice
+} from "../workletDevice";
 
 const ENGINE = join(__dirname, "../../fablesynth/engine");
 const SR = 48000;
@@ -162,5 +169,118 @@ describe("WT-1 worklet timeline events", () => {
     const out = h.render(300);
     // The held note releases, and the queued note at 30000 never plays.
     expect(rms(out, 10000, out.length)).toBeLessThan(1e-4);
+  });
+
+  it("F5 (worklet): cevs pitch-bend controller clip bends a sounding WT-1 note", () => {
+    const measureFreq = (buf: Float32Array, from: number, to: number): number => {
+      let crossings = 0;
+      for (let i = from + 1; i < to; i++) {
+        if (buf[i - 1]! <= 0 && buf[i]! > 0) crossings++;
+      }
+      return crossings / ((to - from) / SR);
+    };
+
+    const hBase = boot(ev([0, 1, 69, 0.9], [40000, 0, 69, 0]));
+    hBase.send({ t: "p", k: "oscA.table", v: 0 });
+    hBase.send({ t: "p", k: "oscA.pos", v: 0 });
+    hBase.send({ t: "p", k: "oscA.unison", v: 1 });
+    hBase.send({ t: "p", k: "filter.on", v: 0 });
+    const outBase = hBase.render(250);
+
+    const hBent = boot(ev([0, 1, 69, 0.9], [40000, 0, 69, 0]));
+    hBent.send({ t: "p", k: "oscA.table", v: 0 });
+    hBent.send({ t: "p", k: "oscA.pos", v: 0 });
+    hBent.send({ t: "p", k: "oscA.unison", v: 1 });
+    hBent.send({ t: "p", k: "filter.on", v: 0 });
+    hBent.send({
+      t: "cevs",
+      tag: "pb-clip",
+      ev: encodeLiveControllers([{ timeSec: 0, kind: "pitchBend", value: 8191 }], SR)
+    });
+    const outBent = hBent.render(250);
+
+    const baseHz = measureFreq(outBase, 8000, 28000);
+    const bentHz = measureFreq(outBent, 8000, 28000);
+    // +2 semitones raises frequency by 2^(2/12) ≈ 1.1225x
+    expect(bentHz / baseHz).toBeGreaterThan(1.08);
+    expect(bentHz / baseHz).toBeLessThan(1.17);
+  });
+
+  it("F38 (worklet): DR-1 worklet transposes a pad hit by +3 semitones via eventPitchOffsets", () => {
+    const drumEngineDir = join(__dirname, "../../fablesynth/drum/engine");
+    const drumTables = generateDrumTables().map((t) => ({
+      frames: t.frames,
+      mips: t.mips,
+      size: t.size,
+      buf: t.data.slice().buffer
+    }));
+    const bootDrum = (events: Array<{ timeSec: number; on: boolean; pitch: number; velocity: number; pitchOffset?: number }>) => {
+      let DrumProc: (new (options?: unknown) => Proc) | null = null;
+      class AWP {
+        port = { onmessage: null as Proc["port"]["onmessage"], postMessage: () => {} };
+      }
+      const register = (_name: string, cls: new (options?: unknown) => Proc) => {
+        DrumProc = cls;
+      };
+      let frame = 0;
+      Object.defineProperty(globalThis, "currentFrame", { configurable: true, get: () => frame });
+      for (const [dir, file] of [
+        [ENGINE, "ott-worklet.js"],
+        [ENGINE, "lab-worklet.js"],
+        [drumEngineDir, "worklet-drum.js"]
+      ]) {
+        const src = readFileSync(join(dir, file), "utf8");
+        new Function("sampleRate", "AudioWorkletProcessor", "registerProcessor", src)(SR, AWP, register);
+      }
+      const params = {
+        ...defaultDrumParams(),
+        "pad0.oscA.level": 0.9,
+        "pad0.oscB.level": 0,
+        "pad0.noise.level": 0,
+        "pad0.penv.amt": 0,
+        "pad0.aenv.dec": 0.5,
+        "pad0.flt.on": 0,
+        "fx.comp.on": 0,
+        "fx.ott.on": 0,
+        "fx.drive.on": 0,
+        "fx.reverb.on": 0
+      };
+      const proc = new DrumProc!({
+        processorOptions: {
+          mixdown: true,
+          baseNote: 36,
+          params,
+          tables: drumTables,
+          samples: [],
+          events: encodeLiveEvents(events, SR),
+          eventPitchOffsets: encodeLivePitchOffsets(events)
+        }
+      });
+      const out = new Float32Array(200 * 128);
+      const l = new Float32Array(128);
+      const r = new Float32Array(128);
+      for (let b = 0; b < 200; b++) {
+        proc.process([], [[l, r]]);
+        out.set(l, b * 128);
+        frame += 128;
+      }
+      return out;
+    };
+
+    const measureFreq = (buf: Float32Array, from: number, to: number): number => {
+      let crossings = 0;
+      for (let i = from + 1; i < to; i++) {
+        if (buf[i - 1]! <= 0 && buf[i]! > 0) crossings++;
+      }
+      return crossings / ((to - from) / SR);
+    };
+
+    const plain = bootDrum([{ timeSec: 0, on: true, pitch: 36, velocity: 110 }]);
+    const plus3 = bootDrum([{ timeSec: 0, on: true, pitch: 36, velocity: 110, pitchOffset: 3 }]);
+    const plainHz = measureFreq(plain, 2000, 18000);
+    const plus3Hz = measureFreq(plus3, 2000, 18000);
+    // +3 semitones raises frequency by 2^(3/12) ≈ 1.1892x
+    expect(plus3Hz / plainHz).toBeGreaterThan(1.14);
+    expect(plus3Hz / plainHz).toBeLessThan(1.24);
   });
 });

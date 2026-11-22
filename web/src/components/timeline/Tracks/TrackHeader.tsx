@@ -28,6 +28,7 @@ import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import PianoOutlinedIcon from "@mui/icons-material/PianoOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import VerticalAlignTopIcon from "@mui/icons-material/VerticalAlignTop";
 import VerticalAlignBottomIcon from "@mui/icons-material/VerticalAlignBottom";
@@ -78,7 +79,13 @@ import {
 } from "../../ui_primitives";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
-import { MAX_TRACK_HEIGHT_PX, MIN_TRACK_HEIGHT_PX, trackRowHeightPx } from "./trackHeight";
+import {
+  MAX_TRACK_HEIGHT_PX,
+  MIN_TRACK_HEIGHT_PX,
+  TRACK_HEADER_FULL_CONTROLS_PX,
+  TRACK_HEADER_LOCK_MIN_PX,
+  trackRowHeightPx
+} from "./trackHeight";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { useTimelineSimpleMode } from "../../../stores/timeline/TimelineEditorMode";
 import { trackTypeMeta, trackTypeAccent } from "./trackVisuals";
@@ -334,6 +341,14 @@ const iconButtonStyles = (theme: Theme, tone: IconButtonTone) => {
   });
 };
 
+const topRowToggleStyles = css({
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: getSpacingPx(SPACING.micro),
+  flexShrink: 0
+});
+
 const soloGlyphStyles = css({
   ...TYPOGRAPHY.mono.strong,
   lineHeight: 1
@@ -381,7 +396,7 @@ const presetSelectStyles = css({
  * A DAW-mode midi row is tall enough to give the instrument its own line
  * between the name and the controls, so the preset name reads in full.
  */
-const DAW_INSTRUMENT_ROW_MIN_HEIGHT_PX = 80;
+const DAW_INSTRUMENT_ROW_MIN_HEIGHT_PX = 120;
 
 const instrumentRowStyles = css({
   display: "flex",
@@ -663,6 +678,14 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
     }, [toggleExpandedInstrument, track.id]);
     const instrumentOnOwnRow =
       isMidi && dawMode && heightPx >= DAW_INSTRUMENT_ROW_MIN_HEIGHT_PX;
+    // D65: a header control never truncates. Below the full width the
+    // instrument selects become one icon menu, and row 2 drops effects,
+    // then lock, in that order. Mute and Solo always stay.
+    const headerWidthPx = useTimelineUIStore((s) => s.trackHeaderWidthPx);
+    const narrowHeader = !compact && headerWidthPx < TRACK_HEADER_FULL_CONTROLS_PX;
+    const hideLock = !compact && headerWidthPx < TRACK_HEADER_LOCK_MIN_PX;
+    const [instrumentMenuAnchor, setInstrumentMenuAnchor] = useState<HTMLElement | null>(null);
+    const closeInstrumentMenu = useCallback(() => setInstrumentMenuAnchor(null), []);
 
     const fxExpanded = useTimelineUIStore(
       (s) => s.expandedFxTrackId === track.id
@@ -803,6 +826,55 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
 
     const instrumentControls = isMidi ? (
       <>
+        {narrowHeader ? (
+          <>
+            <Tooltip title={`${INSTRUMENT_TYPE_OPTIONS.find((o) => o.value === selection.type)?.label ?? ""}${selection.presetOptions.length > 1 ? ` · ${selection.presetOptions.find((o) => o.value === selection.presetId)?.label ?? ""}` : ""}`}>
+              <button
+                type="button"
+                css={iconButtonOnCss}
+                onClick={(e) => setInstrumentMenuAnchor(e.currentTarget)}
+                aria-label={t("i18n-next6.trackHeader.instrumentFor", { name: track.name })}
+                aria-haspopup="menu"
+                data-testid={`track-instrument-menu-${track.id}`}
+              >
+                <PianoOutlinedIcon />
+              </button>
+            </Tooltip>
+            <ContextMenu
+              open={instrumentMenuAnchor !== null}
+              anchorEl={instrumentMenuAnchor}
+              onClose={closeInstrumentMenu}
+            >
+              {INSTRUMENT_TYPE_OPTIONS.map((o) => (
+                <MenuItemPrimitive
+                  key={o.value}
+                  label={o.label}
+                  checkable="radio"
+                  checked={o.value === selection.type}
+                  onClick={() => {
+                    handleTypeChange(o.value);
+                    closeInstrumentMenu();
+                  }}
+                />
+              ))}
+              {selection.presetOptions.length > 1 &&
+                selection.presetOptions.map((o, i) => (
+                  <MenuItemPrimitive
+                    key={`p-${o.value}`}
+                    label={o.label}
+                    checkable="radio"
+                    checked={o.value === selection.presetId}
+                    dividerBefore={i === 0}
+                    onClick={() => {
+                      handlePresetChange(o.value);
+                      closeInstrumentMenu();
+                    }}
+                  />
+                ))}
+            </ContextMenu>
+          </>
+        ) : (
+          <>
         <SelectField
           label={t("i18n-next6.trackHeader.instrumentFor", { name: track.name })}
           hideLabel
@@ -812,7 +884,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
           value={selection.type}
           options={INSTRUMENT_TYPE_OPTIONS}
           onChange={handleTypeChange}
-          css={instrumentOnOwnRow ? instrumentRowSelectStyles : presetSelectStyles}
+          css={instrumentOnOwnRow || (dawMode && !simple && !compact) ? instrumentRowSelectStyles : presetSelectStyles}
         />
         {/* A sampler or a VST has one starting point, so no preset to pick. */}
         {selection.presetOptions.length > 1 && (
@@ -825,8 +897,10 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
             value={selection.presetId}
             options={selection.presetOptions}
             onChange={handlePresetChange}
-            css={instrumentOnOwnRow ? instrumentRowSelectStyles : presetSelectStyles}
+            css={instrumentOnOwnRow || (dawMode && !simple && !compact) ? instrumentRowSelectStyles : presetSelectStyles}
           />
+        )}
+          </>
         )}
         <Tooltip title={t("i18n-next6.trackHeader.editInstrument")}>
           <button
@@ -880,6 +954,62 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
           </button>
         </Tooltip>
       ) : null;
+
+    const soloToggle = (
+                <Tooltip title={track.solo ? t("i18n-next6.trackHeader.unsolo") : t("i18n-next6.trackHeader.solo")}>
+                  <button
+                    type="button"
+                    css={track.solo ? iconButtonSuccessCss : iconButtonOnCss}
+                    onClick={() => setTrackSolo(track.id, !track.solo)}
+                    aria-label={track.solo ? t("i18n-next6.trackHeader.unsolo") : t("i18n-next6.trackHeader.solo")}
+                    aria-pressed={!!track.solo}
+                  >
+                    <span css={soloGlyphStyles}>S</span>
+                  </button>
+                </Tooltip>
+    );
+    // Logic layout: in DAW mode Mute and Solo sit on the name row, so a
+    // sound track reads in two lines (name, then instrument and tools).
+    const msOnTopRow = dawMode && isSoundTrack && !simple && !compact;
+    const lockSyncControls = (
+      <>
+            {!hideLock && (
+            <Tooltip title={track.locked ? t("i18n-next6.trackHeader.unlockTrack") : t("i18n-next6.trackHeader.lockTrack")}>
+              <button
+                type="button"
+                css={track.locked ? iconButtonWarningCss : iconButtonOnCss}
+                onClick={() => setTrackLocked(track.id, !track.locked)}
+                aria-label={track.locked ? t("i18n-next6.trackHeader.unlockTrack") : t("i18n-next6.trackHeader.lockTrack")}
+                aria-pressed={track.locked}
+              >
+                {track.locked ? <LockOutlinedIcon /> : <LockOpenOutlinedIcon />}
+              </button>
+            </Tooltip>
+            )}
+
+            {track.type !== "chord" && (
+              <Tooltip
+                title={
+                  syncLocked
+                    ? t("i18n-next6.trackHeader.syncLockOnDescription")
+                    : t("i18n-next6.trackHeader.syncLockOffDescription")
+                }
+              >
+                <button
+                  type="button"
+                  css={syncLocked ? iconButtonOnCss : iconButtonWarningCss}
+                  onClick={() => setTrackSyncLocked(track.id, !syncLocked)}
+                  aria-label={syncLocked ? t("i18n-next6.trackHeader.turnSyncLockOff") : t("i18n-next6.trackHeader.turnSyncLockOn")}
+                  aria-pressed={!syncLocked}
+                  data-testid={`track-sync-lock-${track.id}`}
+                >
+                  {syncLocked ? <SyncOutlinedIcon /> : <SyncDisabledOutlinedIcon />}
+                </button>
+              </Tooltip>
+            )}
+
+      </>
+    );
 
     return (
       <>
@@ -974,6 +1104,13 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               )}
             </div>
             {simple && (muteToggle ?? visibilityToggle)}
+            {msOnTopRow && (
+              <div css={topRowToggleStyles}>
+                {lockSyncControls}
+                {muteToggle}
+                {soloToggle}
+              </div>
+            )}
           </div>
 
           {instrumentOnOwnRow && !simple && (
@@ -986,62 +1123,22 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
             css={controlsRowCss}
             className={compact ? "timeline-track-controls" : undefined}
           >
+            {isMidi && !instrumentOnOwnRow && instrumentControls}
             {visibilityToggle}
 
-            <Tooltip title={track.locked ? t("i18n-next6.trackHeader.unlockTrack") : t("i18n-next6.trackHeader.lockTrack")}>
-              <button
-                type="button"
-                css={track.locked ? iconButtonWarningCss : iconButtonOnCss}
-                onClick={() => setTrackLocked(track.id, !track.locked)}
-                aria-label={track.locked ? t("i18n-next6.trackHeader.unlockTrack") : t("i18n-next6.trackHeader.lockTrack")}
-                aria-pressed={track.locked}
-              >
-                {track.locked ? <LockOutlinedIcon /> : <LockOpenOutlinedIcon />}
-              </button>
-            </Tooltip>
+            {!msOnTopRow && lockSyncControls}
 
-            {track.type !== "chord" && (
-              <Tooltip
-                title={
-                  syncLocked
-                    ? t("i18n-next6.trackHeader.syncLockOnDescription")
-                    : t("i18n-next6.trackHeader.syncLockOffDescription")
-                }
-              >
-                <button
-                  type="button"
-                  css={syncLocked ? iconButtonOnCss : iconButtonWarningCss}
-                  onClick={() => setTrackSyncLocked(track.id, !syncLocked)}
-                  aria-label={syncLocked ? t("i18n-next6.trackHeader.turnSyncLockOff") : t("i18n-next6.trackHeader.turnSyncLockOn")}
-                  aria-pressed={!syncLocked}
-                  data-testid={`track-sync-lock-${track.id}`}
-                >
-                  {syncLocked ? <SyncOutlinedIcon /> : <SyncDisabledOutlinedIcon />}
-                </button>
-              </Tooltip>
-            )}
-
-            {isSoundTrack && (
+            {isSoundTrack && !msOnTopRow && (
               <>
                 {muteToggle}
 
-                <Tooltip title={track.solo ? t("i18n-next6.trackHeader.unsolo") : t("i18n-next6.trackHeader.solo")}>
-                  <button
-                    type="button"
-                    css={track.solo ? iconButtonSuccessCss : iconButtonOnCss}
-                    onClick={() => setTrackSolo(track.id, !track.solo)}
-                    aria-label={track.solo ? t("i18n-next6.trackHeader.unsolo") : t("i18n-next6.trackHeader.solo")}
-                    aria-pressed={!!track.solo}
-                  >
-                    <span css={soloGlyphStyles}>S</span>
-                  </button>
-                </Tooltip>
+{soloToggle}
               </>
             )}
 
-            {isMidi && !instrumentOnOwnRow && instrumentControls}
+            
 
-            {supportsEffects && (
+            {supportsEffects && !narrowHeader && (
               <Tooltip
                 title={
                   effectsCount === 0
@@ -1068,16 +1165,6 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               </Tooltip>
             )}
 
-            <Tooltip title={t("i18n-next6.trackHeader.deleteTrack")}>
-              <button
-                type="button"
-                css={iconButtonOnCss}
-                onClick={() => setConfirmRemoveOpen(true)}
-                aria-label={t("i18n-next6.trackHeader.deleteTrack")}
-              >
-                <DeleteOutlineOutlinedIcon />
-              </button>
-            </Tooltip>
           </div>
           )}
 

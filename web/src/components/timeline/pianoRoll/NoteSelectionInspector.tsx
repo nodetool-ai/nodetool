@@ -1,10 +1,11 @@
 import { fitExpressionToDuration, moveNotes, setVelocity } from "@nodetool-ai/timeline";
 import type { MidiNote } from "@nodetool-ai/timeline";
 import { useTranslation } from "react-i18next";
-import { Caption, FlexRow, SPACING, TextInput } from "../../ui_primitives";
+import { Caption, FlexColumn, FlexRow, SPACING, TextInput } from "../../ui_primitives";
 
 /** Wide enough for "127" or "12.25" beside the number spinner. */
-const FIELD_WIDTH_PX = 76;
+/** The label column: every field starts at the same x. */
+const LABEL_COLUMN = "6ch";
 
 interface Props {
   notes: readonly MidiNote[];
@@ -122,10 +123,10 @@ export function NoteSelectionInspector({
     }
   ];
   return (
-    <FlexRow align="center" gap={SPACING.sm} sx={{ flexWrap: "wrap", rowGap: SPACING.xs }}>
+    <FlexColumn gap={SPACING.xs}>
       {fields.map((field) => (
-        <FlexRow key={field.id} align="center" gap={SPACING.xs}>
-          <Caption color="muted" aria-hidden sx={{ whiteSpace: "nowrap" }}>
+        <FlexRow key={field.id} align="center" gap={SPACING.sm}>
+          <Caption color="muted" aria-hidden sx={{ whiteSpace: "nowrap", width: LABEL_COLUMN, flexShrink: 0 }}>
             {field.short}
           </Caption>
           <TextInput
@@ -134,12 +135,16 @@ export function NoteSelectionInspector({
             hideLabel
             type="number"
             compact
-            fullWidth={false}
-            sx={{ width: FIELD_WIDTH_PX }}
+            fullWidth
             disabled={!first}
             defaultValue={field.value ?? ""}
-            placeholder={first ? t("pass3_20.pianoRoll.inspector.mixed") : "—"}
-            inputProps={{ min: field.min, max: field.max, step: field.step }}
+            placeholder={first ? "*" : "—"}
+            inputProps={{
+              min: field.min,
+              max: field.max,
+              step: field.step,
+              title: first && field.value === null ? t("pass3_20.pianoRoll.inspector.mixed") : undefined
+            }}
             onBlur={(event) => {
               const value = Math.round(Number(event.target.value) / field.step) * field.step;
               if (
@@ -163,6 +168,6 @@ export function NoteSelectionInspector({
           />
         </FlexRow>
       ))}
-    </FlexRow>
+    </FlexColumn>
   );
 }

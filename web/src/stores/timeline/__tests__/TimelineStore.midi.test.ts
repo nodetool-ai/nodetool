@@ -132,6 +132,48 @@ describe("TimelineStore — midi tracks", () => {
     expect(resolveTempo(empty.getState())).toEqual(DEFAULT_TEMPO);
   });
 
+  it("refuses region parameters the document cannot store (F19)", () => {
+    const { store, clipId } = seed();
+    const api = store.getState();
+    api.setMidiRegionParams(clipId, { transpose: Number.NaN });
+    api.setMidiRegionParams(clipId, { velocityOffset: Number.POSITIVE_INFINITY });
+    api.setMidiRegionParams(clipId, {
+      quantize: { grid: "1/16", strength: Number.NaN }
+    });
+    api.setMidiRegionParams(clipId, {
+      quantize: { grid: "1/7" as never, strength: 50 }
+    });
+    const clip = store.getState().clips.find((c) => c.id === clipId)!;
+    expect(clip.transpose).toBeUndefined();
+    expect(clip.velocityOffset).toBeUndefined();
+    expect(clip.quantize).toBeUndefined();
+    api.setMidiRegionParams(clipId, { transpose: 3 });
+    expect(store.getState().clips.find((c) => c.id === clipId)!.transpose).toBe(3);
+  });
+
+  it("loads the music marker and saves it again (CE7)", () => {
+    const store = createTimelineStore();
+    store.getState().loadSequence({
+      id: "seq-1",
+      projectId: "proj-1",
+      name: "Test",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      durationMs: 10_000,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      tracks: [],
+      clips: [],
+      markers: [],
+      music: { autoCrossfadeMs: 10 }
+    } as unknown as TimelineSequence);
+    expect(store.getState().music).toEqual({ autoCrossfadeMs: 10 });
+    expect(buildTimelineDocumentPayload(store.getState()).music).toEqual({
+      autoCrossfadeMs: 10
+    });
+  });
+
   it("halving the BPM doubles a midi clip's start and length", () => {
     const { store, clipId } = seed();
     store.getState().setTempo(tempoAt(60));

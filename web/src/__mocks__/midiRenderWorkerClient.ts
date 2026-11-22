@@ -24,9 +24,14 @@ class FakeMidiRenderWorker extends EventTarget {
         controllers: request.controllers,
         inPointMs: request.inPointMs,
         durationMs: request.durationMs,
-        loopLengthMs: request.loopLengthMs
+        loopLengthMs: request.loopLengthMs,
+        startMs: request.startMs,
+        transpose: request.transpose,
+        velocityOffset: request.velocityOffset,
+        quantize: request.quantize
       },
       bpm: request.bpm,
+      gridOffsetMs: request.gridOffsetMs,
       instrument: request.instrument,
       sampleRate: request.sampleRate,
       samples: request.samples

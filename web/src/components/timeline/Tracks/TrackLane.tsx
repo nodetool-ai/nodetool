@@ -50,6 +50,7 @@ import {
   visibleClipIdsByTrack
 } from "../../../stores/timeline/clipLookup";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { useTimelineUIStoreApi } from "../../../stores/timeline/TimelineInstance";
 import { runAsOneUndoEntry } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
@@ -77,6 +78,9 @@ import { trackRowHeightPx } from "./trackHeight";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { useTimelineSimpleMode } from "../../../stores/timeline/TimelineEditorMode";
 import { snapAssetDropMs } from "./dropSnap";
+import { isStepPatternDrag, patternDropOps, snapPatternDropMs } from "./stepPatternDrop";
+import { STEP_PATTERN_DRAG_TYPE } from "../stepSequencer/StepPatternBrowser";
+import { useStepPatternOps } from "../stepSequencer/useStepPatternOps";
 import { dropShotOnTrack, isShotDrag } from "../dnd/shotToClipAdapter";
 import { trackSelectDirection, trackSelectIds } from "./trackSelect";
 
@@ -176,6 +180,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
   const { t } = useTranslation();
   const timelineStore = useTimelineStoreApi();
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
+  const uiStoreApi = useTimelineUIStoreApi();
+  const patternOps = useStepPatternOps();
   const verticalZoom = useTimelineUIStore((s) => s.verticalZoom);
   const scrollLeftPx = useTimelineUIStore((s) =>
     virtualizeClips ? s.scrollLeftPx : 0
@@ -363,6 +369,15 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
 
   const handleAssetDragOver = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
+      if (isStepPatternDrag(e.dataTransfer)) {
+        // A pattern region needs a MIDI lane (SQ43).
+        if (track.type !== "midi" || track.locked) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "copy";
+        setIsDragOver(true);
+        return;
+      }
       if (!isAssetDrag(e) && !isShotDrag(e.dataTransfer)) {
         return;
       }
@@ -375,7 +390,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       e.dataTransfer.dropEffect = "copy";
       setIsDragOver(true);
     },
-    [isAssetDrag, track.locked]
+    [isAssetDrag, track.locked, track.type]
   );
 
   const handleAssetDragLeave = useCallback(
@@ -439,6 +454,21 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
 
       if (isShotDrag(e.dataTransfer)) {
         handleShotDrop(e);
+        return;
+      }
+      if (isStepPatternDrag(e.dataTransfer)) {
+        if (track.type !== "midi" || track.locked) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const patternId = e.dataTransfer.getData(STEP_PATTERN_DRAG_TYPE);
+        if (!patternId) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const atMs = snapPatternDropMs((e.clientX - rect.left) * msPerPx, timelineStore.getState(), uiStoreApi.getState());
+        // The new region resolves overlaps by the Drag mode, as other region drops do.
+        const dropMode = uiStoreApi.getState().dropMode;
+        patternOps
+          .run(patternDropOps(patternId, atMs, track.id), { afterWrite: (created) => resolveDropInStore(created, dropMode) })
+          .catch((err: unknown) => showWarning(err instanceof Error ? err.message : String(err), true));
         return;
       }
       if (!isAssetDrag(e)) {
@@ -532,7 +562,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       importVideoWithAudio,
       handleShotDrop,
       showWarning,
-      t
+      t,
+      uiStoreApi,
+      patternOps
     ]
   );
 

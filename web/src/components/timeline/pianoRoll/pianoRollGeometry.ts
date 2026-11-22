@@ -14,7 +14,7 @@
 
 import type { MidiNote } from "@nodetool-ai/timeline";
 
-/** How wide the grab zone on a note's right edge is. */
+/** How wide the grab zone on each edge of a note is. */
 export const NOTE_END_GRIP_PX = 8;
 
 /**
@@ -104,7 +104,7 @@ export function noteRect(
 }
 
 /** Which part of a note a pointer landed on. */
-export type NoteHitEdge = "body" | "end";
+export type NoteHitEdge = "body" | "start" | "end";
 
 export interface NoteHit {
   note: MidiNote;
@@ -131,8 +131,10 @@ export function hitTestNote(
     if (x < rect.x || x >= rect.x + rect.width) continue;
     if (y < rect.y || y >= rect.y + rect.height) continue;
     const grip = Math.min(NOTE_END_GRIP_PX, rect.width / 2);
+    // A start zone only on notes wide enough to keep a body to grab.
+    const startGrip = rect.width >= NOTE_END_GRIP_PX * 3 ? grip : 0;
     const edge: NoteHitEdge =
-      x >= rect.x + rect.width - grip ? "end" : "body";
+      x >= rect.x + rect.width - grip ? "end" : x < rect.x + startGrip ? "start" : "body";
     return { note, edge };
   }
   return null;
@@ -216,4 +218,31 @@ export function snapTickToGrid(
   const index = (tick - phaseTick) / stepTicks;
   const snapped = mode === "floor" ? Math.floor(index + 1e-9) : Math.round(index);
   return Math.max(0, Math.round(phaseTick + snapped * stepTicks));
+}
+
+/** Empty rows kept above and below the notes when a view is fitted. */
+export const FIT_MARGIN_ROWS = 2;
+
+/**
+ * The vertical zoom and top pitch that frame a clip's note range with a margin
+ * of `FIT_MARGIN_ROWS`, as the piano roll opens. The zoom stays inside
+ * `minZoom..maxZoom`, so one note does not fill the panel. An empty clip keeps
+ * zoom 1 and the default range.
+ */
+export function fitPitchView(
+  notes: ReadonlyArray<MidiNote>,
+  heightPx: number,
+  baseRowPx: number,
+  minZoom: number,
+  maxZoom: number
+): { vZoom: number; topPitch: number } {
+  if (notes.length === 0 || heightPx <= 0 || baseRowPx <= 0) {
+    return { vZoom: 1, topPitch: initialTopPitch(notes, heightPx / Math.max(1, baseRowPx)) };
+  }
+  const low = Math.min(...notes.map((note) => note.pitch));
+  const high = Math.max(...notes.map((note) => note.pitch));
+  const rowsNeeded = high - low + 1 + FIT_MARGIN_ROWS * 2;
+  const vZoom = Math.min(maxZoom, Math.max(minZoom, heightPx / (rowsNeeded * baseRowPx)));
+  const rowPx = Math.round(baseRowPx * vZoom);
+  return { vZoom, topPitch: initialTopPitch(notes, heightPx / rowPx) };
 }

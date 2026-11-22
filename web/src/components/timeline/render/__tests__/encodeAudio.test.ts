@@ -104,6 +104,13 @@ describe("renderTimelineAudioFile", () => {
     );
   });
 
+  it("forwards the music marker to the mixdown (CE7)", async () => {
+    mockRender.mockResolvedValue(new FakeAudioBuffer(2, 48_000, 48_000));
+    const music = { autoCrossfadeMs: 10 };
+    await renderTimelineAudioFile({ ...options("wav"), music });
+    expect(mockRender.mock.calls[mockRender.mock.calls.length - 1][0]).toMatchObject({ music });
+  });
+
   it("writes the mixdown as a 16-bit stereo 48 kHz WAV", async () => {
     mockRender.mockResolvedValue(new FakeAudioBuffer(2, 48_000, 48_000));
     const result = await renderTimelineAudioFile(options("wav"));

@@ -21,7 +21,8 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { findClipById } from "../../../stores/timeline/clipLookup";
-import { MOTION, Z_INDEX } from "../../ui_primitives";
+import LoopIcon from "@mui/icons-material/Loop";
+import { BORDER_RADIUS, ICON_SIZE, MOTION, Z_INDEX } from "../../ui_primitives";
 import {
   clearGestureFeedback,
   collectSnapCandidates,
@@ -49,12 +50,19 @@ const handleStyles = (theme: Theme, locked: boolean) =>
     height: LOOP_HANDLE_SIZE_PX,
     cursor: locked ? "not-allowed" : "col-resize",
     zIndex: Z_INDEX.base + 4,
-    // A corner notch: the grip is the triangle in the clip's top-right.
-    backgroundColor: theme.vars.palette.text.secondary,
-    clipPath: "polygon(0 0, 100% 0, 100% 100%)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderBottomLeftRadius: BORDER_RADIUS.sm,
+    // The loop glyph tells this grip apart from the plain trim edge below it.
+    color: theme.vars.palette.text.primary,
+    backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
     opacity: 0,
-    transition: `opacity ${MOTION.fast}`,
-    "&:hover": { backgroundColor: theme.vars.palette.primary.main }
+    transition: `opacity ${MOTION.fast}, background-color ${MOTION.fast}`,
+    "&:hover": {
+      backgroundColor: theme.vars.palette.primary.main,
+      color: theme.vars.palette.primary.contrastText
+    }
   });
 
 const marksStyles = css({
@@ -65,13 +73,19 @@ const marksStyles = css({
   zIndex: Z_INDEX.base + 1
 });
 
+// Repeats read as copies at a glance (spec 2.3): a pale wash over the
+// repeat bodies (their notes already draw at half strength), no frame, and
+// a notch at the top and bottom edge plus a 1px line at each repeat start.
+const NOTCH_WIDTH_PX = 6;
+const NOTCH_HEIGHT_PX = 5;
+
 const dimStyles = (theme: Theme) =>
   css({
     position: "absolute",
     top: 0,
     bottom: 0,
     right: 0,
-    backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.35)`
+    backgroundColor: `rgba(${theme.vars.palette.text.primaryChannel} / 0.07)`
   });
 
 const notchStyles = (theme: Theme) =>
@@ -80,15 +94,22 @@ const notchStyles = (theme: Theme) =>
     top: 0,
     bottom: 0,
     width: 1,
-    backgroundColor: `rgba(${theme.vars.palette.text.primaryChannel} / 0.35)`,
-    "&::before": {
+    marginLeft: -0.5,
+    backgroundColor: theme.vars.palette.divider,
+    "&::before, &::after": {
       content: '""',
       position: "absolute",
+      left: -(NOTCH_WIDTH_PX - 1) / 2,
+      borderLeft: `${NOTCH_WIDTH_PX / 2}px solid transparent`,
+      borderRight: `${NOTCH_WIDTH_PX / 2}px solid transparent`
+    },
+    "&::before": {
       top: 0,
-      left: -4,
-      borderLeft: "4.5px solid transparent",
-      borderRight: "4.5px solid transparent",
-      borderTop: `6px solid rgba(${theme.vars.palette.text.primaryChannel} / 0.7)`
+      borderTop: `${NOTCH_HEIGHT_PX}px solid rgba(${theme.vars.palette.text.primaryChannel} / 0.7)`
+    },
+    "&::after": {
+      bottom: 0,
+      borderBottom: `${NOTCH_HEIGHT_PX}px solid rgba(${theme.vars.palette.text.primaryChannel} / 0.7)`
     }
   });
 
@@ -97,7 +118,7 @@ interface ClipLoopMarksProps {
   msPerPx: number;
 }
 
-/** Dimmed repeats and a notch at each repeat boundary. Nothing for a plain clip. */
+/** Paler repeats and a notch at each repeat boundary. Nothing for a plain clip. */
 export const ClipLoopMarks: React.FC<ClipLoopMarksProps> = memo(
   ({ clip, msPerPx }) => {
     const theme = useTheme();
@@ -112,14 +133,16 @@ export const ClipLoopMarks: React.FC<ClipLoopMarksProps> = memo(
           style={{ left: firstPx }}
           data-testid={`clip-loop-dim-${clip.id}`}
         />
-        {offsets.map((offset, i) => (
-          <div
-            key={i}
-            css={notchStyles(theme)}
-            style={{ left: offset / msPerPx }}
-            data-loop-notch
-          />
-        ))}
+        {offsets.map((offset, i) => {
+          return (
+            <div
+              key={i}
+              css={notchStyles(theme)}
+              style={{ left: offset / msPerPx }}
+              data-loop-notch
+            />
+          );
+        })}
       </div>
     );
   }
@@ -230,7 +253,9 @@ export const ClipLoopHandle: React.FC<ClipLoopHandleProps> = memo(
         aria-label={t("i18n-next73.clip.loopHandle")}
         title={t("i18n-next73.clip.loopHandle")}
         data-testid={`clip-loop-handle-${clipId}`}
-      />
+      >
+        <LoopIcon aria-hidden sx={{ fontSize: ICON_SIZE.xs - 4 }} />
+      </div>
     );
   }
 );

@@ -28,6 +28,7 @@ import {
 import type { TimelineClip, ClipStatus } from "@nodetool-ai/timeline";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { CLIP_NAME_BAR_PX, CLIP_TOP_PX } from "./automation/automationLayout";
+import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   StatusIndicator,
@@ -48,10 +49,13 @@ import { useClipThumbnails } from "./useClipThumbnails";
 import { useModel3DClipThumbnails } from "./useModel3DClipThumbnails";
 import { useAudioPeaks } from "./useAudioPeaks";
 import { samplePeaksWindow } from "./audioPeaks";
-import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
+import { clipBorderTint } from "./trackVisuals";
+import { regionColors, trackRegionColor } from "./regionColors";
+import type { RegionColors } from "./regionColors";
 import { GroupBracket } from "./GroupBracket";
 import { ClipKeyframeDiamonds } from "./ClipKeyframeDiamonds";
 import { MidiNotesCanvas } from "./MidiNotesCanvas";
+import { PatternRegionCanvas } from "./PatternRegionCanvas";
 import {
   canLoopClip,
   ClipLoopHandle,
@@ -104,24 +108,30 @@ const clipStyles = (
   theme: Theme,
   selected: boolean,
   interactionLocked: boolean,
-  mediaType: TimelineClip["mediaType"]
-) =>
-  css({
+  region: RegionColors
+) => {
+  // Spec 2.1: the name band carries the region color at full strength, the
+  // body a tint of it, so the content reads on it.
+  const surface = `linear-gradient(180deg, ${region.band} 0, ${region.band} ${CLIP_NAME_BAR_PX}px, ${region.body} ${CLIP_NAME_BAR_PX}px)`;
+  const restingBorder = `color-mix(in srgb, ${region.band} 70%, transparent)`;
+  return css({
     position: "absolute",
     top: CLIP_TOP_PX,
     bottom: 6,
     borderRadius: CLIP_RADIUS_PX,
     overflow: "hidden",
     backgroundColor: theme.vars.palette.background.paper,
-    backgroundImage: `linear-gradient(0deg, ${clipSurfaceTint(
-      mediaType
-    )}, ${clipSurfaceTint(mediaType)})`,
+    backgroundImage: surface,
     border: selected
-      ? `1.5px solid ${theme.vars.palette.secondary.main}`
-      : `1px solid ${clipBorderTint(theme, mediaType)}`,
+      ? `1.5px solid ${theme.vars.palette.text.primary}`
+      : `1px solid ${restingBorder}`,
     boxShadow: selected
-      ? `0 0 0 3px rgba(var(--palette-secondary-mainChannel) / 0.18), 0 4px 12px ${theme.vars.palette.c_scrim_soft}`
+      ? `0 0 0 1px ${theme.vars.palette.c_scrim}, 0 4px 12px ${theme.vars.palette.c_scrim_soft}`
       : "none",
+    transition: `border-color ${MOTION.fast}, box-shadow ${MOTION.fast}`,
+    "&:hover": selected
+      ? undefined
+      : { borderColor: region.band },
     cursor: interactionLocked ? "not-allowed" : "grab",
     "&:active": {
       cursor: interactionLocked ? "not-allowed" : "grabbing"
@@ -135,6 +145,10 @@ const clipStyles = (
     "&:hover [data-clip-trim-handle]": {
       opacity: 1
     },
+    // D68: the region length shows only while the pointer is over the region.
+    "&:hover [data-clip-length]": {
+      opacity: 1
+    },
     // Fade handles follow the same rule, and stay up on a selected clip so
     // the fade being edited keeps its grips while the pointer is elsewhere.
     "&:hover [data-clip-fade-handle], [data-clip-fade-handle]:focus-visible": {
@@ -144,6 +158,7 @@ const clipStyles = (
       "[data-clip-fade-handle]": { opacity: 1 }
     }
   });
+};
 
 const clipHeaderRowStyles = css({
   position: "absolute",
@@ -169,31 +184,31 @@ const clipDotStyles = (accent: string) =>
     flexShrink: 0
   });
 
-const clipNameStyles = (theme: Theme) =>
+const clipNameStyles = (theme: Theme, ink: string) =>
   css({
     fontSize: FONT_SIZE_SANS.caption,
     fontWeight: FONT_WEIGHT.medium,
     letterSpacing: "-0.005em",
-    color: theme.vars.palette.text.primary,
+    color: ink,
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
     pointerEvents: "none",
     lineHeight: 1.4,
-    textShadow: `0 1px 2px ${theme.vars.palette.c_scrim}`,
     flex: "1 1 auto",
     minWidth: 0
   });
 
-const clipDurationStyles = (theme: Theme) =>
+const clipDurationStyles = (ink: string) =>
   css({
     flexShrink: 0,
     fontFamily: TYPOGRAPHY.mono.caption.fontFamily,
     fontSize: FONT_SIZE_MONO.caption,
     fontWeight: FONT_WEIGHT.medium,
-    color: theme.vars.palette.text.secondary,
+    color: ink,
     letterSpacing: "0",
-    textShadow: `0 1px 2px ${theme.vars.palette.c_scrim}`
+    opacity: 0,
+    transition: `opacity ${MOTION.fast}`
   });
 
 const filmstripStyles = css({
@@ -624,6 +639,8 @@ export interface ClipBodyProps {
   /** clip.locked OR the clip's track is locked: drives the not-allowed cursor.
    *  The lock badge below stays tied to clip.locked alone. */
   interactionLocked: boolean;
+  /** The clip's track position: picks the default region color. */
+  trackIndex: number;
 }
 
 export const ClipBody: React.FC<ClipBodyProps> = memo(
@@ -655,9 +672,13 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     keyframeTimesMs,
     onKeyframeClick,
     onKeyframeMove,
-    interactionLocked
+    interactionLocked,
+    trackIndex
   }) => {
     const theme = useTheme();
+    const { mode: schemeMode, systemMode: schemeSystemMode } = useColorScheme();
+    const activeScheme =
+      (schemeMode === "system" ? schemeSystemMode : schemeMode) ?? "dark";
     const { t } = useTranslation();
     const clipId = clip.id;
 
@@ -678,6 +699,11 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     // the note bars need it. A primitive selector, so a document edit that
     // leaves the tempo alone does not re-render every clip.
     const bpm = useTimelineStore((s) => resolveTempo(s).bpm);
+    const gridOffsetMs = useTimelineStore((s) => resolveTempo(s).offsetMs);
+    const beatsPerBar = useTimelineStore(
+      (s) => resolveTempo(s).timeSignature?.beatsPerBar ?? 4
+    );
+    const musicMode = useTimelineLayoutStore((s) => s.dawMode);
 
     const videoThumbnails = useClipThumbnails(videoUrl);
     // A 3D clip has no video to seek: its strip is rendered from the glTF, at
@@ -746,7 +772,10 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
         : textContent || clip.name;
 
     const showDuration = widthPx >= COMPACT_THRESHOLD_PX;
-    const durationLabel = formatClipDuration(clip.durationMs);
+    // Spec 2.1: bars and beats in music mode, seconds in video mode.
+    const durationLabel = musicMode
+      ? formatBarsBeats(clip.durationMs, bpm, beatsPerBar)
+      : formatClipDuration(clip.durationMs);
     const animationMarkers = deriveClipAnimationMarkers(
       clip.animations,
       msPerPx,
@@ -816,9 +845,24 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
     // body once per frame per clip. Only the coarse-pointer trim hit width
     // reads geometry.
     const mediaType = clip.mediaType;
+    const labelColor = clip.labelColor;
+    const region = useMemo(() => {
+      const scheme = theme.colorSchemes?.[activeScheme]?.palette;
+      const base = labelColor ?? trackRegionColor(theme, activeScheme, trackIndex);
+      return regionColors(
+        base,
+        activeScheme,
+        scheme?.background?.paper ?? theme.palette.background.paper,
+        scheme?.common ?? theme.palette.common
+      );
+    }, [theme, activeScheme, labelColor, trackIndex]);
+    const bandInk = useMemo(
+      () => theme.palette.getContrastText(region.band),
+      [theme, region.band]
+    );
     const rootCss = useMemo(
-      () => clipStyles(theme, isSelected, interactionLocked, mediaType),
-      [theme, isSelected, interactionLocked, mediaType]
+      () => clipStyles(theme, isSelected, interactionLocked, region),
+      [theme, isSelected, interactionLocked, region]
     );
     const inZoneCss = useMemo(
       () => animationZoneStyles(theme, "in"),
@@ -832,9 +876,12 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
       () => animationLoopIconStyles(theme),
       [theme]
     );
-    const dotCss = useMemo(() => clipDotStyles(accent), [accent]);
-    const nameCss = useMemo(() => clipNameStyles(theme), [theme]);
-    const durationCss = useMemo(() => clipDurationStyles(theme), [theme]);
+    const dotCss = useMemo(
+      () => clipDotStyles(accent),
+      [accent]
+    );
+    const nameCss = useMemo(() => clipNameStyles(theme, bandInk), [theme, bandInk]);
+    const durationCss = useMemo(() => clipDurationStyles(bandInk), [bandInk]);
     const trimStartCss = useMemo(
       () =>
         trimHandleStyles(
@@ -1071,15 +1118,33 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           </>
         )}
 
-        {clip.mediaType === "midi" && (
+        {clip.mediaType === "midi" && clip.pattern && (
+          <PatternRegionCanvas
+            pattern={clip.pattern}
+            durationMs={clip.durationMs}
+            inPointMs={clip.inPointMs ?? 0}
+            loopLengthMs={clip.loopLengthMs}
+            patternPhaseTicks={clip.patternPhaseTicks}
+            bpm={bpm}
+            widthPx={widthPx}
+            color={region.content}
+          />
+        )}
+        {clip.mediaType === "midi" && !clip.pattern && (
           <MidiNotesCanvas
             notes={clip.notes}
             controllers={clip.controllers}
             inPointMs={clip.inPointMs ?? 0}
             durationMs={clip.durationMs}
             loopLengthMs={clip.loopLengthMs}
+            transpose={clip.transpose}
+            velocityOffset={clip.velocityOffset}
+            quantize={clip.quantize}
+            startMs={clip.startMs}
+            gridOffsetMs={gridOffsetMs}
             bpm={bpm}
             widthPx={widthPx}
+            color={region.content}
           />
         )}
 
@@ -1129,7 +1194,8 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
 
         {/* Header strip: type dot · [icon] · name · duration */}
         <div css={clipHeaderRowStyles}>
-          <span css={dotCss} aria-hidden />
+          {/* Spec 2.1: the dot before the name marks a muted region only. */}
+          {disabled && <span css={dotCss} aria-hidden />}
           {clip.mediaType === "adjustment" && (
             <TuneOutlinedIcon
               sx={{ fontSize: ICON_SIZE.xs, flexShrink: 0, color: accent }}
@@ -1138,7 +1204,7 @@ export const ClipBody: React.FC<ClipBodyProps> = memo(
           )}
           <span css={nameCss}>{displayName}</span>
           {showDuration && (
-            <span css={durationCss}>{durationLabel}</span>
+            <span css={durationCss} data-clip-length>{durationLabel}</span>
           )}
         </div>
 
@@ -1230,4 +1296,11 @@ function formatClipDuration(durationMs: number): string {
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/** Region length as bars and beats, e.g. "4.0" or "2.3" (quarter-note beats). */
+export function formatBarsBeats(durationMs: number, bpm: number, beatsPerBar: number): string {
+  const beats = Math.round((durationMs * bpm) / 60_000);
+  const perBar = Math.max(1, beatsPerBar);
+  return `${Math.floor(beats / perBar)}.${beats % perBar}`;
 }

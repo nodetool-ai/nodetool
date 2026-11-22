@@ -67,19 +67,23 @@ import type {
 } from "@nodetool-ai/timeline";
 
 import { useTimelineStore, useTimelineStoreApi, timelineTemporalOf } from "../../../stores/timeline/TimelineStore";
-import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import {
+  MAX_PIANO_ROLL_LANE_HEIGHT_PX,
+  MIN_PIANO_ROLL_LANE_HEIGHT_PX,
+  useTimelineUIStore
+} from "../../../stores/timeline/TimelineUIStore";
 import type { PianoRollTool } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { findClipById } from "../../../stores/timeline/clipLookup";
-import { Caption, Dialog, EditorButton, FlexColumn, FlexRow, SelectField, SPACING, TextInput } from "../../ui_primitives";
+import { BORDER_RADIUS, Caption, Dialog, EditorButton, FlexColumn, FlexRow, SelectField, SPACING, TextInput, TYPOGRAPHY } from "../../ui_primitives";
 import { playAuditionNote } from "../preview/audition";
 import { partitionTimelineWheel } from "../Tracks/timelineWheel";
 import { visibleTempoGrid } from "../Tracks/tempoGrid";
 import { PianoRollGrid } from "./PianoRollGrid";
 import { PianoRollToolbar } from "./PianoRollToolbar";
 import { PianoRollInspector } from "./PianoRollInspector";
-import { PianoRollRegionStrip, REGION_STRIP_HEIGHT_PX } from "./PianoRollRegionStrip";
+import { PianoRollRegionStrip, REGION_STRIP_HEIGHT_PX, regionParamBadges } from "./PianoRollRegionStrip";
 import { usePianoRollFunctions } from "./usePianoRollFunctions";
 import {
   addStepNote,
@@ -91,6 +95,9 @@ import {
   isMacPlatform,
   moveNotesByRows,
   positionText,
+  resizeNoteStarts,
+  semitoneText,
+  lengthText,
   resolveTool,
   scaleSnapFor,
   shiftVelocity,
@@ -110,6 +117,7 @@ import {
   VELOCITY_LANE_HEIGHT_PX
 } from "./PianoRollVelocityLane";
 import { PianoRollCurveLane } from "./PianoRollCurveLane";
+import { LaneResizeHandle } from "./LaneResizeHandle";
 import {
   CONTROLLER_LANE_VALUES,
   EXPRESSION_LANE_VALUES,
@@ -122,6 +130,7 @@ import {
 } from "./pianoRollLanes";
 import {
   hitTestNote,
+  fitPitchView,
   initialTopPitch,
   type RowSet,
   snapTickToGrid,
@@ -142,6 +151,13 @@ const ROW_HEIGHT_PX = 16;
 /** The vertical zoom sliders's range, as a factor of the default row height. */
 const MIN_V_ZOOM = 0.5;
 const MAX_V_ZOOM = 2;
+/**
+ * The opening fit only zooms out: a range taller than the panel shrinks its
+ * rows, a short range keeps the standard row height and is centred.
+ */
+const MAX_FIT_V_ZOOM = 1;
+/** Where the inspector toggle is kept between sessions. */
+export const INSPECTOR_STORAGE_KEY = "nodetool.pianoRoll.inspector";
 /** Catch Playhead puts the playhead this far in from the left edge. */
 const CATCH_PLAYHEAD_FRACTION = 0.05;
 /** Zoom to Fit leaves this much room around the notes. */
@@ -152,7 +168,11 @@ const MAX_PX_PER_TICK = 1;
 /** One wheel notch's zoom factor, matching the tracks region's feel. */
 const ZOOM_STEP = 1.15;
 /** Height of the lane selector row above the lane. */
-const LANE_HEADER_HEIGHT_PX = 32;
+const LANE_HEADER_HEIGHT_PX = 28;
+/** Gap between the pointer and the drag help tag. */
+const HELP_TAG_OFFSET_PX = 8;
+/** Height of the divider that resizes the lane. Matches `LaneResizeHandle`. */
+const LANE_HANDLE_HEIGHT_PX = 4;
 /** Grid lines closer together than this are not drawn. */
 const MIN_LINE_GAP_PX = 4;
 /** How far a pointer must travel before a press becomes a drag. */
@@ -185,7 +205,7 @@ const playheadStyles = (theme: Theme) =>
     bottom: 0,
     width: 1,
     pointerEvents: "none",
-    backgroundColor: theme.vars.palette.primary.main
+    backgroundColor: theme.vars.palette.secondary.main
   });
 
 /** How many ticks one step of the editor's grid division spans. */
@@ -206,10 +226,13 @@ export function gridDivisionTicks(
 /** What a pointer gesture on the grid is doing. */
 type GridDrag =
   | {
-      kind: "move" | "resize";
+      kind: "move" | "resize" | "resizeStart";
       ids: string[];
       baseline: MidiNote[];
       anchorTick: number;
+      /** Pitch and id of the note under the press, for the help tag. */
+      anchorPitch: number;
+      anchorId: string;
       pointerStartTick: number;
       pointerStartPitch: number;
       lastPitch: number;
@@ -260,6 +283,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
     );
     const settings = useTimelineUIStore((s) => s.pianoRollSettings);
     const setSettings = useTimelineUIStore((s) => s.setPianoRollSettings);
+    const laneHeightPx = settings.laneHeightPx ?? VELOCITY_LANE_HEIGHT_PX;
     const snapEnabled = settings.snapOn;
     const settingsRef = useRef(settings);
     settingsRef.current = settings;
@@ -299,6 +323,10 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
     const frozenRowsRef = useRef(frozenRows);
     frozenRowsRef.current = frozenRows;
     const [marquee, setMarquee] = useState<NoteRect | null>(null);
+    /** The note under the pointer while nothing is dragged. */
+    const [hoveredId, setHoveredId] = useState<string | null>(null);
+    /** The help tag at the pointer during a drag: position, length or pitch change. */
+    const [helpTag, setHelpTag] = useState<{ x: number; y: number; text: string } | null>(null);
 
     const gridWrapRef = useRef<HTMLDivElement | null>(null);
     const rootRef = useRef<HTMLDivElement | null>(null);
@@ -405,9 +433,9 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
         Math.min(MAX_PX_PER_TICK, Math.max(MIN_PX_PER_TICK, size.width / span))
       );
       setScrollTick(windowFromTick);
-      setTopPitch(
-        initialTopPitch(notesRef.current, size.height / rowHeightPx)
-      );
+      const fit = fitPitchView(notesRef.current, size.height, ROW_HEIGHT_PX, MIN_V_ZOOM, MAX_FIT_V_ZOOM);
+      setVZoom(fit.vZoom);
+      setTopPitch(fit.topPitch);
       setSelectedIds(new Set());
     }, [clipId, size.width, size.height, windowFromTick, windowToTick]);
 
@@ -524,6 +552,18 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
       selectedIdsRef.current = ids;
       setSelectedIds(ids);
     }, []);
+    const handleSelectPitch = useCallback(
+      (pitch: number, additive: boolean) => {
+        const ids = new Set(additive ? selectedIdsRef.current : []);
+        for (const n of notesRef.current) {
+          if (n.pitch === pitch) {
+            ids.add(n.id);
+          }
+        }
+        selectIds(ids);
+      },
+      [selectIds]
+    );
     const write = useCallback(
       (next: MidiNote[]) => setClipNotes(clipId, next),
       [clipId, setClipNotes]
@@ -742,20 +782,22 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
         }
         const edge: NoteHitEdge = hit.edge;
         dragRef.current = {
-          kind: edge === "end" ? "resize" : "move",
+          kind: edge === "end" ? "resize" : edge === "start" ? "resizeStart" : "move",
           ids,
           baseline: [...gestureNotes],
           anchorTick:
             edge === "end"
               ? hit.note.startTick + hit.note.durationTick
               : hit.note.startTick,
+          anchorPitch: hit.note.pitch,
+          anchorId: hit.note.id,
           pointerStartTick: pointerTick,
           pointerStartPitch: pointerPitch,
           lastPitch: hit.note.pitch,
           startX: e.clientX,
           startY: e.clientY,
           moved: false,
-          duplicate: e.altKey && edge !== "end"
+          duplicate: e.altKey && edge === "body"
         };
         history.begin();
       } else {
@@ -787,10 +829,12 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
         if (tool === "pencil" && hit) tool = "pointer";
         setCursor(
           tool === "pointer"
-            ? hit ? hit.edge === "end" ? "ew-resize" : e.altKey ? "copy" : "grab" : toolCursor("pointer")
+            ? hit ? hit.edge !== "body" ? "ew-resize" : e.altKey ? "copy" : "grab" : toolCursor("pointer")
             : toolCursor(tool)
         );
         hoveringRef.current = true;
+        const nextHover = hit ? hit.note.id : null;
+        setHoveredId((prev) => (prev === nextHover ? prev : nextHover));
         writePosition(pointerPitch >= 0 && pointerPitch <= 127 ? pointerPitch : null, Math.max(0, pointerTick));
         return;
       }
@@ -847,20 +891,28 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
         selectIds(new Set(drag.ids));
       }
       drag.moved = true;
-      setCursor(drag.kind === "resize" ? "ew-resize" : drag.duplicate ? "copy" : "grabbing");
+      setCursor(drag.kind === "move" ? (drag.duplicate ? "copy" : "grabbing") : "ew-resize");
       const rawDelta = pointerTick - drag.pointerStartTick;
       const deltaTick =
         snapOrNot(drag.anchorTick + rawDelta, bypassSnap) - drag.anchorTick;
 
-      if (drag.kind === "resize") {
-        commit(
-          resizeNotes(
-            drag.baseline,
-            drag.ids,
-            deltaTick,
-            snapEnabled && !bypassSnap ? gridStepTicks : 1
-          )
-        );
+      if (drag.kind === "resize" || drag.kind === "resizeStart") {
+        const minTick = snapEnabled && !bypassSnap ? gridStepTicks : 1;
+        const resized =
+          drag.kind === "resize"
+            ? resizeNotes(drag.baseline, drag.ids, deltaTick, minTick)
+            : resizeNoteStarts(drag.baseline, drag.ids, deltaTick, minTick);
+        commit(resized);
+        const anchor = resized.find((note) => note.id === drag.anchorId);
+        if (anchor) {
+          setHelpTag({
+            x,
+            y,
+            text: drag.kind === "resize"
+              ? lengthText(anchor.durationTick)
+              : `${positionText(null, tickToTimelineMs(anchor.startTick), tempo).trim()}  ${lengthText(anchor.durationTick)}`
+          });
+        }
         return;
       }
 
@@ -878,6 +930,13 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
       commit(next);
       const anchor = next.find((note) => note.id === drag.ids[0]);
       if (anchor) writePosition(anchor.pitch, anchor.startTick);
+      if (anchor) {
+        setHelpTag({
+          x,
+          y,
+          text: `${positionText(anchor.pitch, tickToTimelineMs(anchor.startTick), tempo).trim()}  ${semitoneText(anchor.pitch - drag.anchorPitch)}`
+        });
+      }
       if (anchor && anchor.pitch !== drag.lastPitch) {
         drag.lastPitch = anchor.pitch;
         audition(anchor.pitch);
@@ -889,6 +948,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
       const drag = dragRef.current;
       dragRef.current = null;
       hoveringRef.current = false;
+      setHelpTag(null);
       thawRows();
       if (!drag) return;
       if (drag.kind === "marquee") {
@@ -899,7 +959,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
         return;
       }
       if (
-        (drag.kind === "move" || drag.kind === "resize") &&
+        (drag.kind === "move" || drag.kind === "resize" || drag.kind === "resizeStart") &&
         drag.moved &&
         settingsRef.current.dragMode === "noOverlap"
       ) {
@@ -914,6 +974,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
       const drag = dragRef.current;
       dragRef.current = null;
       setMarquee(null);
+      setHelpTag(null);
       thawRows();
       if (drag && drag.kind !== "marquee") history.end();
     };
@@ -921,6 +982,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
     const handlePointerLeave = (): void => {
       if (dragRef.current) return;
       hoveringRef.current = false;
+      setHoveredId(null);
       showSelectionPosition();
     };
 
@@ -1352,6 +1414,26 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
     const quantizeSettings = useTimelineUIStore((s) => s.quantizeSettings);
     const setQuantizeSettings = useTimelineUIStore((s) => s.setQuantizeSettings);
 
+    // The inspector toggle is a per-viewer preference: it survives a reload.
+    useEffect(() => {
+      if (settings.inspector !== null) {
+        try {
+          localStorage.setItem(INSPECTOR_STORAGE_KEY, String(settings.inspector));
+        } catch {
+          // Storage can be blocked. The toggle still works for this session.
+        }
+        return;
+      }
+      try {
+        const stored = localStorage.getItem(INSPECTOR_STORAGE_KEY);
+        if (stored === "true" || stored === "false") {
+          setSettings({ inspector: stored === "true" });
+        }
+      } catch {
+        // No storage: keep the default for the panel width.
+      }
+    }, [settings.inspector, setSettings]);
+
     if (!clip) return null;
 
     const inspectorVisible = settings.inspector ?? !compact;
@@ -1376,6 +1458,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
         sx={{ flex: 1, minHeight: 0 }}
       >
         <PianoRollToolbar
+          inspectorVisible={inspectorVisible}
           mac={mac}
           hasSelection={selectedNotes.length > 0}
           hasNotes={notes.length > 0}
@@ -1439,8 +1522,9 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
               geometry={geometry}
               heightPx={size.height}
               instrument={instrument}
+              onSelectPitch={handleSelectPitch}
             />
-            {settings.midiDraw && <div style={{ height: LANE_HEADER_HEIGHT_PX + VELOCITY_LANE_HEIGHT_PX }} />}
+            {settings.midiDraw && <div style={{ height: LANE_HANDLE_HEIGHT_PX + LANE_HEADER_HEIGHT_PX + laneHeightPx }} />}
           </FlexColumn>
           <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
             <PianoRollRuler
@@ -1458,6 +1542,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
               windowToTick={windowToTick}
               name={clip.name || t("pass3_20.pianoRoll.labels.midiClip")}
               clipColor={clipColor}
+              badges={regionParamBadges(clip)}
             />
             <div
               ref={gridWrapRef}
@@ -1481,6 +1566,8 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
                 beatTicks={beatLines}
                 stepTicks={stepLines}
                 noteColorMode={settings.noteColor}
+                noteNames={settings.noteNames}
+                hoveredId={helpTag ? null : hoveredId}
                 clipColor={clipColor}
                 barTicks={barTicks}
                 windowFromTick={windowFromTick}
@@ -1488,8 +1575,37 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
                 marquee={marquee}
               />
               <div ref={playheadRef} css={playheadStyles(theme)} aria-hidden />
+              {helpTag && (
+                <Caption
+                  data-testid="piano-roll-help-tag"
+                  aria-live="off"
+                  sx={{
+                    ...TYPOGRAPHY.mono.caption,
+                    position: "absolute",
+                    left: helpTag.x + HELP_TAG_OFFSET_PX,
+                    top: Math.max(0, helpTag.y - HELP_TAG_OFFSET_PX * 3),
+                    px: SPACING.xs,
+                    whiteSpace: "pre",
+                    pointerEvents: "none",
+                    borderRadius: BORDER_RADIUS.xs,
+                    color: theme.vars.palette.text.primary,
+                    backgroundColor: theme.vars.palette.background.paper,
+                    border: `1px solid ${theme.vars.palette.divider}`,
+                    boxShadow: theme.shadows[2]
+                  }}
+                >
+                  {helpTag.text}
+                </Caption>
+              )}
             </div>
             {settings.midiDraw && (<>
+            <LaneResizeHandle
+              label={t("pass3_20.pianoRoll.lanes.resize")}
+              heightPx={laneHeightPx}
+              minPx={MIN_PIANO_ROLL_LANE_HEIGHT_PX}
+              maxPx={MAX_PIANO_ROLL_LANE_HEIGHT_PX}
+              onResize={(laneHeight) => setSettings({ laneHeightPx: laneHeight })}
+            />
             <FlexRow
               align="center"
               gap={SPACING.sm}
@@ -1501,7 +1617,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
                 size="small"
                 value={activeLane}
                 options={laneOptions}
-                css={css({ width: 168 })}
+                css={css({ width: "auto", flex: "none" })}
                 onChange={(value) => setLaneValue(value as LaneValue)}
               />
               {activeLane === "otherCc" && (
@@ -1533,6 +1649,7 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
             </FlexRow>
             {laneCurve ? (
               <PianoRollCurveLane
+                heightPx={laneHeightPx}
                 key={`${activeLane}:${singleNoteId ?? ""}`}
                 curve={laneCurve}
                 geometry={geometry}
@@ -1556,10 +1673,13 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
               />
             ) : (
               <PianoRollVelocityLane
+                heightPx={laneHeightPx}
                 notes={notes}
                 selectedIds={selectedIds}
                 geometry={geometry}
                 widthPx={size.width}
+                noteColorMode={settings.noteColor}
+                clipColor={clipColor}
                 onGestureStart={handleVelocityStart}
                 onVelocityChange={handleVelocityChange}
                 onGestureEnd={handleVelocityEnd}

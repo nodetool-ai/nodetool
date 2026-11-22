@@ -10,27 +10,33 @@
  */
 import React, { memo, useEffect, useRef } from "react";
 import { css } from "@emotion/react";
-import { useColorScheme, useTheme } from "@mui/material/styles";
 import {
   activeLoopMs,
   expandMidiLoop,
   ticksToMs,
   visibleNotes
 } from "@nodetool-ai/timeline";
-import type { MidiControllerLane, MidiNote } from "@nodetool-ai/timeline";
+import type { MidiControllerLane, MidiNote, TimelineClip } from "@nodetool-ai/timeline";
 import { controllerCurveVertices, curveLane } from "./midiCurve";
+import { CLIP_NAME_BAR_PX } from "./automation/automationLayout";
 
 /** The controller curve is drawn at this opacity over the note lines. */
 const CURVE_OPACITY = 0.7;
+/** Space kept above and below the note lines. */
+const NOTE_INSET_PX = 2;
 
+// The lines sit in the body, below the name band (spec 2.1).
 const canvasStyles = css({
   position: "absolute",
-  inset: 0,
+  top: CLIP_NAME_BAR_PX,
+  left: 0,
+  right: 0,
+  bottom: 0,
   pointerEvents: "none",
   zIndex: 0,
   display: "block",
   width: "100%",
-  height: "100%"
+  height: `calc(100% - ${CLIP_NAME_BAR_PX}px)`
 });
 
 interface MidiNotesCanvasProps {
@@ -41,21 +47,22 @@ interface MidiNotesCanvasProps {
   durationMs: number;
   /** Region loop: the window repeats until `durationMs`; repeats draw dimmed. */
   loopLengthMs?: number;
+  /** Region parameters (CE6): the lines show the notes as they play. */
+  transpose?: number;
+  velocityOffset?: number;
+  quantize?: TimelineClip["quantize"];
+  /** The clip's place on the timeline and `tempo.offsetMs`: a quantize snaps to the tempo grid. */
+  startMs?: number;
+  gridOffsetMs?: number;
   bpm: number;
   widthPx: number;
+  /** Line color: the region's content tint, a plain color for canvas. */
+  color: string;
 }
 
 export const MidiNotesCanvas: React.FC<MidiNotesCanvasProps> = memo(
-  ({ notes, controllers, inPointMs, durationMs, loopLengthMs, bpm, widthPx }) => {
-    const theme = useTheme();
+  ({ notes, controllers, inPointMs, durationMs, loopLengthMs, transpose, velocityOffset, quantize, startMs, gridOffsetMs = 0, bpm, widthPx, color }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    // Canvas 2D ignores a `var(--…)` fillStyle, which is what
-    // `theme.vars.palette` holds, so read the active scheme's plain value.
-    const { mode, systemMode } = useColorScheme();
-    const activeMode = (mode === "system" ? systemMode : mode) ?? "dark";
-    const color =
-      theme.colorSchemes?.[activeMode]?.palette?.primary?.main ??
-      theme.palette.primary.main;
 
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -75,8 +82,9 @@ export const MidiNotesCanvas: React.FC<MidiNotesCanvasProps> = memo(
       // A looped clip draws its window once per repeat; the repeats are dimmed.
       const loopMs = activeLoopMs({ loopLengthMs, durationMs });
       const looped = expandMidiLoop(
-        { notes, controllers, inPointMs, durationMs, loopLengthMs },
-        bpm
+        { notes, controllers, inPointMs, durationMs, loopLengthMs, startMs, transpose, velocityOffset, quantize },
+        bpm,
+        gridOffsetMs
       );
       const played = visibleNotes(looped, bpm);
 
@@ -84,7 +92,9 @@ export const MidiNotesCanvas: React.FC<MidiNotesCanvasProps> = memo(
         const pitches = played.map((n) => n.pitch);
         const lowest = Math.min(...pitches);
         const span = Math.max(1, Math.max(...pitches) - lowest);
-        const barHeight = Math.max(2, Math.min(6, cssHeight / (span + 1)));
+        // Spec 2.2: lines 2 thick (or the pitch step if smaller), with a 2px
+        // inset above the highest and below the lowest note.
+        const barHeight = Math.max(1, Math.min(2, (cssHeight - 2 * NOTE_INSET_PX) / (span + 1)));
         const pxPerMs = cssWidth / durationMs;
 
         ctx.fillStyle = color;
@@ -95,7 +105,8 @@ export const MidiNotesCanvas: React.FC<MidiNotesCanvasProps> = memo(
             durationMs - startMs
           );
           const y =
-            (1 - (note.pitch - lowest) / span) * (cssHeight - barHeight) +
+            NOTE_INSET_PX +
+            (1 - (note.pitch - lowest) / span) * (cssHeight - 2 * NOTE_INSET_PX - barHeight) +
             barHeight / 2;
           const x = startMs * pxPerMs;
           const width = Math.max(1, lengthMs * pxPerMs);
@@ -108,7 +119,7 @@ export const MidiNotesCanvas: React.FC<MidiNotesCanvasProps> = memo(
           }
           const repeatDim =
             loopMs !== undefined && startMs >= loopMs - 1e-6 ? 0.5 : 1;
-          ctx.globalAlpha = (0.35 + (note.velocity / 127) * 0.5) * repeatDim;
+          ctx.globalAlpha = (0.7 + (note.velocity / 127) * 0.3) * repeatDim;
           ctx.fillRect(x, y - barHeight / 2, width, barHeight);
         }
         ctx.globalAlpha = 1;
@@ -133,7 +144,7 @@ export const MidiNotesCanvas: React.FC<MidiNotesCanvasProps> = memo(
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
-    }, [notes, controllers, inPointMs, durationMs, loopLengthMs, bpm, widthPx, color]);
+    }, [notes, controllers, inPointMs, durationMs, loopLengthMs, transpose, velocityOffset, quantize, startMs, gridOffsetMs, bpm, widthPx, color]);
 
     return <canvas ref={canvasRef} css={canvasStyles} aria-hidden />;
   }

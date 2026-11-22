@@ -32,6 +32,16 @@ function fakeContext() {
       fftSize: 2048,
       connect: jest.fn(),
       disconnect: jest.fn()
+    })),
+    createStereoPanner: jest.fn(() => ({
+      pan: {
+        value: 0,
+        setTargetAtTime: jest.fn()
+      },
+      channelCount: 2,
+      channelCountMode: "explicit",
+      connect: jest.fn(),
+      disconnect: jest.fn()
     }))
   };
   return { ctx: ctx as unknown as BaseAudioContext, gains };

@@ -2,8 +2,6 @@ import { automationTargetKey, type TimelineTrack } from "@nodetool-ai/timeline";
 
 /** Height of one automation sub-lane under its track. */
 export const AUTOMATION_LANE_HEIGHT_PX = 56;
-/** Height of the strip under the sub-lanes that adds another one. */
-export const AUTOMATION_FOOTER_HEIGHT_PX = 40;
 /** Height of the automation header row under a track's header controls. */
 export const AUTOMATION_HEADER_ROW_PX = 32;
 /** Height of the strip at the top of a clip that draws its name. */
@@ -83,9 +81,7 @@ export function automationSectionHeightPx(
   let height = AUTOMATION_HEADER_ROW_PX;
   if (layout.openTrackIds.includes(track.id)) {
     const shown = shownAutomationKey(track, layout.shownParams[track.id]);
-    height +=
-      automationSubLanes(track, shown).length * AUTOMATION_LANE_HEIGHT_PX +
-      AUTOMATION_FOOTER_HEIGHT_PX;
+    height += automationSubLanes(track, shown).length * AUTOMATION_LANE_HEIGHT_PX;
   }
   return height;
 }

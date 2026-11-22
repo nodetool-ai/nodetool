@@ -37,8 +37,6 @@ import {
   TOOL_ICONS,
   ZOOM_SLIDER_STEPS,
   ZOOM_SLIDER_WIDTH_PX,
-  toggleSx,
-  type ToggleColor
 } from "../pianoRoll/PianoRollToolbar";
 
 /** Every Step Editor tool, in menu order. */
@@ -158,15 +156,13 @@ export const StepEditorToolbar: React.FC<StepEditorToolbarProps> = memo(
       icon: ReactNode,
       label: string,
       active: boolean,
-      onToggle: () => void,
-      color: ToggleColor
+      onToggle: () => void
     ) => (
       <ToolbarIconButton
         key={id}
         tooltip={label}
         aria-label={label}
         active={active}
-        sx={toggleSx(theme, active, color)}
         onClick={onToggle}
       >
         {icon}
@@ -192,8 +188,8 @@ export const StepEditorToolbar: React.FC<StepEditorToolbarProps> = memo(
         <MenuButton label={L("menu.edit")} rows={editMenu} />
         <MenuButton label={L("menu.functions")} rows={functionsMenu} />
         <MenuButton label={L("menu.view")} rows={viewMenu} />
-        {toggle("midiOut", <PianoIcon />, L("toggle.midiOut"), settings.midiOut, () => setSettings({ midiOut: !settings.midiOut }), "success")}
-        {toggle("catch", <CenterFocusStrongIcon />, L("toggle.catch"), settings.catchPlayhead, () => setSettings({ catchPlayhead: !settings.catchPlayhead }), "primary")}
+        {toggle("midiOut", <PianoIcon />, L("toggle.midiOut"), settings.midiOut, () => setSettings({ midiOut: !settings.midiOut }))}
+        {toggle("catch", <CenterFocusStrongIcon />, L("toggle.catch"), settings.catchPlayhead, () => setSettings({ catchPlayhead: !settings.catchPlayhead }))}
         <StepToolMenu tool={tool} label={L("tool.left")} onPick={onTool} />
         <StepToolMenu tool={altTool} label={mac ? L("tool.cmd") : L("tool.ctrl")} onPick={onAltTool} />
         <Caption
