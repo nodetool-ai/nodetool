@@ -63,7 +63,7 @@ async function resolveDocumentId(
   }
   const { listDeletedDocuments: list } = await import("@nodetool-ai/models");
   const matches = (await list(userId)).filter(
-    (row) => row.kind === kind && row.documentId.startsWith(documentId)
+    (row) => row.kind === kind && row.documentId.startsWith(documentId) // key-boundary-ok: documentId is an exact 12-char short id and more than one match is refused below.
   );
   if (matches.length > 1) {
     return {
