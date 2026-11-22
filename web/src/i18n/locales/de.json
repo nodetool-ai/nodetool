@@ -20440,6 +20440,7 @@
     "running": "Senden und Empfangen…",
     "collect": "Sammeln",
     "collecting": "Verknüpfte Dateien werden in den Projektordner kopiert…",
+    "include": "Senden",
     "apply": {
       "publish": "Veröffentlichen",
       "synchronize": "Synchronisieren"
@@ -20474,8 +20475,8 @@
       "keepBoth": "Wird als Kopie neben der Cloud-Version gesendet",
       "addVersions": "Gespeicherte Versionen werden gesendet",
       "putAssetFile": "Datei hier geändert, wird gesendet",
-      "putWorkspaceFile": "Im Projektordner geändert, wird gesendet",
-      "newWorkspaceFile": "Neu im Projektordner, wird gesendet",
+      "putWorkspaceFile": "Im Projektordner geändert",
+      "newWorkspaceFile": "Neu im Projektordner",
       "newInCloud": "Neu in der Cloud",
       "cloudChanged": "In der Cloud geändert",
       "cloudFileChanged": "Eine verwendete Datei wurde in der Cloud geändert",

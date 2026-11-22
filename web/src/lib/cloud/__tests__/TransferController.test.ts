@@ -558,6 +558,56 @@ describe("TransferController (TC123)", () => {
     ]);
   });
 
+  it("sends only the workspace files the person includes (SR7)", async () => {
+    const put = (path: string, label: string) => ({
+      op: "put_workspace_file",
+      path,
+      hash: hash(label),
+      size: 4,
+      base_hash: null
+    });
+    const server = new QueueServer();
+    server.answer(
+      "cloudTransfer.send.capture",
+      captured("t1", { fileOperations: [put("notes/plan.md", "n"), put("data/new.csv", "d")] })
+    );
+    server.answer("cloudTransfer.receive.capture", receiveSet("s1"));
+    server.answer("cloudTransfer.receive.run", finished("s1"));
+    server.answer("cloudTransfer.send.run", committed("t1"));
+
+    const transfer = controller(server, { linked: true });
+    await transfer.start();
+    expect(transfer.snapshot.rows.map((row) => [row.label, row.optional, row.confirmed])).toEqual([
+      ["notes/plan.md", true, false],
+      ["data/new.csv", true, false]
+    ]);
+    expect(transfer.includeFile(0, true)).toBe(true);
+    await transfer.apply();
+    expect(transfer.snapshot.stage).toBe("finished");
+    expect(server.body("cloudTransfer.send.run", 0).include_workspace_files).toEqual([
+      { path: "notes/plan.md", hash: hash("n") }
+    ]);
+  });
+
+  it("sends nothing when every offered workspace file is left out (SR7)", async () => {
+    const server = new QueueServer();
+    server.answer(
+      "cloudTransfer.send.capture",
+      captured("t1", {
+        fileOperations: [{ op: "put_workspace_file", path: "data/new.csv", hash: hash("d"), size: 4, base_hash: null }]
+      })
+    );
+    server.answer("cloudTransfer.receive.capture", receiveSet("s1"));
+    server.answer("cloudTransfer.receive.run", finished("s1"));
+    server.answer("cloudTransfer.send.cancel", { state: "cancelled" });
+
+    const transfer = controller(server, { linked: true });
+    await transfer.start();
+    await transfer.apply();
+    expect(transfer.snapshot.stage).toBe("finished");
+    expect(server.calls()).not.toContain("cloudTransfer.send.run");
+  });
+
   it("sends a confirmed workspace file deletion as the only work", async () => {
     const server = new QueueServer();
     server.answer(

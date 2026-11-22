@@ -20440,6 +20440,7 @@
     "running": "Lähetetään ja vastaanotetaan…",
     "collect": "Kerää",
     "collecting": "Kopioidaan linkitettyjä tiedostoja projektikansioon…",
+    "include": "Lähetä",
     "apply": {
       "publish": "Julkaise",
       "synchronize": "Synkronoi"
@@ -20474,8 +20475,8 @@
       "keepBoth": "Lähetetään kopiona pilviversion rinnalle",
       "addVersions": "Tallennetut versiot lähetetään",
       "putAssetFile": "Tiedosto muutettu täällä, lähetetään",
-      "putWorkspaceFile": "Muutettu projektikansiossa, lähetetään",
-      "newWorkspaceFile": "Uusi projektikansiossa, lähetetään",
+      "putWorkspaceFile": "Muutettu projektikansiossa",
+      "newWorkspaceFile": "Uusi projektikansiossa",
       "newInCloud": "Uusi pilvessä",
       "cloudChanged": "Muutettu pilvessä",
       "cloudFileChanged": "Sen käyttämä tiedosto muuttui pilvessä",

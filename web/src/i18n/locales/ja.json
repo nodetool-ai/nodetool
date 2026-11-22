@@ -20440,6 +20440,7 @@
     "running": "送信と受信を実行中…",
     "collect": "収集",
     "collecting": "リンクされたファイルをプロジェクトフォルダーにコピーしています…",
+    "include": "送信",
     "apply": {
       "publish": "公開",
       "synchronize": "同期"
@@ -20474,8 +20475,8 @@
       "keepBoth": "クラウドのバージョンの横にコピーとして送信されます",
       "addVersions": "保存したバージョンが送信されます",
       "putAssetFile": "ここでファイルが変更されました。送信されます",
-      "putWorkspaceFile": "プロジェクトフォルダーで変更、送信されます",
-      "newWorkspaceFile": "プロジェクトフォルダーに新規、送信されます",
+      "putWorkspaceFile": "プロジェクトフォルダーで変更",
+      "newWorkspaceFile": "プロジェクトフォルダーに新規",
       "newInCloud": "クラウドで新規作成",
       "cloudChanged": "クラウドで変更されました",
       "cloudFileChanged": "使用しているファイルがクラウドで変更されました",

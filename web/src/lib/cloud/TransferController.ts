@@ -27,6 +27,7 @@ import {
 } from "./transferCalls";
 import {
   failuresFrom,
+  hasRequiredWork,
   receiveCaptureFrom,
   sendCaptureFrom,
   TransferReview,
@@ -168,7 +169,8 @@ const sendRunOf = async (
     keep,
     review.confirmedDeletes(),
     review.confirmedMissingFiles(),
-    review.confirmedFileDeletes()
+    review.confirmedFileDeletes(),
+    review.includedFiles()
   );
   if (run.status !== "ok") {
     return run;
@@ -435,7 +437,7 @@ export class TransferController {
       return;
     }
     this.setId = captured.receive.data.setId;
-    this.sendWork = send.data.operations.length > 0 || send.data.fileOperations.length > 0;
+    this.sendWork = hasRequiredWork(send.data);
     this.review = new TransferReview(send.data, captured.receive.data);
     this.sendCapture = send.data;
     this.approved = send.data.operations;
@@ -462,6 +464,15 @@ export class TransferController {
 
   confirmMissingFile(index: number, confirmed: boolean): boolean {
     if (index < 0 || this.stage !== "reviewing" || !this.review.confirmMissingFile(index, confirmed)) {
+      return false;
+    }
+    this.changed();
+    return true;
+  }
+
+  /** Includes the workspace file of an optional send row. Each is off by default (PRD SR7). */
+  includeFile(index: number, included: boolean): boolean {
+    if (index < 0 || this.stage !== "reviewing" || !this.review.includeFile(index, included)) {
       return false;
     }
     this.changed();
@@ -498,7 +509,8 @@ export class TransferController {
         this.sendWork ||
         !this.linked ||
         this.review.confirmedDeletes().length > 0 ||
-        this.review.confirmedFileDeletes().length > 0,
+        this.review.confirmedFileDeletes().length > 0 ||
+        this.review.includedFiles().length > 0,
       approved: this.approved,
       approvedFiles: this.approvedFiles
     });
@@ -596,10 +608,10 @@ export class TransferController {
         return applied;
       }
       sendWork =
-        again.data.operations.length > 0 ||
-        again.data.fileOperations.length > 0 ||
+        hasRequiredWork(again.data) ||
         review.confirmedDeletes().length > 0 ||
-        review.confirmedFileDeletes().length > 0;
+        review.confirmedFileDeletes().length > 0 ||
+        review.includedFiles().length > 0;
     }
     if (sendWork) {
       const keep = review.keepLocalDecisions();
@@ -713,7 +725,7 @@ export class TransferController {
         return;
       }
       this.transferId = again.data.transferId;
-      this.sendWork = again.data.operations.length > 0 || again.data.fileOperations.length > 0;
+      this.sendWork = hasRequiredWork(again.data);
       if (applied.unreviewed.length > 0 || applied.unreviewedFiles.length > 0) {
         // The receive is done. The send shows again with what changed here.
         this.review = new TransferReview(again.data, null);

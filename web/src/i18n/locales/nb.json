@@ -20440,6 +20440,7 @@
     "running": "Sender og mottar…",
     "collect": "Samle",
     "collecting": "Kopierer koblede filer til prosjektmappen…",
+    "include": "Send",
     "apply": {
       "publish": "Publiser",
       "synchronize": "Synkroniser"
@@ -20474,8 +20475,8 @@
       "keepBoth": "Sendes som en kopi ved siden av skyversjonen",
       "addVersions": "Lagrede versjoner sendes",
       "putAssetFile": "Filen er endret her, sendes",
-      "putWorkspaceFile": "Endret i prosjektmappen, sendes",
-      "newWorkspaceFile": "Ny i prosjektmappen, sendes",
+      "putWorkspaceFile": "Endret i prosjektmappen",
+      "newWorkspaceFile": "Ny i prosjektmappen",
       "newInCloud": "Ny i skyen",
       "cloudChanged": "Endret i skyen",
       "cloudFileChanged": "En fil den bruker er endret i skyen",

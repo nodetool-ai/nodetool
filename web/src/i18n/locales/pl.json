@@ -21068,6 +21068,7 @@
     "running": "Wysyłanie i odbieranie…",
     "collect": "Zbierz",
     "collecting": "Kopiowanie połączonych plików do folderu projektu…",
+    "include": "Wyślij",
     "apply": {
       "publish": "Opublikuj",
       "synchronize": "Synchronizuj"
@@ -21102,8 +21103,8 @@
       "keepBoth": "Zostanie wysłany jako kopia obok wersji z chmury",
       "addVersions": "Zapisane wersje zostaną wysłane",
       "putAssetFile": "Plik zmieniony tutaj, zostanie wysłany",
-      "putWorkspaceFile": "Zmieniono w folderze projektu, zostanie wysłany",
-      "newWorkspaceFile": "Nowy w folderze projektu, zostanie wysłany",
+      "putWorkspaceFile": "Zmieniono w folderze projektu",
+      "newWorkspaceFile": "Nowy w folderze projektu",
       "newInCloud": "Nowy w chmurze",
       "cloudChanged": "Zmieniony w chmurze",
       "cloudFileChanged": "Używany plik zmienił się w chmurze",

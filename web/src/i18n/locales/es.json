@@ -20754,6 +20754,7 @@
     "running": "Enviando y recibiendo…",
     "collect": "Reunir",
     "collecting": "Copiando los archivos vinculados en la carpeta del proyecto…",
+    "include": "Enviar",
     "apply": {
       "publish": "Publicar",
       "synchronize": "Sincronizar"
@@ -20788,8 +20789,8 @@
       "keepBoth": "Se enviará como copia junto a la versión de la nube",
       "addVersions": "Se enviarán las versiones guardadas",
       "putAssetFile": "Archivo cambiado aquí, se enviará",
-      "putWorkspaceFile": "Cambiado en la carpeta del proyecto, se enviará",
-      "newWorkspaceFile": "Nuevo en la carpeta del proyecto, se enviará",
+      "putWorkspaceFile": "Cambiado en la carpeta del proyecto",
+      "newWorkspaceFile": "Nuevo en la carpeta del proyecto",
       "newInCloud": "Nuevo en la nube",
       "cloudChanged": "Cambiado en la nube",
       "cloudFileChanged": "Un archivo que usa cambió en la nube",

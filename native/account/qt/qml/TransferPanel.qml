@@ -194,6 +194,13 @@ Rectangle {
                     onToggled: root.controller.confirmMissingFile(row.modelData.index, checked)
                 }
                 Ui.CheckBox {
+                    visible: row.modelData.optional
+                    objectName: "transfer-include-" + row.modelData.index
+                    text: "Send"
+                    checked: row.modelData.confirmed
+                    onToggled: root.controller.includeFile(row.modelData.index, checked)
+                }
+                Ui.CheckBox {
                     visible: row.modelData.section === "deletion"
                     objectName: "transfer-delete-" + row.modelData.index
                     text: "Keep deletion"

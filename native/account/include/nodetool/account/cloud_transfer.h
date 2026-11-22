@@ -120,6 +120,13 @@ struct TransferDeletedFile {
   std::string baseHash;
 };
 
+// A workspace file the person included in a send, with the hash the
+// capture listed.
+struct IncludedFile {
+  std::string path;
+  std::string hash;
+};
+
 // A deletion the person confirmed, bound to the cloud revision the sheet
 // showed. That hash is the delete's precondition (V4, review F40).
 struct DeleteConfirmation {
@@ -151,6 +158,11 @@ struct SendCapture {
   // from its last saved row (CF3, review F56).
   std::vector<TransferSkipped> missingDocumentFiles;
 };
+
+// Whether the capture holds work that is sent without a choice: a document
+// operation, or a file operation other than an optional workspace file put
+// (PRD SR7).
+bool hasRequiredWork(const SendCapture& send);
 
 // A Keep local choice for a document whose cloud version changed since its
 // base. `cloudHash` is the stored hash the review showed.
@@ -271,7 +283,8 @@ public:
   SendRun runSend(const std::string& transferId, const std::vector<KeepLocalDecision>& decisions,
                   const std::vector<DeleteConfirmation>& confirmDeletes,
                   const std::vector<TransferMissingFile>& confirmMissing = {},
-                  const std::vector<TransferDeletedFile>& confirmFileDeletes = {});
+                  const std::vector<TransferDeletedFile>& confirmFileDeletes = {},
+                  const std::vector<IncludedFile>& includeFiles = {});
   // Ends a send before it commits. `committed` is true when it had already
   // committed.
   struct Cancel {
@@ -387,8 +400,12 @@ struct ReviewRow {
   std::optional<ReceiveChoice> choice;
   // For a Deletion row: true once the person confirms Keep local deletion,
   // which deletes the cloud document. The default restores the document from
-  // the cloud (PRD V4 and V5).
+  // the cloud (PRD V4 and V5). For an optional Send row: true once the
+  // person includes the file.
   bool confirmed = false;
+  // A Send row of a workspace file. It is optional and off by default, and
+  // only an included one is sent (PRD SR7). `seenHash` holds its hash.
+  bool optional = false;
   // For a Deletion row: whether the send half lists the deletion (it can be
   // sent) and whether the receive half lists the cloud version (it can be
   // restored).
@@ -446,6 +463,9 @@ public:
   // Confirms or withdraws the deletion of Deletion row `index`. Returns
   // false for another row.
   bool confirmDeletion(std::size_t index, bool confirmed);
+  // Includes or leaves out the workspace file of optional Send row `index`.
+  // Returns false for another row.
+  bool includeFile(std::size_t index, bool included);
   // Confirms that the send goes without the missing file of Problem row
   // `index`, for every document that needs it. Returns false for another
   // row.
@@ -462,6 +482,8 @@ public:
   std::vector<DeleteConfirmation> confirmedDeletes() const;
   // The workspace file deletions the person confirmed.
   std::vector<TransferDeletedFile> confirmedFileDeletes() const;
+  // The workspace files the person included.
+  std::vector<IncludedFile> includedFiles() const;
   // The capture's missing files once each one is confirmed, or empty.
   std::vector<TransferMissingFile> confirmedMissingFiles() const;
 

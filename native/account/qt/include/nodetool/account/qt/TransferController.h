@@ -138,6 +138,9 @@ public:
   // Keep local deletion on a deletion row, which deletes the cloud
   // document. Off restores the document from the cloud.
   Q_INVOKABLE bool confirmDeletion(int index, bool confirmed);
+  // Includes the workspace file of an optional send row in the send. Each
+  // is off by default (PRD SR7).
+  Q_INVOKABLE bool includeFile(int index, bool included);
   // Send without the missing file of a problem row (canSendWithout), for
   // every document that needs it (X7).
   Q_INVOKABLE bool confirmMissingFile(int index, bool confirmed);

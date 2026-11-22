@@ -188,6 +188,12 @@ export interface ReviewRow {
   seenHash: string;
   /** For a missing-file Problem row: the file. */
   assetId: string;
+  /**
+   * A Send row of a workspace file. It is optional and off by default, and
+   * only an included one is sent (PRD SR7). `confirmed` is the inclusion and
+   * `seenHash` the file's hash.
+   */
+  optional: boolean;
 }
 
 const emptyRow = (section: ReviewSection): ReviewRow => ({
@@ -204,7 +210,8 @@ const emptyRow = (section: ReviewSection): ReviewRow => ({
   cloudHash: "",
   documentFileMissing: false,
   seenHash: "",
-  assetId: ""
+  assetId: "",
+  optional: false
 });
 
 const sameOperation = (a: TransferOperation, b: TransferOperation): boolean =>
@@ -228,6 +235,20 @@ export const unreviewedOperations = (
 
 const sameFileOperation = (a: TransferFileOperation, b: TransferFileOperation): boolean =>
   a.op === b.op && a.assetId === b.assetId && a.path === b.path && a.hash === b.hash && a.baseHash === b.baseHash;
+
+/** A workspace file the person included in a send, with the hash the capture listed. */
+export interface IncludedFile {
+  path: string;
+  hash: string;
+}
+
+/**
+ * Whether the capture holds work that is sent without a choice: a document
+ * operation, or a file operation other than an optional workspace file put
+ * (PRD SR7).
+ */
+export const hasRequiredWork = (send: Pick<SendCapture, "operations" | "fileOperations">): boolean =>
+  send.operations.length > 0 || send.fileOperations.some((op) => op.op !== "put_workspace_file");
 
 /** The file operations of `recaptured` that are not in `approved` (review F33). */
 export const unreviewedFileOperations = (
@@ -439,7 +460,9 @@ export class TransferReview {
         kind: "file",
         documentId: workspaceFile ? op.path : op.assetId,
         name: op.path,
-        detail: workspaceFile && op.baseHash === "" ? "new_workspace_file" : op.op
+        detail: workspaceFile && op.baseHash === "" ? "new_workspace_file" : op.op,
+        optional: workspaceFile,
+        seenHash: workspaceFile ? op.hash : ""
       });
     }
     for (const deleted of sent.deletedLocally) {
@@ -592,6 +615,23 @@ export class TransferReview {
   }
 
   /** Confirms or withdraws the deletion of Deletion row `index`. Returns false for another row. */
+  /** Includes or leaves out the workspace file of an optional Send row. */
+  includeFile(index: number, included: boolean): boolean {
+    const row = this.rowList[index];
+    if (row === undefined || !row.optional) {
+      return false;
+    }
+    row.confirmed = included;
+    return true;
+  }
+
+  /** The workspace files the person included. */
+  includedFiles(): IncludedFile[] {
+    return this.rowList
+      .filter((row) => row.optional && row.confirmed)
+      .map((row) => ({ path: row.documentId, hash: row.seenHash }));
+  }
+
   confirmDeletion(index: number, confirmed: boolean): boolean {
     const row = this.rowList[index];
     if (row === undefined || row.section !== "deletion") {

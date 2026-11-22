@@ -254,6 +254,39 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     expect(again.operations).toEqual([]);
   });
 
+  /** Includes every workspace file the review offers, as a person who ticks each one. */
+  const includeAll = (review: Awaited<ReturnType<typeof captureSend>>) => ({
+    includeWorkspaceFiles: review.fileOperations.flatMap((op) =>
+      op.op === "put_workspace_file" ? [{ path: op.path, hash: op.hash }] : []
+    )
+  });
+
+  it("sends a workspace file only when the review includes it (SR7)", async () => {
+    await workflowWithFile(null);
+    const notes = new TextEncoder().encode("shot list");
+    await folder.write("notes.txt", notes);
+    await folder.write("brief.md", new TextEncoder().encode("brief"));
+    const puts = () => (cloud.commits.at(-1)!.manifest.file_operations ?? []).filter((op) => op.op === "put_workspace_file");
+
+    const review = await captureSend(TARGET);
+    expect(await runSend(cloud, review.transferId)).toMatchObject({ status: "committed" });
+    expect(puts()).toEqual([]);
+
+    // Left out, it keeps no base and is offered again.
+    const again = await captureSend(TARGET);
+    expect(again.fileOperations.map((op) => op.path)).toEqual(["brief.md", "notes.txt"]);
+    // An inclusion for other bytes includes nothing.
+    await runSend(cloud, again.transferId, {
+      includeWorkspaceFiles: [{ path: "notes.txt", hash: "0".repeat(64) }]
+    });
+    expect(puts()).toEqual([]);
+
+    const third = await captureSend(TARGET);
+    await runSend(cloud, third.transferId, { includeWorkspaceFiles: [{ path: "notes.txt", hash: sha(notes) }] });
+    expect(puts()).toEqual([{ op: "put_workspace_file", path: "notes.txt", hash: sha(notes), size: notes.byteLength, base_hash: null }]);
+    expect((await captureSend(TARGET)).fileOperations.map((op) => op.path)).toEqual(["brief.md"]);
+  });
+
   it("sends the folder's workspace files, and only the ones that changed since (CF2, CF5, TC101)", async () => {
     const { workflow } = await workflowWithFile(randomBytes(64));
     const notes = new TextEncoder().encode("shot list");
@@ -275,7 +308,7 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
       "docs/brief.md",
       "notes.txt"
     ]);
-    expect(await runSend(cloud, review.transferId)).toMatchObject({ status: "committed" });
+    expect(await runSend(cloud, review.transferId, includeAll(review))).toMatchObject({ status: "committed" });
     expect(workspacePuts()).toEqual([
       { op: "put_workspace_file", path: "docs/brief.md", hash: sha(new TextEncoder().encode("brief")), size: 5, base_hash: null },
       { op: "put_workspace_file", path: "notes.txt", hash: sha(notes), size: notes.byteLength, base_hash: null }
@@ -300,7 +333,8 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     const notes = new TextEncoder().encode("shot list");
     await folder.write("notes.txt", notes);
     await folder.write("keep.txt", new TextEncoder().encode("keep"));
-    await runSend(cloud, (await captureSend(TARGET)).transferId);
+    const first = await captureSend(TARGET);
+    await runSend(cloud, first.transferId, includeAll(first));
     await folder.delete("notes.txt");
     // A file that a document now names stays, so it is no deletion.
     workflow.file_path = "graph.json";

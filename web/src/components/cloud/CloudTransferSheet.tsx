@@ -71,6 +71,14 @@ const TransferRow: React.FC<RowProps> = ({ row, controller }) => {
           <ToggleOption value="keep_local">{t("cloudTransfer.choice.keepLocal")}</ToggleOption>
         </ToggleGroup>
       )}
+      {row.optional && (
+        <Checkbox
+          compact
+          checked={row.confirmed}
+          onChange={(event) => controller.includeFile(row.index, event.target.checked)}
+          label={t("cloudTransfer.include")}
+        />
+      )}
       {row.section === "deletion" && row.canKeepDeletion && (
         <Checkbox
           compact

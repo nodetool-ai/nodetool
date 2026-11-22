@@ -20440,6 +20440,7 @@
     "running": "Sending and receiving…",
     "collect": "Collect",
     "collecting": "Copying linked files into the project folder…",
+    "include": "Send",
     "apply": {
       "publish": "Publish",
       "synchronize": "Synchronize"
@@ -20474,8 +20475,8 @@
       "keepBoth": "Will be sent as a copy beside the cloud version",
       "addVersions": "Saved versions will be sent",
       "putAssetFile": "File changed here, will be sent",
-      "putWorkspaceFile": "Changed in the project folder, will be sent",
-      "newWorkspaceFile": "New in the project folder, will be sent",
+      "putWorkspaceFile": "Changed in the project folder",
+      "newWorkspaceFile": "New in the project folder",
       "newInCloud": "New in the cloud",
       "cloudChanged": "Changed in the cloud",
       "cloudFileChanged": "A file it uses changed in the cloud",
