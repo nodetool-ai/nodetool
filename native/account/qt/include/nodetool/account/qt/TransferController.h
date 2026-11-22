@@ -92,6 +92,8 @@ public:
     Reviewing,
     // Files outside the project folder must be collected first (CF6).
     CollectFirst,
+    // Copying the linked files into the project folder (D22).
+    Collecting,
     // Receiving and sending.
     Running,
     Finished,
@@ -139,6 +141,11 @@ public:
   // Send without the missing file of a problem row (canSendWithout), for
   // every document that needs it (X7).
   Q_INVOKABLE bool confirmMissingFile(int index, bool confirmed);
+  // The Collect step of decision D22: copies the project's linked files into
+  // its Imported/ directory, then captures again. Ignored outside
+  // CollectFirst. A file that cannot be copied fails the transfer and is
+  // named, so nothing is sent without it.
+  Q_INVOKABLE void collect();
   // Runs the transfer as the sheet shows it. Ignored until ready().
   Q_INVOKABLE void apply();
   // Closes the sheet without sending, and ends the captured send.
@@ -173,6 +180,7 @@ private:
   void fail(const QString& message);
   void finishCapture(quint64 sequence, const Captured& captured);
   void finishApply(quint64 sequence, const Applied& applied);
+  void finishCollect(quint64 sequence, const LocalTransferClient::Collect& collected);
 
   std::shared_ptr<Shared> shared_;
   // Turned on by the destructor, so a running request returns at once
