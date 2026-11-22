@@ -27,6 +27,55 @@ export interface AssetFilePlacement {
   metadata: Record<string, unknown> | null;
 }
 
+/** Row-level patch applied inside {@link Asset.applyBatch}. */
+export interface AssetBatchUpdate {
+  id: string;
+  parent_id?: string | null;
+  metadata?: Record<string, unknown> | null;
+  workspace_path?: string | null;
+  size?: number | null;
+  content_hash?: string | null;
+}
+
+/** Updates and deletes that commit or roll back together in one transaction. */
+export interface AssetBatchMutation {
+  updates?: readonly AssetBatchUpdate[];
+  deleteIds?: readonly string[];
+}
+
+export interface AssetBatchMutationResult {
+  updated: Asset[];
+  deleted: Asset[];
+}
+
+function buildBatchUpdateValues(
+  patch: AssetBatchUpdate,
+  updatedAt: string
+): Partial<
+  Pick<
+    AssetInsert,
+    "parent_id" | "metadata" | "workspace_path" | "size" | "content_hash" | "updated_at"
+  >
+> {
+  const values: Partial<
+    Pick<
+      AssetInsert,
+      "parent_id" | "metadata" | "workspace_path" | "size" | "content_hash" | "updated_at"
+    >
+  > = { updated_at: updatedAt };
+  if (patch.parent_id !== undefined) values.parent_id = patch.parent_id;
+  if (patch.metadata !== undefined) {
+    values.metadata =
+      patch.metadata === null
+        ? null
+        : (JSON.parse(JSON.stringify(patch.metadata)) as Record<string, unknown>);
+  }
+  if (patch.workspace_path !== undefined) values.workspace_path = patch.workspace_path;
+  if (patch.size !== undefined) values.size = patch.size;
+  if (patch.content_hash !== undefined) values.content_hash = patch.content_hash;
+  return values;
+}
+
 export type AssetRow = typeof assets.$inferSelect;
 export type AssetInsert = typeof assets.$inferInsert;
 
@@ -634,6 +683,94 @@ export class Asset extends DBModel {
     const created = new Asset(row);
     ModelObserver.notify(created, ModelChangeEvent.CREATED);
     return created;
+  }
+
+  /**
+   * Apply asset row updates and deletes for `userId` in one database
+   * transaction.
+   *
+   * Every targeted row must exist and belong to `userId`. If any update or
+   * delete misses or fails, the entire transaction rolls back, leaving no
+   * partial move or delete, and no observer notifications fire.
+   */
+  static async applyBatch(
+    userId: string,
+    mutation: AssetBatchMutation
+  ): Promise<AssetBatchMutationResult> {
+    const updates = mutation.updates ?? [];
+    const deleteIds = mutation.deleteIds ?? [];
+    if (updates.length === 0 && deleteIds.length === 0) {
+      return { updated: [], deleted: [] };
+    }
+
+    const now = new Date().toISOString();
+    const updatedRows: AssetRow[] = [];
+    const deletedRows: AssetRow[] = [];
+    const connection = getDatabase();
+
+    if (connection.dialect === "sqlite") {
+      const table = connection.schema.assets;
+      connection.db.transaction((tx) => {
+        for (const patch of updates) {
+          const row = tx
+            .update(table)
+            .set(buildBatchUpdateValues(patch, now))
+            .where(and(eq(table.id, patch.id), eq(table.user_id, userId)))
+            .returning()
+            .get();
+          if (!row) {
+            throw new Error(`Asset "${patch.id}" was not found for user.`);
+          }
+          updatedRows.push(row);
+        }
+        for (const id of deleteIds) {
+          const row = tx
+            .delete(table)
+            .where(and(eq(table.id, id), eq(table.user_id, userId)))
+            .returning()
+            .get();
+          if (!row) {
+            throw new Error(`Asset "${id}" was not found for user.`);
+          }
+          deletedRows.push(row);
+        }
+      });
+    } else {
+      const table = connection.schema.assets;
+      await connection.db.transaction(async (tx) => {
+        for (const patch of updates) {
+          const [row] = await tx
+            .update(table)
+            .set(buildBatchUpdateValues(patch, now))
+            .where(and(eq(table.id, patch.id), eq(table.user_id, userId)))
+            .returning();
+          if (!row) {
+            throw new Error(`Asset "${patch.id}" was not found for user.`);
+          }
+          updatedRows.push(row);
+        }
+        for (const id of deleteIds) {
+          const [row] = await tx
+            .delete(table)
+            .where(and(eq(table.id, id), eq(table.user_id, userId)))
+            .returning();
+          if (!row) {
+            throw new Error(`Asset "${id}" was not found for user.`);
+          }
+          deletedRows.push(row);
+        }
+      });
+    }
+
+    const updated = updatedRows.map((row) => new Asset(row));
+    const deleted = deletedRows.map((row) => new Asset(row));
+    for (const asset of updated) {
+      ModelObserver.notify(asset, ModelChangeEvent.UPDATED);
+    }
+    for (const asset of deleted) {
+      ModelObserver.notify(asset, ModelChangeEvent.DELETED);
+    }
+    return { updated, deleted };
   }
 
   /**

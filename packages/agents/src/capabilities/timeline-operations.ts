@@ -362,13 +362,56 @@ function slugForStepPatternFile(name: string, fallback: string): string {
  * Server-backed user step pattern library (SQ43, SQ44, D92): persists JSON
  * assets of content type `application/x-nodetool-step-pattern` under
  * `Step Patterns/<Patterns|Templates>/<folder>`.
+ *
+ * Folder rename and delete commit all affected marker and pattern rows in one
+ * database transaction via {@link Asset.applyBatch}, staging project file moves
+ * ahead of the commit and updating JSON bytes only after commit so a halfway
+ * failure leaves no partial move.
  */
-function createServerStepPatternLibrary(
-  run: CapabilityRun
+export function createServerStepPatternLibrary(
+  run: Pick<CapabilityRun, "context">
 ): FullStepPatternLibrary {
+  type AssetModelInstance = InstanceType<
+    typeof import("@nodetool-ai/models").Asset
+  >;
+  type AssetBatchUpdate = import("@nodetool-ai/models").AssetBatchUpdate;
+  type ProjectAssetFileChange =
+    import("@nodetool-ai/asset-services/project-asset").ProjectAssetFileChange;
+
+  interface ScannedPatternAsset {
+    entry: {
+      id: string;
+      name: string;
+      kind: StepPatternLibraryKind;
+      category?: string;
+      tags?: readonly string[];
+      folder?: string;
+      pattern?: StepPattern;
+      instrument?: MidiInstrument;
+      instrumentPreset?: string;
+    };
+    asset: AssetModelInstance;
+    hasPattern: boolean;
+  }
+
+  interface StagedAssetWrite {
+    asset: AssetModelInstance;
+    nextFolder: string;
+    metadataKey:
+      | typeof STEP_PATTERN_METADATA_KEY
+      | typeof STEP_PATTERN_FOLDER_METADATA_KEY;
+    buildMetadataEntry: (
+      existing: Record<string, unknown>
+    ) => Record<string, unknown>;
+    nextEnvelope:
+      | StoredStepPatternEnvelope
+      | StoredStepPatternFolderEnvelope
+      | null;
+  }
+
   const paginateAssets = async (userId: string) => {
     const { Asset } = await import("@nodetool-ai/models");
-    const assets: InstanceType<typeof Asset>[] = [];
+    const assets: AssetModelInstance[] = [];
     const seenAssetIds = new Set<string>();
     const seenCursors = new Set<string>();
     let startKey: string | undefined;
@@ -399,13 +442,14 @@ function createServerStepPatternLibrary(
       kind: StepPatternLibraryKind;
       name: string;
       folder: string;
-      asset: (typeof assets)[number];
+      asset: AssetModelInstance;
     }> = [];
     const patternAssets: Array<{
       entry: TimelineOpUserStepPattern;
-      asset: (typeof assets)[number];
+      asset: AssetModelInstance;
       parsed: Record<string, unknown>;
     }> = [];
+    const allPatternAssets: ScannedPatternAsset[] = [];
 
     for (const asset of assets) {
       try {
@@ -432,7 +476,42 @@ function createServerStepPatternLibrary(
           { uri: `asset://${asset.id}`, asset_id: asset.id },
           run.context
         );
-        if (!bytes || bytes.length === 0) continue;
+        if (!bytes || bytes.length === 0) {
+          const meta = isRecord(asset.metadata?.[STEP_PATTERN_METADATA_KEY])
+            ? asset.metadata![STEP_PATTERN_METADATA_KEY]!
+            : null;
+          if (meta && isString(meta["folder"])) {
+            const kind: StepPatternLibraryKind =
+              meta["kind"] === "template" ? "template" : "pattern";
+            const folder = normalizeStepPatternFolderPath(kind, meta["folder"]);
+            const name = isString(meta["name"]) ? meta["name"] : asset.name;
+            const category = isString(meta["category"])
+              ? meta["category"]
+              : kind === "template"
+                ? "templates"
+                : "user";
+            const tags = Array.isArray(meta["tags"])
+              ? meta["tags"].filter(isString)
+              : [kind, "user"];
+            const rawPreset = isString(meta["instrumentPreset"])
+              ? meta["instrumentPreset"].trim()
+              : "";
+            allPatternAssets.push({
+              asset,
+              hasPattern: false,
+              entry: {
+                id: asset.id,
+                name,
+                kind,
+                category,
+                tags,
+                folder,
+                ...(rawPreset.length > 0 ? { instrumentPreset: rawPreset } : {})
+              }
+            });
+          }
+          continue;
+        }
         const parsed = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
         if (!isRecord(parsed)) continue;
 
@@ -488,29 +567,27 @@ function createServerStepPatternLibrary(
             : "";
         const instrumentPreset =
           rawInstrumentPreset.length > 0 ? rawInstrumentPreset : undefined;
-        patternAssets.push({
-          asset,
-          parsed,
-          entry: {
-            id: asset.id,
-            name,
-            kind,
-            category,
-            tags,
-            ...(folder !== undefined ? { folder } : {}),
-            pattern: normalizePattern(parsed["pattern"] as Partial<StepPattern>),
-            ...(parsedInstrument?.success
-              ? { instrument: parsedInstrument.data as MidiInstrument }
-              : {}),
-            ...(instrumentPreset !== undefined ? { instrumentPreset } : {})
-          }
-        });
+        const entry: TimelineOpUserStepPattern = {
+          id: asset.id,
+          name,
+          kind,
+          category,
+          tags,
+          ...(folder !== undefined ? { folder } : {}),
+          pattern: normalizePattern(parsed["pattern"] as Partial<StepPattern>),
+          ...(parsedInstrument?.success
+            ? { instrument: parsedInstrument.data as MidiInstrument }
+            : {}),
+          ...(instrumentPreset !== undefined ? { instrumentPreset } : {})
+        };
+        patternAssets.push({ asset, parsed, entry });
+        allPatternAssets.push({ asset, hasPattern: true, entry });
       } catch {
         // Skip unreadable user pattern assets without breaking the library list.
       }
     }
 
-    return { folderAssets, patternAssets };
+    return { folderAssets, patternAssets, allPatternAssets };
   };
 
   const tryUpdateBytes = async (
@@ -531,7 +608,7 @@ function createServerStepPatternLibrary(
   };
 
   const tryMoveProjectFile = async (
-    asset: InstanceType<typeof import("@nodetool-ai/models").Asset>,
+    asset: AssetModelInstance,
     nextFolder: string
   ) => {
     if (!asset.workspace_path) return null;
@@ -547,108 +624,164 @@ function createServerStepPatternLibrary(
     }
   };
 
-  const rewritePatternFolder = async (
-    userId: string,
-    item: {
-      entry: TimelineOpUserStepPattern;
-      asset: InstanceType<typeof import("@nodetool-ai/models").Asset>;
-      parsed: Record<string, unknown>;
-    },
+  const stagePatternWrite = (
+    item: ScannedPatternAsset,
     nextFolder: string
-  ): Promise<void> => {
-    const nextEnvelope: StoredStepPatternEnvelope = {
-      version: 1,
-      name: item.entry.name,
-      kind: item.entry.kind,
-      category:
-        item.entry.category ??
-        (item.entry.kind === "template" ? "templates" : "user"),
-      tags: [...(item.entry.tags ?? [item.entry.kind, "user"])],
-      folder: nextFolder,
-      pattern: item.entry.pattern,
-      ...(item.entry.instrument
-        ? { instrument: structuredClone(item.entry.instrument) }
-        : {}),
-      ...(item.entry.instrumentPreset
-        ? { instrumentPreset: item.entry.instrumentPreset }
-        : {})
-    };
-    await tryUpdateBytes(item.asset.id, nextEnvelope);
-    const { Asset } = await import("@nodetool-ai/models");
-    const fresh = (await Asset.find(userId, item.asset.id)) ?? item.asset;
-    const prevMeta = isRecord(fresh.metadata?.[STEP_PATTERN_METADATA_KEY])
-      ? fresh.metadata![STEP_PATTERN_METADATA_KEY]!
-      : {};
-    fresh.metadata = {
-      ...(fresh.metadata ?? {}),
-      [STEP_PATTERN_METADATA_KEY]: {
+  ): StagedAssetWrite => {
+    const category =
+      item.entry.category ??
+      (item.entry.kind === "template" ? "templates" : "user");
+    const tags = [...(item.entry.tags ?? [item.entry.kind, "user"])];
+    const nextEnvelope: StoredStepPatternEnvelope | null =
+      item.hasPattern && item.entry.pattern
+        ? {
+            version: 1,
+            name: item.entry.name,
+            kind: item.entry.kind,
+            category,
+            tags,
+            folder: nextFolder,
+            pattern: item.entry.pattern,
+            ...(item.entry.instrument
+              ? { instrument: structuredClone(item.entry.instrument) }
+              : {}),
+            ...(item.entry.instrumentPreset
+              ? { instrumentPreset: item.entry.instrumentPreset }
+              : {})
+          }
+        : null;
+    return {
+      asset: item.asset,
+      nextFolder,
+      metadataKey: STEP_PATTERN_METADATA_KEY,
+      buildMetadataEntry: (prevMeta) => ({
         ...prevMeta,
         name: item.entry.name,
         kind: item.entry.kind,
         folder: nextFolder,
-        category: nextEnvelope.category,
-        tags: nextEnvelope.tags,
+        category,
+        tags,
         ...(item.entry.instrumentPreset
           ? { instrumentPreset: item.entry.instrumentPreset }
           : {})
-      }
+      }),
+      nextEnvelope
     };
-    fresh.parent_id = directoryFolderId(
-      userId,
-      stepPatternProjectIdForAsset(userId, fresh.project_id),
-      nextFolder
-    );
-    const movedFile = await tryMoveProjectFile(fresh, nextFolder);
-    try {
-      await fresh.save();
-    } catch (error) {
-      await movedFile?.undo();
-      throw error;
-    }
-    await movedFile?.commit();
   };
 
-  const rewriteFolderMarker = async (
-    userId: string,
+  const stageFolderMarkerWrite = (
     item: {
       id: string;
       kind: StepPatternLibraryKind;
-      asset: InstanceType<typeof import("@nodetool-ai/models").Asset>;
+      asset: AssetModelInstance;
     },
     nextFolder: string
-  ): Promise<void> => {
+  ): StagedAssetWrite => {
     const nextName = stepPatternFolderName(nextFolder);
-    const nextEnvelope: StoredStepPatternFolderEnvelope = {
-      version: 1,
-      entryType: "folder",
-      kind: item.kind,
-      name: nextName,
-      folder: nextFolder
-    };
-    await tryUpdateBytes(item.asset.id, nextEnvelope);
-    const { Asset } = await import("@nodetool-ai/models");
-    const fresh = (await Asset.find(userId, item.asset.id)) ?? item.asset;
-    fresh.metadata = {
-      ...(fresh.metadata ?? {}),
-      [STEP_PATTERN_FOLDER_METADATA_KEY]: {
+    return {
+      asset: item.asset,
+      nextFolder,
+      metadataKey: STEP_PATTERN_FOLDER_METADATA_KEY,
+      buildMetadataEntry: () => ({
+        kind: item.kind,
+        name: nextName,
+        folder: nextFolder
+      }),
+      nextEnvelope: {
+        version: 1,
+        entryType: "folder",
         kind: item.kind,
         name: nextName,
         folder: nextFolder
       }
     };
-    fresh.parent_id = directoryFolderId(
-      userId,
-      stepPatternProjectIdForAsset(userId, fresh.project_id),
-      nextFolder
-    );
-    const movedFile = await tryMoveProjectFile(fresh, nextFolder);
+  };
+
+  const commitAtomicFolderMutation = async (
+    userId: string,
+    stagedWrites: readonly StagedAssetWrite[],
+    deleteAssets: readonly AssetModelInstance[] = []
+  ): Promise<void> => {
+    const { Asset } = await import("@nodetool-ai/models");
+    const stagedMoves: ProjectAssetFileChange[] = [];
+    const updates: AssetBatchUpdate[] = [];
     try {
-      await fresh.save();
+      for (const write of stagedWrites) {
+        const fresh = (await Asset.find(userId, write.asset.id)) ?? write.asset;
+        const rawPrev = fresh.metadata?.[write.metadataKey];
+        const prevEntry: Record<string, unknown> = isRecord(rawPrev)
+          ? rawPrev
+          : {};
+        fresh.metadata = {
+          ...(fresh.metadata ?? {}),
+          [write.metadataKey]: write.buildMetadataEntry(prevEntry)
+        };
+        const moved = await tryMoveProjectFile(fresh, write.nextFolder);
+        if (moved) stagedMoves.push(moved);
+        const patch: AssetBatchUpdate = {
+          id: fresh.id,
+          parent_id: directoryFolderId(
+            userId,
+            stepPatternProjectIdForAsset(userId, fresh.project_id),
+            write.nextFolder
+          ),
+          metadata: fresh.metadata
+        };
+        if (moved) {
+          patch.workspace_path = fresh.workspace_path;
+        }
+        updates.push(patch);
+      }
+
+      await Asset.applyBatch(userId, {
+        updates,
+        deleteIds: deleteAssets.map((a) => a.id)
+      });
     } catch (error) {
-      await movedFile?.undo();
+      for (const move of stagedMoves.reverse()) {
+        await move.undo().catch(() => undefined);
+      }
       throw error;
     }
-    await movedFile?.commit();
+
+    for (const move of stagedMoves) {
+      await move.commit().catch(() => undefined);
+    }
+    for (const write of stagedWrites) {
+      if (write.nextEnvelope !== null) {
+        await tryUpdateBytes(write.asset.id, write.nextEnvelope);
+      }
+    }
+    for (const deleted of deleteAssets) {
+      if (deleted.workspace_path) {
+        try {
+          const { deleteProjectAssetFile } = await import(
+            "@nodetool-ai/asset-services/project-asset"
+          );
+          await deleteProjectAssetFile(deleted);
+        } catch {
+          // Best-effort project file removal after the DB transaction committed.
+        }
+      }
+      if (run.context.assetStorage) {
+        try {
+          const { getAssetStorageKey } = await import(
+            "@nodetool-ai/asset-services/asset-paths"
+          );
+          const key = getAssetStorageKey(
+            userId,
+            deleted.id,
+            deleted.content_type
+          );
+          const uri = run.context.assetStorage.uriForKey(key);
+          if (await run.context.assetStorage.exists(uri)) {
+            await run.context.assetStorage.delete(uri);
+          }
+        } catch {
+          // Best-effort storage object removal after the DB transaction committed.
+        }
+      }
+    }
   };
 
   return {
@@ -661,10 +794,10 @@ function createServerStepPatternLibrary(
     async listFolders() {
       const userId = run.context.userId;
       if (!userId) return [];
-      const { folderAssets, patternAssets } = await scanLibrary(userId);
+      const { folderAssets, allPatternAssets } = await scanLibrary(userId);
       return collectStepPatternFolders(
         folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
-        patternAssets.map((p) => p.entry)
+        allPatternAssets.map((p) => p.entry)
       );
     },
     async save({ name, kind, folder, pattern, instrument, instrumentPreset }) {
@@ -749,10 +882,10 @@ function createServerStepPatternLibrary(
           "This session has no asset store to persist step pattern folders."
         );
       }
-      const { folderAssets, patternAssets } = await scanLibrary(userId);
+      const { folderAssets, allPatternAssets } = await scanLibrary(userId);
       const allFolders = collectStepPatternFolders(
         folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
-        patternAssets.map((p) => p.entry)
+        allPatternAssets.map((p) => p.entry)
       );
       const target = resolveCreateStepPatternFolderTarget(allFolders, {
         ...(kind !== undefined ? { kind } : {}),
@@ -820,16 +953,17 @@ function createServerStepPatternLibrary(
           "No user is bound to this session to rename a step pattern folder."
         );
       }
-      const { folderAssets, patternAssets } = await scanLibrary(userId);
+      const { folderAssets, allPatternAssets } = await scanLibrary(userId);
       const allFolders = collectStepPatternFolders(
         folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
-        patternAssets.map((p) => p.entry)
+        allPatternAssets.map((p) => p.entry)
       );
       const plan = resolveRenameStepPatternFolderTarget(allFolders, {
         folder,
         newName,
         ...(kind !== undefined ? { kind } : {})
       });
+      const stagedWrites: StagedAssetWrite[] = [];
       for (const marker of folderAssets) {
         if (
           marker.kind === plan.kind &&
@@ -840,11 +974,11 @@ function createServerStepPatternLibrary(
             plan.previousFolder,
             plan.folder
           );
-          await rewriteFolderMarker(userId, marker, nextFolder);
+          stagedWrites.push(stageFolderMarkerWrite(marker, nextFolder));
         }
       }
       const movedPatterns: Array<{ id: string; name: string; folder: string }> = [];
-      for (const item of patternAssets) {
+      for (const item of allPatternAssets) {
         if (
           item.entry.kind === plan.kind &&
           isWithinStepPatternFolder(item.entry.folder, plan.previousFolder)
@@ -854,7 +988,7 @@ function createServerStepPatternLibrary(
             plan.previousFolder,
             plan.folder
           );
-          await rewritePatternFolder(userId, item, nextFolder);
+          stagedWrites.push(stagePatternWrite(item, nextFolder));
           movedPatterns.push({
             id: item.entry.id,
             name: item.entry.name,
@@ -862,6 +996,7 @@ function createServerStepPatternLibrary(
           });
         }
       }
+      await commitAtomicFolderMutation(userId, stagedWrites);
       return {
         ...(plan.current.id !== undefined ? { id: plan.current.id } : {}),
         name: plan.name,
@@ -880,20 +1015,21 @@ function createServerStepPatternLibrary(
           "No user is bound to this session to delete a step pattern folder."
         );
       }
-      const { folderAssets, patternAssets } = await scanLibrary(userId);
+      const { folderAssets, allPatternAssets } = await scanLibrary(userId);
       const allFolders = collectStepPatternFolders(
         folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
-        patternAssets.map((p) => p.entry)
+        allPatternAssets.map((p) => p.entry)
       );
       const target = resolveStepPatternFolderRef(allFolders, folder, kind);
       const parentFolder = parentStepPatternFolder(target.kind, target.folder);
+      const stagedWrites: StagedAssetWrite[] = [];
       const movedPatterns: Array<{ id: string; name: string; folder: string }> = [];
-      for (const item of patternAssets) {
+      for (const item of allPatternAssets) {
         if (
           item.entry.kind === target.kind &&
           isWithinStepPatternFolder(item.entry.folder, target.folder)
         ) {
-          await rewritePatternFolder(userId, item, parentFolder);
+          stagedWrites.push(stagePatternWrite(item, parentFolder));
           movedPatterns.push({
             id: item.entry.id,
             name: item.entry.name,
@@ -901,14 +1037,16 @@ function createServerStepPatternLibrary(
           });
         }
       }
+      const markersToDelete: AssetModelInstance[] = [];
       for (const marker of folderAssets) {
         if (
           marker.kind === target.kind &&
           isWithinStepPatternFolder(marker.folder, target.folder)
         ) {
-          await marker.asset.delete();
+          markersToDelete.push(marker.asset);
         }
       }
+      await commitAtomicFolderMutation(userId, stagedWrites, markersToDelete);
       return {
         kind: target.kind,
         deletedFolder: target.folder,
@@ -924,10 +1062,11 @@ function createServerStepPatternLibrary(
           "No user is bound to this session to move a step pattern."
         );
       }
-      const { folderAssets, patternAssets } = await scanLibrary(userId);
+      const { folderAssets, patternAssets, allPatternAssets } =
+        await scanLibrary(userId);
       const allFolders = collectStepPatternFolders(
         folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
-        patternAssets.map((p) => p.entry)
+        allPatternAssets.map((p) => p.entry)
       );
       const match = resolveUserStepPatternRef(
         patternAssets.map((p) => p.entry),
@@ -939,8 +1078,10 @@ function createServerStepPatternLibrary(
         folder
       );
       const previousFolder = match.folder ?? stepPatternRootFolder(match.kind);
-      const item = patternAssets.find((p) => p.entry.id === match.id)!;
-      await rewritePatternFolder(userId, item, targetFolder);
+      const item = allPatternAssets.find((p) => p.entry.id === match.id)!;
+      await commitAtomicFolderMutation(userId, [
+        stagePatternWrite(item, targetFolder)
+      ]);
       return {
         id: match.id,
         name: match.name,

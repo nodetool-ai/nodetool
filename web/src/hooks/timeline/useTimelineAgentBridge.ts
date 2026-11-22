@@ -41,13 +41,10 @@ import {
   chordTrackFor,
   createTimeOrderedUuid,
   expandMidiLoop,
-  isWithinStepPatternFolder,
   loopRepeatCount,
   normalizePattern,
   normalizeStepPatternFolderPath,
-  parentStepPatternFolder,
   presetIdForInstrument,
-  remapStepPatternFolderPath,
   resolveTempo,
   stepPatternFolderName,
   stepPatternRootFolder,
@@ -59,8 +56,6 @@ import {
   resolveBeatTarget,
   resolveCreateStepPatternFolderTarget,
   resolveMoveDestinationFolder,
-  resolveRenameStepPatternFolderTarget,
-  resolveStepPatternFolderRef,
   resolveUserStepPatternRef,
   chordTrackFields,
   keyLabel,
@@ -430,44 +425,6 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
     });
   };
 
-  const rewriteBrowserFolderMarker = async (
-    item: {
-      id: string;
-      kind: StepPatternLibraryKind;
-      asset: {
-        id: string;
-        project_id?: string;
-        metadata?: Record<string, unknown> | null;
-      };
-    },
-    nextFolder: string
-  ): Promise<void> => {
-    const store = useAssetStore.getState();
-    const nextName = stepPatternFolderName(nextFolder);
-    const nextEnvelope = {
-      version: 1 as const,
-      entryType: "folder" as const,
-      kind: item.kind,
-      name: nextName,
-      folder: nextFolder
-    };
-    await store.update({
-      id: item.asset.id,
-      ...(listsByDirectory(item.asset.project_id)
-        ? { parent_id: projectDirectoryId(item.asset.project_id, nextFolder) }
-        : {}),
-      metadata: {
-        ...(item.asset.metadata ?? {}),
-        [STEP_PATTERN_FOLDER_METADATA_KEY]: {
-          kind: item.kind,
-          name: nextName,
-          folder: nextFolder
-        }
-      },
-      data: `${JSON.stringify(nextEnvelope, null, 2)}\n`
-    });
-  };
-
   return {
     async list(): Promise<TimelineOpUserStepPattern[]> {
       const { patternAssets } = await scanLibrary();
@@ -618,120 +575,25 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
       };
     },
     async renameFolder({ folder, newName, kind }) {
-      const { folderAssets, patternAssets } = await scanLibrary();
-      const allFolders = collectStepPatternFolders(
-        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
-        patternAssets.map((p) => p.entry)
+      const result = await trpcClient.timeline.stepPatternFolders.rename.mutate(
+        {
+          folder,
+          newName,
+          ...(kind !== undefined ? { kind } : {})
+        }
       );
-      const plan = resolveRenameStepPatternFolderTarget(allFolders, {
-        folder,
-        newName,
-        ...(kind !== undefined ? { kind } : {})
-      });
-      // Each asset moves with its own request, so a failure undoes the moves
-      // already made. The server has no atomic folder rename (F63).
-      const undo: Array<() => Promise<void>> = [];
-      const movedPatterns: Array<{ id: string; name: string; folder: string }> =
-        [];
-      try {
-        for (const marker of folderAssets) {
-          if (
-            marker.kind === plan.kind &&
-            isWithinStepPatternFolder(marker.folder, plan.previousFolder)
-          ) {
-            const nextFolder = remapStepPatternFolderPath(
-              marker.folder,
-              plan.previousFolder,
-              plan.folder
-            );
-            await rewriteBrowserFolderMarker(marker, nextFolder);
-            undo.push(() => rewriteBrowserFolderMarker(marker, marker.folder));
-          }
-        }
-        for (const item of patternAssets) {
-          if (
-            item.entry.kind === plan.kind &&
-            isWithinStepPatternFolder(item.entry.folder, plan.previousFolder)
-          ) {
-            const previous = item.entry.folder!;
-            const nextFolder = remapStepPatternFolderPath(
-              previous,
-              plan.previousFolder,
-              plan.folder
-            );
-            await rewriteBrowserPatternFolder(item, nextFolder);
-            undo.push(() => rewriteBrowserPatternFolder(item, previous));
-            movedPatterns.push({
-              id: item.entry.id,
-              name: item.entry.name,
-              folder: nextFolder
-            });
-          }
-        }
-      } catch (err) {
-        const failed: string[] = [];
-        for (const restore of undo.reverse()) {
-          await restore().catch((e: unknown) =>
-            failed.push(e instanceof Error ? e.message : String(e))
-          );
-        }
-        const reason = err instanceof Error ? err.message : String(err);
-        throw new Error(
-          failed.length > 0
-            ? `${reason} (${failed.length} moved items could not be restored)`
-            : reason
-        );
-      }
-      return {
-        ...(plan.current.id !== undefined ? { id: plan.current.id } : {}),
-        name: plan.name,
-        kind: plan.kind,
-        previousFolder: plan.previousFolder,
-        folder: plan.folder,
-        parentFolder: plan.parentFolder,
-        movedPatternCount: movedPatterns.length,
-        movedPatterns
-      };
+      useAssetStore.getState().invalidateQueries?.(["assets"]);
+      return result;
     },
     async deleteFolder({ folder, kind }) {
-      const { folderAssets, patternAssets } = await scanLibrary();
-      const allFolders = collectStepPatternFolders(
-        folderAssets.map((f) => ({ id: f.id, kind: f.kind, folder: f.folder })),
-        patternAssets.map((p) => p.entry)
+      const result = await trpcClient.timeline.stepPatternFolders.delete.mutate(
+        {
+          folder,
+          ...(kind !== undefined ? { kind } : {})
+        }
       );
-      const target = resolveStepPatternFolderRef(allFolders, folder, kind);
-      const parentFolder = parentStepPatternFolder(target.kind, target.folder);
-      const movedPatterns: Array<{ id: string; name: string; folder: string }> =
-        [];
-      for (const item of patternAssets) {
-        if (
-          item.entry.kind === target.kind &&
-          isWithinStepPatternFolder(item.entry.folder, target.folder)
-        ) {
-          await rewriteBrowserPatternFolder(item, parentFolder);
-          movedPatterns.push({
-            id: item.entry.id,
-            name: item.entry.name,
-            folder: parentFolder
-          });
-        }
-      }
-      const store = useAssetStore.getState();
-      for (const marker of folderAssets) {
-        if (
-          marker.kind === target.kind &&
-          isWithinStepPatternFolder(marker.folder, target.folder)
-        ) {
-          await store.delete(marker.id);
-        }
-      }
-      return {
-        kind: target.kind,
-        deletedFolder: target.folder,
-        parentFolder,
-        movedPatternCount: movedPatterns.length,
-        movedPatterns
-      };
+      useAssetStore.getState().invalidateQueries?.(["assets"]);
+      return result;
     },
     async movePattern({ pattern, folder }) {
       const { folderAssets, patternAssets } = await scanLibrary();

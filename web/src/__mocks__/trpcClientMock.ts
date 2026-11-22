@@ -86,6 +86,55 @@ export const mockTimelineCodeDetach = jest.fn<Promise<MockTimelineCodeDetachResu
     scenes: []
   })
 );
+interface MockStepPatternFolderRenameResult {
+  id?: string;
+  name: string;
+  kind: "pattern" | "template";
+  previousFolder: string;
+  folder: string;
+  parentFolder: string;
+  movedPatternCount: number;
+  movedPatterns: Array<{ id: string; name: string; folder: string }>;
+}
+
+interface MockStepPatternFolderDeleteResult {
+  kind: "pattern" | "template";
+  deletedFolder: string;
+  parentFolder: string;
+  movedPatternCount: number;
+  movedPatterns: Array<{ id: string; name: string; folder: string }>;
+}
+
+export const mockTimelineStepPatternFolderRename = jest.fn<
+  Promise<MockStepPatternFolderRenameResult>,
+  [{ folder: string; newName: string; kind?: "pattern" | "template" }]
+>(async (args) => {
+  const kind = args.kind ?? "pattern";
+  const root = kind === "template" ? "Step Patterns/Templates" : "Step Patterns/Patterns";
+  return {
+    name: args.newName,
+    kind,
+    previousFolder: args.folder,
+    folder: `${root}/${args.newName}`,
+    parentFolder: root,
+    movedPatternCount: 0,
+    movedPatterns: []
+  };
+});
+export const mockTimelineStepPatternFolderDelete = jest.fn<
+  Promise<MockStepPatternFolderDeleteResult>,
+  [{ folder: string; kind?: "pattern" | "template" }]
+>(async (args) => {
+  const kind = args.kind ?? "pattern";
+  const root = kind === "template" ? "Step Patterns/Templates" : "Step Patterns/Patterns";
+  return {
+    kind,
+    deletedFolder: args.folder,
+    parentFolder: root,
+    movedPatternCount: 0,
+    movedPatterns: []
+  };
+});
 export const mockSketchVersionsAppend = jest.fn();
 
 // Minimal `useUtils` shim so hooks that touch the query cache after a
@@ -332,6 +381,10 @@ export const trpcClient = {
       set: { mutate: mockTimelineCodeSet },
       rebake: { mutate: mockTimelineCodeRebake },
       detach: { mutate: mockTimelineCodeDetach }
+    },
+    stepPatternFolders: {
+      rename: { mutate: mockTimelineStepPatternFolderRename },
+      delete: { mutate: mockTimelineStepPatternFolderDelete }
     }
   },
   // Sketch (Image Editor) namespace

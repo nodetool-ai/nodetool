@@ -1528,6 +1528,14 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "can build their own timeline with assemble_script_timeline and edit_timeline."
   },
   "timeline.list": { capability: "list_timelines" },
+  "timeline.stepPatternFolders.delete": {
+    elsewhere:
+      "edit_timeline runs delete_step_pattern_folder on the server step pattern library."
+  },
+  "timeline.stepPatternFolders.rename": {
+    elsewhere:
+      "edit_timeline runs rename_step_pattern_folder on the server step pattern library."
+  },
   "timeline.update": { capability: "edit_timeline" },
   "timeline.versions.create": { capability: "create_timeline_version" },
   "timeline.versions.delete": { capability: "delete_timeline_version" },

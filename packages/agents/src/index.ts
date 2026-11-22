@@ -999,6 +999,7 @@ export {
   TIMELINE_CODE_BAKE_TIMEOUT_SECONDS
 } from "./timeline-code-bake.js";
 export type { BakeTimelineCodeResult } from "./timeline-code-bake.js";
+export { createServerStepPatternLibrary } from "./capabilities/timeline-operations.js";
 
 // Jobs to be done — the agent-intent layer. Each job is one objective taken end
 // to end across whatever surfaces it needs, recorded in full (transcript, tool

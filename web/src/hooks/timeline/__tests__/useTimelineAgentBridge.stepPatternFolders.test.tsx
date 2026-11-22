@@ -8,10 +8,19 @@ import {
   DEFAULT_MIDI_INSTRUMENT,
   DEFAULT_TEMPO,
   STEP_PATTERN_ASSET_CONTENT_TYPE,
+  isWithinStepPatternFolder,
   makeClip,
   makeTrack,
-  patternFromText
+  parentStepPatternFolder,
+  patternFromText,
+  remapStepPatternFolderPath,
+  stepPatternFolderName
 } from "@nodetool-ai/timeline";
+import {
+  collectStepPatternFolders,
+  resolveRenameStepPatternFolderTarget,
+  resolveStepPatternFolderRef
+} from "@nodetool-ai/timeline/ops";
 import {
   FrontendToolRegistry,
   type FrontendToolState
@@ -31,6 +40,10 @@ import {
   type TimelinePlaybackStoreApi
 } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useAssetStore } from "../../../stores/AssetStore";
+import {
+  mockTimelineStepPatternFolderDelete,
+  mockTimelineStepPatternFolderRename
+} from "../../../__mocks__/trpcClientMock";
 import {
   createBrowserStepPatternLibrary,
   useTimelineAgentBridge
@@ -156,12 +169,15 @@ function installMockAssetStore(seed?: {
     return [id];
   });
 
+  const invalidateQueriesSpy = jest.fn();
+
   jest.spyOn(useAssetStore, "getState").mockReturnValue({
     ...useAssetStore.getState(),
     createAsset: createAssetSpy as never,
     load: loadSpy as never,
     update: updateSpy as never,
-    delete: deleteSpy as never
+    delete: deleteSpy as never,
+    invalidateQueries: invalidateQueriesSpy as never
   });
 
   globalThis.fetch = jest.fn(async (url: RequestInfo | URL) => {
@@ -173,13 +189,132 @@ function installMockAssetStore(seed?: {
     } as Response;
   }) as typeof fetch;
 
+  const collectFoldersFromStore = () => {
+    const explicit: Array<{ id: string; kind: "pattern" | "template"; folder: string }> = [];
+    const entries: Array<{ kind: "pattern" | "template"; folder?: string }> = [];
+    for (const row of storedAssets) {
+      const fMeta = row.metadata?.["step_pattern_folder"] as Record<string, unknown> | undefined;
+      if (fMeta && typeof fMeta.folder === "string") {
+        explicit.push({
+          id: row.id,
+          kind: fMeta.kind === "template" ? "template" : "pattern",
+          folder: fMeta.folder
+        });
+        continue;
+      }
+      const pMeta = row.metadata?.["step_pattern"] as Record<string, unknown> | undefined;
+      if (pMeta) {
+        entries.push({
+          kind: pMeta.kind === "template" ? "template" : "pattern",
+          ...(typeof pMeta.folder === "string" ? { folder: pMeta.folder } : {})
+        });
+      }
+    }
+    return collectStepPatternFolders(explicit, entries);
+  };
+
+  // Default server-atomic tRPC stubs backed by the in-memory store
+  mockTimelineStepPatternFolderRename.mockImplementation(
+    async (args: { folder: string; newName: string; kind?: "pattern" | "template" }) => {
+      const plan = resolveRenameStepPatternFolderTarget(collectFoldersFromStore(), args);
+      const movedPatterns: Array<{ id: string; name: string; folder: string }> = [];
+      for (const row of storedAssets) {
+        const fMeta = row.metadata?.["step_pattern_folder"] as Record<string, unknown> | undefined;
+        if (
+          fMeta &&
+          (fMeta.kind === "template" ? "template" : "pattern") === plan.kind &&
+          typeof fMeta.folder === "string" &&
+          isWithinStepPatternFolder(fMeta.folder, plan.previousFolder)
+        ) {
+          const nextFolder = remapStepPatternFolderPath(fMeta.folder, plan.previousFolder, plan.folder);
+          row.metadata = {
+            ...row.metadata,
+            step_pattern_folder: { kind: plan.kind, name: stepPatternFolderName(nextFolder), folder: nextFolder }
+          };
+          continue;
+        }
+        const pMeta = row.metadata?.["step_pattern"] as Record<string, unknown> | undefined;
+        if (
+          pMeta &&
+          (pMeta.kind === "template" ? "template" : "pattern") === plan.kind &&
+          typeof pMeta.folder === "string" &&
+          isWithinStepPatternFolder(pMeta.folder, plan.previousFolder)
+        ) {
+          const nextFolder = remapStepPatternFolderPath(pMeta.folder, plan.previousFolder, plan.folder);
+          row.metadata = { ...row.metadata, step_pattern: { ...pMeta, folder: nextFolder } };
+          const rawBody = storedTextByUrl.get(row.get_url);
+          if (rawBody) {
+            const parsed = JSON.parse(rawBody) as Record<string, unknown>;
+            storedTextByUrl.set(row.get_url, JSON.stringify({ ...parsed, folder: nextFolder }));
+          }
+          movedPatterns.push({ id: row.id, name: String(pMeta.name ?? row.name), folder: nextFolder });
+        }
+      }
+      return {
+        ...(plan.current.id !== undefined ? { id: plan.current.id } : {}),
+        name: plan.name,
+        kind: plan.kind,
+        previousFolder: plan.previousFolder,
+        folder: plan.folder,
+        parentFolder: plan.parentFolder,
+        movedPatternCount: movedPatterns.length,
+        movedPatterns
+      };
+    }
+  );
+
+  mockTimelineStepPatternFolderDelete.mockImplementation(
+    async (args: { folder: string; kind?: "pattern" | "template" }) => {
+      const target = resolveStepPatternFolderRef(collectFoldersFromStore(), args.folder, args.kind);
+      const parentFolder = parentStepPatternFolder(target.kind, target.folder);
+      const movedPatterns: Array<{ id: string; name: string; folder: string }> = [];
+      for (let i = storedAssets.length - 1; i >= 0; i -= 1) {
+        const row = storedAssets[i]!;
+        const fMeta = row.metadata?.["step_pattern_folder"] as Record<string, unknown> | undefined;
+        if (
+          fMeta &&
+          (fMeta.kind === "template" ? "template" : "pattern") === target.kind &&
+          typeof fMeta.folder === "string" &&
+          isWithinStepPatternFolder(fMeta.folder, target.folder)
+        ) {
+          storedAssets.splice(i, 1);
+          storedTextByUrl.delete(row.get_url);
+          continue;
+        }
+        const pMeta = row.metadata?.["step_pattern"] as Record<string, unknown> | undefined;
+        if (
+          pMeta &&
+          (pMeta.kind === "template" ? "template" : "pattern") === target.kind &&
+          typeof pMeta.folder === "string" &&
+          isWithinStepPatternFolder(pMeta.folder, target.folder)
+        ) {
+          row.metadata = { ...row.metadata, step_pattern: { ...pMeta, folder: parentFolder } };
+          const rawBody = storedTextByUrl.get(row.get_url);
+          if (rawBody) {
+            const parsed = JSON.parse(rawBody) as Record<string, unknown>;
+            storedTextByUrl.set(row.get_url, JSON.stringify({ ...parsed, folder: parentFolder }));
+          }
+          movedPatterns.push({ id: row.id, name: String(pMeta.name ?? row.name), folder: parentFolder });
+        }
+      }
+      return {
+        kind: target.kind,
+        deletedFolder: target.folder,
+        parentFolder,
+        movedPatternCount: movedPatterns.length,
+        movedPatterns
+      };
+    }
+  );
+
   return {
     storedAssets,
     storedTextByUrl,
     createAssetSpy,
     loadSpy,
     updateSpy,
-    deleteSpy
+    deleteSpy,
+    invalidateQueriesSpy
   };
 }
 
@@ -196,6 +331,8 @@ describe("SQ43 step pattern library folder operations (browser)", () => {
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
+    mockTimelineStepPatternFolderRename.mockReset();
+    mockTimelineStepPatternFolderDelete.mockReset();
     mockDoc = createTimelineStore();
     mockDoc.setState({
       sequenceId: SEQ_ID,
@@ -234,7 +371,7 @@ describe("SQ43 step pattern library folder operations (browser)", () => {
     jest.restoreAllMocks();
   });
 
-  it("exposes createFolder, listFolders, renameFolder, deleteFolder, and movePattern on createBrowserStepPatternLibrary()", async () => {
+  it("delegates renameFolder and deleteFolder to a single atomic tRPC call without per-asset store loops", async () => {
     const storeMock = installMockAssetStore();
     const lib = createBrowserStepPatternLibrary();
 
@@ -278,31 +415,29 @@ describe("SQ43 step pattern library folder operations (browser)", () => {
       previousFolder: "Step Patterns/Patterns/Drums/Trap",
       folder: "Step Patterns/Patterns/Bass"
     });
-    // Both metadata, project directory parent_id, and JSON body updated
-    const patternRow = storeMock.storedAssets.find((a) => a.id === saved.id)!;
-    expect(
-      (patternRow.metadata?.["step_pattern"] as Record<string, unknown>)["folder"]
-    ).toBe("Step Patterns/Patterns/Bass");
-    expect(decodeURIComponent(String(patternRow.parent_id))).toContain(
-      "Step Patterns/Patterns/Bass"
-    );
-    expect(
-      (
-        JSON.parse(storeMock.storedTextByUrl.get(patternRow.get_url)!) as {
-          folder: string;
-        }
-      ).folder
-    ).toBe("Step Patterns/Patterns/Bass");
 
-    // Move back into Drums/Trap, then rename Drums -> Percussion
+    // Move back into Drums/Trap, then rename Drums -> Percussion in one tRPC call
     await lib.movePattern({
       pattern: saved.id.slice(0, 12),
       folder: trap.id!.slice(0, 12)
     });
+    storeMock.loadSpy.mockClear();
+    storeMock.updateSpy.mockClear();
+    storeMock.deleteSpy.mockClear();
+    storeMock.invalidateQueriesSpy.mockClear();
+
     const renamed = await lib.renameFolder({
       folder: drums.id!.slice(0, 12),
       newName: "Percussion"
     });
+    expect(mockTimelineStepPatternFolderRename).toHaveBeenCalledTimes(1);
+    expect(mockTimelineStepPatternFolderRename).toHaveBeenCalledWith({
+      folder: drums.id!.slice(0, 12),
+      newName: "Percussion"
+    });
+    expect(storeMock.loadSpy).not.toHaveBeenCalled();
+    expect(storeMock.updateSpy).not.toHaveBeenCalled();
+    expect(storeMock.invalidateQueriesSpy).toHaveBeenCalledWith(["assets"]);
     expect(renamed).toMatchObject({
       previousFolder: "Step Patterns/Patterns/Drums",
       folder: "Step Patterns/Patterns/Percussion",
@@ -312,42 +447,68 @@ describe("SQ43 step pattern library folder operations (browser)", () => {
       "Step Patterns/Patterns/Percussion/Trap"
     );
 
-    // Delete Percussion via 12-char ID -> pattern moves to root, Percussion & Trap markers deleted
+    // Delete Percussion via 12-char ID in one tRPC call
+    storeMock.loadSpy.mockClear();
+    storeMock.updateSpy.mockClear();
+    storeMock.deleteSpy.mockClear();
+    storeMock.invalidateQueriesSpy.mockClear();
+
     const deleted = await lib.deleteFolder({ folder: drums.id!.slice(0, 12) });
+    expect(mockTimelineStepPatternFolderDelete).toHaveBeenCalledTimes(1);
+    expect(mockTimelineStepPatternFolderDelete).toHaveBeenCalledWith({
+      folder: drums.id!.slice(0, 12)
+    });
+    expect(storeMock.loadSpy).not.toHaveBeenCalled();
+    expect(storeMock.updateSpy).not.toHaveBeenCalled();
+    expect(storeMock.deleteSpy).not.toHaveBeenCalled();
+    expect(storeMock.invalidateQueriesSpy).toHaveBeenCalledWith(["assets"]);
     expect(deleted).toMatchObject({
       deletedFolder: "Step Patterns/Patterns/Percussion",
       parentFolder: "Step Patterns/Patterns",
       movedPatternCount: 1
     });
-    expect(storeMock.deleteSpy).toHaveBeenCalledTimes(2);
     expect((await lib.list())[0]!.folder).toBe("Step Patterns/Patterns");
     expect((await lib.listFolders()).map((f) => f.folder)).toEqual([
       "Step Patterns/Patterns/Bass"
     ]);
   });
 
-  it("F63: a failed folder rename rolls back the moves it made", async () => {
+  it("propagates server atomic failures on renameFolder and deleteFolder with zero client-side mutations or undo writes", async () => {
     const storeMock = installMockAssetStore();
     const lib = createBrowserStepPatternLibrary();
     await lib.createFolder({ kind: "pattern", name: "Drums" });
     const pattern = patternFromText("Kick: x... x... x... x...", { name: "A" });
     await lib.save({ name: "A", kind: "pattern", folder: "Drums", pattern });
-    const second = await lib.save({ name: "B", kind: "pattern", folder: "Drums", pattern });
-    const update = storeMock.updateSpy.getMockImplementation()!;
-    let failOnce = true;
-    storeMock.updateSpy.mockImplementation(async (patch) => {
-      if (patch.id === second.id && failOnce) {
-        failOnce = false;
-        throw new Error("HTTP 500");
-      }
-      return update(patch);
-    });
-    await expect(lib.renameFolder({ folder: "Drums", newName: "Perc" })).rejects.toThrow("HTTP 500");
+    await lib.save({ name: "B", kind: "pattern", folder: "Drums", pattern });
+
+    storeMock.loadSpy.mockClear();
+    storeMock.updateSpy.mockClear();
+    storeMock.deleteSpy.mockClear();
+    storeMock.invalidateQueriesSpy.mockClear();
+
+    mockTimelineStepPatternFolderRename.mockRejectedValueOnce(new Error("HTTP 500"));
+    await expect(
+      lib.renameFolder({ folder: "Drums", newName: "Perc" })
+    ).rejects.toThrow("HTTP 500");
+    expect(mockTimelineStepPatternFolderRename).toHaveBeenCalledTimes(1);
+    expect(storeMock.updateSpy).not.toHaveBeenCalled();
+    expect(storeMock.deleteSpy).not.toHaveBeenCalled();
+    expect(storeMock.invalidateQueriesSpy).not.toHaveBeenCalled();
+
+    mockTimelineStepPatternFolderDelete.mockRejectedValueOnce(new Error("DB rollback"));
+    await expect(lib.deleteFolder({ folder: "Drums" })).rejects.toThrow("DB rollback");
+    expect(mockTimelineStepPatternFolderDelete).toHaveBeenCalledTimes(1);
+    expect(storeMock.updateSpy).not.toHaveBeenCalled();
+    expect(storeMock.deleteSpy).not.toHaveBeenCalled();
+    expect(storeMock.invalidateQueriesSpy).not.toHaveBeenCalled();
+
     expect((await lib.list()).map((p) => p.folder)).toEqual([
       "Step Patterns/Patterns/Drums",
       "Step Patterns/Patterns/Drums"
     ]);
-    expect((await lib.listFolders()).map((f) => f.folder)).toEqual(["Step Patterns/Patterns/Drums"]);
+    expect((await lib.listFolders()).map((f) => f.folder)).toEqual([
+      "Step Patterns/Patterns/Drums"
+    ]);
   });
 
   it("refuses ambiguous 12-char IDs, root modifications, factory moves, and cross-kind moves on browser library", async () => {

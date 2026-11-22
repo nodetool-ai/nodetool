@@ -1195,6 +1195,55 @@ export const stepPatternAssetEnvelope = z.object({
 });
 export type StepPatternAssetEnvelope = z.infer<typeof stepPatternAssetEnvelope>;
 
+export const stepPatternMoveSummary = z.object({
+  id: z.string(),
+  name: z.string(),
+  folder: z.string()
+});
+export type StepPatternMoveSummary = z.infer<typeof stepPatternMoveSummary>;
+
+export const renameStepPatternFolderInput = z.object({
+  folder: z.string().min(1),
+  newName: z.string().min(1),
+  kind: z.enum(["pattern", "template"]).optional()
+});
+export type RenameStepPatternFolderInput = z.infer<
+  typeof renameStepPatternFolderInput
+>;
+
+export const renameStepPatternFolderOutput = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  kind: z.enum(["pattern", "template"]),
+  previousFolder: z.string(),
+  folder: z.string(),
+  parentFolder: z.string(),
+  movedPatternCount: z.number().int().nonnegative(),
+  movedPatterns: z.array(stepPatternMoveSummary)
+});
+export type RenameStepPatternFolderOutput = z.infer<
+  typeof renameStepPatternFolderOutput
+>;
+
+export const deleteStepPatternFolderInput = z.object({
+  folder: z.string().min(1),
+  kind: z.enum(["pattern", "template"]).optional()
+});
+export type DeleteStepPatternFolderInput = z.infer<
+  typeof deleteStepPatternFolderInput
+>;
+
+export const deleteStepPatternFolderOutput = z.object({
+  kind: z.enum(["pattern", "template"]),
+  deletedFolder: z.string(),
+  parentFolder: z.string(),
+  movedPatternCount: z.number().int().nonnegative(),
+  movedPatterns: z.array(stepPatternMoveSummary)
+});
+export type DeleteStepPatternFolderOutput = z.infer<
+  typeof deleteStepPatternFolderOutput
+>;
+
 /** How many lanes one track may hold, and points one lane. */
 export const MAX_AUTOMATION_LANES_PER_TRACK = 256;
 export const MAX_AUTOMATION_POINTS_PER_LANE = 10000;

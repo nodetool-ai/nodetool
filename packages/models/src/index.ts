@@ -205,6 +205,9 @@ export {
 export type {
   AssetRow,
   AssetInsert,
+  AssetBatchUpdate,
+  AssetBatchMutation,
+  AssetBatchMutationResult,
   AssetFileMove,
   AssetFileMover,
   AssetFilePlacement
