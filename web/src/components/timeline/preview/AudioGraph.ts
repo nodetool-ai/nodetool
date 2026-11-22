@@ -1,5 +1,7 @@
 import {
   automationBreakpoints,
+  automationModeOf,
+  automationModePlays,
   fadeShapeGain,
   INSTRUMENT_DEVICE_ID,
   isAutomationLaneActive,
@@ -9,7 +11,7 @@ import {
   sampleFadeShape,
   timeRemapAudioSegments
 } from "@nodetool-ai/timeline";
-import type { ClipFadeShape, TimeRemapAudioSegment } from "@nodetool-ai/timeline";
+import type { AutomationMode, ClipFadeShape, TimeRemapAudioSegment } from "@nodetool-ai/timeline";
 import type {
   AutomationLane,
   MidiInstrument,
@@ -146,6 +148,8 @@ interface TrackAutomationState {
   automation: TimelineTrack["automation"];
   effects: TimelineTrack["effects"];
   instrumentType: MidiInstrument["type"] | undefined;
+  /** The mode it was scheduled under; `off` schedules nothing. */
+  mode: AutomationMode;
   /** Automated params and the value each returns to when automation stops. */
   params: Map<AudioParam, number>;
   devices: Set<AutomatedDevice>;
@@ -538,6 +542,13 @@ export class AudioGraph {
   /** Set while a play gesture runs its automation lanes. */
   private automationClock: AutomationClock | null = null;
   private trackAutomation = new Map<string, TrackAutomationState>();
+  /**
+   * Values a recording pass holds for a track's fader or pan. The control
+   * plays its own value instead of its lane while one is set.
+   */
+  private mixerOverrides = new Map<string, { volumeDb?: number; pan?: number }>();
+  /** The last track list `updateTracks` saw: a released override returns to it. */
+  private knownTracks = new Map<string, TimelineTrack>();
 
   constructor(
     private readonly injectedContext?: BaseAudioContext,
@@ -831,6 +842,8 @@ export class AudioGraph {
       this.disposeTrackDevice(id);
       for (const unit of chain.units) releaseEffectUnit(unit);
       this.trackChains.delete(id);
+      this.mixerOverrides.delete(id);
+      this.knownTracks.delete(id);
     }
   }
 
@@ -853,6 +866,7 @@ export class AudioGraph {
     const now = this.ctx.currentTime;
 
     for (const track of audioTracks) {
+      this.knownTracks.set(track.id, track);
       const chain = this.getOrCreateTrackChain(track.id);
       const muted = track.muted === true || (hasSolo && !track.solo);
       // Use a short ramp instead of a hard cut to avoid clicks.
@@ -863,12 +877,14 @@ export class AudioGraph {
       if (automated?.has(chain.fader.gain)) {
         automated.set(chain.fader.gain, dbToGain(track.volumeDb));
       } else {
-        chain.fader.gain.setTargetAtTime(dbToGain(track.volumeDb), now, 0.01);
+        const held = this.mixerOverrides.get(track.id)?.volumeDb;
+        chain.fader.gain.setTargetAtTime(dbToGain(held ?? track.volumeDb), now, 0.01);
       }
       if (automated?.has(chain.panner.pan)) {
         automated.set(chain.panner.pan, track.pan ?? 0);
       } else {
-        chain.panner.pan.setTargetAtTime(track.pan ?? 0, now, 0.01);
+        const held = this.mixerOverrides.get(track.id)?.pan;
+        chain.panner.pan.setTargetAtTime(held ?? track.pan ?? 0, now, 0.01);
       }
       this.setTrackEffects(track.id, track.effects ?? []);
       if (track.type === "midi") this.syncTrackDevice(track);
@@ -919,10 +935,47 @@ export class AudioGraph {
     this.automationClock = null;
   }
 
+  /**
+   * A recording pass holds `value` for a track's fader (`volumeDb`) or pan:
+   * the lane stops driving it and it plays the value. `null` ends the hold.
+   */
+  setMixerOverride(trackId: string, param: "volumeDb" | "pan", value: number | null): void {
+    const held = { ...(this.mixerOverrides.get(trackId) ?? {}) };
+    if (value === null) {
+      delete held[param];
+    } else {
+      held[param] = value;
+    }
+    if (held.volumeDb === undefined && held.pan === undefined) {
+      this.mixerOverrides.delete(trackId);
+    } else {
+      this.mixerOverrides.set(trackId, held);
+    }
+    if (!this.ctx) return;
+    const chain = this.trackChains.get(trackId);
+    if (!chain) return;
+    const node = param === "volumeDb" ? chain.fader.gain : chain.panner.pan;
+    if (value === null) {
+      // The hold ends: the param returns to its own value and, while the
+      // automation clock runs, to its lane.
+      const known = this.knownTracks.get(trackId);
+      const own = param === "volumeDb" ? dbToGain(known?.volumeDb ?? 0) : known?.pan ?? 0;
+      node.cancelScheduledValues(this.ctx.currentTime);
+      node.setTargetAtTime(own, this.ctx.currentTime, 0.01);
+      if (known && this.automationClock) void this.scheduleTrackAutomation(known);
+      return;
+    }
+    // The param leaves its lane: nothing returns it to its own value later.
+    this.trackAutomation.get(trackId)?.params.delete(node);
+    node.cancelScheduledValues(this.ctx.currentTime);
+    node.setTargetAtTime(param === "volumeDb" ? dbToGain(value) : value, this.ctx.currentTime, 0.01);
+  }
+
   private automationChanged(track: TimelineTrack): boolean {
     const state = this.trackAutomation.get(track.id);
     if (!state) return (track.automation?.length ?? 0) > 0;
     return (
+      state.mode !== automationModeOf(track) ||
       state.automation !== track.automation ||
       state.effects !== track.effects ||
       state.instrumentType !== this.trackDevices.get(track.id)?.type
@@ -950,11 +1003,24 @@ export class AudioGraph {
       automation: track.automation,
       effects: track.effects,
       instrumentType: this.trackDevices.get(track.id)?.type,
+      mode: automationModeOf(track),
       params: new Map(),
       devices: new Set()
     };
     this.trackAutomation.set(track.id, state);
-    const lanes = (track.automation ?? []).filter(isAutomationLaneActive);
+    // Off plays no lane. A recording pass holds its control's value instead
+    // of the lane's.
+    const held = this.mixerOverrides.get(track.id);
+    const lanes = automationModePlays(state.mode)
+      ? (track.automation ?? []).filter(
+          (lane) =>
+            isAutomationLaneActive(lane) &&
+            !(
+              lane.target.kind === "mixer" &&
+              held?.[lane.target.param] !== undefined
+            )
+        )
+      : [];
     if (lanes.length === 0) return;
 
     const ctx = this.getContext();

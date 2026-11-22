@@ -7,6 +7,12 @@
  * point to move it (Shift keeps its time), double-click or press Delete to
  * remove it, and right-click it for the easing of the segment arriving at it.
  * Every gesture is one undo step.
+ *
+ * The same view draws the curve on a track's main lane (`variant="overlay"`,
+ * over the clips, with the pointer only on the parts of the lane that are not
+ * a clip's name bar) and a sub-lane under the track. A parameter without a
+ * lane draws a flat line at the control's own value; the first click creates
+ * the lane.
  */
 
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
@@ -17,11 +23,18 @@ import { useTranslation } from "react-i18next";
 import {
   addAutomationPoint,
   automationBreakpoints,
+  automationModeOf,
+  automationModePlays,
+  automationValueAt,
+  createAutomationLane,
+  findAutomationLane,
   moveAutomationPoint,
   removeAutomationPoints,
   setAutomationPointEasing,
+  type AutomationColorRole,
   type AutomationLane,
   type AutomationPoint,
+  type AutomationTarget,
   type TimelineTrack
 } from "@nodetool-ai/timeline";
 
@@ -37,7 +50,11 @@ import {
   Z_INDEX,
   getSpacingPx
 } from "../../../ui_primitives";
-import { AUTOMATION_LANE_HEIGHT_PX } from "./automationLayout";
+import {
+  AUTOMATION_LANE_HEIGHT_PX,
+  automationHitRects,
+  CLIP_NAME_BAR_BOTTOM_PX
+} from "./automationLayout";
 import {
   automationNormToValue,
   automationTargetSpec,
@@ -49,13 +66,16 @@ import {
 const INSET_PX = 6;
 /** How close (px) a press must land to a point to grab it. */
 const HIT_PX = 7;
-const POINT_PX = 9;
+const POINT_PX = 7;
+/** The curve is dimmed over clips by this share, toward the lane background. */
+const CLIP_DIM_OPACITY = 0.4;
+const TINT_OPACITY = 0.12;
 
-const laneStyles = (theme: Theme) =>
+const laneStyles = (theme: Theme, heightPx: number) =>
   css({
     position: "relative",
     width: "100%",
-    height: AUTOMATION_LANE_HEIGHT_PX,
+    height: heightPx,
     flexShrink: 0,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     background: theme.vars.palette.background.default,
@@ -68,20 +88,34 @@ const laneStyles = (theme: Theme) =>
     "& svg": { position: "absolute", inset: 0, pointerEvents: "none" }
   });
 
-const pointStyles = (theme: Theme) =>
+/** The curve over a main lane: it covers the lane and takes the pointer only on its hit rects. */
+const overlayStyles = css({
+  position: "absolute",
+  inset: 0,
+  overflow: "hidden",
+  pointerEvents: "none",
+  outline: "none",
+  // Above the clips' handles, so the curve takes the pointer where it draws.
+  zIndex: Z_INDEX.base + 5,
+  "& svg": { position: "absolute", inset: 0, pointerEvents: "none" },
+  "& .hit": { position: "absolute", touchAction: "none", pointerEvents: "auto" }
+});
+
+const pointStyles = (theme: Theme, color: string) =>
   css({
     position: "absolute",
+    pointerEvents: "none",
     width: POINT_PX,
     height: POINT_PX,
     marginLeft: -POINT_PX / 2,
     marginTop: -POINT_PX / 2,
     borderRadius: BORDER_RADIUS.circle,
     border: `1px solid ${theme.vars.palette.background.default}`,
-    background: theme.vars.palette.primary.main,
+    background: color,
     zIndex: Z_INDEX.base + 1,
     "&.is-selected": {
       background: theme.vars.palette.common.white,
-      boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}`
+      boxShadow: `0 0 0 2px ${color}`
     },
     "&.is-off": { background: theme.vars.palette.text.disabled }
   });
@@ -102,9 +136,20 @@ const readoutStyles = (theme: Theme) =>
 
 interface AutomationLaneViewProps {
   track: TimelineTrack;
-  lane: AutomationLane;
+  /** The lane to edit. Missing on a main lane whose parameter has none yet. */
+  lane?: AutomationLane;
+  /** The parameter. Defaults to the lane's target. */
+  target?: AutomationTarget;
   /** Width of the lanes' content, so the curve runs to the end of it. */
   widthPx: number;
+  /** `lane` is a sub-lane under the track, `overlay` the curve on the main lane. */
+  variant?: "lane" | "overlay";
+  /** Height of the lane in px. */
+  heightPx?: number;
+  /** Theme role of the curve and its dots. */
+  colorRole?: AutomationColorRole;
+  /** The track's clips, for the overlay's dimming and its pointer areas. */
+  clips?: readonly { startMs: number; durationMs: number }[];
 }
 
 interface Drag {
@@ -113,11 +158,25 @@ interface Drag {
   startTimeMs: number;
 }
 
+const NO_POINTS: AutomationPoint[] = [];
+
 export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
-  ({ track, lane, widthPx }) => {
+  ({
+    track,
+    lane,
+    target: targetProp,
+    widthPx,
+    variant = "lane",
+    heightPx = AUTOMATION_LANE_HEIGHT_PX,
+    colorRole = "primary",
+    clips = []
+  }) => {
     const theme = useTheme();
     const { t } = useTranslation();
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
+    // Only the main lane's label follows the scroll. A sub-lane never re-renders for it.
+    const scrollLeftPx = useTimelineUIStore((s) => (variant === "overlay" ? s.scrollLeftPx : 0));
+    const viewportPx = useTimelineUIStore((s) => (variant === "overlay" ? s.lanesViewportWidthPx : 0));
     const storeApi = useTimelineStoreApi();
     const setTrackAutomation = useTimelineStore((s) => s.setTrackAutomation);
     const history = useTimelineHistoryBatch();
@@ -126,43 +185,55 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
     const [selected, setSelected] = useState<number | null>(null);
     const [dragging, setDragging] = useState(false);
     const [menu, setMenu] = useState<{ x: number; y: number; index: number } | null>(null);
+    const overlay = variant === "overlay";
+
+    const target = targetProp ?? lane?.target;
+    const points = lane?.points ?? NO_POINTS;
 
     const spec: AutomationTargetSpec | null = useMemo(
-      () => automationTargetSpec(track, lane.target, t),
-      [track, lane.target, t]
+      () => (target ? automationTargetSpec(track, target, t) : null),
+      [track, target, t]
     );
-    const editable = spec !== null && !track.locked;
-    const on = lane.enabled !== false && spec !== null;
-    const innerPx = AUTOMATION_LANE_HEIGHT_PX - INSET_PX * 2;
+    const editable = spec !== null && target !== undefined && !track.locked;
+    const playing = automationModePlays(automationModeOf(track));
+    const on = lane?.enabled !== false && spec !== null && playing;
+    const innerPx = heightPx - INSET_PX * 2;
 
     const yOf = useCallback(
       (value: number) =>
-        spec ? INSET_PX + (1 - automationValueToNorm(spec, value)) * innerPx : AUTOMATION_LANE_HEIGHT_PX / 2,
-      [spec, innerPx]
+        spec ? INSET_PX + (1 - automationValueToNorm(spec, value)) * innerPx : heightPx / 2,
+      [spec, innerPx, heightPx]
     );
     const valueAtY = useCallback(
       (y: number) => (spec ? automationNormToValue(spec, 1 - (y - INSET_PX) / innerPx) : 0),
       [spec, innerPx]
     );
 
-    /** Write this lane's points into the track, reading the track fresh. */
+    /** The track's lane for this view's parameter, read fresh from the store. */
+    const freshLane = useCallback((): AutomationLane | undefined => {
+      const current = storeApi.getState().tracks.find((tr) => tr.id === track.id);
+      return current && target ? findAutomationLane(current, target) : undefined;
+    }, [storeApi, track.id, target]);
+
+    const freshPoints = useCallback((): AutomationPoint[] => freshLane()?.points ?? [], [freshLane]);
+
+    /** Write this parameter's points into the track, creating its lane when it has none. */
     const commit = useCallback(
-      (points: AutomationPoint[]) => {
+      (next: AutomationPoint[]) => {
+        if (!target) return;
         const current = storeApi.getState().tracks.find((tr) => tr.id === track.id);
         const lanes = current?.automation ?? [];
+        const existing = freshLane();
         setTrackAutomation(
           track.id,
-          lanes.map((l) => (l.id === lane.id ? { ...l, points } : l))
+          existing
+            ? lanes.map((l) => (l.id === existing.id ? { ...l, points: next } : l))
+            : [...lanes, { ...createAutomationLane(target), points: next }]
         );
         history.mark();
       },
-      [storeApi, setTrackAutomation, track.id, lane.id, history]
+      [storeApi, setTrackAutomation, track.id, target, freshLane, history]
     );
-
-    const freshPoints = useCallback((): AutomationPoint[] => {
-      const current = storeApi.getState().tracks.find((tr) => tr.id === track.id);
-      return current?.automation?.find((l) => l.id === lane.id)?.points ?? [];
-    }, [storeApi, track.id, lane.id]);
 
     const localPoint = useCallback((e: React.PointerEvent | React.MouseEvent) => {
       const rect = rootRef.current?.getBoundingClientRect();
@@ -176,7 +247,7 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
       (x: number, y: number): number | null => {
         let best: number | null = null;
         let bestDist = HIT_PX;
-        lane.points.forEach((p, i) => {
+        points.forEach((p, i) => {
           const d = Math.hypot(p.timeMs / msPerPx - x, yOf(p.value) - y);
           if (d <= bestDist) {
             best = i;
@@ -185,7 +256,7 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
         });
         return best;
       },
-      [lane.points, msPerPx, yOf]
+      [points, msPerPx, yOf]
     );
 
     const handlePointerDown = useCallback(
@@ -193,12 +264,14 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
         if (e.button !== 0) return;
         e.stopPropagation();
         rootRef.current?.focus({ preventScroll: true });
-        if (!editable) return;
+        if (!editable || !spec) return;
         const { x, y } = localPoint(e);
         let index = hitIndex(x, y);
         history.begin();
         if (index === null) {
-          const added = addAutomationPoint(freshPoints(), {
+          // A lane that does not exist yet starts at the control's own value.
+          const base: AutomationPoint[] = freshLane() ? freshPoints() : [{ timeMs: 0, value: spec.value }];
+          const added = addAutomationPoint(base, {
             timeMs: Math.round(Math.max(0, x * msPerPx)),
             value: valueAtY(y)
           });
@@ -211,7 +284,7 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
         setDragging(true);
         e.currentTarget.setPointerCapture(e.pointerId);
       },
-      [editable, localPoint, hitIndex, history, freshPoints, msPerPx, valueAtY, commit]
+      [editable, spec, localPoint, hitIndex, history, freshLane, freshPoints, msPerPx, valueAtY, commit]
     );
 
     const handlePointerMove = useCallback(
@@ -294,24 +367,34 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
     );
 
     const curve = useMemo(() => {
-      const endPx = Math.max(widthPx, ...lane.points.map((p) => p.timeMs / msPerPx));
-      if (lane.points.length === 0) {
-        const y = spec ? yOf(spec.value) : AUTOMATION_LANE_HEIGHT_PX / 2;
-        return { line: `M0 ${y} H${endPx}`, area: "" };
+      const endPx = Math.max(widthPx, ...points.map((p) => p.timeMs / msPerPx));
+      if (points.length === 0) {
+        const y = spec ? yOf(spec.value) : heightPx / 2;
+        return { line: `M0 ${y} H${endPx}` };
       }
-      const breakpoints = automationBreakpoints(lane.points, 0, {
+      const breakpoints = automationBreakpoints(points, 0, {
         maxStepMs: Math.max(1, msPerPx * 3)
       });
       const coords = breakpoints.map((bp) => `${bp.timeMs / msPerPx} ${yOf(bp.value)}`);
       const lastY = yOf(breakpoints[breakpoints.length - 1].value);
-      const line = `M${coords.join(" L")} L${endPx} ${lastY}`;
-      const area = `${line} L${endPx} ${AUTOMATION_LANE_HEIGHT_PX} L0 ${AUTOMATION_LANE_HEIGHT_PX} Z`;
-      return { line, area };
-    }, [lane.points, msPerPx, widthPx, spec, yOf]);
+      return { line: `M${coords.join(" L")} L${endPx} ${lastY}` };
+    }, [points, msPerPx, widthPx, spec, yOf, heightPx]);
 
-    const stroke = on ? theme.vars.palette.primary.main : theme.vars.palette.text.disabled;
+    const color = on ? theme.vars.palette[colorRole].main : theme.vars.palette.text.disabled;
     const readoutIndex = dragging ? selected : null;
-    const readoutPoint = readoutIndex !== null ? lane.points[readoutIndex] : undefined;
+    const readoutPoint = readoutIndex !== null ? points[readoutIndex] : undefined;
+
+    // The main lane labels the curve at its left edge: at the first point, or
+    // at the left edge of the view when that point is scrolled out.
+    const label = useMemo(() => {
+      if (!overlay || !spec) return null;
+      if (readoutPoint) return { x: readoutPoint.timeMs / msPerPx, value: readoutPoint.value };
+      // The first point when it is in view, else the left edge of the view.
+      const firstX = points.length > 0 ? points[0].timeMs / msPerPx : 0;
+      const inView = firstX >= scrollLeftPx && (viewportPx <= 0 || firstX <= scrollLeftPx + viewportPx);
+      const x = inView ? firstX : scrollLeftPx;
+      return { x, value: automationValueAt(points, x * msPerPx, spec.value) };
+    }, [overlay, spec, readoutPoint, points, msPerPx, scrollLeftPx, viewportPx]);
 
     const easingOptions = [
       { value: "linear", label: t("i18n-cont-inspector-02.keyframes.easing.linear") },
@@ -320,57 +403,122 @@ export const AutomationLaneView: React.FC<AutomationLaneViewProps> = memo(
       { value: "easeInOut", label: t("i18n-cont-inspector-02.keyframes.easing.easeInOut") },
       { value: "hold", label: t("i18n-cont-inspector-02.keyframes.easing.hold") }
     ];
-    const menuEasing = menu ? (lane.points[menu.index]?.easing ?? "linear") : undefined;
+    const menuEasing = menu ? (points[menu.index]?.easing ?? "linear") : undefined;
+
+    const pointerHandlers = {
+      onPointerDown: handlePointerDown,
+      onPointerMove: handlePointerMove,
+      onPointerUp: endDrag,
+      onPointerCancel: endDrag,
+      onLostPointerCapture: endDrag,
+      onDoubleClick: handleDoubleClick,
+      onContextMenu: handleContextMenu
+    };
+
+    const hitRects = useMemo(() => {
+      if (!overlay || !editable) return [];
+      const rects = automationHitRects(clips, msPerPx, widthPx, heightPx);
+      // A point is grabbed wherever it draws, over a clip's name bar too.
+      for (const p of points) {
+        rects.push({
+          x: p.timeMs / msPerPx - HIT_PX,
+          y: yOf(p.value) - HIT_PX,
+          width: HIT_PX * 2,
+          height: HIT_PX * 2
+        });
+      }
+      return rects;
+    }, [overlay, editable, clips, msPerPx, widthPx, heightPx, points, yOf]);
+
+    const laneName = spec ? `${spec.group} ${spec.label}` : t("timelineAutomation.missingTarget");
+    const testId = overlay ? `automation-curve-${track.id}` : `automation-lane-${lane?.id ?? track.id}`;
 
     return (
       <div
         ref={rootRef}
-        css={laneStyles(theme)}
-        style={{ cursor: editable ? "crosshair" : "default" }}
-        tabIndex={0}
+        css={overlay ? overlayStyles : laneStyles(theme, heightPx)}
+        style={overlay ? undefined : { cursor: editable ? "crosshair" : "default" }}
+        tabIndex={overlay ? -1 : 0}
         role="group"
-        aria-label={t("timelineAutomation.laneLabel", {
-          name: spec ? `${spec.group} ${spec.label}` : t("timelineAutomation.missingTarget")
-        })}
-        data-testid={`automation-lane-${lane.id}`}
+        aria-label={t("timelineAutomation.laneLabel", { name: laneName })}
+        data-testid={testId}
         data-playhead-passthrough
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onDoubleClick={handleDoubleClick}
         onKeyDown={handleKeyDown}
-        onContextMenu={handleContextMenu}
+        {...(overlay ? {} : pointerHandlers)}
       >
-        <svg width="100%" height={AUTOMATION_LANE_HEIGHT_PX} aria-hidden="true">
-          {curve.area && (
-            <path d={curve.area} fill={stroke} fillOpacity={on ? 0.12 : 0.06} stroke="none" />
-          )}
+        <svg width="100%" height={heightPx} aria-hidden="true">
+          {overlay &&
+            clips.map((clip, i) => (
+              <rect
+                key={i}
+                x={clip.startMs / msPerPx}
+                y={CLIP_NAME_BAR_BOTTOM_PX}
+                width={clip.durationMs / msPerPx}
+                height={Math.max(0, heightPx - CLIP_NAME_BAR_BOTTOM_PX)}
+                fill={theme.vars.palette.background.default}
+                fillOpacity={CLIP_DIM_OPACITY}
+              />
+            ))}
+          <rect
+            width="100%"
+            height={heightPx}
+            fill={color}
+            fillOpacity={on ? TINT_OPACITY : TINT_OPACITY / 2}
+          />
           <path
             d={curve.line}
             fill="none"
-            stroke={stroke}
+            stroke={color}
             strokeWidth={1.5}
-            strokeDasharray={lane.points.length === 0 ? "4 4" : undefined}
+            strokeDasharray={!overlay && points.length === 0 ? "4 4" : undefined}
           />
         </svg>
-        {lane.points.map((p, i) => (
+        {overlay &&
+          hitRects.map((rect, i) => (
+            <div
+              key={i}
+              className="hit"
+              style={{
+                left: rect.x,
+                top: rect.y,
+                width: rect.width,
+                height: rect.height,
+                cursor: "crosshair"
+              }}
+              data-testid={i === 0 ? `automation-hit-${track.id}` : undefined}
+              data-playhead-passthrough
+              {...pointerHandlers}
+            />
+          ))}
+        {points.map((p, i) => (
           <div
             key={i}
-            css={pointStyles(theme)}
+            css={pointStyles(theme, color)}
             className={[i === selected ? "is-selected" : "", on ? "" : "is-off"].join(" ")}
             style={{ left: p.timeMs / msPerPx, top: yOf(p.value) }}
-            data-testid={`automation-point-${lane.id}`}
+            data-testid={`automation-point-${lane?.id ?? track.id}`}
             data-playhead-passthrough
             title={spec ? spec.format(p.value) : undefined}
           />
         ))}
-        {readoutPoint && spec && (
+        {label && spec && (
+          <div
+            css={readoutStyles(theme)}
+            data-testid={`automation-label-${track.id}`}
+            style={{
+              left: label.x + POINT_PX,
+              top: Math.min(heightPx - 18, Math.max(0, yOf(label.value) - 20))
+            }}
+          >
+            {spec.format(label.value)}
+          </div>
+        )}
+        {!overlay && readoutPoint && spec && (
           <div
             css={readoutStyles(theme)}
             style={{
               left: readoutPoint.timeMs / msPerPx + POINT_PX,
-              top: Math.min(AUTOMATION_LANE_HEIGHT_PX - 18, Math.max(0, yOf(readoutPoint.value) - 9))
+              top: Math.min(heightPx - 18, Math.max(0, yOf(readoutPoint.value) - 9))
             }}
           >
             {spec.format(readoutPoint.value)}

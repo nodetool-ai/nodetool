@@ -6,9 +6,7 @@
  */
 
 import React, { memo, useCallback, useMemo } from "react";
-import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { useTranslation } from "react-i18next";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
@@ -20,68 +18,90 @@ import {
 } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
+import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
+import { Autocomplete, ToolbarIconButton } from "../../../ui_primitives";
 import {
-  Autocomplete,
-  FONT_SIZE_SANS,
-  FONT_WEIGHT,
-  SPACING,
-  ToolbarIconButton,
-  getSpacingPx
-} from "../../../ui_primitives";
-import { trackHeaderWidthCss } from "../TrackHeader";
-import { AUTOMATION_FOOTER_HEIGHT_PX, AUTOMATION_LANE_HEIGHT_PX } from "./automationLayout";
-import { automationTargetSpec, automationTargetSpecs, type AutomationTargetSpec } from "./automationTargets";
-
-const rowStyles = (theme: Theme, heightPx: number) =>
-  css({
-    width: trackHeaderWidthCss,
-    height: heightPx,
-    flexShrink: 0,
-    display: "flex",
-    alignItems: "center",
-    gap: getSpacingPx(SPACING.xs),
-    padding: `0 ${getSpacingPx(SPACING.sm)} 0 ${getSpacingPx(SPACING.xl)}`,
-    borderBottom: `1px solid ${theme.vars.palette.divider}`,
-    background: theme.vars.palette.background.paper,
-    color: theme.vars.palette.text.secondary,
-    minWidth: 0
-  });
-
-const labelStyles = (theme: Theme) =>
-  css({
-    flex: 1,
-    minWidth: 0,
-    display: "flex",
-    flexDirection: "column",
-    "& .group": {
-      fontSize: FONT_SIZE_SANS.caption,
-      color: theme.vars.palette.text.disabled,
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    },
-    "& .name": {
-      fontSize: FONT_SIZE_SANS.label,
-      fontWeight: FONT_WEIGHT.medium,
-      color: theme.vars.palette.text.primary,
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    },
-    "&.is-off .name": { color: theme.vars.palette.text.disabled }
-  });
+  AUTOMATION_FOOTER_HEIGHT_PX,
+  AUTOMATION_LANE_HEIGHT_PX,
+  shownAutomationKey
+} from "./automationLayout";
+import {
+  automationNormToValue,
+  automationRoleOf,
+  automationTargetSpecs,
+  automationValueToNorm,
+  type AutomationTargetSpec
+} from "./automationTargets";
+import { AutomationMenuButton, type AutomationMenuEntry } from "./AutomationMenuButton";
+import { AutomationValueReadout } from "./AutomationValueReadout";
+import { automationRowStyles } from "./AutomationHeaderRow";
 
 interface LaneHeaderProps {
   track: TimelineTrack;
   lane: AutomationLane;
 }
 
+/**
+ * A sub-lane's header: the parameter select and the value at the playhead,
+ * with the lane's on switch and remove button. The mode is the track's, so it
+ * has no mode select and no disclosure.
+ */
 export const AutomationLaneHeader: React.FC<LaneHeaderProps> = memo(({ track, lane }) => {
   const theme = useTheme();
   const { t } = useTranslation();
   const setTrackAutomation = useTimelineStore((s) => s.setTrackAutomation);
-  const spec = useMemo(() => automationTargetSpec(track, lane.target, t), [track, lane.target, t]);
+  const specs = useMemo(() => automationTargetSpecs(track, t), [track, t]);
+  const key = automationTargetKey(lane.target);
+  const spec = specs.find((s) => s.key === key);
   const on = lane.enabled !== false;
+  const storedKey = useTimelineUIStore((s) => s.automationShownParams[track.id]);
+  const taken = useMemo(() => {
+    // The shown parameter lives on the main lane, so a sub-lane cannot take it.
+    const keys = new Set((track.automation ?? []).map((l) => automationTargetKey(l.target)));
+    keys.add(shownAutomationKey(track, storedKey, new Set(specs.map((s) => s.key))));
+    return keys;
+  }, [track, storedKey, specs]);
+  const withPoints = useMemo(
+    () =>
+      new Set(
+        (track.automation ?? []).filter((l) => l.points.length > 0).map((l) => automationTargetKey(l.target))
+      ),
+    [track.automation]
+  );
+  const entries = useMemo<AutomationMenuEntry[]>(
+    () =>
+      specs.map((s) => ({
+        key: s.key,
+        label: s.label,
+        group: s.group,
+        dot: withPoints.has(s.key),
+        // A parameter that has a lane stays where it is.
+        disabled: s.key !== key && taken.has(s.key)
+      })),
+    [specs, taken, withPoints, key]
+  );
+  const role = spec ? automationRoleOf(specs, spec.target) : "primary";
+  const color = on ? theme.vars.palette[role].main : theme.vars.palette.text.disabled;
+
+  const retarget = useCallback(
+    (nextKey: string) => {
+      const next = specs.find((s) => s.key === nextKey);
+      if (!next || taken.has(nextKey)) return;
+      // The curve keeps its shape over the new parameter's range. Without the
+      // old control, the values stay and are held inside the new range.
+      const points = spec
+        ? lane.points.map((p) => ({
+            ...p,
+            value: automationNormToValue(next, automationValueToNorm(spec, p.value))
+          }))
+        : lane.points.map((p) => ({ ...p, value: Math.min(next.max, Math.max(next.min, p.value)) }));
+      setTrackAutomation(
+        track.id,
+        (track.automation ?? []).map((l) => (l.id === lane.id ? { ...l, target: next.target, points } : l))
+      );
+    },
+    [specs, taken, spec, lane.points, lane.id, setTrackAutomation, track.id, track.automation]
+  );
 
   const toggle = useCallback(() => {
     setTrackAutomation(
@@ -98,11 +118,23 @@ export const AutomationLaneHeader: React.FC<LaneHeaderProps> = memo(({ track, la
   }, [setTrackAutomation, track.id, track.automation, lane.id]);
 
   return (
-    <div css={rowStyles(theme, AUTOMATION_LANE_HEIGHT_PX)} data-testid={`automation-lane-header-${lane.id}`}>
-      <div css={labelStyles(theme)} className={on && spec ? "" : "is-off"}>
-        <span className="group">{spec?.group ?? t("timelineAutomation.missingTarget")}</span>
-        <span className="name">{spec?.label ?? automationTargetKey(lane.target)}</span>
-      </div>
+    <div
+      css={automationRowStyles(theme, AUTOMATION_LANE_HEIGHT_PX)}
+      data-testid={`automation-lane-header-${lane.id}`}
+    >
+      <AutomationMenuButton
+        label={spec?.label ?? t("timelineAutomation.missingTarget")}
+        value={key}
+        entries={entries}
+        onSelect={retarget}
+        tone={{ kind: "text", color }}
+        ariaLabel={t("timelineAutomation.parameter")}
+        testId={`automation-lane-param-${lane.id}`}
+        disabled={track.locked}
+        dot={lane.points.length > 0}
+        grow
+      />
+      {spec && <AutomationValueReadout track={track} spec={spec} color={color} />}
       <ToolbarIconButton
         icon={<PowerSettingsNewIcon />}
         size="small"
@@ -135,10 +167,14 @@ export const AutomationAddLaneHeader: React.FC<FooterProps> = memo(({ track }) =
   const theme = useTheme();
   const { t } = useTranslation();
   const setTrackAutomation = useTimelineStore((s) => s.setTrackAutomation);
+  const storedKey = useTimelineUIStore((s) => s.automationShownParams[track.id]);
   const options = useMemo(() => {
+    // The shown parameter lives on the main lane, so it is not added here.
     const used = new Set((track.automation ?? []).map((lane) => automationTargetKey(lane.target)));
-    return automationTargetSpecs(track, t).filter((spec) => !used.has(spec.key));
-  }, [track, t]);
+    const specs = automationTargetSpecs(track, t);
+    used.add(shownAutomationKey(track, storedKey, new Set(specs.map((s) => s.key))));
+    return specs.filter((spec) => !used.has(spec.key));
+  }, [track, t, storedKey]);
 
   const add = useCallback(
     (_event: React.SyntheticEvent, spec: AutomationTargetSpec | null) => {
@@ -149,7 +185,7 @@ export const AutomationAddLaneHeader: React.FC<FooterProps> = memo(({ track }) =
   );
 
   return (
-    <div css={rowStyles(theme, AUTOMATION_FOOTER_HEIGHT_PX)} data-testid={`automation-add-${track.id}`}>
+    <div css={automationRowStyles(theme, AUTOMATION_FOOTER_HEIGHT_PX)} data-testid={`automation-add-${track.id}`}>
       <Autocomplete<AutomationTargetSpec>
         compact
         value={null}

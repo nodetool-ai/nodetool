@@ -11,7 +11,7 @@
  * per gesture (`useBatchedGesture`).
  */
 
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -20,6 +20,10 @@ import type { TimelineTrack, TrackEffect } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useBatchedGesture } from "../../../../hooks/timeline/useBatchedGesture";
+import {
+  useAutomationLiveValue,
+  useAutomationRecorder
+} from "../../../../stores/timeline/automationRecorder";
 import {
   BORDER_RADIUS,
   CONTROL,
@@ -514,8 +518,30 @@ export const TrackStrip: React.FC<TrackStripProps> = memo(
     const updateTrackEffect = useTimelineStore((s) => s.updateTrackEffect);
     const removeTrackEffect = useTimelineStore((s) => s.removeTrackEffect);
 
-    const volume = useBatchedGesture<number>((db) => setTrackVolume(trackId, db));
-    const pan = useBatchedGesture<number>((value) => setTrackPan(trackId, value));
+    // While a recording pass runs, the control shows and plays the value the
+    // user holds and the track keeps its own (automation contract AU7).
+    const recorder = useAutomationRecorder();
+    const liveVolume = useAutomationLiveValue(trackId, "volumeDb");
+    const livePan = useAutomationLiveValue(trackId, "pan");
+    // A gesture a pass took never writes the track, even after the pass
+    // ended under the pointer (loop, end of sequence): AU7.
+    const tookGesture = useRef({ volumeDb: false, pan: false });
+    const volume = useBatchedGesture<number>((db) => {
+      if (recorder.record(trackId, "volumeDb", db)) tookGesture.current.volumeDb = true;
+      else if (!tookGesture.current.volumeDb) setTrackVolume(trackId, db);
+    });
+    const pan = useBatchedGesture<number>((value) => {
+      if (recorder.record(trackId, "pan", value)) tookGesture.current.pan = true;
+      else if (!tookGesture.current.pan) setTrackPan(trackId, value);
+    });
+    // A control that unmounts under the pointer releases its Touch pass.
+    useEffect(
+      () => () => {
+        recorder.gestureEnd(trackId, "volumeDb");
+        recorder.gestureEnd(trackId, "pan");
+      },
+      [recorder, trackId]
+    );
 
     const channel = useMemo<StripChannel | null>(
       () =>
@@ -523,8 +549,8 @@ export const TrackStrip: React.FC<TrackStripProps> = memo(
           ? {
               name: track.name,
               type: track.type,
-              volumeDb: track.volumeDb ?? 0,
-              pan: track.pan ?? 0,
+              volumeDb: liveVolume ?? track.volumeDb ?? 0,
+              pan: livePan ?? track.pan ?? 0,
               muted: track.muted,
               solo: track.solo,
               instrument:
@@ -534,18 +560,36 @@ export const TrackStrip: React.FC<TrackStripProps> = memo(
               effects: track.effects ?? NO_EFFECTS
             }
           : null,
-      [track]
+      [track, liveVolume, livePan]
     );
 
     const handlers = useMemo(
       () => ({
-        onVolumeStart: volume.begin,
+        onVolumeStart: () => {
+          recorder.gestureStart(trackId, "volumeDb", liveVolume ?? track?.volumeDb ?? 0);
+          tookGesture.current.volumeDb = recorder.liveValue(trackId, "volumeDb") !== undefined;
+          volume.begin();
+        },
         onVolume: volume.schedule,
-        onVolumeEnd: () => volume.commit(),
-        onVolumeCommit: (db: number) => setTrackVolume(trackId, db),
-        onPanStart: pan.begin,
+        onVolumeEnd: () => {
+          volume.commit();
+          recorder.gestureEnd(trackId, "volumeDb");
+          tookGesture.current.volumeDb = false;
+        },
+        onVolumeCommit: (db: number) => {
+          if (!recorder.commit(trackId, "volumeDb", db)) setTrackVolume(trackId, db);
+        },
+        onPanStart: () => {
+          recorder.gestureStart(trackId, "pan", livePan ?? track?.pan ?? 0);
+          tookGesture.current.pan = recorder.liveValue(trackId, "pan") !== undefined;
+          pan.begin();
+        },
         onPan: pan.schedule,
-        onPanEnd: () => pan.commit(),
+        onPanEnd: () => {
+          pan.commit();
+          recorder.gestureEnd(trackId, "pan");
+          tookGesture.current.pan = false;
+        },
         onMute: () => setTrackMuted(trackId, !track?.muted),
         onSolo: () => setTrackSolo(trackId, !track?.solo),
         onOpenDevice: () => onOpenDevice(trackId),
@@ -559,6 +603,11 @@ export const TrackStrip: React.FC<TrackStripProps> = memo(
       [
         volume,
         pan,
+        recorder,
+        liveVolume,
+        livePan,
+        track?.volumeDb,
+        track?.pan,
         trackId,
         track?.muted,
         track?.solo,
