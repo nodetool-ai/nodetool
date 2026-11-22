@@ -28,8 +28,7 @@ import {
   DEFAULT_NATIVE_GAME_TEMPLATE,
   isModelSelected,
   type CreativeContext,
-  type Entity,
-  type ProductionReferenceBinding
+  type Entity
 } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame, createNative3DGame } from "@nodetool-ai/game-runtime";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
@@ -105,7 +104,7 @@ import { isMac } from "../../utils/platform";
 import { useTextareaAssetMention } from "../chat/composer/useTextareaAssetMention";
 import { useTextareaSkillMention } from "../chat/composer/useTextareaSkillMention";
 import { assetToUri } from "../node_types/editing/promptComposer/promptTokens";
-import { assetIdFromLocator, assetIdOf } from "../../utils/mediaRef";
+import { assetIdFromLocator } from "../../utils/mediaRef";
 import { useEntities } from "../../serverState/useEntities";
 import EntityPickerDialog from "../entities/EntityPickerDialog";
 import { useNotificationStore } from "../../stores/NotificationStore";

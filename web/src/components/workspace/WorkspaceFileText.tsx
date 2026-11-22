@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, {
+import {
   useCallback,
   useEffect,
   useMemo,
