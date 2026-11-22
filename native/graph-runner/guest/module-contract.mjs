@@ -406,6 +406,7 @@ export const MODULES = {
       endianness: impl("host/os.mjs"),
       homedir: impl("host/os.mjs"),
       hostname: impl("host/os.mjs"),
+      platform: impl("host/os.mjs"),
       release: pure("not implemented by guest/host/os.mjs"),
       tmpdir: impl("host/os.mjs")
     },
