@@ -24,6 +24,22 @@ import {
   resolveShapeArg,
   textStyleParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
+import {
+  runApplyProgression,
+  runClearChords,
+  runDetectChords,
+  runFitNotesToChords,
+  runListHarmonyPresets,
+  runListProgressions,
+  runSetChords,
+  runSetClipHarmony,
+  runTransposeChords,
+  keyLabel,
+  signatureLabel
+} from "./chords.js";
+import { runJoinClips } from "./join.js";
+import { runLoopClip, unrollLoopedInScope } from "./loop.js";
+import { runDeleteTime, runDuplicateRange, runInsertTime } from "./sections.js";
 import { staggerClipAnimations } from "../animation/beat.js";
 import type { PropertyCurve } from "../animation/compile.js";
 import {
@@ -104,7 +120,9 @@ import {
 } from "../reframe.js";
 import { adaptSequenceFormat } from "../retarget.js";
 import { sourceRate } from "../sourceRate.js";
+import { activeLoopMs } from "../clipLoop.js";
 import { splitClip } from "../splitClip.js";
+import { resolveBarTime } from "./barTime.js";
 import {
   activeTakeIdOf,
   deleteTake as deleteTakeOnClip,
@@ -306,6 +324,7 @@ const CLIP_PARAM_KEYS = [
   "hidden",
   "muted",
   "locked",
+  "labelColor",
   "fontSizePx",
   "textStyle",
   "shapeStyle",
@@ -509,7 +528,11 @@ class OpScope {
         pitch: n.pitch,
         velocity: n.velocity,
         startTick: n.start_tick,
-        durationTick: n.duration_tick
+        durationTick: n.duration_tick,
+        muted: n.muted,
+        channel: n.channel,
+        releaseVelocity: n.release_velocity,
+        expression: n.expression
       })
     );
     const problems = validateNotes(notes);
@@ -681,7 +704,10 @@ class OpScope {
       });
       for (const { target, inPointMs } of slipped) {
         target.inPointMs = inPointMs;
-        target.outPointMs = inPointMs + target.durationMs * sourceRate(target);
+        // A looped clip's window is one repeat, not its whole length.
+        target.outPointMs =
+          inPointMs +
+          (activeLoopMs(target) ?? target.durationMs) * sourceRate(target);
         // Words are timed on the clip's clock; the media moved under it.
         if (target.caption) {
           target.caption = retimeCaption(target.caption, -slipMs);
@@ -789,7 +815,17 @@ class OpScope {
    * carries its children with the edge (D4).
    */
   applyHeadTrim(clip: TimelineClip, deltaMs: number): TimelineClip {
-    const targets = this.editTargets(clip);
+    // A looped clip is written out as plain copies first (CE3); the first
+    // copy keeps the id and takes the trim.
+    const unrolled = (c: TimelineClip): TimelineClip => {
+      if (isGroupClip(c) || activeLoopMs(c) === undefined) return c;
+      this.assertWritable([c]);
+      return unrollLoopedInScope(this, c)[0]!;
+    };
+    clip = unrolled(clip);
+    const targets = this.editTargets(clip).map((t) =>
+      t.id === clip.id ? t : unrolled(t)
+    );
     if (isGroupClip(clip)) {
       this.clips = trimGroup(this.clips, clip.id, "start", deltaMs);
     } else {
@@ -1268,6 +1304,8 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       playheadMs: state.playheadMs,
       selectedClipIds: [...state.selectedClipIds],
       tempo: state.tempo,
+      key: keyLabel(resolveTempo(state)) ?? null,
+      signature: signatureLabel(resolveTempo(state)),
       tracks: scope.tracks.map((t) => scope.trackOut(t)),
       clips: scope.clips.map((c) => scope.clipOut(c)),
       mediaTracks: scope.mediaTracks.map(serializeMediaTrack),
@@ -1361,7 +1399,9 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       id: scope.ctx.newId("clip"),
       trackId: track.id,
       name: op.name ?? found.name,
-      startMs: op.startMs ?? scope.trackEndMs(track.id),
+      startMs:
+        resolveBarTime(state, op, op.startMs, "startMs") ??
+        scope.trackEndMs(track.id),
       durationMs:
         op.durationMs ?? found.durationMs ?? DEFAULT_MEDIA_CLIP_DURATION_MS,
       mediaType,
@@ -1636,13 +1676,47 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
 
   split_clip: (scope, op) => {
     const state = scope.state;
-    const clip = scope.resolveClip(op.target);
-    const at = op.atMs ?? state.playheadMs;
+    let clip = scope.resolveClip(op.target);
+    const at =
+      resolveBarTime(state, op, op.atMs, "atMs") ?? state.playheadMs;
     if (at <= clip.startMs || at >= clip.startMs + clip.durationMs) {
       throw new Error(`Split time ${at}ms is outside clip "${clip.name}".`);
     }
-    const targets = scope
-      .editTargets(clip)
+    // A looped clip is written out as plain copies first (CE3), so the cut
+    // lands in one repeat and nothing keeps a loop it no longer matches.
+    // Later repeats lose the link, so the partners are found first.
+    let partners: TimelineClip[] = [];
+    if (activeLoopMs(clip) !== undefined) {
+      partners = scope.editTargets(clip).filter((t) => t.id !== clip.id);
+      scope.assertWritable([clip]);
+      const copies = unrollLoopedInScope(scope, clip);
+      const hit = copies.find(
+        (c) => at > c.startMs && at < c.startMs + c.durationMs
+      );
+      if (!hit) {
+        // The cut falls on a repeat boundary: the unroll is the split.
+        return { ok: true, clips: copies.map((c) => scope.clipOut(c)) };
+      }
+      clip = hit;
+    }
+    // A looped linked partner is written out as plain copies too, and the cut
+    // lands in the copy that holds it.
+    const targets = [
+      clip,
+      ...(partners.length > 0
+        ? partners
+        : scope.editTargets(clip).filter((t) => t.id !== clip.id))
+    ]
+      .flatMap((target) => {
+        if (target.id === clip.id || activeLoopMs(target) === undefined) {
+          return [target];
+        }
+        scope.assertWritable([target]);
+        const copies = unrollLoopedInScope(scope, target);
+        return copies.filter(
+          (c) => at > c.startMs && at < c.startMs + c.durationMs
+        );
+      })
       .filter(
         (target) =>
           at > target.startMs && at < target.startMs + target.durationMs
@@ -1651,7 +1725,10 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     const rightLink = targets.length > 1 ? scope.ctx.newId("link") : undefined;
     const halves: TimelineClip[] = [];
     for (const target of targets) {
-      const [cutLeft, cutRight] = splitClip(target, at);
+      const [cutLeft, cutRight] = splitClip(target, at, {
+        bpm: resolveTempo(state).bpm,
+        crossing: op.crossing
+      });
       cutLeft.id = scope.ctx.newId("clip");
       cutRight.id = scope.ctx.newId("clip");
       if (targets.length > 1) {
@@ -1680,22 +1757,33 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
 
   trim_clip: async (scope, op) => {
     const clip = scope.resolveClip(op.target);
+    const endMs = resolveBarTime(scope.state, op, undefined, "durationMs");
+    if (endMs !== undefined && op.durationMs !== undefined) {
+      throw new Error("Send `durationMs` or `atBar`, not both.");
+    }
     const trimmed = scope.applyTrim(
       clip,
       {
-        durationMs: op.durationMs,
+        durationMs: endMs === undefined ? op.durationMs : endMs - clip.startMs,
         inPointMs: op.inPointMs,
         outPointMs: op.outPointMs
       },
       await scope.sourceLimitMs(clip)
     );
     scope.mediaTracks = resliceTracksForTrimmedClip(scope.mediaTracks, trimmed);
+    // A trim to a length at or under the loop window leaves nothing to repeat.
+    if (
+      trimmed.loopLengthMs !== undefined &&
+      activeLoopMs(trimmed) === undefined
+    ) {
+      delete trimmed.loopLengthMs;
+    }
     return { ok: true, clip: scope.clipOut(trimmed) };
   },
 
   move_clip: (scope, op) => {
     const moved = scope.applyMove(scope.resolveClip(op.target), {
-      startMs: op.startMs,
+      startMs: resolveBarTime(scope.state, op, op.startMs, "startMs"),
       trackId: op.trackId
     });
     return { ok: true, clip: scope.clipOut(moved) };
@@ -1734,8 +1822,15 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
 
   duplicate_clip: (scope, op) => {
     const src = scope.resolveClip(op.target);
-    const offsetMs = src.durationMs + (op.gapMs ?? 0);
-    if (!Number.isFinite(offsetMs) || src.startMs + offsetMs < 0) {
+    const count = op.count ?? 1;
+    if (!Number.isInteger(count) || count < 1 || count > 64) {
+      throw new Error(`count must be a whole number from 1 to 64. Got ${count}.`);
+    }
+    const atMs = resolveBarTime(scope.state, op, undefined, "gapMs");
+    // Copies sit back to back; `gapMs` is the space between neighbours.
+    const stepMs = src.durationMs + (op.gapMs ?? 0);
+    const firstStartMs = atMs ?? src.startMs + stepMs;
+    if (!Number.isFinite(stepMs) || firstStartMs < 0) {
       throw new Error(
         `gapMs ${op.gapMs} would place the copy of "${src.name}" before zero.`
       );
@@ -1752,64 +1847,86 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     for (const clip of sources) {
       scope.assertWritable([], clip.trackId);
     }
-    const freshIds = new Map(
-      sources.map((clip) => [clip.id, scope.ctx.newId("clip")])
-    );
-    // A link whose members are all copied stays a link among the copies,
-    // under a fresh id; a lone half is copied unlinked.
-    const linkCounts = new Map<string, number>();
-    for (const clip of sources) {
-      if (clip.linkId !== undefined && clip.id !== src.id) {
-        linkCounts.set(clip.linkId, (linkCounts.get(clip.linkId) ?? 0) + 1);
+    // Every copy must land at or after zero, the last one included.
+    const earliestMs = Math.min(...sources.map((clip) => clip.startMs));
+    for (const n of [0, count - 1]) {
+      const offsetMs = firstStartMs + n * stepMs - src.startMs;
+      if (earliestMs + offsetMs < 0) {
+        throw new Error(
+          `gapMs ${op.gapMs} would place copy ${n + 1} of "${src.name}" before zero.`
+        );
       }
     }
-    const freshLinks = new Map<string, string>();
-    const copies = sources.map((clip) => {
-      const copy = structuredClone(clip);
-      copy.id = freshIds.get(clip.id)!;
-      copy.startMs += offsetMs;
-      copy.locked = false;
-      if (copy.parentId !== undefined && clip.id !== src.id) {
-        copy.parentId = freshIds.get(copy.parentId) ?? copy.parentId;
-      }
-      const linkId = clip.linkId;
-      if (
-        linkId !== undefined &&
-        clip.id !== src.id &&
-        (linkCounts.get(linkId) ?? 0) >= 2
-      ) {
-        let fresh = freshLinks.get(linkId);
-        if (fresh === undefined) {
-          fresh = scope.ctx.newId("link");
-          freshLinks.set(linkId, fresh);
+    const all: TimelineClip[] = [];
+    const firsts: TimelineClip[] = [];
+    for (let n = 0; n < count; n += 1) {
+      const offsetMs = firstStartMs + n * stepMs - src.startMs;
+      const freshIds = new Map(
+        sources.map((clip) => [clip.id, scope.ctx.newId("clip")])
+      );
+      // A link whose members are all copied stays a link among the copies,
+      // under a fresh id; a lone half is copied unlinked.
+      const linkCounts = new Map<string, number>();
+      for (const clip of sources) {
+        if (clip.linkId !== undefined && clip.id !== src.id) {
+          linkCounts.set(clip.linkId, (linkCounts.get(clip.linkId) ?? 0) + 1);
         }
-        copy.linkId = fresh;
-      } else {
-        delete copy.linkId;
       }
-      // A generated clip's copy is a variation to regenerate, so it starts
-      // as a draft. Imported media keeps its asset and draws the same frames.
-      if (clip.sourceType === "generated") {
-        copy.status = "draft";
-        copy.versions = [];
-        delete copy.currentAssetId;
-        delete copy.lastGeneratedHash;
-        delete copy.activeTakeId;
-      }
-      copy.animations = copy.animations?.map((animation) => ({
-        ...animation,
-        id: scope.ctx.newId("anim")
-      }));
-      return copy;
-    });
-    scope.clips.push(...copies);
-    scope.touch(...copies.map((copy) => copy.id));
+      const freshLinks = new Map<string, string>();
+      const copies = sources.map((clip) => {
+        const copy = structuredClone(clip);
+        copy.id = freshIds.get(clip.id)!;
+        copy.startMs += offsetMs;
+        copy.locked = false;
+        if (copy.parentId !== undefined && clip.id !== src.id) {
+          copy.parentId = freshIds.get(copy.parentId) ?? copy.parentId;
+        }
+        const linkId = clip.linkId;
+        if (
+          linkId !== undefined &&
+          clip.id !== src.id &&
+          (linkCounts.get(linkId) ?? 0) >= 2
+        ) {
+          let fresh = freshLinks.get(linkId);
+          if (fresh === undefined) {
+            fresh = scope.ctx.newId("link");
+            freshLinks.set(linkId, fresh);
+          }
+          copy.linkId = fresh;
+        } else {
+          delete copy.linkId;
+        }
+        // A generated clip's copy is a variation to regenerate, so it starts
+        // as a draft. Imported media keeps its asset and draws the same frames.
+        if (clip.sourceType === "generated") {
+          copy.status = "draft";
+          copy.versions = [];
+          delete copy.currentAssetId;
+          delete copy.lastGeneratedHash;
+          delete copy.activeTakeId;
+        }
+        copy.animations = copy.animations?.map((animation) => ({
+          ...animation,
+          id: scope.ctx.newId("anim")
+        }));
+        return copy;
+      });
+      all.push(...copies);
+      firsts.push(copies[0]!);
+    }
+    scope.clips.push(...all);
+    scope.touch(...all.map((copy) => copy.id));
     const result: TimelineOpResult = {
       ok: true,
-      clip: scope.clipOut(copies[0]!)
+      clip: scope.clipOut(firsts[0]!)
     };
-    if (copies.length > 1) {
-      result.children = copies.slice(1).map((copy) => copy.id);
+    if (count > 1) {
+      result.clips = firsts.map((copy) => scope.clipOut(copy));
+    }
+    if (sources.length > 1) {
+      result.children = all
+        .filter((copy) => !firsts.includes(copy))
+        .map((copy) => copy.id);
     }
     return result;
   },
@@ -1906,6 +2023,13 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
           );
         }
         clip.crop = patch.crop;
+      }
+    }
+    if (patch.labelColor !== undefined) {
+      if (patch.labelColor === null) {
+        delete clip.labelColor;
+      } else {
+        clip.labelColor = patch.labelColor;
       }
     }
     if (patch.hidden !== undefined) {
@@ -2492,6 +2616,10 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
         // Through the same ops the caller would use: a group carries its
         // children (D4) and a trim carries the source points, neither of
         // which a raw startMs/durationMs write does.
+        // A failed snap leaves the document as it was, an unroll included.
+        const savedClips = [...scope.clips];
+        const savedMediaTracks = scope.mediaTracks;
+        const savedChanged = new Set(scope.changed);
         try {
           if (entry.after.durationMs === entry.before.durationMs) {
             scope.applyMove(clip, { startMs: entry.after.startMs });
@@ -2511,6 +2639,10 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
             }
           }
         } catch (error) {
+          scope.clips = savedClips;
+          scope.mediaTracks = savedMediaTracks;
+          scope.changed.clear();
+          savedChanged.forEach((id) => scope.changed.add(id));
           return {
             ...entry,
             snapped: false,
@@ -3007,6 +3139,20 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
 
   transpose_clip: runMidiNoteEdit,
   quantize_notes: runMidiNoteEdit,
+  set_chords: (scope, op) => runSetChords(scope, op),
+  clear_chords: (scope, op) => runClearChords(scope, op),
+  loop_clip: (scope, op) => runLoopClip(scope, op),
+  join_clips: (scope, op) => runJoinClips(scope, op),
+  insert_time: (scope, op) => runInsertTime(scope, op),
+  delete_time: (scope, op) => runDeleteTime(scope, op),
+  duplicate_range: (scope, op) => runDuplicateRange(scope, op),
+  list_progressions: () => runListProgressions(),
+  apply_progression: (scope, op) => runApplyProgression(scope, op),
+  transpose_chords: (scope, op) => runTransposeChords(scope, op),
+  detect_chords: (scope, op) => runDetectChords(scope, op),
+  set_clip_harmony: (scope, op) => runSetClipHarmony(scope, op),
+  list_harmony_presets: () => runListHarmonyPresets(),
+  fit_notes_to_chords: (scope, op) => runFitNotesToChords(scope, op),
   scale_velocity: runMidiNoteEdit,
   set_reframe_subject: (scope, op) => {
     const clip = scope.resolveClip(op.clip_id);

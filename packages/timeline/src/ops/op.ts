@@ -87,7 +87,7 @@ export interface AddTextClipOp {
   loose?: Partial<TextStyleInput>;
 }
 
-export interface AddMediaClipOp {
+export interface AddMediaClipOp extends BarTimeArgs {
   op: "add_media_clip";
   asset: string;
   trackId?: string;
@@ -164,13 +164,25 @@ export interface GenerateClipOp {
   autoGenerate?: boolean;
 }
 
-export interface SplitClipOp {
+/**
+ * A time given as a bar position (D49): `atBar` counts from 1, `beat` from 1
+ * inside the bar. Resolved through the tempo map. Never sent with the ms form.
+ */
+export interface BarTimeArgs {
+  atBar?: number;
+  beat?: number;
+}
+
+export interface SplitClipOp extends BarTimeArgs {
   op: "split_clip";
   target: string;
   atMs?: number;
+  /** A midi note crossing the cut: "shorten" (default) or "split" (rest goes to the right clip). */
+  crossing?: "shorten" | "split";
 }
 
-export interface TrimClipOp {
+/** `atBar` on a trim is the bar where the clip now ends. */
+export interface TrimClipOp extends BarTimeArgs {
   op: "trim_clip";
   target: string;
   durationMs?: number;
@@ -178,7 +190,7 @@ export interface TrimClipOp {
   outPointMs?: number;
 }
 
-export interface MoveClipOp {
+export interface MoveClipOp extends BarTimeArgs {
   op: "move_clip";
   target: string;
   startMs?: number;
@@ -190,10 +202,12 @@ export interface DeleteClipOp {
   target: string;
 }
 
-export interface DuplicateClipOp {
+/** `atBar` is the start of the first copy. `count` (1..64) copies sit back to back. */
+export interface DuplicateClipOp extends BarTimeArgs {
   op: "duplicate_clip";
   target: string;
   gapMs?: number;
+  count?: number;
 }
 
 /** Every key `set_clip_params` accepts, plus the unknown ones it refuses. */
@@ -225,6 +239,8 @@ export interface SetClipParamsOp {
     hidden?: boolean;
     muted?: boolean;
     locked?: boolean;
+    /** A CSS colour tag. Null clears it. */
+    labelColor?: string | null;
     textStyle?: Partial<TextStyleInput>;
     shapeStyle?: ShapeStyleInput;
     captionStyle?: CaptionStyleInput;
@@ -354,6 +370,14 @@ export interface ListInstrumentsOp {
   op: "list_instruments";
 }
 
+export interface ListProgressionsOp {
+  op: "list_progressions";
+}
+
+export interface ListHarmonyPresetsOp {
+  op: "list_harmony_presets";
+}
+
 export interface SelectClipOp {
   op: "select_clip";
   target?: string | null;
@@ -477,6 +501,18 @@ type ContractOpName =
   | "transpose_clip"
   | "quantize_notes"
   | "scale_velocity"
+  | "set_chords"
+  | "clear_chords"
+  | "loop_clip"
+  | "join_clips"
+  | "insert_time"
+  | "delete_time"
+  | "duplicate_range"
+  | "apply_progression"
+  | "transpose_chords"
+  | "detect_chords"
+  | "set_clip_harmony"
+  | "fit_notes_to_chords"
   | "set_reframe_subject"
   | "add_reframe_keyframe"
   | "clear_reframe"
@@ -534,6 +570,8 @@ export type TimelineOp =
   | ClearAnimationsOp
   | ListAnimationPresetsOp
   | ListInstrumentsOp
+  | ListProgressionsOp
+  | ListHarmonyPresetsOp
   | SelectClipOp
   | SeekOp
   | AddMarkerOp
@@ -564,6 +602,20 @@ export const TIMELINE_OP_NAMES = [
   "transpose_clip",
   "quantize_notes",
   "scale_velocity",
+  "set_chords",
+  "clear_chords",
+  "loop_clip",
+  "join_clips",
+  "insert_time",
+  "delete_time",
+  "duplicate_range",
+  "list_progressions",
+  "apply_progression",
+  "transpose_chords",
+  "detect_chords",
+  "set_clip_harmony",
+  "list_harmony_presets",
+  "fit_notes_to_chords",
   "set_reframe_subject",
   "add_reframe_keyframe",
   "clear_reframe",

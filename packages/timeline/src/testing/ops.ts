@@ -187,6 +187,25 @@ export function seedClips(): TimelineClip[] {
       ]
     }),
     makeClip({
+      id: "clip_midi2",
+      trackId: "track_midi",
+      name: "Answer",
+      startMs: 3000,
+      durationMs: 1000,
+      mediaType: "midi",
+      sourceType: "imported",
+      status: "generated",
+      notes: [
+        {
+          id: "note_b",
+          pitch: 64,
+          velocity: 80,
+          startTick: 0,
+          durationTick: 480
+        }
+      ]
+    }),
+    makeClip({
       id: "clip_g",
       trackId: "track_b",
       name: "Group",
@@ -400,6 +419,64 @@ export const FIXTURES: Fixture[] = [
     op: { op: "scale_velocity", clip: "clip_midi", factor: 1.5 }
   },
   {
+    tool: "set_chords",
+    args: { chart: "| Am | F | C G |" },
+    op: { op: "set_chords", chart: "| Am | F | C G |" }
+  },
+  { tool: "clear_chords", args: {}, op: { op: "clear_chords" } },
+  {
+    tool: "loop_clip",
+    args: { clip: "clip_midi", times: 4 },
+    op: { op: "loop_clip", clip: "clip_midi", times: 4 }
+  },
+  {
+    tool: "join_clips",
+    args: { clips: ["clip_midi", "clip_midi2"] },
+    op: { op: "join_clips", clips: ["clip_midi", "clip_midi2"] }
+  },
+  {
+    tool: "insert_time",
+    args: { atBar: 3, bars: 2, trackIds: ["track_a"] },
+    op: { op: "insert_time", atBar: 3, bars: 2, trackIds: ["track_a"] }
+  },
+  {
+    tool: "delete_time",
+    args: { fromBar: 2, toBar: 4 },
+    op: { op: "delete_time", fromBar: 2, toBar: 4 }
+  },
+  {
+    tool: "duplicate_range",
+    args: { fromMs: 0, toMs: 4000 },
+    op: { op: "duplicate_range", fromMs: 0, toMs: 4000 }
+  },
+  { tool: "list_progressions", args: {}, op: { op: "list_progressions" } },
+  {
+    tool: "apply_progression",
+    args: { progression: "I-V-vi-IV", key: "A minor" },
+    op: { op: "apply_progression", progression: "I-V-vi-IV", key: "A minor" }
+  },
+  {
+    tool: "transpose_chords",
+    args: { semitones: 2, includeNotes: true },
+    op: { op: "transpose_chords", semitones: 2, includeNotes: true }
+  },
+  {
+    tool: "detect_chords",
+    args: { clipIds: ["clip_midi"], write: false },
+    op: { op: "detect_chords", clipIds: ["clip_midi"], write: false }
+  },
+  {
+    tool: "set_clip_harmony",
+    args: { clipId: "clip_midi", style: "arp" },
+    op: { op: "set_clip_harmony", clipId: "clip_midi", style: "arp" }
+  },
+  { tool: "list_harmony_presets", args: {}, op: { op: "list_harmony_presets" } },
+  {
+    tool: "fit_notes_to_chords",
+    args: { clipIds: ["clip_midi"] },
+    op: { op: "fit_notes_to_chords", clipIds: ["clip_midi"] }
+  },
+  {
     tool: "set_reframe_subject",
     args: { clip_id: "clip_a", track_id: "mtrack_a", safe_margin: 0.2 },
     op: {
@@ -565,8 +642,8 @@ export const FIXTURES: Fixture[] = [
   },
   {
     tool: "split_clip",
-    args: { target: "clip_a", atMs: 2000 },
-    op: { op: "split_clip", target: "clip_a", atMs: 2000 }
+    args: { target: "clip_a", atBar: 2, crossing: "split" },
+    op: { op: "split_clip", target: "clip_a", atBar: 2, crossing: "split" }
   },
   {
     tool: "trim_clip",
@@ -575,8 +652,14 @@ export const FIXTURES: Fixture[] = [
   },
   {
     tool: "move_clip",
-    args: { target: "clip_a", startMs: 500, trackId: "track_b" },
-    op: { op: "move_clip", target: "clip_a", startMs: 500, trackId: "track_b" }
+    args: { target: "clip_a", atBar: 1, beat: 2, trackId: "track_b" },
+    op: {
+      op: "move_clip",
+      target: "clip_a",
+      atBar: 1,
+      beat: 2,
+      trackId: "track_b"
+    }
   },
   {
     tool: "delete_clip",
@@ -585,8 +668,8 @@ export const FIXTURES: Fixture[] = [
   },
   {
     tool: "duplicate_clip",
-    args: { target: "clip_a", gapMs: 100 },
-    op: { op: "duplicate_clip", target: "clip_a", gapMs: 100 }
+    args: { target: "clip_a", gapMs: 100, count: 2 },
+    op: { op: "duplicate_clip", target: "clip_a", gapMs: 100, count: 2 }
   },
   {
     tool: "set_clip_params",

@@ -82,6 +82,62 @@ const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
     op: "scale_velocity",
     ...parseContract(contracts.ui_timeline_scale_velocity, args)
   }),
+  set_chords: (args) => ({
+    op: "set_chords",
+    ...parseContract(contracts.ui_timeline_set_chords, args)
+  }),
+  loop_clip: (args) => ({
+    op: "loop_clip",
+    ...parseContract(contracts.ui_timeline_loop_clip, args)
+  }),
+  join_clips: (args) => ({
+    op: "join_clips",
+    ...parseContract(contracts.ui_timeline_join_clips, args)
+  }),
+  insert_time: (args) => ({
+    op: "insert_time",
+    ...parseContract(contracts.ui_timeline_insert_time, args)
+  }),
+  delete_time: (args) => ({
+    op: "delete_time",
+    ...parseContract(contracts.ui_timeline_delete_time, args)
+  }),
+  duplicate_range: (args) => ({
+    op: "duplicate_range",
+    ...parseContract(contracts.ui_timeline_duplicate_range, args)
+  }),
+  clear_chords: (args) => ({
+    op: "clear_chords",
+    ...parseContract(contracts.ui_timeline_clear_chords, args)
+  }),
+  list_progressions: (args) => ({
+    op: "list_progressions",
+    ...parseContract(contracts.ui_timeline_list_progressions, args)
+  }),
+  apply_progression: (args) => ({
+    op: "apply_progression",
+    ...parseContract(contracts.ui_timeline_apply_progression, args)
+  }),
+  transpose_chords: (args) => ({
+    op: "transpose_chords",
+    ...parseContract(contracts.ui_timeline_transpose_chords, args)
+  }),
+  detect_chords: (args) => ({
+    op: "detect_chords",
+    ...parseContract(contracts.ui_timeline_detect_chords, args)
+  }),
+  set_clip_harmony: (args) => ({
+    op: "set_clip_harmony",
+    ...parseContract(contracts.ui_timeline_set_clip_harmony, args)
+  }),
+  list_harmony_presets: (args) => ({
+    op: "list_harmony_presets",
+    ...parseContract(contracts.ui_timeline_list_harmony_presets, args)
+  }),
+  fit_notes_to_chords: (args) => ({
+    op: "fit_notes_to_chords",
+    ...parseContract(contracts.ui_timeline_fit_notes_to_chords, args)
+  }),
   set_reframe_subject: (args) => ({
     op: "set_reframe_subject",
     ...parseContract(contracts.ui_timeline_set_reframe_subject, args)

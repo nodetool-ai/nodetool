@@ -135,6 +135,19 @@ export interface TimelineOpContext {
   defaultMidiInstrument?: TimelineTrack["instrument"];
   /** Timestamp for a baked animation. Defaults to `new Date().toISOString()`. */
   now?(): string;
+  /**
+   * Decoded source audio of an audio clip, mono. `detect_chords` reads it.
+   * `range` is the source span (ms) the op needs. A host decodes only that span
+   * where its decoder allows, and reports where `samples[0]` sits in the source
+   * as `startMs` (default 0: the buffer starts at source time 0). A host that
+   * cannot decode a span returns the whole source from 0. Absent means this
+   * surface cannot decode audio, and the op says so. Null means the clip has no
+   * readable audio.
+   */
+  decodeClipAudio?(
+    clip: TimelineClip,
+    range?: { startMs: number; endMs: number }
+  ): Promise<{ samples: Float32Array; sampleRate: number; startMs?: number } | null>;
   /** Asset lookup for `add_media_clip`. Absent means this surface has none. */
   resolveAsset?(ref: string): Promise<TimelineOpAsset | null>;
   /** Bake for `preset: "custom"` with `code`. Absent means curves only. */

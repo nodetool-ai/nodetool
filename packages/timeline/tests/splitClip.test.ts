@@ -223,18 +223,19 @@ describe("splitClip on a midi clip", () => {
     ]
   });
 
-  it("copies the notes to both halves and advances the right in-point", () => {
+  it("partitions the notes at the cut and starts the right content at its own start", () => {
     const clip = midiClip();
     const [left, right] = splitClip(clip, 400);
 
-    // Notes are content-relative, so both halves keep the whole list; what
-    // changes is the window each half opens on it.
-    expect(left.notes).toEqual(clip.notes);
-    expect(right.notes).toEqual(clip.notes);
+    // 120 BPM: the cut at 400 ms is tick 768. n1 starts before it, n2 (tick
+    // 960) at or after it and is re-based.
+    expect(left.notes).toEqual([{ ...clip.notes![0]!, durationTick: 768 }]);
+    expect(right.notes).toHaveLength(1);
+    expect(right.notes![0]).toMatchObject({ pitch: 67, startTick: 192 });
     expect(left.inPointMs).toBe(0);
     expect(left.outPointMs).toBe(400);
-    expect(right.inPointMs).toBe(400);
-    expect(right.outPointMs).toBe(1000);
+    expect(right.inPointMs).toBe(0);
+    expect(right.outPointMs).toBe(600);
     expect(left.durationMs).toBe(400);
     expect(right.durationMs).toBe(600);
   });

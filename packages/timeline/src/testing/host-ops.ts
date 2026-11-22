@@ -272,7 +272,7 @@ export const HOST_OP_FIXTURES: readonly HostOpFixture[] = [
     name: "linked split divides both clips",
     initial: linked,
     op: { op: "split_clip", target: "clip_a", atMs: 3000 },
-    clipCount: 9
+    clipCount: 10
   },
   {
     name: "delete repairs the last linked sibling",

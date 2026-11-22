@@ -177,6 +177,19 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   `harmony` (arp or chord comp) are pure functions in `src/harmony/`.
   `harmonizeClips` turns them into plain notes, and every host calls it first,
   so preview, browser export and server export play the same notes.
+- **Notes and controller lanes carry more than pitch and timing.** A
+  `MidiNote` has optional `muted`, `channel` (0..15), `releaseVelocity` and
+  per-note `expression` curves (`pitch`, `volume`, `pan`, `brightness`, ticks
+  from the note start). A midi clip has optional `controllers` lanes (CC,
+  pitch bend, channel pressure, poly pressure) in clip content ticks. The rules
+  live in `src/midi/controllers.ts`: `midiClipControllerEvents` (step and 10 ms
+  linear sampling, chase at the start, pitch bend and sustain reset at the
+  window end) and `midiNoteEventBytes`. A muted note emits no events
+  (`playableNotes`). The built-in `subtractive` voice applies pitch bend
+  (fixed 2 semitones), cc 7, cc 11, cc 64, and per-note pitch and volume. The
+  other engines apply only the global cc 7 and cc 11 gain and the sustain
+  pedal. `midiRenderKey` reads every one of these fields, so a new field needs a
+  key entry and a case in `tests/midi.controllers.test.ts`.
 - **A render is reproducible or the cache is wrong.** No `Math.random` and no
   clock: DR-1's noise is a seeded xorshift keyed by the pad and the hit, and
   unison start phases are a fixed spread. `midiRenderKey` hands back a previous

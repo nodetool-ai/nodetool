@@ -22,6 +22,8 @@
 
 import { createTimeOrderedUuid } from "./defaults.js";
 import { groupDescendantIds, isGroupClip } from "./group.js";
+import { activeLoopMs, unrollLoopedClip } from "./clipLoop.js";
+import { DEFAULT_TEMPO } from "./midi/tempo.js";
 import { planShift, type RippleOptions } from "./rippleEdit.js";
 import { splitClip } from "./splitClip.js";
 import { trimClip } from "./trimClip.js";
@@ -74,15 +76,23 @@ function movedWithDependants(
 function clearWindow(
   c: TimelineClip,
   startMs: number,
-  endMs: number
+  endMs: number,
+  bpm: number
 ): TimelineClip[] {
   const cStart = c.startMs;
   const cEnd = clipEndMs(c);
   if (cEnd <= startMs || cStart >= endMs) return [c];
   if (cStart >= startMs && cEnd <= endMs) return [];
+  // A looped clip is written out as plain copies first (CE3).
+  const loopMs = activeLoopMs(c);
+  if (loopMs !== undefined) {
+    return unrollLoopedClip(c, bpm, loopMs, {
+      newId: createTimeOrderedUuid
+    }).flatMap((piece) => clearWindow(piece, startMs, endMs, bpm));
+  }
   if (cStart < startMs && cEnd > endMs) {
-    const [head, rest] = splitClip(c, startMs);
-    const [, tail] = splitClip(rest, endMs);
+    const [head, rest] = splitClip(c, startMs, { bpm });
+    const [, tail] = splitClip(rest, endMs, { bpm });
     return [head, tail];
   }
   if (cStart < startMs) return [trimClip(c, "end", startMs - cEnd)];
@@ -106,6 +116,7 @@ export function resolveOverwrite(
   movedIds: ReadonlySet<string>,
   options: RippleOptions = {}
 ): TimelineClip[] {
+  const bpm = options.bpm ?? DEFAULT_TEMPO.bpm;
   const movingIds = movedWithDependants(clips, movedIds);
   const movers = clips.filter((c) => movingIds.has(c.id));
   if (movers.length === 0) return [...clips];
@@ -145,7 +156,7 @@ export function resolveOverwrite(
     for (const unit of units.values()) {
       let pieces: TimelineClip[][];
       try {
-        pieces = unit.map((c) => clearWindow(c, mStart, mEnd));
+        pieces = unit.map((c) => clearWindow(c, mStart, mEnd, bpm));
       } catch {
         continue;
       }
@@ -183,6 +194,9 @@ export function resolveInsert(
   movedIds: ReadonlySet<string>,
   options: RippleOptions = {}
 ): TimelineClip[] {
+  const bpm = options.bpm ?? DEFAULT_TEMPO.bpm;
+  // The unroll below reassigns `clips`. A refused shift returns this one.
+  const original = clips;
   const movingIds = movedWithDependants(clips, movedIds);
   const movers = clips.filter((c) => movingIds.has(c.id));
   if (movers.length === 0) return [...clips];
@@ -196,18 +210,35 @@ export function resolveInsert(
     options.lockedClipIds?.has(c.id) === true;
 
   // Straddlers on a mover's track, plus the straddling partners they link to.
-  const cutLinkIds = new Set<string>();
-  const toCut = new Set<string>();
-  for (const c of clips) {
-    if (moverTracks.has(c.trackId) && straddles(c)) {
-      toCut.add(c.id);
-      if (c.linkId !== undefined) cutLinkIds.add(c.linkId);
+  const straddlersOf = (list: readonly TimelineClip[]): Set<string> => {
+    const cutLinkIds = new Set<string>();
+    const out = new Set<string>();
+    for (const c of list) {
+      if (moverTracks.has(c.trackId) && straddles(c)) {
+        out.add(c.id);
+        if (c.linkId !== undefined) cutLinkIds.add(c.linkId);
+      }
     }
-  }
-  for (const c of clips) {
-    if (c.linkId !== undefined && cutLinkIds.has(c.linkId) && straddles(c)) {
-      toCut.add(c.id);
+    for (const c of list) {
+      if (c.linkId !== undefined && cutLinkIds.has(c.linkId) && straddles(c)) {
+        out.add(c.id);
+      }
     }
+    return out;
+  };
+  let toCut = straddlersOf(clips);
+  // A looped straddler is written out as plain copies first (CE3), so the cut
+  // lands in the copy that holds the insert point. A locked one stays whole.
+  if (
+    clips.some((c) => toCut.has(c.id) && activeLoopMs(c) !== undefined && !locked(c))
+  ) {
+    clips = clips.flatMap((c) => {
+      const loopMs = activeLoopMs(c);
+      return toCut.has(c.id) && loopMs !== undefined && !locked(c)
+        ? unrollLoopedClip(c, bpm, loopMs, { newId: createTimeOrderedUuid })
+        : [c];
+    });
+    toCut = straddlersOf(clips);
   }
 
   // A link group is cut whole or not at all.
@@ -224,7 +255,7 @@ export function resolveInsert(
     if (unit.some(locked)) continue;
     let split: [TimelineClip, TimelineClip][];
     try {
-      split = unit.map((c) => splitClip(c, insertMs));
+      split = unit.map((c) => splitClip(c, insertMs, { bpm }));
     } catch {
       // A clip that cannot be split stays whole and does not move.
       continue;
@@ -247,7 +278,7 @@ export function resolveInsert(
     else cut.push(c);
   }
   return (
-    planShift(cut, insertMs, spanMs, movingIds, options) ?? [...clips]
+    planShift(cut, insertMs, spanMs, movingIds, options) ?? [...original]
   );
 }
 

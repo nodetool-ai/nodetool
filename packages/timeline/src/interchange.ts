@@ -1,3 +1,4 @@
+import { activeLoopMs } from "./clipLoop.js";
 import { fadeShapeGain, resolveClipFades } from "./audioFade.js";
 import { extractedAudioLinkIds } from "./clipAudio.js";
 import {
@@ -197,6 +198,7 @@ function unsupported(clip: TimelineClip, track: TimelineTrack, target: Interchan
   if (!premiere && clip.volumeDb !== undefined && clip.volumeDb !== 0) issues.push("audio volume requires baking");
   if (!premiere && (clip.fadeInMs || clip.fadeOutMs)) issues.push("audio fades require baking");
   if (clip.caption) issues.push("captions require baking");
+  if (activeLoopMs(clip) !== undefined) issues.push("region loop requires baking");
   return issues;
 }
 

@@ -444,9 +444,17 @@ export interface TimelineTrack {
    * strips it.
    */
   automation?: AutomationLane[];
+  /**
+   * How the track's automation lanes play and record. Missing means `read`.
+   * Must also exist on the protocol zod schema or PATCH strips it.
+   */
+  automationMode?: AutomationMode;
   /** The stem this track holds in a music project (MUSIC-MODE.md MD4). */
   musicRole?: MusicRole;
 }
+
+/** `off` plays no lane, `read` plays them, the others also record a pass. */
+export type AutomationMode = "off" | "read" | "touch" | "latch" | "write";
 
 /**
  * The control an automation lane drives.
@@ -950,6 +958,65 @@ export interface MidiNote {
   startTick: number;
   /** Held length in ticks (integer > 0). */
   durationTick: number;
+  /** A muted note is not played and emits no events. It stays editable. */
+  muted?: boolean;
+  /** MIDI channel 0..15. Absent means 0. The built-in synth ignores it. */
+  channel?: number;
+  /** Note-off velocity 0..127. Absent keeps the existing output. */
+  releaseVelocity?: number;
+  /** Per-note expression curves. Ticks count from the note's start. */
+  expression?: MidiNoteExpression;
+}
+
+/** One point of a per-note expression curve. */
+export interface MidiExpressionPoint {
+  /** Ticks from the note's start, 0..durationTick. */
+  tick: number;
+  value: number;
+}
+
+/**
+ * Per-note expression. Pitch is in semitones (-48..48), volume a linear gain
+ * (0..4), pan -1..1 and brightness 0..1. Before the first point the value is
+ * neutral, between points it interpolates linearly, after the last it holds.
+ */
+export interface MidiNoteExpression {
+  pitch?: MidiExpressionPoint[];
+  volume?: MidiExpressionPoint[];
+  pan?: MidiExpressionPoint[];
+  brightness?: MidiExpressionPoint[];
+}
+
+export type MidiControllerKind =
+  | "cc"
+  | "pitchBend"
+  | "channelPressure"
+  | "polyPressure";
+
+/** One point of a controller lane, in clip content ticks. */
+export interface MidiControllerPoint {
+  id: string;
+  tick: number;
+  value: number;
+}
+
+/**
+ * A controller lane of a midi clip. Values are 0..127, except pitch bend
+ * (-8192..8191, 0 is centre). Structurally identical to `MidiControllerLane`
+ * in `@nodetool-ai/protocol`; pinned by `tests/midi.protocolCompat.test.ts`.
+ */
+export interface MidiControllerLane {
+  id: string;
+  kind: MidiControllerKind;
+  /** Required when `kind` is "cc", forbidden otherwise. */
+  cc?: number;
+  /** Required when `kind` is "polyPressure", forbidden otherwise. */
+  pitch?: number;
+  /** MIDI channel 0..15. Absent means 0. */
+  channel?: number;
+  /** Absent means "linear". */
+  interpolation?: "linear" | "step";
+  points: MidiControllerPoint[];
 }
 
 /**
@@ -1234,6 +1301,12 @@ export interface TimelineClip {
   durationMs: number;
   inPointMs?: number;
   outPointMs?: number;
+  /**
+   * Region loop (CE3). When set and below `durationMs`, the window
+   * `[inPointMs, inPointMs + loopLengthMs)` repeats until `durationMs`.
+   * Midi and audio clips only. Absent means no loop.
+   */
+  loopLengthMs?: number;
   mediaType: ClipMediaType;
   sourceType: "imported" | "generated";
   /** Defaults to "workflow" when absent on legacy persisted data. */
@@ -1492,6 +1565,8 @@ export interface TimelineClip {
    * also exist on the protocol zod schema or PATCH strips it.
    */
   notes?: MidiNote[];
+  /** Controller lanes of a `midi` clip, in content ticks. */
+  controllers?: MidiControllerLane[];
   /** Arp, chord comping or scale snapping of a `midi` clip. */
   harmony?: ClipHarmony;
 }

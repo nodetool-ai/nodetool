@@ -1,10 +1,13 @@
 /** The clip and track shapes an op result reports. */
 
 import { activeTakeIdOf } from "../takes.js";
+import { activeLoopMs, expandMidiLoop, loopRepeatCount } from "../clipLoop.js";
 import { formatBarsBeats } from "../midi/grid.js";
 import { resolveTempo } from "../midi/tempo.js";
 import { visibleNotes } from "../midi/notes.js";
 import { presetIdForInstrument } from "../midi/presets.js";
+import { harmonySummary } from "../harmony/summary.js";
+import { keyLabel, signatureLabel, trackChordChart } from "./chords.js";
 import type { MediaTrack, TimelineClip, TimelineTrack } from "../types.js";
 import type { TimelineOpState } from "./types.js";
 
@@ -25,7 +28,19 @@ export function serializeTrack(
     clipCount:
       clipCount ?? state.clips.filter((c) => c.trackId === t.id).length,
     instrument: t.instrument,
-    presetId: t.instrument ? presetIdForInstrument(t.instrument) : undefined
+    presetId: t.instrument ? presetIdForInstrument(t.instrument) : undefined,
+    ...(t.type === "chord" ? chordTrackFields(state, t) : {})
+  };
+}
+
+/** What get_state shows of a chord track: the chart from bar 1, the key and the signature. */
+function chordTrackFields(state: TimelineOpState, t: TimelineTrack) {
+  const tempo = resolveTempo(state);
+  return {
+    chordCount: t.chords?.length ?? 0,
+    chordChart: trackChordChart(tempo, t.chords ?? []),
+    key: keyLabel(tempo) ?? null,
+    signature: signatureLabel(tempo)
   };
 }
 
@@ -53,6 +68,11 @@ export function serializeClip(state: TimelineOpState, c: TimelineClip) {
     endMs: c.startMs + c.durationMs,
     inPointMs: c.inPointMs,
     outPointMs: c.outPointMs,
+    loopLengthMs: c.loopLengthMs,
+    loopRepeats:
+      c.loopLengthMs !== undefined && activeLoopMs(c) !== undefined
+        ? loopRepeatCount(c)
+        : undefined,
     status: c.status,
     currentAssetId: c.currentAssetId,
     activeTakeId: activeTakeIdOf(c),
@@ -60,12 +80,16 @@ export function serializeClip(state: TimelineOpState, c: TimelineClip) {
     noteCount: c.notes?.length,
     audibleNoteCount:
       c.mediaType === "midi"
-        ? visibleNotes(c, resolveTempo(state).bpm).length
+        ? visibleNotes(
+            expandMidiLoop(c, resolveTempo(state).bpm),
+            resolveTempo(state).bpm
+          ).length
         : undefined,
     startBarsBeats:
       c.mediaType === "midi"
         ? formatBarsBeats(c.startMs, resolveTempo(state))
         : undefined,
+    harmony: harmonySummary(c.harmony),
     prompt: c.prompt,
     provider: c.provider,
     model: c.model,
@@ -77,6 +101,7 @@ export function serializeClip(state: TimelineOpState, c: TimelineClip) {
     hidden: c.hidden ?? false,
     muted: c.muted ?? false,
     locked: c.locked,
+    labelColor: c.labelColor,
     opacity: c.opacity,
     transform: c.transform,
     textStyle: c.textStyle,
