@@ -152,7 +152,7 @@ export interface CloudTransferResult {
 
 /** A document of the signed-in cloud server, as the cloud window opens it. */
 export interface CloudDocumentRef {
-  type: "workflow" | "timeline" | "jsscript";
+  type: "workflow" | "timeline" | "jsscript" | "script";
   id: string;
 }
 

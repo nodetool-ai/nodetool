@@ -3,8 +3,8 @@
  * flow "Open and edit a cloud document"; WP1.15). They list the signed-in
  * account's documents on its cloud server, and the documents others shared
  * with it there, through the cloud client. Workflows and timelines, as in
- * the native apps' cloud browser, and JS scripts, whose file references the
- * server checks since WP2.10 (D26).
+ * the native apps' cloud browser, and JS scripts and scripts, whose file
+ * references the server checks since WP2.10 (D26).
  *
  * The query keys start with the server and the account (TC124), so a local
  * and a cloud document with the same id never share a cache entry, and
@@ -32,7 +32,7 @@ type CloudOrigin = Extract<DocumentOrigin, { kind: "cloud" }>;
 interface Listed {
   readonly id: string;
   readonly name: string;
-  readonly type: "workflow" | "timeline" | "jsscript";
+  readonly type: "workflow" | "timeline" | "jsscript" | "script";
   readonly updatedAt: string;
   readonly role?: "viewer" | "editor";
 }
@@ -71,6 +71,10 @@ async function ownDocuments(origin: CloudOrigin, signal: AbortSignal): Promise<L
   for (const script of scripts) {
     listed.push({ id: script.id, name: script.name, type: "jsscript", updatedAt: script.updatedAt });
   }
+  const screenplays = await client.scripts.list.query({}, { signal });
+  for (const script of screenplays) {
+    listed.push({ id: script.id, name: script.name, type: "script", updatedAt: script.updatedAt });
+  }
   return listed;
 }
 
@@ -92,7 +96,7 @@ async function sharedDocuments(origin: CloudOrigin, signal: AbortSignal): Promis
   }));
   for (const document of documents.documents) {
     // The list holds every shared kind. Only these open here (D26).
-    if (document.type === "timeline" || document.type === "jsscript") {
+    if (document.type === "timeline" || document.type === "jsscript" || document.type === "script") {
       listed.push({
         id: document.id,
         name: document.name,
