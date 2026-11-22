@@ -20438,6 +20438,8 @@
     },
     "capturing": "正在读取更改…",
     "running": "正在发送和接收…",
+    "collect": "收集",
+    "collecting": "正在将链接的文件复制到项目文件夹…",
     "apply": {
       "publish": "发布",
       "synchronize": "同步"
@@ -20494,7 +20496,7 @@
       "localUnavailable": "此应用的项目服务器没有响应。",
       "cancelled": "云账户已更改，传输已停止。",
       "refused": "服务器拒绝了传输（{{reason}}）。",
-      "collectFirst": "此项目使用的部分文件不在项目文件夹中。请将它们收集到文件夹中，然后重试。",
+      "collectFirst": "此项目使用的部分文件位于项目文件夹之外。“收集”会将它们复制到项目的 Imported 文件夹，然后重新读取项目。",
       "receiveExpired": "此窗口打开期间云端项目已更改。请重新同步。",
       "receiveChangedWhileOpen": "此窗口打开期间有内容更改。请再次检查选择。",
       "receivingChangedAgain": "接收期间云端项目再次更改。请重新选择。",
@@ -20505,7 +20507,9 @@
       "notPreparedAgain": "已接收。无法重新准备此处的更改：{{reason}} 请重新同步以发送它们。",
       "sendChangedWhileOpen": "此窗口打开期间项目已更改。请检查将要发送的内容。",
       "missingFilesUnconfirmed": "缺少此项目需要的文件。逐一确认后即可不带这些文件发送。",
-      "sendRefused": "云端拒绝了发送：{{reasons}}"
+      "sendRefused": "云端拒绝了发送：{{reasons}}",
+      "notCollected": "以下链接的文件无法复制到项目文件夹：{{files}}",
+      "collectInterrupted": "复制在尝试所有链接的文件之前停止了。请重试。"
     },
     "done": {
       "published": "已发布到云端。",

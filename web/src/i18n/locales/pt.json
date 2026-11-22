@@ -20752,6 +20752,8 @@
     },
     "capturing": "Lendo as alterações…",
     "running": "Enviando e recebendo…",
+    "collect": "Reunir",
+    "collecting": "Copiando os arquivos vinculados para a pasta do projeto…",
     "apply": {
       "publish": "Publicar",
       "synchronize": "Sincronizar"
@@ -20808,7 +20810,7 @@
       "localUnavailable": "O servidor de projetos deste app não respondeu.",
       "cancelled": "A transferência parou porque a conta na nuvem mudou.",
       "refused": "O servidor recusou a transferência ({{reason}}).",
-      "collectFirst": "Alguns arquivos deste projeto estão fora da pasta do projeto. Reúna-os na pasta e tente novamente.",
+      "collectFirst": "Alguns arquivos usados por este projeto estão fora da pasta do projeto. Reunir os copia para a pasta Imported e lê o projeto novamente.",
       "receiveExpired": "O projeto na nuvem mudou enquanto esta janela estava aberta. Sincronize novamente.",
       "receiveChangedWhileOpen": "Algo mudou enquanto esta janela estava aberta. Confira as escolhas novamente.",
       "receivingChangedAgain": "O projeto na nuvem mudou de novo durante o recebimento. Escolha novamente.",
@@ -20820,6 +20822,8 @@
       "sendChangedWhileOpen": "Este projeto mudou enquanto a janela estava aberta. Confira o que será enviado.",
       "missingFilesUnconfirmed": "Faltam arquivos de que este projeto precisa. Confirme cada um para enviar sem ele.",
       "sendRefused": "A nuvem recusou o envio: {{reasons}}",
+      "notCollected": "Estes arquivos vinculados não puderam ser copiados para a pasta do projeto: {{files}}",
+      "collectInterrupted": "A cópia parou antes de tentar todos os arquivos vinculados. Tente novamente.",
       "chooseAgain_many": "{{count}} documentos foram alterados aqui ou na nuvem depois da sua escolha. Escolha novamente.",
       "cloudChangedChooseAgain_many": "A versão na nuvem de {{count}} documentos mudou desde que esta janela foi lida. Escolha novamente."
     },

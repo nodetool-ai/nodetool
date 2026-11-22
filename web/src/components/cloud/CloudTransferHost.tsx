@@ -14,6 +14,7 @@ import { cloudOriginOf, useCloudAccountState } from "../../lib/cloud/cloudAccoun
 import { isCloudWindow } from "../../lib/cloud/cloudWindow";
 import { desktopTransferCall, type TransferCall } from "../../lib/cloud/transferCalls";
 import { TransferController } from "../../lib/cloud/TransferController";
+import { trpcClient } from "../../trpc/client";
 import type { MenuEventData } from "../../window";
 import CloudTransferSheet from "./CloudTransferSheet";
 
@@ -52,7 +53,8 @@ const DesktopCloudTransferHost: React.FC<{ call: TransferCall }> = ({ call }) =>
         projectName,
         linked: data.type === "synchronizeProject",
         readLink: true,
-        signedIn: () => cloudOriginOf(accountRef.current) !== null
+        signedIn: () => cloudOriginOf(accountRef.current) !== null,
+        collect: (id) => trpcClient.assets.collect.mutate({ project_id: id })
       });
       setController(next);
       void next.start();

@@ -637,6 +637,78 @@ describe("TransferController (TC123)", () => {
     expect(server.calls()).toEqual(["cloudTransfer.send.capture"]);
   });
 
+  it("collects the linked files, then reads the project again (D22, TC103)", async () => {
+    const server = new QueueServer();
+    server.answer("cloudTransfer.send.capture", {
+      status: "collect_first",
+      external: ["a1"],
+      message: "Collect the files first."
+    });
+    server.answer("cloudTransfer.send.capture", captured("t1", { operations: [create("w1")] }));
+    const collect = jest.fn().mockResolvedValue({
+      copied: [{ id: "a1", name: "clip.mov", workspace_path: "Imported/clip.mov" }],
+      skipped: [],
+      failed: [],
+      interrupted: false
+    });
+
+    const transfer = controller(server, { collect });
+    expect(transfer.canCollect).toBe(true);
+    await transfer.collect();
+    expect(collect).not.toHaveBeenCalled();
+    await transfer.start();
+    expect(transfer.snapshot.stage).toBe("collectFirst");
+    await transfer.collect();
+    expect(collect).toHaveBeenCalledWith(PROJECT);
+    expect(transfer.snapshot.stage).toBe("reviewing");
+    expect(transfer.snapshot.external).toEqual([]);
+    expect(sections(transfer)).toEqual(["send"]);
+    expect(server.calls()).toEqual(["cloudTransfer.send.capture", "cloudTransfer.send.capture"]);
+  });
+
+  it("fails and names each linked file that could not be collected", async () => {
+    const server = new QueueServer();
+    server.answer("cloudTransfer.send.capture", { status: "collect_first", external: ["a1"], message: "Collect." });
+    const transfer = controller(server, {
+      collect: jest.fn().mockResolvedValue({
+        copied: [],
+        skipped: [{ id: "a1", name: "clip.mov", reason: "missing" }],
+        failed: [{ id: "a2", name: "song.wav", reason: "copy did not verify" }],
+        interrupted: false
+      })
+    });
+    await transfer.start();
+    await transfer.collect();
+    expect(transfer.snapshot.stage).toBe("failed");
+    expect(transfer.snapshot.message).toEqual({
+      key: "notCollected",
+      files: ["clip.mov: missing", "song.wav: copy did not verify"]
+    });
+    expect(server.calls()).toEqual(["cloudTransfer.send.capture"]);
+
+    const stopped = controller(server, {
+      collect: jest.fn().mockResolvedValue({ copied: [], skipped: [], failed: [], interrupted: true })
+    });
+    await stopped.start();
+    await stopped.collect();
+    expect(stopped.snapshot.message).toEqual({ key: "collectInterrupted" });
+
+    const unreachable = controller(server, { collect: jest.fn().mockRejectedValue(new Error("down")) });
+    await unreachable.start();
+    await unreachable.collect();
+    expect(unreachable.snapshot.message).toEqual({ key: "failure", status: "localUnavailable", reason: "" });
+  });
+
+  it("offers no Collect without the app's own server", async () => {
+    const server = new QueueServer();
+    server.answer("cloudTransfer.send.capture", { status: "collect_first", external: ["a1"], message: "Collect." });
+    const transfer = controller(server);
+    expect(transfer.canCollect).toBe(false);
+    await transfer.start();
+    await transfer.collect();
+    expect(transfer.snapshot.stage).toBe("collectFirst");
+  });
+
   it("refuses an answer the router's schema does not accept", async () => {
     const server = new QueueServer();
     server.answer("cloudTransfer.send.capture", { status: "captured", transfer_id: "t1" });

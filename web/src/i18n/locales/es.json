@@ -20752,6 +20752,8 @@
     },
     "capturing": "Leyendo los cambios…",
     "running": "Enviando y recibiendo…",
+    "collect": "Reunir",
+    "collecting": "Copiando los archivos vinculados en la carpeta del proyecto…",
     "apply": {
       "publish": "Publicar",
       "synchronize": "Sincronizar"
@@ -20808,7 +20810,7 @@
       "localUnavailable": "El servidor de proyectos de esta app no respondió.",
       "cancelled": "La transferencia se detuvo porque cambió la cuenta en la nube.",
       "refused": "El servidor rechazó la transferencia ({{reason}}).",
-      "collectFirst": "Algunos archivos de este proyecto están fuera de la carpeta del proyecto. Reúnelos en la carpeta y vuelve a intentarlo.",
+      "collectFirst": "Algunos archivos que usa este proyecto están fuera de la carpeta del proyecto. Reunir los copia en su carpeta Imported y vuelve a leer el proyecto.",
       "receiveExpired": "El proyecto en la nube cambió mientras esta ventana estaba abierta. Vuelve a sincronizar.",
       "receiveChangedWhileOpen": "Algo cambió mientras esta ventana estaba abierta. Revisa de nuevo las opciones.",
       "receivingChangedAgain": "El proyecto en la nube volvió a cambiar durante la recepción. Elige de nuevo.",
@@ -20820,6 +20822,8 @@
       "sendChangedWhileOpen": "Este proyecto cambió mientras la ventana estaba abierta. Revisa lo que se enviará.",
       "missingFilesUnconfirmed": "Faltan archivos que necesita este proyecto. Confirma cada uno para enviar sin él.",
       "sendRefused": "La nube rechazó el envío: {{reasons}}",
+      "notCollected": "Estos archivos vinculados no se pudieron copiar en la carpeta del proyecto: {{files}}",
+      "collectInterrupted": "La copia se detuvo antes de intentar todos los archivos vinculados. Inténtalo de nuevo.",
       "chooseAgain_many": "{{count}} documentos cambiaron aquí o en la nube después de tu elección. Elige de nuevo.",
       "cloudChangedChooseAgain_many": "La versión en la nube de {{count}} documentos cambió desde que se leyó esta ventana. Elige de nuevo."
     },

@@ -86,13 +86,16 @@ Rectangle {
         }
         ColumnLayout {
             visible: root.stage === TransferController.Capturing || root.stage === TransferController.Running
+                     || root.stage === TransferController.Collecting
             Layout.alignment: Qt.AlignHCenter
             spacing: Ui.Metrics.sm
             Ui.BusyIndicator { running: parent.visible; Layout.alignment: Qt.AlignHCenter }
             Ui.Text {
                 text: root.stage === TransferController.Running
                       ? (root.controller.linked ? "Synchronizing. You can keep working." : "Publishing. You can keep working.")
-                      : "Reading what changed."
+                      : root.stage === TransferController.Collecting
+                        ? "Copying linked files into the project folder."
+                        : "Reading what changed."
                 tone: Ui.Text.Secondary
                 Layout.alignment: Qt.AlignHCenter
             }
@@ -207,12 +210,21 @@ Rectangle {
             Item { Layout.fillWidth: true }
             Ui.EditorButton {
                 objectName: "transfer-close"
-                text: root.reviewing || root.stage === TransferController.CollectFirst ? "Cancel" : "Close"
+                text: root.reviewing || root.stage === TransferController.CollectFirst
+                      || root.stage === TransferController.Collecting ? "Cancel" : "Close"
                 enabled: root.stage !== TransferController.Running
                 onClicked: {
                     root.controller.cancel()
                     root.closeRequested()
                 }
+            }
+            Ui.EditorButton {
+                objectName: "transfer-collect"
+                visible: root.stage === TransferController.CollectFirst
+                text: "Collect"
+                variant: Ui.EditorButton.Primary
+                description: "Copy the project's linked files into its Imported folder, then read the project again."
+                onClicked: root.controller.collect()
             }
             Ui.EditorButton {
                 objectName: "transfer-apply"

@@ -20438,6 +20438,8 @@
     },
     "capturing": "Reading what changed…",
     "running": "Sending and receiving…",
+    "collect": "Collect",
+    "collecting": "Copying linked files into the project folder…",
     "apply": {
       "publish": "Publish",
       "synchronize": "Synchronize"
@@ -20494,7 +20496,7 @@
       "localUnavailable": "The project server of this app did not answer.",
       "cancelled": "The transfer stopped because the cloud account changed.",
       "refused": "The server refused the transfer ({{reason}}).",
-      "collectFirst": "Some files this project uses are outside the project folder. Collect them into the folder, then try again.",
+      "collectFirst": "Some files this project uses are outside the project folder. Collect copies them into its Imported folder, then reads the project again.",
       "receiveExpired": "The cloud project changed while this sheet was open. Synchronize again.",
       "receiveChangedWhileOpen": "Something changed while this sheet was open. Check the choices again.",
       "receivingChangedAgain": "The cloud project changed again while receiving. Choose again.",
@@ -20505,7 +20507,9 @@
       "notPreparedAgain": "Received. The changes here could not be prepared again: {{reason}} Synchronize again to send them.",
       "sendChangedWhileOpen": "This project changed while the sheet was open. Check what will be sent.",
       "missingFilesUnconfirmed": "Files this project needs are missing. Confirm each one to send without it.",
-      "sendRefused": "The cloud refused the send: {{reasons}}"
+      "sendRefused": "The cloud refused the send: {{reasons}}",
+      "notCollected": "These linked files could not be copied into the project folder: {{files}}",
+      "collectInterrupted": "Copying stopped before every linked file was tried. Try again."
     },
     "done": {
       "published": "Published to the cloud.",
