@@ -2343,7 +2343,7 @@ as a cheap selfcheck, in addition to the `web-editor` checks that claim all of
 | `web-settings-ui` | Settings menus, costs, workers, packages, sharing, secrets and pack stores |
 | `web-project-files-ui` | Projects, workspace file tree, text editor and document stores |
 
-The matching [user journeys](../web/tests/journeys/README.md) are manual
+The matching [user journeys](https://github.com/nodetool-ai/nodetool/blob/main/web/tests/journeys/README.md) are manual
 harnesses, because each one starts the seeded backend and a browser:
 `web-chat-browser`, `web-library-browser`, `web-project-files-browser`,
 `storyboard-browser` and `web-editor-browser`. Their commands run
