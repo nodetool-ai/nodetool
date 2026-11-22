@@ -202,8 +202,59 @@ describe("edit_timeline — midi", () => {
     expect(result.ops[0].error).toContain("audio track");
   });
 
-  it("halving the tempo doubles the midi clip and leaves the audio clip alone", async () => {
-    const row = await makeTimeline();
+  it("halving the tempo doubles the midi clip on a non-audio sequence and refuses when audio is present (MD6)", async () => {
+    const rowWithAudio = await makeTimeline();
+    await edit(rowWithAudio.id, [
+      { op: "add_track", type: "midi", name: "Lead" },
+      {
+        op: "add_midi_clip",
+        track: "Lead",
+        start_ms: 1000,
+        duration_ms: 2000,
+        name: "Walk",
+        notes: quarterNotes
+      }
+    ]);
+    const locked = await edit(rowWithAudio.id, [{ op: "set_tempo", bpm: 60 }]);
+    expect(locked).toMatchObject({ applied: 0, failed: 1 });
+    expect(locked.ops[0].error).toContain("audio clip");
+
+    const row = await TimelineSequence.create<TimelineSequence>({
+      user_id: "u1",
+      project_id: "default",
+      name: "Theme Picture",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      duration_ms: 4000,
+      document: JSON.stringify({
+        tracks: [
+          {
+            id: "track-video",
+            name: "Video 1",
+            type: "video",
+            index: 0,
+            visible: true,
+            locked: false
+          }
+        ],
+        clips: [
+          {
+            id: "clip-video",
+            trackId: "track-video",
+            name: "Picture",
+            startMs: 0,
+            durationMs: 4000,
+            mediaType: "video",
+            sourceType: "imported",
+            status: "generated",
+            locked: false,
+            versions: []
+          }
+        ],
+        markers: []
+      })
+    });
     await edit(row.id, [
       { op: "add_track", type: "midi", name: "Lead" },
       {
@@ -229,8 +280,8 @@ describe("edit_timeline — midi", () => {
     expect(walk?.noteCount).toBe(4);
     expect(walk?.audibleNoteCount).toBe(4);
 
-    const bed = state.clips.find((c) => c.name === "Bed");
-    expect(bed).toMatchObject({ startMs: 0, durationMs: 4000 });
+    const picture = state.clips.find((c) => c.name === "Picture");
+    expect(picture).toMatchObject({ startMs: 0, durationMs: 4000 });
   });
 
   it("refuses a note list with a pitch of 128 and stores nothing", async () => {

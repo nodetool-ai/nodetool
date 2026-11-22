@@ -2484,3 +2484,96 @@ describe("duplicate_clip", () => {
     expect(copyIds[0]).not.toBe(originalIds[0]);
   });
 });
+
+/**
+ * Agent parity for the music editor: the piano-roll note functions, controller
+ * lanes, track automation, the master bus, the project key and the clip edits
+ * CE1 to CE7, all through the real `edit_timeline`, and what the row stores.
+ */
+describe("music editing through edit_timeline", () => {
+  beforeEach(() => initTestDb());
+  afterEach(() => ModelObserver.clear());
+
+  it("writes note functions, controllers, automation, master, folder and key to the row", async () => {
+    const row = await TimelineSequence.create<TimelineSequence>({
+      user_id: "u1",
+      project_id: "default",
+      name: "Song",
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      duration_ms: 0,
+      document: JSON.stringify({ tracks: [], clips: [], markers: [], music: {} })
+    });
+    const run = createCapabilityRun({
+      context: { userId: "u1" } as unknown as ProcessingContext,
+      gate: UNGATED
+    });
+    const result = (await run.invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        { op: "add_track", type: "midi", name: "Keys" },
+        {
+          op: "add_midi_clip",
+          track: "Keys",
+          start_ms: 0,
+          duration_ms: 4000,
+          name: "Riff",
+          notes: [
+            { id: "a", pitch: 61, start_tick: 0, duration_tick: 100 },
+            { id: "b", pitch: 62, start_tick: 480, duration_tick: 100 }
+          ]
+        },
+        { op: "set_notes", clip: "Riff", function: "legato", note_ids: ["a"] },
+        {
+          op: "set_notes",
+          clip: "Riff",
+          function: "scale_quantize",
+          root: 0,
+          scale: "major"
+        },
+        {
+          op: "set_notes",
+          clip: "Riff",
+          controllers: [{ kind: "cc", cc: 1, points: [{ tick: 0, value: 20 }] }]
+        },
+        {
+          op: "set_track",
+          track: "Keys",
+          automationMode: "touch",
+          folder: "Band",
+          automation: [
+            {
+              target: { kind: "mixer", param: "volumeDb" },
+              points: [{ timeMs: 0, value: -6 }]
+            }
+          ]
+        },
+        { op: "set_track", track: "master", volumeDb: -3 },
+        {
+          op: "set_tempo",
+          bpm: 100,
+          key: { tonic: "A", mode: "minor" },
+          auto_crossfade_ms: 20
+        },
+        { op: "loop_clip", clip: "Riff", times: 2 },
+        { op: "get_state", clip: "Riff", track: "Keys" }
+      ]
+    })) as { applied: number; failed: number; ops: { ok: boolean; error?: string }[] };
+    expect(result.ops.filter((o) => !o.ok)).toEqual([]);
+
+    const doc = (await TimelineSequence.findById(row.id))!.toDocument();
+    const clip = doc.clips.find((c) => c.name === "Riff")!;
+    expect(clip.notes!.find((n) => n.id === "a")!.durationTick).toBe(480);
+    expect(clip.notes!.find((n) => n.id === "a")!.pitch).toBe(60);
+    expect(clip.controllers).toHaveLength(1);
+    const track = doc.tracks.find((t) => t.name === "Keys")!;
+    expect(track.automationMode).toBe("touch");
+    expect(track.automation).toHaveLength(1);
+    expect(doc.trackFolders!.find((f) => f.name === "Band")!.id).toBe(track.folderId);
+    expect(doc.master!.volumeDb).toBe(-3);
+    expect(doc.tempo!.key).toEqual({ tonic: "A", mode: "minor" });
+    expect(doc.music!.autoCrossfadeMs).toBe(20);
+    expect(clip.loopLengthMs).toBeDefined();
+  });
+});

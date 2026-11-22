@@ -38,11 +38,37 @@ import {
   clipTextStyle,
   midiInstrument,
   midiNoteExpression,
+  automationTarget,
+  midiControllerKind,
+  musicKey,
+  musicRole,
+  trackEffect,
+  MAX_AUTOMATION_LANES_PER_TRACK,
+  MAX_AUTOMATION_POINTS_PER_LANE,
+  MIDI_MAX_POINTS_PER_LANE,
+  MIDI_MAX_CONTROLLER_LANES_PER_CLIP,
+  mediaTrack,
+  timelineChord,
+  timelineClip,
+  timelineMarker,
   samplerMidiInstrument,
   samplerZone,
   KNOWN_CLIP_EFFECT_TYPE_LIST,
   KNOWN_TRANSITION_TYPE_LIST,
   MIDI_MAX_NOTES_PER_CLIP,
+  stepAutomationMode,
+  stepCondition,
+  stepDegree,
+  stepEditMode,
+  stepKey,
+  stepPitchSource,
+  stepPlaybackMode,
+  stepRate,
+  stepRowAssignment,
+  stepRowSort,
+  stepScaleId,
+  stepSwingDivision,
+  STEP_PATTERN_MAX_STEPS,
   type ClipMask,
   type ClipTimeRemap,
   type KnownClipEffect,
@@ -1745,18 +1771,13 @@ export const addMidiClipParams = z.object({
 });
 export type AddMidiClipParams = z.infer<typeof addMidiClipParams>;
 
-/** `set_notes`. Replaces the whole list — send every note the clip should keep. */
-export const setNotesParams = z.object({
-  clip: targetParam,
-  notes: notesParam.describe(
-    "The clip's complete note list; this replaces what is there. Pass a note's `id` to keep it."
-  )
-});
-export type SetNotesParams = z.infer<typeof setNotesParams>;
-
 /** `set_tempo`. One constant tempo for the document. */
 export const setTempoParams = z.object({
-  bpm: z.number().positive().describe("Beats per minute."),
+  bpm: z
+    .number()
+    .positive()
+    .optional()
+    .describe("Beats per minute. Omit to keep the current tempo."),
   offset_ms: z
     .number()
     .min(0)
@@ -1773,7 +1794,21 @@ export const setTempoParams = z.object({
     .int()
     .positive()
     .optional()
-    .describe("Time-signature denominator, e.g. 4 in 4/4. Default 4.")
+    .describe("Time-signature denominator, e.g. 4 in 4/4. Default 4."),
+  key: musicKey
+    .nullable()
+    .optional()
+    .describe(
+      "The project key, `{ tonic, mode }` with mode major or minor. `null` clears it. Omit to keep the current key."
+    ),
+  auto_crossfade_ms: z
+    .number()
+    .min(0)
+    .max(1000)
+    .optional()
+    .describe(
+      "Crossfade length in ms for audio clips that touch on one track. 0 turns it off. Default 10."
+    )
 });
 export type SetTempoParams = z.infer<typeof setTempoParams>;
 
@@ -1783,7 +1818,8 @@ export const SET_TEMPO_DESCRIPTION =
   "rescales every midi clip around `offset_ms` — halving the BPM doubles each " +
   "midi clip's start and length, and the notes keep their place inside it. " +
   "Clips that are not midi do not move, so a midi part re-tempoed against " +
-  "picture will no longer line up with it.";
+  "picture will no longer line up with it. The project `key` and the audio " +
+  "`auto_crossfade_ms` are set here too, and a tempo change keeps the key.";
 
 /** A voice named instead of spelled out. The id is one of the engine's
  * `MIDI_INSTRUMENT_PRESETS`; the handler resolves it to the full instrument
@@ -1833,6 +1869,14 @@ export const QUANTIZE_DIVISION_VALUES = [
 ] as const;
 
 /** `transpose_clip`. Moves every note in the clip, ids kept. */
+/** Narrows a note edit to the notes the piano roll would have selected. */
+const noteIdsParam = z
+  .array(z.string())
+  .optional()
+  .describe(
+    "Edit only these notes, by id. Omit to edit every note in the clip."
+  );
+
 export const transposeClipParams = z.object({
   clip: targetParam,
   semitones: z
@@ -1842,7 +1886,8 @@ export const transposeClipParams = z.object({
     .max(48)
     .describe(
       "Whole semitones to move every note by. 12 is an octave up, -12 an octave down."
-    )
+    ),
+  note_ids: noteIdsParam
 });
 export type TransposeClipParams = z.infer<typeof transposeClipParams>;
 
@@ -1873,7 +1918,16 @@ export const quantizeNotesParams = z.object({
     .optional()
     .describe(
       '"start" moves onsets only; "start_and_length" also rounds each held length to whole grid steps, never below one. Default "start".'
-    )
+    ),
+  swing: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe(
+      "Delay of every odd grid step, 0..1 of half a step. Only the onset moves. Default 0."
+    ),
+  note_ids: noteIdsParam
 });
 export type QuantizeNotesParams = z.infer<typeof quantizeNotesParams>;
 
@@ -1893,7 +1947,8 @@ export const scaleVelocityParams = z.object({
     .max(4)
     .describe(
       "Multiplier on every velocity. 1.2 plays the phrase harder, 0.8 softer."
-    )
+    ),
+  note_ids: noteIdsParam
 });
 export type ScaleVelocityParams = z.infer<typeof scaleVelocityParams>;
 
@@ -1901,6 +1956,188 @@ export const SCALE_VELOCITY_DESCRIPTION =
   "Scale how hard every note in a midi clip is struck. Velocities are clamped " +
   "to 1..127, so a large factor flattens the part's dynamics rather than " +
   "making it louder — set the track's `gainDb` for level.";
+
+/** The note functions the piano roll offers beyond quantize, transpose and velocity scaling. */
+export const EDIT_NOTES_FUNCTIONS = [
+  "scale_quantize",
+  "legato",
+  "remove_overlaps",
+  "delete_duplicates",
+  "glue",
+  "mute",
+  "unmute",
+  "delete",
+  "set_velocity"
+] as const;
+
+/** Scale ids `scale_quantize` snaps to. Mirrors `SCALES` in `@nodetool-ai/timeline`. */
+export const EDIT_NOTES_SCALES = [
+  "major", "minor", "dorian", "mixolydian", "phrygian", "lydian", "locrian",
+  "harmMinor", "melMinor", "phrygDom", "lydDom", "locrian2", "altered",
+  "wholeTone", "dimHW", "dimWH", "majPent", "minPent", "blues"
+] as const;
+
+/** One controller lane write of `set_notes`. */
+export const controllerLaneParams = z.object({
+  kind: midiControllerKind,
+  cc: z
+    .number()
+    .int()
+    .min(0)
+    .max(127)
+    .optional()
+    .describe("Controller number, 0..127. Required for kind `cc`, refused otherwise."),
+  pitch: z
+    .number()
+    .int()
+    .min(0)
+    .max(127)
+    .optional()
+    .describe("Note pitch the pressure follows. Required for kind `polyPressure`, refused otherwise."),
+  channel: z.number().int().min(0).max(15).optional().describe("MIDI channel 0..15. Default 0."),
+  interpolation: z
+    .enum(["linear", "step"])
+    .optional()
+    .describe("How the lane moves between points. Default linear."),
+  points: z
+    .array(
+      z.object({
+        tick: z
+          .number()
+          .int()
+          .min(0)
+          .describe("Ticks from the clip's content start, like a note's start_tick."),
+        value: z
+          .number()
+          .int()
+          .describe("0..127. Pitch bend runs -8192..8191, 0 at centre.")
+      })
+    )
+    .max(MIDI_MAX_POINTS_PER_LANE)
+    .describe("The lane's complete point list. An empty list removes the lane.")
+});
+
+/**
+ * `set_notes`. Replaces the whole note list, or runs a piano-roll note
+ * function on a selection, or writes controller lanes. One tool because the
+ * three are one surface in the editor: a clip's content.
+ */
+export const setNotesParams = z.object({
+  clip: targetParam,
+  notes: notesParam
+    .optional()
+    .describe(
+      "The clip's complete note list; this replaces what is there. Pass a note's `id` to keep it. Omit it to leave the notes alone."
+    ),
+  function: z
+    .enum(EDIT_NOTES_FUNCTIONS)
+    .optional()
+    .describe(
+      "Run a note function instead of replacing the list. scale_quantize snaps pitches into `scale` on `root`. legato extends each note to the next onset. remove_overlaps cuts a note at the next note of the same pitch. delete_duplicates drops a note that repeats an earlier one. glue merges the named notes of one pitch and channel (needs `note_ids`). mute and unmute set the muted flag. delete removes notes. set_velocity writes one `velocity`. Never together with `notes`."
+    ),
+  note_ids: noteIdsParam,
+  pitches: z
+    .array(z.number().int().min(0).max(127))
+    .optional()
+    .describe(
+      "With `function`: act only on the notes on these pitches, the way a step-editor row does. Together with `note_ids` it keeps the notes in both. Omit both to act on every note."
+    ),
+  velocity: z
+    .number()
+    .int()
+    .min(1)
+    .max(127)
+    .optional()
+    .describe("set_velocity only: the velocity to write, 1..127."),
+  root: z
+    .number()
+    .int()
+    .min(0)
+    .max(11)
+    .optional()
+    .describe("scale_quantize only: the scale's root as a pitch class, 0 (C) to 11 (B). Default: project key tonic, or 0."),
+  scale: z
+    .enum(EDIT_NOTES_SCALES)
+    .optional()
+    .describe("scale_quantize only: the scale to snap to."),
+  controllers: z
+    .array(controllerLaneParams)
+    .min(1)
+    .max(MIDI_MAX_CONTROLLER_LANES_PER_CLIP)
+    .optional()
+    .describe(
+      "Controller lanes to write: CC, pitch bend, channel pressure or poly pressure. Each entry names a lane by `kind` (with `cc` or `pitch`) and `channel` and replaces that lane's whole point list. A lane that does not exist is created. An empty `points` list removes the lane. Lanes you do not name stay."
+    )
+});
+export type SetNotesParams = z.infer<typeof setNotesParams>;
+
+export const SET_NOTES_DESCRIPTION =
+  "Write a midi clip's content. Send `notes` to replace the whole list, not " +
+  "merge: every note the clip should keep, each with `pitch`, `start_tick` and " +
+  "`duration_tick` (960 ticks = one quarter note, from the clip's content " +
+  "start), and a note's `id` to keep it. Send `function` instead to run a " +
+  "piano-roll note function on a selection: scale_quantize, legato, " +
+  "remove_overlaps, delete_duplicates, glue, mute, unmute, delete or " +
+  "set_velocity. Select with `note_ids`, with `pitches` (a step-editor row) " +
+  "or both, else every note is acted on. Send `controllers` to write CC, pitch " +
+  "bend or pressure lanes. Read the current notes and lanes with " +
+  "ui_timeline_get_state and `clip`.";
+
+/** The lanes one `set_track` call writes. */
+export const automationLaneParams = z.object({
+  target: automationTarget.describe(
+    "The control: `{kind:'mixer', param:'volumeDb'|'pan'}`, `{kind:'device', deviceId, param}` (deviceId `instrument` or a track effect id) or `{kind:'clip', property}` on a picture track."
+  ),
+  enabled: z
+    .boolean()
+    .optional()
+    .describe("false keeps the lane but plays the parameter's own value. Default true."),
+  points: z
+    .array(
+      z.object({
+        timeMs: z.number().finite().min(0).describe("Document time in ms."),
+        value: z.number().finite().describe("The parameter's value in its own unit."),
+        easing: z
+          .string()
+          .optional()
+          .describe("Easing of the segment that ends at this point. Default linear.")
+      })
+    )
+    .max(MAX_AUTOMATION_POINTS_PER_LANE)
+    .describe("The lane's complete point list. An empty list removes the lane.")
+});
+
+/** The mixer and music fields `set_track` takes beyond the plain channel settings. */
+export const setTrackMixShape = {
+  effects: z
+    .array(trackEffect)
+    .max(32)
+    .optional()
+    .describe("The whole insert chain, in order. [] removes it."),
+  folder: z
+    .string()
+    .min(1)
+    .nullable()
+    .optional()
+    .describe("A track folder by name, created when missing. null takes the track out of its folder."),
+  musicRole: musicRole
+    .nullable()
+    .optional()
+    .describe("The stem the track holds in a music project. null clears it."),
+  automationMode: z
+    .enum(["off", "read", "touch", "latch", "write"])
+    .optional()
+    .describe(
+      "How the track's lanes play and record. off plays none, read plays them, touch, latch and write also record a pass."
+    ),
+  automation: z
+    .array(automationLaneParams)
+    .max(MAX_AUTOMATION_LANES_PER_TRACK)
+    .optional()
+    .describe(
+      "Automation lanes to write. Each entry names its `target` and replaces that lane's whole point list, so moving, deleting and easing points are one write. A lane that does not exist is created. An empty `points` list removes the lane. Lanes you do not name stay. Points are sorted by time."
+    )
+};
 
 // ── Smart Reframe ───────────────────────────────────────────────────────────
 
@@ -2100,6 +2337,7 @@ export const insertTimeParams = z.object({
   bars: z
     .number()
     .positive()
+    .finite()
     .optional()
     .describe("Length of the silence in bars of the current time signature. Send this or ms."),
   ms: z.number().positive().finite().optional().describe("Length of the silence, in ms."),
@@ -2123,6 +2361,65 @@ export type DuplicateRangeParams = z.infer<typeof duplicateRangeParams>;
 
 export const DUPLICATE_RANGE_DESCRIPTION =
   "Copy a section and insert the copy right after it. Send `fromBar` and `toBar` (the range ends at the start of toBar) or `fromMs` and `toMs`. Later content moves later by the section length. Without `trackIds` every track is copied, with the chords, markers and automation points inside the range.";
+
+/**
+ * What `paste_range` places: a section's content, as `readSectionContent`
+ * reads it (CE4, D61). Times are relative to the start of the section.
+ */
+export const sectionContentShape = z.object({
+  lengthMs: z.number().positive().finite().describe("Length of the section, in ms."),
+  clips: z
+    .array(timelineClip)
+    .describe("Copied clips. `startMs` counts from the start of the section."),
+  mediaTracks: z
+    .array(mediaTrack)
+    .optional()
+    .describe("Tracking resources the copied clips own, by `clipId`."),
+  chords: z
+    .array(z.object({ trackId: z.string().min(1), chords: z.array(timelineChord) }))
+    .optional()
+    .describe("Chords by chord track. `startTick` counts from the start of the section."),
+  automation: z
+    .array(
+      z.object({
+        trackId: z.string().min(1),
+        laneId: z.string().min(1).optional(),
+        target: automationTarget,
+        enabled: z.boolean().optional(),
+        points: z.array(
+          z.object({
+            timeMs: z.number().finite().min(0),
+            value: z.number().finite(),
+            easing: z.string().optional()
+          })
+        )
+      })
+    )
+    .optional()
+    .describe("Automation points by track and lane. `timeMs` counts from the start of the section."),
+  markers: z
+    .array(timelineMarker)
+    .optional()
+    .describe("Markers. `timeMs` counts from the start of the section.")
+});
+export type SectionContentParams = z.infer<typeof sectionContentShape>;
+
+/** `paste_range`. Place copied section content at a time, in one edit (CE4, D61). */
+export const pasteRangeParams = z.object({
+  ...barTimeShape,
+  atMs: z.number().finite().min(0).optional().describe("Paste point, in ms. Send this or atBar."),
+  mode: z
+    .enum(["insert", "overwrite"])
+    .optional()
+    .describe(
+      "`insert` (default) opens a gap of the section length at the point and places the content in it. `overwrite` replaces what the range covers on the tracks that receive content, and moves nothing."
+    ),
+  content: sectionContentShape
+});
+export type PasteRangeParams = z.infer<typeof pasteRangeParams>;
+
+export const PASTE_RANGE_DESCRIPTION =
+  "Paste copied section content (clips with their tracking resources, chords, automation points, markers) at a time, as one edit and one undo step. Send `atBar` (with optional `beat`) or `atMs`, the `content`, and optionally `mode`. Insert mode shifts later content like insert_time. Overwrite mode replaces the range on the tracks that receive content. It refuses when a destination track is locked.";
 
 /** `list_progressions`. */
 export const LIST_PROGRESSIONS_DESCRIPTION =
@@ -2261,6 +2558,660 @@ export type FitNotesToChordsParams = z.infer<typeof fitNotesToChordsParams>;
 export const FIT_NOTES_TO_CHORDS_DESCRIPTION =
   "Rewrite the notes of midi clips so each one sits in the chord that sounds at its start. Ties go down. Notes outside every chord stay. This changes the written notes, so the piano roll shows the result.";
 
+// ── Step Sequencer (SQ48–SQ54) ──────────────────────────────────────────────
+
+const stepSelectionParam = z
+  .union([
+    z.string().min(1),
+    z.array(z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS)).min(1)
+  ])
+  .describe(
+    '1-based step indices: a range/list string like "1,5,9,13" or "1-4", or an integer array like [1, 5, 9].'
+  );
+
+const stepValuesPatchParam = z
+  .object({
+    on: z.boolean().optional(),
+    velocity: z.number().int().min(1).max(127).optional(),
+    gate: z.number().int().min(1).max(100).optional(),
+    tie: z.boolean().optional(),
+    note: z.number().int().min(-12).max(12).optional(),
+    octave: z.number().int().min(-2).max(8).optional(),
+    repeat: z.number().int().min(1).max(16).optional(),
+    chance: z.number().int().min(0).max(100).optional(),
+    offset: z.number().int().min(-50).max(50).optional(),
+    stepRate: stepRate.nullable().optional(),
+    skip: z.boolean().optional(),
+    value: z.number().finite().optional(),
+    condition: stepCondition.optional(),
+    midiChannel: z.number().int().min(1).max(16).optional(),
+    articulation: z.number().int().min(0).max(255).optional(),
+    velocityRamp: z.number().int().min(-100).max(100).optional(),
+    velocityCurve: z.number().int().min(-100).max(100).optional(),
+    distribution: z.number().int().min(-100).max(100).optional()
+  })
+  .strict();
+
+const stepRampField = z.enum([
+  "velocity",
+  "gate",
+  "note",
+  "octave",
+  "repeat",
+  "chance",
+  "offset",
+  "value",
+  "velocityRamp",
+  "velocityCurve",
+  "distribution"
+]);
+
+const stepRowSortBy = z.enum([
+  "type",
+  "typeAndNote",
+  "typeAndName",
+  "typeAndKitPad"
+]);
+
+const addPatternRowInputParam = z
+  .object({
+    assignment: stepRowAssignment
+      .optional()
+      .describe("Explicit row assignment (note, kit, melodic, degree, or automation)."),
+    pitch: z
+      .union([z.number().int().min(0).max(127), z.string().min(1)])
+      .optional()
+      .describe("Shorthand fixed note pitch (0..127 or note name like C3)."),
+    pad: z
+      .union([z.number().int().min(0).max(127), z.string().min(1)])
+      .optional()
+      .describe("Shorthand drum kit pad index or pad name."),
+    degree: z
+      .union([stepDegree, z.number().int().min(0).max(6)])
+      .optional()
+      .describe('Shorthand scale degree ("root".."7th" or 0..6).'),
+    octave: z
+      .number()
+      .int()
+      .min(-2)
+      .max(8)
+      .optional()
+      .describe("Octave for a degree row (-2..8). Default 3."),
+    cc: z
+      .number()
+      .int()
+      .min(0)
+      .max(127)
+      .optional()
+      .describe("Shorthand MIDI CC number 0..127 for an automation row."),
+    param: z
+      .string()
+      .min(1)
+      .optional()
+      .describe('Shorthand automation parameter ("pitchBend", "channelPressure", or a device param id).'),
+    deviceId: z
+      .string()
+      .min(1)
+      .optional()
+      .describe('Device id for a device automation row (default "instrument").'),
+    name: z.string().min(1).optional().describe("Row display label."),
+    text: z
+      .string()
+      .optional()
+      .describe('Initial step text for this row, e.g. "x... x... x... x...".'),
+    stepRate: stepRate.optional(),
+    lengthSteps: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+    playback: stepPlaybackMode.optional(),
+    mute: z.boolean().optional(),
+    solo: z.boolean().optional(),
+    loopStart: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+    loopEnd: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+    midiChannel: z.number().int().min(1).max(16).optional(),
+    automationMode: stepAutomationMode.optional(),
+    color: z.string().min(1).optional(),
+    subrows: z.array(stepEditMode).optional(),
+    subrowsExpanded: z.boolean().optional()
+  })
+  .strict();
+
+export const getPatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  modes: z
+    .array(stepEditMode)
+    .optional()
+    .describe("Optional edit modes to return per-step value arrays for each row.")
+});
+export type GetPatternParams = z.infer<typeof getPatternParams>;
+export const GET_PATTERN_DESCRIPTION =
+  "Read a step sequencer pattern region: settings, rows, pattern text, and optional per-mode step value arrays (1-based steps).";
+
+export const createPatternRegionParams = z.object({
+  trackId: z.string().min(1).describe("MIDI track id or name."),
+  ...barTimeShape,
+  atMs: z
+    .number()
+    .finite()
+    .min(0)
+    .optional()
+    .describe("Start time in ms. Use this or atBar, never both."),
+  bars: z
+    .number()
+    .positive()
+    .finite()
+    .optional()
+    .describe("Region length in bars of the current time signature. Default 1."),
+  name: z.string().min(1).optional().describe("Clip label."),
+  template: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('Library pattern/template id or name, or "track default".'),
+  text: z
+    .string()
+    .optional()
+    .describe("Optional step sequencer pattern text lines to populate rows.")
+});
+export type CreatePatternRegionParams = z.infer<typeof createPatternRegionParams>;
+export const CREATE_PATTERN_REGION_DESCRIPTION =
+  "Create a step sequencer pattern region on a MIDI track, defaulting to 1 bar and using the track template, drum kit pads, or pattern text.";
+
+export const convertPatternToMidiParams = z.object({
+  clipIds: z
+    .array(z.string().min(1))
+    .min(1)
+    .describe("Pattern region clip ids or names to expand into editable MIDI clips.")
+});
+export type ConvertPatternToMidiParams = z.infer<typeof convertPatternToMidiParams>;
+export const CONVERT_PATTERN_TO_MIDI_DESCRIPTION =
+  "Convert step sequencer pattern regions into regular MIDI clips with expanded notes and controller lanes, keeping region params.";
+
+export const convertMidiToPatternParams = z.object({
+  clipIds: z
+    .array(z.string().min(1))
+    .min(1)
+    .describe("MIDI clip ids or names to convert into step sequencer pattern regions."),
+  stepRate: stepRate
+    .optional()
+    .describe('Optional step grid rate; defaults to "1/16".')
+});
+export type ConvertMidiToPatternParams = z.infer<typeof convertMidiToPatternParams>;
+export const CONVERT_MIDI_TO_PATTERN_DESCRIPTION =
+  "Convert MIDI clips into step sequencer pattern regions (up to 64 steps), reporting any dropped notes or same-step collisions.";
+
+export const separatePatternRowsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name to split by row.")
+});
+export type SeparatePatternRowsParams = z.infer<typeof separatePatternRowsParams>;
+export const SEPARATE_PATTERN_ROWS_DESCRIPTION =
+  "Separate a step sequencer pattern region into one MIDI track per row below the source track and remove the source region.";
+
+export const setPatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  name: z.string().optional().describe("Pattern name."),
+  lengthSteps: z
+    .number()
+    .int()
+    .min(1)
+    .max(STEP_PATTERN_MAX_STEPS)
+    .optional()
+    .describe("Pattern length 1..64; growing repeats existing steps."),
+  stepRate: stepRate
+    .optional()
+    .describe("Pattern step rate; writes through to every row."),
+  playback: stepPlaybackMode
+    .optional()
+    .describe("Pattern playback order; writes through to every row."),
+  swing: z.number().int().min(0).max(100).optional().describe("Swing amount 0..100."),
+  swingDivision: stepSwingDivision.optional().describe("Swing grid division: 1/8 or 1/16."),
+  legato: z.boolean().optional().describe("Extend gate-100 notes by +1 tick so they overlap the next step."),
+  mono: z.boolean().optional().describe("Allow only one active note row per step on edits."),
+  midiChannel: z
+    .number()
+    .int()
+    .min(1)
+    .max(16)
+    .optional()
+    .describe("Default MIDI channel 1..16; writes through to every row."),
+  key: stepKey
+    .nullable()
+    .optional()
+    .describe('Pattern key { tonic (0..11), mode ("major" | "minor") }, or null to clear.'),
+  pitchSource: stepPitchSource
+    .optional()
+    .describe('Pitch source: "off", "key", or "chords".'),
+  scale: stepScaleId
+    .optional()
+    .describe("Scale id for degree rows and scale quantize."),
+  scaleQuantize: z
+    .boolean()
+    .optional()
+    .describe("Snap row pitches to the pattern scale."),
+  noTranspose: z
+    .boolean()
+    .optional()
+    .describe("When changing key, skip transposing existing notes."),
+  automationMode: stepAutomationMode
+    .optional()
+    .describe("Automation row interpolation: latch (step) or slide (linear)."),
+  loopStart: z
+    .number()
+    .int()
+    .min(1)
+    .max(STEP_PATTERN_MAX_STEPS)
+    .optional()
+    .describe("1-based loop start step; writes through to every row."),
+  loopEnd: z
+    .number()
+    .int()
+    .min(1)
+    .max(STEP_PATTERN_MAX_STEPS)
+    .optional()
+    .describe("1-based loop end step; writes through to every row.")
+});
+export type SetPatternParams = z.infer<typeof setPatternParams>;
+export const SET_PATTERN_DESCRIPTION =
+  "Update step sequencer pattern settings (length, step rate, playback, swing, legato, mono, key, automation mode, loop range).";
+
+export const setPatternSeedParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  seed: z
+    .number()
+    .int()
+    .min(0)
+    .max(0xffffffff)
+    .optional()
+    .describe("Optional uint32 seed; omit to generate and return a fresh seed.")
+});
+export type SetPatternSeedParams = z.infer<typeof setPatternSeedParams>;
+export const SET_PATTERN_SEED_DESCRIPTION =
+  "Set or regenerate the deterministic random seed of a step sequencer pattern for chance and random playback modes.";
+
+export const addPatternRowsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  rows: z
+    .array(addPatternRowInputParam)
+    .min(1)
+    .describe("Rows to add (max 128 total rows per pattern).")
+});
+export type AddPatternRowsParams = z.infer<typeof addPatternRowsParams>;
+export const ADD_PATTERN_ROWS_DESCRIPTION =
+  "Add note, kit pad, melodic, degree, or automation rows to a step sequencer pattern region (up to 128 rows total).";
+
+export const setPatternRowParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  row: z.string().min(1).describe("Row id or unique case-insensitive row name."),
+  name: z.string().min(1).optional(),
+  assignment: stepRowAssignment.optional(),
+  stepRate: stepRate.optional(),
+  lengthSteps: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+  playback: stepPlaybackMode.optional(),
+  mute: z.boolean().optional(),
+  solo: z.boolean().optional(),
+  loopStart: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+  loopEnd: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).optional(),
+  midiChannel: z.number().int().min(1).max(16).optional(),
+  automationMode: stepAutomationMode.optional(),
+  color: z.string().min(1).nullable().optional(),
+  subrows: z.array(stepEditMode).optional(),
+  subrowsExpanded: z.boolean().optional()
+});
+export type SetPatternRowParams = z.infer<typeof setPatternRowParams>;
+export const SET_PATTERN_ROW_DESCRIPTION =
+  "Edit settings, assignment, mute/solo, loop range, length, automation mode, color, or subrows of one row in a step sequencer pattern.";
+
+export const removePatternRowsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  rows: z
+    .array(z.string().min(1))
+    .optional()
+    .describe("Row ids or names to remove."),
+  unused: z
+    .boolean()
+    .optional()
+    .describe("True removes every row with no active steps.")
+});
+export type RemovePatternRowsParams = z.infer<typeof removePatternRowsParams>;
+export const REMOVE_PATTERN_ROWS_DESCRIPTION =
+  "Remove named rows or all unused rows from a step sequencer pattern region.";
+
+export const movePatternRowParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  row: z.string().min(1).describe("Row id or unique case-insensitive row name."),
+  toIndex: z.number().int().min(0).describe("0-based destination index in the pattern row list.")
+});
+export type MovePatternRowParams = z.infer<typeof movePatternRowParams>;
+export const MOVE_PATTERN_ROW_DESCRIPTION =
+  "Move a step sequencer pattern row to a new 0-based index.";
+
+export const sortPatternRowsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  by: stepRowSortBy.describe("Sort criterion: type, typeAndNote, typeAndName, or typeAndKitPad."),
+  descending: z.boolean().optional().describe("Reverse sort direction. Default false.")
+});
+export type SortPatternRowsParams = z.infer<typeof sortPatternRowsParams>;
+export const SORT_PATTERN_ROWS_DESCRIPTION =
+  "Sort rows in a step sequencer pattern by type, note, name, or kit pad.";
+
+export const setPatternRowSortParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  rowSort: stepRowSort.describe(
+    'Active row sort mode: "none" (manual order), "typeAsc", "typeDesc", "typeAndNoteAsc", "typeAndNoteDesc", "typeAndNameAsc", "typeAndNameDesc", "typeAndKitPadAsc", or "typeAndKitPadDesc".'
+  )
+});
+export type SetPatternRowSortParams = z.infer<typeof setPatternRowSortParams>;
+export const SET_PATTERN_ROW_SORT_DESCRIPTION =
+  'Set or clear the persistent row sort mode of a step sequencer pattern ("none" or a sort mode); sorts existing rows immediately when not "none" and keeps newly added rows in sorted order.';
+
+export const copyPatternRowParams = z.object({
+  clipId: z.string().min(1).describe("Source pattern region clip id or name."),
+  row: z.string().min(1).describe("Source row id or name."),
+  toClipId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Destination pattern clip id or name. Default: same clip."),
+  toRow: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Destination row id or name to replace (keeps fixed note/kit pitch)."),
+  asNew: z
+    .boolean()
+    .optional()
+    .describe("Paste as a new row instead of replacing an existing row."),
+  settingsOnly: z
+    .boolean()
+    .optional()
+    .describe("Copy only row settings (rate, length, playback, loop, subrows) without step values."),
+  nextAssignment: z
+    .boolean()
+    .optional()
+    .describe("Duplicate as a new row assigned to the next note, pad, degree, or CC.")
+});
+export type CopyPatternRowParams = z.infer<typeof copyPatternRowParams>;
+export const COPY_PATTERN_ROW_DESCRIPTION =
+  "Copy or duplicate a step sequencer pattern row to another row, a new row, or another pattern region.";
+
+export const setStepsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  row: z.string().min(1).describe("Row id or unique case-insensitive row name."),
+  steps: stepSelectionParam,
+  values: stepValuesPatchParam
+    .optional()
+    .describe("Fields to set on each selected step. Editing a value on an off step turns it on."),
+  ramp: z
+    .object({
+      field: stepRampField,
+      from: z.number(),
+      to: z.number(),
+      leaveOff: z.boolean().optional()
+    })
+    .strict()
+    .optional()
+    .describe("Linear ramp across the selected steps for one numeric field.")
+});
+export type SetStepsParams = z.infer<typeof setStepsParams>;
+export const SET_STEPS_DESCRIPTION =
+  "Edit step values or write a linear value ramp on selected 1-based steps of a step sequencer pattern row.";
+
+export const setPatternTextParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  text: z
+    .string()
+    .min(1)
+    .describe("Pattern text lines (`<Row> [| rate] : xX o . - _`)."),
+  mode: z
+    .enum(["merge", "replace"])
+    .optional()
+    .describe('"merge" (default) updates matching rows and adds missing ones; "replace" replaces all rows.')
+});
+export type SetPatternTextParams = z.infer<typeof setPatternTextParams>;
+export const SET_PATTERN_TEXT_DESCRIPTION =
+  "Apply compact pattern text lines (`x`, `X`, `o`, `.`, `-`, `_`) to a step sequencer pattern region by merge or replace.";
+
+export const clearPatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  scope: z
+    .enum(["steps", "row", "pattern"])
+    .describe("Clear selected steps, one row, or the whole pattern."),
+  row: z.string().min(1).optional().describe("Row id or name (required for steps and row scope)."),
+  steps: stepSelectionParam.optional().describe("1-based steps (required for steps scope)."),
+  mode: stepEditMode
+    .optional()
+    .describe("Optional single mode to clear; omit to reset every field and turn steps off."),
+  rowType: z
+    .enum(["note", "automation"])
+    .optional()
+    .describe("When scope is pattern, restrict clearing to note rows or automation rows.")
+});
+export type ClearPatternParams = z.infer<typeof clearPatternParams>;
+export const CLEAR_PATTERN_DESCRIPTION =
+  "Clear steps, a row, or a whole step sequencer pattern, either resetting all values or one edit mode.";
+
+export const copyStepsParams = z.object({
+  clipId: z.string().min(1).describe("Source pattern region clip id or name."),
+  row: z.string().min(1).describe("Source row id or name."),
+  steps: stepSelectionParam,
+  toRow: z.string().min(1).describe("Destination row id or name (must match note vs automation type)."),
+  toStep: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).describe("1-based destination start step."),
+  toClipId: z.string().min(1).optional().describe("Optional destination pattern clip id or name."),
+  cut: z.boolean().optional().describe("True resets the source steps after copying.")
+});
+export type CopyStepsParams = z.infer<typeof copyStepsParams>;
+export const COPY_STEPS_DESCRIPTION =
+  "Copy or cut 1-based steps from one step sequencer row to another row of the same type.";
+
+export const repeatStepParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  row: z.string().min(1).describe("Row id or name."),
+  step: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).describe("1-based step to repeat into the next step.")
+});
+export type RepeatStepParams = z.infer<typeof repeatStepParams>;
+export const REPEAT_STEP_DESCRIPTION =
+  "Copy a step sequencer step with all its settings into the immediately following step.";
+
+export const rotatePatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  by: z.number().int().describe("Steps to shift (+ right, - left)."),
+  row: z.string().min(1).optional().describe("Optional row id or name; omit to rotate every row."),
+  mode: stepEditMode
+    .optional()
+    .describe("Optional mode to rotate only that mode's values while keeping on/off in place.")
+});
+export type RotatePatternParams = z.infer<typeof rotatePatternParams>;
+export const ROTATE_PATTERN_DESCRIPTION =
+  "Rotate steps or one edit mode's values left or right across a step sequencer pattern or row.";
+
+export const transposePatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  semitones: z.number().int().describe("Semitones to transpose (+ up, - down)."),
+  row: z.string().min(1).optional().describe("Optional row id or name; omit to transpose all note/melodic rows."),
+  steps: stepSelectionParam.optional().describe("Optional 1-based steps to transpose on melodic/kit rows.")
+});
+export type TransposePatternParams = z.infer<typeof transposePatternParams>;
+export const TRANSPOSE_PATTERN_DESCRIPTION =
+  "Transpose pitches in a step sequencer pattern, a row, or selected steps by semitones.";
+
+export const randomizePatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  mode: stepEditMode.describe("Edit mode to randomize (e.g. onOff, velocity, gate, note, chance, offset)."),
+  rows: z.array(z.string().min(1)).optional().describe("Optional row ids or names; omit for all rows."),
+  steps: stepSelectionParam.optional().describe("Optional 1-based steps; omit for all steps."),
+  seed: z
+    .number()
+    .int()
+    .min(0)
+    .max(0xffffffff)
+    .optional()
+    .describe("Deterministic uint32 seed; returned in the result so calls are repeatable."),
+  density: z
+    .number()
+    .min(0)
+    .max(100)
+    .optional()
+    .describe("Probability percent 0..100 for on/off randomization. Default 50.")
+});
+export type RandomizePatternParams = z.infer<typeof randomizePatternParams>;
+export const RANDOMIZE_PATTERN_DESCRIPTION =
+  "Randomize one edit mode in a step sequencer pattern with a repeatable seed, respecting mono mode.";
+
+export const nudgePatternValuesParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  mode: stepEditMode.describe("Edit mode to increment or decrement."),
+  delta: z.number().finite().describe("Step delta (+ increment, - decrement)."),
+  row: z.string().min(1).optional().describe("Optional row id or name; omit for all rows.")
+});
+export type NudgePatternValuesParams = z.infer<typeof nudgePatternValuesParams>;
+export const NUDGE_PATTERN_VALUES_DESCRIPTION =
+  "Increment or decrement one edit mode's values across a step sequencer pattern or row.";
+
+export const tieStepsParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name."),
+  row: z.string().min(1).describe("Row id or name."),
+  from: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).describe("1-based start step of the tie range."),
+  to: z.number().int().min(1).max(STEP_PATTERN_MAX_STEPS).describe("1-based end step of the tie range."),
+  tie: z.boolean().describe("True ties steps (from+1..to) into from; false clears ties across the range.")
+});
+export type TieStepsParams = z.infer<typeof tieStepsParams>;
+export const TIE_STEPS_DESCRIPTION =
+  "Tie or untie a 1-based range of steps in a step sequencer pattern row.";
+
+export const listStepPatternsParams = z.object({
+  query: z.string().optional().describe("Case-insensitive name/tag substring filter."),
+  kind: z.enum(["pattern", "template"]).optional().describe("Filter by pattern or blank template."),
+  category: z.string().optional().describe("Filter by category (e.g. Drums, Bass, Keys, Arps, Templates)."),
+  folder: z
+    .string()
+    .optional()
+    .describe("Filter user entries by folder path or folder id (full or 12-char prefix).")
+});
+export type ListStepPatternsParams = z.infer<typeof listStepPatternsParams>;
+export const LIST_STEP_PATTERNS_DESCRIPTION =
+  "List factory and saved user step sequencer patterns, templates, and user library folders.";
+
+export const applyStepPatternParams = z.object({
+  clipId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Existing pattern (or empty MIDI) clip id or name to load into."),
+  trackId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "MIDI track id or name to create a new pattern region on (when clipId is omitted). When the track has no clips and still holds its default or unset instrument, it takes the pattern's saved instrument or preset."
+    ),
+  ...barTimeShape,
+  atMs: z.number().finite().min(0).optional().describe("Start time in ms when creating on trackId."),
+  bars: z.number().positive().finite().optional().describe("Length in bars when creating on trackId. Default 1."),
+  pattern: z.string().min(1).describe("Pattern or template id or name from ui_timeline_list_step_patterns."),
+  useProjectKey: z
+    .boolean()
+    .optional()
+    .describe("True transposes melodic/degree rows to the project key.")
+});
+export type ApplyStepPatternParams = z.infer<typeof applyStepPatternParams>;
+export const APPLY_STEP_PATTERN_DESCRIPTION =
+  "Load a factory or user step sequencer pattern or template onto a region or create a new pattern region on a track, applying the pattern's saved instrument or preset when the target MIDI track is empty with its default instrument.";
+
+export const saveStepPatternParams = z.object({
+  clipId: z.string().min(1).describe("Pattern region clip id or name to save."),
+  name: z.string().trim().min(1).describe("Name for the saved pattern or template."),
+  kind: z.enum(["pattern", "template"]).describe("Save full pattern or step-free template."),
+  folder: z.string().optional().describe("Optional subfolder inside Step Patterns/<Patterns|Templates>.")
+});
+export type SaveStepPatternParams = z.infer<typeof saveStepPatternParams>;
+export const SAVE_STEP_PATTERN_DESCRIPTION =
+  "Save a step sequencer region (along with its track's instrument and preset, when set) as a reusable user pattern or template in the Step Patterns library.";
+
+export const setTrackStepTemplateParams = z.object({
+  trackId: z.string().min(1).describe("MIDI track id or name."),
+  fromClipId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Pattern clip id or name whose rows/settings become the track's default step template."),
+  clear: z.boolean().optional().describe("True removes the stored default template on the track.")
+});
+export type SetTrackStepTemplateParams = z.infer<typeof setTrackStepTemplateParams>;
+export const SET_TRACK_STEP_TEMPLATE_DESCRIPTION =
+  "Store a pattern's template as a MIDI track's default step sequencer template, or clear it.";
+
+export const createStepPatternFolderParams = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .describe(
+      'Folder name or relative subfolder path (e.g. "Drums" or "Drums/Trap") inside Step Patterns/<Patterns|Templates>.'
+    ),
+  kind: z
+    .enum(["pattern", "template"])
+    .optional()
+    .describe('Library section: "pattern" (default) or "template".'),
+  parentFolder: z
+    .string()
+    .optional()
+    .describe("Optional parent subfolder path or folder id (full or 12-char prefix) inside the same section.")
+});
+export type CreateStepPatternFolderParams = z.infer<typeof createStepPatternFolderParams>;
+export const CREATE_STEP_PATTERN_FOLDER_DESCRIPTION =
+  "Create a user folder in the step sequencer pattern or template library.";
+
+export const renameStepPatternFolderParams = z.object({
+  folder: z
+    .string()
+    .trim()
+    .min(1)
+    .describe('Existing user folder path (e.g. "Drums" or "Step Patterns/Patterns/Drums") or folder id (full or 12-char prefix).'),
+  newName: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("New single-segment name for the folder."),
+  kind: z
+    .enum(["pattern", "template"])
+    .optional()
+    .describe('Library section ("pattern" or "template"), optional when folder is an id, full path, or unique relative path.')
+});
+export type RenameStepPatternFolderParams = z.infer<typeof renameStepPatternFolderParams>;
+export const RENAME_STEP_PATTERN_FOLDER_DESCRIPTION =
+  "Rename a user folder in the step sequencer pattern library and update patterns inside it.";
+
+export const deleteStepPatternFolderParams = z.object({
+  folder: z
+    .string()
+    .trim()
+    .min(1)
+    .describe('Existing user folder path or folder id (full or 12-char prefix) to delete; patterns inside move to its parent folder.'),
+  kind: z
+    .enum(["pattern", "template"])
+    .optional()
+    .describe('Library section ("pattern" or "template"), optional when folder is an id, full path, or unique relative path.')
+});
+export type DeleteStepPatternFolderParams = z.infer<typeof deleteStepPatternFolderParams>;
+export const DELETE_STEP_PATTERN_FOLDER_DESCRIPTION =
+  "Delete a user folder in the step sequencer pattern library and move its patterns to the parent folder.";
+
+export const moveStepPatternParams = z.object({
+  pattern: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("User step pattern or template id (full or 12-char prefix) or unique name."),
+  folder: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      'Destination folder path (e.g. "Drums"), folder id (full or 12-char prefix), or empty/null to move to the section root.'
+    )
+});
+export type MoveStepPatternParams = z.infer<typeof moveStepPatternParams>;
+export const MOVE_STEP_PATTERN_DESCRIPTION =
+  "Move a user step sequencer pattern or template into another library folder or back to the root.";
+
 // ── The shared tool surface ─────────────────────────────────────────────────
 
 /**
@@ -2346,6 +3297,7 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_insert_time",
   "ui_timeline_delete_time",
   "ui_timeline_duplicate_range",
+  "ui_timeline_paste_range",
   "ui_timeline_list_progressions",
   "ui_timeline_apply_progression",
   "ui_timeline_transpose_chords",
@@ -2365,5 +3317,38 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_retarget_format",
   "ui_timeline_set_reframe_subject",
   "ui_timeline_add_reframe_keyframe",
-  "ui_timeline_clear_reframe"
+  "ui_timeline_clear_reframe",
+  // Step Sequencer (SQ48–SQ54).
+  "ui_timeline_get_pattern",
+  "ui_timeline_create_pattern_region",
+  "ui_timeline_convert_pattern_to_midi",
+  "ui_timeline_convert_midi_to_pattern",
+  "ui_timeline_separate_pattern_rows",
+  "ui_timeline_set_pattern",
+  "ui_timeline_set_pattern_seed",
+  "ui_timeline_add_pattern_rows",
+  "ui_timeline_set_pattern_row",
+  "ui_timeline_remove_pattern_rows",
+  "ui_timeline_move_pattern_row",
+  "ui_timeline_sort_pattern_rows",
+  "ui_timeline_set_pattern_row_sort",
+  "ui_timeline_copy_pattern_row",
+  "ui_timeline_set_steps",
+  "ui_timeline_set_pattern_text",
+  "ui_timeline_clear_pattern",
+  "ui_timeline_copy_steps",
+  "ui_timeline_repeat_step",
+  "ui_timeline_rotate_pattern",
+  "ui_timeline_transpose_pattern",
+  "ui_timeline_randomize_pattern",
+  "ui_timeline_nudge_pattern_values",
+  "ui_timeline_tie_steps",
+  "ui_timeline_list_step_patterns",
+  "ui_timeline_apply_step_pattern",
+  "ui_timeline_save_step_pattern",
+  "ui_timeline_set_track_step_template",
+  "ui_timeline_create_step_pattern_folder",
+  "ui_timeline_rename_step_pattern_folder",
+  "ui_timeline_delete_step_pattern_folder",
+  "ui_timeline_move_step_pattern"
 ] as const;

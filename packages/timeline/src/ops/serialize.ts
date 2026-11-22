@@ -6,10 +6,28 @@ import { formatBarsBeats } from "../midi/grid.js";
 import { resolveTempo } from "../midi/tempo.js";
 import { visibleNotes } from "../midi/notes.js";
 import { presetIdForInstrument } from "../midi/presets.js";
+import { patternToText } from "../midi/stepPattern.js";
+import { chordTrackFor } from "../harmony/expand.js";
 import { harmonySummary } from "../harmony/summary.js";
 import { keyLabel, signatureLabel, trackChordChart } from "./chords.js";
-import type { MediaTrack, TimelineClip, TimelineTrack } from "../types.js";
+import type {
+  MediaTrack,
+  TimelineClip,
+  TimelineMasterChannel,
+  TimelineTrack
+} from "../types.js";
 import type { TimelineOpState } from "./types.js";
+
+/** What `get_state` shows of the master bus. Absent means 0 dB, centred. */
+export function serializeMaster(master: TimelineMasterChannel | undefined) {
+  return {
+    volumeDb: master?.volumeDb ?? 0,
+    pan: master?.pan ?? 0,
+    ...(master?.effects !== undefined
+      ? { effects: structuredClone(master.effects) }
+      : {})
+  };
+}
 
 export function serializeTrack(
   state: TimelineOpState,
@@ -29,12 +47,20 @@ export function serializeTrack(
       clipCount ?? state.clips.filter((c) => c.trackId === t.id).length,
     instrument: t.instrument,
     presetId: t.instrument ? presetIdForInstrument(t.instrument) : undefined,
+    volumeDb: t.volumeDb,
+    pan: t.pan,
+    heightPx: t.heightPx,
+    folderId: t.folderId,
+    musicRole: t.musicRole,
+    effectCount: t.effects?.length ?? 0,
+    automationMode: t.automationMode,
+    automationLaneCount: t.automation?.length ?? 0,
     ...(t.type === "chord" ? chordTrackFields(state, t) : {})
   };
 }
 
 /** What get_state shows of a chord track: the chart from bar 1, the key and the signature. */
-function chordTrackFields(state: TimelineOpState, t: TimelineTrack) {
+export function chordTrackFields(state: TimelineOpState, t: TimelineTrack) {
   const tempo = resolveTempo(state);
   return {
     chordCount: t.chords?.length ?? 0,
@@ -69,6 +95,9 @@ export function serializeClip(state: TimelineOpState, c: TimelineClip) {
     inPointMs: c.inPointMs,
     outPointMs: c.outPointMs,
     loopLengthMs: c.loopLengthMs,
+    transpose: c.transpose,
+    velocityOffset: c.velocityOffset,
+    quantize: c.quantize,
     loopRepeats:
       c.loopLengthMs !== undefined && activeLoopMs(c) !== undefined
         ? loopRepeatCount(c)
@@ -78,12 +107,24 @@ export function serializeClip(state: TimelineOpState, c: TimelineClip) {
     activeTakeId: activeTakeIdOf(c),
     takeCount: c.versions?.length ?? 0,
     noteCount: c.notes?.length,
+    controllerLaneCount: c.controllers?.length,
+    pattern: c.pattern
+      ? `${c.pattern.rows.length} rows x ${c.pattern.lengthSteps} @${c.pattern.stepRate}`
+      : undefined,
+    patternName: c.pattern?.name,
     audibleNoteCount:
       c.mediaType === "midi"
-        ? visibleNotes(
-            expandMidiLoop(c, resolveTempo(state).bpm),
-            resolveTempo(state).bpm
-          ).length
+        ? (() => {
+            const tempo = resolveTempo(state);
+            const chords = c.pattern ? chordTrackFor(c.harmony, state.tracks)?.chords : undefined;
+            return visibleNotes(
+              expandMidiLoop(c, tempo.bpm, tempo.offsetMs, track?.instrument, {
+                chords,
+                key: tempo.key
+              }),
+              tempo.bpm
+            ).length;
+          })()
         : undefined,
     startBarsBeats:
       c.mediaType === "midi"
@@ -131,5 +172,34 @@ export function serializeMediaTrack(track: MediaTrack) {
     confidence: track.confidence,
     status: track.status,
     provenance: track.provenance
+  };
+}
+
+/** What `get_state` shows of one midi clip when asked: every note and controller lane. */
+export function midiClipDetail(c: TimelineClip) {
+  return {
+    id: c.id,
+    name: c.name,
+    notes: (c.notes ?? []).map((n) => ({ ...n })),
+    controllers: structuredClone(c.controllers ?? []),
+    ...(c.pattern
+      ? {
+          pattern: `${c.pattern.rows.length} rows x ${c.pattern.lengthSteps} @${c.pattern.stepRate}`,
+          patternName: c.pattern.name,
+          patternText: patternToText(c.pattern)
+        }
+      : {})
+  };
+}
+
+/** What `get_state` shows of one track when asked: automation, effects and instrument. */
+export function trackDetail(t: TimelineTrack) {
+  return {
+    id: t.id,
+    name: t.name,
+    automationMode: t.automationMode ?? "read",
+    automation: structuredClone(t.automation ?? []),
+    effects: structuredClone(t.effects ?? []),
+    instrument: t.instrument ? structuredClone(t.instrument) : undefined
   };
 }

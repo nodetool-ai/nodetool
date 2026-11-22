@@ -40,6 +40,7 @@ import {
   makeTrack,
   planTransitionAtCut,
   resolveTempo,
+  expandMidiLoop,
   visibleNotes,
   type AnimationRole,
   type ClipTransform,
@@ -62,6 +63,7 @@ import type {
 } from "@nodetool-ai/timeline/ops";
 import {
   applyTimelineOp,
+  createMemoryStepPatternLibrary,
   timelineOpFromToolArgs,
   type TimelineOpContext,
   type TimelineOpName,
@@ -227,6 +229,10 @@ export interface TimelineBridgeSequenceSeed {
    * `set_tempo` is called, and the bridge writes none back.
    */
   tempo?: TimelineTempo;
+  /** The music-project marker. `get_state` reports it with the CE7 crossfade length. */
+  music?: TimelineSequence["music"];
+  /** The master bus. Absent reads as 0 dB with no effects. */
+  master?: TimelineSequence["master"];
   camera2d?: TimelineSequence["camera2d"];
   /** Guided video-flow state. Absent reads as a sequence never in the flow. */
   setup?: TimelineSetup;
@@ -323,6 +329,10 @@ export interface TimelineBridgeInitialState {
    * a template.
    */
   loadComposition?: TimelineCompositionLoader;
+  /** User step sequencer pattern/template library adapter (SQ44, SQ54, D92). */
+  stepPatternLibrary?: TimelineOpContext["stepPatternLibrary"];
+  /** Host default MIDI instrument for newly created MIDI tracks. */
+  defaultMidiInstrument?: TimelineOpContext["defaultMidiInstrument"];
   /**
    * Store a sequence created by `ui_timeline_retarget_format`. The bridge
    * computes the complete adapted sequence first, then hands it to the host;
@@ -427,6 +437,12 @@ export interface TimelineBridgeFinalState {
    * plays at the wrong speed on the next read.
    */
   tempo?: TimelineTempo;
+  /** The music-project marker, with the auto crossfade length `set_tempo` writes. */
+  music?: TimelineSequence["music"];
+  /** The master bus `set_track` writes. */
+  master?: TimelineSequence["master"];
+  /** Track folders `set_track` creates. */
+  trackFolders?: TimelineSequence["trackFolders"];
   camera2d?: TimelineSequence["camera2d"];
   /**
    * Guided video-flow state, or null on a sequence that was never in it.
@@ -577,6 +593,12 @@ export function createTimelineToolBridge(
   // Absent until a midi track or `set_tempo` puts one there — a document with
   // no midi in it should not grow a tempo field it never asked for.
   let tempo: TimelineTempo | undefined = seed?.tempo;
+  // Document-level, written back by `set_tempo` and `set_track`.
+  let documentMusic: TimelineSequence["music"] = structuredClone(seed?.music);
+  let documentMaster: TimelineSequence["master"] = structuredClone(seed?.master);
+  let documentFolders: TimelineSequence["trackFolders"] = structuredClone(
+    seed?.trackFolders
+  );
   const tracks: TimelineTrack[] = [];
   let clips: TimelineClip[] = [];
   let markers: TimelineMarker[] = [];
@@ -991,9 +1013,29 @@ export function createTimelineToolBridge(
       // them — so state reports how many there are and how many the window
       // actually plays. `set_notes` sends the list; nothing reads it back.
       noteCount: c.notes?.length,
+      pattern: c.pattern
+        ? `${c.pattern.rows.length} rows x ${c.pattern.lengthSteps} @${c.pattern.stepRate}`
+        : undefined,
+      patternName: c.pattern?.name,
       audibleNoteCount:
         c.mediaType === "midi"
-          ? visibleNotes(c, resolveTempo({ tempo }).bpm).length
+          ? (() => {
+              const t = resolveTempo({ tempo });
+              const chords = c.pattern
+                ? tracks.find(
+                    (tr) =>
+                      tr.type === "chord" &&
+                      (!c.harmony?.chordTrackId || tr.id === c.harmony.chordTrackId)
+                  )?.chords ?? tracks.find((tr) => tr.type === "chord")?.chords
+                : undefined;
+              return visibleNotes(
+                expandMidiLoop(c, t.bpm, t.offsetMs, track?.instrument, {
+                  chords,
+                  key: t.key
+                }),
+                t.bpm
+              ).length;
+            })()
           : undefined,
       // Where the phrase starts in musical time, so placing the next one is
       // reading a bar number rather than dividing milliseconds by the tempo.
@@ -1050,12 +1092,14 @@ export function createTimelineToolBridge(
       playheadMs,
       selectedClipIds,
       tempo,
+      music: documentMusic,
+      master: documentMaster,
       setup,
       transcript: seed?.transcript,
       scriptEnabled: seed?.scriptEnabled,
       workingColorSpaceVersion: seed?.workingColorSpaceVersion,
       templateId: seed?.templateId,
-      trackFolders: structuredClone(seed?.trackFolders),
+      trackFolders: documentFolders,
       storyboardMaterializations: structuredClone(
         seed?.storyboardMaterializations
       ),
@@ -1180,12 +1224,17 @@ export function createTimelineToolBridge(
   };
   const opContext: TimelineOpContext = {
     newId,
+    ...(initial.defaultMidiInstrument
+      ? { defaultMidiInstrument: initial.defaultMidiInstrument }
+      : {}),
     resolveAsset,
     decodeClipAudio: initial.decodeClipAudio,
     bakeAnimation,
     bakeModel3DClip,
     loadComposition,
     parseSvgPath,
+    stepPatternLibrary:
+      initial.stepPatternLibrary ?? createMemoryStepPatternLibrary(),
     sequence: { id: sequenceId, name: sequenceName, projectId },
     retargetFormat: async (sequence) => {
       const stored = retargetFormat
@@ -1205,6 +1254,9 @@ export function createTimelineToolBridge(
     markers = next.markers;
     mediaTracks = next.mediaTracks ?? [];
     tempo = next.tempo;
+    documentMusic = next.music;
+    documentMaster = next.master;
+    documentFolders = next.trackFolders;
     setup = next.setup ?? null;
     playheadMs = next.playheadMs;
     selectedClipIds = next.selectedClipIds;
@@ -1674,6 +1726,10 @@ export function createTimelineToolBridge(
       editOp("duplicate_range", args)
     ),
 
+    sharedTool("ui_timeline_paste_range", async (args) =>
+      editOp("paste_range", args)
+    ),
+
     sharedTool("ui_timeline_list_progressions", async (args) =>
       editOp("list_progressions", args)
     ),
@@ -1859,6 +1915,104 @@ export function createTimelineToolBridge(
 
     sharedTool("ui_timeline_clear_reframe", async (args) =>
       editOp("clear_reframe", args)
+    ),
+
+    // Step Sequencer (SQ48–SQ54)
+    sharedTool("ui_timeline_get_pattern", async (args) =>
+      editOp("get_pattern", args)
+    ),
+    sharedTool("ui_timeline_create_pattern_region", async (args) =>
+      editOp("create_pattern_region", args)
+    ),
+    sharedTool("ui_timeline_convert_pattern_to_midi", async (args) =>
+      editOp("convert_pattern_to_midi", args)
+    ),
+    sharedTool("ui_timeline_convert_midi_to_pattern", async (args) =>
+      editOp("convert_midi_to_pattern", args)
+    ),
+    sharedTool("ui_timeline_separate_pattern_rows", async (args) =>
+      editOp("separate_pattern_rows", args)
+    ),
+    sharedTool("ui_timeline_set_pattern", async (args) =>
+      editOp("set_pattern", args)
+    ),
+    sharedTool("ui_timeline_set_pattern_seed", async (args) =>
+      editOp("set_pattern_seed", args)
+    ),
+    sharedTool("ui_timeline_add_pattern_rows", async (args) =>
+      editOp("add_pattern_rows", args)
+    ),
+    sharedTool("ui_timeline_set_pattern_row", async (args) =>
+      editOp("set_pattern_row", args)
+    ),
+    sharedTool("ui_timeline_remove_pattern_rows", async (args) =>
+      editOp("remove_pattern_rows", args)
+    ),
+    sharedTool("ui_timeline_move_pattern_row", async (args) =>
+      editOp("move_pattern_row", args)
+    ),
+    sharedTool("ui_timeline_sort_pattern_rows", async (args) =>
+      editOp("sort_pattern_rows", args)
+    ),
+    sharedTool("ui_timeline_set_pattern_row_sort", async (args) =>
+      editOp("set_pattern_row_sort", args)
+    ),
+    sharedTool("ui_timeline_copy_pattern_row", async (args) =>
+      editOp("copy_pattern_row", args)
+    ),
+    sharedTool("ui_timeline_set_steps", async (args) =>
+      editOp("set_steps", args)
+    ),
+    sharedTool("ui_timeline_set_pattern_text", async (args) =>
+      editOp("set_pattern_text", args)
+    ),
+    sharedTool("ui_timeline_clear_pattern", async (args) =>
+      editOp("clear_pattern", args)
+    ),
+    sharedTool("ui_timeline_copy_steps", async (args) =>
+      editOp("copy_steps", args)
+    ),
+    sharedTool("ui_timeline_repeat_step", async (args) =>
+      editOp("repeat_step", args)
+    ),
+    sharedTool("ui_timeline_rotate_pattern", async (args) =>
+      editOp("rotate_pattern", args)
+    ),
+    sharedTool("ui_timeline_transpose_pattern", async (args) =>
+      editOp("transpose_pattern", args)
+    ),
+    sharedTool("ui_timeline_randomize_pattern", async (args) =>
+      editOp("randomize_pattern", args)
+    ),
+    sharedTool("ui_timeline_nudge_pattern_values", async (args) =>
+      editOp("nudge_pattern_values", args)
+    ),
+    sharedTool("ui_timeline_tie_steps", async (args) =>
+      editOp("tie_steps", args)
+    ),
+    sharedTool("ui_timeline_list_step_patterns", async (args) =>
+      editOp("list_step_patterns", args)
+    ),
+    sharedTool("ui_timeline_apply_step_pattern", async (args) =>
+      editOp("apply_step_pattern", args)
+    ),
+    sharedTool("ui_timeline_save_step_pattern", async (args) =>
+      editOp("save_step_pattern", args)
+    ),
+    sharedTool("ui_timeline_set_track_step_template", async (args) =>
+      editOp("set_track_step_template", args)
+    ),
+    sharedTool("ui_timeline_create_step_pattern_folder", async (args) =>
+      editOp("create_step_pattern_folder", args)
+    ),
+    sharedTool("ui_timeline_rename_step_pattern_folder", async (args) =>
+      editOp("rename_step_pattern_folder", args)
+    ),
+    sharedTool("ui_timeline_delete_step_pattern_folder", async (args) =>
+      editOp("delete_step_pattern_folder", args)
+    ),
+    sharedTool("ui_timeline_move_step_pattern", async (args) =>
+      editOp("move_step_pattern", args)
     )
   ];
 
@@ -1964,6 +2118,9 @@ export function createTimelineToolBridge(
         structuredClone(sequence)
       ),
       tempo: tempo ? structuredClone(tempo) : undefined,
+      music: structuredClone(documentMusic),
+      master: structuredClone(documentMaster),
+      trackFolders: structuredClone(documentFolders),
       camera2d: structuredClone(seed?.camera2d ?? null),
       setup: setup ? structuredClone(setup) : null,
       transitionCandidates: structuredClone(transitionCandidates),

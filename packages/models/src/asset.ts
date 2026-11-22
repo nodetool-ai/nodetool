@@ -952,7 +952,12 @@ export class Asset extends DBModel {
     if (startKey) {
       const cursor = await Asset.get<Asset>(startKey);
       if (cursor && cursor.user_id === userId) {
-        conditions.push(lt(assets.created_at, cursor.created_at));
+        conditions.push(
+          or(
+            lt(assets.created_at, cursor.created_at),
+            and(eq(assets.created_at, cursor.created_at), lt(assets.id, cursor.id))
+          )!
+        );
       }
     }
     if (timelineId) {
@@ -963,7 +968,7 @@ export class Asset extends DBModel {
       .select()
       .from(assets)
       .where(and(...conditions))
-      .orderBy(desc(assets.created_at))
+      .orderBy(desc(assets.created_at), desc(assets.id))
       .limit(limit + 1);
 
     const items = rows.map((row) => new Asset(row));

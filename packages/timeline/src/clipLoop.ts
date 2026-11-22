@@ -11,13 +11,20 @@
 
 import type {
   MidiControllerLane,
+  MidiInstrument,
   MidiNote,
+  MusicKey,
+  StepKey,
+  TimelineChord,
   TimelineClip
 } from "./types.js";
-import { createTimeOrderedUuid } from "./defaults.js";
 import { curveValueAt, expressionUpTo } from "./midi/curveCut.js";
 import { msToTicks, ticksToMs } from "./midi/ticks.js";
+import { applyMidiRegionParams, bakeRegionQuantize } from "./midi/regionParams.js";
+import { expandPattern, computeRowSegmentStates } from "./midi/stepPatternExpand.js";
+import { sliceParamCurves } from "./paramCurves.js";
 import { sourceRate } from "./sourceRate.js";
+import { animationsForWindow } from "./splitClip.js";
 
 type LoopFields = Pick<TimelineClip, "loopLengthMs" | "durationMs">;
 
@@ -55,8 +62,19 @@ export function loopRepeatOffsets(
 
 type MidiLoopClip = Pick<
   TimelineClip,
-  "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs"
->;
+  | "notes"
+  | "controllers"
+  | "inPointMs"
+  | "durationMs"
+  | "loopLengthMs"
+  | "transpose"
+  | "velocityOffset"
+  | "quantize"
+> &
+  Pick<
+    Partial<TimelineClip>,
+    "startMs" | "pattern" | "patternPhaseTicks" | "patternRowCycles"
+  >;
 
 /** Lanes whose value must not outlive a repeat: a held pedal and a bent pitch. */
 const releasesAtRepeatEnd = (lane: MidiControllerLane): boolean =>
@@ -98,6 +116,13 @@ export function windowContent(
   }
 
   const lanes = (clip.controllers ?? []).map((lane) => {
+    const used = new Set(lane.points.map((p) => p.id));
+    const fresh = (base: string): string => {
+      let id = base;
+      for (let n = 2; used.has(id); n += 1) id = `${base}${n}`;
+      used.add(id);
+      return id;
+    };
     const points = lane.points.filter((p) => inside(p.tick));
     if (points.length === 0 || points[0]!.tick > startTick) {
       const held = curveValueAt(
@@ -107,7 +132,7 @@ export function windowContent(
       );
       if (held !== undefined) {
         points.unshift({
-          id: `${lane.id}~c`,
+          id: fresh(`${lane.id}~c`),
           tick: startTick,
           value: Math.round(held)
         });
@@ -123,7 +148,7 @@ export function windowContent(
     ) {
       const edge = curveValueAt(lane.points, endTick - 1, false);
       if (edge !== undefined) {
-        points.push({ id: `${lane.id}~b`, tick: endTick - 1, value: Math.round(edge) });
+        points.push({ id: fresh(`${lane.id}~b`), tick: endTick - 1, value: Math.round(edge) });
       }
     }
     return { ...lane, points };
@@ -142,7 +167,61 @@ export function windowContent(
  *
  * Repeat `k` of note `id` is `id~k`. Repeat 0 keeps the original id.
  */
-export function expandMidiLoop<T extends MidiLoopClip>(clip: T, bpm: number): T {
+export interface ExpandMidiPatternDoc {
+  chords?: ReadonlyArray<TimelineChord>;
+  key?: StepKey | MusicKey;
+}
+
+export function expandMidiLoop<T extends MidiLoopClip>(
+  source: T,
+  bpm: number,
+  gridOffsetMs = 0,
+  instrument?: MidiInstrument,
+  patternDoc?: ExpandMidiPatternDoc
+): T {
+  // Step Sequencer (SQ9, SQ17): a pattern region derives its notes and
+  // controllers (including loop repeats) through `expandPattern`, then applies
+  // CE6 region parameters in the exact same order as a plain MIDI clip.
+  if (source.pattern) {
+    const loopMs = activeLoopMs(source);
+    const clipLengthTicks = Math.max(0, Math.round(msToTicks(source.durationMs, bpm)));
+    const loopLengthTicks =
+      loopMs !== undefined ? Math.max(1, Math.round(msToTicks(loopMs, bpm))) : undefined;
+    const inPointTicks = Math.max(0, Math.round(msToTicks(source.inPointMs ?? 0, bpm)));
+    const clipStartDocTick =
+      source.startMs !== undefined
+        ? Math.round(msToTicks(source.startMs - gridOffsetMs, bpm))
+        : 0;
+    const expanded = expandPattern(source.pattern, {
+      clipLengthTicks,
+      loopLengthTicks,
+      patternPhaseTicks: (source.patternPhaseTicks ?? 0) + inPointTicks,
+      rowCycles: source.patternRowCycles,
+      clipStartDocTick,
+      chords: patternDoc?.chords,
+      key: patternDoc?.key,
+      instrument
+    });
+    const materialized = {
+      ...source,
+      notes: expanded.notes,
+      inPointMs: 0
+    } as T;
+    if (expanded.controllers.length > 0) {
+      materialized.controllers = expanded.controllers;
+    } else {
+      delete materialized.controllers;
+    }
+    delete materialized.pattern;
+    delete materialized.patternPhaseTicks;
+    delete materialized.patternRowCycles;
+    delete materialized.loopLengthMs;
+    return applyMidiRegionParams(materialized, bpm, gridOffsetMs);
+  }
+  // CE6: the region parameters apply to the stored notes first, so each
+  // repeat plays the parameter-adjusted notes. Quantize reads the tempo grid
+  // (`gridOffsetMs` is `tempo.offsetMs`).
+  const clip = applyMidiRegionParams(source, bpm, gridOffsetMs);
   const loopMs = activeLoopMs(clip);
   if (loopMs === undefined) return clip;
   const inPointMs = clip.inPointMs ?? 0;
@@ -170,6 +249,21 @@ export function expandMidiLoop<T extends MidiLoopClip>(clip: T, bpm: number): T 
       const out =
         lanes.get(lane.id) ?? { ...lane, points: [] as MidiControllerLane["points"] };
       lanes.set(lane.id, out);
+      const firstPoint = lane.points[0];
+      if (
+        k > 0 &&
+        lane.interpolation !== "step" &&
+        firstPoint !== undefined &&
+        firstPoint.tick > startTick
+      ) {
+        // Repeat 0 holds the first value before its first point. A later repeat
+        // would glide to it from the release at the end of the one before.
+        out.points.push({
+          id: `${lane.id}~a${k}`,
+          tick: startTick + shift,
+          value: firstPoint.value
+        });
+      }
       for (const p of lane.points) {
         out.points.push({
           ...p,
@@ -185,7 +279,14 @@ export function expandMidiLoop<T extends MidiLoopClip>(clip: T, bpm: number): T 
       if (last.tick >= lastTick) {
         // A pedal or bend still held on the last tick is released there.
         if (release && last.value !== 0) {
-          out.points[out.points.length - 1] = { ...last, value: 0 };
+          if (!step && last.tick === lastTick && out.points.length > 1) {
+            // A linear ramp that reaches its value on the last tick keeps it
+            // one tick longer, then releases. Overwriting it would flatten it.
+            out.points[out.points.length - 1] = { ...last, tick: lastTick - 1 };
+            out.points.push({ id: `${lane.id}~e${k}`, tick: lastTick, value: 0 });
+          } else {
+            out.points[out.points.length - 1] = { ...last, value: 0 };
+          }
         }
         continue;
       }
@@ -221,6 +322,8 @@ export function expandMidiLoop<T extends MidiLoopClip>(clip: T, bpm: number): T 
 export interface UnrollOptions {
   /** A fresh clip id for each copy after the first. */
   newId: () => string;
+  /** `tempo.offsetMs`, the origin of the grid a region quantize snaps to. Default 0. */
+  gridOffsetMs?: number;
 }
 
 /**
@@ -236,17 +339,37 @@ export interface UnrollOptions {
  * `loopLengthMs`.
  */
 export function unrollLoopedClip(
-  clip: TimelineClip,
+  source: TimelineClip,
   bpm: number,
   periodMs: number,
   options: UnrollOptions
 ): TimelineClip[] {
-  const loopMs = activeLoopMs(clip);
-  if (loopMs === undefined) return [clip];
+  const loopMs = activeLoopMs(source);
+  if (loopMs === undefined) return [source];
+  // A quantize is written into the notes first, at the clip's own place on the
+  // tempo grid, so a copy plays what the looped clip played.
+  const clip =
+    source.mediaType === "midi" && !source.pattern
+      ? bakeRegionQuantize(source, bpm, options.gridOffsetMs ?? 0)
+      : source;
   const inPointMs = clip.inPointMs ?? 0;
   const copies: TimelineClip[] = [];
   const offsets = loopRepeatOffsets(clip, periodMs);
   const startTick = Math.round(msToTicks(inPointMs, bpm));
+  const patternBasePhase =
+    clip.mediaType === "midi" && clip.pattern
+      ? (clip.patternPhaseTicks ?? 0) + Math.max(0, Math.round(msToTicks(inPointMs, bpm)))
+      : 0;
+  const patternSegmentRowCycles =
+    clip.mediaType === "midi" && clip.pattern
+      ? computeRowSegmentStates(
+          clip.pattern,
+          Math.max(0, Math.round(msToTicks(clip.durationMs, bpm))),
+          Math.max(1, Math.round(msToTicks(periodMs, bpm))),
+          patternBasePhase,
+          clip.patternRowCycles
+        )
+      : undefined;
   offsets.forEach((offset, k) => {
     const copy = structuredClone(clip);
     delete copy.loopLengthMs;
@@ -257,21 +380,37 @@ export function unrollLoopedClip(
       delete copy.fadeInMs;
       delete copy.fadeInShape;
       delete copy.transitionIn;
-      copy.animations = copy.animations
-        ?.filter((a) => a.role !== "in")
-        .map((a) => ({
-          ...a,
-          id: createTimeOrderedUuid()
-        }));
     }
     if (k < offsets.length - 1) {
       delete copy.fadeOutMs;
       delete copy.fadeOutShape;
-      copy.animations = copy.animations?.filter((a) => a.role !== "out");
     }
     copy.startMs = clip.startMs + offset;
     copy.durationMs = Math.min(periodMs, clip.durationMs - offset);
-    if (clip.mediaType === "midi") {
+    if (clip.animations) {
+      // Each copy keeps the stretch of every animation that its own span shows.
+      copy.animations = animationsForWindow(
+        clip.animations,
+        {
+          offsetMs: offset,
+          durationMs: copy.durationMs,
+          totalMs: clip.durationMs,
+          sourceFromMs: inPointMs,
+          sourceToMs: inPointMs + copy.durationMs * sourceRate(clip)
+        },
+        k === 0
+      );
+    }
+    if (clip.paramCurves && clip.durationMs > 0) {
+      // A curve spans the whole looped clip, so each copy keeps its own part.
+      copy.paramCurves = sliceParamCurves(
+        clip.paramCurves,
+        offset / clip.durationMs,
+        (offset + copy.durationMs) / clip.durationMs,
+        clip.durationMs
+      );
+    }
+    if (clip.mediaType === "midi" && !clip.pattern) {
       const content = windowContent(
         clip,
         bpm,
@@ -280,6 +419,24 @@ export function unrollLoopedClip(
       );
       if (clip.notes) copy.notes = content.notes;
       if (clip.controllers) copy.controllers = content.lanes;
+    } else if (clip.mediaType === "midi" && clip.pattern) {
+      copy.inPointMs = 0;
+      if (k === 0) {
+        if (patternBasePhase > 0) copy.patternPhaseTicks = patternBasePhase;
+        else delete copy.patternPhaseTicks;
+      } else {
+        // SQ10/SQ17: each loop repeat restarts rows at step 0, while
+        // `patternRowCycles` preserves exact cycle offsets, `last` targets and
+        // `wander` state across repeats (even for nonzero phases or non-dividing
+        // loop periods).
+        delete copy.patternPhaseTicks;
+      }
+      const rowCycles = patternSegmentRowCycles?.[k];
+      if (rowCycles) copy.patternRowCycles = rowCycles;
+      else delete copy.patternRowCycles;
+      if (copy.outPointMs !== undefined) copy.outPointMs = copy.durationMs;
+      delete copy.notes;
+      delete copy.controllers;
     } else if (
       clip.mediaType === "audio" &&
       clip.outPointMs !== undefined &&
@@ -301,11 +458,12 @@ export function unrollLoopedClips(
   clips: readonly TimelineClip[],
   ids: ReadonlySet<string>,
   bpm: number,
-  newId: () => string
+  newId: () => string,
+  gridOffsetMs = 0
 ): TimelineClip[] {
   return clips.flatMap((clip) => {
     const loopMs = activeLoopMs(clip);
     if (!ids.has(clip.id) || loopMs === undefined) return [clip];
-    return unrollLoopedClip(clip, bpm, loopMs, { newId });
+    return unrollLoopedClip(clip, bpm, loopMs, { newId, gridOffsetMs });
   });
 }

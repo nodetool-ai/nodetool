@@ -31,6 +31,7 @@ export * from "./clipSpeed.js";
 export * from "./rippleEdit.js";
 export * from "./slideEdit.js";
 export * from "./audioCrossfade.js";
+export * from "./autoCrossfade.js";
 export * from "./dropResolve.js";
 export * from "./transitionAtCut.js";
 export * from "./audioFade.js";

@@ -13,7 +13,10 @@
 
 import type {
   MidiInstrument,
+  MusicKey,
+  StepKey,
   SubtractiveMidiInstrument,
+  TimelineChord,
   TimelineClip
 } from "../types.js";
 import { renderSamplerVoices, samplerTailMs, type SamplerSamples } from "./sampler.js";
@@ -21,7 +24,8 @@ import { instrumentTailMs } from "./instrument.js";
 import { renderBassVoices } from "./engines/bl1.js";
 import { renderDrumVoice } from "./engines/dr1.js";
 import { renderWavetableVoice } from "./engines/wt1.js";
-import { expandMidiLoop } from "../clipLoop.js";
+import { expandMidiLoop, type ExpandMidiPatternDoc } from "../clipLoop.js";
+import type { MidiRegionKeys } from "./regionParams.js";
 import { playableNotes } from "./notes.js";
 import { noteWindowMs, ticksToMs } from "./ticks.js";
 import {
@@ -353,6 +357,8 @@ export interface MidiRenderControls {
   gain?: ReadonlyArray<FramePoint>;
   /** Frames at which the sustain pedal (cc 64, any lane >= 64) goes down or up. */
   pedal?: ReadonlyArray<{ frame: number; down: boolean }>;
+  /** Automated filter cutoff in Hz (linear interpolation between points). */
+  cutoffHz?: ReadonlyArray<FramePoint>;
 }
 
 /**
@@ -363,12 +369,23 @@ export interface MidiRenderControls {
 export function midiClipRenderControls(
   clip: Pick<
     TimelineClip,
-    "controllers" | "inPointMs" | "durationMs" | "loopLengthMs"
-  >,
+    "controllers" | "inPointMs" | "durationMs" | "loopLengthMs" | MidiRegionKeys
+  > &
+    Pick<Partial<TimelineClip>, "startMs" | "pattern" | "patternPhaseTicks" | "patternRowCycles">,
   bpm: number,
-  sampleRate: number
+  sampleRate: number,
+  gridOffsetMs = 0,
+  instrument?: MidiInstrument,
+  patternDoc?: ExpandMidiPatternDoc
 ): MidiRenderControls {
-  const events = midiClipControllerEvents({ ...clip, startMs: 0 }, bpm);
+  const events = midiClipControllerEvents(
+    { ...clip, startMs: 0 },
+    bpm,
+    Number.NEGATIVE_INFINITY,
+    gridOffsetMs,
+    instrument,
+    patternDoc
+  );
   const bend = new Map<string, number>();
   const gain = new Map<string, number>();
   const pedal = new Map<string, boolean>();
@@ -470,11 +487,12 @@ export function renderVoiceEvents(
   const out = new Float32Array(Math.max(0, totalFrames));
   if (out.length === 0) return out;
 
-  const coeffs = lowpassCoeffs(
-    sampleRate,
-    instrument.cutoffHz,
-    instrument.resonance
-  );
+  const cutoffCurve = controls.cutoffHz?.length
+    ? new FrameCurve(controls.cutoffHz, instrument.cutoffHz, false)
+    : undefined;
+  const staticCoeffs = cutoffCurve
+    ? undefined
+    : lowpassCoeffs(sampleRate, instrument.cutoffHz, instrument.resonance);
   let soundingAtEnd = false;
 
   for (const event of events) {
@@ -493,6 +511,9 @@ export function renderVoiceEvents(
       : undefined;
     const envelope = createEnvelope(instrument, sampleRate);
     const filter = createBiquadState();
+    let lastCutoffHz = instrument.cutoffHz;
+    let activeCoeffs =
+      staticCoeffs ?? lowpassCoeffs(sampleRate, lastCutoffHz, instrument.resonance);
     let phase = 0;
 
     for (let frame = startFrame; frame < out.length; frame++) {
@@ -503,10 +524,17 @@ export function renderVoiceEvents(
         const semitones = (bendCurve?.at(frame) ?? 0) + (pitchCurve?.at(frame) ?? 0);
         if (semitones !== 0) dt = baseDt * 2 ** (semitones / 12);
       }
+      if (cutoffCurve) {
+        const hz = cutoffCurve.at(frame);
+        if (Math.abs(hz - lastCutoffHz) > 0.05) {
+          lastCutoffHz = hz;
+          activeCoeffs = lowpassCoeffs(sampleRate, hz, instrument.resonance);
+        }
+      }
       const sample = oscillator(instrument.waveform, phase, dt);
       const voiceGain = volumeCurve ? volumeCurve.at(frame) : 1;
       out[frame] += stepBiquad(
-        coeffs,
+        activeCoeffs,
         filter,
         sample * level * amplitude * voiceGain
       );
@@ -544,21 +572,50 @@ export function renderInstrumentEvents(
 
   switch (instrument.type) {
     case "sampler":
-      soundingAtEnd = renderSamplerVoices(out, events, instrument, sampleRate, samples);
+      soundingAtEnd = renderSamplerVoices(
+        out,
+        events,
+        instrument,
+        sampleRate,
+        samples,
+        controls.pitchBendSemitones
+      );
       break;
     case "wavetable":
       for (const event of events) {
-        if (renderWavetableVoice(out, event, instrument, sampleRate)) {
+        if (
+          renderWavetableVoice(
+            out,
+            event,
+            instrument,
+            sampleRate,
+            controls.pitchBendSemitones
+          )
+        ) {
           soundingAtEnd = true;
         }
       }
       break;
     case "bass":
-      soundingAtEnd = renderBassVoices(out, events, instrument, sampleRate);
+      soundingAtEnd = renderBassVoices(
+        out,
+        events,
+        instrument,
+        sampleRate,
+        controls.pitchBendSemitones
+      );
       break;
     case "drum":
       for (const event of events) {
-        if (renderDrumVoice(out, event, instrument, sampleRate)) {
+        if (
+          renderDrumVoice(
+            out,
+            event,
+            instrument,
+            sampleRate,
+            controls.pitchBendSemitones
+          )
+        ) {
           soundingAtEnd = true;
         }
       }
@@ -576,9 +633,17 @@ export interface RenderMidiClipInput {
   samples?: SamplerSamples;
   clip: Pick<
     TimelineClip,
-    "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs"
-  >;
+    "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs" | MidiRegionKeys
+  > &
+    Pick<Partial<TimelineClip>, "startMs" | "pattern" | "patternPhaseTicks" | "patternRowCycles">;
   bpm: number;
+  /** `tempo.offsetMs`, the origin of the grid a region quantize snaps to. */
+  gridOffsetMs?: number;
+  /** Document chords and key for step-pattern expansion (`pitchSource: "chords" | "key"`). */
+  chords?: ReadonlyArray<TimelineChord>;
+  key?: StepKey | MusicKey;
+  /** Extra render-time controls (e.g. automated instrument cutoffHz). */
+  controls?: Partial<MidiRenderControls>;
   instrument: MidiInstrument;
   sampleRate: number;
 }
@@ -593,14 +658,22 @@ export interface RenderMidiClipInput {
  */
 export function renderMidiClip(input: RenderMidiClipInput): Float32Array {
   const { bpm, instrument, sampleRate } = input;
-  const clip = expandMidiLoop(input.clip, bpm);
+  const patternDoc =
+    input.chords !== undefined || input.key !== undefined
+      ? { chords: input.chords, key: input.key }
+      : undefined;
+  const clip = expandMidiLoop(input.clip, bpm, input.gridOffsetMs ?? 0, instrument, patternDoc);
+  const clipControls = midiClipRenderControls(clip, bpm, sampleRate);
+  const controls: MidiRenderControls = input.controls
+    ? { ...clipControls, ...input.controls }
+    : clipControls;
   return renderInstrumentEvents(
     midiClipVoiceEvents(clip, bpm, sampleRate),
     midiClipFrames(clip, sampleRate),
     instrument,
     sampleRate,
     input.samples,
-    midiClipRenderControls(clip, bpm, sampleRate)
+    controls
   );
 }
 
@@ -619,12 +692,16 @@ export function midiClipFrames(
 export function midiClipVoiceEvents(
   source: Pick<
     TimelineClip,
-    "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs"
-  >,
+    "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs" | MidiRegionKeys
+  > &
+    Pick<Partial<TimelineClip>, "startMs" | "pattern" | "patternPhaseTicks" | "patternRowCycles">,
   bpm: number,
-  sampleRate: number
+  sampleRate: number,
+  gridOffsetMs = 0,
+  instrument?: MidiInstrument,
+  patternDoc?: ExpandMidiPatternDoc
 ): VoiceEvent[] {
-  const clip = expandMidiLoop(source, bpm);
+  const clip = expandMidiLoop(source, bpm, gridOffsetMs, instrument, patternDoc);
   const windowStartMs = clip.inPointMs ?? 0;
   const windowEndMs = windowStartMs + clip.durationMs;
 

@@ -46,7 +46,7 @@ export const TOOL_SEARCH_DESCRIPTION =
 export function searchTools(
   catalog: readonly ToolSearchEntry[],
   query: string,
-  maxResults = 5
+  maxResults?: number
 ): ToolSearchEntry[] {
   const q = (query ?? "").trim();
   if (!q) return [];
@@ -74,16 +74,31 @@ export function searchTools(
     requiredNameSubstr = terms[0].slice(1);
     terms = terms.slice(1);
   }
+  const limit = maxResults ?? (requiredNameSubstr ? 40 : 5);
+
+  const wordRegexes = terms.map(
+    (term) =>
+      new RegExp(
+        `(?:^|[^a-z0-9_])${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|[^a-z0-9_])`
+      )
+  );
 
   const scored: Array<{ entry: ToolSearchEntry; score: number }> = [];
   for (const entry of catalog) {
     const nameLower = entry.name.toLowerCase();
     if (requiredNameSubstr && !nameLower.includes(requiredNameSubstr)) continue;
     const descLower = (entry.description ?? "").toLowerCase();
-    let score = requiredNameSubstr ? 1 : 0;
-    for (const term of terms) {
+    // Only score a bare `+substr` baseline when no topic terms were given;
+    // when topic terms ARE given, require at least one term hit so narrow
+    // queries like `+ui_timeline_ master` are never padded with unrelated tools.
+    let score = terms.length === 0 && requiredNameSubstr ? 1 : 0;
+    for (let i = 0; i < terms.length; i++) {
+      const term = terms[i]!;
       if (nameLower.includes(term)) score += 3;
-      if (descLower.includes(term)) score += 1;
+      if (descLower.includes(term)) {
+        score += 1;
+        if (wordRegexes[i]!.test(descLower)) score += 1;
+      }
     }
     // A bare `+substr` with no extra terms still surfaces every name match.
     if (score > 0 || terms.length === 0) scored.push({ entry, score });
@@ -91,7 +106,7 @@ export function searchTools(
   scored.sort(
     (a, b) => b.score - a.score || a.entry.name.localeCompare(b.entry.name)
   );
-  return scored.slice(0, Math.max(0, maxResults)).map((s) => s.entry);
+  return scored.slice(0, Math.max(0, limit)).map((s) => s.entry);
 }
 
 /** Render matched tools as the `<functions>` block the model expects. */

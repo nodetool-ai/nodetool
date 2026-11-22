@@ -50,8 +50,18 @@ import {
   makeSequence,
   makeTrack,
   renderMidiClip,
+  applyAutoCrossfade,
+  autoCrossfadeMsOf,
+  automationBreakpoints,
+  automationModeOf,
+  automationModePlays,
   harmonizeClips,
+  instrumentCutoffControls,
+  isAutomationLaneActive,
   loadSamplerSamples,
+  mergeTrackMidiControllers,
+  tracksWithPatternAutomation,
+  type AutomationLane,
   type SamplerAudio,
   resolveTempo,
   timeRemapAudioSegments,
@@ -169,11 +179,16 @@ function renderableVideoClips(seq: TimelineSequence): TimelineClip[] {
  * (they have no `currentAssetId` at all). An audio clip sounds under the same
  * status rule its picture would be drawn under (`effectiveAssetId`).
  */
-function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
+export function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
   const tracks = trackById(seq.tracks);
   const hasSolo = soundTrackSoloed(seq.tracks);
   // A midi clip with `harmony` plays its arp or comp expansion, not its written notes.
-  return harmonizeClips(seq.clips, seq)
+  // Overlapping same-track controller clips (e.g. controller-only pitch-bend
+  // patterns) merge onto each note-bearing clip before per-clip rendering.
+  const audible = mergeTrackMidiControllers(
+    harmonizeClips(seq.clips, seq),
+    resolveTempo(seq)
+  )
     .filter((clip) => {
       const track = tracks.get(clip.trackId);
       if (!track || track.muted === true || clip.muted || clip.hidden) {
@@ -182,7 +197,10 @@ function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
       if (hasSolo && !track.solo) return false;
       if (clip.durationMs <= 0) return false;
       if (track.type === "midi") {
-        return clip.mediaType === "midi" && (clip.notes?.length ?? 0) > 0;
+        return (
+          clip.mediaType === "midi" &&
+          ((clip.notes?.length ?? 0) > 0 || (clip.controllers?.length ?? 0) > 0)
+        );
       }
       return (
         track.type === "audio" &&
@@ -191,6 +209,8 @@ function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
       );
     })
     .sort((a, b) => a.startMs - b.startMs);
+  // CE7 (D54): a music project crossfades touching clips on one track.
+  return [...applyAutoCrossfade(audible, autoCrossfadeMsOf(seq))];
 }
 
 /** The detached-audio linkIds of a sequence; see the shared rule. */
@@ -224,6 +244,18 @@ function ffSeconds(ms: number): string {
 }
 
 /**
+ * An `adelay` value in milliseconds. It keeps a fraction (to the microsecond),
+ * so a clip lands where the document puts it: a whole-millisecond delay moves
+ * the edge of a 5 ms automatic crossfade by up to a tenth of its length.
+ */
+function adelayMs(ms: number): number {
+  return Number(Math.max(0, ms).toFixed(3));
+}
+
+/** The shortest fade `ffSeconds` can name. A shorter one prints `d=0.000`, which ffmpeg rejects. */
+const MIN_FADE_MS = 0.5;
+
+/**
  * `afade` steps for a clip's fades over a stream in which the clip begins at
  * `clipStartInStreamMs`. Both edges read the curve the document authored, the
  * same one the editor draws and the preview sounds: every `ClipFadeShape` maps
@@ -232,15 +264,15 @@ function ffSeconds(ms: number): string {
  * Lengths come from `resolveClipFades`, so two fades longer together than the
  * clip meet in its middle here exactly as they do on screen.
  */
-function clipFadeSteps(clip: TimelineClip, clipStartInStreamMs: number): string[] {
+export function clipFadeSteps(clip: TimelineClip, clipStartInStreamMs: number): string[] {
   const fades = resolveClipFades(clip, clip.durationMs);
   const steps: string[] = [];
-  if (fades.fadeInMs > 0) {
+  if (fades.fadeInMs >= MIN_FADE_MS) {
     steps.push(
       `afade=t=in:st=${ffSeconds(clipStartInStreamMs)}:d=${ffSeconds(fades.fadeInMs)}:curve=${ffmpegFadeCurve(fades.fadeInShape)}`
     );
   }
-  if (fades.fadeOutMs > 0) {
+  if (fades.fadeOutMs >= MIN_FADE_MS) {
     const startMs = clipStartInStreamMs + clip.durationMs - fades.fadeOutMs;
     steps.push(
       `afade=t=out:st=${ffSeconds(startMs)}:d=${ffSeconds(fades.fadeOutMs)}:curve=${ffmpegFadeCurve(fades.fadeOutShape)}`
@@ -252,7 +284,7 @@ function clipFadeSteps(clip: TimelineClip, clipStartInStreamMs: number): string[
 /** Whether either edge of the clip carries a fade worth rendering. */
 function hasClipFade(clip: TimelineClip): boolean {
   const fades = resolveClipFades(clip, clip.durationMs);
-  return fades.fadeInMs > 0 || fades.fadeOutMs > 0;
+  return fades.fadeInMs >= MIN_FADE_MS || fades.fadeOutMs >= MIN_FADE_MS;
 }
 
 /**
@@ -260,7 +292,7 @@ function hasClipFade(clip: TimelineClip): boolean {
  * timeline start. The fades precede the delay, so their times are measured
  * from the clip's own start.
  */
-function audioClipFilter(
+export function audioClipFilter(
   clip: TimelineClip,
   inputIndex: number,
   label: string
@@ -280,9 +312,16 @@ function audioClipFilter(
   if (isNumber(clip.volumeDb) && clip.volumeDb !== 0) {
     steps.push(`volume=${clip.volumeDb}dB`);
   }
-  steps.push(...clipFadeSteps(clip, 0));
+  // The source can end before the clip does (a rounded or baked out point).
+  // The fade-out then belongs at the end of the audio that plays.
+  const playedMs = (outS - inS) * 1000;
+  const faded =
+    !isMidi && playedMs > 0 && playedMs < clip.durationMs
+      ? { ...clip, durationMs: playedMs }
+      : clip;
+  steps.push(...clipFadeSteps(faded, 0));
   steps.push(...clipEffectChainSteps(clip));
-  const delay = Math.max(0, Math.round(clip.startMs));
+  const delay = adelayMs(clip.startMs);
   steps.push(`adelay=${delay}|${delay}`);
   return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
 }
@@ -311,7 +350,7 @@ function audioRemapSegmentFilter(
   if (isNumber(clip.volumeDb) && clip.volumeDb !== 0) {
     steps.push(`volume=${clip.volumeDb}dB`);
   }
-  const delay = Math.max(0, Math.round(segment.timelineStartMs));
+  const delay = adelayMs(segment.timelineStartMs);
   steps.push(`adelay=${delay}|${delay}`);
   return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
 }
@@ -358,22 +397,27 @@ function compressorMakeupGain(e: TrackCompressorEffect): number {
  * a bandpass Q is linear. The compressor detects peaks; its knee is capped at
  * the 18 dB `acompressor` allows.
  */
-function audioEffectSteps(effect: TrackEffect): string[] {
+function audioEffectStepsNamed(
+  effect: TrackEffect,
+  instancePrefix?: string
+): string[] {
+  const tag = (name: string, suffix = ""): string =>
+    instancePrefix ? `${name}@${instancePrefix}${suffix}` : name;
   switch (effect.type) {
     case "gain":
-      return [`volume=${effect.gainDb}dB`];
+      return [`${tag("volume")}=${effect.gainDb}dB`];
     case "eq3":
       return [
-        `lowshelf=f=${biquadHz(effect.lowFreq)}:g=${effect.lowGainDb}:t=s:w=1`,
-        `equalizer=f=${biquadHz(effect.midFreq)}:t=q:w=${Math.max(0.0001, effect.midQ)}:g=${effect.midGainDb}`,
-        `highshelf=f=${biquadHz(effect.highFreq)}:g=${effect.highGainDb}:t=s:w=1`
+        `${tag("lowshelf", "_lo")}=f=${biquadHz(effect.lowFreq)}:g=${effect.lowGainDb}:t=s:w=1`,
+        `${tag("equalizer", "_mid")}=f=${biquadHz(effect.midFreq)}:t=q:w=${Math.max(0.0001, effect.midQ)}:g=${effect.midGainDb}`,
+        `${tag("highshelf", "_hi")}=f=${biquadHz(effect.highFreq)}:g=${effect.highGainDb}:t=s:w=1`
       ];
     case "filter": {
       const q =
         effect.mode === "bandpass"
           ? Math.max(0.0001, effect.q)
           : Math.max(0.0001, Math.pow(10, effect.q / 20));
-      return [`${effect.mode}=f=${biquadHz(effect.frequency)}:t=q:w=${q}`];
+      return [`${tag(effect.mode)}=f=${biquadHz(effect.frequency)}:t=q:w=${q}`];
     }
     case "compressor":
       return [
@@ -396,6 +440,10 @@ function audioEffectSteps(effect: TrackEffect): string[] {
     default:
       return [];
   }
+}
+
+function audioEffectSteps(effect: TrackEffect): string[] {
+  return audioEffectStepsNamed(effect);
 }
 
 /** Most taps an `aecho` is given, so a long feedback echo stays cheap. */
@@ -484,18 +532,133 @@ function clipEffectChainSteps(clip: TimelineClip): string[] {
   ];
 }
 
+/** Build ffmpeg `asendcmd` commands for a track's automated effects and fader. */
+function buildTrackAutomationCmds(
+  lanes: readonly AutomationLane[],
+  effectTargets: Map<string, { effect: TrackEffect; prefix: string }>,
+  faderInstance: string | undefined
+): string[] {
+  const events: Array<{ timeSec: number; cmd: string }> = [];
+  const pushLane = (
+    lane: AutomationLane,
+    targetFilter: string,
+    command: string,
+    formatValue: (v: number) => string
+  ): void => {
+    const bps = automationBreakpoints(lane.points, 0, {
+      maxStepMs: 25,
+      subdivideLinear: true
+    });
+    // Deduplicate identical timestamps (hold jumps emit pre/post at the same ms):
+    // keep the last value at each instant so `asendcmd` jumps cleanly.
+    const dedup: Array<{ timeMs: number; value: number }> = [];
+    for (const bp of bps) {
+      const last = dedup[dedup.length - 1];
+      if (last && Math.abs(last.timeMs - bp.timeMs) < 1e-4) {
+        last.value = bp.value;
+      } else {
+        dedup.push({ timeMs: bp.timeMs, value: bp.value });
+      }
+    }
+    for (const pt of dedup) {
+      events.push({
+        timeSec: Math.max(0, pt.timeMs) / 1000,
+        cmd: `${(Math.max(0, pt.timeMs) / 1000).toFixed(4)} ${targetFilter} ${command} ${formatValue(pt.value)}`
+      });
+    }
+  };
+
+  for (const lane of lanes) {
+    if (!isAutomationLaneActive(lane)) continue;
+    if (lane.target.kind === "mixer" && lane.target.param === "volumeDb" && faderInstance) {
+      pushLane(lane, `volume@${faderInstance}`, "volume", (v) => `${clampTo(v, -96, 36).toFixed(3)}dB`);
+      continue;
+    }
+    if (lane.target.kind !== "device") continue;
+    const entry = effectTargets.get(lane.target.deviceId);
+    if (!entry) continue;
+    const { effect, prefix } = entry;
+    const param = lane.target.param;
+    if (effect.type === "filter") {
+      if (param === "frequency" || param === "cutoffHz") {
+        pushLane(lane, `${effect.mode}@${prefix}`, "f", (v) => biquadHz(v).toFixed(2));
+      } else if (param === "q") {
+        pushLane(lane, `${effect.mode}@${prefix}`, "w", (v) =>
+          (effect.mode === "bandpass"
+            ? Math.max(0.0001, v)
+            : Math.max(0.0001, Math.pow(10, v / 20))
+          ).toFixed(4)
+        );
+      }
+    } else if (effect.type === "gain" && param === "gainDb") {
+      pushLane(lane, `volume@${prefix}`, "volume", (v) => `${clampTo(v, -96, 36).toFixed(3)}dB`);
+    } else if (effect.type === "eq3") {
+      if (param === "lowFreq") pushLane(lane, `lowshelf@${prefix}_lo`, "f", (v) => biquadHz(v).toFixed(2));
+      else if (param === "lowGainDb") pushLane(lane, `lowshelf@${prefix}_lo`, "g", (v) => clampTo(v, -40, 40).toFixed(3));
+      else if (param === "midFreq") pushLane(lane, `equalizer@${prefix}_mid`, "f", (v) => biquadHz(v).toFixed(2));
+      else if (param === "midQ") pushLane(lane, `equalizer@${prefix}_mid`, "w", (v) => Math.max(0.0001, v).toFixed(4));
+      else if (param === "midGainDb") pushLane(lane, `equalizer@${prefix}_mid`, "g", (v) => clampTo(v, -40, 40).toFixed(3));
+      else if (param === "highFreq") pushLane(lane, `highshelf@${prefix}_hi`, "f", (v) => biquadHz(v).toFixed(2));
+      else if (param === "highGainDb") pushLane(lane, `highshelf@${prefix}_hi`, "g", (v) => clampTo(v, -40, 40).toFixed(3));
+    }
+  }
+  events.sort((a, b) => a.timeSec - b.timeSec);
+  return events.map((e) => e.cmd);
+}
+
 /**
  * The DSP chain of a track, in array order. Only audio and midi tracks carry
  * one, as in the preview, where `AudioGraph.updateTracks` applies effects to
- * those tracks alone.
+ * those tracks alone. Automated track effects and volume lanes drive runtime
+ * parameter updates via `asendcmd` (SQ41).
  */
-function trackEffectSteps(track: TimelineTrack | undefined): string[] {
+function trackEffectSteps(
+  track: TimelineTrack | undefined,
+  trackSlot = 0
+): string[] {
   if (!track || (track.type !== "audio" && track.type !== "midi")) return [];
-  return [
-    ...effectChainSteps(track.effects),
-    ...faderSteps(track.volumeDb),
-    ...panSteps(track.pan)
-  ];
+  const playsAuto = automationModePlays(automationModeOf(track));
+  const activeLanes = playsAuto
+    ? (track.automation ?? []).filter(isAutomationLaneActive)
+    : [];
+  const enabledEffects = (track.effects ?? []).filter((effect) => effect.enabled);
+  const automatedDeviceIds = new Set(
+    activeLanes
+      .filter((l) => l.target.kind === "device")
+      .map((l) => (l.target as { kind: "device"; deviceId: string }).deviceId)
+  );
+  const hasVolumeAuto = activeLanes.some(
+    (l) => l.target.kind === "mixer" && l.target.param === "volumeDb"
+  );
+
+  const effectTargets = new Map<string, { effect: TrackEffect; prefix: string }>();
+  const fxSteps: string[] = [];
+  enabledEffects.forEach((effect, idx) => {
+    const isAuto = automatedDeviceIds.has(effect.id);
+    const prefix = isAuto ? `t${trackSlot}_e${idx}` : undefined;
+    if (prefix) effectTargets.set(effect.id, { effect, prefix });
+    fxSteps.push(...audioEffectStepsNamed(effect, prefix));
+  });
+
+  const faderInstance = hasVolumeAuto ? `t${trackSlot}_fader` : undefined;
+  const fader = faderInstance
+    ? [`volume@${faderInstance}=${isNumber(track.volumeDb) ? track.volumeDb : 0}dB`]
+    : faderSteps(track.volumeDb);
+
+  const cmds =
+    activeLanes.length > 0
+      ? buildTrackAutomationCmds(activeLanes, effectTargets, faderInstance)
+      : [];
+
+  const chain: string[] = [];
+  if (fxSteps.length > 0 || cmds.length > 0) {
+    chain.push(`aresample=${EFFECT_SAMPLE_RATE}`);
+  }
+  if (cmds.length > 0) {
+    chain.push(`asendcmd=c='${cmds.join("; ")}'`);
+  }
+  chain.push(...fxSteps, ...fader, ...panSteps(track.pan));
+  return chain;
 }
 
 /** Enabled effects in array order, resampled first as the preview runs at 48 kHz. */
@@ -531,12 +694,16 @@ export function panSteps(pan: number | undefined): string[] {
 }
 
 /**
- * The master channel over the whole mix: its inserts, then its fader. A
- * `fable` insert passes the signal dry, as it does on a track.
+ * The master channel over the whole mix: its inserts, then its fader and pan.
+ * A `fable` insert passes the signal dry, as it does on a track.
  */
 function masterSteps(master: TimelineMasterChannel | undefined): string[] {
   if (!master) return [];
-  return [...effectChainSteps(master.effects), ...faderSteps(master.volumeDb)];
+  return [
+    ...effectChainSteps(master.effects),
+    ...faderSteps(master.volumeDb),
+    ...panSteps(master.pan)
+  ];
 }
 
 /**
@@ -596,6 +763,7 @@ class MidiFiles {
   private readonly tracks: Map<string, TimelineTrack>;
   private readonly samples = new Map<string, Promise<SamplerAudio>>();
   private readonly bpm: number;
+  private readonly gridOffsetMs: number;
 
   constructor(
     private readonly workDir: string,
@@ -604,7 +772,9 @@ class MidiFiles {
     private readonly signal?: AbortSignal
   ) {
     this.tracks = trackById(seq.tracks);
-    this.bpm = resolveTempo(seq).bpm;
+    const tempo = resolveTempo(seq);
+    this.bpm = tempo.bpm;
+    this.gridOffsetMs = tempo.offsetMs;
   }
 
   path(clip: TimelineClip): Promise<string> {
@@ -646,19 +816,25 @@ class MidiFiles {
 
   private async write(clip: TimelineClip): Promise<string> {
     // The instrument belongs to the track, not the clip.
-    const instrument =
-      this.tracks.get(clip.trackId)?.instrument ?? DEFAULT_MIDI_INSTRUMENT;
+    const track = this.tracks.get(clip.trackId);
+    const instrument = track?.instrument ?? DEFAULT_MIDI_INSTRUMENT;
     if (instrument.type === "vst") {
       // The plug-in is native code on the machine that chose it; only the
       // desktop editor's export can host it. Refuse rather than render silence.
       throw new Error(
-        `Track "${this.tracks.get(clip.trackId)?.name ?? clip.trackId}" plays a VST instrument, which renders only in the NodeTool desktop app's export. Export from the desktop editor, or mute the track.`
+        `Track "${track?.name ?? clip.trackId}" plays a VST instrument, which renders only in the NodeTool desktop app's export. Export from the desktop editor, or mute the track.`
       );
     }
+    const controls =
+      instrument.type === "subtractive"
+        ? instrumentCutoffControls(track, clip, MIDI_SAMPLE_RATE)
+        : undefined;
     const mono = renderMidiClip({
       clip,
       bpm: this.bpm,
+      gridOffsetMs: this.gridOffsetMs,
       samples: await loadSamplerSamples(instrument, id => this.loadSample(id)),
+      controls,
       instrument,
       sampleRate: MIDI_SAMPLE_RATE
     });
@@ -886,8 +1062,9 @@ async function mixAudioInto(opts: {
     labelsOf(clip).push(...segmentLabels);
   }
   const byTrack = trackById(tracks);
+  let trackSlot = 0;
   for (const [trackId, streams] of trackLabels) {
-    const steps = trackEffectSteps(byTrack.get(trackId));
+    const steps = trackEffectSteps(byTrack.get(trackId), trackSlot++);
     if (steps.length === 0) {
       labels.push(...streams);
       continue;
@@ -947,14 +1124,19 @@ export async function mixCompositedTimelineAudio(opts: {
   if (output.format === "png_sequence") return basePath;
   const clips = [...embeddedAudioClips(sequence), ...mixableAudioClips(sequence)];
   if (clips.length === 0) return basePath;
+  const effectiveTracks = tracksWithPatternAutomation(
+    sequence.tracks,
+    sequence.clips,
+    sequence
+  );
   return mixAudioInto({
     basePath,
     clips,
-    tracks: sequence.tracks,
+    tracks: effectiveTracks,
     master: sequence.master,
     baseHasAudio: false,
     assets: { path: resolveAssetPath },
-    midi: new MidiFiles(workDir, sequence, resolveAssetPath),
+    midi: new MidiFiles(workDir, { ...sequence, tracks: effectiveTracks }, resolveAssetPath),
     workDir,
     extension: output.extension,
     audioCodec: output.audioCodec ?? "aac"
@@ -1197,7 +1379,13 @@ export class RenderTimelineNode extends BaseNode {
     );
     try {
       const assets = new AssetFiles(workDir, ctx);
-      const midi = new MidiFiles(workDir, seq, id => assets.path(id), ctx.signal);
+      const effectiveTracks = tracksWithPatternAutomation(seq.tracks, seq.clips, seq);
+      const midi = new MidiFiles(
+        workDir,
+        { ...seq, tracks: effectiveTracks },
+        (id) => assets.path(id),
+        ctx.signal
+      );
       let basePath: string;
       let baseHasAudio: boolean;
       let audioToMix: TimelineClip[];
@@ -1365,7 +1553,7 @@ export class RenderTimelineNode extends BaseNode {
           ? await mixAudioInto({
               basePath,
               clips: audioToMix,
-              tracks: seq.tracks,
+              tracks: effectiveTracks,
               master: seq.master,
               baseHasAudio,
               assets,

@@ -445,12 +445,14 @@ export interface TimelineTrack {
    */
   automation?: AutomationLane[];
   /**
-   * How the track's automation lanes play and record. Missing means `read`.
+   * Automation mode. Missing means `read`.
    * Must also exist on the protocol zod schema or PATCH strips it.
    */
   automationMode?: AutomationMode;
   /** The stem this track holds in a music project (MUSIC-MODE.md MD4). */
   musicRole?: MusicRole;
+  /** Default Step Sequencer template for new pattern regions on this track (SQ45). */
+  stepTemplate?: StepPattern;
 }
 
 /** `off` plays no lane, `read` plays them, the others also record a pass. */
@@ -581,12 +583,157 @@ export interface ClipHarmony {
   scaleKey?: number;
 }
 
+// ── Step Sequencer (SQ) ─────────────────────────────────────────────────────
+
+/** Step lengths in note values, integer ticks at MIDI_PPQ = 960 (SQ6). */
+export type StepRate =
+  | "4" | "2" | "1" | "1/2" | "1/4" | "1/8" | "1/16" | "1/32" | "1/64"
+  | "1T" | "2T" | "4T" | "8T" | "16T" | "32T"
+  | "1D" | "2D" | "4D" | "8D" | "16D" | "32D" | "64D";
+
+export type StepPlaybackMode =
+  | "forward"
+  | "backward"
+  | "pingPong"
+  | "pendulum"
+  | "wander"
+  | "shuffle"
+  | "random";
+
+export type StepEditMode =
+  | "onOff"
+  | "velocity"
+  | "value"
+  | "gate"
+  | "tie"
+  | "note"
+  | "octave"
+  | "repeat"
+  | "chance"
+  | "offset"
+  | "stepRate"
+  | "skip"
+  | "loop";
+
+export type StepAutomationMode = "latch" | "slide";
+export type StepSwingDivision = "1/8" | "1/16";
+export type StepPitchSource = "off" | "key" | "chords";
+export type StepRowSort =
+  | "none"
+  | "typeAsc"
+  | "typeDesc"
+  | "typeAndNoteAsc"
+  | "typeAndNoteDesc"
+  | "typeAndNameAsc"
+  | "typeAndNameDesc"
+  | "typeAndKitPadAsc"
+  | "typeAndKitPadDesc";
+export type StepScaleId = HarmonyScaleId | "chromatic";
+
+export interface StepKey {
+  /** Pitch class 0 (C) .. 11 (B). */
+  tonic: number;
+  mode: "major" | "minor";
+}
+
+export type StepDegree = "root" | "2nd" | "3rd" | "4th" | "5th" | "6th" | "7th";
+
+export type StepAutomationTarget =
+  | { kind: "cc"; cc: number }
+  | { kind: "pitchBend" }
+  | { kind: "channelPressure" }
+  | { kind: "device"; deviceId: string; param: string };
+
+export type StepRowAssignment =
+  | { type: "note"; pitch: number }
+  | { type: "melodic"; pitch: number }
+  | { type: "kit"; pad: number }
+  | { type: "degree"; degree: StepDegree; octave: number }
+  | { type: "automation"; target: StepAutomationTarget };
+
+export type StepCondition =
+  | { type: "always" }
+  | { type: "recurrence"; iteration: number; cycles: number }
+  | { type: "first" }
+  | { type: "last" };
+
+/** One cell of a Step Sequencer row. Omitted fields take the SQ5 defaults. */
+export interface Step {
+  on?: boolean;
+  velocity?: number;
+  gate?: number;
+  tie?: boolean;
+  note?: number;
+  octave?: number;
+  repeat?: number;
+  chance?: number;
+  offset?: number;
+  stepRate?: StepRate;
+  skip?: boolean;
+  value?: number;
+  condition?: StepCondition;
+  midiChannel?: number;
+  articulation?: number;
+  velocityRamp?: number;
+  velocityCurve?: number;
+  distribution?: number;
+}
+
+/** One row of a Step Sequencer pattern (SQ3). */
+export interface StepRow {
+  id: string;
+  assignment: StepRowAssignment;
+  name?: string;
+  color?: string;
+  mute: boolean;
+  solo: boolean;
+  lengthSteps: number;
+  loopStart: number;
+  loopEnd: number;
+  stepRate: StepRate;
+  playback: StepPlaybackMode;
+  midiChannel: number;
+  automationMode: StepAutomationMode;
+  subrows: StepEditMode[];
+  subrowsExpanded?: boolean;
+  steps: Step[];
+}
+
+/**
+ * Step Sequencer pattern carried on a MIDI clip (SQ1, SQ2, D71).
+ * A clip with `pattern` does not store `notes` or `controllers`; every
+ * renderer derives them with `expandPattern`.
+ */
+export interface StepPattern {
+  version: 1;
+  seed: number;
+  lengthSteps: number;
+  stepRate: StepRate;
+  playback: StepPlaybackMode;
+  legato: boolean;
+  swing: number;
+  swingDivision: StepSwingDivision;
+  pitchSource: StepPitchSource;
+  key?: StepKey;
+  scale: StepScaleId;
+  noTranspose: boolean;
+  scaleQuantize: boolean;
+  midiChannel: number;
+  automationMode: StepAutomationMode;
+  mono: boolean;
+  name: string;
+  rowSort?: StepRowSort;
+  rows: StepRow[];
+}
+
 /**
  * The master channel every audio and midi track sums into. Absent means
- * 0 dB with no effects.
+ * 0 dB, centred, with no effects.
  */
 export interface TimelineMasterChannel {
   volumeDb: number;
+  /** Stereo balance, -1 (left) to 1 (right). Default 0. */
+  pan?: number;
   /** Audio effects on the summed mix, applied in order before the fader. */
   effects?: TrackEffect[];
 }
@@ -1293,6 +1440,15 @@ export interface TimelineTempo {
 /** Kind of sound on a clip. Mirrors `clipAudioRole` in the protocol schema. */
 export type ClipAudioRole = "dialogue" | "music" | "sfx" | "ambience";
 
+/** The grids a region quantize may use. Mirrors `QUANTIZE_DIVISIONS`. */
+export type MidiRegionGrid = "1/4" | "1/8" | "1/16" | "1/32" | "1/8T" | "1/16T";
+
+export interface MidiRegionQuantize {
+  grid: MidiRegionGrid;
+  /** 0..100. */
+  strength: number;
+}
+
 export interface TimelineClip {
   id: string;
   trackId: string;
@@ -1307,6 +1463,15 @@ export interface TimelineClip {
    * Midi and audio clips only. Absent means no loop.
    */
   loopLengthMs?: number;
+  /**
+   * Non-destructive midi region parameters (CE6, D53). They apply at playback,
+   * export and in the note lines. The stored notes stay as written.
+   * `transpose` is -48..48 semitones, `velocityOffset` -127..127.
+   */
+  transpose?: number;
+  velocityOffset?: number;
+  /** Snap onsets to `grid` by `strength` percent (0..100). */
+  quantize?: MidiRegionQuantize;
   mediaType: ClipMediaType;
   sourceType: "imported" | "generated";
   /** Defaults to "workflow" when absent on legacy persisted data. */
@@ -1569,6 +1734,19 @@ export interface TimelineClip {
   controllers?: MidiControllerLane[];
   /** Arp, chord comping or scale snapping of a `midi` clip. */
   harmony?: ClipHarmony;
+  /** Step Sequencer pattern carried by a pattern region (D71). Mutually exclusive with `notes`. */
+  pattern?: StepPattern;
+  /** Pattern phase in content ticks for split/left-trimmed pattern regions (SQ23, SQ25, D87). */
+  patternPhaseTicks?: number;
+  /** Per-row cycle state preserved across unrolled loop repeats (SQ13, SQ25). */
+  patternRowCycles?: Record<string, PatternRowCycleState>;
+}
+
+/** Per-row cycle state carried across unrolled loop repeats (SQ13, SQ25). */
+export interface PatternRowCycleState {
+  cycleOffset: number;
+  lastCycle?: number;
+  wanderPos?: number;
 }
 
 /**

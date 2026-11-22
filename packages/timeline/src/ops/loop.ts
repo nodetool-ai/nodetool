@@ -70,7 +70,7 @@ export async function runLoopClip(
         "`loopLengthMs: null` removes the loop. Do not send `times`, `untilMs` or `untilBar` with it."
       );
     }
-    if (clip.mediaType === "audio" && clip.outPointMs !== undefined) {
+    if (clip.mediaType === "audio") {
       const out = (clip.inPointMs ?? 0) + clip.durationMs * rate;
       assertWithinSource(out);
       clip.outPointMs = out;
@@ -106,7 +106,7 @@ export async function runLoopClip(
       `The loop end must lie after the clip start (${clip.startMs} ms). The result would last ${durationMs} ms.`
     );
   }
-  if (clip.mediaType === "audio" && clip.outPointMs !== undefined) {
+  if (clip.mediaType === "audio") {
     assertWithinSource((clip.inPointMs ?? 0) + Math.min(windowMs, durationMs) * rate);
   }
   clip.durationMs = durationMs;
@@ -115,7 +115,7 @@ export async function runLoopClip(
   } else {
     delete clip.loopLengthMs;
   }
-  if (clip.mediaType === "audio" && clip.outPointMs !== undefined) {
+  if (clip.mediaType === "audio") {
     // The source window is one repeat; the out-point marks its end.
     clip.outPointMs =
       (clip.inPointMs ?? 0) + Math.min(windowMs, durationMs) * rate;
@@ -139,12 +139,11 @@ export function unrollLoopedInScope(
 ): TimelineClip[] {
   const loopMs = activeLoopMs(clip);
   if (loopMs === undefined) return [clip];
-  const copies = unrollLoopedClip(
-    clip,
-    resolveTempo(scope.state).bpm,
-    loopMs,
-    { newId: () => scope.ctx.newId("clip") }
-  );
+  const tempo = resolveTempo(scope.state);
+  const copies = unrollLoopedClip(clip, tempo.bpm, loopMs, {
+    newId: () => scope.ctx.newId("clip"),
+    gridOffsetMs: tempo.offsetMs
+  });
   const index = scope.clips.findIndex((c) => c.id === clip.id);
   scope.clips.splice(index, 1, ...copies);
   scope.touch(...copies.map((c) => c.id));

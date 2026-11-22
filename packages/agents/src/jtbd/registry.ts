@@ -37,6 +37,14 @@ import {
   staggerUnitsOf
 } from "../evals/surfaces/timeline.js";
 import { findSystemSkill } from "../system-skills.js";
+import {
+  DEFAULT_TEMPO,
+  barDurationMs,
+  findInstrumentPreset,
+  makeTrack,
+  resolveTempo,
+  rowLabel
+} from "@nodetool-ai/timeline";
 import { defineJob, type ErasedJob } from "./run.js";
 
 const graphWorld = () =>
@@ -522,6 +530,139 @@ export const JOBS_TO_BE_DONE: readonly ErasedJob[] = [
         test: (s) =>
           s.derivedShots.length > 0 &&
           s.derivedShots.some((shot) => shot.scriptLineIds.length > 0)
+      }
+    ]
+  }),
+
+  defineJob({
+    id: "step-sequencer-boom-bap",
+    statement:
+      "When I want a drum groove on the timeline, I want a step sequencer pattern with ghost snares and probabilistic hi-hats, so I can iterate on the beat in the grid.",
+    surfaces: ["timeline"],
+    difficulty: "standard",
+    objective:
+      "Make a boom bap beat on the drum track for 4 bars, with ghost snares and hats at 70% chance.",
+    expectedToolCalls: 8,
+    createBridge: () =>
+      createTimelineToolBridge({
+        sequence: {
+          tempo: { ...DEFAULT_TEMPO, bpm: 90 },
+          tracks: [
+            makeTrack({
+              id: "track_drums",
+              type: "midi",
+              name: "Drums",
+              index: 0,
+              musicRole: "drums",
+              instrument: findInstrumentPreset("dr1-tr-void")?.instrument
+            })
+          ],
+          clips: []
+        }
+      }),
+    outcomes: [
+      {
+        name: "four-bar-pattern",
+        describe: "A 4-bar step sequencer pattern region sits on the drum track.",
+        test: (s) => {
+          const drumTrack = s.documentTracks.find(
+            (t) =>
+              t.type === "midi" &&
+              (t.musicRole === "drums" || /drum/i.test(t.name))
+          );
+          if (!drumTrack) return false;
+          const barMs = barDurationMs(resolveTempo({ tempo: s.tempo }));
+          return s.documentClips.some(
+            (c) =>
+              c.trackId === drumTrack.id &&
+              c.pattern !== undefined &&
+              c.durationMs >= barMs * 4 - 2
+          );
+        }
+      },
+      {
+        name: "kick-and-ghost-snares",
+        describe:
+          "The pattern has a kick groove plus snares with both accented/full hits and softer ghost notes.",
+        test: (s) => {
+          const drumTrack = s.documentTracks.find(
+            (t) =>
+              t.type === "midi" &&
+              (t.musicRole === "drums" || /drum/i.test(t.name))
+          );
+          if (!drumTrack) return false;
+          const barMs = barDurationMs(resolveTempo({ tempo: s.tempo }));
+          const pat = s.documentClips.find(
+            (c) =>
+              c.trackId === drumTrack.id &&
+              c.pattern !== undefined &&
+              c.durationMs >= barMs * 4 - 2
+          )?.pattern;
+          if (!pat) return false;
+          const hasSolo = pat.rows.some((r) => r.solo);
+          const audibleRows = pat.rows.filter(
+            (r) => !r.mute && (!hasSolo || r.solo)
+          );
+          const audibleSteps = (r: (typeof pat.rows)[number]) => {
+            const start = Math.max(0, Math.min(r.steps.length, r.loopStart));
+            const end = Math.max(start, Math.min(r.steps.length, r.loopEnd));
+            return r.steps
+              .slice(start, end)
+              .filter((st) => st.on && !st.skip);
+          };
+          const hasKick = audibleRows.some(
+            (r) =>
+              /kick|bd/i.test(rowLabel(r, drumTrack.instrument)) &&
+              audibleSteps(r).length > 0
+          );
+          const snareRows = audibleRows.filter((r) =>
+            /snare|sd/i.test(rowLabel(r, drumTrack.instrument))
+          );
+          const snareHits = snareRows.flatMap((r) =>
+            audibleSteps(r).map((st) => st.velocity ?? 100)
+          );
+          const hasFull = snareHits.some((v) => v >= 85);
+          const hasGhost = snareHits.some((v) => v <= 70);
+          return hasKick && hasFull && hasGhost;
+        }
+      },
+      {
+        name: "hats-70-chance",
+        describe: "A hi-hat row has active steps set to 70% chance.",
+        test: (s) => {
+          const drumTrack = s.documentTracks.find(
+            (t) =>
+              t.type === "midi" &&
+              (t.musicRole === "drums" || /drum/i.test(t.name))
+          );
+          if (!drumTrack) return false;
+          const barMs = barDurationMs(resolveTempo({ tempo: s.tempo }));
+          const pat = s.documentClips.find(
+            (c) =>
+              c.trackId === drumTrack.id &&
+              c.pattern !== undefined &&
+              c.durationMs >= barMs * 4 - 2
+          )?.pattern;
+          if (!pat) return false;
+          const hasSolo = pat.rows.some((r) => r.solo);
+          return pat.rows.some((r) => {
+            if (r.mute || (hasSolo && !r.solo)) return false;
+            if (!/hat|hh|ch/i.test(rowLabel(r, drumTrack.instrument))) {
+              return false;
+            }
+            const start = Math.max(0, Math.min(r.steps.length, r.loopStart));
+            const end = Math.max(start, Math.min(r.steps.length, r.loopEnd));
+            const hits70 = r.steps
+              .slice(start, end)
+              .filter((st) => st.on && !st.skip && st.chance === 70);
+            return hits70.length >= 2;
+          });
+        }
+      },
+      {
+        name: "verified-with-get-pattern",
+        describe: "The run inspected the finished pattern with get_pattern.",
+        test: (s) => s.toolLog.includes("ui_timeline_get_pattern")
       }
     ]
   })

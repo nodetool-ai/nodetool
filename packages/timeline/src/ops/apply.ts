@@ -38,7 +38,15 @@ import {
   signatureLabel
 } from "./chords.js";
 import { runJoinClips } from "./join.js";
+import {
+  onlySelected,
+  runSetMaster,
+  runSetNotes,
+  runSetTrackMix,
+  selectNotes
+} from "./midiMix.js";
 import { runLoopClip, unrollLoopedInScope } from "./loop.js";
+import { runPasteRange } from "./pasteRange.js";
 import { runDeleteTime, runDuplicateRange, runInsertTime } from "./sections.js";
 import { staggerClipAnimations } from "../animation/beat.js";
 import type { PropertyCurve } from "../animation/compile.js";
@@ -98,7 +106,12 @@ import {
   splitClipMediaTracks,
   resliceTracksForTrimmedClip
 } from "../mediaTrack.js";
-import { quantizeNotes, scaleVelocity, transposeNotes } from "../midi/edit.js";
+import {
+  QUANTIZE_DIVISIONS,
+  quantizeNotes,
+  scaleVelocity,
+  transposeNotes
+} from "../midi/edit.js";
 import { DEFAULT_MIDI_INSTRUMENT } from "../midi/instrument.js";
 import { createMidiNote, sortNotes, validateNotes } from "../midi/notes.js";
 import {
@@ -121,6 +134,8 @@ import {
 import { adaptSequenceFormat } from "../retarget.js";
 import { sourceRate } from "../sourceRate.js";
 import { activeLoopMs } from "../clipLoop.js";
+import { autoCrossfadeMsOf } from "../autoCrossfade.js";
+import { tempoChangeRefusal } from "../music/tempoRules.js";
 import { splitClip } from "../splitClip.js";
 import { resolveBarTime } from "./barTime.js";
 import {
@@ -153,14 +168,19 @@ import type {
   TimelineMarker,
   TimelineSequence,
   TimelineTrack,
-  TrackBinding
+  TrackBinding,
+  MidiRegionGrid
 } from "../types.js";
 import type { ClipTransformPatch, TimelineOp } from "./op.js";
 import {
+  midiClipDetail,
   serializeClip,
+  serializeMaster,
   serializeMediaTrack,
-  serializeTrack
+  serializeTrack,
+  trackDetail
 } from "./serialize.js";
+import { STEP_PATTERN_OP_HANDLERS } from "./stepPattern.js";
 import type {
   TimelineAnimationInput,
   TimelineOpContext,
@@ -325,6 +345,9 @@ const CLIP_PARAM_KEYS = [
   "muted",
   "locked",
   "labelColor",
+  "transpose",
+  "velocityOffset",
+  "quantize",
   "fontSizePx",
   "textStyle",
   "shapeStyle",
@@ -702,12 +725,27 @@ class OpScope {
         }
         return { target, inPointMs };
       });
+      const bpm = resolveTempo(this.state).bpm;
       for (const { target, inPointMs } of slipped) {
-        target.inPointMs = inPointMs;
-        // A looped clip's window is one repeat, not its whole length.
-        target.outPointMs =
-          inPointMs +
-          (activeLoopMs(target) ?? target.durationMs) * sourceRate(target);
+        if (target.pattern !== undefined) {
+          const basePhase =
+            (target.patternPhaseTicks ?? 0) +
+            Math.round(msToTicks(target.inPointMs ?? 0, bpm));
+          const deltaTicks = Math.round(
+            msToTicks(inPointMs - (target.inPointMs ?? 0), bpm)
+          );
+          const nextPhase = Math.max(0, basePhase + deltaTicks);
+          if (nextPhase > 0) target.patternPhaseTicks = nextPhase;
+          else delete target.patternPhaseTicks;
+          target.inPointMs = 0;
+          target.outPointMs = activeLoopMs(target) ?? target.durationMs;
+        } else {
+          target.inPointMs = inPointMs;
+          // A looped clip's window is one repeat, not its whole length.
+          target.outPointMs =
+            inPointMs +
+            (activeLoopMs(target) ?? target.durationMs) * sourceRate(target);
+        }
         // Words are timed on the clip's clock; the media moved under it.
         if (target.caption) {
           target.caption = retimeCaption(target.caption, -slipMs);
@@ -831,9 +869,10 @@ class OpScope {
     } else {
       // Every partner is trimmed before any is written, so one that runs out
       // of source leaves the whole group as it was.
+      const bpm = resolveTempo(this.state).bpm;
       const trimmed = targets.map((target) => ({
         target,
-        next: trimClip(target, "start", deltaMs)
+        next: trimClip(target, "start", deltaMs, undefined, bpm)
       }));
       for (const { target, next } of trimmed) {
         this.replaceClip(target, next);
@@ -995,6 +1034,49 @@ function trimSourceBounded(
       );
     }
     throw error;
+  }
+}
+
+/** CE6: set or clear the midi region parameters (D53). Null clears. */
+function applyMidiRegionPatch(
+  clip: TimelineClip,
+  patch: Record<string, unknown>
+): void {
+  const keys = ["transpose", "velocityOffset", "quantize"] as const;
+  if (!keys.some((k) => patch[k] !== undefined)) return;
+  if (clip.mediaType !== "midi") {
+    throw new Error(
+      `Clip "${clip.name}" is a ${clip.mediaType} clip. transpose, velocityOffset and quantize apply to a midi clip.`
+    );
+  }
+  const num = (key: string, max: number): number | null | undefined => {
+    const v = patch[key];
+    if (v === undefined || v === null) return v as null | undefined;
+    if (typeof v !== "number" || !Number.isInteger(v) || Math.abs(v) > max) {
+      throw new Error(`${key} must be a whole number from -${max} to ${max}.`);
+    }
+    return v;
+  };
+  const transpose = num("transpose", 48);
+  if (transpose === null || transpose === 0) delete clip.transpose;
+  else if (transpose !== undefined) clip.transpose = transpose;
+  const offset = num("velocityOffset", 127);
+  if (offset === null || offset === 0) delete clip.velocityOffset;
+  else if (offset !== undefined) clip.velocityOffset = offset;
+  const q = patch.quantize;
+  if (q === null) delete clip.quantize;
+  else if (q !== undefined) {
+    const { grid, strength } = q as { grid?: string; strength?: number };
+    if (
+      !(QUANTIZE_DIVISIONS as readonly string[]).includes(grid as string) ||
+      typeof strength !== "number" ||
+      !(strength >= 0 && strength <= 100)
+    ) {
+      throw new Error(
+        `quantize needs a grid (${QUANTIZE_DIVISIONS.join(", ")}) and a strength from 0 to 100.`
+      );
+    }
+    clip.quantize = { grid: grid as MidiRegionGrid, strength };
   }
 }
 
@@ -1166,7 +1248,10 @@ function runMidiNoteEdit(
   const clip = scope.resolveMidiClip(op.clip);
   scope.assertWritable([clip]);
   const before = clip.notes ?? [];
-  const notes =
+  const selection = op.note_ids
+    ? new Set(selectNotes(clip, op.note_ids, undefined))
+    : undefined;
+  const whole =
     op.op === "transpose_clip"
       ? transposeNotes(before, op.semitones)
       : op.op === "scale_velocity"
@@ -1175,6 +1260,8 @@ function runMidiNoteEdit(
             division: op.division,
             strength: op.strength,
             target: op.target,
+            swing: op.swing,
+            noteIds: selection,
             // The grid is anchored at `tempo.offsetMs`, as the editor draws it.
             phaseTick: msToTicks(
               resolveTempo(scope.state).offsetMs -
@@ -1183,19 +1270,30 @@ function runMidiNoteEdit(
               resolveTempo(scope.state).bpm
             )
           });
-  clip.notes = notes;
+  // transpose and velocity scaling touch every note, so a selection keeps the
+  // edit on its own notes. quantize already honours `noteIds`.
+  const notes =
+    selection && op.op !== "quantize_notes"
+      ? onlySelected(before, whole, selection)
+      : whole;
+  const movedNoteCount =
+    op.op === "quantize_notes"
+      ? notes.filter(
+          (note, i) =>
+            note.startTick !== before[i]?.startTick ||
+            note.durationTick !== before[i]?.durationTick
+        ).length
+      : undefined;
+  const sorted = sortNotes(notes);
+  clip.notes = sorted;
   scope.touch(clip.id);
   const result: TimelineOpResult = {
     ok: true,
     clip: scope.clipOut(clip),
-    noteCount: notes.length
+    noteCount: sorted.length
   };
-  if (op.op === "quantize_notes") {
-    result.movedNoteCount = notes.filter(
-      (note, i) =>
-        note.startTick !== before[i]?.startTick ||
-        note.durationTick !== before[i]?.durationTick
-    ).length;
+  if (movedNoteCount !== undefined) {
+    result.movedNoteCount = movedNoteCount;
   }
   return result;
 }
@@ -1289,7 +1387,7 @@ function commitRipple(
 }
 
 const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
-  get_state: (scope) => {
+  get_state: (scope, op) => {
     const state = scope.state;
     const durationMs = scope.clips.reduce(
       (m, c) => Math.max(m, c.startMs + c.durationMs),
@@ -1304,12 +1402,18 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       playheadMs: state.playheadMs,
       selectedClipIds: [...state.selectedClipIds],
       tempo: state.tempo,
+      music: state.music,
+      autoCrossfadeMs: autoCrossfadeMsOf(state),
       key: keyLabel(resolveTempo(state)) ?? null,
       signature: signatureLabel(resolveTempo(state)),
+      master: serializeMaster(state.master),
+      trackFolders: state.trackFolders ?? [],
       tracks: scope.tracks.map((t) => scope.trackOut(t)),
       clips: scope.clips.map((c) => scope.clipOut(c)),
       mediaTracks: scope.mediaTracks.map(serializeMediaTrack),
-      markers: state.markers.map((m) => ({ ...m }))
+      markers: state.markers.map((m) => ({ ...m })),
+      ...(op.clip !== undefined ? { clipDetail: midiClipDetail(scope.resolveMidiClip(op.clip)) } : {}),
+      ...(op.track !== undefined ? { trackDetail: trackDetail(scope.resolveTrack(op.track)) } : {})
     };
   },
 
@@ -1686,23 +1790,38 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     // lands in one repeat and nothing keeps a loop it no longer matches.
     // Later repeats lose the link, so the partners are found first.
     let partners: TimelineClip[] = [];
+    // Unrolled copies that end or start on the cut, and so join its link halves.
+    const leftEdge: TimelineClip[] = [];
+    const rightEdge: TimelineClip[] = [];
+    const noteEdges = (copies: readonly TimelineClip[]): void => {
+      for (const c of copies) {
+        if (Math.abs(c.startMs + c.durationMs - at) < 1e-6) leftEdge.push(c);
+        if (Math.abs(c.startMs - at) < 1e-6) rightEdge.push(c);
+      }
+    };
+    let onBoundary = false;
+    const unrolled: TimelineClip[] = [];
     if (activeLoopMs(clip) !== undefined) {
       partners = scope.editTargets(clip).filter((t) => t.id !== clip.id);
       scope.assertWritable([clip]);
       const copies = unrollLoopedInScope(scope, clip);
+      unrolled.push(...copies);
       const hit = copies.find(
         (c) => at > c.startMs && at < c.startMs + c.durationMs
       );
       if (!hit) {
-        // The cut falls on a repeat boundary: the unroll is the split.
-        return { ok: true, clips: copies.map((c) => scope.clipOut(c)) };
+        // The cut falls on a repeat boundary: the unroll is the split, and the
+        // partners that span the boundary are cut there too.
+        onBoundary = true;
+        noteEdges(copies);
+      } else {
+        clip = hit;
       }
-      clip = hit;
     }
     // A looped linked partner is written out as plain copies too, and the cut
     // lands in the copy that holds it.
     const targets = [
-      clip,
+      ...(onBoundary ? [] : [clip]),
       ...(partners.length > 0
         ? partners
         : scope.editTargets(clip).filter((t) => t.id !== clip.id))
@@ -1713,6 +1832,8 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
         }
         scope.assertWritable([target]);
         const copies = unrollLoopedInScope(scope, target);
+        unrolled.push(...copies);
+        noteEdges(copies);
         return copies.filter(
           (c) => at > c.startMs && at < c.startMs + c.durationMs
         );
@@ -1721,20 +1842,29 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
         (target) =>
           at > target.startMs && at < target.startMs + target.durationMs
       );
-    const leftLink = targets.length > 1 ? scope.ctx.newId("link") : undefined;
-    const rightLink = targets.length > 1 ? scope.ctx.newId("link") : undefined;
+    const leftLink =
+      targets.length + leftEdge.length > 1 ? scope.ctx.newId("link") : undefined;
+    const rightLink =
+      targets.length + rightEdge.length > 1 ? scope.ctx.newId("link") : undefined;
+    for (const edge of leftEdge) {
+      if (leftLink !== undefined) edge.linkId = leftLink;
+      scope.touch(edge.id);
+    }
+    for (const edge of rightEdge) {
+      if (rightLink !== undefined) edge.linkId = rightLink;
+      scope.touch(edge.id);
+    }
     const halves: TimelineClip[] = [];
     for (const target of targets) {
       const [cutLeft, cutRight] = splitClip(target, at, {
         bpm: resolveTempo(state).bpm,
+        gridOffsetMs: resolveTempo(state).offsetMs,
         crossing: op.crossing
       });
       cutLeft.id = scope.ctx.newId("clip");
       cutRight.id = scope.ctx.newId("clip");
-      if (targets.length > 1) {
-        cutLeft.linkId = leftLink;
-        cutRight.linkId = rightLink;
-      }
+      if (leftLink !== undefined) cutLeft.linkId = leftLink;
+      if (rightLink !== undefined) cutRight.linkId = rightLink;
       const split = splitClipMediaTracks(
         scope.mediaTracks,
         target.id,
@@ -1752,6 +1882,25 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       scope.touch(target.id, left.id, right.id);
       halves.push(left, right);
     }
+    // Unrolled repeats lose the link, so a survivor can hold a link alone.
+    const linkIds = new Set(
+      [...partners, ...targets, ...unrolled].flatMap((t) =>
+        t.linkId ? [t.linkId] : []
+      )
+    );
+    for (const id of linkIds) {
+      const holders = scope.clips.filter((c) => c.linkId === id);
+      if (holders.length === 1) {
+        delete holders[0]!.linkId;
+        scope.touch(holders[0]!.id);
+      }
+    }
+    if (onBoundary) {
+      return {
+        ok: true,
+        clips: [...unrolled, ...halves].map((c) => scope.clipOut(c))
+      };
+    }
     return { ok: true, clips: halves.map((half) => scope.clipOut(half)) };
   },
 
@@ -1760,6 +1909,20 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     const endMs = resolveBarTime(scope.state, op, undefined, "durationMs");
     if (endMs !== undefined && op.durationMs !== undefined) {
       throw new Error("Send `durationMs` or `atBar`, not both.");
+    }
+    if (op.startMs !== undefined) {
+      if (
+        op.durationMs !== undefined ||
+        op.inPointMs !== undefined ||
+        op.outPointMs !== undefined ||
+        endMs !== undefined
+      ) {
+        throw new Error(
+          "Send `startMs` alone to head-trim a clip, without durationMs, inPointMs, outPointMs, or atBar."
+        );
+      }
+      const headTrimmed = scope.applyHeadTrim(clip, clip.startMs - op.startMs);
+      return { ok: true, clip: scope.clipOut(headTrimmed) };
     }
     const trimmed = scope.applyTrim(
       clip,
@@ -2032,6 +2195,10 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
         clip.labelColor = patch.labelColor;
       }
     }
+    if (["transpose", "velocityOffset", "quantize"].some((k) => patch[k] !== undefined)) {
+      scope.assertWritable([clip]);
+    }
+    applyMidiRegionPatch(clip, patch);
     if (patch.hidden !== undefined) {
       clip.hidden = patch.hidden;
     }
@@ -2970,19 +3137,25 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     return { ok: true, clip: scope.clipOut(clip) };
   },
 
-  set_notes: (scope, op) => {
-    const clip = scope.resolveMidiClip(op.clip);
-    scope.assertWritable([clip]);
-    clip.notes = scope.buildNotes(op.notes, clip.name);
-    scope.touch(clip.id);
-    return { ok: true, clip: scope.clipOut(clip) };
-  },
+  set_notes: (scope, op) => runSetNotes(scope, op),
 
   set_track: (scope, op) => {
+    // `master` names the master bus, unless a track carries that id or name.
+    const lowerTrack = op.track.toLowerCase();
+    const hasMatchingTrack = scope.tracks.some(
+      (t) => t.id === op.track || t.name.toLowerCase() === lowerTrack
+    );
+    if (lowerTrack === "master" && !hasMatchingTrack) {
+      return runSetMaster(scope, op);
+    }
     const track = scope.resolveTrack(op.track);
     // Unlocking is the one change a locked track takes; everything else waits for it.
     const others = Object.keys(op).filter(
-      (key) => key !== "op" && key !== "track" && key !== "locked"
+      (key) =>
+        key !== "op" &&
+        key !== "track" &&
+        key !== "locked" &&
+        (op as Record<string, unknown>)[key] !== undefined
     );
     if (track.locked && op.locked !== false && others.length > 0) {
       throw new Error(
@@ -3002,6 +3175,7 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     if (op.volumeDb !== undefined) track.volumeDb = op.volumeDb;
     if (op.pan !== undefined) track.pan = op.pan;
     if (op.heightPx !== undefined) track.heightPx = Math.round(op.heightPx);
+    runSetTrackMix(scope, track, op);
     return { ok: true, track: scope.trackOut(track) };
   },
 
@@ -3080,26 +3254,68 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
   },
 
   set_tempo: (scope, op) => {
+    const hasTempoField =
+      op.bpm !== undefined ||
+      op.offset_ms !== undefined ||
+      op.beats_per_bar !== undefined ||
+      op.beat_unit !== undefined ||
+      op.key !== undefined;
+    if (!hasTempoField && op.auto_crossfade_ms === undefined) {
+      throw new Error(
+        "Send bpm, offset_ms, beats_per_bar, beat_unit, key, or auto_crossfade_ms."
+      );
+    }
     const previous = resolveTempo(scope.state);
     const tempo = {
-      bpm: op.bpm,
+      bpm: op.bpm ?? previous.bpm,
       offsetMs: op.offset_ms ?? previous.offsetMs,
       timeSignature: {
         beatsPerBar: op.beats_per_bar ?? previous.timeSignature.beatsPerBar,
         beatUnit: op.beat_unit ?? previous.timeSignature.beatUnit
-      }
+      },
+      // A tempo change keeps the project key unless `key` names another.
+      ...(op.key === undefined
+        ? previous.key
+          ? { key: previous.key }
+          : {}
+        : op.key === null
+          ? {}
+          : { key: op.key })
     };
-    scope.clips = rescaleClipsForTempo(
-      scope.clips,
-      scope.tracks,
-      previous,
+    const refusal = tempoChangeRefusal(
+      { tempo: scope.state.tempo, music: scope.state.music, clips: scope.clips },
       tempo
     );
-    scope.state.tempo = tempo;
-    const rescaledClipIds = scope.clips
-      .filter((c) => c.mediaType === "midi")
-      .map((c) => c.id);
-    scope.touch(...rescaledClipIds);
+    if (refusal) {
+      throw new Error(refusal);
+    }
+    if (op.auto_crossfade_ms !== undefined && !scope.state.music) {
+      throw new Error("auto_crossfade_ms only applies to a music project.");
+    }
+    const timingRescaled =
+      previous.bpm !== tempo.bpm || previous.offsetMs !== tempo.offsetMs;
+    let rescaledClipIds: string[] = [];
+    if (timingRescaled) {
+      scope.clips = rescaleClipsForTempo(
+        scope.clips,
+        scope.tracks,
+        previous,
+        tempo
+      );
+      rescaledClipIds = scope.clips
+        .filter((c) => c.mediaType === "midi")
+        .map((c) => c.id);
+      scope.touch(...rescaledClipIds);
+    }
+    if (hasTempoField) {
+      scope.state.tempo = tempo;
+    }
+    if (op.auto_crossfade_ms !== undefined && scope.state.music) {
+      scope.state.music = {
+        ...scope.state.music,
+        autoCrossfadeMs: op.auto_crossfade_ms
+      };
+    }
     return { ok: true, tempo, previousTempo: previous, rescaledClipIds };
   },
 
@@ -3146,6 +3362,7 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
   insert_time: (scope, op) => runInsertTime(scope, op),
   delete_time: (scope, op) => runDeleteTime(scope, op),
   duplicate_range: (scope, op) => runDuplicateRange(scope, op),
+  paste_range: (scope, op) => runPasteRange(scope, op),
   list_progressions: () => runListProgressions(),
   apply_progression: (scope, op) => runApplyProgression(scope, op),
   transpose_chords: (scope, op) => runTransposeChords(scope, op),
@@ -3367,7 +3584,9 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     Object.assign(scope.state, outcome.state);
     scope.touch(...outcome.changedClipIds);
     return outcome.result;
-  }
+  },
+
+  ...STEP_PATTERN_OP_HANDLERS
 };
 
 /** Dispatch one op against `scope`. Throws on refusal; the caller maps it. */
@@ -3386,7 +3605,12 @@ async function runOp(
 function cloneState(state: TimelineOpState): TimelineOpState {
   return {
     ...state,
-    tempo: state.tempo,
+    tempo: state.tempo ? structuredClone(state.tempo) : state.tempo,
+    music: state.music ? structuredClone(state.music) : state.music,
+    master: state.master ? structuredClone(state.master) : state.master,
+    trackFolders: state.trackFolders
+      ? structuredClone(state.trackFolders)
+      : state.trackFolders,
     setup: state.setup ? structuredClone(state.setup) : state.setup,
     fps: state.fps,
     width: state.width,

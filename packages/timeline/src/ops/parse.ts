@@ -106,6 +106,10 @@ const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
     op: "duplicate_range",
     ...parseContract(contracts.ui_timeline_duplicate_range, args)
   }),
+  paste_range: (args) => ({
+    op: "paste_range",
+    ...parseContract(contracts.ui_timeline_paste_range, args)
+  }),
   clear_chords: (args) => ({
     op: "clear_chords",
     ...parseContract(contracts.ui_timeline_clear_chords, args)
@@ -447,7 +451,135 @@ const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
       op: "animate_clip",
       animations: parsed.animations.map(liftCustomAnimation)
     };
-  }
+  },
+  get_pattern: (args) => ({
+    op: "get_pattern",
+    ...parseContract(contracts.ui_timeline_get_pattern, args)
+  }),
+  create_pattern_region: (args) => ({
+    op: "create_pattern_region",
+    ...parseContract(contracts.ui_timeline_create_pattern_region, args)
+  }),
+  convert_pattern_to_midi: (args) => ({
+    op: "convert_pattern_to_midi",
+    ...parseContract(contracts.ui_timeline_convert_pattern_to_midi, args)
+  }),
+  convert_midi_to_pattern: (args) => ({
+    op: "convert_midi_to_pattern",
+    ...parseContract(contracts.ui_timeline_convert_midi_to_pattern, args)
+  }),
+  separate_pattern_rows: (args) => ({
+    op: "separate_pattern_rows",
+    ...parseContract(contracts.ui_timeline_separate_pattern_rows, args)
+  }),
+  set_pattern: (args) => ({
+    op: "set_pattern",
+    ...parseContract(contracts.ui_timeline_set_pattern, args)
+  }),
+  set_pattern_seed: (args) => ({
+    op: "set_pattern_seed",
+    ...parseContract(contracts.ui_timeline_set_pattern_seed, args)
+  }),
+  add_pattern_rows: (args) => ({
+    op: "add_pattern_rows",
+    ...parseContract(contracts.ui_timeline_add_pattern_rows, args)
+  }),
+  set_pattern_row: (args) => ({
+    op: "set_pattern_row",
+    ...parseContract(contracts.ui_timeline_set_pattern_row, args)
+  }),
+  remove_pattern_rows: (args) => ({
+    op: "remove_pattern_rows",
+    ...parseContract(contracts.ui_timeline_remove_pattern_rows, args)
+  }),
+  move_pattern_row: (args) => ({
+    op: "move_pattern_row",
+    ...parseContract(contracts.ui_timeline_move_pattern_row, args)
+  }),
+  sort_pattern_rows: (args) => ({
+    op: "sort_pattern_rows",
+    ...parseContract(contracts.ui_timeline_sort_pattern_rows, args)
+  }),
+  set_pattern_row_sort: (args) => ({
+    op: "set_pattern_row_sort",
+    ...parseContract(contracts.ui_timeline_set_pattern_row_sort, args)
+  }),
+  copy_pattern_row: (args) => ({
+    op: "copy_pattern_row",
+    ...parseContract(contracts.ui_timeline_copy_pattern_row, args)
+  }),
+  set_steps: (args) => ({
+    op: "set_steps",
+    ...parseContract(contracts.ui_timeline_set_steps, args)
+  }),
+  set_pattern_text: (args) => ({
+    op: "set_pattern_text",
+    ...parseContract(contracts.ui_timeline_set_pattern_text, args)
+  }),
+  clear_pattern: (args) => ({
+    op: "clear_pattern",
+    ...parseContract(contracts.ui_timeline_clear_pattern, args)
+  }),
+  copy_steps: (args) => ({
+    op: "copy_steps",
+    ...parseContract(contracts.ui_timeline_copy_steps, args)
+  }),
+  repeat_step: (args) => ({
+    op: "repeat_step",
+    ...parseContract(contracts.ui_timeline_repeat_step, args)
+  }),
+  rotate_pattern: (args) => ({
+    op: "rotate_pattern",
+    ...parseContract(contracts.ui_timeline_rotate_pattern, args)
+  }),
+  transpose_pattern: (args) => ({
+    op: "transpose_pattern",
+    ...parseContract(contracts.ui_timeline_transpose_pattern, args)
+  }),
+  randomize_pattern: (args) => ({
+    op: "randomize_pattern",
+    ...parseContract(contracts.ui_timeline_randomize_pattern, args)
+  }),
+  nudge_pattern_values: (args) => ({
+    op: "nudge_pattern_values",
+    ...parseContract(contracts.ui_timeline_nudge_pattern_values, args)
+  }),
+  tie_steps: (args) => ({
+    op: "tie_steps",
+    ...parseContract(contracts.ui_timeline_tie_steps, args)
+  }),
+  list_step_patterns: (args) => ({
+    op: "list_step_patterns",
+    ...parseContract(contracts.ui_timeline_list_step_patterns, args)
+  }),
+  apply_step_pattern: (args) => ({
+    op: "apply_step_pattern",
+    ...parseContract(contracts.ui_timeline_apply_step_pattern, args)
+  }),
+  save_step_pattern: (args) => ({
+    op: "save_step_pattern",
+    ...parseContract(contracts.ui_timeline_save_step_pattern, args)
+  }),
+  set_track_step_template: (args) => ({
+    op: "set_track_step_template",
+    ...parseContract(contracts.ui_timeline_set_track_step_template, args)
+  }),
+  create_step_pattern_folder: (args) => ({
+    op: "create_step_pattern_folder",
+    ...parseContract(contracts.ui_timeline_create_step_pattern_folder, args)
+  }),
+  rename_step_pattern_folder: (args) => ({
+    op: "rename_step_pattern_folder",
+    ...parseContract(contracts.ui_timeline_rename_step_pattern_folder, args)
+  }),
+  delete_step_pattern_folder: (args) => ({
+    op: "delete_step_pattern_folder",
+    ...parseContract(contracts.ui_timeline_delete_step_pattern_folder, args)
+  }),
+  move_step_pattern: (args) => ({
+    op: "move_step_pattern",
+    ...parseContract(contracts.ui_timeline_move_step_pattern, args)
+  })
 };
 
 /** Parse tool arguments once at the shared edit boundary. */

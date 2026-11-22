@@ -31,6 +31,8 @@ export interface RippleOptions {
   followLinks?: boolean;
   /** Tempo of the document, to unroll a looped clip whose start edge moves. Default 120. */
   bpm?: number;
+  /** `tempo.offsetMs`, the origin of the grid a region quantize snaps to, when a looped clip is unrolled. Default 0. */
+  gridOffsetMs?: number;
 }
 
 const clipEndMs = (c: TimelineClip): number => c.startMs + c.durationMs;
@@ -181,13 +183,15 @@ export function rippleTrim(
       clips,
       linkGroupIds(clips, found, options.followLinks),
       options.bpm ?? DEFAULT_TEMPO.bpm,
-      createTimeOrderedUuid
+      createTimeOrderedUuid,
+      options.gridOffsetMs ?? 0
     );
   }
   const clip = clips.find((c) => c.id === clipId)!;
   const group = linkGroupIds(clips, clip, options.followLinks);
   const oldEndMs = clipEndMs(clip);
 
+  const bpm = options.bpm ?? DEFAULT_TEMPO.bpm;
   const trimmed = new Map<string, TimelineClip>();
   for (const c of clips) {
     if (!group.has(c.id)) continue;
@@ -195,7 +199,8 @@ export function rippleTrim(
       c,
       edge,
       deltaMs,
-      c.id === clipId ? options.maxSourceDurationMs : undefined
+      c.id === clipId ? options.maxSourceDurationMs : undefined,
+      bpm
     );
     trimmed.set(
       c.id,
@@ -241,7 +246,7 @@ export function rollEdit(
   clipId: string,
   edge: "start" | "end",
   deltaMs: number,
-  options: Pick<RippleOptions, "followLinks" | "bpm"> = {}
+  options: Pick<RippleOptions, "followLinks" | "bpm" | "gridOffsetMs"> = {}
 ): TimelineClip[] {
   const found = clips.find((c) => c.id === clipId);
   if (!found) throw new Error(`rollEdit: clip ${clipId} not found`);
@@ -254,7 +259,8 @@ export function rollEdit(
     clips,
     linkGroupIds(clips, rightSide, options.followLinks),
     options.bpm ?? DEFAULT_TEMPO.bpm,
-    createTimeOrderedUuid
+    createTimeOrderedUuid,
+    options.gridOffsetMs ?? 0
   );
   const clip = clips.find((c) => c.id === clipId)!;
   const neighbour = clips.find((c) => c.id === foundNeighbour.id)!;
@@ -264,10 +270,11 @@ export function rollEdit(
   const leftIds = linkGroupIds(clips, left, options.followLinks);
   const rightIds = linkGroupIds(clips, right, options.followLinks);
 
+  const bpm = options.bpm ?? DEFAULT_TEMPO.bpm;
   const next = new Map<string, TimelineClip>();
   for (const c of clips) {
-    if (leftIds.has(c.id)) next.set(c.id, trimClip(c, "end", deltaMs));
-    else if (rightIds.has(c.id)) next.set(c.id, trimClip(c, "start", -deltaMs));
+    if (leftIds.has(c.id)) next.set(c.id, trimClip(c, "end", deltaMs, undefined, bpm));
+    else if (rightIds.has(c.id)) next.set(c.id, trimClip(c, "start", -deltaMs, undefined, bpm));
   }
   return clips.map((c) => next.get(c.id) ?? c);
 }

@@ -497,7 +497,7 @@ export async function runDetectChords(scope: ChordScope, op: DetectChordsParams)
       lastClipEnd = Math.max(lastClipEnd, clipEnd);
       continue;
     }
-    for (const n of visibleNotes(expandMidiLoop(clip, tempo.bpm), tempo.bpm)) {
+    for (const n of visibleNotes(expandMidiLoop(clip, tempo.bpm, tempo.offsetMs), tempo.bpm)) {
       // Playback gates a note at the clip end, so detection does too.
       const start = shift + n.startTick;
       const end = Math.min(start + n.durationTick, clipEnd);
@@ -783,14 +783,18 @@ export function runFitNotesToChords(scope: ChordScope, op: FitNotesToChordsParam
     let moved = 0;
     // Notes outside the clip's window never sound, so they stay as they are.
     const visible = new Set(visibleNotes(clip, tempo.bpm).map((n) => n.id));
+    // A clip transposes at playback (CE6). The fit reads the pitch that is
+    // heard and stores the pitch the transpose lifts to it.
+    const transpose = Math.round(clip.transpose ?? 0);
     const fitted = (clip.notes ?? []).map((n) => {
       if (!visible.has(n.id)) return n;
       const c = chordAtTick(chords, shift + n.startTick + 1e-6);
       if (!c) return n;
-      const pitch = remapNote(tableFor(c), n.pitch);
-      if (pitch === n.pitch) return n;
+      const heard = Math.min(127, Math.max(0, n.pitch + transpose));
+      const fittedPitch = remapNote(tableFor(c), heard);
+      if (fittedPitch === heard) return n;
       moved++;
-      return { ...n, pitch };
+      return { ...n, pitch: Math.min(127, Math.max(0, fittedPitch - transpose)) };
     });
     clip.notes = sortNotes(fitted);
     total += moved;

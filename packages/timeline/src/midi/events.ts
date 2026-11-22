@@ -3,8 +3,10 @@
  * through a live instrument instead of a pre-rendered buffer.
  */
 
-import type { TimelineClip } from "../types.js";
-import { expandMidiLoop } from "../clipLoop.js";
+import type { MidiInstrument, TimelineClip } from "../types.js";
+import type { MidiRegionKeys } from "./regionParams.js";
+import { expandMidiLoop, type ExpandMidiPatternDoc } from "../clipLoop.js";
+import { expressionValueAt } from "./controllers.js";
 import { playableNotes } from "./notes.js";
 import { noteWindowMs } from "./ticks.js";
 
@@ -17,6 +19,8 @@ export interface MidiClipNoteEvent {
   on: boolean;
   /** MIDI channel 0..15. */
   channel: number;
+  /** Initial per-note pitch bend in semitones from `note.expression.pitch` (SQ42, D90). */
+  pitchOffset?: number;
 }
 
 /**
@@ -31,12 +35,17 @@ export interface MidiClipNoteEvent {
 export function midiClipNoteEvents(
   source: Pick<
     TimelineClip,
-    "notes" | "inPointMs" | "durationMs" | "startMs" | "loopLengthMs"
-  >,
+    "notes" | "inPointMs" | "durationMs" | "startMs" | "loopLengthMs" | MidiRegionKeys
+  > &
+    Pick<Partial<TimelineClip>, "pattern" | "patternPhaseTicks" | "patternRowCycles">,
   bpm: number,
-  fromMs = Number.NEGATIVE_INFINITY
+  fromMs = Number.NEGATIVE_INFINITY,
+  /** `tempo.offsetMs`, the origin of the grid a region quantize snaps to. */
+  gridOffsetMs = 0,
+  instrument?: MidiInstrument,
+  patternDoc?: ExpandMidiPatternDoc
 ): MidiClipNoteEvent[] {
-  const clip = expandMidiLoop(source, bpm);
+  const clip = expandMidiLoop(source, bpm, gridOffsetMs, instrument, patternDoc);
   const windowStartMs = clip.inPointMs ?? 0;
   const clipEndMs = clip.startMs + clip.durationMs;
   const events: MidiClipNoteEvent[] = [];
@@ -48,13 +57,18 @@ export function midiClipNoteEvents(
       onMs,
       Math.min(clipEndMs, clip.startMs + endMs - windowStartMs)
     );
+    // A note with no length inside the clip (it starts on the last instant)
+    // sounds nothing, and an off before its on would leave it held.
+    if (offMs <= onMs) continue;
     const channel = note.channel ?? 0;
+    const pitchOffset = expressionValueAt(note.expression?.pitch, 0, 0);
     events.push({
       timeMs: onMs,
       pitch: note.pitch,
       velocity: note.velocity,
       on: true,
-      channel
+      channel,
+      ...(pitchOffset !== 0 ? { pitchOffset } : {})
     });
     events.push({
       timeMs: offMs,

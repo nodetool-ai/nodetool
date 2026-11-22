@@ -11,7 +11,17 @@
 import { windowContent } from "../clipLoop.js";
 import { createTimeOrderedUuid } from "../defaults.js";
 import { msToTicks } from "../midi/ticks.js";
+import {
+  applyMidiRegionParams,
+  bakeRegionQuantize
+} from "../midi/regionParams.js";
 import { sortNotes } from "../midi/notes.js";
+import { patternsEqual } from "../midi/stepPattern.js";
+import {
+  deriveTrackAutomationFromPatterns,
+  expandPatternClip,
+  rowSchedule
+} from "../midi/stepPatternExpand.js";
 import { resolveTempo } from "../midi/tempo.js";
 import { sourceRate } from "../sourceRate.js";
 import type {
@@ -72,12 +82,136 @@ export function runJoinClips(
   const plain = picked.flatMap((clip) => unrollLoopedInScope(scope, clip));
   plain.sort((a, b) => a.startMs - b.startMs);
   const head = plain[0]!;
-  const bpm = resolveTempo(scope.state).bpm;
+  const tempo = resolveTempo(scope.state);
+  const bpm = tempo.bpm;
   const endMs = Math.max(...plain.map((c) => c.startMs + c.durationMs));
   const rest = plain.slice(1);
 
+  let convertedPatternClipIds: string[] = [];
   if (head.mediaType === "midi") {
-    joinMidi(head, plain, bpm);
+    const anyPattern = plain.some((c) => c.pattern !== undefined);
+    const sameQuantize = (a: TimelineClip, b: TimelineClip): boolean =>
+      JSON.stringify(a.quantize ?? null) === JSON.stringify(b.quantize ?? null);
+    const sameRegionParams = (a: TimelineClip, b: TimelineClip): boolean =>
+      (a.transpose ?? 0) === (b.transpose ?? 0) &&
+      (a.velocityOffset ?? 0) === (b.velocityOffset ?? 0) &&
+      sameQuantize(a, b);
+    const effectivePhase = (c: TimelineClip): number =>
+      (c.patternPhaseTicks ?? 0) + Math.max(0, Math.round(msToTicks(c.inPointMs ?? 0, bpm)));
+    const isCycleInvariantPattern = (pat: NonNullable<TimelineClip["pattern"]>): boolean =>
+      pat.rows.every(
+        (r) =>
+          r.playback !== "shuffle" &&
+          r.playback !== "random" &&
+          r.playback !== "wander" &&
+          r.steps.every(
+            (s) =>
+              (s.chance === undefined || s.chance === 100) &&
+              (!s.condition || s.condition.type === "always")
+          )
+      );
+    const phaseContinuous = (prev: TimelineClip, next: TimelineClip): boolean => {
+      if (
+        (prev.patternRowCycles && Object.keys(prev.patternRowCycles).length > 0) ||
+        (next.patternRowCycles && Object.keys(next.patternRowCycles).length > 0)
+      ) {
+        return false;
+      }
+      const prevPhase = effectivePhase(prev);
+      const nextPhase = effectivePhase(next);
+      const expected = prevPhase + Math.round(msToTicks(prev.durationMs, bpm));
+      if (Math.abs(nextPhase - expected) <= 2) return true;
+      if (nextPhase === 0 && head.pattern && isCycleInvariantPattern(head.pattern)) {
+        return head.pattern.rows.every((r) => {
+          const sched = rowSchedule(r, head.pattern!, 0);
+          const cycLen = sched.reduce((sum, e) => sum + e.lengthTicks, 0);
+          return cycLen <= 0 || expected % cycLen === 0;
+        });
+      }
+      return false;
+    };
+    const allTouchingEqualPatterns =
+      anyPattern &&
+      plain.every((c) => c.pattern !== undefined) &&
+      plain.every((c) => patternsEqual(head.pattern!, c.pattern!)) &&
+      plain.every((c) => sameRegionParams(head, c)) &&
+      plain.every(
+        (c, i) =>
+          i === 0 ||
+          (Math.abs(c.startMs - (plain[i - 1]!.startMs + plain[i - 1]!.durationMs)) <=
+            TOLERANCE_MS &&
+            phaseContinuous(plain[i - 1]!, c))
+      );
+
+    if (allTouchingEqualPatterns) {
+      // SQ24: touching phase-continuous equal pattern regions join into one pattern region.
+      const headPhase = effectivePhase(head);
+      if (headPhase > 0) head.patternPhaseTicks = headPhase;
+      else delete head.patternPhaseTicks;
+      delete head.notes;
+      delete head.controllers;
+    } else {
+      if (anyPattern) {
+        // SQ24: any other join with a pattern region converts each pattern
+        // region to MIDI first inside the same op and reports it.
+        const patternClipsToConvert = plain.filter((c) => c.pattern !== undefined);
+        convertedPatternClipIds = patternClipsToConvert.map((c) => c.id);
+        const track = scope.state.tracks.find((t) => t.id === head.trackId);
+        if (
+          track &&
+          patternClipsToConvert.some((c) =>
+            c.pattern?.rows.some(
+              (r) =>
+                r.assignment.type === "automation" &&
+                r.assignment.target.kind === "device"
+            )
+          )
+        ) {
+          track.automation = deriveTrackAutomationFromPatterns(
+            track,
+            patternClipsToConvert,
+            { tracks: scope.state.tracks, tempo }
+          );
+        }
+        for (const c of plain) {
+          if (!c.pattern) continue;
+          const expanded = expandPatternClip(c, {
+            tracks: scope.state.tracks,
+            tempo
+          });
+          c.notes = expanded?.notes ?? [];
+          if (expanded && expanded.controllers.length > 0) {
+            c.controllers = expanded.controllers;
+          } else {
+            delete c.controllers;
+          }
+          c.inPointMs = 0;
+          delete c.pattern;
+          delete c.patternPhaseTicks;
+          delete c.patternRowCycles;
+          delete c.loopLengthMs;
+        }
+      }
+      // CE6: a quantize is written into each clip's notes at its own place on
+      // the tempo grid first, so the joined clip plays what the parts played.
+      // Shared transpose and velocity stay on the joined clip. Different ones
+      // are written into each clip's notes too, so every part sounds the same.
+      const baked = plain.map((c) => bakeRegionQuantize(c, bpm, tempo.offsetMs));
+      const sameParams = baked.every(
+        (c) =>
+          (c.transpose ?? 0) === (baked[0]!.transpose ?? 0) &&
+          (c.velocityOffset ?? 0) === (baked[0]!.velocityOffset ?? 0)
+      );
+      const parts = sameParams
+        ? baked
+        : baked.map((c) => applyMidiRegionParams(c, bpm, tempo.offsetMs));
+      joinMidi(head, parts, bpm);
+      delete head.quantize;
+      if (!sameParams) {
+        delete head.transpose;
+        delete head.velocityOffset;
+      }
+    }
   } else {
     joinAudio(head, plain);
   }
@@ -106,7 +240,10 @@ export function runJoinClips(
     ok: true,
     clip: scope.clipOut(head),
     joined: plain.length,
-    removedClipIds: [...removed]
+    removedClipIds: [...removed],
+    ...(convertedPatternClipIds.length > 0
+      ? { convertedToMidi: true, convertedPatternClipIds }
+      : {})
   };
 }
 
@@ -131,7 +268,7 @@ function joinMidi(
       notes.push({ ...n, id, startTick: n.startTick + shift });
     }
     for (const lane of content.lanes) {
-      const key = `${lane.kind}:${lane.cc ?? ""}`;
+      const key = `${lane.kind}:${lane.cc ?? ""}:${lane.pitch ?? ""}:${lane.channel ?? 0}`;
       let merged = lanes.get(key);
       if (!merged) {
         merged = { ...lane, points: [] };

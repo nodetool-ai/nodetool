@@ -291,7 +291,9 @@ describe("F7 unroll", () => {
     expect(c0!.fadeOutMs).toBeUndefined();
     expect(c1!.fadeInMs).toBeUndefined();
     expect(c1!.fadeOutMs).toBe(100);
-    expect(c1!.animations![0]!.id).not.toBe("an");
+    // An emphasis plays once, so only the copy that holds its delay keeps it.
+    expect(c0!.animations![0]!.id).toBe("an");
+    expect(c1!.animations).toHaveLength(0);
   });
 });
 

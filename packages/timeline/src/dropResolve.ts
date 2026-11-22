@@ -77,7 +77,8 @@ function clearWindow(
   c: TimelineClip,
   startMs: number,
   endMs: number,
-  bpm: number
+  bpm: number,
+  gridOffsetMs: number
 ): TimelineClip[] {
   const cStart = c.startMs;
   const cEnd = clipEndMs(c);
@@ -87,12 +88,13 @@ function clearWindow(
   const loopMs = activeLoopMs(c);
   if (loopMs !== undefined) {
     return unrollLoopedClip(c, bpm, loopMs, {
-      newId: createTimeOrderedUuid
-    }).flatMap((piece) => clearWindow(piece, startMs, endMs, bpm));
+      newId: createTimeOrderedUuid,
+      gridOffsetMs
+    }).flatMap((piece) => clearWindow(piece, startMs, endMs, bpm, gridOffsetMs));
   }
   if (cStart < startMs && cEnd > endMs) {
-    const [head, rest] = splitClip(c, startMs, { bpm });
-    const [, tail] = splitClip(rest, endMs, { bpm });
+    const [head, rest] = splitClip(c, startMs, { bpm, gridOffsetMs });
+    const [, tail] = splitClip(rest, endMs, { bpm, gridOffsetMs });
     return [head, tail];
   }
   if (cStart < startMs) return [trimClip(c, "end", startMs - cEnd)];
@@ -117,6 +119,7 @@ export function resolveOverwrite(
   options: RippleOptions = {}
 ): TimelineClip[] {
   const bpm = options.bpm ?? DEFAULT_TEMPO.bpm;
+  const gridOffsetMs = options.gridOffsetMs ?? 0;
   const movingIds = movedWithDependants(clips, movedIds);
   const movers = clips.filter((c) => movingIds.has(c.id));
   if (movers.length === 0) return [...clips];
@@ -156,7 +159,7 @@ export function resolveOverwrite(
     for (const unit of units.values()) {
       let pieces: TimelineClip[][];
       try {
-        pieces = unit.map((c) => clearWindow(c, mStart, mEnd, bpm));
+        pieces = unit.map((c) => clearWindow(c, mStart, mEnd, bpm, gridOffsetMs));
       } catch {
         continue;
       }
@@ -195,6 +198,7 @@ export function resolveInsert(
   options: RippleOptions = {}
 ): TimelineClip[] {
   const bpm = options.bpm ?? DEFAULT_TEMPO.bpm;
+  const gridOffsetMs = options.gridOffsetMs ?? 0;
   // The unroll below reassigns `clips`. A refused shift returns this one.
   const original = clips;
   const movingIds = movedWithDependants(clips, movedIds);
@@ -227,15 +231,23 @@ export function resolveInsert(
     return out;
   };
   let toCut = straddlersOf(clips);
+  // A link group is cut whole or not at all. A looped clip whose partner is
+  // locked stays whole, so unrolling it cannot detach copies from the link.
+  const lockedLinks = new Set<string>();
+  for (const c of clips) {
+    if (toCut.has(c.id) && c.linkId !== undefined && locked(c)) lockedLinks.add(c.linkId);
+  }
+  const unrollable = (c: TimelineClip): boolean =>
+    !locked(c) && !(c.linkId !== undefined && lockedLinks.has(c.linkId));
   // A looped straddler is written out as plain copies first (CE3), so the cut
   // lands in the copy that holds the insert point. A locked one stays whole.
   if (
-    clips.some((c) => toCut.has(c.id) && activeLoopMs(c) !== undefined && !locked(c))
+    clips.some((c) => toCut.has(c.id) && activeLoopMs(c) !== undefined && unrollable(c))
   ) {
     clips = clips.flatMap((c) => {
       const loopMs = activeLoopMs(c);
-      return toCut.has(c.id) && loopMs !== undefined && !locked(c)
-        ? unrollLoopedClip(c, bpm, loopMs, { newId: createTimeOrderedUuid })
+      return toCut.has(c.id) && loopMs !== undefined && unrollable(c)
+        ? unrollLoopedClip(c, bpm, loopMs, { newId: createTimeOrderedUuid, gridOffsetMs })
         : [c];
     });
     toCut = straddlersOf(clips);
@@ -255,7 +267,7 @@ export function resolveInsert(
     if (unit.some(locked)) continue;
     let split: [TimelineClip, TimelineClip][];
     try {
-      split = unit.map((c) => splitClip(c, insertMs, { bpm }));
+      split = unit.map((c) => splitClip(c, insertMs, { bpm, gridOffsetMs }));
     } catch {
       // A clip that cannot be split stays whole and does not move.
       continue;

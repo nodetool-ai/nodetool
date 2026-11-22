@@ -1,3 +1,4 @@
+import { automationValueAt } from "../src/automation.js";
 import { describe, expect, it } from "vitest";
 import { makeClip, makeTrack, type TimelineClip } from "../src/index.js";
 import { DEFAULT_TEMPO } from "../src/midi/tempo.js";
@@ -102,7 +103,11 @@ describe("insert_time", () => {
     const out = await run(s, "insert_time", { atMs: 2000, ms: 2000 });
     expect(out.state.markers.map((m) => m.timeMs)).toEqual([1000, 7000]);
     expect(out.state.tracks[2]!.chords!.map((c) => c.startTick)).toEqual([0, 7680]);
-    expect(out.state.tracks[1]!.automation![0]!.points.map((p) => p.timeMs)).toEqual([1000, 7000]);
+    const pts = out.state.tracks[1]!.automation![0]!.points;
+    expect(pts[0]!.timeMs).toBe(1000);
+    expect(pts[pts.length - 1]!.timeMs).toBe(7000);
+    // The ramp holds its value across the inserted gap (D60).
+    expect(automationValueAt(pts, 2000)).toBeCloseTo(automationValueAt(pts, 4000));
   });
 
   it("with trackIds changes only those tracks", async () => {

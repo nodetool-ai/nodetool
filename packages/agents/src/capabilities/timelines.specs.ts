@@ -138,7 +138,12 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "scale_velocity, retarget_format, set_reframe_subject, " +
         "add_reframe_keyframe, clear_reframe, set_chords, clear_chords, " +
         "list_progressions, apply_progression, transpose_chords, detect_chords, " +
-        "set_clip_harmony, list_harmony_presets, fit_notes_to_chords, loop_clip, join_clips, insert_time, delete_time, duplicate_range. " +
+        "set_clip_harmony, list_harmony_presets, fit_notes_to_chords, loop_clip, join_clips, insert_time, delete_time, duplicate_range, paste_range, " +
+        "get_pattern, create_pattern_region, convert_pattern_to_midi, convert_midi_to_pattern, separate_pattern_rows, set_pattern, set_pattern_seed, " +
+        "add_pattern_rows, set_pattern_row, remove_pattern_rows, move_pattern_row, sort_pattern_rows, set_pattern_row_sort, copy_pattern_row, set_steps, set_pattern_text, " +
+        "clear_pattern, copy_steps, repeat_step, rotate_pattern, transpose_pattern, randomize_pattern, nudge_pattern_values, tie_steps, " +
+        "list_step_patterns, apply_step_pattern, save_step_pattern, set_track_step_template, " +
+        "create_step_pattern_folder, rename_step_pattern_folder, delete_step_pattern_folder, move_step_pattern. " +
         "retarget_format creates a new " +
         "sequence and must be the only op in its call; call it once per " +
         "target format. " +
@@ -149,7 +154,9 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "moves down), including add_text_clip and add_shape_clip. " +
         "Custom animation curves " +
         "can animate rotationX and rotationY. Start with get_state to " +
-        "read track and clip ids. To lay existing videos end to end, call " +
+        "read track and clip ids (pass `clip` for a midi clip's notes and " +
+        "controller lanes, or `track` for a track's automation, effects and " +
+        "instrument). To lay existing videos end to end, call " +
         'add_media_clip once per asset ({"op": "add_media_clip", "asset": ' +
         '"asset://<id>.mp4"}) — each appends after the last. animate_clip ' +
         'takes catalog presets and, for motion none of them covers, ' +
@@ -222,7 +229,7 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "An empty list clears it. " +
         'add_marker takes {"timeMs", "label"?, "color"?, "note"?} and ' +
         'delete_marker {"target"} (marker id or label). ' +
-        'set_track takes {"track", "name"?, "muted"?, "solo"?, "locked"?, "visible"?, "volumeDb"?, "pan"?, "heightPx"?}. ' +
+        'set_track takes {"track", "name"?, "muted"?, "solo"?, "locked"?, "visible"?, "volumeDb"?, "pan"?, "heightPx"?, "effects"?, "folder"?, "musicRole"?, "automationMode"?, "automation"?}; pass track: "master" for the master bus (volumeDb, pan and effects only). ' +
         'ripple_delete takes {"targets": [clip, ...]} and closes the hole; ' +
         'close_gap takes {"track", "atMs"}; cut_transcript takes ' +
         '{"startMs", "endMs"} or {"fillers": true}. ' +
@@ -255,8 +262,12 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'A played part is midi: add_track {"type": "midi"} makes a track that ' +
         "owns the synth (and gives the document a 120 BPM tempo if it had " +
         'none), add_midi_clip takes {"track", "start_ms", "duration_ms", ' +
-        'name?, notes?} and set_notes {"clip", "notes"} replaces the whole ' +
-        "list. A note is {pitch (0..127, 60 is middle C), start_tick, " +
+        'name?, notes?} and set_notes takes {"clip", notes? | function?, ' +
+        "note_ids?, pitches?, velocity?, root?, scale?, controllers?}: " +
+        "`notes` replaces the whole list, `function` runs scale_quantize, " +
+        "legato, remove_overlaps, delete_duplicates, glue, mute, unmute, " +
+        "delete or set_velocity on a selection, and `controllers` writes CC, " +
+        "pitchBend or pressure lanes. A note is {pitch (0..127, 60 is middle C), start_tick, " +
         "duration_tick, velocity? (1..127, default 100), id?} in ticks from " +
         "the clip's content start, 960 ticks to a quarter note — so trimming " +
         "the clip hides notes instead of deleting them. " +
@@ -281,24 +292,48 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "dr1-cinematic uses MIDI 36–51: low boom, gran cassa, field snare, " +
         "ensemble strike, wood tick, shaker, brush, metal wash, low/mid/high " +
         "taiko, cymbal swell, low metal, small bell, deep gong, tension hit. " +
-        'set_tempo takes {"bpm", offset_ms?, beats_per_bar?, beat_unit?} and ' +
-        "rescales every midi clip around offset_ms — halving the BPM doubles " +
-        "each midi clip's start and length — while picture and audio stay " +
-        "where they are. " +
-        "Three ops edit a phrase already placed, each rewriting the clip's " +
-        "whole note list and keeping every id: transpose_clip " +
-        '{"clip", "semitones"} moves every note by whole semitones (12 is an ' +
+        'set_tempo takes {bpm?, offset_ms?, beats_per_bar?, beat_unit?, ' +
+        "key?, auto_crossfade_ms?} (bpm is optional when changing only key or " +
+        "music-project auto_crossfade_ms) and rescales every midi clip around " +
+        "offset_ms — halving the BPM doubles each midi clip's start and " +
+        "length — while picture stays where it is. " +
+        "Three ops edit a phrase already placed, each keeping note ids (and " +
+        "accepting optional `note_ids` to act on a selection): transpose_clip " +
+        '{"clip", "semitones", note_ids?} moves notes by whole semitones (12 is an ' +
         "octave; a note pushed past 0..127 is held at the end, so up and back " +
         'down is not always the same phrase), quantize_notes {"clip", ' +
-        '"division", strength?, target?} snaps onsets to a note grid — ' +
+        '"division", strength?, target?, swing?, note_ids?} snaps onsets to a note grid — ' +
         "division is 1/4, 1/8, 1/16, 1/32 or the triplets 1/8T and 1/16T, " +
         "read in ticks at PPQ 960 (1/4 is 960 ticks, 1/16 is 240, 1/8T is " +
         "320), strength 0..1 moves each note part of the way and keeps the " +
-        'feel, target "start_and_length" also rounds the held lengths — and ' +
-        'reports movedNoteCount, and scale_velocity {"clip", "factor"} ' +
-        "multiplies every velocity, clamped to 1..127. Each is refused on a " +
+        'feel, target "start_and_length" also rounds the held lengths, swing ' +
+        '0..1 delays odd steps — and reports movedNoteCount, and scale_velocity ' +
+        '{"clip", "factor", note_ids?} multiplies velocities, clamped to 1..127. Each is refused on a ' +
         "clip that is not midi. get_state reports every midi clip's start as " +
-        "startBarsBeats (bar.beat.tick) against the document tempo.",
+        "startBarsBeats (bar.beat.tick) against the document tempo. " +
+        'trim_clip also accepts {"target", "startMs"} alone to head-trim the start edge. ' +
+        "Step Sequencer pattern regions hold a `pattern` grid (1-based steps/loops in tool inputs, rows addressed by row id or unique case-insensitive name): " +
+        'create_pattern_region {"trackId", atBar?|beat?|atMs?, bars?, name?, template?, text?}, ' +
+        'get_pattern {"clipId", modes?}, ' +
+        'set_pattern {"clipId", name?, lengthSteps?, stepRate?, playback?, swing?, swingDivision?, legato?, mono?, midiChannel?, key?: {tonic, mode}|null, pitchSource?, scale?, scaleQuantize?, noTranspose?, automationMode?, loopStart?, loopEnd?}, ' +
+        'set_pattern_seed {"clipId", seed?}, ' +
+        'add_pattern_rows {"clipId", rows: [{assignment?|pitch?|pad?|degree?|octave?|cc?|param?|deviceId?, name?, color?, stepRate?, lengthSteps?, playback?, mute?, solo?, loopStart?, loopEnd?, midiChannel?, automationMode?, subrows?, subrowsExpanded?, text?}]}, ' +
+        'set_pattern_row {"clipId", "row", name?, assignment?, stepRate?, lengthSteps?, playback?, mute?, solo?, loopStart?, loopEnd?, midiChannel?, automationMode?, color?, subrows?, subrowsExpanded?}, ' +
+        'remove_pattern_rows {"clipId", rows?|unused?}, move_pattern_row {"clipId", "row", "toIndex"}, sort_pattern_rows {"clipId", "by", descending?}, set_pattern_row_sort {"clipId", "rowSort"}, ' +
+        'copy_pattern_row {"clipId", "row", toClipId?, toRow?, asNew?, settingsOnly?, nextAssignment?}, ' +
+        'set_steps {"clipId", "row", "steps", values?, ramp?: {field, from, to, leaveOff?}}, ' +
+        'set_pattern_text {"clipId", "text", mode?: "merge"|"replace"}, ' +
+        'clear_pattern {"clipId", "scope": "steps"|"row"|"pattern", row?, steps?, mode?, rowType?}, ' +
+        'copy_steps {"clipId", "row", "steps", "toRow", "toStep", toClipId?, cut?}, repeat_step {"clipId", "row", "step"}, ' +
+        'rotate_pattern {"clipId", "by", row?, mode?}, transpose_pattern {"clipId", "semitones", row?, steps?}, ' +
+        'randomize_pattern {"clipId", "mode", rows?, steps?, seed?, density?}, nudge_pattern_values {"clipId", "mode", "delta", row?}, ' +
+        'tie_steps {"clipId", "row", "from", "to", "tie"}, ' +
+        'convert_pattern_to_midi {"clipIds"}, convert_midi_to_pattern {"clipIds", stepRate?}, separate_pattern_rows {"clipId"}, ' +
+        'list_step_patterns {query?, kind?, category?, folder?}, apply_step_pattern {clipId?|trackId?, atBar?|beat?|atMs?, bars?, "pattern", useProjectKey?}, ' +
+        'save_step_pattern {"clipId", "name", "kind": "pattern"|"template", folder?}, ' +
+        'set_track_step_template {"trackId", fromClipId?|clear?}, ' +
+        'create_step_pattern_folder {"name", kind?, parentFolder?}, rename_step_pattern_folder {"folder", "newName", kind?}, ' +
+        'delete_step_pattern_folder {"folder", kind?}, move_step_pattern {"pattern", folder?}.',
       items: { type: "object" }
     }
   },

@@ -26,7 +26,8 @@ import type {
   ClipTransform,
   TimelineClip,
   TimelineTrack,
-  TrackBinding
+  TrackBinding,
+  MidiRegionGrid
 } from "../types.js";
 import type { ClipAnimation } from "../animation/types.js";
 import type { TimelineAnimationInput } from "./types.js";
@@ -48,6 +49,10 @@ type CaptionStyleInput = NonNullable<
 
 export interface GetStateOp {
   op: "get_state";
+  /** A midi clip to read in full: notes and controller lanes. */
+  clip?: string;
+  /** A track to read in full: automation lanes, effects and instrument. */
+  track?: string;
 }
 
 export interface AddTrackOp {
@@ -181,10 +186,11 @@ export interface SplitClipOp extends BarTimeArgs {
   crossing?: "shorten" | "split";
 }
 
-/** `atBar` on a trim is the bar where the clip now ends. */
+/** `atBar` on a trim is the bar where the clip now ends; `startMs` head-trims the start edge. */
 export interface TrimClipOp extends BarTimeArgs {
   op: "trim_clip";
   target: string;
+  startMs?: number;
   durationMs?: number;
   inPointMs?: number;
   outPointMs?: number;
@@ -241,6 +247,10 @@ export interface SetClipParamsOp {
     locked?: boolean;
     /** A CSS colour tag. Null clears it. */
     labelColor?: string | null;
+    /** Midi region params (CE6). Null clears. */
+    transpose?: number | null;
+    velocityOffset?: number | null;
+    quantize?: { grid: MidiRegionGrid; strength: number } | null;
     textStyle?: Partial<TextStyleInput>;
     shapeStyle?: ShapeStyleInput;
     captionStyle?: CaptionStyleInput;
@@ -508,6 +518,7 @@ type ContractOpName =
   | "insert_time"
   | "delete_time"
   | "duplicate_range"
+  | "paste_range"
   | "apply_progression"
   | "transpose_chords"
   | "detect_chords"
@@ -526,7 +537,39 @@ type ContractOpName =
   | "set_track"
   | "ripple_delete"
   | "close_gap"
-  | "cut_transcript";
+  | "cut_transcript"
+  | "get_pattern"
+  | "create_pattern_region"
+  | "convert_pattern_to_midi"
+  | "convert_midi_to_pattern"
+  | "separate_pattern_rows"
+  | "set_pattern"
+  | "set_pattern_seed"
+  | "add_pattern_rows"
+  | "set_pattern_row"
+  | "remove_pattern_rows"
+  | "move_pattern_row"
+  | "sort_pattern_rows"
+  | "set_pattern_row_sort"
+  | "copy_pattern_row"
+  | "set_steps"
+  | "set_pattern_text"
+  | "clear_pattern"
+  | "copy_steps"
+  | "repeat_step"
+  | "rotate_pattern"
+  | "transpose_pattern"
+  | "randomize_pattern"
+  | "nudge_pattern_values"
+  | "tie_steps"
+  | "list_step_patterns"
+  | "apply_step_pattern"
+  | "save_step_pattern"
+  | "set_track_step_template"
+  | "create_step_pattern_folder"
+  | "rename_step_pattern_folder"
+  | "delete_step_pattern_folder"
+  | "move_step_pattern";
 type ContractOp = {
   [K in ContractOpName]: { op: K } & (K extends "add_midi_clip"
     ? Omit<
@@ -609,6 +652,7 @@ export const TIMELINE_OP_NAMES = [
   "insert_time",
   "delete_time",
   "duplicate_range",
+  "paste_range",
   "list_progressions",
   "apply_progression",
   "transpose_chords",
@@ -676,5 +720,37 @@ export const TIMELINE_OP_NAMES = [
   "list_tracks",
   "delete_track_object",
   "bind_to_track",
-  "unbind_track"
+  "unbind_track",
+  "get_pattern",
+  "create_pattern_region",
+  "convert_pattern_to_midi",
+  "convert_midi_to_pattern",
+  "separate_pattern_rows",
+  "set_pattern",
+  "set_pattern_seed",
+  "add_pattern_rows",
+  "set_pattern_row",
+  "remove_pattern_rows",
+  "move_pattern_row",
+  "sort_pattern_rows",
+  "set_pattern_row_sort",
+  "copy_pattern_row",
+  "set_steps",
+  "set_pattern_text",
+  "clear_pattern",
+  "copy_steps",
+  "repeat_step",
+  "rotate_pattern",
+  "transpose_pattern",
+  "randomize_pattern",
+  "nudge_pattern_values",
+  "tie_steps",
+  "list_step_patterns",
+  "apply_step_pattern",
+  "save_step_pattern",
+  "set_track_step_template",
+  "create_step_pattern_folder",
+  "rename_step_pattern_folder",
+  "delete_step_pattern_folder",
+  "move_step_pattern"
 ] as const satisfies readonly TimelineOpName[];

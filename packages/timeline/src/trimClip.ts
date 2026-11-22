@@ -1,6 +1,8 @@
 import { resliceSourceAnimations } from "./animation/sourceCurves.js";
 import { retimeKeyframeAnimations, retimeKeyframeCurves } from "./keyframes.js";
 import { activeLoopMs } from "./clipLoop.js";
+import { DEFAULT_TEMPO } from "./midi/tempo.js";
+import { msToTicks } from "./midi/ticks.js";
 import { sourceRate } from "./sourceRate.js";
 import { assertNotTimeRemapped, isHoldRemap } from "./timeRemap.js";
 import type { TimelineClip } from "./types.js";
@@ -52,7 +54,8 @@ export function trimClip(
   clip: TimelineClip,
   edge: "start" | "end",
   deltaMs: number,
-  maxDurationMs?: number
+  maxDurationMs?: number,
+  bpm = DEFAULT_TEMPO.bpm
 ): TimelineClip {
   // A nonconstant remap is a curve over this window; moving an edge renormalizes it
   // and retimes every frame, including the ones the trim did not touch (D13).
@@ -68,6 +71,7 @@ export function trimClip(
   // `deltaMs` is a timeline delta; the source in/out points it reveals or hides
   // move by `deltaMs * rate` source-ms.
   const hold = isHoldRemap(clip);
+  const isPatternHead = clip.pattern !== undefined && edge === "start";
   // An end trim of a looped clip changes how many repeats play. It reads no
   // more source, so the source bound does not apply (CE3).
   const loopedEnd = edge === "end" && activeLoopMs(clip) !== undefined;
@@ -75,16 +79,26 @@ export function trimClip(
   if (hold || loopedEnd) maxDurationMs = undefined;
   const nextStartMs = edge === "start" ? clip.startMs - deltaMs : clip.startMs;
   const nextDurationMs = clip.durationMs + deltaMs;
-  const rawInPointMs =
-    edge === "start" ? inPointMs - sourceDeltaMs : inPointMs;
+  const basePatternPhase = isPatternHead
+    ? (clip.patternPhaseTicks ?? 0) + Math.round(msToTicks(inPointMs, bpm))
+    : 0;
+  const nextPatternPhase = isPatternHead
+    ? basePatternPhase + Math.round(msToTicks(-deltaMs, bpm))
+    : undefined;
+  const rawInPointMs = isPatternHead
+    ? 0
+    : edge === "start"
+      ? inPointMs - sourceDeltaMs
+      : inPointMs;
   // A clip with no source clock (a still, text, shape, adjustment or group)
   // has nothing before its in-point to run out of: extending its head keeps
   // the in-point at 0 and moves the out-point to keep the window's length.
   const headOverhangMs =
     rawInPointMs < 0 && NO_SOURCE_CLOCK.has(clip.mediaType) ? -rawInPointMs : 0;
   const nextInPointMs = rawInPointMs + headOverhangMs;
-  const calculatedOutPointMs =
-    (edge === "end" ? outPointMs + sourceDeltaMs : outPointMs) + headOverhangMs;
+  const calculatedOutPointMs = isPatternHead
+    ? nextDurationMs
+    : (edge === "end" ? outPointMs + sourceDeltaMs : outPointMs) + headOverhangMs;
   const nextOutPointMs =
     maxDurationMs !== undefined &&
     calculatedOutPointMs > maxDurationMs &&
@@ -96,7 +110,7 @@ export function trimClip(
     throw new Error("trimClip would result in a non-positive duration");
   }
 
-  if (!hold && nextInPointMs < 0) {
+  if (!hold && (nextInPointMs < 0 || (nextPatternPhase !== undefined && nextPatternPhase < 0))) {
     throw new Error("trimClip cannot extend before source start");
   }
 
@@ -120,6 +134,10 @@ export function trimClip(
   if (!hold) {
     next.inPointMs = nextInPointMs;
     next.outPointMs = nextOutPointMs;
+  }
+  if (nextPatternPhase !== undefined) {
+    if (nextPatternPhase > 0) next.patternPhaseTicks = nextPatternPhase;
+    else delete next.patternPhaseTicks;
   }
   // A head trim moves the clip's start over still media, so each word keeps
   // its timeline instant: its clip-local time grows by what the head gained.

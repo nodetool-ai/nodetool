@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { quantizeNotes, type MidiNote } from "@nodetool-ai/timeline";
+import { patternFromText, quantizeNotes, type MidiNote } from "@nodetool-ai/timeline";
 
 import { validateTimelineSequence } from "../src/timeline-debug/index.js";
 
@@ -415,5 +415,60 @@ describe("validateTimelineSequence — visual checks skip midi tracks", () => {
       })
     );
     expect(codesOf(result.warnings)).not.toContain("layer_cap_exceeded");
+  });
+});
+
+describe("validateTimelineSequence — step sequencer pattern regions (SQ1)", () => {
+  const samplePattern = patternFromText("Kick: x... x... x... x...", {
+    name: "Beat",
+    seed: 1
+  });
+
+  it("passes a valid pattern region on a midi track with no warnings", () => {
+    const result = validateTimelineSequence(
+      doc(
+        [track({ id: "t-midi", name: "Drums", type: "midi" })],
+        [
+          clip({
+            id: "c-pat",
+            trackId: "t-midi",
+            name: "Beat",
+            mediaType: "midi",
+            pattern: samplePattern
+          })
+        ],
+        { tempo }
+      )
+    );
+    expect(codesOf(result.errors)).toEqual([]);
+    expect(codesOf(result.warnings)).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("refuses a clip carrying both pattern and stored notes, naming the clip (SQ1)", () => {
+    const result = validateTimelineSequence(
+      doc(
+        [track({ id: "t-midi", name: "Drums", type: "midi" })],
+        [
+          clip({
+            id: "c-both",
+            trackId: "t-midi",
+            name: "Broken Beat",
+            mediaType: "midi",
+            pattern: samplePattern,
+            notes: [note()]
+          })
+        ],
+        { tempo }
+      )
+    );
+    expect(result.ok).toBe(false);
+    expect(
+      result.errors.some(
+        (e) =>
+          (e.code === "midi_pattern_with_notes" || e.code === "schema_invalid") &&
+          e.message.includes("Broken Beat")
+      )
+    ).toBe(true);
   });
 });

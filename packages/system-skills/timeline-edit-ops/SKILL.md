@@ -614,7 +614,7 @@ both. Send the ms form or the bar form. Do not send both.
 |---|---|
 | `split_clip` | `atBar` replaces `atMs`. |
 | `move_clip` | `atBar` replaces `startMs`. |
-| `trim_clip` | `atBar` is the bar where the clip ends. It replaces `durationMs`. |
+| `trim_clip` | `atBar` is the bar where the clip ends (replaces `durationMs`). Send `startMs` alone to head-trim the start edge. |
 | `duplicate_clip` | `atBar` is the start of the first copy. |
 | `add_media_clip` | `atBar` replaces `startMs`. |
 
@@ -850,5 +850,36 @@ before it writes and snapshots what it replaces. Name that snapshot
 (`snapshot_name: "before the title pass"`) so the version list says what you
 were about to do. For anything smaller, `create_timeline_version` first and
 `edit_timeline` after.
+
+## Step Sequencer
+
+A pattern region is a MIDI clip carrying a `pattern` grid instead of raw `notes`
+(a clip cannot hold both). Steps and loop ranges use 1-based indexing in tool
+arguments and results. Rows are addressed by `rowId` or unique case-insensitive
+row name.
+
+Pattern text grammar (`<row name> [| rate] : <steps>`, spaces and `|` ignored):
+- `x` on (velocity 100), `X` accented (velocity 127), `o` ghost (velocity 50)
+- `.` off, `-` tie from previous step, `_` skip step
+
+Ops for pattern regions:
+- Read and create: `get_pattern` (with optional `modes` such as `["velocity", "chance"]`),
+  `create_pattern_region` (`trackId`, `atBar` or `atMs`, `bars`, optional `template` or `text`),
+  `convert_pattern_to_midi`, `convert_midi_to_pattern`, `separate_pattern_rows`.
+- Pattern settings: `set_pattern` (`lengthSteps`, `stepRate`, `playback`, `swing`,
+  `swingDivision`, `legato` (+1 tick on gate-100), `mono`, `midiChannel`, `key` (`{tonic, mode}`),
+  `pitchSource`, `scale`, `scaleQuantize`, `noTranspose`, `automationMode`, `loopStart`, `loopEnd`),
+  `set_pattern_seed`.
+- Rows: `add_pattern_rows` (shorthand `pitch`, `pad`, `degree`, `cc`, `param`, `deviceId` or explicit
+  `assignment`, plus `automationMode`, `color`, `subrowsExpanded`, max 128 rows), `set_pattern_row`
+  (supports `automationMode`, `color`, `subrowsExpanded`), `remove_pattern_rows` (`rows` or `unused: true`),
+  `move_pattern_row`, `sort_pattern_rows`, `set_pattern_row_sort`, `copy_pattern_row`.
+- Steps and transforms: `set_steps` (supports `values` and linear `ramp`), `set_pattern_text`
+  (`merge` or `replace`), `clear_pattern`, `copy_steps`, `repeat_step`, `rotate_pattern`,
+  `transpose_pattern`, `randomize_pattern` (seeded, returns `seed`), `nudge_pattern_values`,
+  `tie_steps`.
+- Library and templates: `list_step_patterns`, `apply_step_pattern`, `save_step_pattern`,
+  `set_track_step_template`, `create_step_pattern_folder`, `rename_step_pattern_folder`,
+  `delete_step_pattern_folder`, `move_step_pattern`.
 
 Stop when the motion is right, and say what you animated.

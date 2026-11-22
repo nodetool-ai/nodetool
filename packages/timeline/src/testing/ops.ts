@@ -4,17 +4,19 @@ import {
   DEFAULT_TEMPO,
   makeClip,
   makeTrack,
+  patternFromText,
   type MediaTrack,
   type TimelineClip,
   type TimelineComposition,
   type TimelineMarker,
   type TimelineTrack
 } from "../index.js";
-import type {
-  TimelineOp,
-  TimelineOpContext,
-  TimelineOpIdKind,
-  TimelineOpState
+import {
+  createMemoryStepPatternLibrary,
+  type TimelineOp,
+  type TimelineOpContext,
+  type TimelineOpIdKind,
+  type TimelineOpState
 } from "../ops/index.js";
 
 export const COMPOSITION: TimelineComposition = {
@@ -214,6 +216,20 @@ export function seedClips(): TimelineClip[] {
       mediaType: "group",
       sourceType: "imported",
       status: "generated"
+    }),
+    makeClip({
+      id: "clip_pattern",
+      trackId: "track_midi",
+      name: "Beat",
+      startMs: 8000,
+      durationMs: 2000,
+      mediaType: "midi",
+      sourceType: "imported",
+      status: "generated",
+      pattern: patternFromText(
+        "Kick: x... x... x... x...\nSnare: .... x... .... x...",
+        { name: "Beat", seed: 7 }
+      )
     })
   ];
 }
@@ -254,6 +270,38 @@ export const ASSET = {
 };
 
 /** The bridge's id minting, replayed so the direct run mints the same ids. */
+export const SEEDED_STEP_PATTERN_FOLDER_ID =
+  "a1b2c3d4e5f600000000000000000001";
+export const SEEDED_STEP_PATTERN_ENTRY_ID =
+  "b1c2d3e4f5a600000000000000000001";
+
+/** Seeded in-memory step pattern library shared by parity fixtures. */
+export function seedStepPatternLibrary() {
+  return createMemoryStepPatternLibrary({
+    folders: [
+      {
+        id: SEEDED_STEP_PATTERN_FOLDER_ID,
+        kind: "pattern",
+        folder: "Step Patterns/Patterns/Seeded"
+      }
+    ],
+    entries: [
+      {
+        id: SEEDED_STEP_PATTERN_ENTRY_ID,
+        name: "Seeded Beat",
+        kind: "pattern",
+        category: "user",
+        tags: ["pattern", "user"],
+        folder: "Step Patterns/Patterns/Seeded",
+        pattern: patternFromText("Kick: x... x... x... x...", {
+          name: "Seeded Beat",
+          seed: 1
+        })
+      }
+    ]
+  });
+}
+
 export function directContext(state: TimelineOpState): TimelineOpContext {
   const used = new Set<string>();
   for (const t of state.tracks) used.add(t.id);
@@ -270,7 +318,10 @@ export function directContext(state: TimelineOpState): TimelineOpContext {
     note: 0,
     beat: 0,
     link: 0,
-    version: 0
+    version: 0,
+    lane: 0,
+    point: 0,
+    folder: 0
   };
   return {
     generateFromBeats: async (document) => {
@@ -332,7 +383,8 @@ export function directContext(state: TimelineOpState): TimelineOpContext {
       listIds: async () => [COMPOSITION.id]
     },
     retargetFormat: async () => ({ sequenceId: "adapted_1", name: "Adapted" }),
-    parseSvgPath: () => ({ ok: true })
+    parseSvgPath: () => ({ ok: true }),
+    stepPatternLibrary: seedStepPatternLibrary()
   };
 }
 
@@ -419,6 +471,78 @@ export const FIXTURES: Fixture[] = [
     op: { op: "scale_velocity", clip: "clip_midi", factor: 1.5 }
   },
   {
+    tool: "set_notes",
+    args: { clip: "clip_midi", function: "legato" },
+    op: { op: "set_notes", clip: "clip_midi", function: "legato" }
+  },
+  {
+    tool: "set_notes",
+    args: {
+      clip: "clip_midi",
+      controllers: [{ kind: "cc", cc: 1, points: [{ tick: 0, value: 40 }] }]
+    },
+    op: {
+      op: "set_notes",
+      clip: "clip_midi",
+      controllers: [{ kind: "cc", cc: 1, points: [{ tick: 0, value: 40 }] }]
+    }
+  },
+  {
+    tool: "set_track",
+    args: {
+      track: "track_midi",
+      automationMode: "touch",
+      automation: [
+        {
+          target: { kind: "mixer", param: "volumeDb" },
+          points: [{ timeMs: 0, value: -6 }]
+        }
+      ]
+    },
+    op: {
+      op: "set_track",
+      track: "track_midi",
+      automationMode: "touch",
+      automation: [
+        {
+          target: { kind: "mixer", param: "volumeDb" },
+          points: [{ timeMs: 0, value: -6 }]
+        }
+      ]
+    }
+  },
+  {
+    tool: "set_track",
+    args: { track: "master", volumeDb: -2, pan: -0.25 },
+    op: { op: "set_track", track: "master", volumeDb: -2, pan: -0.25 }
+  },
+  {
+    tool: "set_track",
+    args: {
+      track: "track_midi",
+      folder: "Synths",
+      musicRole: "synth",
+      effects: [{ id: "fx_gain", type: "gain", enabled: true, gainDb: 2 }]
+    },
+    op: {
+      op: "set_track",
+      track: "track_midi",
+      folder: "Synths",
+      musicRole: "synth",
+      effects: [{ id: "fx_gain", type: "gain", enabled: true, gainDb: 2 }]
+    }
+  },
+  {
+    tool: "set_tempo",
+    args: { key: { tonic: "D", mode: "minor" } },
+    op: { op: "set_tempo", key: { tonic: "D", mode: "minor" } }
+  },
+  {
+    tool: "get_state",
+    args: { clip: "clip_midi", track: "track_midi" },
+    op: { op: "get_state", clip: "clip_midi", track: "track_midi" }
+  },
+  {
     tool: "set_chords",
     args: { chart: "| Am | F | C G |" },
     op: { op: "set_chords", chart: "| Am | F | C G |" }
@@ -448,6 +572,20 @@ export const FIXTURES: Fixture[] = [
     tool: "duplicate_range",
     args: { fromMs: 0, toMs: 4000 },
     op: { op: "duplicate_range", fromMs: 0, toMs: 4000 }
+  },
+  {
+    tool: "paste_range",
+    args: {
+      atMs: 4000,
+      mode: "insert",
+      content: { lengthMs: 2000, clips: [] }
+    },
+    op: {
+      op: "paste_range",
+      atMs: 4000,
+      mode: "insert",
+      content: { lengthMs: 2000, clips: [] }
+    }
   },
   { tool: "list_progressions", args: {}, op: { op: "list_progressions" } },
   {
@@ -670,6 +808,38 @@ export const FIXTURES: Fixture[] = [
     tool: "duplicate_clip",
     args: { target: "clip_a", gapMs: 100, count: 2 },
     op: { op: "duplicate_clip", target: "clip_a", gapMs: 100, count: 2 }
+  },
+  {
+    tool: "set_clip_params",
+    args: { target: "clip_a", name: "Chorus", labelColor: "#3e63dd" },
+    op: {
+      op: "set_clip_params",
+      target: "clip_a",
+      patch: { name: "Chorus", labelColor: "#3e63dd" }
+    }
+  },
+  {
+    tool: "set_clip_params",
+    args: {
+      target: "clip_midi",
+      transpose: -7,
+      velocityOffset: 10,
+      quantize: { grid: "1/16", strength: 80 }
+    },
+    op: {
+      op: "set_clip_params",
+      target: "clip_midi",
+      patch: {
+        transpose: -7,
+        velocityOffset: 10,
+        quantize: { grid: "1/16", strength: 80 }
+      }
+    }
+  },
+  {
+    tool: "set_clip_params",
+    args: { target: "clip_a", labelColor: null },
+    op: { op: "set_clip_params", target: "clip_a", patch: { labelColor: null } }
   },
   {
     tool: "set_clip_params",
@@ -947,5 +1117,324 @@ export const FIXTURES: Fixture[] = [
     tool: "unbind_track",
     args: { target: "clip_b" },
     op: { op: "unbind_track", target: "clip_b" }
+  },
+  // ── Step Sequencer (SQ48–SQ54) ───────────────────────────────────────────
+  {
+    tool: "get_pattern",
+    args: { clipId: "clip_pattern", modes: ["velocity"] },
+    op: { op: "get_pattern", clipId: "clip_pattern", modes: ["velocity"] }
+  },
+  {
+    tool: "create_pattern_region",
+    args: {
+      trackId: "track_midi",
+      atBar: 6,
+      bars: 2,
+      text: "Kick: x... x... x... x..."
+    },
+    op: {
+      op: "create_pattern_region",
+      trackId: "track_midi",
+      atBar: 6,
+      bars: 2,
+      text: "Kick: x... x... x... x..."
+    }
+  },
+  {
+    tool: "convert_pattern_to_midi",
+    args: { clipIds: ["clip_pattern"] },
+    op: { op: "convert_pattern_to_midi", clipIds: ["clip_pattern"] }
+  },
+  {
+    tool: "convert_midi_to_pattern",
+    args: { clipIds: ["clip_midi"], stepRate: "1/16" },
+    op: {
+      op: "convert_midi_to_pattern",
+      clipIds: ["clip_midi"],
+      stepRate: "1/16"
+    }
+  },
+  {
+    tool: "separate_pattern_rows",
+    args: { clipId: "clip_pattern" },
+    op: { op: "separate_pattern_rows", clipId: "clip_pattern" }
+  },
+  {
+    tool: "set_pattern",
+    args: {
+      clipId: "clip_pattern",
+      lengthSteps: 32,
+      swing: 40,
+      mono: true
+    },
+    op: {
+      op: "set_pattern",
+      clipId: "clip_pattern",
+      lengthSteps: 32,
+      swing: 40,
+      mono: true
+    }
+  },
+  {
+    tool: "set_pattern_seed",
+    args: { clipId: "clip_pattern", seed: 1234 },
+    op: { op: "set_pattern_seed", clipId: "clip_pattern", seed: 1234 }
+  },
+  {
+    tool: "add_pattern_rows",
+    args: {
+      clipId: "clip_pattern",
+      rows: [{ cc: 74, name: "Cutoff" }]
+    },
+    op: {
+      op: "add_pattern_rows",
+      clipId: "clip_pattern",
+      rows: [{ cc: 74, name: "Cutoff" }]
+    }
+  },
+  {
+    tool: "set_pattern_row",
+    args: {
+      clipId: "clip_pattern",
+      row: "Kick",
+      mute: true,
+      playback: "pingPong"
+    },
+    op: {
+      op: "set_pattern_row",
+      clipId: "clip_pattern",
+      row: "Kick",
+      mute: true,
+      playback: "pingPong"
+    }
+  },
+  {
+    tool: "remove_pattern_rows",
+    args: { clipId: "clip_pattern", rows: ["Snare"] },
+    op: { op: "remove_pattern_rows", clipId: "clip_pattern", rows: ["Snare"] }
+  },
+  {
+    tool: "move_pattern_row",
+    args: { clipId: "clip_pattern", row: "Snare", toIndex: 0 },
+    op: { op: "move_pattern_row", clipId: "clip_pattern", row: "Snare", toIndex: 0 }
+  },
+  {
+    tool: "sort_pattern_rows",
+    args: { clipId: "clip_pattern", by: "typeAndName" },
+    op: { op: "sort_pattern_rows", clipId: "clip_pattern", by: "typeAndName" }
+  },
+  {
+    tool: "set_pattern_row_sort",
+    args: { clipId: "clip_pattern", rowSort: "typeAndNameAsc" },
+    op: {
+      op: "set_pattern_row_sort",
+      clipId: "clip_pattern",
+      rowSort: "typeAndNameAsc"
+    }
+  },
+  {
+    tool: "copy_pattern_row",
+    args: { clipId: "clip_pattern", row: "Kick", toRow: "Snare" },
+    op: {
+      op: "copy_pattern_row",
+      clipId: "clip_pattern",
+      row: "Kick",
+      toRow: "Snare"
+    }
+  },
+  {
+    tool: "set_steps",
+    args: {
+      clipId: "clip_pattern",
+      row: "Kick",
+      steps: "1-4",
+      ramp: { field: "velocity", from: 20, to: 80 }
+    },
+    op: {
+      op: "set_steps",
+      clipId: "clip_pattern",
+      row: "Kick",
+      steps: "1-4",
+      ramp: { field: "velocity", from: 20, to: 80 }
+    }
+  },
+  {
+    tool: "set_pattern_text",
+    args: {
+      clipId: "clip_pattern",
+      text: "Clap: .... X... .... X...",
+      mode: "merge"
+    },
+    op: {
+      op: "set_pattern_text",
+      clipId: "clip_pattern",
+      text: "Clap: .... X... .... X...",
+      mode: "merge"
+    }
+  },
+  {
+    tool: "clear_pattern",
+    args: {
+      clipId: "clip_pattern",
+      scope: "row",
+      row: "Snare",
+      mode: "velocity"
+    },
+    op: {
+      op: "clear_pattern",
+      clipId: "clip_pattern",
+      scope: "row",
+      row: "Snare",
+      mode: "velocity"
+    }
+  },
+  {
+    tool: "copy_steps",
+    args: {
+      clipId: "clip_pattern",
+      row: "Kick",
+      steps: "1-4",
+      toRow: "Snare",
+      toStep: 5
+    },
+    op: {
+      op: "copy_steps",
+      clipId: "clip_pattern",
+      row: "Kick",
+      steps: "1-4",
+      toRow: "Snare",
+      toStep: 5
+    }
+  },
+  {
+    tool: "repeat_step",
+    args: { clipId: "clip_pattern", row: "Kick", step: 1 },
+    op: { op: "repeat_step", clipId: "clip_pattern", row: "Kick", step: 1 }
+  },
+  {
+    tool: "rotate_pattern",
+    args: { clipId: "clip_pattern", row: "Kick", by: 1, mode: "velocity" },
+    op: {
+      op: "rotate_pattern",
+      clipId: "clip_pattern",
+      row: "Kick",
+      by: 1,
+      mode: "velocity"
+    }
+  },
+  {
+    tool: "transpose_pattern",
+    args: { clipId: "clip_pattern", row: "Kick", semitones: 2 },
+    op: { op: "transpose_pattern", clipId: "clip_pattern", row: "Kick", semitones: 2 }
+  },
+  {
+    tool: "randomize_pattern",
+    args: { clipId: "clip_pattern", mode: "onOff", seed: 77, density: 50 },
+    op: {
+      op: "randomize_pattern",
+      clipId: "clip_pattern",
+      mode: "onOff",
+      seed: 77,
+      density: 50
+    }
+  },
+  {
+    tool: "nudge_pattern_values",
+    args: { clipId: "clip_pattern", row: "Kick", mode: "velocity", delta: -10 },
+    op: {
+      op: "nudge_pattern_values",
+      clipId: "clip_pattern",
+      row: "Kick",
+      mode: "velocity",
+      delta: -10
+    }
+  },
+  {
+    tool: "tie_steps",
+    args: { clipId: "clip_pattern", row: "Kick", from: 1, to: 3, tie: true },
+    op: {
+      op: "tie_steps",
+      clipId: "clip_pattern",
+      row: "Kick",
+      from: 1,
+      to: 3,
+      tie: true
+    }
+  },
+  {
+    tool: "list_step_patterns",
+    args: { query: "Boom Bap" },
+    op: { op: "list_step_patterns", query: "Boom Bap" }
+  },
+  {
+    tool: "apply_step_pattern",
+    args: { clipId: "clip_pattern", pattern: "Boom Bap" },
+    op: { op: "apply_step_pattern", clipId: "clip_pattern", pattern: "Boom Bap" }
+  },
+  {
+    tool: "save_step_pattern",
+    args: {
+      clipId: "clip_pattern",
+      name: "Saved Beat",
+      kind: "pattern",
+      folder: "Custom"
+    },
+    op: {
+      op: "save_step_pattern",
+      clipId: "clip_pattern",
+      name: "Saved Beat",
+      kind: "pattern",
+      folder: "Custom"
+    }
+  },
+  {
+    tool: "set_track_step_template",
+    args: { trackId: "track_midi", fromClipId: "clip_pattern" },
+    op: {
+      op: "set_track_step_template",
+      trackId: "track_midi",
+      fromClipId: "clip_pattern"
+    }
+  },
+  {
+    tool: "create_step_pattern_folder",
+    args: { kind: "pattern", name: "New Folder" },
+    op: {
+      op: "create_step_pattern_folder",
+      kind: "pattern",
+      name: "New Folder"
+    }
+  },
+  {
+    tool: "rename_step_pattern_folder",
+    args: {
+      folder: SEEDED_STEP_PATTERN_FOLDER_ID.slice(0, 12),
+      newName: "Renamed"
+    },
+    op: {
+      op: "rename_step_pattern_folder",
+      folder: SEEDED_STEP_PATTERN_FOLDER_ID.slice(0, 12),
+      newName: "Renamed"
+    }
+  },
+  {
+    tool: "delete_step_pattern_folder",
+    args: { folder: SEEDED_STEP_PATTERN_FOLDER_ID.slice(0, 12) },
+    op: {
+      op: "delete_step_pattern_folder",
+      folder: SEEDED_STEP_PATTERN_FOLDER_ID.slice(0, 12)
+    }
+  },
+  {
+    tool: "move_step_pattern",
+    args: {
+      pattern: SEEDED_STEP_PATTERN_ENTRY_ID.slice(0, 12),
+      folder: "Moved"
+    },
+    op: {
+      op: "move_step_pattern",
+      pattern: SEEDED_STEP_PATTERN_ENTRY_ID.slice(0, 12),
+      folder: "Moved"
+    }
   }
 ];

@@ -5,6 +5,7 @@ import {
   clipVersion,
   timelineClip,
   timelineDocument,
+  timelineMasterChannel,
   timelineSequenceResponse,
   timelineMarker,
   timelineSetup,
@@ -431,5 +432,25 @@ describe("take fields (P0 AI Video, PRD § 8.10)", () => {
     });
     expect(parsed.clips[0].activeTakeId).toBe("take_1");
     expect(parsed.clips[0].versions).toEqual([fullTake]);
+  });
+});
+
+describe("timelineMasterChannel pan", () => {
+  it("preserves optional pan in -1..1 and rejects out-of-range values", () => {
+    expect(timelineMasterChannel.parse({ volumeDb: -3 })).toEqual({ volumeDb: -3 });
+    expect(timelineMasterChannel.parse({ volumeDb: -3, pan: -0.5 })).toEqual({
+      volumeDb: -3,
+      pan: -0.5
+    });
+    expect(
+      timelineDocument.parse({
+        tracks: [],
+        clips: [],
+        markers: [],
+        master: { volumeDb: 0, pan: 0.75 }
+      }).master
+    ).toEqual({ volumeDb: 0, pan: 0.75 });
+    expect(timelineMasterChannel.safeParse({ volumeDb: 0, pan: -1.1 }).success).toBe(false);
+    expect(timelineMasterChannel.safeParse({ volumeDb: 0, pan: 1.1 }).success).toBe(false);
   });
 });

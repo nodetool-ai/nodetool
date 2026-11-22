@@ -194,3 +194,26 @@ describe("set_clip_params labelColor and name", () => {
     expect(out.state.clips[0]!.name).toBe("Verse");
   });
 });
+
+describe("join_clips round 2", () => {
+  it("F27: differently transposed poly pressure lanes stay on their own pitch", async () => {
+    const lane = (id: string) => ({
+      id,
+      kind: "polyPressure" as const,
+      pitch: 60,
+      points: [{ id: `${id}_p`, tick: 0, value: 50 }]
+    });
+    const out = await run(
+      state([
+        midi("a", 0, { transpose: 2, controllers: [lane("la")] }),
+        midi("b", 3000, { transpose: 7, controllers: [lane("lb")] })
+      ]),
+      { clips: ["a", "b"] }
+    );
+    const pitches = out.state.clips[0]!.controllers!
+      .filter((l) => l.kind === "polyPressure")
+      .map((l) => l.pitch)
+      .sort();
+    expect(pitches).toEqual([62, 67]);
+  });
+});

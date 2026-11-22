@@ -27,9 +27,11 @@ import {
   type TimelineChord as ProtocolTimelineChord,
   midiInstrument,
   midiNote,
+  stepPattern,
   timelineTempo,
   type MidiInstrument as ProtocolMidiInstrument,
   type MidiNote as ProtocolMidiNote,
+  type StepPattern as ProtocolStepPattern,
   type TimelineTempo as ProtocolTimelineTempo
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import { DEFAULT_MIDI_INSTRUMENT } from "../src/midi/instrument.js";
@@ -51,6 +53,7 @@ import type {
   MidiControllerLane,
   MidiInstrument,
   MidiNote,
+  StepPattern,
   TimelineChord,
   TimelineTempo
 } from "../src/types.js";
@@ -177,5 +180,89 @@ describe("midi types match the protocol schemas", () => {
   // types are: this package depends on that one, not the other way round.
   it("keeps the quantize divisions the same on both sides", () => {
     expect([...QUANTIZE_DIVISIONS]).toEqual([...QUANTIZE_DIVISION_VALUES]);
+  });
+
+  it("SQ1: round-trips a pattern clip through timelineClip and refuses pattern + notes", () => {
+    const pat: ProtocolStepPattern = {
+      version: 1,
+      seed: 42,
+      lengthSteps: 16,
+      stepRate: "1/16",
+      playback: "forward",
+      legato: false,
+      swing: 0,
+      swingDivision: "1/16",
+      pitchSource: "off",
+      scale: "chromatic",
+      noTranspose: false,
+      scaleQuantize: false,
+      midiChannel: 1,
+      automationMode: "latch",
+      mono: false,
+      name: "Beat",
+      rows: [
+        {
+          id: "r1",
+          assignment: { type: "note", pitch: 36 },
+          mute: false,
+          solo: false,
+          lengthSteps: 16,
+          loopStart: 0,
+          loopEnd: 16,
+          stepRate: "1/16",
+          playback: "forward",
+          midiChannel: 1,
+          automationMode: "latch",
+          subrows: ["velocity", "gate"],
+          steps: Array.from({ length: 16 }, (_, i) => (i % 4 === 0 ? { on: true } : {}))
+        }
+      ]
+    } satisfies StepPattern;
+    const back: StepPattern = pat;
+    expect(stepPattern.parse(back)).toEqual(pat);
+
+    const parsedClip = timelineClip.parse({
+      id: "c_pat",
+      trackId: "m",
+      name: "Beat",
+      startMs: 0,
+      durationMs: 2000,
+      mediaType: "midi",
+      sourceType: "imported",
+      status: "generated",
+      versions: [],
+      locked: false,
+      pattern: pat,
+      patternPhaseTicks: 240
+    });
+    expect(parsedClip.pattern).toEqual(pat);
+    expect(parsedClip.patternPhaseTicks).toBe(240);
+
+    const sortedPat: ProtocolStepPattern = {
+      ...pat,
+      rowSort: "typeAndNoteAsc"
+    } satisfies StepPattern;
+    const sortedBack: StepPattern = sortedPat;
+    expect(stepPattern.parse(sortedBack)).toEqual(sortedPat);
+
+    // SQ1: A clip with both pattern and notes is invalid and names the clip.
+    const invalid = timelineClip.safeParse({
+      id: "c_bad",
+      trackId: "m",
+      name: "BadClip",
+      startMs: 0,
+      durationMs: 2000,
+      mediaType: "midi",
+      sourceType: "imported",
+      status: "generated",
+      versions: [],
+      locked: false,
+      pattern: pat,
+      notes: [noteBack]
+    });
+    expect(invalid.success).toBe(false);
+    if (!invalid.success) {
+      expect(invalid.error.message).toMatch(/BadClip|c_bad/);
+    }
   });
 });

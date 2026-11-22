@@ -29,6 +29,7 @@ import {
   seedClips,
   seedMarkers,
   seedMediaTracks,
+  seedStepPatternLibrary,
   seedTracks
 } from "@nodetool-ai/timeline/testing";
 
@@ -65,6 +66,7 @@ function bridgeInit(): TimelineBridgeInitialState {
       get: async (id) => (id === COMPOSITION.id ? COMPOSITION : null),
       listIds: async () => [COMPOSITION.id]
     },
+    stepPatternLibrary: seedStepPatternLibrary(),
     generateTransition: async ({ source, request }) => ({
       generationId: `generation-${source.outgoingClipId}-${source.incomingClipId}`,
       assetId: `asset-transition-${request.type}`
@@ -91,9 +93,26 @@ describe("timeline op parity", () => {
     expect(state.tempo).toEqual(DEFAULT_TEMPO);
   });
   it("covers every op the module handles", () => {
-    expect(FIXTURES.map((f) => f.tool).sort()).toEqual(
+    // An op with several argument shapes (set_clip_params) has several
+    // fixtures. Each op needs at least one, and no fixture names a stray op.
+    expect([...new Set(FIXTURES.map((f) => f.tool))].sort()).toEqual(
       [...TIMELINE_OP_NAMES].sort()
     );
+  });
+
+  it("reports the seeded music marker in get_state (CE7)", async () => {
+    const init = bridgeInit();
+    const bridge = createTimelineToolBridge({
+      ...init,
+      sequence: { ...init.sequence!, music: { autoCrossfadeMs: 12 } }
+    });
+    const read = bridge.tools.find(
+      (tool) => tool.name === "ui_timeline_get_state"
+    )!;
+    await expect(read.execute({})).resolves.toMatchObject({
+      music: { autoCrossfadeMs: 12 },
+      autoCrossfadeMs: 12
+    });
   });
 
   it("serializes concurrent edits and reads without losing either edit", async () => {
@@ -207,6 +226,9 @@ describe("timeline op parity", () => {
       expect(final.mediaTracks).toEqual(outcome.state.mediaTracks);
       expect(final.setup).toEqual(outcome.state.setup);
       expect(final.tempo).toEqual(outcome.state.tempo);
+      expect(final.master).toEqual(outcome.state.master);
+      expect(final.music).toEqual(outcome.state.music);
+      expect(final.trackFolders).toEqual(outcome.state.trackFolders);
     });
   }
 
@@ -240,6 +262,6 @@ describe("timeline op parity", () => {
     );
     expect(outcome.error).toContain('No clip found matching "nope"');
     expect(outcome.state).toBe(state);
-    expect(state.clips).toHaveLength(7);
+    expect(state.clips).toHaveLength(seedClips().length);
   });
 });

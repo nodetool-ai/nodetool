@@ -22,6 +22,7 @@ import {
   toolSearchHit,
   type ToolSignatureSource
 } from "../src/codeact/tool-api.js";
+import { searchTools } from "../src/tools/tool-search.js";
 import {
   FOCUSED_SURFACES,
   focusedSurfaceTools,
@@ -65,10 +66,11 @@ function selectedText(surface: FocusedSurface, name: string): string {
 }
 
 describe("level 1: the turn block", () => {
-  // 700 Qwen3.5 tokens. These blocks measure about 4.1 characters per token,
+  // About 800 Qwen3.5 tokens. The timeline block lists every tool name, so the
+  // CE tools raise it, and shortening their descriptions cannot lower it. These blocks measure about 4.1 characters per token,
   // so the ceiling is in a unit that needs no tokenizer.
-  it.each(FOCUSED_SURFACES)("keeps the %s block under 2,870 characters", (surface) => {
-    expect(block(surface).length).toBeLessThanOrEqual(2870);
+  it.each(FOCUSED_SURFACES)("keeps the %s block under 3,300 characters", (surface) => {
+    expect(block(surface).length).toBeLessThanOrEqual(3300);
   });
 
   it.each(FOCUSED_SURFACES)("has no signatures and no full descriptions for %s", (surface) => {
@@ -87,10 +89,62 @@ describe("level 1: the turn block", () => {
     for (const t of described) {
       expect(text).toContain(`- ${t.name}: ${toolPurpose(t.description ?? "")}`);
     }
+    if (surface === "timeline") {
+      // D105: timeline lists tool groups and points to searchTools so new tools
+      // do not grow the turn block past the 3,300-character cap.
+      expect(text).toContain('nodetool.searchTools("+ui_timeline_');
+      expect(text).toContain("step sequencer:");
+      expect(text).toContain("tracks & mixer:");
+      expect(text).toContain("midi & instruments:");
+      expect(text).toContain("chords & harmony:");
+      return;
+    }
     for (const t of named) {
       expect(text).toContain(t.name);
       expect(text).not.toContain(`- ${t.name}:`);
     }
+  });
+
+  it("keeps the timeline block the same size when new tools are added (D105)", () => {
+    const base = toolsOf("timeline");
+    const extra: ToolSignatureSource[] = Array.from({ length: 25 }, (_, i) => ({
+      name: `ui_timeline_pattern_extra_${i}`,
+      description: `Extra step sequencer tool ${i}.`,
+      inputSchema: { type: "object", properties: {} }
+    }));
+    const withExtra = block("timeline", [...base, ...extra]);
+    expect(withExtra).toBe(block("timeline", base));
+    expect(withExtra.length).toBeLessThanOrEqual(3300);
+  });
+
+  it("searchTools finds the A25 timeline tools and step sequencer tools at the default limit (D105)", () => {
+    const catalog = toolsOf("timeline").map((t) => ({
+      name: t.name,
+      description: t.description
+    }));
+
+    const found = (query: string) => searchTools(catalog, query).map((h) => h.name);
+    expect(found("+ui_timeline_ automation")).toContain("ui_timeline_set_track");
+    const master = found("+ui_timeline_ master");
+    expect(master).toContain("ui_timeline_set_track");
+    expect(master).not.toContain("ui_timeline_add_group");
+    expect(found("+ui_timeline_ controllers")).toContain("ui_timeline_set_notes");
+    expect(found("+ui_timeline_ key")).toContain("ui_timeline_set_tempo");
+    expect(found("+ui_timeline_ quantize")).toContain("ui_timeline_quantize_notes");
+    const seq = found("+ui_timeline_ step sequencer");
+    for (const toolName of [
+      "ui_timeline_create_pattern_region",
+      "ui_timeline_get_pattern",
+      "ui_timeline_set_pattern",
+      "ui_timeline_set_pattern_text",
+      "ui_timeline_set_steps",
+      "ui_timeline_add_pattern_rows",
+      "ui_timeline_rotate_pattern"
+    ]) {
+      expect(seq).toContain(toolName);
+    }
+    expect(found("+ui_timeline_ pattern text")).toContain("ui_timeline_set_pattern_text");
+    expect(found("+ui_timeline_ rotate pattern")).toContain("ui_timeline_rotate_pattern");
   });
 
   it("gives each purpose about 15 tokens or less", () => {

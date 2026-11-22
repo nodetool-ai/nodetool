@@ -13,12 +13,15 @@ import type {
   MidiControllerLane,
   MidiControllerPoint,
   MidiExpressionPoint,
+  MidiInstrument,
   MidiNote,
   MidiNoteExpression,
-  TimelineClip
+  TimelineClip,
+  TimelineTempo
 } from "../types.js";
-import { expandMidiLoop } from "../clipLoop.js";
-import { ticksToMs } from "./ticks.js";
+import { activeLoopMs, expandMidiLoop, type ExpandMidiPatternDoc } from "../clipLoop.js";
+import type { MidiRegionKeys } from "./regionParams.js";
+import { msToTicks, ticksToMs } from "./ticks.js";
 
 /** Most controller lanes one midi clip may carry. */
 export const MIDI_MAX_CONTROLLER_LANES_PER_CLIP = 32;
@@ -308,12 +311,17 @@ export interface MidiControllerEvent {
 export function midiClipControllerEvents(
   source: Pick<
     TimelineClip,
-    "controllers" | "inPointMs" | "durationMs" | "startMs" | "loopLengthMs"
-  >,
+    "controllers" | "inPointMs" | "durationMs" | "startMs" | "loopLengthMs" | MidiRegionKeys
+  > &
+    Pick<Partial<TimelineClip>, "pattern" | "patternPhaseTicks" | "patternRowCycles">,
   bpm: number,
-  fromMs = Number.NEGATIVE_INFINITY
+  fromMs = Number.NEGATIVE_INFINITY,
+  /** `tempo.offsetMs`, the origin of the grid a region quantize snaps to. */
+  gridOffsetMs = 0,
+  instrument?: MidiInstrument,
+  patternDoc?: ExpandMidiPatternDoc
 ): MidiControllerEvent[] {
-  const clip = expandMidiLoop(source, bpm);
+  const clip = expandMidiLoop(source, bpm, gridOffsetMs, instrument, patternDoc);
   const lanes = clip.controllers;
   if (!lanes || lanes.length === 0) return [];
   const windowStartMs = clip.inPointMs ?? 0;
@@ -433,4 +441,169 @@ export function midiNoteEventBytes(event: {
     event.pitch,
     event.velocity
   ];
+}
+
+/**
+ * Overlay controller events from overlapping MIDI clips on the same track onto
+ * each note-bearing MIDI clip's content window.
+ *
+ * Pre-rendered instrument paths render each clip into its own PCM buffer, so a
+ * controller-only clip (e.g. a pitch-bend or CC pattern region) would otherwise
+ * never reach an overlapping note clip on the same track. Live-device tracks
+ * share one device across all clips and pass `shouldMergeTrack` false.
+ */
+export function mergeTrackMidiControllers<C extends TimelineClip>(
+  clips: ReadonlyArray<C>,
+  tempo: Pick<TimelineTempo, "bpm"> & { offsetMs?: number },
+  options?: { shouldMergeTrack?: (trackId: string) => boolean }
+): C[] {
+  const bpm = tempo.bpm;
+  const gridOffsetMs = tempo.offsetMs ?? 0;
+
+  const midiByTrack = new Map<string, C[]>();
+  for (const clip of clips) {
+    if (
+      clip.mediaType !== "midi" ||
+      clip.muted ||
+      clip.hidden ||
+      clip.durationMs <= 0
+    ) {
+      continue;
+    }
+    if (options?.shouldMergeTrack && !options.shouldMergeTrack(clip.trackId)) {
+      continue;
+    }
+    const list = midiByTrack.get(clip.trackId);
+    if (list) list.push(clip);
+    else midiByTrack.set(clip.trackId, [clip]);
+  }
+
+  let anyMerged = false;
+  const result = clips.map((clip) => {
+    if (
+      clip.mediaType !== "midi" ||
+      clip.muted ||
+      clip.hidden ||
+      clip.durationMs <= 0 ||
+      (clip.notes?.length ?? 0) === 0
+    ) {
+      return clip;
+    }
+    const siblings = midiByTrack.get(clip.trackId);
+    if (!siblings || siblings.length < 2) return clip;
+    const clipEndMs = clip.startMs + clip.durationMs;
+    const overlapping = siblings
+      .filter(
+        (other) =>
+          other !== clip &&
+          (other.controllers?.length ?? 0) > 0 &&
+          other.startMs < clipEndMs &&
+          other.startMs + other.durationMs > clip.startMs
+      )
+      .sort((a, b) => a.startMs - b.startMs);
+    if (overlapping.length === 0) return clip;
+
+    // Expand clip's own loop before merging timeline-positioned sibling lanes so
+    // an external controller clip is not spuriously repeated at loop boundaries.
+    const baseClip =
+      activeLoopMs(clip) !== undefined
+        ? expandMidiLoop(clip, bpm, gridOffsetMs)
+        : clip;
+    const baseInTick = Math.round(msToTicks(baseClip.inPointMs ?? 0, bpm));
+    const baseEndMs = baseClip.startMs + baseClip.durationMs;
+
+    const mergedByKey = new Map<string, MidiControllerLane>();
+    for (const lane of baseClip.controllers ?? []) {
+      mergedByKey.set(controllerLaneKey(lane), {
+        ...lane,
+        points: lane.points.map((p) => ({ ...p }))
+      });
+    }
+
+    const overlaidEventsByKey = new Map<string, MidiControllerEvent[]>();
+    for (const other of overlapping) {
+      const events = midiClipControllerEvents(
+        other,
+        bpm,
+        baseClip.startMs,
+        gridOffsetMs
+      );
+      for (const ev of events) {
+        if (ev.timeMs > baseEndMs) continue;
+        const key = controllerLaneKey(ev);
+        const list = overlaidEventsByKey.get(key);
+        if (list) list.push(ev);
+        else overlaidEventsByKey.set(key, [ev]);
+      }
+    }
+    if (overlaidEventsByKey.size === 0) return clip;
+
+    // For any lane key that already exists on `baseClip`, sample its own events
+    // onto the same timeline clock before interleaving the overlaid events.
+    let baseEventsByKey: Map<string, MidiControllerEvent[]> | null = null;
+    for (const [key, overlaid] of overlaidEventsByKey) {
+      const existing = mergedByKey.get(key);
+      let combined: MidiControllerEvent[];
+      if (existing) {
+        if (!baseEventsByKey) {
+          baseEventsByKey = new Map();
+          for (const ev of midiClipControllerEvents(
+            baseClip,
+            bpm,
+            baseClip.startMs,
+            gridOffsetMs
+          )) {
+            if (ev.timeMs > baseEndMs) continue;
+            const k = controllerLaneKey(ev);
+            const list = baseEventsByKey.get(k);
+            if (list) list.push(ev);
+            else baseEventsByKey.set(k, [ev]);
+          }
+        }
+        combined = [...(baseEventsByKey.get(key) ?? []), ...overlaid].sort(
+          (a, b) => a.timeMs - b.timeMs
+        );
+      } else {
+        combined = overlaid.sort((a, b) => a.timeMs - b.timeMs);
+      }
+
+      const first = combined[0]!;
+      const points: MidiControllerPoint[] = [];
+      let seq = 0;
+      for (const ev of combined) {
+        const tick = Math.max(
+          0,
+          baseInTick + Math.round(msToTicks(ev.timeMs - baseClip.startMs, bpm))
+        );
+        const prev = points[points.length - 1];
+        if (prev && prev.tick === tick) {
+          prev.value = ev.value;
+        } else {
+          points.push({
+            id: `merged:${key}:${seq++}`,
+            tick,
+            value: ev.value
+          });
+        }
+      }
+      const lane: MidiControllerLane = {
+        id: existing?.id ?? `merged:${key}`,
+        kind: first.kind,
+        ...(first.kind === "cc" ? { cc: first.cc ?? 0 } : {}),
+        ...(first.kind === "polyPressure" ? { pitch: first.pitch ?? 0 } : {}),
+        channel: first.channel,
+        interpolation: "step",
+        points
+      };
+      mergedByKey.set(key, lane);
+    }
+
+    anyMerged = true;
+    return {
+      ...baseClip,
+      controllers: [...mergedByKey.values()]
+    } as C;
+  });
+
+  return anyMerged ? result : (clips as C[]);
 }

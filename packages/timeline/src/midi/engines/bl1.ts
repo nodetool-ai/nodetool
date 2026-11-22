@@ -27,6 +27,24 @@ export interface BassVoiceEvent {
   velocity: number;
   startFrame: number;
   gateOffFrame: number;
+  expression?: {
+    pitch?: ReadonlyArray<{ frame: number; value: number }>;
+  };
+}
+
+function stepTrackAt(
+  points: ReadonlyArray<{ frame: number; value: number }> | undefined,
+  frame: number
+): number {
+  if (!points || points.length === 0 || frame < points[0]!.frame) return 0;
+  let lo = 0;
+  let hi = points.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (points[mid]!.frame <= frame) lo = mid;
+    else hi = mid - 1;
+  }
+  return points[lo]!.value;
 }
 
 /** The state one BL-1 note leaves behind for the note that slides into it. */
@@ -79,11 +97,13 @@ export function renderBassVoices(
   out: Float32Array,
   events: ReadonlyArray<BassVoiceEvent>,
   instrument: BassMidiInstrument,
-  sampleRate: number
+  sampleRate: number,
+  pitchBendSemitones?: ReadonlyArray<{ frame: number; value: number }>
 ): boolean {
   const notes = monoOrder(events);
   if (notes.length === 0 || out.length === 0) return false;
 
+  const hasBend = Boolean(pitchBendSemitones && pitchBendSemitones.length > 0);
   const osc = new TableOscillator(instrument.table, 1, 0);
   const filter = new StateVariableFilter();
   const drive = new AdaaDrive();
@@ -94,7 +114,8 @@ export function renderBassVoices(
       : 1;
 
   let subPhase = 0;
-  let glidePitch = notes[0].event.pitch + instrument.semitones;
+  const firstExpr = notes[0].event.expression?.pitch?.[0]?.value ?? 0;
+  let glidePitch = notes[0].event.pitch + firstExpr + instrument.semitones;
   let ampEnv = new Adsr(instrument.ampEnv, sampleRate);
   let filterEnv = new AdEnvelope(
     instrument.filterAttackMs,
@@ -115,6 +136,7 @@ export function renderBassVoices(
 
     const accented = event.velocity >= instrument.accentVelocity;
     const accent = accented ? instrument.accentAmount : 0;
+    const exprOffset = event.expression?.pitch?.[0]?.value ?? 0;
     // A slide is one long note whose pitch moves: the envelopes keep running,
     // which is what makes a slid step legato instead of a new attack.
     if (!slide) {
@@ -126,11 +148,11 @@ export function renderBassVoices(
         instrument.filterDecayMs * (1 - 0.4 * accent),
         sampleRate
       );
-      glidePitch = event.pitch + instrument.semitones;
+      glidePitch = event.pitch + exprOffset + instrument.semitones;
       filter.reset();
       drive.reset();
     }
-    const targetPitch = event.pitch + instrument.semitones;
+    const targetPitch = event.pitch + exprOffset + instrument.semitones;
     const velocity = event.velocity / 127;
     const amplitude = (0.25 + 0.75 * velocity * velocity) * (1 + 0.35 * accent);
     const keyOffset = (instrument.keyTrack * (event.pitch - 60)) / 12;
@@ -142,11 +164,14 @@ export function renderBassVoices(
       const fenv = filterEnv.step();
 
       glidePitch += (targetPitch - glidePitch) * slideCoeff;
-      const hz = pitchHz(glidePitch);
+      const bentPitch = hasBend
+        ? glidePitch + stepTrackAt(pitchBendSemitones, frame)
+        : glidePitch;
+      const hz = pitchHz(bentPitch);
       let sample = osc.next(hz, instrument.position, sampleRate);
       if (subGain > 0) {
         const subPhaseInc =
-          pitchHz(glidePitch + 12 * instrument.subOctave) / sampleRate;
+          pitchHz(bentPitch + 12 * instrument.subOctave) / sampleRate;
         const carrier =
           instrument.subShape === "square"
             ? subPhase < 0.5

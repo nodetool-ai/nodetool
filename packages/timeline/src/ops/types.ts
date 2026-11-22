@@ -10,6 +10,8 @@ import type {
   TimelineSequence,
   TimelineSetup,
   MediaTrack,
+  MidiInstrument,
+  StepPattern,
   TimelineClip,
   TimelineMarker,
   TimelineTrack,
@@ -27,6 +29,10 @@ import type {
 export interface TimelineOpState {
   workingColorSpaceVersion?: number;
   tempo?: TimelineTempo;
+  /** The music-project marker. `get_state` reports it and the CE7 crossfade length. */
+  music?: TimelineSequence["music"];
+  /** The master bus: fader and insert chain. */
+  master?: TimelineSequence["master"];
   trackFolders?: TimelineSequence["trackFolders"];
   setup?: TimelineSetup | null;
   transcript?: TimelineSequence["transcript"];
@@ -116,7 +122,114 @@ export type TimelineOpIdKind =
   | "version"
   | "note"
   | "beat"
-  | "link";
+  | "link"
+  | "lane"
+  | "point"
+  | "folder";
+
+/** One user-saved step sequencer pattern or template entry (SQ44, D92). */
+export interface TimelineOpUserStepPattern {
+  id: string;
+  name: string;
+  kind: "pattern" | "template";
+  category?: string;
+  tags?: readonly string[];
+  folder?: string;
+  pattern: StepPattern;
+  /** Saved track instrument captured with the pattern (SQ43, SQ44). */
+  instrument?: MidiInstrument;
+  /** Saved instrument preset id, when matching a shipped preset or set explicitly. */
+  instrumentPreset?: string;
+}
+
+/** One user folder inside `Step Patterns/<Patterns|Templates>` (SQ43, SQ44). */
+export interface TimelineOpStepPatternFolder {
+  /** Asset id when explicitly persisted as a folder asset; absent when inferred only from patterns. */
+  id?: string;
+  name: string;
+  kind: "pattern" | "template";
+  /** Full folder path, e.g. `Step Patterns/Patterns/Drums`. */
+  folder: string;
+  /** Parent folder path, e.g. `Step Patterns/Patterns`. */
+  parentFolder: string;
+}
+
+/** Summary of a user pattern moved by a folder rename or delete. */
+export interface TimelineOpStepPatternMoveSummary {
+  id: string;
+  name: string;
+  folder: string;
+}
+
+export interface TimelineOpCreateStepPatternFolderResult {
+  id?: string;
+  name: string;
+  kind: "pattern" | "template";
+  folder: string;
+  parentFolder: string;
+}
+
+export interface TimelineOpRenameStepPatternFolderResult {
+  id?: string;
+  name: string;
+  kind: "pattern" | "template";
+  previousFolder: string;
+  folder: string;
+  parentFolder: string;
+  movedPatternCount: number;
+  movedPatterns: TimelineOpStepPatternMoveSummary[];
+}
+
+export interface TimelineOpDeleteStepPatternFolderResult {
+  kind: "pattern" | "template";
+  deletedFolder: string;
+  parentFolder: string;
+  movedPatternCount: number;
+  movedPatterns: TimelineOpStepPatternMoveSummary[];
+}
+
+export interface TimelineOpMoveStepPatternResult {
+  id: string;
+  name: string;
+  kind: "pattern" | "template";
+  previousFolder: string;
+  folder: string;
+}
+
+/** Host adapter for listing, saving, and organizing user step sequencer patterns/templates (SQ43, SQ44, D92). */
+export interface TimelineOpStepPatternLibrary {
+  list(): Promise<TimelineOpUserStepPattern[]>;
+  save(entry: {
+    name: string;
+    kind: "pattern" | "template";
+    folder?: string;
+    pattern: StepPattern;
+    instrument?: MidiInstrument;
+    instrumentPreset?: string;
+  }): Promise<{ id: string; folder: string; assetId?: string }>;
+  listFolders?(): Promise<TimelineOpStepPatternFolder[]>;
+  createFolder?(args: {
+    kind?: "pattern" | "template";
+    name: string;
+    parentFolder?: string;
+  }): Promise<TimelineOpCreateStepPatternFolderResult>;
+  renameFolder?(args: {
+    folder: string;
+    newName: string;
+    kind?: "pattern" | "template";
+  }): Promise<TimelineOpRenameStepPatternFolderResult>;
+  deleteFolder?(args: {
+    folder: string;
+    kind?: "pattern" | "template";
+  }): Promise<TimelineOpDeleteStepPatternFolderResult>;
+  movePattern?(args: {
+    pattern: string;
+    folder?: string | null;
+  }): Promise<TimelineOpMoveStepPatternResult>;
+}
+
+/** Complete step pattern library with required folder management functions. */
+export type FullStepPatternLibrary = Required<TimelineOpStepPatternLibrary>;
 
 /** Everything an op needs that the document cannot answer. */
 export interface TimelineOpContext {
@@ -168,6 +281,8 @@ export interface TimelineOpContext {
    * module stays clear of to avoid loading the renderer in edit hosts (AS2).
    */
   parseSvgPath?(d: string): { ok: boolean; error?: string };
+  /** User step sequencer pattern/template library adapter (SQ44, SQ54, D92). */
+  stepPatternLibrary?: TimelineOpStepPatternLibrary;
 }
 
 /** What one op did. `error` set means `state` is the state that went in. */

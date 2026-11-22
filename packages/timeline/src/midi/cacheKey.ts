@@ -8,9 +8,22 @@
  */
 
 import { activeLoopMs } from "../clipLoop.js";
-import type { MidiInstrument, TimelineClip } from "../types.js";
+import {
+  hasRegionQuantize,
+  regionQuantizePhaseTick,
+  type MidiRegionKeys
+} from "./regionParams.js";
+import { divisionToTicks } from "./edit.js";
+import type {
+  MidiInstrument,
+  MusicKey,
+  StepKey,
+  TimelineChord,
+  TimelineClip
+} from "../types.js";
 import { instrumentSignature } from "./instrument.js";
 import { sortNotes } from "./notes.js";
+import type { MidiRenderControls } from "./voice.js";
 
 /**
  * FNV-1a over a string, as 8 lowercase hex digits. Chosen over a real hash for
@@ -39,16 +52,39 @@ export function fnv1a(input: string): string {
 export interface MidiRenderKeyInput {
   clip: Pick<
     TimelineClip,
-    "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs"
-  >;
+    "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs" | MidiRegionKeys
+  > &
+    Pick<Partial<TimelineClip>, "startMs" | "pattern" | "patternPhaseTicks" | "patternRowCycles">;
   bpm: number;
+  /** `tempo.offsetMs`, the origin of the grid a region quantize snaps to. */
+  gridOffsetMs?: number;
+  /** Document chords and key when `clip.pattern` uses `pitchSource: "chords" | "key"`. */
+  chords?: ReadonlyArray<TimelineChord>;
+  key?: StepKey | MusicKey;
+  /** Extra render-time controls (e.g. automated instrument cutoffHz). */
+  controls?: Partial<MidiRenderControls>;
   instrument: MidiInstrument;
   sampleRate: number;
+}
+
+/** The grid phase in ticks, modulo one grid step, so a move by whole steps keeps its render. */
+function regionQuantizePhase(
+  clip: MidiRenderKeyInput["clip"],
+  bpm: number,
+  gridOffsetMs: number
+): number {
+  const step = divisionToTicks(clip.quantize!.grid);
+  const phase = regionQuantizePhaseTick(clip, bpm, gridOffsetMs);
+  return Math.round((((phase % step) + step) % step) * 1000) / 1000;
 }
 
 /** The cache key for `renderMidiClip` on the same input. */
 export function midiRenderKey(input: MidiRenderKeyInput): string {
   const { clip, bpm, instrument, sampleRate } = input;
+  // A quantize reads the tempo grid, so where the clip sits on it is an input.
+  const quantizePhase = hasRegionQuantize(clip)
+    ? regionQuantizePhase(clip, bpm, input.gridOffsetMs ?? 0)
+    : undefined;
   const notes = sortNotes(clip.notes ?? []).map((note) => [
     note.id,
     note.pitch,
@@ -72,8 +108,27 @@ export function midiRenderKey(input: MidiRenderKeyInput): string {
   const canonical = JSON.stringify({
     notes,
     controllers,
+    ...(clip.pattern ? { pattern: fnv1a(JSON.stringify(clip.pattern)) } : {}),
+    ...(clip.pattern?.pitchSource === "chords"
+      ? {
+          patternStartMs: clip.startMs ?? 0,
+          patternGridOffsetMs: input.gridOffsetMs ?? 0,
+          patternChords: input.chords ? fnv1a(JSON.stringify(input.chords)) : null,
+          patternKey: input.key ?? null
+        }
+      : clip.pattern?.pitchSource === "key"
+        ? { patternKey: input.key ?? null }
+        : {}),
+    ...(clip.patternPhaseTicks ? { patternPhaseTicks: clip.patternPhaseTicks } : {}),
+    ...(clip.patternRowCycles ? { patternRowCycles: clip.patternRowCycles } : {}),
+    ...(input.controls ? { controls: input.controls } : {}),
     inPointMs: clip.inPointMs ?? 0,
     durationMs: clip.durationMs,
+    ...(clip.transpose ? { transpose: clip.transpose } : {}),
+    ...(clip.velocityOffset ? { velocityOffset: clip.velocityOffset } : {}),
+    ...(clip.quantize && clip.quantize.strength > 0
+      ? { quantize: [clip.quantize.grid, clip.quantize.strength, quantizePhase] }
+      : {}),
     ...(activeLoopMs(clip) !== undefined ? { loopLengthMs: clip.loopLengthMs } : {}),
     bpm,
     instrument: instrumentSignature(instrument),

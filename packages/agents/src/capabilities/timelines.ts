@@ -485,7 +485,11 @@ const TIMELINE_OP_ID_KEYS = {
   clip_id: "any",
   track_id: "any",
   clip: "clip",
-  track: "track"
+  track: "track",
+  clipId: "clip",
+  trackId: "track",
+  toClipId: "clip",
+  fromClipId: "clip"
 } as const satisfies Record<string, "any" | "clip" | "track">;
 
 function resolveNamedUnit(
@@ -533,6 +537,9 @@ export function resultUnitIds(result: unknown): string[] {
     for (const clip of clips) push(clip);
   }
   if (isString(result["id"])) ids.push(result["id"]);
+  if (isString(result["clipId"]) && !ids.includes(result["clipId"])) {
+    ids.push(result["clipId"]);
+  }
   return ids;
 }
 
@@ -558,7 +565,15 @@ export function resolveTimelineOpInput(
     ...state.tracks
   ];
   const resultIds = resultUnitIds(result);
+  const isMasterResult =
+    isRecord(result) &&
+    result["master"] !== undefined &&
+    result["track"] === undefined;
   const next = { ...input };
+  if (isMasterResult && typeof next["track"] === "string") {
+    next["track"] = "master";
+    return next;
+  }
   for (const [key, scope] of Object.entries(TIMELINE_OP_ID_KEYS)) {
     const value = next[key];
     if (typeof value !== "string" || value.length === 0) continue;
@@ -567,6 +582,13 @@ export function resolveTimelineOpInput(
       continue;
     }
     next[key] = resolveNamedUnit(value, clips, tracks, scope);
+  }
+  if (Array.isArray(next["clipIds"])) {
+    next["clipIds"] = next["clipIds"].map((entry) =>
+      typeof entry === "string" && entry.length > 0
+        ? resolveNamedUnit(entry, clips, tracks, "clip")
+        : entry
+    );
   }
   // An op that named no unit either created one or addressed the selection;
   // the result says which, so stamp it.
@@ -654,6 +676,11 @@ async function applyTimelineEdit(
     // stored document keeps the old BPM while the clips carry the rescaled
     // milliseconds, so the part plays at the wrong speed on the next read.
     if (state.tempo) next.tempo = state.tempo;
+    // The music marker, the master bus and the track folders are document
+    // state that `set_tempo`, `set_master` and `set_track` write.
+    if (state.music) next.music = state.music;
+    if (state.master) next.master = state.master;
+    if (state.trackFolders) next.trackFolders = state.trackFolders;
     // The guided flow's stage and plan are document state like the rest: an
     // op run that moved the flow on has to be what the row holds afterwards,
     // or the next surface to open the sequence resumes at the old step.
