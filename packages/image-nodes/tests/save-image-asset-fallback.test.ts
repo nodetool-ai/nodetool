@@ -14,7 +14,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext, createLocalWorkspace } from "@nodetool-ai/runtime";
 import { SaveImageNode } from "../src/nodes/image.js";
 
 async function testImage(): Promise<Record<string, unknown>> {
@@ -32,7 +32,7 @@ describe("SaveImageNode", () => {
     try {
       const context = new ProcessingContext({ jobId: "j1", userId: "u1" });
       const node = new SaveImageNode();
-      node.assign({ image: await testImage(), folder: dir, name: "out.png" });
+      node.assign({ image: await testImage(), folder: dir, filename: "out.png", save_to_workspace: false });
 
       const result = await node.process(context);
 
@@ -46,16 +46,27 @@ describe("SaveImageNode", () => {
   });
 
   it("persists through the interface when the host wired one", async () => {
-    const createAsset = vi.fn(async () => ({ id: "asset-1" }));
-    const context = new ProcessingContext({ jobId: "j2", userId: "u1" });
-    context.setModelInterfaces({ createAsset });
-    const node = new SaveImageNode();
-    node.assign({ image: await testImage(), name: "out.png" });
+    const dir = await mkdtemp(join(tmpdir(), "save-image-asset-"));
+    try {
+      const createAsset = vi.fn(async () => ({ id: "asset-1" }));
+      const context = new ProcessingContext({
+        jobId: "j2",
+        userId: "u1",
+        workspace: createLocalWorkspace(dir)
+      });
+      context.setModelInterfaces({ createAsset });
+      const node = new SaveImageNode();
+      node.assign({ image: await testImage(), filename: "out.png" });
 
-    const result = await node.process(context);
+      const result = await node.process(context);
 
-    const output = result.output as Record<string, unknown>;
-    expect(String(output.uri)).toBe("asset://asset-1.png");
-    expect(createAsset).toHaveBeenCalledTimes(1);
+      const output = result.output as Record<string, unknown>;
+      expect(output.uri).toBe("asset://asset-1");
+      expect(output.asset_id).toBe("asset-1");
+      expect(result.path).toBe(join(dir, "out.png"));
+      expect(createAsset).toHaveBeenCalledTimes(1);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

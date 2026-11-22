@@ -9,11 +9,8 @@ function embedding(inputs, options) {
 function rerank(inputs, options) {
   return createNode("nodetool.text.Rerank", inputs, { id: options?.id, outputNames: ["documents", "scores", "indices"], outputTypes: { "documents": "list[str]", "scores": "list[float]", "indices": "list[int]" } });
 }
-function saveTextFile(inputs, options) {
-  return createNode("nodetool.text.SaveTextFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "text" }, defaultOutput: "output" });
-}
 function saveText(inputs, options) {
-  return createNode("nodetool.text.SaveText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "text" }, defaultOutput: "output" });
+  return createNode("nodetool.text.SaveText", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: { "output": "text", "path": "str" } });
 }
 function loadTextFolder(inputs, options) {
   return createNode("nodetool.text.LoadTextFolder", inputs, { id: options?.id, outputNames: ["text", "path", "texts", "paths"], outputTypes: { "text": "str", "path": "str", "texts": "list", "paths": "list" }, streaming: true });
@@ -51,6 +48,5 @@ export {
   prompt,
   rerank,
   saveText,
-  saveTextFile,
   template
 };

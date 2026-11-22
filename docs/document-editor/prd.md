@@ -1,6 +1,6 @@
 # Document Editor — PRD
 
-> Status: draft · Owner: matti
+> Status: implemented (phases 1 to 4, R26 to R29), except DOCX export · Owner: matti
 
 ## Problem
 

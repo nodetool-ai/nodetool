@@ -3023,10 +3023,16 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'Save Text File',
-    description: 'Saves input text to a file in the assets folder.\n    text, save, file',
+    title: 'Save Text',
+    description: 'Save text to a file in the project folder, or to a folder on disk.\n' +
+      '    text, save, file, output\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Persisting processed text results\n' +
+      '    - Creating text files for downstream nodes or external use\n' +
+      '    - Archiving text data within the workflow',
     namespace: 'nodetool.text',
-    node_type: 'nodetool.text.SaveTextFile',
+    node_type: 'nodetool.text.SaveText',
     layout: 'default',
     body: 'default',
     properties: [
@@ -3076,18 +3082,19 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           visible_when: {
             property: 'save_to_workspace',
             equals: false
-          }
+          },
+          host_path: true
         },
         default: ''
       },
       {
-        name: 'name',
+        name: 'filename',
         type: {
           type: 'str',
           type_args: []
         },
         required: false,
-        title: 'Name',
+        title: 'Filename',
         description: '\n' +
           '        Name of the output file.\n' +
           '        You can use time and date variables to create unique names:\n' +
@@ -3103,6 +3110,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: '%Y-%m-%d-%H-%M-%S.txt'
+      },
+      {
+        name: 'overwrite',
+        type: {
+          type: 'bool',
+          type_args: []
+        },
+        required: false,
+        title: 'Overwrite',
+        description: 'Overwrite the file if it already exists, otherwise file will be renamed',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: false
       }
     ],
     outputs: [
@@ -3110,131 +3132,22 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         name: 'output',
         type: {
           type: 'text',
+          type_args: []
+        }
+      },
+      {
+        name: 'path',
+        type: {
+          type: 'str',
           type_args: []
         }
       }
     ],
     recommended_models: [],
     inline_fields: [
-      'save_to_workspace'
+      'save_to_workspace',
+      'filename'
     ],
-    input_fields: [
-      'text'
-    ],
-    required_settings: [],
-    required_runtimes: [],
-    is_streaming_input: false,
-    is_streaming_output: false,
-    input_mode: undefined,
-    output_correlation: undefined,
-    is_controlled: false,
-    is_join_node: undefined,
-    is_trigger: undefined,
-    always_emit_output_updates: undefined,
-    audio_sink: undefined,
-    supports_dynamic_inputs: false,
-    allowed_dynamic_slot_types: undefined,
-    supports_dynamic_outputs: undefined,
-    auto_save_asset: undefined,
-    retry_safe: undefined,
-    append_static_inputs: undefined,
-    cache_ttl: undefined,
-    effect: 'external',
-    primary_output: undefined,
-    model_packs: undefined,
-    platforms: [
-      'node'
-    ],
-    deprecated: undefined,
-    hidden: undefined,
-    replaced_by: undefined
-  },
-  {
-    title: 'Save Text',
-    description: 'Saves input text to a file in the assets folder.\n' +
-      '    text, save, file\n' +
-      '\n' +
-      '    Use cases:\n' +
-      '    - Persisting processed text results\n' +
-      '    - Creating text files for downstream nodes or external use\n' +
-      '    - Archiving text data within the workflow',
-    namespace: 'nodetool.text',
-    node_type: 'nodetool.text.SaveText',
-    layout: 'default',
-    body: 'default',
-    properties: [
-      {
-        name: 'text',
-        type: {
-          type: 'str',
-          type_args: []
-        },
-        required: false,
-        title: 'Text',
-        description: undefined,
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: ''
-      },
-      {
-        name: 'folder',
-        type: {
-          type: 'folder',
-          type_args: []
-        },
-        required: false,
-        title: 'Folder',
-        description: 'Name of the output folder.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'folder',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
-      {
-        name: 'name',
-        type: {
-          type: 'str',
-          type_args: []
-        },
-        required: false,
-        title: 'Name',
-        description: '\n' +
-          '        Name of the output file.\n' +
-          '        You can use time and date variables to create unique names:\n' +
-          '        %Y - Year\n' +
-          '        %m - Month\n' +
-          '        %d - Day\n' +
-          '        %H - Hour\n' +
-          '        %M - Minute\n' +
-          '        %S - Second\n' +
-          '        ',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: '%Y-%m-%d-%H-%M-%S.txt'
-      }
-    ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'text',
-          type_args: []
-        }
-      }
-    ],
-    recommended_models: [],
-    inline_fields: undefined,
     input_fields: [
       'text'
     ],
@@ -12122,8 +12035,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'Save Document File',
-    description: 'Write a document to disk, or into a project document.\n' +
+    title: 'Save Document',
+    description: 'Write a document into the project folder, a project document or a folder on disk.\n' +
       '    files, document, write, output, save, file, markdown\n' +
       '\n' +
       '    With a target document, the content replaces or is appended to that document, and each run keeps the content before it as a version. Without a target the node writes folder plus filename.\n' +
@@ -12132,7 +12045,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       '    %Y - Year, %m - Month, %d - Day\n' +
       '    %H - Hour, %M - Minute, %S - Second',
     namespace: 'nodetool.document',
-    node_type: 'nodetool.document.SaveDocumentFile',
+    node_type: 'nodetool.document.SaveDocument',
     layout: 'default',
     body: 'default',
     properties: [
@@ -12246,7 +12159,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           visible_when: {
             property: 'save_to_workspace',
             equals: false
-          }
+          },
+          host_path: true
         },
         default: ''
       },
@@ -12264,9 +12178,39 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: ''
+      },
+      {
+        name: 'overwrite',
+        type: {
+          type: 'bool',
+          type_args: []
+        },
+        required: false,
+        title: 'Overwrite',
+        description: 'Overwrite the file if it already exists, otherwise file will be renamed',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: false
       }
     ],
-    outputs: [],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'document',
+          type_args: []
+        }
+      },
+      {
+        name: 'path',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [
       'target',
@@ -14575,126 +14519,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'Save Audio Asset',
-    description: 'Save an audio file to a specified asset folder.\n    audio, folder, name',
-    namespace: 'nodetool.audio',
-    node_type: 'nodetool.audio.SaveAudio',
-    layout: 'default',
-    body: 'default',
-    properties: [
-      {
-        name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
-        required: false,
-        title: 'Audio',
-        description: undefined,
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'audio',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
-      {
-        name: 'folder',
-        type: {
-          type: 'folder',
-          type_args: []
-        },
-        required: false,
-        title: 'Folder',
-        description: 'The asset folder to save the audio file to. ',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'folder',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
-      {
-        name: 'name',
-        type: {
-          type: 'str',
-          type_args: []
-        },
-        required: false,
-        title: 'Name',
-        description: '\n' +
-          '        The name of the audio file.\n' +
-          '        You can use time and date variables to create unique names:\n' +
-          '        %Y - Year\n' +
-          '        %m - Month\n' +
-          '        %d - Day\n' +
-          '        %H - Hour\n' +
-          '        %M - Minute\n' +
-          '        %S - Second\n' +
-          '        ',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: '%Y-%m-%d-%H-%M-%S.wav'
-      }
-    ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'audio',
-          type_args: []
-        }
-      }
-    ],
-    recommended_models: [],
-    inline_fields: [],
-    input_fields: [
-      'audio'
-    ],
-    required_settings: [],
-    required_runtimes: [],
-    is_streaming_input: false,
-    is_streaming_output: false,
-    input_mode: undefined,
-    output_correlation: undefined,
-    is_controlled: false,
-    is_join_node: undefined,
-    is_trigger: undefined,
-    always_emit_output_updates: undefined,
-    audio_sink: undefined,
-    supports_dynamic_inputs: false,
-    allowed_dynamic_slot_types: undefined,
-    supports_dynamic_outputs: undefined,
-    auto_save_asset: undefined,
-    retry_safe: undefined,
-    append_static_inputs: undefined,
-    cache_ttl: undefined,
-    effect: 'external',
-    primary_output: undefined,
-    model_packs: undefined,
-    platforms: [
-      'node'
-    ],
-    deprecated: undefined,
-    hidden: undefined,
-    replaced_by: undefined
-  },
-  {
-    title: 'Save Audio File',
-    description: 'Write an audio file to disk.\n' +
-      '    audio, output, save, file\n' +
+    title: 'Save Audio',
+    description: 'Save audio into the project folder, or to a folder on disk.\n' +
+      '    audio, output, save, file, asset\n' +
       '\n' +
       '    The filename can include time and date variables:\n' +
       '    %Y - Year, %m - Month, %d - Day\n' +
@@ -14702,7 +14529,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       '\n' +
       '    Supported formats: mp3, wav, ogg, flac, aac, m4a',
     namespace: 'nodetool.audio',
-    node_type: 'nodetool.audio.SaveAudioFile',
+    node_type: 'nodetool.audio.SaveAudio',
     layout: 'default',
     body: 'default',
     properties: [
@@ -14758,7 +14585,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           visible_when: {
             property: 'save_to_workspace',
             equals: false
-          }
+          },
+          host_path: true
         },
         default: ''
       },
@@ -14785,6 +14613,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: ''
+      },
+      {
+        name: 'overwrite',
+        type: {
+          type: 'bool',
+          type_args: []
+        },
+        required: false,
+        title: 'Overwrite',
+        description: 'Overwrite the file if it already exists, otherwise file will be renamed',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: false
       }
     ],
     outputs: [
@@ -14794,11 +14637,19 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'audio',
           type_args: []
         }
+      },
+      {
+        name: 'path',
+        type: {
+          type: 'str',
+          type_args: []
+        }
       }
     ],
     recommended_models: [],
     inline_fields: [
-      'save_to_workspace'
+      'save_to_workspace',
+      'filename'
     ],
     input_fields: [
       'audio'
@@ -21625,162 +21476,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'Save Image File',
-    description: 'Write an image to disk.\n    image, output, save, file',
-    namespace: 'nodetool.image',
-    node_type: 'nodetool.image.SaveImageFile',
-    layout: 'default',
-    body: 'default',
-    properties: [
-      {
-        name: 'image',
-        type: {
-          type: 'image',
-          type_args: []
-        },
-        required: false,
-        title: 'Image',
-        description: 'The image to save',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'image',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
-      {
-        name: 'save_to_workspace',
-        type: {
-          type: 'bool',
-          type_args: []
-        },
-        required: false,
-        title: 'Save to workspace',
-        description: "Write the file into this workflow's workspace folder and number it (name_1, name_2, …) instead of overwriting. Turn this off to choose a folder yourself.",
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: true
-      },
-      {
-        name: 'folder',
-        type: {
-          type: 'str',
-          type_args: []
-        },
-        required: false,
-        title: 'Folder',
-        description: 'Folder where the file will be saved',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: {
-          visible_when: {
-            property: 'save_to_workspace',
-            equals: false
-          }
-        },
-        default: ''
-      },
-      {
-        name: 'filename',
-        type: {
-          type: 'str',
-          type_args: []
-        },
-        required: false,
-        title: 'Filename',
-        description: '\n' +
-          '        The name of the image file.\n' +
-          '        You can use time and date variables to create unique names:\n' +
-          '        %Y - Year\n' +
-          '        %m - Month\n' +
-          '        %d - Day\n' +
-          '        %H - Hour\n' +
-          '        %M - Minute\n' +
-          '        %S - Second\n' +
-          '        ',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: ''
-      },
-      {
-        name: 'overwrite',
-        type: {
-          type: 'bool',
-          type_args: []
-        },
-        required: false,
-        title: 'Overwrite',
-        description: 'Overwrite the file if it already exists, otherwise file will be renamed',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: false
-      }
-    ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'image',
-          type_args: []
-        }
-      },
-      {
-        name: 'path',
-        type: {
-          type: 'str',
-          type_args: []
-        }
-      }
-    ],
-    recommended_models: [],
-    inline_fields: [
-      'save_to_workspace',
-      'filename'
-    ],
-    input_fields: [
-      'image'
-    ],
-    required_settings: [],
-    required_runtimes: [],
-    is_streaming_input: false,
-    is_streaming_output: false,
-    input_mode: undefined,
-    output_correlation: undefined,
-    is_controlled: false,
-    is_join_node: undefined,
-    is_trigger: undefined,
-    always_emit_output_updates: undefined,
-    audio_sink: undefined,
-    supports_dynamic_inputs: false,
-    allowed_dynamic_slot_types: undefined,
-    supports_dynamic_outputs: undefined,
-    auto_save_asset: undefined,
-    retry_safe: undefined,
-    append_static_inputs: undefined,
-    cache_ttl: undefined,
-    effect: 'external',
-    primary_output: undefined,
-    model_packs: undefined,
-    platforms: [
-      'node'
-    ],
-    deprecated: undefined,
-    hidden: undefined,
-    replaced_by: undefined
-  },
-  {
     title: 'Load Image Assets',
     description: 'Load images from an asset folder.\n    load, image, file, import',
     namespace: 'nodetool.image',
@@ -21880,9 +21575,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'Save Image Asset',
-    description: 'Save an image to specified asset folder with customizable name format.\n' +
-      '    save, image, folder, naming',
+    title: 'Save Image',
+    description: 'Save an image into the project folder, or to a folder on disk.\n' +
+      '    image, output, save, file, asset',
     namespace: 'nodetool.image',
     node_type: 'nodetool.image.SaveImage',
     layout: 'default',
@@ -21896,7 +21591,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         },
         required: false,
         title: 'Image',
-        description: 'The image to save.',
+        description: 'The image to save',
         min: undefined,
         max: undefined,
         values: undefined,
@@ -21910,36 +21605,51 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         }
       },
       {
-        name: 'folder',
+        name: 'save_to_workspace',
         type: {
-          type: 'folder',
+          type: 'bool',
           type_args: []
         },
         required: false,
-        title: 'Folder',
-        description: 'The asset folder to save the image in.',
+        title: 'Save to workspace',
+        description: "Write the file into this workflow's workspace folder and number it (name_1, name_2, …) instead of overwriting. Turn this off to choose a folder yourself.",
         min: undefined,
         max: undefined,
         values: undefined,
         json_schema_extra: undefined,
-        default: {
-          type: 'folder',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
+        default: true
       },
       {
-        name: 'name',
+        name: 'folder',
         type: {
           type: 'str',
           type_args: []
         },
         required: false,
-        title: 'Name',
+        title: 'Folder',
+        description: 'Folder where the file will be saved',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: {
+          visible_when: {
+            property: 'save_to_workspace',
+            equals: false
+          },
+          host_path: true
+        },
+        default: ''
+      },
+      {
+        name: 'filename',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Filename',
         description: '\n' +
-          '        Name of the output file.\n' +
+          '        The name of the image file.\n' +
           '        You can use time and date variables to create unique names:\n' +
           '        %Y - Year\n' +
           '        %m - Month\n' +
@@ -21952,7 +21662,22 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         max: undefined,
         values: undefined,
         json_schema_extra: undefined,
-        default: '%Y-%m-%d_%H-%M-%S.png'
+        default: ''
+      },
+      {
+        name: 'overwrite',
+        type: {
+          type: 'bool',
+          type_args: []
+        },
+        required: false,
+        title: 'Overwrite',
+        description: 'Overwrite the file if it already exists, otherwise file will be renamed',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: false
       }
     ],
     outputs: [
@@ -21962,11 +21687,19 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'image',
           type_args: []
         }
+      },
+      {
+        name: 'path',
+        type: {
+          type: 'str',
+          type_args: []
+        }
       }
     ],
     recommended_models: [],
     inline_fields: [
-      'name'
+      'save_to_workspace',
+      'filename'
     ],
     input_fields: [
       'image'
@@ -24756,146 +24489,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'Save Video File',
-    description: 'Write a video file to disk.\n' +
-      '    video, output, save, file\n' +
-      '\n' +
-      '    The filename can include time and date variables:\n' +
-      '    %Y - Year, %m - Month, %d - Day\n' +
-      '    %H - Hour, %M - Minute, %S - Second',
-    namespace: 'nodetool.video',
-    node_type: 'nodetool.video.SaveVideoFile',
-    layout: 'default',
-    body: 'default',
-    properties: [
-      {
-        name: 'video',
-        type: {
-          type: 'video',
-          type_args: []
-        },
-        required: false,
-        title: 'Video',
-        description: 'The video to save',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'video',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null,
-          duration: null,
-          format: null
-        }
-      },
-      {
-        name: 'save_to_workspace',
-        type: {
-          type: 'bool',
-          type_args: []
-        },
-        required: false,
-        title: 'Save to workspace',
-        description: "Write the file into this workflow's workspace folder and number it (name_1, name_2, …) instead of overwriting. Turn this off to choose a folder yourself.",
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: true
-      },
-      {
-        name: 'folder',
-        type: {
-          type: 'str',
-          type_args: []
-        },
-        required: false,
-        title: 'Folder',
-        description: 'Folder where the file will be saved',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: {
-          visible_when: {
-            property: 'save_to_workspace',
-            equals: false
-          }
-        },
-        default: ''
-      },
-      {
-        name: 'filename',
-        type: {
-          type: 'str',
-          type_args: []
-        },
-        required: false,
-        title: 'Filename',
-        description: '\n' +
-          '        Name of the file to save.\n' +
-          '        You can use time and date variables to create unique names:\n' +
-          '        %Y - Year\n' +
-          '        %m - Month\n' +
-          '        %d - Day\n' +
-          '        %H - Hour\n' +
-          '        %M - Minute\n' +
-          '        %S - Second\n' +
-          '        ',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: ''
-      }
-    ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'video',
-          type_args: []
-        }
-      }
-    ],
-    recommended_models: [],
-    inline_fields: [
-      'save_to_workspace'
-    ],
-    input_fields: [
-      'video'
-    ],
-    required_settings: [],
-    required_runtimes: [],
-    is_streaming_input: false,
-    is_streaming_output: false,
-    input_mode: undefined,
-    output_correlation: undefined,
-    is_controlled: false,
-    is_join_node: undefined,
-    is_trigger: undefined,
-    always_emit_output_updates: undefined,
-    audio_sink: undefined,
-    supports_dynamic_inputs: false,
-    allowed_dynamic_slot_types: undefined,
-    supports_dynamic_outputs: undefined,
-    auto_save_asset: undefined,
-    retry_safe: undefined,
-    append_static_inputs: undefined,
-    cache_ttl: undefined,
-    effect: 'external',
-    primary_output: undefined,
-    model_packs: undefined,
-    platforms: [
-      'node'
-    ],
-    deprecated: undefined,
-    hidden: undefined,
-    replaced_by: undefined
-  },
-  {
     title: 'Load Video Folder',
     description: 'Load video files from an asset folder.\n    load, video, file, import',
     namespace: 'nodetool.video',
@@ -25006,8 +24599,13 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'Save Video Asset',
-    description: 'Save a video to an asset folder.\n    video, save, file, output',
+    title: 'Save Video',
+    description: 'Save a video into the project folder, or to a folder on disk.\n' +
+      '    video, output, save, file, asset\n' +
+      '\n' +
+      '    The filename can include time and date variables:\n' +
+      '    %Y - Year, %m - Month, %d - Day\n' +
+      '    %H - Hour, %M - Minute, %S - Second',
     namespace: 'nodetool.video',
     node_type: 'nodetool.video.SaveVideo',
     layout: 'default',
@@ -25021,7 +24619,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         },
         required: false,
         title: 'Video',
-        description: 'The video to save.',
+        description: 'The video to save',
         min: undefined,
         max: undefined,
         values: undefined,
@@ -25037,36 +24635,51 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         }
       },
       {
-        name: 'folder',
+        name: 'save_to_workspace',
         type: {
-          type: 'folder',
+          type: 'bool',
           type_args: []
         },
         required: false,
-        title: 'Folder',
-        description: 'The asset folder to save the video in.',
+        title: 'Save to workspace',
+        description: "Write the file into this workflow's workspace folder and number it (name_1, name_2, …) instead of overwriting. Turn this off to choose a folder yourself.",
         min: undefined,
         max: undefined,
         values: undefined,
         json_schema_extra: undefined,
-        default: {
-          type: 'folder',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
+        default: true
       },
       {
-        name: 'name',
+        name: 'folder',
         type: {
           type: 'str',
           type_args: []
         },
         required: false,
-        title: 'Name',
+        title: 'Folder',
+        description: 'Folder where the file will be saved',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: {
+          visible_when: {
+            property: 'save_to_workspace',
+            equals: false
+          },
+          host_path: true
+        },
+        default: ''
+      },
+      {
+        name: 'filename',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Filename',
         description: '\n' +
-          '        Name of the output video.\n' +
+          '        Name of the file to save.\n' +
           '        You can use time and date variables to create unique names:\n' +
           '        %Y - Year\n' +
           '        %m - Month\n' +
@@ -25079,7 +24692,22 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         max: undefined,
         values: undefined,
         json_schema_extra: undefined,
-        default: '%Y-%m-%d-%H-%M-%S.mp4'
+        default: ''
+      },
+      {
+        name: 'overwrite',
+        type: {
+          type: 'bool',
+          type_args: []
+        },
+        required: false,
+        title: 'Overwrite',
+        description: 'Overwrite the file if it already exists, otherwise file will be renamed',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: false
       }
     ],
     outputs: [
@@ -25089,10 +24717,20 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'video',
           type_args: []
         }
+      },
+      {
+        name: 'path',
+        type: {
+          type: 'str',
+          type_args: []
+        }
       }
     ],
     recommended_models: [],
-    inline_fields: [],
+    inline_fields: [
+      'save_to_workspace',
+      'filename'
+    ],
     input_fields: [
       'video'
     ],
@@ -34842,16 +34480,16 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'Save Model 3D File',
-    description: 'Save a 3D model to disk.\n' +
-      '    3d, mesh, model, output, save, file, export\n' +
+    title: 'Save Model 3D',
+    description: 'Save a 3D model into the project folder, or to a folder on disk.\n' +
+      '    3d, mesh, model, output, save, file, export, asset\n' +
       '\n' +
       '    Use cases:\n' +
       '    - Save processed 3D models\n' +
       '    - Export meshes to different formats\n' +
       '    - Archive 3D model results',
     namespace: 'nodetool.model3d',
-    node_type: 'nodetool.model3d.SaveModel3DFile',
+    node_type: 'nodetool.model3d.SaveModel3D',
     layout: 'default',
     body: 'default',
     properties: [
@@ -34910,7 +34548,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           visible_when: {
             property: 'save_to_workspace',
             equals: false
-          }
+          },
+          host_path: true
         },
         default: ''
       },
@@ -34961,140 +34600,19 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'model_3d',
           type_args: []
         }
+      },
+      {
+        name: 'path',
+        type: {
+          type: 'str',
+          type_args: []
+        }
       }
     ],
     recommended_models: [],
     inline_fields: [
       'save_to_workspace',
       'filename'
-    ],
-    input_fields: [
-      'model'
-    ],
-    required_settings: [],
-    required_runtimes: [],
-    is_streaming_input: false,
-    is_streaming_output: false,
-    input_mode: undefined,
-    output_correlation: undefined,
-    is_controlled: false,
-    is_join_node: undefined,
-    is_trigger: undefined,
-    always_emit_output_updates: undefined,
-    audio_sink: undefined,
-    supports_dynamic_inputs: false,
-    allowed_dynamic_slot_types: undefined,
-    supports_dynamic_outputs: undefined,
-    auto_save_asset: undefined,
-    retry_safe: undefined,
-    append_static_inputs: undefined,
-    cache_ttl: undefined,
-    effect: 'external',
-    primary_output: undefined,
-    model_packs: undefined,
-    platforms: [
-      'node'
-    ],
-    deprecated: undefined,
-    hidden: undefined,
-    replaced_by: undefined
-  },
-  {
-    title: 'Save Model3D Asset',
-    description: 'Save a 3D model to an asset folder with customizable name format.\n' +
-      '    save, 3d, mesh, model, folder, naming, asset\n' +
-      '\n' +
-      '    Use cases:\n' +
-      '    - Save generated 3D models with timestamps\n' +
-      '    - Organize outputs into specific folders\n' +
-      '    - Create backups of processed models',
-    namespace: 'nodetool.model3d',
-    node_type: 'nodetool.model3d.SaveModel3D',
-    layout: 'default',
-    body: 'default',
-    properties: [
-      {
-        name: 'model',
-        type: {
-          type: 'model_3d',
-          type_args: []
-        },
-        required: false,
-        title: 'Model',
-        description: 'The 3D model to save.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'model_3d',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null,
-          format: null,
-          material_file: null,
-          texture_files: []
-        }
-      },
-      {
-        name: 'folder',
-        type: {
-          type: 'folder',
-          type_args: []
-        },
-        required: false,
-        title: 'Folder',
-        description: 'The asset folder to save the 3D model in.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'folder',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
-      {
-        name: 'name',
-        type: {
-          type: 'str',
-          type_args: []
-        },
-        required: false,
-        title: 'Name',
-        description: '\n' +
-          '        Name of the output file.\n' +
-          '        You can use time and date variables to create unique names:\n' +
-          '        %Y - Year\n' +
-          '        %m - Month\n' +
-          '        %d - Day\n' +
-          '        %H - Hour\n' +
-          '        %M - Minute\n' +
-          '        %S - Second\n' +
-          '        ',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: '%Y-%m-%d_%H-%M-%S.glb'
-      }
-    ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'model_3d',
-          type_args: []
-        }
-      }
-    ],
-    recommended_models: [],
-    inline_fields: [
-      'name'
     ],
     input_fields: [
       'model'

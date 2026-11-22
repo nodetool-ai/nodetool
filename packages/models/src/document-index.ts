@@ -444,7 +444,7 @@ export async function listDocumentIndex(
  * Which workflows reference a document (document editor PRD R15). A workflow
  * references a document through a node property that holds a `document`
  * value naming the document's asset, as `nodetool.constant.Document`,
- * `nodetool.input.DocumentInput` and the target of `SaveDocumentFile` do. The
+ * `nodetool.input.DocumentInput` and the target of `SaveDocument` do. The
  * reverse index is derived from the stored graphs when it is read, so it
  * cannot go stale when a workflow is edited, copied or deleted.
  */

@@ -29,7 +29,7 @@ describe("buildBuiltinRegistry node policy", () => {
     vi.stubEnv("NODETOOL_NODE_PROFILE", "cloud");
     const registry = await freshRegistry();
     expect(registry.has("nodetool.document.LoadDocumentFile")).toBe(false);
-    expect(registry.has("nodetool.text.SaveTextFile")).toBe(false);
+    expect(registry.has("nodetool.text.LoadTextFolder")).toBe(false);
     expect(registry.has("nodetool.text.Concat")).toBe(true);
   }, 180_000);
 });

@@ -2,6 +2,12 @@
  * @jest-environment node
  */
 import type { Property } from "../../stores/ApiTypes";
+
+const cloudProfile = { value: false };
+jest.mock("../../lib/runtimeConfig", () => ({
+  isCloudProfile: () => cloudProfile.value
+}));
+
 import {
   isPropertyConditionSatisfied,
   shouldRenderProperty
@@ -75,5 +81,24 @@ describe("property visibility metadata", () => {
     });
     expect(shouldRenderProperty(input, { model: {} }, true)).toBe(true);
     expect(shouldRenderProperty(input, { model: {} }, false)).toBe(false);
+  });
+
+  it("hides a host folder field in the managed cloud", () => {
+    const folder: Property = {
+      name: "folder",
+      type: { type: "str", type_args: [], optional: false },
+      required: false,
+      json_schema_extra: {
+        visible_when: { property: "save_to_workspace", equals: false },
+        host_path: true
+      }
+    };
+    expect(isPropertyConditionSatisfied(folder, { save_to_workspace: false })).toBe(true);
+    cloudProfile.value = true;
+    try {
+      expect(isPropertyConditionSatisfied(folder, { save_to_workspace: false })).toBe(false);
+    } finally {
+      cloudProfile.value = false;
+    }
   });
 });

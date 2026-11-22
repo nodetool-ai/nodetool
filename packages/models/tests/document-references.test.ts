@@ -17,13 +17,13 @@ describe("document references", () => {
       documentReferencesInGraph({
         nodes: [
           { id: "a", type: "nodetool.constant.Document", data: { value: { type: "document", asset_id: DOC } } },
-          { id: "b", type: "nodetool.document.SaveDocumentFile", properties: { target: { type: "document", uri: `asset://${DOC}` } } },
+          { id: "b", type: "nodetool.document.SaveDocument", properties: { target: { type: "document", uri: `asset://${DOC}` } } },
           { id: "c", type: "nodetool.constant.Image", data: { value: { type: "image", asset_id: DOC } } }
         ]
       })
     ).toEqual([
       { nodeId: "a", nodeType: "nodetool.constant.Document", property: "value", assetId: DOC },
-      { nodeId: "b", nodeType: "nodetool.document.SaveDocumentFile", property: "target", assetId: DOC }
+      { nodeId: "b", nodeType: "nodetool.document.SaveDocument", property: "target", assetId: DOC }
     ]);
   });
 

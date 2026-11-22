@@ -7,7 +7,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   ListDocumentsNode,
   LoadDocumentFileNode,
-  SaveDocumentFileNode
+  SaveDocumentNode
 } from "@nodetool-ai/document-nodes";
 
 const originalHome = process.env.HOME;
@@ -28,7 +28,7 @@ describe("ListDocumentsNode with an empty prop bag", () => {
   });
 });
 
-describe("SaveDocumentFile resolves asset refs", () => {
+describe("SaveDocument resolves asset refs", () => {
   const ASSET_ID = "7a5835f86af44d878e875730d37b05ca";
   const PDF = new Uint8Array([0x25, 0x50, 0x44, 0x46]);
   const assetContext = {
@@ -44,7 +44,7 @@ describe("SaveDocumentFile resolves asset refs", () => {
   ])("writes the bytes behind %s", async (_label, ref) => {
     const dir = await mkdtemp(join(tmpdir(), "nodetool-save-doc-"));
     try {
-      const node = new SaveDocumentFileNode();
+      const node = new SaveDocumentNode();
       node.assign({
         document: { type: "document", ...ref },
         folder: { type: "folder", uri: dir },
@@ -52,14 +52,14 @@ describe("SaveDocumentFile resolves asset refs", () => {
         save_to_workspace: false
       });
       const result = await node.process(assetContext);
-      expect(new Uint8Array(await readFile(String(result.output)))).toEqual(PDF);
+      expect(new Uint8Array(await readFile(String(result.path)))).toEqual(PDF);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
   });
 });
 
-describe("SaveDocumentFile writes into a target document", () => {
+describe("SaveDocument writes into a target document", () => {
   const TARGET = "0123456789abcdef0123456789abcdef";
 
   function targetContext() {
@@ -81,7 +81,7 @@ describe("SaveDocumentFile writes into a target document", () => {
 
   it("appends Markdown text with the run as the version cause", async () => {
     const { context, writes } = targetContext();
-    const node = new SaveDocumentFileNode();
+    const node = new SaveDocumentNode();
     node.assign({
       __node_id: "save1",
       text: "New paragraph",
@@ -89,7 +89,8 @@ describe("SaveDocumentFile writes into a target document", () => {
       mode: "append"
     });
     const result = await node.process(context);
-    expect(result.output).toBe(`asset://${TARGET}`);
+    expect(result.output).toEqual({ type: "document", uri: `asset://${TARGET}`, asset_id: TARGET });
+    expect(result.path).toBe(`asset://${TARGET}`);
     expect(writes).toEqual([
       {
         assetId: TARGET,
@@ -103,7 +104,7 @@ describe("SaveDocumentFile writes into a target document", () => {
 
   it("replaces the target with the text of a document input", async () => {
     const { context, writes } = targetContext();
-    const node = new SaveDocumentFileNode();
+    const node = new SaveDocumentNode();
     node.assign({
       document: { type: "document", asset_id: "other" },
       target: { type: "document", asset_id: TARGET }
@@ -114,7 +115,7 @@ describe("SaveDocumentFile writes into a target document", () => {
 
   it("refuses a PDF as content", async () => {
     const { context } = targetContext();
-    const node = new SaveDocumentFileNode();
+    const node = new SaveDocumentNode();
     node.assign({
       document: { type: "document", data: Buffer.from("%PDF-1.7").toString("base64") },
       target: { type: "document", asset_id: TARGET }

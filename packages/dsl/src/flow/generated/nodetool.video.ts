@@ -84,22 +84,6 @@ export function loadVideoFile(inputs: LoadVideoFileInputs): Promise<LoadVideoFil
   return callNode<LoadVideoFileOutputs>("nodetool.video.LoadVideoFile", inputs);
 }
 
-// Save Video File — nodetool.video.SaveVideoFile
-export type SaveVideoFileInputs = {
-  video?: VideoRef;
-  save_to_workspace?: boolean;
-  folder?: string;
-  filename?: string;
-};
-
-export interface SaveVideoFileOutputs {
-  output: VideoRef;
-}
-
-export function saveVideoFile(inputs: SaveVideoFileInputs): Promise<SaveVideoFileOutputs> {
-  return callNode<SaveVideoFileOutputs>("nodetool.video.SaveVideoFile", inputs);
-}
-
 // Load Video Folder — nodetool.video.LoadVideoAssets
 export type LoadVideoAssetsInputs = {
   folder?: FolderRef;
@@ -120,15 +104,18 @@ loadVideoAssets.stream = function (inputs: LoadVideoAssetsInputs): AsyncIterable
   return streamNode<Partial<LoadVideoAssetsOutputs>>("nodetool.video.LoadVideoAssets", inputs);
 };
 
-// Save Video Asset — nodetool.video.SaveVideo
+// Save Video — nodetool.video.SaveVideo
 export type SaveVideoInputs = {
   video?: VideoRef;
-  folder?: FolderRef;
-  name?: string;
+  save_to_workspace?: boolean;
+  folder?: string;
+  filename?: string;
+  overwrite?: boolean;
 };
 
 export interface SaveVideoOutputs {
   output: VideoRef;
+  path: string;
 }
 
 export function saveVideo(inputs: SaveVideoInputs): Promise<SaveVideoOutputs> {

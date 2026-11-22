@@ -12,14 +12,11 @@ function referenceToVideo(inputs, options) {
 function loadVideoFile(inputs, options) {
   return createNode("nodetool.video.LoadVideoFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video" }, defaultOutput: "output" });
 }
-function saveVideoFile(inputs, options) {
-  return createNode("nodetool.video.SaveVideoFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video" }, defaultOutput: "output" });
-}
 function loadVideoAssets(inputs, options) {
   return createNode("nodetool.video.LoadVideoAssets", inputs, { id: options?.id, outputNames: ["video", "name", "videos", "names"], outputTypes: { "video": "video", "name": "str", "videos": "list", "names": "list" }, streaming: true, inputMode: "buffered", outputCorrelation: { "video": { "kind": "iteration", "source": "__execution__", "group": "items" }, "name": { "kind": "iteration", "source": "__execution__", "group": "items" }, "videos": { "kind": "single", "source": "__execution__" }, "names": { "kind": "single", "source": "__execution__" } } });
 }
 function saveVideo(inputs, options) {
-  return createNode("nodetool.video.SaveVideo", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video" }, defaultOutput: "output" });
+  return createNode("nodetool.video.SaveVideo", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: { "output": "video", "path": "str" } });
 }
 function forEachFrame(inputs, options) {
   return createNode("nodetool.video.ForEachFrame", inputs, { id: options?.id, outputNames: ["frame", "index", "fps"], outputTypes: { "frame": "image", "index": "int", "fps": "float" }, streaming: true, inputMode: "buffered", outputCorrelation: { "frame": { "kind": "iteration", "source": "video", "group": "items" }, "index": { "kind": "iteration", "source": "video", "group": "items" }, "fps": { "kind": "single", "source": "video" } } });
@@ -136,7 +133,6 @@ export {
   rotate,
   saturation,
   saveVideo,
-  saveVideoFile,
   setSpeed,
   sharpness,
   shot,

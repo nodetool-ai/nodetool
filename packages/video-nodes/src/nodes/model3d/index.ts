@@ -10,7 +10,6 @@ export * from "./generation.js";
 export * from "./render.js";
 
 import { LoadModel3DFileNode } from "./io.js";
-import { SaveModel3DFileNode } from "./io.js";
 import { SaveModel3DNode } from "./io.js";
 import { FormatConverterNode } from "./convert.js";
 import { GetModel3DMetadataNode } from "./analysis.js";
@@ -22,7 +21,6 @@ import { RenderToImageNode } from "./render.js";
 
 export const MODEL3D_NODES = [
   LoadModel3DFileNode,
-  SaveModel3DFileNode,
   SaveModel3DNode,
   FormatConverterNode,
   GetModel3DMetadataNode,

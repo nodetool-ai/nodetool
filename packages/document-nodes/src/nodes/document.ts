@@ -16,6 +16,8 @@ import {
   assertSaveTargetIsOwn,
   writeSaveTargetFile,
   writeSavedFile,
+  workspaceFolderOf,
+  type FolderValue,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
@@ -55,7 +57,7 @@ async function documentRefBytes(
   const uri = document.uri ?? "";
   if (!uri || uri.startsWith("asset://") || /^https?:/.test(uri)) {
     throw new Error(
-      `SaveDocumentFile: cannot read document '${uri || `asset://${document.asset_id}`}'`
+      `SaveDocument: cannot read document '${uri || `asset://${document.asset_id}`}'`
     );
   }
   const fs = await loadNodeFsPromises();
@@ -138,17 +140,30 @@ export class LoadDocumentFileNode extends BaseNode {
   }
 }
 
-/** Output handles SaveDocumentFileNode.process() emits. */
-type SaveDocumentFileNodeOutputs = {
-  output: string;
+/** A saved document, as the `output` handle carries it. */
+type SavedDocumentRef = { type: "document"; uri: string; asset_id: string | null };
+
+/** Output handles SaveDocumentNode.process() emits. */
+type SaveDocumentNodeOutputs = {
+  output: SavedDocumentRef;
+  path: string;
 };
 
-export class SaveDocumentFileNode extends BaseNode {
-  static readonly nodeType = "nodetool.document.SaveDocumentFile";
+/** The saved document for a file written at `path`. */
+function savedFileRef(path: string): SavedDocumentRef {
+  return { type: "document", uri: `file://${path}`, asset_id: null };
+}
+
+export class SaveDocumentNode extends BaseNode {
+  static readonly nodeType = "nodetool.document.SaveDocument";
   static readonly platforms = NODE_ONLY;
-  static readonly title = "Save Document File";
+  static readonly title = "Save Document";
+  static readonly metadataOutputTypes = {
+    output: "document",
+    path: "str"
+  };
   static readonly description =
-    "Write a document to disk, or into a project document.\n    files, document, write, output, save, file, markdown\n\n    With a target document, the content replaces or is appended to that document, and each run keeps the content before it as a version. Without a target the node writes folder plus filename.\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second";
+    "Write a document into the project folder, a project document or a folder on disk.\n    files, document, write, output, save, file, markdown\n\n    With a target document, the content replaces or is appended to that document, and each run keeps the content before it as a version. Without a target the node writes folder plus filename.\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second";
   static readonly inlineFields = [
     "target",
     "mode",
@@ -220,7 +235,7 @@ export class SaveDocumentFileNode extends BaseNode {
     description: "Folder where the file will be saved",
     json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
-  declare folder: string;
+  declare folder: FolderValue;
 
   @prop({
     type: "str",
@@ -230,16 +245,29 @@ export class SaveDocumentFileNode extends BaseNode {
   })
   declare filename: string;
 
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Overwrite",
+    description:
+      "Overwrite the file if it already exists, otherwise file will be renamed"
+  })
+  declare overwrite: boolean;
+
   /** Destination path — set on the instance, not declared as a `@prop`. */
   declare path?: string;
 
   async process(
     context?: ProcessingContext
-  ): Promise<SaveDocumentFileNodeOutputs> {
+  ): Promise<SaveDocumentNodeOutputs> {
     const document = this.document ?? {};
     const targetId = targetAssetId(this.target);
     if (targetId) {
-      return { output: await this.writeTarget(targetId, document, context) };
+      const written = await this.writeTarget(targetId, document, context);
+      return {
+        output: { type: "document", uri: `asset://${written.id}`, asset_id: written.id },
+        path: written.workspace_path ?? `asset://${written.id}`
+      };
     }
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
@@ -266,29 +294,31 @@ export class SaveDocumentFileNode extends BaseNode {
       await assertSaveTargetIsOwn(context, path.resolve(pinned));
       await fs.mkdir(path.dirname(pinned), { recursive: true });
       await writeSaveTargetFile(context, path.resolve(pinned), bytes);
-      return { output: pinned };
+      return { output: savedFileRef(pinned), path: pinned };
     }
 
     const full = await writeSavedFile({
       folder: this.folder,
       filename: this.filename || "document.txt",
+      workspaceFolder: await workspaceFolderOf(this.folder, context),
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
       context: context ?? null,
+      overwrite: this.overwrite,
       bytes
     });
-    return { output: full };
+    return { output: savedFileRef(full), path: full };
   }
 
-  /** Write into the target project document. Returns its `asset://` URI. */
+  /** Write into the target project document and return its asset. */
   private async writeTarget(
     assetId: string,
     document: DocumentRefLike,
     context: ProcessingContext | undefined
-  ): Promise<string> {
+  ): Promise<{ id: string; workspace_path?: string | null }> {
     if (!context) {
-      throw new Error("SaveDocumentFile: writing to a target document needs a run context.");
+      throw new Error("SaveDocument: writing to a target document needs a run context.");
     }
     let content: string;
     if (this.text) {
@@ -314,9 +344,9 @@ export class SaveDocumentFileNode extends BaseNode {
       }
     });
     if (!written) {
-      throw new Error(`SaveDocumentFile: target document ${assetId} was not found.`);
+      throw new Error(`SaveDocument: target document ${assetId} was not found.`);
     }
-    return `asset://${written.id}`;
+    return written;
   }
 }
 
@@ -333,7 +363,7 @@ function decodeText(bytes: Uint8Array): string {
   const head = String.fromCharCode(...bytes.subarray(0, 4));
   if (head === "%PDF" || head === "PK\u0003\u0004" || bytes.subarray(0, 8192).includes(0)) {
     throw new Error(
-      "SaveDocumentFile: the content is a binary document. Extract its text first, for example with lib.pdf.ExtractMarkdown."
+      "SaveDocument: the content is a binary document. Extract its text first, for example with lib.pdf.ExtractMarkdown."
     );
   }
   return new TextDecoder("utf-8").decode(bytes);
@@ -495,6 +525,6 @@ export class ListDocumentsNode extends BaseNode {
 
 export const DOCUMENT_NODES = tagAsServer([
   LoadDocumentFileNode,
-  SaveDocumentFileNode,
+  SaveDocumentNode,
   ListDocumentsNode
 ]);

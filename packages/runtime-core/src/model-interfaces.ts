@@ -54,6 +54,8 @@ export interface AssetInfoEntry {
   content_type: string;
   name: string;
   metadata: Record<string, unknown> | null;
+  /** The file's or folder's path in its project folder, when it has one. */
+  workspace_path?: string | null;
 }
 
 /**

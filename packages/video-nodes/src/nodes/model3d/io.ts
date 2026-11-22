@@ -4,7 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
-import { DEFAULT_FOLDER, DEFAULT_MODEL_3D } from "./defaults.js";
+import { DEFAULT_MODEL_3D } from "./defaults.js";
 import {
   dateName,
   extFormat,
@@ -14,22 +14,16 @@ import {
   modelRefToBytes
 } from "./utils.js";
 import {
-  assertSaveTargetIsOwn,
-  writeSaveTargetFile,
-  folderPathOf,
   saveFilename,
-  writeSavedFile,
+  writeSavedFileAsset,
+  savedMediaRef,
+  workspaceFolderOf,
+  type FolderValue,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
 } from "@nodetool-ai/nodes-utils";
 import type { Model3DRefLike } from "./types.js";
-
-/**
- * What a `folder` slot delivers. Mirrors `FolderValue` in nodes-utils'
- * save-target.ts, which the package index does not re-export.
- */
-type FolderRefLike = string | { uri?: string } | null;
 
 /** Output handles LoadModel3DFileNode.process() emits. */
 type LoadModel3DFileNodeOutputs = {
@@ -64,18 +58,20 @@ export class LoadModel3DFileNode extends BaseNode {
   }
 }
 
-/** Output handles SaveModel3DFileNode.process() emits. */
-type SaveModel3DFileNodeOutputs = {
+/** Output handles SaveModel3DNode.process() emits. */
+type SaveModel3DNodeOutputs = {
   output: { type: string; asset_id: null; metadata: null; data: string };
+  path: string;
 };
 
-export class SaveModel3DFileNode extends BaseNode {
-  static readonly nodeType = "nodetool.model3d.SaveModel3DFile";
-  static readonly title = "Save Model 3D File";
+export class SaveModel3DNode extends BaseNode {
+  static readonly nodeType = "nodetool.model3d.SaveModel3D";
+  static readonly title = "Save Model 3D";
   static readonly description =
-    "Save a 3D model to disk.\n    3d, mesh, model, output, save, file, export\n\n    Use cases:\n    - Save processed 3D models\n    - Export meshes to different formats\n    - Archive 3D model results";
+    "Save a 3D model into the project folder, or to a folder on disk.\n    3d, mesh, model, output, save, file, export, asset\n\n    Use cases:\n    - Save processed 3D models\n    - Export meshes to different formats\n    - Archive 3D model results";
   static readonly metadataOutputTypes = {
-    output: "model_3d"
+    output: "model_3d",
+    path: "str"
   };
   static readonly inlineFields = ["save_to_workspace", "filename"];
   static readonly inputFields = ["model"];
@@ -103,7 +99,7 @@ export class SaveModel3DFileNode extends BaseNode {
     description: "Folder where the file will be saved",
     json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
-  declare folder: string;
+  declare folder: FolderValue;
 
   @prop({
     type: "str",
@@ -123,15 +119,16 @@ export class SaveModel3DFileNode extends BaseNode {
   })
   declare overwrite: boolean;
 
-  async process(context?: ProcessingContext): Promise<SaveModel3DFileNodeOutputs> {
+  async process(context?: ProcessingContext): Promise<SaveModel3DNodeOutputs> {
     const bytes = await modelRefToBytes(this.model, context);
-    const targetPath = await writeSavedFile({
+    const { path: targetPath, asset_id } = await writeSavedFileAsset({
       folder: this.folder,
       filename: saveFilename({
         filename: dateName(this.filename),
         fallback: dateName("model_%Y-%m-%d_%H-%M-%S"),
         extension: `.${modelFormat(this.model)}`
       }),
+      workspaceFolder: await workspaceFolderOf(this.folder, context),
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
@@ -141,70 +138,15 @@ export class SaveModel3DFileNode extends BaseNode {
     });
 
     return {
-      output: modelRef(bytes, {
-        uri: pathToFileURL(targetPath).toString(),
-        format: extFormat(targetPath)
-      })
+      output: savedMediaRef(
+        modelRef(bytes, {
+          uri: pathToFileURL(targetPath).toString(),
+          format: extFormat(targetPath)
+        }),
+        asset_id
+      ),
+      path: targetPath
     };
   }
 }
 
-/** Output handles SaveModel3DNode.process() emits. */
-type SaveModel3DNodeOutputs = {
-  output: { type: string; asset_id: null; metadata: null; data: string };
-};
-
-export class SaveModel3DNode extends BaseNode {
-  static readonly nodeType = "nodetool.model3d.SaveModel3D";
-  static readonly title = "Save Model3D Asset";
-  static readonly description =
-    "Save a 3D model to an asset folder with customizable name format.\n    save, 3d, mesh, model, folder, naming, asset\n\n    Use cases:\n    - Save generated 3D models with timestamps\n    - Organize outputs into specific folders\n    - Create backups of processed models";
-  static readonly metadataOutputTypes = {
-    output: "model_3d"
-  };
-  static readonly inlineFields = ["name"];
-  static readonly inputFields = ["model"];
-
-  @prop({
-    type: "model_3d",
-    default: DEFAULT_MODEL_3D,
-    title: "Model",
-    description: "The 3D model to save."
-  })
-  declare model: Model3DRefLike;
-
-  @prop({
-    type: "folder",
-    default: DEFAULT_FOLDER,
-    title: "Folder",
-    description: "The asset folder to save the 3D model in."
-  })
-  declare folder: FolderRefLike;
-
-  @prop({
-    type: "str",
-    default: "%Y-%m-%d_%H-%M-%S.glb",
-    title: "Name",
-    description:
-      "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
-  })
-  declare name: string;
-
-  async process(context?: ProcessingContext): Promise<SaveModel3DNodeOutputs> {
-    // folderPathOf, not String(): `folder` carries a folder ref object, and
-    // stringifying it wrote every model into a directory named "[object Object]".
-    const folder = folderPathOf(this.folder);
-    const name = dateName(this.name);
-    const full = path.resolve(folder, name);
-    await assertSaveTargetIsOwn(context, full);
-    await fs.mkdir(path.dirname(full), { recursive: true });
-    const bytes = await modelRefToBytes(this.model, context);
-    await writeSaveTargetFile(context, full, bytes);
-    return {
-      output: modelRef(bytes, {
-        uri: pathToFileURL(full).toString(),
-        format: extFormat(full)
-      })
-    };
-  }
-}

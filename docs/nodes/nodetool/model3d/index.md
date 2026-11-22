@@ -21,7 +21,7 @@ This namespace contains 18 node(s).
 - **[Recalculate Normals](recalculatenormals.md)** - Recalculate mesh normals for proper shading.
 - **[Render 3D To Image](render3dtoimage.md)** - Render a 3D model (GLB/glTF) to an image with an orbit camera and studio ligh...
 - **[Repair Mesh](repairmesh.md)** - Apply conservative mesh cleanup passes to remove obviously broken GLB triangl...
-- **[Save Model 3D File](savemodel3dfile.md)** - Save a 3D model to disk.
+- **[Save Model 3D](savemodel3d.md)** - Save a 3D model into the project folder, or to a folder on disk.
 - **[Save Model3D Asset](savemodel3dasset.md)** - Save a 3D model to an asset folder with customizable name format.
 - **[Text To 3D](textto3d.md)** - Generate 3D models from text prompts using AI providers (Meshy, Rodin).
 - **[Transform 3D](transform3d.md)** - Apply translation, rotation, and scaling to a 3D model.

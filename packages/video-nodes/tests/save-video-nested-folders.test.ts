@@ -41,8 +41,8 @@ const VIDEO = { type: "video", uri: "", data: Buffer.from([1, 2, 3, 4]).toString
 const MODEL = { type: "model3d", uri: "", format: "glb", data: Buffer.from([5, 6, 7, 8]).toString("base64") };
 
 describe.each([
-  ["SaveVideo", () => new SaveVideoNode(), VIDEO, "video", "name"],
-  ["SaveModel3D", () => new SaveModel3DNode(), MODEL, "model", "name"]
+  ["SaveVideo", () => new SaveVideoNode(), VIDEO, "video", "filename"],
+  ["SaveModel3D", () => new SaveModel3DNode(), MODEL, "model", "filename"]
 ] as const)("%s in a run with a workspace", (_label, make, media, slot, nameProp) => {
   it.each([
     [path.join("projects", "abc"), "clip.bin"],
@@ -50,14 +50,14 @@ describe.each([
     [path.join("projects", "abc", "deep"), "x.mp4"]
   ])("refuses to write into %s", async (folder, name) => {
     const node = make();
-    node.assign({ [slot]: media, folder: { type: "folder", uri: path.join(dir, folder) }, [nameProp]: name });
+    node.assign({ [slot]: media, save_to_workspace: false, folder: { type: "folder", uri: path.join(dir, folder) }, [nameProp]: name });
     await expect(node.process(context)).rejects.toThrow(WorkspaceReservedPathError);
     await intact();
   });
 
   it("writes in the project's own folder", async () => {
     const node = make();
-    node.assign({ [slot]: media, folder: { type: "folder", uri: path.join(dir, "out") }, [nameProp]: "a.bin" });
+    node.assign({ [slot]: media, save_to_workspace: false, folder: { type: "folder", uri: path.join(dir, "out") }, [nameProp]: "a.bin" });
     await node.process(context);
     expect((await readFile(path.join(dir, "out", "a.bin"))).length).toBe(4);
   });

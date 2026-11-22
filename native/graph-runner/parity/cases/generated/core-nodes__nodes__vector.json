@@ -126,9 +126,24 @@
       "id": "n",
       "type": "vector.IndexImage",
       "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
      }
     ],
-    "edges": []
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
    }
   },
   {
@@ -140,9 +155,24 @@
       "id": "n",
       "type": "vector.IndexEmbedding",
       "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
      }
     ],
-    "edges": []
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
    }
   },
   {
@@ -154,9 +184,24 @@
       "id": "n",
       "type": "vector.IndexTextChunk",
       "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
      }
     ],
-    "edges": []
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
    }
   },
   {
@@ -168,9 +213,24 @@
       "id": "n",
       "type": "vector.IndexAggregatedText",
       "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
      }
     ],
-    "edges": []
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
    }
   },
   {
@@ -182,9 +242,24 @@
       "id": "n",
       "type": "vector.IndexString",
       "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
      }
     ],
-    "edges": []
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
    }
   },
   {

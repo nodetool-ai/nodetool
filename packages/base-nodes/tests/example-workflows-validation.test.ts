@@ -95,8 +95,9 @@ const ALLOWED_UNREGISTERED_TYPES = new Set<string>([
   // `NODE_TYPE_MIGRATIONS` (packages/protocol) rewrites these to a
   // registered type — nodetool.code.Code for the Tier 1 text-node removals —
   // during `Graph.loadFromDict`, so the raw type in a saved template is
-  // expected to look unregistered here.
-  ...NODE_TYPE_MIGRATIONS.map((m) => m.from)
+  // expected to look unregistered here. A migration that keeps its type
+  // only renames properties, so its type stays registered.
+  ...NODE_TYPE_MIGRATIONS.filter((m) => m.from !== m.to).map((m) => m.from)
 ]);
 
 interface WorkflowFile {

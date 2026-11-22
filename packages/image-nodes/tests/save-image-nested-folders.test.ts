@@ -53,14 +53,14 @@ describe("SaveImage file fallback in a run with a workspace", () => {
     [path.join("projects", "abc", "deep"), "x.png"]
   ])("refuses to write into %s", async (folder, name) => {
     const node = new SaveImageNode();
-    node.assign({ image: IMAGE, folder: path.join(dir, folder), name });
+    node.assign({ image: IMAGE, save_to_workspace: false, folder: path.join(dir, folder), filename: name });
     await expect(node.process(context)).rejects.toThrow(WorkspaceReservedPathError);
     await intact();
   });
 
   it("writes in the project's own folder", async () => {
     const node = new SaveImageNode();
-    node.assign({ image: IMAGE, folder: path.join(dir, "out"), name: "a.png" });
+    node.assign({ image: IMAGE, save_to_workspace: false, folder: path.join(dir, "out"), filename: "a.png" });
     await node.process(context);
     expect((await readFile(path.join(dir, "out", "a.png"))).length).toBeGreaterThan(0);
   });

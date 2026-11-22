@@ -1,18 +1,18 @@
 ---
 layout: page
-title: "Save Model 3D File"
-node_type: "nodetool.model3d.SaveModel3DFile"
+title: "Save Model 3D"
+node_type: "nodetool.model3d.SaveModel3D"
 namespace: "nodetool.model3d"
 ---
 
-**Type:** `nodetool.model3d.SaveModel3DFile`
+**Type:** `nodetool.model3d.SaveModel3D`
 
 **Namespace:** `nodetool.model3d`
 
 ## Description
 
-Save a 3D model to disk.
-    3d, mesh, model, output, save, file, export
+Save a 3D model into the project folder, or to a folder on disk.
+    3d, mesh, model, output, save, file, export, asset
 
     Use cases:
     - Save processed 3D models
@@ -24,6 +24,7 @@ Save a 3D model to disk.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | model | `model_3d` | The 3D model to save | - |
+| save_to_workspace | `bool` |  | `true` |
 | folder | `str` | Folder where the file will be saved | `` |
 | filename | `str` |          The name of the 3D model file.         You can use time and date variables to create unique names:         %Y - Year         %m - Month         %d - Day         %H - Hour         %M - Minute         %S - Second          | `` |
 | overwrite | `bool` | Overwrite the file if it already exists, otherwise file will be renamed | `false` |
@@ -33,6 +34,7 @@ Save a 3D model to disk.
 | Output | Type | Description |
 |--------|------|-------------|
 | output | `model_3d` |  |
+| path | `str` |  |
 
 ## Related Nodes
 

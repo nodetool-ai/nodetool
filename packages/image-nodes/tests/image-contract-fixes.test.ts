@@ -6,7 +6,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
-import { SaveImageFileImageNode, CanvasResizeNode } from "../src/nodes/image.js";
+import { SaveImageNode, CanvasResizeNode } from "../src/nodes/image.js";
 
 async function makeTestImage(
   w = 4,
@@ -29,11 +29,11 @@ async function makeTestImage(
   };
 }
 
-describe("SaveImageFileImageNode output contract", () => {
+describe("SaveImageNode output contract", () => {
   it("returns an image-typed output plus the path string", async () => {
     const dir = await mkdtemp(join(tmpdir(), "save-image-test-"));
     try {
-      const node = new SaveImageFileImageNode();
+      const node = new SaveImageNode();
       node.assign({
         image: await makeTestImage(6, 6, 10, 20, 30),
         folder: dir,

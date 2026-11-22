@@ -18,7 +18,10 @@ import {
   loadNodePath,
   assertSaveTargetIsOwn,
   writeSaveTargetFile,
-  writeSavedFile,
+  writeSavedFileAsset,
+  savedMediaRef,
+  workspaceFolderOf,
+  type FolderValue,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
@@ -347,85 +350,20 @@ export class LoadAudioFolderNode extends BaseNode {
 /** Output handles SaveAudioNode.process() emits. */
 type SaveAudioNodeOutputs = {
   output: AudioRef;
+  path: string;
 };
 
 export class SaveAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.SaveAudio";
   static readonly platforms = NODE_ONLY;
-  static readonly title = "Save Audio Asset";
+  static readonly title = "Save Audio";
   static readonly description =
-    "Save an audio file to a specified asset folder.\n    audio, folder, name";
+    "Save audio into the project folder, or to a folder on disk.\n    audio, output, save, file, asset\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second\n\n    Supported formats: mp3, wav, ogg, flac, aac, m4a";
   static readonly metadataOutputTypes = {
-    output: "audio"
+    output: "audio",
+    path: "str"
   };
-  static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["audio"];
-
-  @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Audio"
-  })
-  declare audio: AudioRef;
-
-  @prop({
-    type: "folder",
-    default: {
-      type: "folder",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Folder",
-    description: "The asset folder to save the audio file to. "
-  })
-  declare folder: FolderRef;
-
-  @prop({
-    type: "str",
-    default: "%Y-%m-%d-%H-%M-%S.wav",
-    title: "Name",
-    description:
-      "\n        The name of the audio file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
-  })
-  declare name: string;
-
-  async process(context?: ProcessingContext): Promise<SaveAudioNodeOutputs> {
-    const bytes = await audioBytesAsync(this.audio, context);
-    const folder = resolveFolderPath(this.folder) || ".";
-    const name = dateName(String(this.name || "audio.wav"));
-    const fs = await loadNodeFsPromises();
-    const path = await loadNodePath();
-    const full = path.resolve(folder, name);
-    await assertSaveTargetIsOwn(context, full);
-    await fs.mkdir(path.dirname(full), { recursive: true });
-    await writeSaveTargetFile(context, full, bytes);
-    return { output: audioRefFromBytes(bytes, `file://${full}`) };
-  }
-}
-
-/** Output handles SaveAudioFileNode.process() emits. */
-type SaveAudioFileNodeOutputs = {
-  output: string;
-};
-
-export class SaveAudioFileNode extends BaseNode {
-  static readonly nodeType = "nodetool.audio.SaveAudioFile";
-  static readonly platforms = NODE_ONLY;
-  static readonly title = "Save Audio File";
-  static readonly description =
-    "Write an audio file to disk.\n    audio, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second\n\n    Supported formats: mp3, wav, ogg, flac, aac, m4a";
-  static readonly metadataOutputTypes = {
-    output: "audio"
-  };
-  static readonly inlineFields: string[] = ["save_to_workspace"];
+  static readonly inlineFields: string[] = ["save_to_workspace", "filename"];
   static readonly inputFields: string[] = ["audio"];
 
   @prop({
@@ -457,7 +395,7 @@ export class SaveAudioFileNode extends BaseNode {
     description: "Folder where the file will be saved",
     json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
-  declare folder: string;
+  declare folder: FolderValue;
 
   @prop({
     type: "str",
@@ -468,18 +406,29 @@ export class SaveAudioFileNode extends BaseNode {
   })
   declare filename: string;
 
-  async process(context?: ProcessingContext): Promise<SaveAudioFileNodeOutputs> {
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Overwrite",
+    description:
+      "Overwrite the file if it already exists, otherwise file will be renamed"
+  })
+  declare overwrite: boolean;
+
+  async process(context?: ProcessingContext): Promise<SaveAudioNodeOutputs> {
     const bytes = await audioBytesAsync(this.audio, context);
-    const p = await writeSavedFile({
+    const { path: p, asset_id } = await writeSavedFileAsset({
       folder: this.folder,
       filename: dateName(String(this.filename || "audio.wav")),
+      workspaceFolder: await workspaceFolderOf(this.folder, context),
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
       context: context ?? null,
+      overwrite: this.overwrite,
       bytes
     });
-    return { output: p };
+    return { output: savedMediaRef(audioRefFromBytes(bytes, `file://${p}`), asset_id), path: p };
   }
 }
 
@@ -2225,7 +2174,6 @@ const AUDIO_SERVER_NODES = tagAsServer([
   LoadAudioFileNode,
   LoadAudioFolderNode,
   SaveAudioNode,
-  SaveAudioFileNode,
   TextToSpeechNode,
   TextToMusicNode,
   AudioToAudioNode

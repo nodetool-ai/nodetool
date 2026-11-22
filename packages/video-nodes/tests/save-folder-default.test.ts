@@ -40,7 +40,7 @@ vi.mock("node:fs", async (importOriginal) => {
   return { ...original, promises };
 });
 
-const { SaveVideoNode, SaveVideoFileVideoNode, FrameToVideoNode } =
+const { SaveVideoNode, FrameToVideoNode } =
   await import("@nodetool-ai/video-nodes");
 
 function inlineVideo() {
@@ -59,7 +59,7 @@ beforeEach(() => {
 describe("save-folder default", () => {
   it("SaveVideo writes under the workspace dir when folder is empty", async () => {
     const node = new SaveVideoNode();
-    node.assign({ video: inlineVideo(), name: "clip.mp4" });
+    node.assign({ video: inlineVideo(), filename: "clip.mp4" });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await node.process({ workspaceDir: "/ws" } as any);
 
@@ -68,19 +68,9 @@ describe("save-folder default", () => {
     expect(mkdirPaths[0]).toBe("/ws");
   });
 
-  it("SaveVideoFile writes under the workspace dir when folder is empty", async () => {
-    const node = new SaveVideoFileVideoNode();
-    node.assign({ video: inlineVideo(), filename: "clip.mp4" });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await node.process({ workspaceDir: "/ws" } as any);
-
-    expect(writtenPaths).toHaveLength(1);
-    expect(writtenPaths[0].startsWith("/ws/")).toBe(true);
-  });
-
   it("an explicit folder still wins over the workspace dir", async () => {
     const node = new SaveVideoNode();
-    node.assign({ video: inlineVideo(), name: "clip.mp4", folder: "/out" });
+    node.assign({ video: inlineVideo(), filename: "clip.mp4", folder: "/out", save_to_workspace: false });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await node.process({ workspaceDir: "/ws" } as any);
 
@@ -89,7 +79,7 @@ describe("save-folder default", () => {
 
   it("falls back to cwd when no workspace is set", async () => {
     const node = new SaveVideoNode();
-    node.assign({ video: inlineVideo(), name: "clip.mp4" });
+    node.assign({ video: inlineVideo(), filename: "clip.mp4" });
     await node.process();
 
     // Resolved against cwd, so not the workspace path.

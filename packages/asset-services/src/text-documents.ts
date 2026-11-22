@@ -311,6 +311,7 @@ export async function writeTextDocumentModelInterface(
   content_type: string;
   name: string;
   metadata: Record<string, unknown> | null;
+  workspace_path: string | null;
 } | null> {
   const found = await Asset.find(args.userId, args.assetId);
   if (!found) return null;
@@ -338,7 +339,8 @@ export async function writeTextDocumentModelInterface(
     id: saved.id,
     content_type: saved.content_type,
     name: saved.name,
-    metadata: saved.metadata ?? null
+    metadata: saved.metadata ?? null,
+    workspace_path: saved.workspace_path ?? null
   };
 }
 

@@ -35,7 +35,7 @@ const Harness: FC<{ data: NodeData }> = ({ data }) => (
   <NodeProvider createStore={() => createNodeStore()}>
     <NodeInputs
       id="node1"
-      nodeType="nodetool.image.SaveImageFile"
+      nodeType="nodetool.image.SaveImage"
       properties={properties}
       data={data}
       nodeMetadata={{} as any}

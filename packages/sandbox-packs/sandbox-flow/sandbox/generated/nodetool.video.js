@@ -12,9 +12,6 @@ function referenceToVideo(inputs) {
 function loadVideoFile(inputs) {
   return callNode("nodetool.video.LoadVideoFile", inputs);
 }
-function saveVideoFile(inputs) {
-  return callNode("nodetool.video.SaveVideoFile", inputs);
-}
 function loadVideoAssets(inputs) {
   return callNode("nodetool.video.LoadVideoAssets", inputs);
 }
@@ -145,7 +142,6 @@ export {
   rotate,
   saturation,
   saveVideo,
-  saveVideoFile,
   setSpeed,
   sharpness,
   shot,

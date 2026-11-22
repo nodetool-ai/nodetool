@@ -46,14 +46,14 @@ describe("SaveAudio in a run with a workspace", () => {
     [path.join("projects", "abc", "deep"), "x.wav"]
   ])("refuses to write into %s", async (folder, name) => {
     const node = new SaveAudioNode();
-    node.assign({ audio: AUDIO, folder: { type: "folder", uri: path.join(dir, folder) }, name });
+    node.assign({ audio: AUDIO, save_to_workspace: false, folder: { type: "folder", uri: path.join(dir, folder) }, filename: name });
     await expect(node.process(context)).rejects.toThrow(WorkspaceReservedPathError);
     await intact();
   });
 
   it("writes in the project's own folder", async () => {
     const node = new SaveAudioNode();
-    node.assign({ audio: AUDIO, folder: { type: "folder", uri: path.join(dir, "out") }, name: "a.wav" });
+    node.assign({ audio: AUDIO, save_to_workspace: false, folder: { type: "folder", uri: path.join(dir, "out") }, filename: "a.wav" });
     await node.process(context);
     expect(await readFile(path.join(dir, "out", "a.wav"))).toEqual(Buffer.from([1, 2, 3, 4]));
   });

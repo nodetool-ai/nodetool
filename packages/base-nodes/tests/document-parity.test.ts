@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import {
   ListDocumentsNode,
   LoadDocumentFileNode,
-  SaveDocumentFileNode
+  SaveDocumentNode
 } from "@nodetool-ai/document-nodes";
 
 async function collectGen<T>(iter: AsyncGenerator<T>): Promise<T[]> {
@@ -35,7 +35,7 @@ describe("document node parity", () => {
     expect(loaded.output.uri).toBe(`file://${docPath}`);
 
     const savedPath = path.join(root, "copy.txt");
-    await Object.assign(new SaveDocumentFileNode(), {
+    await Object.assign(new SaveDocumentNode(), {
       path: savedPath,
       document: loaded.output
     }).process();

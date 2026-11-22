@@ -1,17 +1,17 @@
 ---
 layout: page
-title: "Save Document File"
-node_type: "nodetool.document.SaveDocumentFile"
+title: "Save Document"
+node_type: "nodetool.document.SaveDocument"
 namespace: "nodetool.document"
 ---
 
-**Type:** `nodetool.document.SaveDocumentFile`
+**Type:** `nodetool.document.SaveDocument`
 
 **Namespace:** `nodetool.document`
 
 ## Description
 
-Write a document to disk, or into a project document.
+Write a document into the project folder, a project document or a folder on disk.
     files, document, write, output, save, file, markdown
 
     With a target document, the content replaces or is appended to that document, and each run keeps the content before it as a version. Without a target the node writes folder plus filename.
@@ -31,10 +31,14 @@ Write a document to disk, or into a project document.
 | save_to_workspace | `bool` |  | `true` |
 | folder | `str` | Folder where the file will be saved | `` |
 | filename | `str` | Name of the file to save. Supports strftime format codes. | `` |
+| overwrite | `bool` | Overwrite the file if it already exists, otherwise file will be renamed | `false` |
 
 ## Outputs
 
-_(none)_
+| Output | Type | Description |
+|--------|------|-------------|
+| output | `document` |  |
+| path | `str` |  |
 
 ## Related Nodes
 

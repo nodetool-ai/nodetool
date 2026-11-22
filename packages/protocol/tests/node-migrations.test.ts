@@ -488,3 +488,47 @@ describe("migrateGraphNodeTypes", () => {
     }
   });
 });
+
+describe("save node consolidation (document editor PRD R26, R27)", () => {
+  it("maps each File variant to the plain name", () => {
+    const graph = {
+      nodes: [
+        { id: "a", type: "nodetool.image.SaveImageFile", data: { filename: "x.png" } },
+        { id: "b", type: "nodetool.document.SaveDocumentFile", data: {} },
+        { id: "c", type: "nodetool.text.SaveTextFile", data: { name: "out.txt" } }
+      ],
+      edges: [{ source: "s", target: "c", sourceHandle: "output", targetHandle: "name" }]
+    };
+    const migrated = migrateGraphNodeTypes(graph);
+    expect(migrated.nodes.map((n) => n.type)).toEqual([
+      "nodetool.image.SaveImage",
+      "nodetool.document.SaveDocument",
+      "nodetool.text.SaveText"
+    ]);
+    expect(migrated.nodes[2]?.data).toEqual({ filename: "out.txt" });
+    expect(migrated.edges[0]?.targetHandle).toBe("filename");
+  });
+
+  it("renames name on a plain node saved before the merge and keeps its folder", () => {
+    const folder = { type: "folder", uri: "", asset_id: "f1" };
+    const graph = {
+      nodes: [
+        { id: "a", type: "nodetool.image.SaveImage", data: { name: "%Y.png", folder } }
+      ],
+      edges: []
+    };
+    const migrated = migrateGraphNodeTypes(graph);
+    expect(migrated.nodes[0]).toMatchObject({
+      type: "nodetool.image.SaveImage",
+      data: { filename: "%Y.png", folder }
+    });
+  });
+
+  it("leaves a merged node alone", () => {
+    const graph = {
+      nodes: [{ id: "a", type: "nodetool.audio.SaveAudio", data: { filename: "a.wav" } }],
+      edges: []
+    };
+    expect(migrateGraphNodeTypes(graph)).toBe(graph);
+  });
+});

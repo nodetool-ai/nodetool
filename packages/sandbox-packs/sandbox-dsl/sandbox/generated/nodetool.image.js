@@ -42,14 +42,11 @@ function loadImageFile(inputs, options) {
 function loadImageFolder(inputs, options) {
   return createNode("nodetool.image.LoadImageFolder", inputs, { id: options?.id, outputNames: ["image", "path", "images"], outputTypes: { "image": "image", "path": "str", "images": "list" }, streaming: true, inputMode: "buffered", outputCorrelation: { "image": { "kind": "iteration", "source": "__execution__", "group": "items" }, "path": { "kind": "iteration", "source": "__execution__", "group": "items" }, "images": { "kind": "single", "source": "__execution__" } } });
 }
-function saveImageFile(inputs, options) {
-  return createNode("nodetool.image.SaveImageFile", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: { "output": "image", "path": "str" } });
-}
 function loadImageAssets(inputs, options) {
   return createNode("nodetool.image.LoadImageAssets", inputs, { id: options?.id, outputNames: ["image", "name", "images"], outputTypes: { "image": "image", "name": "str", "images": "list" }, streaming: true, inputMode: "buffered", outputCorrelation: { "image": { "kind": "iteration", "source": "__execution__", "group": "items" }, "name": { "kind": "iteration", "source": "__execution__", "group": "items" }, "images": { "kind": "single", "source": "__execution__" } } });
 }
 function saveImage(inputs, options) {
-  return createNode("nodetool.image.SaveImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
+  return createNode("nodetool.image.SaveImage", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: { "output": "image", "path": "str" } });
 }
 function getMetadata(inputs, options) {
   return createNode("nodetool.image.GetMetadata", inputs, { id: options?.id, outputNames: ["format", "mode", "width", "height", "channels"], outputTypes: { "format": "str", "mode": "str", "width": "int", "height": "int", "channels": "int" } });
@@ -111,7 +108,6 @@ export {
   resizeImage,
   rotateAndFlip,
   saveImage,
-  saveImageFile,
   scale,
   segment,
   textToImage,
