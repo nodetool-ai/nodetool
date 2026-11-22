@@ -19,6 +19,7 @@ const mockClient = {
     sharing: { sharedWithMe: { query: jest.fn() } }
   },
   timeline: { list: { query: jest.fn() } },
+  jsScripts: { list: { query: jest.fn() } },
   documentSharing: { sharedWithMe: { query: jest.fn() } }
 };
 
@@ -48,18 +49,22 @@ beforeEach(() => {
   mockClient.timeline.list.query.mockResolvedValue([
     { id: "tl-1", projectId: "p", name: "Cut", updatedAt: "2026-02-01T00:00:00Z" }
   ]);
+  mockClient.jsScripts.list.query.mockResolvedValue([
+    { id: "js-1", projectId: "p", name: "Tidy", description: "", inputs: [], outputs: [], updatedAt: "2026-01-15T00:00:00Z" }
+  ]);
   mockClient.workflows.sharing.sharedWithMe.query.mockResolvedValue({
     workflows: [{ id: "wf-s", name: "Their Flow", updated_at: "2026-02-02T00:00:00Z", shared_role: "editor" }]
   });
   mockClient.documentSharing.sharedWithMe.query.mockResolvedValue({
     documents: [
       { type: "timeline", id: "tl-s", name: "Their Cut", owner_id: "u2", role: "viewer", updated_at: "2026-02-03T00:00:00Z" },
-      { type: "sketch", id: "sk-s", name: "Their Sketch", owner_id: "u2", role: "editor" }
+      { type: "sketch", id: "sk-s", name: "Their Sketch", owner_id: "u2", role: "editor" },
+      { type: "jsscript", id: "js-s", name: "Their Script", owner_id: "u2", role: "editor", updated_at: "2026-01-20T00:00:00Z" }
     ]
   });
 });
 
-test("lists own workflows over every page and own timelines, newest first, with their origin", async () => {
+test("lists own workflows over every page, own timelines and JS scripts, newest first, with their origin", async () => {
   const { result } = setup();
   await waitFor(() => expect(result.current.groups).toHaveLength(2));
   const [own, shared] = result.current.groups;
@@ -67,6 +72,7 @@ test("lists own workflows over every page and own timelines, newest first, with 
   expect(own.children.map((leaf) => [leaf.id, leaf.name, leaf.type])).toEqual([
     ["wf-new", "Launch", "workflow"],
     ["tl-1", "Cut", "timeline"],
+    ["js-1", "Tidy", "jsscript"],
     ["wf-old", "Untitled workflow", "workflow"]
   ]);
   expect(own.children.every((leaf) => leaf.origin === ORIGIN && !leaf.sharedRole)).toBe(true);
@@ -79,11 +85,12 @@ test("lists own workflows over every page and own timelines, newest first, with 
     expect.anything()
   );
 
-  // D26: a shared sketch does not open in the desktop app, so it is not listed.
+  // D26: a shared sketch does not open in the desktop app yet, so it is not listed.
   expect(shared.id).toBe("cloudShared");
   expect(shared.children.map((leaf) => [leaf.id, leaf.type, leaf.sharedRole])).toEqual([
     ["tl-s", "timeline", "viewer"],
-    ["wf-s", "workflow", "editor"]
+    ["wf-s", "workflow", "editor"],
+    ["js-s", "jsscript", "editor"]
   ]);
 });
 

@@ -2,8 +2,9 @@
  * The navigator's Cloud and Shared with me groups in the desktop app (PRD
  * flow "Open and edit a cloud document"; WP1.15). They list the signed-in
  * account's documents on its cloud server, and the documents others shared
- * with it there, through the cloud client. Workflows and timelines only
- * (D26), as in the native apps' cloud browser.
+ * with it there, through the cloud client. Workflows and timelines, as in
+ * the native apps' cloud browser, and JS scripts, whose file references the
+ * server checks since WP2.10 (D26).
  *
  * The query keys start with the server and the account (TC124), so a local
  * and a cloud document with the same id never share a cache entry, and
@@ -31,7 +32,7 @@ type CloudOrigin = Extract<DocumentOrigin, { kind: "cloud" }>;
 interface Listed {
   readonly id: string;
   readonly name: string;
-  readonly type: "workflow" | "timeline";
+  readonly type: "workflow" | "timeline" | "jsscript";
   readonly updatedAt: string;
   readonly role?: "viewer" | "editor";
 }
@@ -66,6 +67,10 @@ async function ownDocuments(origin: CloudOrigin, signal: AbortSignal): Promise<L
   for (const timeline of timelines) {
     listed.push({ id: timeline.id, name: timeline.name, type: "timeline", updatedAt: timeline.updatedAt });
   }
+  const scripts = await client.jsScripts.list.query({}, { signal });
+  for (const script of scripts) {
+    listed.push({ id: script.id, name: script.name, type: "jsscript", updatedAt: script.updatedAt });
+  }
   return listed;
 }
 
@@ -86,12 +91,12 @@ async function sharedDocuments(origin: CloudOrigin, signal: AbortSignal): Promis
     role: workflow.shared_role
   }));
   for (const document of documents.documents) {
-    // The list holds every shared kind. Only timelines open here (D26).
-    if (document.type === "timeline") {
+    // The list holds every shared kind. Only these open here (D26).
+    if (document.type === "timeline" || document.type === "jsscript") {
       listed.push({
         id: document.id,
         name: document.name,
-        type: "timeline",
+        type: document.type,
         updatedAt: document.updated_at ?? "",
         role: document.role
       });

@@ -61,9 +61,10 @@ describe("refusedInCloudWindow", () => {
 });
 
 describe("cloudDocumentRef", () => {
-  it("opens workflows and timelines only (D26)", () => {
+  it("opens workflows, timelines and JS scripts only (D26)", () => {
     expect(cloudDocumentRef("workflow", "w1")).toEqual({ type: "workflow", id: "w1" });
     expect(cloudDocumentRef("timeline", "t1")).toEqual({ type: "timeline", id: "t1" });
+    expect(cloudDocumentRef("jsscript", "j1")).toEqual({ type: "jsscript", id: "j1" });
     expect(cloudDocumentRef("sketch", "s1")).toBeNull();
   });
 });

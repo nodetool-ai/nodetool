@@ -1,6 +1,6 @@
 /**
  * Opens a document of the signed-in cloud server in the desktop app
- * (WP1.15). Workflows and timelines only (D26). The document opens in the
+ * (WP1.15). Workflows, timelines and JS scripts (D26). The document opens in the
  * cloud window (D27), which the main process opens or brings forward.
  */
 import { LOOSE_PROJECT_ID, useWorkspaceTabsStore, type WorkspaceTabType } from "../../stores/WorkspaceTabsStore";
@@ -18,7 +18,7 @@ export interface CloudDocumentToOpen {
 
 /** The cloud window's reference to a document, or null for a type it does not open. */
 export function cloudDocumentRef(type: WorkspaceTabType, id: string): CloudDocumentRef | null {
-  return type === "workflow" || type === "timeline" ? { type, id } : null;
+  return type === "workflow" || type === "timeline" || type === "jsscript" ? { type, id } : null;
 }
 
 /**
