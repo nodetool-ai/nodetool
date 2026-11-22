@@ -261,17 +261,17 @@ plan.
   turns a document other than a PDF into text today. A run reads the saved
   file, and a run started from the app flushes an open draft first, as R8 does
   for an agent turn.
-- **R13 — Write back to a document.** `nodetool.document.SaveDocumentFile`
-  gains a target: a document picked as in R12. With a target it replaces or
-  appends to that document's content, and it accepts Markdown text or a
-  `document` value as the content. Repeated runs update one file and record
-  one version per run (multiple writes to the same target within a single run
-  still record one pre-run version). If the document is open with unsaved user
-  edits when a run writes to it, ADR 0001 applies: the user's dirty blocks win
-  and the workflow's conflicting blocks are listed as conflicts. Without a
-  target the node writes folder plus filename as today, and in the project
-  folder a name that exists gets a numbered copy. `SaveTextFile` keeps its
-  current behavior for timestamped output files.
+- **R13 — Write back to a document.** `nodetool.document.SaveDocument` (today
+  `SaveDocumentFile`, renamed by R26) gains a target: a document picked as in
+  R12. With a target it replaces or appends to that document's content, and it
+  accepts Markdown text or a `document` value as the content. Repeated runs
+  update one file and record one version per run (multiple writes to the same
+  target within a single run still record one pre-run version). If the
+  document is open with unsaved user edits when a run writes to it, ADR 0001
+  applies: the user's dirty blocks win and the workflow's conflicting blocks
+  are listed as conflicts. Without a target the node writes folder plus
+  filename as today, and in the project folder a name that exists gets a
+  numbered copy. `SaveText` keeps writing timestamped output files.
 - **R14 — Convert a String node.** The String editor offers "Convert to
   document". It creates a document from the node's text and replaces the
   String node with a `nodetool.constant.Document` node that references it. The
@@ -322,7 +322,7 @@ builds an SVG.
 | Node | Today | With this PRD |
 | --- | --- | --- |
 | `nodetool.constant.Document`, `nodetool.input.DocumentInput` | Hold a document reference. The property already opens a text asset in the `text` tab. No output carries text. | R12 |
-| `nodetool.document.SaveDocumentFile` | Writes folder plus filename. In the project folder, a name that exists gets a numbered copy. | R13 |
+| `nodetool.document.SaveDocumentFile` | Writes folder plus filename. In the project folder, a name that exists gets a numbered copy. | R13, renamed to `SaveDocument` by R26 |
 | `nodetool.input.DocumentFileInput` | Turns a local path into a `file://` reference. | R23 |
 | `nodetool.document.LoadDocumentFile` | Reads a path from the host disk and returns the bytes. | R23 |
 | `nodetool.document.ListDocuments` | Scans a host folder, `~` by default, for seven extensions including `.md`. Emits `file://` references. | R24 |
@@ -341,6 +341,72 @@ builds an SVG.
   Markdown document they fail with an error that names the format, not with a
   PDF parse error. The string output of `lib.pdf.ExtractMarkdown` connects to
   the content input of R13, which makes PDF import (R17) a two-node workflow.
+
+### Save node consolidation
+
+Five media types have two save nodes each: `SaveImage` and `SaveImageFile`,
+and the same pair for audio, video, 3D models and text. Documents have only
+`SaveDocumentFile`. The `File` variant has "Save to workspace", a folder path,
+a filename and, for images and 3D models, an overwrite switch. It writes
+through `writeSavedFile` (`packages/nodes-utils/src/save-target.ts`), which
+puts the file in the project folder and records an asset. The plain variant
+has a folder reference and a name. Only `SaveImage` uses that reference, as
+the parent of a new asset. The other four read the reference's `uri`, and the
+folder picker stores only an asset id, so a folder chosen in the picker has no
+effect.
+
+- **R26 — One save node per type.** Each pair merges into the name without
+  "File": `nodetool.image.SaveImage`, `nodetool.audio.SaveAudio`,
+  `nodetool.video.SaveVideo`, `nodetool.model3d.SaveModel3D` and
+  `nodetool.text.SaveText`. `nodetool.document.SaveDocumentFile` becomes
+  `nodetool.document.SaveDocument`. The merged node has the properties and
+  the behavior of today's `File` variant, with an overwrite switch on every
+  type. It outputs the saved value on `output` and the written path on
+  `path`.
+- **R27 — Old workflows map on load.** The mapping is a set of entries in
+  `NODE_TYPE_MIGRATIONS` (`packages/protocol/src/graph.ts`).
+  `migrateGraphNodeTypes` already applies that list on every graph load, on
+  the server and in the editor store, and before validation. No stored
+  workflow is rewritten. The table below gives the mapping.
+- **R28 — The cloud profile keeps a save node.** The managed cloud removes
+  the `File` variants today because they can write to a host folder
+  (`CLOUD_HOST_FILE_NODES` in `packages/protocol/src/cloud-profile.ts`), and
+  keeps the plain ones. After the merge the one node stays in the cloud
+  palette, the host folder field is hidden there, and a run with "Save to
+  workspace" off is refused. `writeSavedFile` already refuses it for a
+  workspace in cloud storage.
+- **R29 — Every list of node types follows.** The cloud profile lists, the
+  lean server's feature catalog, the app export template
+  (`packages/app-export/template/server/input-boundary.mjs`), the three
+  generated DSL copies, the node documentation pages, the node catalog data,
+  the shipped examples and the native graph runner's parity baselines name
+  the new types. The old names resolve only through R27.
+
+| Saved node | Becomes | Property mapping |
+| --- | --- | --- |
+| `SaveImageFile`, `SaveAudioFile`, `SaveVideoFile`, `SaveModel3DFile` | The same name without "File" | None |
+| `SaveTextFile` | `SaveText` | `name` becomes `filename` |
+| `SaveDocumentFile` | `SaveDocument` | None |
+| `SaveImage`, `SaveAudio`, `SaveVideo`, `SaveModel3D`, `SaveText` saved in the old plain form | The same type | `name` becomes `filename`. `folder` keeps its saved folder reference. |
+
+Three points need a design decision before implementation.
+
+- **The plain form and the merged node share a type name.** A migration
+  entry is selected by type today, so it cannot tell a `SaveImage` saved in
+  the old form from a new one. The old form has `name` and no `filename`,
+  and the mapping has to select on that. This is a small extension to the
+  migration mechanism.
+- **Folder references.** The merged node must accept a saved folder
+  reference beside a path string. For `SaveImage` the reference names an
+  asset folder, and the merged node has to save into that folder's path in
+  the project to keep old workflows writing to the same place.
+- **Outputs.** `SaveAudioFile` returns the path as a string on an output
+  declared as audio. `SaveDocumentFile` returns the path on `output` and
+  declares no output type. Under R26 `output` carries the saved value and
+  `path` the string, which changes what those two old nodes emit on `output`.
+
+The DSL functions named after the old types, such as `saveImageFile`, would
+disappear with them. Whether they stay as deprecated aliases is open.
 
 ### Non-functional
 
@@ -409,6 +475,9 @@ Four phases. Each one ships alone.
 
 Phases 1 and 2 answer the main request. Phase 3 removes the copies. The
 reporter called phase 4 secondary.
+
+R26 to R29 do not depend on the editor and can ship before phase 1. R13
+depends on them for the node name only.
 
 R20 to R22 ship with phase 1, since the block model of phase 1 defines ids and
 operations. Replication of documents is a later phase of the cloud sync plan,
