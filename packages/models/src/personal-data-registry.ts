@@ -879,6 +879,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "The hash of the bytes the last exchange gave each asset of a linked project. The files are exported with their assets. Deleted with the account."
   },
   {
+    table: "cloud_link_workspace_files",
+    schemaExport: "cloudLinkWorkspaceFiles",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: false,
+    justification:
+      "The hash, size and modification time of the bytes the last exchange gave each workspace file of a linked project. The files are in the exported folder. Deleted with the account."
+  },
+  {
     table: "cloud_receives",
     schemaExport: "cloudReceives",
     disposition: "delete",

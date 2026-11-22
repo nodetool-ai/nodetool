@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { PauseGate } from "@nodetool-ai/config/testing/pause-harness";
+import { setPauseHandler } from "@nodetool-ai/config/pause-points";
 import { withProjectFolderLock } from "@nodetool-ai/asset-services/project-asset";
 import {
   Asset,
@@ -251,6 +252,66 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     const again = await captureSend(TARGET);
     expect(again.firstPublication).toBe(false);
     expect(again.operations).toEqual([]);
+  });
+
+  it("sends the folder's workspace files, and only the ones that changed since (CF2, CF5, TC101)", async () => {
+    const { workflow } = await workflowWithFile(randomBytes(64));
+    const notes = new TextEncoder().encode("shot list");
+    await folder.write("notes.txt", notes);
+    await folder.write("docs/brief.md", new TextEncoder().encode("brief"));
+    // Workflow and timeline files travel as documents only (CF2).
+    await folder.write("cuts/rough.timeline.json", new TextEncoder().encode("{}"));
+    await folder.write("by-row.json", new TextEncoder().encode("{}"));
+    workflow.file_path = "by-row.json";
+    await workflow.save();
+    // The index's scan leaves out dot directories and node_modules (CF5).
+    await folder.write(".git/config", new TextEncoder().encode("[core]"));
+    await folder.write("node_modules/pkg/index.js", new TextEncoder().encode("x"));
+
+    const review = await captureSend(TARGET);
+    const workspacePuts = () =>
+      cloud.commits.at(-1)!.manifest.file_operations!.filter((op) => op.op === "put_workspace_file");
+    expect(review.fileOperations.filter((op) => op.op === "put_workspace_file").map((op) => op.path)).toEqual([
+      "docs/brief.md",
+      "notes.txt"
+    ]);
+    expect(await runSend(cloud, review.transferId)).toMatchObject({ status: "committed" });
+    expect(workspacePuts()).toEqual([
+      { op: "put_workspace_file", path: "docs/brief.md", hash: sha(new TextEncoder().encode("brief")), size: 5, base_hash: null },
+      { op: "put_workspace_file", path: "notes.txt", hash: sha(notes), size: notes.byteLength, base_hash: null }
+    ]);
+    expect(cloud.blobs.has(sha(notes))).toBe(true);
+
+    // Nothing changed: no workspace file goes again.
+    expect((await captureSend(TARGET)).fileOperations).toEqual([]);
+
+    // An edited file goes over the base of its path.
+    const edited = new TextEncoder().encode("shot list, take two");
+    await folder.write("notes.txt", edited);
+    const next = await captureSend(TARGET);
+    expect(next.fileOperations).toEqual([
+      { op: "put_workspace_file", path: "notes.txt", hash: sha(edited), size: edited.byteLength, base_hash: sha(notes) }
+    ]);
+  });
+
+  it("captures again when a workspace file changes while it is read (CF4)", async () => {
+    await workflowWithFile(null);
+    await folder.write("notes.txt", new TextEncoder().encode("first"));
+    let writes = 0;
+    setPauseHandler(async (name) => {
+      if (name !== "send.capture.workspace-file-read" || writes > 0) return;
+      writes += 1;
+      await folder.write("notes.txt", new TextEncoder().encode("second, longer"));
+    });
+    try {
+      const review = await captureSend(TARGET);
+      expect(writes).toBe(1);
+      expect(review.fileOperations).toEqual([
+        expect.objectContaining({ path: "notes.txt", hash: sha(new TextEncoder().encode("second, longer")) })
+      ]);
+    } finally {
+      setPauseHandler(null);
+    }
   });
 
   it("replaces an edited document over its base, and stages no file the cloud holds", async () => {

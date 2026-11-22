@@ -558,6 +558,7 @@ describe("exportPersonalData", () => {
       "access_epochs",
       "cloud_link_documents",
       "cloud_link_files",
+      "cloud_link_workspace_files",
       "cloud_links",
       "cloud_receives",
       "cloud_sends",

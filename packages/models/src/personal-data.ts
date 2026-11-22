@@ -92,7 +92,14 @@ import { projectErasedFiles, projectMissingFiles } from "./schema/project-file-l
 import { recoveryCopies, transferPlacements, transferredConversations } from "./schema/transfer-files.js";
 import { documentActivity } from "./schema/document-activity.js";
 import { revisionSetEntries, revisionSetFiles, revisionSets } from "./schema/revision-sets.js";
-import { cloudLinkDocuments, cloudLinkFiles, cloudLinks, cloudReceives, cloudSends } from "./schema/cloud-links.js";
+import {
+  cloudLinkDocuments,
+  cloudLinkFiles,
+  cloudLinks,
+  cloudLinkWorkspaceFiles,
+  cloudReceives,
+  cloudSends
+} from "./schema/cloud-links.js";
 import { cloudTransferAttempts, cloudTransfers } from "./schema/cloud-transfers.js";
 import { memories } from "./schema/memories.js";
 import { messages } from "./schema/messages.js";
@@ -560,6 +567,7 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   directStep("cloud_sends", cloudSends, cloudSends.user_id),
   directStep("cloud_receives", cloudReceives, cloudReceives.user_id),
   directStep("cloud_link_files", cloudLinkFiles, cloudLinkFiles.user_id),
+  directStep("cloud_link_workspace_files", cloudLinkWorkspaceFiles, cloudLinkWorkspaceFiles.user_id),
   directStep("cloud_link_documents", cloudLinkDocuments, cloudLinkDocuments.user_id),
   directStep("cloud_links", cloudLinks, cloudLinks.user_id),
   directStep("project_missing_files", projectMissingFiles, projectMissingFiles.user_id),

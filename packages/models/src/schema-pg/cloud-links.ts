@@ -1,5 +1,5 @@
 /** PostgreSQL twin of `src/schema/cloud-links.ts`, which describes it. */
-import { pgTable, text, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, bigint, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 /** One row per linked local project. */
 export const cloudLinks = pgTable(
@@ -60,6 +60,23 @@ export const cloudLinkFiles = pgTable(
     updated_at: text("updated_at").notNull()
   },
   (table) => [uniqueIndex("idx_cloud_link_files_asset").on(table.link_id, table.asset_id)]
+);
+
+/** One row per workspace file of a linked project: the base of its last exchange. */
+export const cloudLinkWorkspaceFiles = pgTable(
+  "cloud_link_workspace_files",
+  {
+    id: text("id").primaryKey(),
+    link_id: text("link_id").notNull(),
+    user_id: text("user_id").notNull(),
+    project_id: text("project_id").notNull(),
+    path: text("path").notNull(),
+    base_hash: text("base_hash").notNull(),
+    size: bigint("size", { mode: "number" }).notNull(),
+    mtime_ms: bigint("mtime_ms", { mode: "number" }).notNull(),
+    updated_at: text("updated_at").notNull()
+  },
+  (table) => [uniqueIndex("idx_cloud_link_workspace_files_path").on(table.link_id, table.path)]
 );
 
 /**

@@ -722,6 +722,7 @@ export class Project extends DBModel {
         "cloud_receives",
         "cloud_sends",
         "cloud_link_files",
+        "cloud_link_workspace_files",
         "cloud_link_documents",
         "cloud_links"
       ]) {
