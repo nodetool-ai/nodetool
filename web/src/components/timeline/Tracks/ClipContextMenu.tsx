@@ -140,6 +140,18 @@ export function ClipContextMenu({
         onClick={run(actions.duplicate)}
       />
       <MenuItemPrimitive
+        label={t("i18n-next59.clipMenu.insertSilence")}
+        onClick={run(actions.insertSilence)}
+      />
+      <MenuItemPrimitive
+        label={t("i18n-next59.clipMenu.deleteSection")}
+        onClick={run(actions.deleteSection)}
+      />
+      <MenuItemPrimitive
+        label={t("i18n-next59.clipMenu.duplicateSection")}
+        onClick={run(actions.duplicateSection)}
+      />
+      <MenuItemPrimitive
         label={t(hasTransition ? "i18n-next59.clipMenu.removeTransition" : "i18n-next59.clipMenu.crossFadeIn")}
         icon={<GradientOutlinedIcon fontSize="small" />}
         onClick={run(() =>

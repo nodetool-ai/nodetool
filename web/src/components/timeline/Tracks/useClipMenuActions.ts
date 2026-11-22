@@ -22,6 +22,7 @@ import {
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
+import { getTimelineAgentHandler } from "../timelineAgentBridge";
 import {
   canDetectClipBeats,
   useDetectClipBeats
@@ -45,6 +46,10 @@ export interface ClipMenuActions {
 
   splitAtPlayhead: () => void;
   duplicate: () => void;
+  /** CE4: act on the time span of the selection, on every track. */
+  insertSilence: () => void;
+  deleteSection: () => void;
+  duplicateSection: () => void;
   editNotes: () => void;
   regenerateAsCopy: () => void;
   toggleLock: () => void;
@@ -99,6 +104,38 @@ export function useClipMenuActions(
         )
       );
   }, [clipId, duplicateClip, onError, selectClip]);
+
+  // The section is the time span of the selection (or of this clip alone).
+  const runSection = useCallback(
+    (op: "insert_time" | "delete_time" | "duplicate_range") => {
+      const state = timelineApi.getState();
+      const picked = useTimelineUIStore.getState().selectedClipIds;
+      const ids = picked.has(clipId) ? [...picked] : [clipId];
+      const spans = ids.flatMap((id) => {
+        const c = findClipById(state.clips, id);
+        return c ? [c] : [];
+      });
+      if (spans.length === 0 || !state.sequenceId) return;
+      const fromMs = Math.min(...spans.map((c) => c.startMs));
+      const toMs = Math.max(...spans.map((c) => c.startMs + c.durationMs));
+      const args =
+        op === "insert_time"
+          ? { atMs: fromMs, ms: toMs - fromMs }
+          : { fromMs, toMs };
+      getTimelineAgentHandler(state.sequenceId)
+        .applyOp({ op, ...args } as never)
+        .catch((err: unknown) =>
+          onError(err instanceof Error ? err.message : "Section edit failed")
+        );
+    },
+    [clipId, onError, timelineApi]
+  );
+  const insertSilence = useCallback(() => runSection("insert_time"), [runSection]);
+  const deleteSection = useCallback(() => runSection("delete_time"), [runSection]);
+  const duplicateSection = useCallback(
+    () => runSection("duplicate_range"),
+    [runSection]
+  );
 
   const regenerateAsCopy = useCallback(() => {
     try {
@@ -157,6 +194,9 @@ export function useClipMenuActions(
       canDetectBeats,
       splitAtPlayhead,
       duplicate,
+      insertSilence,
+      deleteSection,
+      duplicateSection,
       editNotes,
       regenerateAsCopy,
       toggleLock,
@@ -173,6 +213,9 @@ export function useClipMenuActions(
       sequenceId,
       splitAtPlayhead,
       duplicate,
+      insertSilence,
+      deleteSection,
+      duplicateSection,
       editNotes,
       regenerateAsCopy,
       toggleLock,

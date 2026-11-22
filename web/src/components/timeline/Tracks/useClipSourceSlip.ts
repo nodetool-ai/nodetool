@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import {
+  activeLoopMs,
   retimeCaption,
   sourceRate,
   type TimelineClip
@@ -27,10 +28,16 @@ import {
 
 const SLIP_GESTURE_IDLE_MS = 150;
 
+/** Video, audio and midi clips slip. A midi clip slips its note window (CE1). */
+function isSlippable(mediaType: TimelineClip["mediaType"] | undefined): boolean {
+  return mediaType === "video" || mediaType === "audio" || mediaType === "midi";
+}
+
 export function slipSourceWindow(
   clip: Pick<
     TimelineClip,
     | "durationMs"
+    | "loopLengthMs"
     | "inPointMs"
     | "outPointMs"
     | "speedBaked"
@@ -40,8 +47,11 @@ export function slipSourceWindow(
   sourceDurationMs: number | undefined
 ): Pick<TimelineClip, "inPointMs" | "outPointMs"> {
   const inPointMs = clip.inPointMs ?? 0;
+  // A looped clip reads one repeat of the source, not its whole length.
   const sourceSpanMs =
-    (clip.outPointMs ?? inPointMs + clip.durationMs * sourceRate(clip)) -
+    (clip.outPointMs ??
+      inPointMs +
+        (activeLoopMs(clip) ?? clip.durationMs) * sourceRate(clip)) -
     inPointMs;
   const maxInPointMs =
     sourceDurationMs === undefined
@@ -80,7 +90,7 @@ export function planSlip(
   sourceDeltaMs: number,
   sourceDurationMs: number | undefined
 ): SlipPatch[] | null {
-  if (clip.mediaType !== "video" && clip.mediaType !== "audio") {
+  if (!isSlippable(clip.mediaType)) {
     return null;
   }
   const lockedTracks = new Set(
@@ -96,7 +106,7 @@ export function planSlip(
       !c.locked &&
       !lockedTracks.has(c.trackId) &&
       !c.timeRemap &&
-      (c.mediaType === "video" || c.mediaType === "audio")
+      isSlippable(c.mediaType)
   );
   if (!slippable) {
     return null;
@@ -174,8 +184,7 @@ export function useClipSourceSlip({
 
   useEffect(() => {
     const element = elementRef.current;
-    const supportsSlip =
-      clip?.mediaType === "video" || clip?.mediaType === "audio";
+    const supportsSlip = isSlippable(clip?.mediaType);
     if (!element || !clip || !supportsSlip || interactionLocked || clip.timeRemap) {
       return;
     }
@@ -198,7 +207,7 @@ export function useClipSourceSlip({
         !fresh ||
         fresh.locked ||
         fresh.timeRemap ||
-        (fresh.mediaType !== "video" && fresh.mediaType !== "audio")
+        !isSlippable(fresh.mediaType)
       ) {
         return;
       }
