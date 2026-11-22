@@ -3,7 +3,7 @@
  * size that Expert mode shows in its status bar.
  */
 
-import React, { memo } from "react";
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 

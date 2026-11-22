@@ -3,7 +3,7 @@
  * mode the canvas size and frame rate chips. A chip opens Project settings.
  */
 
-import React, { memo } from "react";
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 
