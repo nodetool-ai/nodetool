@@ -216,7 +216,7 @@ const getHfDownload: CapabilityExport = {
     const manager = hf.getExistingDownloadManager(userIdOf(run.context));
     const state = manager?.getDownloadState(path === null ? repoId : `${repoId}/${path}`);
     if (!state) return { status: "unknown", repo_id: repoId, path };
-    return {
+    const result: Record<string, unknown> = {
       status: state.status,
       repo_id: state.repoId,
       path: state.path,
@@ -224,9 +224,10 @@ const getHfDownload: CapabilityExport = {
       total_bytes: state.totalBytes,
       downloaded_files: state.downloadedFiles.length,
       total_files: state.totalFiles,
-      current_files: [...state.currentFiles],
-      ...(state.errorMessage ? { error: state.errorMessage } : {})
+      current_files: [...state.currentFiles]
     };
+    if (state.errorMessage) result["error"] = state.errorMessage;
+    return result;
   }
 };
 
