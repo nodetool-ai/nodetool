@@ -26,7 +26,7 @@ import type {
 } from "@nodetool-ai/models";
 import type { TimelineValidation } from "@nodetool-ai/execution/timeline-debug";
 import type { TimelineBridgeFinalState } from "./timeline-bridge.js";
-import { parseOps, applyOps, TOOL_PREFIX, READ_ONLY_OPS, timelineModel3DBaker } from "./timeline-operations.js";
+import { parseOps, applyOps, TOOL_PREFIX, isReadOnlyRecord, timelineModel3DBaker } from "./timeline-operations.js";
 export { parseOps, applyOps } from "./timeline-operations.js";
 export type { ParsedOp, OpRecord, ApplyOutcome } from "./timeline-operations.js";
 import type { IsolateSubjectInput } from "./timeline-isolate-subject.js";
@@ -673,7 +673,7 @@ async function applyTimelineEdit(
     // hand an open editor a merge with nothing in it.
     const appliedOps = ops
       .map((parsed, index) => ({ parsed, index }))
-      .filter(({ parsed, index }) => records[index]?.ok && !READ_ONLY_OPS.has(parsed.op));
+      .filter(({ parsed, index }) => records[index]?.ok && !isReadOnlyRecord(parsed, records[index]?.result));
     if (appliedOps.length === 0) {
       return {
         timeline_id: timelineId,

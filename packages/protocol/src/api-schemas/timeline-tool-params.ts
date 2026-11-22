@@ -37,6 +37,7 @@ import {
   clipShapeStyle,
   clipTextStyle,
   midiInstrument,
+  midiNoteExpression,
   samplerMidiInstrument,
   samplerZone,
   KNOWN_CLIP_EFFECT_TYPE_LIST,
@@ -54,6 +55,26 @@ export const targetParam = z
   .describe(
     'Clip id, clip name (case-insensitive), or the literal "selected" for the currently-selected clip.'
   );
+
+/**
+ * A time given as a bar position, for the clip ops that take ms (D49). The ms
+ * form and this form are mutually exclusive; the op refuses both together.
+ */
+export const barTimeShape = {
+  atBar: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe(
+      "A time as a bar position, counted from 1, resolved through the tempo map. Use it instead of the ms form, never together."
+    ),
+  beat: z
+    .number()
+    .min(1)
+    .optional()
+    .describe("The beat inside `atBar`, counted from 1. Default 1.")
+} as const;
 
 /** Explicit target and prompt for the nondestructive video-edit operation. */
 const requireProviderModelPair = (
@@ -1671,7 +1692,27 @@ export const midiNoteParams = z.object({
     .number()
     .int()
     .positive()
-    .describe("How long the note is held, in ticks. 960 = one quarter note.")
+    .describe("How long the note is held, in ticks. 960 = one quarter note."),
+  muted: z.boolean().optional().describe("A muted note is not played."),
+  channel: z
+    .number()
+    .int()
+    .min(0)
+    .max(15)
+    .optional()
+    .describe("MIDI channel 0..15. Default 0."),
+  release_velocity: z
+    .number()
+    .int()
+    .min(0)
+    .max(127)
+    .optional()
+    .describe("Note-off velocity, 0..127."),
+  expression: midiNoteExpression
+    .optional()
+    .describe(
+      "Per-note curves (pitch in semitones, volume gain, pan, brightness). Point ticks count from the note's start."
+    )
 });
 export type MidiNoteParams = z.infer<typeof midiNoteParams>;
 
@@ -1912,6 +1953,314 @@ export const clearReframeParams = z
   .strict();
 export type ClearReframeParams = z.infer<typeof clearReframeParams>;
 
+// ── Chords ──────────────────────────────────────────────────────────────────
+
+const chordTrackIdParam = z
+  .string()
+  .min(1)
+  .optional()
+  .describe(
+    "The chord track, by id or name. Default: the first chord track (set_chords and apply_progression create one when none exists)."
+  );
+const barParam = z.number().int().min(1);
+const startBarParam = barParam
+  .optional()
+  .describe("First bar, counted from 1. Default 1.");
+const endBarParam = barParam
+  .optional()
+  .describe("Last bar, counted from 1 and included. Default: the end.");
+
+/** `set_chords`. A chart string or a chord list, never both. */
+export const setChordsParams = z.object({
+  trackId: chordTrackIdParam,
+  startBar: startBarParam,
+  chart: z
+    .string()
+    .optional()
+    .describe(
+      'A bar chart: "|" separates bars, the chords in one bar split it evenly, "%" holds the previous chord, "-" is a slot with no chord. Example "| Am | F | C G | % |". Chord symbols: C C# D Eb E F F# G Ab A Bb B plus m, dim, aug, sus2, sus4, 5, 6, m6, 7, maj7, m7, m(maj7), m7b5, dim7, aug7, 7sus4, add9, m(add9), 9, maj9, m9, 7b9, 7#9, m11, 11, maj13, 13, and a slash bass such as C/E. Send `chart` or `chords`, not both.'
+    ),
+  chords: z
+    .array(
+      z.object({
+        symbol: z.string().min(1).describe('A chord symbol, such as "Am7" or "C/E".'),
+        bars: z.number().positive().optional().describe("Length in bars."),
+        beats: z
+          .number()
+          .positive()
+          .optional()
+          .describe("Length in beats. Added to `bars`. Default: 1 bar.")
+      }).strict()
+    )
+    .optional()
+    .describe("Chords in order from `startBar`, each with a length. Send `chart` or `chords`, not both.")
+});
+export type SetChordsParams = z.infer<typeof setChordsParams>;
+
+export const SET_CHORDS_DESCRIPTION =
+  "Write chords on a chord track from a bar chart string or a chord list. The chords replace what the covered range held. The chord track is created when the document has none. Read the result's `chart` to check what was written.";
+
+/** `clear_chords`. */
+export const clearChordsParams = z.object({
+  trackId: chordTrackIdParam,
+  startBar: startBarParam,
+  endBar: endBarParam
+});
+export type ClearChordsParams = z.infer<typeof clearChordsParams>;
+
+export const CLEAR_CHORDS_DESCRIPTION =
+  "Remove the chords from bar `startBar` to bar `endBar` (both included) of a chord track. A chord that crosses the edge is trimmed. Without bars it clears the whole track.";
+
+/** `join_clips`. Join clips of one track into one clip (CE5, D52). */
+export const joinClipsParams = z.object({
+  clips: z
+    .array(targetParam)
+    .optional()
+    .describe(
+      "The clips to join, at least two, all on one track. Omit it to join the selected clips."
+    )
+});
+export type JoinClipsParams = z.infer<typeof joinClipsParams>;
+
+export const JOIN_CLIPS_DESCRIPTION =
+  'Join midi clips of one track into one clip from the first start to the last end. Notes, controllers and expression re-base to the new start, gaps stay silent, and harmony settings come from the first clip. Audio clips join only when they are adjacent pieces of one source with continuous source time (for example the halves of a split). Other audio joins are refused with "needs bounce". A looped clip is written out as plain copies first. Omit `clips` to join the selected clips.';
+
+/** `loop_clip`. Region loop on a midi or audio clip (CE3, D47). */
+export const loopClipParams = z.object({
+  clip: targetParam,
+  times: z
+    .number()
+    .positive()
+    .optional()
+    .describe(
+      "Play the loop window this many times. The clip then lasts `times` windows. A fraction ends part way through a window."
+    ),
+  untilMs: z
+    .number()
+    .finite()
+    .optional()
+    .describe("Extend the clip to end at this timeline time, in ms."),
+  untilBar: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe(
+      "Extend the clip to end at the start of this bar, counted from 1, resolved through the tempo map."
+    ),
+  loopLengthMs: z
+    .number()
+    .positive()
+    .nullable()
+    .optional()
+    .describe(
+      "The length of one loop window in ms, taken from the clip's in-point. Default: the current loop length, or the clip's whole length for a clip that does not loop. `null` removes the loop and keeps the clip's length."
+    )
+});
+export type LoopClipParams = z.infer<typeof loopClipParams>;
+
+export const LOOP_CLIP_DESCRIPTION =
+  "Loop a midi or audio clip. The window from the clip's in-point, `loopLengthMs` long (default: the clip as it is), repeats until the clip's end. Send `times`, `untilMs` or `untilBar` to set the end, or only `loopLengthMs` to change the window. Notes and audio that cross a repeat boundary are cut there. `loopLengthMs: null` removes the loop. get_state shows `loopLengthMs` and `loopRepeats`. Splitting, joining or trimming a looped clip first writes it out as plain copies.";
+
+/** The tracks a section edit acts on (CE4, D48). */
+const sectionTrackIdsShape = {
+  trackIds: z
+    .array(z.string().min(1))
+    .min(1)
+    .optional()
+    .describe(
+      "Track ids or names. Omit to edit every track, and also the markers. With trackIds only those tracks change."
+    )
+};
+
+const sectionRangeShape = {
+  fromBar: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("The range starts at the start of this bar, counted from 1."),
+  toBar: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe(
+      "The range ends at the start of this bar (not included), counted from 1. Needs fromBar."
+    ),
+  fromMs: z.number().finite().min(0).optional().describe("Range start, in ms."),
+  toMs: z.number().finite().min(0).optional().describe("Range end, in ms. Needs fromMs."),
+  ...sectionTrackIdsShape
+};
+
+/** `insert_time`. Insert silence across tracks (CE4, D48). */
+export const insertTimeParams = z.object({
+  ...barTimeShape,
+  atMs: z.number().finite().min(0).optional().describe("Insert point, in ms. Send this or atBar."),
+  bars: z
+    .number()
+    .positive()
+    .optional()
+    .describe("Length of the silence in bars of the current time signature. Send this or ms."),
+  ms: z.number().positive().finite().optional().describe("Length of the silence, in ms."),
+  ...sectionTrackIdsShape
+});
+export type InsertTimeParams = z.infer<typeof insertTimeParams>;
+
+export const INSERT_TIME_DESCRIPTION =
+  "Insert silence. Content at or after the point moves later by the length. A clip that crosses the point splits there. Send `atBar` (with optional `beat`) or `atMs`, and `bars` or `ms`. Without `trackIds` every track changes, and so do the chords, markers and automation points. Locked clips move with the inserted time.";
+
+/** `delete_time`. Remove a range across tracks and close it (CE4, D48). */
+export const deleteTimeParams = z.object(sectionRangeShape);
+export type DeleteTimeParams = z.infer<typeof deleteTimeParams>;
+
+export const DELETE_TIME_DESCRIPTION =
+  "Remove a time range and close it. Send `fromBar` and `toBar` (the range ends at the start of toBar) or `fromMs` and `toMs`. Clips that cross an edge are trimmed, clips inside are removed, and later content moves earlier. Without `trackIds` every track changes, and so do the chords, markers and automation points. It refuses when it would cut or remove a locked clip, and the error names the clips.";
+
+/** `duplicate_range`. Copy a section and insert the copy after it (CE4, D48). */
+export const duplicateRangeParams = z.object(sectionRangeShape);
+export type DuplicateRangeParams = z.infer<typeof duplicateRangeParams>;
+
+export const DUPLICATE_RANGE_DESCRIPTION =
+  "Copy a section and insert the copy right after it. Send `fromBar` and `toBar` (the range ends at the start of toBar) or `fromMs` and `toMs`. Later content moves later by the section length. Without `trackIds` every track is copied, with the chords, markers and automation points inside the range.";
+
+/** `list_progressions`. */
+export const LIST_PROGRESSIONS_DESCRIPTION =
+  "List the progression library: id, name, family, numerals and length in bars. Pass an id or a name to ui_timeline_apply_progression.";
+
+/** `apply_progression`. */
+export const applyProgressionParams = z.object({
+  progression: z
+    .string()
+    .min(1)
+    .describe("A progression id or name from ui_timeline_list_progressions."),
+  key: z
+    .string()
+    .optional()
+    .describe(
+      'The key: "A minor", "C", "F# major", "Bb". Default: the document key, else C major.'
+    ),
+  startBar: startBarParam,
+  barsPerChord: z
+    .number()
+    .positive()
+    .optional()
+    .describe("Stretch each chord to this many bars. Default: the progression's own lengths."),
+  repeat: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("How many times the progression plays in a row. Default 1."),
+  trackId: chordTrackIdParam
+});
+export type ApplyProgressionParams = z.infer<typeof applyProgressionParams>;
+
+export const APPLY_PROGRESSION_DESCRIPTION =
+  "Write a library progression in a key onto a chord track. The chords replace what the covered range held. The chord track is created when the document has none.";
+
+/** `transpose_chords`. */
+export const transposeChordsParams = z.object({
+  semitones: z.number().int().describe("Semitones to move up (positive) or down (negative)."),
+  startBar: startBarParam,
+  endBar: endBarParam,
+  includeNotes: z
+    .boolean()
+    .optional()
+    .describe(
+      "True also transposes the written notes of midi clips that do not follow the chord track, inside the range. Default false."
+    ),
+  trackId: chordTrackIdParam
+});
+export type TransposeChordsParams = z.infer<typeof transposeChordsParams>;
+
+export const TRANSPOSE_CHORDS_DESCRIPTION =
+  "Move the chords of a chord track by semitones. With `includeNotes` the written notes of midi clips that do not follow the chord track move with them.";
+
+/** `detect_chords`. */
+export const detectChordsParams = z.object({
+  clipIds: z
+    .array(z.string().min(1))
+    .optional()
+    .describe("Clips to read, by id or name. Send `clipIds` or `trackIds`."),
+  trackIds: z
+    .array(z.string().min(1))
+    .optional()
+    .describe("Tracks to read: every clip on them. Send `clipIds` or `trackIds`."),
+  startBar: startBarParam,
+  endBar: endBarParam,
+  resolution: z
+    .enum(["bar", "half", "beat"])
+    .optional()
+    .describe('One chord per "bar", per "half" bar, or per "beat". Default "bar".'),
+  write: z
+    .boolean()
+    .optional()
+    .describe(
+      "True (default) replaces the chords of the range on the chord track. False only returns the chart."
+    ),
+  chordTrackId: chordTrackIdParam
+});
+export type DetectChordsParams = z.infer<typeof detectChordsParams>;
+
+export const DETECT_CHORDS_DESCRIPTION =
+  "Find the chords of midi clips (from their notes) or audio clips (from the sound), one per bar, half bar or beat. Writes them to the chord track (created when the document has none) and returns the chart. Without `startBar` it starts at the bar of the first sounding note or clip, so chords before the source stay. Read midi and audio in separate calls. A track list skips drum tracks and muted clips.";
+
+/** `set_clip_harmony`. */
+export const setClipHarmonyParams = z.object({
+  clipId: z.string().min(1).describe("The midi clip, by id or name."),
+  style: z
+    .enum(["off", "arp", "comp"])
+    .optional()
+    .describe('"arp" plays an arpeggio of the chord, "comp" plays a comping pattern, "off" plays the written notes.'),
+  preset: z
+    .string()
+    .optional()
+    .describe("A comp pattern name from ui_timeline_list_harmony_presets. Implies style comp."),
+  order: z
+    .enum(["up", "down", "updown", "played", "random"])
+    .optional()
+    .describe("Arpeggio order. Default up."),
+  scale: z
+    .enum(["off", "key", "chords"])
+    .optional()
+    .describe('Snaps written notes: "key" to the key scale, "chords" to the scale of each chord.'),
+  octave: z.number().int().min(0).max(8).optional().describe("Octave of the chord voicing."),
+  chordTrackId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("The chord track the clip follows. Default: the first chord track.")
+});
+export type SetClipHarmonyParams = z.infer<typeof setClipHarmonyParams>;
+
+export const SET_CLIP_HARMONY_DESCRIPTION =
+  "Make a midi clip follow the chord track: arpeggiate it, comp it with a pattern, or snap its notes to the chords' scale. The fields you send merge into the clip's harmony. Use style off and scale off to stop following.";
+
+/** `list_harmony_presets`. */
+export const LIST_HARMONY_PRESETS_DESCRIPTION =
+  "List the comp pattern names (with their family) and the arpeggio orders that ui_timeline_set_clip_harmony accepts.";
+
+/** `fit_notes_to_chords`. */
+export const fitNotesToChordsParams = z.object({
+  clipIds: z.array(z.string().min(1)).min(1).describe("The midi clips, by id or name."),
+  mode: z
+    .enum(["chord-tones", "scale"])
+    .optional()
+    .describe(
+      '"scale" (default) moves each note to the nearest pitch of the chord\'s scale. "chord-tones" moves it to the nearest chord tone.'
+    ),
+  chordTrackId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("The chord track. Default: the first chord track.")
+});
+export type FitNotesToChordsParams = z.infer<typeof fitNotesToChordsParams>;
+
+export const FIT_NOTES_TO_CHORDS_DESCRIPTION =
+  "Rewrite the notes of midi clips so each one sits in the chord that sounds at its start. Ties go down. Notes outside every chord stay. This changes the written notes, so the piano roll shows the result.";
+
 // ── The shared tool surface ─────────────────────────────────────────────────
 
 /**
@@ -1989,6 +2338,21 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_transpose_clip",
   "ui_timeline_quantize_notes",
   "ui_timeline_scale_velocity",
+  // Chords: the chord track and the clips that follow it.
+  "ui_timeline_set_chords",
+  "ui_timeline_clear_chords",
+  "ui_timeline_loop_clip",
+  "ui_timeline_join_clips",
+  "ui_timeline_insert_time",
+  "ui_timeline_delete_time",
+  "ui_timeline_duplicate_range",
+  "ui_timeline_list_progressions",
+  "ui_timeline_apply_progression",
+  "ui_timeline_transpose_chords",
+  "ui_timeline_detect_chords",
+  "ui_timeline_set_clip_harmony",
+  "ui_timeline_list_harmony_presets",
+  "ui_timeline_fit_notes_to_chords",
   // The guided video flow (PRD § 8.6). Both surfaces register them; the
   // headless one writes the plan itself where the editor asks the Director.
   "ui_timeline_set_setup",

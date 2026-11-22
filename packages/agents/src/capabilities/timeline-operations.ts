@@ -38,6 +38,17 @@ export const TOOL_PREFIX = "ui_timeline_";
 const EXCLUDED_OPS = new Set([`${TOOL_PREFIX}generate_clip`]);
 export const READ_ONLY_OPS = new Set([`${TOOL_PREFIX}get_clip_frames`]);
 
+/**
+ * True when an applied op changed nothing in the document: a read-only tool,
+ * or a `detect_chords` that did not write (`write: false`, or a silent range).
+ */
+export function isReadOnlyRecord(parsed: ParsedOp, result: unknown): boolean {
+  if (READ_ONLY_OPS.has(parsed.op)) return true;
+  if (parsed.op !== `${TOOL_PREFIX}detect_chords`) return false;
+  if (parsed.input.write === false) return true;
+  return isRecord(result) && result.written === false;
+}
+
 /** `add_track`, `ui_add_track`, and `ui_timeline_add_track` all name one tool. */
 function normalizeOpName(name: string): string {
   const trimmed = name.trim();
@@ -98,6 +109,75 @@ export interface ApplyOutcome {
  * The ref a model has in hand is whatever `list_assets` printed — a bare id or
  * an `asset://<id>.<ext>` URI — so both resolve here.
  */
+/** Largest audio file a chord read loads (bytes). */
+const MAX_DECODE_BYTES = 300 * 1024 * 1024;
+
+/** Audio bytes by asset ref, kept for one run so a CAS retry or split clips of one asset load the file once. */
+const audioBytesCache = new WeakMap<object, Map<string, Promise<Uint8Array | null>>>();
+
+/** The media ref a clip's `currentAssetId` names, or null for an id that is no asset ref. */
+function audioRefOf(assetId: string): { uri?: string; asset_id?: string; type: "audio" } | null {
+  if (assetId.startsWith("package://")) return { uri: assetId, type: "audio" };
+  const bare = assetId.startsWith("asset://")
+    ? assetId.slice("asset://".length).replace(/\.[A-Za-z0-9]{1,8}$/, "")
+    : assetId;
+  if (!/^[A-Za-z0-9_-]+$/.test(bare)) return null;
+  return { asset_id: bare, type: "audio" };
+}
+
+/**
+ * Mono source audio of a clip's asset, for chord detection. Decodes only the
+ * requested source span. A file that cannot be read gives null, as on the web.
+ */
+async function decodeTimelineClipAudio(
+  run: CapabilityRun,
+  clip: { currentAssetId?: string },
+  range?: { startMs: number; endMs: number }
+): Promise<{ samples: Float32Array; sampleRate: number; startMs: number } | null> {
+  const assetId = clip.currentAssetId;
+  if (!assetId) return null;
+  const ref = audioRefOf(assetId);
+  if (!ref) return null;
+  const key = ref.uri ?? ref.asset_id ?? assetId;
+  let cache = audioBytesCache.get(run.context);
+  if (!cache) {
+    cache = new Map();
+    audioBytesCache.set(run.context, cache);
+  }
+  let loading = cache.get(key);
+  if (!loading) {
+    loading = (async () => {
+      const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
+      return loadMediaRefBytes(ref, run.context);
+    })();
+    cache.set(key, loading);
+    loading.catch(() => cache.delete(key));
+  }
+  const bytes = await loading;
+  if (!bytes) return null;
+  if (bytes.length > MAX_DECODE_BYTES) {
+    throw new Error(
+      `The audio of this clip is ${Math.round(bytes.length / 1048576)} MB. Chord detection reads files up to ${Math.round(MAX_DECODE_BYTES / 1048576)} MB.`
+    );
+  }
+  const { decodeMonoAudio } = await import("../analysis/media-decode.js");
+  let audio;
+  try {
+    audio = await decodeMonoAudio(
+      bytes,
+      undefined,
+      range ? { startSec: range.startMs / 1000, endSec: range.endMs / 1000 } : undefined
+    );
+  } catch {
+    return null;
+  }
+  if (!audio) return null;
+  if (audio.truncated) {
+    throw new Error("The audio span to read is longer than one hour. Pass a smaller startBar and endBar range.");
+  }
+  return { samples: audio.samples, sampleRate: audio.sampleRate, startMs: audio.startSec * 1000 };
+}
+
 async function resolveTimelineAsset(
   run: CapabilityRun,
   ref: string
@@ -423,6 +503,7 @@ export async function applyOps(
       mediaTracks: document.mediaTracks
     },
     resolveAsset: (ref) => resolveTimelineAsset(run, ref),
+    decodeClipAudio: (clip, range) => decodeTimelineClipAudio(run, clip, range),
     bakeAnimation: (request) => bakeTimelineAnimation(run, request),
     loadComposition: {
       get: async (id) => {

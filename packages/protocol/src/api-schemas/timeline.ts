@@ -496,6 +496,52 @@ export type ClipAudioEffect = z.infer<typeof clipAudioEffect>;
  */
 export const MIDI_MAX_NOTES_PER_CLIP = 4096;
 
+/** Most points one expression curve of one note may carry. */
+export const MIDI_MAX_EXPRESSION_POINTS_PER_NOTE = 256;
+/** Most controller lanes one midi clip may carry. */
+export const MIDI_MAX_CONTROLLER_LANES_PER_CLIP = 32;
+/** Most points one controller lane may carry. */
+export const MIDI_MAX_POINTS_PER_LANE = 4096;
+/** The pitch-bend range of the built-in synth, in semitones. */
+export const MIDI_PITCH_BEND_RANGE_SEMITONES = 2;
+
+/** One point of a per-note expression curve. `tick` counts from the note's start. */
+export const midiExpressionPoint = z.object({
+  tick: z.number().int().min(0),
+  value: z.number().finite()
+});
+export type MidiExpressionPoint = z.infer<typeof midiExpressionPoint>;
+
+const expressionCurve = (min: number, max: number) =>
+  z
+    .array(midiExpressionPoint)
+    .max(MIDI_MAX_EXPRESSION_POINTS_PER_NOTE)
+    .superRefine((points, ctx) => {
+      points.forEach((point, i) => {
+        if (point.value < min || point.value > max) {
+          ctx.addIssue({
+            code: "custom",
+            path: [i, "value"],
+            message: `value must be within ${min}..${max}.`
+          });
+        }
+      });
+    });
+
+/**
+ * Per-note expression. Before the first point the value is neutral, between
+ * points it interpolates linearly, after the last point it holds.
+ * Pitch is in semitones (-48..48), volume a linear gain (0..4), pan -1..1 and
+ * brightness 0..1 (neutral 0.5).
+ */
+export const midiNoteExpression = z.object({
+  pitch: expressionCurve(-48, 48).optional(),
+  volume: expressionCurve(0, 4).optional(),
+  pan: expressionCurve(-1, 1).optional(),
+  brightness: expressionCurve(0, 1).optional()
+});
+export type MidiNoteExpression = z.infer<typeof midiNoteExpression>;
+
 /**
  * One note inside a midi clip. `startTick`/`durationTick` are ticks (960 per
  * quarter note, `MIDI_PPQ` in `@nodetool-ai/timeline`) measured from the
@@ -503,14 +549,146 @@ export const MIDI_MAX_NOTES_PER_CLIP = 4096;
  * samples are measured from the head of its source. Trimming the window
  * therefore hides notes rather than deleting them.
  */
-export const midiNote = z.object({
-  id: z.string(),
-  pitch: z.number().int().min(0).max(127),
-  velocity: z.number().int().min(1).max(127),
-  startTick: z.number().int().min(0),
-  durationTick: z.number().int().positive()
-});
+export const midiNote = z
+  .object({
+    id: z.string(),
+    pitch: z.number().int().min(0).max(127),
+    velocity: z.number().int().min(1).max(127),
+    startTick: z.number().int().min(0),
+    durationTick: z.number().int().positive(),
+    /** A muted note is not played and emits no events. It stays in the
+     * document and can still be edited. */
+    muted: z.boolean().optional(),
+    /** MIDI channel 0..15. Absent means 0. The built-in synth ignores it. */
+    channel: z.number().int().min(0).max(15).optional(),
+    /** The note-off velocity, 0..127. Absent keeps the existing output. */
+    releaseVelocity: z.number().int().min(0).max(127).optional(),
+    /** Per-note expression curves, with ticks measured from the note's start. */
+    expression: midiNoteExpression.optional()
+  })
+  .superRefine((note, ctx) => {
+    if (!note.expression) return;
+    for (const [name, points] of Object.entries(note.expression)) {
+      if (!points) continue;
+      for (let i = 0; i < points.length; i++) {
+        if (points[i].tick > note.durationTick) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["expression", name, i, "tick"],
+            message: `tick must be <= the note's durationTick (${note.durationTick}).`
+          });
+        }
+        if (i > 0 && points[i].tick < points[i - 1].tick) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["expression", name, i, "tick"],
+            message: "points must be sorted by non-decreasing tick."
+          });
+        }
+      }
+    }
+  });
 export type MidiNote = z.infer<typeof midiNote>;
+
+/** One point of a controller lane. `tick` is a clip content tick, like a note's startTick. */
+export const midiControllerPoint = z.object({
+  id: z.string(),
+  tick: z.number().int().min(0),
+  value: z.number().int()
+});
+export type MidiControllerPoint = z.infer<typeof midiControllerPoint>;
+
+export const midiControllerKind = z.enum([
+  "cc",
+  "pitchBend",
+  "channelPressure",
+  "polyPressure"
+]);
+export type MidiControllerKind = z.infer<typeof midiControllerKind>;
+
+/**
+ * A controller lane of a midi clip: CC, pitch bend, channel pressure or poly
+ * pressure. Values are 0..127 except pitch bend, which is -8192..8191.
+ */
+export const midiControllerLane = z
+  .object({
+    id: z.string(),
+    kind: midiControllerKind,
+    cc: z.number().int().min(0).max(127).optional(),
+    pitch: z.number().int().min(0).max(127).optional(),
+    channel: z.number().int().min(0).max(15).optional(),
+    interpolation: z.enum(["linear", "step"]).optional(),
+    points: z.array(midiControllerPoint).max(MIDI_MAX_POINTS_PER_LANE)
+  })
+  .superRefine((lane, ctx) => {
+    if (lane.kind === "cc" && lane.cc === undefined) {
+      ctx.addIssue({ code: "custom", path: ["cc"], message: "cc is required for a cc lane." });
+    }
+    if (lane.kind !== "cc" && lane.cc !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["cc"], message: "cc is only allowed on a cc lane." });
+    }
+    if (lane.kind === "polyPressure" && lane.pitch === undefined) {
+      ctx.addIssue({ code: "custom", path: ["pitch"], message: "pitch is required for a polyPressure lane." });
+    }
+    if (lane.kind !== "polyPressure" && lane.pitch !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["pitch"], message: "pitch is only allowed on a polyPressure lane." });
+    }
+    const [min, max] = lane.kind === "pitchBend" ? [-8192, 8191] : [0, 127];
+    const ids = new Set<string>();
+    lane.points.forEach((point, i) => {
+      if (point.value < min || point.value > max) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["points", i, "value"],
+          message: `value must be within ${min}..${max}.`
+        });
+      }
+      if (i > 0 && point.tick < lane.points[i - 1].tick) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["points", i, "tick"],
+          message: "points must be sorted by non-decreasing tick."
+        });
+      }
+      if (ids.has(point.id)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["points", i, "id"],
+          message: `duplicate point id "${point.id}".`
+        });
+      }
+      ids.add(point.id);
+    });
+  });
+export type MidiControllerLane = z.infer<typeof midiControllerLane>;
+
+/** The controller lanes of one midi clip: at most 32, one per identity. */
+export const midiControllerLanes = z
+  .array(midiControllerLane)
+  .max(MIDI_MAX_CONTROLLER_LANES_PER_CLIP)
+  .superRefine((lanes, ctx) => {
+    const seen = new Set<string>();
+    const ids = new Set<string>();
+    lanes.forEach((lane, i) => {
+      if (ids.has(lane.id)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [i, "id"],
+          message: `duplicate lane id "${lane.id}".`
+        });
+      }
+      ids.add(lane.id);
+      const key = `${lane.kind}|${lane.cc ?? ""}|${lane.pitch ?? ""}|${lane.channel ?? 0}`;
+      if (seen.has(key)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [i],
+          message: "two lanes share the same (kind, cc, pitch, channel)."
+        });
+      }
+      seen.add(key);
+    });
+  });
 
 /** An ADSR envelope, in milliseconds with a 0..1 sustain level. */
 export const midiEnvelope = z.object({
@@ -841,6 +1019,8 @@ export const timelineTrack = z.object({
   chords: z.array(timelineChord).max(MAX_CHORDS_PER_TRACK).optional(),
   /** Automation lanes. Without this field Zod strips them on every PATCH. */
   automation: z.array(automationLane).max(MAX_AUTOMATION_LANES_PER_TRACK).optional(),
+  /** Automation mode. Without this field Zod strips it on every PATCH. */
+  automationMode: z.enum(["off", "read", "touch", "latch", "write"]).optional(),
   /** The stem this track holds in a music project. */
   musicRole: musicRole.optional()
 });
@@ -2064,6 +2244,8 @@ export const timelineClip = z.object({
   durationMs: z.number(),
   inPointMs: z.number().optional(),
   outPointMs: z.number().optional(),
+  /** Region loop: the window `[inPointMs, inPointMs + loopLengthMs)` repeats until `durationMs`. */
+  loopLengthMs: z.number().positive().optional(),
   /** `"group"` carries no media: it is a transform parent children name with
    * `parentId`. `"adjustment"` carries none either: its effects treat the
    * composite of the layers drawn beneath it. Without them here Zod fails a
@@ -2262,6 +2444,8 @@ export const timelineClip = z.object({
   /** Notes carried inline by a `midi` clip, in content ticks. Without this
    * field Zod strips it on every PATCH, so autosave erases the performance. */
   notes: z.array(midiNote).max(MIDI_MAX_NOTES_PER_CLIP).optional(),
+  /** Controller lanes of a `midi` clip. Stripped on PATCH without this field. */
+  controllers: midiControllerLanes.optional(),
   /** Arp, chord comping or scale snapping of a `midi` clip. Without this
    * field Zod strips it on every PATCH. */
   harmony: clipHarmony.optional()

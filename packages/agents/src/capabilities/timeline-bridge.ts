@@ -300,6 +300,11 @@ export interface TimelineBridgeInitialState {
    */
   resolveAsset?: TimelineAssetResolver;
   /**
+   * Decode an audio clip's source to mono samples for `ui_timeline_detect_chords`.
+   * Without one the op reports that this surface cannot read audio.
+   */
+  decodeClipAudio?: TimelineOpContext["decodeClipAudio"];
+  /**
    * Bake a `preset: "custom"` animation's `code` into curves. Without one the
    * op says so and points at `curves`, rather than storing an animation whose
    * body nothing ever ran.
@@ -1176,6 +1181,7 @@ export function createTimelineToolBridge(
   const opContext: TimelineOpContext = {
     newId,
     resolveAsset,
+    decodeClipAudio: initial.decodeClipAudio,
     bakeAnimation,
     bakeModel3DClip,
     loadComposition,
@@ -1203,19 +1209,27 @@ export function createTimelineToolBridge(
     playheadMs = next.playheadMs;
     selectedClipIds = next.selectedClipIds;
   }
-  async function editOp(name: TimelineOpName, args: Record<string, unknown>) {
-    const outcome = await applyTimelineOp(
-      readState(),
-      timelineOpFromToolArgs(name, args),
-      opContext
-    );
-    if (outcome.error) {
-      throw new Error(outcome.error);
-    }
-    commitOutcome(outcome.state);
-    return name === "get_state"
-      ? { sequenceId, ...outcome.result }
-      : outcome.result;
+  // Edits run one at a time. An op that awaits (an audio decode) holds a snapshot
+  // of the state, and a parallel edit must not be overwritten when it commits.
+  let editQueue: Promise<unknown> = Promise.resolve();
+  function editOp(name: TimelineOpName, args: Record<string, unknown>) {
+    const run = async () => {
+      const outcome = await applyTimelineOp(
+        readState(),
+        timelineOpFromToolArgs(name, args),
+        opContext
+      );
+      if (outcome.error) {
+        throw new Error(outcome.error);
+      }
+      commitOutcome(outcome.state);
+      return name === "get_state"
+        ? { sequenceId, ...outcome.result }
+        : outcome.result;
+    };
+    const next = editQueue.then(run, run);
+    editQueue = next.catch(() => undefined);
+    return next;
   }
 
   const tools: TimelineBridgeTool[] = [
@@ -1628,6 +1642,64 @@ export function createTimelineToolBridge(
 
     sharedTool("ui_timeline_scale_velocity", async (args) =>
       editOp("scale_velocity", args)
+    ),
+
+    // Chords: the chord track and the midi clips that follow it.
+
+    sharedTool("ui_timeline_set_chords", async (args) =>
+      editOp("set_chords", args)
+    ),
+
+    sharedTool("ui_timeline_clear_chords", async (args) =>
+      editOp("clear_chords", args)
+    ),
+
+    sharedTool("ui_timeline_loop_clip", async (args) =>
+      editOp("loop_clip", args)
+    ),
+
+    sharedTool("ui_timeline_join_clips", async (args) =>
+      editOp("join_clips", args)
+    ),
+
+    sharedTool("ui_timeline_insert_time", async (args) =>
+      editOp("insert_time", args)
+    ),
+
+    sharedTool("ui_timeline_delete_time", async (args) =>
+      editOp("delete_time", args)
+    ),
+
+    sharedTool("ui_timeline_duplicate_range", async (args) =>
+      editOp("duplicate_range", args)
+    ),
+
+    sharedTool("ui_timeline_list_progressions", async (args) =>
+      editOp("list_progressions", args)
+    ),
+
+    sharedTool("ui_timeline_apply_progression", async (args) =>
+      editOp("apply_progression", args)
+    ),
+
+    sharedTool("ui_timeline_transpose_chords", async (args) =>
+      editOp("transpose_chords", args)
+    ),
+
+    sharedTool("ui_timeline_detect_chords", async (args) =>
+      editOp("detect_chords", args)
+    ),
+
+    sharedTool("ui_timeline_set_clip_harmony", async (args) =>
+      editOp("set_clip_harmony", args)
+    ),
+
+    sharedTool("ui_timeline_list_harmony_presets", async (args) =>
+      editOp("list_harmony_presets", args)
+    ),
+
+    sharedTool("ui_timeline_fit_notes_to_chords", async (args) =>
+      editOp("fit_notes_to_chords", args)
     ),
 
     tool(

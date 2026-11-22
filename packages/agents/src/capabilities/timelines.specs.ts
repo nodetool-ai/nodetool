@@ -136,7 +136,10 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "delete_take, add_midi_clip, set_notes, set_tempo, " +
         "set_track_instrument, transpose_clip, quantize_notes, " +
         "scale_velocity, retarget_format, set_reframe_subject, " +
-        "add_reframe_keyframe, clear_reframe. retarget_format creates a new " +
+        "add_reframe_keyframe, clear_reframe, set_chords, clear_chords, " +
+        "list_progressions, apply_progression, transpose_chords, detect_chords, " +
+        "set_clip_harmony, list_harmony_presets, fit_notes_to_chords, loop_clip, join_clips, insert_time, delete_time, duplicate_range. " +
+        "retarget_format creates a new " +
         "sequence and must be the only op in its call; call it once per " +
         "target format. " +
         "Clip transforms accept rotationX and rotationY in degrees and perspective " +

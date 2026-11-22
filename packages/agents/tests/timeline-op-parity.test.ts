@@ -240,6 +240,6 @@ describe("timeline op parity", () => {
     );
     expect(outcome.error).toContain('No clip found matching "nope"');
     expect(outcome.state).toBe(state);
-    expect(state.clips).toHaveLength(6);
+    expect(state.clips).toHaveLength(7);
   });
 });

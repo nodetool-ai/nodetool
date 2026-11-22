@@ -1,6 +1,6 @@
 ---
 name: timeline-edit-ops
-description: Reference for editing a NodeTool timeline that already exists with edit_timeline ops — animate_clip roles and presets, the easing grammar, per-word/character stagger, set_clip_params limits, document-only fields (styleTracks, textAnimator, animationLinks, layout, camera2d, motionBlur, repeater), groups, transitions, masks and mattes, clip effects, time remap, compositions, beat-cutting ops, and validate_timeline's/preview_timeline_frame's full mechanics. Use for a few changes to a cut that already exists — retiming a clip, swapping a preset, nudging a stagger. For a new cut, or a scene with many clips, build it with the @nodetool-ai/sandbox-timeline pack instead; see motion-graphics.
+description: Reference for editing a NodeTool timeline that already exists with edit_timeline ops — animate_clip roles and presets, the easing grammar, per-word/character stagger, set_clip_params limits, document-only fields (styleTracks, textAnimator, animationLinks, layout, camera2d, motionBlur, repeater), groups, transitions, masks and mattes, clip effects, time remap, compositions, beat-cutting ops, chord ops, and validate_timeline's/preview_timeline_frame's full mechanics. Use for a few changes to a cut that already exists — retiming a clip, swapping a preset, nudging a stagger. For a new cut, or a scene with many clips, build it with the @nodetool-ai/sandbox-timeline pack instead; see motion-graphics.
 ---
 
 # Timeline edit ops → the `edit_timeline` reference
@@ -603,6 +603,124 @@ target, including the ones no beat was in reach of, with the reason.
 downstream. `action: "trim"` changes the length and leaves the neighbours
 where they are. Move a title that has to land on a hit; trim a picture clip
 whose out point has to meet the next shot.
+
+## Music clip edits
+
+Clip ops that take a time in ms also take a bar position. `atBar` counts from 1.
+`beat` counts from 1 inside the bar and defaults to 1. The tempo map resolves
+both. Send the ms form or the bar form. Do not send both.
+
+| Op | Bar form |
+|---|---|
+| `split_clip` | `atBar` replaces `atMs`. |
+| `move_clip` | `atBar` replaces `startMs`. |
+| `trim_clip` | `atBar` is the bar where the clip ends. It replaces `durationMs`. |
+| `duplicate_clip` | `atBar` is the start of the first copy. |
+| `add_media_clip` | `atBar` replaces `startMs`. |
+
+`duplicate_clip` takes `count` from 1 to 64. The copies sit back to back. Each
+copy starts where the previous copy ends. `gapMs` adds space between copies.
+With `count` above 1 the result has `clips`, one entry for each copy.
+
+`split_clip` on a midi clip splits the content. The left clip keeps the notes
+that start before the cut. The right clip keeps the notes that start at or after
+the cut, and its notes count from its own start. Controllers and per-note
+expression split the same way. A controller lane that was set before the cut
+starts the right clip with its value at the cut. No clip holds hidden notes.
+
+A note that crosses the cut ends at the cut. This is `crossing: "shorten"`, the
+default. With `crossing: "split"` the rest of the note also starts the right
+clip as a new note. Its expression curves resume at the cut.
+
+## Region loop
+
+A midi or audio clip with `loopLengthMs` shorter than its length repeats the
+window from its in-point, `loopLengthMs` long, until its end. A note or sound
+that crosses a repeat boundary is cut there. `get_state` shows `loopLengthMs`
+and `loopRepeats` on a looped clip.
+
+| Op | Arguments | Result |
+|---|---|---|
+| `loop_clip` | `clip`, one of `times`, `untilMs`, `untilBar`, and `loopLengthMs?` (`null` removes the loop) | The window is `loopLengthMs`, else the current loop, else the clip as it is. `times` makes the clip `times` windows long. `untilBar` ends the clip at the start of that bar (from 1, through the tempo map). `loopLengthMs: null` keeps the clip length and stops the repeat. |
+
+`split_clip` on a looped clip first writes it out as plain copies, one per
+repeat, then cuts. A trim of the clip's length keeps the loop. A trim that
+leaves the clip no longer than the window ends the loop.
+
+## Chords
+
+A `chord` track holds the chords of the song. It makes no sound. A midi clip
+plays over it when its `harmony` follows the chord track. `get_state` shows each
+chord track as `chordChart`, with `key` and `signature`. A midi clip that
+follows chords shows `harmony`, for example `comp: WHOLE NOTES, scale: chords`.
+
+Ops. Bars count from 1. `trackId` is optional and defaults to the first chord
+track. `detect_chords`, `set_clip_harmony` and `fit_notes_to_chords` name the
+chord track `chordTrackId`, not `trackId`. `set_chords`, `apply_progression` and
+`detect_chords` create the chord track when the document has none.
+
+| Op | Arguments | Result |
+|---|---|---|
+| `set_chords` | `chart` or `chords: [{symbol, bars?, beats?}]`, `startBar?`, `trackId?` | Replaces the covered range. Returns `chart`. |
+| `clear_chords` | `startBar?`, `endBar?`, `trackId?` | Empties the range. Both bars are included. |
+| `list_progressions` | none | `id`, `name`, `family`, `numerals`, `length` of each entry. |
+| `apply_progression` | `progression` (id or name), `key?`, `startBar?`, `barsPerChord?`, `repeat?`, `trackId?` | Writes the progression in the key. |
+| `transpose_chords` | `semitones`, `startBar?`, `endBar?`, `includeNotes?`, `trackId?` | `includeNotes: true` also moves written notes of clips that do not follow the chords. |
+| `detect_chords` | `clipIds` or `trackIds`, `startBar?`, `endBar?`, `resolution?` (`bar`, `half`, `beat`), `write?`, `chordTrackId?` | Reads midi notes or the sound of audio clips (not both in one call). `startBar` defaults to the bar of the first sounding note or clip. `write: false` only returns the chart. A track list skips drum tracks. Audio detection reads the source at its own pitch. |
+| `set_clip_harmony` | `clipId`, `style?` (`off`, `arp`, `comp`), `preset?`, `scale?` (`off`, `key`, `chords`), `order?`, `octave?`, `chordTrackId?` | Merges into the clip's harmony. The clip plays live over the chords. |
+| `list_harmony_presets` | none | Comp pattern names by family, and arp orders. |
+| `fit_notes_to_chords` | `clipIds`, `mode?` (`scale` default, `chord-tones`), `chordTrackId?` | Rewrites written notes to the chord at their start. Ties go down. Notes outside every chord stay. |
+
+Chart grammar. A `|` separates bars. The chords in one bar split it evenly.
+`%` holds the previous chord over its slot. `-` is a slot with no chord.
+Example: `| Am | F | C G | % |` is Am, F, then C and G for half a bar each,
+then G again.
+
+Symbols are ASCII. Roots: `C C# D Eb E F F# G Ab A Bb B`. Qualities after the
+root: none (major), `m`, `dim`, `aug`, `sus2`, `sus4`, `5`, `6`, `m6`, `7`,
+`maj7`, `m7`, `m(maj7)`, `m7b5`, `dim7`, `aug7`, `7sus4`, `add9`, `m(add9)`,
+`9`, `maj9`, `m9`, `7b9`, `7#9`, `m11`, `11`, `maj13`, `13`. A slash adds a
+bass, as in `C/E`. The bass must be a tone of the chord. A bass outside the
+chord is refused, because a chord has no free bass note. Aliases such as `M7`,
+`Δ`, `ø`, `-7`, `°7` and `+` are accepted.
+
+Keys read as `C`, `A minor`, `F# major`, `Bb`. Progression numerals count from
+the tonic of the key. For a minor key pick a minor progression such as
+`i-VI-III-VII`. Without `barsPerChord`, each chord keeps the length the library
+gives it. `detect_chords` keeps what it reads in the chord track: it replaces
+the chords of the range it covers.
+
+Two examples.
+
+"Write Am F C G for 8 bars and make the piano comp follow it":
+
+```json
+{"timeline_id":"<id>","ops":[
+ {"op":"set_chords","chart":"| Am | F | C | G | Am | F | C | G |"},
+ {"op":"list_harmony_presets"},
+ {"op":"set_clip_harmony","clipId":"Piano","preset":"HALF NOTES","scale":"chords"}
+]}
+```
+
+Read the preset name from `list_harmony_presets`. Then read `get_state` and
+check that `chordChart` and the clip's `harmony` are as intended.
+
+"Detect the chords of the keys stem":
+
+```json
+{"timeline_id":"<id>","ops":[
+ {"op":"detect_chords","clipIds":["Keys"],"resolution":"half"}
+]}
+```
+
+The result has `chart` and `chords`. The chords are written to the chord
+track. To look first, send `"write": false`. For an audio stem the op reads the
+chroma of each window. It works best on sustained harmonic parts such as keys,
+pads and guitars. Check a noisy mix and fix it with `set_chords`.
+
+To bake written notes into the chords, call `fit_notes_to_chords`. Use it when
+the piano roll must show the real notes. Use `set_clip_harmony` with `scale:
+"chords"` when the notes only need to sound right.
 
 ## Validate the output
 

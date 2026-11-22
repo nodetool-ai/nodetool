@@ -31,6 +31,32 @@ import {
   ADD_TRACK_DESCRIPTION,
   DELETE_TRACK_DESCRIPTION,
   MOVE_TRACK_DESCRIPTION,
+  APPLY_PROGRESSION_DESCRIPTION,
+  CLEAR_CHORDS_DESCRIPTION,
+  LOOP_CLIP_DESCRIPTION,
+  loopClipParams,
+  insertTimeParams,
+  deleteTimeParams,
+  duplicateRangeParams,
+  joinClipsParams,
+  JOIN_CLIPS_DESCRIPTION,
+  INSERT_TIME_DESCRIPTION,
+  DELETE_TIME_DESCRIPTION,
+  DUPLICATE_RANGE_DESCRIPTION,
+  DETECT_CHORDS_DESCRIPTION,
+  FIT_NOTES_TO_CHORDS_DESCRIPTION,
+  LIST_HARMONY_PRESETS_DESCRIPTION,
+  LIST_PROGRESSIONS_DESCRIPTION,
+  SET_CHORDS_DESCRIPTION,
+  SET_CLIP_HARMONY_DESCRIPTION,
+  TRANSPOSE_CHORDS_DESCRIPTION,
+  applyProgressionParams,
+  clearChordsParams,
+  detectChordsParams,
+  fitNotesToChordsParams,
+  setChordsParams,
+  setClipHarmonyParams,
+  transposeChordsParams,
   QUANTIZE_NOTES_DESCRIPTION,
   SCALE_VELOCITY_DESCRIPTION,
   SET_TEMPO_DESCRIPTION,
@@ -60,6 +86,7 @@ import {
   shapeStyleParams,
   transposeClipParams,
   targetParam,
+  barTimeShape,
   textStyleParams,
   transitionParams,
   retargetFormatParams,
@@ -347,11 +374,12 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
 
     ui_timeline_add_media_clip: {
       description:
-        "Place an existing asset — a video, image, or audio file already in the library — on the specified timeline sequence. `asset` is an asset id or `asset://<id>.<ext>` URI (list_assets returns both). Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track's existing content, so calling this once per asset lays them end to end. Duration comes from the asset unless `durationMs` overrides it.",
+        "Place an existing asset — a video, image, or audio file already in the library — on the specified timeline sequence. `asset` is an asset id or `asset://<id>.<ext>` URI (list_assets returns both). Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track's existing content, so calling this once per asset lays them end to end. Duration comes from the asset unless `durationMs` overrides it. `atBar` (with optional `beat`) places the clip at a bar position instead of `startMs`.",
       shape: {
         asset: z.string().trim().min(1),
         trackId: z.string().optional(),
         startMs: z.number().nonnegative().optional(),
+        ...barTimeShape,
         durationMs: z.number().positive().optional(),
         name: z.string().optional(),
         transform: clipTransformPatchParam
@@ -474,30 +502,34 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
 
     ui_timeline_split_clip: {
       description:
-        "Cut a clip in two at the given time (the razor tool). `atMs` is an absolute time on the timeline and must fall inside the clip; omit it to split at the current playhead. Returns the two resulting halves.",
+        "Cut a clip in two at the given time (the razor tool). `atMs` is an absolute time on the timeline and must fall inside the clip; omit it to split at the current playhead. `atBar` (with optional `beat`) names the cut as a bar position instead of `atMs`. A midi clip splits its content: the left clip keeps the notes, controllers and expression that start before the cut, the right clip the rest, re-based to its own start. A note that crosses the cut ends at the cut (`crossing` \"shorten\", the default) or, with `crossing` \"split\", also continues as a note at the start of the right clip. Returns the two resulting halves.",
       shape: {
         target: targetParam,
-        atMs: z.number().optional()
+        atMs: z.number().optional(),
+        ...barTimeShape,
+        crossing: z.enum(["shorten", "split"]).optional()
       }
     },
 
     ui_timeline_trim_clip: {
       description:
-        "Trim a clip's length or its source in/out points. `durationMs` sets the on-timeline length; `inPointMs`/`outPointMs` set the trimmed source window (ms into the source media). Omit a field to leave it unchanged.",
+        "Trim a clip's length or its source in/out points. `durationMs` sets the on-timeline length; `inPointMs`/`outPointMs` set the trimmed source window (ms into the source media). `atBar` (with optional `beat`) ends the clip at that bar position instead of `durationMs`. Omit a field to leave it unchanged.",
       shape: {
         target: targetParam,
         durationMs: z.number().optional(),
         inPointMs: z.number().optional(),
-        outPointMs: z.number().optional()
+        outPointMs: z.number().optional(),
+        ...barTimeShape
       }
     },
 
     ui_timeline_move_clip: {
       description:
-        "Move a clip to a new absolute start time and/or onto a different track. `startMs` is the new start on the timeline (ms, clamped to >= 0); `trackId` reassigns the track. Omit a field to leave it unchanged.",
+        "Move a clip to a new absolute start time and/or onto a different track. `startMs` is the new start on the timeline (ms, clamped to >= 0); `trackId` reassigns the track. `atBar` (with optional `beat`) gives the new start as a bar position instead of `startMs`. Omit a field to leave it unchanged.",
       shape: {
         target: targetParam,
         startMs: z.number().optional(),
+        ...barTimeShape,
         trackId: z.string().optional()
       }
     },
@@ -509,16 +541,18 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
 
     ui_timeline_duplicate_clip: {
       description:
-        "Duplicate a clip. The copy is placed immediately after the source (add `gapMs` for a gap) and keeps its generation binding so you can tweak the copy for a variation.",
+        "Duplicate a clip. The copy is placed immediately after the source (add `gapMs` for a gap) and keeps its generation binding so you can tweak the copy for a variation. `count` (1..64, default 1) makes that many copies back to back, each starting where the previous ends. `atBar` (with optional `beat`) places the first copy at a bar position instead of right after the source.",
       shape: {
         target: targetParam,
-        gapMs: z.number().finite().optional()
+        gapMs: z.number().finite().optional(),
+        count: z.number().int().min(1).max(64).optional(),
+        ...barTimeShape
       }
     },
 
     ui_timeline_set_clip_params: {
       description:
-        "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs` (fade the audio and, on a visual clip, the picture), `fadeInShape`/`fadeOutShape` (`linear`, `sCurve`, `plus3dB`, `minus3dB`), `audioEffects` (the clip's whole real-time audio chain, in order: `gain`, `eq3`, `filter`, `compressor`, `echo`, `reverb`, `distortion`; `[]` removes them), `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
+        "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs` (fade the audio and, on a visual clip, the picture), `fadeInShape`/`fadeOutShape` (`linear`, `sCurve`, `plus3dB`, `minus3dB`), `audioEffects` (the clip's whole real-time audio chain, in order: `gain`, `eq3`, `filter`, `compressor`, `echo`, `reverb`, `distortion`; `[]` removes them), `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, `labelColor` (a CSS colour that tags the clip, `null` clears it; it does not change the picture), a text clip's `textStyle`, a shape clip's `shapeStyle`, or a caption clip's `captionStyle`. `fontSizePx` is shorthand for `textStyle.fontSizePx`. Timing is accepted too and applied as trim_clip/move_clip would: `durationMs`, `inPointMs`, `outPointMs`, `startMs`, `trackId`. A key this tool does not know is refused by name rather than ignored. Omit a field to leave it unchanged.",
       shape: {
         target: targetParam,
         startMs: z.number().optional(),
@@ -542,6 +576,7 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
         hidden: z.boolean().optional(),
         muted: z.boolean().optional(),
         locked: z.boolean().optional(),
+        labelColor: z.string().min(1).max(64).nullable().optional(),
         textStyle: textStyleParams.optional(),
         shapeStyle: shapeStyleParams.optional(),
         captionStyle: captionStyleParams.optional()
@@ -922,6 +957,88 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
     ui_timeline_scale_velocity: {
       description: SCALE_VELOCITY_DESCRIPTION,
       shape: scaleVelocityParams.shape
+    },
+
+    ui_timeline_set_chords: {
+      description: SET_CHORDS_DESCRIPTION,
+      shape: setChordsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_clear_chords: {
+      description: CLEAR_CHORDS_DESCRIPTION,
+      shape: clearChordsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_loop_clip: {
+      description: LOOP_CLIP_DESCRIPTION,
+      shape: loopClipParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_join_clips: {
+      description: JOIN_CLIPS_DESCRIPTION,
+      shape: joinClipsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_insert_time: {
+      description: INSERT_TIME_DESCRIPTION,
+      shape: insertTimeParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_delete_time: {
+      description: DELETE_TIME_DESCRIPTION,
+      shape: deleteTimeParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_duplicate_range: {
+      description: DUPLICATE_RANGE_DESCRIPTION,
+      shape: duplicateRangeParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_list_progressions: {
+      description: LIST_PROGRESSIONS_DESCRIPTION,
+      shape: {}
+    },
+
+    ui_timeline_apply_progression: {
+      description: APPLY_PROGRESSION_DESCRIPTION,
+      shape: applyProgressionParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_transpose_chords: {
+      description: TRANSPOSE_CHORDS_DESCRIPTION,
+      shape: transposeChordsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_detect_chords: {
+      description: DETECT_CHORDS_DESCRIPTION,
+      shape: detectChordsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_clip_harmony: {
+      description: SET_CLIP_HARMONY_DESCRIPTION,
+      shape: setClipHarmonyParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_list_harmony_presets: {
+      description: LIST_HARMONY_PRESETS_DESCRIPTION,
+      shape: {}
+    },
+
+    ui_timeline_fit_notes_to_chords: {
+      description: FIT_NOTES_TO_CHORDS_DESCRIPTION,
+      shape: fitNotesToChordsParams.shape,
+      finalize: strictParams
     },
 
     ui_timeline_retarget_format: {
