@@ -304,6 +304,84 @@ async function isFileCached(
 }
 
 // ---------------------------------------------------------------------------
+// Download plan
+// ---------------------------------------------------------------------------
+
+export interface HfDownloadPlanOptions {
+  path?: string | null;
+  allowPatterns?: string[] | null;
+  ignorePatterns?: string[] | null;
+  cacheDir?: string | null;
+  modelType?: string | null;
+  token?: string | null;
+  endpoint?: string | null;
+}
+
+/** What a download would fetch, before any byte is written. */
+export interface HfDownloadPlan {
+  /** Files not yet in the cache, with their sizes in bytes. */
+  files: Array<{ path: string; size: number }>;
+  /** Sum of `files` sizes: the bytes the download would write. */
+  totalBytes: number;
+  /** Files the request selects that the cache already holds. */
+  cachedFiles: string[];
+}
+
+/**
+ * List the files a download of `repoId` would fetch, with the same filters
+ * and cache check {@link DownloadManager.startDownload} applies, so a caller
+ * can show the size and check free disk space before starting it.
+ */
+export async function planHfDownload(
+  repoId: string,
+  opts: HfDownloadPlanOptions = {}
+): Promise<HfDownloadPlan> {
+  const {
+    path: filePath = null,
+    allowPatterns = null,
+    ignorePatterns = null,
+    cacheDir = null,
+    modelType = null,
+    token = null
+  } = opts;
+  const treeEntries: HfTreeEntry[] = [];
+  const listArgs: Parameters<typeof listFiles>[0] = {
+    repo: { name: repoId, type: "model" },
+    recursive: true,
+    hubUrl: resolveHfEndpoint(opts.endpoint ?? null)
+  };
+  if (token) {
+    listArgs.accessToken = token;
+  }
+  for await (const entry of listFiles(listArgs)) {
+    treeEntries.push({ type: entry.type, path: entry.path, size: entry.size });
+  }
+
+  let files = filterFiles(treeEntries, allowPatterns, ignorePatterns);
+  // If a specific path was requested, narrow to just that file
+  if (filePath) {
+    files = files.filter((f) => f.path === filePath);
+  }
+  // The llama.cpp cache is a flat directory of GGUF files. README and
+  // config files from a whole-repo request do not belong there.
+  if (modelType === "llama_cpp") {
+    files = files.filter((f) => f.path.toLowerCase().endsWith(".gguf"));
+  }
+
+  const plan: HfDownloadPlan = { files: [], totalBytes: 0, cachedFiles: [] };
+  for (const file of files) {
+    if (await isFileCached(repoId, file.path, cacheDir)) {
+      plan.cachedFiles.push(file.path);
+    } else {
+      const size = file.size ?? 0;
+      plan.files.push({ path: file.path, size });
+      plan.totalBytes += size;
+    }
+  }
+  return plan;
+}
+
+// ---------------------------------------------------------------------------
 // DownloadManager
 // ---------------------------------------------------------------------------
 
@@ -384,53 +462,24 @@ export class DownloadManager {
       // Resolve token
       const token = await resolveHfToken(requestToken ?? this.token);
 
-      // List remote files via @huggingface/hub
-      const treeEntries: HfTreeEntry[] = [];
-      const listArgs: Parameters<typeof listFiles>[0] = {
-        repo: { name: repoId, type: "model" },
-        recursive: true,
-        hubUrl: endpoint
-      };
-      if (token) {
-        listArgs.accessToken = token;
-      }
-      for await (const entry of listFiles(listArgs)) {
-        treeEntries.push({
-          type: entry.type,
-          path: entry.path,
-          size: entry.size
-        });
-      }
-
-      // Filter
-      let files = filterFiles(treeEntries, allowPatterns, ignorePatterns);
-
-      // If a specific path was requested, narrow to just that file
-      if (filePath) {
-        files = files.filter((f) => f.path === filePath);
-      }
-      // The llama.cpp cache is a flat directory of GGUF files. README and
-      // config files from a whole-repo request do not belong there.
-      if (modelType === "llama_cpp") {
-        files = files.filter((f) => f.path.toLowerCase().endsWith(".gguf"));
-      }
-
-      // Check cache -- separate cached from uncached
-      const filesToDownload: HfTreeEntry[] = [];
-      for (const file of files) {
-        const cached = await isFileCached(repoId, file.path, cacheDir);
-        if (cached) {
-          state.downloadedFiles.push(file.path);
-        } else {
-          filesToDownload.push(file);
-        }
-      }
+      const plan = await planHfDownload(repoId, {
+        path: filePath,
+        allowPatterns,
+        ignorePatterns,
+        cacheDir,
+        modelType,
+        token,
+        endpoint
+      });
+      state.downloadedFiles.push(...plan.cachedFiles);
+      const filesToDownload: HfTreeEntry[] = plan.files.map((file) => ({
+        type: "file",
+        path: file.path,
+        size: file.size
+      }));
 
       state.totalFiles = filesToDownload.length;
-      state.totalBytes = filesToDownload.reduce(
-        (acc, f) => acc + (f.size ?? 0),
-        0
-      );
+      state.totalBytes = plan.totalBytes;
       state.status = "progress";
       emitProgress();
 

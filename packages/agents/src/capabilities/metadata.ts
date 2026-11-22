@@ -11,6 +11,7 @@ import { collectionsSpecs } from "./collections.specs.js";
 import { compositionsSpecs } from "./compositions.specs.js";
 import { costsSpecs } from "./costs.specs.js";
 import { fontsSpecs } from "./fonts.specs.js";
+import { hfDownloadsSpecs } from "./hf-downloads.specs.js";
 import { workersSpecs } from "./workers.specs.js";
 import { documentsSpecs } from "./documents.specs.js";
 import { exampleTimelinesSpecs } from "./example-timelines.specs.js";
@@ -76,6 +77,7 @@ export const CAPABILITY_SPECS = {
   "example-timelines": exampleTimelinesSpecs,
   timelines: timelinesSpecs,
   fonts: fontsSpecs,
+  "hf-downloads": hfDownloadsSpecs,
   sketches: sketchesSpecs,
   model3d: model3dSpecs,
   game: gameSpecs,

@@ -105,6 +105,7 @@ const GROUP_LABELS: Readonly<Record<string, string>> = {
   apps: "Apps",
   timelines: "Timelines",
   fonts: "Timelines",
+  "hf-downloads": "Models",
   "example-timelines": "Timelines",
   "video-production": "Video production",
   storyboards: "Storyboards",

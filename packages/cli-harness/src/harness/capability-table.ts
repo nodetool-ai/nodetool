@@ -2517,6 +2517,26 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "download_hf_model",
+    module: "hf-downloads",
+    impl: "packages/agents/src/capabilities/hf-downloads.ts",
+    contract: "689e5aba1f52",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-hf-downloads.test.ts",
+    ],
+  },
+  {
+    name: "get_hf_download",
+    module: "hf-downloads",
+    impl: "packages/agents/src/capabilities/hf-downloads.ts",
+    contract: "5dfc3af8cc5a",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-hf-downloads.test.ts",
+    ],
+  },
+  {
     name: "list_sketches",
     module: "sketches",
     impl: "packages/agents/src/capabilities/sketches.ts",
