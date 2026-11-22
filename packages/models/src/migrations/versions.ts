@@ -5689,8 +5689,60 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP TABLE IF EXISTS revision_set_workspace_files");
       await db.execute("DROP TABLE IF EXISTS project_workspace_hashes");
     }
+  },
+  // Publishing an app writes `save_type: "publish"` into the bound workflow's
+  // history. The 20260104 migration added `save_type` with a CHECK listing only
+  // the save types of that time, so every database it ran on rejected the
+  // publish. The SQLite baseline never had the constraint, so fresh SQLite
+  // databases already accept the row.
+  {
+    version: "20261201_000001",
+    name: "allow_publish_workflow_save_type",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflow_versions"],
+    async up(db) {
+      if (db.dbType === "postgres") {
+        await db.execute(
+          "ALTER TABLE nodetool_workflow_versions DROP CONSTRAINT IF EXISTS nodetool_workflow_versions_save_type_check"
+        );
+        return;
+      }
+      await dropSqliteSaveTypeCheck(db);
+    },
+    async down() {
+      // The constraint stays dropped: restoring it would reject published rows.
+    }
   }
 ];
+
+/**
+ * SQLite cannot drop a column constraint, so rebuild the table from its own
+ * stored definition minus the CHECK, then restore its indexes.
+ */
+async function dropSqliteSaveTypeCheck(db: MigrationDBAdapter): Promise<void> {
+  const table = "nodetool_workflow_versions";
+  const current = await db.fetchone(
+    "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+    [table]
+  );
+  const definition = String(current?.sql ?? "");
+  const check = /\s*CHECK\s*\(\s*save_type\s+IN\s*\([^)]*\)\s*\)/i;
+  if (!check.test(definition)) return;
+
+  const indexes = await db.fetchall(
+    "SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL",
+    [table]
+  );
+  const columns = (await db.getColumns(table)).map((name) => `"${name}"`).join(", ");
+  const rebuilt = definition
+    .replace(check, "")
+    .replace(/^CREATE TABLE\s+("?)nodetool_workflow_versions\1/i, `CREATE TABLE ${table}__new`);
+  await db.execute(rebuilt);
+  await db.execute(`INSERT INTO ${table}__new (${columns}) SELECT ${columns} FROM ${table}`);
+  await db.execute(`DROP TABLE ${table}`);
+  await db.execute(`ALTER TABLE ${table}__new RENAME TO ${table}`);
+  for (const index of indexes) await db.execute(String(index.sql));
+}
 
 /**
  * Replace each JSON string literal in `column` with the text it encodes, when
