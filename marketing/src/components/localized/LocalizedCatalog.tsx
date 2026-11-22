@@ -7,14 +7,95 @@ import { modelEntries } from "@/data/modelEntries";
 import type { CatalogSource } from "@/i18n/content";
 import type { Locale } from "@/i18n/routes";
 import { localeHref } from "@/i18n/links";
-import {
-  ZH_AD_LIBRARY,
-  ZH_MODALITY,
-  ZH_RECIPES,
-  ZH_STORYBOARDS,
-  ZH_STORYBOARD_CATEGORIES,
-  ZH_VENDOR,
-} from "@/i18n/zh/catalog";
+import { fmt } from "@/i18n/detailLabels";
+import * as zh from "@/i18n/zh/catalog";
+import * as ja from "@/i18n/ja/catalog";
+import * as ko from "@/i18n/ko/catalog";
+import type { StoryboardCategory } from "@/data/storyboards";
+import type { Modality } from "@/data/modelEntries";
+
+type Line = { title: string; body: string };
+
+type Catalog = {
+  categories: Record<StoryboardCategory, Line>;
+  storyboards: Record<string, Line>;
+  ads: Record<string, Line>;
+  recipes: Record<string, Line>;
+  modality: Record<Modality, string>;
+  vendor: Record<string, string>;
+  /** Card meta and list labels. `{n}` is a count. */
+  words: {
+    storyboards: string;
+    shots: string;
+    seconds: string;
+    beats: string;
+    ads: string;
+    recipe: string;
+    recipes: string;
+    providers: string;
+    models: string;
+  };
+};
+
+const CATALOGS: Record<Locale, Catalog> = {
+  zh: {
+    categories: zh.ZH_STORYBOARD_CATEGORIES,
+    storyboards: zh.ZH_STORYBOARDS,
+    ads: zh.ZH_AD_LIBRARY,
+    recipes: zh.ZH_RECIPES,
+    modality: zh.ZH_MODALITY,
+    vendor: zh.ZH_VENDOR,
+    words: {
+      storyboards: "故事板",
+      shots: "{n} 个镜头",
+      seconds: "{n} 秒",
+      beats: "{n} 个节拍",
+      ads: "广告模板",
+      recipe: "分步教程",
+      recipes: "教程",
+      providers: "{n} 个服务商提供",
+      models: "模型",
+    },
+  },
+  ja: {
+    categories: ja.JA_STORYBOARD_CATEGORIES,
+    storyboards: ja.JA_STORYBOARDS,
+    ads: ja.JA_AD_LIBRARY,
+    recipes: ja.JA_RECIPES,
+    modality: ja.JA_MODALITY,
+    vendor: ja.JA_VENDOR,
+    words: {
+      storyboards: "ストーリーボード",
+      shots: "{n}ショット",
+      seconds: "{n}秒",
+      beats: "{n}ビート",
+      ads: "広告テンプレート",
+      recipe: "レシピ",
+      recipes: "レシピ",
+      providers: "{n}社のプロバイダーが提供",
+      models: "モデル",
+    },
+  },
+  ko: {
+    categories: ko.KO_STORYBOARD_CATEGORIES,
+    storyboards: ko.KO_STORYBOARDS,
+    ads: ko.KO_AD_LIBRARY,
+    recipes: ko.KO_RECIPES,
+    modality: ko.KO_MODALITY,
+    vendor: ko.KO_VENDOR,
+    words: {
+      storyboards: "스토리보드",
+      shots: "샷 {n}개",
+      seconds: "{n}초",
+      beats: "비트 {n}개",
+      ads: "광고 템플릿",
+      recipe: "레시피",
+      recipes: "레시피",
+      providers: "프로바이더 {n}곳에서 제공",
+      models: "모델",
+    },
+  },
+};
 
 /*
  * Cards for a generated catalog on a translated page. Titles and lines come
@@ -77,18 +158,18 @@ function CardGrid({
   );
 }
 
-function storyboardCards(slugs?: readonly string[]): Card[] {
+function storyboardCards(catalog: Catalog, slugs?: readonly string[]): Card[] {
   const boards = slugs ? storyboardsBySlug(slugs) : storyboards;
   return boards.map((board) => {
-    const zh = ZH_STORYBOARDS[board.slug];
-    const category = ZH_STORYBOARD_CATEGORIES[board.category].title;
+    const line = catalog.storyboards[board.slug];
+    const category = catalog.categories[board.category].title;
     return {
       key: board.slug,
       href: board.route,
-      title: zh?.title ?? board.title,
-      body: zh?.body ?? board.description,
-      meta: `${category} · ${board.aspectRatio} · ${board.shots.length} 个镜头`,
-      image: { src: board.video.poster.src, alt: zh?.title ?? board.title, aspect: "video" },
+      title: line?.title ?? board.title,
+      body: line?.body ?? board.description,
+      meta: `${category} · ${board.aspectRatio} · ${fmt(catalog.words.shots, { n: board.shots.length })}`,
+      image: { src: board.video.poster.src, alt: line?.title ?? board.title, aspect: "video" },
     };
   });
 }
@@ -102,17 +183,23 @@ export default function LocalizedCatalog({
   source: CatalogSource;
   slugs?: readonly string[];
 }) {
+  const catalog = CATALOGS[locale];
+  const { words } = catalog;
+
   if (source === "storyboards" && !slugs) {
     return (
       <>
         {STORYBOARD_CATEGORIES.map((category) => {
-          const zh = ZH_STORYBOARD_CATEGORIES[category.id];
-          const cards = storyboardCards(storyboards.filter((b) => b.category === category.id).map((b) => b.slug));
+          const line = catalog.categories[category.id];
+          const cards = storyboardCards(
+            catalog,
+            storyboards.filter((b) => b.category === category.id).map((b) => b.slug)
+          );
           return (
             <div key={category.id} className="mt-12">
-              <h3 className="text-xl font-semibold text-white">{zh.title}</h3>
-              <p className="mt-1 text-slate-400">{zh.body}</p>
-              <CardGrid locale={locale} cards={cards} columns="sm:grid-cols-2 lg:grid-cols-3" label={zh.title} />
+              <h3 className="text-xl font-semibold text-white">{line.title}</h3>
+              <p className="mt-1 text-slate-400">{line.body}</p>
+              <CardGrid locale={locale} cards={cards} columns="sm:grid-cols-2 lg:grid-cols-3" label={line.title} />
             </div>
           );
         })}
@@ -121,49 +208,54 @@ export default function LocalizedCatalog({
   }
 
   if (source === "storyboards") {
-    return <CardGrid locale={locale} cards={storyboardCards(slugs)} columns="sm:grid-cols-2 lg:grid-cols-3" label="故事板" />;
+    return <CardGrid
+        locale={locale}
+        cards={storyboardCards(catalog, slugs)}
+        columns="sm:grid-cols-2 lg:grid-cols-3"
+        label={words.storyboards}
+      />;
   }
 
   if (source === "adLibrary") {
     const ads = slugs ? slugs.flatMap((slug) => adRecipes.filter((ad) => ad.slug === slug)) : adRecipes;
     const cards: Card[] = ads.map((ad) => {
-      const zh = ZH_AD_LIBRARY[ad.slug];
+      const line = catalog.ads[ad.slug];
       const index = adRecipes.indexOf(ad);
       return {
         key: ad.slug,
         href: ad.route,
-        title: zh?.title ?? ad.title,
-        body: zh?.body ?? ad.objective,
-        meta: `${String(index + 1).padStart(2, "0")} · ${Math.round(ad.duration_ms / 1000)} 秒 · ${ad.beats.length} 个节拍`,
-        image: ad.video ? { src: ad.video.poster, alt: zh?.title ?? ad.title, aspect: "portrait" } : undefined,
+        title: line?.title ?? ad.title,
+        body: line?.body ?? ad.objective,
+        meta: `${String(index + 1).padStart(2, "0")} · ${fmt(words.seconds, { n: Math.round(ad.duration_ms / 1000) })} · ${fmt(words.beats, { n: ad.beats.length })}`,
+        image: ad.video ? { src: ad.video.poster, alt: line?.title ?? ad.title, aspect: "portrait" } : undefined,
       };
     });
-    return <CardGrid locale={locale} cards={cards} columns="grid-cols-2 lg:grid-cols-4" label="广告模板" />;
+    return <CardGrid locale={locale} cards={cards} columns="grid-cols-2 lg:grid-cols-4" label={words.ads} />;
   }
 
   if (source === "recipes") {
     const recipes = slugs ? slugs.flatMap((slug) => recipeEntries.filter((recipe) => recipe.slug === slug)) : recipeEntries;
     const cards: Card[] = recipes.map((recipe) => {
-      const zh = ZH_RECIPES[recipe.slug];
+      const line = catalog.recipes[recipe.slug];
       const card = recipe.productionRun?.card;
       return {
         key: recipe.slug,
         href: recipe.route,
-        title: zh?.title ?? recipe.name,
-        body: zh?.body ?? recipe.outcome,
-        meta: "分步教程",
-        image: card ? { src: card.src, alt: zh?.title ?? recipe.name, aspect: "video" } : undefined,
+        title: line?.title ?? recipe.name,
+        body: line?.body ?? recipe.outcome,
+        meta: words.recipe,
+        image: card ? { src: card.src, alt: line?.title ?? recipe.name, aspect: "video" } : undefined,
       };
     });
-    return <CardGrid locale={locale} cards={cards} columns="sm:grid-cols-2 lg:grid-cols-3" label="教程" />;
+    return <CardGrid locale={locale} cards={cards} columns="sm:grid-cols-2 lg:grid-cols-3" label={words.recipes} />;
   }
 
   const cards: Card[] = modelEntries.map((model) => ({
     key: model.slug,
     href: model.route,
     title: model.name,
-    body: `${model.providers.length} 个服务商提供`,
-    meta: `${ZH_MODALITY[model.modality]} · ${ZH_VENDOR[model.vendor] ?? model.vendor}`,
+    body: fmt(words.providers, { n: model.providers.length }),
+    meta: `${catalog.modality[model.modality]} · ${catalog.vendor[model.vendor] ?? model.vendor}`,
   }));
-  return <CardGrid locale={locale} cards={cards} columns="grid-cols-2 lg:grid-cols-4" label="模型" />;
+  return <CardGrid locale={locale} cards={cards} columns="grid-cols-2 lg:grid-cols-4" label={words.models} />;
 }

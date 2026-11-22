@@ -8,6 +8,8 @@ import { EDITIONS } from "../data/editions";
 import { LANGUAGE_PAGES } from "../data/languagePages";
 import { localeOfPath, localizedPath, type Locale } from "../i18n/routes";
 import { ZH_FOOTER, ZH_NAV_GROUPS, ZH_NAV_LABELS } from "../i18n/zh/chrome";
+import { JA_FOOTER, JA_NAV_GROUPS, JA_NAV_LABELS } from "../i18n/ja/chrome";
+import { KO_FOOTER, KO_NAV_GROUPS, KO_NAV_LABELS } from "../i18n/ko/chrome";
 
 /**
  * Single shared site footer used by every route (P3/C4). Gives consistent
@@ -90,7 +92,9 @@ const ENGLISH_FOOTER = {
   languages: "Languages",
 };
 
-const FOOTER_COPY: Record<Locale, typeof ENGLISH_FOOTER> = { zh: ZH_FOOTER };
+const FOOTER_COPY: Record<Locale, typeof ENGLISH_FOOTER> = { zh: ZH_FOOTER, ja: JA_FOOTER, ko: KO_FOOTER };
+const NAV_GROUPS: Record<Locale, Record<string, string>> = { zh: ZH_NAV_GROUPS, ja: JA_NAV_GROUPS, ko: KO_NAV_GROUPS };
+const NAV_LABELS: Record<Locale, Record<string, string>> = { zh: ZH_NAV_LABELS, ja: JA_NAV_LABELS, ko: KO_NAV_LABELS };
 
 /**
  * The columns in a page's language: translated labels, and links to the
@@ -98,10 +102,10 @@ const FOOTER_COPY: Record<Locale, typeof ENGLISH_FOOTER> = { zh: ZH_FOOTER };
  */
 function localizeColumns(locale: Locale): Col[] {
   return COLUMNS.map((col) => ({
-    title: ZH_NAV_GROUPS[col.title] ?? col.title,
+    title: NAV_GROUPS[locale][col.title] ?? col.title,
     links: col.links.map((link) => ({
       ...link,
-      name: link.external ? link.name : (ZH_NAV_LABELS[link.href] ?? link.name),
+      name: link.external ? link.name : (NAV_LABELS[locale][link.href] ?? link.name),
       href: link.external ? link.href : (localizedPath(locale, link.href) ?? link.href),
     })),
   }));

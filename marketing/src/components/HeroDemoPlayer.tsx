@@ -29,6 +29,9 @@ import { usePrefersReducedMotion } from "../lib/useGridParallax";
 import { track } from "../lib/analytics";
 import { localeOfPath } from "../i18n/routes";
 import { ZH_PLAYER } from "../i18n/zh/chrome";
+import { JA_PLAYER } from "../i18n/ja/chrome";
+import { KO_PLAYER } from "../i18n/ko/chrome";
+import type { Locale } from "../i18n/routes";
 
 const ENGLISH_PLAYER = {
   soundOn: "Turn the sound on",
@@ -39,7 +42,7 @@ const ENGLISH_PLAYER = {
   fullscreen: "Full screen",
 };
 
-const PLAYER_COPY: Record<"zh", typeof ENGLISH_PLAYER> = { zh: ZH_PLAYER };
+const PLAYER_COPY: Record<Locale, typeof ENGLISH_PLAYER> = { zh: ZH_PLAYER, ja: JA_PLAYER, ko: KO_PLAYER };
 
 interface HeroDemoPlayerProps {
   alt: string;

@@ -10,11 +10,14 @@ import AnnouncementBar from "./AnnouncementBar";
 import {
   englishRoute,
   LOCALES,
+  SWITCH_LABELS,
   localeOfPath,
   localizedPath,
   type Locale,
 } from "../i18n/routes";
 import { ZH_HEADER, ZH_NAV_GROUPS, ZH_NAV_LABELS } from "../i18n/zh/chrome";
+import { JA_HEADER, JA_NAV_GROUPS, JA_NAV_LABELS } from "../i18n/ja/chrome";
+import { KO_HEADER, KO_NAV_GROUPS, KO_NAV_LABELS } from "../i18n/ko/chrome";
 
 /**
  * Single shared site header used by every route (P3). Replaces the per-page
@@ -87,9 +90,9 @@ const ENGLISH_HEADER = {
   home: "NodeTool home",
 };
 
-const HEADER_COPY: Record<Locale, typeof ENGLISH_HEADER> = { zh: ZH_HEADER };
-const NAV_GROUPS: Record<Locale, Record<string, string>> = { zh: ZH_NAV_GROUPS };
-const NAV_LABELS: Record<Locale, Record<string, string>> = { zh: ZH_NAV_LABELS };
+const HEADER_COPY: Record<Locale, typeof ENGLISH_HEADER> = { zh: ZH_HEADER, ja: JA_HEADER, ko: KO_HEADER };
+const NAV_GROUPS: Record<Locale, Record<string, string>> = { zh: ZH_NAV_GROUPS, ja: JA_NAV_GROUPS, ko: KO_NAV_GROUPS };
+const NAV_LABELS: Record<Locale, Record<string, string>> = { zh: ZH_NAV_LABELS, ja: JA_NAV_LABELS, ko: KO_NAV_LABELS };
 
 /**
  * The nav in a page's language: translated labels, and links to the
@@ -111,17 +114,18 @@ function localizeNav(locale: Locale): NavEntry[] {
 type LanguageSwitch = { href: string; label: string; lang: string };
 
 /**
- * A translated page links its English page, and an English page with a
- * translation links that. Pages with neither show no switch.
+ * A translated page links its English page, and an English page links each
+ * of its translations. Pages with neither show no switch.
  */
-function languageSwitch(pathname: string | null): LanguageSwitch | null {
-  if (!pathname) return null;
-  const locale = localeOfPath(pathname);
-  if (locale) {
-    return { href: englishRoute(pathname), label: "English", lang: "en" };
+function languageSwitch(pathname: string | null): LanguageSwitch[] {
+  if (!pathname) return [];
+  if (localeOfPath(pathname)) {
+    return [{ href: englishRoute(pathname), label: "English", lang: "en" }];
   }
-  const zh = localizedPath("zh", pathname);
-  return zh ? { href: zh, label: "中文", lang: LOCALES.zh.hreflang } : null;
+  return (Object.keys(LOCALES) as Locale[]).flatMap((locale) => {
+    const href = localizedPath(locale, pathname);
+    return href ? [{ href, label: SWITCH_LABELS[locale], lang: LOCALES[locale].hreflang }] : [];
+  });
 }
 
 /** A section is current on its own page and on every page under it. */
@@ -407,15 +411,20 @@ export default function SiteHeader() {
               >
                 <Bars3Icon className="h-5 w-5" aria-hidden="true" />
               </button>
-              {switchTo && (
-                <a
-                  href={switchTo.href}
-                  hrefLang={switchTo.lang}
-                  lang={switchTo.lang}
-                  className="inline-flex items-center rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/70 focus-ring"
-                >
-                  {switchTo.label}
-                </a>
+              {switchTo.length > 0 && (
+                <div className="inline-flex items-center rounded-xl border border-slate-700 bg-slate-900/70 px-1">
+                  {switchTo.map((option) => (
+                    <a
+                      key={option.lang}
+                      href={option.href}
+                      hrefLang={option.lang}
+                      lang={option.lang}
+                      className="rounded-lg px-2 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-800/70 focus-ring"
+                    >
+                      {option.label}
+                    </a>
+                  ))}
+                </div>
               )}
               <a
                 href={GITHUB_URL}

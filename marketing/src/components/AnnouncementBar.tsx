@@ -16,6 +16,8 @@ import { X } from "lucide-react";
 import { track } from "../lib/analytics";
 import { localeOfPath } from "../i18n/routes";
 import { ZH_ANNOUNCEMENT } from "../i18n/zh/chrome";
+import { JA_ANNOUNCEMENT } from "../i18n/ja/chrome";
+import { KO_ANNOUNCEMENT } from "../i18n/ko/chrome";
 
 /** Bump the id when the message changes so a past dismissal does not hide it. */
 const ANNOUNCEMENT = {
@@ -28,7 +30,7 @@ const ANNOUNCEMENT = {
 };
 
 /** The same message on translated pages. */
-const TRANSLATED = { zh: ZH_ANNOUNCEMENT };
+const TRANSLATED = { zh: ZH_ANNOUNCEMENT, ja: JA_ANNOUNCEMENT, ko: KO_ANNOUNCEMENT };
 
 const STORAGE_KEY = "nodetool:announcement-dismissed";
 const DISMISSED_CLASS = "announcement-dismissed";

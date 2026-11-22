@@ -27,7 +27,8 @@ type DetailText = {
   recipes: Record<string, RecipeText>;
 };
 
-export const DETAIL_TEXT: Record<Locale, DetailText> = {
+/** Locales with translated detail pages; see TRANSLATED_DETAIL_SECTIONS. */
+export const DETAIL_TEXT: Partial<Record<Locale, DetailText>> & { zh: DetailText } = {
   zh: {
     storyboards: zhStoryboards as Record<string, StoryboardText>,
     adLibrary: zhAdLibrary as unknown as Record<string, AdText>,
@@ -35,30 +36,47 @@ export const DETAIL_TEXT: Record<Locale, DetailText> = {
   },
 };
 
-const LABELS: Record<Locale, { storyboard: StoryboardLabels; ad: AdLabels; recipe: RecipeLabels }> = {
+type Labels = { storyboard: StoryboardLabels; ad: AdLabels; recipe: RecipeLabels };
+
+const LABELS: Partial<Record<Locale, Labels>> = {
   zh: { storyboard: ZH_STORYBOARD_LABELS, ad: ZH_AD_LABELS, recipe: ZH_RECIPE_LABELS },
 };
 
+function labels(locale: Locale): Labels {
+  const found = LABELS[locale];
+  if (!found) throw new Error(`No ${locale} detail page labels`);
+  return found;
+}
+
+function text(locale: Locale): DetailText {
+  const found = DETAIL_TEXT[locale];
+  if (!found) throw new Error(`No ${locale} detail page translations`);
+  return found;
+}
+
+/** Locales whose detail pages are translated, for the sitemap. */
+export const DETAIL_LOCALES = Object.keys(DETAIL_TEXT) as Locale[];
+
 export function storyboardLabels(locale: Locale | null): StoryboardLabels {
-  return locale ? LABELS[locale].storyboard : EN_STORYBOARD_LABELS;
+  return locale ? labels(locale).storyboard : EN_STORYBOARD_LABELS;
 }
 
 export function adLabels(locale: Locale | null): AdLabels {
-  return locale ? LABELS[locale].ad : EN_AD_LABELS;
+  return locale ? labels(locale).ad : EN_AD_LABELS;
 }
 
 export function recipeLabels(locale: Locale | null): RecipeLabels {
-  return locale ? LABELS[locale].recipe : EN_RECIPE_LABELS;
+  return locale ? labels(locale).recipe : EN_RECIPE_LABELS;
 }
 
 export function localizedStoryboard(locale: Locale | null, board: Storyboard): Storyboard {
-  return locale ? localize(board, DETAIL_TEXT[locale].storyboards[board.slug]) : board;
+  return locale ? localize(board, text(locale).storyboards[board.slug]) : board;
 }
 
 export function localizedAd(locale: Locale | null, ad: AdRecipe): AdRecipe {
-  return locale ? localize(ad, DETAIL_TEXT[locale].adLibrary[ad.slug]) : ad;
+  return locale ? localize(ad, text(locale).adLibrary[ad.slug]) : ad;
 }
 
 export function localizedRecipe(locale: Locale | null, recipe: RecipeEntry): RecipeEntry {
-  return locale ? localize(recipe, DETAIL_TEXT[locale].recipes[recipe.slug]) : recipe;
+  return locale ? localize(recipe, text(locale).recipes[recipe.slug]) : recipe;
 }
