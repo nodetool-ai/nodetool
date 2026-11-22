@@ -183,8 +183,11 @@ plan.
   code, links, bulleted, numbered and task lists, quotes, code blocks, tables,
   images and horizontal rules. Each has a toolbar control, a keyboard
   shortcut where one is conventional, and Markdown typing shortcuts.
-- **R3 — Source view.** A toggle shows the Markdown source in Monaco. Edits
-  in either view are edits to the same draft.
+- **R3 — Source view.** A toggle shows the Markdown source in Monaco. Edits in
+  either view are edits to the same draft. Switching from Monaco back to
+  Lexical reconciles the text against the pre-toggle state using R22, so
+  untouched block ids and R9 change marks survive. Undo history is scoped to
+  each view and does not carry across the toggle.
 - **R4 — Byte-stable saves.** Opening and saving an unedited document writes
   identical bytes. An edit rewrites only the blocks it touched. Without this
   rule, `edit_file` matches and file diffs break after the first save. Each
@@ -205,48 +208,69 @@ plan.
   `AssistantChatPanel`, as the script, storyboard, sketch and timeline editors
   have. The agent receives the focused document and the current selection.
 - **R8 — One edit path.** An agent tool that edits a document has the same
-  result whether the document is open or closed. When it is open, the edit
-  shows in the editor without a reload, and a later autosave does not
-  overwrite it. This holds for `edit_file` and `write_file` on a document
-  path, not only for document-specific tools. Where the user and the agent
-  changed the same block, [ADR 0001](../adr/0001-document-sync-draft-wins.md)
-  applies: the user's draft wins and the agent's value is listed as a
-  conflict. This is the outcome extension E6 of the CRDT designs specifies for
-  generated writes.
+  result whether the document is open or closed. Before an agent turn runs
+  against an open document, the editor flushes any dirty draft (or routes
+  `edit_file` and `write_file` on open document paths through the document
+  sync layer against the latest base) so the agent never reads unsaved editor
+  text and patches stale disk bytes. When the document is open, the edit shows
+  in the editor without a reload, and a later autosave does not overwrite it.
+  This holds for `edit_file` and `write_file` on a document path, not only for
+  document-specific tools. Where the user edits a block while an agent turn is
+  in flight and both change the same block, [ADR
+  0001](../adr/0001-document-sync-draft-wins.md) applies: the user's draft
+  wins and the agent's value is listed as a conflict. This is the outcome
+  extension E6 of the CRDT designs specifies for generated writes.
 - **R9 — Direct edits with a trail.** Agent edits apply at once (D2). Each
-  changed block is marked until the user edits it or dismisses the mark. Each
-  mark offers a revert that restores the block's previous content. A revert
-  is the user's own edit and goes on the undo stack. Agent edits do not, as
-  ADR 0001 requires. A block an agent changed records the turn and a hash of
-  the content it replaced, so a revert is one set-content operation.
+  changed block is marked until the user edits it or dismisses the mark. Marks
+  cover all block changes. A modified block offers a revert that restores its
+  previous content from the pre-turn version (R11) as one set-content
+  operation. An inserted block offers a remove action that deletes it. A
+  deleted block shows an inline removed-block marker with a restore action.
+  Splits or merges that fall back to delete and create under R20 revert
+  through those marks or through the per-turn restore in R11. A revert is the
+  user's own edit and goes on the undo stack. Agent edits do not, as ADR 0001
+  requires. A block an agent changed records the turn id and the replaced
+  block's id and content hash, so a revert can fetch the exact prior bytes
+  from the pre-turn version.
 - **R10 — Selection prompt.** Selecting text opens a prompt beside the
   selection, as `SelectionAssistPlugin` does in the storyboard Text view. A
-  replacement lands as one undo step. An answer that is not a replacement is
-  shown as a note and leaves the text unchanged.
+  replacement is treated as a user-initiated edit: it lands as one undo step,
+  does not add an R9 change mark, and does not create an R11 pre-turn version.
+  An answer that is not a replacement is shown as a note and leaves the text
+  unchanged.
 - **R11 — Version history.** Documents get stored versions. Text assets have
   none today, while workflows, sketches, JS scripts and timelines do. A
-  version is recorded before the first edit of each agent turn, before a
+  version is recorded before the first edit of each agent turn (with a turn id
+  threaded through tool execution, including headless CLI runs, so multiple
+  `edit_file` calls in one turn produce one pre-turn version), before a
   workflow run writes the document, on a manual "Save version", and at an
-  interval while the user edits. The editor lists versions with their cause
-  and restores one as a new version. A version is a complete copy of the
-  Markdown and does not depend on replicated state, so history survives a
-  change of sync design.
+  interval while the user edits. When the document is open, the pre-turn
+  version captures the live draft. The editor lists versions with their cause
+  and restores one as a new version. Logically, a version is a complete copy
+  of the Markdown and does not depend on replicated state, so history survives
+  a change of sync design (storage may deduplicate or compress blobs
+  underneath).
 - **R12 — Document as workflow input.** A node references a document by its
   id and outputs its current text at run time. Renaming or moving the file
   does not break the reference. The node shows the document name and opens
   the editor tab on click. The picker lists the project's documents, so no
   upload step exists.
 - **R13 — Write back to a document.** A save node takes a document as its
-  target and replaces or appends to its content. Repeated runs update one
-  file and record one version per run. `SaveTextFile` keeps its current
-  behavior for timestamped output files.
+  target and replaces or appends to its content. Repeated runs update one file
+  and record one version per run (multiple writes to the same target within a
+  single run still record one pre-run version). If the document is open with
+  unsaved user edits when a run writes to it, ADR 0001 applies: the user's
+  dirty blocks win and the workflow's conflicting blocks are listed as
+  conflicts. `SaveTextFile` keeps its current behavior for timestamped output
+  files.
 - **R14 — Convert a String node.** The String editor offers "Convert to
   document". It creates a document from the node's text and replaces the
   stored string with a reference to it. After that, the node's editor is the
   document tab.
 - **R15 — Provenance and validation.** A document written by a run records
   workflow, node and job ids. A document lists the workflows that reference
-  it. `validate_workflow` reports a reference to a deleted document.
+  it, backed by a reverse index in `packages/models/src/document-index.ts`.
+  `validate_workflow` reports a reference to a deleted document.
 - **R16 — Headless surface.** Create, read, edit, list versions and restore
   are available as agent tools and CLI commands with no editor open, as
   [Harness-First Engineering](../HARNESS_FIRST.md) requires.
@@ -288,7 +312,9 @@ plan.
   local and cloud projects behave the same.
 - An agent edit to an open document is visible in the editor within one
   second of the tool result on a local server.
-- The editor stays responsive on a 50,000-word document. Block diff and merge
+- The editor stays responsive on a 50,000-word document. R4's block codec
+  tracks dirty top-level blocks incrementally, so autosave does not
+  re-serialize or re-hash untouched blocks on every tick. Block diff and merge
   are tested on inputs of that size.
 - New UI uses `ui_primitives` and design tokens, as the
   [Design System](../DESIGN.md) requires.
@@ -336,7 +362,8 @@ Four phases. Each one ships alone.
 1. **Editor.** R1 to R6. The browser becomes a usable text editor with no
    agent.
 2. **Agent and versions.** R7 to R11, and the document tools of R16. Versions
-   ship with the agent because R9 depends on them.
+   ship with the agent because R9's per-block revert and Goal 4's per-turn
+   restore both read from the pre-turn version.
 3. **Workflow references.** R12 to R15.
 4. **Import and export.** R17 to R19.
 
@@ -356,16 +383,22 @@ sketches.
   `packages/protocol/src/api-types.ts` is a binary document. The proposal is
   the user-facing label "Document" for this kind, with `text` kept as the
   code name. The PDF tab needs another label.
-- **Q2 — Images.** An image in a document can be stored as a path relative to
-  the project folder or as an asset id. A relative path keeps the file
-  readable in other Markdown editors. An asset id survives a move of the
-  image. The proposal is a relative path, resolved through the
-  [media resolution boundary](../../web/src/components/ui_primitives/STRATEGY.md#media-resolution-is-the-rendering-boundary).
+- **Q2 — Images.** Phase 1 blocker for the write path. An image in a document
+  can be stored as a path relative to the project folder or as an asset id. A
+  relative path keeps the file readable in other Markdown editors. An asset id
+  survives a move of the image. The proposal is a relative path, resolved
+  through the [media resolution
+  boundary](../../web/src/components/ui_primitives/STRATEGY.md#media-resolution-is-the-rendering-boundary),
+  with pasted or dropped images saved to an `assets/` folder beside the
+  document (or the project's asset folder) before inserting the relative link.
 - **Q3 — Plain text.** A `.txt` file opened in a formatted editor would gain
   Markdown syntax on save. The proposal keeps `.txt` in Monaco and offers
   "Convert to document".
-- **Q4 — Tab identity.** A `.md` file can open as a `text` tab (by asset id)
-  or a `workspace-file` tab (by path). R8 and R12 need one identity per file.
+- **Q4 — Tab identity.** Phase 1 blocker. A `.md` file can open as a `text`
+  tab (by asset id) or a `workspace-file` tab (by path). R1, R5, R8 and R12
+  need one identity per file. The proposal is to make the asset id the
+  canonical tab identity for project `.md` files (resolving path to asset id
+  when opened from the Files tree) and deduplicate open tabs on that id.
 - **Q5 — Whole-value blocks.** D4 treats a block's Markdown as one value, as the storyboard and script design does for a line (its D2).
   Three points stay open. First, two people who type in one paragraph at the
   same time get a conflict on that block. If that becomes a main use, the
