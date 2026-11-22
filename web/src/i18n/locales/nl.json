@@ -20438,6 +20438,8 @@
     },
     "capturing": "Wijzigingen lezen…",
     "running": "Verzenden en ontvangen…",
+    "collect": "Verzamelen",
+    "collecting": "Gekoppelde bestanden worden naar de projectmap gekopieerd…",
     "apply": {
       "publish": "Publiceren",
       "synchronize": "Synchroniseren"
@@ -20494,7 +20496,7 @@
       "localUnavailable": "De projectserver van deze app heeft niet geantwoord.",
       "cancelled": "De overdracht is gestopt omdat het cloudaccount is gewijzigd.",
       "refused": "De server heeft de overdracht geweigerd ({{reason}}).",
-      "collectFirst": "Sommige bestanden van dit project staan buiten de projectmap. Verzamel ze in de map en probeer het opnieuw.",
+      "collectFirst": "Sommige bestanden die dit project gebruikt, staan buiten de projectmap. Verzamelen kopieert ze naar de map Imported en leest het project daarna opnieuw.",
       "receiveExpired": "Het cloudproject is gewijzigd terwijl dit venster open was. Synchroniseer opnieuw.",
       "receiveChangedWhileOpen": "Er is iets gewijzigd terwijl dit venster open was. Controleer de keuzes opnieuw.",
       "receivingChangedAgain": "Het cloudproject is tijdens het ontvangen opnieuw gewijzigd. Kies opnieuw.",
@@ -20505,7 +20507,9 @@
       "notPreparedAgain": "Ontvangen. De wijzigingen hier konden niet opnieuw worden voorbereid: {{reason}} Synchroniseer opnieuw om ze te verzenden.",
       "sendChangedWhileOpen": "Dit project is gewijzigd terwijl het venster open was. Controleer wat er wordt verzonden.",
       "missingFilesUnconfirmed": "Bestanden die dit project nodig heeft ontbreken. Bevestig elk bestand om zonder te verzenden.",
-      "sendRefused": "De cloud heeft het verzenden geweigerd: {{reasons}}"
+      "sendRefused": "De cloud heeft het verzenden geweigerd: {{reasons}}",
+      "notCollected": "Deze gekoppelde bestanden konden niet naar de projectmap worden gekopieerd: {{files}}",
+      "collectInterrupted": "Het kopiëren stopte voordat alle gekoppelde bestanden waren geprobeerd. Probeer het opnieuw."
     },
     "done": {
       "published": "Gepubliceerd in de cloud.",

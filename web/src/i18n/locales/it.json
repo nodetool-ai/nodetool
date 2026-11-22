@@ -20752,6 +20752,8 @@
     },
     "capturing": "Lettura delle modifiche…",
     "running": "Invio e ricezione…",
+    "collect": "Raccogli",
+    "collecting": "Copia dei file collegati nella cartella del progetto…",
     "apply": {
       "publish": "Pubblica",
       "synchronize": "Sincronizza"
@@ -20808,7 +20810,7 @@
       "localUnavailable": "Il server dei progetti di questa app non ha risposto.",
       "cancelled": "Il trasferimento si è interrotto perché l’account cloud è cambiato.",
       "refused": "Il server ha rifiutato il trasferimento ({{reason}}).",
-      "collectFirst": "Alcuni file di questo progetto sono fuori dalla cartella del progetto. Raccoglili nella cartella e riprova.",
+      "collectFirst": "Alcuni file usati da questo progetto sono fuori dalla cartella del progetto. Raccogli li copia nella sua cartella Imported, poi rilegge il progetto.",
       "receiveExpired": "Il progetto nel cloud è cambiato mentre questa finestra era aperta. Sincronizza di nuovo.",
       "receiveChangedWhileOpen": "Qualcosa è cambiato mentre questa finestra era aperta. Controlla di nuovo le scelte.",
       "receivingChangedAgain": "Il progetto nel cloud è cambiato di nuovo durante la ricezione. Scegli di nuovo.",
@@ -20820,6 +20822,8 @@
       "sendChangedWhileOpen": "Questo progetto è cambiato mentre la finestra era aperta. Controlla cosa verrà inviato.",
       "missingFilesUnconfirmed": "Mancano file necessari a questo progetto. Conferma ciascuno per inviare senza di esso.",
       "sendRefused": "Il cloud ha rifiutato l’invio: {{reasons}}",
+      "notCollected": "Questi file collegati non sono stati copiati nella cartella del progetto: {{files}}",
+      "collectInterrupted": "La copia si è interrotta prima di provare tutti i file collegati. Riprova.",
       "chooseAgain_many": "{{count}} documenti sono cambiati qui o nel cloud dopo la tua scelta. Scegli di nuovo.",
       "cloudChangedChooseAgain_many": "La versione cloud di {{count}} documenti è cambiata da quando questa finestra è stata letta. Scegli di nuovo."
     },

@@ -139,6 +139,30 @@ describe("CloudTransferSheet", () => {
     expect(router.calls[4].input.confirm_deletes).toEqual([]);
   });
 
+  it("offers Collect for linked files and shows the sheet after it", async () => {
+    const router = fakeRouter({
+      "cloudTransfer.send.capture": [
+        { status: "collect_first", external: ["clip.mov"], message: "Collect." },
+        { ...capture, deleted_locally: [] }
+      ]
+    });
+    const collect = jest.fn().mockResolvedValue({ copied: [], skipped: [], failed: [], interrupted: false });
+    const controller = new TransferController({ call: router.call, projectId: id("f1"), signedIn: () => true, collect });
+    renderSheet(controller);
+    await act(() => controller.start());
+
+    expect(
+      screen.getByText(
+        "Some files this project uses are outside the project folder. Collect copies them into its Imported folder, then reads the project again."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText("clip.mov")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Collect" }));
+    await waitFor(() => expect(screen.getByText("Mine")).toBeInTheDocument());
+    expect(collect).toHaveBeenCalledWith(id("f1"));
+    expect(screen.getByRole("button", { name: "Publish" })).toBeInTheDocument();
+  });
+
   it("shows a failure with a retry and ends the sheet on close", async () => {
     const router = fakeRouter({});
     const onClose = jest.fn();

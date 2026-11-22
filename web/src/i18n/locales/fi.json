@@ -20438,6 +20438,8 @@
     },
     "capturing": "Luetaan muutoksia…",
     "running": "Lähetetään ja vastaanotetaan…",
+    "collect": "Kerää",
+    "collecting": "Kopioidaan linkitettyjä tiedostoja projektikansioon…",
     "apply": {
       "publish": "Julkaise",
       "synchronize": "Synkronoi"
@@ -20494,7 +20496,7 @@
       "localUnavailable": "Tämän sovelluksen projektipalvelin ei vastannut.",
       "cancelled": "Siirto keskeytyi, koska pilvitili vaihtui.",
       "refused": "Palvelin hylkäsi siirron ({{reason}}).",
-      "collectFirst": "Osa projektin tiedostoista on projektikansion ulkopuolella. Kerää ne kansioon ja yritä uudelleen.",
+      "collectFirst": "Osa projektin käyttämistä tiedostoista on projektikansion ulkopuolella. Kerää kopioi ne sen Imported-kansioon ja lukee projektin uudelleen.",
       "receiveExpired": "Pilviprojekti muuttui, kun tämä ikkuna oli auki. Synkronoi uudelleen.",
       "receiveChangedWhileOpen": "Jokin muuttui, kun tämä ikkuna oli auki. Tarkista valinnat uudelleen.",
       "receivingChangedAgain": "Pilviprojekti muuttui uudelleen vastaanoton aikana. Valitse uudelleen.",
@@ -20505,7 +20507,9 @@
       "notPreparedAgain": "Vastaanotettu. Täällä tehtyjä muutoksia ei voitu valmistella uudelleen: {{reason}} Synkronoi uudelleen lähettääksesi ne.",
       "sendChangedWhileOpen": "Tämä projekti muuttui, kun ikkuna oli auki. Tarkista, mitä lähetetään.",
       "missingFilesUnconfirmed": "Projektin tarvitsemia tiedostoja puuttuu. Vahvista jokainen lähettääksesi ilman sitä.",
-      "sendRefused": "Pilvi hylkäsi lähetyksen: {{reasons}}"
+      "sendRefused": "Pilvi hylkäsi lähetyksen: {{reasons}}",
+      "notCollected": "Näitä linkitettyjä tiedostoja ei voitu kopioida projektikansioon: {{files}}",
+      "collectInterrupted": "Kopiointi pysähtyi ennen kuin kaikkia linkitettyjä tiedostoja yritettiin. Yritä uudelleen."
     },
     "done": {
       "published": "Julkaistu pilveen.",

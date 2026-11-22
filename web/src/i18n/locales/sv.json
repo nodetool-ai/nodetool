@@ -20438,6 +20438,8 @@
     },
     "capturing": "Läser vad som ändrats…",
     "running": "Skickar och tar emot…",
+    "collect": "Samla",
+    "collecting": "Kopierar länkade filer till projektmappen…",
     "apply": {
       "publish": "Publicera",
       "synchronize": "Synkronisera"
@@ -20494,7 +20496,7 @@
       "localUnavailable": "Den här appens projektserver svarade inte.",
       "cancelled": "Överföringen stoppades eftersom molnkontot ändrades.",
       "refused": "Servern avvisade överföringen ({{reason}}).",
-      "collectFirst": "Vissa filer som projektet använder ligger utanför projektmappen. Samla dem i mappen och försök sedan igen.",
+      "collectFirst": "Vissa filer som projektet använder ligger utanför projektmappen. Samla kopierar dem till mappen Imported och läser sedan projektet igen.",
       "receiveExpired": "Molnprojektet ändrades medan det här fönstret var öppet. Synkronisera igen.",
       "receiveChangedWhileOpen": "Något ändrades medan det här fönstret var öppet. Kontrollera valen igen.",
       "receivingChangedAgain": "Molnprojektet ändrades igen under mottagningen. Välj igen.",
@@ -20505,7 +20507,9 @@
       "notPreparedAgain": "Mottaget. Ändringarna här kunde inte förberedas igen: {{reason}} Synkronisera igen för att skicka dem.",
       "sendChangedWhileOpen": "Projektet ändrades medan fönstret var öppet. Kontrollera vad som skickas.",
       "missingFilesUnconfirmed": "Filer som projektet behöver saknas. Bekräfta var och en för att skicka utan den.",
-      "sendRefused": "Molnet avvisade sändningen: {{reasons}}"
+      "sendRefused": "Molnet avvisade sändningen: {{reasons}}",
+      "notCollected": "De här länkade filerna kunde inte kopieras till projektmappen: {{files}}",
+      "collectInterrupted": "Kopieringen stoppades innan alla länkade filer hade provats. Försök igen."
     },
     "done": {
       "published": "Publicerat i molnet.",
