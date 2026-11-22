@@ -20474,6 +20474,8 @@
       "keepBoth": "클라우드 버전 옆에 사본으로 보냄",
       "addVersions": "저장된 버전을 보냄",
       "putAssetFile": "여기서 파일이 변경됨, 보냄",
+      "putWorkspaceFile": "프로젝트 폴더에서 변경됨, 전송됩니다",
+      "newWorkspaceFile": "프로젝트 폴더에 새로 추가됨, 전송됩니다",
       "newInCloud": "클라우드에서 새로 만듦",
       "cloudChanged": "클라우드에서 변경됨",
       "cloudFileChanged": "사용하는 파일이 클라우드에서 변경됨",

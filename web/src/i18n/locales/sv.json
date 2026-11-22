@@ -20474,6 +20474,8 @@
       "keepBoth": "Skickas som en kopia bredvid molnversionen",
       "addVersions": "Sparade versioner skickas",
       "putAssetFile": "Filen ändrad här, skickas",
+      "putWorkspaceFile": "Ändrad i projektmappen, skickas",
+      "newWorkspaceFile": "Ny i projektmappen, skickas",
       "newInCloud": "Ny i molnet",
       "cloudChanged": "Ändrad i molnet",
       "cloudFileChanged": "En fil den använder har ändrats i molnet",

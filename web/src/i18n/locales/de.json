@@ -20474,6 +20474,8 @@
       "keepBoth": "Wird als Kopie neben der Cloud-Version gesendet",
       "addVersions": "Gespeicherte Versionen werden gesendet",
       "putAssetFile": "Datei hier geändert, wird gesendet",
+      "putWorkspaceFile": "Im Projektordner geändert, wird gesendet",
+      "newWorkspaceFile": "Neu im Projektordner, wird gesendet",
       "newInCloud": "Neu in der Cloud",
       "cloudChanged": "In der Cloud geändert",
       "cloudFileChanged": "Eine verwendete Datei wurde in der Cloud geändert",

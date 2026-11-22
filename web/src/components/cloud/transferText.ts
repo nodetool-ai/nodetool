@@ -78,6 +78,10 @@ const sendText = (t: TFunction, row: TransferRowView): string => {
       return t("cloudTransfer.row.addVersions");
     case "put_asset_file":
       return t("cloudTransfer.row.putAssetFile");
+    case "put_workspace_file":
+      return t("cloudTransfer.row.putWorkspaceFile");
+    case "new_workspace_file":
+      return t("cloudTransfer.row.newWorkspaceFile");
     default:
       return row.detail;
   }

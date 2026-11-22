@@ -20788,6 +20788,8 @@
       "keepBoth": "Sera envoyé comme copie à côté de la version du cloud",
       "addVersions": "Les versions enregistrées seront envoyées",
       "putAssetFile": "Fichier modifié ici, sera envoyé",
+      "putWorkspaceFile": "Modifié dans le dossier du projet, sera envoyé",
+      "newWorkspaceFile": "Nouveau dans le dossier du projet, sera envoyé",
       "newInCloud": "Nouveau dans le cloud",
       "cloudChanged": "Modifié dans le cloud",
       "cloudFileChanged": "Un fichier qu’il utilise a changé dans le cloud",

@@ -20474,6 +20474,8 @@
       "keepBoth": "Will be sent as a copy beside the cloud version",
       "addVersions": "Saved versions will be sent",
       "putAssetFile": "File changed here, will be sent",
+      "putWorkspaceFile": "Changed in the project folder, will be sent",
+      "newWorkspaceFile": "New in the project folder, will be sent",
       "newInCloud": "New in the cloud",
       "cloudChanged": "Changed in the cloud",
       "cloudFileChanged": "A file it uses changed in the cloud",

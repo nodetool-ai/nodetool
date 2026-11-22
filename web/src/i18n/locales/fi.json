@@ -20474,6 +20474,8 @@
       "keepBoth": "Lähetetään kopiona pilviversion rinnalle",
       "addVersions": "Tallennetut versiot lähetetään",
       "putAssetFile": "Tiedosto muutettu täällä, lähetetään",
+      "putWorkspaceFile": "Muutettu projektikansiossa, lähetetään",
+      "newWorkspaceFile": "Uusi projektikansiossa, lähetetään",
       "newInCloud": "Uusi pilvessä",
       "cloudChanged": "Muutettu pilvessä",
       "cloudFileChanged": "Sen käyttämä tiedosto muuttui pilvessä",
