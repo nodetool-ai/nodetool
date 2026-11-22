@@ -20752,6 +20752,8 @@
     },
     "capturing": "Lecture des modifications…",
     "running": "Envoi et réception…",
+    "collect": "Rassembler",
+    "collecting": "Copie des fichiers liés dans le dossier du projet…",
     "apply": {
       "publish": "Publier",
       "synchronize": "Synchroniser"
@@ -20808,7 +20810,7 @@
       "localUnavailable": "Le serveur de projets de cette app n’a pas répondu.",
       "cancelled": "Le transfert s’est arrêté, car le compte cloud a changé.",
       "refused": "Le serveur a refusé le transfert ({{reason}}).",
-      "collectFirst": "Certains fichiers de ce projet sont hors du dossier du projet. Rassemblez-les dans le dossier, puis réessayez.",
+      "collectFirst": "Certains fichiers utilisés par ce projet sont en dehors du dossier du projet. Rassembler les copie dans son dossier Imported, puis relit le projet.",
       "receiveExpired": "Le projet cloud a changé pendant que cette fenêtre était ouverte. Synchronisez à nouveau.",
       "receiveChangedWhileOpen": "Quelque chose a changé pendant que cette fenêtre était ouverte. Vérifiez à nouveau les choix.",
       "receivingChangedAgain": "Le projet cloud a encore changé pendant la réception. Choisissez à nouveau.",
@@ -20820,6 +20822,8 @@
       "sendChangedWhileOpen": "Ce projet a changé pendant que la fenêtre était ouverte. Vérifiez ce qui sera envoyé.",
       "missingFilesUnconfirmed": "Des fichiers nécessaires à ce projet manquent. Confirmez chacun pour envoyer sans lui.",
       "sendRefused": "Le cloud a refusé l’envoi : {{reasons}}",
+      "notCollected": "Ces fichiers liés n’ont pas pu être copiés dans le dossier du projet : {{files}}",
+      "collectInterrupted": "La copie s’est arrêtée avant que tous les fichiers liés aient été essayés. Réessayez.",
       "chooseAgain_many": "{{count}} documents ont changé ici ou dans le cloud depuis votre choix. Choisissez à nouveau.",
       "cloudChangedChooseAgain_many": "La version cloud de {{count}} documents a changé depuis la lecture de cette fenêtre. Choisissez à nouveau."
     },

@@ -45,8 +45,17 @@ import {
   type TransferOperation
 } from "./transferReview";
 import type { RunReceiveOutput } from "@nodetool-ai/protocol/api-schemas/cloud-transfer-local.js";
+import type { CollectOutput } from "@nodetool-ai/protocol/api-schemas/assets.js";
 
-export type TransferStage = "idle" | "capturing" | "reviewing" | "collectFirst" | "running" | "finished" | "failed";
+export type TransferStage =
+  | "idle"
+  | "capturing"
+  | "reviewing"
+  | "collectFirst"
+  | "collecting"
+  | "running"
+  | "finished"
+  | "failed";
 
 type Failed = Exclude<TransferStatus, "ok">;
 
@@ -59,7 +68,9 @@ export type TransferMessage =
   | { key: "chooseAgain" | "cloudChangedChooseAgain"; count: number }
   | { key: "notPreparedAgain"; status: Failed; reason: string }
   | { key: "sendChangedWhileOpen" | "missingFilesUnconfirmed" }
-  | { key: "sendRefused"; reasons: string[] };
+  | { key: "sendRefused"; reasons: string[] }
+  | { key: "notCollected"; files: string[] }
+  | { key: "collectInterrupted" };
 
 /** A row as the sheet lists it. `index` is its place in the review, which choose and confirm take. */
 export interface TransferRowView extends ReviewRow {
@@ -104,6 +115,12 @@ export interface TransferControllerOptions {
   readLink?: boolean;
   /** Whether the cloud account is signed in now. */
   signedIn: () => boolean;
+  /**
+   * The Collect step of decision D22: `assets.collect` on the app's own
+   * server, which copies the project's linked files into `Imported/`.
+   * Without it the sheet stops at collectFirst.
+   */
+  collect?: (projectId: string) => Promise<CollectOutput>;
 }
 
 const FULL_ID = /^[0-9a-f]{32}$/;
@@ -187,6 +204,7 @@ export class TransferController {
   private readonly projectName: string;
   private readonly readLink: boolean;
   private readonly signedIn: () => boolean;
+  private readonly collectFiles: ((projectId: string) => Promise<CollectOutput>) | null;
   private readonly listeners = new Set<() => void>();
 
   private stage: TransferStage = "idle";
@@ -215,6 +233,7 @@ export class TransferController {
     this.linked = options.linked ?? false;
     this.readLink = options.readLink ?? false;
     this.signedIn = options.signedIn;
+    this.collectFiles = options.collect ?? null;
     this.current = this.build();
   }
 
@@ -279,8 +298,52 @@ export class TransferController {
     this.changed();
   }
 
+  /** Whether the sheet can offer Collect at collectFirst. */
+  get canCollect(): boolean {
+    return this.collectFiles !== null;
+  }
+
+  /**
+   * The Collect step of decision D22 (CF6): copies the project's linked
+   * files into its folder, then captures again. A file that cannot be
+   * copied fails the transfer and is named, so nothing is sent without it.
+   */
+  async collect(): Promise<void> {
+    if (this.stage !== "collectFirst" || this.collectFiles === null) {
+      return;
+    }
+    const sequence = ++this.sequence;
+    this.stage = "collecting";
+    this.message = null;
+    this.changed();
+    let collected: CollectOutput;
+    try {
+      collected = await this.collectFiles(this.projectId);
+    } catch {
+      if (sequence === this.sequence) {
+        this.fail({ key: "failure", status: "localUnavailable", reason: "" });
+      }
+      return;
+    }
+    if (sequence !== this.sequence) {
+      return;
+    }
+    const notCollected = [...collected.skipped, ...collected.failed].map((file) => `${file.name}: ${file.reason}`);
+    if (notCollected.length > 0) {
+      this.fail({ key: "notCollected", files: notCollected });
+      return;
+    }
+    if (collected.interrupted) {
+      this.fail({ key: "collectInterrupted" });
+      return;
+    }
+    // Every linked file is in the folder now: read the project again.
+    this.stage = "idle";
+    await this.start();
+  }
+
   async start(): Promise<void> {
-    if (this.stage === "capturing" || this.stage === "running") {
+    if (this.stage === "capturing" || this.stage === "running" || this.stage === "collecting") {
       return;
     }
     this.review = new TransferReview(null, null);
