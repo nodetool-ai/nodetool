@@ -6,6 +6,7 @@ import { recipeEntries } from "@/data/recipes";
 import { modelEntries } from "@/data/modelEntries";
 import type { CatalogSource } from "@/i18n/content";
 import type { Locale } from "@/i18n/routes";
+import { localeHref } from "@/i18n/links";
 import {
   ZH_AD_LIBRARY,
   ZH_MODALITY,
@@ -17,8 +18,8 @@ import {
 
 /*
  * Cards for a generated catalog on a translated page. Titles and lines come
- * from i18n/<locale>/catalog.ts. Each card opens the English detail page,
- * marked with hrefLang, because the detail pages are not translated.
+ * from i18n/<locale>/catalog.ts. A card opens the translated detail page
+ * when there is one, else the English page marked with hrefLang.
  */
 
 type Card = {
@@ -32,14 +33,24 @@ type Card = {
 
 const aspectClass = { video: "aspect-video", portrait: "aspect-[9/16]", square: "aspect-square" } as const;
 
-function CardGrid({ cards, columns, label }: { cards: Card[]; columns: string; label: string }) {
+function CardGrid({
+  locale,
+  cards,
+  columns,
+  label,
+}: {
+  locale: Locale;
+  cards: Card[];
+  columns: string;
+  label: string;
+}) {
   return (
     <ul className={`mt-8 grid gap-5 ${columns}`} aria-label={label}>
       {cards.map((card) => (
         <li key={card.key}>
           <a
-            href={card.href}
-            hrefLang="en"
+            href={localeHref(locale, card.href).href}
+            hrefLang={localeHref(locale, card.href).hrefLang}
             className="focus-ring group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-900/50 transition-colors hover:border-slate-600"
           >
             {card.image && (
@@ -91,9 +102,6 @@ export default function LocalizedCatalog({
   source: CatalogSource;
   slugs?: readonly string[];
 }) {
-  // One locale today. A second one adds its catalog module here.
-  void locale;
-
   if (source === "storyboards" && !slugs) {
     return (
       <>
@@ -104,7 +112,7 @@ export default function LocalizedCatalog({
             <div key={category.id} className="mt-12">
               <h3 className="text-xl font-semibold text-white">{zh.title}</h3>
               <p className="mt-1 text-slate-400">{zh.body}</p>
-              <CardGrid cards={cards} columns="sm:grid-cols-2 lg:grid-cols-3" label={zh.title} />
+              <CardGrid locale={locale} cards={cards} columns="sm:grid-cols-2 lg:grid-cols-3" label={zh.title} />
             </div>
           );
         })}
@@ -113,7 +121,7 @@ export default function LocalizedCatalog({
   }
 
   if (source === "storyboards") {
-    return <CardGrid cards={storyboardCards(slugs)} columns="sm:grid-cols-2 lg:grid-cols-3" label="故事板" />;
+    return <CardGrid locale={locale} cards={storyboardCards(slugs)} columns="sm:grid-cols-2 lg:grid-cols-3" label="故事板" />;
   }
 
   if (source === "adLibrary") {
@@ -130,11 +138,12 @@ export default function LocalizedCatalog({
         image: ad.video ? { src: ad.video.poster, alt: zh?.title ?? ad.title, aspect: "portrait" } : undefined,
       };
     });
-    return <CardGrid cards={cards} columns="grid-cols-2 lg:grid-cols-4" label="广告模板" />;
+    return <CardGrid locale={locale} cards={cards} columns="grid-cols-2 lg:grid-cols-4" label="广告模板" />;
   }
 
   if (source === "recipes") {
-    const cards: Card[] = recipeEntries.map((recipe) => {
+    const recipes = slugs ? slugs.flatMap((slug) => recipeEntries.filter((recipe) => recipe.slug === slug)) : recipeEntries;
+    const cards: Card[] = recipes.map((recipe) => {
       const zh = ZH_RECIPES[recipe.slug];
       const card = recipe.productionRun?.card;
       return {
@@ -146,7 +155,7 @@ export default function LocalizedCatalog({
         image: card ? { src: card.src, alt: zh?.title ?? recipe.name, aspect: "video" } : undefined,
       };
     });
-    return <CardGrid cards={cards} columns="sm:grid-cols-2 lg:grid-cols-3" label="教程" />;
+    return <CardGrid locale={locale} cards={cards} columns="sm:grid-cols-2 lg:grid-cols-3" label="教程" />;
   }
 
   const cards: Card[] = modelEntries.map((model) => ({
@@ -156,5 +165,5 @@ export default function LocalizedCatalog({
     body: `${model.providers.length} 个服务商提供`,
     meta: `${ZH_MODALITY[model.modality]} · ${ZH_VENDOR[model.vendor] ?? model.vendor}`,
   }));
-  return <CardGrid cards={cards} columns="grid-cols-2 lg:grid-cols-4" label="模型" />;
+  return <CardGrid locale={locale} cards={cards} columns="grid-cols-2 lg:grid-cols-4" label="模型" />;
 }

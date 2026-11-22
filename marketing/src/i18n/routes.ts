@@ -35,10 +35,26 @@ export const TRANSLATED_ROUTES: Record<Locale, readonly string[]> = {
   ],
 };
 
+/**
+ * Catalog sections whose detail pages are translated, per locale:
+ * `/storyboards/<slug>` → `/zh/storyboards/<slug>`. Every slug in a listed
+ * section has a translation (i18n/details.ts), which the spec checks, so a
+ * route needs no slug list here and the header stays free of catalog data.
+ */
+export const TRANSLATED_DETAIL_SECTIONS: Record<Locale, readonly string[]> = {
+  zh: ["/storyboards", "/recipes", "/ad-library"],
+};
+
 const LOCALE_LIST = Object.keys(LOCALES) as Locale[];
 
+function isTranslatedDetail(locale: Locale, route: string): boolean {
+  return TRANSLATED_DETAIL_SECTIONS[locale].some((section) =>
+    new RegExp(`^${section}/[a-z0-9-]+$`).test(route)
+  );
+}
+
 export function hasTranslation(locale: Locale, route: string): boolean {
-  return TRANSLATED_ROUTES[locale].includes(route);
+  return TRANSLATED_ROUTES[locale].includes(route) || isTranslatedDetail(locale, route);
 }
 
 /** `/zh/studio` for a translated route, `/zh` for home, else null. */

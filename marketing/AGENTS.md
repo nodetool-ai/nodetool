@@ -168,6 +168,15 @@ set in `src/data/languagePages.ts` and pair with the home page.
   when there is one and marks the rest `hrefLang="en"` with （英文）.
 - The header, footer, announcement bar and demo player read the locale from
   the path. Their Chinese strings are in `src/i18n/zh/chrome.ts`.
+- Detail pages (`/zh/storyboards/<slug>`, `/zh/recipes/<slug>`,
+  `/zh/ad-library/<slug>`) render the English page's component with a
+  translated entry. `src/i18n/details.ts` picks each entry's visible text, the
+  translation in `src/i18n/zh/details/*.json` holds that shape per slug, and
+  the page's fixed words are in `src/i18n/zh/detailLabels.ts`.
+  `TRANSLATED_DETAIL_SECTIONS` lists the sections.
+  `tests/e2e/zh-detail-pages.spec.ts` fails when an English entry gains,
+  loses or renames a shot, beat, step or slug, so translate the change in the
+  same PR. Recipe step diagrams and example briefs stay in the run's English.
 
 ## Page and Film Dates
 
