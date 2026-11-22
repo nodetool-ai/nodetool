@@ -24,6 +24,7 @@ const send = (overrides: Partial<SendCapture>): SendCapture => ({
   missingFiles: [],
   skipped: [],
   deletedLocally: [],
+  deletedWorkspaceFiles: [],
   missingDocumentFiles: [],
   ...overrides
 });
@@ -224,6 +225,18 @@ describe("TransferReview", () => {
     expect(countOf(review, "send")).toBe(2);
     expect(review.rows[0]).toMatchObject({ documentId: "notes/plan.md", detail: "put_workspace_file" });
     expect(review.rows[1]).toMatchObject({ documentId: "data/new.csv", detail: "new_workspace_file" });
+  });
+
+  it("lists a deleted workspace file as a deletion that only a confirmation sends", () => {
+    const review = new TransferReview(
+      send({ deletedWorkspaceFiles: [{ path: "notes/plan.md", baseHash: "h1" }] }),
+      null
+    );
+    expect(countOf(review, "deletion")).toBe(1);
+    expect(review.confirmedFileDeletes()).toEqual([]);
+    expect(review.confirmDeletion(0, true)).toBe(true);
+    expect(review.confirmedFileDeletes()).toEqual([{ path: "notes/plan.md", baseHash: "h1" }]);
+    expect(review.confirmedDeletes()).toEqual([]);
   });
 
   it("flags a document sent from its last saved row (CF3, review F56)", () => {

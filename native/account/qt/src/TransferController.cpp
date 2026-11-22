@@ -567,7 +567,8 @@ void TransferController::apply() {
   tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(), headers = headers(), review = review_, transferId = transferId_,
                 setId = received_ ? std::string() : setId_,
                 refusals = linked_ ? review_.refusalsToReceive() : std::vector<TransferReview::RefusalReceive>{},
-                sendWork = sendWork_ || !linked_ || !review_.confirmedDeletes().empty(),
+                sendWork = sendWork_ || !linked_ || !review_.confirmedDeletes().empty() ||
+                           !review_.confirmedFileDeletes().empty(),
                 approved = approved_, approvedFiles = approvedFiles_, projectId = projectId_.toStdString(), name = projectName_.toStdString(),
                 sequence]() mutable {
     LocalTransferClient client(*state->transport, origin, headers, *current, cancel);
@@ -673,21 +674,22 @@ void TransferController::apply() {
           return;
         }
         sendWork = !applied.recaptured->operations.empty() || !applied.recaptured->fileOperations.empty() ||
-                   !review.confirmedDeletes().empty();
+                   !review.confirmedDeletes().empty() || !review.confirmedFileDeletes().empty();
       }
     }
     if (sendWork) {
       std::vector<KeepLocalDecision> keep = review.keepLocalDecisions();
       const std::vector<DeleteConfirmation> deletes = review.confirmedDeletes();
       const std::vector<TransferMissingFile> missing = review.confirmedMissingFiles();
-      SendRun run = client.runSend(transferId, keep, deletes, missing);
+      const std::vector<TransferDeletedFile> fileDeletes = review.confirmedFileDeletes();
+      SendRun run = client.runSend(transferId, keep, deletes, missing, fileDeletes);
       if (run.status == TransferStatus::Ok && !run.committed) {
         // Documents kept local are refused once: their base is older than
         // the cloud revision the person saw.
         const std::vector<KeepLocalDecision> answered = review.answeredRefusals(run.failures);
         if (!answered.empty() && answered.size() == run.failures.size()) {
           keep.insert(keep.end(), answered.begin(), answered.end());
-          run = client.runSend(transferId, keep, deletes, missing);
+          run = client.runSend(transferId, keep, deletes, missing, fileDeletes);
         }
       }
       applied.send = std::move(run);

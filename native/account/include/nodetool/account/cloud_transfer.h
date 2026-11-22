@@ -112,6 +112,14 @@ struct TransferDeleted {
   std::string baseHash;
 };
 
+// A workspace file sent earlier and deleted from the project folder since.
+// A confirmed deletion names it with the same base hash, the delete's
+// precondition.
+struct TransferDeletedFile {
+  std::string path;
+  std::string baseHash;
+};
+
 // A deletion the person confirmed, bound to the cloud revision the sheet
 // showed. That hash is the delete's precondition (V4, review F40).
 struct DeleteConfirmation {
@@ -138,6 +146,7 @@ struct SendCapture {
   std::vector<TransferMissingFile> missingFiles;
   std::vector<TransferSkipped> skipped;
   std::vector<TransferDeleted> deletedLocally;
+  std::vector<TransferDeletedFile> deletedWorkspaceFiles;
   // Documents whose file is missing from the project folder. Each is sent
   // from its last saved row (CF3, review F56).
   std::vector<TransferSkipped> missingDocumentFiles;
@@ -261,7 +270,8 @@ public:
   // confirmed each one, or empty.
   SendRun runSend(const std::string& transferId, const std::vector<KeepLocalDecision>& decisions,
                   const std::vector<DeleteConfirmation>& confirmDeletes,
-                  const std::vector<TransferMissingFile>& confirmMissing = {});
+                  const std::vector<TransferMissingFile>& confirmMissing = {},
+                  const std::vector<TransferDeletedFile>& confirmFileDeletes = {});
   // Ends a send before it commits. `committed` is true when it had already
   // committed.
   struct Cancel {
@@ -450,6 +460,8 @@ public:
   // The deletions the person confirmed, each with the cloud revision the
   // sheet showed.
   std::vector<DeleteConfirmation> confirmedDeletes() const;
+  // The workspace file deletions the person confirmed.
+  std::vector<TransferDeletedFile> confirmedFileDeletes() const;
   // The capture's missing files once each one is confirmed, or empty.
   std::vector<TransferMissingFile> confirmedMissingFiles() const;
 

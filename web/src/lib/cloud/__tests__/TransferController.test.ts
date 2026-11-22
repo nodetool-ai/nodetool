@@ -85,6 +85,7 @@ const captured = (
     fileOperations?: Operation[];
     missingFiles?: Record<string, unknown>[];
     deleted?: Record<string, unknown>[];
+    deletedFiles?: Record<string, unknown>[];
   } = {}
 ) => ({
   status: "captured",
@@ -96,7 +97,8 @@ const captured = (
   missing_files: fields.missingFiles ?? [],
   missing_document_files: [],
   skipped: [],
-  deleted_locally: fields.deleted ?? []
+  deleted_locally: fields.deleted ?? [],
+  deleted_workspace_files: fields.deletedFiles ?? []
 });
 
 const reviewDocument = (
@@ -554,6 +556,33 @@ describe("TransferController (TC123)", () => {
     expect(server.body("cloudTransfer.send.run", 1).confirm_deletes).toEqual([
       { kind: "workflow", cloud_id: id("cw1"), cloud_hash: hash("s2") }
     ]);
+  });
+
+  it("sends a confirmed workspace file deletion as the only work", async () => {
+    const server = new QueueServer();
+    server.answer(
+      "cloudTransfer.send.capture",
+      captured("t1", { deletedFiles: [{ path: "notes/plan.md", base_hash: hash("b") }] })
+    );
+    server.answer("cloudTransfer.receive.capture", receiveSet("s1"));
+    server.answer("cloudTransfer.receive.run", finished("s1"));
+    server.answer("cloudTransfer.send.run", committed("t1"));
+
+    const transfer = controller(server, { linked: true });
+    await transfer.start();
+    expect(transfer.snapshot.rows).toHaveLength(1);
+    expect(transfer.snapshot.rows[0]).toMatchObject({
+      section: "deletion",
+      label: "notes/plan.md",
+      canKeepDeletion: true
+    });
+    expect(transfer.confirmDeletion(0, true)).toBe(true);
+    await transfer.apply();
+    expect(transfer.snapshot.stage).toBe("finished");
+    expect(server.calls().at(-1)).toBe("cloudTransfer.send.run");
+    const sent = server.body("cloudTransfer.send.run", 0);
+    expect(sent.confirm_workspace_deletes).toEqual([{ path: "notes/plan.md", base_hash: hash("b") }]);
+    expect(sent.confirm_deletes).toEqual([]);
   });
 
   it("sends a file-only change (review F33)", async () => {

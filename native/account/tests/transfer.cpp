@@ -630,6 +630,43 @@ void everySendNamesItsDeletions(TestContext& t) {
   CHECK(client.runSend(kTransfer, {}, {}).committed);
   const json body = json::parse(transport.sent().back().body);
   CHECK(body.contains("confirm_deletes") && body["confirm_deletes"] == json::array());
+  CHECK(body.contains("confirm_workspace_deletes") && body["confirm_workspace_deletes"] == json::array());
+}
+
+// A workspace file deleted here is a deletion row. Only a confirmed one is
+// sent, with the base hash the capture listed, and never as a document.
+void aDeletedWorkspaceFileNeedsAConfirmation(TestContext& t) {
+  SignedInApp app;
+  const std::string base(64, 'b');
+  FakeTransport transport([&](const HttpRequest& request) {
+    if (request.url.ends_with("/trpc/cloudTransfer.send.capture")) {
+      return ok({{"status", "captured"},
+                 {"transfer_id", kTransfer},
+                 {"first_publication", false},
+                 {"operations", json::array()},
+                 {"documents", json::array()},
+                 {"missing_files", json::array()},
+                 {"skipped", json::array()},
+                 {"deleted_locally", json::array()},
+                 {"deleted_workspace_files", json::array({{{"path", "notes/plan.md"}, {"base_hash", base}}})}});
+    }
+    return ok({{"status", "committed"}, {"transfer_id", kTransfer}, {"result", json::object()}});
+  });
+  LocalTransferClient client(transport, kLocal, {}, *app.session);
+  TransferReview review(client.captureSend(kProject), {});
+  CHECK(countOf(review, ReviewSection::Deletion) == 1);
+  CHECK(review.confirmedFileDeletes().empty());
+  if (review.rows().size() == 1) {
+    CHECK(review.rows()[0].name == "notes/plan.md");
+    CHECK(review.confirmDeletion(0, true));
+  }
+  CHECK(review.confirmedDeletes().empty());
+  const auto confirmed = review.confirmedFileDeletes();
+  CHECK(confirmed.size() == 1);
+  CHECK(client.runSend(kTransfer, {}, review.confirmedDeletes(), {}, confirmed).committed);
+  const json body = json::parse(transport.sent().back().body);
+  CHECK(body["confirm_workspace_deletes"] == json::array({{{"path", "notes/plan.md"}, {"base_hash", base}}}));
+  CHECK(body["confirm_deletes"] == json::array());
 }
 
 void missingFilesNeedAConfirmation(TestContext& t) {
@@ -841,6 +878,7 @@ int main() {
       {"workspaceFilesAreSendRows", workspaceFilesAreSendRows},
       {"missingFilesNeedAConfirmation", missingFilesNeedAConfirmation},
       {"everySendNamesItsDeletions", everySendNamesItsDeletions},
+      {"aDeletedWorkspaceFileNeedsAConfirmation", aDeletedWorkspaceFileNeedsAConfirmation},
       {"aMissingDocumentFileIsShown", aMissingDocumentFileIsShown},
       {"aCloudFileChangeIsShown", aCloudFileChangeIsShown},
       {"aRefusedDeletionAsksAgain", aRefusedDeletionAsksAgain},
