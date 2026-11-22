@@ -71,3 +71,26 @@ export const revisionSetFiles = sqliteTable(
     index("idx_revision_set_files_hash").on(table.hash)
   ]
 );
+
+/**
+ * One workspace file of a set: a file of the owner's cloud folder that no
+ * asset or document names, at the hash the capture read
+ * (technical design, "Receiving workspace files", RW4). Only the owner's
+ * sets have these rows. Like a file row, it is a retention root.
+ */
+export const revisionSetWorkspaceFiles = sqliteTable(
+  "revision_set_workspace_files",
+  {
+    id: text("id").primaryKey(),
+    set_id: text("set_id").notNull(),
+    user_id: text("user_id").notNull(),
+    project_id: text("project_id").notNull(),
+    path: text("path").notNull(),
+    hash: text("hash").notNull(),
+    size: integer("size").notNull()
+  },
+  (table) => [
+    index("idx_revision_set_workspace_files_set").on(table.set_id, table.hash),
+    index("idx_revision_set_workspace_files_hash").on(table.hash)
+  ]
+);

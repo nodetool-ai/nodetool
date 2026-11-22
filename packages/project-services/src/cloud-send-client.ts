@@ -35,7 +35,6 @@ import {
   listCloudLinkDocuments,
   listCloudLinkWorkspaceFiles,
   listCloudSends,
-  pendingPlacementPaths,
   setCloudLinkDocumentBase,
   setCloudLinkFileBase,
   setCloudLinkWorkspaceFileBase,
@@ -68,8 +67,9 @@ import type {
   TransferStatusOutput
 } from "@nodetool-ai/protocol/api-schemas/transfer.js";
 import { CloudRequestError } from "./cloud-http-transport.js";
-import { reconcileInBackground, scanFolder, type FolderFile } from "./project-index.js";
+import { reconcileInBackground, type FolderFile } from "./project-index.js";
 import { identityHash, TRANSFER_DOCUMENT_KINDS, transferPayloadOf } from "./transfer-documents.js";
+import { listWorkspaceFiles } from "./workspace-files.js";
 
 const log = createLogger("nodetool.project-services.cloud-send-client");
 
@@ -373,35 +373,6 @@ interface CapturedDocuments {
   workspaceFiles: FolderFile[];
 }
 
-/** Files that travel as documents only, whatever row names them (CF2). */
-const DOCUMENT_FILE_SUFFIXES = [".workflow.json", ".timeline.json"];
-
-/**
- * The workspace files of the folder under the lock: every file the index's
- * own scan finds (CF5), except a file an asset names, a workflow or timeline
- * file (CF2), and a path a receive is still placing.
- */
-async function workspaceFilesOf(
-  target: SendTarget,
-  workspace: Workspace,
-  locals: readonly LocalDocument[]
-): Promise<FolderFile[]> {
-  const excluded = new Set<string>(await pendingPlacementPaths(target.projectId));
-  for (const asset of await Asset.listProjectFiles(target.userId, target.projectId)) {
-    if (asset.workspace_path) excluded.add(asset.workspace_path);
-  }
-  for (const local of locals) {
-    if (local.filePath) excluded.add(local.filePath);
-  }
-  const out: FolderFile[] = [];
-  for (const file of (await scanFolder(workspace)).values()) {
-    if (excluded.has(file.path)) continue;
-    if (DOCUMENT_FILE_SUFFIXES.some((suffix) => file.path.endsWith(suffix))) continue;
-    out.push(file);
-  }
-  return out.sort((a, b) => a.path.localeCompare(b.path));
-}
-
 async function captureDocuments(target: SendTarget, link: CloudLinkRow | null, workspace: Workspace): Promise<CapturedDocuments> {
   const operations: TransferOperation[] = [];
   const payloads: TransferPayload[] = [];
@@ -484,7 +455,7 @@ async function captureDocuments(target: SendTarget, link: CloudLinkRow | null, w
     missingDocumentFiles,
     files: referenced,
     external,
-    workspaceFiles: await workspaceFilesOf(target, workspace, locals)
+    workspaceFiles: await listWorkspaceFiles(target.userId, target.projectId, workspace)
   };
 }
 

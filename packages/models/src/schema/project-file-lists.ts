@@ -59,3 +59,28 @@ export const projectMissingFiles = sqliteTable(
     index("idx_project_missing_files_user").on(table.user_id)
   ]
 );
+
+/**
+ * The hashes the server read from the workspace files of a cloud project's
+ * folder (technical design, "Receiving workspace files", RW3). A file whose
+ * size and modification time match its row is not read again. One row per
+ * project and path.
+ */
+export const projectWorkspaceHashes = sqliteTable(
+  "project_workspace_hashes",
+  {
+    id: text("id").primaryKey(),
+    project_id: text("project_id").notNull(),
+    /** The project's owner. */
+    user_id: text("user_id").notNull(),
+    path: text("path").notNull(),
+    size: integer("size").notNull(),
+    mtime_ms: integer("mtime_ms").notNull(),
+    hash: text("hash").notNull(),
+    updated_at: text("updated_at").notNull()
+  },
+  (table) => [
+    uniqueIndex("idx_project_workspace_hashes_path").on(table.project_id, table.path),
+    index("idx_project_workspace_hashes_user").on(table.user_id)
+  ]
+);
