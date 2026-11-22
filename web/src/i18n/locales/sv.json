@@ -20570,6 +20570,63 @@
       "removeLink": "Ta bort länk",
       "applyLink": "Använd",
       "insertImage": "Infoga"
-    }
+    },
+    "agent": {
+      "toggle": "Assistent",
+      "welcomeTitle": "Skriv med assistenten",
+      "welcomeBody": "Be om ett utkast, en ändring eller en granskning. Assistenten ser det här dokumentet och texten du markerat."
+    },
+    "versions": {
+      "toggle": "Versionshistorik",
+      "title": "Versioner",
+      "name": "Versionsnamn",
+      "namePlaceholder": "Namn (valfritt)",
+      "save": "Spara version",
+      "restore": "Återställ",
+      "loadError": "Versionerna kunde inte läsas in.",
+      "emptyTitle": "Inga versioner än",
+      "emptyBody": "En version sparas före varje ändring från assistenten, när du sparar en och med några minuters mellanrum medan du redigerar.",
+      "versionNumber": "Version {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistent",
+        "workflow_run": "Arbetsflödeskörning",
+        "manual": "Sparad",
+        "autosave": "Intervall",
+        "restore": "Före återställning"
+      }
+    },
+    "changes": {
+      "title": "Markerade ändringar: {{count}}",
+      "show": "Visa",
+      "hide": "Dölj",
+      "dismiss": "Avfärda",
+      "dismissAll": "Avfärda alla",
+      "kinds": {
+        "modified": "Ändrat",
+        "inserted": "Tillagt",
+        "deleted": "Borttaget"
+      },
+      "actions": {
+        "modified": "Återställ",
+        "inserted": "Ta bort",
+        "deleted": "Återställ"
+      }
+    },
+    "assist": {
+      "proposal": "Föreslagen ersättning",
+      "note": "Anteckning",
+      "discard": "Kasta",
+      "close": "Stäng",
+      "replace": "Ersätt",
+      "thinking": "Tänker…",
+      "stop": "Stoppa",
+      "placeholder": "Vad ska ändras?",
+      "refinePlaceholder": "Förfina svaret",
+      "instruction": "Instruktion",
+      "send": "Skicka",
+      "noModel": "Välj en modell i chatten först.",
+      "failed": "Begäran misslyckades."
+    },
+    "resizePanel": "Ändra storlek på sidopanelen"
   }
 }

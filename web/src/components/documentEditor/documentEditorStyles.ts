@@ -66,6 +66,16 @@ export const documentEditorStyles = (theme: Theme) =>
       overflowY: "auto",
       position: "relative"
     },
+    ".doc-change-modified, .doc-change-inserted": {
+      boxShadow: `inset 3px 0 0 ${theme.vars.palette.primary.main}`,
+      paddingLeft: sp(SPACING.md),
+      marginLeft: `-${sp(SPACING.md)}`,
+      borderRadius: BORDER_RADIUS.xs,
+      transition: MOTION.background
+    },
+    ".doc-change-inserted": {
+      backgroundColor: theme.vars.palette.action.hover
+    },
     ".doc-page": {
       maxWidth: "48rem",
       margin: "0 auto",

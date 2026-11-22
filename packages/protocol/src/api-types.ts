@@ -822,7 +822,7 @@ export interface UiDocumentRef {
    * The document's id: `image_documents.id` for sketch, `timeline_sequences.id`
    * for timeline, `storyboards.id`, `scripts.id`, `js_scripts.id` for
    * `jsscript`, `workflows.id` for `workflow`, `applications.id` for
-   * `app`, `assets.id` for `svg` and `audio`, and the app run id (the app
+   * `app`, `assets.id` for `svg`, `audio` and `document`, and the app run id (the app
    * instance, else the application) for `app_run`, a chat app being run.
    */
   id: string;
@@ -840,6 +840,7 @@ export type UiSurfaceType =
   | "app"
   | "svg"
   | "audio"
+  | "document"
   | "chat"
   | "app_run";
 
@@ -862,6 +863,7 @@ export type ChatSource =
   | "model3d_assistant"
   | "svg_assistant"
   | "audio_assistant"
+  | "document_assistant"
   | "app_run";
 
 export interface UiRunReference {
@@ -884,6 +886,8 @@ export interface UiContext {
     component_ids?: string[] | null;
     entity_ids?: string[] | null;
     behavior_index?: number | null;
+    /** The text selected in a Markdown document. */
+    text?: string | null;
   } | null;
   /** Chat surface the user typed in. The server names it in the system prompt. */
   source?: ChatSource | null;

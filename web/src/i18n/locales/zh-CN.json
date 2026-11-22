@@ -20570,6 +20570,63 @@
       "removeLink": "移除链接",
       "applyLink": "应用",
       "insertImage": "插入"
-    }
+    },
+    "agent": {
+      "toggle": "助手",
+      "welcomeTitle": "与助手一起写作",
+      "welcomeBody": "请求草稿、修改或审阅。助手可以看到此文档和你选中的文本。"
+    },
+    "versions": {
+      "toggle": "版本历史",
+      "title": "版本",
+      "name": "版本名称",
+      "namePlaceholder": "名称（可选）",
+      "save": "保存版本",
+      "restore": "恢复",
+      "loadError": "无法加载版本。",
+      "emptyTitle": "暂无版本",
+      "emptyBody": "每次助手修改前、你手动保存时以及编辑期间每隔几分钟都会保留一个版本。",
+      "versionNumber": "版本 {{version}}",
+      "saveTypes": {
+        "agent_turn": "助手",
+        "workflow_run": "工作流运行",
+        "manual": "已保存",
+        "autosave": "定时",
+        "restore": "恢复前"
+      }
+    },
+    "changes": {
+      "title": "已标记的更改：{{count}}",
+      "show": "显示",
+      "hide": "隐藏",
+      "dismiss": "忽略",
+      "dismissAll": "全部忽略",
+      "kinds": {
+        "modified": "已修改",
+        "inserted": "已添加",
+        "deleted": "已删除"
+      },
+      "actions": {
+        "modified": "还原",
+        "inserted": "移除",
+        "deleted": "恢复"
+      }
+    },
+    "assist": {
+      "proposal": "建议的替换",
+      "note": "备注",
+      "discard": "放弃",
+      "close": "关闭",
+      "replace": "替换",
+      "thinking": "思考中…",
+      "stop": "停止",
+      "placeholder": "要修改什么？",
+      "refinePlaceholder": "完善回答",
+      "instruction": "指令",
+      "send": "发送",
+      "noModel": "请先在聊天中选择模型。",
+      "failed": "请求失败。"
+    },
+    "resizePanel": "调整侧边栏大小"
   }
 }

@@ -20570,6 +20570,63 @@
       "removeLink": "リンクを削除",
       "applyLink": "適用",
       "insertImage": "挿入"
-    }
+    },
+    "agent": {
+      "toggle": "アシスタント",
+      "welcomeTitle": "アシスタントと書く",
+      "welcomeBody": "下書き、編集、レビューを依頼できます。アシスタントはこのドキュメントと選択したテキストを参照します。"
+    },
+    "versions": {
+      "toggle": "バージョン履歴",
+      "title": "バージョン",
+      "name": "バージョン名",
+      "namePlaceholder": "名前（任意）",
+      "save": "バージョンを保存",
+      "restore": "復元",
+      "loadError": "バージョンを読み込めませんでした。",
+      "emptyTitle": "バージョンはまだありません",
+      "emptyBody": "アシスタントの変更の前、保存したとき、編集中は数分ごとにバージョンが保存されます。",
+      "versionNumber": "バージョン {{version}}",
+      "saveTypes": {
+        "agent_turn": "アシスタント",
+        "workflow_run": "ワークフロー実行",
+        "manual": "保存済み",
+        "autosave": "定期",
+        "restore": "復元前"
+      }
+    },
+    "changes": {
+      "title": "マークされた変更: {{count}}",
+      "show": "表示",
+      "hide": "非表示",
+      "dismiss": "閉じる",
+      "dismissAll": "すべて閉じる",
+      "kinds": {
+        "modified": "変更",
+        "inserted": "追加",
+        "deleted": "削除"
+      },
+      "actions": {
+        "modified": "元に戻す",
+        "inserted": "削除",
+        "deleted": "復元"
+      }
+    },
+    "assist": {
+      "proposal": "置換の提案",
+      "note": "メモ",
+      "discard": "破棄",
+      "close": "閉じる",
+      "replace": "置換",
+      "thinking": "考え中…",
+      "stop": "停止",
+      "placeholder": "何を変更しますか？",
+      "refinePlaceholder": "回答を調整",
+      "instruction": "指示",
+      "send": "送信",
+      "noModel": "先にチャットでモデルを選択してください。",
+      "failed": "リクエストに失敗しました。"
+    },
+    "resizePanel": "サイドパネルのサイズを変更"
   }
 }

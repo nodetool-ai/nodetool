@@ -20887,6 +20887,63 @@
       "removeLink": "Supprimer le lien",
       "applyLink": "Appliquer",
       "insertImage": "Insérer"
-    }
+    },
+    "agent": {
+      "toggle": "Assistant",
+      "welcomeTitle": "Écrire avec l'assistant",
+      "welcomeBody": "Demandez un brouillon, une modification ou une relecture. L'assistant voit ce document et le texte sélectionné."
+    },
+    "versions": {
+      "toggle": "Historique des versions",
+      "title": "Versions",
+      "name": "Nom de la version",
+      "namePlaceholder": "Nom (facultatif)",
+      "save": "Enregistrer une version",
+      "restore": "Restaurer",
+      "loadError": "Les versions n'ont pas pu être chargées.",
+      "emptyTitle": "Aucune version",
+      "emptyBody": "Une version est conservée avant chaque modification de l'assistant, quand vous en enregistrez une et toutes les quelques minutes pendant l'édition.",
+      "versionNumber": "Version {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistant",
+        "workflow_run": "Exécution de workflow",
+        "manual": "Enregistrée",
+        "autosave": "Intervalle",
+        "restore": "Avant restauration"
+      }
+    },
+    "changes": {
+      "title": "Modifications marquées : {{count}}",
+      "show": "Afficher",
+      "hide": "Masquer",
+      "dismiss": "Ignorer",
+      "dismissAll": "Tout ignorer",
+      "kinds": {
+        "modified": "Modifié",
+        "inserted": "Ajouté",
+        "deleted": "Supprimé"
+      },
+      "actions": {
+        "modified": "Annuler",
+        "inserted": "Retirer",
+        "deleted": "Restaurer"
+      }
+    },
+    "assist": {
+      "proposal": "Remplacement proposé",
+      "note": "Note",
+      "discard": "Ignorer",
+      "close": "Fermer",
+      "replace": "Remplacer",
+      "thinking": "Réflexion…",
+      "stop": "Arrêter",
+      "placeholder": "Que faut-il changer ?",
+      "refinePlaceholder": "Affiner la réponse",
+      "instruction": "Instruction",
+      "send": "Envoyer",
+      "noModel": "Choisissez d'abord un modèle dans le chat.",
+      "failed": "La demande a échoué."
+    },
+    "resizePanel": "Redimensionner le panneau latéral"
   }
 }

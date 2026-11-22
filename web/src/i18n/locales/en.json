@@ -20570,6 +20570,63 @@
       "removeLink": "Remove link",
       "applyLink": "Apply",
       "insertImage": "Insert"
-    }
+    },
+    "agent": {
+      "toggle": "Assistant",
+      "welcomeTitle": "Write with the assistant",
+      "welcomeBody": "Ask for a draft, an edit or a review. The assistant sees this document and the text you selected."
+    },
+    "versions": {
+      "toggle": "Version history",
+      "title": "Versions",
+      "name": "Version name",
+      "namePlaceholder": "Name (optional)",
+      "save": "Save version",
+      "restore": "Restore",
+      "loadError": "Versions could not be loaded.",
+      "emptyTitle": "No versions yet",
+      "emptyBody": "A version is kept before each assistant change, when you save one, and every few minutes while you edit.",
+      "versionNumber": "Version {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistant",
+        "workflow_run": "Workflow run",
+        "manual": "Saved",
+        "autosave": "Interval",
+        "restore": "Before restore"
+      }
+    },
+    "changes": {
+      "title": "Marked changes: {{count}}",
+      "show": "Show",
+      "hide": "Hide",
+      "dismiss": "Dismiss",
+      "dismissAll": "Dismiss all",
+      "kinds": {
+        "modified": "Changed",
+        "inserted": "Added",
+        "deleted": "Removed"
+      },
+      "actions": {
+        "modified": "Revert",
+        "inserted": "Remove",
+        "deleted": "Restore"
+      }
+    },
+    "assist": {
+      "proposal": "Proposed replacement",
+      "note": "Note",
+      "discard": "Discard",
+      "close": "Close",
+      "replace": "Replace",
+      "thinking": "Thinking…",
+      "stop": "Stop",
+      "placeholder": "What should change?",
+      "refinePlaceholder": "Refine the answer",
+      "instruction": "Instruction",
+      "send": "Send",
+      "noModel": "Pick a model in the chat first.",
+      "failed": "The request failed."
+    },
+    "resizePanel": "Resize the side panel"
   }
 }

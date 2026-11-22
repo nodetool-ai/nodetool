@@ -26,6 +26,14 @@ jest.mock("../../workspace/MonacoPane", () => ({
 jest.mock("../../textEditor/CodeHighlightPlugin", () => ({
   CodeHighlightPlugin: () => null
 }));
+jest.mock("../DocumentAgentPanel", () => ({
+  __esModule: true,
+  default: () => <div>assistant panel</div>
+}));
+jest.mock("../DocumentVersionsPanel", () => ({
+  __esModule: true,
+  default: () => <div>versions panel</div>
+}));
 
 const SOURCE = "# Launch notes\n\n- [ ] write the plan\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n";
 

@@ -20570,6 +20570,63 @@
       "removeLink": "Link verwijderen",
       "applyLink": "Toepassen",
       "insertImage": "Invoegen"
-    }
+    },
+    "agent": {
+      "toggle": "Assistent",
+      "welcomeTitle": "Schrijven met de assistent",
+      "welcomeBody": "Vraag om een concept, een bewerking of een review. De assistent ziet dit document en de geselecteerde tekst."
+    },
+    "versions": {
+      "toggle": "Versiegeschiedenis",
+      "title": "Versies",
+      "name": "Versienaam",
+      "namePlaceholder": "Naam (optioneel)",
+      "save": "Versie opslaan",
+      "restore": "Herstellen",
+      "loadError": "De versies konden niet worden geladen.",
+      "emptyTitle": "Nog geen versies",
+      "emptyBody": "Er wordt een versie bewaard vóór elke wijziging van de assistent, wanneer u er een opslaat en om de paar minuten tijdens het bewerken.",
+      "versionNumber": "Versie {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistent",
+        "workflow_run": "Workflow-run",
+        "manual": "Opgeslagen",
+        "autosave": "Interval",
+        "restore": "Vóór herstel"
+      }
+    },
+    "changes": {
+      "title": "Gemarkeerde wijzigingen: {{count}}",
+      "show": "Tonen",
+      "hide": "Verbergen",
+      "dismiss": "Negeren",
+      "dismissAll": "Alles negeren",
+      "kinds": {
+        "modified": "Gewijzigd",
+        "inserted": "Toegevoegd",
+        "deleted": "Verwijderd"
+      },
+      "actions": {
+        "modified": "Terugdraaien",
+        "inserted": "Verwijderen",
+        "deleted": "Herstellen"
+      }
+    },
+    "assist": {
+      "proposal": "Voorgestelde vervanging",
+      "note": "Notitie",
+      "discard": "Weggooien",
+      "close": "Sluiten",
+      "replace": "Vervangen",
+      "thinking": "Denkt na…",
+      "stop": "Stoppen",
+      "placeholder": "Wat moet er veranderen?",
+      "refinePlaceholder": "Antwoord verfijnen",
+      "instruction": "Instructie",
+      "send": "Verzenden",
+      "noModel": "Kies eerst een model in de chat.",
+      "failed": "Het verzoek is mislukt."
+    },
+    "resizePanel": "Zijpaneel vergroten of verkleinen"
   }
 }

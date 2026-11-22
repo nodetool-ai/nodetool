@@ -20570,6 +20570,63 @@
       "removeLink": "Fjern lenke",
       "applyLink": "Bruk",
       "insertImage": "Sett inn"
-    }
+    },
+    "agent": {
+      "toggle": "Assistent",
+      "welcomeTitle": "Skriv med assistenten",
+      "welcomeBody": "Be om et utkast, en endring eller en gjennomgang. Assistenten ser dette dokumentet og teksten du har merket."
+    },
+    "versions": {
+      "toggle": "Versjonshistorikk",
+      "title": "Versjoner",
+      "name": "Versjonsnavn",
+      "namePlaceholder": "Navn (valgfritt)",
+      "save": "Lagre versjon",
+      "restore": "Gjenopprett",
+      "loadError": "Versjonene kunne ikke lastes inn.",
+      "emptyTitle": "Ingen versjoner ennå",
+      "emptyBody": "En versjon lagres før hver endring fra assistenten, når du lagrer en, og med noen minutters mellomrom mens du redigerer.",
+      "versionNumber": "Versjon {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistent",
+        "workflow_run": "Arbeidsflytkjøring",
+        "manual": "Lagret",
+        "autosave": "Intervall",
+        "restore": "Før gjenoppretting"
+      }
+    },
+    "changes": {
+      "title": "Merkede endringer: {{count}}",
+      "show": "Vis",
+      "hide": "Skjul",
+      "dismiss": "Avvis",
+      "dismissAll": "Avvis alle",
+      "kinds": {
+        "modified": "Endret",
+        "inserted": "Lagt til",
+        "deleted": "Fjernet"
+      },
+      "actions": {
+        "modified": "Tilbakestill",
+        "inserted": "Fjern",
+        "deleted": "Gjenopprett"
+      }
+    },
+    "assist": {
+      "proposal": "Foreslått erstatning",
+      "note": "Merknad",
+      "discard": "Forkast",
+      "close": "Lukk",
+      "replace": "Erstatt",
+      "thinking": "Tenker…",
+      "stop": "Stopp",
+      "placeholder": "Hva skal endres?",
+      "refinePlaceholder": "Finjuster svaret",
+      "instruction": "Instruksjon",
+      "send": "Send",
+      "noModel": "Velg en modell i chatten først.",
+      "failed": "Forespørselen mislyktes."
+    },
+    "resizePanel": "Endre størrelse på sidepanelet"
   }
 }

@@ -204,4 +204,47 @@ describe("useMarkdownDocumentSync", () => {
     expect(server.text).toBe("alpha by me\n\nbeta by agent\n");
     rendered.unmount();
   });
+
+  it("marks the blocks an outside write changed and reverts one as a user edit", async () => {
+    const { editor, binding, rendered } = await mount("alpha\n\nbeta\n");
+    writeOutside("alpha\n\nbeta by agent\n\nnew block\n", "2026-01-02T00:00:00.000Z");
+    act(() => {
+      handleDocumentResourceChange("asset", {
+        event: "updated",
+        id: "doc-1",
+        updatedAt: server.updatedAt
+      });
+    });
+    await waitFor(() => expect(rendered.result.current.changes).toHaveLength(2));
+    const kinds = rendered.result.current.changes.map((change) => change.kind).sort();
+    expect(kinds).toEqual(["inserted", "modified"]);
+
+    const modified = rendered.result.current.changes.find((change) => change.kind === "modified");
+    act(() => rendered.result.current.revertChange(modified!.blockId));
+    expect(binding.serialize(editor.getEditorState()).blocks.map((block) => block.text)).toEqual([
+      "alpha",
+      "beta",
+      "new block"
+    ]);
+    expect(rendered.result.current.changes).toHaveLength(1);
+    await act(() => rendered.result.current.flush());
+    expect(server.text).toBe("alpha\n\nbeta\n\nnew block\n");
+    rendered.unmount();
+  });
+
+  it("takes a version restore without marks", async () => {
+    const { rendered } = await mount("alpha\n");
+    act(() => rendered.result.current.expectOwnWrite());
+    writeOutside("restored\n", "2026-01-02T00:00:00.000Z");
+    act(() => {
+      handleDocumentResourceChange("asset", {
+        event: "updated",
+        id: "doc-1",
+        updatedAt: server.updatedAt
+      });
+    });
+    await waitFor(() => expect(rendered.result.current.status).toBe("reloaded"));
+    expect(rendered.result.current.changes).toEqual([]);
+    rendered.unmount();
+  });
 });

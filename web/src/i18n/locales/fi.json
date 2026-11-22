@@ -20570,6 +20570,63 @@
       "removeLink": "Poista linkki",
       "applyLink": "Käytä",
       "insertImage": "Lisää"
-    }
+    },
+    "agent": {
+      "toggle": "Avustaja",
+      "welcomeTitle": "Kirjoita avustajan kanssa",
+      "welcomeBody": "Pyydä luonnosta, muokkausta tai tarkistusta. Avustaja näkee tämän asiakirjan ja valitsemasi tekstin."
+    },
+    "versions": {
+      "toggle": "Versiohistoria",
+      "title": "Versiot",
+      "name": "Version nimi",
+      "namePlaceholder": "Nimi (valinnainen)",
+      "save": "Tallenna versio",
+      "restore": "Palauta",
+      "loadError": "Versioita ei voitu ladata.",
+      "emptyTitle": "Ei vielä versioita",
+      "emptyBody": "Versio tallennetaan ennen jokaista avustajan muutosta, kun tallennat sellaisen ja muutaman minuutin välein muokatessasi.",
+      "versionNumber": "Versio {{version}}",
+      "saveTypes": {
+        "agent_turn": "Avustaja",
+        "workflow_run": "Työnkulun ajo",
+        "manual": "Tallennettu",
+        "autosave": "Väliaika",
+        "restore": "Ennen palautusta"
+      }
+    },
+    "changes": {
+      "title": "Merkityt muutokset: {{count}}",
+      "show": "Näytä",
+      "hide": "Piilota",
+      "dismiss": "Ohita",
+      "dismissAll": "Ohita kaikki",
+      "kinds": {
+        "modified": "Muutettu",
+        "inserted": "Lisätty",
+        "deleted": "Poistettu"
+      },
+      "actions": {
+        "modified": "Palauta",
+        "inserted": "Poista",
+        "deleted": "Palauta"
+      }
+    },
+    "assist": {
+      "proposal": "Ehdotettu korvaus",
+      "note": "Huomautus",
+      "discard": "Hylkää",
+      "close": "Sulje",
+      "replace": "Korvaa",
+      "thinking": "Miettii…",
+      "stop": "Pysäytä",
+      "placeholder": "Mitä pitäisi muuttaa?",
+      "refinePlaceholder": "Tarkenna vastausta",
+      "instruction": "Ohje",
+      "send": "Lähetä",
+      "noModel": "Valitse ensin malli keskustelussa.",
+      "failed": "Pyyntö epäonnistui."
+    },
+    "resizePanel": "Muuta sivupaneelin kokoa"
   }
 }

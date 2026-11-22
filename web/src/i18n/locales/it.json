@@ -20887,6 +20887,63 @@
       "removeLink": "Rimuovi link",
       "applyLink": "Applica",
       "insertImage": "Inserisci"
-    }
+    },
+    "agent": {
+      "toggle": "Assistente",
+      "welcomeTitle": "Scrivi con l'assistente",
+      "welcomeBody": "Chiedi una bozza, una modifica o una revisione. L'assistente vede questo documento e il testo selezionato."
+    },
+    "versions": {
+      "toggle": "Cronologia versioni",
+      "title": "Versioni",
+      "name": "Nome della versione",
+      "namePlaceholder": "Nome (facoltativo)",
+      "save": "Salva versione",
+      "restore": "Ripristina",
+      "loadError": "Impossibile caricare le versioni.",
+      "emptyTitle": "Nessuna versione",
+      "emptyBody": "Una versione viene conservata prima di ogni modifica dell'assistente, quando ne salvi una e ogni pochi minuti durante la modifica.",
+      "versionNumber": "Versione {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistente",
+        "workflow_run": "Esecuzione workflow",
+        "manual": "Salvata",
+        "autosave": "Intervallo",
+        "restore": "Prima del ripristino"
+      }
+    },
+    "changes": {
+      "title": "Modifiche segnate: {{count}}",
+      "show": "Mostra",
+      "hide": "Nascondi",
+      "dismiss": "Ignora",
+      "dismissAll": "Ignora tutto",
+      "kinds": {
+        "modified": "Modificato",
+        "inserted": "Aggiunto",
+        "deleted": "Rimosso"
+      },
+      "actions": {
+        "modified": "Annulla",
+        "inserted": "Rimuovi",
+        "deleted": "Ripristina"
+      }
+    },
+    "assist": {
+      "proposal": "Sostituzione proposta",
+      "note": "Nota",
+      "discard": "Scarta",
+      "close": "Chiudi",
+      "replace": "Sostituisci",
+      "thinking": "Sto pensando…",
+      "stop": "Interrompi",
+      "placeholder": "Cosa deve cambiare?",
+      "refinePlaceholder": "Perfeziona la risposta",
+      "instruction": "Istruzione",
+      "send": "Invia",
+      "noModel": "Scegli prima un modello nella chat.",
+      "failed": "La richiesta non è riuscita."
+    },
+    "resizePanel": "Ridimensiona il pannello laterale"
   }
 }

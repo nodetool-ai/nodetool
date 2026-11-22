@@ -20887,6 +20887,63 @@
       "removeLink": "Remover link",
       "applyLink": "Aplicar",
       "insertImage": "Inserir"
-    }
+    },
+    "agent": {
+      "toggle": "Assistente",
+      "welcomeTitle": "Escreva com o assistente",
+      "welcomeBody": "Peça um rascunho, uma edição ou uma revisão. O assistente vê este documento e o texto selecionado."
+    },
+    "versions": {
+      "toggle": "Histórico de versões",
+      "title": "Versões",
+      "name": "Nome da versão",
+      "namePlaceholder": "Nome (opcional)",
+      "save": "Salvar versão",
+      "restore": "Restaurar",
+      "loadError": "Não foi possível carregar as versões.",
+      "emptyTitle": "Nenhuma versão ainda",
+      "emptyBody": "Uma versão é guardada antes de cada alteração do assistente, quando você salva uma e a cada poucos minutos durante a edição.",
+      "versionNumber": "Versão {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistente",
+        "workflow_run": "Execução de workflow",
+        "manual": "Salva",
+        "autosave": "Intervalo",
+        "restore": "Antes de restaurar"
+      }
+    },
+    "changes": {
+      "title": "Alterações marcadas: {{count}}",
+      "show": "Mostrar",
+      "hide": "Ocultar",
+      "dismiss": "Dispensar",
+      "dismissAll": "Dispensar todas",
+      "kinds": {
+        "modified": "Alterado",
+        "inserted": "Adicionado",
+        "deleted": "Removido"
+      },
+      "actions": {
+        "modified": "Reverter",
+        "inserted": "Remover",
+        "deleted": "Restaurar"
+      }
+    },
+    "assist": {
+      "proposal": "Substituição proposta",
+      "note": "Nota",
+      "discard": "Descartar",
+      "close": "Fechar",
+      "replace": "Substituir",
+      "thinking": "Pensando…",
+      "stop": "Parar",
+      "placeholder": "O que deve mudar?",
+      "refinePlaceholder": "Refinar a resposta",
+      "instruction": "Instrução",
+      "send": "Enviar",
+      "noModel": "Escolha primeiro um modelo no chat.",
+      "failed": "A solicitação falhou."
+    },
+    "resizePanel": "Redimensionar o painel lateral"
   }
 }

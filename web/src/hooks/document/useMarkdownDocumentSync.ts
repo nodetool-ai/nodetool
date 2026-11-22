@@ -47,6 +47,12 @@ import { getErrorMessage } from "../../utils/errorHandling";
 import { isPermanentSaveError } from "../../utils/saveErrors";
 import { isRecord } from "../../utils/typePredicates";
 import type { MarkdownDocumentBinding } from "../../components/documentEditor/markdownBlockCodec";
+import {
+  diffBlockChanges,
+  mergeBlockChanges,
+  revertBlockChange,
+  type BlockChange
+} from "../../components/documentEditor/documentChanges";
 
 /** The asset metadata key that caches block ids between sessions (R20). */
 export const DOCUMENT_BLOCKS_METADATA_KEY = "document_blocks";
@@ -97,6 +103,14 @@ interface UseMarkdownDocumentSyncResult {
   applySource: (source: string) => void;
   /** The draft as Markdown. */
   getSource: () => string;
+  /** Blocks an outside write changed, marked until edited or dismissed (R9). */
+  changes: BlockChange[];
+  /** Undo one marked change as a user edit: revert, remove or restore. */
+  revertChange: (blockId: string) => void;
+  /** Drop marks without changing the text. No id drops them all. */
+  dismissChanges: (blockIds?: readonly string[]) => void;
+  /** Take the next outside write without marks, such as a version restore. */
+  expectOwnWrite: () => void;
 }
 
 export function useMarkdownDocumentSync(
@@ -107,6 +121,10 @@ export function useMarkdownDocumentSync(
   const [loadState, setLoadState] = useState<DocumentLoadState>("loading");
   const [status, setStatus] = useState<MarkdownSaveStatus>("saved");
   const [asset, setAsset] = useState<Asset | null>(null);
+  const [changes, setChanges] = useState<BlockChange[]>([]);
+  const changesRef = useRef<BlockChange[]>([]);
+  const revertRef = useRef<((blockId: string) => void) | null>(null);
+  const ownWriteRef = useRef(false);
   const controllerRef = useRef<DocumentSyncController | null>(null);
   const sourceRef = useRef<{
     apply: (source: string) => void;
@@ -140,6 +158,15 @@ export function useMarkdownDocumentSync(
 
     const isDirty = (): boolean => editVersion !== savedVersion;
 
+    const showChanges = (next: BlockChange[]): void => {
+      if (ownWriteRef.current) {
+        ownWriteRef.current = false;
+        return;
+      }
+      changesRef.current = next;
+      if (!disposed) setChanges(next);
+    };
+
     /** Take a server copy into a clean editor. */
     const reload = async (): Promise<void> => {
       const { asset: next, text } = await readAsset(assetId);
@@ -149,9 +176,11 @@ export function useMarkdownDocumentSync(
         return;
       }
       const converted = convertOutsideWrite(base, text, { kind: "outside" }, newDocumentId);
+      const incoming = diffBlockChanges(base, converted.document);
       base = converted.document;
       adopt(next);
       load(converted.document);
+      showChanges(mergeBlockChanges(changesRef.current, incoming));
       queryClient.setQueryData(textAssetKey(assetId), text);
       setStatus("reloaded");
     };
@@ -167,9 +196,18 @@ export function useMarkdownDocumentSync(
       const remote = convertOutsideWrite(base, text, { kind: "outside" }, newDocumentId).document;
       const local = binding.serialize(editor.getEditorState());
       const merged = mergeBlockDocuments(base, local, remote);
+      // Mark only what landed: a block the draft kept is a conflict instead.
+      const landed = new Map(merged.document.blocks.map((block) => [block.id, block.text]));
+      const remoteText = new Map(remote.blocks.map((block) => [block.id, block.text]));
+      const incoming = diffBlockChanges(base, remote).filter((change) =>
+        change.kind === "deleted"
+          ? !landed.has(change.blockId)
+          : landed.get(change.blockId) === remoteText.get(change.blockId)
+      );
       base = merged.nextBase;
       adopt(next);
       load(merged.document);
+      showChanges(mergeBlockChanges(changesRef.current, incoming));
       // The draft still differs from the server where it refused a block.
       editVersion++;
       controllerRef.current?.markDirty();
@@ -291,6 +329,16 @@ export function useMarkdownDocumentSync(
       }
     });
 
+    revertRef.current = (blockId) => {
+      const change = changesRef.current.find((entry) => entry.blockId === blockId);
+      if (!change || loadStateRef.current !== "ready") return;
+      // A revert is the user's own edit: it stays on the undo stack.
+      binding.load(editor, revertBlockChange(binding.serialize(editor.getEditorState()), change));
+      editVersion++;
+      controller.markDirty();
+      showChanges(changesRef.current.filter((entry) => entry.blockId !== blockId));
+    };
+
     sourceRef.current = {
       get: () => serializeMarkdownBlocks(binding.serialize(editor.getEditorState())),
       apply: (source) => {
@@ -331,6 +379,8 @@ export function useMarkdownDocumentSync(
       controller.dispose();
       controllerRef.current = null;
       sourceRef.current = null;
+      revertRef.current = null;
+      changesRef.current = [];
     };
   }, [assetId, editor, binding]);
 
@@ -342,7 +392,19 @@ export function useMarkdownDocumentSync(
       await controllerRef.current?.flush();
     },
     applySource: (source) => sourceRef.current?.apply(source),
-    getSource: () => sourceRef.current?.get() ?? ""
+    getSource: () => sourceRef.current?.get() ?? "",
+    changes,
+    revertChange: (blockId) => revertRef.current?.(blockId),
+    expectOwnWrite: () => {
+      ownWriteRef.current = true;
+    },
+    dismissChanges: (blockIds) => {
+      const next = blockIds
+        ? changesRef.current.filter((change) => !blockIds.includes(change.blockId))
+        : [];
+      changesRef.current = next;
+      setChanges(next);
+    }
   };
 }
 

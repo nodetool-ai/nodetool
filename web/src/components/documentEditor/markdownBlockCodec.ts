@@ -262,6 +262,16 @@ export class MarkdownDocumentBinding {
     });
   }
 
+  /** The top-level node keys the block `blockId` loaded into, for marking it. */
+  keysOf(blockId: string): NodeKey[] {
+    return this.origins.get(blockId)?.keys ?? [];
+  }
+
+  /** The id of the loaded block a top-level node belongs to, or null for a new node. */
+  blockIdOf(key: NodeKey): string | null {
+    return this.blockOfKey.get(key) ?? null;
+  }
+
   /**
    * Record which top-level nodes each update touches. `onEdit` runs after
    * every update that changed content and was not a load. Returns the
