@@ -2199,6 +2199,44 @@ private slots:
     QVERIFY(transfer.result().value("sent").toBool());
   }
 
+  // A changed and a new file of the project folder each get a send row that
+  // says where they are (CF5).
+  void workspaceFilesShowAsSendRows() {
+    Computer computer;
+    computer.server.addCode("code-w", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-w");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string before(64, 'b');
+    const std::string after(64, 'a');
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("file_operations":[{"op":"put_workspace_file","path":"notes/plan.md",)"
+                           R"("hash":")" + after + R"(","size":4,"base_hash":")" + before + R"("},)"
+                           R"({"op":"put_workspace_file","path":"data/new.csv","hash":")" + after +
+                           R"(","size":4,"base_hash":null}],"documents":[],)"
+                           R"("missing_files":[],"missing_document_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 2);
+    QCOMPARE(transfer.rows().at(0).toMap().value("name").toString(), QString("notes/plan.md"));
+    QCOMPARE(transfer.rows().at(0).toMap().value("text").toString(),
+             QString("Changed in the project folder, will be sent"));
+    QCOMPARE(transfer.rows().at(1).toMap().value("name").toString(), QString("data/new.csv"));
+    QCOMPARE(transfer.rows().at(1).toMap().value("text").toString(),
+             QString("New in the project folder, will be sent"));
+  }
+
   // A send with a missing file waits until the person confirms each file,
   // then sends the capture's entry back as the confirmation (X7, review F36).
   void publishWithoutAMissingFileOnlyOnceConfirmed() {

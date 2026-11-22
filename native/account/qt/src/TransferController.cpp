@@ -92,6 +92,12 @@ static QString transferRowDetail(const ReviewRow& row) {
     if (d == "put_asset_file") {
       return TransferController::tr("File changed here, will be sent");
     }
+    if (d == "put_workspace_file") {
+      return TransferController::tr("Changed in the project folder, will be sent");
+    }
+    if (d == "new_workspace_file") {
+      return TransferController::tr("New in the project folder, will be sent");
+    }
     break;
   case ReviewSection::Receive:
     if (d == "new") {

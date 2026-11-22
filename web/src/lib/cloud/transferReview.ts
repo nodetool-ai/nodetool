@@ -410,12 +410,21 @@ export class TransferReview {
       }
     }
     // A file sent over its earlier version gets a row, also when no document
-    // that uses it changed (review F33). A new file goes with its document.
+    // that uses it changed (review F33). A new asset file goes with its
+    // document. A workspace file belongs to no document, so a new one gets a
+    // row too, keyed by its path (CF5).
     for (const op of sent.fileOperations) {
-      if (op.baseHash === "") {
+      const workspaceFile = op.op === "put_workspace_file";
+      if (op.baseHash === "" && !workspaceFile) {
         continue;
       }
-      rows.push({ ...emptyRow("send"), kind: "file", documentId: op.assetId, name: op.path, detail: op.op });
+      rows.push({
+        ...emptyRow("send"),
+        kind: "file",
+        documentId: workspaceFile ? op.path : op.assetId,
+        name: op.path,
+        detail: workspaceFile && op.baseHash === "" ? "new_workspace_file" : op.op
+      });
     }
     for (const deleted of sent.deletedLocally) {
       const row = deletionRow(deleted.kind, deleted.localId);

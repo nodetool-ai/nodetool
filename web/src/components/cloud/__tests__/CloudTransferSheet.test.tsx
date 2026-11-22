@@ -139,6 +139,38 @@ describe("CloudTransferSheet", () => {
     expect(router.calls[4].input.confirm_deletes).toEqual([]);
   });
 
+  it("lists new and changed files of the project folder (CF5)", async () => {
+    const router = fakeRouter({
+      "cloudTransfer.link": [{ state: "linked", cloud_project_id: id("c9") }],
+      "cloudTransfer.send.capture": [
+        {
+          ...capture,
+          operations: [],
+          documents: [],
+          deleted_locally: [],
+          file_operations: [
+            { op: "put_workspace_file", path: "notes/plan.md", hash: hash("a"), size: 4, base_hash: hash("b") },
+            { op: "put_workspace_file", path: "data/new.csv", hash: hash("c"), size: 4, base_hash: null }
+          ]
+        }
+      ],
+      "cloudTransfer.receive.capture": [{ set_id: id("s1"), documents: [] }]
+    });
+    const controller = new TransferController({
+      call: router.call,
+      projectId: id("f1"),
+      readLink: true,
+      signedIn: () => true
+    });
+    renderSheet(controller);
+    await act(() => controller.start());
+
+    expect(screen.getByText("notes/plan.md")).toBeInTheDocument();
+    expect(screen.getByText("Changed in the project folder, will be sent")).toBeInTheDocument();
+    expect(screen.getByText("data/new.csv")).toBeInTheDocument();
+    expect(screen.getByText("New in the project folder, will be sent")).toBeInTheDocument();
+  });
+
   it("offers Collect for linked files and shows the sheet after it", async () => {
     const router = fakeRouter({
       "cloudTransfer.send.capture": [

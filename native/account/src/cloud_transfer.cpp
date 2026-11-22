@@ -659,17 +659,20 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     }
   }
   // A file sent over its earlier version gets a row, also when no document
-  // that uses it changed (review F33). A new file goes with its new document.
+  // that uses it changed (review F33). A new asset file goes with its new
+  // document. A workspace file belongs to no document, so a new one gets a
+  // row too, keyed by its path (CF5).
   for (const TransferFileOperation& op : send.fileOperations) {
-    if (op.baseHash.empty()) {
+    const bool workspaceFile = op.op == "put_workspace_file";
+    if (op.baseHash.empty() && !workspaceFile) {
       continue;
     }
     ReviewRow row;
     row.section = ReviewSection::Send;
     row.kind = "file";
-    row.documentId = op.assetId;
+    row.documentId = workspaceFile ? op.path : op.assetId;
     row.name = op.path;
-    row.detail = op.op;
+    row.detail = workspaceFile && op.baseHash.empty() ? "new_workspace_file" : op.op;
     rows_.push_back(std::move(row));
   }
   for (const TransferDeleted& deleted : send.deletedLocally) {
