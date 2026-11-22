@@ -393,3 +393,193 @@ describe("produced files", () => {
     }
   });
 });
+
+/**
+ * The two read-only lookups against a recorded Apify, faked at `fetch`. Each
+ * case pins the request the client makes (route, method, credential) and what
+ * the agent gets back from Apify's envelope.
+ */
+describe("reading an actor and a store record", () => {
+  const realFetch = globalThis.fetch;
+  let requests: Array<{ method: string; url: string; auth: string | undefined }>;
+
+  function serve(replies: Record<string, () => Response>): void {
+    requests = [];
+    globalThis.fetch = (async (input: unknown, init?: RequestInit) => {
+      const url = String(input);
+      const headers = (init?.headers ?? {}) as Record<string, string>;
+      requests.push({
+        method: init?.method ?? "GET",
+        url,
+        auth: headers.Authorization
+      });
+      const reply = replies[new URL(url).pathname];
+      if (!reply) throw new Error(`unexpected request ${url}`);
+      return reply();
+    }) as unknown as typeof fetch;
+  }
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  const json = (body: unknown, status = 200): Response =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "content-type": "application/json" }
+    });
+
+  it("get_apify_actor summarizes the actor record and says whether it may run", async () => {
+    serve({
+      "/v2/acts/apify~website-content-crawler": () =>
+        json({
+          data: {
+            id: "aYG0l9s7dbB7j3gbS",
+            username: "apify",
+            name: "website-content-crawler",
+            title: "Website Content Crawler",
+            description: "Crawl websites and extract text content.",
+            userFullName: "Apify",
+            totalRuns: 1200,
+            totalUsers30Days: 300,
+            pricingModel: "PAY_PER_EVENT",
+            categories: ["AI", "DEVELOPER_TOOLS"]
+          }
+        })
+    });
+
+    const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
+      "get_apify_actor",
+      { actor_id: "apify/website-content-crawler" }
+    )) as Record<string, unknown>;
+
+    expect(requests).toEqual([
+      {
+        method: "GET",
+        url: "https://api.apify.com/v2/acts/apify~website-content-crawler",
+        auth: `Bearer ${TOKEN}`
+      }
+    ]);
+    expect(result).toMatchObject({
+      ok: true,
+      id: "apify/website-content-crawler",
+      url: "https://apify.com/apify/website-content-crawler",
+      shipped: true,
+      title: "Website Content Crawler",
+      publisher: "Apify",
+      total_runs: 1200,
+      monthly_users: 300,
+      pricing_model: "PAY_PER_EVENT",
+      categories: ["AI", "DEVELOPER_TOOLS"],
+      runnable: "allow",
+      cost_hint: "per-result"
+    });
+    expect(JSON.stringify(result)).not.toContain(TOKEN);
+  });
+
+  it("get_apify_actor reports an actor Apify does not know as an error result", async () => {
+    serve({
+      "/v2/acts/apify~website-content-crawler": () =>
+        json({ error: { type: "record-not-found", message: "Actor was not found" } }, 404)
+    });
+
+    const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
+      "get_apify_actor",
+      { actor_id: "apify/website-content-crawler" }
+    )) as Record<string, unknown>;
+
+    expect(result.ok).toBe(false);
+    expect(JSON.stringify(result)).toContain("Actor was not found");
+  });
+
+  it("get_apify_key_value_record returns a JSON record as text, defaulting to OUTPUT", async () => {
+    serve({
+      "/v2/key-value-stores/KV1/records/OUTPUT": () =>
+        json({ pages: 3, done: true })
+    });
+
+    const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
+      "get_apify_key_value_record",
+      { store_id: "KV1" }
+    )) as Record<string, unknown>;
+
+    expect(requests.map((r) => [r.method, r.url, r.auth])).toEqual([
+      [
+        "GET",
+        "https://api.apify.com/v2/key-value-stores/KV1/records/OUTPUT",
+        `Bearer ${TOKEN}`
+      ]
+    ]);
+    expect(result).toEqual({
+      ok: true,
+      store_id: "KV1",
+      key: "OUTPUT",
+      found: true,
+      content_type: "application/json",
+      content: JSON.stringify({ pages: 3, done: true })
+    });
+  });
+
+  it("get_apify_key_value_record answers a missing key as found: false, not a failure", async () => {
+    serve({
+      "/v2/key-value-stores/KV1/records/summary": () =>
+        json({ error: { type: "record-not-found", message: "Record was not found" } }, 404)
+    });
+
+    const result = (await runWith({ APIFY_API_TOKEN: TOKEN }).invoke(
+      "get_apify_key_value_record",
+      { store_id: "KV1", key: "summary" }
+    )) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      ok: true,
+      store_id: "KV1",
+      key: "summary",
+      found: false
+    });
+  });
+
+  it("get_apify_key_value_record imports a binary record into storage instead of inlining it", async () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 7]);
+    serve({
+      "/v2/key-value-stores/KV1/records/screenshot": () =>
+        new Response(png, {
+          status: 200,
+          headers: { "content-type": "image/png" }
+        })
+    });
+    const stored = new Map<string, Uint8Array>();
+    const context = {
+      userId: "user-apify",
+      getSecret: async (key: string) =>
+        key === "APIFY_API_TOKEN" ? TOKEN : null,
+      storage: {
+        store: async (key: string, bytes: Uint8Array) => {
+          stored.set(key, bytes);
+          return `memory://${key}`;
+        },
+        retrieve: async () => null
+      },
+      resolveTempUrl: async (uri: string) =>
+        `/api/storage/${uri.slice("memory://".length)}`
+    } as unknown as ProcessingContext;
+
+    const result = (await createCapabilityRun({ context, gate: UNGATED }).invoke(
+      "get_apify_key_value_record",
+      { store_id: "KV1", key: "screenshot" }
+    )) as Record<string, unknown>;
+
+    expect(result).toMatchObject({
+      ok: true,
+      store_id: "KV1",
+      key: "screenshot",
+      found: true,
+      source_url: "KV1/screenshot",
+      content_type: "image/png",
+      size_bytes: png.byteLength
+    });
+    expect(result.content).toBeUndefined();
+    expect(String(result.asset_url)).toMatch(/^\/api\/storage\/apify\//);
+    expect([...stored.values()]).toEqual([png]);
+  });
+});

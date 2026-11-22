@@ -559,13 +559,10 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
     contract: "57305485ad36",
-    gap:
-      "`media-read-bytes.test.ts` drives it from a chat action by " +
-      "guest import, but the `capability-suites` selfcheck's filter " +
-      "list (packages/cli-harness/src/harness/registry.ts) does not run that " +
-      "file, and a suite named here must be one it runs. Adding " +
-      "`media-read-bytes` to that command and to the sync script's " +
-      "extras would credit it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/media-read-bytes.test.ts",
+    ],
   },
   {
     name: "critique_image",
@@ -696,6 +693,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-collections.test.ts",
+      "packages/agents/tests/capabilities-collections-lifecycle.test.ts",
     ],
   },
   {
@@ -743,22 +741,20 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "collections",
     impl: "packages/agents/src/capabilities/collections.ts",
     contract: "4fd457fa1ff6",
-    gap:
-      "`capabilities-collections.test.ts` snapshots the module's wire " +
-      "names and builds Tools for the readers and indexers; neither " +
-      "lifecycle call has a case. A case that creates a collection, " +
-      "indexes into it and deletes it would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-collections-lifecycle.test.ts",
+    ],
   },
   {
     name: "delete_collection",
     module: "collections",
     impl: "packages/agents/src/capabilities/collections.ts",
     contract: "eb59236a182f",
-    gap:
-      "`capabilities-collections.test.ts` snapshots the module's wire " +
-      "names and builds Tools for the readers and indexers; neither " +
-      "lifecycle call has a case. A case that creates a collection, " +
-      "indexes into it and deletes it would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-collections-lifecycle.test.ts",
+    ],
   },
   {
     name: "get_cost_summary",
@@ -1181,6 +1177,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-browser.test.ts",
+      "packages/agents/tests/capabilities-browser-page.test.ts",
     ],
   },
   {
@@ -1188,24 +1185,20 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "9660cd6b5c02",
-    gap:
-      "`capabilities-browser.test.ts` reaches this action only by " +
-      "iterating the module's exports (dispatch by name, category, " +
-      "argument pass-through); no test calls it by name with real " +
-      "arguments. A case that drives it against the recorded page " +
-      "fixture and asserts the action's own result would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser-page.test.ts",
+    ],
   },
   {
     name: "browser_restart",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "defb85a11e39",
-    gap:
-      "`capabilities-browser.test.ts` reaches this action only by " +
-      "iterating the module's exports (dispatch by name, category, " +
-      "argument pass-through); no test calls it by name with real " +
-      "arguments. A case that drives it against the recorded page " +
-      "fixture and asserts the action's own result would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser-page.test.ts",
+    ],
   },
   {
     name: "browser_click",
@@ -1232,72 +1225,60 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "1a36915fa601",
-    gap:
-      "`capabilities-browser.test.ts` reaches this action only by " +
-      "iterating the module's exports (dispatch by name, category, " +
-      "argument pass-through); no test calls it by name with real " +
-      "arguments. A case that drives it against the recorded page " +
-      "fixture and asserts the action's own result would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser-page.test.ts",
+    ],
   },
   {
     name: "browser_press_key",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "d1b1b2fc95c9",
-    gap:
-      "`capabilities-browser.test.ts` reaches this action only by " +
-      "iterating the module's exports (dispatch by name, category, " +
-      "argument pass-through); no test calls it by name with real " +
-      "arguments. A case that drives it against the recorded page " +
-      "fixture and asserts the action's own result would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser-page.test.ts",
+    ],
   },
   {
     name: "browser_select_option",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "73c53d222990",
-    gap:
-      "`capabilities-browser.test.ts` reaches this action only by " +
-      "iterating the module's exports (dispatch by name, category, " +
-      "argument pass-through); no test calls it by name with real " +
-      "arguments. A case that drives it against the recorded page " +
-      "fixture and asserts the action's own result would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser-page.test.ts",
+    ],
   },
   {
     name: "browser_scroll",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "e2012b881bd6",
-    gap:
-      "`capabilities-browser.test.ts` reaches this action only by " +
-      "iterating the module's exports (dispatch by name, category, " +
-      "argument pass-through); no test calls it by name with real " +
-      "arguments. A case that drives it against the recorded page " +
-      "fixture and asserts the action's own result would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser-page.test.ts",
+    ],
   },
   {
     name: "browser_console_exec",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "7add1995b4bc",
-    gap:
-      "`capabilities-browser.test.ts` reaches this action only by " +
-      "iterating the module's exports (dispatch by name, category, " +
-      "argument pass-through); no test calls it by name with real " +
-      "arguments. A case that drives it against the recorded page " +
-      "fixture and asserts the action's own result would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser-page.test.ts",
+    ],
   },
   {
     name: "browser_console_view",
     module: "browser",
     impl: "packages/agents/src/capabilities/browser.ts",
     contract: "daf5f59b767f",
-    gap:
-      "`capabilities-browser.test.ts` reaches this action only by " +
-      "iterating the module's exports (dispatch by name, category, " +
-      "argument pass-through); no test calls it by name with real " +
-      "arguments. A case that drives it against the recorded page " +
-      "fixture and asserts the action's own result would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser-page.test.ts",
+    ],
   },
   {
     name: "browser_capture_media",
@@ -1858,240 +1839,200 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "5eb13fc29956",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_drive_read_file",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "0faf5cd573c3",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_drive_get_file",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "afdc399211bb",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_drive_create_file",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "cd4796152389",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "gmail_search",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "c95cdb216e9c",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "gmail_get_message",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "f05758fd1d38",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "gmail_send_message",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "9bd61587642a",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "gmail_modify_labels",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "3817260faa01",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "gmail_list_labels",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "0e9627c9efcd",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_docs_read",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "26bd47cd6a0f",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_docs_create",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "456bad82acbc",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_docs_append",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "eb73d01f558b",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_sheets_read",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "3a21bbb8c59f",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_sheets_append",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "f0f81493694e",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_sheets_update",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "47e7930f9810",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_sheets_create",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "ba23cc1b88c6",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_calendar_list_calendars",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "151e73884ee0",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_calendar_list_events",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "539122030fbd",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_calendar_create_event",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "7e6f8ec90cbc",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "google_calendar_delete_event",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
     contract: "cf6421e03cd2",
-    gap:
-      "`capabilities-google.test.ts` reaches this call only by " +
-      "iterating the module's exports through the missing-token path " +
-      "and pinning its category; the call itself needs a live Google " +
-      "token and has no fixture. A case that replays a recorded " +
-      "response through the client would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-google.test.ts",
+    ],
   },
   {
     name: "list_threads",
@@ -3764,11 +3705,10 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "apify",
     impl: "packages/agents/src/capabilities/apify.ts",
     contract: "09ec9f55bd63",
-    gap:
-      "The Apify suites cover search, schema, run, abort, and the " +
-      "dataset reader; fetching one actor's record has no case. A " +
-      "read-only case against the recorded actor fixture would close " +
-      "it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/apify-capabilities.test.ts",
+    ],
   },
   {
     name: "get_apify_actor_schema",
@@ -3825,10 +3765,10 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "apify",
     impl: "packages/agents/src/capabilities/apify.ts",
     contract: "73208a1ca49b",
-    gap:
-      "The dataset reader is covered, the key-value reader is not. A " +
-      "case that runs an actor writing to the store and reads one " +
-      "record back would close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/apify-capabilities.test.ts",
+    ],
   },
   {
     name: "list_serpapi_engines",
@@ -3865,11 +3805,10 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     module: "serpapi",
     impl: "packages/agents/src/capabilities/serpapi.ts",
     contract: "4bb30a68b979",
-    gap:
-      "The SerpAPI suites cover engine discovery, schema, search, and " +
-      "locations; the account/quota read has no case. A case that " +
-      "reads the remaining searches before a budgeted fan-out would " +
-      "close it.",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/serpapi-capabilities.test.ts",
+    ],
   },
   {
     name: "get_serpapi_locations",
