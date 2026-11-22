@@ -1,6 +1,6 @@
 # NodeTool
 
-[English](README.md) · 简体中文 · [日本語](README.ja.md)
+[English](README.md) · 简体中文 · [日本語](README.ja.md) · [한국어](README.ko.md)
 
 **开源 AI 电影工作室 · 智能体 + 节点工作流**
 
