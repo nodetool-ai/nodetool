@@ -35,10 +35,12 @@ import {
   getCloudLinkDocumentByCloudId,
   getCloudLinkFile,
   getCloudReceive,
+  listCloudLinkWorkspaceFiles,
   listCloudReceives,
   listTransferPlacements,
   setCloudLinkDocumentBase,
   setCloudLinkFileBase,
+  setCloudLinkWorkspaceFileBase,
   TimelineSequence,
   updateCloudReceive,
   withTransaction,
@@ -139,6 +141,54 @@ export interface PlannedDocument {
   changedFiles: number;
 }
 
+/**
+ * How a workspace file of the owner's cloud folder stands against the local
+ * folder (technical design, "Receiving workspace files", RW6). A file the
+ * cloud did not change since the base is not planned.
+ */
+export type ReceiveWorkspaceStatus =
+  /** The local file already has the cloud bytes. Only the base is written. */
+  | "same"
+  /** No local file and no base. */
+  | "new"
+  /** The local file still has the base bytes. */
+  | "cloud_changed"
+  /** Both changed, or a local file at the path was never exchanged: the received file goes beside it (V11). */
+  | "both_changed"
+  /** The local file was deleted since the base. */
+  | "local_deleted";
+
+/** One workspace file of a receive, as the review sheet shows it. */
+export interface PlannedWorkspaceFile {
+  path: string;
+  hash: string;
+  size: number;
+  baseHash: string | null;
+  /** The hash of the local file at capture, or null when there was none. */
+  localHash: string | null;
+  status: ReceiveWorkspaceStatus;
+  /**
+   * Whether the person chose to receive it. Received workspace files are
+   * optional and off by default (RW7, SR7). A `same` file needs no choice.
+   */
+  included: boolean;
+}
+
+/** A workspace file the commit chose to place. */
+interface PlannedWorkspacePlacement {
+  path: string;
+  hash: string;
+  /** The hash of the last exchange, which the local file may still hold to be replaced. */
+  replaceIfHash: string | null;
+}
+
+/**
+ * The size and time a base records when the bytes at the path are not known
+ * to be the base's: any local file differs from them, so the next capture
+ * hashes it again.
+ */
+const UNKNOWN_STAT = -1;
+
 /** A file the commit chose to place, with the hash its target may be replaced over. */
 interface PlannedPlacement {
   assetId: string;
@@ -182,6 +232,14 @@ export interface ReceiveResult {
    * their path, put back beside it.
    */
   localKept?: Array<{ path: string; keptPath: string }>;
+  /** Workspace files placed at their paths. A result recorded before workspace files has none. */
+  workspaceReceived?: string[];
+  /** Workspace files whose local file changed too: the received bytes went beside it (V11). */
+  workspaceKeptBeside?: Array<{ path: string; keptPath: string }>;
+  /** Workspace files the cloud changed that the person left out. Their bases stay, so the next receive offers them. */
+  workspaceNotReceived?: string[];
+  /** Workspace files deleted in the cloud since the base. The local file is kept (OQ14). */
+  workspaceCloudDeleted?: string[];
 }
 
 interface ReceivePlan {
@@ -199,6 +257,11 @@ interface ReceivePlan {
    * so a run after a crash reuses the path and the asset (review F48).
    */
   keptPlacements?: Record<string, { path: string; siblingId: string | null }>;
+  /** The owner's workspace files the cloud changed. A plan written before workspace files has none. */
+  workspaceFiles?: PlannedWorkspaceFile[];
+  /** Paths with a base that the cloud folder no longer lists. */
+  cloudDeletedWorkspaceFiles?: string[];
+  workspacePlacements?: PlannedWorkspacePlacement[];
 }
 
 /** What {@link runReceive} ended with. */
@@ -211,7 +274,7 @@ export type ReceiveOutcome =
    * was applied, the staged files are kept, and the changed documents carry
    * their new status (Y3).
    */
-  | { status: "waiting_for_review"; setId: string; documents?: PlannedDocument[] };
+  | { status: "waiting_for_review"; setId: string; documents?: PlannedDocument[]; workspaceFiles?: PlannedWorkspaceFile[] };
 
 function emptyResult(): ReceiveResult {
   return { received: [], changedDuringReceive: [], notReceived: [], keptBeside: [], missingFiles: [], erasedFiles: [], fileKept: [] };
@@ -304,6 +367,53 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
+/**
+ * The hash of the local file at `path`, or null when there is none. A file
+ * with the size and time its base recorded has the base's hash and is not read.
+ */
+async function localWorkspaceHash(
+  workspace: Workspace,
+  path: string,
+  base: { base_hash: string; size: number; mtime_ms: number } | undefined
+): Promise<string | null> {
+  const found = await workspace.stat(path);
+  if (!found) return null;
+  if (base && Number(base.size) === found.size && Number(base.mtime_ms) === found.modifiedAt) return base.base_hash;
+  return contentHashOfFile(localPath(workspace, path));
+}
+
+/** RW6: how a cloud workspace file stands, or null when the cloud did not change it since the base. */
+function workspaceStatusOf(hash: string, baseHash: string | null, localHash: string | null): ReceiveWorkspaceStatus | null {
+  if (hash === baseHash) return null;
+  if (localHash === hash) return "same";
+  if (localHash === null) return baseHash === null ? "new" : "local_deleted";
+  if (localHash === baseHash) return "cloud_changed";
+  return "both_changed";
+}
+
+/** The owner's workspace files of a set compared with the bases and the local folder (RW6). */
+async function planWorkspaceFiles(
+  link: CloudLinkRow,
+  set: CaptureRevisionSetOutput
+): Promise<{ files: PlannedWorkspaceFile[]; cloudDeleted: string[] }> {
+  const bases = await listCloudLinkWorkspaceFiles(link.id);
+  const listed = new Set(set.workspace_files.map((file) => file.path));
+  const cloudDeleted = [...bases.keys()].filter((path) => !listed.has(path)).sort();
+  if (set.workspace_files.length === 0) return { files: [], cloudDeleted };
+  const { workspace } = await requireProjectFolder(link.project_id, link.user_id);
+  const files: PlannedWorkspaceFile[] = [];
+  for (const file of set.workspace_files) {
+    const base = bases.get(file.path);
+    const baseHash = base?.base_hash ?? null;
+    if (file.hash === baseHash) continue;
+    const localHash = await localWorkspaceHash(workspace, file.path, base);
+    const status = workspaceStatusOf(file.hash, baseHash, localHash);
+    if (!status) continue;
+    files.push({ path: file.path, hash: file.hash, size: file.size, baseHash, localHash, status, included: status === "same" });
+  }
+  return { files, cloudDeleted };
+}
+
 async function flush(path: string): Promise<void> {
   const handle = await open(path, "r+");
   try {
@@ -321,7 +431,12 @@ async function flush(path: string): Promise<void> {
 export async function captureReceive(
   transport: ReceiveTransport,
   link: CloudLinkRow
-): Promise<{ setId: string; documents: PlannedDocument[] }> {
+): Promise<{
+  setId: string;
+  documents: PlannedDocument[];
+  workspaceFiles: PlannedWorkspaceFile[];
+  cloudDeletedWorkspaceFiles: string[];
+}> {
   // A self-hosted cloud can answer anything. Ids, hashes and paths name
   // files on this computer, so the answer is checked before it is kept.
   const set = captureRevisionSetOutput.parse(await transport.capture({ project_id: link.cloud_project_id }));
@@ -358,13 +473,22 @@ export async function captureReceive(
       changedFiles
     });
   }
+  let workspace: { files: PlannedWorkspaceFile[]; cloudDeleted: string[] };
+  try {
+    workspace = await planWorkspaceFiles(link, set);
+  } catch (error) {
+    await transport.release({ set_id: set.set_id }).catch(() => undefined);
+    throw error;
+  }
   const plan: ReceivePlan = {
     version: 1,
     set,
     documents,
     decided: false,
     placements: [],
-    result: emptyResult()
+    result: emptyResult(),
+    workspaceFiles: workspace.files,
+    cloudDeletedWorkspaceFiles: workspace.cloudDeleted
   };
   try {
     await createCloudReceive(link, { setId: set.set_id, plan });
@@ -372,7 +496,12 @@ export async function captureReceive(
     await transport.release({ set_id: set.set_id }).catch(() => undefined);
     throw error;
   }
-  return { setId: set.set_id, documents };
+  return {
+    setId: set.set_id,
+    documents,
+    workspaceFiles: workspace.files,
+    cloudDeletedWorkspaceFiles: workspace.cloudDeleted
+  };
 }
 
 /** The documents a receive writes: received ones whose local copy does not already match. */
@@ -401,6 +530,11 @@ function neededFiles(plan: ReceivePlan): Map<string, RevisionSetDocument["files"
     }
   }
   return files;
+}
+
+/** The workspace files the receive downloads and places: those the person included that the folder lacks. */
+function workspaceToPlace(plan: ReceivePlan): PlannedWorkspaceFile[] {
+  return (plan.workspaceFiles ?? []).filter((file) => file.included && file.status !== "same");
 }
 
 /** Whether a local asset already holds the bytes of `file`, so nothing needs downloading. */
@@ -449,6 +583,22 @@ async function stage(transport: ReceiveTransport, row: CloudReceiveRow, plan: Re
     if ((await contentHashOfFile(part)) !== hash) {
       await rm(part, { force: true });
       throw new Error(`A download of ${hash} has other bytes`);
+    }
+    await rename(part, path);
+  }
+  for (const file of workspaceToPlace(plan)) {
+    const path = stagedPath(dir, file.hash);
+    if (await fileExists(path)) continue;
+    const part = `${path}.part`;
+    const answer = await transport.downloadFile({ set_id: row.id, hash: file.hash }, part);
+    if (answer === "ERASED") {
+      await rm(part, { force: true });
+      throw new ReceiveSetExpiredError("A file of the revision set was erased.");
+    }
+    await flush(part);
+    if ((await contentHashOfFile(part)) !== file.hash) {
+      await rm(part, { force: true });
+      throw new Error(`A download of ${file.hash} has other bytes`);
     }
     await rename(part, path);
   }
@@ -613,17 +763,38 @@ async function commit(
           await setCloudLinkFileBase(link, { assetId: file.asset_id, cloudAssetId: file.asset_id, hash: file.hash });
         }
       }
-      await addTransferPlacements(
-        placements.map((placement) => ({
+      const workspacePlacements: PlannedWorkspacePlacement[] = [];
+      for (const file of plan.workspaceFiles ?? []) {
+        if (!file.included) {
+          (result.workspaceNotReceived ??= []).push(file.path);
+        } else if (file.status === "same") {
+          // The folder has the cloud bytes already. The base is not known
+          // to describe the file now, so the next capture reads it again.
+          await setCloudLinkWorkspaceFileBase(link, { path: file.path, hash: file.hash, size: UNKNOWN_STAT, mtimeMs: UNKNOWN_STAT });
+        } else {
+          workspacePlacements.push({ path: file.path, hash: file.hash, replaceIfHash: file.baseHash });
+        }
+      }
+      result.workspaceCloudDeleted = [...(plan.cloudDeletedWorkspaceFiles ?? [])];
+      await addTransferPlacements([
+        ...placements.map((placement) => ({
           projectId: link.project_id,
           userId: link.user_id,
           transferId: row.id,
           path: placement.path,
           hash: placement.hash,
           assetId: placement.assetId
+        })),
+        ...workspacePlacements.map((placement) => ({
+          projectId: link.project_id,
+          userId: link.user_id,
+          transferId: row.id,
+          path: placement.path,
+          hash: placement.hash
         }))
-      );
+      ]);
       plan.placements = placements;
+      plan.workspacePlacements = workspacePlacements;
       plan.result = result;
       await updateCloudReceive(row.id, { state: "applied", plan });
       return true;
@@ -783,8 +954,13 @@ async function reportKeptBeside(
 async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan, workspace: Workspace, dir: string): Promise<void> {
   const pending = (await listTransferPlacements(link.project_id)).filter((placement) => placement.transfer_id === row.id);
   const byAsset = new Map(plan.placements.map((placement) => [placement.assetId, placement]));
+  const byPath = new Map((plan.workspacePlacements ?? []).map((placement) => [placement.path, placement]));
   const now = new Date();
   for (const placement of pending) {
+    if (placement.asset_id === null && placement.hash !== null && byPath.has(placement.path)) {
+      await placeWorkspaceFile(row, link, plan, workspace, dir, placement.id, byPath.get(placement.path)!, now);
+      continue;
+    }
     const planned = placement.asset_id ? byAsset.get(placement.asset_id) : undefined;
     if (!planned || placement.hash === null) {
       await deleteTransferPlacement(placement.id);
@@ -864,6 +1040,59 @@ async function place(row: CloudReceiveRow, link: CloudLinkRow, plan: ReceivePlan
   }
 }
 
+/**
+ * Places one received workspace file (RW8): at its path when the path is
+ * free or still holds the base bytes, beside it otherwise (V11). A placed
+ * file's base gets its new size and time. A file kept beside gets the cloud
+ * hash as its base with an unknown size and time, so the local file reads
+ * as changed against the cloud and the next receive does not offer the
+ * cloud file again.
+ */
+async function placeWorkspaceFile(
+  row: CloudReceiveRow,
+  link: CloudLinkRow,
+  plan: ReceivePlan,
+  workspace: Workspace,
+  dir: string,
+  placementId: string,
+  planned: PlannedWorkspacePlacement,
+  now: Date
+): Promise<void> {
+  const staged = stagedPath(dir, planned.hash);
+  await restoreDisplaced(workspace, dir, placementId, planned.path, planned.replaceIfHash, now, plan);
+  const existing = (await workspace.exists(planned.path)) ? await contentHashOfFile(localPath(workspace, planned.path)) : null;
+  let placed = false;
+  if (existing === planned.hash) {
+    placed = true;
+  } else if (existing === null) {
+    placed = await workspace.absorbNew(staged, planned.path);
+  } else if (planned.replaceIfHash !== null && existing === planned.replaceIfHash) {
+    placed = await replaceUnchanged(workspace, dir, placementId, planned.path, staged, planned.replaceIfHash);
+  }
+  if (placed) {
+    const fileStat = await workspace.stat(planned.path);
+    if (!fileStat) throw new Error(`The received file at ${planned.path} is gone`);
+    await setCloudLinkWorkspaceFileBase(link, {
+      path: planned.path,
+      hash: planned.hash,
+      size: fileStat.size,
+      mtimeMs: fileStat.modifiedAt
+    });
+    const received = (plan.result.workspaceReceived ??= []);
+    if (!received.includes(planned.path)) received.push(planned.path);
+  } else {
+    const target = await keepBeside(workspace, row, plan, `workspace:${planned.path}:${planned.hash}`, planned.path, planned.hash, staged, false, now);
+    await setCloudLinkWorkspaceFileBase(link, { path: planned.path, hash: planned.hash, size: UNKNOWN_STAT, mtimeMs: UNKNOWN_STAT });
+    const kept = (plan.result.workspaceKeptBeside ??= []);
+    const listed = kept.findIndex((entry) => entry.path === planned.path);
+    if (listed >= 0) kept[listed] = { path: planned.path, keptPath: target };
+    else kept.push({ path: planned.path, keptPath: target });
+  }
+  await updateCloudReceive(row.id, { plan });
+  await restoreDisplaced(workspace, dir, placementId, planned.path, planned.replaceIfHash, now, plan);
+  await deleteTransferPlacement(placementId);
+}
+
 type FileWrite = Awaited<ReturnType<typeof writeDocumentFileUnderLock>>;
 
 async function writeWorkflowFile(workspace: Workspace, projectId: string, id: string): Promise<FileWrite | null> {
@@ -918,7 +1147,7 @@ async function recapture(
   plan: ReceivePlan,
   workspace: Workspace,
   dir: string
-): Promise<{ setId: string; reviewed: boolean; documents: PlannedDocument[] }> {
+): Promise<{ setId: string; reviewed: boolean; documents: PlannedDocument[]; workspaceFiles: PlannedWorkspaceFile[] }> {
   const next = await captureReceive(transport, link);
   const nextRow = await getCloudReceive(next.setId);
   if (!nextRow) throw new Error(`The receive ${next.setId} was not recorded`);
@@ -938,8 +1167,29 @@ async function recapture(
       reviewed = false;
     }
   }
+  const beforeFiles = plan.workspaceFiles ?? [];
+  for (const file of nextPlan.workspaceFiles ?? []) {
+    const before = beforeFiles.find((entry) => entry.path === file.path);
+    if (
+      before &&
+      before.hash === file.hash &&
+      before.status === file.status &&
+      before.localHash === file.localHash &&
+      before.baseHash === file.baseHash
+    ) {
+      file.included = before.included;
+    } else if (file.status !== "same") {
+      reviewed = false;
+    }
+  }
   nextPlan.decided = reviewed;
   const nextDir = stagingDir(workspace, next.setId);
+  for (const file of workspaceToPlace(nextPlan)) {
+    const staged = stagedPath(dir, file.hash);
+    if (!(await fileExists(staged)) || (await contentHashOfFile(staged)) !== file.hash) continue;
+    await mkdir(nextDir, { recursive: true });
+    await rename(staged, stagedPath(nextDir, file.hash));
+  }
   for (const document of nextPlan.documents) {
     for (const file of document.files) {
       const staged = stagedPath(dir, file.hash);
@@ -952,7 +1202,7 @@ async function recapture(
   await transport.release({ set_id: row.id }).catch(() => undefined);
   await rm(dir, { recursive: true, force: true });
   await deleteCloudReceive(row.id);
-  return { setId: next.setId, reviewed, documents: nextPlan.documents };
+  return { setId: next.setId, reviewed, documents: nextPlan.documents, workspaceFiles: nextPlan.workspaceFiles ?? [] };
 }
 
 /**
@@ -998,6 +1248,12 @@ export interface ReceiveRunOptions {
    * stop the receive where a crash would.
    */
   afterStep?: (step: "installed" | "applied" | "placed") => void | Promise<void>;
+  /**
+   * The workspace files the person included in the review, by path and the
+   * hash the sheet showed. Recorded with the decisions on the first run.
+   * Every other workspace file is left out (RW7).
+   */
+  includeWorkspaceFiles?: ReadonlyArray<{ path: string; hash: string }>;
 }
 
 /**
@@ -1034,6 +1290,13 @@ async function runReceiveOf(
       );
       if (document) document.decision = decision.decision;
     }
+    const included = options.includeWorkspaceFiles;
+    if (included) {
+      for (const file of plan.workspaceFiles ?? []) {
+        if (file.status === "same") continue;
+        file.included = included.some((entry) => entry.path === file.path && entry.hash === file.hash);
+      }
+    }
     plan.decided = true;
     await updateCloudReceive(setId, { plan });
     row = (await getCloudReceive(setId)) ?? row;
@@ -1047,7 +1310,9 @@ async function runReceiveOf(
       if (!(error instanceof ReceiveSetExpiredError)) throw error;
       if (recaptures >= RECAPTURE_LIMIT) return abandon(row, dir);
       const next = await recapture(transport, row, link, plan, workspace, dir);
-      if (!next.reviewed) return { status: "waiting_for_review", setId: next.setId, documents: next.documents };
+      if (!next.reviewed) {
+        return { status: "waiting_for_review", setId: next.setId, documents: next.documents, workspaceFiles: next.workspaceFiles };
+      }
       return runReceiveOf(transport, next.setId, undefined, options, recaptures + 1);
     }
     row = { ...row, state: "installed" };
@@ -1068,7 +1333,7 @@ async function runReceiveOf(
       return true;
     }
   );
-  if (!applied) return { status: "waiting_for_review", setId, documents: plan.documents };
+  if (!applied) return { status: "waiting_for_review", setId, documents: plan.documents, workspaceFiles: plan.workspaceFiles ?? [] };
   await after("placed");
   await finish(transport, current, dir);
   return { status: "finished", setId, result: plan.result };

@@ -532,7 +532,7 @@ export class TransferController {
     const applied: Applied = { changedAgain: [], unreviewed: [], unreviewedFiles: [] };
     let replaced = false;
     if (plan.setId !== "") {
-      applied.receive = await runReceive(call, plan.setId, review.receiveDecisions());
+      applied.receive = await runReceive(call, plan.setId, review.receiveDecisions(), review.includedReceiveFiles());
       if (applied.receive.status !== "ok" || applied.receive.data.status !== "finished") {
         return applied;
       }
@@ -662,7 +662,12 @@ export class TransferController {
       const result = run.data.result;
       this.received = true;
       this.receivedResult = {
-        received: namesOf(result.received),
+        // A workspace file kept beside the local one is received under its kept path.
+        received: [
+          ...namesOf(result.received),
+          ...(result.received_workspace_files ?? []),
+          ...(result.kept_beside_workspace_files ?? []).map((entry) => entry.kept_path)
+        ],
         notReceived: namesOf(result.not_received),
         changedDuringReceive: namesOf(result.changed_during_receive),
         missingFiles: result.missing_files.length,

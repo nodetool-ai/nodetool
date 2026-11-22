@@ -20755,6 +20755,7 @@
     "collect": "Reunir",
     "collecting": "Copiando os arquivos vinculados para a pasta do projeto…",
     "include": "Enviar",
+    "includeReceive": "Receber",
     "apply": {
       "publish": "Publicar",
       "synchronize": "Sincronizar"
@@ -20791,6 +20792,9 @@
       "putAssetFile": "Arquivo alterado aqui, será enviado",
       "putWorkspaceFile": "Alterado na pasta do projeto",
       "newWorkspaceFile": "Novo na pasta do projeto",
+      "workspaceBothChanged": "Alterado aqui e na nuvem. O arquivo da nuvem fica ao lado do seu",
+      "workspaceLocalDeleted": "Excluído aqui, alterado na nuvem",
+      "workspaceCloudDeleted": "Excluído na nuvem. Seu arquivo fica aqui",
       "newInCloud": "Novo na nuvem",
       "cloudChanged": "Alterado na nuvem",
       "cloudFileChanged": "Um arquivo que ele usa foi alterado na nuvem",

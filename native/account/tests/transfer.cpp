@@ -548,6 +548,83 @@ void workspaceFilesAreSendRows(TestContext& t) {
   }
 }
 
+// The cloud's changed workspace files are receive rows, off by default, and
+// only a ticked one is received. A file the folder holds already gets no row,
+// and a path deleted in the cloud is listed with nothing to tick (RW7, OQ14).
+void cloudWorkspaceFilesAreReceiveRows(TestContext& t) {
+  FakeTransport transport([](const HttpRequest&) {
+    return ok({{"set_id", "s1"},
+               {"documents", json::array()},
+               {"workspace_files",
+                json::array({{{"path", "same.txt"}, {"hash", "h0"}, {"status", "same"}},
+                             {{"path", "notes.txt"}, {"hash", "h1"}, {"status", "both_changed"}},
+                             {{"path", "new.txt"}, {"hash", "h2"}, {"status", "new"}}})},
+               {"cloud_deleted_workspace_files", json::array({"old.txt"})}});
+  });
+  SignedInApp app;
+  LocalTransferClient client(transport, kLocal, {}, *app.session);
+  const ReceiveCapture receive = client.captureReceive(kProject);
+  CHECK(receive.status == TransferStatus::Ok);
+  CHECK(receive.workspaceFiles.size() == 3);
+  CHECK(receive.cloudDeletedWorkspaceFiles == std::vector<std::string>{"old.txt"});
+  SendCapture send;
+  send.fileOperations = {{"put_workspace_file", "", "mine.txt", "h9", "h8"}};
+  TransferReview review(send, receive);
+  CHECK(countOf(review, ReviewSection::Receive) == 3);
+  CHECK(countOf(review, ReviewSection::Send) == 1);
+  std::size_t notes = review.rows().size();
+  for (std::size_t i = 0; i < review.rows().size(); ++i) {
+    const ReviewRow& row = review.rows()[i];
+    CHECK(row.documentId != "same.txt");
+    if (row.documentId == "notes.txt") {
+      notes = i;
+      CHECK(row.detail == "workspace_both_changed");
+      CHECK(row.optional && !row.confirmed);
+    }
+    if (row.documentId == "old.txt") {
+      CHECK(row.detail == "workspace_cloud_deleted");
+      CHECK(!row.optional);
+      CHECK(!review.includeFile(i, true));
+    }
+    if (row.documentId == "mine.txt") {
+      CHECK(review.includeFile(i, true));
+    }
+  }
+  CHECK(review.includedReceiveFiles().empty());
+  CHECK(notes < review.rows().size() && review.includeFile(notes, true));
+  const auto received = review.includedReceiveFiles();
+  CHECK(received.size() == 1 && received[0].path == "notes.txt" && received[0].hash == "h1");
+  const auto sent = review.includedFiles();
+  CHECK(sent.size() == 1 && sent[0].path == "mine.txt");
+}
+
+// A receive always names the workspace files it includes, so a receive with
+// none ticked leaves every one out (RW7).
+void runReceiveNamesIncludedWorkspaceFiles(TestContext& t) {
+  std::vector<json> bodies;
+  FakeTransport transport([&bodies](const HttpRequest& request) {
+    bodies.push_back(json::parse(request.body));
+    return ok({{"status", "finished"},
+               {"set_id", "s1"},
+               {"result",
+                {{"received", json::array()},
+                 {"received_workspace_files", json::array({"a.txt"})},
+                 {"kept_beside_workspace_files", json::array({{{"path", "b.txt"}, {"kept_path", "b (cloud).txt"}}})}}}});
+  });
+  SignedInApp app;
+  LocalTransferClient client(transport, kLocal, {}, *app.session);
+  const ReceiveRun none = client.runReceive("s1", {});
+  const ReceiveRun some = client.runReceive("s1", {}, {{"a.txt", "h1"}});
+  CHECK(bodies.size() == 2);
+  if (bodies.size() == 2) {
+    CHECK(bodies[0].dump().find("\"include_workspace_files\":[]") != std::string::npos);
+    CHECK(bodies[1].dump().find("\"include_workspace_files\":[{\"hash\":\"h1\",\"path\":\"a.txt\"}]") !=
+          std::string::npos);
+  }
+  CHECK((some.received == std::vector<std::string>{"a.txt", "b (cloud).txt"}));
+  CHECK(none.status == TransferStatus::Ok);
+}
+
 // A send goes without a missing file only once the person confirms it, and
 // the confirmation is the capture's entry as listed (X7, review F36).
 // A workflow whose file is missing from the folder is sent from its last
@@ -876,6 +953,8 @@ int main() {
       {"aRecaptureOnlyLeavesOutWhatWasReviewed", aRecaptureOnlyLeavesOutWhatWasReviewed},
       {"fileOnlyChangesAreSendWork", fileOnlyChangesAreSendWork},
       {"workspaceFilesAreSendRows", workspaceFilesAreSendRows},
+      {"cloudWorkspaceFilesAreReceiveRows", cloudWorkspaceFilesAreReceiveRows},
+      {"runReceiveNamesIncludedWorkspaceFiles", runReceiveNamesIncludedWorkspaceFiles},
       {"missingFilesNeedAConfirmation", missingFilesNeedAConfirmation},
       {"everySendNamesItsDeletions", everySendNamesItsDeletions},
       {"aDeletedWorkspaceFileNeedsAConfirmation", aDeletedWorkspaceFileNeedsAConfirmation},

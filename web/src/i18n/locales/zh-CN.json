@@ -20441,6 +20441,7 @@
     "collect": "收集",
     "collecting": "正在将链接的文件复制到项目文件夹…",
     "include": "发送",
+    "includeReceive": "接收",
     "apply": {
       "publish": "发布",
       "synchronize": "同步"
@@ -20477,6 +20478,9 @@
       "putAssetFile": "文件在此处已更改，将发送",
       "putWorkspaceFile": "已在项目文件夹中更改",
       "newWorkspaceFile": "项目文件夹中的新文件",
+      "workspaceBothChanged": "此处和云端都已更改。云端文件会放在你的文件旁边",
+      "workspaceLocalDeleted": "此处已删除，云端已更改",
+      "workspaceCloudDeleted": "云端已删除。你的文件保留在此处",
       "newInCloud": "云端新建",
       "cloudChanged": "云端已更改",
       "cloudFileChanged": "它使用的文件在云端已更改",

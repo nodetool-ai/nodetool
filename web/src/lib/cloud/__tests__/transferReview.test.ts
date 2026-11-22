@@ -234,6 +234,36 @@ describe("TransferReview", () => {
     expect(hasRequiredWork(send({ fileOperations: [...fileOperations, { op: "put_asset_file", assetId: "a1", path: "m.png", hash: "h", baseHash: "b" }] }))).toBe(true);
   });
 
+  it("offers the cloud's changed workspace files as Receive rows, off by default (RW7)", () => {
+    const captured: CaptureReceiveOutput = {
+      set_id: "s1",
+      documents: [],
+      workspace_files: [
+        { path: "notes.txt", hash: "h1", size: 5, local_hash: null, status: "new", included: false },
+        { path: "same.txt", hash: "h2", size: 5, local_hash: "h2", status: "same", included: true },
+        { path: "both.txt", hash: "h3", size: 5, local_hash: "h9", status: "both_changed", included: false }
+      ],
+      cloud_deleted_workspace_files: ["old.txt"]
+    };
+    const sendFile = { op: "put_workspace_file", assetId: "", path: "mine.txt", hash: "h4", baseHash: "" };
+    const review = new TransferReview(send({ fileOperations: [sendFile] }), receiveCaptureFrom(captured));
+    const receiveRows = review.rows.filter((row) => row.section === "receive");
+    expect(receiveRows.map((row) => [row.documentId, row.detail, row.optional, row.confirmed])).toEqual([
+      ["notes.txt", "workspace_new", true, false],
+      ["both.txt", "workspace_both_changed", true, false],
+      ["old.txt", "workspace_cloud_deleted", false, false]
+    ]);
+    expect(review.includedReceiveFiles()).toEqual([]);
+    const both = review.rows.findIndex((row) => row.documentId === "both.txt");
+    const mine = review.rows.findIndex((row) => row.documentId === "mine.txt");
+    expect(review.includeFile(both, true)).toBe(true);
+    expect(review.includeFile(mine, true)).toBe(true);
+    // A ticked Receive row goes to the receive only, a ticked Send row to the send only.
+    expect(review.includedReceiveFiles()).toEqual([{ path: "both.txt", hash: "h3" }]);
+    expect(review.includedFiles()).toEqual([{ path: "mine.txt", hash: "h4" }]);
+    expect(review.includeFile(review.rows.findIndex((row) => row.documentId === "old.txt"), true)).toBe(false);
+  });
+
   it("lists a deleted workspace file as a deletion that only a confirmation sends", () => {
     const review = new TransferReview(
       send({ deletedWorkspaceFiles: [{ path: "notes/plan.md", baseHash: "h1" }] }),

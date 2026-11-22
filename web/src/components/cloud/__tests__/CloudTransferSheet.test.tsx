@@ -177,6 +177,35 @@ describe("CloudTransferSheet", () => {
     expect(controller.snapshot.rows[0]).toMatchObject({ label: "notes/plan.md", confirmed: true });
   });
 
+  it("offers the cloud's workspace files with a Receive box, unticked (RW7)", async () => {
+    const router = fakeRouter({
+      "cloudTransfer.link": [{ state: "linked", cloud_project_id: id("c9") }],
+      "cloudTransfer.send.capture": [{ ...capture, operations: [], documents: [], deleted_locally: [] }],
+      "cloudTransfer.receive.capture": [
+        {
+          set_id: id("s1"),
+          documents: [],
+          workspace_files: [
+            { path: "notes.txt", hash: hash("n"), size: 4, local_hash: hash("l"), status: "both_changed", included: false }
+          ],
+          cloud_deleted_workspace_files: ["old.txt"]
+        }
+      ]
+    });
+    const controller = new TransferController({ call: router.call, projectId: id("f1"), readLink: true, signedIn: () => true });
+    renderSheet(controller);
+    await act(() => controller.start());
+
+    expect(screen.getByText("notes.txt")).toBeInTheDocument();
+    expect(screen.getByText("Changed here and in the cloud. The cloud file goes beside yours")).toBeInTheDocument();
+    expect(screen.getByText("Deleted in the cloud. Your file stays here")).toBeInTheDocument();
+    const boxes = screen.getAllByRole("checkbox", { name: "Receive" });
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0]).not.toBeChecked();
+    await userEvent.click(boxes[0]);
+    expect(controller.snapshot.rows[0]).toMatchObject({ label: "notes.txt", confirmed: true });
+  });
+
   it("offers Collect for linked files and shows the sheet after it", async () => {
     const router = fakeRouter({
       "cloudTransfer.send.capture": [

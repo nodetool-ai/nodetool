@@ -20441,6 +20441,7 @@
     "collect": "Kerää",
     "collecting": "Kopioidaan linkitettyjä tiedostoja projektikansioon…",
     "include": "Lähetä",
+    "includeReceive": "Vastaanota",
     "apply": {
       "publish": "Julkaise",
       "synchronize": "Synkronoi"
@@ -20477,6 +20478,9 @@
       "putAssetFile": "Tiedosto muutettu täällä, lähetetään",
       "putWorkspaceFile": "Muutettu projektikansiossa",
       "newWorkspaceFile": "Uusi projektikansiossa",
+      "workspaceBothChanged": "Muutettu täällä ja pilvessä. Pilven tiedosto tallennetaan omasi viereen",
+      "workspaceLocalDeleted": "Poistettu täältä, muutettu pilvessä",
+      "workspaceCloudDeleted": "Poistettu pilvestä. Tiedostosi jää tänne",
       "newInCloud": "Uusi pilvessä",
       "cloudChanged": "Muutettu pilvessä",
       "cloudFileChanged": "Sen käyttämä tiedosto muuttui pilvessä",

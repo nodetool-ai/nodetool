@@ -224,11 +224,23 @@ struct ReceiveDocument {
   std::size_t changedFiles = 0;
 };
 
+// A workspace file of the owner's cloud folder that changed since the last
+// exchange (technical design, "Receiving workspace files", RW6). `state` is
+// one of `same`, `new`, `cloud_changed`, `both_changed` and `local_deleted`.
+struct ReceiveWorkspaceFile {
+  std::string path;
+  std::string hash;
+  std::string state;
+};
+
 struct ReceiveCapture {
   TransferStatus status = TransferStatus::LocalUnavailable;
   std::string reason;
   std::string setId;
   std::vector<ReceiveDocument> documents;
+  std::vector<ReceiveWorkspaceFile> workspaceFiles;
+  // Paths deleted in the cloud since the last exchange. The local files stay (OQ14).
+  std::vector<std::string> cloudDeletedWorkspaceFiles;
 };
 
 struct ReceiveDecision {
@@ -251,6 +263,7 @@ struct ReceiveRun {
   std::string setId;
   bool reviewProvided = false;
   std::vector<ReceiveDocument> documents;
+  std::vector<ReceiveWorkspaceFile> workspaceFiles;
 };
 
 struct TransferResume {
@@ -295,7 +308,11 @@ public:
   Cancel cancelSend(const std::string& transferId);
 
   ReceiveCapture captureReceive(const std::string& projectId);
-  ReceiveRun runReceive(const std::string& setId, const std::vector<ReceiveDecision>& decisions);
+  // Always names `includeFiles`, so a receive leaves out every workspace
+  // file the person did not tick (RW7).
+  ReceiveRun runReceive(const std::string& setId,
+                        const std::vector<ReceiveDecision>& decisions,
+                        const std::vector<IncludedFile>& includeFiles = {});
   // Ends a receive before it applies: releases the cloud set and deletes
   // the local receive row (review F41). `applied` is true when it had
   // already applied.
@@ -463,8 +480,8 @@ public:
   // Confirms or withdraws the deletion of Deletion row `index`. Returns
   // false for another row.
   bool confirmDeletion(std::size_t index, bool confirmed);
-  // Includes or leaves out the workspace file of optional Send row `index`.
-  // Returns false for another row.
+  // Includes or leaves out the workspace file of optional Send or Receive
+  // row `index`. Returns false for another row.
   bool includeFile(std::size_t index, bool included);
   // Confirms that the send goes without the missing file of Problem row
   // `index`, for every document that needs it. Returns false for another
@@ -482,8 +499,10 @@ public:
   std::vector<DeleteConfirmation> confirmedDeletes() const;
   // The workspace file deletions the person confirmed.
   std::vector<TransferDeletedFile> confirmedFileDeletes() const;
-  // The workspace files the person included.
+  // The workspace files the person included in the send.
   std::vector<IncludedFile> includedFiles() const;
+  // The cloud's workspace files the person included in the receive (RW7).
+  std::vector<IncludedFile> includedReceiveFiles() const;
   // The capture's missing files once each one is confirmed, or empty.
   std::vector<TransferMissingFile> confirmedMissingFiles() const;
 

@@ -127,7 +127,8 @@ export const captureReceive = (call: TransferCall, projectId: string): Promise<T
 export const runReceive = (
   call: TransferCall,
   setId: string,
-  decisions: readonly ReceiveDecision[]
+  decisions: readonly ReceiveDecision[],
+  includeFiles: readonly IncludedFile[] = []
 ): Promise<TransferAnswer<RunReceiveOutput>> => {
   const input: Record<string, unknown> = { set_id: setId };
   if (decisions.length > 0) {
@@ -137,6 +138,8 @@ export const runReceive = (
       decision: item.choice
     }));
   }
+  // Always named, so a receive leaves out every workspace file the person did not tick (RW7).
+  input.include_workspace_files = includeFiles.map((file) => ({ path: file.path, hash: file.hash }));
   return answer(call, "cloudTransfer.receive.run", input, runReceiveOutput);
 };
 

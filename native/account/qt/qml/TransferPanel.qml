@@ -196,7 +196,7 @@ Rectangle {
                 Ui.CheckBox {
                     visible: row.modelData.optional
                     objectName: "transfer-include-" + row.modelData.index
-                    text: "Send"
+                    text: row.modelData.section === "receive" ? "Receive" : "Send"
                     checked: row.modelData.confirmed
                     onToggled: root.controller.includeFile(row.modelData.index, checked)
                 }

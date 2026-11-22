@@ -2294,6 +2294,59 @@ private slots:
     QCOMPARE(sent["include_workspace_files"], nlohmann::json::array({{{"path", "notes/plan.md"}, {"hash", after}}}));
   }
 
+  // The cloud's changed workspace files are receive rows that say what
+  // happens to the local file, off by default, and a receive names only the
+  // ticked ones (RW7, OQ14).
+  void cloudWorkspaceFilesShowAsReceiveRows() {
+    Computer computer;
+    computer.server.addCode("code-r", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-r");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string cloud(64, 'c');
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("file_operations":[],"documents":[],)"
+                           R"("missing_files":[],"missing_document_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s1","documents":[],"workspace_files":[)"
+                           R"({"path":"notes.txt","hash":")" + cloud + R"(","size":4,"local_hash":null,)"
+                           R"("status":"both_changed","included":false}],"cloud_deleted_workspace_files":["old.txt"]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[],"kept_beside_workspace_files":[{"path":"notes.txt",)"
+                           R"("kept_path":"notes (cloud).txt"}]}})"));
+    server.answer("cloudTransfer.send.run", trpcData(R"({"status":"committed","transfer_id":"t1","result":{}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 2);
+    const QVariantMap notes = transfer.rows().at(0).toMap();
+    QCOMPARE(notes.value("section").toString(), QString("receive"));
+    QCOMPARE(notes.value("name").toString(), QString("notes.txt"));
+    QCOMPARE(notes.value("text").toString(),
+             QString("Changed here and in the cloud. The cloud file goes beside yours"));
+    QVERIFY(notes.value("optional").toBool());
+    QVERIFY(!notes.value("confirmed").toBool());
+    const QVariantMap old = transfer.rows().at(1).toMap();
+    QCOMPARE(old.value("text").toString(), QString("Deleted in the cloud. Your file stays here"));
+    QVERIFY(!old.value("optional").toBool());
+    QVERIFY(transfer.includeFile(notes.value("index").toInt(), true));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    const auto run = nlohmann::json::parse(server.body("cloudTransfer.receive.run", 0));
+    QCOMPARE(run["include_workspace_files"], nlohmann::json::array({{{"path", "notes.txt"}, {"hash", cloud}}}));
+  }
+
   // A capture whose only work is workspace files the person leaves out sends
   // nothing (PRD SR7).
   void workspaceFilesLeftOutSendNothing() {

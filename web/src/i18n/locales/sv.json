@@ -20441,6 +20441,7 @@
     "collect": "Samla",
     "collecting": "Kopierar länkade filer till projektmappen…",
     "include": "Skicka",
+    "includeReceive": "Ta emot",
     "apply": {
       "publish": "Publicera",
       "synchronize": "Synkronisera"
@@ -20477,6 +20478,9 @@
       "putAssetFile": "Filen ändrad här, skickas",
       "putWorkspaceFile": "Ändrad i projektmappen",
       "newWorkspaceFile": "Ny i projektmappen",
+      "workspaceBothChanged": "Ändrad här och i molnet. Molnfilen läggs bredvid din",
+      "workspaceLocalDeleted": "Raderad här, ändrad i molnet",
+      "workspaceCloudDeleted": "Raderad i molnet. Din fil stannar här",
       "newInCloud": "Ny i molnet",
       "cloudChanged": "Ändrad i molnet",
       "cloudFileChanged": "En fil den använder har ändrats i molnet",

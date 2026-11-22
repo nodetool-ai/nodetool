@@ -20441,6 +20441,7 @@
     "collect": "Samle",
     "collecting": "Kopierer koblede filer til prosjektmappen…",
     "include": "Send",
+    "includeReceive": "Motta",
     "apply": {
       "publish": "Publiser",
       "synchronize": "Synkroniser"
@@ -20477,6 +20478,9 @@
       "putAssetFile": "Filen er endret her, sendes",
       "putWorkspaceFile": "Endret i prosjektmappen",
       "newWorkspaceFile": "Ny i prosjektmappen",
+      "workspaceBothChanged": "Endret her og i skyen. Skyfilen legges ved siden av din",
+      "workspaceLocalDeleted": "Slettet her, endret i skyen",
+      "workspaceCloudDeleted": "Slettet i skyen. Filen din blir her",
       "newInCloud": "Ny i skyen",
       "cloudChanged": "Endret i skyen",
       "cloudFileChanged": "En fil den bruker er endret i skyen",
