@@ -205,6 +205,23 @@ const ASSET_EDITOR_TOOL_SUITES =
   "npm run test --workspace=web -- svgTools audioTools audioAgentOps audioEffects AudioSampleEditor SvgSurface AudioSurface";
 
 /**
+ * The mobile document harness: a scripted agent drives mobile's own
+ * `ui_storyboard_*` tools, agent bridge, document store, and `resources.*`
+ * backend over an in-memory server, and the saved board is checked against the
+ * protocol's storyboard schema. It lives in the agents suite because `mobile/`
+ * is not a root workspace.
+ */
+const MOBILE_DOCUMENT_TOOL_SUITES =
+  "npm run test --workspace=packages/agents -- mobile-storyboard-tool-loop";
+
+/**
+ * Both ends of every Electron IPC channel: preload invokes against main
+ * handlers, sends against listeners, subscriptions against emitters, read from
+ * source so no `electron` mock can hide a missing end.
+ */
+const ELECTRON_IPC_SURFACE_SUITES = "npm run test --workspace=electron -- ipc.surface";
+
+/**
  * The audio-driven-motion suites: `bake_audio_animation`'s own arithmetic
  * (the two clock hops, the envelope/beats curve shapes) plus the end-to-end
  * demonstration that bakes a beat-synced pulse onto a clip that already
@@ -693,6 +710,24 @@ export const HARNESSES: HarnessEntry[] = [
     agentTool: "ui_audio_edit",
     docs: "packages/agents/docs/evals.md § Tool-loop eval suites",
     selfcheck: { command: ASSET_EDITOR_TOOL_SUITES, cost: "cheap" }
+  },
+  {
+    id: "mobile-document-tools",
+    title: "Mobile storyboard agent tools (ui_storyboard_* over the document store)",
+    command: MOBILE_DOCUMENT_TOOL_SUITES,
+    kind: "execution",
+    capabilities: ["interact", "no-db"],
+    docs: "mobile/ARCHITECTURE.md § Documents",
+    selfcheck: { command: MOBILE_DOCUMENT_TOOL_SUITES, cost: "cheap" }
+  },
+  {
+    id: "electron-ipc-surface",
+    title: "Electron IPC surface (preload channels against main handlers)",
+    command: ELECTRON_IPC_SURFACE_SUITES,
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "electron/src/AGENTS.md § Tests",
+    selfcheck: { command: ELECTRON_IPC_SURFACE_SUITES, cost: "cheap" }
   },
   {
     id: "timeline-audio-drive",
@@ -2464,24 +2499,20 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "mobile",
     title: "Mobile app (documents via chat agent ui_* tools)",
-    harnesses: [],
-    paths: ["mobile/"],
-    gap:
-      "No headless harness yet. Mobile edits already flow through the chat " +
-      "agent's ui_* tools (mobile/ARCHITECTURE.md § Documents), so the harness " +
-      "shape exists: drive the same tool contract against a headless bridge " +
-      "the way the tool-loop evals do, and validate the document each session " +
-      "leaves behind."
+    harnesses: ["mobile-document-tools"],
+    // The harness covers the document tool path only. Screens, mini-app
+    // widgets, chat transport and the game player have Jest tests in
+    // mobile/ and no headless harness.
+    paths: ["mobile/"]
   },
   {
     id: "electron-shell",
     title: "Electron shell (windows, IPC, menus, auto-update)",
-    harnesses: [],
-    paths: ["electron/"],
-    gap:
-      "Covered by Jest unit tests only. A harness would boot the packaged " +
-      "shell headlessly (Playwright's Electron driver), assert the " +
-      "IPC surface, and reuse backend-smoke for the server half."
+    harnesses: ["electron-ipc-surface"],
+    // The harness checks the IPC contract from source. Nothing boots the
+    // packaged shell yet: that needs Playwright's Electron driver against a
+    // built app, with backend-smoke for the server half.
+    paths: ["electron/"]
   },
   {
     id: "api-server",

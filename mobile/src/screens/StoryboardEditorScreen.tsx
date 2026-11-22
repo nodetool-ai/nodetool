@@ -46,15 +46,13 @@ import {
 } from '../documents/agentBridge';
 import { clearUiSelection, setUiSelection } from '../documents/uiContext';
 import {
+  createStoryboardAgentHandler,
+  DEFAULT_ASPECT_RATIO,
+  newShotId,
+} from '../documents/storyboardAgentHandler';
+import {
   reindexShots,
-  resolveShotIndex,
-  shotToNode,
-  type StoryboardAddShotInput,
-  type StoryboardAgentHandler,
   type StoryboardDocument,
-  type StoryboardShotNode,
-  type StoryboardSnapshot,
-  type StoryboardUpdateShotPatch,
   type Shot,
   type ShotStatus,
 } from '../documents/storyboardTypes';
@@ -63,15 +61,6 @@ type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'StoryboardEditor'>;
   route: RouteProp<RootStackParamList, 'StoryboardEditor'>;
 };
-
-const DEFAULT_ASPECT_RATIO = '16:9';
-
-/** Short, collision-resistant enough for ids that only have to be unique in one board. */
-const newShotId = (): string =>
-  `shot-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-
-const clamp = (value: number, min: number, max: number): number =>
-  Math.min(Math.max(value, min), max);
 
 /** 18pt icon + 10pt padding = 38pt; the slop lifts it to the 46pt touch target. */
 const ICON_HIT_SLOP = { top: 4, bottom: 4, left: 4, right: 4 };
@@ -403,136 +392,13 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
 
   // ── Agent handler ────────────────────────────────────────────────────────
   useEffect(() => {
-    const requireDoc = (): StoryboardDocument => {
-      const current = store.getState().doc;
-      if (current === null) {
-        throw new Error(
-          `Storyboard "${id}" has not finished loading. Retry in a moment.`
-        );
-      }
-      return current;
-    };
-
-    const snapshot = (): StoryboardSnapshot => {
-      const state = store.getState();
-      const board = state.doc;
-      return {
-        boardId: id,
-        title: state.name || initialName || 'Untitled storyboard',
-        brief: board?.brief ?? '',
-        style: board?.style ?? '',
-        aspectRatio: board?.aspectRatio ?? DEFAULT_ASPECT_RATIO,
-        hasScreenplay: board?.screenplay != null,
-        selectedShotId: selectedRef.current,
-        shots: (board?.shots ?? []).map(shotToNode),
-      };
-    };
-
-    const writeShots = (shots: Shot[]): void => {
-      edit((board) => ({ ...board, shots: reindexShots(shots) }));
-    };
-
-    const handler: StoryboardAgentHandler = {
-      getSnapshot: snapshot,
-
-      addShot: (input: StoryboardAddShotInput): StoryboardShotNode => {
-        const shots = requireDoc().shots;
-        const at =
-          input.index === undefined
-            ? shots.length
-            : clamp(Math.trunc(input.index), 0, shots.length);
-        const shot: Shot = {
-          type: 'shot',
-          id: newShotId(),
-          index: at,
-          action: input.action,
-          camera: input.camera,
-          motion: input.motion,
-          duration_seconds: input.durationSeconds,
-          status: 'planned',
-        };
-        writeShots([...shots.slice(0, at), shot, ...shots.slice(at)]);
-        return shotToNode(shot, at);
-      },
-
-      updateShot: (
-        target: string,
-        patch: StoryboardUpdateShotPatch
-      ): StoryboardShotNode => {
-        const shots = requireDoc().shots;
-        const at = resolveShotIndex(shots, target, selectedRef.current);
-        const updated: Shot = {
-          ...shots[at],
-          action: patch.action ?? shots[at].action,
-          camera: patch.camera ?? shots[at].camera,
-          motion: patch.motion ?? shots[at].motion,
-          slug: patch.slug ?? shots[at].slug,
-          duration_seconds: patch.durationSeconds ?? shots[at].duration_seconds,
-          status: patch.status ?? shots[at].status,
-        };
-        writeShots(shots.map((shot, index) => (index === at ? updated : shot)));
-        return shotToNode(updated, at);
-      },
-
-      removeShot: (target: string): StoryboardShotNode => {
-        const shots = requireDoc().shots;
-        const at = resolveShotIndex(shots, target, selectedRef.current);
-        const removed = shots[at];
-        writeShots(shots.filter((_, index) => index !== at));
-        if (selectedRef.current === removed.id) {
-          select(null);
-        }
-        return shotToNode(removed, at);
-      },
-
-      reorderShot: (target: string, toIndex: number): StoryboardShotNode => {
-        const shots = requireDoc().shots;
-        const from = resolveShotIndex(shots, target, selectedRef.current);
-        const rest = shots.filter((_, index) => index !== from);
-        const to = clamp(Math.trunc(toIndex), 0, rest.length);
-        const moved = shots[from];
-        writeShots([...rest.slice(0, to), moved, ...rest.slice(to)]);
-        return shotToNode(moved, to);
-      },
-
-      setBrief: (brief: string): StoryboardSnapshot => {
-        requireDoc();
-        edit((board) => ({ ...board, brief }));
-        return snapshot();
-      },
-
-      setStyle: (style: string): StoryboardSnapshot => {
-        requireDoc();
-        edit((board) => ({ ...board, style }));
-        return snapshot();
-      },
-
-      setAspectRatio: (aspectRatio: string): StoryboardSnapshot => {
-        requireDoc();
-        edit((board) => ({ ...board, aspectRatio }));
-        return snapshot();
-      },
-
-      selectShot: (target: string | null): StoryboardShotNode | null => {
-        if (target === null) {
-          select(null);
-          return null;
-        }
-        const shots = requireDoc().shots;
-        const at = resolveShotIndex(shots, target, selectedRef.current);
-        select(shots[at].id);
-        return shotToNode(shots[at], at);
-      },
-
-      save: async (): Promise<{ ok: true; updatedAt: string | null }> => {
-        await runSave();
-        const state = store.getState();
-        if (state.status === 'conflict' || state.status === 'error') {
-          throw new Error(state.error ?? 'Failed to save the storyboard.');
-        }
-        return { ok: true, updatedAt: state.updatedAt };
-      },
-    };
+    const handler = createStoryboardAgentHandler({
+      boardId: id,
+      store,
+      fallbackTitle: initialName,
+      getSelectedShotId: () => selectedRef.current,
+      selectShot: select,
+    });
 
     return registerDocumentHandler(
       'storyboard',
@@ -540,7 +406,7 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
       store.getState().name || initialName || 'Storyboard',
       handler
     );
-  }, [store, id, initialName, select, edit, runSave]);
+  }, [store, id, initialName, select]);
 
   // Keep the id the agent addresses tied to the screen the user is looking at.
   // Claim focus on focus, but do not release it on blur. Navigating to Chat

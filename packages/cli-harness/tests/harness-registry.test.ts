@@ -646,9 +646,18 @@ describe("harness gate", () => {
   });
 
   it("reports a touched gap surface as uncovered", () => {
-    const plan = planGate(["mobile/App.tsx"]);
-    expect(plan.uncoveredSurfaces).toEqual(["mobile"]);
+    const plan = planGate(["marketing/next.config.mjs"]);
+    expect(plan.uncoveredSurfaces).toEqual(["marketing-site"]);
     expect(plan.checks).toEqual([]);
+  });
+
+  it.each([
+    ["mobile/src/documents/documentStore.ts", "mobile-document-tools"],
+    ["electron/src/preload.ts", "electron-ipc-surface"]
+  ])("runs the app harness when %s changes", (path, harnessId) => {
+    const plan = planGate([path]);
+    expect(plan.uncoveredSurfaces).toEqual([]);
+    expect(plan.checks.map((check) => check.harnessId)).toContain(harnessId);
   });
 
   it("selfchecks are keyless commands from the repo root", () => {
