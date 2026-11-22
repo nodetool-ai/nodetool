@@ -1,5 +1,5 @@
 /**
- * Reference sets of workflows and timelines, and the two rules that read them
+ * Reference sets of every shared kind, and the two rules that read them
  * (docs/plans/native-cloud-sync/technical-design.md, "Reference sets and file
  * authorization").
  *
@@ -30,9 +30,16 @@
 
 import { createHash } from "node:crypto";
 import {
+  Application,
   Asset,
   DocumentCollaborator,
   DocumentRefs,
+  ImageDocument,
+  ImageDocumentVersion,
+  JsScript,
+  JsScriptVersion,
+  Script,
+  Storyboard,
   TimelineSequence,
   TimelineSequenceVersion,
   Workflow,
@@ -40,7 +47,13 @@ import {
   WorkflowVersion,
   type DocumentRefScopeValue
 } from "@nodetool-ai/models";
-import { isFullResourceId, refsOf, type RefDocumentKind } from "@nodetool-ai/protocol";
+import {
+  isFullResourceId,
+  isRefDocumentKind,
+  REF_DOCUMENT_KINDS,
+  refsOf,
+  type RefDocumentKind
+} from "@nodetool-ai/protocol";
 import type { EffectiveAccessItem } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { ApiErrorCode } from "../error-codes.js";
 import { throwApiError } from "../trpc/error-formatter.js";
@@ -56,13 +69,90 @@ interface RefDocument {
   user_id: string;
 }
 
+/** How the set functions read one kind: its row, its content and its saved versions. */
+interface RefKindSource {
+  load(id: string): Promise<RefDocument | null>;
+  /** The stored content the set function reads. */
+  content(document: RefDocument): unknown;
+  /** The saved versions, newest first. Kinds without a version table have none. */
+  versions(documentId: string): Promise<Array<{ id: string; content: unknown }>>;
+}
+
+/** A stored JSON column as a value, so it can sit beside another column. */
+function parseStored(text: string | null | undefined): unknown {
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    // Not JSON: read the text as one string value.
+    return text;
+  }
+}
+
+const NO_VERSIONS = async (): Promise<Array<{ id: string; content: unknown }>> => [];
+
+const REF_KIND_SOURCES: Record<RefDocumentKind, RefKindSource> = {
+  workflow: {
+    load: async (id) => ((await Workflow.get(id)) as Workflow | null) ?? null,
+    content: (document) => (document as Workflow).graph ?? null,
+    versions: async (id) =>
+      (await WorkflowVersion.listForWorkflow(id, { limit: VERSION_LIMIT })).map((v) => ({
+        id: v.id,
+        content: v.graph as unknown
+      }))
+  },
+  timeline: {
+    load: (id) => TimelineSequence.findById(id),
+    content: (document) => (document as TimelineSequence).document ?? null,
+    versions: async (id) =>
+      (await TimelineSequenceVersion.listForTimeline(id, { limit: VERSION_LIMIT })).map((v) => ({
+        id: v.id,
+        content: v.document as unknown
+      }))
+  },
+  storyboard: {
+    load: (id) => Storyboard.findById(id),
+    content: (document) => (document as Storyboard).document ?? null,
+    versions: NO_VERSIONS
+  },
+  script: {
+    load: (id) => Script.findById(id),
+    content: (document) => (document as Script).document ?? null,
+    versions: NO_VERSIONS
+  },
+  // A sketch's list and editor show its thumbnail, which the row holds
+  // beside the document.
+  sketch: {
+    load: (id) => ImageDocument.findById(id),
+    content: (document) => ({
+      document: parseStored((document as ImageDocument).document),
+      thumbnail_asset_id: (document as ImageDocument).thumbnail_asset_id ?? null
+    }),
+    versions: async (id) =>
+      (await ImageDocumentVersion.listForDocument(id, { limit: VERSION_LIMIT })).map((v) => ({
+        id: v.id,
+        content: { document: parseStored(v.document) }
+      }))
+  },
+  application: {
+    load: (id) => Application.findById(id),
+    content: (document) => (document as Application).document ?? null,
+    versions: NO_VERSIONS
+  },
+  jsscript: {
+    load: (id) => JsScript.findById(id),
+    content: (document) => (document as JsScript).document ?? null,
+    versions: async (id) =>
+      (await JsScriptVersion.listForScript(id, { limit: VERSION_LIMIT })).map((v) => ({
+        id: v.id,
+        content: v.document as unknown
+      }))
+  }
+};
+
 /** The stored content of a document, as the set function reads it. */
-function currentContent(
-  kind: RefDocumentKind,
-  document: RefDocument
-): unknown {
-  if (kind === "workflow") return (document as Workflow).graph ?? null;
-  return (document as TimelineSequence).document ?? null;
+function currentContent(kind: RefDocumentKind, document: RefDocument): unknown {
+  return REF_KIND_SOURCES[kind].content(document);
 }
 
 /** SHA-256 of the content as JSON. Equal content gives an equal hash. */
@@ -72,14 +162,8 @@ export function contentHash(content: unknown): string {
   return createHash("sha256").update(text).digest("hex");
 }
 
-async function loadRefDocument(
-  kind: RefDocumentKind,
-  id: string
-): Promise<RefDocument | null> {
-  if (kind === "workflow") {
-    return ((await Workflow.get(id)) as Workflow | null) ?? null;
-  }
-  return TimelineSequence.findById(id);
+async function loadRefDocument(kind: RefDocumentKind, id: string): Promise<RefDocument | null> {
+  return REF_KIND_SOURCES[kind].load(id);
 }
 
 /** The ids among `ids` that are assets of `ownerId`. */
@@ -187,18 +271,7 @@ export async function ensureVersionSets(
   kind: RefDocumentKind,
   document: RefDocument
 ): Promise<void> {
-  const versions =
-    kind === "workflow"
-      ? (
-          await WorkflowVersion.listForWorkflow(document.id, {
-            limit: VERSION_LIMIT
-          })
-        ).map((v) => ({ id: v.id, content: v.graph as unknown }))
-      : (
-          await TimelineSequenceVersion.listForTimeline(document.id, {
-            limit: VERSION_LIMIT
-          })
-        ).map((v) => ({ id: v.id, content: v.document as unknown }));
+  const versions = await REF_KIND_SOURCES[kind].versions(document.id);
   const sets = await DocumentRefs.listSets(kind, document.id);
   const written = new Set(sets.map((s) => s.versionId));
   const live = new Set(versions.map((v) => v.id));
@@ -280,7 +353,7 @@ export async function readableFilesOf(
   return readable;
 }
 
-/** The workflows and timelines `userId` holds a grant on, each once. */
+/** The documents `userId` holds a grant on, each once. */
 async function grantedRefDocuments(
   userId: string,
   documentGrants?: readonly DocumentCollaborator[]
@@ -299,14 +372,14 @@ async function grantedRefDocuments(
   };
   for (const grant of workflows) add("workflow", grant.workflow_id);
   for (const grant of documents) {
-    if (grant.document_type === "timeline") add("timeline", grant.document_id);
+    if (isRefDocumentKind(grant.document_type)) add(grant.document_type, grant.document_id);
   }
   return out;
 }
 
 /**
- * Every file of another person that `userId` may read through a workflow or
- * timeline shared with them. Each document's access is computed now, so a
+ * Every file of another person that `userId` may read through a document
+ * shared with them. Each document's access is computed now, so a
  * removed grant or an option turned off applies to the next build.
  * `documentGrants` are the caller's document grants when already loaded.
  */
@@ -348,8 +421,8 @@ export async function readableSharedFiles(
 
 /**
  * The documents that may show `file` to `writerId`: those with a stored set
- * naming it, and every workflow and timeline shared with the writer, whose
- * sets may not have been computed yet.
+ * naming it, and every document shared with the writer, whose sets may not
+ * have been computed yet.
  */
 async function attachCandidates(
   writerId: string,
@@ -357,7 +430,7 @@ async function attachCandidates(
 ): Promise<Array<{ kind: RefDocumentKind; id: string }>> {
   const out = await grantedRefDocuments(writerId);
   const seen = new Set(out.map((d) => `${d.kind}:${d.id}`));
-  for (const kind of ["workflow", "timeline"] as const) {
+  for (const kind of REF_DOCUMENT_KINDS) {
     for (const id of await documentsShowing(kind, file)) {
       if (seen.has(`${kind}:${id}`)) continue;
       seen.add(`${kind}:${id}`);
