@@ -18,7 +18,13 @@ export interface CloudDocumentToOpen {
 
 /** The cloud window's reference to a document, or null for a type it does not open. */
 export function cloudDocumentRef(type: WorkspaceTabType, id: string): CloudDocumentRef | null {
-  return type === "workflow" || type === "timeline" || type === "jsscript" || type === "script" ? { type, id } : null;
+  return type === "workflow" ||
+    type === "timeline" ||
+    type === "jsscript" ||
+    type === "script" ||
+    type === "storyboard"
+    ? { type, id }
+    : null;
 }
 
 /**

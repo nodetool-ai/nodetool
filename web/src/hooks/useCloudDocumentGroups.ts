@@ -3,8 +3,8 @@
  * flow "Open and edit a cloud document"; WP1.15). They list the signed-in
  * account's documents on its cloud server, and the documents others shared
  * with it there, through the cloud client. Workflows and timelines, as in
- * the native apps' cloud browser, and JS scripts and scripts, whose file
- * references the server checks since WP2.10 (D26).
+ * the native apps' cloud browser, and JS scripts, scripts and storyboards,
+ * whose file references the server checks since WP2.10 (D26).
  *
  * The query keys start with the server and the account (TC124), so a local
  * and a cloud document with the same id never share a cache entry, and
@@ -32,7 +32,7 @@ type CloudOrigin = Extract<DocumentOrigin, { kind: "cloud" }>;
 interface Listed {
   readonly id: string;
   readonly name: string;
-  readonly type: "workflow" | "timeline" | "jsscript" | "script";
+  readonly type: "workflow" | "timeline" | "jsscript" | "script" | "storyboard";
   readonly updatedAt: string;
   readonly role?: "viewer" | "editor";
 }
@@ -75,6 +75,10 @@ async function ownDocuments(origin: CloudOrigin, signal: AbortSignal): Promise<L
   for (const script of screenplays) {
     listed.push({ id: script.id, name: script.name, type: "script", updatedAt: script.updatedAt });
   }
+  const boards = await client.storyboards.list.query({}, { signal });
+  for (const board of boards) {
+    listed.push({ id: board.id, name: board.name, type: "storyboard", updatedAt: board.updatedAt });
+  }
   return listed;
 }
 
@@ -96,7 +100,12 @@ async function sharedDocuments(origin: CloudOrigin, signal: AbortSignal): Promis
   }));
   for (const document of documents.documents) {
     // The list holds every shared kind. Only these open here (D26).
-    if (document.type === "timeline" || document.type === "jsscript" || document.type === "script") {
+    if (
+      document.type === "timeline" ||
+      document.type === "jsscript" ||
+      document.type === "script" ||
+      document.type === "storyboard"
+    ) {
       listed.push({
         id: document.id,
         name: document.name,

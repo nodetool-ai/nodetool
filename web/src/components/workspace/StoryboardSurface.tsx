@@ -14,6 +14,7 @@ import { useStoryboardGenerationSubscriptions } from "../../stores/storyboard/St
 import { useStoryboardAgentBridge } from "../../hooks/storyboard/useStoryboardAgentBridge";
 import { useDirectScreenplay } from "../../hooks/storyboard/useDirectScreenplay";
 import { useStoryboardServerSync } from "../../hooks/storyboard/useStoryboardServerSync";
+import { useCloudWindowStoryboardDrafts } from "../../hooks/storyboard/useCloudWindowStoryboardDrafts";
 import { useAssembleTimeline } from "../../hooks/storyboard/useAssembleTimeline";
 import { useDocumentUndoShortcuts } from "../../hooks/useDocumentUndoShortcuts";
 import { useContextCommands } from "../../hooks/useContextCommands";
@@ -102,6 +103,7 @@ const StoryboardSurface = ({
 
   const [retryToken, setRetryToken] = useState(0);
   const loadState = useStoryboardServerSync(refId, retryToken);
+  useCloudWindowStoryboardDrafts(refId);
 
   useDocumentUndoShortcuts({
     active,

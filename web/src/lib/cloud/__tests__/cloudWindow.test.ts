@@ -66,6 +66,7 @@ describe("cloudDocumentRef", () => {
     expect(cloudDocumentRef("timeline", "t1")).toEqual({ type: "timeline", id: "t1" });
     expect(cloudDocumentRef("jsscript", "j1")).toEqual({ type: "jsscript", id: "j1" });
     expect(cloudDocumentRef("script", "s2")).toEqual({ type: "script", id: "s2" });
+    expect(cloudDocumentRef("storyboard", "b1")).toEqual({ type: "storyboard", id: "b1" });
     expect(cloudDocumentRef("sketch", "s1")).toBeNull();
   });
 });

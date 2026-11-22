@@ -74,8 +74,8 @@ export const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument 
   return document;
 };
 
-const responseToBoard = (
-  res: StoryboardResponse
+export const responseToBoard = (
+  res: Pick<StoryboardResponse, "name" | "document" | "timelineId">
 ): Omit<StoryboardBoard, "id" | "updatedAt"> => {
   const doc = res.document;
   const board = {
