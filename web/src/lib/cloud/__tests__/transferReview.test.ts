@@ -215,6 +215,17 @@ describe("TransferReview", () => {
     ).toHaveLength(1);
   });
 
+  it("shows new and changed workspace files as send rows keyed by path (CF5)", () => {
+    const fileOperations = [
+      { op: "put_workspace_file", assetId: "", path: "notes/plan.md", hash: "h2", baseHash: "h1" },
+      { op: "put_workspace_file", assetId: "", path: "data/new.csv", hash: "h3", baseHash: "" }
+    ];
+    const review = new TransferReview(send({ fileOperations }), null);
+    expect(countOf(review, "send")).toBe(2);
+    expect(review.rows[0]).toMatchObject({ documentId: "notes/plan.md", detail: "put_workspace_file" });
+    expect(review.rows[1]).toMatchObject({ documentId: "data/new.csv", detail: "new_workspace_file" });
+  });
+
   it("flags a document sent from its last saved row (CF3, review F56)", () => {
     const captured: CaptureSendOutput = {
       status: "captured",

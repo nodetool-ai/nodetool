@@ -532,6 +532,22 @@ void fileOnlyChangesAreSendWork(TestContext& t) {
   CHECK(changed.size() == 1);
 }
 
+// A workspace file belongs to no document, so a new one is a send row of
+// its own as well as a changed one, keyed by its path (CF5).
+void workspaceFilesAreSendRows(TestContext& t) {
+  SendCapture send;
+  send.fileOperations = {{"put_workspace_file", "", "notes/plan.md", "h2", "h1"},
+                         {"put_workspace_file", "", "data/new.csv", "h3", ""}};
+  TransferReview review(send, {});
+  CHECK(countOf(review, ReviewSection::Send) == 2);
+  if (review.rows().size() == 2) {
+    CHECK(review.rows()[0].documentId == "notes/plan.md");
+    CHECK(review.rows()[0].detail == "put_workspace_file");
+    CHECK(review.rows()[1].documentId == "data/new.csv");
+    CHECK(review.rows()[1].detail == "new_workspace_file");
+  }
+}
+
 // A send goes without a missing file only once the person confirms it, and
 // the confirmation is the capture's entry as listed (X7, review F36).
 // A workflow whose file is missing from the folder is sent from its last
@@ -822,6 +838,7 @@ int main() {
       {"sendsNothingToAServerOffThisComputer", sendsNothingToAServerOffThisComputer},
       {"aRecaptureOnlyLeavesOutWhatWasReviewed", aRecaptureOnlyLeavesOutWhatWasReviewed},
       {"fileOnlyChangesAreSendWork", fileOnlyChangesAreSendWork},
+      {"workspaceFilesAreSendRows", workspaceFilesAreSendRows},
       {"missingFilesNeedAConfirmation", missingFilesNeedAConfirmation},
       {"everySendNamesItsDeletions", everySendNamesItsDeletions},
       {"aMissingDocumentFileIsShown", aMissingDocumentFileIsShown},

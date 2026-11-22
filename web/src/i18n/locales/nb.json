@@ -20474,6 +20474,8 @@
       "keepBoth": "Sendes som en kopi ved siden av skyversjonen",
       "addVersions": "Lagrede versjoner sendes",
       "putAssetFile": "Filen er endret her, sendes",
+      "putWorkspaceFile": "Endret i prosjektmappen, sendes",
+      "newWorkspaceFile": "Ny i prosjektmappen, sendes",
       "newInCloud": "Ny i skyen",
       "cloudChanged": "Endret i skyen",
       "cloudFileChanged": "En fil den bruker er endret i skyen",
