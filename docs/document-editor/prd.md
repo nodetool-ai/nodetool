@@ -105,8 +105,29 @@ for documents can be added without changing the editor or the file format.
 | A restore creates a new version (R11). | A restore is a new transaction and never rewinds (amendment A3). | Same rule. |
 | A write from outside the editor is compared with the last saved content (R22). | A whole-document save is converted relative to the base the client was sent (rules V1 to V3). | The same conversion, with the Markdown file as the whole document. |
 
-Two points need a decision from the owners of the CRDT designs. They are Q5
-and Q8 under Open questions.
+### Proposed target
+
+This direction is proposed and not yet agreed. It came out of comparing seven
+options, including Yjs with the Lexical binding and a text sequence in
+Automerge or Loro.
+
+- **Replicated state.** Each block is an entity in the cloud sync plan's
+  core. Its content register holds the block's raw Markdown as a whole value.
+- **First release.** Whole-file saves with compare-and-swap and a block-level
+  three-way merge, on the same block model. Replication later sends the same
+  block operations through that plan's transaction log.
+- **No second stored CRDT.** A rich-text tree as the stored state makes the
+  Markdown file an export, which breaks R4 and splits open and closed agent
+  edits into two code paths. A character sequence holding Markdown can merge
+  two edits into broken syntax, and after a long offline period it interleaves
+  two rewrites of a paragraph with no conflict shown. Both would also add a
+  second sync protocol, store and authorization path beside the plan's core.
+
+The cost is stated in Q5: two people who type in one block at the same time
+get a conflict, where a character-level merge would combine them.
+
+Q8 under Open questions needs a decision from the owners of the cloud sync
+plan.
 
 ## Terms
 
@@ -162,7 +183,12 @@ and Q8 under Open questions.
   in either view are edits to the same draft.
 - **R4 — Byte-stable saves.** Opening and saving an unedited document writes
   identical bytes. An edit rewrites only the blocks it touched. Without this
-  rule, `edit_file` matches and file diffs break after the first save.
+  rule, `edit_file` matches and file diffs break after the first save. Each
+  block keeps the source bytes it was parsed from, and a block the user did
+  not change is written from those bytes. The stock `@lexical/markdown`
+  export regenerates every block from the editor state and is not expected to
+  reproduce source bytes, so R4 likely needs its own block codec. A1 tests
+  this.
 - **R5 — Autosave.** The editor saves through the shared controller in
   `web/src/stores/documentSync.ts`, with the block as its merge unit, and is
   added to the inventory that `npm run check:document-sync` checks. There is
@@ -187,7 +213,8 @@ and Q8 under Open questions.
   changed block is marked until the user edits it or dismisses the mark. Each
   mark offers a revert that restores the block's previous content. A revert
   is the user's own edit and goes on the undo stack. Agent edits do not, as
-  ADR 0001 requires.
+  ADR 0001 requires. A block an agent changed records the turn and a hash of
+  the content it replaced, so a revert is one set-content operation.
 - **R10 — Selection prompt.** Selecting text opens a prompt beside the
   selection, as `SelectionAssistPlugin` does in the storyboard Text view. A
   replacement lands as one undo step. An answer that is not a replacement is
@@ -197,7 +224,9 @@ and Q8 under Open questions.
   version is recorded before the first edit of each agent turn, before a
   workflow run writes the document, on a manual "Save version", and at an
   interval while the user edits. The editor lists versions with their cause
-  and restores one as a new version.
+  and restores one as a new version. A version is a complete copy of the
+  Markdown and does not depend on replicated state, so history survives a
+  change of sync design.
 - **R12 — Document as workflow input.** A node references a document by its
   id and outputs its current text at run time. Renaming or moving the file
   does not break the reference. The node shows the document name and opens
@@ -230,12 +259,15 @@ and Q8 under Open questions.
   picker in the web app.
 - **R20 — Stable block ids.** Every block has an id that survives saving,
   reopening, and edits to other blocks. The ids are stored outside the
-  Markdown file, which stays plain Markdown (D1).
+  Markdown file, which stays plain Markdown (D1). The stored ids are a cache
+  and the file is the truth. After an outside write, a block is matched to
+  its id by content hash first, then by position and text similarity. A block
+  that matches nothing is a delete and a create.
 - **R21 — One operation set.** The editor, the agent tools and the file
   reconcile all change a document through the same block operations: create,
-  delete, move and set content. The editor does not depend on a
-  library-specific collaboration binding such as `@lexical/yjs`, because the
-  core library is not chosen yet.
+  delete, move and set content. Each operation records who made it: a
+  person, an agent, a workflow run or an outside write. The editor does not
+  depend on a library-specific collaboration binding such as `@lexical/yjs`.
 - **R22 — Outside writes convert against a base.** A write that did not come
   through the editor (another Markdown editor, `edit_file` on a closed
   document, a workflow run) is turned into block operations by comparing it
@@ -272,6 +304,27 @@ and Q8 under Open questions.
   `nodetool debug` and leaves one new version on the output document.
 - A person can go from the home screen to typing in a new document in two
   actions.
+
+## Experiments
+
+Three short tests decide whether the proposed target holds. Each is one to
+three days.
+
+- **A1 — Byte-stable round trip.** Build the block codec of R4 for 20 to 30
+  real Markdown files with tables, nested lists, code fences and reference
+  links. Edit one paragraph in Lexical and save. The target fails if keeping
+  untouched blocks byte-identical requires working against Lexical's own
+  normalization on every update.
+- **A2 — Outside edits against a dirty draft.** Replay 50 recorded agent
+  edits (string replacements, paragraph splits, multi-block rewrites) through
+  the block merge and the id matching of R20. If more than 15% land on the
+  wrong block or produce a conflict on a whole section, add a block-addressed
+  edit tool or smaller entities (Q5).
+- **A3 — Size and merge in the plan's core.** Model a 200-block document
+  with 100 agent turns and a seven-day offline branch where both sides edit
+  20 blocks, five of them the same. Measure state size, load time and how
+  readable the conflicts are. If retained block values grow too large, the
+  register holds a content hash and the text moves to stored blobs.
 
 ## Rollout
 
@@ -310,14 +363,16 @@ sketches.
   "Convert to document".
 - **Q4 — Tab identity.** A `.md` file can open as a `text` tab (by asset id)
   or a `workspace-file` tab (by path). R8 and R12 need one identity per file.
-- **Q5 — Text inside a block.** The storyboard and script design makes text
-  a whole-value register (its D2): two people who edit one line get a
-  conflict, and no merged sentence is produced. Two of its three reasons are
-  about voiced takes and do not apply to prose. A block here is a paragraph,
-  so two people in one paragraph would conflict on every edit. A sequence type
-  for block content would merge them. This choice bears on the core library
-  decision, because Automerge has a text type and the custom core has none
-  specified. That design's own Q1 asks the same about its long `brief` field.
+- **Q5 — Whole-value blocks.** The proposed target treats a block's Markdown
+  as one value, as the storyboard and script design does for a line (its D2).
+  Three points stay open. First, two people who type in one paragraph at the
+  same time get a conflict on that block. If that becomes a main use, the
+  options are a sequence type in the plan's core or a live session layered
+  over the stored blocks. Second, a long list or a table is one block today,
+  so edits to two different rows would conflict. List items and table rows
+  may need to be entities. Third, an agent's `edit_file` that splits or joins
+  paragraphs falls back to delete and create under R20, which loses the
+  per-block revert. A tool that addresses a block by id would avoid that.
 - **Q6 — Version retention.** Interval checkpoints need a cap or a thinning
   rule. The existing version tables are the reference.
 - **Q7 — Google sign-in on local installs.** Google access requires the
