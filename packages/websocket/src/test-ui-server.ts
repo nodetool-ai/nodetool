@@ -1208,7 +1208,7 @@ function detectNearbyNodetoolBaseRoot(cwd: string): string | null {
   return null;
 }
 
-function resolveExamplesDir(options: TestUiServerOptions): string | null {
+export function resolveExamplesDir(options: TestUiServerOptions): string | null {
   if (options.examplesDir && existsSync(options.examplesDir))
     return options.examplesDir;
   if (
