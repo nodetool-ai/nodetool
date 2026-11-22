@@ -5,6 +5,10 @@ import { ingestBrowserRunSpans, startBrowserAppRun, RunsError } from "@nodetool-
 
 const paramsSchema = z.object({ id: z.string().min(1).max(200) });
 const validators = new WeakMap<object, z.ZodType>();
+// A 401 here comes from the handler (`detail`) or from the server's auth hook
+// (`error`), which refuses before the route runs. A schema naming only the
+// first turned every refusal at the door into a 500.
+const unauthorizedSchema = z.union([z.object({ detail: z.string() }), z.object({ error: z.string() })]);
 function jsonSchema(schema: z.ZodType) {
   const result = z.toJSONSchema(schema, { target: "draft-7" });
   validators.set(result, schema); return result;
@@ -30,7 +34,7 @@ const runSpansRoutes: FastifyPluginAsync = async (app) => {
   });
   app.post("/api/runs/:id/spans", {
     bodyLimit: BROWSER_TRACE_BODY_BYTE_LIMIT,
-    schema: { params: jsonSchema(paramsSchema), body: jsonSchema(browserRunSpansInputSchema), response: { 200: jsonSchema(browserRunSpansResultSchema), 401: jsonSchema(z.object({ detail: z.string() })) } }
+    schema: { params: jsonSchema(paramsSchema), body: jsonSchema(browserRunSpansInputSchema), response: { 200: jsonSchema(browserRunSpansResultSchema), 401: jsonSchema(unauthorizedSchema) } }
   }, async (request, reply) => {
     if (!request.userId || request.appSession) {
       return reply.code(401).send({ detail: "Owner authentication required" });
@@ -39,7 +43,7 @@ const runSpansRoutes: FastifyPluginAsync = async (app) => {
   });
   app.post("/api/runs/:id/browser-start", {
     bodyLimit: 1_024,
-    schema: { params: jsonSchema(paramsSchema), body: jsonSchema(browserRunStartInputSchema), response: { 200: jsonSchema(browserRunStartResultSchema), 401: jsonSchema(z.object({ detail: z.string() })) } }
+    schema: { params: jsonSchema(paramsSchema), body: jsonSchema(browserRunStartInputSchema), response: { 200: jsonSchema(browserRunStartResultSchema), 401: jsonSchema(unauthorizedSchema) } }
   }, async (request, reply) => {
     if (!request.userId || request.appSession) { return reply.code(401).send({ detail: "Owner authentication required" }); }
     return startBrowserAppRun(request.userId, paramsSchema.parse(request.params).id, request.body);

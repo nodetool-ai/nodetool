@@ -485,6 +485,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "app-session-route-walk",
+    title: "Deployed app session token route walk on the live server",
+    command: "npm run test --workspace=packages/websocket -- app-session-route-walk",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Deployed app session walk",
+    selfcheck: {
+      command: "npm run test --workspace=packages/websocket -- app-session-route-walk",
+      cost: "cheap"
+    }
+  },
+  {
     id: "run-traces",
     title: "Durable app trace, content policy and ancestry check",
     command: "npm run test --workspace=packages/execution --workspace=packages/runtime --workspace=packages/models --workspace=packages/websocket -- run-trace external-trace-privacy http-tracing",
@@ -2735,7 +2747,7 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "public-app-deployments",
     title: "Deployed mini apps (hidden URL, no login)",
-    harnesses: [],
+    harnesses: ["app-session-route-walk"],
     paths: [
       "packages/websocket/src/lib/app-deployment-service.ts",
       "packages/websocket/src/lib/app-session-scope.ts",
@@ -2745,14 +2757,11 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/applications/PublicAppPage.tsx"
     ],
     gap:
-      "Covered by unit tests only, and the two halves they cannot reach are " +
-      "the ones that matter: what a real logged-out browser can load from " +
-      "the link, and what the auth hook actually refuses an `nda_` token " +
-      "outside `/ws`. A harness would boot the server with " +
-      "NODETOOL_ENV=production, deploy a published example app, then (a) " +
-      "walk every non-`/ws` path with the minted session and assert 401, and " +
-      "(b) drive the page with Playwright carrying no account session, the " +
-      "way the debug harness drives the graph canvas."
+      "The route walk covers what the auth hook does with an `nda_` token " +
+      "on every registered path. Nothing covers what a real logged-out " +
+      "browser can load from the link. A browser harness would drive the " +
+      "deployed page with Playwright carrying no account session, the way " +
+      "the debug harness drives the graph canvas."
   },
   {
     id: "mobile",

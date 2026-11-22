@@ -3084,6 +3084,35 @@ The registry lists browser journeys as manual checks. Instance tabs retain the
 application and instance IDs separately. Selecting a historical run is inspection
 state and does not replace working variables or invoke an operation.
 
+## Deployed app session walk
+
+Run the deployed-app session check from the repository root:
+
+```bash
+npm run test --workspace=packages/websocket -- app-session-route-walk
+```
+
+A deployed mini app's visitor holds an `nda_` session token that
+authenticates as the app's owner. The auth hook in `server.ts` grants it on
+`/ws` and refuses it on every other path. The check boots the real server with
+`NODETOOL_ENV=production` and no node packs, publishes and deploys an app,
+and mints a session through the public route. It then walks every route the
+live Fastify instance registered, collected from `onRoute`. A root
+`preParsing` hook answers each probed request and records the identity the
+auth chain resolved, so no handler runs.
+
+The walk asserts that the token opens no route except `/ws` and that every
+route a caller without a credential cannot reach answers it with 401. An owner
+credential walks the same routes as a control. On `/ws` the check opens a real
+socket with the token and confirms the app scope, the command allowlist, the
+refusal of `/ws/download`, expired, tampered and foreign-key tokens, and the
+refusal outside production.
+
+The `public-app-deployments` entry in the
+[harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-harness/src/harness/registry.ts)
+selects this check. What a logged-out browser loads from the hidden link has
+no harness yet.
+
 
 ### Native graph runner
 
