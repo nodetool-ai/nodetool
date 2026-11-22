@@ -104,7 +104,7 @@
       "disconnect": "切断する",
       "keep": "キープする",
       "disconnectFailed": "このアカウントを切断できませんでした。もう一度やり直してください。",
-      "connectDescription": "{{provider}} アカウントをリンクして、{{provider}} から NodeTool エージェントとチャットします。あなたのスレッド、資産、予算はあなたのもののままです。",
+      "connectDescription": "{{provider}} アカウントをリンクして、{{provider}} から NodeTool エージェントとチャットします。あなたのスレッド、アセット、予算はあなたのもののままです。",
       "connectProvider": "{{provider}} を接続します",
       "startLinkFailed": "リンクを開始できませんでした。もう一度やり直してください。",
       "openTelegram": "Telegram を開いて「スタート」を押します",
@@ -134,7 +134,7 @@
     "missingWorkflowData": "ワークフロー ID またはデータが提供されていません",
     "errorPrefix": "エラー: ",
     "instructions": "指示",
-    "duration": "期間",
+    "duration": "長さ",
     "result": "結果",
     "error": "エラー",
     "toolCalls": "{{count}} ツール呼び出し",
@@ -157,7 +157,7 @@
     "sortAssetsByDate": "アセットを作成日で並べ替える",
     "sortBySize": "サイズごとに並べ替える",
     "sortAssetsBySize": "ファイルサイズごとにアセットを並べ替える",
-    "assets": "資産",
+    "assets": "アセット",
     "name": "名前",
     "type": "種類",
     "size": "サイズ",
@@ -225,7 +225,7 @@
     "audioInfo": "オーディオ情報",
     "content": "内容",
     "connectableNodes": "接続可能なノード",
-    "searchNodes": "検索ノード",
+    "searchNodes": "ノードを検索",
     "connectFrom": "接続元: {{name}}",
     "connectTo": "接続先: {{name}}",
     "selectConnection": "接続の選択",
@@ -460,7 +460,7 @@
   },
   "screen_properties": {
     "inspector": {
-      "runs": "走る",
+      "runs": "実行",
       "decreaseRuns": "ランを減らす",
       "increaseRuns": "ランを増やす",
       "runSelectedNodes": "選択したノードを実行する",
@@ -561,7 +561,7 @@
       "filterNoMatches": "{{kind}} フィルター{{search}} に一致するメモリはありません。フィルターをリセットするには、「すべて」を選択します。",
       "andSearch": " そして検索してください",
       "searchNoMatches": "これらの言葉すべてを含む記憶はありません。",
-      "emptyDescription": "エージェントは、プロジェクトのメモと、作業中に作成される資産を記録します。彼らはここに現れます。",
+      "emptyDescription": "エージェントは、プロジェクトのメモと、作業中に作成されるアセットを記録します。彼らはここに現れます。",
       "title": "記憶",
       "subtitle": "エージェントがすべての会話で覚えていること、つまりプロジェクトのメモと参照したリソース。",
       "searchPlaceholder": "思い出を探す",
@@ -623,7 +623,7 @@
     },
     "route": {
       "notFound": "タイムラインが見つかりません",
-      "view": "見る",
+      "view": "表示",
       "edit": "編集"
     },
     "generate": {
@@ -635,7 +635,7 @@
       "concurrentTitle": "別のワークフロー全体の実行を開始しますか?",
       "heavyTitle": "ワークフロー全体を実行しますか?",
       "startSecondRun": "2 回目の実行を開始する",
-      "runAnyway": "とにかく走ってください",
+      "runAnyway": "このまま実行",
       "concurrentBody": "このワークフローはすでに実行されています。別の実行を開始すると、両方が同時に実行されます。リアルタイム オーディオ パッチの場合、つまりサウンドがオーバーラップすることになります。再起動する場合は、まず現在の実行を停止します。",
       "heavyBody": "この実行では、{{count}} モデル/プロバイダー ノードが {{threshold}} の警告しきい値を超えて実行されます。それぞれが外部 API を呼び出したり、モデルを実行したりする場合があるため、すべてを一度に実行すると速度が遅くなったり、プロバイダーのレート制限に達したりする可能性があります。",
       "dontAskAgain": "このセッションを再度リクエストしないでください"
@@ -676,7 +676,7 @@
     "creating": "作成中…",
     "blankDocuments": "空白の文書",
     "blankStoryboard": "空の絵コンテ",
-    "noExampleStoryboards": "ストーリーボードの例はありません。",
+    "noExampleStoryboards": "絵コンテの例はありません。",
     "storyboardExampleShots_one": "{{count}} ショット、静止画を含む",
     "storyboardExampleShots_other": "{{count}} ショット、静止画を含む",
     "imageLoadFailed": "画像のロードに失敗しました",
@@ -878,7 +878,7 @@
         "description": "2 つの画像を並べて比較"
       },
       "recommendedModels": {
-        "label": "推奨機種",
+        "label": "おすすめのモデル",
         "description": "不足しているモデルに対して推奨モデル ピッカーが表示される"
       },
       "deleteModel": {
@@ -954,7 +954,7 @@
       "cancel": "キャンセル"
     },
     "recommendedModels": {
-      "title": "推奨機種",
+      "title": "おすすめのモデル",
       "description": "これらのモデルは、選択したノードに推奨されます。"
     },
     "imageCompare": {
@@ -982,11 +982,11 @@
       "todoDraftShots": "ドラフト6発",
       "todoPickLook": "見た目を選んでください",
       "planningContent": "ブリーフをタスクに分割する",
-      "running": "ランニング",
+      "running": "実行中",
       "modelDownloads": "モデルのダウンロード",
       "taskCollectImages": "参考画像を集める",
       "taskWriteShotList": "ショットリストを書く",
-      "taskRenderStoryboard": "ストーリーボードをレンダリングする",
+      "taskRenderStoryboard": "絵コンテをレンダリングする",
       "buttonsWaiting": "応答を待っているボタン",
       "saving": "保存中…",
       "generate": "生成する",
@@ -1007,7 +1007,7 @@
   "batch2_15": {
     "audio": {
       "playbackControls": "再生コントロール",
-      "play": "遊ぶ",
+      "play": "再生",
       "pause": "一時停止",
       "zoom": "ズーム",
       "loop": "ループ",
@@ -1041,7 +1041,7 @@
     },
     "toolbar": {
       "audioEdits": "音声編集",
-      "history": "歴史",
+      "history": "履歴",
       "selectionEdits": "選択範囲の編集",
       "levelEdits": "レベル編集",
       "undo": "元に戻す",
@@ -1070,7 +1070,7 @@
       "transport": "輸送",
       "stop": "停止",
       "pause": "一時停止",
-      "play": "遊ぶ",
+      "play": "再生",
       "loop": "ループ",
       "loopOn": "ループオン",
       "loopOff": "ループオフ",
@@ -1089,7 +1089,7 @@
       "reset": "リセット",
       "cancel": "キャンセル",
       "applying": "申請中…",
-      "apply": "申し込む",
+      "apply": "適用",
       "previewLimit_one": "プレビューは最初の {{count}} 秒まで再生されます。",
       "previewLimit_other": "プレビューは最初の {{count}} 秒まで再生されます。"
     },
@@ -1105,14 +1105,14 @@
         "thresholdDb": "しきい値",
         "ratio": "比率",
         "kneeDb": "膝",
-        "attackMs": "攻撃",
+        "attackMs": "アタック",
         "releaseMs": "リリース",
         "makeupDb": "メイクアップゲイン",
         "inputDb": "入力ゲイン",
         "ceilingDb": "天井",
         "reductionDb": "削減",
         "holdMs": "ホールド",
-        "decay": "衰退",
+        "decay": "ディケイ",
         "preDelayMs": "プリディレイ",
         "tone": "トーン",
         "delayMs": "遅延",
@@ -1229,7 +1229,7 @@
       "skipLinks": "リンクをスキップする",
       "documentation": "ドキュメント",
       "videoPlayer": "ビデオプレーヤー",
-      "play": "遊ぶ",
+      "play": "再生",
       "pause": "一時停止",
       "stop": "停止",
       "playClip": "クリップを再生する",
@@ -1413,7 +1413,7 @@
       "increaseTrackHeight": "トラックの高さを高くする",
       "timelineZoom": "タイムラインのズーム",
       "trackHeight": "トラックの高さ",
-      "view": "見る"
+      "view": "表示"
     },
     "sampler": {
       "upload": "サンプラーオーディオをアップロードする",
@@ -1455,7 +1455,7 @@
   },
   "batch2_25": {
     "common": {
-      "apply": "申し込む"
+      "apply": "適用"
     },
     "audioGain": {
       "title": "オーディオゲイン",
@@ -1487,7 +1487,7 @@
     "speedDuration": {
       "title": "クリップの速度/持続時間",
       "speed": "速度",
-      "duration": "期間",
+      "duration": "長さ",
       "rangeError": "{{min}}–{{max}}%",
       "ripple": "リップル編集、後続クリップの移動",
       "multipleClips_one": "すべての {{count}} クリップはこの速度を採用します。デュレーションはクリップ自体の長さに従います。",
@@ -1531,7 +1531,7 @@
         "toolbar": "輸送",
         "returnToStart": "最初に戻る",
         "pause": "一時停止",
-        "play": "遊ぶ",
+        "play": "再生",
         "stopAndReturn": "停止して開始に戻る",
         "stop": "停止",
         "loopOn": "ループオン: インからアウトまでの範囲を再生します。",
@@ -1571,11 +1571,11 @@
       "source": "ソース",
       "timeline": "タイムライン",
       "script": "スクリプト",
-      "inspector": "検査官",
+      "inspector": "インスペクター",
       "shot": "ショット",
       "instruments": "楽器",
       "assistant": "アシスタント",
-      "history": "歴史",
+      "history": "履歴",
       "code": "コード",
       "storyboard": "絵コンテ",
       "effectControls": "エフェクトコントロール",
@@ -1607,14 +1607,14 @@
       "errorSummary": "派生ショットの作成に失敗しました"
     },
     "link": {
-      "loadingStoryboards": "ストーリーボードを読み込み中…",
+      "loadingStoryboards": "絵コンテを読み込み中…",
       "noStoryboards": "まだ絵コンテはありません",
-      "chooseStoryboard": "ストーリーボードを選択してください",
+      "chooseStoryboard": "絵コンテを選択してください",
       "untitledStoryboard": "無題の絵コンテ",
       "chooseShot": "ショットを選択してください",
-      "chooseStoryboardFirst": "まずストーリーボードを選択してください",
+      "chooseStoryboardFirst": "まず絵コンテを選択してください",
       "untitledShot": "無題のショット",
-      "title": "ストーリーボード ショットへのリンク",
+      "title": "絵コンテ ショットへのリンク",
       "action": "リンク",
       "description": "クリップには映像が保存されます。ショットの選択されたテイクが変更されると、クリップは新しいものを再生します。",
       "storyboardLabel": "絵コンテ",
@@ -1680,7 +1680,7 @@
     },
     "panel": {
       "untitledShot": "無題のショット",
-      "openTooltip": "このショットをストーリーボードで開きます",
+      "openTooltip": "このショットを絵コンテで開きます",
       "openOnBoard": "機内で開く",
       "unlinkTooltip": "ショットの後にこのクリップを停止します。その映像は残っています。",
       "unlink": "リンクを解除する",
@@ -1696,12 +1696,12 @@
       "shot": "ショット",
       "derivedShot": "派生ショット",
       "noShotSelectedTitle": "ショットが選択されていません",
-      "noShotSelectedDescription": "ストーリーボード ショットにリンクされているクリップを選択します。",
-      "storyboardUnavailableTitle": "ストーリーボードは使用できません",
-      "storyboardUnavailableDescription": "このクリップがリンクされているストーリーボードを開けませんでした。",
-      "openingStoryboard": "ストーリーボードを開くと…",
+      "noShotSelectedDescription": "絵コンテ ショットにリンクされているクリップを選択します。",
+      "storyboardUnavailableTitle": "絵コンテは使用できません",
+      "storyboardUnavailableDescription": "このクリップがリンクされている絵コンテを開けませんでした。",
+      "openingStoryboard": "絵コンテを開くと…",
       "shotNotFoundTitle": "ショットが見つかりません",
-      "shotNotFoundDescription": "このクリップがリンクされているショットはストーリーボードには存在しません。"
+      "shotNotFoundDescription": "このクリップがリンクされているショットは絵コンテには存在しません。"
     }
   },
   "batch2_3": {
@@ -1716,7 +1716,7 @@
       "costs": "コスト",
       "modelManager": "モデルマネージャー",
       "packageManager": "パッケージマネージャー",
-      "assets": "資産",
+      "assets": "アセット",
       "collections": "コレクション",
       "memory": "記憶",
       "settings": "設定",
@@ -1739,7 +1739,7 @@
       "ariaLabel": "開始チェックリスト",
       "progress": "はじめに · {{done}}/{{total}}",
       "dismissAriaLabel": "開始チェックリストを閉じる",
-      "dismiss": "却下",
+      "dismiss": "閉じる",
       "steps": {
         "connectProvider": "AI プロバイダーに接続する",
         "providerConnected": "AI プロバイダーが接続されている",
@@ -1772,7 +1772,7 @@
       "signInAgain": "{{provider}} に再度サインインします",
       "waitingSignIn": "サインインを待っています…",
       "signInWith": "{{account}} でサインインします",
-      "notNow": "今ではありません",
+      "notNow": "今はしない",
       "expiredDescription": "{{account}} サインインの有効期限が切れたため、{{provider}} は要求を拒否しました。再度サインインし、ワークフローを再度実行します。",
       "signInWindowNote": "サインインは新しいウィンドウで開きます。終了すると、このダイアログは閉じます。",
       "gemini": "ジェミニ",
@@ -1878,7 +1878,7 @@
       "redo": "やり直し",
       "playControls": "プレイコントロール",
       "pause": "一時停止",
-      "play": "遊ぶ",
+      "play": "プレイ",
       "step": "ステップ",
       "stop": "停止",
       "restartFromTickZero": "ティック 0 から再開",
@@ -1888,7 +1888,7 @@
       "toggleSceneTree": "シーンツリーの切り替え",
       "toggleInspector": "インスペクタの切り替え",
       "hideAssistant": "アシスタントを隠す",
-      "showAssistant": "番組アシスタント",
+      "showAssistant": "アシスタントを表示",
       "commands": "コマンド",
       "publish": "発行する"
     },
@@ -1897,7 +1897,7 @@
       "tick_other": "{{formattedCount}} にチェックを入れます",
       "score": "スコア {{score}}",
       "won": "勝った",
-      "playing": "遊ぶ"
+      "playing": "再生中"
     },
     "export": {
       "exportingBuild": "ビルドのエクスポート",
@@ -1932,12 +1932,12 @@
       "cancel": "キャンセル",
       "remove": "削除",
       "reset": "リセット",
-      "dismiss": "却下"
+      "dismiss": "閉じる"
     },
     "player": {
       "pause": "一時停止",
       "resume": "再開",
-      "play": "遊ぶ",
+      "play": "プレイ",
       "stop": "停止",
       "score": "スコア {{score}}",
       "failed": "ゲームプレイヤーが失敗しました",
@@ -1954,7 +1954,7 @@
       "tickDetail": "チェックマーク: {{tick}}",
       "won": "勝った",
       "sceneStatus": "シーン: {{scene}}",
-      "playing": "遊ぶ",
+      "playing": "再生中",
       "paused": "一時停止中",
       "ready": "準備完了"
     },
@@ -1974,11 +1974,11 @@
       "detachEntity": "エンティティを切り離す"
     },
     "commandCategories": {
-      "Editor": "編集者",
+      "Editor": "エディター",
       "Edit": "編集",
-      "View": "見る",
+      "View": "表示",
       "Tools": "ツール",
-      "Play": "遊ぶ",
+      "Play": "プレイ",
       "Panels": "パネル",
       "Assistant": "アシスタント"
     },
@@ -2252,7 +2252,7 @@
       "io": "I/O",
       "help": "ヘルプ",
       "sections": "インスペクターセクション",
-      "title": "検査官",
+      "title": "インスペクター",
       "close": "インスペクタを閉じる",
       "noneSelected": "ノードが選択されていません",
       "selectNode": "ここで設定を編集するノードを選択します。",
@@ -2350,7 +2350,7 @@
   "screen_scripts_js": {
     "actions": {
       "add": "追加",
-      "run": "走る",
+      "run": "実行",
       "runScript": "スクリプトを実行…",
       "runTests": "テストの実行"
     },
@@ -2373,8 +2373,8 @@
       "delete": "{{label}} {{number}} を削除"
     },
     "secrets": {
-      "title": "秘密",
-      "empty": "体には秘密がありません。",
+      "title": "シークレット",
+      "empty": "スクリプト本文はシークレットを読み取りません。",
       "label": "シークレット {{number}}",
       "remove": "シークレット {{number}} を削除します"
     },
@@ -2486,8 +2486,8 @@
       },
       "shot": {
         "label": "ショット {{number}}{{slug}}",
-        "openTooltip": "{{label}} — ストーリーボード上で開きます",
-        "openAria": "ストーリーボードで {{label}} を開きます"
+        "openTooltip": "{{label}} — 絵コンテ上で開きます",
+        "openAria": "絵コンテで {{label}} を開きます"
       }
     }
   },
@@ -2616,7 +2616,7 @@
       "imageCount_one": "{{formattedCount}} イメージ モデル",
       "imageCount_other": "{{formattedCount}} 画像モデル",
       "imageModels": "画像モデル",
-      "imageModelsHelp": "モデルリストから検出されました。テストで欠落した ID を追加します。呼び出しは /images/世代に送信されます。",
+      "imageModelsHelp": "モデル一覧から検出しました。テストで見つからなかった ID を追加してください。呼び出し先は /images/generations です。",
       "imageModelsPlaceholder": "オプション、例: flux-dev、seedream-4",
       "keepStoredKey": "保存したキーを保持するには空白のままにします",
       "keySet": "APIキーセット",
@@ -2763,9 +2763,9 @@
           "legacyTitle": "効果"
         },
         "transition": {
-          "title": "移行",
+          "title": "トランジション",
           "aliases": "ワイプクロスフェード方向のイージング期間",
-          "legacyTitle": "移行"
+          "legacyTitle": "トランジション"
         },
         "mask": {
           "title": "マスク",
@@ -2803,9 +2803,9 @@
           "legacyTitle": "タイムリマップ"
         },
         "smartReframe": {
-          "title": "スマートなリフレーム",
+          "title": "スマートリフレーム",
           "aliases": "被写体の追跡をトリミングして再フレーム化する",
-          "legacyTitle": "スマートなリフレーム"
+          "legacyTitle": "スマートリフレーム"
         },
         "audioDrive": {
           "title": "オーディオドライブ",
@@ -2880,7 +2880,7 @@
         "linear": "線形勾配",
         "radial": "放射状グラデーション"
       },
-      "fill": "埋める",
+      "fill": "塗りつぶし",
       "fillTypeLabel": "{{prefix}} 型",
       "fillColor": "塗りつぶしの色",
       "fillColorLabel": "{{prefix}} 色",
@@ -3065,7 +3065,7 @@
           },
           "style": {
             "title": "スタイル",
-            "description": "世代を超えて適用できる視覚言語。"
+            "description": "複数の生成にまたがって適用するビジュアル言語。"
           },
           "prop": {
             "title": "プロップ",
@@ -3095,7 +3095,7 @@
       },
       "reference": {
         "title": "参考画像を選択してください",
-        "description": "将来の世代に残したい特性の最も鮮明な画像を選択するか、AI を使用して画像を作成します。",
+        "description": "今後の生成で維持したい特徴が最もはっきり写った画像を選ぶか、AI で作成します。",
         "imageCaption": "{{name}} リファレンス",
         "selectedCaption": "選択されたリファレンス",
         "selectedAlt": "選択されたエンティティ参照",
@@ -3111,7 +3111,7 @@
           "generating": "生成中…",
           "confirm": "参照の生成",
           "description": "ビューを選択し、プロンプトを編集して画像を調整します。",
-          "viewLabel": "見る",
+          "viewLabel": "表示",
           "promptLabel": "プロンプト",
           "modelLabel": "画像モデル",
           "progress": "参考画像を作成中…",
@@ -3141,7 +3141,7 @@
               "instruction": "頭からつま先まで、正面を向いた全身のポーズを 1 つ示します。スタジオの照明が均等なニュートラルな背景の中央にキャラクターを配置します。顔、服装、特徴を明確にします。"
             },
             "portrait": {
-              "label": "肖像画",
+              "label": "ポートレート",
               "instruction": "顔が完全に見え、中立的な表情をした頭と肩のポートレートを見せてください。シンプルな背景と均等な照明を使用して、顔の特徴と髪を簡単に識別できるようにします。"
             },
             "character-sheet": {
@@ -3195,7 +3195,7 @@
           "reference_to_video": "エンティティ参照を使用する"
         },
         "confirmWithCost": "{{verb}} · 約 {{cost}}",
-        "renderClip": "レンダークリップ",
+        "renderClip": "クリップをレンダリング",
         "renderStill": "静止画をレンダリングする",
         "resolution": "解像度",
         "stillDescription": "このショットの静止画のモデルを選択してください。ショットは次のレンダリングまで選択を保持します。",
@@ -3242,7 +3242,7 @@
         "noDocumentLinks": "まだ何もありません",
         "openCutTooltip": "このショットのクリップを選択した状態でカットを開きます",
         "openScriptTooltip": "これらのショット ラインの元のスクリプトを開きます",
-        "regenerate": "再生する",
+        "regenerate": "再生成",
         "regenerateTooltip": "新しい静止画をレンダリングし、そのモデルを選択します",
         "renderClipFirst": "最初にクリップをレンダリングする",
         "script": "スクリプト",
@@ -3252,10 +3252,10 @@
       },
       "listPanel": {
         "copyName": "{{name}} (コピー)",
-        "createError": "ストーリーボードを作成できませんでした。もう一度試してください。",
-        "deleteError": "ストーリーボードを削除できませんでした。もう一度試してください。",
-        "duplicateError": "ストーリーボードを複製できませんでした。もう一度試してください。",
-        "emptyDescription": "上の + ボタンで新しいストーリーボードを作成します。",
+        "createError": "絵コンテを作成できませんでした。もう一度試してください。",
+        "deleteError": "絵コンテを削除できませんでした。もう一度試してください。",
+        "duplicateError": "絵コンテを複製できませんでした。もう一度試してください。",
+        "emptyDescription": "上の + ボタンで新しい絵コンテを作成します。",
         "nameLabel": "絵コンテ名",
         "newStoryboard": "新しい絵コンテ",
         "plural": "絵コンテ",
@@ -3307,7 +3307,7 @@
       "color": "色",
       "position": "ポジション",
       "useCurrentColor": "現在の色を使用する",
-      "apply": "申し込む",
+      "apply": "適用",
       "deleteStop": "ストップの削除",
       "addStop": "停留所を追加",
       "copied": "コピーしました！",
@@ -3326,7 +3326,7 @@
       "copied": "コピーされました",
       "pressEscToClose": "Escを押して閉じます",
       "cancel": "キャンセル",
-      "apply": "申し込む"
+      "apply": "適用"
     }
   },
   "i18n-cont-sketch-tools-08": {
@@ -3377,7 +3377,7 @@
       "stroke": "脳卒中",
       "strokeColor": "ストロークの色",
       "width": "幅",
-      "fill": "埋める",
+      "fill": "塗りつぶし",
       "fillColor": "塗りつぶしの色",
       "tolerance": "許容範囲",
       "size": "サイズ",
@@ -3447,7 +3447,7 @@
       "conceptPrompt": "コンセプトプロンプト",
       "clear": "クリア",
       "cancel": "キャンセル",
-      "apply": "申し込む",
+      "apply": "適用",
       "discard": "廃棄する",
       "selectOneRasterLayer": "分割するラスター レイヤーを 1 つだけ選択します。",
       "segmentationFailed": "セグメンテーションに失敗しました。"
@@ -3510,8 +3510,8 @@
     },
     "nodePicker": {
       "title": "ノードの追加",
-      "searchPlaceholder": "検索ノード",
-      "searchLabel": "検索ノード",
+      "searchPlaceholder": "ノードを検索",
+      "searchLabel": "ノードを検索",
       "quickActions": "クイックアクション",
       "noNodesFound": "ノードが見つかりません",
       "searchResultCount_one": "{{count}} 結果",
@@ -3521,7 +3521,7 @@
         "code": "コード",
         "text-to-image": "テキストから画像へ",
         "image-to-image": "画像から画像へ",
-        "upscale": "高級感のある",
+        "upscale": "アップスケール",
         "remove-background": "背景を削除する",
         "relight": "リライト",
         "vectorize": "ベクトル化",
@@ -3559,7 +3559,7 @@
         "loadingEstimate": "見積もりを読み込んでいます…",
         "estimateResult": "参照を再利用できるスタイルとして説明します",
         "estimateNext": "スタイルを保存し、このボードに適用します。ここでは静止画はレンダリングされません。",
-        "failureSummary": "ストーリーボードのカスタム スタイルが失敗しました"
+        "failureSummary": "絵コンテのカスタム スタイルが失敗しました"
       },
       "entities": {
         "editOnlyModel": "{{model}} は画像のみを編集するため、説明から参照を引き出すことはできません。テキストから画像を作成するモデルを選択してください。",
@@ -3567,7 +3567,7 @@
         "referenceModelHelper": "作成することを選択した欠落エンティティに対してのみ使用されます。同じモデルが Look ステップに持ち込まれます。",
         "priceUnknown": "価格不明",
         "aboutPrice": "{{price}} について",
-        "missingScreenplayOrModel": "ストーリーボードには、まず脚本と監督モデルが必要です。",
+        "missingScreenplayOrModel": "絵コンテには、まず脚本と監督モデルが必要です。",
         "findFailedFallback": "ストーリー内にエンティティが見つかりませんでした。",
         "pickReferenceModelFirst": "最初に参照画像モデルを選択します。",
         "noReferenceImageReturned": "画像モデルは参照画像を返しませんでした。",
@@ -3588,20 +3588,20 @@
         "findEstimateNext": "あなたが選択するまでは何も作成されません。",
         "findFailureTitle": "エンティティが見つかりませんでした",
         "createFailureTitle": "エンティティを作成できませんでした",
-        "findFailureSummary": "ストーリーボードエンティティの提案が失敗しました",
-        "createFailureSummary": "ストーリーボードエンティティの作成に失敗しました",
+        "findFailureSummary": "絵コンテエンティティの提案が失敗しました",
+        "createFailureSummary": "絵コンテエンティティの作成に失敗しました",
         "referenceImageModel": "参考画像モデル",
         "creatingEntity": "{{name}} を作成しています…",
         "useEntity": "{{name}} を使用する",
         "createEntity": "{{name}} を作成する",
         "libraryTitle": "エンティティ ライブラリ",
-        "selectedCount_one": "{{count}} がこのストーリーボード用に選択されました",
-        "selectedCount_other": "{{count}} がこのストーリーボード用に選択されました",
+        "selectedCount_one": "{{count}} がこの絵コンテ用に選択されました",
+        "selectedCount_other": "{{count}} がこの絵コンテ用に選択されました",
         "createFromImage": "画像からエンティティを作成する",
         "loadingEntities": "エンティティの読み込み",
         "loadFailedTitle": "エンティティを読み込めませんでした",
         "tryAgain": "もう一度試してください",
-        "loadFailureSummary": "ストーリーボード エンティティ ライブラリのロードに失敗しました",
+        "loadFailureSummary": "絵コンテ エンティティ ライブラリのロードに失敗しました",
         "loadFailedFallback": "エンティティ ライブラリがロードされませんでした。もう一度試すか、この手順をスキップしてください。",
         "emptyTitle": "まだエンティティがありません",
         "emptyDescription": "生成またはアップロードされた画像から作成するか、この手順をスキップしてください。",
@@ -3609,7 +3609,7 @@
         "selectedOnly": "選択されたもののみ",
         "noEntitiesSelected": "エンティティが選択されていません",
         "noMatchingEntities": "一致するエンティティがありません",
-        "noSelectedDescription": "ライブラリを参照して、このストーリーボードの参照を選択します。",
+        "noSelectedDescription": "ライブラリを参照して、この絵コンテの参照を選択します。",
         "noMatchingDescription": "別の名前を試すか、選択したフィルターを変更してください。",
         "viewReferenceImage": "{{name}} 参照画像を表示",
         "selectEntity": "{{name}} · {{kind}}",
@@ -3709,7 +3709,7 @@
         "readingFile": "ファイルを読んでいます…",
         "importShotlist": "ショットリストをインポートする",
         "shotlistFormat": "CSV、ショットごとに 1 行",
-        "startBlank": "空のストーリーボードから始める",
+        "startBlank": "空の絵コンテから始める",
         "startBlankDescription": "ストーリーをスキップして掲示板に直接アクセスしてください",
         "takeTutorial": "チュートリアルを受ける",
         "tutorialDescription": "手順を説明しながら、ボードを端から端まで歩きます。",
@@ -3724,8 +3724,8 @@
         "storyLabel": "あなたの物語",
         "storyPlaceholder": "一文だけで十分です。または、スクリプト全体を貼り付けてください。",
         "lockedScriptHelper": "ファイルがスクリプトである間保持されます。ここの単語を変更するにはテキストとして編集します。",
-        "scriptImportFailureSummary": "ストーリーボード スクリプトのインポートに失敗しました",
-        "shotlistImportFailureSummary": "ストーリーボードのショットリストのインポートに失敗しました",
+        "scriptImportFailureSummary": "絵コンテ スクリプトのインポートに失敗しました",
+        "shotlistImportFailureSummary": "絵コンテのショットリストのインポートに失敗しました",
         "alternativesLabel": "その他の開始方法",
         "downloadCsvTemplate": "CSVテンプレートをダウンロードする"
       }
@@ -3758,12 +3758,12 @@
           "valuesMissing_other": "{{count}} 値は付属していませんでした",
           "rowWithoutValue": "行 {{row}}、{{column}}: {{reason}}",
           "rowWithValue": "行 {{row}}、{{column}} — “{{value}}”: {{reason}}",
-          "dismiss": "却下"
+          "dismiss": "閉じる"
         }
       },
       "review": {
         "title": "あなたの脚本",
-        "description": "ここで何かを編集します。これは、ストーリーボードが描かれるテキストです。",
+        "description": "ここで何かを編集します。これは、絵コンテが描かれるテキストです。",
         "shotNumber": "シーン {{scene}} |ショット {{shot}}",
         "validation": {
           "positiveDuration": "正の期間を秒単位で入力するか、それをクリアしてタイミングを指定しないままにします。"
@@ -3877,7 +3877,7 @@
       },
       "host": {
         "documentLabel": "絵コンテ",
-        "opening": "ストーリーボードを開く"
+        "opening": "絵コンテを開く"
       }
     }
   },
@@ -4108,7 +4108,7 @@
         "fields": {
           "beat": "ビート",
           "seconds": "秒",
-          "transition": "移行",
+          "transition": "トランジション",
           "voiceover": "ナレーション",
           "voiceoverPlaceholder": "このビートにラインを入れない場合は空白のままにしてください"
         },
@@ -4300,7 +4300,7 @@
       "description": "各ステップを実行する内容と、それをどのように開始するかを選択します。",
       "runModes": {
         "manual": {
-          "title": "手で走る",
+          "title": "手動で実行",
           "description": "テスト実行後、それを開いて実行を押します。"
         },
         "app": {
@@ -4393,7 +4393,7 @@
         "unknown": "不明",
         "validated": "検証済み",
         "completed": "完成した",
-        "running": "走っている",
+        "running": "実行中",
         "waiting": "待っています",
         "canceled": "キャンセルされました",
         "skipped": "スキップしました",
@@ -4466,7 +4466,7 @@
       },
       "games": {
         "gameplayImageAlt": "{{name}} ゲームプレイ",
-        "play": "遊ぶ",
+        "play": "プレイ",
         "adding": "ゲームを追加中…",
         "install": "ゲームをインストールする",
         "ariaLabel": "ゲームの例",
@@ -4535,17 +4535,17 @@
       "tryAgain": "しばらくしてからもう一度試してください。"
     },
     "storyboards": {
-      "addTooltip": "{{name}} をストーリーボードに追加します",
+      "addTooltip": "{{name}} を絵コンテに追加します",
       "addError": "{{name}} を追加できませんでした: {{error}}",
-      "ariaLabel": "ストーリーボードの例",
-      "sectionTitle": "ストーリーボードから始める",
+      "ariaLabel": "絵コンテの例",
+      "sectionTitle": "絵コンテから始める",
       "count_one": "{{count}} ボード",
       "count_other": "{{count}} ボード",
       "lede": "レンダリングされた静止画を使用してショット シーケンスを探索します。ボードを開いて独自のコピーを作成します。",
-      "loading": "ストーリーボードをロードしています",
-      "loadErrorTitle": "ストーリーボードを読み込めませんでした",
-      "emptyTitle": "利用可能なストーリーボードはありません",
-      "emptyDescription": "このインストールでストーリーボードが出荷されると、サンプル ストーリーボードがここに表示されます。"
+      "loading": "絵コンテをロードしています",
+      "loadErrorTitle": "絵コンテを読み込めませんでした",
+      "emptyTitle": "利用可能な絵コンテはありません",
+      "emptyDescription": "このインストールで絵コンテが出荷されると、サンプル 絵コンテがここに表示されます。"
     },
     "timelines": {
       "previewLabel": "{{name}} プレビュー",
@@ -4682,7 +4682,7 @@
         "titles": {
           "template": "テンプレートから始める",
           "timeline": "タイムラインから始める",
-          "storyboard": "ストーリーボードから始める",
+          "storyboard": "絵コンテから始める",
           "game": "ゲームから始める",
           "app": "アプリから始める",
           "recipes": "レシピ"
@@ -4910,7 +4910,7 @@
           "regenerateTooltip": "新しいクリップとして再生成 — このクリップの横に新しいコピーをドロップします。これにより、既存のレンダリングを失わずに新しいテイクをロールできるようになります。",
           "regenerate": "新しいクリップとして再生成",
           "lockedTooltip": "ロック済み: タイミングがフリーズされ、成功した生成によって現在の出力が置き換えられることはありません。",
-          "unlockedTooltip": "ロック解除: ロックしてタイミングをフリーズし、成功した世代が現在の出力を置き換えないようにする",
+          "unlockedTooltip": "ロック解除中: ロックするとタイミングが固定され、成功した新しい生成結果で現在の出力が置き換わらなくなります",
           "unlock": "クリップのロックを解除する",
           "lock": "ロッククリップ",
           "replaceTooltip": "出力を置換…再生成せずに既存のアセットを選択します",
@@ -4994,7 +4994,7 @@
       "preset": "プリセット",
       "rolePreset": "{{role}} アニメーション プリセット",
       "period": "期間",
-      "duration": "期間",
+      "duration": "長さ",
       "delay": "遅延",
       "roleDuration": "{{role}} アニメーションの長さ",
       "roleDelay": "{{role}} アニメーションの遅延",
@@ -5080,7 +5080,7 @@
         "overshoot": "オーバーシュート",
         "degrees": "学位",
         "softness": "柔らかさ",
-        "amount": "金額",
+        "amount": "強さ",
         "frequency": "周波数",
         "intensity": "強度",
         "amplitude": "振幅",
@@ -5133,7 +5133,7 @@
       "quietValue": "レンジクワイエット値",
       "loudValue": "範囲音量値",
       "sensitivity": "感度",
-      "attack": "攻撃",
+      "attack": "アタック",
       "release": "リリース",
       "offset": "オフセット",
       "rebake": "再焼き",
@@ -5205,13 +5205,13 @@
         "q": "Q",
         "thresholdDb": "しきい値",
         "ratio": "比率",
-        "attackMs": "攻撃",
+        "attackMs": "アタック",
         "releaseMs": "リリース",
         "kneeDb": "膝",
         "delayMs": "遅延",
         "feedback": "フィードバック",
         "mix": "ミックス",
-        "decaySec": "衰退",
+        "decaySec": "ディケイ",
         "driveDb": "ドライブ",
         "outputDb": "出力"
       }
@@ -5322,7 +5322,7 @@
           "offsetY": "オフセットY",
           "blur": "ぼかし",
           "opacity": "不透明度",
-          "amount": "金額",
+          "amount": "強さ",
           "softness": "柔らかさ",
           "roughness": "粗さ",
           "size": "サイズ",
@@ -5363,7 +5363,7 @@
         "timing": "タイミング",
         "start": "スタート",
         "startTimecodeAriaLabel": "開始タイムコード",
-        "duration": "期間",
+        "duration": "長さ",
         "durationSecondsAriaLabel": "持続時間 (秒)",
         "hidden": "隠された",
         "trimHint": "グループをトリミングすると、その子が離れるウィンドウの内側に引き込まれます。"
@@ -5425,7 +5425,7 @@
           "clipCutoutRerunFailed": "クリップのカットアウトの再実行に失敗しました",
           "rerunFailed": "最後の実行は失敗しました。使用前の結果です。",
           "staleResult": "クリップは、このマットがカバーする範囲を超えて移動しました。再び切断するには再生します。",
-          "regenerate": "再生する",
+          "regenerate": "再生成",
           "remove": "削除",
           "regenerateHelp": "再生成はモデルを再度実行し、この結果をバージョンとして保持します。",
           "current": "現在"
@@ -5481,7 +5481,7 @@
           "missingName": "{{name}} (欠落)"
         },
         "reframe": {
-          "title": "スマートなリフレーム",
+          "title": "スマートリフレーム",
           "auto": "自動",
           "center": "センター",
           "subject": "件名",
@@ -5563,8 +5563,8 @@
       },
       "storyboard": {
         "linkToShot": "ショットへのリンク",
-        "linkTooltip": "このクリップをストーリーボード上のショットに従うようにします",
-        "openShot": "ストーリーボードで {{shot}} を開きます",
+        "linkTooltip": "このクリップを絵コンテ上のショットに従うようにします",
+        "openShot": "絵コンテで {{shot}} を開きます",
         "thisShot": "このショット"
       },
       "text": {
@@ -5611,7 +5611,7 @@
         "verticalAlignments": {
           "bottom": "下",
           "middle": "ミドル",
-          "top": "トップへ"
+          "top": "上"
         },
         "weight": "重量",
         "weights": {
@@ -5680,10 +5680,10 @@
       "unfollow": "フォローを解除する"
     },
     "clipTransition": {
-      "title": "移行",
+      "title": "トランジション",
       "type": "種類",
       "typeAria": "遷移タイプ",
-      "duration": "期間",
+      "duration": "長さ",
       "durationAria": "移行期間",
       "color": "色",
       "colorAria": "遷移色",
@@ -5726,7 +5726,7 @@
       "activeDeleteHelp": "これはアクティブなテイクです。削除する前に別のテイクを選択してください。",
       "delete": "{{name}} を削除",
       "title": "履歴 ({{count}})",
-      "unlockClip": "クリップのロックを解除して世代を交換します。",
+      "unlockClip": "生成結果を切り替えるには、クリップのロックを解除します。",
       "takeLabel": "ラベルを取る",
       "takeLabelPlaceholder": "テイクラベルを入力してください",
       "clipLocked": "変更するには「{{name}}」のロックを解除してください。",
@@ -5749,7 +5749,7 @@
         "image": "画像を説明して…",
         "title": "プロンプト"
       },
-      "regenerate": "再生する",
+      "regenerate": "再生成",
       "generate": "生成する",
       "mode": {
         "textToImage": "テキスト → 画像",
@@ -5764,9 +5764,9 @@
       "stepsValue": "{{count}} ステップ",
       "inferenceSteps": "推論ステップ",
       "durationValue": "{{count}} 秒",
-      "duration": "期間",
+      "duration": "長さ",
       "videoResolution": "ビデオ解像度",
-      "estimatedCost": "この世代の推定コスト",
+      "estimatedCost": "この生成の推定コスト",
       "cancel": "キャンセル",
       "generationFailed": "生成に失敗しました。",
       "generationFailedWithReason": "クリップの生成に失敗しました: {{error}}"
@@ -5832,7 +5832,7 @@
             "stale": "古い",
             "failed": "失敗しました",
             "locked": "ロックされています",
-            "missing": "行方不明"
+            "missing": "見つかりません"
           },
           "mediaType": {
             "audio": "オーディオ",
@@ -5842,7 +5842,7 @@
         },
         "generatedClipPanel": {
           "generationFailed": "生成に失敗しました。",
-          "regenerate": "再生する",
+          "regenerate": "再生成",
           "generate": "生成する",
           "noWorkflow": "このクリップにバインドされているワークフローはありません。",
           "inputs": "入力",
@@ -5882,7 +5882,7 @@
       "easing": "イージング",
       "unparseableEasing": "このビルドはイージングではありません。線形に再生します",
       "easingHint": "Linear、easeIn、easeOut、easeInOut、easeOutBack、easeOutElastic、easeOutBounce、cubic-bezier(x1,y1,x2,y2) または spring(stiffness、damping、mass)",
-      "fill": "埋める",
+      "fill": "塗りつぶし",
       "fillTypeLabel": "{{prefix}} 型",
       "fillColor": "塗りつぶしの色",
       "fillColorLabel": "{{prefix}} 色",
@@ -5928,7 +5928,7 @@
       "sections": {
         "media": {
           "title": "メディア",
-          "aliases": "タイプ資産の親グループ"
+          "aliases": "タイプアセットの親グループ"
         },
         "timing": {
           "title": "タイミング",
@@ -5955,7 +5955,7 @@
           "aliases": "ブラー半径 グロー シャドウ ビネット シャープ クロマ キー カーブ レベル リフト ガンマ ゲイン グレイン"
         },
         "transition": {
-          "title": "移行",
+          "title": "トランジション",
           "aliases": "ワイプクロスフェード方向のイージング期間"
         },
         "mask": {
@@ -5987,7 +5987,7 @@
           "aliases": "スピードフリーズ逆再生"
         },
         "smartReframe": {
-          "title": "スマートなリフレーム",
+          "title": "スマートリフレーム",
           "aliases": "被写体のトリミング フォーカス ズーム"
         },
         "audioDrive": {
@@ -6062,7 +6062,7 @@
       "errorSummary": "回線変更配信に失敗しました"
     },
     "timelineInspector": {
-      "title": "検査官",
+      "title": "インスペクター",
       "unlockClipToEditTiming": "クリップのロックを解除してタイミングを編集します",
       "unlockTrackToEditTiming": "トラックのロックを解除してタイミングを編集します",
       "noneUngrouped": "なし (グループ化されていない)",
@@ -6084,13 +6084,13 @@
       "fields": {
         "start": "スタート",
         "startTimecode": "開始タイムコード",
-        "duration": "期間",
+        "duration": "長さ",
         "durationSeconds": "持続時間 (秒)",
         "speed": "速度",
         "playbackSpeed": "再生速度",
         "hidden": "隠された",
         "type": "種類",
-        "asset": "資産",
+        "asset": "アセット",
         "parent": "親",
         "parentGroup": "親グループ"
       },
@@ -6126,7 +6126,7 @@
         "destinationProject": "目的地プロジェクト"
       },
       "documents": {
-        "title": "書類",
+        "title": "ドキュメント",
         "regionLabel": "現在のプロジェクトのドキュメント",
         "countSubtitle_one": "1 つのドキュメント · 最新のものから順",
         "countSubtitle_other": "{{count}} ドキュメント · 最新のものから順",
@@ -6147,7 +6147,7 @@
         "createError": "プロジェクトを作成できませんでした: {{error}}",
         "openFolder": "フォルダを開く…",
         "openFolderHint": "既存のフォルダがありますか？プロジェクトとして開けます。ファイルは移動しません。",
-        "openFolderTravels": "別のマシンからコピーしたフォルダは、ワークフロー、タイムライン、アセットとともに開きます。チャット、ストーリーボード、スクリプト、スケッチ、アプリ、JS スクリプトはフォルダと一緒には移動しません。",
+        "openFolderTravels": "別のマシンからコピーしたフォルダは、ワークフロー、タイムライン、アセットとともに開きます。チャット、絵コンテ、スクリプト、スケッチ、アプリ、JS スクリプトはフォルダと一緒には移動しません。",
         "openFolderError": "フォルダを開けませんでした: {{error}}"
       },
       "folder": {
@@ -6289,7 +6289,7 @@
         "renderedExampleShots_other": "{{count}} ショット、すでにレンダリング済み",
         "blankEntries": {
           "workflow": "ワークフロー",
-          "comfy-workflow": "快適なワークフロー",
+          "comfy-workflow": "Comfy ワークフロー",
           "chat": "チャット",
           "text": "テキスト",
           "image": "スケッチ",
@@ -6320,7 +6320,7 @@
             "description": "アイデアをクリップに変える"
           },
           "storyboard": {
-            "title": "ストーリーボードの作成",
+            "title": "絵コンテの作成",
             "description": "それぞれのシーンを写真付きで計画する"
           },
           "app": {
@@ -6511,7 +6511,7 @@
         "switchTo": "に切り替えます"
       },
       "selector": {
-        "personal": "個人的な",
+        "personal": "個人",
         "project": "プロジェクト",
         "selectedProject": "選択したプロジェクト: {{name}}",
         "selectProject": "プロジェクトの選択",
@@ -6524,7 +6524,7 @@
         "couldNotLoadProjects": "プロジェクトをロードできませんでした",
         "noMatchingProjects": "一致するプロジェクトはありません",
         "noNamedProjects": "名前付きプロジェクトはまだありません",
-        "documents": "書類",
+        "documents": "ドキュメント",
         "projects": "プロジェクト",
         "loadingDocuments": "書類を読み込み中…",
         "couldNotLoadDocuments": "ドキュメントをロードできませんでした",
@@ -6659,7 +6659,7 @@
     "workflowList": {
       "duplicateError": "ワークフローを複製できませんでした: {{error}}",
       "renameError": "「{{name}}」の名前を変更できませんでした。",
-      "searchPlaceholder": "検索ワークフロー",
+      "searchPlaceholder": "ワークフローを検索",
       "loading": "ワークフローの読み込み",
       "loadErrorTitle": "ワークフローを読み込めませんでした",
       "loadErrorDescription": "後でもう一度試してください。",
@@ -6829,7 +6829,7 @@
         },
         "style": {
           "title": "スタイル",
-          "description": "世代を超えて適用できる視覚言語。"
+          "description": "複数の生成にまたがって適用するビジュアル言語。"
         },
         "prop": {
           "title": "プロップ",
@@ -6958,7 +6958,7 @@
       },
       "reference": {
         "title": "参考画像を選択してください",
-        "description": "将来の世代に残したい特性の最も鮮明な画像を選択するか、AI を使用して画像を作成します。",
+        "description": "今後の生成で維持したい特徴が最もはっきり写った画像を選ぶか、AI で作成します。",
         "imageCaption": "{{name}} リファレンス",
         "selectedCaption": "選択されたリファレンス",
         "selectedAlt": "選択されたエンティティ参照",
@@ -6974,7 +6974,7 @@
           "generating": "生成中…",
           "confirm": "参照の生成",
           "description": "ビューを選択し、プロンプトを編集して画像を調整します。",
-          "viewLabel": "見る",
+          "viewLabel": "表示",
           "promptLabel": "プロンプト",
           "modelLabel": "画像モデル",
           "progress": "参考画像を作成中…"
@@ -6997,7 +6997,7 @@
               "instruction": "頭からつま先まで、正面を向いた全身のポーズを 1 つ示します。スタジオの照明が均等なニュートラルな背景の中央にキャラクターを配置します。顔、服装、特徴を明確にします。"
             },
             "portrait": {
-              "label": "肖像画",
+              "label": "ポートレート",
               "instruction": "顔が完全に見え、中立的な表情をした頭と肩のポートレートを見せてください。シンプルな背景と均等な照明を使用して、顔の特徴と髪を簡単に識別できるようにします。"
             },
             "character-sheet": {
@@ -7239,12 +7239,12 @@
         "newNodeCanvas": "新しいノードキャンバス",
         "imageToVideo": "画像からビデオへ",
         "retryVariation": "{{label}} をもう一度試してください",
-        "regenerate": "再生する",
+        "regenerate": "再生成",
         "downloadFailed": "{{label}} をダウンロードできませんでした。",
         "download": "ダウンロード",
         "makingMore": "さらに作る…",
         "makeMore": "もっとバリエーションを増やしてください",
-        "backToSettings": "世代設定に戻る",
+        "backToSettings": "生成設定に戻る",
         "openEditor": "エディタを開く"
       },
       "overlay": {
@@ -7296,7 +7296,7 @@
         },
         "sizes": {
           "square": "正方形",
-          "portrait": "肖像画",
+          "portrait": "縦長",
           "poster": "ポスター",
           "landscape": "風景",
           "story": "ストーリー",
@@ -7347,7 +7347,7 @@
             "description": "1 つのオブジェクト、きれいな背景、すぐに配置できる"
           },
           "portrait": {
-            "title": "肖像画",
+            "title": "ポートレート",
             "description": "頭と肩を額装された人物"
           },
           "key-art": {
@@ -7686,7 +7686,7 @@
       "deleteApiKeyConfirmation": "{{provider}} API キーは削除され、キーを再度追加するまでそのモデルは動作を停止します。",
       "delete": "削除",
       "cancel": "キャンセル",
-      "secretsSafe": "あなたの秘密は安全です",
+      "secretsSafe": "シークレットは安全に保管されます",
       "secretsSafeDescription": "すべての API キーはデータベース内で暗号化され、公開されることはありません。",
       "learnMore": "さらに詳しく",
       "supportedModels": "対応機種",
@@ -7815,7 +7815,7 @@
     "boardRetryFailed": {
       "button_one": "{{count, number}} リクエストの再試行が失敗しました",
       "button_other": "失敗したリクエスト {{count, number}} を再試行します",
-      "dismiss": "却下",
+      "dismiss": "閉じる",
       "message_one": "{{count, number}} レンダリング リクエストが失敗しました。",
       "message_other": "{{count, number}} レンダリング リクエストが失敗しました。"
     },
@@ -7856,7 +7856,7 @@
         "clip_one": "現在のクリップが古いショットのみがレンダリングされます。",
         "clip_other": "現在のクリップが古いショットのみがレンダリングされます。"
       },
-      "dismiss": "却下"
+      "dismiss": "閉じる"
     },
     "boardStyleDialog": {
       "title": "スタイルを変更する",
@@ -7889,7 +7889,7 @@
         "referenceEntities": "キャストとロケ地",
         "referenceStillsHelp": "各ショットは依然としてフレーミングとポーズを修正しています。落ち着いたショットに最適です。",
         "referenceEntitiesHelp": "エンティティ イメージは、誰が、どこで、を固定します。ショットのテキストがフレーミングとモーションを設定します。アクションに最適。",
-        "duration": "期間",
+        "duration": "長さ",
         "aspectRatio": "アスペクト比",
         "resolution": "解像度",
         "scaledWindows": "ショット ウィンドウはサイズに合わせて拡大縮小されます。",
@@ -7898,7 +7898,7 @@
         "defaultResolution": "デフォルト ({{resolution}})",
         "seconds_one": "{{value}} 秒",
         "seconds_other": "{{value}} 秒",
-        "compiledTitle": "ストーリーボードから編集",
+        "compiledTitle": "絵コンテから編集",
         "copyCompiledPrompt": "コンパイルされたプロンプトをコピーする",
         "emptyCompiled": "ショットを追加してテイクをコンパイルします。",
         "durationValue": "期間: {{duration}}",
@@ -7984,7 +7984,7 @@
         "noEntityImage": "画像なし",
         "renderSettings": "レンダリング設定",
         "videoModel": "ビデオモデル",
-        "duration": "期間",
+        "duration": "長さ",
         "resolution": "解像度",
         "summary": "{{duration}} · {{aspectRatio}} · {{resolution}} · {{imageCount}} ({{maxImages}} 画像中)",
         "blockers": {
@@ -8054,7 +8054,7 @@
         "regenerateStillTooltip": "新しい静止画をレンダリングし、そのモデルを選択します",
         "regenerateStillPricedTooltip": "新しい静止画をレンダリングし、そのモデルを選択します · {{cost}} について",
         "renderStillFirst": "最初に静止画をレンダリングします",
-        "renderClip": "レンダークリップ",
+        "renderClip": "クリップをレンダリング",
         "renderClipTooltip": "クリップをレンダリングしてそのモデルを選択する",
         "uploadStill": "自分の静止画をアップロードする",
         "renderingClip": "レンダリングクリップ",
@@ -8062,7 +8062,7 @@
         "duration_other": "{{countLabel}} 秒",
         "noAction": "アクションの説明がありません",
         "retry": "再試行",
-        "renderFailedSummary": "ストーリーボードショットのレンダリングに失敗しました",
+        "renderFailedSummary": "絵コンテショットのレンダリングに失敗しました",
         "renderFailed": "レンダリングに失敗しました。もう一度やり直してください。",
         "uploadFailed": "静止画をアップロードできませんでした。 {{error}}",
         "lastFrameFailed": "ショット {{number}} の最後のフレームは使用できませんでした。 {{error}}",
@@ -8142,7 +8142,7 @@
         "renderClipFirst": "最初にクリップをレンダリングする",
         "iterate": "反復する",
         "regenerateTooltip": "新しい静止画をレンダリングし、そのモデルを選択します",
-        "regenerate": "再生する",
+        "regenerate": "再生成",
         "deleteTooltip": "このショットを削除",
         "delete": "削除",
         "clearSelection": "クリアショット選択",
@@ -8182,7 +8182,7 @@
   "screens4_19": {
     "storyboard": {
       "shotRender": {
-        "renderClip": "レンダークリップ",
+        "renderClip": "クリップをレンダリング",
         "renderStill": "静止画をレンダリングする",
         "clipDescription": "このショットのクリップのモデルを選択してください。ショットは次のレンダリングの選択を保持します。",
         "stillDescription": "このショットの静止画のモデルを選択してください。ショットは次のレンダリングの選択を保持します。",
@@ -8233,7 +8233,7 @@
         "emptyState": "最初に静止画をレンダリングまたはアップロードします。現在の静止画から編集が開始されます。",
         "tabs": {
           "edit": "編集",
-          "upscale": "高級感のある",
+          "upscale": "アップスケール",
           "reframe": "再フレーム化",
           "adjust": "調整する"
         },
@@ -8254,8 +8254,8 @@
         "generateEdit": "編集の生成",
         "upscaleModel": "高級モデル",
         "scale": "スケール",
-        "upscaleFactor": "高級感",
-        "upscale": "高級感のある",
+        "upscaleFactor": "アップスケール倍率",
+        "upscale": "アップスケール",
         "newAspectRatio": "新しいアスペクト比",
         "reframeModel": "モデルを再フレーム化する",
         "reframePromptLabel": "新しいスペースを埋めるもの (オプション)",
@@ -8301,7 +8301,7 @@
         "workflow": "ワークフロー",
         "edit": "編集",
         "layoutAlignment": "レイアウトと配置",
-        "view": "見る",
+        "view": "表示",
         "panels": "パネル"
       },
       "actions": {
@@ -8377,19 +8377,19 @@
     "storyboardList": {
       "newStoryboard": "新しい絵コンテ",
       "untitled": "無題の絵コンテ",
-      "createErrorAction": "ストーリーボードを作成する",
-      "duplicateErrorAction": "ストーリーボードを複製する",
-      "deleteErrorAction": "ストーリーボードを削除する",
+      "createErrorAction": "絵コンテを作成する",
+      "duplicateErrorAction": "絵コンテを複製する",
+      "deleteErrorAction": "絵コンテを削除する",
       "copyName": "{{name}} (コピー)",
       "singular": "絵コンテ",
       "plural": "絵コンテ",
-      "emptyDescription": "上の + ボタンで新しいストーリーボードを作成します。",
+      "emptyDescription": "上の + ボタンで新しい絵コンテを作成します。",
       "nameLabel": "絵コンテ名"
     },
     "storyboardPreview": {
       "emptyTitle": "まだプレビューするものはありません",
       "emptyDescription": "最初に静止画またはクリップを生成します。",
-      "playerLabel": "ストーリーボードのプレビュー",
+      "playerLabel": "絵コンテのプレビュー",
       "shots_one": "{{count, number}} ショット",
       "shots_other": "{{count, number}} ショット",
       "stills_one": "{{count, number}} はまだ",
@@ -8405,7 +8405,7 @@
       },
       "status": {
         "queued": "キューに入れられました",
-        "running": "ランニング",
+        "running": "実行中",
         "stopped": "追跡を停止しました。プロバイダーはまだ終了して料金を請求する可能性があります",
         "failed": "失敗しました",
         "completed": "完了しました",
@@ -8571,8 +8571,8 @@
         "title": "生成されたレイヤーを作成する",
         "createLayer": "レイヤーの作成",
         "description": "グラフに画像出力ノードがあるワークフローを選択します。",
-        "searchPlaceholder": "検索ワークフロー",
-        "searchLabel": "検索ワークフロー",
+        "searchPlaceholder": "ワークフローを検索",
+        "searchLabel": "ワークフローを検索",
         "loadFailed": "ワークフローを読み込めませんでした。",
         "noWorkflowsTitle": "一致するワークフローがありません",
         "noWorkflowsDescription": "どのワークフローにも画像出力はありません。ここで使用するには、ImageOutput、MaskOutput、または Output ノードをワークフローに追加します。",
@@ -8598,9 +8598,9 @@
         "inferenceSteps": "推論ステップ",
         "noSourceLayers": "利用可能なソース レイヤがありません。まずレイヤー上に何かをペイントします。",
         "source": "ソース",
-        "estimatedCost": "この世代の推定コスト",
+        "estimatedCost": "この生成の推定コスト",
         "cancel": "キャンセル",
-        "regenerate": "再生する",
+        "regenerate": "再生成",
         "generate": "生成する",
         "failureSummary": "スケッチレイヤーの生成に失敗しました",
         "generationFailed": "生成に失敗しました。",
@@ -8630,7 +8630,7 @@
           "stale": "古い",
           "failed": "失敗しました",
           "locked": "ロックされています",
-          "missing": "行方不明"
+          "missing": "見つかりません"
         },
         "generatedLayer": "生成されたレイヤー",
         "generatedAt": "生成: {{timestamp}}"
@@ -8664,11 +8664,11 @@
         "generateLayer": "レイヤーの生成",
         "duplicateTooltip": "Duplicate — オーバーライドをコピーします。パラメータを微調整してバリエーションを追加する",
         "duplicateLayer": "レイヤーの複製",
-        "lockedTooltip": "ロック済み — 成功した世代は現在の出力を置き換えません",
-        "unlockedTooltip": "ロック解除 — 成功した世代が現在の出力を置き換えます",
+        "lockedTooltip": "ロック中 — 成功した生成結果で現在の出力は置き換わりません",
+        "unlockedTooltip": "ロック解除中 — 成功した生成結果で現在の出力が置き換わります",
         "unlockLayer": "レイヤーのロックを解除する",
         "lockLayer": "ロックレイヤー",
-        "revertTooltip": "元に戻す — 現在の世代をクリアしてドラフトに戻します",
+        "revertTooltip": "元に戻す — 現在の生成結果をクリアして下書きに戻します",
         "revertLayer": "レイヤーをドラフトに戻す",
         "openInNodeEditor": "ノードエディタで開く",
         "openWorkflowInNodeEditor": "ノードエディターでレイヤーワークフローを開く"
@@ -8718,7 +8718,7 @@
       "modelsHelp": "/models ルートのないエンドポイントのカンマ区切りのモデル ID。",
       "imageModels": "画像モデル",
       "imageModelsPlaceholder": "オプション、例: flux-dev、seedream-4",
-      "imageModelsHelp": "モデルリストから検出されました。テストで欠落した ID を追加します。呼び出しは /images/世代に送信されます。",
+      "imageModelsHelp": "モデル一覧から検出しました。テストで見つからなかった ID を追加してください。呼び出し先は /images/generations です。",
       "videoModels": "ビデオモデル",
       "videoModelsPlaceholder": "オプション、例:クリング-v2、veo-3",
       "videoModelsHelp": "モデルリストから検出されました。テストで欠落した ID を追加します。通話は /video に送信されます。",
@@ -8754,7 +8754,7 @@
       }
     },
     "externalMcp": {
-      "disabled": "障害者",
+      "disabled": "無効",
       "toolNameHelp": "ツールは {{toolName}} として表示されます",
       "connectedNoTools": "接続されました。サーバーはツールを提供しません。",
       "toolsFound_one": "{{formattedCount}} ツール: {{tools}}",
@@ -8811,7 +8811,7 @@
       "systemFoldersDescription": "ファイル エクスプローラーで重要な NodeTool ディレクトリを開きます。",
       "installation": "NodeToolのインストール",
       "logs": "ノードツールのログ",
-      "assets": "資産の保管",
+      "assets": "アセットの保管",
       "modelFolders": "モデルフォルダー",
       "modelFoldersDescription": "ファイル エクスプローラーでモデル キャッシュ ディレクトリを開きます。",
       "huggingFaceModels": "ハグフェイスモデル",
@@ -8830,7 +8830,7 @@
       "workspace": "ワークスペース",
       "studio": "スタジオ",
       "switchToProject": "プロジェクト {{name}} に切り替えます",
-      "personal": "個人的な",
+      "personal": "個人",
       "newTextFileValue": "新しいテキスト ファイル {{label}}",
       "newTextFile": "新しいテキスト ファイル: {{label}}",
       "newStoryboard": "新しい絵コンテ",
@@ -9229,7 +9229,7 @@
       "see": "参照",
       "changesApplyImmediately": "このタブでの変更はすぐに適用されます。",
       "sections": {
-        "editor": "編集者",
+        "editor": "エディター",
         "updates": "アップデート",
         "appearance": "外観",
         "execution": "実行",
@@ -9258,7 +9258,7 @@
         "categories": {
           "workspace": "ワークスペース",
           "workflow": "ワークフロー",
-          "history": "歴史",
+          "history": "履歴",
           "configuration": "構成",
           "accounts": "アカウント",
           "servers": "サーバー",
@@ -9266,7 +9266,7 @@
           "privacy": "プライバシー"
         },
         "items": {
-          "editor": "編集者",
+          "editor": "エディター",
           "updates": "アップデート",
           "vaults": "保管庫",
           "appearance": "外観",
@@ -9467,7 +9467,7 @@
         "gpuHelp": "どの GPU をレンタルするか。より多くの VRAM を使用すると、より大きなモデルを実行できます。お金を節約するために適合する最小のものを選択してください。",
         "runpodGpuIdLabel": "GPU ID (RunPod gpuTypeId)",
         "vastGpuIdLabel": "GPU ID (膨大な gpu_name)",
-        "runpodGpuIdHelp": "正確な RunPod ID、例: 「NVIDIA RTX 6000 Ada 世代」。",
+        "runpodGpuIdHelp": "正確な RunPod ID。例: 「NVIDIA RTX 6000 Ada Generation」。",
         "vastGpuIdHelp": "正確な広大な名前、例: 「RTX_6000Ada」。",
         "vcpuLabel": "vCPU",
         "vcpuHelp": "CPU 専用ポッドの仮想 CPU の数。 RunPod は、一致する CPU フレーバーを選択します。",
@@ -9475,7 +9475,7 @@
         "diskLabel": "ディスク (GB)",
         "diskHelp": "モデルキャッシュの永続ボリューム。モデルはここで一度ダウンロードすると、停止/再開しても存続します。 HF モデルは大きいため、十分な量を確保してください。",
         "idleTimeoutLabel": "アイドルタイムアウト (分)",
-        "idleTimeoutHelp": "この時間アイドル状態→一時停止 (GPU は解放され、ボリュームとモデルは維持されます)。 GPU の暴走を防ぐ主な手段。空白 = 決してありません。",
+        "idleTimeoutHelp": "この時間アイドル状態が続くと一時停止します (GPU は解放され、ボリュームとモデルは保持されます)。GPU 料金の使いすぎを防ぐ主な手段です。空欄 = 一時停止しない。",
         "advanced": "上級者向け",
         "imagePresetLabel": "労働者画像のプリセット",
         "imagePreset": {
@@ -9511,7 +9511,7 @@
         "attachedTooltip": "{{id}} ({{url}}) に添付",
         "stopAttached": "アタッチされているワーカーを停止する",
         "provisioning": "プロビジョニング",
-        "running": "ランニング",
+        "running": "実行中",
         "attached": "付属",
         "stopping": "停止中",
         "stopped": "一時停止中",
@@ -9630,7 +9630,7 @@
     "support": {
       "report": "レポート",
       "tryAgain": "もう一度試してください",
-      "dismiss": "却下",
+      "dismiss": "閉じる",
       "bugReport": {
         "title": "バグを報告する",
         "reportSentTitle": "レポートを送信しました",
@@ -9697,7 +9697,7 @@
             "description": "過去 1 時間にサーバーが記録したエラー: メッセージ、スタック、ジョブまたはルート。プロンプトやキーなしで編集された状態で保存されます。"
           }
         },
-        "view": "見る",
+        "view": "表示",
         "hide": "隠す",
         "viewSection": "{{section}} を表示",
         "hideSection": "{{section}} を非表示にする",
@@ -9738,8 +9738,8 @@
       "perUserRememberOnly": "ユーザーごとの変数のみを記憶できます。",
       "rememberBetweenVisits": "訪問の合間に記憶する",
       "resources": "リソース",
-      "resourcesDescription": "ピッカーやギャラリーが参照できるアセット、タイムライン、ストーリーボード、またはスケッチ、またはこのプロジェクト内のその種類すべて。",
-      "runs": "走る",
+      "resourcesDescription": "ピッカーやギャラリーが参照できるアセット、タイムライン、絵コンテ、またはスケッチ、またはこのプロジェクト内のその種類すべて。",
+      "runs": "実行",
       "scope": "範囲",
       "script": "スクリプト",
       "timeout": "タイムアウト",
@@ -9747,7 +9747,7 @@
       "useJsonForTypedValues": "型指定された値には JSON を使用します。",
       "variables": "変数",
       "variablesDescription": "アプリ状態ウィジェットの読み取りと書き込み、および操作出力が到着する可能性があります。",
-      "whileRunning": "片方が走っている間に",
+      "whileRunning": "別の実行中",
       "workflow": "ワークフロー",
       "policies": {
         "replace": "ランニングを置き換える",
@@ -9772,19 +9772,19 @@
         "dict": "記録"
       },
       "resourceKinds": {
-        "asset": "資産",
+        "asset": "アセット",
         "timeline": "タイムライン",
         "storyboard": "絵コンテ",
         "sketch": "スケッチ"
       },
       "resourceKindsPlural": {
-        "asset": "資産",
+        "asset": "アセット",
         "timeline": "タイムライン",
         "storyboard": "絵コンテ",
         "sketch": "スケッチ"
       },
       "resourceCollectionNames": {
-        "asset": "資産",
+        "asset": "アセット",
         "timeline": "タイムライン",
         "storyboard": "絵コンテ",
         "sketch": "スケッチ"
@@ -9870,7 +9870,7 @@
       "draft": "ドラフト",
       "historicalOutput": "履歴出力",
       "historicalResult": "履歴結果 (読み取り専用)",
-      "historicalRun": "歴史的な走行",
+      "historicalRun": "過去の実行",
       "inputs": "入力",
       "loadFailed": "実行履歴を読み込めませんでした",
       "loadingHistoricalResult": "履歴結果をロードしています",
@@ -9926,24 +9926,24 @@
       "errors": {
         "entityAssetMismatch": "エンティティ {{entityId}} のアセットが、選択したエンティティと一致しません。",
         "entitySourceMismatch": "ソース要素 {{elementId}} はこのエンティティと一致しません。",
-        "missingEntityReference": "エンティティ {{entityId}} がストーリーボードにありません。",
+        "missingEntityReference": "エンティティ {{entityId}} が絵コンテにありません。",
         "unavailable": "ショットのプレビューは利用できません。"
       },
       "pause": "プレビューを一時停止する",
       "play": "プレビューを再生する",
       "validation": {
-        "missing_element": "ストーリーボード要素 {{elementId}} が見つからないか無効です。",
-        "duplicate_element": "ストーリーボード要素 {{elementId}} が重複しています。",
+        "missing_element": "絵コンテ要素 {{elementId}} が見つからないか無効です。",
+        "duplicate_element": "絵コンテ要素 {{elementId}} が重複しています。",
         "protected_source": "保護されたソース {{elementId}} が変更されました。",
         "protected_value": "{{elementId}} の保護された値が変更されました。",
         "forbidden_generation": "{{elementId}} の生成は許可されていません。",
         "forbidden_transform": "{{elementId}} の変換はサポートされていません。",
-        "manual_conflict": "ストーリーボード要素 {{elementId}} に競合する手動編集があります。"
+        "manual_conflict": "絵コンテ要素 {{elementId}} に競合する手動編集があります。"
       }
     },
     "shotEditPanel": {
       "advanced": "上級者向け",
-      "backToStoryboard": "ストーリーボードに戻る",
+      "backToStoryboard": "絵コンテに戻る",
       "clipNeedsStill": "クリップをレンダリングする前に静止画をレンダリングします。",
       "conflicts": {
         "current": "現在の値: {{value}}",
@@ -9967,7 +9967,7 @@
       "fields": {
         "description": "説明",
         "dialogue": "対話",
-        "duration": "期間",
+        "duration": "長さ",
         "durationSource": "デュレーションソース",
         "end": "終了状態",
         "equipment": "設備",
@@ -9997,7 +9997,7 @@
       },
       "previousShot": "前のショット",
       "regenerate": "まだ再生する",
-      "renderClip": "レンダークリップ",
+      "renderClip": "クリップをレンダリング",
       "renderingAlready": "レンダリングはすでに進行中です。",
       "rerenderClip": "クリップを再度レンダリングします",
       "save": "保存",
@@ -10206,7 +10206,7 @@
       "removeMusic": "音楽を削除する",
       "scene": "シーン",
       "source": "ソース",
-      "title": "検査官",
+      "title": "インスペクター",
       "transform": "トランスフォーム",
       "unbindAsset": "{{slot}} のバインドを解除する",
       "lightNumber": "ライト {{number}}"
@@ -10295,7 +10295,7 @@
       "fromPrevious": "{{state}} から",
       "fromState": "州から",
       "initialState": "初期状態",
-      "inspectorRegion": "アニメーション検査官",
+      "inspectorRegion": "アニメーションインスペクター",
       "layer": "レイヤー {{id}}",
       "layerLabel": "アニメーションレイヤー",
       "layerMode": "レイヤーモード",
@@ -10411,9 +10411,9 @@
       "loadingCandidates": "候補の読み込み中",
       "madeFor": "{{slot}} 用に作成",
       "moveFrames": "この画像上にフレームを移動します",
-      "noAssets": "資産はありません。",
+      "noAssets": "アセットはありません。",
       "empty": {
-        "assets": "資産がありません",
+        "assets": "アセットがありません",
         "prefabs": "プレハブなし",
         "scenes": "シーンはありません"
       },
@@ -10428,7 +10428,7 @@
       "prompt": "プロンプト",
       "promptSuffix": " プロンプト: {{prompt}}",
       "reference": "{{where}} · {{path}}",
-      "regenerate": "再生する",
+      "regenerate": "再生成",
       "sceneAria": "シーン {{name}}",
       "sceneReference": "シーン {{name}}",
       "sceneSubtitle": "シーン · {{entities}} · {{assets}}",
@@ -10441,7 +10441,7 @@
       "staleFrameBindings_other": "{{formattedCount}} フレーム バインディングは依然として前のイメージを指します。",
       "tabAria": "{{tab}} ({{formattedCount}})",
       "tabs": {
-        "assets": "資産",
+        "assets": "アセット",
         "prefabs": "プレハブ",
         "scenes": "シーン"
       },
@@ -10519,8 +10519,8 @@
           "description": "ワークフロー実行トレースを保持する期間。"
         },
         "generationRetention": {
-          "label": "世代保持期間 (日)",
-          "description": "世代レコードとその保存されたペイロードを保持する期間。"
+          "label": "生成履歴の保持期間 (日)",
+          "description": "生成記録と保存されたペイロードを保持する期間。"
         },
         "automaticCleanup": {
           "label": "自動クリーンアップ",
@@ -10549,7 +10549,7 @@
     "storyboardAgentPanel": {
       "docsLabel": "絵コンテ",
       "welcomeTitle": "絵コンテアシスタント",
-      "welcomeBody": "このストーリーボードについて質問するか、ショットの計画と調整について支援を受けてください。"
+      "welcomeBody": "この絵コンテについて質問するか、ショットの計画と調整について支援を受けてください。"
     },
     "storyboardEntitiesField": {
       "removeLabel": "{{name}} を削除します",
@@ -10562,10 +10562,10 @@
       "requestCountUnpriced": "{{count}} リクエスト · 価格設定不可",
       "providerPricingNote": "価格は選択したプロバイダーからのものであり、変更される場合があります。",
       "clipPartTag": "{{count}} のパート {{position}} · {{window}}",
-      "downloadFailed": "ストーリーボードをダウンロードできませんでした: {{error}}",
+      "downloadFailed": "絵コンテをダウンロードできませんでした: {{error}}",
       "undoTooltip": "元に戻す",
       "redoTooltip": "やり直し",
-      "preparingZip": "ストーリーボード ZIP を準備しています…",
+      "preparingZip": "絵コンテ ZIP を準備しています…",
       "renderStills": "静止画をレンダリングする",
       "renderClips": "クリップをレンダリングする",
       "untitledFilm": "無題の映画",
@@ -10598,13 +10598,13 @@
       "stillModel": "画像モデル",
       "followUpClipCost": "次に、クリップをレンダリングします: {{clipCost}}。推定合計: {{totalCost}}。",
       "clipBatchModelHelp": "保留中のクリップのタイプごとにビデオ モデルを選択します。",
-      "redirectConfirmTitle": "このストーリーボードを置き換えますか?",
+      "redirectConfirmTitle": "この絵コンテを置き換えますか?",
       "redirectConfirmBody": "これにより、すべての {{count}} 既存のショットとその生成されたメディアが置き換えられます。",
       "redirectConfirmNote": "この操作は元に戻すことができません。",
       "rebuildTimelineConfirmTitle": "リンクされたタイムラインを再構築しますか?",
       "rebuildTimeline": "タイムラインを再構築する",
-      "replaceAllOwnedClips": "このストーリーボードが所有するすべてのクリップが置き換えられます。",
-      "replaceOwnedClips": "このストーリーボードが所有する {{count}} クリップが置き換えられます。",
+      "replaceAllOwnedClips": "この絵コンテが所有するすべてのクリップが置き換えられます。",
+      "replaceOwnedClips": "この絵コンテが所有する {{count}} クリップが置き換えられます。",
       "externalTimelinePreserved": "他のソースからのクリップは保存されます。",
       "skippedShots": "{{count}} ショットはまだタイムラインに追加できません。",
       "latestChangesNotSaved": "最新の変更が保存されませんでした",
@@ -10614,7 +10614,7 @@
       "directorWriting": "監督があなたのショットを書いています…",
       "noShotsTitle": "まだショットはありません",
       "noShotsReadOnly": "この絵コンテにはショットがありません。",
-      "noShotsDescription": "上記で方向を設定し、ショットを作成してストーリーボードを開始します。",
+      "noShotsDescription": "上記で方向を設定し、ショットを作成して絵コンテを開始します。",
       "searchShotsPlaceholder": "ショットを検索する",
       "searchShotsLabel": "タイトルまたは説明でショットを検索する",
       "shotSearchCount": "{{visible}}/{{total}} ショット",
@@ -10666,7 +10666,7 @@
       "leftPanel": "左パネル",
       "resizePanel": "サイズ変更パネル",
       "categories": {
-        "documents": "書類",
+        "documents": "ドキュメント",
         "nodes": "ノード",
         "favoriteNodes": "お気に入りのノード",
         "recentNodes": "最近のノード",
@@ -10682,7 +10682,7 @@
         "timelines": "タイムライン",
         "jsScripts": "JSスクリプト",
         "skills": "スキル",
-        "assets": "資産",
+        "assets": "アセット",
         "library": "図書館",
         "more": "もっと見る",
         "files": "ファイル"
@@ -10711,10 +10711,10 @@
       }
     },
     "queue": {
-      "running": "ランニング",
+      "running": "実行中",
       "untitled": "無題",
       "onCanvas": "キャンバス上",
-      "stopRun": "走行を停止する",
+      "stopRun": "実行を停止",
       "showRunOnCanvas": "キャンバス上で実行を表示",
       "removeFromQueue": "キューから削除",
       "cancelled": "キャンセルされました",
@@ -10764,7 +10764,7 @@
       "stop": "停止",
       "miniMap": "ミニマップ",
       "showInspector": "インスペクターを表示",
-      "hideInspector": "検査官を隠す",
+      "hideInspector": "インスペクターを隠す",
       "toggleInspector": "インスペクタの切り替え",
       "visible": "見える",
       "hidden": "隠された",
@@ -10774,7 +10774,7 @@
       "panels": "パネル…",
       "errorRetry": "エラー・再試行",
       "runningCountQueued": "実行中 · {{count}} がキューに登録されました",
-      "running": "ランニング",
+      "running": "実行中",
       "starting": "開始",
       "stopping": "停止中",
       "runEntireWorkflow": "ワークフロー全体を実行する",
@@ -10782,7 +10782,7 @@
     },
     "trace": {
       "contentExpired": "実行コンテンツの有効期限が切れました。",
-      "visitorContentNotRecorded": "来場者が走る。内容は記録されていませんでした。",
+      "visitorContentNotRecorded": "訪問者による実行です。内容は記録されていません。",
       "recordingTruncated": "記録は実行制限で切り詰められました。",
       "traceIncomplete": "トレースは不完全です。",
       "boundedPortion": "境界部分を表示します。スパンに焦点を当てるか、フィルタを絞り込んでより詳細に検査します。",
@@ -10801,7 +10801,7 @@
       "attributes": "属性",
       "events_one": "{{count}} イベント",
       "events_other": "{{count}} イベント",
-      "duration": "期間",
+      "duration": "長さ",
       "startsAt": "+{{duration}} から始まります",
       "inspectSpan": "スパンの検査 {{name}} {{id}}",
       "timelineDescription": "{{name}} タイムライン: 開始から {{offset}} ミリ秒、継続時間 {{duration}} ミリ秒",
@@ -10862,7 +10862,7 @@
       "workflowRun": "ワークフローの実行",
       "chatTurn": "チャットターン",
       "appRun": "アプリの実行",
-      "run": "走る",
+      "run": "実行",
       "noMatchingRuns": "一致する実行はありません",
       "noRecentRuns": "最近の実行はありません",
       "noMatchingSpans": "一致するスパンがありません",
@@ -10873,7 +10873,7 @@
         "completed": "完了しました",
         "failed": "失敗しました",
         "cancelled": "キャンセルされました",
-        "running": "ランニング"
+        "running": "実行中"
       },
       "runKind": {
         "workflow": "ワークフロー",
@@ -10903,7 +10903,7 @@
       "chord": "コード",
       "compPattern": "コンプパターン",
       "generatedPhrasePreview": "生成されたフレーズのプレビュー",
-      "play": "遊ぶ",
+      "play": "再生",
       "accent": "アクセント",
       "hold": "ホールド",
       "holdHelp": "このステップでは前のコードを押し続けます。コードチェンジで新しいコードが鳴る",
@@ -11134,7 +11134,7 @@
         "gainDb": "ゲイン",
         "frequency": "周波数",
         "q": "Q",
-        "attackMs": "攻撃",
+        "attackMs": "アタック",
         "releaseMs": "リリース",
         "kneeDb": "膝",
         "brightness": "明るさ",
@@ -11146,7 +11146,7 @@
         "shadows": "影",
         "highlights": "ハイライト",
         "radius": "半径",
-        "amount": "金額",
+        "amount": "強さ",
         "threshold": "しきい値",
         "intensity": "強度",
         "softness": "柔らかさ",
@@ -11288,8 +11288,8 @@
         "drive": "ドライブ",
         "env": "封筒の金額",
         "key": "キートラッキング",
-        "attack": "攻撃",
-        "decay": "衰退",
+        "attack": "アタック",
+        "decay": "ディケイ",
         "sustain": "サステイン",
         "release": "リリース",
         "position": "ポジション",
@@ -11312,9 +11312,9 @@
         "ringmix": "リングミックス",
         "pitchamt": "ピッチ量",
         "pitchdec": "ピッチ減衰",
-        "att": "攻撃",
+        "att": "アタック",
         "hold": "ホールド",
-        "dec": "衰退",
+        "dec": "ディケイ",
         "curve": "曲線",
         "vel": "レベルまでの速度"
       },
@@ -11359,7 +11359,7 @@
         "hideAiRender": "AI レンダリングを非表示にする",
         "renderAi": "このビューを AI でレンダリングする",
         "hideAssistant": "アシスタントを隠す",
-        "showAssistant": "番組アシスタント",
+        "showAssistant": "アシスタントを表示",
         "export": "エクスポート",
         "exportTooltip": "シーンまたは選択したオブジェクトをファイルとしてダウンロードします",
         "exportSelectionAs": "{{format}} として選択",
@@ -11423,7 +11423,7 @@
       },
       "dropModel": "モデルをドロップしてシーンに追加します",
       "externalChange": "このモデルはエディターの外で変更されました。再ロードして変更を確認し、未保存の編集内容を失うか、保存して置き換えます。",
-      "inspector": "検査官",
+      "inspector": "インスペクター",
       "resizeAiPanel": "AI レンダリング パネルのサイズ変更",
       "aiDescription": "画像編集モデルを使用して現在のビューを完成画像に変換します",
       "resizeAssistant": "3D アシスタントのサイズ変更",
@@ -11532,7 +11532,7 @@
         "views": {
           "front": "フロント",
           "right": "側面",
-          "top": "トップへ"
+          "top": "上"
         },
         "frameAll": "すべてをフレーム化する",
         "save": "ショットを保存する",
@@ -11625,7 +11625,7 @@
       "color": "色",
       "intensity": "強度",
       "range": "範囲",
-      "decay": "衰退",
+      "decay": "ディケイ",
       "angle": "角度",
       "penumbra": "半影",
       "geometry": "ジオメトリ",
@@ -11749,7 +11749,7 @@
       "tools": "ツール",
       "color": {
         "stroke": "脳卒中",
-        "fill": "埋める",
+        "fill": "塗りつぶし",
         "start": "スタート",
         "end": "終了",
         "foregroundShort": "FG",
@@ -11758,7 +11758,7 @@
         "title": "色"
       },
       "layers": "レイヤー",
-      "history": "歴史",
+      "history": "履歴",
       "canvas": "キャンバス",
       "showPanels": "パネルを表示する",
       "resizeAssistant": "サイズ変更スケッチアシスタント",
@@ -11800,7 +11800,7 @@
         "brush": "ブラシ",
         "pencil": "鉛筆",
         "eraser": "消しゴム",
-        "fill": "埋める",
+        "fill": "塗りつぶし",
         "colorPicker": "カラーピッカー",
         "blur": "ぼかし",
         "cloneStamp": "クローンスタンプ",
@@ -11840,7 +11840,7 @@
     "timeline": {
       "projectSettings": {
         "title": "プロジェクト設定",
-        "apply": "申し込む",
+        "apply": "適用",
         "canvasSize": "キャンバスサイズ",
         "canvasPreset": "キャンバスプリセット",
         "width": "幅",
@@ -11880,7 +11880,7 @@
         "targetFormats": "対象フォーマット",
         "strategy": "戦略",
         "center": "センター",
-        "smartReframe": "スマートなリフレーム",
+        "smartReframe": "スマートリフレーム",
         "followObject": "選択したオブジェクトをフォローする",
         "reframeSubject": "主題を再構成する",
         "safeMargin": "安全マージン",
@@ -11901,7 +11901,7 @@
         "deleteAction": "そのバージョンを削除する",
         "saving": "保存中…",
         "saveVersion": "保存バージョン",
-        "title": "歴史",
+        "title": "履歴",
         "loading": "バージョンをロードしています",
         "loadError": "バージョンをロードできませんでした",
         "loadErrorSummary": "タイムラインのバージョンのロードに失敗しました",
@@ -12019,7 +12019,7 @@
       "webhookUrl": "Webhook URL",
       "copyWebhookUrl": "Webhook URL をコピーする",
       "webhookSecret": "Webhook シークレット",
-      "hideSecret": "秘密を隠す",
+      "hideSecret": "シークレットを隠す",
       "showSecret": "シークレットを表示",
       "hideWebhookSecret": "Webhook シークレットを非表示にする",
       "showWebhookSecret": "Webhook シークレットを表示",
@@ -12292,7 +12292,7 @@
     "images": "画像",
     "audio": "オーディオ",
     "video": "ビデオ",
-    "documents": "書類",
+    "documents": "ドキュメント",
     "selectFile": "{{type}} を選択します",
     "imageLoadFailed": "画像を読み込めませんでした",
     "audioUnsupported": "お使いのブラウザは audio 要素をサポートしていません。",
@@ -12333,9 +12333,9 @@
     "live": "ライブ",
     "pick_one": "{{count}} を選択してください",
     "pick_other": "{{count}} を選択してください",
-    "generations": "世代",
+    "generations": "生成履歴",
     "status": {
-      "running": "ランニング",
+      "running": "実行中",
       "error": "エラー"
     },
     "showGrid": "グリッドを表示",
@@ -12376,7 +12376,7 @@
       "images": "画像",
       "audio": "オーディオ",
       "video": "ビデオ",
-      "documents": "書類",
+      "documents": "ドキュメント",
       "selectFile": "{{type}} を選択します",
       "imageLoadFailed": "画像を読み込めませんでした",
       "audioUnsupported": "お使いのブラウザは audio 要素をサポートしていません。",
@@ -12417,9 +12417,9 @@
       "live": "ライブ",
       "pick_one": "{{count}} を選択してください",
       "pick_other": "{{count}} を選択してください",
-      "generations": "世代",
+      "generations": "生成履歴",
       "status": {
-        "running": "ランニング",
+        "running": "実行中",
         "error": "エラー"
       },
       "showGrid": "グリッドを表示",
@@ -12445,7 +12445,7 @@
       "revert": "元に戻す",
       "download": "ダウンロード",
       "hideAssistant": "アシスタントを隠す",
-      "showAssistant": "番組アシスタント",
+      "showAssistant": "アシスタントを表示",
       "exitFocusMode": "フォーカスモードを終了する",
       "focusModeTooltip": "フォーカス モード (パネルを非表示)",
       "focusMode": "フォーカスモード",
@@ -12688,7 +12688,7 @@
       "mute": "ミュート",
       "nextClipBoundary": "次のクリップの境界",
       "pause": "一時停止",
-      "play": "遊ぶ",
+      "play": "再生",
       "previewArea": "プレビューエリア",
       "previewQuality": "プレビュー品質",
       "previousClipBoundary": "前のクリップの境界",
@@ -12915,7 +12915,7 @@
     "noModelsAvailable": "利用可能なモデルはありません",
     "noModelsAvailableDescription": "サイドバーでプロバイダーを有効にするか、設定で API キーを追加します。",
     "models": "モデル",
-    "disabledRightClickToEnable": "障害者。右クリックして有効にします",
+    "disabledRightClickToEnable": "無効。右クリックで有効にします",
     "addApiKeyRightClickForOptions": "これらのモデルを使用するには、API キーを追加します。右クリックしてオプションを表示します",
     "apiKeyRequired": "APIキーが必要です",
     "modelSources": "モデルソース",
@@ -12924,7 +12924,7 @@
     "cloud": "クラウド",
     "providersDidNotLoad": "プロバイダーが読み込まれませんでした",
     "local": "ローカル",
-    "disabled": "障害者",
+    "disabled": "無効",
     "addApiKeyEllipsis": "APIキーを追加…",
     "disableProvider": "プロバイダーを無効にする",
     "enableProvider": "プロバイダーを有効にする",
@@ -13068,7 +13068,7 @@
   },
   "nodeLibrary": {
     "title": "ノード",
-    "search": "検索ノード",
+    "search": "ノードを検索",
     "clearSearch": "検索をクリア",
     "providers": "プロバイダー",
     "allProviders": "すべてのプロバイダー",
@@ -13149,7 +13149,7 @@
   "i18n-next13": {
     "sketch": {
       "actions": {
-        "apply": "申し込む",
+        "apply": "適用",
         "cancel": "キャンセル",
         "commit": "コミット",
         "reset": "リセット"
@@ -13194,7 +13194,7 @@
         "generateImage": "画像を生成する",
         "generate": "生成する",
         "hideAssistant": "アシスタントを隠す",
-        "showAssistant": "番組アシスタント",
+        "showAssistant": "アシスタントを表示",
         "editorActions": "エディターのアクション",
         "fitToViewport": "ビューポートに合わせる",
         "hidePanels": "パネルを非表示にする",
@@ -13216,7 +13216,7 @@
         "canRunTogether_one": "{{count}} タスクは一緒に実行できます",
         "canRunTogether_other": "{{count}} タスクは一緒に実行できます",
         "afterDependencies": "{{dependencies}} 以降",
-        "idleNote": "何も走らなかった。デフォルトまたは自動に切り替えて、メッセージを送信します。"
+        "idleNote": "何も実行されませんでした。「デフォルト」または「自動」に切り替えてから、メッセージを送信してください。"
       },
       "compactionCard": {
         "title": "先ほどの会話をまとめました",
@@ -13229,7 +13229,7 @@
         "reviseTooltip": "最初に変更点を説明してください",
         "run": "この計画を実行する",
         "revise": "改訂",
-        "dontRun": "走らないで"
+        "dontRun": "実行しない"
       },
       "toolApprovalCard": {
         "questions": {
@@ -13312,7 +13312,7 @@
     "chat": {
       "composer": {
         "mediaCost": {
-          "estimatedCostTitle": "この世代の推定コスト",
+          "estimatedCostTitle": "この生成の推定コスト",
           "listPrice": "定価",
           "outputsBreakdown_one": "{{count}} 出力 × {{breakdown}}",
           "outputsBreakdown_other": "{{count}} 出力 × {{breakdown}}",
@@ -13322,14 +13322,14 @@
         "connectProvider": "プロバイダーに接続する",
         "selectModel": "モデルを選択してください",
         "attach": {
-          "assetsTab": "資産",
+          "assetsTab": "アセット",
           "entitiesTab": "エンティティ",
-          "documentsTab": "書類",
+          "documentsTab": "ドキュメント",
           "uploadTab": "アップロード",
           "tabsLabel": "何を追加するか",
           "dialogTitle": "メッセージに追加",
           "noAssetsMatch": "一致するアセットがありません",
-          "noAssetsYet": "まだ資産がありません",
+          "noAssetsYet": "まだアセットがありません",
           "tryAnotherName": "別の名前を試してください。",
           "noAssetsDescription": "ファイルをアップロードするか、最初にファイルを生成します。",
           "noProjectSelected": "プロジェクトが選択されていません。",
@@ -13487,7 +13487,7 @@
       },
       "welcome": {
         "suggestions": {
-          "storyboardAd": "30 秒の広告のストーリーボードを作成して…",
+          "storyboardAd": "30 秒の広告の絵コンテを作成して…",
           "ugcTestimonial": "UGC スタイルの紹介を指示してください…",
           "narratedExplainer": "…について 60 秒のナレーションで説明します",
           "launchCampaign": "この概要をローンチキャンペーンに変えてください: …",
@@ -13554,7 +13554,7 @@
       "scriptMillisecondsPerTick": "ティックあたり {{milliseconds}} ミリ秒",
       "scripts": "スクリプト",
       "scriptLabel": "{{entity}} · スクリプト {{number}}",
-      "running": "ランニング",
+      "running": "実行中",
       "runTenSeconds": "10秒間実行",
       "close": "閉じる",
       "scriptConflict": "草稿のスクリプトが変更されました。バージョンを選択するまで、編集内容は保存されません。",
@@ -13570,7 +13570,7 @@
   },
   "i18n-next28": {
     "outputQuickActions": {
-      "upscale": "高級感のある",
+      "upscale": "アップスケール",
       "remove-background": "背景を削除する",
       "edit": "プロンプト付きで編集する"
     }
@@ -13583,7 +13583,7 @@
       "openWorkflow": "これを作成したワークフローを開きます",
       "compareImage": "別の画像と比較する",
       "hideInfo": "情報を隠す",
-      "showInfo": "番組情報",
+      "showInfo": "情報を表示",
       "close": "閉じる",
       "download": "ダウンロード",
       "moreActions": "さらなるアクション"
@@ -13644,7 +13644,7 @@
     "script": {
       "line": {
         "voicingFailed": "発声に失敗しました",
-        "noStoryboardShotTooltip": "このラインをカバーするストーリーボード ショットはありません",
+        "noStoryboardShotTooltip": "このラインをカバーする絵コンテ ショットはありません",
         "noShot": "ノーショット",
         "directionPlaceholder": "方向（例：ささやき声、疲れた声）…",
         "directionLabel": "方向",
@@ -13728,7 +13728,7 @@
         "voiceToPlayTooltip": "少なくとも 1 行の音声を再生します",
         "playThrough": "プレイスルー",
         "exportingAudio": "{{format}} をエクスポートしています…",
-        "assembleStoryboardTooltip": "リンクされたストーリーボードのショットを切り取ると、これらのテイクが 1 つのタイムラインに組み込まれます",
+        "assembleStoryboardTooltip": "リンクされた絵コンテのショットを切り取ると、これらのテイクが 1 つのタイムラインに組み込まれます",
         "voiceToTimelineTooltip": "少なくとも 1 行を音声でタイムラインに送信します",
         "assembling": "組み立て中…",
         "sendTakesToWorkflow": "すべての現在のテイクをワークフローに送信します",
@@ -13796,7 +13796,7 @@
       "nothingActive": "実行中またはキューにあるものは何もありません",
       "activeDescription": "作業中にランがここに表示されます。",
       "activeJobs": "アクティブなジョブ",
-      "history": "歴史",
+      "history": "履歴",
       "filterHistory": "フィルタ履歴",
       "filter": {
         "all": "すべて",
@@ -14016,7 +14016,7 @@
       "installTitle": "{{name}} をインストールしますか?",
       "installing": "インストール中…",
       "install": "インストール",
-      "notNow": "今ではありません",
+      "notNow": "今はしない",
       "installPrompt": "{{name}} がインストールされていません。今すぐインストールしてから、もう一度試してください。",
       "installFailed": "インストールに失敗しました。パッケージマネージャーから再試行してください。"
     },
@@ -14048,7 +14048,7 @@
       }
     },
     "documents": {
-      "title": "書類",
+      "title": "ドキュメント",
       "subtitle": "現在のプロジェクトでドキュメントを開きます。",
       "search": "文書の検索",
       "loading": "書類を読み込み中…",
@@ -14097,7 +14097,7 @@
       "deleteFailure": "{{name}} を削除できませんでした: {{error}}",
       "unknownError": "不明なエラー",
       "deleteConfirmTitle": "{{type}} を削除しますか?",
-      "deleteEntityDescription": "「{{name}}」はエンティティではなくなります。その資産は保管されます。",
+      "deleteEntityDescription": "「{{name}}」はエンティティではなくなります。そのアセットは保管されます。",
       "deleteDescription": "「{{name}}」は完全に削除されます。",
       "deleteAction": "削除",
       "cancel": "キャンセル",
@@ -14121,7 +14121,7 @@
       "view": {
         "logs": "ログ",
         "queue": "キュー",
-        "generations": "世代",
+        "generations": "生成履歴",
         "workers": "労働者",
         "versions": "バージョン",
         "trace": "トレース"
@@ -14154,7 +14154,7 @@
       "none": "なし",
       "code": "コード",
       "title": "コードアシスタント",
-      "apply": "申し込む",
+      "apply": "適用",
       "inputs": "入力",
       "outputs": "出力",
       "editorStartFailed": "コードアシスタントエディタを起動できませんでした",
@@ -14259,7 +14259,7 @@
         "workflow": "ワークフロー",
         "panels": "パネル",
         "panel": "パネル",
-        "assets": "資産",
+        "assets": "アセット",
         "imageEditor": "画像エディタ"
       },
       "switchToTab": "タブに切り替える",
@@ -14332,7 +14332,7 @@
     "models": {
       "getStarted": "ローカル モデルを使ってみる",
       "intro": "AI を自分のマシンで実行します。プライベート、オフライン、そして無料です。推奨事項をお客様のハードウェアに合わせます。",
-      "recommended": "推奨機種",
+      "recommended": "おすすめのモデル",
       "recommendedDescription": "現在のモデルは単一のコンシューマ GPU に合わせてサイズ設定されており、お使いのマシンに最初に適合するものを示すように並べ替えられています。サイズとメモリはおおよその値です。",
       "filterByCapability": "推奨モデルを機能別にフィルタリングする",
       "allCapabilities": "すべての機能",
@@ -14590,7 +14590,7 @@
         "General": "一般",
         "Transform": "トランスフォーム",
         "Selection": "選択",
-        "View": "見る"
+        "View": "表示"
       },
       "actions": {
         "undo": "元に戻す",
@@ -14637,9 +14637,9 @@
       "back": "戻る",
       "right": "右",
       "left": "左",
-      "top": "トップへ",
+      "top": "上",
       "bottom": "下",
-      "view": "見る",
+      "view": "表示",
       "cameraViews": "カメラビュー",
       "frameAll": "すべてをフレーム化する",
       "frameAllObjects": "すべてのオブジェクトをフレームに収める",
@@ -14691,7 +14691,7 @@
       },
       "modelSetupCallout": {
         "onboardingReason": "このノードには AI モデルが必要です。プロバイダーに接続して実行します。",
-        "dismiss": "却下",
+        "dismiss": "閉じる",
         "connectProvider": "AI プロバイダーに接続してモデルを使用します。開始するには API キーを追加します。",
         "pickModel": "このワークフローを実行する前に、ここでモデルを選択してください。",
         "addApiKeys": "APIキーを追加する"
@@ -14713,7 +14713,7 @@
         "logs": "ログ"
       },
       "outputQuickActions": {
-        "upscale": "高級感のある",
+        "upscale": "アップスケール",
         "remove-background": "背景を削除する",
         "edit": "プロンプト付きで編集する"
       },
@@ -14792,7 +14792,7 @@
         "codeNode": "コードノード",
         "nodeTitle": "ノードのタイトル",
         "openLink": "リンクを開く",
-        "disabled": "障害者",
+        "disabled": "無効",
         "logs_one": "{{count}} ログ",
         "logs_other": "{{count}} ログ"
       },
@@ -14825,9 +14825,9 @@
       "comfy": {
         "failedToParse": "解析に失敗しました",
         "failedToLoadFile": "ファイルのロードに失敗しました",
-        "loadWorkflow": "ロードワークフロー",
+        "loadWorkflow": "ワークフローを読み込む",
         "loadWorkflowTitle": "ComfyUI ワークフローをロードする",
-        "apply": "申し込む",
+        "apply": "適用",
         "instructions": "ワークフローを API (プロンプト) 形式で貼り付けるか、ComfyUI の「保存 (API 形式)」を使用するか、ComfyUI によってエクスポートされた .json/.png ファイルをドロップします。",
         "workflowJson": "ワークフローJSON",
         "chooseFile": "ファイルを選択してください",
@@ -15022,7 +15022,7 @@
       "audioPlaceholder": "話すテキストを入力してください…",
       "videoPlaceholder": "ショットについて説明します: 被写体、アクション、カメラ、光…",
       "promptAria": "クイック {{kind}} プロンプト",
-      "estimatedCost": "この世代の推定コスト",
+      "estimatedCost": "この生成の推定コスト",
       "generateMode": "{{mode}} を生成する",
       "disabledTooltip": "プロンプトを入力し、生成するモデルを選択します",
       "generate": "生成する",
@@ -15030,7 +15030,7 @@
       "videoModel": "ビデオモデル",
       "seconds_one": "{{count}} 秒",
       "seconds_other": "{{count}} 秒",
-      "duration": "期間",
+      "duration": "長さ",
       "videoResolution": "ビデオ解像度",
       "selectTtsModel": "TTSモデルを選択してください",
       "voice": "声",
@@ -15055,12 +15055,12 @@
       "toggleSubfolders": "{{name}} サブフォルダーの切り替え"
     },
     "breadcrumb": {
-      "assets": "資産",
+      "assets": "アセット",
       "home": "ホーム"
     },
     "projectFilter": {
       "allProjects": "すべてのプロジェクト",
-      "personal": "個人的な",
+      "personal": "個人",
       "project": "プロジェクト",
       "tooltip": "1 つのプロジェクトまたはすべてのプロジェクトのアセットを表示します",
       "ariaLabel": "プロジェクト: {{label}}",
@@ -15081,7 +15081,7 @@
     },
     "saveToFolder": {
       "saveToFolder": "フォルダーに保存",
-      "assets": "資産",
+      "assets": "アセット",
       "folderNamePlaceholder": "フォルダ名…",
       "newFolderName": "新しいフォルダー名",
       "newFolder": "新しいフォルダ…",
@@ -15089,13 +15089,13 @@
     },
     "workflowTree": {
       "workflows": "ワークフロー",
-      "searchPlaceholder": "検索ワークフロー",
+      "searchPlaceholder": "ワークフローを検索",
       "noWorkflows": "ワークフローなし"
     }
   },
   "i18n-next42-assets-grid": {
     "explorer": {
-      "title": "資産",
+      "title": "アセット",
       "subtitle": "画像、オーディオ、ビデオ、その他のファイルを参照、整理、プレビューします。"
     },
     "actions": {
@@ -15149,7 +15149,7 @@
       "audio": "オーディオ",
       "model_3d": "3Dモデル",
       "text": "テキスト",
-      "application": "書類",
+      "application": "ドキュメント",
       "other": "その他",
       "folder": "フォルダー"
     },
@@ -15509,7 +15509,7 @@
       "seekVideo": "ビデオを探す",
       "previousFrame": "前のフレーム",
       "pause": "一時停止",
-      "play": "遊ぶ",
+      "play": "再生",
       "nextFrame": "次のフレーム",
       "unmute": "ミュートを解除する",
       "mute": "ミュート",
@@ -15884,7 +15884,7 @@
         "code": "コード",
         "text-to-image": "テキストから画像へ",
         "image-to-image": "画像から画像へ",
-        "upscale": "高級感のある",
+        "upscale": "アップスケール",
         "remove-background": "背景を削除する",
         "relight": "リライト",
         "vectorize": "ベクトル化",
@@ -15929,7 +15929,7 @@
       "clearedNotification": "最近のノードがクリアされました"
     },
     "quickAccess": {
-      "documents": "書類",
+      "documents": "ドキュメント",
       "nodes": "ノード",
       "favorites": "お気に入りのノード",
       "history": "最近のノード",
@@ -15945,7 +15945,7 @@
       "timelines": "タイムライン",
       "jsscripts": "JSスクリプト",
       "skills": "スキル",
-      "assets": "資産",
+      "assets": "アセット",
       "library": "図書館",
       "more": "もっと見る",
       "files": "ファイル"
@@ -15955,7 +15955,7 @@
     "downloadManager": {
       "title": "ダウンロード",
       "backgroundDownloads": "ダウンロードはバックグラウンドで続行されます。ツールバーのダウンロード アイコンからいつでもアクセスできます。",
-      "recommendedModels": "推奨機種",
+      "recommendedModels": "おすすめのモデル",
       "downloadFromNodes": "ノード内の {{recommendedModels}} ボタンを使用してモデルをダウンロードします。",
       "modelManager": "モデルマネージャー",
       "modelManagerInfo": "右上パネルの {{modelManager}} には、利用可能なすべてのモデルが表示されます。",
@@ -16000,7 +16000,7 @@
       "mayHaveBeenDeleted": "アプリが削除された可能性があります。",
       "appView": "アプリビュー",
       "design": "デザイン",
-      "run": "走る",
+      "run": "実行",
       "previewDraft": "ドラフトのプレビュー",
       "settings": "設定",
       "builderAssistant": "アプリビルダーアシスタント",
@@ -16053,7 +16053,7 @@
       "label": "JSスクリプト",
       "resizeAssistant": "JS スクリプト アシスタントのサイズ変更",
       "code": "コード",
-      "run": "走る",
+      "run": "実行",
       "script": "スクリプト",
       "scriptSettings": "スクリプト設定",
       "assistant": "アシスタント"
@@ -16068,7 +16068,7 @@
       "notAvailable": "{{page}} はこのサーバーでは使用できません",
       "localOnlyDescription": "サーバーが実行されているマシン上のファイルを管理します。デスクトップ アプリまたは自己ホスト型インストールを使用します。",
       "titles": {
-        "assets": "資産",
+        "assets": "アセット",
         "tutorials": "チュートリアル",
         "examples": "例",
         "costs": "コスト",
@@ -16103,9 +16103,9 @@
       "untitled": "無題の絵コンテ",
       "assembleTimeline": "タイムラインを組み立てる",
       "hideAssistant": "アシスタントを隠す",
-      "showAssistant": "番組アシスタント",
+      "showAssistant": "アシスタントを表示",
       "label": "絵コンテ",
-      "resizeAssistant": "サイズ変更ストーリーボードアシスタント",
+      "resizeAssistant": "サイズ変更絵コンテアシスタント",
       "board": "理事会",
       "assistant": "アシスタント"
     },
@@ -16141,7 +16141,7 @@
     "tabBar": {
       "openOrCreateTab": "タブを開くか作成する",
       "new": "新しい",
-      "view": "見る",
+      "view": "表示",
       "edit": "編集",
       "projectName": "プロジェクト名",
       "rename": "名前の変更"
@@ -16221,7 +16221,7 @@
         "brush": "ブラシ",
         "pencil": "鉛筆",
         "eraser": "消しゴム",
-        "fill": "埋める",
+        "fill": "塗りつぶし",
         "color_picker": "カラーピッカー",
         "blur": "ぼかし",
         "clone_stamp": "クローンスタンプ",
@@ -16248,7 +16248,7 @@
         "expand": "バージョンを展開する",
         "loadFailed": "バージョンのロードに失敗しました",
         "empty": "まだバージョンがありません",
-        "emptyDescription": "成功した世代がここに現れる",
+        "emptyDescription": "成功した生成結果がここに表示されます",
         "favorite": "お気に入りとしてマーク (剪定を防止)",
         "unfavorite": "お気に入りから削除",
         "restore": "このバージョンを復元する",
@@ -16263,7 +16263,7 @@
         "selected_one": "{{count}} レイヤーが選択されました",
         "selected_other": "{{count}} レイヤーが選択されました",
         "selectSingle": "検査する単一のレイヤーを選択します。",
-        "title": "検査官",
+        "title": "インスペクター",
         "selectLayer": "検査するレイヤーを選択します。",
         "layer": "レイヤー",
         "opacity": "不透明度",
@@ -16298,7 +16298,7 @@
         "promptLabel": "生成プロンプト",
         "selectModel": "モデルを選択してください",
         "resolution": "解像度",
-        "cost": "この世代の推定コスト",
+        "cost": "この生成の推定コスト",
         "generate": "生成する"
       },
       "status": {
@@ -16320,7 +16320,7 @@
         "stale": "古い",
         "failed": "失敗しました",
         "locked": "ロックされています",
-        "missing": "行方不明",
+        "missing": "見つかりません",
         "success": "成功",
         "cancelled": "キャンセルされました"
       },
@@ -16340,7 +16340,7 @@
       },
       "history": {
         "empty": "編集内容がここに表示されます。",
-        "label": "歴史",
+        "label": "履歴",
         "undone": "{{label}} (元に戻す)"
       }
     }
@@ -16513,7 +16513,7 @@
       "sortFiles": "ファイルの並べ替え",
       "sort": "並べ替え: {{label}}",
       "filterByFileSize": "ファイルサイズでフィルタリングする",
-      "view": "見る",
+      "view": "表示",
       "thumbnailSize": "サムネイルのサイズ",
       "selectEveryFile": "ビュー内のすべてのファイルを選択します",
       "selectAll": "すべて選択"
@@ -16564,7 +16564,7 @@
       "noPanelsMatchSearch": "検索に一致するパネルはありません。",
       "closePanel": "パネルを閉じる",
       "openLeftPanel": "左パネルを開く",
-      "inspector": "検査官",
+      "inspector": "インスペクター",
       "inspectorPanel": "インスペクターパネル",
       "resizeInspectorPanel": "インスペクターパネルのサイズを変更する"
     },
@@ -16584,12 +16584,12 @@
       "cancelTheJob": "仕事をキャンセルする",
       "video": "ビデオ",
       "image": "画像",
-      "asset": "資産",
+      "asset": "アセット",
       "outputCount_one": "{{count}} {{type}}",
       "outputCount_other": "{{count}} {{type}}s",
       "cancelling": "キャンセル中…",
       "failed": "失敗しました",
-      "running": "ランニング",
+      "running": "実行中",
       "inQueue": "キュー中",
       "cancelled": "キャンセルされました",
       "completed": "完了しました",
@@ -16724,7 +16724,7 @@
         "video/": "ビデオ",
         "audio/": "オーディオファイル",
         "model/": "3Dモデル",
-        "assets": "資産"
+        "assets": "アセット"
       }
     },
     "script": {
@@ -16789,7 +16789,7 @@
         "Keyframes & source": "キーフレームとソース",
         "Zoom & view": "ズームして表示",
         "Workspaces": "ワークスペース",
-        "History": "歴史"
+        "History": "履歴"
       },
       "rows": {
         "selectTool": "ツールを選択",
@@ -16876,7 +16876,7 @@
         "shrinkTracks": "トラックを短くする",
         "toggleDawMode": "ビデオとDAWのレイアウトを切り替える",
         "maximizePanel": "フォーカスされたパネルグループを最大化または復元する",
-        "toggleProgramFullscreen": "番組モニター全画面表示",
+        "toggleProgramFullscreen": "プログラムモニターを全画面表示",
         "workspace1": "最初のワークスペースに切り替えます",
         "workspace2": "2 番目のワークスペースに切り替えます",
         "workspace3": "3 番目のワークスペースに切り替えます",
@@ -16938,7 +16938,7 @@
         "panelEffectControls": "エフェクトコントロールへ移動",
         "panelInspector": "インスペクターへ移動",
         "panelScript": "スクリプトへ移動",
-        "panelStoryboard": "ストーリーボードへ移動",
+        "panelStoryboard": "絵コンテへ移動",
         "nextPanel": "次のパネルへ移動",
         "prevPanel": "前のパネルへ移動"
       }
@@ -17148,7 +17148,7 @@
         "sample_rate_reduction": "料金",
         "threshold": "脱穀",
         "ratio": "比率",
-        "attack_ms": "攻撃",
+        "attack_ms": "アタック",
         "release_ms": "リリース",
         "drive_db": "ドライブ",
         "threshold_db": "天井"
@@ -17441,7 +17441,7 @@
         "browserActivityMissing": "一部のブラウザーアクティビティを記録できませんでした。",
         "recordingIncomplete": "アクティビティの記録が不完全です。",
         "sample": {
-          "readingStoryboard": "承認されたストーリーボードを読みます。",
+          "readingStoryboard": "承認された絵コンテを読みます。",
           "editingTimeline": "タイムラインを編集する",
           "appliedEdits": "3 つの編集を適用しました。"
         }
@@ -17483,7 +17483,7 @@
         "no": "いいえ",
         "show": "表示する",
         "hide": "隠す",
-        "disabled": "障害者",
+        "disabled": "無効",
         "completed": "完了しました",
         "width": "幅",
         "height": "高さ",
@@ -17594,7 +17594,7 @@
       "renderNodes": {
         "browseNodes": "ノードの参照",
         "clickNamespaces": "左側の名前空間をクリックします",
-        "searchNodes": "検索ノード",
+        "searchNodes": "ノードを検索",
         "typeToSearch": "検索バーに入力してノードを検索します。",
         "createNodes": "ノードの作成",
         "clickNode": "ノードをクリックします",
@@ -17810,7 +17810,7 @@
     "colorOverlay": {
       "color": "色",
       "sliders": {
-        "amount": "金額"
+        "amount": "強さ"
       }
     },
     "constantTimeline": {
@@ -17860,10 +17860,10 @@
       }
     },
     "pad": {
-      "fill": "埋める",
+      "fill": "塗りつぶし",
       "sliders": {
         "left": "左",
-        "top": "トップへ",
+        "top": "上",
         "right": "右",
         "bottom": "下"
       }
@@ -18017,7 +18017,7 @@
       "label": "ビデオプレーヤー",
       "playClip": "クリップを再生する",
       "pause": "一時停止",
-      "play": "遊ぶ",
+      "play": "再生",
       "seek": "シーク",
       "playbackSpeed": "再生速度",
       "exitFullscreen": "全画面表示を終了する",
@@ -18117,7 +18117,7 @@
       "label": "モデルの実行"
     },
     "runWorkflowButton": {
-      "runLabel": "走る",
+      "runLabel": "実行",
       "stopLabel": "停止"
     },
     "settingsButton": {
@@ -18245,7 +18245,7 @@
         "pickBindingSceneList": "このシーン リストのリソース バインディングを選択します。",
         "pickBindingWidget": "このウィジェットのリソース バインディングを選択します。",
         "pickerUnbound": "このピッカーはリソースにバインドされていません。",
-        "sceneListNeedsStoryboard": "シーン リストにはストーリーボード バインディングが必要です。 「{{name}}」は {{kind}} です。",
+        "sceneListNeedsStoryboard": "シーン リストには絵コンテ バインディングが必要です。 「{{name}}」は {{kind}} です。",
         "sceneListUnbound": "このシーン リストはリソースにバインドされていません。"
       },
       "sketch": {
@@ -18261,20 +18261,20 @@
         "running": "実行中…"
       },
       "storyboard": {
-        "bindOutput": "これをストーリーボード出力にバインドして、ボードを表示します。",
+        "bindOutput": "これを絵コンテ出力にバインドして、ボードを表示します。",
         "label": "絵コンテ",
-        "loading": "ストーリーボードをロードしています",
+        "loading": "絵コンテをロードしています",
         "moveDown": "{{name}} を下に移動します",
         "moveUp": "{{name}} を上に移動",
         "noScenes": "このリソースにはシーンがありません。",
-        "noScenesYet": "このストーリーボードにはまだシーンがありません。",
+        "noScenesYet": "この絵コンテにはまだシーンがありません。",
         "noStoryboardYet": "絵コンテはまだありません",
-        "openStoryboard": "ストーリーボードを開く",
+        "openStoryboard": "絵コンテを開く",
         "removeScene": "{{name}} を削除します",
-        "scenesAppearOnRun": "アプリがストーリーボードに対して実行されると、シーンが表示されます。",
+        "scenesAppearOnRun": "アプリが絵コンテに対して実行されると、シーンが表示されます。",
         "scene": "シーン",
-        "selectToEdit": "シーンを編集するストーリーボードを選択します。",
-        "staleEdit": "このストーリーボードは、開いてから変更されました。編集は適用されませんでした。以下のシーンがリロードされました。"
+        "selectToEdit": "シーンを編集する絵コンテを選択します。",
+        "staleEdit": "この絵コンテは、開いてから変更されました。編集は適用されませんでした。以下のシーンがリロードされました。"
       }
     }
   },
@@ -18427,13 +18427,13 @@
       "editMessage": "メッセージを編集する",
       "editWarning": "送信すると新しいバージョンが作成されます。現在のバージョンも残ります。",
       "editAndResend": "編集して再送信します",
-      "regenerate": "再生する",
+      "regenerate": "再生成",
       "previousVersion": "前のバージョン",
       "nextVersion": "次のバージョン",
       "versionOf": "バージョン {{index}}/{{count}}",
       "copyMessage": "メッセージをコピーする",
       "enterCredential": "資格情報を入力してください",
-      "credentialSubtitle": "秘密のストアに保存されました。エージェントがその値を確認することはありません。",
+      "credentialSubtitle": "シークレットストアに保存しました。エージェントがこの値を見ることはありません。",
       "pasteKey": "キーを貼り付けます",
       "couldNotSaveKey": "キーを保存できませんでした。",
       "saving": "保存中…",
@@ -18607,7 +18607,7 @@
       "animation": {
         "anyState": "どの州でも",
         "initial": "イニシャル",
-        "playing": "遊ぶ",
+        "playing": "再生中",
         "blendingOut": "ブレンドアウト"
       },
       "script": {
@@ -18634,7 +18634,7 @@
       "enabled": "{{title}} が有効になりました"
     },
     "playbackButton": {
-      "play": "遊ぶ",
+      "play": "再生",
       "pause": "一時停止",
       "stop": "停止"
     },
@@ -18679,7 +18679,7 @@
           "noInputs": "この操作には入力がありません。"
         },
         "storyboardPreview": {
-          "designModeDescription": "これをストーリーボード出力にバインドしてボードを再生します。",
+          "designModeDescription": "これを絵コンテ出力にバインドしてボードを再生します。",
           "noStoryboard": "絵コンテはまだありません",
           "loadingPreview": "プレビューを読み込んでいます"
         }
@@ -18817,12 +18817,12 @@
   "i18n-next108": {
     "secretRequestCard": {
       "enterCredential": "資格情報を入力してください",
-      "credentialSubtitle": "秘密のストアに保存されました。エージェントがその値を確認することはありません。",
+      "credentialSubtitle": "シークレットストアに保存しました。エージェントがこの値を見ることはありません。",
       "whereToGetKey": "このキーはどこで入手できますか",
       "pasteKey": "キーを貼り付けます",
       "couldNotSaveKey": "キーを保存できませんでした。",
       "saveFailed": "要求されたシークレットの保存に失敗しました",
-      "notNow": "今ではありません",
+      "notNow": "今はしない",
       "saving": "保存中…",
       "saveKey": "キーを保存"
     },
@@ -18862,7 +18862,7 @@
       "noDescription": "このノードについては説明がありません。"
     },
     "settings": {
-      "editorHeading": "編集者"
+      "editorHeading": "エディター"
     },
     "providerOnboarding": {
       "setUp": "セットアップ"
@@ -18952,7 +18952,7 @@
       "snap": "スナップ"
     },
     "workspace": {
-      "dismiss": "却下",
+      "dismiss": "閉じる",
       "resizeAppBuilderAssistant": "アプリビルダーのサイズ変更アシスタント",
       "workflowAndSubgraphCanvases": "ワークフローとサブグラフのキャンバス"
     },
@@ -18996,7 +18996,7 @@
       },
       "statuses": {
         "pending": "保留中",
-        "running": "走っている",
+        "running": "実行中",
         "completed": "完成した",
         "failed": "失敗しました",
         "error": "エラー",
@@ -19028,10 +19028,10 @@
     "chooseInput": "このワークフローには、一致する入力がいくつかあります。ファイルを取得するものを選択します。",
     "unsupportedTitle": "変えるものは何もない",
     "unsupportedDescription": "フォルダーはワークフローを通じて実行できません。",
-    "run": "走る",
+    "run": "実行",
     "cancel": "キャンセル",
     "close": "閉じる",
-    "cancelRun": "走行を停止する",
+    "cancelRun": "実行を停止",
     "chooseAnother": "別のワークフローを選択してください",
     "runAgain": "もう一度実行します",
     "done": "完了",
@@ -19043,11 +19043,11 @@
     "noOutputs": "ワークフローは出力なしで終了しました。",
     "transformOutput": "トランスフォーム",
     "saveToAssets": "アセットに保存",
-    "inAssets": "資産内",
+    "inAssets": "アセット内",
     "saveFailed": "出力をアセットに保存できませんでした。",
     "status": {
       "idle": "準備完了",
-      "running": "ランニング",
+      "running": "実行中",
       "completed": "完了",
       "failed": "失敗しました",
       "cancelled": "停止しました"
@@ -19100,19 +19100,19 @@
       "unrendered": "レンダリングされません",
       "noShots": "この絵コンテにはショットがありません。",
       "noBoardsTitle": "絵コンテなし",
-      "noBoardsDescription": "ストーリーボードを作成してショットをタイムラインに配置します。",
+      "noBoardsDescription": "絵コンテを作成してショットをタイムラインに配置します。",
       "listLabel": "絵コンテのショット"
     }
   },
   "generations": {
-    "title": "世代",
-    "emptyTitle": "まだ世代がありません",
+    "title": "生成履歴",
+    "emptyTitle": "まだ生成履歴がありません",
     "emptyDescription": "エディターで生成した画像、ビデオ、オーディオ、ガイド付きフロー、チャット、またはワークフローが実行中にここに表示されます。",
     "clearFinished": "クリア済み",
     "stop": "生成を停止する",
-    "stopFailed": "世代を止める",
+    "stopFailed": "生成を停止",
     "openSource": "{{title}} を開く",
-    "untitled": "{{kind}} 世代",
+    "untitled": "{{kind}} の生成",
     "kind": {
       "image": "画像",
       "video": "ビデオ",
@@ -19126,7 +19126,7 @@
       "cancelled": "止まった"
     },
     "filter": {
-      "label": "フィルター世代",
+      "label": "生成履歴を絞り込む",
       "all": "すべて",
       "generating": "生成中",
       "failed": "失敗しました"
@@ -19236,7 +19236,7 @@
     "clearFilters": "フィルターをクリアする",
     "reason": {
       "limit": "最大 {{max}} プリセットを組み合わせることができます。",
-      "mode": "{{name}} は、この種類の世代では使用できません。",
+      "mode": "{{name}} はこの種類の生成では使用できません。",
       "notStackable": "{{name}} は他のプリセットと組み合わせることはできません。",
       "slot": "{{name}} はすでに同じスロットをカバーしています。",
       "conflict": "{{name}} と競合します。"
@@ -19624,11 +19624,11 @@
       },
       "film-scene": {
         "name": "シーンを撮影する",
-        "description": "一文からショットのストーリーボード、レンダリングされた静止画やクリップまで、ショットごとに指示できます。"
+        "description": "一文からショットの絵コンテ、レンダリングされた静止画やクリップまで、ショットごとに指示できます。"
       },
       "music-video": {
         "name": "ミュージックビデオ",
-        "description": "ビートに同期したトリートメントとストーリーボードがトラックに合わせてカットされます。"
+        "description": "ビートに同期したトリートメントと絵コンテがトラックに合わせてカットされます。"
       },
       "photo-effects": {
         "name": "写真をアニメーション化する",
@@ -19640,7 +19640,7 @@
       },
       "product-ad": {
         "name": "商品広告",
-        "description": "製品ページからの完成した発売コマーシャル: ストーリーボード、映像、音声、音楽、編集されたタイムライン。"
+        "description": "製品ページからの完成した発売コマーシャル: 絵コンテ、映像、音声、音楽、編集されたタイムライン。"
       },
       "product-hero": {
         "name": "製品のヒーローショット",
@@ -19708,7 +19708,7 @@
     "sendFailed": "{{count}} テイクの {{sent}} を開始しました。残りは NodeTool に到達しませんでした。接続を確認して、もう一度試してください。",
     "retakeFailed": "再取得できませんでした: {{reason}}",
     "olderFailed": "古いレンダーをロードできませんでした。",
-    "gridLabel": "世代",
+    "gridLabel": "生成履歴",
     "empty": {
       "title": "まだ何も作成されていません",
       "description": "上にプロンプトを書いて「生成」を押してください。画像、動画、音声が新しい順にここに表示されます。",
@@ -19830,7 +19830,7 @@
       "needImageModel": "画像モデルを選択します。"
     },
     "result": {
-      "running": "{{effect}} を適用しています。ビデオには数分かかる場合があります。このタブを離れると、結果が「世代」にも表示されます。",
+      "running": "{{effect}} を適用しています。動画には数分かかる場合があります。このタブを離れても、結果は「生成履歴」にも表示されます。",
       "done": "{{effect}} の準備ができました。",
       "alt": "{{effect}} の結果",
       "failed": "効果は終了せず、結果は返されませんでした。もう一度試すか、別のモデルを選択してください。",
@@ -19858,7 +19858,7 @@
     "consent": "この生成されたクリップで画像を使用することにこの人の同意を得ています。",
     "line": "彼らは何と言えばいいのでしょうか？",
     "model": "リップシンクビデオモデル",
-    "requirements": "写真とセリフを追加し、音声モデル、音声、リップシンク モデルを選択します。結果は『世代』にも表示されます。",
+    "requirements": "写真とセリフを追加し、音声モデル、ボイス、リップシンクモデルを選択します。結果は「生成履歴」にも表示されます。",
     "render": "リップシンクをレンダリングする",
     "speech": "音声を生成中…",
     "video": "リップシンクをレンダリング中…",
@@ -19910,7 +19910,7 @@
     "expert": "エキスパート",
     "canvasSize": "{{width}} × {{height}}",
     "frameRate": "{{fps}} fps",
-    "showAssistant": "番組アシスタント",
+    "showAssistant": "アシスタントを表示",
     "hideAssistant": "アシスタントを隠す",
     "resizeAssistant": "タイムラインのサイズ変更アシスタント"
   },
@@ -20104,7 +20104,7 @@
       "actionFailed": "変更できませんでした。",
       "types": {
         "workflow": "ワークフロー",
-        "storyboard": "ストーリーボード",
+        "storyboard": "絵コンテ",
         "script": "スクリプト",
         "timeline": "タイムライン",
         "sketch": "スケッチ",
@@ -20296,7 +20296,7 @@
         "app": "ミニアプリ",
         "jsscript": "JS スクリプト",
         "script": "スクリプト",
-        "storyboard": "ストーリーボード",
+        "storyboard": "絵コンテ",
         "timeline": "タイムライン",
         "workflow": "ワークフロー"
       }
@@ -20348,14 +20348,14 @@
   },
   "storyboardText": {
     "mode": "テキスト",
-    "editorLabel": "Markdown テキストとしてのストーリーボード",
+    "editorLabel": "Markdown テキストとしての絵コンテ",
     "hint": "幕は #、シーンは ##、ショットは ###、フィールドは - **Motion:** と入力します。エンティティや画像に言及するには @ と入力します。",
     "issues": "確認が必要な行: {{lines}}",
     "loading": "テキストを読み込み中…",
     "warnings": {
       "media_outside_shot": "画像はショットに属します。### のショット見出しの下に置いてください。",
       "second_media": "ショットで選択できる静止画とクリップは 1 つずつです。これは使用されません。",
-      "unknown_shot_field": "「{{label}}」はストーリーボードのフィールドではありません。ショットのメモに保存されます。",
+      "unknown_shot_field": "「{{label}}」は絵コンテのフィールドではありません。ショットのメモに保存されます。",
       "unknown_field": "「{{label}}」はここではフィールドではありません。保存されません。",
       "text_in_scene": "シーンにはスラグラインと照明しかありません。このテキストをショットの下に置くか、「Lighting:」で始めてください。",
       "bad_duration": "ショット {{shot}}: 「{{value}}」は秒数ではありません。",
@@ -20385,7 +20385,7 @@
       "instruction": "エージェントへの依頼",
       "send": "エージェントに送信",
       "failed": "モデルへのリクエストに失敗しました。",
-      "context": "リクエストと一緒に送信: ストーリーボード全体、{{shots}} ショット、ライブラリの {{entities}} エンティティ。",
+      "context": "リクエストと一緒に送信: 絵コンテ全体、{{shots}} ショット、ライブラリの {{entities}} エンティティ。",
       "quick": {
         "tighten": "引き締める",
         "visual": "より視覚的に",
@@ -20395,7 +20395,7 @@
         "inconsistencies": "矛盾を探す"
       },
       "errors": {
-        "no_model": "エージェントを使うには、このストーリーボードの演出モデルかチャットモデルを選んでください。",
+        "no_model": "エージェントを使うには、この絵コンテの演出モデルかチャットモデルを選んでください。",
         "empty": "モデルから回答がありませんでした。もう一度送信してください。",
         "failed": "リクエストに失敗しました。もう一度送信してください。"
       }

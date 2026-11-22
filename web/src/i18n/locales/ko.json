@@ -80,7 +80,7 @@
       "approve": "승인하다",
       "finishSignInTitle": "{{provider}}로 로그인 완료",
       "connecting": "연결 중…",
-      "connect": "연결하다",
+      "connect": "연결",
       "codeInstructions": "이 서버는 로그인 콜백을 수신할 수 없으므로 {{provider}}이 대신 코드를 표시합니다. 로그인을 승인한 후 페이지에 표시되는 코드를 복사하여 아래에 붙여넣으세요.",
       "redirectInstructionsStart": "{{provider}}은 브라우저를 다음으로 보냅니다.",
       "localAddress": "현지 주소",
@@ -104,7 +104,7 @@
       "disconnect": "연결 끊기",
       "keep": "유지하다",
       "disconnectFailed": "이 계정을 연결 해제할 수 없습니다. 다시 시도해 보세요.",
-      "connectDescription": "{{provider}} 계정을 연결하여 {{provider}}의 NodeTool 에이전트와 채팅하세요. 스레드, 자산 및 예산은 귀하의 것입니다.",
+      "connectDescription": "{{provider}} 계정을 연결하여 {{provider}}의 NodeTool 에이전트와 채팅하세요. 스레드, 에셋 및 예산은 귀하의 것입니다.",
       "connectProvider": "{{provider}} 연결",
       "startLinkFailed": "연결을 시작할 수 없습니다. 다시 시도해 보세요.",
       "openTelegram": "텔레그램을 열고 시작을 누르세요",
@@ -118,7 +118,7 @@
       "expiredCodeEnd": "다시 새 것을 얻으려면.",
       "backToNodeTool": "NodeTool로 돌아가기",
       "confirmLinkQuestion": "{{provider}} 계정 {{id}}을 연결하시겠습니까?",
-      "confirmLinkDescription": "스레드, 자산, 비밀 및 예산과 같은 NodeTool 계정으로 실행됩니다.",
+      "confirmLinkDescription": "스레드, 에셋, 시크릿 및 예산과 같은 NodeTool 계정으로 실행됩니다.",
       "confirmLinkFailed": "링크를 완료할 수 없습니다. 코드가 방금 만료되었을 수 있습니다.",
       "confirm": "확인",
       "linkSucceeded": "{{provider}} 계정 {{id}}이(가) 연결되었습니다. 채팅으로 돌아가서 인사하세요."
@@ -130,11 +130,11 @@
     }
   },
   "screen_editor": {
-    "workflow": "작업 흐름",
+    "workflow": "워크플로",
     "missingWorkflowData": "워크플로 ID 또는 데이터가 제공되지 않았습니다.",
     "errorPrefix": "오류: ",
     "instructions": "지침",
-    "duration": "기간",
+    "duration": "길이",
     "result": "결과",
     "error": "오류",
     "toolCalls": "{{count}} 도구 호출",
@@ -144,7 +144,7 @@
     "executionPlan": "실행계획",
     "completedTasks": "완료된 작업",
     "stepsProgress": "{{completed}}/{{count}} 단계",
-    "askAgent": "상담원에게 물어보세요",
+    "askAgent": "에이전트에게 물어보세요",
     "couldNotOpenRunChat": "실행 채팅을 열 수 없습니다.",
     "diagnoseSelectedRunDraft": "선택한 실행을 진단하는 데 도움을 주세요.",
     "diagnoseSpanDraft": "선택한 실행에서 이 범위를 진단하는 데 도움을 주세요.",
@@ -152,20 +152,20 @@
     "runChatCouldNotOpen": "실행 채팅을 열 수 없습니다.",
     "createFolder": "새 폴더 만들기",
     "sortByName": "이름순으로 정렬",
-    "sortAssetsByName": "자산을 이름순으로 정렬",
+    "sortAssetsByName": "에셋을 이름순으로 정렬",
     "sortByDate": "날짜순으로 정렬",
-    "sortAssetsByDate": "생성 날짜를 기준으로 자산 정렬",
+    "sortAssetsByDate": "생성 날짜를 기준으로 에셋 정렬",
     "sortBySize": "크기별로 정렬",
-    "sortAssetsBySize": "파일 크기별로 자산 정렬",
-    "assets": "자산",
+    "sortAssetsBySize": "파일 크기별로 에셋 정렬",
+    "assets": "에셋",
     "name": "이름",
     "type": "유형",
     "size": "크기",
     "created": "생성됨",
     "folder": "폴더",
-    "openSourceWorkflowTooltip": "저장된 워크플로를 열고 이 자산을 만든 노드를 표시합니다.",
+    "openSourceWorkflowTooltip": "저장된 워크플로를 열고 이 에셋을 만든 노드를 표시합니다.",
     "openWorkflow": "워크플로 열기",
-    "openSnapshotTooltip": "저장되지 않은 새 워크플로로 이 자산을 만든 그래프와 입력을 엽니다.",
+    "openSnapshotTooltip": "저장되지 않은 새 워크플로로 이 에셋을 만든 그래프와 입력을 엽니다.",
     "openAsMade": "만들어졌을 때의 모습 그대로 오픈",
     "prompt": "프롬프트",
     "copyPrompt": "프롬프트 복사",
@@ -175,18 +175,18 @@
     "source": "소스",
     "originalPage": "원본 페이지",
     "model": "모델",
-    "provider": "공급자",
+    "provider": "프로바이더",
     "node": "노드",
     "task": "작업",
     "id": "아이디",
     "addToFavorites": "즐겨찾기에 추가",
     "removeFromFavorites": "즐겨찾기에서 제거",
-    "unstarSelectedAssets": "선택한 자산의 별표를 제거하세요",
-    "starSelectedAssets": "즐겨찾기에서 찾으려면 선택한 자산에 별표를 표시하세요.",
+    "unstarSelectedAssets": "선택한 에셋의 별표를 제거하세요",
+    "starSelectedAssets": "즐겨찾기에서 찾으려면 선택한 에셋에 별표를 표시하세요.",
     "rename": "이름 바꾸기",
-    "renameSelectedAssets": "선택한 자산 이름 바꾸기",
+    "renameSelectedAssets": "선택한 에셋 이름 바꾸기",
     "openAsTab": "탭으로 열기",
-    "openAssetAsTabTooltip": "새 편집기 탭에서 이 자산을 엽니다.",
+    "openAssetAsTabTooltip": "새 편집기 탭에서 이 에셋을 엽니다.",
     "sendToWorkflow": "워크플로로 보내기",
     "sendMediaToWorkflowTooltip": "선택한 미디어를 워크플로 캔버스에 상수 노드로 추가합니다.",
     "transformWithWorkflow": "워크플로로 혁신…",
@@ -198,12 +198,12 @@
     "openRenderedTimelineTooltip": "이 비디오가 렌더링된 타임라인을 엽니다.",
     "createTimelineTooltip": "이 비디오에서 타임라인을 만들고 편집을 위해 엽니다.",
     "moveToExistingFolder": "기존 폴더로 이동",
-    "moveSelectedAssetsTooltip": "선택한 자산을 기존 폴더로 이동",
+    "moveSelectedAssetsTooltip": "선택한 에셋을 기존 폴더로 이동",
     "moveToNewFolder": "새 폴더로 이동",
-    "createFolderAndMoveTooltip": "새 폴더를 만들고 선택한 자산을 폴더로 이동하세요.",
+    "createFolderAndMoveTooltip": "새 폴더를 만들고 선택한 에셋을 폴더로 이동하세요.",
     "createFolderHereTooltip": "현재 위치에 새 폴더 만들기",
-    "downloadSelectedAssets": "선택한 자산 다운로드",
-    "downloadSelectedAssetsTooltip": "선택한 자산을 다운로드 폴더에 다운로드하세요.",
+    "downloadSelectedAssets": "선택한 에셋 다운로드",
+    "downloadSelectedAssetsTooltip": "선택한 에셋을 다운로드 폴더에 다운로드하세요.",
     "copyImage": "이미지 복사",
     "copyVideoInfo": "비디오 정보 복사",
     "copyAudioInfo": "오디오 정보 복사",
@@ -213,7 +213,7 @@
     "compareImages": "이미지 비교",
     "compareImagesTooltip": "선택한 두 이미지를 나란히 비교하세요.",
     "delete": "삭제",
-    "deleteSelectedAssets": "선택한 자산 삭제",
+    "deleteSelectedAssets": "선택한 에셋 삭제",
     "downloadStarted": "다운로드가 시작되었습니다. 시간이 좀 걸릴 수 있습니다.",
     "downloadFinished": "다운로드가 성공적으로 완료되었습니다.",
     "downloadFailed": "다운로드 실패",
@@ -225,7 +225,7 @@
     "audioInfo": "오디오 정보",
     "content": "내용",
     "connectableNodes": "연결 가능한 노드",
-    "searchNodes": "검색 노드",
+    "searchNodes": "노드 검색",
     "connectFrom": "연결 위치: {{name}}",
     "connectTo": "연결 대상: {{name}}",
     "selectConnection": "연결 선택",
@@ -255,7 +255,7 @@
     "cut": "컷",
     "copyNodeAsJson": "노드를 JSON으로 복사",
     "copyNodeDataAsJsonTooltip": "노드 데이터를 JSON으로 복사",
-    "duplicate": "중복",
+    "duplicate": "복제",
     "duplicateVertically": "수직으로 복제",
     "running": "실행 중…",
     "runNode": "노드 실행",
@@ -303,7 +303,7 @@
     "addComfySubgraphTooltip": "하나의 Comfy 작업으로 실행되는 ComfyUI 노드 하위 그래프 추가",
     "addApp": "앱 추가",
     "addAppTooltip": "미니 앱을 노드로 실행",
-    "property": "재산",
+    "property": "속성",
     "copyValue": "값 복사",
     "copyPropertyValueTooltip": "속성 값 복사",
     "resetDefaultValue": "기본값으로 재설정",
@@ -321,7 +321,7 @@
     "hideBottomInputDisconnect": "하단에 라벨이 붙은 입력 숨기기(가장자리 연결 끊기)",
     "showInputAtBottom": "매개변수 제목 및 편집기와 함께 하단에 입력 표시",
     "selection": "선택",
-    "runSelected": "실행이 선택됨",
+    "runSelected": "선택 항목 실행",
     "runSelectedTooltip": "선택한 노드를 자체 작업으로 실행",
     "align": "정렬",
     "arrange": "정렬",
@@ -369,7 +369,7 @@
       "string": "문자열",
       "video": "비디오"
     },
-    "workflowFallback": "작업 흐름",
+    "workflowFallback": "워크플로",
     "selectedItems": "{{count}} 항목",
     "noNodesMatch": "\"{{query}}\"과(와) 일치하는 노드가 없습니다.",
     "copiedToClipboard": "{{item}}이 클립보드에 복사되었습니다.",
@@ -418,7 +418,7 @@
       "runNode": "노드 실행",
       "enableNode": "노드 활성화",
       "disableNode": "노드 비활성화",
-      "duplicate": "중복",
+      "duplicate": "복제",
       "moreActions": "추가 작업",
       "removeFromGroup": "그룹에서 제거",
       "convertToInput": "입력으로 변환",
@@ -464,7 +464,7 @@
       "decreaseRuns": "실행 감소",
       "increaseRuns": "실행 증가",
       "runSelectedNodes": "선택한 노드 실행",
-      "runSelected": "실행이 선택됨"
+      "runSelected": "선택 항목 실행"
     },
     "inputs": {
       "selectOption": "옵션을 선택하세요",
@@ -481,7 +481,7 @@
     "type": "유형",
     "firstWorkflowGuide": "첫 번째 워크플로 가이드",
     "firstWorkflowTitle": "첫 번째 유용한 워크플로 구축",
-    "firstWorkflowDescription": "텍스트 입력을 출력에 연결하고 실행한 후 결과를 확인하세요. 이 스타터에는 모델이나 공급자 설정이 필요하지 않습니다.",
+    "firstWorkflowDescription": "텍스트 입력을 출력에 연결하고 실행한 후 결과를 확인하세요. 이 스타터에는 모델이나 프로바이더 설정이 필요하지 않습니다.",
     "closeGuide": "가이드 닫기",
     "inputAdded": "입력이 추가됨",
     "outputAdded": "출력이 추가되었습니다.",
@@ -561,9 +561,9 @@
       "filterNoMatches": "{{kind}} 필터{{search}}과 일치하는 메모리가 없습니다. 필터를 재설정하려면 모두를 선택하세요.",
       "andSearch": " 그리고 검색",
       "searchNoMatches": "그 단어를 모두 포함하는 기억은 없습니다.",
-      "emptyDescription": "에이전트는 작업하면서 생성한 프로젝트 노트와 자산을 기록합니다. 그들은 여기에 나타납니다.",
+      "emptyDescription": "에이전트는 작업하면서 생성한 프로젝트 노트와 에셋을 기록합니다. 그들은 여기에 나타납니다.",
       "title": "메모리",
-      "subtitle": "모든 대화에서 상담원이 기억하는 것, 즉 프로젝트 메모와 상담원이 참조하는 리소스입니다.",
+      "subtitle": "모든 대화에서 에이전트가 기억하는 것, 즉 프로젝트 메모와 에이전트가 참조하는 리소스입니다.",
       "searchPlaceholder": "추억 검색",
       "searchLabel": "키워드로 추억을 검색하세요",
       "count_one": "{{count}} 메모리",
@@ -637,7 +637,7 @@
       "startSecondRun": "두 번째 실행 시작",
       "runAnyway": "어쨌든 실행",
       "concurrentBody": "이 워크플로는 이미 실행 중입니다. 다른 실행을 시작하면 두 가지가 동시에 실행됩니다. 즉, 실시간 오디오 패치의 경우 사운드가 겹치는 것을 의미합니다. 현재 실행을 다시 시작하려면 먼저 현재 실행을 중지하세요.",
-      "heavyBody": "이 실행은 {{threshold}}의 경고 임계값보다 높은 {{count}} 모델/공급자 노드를 실행합니다. 각각은 외부 API를 호출하거나 모델을 실행할 수 있으므로 한 번에 모두 실행하면 속도가 느려지거나 공급자 속도 제한에 도달할 수 있습니다.",
+      "heavyBody": "이 실행은 {{threshold}}의 경고 임계값보다 높은 {{count}} 모델/프로바이더 노드를 실행합니다. 각각은 외부 API를 호출하거나 모델을 실행할 수 있으므로 한 번에 모두 실행하면 속도가 느려지거나 프로바이더 속도 제한에 도달할 수 있습니다.",
       "dontAskAgain": "이 세션에 대해 다시 묻지 않음"
     },
     "staleDeploy": {
@@ -793,13 +793,13 @@
     "searchProvider": {
       "title": "웹 검색 설정",
       "saveAndContinue": "저장하고 계속하기",
-      "nodeIntro": "{{nodes}}은(는) 웹 검색 도구를 사용하지만 검색 공급자가 구성되어 있지 않습니다.",
-      "agentIntro": "이 에이전트는 웹 검색 도구를 사용하지만 검색 공급자가 구성되어 있지 않습니다.",
+      "nodeIntro": "{{nodes}}은(는) 웹 검색 도구를 사용하지만 검색 프로바이더가 구성되어 있지 않습니다.",
+      "agentIntro": "이 에이전트는 웹 검색 도구를 사용하지만 검색 프로바이더가 구성되어 있지 않습니다.",
       "addProviderInstruction": "워크플로를 실행하려면 아래에 하나를 추가하세요.",
-      "providerLabel": "검색 공급자",
+      "providerLabel": "검색 프로바이더",
       "freeProvider": "{{provider}}(무료)",
       "configured": "{{provider}}이 구성되었습니다. 이제 워크플로를 실행할 수 있습니다.",
-      "saveFailed": "검색 공급자를 저장하지 못했습니다.",
+      "saveFailed": "검색 프로바이더를 저장하지 못했습니다.",
       "visitForApiKey": "API 키를 받으려면 {{provider}}을 방문하세요.",
       "descriptions": {
         "brave": "무료 등급을 사용한 개인 정보 보호 중심 검색 — 좋은 기본값입니다.",
@@ -854,8 +854,8 @@
         "description": "로컬 모델을 위한 하드웨어 인식 '시작하기' 가이드"
       },
       "assets": {
-        "label": "자산 탐색기",
-        "description": "자산 브라우저 및 파일 관리자"
+        "label": "에셋 탐색기",
+        "description": "에셋 브라우저 및 파일 관리자"
       },
       "confirmDialog": {
         "label": "확인 대화상자",
@@ -894,7 +894,7 @@
         "description": "단일 노드에 대한 인앱 문서"
       },
       "workflowForm": {
-        "label": "워크플로우 양식",
+        "label": "워크플로 양식",
         "description": "워크플로 메타데이터 편집"
       },
       "workflowDelete": {
@@ -903,7 +903,7 @@
       },
       "providerOnboarding": {
         "label": "제공업체 온보딩",
-        "description": "차단된 공급자 온보딩: OAuth 로그인, API 키 및 비용 안내"
+        "description": "차단된 프로바이더 온보딩: OAuth 로그인, API 키 및 비용 안내"
       },
       "progressStates": {
         "label": "진행 상태",
@@ -922,22 +922,22 @@
       }
     },
     "dialogEntries": {
-      "dialog-rename-asset": "자산 이름 바꾸기",
-      "dialog-delete-assets": "자산 삭제",
+      "dialog-rename-asset": "에셋 이름 바꾸기",
+      "dialog-delete-assets": "에셋 삭제",
       "dialog-add-output": "출력 추가",
       "dialog-bug-report": "버그 신고",
       "dialog-help": "도움말",
       "dialog-export-video": "비디오 내보내기",
       "dialog-timeline-shortcuts": "타임라인 단축키",
       "dialog-new-project": "새 프로젝트",
-      "dialog-share-workflow": "워크플로우 공유",
+      "dialog-share-workflow": "워크플로 공유",
       "dialog-run-js-script": "입력으로 스크립트 실행",
       "dialog-model-shortcuts": "3D 편집기 단축키",
       "dialog-node-logs": "노드 로그",
       "form-collection": "새로운 컬렉션",
       "dialog-save-to-my-nodes": "내 노드에 저장",
       "dialog-worker-profiles": "작업자 프로필",
-      "dialog-search-provider": "검색 공급자 설정"
+      "dialog-search-provider": "검색 프로바이더 설정"
     },
     "index": {
       "title": "구성요소 미리보기",
@@ -982,7 +982,7 @@
       "todoDraftShots": "6개의 샷 초안 작성",
       "todoPickLook": "살펴보기",
       "planningContent": "브리핑을 작업으로 나누기",
-      "running": "달리기",
+      "running": "실행 중",
       "modelDownloads": "모델 다운로드",
       "taskCollectImages": "참조 이미지 수집",
       "taskWriteShotList": "촬영 목록 작성",
@@ -990,14 +990,14 @@
       "buttonsWaiting": "응답을 기다리는 버튼",
       "saving": "저장 중…",
       "generate": "생성",
-      "connect": "연결하다",
+      "connect": "연결",
       "loadMore": "더 로드하기",
       "delete": "삭제",
       "reload": "스키마 다시 로드",
       "stopJob": "작업 중지"
     },
     "modelPicker": {
-      "apiReason": "입력이 공급자에게 전송됩니다. 공급자 청구가 적용됩니다.",
+      "apiReason": "입력이 프로바이더에게 전송됩니다. 프로바이더 청구가 적용됩니다.",
       "localReason": "이 장치에서 실행됩니다.",
       "downloadReason": "로컬에서 사용하기 전에 모델 파일을 다운로드하세요.",
       "selectLanguageModel": "언어 모델 선택",
@@ -1032,7 +1032,7 @@
       "couldNotOpen": "오디오 편집기를 열 수 없습니다.",
       "decodeFailed": "오디오를 디코딩할 수 없습니다.",
       "done": "완료",
-      "noUrl": "이 오디오 자산에는 로드할 URL이 없습니다.",
+      "noUrl": "이 오디오 에셋에는 로드할 URL이 없습니다.",
       "fetchFailed": "오디오를 가져오지 못했습니다(HTTP {{status}}).",
       "dragHint": "드래그하여 선택하고 클릭하여 검색하세요.",
       "selection": "선택 {{start}} – {{end}} · {{duration}}",
@@ -1041,7 +1041,7 @@
     },
     "toolbar": {
       "audioEdits": "오디오 편집",
-      "history": "역사",
+      "history": "기록",
       "selectionEdits": "선택 편집",
       "levelEdits": "레벨 편집",
       "undo": "실행 취소",
@@ -1105,14 +1105,14 @@
         "thresholdDb": "임계값",
         "ratio": "비율",
         "kneeDb": "무릎",
-        "attackMs": "공격",
-        "releaseMs": "출시",
+        "attackMs": "어택",
+        "releaseMs": "릴리스",
         "makeupDb": "메이크업 게인",
         "inputDb": "입력 게인",
         "ceilingDb": "천장",
         "reductionDb": "감소",
-        "holdMs": "보류",
-        "decay": "부패",
+        "holdMs": "홀드",
+        "decay": "디케이",
         "preDelayMs": "사전 지연",
         "tone": "톤",
         "delayMs": "지연",
@@ -1139,7 +1139,7 @@
         "description": "특정 주파수 이상의 히스 및 거슬리는 소리를 제거합니다(저역 통과 필터)."
       },
       "compressor": {
-        "label": "압축기",
+        "label": "컴프레서",
         "description": "시끄럽고 조용한 부분도 마찬가지입니다."
       },
       "limiter": {
@@ -1159,7 +1159,7 @@
         "description": "페이딩 사본으로 사운드를 반복하십시오. 선택 항목을 지나 에코가 울립니다."
       },
       "chorus": {
-        "label": "합창",
+        "label": "코러스",
         "description": "천천히 움직이는 복사본으로 사운드를 두껍게 만듭니다."
       },
       "distortion": {
@@ -1342,7 +1342,7 @@
     "splitAtPlayhead": "플레이헤드에서 분할",
     "editNotes": "메모 편집",
     "editVideo": "영상 편집…",
-    "duplicate": "중복",
+    "duplicate": "복제",
     "removeTransition": "전환 제거",
     "crossFadeIn": "크로스 페이드 인",
     "removeFades": "페이드 제거",
@@ -1417,11 +1417,11 @@
     },
     "sampler": {
       "upload": "샘플러 오디오 업로드",
-      "chooseAudio": "오디오 자산 선택",
+      "chooseAudio": "오디오 에셋 선택",
       "loading": "샘플 로드 중…",
       "uploading": "업로드 중…",
       "uploadAudio": "오디오 업로드",
-      "loadError": "오디오 자산을 로드할 수 없습니다.",
+      "loadError": "오디오 에셋을 로드할 수 없습니다.",
       "playback": "재생",
       "oneShot": "원샷 · 전체 샘플 재생",
       "gated": "제한됨 · 노트 오프 시 릴리스",
@@ -1487,7 +1487,7 @@
     "speedDuration": {
       "title": "클립 속도/지속 시간",
       "speed": "속도",
-      "duration": "기간",
+      "duration": "길이",
       "rangeError": "{{min}}–{{max}}%",
       "ripple": "잔물결 편집, 후행 클립 이동",
       "multipleClips_one": "모든 {{count}} 클립은 이 속도를 사용합니다. 지속 시간은 클립 자체의 길이를 따릅니다.",
@@ -1571,11 +1571,11 @@
       "source": "소스",
       "timeline": "타임라인",
       "script": "스크립트",
-      "inspector": "검사관",
+      "inspector": "인스펙터",
       "shot": "샷",
       "instruments": "악기",
       "assistant": "어시스턴트",
-      "history": "역사",
+      "history": "기록",
       "code": "코드",
       "storyboard": "스토리보드",
       "effectControls": "효과 컨트롤",
@@ -1585,7 +1585,7 @@
     },
     "unavailable": {
       "tracks": "DAW 모드에는 자체 트랙 뷰가 있습니다. 이 기능을 끄면(Alt+M) 타임라인 패널이 열립니다.",
-      "source": "자산에서 자산을 선택하여 소스에서 엽니다.",
+      "source": "에셋에서 에셋을 선택하여 소스에서 엽니다.",
       "shot": "샷 클립을 선택하여 샷 패널을 엽니다.",
       "instruments": "악기를 사용하려면 MIDI 트랙을 추가하세요.",
       "code": "이 타임라인에는 코드가 없습니다.",
@@ -1624,7 +1624,7 @@
       "name": "이름",
       "description": "설명",
       "descriptionPlaceholder": "샷이 보여주는 것",
-      "dialogue": "대화",
+      "dialogue": "대사",
       "motion": "모션",
       "motionPlaceholder": "무엇이 움직이는지, 카메라가 어떻게 움직이는지",
       "sound": "소리",
@@ -1712,11 +1712,11 @@
       "menu": "메뉴",
       "openMenu": "앱 메뉴 열기",
       "tutorials": "튜토리얼",
-      "examples": "예",
+      "examples": "예시",
       "costs": "비용",
       "modelManager": "모델 관리자",
       "packageManager": "패키지 관리자",
-      "assets": "자산",
+      "assets": "에셋",
       "collections": "컬렉션",
       "memory": "메모리",
       "settings": "설정",
@@ -1741,7 +1741,7 @@
       "dismissAriaLabel": "시작하기 체크리스트 닫기",
       "dismiss": "닫기",
       "steps": {
-        "connectProvider": "AI 공급자 연결",
+        "connectProvider": "AI 프로바이더 연결",
         "providerConnected": "AI 제공업체가 연결됨",
         "startGuidedFlow": "안내식 흐름 시작",
         "describeIdea": "만들고 싶은 것 설명하기",
@@ -1753,12 +1753,12 @@
     "providerOnboarding": {
       "signInGroup": "귀하의 계정으로 로그인하세요",
       "apiKeyGroup": "API 키 사용",
-      "title": "AI 공급자 연결",
+      "title": "AI 프로바이더 연결",
       "allProviders": "설정에서 모든 제공업체 보기",
       "done": "완료",
       "chooseProvider": "워크플로에서 모델을 사용하려면 계정 또는 API 키를 선택하세요.",
-      "capabilityPrompt": "계속하려면 {{capability}} 공급자를 연결하세요.",
-      "billing": "API 사용량은 공급자 계정으로 직접 청구됩니다.",
+      "capabilityPrompt": "계속하려면 {{capability}} 프로바이더를 연결하세요.",
+      "billing": "API 사용량은 프로바이더 계정으로 직접 청구됩니다.",
       "localTitle": "현지 모델을 선호하시나요?",
       "localDescription": "Ollama를 설치하고 컴퓨터에서 실행할 모델을 다운로드하세요.",
       "getOllama": "올라마 받기",
@@ -1787,14 +1787,14 @@
         "text_to_image": "이미지 생성",
         "text_to_speech": "문자 음성 변환",
         "automatic_speech_recognition": "음성-텍스트",
-        "text_to_music": "음악 세대",
+        "text_to_music": "음악 생성",
         "audio_to_audio": "오디오 변환(음성 변경, 격리, 분리)",
         "text_to_video": "비디오 생성",
         "generate_embedding": "임베딩",
         "text_to_3d": "3D 생성",
         "image_to_3d": "이미지로부터 3D 생성"
       },
-      "stepPrompt": "연결된 공급자 중 누구도 이 단계를 수행할 수 없습니다. 이 중 하나를 연결하여 사용하세요.",
+      "stepPrompt": "연결된 프로바이더 중 누구도 이 단계를 수행할 수 없습니다. 이 중 하나를 연결하여 사용하세요.",
       "welcomeIntro": "가장 쉬운 것을 선택하세요. 하나면 충분하며 언제든지 설정에서 더 추가할 수 있습니다.",
       "planGroup": "이미 지불한 요금제 사용",
       "planHint": "API 키도 없고 토큰당 청구서도 없습니다. ChatGPT 이미지와 Gemini의 모든 항목은 다음 단계에서 설정하는 Chrome 확장 프로그램을 통해 실행됩니다.",
@@ -1802,10 +1802,10 @@
       "geminiTagline": "Google 계정의 Gemini 요금제에서 채팅, 이미지 및 Veo 비디오를 이용할 수 있습니다. Chrome 확장 프로그램을 통해 실행됩니다.",
       "connectedSummary": "{{providers}}에 연결되었습니다. 계속하거나 다른 것을 추가하세요.",
       "setUpLater": "나중에 설정하세요",
-      "moreProviders": "추가 공급자({{count}})",
-      "searchProviders": "검색 공급자",
-      "noProviderMatch": "이러한 {{count}} 공급자 중 \"{{query}}\"과 일치하는 공급자가 없습니다. 설정에는 로컬 서버와 사용자 지정 공급자도 나열됩니다.",
-      "directoryCapabilityNote": "여기의 모든 공급자가 {{capability}}을 제공하는 것은 아닙니다. 키를 추가하기 전에 해당 문서를 확인하세요.",
+      "moreProviders": "추가 프로바이더({{count}})",
+      "searchProviders": "검색 프로바이더",
+      "noProviderMatch": "이러한 {{count}} 프로바이더 중 \"{{query}}\"과 일치하는 프로바이더가 없습니다. 설정에는 로컬 서버와 사용자 지정 프로바이더도 나열됩니다.",
+      "directoryCapabilityNote": "여기의 모든 프로바이더가 {{capability}}을 제공하는 것은 아닙니다. 키를 추가하기 전에 해당 문서를 확인하세요.",
       "setUpInSettings": "설정에서 설정하세요"
     }
   },
@@ -1834,7 +1834,7 @@
       "clickEntry": "그래프와 메타데이터를 보려면 항목을 클릭하세요.",
       "deleteTitle": "이 버전을 삭제하시겠습니까?",
       "deleteWarning": "이 작업은 취소할 수 없습니다.",
-      "emptyWorkflow": "빈 작업 흐름",
+      "emptyWorkflow": "빈 워크플로",
       "nodeCount_one": "{{count}} 노드",
       "nodeCount_other": "{{count}} 노드",
       "saveType": {
@@ -1886,7 +1886,7 @@
       "loadPlayState": "플레이 상태 로드",
       "playInNewTab": "새 탭에서 플레이",
       "toggleSceneTree": "장면 트리 전환",
-      "toggleInspector": "검사기 전환",
+      "toggleInspector": "인스펙터 전환",
       "hideAssistant": "어시스턴트 숨기기",
       "showAssistant": "어시스턴트 표시",
       "commands": "명령",
@@ -1974,7 +1974,7 @@
       "detachEntity": "엔터티 분리"
     },
     "commandCategories": {
-      "Editor": "편집자",
+      "Editor": "편집기",
       "Edit": "편집",
       "View": "보기",
       "Tools": "도구",
@@ -2039,7 +2039,7 @@
       },
       "panel": {
         "sceneTree": "장면 트리 전환",
-        "inspector": "검사기 전환",
+        "inspector": "인스펙터 전환",
         "assistant": "토글 어시스턴트"
       },
       "assistant": {
@@ -2189,7 +2189,7 @@
       "tools": {
         "move": "이동",
         "rotate": "회전",
-        "scale": "규모"
+        "scale": "스케일"
       },
       "localSpace": "로컬 공간",
       "worldSpace": "월드 스페이스",
@@ -2207,7 +2207,7 @@
       "snapIncrements": "스냅 증분",
       "moveMeters": "이동(m)",
       "rotateDegrees": "회전(°)",
-      "scale": "규모",
+      "scale": "스케일",
       "surfaceSnap": "표면 스냅",
       "surfaceSnapDescription": "드래그를 이동하면 선택 항목이 포인터 아래 표면에 놓이게 됩니다.",
       "orbitAroundSelection": "선택 주위의 궤도",
@@ -2227,20 +2227,20 @@
       "saving": "저장 중…",
       "name": "스킬명",
       "description": "설명",
-      "descriptionHelp": "상담원 목표와 일치함(단어 >=4자)",
+      "descriptionHelp": "에이전트 목표와 일치함(단어 >=4자)",
       "descriptionPlaceholder": "이 스킬을 언제 사용해야 할까요?",
       "editorStartError": "스킬 편집기를 시작할 수 없습니다",
       "builtIn": "내장",
-      "singular": "기술",
-      "plural": "기술",
-      "panelError": "기술 패널을 로드하지 못했습니다.",
+      "singular": "스킬",
+      "plural": "스킬",
+      "panelError": "스킬 패널을 로드하지 못했습니다.",
       "emptyDescription": "작업 영역 새로 만들기 메뉴에서 스킬을 만듭니다."
     },
     "login": {
       "cloudAlpha": "클라우드 알파",
       "title": "NodeTool 클라우드에 로그인",
       "description": "당신이 원하는 것을 설명하십시오. 에이전트가 이를 구축하고 어느 단계에서나 인계받을 수 있습니다.",
-      "ownKeys": "자체 API 키를 사용하고 공급자의 정가로 공급자에게 비용을 지불하세요.",
+      "ownKeys": "자체 API 키를 사용하고 프로바이더의 정가로 프로바이더에게 비용을 지불하세요.",
       "cloudAlphaNotice": "클라우드는 알파 버전입니다. 생산 작업에는 다음을 사용하십시오.",
       "ssoTitle": "NodeTool에 로그인",
       "ssoSignIn": "{{provider}}(으)로 로그인",
@@ -2251,9 +2251,9 @@
       "params": "매개변수",
       "io": "입출력",
       "help": "도움말",
-      "sections": "검사기 섹션",
-      "title": "검사관",
-      "close": "검사관 닫기",
+      "sections": "인스펙터 섹션",
+      "title": "인스펙터",
+      "close": "인스펙터 닫기",
       "noneSelected": "선택한 노드가 없습니다.",
       "selectNode": "여기에서 설정을 편집하려면 노드를 선택하세요.",
       "nodesSelected": "{{count}} 노드가 선택됨",
@@ -2327,7 +2327,7 @@
       "balanceUnknown": "크레딧 잔액을 로드할 수 없습니다. 비어 있지 않고 알 수 없습니다.",
       "adding": "추가 중…",
       "addCredits": "{{count}} 크레딧 추가(테스트)",
-      "creditMeterNotice": "크레딧 측정기 NodeTool의 관리형 모델만 해당됩니다. 자체 공급자 키를 가져오면 해당 호출은 측정되지 않은 상태로 유지됩니다.",
+      "creditMeterNotice": "크레딧 측정기 NodeTool의 관리형 모델만 해당됩니다. 자체 프로바이더 키를 가져오면 해당 호출은 측정되지 않은 상태로 유지됩니다.",
       "switchTo": "{{plan}}로 전환",
       "creatingDraft": "초안을 만드는 중…",
       "anotherStartInProgress": "또 다른 시작이 진행 중입니다.",
@@ -2357,7 +2357,7 @@
     "settings": {
       "description": "설명",
       "descriptionPlaceholder": "이 스크립트의 기능",
-      "descriptionHelp": "상담원은 이 내용을 읽고 스크립트 호출 여부를 결정합니다.",
+      "descriptionHelp": "에이전트는 이 내용을 읽고 스크립트 호출 여부를 결정합니다.",
       "showInNodeMenu": "노드 메뉴에 표시",
       "showInNodeMenuHelp": "이 스크립트를 내 노드에 추가하여 다른 노드처럼 그래프에 놓입니다.",
       "category": "카테고리",
@@ -2373,10 +2373,10 @@
       "delete": "{{label}} {{number}} 삭제"
     },
     "secrets": {
-      "title": "비밀",
-      "empty": "몸은 비밀을 읽지 않습니다.",
-      "label": "비밀 {{number}}",
-      "remove": "비밀 {{number}} 삭제"
+      "title": "시크릿",
+      "empty": "스크립트 본문에서 읽는 시크릿이 없습니다.",
+      "label": "시크릿 {{number}}",
+      "remove": "시크릿 {{number}} 삭제"
     },
     "runDialog": {
       "portLabel": "{{name}} ({{stream}}{{type}})",
@@ -2415,7 +2415,7 @@
       "running": "실행 중…",
       "savedScript": "실행은 저장된 스크립트를 사용합니다. 이것은 {{status}}입니다.",
       "ok": "알았어",
-      "failed": "실패했다"
+      "failed": "실패"
     },
     "saveStatus": {
       "saved": "저장됨",
@@ -2501,8 +2501,8 @@
       "closeEditor": "컴포지터 편집기 닫기",
       "preview": "합성된 미리보기",
       "canvasSize": "캔버스 크기",
-      "width": "폭",
-      "height": "신장",
+      "width": "너비",
+      "height": "높이",
       "canvasWidth": "캔버스 너비(px)",
       "canvasHeight": "캔버스 높이(px)",
       "selectedLayer": "선택된 레이어",
@@ -2537,8 +2537,8 @@
       "apiKeyPlaceholder": "API 키를 입력하세요",
       "apiKeyUpdated": "{{provider}} API 키가 업데이트되었습니다.",
       "cancel": "취소",
-      "commonIssues": "일반적인 공급자 문제 및 솔루션",
-      "connect": "연결하다",
+      "commonIssues": "일반적인 프로바이더 문제 및 솔루션",
+      "connect": "연결",
       "connected": "연결됨",
       "connectedProviders": "연결된 제공업체",
       "connectedViaOAuth": "로그인으로 연결됨",
@@ -2558,16 +2558,16 @@
       "fieldPlaceholder": "{{label}}을 입력하세요.",
       "heroDescription": "계정을 연결하거나 API 키를 추가하여 워크플로에서 모델을 사용하세요.",
       "higgsfieldCredentialHelp": "Higgsfield에서 복사한 전체 값을 붙여넣습니다. 키 ID와 비밀번호는 별도로 암호화되어 저장됩니다.",
-      "keyStoredUnavailable": "{{provider}} 키가 저장되었지만 현재 이 서버에서는 이 공급자를 사용할 수 없습니다.",
+      "keyStoredUnavailable": "{{provider}} 키가 저장되었지만 현재 이 서버에서는 이 프로바이더를 사용할 수 없습니다.",
       "learnMore": "자세히 알아보기",
       "manage": "관리하다",
-      "modelsAndProviders": "모델 및 제공자",
+      "modelsAndProviders": "모델 및 프로바이더",
       "multiFieldHelp": "모든 필드는 암호화되어 안전하게 저장됩니다. 절대 공개적으로 공유하지 마세요.",
       "needApiCredits": "API 크레딧이 필요합니까?",
       "noProvidersFound": "제공업체를 찾을 수 없습니다.",
-      "noProvidersMatch": "\"{{searchTerm}}\"과(와) 일치하는 공급자가 없습니다.",
+      "noProvidersMatch": "\"{{searchTerm}}\"과(와) 일치하는 프로바이더가 없습니다.",
       "notConnected": "연결되지 않음",
-      "partnerCreditsDescription": "NodeTool과 함께 작동하는 공급자로부터 API 크레딧을 받으세요.",
+      "partnerCreditsDescription": "NodeTool과 함께 작동하는 프로바이더로부터 API 크레딧을 받으세요.",
       "providerGuides": "지원되는 제공업체를 위한 설정 가이드",
       "quickLinks": "빠른 링크",
       "secretRequired": "API 키를 입력하세요.",
@@ -2584,7 +2584,7 @@
       },
       "seeModelsByProvider": "제공업체별로 사용 가능한 모델 찾아보기",
       "signInWith": "{{provider}}로 로그인",
-      "signedInUnavailable": "{{provider}}에 로그인했지만 현재 이 서버에서 이 공급자를 사용할 수 없습니다.",
+      "signedInUnavailable": "{{provider}}에 로그인했지만 현재 이 서버에서 이 프로바이더를 사용할 수 없습니다.",
       "supportedModels": "지원되는 모델",
       "test": "테스트",
       "testing": "테스트 중…",
@@ -2597,7 +2597,7 @@
     },
     "customProviders": {
       "addEndpoint": "엔드포인트 추가",
-      "addTitle": "맞춤 공급자 추가",
+      "addTitle": "맞춤 프로바이더 추가",
       "apiKey": "API 키",
       "baseUrl": "기본 URL",
       "baseUrlHelp": "엔드포인트가 제공하는 버전 경로(일반적으로 /v1)를 포함합니다.",
@@ -2610,13 +2610,13 @@
       "description": "OpenAI API를 사용하는 프록시나 게이트웨이에 NodeTool을 지정하세요. 해당 채팅, 이미지 및 비디오 모델이 일치하는 노드에 나타납니다.",
       "duplicateSlug": "이 ID를 가진 제공업체가 이미 존재합니다.",
       "editTitle": "맞춤 제공업체 수정",
-      "emptyDescription": "OpenAI 호환 공급자를 사용하려면 기본 URL과 API 키를 추가하세요.",
+      "emptyDescription": "OpenAI 호환 프로바이더를 사용하려면 기본 URL과 API 키를 추가하세요.",
       "emptyTitle": "아직 맞춤 제공업체가 없습니다.",
       "heading": "맞춤 제공업체",
       "imageCount_one": "{{formattedCount}} 이미지 모델",
       "imageCount_other": "{{formattedCount}} 이미지 모델",
       "imageModels": "이미지 모델",
-      "imageModelsHelp": "모델 목록에서 감지되었습니다. 테스트에서 누락된 ID를 추가하세요. 호출은 /images/세대로 이동합니다.",
+      "imageModelsHelp": "모델 목록에서 감지되었습니다. 테스트에서 누락된 ID를 추가하세요. 호출은 /images/generations로 이동합니다.",
       "imageModelsPlaceholder": "선택사항(예: 플럭스 개발, Seedream-4",
       "keepStoredKey": "저장된 키를 유지하려면 비워두세요.",
       "keySet": "API 키 세트",
@@ -2626,12 +2626,12 @@
       "modelsListed_other": "{{formattedCount}} 모델 목록",
       "modelsPlaceholder": "GET /models를 읽으려면 비워 두세요.",
       "noEndpoint": "엔드포인트 URL 없음",
-      "providerId": "공급자 ID: custom_{{slug}}",
+      "providerId": "프로바이더 ID: custom_{{slug}}",
       "removeConfirm": "{{name}}을(를) 제거하시겠습니까? 해당 모델을 참조하는 워크플로가 확인을 중지합니다.",
       "removeTitle": "엔드포인트를 삭제하시겠습니까?",
-      "removed": "맞춤 공급자가 제거되었습니다.",
-      "saved": "사용자 지정 공급자 {{name}}({{providerId}})이 저장되었습니다.",
-      "slug": "제공자 ID",
+      "removed": "맞춤 프로바이더가 제거되었습니다.",
+      "saved": "사용자 지정 프로바이더 {{name}}({{providerId}})이 저장되었습니다.",
+      "slug": "프로바이더 ID",
       "slugFormat": "1~32자(선두 문자, 그 다음 소문자, 숫자, 밑줄)를 사용하세요.",
       "slugRequired": "제공업체 ID가 필요합니다.",
       "test": "테스트",
@@ -2695,7 +2695,7 @@
       },
       "noModelTitle": "사용 가능한 확장 모델이 없습니다.",
       "modelsLoadFailed": "확장 모델을 로드할 수 없습니다. 연결되면 다시 시도하세요.",
-      "connectProvider": "확장을 사용하려면 비디오 확장 모델이 있는 공급자를 연결하세요.",
+      "connectProvider": "확장을 사용하려면 비디오 확장 모델이 있는 프로바이더를 연결하세요.",
       "modelLabel": "확장 모델",
       "directionLabel": "다음에서 확장",
       "secondsToAddLabel": "추가할 소스 초",
@@ -2729,7 +2729,7 @@
       "sections": {
         "media": {
           "title": "미디어",
-          "aliases": "자산 소스 유형 영상 비디오 이미지 오디오",
+          "aliases": "에셋 소스 유형 영상 비디오 이미지 오디오",
           "legacyTitle": "미디어"
         },
         "timing": {
@@ -2773,9 +2773,9 @@
           "legacyTitle": "마스크"
         },
         "matte": {
-          "title": "무광택",
+          "title": "매트",
           "aliases": "소스 알파 루마 반전",
-          "legacyTitle": "무광택"
+          "legacyTitle": "매트"
         },
         "animate": {
           "title": "애니메이션",
@@ -2818,8 +2818,8 @@
           "legacyTitle": "캡션"
         }
       },
-      "placeholder": "검사기 섹션 검색…",
-      "matchingSections": "일치하는 검사기 섹션",
+      "placeholder": "인스펙터 섹션 검색…",
+      "matchingSections": "일치하는 인스펙터 섹션",
       "jumpToSection": "섹션으로 이동",
       "noMatchingControls": "일치하는 섹션이 없습니다."
     },
@@ -2827,7 +2827,7 @@
       "properties": {
         "opacity": "불투명도",
         "position": "위치",
-        "scale": "규모",
+        "scale": "스케일",
         "rotation": "회전",
         "orbit": "궤도",
         "fieldOfView": "시야",
@@ -2850,7 +2850,7 @@
         "easeIn": "천천히",
         "easeOut": "천천히",
         "easeInOut": "쉽게 들어오고 나가기",
-        "hold": "보류"
+        "hold": "홀드"
       },
       "laneLabel": "{{property}} 키프레임",
       "keyframeAt": "{{time}}의 {{property}} 키프레임",
@@ -2894,7 +2894,7 @@
   "i18n-cont-sketch-03": {
     "agent": {
       "docsLabel": "스케치 편집기",
-      "welcomeTitle": "편집자 보조",
+      "welcomeTitle": "편집 어시스턴트",
       "welcomeBody": "생성할 이미지를 설명하거나 레이어 편집을 요청하세요."
     },
     "resizeHandles": {
@@ -2926,7 +2926,7 @@
       "layerGroup": "레이어 그룹",
       "importSvg": "SVG 파일 가져오기…",
       "generateSvg": "SVG 레이어 생성…",
-      "layerFromWorkflow": "작업 흐름의 레이어…",
+      "layerFromWorkflow": "워크플로의 레이어…",
       "removeMaskDesignation": "마스크 지정 제거",
       "setMaskLayer": "마스크 레이어로 설정",
       "unlockTransparency": "투명성 잠금 해제",
@@ -2960,7 +2960,7 @@
       "showLayer": "레이어 표시",
       "hideLayer": "레이어 숨기기",
       "duplicateLayers": "레이어 복제",
-      "duplicate": "중복",
+      "duplicate": "복제",
       "clearLayer": "레이어 지우기",
       "flipHorizontal": "수평 뒤집기",
       "flipVertical": "수직 뒤집기",
@@ -2979,7 +2979,7 @@
   "i18n-cont-setup-05": {
     "appSetup": {
       "title": "앱",
-      "subline": "페이지를 설명하세요. 버튼 뒤의 화면과 워크플로우는 함께 구축되고 테스트 실행됩니다.",
+      "subline": "페이지를 설명하세요. 버튼 뒤의 화면과 워크플로는 함께 구축되고 테스트 실행됩니다.",
       "steps": {
         "idea": "아이디어"
       },
@@ -2991,7 +2991,7 @@
         "connectProvider": "모델을 선택하려면 제공업체를 연결하세요."
       },
       "status": {
-        "building": "화면 및 워크플로우 구축 후 테스트 실행"
+        "building": "화면 및 워크플로 구축 후 테스트 실행"
       },
       "prompt": {
         "title": "앱은 무엇을 해야 합니까?",
@@ -3065,7 +3065,7 @@
           },
           "style": {
             "title": "스타일",
-            "description": "여러 세대에 걸쳐 적용할 수 있는 시각적 언어입니다."
+            "description": "여러 생성 결과에 걸쳐 적용할 시각적 언어입니다."
           },
           "prop": {
             "title": "소품",
@@ -3095,15 +3095,15 @@
       },
       "reference": {
         "title": "참조 이미지 선택",
-        "description": "미래 세대가 보존하기를 원하는 특성의 가장 선명한 이미지를 선택하거나 AI로 이미지를 만드세요.",
+        "description": "이후 생성 결과에서 유지할 특징이 가장 선명하게 보이는 이미지를 고르거나 AI로 만드세요.",
         "imageCaption": "{{name}} 참조",
         "selectedCaption": "선정된 참고자료",
         "selectedAlt": "선택된 엔터티 참조",
         "assets": {
-          "unavailable": "자산을 사용할 수 없음",
-          "loading": "자산 로드 중",
+          "unavailable": "에셋을 사용할 수 없음",
+          "loading": "에셋 로드 중",
           "change": "참조 변경",
-          "choose": "자산에서 선택"
+          "choose": "에셋에서 선택"
         },
         "generate": {
           "open": "AI로 생성",
@@ -3141,7 +3141,7 @@
               "instruction": "머리부터 발끝까지 전신, 정면을 향한 포즈를 보여주세요. 균일한 스튜디오 조명을 사용하여 중간색 배경에 캐릭터를 중앙에 배치합니다. 얼굴, 옷, 독특한 특징을 명확하게 표현하세요."
             },
             "portrait": {
-              "label": "초상화",
+              "label": "인물 사진",
               "instruction": "얼굴이 완전히 보이고 중립적인 표정의 머리와 어깨 초상화를 보여주세요. 단순한 배경과 균일한 조명을 사용하여 얼굴 특징과 머리카락을 쉽게 식별할 수 있습니다."
             },
             "character-sheet": {
@@ -3229,7 +3229,7 @@
         "appearsIn": "다음에 나타납니다",
         "clearSelection": "명확한 샷 선택",
         "delete": "삭제",
-        "deleteDescription": "보드에서 \"{{shotName}}\"을 제거합니다. 생성된 스틸과 클립은 자산 라이브러리에 유지됩니다.",
+        "deleteDescription": "보드에서 \"{{shotName}}\"을 제거합니다. 생성된 스틸과 클립은 에셋 라이브러리에 유지됩니다.",
         "deleteDialogTitle": "샷을 삭제하시겠습니까?",
         "deleteTooltip": "이 장면 삭제",
         "edit": "편집",
@@ -3343,7 +3343,7 @@
       "off": "끄기",
       "customAssistTooltip": "알고리즘, 강도 및 각도 스냅을 수동으로 조정합니다.",
       "custom": "맞춤",
-      "strength": "힘",
+      "strength": "강도",
       "stabilizerTooltip": "이동 평균 평활화. 팁은 저역 통과 필터링된 경로를 따라 커서를 따라갑니다.",
       "stabilizer": "안정제",
       "dragTooltip": "가죽 끈 드래그. 팁은 데드존 내부에 고정된 다음 직선을 따라 커서를 따라 이동합니다.",
@@ -3376,12 +3376,12 @@
       "arrow": "화살표",
       "stroke": "뇌졸중",
       "strokeColor": "획 색상",
-      "width": "폭",
+      "width": "너비",
       "fill": "채우기",
       "fillColor": "채우기 색상",
       "tolerance": "공차",
       "size": "크기",
-      "strength": "힘",
+      "strength": "강도",
       "start": "시작",
       "gradientStartColor": "그라데이션 시작 색상",
       "end": "종료",
@@ -3466,7 +3466,7 @@
         "addNode": "노드 추가"
       },
       "workflowNamePlaceholder": "워크플로 이름",
-      "saveWorkflow": "작업 흐름 저장",
+      "saveWorkflow": "워크플로 저장",
       "emptyState": {
         "title": "워크플로 구축",
         "description": "처리 체인을 생성하려면 노드를 추가하세요.\n각 노드의 출력은 다음 노드로 흐릅니다."
@@ -3483,7 +3483,7 @@
         "moveNodeDown": "노드를 아래로 이동",
         "moveDown": "아래로 이동",
         "duplicateNode": "중복 노드",
-        "duplicate": "중복",
+        "duplicate": "복제",
         "deleteNode": "노드 삭제",
         "delete": "삭제"
       }
@@ -3510,18 +3510,18 @@
     },
     "nodePicker": {
       "title": "노드 추가",
-      "searchPlaceholder": "검색 노드",
-      "searchLabel": "검색 노드",
+      "searchPlaceholder": "노드 검색",
+      "searchLabel": "노드 검색",
       "quickActions": "빠른 작업",
       "noNodesFound": "노드를 찾을 수 없습니다.",
       "searchResultCount_one": "{{count}} 결과",
       "searchResultCount_other": "{{count}} 결과",
       "quickActionsByKey": {
-        "agent": "대리인",
+        "agent": "에이전트",
         "code": "코드",
         "text-to-image": "텍스트를 이미지로",
         "image-to-image": "이미지를 이미지로",
-        "upscale": "고급",
+        "upscale": "업스케일",
         "remove-background": "배경 제거",
         "relight": "재조명",
         "vectorize": "벡터화",
@@ -3636,7 +3636,7 @@
         "shotCount_other": "{{count}} 샷",
         "modelLabel": "모델",
         "modelPlaceholder": "각본 모델",
-        "noModels": "사용할 수 있는 언어 모델이 없습니다. 설정의 모델 및 공급자에서 공급자 키를 추가하세요.",
+        "noModels": "사용할 수 있는 언어 모델이 없습니다. 설정의 모델 및 프로바이더에서 프로바이더 키를 추가하세요.",
         "shotsLabel": "샷",
         "title": "장르를 선택하세요",
         "description": "톤, 속도, 프레이밍은 귀하의 선택에 따릅니다. 나중에 변경할 수 있습니다.",
@@ -3790,7 +3790,7 @@
           "lightingPlaceholder": "장면의 조명 방식",
           "shotHeader": "샷 {{count}}",
           "shotAction": "샷 {{count}} · 액션",
-          "dialogue": "대화",
+          "dialogue": "대사",
           "seconds": "초",
           "shotLength": "{{seconds}}초",
           "sceneHeader": "장면 {{count}}"
@@ -3907,14 +3907,14 @@
         "referenceCaption": "{{kind}} 참조",
         "referenceRole": "참조 {{count}} 역할",
         "removeReference": "참조 {{count}} 제거",
-        "referenceAssetsHint": "참조 자산은 검토된 제작 요청에 포함됩니다.",
+        "referenceAssetsHint": "참조 에셋은 검토된 제작 요청에 포함됩니다.",
         "chooseReference": "{{kind}} 참조 선택"
       },
       "director": {
         "modelListError": "모델 목록을 읽을 수 없습니다: {{error}}",
         "tryAgain": "다시 시도하세요",
         "reportSummary": "디렉터 모델 목록을 읽을 수 없습니다.",
-        "noProvider": "어떤 공급자도 언어 모델을 제공하지 않습니다. 설정에서 키를 추가하세요.",
+        "noProvider": "어떤 프로바이더도 언어 모델을 제공하지 않습니다. 설정에서 키를 추가하세요.",
         "modelLabel": "모델",
         "loadingProviders": "읽기 제공업체…",
         "modelPlaceholder": "비트를 위한 모델"
@@ -4033,49 +4033,49 @@
         },
         "blockers": {
           "planBeatsFirst": "먼저 비트를 계획하세요. 아직 렌더링할 항목이 없습니다.",
-          "videoProviderMissing": "비디오를 렌더링하도록 설정된 공급자가 없습니다. 위에서 하나를 연결하세요.",
+          "videoProviderMissing": "비디오를 렌더링하도록 설정된 프로바이더가 없습니다. 위에서 하나를 연결하세요.",
           "pickVideoModel": "동영상 모델 선택",
           "videoModelUnavailable": "귀하의 제공업체는 해당 비디오 모델을 제공하지 않습니다. 다른 것을 선택하세요.",
           "checkingVideoModel": "제공업체가 여전히 해당 비디오 모델을 제공하는지 확인",
           "pickVoiceOrDisable": "음성을 선택하거나 Voiceover를 끄세요.",
-          "checkingVoice": "공급자가 여전히 해당 음성을 제공하는지 확인",
-          "voiceUnavailable": "귀하의 서비스 제공자는 그러한 음성을 제공하지 않습니다. 다른 것을 선택하거나 Voiceover를 끄세요."
+          "checkingVoice": "프로바이더가 여전히 해당 음성을 제공하는지 확인",
+          "voiceUnavailable": "귀하의 서비스 프로바이더는 그러한 음성을 제공하지 않습니다. 다른 것을 선택하거나 Voiceover를 끄세요."
         },
         "connectReasons": {
-          "video": "계속 진행하려면 비디오를 렌더링하는 공급자를 연결하세요.",
-          "voice": "계속 진행하려면 대사를 큰 소리로 읽어주는 공급자를 연결하세요."
+          "video": "계속 진행하려면 비디오를 렌더링하는 프로바이더를 연결하세요.",
+          "voice": "계속 진행하려면 대사를 큰 소리로 읽어주는 프로바이더를 연결하세요."
         },
         "availability": {
-          "checkingVideo": "공급자가 제공하는 비디오 모델을 확인하는 중…",
+          "checkingVideo": "프로바이더가 제공하는 비디오 모델을 확인하는 중…",
           "checkingVoices": "제공업체에서 제공하는 음성을 확인하는 중…",
           "videoReadFailed": "제공업체가 제공하는 비디오 모델을 읽을 수 없습니다.",
           "voicesReadFailed": "제공업체가 제공하는 음성을 읽을 수 없습니다.",
           "pickedModelUnchecked": "귀하의 제공업체가 여전히 {{model}}을 제공하는지 확인할 수 없습니다. 생성은 어쨌든 시도해 볼 것입니다.",
-          "noVideoProvider": "비디오를 렌더링하도록 설정된 공급자가 없습니다.",
-          "noVoiceProvider": "대사를 소리내어 읽어주도록 설정된 공급자가 없으므로 Voiceover를 끄거나 연결하세요.",
+          "noVideoProvider": "비디오를 렌더링하도록 설정된 프로바이더가 없습니다.",
+          "noVoiceProvider": "대사를 소리내어 읽어주도록 설정된 프로바이더가 없으므로 Voiceover를 끄거나 연결하세요.",
           "noVideoModel": "귀하의 제공업체는 비디오 모델을 제공하지 않습니다.",
           "noVoice": "제공업체에서는 음성을 제공하지 않으므로 Voiceover를 끄거나 제공되는 서비스를 연결하세요."
         },
         "actions": {
           "tryAgain": "다시 시도하세요",
-          "connectProvider": "공급자 연결",
+          "connectProvider": "프로바이더 연결",
           "moreModels": "편집기에 더 많은 모델이 있음",
-          "allModelsInInspector": "타임라인의 검사기는 구성된 모든 공급자를 제공합니다.",
+          "allModelsInInspector": "타임라인의 인스펙터는 구성된 모든 프로바이더를 제공합니다.",
           "moreVoices": "편집기의 더 많은 목소리",
-          "allVoicesInInspector": "타임라인의 검사기는 구성된 모든 음성을 제공합니다."
+          "allVoicesInInspector": "타임라인의 인스펙터는 구성된 모든 음성을 제공합니다."
         },
         "errorSummaries": {
           "videoList": "동영상 모델 목록을 읽을 수 없습니다.",
           "voiceList": "음성 목록을 읽을 수 없습니다."
         },
         "tileUnavailable": {
-          "model": "귀하의 서비스 제공자는 이 모델을 제공하지 않습니다.",
-          "voice": "귀하의 서비스 제공자는 이 음성을 제공하지 않습니다."
+          "model": "귀하의 서비스 프로바이더는 이 모델을 제공하지 않습니다.",
+          "voice": "귀하의 서비스 프로바이더는 이 음성을 제공하지 않습니다."
         },
         "voiceNotes": {
           "noLine": "어떤 비트에도 읽을 줄이 없습니다. 리뷰에 하나 추가하세요.",
           "pickVoice": "음성을 선택하거나 Voiceover를 끄세요. 그렇지 않으면 아무것도 읽혀지지 않습니다.",
-          "voiceUnavailable": "귀하의 서비스 제공자는 귀하가 선택한 음성을 제공하지 않습니다. 다른 것을 선택하거나 Voiceover를 끄세요."
+          "voiceUnavailable": "귀하의 서비스 프로바이더는 귀하가 선택한 음성을 제공하지 않습니다. 다른 것을 선택하거나 Voiceover를 끄세요."
         },
         "errors": {
           "clipsDidNotStart": "클립이 시작되지 않았습니다",
@@ -4084,12 +4084,12 @@
         "fields": {
           "aspectRatio": "종횡비",
           "videoModel": "비디오 모델",
-          "videoModelHelp": "구성된 공급자가 클립을 렌더링하는 모든 모델입니다. 편집기에서 변경할 수 있습니다.",
+          "videoModelHelp": "구성된 프로바이더가 클립을 렌더링하는 모든 모델입니다. 편집기에서 변경할 수 있습니다.",
           "voiceover": "음성 해설",
           "voiceoverDescription": "클립을 통해 각 비트의 라인을 읽습니다.",
           "voice": "음성",
           "voiceModel": "음성 모델",
-          "voiceModelHelp": "구성된 공급자가 대사를 읽는 모든 음성.",
+          "voiceModelHelp": "구성된 프로바이더가 대사를 읽는 모든 음성.",
           "music": "음악",
           "musicUnavailable": "음악 생성을 사용할 수 없습니다. 편집기에서 오디오 트랙을 추가합니다.",
           "musicDescription": "전체 컷 아래에 침대 하나"
@@ -4186,7 +4186,7 @@
         "retryFailed_one": "{{count}} 실패한 클립 재시도",
         "retryFailed_other": "{{count}} 실패한 클립 재시도",
         "next": "다음:",
-        "export": "수출",
+        "export": "내보내기",
         "addCaptions": "캡션 추가"
       },
       "host": {
@@ -4201,7 +4201,7 @@
       "category": {
         "modelLabel": "모델",
         "plannerModelPlaceholder": "플래너 모델",
-        "title": "어떤 종류의 작업 흐름인가요?",
+        "title": "어떤 종류의 워크플로인가요?",
         "description": "이는 계획이 도달하는 노드와 계획이 구축된 후 실행되는 방법을 결정합니다.",
         "gridLabel": "워크플로 카테고리",
         "runModeSummary": "실행용으로 제작됨: {{runMode}}. 다음 단계에서 이를 변경할 수 있습니다.",
@@ -4241,7 +4241,7 @@
           "blankDescription": "계획을 건너뛰고 노드를 직접 배치하세요."
         },
         "importing": "파일 읽기",
-        "title": "이 워크플로우는 무엇을 해야 합니까?",
+        "title": "이 워크플로는 무엇을 해야 합니까?",
         "description": "작업을 설명하세요. 구축하기 전에 단계를 계획하고 필요한 사항을 확인하겠습니다.",
         "taskLabel": "과제",
         "taskPlaceholder": "목록의 각 제목에 대한 표지 이미지 만들기",
@@ -4268,8 +4268,8 @@
         "planWouldFail": "이 계획은 실행되면 실패합니다",
         "unknownNodeTypes_one": "{{count}} 단계 이름 이 설치에는 노드가 없습니다. 계속하려면 아래에서 하나를 선택하세요.",
         "unknownNodeTypes_other": "{{count}} 단계 이름 이 설치에는 노드가 없습니다. 계속하려면 아래에서 하나씩 선택하세요.",
-        "missingProviders": "연결된 공급자는 {{roles}} 모델을 제공하지 않습니다. 계속하려면 아래 중 하나를 연결하세요.",
-        "loadingRoles": "공급자가 제공하는 {{roles}} 모델을 읽는 중…",
+        "missingProviders": "연결된 프로바이더는 {{roles}} 모델을 제공하지 않습니다. 계속하려면 아래 중 하나를 연결하세요.",
+        "loadingRoles": "프로바이더가 제공하는 {{roles}} 모델을 읽는 중…",
         "stepsHeader": "단계",
         "stepsDescription": "순서대로 실행됩니다. 단계를 편집, 재정렬 또는 제거하세요.",
         "addStep": "단계 추가",
@@ -4287,9 +4287,9 @@
         "nodeTypeLabel": "{{step}} 단계의 노드 유형",
         "searchNodeTypes": "검색 노드 유형",
         "changeNodeAriaLabel": "노드 변경: {{nodeType}}",
-        "noRoleProviderTitle": "연결된 {{role}} 공급자가 없습니다.",
+        "noRoleProviderTitle": "연결된 {{role}} 프로바이더가 없습니다.",
         "missingRoleReason": "{{step}} 단계에는 {{role}} 모델이 필요합니다.",
-        "connect": "연결하다",
+        "connect": "연결",
         "missingRoleDescription": "이 단계는 {{role}} 모델에서 실행됩니다. 이를 제공하는 제공업체를 연결하세요."
       }
     }
@@ -4336,25 +4336,25 @@
       "buildDisclosure": {
         "regionLabel": "빌드하기 전에",
         "title": "빌드는 노드를 배치한 후 한 번 실행합니다.",
-        "withSamples": "그래프가 확인되고, 통과하면 위의 샘플 입력으로 한 번 실행됩니다. 해당 실행은 아래 모델을 호출하며 공급자 요금이 부과될 수 있습니다.",
-        "withoutSamples": "그래프를 확인하고 통과하면 한 번 실행됩니다. 해당 실행은 아래 모델을 호출하며 공급자 요금이 부과될 수 있습니다.",
+        "withSamples": "그래프가 확인되고, 통과하면 위의 샘플 입력으로 한 번 실행됩니다. 해당 실행은 아래 모델을 호출하며 프로바이더 요금이 부과될 수 있습니다.",
+        "withoutSamples": "그래프를 확인하고 통과하면 한 번 실행됩니다. 해당 실행은 아래 모델을 호출하며 프로바이더 요금이 부과될 수 있습니다.",
         "runsOn": "{{models}}에서 실행됩니다.",
         "noModel": "이 계획에는 자체 모델이 필요하지 않습니다.",
         "costNote": "실행이 반환될 때까지 비용은 알 수 없으며 각 단계에서 보내는 내용에 따라 다릅니다. 두 번째로 실행되는 것은 없습니다."
       },
       "modelStatus": {
-        "loading": "공급자가 제공하는 {{role}} 모델을 읽는 중…",
+        "loading": "프로바이더가 제공하는 {{role}} 모델을 읽는 중…",
         "reportSummary": "{{role}} 모델 읽기에 실패했습니다.",
         "readError": "{{role}} 모델을 읽을 수 없습니다.",
         "readErrorWithDetail": "{{role}} 모델을 읽을 수 없습니다: {{detail}}",
         "providerReason": "이 워크플로에는 {{role}}이 필요합니다.",
-        "noProvider": "연결된 공급자는 {{role}}을 제공하지 않습니다.",
+        "noProvider": "연결된 프로바이더는 {{role}}을 제공하지 않습니다.",
         "unavailable": "\"{{model}}\"은(는) 더 이상 제공되지 않습니다. 다른 {{role}}을 선택하세요.",
         "selectPlaceholder": "{{role}}을 선택하세요."
       },
       "actions": {
         "retry": "다시 시도하세요",
-        "connect": "연결하다"
+        "connect": "연결"
       }
     },
     "landingChecklist": {
@@ -4389,11 +4389,11 @@
       },
       "pills": {
         "checking": "확인 중",
-        "failed": "실패했다",
+        "failed": "실패",
         "unknown": "알 수 없음",
         "validated": "검증됨",
         "completed": "완료",
-        "running": "달리기",
+        "running": "실행 중",
         "waiting": "기다리는 중",
         "canceled": "취소됨",
         "skipped": "건너뛰었습니다",
@@ -4429,10 +4429,10 @@
         "repairGraphUnwired": "수리: 연결되지 않은 각 출력을 명명된 업스트림 단계에 연결하거나 계획에서 생성되지 않는 출력을 제거합니다. 변경을 제안하고 나를 기다려주세요.",
         "testRunFailed": "테스트 실행 실패: {{detail}}",
         "testRunDidNotStart": "테스트 실행이 시작되지 않았습니다: {{detail}}",
-        "repairTestRun": "복구: 명명된 공급자, 작업자 또는 런타임을 확인한 후 샘플 실행을 다시 시도합니다. 그래프 변경을 제안하고 적용하기 전에 기다려 주세요.",
+        "repairTestRun": "복구: 명명된 프로바이더, 작업자 또는 런타임을 확인한 후 샘플 실행을 다시 시도합니다. 그래프 변경을 제안하고 적용하기 전에 기다려 주세요.",
         "repairBuildFailed": "수리: 그래프의 마지막 실패한 단계를 검사하고 하나의 목표 변경을 제안합니다. 신청하기 전에 기다려 주세요.",
         "title": "작동하기 전에 수정이 필요합니다.",
-        "askAgent": "상담원에게 물어보세요"
+        "askAgent": "에이전트에게 물어보세요"
       }
     },
     "setupHost": {
@@ -4447,11 +4447,11 @@
         "useApp": "{{name}} 사용",
         "count_one": "{{count}} 앱",
         "count_other": "{{count}} 앱",
-        "workflowCount_one": "{{count}} 작업 흐름",
+        "workflowCount_one": "{{count}} 워크플로",
         "workflowCount_other": "{{count}} 워크플로",
         "title": "앱에서 시작",
         "seeAll": "모든 앱 보기",
-        "description": "앱을 열어 사용하거나 사본을 편집하여 워크플로우를 맞춤화하세요.",
+        "description": "앱을 열어 사용하거나 사본을 편집하여 워크플로를 맞춤화하세요.",
         "loading": "앱 로드 중",
         "loadErrorTitle": "앱을 로드할 수 없습니다.",
         "loadErrorDescription": "잠시 후에 다시 시도해 보세요.",
@@ -4582,7 +4582,7 @@
       "loadErrorTitle": "레시피를 로드할 수 없습니다.",
       "appCount_one": "{{count}} 앱",
       "appCount_other": "{{count}} 앱",
-      "workflowCount_one": "{{count}} 작업 흐름",
+      "workflowCount_one": "{{count}} 워크플로",
       "workflowCount_other": "{{count}} 워크플로",
       "nodeCount_one": "{{count}} 노드",
       "nodeCount_other": "{{count}} 노드"
@@ -4708,9 +4708,9 @@
         "ariaLabel": "호환성 세부정보",
         "unknownProvider": "알 수 없는 제공업체",
         "execution": {
-          "localAndProviderHosted": "로컬 및 공급자 호스팅",
-          "local": "지역",
-          "providerHosted": "공급자 호스팅",
+          "localAndProviderHosted": "로컬 및 프로바이더 호스팅",
+          "local": "로컬",
+          "providerHosted": "프로바이더 호스팅",
           "unknown": "알 수 없음 — 실행 위치가 선언되지 않았습니다."
         },
         "inputs": {
@@ -4724,7 +4724,7 @@
         },
         "details": {
           "inputs": "입력: {{value}}",
-          "providerModel": "공급자/모델: {{value}}",
+          "providerModel": "프로바이더/모델: {{value}}",
           "execution": "실행: {{value}}",
           "requiredSetup": "필수 설정: {{value}}",
           "runtime": "런타임: {{value}}"
@@ -4749,7 +4749,7 @@
         "tooltipAssumptions": "{{inputTokens}} 입력 및 1,000~{{maxOutputTokens}} 출력 토큰 정보. 실제 사용량은 더 많은 비용이 들 수 있습니다.",
         "beforeYouGenerate": "생성하기 전에",
         "noModelCallCost": "$0, 모델 호출 없음",
-        "localModelCost": "공급자 비용 $0(로컬 모델)",
+        "localModelCost": "프로바이더 비용 $0(로컬 모델)",
         "roughCost": "대략적인 비용: {{low}}–{{high}}",
         "costEstimateUnavailable": "이 모델에는 예상 비용을 알 수 없습니다.",
         "usesExistingTextOrPreset": "기존 텍스트 또는 사전 설정을 사용합니다.",
@@ -4852,7 +4852,7 @@
             "sequenceRequired": "편집하기 전에 타임라인 순서를 선택하세요.",
             "clipRequired": "비디오를 편집하기 전에 클립을 선택하세요.",
             "videoClipRequired": "비디오를 편집하려면 비디오 클립이 필요합니다.",
-            "activeVideoAssetRequired": "비디오를 편집하려면 활성 비디오 자산이 필요합니다.",
+            "activeVideoAssetRequired": "비디오를 편집하려면 활성 비디오 에셋이 필요합니다.",
             "positiveDurationRequired": "비디오 편집에는 재생 가능 시간이 필요합니다.",
             "timeRemapUnsupported": "비디오 편집에서는 시간이 다시 매핑된 클립을 지원하지 않습니다. 리타임을 먼저 굽습니다.",
             "constantSpeedRequired": "편집 비디오는 일정한 양의 재생 속도만 지원합니다.",
@@ -4862,12 +4862,12 @@
             "unavailable": "영상 편집이 불가능합니다."
           },
           "modelCatalogFailed": "동영상 편집 모델 카탈로그를 로드할 수 없습니다. 호환되는 제공업체를 다시 확인해 보세요.",
-          "noCompatibleModelDescription": "호환되는 비디오 편집 모델이 없습니다. 공급자를 추가하거나 video_to_video를 지원하는 로컬 모델을 설치하세요.",
+          "noCompatibleModelDescription": "호환되는 비디오 편집 모델이 없습니다. 프로바이더를 추가하거나 video_to_video를 지원하는 로컬 모델을 설치하세요.",
           "settlement": {
             "cancelled": "수정이 취소되었습니다. 허용된 미디어는 변경되지 않았습니다.",
             "expired": "수정사항이 완료되기 전에 만료되었습니다. 캡처된 요청을 재시도할 수 있습니다.",
             "orphaned": "편집이 완료되기 전에 소스 클립이 삭제되었습니다. 결과는 점검을 위해 보관되었으며 적용되지 않았습니다.",
-            "failed": "공급자가 이 편집을 실패했습니다. 허용된 미디어는 변경되지 않았습니다."
+            "failed": "프로바이더가 이 편집을 실패했습니다. 허용된 미디어는 변경되지 않았습니다."
           },
           "unavailableTitle": "동영상 편집 불가",
           "instruction": "지시사항",
@@ -4884,7 +4884,7 @@
             "take": "결과가 버전 기록에 추가됩니다. 그곳에서 미리 보고 적용해보세요.",
             "replace": "결과는 완료되면 클립을 대체합니다. 원본은 버전 기록에 남아 있습니다."
           },
-          "strength": "힘",
+          "strength": "강도",
           "cancel": "취소",
           "retry": "재시도",
           "editVideo": "비디오 편집",
@@ -4910,13 +4910,13 @@
           "regenerateTooltip": "새 클립으로 재생성 - 이 클립 옆에 새 복사본을 놓아 기존 렌더링을 잃지 않고 새 테이크를 굴릴 수 있습니다.",
           "regenerate": "새 클립으로 재생성",
           "lockedTooltip": "잠김: 타이밍이 고정되고 성공적인 생성이 현재 출력을 대체하지 않습니다.",
-          "unlockedTooltip": "잠금 해제: 타이밍을 고정하고 성공적인 세대가 현재 출력을 대체하지 못하도록 잠급니다.",
+          "unlockedTooltip": "잠금 해제됨: 잠그면 타이밍이 고정되고 새로 성공한 생성 결과가 현재 출력을 대체하지 않습니다.",
           "unlock": "클립 잠금 해제",
           "lock": "잠금 클립",
-          "replaceTooltip": "출력 교체… 재생성하지 않고 기존 자산 선택",
+          "replaceTooltip": "출력 교체… 재생성하지 않고 기존 에셋 선택",
           "replaceOutput": "클립 출력 교체",
           "openInNodeEditorTooltip": "노드 편집기에서 열기",
-          "openWorkflowInNodeEditor": "노드 편집기에서 클립 작업 흐름 열기"
+          "openWorkflowInNodeEditor": "노드 편집기에서 클립 워크플로 열기"
         },
         "clipAdjustments": {
           "audio": "오디오",
@@ -4994,7 +4994,7 @@
       "preset": "프리셋",
       "rolePreset": "{{role}} 애니메이션 사전 설정",
       "period": "기간",
-      "duration": "기간",
+      "duration": "길이",
       "delay": "지연",
       "roleDuration": "{{role}} 애니메이션 지속 시간",
       "roleDelay": "{{role}} 애니메이션 지연",
@@ -5011,13 +5011,13 @@
       "inOutOverrun": "인과 아웃을 함께 실행하면 클립의 {{clipDuration}}ms를 지나서 {{duration}}ms가 실행됩니다. 중간에 겹칩니다.",
       "easing": {
         "label": "완화",
-        "hold": "보류"
+        "hold": "홀드"
       },
       "from": {
         "label": "에서",
         "start": "시작",
         "end": "종료",
-        "center": "센터"
+        "center": "가운데"
       },
       "units": {
         "word": "말씀",
@@ -5080,7 +5080,7 @@
         "overshoot": "오버슈트",
         "degrees": "학위",
         "softness": "부드러움",
-        "amount": "금액",
+        "amount": "강도",
         "frequency": "빈도",
         "intensity": "강도",
         "amplitude": "진폭",
@@ -5099,7 +5099,7 @@
         "endT": "끝 위치",
         "fadeInMs": "페이드 인(ms)",
         "fadeOutMs": "페이드 아웃(밀리초)",
-        "height": "신장"
+        "height": "높이"
       },
       "paramOptions": {
         "direction": {
@@ -5123,8 +5123,8 @@
       "empty": "타임라인에 오디오 클립을 추가하여 이 클립을 구동하세요.",
       "audio": "오디오",
       "audioToMeasure": "측정할 오디오 클립",
-      "property": "재산",
-      "propertyToDrive": "운전할 재산",
+      "property": "속성",
+      "propertyToDrive": "구동할 속성",
       "shape": "모양",
       "curveShape": "곡선 모양",
       "envelope": "봉투",
@@ -5133,14 +5133,14 @@
       "quietValue": "범위 조용한 값",
       "loudValue": "범위 시끄러운 값",
       "sensitivity": "감도",
-      "attack": "공격",
-      "release": "출시",
+      "attack": "어택",
+      "release": "릴리스",
       "offset": "오프셋",
       "rebake": "다시 굽다",
       "animate": "오디오에서 애니메이션 만들기",
       "previewLabel": "오디오에서 {{property}}",
       "properties": {
-        "scale": "규모",
+        "scale": "스케일",
         "opacity": "불투명도",
         "positionX": "위치 X",
         "positionY": "위치 Y"
@@ -5156,11 +5156,11 @@
     "audioEditor": {
       "audioFallback": "오디오",
       "editedSuffix": "(수정됨)",
-      "saved": "편집 내용을 새 오디오 자산으로 저장하고 클립에 넣습니다.",
+      "saved": "편집 내용을 새 오디오 에셋으로 저장하고 클립에 넣습니다.",
       "saveFailed": "오디오 저장 실패: {{error}}",
       "title": "오디오 편집: {{name}}",
       "clipFallback": "클립",
-      "assetLabel": "오디오 자산",
+      "assetLabel": "오디오 에셋",
       "close": "닫기"
     },
     "audioEffects": {
@@ -5187,7 +5187,7 @@
         "gain": "게인",
         "eq3": "3밴드 EQ",
         "filter": "필터",
-        "compressor": "압축기",
+        "compressor": "컴프레서",
         "echo": "에코",
         "reverb": "리버브",
         "distortion": "왜곡"
@@ -5202,16 +5202,16 @@
         "highGainDb": "높음",
         "highFreq": "고주파",
         "frequency": "빈도",
-        "q": "질문",
+        "q": "Q",
         "thresholdDb": "임계값",
         "ratio": "비율",
-        "attackMs": "공격",
-        "releaseMs": "출시",
+        "attackMs": "어택",
+        "releaseMs": "릴리스",
         "kneeDb": "무릎",
         "delayMs": "지연",
         "feedback": "피드백",
         "mix": "믹스",
-        "decaySec": "부패",
+        "decaySec": "디케이",
         "driveDb": "드라이브",
         "outputDb": "출력"
       }
@@ -5230,7 +5230,7 @@
         "colorAriaLabel": "캡션 색상",
         "spoken": "음성",
         "spokenAriaLabel": "캡션 음성 색상",
-        "bottom": "바닥",
+        "bottom": "아래",
         "bottomPlaceholder": "12",
         "bottomAriaLabel": "프레임 하단으로부터 캡션 거리",
         "outline": "개요",
@@ -5256,7 +5256,7 @@
         "curveLabel": "{{prefix}} 곡선 {{index}}",
         "curveTitle": "곡선 {{index}}",
         "deleteCurve": "{{name}} 삭제",
-        "property": "재산",
+        "property": "속성",
         "curveProperty": "{{name}} 속성",
         "keyframeLabel": "{{name}} 키프레임 {{index}}",
         "addKeyframeToCurve": "곡선 {{index}}에 키프레임 추가",
@@ -5272,7 +5272,7 @@
         "properties": {
           "offsetX": "오프셋 X",
           "offsetY": "오프셋 Y",
-          "scale": "규모",
+          "scale": "스케일",
           "scaleX": "스케일 X",
           "scaleY": "스케일 Y",
           "rotation": "회전",
@@ -5322,7 +5322,7 @@
           "offsetY": "오프셋 Y",
           "blur": "흐림",
           "opacity": "불투명도",
-          "amount": "금액",
+          "amount": "강도",
           "softness": "부드러움",
           "roughness": "거칠기",
           "size": "크기",
@@ -5363,7 +5363,7 @@
         "timing": "타이밍",
         "start": "시작",
         "startTimecodeAriaLabel": "타임코드 시작",
-        "duration": "기간",
+        "duration": "길이",
         "durationSecondsAriaLabel": "지속 시간(초)",
         "hidden": "숨겨진",
         "trimHint": "그룹을 다듬으면 자식이 떠나는 창 안으로 끌어옵니다."
@@ -5396,7 +5396,7 @@
           "feather": "깃털",
           "maskFeather": "마스크 깃털",
           "invert": "반전",
-          "matte": "무광택",
+          "matte": "매트",
           "source": "소스",
           "matteSourceClip": "매트 소스 클립",
           "mode": "모드",
@@ -5418,7 +5418,7 @@
           "lastRunFailed": "마지막 실행이 실패했습니다. 아무것도 잘리지 않았습니다. 다시 시도해 보세요.",
           "isolateSubject": "주제를 분리하다",
           "isolateHelp": "이 클립의 자체 소스에서 마스크를 잘라내어 다듬고 분할할 때마다 정렬된 상태를 유지합니다.",
-          "strength": "힘",
+          "strength": "강도",
           "subjectMatteFeather": "주제 매트 깃털",
           "version": "버전",
           "subjectMatteVersion": "주제 매트 버전",
@@ -5443,7 +5443,7 @@
           "quantizeTarget": "대상을 양자화",
           "onsets": "발병",
           "onsetsAndLengths": "시작 + 길이",
-          "strength": "힘",
+          "strength": "강도",
           "applyQuantize": "퀀타이즈 적용",
           "velocity": "속도 ×",
           "applyVelocity": "속도 적용",
@@ -5483,7 +5483,7 @@
         "reframe": {
           "title": "스마트 리프레임",
           "auto": "자동",
-          "center": "센터",
+          "center": "가운데",
           "subject": "주제",
           "reframeSubject": "주제 재구성",
           "manualFramingHelp": "수동 프레이밍은 소스 시간에 기록되므로 클립이 이동하거나 트리밍될 때 첨부된 상태로 유지됩니다.",
@@ -5531,7 +5531,7 @@
         "lineCaps": {
           "butt": "엉덩이",
           "round": "라운드",
-          "square": "광장"
+          "square": "사각"
         },
         "lineEndX": "줄 끝 X",
         "lineEndY": "줄 끝 Y",
@@ -5571,7 +5571,7 @@
         "align": "정렬",
         "alignment": "텍스트 정렬",
         "alignments": {
-          "center": "센터",
+          "center": "가운데",
           "left": "왼쪽",
           "right": "오른쪽"
         },
@@ -5609,9 +5609,9 @@
         "verticalAlign": "수직 정렬",
         "verticalAlignment": "텍스트 수직 정렬",
         "verticalAlignments": {
-          "bottom": "바닥",
+          "bottom": "아래",
           "middle": "중간",
-          "top": "탑"
+          "top": "위"
         },
         "weight": "무게",
         "weights": {
@@ -5656,14 +5656,14 @@
       "tracking": "추적 대상…",
       "trackSubject": "주제 추적",
       "failed": "주제 추적 실패",
-      "checkingModels": "추적 공급자 및 모델을 확인합니다.",
+      "checkingModels": "추적 프로바이더 및 모델을 확인합니다.",
       "modelsLoadError": "추적 모델을 로드할 수 없습니다. 연결되면 다시 시도하세요.",
       "noModel": "피사체 추적 제공업체나 모델을 사용할 수 없습니다.",
       "running": "추적이 실행 중이며 완료되면 이 타임라인이 업데이트됩니다.",
       "ready": "{{model}}을 사용합니다. 선택한 피사체를 추적할 준비가 되었습니다.",
       "selectToBegin": "{{model}}을 사용합니다. 시작하려면 주제 직사각형을 선택하세요.",
       "followObject": "객체 따르기",
-      "trackIdHelp": "트랙 ID — list_tracks 또는 공급자가 연결되면 track_object 결과에서 가져옵니다.",
+      "trackIdHelp": "트랙 ID — list_tracks 또는 프로바이더가 연결되면 track_object 결과에서 가져옵니다.",
       "trackId": "트랙 ID",
       "trackIdAria": "팔로우할 트랙 ID",
       "mode": "모드",
@@ -5675,7 +5675,7 @@
       "offsetXAria": "오프셋 X 따르기",
       "offsetY": "오프셋 Y",
       "offsetYAria": "오프셋 Y 따르기",
-      "scale": "규모",
+      "scale": "스케일",
       "smoothing": "스무딩",
       "unfollow": "언팔로우"
     },
@@ -5683,7 +5683,7 @@
       "title": "전환",
       "type": "유형",
       "typeAria": "전환 유형",
-      "duration": "기간",
+      "duration": "길이",
       "durationAria": "전환 기간",
       "color": "색상",
       "colorAria": "전환 색상",
@@ -5726,7 +5726,7 @@
       "activeDeleteHelp": "이는 활성 테이크입니다. 삭제하기 전에 다른 테이크를 선택하세요.",
       "delete": "{{name}} 삭제",
       "title": "기록({{count}})",
-      "unlockClip": "세대를 교환하려면 클립을 잠금 해제하세요.",
+      "unlockClip": "생성 결과를 바꾸려면 클립 잠금을 해제하세요.",
       "takeLabel": "라벨 가져가기",
       "takeLabelPlaceholder": "테이크 라벨을 입력하세요",
       "clipLocked": "변경하려면 \"{{name}}\"을 잠금 해제하세요.",
@@ -5738,7 +5738,7 @@
       "takeTooShort": "이 테이크는 현재 클립 컷보다 짧습니다.",
       "extendTakeChoice": "이 테이크를 적용하려면 확장 섹션에서 컷 유지, 사용 가능한 공간 또는 잔물결을 선택하세요.",
       "takeCannotApply": "이 테이크는 적용할 수 없습니다.",
-      "onlyTakeDelete": "클립에 활성 자산이 있는 동안에는 유일한 테이크를 삭제할 수 없습니다. 클립은 하나 이상의 테이크를 유지해야 합니다.",
+      "onlyTakeDelete": "클립에 활성 에셋이 있는 동안에는 유일한 테이크를 삭제할 수 없습니다. 클립은 하나 이상의 테이크를 유지해야 합니다.",
       "activeTakeDelete": "활성 테이크를 삭제할 수 없습니다. 먼저 다른 테이크를 선택하세요."
     },
     "directGenClip": {
@@ -5755,7 +5755,7 @@
         "textToImage": "텍스트 → 이미지",
         "imageToImage": "이미지 → 이미지"
       },
-      "noSourceClips": "렌더링된 자산이 포함된 소스 클립을 사용할 수 없습니다.",
+      "noSourceClips": "렌더링된 에셋이 포함된 소스 클립을 사용할 수 없습니다.",
       "sourceImage": "소스 이미지",
       "sourceClip": "소스 클립",
       "resolution": "해상도",
@@ -5764,9 +5764,9 @@
       "stepsValue": "{{count}} 단계",
       "inferenceSteps": "추론 단계",
       "durationValue": "{{count}}초",
-      "duration": "기간",
+      "duration": "길이",
       "videoResolution": "비디오 해상도",
-      "estimatedCost": "이번 세대의 예상 비용",
+      "estimatedCost": "이번 생성의 예상 비용",
       "cancel": "취소",
       "generationFailed": "생성에 실패했습니다.",
       "generationFailedWithReason": "클립 생성 실패: {{error}}"
@@ -5787,7 +5787,7 @@
           },
           "noModelTitle": "사용 가능한 확장 모델이 없습니다.",
           "modelsLoadFailed": "확장 모델을 로드할 수 없습니다. 연결되면 다시 시도하세요.",
-          "connectProvider": "확장을 사용하려면 비디오 확장 모델이 있는 공급자를 연결하세요.",
+          "connectProvider": "확장을 사용하려면 비디오 확장 모델이 있는 프로바이더를 연결하세요.",
           "modelLabel": "확장 모델",
           "directionLabel": "다음에서 확장",
           "start": "시작",
@@ -5829,7 +5829,7 @@
             "queued": "대기 중",
             "generating": "생성 중",
             "generated": "생성됨",
-            "stale": "부실",
+            "stale": "오래됨",
             "failed": "실패",
             "locked": "잠김",
             "missing": "누락"
@@ -5847,7 +5847,7 @@
           "noWorkflow": "이 클립에는 워크플로가 바인딩되어 있지 않습니다.",
           "inputs": "입력",
           "inputsLoadFailed": "워크플로 입력을 로드하지 못했습니다.",
-          "noEditableInputs": "이 워크플로우에는 편집 가능한 입력 매개변수가 없습니다.",
+          "noEditableInputs": "이 워크플로에는 편집 가능한 입력 매개변수가 없습니다.",
           "estimatedRunCost": "이 워크플로를 한 번 실행하는 데 드는 예상 비용",
           "cancel": "취소",
           "generatedClipFailed": "클립 생성 실패"
@@ -5866,7 +5866,7 @@
       "motionPromptLabel": "모션 프롬프트",
       "noModelTitle": "이미지-비디오 모델 없음",
       "catalogError": "동영상 모델 카탈로그를 로드할 수 없습니다.",
-      "noCompatibleModel": "공급자를 추가하거나 image_to_video를 지원하는 로컬 모델을 설치하세요.",
+      "noCompatibleModel": "프로바이더를 추가하거나 image_to_video를 지원하는 로컬 모델을 설치하세요.",
       "retryCatalog": "모델 카탈로그 재시도",
       "modelLabel": "이미지-비디오 모델",
       "durationAdjusted": "이 모델은 {{requested}}을(를) 렌더링할 수 없으므로 비디오 클립의 길이는 {{actual}}입니다.",
@@ -5922,13 +5922,13 @@
   "pass3_30": {
     "inspectorSearch": {
       "placeholder": "컨트롤 찾기",
-      "matchingSections": "일치하는 검사기 섹션",
+      "matchingSections": "일치하는 인스펙터 섹션",
       "jumpToSection": "섹션으로 이동",
       "noMatchingControls": "일치하는 컨트롤이 없습니다.",
       "sections": {
         "media": {
           "title": "미디어",
-          "aliases": "유형 자산 상위 그룹"
+          "aliases": "유형 에셋 상위 그룹"
         },
         "timing": {
           "title": "타이밍",
@@ -5963,7 +5963,7 @@
           "aliases": "직사각형 타원 깃털 반전"
         },
         "matte": {
-          "title": "무광택",
+          "title": "매트",
           "aliases": "소스 알파 루마 반전"
         },
         "animate": {
@@ -6004,7 +6004,7 @@
       "properties": {
         "opacity": "불투명도",
         "position": "위치",
-        "scale": "규모",
+        "scale": "스케일",
         "rotation": "회전",
         "orbit": "궤도",
         "fieldOfView": "시야",
@@ -6027,7 +6027,7 @@
         "easeIn": "천천히",
         "easeOut": "천천히",
         "easeInOut": "쉽게 들어오고 나가기",
-        "hold": "보류"
+        "hold": "홀드"
       },
       "laneLabel": "{{property}} 키프레임",
       "keyframeAt": "{{time}}의 {{property}} 키프레임",
@@ -6062,7 +6062,7 @@
       "errorSummary": "회선 전달 변경 실패"
     },
     "timelineInspector": {
-      "title": "검사관",
+      "title": "인스펙터",
       "unlockClipToEditTiming": "타이밍을 편집하려면 클립을 잠금 해제하세요.",
       "unlockTrackToEditTiming": "타이밍을 편집하려면 트랙을 잠금 해제하세요.",
       "noneUngrouped": "없음(그룹 해제됨)",
@@ -6084,13 +6084,13 @@
       "fields": {
         "start": "시작",
         "startTimecode": "타임코드 시작",
-        "duration": "기간",
+        "duration": "길이",
         "durationSeconds": "지속 시간(초)",
         "speed": "속도",
         "playbackSpeed": "재생 속도",
         "hidden": "숨겨진",
         "type": "유형",
-        "asset": "자산",
+        "asset": "에셋",
         "parent": "상위",
         "parentGroup": "상위 그룹"
       },
@@ -6122,7 +6122,7 @@
         "actionLabel": "{{name}}을 다른 프로젝트에 복사",
         "title": "{{name}} 복사",
         "confirm": "복사",
-        "description": "참조된 자산, 엔터티 및 지원되는 문서가 대상에 복사됩니다. 소스는 변함이 없습니다.",
+        "description": "참조된 에셋, 엔터티 및 지원되는 문서가 대상에 복사됩니다. 소스는 변함이 없습니다.",
         "destinationProject": "대상 프로젝트"
       },
       "documents": {
@@ -6171,7 +6171,7 @@
           "storyboard": "스토리보드",
           "video": "비디오",
           "script": "스크립트",
-          "workflow": "작업 흐름",
+          "workflow": "워크플로",
           "game": "게임",
           "app": "앱",
           "chat": "채팅"
@@ -6187,7 +6187,7 @@
           "video": "새 영상",
           "script": "새 스크립트",
           "image": "새 이미지",
-          "workflow": "새로운 작업 흐름",
+          "workflow": "새로운 워크플로",
           "app": "새로운 앱",
           "game": "새로운 게임",
           "entity": "새로운 엔터티"
@@ -6218,7 +6218,7 @@
             "description": "설명부터 편집기에서 선택한 변형까지."
           },
           "workflow": {
-            "title": "작업 흐름",
+            "title": "워크플로",
             "description": "작업부터 실행 그래프까지, 계획을 먼저 검토합니다."
           },
           "game": {
@@ -6257,7 +6257,7 @@
         "heading": "무엇을 만들고 싶나요?",
         "intro": "아이디어를 이미지, 비디오, 앱, 워크플로로 바꿔보세요. 질문을 하거나 무엇을 만들 것인지 설명해보세요.",
         "chatPromptLabel": "채팅 프롬프트",
-        "promptPlaceholder": "무엇을 만들고 싶은지 설명하세요. 기술의 경우 /를 입력하고, 파일 또는 엔터티의 경우 @를 입력합니다.",
+        "promptPlaceholder": "무엇을 만들고 싶은지 설명하세요. 스킬의 경우 /를 입력하고, 파일 또는 엔터티의 경우 @를 입력합니다.",
         "removeReference": "{{name}} 제거",
         "attachFiles": "파일 첨부",
         "attachedFileCountShort_one": "파일 · {{count}}",
@@ -6271,7 +6271,7 @@
         "showFewer": "간략히 표시",
         "moreStarters_one": "{{count}} 더보기",
         "moreStarters_other": "{{count}} 더보기",
-        "pickSkillOrDescribe": "시작할 기술을 선택하거나 원하는 것이 무엇인지 설명하세요.",
+        "pickSkillOrDescribe": "시작할 스킬을 선택하거나 원하는 것이 무엇인지 설명하세요.",
         "guidedFlowsRegion": "안내식 흐름으로 시작",
         "gameDimension": "게임 유형",
         "game2d": "2D 게임",
@@ -6288,8 +6288,8 @@
         "renderedExampleShots_one": "{{count}} 샷, 이미 렌더링됨",
         "renderedExampleShots_other": "{{count}} 샷, 이미 렌더링됨",
         "blankEntries": {
-          "workflow": "작업 흐름",
-          "comfy-workflow": "편안한 작업 흐름",
+          "workflow": "워크플로",
+          "comfy-workflow": "Comfy 워크플로",
           "chat": "채팅",
           "text": "텍스트",
           "image": "스케치",
@@ -6328,7 +6328,7 @@
             "description": "다른 사람들이 사용할 수 있는 페이지 구축"
           },
           "workflow": {
-            "title": "워크플로우 생성",
+            "title": "워크플로 생성",
             "description": "단계 자동화 및 결합"
           },
           "examples": {
@@ -6337,7 +6337,7 @@
           },
           "model3d": {
             "title": "3D 모델",
-            "description": "손으로 편집할 수 있는 빈 3D 모델입니다. AI 공급자가 필요하지 않습니다."
+            "description": "손으로 편집할 수 있는 빈 3D 모델입니다. AI 프로바이더가 필요하지 않습니다."
           },
           "effects": {
             "title": "사진에 효과 추가",
@@ -6370,7 +6370,7 @@
             "description": "웹 앱 및 도구"
           },
           "workflows": {
-            "title": "워크플로우 예시",
+            "title": "워크플로 예시",
             "description": "자동화, 다단계"
           }
         },
@@ -6411,7 +6411,7 @@
         "game_other": "{{count}} 게임",
         "jsscript_one": "{{count}} JS 스크립트",
         "jsscript_other": "{{count}} JS 스크립트",
-        "workflow_one": "{{count}} 작업 흐름",
+        "workflow_one": "{{count}} 워크플로",
         "workflow_other": "{{count}} 워크플로",
         "text_one": "{{count}} 텍스트 파일",
         "text_other": "{{count}} 텍스트 파일"
@@ -6421,7 +6421,7 @@
           "noDocuments": "아직 만들어진 것이 없습니다.",
           "noStills": "아직 스틸컷이 없습니다"
         },
-        "providerSpendTooltip": "공급자 요율로 지출됨"
+        "providerSpendTooltip": "프로바이더 요율로 지출됨"
       },
       "documentCard": {
         "nameLabel": "문서 이름",
@@ -6432,7 +6432,7 @@
       },
       "lifecycle": {
         "actions": {
-          "export": "수출",
+          "export": "내보내기",
           "archive": "아카이브",
           "restore": "복원",
           "delete": "삭제",
@@ -6443,7 +6443,7 @@
         "exporting": "내보내는 중…",
         "deleteProject": "프로젝트 삭제",
         "confirmDeleteTitle": "{{projectName}}을 삭제하시겠습니까?",
-        "confirmDeleteBody": "{{projectName}} 및 해당 문서, 대화, 작업, 프로젝트 폴더 밖에 저장된 자산을 모두 삭제합니다.",
+        "confirmDeleteBody": "{{projectName}} 및 해당 문서, 대화, 작업, 프로젝트 폴더 밖에 저장된 에셋을 모두 삭제합니다.",
         "deleteIrreversible": "이 작업은 취소할 수 없습니다.",
         "deleteFolderTrash": "프로젝트 폴더는 휴지통으로 이동합니다.",
         "deleteFolderRemove": "프로젝트 폴더와 그 안의 모든 파일이 클라우드 저장소에서 삭제됩니다.",
@@ -6488,7 +6488,7 @@
         "noMatchingProjects": "일치하는 프로젝트가 없습니다.",
         "tryDifferentSearch": "다른 검색어를 사용해 보세요.",
         "startProject": "프로젝트 시작",
-        "startProjectDescription": "원하는 것을 말하면 상담원이 문서를 작성합니다.",
+        "startProjectDescription": "원하는 것을 말하면 에이전트가 문서를 작성합니다.",
         "imported": "가져온 {{name}}",
         "importedWithProblems": "{{count}} 누락 또는 손상된 파일이 포함된 {{name}}을(를) 가져왔습니다.",
         "importedWithProblems_one": "{{count}} 파일이 없거나 손상된 {{name}}을(를) 가져왔습니다.",
@@ -6556,7 +6556,7 @@
       "justNow": "지금 막"
     },
     "startExamples": {
-      "sectionLabel": "예",
+      "sectionLabel": "예시",
       "tabListLabel": "예시 유형",
       "loading": "예제 로드 중",
       "tabs": {
@@ -6574,17 +6574,17 @@
     "workflows": {
       "acceptShare": {
         "invalidLink": "이 공유 링크는 유효하지 않거나 취소되었습니다. 워크플로 소유자에게 새 워크플로 소유자를 요청하세요.",
-        "goToEditor": "편집자로 이동",
+        "goToEditor": "편집기로 이동",
         "openingWorkflow": "공유 워크플로 열기"
       },
       "createWorkflow": {
-        "newWorkflow": "새로운 작업 흐름"
+        "newWorkflow": "새로운 워크플로"
       },
       "publicWorkflow": {
         "loading": "공유 워크플로 로드 중",
         "unavailableTitle": "이 워크플로를 사용할 수 없습니다.",
         "unavailableDescription": "링크가 취소되었을 수 있습니다. 공유한 사람에게 새 파일을 요청하세요.",
-        "addedToWorkflows": "작업 흐름에 \"{{name}}\"을 추가했습니다.",
+        "addedToWorkflows": "워크플로에 \"{{name}}\"을 추가했습니다.",
         "copyError": "이 워크플로를 복사할 수 없습니다.",
         "duplicateToMyWorkflows": "내 워크플로에 복제",
         "signInToDuplicate": "복제하려면 로그인하세요."
@@ -6593,7 +6593,7 @@
         "ariaLabel": "워크플로로 보내기",
         "sendItemsTo_one": "{{count}} 항목 보내기",
         "sendItemsTo_other": "{{count}} 항목 보내기",
-        "newWorkflow": "새로운 작업 흐름",
+        "newWorkflow": "새로운 워크플로",
         "untitledWorkflow": "제목 없는 워크플로",
         "tooltip": "워크플로로 보내기"
       }
@@ -6639,7 +6639,7 @@
       "tagsDescription": "제안사항에서 선택하거나 맞춤 태그를 입력하세요(추가하려면 Enter를 누르세요).",
       "execution": "실행",
       "runMode": "실행 모드",
-      "runModeWorkflow": "작업 흐름",
+      "runModeWorkflow": "워크플로",
       "runModeChat": "채팅",
       "runModeApp": "앱",
       "runModeTool": "도구",
@@ -6675,7 +6675,7 @@
       "emptyDescription": "위의 + 버튼을 사용하여 첫 번째 워크플로를 만듭니다."
     },
     "workflowListItem": {
-      "selectWorkflow": "워크플로우 {{name}} 선택",
+      "selectWorkflow": "워크플로 {{name}} 선택",
       "openWorkflow": "워크플로 열기 {{name}}",
       "workflowName": "워크플로 이름",
       "renameTooltip": "이름을 바꾸려면 두 번 클릭하세요.",
@@ -6736,7 +6736,7 @@
         "canceled": "취소됨"
       },
       "accessibility": {
-        "generationSettings": "세대 설정",
+        "generationSettings": "생성 설정",
         "setupSteps": "설정 단계",
         "primaryShortcut": "{{action}}(⌘↩ 또는 Ctrl+↩)"
       },
@@ -6782,7 +6782,7 @@
     },
     "appSetup": {
       "title": "앱",
-      "subline": "페이지를 설명하세요. 버튼 뒤의 화면과 워크플로우는 함께 구축되고 테스트 실행됩니다.",
+      "subline": "페이지를 설명하세요. 버튼 뒤의 화면과 워크플로는 함께 구축되고 테스트 실행됩니다.",
       "steps": {
         "idea": "아이디어"
       },
@@ -6794,7 +6794,7 @@
         "connectProvider": "모델을 선택하려면 제공업체를 연결하세요."
       },
       "status": {
-        "building": "화면 및 워크플로우 구축 후 테스트 실행"
+        "building": "화면 및 워크플로 구축 후 테스트 실행"
       },
       "prompt": {
         "title": "앱은 무엇을 해야 합니까?",
@@ -6829,7 +6829,7 @@
         },
         "style": {
           "title": "스타일",
-          "description": "여러 세대에 걸쳐 적용할 수 있는 시각적 언어입니다."
+          "description": "여러 생성 결과에 걸쳐 적용할 시각적 언어입니다."
         },
         "prop": {
           "title": "소품",
@@ -6958,15 +6958,15 @@
       },
       "reference": {
         "title": "참조 이미지 선택",
-        "description": "미래 세대가 보존하기를 원하는 특성의 가장 선명한 이미지를 선택하거나 AI로 이미지를 만드세요.",
+        "description": "이후 생성 결과에서 유지할 특징이 가장 선명하게 보이는 이미지를 고르거나 AI로 만드세요.",
         "imageCaption": "{{name}} 참조",
         "selectedCaption": "선정된 참고자료",
         "selectedAlt": "선택된 엔터티 참조",
         "assets": {
-          "unavailable": "자산을 사용할 수 없음",
-          "loading": "자산 로드 중",
+          "unavailable": "에셋을 사용할 수 없음",
+          "loading": "에셋 로드 중",
           "change": "참조 변경",
-          "choose": "자산에서 선택"
+          "choose": "에셋에서 선택"
         },
         "generate": {
           "open": "AI로 생성",
@@ -6997,7 +6997,7 @@
               "instruction": "머리부터 발끝까지 전신, 정면을 향한 포즈를 보여주세요. 균일한 스튜디오 조명을 사용하여 중간색 배경에 캐릭터를 중앙에 배치합니다. 얼굴, 옷, 독특한 특징을 명확하게 표현하세요."
             },
             "portrait": {
-              "label": "초상화",
+              "label": "인물 사진",
               "instruction": "얼굴이 완전히 보이고 중립적인 표정의 머리와 어깨 초상화를 보여주세요. 단순한 배경과 균일한 조명을 사용하여 얼굴 특징과 머리카락을 쉽게 식별할 수 있습니다."
             },
             "character-sheet": {
@@ -7062,7 +7062,7 @@
       },
       "legacy": {
         "title": "레거시 게임 설정",
-        "description": "이 설정은 제거된 Godot 작업 흐름을 사용했습니다. 소스 파일과 생성된 자산은 계속 사용할 수 있습니다. 게임 플레이를 재구성하기 위해 기본 게임을 만듭니다.",
+        "description": "이 설정은 제거된 Godot 워크플로를 사용했습니다. 소스 파일과 생성된 에셋은 계속 사용할 수 있습니다. 게임 플레이를 재구성하기 위해 기본 게임을 만듭니다.",
         "createNative": "네이티브 게임 만들기"
       }
     }
@@ -7096,11 +7096,11 @@
         "heading": "재생 방법 선택",
         "description": "템플릿은 규칙과 예술 작품을 설정합니다. 다음에 검토하는 디자인이 아이디어를 채워줍니다.",
         "groupLabel": "게임 템플릿",
-        "assetsLabel": "이 템플릿이 사용하는 자산",
+        "assetsLabel": "이 템플릿이 사용하는 에셋",
         "modelLabel": "모델",
         "modelPlaceholder": "디자이너 모델",
-        "assetCount_one": "{{count}} 자산",
-        "assetCount_other": "{{count}} 자산",
+        "assetCount_one": "{{count}} 에셋",
+        "assetCount_other": "{{count}} 에셋",
         "slotSprite": "{{id}}: {{width}}×{{height}} 스프라이트, {{animations}}",
         "slotTile": "{{id}}: {{width}}×{{height}} 타일",
         "slotImage": "{{id}}: {{width}}×{{height}} 이미지",
@@ -7153,7 +7153,7 @@
         "noStyle": "스타일 없음",
         "noStyleDescription": "예술은 디자인의 말만을 따른다",
         "buildDrawsHeading": "빌드가 그리는 것",
-        "assetNote": "사운드는 템플릿에 내장된 효과를 유지합니다. 게임 편집기에서 모든 자산을 교체할 수 있습니다.",
+        "assetNote": "사운드는 템플릿에 내장된 효과를 유지합니다. 게임 편집기에서 모든 에셋을 교체할 수 있습니다.",
         "artModelLabel": "예술",
         "slotSprite": "{{id}}: {{width}}×{{height}} 스프라이트, {{animations}}",
         "slotTile": "{{id}}: {{width}}×{{height}} 타일",
@@ -7221,7 +7221,7 @@
         "heading": "이미지를 선택하세요",
         "intro": "모든 변형이 문서에 유지되므로 렌더링한 내용이 손실되지 않습니다.",
         "batchStatus": "{{landed}} 중 {{total}}이 렌더링됨",
-        "failedCount": "실패했다",
+        "failedCount": "실패",
         "pendingCount": "아직도 달리고 있다",
         "renderFailed": "이미지 변형을 렌더링하지 못했습니다.",
         "nothingRendered": "아무것도 렌더링되지 않았습니다. 변형을 다시 시도하거나, 생성 설정에서 모델이나 크기를 변경하거나, 편집기를 열고 캔버스에서 작업하세요.",
@@ -7244,7 +7244,7 @@
         "download": "다운로드",
         "makingMore": "더 많이 만드는 중…",
         "makeMore": "더 많은 변형 만들기",
-        "backToSettings": "세대 설정으로 돌아가기",
+        "backToSettings": "생성 설정으로 돌아가기",
         "openEditor": "편집기 열기"
       },
       "overlay": {
@@ -7268,7 +7268,7 @@
         "noStyle": "스타일 없음",
         "noStyleDescription": "브리핑에서 말하는 내용을 정확하게 렌더링하세요.",
         "modelLabel": "이미지 모델",
-        "modelUnavailable": "{{model}}은 연결된 공급자가 제공하지 않습니다. 다른 모델을 선택하세요.",
+        "modelUnavailable": "{{model}}은 연결된 프로바이더가 제공하지 않습니다. 다른 모델을 선택하세요.",
         "cost": {
           "total_one": "{{count}} 이미지 · {{cost}} 정보",
           "total_other": "{{count}} 이미지 · {{cost}} 정보",
@@ -7277,7 +7277,7 @@
         "blocked": {
           "loading": "이미지 모델 로드",
           "loadError": "이미지 모델을 로드할 수 없습니다.",
-          "noProvider": "먼저 이미지 제공자를 연결하세요",
+          "noProvider": "먼저 이미지 프로바이더를 연결하세요",
           "noModel": "아직 그림을 렌더링할 수 있는 이미지 모델이 없습니다.",
           "modelUnavailable": "해당 모델은 더 이상 제공되지 않습니다. 다른 모델을 선택하세요.",
           "noSupportedSize": "해당 모델에는 이 안내식 흐름에서 지원되는 크기가 없습니다.",
@@ -7289,14 +7289,14 @@
           "failureSummary": "이미지 모델 목록을 로드하지 못했습니다.",
           "loading": "이미지 모델 로드 중…",
           "loadError": "이미지 모델을 로드할 수 없습니다.",
-          "connectProvider": "공급자 연결",
-          "connectReason": "이 사진을 생성하려면 이미지를 만드는 공급자를 연결하세요.",
+          "connectProvider": "프로바이더 연결",
+          "connectReason": "이 사진을 생성하려면 이미지를 만드는 프로바이더를 연결하세요.",
           "noProvider": "연결된 이미지 제공업체가 없습니다. 하나를 연결하여 생성하세요. 브리핑과 룩이 문서와 함께 저장됩니다.",
-          "noCompatibleModel": "연결된 공급자 중 어느 것도 텍스트에서 그림을 렌더링하는 모델을 제공하지 않습니다."
+          "noCompatibleModel": "연결된 프로바이더 중 어느 것도 텍스트에서 그림을 렌더링하는 모델을 제공하지 않습니다."
         },
         "sizes": {
-          "square": "광장",
-          "portrait": "초상화",
+          "square": "정사각형",
+          "portrait": "세로",
           "poster": "포스터",
           "landscape": "풍경",
           "story": "스토리",
@@ -7347,7 +7347,7 @@
             "description": "하나의 개체, 깨끗한 배경, 배치 준비 완료"
           },
           "portrait": {
-            "title": "초상화",
+            "title": "인물 사진",
             "description": "사람, 틀에 박힌 머리와 어깨"
           },
           "key-art": {
@@ -7399,7 +7399,7 @@
             "description": "한 목소리가 사진을 읽어줍니다."
           },
           "dialogue": {
-            "title": "대화",
+            "title": "대사",
             "description": "두 명 이상의 캐릭터가 서로 대화를 나눕니다."
           },
           "interview": {
@@ -7437,7 +7437,7 @@
       "inspirationPodcast": "실패한 제품에 대한 쇼를 위한 팟캐스트 소개",
       "inspirationTideClocks": "조수시계 작동 원리에 대한 60초 설명",
       "intro": "귀하가 말할 수 있는 대사로 작성해 드리겠습니다.",
-      "keptForEditorAndAgent": " — 편집자와 에이전트를 위해 스크립트에 보관됩니다.",
+      "keptForEditorAndAgent": " — 편집기와 에이전트가 쓸 수 있도록 스크립트에 보관됩니다.",
       "keptWordForWord": "귀하의 스크립트는 단어 그대로 유지됩니다.",
       "newScriptHelper": "여기에 입력한 텍스트는 간단한 글쓰기이므로 다시 작성할 수 있습니다. 기존 단어를 보존하려면 스크립트 붙여넣기 또는 파일 업로드를 사용하세요.",
       "newScriptPlaceholder": "새 스크립트의 주제, 대상, 메시지를 설명하세요.",
@@ -7524,7 +7524,7 @@
       "normal": "보통",
       "pace": "페이스",
       "paceDescription": "모든 샘플 및 모든 테이크와 함께 전송됩니다.",
-      "providerPace": "이 공급자는 {{pace}}이 아닌 자체 속도로 읽습니다.",
+      "providerPace": "이 프로바이더는 {{pace}}이 아닌 자체 속도로 읽습니다.",
       "readSettings": "설정 읽기",
       "sampleCost": "각 샘플은 {{count}} 문자{{cost}}의 하나의 음성 호출입니다.",
       "sampleFailed": "{{name}}에 대한 음성 샘플이 실패했습니다.",
@@ -7623,7 +7623,7 @@
       "disconnectClientError": "클라이언트 연결을 끊을 수 없습니다: {{error}}"
     },
     "browserExtension": {
-      "description": "Nodetool 브라우저 확장을 사용하면 라이브 브라우저 에이전트가 로그인한 Chrome을 직접 구동하고, 미디어 생성 사이트를 자동화하고, 결과를 자산으로 저장하고, 자산을 페이지에 업로드할 수 있습니다. Chrome에서는 설치할 수 없으므로 아래 단계에 따라 압축을 푼 후 한 번 로드하세요.",
+      "description": "Nodetool 브라우저 확장을 사용하면 라이브 브라우저 에이전트가 로그인한 Chrome을 직접 구동하고, 미디어 생성 사이트를 자동화하고, 결과를 에셋으로 저장하고, 에셋을 페이지에 업로드할 수 있습니다. Chrome에서는 설치할 수 없으므로 아래 단계에 따라 압축을 푼 후 한 번 로드하세요.",
       "checking": "확인 중…",
       "connected": "내선 연결됨",
       "notConnected": "연결되지 않음",
@@ -7664,18 +7664,18 @@
       "manage": "관리하다",
       "deleteKey": "키 삭제",
       "deleteProviderKey": "{{provider}} API 키 삭제",
-      "connect": "연결하다",
-      "modelsAndProviders": "모델 및 제공자",
+      "connect": "연결",
+      "modelsAndProviders": "모델 및 프로바이더",
       "heroDescription": "계정을 연결하거나 API 키를 추가하여 워크플로에서 모델을 사용하세요.",
       "noProvidersFound": "제공업체를 찾을 수 없습니다.",
-      "noProvidersMatch": "“{{searchTerm}}”과(와) 일치하는 공급자가 없습니다.",
+      "noProvidersMatch": "“{{searchTerm}}”과(와) 일치하는 프로바이더가 없습니다.",
       "connectedProviders": "연결된 제공업체",
       "allFieldsRequired": "모든 필드를 입력해야 합니다.",
       "secretRequired": "비밀번호 값은 필수 항목입니다.",
       "apiKeyUpdated": "{{provider}} API 키가 업데이트되었습니다.",
-      "updateSecretError": "비밀 업데이트 실패: {{error}}",
+      "updateSecretError": "시크릿 업데이트 실패: {{error}}",
       "apiKeyDeleted": "{{provider}} API 키가 삭제되었습니다.",
-      "deleteSecretError": "비밀 삭제 실패: {{error}}",
+      "deleteSecretError": "시크릿 삭제 실패: {{error}}",
       "update": "업데이트",
       "higgsfieldCredentialHelp": "Higgsfield에서 복사한 전체 값을 붙여넣습니다. 키 ID와 비밀번호는 별도로 암호화되어 저장됩니다.",
       "multiFieldHelp": "모든 필드는 암호화되어 안전하게 저장됩니다. 절대 공개적으로 공유하지 마세요.",
@@ -7686,13 +7686,13 @@
       "deleteApiKeyConfirmation": "{{provider}} API 키는 제거되며 키를 다시 추가할 때까지 해당 모델의 작동이 중지됩니다.",
       "delete": "삭제",
       "cancel": "취소",
-      "secretsSafe": "당신의 비밀은 안전합니다",
+      "secretsSafe": "당신의 시크릿은 안전합니다",
       "secretsSafeDescription": "모든 API 키는 데이터베이스에서 암호화되어 절대 노출되지 않습니다.",
       "learnMore": "자세히 알아보기",
       "supportedModels": "지원되는 모델",
       "seeModelsByProvider": "제공업체별 모델 보기",
       "apiDocumentation": "API 문서",
-      "providerGuides": "공급자 가이드 및 링크",
+      "providerGuides": "프로바이더 가이드 및 링크",
       "troubleshooting": "문제 해결",
       "commonIssues": "일반적인 문제 및 수정사항",
       "quickLinks": "빠른 링크",
@@ -7889,7 +7889,7 @@
         "referenceEntities": "출연진 및 위치",
         "referenceStillsHelp": "각 샷은 여전히 프레임과 포즈를 수정합니다. 차분한 촬영에 가장 적합합니다.",
         "referenceEntitiesHelp": "엔터티 이미지는 누구와 장소를 수정합니다. 샷 텍스트는 프레임과 모션을 설정합니다. 액션에 가장 적합합니다.",
-        "duration": "기간",
+        "duration": "길이",
         "aspectRatio": "종횡비",
         "resolution": "해상도",
         "scaledWindows": "샷 창은 크기에 맞게 조정됩니다.",
@@ -7984,7 +7984,7 @@
         "noEntityImage": "이미지 없음",
         "renderSettings": "렌더링 설정",
         "videoModel": "비디오 모델",
-        "duration": "기간",
+        "duration": "길이",
         "resolution": "해상도",
         "summary": "{{duration}} · {{aspectRatio}} · {{resolution}} · {{maxImages}} 이미지 중 {{imageCount}}",
         "blockers": {
@@ -8024,7 +8024,7 @@
         }
       },
       "shotCost": {
-        "listPriceNote": "공급자 카탈로그의 정가입니다. 렌더링은 공급자가 자체 요율로 청구합니다.",
+        "listPriceNote": "프로바이더 카탈로그의 정가입니다. 렌더링은 프로바이더가 자체 요율로 청구합니다.",
         "lastRenderTooltip": "이 장면의 마지막 렌더링 비용은 얼마입니까? 보드의 스틸 및 클립 모델을 선택하여 다음 모델을 추정합니다.",
         "lastRender": "마지막 렌더링 {{cost}}",
         "still": "아직도",
@@ -8068,7 +8068,7 @@
         "lastFrameFailed": "{{number}} 샷의 마지막 프레임을 사용할 수 없습니다. {{error}}",
         "deleteTitle": "샷을 삭제하시겠습니까?",
         "delete": "삭제",
-        "deleteDescription": "보드에서 \"{{shot}}\"을 제거합니다. 생성된 스틸과 클립은 자산 라이브러리에 유지됩니다."
+        "deleteDescription": "보드에서 \"{{shot}}\"을 제거합니다. 생성된 스틸과 클립은 에셋 라이브러리에 유지됩니다."
       }
     }
   },
@@ -8093,7 +8093,7 @@
         "direction": "그래픽 방향",
         "exactText": "정확한 텍스트: {{id}}",
         "protectedCopy": "보호된 사본은 프로덕션 입력에서 나옵니다. 거기에서 편집하세요.",
-        "assetReference": "자산 참조: {{id}}",
+        "assetReference": "에셋 참조: {{id}}",
         "entity": "엔터티: {{id}}",
         "graphicNotes": "그래픽 노트: {{id}}",
         "defaultText": "당신의 텍스트",
@@ -8150,7 +8150,7 @@
         "iterateDescription": "변경사항을 설명하세요. 메모가 적용된 상태로 현재 클립이 다시 렌더링됩니다.",
         "iteratePlaceholder": "예를 들어 좀 더 어둡게 만들어, 비 좀 더 줘",
         "deleteDialogTitle": "샷을 삭제하시겠습니까?",
-        "deleteDescription": "보드에서 \"{{shotName}}\"을 제거합니다. 생성된 스틸과 클립은 자산 라이브러리에 유지됩니다."
+        "deleteDescription": "보드에서 \"{{shotName}}\"을 제거합니다. 생성된 스틸과 클립은 에셋 라이브러리에 유지됩니다."
       },
       "shotMaskPainter": {
         "title": "변경할 영역을 칠합니다.",
@@ -8197,7 +8197,7 @@
       },
       "shotScript": {
         "notVoiced": "유성음 없음",
-        "stale": "부실",
+        "stale": "오래됨",
         "voiced": "유성음",
         "voicingFailed": "보이싱 실패",
         "narrator": "내레이터",
@@ -8220,7 +8220,7 @@
       "shotStatus": {
         "renderingClip": "렌더링 클립",
         "renderingStill": "렌더링",
-        "failed": "실패했다",
+        "failed": "실패",
         "covered": "덮여",
         "stillClipQueued": "여전히 · 클립이 대기 중입니다",
         "still": "아직도",
@@ -8233,7 +8233,7 @@
         "emptyState": "먼저 스틸을 렌더링하거나 업로드하세요. 편집은 현재 스틸부터 시작됩니다.",
         "tabs": {
           "edit": "편집",
-          "upscale": "고급",
+          "upscale": "업스케일",
           "reframe": "리프레임",
           "adjust": "조정하다"
         },
@@ -8253,9 +8253,9 @@
         "modelCannotEdit": "이 모델은 기존 이미지를 편집할 수 없습니다. 편집 모델을 선택하세요.",
         "generateEdit": "편집 생성",
         "upscaleModel": "고급 모델",
-        "scale": "규모",
+        "scale": "스케일",
         "upscaleFactor": "고급 요소",
-        "upscale": "고급",
+        "upscale": "업스케일",
         "newAspectRatio": "새로운 종횡비",
         "reframeModel": "모델 재구성",
         "reframePromptLabel": "새로운 공간을 채우는 것(선택사항)",
@@ -8298,7 +8298,7 @@
     },
     "commandMenu": {
       "groups": {
-        "workflow": "작업 흐름",
+        "workflow": "워크플로",
         "edit": "편집",
         "layoutAlignment": "레이아웃 및 정렬",
         "view": "보기",
@@ -8306,8 +8306,8 @@
       },
       "actions": {
         "runEntireWorkflow": "전체 워크플로 실행",
-        "saveWorkflow": "작업 흐름 저장",
-        "newWorkflow": "새로운 작업 흐름",
+        "saveWorkflow": "워크플로 저장",
+        "newWorkflow": "새로운 워크플로",
         "closeWorkflow": "워크플로 닫기",
         "downloadWorkflowJson": "워크플로를 JSON으로 다운로드",
         "importWorkflowJson": "JSON에서 워크플로 가져오기",
@@ -8324,7 +8324,7 @@
         "paste": "붙여넣기",
         "selectAll": "모두 선택",
         "deleteSelected": "선택 항목 삭제",
-        "duplicate": "중복",
+        "duplicate": "복제",
         "duplicateVertical": "수직으로 복제",
         "groupSelected": "선택된 그룹",
         "disableSelectedNodes": "선택한 노드 비활성화",
@@ -8347,10 +8347,10 @@
         "zoomOut": "축소",
         "resetZoom": "확대/축소 재설정({{percent}})",
         "zoomToPercent": "{{percent}}으로 확대",
-        "toggleInspector": "검사기 전환",
+        "toggleInspector": "인스펙터 전환",
         "toggleWorkflowSettings": "워크플로 설정 전환",
         "toggleConversation": "대화 전환",
-        "toggleAssets": "자산 전환",
+        "toggleAssets": "에셋 전환",
         "toggleWorkflowsPanel": "워크플로 패널 전환"
       },
       "accessibility": {
@@ -8405,13 +8405,13 @@
       },
       "status": {
         "queued": "대기 중",
-        "running": "달리기",
-        "stopped": "추적이 중지되었습니다. 공급자는 여전히 완료하고 요금을 청구할 수 있습니다.",
+        "running": "실행 중",
+        "stopped": "추적이 중지되었습니다. 프로바이더는 여전히 완료하고 요금을 청구할 수 있습니다.",
         "failed": "실패",
         "completed": "완료됨",
         "awaitingReview": "완료됨 · 검토 대기 중"
       },
-      "stopTrackingTooltip": "추적을 중지하세요. 공급자 요청이 계속 완료되고 요금이 청구될 수 있습니다.",
+      "stopTrackingTooltip": "추적을 중지하세요. 프로바이더 요청이 계속 완료되고 요금이 청구될 수 있습니다.",
       "stopTrackingRender": "렌더링 추적 중지",
       "shot": "샷",
       "untitledShot": "제목 없는 장면",
@@ -8427,11 +8427,11 @@
       "compactFinishedSummary": "{{completed}} · {{failed}}{{stopped}}",
       "expandQueue": "렌더링 대기열 확장",
       "title": "렌더링 대기열",
-      "stopTrackingAllTooltip": "모두 추적을 중지하세요. 공급자 요청이 계속 완료되고 요금이 청구될 수 있습니다.",
+      "stopTrackingAllTooltip": "모두 추적을 중지하세요. 프로바이더 요청이 계속 완료되고 요금이 청구될 수 있습니다.",
       "stopTrackingAll": "모든 렌더링 추적 중지",
       "collapseQueue": "렌더링 대기열 축소",
       "statusSummary": "{{requests}}: {{queued}}, {{running}}, {{completed}}, {{failed}}, {{awaitingReview}}, {{stopped}}.",
-      "stopTrackingNotice": "추적을 중지하면 로컬 진행 상황만 숨겨집니다. 공급자는 여전히 요청을 완료하고 이에 대한 비용을 청구할 수 있습니다.",
+      "stopTrackingNotice": "추적을 중지하면 로컬 진행 상황만 숨겨집니다. 프로바이더는 여전히 요청을 완료하고 이에 대한 비용을 청구할 수 있습니다.",
       "retryFailed_one": "{{count, number}} 렌더링 실패 재시도",
       "retryFailed_other": "{{count, number}} 렌더링 실패 재시도",
       "reviewCompletedTakes": "완료된 테이크 검토",
@@ -8575,7 +8575,7 @@
         "searchLabel": "워크플로 검색",
         "loadFailed": "워크플로를 로드할 수 없습니다.",
         "noWorkflowsTitle": "일치하는 워크플로가 없습니다.",
-        "noWorkflowsDescription": "워크플로에 이미지 출력이 없습니다. 여기에서 사용하려면 워크플로우에 ImageOutput, MaskOutput 또는 출력 노드를 추가하세요.",
+        "noWorkflowsDescription": "워크플로에 이미지 출력이 없습니다. 여기에서 사용하려면 워크플로에 ImageOutput, MaskOutput 또는 출력 노드를 추가하세요.",
         "untitledWorkflow": "제목 없는 워크플로",
         "outputCount_one": "{{formattedCount}} 출력",
         "outputCount_other": "{{formattedCount}} 출력",
@@ -8598,7 +8598,7 @@
         "inferenceSteps": "추론 단계",
         "noSourceLayers": "사용 가능한 소스 레이어가 없습니다. 먼저 레이어에 무언가를 칠합니다.",
         "source": "소스",
-        "estimatedCost": "이번 세대의 예상 비용",
+        "estimatedCost": "이번 생성의 예상 비용",
         "cancel": "취소",
         "regenerate": "재생성",
         "generate": "생성",
@@ -8608,14 +8608,14 @@
         "failureNoModel": "생성하기 전에 모델을 선택하세요.",
         "failureNoPrompt": "생성하기 전에 프롬프트를 작성하세요.",
         "failureNoSource": "생성하기 전에 소스 레이어를 선택하세요.",
-        "failureAuth": "공급자가 승인되지 않은 요청을 거부했습니다. 설정에서 API 키를 확인하세요.",
-        "failureQuota": "공급자는 지금은 요청을 거부했습니다. 잠시 기다리거나 다른 모델을 사용하십시오.",
-        "failureRefused": "공급자는 이 메시지를 거부했습니다. 다시 말하고 다시 시도해 보세요.",
+        "failureAuth": "프로바이더가 승인되지 않은 요청을 거부했습니다. 설정에서 API 키를 확인하세요.",
+        "failureQuota": "프로바이더는 지금은 요청을 거부했습니다. 잠시 기다리거나 다른 모델을 사용하십시오.",
+        "failureRefused": "프로바이더는 이 메시지를 거부했습니다. 다시 말하고 다시 시도해 보세요.",
         "failureTimeout": "제공업체가 답변하는 데 시간이 너무 오래 걸렸습니다. 다시 시도해 보세요.",
         "failureNetwork": "이미지가 다시 나타나기 전에 연결이 끊어졌습니다. 다시 시도해 보세요.",
-        "failureProvider": "공급자의 작업이 실패했습니다. 다시 시도하거나 다른 모델을 사용하세요.",
-        "failureUnknown": "공급자의 작업이 실패했으며 이유가 없습니다.",
-        "assetCreated": "완료. 자산 {{assetId}}."
+        "failureProvider": "프로바이더의 작업이 실패했습니다. 다시 시도하거나 다른 모델을 사용하세요.",
+        "failureUnknown": "프로바이더의 작업이 실패했으며 이유가 없습니다.",
+        "assetCreated": "완료. 에셋 {{assetId}}."
       }
     }
   },
@@ -8627,7 +8627,7 @@
           "queued": "대기 중",
           "generating": "생성 중",
           "generated": "생성됨",
-          "stale": "부실",
+          "stale": "오래됨",
           "failed": "실패",
           "locked": "잠김",
           "missing": "누락"
@@ -8642,7 +8642,7 @@
         },
         "generationFailed": "생성 실패",
         "workflowInputsError": "워크플로 입력을 로드하지 못했습니다.",
-        "noEditableInputs": "이 워크플로우에는 편집 가능한 입력 매개변수가 없습니다.",
+        "noEditableInputs": "이 워크플로에는 편집 가능한 입력 매개변수가 없습니다.",
         "estimatedRunCost": "이 워크플로를 한 번 실행하는 데 드는 예상 비용"
       },
       "importedLayerPanel": {
@@ -8659,19 +8659,19 @@
         "cancelGenerationError": "생성을 취소하지 못했습니다.",
         "cancelGeneration": "생성 취소",
         "starting": "시작 중…",
-        "generateDescription": "바인딩된 작업 흐름에서 레이어를 생성하고 재정의합니다.",
+        "generateDescription": "바인딩된 워크플로에서 레이어를 생성하고 재정의합니다.",
         "cancelLayerGeneration": "레이어 생성 취소",
         "generateLayer": "레이어 생성",
         "duplicateTooltip": "복제 — 복사본이 재정의됩니다. 변형에 대한 매개변수 조정",
         "duplicateLayer": "레이어 복제",
         "lockedTooltip": "잠김 — 성공적인 생성은 현재 출력을 대체하지 않습니다.",
-        "unlockedTooltip": "잠금 해제 — 성공적인 세대가 현재 출력을 대체합니다.",
+        "unlockedTooltip": "잠금 해제됨 — 새로 성공한 생성 결과가 현재 출력을 대체합니다.",
         "unlockLayer": "레이어 잠금 해제",
         "lockLayer": "잠금 레이어",
-        "revertTooltip": "되돌리기 — 현재 세대를 초안으로 다시 지웁니다.",
+        "revertTooltip": "되돌리기 — 현재 생성 결과를 지우고 초안으로 돌아갑니다.",
         "revertLayer": "레이어를 초안으로 되돌리기",
         "openInNodeEditor": "노드 편집기에서 열기",
-        "openWorkflowInNodeEditor": "노드 편집기에서 레이어 작업 흐름 열기"
+        "openWorkflowInNodeEditor": "노드 편집기에서 레이어 워크플로 열기"
       }
     }
   },
@@ -8702,12 +8702,12 @@
       "description": "OpenAI API를 사용하는 프록시나 게이트웨이에 NodeTool을 지정하세요. 해당 채팅, 이미지 및 비디오 모델이 일치하는 노드에 나타납니다.",
       "addEndpoint": "엔드포인트 추가",
       "emptyTitle": "아직 엔드포인트가 없습니다.",
-      "emptyDescription": "OpenAI 호환 공급자를 사용하려면 기본 URL과 API 키를 추가하세요.",
+      "emptyDescription": "OpenAI 호환 프로바이더를 사용하려면 기본 URL과 API 키를 추가하세요.",
       "editTitle": "엔드포인트 편집",
       "addTitle": "OpenAI 호환 엔드포인트 추가",
       "slug": "슬러그",
       "duplicateSlug": "해당 슬러그는 이미 사용 중입니다.",
-      "providerId": "공급자 ID: custom_{{slug}}",
+      "providerId": "프로바이더 ID: custom_{{slug}}",
       "baseUrl": "기본 URL",
       "baseUrlHelp": "엔드포인트가 제공하는 버전 경로(일반적으로 /v1)를 포함합니다.",
       "apiKey": "API 키",
@@ -8718,7 +8718,7 @@
       "modelsHelp": "/models 경로가 없는 엔드포인트의 경우 쉼표로 구분된 모델 ID입니다.",
       "imageModels": "이미지 모델",
       "imageModelsPlaceholder": "선택사항(예: 플럭스 개발, Seedream-4",
-      "imageModelsHelp": "모델 목록에서 감지되었습니다. 테스트에서 놓친 ID를 추가하세요. 호출은 /images/세대로 이동합니다.",
+      "imageModelsHelp": "모델 목록에서 감지되었습니다. 테스트에서 놓친 ID를 추가하세요. 호출은 /images/generations로 이동합니다.",
       "videoModels": "비디오 모델",
       "videoModelsPlaceholder": "선택사항(예: 클링-v2, veo-3",
       "videoModelsHelp": "모델 목록에서 감지되었습니다. 테스트에서 놓친 ID를 추가하세요. 전화는 /videos로 이동하세요.",
@@ -8754,7 +8754,7 @@
       }
     },
     "externalMcp": {
-      "disabled": "장애인",
+      "disabled": "비활성",
       "toolNameHelp": "도구는 {{toolName}}로 표시됩니다.",
       "connectedNoTools": "연결되었습니다. 서버는 도구를 제공하지 않습니다.",
       "toolsFound_one": "{{formattedCount}} 도구: {{tools}}",
@@ -8780,7 +8780,7 @@
       "duplicateId": "해당 ID는 이미 사용 중입니다.",
       "httpOnlyDeployment": "이 배포에서는 명령을 실행할 수 없습니다. HTTP 서버만 연결됩니다.",
       "heading": "외부 서버",
-      "description": "에이전트에게 Blender, Hugging Face 또는 자체 스크립트 등 MCP 서버의 도구를 제공합니다. 모든 모델 제공자와 협력합니다.",
+      "description": "에이전트에게 Blender, Hugging Face 또는 자체 스크립트 등 MCP 서버의 도구를 제공합니다. 모든 모델 프로바이더와 협력합니다.",
       "addServer": "서버 추가",
       "emptyTitle": "외부 서버 없음",
       "emptyDescription": "명령이나 URL을 추가합니다. 해당 도구는 다음 메시지에서 에이전트의 도구 벨트에 합류합니다.",
@@ -8792,7 +8792,7 @@
       "arguments": "인수",
       "argumentsHelp": "한 줄에 하나의 인수가 있으므로 공백이 있는 경로는 하나의 인수로 유지됩니다.",
       "environment": "환경",
-      "secretValuesHelp": "한 줄에 하나의 KEY=값이 있습니다. 리터럴 값은 암호화되어 저장됩니다. ${NAME}은 API 키에서 비밀 NAME을 읽습니다.",
+      "secretValuesHelp": "한 줄에 하나의 KEY=값이 있습니다. 리터럴 값은 암호화되어 저장됩니다. ${NAME}은 API 키에서 시크릿 NAME을 읽습니다.",
       "workingDirectory": "작업 디렉토리",
       "url": "URL",
       "urlHelp": "SSE를 대체 수단으로 사용하는 스트리밍 가능한 HTTP.",
@@ -8811,7 +8811,7 @@
       "systemFoldersDescription": "파일 탐색기에서 중요한 NodeTool 디렉터리를 엽니다.",
       "installation": "NodeTool 설치",
       "logs": "NodeTool 로그",
-      "assets": "자산 보관",
+      "assets": "에셋 보관",
       "modelFolders": "모델 폴더",
       "modelFoldersDescription": "파일 탐색기에서 모델 캐시 디렉터리를 엽니다.",
       "huggingFaceModels": "HuggingFace 모델",
@@ -8851,7 +8851,7 @@
       "workflows": "워크플로",
       "create": "만들기",
       "createEntries": {
-        "workflow": "새로운 작업 흐름",
+        "workflow": "새로운 워크플로",
         "chat": "새 채팅",
         "text": "새 텍스트 파일…",
         "image": "새로운 스케치",
@@ -8889,7 +8889,7 @@
       "connectedServices": "드라이브, Gmail, 문서, 스프레드시트, 캘린더",
       "connectDescription": "Drive, Gmail, Docs, Sheets, Calendar에 대한 액세스 권한을 에이전트와 노드에 부여하려면 연결하세요.",
       "disconnect": "연결 끊기",
-      "connect": "연결하다",
+      "connect": "연결",
       "connectedServicesAccount": "드라이브, Gmail, 문서, 스프레드시트, 캘린더({{account}})"
     },
     "mcp": {
@@ -8902,7 +8902,7 @@
       "extensionInstallFailed": "확장 설치 실패: {{error}}",
       "descriptionLead": "Claude Code, Codex 또는 OpenCode의 NodeTool을 다음을 통해 사용하세요.",
       "modelContextProtocol": "모델 컨텍스트 프로토콜",
-      "descriptionTail": ". 에이전트는 NodeTool 워크플로, 미디어 생성, 자산, 노드 및 컬렉션을 도구로 가져옵니다.",
+      "descriptionTail": ". 에이전트는 NodeTool 워크플로, 미디어 생성, 에셋, 노드 및 컬렉션을 도구로 가져옵니다.",
       "installOnMachine": "이 컴퓨터에 설치",
       "connectToServer": "클라이언트가 이 서버에 연결됩니다. NodeTool이 실행되는 동안 작동합니다.",
       "startNodeTool": "클라이언트는 NodeTool 자체를 시작합니다. 이 앱이 실행되는지 여부에 관계없이 작동합니다.",
@@ -8928,7 +8928,7 @@
       "fitScreen": "화면 맞춤",
       "centerNodes": "보기의 모든 노드를 중앙에 배치",
       "aiNodes": "AI 노드",
-      "addAgent": "상담원 추가",
+      "addAgent": "에이전트 추가",
       "agentDescription": "처리용 AI 에이전트",
       "inputNodes": "입력 노드",
       "stringInput": "문자열 입력",
@@ -9161,8 +9161,8 @@
   },
   "screens4_6": {
     "searchProvider": {
-      "title": "검색 공급자",
-      "providerLabel": "공급자",
+      "title": "검색 프로바이더",
+      "providerLabel": "프로바이더",
       "credentialsConfigured": "✓ 자격 증명이 구성되었습니다.",
       "credentialsMissing": "✗ 자격 증명 누락",
       "credentialLabel": "{{field}}",
@@ -9229,7 +9229,7 @@
       "see": "참조",
       "changesApplyImmediately": "이 탭의 변경 사항은 즉시 적용됩니다.",
       "sections": {
-        "editor": "편집자",
+        "editor": "편집기",
         "updates": "업데이트",
         "appearance": "외관",
         "execution": "실행",
@@ -9257,8 +9257,8 @@
         "ariaLabel": "설정 섹션",
         "categories": {
           "workspace": "작업공간",
-          "workflow": "작업 흐름",
-          "history": "역사",
+          "workflow": "워크플로",
+          "history": "기록",
           "configuration": "구성",
           "accounts": "계정",
           "servers": "서버",
@@ -9266,7 +9266,7 @@
           "privacy": "개인정보 보호"
         },
         "items": {
-          "editor": "편집자",
+          "editor": "편집기",
           "updates": "업데이트",
           "vaults": "금고",
           "appearance": "외관",
@@ -9339,11 +9339,11 @@
       "execution": {
         "warnLargeRuns": {
           "label": "대규모 실행 전에 경고",
-          "description": "워크플로를 실행하면 모든 노드가 한 번에 실행됩니다. 실행으로 인해 API에 과부하가 걸릴 수 있는 많은 모델/공급자 노드가 실행될 때 확인을 표시합니다."
+          "description": "워크플로를 실행하면 모든 노드가 한 번에 실행됩니다. 실행으로 인해 API에 과부하가 걸릴 수 있는 많은 모델/프로바이더 노드가 실행될 때 확인을 표시합니다."
         },
         "largeRunThreshold": {
           "label": "대규모 임계값",
-          "description": "실행 시 이 모델/공급자 노드(LLM, 이미지, 오디오, API 등)보다 더 많이 실행될 때 경고합니다."
+          "description": "실행 시 이 모델/프로바이더 노드(LLM, 이미지, 오디오, API 등)보다 더 많이 실행될 때 경고합니다."
         },
         "audioBuffer": {
           "label": "오디오 버퍼(ms)",
@@ -9387,11 +9387,11 @@
       "autosave": {
         "enabled": {
           "label": "자동 저장 활성화",
-          "description": "정기적으로 작업 흐름을 자동으로 저장합니다."
+          "description": "정기적으로 워크플로를 자동으로 저장합니다."
         },
         "interval": {
           "label": "자동 저장 간격(분)",
-          "description": "작업 흐름을 자동으로 저장하는 빈도입니다."
+          "description": "워크플로를 자동으로 저장하는 빈도입니다."
         },
         "saveBeforeRun": {
           "label": "실행하기 전에 저장",
@@ -9422,9 +9422,9 @@
   "screens4_7": {
     "vaults": {
       "title": "금고",
-      "description": "볼트는 자체 데이터베이스, 자산 및 RAG 컬렉션이 포함된 별도의 격리된 데이터 저장소입니다. 다양한 워크플로우 및 데이터 세트를 분리하려면 Vault를 전환하세요. 전환하면 백엔드가 다시 시작되고 앱이 다시 로드됩니다.",
+      "description": "볼트는 자체 데이터베이스, 에셋 및 RAG 컬렉션이 포함된 별도의 격리된 데이터 저장소입니다. 다양한 워크플로 및 데이터 세트를 분리하려면 Vault를 전환하세요. 전환하면 백엔드가 다시 시작되고 앱이 다시 로드됩니다.",
       "emptyTitle": "사용 가능한 저장소가 없습니다.",
-      "emptyDescription": "다른 워크플로우 및 데이터 세트를 별도로 보관하려면 Vault를 생성하세요.",
+      "emptyDescription": "다른 워크플로 및 데이터 세트를 별도로 보관하려면 Vault를 생성하세요.",
       "active": "활성",
       "switch": "스위치",
       "switchVault": "{{name}}로 전환",
@@ -9460,14 +9460,14 @@
         "intro": "프로필은 저장된 템플릿입니다. 프로비저닝하면 하나의 GPU 상자를 임대하고 이 앱을 여기에 연결합니다.",
         "nameLabel": "이름",
         "nameHelp": "선택사항. “{{name}}”을 사용하려면 공백으로 남겨두세요.",
-        "providerLabel": "공급자",
+        "providerLabel": "프로바이더",
         "providerHelp": "GPU를 임대하는 곳. RunPod는 전용 포드를 실행합니다. Vast는 마켓플레이스에서 가장 저렴한 매칭 제안을 선택합니다.",
         "gpuLabel": "GPU",
         "runpodGpuHelp": "어떤 기계를 빌릴까요? 모델 추론을 위해 GPU를 선택하거나 더 저렴한 CPU 포드(예: 데이터/텍스트 노드)를 위해 \"CPU 전용\"을 선택하세요. 더 많은 VRAM이 더 큰 모델을 실행합니다.",
         "gpuHelp": "어떤 GPU를 임대할지. 더 많은 VRAM이 더 큰 모델을 실행합니다. 돈을 절약하기 위해 가장 작은 것을 선택하십시오.",
         "runpodGpuIdLabel": "GPU ID(RunPod gpuTypeId)",
         "vastGpuIdLabel": "GPU ID(Vast gpu_name)",
-        "runpodGpuIdHelp": "정확한 RunPod ID(예: “NVIDIA RTX 6000 Ada 세대”.",
+        "runpodGpuIdHelp": "정확한 RunPod ID(예: “NVIDIA RTX 6000 Ada Generation”).",
         "vastGpuIdHelp": "정확한 Vast 이름(예: “RTX_6000Ada”.",
         "vcpuLabel": "vCPU",
         "vcpuHelp": "CPU 전용 Pod의 가상 CPU 수입니다. RunPod는 일치하는 CPU 유형을 선택합니다.",
@@ -9491,7 +9491,7 @@
         },
         "comfyImageHelp": "ComfyUI 작업자는 \"Run ComfyUI Workflow(Worker)\" 노드를 위해 함께 배치된 ComfyUI 서버 앞에 있습니다.",
         "workerImageLabel": "작업자 이미지",
-        "workerImageHelp": "공급자가 실행하는 컨테이너 이미지입니다. 위에서 사전 설정을 선택하거나 자체 작업자 빌드를 설정하세요.",
+        "workerImageHelp": "프로바이더가 실행하는 컨테이너 이미지입니다. 위에서 사전 설정을 선택하거나 자체 작업자 빌드를 설정하세요.",
         "tokenPolicyLabel": "토큰 정책",
         "tokenPolicy": {
           "generate": "생성(권장)",
@@ -9511,7 +9511,7 @@
         "attachedTooltip": "{{id}}({{url}})에 연결됨",
         "stopAttached": "연결된 작업자 중지",
         "provisioning": "프로비저닝",
-        "running": "달리기",
+        "running": "실행 중",
         "attached": "첨부",
         "stopping": "정지",
         "stopped": "일시중지됨",
@@ -9574,8 +9574,8 @@
         "stopAll": "모두 중지"
       },
       "orphanWarning": {
-        "title_one": "{{count}} 고아 작업자가 여전히 요금을 청구할 수 있습니다. 공급자 콘솔에서 중지하세요.",
-        "title_other": "{{count}} 고아 근로자에게 여전히 비용이 청구될 수 있습니다. 공급자 콘솔에서 이를 중지하세요.",
+        "title_one": "{{count}} 고아 작업자가 여전히 요금을 청구할 수 있습니다. 프로바이더 콘솔에서 중지하세요.",
+        "title_other": "{{count}} 고아 근로자에게 여전히 비용이 청구될 수 있습니다. 프로바이더 콘솔에서 이를 중지하세요.",
         "details": "{{count}} 라이브, ~{{rate}}"
       },
       "empty": {
@@ -9606,7 +9606,7 @@
       "apiKey": {
         "title": "{{provider}} API 키를 추가하세요.",
         "description": "작업자는 귀하의 {{provider}} 계정에서 실행되고 거기에서 청구됩니다. NodeTool은 키를 확인한 다음 암호화하여 저장합니다.",
-        "settingsDescription": "{{provider}}은 클라이언트 ID와 비밀번호를 사용하여 로그인합니다. 설정 → 모델 및 공급자에서 둘 다 추가하세요.",
+        "settingsDescription": "{{provider}}은 클라이언트 ID와 비밀번호를 사용하여 로그인합니다. 설정 → 모델 및 프로바이더에서 둘 다 추가하세요.",
         "openSettings": "설정 열기"
       },
       "setup": {
@@ -9651,7 +9651,7 @@
           "panel-crash": "패널 충돌",
           "job-failure": "취업실패",
           "operation-failure": "작업 실패",
-          "provider-call": "공급자 호출 실패",
+          "provider-call": "프로바이더 호출 실패",
           "notification": "오류 알림",
           "manual": "수동 보고서"
         },
@@ -9673,12 +9673,12 @@
             "description": "실패한 노드의 설정과 이에 연결된 노드입니다. API 키가 제거되었습니다."
           },
           "provider-call": {
-            "label": "공급자 호출 실패",
-            "description": "공급자, 모델, HTTP 상태, 공급자의 요청 ID, 호출이 실행된 시간 및 전송된 요청입니다. API 키가 제거되었습니다."
+            "label": "프로바이더 호출 실패",
+            "description": "프로바이더, 모델, HTTP 상태, 프로바이더의 요청 ID, 호출이 실행된 시간 및 전송된 요청입니다. API 키가 제거되었습니다."
           },
           "workflow": {
             "label": "워크플로 그래프",
-            "description": "전체 개방형 워크플로우: 노드 유형, 설정 및 연결. 프롬프트는 이것의 일부입니다."
+            "description": "전체 개방형 워크플로: 노드 유형, 설정 및 연결. 프롬프트는 이것의 일부입니다."
           },
           "logs": {
             "label": "워크플로 로그",
@@ -9748,9 +9748,9 @@
       "variables": "변수",
       "variablesDescription": "앱 상태 위젯을 읽고 쓸 수 있으며 작업 출력이 도착할 수 있습니다.",
       "whileRunning": "한 명이 달리는 동안",
-      "workflow": "작업 흐름",
+      "workflow": "워크플로",
       "policies": {
-        "replace": "달리기를 대체하다",
+        "replace": "실행 중인 작업 대체",
         "queue": "뒤에 대기열",
         "parallel": "병렬로 실행"
       },
@@ -9759,7 +9759,7 @@
         "user": "사용자당"
       },
       "targetKinds": {
-        "workflow": "작업 흐름",
+        "workflow": "워크플로",
         "script": "JS 스크립트"
       },
       "variableTypes": {
@@ -9772,19 +9772,19 @@
         "dict": "기록"
       },
       "resourceKinds": {
-        "asset": "자산",
+        "asset": "에셋",
         "timeline": "타임라인",
         "storyboard": "스토리보드",
         "sketch": "스케치"
       },
       "resourceKindsPlural": {
-        "asset": "자산",
+        "asset": "에셋",
         "timeline": "타임라인",
         "storyboard": "스토리보드",
         "sketch": "스케치"
       },
       "resourceCollectionNames": {
-        "asset": "자산",
+        "asset": "에셋",
         "timeline": "타임라인",
         "storyboard": "스토리보드",
         "sketch": "스케치"
@@ -9801,7 +9801,7 @@
       "operationName_other": "{{count}} 작업"
     },
     "governance": {
-      "budgetDescription": "출시된 앱의 실행은 공급자에게 도달하기 전에 이 한도를 기준으로 확인됩니다. 빈 필드는 제한이 없음을 의미합니다.",
+      "budgetDescription": "출시된 앱의 실행은 프로바이더에게 도달하기 전에 이 한도를 기준으로 확인됩니다. 빈 필드는 제한이 없음을 의미합니다.",
       "changeReleaseError": "릴리스를 변경할 수 없습니다: {{error}}",
       "copyLink": "링크 복사",
       "createLinkError": "링크를 생성할 수 없습니다: {{error}}",
@@ -9855,7 +9855,7 @@
       "versions": "버전",
       "withdrawLink": "링크 철회",
       "withdrawLinkError": "링크를 철회할 수 없습니다: {{error}}",
-      "workflowCount_one": "{{count}} 작업 흐름",
+      "workflowCount_one": "{{count}} 워크플로",
       "workflowCount_other": "{{count}} 워크플로",
       "usageSummary_one": "{{count}} 실행{{since}}에서 {{amount}}을 사용했습니다.",
       "usageSummary_other": "{{count}} 실행에서 {{amount}}을 사용했습니다.{{since}}."
@@ -9906,7 +9906,7 @@
       "deleteDescription": "이렇게 하면 인스턴스, 해당 기록 및 연결이 제거됩니다. 생성된 미디어는 라이브러리에 남아 있습니다. 실행 중인 작업은 취소되지 않습니다.",
       "deleteInstance": "인스턴스 삭제",
       "draftWorkingCopy": "초안 작업 사본",
-      "duplicate": "중복",
+      "duplicate": "복제",
       "duplicateInstance": "중복된 인스턴스",
       "instanceName": "인스턴스 이름",
       "managementFailed": "인스턴스 관리 실패",
@@ -9924,7 +9924,7 @@
     "shotDesignFrame": {
       "ariaLabel": "샷 {{shot}} 디자인 미리보기",
       "errors": {
-        "entityAssetMismatch": "엔티티 {{entityId}}의 자산이 선택한 엔티티와 일치하지 않습니다.",
+        "entityAssetMismatch": "엔터티 {{entityId}}의 에셋이 선택한 엔터티와 일치하지 않습니다.",
         "entitySourceMismatch": "소스 요소 {{elementId}}이 이 항목과 일치하지 않습니다.",
         "missingEntityReference": "스토리보드에 엔터티 {{entityId}}이(가) 없습니다.",
         "unavailable": "샷 미리보기를 사용할 수 없습니다."
@@ -9966,8 +9966,8 @@
       },
       "fields": {
         "description": "설명",
-        "dialogue": "대화",
-        "duration": "기간",
+        "dialogue": "대사",
+        "duration": "길이",
         "durationSource": "기간 소스",
         "end": "종료 상태",
         "equipment": "장비",
@@ -10073,7 +10073,7 @@
       "details": "샷 세부정보",
       "dialogue": {
         "editInScript": "스크립트에서 대화 편집",
-        "label": "대화",
+        "label": "대사",
         "placeholder": "대화는 스크립트에서 관리됩니다.",
         "scriptOwnsWords": "대화 문구는 스크립트에 의해 관리됩니다."
       },
@@ -10175,7 +10175,7 @@
       "addLighting": "조명 추가",
       "addMusic": "음악 추가",
       "afterEffects": "애프터이펙트",
-      "assetBindings": "자산 바인딩",
+      "assetBindings": "에셋 바인딩",
       "backgrounds": "배경",
       "beforeEffects": "효과 전",
       "behaviors": "행동",
@@ -10193,7 +10193,7 @@
       "inputActions": "입력 작업",
       "lighting": "조명",
       "music": "음악",
-      "newAssetSlot": "새로운 자산 슬롯",
+      "newAssetSlot": "새로운 에셋 슬롯",
       "noBehaviors": "아직 동작이 없습니다.",
       "parent": "상위",
       "prefabOnly": "조립식만",
@@ -10206,7 +10206,7 @@
       "removeMusic": "음악 삭제",
       "scene": "장면",
       "source": "소스",
-      "title": "검사관",
+      "title": "인스펙터",
       "transform": "변환",
       "unbindAsset": "{{slot}} 바인딩 해제",
       "lightNumber": "빛 {{number}}"
@@ -10244,7 +10244,7 @@
       "addTransitionTo": "{{label}} {{target}}",
       "anyState": "모든 주",
       "anyStateTo": "어떤 주에서나",
-      "baseLayerHelp": "기본 레이어는 전체 가중치에서 포즈를 재정의합니다. 편집할 상태 또는 전환을 선택합니다. 키보드를 사용하여 Tab 키를 누른 다음 Enter 키를 누르거나 삭제하려면 삭제하세요. 상태의 오른쪽 가장자리에서 다른 상태로 드래그하거나 상태 검사기에서 전환을 사용하여 전환을 추가합니다.",
+      "baseLayerHelp": "기본 레이어는 전체 가중치에서 포즈를 재정의합니다. 편집할 상태 또는 전환을 선택합니다. 키보드를 사용하여 Tab 키를 누른 다음 Enter 키를 누르거나 삭제하려면 삭제하세요. 상태의 오른쪽 가장자리에서 다른 상태로 드래그하거나 상태 인스펙터에서 전환을 사용하여 전환을 추가합니다.",
       "blendParameter": "블렌드 매개변수",
       "blendParameterX": "블렌드 매개변수 X",
       "blendParameterY": "블렌드 매개변수 Y",
@@ -10295,7 +10295,7 @@
       "fromPrevious": "{{state}}에서",
       "fromState": "주에서",
       "initialState": "초기 상태",
-      "inspectorRegion": "애니메이션 검사기",
+      "inspectorRegion": "애니메이션 인스펙터",
       "layer": "레이어 {{id}}",
       "layerLabel": "애니메이션 레이어",
       "layerMode": "레이어 모드",
@@ -10355,21 +10355,21 @@
       "graphProblems": "그래프 문제"
     },
     "assets": {
-      "actionFailedSummary": "게임 자산 브라우저 작업 실패",
+      "actionFailedSummary": "게임 에셋 브라우저 작업 실패",
       "allTypes": "모든 유형",
       "askAssistantToGenerate": "어시스턴트에게 생성을 요청하세요.",
-      "assetAria": "자산 {{slot}}",
-      "assetCount": "자산({{formattedCount}})",
+      "assetAria": "에셋 {{slot}}",
+      "assetCount": "에셋({{formattedCount}})",
       "assetMeta": "{{kind}} · {{count}}×",
       "assetSubtitle": "{{kind}} · {{count}}을 사용함",
-      "assistantGeneratePrompt": "generate_game_asset을 사용하여 \"{{slot}}\" 슬롯에 대한 새 {{kind}} 자산을 생성하고 설치합니다.{{prompt}}",
+      "assistantGeneratePrompt": "generate_game_asset을 사용하여 \"{{slot}}\" 슬롯에 대한 새 {{kind}} 에셋을 생성하고 설치합니다.{{prompt}}",
       "browse": "찾아보기",
-      "browserAria": "자산 브라우저",
+      "browserAria": "에셋 브라우저",
       "candidate": "후보자 {{digest}}",
       "clearFilters": "검색 또는 유형 필터를 지웁니다.",
       "count": {
-        "asset_one": "{{formattedCount}} 자산",
-        "asset_other": "{{formattedCount}} 자산",
+        "asset_one": "{{formattedCount}} 에셋",
+        "asset_other": "{{formattedCount}} 에셋",
         "entity_one": "{{formattedCount}} 엔터티",
         "entity_other": "{{formattedCount}} 엔터티",
         "instance_one": "{{formattedCount}} 인스턴스",
@@ -10386,7 +10386,7 @@
       "gameSettingsReference": "게임 설정",
       "generate": "생성",
       "generateAndInstall": "생성 및 설치",
-      "generateDescription": "결과는 게임 자산 아래에 준비되고 슬롯에 바인딩됩니다. 이전 파일은 후보로 계속 나열됩니다.",
+      "generateDescription": "결과는 게임 에셋 아래에 준비되고 슬롯에 바인딩됩니다. 이전 파일은 후보로 계속 나열됩니다.",
       "generateTitle": "{{slot}} 생성",
       "gridView": "그리드 보기",
       "instanceCount": "인스턴스({{formattedCount}})",
@@ -10411,16 +10411,16 @@
       "loadingCandidates": "후보자 로드 중",
       "madeFor": "{{slot}}용으로 제작됨",
       "moveFrames": "이 이미지로 프레임 이동",
-      "noAssets": "자산이 없습니다.",
+      "noAssets": "에셋이 없습니다.",
       "empty": {
-        "assets": "자산 없음",
+        "assets": "에셋 없음",
         "prefabs": "조립식 건물 없음",
         "scenes": "장면 없음"
       },
       "noStagedFiles": "준비된 {{kind}} 파일이 없습니다. 생성되고 준비된 파일이 여기에 표시됩니다.",
       "notUsed": "어떤 엔터티, 장면 또는 프리팹에서도 사용되지 않습니다.",
       "nothingMatches": "일치하는 항목이 없습니다.",
-      "openAsset": "자산 {{slot}} 열기",
+      "openAsset": "에셋 {{slot}} 열기",
       "prefabAria": "조립식 {{id}}",
       "prefabReference": "조립식 {{id}}{{entity}}",
       "prefabSubtitle": "조립식 · {{entities}} · {{instances}}",
@@ -10433,7 +10433,7 @@
       "sceneReference": "장면 {{name}}",
       "sceneSubtitle": "장면 · {{entities}} · {{assets}}",
       "search": "검색",
-      "searchAssets": "자산 검색",
+      "searchAssets": "에셋 검색",
       "selectReference": "{{label}}을 선택하세요.",
       "skippedFrames": "{{frames}}은(는) 이 이미지에서 벗어나 이전 이미지에 머물게 됩니다.",
       "stagedCandidates": "단계적 후보({{formattedCount}})",
@@ -10441,11 +10441,11 @@
       "staleFrameBindings_other": "{{formattedCount}} 프레임 바인딩은 여전히 이전 이미지를 가리킵니다.",
       "tabAria": "{{tab}}({{formattedCount}})",
       "tabs": {
-        "assets": "자산",
+        "assets": "에셋",
         "prefabs": "조립식",
         "scenes": "장면"
       },
-      "toolbarAria": "자산 도구 모음",
+      "toolbarAria": "에셋 도구 모음",
       "type": "유형",
       "unrecorded": "녹음되지 않음",
       "use": "사용",
@@ -10496,11 +10496,11 @@
         "loadFailed": "저장소 기록 설정을 로드할 수 없습니다.",
         "autosavesPerWorkflow": {
           "label": "워크플로당 자동 저장",
-          "description": "유지할 자동 작업 흐름의 최대 저장 수입니다."
+          "description": "유지할 자동 워크플로의 최대 저장 수입니다."
         },
         "autosaveRetention": {
           "label": "자동 저장 보존 기간(일)",
-          "description": "자동 작업 흐름을 유지하는 기간은 저장됩니다."
+          "description": "자동 워크플로를 유지하는 기간은 저장됩니다."
         },
         "manualVersionRetention": {
           "label": "수동 버전 보관(일)",
@@ -10519,7 +10519,7 @@
           "description": "워크플로 실행 추적을 유지하는 기간입니다."
         },
         "generationRetention": {
-          "label": "세대 보존(일)",
+          "label": "생성 보존(일)",
           "description": "생성 기록과 저장된 페이로드를 보관하는 기간입니다."
         },
         "automaticCleanup": {
@@ -10654,10 +10654,10 @@
       "storyboards": "스토리보드",
       "entities": "엔터티",
       "openEntitiesFullPage": "전체 페이지에서 엔터티 열기",
-      "examples": "예",
+      "examples": "예시",
       "scripts": "스크립트",
       "jsScripts": "JS 스크립트",
-      "skills": "기술",
+      "skills": "스킬",
       "apps": "앱",
       "workflowSettings": "워크플로 설정",
       "closePanel": "패널 닫기",
@@ -10678,11 +10678,11 @@
         "scripts": "스크립트",
         "storyboards": "스토리보드",
         "entities": "엔터티",
-        "examples": "예",
+        "examples": "예시",
         "timelines": "타임라인",
         "jsScripts": "JS 스크립트",
-        "skills": "기술",
-        "assets": "자산",
+        "skills": "스킬",
+        "assets": "에셋",
         "library": "도서관",
         "more": "더보기",
         "files": "파일"
@@ -10703,18 +10703,18 @@
         "examples": "제공된 예제를 열거나 3D 모델, 스케치 및 타임라인을 작업에 끌어다 놓습니다.",
         "timelines": "시간에 따라 미디어와 이벤트를 정리하세요.",
         "jsScripts": "재사용 가능한 JavaScript 코드를 생성하고 관리합니다.",
-        "skills": "상담원 기술 - 목표와 일치하는 마크다운 지침입니다.",
-        "assets": "현재 컨텍스트에서 사용 가능한 자산을 찾아보세요.",
-        "library": "현재 프로젝트에서 자산을 찾아보세요.",
+        "skills": "에이전트 스킬 - 목표와 일치하는 마크다운 지침입니다.",
+        "assets": "현재 컨텍스트에서 사용 가능한 에셋을 찾아보세요.",
+        "library": "현재 프로젝트에서 에셋을 찾아보세요.",
         "more": "워크플로, 편집기, 개발자용 패널을 더 엽니다.",
         "files": "프로젝트 폴더의 파일을 둘러봅니다."
       }
     },
     "queue": {
-      "running": "달리기",
+      "running": "실행 중",
       "untitled": "제목 없음",
       "onCanvas": "캔버스에",
-      "stopRun": "달리기를 멈추세요",
+      "stopRun": "실행 중지",
       "showRunOnCanvas": "캔버스에 실행 표시",
       "removeFromQueue": "대기열에서 제거",
       "cancelled": "취소됨",
@@ -10753,7 +10753,7 @@
       "toggleConversation": "대화 전환",
       "autoLayout": "자동 레이아웃",
       "save": "저장",
-      "saveWorkflow": "작업 흐름 저장",
+      "saveWorkflow": "워크플로 저장",
       "stopWorkflow": "워크플로 중지",
       "workflowActions": "워크플로 작업",
       "chainView": "체인 뷰",
@@ -10763,9 +10763,9 @@
       "off": "끄기",
       "stop": "중지",
       "miniMap": "미니맵",
-      "showInspector": "검사기 표시",
-      "hideInspector": "검사관 숨기기",
-      "toggleInspector": "검사기 전환",
+      "showInspector": "인스펙터 표시",
+      "hideInspector": "인스펙터 숨기기",
+      "toggleInspector": "인스펙터 전환",
       "visible": "보이는",
       "hidden": "숨겨진",
       "downloadJson": "JSON 다운로드",
@@ -10774,7 +10774,7 @@
       "panels": "패널…",
       "errorRetry": "오류 · 재시도",
       "runningCountQueued": "실행 중 · {{count}} 대기 중",
-      "running": "달리기",
+      "running": "실행 중",
       "starting": "시작",
       "stopping": "정지",
       "runEntireWorkflow": "전체 워크플로 실행",
@@ -10801,7 +10801,7 @@
       "attributes": "속성",
       "events_one": "{{count}} 이벤트",
       "events_other": "{{count}} 이벤트",
-      "duration": "기간",
+      "duration": "길이",
       "startsAt": "+{{duration}}에서 시작",
       "inspectSpan": "검사 범위 {{name}} {{id}}",
       "timelineDescription": "{{name}} 타임라인: 시작부터 {{offset}}ms, 지속 시간 {{duration}}ms",
@@ -10873,10 +10873,10 @@
         "completed": "완료됨",
         "failed": "실패",
         "cancelled": "취소됨",
-        "running": "달리기"
+        "running": "실행 중"
       },
       "runKind": {
-        "workflow": "작업 흐름",
+        "workflow": "워크플로",
         "chat": "채팅",
         "app": "앱"
       }
@@ -11114,7 +11114,7 @@
         "gain": "게인",
         "eq3": "3밴드 EQ",
         "filter": "필터",
-        "compressor": "압축기",
+        "compressor": "컴프레서",
         "colorCorrection": "색상",
         "videoBlur": "흐림",
         "sharpen": "선명하게",
@@ -11122,10 +11122,10 @@
         "chromaKey": "크로마키",
         "eq": "EQ",
         "ott": "OTT",
-        "comp": "압축기",
+        "comp": "컴프레서",
         "drive": "드라이브",
         "lab": "연구실",
-        "chorus": "합창",
+        "chorus": "코러스",
         "echo": "테이프 에코",
         "reverb": "리버브",
         "limiter": "리미터"
@@ -11133,9 +11133,9 @@
       "parameters": {
         "gainDb": "게인",
         "frequency": "빈도",
-        "q": "질문",
-        "attackMs": "공격",
-        "releaseMs": "출시",
+        "q": "Q",
+        "attackMs": "어택",
+        "releaseMs": "릴리스",
         "kneeDb": "무릎",
         "brightness": "밝기",
         "contrast": "대비",
@@ -11146,7 +11146,7 @@
         "shadows": "그림자",
         "highlights": "하이라이트",
         "radius": "반경",
-        "amount": "금액",
+        "amount": "강도",
         "threshold": "임계값",
         "intensity": "강도",
         "softness": "부드러움",
@@ -11174,7 +11174,7 @@
         "curveHint": "드래그 밴드 · Q의 중간 스크롤"
       },
       "frequencyShort": "주파수",
-      "q": "질문",
+      "q": "Q",
       "compressor": {
         "ratio": "비율",
         "curveHelp": "임계값을 설정하려면 T를 드래그하고, 비율을 설정하려면 R을 드래그하세요. 무릎 너비를 변경하려면 T를 스크롤하세요.",
@@ -11201,11 +11201,11 @@
       },
       "audioSample": "오디오 샘플",
       "loadingSamples": "샘플 로드 중…",
-      "chooseAudioAsset": "오디오 자산 선택",
+      "chooseAudioAsset": "오디오 에셋 선택",
       "addSample": "샘플 추가",
       "uploading": "업로드 중…",
       "uploadAudio": "오디오 업로드",
-      "loadAssetsError": "오디오 자산을 로드할 수 없습니다.",
+      "loadAssetsError": "오디오 에셋을 로드할 수 없습니다.",
       "playback": "재생",
       "playbackMode": {
         "oneShot": "원샷 · 전체 샘플 재생",
@@ -11247,7 +11247,7 @@
       },
       "waveforms": {
         "sine": "사인",
-        "square": "광장"
+        "square": "사각파"
       },
       "filterTypes": {
         "0": "LP 12",
@@ -11288,10 +11288,10 @@
         "drive": "드라이브",
         "env": "봉투 금액",
         "key": "키 추적",
-        "attack": "공격",
-        "decay": "부패",
+        "attack": "어택",
+        "decay": "디케이",
         "sustain": "서스테인",
-        "release": "출시",
+        "release": "릴리스",
         "position": "위치",
         "semi": "반음",
         "fine": "미세 조정",
@@ -11312,9 +11312,9 @@
         "ringmix": "링 믹스",
         "pitchamt": "피치 금액",
         "pitchdec": "피치 디케이",
-        "att": "공격",
-        "hold": "보류",
-        "dec": "부패",
+        "att": "어택",
+        "hold": "홀드",
+        "dec": "디케이",
         "curve": "곡선",
         "vel": "레벨까지의 속도"
       },
@@ -11345,7 +11345,7 @@
         "openTitle": "이 모델을 열 수 없습니다."
       },
       "actions": {
-        "show": "쇼",
+        "show": "표시",
         "hide": "숨기기",
         "rename": "이름 바꾸기",
         "showAll": "모두 표시",
@@ -11353,14 +11353,14 @@
         "addTooltip": "뷰 중앙에 객체 추가",
         "importModel": "수입모델…",
         "importModelFile": "모델 파일 가져오기",
-        "duplicate": "중복",
+        "duplicate": "복제",
         "delete": "삭제",
         "shortcuts": "키보드 단축키",
         "hideAiRender": "AI 렌더링 숨기기",
         "renderAi": "AI를 사용하여 이 뷰 렌더링",
         "hideAssistant": "어시스턴트 숨기기",
         "showAssistant": "어시스턴트 표시",
-        "export": "수출",
+        "export": "내보내기",
         "exportTooltip": "장면이나 선택한 개체를 파일로 다운로드",
         "exportSelectionAs": "{{format}}로 선택",
         "exportSceneAs": "{{format}}로서의 장면",
@@ -11382,18 +11382,18 @@
       "tools": {
         "move": "이동",
         "rotate": "회전",
-        "scale": "규모"
+        "scale": "스케일"
       },
       "space": {
         "world": "세계",
-        "local": "지역",
+        "local": "로컬",
         "worldTooltip": "월드 공간: 기즈모가 장면 축을 따릅니다.",
         "localTooltip": "로컬 공간: 기즈모가 객체를 따릅니다.",
         "ariaLabel": "변환 공간: {{space}}"
       },
       "snap": {
         "on": "에",
-        "off": "떨어져서",
+        "off": "꺼짐",
         "toggle": "스냅 전환",
         "tooltip": "스냅핑 {{state}}: {{translate}} 단위, {{rotate}}°, {{scale}} 배율. Ctrl을 누르고 있으면 반전됩니다."
       },
@@ -11423,7 +11423,7 @@
       },
       "dropModel": "모델을 끌어서 장면에 추가하세요.",
       "externalChange": "이 모델은 편집기 외부에서 변경되었습니다. 변경 사항을 확인하고 저장하지 않은 편집 내용을 삭제하려면 새로고침하세요. 또는 저장하여 바꾸세요.",
-      "inspector": "검사관",
+      "inspector": "인스펙터",
       "resizeAiPanel": "AI 렌더링 패널 크기 조정",
       "aiDescription": "이미지 편집 모델을 사용하여 현재 보기를 완성된 이미지로 변환",
       "resizeAssistant": "3D 도우미 크기 조정",
@@ -11464,9 +11464,9 @@
       "noMatches": "“{{query}}”과(와) 일치하는 개체가 없습니다.",
       "actions": {
         "rename": "이름 바꾸기",
-        "duplicate": "중복",
+        "duplicate": "복제",
         "focus": "뷰포트에 초점",
-        "show": "쇼",
+        "show": "표시",
         "hide": "숨기기",
         "moveToRoot": "장면 루트로 이동",
         "delete": "삭제"
@@ -11527,12 +11527,12 @@
         "aspectViewport": "전체 뷰포트",
         "lens": "렌즈",
         "lensFree": "무료",
-        "lensFreeHint": "무료 렌즈, 편집자 자신의 시선",
+        "lensFreeHint": "자유 렌즈, 편집기의 현재 시점",
         "lensMm": "{{mm}}mm",
         "views": {
           "front": "전면",
           "right": "측면",
-          "top": "탑"
+          "top": "위"
         },
         "frameAll": "모두 프레임",
         "save": "세이브샷",
@@ -11558,8 +11558,8 @@
         "engine": "엔진",
         "samples": "샘플",
         "denoise": "노이즈 제거",
-        "width": "폭",
-        "height": "신장",
+        "width": "너비",
+        "height": "높이",
         "resolutionPercentage": "규모 %",
         "transparent": "투명한 배경",
         "backgroundColor": "배경",
@@ -11596,7 +11596,7 @@
       },
       "lightingHint": "블렌더는 장면에 자체 조명이 없을 때만 사전 설정을 사용합니다.",
       "matchView": "매치 뷰 측면",
-      "formatHint": "렌더링은 자산에 PNG 이미지로 저장됩니다.",
+      "formatHint": "렌더링은 에셋에 PNG 이미지로 저장됩니다.",
       "render": "블렌더로 렌더링",
       "requirement": "NodeTool을 실행하는 시스템에는 Blender 5.2 이상이 필요합니다.",
       "earlierRenders": "이전 렌더링",
@@ -11620,12 +11620,12 @@
       "transform": "변환",
       "position": "위치",
       "rotation": "회전",
-      "scale": "규모",
+      "scale": "스케일",
       "light": "빛",
       "color": "색상",
       "intensity": "강도",
       "range": "범위",
-      "decay": "부패",
+      "decay": "디케이",
       "angle": "각도",
       "penumbra": "반그림자",
       "geometry": "기하학",
@@ -11679,8 +11679,8 @@
         "depthWrite": "깊이 쓰기"
       },
       "geometryParams": {
-        "width": "폭",
-        "height": "신장",
+        "width": "너비",
+        "height": "높이",
         "depth": "깊이",
         "widthSegments": "너비 세그먼트",
         "heightSegments": "높이 세그먼트",
@@ -11758,7 +11758,7 @@
         "title": "색상"
       },
       "layers": "레이어",
-      "history": "역사",
+      "history": "기록",
       "canvas": "캔버스",
       "showPanels": "패널 표시",
       "resizeAssistant": "스케치 도우미 크기 조정",
@@ -11831,7 +11831,7 @@
         "layerPrompt": "레이어 프롬프트",
         "regenerateLayer": "레이어 재생성",
         "generateLayer": "레이어 생성",
-        "workflowLayer": "{{name}}은 작업 흐름에서 나옵니다. 입력은 전문가 모드에 있습니다.",
+        "workflowLayer": "{{name}}은 워크플로에서 나옵니다. 입력은 전문가 모드에 있습니다.",
         "openInExpert": "전문가 모드에서 열기"
       }
     }
@@ -11843,8 +11843,8 @@
         "apply": "적용",
         "canvasSize": "캔버스 크기",
         "canvasPreset": "캔버스 사전 설정",
-        "width": "폭",
-        "height": "신장",
+        "width": "너비",
+        "height": "높이",
         "frameRate": "프레임 속도",
         "frameRatePreset": "프레임 속도 사전 설정",
         "tempo": "템포",
@@ -11879,7 +11879,7 @@
         "original": "원본",
         "targetFormats": "대상 형식",
         "strategy": "전략",
-        "center": "센터",
+        "center": "가운데",
         "smartReframe": "스마트 리프레임",
         "followObject": "선택한 개체 따르기",
         "reframeSubject": "주제 재구성",
@@ -11901,7 +11901,7 @@
         "deleteAction": "해당 버전 삭제",
         "saving": "저장 중…",
         "saveVersion": "버전 저장",
-        "title": "역사",
+        "title": "기록",
         "loading": "버전 로드 중",
         "loadError": "버전을 로드할 수 없습니다.",
         "loadErrorSummary": "타임라인 버전을 로드하지 못했습니다.",
@@ -11989,7 +11989,7 @@
       "newConversation": "새로운 대화",
       "close": "채팅 닫기",
       "startPrompt": "대화 시작",
-      "startDescription": "이 워크플로에 대해 문의하거나 @를 입력하여 자산을 참조하세요.",
+      "startDescription": "이 워크플로에 대해 문의하거나 @를 입력하여 에셋을 참조하세요.",
       "searchThreads": "스레드 검색",
       "closeThreads": "스레드 닫기"
     },
@@ -12018,11 +12018,11 @@
       },
       "webhookUrl": "웹훅 URL",
       "copyWebhookUrl": "웹훅 URL 복사",
-      "webhookSecret": "웹훅 비밀",
-      "hideSecret": "비밀 숨기기",
-      "showSecret": "비밀 표시",
-      "hideWebhookSecret": "웹훅 비밀 숨기기",
-      "showWebhookSecret": "웹훅 비밀 표시",
+      "webhookSecret": "웹훅 시크릿",
+      "hideSecret": "시크릿 숨기기",
+      "showSecret": "시크릿 표시",
+      "hideWebhookSecret": "웹훅 시크릿 숨기기",
+      "showWebhookSecret": "웹훅 시크릿 표시",
       "copyWebhookSecret": "웹훅 비밀번호 복사",
       "webhookSecretHint": "이 값을 x-webhook-secret 헤더로 보냅니다.",
       "buttonStateDisabled": "{{state}}, 자동으로 비활성화됨",
@@ -12051,8 +12051,8 @@
       "categories": "카테고리",
       "showAll": "모두 표시",
       "hideAll": "모두 숨기기",
-      "providers": "공급자",
-      "providersDescription": "API 키를 추가하면 공급자 노드가 나타납니다. 키를 설정하면 팩이 자동으로 활성화됩니다.",
+      "providers": "프로바이더",
+      "providersDescription": "API 키를 추가하면 프로바이더 노드가 나타납니다. 키를 설정하면 팩이 자동으로 활성화됩니다.",
       "keySet": "키 세트",
       "addCredential": "{{name}} 추가",
       "addApiKey": "API 키 추가",
@@ -12108,7 +12108,7 @@
       "bytesStat": "현재 {{now}} · 최대 {{max}}"
     },
     "gameInspector3d": {
-      "dimensionError": "3D 검사기는 게임 차원을 변경할 수 없습니다.",
+      "dimensionError": "3D 인스펙터는 게임 차원을 변경할 수 없습니다.",
       "scene": "장면",
       "sceneHelp": "장면 설정. 편집할 엔터티를 선택하세요.",
       "environmentPreset": "환경 사전 설정",
@@ -12134,7 +12134,7 @@
       "transformLabels": {
         "position": "위치",
         "rotation": "회전",
-        "scale": "규모"
+        "scale": "스케일"
       },
       "transformUnits": {
         "position": "미터 단위의 위치",
@@ -12208,7 +12208,7 @@
         "title": "앱 빌더 에이전트",
         "description": "앱 레이아웃을 구축하고 위젯을 워크플로 입력 및 출력에 바인딩합니다.",
         "docsLabel": "앱 빌더",
-        "composerPlaceholder": "상담원에게 앱을 빌드하거나 워크플로를 편집하도록 요청하세요."
+        "composerPlaceholder": "에이전트에게 앱을 빌드하거나 워크플로를 편집하도록 요청하세요."
       },
       "shell": {
         "appDataLabel": "앱 데이터"
@@ -12242,7 +12242,7 @@
         "page": "페이지",
         "undo": "실행 취소",
         "redo": "다시 실행",
-        "agent": "대리인"
+        "agent": "에이전트"
       },
       "chatApp": {
         "stepShown": "Showed {{step}}",
@@ -12333,9 +12333,9 @@
     "live": "라이브",
     "pick_one": "{{count}} 선택",
     "pick_other": "{{count}} 선택",
-    "generations": "세대",
+    "generations": "생성 기록",
     "status": {
-      "running": "달리기",
+      "running": "실행 중",
       "error": "오류"
     },
     "showGrid": "그리드 표시",
@@ -12417,9 +12417,9 @@
       "live": "라이브",
       "pick_one": "{{count}} 선택",
       "pick_other": "{{count}} 선택",
-      "generations": "세대",
+      "generations": "생성 기록",
       "status": {
-        "running": "달리기",
+        "running": "실행 중",
         "error": "오류"
       },
       "showGrid": "그리드 표시",
@@ -12534,9 +12534,9 @@
       "next": "다음",
       "close": "닫기",
       "adding": "추가 중…",
-      "addSelected_one": "자산에 {{count}} 추가",
-      "addSelected_other": "자산에 {{count}} 추가",
-      "addToAssets": "자산에 추가",
+      "addSelected_one": "에셋에 {{count}} 추가",
+      "addSelected_other": "에셋에 {{count}} 추가",
+      "addToAssets": "에셋에 추가",
       "mediaType": "미디어 유형",
       "images": "이미지",
       "audio": "오디오",
@@ -12548,8 +12548,8 @@
       "resultCount_one": "{{count}} 결과",
       "resultCount_other": "{{count}} 결과",
       "maxImportNotice": "한 번에 최대 {{count}}까지 추가할 수 있습니다.",
-      "addedFiles_one": "Openverse에서 {{count}} 파일을 추가했습니다. 라이선스는 각 자산과 함께 저장됩니다.",
-      "addedFiles_other": "Openverse에서 {{count}} 파일을 추가했습니다. 라이선스는 각 자산과 함께 저장됩니다.",
+      "addedFiles_one": "Openverse에서 {{count}} 파일을 추가했습니다. 라이선스는 각 에셋과 함께 저장됩니다.",
+      "addedFiles_other": "Openverse에서 {{count}} 파일을 추가했습니다. 라이선스는 각 에셋과 함께 저장됩니다.",
       "failedFiles_one": "{{count}}을(를) 추가할 수 없습니다: {{error}}",
       "failedFiles_other": "{{count}}을(를) 추가할 수 없습니다: {{error}}",
       "licenses": {
@@ -12573,12 +12573,12 @@
     "costs": {
       "title": "비용",
       "spendAcross": "노드 실행당 지출",
-      "workflowCount_one": "{{count}} 작업 흐름",
+      "workflowCount_one": "{{count}} 워크플로",
       "workflowCount_other": "{{count}} 워크플로",
       "spendPerExecution": "노드 실행당 지출",
       "allProviders": "모든 제공업체",
-      "providers": "공급자",
-      "allWorkflows": "모든 워크플로우",
+      "providers": "프로바이더",
+      "allWorkflows": "모든 워크플로",
       "workflows": "워크플로",
       "exportCsv": "CSV 내보내기",
       "loadError": "비용 데이터를 로드할 수 없습니다. 다시 시도해 주세요.",
@@ -12609,21 +12609,21 @@
       "group": {
         "execution": "실행",
         "nodeType": "노드 유형",
-        "workflow": "작업 흐름",
-        "provider": "공급자",
+        "workflow": "워크플로",
+        "provider": "프로바이더",
         "model": "모델"
       },
       "table": {
         "node": "노드",
-        "workflow": "작업 흐름",
-        "providerModel": "제공자/모델",
+        "workflow": "워크플로",
+        "providerModel": "프로바이더/모델",
         "tokens": "토큰(인/아웃)",
         "runtime": "런타임",
         "status": "상태",
         "when": "언제",
         "cost": "비용",
         "nodeType": "노드 유형",
-        "provider": "공급자",
+        "provider": "프로바이더",
         "model": "모델",
         "executions": "처형",
         "shareOfSpend": "지출 비중",
@@ -12648,7 +12648,7 @@
       "addGeneratedClip": "생성된 클립 추가",
       "adjustmentLayer": "조정 레이어",
       "adjustmentLayerDescription": "그 아래의 모든 레이어에 등급을 매기거나 흐리게 처리",
-      "allWorkflows": "모든 워크플로우",
+      "allWorkflows": "모든 워크플로",
       "backToClipSources": "클립 소스로 돌아가기",
       "backToWorkflowList": "워크플로 목록으로 돌아가기",
       "describeImagePrompt": "이미지를 설명하고 Enter를 누르세요…",
@@ -12663,13 +12663,13 @@
       "noWorkflowsFound": "워크플로를 찾을 수 없습니다.",
       "orUseWorkflow": "- 또는 워크플로 사용 -",
       "pick3dModel": "3D 모델 선택",
-      "place3dAsset": "이 트랙에 glTF 자산을 배치하세요",
+      "place3dAsset": "이 트랙에 glTF 에셋을 배치하세요",
       "prompt": "프롬프트",
       "promptKeyboardHint": "↵ 생성 · ⇧↵ 새 줄",
       "selectOutput": "출력 선택 - {{name}}",
       "speechTextPrompt": "말할 텍스트를 입력하고 Enter 키를 누르세요…",
       "templates": "템플릿",
-      "upload3dAsset": "먼저 {{formats}} 자산을 업로드하세요.",
+      "upload3dAsset": "먼저 {{formats}} 에셋을 업로드하세요.",
       "useOutput": "{{name}} 출력 사용"
     },
     "preview": {
@@ -12705,7 +12705,7 @@
       "volume": "볼륨"
     },
     "topBar": {
-      "export": "수출",
+      "export": "내보내기",
       "workspace": "작업공간",
       "videoEditing": "비디오 편집",
       "audioDaw": "오디오(DAW)",
@@ -12727,7 +12727,7 @@
       "moreTimelineActions": "더 많은 타임라인 작업",
       "openTimelineCode": "타임라인의 코드 열기",
       "projectSettings": "프로젝트 설정",
-      "saveAsAsset": "자산으로 저장",
+      "saveAsAsset": "에셋으로 저장",
       "saved": "저장됨",
       "saving": "저장 중…",
       "showSidePanel": "측면 패널 표시",
@@ -12824,7 +12824,7 @@
       "autoUpdate": "아래 설정이 완료되면 자동으로 업데이트됩니다.",
       "whyAdd": "추가하는 이유",
       "benefitImages": "이미 지불한 요금제에서 ChatGPT로 이미지를 생성하고 Gemini로 이미지와 Veo 비디오를 생성하세요. API 키도 없고 이미지당 청구서도 없습니다.",
-      "benefitAssets": "모든 결과는 NodeTool 자산에 저장되어 워크플로, 스케치 및 타임라인에 사용할 수 있습니다.",
+      "benefitAssets": "모든 결과는 NodeTool 에셋에 저장되어 워크플로, 스케치 및 타임라인에 사용할 수 있습니다.",
       "benefitAgent": "에이전트는 귀하가 로그인한 모든 사이트에서 작업할 수 있습니다. 에이전트는 귀하의 탭 내에서 미디어를 클릭하고 입력하고 저장합니다.",
       "howItWorks": "작동 원리",
       "workflow": "워크플로나 채팅에서 ChatGPT 또는 Gemini에게 이미지나 동영상을 요청하면 NodeTool은 열려 있는 chatgpt.com 또는 gemini.google.com 탭을 찾아 사이트 자체 페이지를 통해 프롬프트를 제출합니다. 완성된 파일은 NodeTool로 돌아옵니다. 귀하의 비밀번호와 쿠키는 Chrome에 유지되며 각 요청은 ChatGPT 또는 Gemini 기록에 표시됩니다.",
@@ -12874,24 +12874,24 @@
     "connectProviderDescription": "여기에서 해당 모델을 보려면 {{provider}}을 연결하세요.",
     "connectProvider": "{{provider}} 연결",
     "refreshModels": "모델 새로 고침",
-    "loadingModelsFromProviders_one": "{{total}} 공급자의 {{loaded}}에서 모델 로드 중",
-    "loadingModelsFromProviders_other": "{{total}} 공급자의 {{loaded}}에서 모델 로드 중",
+    "loadingModelsFromProviders_one": "{{total}} 프로바이더의 {{loaded}}에서 모델 로드 중",
+    "loadingModelsFromProviders_other": "{{total}} 프로바이더의 {{loaded}}에서 모델 로드 중",
     "loadingModels": "모델 로드 중",
     "failedToLoadModelsFrom": "다음에서 모델을 로드하지 못했습니다.",
     "unknownError": "알 수 없는 오류",
-    "providerFailedToLoad_one": "{{count}} 공급자를 로드하지 못했습니다.",
-    "providerFailedToLoad_other": "{{count}} 공급자를 로드하지 못했습니다.",
+    "providerFailedToLoad_one": "{{count}} 프로바이더를 로드하지 못했습니다.",
+    "providerFailedToLoad_other": "{{count}} 프로바이더를 로드하지 못했습니다.",
     "addApiKey": "API 키 추가",
     "addApiKeyDescription": "OpenAI, Anthropic, Google 등의 클라우드 모델을 사용하세요.",
     "missingProvider": "제공업체가 없나요?",
-    "addProviders": "공급자 추가",
+    "addProviders": "프로바이더 추가",
     "installing": "설치 중",
     "installOnThisComputer": "이 컴퓨터에 {{installLabel}}을 설치합니다.",
     "install": "설치",
     "selectLanguageModel": "언어 모델 선택",
     "agentFit": {
       "noToolsLabel": "도구 없음",
-      "noToolsTooltip": "제공자에 따르면 이 모델은 도구를 호출할 수 없습니다. 에이전트에는 도구 호출이 필요하므로 일반 텍스트 생성에만 사용하세요.",
+      "noToolsTooltip": "프로바이더에 따르면 이 모델은 도구를 호출할 수 없습니다. 에이전트에는 도구 호출이 필요하므로 일반 텍스트 생성에만 사용하세요.",
       "freeTierLabel": "무료 등급",
       "freeTierTooltip": "OpenRouter는 무료 모델에 분당 및 일일 요청 한도를 둡니다. 에이전트 실행은 요청을 많이 보내므로 무료 모델에서는 자주 멈추거나 실패합니다. 같은 모델의 유료 경로에는 이 한도가 적용되지 않습니다.",
       "defaultLabel": "에이전트 기본값",
@@ -12900,20 +12900,20 @@
     "searchLanguageModels": "언어 모델 검색",
     "installProviderToUseModel": "이 모델을 사용하려면 {{installLabel}}을 설치하세요.",
     "modelNotReady": "이 모델은 아직 사용할 준비가 되지 않았습니다.",
-    "enableProviderAndAddKey": "이 모델을 사용하려면 공급자를 활성화하고 설정에서 API 키를 추가하세요.",
-    "enableProviderInSidebar": "이 모델을 사용하려면 왼쪽 사이드바에서 공급자를 활성화하세요.",
+    "enableProviderAndAddKey": "이 모델을 사용하려면 프로바이더를 활성화하고 설정에서 API 키를 추가하세요.",
+    "enableProviderInSidebar": "이 모델을 사용하려면 왼쪽 사이드바에서 프로바이더를 활성화하세요.",
     "addKeyInSettings": "이 모델을 사용하려면 설정에 API 키를 추가하세요.",
     "currentModel": "현재 모델",
     "availableToDownload": "다운로드 가능",
     "downloadsLandOn": "이 세션에서 모델이 실행되는 {{target}}에 다운로드가 실행됩니다.",
     "toTarget": "{{target}}으로",
     "noModelsFound": "모델을 찾을 수 없습니다.",
-    "noModelsMatchSearch": "\"{{searchTerm}}\"과(와) 일치하는 모델이 없습니다. 다른 용어를 사용하거나 더 많은 공급자를 활성화하세요.",
+    "noModelsMatchSearch": "\"{{searchTerm}}\"과(와) 일치하는 모델이 없습니다. 다른 용어를 사용하거나 더 많은 프로바이더를 활성화하세요.",
     "noModelsYet": "아직 모델이 없습니다.",
-    "noModelsYetDescription": "로컬 모델을 다운로드하거나 클라우드 공급자용 API 키를 추가하세요.",
+    "noModelsYetDescription": "로컬 모델을 다운로드하거나 클라우드 프로바이더용 API 키를 추가하세요.",
     "openSettings": "설정 열기",
     "noModelsAvailable": "사용 가능한 모델이 없습니다.",
-    "noModelsAvailableDescription": "사이드바에서 공급자를 활성화하거나 설정에서 API 키를 추가하세요.",
+    "noModelsAvailableDescription": "사이드바에서 프로바이더를 활성화하거나 설정에서 API 키를 추가하세요.",
     "models": "모델",
     "disabledRightClickToEnable": "비활성화되었습니다. 활성화하려면 마우스 오른쪽 버튼을 클릭하세요.",
     "addApiKeyRightClickForOptions": "이러한 모델을 사용하려면 API 키를 추가하세요. 옵션을 보려면 마우스 오른쪽 버튼을 클릭하세요.",
@@ -12922,12 +12922,12 @@
     "all": "모두",
     "allModels": "모든 모델",
     "cloud": "클라우드",
-    "providersDidNotLoad": "공급자가 로드되지 않았습니다.",
-    "local": "지역",
-    "disabled": "장애인",
+    "providersDidNotLoad": "프로바이더가 로드되지 않았습니다.",
+    "local": "로컬",
+    "disabled": "비활성",
     "addApiKeyEllipsis": "API 키 추가…",
-    "disableProvider": "공급자 비활성화",
-    "enableProvider": "공급자 활성화",
+    "disableProvider": "프로바이더 비활성화",
+    "enableProvider": "프로바이더 활성화",
     "openProviderWebsite": "제공업체 웹사이트 열기",
     "executionStatusLabel": "{{label}}: {{reason}}",
     "selectImageModel": "이미지 모델 선택",
@@ -12978,7 +12978,7 @@
       "seed": "종자",
       "sine": "사인",
       "saw": "톱",
-      "square": "광장",
+      "square": "사각파",
       "triangle": "삼각형",
       "pen": "펜",
       "smooth": "부드러운",
@@ -13063,17 +13063,17 @@
       "retry": "재시도",
       "conversations": "대화",
       "openInWorkspaceTab": "작업공간 탭에서 열기",
-      "chatAndAgents": "채팅 및 상담원"
+      "chatAndAgents": "채팅 및 에이전트"
     }
   },
   "nodeLibrary": {
     "title": "노드",
-    "search": "검색 노드",
+    "search": "노드 검색",
     "clearSearch": "검색 지우기",
-    "providers": "공급자",
+    "providers": "프로바이더",
     "allProviders": "모든 제공업체",
-    "localProvider": "지역",
-    "providerFilter": "공급자별 필터링: {{provider}}",
+    "localProvider": "로컬",
+    "providerFilter": "프로바이더별 필터링: {{provider}}",
     "categoriesLabel": "노드 카테고리",
     "noMatches": "일치하는 노드 없음",
     "hoverHint": "노드를 캔버스로 드래그합니다. 자세한 내용을 보려면 마우스를 가져가세요.",
@@ -13115,7 +13115,7 @@
     "number": "번호",
     "allInputTypes": "모든 입력 유형",
     "allOutputTypes": "모든 출력 유형",
-    "local": "지역",
+    "local": "로컬",
     "api": "API",
     "output": "출력",
     "filterBy": "{{type}}으로 필터링",
@@ -13172,7 +13172,7 @@
         "flipHorizontal": "수평 뒤집기",
         "flipVertical": "수직 뒤집기",
         "modes": {
-          "scale": "규모",
+          "scale": "스케일",
           "perspective": "관점",
           "distort": "변형"
         },
@@ -13195,7 +13195,7 @@
         "generate": "생성",
         "hideAssistant": "어시스턴트 숨기기",
         "showAssistant": "어시스턴트 표시",
-        "editorActions": "편집자 작업",
+        "editorActions": "편집기 작업",
         "fitToViewport": "뷰포트에 맞춤",
         "hidePanels": "패널 숨기기",
         "rulers": "통치자",
@@ -13284,7 +13284,7 @@
       "reso": "레소",
       "sustain": "서스테인",
       "lfoDepth": "LFO 깊이",
-      "off": "떨어져서",
+      "off": "꺼짐",
       "envelope": "A / D / R"
     },
     "kitMixPanel": {
@@ -13312,17 +13312,17 @@
     "chat": {
       "composer": {
         "mediaCost": {
-          "estimatedCostTitle": "이번 세대의 예상 비용",
+          "estimatedCostTitle": "이번 생성의 예상 비용",
           "listPrice": "정가",
           "outputsBreakdown_one": "{{count}} 출력 × {{breakdown}}",
           "outputsBreakdown_other": "{{count}} 출력 × {{breakdown}}",
-          "billingNote": "공급자 카탈로그의 정가입니다. 실행은 공급자가 자체 요율로 청구합니다.",
+          "billingNote": "프로바이더 카탈로그의 정가입니다. 실행은 프로바이더가 자체 요율로 청구합니다.",
           "estimatedCostLabel": "예상 비용 {{amount}}"
         },
-        "connectProvider": "공급자 연결",
+        "connectProvider": "프로바이더 연결",
         "selectModel": "모델을 선택하세요",
         "attach": {
-          "assetsTab": "자산",
+          "assetsTab": "에셋",
           "entitiesTab": "엔터티",
           "documentsTab": "문서",
           "uploadTab": "업로드",
@@ -13339,7 +13339,7 @@
           "noDocumentsDescription": "이 프로젝트의 워크플로, 스케치, 타임라인 및 기타 문서가 여기에 표시됩니다.",
           "untitled": "제목 없음",
           "dropFilesHere": "여기에 파일을 드롭하세요.",
-          "uploadDescription": "여기에 파일을 놓거나 선택하세요. 업로드는 자산 라이브러리로 이동됩니다.",
+          "uploadDescription": "여기에 파일을 놓거나 선택하세요. 업로드는 에셋 라이브러리로 이동됩니다.",
           "chooseFiles": "파일 선택",
           "chooseFilesTooltip": "업로드할 파일 선택",
           "searchPlaceholder": "{{item}} 검색",
@@ -13379,7 +13379,7 @@
       "playKeysToHear": "프리셋을 들으려면 건반을 연주하세요.",
       "wave": "웨이브",
       "filter": "필터",
-      "off": "떨어져서",
+      "off": "꺼짐",
       "resonance": "레소",
       "sustain": "서스테인",
       "lfoDepth": "LFO 깊이"
@@ -13405,7 +13405,7 @@
       "unavailableInSilence": "침묵으로는 불가능",
       "visualDescription": "{{source}} {{state}}. 왼쪽은 {{left}}을 반환하고 오른쪽은 {{right}}을 반환합니다. 스테레오 상관관계 {{correlation}}.",
       "active": "활성",
-      "off": "떨어져서",
+      "off": "꺼짐",
       "bypassed": "우회",
       "visualStereoReverb": "비주얼 스테레오 리버브{{context}}",
       "contextSuffix": ", {{context}}",
@@ -13496,11 +13496,11 @@
         "onboarding": {
           "localSubtitle": "Claude 또는 OpenAI로 로그인하여 이미 지불한 구독을 사용하거나 API 키를 추가하세요. 귀하의 자격 증명은 암호화되어 안전하게 저장됩니다.",
           "hostedSubtitle": "채팅을 시작하려면 OpenAI, Anthropic 또는 Gemini용 API 키를 추가하세요. 귀하의 키는 암호화되어 안전하게 저장됩니다.",
-          "localReason": "채팅에는 언어 모델이 필요합니다. Claude 또는 OpenAI로 로그인하거나 API 키를 사용하여 공급자를 연결하세요.",
-          "hostedReason": "채팅에는 언어 모델이 필요합니다. 시작하려면 공급자를 연결하세요."
+          "localReason": "채팅에는 언어 모델이 필요합니다. Claude 또는 OpenAI로 로그인하거나 API 키를 사용하여 프로바이더를 연결하세요.",
+          "hostedReason": "채팅에는 언어 모델이 필요합니다. 시작하려면 프로바이더를 연결하세요."
         },
         "connectProviderTitle": "시작하려면 AI 제공업체를 연결하세요",
-        "connectProviderButton": "공급자 연결",
+        "connectProviderButton": "프로바이더 연결",
         "greeting": {
           "morning": "좋은 아침이에요",
           "afternoon": "좋은 오후예요",
@@ -13530,8 +13530,8 @@
       "replayBeforeError": "오류 전 재생",
       "editorFailed": "3D 게임 편집기 실패",
       "draftChangedRestart": "초안이 변경되었습니다. 적용하려면 중지하고 다시 재생하세요.",
-      "modelAssets": "모델 자산",
-      "ownedModelAssetId": "소유 모델 자산 ID",
+      "modelAssets": "모델 에셋",
+      "ownedModelAssetId": "소유 모델 에셋 ID",
       "modelSlot": "모델 슬롯",
       "prepareInstallModel": "모델 준비 및 설치",
       "editModel": "모델 편집",
@@ -13554,7 +13554,7 @@
       "scriptMillisecondsPerTick": "틱당 {{milliseconds}}ms",
       "scripts": "스크립트",
       "scriptLabel": "{{entity}} · 스크립트 {{number}}",
-      "running": "달리기",
+      "running": "실행 중",
       "runTenSeconds": "10초 동안 실행",
       "close": "닫기",
       "scriptConflict": "초안 스크립트가 변경되었습니다. 버전을 선택할 때까지는 편집 내용이 저장되지 않습니다.",
@@ -13570,14 +13570,14 @@
   },
   "i18n-next28": {
     "outputQuickActions": {
-      "upscale": "고급",
+      "upscale": "업스케일",
       "remove-background": "배경 제거",
       "edit": "프롬프트로 편집"
     }
   },
   "i18n-next27": {
     "assetViewer": {
-      "label": "자산 뷰어",
+      "label": "에셋 뷰어",
       "selectImageToCompare": "비교하려면 아래 축소판에서 다른 이미지를 선택하세요.",
       "cancel": "취소",
       "openWorkflow": "이를 만든 워크플로를 엽니다.",
@@ -13593,15 +13593,15 @@
       "nameRequired": "이름은 비워둘 수 없습니다.",
       "maxLength": "최대 파일 이름 길이는 100자입니다.",
       "invalidCharacters": "잘못된 문자: {{characters}}",
-      "titleOne": "자산 이름 바꾸기",
-      "titleOther": "{{count}} 자산 이름 바꾸기",
+      "titleOne": "에셋 이름 바꾸기",
+      "titleOther": "{{count}} 에셋 이름 바꾸기",
       "rename": "이름 바꾸기",
       "nameLabel": "이름",
-      "multipleHelper": "여러 자산이 선택되었습니다. 이름에 숫자가 추가됩니다."
+      "multipleHelper": "여러 에셋이 선택되었습니다. 이름에 숫자가 추가됩니다."
     },
     "assetMove": {
-      "titleOne": "{{count}} 자산을 폴더로 이동",
-      "titleOther": "{{count}} 자산을 폴더로 이동",
+      "titleOne": "{{count}} 에셋을 폴더로 이동",
+      "titleOther": "{{count}} 에셋을 폴더로 이동",
       "cancel": "취소"
     },
     "assetCreateFolder": {
@@ -13618,7 +13618,7 @@
       "move": "이동",
       "create": "만들기",
       "nameLabel": "이름",
-      "selectedHelper": "{{count}} 자산이 선택되었습니다. 새 폴더로 이동됩니다."
+      "selectedHelper": "{{count}} 에셋이 선택되었습니다. 새 폴더로 이동됩니다."
     },
     "assetDelete": {
       "folderOne": "{{count}} 폴더",
@@ -13637,7 +13637,7 @@
       "titleOther": "{{count}} 항목을 삭제하시겠습니까?",
       "delete": "삭제",
       "rootFolderWarning": "루트 폴더는 삭제할 수 없습니다.",
-      "downloadBeforeDelete": "삭제하기 전에 선택한 자산을 마우스 오른쪽 버튼으로 클릭하고 다운로드할 수 있습니다."
+      "downloadBeforeDelete": "삭제하기 전에 선택한 에셋을 마우스 오른쪽 버튼으로 클릭하고 다운로드할 수 있습니다."
     }
   },
   "i18n-next25": {
@@ -13652,7 +13652,7 @@
         "textLabel": "라인 텍스트",
         "pauseCaption": "{{pause}} 일시 중지",
         "staleTakeTooltip": "이 테이크 이후로 텍스트나 음성이 변경되었습니다.",
-        "stale": "부실",
+        "stale": "오래됨",
         "takeNumber_one": "{{count}}을 사용하세요.",
         "takeNumber_other": "{{count}}을 사용하세요.",
         "draft": "초안",
@@ -13688,7 +13688,7 @@
         "voiceEstimate_other": "{{count}} 라인 · {{characters}} 문자{{price}}{{partial}}",
         "aboutPrice": " · 약 {{price}}",
         "partialPricing": " ({{pricedLineCount}}/{{lineCount}} 라인 가격)",
-        "providerListPriceNote": "공급자 카탈로그의 정가입니다. 보이싱은 공급자가 자체 요율로 청구합니다.",
+        "providerListPriceNote": "프로바이더 카탈로그의 정가입니다. 보이싱은 프로바이더가 자체 요율로 청구합니다.",
         "voiceAllPrice": "전체 음성 · ~{{price}}",
         "voiceAll": "모두 음성",
         "voicingQueued_one": "{{count}} 라인에 대한 보이싱이 대기 중입니다.",
@@ -13731,9 +13731,9 @@
         "assembleStoryboardTooltip": "연결된 스토리보드의 장면을 잘라서 하나의 타임라인으로 만듭니다.",
         "voiceToTimelineTooltip": "타임라인으로 보내려면 최소한 한 줄 이상 음성으로 전송하세요.",
         "assembling": "조립 중…",
-        "sendTakesToWorkflow": "모든 현재 테이크를 워크플로우로 보내기",
+        "sendTakesToWorkflow": "모든 현재 테이크를 워크플로로 보내기",
         "moreActions": "추가 작업",
-        "exportSrt": "SRT 수출",
+        "exportSrt": "SRT 내보내기",
         "voiceToExportSubtitles": "자막을 내보내려면 한 줄 이상 음성으로 내보냅니다.",
         "exportFormat": "{{format}} 내보내기",
         "voiceToExportAudio": "오디오를 내보내려면 최소 한 줄 이상 음성으로 내보냅니다.",
@@ -13796,7 +13796,7 @@
       "nothingActive": "실행 중이거나 대기 중인 항목이 없습니다.",
       "activeDescription": "실행이 작동하는 동안 여기에 표시됩니다.",
       "activeJobs": "활성 작업",
-      "history": "역사",
+      "history": "기록",
       "filterHistory": "필터 기록",
       "filter": {
         "all": "모두",
@@ -13832,7 +13832,7 @@
       "itemCount_one": "{{count}} 항목",
       "itemCount_other": "{{count}} 항목",
       "embeddingModelTooltip": "문서 삽입에 사용되는 모델",
-      "workflow": "작업 흐름",
+      "workflow": "워크플로",
       "changeWorkflowTooltip": "이 컬렉션의 수집 워크플로를 변경하려면 클릭하세요.",
       "noWorkflow": "워크플로 없음",
       "headerTitle": "컬렉션이란 무엇입니까?",
@@ -13874,7 +13874,7 @@
       "noMatchingNodes": "일치하는 노드 없음"
     },
     "nodeEditor": {
-      "uploadingAssets": "자산 업로드",
+      "uploadingAssets": "에셋 업로드",
       "keyboardShortcuts": "키보드 단축키"
     },
     "nodeInfoPanel": {
@@ -13910,8 +13910,8 @@
       "alignBottom": "하단 정렬",
       "distributeHorizontally": "수평으로 배포",
       "distributeVertically": "수직으로 배포",
-      "runSelected": "실행이 선택됨",
-      "duplicate": "중복",
+      "runSelected": "선택 항목 실행",
+      "duplicate": "복제",
       "group": "그룹",
       "linkLineageOnly": "링크(계보만, 데이터 없음)",
       "disable": "비활성화",
@@ -13955,7 +13955,7 @@
       },
       "subtitle": {
         "runtimes": "이 컴퓨터에서 실행되는 프로그램: llama.cpp 및 stable-diffusion.cpp와 같은 로컬 AI 엔진, FFmpeg와 같은 미디어 도구 및 언어. 로컬 모델과 일부 노드에 필요합니다.",
-        "included": "NodeTool과 함께 제공되는 팩. 노드를 숨기려면 팩을 끄십시오. 팩 토글은 서버가 다시 시작된 후에 적용됩니다. API 키를 추가하면 공급자 노드가 나타납니다.",
+        "included": "NodeTool과 함께 제공되는 팩. 노드를 숨기려면 팩을 끄십시오. 팩 토글은 서버가 다시 시작된 후에 적용됩니다. API 키를 추가하면 프로바이더 노드가 나타납니다.",
         "python": "Python 작업자에서 실행되는 PyPI의 노드 팩입니다. 팩을 설치, 업데이트 또는 제거한 후에 서버가 다시 시작됩니다.",
         "thirdparty": "타사 팩은 서버 사용자로 프로세스 내에서 실행됩니다. 당신이 알고 있는 신뢰 팩만 사용하세요."
       },
@@ -14042,8 +14042,8 @@
           "description": "현재 워크플로에 대한 설정을 편집합니다."
         },
         "skills": {
-          "label": "기술",
-          "description": "상담원 기술 - 목표와 일치하는 마크다운 지침입니다."
+          "label": "스킬",
+          "description": "에이전트 스킬 - 목표와 일치하는 마크다운 지침입니다."
         }
       }
     },
@@ -14082,7 +14082,7 @@
         "cloudShared": "나와 공유됨"
       },
       "type": {
-        "workflow": "작업 흐름",
+        "workflow": "워크플로",
         "application": "앱",
         "sketch": "스케치",
         "script": "스크립트",
@@ -14097,7 +14097,7 @@
       "deleteFailure": "{{name}}을(를) 삭제할 수 없습니다: {{error}}",
       "unknownError": "알 수 없는 오류",
       "deleteConfirmTitle": "{{type}}을 삭제하시겠습니까?",
-      "deleteEntityDescription": "\"{{name}}\"은 더 이상 엔터티가 아닙니다. 그 자산은 유지됩니다.",
+      "deleteEntityDescription": "\"{{name}}\"은 더 이상 엔터티가 아닙니다. 그 에셋은 유지됩니다.",
       "deleteDescription": "\"{{name}}\"이(가) 영구적으로 삭제됩니다.",
       "deleteAction": "삭제",
       "cancel": "취소",
@@ -14121,7 +14121,7 @@
       "view": {
         "logs": "로그",
         "queue": "대기열",
-        "generations": "세대",
+        "generations": "생성 기록",
         "workers": "노동자",
         "versions": "버전",
         "trace": "추적"
@@ -14168,20 +14168,20 @@
       "insertVariable": "변수 {{name}} 삽입",
       "variable": "변수",
       "prompt": "프롬프트",
-      "placeholder": "프롬프트 작성… @ 자산을 언급하려면"
+      "placeholder": "프롬프트 작성… @ 에셋을 언급하려면"
     },
     "assetMention": {
       "recent": "최근",
       "saved": "저장됨",
-      "noRecentMatch": "일치하는 최근 자산이 없습니다.",
+      "noRecentMatch": "일치하는 최근 에셋이 없습니다.",
       "noRecentAssets": "아직 파일이 없습니다. 하나를 첨부하거나 드래그하세요.",
-      "noAssetsMatch": "일치하는 자산이 없습니다.",
-      "noSavedAssets": "아직 저장된 자산이 없습니다.",
+      "noAssetsMatch": "일치하는 에셋이 없습니다.",
+      "noSavedAssets": "아직 저장된 에셋이 없습니다.",
       "noEntitiesMatch": "일치하는 항목이 없습니다.",
       "entities": "엔터티",
-      "assetSource": "자산 소스",
+      "assetSource": "에셋 소스",
       "rename": "{{name}} 이름 바꾸기",
-      "assetName": "자산 이름",
+      "assetName": "에셋 이름",
       "entityKind": {
         "product": "제품",
         "character": "캐릭터",
@@ -14259,7 +14259,7 @@
         "workflow": "워크플로",
         "panels": "패널",
         "panel": "패널",
-        "assets": "자산",
+        "assets": "에셋",
         "imageEditor": "이미지 편집기"
       },
       "switchToTab": "탭으로 전환",
@@ -14283,9 +14283,9 @@
       "connected": "{{provider}} 연결됨",
       "connectedLabel": "연결됨",
       "keySaved": "{{provider}} 키가 저장되었습니다 — {{status}}",
-      "keyRejected": "공급자가 키를 거부했습니다.",
+      "keyRejected": "프로바이더가 키를 거부했습니다.",
       "keyUnverified": "키가 저장되었으나 확인할 수 없습니다.",
-      "storedKeyRejected": "공급자가 저장된 키를 거부했습니다.",
+      "storedKeyRejected": "프로바이더가 저장된 키를 거부했습니다.",
       "storedKeyUnverified": "저장된 키를 확인할 수 없습니다.",
       "saveError": "키를 저장할 수 없습니다. 연결을 확인하고 다시 시도하세요.",
       "recheckError": "키를 다시 확인할 수 없습니다. 연결을 확인하고 다시 시도하세요.",
@@ -14299,10 +14299,10 @@
       "apiKeyLabel": "{{provider}} API 키",
       "apiKeyPlaceholder": "{{provider}} API 키를 붙여넣으세요.",
       "replace": "바꾸기",
-      "connect": "연결하다",
+      "connect": "연결",
       "getKey": "{{provider}}에서 키 가져오기",
       "saveAnyway": "무시하고 저장",
-      "rejectedKey": "공급자가 이 키를 거부했습니다.",
+      "rejectedKey": "프로바이더가 이 키를 거부했습니다.",
       "regionSwitched": "{{provider}}이(가) 중국 본토 호스트에서 이 키를 승인했습니다. 이제 NodeTool은 해당 호스트를 사용합니다.",
       "hfMirrorNote": "huggingface.co에 접속할 수 없나요? 설정 → 통합 → HF endpoint에서 https://hf-mirror.com 같은 미러를 지정하세요."
     },
@@ -14401,7 +14401,7 @@
     },
     "scope": {
       "ariaLabel": "모델 위치",
-      "local": "지역",
+      "local": "로컬",
       "localAriaLabel": "현지 모델",
       "oldWorkerTooltip": "이 작업자는 모델 관리를 지원하지 않습니다."
     },
@@ -14459,7 +14459,7 @@
       },
       "goals": {
         "chat": {
-          "label": "채팅 및 상담원",
+          "label": "채팅 및 에이전트",
           "description": "언어 모델을 사용하여 도구를 작성하고, 추론하고, 사용합니다."
         },
         "image-gen": {
@@ -14602,7 +14602,7 @@
         "scale": "스케일 도구",
         "toggleSpace": "로컬/월드 공간 전환",
         "toggleSnap": "스냅 토글(Ctrl을 누르고 있으면 반전됨)",
-        "duplicate": "중복",
+        "duplicate": "복제",
         "delete": "삭제",
         "deselect": "선택 취소",
         "hide": "선택 항목 숨기기/표시",
@@ -14624,7 +14624,7 @@
       "scrubValueHint": "X / Y / Z 라벨을 드래그하세요."
     },
     "contextMenu": {
-      "duplicate": "중복",
+      "duplicate": "복제",
       "frameSelection": "프레임 선택",
       "hide": "숨기기",
       "delete": "삭제"
@@ -14637,8 +14637,8 @@
       "back": "뒤로",
       "right": "오른쪽",
       "left": "왼쪽",
-      "top": "탑",
-      "bottom": "바닥",
+      "top": "위",
+      "bottom": "아래",
       "view": "보기",
       "cameraViews": "카메라 뷰",
       "frameAll": "모두 프레임",
@@ -14690,7 +14690,7 @@
         "noCompatiblePorts": "호환되는 포트를 찾을 수 없습니다."
       },
       "modelSetupCallout": {
-        "onboardingReason": "이 노드에는 AI 모델이 필요합니다. 실행하려면 공급자를 연결하세요.",
+        "onboardingReason": "이 노드에는 AI 모델이 필요합니다. 실행하려면 프로바이더를 연결하세요.",
         "dismiss": "닫기",
         "connectProvider": "모델을 사용하려면 AI 제공업체를 연결하세요. 시작하려면 API 키를 추가하세요.",
         "pickModel": "이 워크플로를 실행하기 전에 여기에서 모델을 선택하세요.",
@@ -14713,7 +14713,7 @@
         "logs": "로그"
       },
       "outputQuickActions": {
-        "upscale": "고급",
+        "upscale": "업스케일",
         "remove-background": "배경 제거",
         "edit": "프롬프트로 편집"
       },
@@ -14746,14 +14746,14 @@
     "previewActions": {
       "copyFailed": "클립보드에 복사하지 못했습니다.",
       "download": "다운로드",
-      "addToAssets": "자산에 추가",
-      "copyAsset": "자산 복사",
+      "addToAssets": "에셋에 추가",
+      "copyAsset": "에셋 복사",
       "copyOutput": "출력 복사"
     },
     "outputNode": {
-      "filesAddedToAssets_one": "{{count}} 파일이 자산에 추가되었습니다.",
-      "filesAddedToAssets_other": "{{count}} 파일이 자산에 추가되었습니다.",
-      "addToAssetsFailed": "자산에 출력을 추가하지 못했습니다.",
+      "filesAddedToAssets_one": "{{count}} 파일이 에셋에 추가되었습니다.",
+      "filesAddedToAssets_other": "{{count}} 파일이 에셋에 추가되었습니다.",
+      "addToAssetsFailed": "에셋에 출력을 추가하지 못했습니다.",
       "downloadStarted": "다운로드가 성공적으로 시작되었습니다",
       "downloadFailed": "다운로드를 시작하지 못했습니다.",
       "metadataTitle": "출력",
@@ -14762,9 +14762,9 @@
       "emptyRunPrompt": "실행하여 출력을 확인합니다."
     },
     "previewNode": {
-      "filesAddedToAssets_one": "{{count}} 파일이 자산에 추가되었습니다.",
-      "filesAddedToAssets_other": "{{count}} 파일이 자산에 추가되었습니다.",
-      "addToAssetsFailed": "자산에 미리보기를 추가하지 못했습니다.",
+      "filesAddedToAssets_one": "{{count}} 파일이 에셋에 추가되었습니다.",
+      "filesAddedToAssets_other": "{{count}} 파일이 에셋에 추가되었습니다.",
+      "addToAssetsFailed": "에셋에 미리보기를 추가하지 못했습니다.",
       "downloadStarted": "다운로드가 성공적으로 시작되었습니다",
       "downloadFailed": "다운로드를 시작하지 못했습니다.",
       "metadataTitle": "미리보기",
@@ -14792,7 +14792,7 @@
         "codeNode": "코드 노드",
         "nodeTitle": "노드 제목",
         "openLink": "링크 열기",
-        "disabled": "장애인",
+        "disabled": "비활성",
         "logs_one": "{{count}} 로그",
         "logs_other": "{{count}} 로그"
       },
@@ -14898,16 +14898,16 @@
     "modelSelect": {
       "loadingModels": "모델 로드 중…",
       "noModels": "사용 가능한 모델이 없습니다.",
-      "addProviders": "공급자 추가",
+      "addProviders": "프로바이더 추가",
       "addProvidersEllipsis": "제공업체 추가…",
       "selectModel": "모델을 선택하세요",
       "errorLoadingModels": "모델을 로드하는 중에 오류가 발생했습니다.",
       "unknownProvider": "알 수 없음"
     },
     "inference": {
-      "provider": "공급자",
+      "provider": "프로바이더",
       "model": "모델",
-      "selectProvider": "추론 공급자 선택"
+      "selectProvider": "추론 프로바이더 선택"
     },
     "tts": {
       "voice": "음성",
@@ -14934,7 +14934,7 @@
     },
     "status": {
       "cloud": "클라우드",
-      "local": "지역",
+      "local": "로컬",
       "generating_one": "{{count}} 클립 생성",
       "generating_other": "{{count}} 클립 생성 중",
       "failed_one": "{{count}} 클립 실패",
@@ -14988,7 +14988,7 @@
       "mp4Unsupported": "이 브라우저는 MP4를 작성할 수 없으므로 꺼져 있습니다.",
       "alphaLabel": "투명하게 내보내기",
       "title": "타임라인 내보내기",
-      "export": "수출",
+      "export": "내보내기",
       "format": "형식",
       "alphaNote": {
         "mp4": "MP4에는 알파 채널이 없습니다. WebM 또는 PNG 시퀀스를 선택합니다.",
@@ -14999,9 +14999,9 @@
       }
     },
     "source": {
-      "selectAsset": "여기에서 미리 보려면 탐색기에서 자산을 선택하고 사용할 부품을 표시하세요.",
+      "selectAsset": "여기에서 미리 보려면 탐색기에서 에셋을 선택하고 사용할 부품을 표시하세요.",
       "monitor": "소스 모니터",
-      "unsupportedAsset": "이 자산 유형은 타임라인에 포함될 수 없습니다.",
+      "unsupportedAsset": "이 에셋 유형은 타임라인에 포함될 수 없습니다.",
       "in": "에서",
       "out": "아웃",
       "inPoint": "해당 소스",
@@ -15022,7 +15022,7 @@
       "audioPlaceholder": "말하려면 텍스트를 입력하세요…",
       "videoPlaceholder": "사진 설명: 피사체, 동작, 카메라, 조명…",
       "promptAria": "빠른 {{kind}} 프롬프트",
-      "estimatedCost": "이번 세대의 예상 비용",
+      "estimatedCost": "이번 생성의 예상 비용",
       "generateMode": "{{mode}} 생성",
       "disabledTooltip": "프롬프트를 입력하고 생성할 모델을 선택하세요.",
       "generate": "생성",
@@ -15030,7 +15030,7 @@
       "videoModel": "비디오 모델",
       "seconds_one": "{{count}}초",
       "seconds_other": "{{count}}초",
-      "duration": "기간",
+      "duration": "길이",
       "videoResolution": "비디오 해상도",
       "selectTtsModel": "TTS 모델 선택",
       "voice": "음성",
@@ -15048,21 +15048,21 @@
     "assetTree": {
       "items_one": "({{count}} 항목)",
       "items_other": "({{count}} 항목)",
-      "noAssets": "자산을 찾을 수 없습니다."
+      "noAssets": "에셋을 찾을 수 없습니다."
     },
     "folderList": {
       "folders": "폴더",
       "toggleSubfolders": "{{name}} 하위 폴더 전환"
     },
     "breadcrumb": {
-      "assets": "자산",
+      "assets": "에셋",
       "home": "홈"
     },
     "projectFilter": {
       "allProjects": "모든 프로젝트",
       "personal": "개인",
       "project": "프로젝트",
-      "tooltip": "하나의 프로젝트 또는 전체 프로젝트의 자산 표시",
+      "tooltip": "하나의 프로젝트 또는 전체 프로젝트의 에셋 표시",
       "ariaLabel": "프로젝트: {{label}}",
       "loading": "프로젝트 로드 중",
       "loadErrorSummary": "프로젝트 필터가 프로젝트를 로드하지 못했습니다.",
@@ -15073,7 +15073,7 @@
       "searchingFor": "\"{{query}}\" 검색 중…",
       "noResultsFor": "\"{{query}}\"에 대한 검색결과가 없습니다.",
       "searching": "검색 중",
-      "noMatchingAssets": "검색어와 일치하는 자산을 찾을 수 없습니다.",
+      "noMatchingAssets": "검색어와 일치하는 에셋을 찾을 수 없습니다.",
       "resultCount_one": "\"{{query}}\"에 대한 {{count}} 결과",
       "resultCount_other": "\"{{query}}\"에 대한 {{count}} 결과",
       "thumbnail": "{{contentType}} 미리보기 이미지",
@@ -15081,7 +15081,7 @@
     },
     "saveToFolder": {
       "saveToFolder": "폴더에 저장",
-      "assets": "자산",
+      "assets": "에셋",
       "folderNamePlaceholder": "폴더 이름…",
       "newFolderName": "새 폴더 이름",
       "newFolder": "새 폴더…",
@@ -15095,7 +15095,7 @@
   },
   "i18n-next42-assets-grid": {
     "explorer": {
-      "title": "자산",
+      "title": "에셋",
       "subtitle": "이미지, 오디오, 비디오 및 기타 파일을 찾아보고 구성하고 미리 볼 수 있습니다."
     },
     "actions": {
@@ -15110,13 +15110,13 @@
       "totalSize": "선택한 항목의 전체 크기"
     },
     "states": {
-      "loading": "자산 로드 중",
+      "loading": "에셋 로드 중",
       "loadError": {
-        "title": "자산을 로드할 수 없습니다.",
+        "title": "에셋을 로드할 수 없습니다.",
         "description": "오류가 발생했습니다. 다시 시도해 주세요."
       },
       "refreshError": {
-        "title": "자산을 새로 고칠 수 없습니다."
+        "title": "에셋을 새로 고칠 수 없습니다."
       },
       "filteredEmpty": {
         "title": "여기에는 {{type}}이 없습니다.",
@@ -15125,15 +15125,15 @@
       "empty": {
         "favorites": {
           "title": "아직 즐겨찾기가 없습니다.",
-          "description": "어떤 폴더에서든 여기에서 찾으려면 자산에 별표를 표시하세요."
+          "description": "어떤 폴더에서든 여기에서 찾으려면 에셋에 별표를 표시하세요."
         },
         "workflow": {
           "title": "아직 이 워크플로의 출력이 없습니다.",
-          "description": "워크플로우를 실행하여 자산을 생성하거나 여기에 파일을 놓아 입력을 추가하세요."
+          "description": "워크플로를 실행하여 에셋을 생성하거나 여기에 파일을 놓아 입력을 추가하세요."
         },
         "folder": {
           "title": "이 폴더는 비어 있습니다.",
-          "description": "여기에 파일을 놓거나 업로드 버튼을 사용하여 자산을 추가하세요."
+          "description": "여기에 파일을 놓거나 업로드 버튼을 사용하여 에셋을 추가하세요."
         }
       },
       "noAssetsToDisplay": "표시할 애셋이 없습니다."
@@ -15174,7 +15174,7 @@
       "modified": "수정됨"
     },
     "search": {
-      "allAssets": "모든 자산 검색",
+      "allAssets": "모든 에셋 검색",
       "currentFolder": "현재 폴더 검색",
       "switchToLocal": "지역 검색으로 전환",
       "switchToGlobal": "글로벌 검색으로 전환"
@@ -15196,7 +15196,7 @@
     },
     "deviceTabs": {
       "pages": "{{device}} 페이지",
-      "edit": "편집하다",
+      "edit": "편집",
       "fx": "FX 체인",
       "lab": "연구실",
       "padFx": "패드 FX",
@@ -15297,7 +15297,7 @@
       }
     },
     "chorus": {
-      "title": "합창",
+      "title": "코러스",
       "stereo": "스테레오",
       "dry": "건조",
       "bypass": "바이패스",
@@ -15332,7 +15332,7 @@
     "dynamics": {
       "autoCompTitle": "Auto-comp: 입력 레벨을 학습하고 압축기를 설정합니다.",
       "autoGainFootnote": "자동 이득 · 자동 전 GR · ~3초 기록",
-      "compressorAriaLabel": "압축기",
+      "compressorAriaLabel": "컴프레서",
       "input": "안으로",
       "keyedFootnote": "키 있음 · 자동 이득 없음 · 키에서 GR",
       "levelGain": "레벨 / ± 게인",
@@ -15450,7 +15450,7 @@
     },
     "canvasResize": {
       "fixed": "고정",
-      "scale": "규모",
+      "scale": "스케일",
       "padding": "패딩",
       "targetCanvasWidth": "대상 캔버스 너비",
       "targetCanvasHeight": "대상 캔버스 높이",
@@ -15479,7 +15479,7 @@
       "items_other": "{{count}} 항목",
       "clear": "컬렉션 지우기",
       "dropAssets": "여기에 애셋을 드롭하세요.",
-      "dropAssetsHint": "자산 패널, 파일 또는 생성 기록에서",
+      "dropAssetsHint": "에셋 패널, 파일 또는 생성 기록에서",
       "removeItem": "{{index}} 항목 제거",
       "remove": "제거"
     },
@@ -15582,7 +15582,7 @@
     },
     "resizeImage": {
       "resizeMode": "크기 조정 모드",
-      "scale": "규모",
+      "scale": "스케일",
       "dimensions": "치수",
       "fit": "핏",
       "scaleFactor": "스케일 팩터",
@@ -15600,7 +15600,7 @@
       "reset": "회전 및 뒤집기 재설정"
     },
     "scale": {
-      "scale": "규모",
+      "scale": "스케일",
       "scaleFactor": "스케일 팩터"
     },
     "simpleFilter": {
@@ -15640,7 +15640,7 @@
       "loadingPreview": "미리보기 로드 중…",
       "errorLoadingPreview": "미리보기를 로드하는 중에 오류가 발생했습니다.",
       "openEditor": "편집기 열기",
-      "asset": "텍스트 자산",
+      "asset": "텍스트 에셋",
       "readOnly": "읽기 전용",
       "selectFiles": "텍스트 파일 선택",
       "fileType": "텍스트 파일",
@@ -15801,7 +15801,7 @@
         "description": "색상환에서 직사각형을 형성하는 4가지 색상"
       },
       "square": {
-        "name": "광장",
+        "name": "정사각형",
         "description": "대담한 조합을 위한 4가지 색상의 균등한 간격(90°)"
       }
     },
@@ -15838,7 +15838,7 @@
       "emptyTitle": "일치하는 노드 없음",
       "emptyDescription": "다른 검색어를 사용해 보거나 필터를 조정하세요.",
       "placeholder": "노드 검색",
-      "local": "지역",
+      "local": "로컬",
       "showDetails": "세부정보 표시",
       "collapseDetails": "세부정보 접기",
       "input": "입력",
@@ -15876,15 +15876,15 @@
     "quickActions": {
       "basics": "기본",
       "aiNodes": "AI 노드",
-      "providerModels": "공급자 모델",
+      "providerModels": "프로바이더 모델",
       "constants": "상수",
       "metadataMissing": "{{name}}에 대한 메타데이터를 찾을 수 없습니다.",
       "action": {
-        "agent": "대리인",
+        "agent": "에이전트",
         "code": "코드",
         "text-to-image": "텍스트를 이미지로",
         "image-to-image": "이미지를 이미지로",
-        "upscale": "고급",
+        "upscale": "업스케일",
         "remove-background": "배경 제거",
         "relight": "재조명",
         "vectorize": "벡터화",
@@ -15941,11 +15941,11 @@
       "scripts": "스크립트",
       "storyboards": "스토리보드",
       "entities": "엔터티",
-      "examples": "예",
+      "examples": "예시",
       "timelines": "타임라인",
       "jsscripts": "JS 스크립트",
-      "skills": "기술",
-      "assets": "자산",
+      "skills": "스킬",
+      "assets": "에셋",
       "library": "도서관",
       "more": "더보기",
       "files": "파일"
@@ -16005,10 +16005,10 @@
       "settings": "설정",
       "builderAssistant": "앱 빌더 어시스턴트",
       "closeAgent": "에이전트 닫기",
-      "askAgent": "상담원에게 물어보세요"
+      "askAgent": "에이전트에게 물어보세요"
     },
     "audio": {
-      "asset": "오디오 자산",
+      "asset": "오디오 에셋",
       "assistant": "어시스턴트",
       "resizeAssistant": "오디오 어시스턴트 크기 조정",
       "assistantWelcomeTitle": "오디오 어시스턴트",
@@ -16059,18 +16059,18 @@
       "assistant": "어시스턴트"
     },
     "model3d": {
-      "assetNotLoaded": "자산이 로드되지 않았습니다.",
+      "assetNotLoaded": "에셋이 로드되지 않았습니다.",
       "saved": "{{name}}에 저장되었습니다.",
       "model": "3D 모델",
-      "asset": "3D 자산"
+      "asset": "3D 에셋"
     },
     "page": {
       "notAvailable": "{{page}}은(는) 이 서버에서 사용할 수 없습니다.",
       "localOnlyDescription": "서버가 실행되는 시스템의 파일을 관리합니다. 데스크톱 앱이나 자체 호스팅 설치를 사용하세요.",
       "titles": {
-        "assets": "자산",
+        "assets": "에셋",
         "tutorials": "튜토리얼",
-        "examples": "예",
+        "examples": "예시",
         "costs": "비용",
         "models": "모델 관리자",
         "packages": "패키지 관리자",
@@ -16162,7 +16162,7 @@
         "inputHidden": "입력 숨김",
         "outputHidden": "출력 숨김",
         "hide": "숨기기",
-        "show": "쇼"
+        "show": "표시"
       },
       "selection": {
         "makeSelection": "먼저 선택하십시오.",
@@ -16194,8 +16194,8 @@
         "presets": "사전 설정…",
         "aspectResolution": "화면비 및 해상도",
         "resolution": "해상도",
-        "width": "폭",
-        "height": "신장",
+        "width": "너비",
+        "height": "높이",
         "apply": "캔버스 크기 적용"
       },
       "list": {
@@ -16233,7 +16233,7 @@
       "document": {
         "saving": "저장 중…",
         "save": "저장",
-        "saveAsAsset": "자산으로 저장",
+        "saveAsAsset": "에셋으로 저장",
         "exportPng": "PNG 내보내기",
         "exportPsd": "PSD 내보내기",
         "importPsd": "PSD 가져오기…",
@@ -16248,7 +16248,7 @@
         "expand": "버전 확장",
         "loadFailed": "버전을 로드하지 못했습니다.",
         "empty": "아직 버전이 없습니다.",
-        "emptyDescription": "성공적인 세대가 여기에 나타납니다",
+        "emptyDescription": "성공한 생성 결과가 여기에 표시됩니다",
         "favorite": "즐겨찾기로 표시(가지치기 방지)",
         "unfavorite": "즐겨찾기에서 제거",
         "restore": "이 버전을 복원하세요",
@@ -16257,13 +16257,13 @@
         "deleteLabel": "버전 삭제",
         "deleteTitle": "버전을 삭제하시겠습니까?",
         "deleteConfirm": "삭제",
-        "deleteDescription": "이 버전은 영구적으로 제거됩니다. 기본 작업과 자산은 삭제되지 않습니다."
+        "deleteDescription": "이 버전은 영구적으로 제거됩니다. 기본 작업과 에셋은 삭제되지 않습니다."
       },
       "inspector": {
         "selected_one": "{{count}} 레이어가 선택됨",
         "selected_other": "{{count}} 레이어가 선택됨",
         "selectSingle": "검사할 단일 레이어를 선택합니다.",
-        "title": "검사관",
+        "title": "인스펙터",
         "selectLayer": "검사할 레이어를 선택하세요.",
         "layer": "레이어",
         "opacity": "불투명도",
@@ -16276,7 +16276,7 @@
         "painted": "칠해진 레이어"
       },
       "ai": {
-        "generateTitle": "이미지 출력을 사용하여 모든 작업 흐름에서 레이어 생성",
+        "generateTitle": "이미지 출력을 사용하여 모든 워크플로에서 레이어 생성",
         "generate": "레이어 생성",
         "noStale": "오래된 레이어가 없습니다.",
         "stale_one": "종속성 순서에 따라 {{count}} 오래된 레이어를 다시 생성합니다.",
@@ -16298,7 +16298,7 @@
         "promptLabel": "생성 프롬프트",
         "selectModel": "모델 선택",
         "resolution": "해상도",
-        "cost": "이번 세대의 예상 비용",
+        "cost": "이번 생성의 예상 비용",
         "generate": "생성"
       },
       "status": {
@@ -16317,7 +16317,7 @@
         "queued": "대기 중",
         "generating": "생성 중",
         "generated": "생성됨",
-        "stale": "부실",
+        "stale": "오래됨",
         "failed": "실패",
         "locked": "잠김",
         "missing": "누락",
@@ -16340,7 +16340,7 @@
       },
       "history": {
         "empty": "수정사항이 여기에 표시됩니다.",
-        "label": "역사",
+        "label": "기록",
         "undone": "{{label}}(실행 취소)"
       }
     }
@@ -16362,7 +16362,7 @@
       "actions": {
         "moveSelection": "선택 항목 이동",
         "moveEntity": "{{name}} 이동",
-        "scale": "규모",
+        "scale": "스케일",
         "rotate": "회전",
         "transformEntity": "{{action}} {{name}}",
         "moveLight": "빛을 이동",
@@ -16383,7 +16383,7 @@
     "inspector": {
       "fields": {
         "position": "위치",
-        "scale": "규모",
+        "scale": "스케일",
         "size": "크기",
         "rotation": "회전",
         "category": "카테고리",
@@ -16462,7 +16462,7 @@
         "addButton": "데칼 추가"
       },
       "empty": {
-        "images": "데칼을 추가하려면 이미지 자산을 설치하세요.",
+        "images": "데칼을 추가하려면 이미지 에셋을 설치하세요.",
         "receivers": "이 장면에 기본 또는 강체 모델 수신기를 추가합니다.",
         "limit_one": "이 장면에는 이미 {{count}} 데칼이 있습니다.",
         "limit_other": "이 장면에는 이미 {{count}} 데칼이 있습니다."
@@ -16476,7 +16476,7 @@
       "fog": {
         "none": "없음",
         "linear": "선형",
-        "height": "신장"
+        "height": "높이"
       },
       "presetDescription": "장면 환경과 태양 조명을 적용합니다. 다른 조명을 유지합니다.",
       "actions": {
@@ -16539,11 +16539,11 @@
       "list": "목록 보기"
     },
     "filmstrip": {
-      "previousAsset": "이전 자산",
-      "nextAsset": "다음 자산"
+      "previousAsset": "이전 에셋",
+      "nextAsset": "다음 에셋"
     },
     "upload": {
-      "uploadingAssets": "자산 업로드",
+      "uploadingAssets": "에셋 업로드",
       "progress_one": "{{count}} 파일 중 {{completed}}이 업로드됨",
       "progress_other": "{{completed}}/{{count}} 파일 업로드됨"
     },
@@ -16564,9 +16564,9 @@
       "noPanelsMatchSearch": "검색어와 일치하는 패널이 없습니다.",
       "closePanel": "패널 닫기",
       "openLeftPanel": "왼쪽 패널 열기",
-      "inspector": "검사관",
-      "inspectorPanel": "검사기 패널",
-      "resizeInspectorPanel": "크기 조정 검사기 패널"
+      "inspector": "인스펙터",
+      "inspectorPanel": "인스펙터 패널",
+      "resizeInspectorPanel": "크기 조정 인스펙터 패널"
     },
     "jobs": {
       "duration": {
@@ -16584,12 +16584,12 @@
       "cancelTheJob": "작업을 취소하다",
       "video": "비디오",
       "image": "이미지",
-      "asset": "자산",
+      "asset": "에셋",
       "outputCount_one": "{{count}} {{type}}",
       "outputCount_other": "{{count}} {{type}}s",
       "cancelling": "취소 중…",
       "failed": "실패",
-      "running": "달리기",
+      "running": "실행 중",
       "inQueue": "대기열에 있음",
       "cancelled": "취소됨",
       "completed": "완료됨",
@@ -16626,9 +16626,9 @@
   },
   "i18n-next61": {
     "apiKeyValidation": {
-      "connectReason": "이 노드에는 공급자 키가 필요합니다. 노드를 실행하려면 연결하세요.",
+      "connectReason": "이 노드에는 프로바이더 키가 필요합니다. 노드를 실행하려면 연결하세요.",
       "missing": "{{key}}이(가) 없습니다!",
-      "connectProvider": "공급자 연결"
+      "connectProvider": "프로바이더 연결"
     },
     "nodeStatus": {
       "booting": "모델이 부팅 중입니다. 몇 분 정도 걸립니다."
@@ -16675,7 +16675,7 @@
       "splitAtPlayhead": "플레이헤드에서 분할",
       "editNotes": "메모 편집",
       "editVideo": "영상 편집…",
-      "duplicate": "중복",
+      "duplicate": "복제",
       "removeTransition": "전환 제거",
       "crossFadeIn": "크로스 페이드 인",
       "removeFades": "페이드 제거",
@@ -16724,7 +16724,7 @@
         "video/": "비디오",
         "audio/": "오디오 파일",
         "model/": "3D 모델",
-        "assets": "자산"
+        "assets": "에셋"
       }
     },
     "script": {
@@ -16789,7 +16789,7 @@
         "Keyframes & source": "키프레임 및 소스",
         "Zoom & view": "확대/축소 및 보기",
         "Workspaces": "작업공간",
-        "History": "역사"
+        "History": "기록"
       },
       "rows": {
         "selectTool": "도구 선택",
@@ -16862,7 +16862,7 @@
         "toggleLoop": "인과 아웃 사이의 반복 재생",
         "playInToOut": "처음부터 끝까지 플레이",
         "matchFrame": "일치 프레임(이 프레임에서 소스 열기)",
-        "revealInProject": "자산에서 클립의 미디어 공개",
+        "revealInProject": "에셋에서 클립의 미디어 공개",
         "addKeyframe": "재생헤드에서 선택한 클립에 키프레임 지정",
         "nextKeyframe": "다음 키프레임",
         "prevKeyframe": "이전 키프레임",
@@ -17060,14 +17060,14 @@
     "contentCard": {
       "videoPreview": {
         "downloadFailed": "다운로드를 시작하지 못했습니다.",
-        "filesAddedToAssets_one": "{{count}} 파일이 자산에 추가되었습니다.",
-        "filesAddedToAssets_other": "{{count}} 파일이 자산에 추가되었습니다.",
-        "addFailed": "자산에 비디오를 추가하지 못했습니다.",
+        "filesAddedToAssets_one": "{{count}} 파일이 에셋에 추가되었습니다.",
+        "filesAddedToAssets_other": "{{count}} 파일이 에셋에 추가되었습니다.",
+        "addFailed": "에셋에 비디오를 추가하지 못했습니다.",
         "outputLabel": "비디오 출력",
         "download": "다운로드",
         "downloadVideo": "비디오 다운로드",
-        "saveToAssets": "자산에 저장",
-        "saveVideoToAssets": "비디오를 자산에 저장"
+        "saveToAssets": "에셋에 저장",
+        "saveVideoToAssets": "비디오를 에셋에 저장"
       },
       "emptyResult": "빈 결과",
       "generatedText": "생성된 텍스트",
@@ -17110,7 +17110,7 @@
         "options": {
           "sine": "사인",
           "saw": "톱",
-          "square": "광장",
+          "square": "사각파",
           "triangle": "삼각형",
           "noise": "소음"
         }
@@ -17133,7 +17133,7 @@
         "cutoff_hz": "컷오프",
         "q": "해상도",
         "cv_amount": "이력서 금액",
-        "scale": "규모",
+        "scale": "스케일",
         "level1": "채널 1",
         "level2": "2장",
         "level3": "3장",
@@ -17143,13 +17143,13 @@
         "feedback": "FDBK",
         "mix": "믹스",
         "cutoff_frequency_hz": "컷오프",
-        "q_factor": "질문",
+        "q_factor": "Q",
         "bit_depth": "비트",
         "sample_rate_reduction": "요금",
         "threshold": "쓰레쉬",
         "ratio": "비율",
-        "attack_ms": "공격",
-        "release_ms": "출시",
+        "attack_ms": "어택",
+        "release_ms": "릴리스",
         "drive_db": "드라이브",
         "threshold_db": "천장"
       },
@@ -17172,8 +17172,8 @@
         "importTimelineTooltip": "타임라인 가져오기(.zip 또는 미디어와 함께 압축된 Premiere XML)",
         "importTimelineArchive": "타임라인 아카이브 가져오기",
         "imported": "가져온 {{name}}",
-        "missingAssets_one": "자산 1개가 보관 파일에 없었습니다.",
-        "missingAssets_other": "{{count}} 자산이 아카이브에 없습니다.",
+        "missingAssets_one": "에셋 1개가 보관 파일에 없었습니다.",
+        "missingAssets_other": "{{count}} 에셋이 아카이브에 없습니다.",
         "missingClips_one": "미디어가 zip에 없어 클립 1개가 제외되었습니다.",
         "missingClips_other": "{{count}} 클립은 미디어가 zip에 없기 때문에 제외되었습니다.",
         "notCarriedOver": "Premiere에서 이월되지 않음: {{warnings}}",
@@ -17437,7 +17437,7 @@
         "contentExpired": "활동 콘텐츠가 만료되었습니다.",
         "contentUnavailable": "이 실행에는 활동 콘텐츠를 사용할 수 없습니다.",
         "runLoadFailed": "실행 활동을 로드할 수 없습니다.",
-        "noActivity": "기록된 상담원 활동이 없습니다.",
+        "noActivity": "기록된 에이전트 활동이 없습니다.",
         "browserActivityMissing": "일부 브라우저 활동을 기록할 수 없습니다.",
         "recordingIncomplete": "활동 기록이 완료되지 않았습니다.",
         "sample": {
@@ -17481,12 +17481,12 @@
         "toggleVariable": "토글 변수",
         "yes": "예",
         "no": "아니요",
-        "show": "쇼",
+        "show": "표시",
         "hide": "숨기기",
-        "disabled": "장애인",
+        "disabled": "비활성",
         "completed": "완료됨",
-        "width": "폭",
-        "height": "신장",
+        "width": "너비",
+        "height": "높이",
         "maxHeight": "최대 높이",
         "min": "최소",
         "max": "맥스",
@@ -17535,13 +17535,13 @@
   "i18n-next71": {
     "costEstimateLine": {
       "estimatedCost": "예상 비용",
-      "providerCatalogNotice": "공급자 카탈로그의 정가입니다. 실행은 공급자가 자체 요율로 청구합니다."
+      "providerCatalogNotice": "프로바이더 카탈로그의 정가입니다. 실행은 프로바이더가 자체 요율로 청구합니다."
     },
     "costEstimateSummary": {
       "unavailable": "워크플로를 열어 예상 비용을 확인하세요.",
       "empty": "AI 모델을 사용하여 실행 비용을 추정하는 노드를 추가합니다.",
       "node": "노드",
-      "providerModel": "제공자/모델",
+      "providerModel": "프로바이더/모델",
       "units": "단위",
       "cost": "비용",
       "priceUnknown": "가격을 알 수 없음",
@@ -17550,7 +17550,7 @@
       "unknownExcluded_other": "알려진 가격이 없는 {{count}} 노드는 총계에서 제외됩니다.",
       "snapshotTooltip": "{{date}}의 genspend.io 카탈로그 스냅샷에서 읽은 가격",
       "catalogTooltip": "가격은 앱과 함께 제공됩니다. 야간 동기화로 이동",
-      "priceCreditPrefix": "공급자 카탈로그의 가격을 나열하고",
+      "priceCreditPrefix": "프로바이더 카탈로그의 가격을 나열하고",
       "priceCreditSuffix": ", 마지막 업데이트: {{date}}."
     },
     "spendOverTimeChart": {
@@ -17584,8 +17584,8 @@
       "namespacePanel": {
         "allResults": "모든 결과",
         "home": "홈",
-        "local": "지역",
-        "providers": "공급자",
+        "local": "로컬",
+        "providers": "프로바이더",
         "resultsInPath": "{{path}} 결과: {{count}} · '{{term}}' 전체 일치: {{total}}",
         "resultsRelevant": "결과: {{count}} · '{{term}}'와 가장 관련된 항목부터 표시",
         "nodesInPath": "{{path}}의 노드: {{count}}",
@@ -17594,7 +17594,7 @@
       "renderNodes": {
         "browseNodes": "노드 찾아보기",
         "clickNamespaces": "왼쪽의 네임스페이스를 클릭합니다.",
-        "searchNodes": "검색 노드",
+        "searchNodes": "노드 검색",
         "typeToSearch": "노드를 검색하려면 검색창에 입력하세요.",
         "createNodes": "노드 생성",
         "clickNode": "노드를 클릭하세요",
@@ -17646,11 +17646,11 @@
     },
     "trackLane": {
       "locked": "이 트랙은 잠겨 있습니다.",
-      "singleAsset": "한 번에 하나의 자산을 트랙에 놓습니다.",
+      "singleAsset": "한 번에 하나의 에셋을 트랙에 놓습니다.",
       "unsupportedMedia": "\"{{name}}\"을(를) 가져올 수 없습니다: 지원되지 않는 미디어 유형입니다.",
       "audio": "오디오",
       "videoOrOverlay": "비디오 또는 오버레이",
-      "incompatibleMedia": "{{mediaType}} 자산을 이 {{trackType}} 트랙에 놓을 수 없습니다. {{expected}} 트랙을 사용하세요.",
+      "incompatibleMedia": "{{mediaType}} 에셋을 이 {{trackType}} 트랙에 놓을 수 없습니다. {{expected}} 트랙을 사용하세요.",
       "textClipName": "텍스트",
       "textClipContent": "텍스트",
       "label": "트랙: {{name}}"
@@ -17732,7 +17732,7 @@
     "wt1Body": {
       "pagesLabel": "WT-1 페이지",
       "tabs": {
-        "edit": "편집하다",
+        "edit": "편집",
         "fx": "FX 체인",
         "lab": "연구실"
       },
@@ -17810,7 +17810,7 @@
     "colorOverlay": {
       "color": "색상",
       "sliders": {
-        "amount": "금액"
+        "amount": "강도"
       }
     },
     "constantTimeline": {
@@ -17863,9 +17863,9 @@
       "fill": "채우기",
       "sliders": {
         "left": "왼쪽",
-        "top": "탑",
+        "top": "위",
         "right": "오른쪽",
-        "bottom": "바닥"
+        "bottom": "아래"
       }
     },
     "paste": {
@@ -17914,8 +17914,8 @@
       "loading": "로드 중"
     },
     "textSurface": {
-      "loading": "텍스트 자산 로드 중",
-      "loadError": "텍스트 자산을 로드하지 못했습니다."
+      "loading": "텍스트 에셋 로드 중",
+      "loadError": "텍스트 에셋을 로드하지 못했습니다."
     },
     "externalLink": {
       "opensInNewTab": "새 탭에서 열립니다"
@@ -18192,7 +18192,7 @@
       "fields": {
         "addConditionNode": "조건에 대한 입력, 출력 또는 변수 설정 노드를 추가합니다.",
         "addInputOrProperties": "이 컨트롤을 바인딩하려면 입력 노드(또는 속성이 있는 노드)를 추가하세요.",
-        "addOutputOrVariable": "워크플로우에 출력 노드 또는 변수 설정 노드를 추가하십시오.",
+        "addOutputOrVariable": "워크플로에 출력 노드 또는 변수 설정 노드를 추가하십시오.",
         "addResourceBinding": "컬렉션을 연결하려면 앱에 리소스 바인딩을 추가하세요.",
         "addSetVariable": "앱 상태를 생성하려면 워크플로에 변수 설정 노드를 추가하세요.",
         "choices": "선택",
@@ -18320,7 +18320,7 @@
         "accept": "녹음 수락",
         "transcribing": "스크립트 작성 중…"
       },
-      "skills": "기술",
+      "skills": "스킬",
       "noMatchingSkills": "어울리는 스킬 없음",
       "commands": {
         "compact": "지금까지의 대화를 요약하여 맥락을 확보하세요.",
@@ -18375,8 +18375,8 @@
         "motion": "모션 설명…",
         "planShort": "계획할 작업을 설명합니다…",
         "plan": "작품을 설명하세요. 에이전트는 계획을 실행하는 것이 아니라 제안을 합니다.",
-        "messageShort": "메시지… 또는 자산을 추가하려면 @",
-        "message": "무엇이든 물어보거나 @를 입력하여 자산을 추가하세요."
+        "messageShort": "메시지… 또는 에셋을 추가하려면 @",
+        "message": "무엇이든 물어보거나 @를 입력하여 에셋을 추가하세요."
       },
       "messagePrompt": "메시지 프롬프트",
       "pickModel": "{{kind}} 모델을 {{action}}로 선택합니다.",
@@ -18433,7 +18433,7 @@
       "versionOf": "버전 {{index}}/{{count}}",
       "copyMessage": "메시지 복사",
       "enterCredential": "자격증명을 입력하세요",
-      "credentialSubtitle": "비밀 상점에 저장되었습니다. 에이전트는 값을 볼 수 없습니다.",
+      "credentialSubtitle": "시크릿 상점에 저장되었습니다. 에이전트는 값을 볼 수 없습니다.",
       "pasteKey": "키를 붙여넣으세요",
       "couldNotSaveKey": "키를 저장할 수 없습니다.",
       "saving": "저장 중…",
@@ -18467,7 +18467,7 @@
         "help": "도움말"
       },
       "labeledToggle": {
-        "show": "쇼",
+        "show": "표시",
         "hide": "숨기기"
       },
       "pageHeader": {
@@ -18711,7 +18711,7 @@
       },
       "devicePages": "DR-1 페이지",
       "tabs": {
-        "edit": "편집하다",
+        "edit": "편집",
         "padFx": "패드 FX",
         "groupFx": "그룹 FX"
       },
@@ -18765,7 +18765,7 @@
         "ampDecay": "앰프 디케이",
         "oscSample": "Osc / 샘플",
         "noiseRing": "소음/링",
-        "off": "떨어져서"
+        "off": "꺼짐"
       }
     }
   },
@@ -18817,7 +18817,7 @@
   "i18n-next108": {
     "secretRequestCard": {
       "enterCredential": "자격증명을 입력하세요",
-      "credentialSubtitle": "비밀 상점에 저장되었습니다. 에이전트는 값을 볼 수 없습니다.",
+      "credentialSubtitle": "시크릿 상점에 저장되었습니다. 에이전트는 값을 볼 수 없습니다.",
       "whereToGetKey": "이 열쇠를 어디서 구할 수 있나요?",
       "pasteKey": "키를 붙여넣으세요",
       "couldNotSaveKey": "키를 저장할 수 없습니다.",
@@ -18840,7 +18840,7 @@
       "automaticRecoveryFailed": "자동 복구에 실패했습니다. 귀하의 타임라인은 변경되지 않습니다.",
       "restarting": "미리보기를 다시 시작하는 중…",
       "videoFailure": "비디오 미리보기가 디코딩을 중지했습니다. 소스 비디오가 사용 가능하고 재생 가능한지 확인하세요.",
-      "mediaFailure": "미리보기 미디어를 로드할 수 없습니다. 연결과 소스 자산을 확인하세요.",
+      "mediaFailure": "미리보기 미디어를 로드할 수 없습니다. 연결과 소스 에셋을 확인하세요.",
       "rendererFailure": "미리보기 렌더러의 작동이 중지되었습니다. 미리보기를 다시 시도하거나 이 탭을 새로고침하세요.",
       "stale": "부실한",
       "bakeUnplayable": "재생할 수 없는 베이킹 - 라이브 3D",
@@ -18862,7 +18862,7 @@
       "noDescription": "이 노드에 대한 설명이 제공되지 않습니다."
     },
     "settings": {
-      "editorHeading": "편집자"
+      "editorHeading": "편집기"
     },
     "providerOnboarding": {
       "setUp": "설정"
@@ -18882,7 +18882,7 @@
   "i18n-next116": {
     "fableSynth": {
       "tabs": {
-        "edit": "편집하다",
+        "edit": "편집",
         "fxChain": "FX 체인"
       },
       "pages": "{{device}} 페이지",
@@ -18900,7 +18900,7 @@
       },
       "effects": {
         "drive": "드라이브",
-        "chorus": "합창"
+        "chorus": "코러스"
       },
       "actions": {
         "ok": "알았어"
@@ -18931,7 +18931,7 @@
       "sampleCostRange": " · 각각 약 {{low}}~{{high}}",
       "noCast": "스크립트에는 아직 캐스트가 없습니다. 먼저 작성하면 모든 발표자가 여기에 표시됩니다.",
       "tryAgain": "다시 시도하세요",
-      "connectProvider": "공급자 연결"
+      "connectProvider": "프로바이더 연결"
     }
   },
   "i18n-next119": {
@@ -18996,9 +18996,9 @@
       },
       "statuses": {
         "pending": "보류 중",
-        "running": "달리기",
+        "running": "실행 중",
         "completed": "완료",
-        "failed": "실패했다",
+        "failed": "실패",
         "error": "오류",
         "cancelled": "취소됨",
         "timeout": "시간 초과",
@@ -19016,7 +19016,7 @@
     }
   },
   "transformWithWorkflow": {
-    "title": "워크플로우를 통한 혁신",
+    "title": "워크플로를 통한 혁신",
     "sourceKind": "출처: {{kind}}",
     "pickDescription": "이 {{kind}}을 사용하는 워크플로를 선택하세요. 다른 입력은 저장된 값을 유지합니다.",
     "searchPlaceholder": "이름으로 워크플로 검색",
@@ -19031,7 +19031,7 @@
     "run": "실행",
     "cancel": "취소",
     "close": "닫기",
-    "cancelRun": "달리기를 멈추세요",
+    "cancelRun": "실행 중지",
     "chooseAnother": "다른 워크플로 선택",
     "runAgain": "다시 실행",
     "done": "완료",
@@ -19042,12 +19042,12 @@
     "outputs": "출력",
     "noOutputs": "워크플로가 출력 없이 완료되었습니다.",
     "transformOutput": "변환",
-    "saveToAssets": "자산에 저장",
-    "inAssets": "자산 내",
-    "saveFailed": "출력을 자산에 저장할 수 없습니다.",
+    "saveToAssets": "에셋에 저장",
+    "inAssets": "에셋 내",
+    "saveFailed": "출력을 에셋에 저장할 수 없습니다.",
     "status": {
       "idle": "준비",
-      "running": "달리기",
+      "running": "실행 중",
       "completed": "완료",
       "failed": "실패",
       "cancelled": "중지됨"
@@ -19105,14 +19105,14 @@
     }
   },
   "generations": {
-    "title": "세대",
-    "emptyTitle": "아직 세대가 없습니다.",
+    "title": "생성 기록",
+    "emptyTitle": "아직 생성 기록이 없습니다.",
     "emptyDescription": "편집기, 안내식 흐름, 채팅 또는 워크플로에서 생성한 이미지, 비디오 및 오디오가 실행되는 동안 여기에 표시됩니다.",
     "clearFinished": "클리어 완료",
     "stop": "생성 중지",
-    "stopFailed": "세대를 멈춰라",
+    "stopFailed": "생성 중지",
     "openSource": "{{title}} 열기",
-    "untitled": "{{kind}} 세대",
+    "untitled": "{{kind}} 생성",
     "kind": {
       "image": "이미지",
       "video": "비디오",
@@ -19122,18 +19122,18 @@
     "status": {
       "generating": "생성",
       "generated": "완료",
-      "failed": "실패했다",
+      "failed": "실패",
       "cancelled": "중지됨"
     },
     "filter": {
-      "label": "세대 필터링",
+      "label": "생성 기록 필터",
       "all": "모두",
       "generating": "생성 중",
       "failed": "실패"
     },
     "source": {
       "chat": "채팅",
-      "workflow": "작업 흐름",
+      "workflow": "워크플로",
       "storyboard": "스토리보드",
       "sketch": "스케치",
       "timeline": "타임라인",
@@ -19190,7 +19190,7 @@
       "volume": "볼륨",
       "pan": "팬",
       "opacity": "불투명도",
-      "scale": "규모",
+      "scale": "스케일",
       "positionX": "위치 X",
       "positionY": "위치 Y",
       "rotation": "회전",
@@ -19708,7 +19708,7 @@
     "sendFailed": "{{count}} 중 {{sent}}이(가) 시작되었습니다. 나머지는 NodeTool에 도달하지 못했습니다. 연결을 확인하고 다시 시도하세요.",
     "retakeFailed": "다시 촬영할 수 없습니다: {{reason}}",
     "olderFailed": "이전 렌더를 로드할 수 없습니다.",
-    "gridLabel": "세대",
+    "gridLabel": "생성 기록",
     "empty": {
       "title": "아직 생성된 항목이 없습니다.",
       "description": "위에 프롬프트를 쓰고 생성을 누르세요. 이미지, 동영상, 오디오가 최신순으로 여기에 표시됩니다.",
@@ -19728,7 +19728,7 @@
       "loadFailed": "결과를 로드할 수 없습니다: {{reason}}",
       "downloaded": "{{name}}을(를) 다운로드했습니다.",
       "downloadFailed": "다운로드할 수 없습니다: {{reason}}",
-      "workflowName": "워크플로우 생성",
+      "workflowName": "워크플로 생성",
       "workflowFailed": "워크플로를 구축할 수 없습니다: {{reason}}",
       "more": "작업 더 보기",
       "moreLabel": "{{title}} 작업 더 보기",
@@ -19802,7 +19802,7 @@
   },
   "effectsGallery": {
     "title": "효과",
-    "subtitle": "사진을 선택한 다음 효과를 선택하세요. 결과는 여기와 세대에 나타납니다.",
+    "subtitle": "사진을 고른 다음 효과를 고르세요. 결과는 여기와 생성 기록에 표시됩니다.",
     "noEffect": "선택한 효과 없음",
     "apply": "효과 적용",
     "applying": "신청 중…",
@@ -19830,7 +19830,7 @@
       "needImageModel": "이미지 모델을 선택하세요."
     },
     "result": {
-      "running": "{{effect}}을(를) 적용 중입니다. 동영상은 몇 분 정도 걸릴 수 있습니다. 이 탭을 그대로 두면 결과가 세대에도 나타납니다.",
+      "running": "{{effect}} 적용 중입니다. 동영상은 몇 분 걸릴 수 있습니다. 이 탭을 떠나도 되며, 결과는 생성 기록에도 표시됩니다.",
       "done": "{{effect}}이(가) 준비되었습니다.",
       "alt": "{{effect}}의 결과",
       "failed": "효과가 끝나지 않았고 결과도 나오지 않았습니다. 다시 시도하거나 다른 모델을 선택하세요.",
@@ -19858,7 +19858,7 @@
     "consent": "나는 이 생성된 클립에 자신의 이미지를 사용하는 데 이 사람의 동의를 얻었습니다.",
     "line": "그들은 무엇을 말해야 합니까?",
     "model": "립싱크 비디오 모델",
-    "requirements": "그림과 대사를 추가한 다음 음성 모델, 음성 및 립싱크 모델을 선택하세요. 결과는 세대에도 나타납니다.",
+    "requirements": "그림과 대사를 추가한 다음 음성 모델, 목소리, 립싱크 모델을 선택하세요. 결과는 생성 기록에도 표시됩니다.",
     "render": "립싱크 렌더링",
     "speech": "음성 생성 중…",
     "video": "립싱크 렌더링 중…",
@@ -19888,7 +19888,7 @@
     "accountLabel": "1비밀번호 계정",
     "accountPlaceholder": "my.1password.com",
     "approveHint": "1Password 앱이 요청할 때 NodeTool을 승인하세요.",
-    "connect": "연결하다",
+    "connect": "연결",
     "connecting": "1Password를 기다리는 중",
     "connectFailed": "1비밀번호가 연결되지 않았습니다: {{message}}",
     "connectedAs": "{{account}}로 연결됨",
@@ -20027,7 +20027,7 @@
       "invalid": "0 이상의 숫자를 입력하거나, 한도를 두지 않으려면 비워 두세요.",
       "useDefault": "서버 기본값 사용",
       "useDefaultDescription": "끄면 이 사용자에게 개별 한도를 줄 수 있습니다.",
-      "ownKeysNote": "이 서버의 제공자 키로 한 작업만 집계됩니다. 사용자가 설정에 저장한 키로 한 작업은 집계되지 않습니다.",
+      "ownKeysNote": "이 서버의 프로바이더 키로 한 작업만 집계됩니다. 사용자가 설정에 저장한 키로 한 작업은 집계되지 않습니다.",
       "save": "저장",
       "cancel": "취소",
       "saveFailed": "한도를 저장하지 못했습니다."
@@ -20060,12 +20060,12 @@
           "description": "이미지, 동영상, 오디오, 3D."
         },
         "use_server_keys": {
-          "label": "서버의 제공자 키 사용",
+          "label": "서버의 프로바이더 키 사용",
           "description": "차단하면 설정에서 직접 추가한 키로만 작업할 수 있습니다."
         },
         "manage_own_keys": {
-          "label": "내 제공자 키 관리",
-          "description": "제공자 키와 사용자 지정 제공자를 추가, 변경, 삭제합니다."
+          "label": "내 프로바이더 키 관리",
+          "description": "프로바이더 키와 사용자 지정 프로바이더를 추가, 변경, 삭제합니다."
         },
         "share_links": {
           "label": "공유 링크 만들기",
@@ -20119,7 +20119,7 @@
     }
   },
   "providerFailure": {
-    "genericTarget": "제공자",
+    "genericTarget": "프로바이더",
     "title": {
       "billing": "{{target}}을(를) 실행할 수 없습니다: 계정에 크레딧이나 결제 설정이 없습니다.",
       "quota": "{{target}}을(를) 실행할 수 없습니다: 이 키에 남은 할당량이 없습니다.",
@@ -20128,9 +20128,9 @@
       "rate_limit": "{{target}}에 요청이 너무 많습니다."
     },
     "hint": {
-      "billing": "제공자에서 크레딧을 추가하거나 다른 모델로 전환하세요.",
-      "quota": "무료 키에는 이 모델의 할당량이 없는 경우가 많습니다. 제공자에서 결제를 활성화하거나 다른 모델로 전환하세요.",
-      "auth": "설정에서 키를 확인하거나 다른 제공자의 모델로 전환하세요.",
+      "billing": "프로바이더에서 크레딧을 추가하거나 다른 모델로 전환하세요.",
+      "quota": "무료 키에는 이 모델의 할당량이 없는 경우가 많습니다. 프로바이더에서 결제를 활성화하거나 다른 모델로 전환하세요.",
+      "auth": "설정에서 키를 확인하거나 다른 프로바이더의 모델로 전환하세요.",
       "model_unavailable": "모델 목록에서 제거되었습니다. 다른 모델을 선택하세요.",
       "rate_limit": "잠시 기다린 후 다시 시도하세요."
     },
@@ -20349,7 +20349,7 @@
   "storyboardText": {
     "mode": "텍스트",
     "editorLabel": "Markdown 텍스트로 보는 스토리보드",
-    "hint": "막은 #, 장면은 ##, 샷은 ###, 필드는 - **Motion:** 으로 입력하세요. 엔티티나 이미지를 언급하려면 @를 입력하세요.",
+    "hint": "막은 #, 장면은 ##, 샷은 ###, 필드는 - **Motion:** 으로 입력하세요. 엔터티나 이미지를 언급하려면 @를 입력하세요.",
     "issues": "확인이 필요한 줄: {{lines}}",
     "loading": "텍스트를 불러오는 중…",
     "warnings": {
@@ -20385,7 +20385,7 @@
       "instruction": "에이전트 요청",
       "send": "에이전트에게 보내기",
       "failed": "모델 요청이 실패했습니다.",
-      "context": "요청과 함께 보냄: 스토리보드 전체, 샷 {{shots}}개, 라이브러리 엔티티 {{entities}}개.",
+      "context": "요청과 함께 보냄: 스토리보드 전체, 샷 {{shots}}개, 라이브러리 엔터티 {{entities}}개.",
       "quick": {
         "tighten": "다듬기",
         "visual": "더 시각적으로",

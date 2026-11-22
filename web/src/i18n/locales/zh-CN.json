@@ -104,7 +104,7 @@
       "disconnect": "断开连接",
       "keep": "保留",
       "disconnectFailed": "无法断开此账户。请重试。",
-      "connectDescription": "连接你的 {{provider}} 账户，即可通过 {{provider}} 与 NodeTool 智能体聊天。你的对话、资源和预算仍归你所有。",
+      "connectDescription": "连接你的 {{provider}} 账户，即可通过 {{provider}} 与 NodeTool 智能体聊天。你的对话、素材和预算仍归你所有。",
       "connectProvider": "连接 {{provider}}",
       "startLinkFailed": "无法开始连接。请重试。",
       "openTelegram": "打开 Telegram 并点击 Start",
@@ -118,7 +118,7 @@
       "expiredCodeEnd": "以获取新代码。",
       "backToNodeTool": "返回 NodeTool",
       "confirmLinkQuestion": "要连接 {{provider}} 账户 {{id}} 吗？",
-      "confirmLinkDescription": "该账户将以你的 NodeTool 身份运行，你的对话、资源、密钥和预算仍归你所有。",
+      "confirmLinkDescription": "该账户将以你的 NodeTool 身份运行，你的对话、素材、密钥和预算仍归你所有。",
       "confirmLinkFailed": "无法完成连接。代码可能刚刚过期。",
       "confirm": "确认",
       "linkSucceeded": "{{provider}} 账户 {{id}} 已连接。返回聊天并打个招呼吧。"
@@ -175,7 +175,7 @@
     "source": "来源",
     "originalPage": "原始页面",
     "model": "模型",
-    "provider": "提供方",
+    "provider": "服务商",
     "node": "节点",
     "task": "任务",
     "id": "ID",
@@ -481,7 +481,7 @@
     "type": "类型",
     "firstWorkflowGuide": "首次工作流指南",
     "firstWorkflowTitle": "构建你的第一个实用工作流",
-    "firstWorkflowDescription": "将文本输入连接到输出，运行工作流并查看结果。此入门示例无需配置模型或服务提供方。",
+    "firstWorkflowDescription": "将文本输入连接到输出，运行工作流并查看结果。此入门示例无需配置模型或服务商。",
     "closeGuide": "关闭指南",
     "inputAdded": "已添加输入",
     "outputAdded": "已添加输出",
@@ -561,7 +561,7 @@
       "filterNoMatches": "没有符合“{{kind}}”筛选条件{{search}}的记忆。选择“全部”以重置筛选条件。",
       "andSearch": "和搜索条件",
       "searchNoMatches": "没有记忆包含所有这些词语。",
-      "emptyDescription": "智能体会在工作时记录项目笔记和创建的资源，这些内容会显示在这里。",
+      "emptyDescription": "智能体会在工作时记录项目笔记和创建的素材，这些内容会显示在这里。",
       "title": "记忆",
       "subtitle": "智能体在所有对话中记住的内容，包括项目笔记及其引用的资源。",
       "searchPlaceholder": "搜索记忆",
@@ -637,7 +637,7 @@
       "startSecondRun": "启动第二次运行",
       "runAnyway": "仍然运行",
       "concurrentBody": "此工作流已在运行。再次运行会同时执行两次；对于实时音频补丁，这会导致声音重叠。如果你想重新开始，请先停止当前运行。",
-      "heavyBody": "此次运行将执行 {{count}} 个模型/提供商节点，超过 {{threshold}} 个节点的警告阈值。每个节点都可能调用外部 API 或运行模型，同时运行可能较慢，也可能触及提供商的速率限制。",
+      "heavyBody": "此次运行将执行 {{count}} 个模型/服务商节点，超过 {{threshold}} 个节点的警告阈值。每个节点都可能调用外部 API 或运行模型，同时运行可能较慢，也可能触及服务商的速率限制。",
       "dontAskAgain": "本次会话不再询问"
     },
     "staleDeploy": {
@@ -675,8 +675,8 @@
     "guidedFlows": "引导流程",
     "creating": "正在创建…",
     "blankDocuments": "空白文档",
-    "blankStoryboard": "空白分镜",
-    "noExampleStoryboards": "没有可用的示例分镜。",
+    "blankStoryboard": "空白故事板",
+    "noExampleStoryboards": "没有可用的示例故事板。",
     "storyboardExampleShots_one": "{{count}} 个镜头，包含静帧",
     "storyboardExampleShots_other": "{{count}} 个镜头，包含静帧",
     "imageLoadFailed": "无法加载图像",
@@ -793,13 +793,13 @@
     "searchProvider": {
       "title": "设置网页搜索",
       "saveAndContinue": "保存并继续",
-      "nodeIntro": "{{nodes}} 使用网页搜索工具，但尚未配置搜索提供商。",
-      "agentIntro": "此智能体使用网页搜索工具，但尚未配置搜索提供商。",
-      "addProviderInstruction": "请在下方添加提供商以运行工作流。",
-      "providerLabel": "搜索提供商",
+      "nodeIntro": "{{nodes}} 使用网页搜索工具，但尚未配置搜索服务商。",
+      "agentIntro": "此智能体使用网页搜索工具，但尚未配置搜索服务商。",
+      "addProviderInstruction": "请在下方添加服务商以运行工作流。",
+      "providerLabel": "搜索服务商",
       "freeProvider": "{{provider}}（免费）",
       "configured": "已配置 {{provider}}。现在可以运行工作流。",
-      "saveFailed": "无法保存搜索提供商",
+      "saveFailed": "无法保存搜索服务商",
       "visitForApiKey": "访问 {{provider}} 获取 API 密钥",
       "descriptions": {
         "brave": "注重隐私的搜索服务，提供免费套餐，是不错的默认选择。",
@@ -854,8 +854,8 @@
         "description": "根据硬件配置为本地模型提供的入门指南"
       },
       "assets": {
-        "label": "资源浏览器",
-        "description": "资源浏览和文件管理器"
+        "label": "素材浏览器",
+        "description": "素材浏览和文件管理器"
       },
       "confirmDialog": {
         "label": "确认对话框",
@@ -902,8 +902,8 @@
         "description": "安全删除工作流的提示"
       },
       "providerOnboarding": {
-        "label": "提供方入门",
-        "description": "受限提供方的入门流程：OAuth 登录、API 密钥和费用说明"
+        "label": "服务商入门",
+        "description": "受限服务商的入门流程：OAuth 登录、API 密钥和费用说明"
       },
       "progressStates": {
         "label": "进度状态",
@@ -922,8 +922,8 @@
       }
     },
     "dialogEntries": {
-      "dialog-rename-asset": "重命名资源",
-      "dialog-delete-assets": "删除资源",
+      "dialog-rename-asset": "重命名素材",
+      "dialog-delete-assets": "删除素材",
       "dialog-add-output": "添加输出",
       "dialog-bug-report": "报告问题",
       "dialog-help": "帮助",
@@ -937,7 +937,7 @@
       "form-collection": "新建集合",
       "dialog-save-to-my-nodes": "保存到我的节点",
       "dialog-worker-profiles": "工作器配置",
-      "dialog-search-provider": "搜索提供方设置"
+      "dialog-search-provider": "搜索服务商设置"
     },
     "index": {
       "title": "组件预览",
@@ -986,7 +986,7 @@
       "modelDownloads": "模型下载",
       "taskCollectImages": "收集参考图像",
       "taskWriteShotList": "编写镜头列表",
-      "taskRenderStoryboard": "渲染分镜",
+      "taskRenderStoryboard": "渲染故事板",
       "buttonsWaiting": "等待响应的按钮",
       "saving": "正在保存…",
       "generate": "生成",
@@ -997,7 +997,7 @@
       "stopJob": "停止任务"
     },
     "modelPicker": {
-      "apiReason": "输入将发送给提供方。提供方会收取相应费用。",
+      "apiReason": "输入将发送给服务商。服务商会收取相应费用。",
       "localReason": "在此设备上运行。",
       "downloadReason": "请先下载模型文件，再在本地使用。",
       "selectLanguageModel": "选择语言模型",
@@ -1032,7 +1032,7 @@
       "couldNotOpen": "无法打开音频编辑器",
       "decodeFailed": "无法解码音频。",
       "done": "完成",
-      "noUrl": "此音频资源没有可加载的网址。",
+      "noUrl": "此音频素材没有可加载的网址。",
       "fetchFailed": "获取音频失败（HTTP {{status}}）",
       "dragHint": "拖动以选择，单击以定位",
       "selection": "选区 {{start}} – {{end}} · {{duration}}",
@@ -1417,11 +1417,11 @@
     },
     "sampler": {
       "upload": "上传采样器音频",
-      "chooseAudio": "选择音频资源",
+      "chooseAudio": "选择音频素材",
       "loading": "正在加载采样…",
       "uploading": "正在上传…",
       "uploadAudio": "上传音频",
-      "loadError": "无法加载音频资源。",
+      "loadError": "无法加载音频素材。",
       "playback": "播放",
       "oneShot": "单次触发 · 播放完整采样",
       "gated": "门控 · 松开音符时停止",
@@ -1741,8 +1741,8 @@
       "dismissAriaLabel": "关闭入门清单",
       "dismiss": "关闭",
       "steps": {
-        "connectProvider": "连接 AI 提供商",
-        "providerConnected": "AI 提供商已连接",
+        "connectProvider": "连接 AI 服务商",
+        "providerConnected": "AI 服务商已连接",
         "startGuidedFlow": "开始引导流程",
         "describeIdea": "描述你想制作的内容",
         "openExampleOrBlankDoc": "打开示例或空白文档"
@@ -1753,12 +1753,12 @@
     "providerOnboarding": {
       "signInGroup": "使用你的账户登录",
       "apiKeyGroup": "使用 API 密钥",
-      "title": "连接 AI 提供商",
-      "allProviders": "在设置中查看所有提供商",
+      "title": "连接 AI 服务商",
+      "allProviders": "在设置中查看所有服务商",
       "done": "完成",
       "chooseProvider": "选择一个账户或 API 密钥，以便在工作流中使用模型。",
-      "capabilityPrompt": "连接可用于{{capability}}的提供商以继续。",
-      "billing": "API 用量费用由你的提供商账户直接收取。",
+      "capabilityPrompt": "连接可用于{{capability}}的服务商以继续。",
+      "billing": "API 用量费用由你的服务商账户直接收取。",
       "localTitle": "更喜欢本地模型？",
       "localDescription": "安装 Ollama 并下载模型，即可在你的设备上运行。",
       "getOllama": "获取 Ollama",
@@ -1794,7 +1794,7 @@
         "text_to_3d": "3D 生成",
         "image_to_3d": "从图像生成 3D 模型"
       },
-      "stepPrompt": "你已连接的提供商都无法执行此步骤。请连接以下任一提供商来使用它。",
+      "stepPrompt": "你已连接的服务商都无法执行此步骤。请连接以下任一服务商来使用它。",
       "welcomeIntro": "选择最方便的方式即可。连接一个就能开始，之后随时可以在设置中添加更多。",
       "planGroup": "使用你已付费的订阅",
       "planHint": "无需 API 密钥，也不按 token 计费。ChatGPT 图像以及 Gemini 的所有功能都通过 Chrome 扩展程序运行，下一步会设置它。",
@@ -1802,10 +1802,10 @@
       "geminiTagline": "使用你 Google 账户的 Gemini 订阅进行聊天、生成图像和 Veo 视频。通过 Chrome 扩展程序运行。",
       "connectedSummary": "已连接 {{providers}}。你可以继续，或再添加一个。",
       "setUpLater": "稍后设置",
-      "moreProviders": "更多提供商（{{count}}）",
-      "searchProviders": "搜索提供商",
-      "noProviderMatch": "这 {{count}} 个提供商中没有与“{{query}}”匹配的。设置中还列出了本地服务器和自定义提供商。",
-      "directoryCapabilityNote": "并非这里的每个提供商都支持{{capability}}。添加密钥前请查看其文档。",
+      "moreProviders": "更多服务商（{{count}}）",
+      "searchProviders": "搜索服务商",
+      "noProviderMatch": "这 {{count}} 个服务商中没有与“{{query}}”匹配的。设置中还列出了本地服务器和自定义服务商。",
+      "directoryCapabilityNote": "并非这里的每个服务商都支持{{capability}}。添加密钥前请查看其文档。",
       "setUpInSettings": "在设置中配置"
     }
   },
@@ -2305,17 +2305,17 @@
       "homeDescription": "选择起点。每个选项都会根据一句描述生成文档，供你继续编辑。",
       "promptLabel": "你要制作什么？",
       "blankStart": "或从空白文档开始：",
-      "newStoryboard": "新建分镜脚本",
+      "newStoryboard": "新建故事板",
       "newScript": "新建脚本",
       "recentProjects": "最近的项目",
       "creating": "正在创建…",
       "startErrorTitle": "无法开始创建",
       "reportFailure": "报告此问题",
       "planChanges": "此原型中的套餐更改会立即生效且不收费；接入支付服务后仍会使用同一账本。",
-      "storyboard": "分镜脚本",
+      "storyboard": "故事板",
       "script": "脚本",
       "video": "视频",
-      "untitledStoryboard": "未命名分镜脚本",
+      "untitledStoryboard": "未命名故事板",
       "untitledScript": "未命名脚本",
       "untitledVideo": "未命名视频",
       "createError": "Studio 无法创建文档",
@@ -2486,8 +2486,8 @@
       },
       "shot": {
         "label": "镜头 {{number}}{{slug}}",
-        "openTooltip": "{{label}} — 在分镜中打开",
-        "openAria": "在分镜中打开{{label}}"
+        "openTooltip": "{{label}} — 在故事板中打开",
+        "openAria": "在故事板中打开{{label}}"
       }
     }
   },
@@ -2537,10 +2537,10 @@
       "apiKeyPlaceholder": "输入 API 密钥",
       "apiKeyUpdated": "已更新 {{provider}} API 密钥。",
       "cancel": "取消",
-      "commonIssues": "常见提供方问题及解决方法",
+      "commonIssues": "常见服务商问题及解决方法",
       "connect": "连接",
       "connected": "已连接",
-      "connectedProviders": "已连接的提供方",
+      "connectedProviders": "已连接的服务商",
       "connectedViaOAuth": "已通过登录连接",
       "creditLeft": "剩余额度：{{amount}}",
       "creditLeftOf": "剩余额度：{{amount}} / {{limit}}",
@@ -2558,17 +2558,17 @@
       "fieldPlaceholder": "输入{{label}}",
       "heroDescription": "连接你的账户或添加 API 密钥，以便在工作流中使用模型。",
       "higgsfieldCredentialHelp": "粘贴从 Higgsfield 复制的完整凭据。密钥 ID 和密钥会分别加密存储。",
-      "keyStoredUnavailable": "已保存 {{provider}} 密钥，但此服务器目前无法使用该提供方。",
+      "keyStoredUnavailable": "已保存 {{provider}} 密钥，但此服务器目前无法使用该服务商。",
       "learnMore": "了解详情",
       "manage": "管理",
-      "modelsAndProviders": "模型和提供方",
+      "modelsAndProviders": "模型和服务商",
       "multiFieldHelp": "所有字段都会加密并安全存储。请勿公开分享。",
       "needApiCredits": "需要 API 额度？",
-      "noProvidersFound": "未找到提供方",
-      "noProvidersMatch": "没有与“{{searchTerm}}”匹配的提供方。",
+      "noProvidersFound": "未找到服务商",
+      "noProvidersMatch": "没有与“{{searchTerm}}”匹配的服务商。",
       "notConnected": "未连接",
-      "partnerCreditsDescription": "从兼容 NodeTool 的提供方获取 API 额度。",
-      "providerGuides": "受支持提供方的设置指南",
+      "partnerCreditsDescription": "从兼容 NodeTool 的服务商获取 API 额度。",
+      "providerGuides": "受支持服务商的设置指南",
       "quickLinks": "快捷链接",
       "secretRequired": "请输入 API 密钥。",
       "secretsSafe": "凭据受到保护",
@@ -2582,9 +2582,9 @@
         "computeAndLocal": "计算和本地服务",
         "servicesAndAdvanced": "服务和高级选项"
       },
-      "seeModelsByProvider": "按提供方浏览可用模型",
+      "seeModelsByProvider": "按服务商浏览可用模型",
       "signInWith": "使用 {{provider}} 登录",
-      "signedInUnavailable": "已登录 {{provider}}，但此服务器目前无法使用该提供方。",
+      "signedInUnavailable": "已登录 {{provider}}，但此服务器目前无法使用该服务商。",
       "supportedModels": "受支持的模型",
       "test": "测试",
       "testing": "正在测试…",
@@ -2597,7 +2597,7 @@
     },
     "customProviders": {
       "addEndpoint": "添加端点",
-      "addTitle": "添加自定义提供方",
+      "addTitle": "添加自定义服务商",
       "apiKey": "API 密钥",
       "baseUrl": "基础 URL",
       "baseUrlHelp": "请包含端点提供的版本路径，通常为 /v1。",
@@ -2608,11 +2608,11 @@
       "chatCount_other": "{{formattedCount}} 个聊天模型",
       "credentialsHelp": "URL 和密钥会加密并按账户存储。也可以改用环境变量 {{baseUrlEnv}} 和 {{apiKeyEnv}}。",
       "description": "将 NodeTool 指向任何兼容 OpenAI API 的代理或网关。其聊天、图像和视频模型会显示在对应节点中。",
-      "duplicateSlug": "已存在具有此 ID 的提供方。",
-      "editTitle": "编辑自定义提供方",
-      "emptyDescription": "添加基础 URL 和 API 密钥，即可使用任何兼容 OpenAI API 的提供方。",
-      "emptyTitle": "还没有自定义提供方",
-      "heading": "自定义提供方",
+      "duplicateSlug": "已存在具有此 ID 的服务商。",
+      "editTitle": "编辑自定义服务商",
+      "emptyDescription": "添加基础 URL 和 API 密钥，即可使用任何兼容 OpenAI API 的服务商。",
+      "emptyTitle": "还没有自定义服务商",
+      "heading": "自定义服务商",
       "imageCount_one": "{{formattedCount}} 个图像模型",
       "imageCount_other": "{{formattedCount}} 个图像模型",
       "imageModels": "图像模型",
@@ -2626,14 +2626,14 @@
       "modelsListed_other": "已列出 {{formattedCount}} 个模型",
       "modelsPlaceholder": "留空以通过 GET /models 获取列表",
       "noEndpoint": "没有端点 URL",
-      "providerId": "提供方 ID：custom_{{slug}}",
+      "providerId": "服务商 ID：custom_{{slug}}",
       "removeConfirm": "要移除 {{name}} 吗？引用其模型的工作流将无法再解析这些模型。",
       "removeTitle": "移除端点？",
-      "removed": "已移除自定义提供方。",
-      "saved": "已保存自定义提供方 {{name}}（{{providerId}}）。",
-      "slug": "提供方 ID",
+      "removed": "已移除自定义服务商。",
+      "saved": "已保存自定义服务商 {{name}}（{{providerId}}）。",
+      "slug": "服务商 ID",
       "slugFormat": "请输入 1–32 个字符：以字母开头，后接小写字母、数字或下划线。",
-      "slugRequired": "必须填写提供方 ID。",
+      "slugRequired": "必须填写服务商 ID。",
       "test": "测试",
       "testing": "正在测试…",
       "videoCount_one": "{{formattedCount}} 个视频模型",
@@ -2695,7 +2695,7 @@
       },
       "noModelTitle": "没有可用的延展模型",
       "modelsLoadFailed": "无法加载延展模型。连接网络后重试。",
-      "connectProvider": "连接支持视频延展模型的服务提供商以使用延展功能。",
+      "connectProvider": "连接支持视频延展模型的服务服务商以使用延展功能。",
       "modelLabel": "延展模型",
       "directionLabel": "延展方向",
       "secondsToAddLabel": "要添加的源素材秒数",
@@ -2729,7 +2729,7 @@
       "sections": {
         "media": {
           "title": "媒体",
-          "aliases": "素材 资源 类型 视频 影像 音频",
+          "aliases": "素材 素材 类型 视频 影像 音频",
           "legacyTitle": "Media"
         },
         "timing": {
@@ -2988,7 +2988,7 @@
       },
       "validation": {
         "describeApp": "请先描述应用",
-        "connectProvider": "请先连接提供方，再选择模型"
+        "connectProvider": "请先连接服务商，再选择模型"
       },
       "status": {
         "building": "正在构建页面和工作流，并进行试运行"
@@ -3100,10 +3100,10 @@
         "selectedCaption": "已选参考图像",
         "selectedAlt": "已选实体参考图像",
         "assets": {
-          "unavailable": "资源不可用",
-          "loading": "正在加载资源",
+          "unavailable": "素材不可用",
+          "loading": "正在加载素材",
           "change": "更换参考图像",
-          "choose": "从资源中选择"
+          "choose": "从素材中选择"
         },
         "generate": {
           "open": "使用 AI 生成",
@@ -3229,7 +3229,7 @@
         "appearsIn": "出现在",
         "clearSelection": "清除镜头选择",
         "delete": "删除",
-        "deleteDescription": "从分镜板中移除“{{shotName}}”。已生成的静帧和片段仍会保留在素材库中。",
+        "deleteDescription": "从故事板中移除“{{shotName}}”。已生成的静帧和片段仍会保留在素材库中。",
         "deleteDialogTitle": "删除镜头？",
         "deleteTooltip": "删除此镜头",
         "edit": "编辑",
@@ -3252,15 +3252,15 @@
       },
       "listPanel": {
         "copyName": "{{name}}（副本）",
-        "createError": "无法创建分镜板，请重试。",
-        "deleteError": "无法删除分镜板，请重试。",
-        "duplicateError": "无法复制分镜板，请重试。",
-        "emptyDescription": "点击上方的 + 按钮创建分镜板。",
-        "nameLabel": "分镜板名称",
-        "newStoryboard": "新建分镜板",
-        "plural": "分镜板",
-        "singular": "分镜板",
-        "untitled": "未命名分镜板",
+        "createError": "无法创建故事板，请重试。",
+        "deleteError": "无法删除故事板，请重试。",
+        "duplicateError": "无法复制故事板，请重试。",
+        "emptyDescription": "点击上方的 + 按钮创建故事板。",
+        "nameLabel": "故事板名称",
+        "newStoryboard": "新建故事板",
+        "plural": "故事板",
+        "singular": "故事板",
+        "untitled": "未命名故事板",
         "loadErrorDescription": "请稍后重试。"
       }
     }
@@ -3558,8 +3558,8 @@
         "remove": "移除",
         "loadingEstimate": "正在加载费用估算…",
         "estimateResult": "将参考图片描述为可重复使用的风格",
-        "estimateNext": "保存风格并应用到此分镜板。此处不会生成静帧。",
-        "failureSummary": "分镜板自定义风格失败"
+        "estimateNext": "保存风格并应用到此故事板。此处不会生成静帧。",
+        "failureSummary": "故事板自定义风格失败"
       },
       "entities": {
         "editOnlyModel": "{{model}} 只能编辑图片，无法根据描述绘制参考图。请选择可以根据文本生成图片的模型。",
@@ -3567,7 +3567,7 @@
         "referenceModelHelper": "此模型仅用于创建你选择补充的实体参考图。在构图步骤中也会使用此模型。",
         "priceUnknown": "价格未知",
         "aboutPrice": "约 {{price}}",
-        "missingScreenplayOrModel": "请先为分镜板添加剧本并选择导演模型。",
+        "missingScreenplayOrModel": "请先为故事板添加剧本并选择导演模型。",
         "findFailedFallback": "未能从故事中找到实体。",
         "pickReferenceModelFirst": "请先选择参考图片模型。",
         "noReferenceImageReturned": "图片模型没有返回参考图。",
@@ -3588,20 +3588,20 @@
         "findEstimateNext": "只有在你选择后才会创建实体。",
         "findFailureTitle": "无法查找实体",
         "createFailureTitle": "无法创建实体",
-        "findFailureSummary": "分镜板实体推荐失败",
-        "createFailureSummary": "分镜板实体创建失败",
+        "findFailureSummary": "故事板实体推荐失败",
+        "createFailureSummary": "故事板实体创建失败",
         "referenceImageModel": "参考图片模型",
         "creatingEntity": "正在创建{{name}}…",
         "useEntity": "使用{{name}}",
         "createEntity": "创建{{name}}",
         "libraryTitle": "你的实体库",
-        "selectedCount_one": "已为此分镜板选择 {{count}} 项",
-        "selectedCount_other": "已为此分镜板选择 {{count}} 项",
+        "selectedCount_one": "已为此故事板选择 {{count}} 项",
+        "selectedCount_other": "已为此故事板选择 {{count}} 项",
         "createFromImage": "从图片创建实体",
         "loadingEntities": "正在加载实体",
         "loadFailedTitle": "无法加载实体",
         "tryAgain": "重试",
-        "loadFailureSummary": "分镜板实体库加载失败",
+        "loadFailureSummary": "故事板实体库加载失败",
         "loadFailedFallback": "实体库未能加载。请重试或跳过此步骤。",
         "emptyTitle": "还没有实体",
         "emptyDescription": "从生成或上传的图片创建实体，或跳过此步骤。",
@@ -3609,7 +3609,7 @@
         "selectedOnly": "仅显示已选项",
         "noEntitiesSelected": "未选择实体",
         "noMatchingEntities": "没有匹配的实体",
-        "noSelectedDescription": "浏览实体库，为此分镜板选择参考对象。",
+        "noSelectedDescription": "浏览实体库，为此故事板选择参考对象。",
         "noMatchingDescription": "尝试其他名称或更改筛选条件。",
         "viewReferenceImage": "查看{{name}}的参考图片",
         "selectEntity": "{{name}} · {{kind}}",
@@ -3636,7 +3636,7 @@
         "shotCount_other": "{{count}} 个镜头",
         "modelLabel": "模型",
         "modelPlaceholder": "剧本模型",
-        "noModels": "没有可用的语言模型。请在设置的“模型与提供商”中添加提供商密钥。",
+        "noModels": "没有可用的语言模型。请在设置的“模型与服务商”中添加服务商密钥。",
         "shotsLabel": "镜头数",
         "title": "选择类型",
         "description": "基调、节奏和构图会根据你的选择调整。之后仍可更改。",
@@ -3709,12 +3709,12 @@
         "readingFile": "正在读取文件…",
         "importShotlist": "导入镜头清单",
         "shotlistFormat": "CSV，每行一个镜头",
-        "startBlank": "从空白分镜板开始",
-        "startBlankDescription": "跳过故事梗概，直接进入分镜板",
+        "startBlank": "从空白故事板开始",
+        "startBlankDescription": "跳过故事梗概，直接进入故事板",
         "takeTutorial": "开始教程",
-        "tutorialDescription": "通过分步讲解，完整体验一个分镜板",
+        "tutorialDescription": "通过分步讲解，完整体验一个故事板",
         "title": "你的故事是什么？",
-        "description": "我们会将它整理成剧本和分镜板。",
+        "description": "我们会将它整理成剧本和故事板。",
         "importedFrom": "已从 {{fileName}} 导入",
         "preservedScriptDescription": "场景和对白会按原文保留。导演只会添加摄影机、运动和时长信息。",
         "importedTextDescription": "导演会将这段文本整理成场景和镜头。",
@@ -3724,8 +3724,8 @@
         "storyLabel": "你的故事",
         "storyPlaceholder": "一句话就够了，也可以粘贴完整剧本。",
         "lockedScriptHelper": "当前文件作为剧本使用。选择“作为文本编辑”后即可更改这里的文字。",
-        "scriptImportFailureSummary": "分镜板剧本导入失败",
-        "shotlistImportFailureSummary": "分镜板镜头清单导入失败",
+        "scriptImportFailureSummary": "故事板剧本导入失败",
+        "shotlistImportFailureSummary": "故事板镜头清单导入失败",
         "alternativesLabel": "其他开始方式",
         "downloadCsvTemplate": "下载 CSV 模板"
       }
@@ -3751,19 +3751,19 @@
         "addOwnStyle": "添加自己的风格",
         "shotlist": {
           "title": "已导入镜头清单",
-          "shotsOnBoard_other": "已将 {{count}} 个镜头添加到分镜板。",
+          "shotsOnBoard_other": "已将 {{count}} 个镜头添加到故事板。",
           "valuesMissing_other": "有 {{count}} 个值未随镜头导入",
           "rowWithoutValue": "第 {{row}} 行，{{column}}：{{reason}}",
           "rowWithValue": "第 {{row}} 行，{{column}} — “{{value}}”：{{reason}}",
           "dismiss": "关闭提示",
-          "shotsOnBoard_one": "已将 {{count}} 个镜头添加到分镜板。",
+          "shotsOnBoard_one": "已将 {{count}} 个镜头添加到故事板。",
           "valuesMissing_one": "有 {{count}} 个值未随镜头导入"
         },
         "primaryDetail_one": "{{count}} 张静帧 · 约 {{cost}}"
       },
       "review": {
         "title": "你的剧本",
-        "description": "可在此编辑剧本内容。分镜将根据这些文字生成。",
+        "description": "可在此编辑剧本内容。故事板将根据这些文字生成。",
         "shotNumber": "场景 {{scene}} | 镜头 {{shot}}",
         "validation": {
           "positiveDuration": "请输入大于零的时长（秒），或清空此项以不指定时长。"
@@ -3815,7 +3815,7 @@
           "rewriteFromBrief": "根据简介重写"
         },
         "error": {
-          "reportSummary": "分镜剧本重写失败"
+          "reportSummary": "故事板剧本重写失败"
         },
         "loadingEstimate": "正在加载估算…",
         "estimate": {
@@ -3876,8 +3876,8 @@
         "summary_one": "已导入 {{count}} 个镜头。镜头清单中未包含这些值。"
       },
       "host": {
-        "documentLabel": "分镜",
-        "opening": "正在打开分镜"
+        "documentLabel": "故事板",
+        "opening": "正在打开故事板"
       }
     }
   },
@@ -3914,9 +3914,9 @@
         "modelListError": "无法读取模型列表：{{error}}",
         "tryAgain": "重试",
         "reportSummary": "无法读取导演模型列表",
-        "noProvider": "没有可用的语言模型提供方。请在设置中添加密钥。",
+        "noProvider": "没有可用的语言模型服务商。请在设置中添加密钥。",
         "modelLabel": "模型",
-        "loadingProviders": "正在读取提供方…",
+        "loadingProviders": "正在读取服务商…",
         "modelPlaceholder": "节拍规划模型"
       },
       "format": {
@@ -4033,34 +4033,34 @@
         },
         "blockers": {
           "planBeatsFirst": "请先规划片段，目前没有可渲染的内容",
-          "videoProviderMissing": "尚未配置可渲染视频的提供方。请在上方连接一个。",
+          "videoProviderMissing": "尚未配置可渲染视频的服务商。请在上方连接一个。",
           "pickVideoModel": "选择视频模型",
-          "videoModelUnavailable": "你的提供方不支持此视频模型。请选择其他模型。",
-          "checkingVideoModel": "正在检查你的提供方是否仍支持此视频模型",
+          "videoModelUnavailable": "你的服务商不支持此视频模型。请选择其他模型。",
+          "checkingVideoModel": "正在检查你的服务商是否仍支持此视频模型",
           "pickVoiceOrDisable": "选择语音，或关闭旁白",
-          "checkingVoice": "正在检查你的提供方是否仍支持此语音",
-          "voiceUnavailable": "你的提供方不支持此语音。请选择其他语音，或关闭旁白。"
+          "checkingVoice": "正在检查你的服务商是否仍支持此语音",
+          "voiceUnavailable": "你的服务商不支持此语音。请选择其他语音，或关闭旁白。"
         },
         "connectReasons": {
-          "video": "连接一个可渲染视频的提供方以继续。",
-          "voice": "连接一个可朗读台词的提供方以继续。"
+          "video": "连接一个可渲染视频的服务商以继续。",
+          "voice": "连接一个可朗读台词的服务商以继续。"
         },
         "availability": {
-          "checkingVideo": "正在检查你的提供方提供的视频模型…",
-          "checkingVoices": "正在检查你的提供方提供的语音…",
-          "videoReadFailed": "无法读取你的提供方提供的视频模型。",
-          "voicesReadFailed": "无法读取你的提供方提供的语音。",
-          "pickedModelUnchecked": "无法确认你的提供方是否仍支持 {{model}}。生成时仍会尝试使用它。",
-          "noVideoProvider": "尚未配置可渲染视频的提供方。",
-          "noVoiceProvider": "尚未配置可朗读台词的提供方。请关闭旁白或连接一个提供方。",
-          "noVideoModel": "你的提供方没有提供可用的视频模型。",
-          "noVoice": "你的提供方没有提供可用语音。请关闭旁白或连接支持语音的提供方。"
+          "checkingVideo": "正在检查你的服务商提供的视频模型…",
+          "checkingVoices": "正在检查你的服务商提供的语音…",
+          "videoReadFailed": "无法读取你的服务商提供的视频模型。",
+          "voicesReadFailed": "无法读取你的服务商提供的语音。",
+          "pickedModelUnchecked": "无法确认你的服务商是否仍支持 {{model}}。生成时仍会尝试使用它。",
+          "noVideoProvider": "尚未配置可渲染视频的服务商。",
+          "noVoiceProvider": "尚未配置可朗读台词的服务商。请关闭旁白或连接一个服务商。",
+          "noVideoModel": "你的服务商没有提供可用的视频模型。",
+          "noVoice": "你的服务商没有提供可用语音。请关闭旁白或连接支持语音的服务商。"
         },
         "actions": {
           "tryAgain": "重试",
-          "connectProvider": "连接提供方",
+          "connectProvider": "连接服务商",
           "moreModels": "在编辑器中查看更多模型",
-          "allModelsInInspector": "时间线检查器提供所有已配置的提供方。",
+          "allModelsInInspector": "时间线检查器提供所有已配置的服务商。",
           "moreVoices": "在编辑器中查看更多语音",
           "allVoicesInInspector": "时间线检查器提供所有已配置的语音。"
         },
@@ -4069,13 +4069,13 @@
           "voiceList": "无法读取语音列表"
         },
         "tileUnavailable": {
-          "model": "你的提供方不支持此模型。",
-          "voice": "你的提供方不支持此语音。"
+          "model": "你的服务商不支持此模型。",
+          "voice": "你的服务商不支持此语音。"
         },
         "voiceNotes": {
           "noLine": "没有片段包含可朗读的台词。请在审核步骤中添加台词。",
           "pickVoice": "请选择语音或关闭旁白，否则不会朗读任何内容。",
-          "voiceUnavailable": "你的提供方不支持所选语音。请选择其他语音，或关闭旁白。"
+          "voiceUnavailable": "你的服务商不支持所选语音。请选择其他语音，或关闭旁白。"
         },
         "errors": {
           "clipsDidNotStart": "片段未能开始生成",
@@ -4084,12 +4084,12 @@
         "fields": {
           "aspectRatio": "画幅比例",
           "videoModel": "视频模型",
-          "videoModelHelp": "已配置的提供方所支持的片段生成模型。之后可以在编辑器中修改。",
+          "videoModelHelp": "已配置的服务商所支持的片段生成模型。之后可以在编辑器中修改。",
           "voiceover": "旁白",
           "voiceoverDescription": "朗读每个片段的台词",
           "voice": "语音",
           "voiceModel": "语音模型",
-          "voiceModelHelp": "已配置的提供方所支持的语音。",
+          "voiceModelHelp": "已配置的服务商所支持的语音。",
           "music": "音乐",
           "musicUnavailable": "当前无法生成音乐。请在编辑器中添加音轨。",
           "musicDescription": "为整个视频添加一段背景音乐"
@@ -4268,8 +4268,8 @@
         "planWouldFail": "此计划在运行时会失败",
         "unknownNodeTypes_one": "有 {{count}} 个步骤使用了此安装中不存在的节点。请在下方选择节点以继续。",
         "unknownNodeTypes_other": "有 {{count}} 个步骤使用了此安装中不存在的节点。请在下方为每个步骤选择节点以继续。",
-        "missingProviders": "没有已连接的服务提供商提供{{roles}}模型。请在下方连接服务提供商以继续。",
-        "loadingRoles": "正在读取服务提供商提供的{{roles}}模型…",
+        "missingProviders": "没有已连接的服务服务商提供{{roles}}模型。请在下方连接服务服务商以继续。",
+        "loadingRoles": "正在读取服务服务商提供的{{roles}}模型…",
         "stepsHeader": "步骤",
         "stepsDescription": "工作流按顺序运行这些步骤。你可以编辑、调整顺序或移除步骤。",
         "addStep": "添加步骤",
@@ -4287,10 +4287,10 @@
         "nodeTypeLabel": "第 {{step}} 步的节点类型",
         "searchNodeTypes": "搜索节点类型",
         "changeNodeAriaLabel": "更改节点：{{nodeType}}",
-        "noRoleProviderTitle": "未连接提供{{role}}模型的服务提供商",
+        "noRoleProviderTitle": "未连接提供{{role}}模型的服务服务商",
         "missingRoleReason": "第 {{step}} 步需要{{role}}模型。",
         "connect": "连接",
-        "missingRoleDescription": "此步骤使用{{role}}模型运行。请连接提供此模型的服务提供商。"
+        "missingRoleDescription": "此步骤使用{{role}}模型运行。请连接提供此模型的服务服务商。"
       }
     }
   },
@@ -4535,17 +4535,17 @@
       "tryAgain": "请稍后再试。"
     },
     "storyboards": {
-      "addTooltip": "将 {{name}} 添加到你的分镜板",
+      "addTooltip": "将 {{name}} 添加到你的故事板",
       "addError": "无法添加 {{name}}：{{error}}",
-      "ariaLabel": "示例分镜板",
-      "sectionTitle": "从分镜板开始",
-      "count_one": "{{count}} 个分镜板",
-      "count_other": "{{count}} 个分镜板",
-      "lede": "浏览包含已渲染静帧的镜头序列。打开分镜板即可创建自己的副本。",
-      "loading": "正在加载分镜板",
-      "loadErrorTitle": "无法加载分镜板",
-      "emptyTitle": "暂无分镜板",
-      "emptyDescription": "此版本提供示例分镜板后，它们会显示在这里。"
+      "ariaLabel": "示例故事板",
+      "sectionTitle": "从故事板开始",
+      "count_one": "{{count}} 个故事板",
+      "count_other": "{{count}} 个故事板",
+      "lede": "浏览包含已渲染静帧的镜头序列。打开故事板即可创建自己的副本。",
+      "loading": "正在加载故事板",
+      "loadErrorTitle": "无法加载故事板",
+      "emptyTitle": "暂无故事板",
+      "emptyDescription": "此版本提供示例故事板后，它们会显示在这里。"
     },
     "timelines": {
       "previewLabel": "{{name}}预览",
@@ -4668,7 +4668,7 @@
       "tabs": {
         "apps": "应用",
         "workflows": "工作流",
-        "storyboards": "分镜",
+        "storyboards": "故事板",
         "timelines": "时间线",
         "sketches": "草图",
         "models3d": "3D 模型",
@@ -4682,7 +4682,7 @@
         "titles": {
           "template": "从模板开始",
           "timeline": "从时间线开始",
-          "storyboard": "从分镜开始",
+          "storyboard": "从故事板开始",
           "game": "从游戏开始",
           "app": "从应用开始",
           "recipes": "配方"
@@ -4693,8 +4693,8 @@
           "app_other": "{{count}} 个应用",
           "timeline_one": "{{count}} 条时间线",
           "timeline_other": "{{count}} 条时间线",
-          "board_one": "{{count}} 个分镜板",
-          "board_other": "{{count}} 个分镜板",
+          "board_one": "{{count}} 个故事板",
+          "board_other": "{{count}} 个故事板",
           "example_one": "{{count}} 个示例",
           "example_other": "{{count}} 个示例"
         },
@@ -4706,11 +4706,11 @@
       },
       "compatibility": {
         "ariaLabel": "兼容性详情",
-        "unknownProvider": "未知提供方",
+        "unknownProvider": "未知服务商",
         "execution": {
-          "localAndProviderHosted": "本地和提供方托管",
+          "localAndProviderHosted": "本地和服务商托管",
           "local": "本地",
-          "providerHosted": "提供方托管",
+          "providerHosted": "服务商托管",
           "unknown": "未知 — 未声明执行位置"
         },
         "inputs": {
@@ -4724,7 +4724,7 @@
         },
         "details": {
           "inputs": "输入：{{value}}",
-          "providerModel": "提供方/模型：{{value}}",
+          "providerModel": "服务商/模型：{{value}}",
           "execution": "执行位置：{{value}}",
           "requiredSetup": "所需设置：{{value}}",
           "runtime": "运行时：{{value}}"
@@ -4749,7 +4749,7 @@
         "tooltipAssumptions": "约 {{inputTokens}} 个输入词元和 1,000–{{maxOutputTokens}} 个输出词元。实际用量可能费用更高。",
         "beforeYouGenerate": "生成前",
         "noModelCallCost": "$0，无模型调用",
-        "localModelCost": "$0 提供商费用（本地模型）",
+        "localModelCost": "$0 服务商费用（本地模型）",
         "roughCost": "预估费用：{{low}}–{{high}}",
         "costEstimateUnavailable": "无法估算此模型的费用",
         "usesExistingTextOrPreset": "使用现有文本或预设",
@@ -4861,13 +4861,13 @@
             "sourceBoundsMismatch": "编辑视频的源边界与片段的恒定播放速度不匹配。",
             "unavailable": "当前无法编辑视频。"
           },
-          "modelCatalogFailed": "无法加载视频编辑模型目录。请重试以检查兼容的提供方。",
-          "noCompatibleModelDescription": "没有可用的兼容视频编辑模型。请添加提供方，或安装支持 video_to_video 的本地模型。",
+          "modelCatalogFailed": "无法加载视频编辑模型目录。请重试以检查兼容的服务商。",
+          "noCompatibleModelDescription": "没有可用的兼容视频编辑模型。请添加服务商，或安装支持 video_to_video 的本地模型。",
           "settlement": {
             "cancelled": "编辑已取消。已接受的媒体保持不变。",
             "expired": "编辑在完成前已过期。已捕获的请求仍可重试。",
             "orphaned": "编辑完成前源片段已删除。结果已保留供检查，且未应用。",
-            "failed": "提供方未能完成此编辑。已接受的媒体保持不变。"
+            "failed": "服务商未能完成此编辑。已接受的媒体保持不变。"
           },
           "unavailableTitle": "无法编辑视频",
           "instruction": "编辑说明",
@@ -5156,11 +5156,11 @@
     "audioEditor": {
       "audioFallback": "音频",
       "editedSuffix": "（已编辑）",
-      "saved": "已将编辑内容另存为新的音频资源并应用到片段。",
+      "saved": "已将编辑内容另存为新的音频素材并应用到片段。",
       "saveFailed": "保存音频失败：{{error}}",
       "title": "编辑音频：{{name}}",
       "clipFallback": "片段",
-      "assetLabel": "音频资源",
+      "assetLabel": "音频素材",
       "close": "关闭"
     },
     "audioEffects": {
@@ -5409,9 +5409,9 @@
           "subjectMatte": "主体遮片",
           "model": "模型",
           "subjectMatteModel": "主体遮片模型",
-          "checkingProviders": "正在检查哪些提供方可以生成遮片…",
+          "checkingProviders": "正在检查哪些服务商可以生成遮片…",
           "modelListLoadError": "无法加载模型列表。",
-          "noProvider": "没有已配置的提供方提供主体遮片模型。请在“设置”中添加 FAL API 密钥以使用 BiRefNet。",
+          "noProvider": "没有已配置的服务商提供主体遮片模型。请在“设置”中添加 FAL API 密钥以使用 BiRefNet。",
           "cuttingSubject": "正在分离主体…",
           "clipCutoutFailed": "片段抠像失败",
           "lastRunFailedWithError": "上次运行失败：{{error}}",
@@ -5656,14 +5656,14 @@
       "tracking": "正在跟踪主体…",
       "trackSubject": "跟踪主体",
       "failed": "主体跟踪失败",
-      "checkingModels": "正在检查跟踪服务提供方和模型。",
+      "checkingModels": "正在检查跟踪服务商和模型。",
       "modelsLoadError": "无法加载跟踪模型。连接后重试。",
-      "noModel": "没有可用的主体跟踪服务提供方或模型。",
+      "noModel": "没有可用的主体跟踪服务商或模型。",
       "running": "跟踪正在运行，完成后会更新此时间线。",
       "ready": "正在使用 {{model}}。已准备好跟踪所选主体。",
       "selectToBegin": "正在使用 {{model}}。请选择主体矩形以开始。",
       "followObject": "跟随对象",
-      "trackIdHelp": "轨道 ID：来自 list_tracks，或来自已接入服务提供方后的 track_object 结果。",
+      "trackIdHelp": "轨道 ID：来自 list_tracks，或来自已接入服务商后的 track_object 结果。",
       "trackId": "轨道 ID",
       "trackIdAria": "要跟随的轨道 ID",
       "mode": "模式",
@@ -5787,7 +5787,7 @@
           },
           "noModelTitle": "没有可用的延长模型",
           "modelsLoadFailed": "无法加载延长模型。连接后请重试。",
-          "connectProvider": "连接提供方并选择视频延长模型，即可使用延长功能。",
+          "connectProvider": "连接服务商并选择视频延长模型，即可使用延长功能。",
           "modelLabel": "延长模型",
           "directionLabel": "延长位置",
           "start": "开头",
@@ -5866,7 +5866,7 @@
       "motionPromptLabel": "动作提示词",
       "noModelTitle": "没有图像转视频模型",
       "catalogError": "无法加载视频模型目录。",
-      "noCompatibleModel": "请添加提供商，或安装支持 image_to_video 的本地模型。",
+      "noCompatibleModel": "请添加服务商，或安装支持 image_to_video 的本地模型。",
       "retryCatalog": "重试加载模型目录",
       "modelLabel": "图像转视频模型",
       "durationAdjusted": "此模型无法渲染 {{requested}}，因此视频片段时长为 {{actual}}。",
@@ -5928,7 +5928,7 @@
       "sections": {
         "media": {
           "title": "媒体",
-          "aliases": "类型 资源 父级 分组"
+          "aliases": "类型 素材 父级 分组"
         },
         "timing": {
           "title": "时间",
@@ -6090,7 +6090,7 @@
         "playbackSpeed": "播放速度",
         "hidden": "隐藏",
         "type": "类型",
-        "asset": "资源",
+        "asset": "素材",
         "parent": "父级",
         "parentGroup": "父分组"
       },
@@ -6122,7 +6122,7 @@
         "actionLabel": "将 {{name}} 复制到其他项目",
         "title": "复制 {{name}}",
         "confirm": "复制",
-        "description": "引用的资源、实体和受支持的文档会复制到目标项目。源文档不会更改。",
+        "description": "引用的素材、实体和受支持的文档会复制到目标项目。源文档不会更改。",
         "destinationProject": "目标项目"
       },
       "documents": {
@@ -6168,7 +6168,7 @@
         "startFlowError": "无法启动{{flow}}：{{error}}",
         "flowNames": {
           "entity": "实体",
-          "storyboard": "分镜板",
+          "storyboard": "故事板",
           "video": "视频",
           "script": "脚本",
           "workflow": "工作流",
@@ -6183,7 +6183,7 @@
         "entityCount_other": "{{count}} 个实体",
         "uncarriedContext": "{{flow}}流程将从你的提示开始，因此{{items}}会保留在此页面。请在流程自己的步骤中添加它们。",
         "documentNames": {
-          "storyboard": "新建分镜板",
+          "storyboard": "新建故事板",
           "video": "新建视频",
           "script": "新建脚本",
           "image": "新建图像",
@@ -6198,12 +6198,12 @@
             "description": "创建可重复使用的角色、地点、风格或道具。"
           },
           "storyboard": {
-            "title": "分镜板",
-            "description": "四个步骤，从一句话生成渲染完成的分镜板。"
+            "title": "故事板",
+            "description": "四个步骤，从一句话生成渲染完成的故事板。"
           },
           "video": {
             "title": "视频",
-            "description": "从一句话生成时间线剪辑，无需分镜板。"
+            "description": "从一句话生成时间线剪辑，无需故事板。"
           },
           "script": {
             "title": "脚本",
@@ -6284,7 +6284,7 @@
         "browseExamples": "浏览示例",
         "tutorials": "教程",
         "entitiesDialogTitle": "此项目的实体",
-        "blankStoryboard": "空白分镜板",
+        "blankStoryboard": "空白故事板",
         "renderedExampleShots_one": "已渲染 {{count}} 个镜头",
         "renderedExampleShots_other": "已渲染 {{count}} 个镜头",
         "blankEntries": {
@@ -6295,7 +6295,7 @@
           "image": "草图",
           "svg": "SVG",
           "video": "时间线",
-          "storyboard": "分镜板",
+          "storyboard": "故事板",
           "app": "应用",
           "script": "脚本",
           "jsscript": "JS 脚本",
@@ -6337,7 +6337,7 @@
           },
           "model3d": {
             "title": "3D 模型",
-            "description": "一个空白 3D 模型，手动编辑。无需 AI 提供商。"
+            "description": "一个空白 3D 模型，手动编辑。无需 AI 服务商。"
           },
           "effects": {
             "title": "给照片加特效",
@@ -6397,8 +6397,8 @@
   "pass3_33": {
     "projects": {
       "documentKinds": {
-        "storyboard_one": "{{count}} 个分镜板",
-        "storyboard_other": "{{count}} 个分镜板",
+        "storyboard_one": "{{count}} 个故事板",
+        "storyboard_other": "{{count}} 个故事板",
         "script_one": "{{count}} 个剧本",
         "script_other": "{{count}} 个剧本",
         "timeline_one": "{{count}} 个剪辑",
@@ -6421,7 +6421,7 @@
           "noDocuments": "尚未创建内容",
           "noStills": "暂无静帧"
         },
-        "providerSpendTooltip": "按服务提供商费率计算的支出"
+        "providerSpendTooltip": "按服务服务商费率计算的支出"
       },
       "documentCard": {
         "nameLabel": "文档名称",
@@ -6443,7 +6443,7 @@
         "exporting": "正在导出…",
         "deleteProject": "删除项目",
         "confirmDeleteTitle": "删除{{projectName}}？",
-        "confirmDeleteBody": "删除{{projectName}}及其所有文档、对话、任务和存储在项目文件夹之外的资源。",
+        "confirmDeleteBody": "删除{{projectName}}及其所有文档、对话、任务和存储在项目文件夹之外的素材。",
         "deleteIrreversible": "此操作无法撤销。",
         "deleteFolderTrash": "项目文件夹将移到废纸篓。",
         "deleteFolderRemove": "项目文件夹及其中的所有文件将从云存储中删除。",
@@ -6562,7 +6562,7 @@
       "tabs": {
         "apps": "应用",
         "workflows": "工作流",
-        "storyboards": "分镜",
+        "storyboards": "故事板",
         "timelines": "时间线",
         "sketches": "草图",
         "models3d": "3D 模型",
@@ -6791,7 +6791,7 @@
       },
       "validation": {
         "describeApp": "请先描述应用",
-        "connectProvider": "连接提供方以选择模型"
+        "connectProvider": "连接服务商以选择模型"
       },
       "status": {
         "building": "正在构建屏幕及其工作流，然后进行测试运行"
@@ -6855,7 +6855,7 @@
         "workflows": "工作流",
         "comfy": "ComfyUI",
         "apps": "应用",
-        "storyboards": "分镜",
+        "storyboards": "故事板",
         "timelines": "时间线",
         "sketches": "草图",
         "models": "3D 模型",
@@ -7268,7 +7268,7 @@
         "noStyle": "无风格",
         "noStyleDescription": "严格按照创意说明生成",
         "modelLabel": "图像模型",
-        "modelUnavailable": "已连接的提供方均不提供 {{model}}。请选择其他模型。",
+        "modelUnavailable": "已连接的服务商均不提供 {{model}}。请选择其他模型。",
         "cost": {
           "total_one": "{{count}} 张图片 · 约 {{cost}}",
           "total_other": "{{count}} 张图片 · 约 {{cost}}",
@@ -7277,7 +7277,7 @@
         "blocked": {
           "loading": "正在加载图像模型",
           "loadError": "无法加载图像模型",
-          "noProvider": "请先连接图像提供方",
+          "noProvider": "请先连接图像服务商",
           "noModel": "目前没有可用于生成图片的图像模型",
           "modelUnavailable": "该模型已不再提供，请选择其他模型",
           "noSupportedSize": "该模型没有此引导流程支持的尺寸",
@@ -7289,10 +7289,10 @@
           "failureSummary": "图像模型列表加载失败",
           "loading": "正在加载图像模型…",
           "loadError": "无法加载图像模型。",
-          "connectProvider": "连接提供方",
-          "connectReason": "连接可生成图像的提供方，以生成这张图片。",
-          "noProvider": "尚未连接图像提供方。连接后即可生成，创意说明和外观会保存在文档中。",
-          "noCompatibleModel": "已连接的提供方均未提供可根据文本生成图片的模型。"
+          "connectProvider": "连接服务商",
+          "connectReason": "连接可生成图像的服务商，以生成这张图片。",
+          "noProvider": "尚未连接图像服务商。连接后即可生成，创意说明和外观会保存在文档中。",
+          "noCompatibleModel": "已连接的服务商均未提供可根据文本生成图片的模型。"
         },
         "sizes": {
           "square": "正方形",
@@ -7524,7 +7524,7 @@
       "normal": "正常",
       "pace": "语速",
       "paceDescription": "此设置会应用于每次试听和每段配音。",
-      "providerPace": "此提供方使用自己的语速，而非 {{pace}}。",
+      "providerPace": "此服务商使用自己的语速，而非 {{pace}}。",
       "readSettings": "朗读设置",
       "sampleCost": "每次试听会发起一次语音请求，包含 {{count}} 个字符{{cost}}。",
       "sampleFailed": "{{name}} 的声音试听失败",
@@ -7546,8 +7546,8 @@
       "mandarin": "普通话",
       "hindi": "印地语",
       "missingVoice": "没有找到你想要的声音？",
-      "addProvider": "添加声音提供方",
-      "noProviderVoice": "没有已连接的提供方提供声音。"
+      "addProvider": "添加声音服务商",
+      "noProviderVoice": "没有已连接的服务商提供声音。"
     }
   },
   "screens4_1": {
@@ -7587,7 +7587,7 @@
       "days_one": "{{count}} 天",
       "days_other": "{{count}} 天",
       "year_one": "{{count}} 年",
-      "title": "远程连接代理",
+      "title": "远程连接智能体",
       "description": "通过 HTTP 将 Claude Code、Claude Desktop 或任何 MCP 客户端连接到此服务器。在下方创建令牌并粘贴生成的配置。",
       "mcpDisabled": "此服务器未提供 {{path}}。请在其环境中设置",
       "mcpDisabledEnd": "然后重启服务器。",
@@ -7623,7 +7623,7 @@
       "disconnectClientError": "无法断开客户端：{{error}}"
     },
     "browserExtension": {
-      "description": "NodeTool 浏览器扩展可让 Live Browser Agent 操作你已登录的 Chrome，自动使用媒体生成网站、将结果保存为资产并上传资产到页面。Chrome 无法自动为你安装扩展，请按照以下步骤加载一次未打包扩展。",
+      "description": "NodeTool 浏览器扩展可让 Live Browser Agent 操作你已登录的 Chrome，自动使用媒体生成网站、将结果保存为素材并上传素材到页面。Chrome 无法自动为你安装扩展，请按照以下步骤加载一次未打包扩展。",
       "checking": "正在检查…",
       "connected": "扩展已连接",
       "notConnected": "未连接",
@@ -7665,11 +7665,11 @@
       "deleteKey": "删除密钥",
       "deleteProviderKey": "删除 {{provider}} API 密钥",
       "connect": "连接",
-      "modelsAndProviders": "模型与提供商",
+      "modelsAndProviders": "模型与服务商",
       "heroDescription": "连接账户或添加 API 密钥，以便在工作流中使用模型。",
-      "noProvidersFound": "未找到提供商",
-      "noProvidersMatch": "没有与“{{searchTerm}}”匹配的提供商",
-      "connectedProviders": "已连接的提供商",
+      "noProvidersFound": "未找到服务商",
+      "noProvidersMatch": "没有与“{{searchTerm}}”匹配的服务商",
+      "connectedProviders": "已连接的服务商",
       "allFieldsRequired": "必须填写所有字段",
       "secretRequired": "必须填写密钥值",
       "apiKeyUpdated": "{{provider}} API 密钥已更新",
@@ -7690,14 +7690,14 @@
       "secretsSafeDescription": "所有 API 密钥都在数据库中加密，绝不会暴露。",
       "learnMore": "了解更多",
       "supportedModels": "支持的模型",
-      "seeModelsByProvider": "按提供商查看模型",
+      "seeModelsByProvider": "按服务商查看模型",
       "apiDocumentation": "API 文档",
-      "providerGuides": "提供商指南与链接",
+      "providerGuides": "服务商指南与链接",
       "troubleshooting": "故障排查",
       "commonIssues": "常见问题与解决方法",
       "quickLinks": "快速链接",
       "needApiCredits": "需要 API 额度？",
-      "partnerCreditsDescription": "从合作提供商处获取免费额度和优惠。",
+      "partnerCreditsDescription": "从合作服务商处获取免费额度和优惠。",
       "viewOffers": "查看优惠",
       "sections": {
         "popular": "热门",
@@ -7721,8 +7721,8 @@
   "screens4_11": {
     "storyboard": {
       "boardActions": {
-        "moreActions": "更多分镜操作",
-        "menuLabel": "分镜操作",
+        "moreActions": "更多故事板操作",
+        "menuLabel": "故事板操作",
         "changeStyle": "更改风格…",
         "preparingZip": "正在准备 ZIP…",
         "downloadZip": "下载 ZIP",
@@ -7805,7 +7805,7 @@
         }
       },
       "lineage": {
-        "openSourceBoard": "打开此分镜改编自的原始分镜",
+        "openSourceBoard": "打开此故事板改编自的原始故事板",
         "recastFrom": "改编自 {{name}}",
         "template": "模板"
       }
@@ -7877,7 +7877,7 @@
       },
       "oneTake": {
         "title": "一镜到底",
-        "subtitle": "将整个分镜板渲染为一个连续片段。",
+        "subtitle": "将整个故事板渲染为一个连续片段。",
         "closeTooltip": "关闭一镜到底面板",
         "promptLabel": "你的提示词",
         "promptPlaceholder": "一个连续镜头，不要剪切。",
@@ -7894,30 +7894,30 @@
         "resolution": "分辨率",
         "scaledWindows": "镜头时长会按比例调整以适配总时长。",
         "shotTotal": "镜头总时长（{{duration}}）",
-        "boardAspectRatio": "分镜板（{{ratio}}）",
+        "boardAspectRatio": "故事板（{{ratio}}）",
         "defaultResolution": "默认（{{resolution}}）",
         "seconds_other": "{{value}} 秒",
-        "compiledTitle": "由分镜板编译",
+        "compiledTitle": "由故事板编译",
         "copyCompiledPrompt": "复制编译后的提示词",
         "emptyCompiled": "添加镜头以编译整段内容。",
         "durationValue": "时长：{{duration}}",
         "imageCount_other": "{{count}} / {{limit}} 张图片",
-        "imageLimitWarning_other": "此分镜板有 {{count}} 张静帧。渲染最多发送 {{limit}} 张。",
+        "imageLimitWarning_other": "此故事板有 {{count}} 张静帧。渲染最多发送 {{limit}} 张。",
         "durationLimitWarning": "片段时长为 {{duration}}。此模型最多渲染 {{limit}}，请选择更短的时长。",
         "imageLabel": "[图片 {{number}}]",
         "renderButton": "渲染一镜到底…",
         "renderTitle": "渲染一镜到底",
         "renderConfirm": "渲染一镜到底{{estimate}}",
-        "renderDescription": "将整个分镜板渲染为一个连续片段。片段会放在第一个镜头上，其他镜头播放各自对应的片段区间。请在一镜到底面板中更改设置。",
+        "renderDescription": "将整个故事板渲染为一个连续片段。片段会放在第一个镜头上，其他镜头播放各自对应的片段区间。请在一镜到底面板中更改设置。",
         "estimatedCost": "预计费用：约 {{cost}}",
         "estimateUnavailable": "选择有定价信息的模型以查看预计费用。",
         "model": "模型",
         "none": "无",
         "images": "图片",
         "blockers": {
-          "addShot": "请先向分镜板添加镜头。",
+          "addShot": "请先向故事板添加镜头。",
           "renderStill": "请至少为一个镜头渲染静帧。",
-          "addEntityImage": "请先为分镜板上的一个实体添加参考图。",
+          "addEntityImage": "请先为故事板上的一个实体添加参考图。",
           "noModel": "尚未选择视频模型。",
           "imageLimit_other": "{{count}} 张图片超过上限 {{limit}} 张。请移除 {{removeCount}} 张。",
           "durationUnavailable": "{{model}} 不支持 {{duration}} 的片段。请选择以下时长之一：{{options}}。",
@@ -7926,7 +7926,7 @@
         },
         "seconds_one": "{{value}} 秒",
         "imageCount_one": "{{count}} / {{limit}} 张图片",
-        "imageLimitWarning_one": "此分镜板有 {{count}} 张静帧。渲染最多发送 {{limit}} 张。"
+        "imageLimitWarning_one": "此故事板有 {{count}} 张静帧。渲染最多发送 {{limit}} 张。"
       },
       "remainingTime": {
         "remaining": "还剩 {{time}}"
@@ -7938,7 +7938,7 @@
       "renderCost": {
         "estimatedFull": "预计费用：约 {{cost}}",
         "selectPricedModel": "选择有公开价格的模型以查看估算费用。",
-        "noModelPicked": "此分镜尚未选择{{modelKind}}。",
+        "noModelPicked": "此故事板尚未选择{{modelKind}}。",
         "noPublishedPrice": "{{model}} 没有已公布的价格。",
         "basePriceNote": "{{step}}：此模型没有公布 {{resolution}} 分辨率的价格，当前按基础规格显示",
         "estimatedPartial_other": "预计费用：约 {{cost}}（{{requestCount}} 个请求中有 {{pricedCount}} 个已计价）",
@@ -7987,9 +7987,9 @@
           "shotDeleted": "此场景片段中的一个镜头已删除。",
           "notAdjacent": "此场景片段中的镜头已不再相邻。",
           "differentScenes": "此场景片段中的镜头已不再属于同一场景。",
-          "addShot": "请先向分镜板添加镜头。",
+          "addShot": "请先向故事板添加镜头。",
           "renderStill": "请至少渲染一个镜头的静帧。",
-          "addEntityImage": "请先为分镜板上的一个实体添加参考图。",
+          "addEntityImage": "请先为故事板上的一个实体添加参考图。",
           "noReference": "请至少选择一张参考图像。",
           "noVideoModel": "尚未选择视频模型。",
           "imageLimit": "{{imageCount}} 张图片超过了 {{limit}} 张的上限。请移除 {{remove}} 张。",
@@ -8014,24 +8014,24 @@
         "open": "打开剧本",
         "extract": "提取剧本",
         "extracting": "正在提取…",
-        "openTooltip": "打开此分镜板文字来源的剧本",
-        "extractTooltip": "将此分镜板中的对白和旁白整理成剧本",
+        "openTooltip": "打开此故事板文字来源的剧本",
+        "extractTooltip": "将此故事板中的对白和旁白整理成剧本",
         "issues": {
           "duplicateLine": "台词行 {{lineId}} 被多个镜头引用；镜头 {{shotId}} 也引用了它。",
           "unknownLine": "镜头 {{shotId}} 引用了台词行 {{lineId}}，但关联的剧本中没有这一行。",
-          "unlinkedBoard": "镜头 {{shotId}} 引用了剧本台词行，但此分镜板尚未关联剧本。",
-          "missingScript": "未找到关联的剧本 {{scriptId}}；分镜板会保留原有文字，但无法使用剧本关联操作。"
+          "unlinkedBoard": "镜头 {{shotId}} 引用了剧本台词行，但此故事板尚未关联剧本。",
+          "missingScript": "未找到关联的剧本 {{scriptId}}；故事板会保留原有文字，但无法使用剧本关联操作。"
         }
       },
       "shotCost": {
-        "listPriceNote": "价格来自提供方目录。实际渲染费用由提供方按其费率收取。",
-        "lastRenderTooltip": "此镜头上次渲染的费用。选择分镜板的静帧和视频模型可估算下一次渲染费用。",
+        "listPriceNote": "价格来自服务商目录。实际渲染费用由服务商按其费率收取。",
+        "lastRenderTooltip": "此镜头上次渲染的费用。选择故事板的静帧和视频模型可估算下一次渲染费用。",
         "lastRender": "上次渲染 {{cost}}",
         "still": "静帧",
         "clip": "片段",
         "stillModel": "静帧模型",
         "clipModel": "视频模型",
-        "noModel": "此分镜板尚未选择{{modelType}}。",
+        "noModel": "此故事板尚未选择{{modelType}}。",
         "noPublishedPrice": "{{model}} 没有公开价格。",
         "unpricedTooltip": "{{step}}：{{reason}}",
         "pricedTooltip": "{{step}}：{{cost}}",
@@ -8062,13 +8062,13 @@
         "duration_other": "{{countLabel}} 秒",
         "noAction": "未描述动作",
         "retry": "重试",
-        "renderFailedSummary": "分镜镜头渲染失败",
+        "renderFailedSummary": "故事板镜头渲染失败",
         "renderFailed": "渲染失败，请重试。",
         "uploadFailed": "无法上传静帧。{{error}}",
         "lastFrameFailed": "无法使用镜头 {{number}} 的最后一帧。{{error}}",
         "deleteTitle": "删除镜头？",
         "delete": "删除",
-        "deleteDescription": "从分镜板中移除“{{shot}}”。已生成的静帧和视频片段仍会保留在素材库中。"
+        "deleteDescription": "从故事板中移除“{{shot}}”。已生成的静帧和视频片段仍会保留在素材库中。"
       }
     }
   },
@@ -8093,7 +8093,7 @@
         "direction": "图形说明",
         "exactText": "精确文本：{{id}}",
         "protectedCopy": "受保护的文案来自制作输入。请在那里编辑。",
-        "assetReference": "资源引用：{{id}}",
+        "assetReference": "素材引用：{{id}}",
         "entity": "实体：{{id}}",
         "graphicNotes": "图形备注：{{id}}",
         "defaultText": "你的文本",
@@ -8150,7 +8150,7 @@
         "iterateDescription": "描述要进行的更改。系统会根据你的说明重新渲染当前片段。",
         "iteratePlaceholder": "例如：调暗画面，添加雨景",
         "deleteDialogTitle": "删除镜头？",
-        "deleteDescription": "从分镜板中移除“{{shotName}}”。已生成的静帧和片段仍保留在素材库中。"
+        "deleteDescription": "从故事板中移除“{{shotName}}”。已生成的静帧和片段仍保留在素材库中。"
       },
       "shotMaskPainter": {
         "title": "涂绘要更改的区域",
@@ -8375,21 +8375,21 @@
   },
   "screens4_21": {
     "storyboardList": {
-      "newStoryboard": "新建分镜板",
-      "untitled": "未命名分镜板",
-      "createErrorAction": "创建分镜板",
-      "duplicateErrorAction": "复制分镜板",
-      "deleteErrorAction": "删除分镜板",
+      "newStoryboard": "新建故事板",
+      "untitled": "未命名故事板",
+      "createErrorAction": "创建故事板",
+      "duplicateErrorAction": "复制故事板",
+      "deleteErrorAction": "删除故事板",
       "copyName": "{{name}}（副本）",
-      "singular": "分镜板",
-      "plural": "分镜板",
-      "emptyDescription": "点击上方的 + 按钮创建分镜板。",
-      "nameLabel": "分镜板名称"
+      "singular": "故事板",
+      "plural": "故事板",
+      "emptyDescription": "点击上方的 + 按钮创建故事板。",
+      "nameLabel": "故事板名称"
     },
     "storyboardPreview": {
       "emptyTitle": "暂无预览内容",
       "emptyDescription": "请先生成静帧或片段。",
-      "playerLabel": "分镜板预览",
+      "playerLabel": "故事板预览",
       "shots_one": "{{count, number}} 个镜头",
       "shots_other": "{{count, number}} 个镜头",
       "stills_one": "{{count, number}} 张静帧",
@@ -8406,12 +8406,12 @@
       "status": {
         "queued": "排队中",
         "running": "正在运行",
-        "stopped": "已停止跟踪；服务提供方仍可能完成请求并收费",
+        "stopped": "已停止跟踪；服务商仍可能完成请求并收费",
         "failed": "失败",
         "completed": "已完成",
         "awaitingReview": "已完成 · 等待审核"
       },
-      "stopTrackingTooltip": "停止跟踪。服务提供方仍可能完成请求并收费。",
+      "stopTrackingTooltip": "停止跟踪。服务商仍可能完成请求并收费。",
       "stopTrackingRender": "停止跟踪渲染",
       "shot": "镜头",
       "untitledShot": "未命名镜头",
@@ -8427,11 +8427,11 @@
       "compactFinishedSummary": "{{completed}} · {{failed}}{{stopped}}",
       "expandQueue": "展开渲染队列",
       "title": "渲染队列",
-      "stopTrackingAllTooltip": "停止跟踪所有请求。服务提供方仍可能完成请求并收费。",
+      "stopTrackingAllTooltip": "停止跟踪所有请求。服务商仍可能完成请求并收费。",
       "stopTrackingAll": "停止跟踪所有渲染",
       "collapseQueue": "收起渲染队列",
       "statusSummary": "{{requests}}：{{queued}}，{{running}}，{{completed}}，{{failed}}，{{awaitingReview}}，{{stopped}}。",
-      "stopTrackingNotice": "停止跟踪只会隐藏本地进度。服务提供方仍可能完成请求并收费。",
+      "stopTrackingNotice": "停止跟踪只会隐藏本地进度。服务商仍可能完成请求并收费。",
       "retryFailed_one": "重试 {{count, number}} 个失败的渲染",
       "retryFailed_other": "重试 {{count, number}} 个失败的渲染",
       "reviewCompletedTakes": "审核已完成的版本",
@@ -8445,7 +8445,7 @@
       "editShot": "编辑镜头",
       "previousShot": "上一个镜头",
       "nextShot": "下一个镜头",
-      "noShots": "此分镜板没有镜头。",
+      "noShots": "此故事板没有镜头。",
       "notRendered": "尚未渲染",
       "noDescription": "没有描述",
       "shots": "镜头",
@@ -8608,14 +8608,14 @@
         "failureNoModel": "请先选择模型再生成。",
         "failureNoPrompt": "请先输入提示词再生成。",
         "failureNoSource": "请先选择源图层再生成。",
-        "failureAuth": "提供方拒绝了未经授权的请求。请在设置中检查 API 密钥。",
-        "failureQuota": "提供方暂时无法处理此请求。请稍后重试，或使用其他模型。",
-        "failureRefused": "提供方拒绝了此提示词。请修改后重试。",
-        "failureTimeout": "提供方响应超时。请重试。",
+        "failureAuth": "服务商拒绝了未经授权的请求。请在设置中检查 API 密钥。",
+        "failureQuota": "服务商暂时无法处理此请求。请稍后重试，或使用其他模型。",
+        "failureRefused": "服务商拒绝了此提示词。请修改后重试。",
+        "failureTimeout": "服务商响应超时。请重试。",
         "failureNetwork": "连接中断，未能获取图像。请重试。",
-        "failureProvider": "提供方的任务失败。请重试或使用其他模型。",
-        "failureUnknown": "提供方的任务失败，且未提供原因。",
-        "assetCreated": "完成。资源 {{assetId}}。"
+        "failureProvider": "服务商的任务失败。请重试或使用其他模型。",
+        "failureUnknown": "服务商的任务失败，且未提供原因。",
+        "assetCreated": "完成。素材 {{assetId}}。"
       }
     }
   },
@@ -8697,17 +8697,17 @@
       "testing": "正在测试…",
       "test": "测试",
       "saved": "{{name}} 已保存为 {{providerId}}",
-      "removed": "已移除提供方",
+      "removed": "已移除服务商",
       "heading": "兼容 OpenAI 的端点",
       "description": "将 NodeTool 连接到任何支持 OpenAI API 的代理或网关。其聊天、图像和视频模型会显示在对应节点中。",
       "addEndpoint": "添加端点",
       "emptyTitle": "暂无端点",
-      "emptyDescription": "添加基础 URL 和 API 密钥，即可使用兼容 OpenAI 的提供方。",
+      "emptyDescription": "添加基础 URL 和 API 密钥，即可使用兼容 OpenAI 的服务商。",
       "editTitle": "编辑端点",
       "addTitle": "添加兼容 OpenAI 的端点",
       "slug": "标识名",
       "duplicateSlug": "该标识名已被使用。",
-      "providerId": "提供方 ID：custom_{{slug}}",
+      "providerId": "服务商 ID：custom_{{slug}}",
       "baseUrl": "基础 URL",
       "baseUrlHelp": "请包含端点提供的版本路径，通常为 /v1。",
       "apiKey": "API 密钥",
@@ -8780,7 +8780,7 @@
       "duplicateId": "该 ID 已被使用。",
       "httpOnlyDeployment": "此部署无法运行命令，只能连接 HTTP 服务器。",
       "heading": "外部服务器",
-      "description": "为智能体接入任意 MCP 服务器的工具，例如 Blender、Hugging Face 或自定义脚本。支持所有模型提供方。",
+      "description": "为智能体接入任意 MCP 服务器的工具，例如 Blender、Hugging Face 或自定义脚本。支持所有模型服务商。",
       "addServer": "添加服务器",
       "emptyTitle": "暂无外部服务器",
       "emptyDescription": "添加命令或 URL。服务器工具会在下一条消息中加入智能体的工具列表。",
@@ -8811,7 +8811,7 @@
       "systemFoldersDescription": "在文件管理器中打开重要的 NodeTool 目录。",
       "installation": "NodeTool 安装目录",
       "logs": "NodeTool 日志",
-      "assets": "资源存储目录",
+      "assets": "素材存储目录",
       "modelFolders": "模型文件夹",
       "modelFoldersDescription": "在文件管理器中打开模型缓存目录。",
       "huggingFaceModels": "HuggingFace 模型",
@@ -8833,7 +8833,7 @@
       "personal": "个人",
       "newTextFileValue": "新建文本文件{{label}}",
       "newTextFile": "新建文本文件：{{label}}",
-      "newStoryboard": "新建分镜脚本",
+      "newStoryboard": "新建故事板",
       "exportBundleFailed": "导出应用程序包失败：{{error}}",
       "unknownError": "未知错误",
       "exportProjectFailed": "导出应用项目失败：{{error}}",
@@ -8857,7 +8857,7 @@
         "image": "新建草图",
         "svg": "新建 SVG",
         "video": "新建时间线",
-        "storyboard": "新建分镜脚本…",
+        "storyboard": "新建故事板…",
         "app": "新建应用",
         "script": "新建脚本",
         "jsscript": "新建 JS 脚本",
@@ -8887,7 +8887,7 @@
       "connected": "已连接",
       "notConnected": "未连接",
       "connectedServices": "Drive、Gmail、Docs、Sheets 和 Calendar",
-      "connectDescription": "连接后，代理和节点即可访问 Drive、Gmail、Docs、Sheets 和 Calendar。",
+      "connectDescription": "连接后，智能体和节点即可访问 Drive、Gmail、Docs、Sheets 和 Calendar。",
       "disconnect": "断开连接",
       "connect": "连接",
       "connectedServicesAccount": "Drive、Gmail、Docs、Sheets 和 Calendar（{{account}}）"
@@ -8902,7 +8902,7 @@
       "extensionInstallFailed": "扩展安装失败：{{error}}",
       "descriptionLead": "通过以下客户端使用 NodeTool：Claude Code、Codex 或 OpenCode，并使用",
       "modelContextProtocol": "Model Context Protocol",
-      "descriptionTail": "。代理可以将 NodeTool 工作流、媒体生成、资产、节点和集合用作工具。",
+      "descriptionTail": "。智能体可以将 NodeTool 工作流、媒体生成、素材、节点和集合用作工具。",
       "installOnMachine": "在此设备上安装",
       "connectToServer": "客户端连接到此服务器。NodeTool 运行时即可使用。",
       "startNodeTool": "客户端会自行启动 NodeTool。无论此应用是否运行，都可以使用。",
@@ -8910,7 +8910,7 @@
       "install": "安装",
       "installAll": "全部安装",
       "installFromTerminal": "通过终端安装",
-      "terminalDescription": "将 NodeTool 注册到此设备上找到的所有代理工具环境中。代理会按需启动 NodeTool，因此无需运行此应用。",
+      "terminalDescription": "将 NodeTool 注册到此设备上找到的所有智能体工具环境中。智能体会按需启动 NodeTool，因此无需运行此应用。",
       "runThis": "运行以下命令",
       "copyCommand": "复制命令",
       "claudeDesktop": "Claude Desktop",
@@ -8928,8 +8928,8 @@
       "fitScreen": "适应屏幕",
       "centerNodes": "在视图中居中显示所有节点",
       "aiNodes": "AI 节点",
-      "addAgent": "添加代理",
-      "agentDescription": "用于处理任务的 AI 代理",
+      "addAgent": "添加智能体",
+      "agentDescription": "用于处理任务的 AI 智能体",
       "inputNodes": "输入节点",
       "stringInput": "字符串输入",
       "textInputDescription": "文本输入字段",
@@ -9053,7 +9053,7 @@
     "remoteSettings": {
       "sections": {
         "local-model-servers": "本地模型服务器",
-        "provider-options": "提供方选项",
+        "provider-options": "服务商选项",
         "observability": "可观测性",
         "data-and-storage": "数据和存储",
         "other": "其他"
@@ -9161,8 +9161,8 @@
   },
   "screens4_6": {
     "searchProvider": {
-      "title": "搜索提供方",
-      "providerLabel": "提供方",
+      "title": "搜索服务商",
+      "providerLabel": "服务商",
       "credentialsConfigured": "✓ 凭据已配置",
       "credentialsMissing": "✗ 缺少凭据",
       "credentialLabel": "{{field}}",
@@ -9215,13 +9215,13 @@
       "tabsLabel": "设置标签页",
       "tabs": {
         "general": "常规",
-        "providers": "模型和提供方",
+        "providers": "模型和服务商",
         "integrations": "集成",
         "privacy": "隐私",
         "about": "关于"
       },
       "docs": {
-        "modelsAndProviders": "模型和提供方",
+        "modelsAndProviders": "模型和服务商",
         "configuration": "配置"
       },
       "noMatchesInTab": "在“{{tab}}”中没有匹配项。",
@@ -9280,7 +9280,7 @@
           "browserExtension": "浏览器扩展",
           "nodetoolApi": "Nodetool API",
           "localModelServers": "本地模型服务器",
-          "providerOptions": "提供方选项",
+          "providerOptions": "服务商选项",
           "observability": "可观测性",
           "dataAndStorage": "数据和存储",
           "other": "其他",
@@ -9339,11 +9339,11 @@
       "execution": {
         "warnLargeRuns": {
           "label": "大型运行前发出警告",
-          "description": "运行工作流会同时执行所有节点。如果一次运行将启动许多模型或提供方节点，可能导致 API 过载，则显示确认提示。"
+          "description": "运行工作流会同时执行所有节点。如果一次运行将启动许多模型或服务商节点，可能导致 API 过载，则显示确认提示。"
         },
         "largeRunThreshold": {
           "label": "大型运行阈值",
-          "description": "当一次运行将执行超过此数量的模型或提供方节点（LLM、图像、音频、API 等）时发出警告。"
+          "description": "当一次运行将执行超过此数量的模型或服务商节点（LLM、图像、音频、API 等）时发出警告。"
         },
         "audioBuffer": {
           "label": "音频缓冲区（毫秒）",
@@ -9422,7 +9422,7 @@
   "screens4_7": {
     "vaults": {
       "title": "数据保险库",
-      "description": "数据保险库是彼此隔离的数据存储空间，各自拥有独立的数据库、资源和 RAG 集合。切换保险库可将不同的工作流和数据分开。切换时会重启后端并重新加载应用。",
+      "description": "数据保险库是彼此隔离的数据存储空间，各自拥有独立的数据库、素材和 RAG 集合。切换保险库可将不同的工作流和数据分开。切换时会重启后端并重新加载应用。",
       "emptyTitle": "暂无可用的数据保险库",
       "emptyDescription": "创建数据保险库，以便将另一组工作流和数据分开保存。",
       "active": "当前使用",
@@ -9460,7 +9460,7 @@
         "intro": "配置是可重复使用的模板。通过它创建工作器会租用一台 GPU 机器并将此应用连接到该机器。",
         "nameLabel": "名称",
         "nameHelp": "可选。留空则使用“{{name}}”。",
-        "providerLabel": "提供商",
+        "providerLabel": "服务商",
         "providerHelp": "GPU 的租用来源。RunPod 会启动专用实例；Vast 会从市场中选择符合条件且价格最低的报价。",
         "gpuLabel": "GPU",
         "runpodGpuHelp": "选择要租用的机器。选择 GPU 用于模型推理，或选择“仅 CPU”以使用更便宜的 CPU 实例（例如数据或文本节点）。显存越大，可运行的模型越大。",
@@ -9491,7 +9491,7 @@
         },
         "comfyImageHelp": "ComfyUI 工作器会在同一台机器上运行 ComfyUI 服务，供“运行 ComfyUI 工作流（工作器）”节点使用。",
         "workerImageLabel": "工作器镜像",
-        "workerImageHelp": "提供商要运行的容器镜像。选择上方预设，或指定自己的工作器构建版本。",
+        "workerImageHelp": "服务商要运行的容器镜像。选择上方预设，或指定自己的工作器构建版本。",
         "tokenPolicyLabel": "令牌策略",
         "tokenPolicy": {
           "generate": "自动生成（推荐）",
@@ -9558,9 +9558,9 @@
         "stopAll": "全部停止"
       },
       "orphanWarning": {
-        "title_other": "{{count}} 个孤立工作器可能仍在产生费用，请在提供商控制台中停止它们",
+        "title_other": "{{count}} 个孤立工作器可能仍在产生费用，请在服务商控制台中停止它们",
         "details": "{{count}} 个运行中，约 {{rate}}",
-        "title_one": "{{count}} 个孤立工作器可能仍在产生费用，请在提供商控制台中停止它们"
+        "title_one": "{{count}} 个孤立工作器可能仍在产生费用，请在服务商控制台中停止它们"
       },
       "empty": {
         "title": "没有运行中的工作器",
@@ -9590,7 +9590,7 @@
       "apiKey": {
         "title": "添加你的 {{provider}} API 密钥",
         "description": "工作器在你的 {{provider}} 账户上运行并在那里计费。NodeTool 会先检查密钥，再加密保存。",
-        "settingsDescription": "{{provider}} 使用客户端 ID 和密钥登录。请在“设置 → 模型与提供方”中添加这两项。",
+        "settingsDescription": "{{provider}} 使用客户端 ID 和密钥登录。请在“设置 → 模型与服务商”中添加这两项。",
         "openSettings": "打开设置"
       },
       "setup": {
@@ -9651,7 +9651,7 @@
           "panel-crash": "面板崩溃",
           "job-failure": "任务失败",
           "operation-failure": "操作失败",
-          "provider-call": "提供方调用失败",
+          "provider-call": "服务商调用失败",
           "notification": "错误通知",
           "manual": "手动报告"
         },
@@ -9673,8 +9673,8 @@
             "description": "失败节点的设置及连接到该节点的节点。API 密钥会被移除。"
           },
           "provider-call": {
-            "label": "失败的提供方调用",
-            "description": "提供方、模型、HTTP 状态、提供方请求 ID、调用时长和发送的请求。API 密钥会被移除。"
+            "label": "失败的服务商调用",
+            "description": "服务商、模型、HTTP 状态、服务商请求 ID、调用时长和发送的请求。API 密钥会被移除。"
           },
           "workflow": {
             "label": "工作流图",
@@ -9738,7 +9738,7 @@
       "perUserRememberOnly": "只有按用户作用域的变量才能记住。",
       "rememberBetweenVisits": "在不同访问期间保留",
       "resources": "资源",
-      "resourcesDescription": "选择器或图库可以浏览资产、时间线、分镜、草图，或此项目中的该类型全部内容。",
+      "resourcesDescription": "选择器或图库可以浏览素材、时间线、故事板、草图，或此项目中的该类型全部内容。",
       "runs": "运行目标",
       "scope": "作用域",
       "script": "脚本",
@@ -9772,21 +9772,21 @@
         "dict": "记录"
       },
       "resourceKinds": {
-        "asset": "资产",
+        "asset": "素材",
         "timeline": "时间线",
-        "storyboard": "分镜",
+        "storyboard": "故事板",
         "sketch": "草图"
       },
       "resourceKindsPlural": {
-        "asset": "资产",
+        "asset": "素材",
         "timeline": "时间线",
-        "storyboard": "分镜",
+        "storyboard": "故事板",
         "sketch": "草图"
       },
       "resourceCollectionNames": {
-        "asset": "资产",
+        "asset": "素材",
         "timeline": "时间线",
-        "storyboard": "分镜",
+        "storyboard": "故事板",
         "sketch": "草图"
       },
       "validation": {
@@ -9801,7 +9801,7 @@
       "operationName_other": "操作 {{count}}"
     },
     "governance": {
-      "budgetDescription": "已发布应用的运行会先经过此额度检查，然后才会调用提供方。留空表示不设上限。",
+      "budgetDescription": "已发布应用的运行会先经过此额度检查，然后才会调用服务商。留空表示不设上限。",
       "changeReleaseError": "无法更改发布版本：{{error}}",
       "copyLink": "复制链接",
       "createLinkError": "无法创建链接：{{error}}",
@@ -10175,7 +10175,7 @@
       "addLighting": "添加照明",
       "addMusic": "添加音乐",
       "afterEffects": "效果之后",
-      "assetBindings": "资源绑定",
+      "assetBindings": "素材绑定",
       "backgrounds": "背景",
       "beforeEffects": "效果之前",
       "behaviors": "行为",
@@ -10193,7 +10193,7 @@
       "inputActions": "输入操作",
       "lighting": "照明",
       "music": "音乐",
-      "newAssetSlot": "新资源槽位",
+      "newAssetSlot": "新素材槽位",
       "noBehaviors": "还没有行为。",
       "parent": "父级",
       "prefabOnly": "仅限预制体",
@@ -10355,21 +10355,21 @@
       "graphProblems": "图表问题"
     },
     "assets": {
-      "actionFailedSummary": "游戏资源浏览器操作失败",
+      "actionFailedSummary": "游戏素材浏览器操作失败",
       "allTypes": "所有类型",
       "askAssistantToGenerate": "让助手生成",
-      "assetAria": "资源 {{slot}}",
-      "assetCount": "资源（{{formattedCount}}）",
+      "assetAria": "素材 {{slot}}",
+      "assetCount": "素材（{{formattedCount}}）",
       "assetMeta": "{{kind}} · {{count}}×",
       "assetSubtitle": "{{kind}} · 使用 {{count}}",
-      "assistantGeneratePrompt": "使用 generate_game_asset 为“{{slot}}”槽位生成新的 {{kind}} 资源并安装。{{prompt}}",
+      "assistantGeneratePrompt": "使用 generate_game_asset 为“{{slot}}”槽位生成新的 {{kind}} 素材并安装。{{prompt}}",
       "browse": "浏览",
-      "browserAria": "资源浏览器",
+      "browserAria": "素材浏览器",
       "candidate": "候选项 {{digest}}",
       "clearFilters": "清除搜索内容或类型筛选条件。",
       "count": {
-        "asset_one": "{{formattedCount}} 个资源",
-        "asset_other": "{{formattedCount}} 个资源",
+        "asset_one": "{{formattedCount}} 个素材",
+        "asset_other": "{{formattedCount}} 个素材",
         "entity_one": "{{formattedCount}} 个实体",
         "entity_other": "{{formattedCount}} 个实体",
         "instance_one": "{{formattedCount}} 个实例",
@@ -10386,7 +10386,7 @@
       "gameSettingsReference": "游戏设置",
       "generate": "生成",
       "generateAndInstall": "生成并安装",
-      "generateDescription": "生成结果会暂存到游戏资源中，并绑定到此槽位。较早的文件仍会列为候选项。",
+      "generateDescription": "生成结果会暂存到游戏素材中，并绑定到此槽位。较早的文件仍会列为候选项。",
       "generateTitle": "生成 {{slot}}",
       "gridView": "网格视图",
       "instanceCount": "实例（{{formattedCount}}）",
@@ -10411,7 +10411,7 @@
       "loadingCandidates": "正在加载候选项",
       "madeFor": "用于 {{slot}}",
       "moveFrames": "将帧移到此图像",
-      "noAssets": "没有资源。",
+      "noAssets": "没有素材。",
       "empty": {
         "assets": "没有素材",
         "prefabs": "没有预制体",
@@ -10420,7 +10420,7 @@
       "noStagedFiles": "没有暂存的{{kind}}文件。生成和暂存的文件会显示在此处。",
       "notUsed": "未被任何实体、场景或预制体使用。",
       "nothingMatches": "没有匹配项",
-      "openAsset": "打开资源 {{slot}}",
+      "openAsset": "打开素材 {{slot}}",
       "prefabAria": "预制体 {{id}}",
       "prefabReference": "预制体 {{id}}{{entity}}",
       "prefabSubtitle": "预制体 · {{entities}} · {{instances}}",
@@ -10433,7 +10433,7 @@
       "sceneReference": "场景 {{name}}",
       "sceneSubtitle": "场景 · {{entities}} · {{assets}}",
       "search": "搜索",
-      "searchAssets": "搜索资源",
+      "searchAssets": "搜索素材",
       "selectReference": "选择 {{label}}",
       "skippedFrames": "{{frames}} 超出此图像范围，将保留在先前图像上。",
       "stagedCandidates": "暂存候选项（{{formattedCount}}）",
@@ -10441,11 +10441,11 @@
       "staleFrameBindings_other": "{{formattedCount}} 个帧绑定仍指向上一张图像。",
       "tabAria": "{{tab}}（{{formattedCount}}）",
       "tabs": {
-        "assets": "资源",
+        "assets": "素材",
         "prefabs": "预制体",
         "scenes": "场景"
       },
-      "toolbarAria": "资源工具栏",
+      "toolbarAria": "素材工具栏",
       "type": "类型",
       "unrecorded": "未记录",
       "use": "使用",
@@ -10547,9 +10547,9 @@
   },
   "screens4_20": {
     "storyboardAgentPanel": {
-      "docsLabel": "分镜板",
-      "welcomeTitle": "分镜助手",
-      "welcomeBody": "可以询问有关此分镜板的问题，或获取规划和完善镜头的帮助。"
+      "docsLabel": "故事板",
+      "welcomeTitle": "故事板助手",
+      "welcomeBody": "可以询问有关此故事板的问题，或获取规划和完善镜头的帮助。"
     },
     "storyboardEntitiesField": {
       "removeLabel": "移除{{name}}",
@@ -10560,12 +10560,12 @@
       "sceneShotCaption": "场景 {{scene}} | 镜头 {{shot}}",
       "requestCost": "{{count}} 个请求 · 预计 {{cost}}{{partial, select, true {（其中 {{pricedCount}} 个已计价）} other {}}}",
       "requestCountUnpriced": "{{count}} 个请求 · 暂无价格信息",
-      "providerPricingNote": "价格由所选提供商提供，可能会发生变化。",
+      "providerPricingNote": "价格由所选服务商提供，可能会发生变化。",
       "clipPartTag": "第 {{position}} 部分，共 {{count}} 部分 · {{window}}",
-      "downloadFailed": "无法下载分镜板：{{error}}",
+      "downloadFailed": "无法下载故事板：{{error}}",
       "undoTooltip": "撤销",
       "redoTooltip": "重做",
-      "preparingZip": "正在准备分镜板 ZIP…",
+      "preparingZip": "正在准备故事板 ZIP…",
       "renderStills": "生成静帧",
       "renderClips": "生成片段",
       "untitledFilm": "未命名影片",
@@ -10573,10 +10573,10 @@
       "addShot": "添加镜头",
       "hidePreview": "隐藏预览",
       "preview": "预览",
-      "boardSettings": "分镜板设置",
+      "boardSettings": "故事板设置",
       "oneTake": "一镜到底",
       "assistant": "助手",
-      "closeBoardSettings": "关闭分镜板设置",
+      "closeBoardSettings": "关闭故事板设置",
       "screenplay": "剧本",
       "titleLabel": "标题",
       "briefLabel": "简介",
@@ -10598,13 +10598,13 @@
       "stillModel": "图像模型",
       "followUpClipCost": "随后生成片段：{{clipCost}}。预计总计：{{totalCost}}。",
       "clipBatchModelHelp": "为每种待生成片段选择视频模型。",
-      "redirectConfirmTitle": "替换此分镜板？",
+      "redirectConfirmTitle": "替换此故事板？",
       "redirectConfirmBody": "这将替换全部 {{count}} 个现有镜头及其生成的媒体。",
       "redirectConfirmNote": "此操作无法撤销。",
       "rebuildTimelineConfirmTitle": "重建关联时间线？",
       "rebuildTimeline": "重建时间线",
-      "replaceAllOwnedClips": "此分镜板创建的所有片段都将被替换。",
-      "replaceOwnedClips": "此分镜板创建的 {{count}} 个片段将被替换。",
+      "replaceAllOwnedClips": "此故事板创建的所有片段都将被替换。",
+      "replaceOwnedClips": "此故事板创建的 {{count}} 个片段将被替换。",
       "externalTimelinePreserved": "其他来源的片段会保留。",
       "skippedShots": "还有 {{count}} 个镜头暂时无法添加到时间线。",
       "latestChangesNotSaved": "最新更改尚未保存",
@@ -10613,14 +10613,14 @@
       "loadingPreview": "正在加载预览…",
       "directorWriting": "导演正在编写镜头…",
       "noShotsTitle": "还没有镜头",
-      "noShotsReadOnly": "此分镜板尚无镜头。",
-      "noShotsDescription": "先在上方设置导演方案，然后创建镜头以开始制作分镜板。",
+      "noShotsReadOnly": "此故事板尚无镜头。",
+      "noShotsDescription": "先在上方设置导演方案，然后创建镜头以开始制作故事板。",
       "searchShotsPlaceholder": "搜索镜头",
       "searchShotsLabel": "按标题或描述搜索镜头",
       "shotSearchCount": "显示 {{visible}} / {{total}} 个镜头",
       "noMatchingShotsTitle": "没有匹配的镜头",
       "noMatchingShotsDescription": "请尝试其他搜索内容。",
-      "shotsGroupLabel": "分镜板镜头",
+      "shotsGroupLabel": "故事板镜头",
       "sceneGroupLabel": "场景 {{number}}",
       "insertAfterShot": "在 {{shot}} 后插入镜头",
       "assembling": "正在构建时间线…",
@@ -10651,7 +10651,7 @@
       "chats": "聊天",
       "sketches": "草图",
       "timelines": "时间线",
-      "storyboards": "分镜板",
+      "storyboards": "故事板",
       "entities": "实体",
       "openEntitiesFullPage": "在完整页面中打开实体",
       "examples": "示例",
@@ -10676,13 +10676,13 @@
         "chats": "聊天",
         "sketches": "草图",
         "scripts": "脚本",
-        "storyboards": "分镜板",
+        "storyboards": "故事板",
         "entities": "实体",
         "examples": "示例",
         "timelines": "时间线",
         "jsScripts": "JS 脚本",
         "skills": "技能",
-        "assets": "资源",
+        "assets": "素材",
         "library": "素材库",
         "more": "更多",
         "files": "文件"
@@ -10703,9 +10703,9 @@
         "examples": "打开内置示例，或将 3D 模型、草图和时间线拖入作品。",
         "timelines": "按时间排列媒体和事件。",
         "jsScripts": "创建和管理可重复使用的 JavaScript 代码。",
-        "skills": "代理技能：根据目标匹配的 Markdown 指令。",
-        "assets": "浏览当前上下文中可用的资源。",
-        "library": "浏览当前项目中的资源。",
+        "skills": "智能体技能：根据目标匹配的 Markdown 指令。",
+        "assets": "浏览当前上下文中可用的素材。",
+        "library": "浏览当前项目中的素材。",
         "more": "打开更多工作流、编辑器和开发者面板。",
         "files": "浏览项目文件夹中的文件。"
       }
@@ -11201,11 +11201,11 @@
       },
       "audioSample": "音频采样",
       "loadingSamples": "正在加载采样…",
-      "chooseAudioAsset": "选择音频资源",
+      "chooseAudioAsset": "选择音频素材",
       "addSample": "添加采样",
       "uploading": "正在上传…",
       "uploadAudio": "上传音频",
-      "loadAssetsError": "无法加载音频资源。",
+      "loadAssetsError": "无法加载音频素材。",
       "playback": "播放方式",
       "playbackMode": {
         "oneShot": "单次 · 播放完整采样",
@@ -11596,7 +11596,7 @@
       },
       "lightingHint": "仅当场景没有自己的灯光时，Blender 才使用预设。",
       "matchView": "匹配视图宽高比",
-      "formatHint": "渲染结果会以 PNG 图像保存到你的资源中。",
+      "formatHint": "渲染结果会以 PNG 图像保存到你的素材中。",
       "render": "用 Blender 渲染",
       "requirement": "运行 NodeTool 的机器上需要 Blender 5.2 或更高版本。",
       "earlierRenders": "之前的渲染",
@@ -11989,7 +11989,7 @@
       "newConversation": "新建对话",
       "close": "关闭聊天",
       "startPrompt": "开始对话",
-      "startDescription": "询问有关此工作流的问题，或输入 @ 来引用资源。",
+      "startDescription": "询问有关此工作流的问题，或输入 @ 来引用素材。",
       "searchThreads": "搜索对话",
       "closeThreads": "关闭对话列表"
     },
@@ -12051,8 +12051,8 @@
       "categories": "类别",
       "showAll": "全部显示",
       "hideAll": "全部隐藏",
-      "providers": "服务提供方",
-      "providersDescription": "添加 API 密钥后即可使用对应服务提供方的节点；设置密钥会自动启用节点包。",
+      "providers": "服务商",
+      "providersDescription": "添加 API 密钥后即可使用对应服务商的节点；设置密钥会自动启用节点包。",
       "keySet": "已设置密钥",
       "addCredential": "添加{{name}}",
       "addApiKey": "添加 API 密钥",
@@ -12534,9 +12534,9 @@
       "next": "下一页",
       "close": "关闭",
       "adding": "正在添加…",
-      "addSelected_one": "将 {{count}} 项添加到资源",
-      "addSelected_other": "将 {{count}} 项添加到资源",
-      "addToAssets": "添加到资源",
+      "addSelected_one": "将 {{count}} 项添加到素材",
+      "addSelected_other": "将 {{count}} 项添加到素材",
+      "addToAssets": "添加到素材",
       "mediaType": "媒体类型",
       "images": "图像",
       "audio": "音频",
@@ -12548,8 +12548,8 @@
       "resultCount_one": "{{count}} 条结果",
       "resultCount_other": "{{count}} 条结果",
       "maxImportNotice": "一次最多可添加 {{count}} 项。",
-      "addedFiles_one": "已从 Openverse 添加 {{count}} 个文件。每个资源都会保存其许可信息。",
-      "addedFiles_other": "已从 Openverse 添加 {{count}} 个文件。每个资源都会保存其许可信息。",
+      "addedFiles_one": "已从 Openverse 添加 {{count}} 个文件。每个素材都会保存其许可信息。",
+      "addedFiles_other": "已从 Openverse 添加 {{count}} 个文件。每个素材都会保存其许可信息。",
       "failedFiles_one": "有 {{count}} 项无法添加：{{error}}",
       "failedFiles_other": "有 {{count}} 项无法添加：{{error}}",
       "licenses": {
@@ -12576,8 +12576,8 @@
       "workflowCount_one": "{{count}} 个工作流",
       "workflowCount_other": "{{count}} 个工作流",
       "spendPerExecution": "每次节点执行的支出",
-      "allProviders": "所有提供方",
-      "providers": "提供方",
+      "allProviders": "所有服务商",
+      "providers": "服务商",
       "allWorkflows": "所有工作流",
       "workflows": "工作流",
       "exportCsv": "导出 CSV",
@@ -12610,20 +12610,20 @@
         "execution": "执行",
         "nodeType": "节点类型",
         "workflow": "工作流",
-        "provider": "提供方",
+        "provider": "服务商",
         "model": "模型"
       },
       "table": {
         "node": "节点",
         "workflow": "工作流",
-        "providerModel": "提供方 / 模型",
+        "providerModel": "服务商 / 模型",
         "tokens": "令牌（输入/输出）",
         "runtime": "运行时长",
         "status": "状态",
         "when": "时间",
         "cost": "成本",
         "nodeType": "节点类型",
-        "provider": "提供方",
+        "provider": "服务商",
         "model": "模型",
         "executions": "执行次数",
         "shareOfSpend": "支出占比",
@@ -12663,13 +12663,13 @@
       "noWorkflowsFound": "未找到工作流",
       "orUseWorkflow": "- 或使用工作流 -",
       "pick3dModel": "选择 3D 模型",
-      "place3dAsset": "将 glTF 资源放到此轨道",
+      "place3dAsset": "将 glTF 素材放到此轨道",
       "prompt": "提示词",
       "promptKeyboardHint": "↵ 生成 · ⇧↵ 换行",
       "selectOutput": "选择输出 - {{name}}",
       "speechTextPrompt": "输入要朗读的文本并按 Enter…",
       "templates": "模板",
-      "upload3dAsset": "请先上传 {{formats}} 资源。",
+      "upload3dAsset": "请先上传 {{formats}} 素材。",
       "useOutput": "使用 {{name}} 输出"
     },
     "preview": {
@@ -12727,7 +12727,7 @@
       "moreTimelineActions": "更多时间线操作",
       "openTimelineCode": "打开时间线代码",
       "projectSettings": "项目设置",
-      "saveAsAsset": "另存为资源",
+      "saveAsAsset": "另存为素材",
       "saved": "已保存",
       "saving": "正在保存…",
       "showSidePanel": "显示侧边栏",
@@ -12824,7 +12824,7 @@
       "autoUpdate": "完成下方设置后，此状态会自动更新。",
       "whyAdd": "为什么要添加扩展",
       "benefitImages": "使用你现有的订阅方案，通过 ChatGPT 生成图像，通过 Gemini 生成图像和 Veo 视频。无需 API 密钥，也没有按图像计费。",
-      "benefitAssets": "每个结果都会保存到你的 NodeTool 资源中，可用于工作流、草图和时间线。",
+      "benefitAssets": "每个结果都会保存到你的 NodeTool 素材中，可用于工作流、草图和时间线。",
       "benefitAgent": "智能体可以在你已登录的任何网站上操作：在你自己的标签页中点击、输入并保存媒体。",
       "howItWorks": "工作原理",
       "workflow": "当工作流或聊天要求 ChatGPT 或 Gemini 生成图像或视频时，NodeTool 会找到你已打开的 chatgpt.com 或 gemini.google.com 标签页，并通过网站页面提交提示词。生成的文件会返回到 NodeTool。你的密码和 Cookie 保留在 Chrome 中，每个请求都会显示在你的 ChatGPT 或 Gemini 历史记录中。",
@@ -12874,24 +12874,24 @@
     "connectProviderDescription": "连接{{provider}}以在此查看其模型。",
     "connectProvider": "连接{{provider}}",
     "refreshModels": "刷新模型",
-    "loadingModelsFromProviders_one": "正在从{{total}}个提供方中的{{loaded}}个加载模型",
-    "loadingModelsFromProviders_other": "正在从{{total}}个提供方中的{{loaded}}个加载模型",
+    "loadingModelsFromProviders_one": "正在从{{total}}个服务商中的{{loaded}}个加载模型",
+    "loadingModelsFromProviders_other": "正在从{{total}}个服务商中的{{loaded}}个加载模型",
     "loadingModels": "正在加载模型",
-    "failedToLoadModelsFrom": "以下提供方的模型加载失败：",
+    "failedToLoadModelsFrom": "以下服务商的模型加载失败：",
     "unknownError": "未知错误",
-    "providerFailedToLoad_one": "{{count}}个提供方加载失败",
-    "providerFailedToLoad_other": "{{count}}个提供方加载失败",
+    "providerFailedToLoad_one": "{{count}}个服务商加载失败",
+    "providerFailedToLoad_other": "{{count}}个服务商加载失败",
     "addApiKey": "添加 API 密钥",
     "addApiKeyDescription": "使用 OpenAI、Anthropic、Google 等服务的云端模型。",
-    "missingProvider": "找不到所需的提供方？",
-    "addProviders": "添加提供方",
+    "missingProvider": "找不到所需的服务商？",
+    "addProviders": "添加服务商",
     "installing": "正在安装",
     "installOnThisComputer": "在此电脑上安装{{installLabel}}",
     "install": "安装",
     "selectLanguageModel": "选择语言模型",
     "agentFit": {
       "noToolsLabel": "不支持工具",
-      "noToolsTooltip": "提供方表示此模型无法调用工具。智能体需要工具调用，因此只能将它用于纯文本生成。",
+      "noToolsTooltip": "服务商表示此模型无法调用工具。智能体需要工具调用，因此只能将它用于纯文本生成。",
       "freeTierLabel": "免费档",
       "freeTierTooltip": "OpenRouter 对免费模型有每分钟和每天的请求限制。智能体运行会发出大量请求，因此使用免费模型时常会卡住或失败。同一模型的付费线路不受此限制。",
       "defaultLabel": "智能体默认",
@@ -12900,20 +12900,20 @@
     "searchLanguageModels": "搜索语言模型",
     "installProviderToUseModel": "安装{{installLabel}}以使用此模型。",
     "modelNotReady": "此模型尚未准备就绪。",
-    "enableProviderAndAddKey": "请在设置中启用提供方并添加 API 密钥，以使用此模型",
-    "enableProviderInSidebar": "请在左侧边栏启用提供方，以使用此模型",
+    "enableProviderAndAddKey": "请在设置中启用服务商并添加 API 密钥，以使用此模型",
+    "enableProviderInSidebar": "请在左侧边栏启用服务商，以使用此模型",
     "addKeyInSettings": "请在设置中添加 API 密钥，以使用此模型",
     "currentModel": "当前模型",
     "availableToDownload": "可下载",
     "downloadsLandOn": "下载内容将保存到{{target}}，供本次会话中的模型使用",
     "toTarget": "目标：{{target}}",
     "noModelsFound": "未找到模型",
-    "noModelsMatchSearch": "没有与“{{searchTerm}}”匹配的模型。请尝试其他搜索词或启用更多提供方。",
+    "noModelsMatchSearch": "没有与“{{searchTerm}}”匹配的模型。请尝试其他搜索词或启用更多服务商。",
     "noModelsYet": "暂无模型",
-    "noModelsYetDescription": "下载本地模型，或添加云端提供方的 API 密钥。",
+    "noModelsYetDescription": "下载本地模型，或添加云端服务商的 API 密钥。",
     "openSettings": "打开设置",
     "noModelsAvailable": "没有可用模型",
-    "noModelsAvailableDescription": "请在侧边栏启用提供方，或在设置中添加 API 密钥。",
+    "noModelsAvailableDescription": "请在侧边栏启用服务商，或在设置中添加 API 密钥。",
     "models": "模型",
     "disabledRightClickToEnable": "已禁用。右键单击以启用",
     "addApiKeyRightClickForOptions": "添加 API 密钥以使用这些模型。右键单击可查看选项",
@@ -12922,13 +12922,13 @@
     "all": "全部",
     "allModels": "所有模型",
     "cloud": "云端",
-    "providersDidNotLoad": "提供方加载失败",
+    "providersDidNotLoad": "服务商加载失败",
     "local": "本地",
     "disabled": "已禁用",
     "addApiKeyEllipsis": "添加 API 密钥…",
-    "disableProvider": "禁用提供方",
-    "enableProvider": "启用提供方",
-    "openProviderWebsite": "打开提供方网站",
+    "disableProvider": "禁用服务商",
+    "enableProvider": "启用服务商",
+    "openProviderWebsite": "打开服务商网站",
     "executionStatusLabel": "{{label}}：{{reason}}",
     "selectImageModel": "选择图像模型",
     "searchImageModels": "搜索图像模型",
@@ -13070,10 +13070,10 @@
     "title": "节点",
     "search": "搜索节点",
     "clearSearch": "清除搜索",
-    "providers": "提供方",
-    "allProviders": "所有提供方",
+    "providers": "服务商",
+    "allProviders": "所有服务商",
     "localProvider": "本地",
-    "providerFilter": "按提供方筛选：{{provider}}",
+    "providerFilter": "按服务商筛选：{{provider}}",
     "categoriesLabel": "节点类别",
     "noMatches": "没有匹配的节点",
     "hoverHint": "将节点拖到画布上。悬停可查看详情。",
@@ -13316,10 +13316,10 @@
           "listPrice": "目录价格",
           "outputsBreakdown_one": "{{count}} 个输出 × {{breakdown}}",
           "outputsBreakdown_other": "{{count}} 个输出 × {{breakdown}}",
-          "billingNote": "这是提供方目录中的价格。实际运行费用由提供方按其费率收取。",
+          "billingNote": "这是服务商目录中的价格。实际运行费用由服务商按其费率收取。",
           "estimatedCostLabel": "预估费用 {{amount}}"
         },
-        "connectProvider": "连接提供方",
+        "connectProvider": "连接服务商",
         "selectModel": "选择模型",
         "attach": {
           "assetsTab": "素材",
@@ -13487,7 +13487,7 @@
       },
       "welcome": {
         "suggestions": {
-          "storyboardAd": "为……制作一个 30 秒广告分镜",
+          "storyboardAd": "为……制作一个 30 秒广告故事板",
           "ugcTestimonial": "为……导演一段 UGC 风格的体验推荐",
           "narratedExplainer": "为……制作一段 60 秒旁白讲解",
           "launchCampaign": "将这份简介转化为一场发布营销活动：……",
@@ -13496,11 +13496,11 @@
         "onboarding": {
           "localSubtitle": "登录 Claude 或 OpenAI，使用你已订阅的服务，也可以添加 API 密钥。你的凭据会经过加密并安全存储。",
           "hostedSubtitle": "添加 OpenAI、Anthropic 或 Gemini 的 API 密钥即可开始聊天。你的密钥会经过加密并安全存储。",
-          "localReason": "聊天需要语言模型。请登录 Claude 或 OpenAI，或使用 API 密钥连接任意提供商。",
-          "hostedReason": "聊天需要语言模型。连接提供商即可开始。"
+          "localReason": "聊天需要语言模型。请登录 Claude 或 OpenAI，或使用 API 密钥连接任意服务商。",
+          "hostedReason": "聊天需要语言模型。连接服务商即可开始。"
         },
-        "connectProviderTitle": "连接 AI 提供商以开始使用",
-        "connectProviderButton": "连接提供商",
+        "connectProviderTitle": "连接 AI 服务商以开始使用",
+        "connectProviderButton": "连接服务商",
         "greeting": {
           "morning": "早上好",
           "afternoon": "下午好",
@@ -13526,8 +13526,8 @@
       "replayBeforeError": "重放到错误发生前",
       "editorFailed": "3D 游戏编辑器发生故障",
       "draftChangedRestart": "草稿已更改。停止并重新开始游戏以应用更改。",
-      "modelAssets": "模型资源",
-      "ownedModelAssetId": "自有模型资源 ID",
+      "modelAssets": "模型素材",
+      "ownedModelAssetId": "自有模型素材 ID",
       "modelSlot": "模型槽位",
       "prepareInstallModel": "准备并安装模型",
       "editModel": "编辑模型",
@@ -13644,7 +13644,7 @@
     "script": {
       "line": {
         "voicingFailed": "语音合成失败",
-        "noStoryboardShotTooltip": "没有分镜镜头覆盖此行",
+        "noStoryboardShotTooltip": "没有故事板镜头覆盖此行",
         "noShot": "无镜头",
         "directionPlaceholder": "表演指示（例如：耳语、疲惫）…",
         "directionLabel": "表演指示",
@@ -13688,7 +13688,7 @@
         "voiceEstimate_other": "{{count}} 行 · {{characters}} 个字符{{price}}{{partial}}",
         "aboutPrice": " · 约 {{price}}",
         "partialPricing": "（{{lineCount}} 行中有 {{pricedLineCount}} 行已计价）",
-        "providerListPriceNote": "目录中的价格仅供参考。语音合成费用由服务提供商按其费率收取。",
+        "providerListPriceNote": "目录中的价格仅供参考。语音合成费用由服务服务商按其费率收取。",
         "voiceAllPrice": "全部合成 · 约 {{price}}",
         "voiceAll": "全部合成语音",
         "voicingQueued_one": "已排队合成 {{count}} 行台词。",
@@ -13728,7 +13728,7 @@
         "voiceToPlayTooltip": "至少合成一行台词后即可播放",
         "playThrough": "连续播放",
         "exportingAudio": "正在导出 {{format}}…",
-        "assembleStoryboardTooltip": "将关联分镜的镜头与这些音轨剪辑到同一时间线",
+        "assembleStoryboardTooltip": "将关联故事板的镜头与这些音轨剪辑到同一时间线",
         "voiceToTimelineTooltip": "至少合成一行台词后即可发送到时间线",
         "assembling": "正在组装…",
         "sendTakesToWorkflow": "将所有当前音轨发送到工作流",
@@ -13874,7 +13874,7 @@
       "noMatchingNodes": "没有匹配的节点"
     },
     "nodeEditor": {
-      "uploadingAssets": "正在上传资源",
+      "uploadingAssets": "正在上传素材",
       "keyboardShortcuts": "键盘快捷键"
     },
     "nodeInfoPanel": {
@@ -13955,7 +13955,7 @@
       },
       "subtitle": {
         "runtimes": "在此计算机上运行的程序：llama.cpp 和 stable-diffusion.cpp 等本地 AI 引擎、FFmpeg 等媒体工具，以及各种语言。本地模型和部分节点需要这些程序。",
-        "included": "随 NodeTool 提供的软件包。关闭软件包即可隐藏其中的节点。切换软件包后需要重启服务器才能生效。添加 API 密钥后会显示提供商节点。",
+        "included": "随 NodeTool 提供的软件包。关闭软件包即可隐藏其中的节点。切换软件包后需要重启服务器才能生效。添加 API 密钥后会显示服务商节点。",
         "python": "来自 PyPI、在 Python worker 中运行的节点软件包。安装、更新或卸载软件包后服务器会重启。",
         "thirdparty": "第三方软件包以服务器用户身份在进程内运行。只信任你了解的软件包。"
       },
@@ -14026,7 +14026,7 @@
       "search": "搜索所有面板",
       "group": {
         "workflow-tools": "工作流工具",
-        "agent-tools": "代理工具"
+        "agent-tools": "智能体工具"
       },
       "category": {
         "favorites": {
@@ -14043,7 +14043,7 @@
         },
         "skills": {
           "label": "技能",
-          "description": "代理技能：根据目标匹配的 Markdown 指令。"
+          "description": "智能体技能：根据目标匹配的 Markdown 指令。"
         }
       }
     },
@@ -14075,7 +14075,7 @@
         "apps": "应用",
         "creative": "创意文档",
         "text": "文本文件",
-        "agents": "代理和代码",
+        "agents": "智能体和代码",
         "entities": "实体",
         "shared": "与我共享",
         "cloud": "云端",
@@ -14086,7 +14086,7 @@
         "application": "应用",
         "sketch": "草图",
         "script": "脚本",
-        "storyboard": "分镜板",
+        "storyboard": "故事板",
         "timeline": "时间线",
         "entity": "实体",
         "jsscript": "JS 脚本",
@@ -14097,7 +14097,7 @@
       "deleteFailure": "无法删除 {{name}}：{{error}}",
       "unknownError": "未知错误",
       "deleteConfirmTitle": "删除{{type}}？",
-      "deleteEntityDescription": "“{{name}}”将不再是实体，但其资源会保留。",
+      "deleteEntityDescription": "“{{name}}”将不再是实体，但其素材会保留。",
       "deleteDescription": "“{{name}}”将被永久删除。",
       "deleteAction": "删除",
       "cancel": "取消",
@@ -14168,20 +14168,20 @@
       "insertVariable": "插入变量 {{name}}",
       "variable": "变量",
       "prompt": "提示词",
-      "placeholder": "输入提示词……@ 可提及资源"
+      "placeholder": "输入提示词……@ 可提及素材"
     },
     "assetMention": {
       "recent": "最近使用",
       "saved": "已保存",
-      "noRecentMatch": "没有匹配的最近使用资源。",
+      "noRecentMatch": "没有匹配的最近使用素材。",
       "noRecentAssets": "还没有文件。附加或拖入一个文件。",
-      "noAssetsMatch": "没有匹配的资源。",
-      "noSavedAssets": "尚未保存资源。",
+      "noAssetsMatch": "没有匹配的素材。",
+      "noSavedAssets": "尚未保存素材。",
       "noEntitiesMatch": "没有匹配的实体。",
       "entities": "实体",
-      "assetSource": "资源来源",
+      "assetSource": "素材来源",
       "rename": "重命名 {{name}}",
-      "assetName": "资源名称",
+      "assetName": "素材名称",
       "entityKind": {
         "product": "产品",
         "character": "角色",
@@ -14259,7 +14259,7 @@
         "workflow": "工作流",
         "panels": "面板",
         "panel": "面板",
-        "assets": "资源",
+        "assets": "素材",
         "imageEditor": "图像编辑器"
       },
       "switchToTab": "切换到选项卡",
@@ -14359,17 +14359,17 @@
       "download": "下载"
     },
     "providerSetup": {
-      "chat": "聊天需要语言模型。请连接一个提供方后开始。",
-      "image": "生成图片需要图片提供方。请连接一个后继续。",
-      "image_edit": "编辑图片需要图片提供方。请连接一个后继续。",
-      "video": "生成视频需要视频提供方。请连接一个后继续。",
-      "image_to_video": "让图片动起来需要视频提供方。请连接一个后继续。",
-      "reference_to_video": "参考生成视频需要视频提供方。请连接一个后继续。",
-      "retake": "重拍需要视频提供方。请连接一个后继续。",
-      "extend": "延长视频需要视频提供方。请连接一个后继续。",
-      "audio_to_video": "口型同步需要口型同步提供方。请连接一个后继续。",
-      "music": "生成音乐需要音乐提供方。请连接一个后继续。",
-      "audio": "生成语音需要语音合成提供方。请连接一个后继续。"
+      "chat": "聊天需要语言模型。请连接一个服务商后开始。",
+      "image": "生成图片需要图片服务商。请连接一个后继续。",
+      "image_edit": "编辑图片需要图片服务商。请连接一个后继续。",
+      "video": "生成视频需要视频服务商。请连接一个后继续。",
+      "image_to_video": "让图片动起来需要视频服务商。请连接一个后继续。",
+      "reference_to_video": "参考生成视频需要视频服务商。请连接一个后继续。",
+      "retake": "重拍需要视频服务商。请连接一个后继续。",
+      "extend": "延长视频需要视频服务商。请连接一个后继续。",
+      "audio_to_video": "口型同步需要口型同步服务商。请连接一个后继续。",
+      "music": "生成音乐需要音乐服务商。请连接一个后继续。",
+      "audio": "生成语音需要语音合成服务商。请连接一个后继续。"
     }
   },
   "i18n-next29": {
@@ -14459,7 +14459,7 @@
       },
       "goals": {
         "chat": {
-          "label": "聊天和代理",
+          "label": "聊天和智能体",
           "description": "使用语言模型进行写作、推理和工具调用"
         },
         "image-gen": {
@@ -14746,14 +14746,14 @@
     "previewActions": {
       "copyFailed": "复制到剪贴板失败",
       "download": "下载",
-      "addToAssets": "添加到资产",
-      "copyAsset": "复制资产",
+      "addToAssets": "添加到素材",
+      "copyAsset": "复制素材",
       "copyOutput": "复制输出"
     },
     "outputNode": {
-      "filesAddedToAssets_one": "已将 {{count}} 个文件添加到资产",
-      "filesAddedToAssets_other": "已将 {{count}} 个文件添加到资产",
-      "addToAssetsFailed": "添加输出到资产失败",
+      "filesAddedToAssets_one": "已将 {{count}} 个文件添加到素材",
+      "filesAddedToAssets_other": "已将 {{count}} 个文件添加到素材",
+      "addToAssetsFailed": "添加输出到素材失败",
       "downloadStarted": "下载已成功开始",
       "downloadFailed": "启动下载失败",
       "metadataTitle": "输出",
@@ -14762,9 +14762,9 @@
       "emptyRunPrompt": "运行以查看输出"
     },
     "previewNode": {
-      "filesAddedToAssets_one": "已将 {{count}} 个文件添加到资产",
-      "filesAddedToAssets_other": "已将 {{count}} 个文件添加到资产",
-      "addToAssetsFailed": "添加预览到资产失败",
+      "filesAddedToAssets_one": "已将 {{count}} 个文件添加到素材",
+      "filesAddedToAssets_other": "已将 {{count}} 个文件添加到素材",
+      "addToAssetsFailed": "添加预览到素材失败",
       "downloadStarted": "下载已成功开始",
       "downloadFailed": "启动下载失败",
       "metadataTitle": "预览",
@@ -14999,9 +14999,9 @@
       }
     },
     "source": {
-      "selectAsset": "在资源浏览器中选择资源，以便在此预览并标记要使用的部分。",
+      "selectAsset": "在素材浏览器中选择素材，以便在此预览并标记要使用的部分。",
       "monitor": "源监视器",
-      "unsupportedAsset": "此资源类型无法放入时间线。",
+      "unsupportedAsset": "此素材类型无法放入时间线。",
       "in": "入点",
       "out": "出点",
       "inPoint": "源入点",
@@ -15048,21 +15048,21 @@
     "assetTree": {
       "items_one": "（{{count}} 项）",
       "items_other": "（{{count}} 项）",
-      "noAssets": "未找到资产"
+      "noAssets": "未找到素材"
     },
     "folderList": {
       "folders": "文件夹",
       "toggleSubfolders": "展开或收起 {{name}} 的子文件夹"
     },
     "breadcrumb": {
-      "assets": "资产",
+      "assets": "素材",
       "home": "主页"
     },
     "projectFilter": {
       "allProjects": "所有项目",
       "personal": "个人项目",
       "project": "项目",
-      "tooltip": "显示一个项目或所有项目中的资产",
+      "tooltip": "显示一个项目或所有项目中的素材",
       "ariaLabel": "项目：{{label}}",
       "loading": "正在加载项目",
       "loadErrorSummary": "项目筛选器加载项目失败",
@@ -15073,7 +15073,7 @@
       "searchingFor": "正在搜索“{{query}}”…",
       "noResultsFor": "没有关于“{{query}}”的结果",
       "searching": "正在搜索",
-      "noMatchingAssets": "没有找到匹配搜索内容的资产",
+      "noMatchingAssets": "没有找到匹配搜索内容的素材",
       "resultCount_one": "“{{query}}”有 {{count}} 个结果",
       "resultCount_other": "“{{query}}”有 {{count}} 个结果",
       "thumbnail": "{{contentType}} 缩略图",
@@ -15081,7 +15081,7 @@
     },
     "saveToFolder": {
       "saveToFolder": "保存到文件夹",
-      "assets": "资产",
+      "assets": "素材",
       "folderNamePlaceholder": "文件夹名称…",
       "newFolderName": "新文件夹名称",
       "newFolder": "新建文件夹…",
@@ -15095,7 +15095,7 @@
   },
   "i18n-next42-assets-grid": {
     "explorer": {
-      "title": "资产",
+      "title": "素材",
       "subtitle": "浏览、整理并预览你的图像、音频、视频和其他文件。"
     },
     "actions": {
@@ -15110,13 +15110,13 @@
       "totalSize": "所选项目总大小"
     },
     "states": {
-      "loading": "正在加载资产",
+      "loading": "正在加载素材",
       "loadError": {
-        "title": "无法加载资产",
+        "title": "无法加载素材",
         "description": "发生错误，请重试。"
       },
       "refreshError": {
-        "title": "无法刷新资产"
+        "title": "无法刷新素材"
       },
       "filteredEmpty": {
         "title": "这里没有 {{type}}",
@@ -15125,18 +15125,18 @@
       "empty": {
         "favorites": {
           "title": "还没有收藏",
-          "description": "为资产加星标，即可从任意文件夹找到它。"
+          "description": "为素材加星标，即可从任意文件夹找到它。"
         },
         "workflow": {
           "title": "此工作流还没有输出",
-          "description": "运行工作流以生成资产，或将文件拖到这里作为输入。"
+          "description": "运行工作流以生成素材，或将文件拖到这里作为输入。"
         },
         "folder": {
           "title": "此文件夹为空",
-          "description": "将文件拖到这里，或使用上传按钮添加资产"
+          "description": "将文件拖到这里，或使用上传按钮添加素材"
         }
       },
-      "noAssetsToDisplay": "没有可显示的资产"
+      "noAssetsToDisplay": "没有可显示的素材"
     },
     "groups": {
       "ariaLabel_one": "{{label}}，{{count}} 个文件",
@@ -15174,7 +15174,7 @@
       "modified": "修改时间"
     },
     "search": {
-      "allAssets": "搜索所有资产",
+      "allAssets": "搜索所有素材",
       "currentFolder": "搜索当前文件夹",
       "switchToLocal": "切换到本地搜索",
       "switchToGlobal": "切换到全局搜索"
@@ -15478,8 +15478,8 @@
       "items_one": "{{count}} 项",
       "items_other": "{{count}} 项",
       "clear": "清空集合",
-      "dropAssets": "将资源拖放到这里",
-      "dropAssetsHint": "来自资源面板、文件或生成历史",
+      "dropAssets": "将素材拖放到这里",
+      "dropAssetsHint": "来自素材面板、文件或生成历史",
       "removeItem": "移除第 {{index}} 项",
       "remove": "移除"
     },
@@ -15640,7 +15640,7 @@
       "loadingPreview": "正在加载预览…",
       "errorLoadingPreview": "加载预览时出错。",
       "openEditor": "打开编辑器",
-      "asset": "文本资产",
+      "asset": "文本素材",
       "readOnly": "只读",
       "selectFiles": "选择文本文件",
       "fileType": "文本文件",
@@ -15876,11 +15876,11 @@
     "quickActions": {
       "basics": "基础",
       "aiNodes": "AI 节点",
-      "providerModels": "提供商模型",
+      "providerModels": "服务商模型",
       "constants": "常量",
       "metadataMissing": "找不到 {{name}} 的元数据。",
       "action": {
-        "agent": "代理",
+        "agent": "智能体",
         "code": "代码",
         "text-to-image": "文本转图像",
         "image-to-image": "图像转图像",
@@ -15939,13 +15939,13 @@
       "chats": "聊天",
       "sketches": "草图",
       "scripts": "脚本",
-      "storyboards": "分镜",
+      "storyboards": "故事板",
       "entities": "实体",
       "examples": "示例",
       "timelines": "时间线",
       "jsscripts": "JS 脚本",
       "skills": "技能",
-      "assets": "资源",
+      "assets": "素材",
       "library": "库",
       "more": "更多",
       "files": "文件"
@@ -16004,11 +16004,11 @@
       "previewDraft": "预览草稿",
       "settings": "设置",
       "builderAssistant": "应用构建助手",
-      "closeAgent": "关闭代理",
-      "askAgent": "询问代理"
+      "closeAgent": "关闭智能体",
+      "askAgent": "询问智能体"
     },
     "audio": {
-      "asset": "音频资源",
+      "asset": "音频素材",
       "assistant": "助手",
       "resizeAssistant": "调整音频助手大小",
       "assistantWelcomeTitle": "音频助手",
@@ -16059,16 +16059,16 @@
       "assistant": "助手"
     },
     "model3d": {
-      "assetNotLoaded": "资源尚未加载。",
+      "assetNotLoaded": "素材尚未加载。",
       "saved": "已保存 {{name}}。",
       "model": "3D 模型",
-      "asset": "3D 资源"
+      "asset": "3D 素材"
     },
     "page": {
       "notAvailable": "此服务器上无法使用{{page}}",
       "localOnlyDescription": "它管理服务器所在计算机上的文件。请使用桌面应用或自托管安装。",
       "titles": {
-        "assets": "资源",
+        "assets": "素材",
         "tutorials": "教程",
         "examples": "示例",
         "costs": "成本",
@@ -16099,13 +16099,13 @@
       "sheet": "工作表"
     },
     "storyboard": {
-      "menuHeading": "分镜",
-      "untitled": "未命名分镜",
+      "menuHeading": "故事板",
+      "untitled": "未命名故事板",
       "assembleTimeline": "组装时间线",
       "hideAssistant": "隐藏助手",
       "showAssistant": "显示助手",
-      "label": "分镜",
-      "resizeAssistant": "调整分镜助手大小",
+      "label": "故事板",
+      "resizeAssistant": "调整故事板助手大小",
       "board": "画板",
       "assistant": "助手"
     },
@@ -16233,7 +16233,7 @@
       "document": {
         "saving": "保存中…",
         "save": "保存",
-        "saveAsAsset": "另存为资产",
+        "saveAsAsset": "另存为素材",
         "exportPng": "导出 PNG",
         "exportPsd": "导出 PSD",
         "importPsd": "导入 PSD…",
@@ -16257,7 +16257,7 @@
         "deleteLabel": "删除版本",
         "deleteTitle": "删除版本？",
         "deleteConfirm": "删除",
-        "deleteDescription": "此版本将被永久移除。底层任务和资产不会被删除。"
+        "deleteDescription": "此版本将被永久移除。底层任务和素材不会被删除。"
       },
       "inspector": {
         "selected_one": "已选择 {{count}} 个图层",
@@ -16462,7 +16462,7 @@
         "addButton": "添加贴花"
       },
       "empty": {
-        "images": "安装图像资源后才能添加贴花。",
+        "images": "安装图像素材后才能添加贴花。",
         "receivers": "在此场景中添加基元或刚体模型接收对象。",
         "limit_one": "此场景已有 {{count}} 个贴花。",
         "limit_other": "此场景已有 {{count}} 个贴花。"
@@ -16539,11 +16539,11 @@
       "list": "列表视图"
     },
     "filmstrip": {
-      "previousAsset": "上一个资源",
-      "nextAsset": "下一个资源"
+      "previousAsset": "上一个素材",
+      "nextAsset": "下一个素材"
     },
     "upload": {
-      "uploadingAssets": "正在上传资源",
+      "uploadingAssets": "正在上传素材",
       "progress_one": "{{count}} 个文件中已上传 {{completed}} 个",
       "progress_other": "{{count}} 个文件中已上传 {{completed}} 个"
     },
@@ -16584,7 +16584,7 @@
       "cancelTheJob": "取消任务",
       "video": "视频",
       "image": "图像",
-      "asset": "资源",
+      "asset": "素材",
       "outputCount_one": "{{count}} 个{{type}}",
       "outputCount_other": "{{count}} 个{{type}}",
       "cancelling": "正在取消…",
@@ -16626,9 +16626,9 @@
   },
   "i18n-next61": {
     "apiKeyValidation": {
-      "connectReason": "此节点需要提供方密钥。连接提供方后才能运行此节点。",
+      "connectReason": "此节点需要服务商密钥。连接服务商后才能运行此节点。",
       "missing": "缺少 {{key}}！",
-      "connectProvider": "连接提供方"
+      "connectProvider": "连接服务商"
     },
     "nodeStatus": {
       "booting": "模型正在启动，可能需要几分钟。"
@@ -16724,7 +16724,7 @@
         "video/": "视频",
         "audio/": "音频文件",
         "model/": "3D 模型",
-        "assets": "资产"
+        "assets": "素材"
       }
     },
     "script": {
@@ -16862,7 +16862,7 @@
         "toggleLoop": "在入点和出点之间循环播放",
         "playInToOut": "从入点播放到出点",
         "matchFrame": "匹配帧（在此帧打开源素材）",
-        "revealInProject": "在资产中显示片段媒体",
+        "revealInProject": "在素材中显示片段媒体",
         "addKeyframe": "在播放头处为选中片段添加关键帧",
         "nextKeyframe": "下一个关键帧",
         "prevKeyframe": "上一个关键帧",
@@ -17060,14 +17060,14 @@
     "contentCard": {
       "videoPreview": {
         "downloadFailed": "无法开始下载",
-        "filesAddedToAssets_one": "已将 {{count}} 个文件添加到资产",
-        "filesAddedToAssets_other": "已将 {{count}} 个文件添加到资产",
-        "addFailed": "无法将视频添加到资产",
+        "filesAddedToAssets_one": "已将 {{count}} 个文件添加到素材",
+        "filesAddedToAssets_other": "已将 {{count}} 个文件添加到素材",
+        "addFailed": "无法将视频添加到素材",
         "outputLabel": "视频输出",
         "download": "下载",
         "downloadVideo": "下载视频",
-        "saveToAssets": "保存到资产",
-        "saveVideoToAssets": "将视频保存到资产"
+        "saveToAssets": "保存到素材",
+        "saveVideoToAssets": "将视频保存到素材"
       },
       "emptyResult": "结果为空",
       "generatedText": "生成的文本",
@@ -17172,8 +17172,8 @@
         "importTimelineTooltip": "导入时间线（.zip，或包含媒体文件的 Premiere XML 压缩包）",
         "importTimelineArchive": "导入时间线压缩包",
         "imported": "已导入 {{name}}",
-        "missingAssets_one": "压缩包中缺少 1 个资产",
-        "missingAssets_other": "压缩包中缺少 {{count}} 个资产",
+        "missingAssets_one": "压缩包中缺少 1 个素材",
+        "missingAssets_other": "压缩包中缺少 {{count}} 个素材",
         "missingClips_one": "因媒体文件不在 zip 中，已有 1 个片段被省略",
         "missingClips_other": "因媒体文件不在 zip 中，已有 {{count}} 个片段被省略",
         "notCarriedOver": "未从 Premiere 迁移：{{warnings}}",
@@ -17437,11 +17437,11 @@
         "contentExpired": "活动内容已过期。",
         "contentUnavailable": "此运行的活动内容不可用。",
         "runLoadFailed": "无法加载运行活动",
-        "noActivity": "没有记录到代理活动。",
+        "noActivity": "没有记录到智能体活动。",
         "browserActivityMissing": "部分浏览器活动无法记录。",
         "recordingIncomplete": "活动记录不完整。",
         "sample": {
-          "readingStoryboard": "正在读取已批准的分镜。",
+          "readingStoryboard": "正在读取已批准的故事板。",
           "editingTimeline": "正在编辑时间线",
           "appliedEdits": "已应用 3 项编辑。"
         }
@@ -17535,13 +17535,13 @@
   "i18n-next71": {
     "costEstimateLine": {
       "estimatedCost": "预计成本",
-      "providerCatalogNotice": "提供商目录中的列表价格。运行费用由提供商按其自身费率收取。"
+      "providerCatalogNotice": "服务商目录中的列表价格。运行费用由服务商按其自身费率收取。"
     },
     "costEstimateSummary": {
       "unavailable": "打开工作流以查看其成本估算。",
       "empty": "添加一个使用 AI 模型的节点，以估算运行成本。",
       "node": "节点",
-      "providerModel": "提供商 / 模型",
+      "providerModel": "服务商 / 模型",
       "units": "单位",
       "cost": "成本",
       "priceUnknown": "价格未知",
@@ -17550,7 +17550,7 @@
       "unknownExcluded_other": "{{count}} 个节点没有已知价格，未计入总计。",
       "snapshotTooltip": "价格读取自 {{date}} 的 genspend.io 目录快照",
       "catalogTooltip": "价格随应用提供，每晚同步更新",
-      "priceCreditPrefix": "提供商目录列表价格，来源：",
+      "priceCreditPrefix": "服务商目录列表价格，来源：",
       "priceCreditSuffix": "，最后更新于 {{date}}。"
     },
     "spendOverTimeChart": {
@@ -17585,7 +17585,7 @@
         "allResults": "全部结果",
         "home": "主页",
         "local": "本地",
-        "providers": "提供商",
+        "providers": "服务商",
         "resultsInPath": "{{path}} 中的结果：{{count}} · 与“{{term}}”匹配的总数：{{total}}",
         "resultsRelevant": "结果：{{count}} · 与“{{term}}”最相关的排在前面",
         "nodesInPath": "{{path}} 中的节点：{{count}}",
@@ -17914,8 +17914,8 @@
       "loading": "加载中"
     },
     "textSurface": {
-      "loading": "正在加载文本资产",
-      "loadError": "加载文本资产失败"
+      "loading": "正在加载文本素材",
+      "loadError": "加载文本素材失败"
     },
     "externalLink": {
       "opensInNewTab": "在新标签页中打开"
@@ -18374,9 +18374,9 @@
         "extend": "描述新增画面中发生的内容…",
         "motion": "描述动作…",
         "planShort": "描述要规划的工作…",
-        "plan": "描述要完成的工作。代理会提出计划，但不会执行。",
-        "messageShort": "消息…或输入 @ 添加资产",
-        "message": "随便问，或输入 @ 添加资产…"
+        "plan": "描述要完成的工作。智能体会提出计划，但不会执行。",
+        "messageShort": "消息…或输入 @ 添加素材",
+        "message": "随便问，或输入 @ 添加素材…"
       },
       "messagePrompt": "消息提示",
       "pickModel": "选择一个{{kind}}模型以{{action}}。",
@@ -18433,7 +18433,7 @@
       "versionOf": "第 {{index}} 个版本，共 {{count}} 个",
       "copyMessage": "复制消息",
       "enterCredential": "输入凭据",
-      "credentialSubtitle": "已保存到你的密钥存储中。代理永远看不到该值。",
+      "credentialSubtitle": "已保存到你的密钥存储中。智能体永远看不到该值。",
       "pasteKey": "粘贴密钥",
       "couldNotSaveKey": "无法保存密钥。",
       "saving": "正在保存…",
@@ -18520,12 +18520,12 @@
       },
       "entryCards": {
         "storyboard": {
-          "title": "分镜脚本",
-          "description": "从一句描述到渲染完成的分镜，只需四步。"
+          "title": "故事板",
+          "description": "从一句描述到渲染完成的故事板，只需四步。"
         },
         "video": {
           "title": "视频",
-          "description": "从一句描述直接生成时间线剪辑，无需分镜。"
+          "description": "从一句描述直接生成时间线剪辑，无需故事板。"
         },
         "script": {
           "title": "脚本",
@@ -18679,8 +18679,8 @@
           "noInputs": "此操作没有输入项。"
         },
         "storyboardPreview": {
-          "designModeDescription": "将此组件绑定到分镜输出即可播放分镜。",
-          "noStoryboard": "暂无分镜",
+          "designModeDescription": "将此组件绑定到故事板输出即可播放故事板。",
+          "noStoryboard": "暂无故事板",
           "loadingPreview": "正在加载预览"
         }
       }
@@ -18817,7 +18817,7 @@
   "i18n-next108": {
     "secretRequestCard": {
       "enterCredential": "输入凭据",
-      "credentialSubtitle": "已保存到你的密钥存储中。代理永远看不到该值。",
+      "credentialSubtitle": "已保存到你的密钥存储中。智能体永远看不到该值。",
       "whereToGetKey": "获取此密钥的位置",
       "pasteKey": "粘贴密钥",
       "couldNotSaveKey": "无法保存密钥。",
@@ -18873,7 +18873,7 @@
     "scriptVoices": {
       "heading": "选择声音",
       "description": "在选择之前，先听听每个声音朗读你的文字。",
-      "loading": "正在查找你的提供方提供的声音…"
+      "loading": "正在查找你的服务商提供的声音…"
     },
     "appBuilder": {
       "appData": "应用数据"
@@ -18931,7 +18931,7 @@
       "sampleCostRange": " · 每次约 {{low}}–{{high}}",
       "noCast": "脚本还没有演员。请先编写脚本，所有说话人都会显示在这里。",
       "tryAgain": "重试",
-      "connectProvider": "连接提供方"
+      "connectProvider": "连接服务商"
     }
   },
   "i18n-next119": {
@@ -19742,7 +19742,7 @@
       "openInSketch": "在草图中打开",
       "reusePrompt": "重用提示词",
       "sketchTitle": "创建的图片",
-      "keyRejected": "服务商拒绝了 API 密钥。请在 设置 → 模型和提供方 中检查。"
+      "keyRejected": "服务商拒绝了 API 密钥。请在 设置 → 模型和服务商 中检查。"
     },
     "kindLabel": "要创建什么",
     "modeLabel": "如何创建",
@@ -19870,11 +19870,11 @@
   "look_preset_field": {
     "browse": "选择风格",
     "title": "镜头风格",
-    "board": "分镜风格",
+    "board": "故事板风格",
     "done": "完成",
     "remove": "移除 {{name}}",
     "clause": "风格提示词",
-    "inherit": "未选择时继承分镜风格。",
+    "inherit": "未选择时继承故事板风格。",
     "inherited": "使用故事板外观：{{names}}"
   },
   "startStudios": {
@@ -20027,7 +20027,7 @@
       "invalid": "请输入 0 或更大的数字，留空表示无限额。",
       "useDefault": "使用服务器默认值",
       "useDefaultDescription": "关闭后可为此用户设置单独限额。",
-      "ownKeysNote": "只统计使用此服务器提供商密钥的工作。使用此人在设置中保存的密钥的工作从不计入。",
+      "ownKeysNote": "只统计使用此服务器服务商密钥的工作。使用此人在设置中保存的密钥的工作从不计入。",
       "save": "保存",
       "cancel": "取消",
       "saveFailed": "无法保存限额。"
@@ -20060,12 +20060,12 @@
           "description": "图片、视频、音频和 3D。"
         },
         "use_server_keys": {
-          "label": "使用服务器的提供商密钥",
+          "label": "使用服务器的服务商密钥",
           "description": "阻止后，此人只能使用自己在设置中添加的密钥。"
         },
         "manage_own_keys": {
-          "label": "管理自己的提供商密钥",
-          "description": "添加、修改或删除提供商密钥和自定义提供商。"
+          "label": "管理自己的服务商密钥",
+          "description": "添加、修改或删除服务商密钥和自定义服务商。"
         },
         "share_links": {
           "label": "创建分享链接",
@@ -20119,7 +20119,7 @@
     }
   },
   "providerFailure": {
-    "genericTarget": "提供商",
+    "genericTarget": "服务商",
     "title": {
       "billing": "{{target}} 无法运行：账户没有余额或未开通计费。",
       "quota": "{{target}} 无法运行：此密钥已没有剩余配额。",
@@ -20128,9 +20128,9 @@
       "rate_limit": "{{target}} 收到的请求过多。"
     },
     "hint": {
-      "billing": "请在提供商处充值，或切换到其他模型。",
-      "quota": "免费密钥通常没有此模型的配额。请在提供商处开通计费，或切换到其他模型。",
-      "auth": "请在设置中检查密钥，或切换到其他提供商的模型。",
+      "billing": "请在服务商处充值，或切换到其他模型。",
+      "quota": "免费密钥通常没有此模型的配额。请在服务商处开通计费，或切换到其他模型。",
+      "auth": "请在设置中检查密钥，或切换到其他服务商的模型。",
       "model_unavailable": "它已从你的模型列表中移除。请选择其他模型。",
       "rate_limit": "请稍等片刻再试。"
     },
@@ -20233,7 +20233,7 @@
       "revealInExplorer": "在文件资源管理器中显示",
       "revealInFileManager": "在文件管理器中显示",
       "moveIntoItself": "文件夹不能移动到自身或其子文件夹中。",
-      "notAnAsset": "此文件不在项目资源中，因此无法在此处更改。",
+      "notAnAsset": "此文件不在项目素材中，因此无法在此处更改。",
       "actionFailed": "更改未保存：{{error}}"
     },
     "documentFile": {
@@ -20373,17 +20373,17 @@
     "assist": {
       "lines": "已选择 {{lines}} 行",
       "proposal": "建议的替换",
-      "note": "代理的备注",
+      "note": "智能体的备注",
       "discard": "放弃",
       "close": "关闭",
       "replace": "替换所选内容",
       "stale": "选择后该段落已更改，请重新选择。",
       "thinking": "思考中…",
       "stop": "停止",
-      "placeholder": "告诉代理如何处理这段内容",
+      "placeholder": "告诉智能体如何处理这段内容",
       "refinePlaceholder": "优化结果",
-      "instruction": "对代理的请求",
-      "send": "发送给代理",
+      "instruction": "对智能体的请求",
+      "send": "发送给智能体",
       "failed": "向模型发送的请求失败。",
       "context": "随请求一起发送：整个故事板、{{shots}} 个镜头和资料库中的 {{entities}} 个实体。",
       "quick": {
@@ -20395,7 +20395,7 @@
         "inconsistencies": "查找矛盾"
       },
       "errors": {
-        "no_model": "要使用代理，请为此故事板选择导演模型或聊天模型。",
+        "no_model": "要使用智能体，请为此故事板选择导演模型或聊天模型。",
         "empty": "模型没有返回回答，请重新发送。",
         "failed": "请求失败，请重新发送。"
       }
