@@ -21167,5 +21167,43 @@
       "missingFiles_few": "Не удалось получить {{count}} файла.",
       "missingFiles_many": "Не удалось получить {{count}} файлов."
     }
+  },
+  "documentEditor": {
+    "label": "Документ",
+    "placeholder": "Начните писать или введите # для заголовка",
+    "loadError": "Не удалось загрузить документ.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Вид документа",
+      "formatted": "С форматированием",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Заголовок 1",
+      "heading2": "Заголовок 2",
+      "heading3": "Заголовок 3",
+      "bold": "Жирный",
+      "italic": "Курсив",
+      "strikethrough": "Зачёркнутый",
+      "inlineCode": "Код в строке",
+      "link": "Ссылка",
+      "bulletList": "Маркированный список",
+      "numberedList": "Нумерованный список",
+      "checkList": "Список задач",
+      "quote": "Цитата",
+      "codeBlock": "Блок кода",
+      "table": "Таблица",
+      "image": "Изображение",
+      "rule": "Разделитель"
+    },
+    "insert": {
+      "linkAddress": "Адрес ссылки",
+      "imagePath": "Путь или URL изображения",
+      "imagePathPlaceholder": "assets/picture.png",
+      "imageAlt": "Описание",
+      "removeLink": "Удалить ссылку",
+      "applyLink": "Применить",
+      "insertImage": "Вставить"
+    }
   }
 }

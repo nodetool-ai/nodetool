@@ -20533,5 +20533,43 @@
       "missingFiles_one": "{{count}} fil kunne ikke mottas.",
       "missingFiles_other": "{{count}} filer kunne ikke mottas."
     }
+  },
+  "documentEditor": {
+    "label": "Dokument",
+    "placeholder": "Begynn å skrive, eller skriv # for en overskrift",
+    "loadError": "Dokumentet kunne ikke lastes inn.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Dokumentvisning",
+      "formatted": "Formatert",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Overskrift 1",
+      "heading2": "Overskrift 2",
+      "heading3": "Overskrift 3",
+      "bold": "Fet",
+      "italic": "Kursiv",
+      "strikethrough": "Gjennomstreking",
+      "inlineCode": "Innebygd kode",
+      "link": "Lenke",
+      "bulletList": "Punktliste",
+      "numberedList": "Nummerert liste",
+      "checkList": "Oppgaveliste",
+      "quote": "Sitat",
+      "codeBlock": "Kodeblokk",
+      "table": "Tabell",
+      "image": "Bilde",
+      "rule": "Skillelinje"
+    },
+    "insert": {
+      "linkAddress": "Lenkeadresse",
+      "imagePath": "Bildesti eller URL",
+      "imagePathPlaceholder": "assets/bilde.png",
+      "imageAlt": "Beskrivelse",
+      "removeLink": "Fjern lenke",
+      "applyLink": "Bruk",
+      "insertImage": "Sett inn"
+    }
   }
 }

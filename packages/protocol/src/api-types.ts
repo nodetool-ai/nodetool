@@ -455,6 +455,8 @@ export interface Asset {
   offline?: boolean;
   /** True on an asset that references a file outside its project folder in place. */
   linked?: boolean;
+  /** The project-relative path of the asset's file in its project folder. */
+  workspace_path?: string;
   /**
    * Set only on a video asset on a local server: the state of its all-intra
    * preview proxy.

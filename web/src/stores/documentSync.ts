@@ -2,7 +2,8 @@
  * Document Sync
  *
  * An open editor holds one row of a document table (timeline sequence, image
- * document, storyboard, script, application) and autosaves it back with a
+ * document, storyboard, script, application, or the asset of a Markdown
+ * document) and autosaves it back with a
  * compare-and-swap on `updated_at`. Anything else that writes the same row —
  * an agent running headless doc-ops, the CLI, another tab — used to be
  * invisible until the next save collided with it.
@@ -234,6 +235,7 @@ export type DocumentLoadState = "loading" | "ready" | "error";
 
 /** `resource_type` as the backend spells it: the lowercased model class name. */
 export type SyncedDocumentType =
+  | "asset"
   | "timelinesequence"
   | "imagedocument"
   | "storyboard"

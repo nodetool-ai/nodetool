@@ -20533,5 +20533,43 @@
       "missingFiles_one": "{{count}} 件のファイルを受信できませんでした。",
       "missingFiles_other": "{{count}} 件のファイルを受信できませんでした。"
     }
+  },
+  "documentEditor": {
+    "label": "ドキュメント",
+    "placeholder": "書き始めるか、# を入力して見出しを作成",
+    "loadError": "ドキュメントを読み込めませんでした。",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "ドキュメント表示",
+      "formatted": "書式付き",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "見出し 1",
+      "heading2": "見出し 2",
+      "heading3": "見出し 3",
+      "bold": "太字",
+      "italic": "斜体",
+      "strikethrough": "取り消し線",
+      "inlineCode": "インラインコード",
+      "link": "リンク",
+      "bulletList": "箇条書き",
+      "numberedList": "番号付きリスト",
+      "checkList": "タスクリスト",
+      "quote": "引用",
+      "codeBlock": "コードブロック",
+      "table": "表",
+      "image": "画像",
+      "rule": "区切り線"
+    },
+    "insert": {
+      "linkAddress": "リンク先",
+      "imagePath": "画像のパスまたは URL",
+      "imagePathPlaceholder": "assets/picture.png",
+      "imageAlt": "説明",
+      "removeLink": "リンクを削除",
+      "applyLink": "適用",
+      "insertImage": "挿入"
+    }
   }
 }

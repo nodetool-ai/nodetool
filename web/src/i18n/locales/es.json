@@ -20850,5 +20850,43 @@
       "missingFiles_other": "No se pudieron recibir {{count}} archivos.",
       "missingFiles_many": "No se pudieron recibir {{count}} archivos."
     }
+  },
+  "documentEditor": {
+    "label": "Documento",
+    "placeholder": "Empieza a escribir o escribe # para un título",
+    "loadError": "No se pudo cargar el documento.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Vista del documento",
+      "formatted": "Con formato",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Título 1",
+      "heading2": "Título 2",
+      "heading3": "Título 3",
+      "bold": "Negrita",
+      "italic": "Cursiva",
+      "strikethrough": "Tachado",
+      "inlineCode": "Código en línea",
+      "link": "Enlace",
+      "bulletList": "Lista con viñetas",
+      "numberedList": "Lista numerada",
+      "checkList": "Lista de tareas",
+      "quote": "Cita",
+      "codeBlock": "Bloque de código",
+      "table": "Tabla",
+      "image": "Imagen",
+      "rule": "Separador"
+    },
+    "insert": {
+      "linkAddress": "Dirección del enlace",
+      "imagePath": "Ruta o URL de la imagen",
+      "imagePathPlaceholder": "assets/imagen.png",
+      "imageAlt": "Descripción",
+      "removeLink": "Quitar enlace",
+      "applyLink": "Aplicar",
+      "insertImage": "Insertar"
+    }
   }
 }

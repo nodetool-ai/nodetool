@@ -20533,5 +20533,43 @@
       "missingFiles_one": "{{count}} file could not be received.",
       "missingFiles_other": "{{count}} files could not be received."
     }
+  },
+  "documentEditor": {
+    "label": "Document",
+    "placeholder": "Start writing, or type # for a heading",
+    "loadError": "The document could not be loaded.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Document view",
+      "formatted": "Formatted",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "bold": "Bold",
+      "italic": "Italic",
+      "strikethrough": "Strikethrough",
+      "inlineCode": "Inline code",
+      "link": "Link",
+      "bulletList": "Bulleted list",
+      "numberedList": "Numbered list",
+      "checkList": "Task list",
+      "quote": "Quote",
+      "codeBlock": "Code block",
+      "table": "Table",
+      "image": "Image",
+      "rule": "Divider"
+    },
+    "insert": {
+      "linkAddress": "Link address",
+      "imagePath": "Image path or URL",
+      "imagePathPlaceholder": "assets/picture.png",
+      "imageAlt": "Description",
+      "removeLink": "Remove link",
+      "applyLink": "Apply",
+      "insertImage": "Insert"
+    }
   }
 }

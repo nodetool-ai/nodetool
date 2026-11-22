@@ -20533,5 +20533,43 @@
       "missingFiles_one": "파일 {{count}}개를 받지 못했습니다.",
       "missingFiles_other": "파일 {{count}}개를 받지 못했습니다."
     }
+  },
+  "documentEditor": {
+    "label": "문서",
+    "placeholder": "글을 쓰기 시작하거나 #을 입력해 제목을 만드세요",
+    "loadError": "문서를 불러올 수 없습니다.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "문서 보기",
+      "formatted": "서식 적용",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "제목 1",
+      "heading2": "제목 2",
+      "heading3": "제목 3",
+      "bold": "굵게",
+      "italic": "기울임꼴",
+      "strikethrough": "취소선",
+      "inlineCode": "인라인 코드",
+      "link": "링크",
+      "bulletList": "글머리 기호 목록",
+      "numberedList": "번호 목록",
+      "checkList": "할 일 목록",
+      "quote": "인용",
+      "codeBlock": "코드 블록",
+      "table": "표",
+      "image": "이미지",
+      "rule": "구분선"
+    },
+    "insert": {
+      "linkAddress": "링크 주소",
+      "imagePath": "이미지 경로 또는 URL",
+      "imagePathPlaceholder": "assets/picture.png",
+      "imageAlt": "설명",
+      "removeLink": "링크 제거",
+      "applyLink": "적용",
+      "insertImage": "삽입"
+    }
   }
 }

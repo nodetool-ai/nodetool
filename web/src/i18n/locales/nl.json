@@ -20533,5 +20533,43 @@
       "missingFiles_one": "{{count}} bestand kon niet worden ontvangen.",
       "missingFiles_other": "{{count}} bestanden konden niet worden ontvangen."
     }
+  },
+  "documentEditor": {
+    "label": "Document",
+    "placeholder": "Begin met schrijven of typ # voor een kop",
+    "loadError": "Het document kon niet worden geladen.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Documentweergave",
+      "formatted": "Opgemaakt",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Kop 1",
+      "heading2": "Kop 2",
+      "heading3": "Kop 3",
+      "bold": "Vet",
+      "italic": "Cursief",
+      "strikethrough": "Doorhalen",
+      "inlineCode": "Inline code",
+      "link": "Link",
+      "bulletList": "Opsommingslijst",
+      "numberedList": "Genummerde lijst",
+      "checkList": "Takenlijst",
+      "quote": "Citaat",
+      "codeBlock": "Codeblok",
+      "table": "Tabel",
+      "image": "Afbeelding",
+      "rule": "Scheidingslijn"
+    },
+    "insert": {
+      "linkAddress": "Linkadres",
+      "imagePath": "Pad of URL van afbeelding",
+      "imagePathPlaceholder": "assets/afbeelding.png",
+      "imageAlt": "Beschrijving",
+      "removeLink": "Link verwijderen",
+      "applyLink": "Toepassen",
+      "insertImage": "Invoegen"
+    }
   }
 }

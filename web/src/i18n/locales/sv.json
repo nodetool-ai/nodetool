@@ -20533,5 +20533,43 @@
       "missingFiles_one": "{{count}} fil kunde inte tas emot.",
       "missingFiles_other": "{{count}} filer kunde inte tas emot."
     }
+  },
+  "documentEditor": {
+    "label": "Dokument",
+    "placeholder": "Börja skriva, eller skriv # för en rubrik",
+    "loadError": "Dokumentet kunde inte läsas in.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Dokumentvy",
+      "formatted": "Formaterad",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Rubrik 1",
+      "heading2": "Rubrik 2",
+      "heading3": "Rubrik 3",
+      "bold": "Fet",
+      "italic": "Kursiv",
+      "strikethrough": "Genomstruken",
+      "inlineCode": "Kod i text",
+      "link": "Länk",
+      "bulletList": "Punktlista",
+      "numberedList": "Numrerad lista",
+      "checkList": "Uppgiftslista",
+      "quote": "Citat",
+      "codeBlock": "Kodblock",
+      "table": "Tabell",
+      "image": "Bild",
+      "rule": "Avdelare"
+    },
+    "insert": {
+      "linkAddress": "Länkadress",
+      "imagePath": "Bildsökväg eller URL",
+      "imagePathPlaceholder": "assets/bild.png",
+      "imageAlt": "Beskrivning",
+      "removeLink": "Ta bort länk",
+      "applyLink": "Använd",
+      "insertImage": "Infoga"
+    }
   }
 }

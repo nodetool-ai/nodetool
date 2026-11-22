@@ -20850,5 +20850,43 @@
       "missingFiles_other": "{{count}} fichiers n’ont pas pu être reçus.",
       "missingFiles_many": "{{count}} fichiers n’ont pas pu être reçus."
     }
+  },
+  "documentEditor": {
+    "label": "Document",
+    "placeholder": "Commencez à écrire ou tapez # pour un titre",
+    "loadError": "Impossible de charger le document.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Vue du document",
+      "formatted": "Mis en forme",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Titre 1",
+      "heading2": "Titre 2",
+      "heading3": "Titre 3",
+      "bold": "Gras",
+      "italic": "Italique",
+      "strikethrough": "Barré",
+      "inlineCode": "Code en ligne",
+      "link": "Lien",
+      "bulletList": "Liste à puces",
+      "numberedList": "Liste numérotée",
+      "checkList": "Liste de tâches",
+      "quote": "Citation",
+      "codeBlock": "Bloc de code",
+      "table": "Tableau",
+      "image": "Image",
+      "rule": "Séparateur"
+    },
+    "insert": {
+      "linkAddress": "Adresse du lien",
+      "imagePath": "Chemin ou URL de l’image",
+      "imagePathPlaceholder": "assets/image.png",
+      "imageAlt": "Description",
+      "removeLink": "Supprimer le lien",
+      "applyLink": "Appliquer",
+      "insertImage": "Insérer"
+    }
   }
 }

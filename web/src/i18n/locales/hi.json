@@ -20533,5 +20533,43 @@
       "missingFiles_one": "{{count}} फ़ाइल प्राप्त नहीं हो सकी।",
       "missingFiles_other": "{{count}} फ़ाइलें प्राप्त नहीं हो सकीं।"
     }
+  },
+  "documentEditor": {
+    "label": "दस्तावेज़",
+    "placeholder": "लिखना शुरू करें, या शीर्षक के लिए # टाइप करें",
+    "loadError": "दस्तावेज़ लोड नहीं हो सका।",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "दस्तावेज़ दृश्य",
+      "formatted": "फ़ॉर्मेट किया हुआ",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "शीर्षक 1",
+      "heading2": "शीर्षक 2",
+      "heading3": "शीर्षक 3",
+      "bold": "बोल्ड",
+      "italic": "इटैलिक",
+      "strikethrough": "स्ट्राइकथ्रू",
+      "inlineCode": "इनलाइन कोड",
+      "link": "लिंक",
+      "bulletList": "बुलेट सूची",
+      "numberedList": "क्रमांकित सूची",
+      "checkList": "कार्य सूची",
+      "quote": "उद्धरण",
+      "codeBlock": "कोड ब्लॉक",
+      "table": "तालिका",
+      "image": "छवि",
+      "rule": "विभाजक"
+    },
+    "insert": {
+      "linkAddress": "लिंक पता",
+      "imagePath": "छवि पथ या URL",
+      "imagePathPlaceholder": "assets/picture.png",
+      "imageAlt": "विवरण",
+      "removeLink": "लिंक हटाएँ",
+      "applyLink": "लागू करें",
+      "insertImage": "डालें"
+    }
   }
 }

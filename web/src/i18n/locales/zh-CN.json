@@ -20533,5 +20533,43 @@
       "missingFiles_one": "有 {{count}} 个文件无法接收。",
       "missingFiles_other": "有 {{count}} 个文件无法接收。"
     }
+  },
+  "documentEditor": {
+    "label": "文档",
+    "placeholder": "开始写作，或输入 # 添加标题",
+    "loadError": "无法加载文档。",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "文档视图",
+      "formatted": "格式化",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "标题 1",
+      "heading2": "标题 2",
+      "heading3": "标题 3",
+      "bold": "粗体",
+      "italic": "斜体",
+      "strikethrough": "删除线",
+      "inlineCode": "行内代码",
+      "link": "链接",
+      "bulletList": "项目符号列表",
+      "numberedList": "编号列表",
+      "checkList": "任务列表",
+      "quote": "引用",
+      "codeBlock": "代码块",
+      "table": "表格",
+      "image": "图片",
+      "rule": "分隔线"
+    },
+    "insert": {
+      "linkAddress": "链接地址",
+      "imagePath": "图片路径或 URL",
+      "imagePathPlaceholder": "assets/picture.png",
+      "imageAlt": "描述",
+      "removeLink": "移除链接",
+      "applyLink": "应用",
+      "insertImage": "插入"
+    }
   }
 }

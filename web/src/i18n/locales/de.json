@@ -20533,5 +20533,43 @@
       "missingFiles_one": "{{count}} Datei konnte nicht empfangen werden.",
       "missingFiles_other": "{{count}} Dateien konnten nicht empfangen werden."
     }
+  },
+  "documentEditor": {
+    "label": "Dokument",
+    "placeholder": "Schreiben Sie los oder tippen Sie # für eine Überschrift",
+    "loadError": "Das Dokument konnte nicht geladen werden.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Dokumentansicht",
+      "formatted": "Formatiert",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Überschrift 1",
+      "heading2": "Überschrift 2",
+      "heading3": "Überschrift 3",
+      "bold": "Fett",
+      "italic": "Kursiv",
+      "strikethrough": "Durchgestrichen",
+      "inlineCode": "Inline-Code",
+      "link": "Link",
+      "bulletList": "Aufzählung",
+      "numberedList": "Nummerierte Liste",
+      "checkList": "Aufgabenliste",
+      "quote": "Zitat",
+      "codeBlock": "Codeblock",
+      "table": "Tabelle",
+      "image": "Bild",
+      "rule": "Trennlinie"
+    },
+    "insert": {
+      "linkAddress": "Linkadresse",
+      "imagePath": "Bildpfad oder URL",
+      "imagePathPlaceholder": "assets/bild.png",
+      "imageAlt": "Beschreibung",
+      "removeLink": "Link entfernen",
+      "applyLink": "Übernehmen",
+      "insertImage": "Einfügen"
+    }
   }
 }

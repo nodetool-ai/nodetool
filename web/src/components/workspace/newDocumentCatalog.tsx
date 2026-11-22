@@ -12,6 +12,7 @@
 import { useCallback, useState, type ReactNode } from "react";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
@@ -325,6 +326,18 @@ export const useNewDocumentCatalog = (
     [runCreate, createProjectAsset, openTab]
   );
 
+  // A Markdown file that opens in the document editor (document editor PRD R6).
+  const createDocument = useCallback(
+    () =>
+      createTextFile({
+        label: "Document",
+        filename: "Untitled.md",
+        mimeType: "text/markdown",
+        content: ""
+      }),
+    [createTextFile]
+  );
+
   const createImage = useCallback(
     () =>
       runCreate("sketch", async (destinationProjectId) => {
@@ -534,6 +547,14 @@ export const useNewDocumentCatalog = (
       type: "chat",
       icon: <ForumOutlinedIcon fontSize="small" />,
       create: createChat
+    },
+    {
+      key: "document",
+      label: "Document",
+      menuLabel: "New document",
+      type: "text",
+      icon: <DescriptionOutlinedIcon fontSize="small" />,
+      create: createDocument
     },
     {
       key: "text",
