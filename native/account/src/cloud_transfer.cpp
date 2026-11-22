@@ -16,6 +16,8 @@ using nlohmann::json;
 // A send or receive uploads or downloads every file it carries in one call.
 constexpr std::chrono::minutes kRunTimeout{30};
 constexpr std::chrono::seconds kCaptureTimeout{120};
+// The bundled server's Collect step (D22), outside the cloudTransfer router.
+constexpr std::string_view kCollectProcedure = "assets.collect";
 
 json unwrap(const json& value) {
   if (value.is_object() && value.contains("json")) {
@@ -146,7 +148,8 @@ LocalTransferClient::Answer LocalTransferClient::post(const std::string& procedu
   request.headers = headers_;
   request.headers.emplace_back("Content-Type", "application/json");
   request.body = body;
-  const bool run = procedure.ends_with(".run") || procedure.ends_with("resume");
+  // Collecting copies whole files, so it gets the time of a run.
+  const bool run = procedure.ends_with(".run") || procedure.ends_with("resume") || procedure == kCollectProcedure;
   request.timeout = run ? std::chrono::milliseconds(kRunTimeout) : std::chrono::milliseconds(kCaptureTimeout);
   request.cancel = cancel_;
   const HttpResponse response = transport_.send(request);
@@ -414,6 +417,35 @@ LocalTransferClient::LinkStatus LocalTransferClient::linkStatus(const std::strin
     out.status = TransferStatus::Refused;
     out.reason = "INVALID_RESPONSE";
   }
+  return out;
+}
+
+LocalTransferClient::Collect LocalTransferClient::collectLinked(const std::string& projectId) {
+  const Answer answer = mutate(std::string(kCollectProcedure), json{{"project_id", projectId}}.dump(), false);
+  Collect out;
+  out.status = answer.status;
+  out.reason = answer.reason;
+  if (answer.status != TransferStatus::Ok) {
+    return out;
+  }
+  const json data = json::parse(answer.data, nullptr, false);
+  if (!data.is_object() || !data.contains("copied") || !data["copied"].is_array()) {
+    out.status = TransferStatus::Refused;
+    out.reason = "INVALID_RESPONSE";
+    return out;
+  }
+  for (const json& file : data["copied"]) {
+    out.copied.push_back(str(file, "name"));
+  }
+  for (const char* list : {"skipped", "failed"}) {
+    if (!data.contains(list) || !data[list].is_array()) {
+      continue;
+    }
+    for (const json& file : data[list]) {
+      out.notCollected.push_back(str(file, "name") + ": " + str(file, "reason"));
+    }
+  }
+  out.interrupted = data.value("interrupted", false);
   return out;
 }
 

@@ -603,6 +603,8 @@ A linked project's media, workflows and timelines are files that other apps chan
 
 CF4 has the limit of the hash job. A file whose bytes change while its size and modification time stay the same keeps its stored hash, and capture names the old hash. When the cloud lacks that hash, the upload is refused on mismatch and capture hashes again. When the owner's cloud already holds it, the upload is skipped and the cloud keeps the old bytes. Whether the comparison clears the hash when only the partial hash changes was not traced. A full hash of every required file at each Synchronize closes the case at the cost of reading every file. It is OQ11.
 
+As built (WP2.11, Collect step): a capture that needs a file outside the folder answers `collect_first` with the asset ids, and the review sheet stops at Collect first. Collect calls `assets.collect` on the bundled server, which copies every linked file of the project into `Imported/`, keeps each asset's id and clears its `external_path` once the copy is verified, as export does. No cloud token goes with the call. When every file was copied, the sheet captures the project again. A linked file that is missing, changed since it was linked, or not verified fails the transfer and is named with its reason, so nothing is sent without it. Cancel sends nothing. Workspace files that no document names (CF2, CF5) are not captured yet.
+
 ### Operations of a transfer
 
 Revision 1 modelled document payloads and files and nothing else. This table is the complete vocabulary for phase 2 (review point 11). An operation outside it is refused by schema. A failed precondition refuses the whole attempt at step 9.

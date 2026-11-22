@@ -244,6 +244,38 @@ void readsCollectFirstAndRefusedSends(TestContext& t) {
   CHECK(run.failures.size() == 1 && run.failures[0].storedHash == "s1");
 }
 
+void collectsLinkedFilesOnTheBundledServer(TestContext& t) {
+  SignedInApp app;
+  FakeTransport transport([](const HttpRequest&) {
+    return ok({{"copied", json::array({{{"id", "a1"}, {"name", "still.png"}, {"workspace_path", "Imported/still.png"}}})},
+               {"skipped", json::array({{{"id", "a2"}, {"name", "gone.wav"}, {"reason", "missing"}}})},
+               {"failed", json::array({{{"id", "a3"}, {"name", "big.mov"}, {"reason", "copy did not verify"}}})},
+               {"interrupted", true}});
+  });
+  LocalTransferClient client(transport, kLocal, {}, *app.session);
+  const LocalTransferClient::Collect collected = client.collectLinked(kProject);
+  CHECK(collected.status == TransferStatus::Ok);
+  CHECK(collected.copied == std::vector<std::string>{"still.png"});
+  CHECK(collected.notCollected == (std::vector<std::string>{"gone.wav: missing", "big.mov: copy did not verify"}));
+  CHECK(collected.interrupted);
+  const std::vector<HttpRequest> sent = transport.sent();
+  CHECK(sent.size() == 1);
+  CHECK(sent[0].url == std::string(kLocal) + "/trpc/assets.collect");
+  const json body = json::parse(sent[0].body);
+  CHECK(body["project_id"] == kProject);
+  // The bundled server copies the files, so the cloud token stays out.
+  CHECK(!body.contains("access_token"));
+  // Copying whole files gets the time of a run, not of a capture.
+  CHECK(sent[0].timeout >= std::chrono::minutes(30));
+
+  // Any other server is refused before anything is sent.
+  LocalTransferClient remote(transport, kServer, {}, *app.session);
+  const LocalTransferClient::Collect refused = remote.collectLinked(kProject);
+  CHECK(refused.status == TransferStatus::Refused);
+  CHECK(refused.reason == "NOT_LOCAL_SERVER");
+  CHECK(transport.sent().size() == 1);
+}
+
 void readsTheReceiveCapture(TestContext& t) {
   SignedInApp app;
   std::string state = "both_changed";
@@ -781,6 +813,7 @@ int main() {
       {"renewsTheTokenOnceWhenTheCloudRefusesIt", renewsTheTokenOnceWhenTheCloudRefusesIt},
       {"sortsFailures", sortsFailures},
       {"readsCollectFirstAndRefusedSends", readsCollectFirstAndRefusedSends},
+      {"collectsLinkedFilesOnTheBundledServer", collectsLinkedFilesOnTheBundledServer},
       {"readsTheReceiveCapture", readsTheReceiveCapture},
       {"reviewListsEachDocumentOnce", reviewListsEachDocumentOnce},
       {"aRefusedSendAsksAgain", aRefusedSendAsksAgain},

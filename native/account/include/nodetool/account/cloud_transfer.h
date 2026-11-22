@@ -295,6 +295,23 @@ public:
   };
   LinkStatus linkStatus(const std::string& projectId);
 
+  // Copies every linked file of the project into its `Imported/` directory
+  // through the bundled server's `assets.collect`, the Collect step of
+  // decision D22 (CF6). Each asset keeps its id. Reads and writes the
+  // bundled server only and sends no token.
+  struct Collect {
+    TransferStatus status = TransferStatus::LocalUnavailable;
+    std::string reason;
+    // The names of the files copied into the folder.
+    std::vector<std::string> copied;
+    // "name: reason" for each linked file that was missing, changed since it
+    // was linked, or could not be copied and verified.
+    std::vector<std::string> notCollected;
+    // The server stopped before it tried every linked file.
+    bool interrupted = false;
+  };
+  Collect collectLinked(const std::string& projectId);
+
   // Continues every send and receive of this account that a restart
   // interrupted.
   TransferResume resume();

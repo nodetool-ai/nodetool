@@ -1481,6 +1481,71 @@ private slots:
     QVERIFY(!transfer.result().value("published").toBool());
   }
 
+  // The Collect step of D22 (CF6, TC103): a publish that needs a linked file
+  // stops at CollectFirst. Collect copies the linked files on the bundled
+  // server, then the project is captured again and the sheet shows it. A
+  // file that cannot be copied fails the transfer and is named.
+  void collectsLinkedFilesThenCapturesAgain() {
+    Computer computer;
+    computer.server.addCode("code-c", "u1", "Ada");
+    auto account = computer.app("timeline");
+    signInWith(this, *account, "code-c");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    const HttpResponse collectFirst = trpcData(
+        R"({"status":"collect_first","external":["a1"],"message":"Some files are linked from outside the project folder."})");
+    const HttpResponse captured =
+        trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":true,"operations":[)"
+                 R"({"op":"create_document","kind":"workflow","document_id":"w1"}],)"
+                 R"("documents":[{"kind":"workflow","local_id":"w1","cloud_id":"w1","name":"Mine"}],)"
+                 R"("missing_files":[],"skipped":[],"deleted_locally":[]})");
+    const auto controllerFor = [&](QueueServer& server) {
+      auto transfer = std::make_unique<TransferController>(std::make_unique<SharedTransport>(server));
+      transfer->setAccount(account.get());
+      transfer->setServerUrl(QUrl(kLocalServer));
+      transfer->setBundledServerUrl(QUrl(kLocalServer));
+      transfer->setServerToken("local-token");
+      transfer->setProjectId(QString(32, 'p'));
+      return transfer;
+    };
+
+    {
+      QueueServer server;
+      server.answer("cloudTransfer.send.capture", collectFirst);
+      server.answer("cloudTransfer.send.capture", captured);
+      server.answer("assets.collect", trpcData(R"({"copied":[{"id":"a1","name":"still.png","workspace_path":"Imported/still.png"}],)"
+                                               R"("skipped":[],"failed":[],"interrupted":false})"));
+      auto transfer = controllerFor(server);
+      transfer->collect();
+      QCOMPARE(transfer->stage(), TransferController::Stage::Idle);
+      transfer->start();
+      QTRY_COMPARE(transfer->stage(), TransferController::Stage::CollectFirst);
+      QCOMPARE(transfer->external(), QStringList{"a1"});
+      transfer->collect();
+      QTRY_COMPARE(transfer->stage(), TransferController::Stage::Reviewing);
+      QCOMPARE(server.calls(), (std::vector<std::string>{"cloudTransfer.send.capture", "assets.collect",
+                                                          "cloudTransfer.send.capture"}));
+      const auto body = nlohmann::json::parse(server.body("assets.collect"));
+      QCOMPARE(body["project_id"].get<std::string>(), std::string(32, 'p'));
+      // The bundled server copies the files: no cloud token goes with it.
+      QVERIFY(!body.contains("access_token"));
+      QCOMPARE(transfer->rows().size(), 1);
+      QVERIFY(transfer->external().isEmpty());
+    }
+    {
+      QueueServer server;
+      server.answer("cloudTransfer.send.capture", collectFirst);
+      server.answer("assets.collect", trpcData(R"({"copied":[],"skipped":[{"id":"a1","name":"still.png","reason":"missing"}],)"
+                                               R"("failed":[],"interrupted":false})"));
+      auto transfer = controllerFor(server);
+      transfer->start();
+      QTRY_COMPARE(transfer->stage(), TransferController::Stage::CollectFirst);
+      transfer->collect();
+      QTRY_COMPARE(transfer->stage(), TransferController::Stage::Failed);
+      QVERIFY(transfer->message().contains("still.png: missing"));
+      QCOMPARE(server.calls(), (std::vector<std::string>{"cloudTransfer.send.capture", "assets.collect"}));
+    }
+  }
+
   // A workflow created here while the sheet was open shows up in the send
   // captured again after the receive. Nothing is sent until the sheet shows
   // it (review F22).
