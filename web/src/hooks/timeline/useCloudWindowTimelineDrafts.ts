@@ -17,6 +17,7 @@ import { SAVER_TICK_MS, type StoredDraft } from "../../lib/cloud/CloudDocumentSa
 import { desktopCloudLocalDraftsClient, LocalDraftStore, serverKeyOf } from "../../lib/cloud/localDraftStore";
 import { useTimelineStoreApi, type TimelineStoreState } from "../../stores/timeline/TimelineStore";
 import { cloudSyncStatusKey, reportCloudSyncStatus } from "../../stores/CloudSyncStatusStore";
+import { registerCloudWindowFlush } from "../../lib/cloud/cloudWindowClosing";
 import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
 import { withHistoryPaused } from "./timelineExternalMerge";
 import { isTimelineDocumentDirty } from "./useTimelineAutosave";
@@ -136,9 +137,11 @@ export const useCloudWindowTimelineDrafts = (): void => {
     };
     const timer = window.setInterval(tick, SAVER_TICK_MS);
     const unsubscribe = store.subscribe(tick);
+    const unregister = registerCloudWindowFlush(async () => mirror?.flush(snapshot(store.getState())));
     return () => {
       window.clearInterval(timer);
       unsubscribe();
+      unregister();
       mirror = null;
       if (sequenceId) {
         reportCloudSyncStatus(cloudSyncStatusKey("timeline", sequenceId), null);

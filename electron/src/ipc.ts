@@ -1146,6 +1146,9 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.CLOUD_WINDOW_READY, async (event) =>
     getCloudWindow().takePending(event.sender.id),
   );
+  createIpcMainHandler(IpcChannels.CLOUD_WINDOW_FLUSHED, async (event) => {
+    getCloudWindow().flushed(event.sender.id);
+  });
   createIpcMainHandler(IpcChannels.CLOUD_LOCAL_CALL, async (event, request) => {
     const parsed = cloudLocalCallSchema.safeParse(request);
     return parsed.success

@@ -292,6 +292,13 @@ declare global {
         /** Documents opened in the cloud window after it was ready. Returns the unsubscribe function. */
         onWindowDocument: (callback: (document: CloudDocumentRef) => void) => () => void;
         /**
+         * The cloud window closes because its account signed out or changed.
+         * Write the drafts, then call `windowFlushed`. Returns the unsubscribe function.
+         */
+        onWindowClosing: (callback: () => void) => () => void;
+        /** The closing cloud window wrote its drafts: the desktop app closes it now. */
+        windowFlushed: () => Promise<void>;
+        /**
          * In the cloud window, a `cloudLocal.*` call on this computer's server.
          * The desktop app names the server key and account. Refused elsewhere.
          */

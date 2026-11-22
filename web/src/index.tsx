@@ -57,6 +57,7 @@ import { initSupabaseFromConfig } from "./lib/supabaseClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import { isCloudWindow } from "./lib/cloud/cloudWindow";
 import { showCloudWindowDocument } from "./lib/cloud/openCloudDocument";
+import { flushCloudWindow } from "./lib/cloud/cloudWindowClosing";
 import { startOpenProjectSignal } from "./lib/websocket/openProjectSignal";
 import { useSettingsStore } from "./stores/SettingsStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
@@ -692,10 +693,16 @@ const CloudWindowBridge = () => {
       }
     };
     const unsubscribe = cloud.onWindowDocument(show);
+    const unsubscribeClosing = cloud.onWindowClosing(() => {
+      void flushCloudWindow().finally(() => cloud.windowFlushed());
+    });
     // Taken once per page: the main process hands them over only once.
     cloudWindowPending ??= cloud.windowReady();
     void cloudWindowPending.then((documents) => documents.forEach(show));
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      unsubscribeClosing();
+    };
   }, []);
   return null;
 };
