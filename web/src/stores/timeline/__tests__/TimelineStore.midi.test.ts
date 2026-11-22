@@ -278,3 +278,64 @@ describe("TimelineStore — midi tracks", () => {
     expect(parsed.tempo).toBeUndefined();
   });
 });
+
+describe("TimelineStore — midi controller lanes and note fields", () => {
+  const lane = (over = {}) => ({
+    id: "l1",
+    kind: "cc" as const,
+    cc: 1,
+    points: [{ id: "p1", tick: 0, value: 64 }],
+    ...over
+  });
+
+  it("sets controller lanes in one undo entry and undoes them", () => {
+    const { store, clipId } = seed();
+    const depth = timelineTemporalOf(store).pastStates.length;
+    store.getState().setClipControllers(clipId, [lane()]);
+    expect(store.getState().clips.find((c) => c.id === clipId)!.controllers).toHaveLength(1);
+    expect(timelineTemporalOf(store).pastStates).toHaveLength(depth + 1);
+    timelineTemporalOf(store).undo();
+    expect(store.getState().clips.find((c) => c.id === clipId)!.controllers).toBeUndefined();
+  });
+
+  it("writes nothing for unchanged lanes, an invalid list or a clip that is not midi", () => {
+    const { store, clipId } = seed();
+    store.getState().setClipControllers(clipId, [lane()]);
+    const depth = timelineTemporalOf(store).pastStates.length;
+    store.getState().setClipControllers(clipId, [lane()]);
+    store.getState().setClipControllers(clipId, [lane({ points: [{ id: "p", tick: 0, value: 999 }] })]);
+    store.getState().setClipControllers("missing", [lane()]);
+    expect(timelineTemporalOf(store).pastStates).toHaveLength(depth);
+    expect(store.getState().clips.find((c) => c.id === clipId)!.controllers![0].points[0].value).toBe(64);
+  });
+
+  it("removes the field when the list is empty", () => {
+    const { store, clipId } = seed();
+    store.getState().setClipControllers(clipId, [lane()]);
+    store.getState().setClipControllers(clipId, []);
+    expect("controllers" in store.getState().clips.find((c) => c.id === clipId)!).toBe(false);
+  });
+
+  it("records a mute toggle and new note fields as changes", () => {
+    const { store, clipId } = seed();
+    const notes = store.getState().clips.find((c) => c.id === clipId)!.notes!;
+    const depth = timelineTemporalOf(store).pastStates.length;
+    store.getState().setClipNotes(clipId, notes.map((n, i) => (i === 0 ? { ...n, muted: true } : n)));
+    store.getState().setClipNotes(clipId, store.getState().clips.find((c) => c.id === clipId)!.notes!.map((n, i) => (i === 0 ? { ...n, channel: 3, releaseVelocity: 20 } : n)));
+    const after = store.getState().clips.find((c) => c.id === clipId)!.notes!;
+    expect(after[0]).toMatchObject({ muted: true, channel: 3, releaseVelocity: 20 });
+    expect(timelineTemporalOf(store).pastStates).toHaveLength(depth + 2);
+  });
+
+  it("round-trips lanes and note fields through the document schema", () => {
+    const { store, clipId } = seed();
+    store.getState().setClipControllers(clipId, [lane()]);
+    store.getState().setClipNotes(clipId, [
+      { pitch: 60, startTick: 0, durationTick: 480, muted: true, channel: 2, releaseVelocity: 5, expression: { pan: [{ tick: 0, value: 0.5 }] } }
+    ]);
+    const payload = buildTimelineDocumentPayload(store.getState());
+    const parsed = timeline.timelineClip.parse(payload.clips.find((c: { id: string }) => c.id === clipId));
+    expect(parsed.controllers).toHaveLength(1);
+    expect(parsed.notes![0]).toMatchObject({ muted: true, channel: 2, releaseVelocity: 5 });
+  });
+});

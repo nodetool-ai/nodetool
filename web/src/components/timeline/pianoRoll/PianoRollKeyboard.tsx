@@ -78,8 +78,10 @@ export const PianoRollKeyboard: React.FC<PianoRollKeyboardProps> = memo(
       const canvasStyle = getComputedStyle(canvas);
       ctx.font = `${canvasStyle.fontSize} ${canvasStyle.fontFamily}`;
       for (let row = 0; row < rows; row++) {
-        const pitch = geometry.topPitch - row;
-        if (pitch < 0 || pitch > 127) continue;
+        const pitch = geometry.rows
+          ? geometry.rows.pitches[(geometry.topRow ?? 0) + row]
+          : geometry.topPitch - row;
+        if (pitch === undefined || pitch < 0 || pitch > 127) continue;
         const y = pitchToY(pitch, geometry);
         if (isBlackKey(pitch)) {
           ctx.fillStyle = theme.colorSchemes?.dark?.palette.background.default ?? colors.blackRow;
@@ -98,8 +100,9 @@ export const PianoRollKeyboard: React.FC<PianoRollKeyboardProps> = memo(
         ctx.lineTo(KEYBOARD_WIDTH_PX, y + geometry.rowHeightPx + 0.5);
         ctx.stroke();
         // Only C is labelled: every row named turns the column into a wall of
-        // text, and C is what you count octaves from.
-        if (pitch % 12 === 0 && geometry.rowHeightPx >= MIN_LABEL_ROW_HEIGHT_PX) {
+        // text, and C is what you count octaves from. Collapse Mode shows few
+        // rows, so it names every one.
+        if ((geometry.rows || pitch % 12 === 0) && geometry.rowHeightPx >= MIN_LABEL_ROW_HEIGHT_PX) {
           ctx.fillStyle = theme.colorSchemes?.light?.palette.text.primary ?? colors.blackRow;
           ctx.fillText(
             pitchName(pitch),

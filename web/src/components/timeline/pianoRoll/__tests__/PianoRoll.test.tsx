@@ -96,6 +96,8 @@ function seed(instance: TimelineInstance): void {
   act(() => {
     instance.doc.setState({ tracks: [track], clips: [clip] });
     instance.ui.getState().openPianoRoll(CLIP_ID);
+    // The fixture's geometry assumes a beat-sized snap step.
+    instance.ui.getState().setPianoRollSettings({ snapValue: "beat" });
   });
 }
 
@@ -127,7 +129,7 @@ describe("PianoRoll", () => {
     setup();
     const panel = screen.getByTestId("piano-roll");
     expect(panel).toBeInTheDocument();
-    expect(screen.getByText("Riff")).toBeInTheDocument();
+    expect(screen.getAllByText("Riff").length).toBeGreaterThan(0);
     // The marker TracksRegion's window keymap looks for before it claims a key.
     expect(panel.closest("[data-timeline-piano-roll]")).toBe(panel);
   });
@@ -138,11 +140,13 @@ describe("PianoRoll", () => {
     const grid = screen.getByTestId("piano-roll-grid");
 
     // x = 100 → tick 1000, snapped to the beat grid at 960; y = 166 → pitch 60.
+    await user.keyboard("{Control>}");
     await user.pointer({
       target: grid,
       coords: { clientX: 100, clientY: 166 },
       keys: "[MouseLeft]"
     });
+    await user.keyboard("{/Control}");
 
     const notes = notesOf(instance);
     expect(notes).toHaveLength(4);
@@ -174,11 +178,13 @@ describe("PianoRoll", () => {
     const grid = screen.getByTestId("piano-roll-grid");
 
     // x = 100 → tick 1000, which the drawn grid floors to the 480 line.
+    await user.keyboard("{Control>}");
     await user.pointer({
       target: grid,
       coords: { clientX: 100, clientY: 166 },
       keys: "[MouseLeft]"
     });
+    await user.keyboard("{/Control}");
 
     const added = notesOf(instance).find(
       (n) => !["n1", "n2", "n3"].includes(n.id)
@@ -321,10 +327,12 @@ describe("PianoRoll", () => {
     const user = userEvent.setup();
     const instance = setup();
     const grid = screen.getByTestId("piano-roll-grid");
+    await user.keyboard("{Control>}");
     await user.pointer([
       {target: grid, coords: {clientX: 440, clientY: 166}, keys: "[MouseLeft]"},
       {target: grid, coords: {clientX: 440, clientY: 166}, keys: "[MouseLeft]"}
     ]);
+    await user.keyboard("{/Control}");
     expect(notesOf(instance)).toHaveLength(4);
     expect(notesOf(instance)[3].startTick).toBe(3840);
   });
@@ -360,7 +368,7 @@ describe("PianoRoll", () => {
     setup();
     await user.click(screen.getByTestId("piano-roll"));
     await user.keyboard("{Control>}adz{/Control}");
-    expect(screen.getByText("Click to add a note")).toBeInTheDocument();
+    expect(screen.getByRole("slider", { name: "Selected note velocity" })).toBeDisabled();
   });
 
   it("closes itself when the clip it edits is deleted", () => {
@@ -425,8 +433,70 @@ it("repeats with Command-R and quantizes starts with Q without changing lengths"
   await user.keyboard("{Meta>}ar{/Meta}");
   expect(notesOf(instance)).toHaveLength(6);
   await user.keyboard("{Alt>}{ArrowRight}{/Alt}q");
-  expect(notesOf(instance).slice(3).map(n => n.startTick)).toEqual([2880, 3840, 4800]);
+  expect(notesOf(instance).slice(3).map(n => n.startTick)).toEqual([2400, 3360, 4320]);
   expect(notesOf(instance).every(n => n.durationTick === 480)).toBe(true);
+});
+
+describe("quantize controls", () => {
+  // Beat grid is 960 ticks. n2 (pitch 62) sits at x 100..120, y 134 in the fixture.
+  const offGrid = (): MidiNote[] => [
+    note("n1", 60, 100, 200),
+    note("n2", 62, 1000, 200),
+    note("n3", 64, 1900, 200)
+  ];
+
+  function setupOffGrid(): TimelineInstance {
+    const instance = setup();
+    act(() => {
+      instance.doc.getState().setClipNotes(CLIP_ID, offGrid());
+    });
+    return instance;
+  }
+
+  it("quantizes only the selected note when the Quantize button is pressed, in one undo step", async () => {
+    const user = userEvent.setup();
+    const instance = setupOffGrid();
+    await user.pointer({
+      target: screen.getByTestId("piano-roll-grid"),
+      coords: { clientX: 105, clientY: 134 },
+      keys: "[MouseLeft]"
+    });
+    const before = undoDepth(instance);
+    await user.click(screen.getByRole("button", { name: "Quantize notes" }));
+    expect(notesOf(instance).map(n => n.startTick)).toEqual([100, 960, 1900]);
+    expect(undoDepth(instance)).toBe(before + 1);
+    act(() => timelineTemporalOf(instance.doc).undo());
+    expect(notesOf(instance).map(n => n.startTick)).toEqual([100, 1000, 1900]);
+  });
+
+  it("quantizes every note when nothing is selected", async () => {
+    const user = userEvent.setup();
+    const instance = setupOffGrid();
+    await user.click(screen.getByRole("button", { name: "Quantize notes" }));
+    expect(notesOf(instance).map(n => n.startTick)).toEqual([0, 960, 1920]);
+  });
+
+  it("Q applies non-default settings: value, strength, swing and lengths", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    act(() => {
+      instance.doc.getState().setClipNotes(CLIP_ID, [
+        note("n1", 60, 100, 200),
+        note("n2", 62, 700, 200),
+        note("n3", 64, 1300, 200)
+      ]);
+      instance.ui.getState().setQuantizeSettings({
+        value: "1/8", strengthPct: 50, swingPct: 100
+      });
+    });
+    await user.click(screen.getByTestId("piano-roll"));
+    await user.keyboard("q");
+    // Step 480. 100: k=0 -> 0, half way 50. 700: k=1 is odd -> 480+240=720, 710.
+    // 1300: k=3 is odd -> 1440+240=1680, 1490. Starts only: lengths stay 200.
+    expect(notesOf(instance).map(n => [n.startTick, n.durationTick])).toEqual([
+      [50, 200], [710, 200], [1490, 200]
+    ]);
+  });
 });
 
 it("splits selected notes at the playhead with Command-T and undoes once", async () => {
@@ -547,4 +617,444 @@ it("uses the time signature's beat unit in the selection inspector", async () =>
   await user.type(start, "3");
   await user.keyboard("{Enter}");
   expect(notesOf(instance).map(note => note.startTick)).toEqual([960, 1920, 2880]);
+});
+
+describe("PianoRoll mute, split and clipboard fields", () => {
+  it("toggles mute on the selection with M and undoes once", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    await user.click(screen.getByTestId("piano-roll"));
+    await user.keyboard("{Control>}a{/Control}");
+    const depth = undoDepth(instance);
+    await user.keyboard("m");
+    expect(notesOf(instance).every((n) => n.muted === true)).toBe(true);
+    expect(undoDepth(instance) - depth).toBe(1);
+    // All muted: M unmutes.
+    await user.keyboard("m");
+    expect(notesOf(instance).every((n) => !n.muted)).toBe(true);
+    await user.keyboard("{Control>}z{/Control}");
+    expect(notesOf(instance).every((n) => n.muted === true)).toBe(true);
+  });
+
+  it("mutes everything when the selection mixes muted and unmuted notes", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    act(() => {
+      const clip = instance.doc.getState().clips[0];
+      instance.doc.getState().setClipNotes(
+        CLIP_ID,
+        (clip.notes ?? []).map((n, i) => (i === 0 ? { ...n, muted: true } : n))
+      );
+    });
+    await user.click(screen.getByTestId("piano-roll"));
+    await user.keyboard("{Control>}a{/Control}m");
+    expect(notesOf(instance).every((n) => n.muted === true)).toBe(true);
+  });
+
+  it("keeps muted, channel and release velocity through split and duplicate", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    act(() => {
+      instance.doc.getState().setClipNotes(
+        CLIP_ID,
+        seedNotes().map((n) => ({
+          ...n,
+          muted: true,
+          channel: 4,
+          releaseVelocity: 30,
+          expression: { pitch: [{ tick: 0, value: 1 }, { tick: 400, value: 2 }] }
+        }))
+      );
+    });
+    await user.click(screen.getByTestId("piano-roll"));
+    await user.keyboard("{Meta>}a{/Meta}");
+    act(() => instance.playback.getState().seek(125));
+    await user.keyboard("{Meta>}t{/Meta}");
+    const c60 = notesOf(instance).filter((n) => n.pitch === 60);
+    expect(c60).toHaveLength(2);
+    for (const n of c60) {
+      expect(n).toMatchObject({ muted: true, channel: 4, releaseVelocity: 30 });
+    }
+    expect(c60[0].expression?.pitch).toEqual([{ tick: 0, value: 1 }]);
+    expect(c60[1].expression?.pitch).toEqual([{ tick: 160, value: 2 }]);
+    await user.keyboard("{Meta>}d{/Meta}");
+    const dupes = notesOf(instance).filter((n) => n.pitch === 62);
+    expect(dupes.length).toBeGreaterThanOrEqual(2);
+    for (const n of dupes) expect(n).toMatchObject({ muted: true, channel: 4, releaseVelocity: 30 });
+  });
+});
+
+describe("PianoRoll controller lanes", () => {
+  const controllersOf = (instance: TimelineInstance) =>
+    instance.doc.getState().clips.find((c) => c.id === CLIP_ID)?.controllers;
+
+  async function openLane(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.click(screen.getByRole("combobox", { name: "Lane" }));
+    await user.click(await screen.findByRole("option", { name }));
+    return screen.getByTestId("piano-roll-curve-lane");
+  }
+
+  it("creates a lane with the first point, one undo entry per gesture, and removes it with the last", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    const lane = await openLane(user, "Modulation (CC 1)");
+    expect(controllersOf(instance)).toBeUndefined();
+
+    const depth = undoDepth(instance);
+    // x = 100 → tick 1000, snapped to 960. y = 5 is the top of the range.
+    await user.pointer({ target: lane, coords: { clientX: 100, clientY: 5 }, keys: "[MouseLeft]" });
+    expect(controllersOf(instance)).toHaveLength(1);
+    expect(controllersOf(instance)![0]).toMatchObject({ kind: "cc", cc: 1 });
+    expect(controllersOf(instance)![0].points).toMatchObject([{ tick: 960, value: 127 }]);
+    expect(undoDepth(instance) - depth).toBe(1);
+
+    // A drag is one more undo entry, however many moves it has.
+    await user.pointer([
+      { target: lane, coords: { clientX: 96, clientY: 5 }, keys: "[MouseLeft>]" },
+      { target: lane, coords: { clientX: 150, clientY: 20 } },
+      { target: lane, coords: { clientX: 200, clientY: 51 } },
+      { target: lane, keys: "[/MouseLeft]" }
+    ]);
+    const points = controllersOf(instance)![0].points;
+    expect(points).toHaveLength(1);
+    expect(points[0].value).toBe(0);
+    expect(points[0].tick).toBe(1920);
+    expect(undoDepth(instance) - depth).toBe(2);
+
+    // Double-click removes the point and, with it, the lane.
+    fireEvent.dblClick(lane, { clientX: 192, clientY: 51 });
+    expect(controllersOf(instance)).toBeUndefined();
+  });
+
+  it("removes the selected point with Delete without touching selected notes", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    const lane = await openLane(user, "Sustain (CC 64)");
+    await user.pointer({ target: lane, coords: { clientX: 100, clientY: 5 }, keys: "[MouseLeft]" });
+    expect(controllersOf(instance)).toHaveLength(1);
+    await user.keyboard("{Delete}");
+    expect(controllersOf(instance)).toBeUndefined();
+    expect(notesOf(instance)).toHaveLength(3);
+  });
+
+  it("draws freehand points at grid steps with Shift-drag", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    const lane = await openLane(user, "Pitch bend");
+    await user.keyboard("{Shift>}");
+    await user.pointer([
+      { target: lane, coords: { clientX: 10, clientY: 28 }, keys: "[MouseLeft>]" },
+      { target: lane, coords: { clientX: 200, clientY: 28 } },
+      { target: lane, keys: "[/MouseLeft]" }
+    ]);
+    await user.keyboard("{/Shift}");
+    const lanes = controllersOf(instance)!;
+    expect(lanes[0].kind).toBe("pitchBend");
+    expect(lanes[0].points.length).toBeGreaterThan(2);
+  });
+
+  it("offers the note expression lanes only for exactly one selected note, and edits that note", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    await user.click(screen.getByRole("combobox", { name: "Lane" }));
+    expect(screen.queryByRole("option", { name: "Note pitch" })).not.toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    // Click the first note (x = 10, y = 166 is pitch 60 at tick 100).
+    await user.pointer({ target: screen.getByTestId("piano-roll-grid"), coords: { clientX: 10, clientY: 166 }, keys: "[MouseLeft]" });
+    const lane = await openLane(user, "Note pitch");
+    await user.pointer({ target: lane, coords: { clientX: 10, clientY: 5 }, keys: "[MouseLeft]" });
+    const first = notesOf(instance).find((n) => n.id === "n1")!;
+    expect(first.expression?.pitch).toHaveLength(1);
+    expect(first.expression!.pitch![0].value).toBeCloseTo(48, 0);
+    expect(notesOf(instance).filter((n) => n.expression)).toHaveLength(1);
+  });
+});
+
+describe("PianoRoll curve lane review fixes", () => {
+  const controllersOf = (instance: TimelineInstance) =>
+    instance.doc.getState().clips.find((c) => c.id === CLIP_ID)?.controllers;
+
+  const lane = (id: string, cc: number, ticks: number[]) => ({
+    id,
+    kind: "cc" as const,
+    cc,
+    points: ticks.map((tick, i) => ({ id: `${id}-${i}`, tick, value: 127 }))
+  });
+
+  function seedLanes(
+    instance: TimelineInstance,
+    controllers: ReturnType<typeof lane>[]
+  ): void {
+    act(() => {
+      instance.doc.setState((s) => ({
+        clips: s.clips.map((c) => (c.id === CLIP_ID ? { ...c, controllers } : c))
+      }));
+    });
+  }
+
+  async function openLane(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.click(screen.getByRole("combobox", { name: "Lane" }));
+    await user.click(await screen.findByRole("option", { name }));
+    return screen.getByTestId("piano-roll-curve-lane");
+  }
+
+  const ticksOf = (instance: TimelineInstance): number[] =>
+    (controllersOf(instance)?.[0]?.points ?? []).map((p) => p.tick);
+
+  it("keeps the points a drag sweeps across", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    seedLanes(instance, [lane("a", 1, [0, 960, 1920])]);
+    const el = await openLane(user, "Modulation (CC 1)");
+    await user.pointer([
+      { target: el, coords: { clientX: 0, clientY: 5 }, keys: "[MouseLeft>]" },
+      { target: el, coords: { clientX: 96, clientY: 5 } },
+      { target: el, coords: { clientX: 192, clientY: 5 } },
+      { target: el, coords: { clientX: 288, clientY: 5 } },
+      { target: el, keys: "[/MouseLeft]" }
+    ]);
+    expect(ticksOf(instance)).toEqual([960, 1920, 2880]);
+  });
+
+  it("restores a point the drag moved off", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    seedLanes(instance, [lane("a", 1, [0, 960, 1920])]);
+    const el = await openLane(user, "Modulation (CC 1)");
+    await user.pointer([
+      { target: el, coords: { clientX: 0, clientY: 5 }, keys: "[MouseLeft>]" },
+      { target: el, coords: { clientX: 96, clientY: 5 } },
+      { target: el, coords: { clientX: 0, clientY: 5 } },
+      { target: el, keys: "[/MouseLeft]" }
+    ]);
+    expect(ticksOf(instance)).toEqual([0, 960, 1920]);
+  });
+
+  it("ignores pointer jitter under the threshold and keeps a double-click delete", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    seedLanes(instance, [lane("a", 1, [0, 960, 1920])]);
+    const el = await openLane(user, "Modulation (CC 1)");
+    const depth = undoDepth(instance);
+    // Ctrl bypasses the snap, so a 2 px move would otherwise show as 20 ticks.
+    await user.keyboard("{Control>}");
+    await user.pointer([
+      { target: el, coords: { clientX: 0, clientY: 5 }, keys: "[MouseLeft>]" },
+      { target: el, coords: { clientX: 2, clientY: 5 } },
+      { target: el, keys: "[/MouseLeft]" }
+    ]);
+    await user.keyboard("{/Control}");
+    expect(ticksOf(instance)).toEqual([0, 960, 1920]);
+    expect(undoDepth(instance)).toBe(depth);
+
+    await user.pointer([
+      { target: el, coords: { clientX: 0, clientY: 5 }, keys: "[MouseLeft>]" },
+      { target: el, coords: { clientX: 2, clientY: 5 } }
+    ]);
+    fireEvent.dblClick(el, { clientX: 0, clientY: 5 });
+    await user.pointer({ target: el, keys: "[/MouseLeft]" });
+    expect(ticksOf(instance)).toEqual([960, 1920]);
+  });
+
+  it("never deletes notes from a key press in the lane", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    seedLanes(instance, [lane("a", 1, [960])]);
+    await user.pointer({
+      target: screen.getByTestId("piano-roll-grid"),
+      coords: { clientX: 10, clientY: 166 },
+      keys: "[MouseLeft]"
+    });
+    const el = await openLane(user, "Modulation (CC 1)");
+    act(() => el.focus());
+    await user.keyboard("{Delete}");
+    expect(notesOf(instance)).toHaveLength(3);
+    expect(ticksOf(instance)).toEqual([960]);
+  });
+
+  it("forgets the selected point when the lane changes", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    seedLanes(instance, [lane("a", 1, [960]), lane("b", 7, [960])]);
+    const first = await openLane(user, "Modulation (CC 1)");
+    await user.pointer({ target: first, coords: { clientX: 96, clientY: 5 }, keys: "[MouseLeft]" });
+    const second = await openLane(user, "Volume (CC 7)");
+    act(() => second.focus());
+    await user.keyboard("{Delete}");
+    expect(controllersOf(instance)).toHaveLength(2);
+  });
+
+  it("refuses an add to a full lane and drops no point", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    const ticks = Array.from({ length: 4096 }, (_, i) => 100 + i);
+    seedLanes(instance, [lane("a", 1, ticks)]);
+    const el = await openLane(user, "Modulation (CC 1)");
+    await user.pointer({ target: el, coords: { clientX: 0, clientY: 5 }, keys: "[MouseLeft]" });
+    const points = controllersOf(instance)![0].points;
+    expect(points).toHaveLength(4096);
+    expect(points[points.length - 1].tick).toBe(4195);
+  });
+});
+
+describe("PianoRoll inspector length", () => {
+  it("fits expression to a shortened note", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    act(() => {
+      instance.doc.setState((s) => ({
+        clips: s.clips.map((c) =>
+          c.id === CLIP_ID
+            ? {
+                ...c,
+                notes: (c.notes ?? []).map((n) =>
+                  n.id === "n1"
+                    ? { ...n, durationTick: 1920, expression: { pitch: [{ tick: 1440, value: 5 }] } }
+                    : n
+                )
+              }
+            : c
+        )
+      }));
+    });
+    await user.pointer({
+      target: screen.getByTestId("piano-roll-grid"),
+      coords: { clientX: 10, clientY: 166 },
+      keys: "[MouseLeft]"
+    });
+    const length = screen.getByLabelText("Length (beats)");
+    await user.clear(length);
+    await user.type(length, "1");
+    await user.tab();
+    const n1 = notesOf(instance).find((n) => n.id === "n1")!;
+    expect(n1.durationTick).toBe(960);
+    expect(n1.expression?.pitch?.every((p) => p.tick <= 960)).toBe(true);
+  });
+});
+
+describe("PianoRoll Logic-style tools and inspector", () => {
+  const press = async (
+    user: ReturnType<typeof userEvent.setup>,
+    target: HTMLElement,
+    x: number,
+    y: number,
+    opts: { ctrl?: boolean; moveTo?: [number, number] } = {}
+  ) => {
+    if (opts.ctrl) await user.keyboard("{Control>}");
+    const steps: Parameters<typeof user.pointer>[0] = [
+      { keys: "[MouseLeft>]", target, coords: { clientX: x, clientY: y } }
+    ];
+    if (opts.moveTo) {
+      steps.push({ target, coords: { clientX: opts.moveTo[0], clientY: opts.moveTo[1] } });
+    }
+    steps.push({
+      keys: "[/MouseLeft]",
+      target,
+      coords: { clientX: opts.moveTo?.[0] ?? x, clientY: opts.moveTo?.[1] ?? y }
+    });
+    await user.pointer(steps);
+    if (opts.ctrl) await user.keyboard("{/Control}");
+  };
+
+  it("a Pointer click on empty grid clears the selection and creates no note", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    const grid = screen.getByTestId("piano-roll-grid");
+    await press(user, grid, 100, 134); // select n2
+    expect(screen.getByRole("spinbutton", { name: "Velocity" })).toHaveValue(100);
+    await press(user, grid, 400, 166); // empty cell
+    expect(notesOf(instance)).toEqual(seedNotes());
+    expect(screen.getByRole("slider", { name: "Selected note velocity" })).toBeDisabled();
+  });
+
+  it("a Ctrl-click (second tool, Pencil) creates a note", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    await press(user, screen.getByTestId("piano-roll-grid"), 400, 166, { ctrl: true });
+    expect(notesOf(instance)).toHaveLength(4);
+  });
+
+  it("a Cmd-click uses the second tool on a Mac", async () => {
+    const spy = jest.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    try {
+      const user = userEvent.setup();
+      const instance = setup();
+      await user.keyboard("{Meta>}");
+      await user.pointer({ keys: "[MouseLeft]", target: screen.getByTestId("piano-roll-grid"), coords: { clientX: 400, clientY: 166 } });
+      await user.keyboard("{/Meta}");
+      expect(notesOf(instance)).toHaveLength(4);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("the inspector Q quantizes the selection", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    act(() => {
+      instance.doc.getState().setClipNotes(CLIP_ID, [note("n1", 60, 100, 200), note("n2", 62, 1000, 200)]);
+    });
+    await user.click(screen.getByTestId("piano-roll"));
+    await user.keyboard("{Control>}a{/Control}");
+    await user.click(screen.getByRole("button", { name: "Quantize notes" }));
+    expect(notesOf(instance).map((n) => n.startTick)).toEqual([0, 960]);
+  });
+
+  it("the velocity slider shifts every selected note by one offset", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    act(() => {
+      instance.doc.getState().setClipNotes(CLIP_ID, seedNotes().map((n, i) => ({ ...n, velocity: [50, 70, 90][i] })));
+    });
+    await user.click(screen.getByTestId("piano-roll"));
+    await user.keyboard("{Control>}a{/Control}");
+    const slider = screen.getByRole("slider", { name: "Selected note velocity" });
+    expect(slider).toHaveValue("50");
+    act(() => slider.focus());
+    await user.keyboard("{ArrowRight}{ArrowRight}");
+    expect(notesOf(instance).map((n) => n.velocity)).toEqual([52, 72, 92]);
+  });
+
+  it("collapse mode shows only the used rows", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    act(() => {
+      instance.ui.getState().setPianoRollSettings({ collapse: true });
+      instance.doc.getState().setClipNotes(CLIP_ID, [note("a", 60, 0), note("b", 72, 960), note("c", 60, 1920)]);
+    });
+    const grid = screen.getByTestId("piano-roll-grid");
+    // Rows are 72 then 60, 16 px each. A Ctrl-click (Pencil) in the second row creates pitch 60.
+    await press(user, grid, 400, 24, { ctrl: true });
+    const added = notesOf(instance).filter((n) => !["a", "b", "c"].includes(n.id));
+    expect(added.map((n) => n.pitch)).toEqual([60]);
+    // Below the last row the pitch clamps to the last row.
+    await press(user, grid, 600, 200, { ctrl: true });
+    expect(notesOf(instance).filter((n) => !["a", "b", "c"].includes(n.id)).map((n) => n.pitch)).toEqual([60, 60]);
+  });
+
+  it("Snap Smart picks the step from smartSnapTicks", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    act(() => instance.ui.getState().setPianoRollSettings({ snapValue: "smart" }));
+    // 0.1 px per tick: 240 ticks is 24 px, 120 ticks is 12 px, so the step is 240.
+    await press(user, screen.getByTestId("piano-roll-grid"), 130, 166, { ctrl: true });
+    const added = notesOf(instance).find((n) => !["n1", "n2", "n3"].includes(n.id));
+    expect(added).toMatchObject({ startTick: 1200, durationTick: 240 });
+  });
+
+  it("the Eraser deletes every note a drag passes over in one undo step", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    act(() => instance.ui.getState().setPianoRollSettings({ tool: "eraser" }));
+    const grid = screen.getByTestId("piano-roll-grid");
+    const before = undoDepth(instance);
+    // n1 pitch 60 at y 160..176; n2 pitch 62 at y 128..144. Drag across both.
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: grid, coords: { clientX: 10, clientY: 166 } },
+      { target: grid, coords: { clientX: 100, clientY: 134 } },
+      { keys: "[/MouseLeft]", target: grid, coords: { clientX: 100, clientY: 134 } }
+    ]);
+    expect(notesOf(instance).map((n) => n.id)).toEqual(["n3"]);
+    expect(undoDepth(instance)).toBe(before + 1);
+  });
 });

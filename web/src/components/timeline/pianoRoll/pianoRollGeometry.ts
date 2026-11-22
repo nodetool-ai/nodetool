@@ -17,6 +17,20 @@ import type { MidiNote } from "@nodetool-ai/timeline";
 /** How wide the grab zone on a note's right edge is. */
 export const NOTE_END_GRIP_PX = 8;
 
+/**
+ * The rows Collapse Mode shows: the pitches a clip uses, highest first, and
+ * each pitch's row index.
+ */
+export interface RowSet {
+  pitches: readonly number[];
+  index: ReadonlyMap<number, number>;
+}
+
+/** Build a `RowSet` from pitches listed highest first. */
+export function makeRowSet(pitches: readonly number[]): RowSet {
+  return { pitches, index: new Map(pitches.map((pitch, i) => [pitch, i])) };
+}
+
 export interface PianoRollGeometry {
   /** Horizontal zoom. */
   pxPerTick: number;
@@ -26,6 +40,10 @@ export interface PianoRollGeometry {
   rowHeightPx: number;
   /** The pitch drawn on the top row. */
   topPitch: number;
+  /** Collapse Mode: the rows drawn instead of every semitone. */
+  rows?: RowSet;
+  /** Collapse Mode: the row index drawn on the top row. Default 0. */
+  topRow?: number;
 }
 
 /** Where a tick sits, in grid-local pixels. */
@@ -41,12 +59,22 @@ export function xToTick(x: number, geometry: PianoRollGeometry): number {
 
 /** The top edge of a pitch's row, in grid-local pixels. */
 export function pitchToY(pitch: number, geometry: PianoRollGeometry): number {
+  if (geometry.rows) {
+    const row = geometry.rows.index.get(pitch);
+    if (row === undefined) return Number.NEGATIVE_INFINITY;
+    return (row - (geometry.topRow ?? 0)) * geometry.rowHeightPx;
+  }
   return (geometry.topPitch - pitch) * geometry.rowHeightPx;
 }
 
 /** Which pitch a grid-local y is over. Not clamped — the caller decides. */
 export function yToPitch(y: number, geometry: PianoRollGeometry): number {
   if (geometry.rowHeightPx <= 0) return geometry.topPitch;
+  if (geometry.rows) {
+    const { pitches } = geometry.rows;
+    const row = (geometry.topRow ?? 0) + Math.floor(y / geometry.rowHeightPx);
+    return pitches[Math.min(pitches.length - 1, Math.max(0, row))]!;
+  }
   return geometry.topPitch - Math.floor(y / geometry.rowHeightPx);
 }
 

@@ -21,8 +21,10 @@ class FakeMidiRenderWorker extends EventTarget {
     const samples = renderMidiClip({
       clip: {
         notes: request.notes,
+        controllers: request.controllers,
         inPointMs: request.inPointMs,
-        durationMs: request.durationMs
+        durationMs: request.durationMs,
+        loopLengthMs: request.loopLengthMs
       },
       bpm: request.bpm,
       instrument: request.instrument,

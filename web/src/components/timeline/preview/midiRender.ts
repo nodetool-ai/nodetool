@@ -34,7 +34,7 @@ import { renderVstBuffer } from "./vstRender";
 /** The slice of a clip a render reads. */
 export type MidiRenderClip = Pick<
   TimelineClip,
-  "notes" | "inPointMs" | "durationMs"
+  "notes" | "controllers" | "inPointMs" | "durationMs" | "loopLengthMs"
 >;
 
 /**
@@ -57,8 +57,10 @@ function renderSamples(request: Omit<MidiRenderRequest, "id">): Promise<Float32A
       renderMidiClip({
         clip: {
           notes: request.notes,
+          controllers: request.controllers,
           inPointMs: request.inPointMs,
-          durationMs: request.durationMs
+          durationMs: request.durationMs,
+          loopLengthMs: request.loopLengthMs
         },
         bpm: request.bpm,
         instrument: request.instrument,
@@ -163,8 +165,10 @@ function renderMonoBuffer(
   const sampleRate = ctx.sampleRate;
   return getSamplerAudio(ctx, instrument).then(samples => renderSamples({
     notes,
+    controllers: clip.controllers,
     inPointMs: clip.inPointMs ?? 0,
     durationMs: clip.durationMs,
+    loopLengthMs: clip.loopLengthMs,
     bpm,
     instrument,
     sampleRate,

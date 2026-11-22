@@ -17,7 +17,14 @@ import type { MidiNote, NoteRect } from "@nodetool-ai/timeline";
 import { useTranslation } from "react-i18next";
 
 import { BORDER_RADIUS, TYPOGRAPHY } from "../../ui_primitives";
-import { pickPianoRollColors } from "./pianoRollColors";
+import {
+  NEUTRAL_NOTE_RGB,
+  noteDrawColors,
+  parseCssColor,
+  pickPianoRollColors,
+  type Rgb
+} from "./pianoRollColors";
+import { velocityColor } from "@nodetool-ai/timeline";
 import {
   isBlackKey,
   noteRect,
@@ -29,8 +36,14 @@ import {
 
 /** How round a note bar's corners are, in px. */
 
-/** The quietest note still draws at this opacity. */
-const MIN_NOTE_ALPHA = 0.45;
+/** A note needs this much room before it shows its velocity line. */
+const VELOCITY_LINE_MIN_WIDTH_PX = 8;
+const VELOCITY_LINE_MIN_HEIGHT_PX = 6;
+/** Padding of the velocity line inside its note, and its thickness. */
+const VELOCITY_LINE_INSET_PX = 3;
+const VELOCITY_LINE_THICKNESS_PX = 2;
+/** Opacity of the lines at the snap step. */
+const FAINT_LINE_ALPHA = 0.5;
 /** Fill opacity of a harmony ghost note. */
 const GHOST_NOTE_ALPHA = 0.22;
 
@@ -52,8 +65,14 @@ interface PianoRollGridProps {
   /** Notes the clip plays but does not hold (its harmony expansion), drawn read-only. */
   ghostNotes?: ReadonlyArray<MidiNote>;
   selectedIds: ReadonlySet<string>;
-  /** Content ticks a subdivision line sits on. */
-  gridTicks: readonly number[];
+  /** Content ticks a beat line sits on. */
+  beatTicks: readonly number[];
+  /** Content ticks a line at the snap step sits on. Faint. */
+  stepTicks: readonly number[];
+  /** `velocity` colors a note by its velocity, `clip` by the clip color. */
+  noteColorMode: "velocity" | "clip";
+  /** The clip color, when it is a plain color the canvas can read. */
+  clipColor?: string;
   /** Content ticks a bar line sits on. */
   barTicks: readonly number[];
   /** The clip's window, in content ticks. Notes outside it are never heard. */
@@ -61,6 +80,43 @@ interface PianoRollGridProps {
   windowToTick: number;
   /** The in-progress marquee, in content ticks and pitches. */
   marquee: NoteRect | null;
+}
+
+/** A muted note's fill and outline strength. */
+const MUTED_NOTE_FILL_ALPHA = 0.15;
+const MUTED_NOTE_OUTLINE_ALPHA = 0.8;
+
+/**
+ * A thin line inside a note that has a pitch expression curve: one semitone of
+ * bend moves the line one row, so a bend reads against the keyboard.
+ */
+function drawPitchExpression(
+  ctx: CanvasRenderingContext2D,
+  note: MidiNote,
+  points: ReadonlyArray<{ tick: number; value: number }>,
+  geometry: PianoRollGeometry,
+  rect: { x: number; y: number; width: number; height: number },
+  color: string
+): void {
+  const centreY = rect.y + rect.height / 2;
+  const yAt = (value: number): number => centreY - value * geometry.rowHeightPx;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rect.x, rect.y - geometry.rowHeightPx * 2, Math.max(2, rect.width - 1), rect.height + geometry.rowHeightPx * 4);
+  ctx.clip();
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = 0.9;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const x0 = tickToX(note.startTick + points[0].tick, geometry);
+  ctx.moveTo(rect.x, yAt(0));
+  ctx.lineTo(x0, yAt(0));
+  for (const p of points) {
+    ctx.lineTo(tickToX(note.startTick + p.tick, geometry), yAt(p.value));
+  }
+  ctx.lineTo(rect.x + rect.width, yAt(points[points.length - 1].value));
+  ctx.stroke();
+  ctx.restore();
 }
 
 export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
@@ -71,7 +127,10 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
     notes,
     ghostNotes,
     selectedIds,
-    gridTicks,
+    beatTicks,
+    stepTicks,
+    noteColorMode,
+    clipColor,
     barTicks,
     windowFromTick,
     windowToTick,
@@ -106,17 +165,28 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
       ctx.fillRect(0, 0, widthPx, heightPx);
       const rows = Math.ceil(heightPx / geometry.rowHeightPx) + 1;
       for (let row = 0; row < rows; row++) {
-        const pitch = geometry.topPitch - row;
-        if (pitch < 0 || pitch > 127) continue;
+        const pitch = geometry.rows
+          ? geometry.rows.pitches[(geometry.topRow ?? 0) + row]
+          : geometry.topPitch - row;
+        if (pitch === undefined || pitch < 0 || pitch > 127) continue;
         if (!isBlackKey(pitch)) continue;
         ctx.fillStyle = colors.blackRow;
         ctx.fillRect(0, pitchToY(pitch, geometry), widthPx, geometry.rowHeightPx);
       }
 
-      // Grid lines, then the stronger bar lines over them.
+      // Grid lines: snap steps faint, beats medium, then bars strong.
       ctx.strokeStyle = colors.gridLine;
+      ctx.globalAlpha = FAINT_LINE_ALPHA;
       ctx.beginPath();
-      for (const tick of gridTicks) {
+      for (const tick of stepTicks) {
+        const x = Math.round(tickToX(tick, geometry)) + 0.5;
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, heightPx);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      for (const tick of beatTicks) {
         const x = Math.round(tickToX(tick, geometry)) + 0.5;
         ctx.moveTo(x, 0);
         ctx.lineTo(x, heightPx);
@@ -162,30 +232,64 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
       }
 
       // Notes.
+      const clipRgb = parseCssColor(clipColor) ?? parseCssColor(colors.note) ?? NEUTRAL_NOTE_RGB;
       for (const note of notes) {
         const rect = noteRect(note, geometry);
         if (rect.x > widthPx || rect.x + rect.width < 0) continue;
         if (rect.y > heightPx || rect.y + rect.height < 0) continue;
         const selected = selectedIds.has(note.id);
-        ctx.globalAlpha =
-          MIN_NOTE_ALPHA + (note.velocity / 127) * (1 - MIN_NOTE_ALPHA);
-        ctx.fillStyle = colors.note;
+        const base: Rgb = noteColorMode === "clip" ? clipRgb : velocityColor(note.velocity);
+        const palette = noteDrawColors(base);
+        const bodyX = rect.x;
+        const bodyY = rect.y + 1;
+        const bodyW = Math.max(2, rect.width - 1);
+        const bodyH = Math.max(1, rect.height - 2);
+        ctx.fillStyle = palette.fill;
+        ctx.strokeStyle = palette.border;
         ctx.beginPath();
-        ctx.roundRect(
-          rect.x,
-          rect.y + 1,
-          Math.max(2, rect.width - 1),
-          Math.max(1, rect.height - 2),
-          noteRadius
-        );
-        ctx.fill();
+        ctx.roundRect(bodyX + 0.5, bodyY + 0.5, Math.max(1, bodyW - 1), Math.max(1, bodyH - 1), noteRadius);
+        if (note.muted) {
+          // A muted note is drawn hollow: an outline and a faint fill.
+          ctx.globalAlpha = MUTED_NOTE_FILL_ALPHA;
+          ctx.fill();
+          ctx.globalAlpha = MUTED_NOTE_OUTLINE_ALPHA;
+          ctx.strokeStyle = palette.fill;
+          ctx.stroke();
+        } else {
+          ctx.fill();
+          ctx.stroke();
+        }
         ctx.globalAlpha = 1;
+        if (
+          !note.muted &&
+          bodyW >= VELOCITY_LINE_MIN_WIDTH_PX &&
+          bodyH >= VELOCITY_LINE_MIN_HEIGHT_PX
+        ) {
+          const lineY = bodyY + bodyH / 2;
+          const lineStart = bodyX + VELOCITY_LINE_INSET_PX;
+          const lineEnd =
+            lineStart +
+            Math.round((bodyW - VELOCITY_LINE_INSET_PX * 2) * (note.velocity / 127));
+          ctx.fillStyle = palette.line;
+          ctx.fillRect(
+            lineStart,
+            lineY - VELOCITY_LINE_THICKNESS_PX / 2,
+            Math.max(0, lineEnd - lineStart),
+            VELOCITY_LINE_THICKNESS_PX
+          );
+        }
+        const pitchCurve = note.expression?.pitch;
+        if (pitchCurve && pitchCurve.length > 0) {
+          drawPitchExpression(ctx, note, pitchCurve, geometry, rect, colors.noteSelected);
+        }
         if (rect.width > 44 && rect.height >= 16) {
           ctx.fillStyle = colors.noteSelected;
           ctx.fillText(pitchName(note.pitch), rect.x + 4, rect.y + rect.height - 4);
         }
         if (selected) {
           ctx.strokeStyle = colors.noteSelected;
+          ctx.beginPath();
+          ctx.roundRect(bodyX, bodyY, bodyW, bodyH, noteRadius);
           ctx.stroke();
         }
       }
@@ -212,7 +316,10 @@ export const PianoRollGrid: React.FC<PianoRollGridProps> = memo(
       notes,
       ghostNotes,
       selectedIds,
-      gridTicks,
+      beatTicks,
+      stepTicks,
+      noteColorMode,
+      clipColor,
       barTicks,
       windowFromTick,
       windowToTick,

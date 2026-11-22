@@ -21,24 +21,21 @@ import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
+  type ClipEditorTab,
   useTimelineUIStore,
   MAX_PIANO_ROLL_HEIGHT_PX,
   MIN_PIANO_ROLL_HEIGHT_PX
 } from "../../../stores/timeline/TimelineUIStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import {
-  Caption,
-  SelectField,
-  EditorButton,
   CloseButton,
   FlexColumn,
   MOTION,
-  ToolbarIconButton,
-  TruncatedText
+  TabGroup,
+  ToolbarIconButton
 } from "../../ui_primitives";
-import type { TempoGridDivision } from "@nodetool-ai/timeline";
-import { GRID_DIVISION_OPTIONS } from "../Tracks/tempoGrid";
 import { PianoRoll } from "./PianoRoll";
+import { StepEditor } from "../stepEditor/StepEditor";
 
 const HANDLE_HEIGHT_PX = 6;
 /** Arrow-key step for keyboard resizing. */
@@ -88,10 +85,15 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
     const heightPx = useTimelineUIStore((s) => s.pianoRollHeightPx);
     const setHeightPx = useTimelineUIStore((s) => s.setPianoRollHeightPx);
     const closePianoRoll = useTimelineUIStore((s) => s.closePianoRoll);
-    const setGridDivision = useTimelineUIStore((s) => s.setGridDivision);
-    const snapEnabled = useTimelineUIStore((s) => s.snapEnabled);
-    const toggleSnap = useTimelineUIStore((s) => s.toggleSnap);
-    const gridDivision = useTimelineUIStore((s) => s.gridDivision);
+    const openPianoRoll = useTimelineUIStore((s) => s.openPianoRoll);
+    const linked = useTimelineUIStore((s) => s.pianoRollSettings.link);
+    const editorTab = useTimelineUIStore((s) => s.clipEditorTab);
+    const setEditorTab = useTimelineUIStore((s) => s.setClipEditorTab);
+    const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
+    const selectedClip = useTimelineStore((s) => {
+      if (selectedClipIds.size !== 1) return undefined;
+      return findClipById(s.clips, [...selectedClipIds][0]!);
+    });
 
     // A clip the panel is open on can be deleted, or the whole document
     // replaced by an external sync — either way the panel has nothing left to
@@ -103,6 +105,18 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
     useEffect(() => {
       if (clipId !== null && !isEditable) closePianoRoll();
     }, [clipId, isEditable, closePianoRoll]);
+
+    // Link: the editor follows the one midi clip selected in the timeline.
+    useEffect(() => {
+      if (
+        linked &&
+        clipId !== null &&
+        selectedClip?.mediaType === "midi" &&
+        selectedClip.id !== clipId
+      ) {
+        openPianoRoll(selectedClip.id);
+      }
+    }, [linked, clipId, selectedClip, openPianoRoll]);
 
     const [isDragging, setIsDragging] = useState(false);
     const dragStartYRef = useRef(0);
@@ -156,6 +170,26 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
 
     if (clipId === null || !isEditable) return null;
 
+    const toolbarStart = (
+      <>
+        {fullHeight && !docked && (
+          <ToolbarIconButton
+            onClick={closePianoRoll}
+            tooltip={t("pass3_21.timeline.pianoRoll.panel.backToTracks")}
+            aria-label={t("pass3_21.timeline.pianoRoll.panel.backToTracks")}
+          >
+            <ArrowBackIosNewIcon fontSize="small" />
+          </ToolbarIconButton>
+        )}
+      </>
+    );
+    const toolbarEnd = (!fullHeight || docked) && (
+      <CloseButton
+        onClick={closePianoRoll}
+        tooltip={t("pass3_21.timeline.pianoRoll.panel.closeNoteEditor")}
+      />
+    );
+
     return (
       <>
         {!fullHeight && !docked && (
@@ -183,43 +217,34 @@ export const PianoRollPanel: React.FC<PianoRollPanelProps> = memo(
               : { height: heightPx }
           }
         >
-          <PianoRoll
-            clipId={clipId}
-            onClose={closePianoRoll}
-            toolbarStart={
-              <>
-                {fullHeight && !docked && (
-                  <ToolbarIconButton
-                    onClick={closePianoRoll}
-                    tooltip={t("pass3_21.timeline.pianoRoll.panel.backToTracks")}
-                    aria-label={t("pass3_21.timeline.pianoRoll.panel.backToTracks")}
-                  >
-                    <ArrowBackIosNewIcon fontSize="small" />
-                  </ToolbarIconButton>
-                )}
-                <TruncatedText maxWidth={180}>
-                  {clip.name || t("pass3_21.timeline.pianoRoll.panel.midiClip")}
-                </TruncatedText>
-                <Caption color="muted" sx={{ whiteSpace: "nowrap" }}>
-                  {t("pass3_21.timeline.pianoRoll.panel.noteCount", {
-                    count: clip.notes?.length ?? 0
-                  })}
-                </Caption>
-                <SelectField label={t("pass3_21.timeline.pianoRoll.panel.noteGrid")} hideLabel size="small" value={gridDivision}
-                  options={GRID_DIVISION_OPTIONS} css={css({ width: 96 })}
-                  onChange={(value) => setGridDivision(value as TempoGridDivision)} />
-                <EditorButton variant={snapEnabled ? "contained" : "text"} onClick={toggleSnap} aria-label={t("pass3_21.timeline.pianoRoll.panel.snapNotes")} aria-pressed={snapEnabled}>{t("pass3_21.timeline.pianoRoll.panel.snap")}</EditorButton>
-              </>
-            }
-            toolbarEnd={
-              (!fullHeight || docked) && (
-                <CloseButton
-                  onClick={closePianoRoll}
-                  tooltip={t("pass3_21.timeline.pianoRoll.panel.closeNoteEditor")}
-                />
-              )
-            }
+          <TabGroup
+            size="small"
+            aria-label={t("pass3_20.stepEditor.tab.aria")}
+            data-testid="clip-editor-tabs"
+            tabs={[
+              { value: "pianoRoll", label: t("pass3_20.stepEditor.tab.pianoRoll") },
+              { value: "stepEditor", label: t("pass3_20.stepEditor.tab.stepEditor") }
+            ]}
+            value={editorTab}
+            onChange={(value) => setEditorTab(value as ClipEditorTab)}
           />
+          {editorTab === "stepEditor" ? (
+            <StepEditor
+              clipId={clipId}
+              onClose={closePianoRoll}
+              compact={fullHeight}
+              toolbarStart={toolbarStart}
+              toolbarEnd={toolbarEnd}
+            />
+          ) : (
+            <PianoRoll
+              clipId={clipId}
+              onClose={closePianoRoll}
+              compact={fullHeight}
+              toolbarStart={toolbarStart}
+              toolbarEnd={toolbarEnd}
+            />
+          )}
         </FlexColumn>
       </>
     );
