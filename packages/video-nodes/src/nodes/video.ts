@@ -69,7 +69,10 @@ import {
 import {
   assertSaveTargetIsOwn,
   writeSaveTargetFile,
-  writeSavedFile,
+  writeSavedFileAsset,
+  savedMediaRef,
+  workspaceFolderOf,
+  type FolderValue,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
@@ -885,20 +888,22 @@ function saveFolder(rawFolder: unknown, context?: ProcessingContext): string {
   );
 }
 
-/** Output handles SaveVideoFileVideoNode.process() emits. */
-type SaveVideoFileVideoNodeOutputs = {
+/** Output handles SaveVideoNode.process() emits. */
+type SaveVideoNodeOutputs = {
   output: VideoRef;
+  path: string;
 };
 
-export class SaveVideoFileVideoNode extends BaseNode {
-  static readonly nodeType = "nodetool.video.SaveVideoFile";
-  static readonly title = "Save Video File";
+export class SaveVideoNode extends BaseNode {
+  static readonly nodeType = "nodetool.video.SaveVideo";
+  static readonly title = "Save Video";
   static readonly description =
-    "Write a video file to disk.\n    video, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second";
+    "Save a video into the project folder, or to a folder on disk.\n    video, output, save, file, asset\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second";
   static readonly metadataOutputTypes = {
-    output: "video"
+    output: "video",
+    path: "str"
   };
-  static readonly inlineFields: string[] = ["save_to_workspace"];
+  static readonly inlineFields: string[] = ["save_to_workspace", "filename"];
   static readonly inputFields: string[] = ["video"];
 
   @prop({
@@ -924,7 +929,7 @@ export class SaveVideoFileVideoNode extends BaseNode {
     description: "Folder where the file will be saved",
     json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
-  declare folder: string;
+  declare folder: FolderValue;
 
   @prop({
     type: "str",
@@ -935,20 +940,31 @@ export class SaveVideoFileVideoNode extends BaseNode {
   })
   declare filename: string;
 
-  async process(context?: ProcessingContext): Promise<SaveVideoFileVideoNodeOutputs> {
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Overwrite",
+    description:
+      "Overwrite the file if it already exists, otherwise file will be renamed"
+  })
+  declare overwrite: boolean;
+
+  async process(context?: ProcessingContext): Promise<SaveVideoNodeOutputs> {
     // dateName resolves to second granularity, so two saves in the same second
-    // collide — resolveSaveTarget numbers them rather than overwriting.
+    // collide — writeSavedFile numbers them rather than overwriting.
     const bytes = await videoBytesAsync(this.video, context);
-    const p = await writeSavedFile({
+    const { path: p, asset_id } = await writeSavedFileAsset({
       folder: this.folder,
       filename: dateName(String(this.filename || "video.mp4")),
+      workspaceFolder: await workspaceFolderOf(this.folder, context),
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
       context: context ?? null,
+      overwrite: this.overwrite,
       bytes
     });
-    return { output: videoRef(bytes, { uri: `file://${p}` }) };
+    return { output: savedMediaRef(videoRef(bytes, { uri: `file://${p}` }), asset_id), path: p };
   }
 }
 
@@ -1038,67 +1054,6 @@ export class LoadVideoAssetsNode extends BaseNode {
       yield { video: item.video, name: item.name };
     }
     yield { videos: allVideos, names: allNames };
-  }
-}
-
-/** Output handles SaveVideoNode.process() emits. */
-type SaveVideoNodeOutputs = {
-  output: VideoRef;
-};
-
-export class SaveVideoNode extends BaseNode {
-  static readonly nodeType = "nodetool.video.SaveVideo";
-  static readonly title = "Save Video Asset";
-  static readonly description =
-    "Save a video to an asset folder.\n    video, save, file, output";
-  static readonly metadataOutputTypes = {
-    output: "video"
-  };
-  static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["video"];
-
-  @prop({
-    type: "video",
-    default: defaultVideoRef(),
-    title: "Video",
-    description: "The video to save."
-  })
-  declare video: VideoRef;
-
-  @prop({
-    type: "folder",
-    default: {
-      type: "folder",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Folder",
-    description: "The asset folder to save the video in."
-  })
-  declare folder: FolderRef;
-
-  @prop({
-    type: "str",
-    default: "%Y-%m-%d-%H-%M-%S.mp4",
-    title: "Name",
-    description:
-      "\n        Name of the output video.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
-  })
-  declare name: string;
-
-  async process(context?: ProcessingContext): Promise<SaveVideoNodeOutputs> {
-    const folder = saveFolder(this.folder, context);
-    const filename = dateName(String(this.name || "video.mp4"));
-    await assertSaveTargetIsOwn(context, path.resolve(folder, filename));
-    await fs.mkdir(path.resolve(folder), { recursive: true });
-    // dateName resolves to second granularity, so two saves in the same second
-    // collide — de-duplicate with a -1/-2/… suffix rather than overwrite.
-    const full = await uniqueTargetPath(path.resolve(folder, filename));
-    const bytes = await videoBytesAsync(this.video, context);
-    await writeSaveTargetFile(context, full, bytes);
-    return { output: videoRef(bytes, { uri: `file://${full}` }) };
   }
 }
 
@@ -3166,7 +3121,6 @@ export const VIDEO_NODES = [
   ImageToVideoNode,
   ReferenceToVideoNode,
   LoadVideoFileNode,
-  SaveVideoFileVideoNode,
   LoadVideoAssetsNode,
   SaveVideoNode,
   ForEachFrameNode,

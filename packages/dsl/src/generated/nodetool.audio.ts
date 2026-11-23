@@ -288,35 +288,22 @@ export function loadAudioFolder(inputs: LoadAudioFolderInputs, options?: NodeOpt
   return createNode("nodetool.audio.LoadAudioFolder", inputs, { id: options?.id, outputNames: ["audio", "path", "audios"], outputTypes: {"audio":"audio","path":"str","audios":"list"}, streaming: true, inputMode: "buffered", outputCorrelation: {"audio":{"kind":"iteration","source":"__execution__","group":"items"},"path":{"kind":"iteration","source":"__execution__","group":"items"},"audios":{"kind":"single","source":"__execution__"}} });
 }
 
-// Save Audio Asset — nodetool.audio.SaveAudio
+// Save Audio — nodetool.audio.SaveAudio
 export type SaveAudioInputs = {
-  audio?: Connectable<AudioRef>;
-  folder?: Connectable<FolderRef>;
-  name?: Connectable<string>;
-};
-
-export interface SaveAudioOutputs {
-  output: AudioRef;
-}
-
-export function saveAudio(inputs: SaveAudioInputs, options?: NodeOptions): NodeWithOutputs<SaveAudioOutputs, "output"> {
-  return createNode("nodetool.audio.SaveAudio", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
-}
-
-// Save Audio File — nodetool.audio.SaveAudioFile
-export type SaveAudioFileInputs = {
   audio?: Connectable<AudioRef>;
   save_to_workspace?: Connectable<boolean>;
   folder?: Connectable<string>;
   filename?: Connectable<string>;
+  overwrite?: Connectable<boolean>;
 };
 
-export interface SaveAudioFileOutputs {
+export interface SaveAudioOutputs {
   output: AudioRef;
+  path: string;
 }
 
-export function saveAudioFile(inputs: SaveAudioFileInputs, options?: NodeOptions): NodeWithOutputs<SaveAudioFileOutputs, "output"> {
-  return createNode("nodetool.audio.SaveAudioFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"audio"}, defaultOutput: "output" });
+export function saveAudio(inputs: SaveAudioInputs, options?: NodeOptions): NodeWithOutputs<SaveAudioOutputs> {
+  return createNode("nodetool.audio.SaveAudio", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: {"output":"audio","path":"str"} });
 }
 
 // Text To Speech — nodetool.audio.TextToSpeech

@@ -28,6 +28,7 @@
     "@nodetool-ai/execution": "*",
     "@nodetool-ai/game-runtime": "*",
     "@nodetool-ai/gpu": "*",
+    "@nodetool-ai/huggingface": "*",
     "@nodetool-ai/image-editor": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/model-pricing": "*",
@@ -142,6 +143,12 @@
       "types": "./dist/workflow-graph-save.d.ts",
       "import": "./dist/workflow-graph-save.js",
       "default": "./dist/workflow-graph-save.js"
+    },
+    "./text-document-transfer": {
+      "nodetool-dev": "./src/text-document-transfer.ts",
+      "types": "./dist/text-document-transfer.d.ts",
+      "import": "./dist/text-document-transfer.js",
+      "default": "./dist/text-document-transfer.js"
     },
     "./tool": {
       "nodetool-dev": "./src/tools/base-tool.ts",

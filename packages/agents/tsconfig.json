@@ -89,6 +89,9 @@
       "path": "../gpu"
     },
     {
+      "path": "../huggingface"
+    },
+    {
       "path": "../sandbox-runtime"
     },
     {

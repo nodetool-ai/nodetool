@@ -11,8 +11,8 @@ namespace: "nodetool.text"
 
 ## Description
 
-Saves input text to a file in the assets folder.
-    text, save, file
+Save text to a file in the project folder, or to a folder on disk.
+    text, save, file, output
 
     Use cases:
     - Persisting processed text results
@@ -24,14 +24,17 @@ Saves input text to a file in the assets folder.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | text | `str` |  | `` |
-| folder | `folder` | Name of the output folder. | `{"type":"folder","uri":"","asset_id":null,"data...` |
-| name | `str` |          Name of the output file.         You can use time and date variables to create unique names:         %Y - Year         %m - Month         %d - Day         %H - Hour         %M - Minute         %S - Second          | `%Y-%m-%d-%H-%M-%S.txt` |
+| save_to_workspace | `bool` |  | `true` |
+| folder | `str` | Path to the output folder. | `` |
+| filename | `str` |          Name of the output file.         You can use time and date variables to create unique names:         %Y - Year         %m - Month         %d - Day         %H - Hour         %M - Minute         %S - Second          | `%Y-%m-%d-%H-%M-%S.txt` |
+| overwrite | `bool` | Overwrite the file if it already exists, otherwise file will be renamed | `false` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
 | output | `text` |  |
+| path | `str` |  |
 
 ## Related Nodes
 

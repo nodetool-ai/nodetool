@@ -296,35 +296,22 @@ loadAudioFolder.stream = function (inputs: LoadAudioFolderInputs): AsyncIterable
   return streamNode<Partial<LoadAudioFolderOutputs>>("nodetool.audio.LoadAudioFolder", inputs);
 };
 
-// Save Audio Asset — nodetool.audio.SaveAudio
+// Save Audio — nodetool.audio.SaveAudio
 export type SaveAudioInputs = {
-  audio?: AudioRef;
-  folder?: FolderRef;
-  name?: string;
-};
-
-export interface SaveAudioOutputs {
-  output: AudioRef;
-}
-
-export function saveAudio(inputs: SaveAudioInputs): Promise<SaveAudioOutputs> {
-  return callNode<SaveAudioOutputs>("nodetool.audio.SaveAudio", inputs);
-}
-
-// Save Audio File — nodetool.audio.SaveAudioFile
-export type SaveAudioFileInputs = {
   audio?: AudioRef;
   save_to_workspace?: boolean;
   folder?: string;
   filename?: string;
+  overwrite?: boolean;
 };
 
-export interface SaveAudioFileOutputs {
+export interface SaveAudioOutputs {
   output: AudioRef;
+  path: string;
 }
 
-export function saveAudioFile(inputs: SaveAudioFileInputs): Promise<SaveAudioFileOutputs> {
-  return callNode<SaveAudioFileOutputs>("nodetool.audio.SaveAudioFile", inputs);
+export function saveAudio(inputs: SaveAudioInputs): Promise<SaveAudioOutputs> {
+  return callNode<SaveAudioOutputs>("nodetool.audio.SaveAudio", inputs);
 }
 
 // Text To Speech — nodetool.audio.TextToSpeech

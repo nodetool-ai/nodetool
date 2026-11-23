@@ -1373,6 +1373,19 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "receive.release": {
     withheld: "Revision sets belong to the desktop app that captured them."
   },
+  "textDocuments.references": {
+    gap: "The editor lists the workflows that use a document. An agent finds them with list_workflows and get_workflow, and validate_workflow reports a deleted one."
+  },
+  "textDocuments.versions": { capability: "list_document_versions" },
+  "textDocuments.version": {
+    gap: "The agent reads the current document; a stored version's content has no read capability."
+  },
+  "textDocuments.createVersion": { capability: "create_document_version" },
+  "textDocuments.restore": { capability: "restore_document_version" },
+  "textDocuments.import": { capability: "import_document" },
+  "textDocuments.export": { capability: "export_document" },
+  "textDocuments.importGoogleDoc": { capability: "import_google_doc" },
+  "textDocuments.exportGoogleDoc": { capability: "export_google_doc" },
   "deletedDocuments.list": { capability: "list_deleted_documents" },
   "deletedDocuments.restore": { capability: "restore_deleted_document" },
   "deletedDocuments.endRestorePeriod": {

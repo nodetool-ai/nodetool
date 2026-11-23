@@ -17,9 +17,8 @@ import { supportsPlatform, type Platform } from "@nodetool-ai/protocol";
 import {
   LoadImageFileNode,
   LoadImageFolderNode,
-  SaveImageFileImageNode,
-  LoadImageAssetsNode,
   SaveImageNode,
+  LoadImageAssetsNode,
   GetMetadataNode,
   PainterNode,
   BatchToListNode,
@@ -42,9 +41,8 @@ type NodeClassLike = {
 const NODE_ONLY_NODES: NodeClassLike[] = [
   LoadImageFileNode,
   LoadImageFolderNode,
-  SaveImageFileImageNode,
-  LoadImageAssetsNode,
   SaveImageNode,
+  LoadImageAssetsNode,
   GetMetadataNode,
   PainterNode
 ];

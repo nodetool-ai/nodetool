@@ -79,6 +79,7 @@ import { imageDocumentVersions } from "./schema/image-document-versions.js";
 import { imageDocuments } from "./schema/image-documents.js";
 import { jobs } from "./schema/jobs.js";
 import { jsScriptVersions } from "./schema/js-script-versions.js";
+import { textDocumentVersions } from "./schema/text-document-versions.js";
 import { jsScripts } from "./schema/js-scripts.js";
 import {
   mcpOauthGrants,
@@ -549,6 +550,11 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   directStep("nodetool_workflows", workflows, workflows.user_id),
 
   // Content the person authored.
+  directStep(
+    "text_document_versions",
+    textDocumentVersions,
+    textDocumentVersions.user_id
+  ),
   directStep("nodetool_assets", assets, assets.user_id),
   { table: "nodetool_run_spans", async run(ctx) { return deleted("nodetool_run_spans", "delete", await eraseRunTraceTable(ctx.userId, "spans")); } },
   { table: "nodetool_run_traces", async run(ctx) { return deleted("nodetool_run_traces", "delete", await eraseRunTraceTable(ctx.userId, "traces")); } },
@@ -903,6 +909,10 @@ export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
   image_documents: directExport(imageDocuments, imageDocuments.user_id),
   js_script_versions: directExport(jsScriptVersions, jsScriptVersions.user_id),
   js_scripts: directExport(jsScripts, jsScripts.user_id),
+  text_document_versions: directExport(
+    textDocumentVersions,
+    textDocumentVersions.user_id
+  ),
   mcp_oauth_grants: directExport(mcpOauthGrants, mcpOauthGrants.user_id),
   nodetool_assets: directExport(assets, assets.user_id),
   nodetool_credit_ledger: directExport(creditLedger, creditLedger.user_id),

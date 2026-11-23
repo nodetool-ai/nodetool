@@ -18,7 +18,7 @@ export const recipes: LocalizedPageContent = {
       kind: "catalog",
       id: "recipes",
       title: "每个教程都是一个真实跑过的项目。",
-      intro: "点开任何一个，查看每一步和它跑出来的结果（英文页面）。",
+      intro: "点开任何一个，查看每一步和它跑出来的结果。",
       source: "recipes",
     },
     {

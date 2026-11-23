@@ -15,19 +15,25 @@ export function loadDocumentFile(inputs: LoadDocumentFileInputs, options?: NodeO
   return createNode("nodetool.document.LoadDocumentFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"document"}, defaultOutput: "output" });
 }
 
-// Save Document File — nodetool.document.SaveDocumentFile
-export type SaveDocumentFileInputs = {
+// Save Document — nodetool.document.SaveDocument
+export type SaveDocumentInputs = {
   document?: Connectable<unknown>;
+  text?: Connectable<string>;
+  target?: Connectable<unknown>;
+  mode?: Connectable<"replace" | "append">;
   save_to_workspace?: Connectable<boolean>;
   folder?: Connectable<string>;
   filename?: Connectable<string>;
+  overwrite?: Connectable<boolean>;
 };
 
-export interface SaveDocumentFileOutputs {
+export interface SaveDocumentOutputs {
+  output: unknown;
+  path: string;
 }
 
-export function saveDocumentFile(inputs: SaveDocumentFileInputs, options?: NodeOptions): NodeWithOutputs<SaveDocumentFileOutputs> {
-  return createNode("nodetool.document.SaveDocumentFile", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
+export function saveDocument(inputs: SaveDocumentInputs, options?: NodeOptions): NodeWithOutputs<SaveDocumentOutputs> {
+  return createNode("nodetool.document.SaveDocument", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: {"output":"document","path":"str"} });
 }
 
 // List Documents — nodetool.document.ListDocuments

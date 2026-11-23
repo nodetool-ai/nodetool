@@ -978,6 +978,30 @@ const CLOUD_LOCAL_STORE_DDL: readonly string[] = [
     ON cloud_open_state (user_id, server_key, account_id, kind, document_id)`
 ];
 
+/**
+ * DDL for `text_document_versions` (document editor PRD R11), valid on both
+ * dialects. Applied by its migration, and by `initTestDb` through
+ * {@link POST_BASELINE_TABLE_DDL}.
+ */
+const TEXT_DOCUMENT_VERSIONS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS text_document_versions (
+    id TEXT PRIMARY KEY NOT NULL,
+    asset_id TEXT NOT NULL REFERENCES nodetool_assets (id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
+    name TEXT,
+    version INTEGER NOT NULL DEFAULT 1,
+    save_type TEXT NOT NULL DEFAULT 'manual',
+    cause_id TEXT,
+    content TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  "CREATE INDEX IF NOT EXISTS idx_tdv_asset ON text_document_versions (asset_id)",
+  "CREATE INDEX IF NOT EXISTS idx_tdv_user ON text_document_versions (user_id)",
+  "CREATE INDEX IF NOT EXISTS idx_tdv_asset_cause ON text_document_versions (asset_id, cause_id)",
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_tdv_asset_version ON text_document_versions (asset_id, version)"
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
@@ -1022,7 +1046,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   MESSAGE_TURN_CONTEXT_DDL,
   ...PROJECT_FILE_LISTS_DDL,
   ...CLOUD_LINK_WORKSPACE_FILES_DDL,
-  ...RECEIVE_WORKSPACE_FILES_DDL
+  ...RECEIVE_WORKSPACE_FILES_DDL,
+  ...TEXT_DOCUMENT_VERSIONS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5689,8 +5714,79 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP TABLE IF EXISTS revision_set_workspace_files");
       await db.execute("DROP TABLE IF EXISTS project_workspace_hashes");
     }
+  },
+  // Publishing an app writes `save_type: "publish"` into the bound workflow's
+  // history. The 20260104 migration added `save_type` with a CHECK listing only
+  // the save types of that time, so every database it ran on rejected the
+  // publish. The SQLite baseline never had the constraint, so fresh SQLite
+  // databases already accept the row.
+  {
+    version: "20261201_000001",
+    name: "allow_publish_workflow_save_type",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflow_versions"],
+    async up(db) {
+      if (db.dbType === "postgres") {
+        await db.execute(
+          "ALTER TABLE nodetool_workflow_versions DROP CONSTRAINT IF EXISTS nodetool_workflow_versions_save_type_check"
+        );
+        return;
+      }
+      await dropSqliteSaveTypeCheck(db);
+    },
+    async down() {
+      // The constraint stays dropped: restoring it would reject published rows.
+    }
+  },
+  // ── Create text_document_versions ───────────────────────────────────
+  // Whole-Markdown history of a document (a text asset), document editor
+  // PRD R11. The cascade drops a deleted asset's history with it.
+  {
+    version: "20261202_000001",
+    name: "create_text_document_versions",
+    createsTables: ["text_document_versions"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of TEXT_DOCUMENT_VERSIONS_DDL) await db.execute(statement);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_tdv_asset_version");
+      await db.execute("DROP INDEX IF EXISTS idx_tdv_asset_cause");
+      await db.execute("DROP INDEX IF EXISTS idx_tdv_user");
+      await db.execute("DROP INDEX IF EXISTS idx_tdv_asset");
+      await db.execute("DROP TABLE IF EXISTS text_document_versions");
+    }
   }
 ];
+
+/**
+ * SQLite cannot drop a column constraint, so rebuild the table from its own
+ * stored definition minus the CHECK, then restore its indexes.
+ */
+async function dropSqliteSaveTypeCheck(db: MigrationDBAdapter): Promise<void> {
+  const table = "nodetool_workflow_versions";
+  const current = await db.fetchone(
+    "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+    [table]
+  );
+  const definition = String(current?.sql ?? "");
+  const check = /\s*CHECK\s*\(\s*save_type\s+IN\s*\([^)]*\)\s*\)/i;
+  if (!check.test(definition)) return;
+
+  const indexes = await db.fetchall(
+    "SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL",
+    [table]
+  );
+  const columns = (await db.getColumns(table)).map((name) => `"${name}"`).join(", ");
+  const rebuilt = definition
+    .replace(check, "")
+    .replace(/^CREATE TABLE\s+("?)nodetool_workflow_versions\1/i, `CREATE TABLE ${table}__new`);
+  await db.execute(rebuilt);
+  await db.execute(`INSERT INTO ${table}__new (${columns}) SELECT ${columns} FROM ${table}`);
+  await db.execute(`DROP TABLE ${table}`);
+  await db.execute(`ALTER TABLE ${table}__new RENAME TO ${table}`);
+  for (const index of indexes) await db.execute(String(index.sql));
+}
 
 /**
  * Replace each JSON string literal in `column` with the text it encodes, when

@@ -1,4 +1,5 @@
 import type { Property } from "../stores/ApiTypes";
+import { isCloudProfile } from "../lib/runtimeConfig";
 import { isRecord } from "./typePredicates";
 
 export interface PropertyVisibilityRule {
@@ -42,6 +43,11 @@ export function isPropertyConditionSatisfied(
   property: Property,
   values: Record<string, unknown> | undefined
 ): boolean {
+  // A host folder has no meaning in the managed cloud (document editor PRD
+  // R28): the save nodes' folder field is hidden there.
+  if (property.json_schema_extra?.host_path === true && isCloudProfile()) {
+    return false;
+  }
   const rawRule = property.json_schema_extra?.visible_when;
   if (rawRule === undefined) return true;
   const rule = parseRule(rawRule);

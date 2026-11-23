@@ -244,7 +244,7 @@ interface PdfExtraction {
  * Extract text from a PDF buffer using @llamaindex/liteparse.
  * Returns per-page text so callers can slice by page range.
  */
-async function extractPdfPages(buffer: Uint8Array): Promise<PdfExtraction> {
+export async function extractPdfPages(buffer: Uint8Array): Promise<PdfExtraction> {
   const { LiteParse } = await importOptionalLibrary<
     typeof import("@llamaindex/liteparse")
   >("documents", "@llamaindex/liteparse", "pdf-js");

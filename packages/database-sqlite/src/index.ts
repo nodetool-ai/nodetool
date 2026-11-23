@@ -40,7 +40,7 @@ export function createSqliteRepository(path: string): Repository {
       const existing = document.id ? await get(kind, userId, document.id) : null;
       const id = existing?.id ?? document.id ?? randomBytes(16).toString("hex");
       const now = new Date().toISOString();
-      const data: Record<string, unknown> = { ...existing, ...document, id, user_id: userId, created_at: existing?.created_at ?? now, updated_at: now };
+      const data: ResourceDocument = { ...existing, ...document, id, user_id: userId, created_at: existing?.created_at ?? now, updated_at: now };
       const table = tables[kind];
       const columns = getTableColumns(table);
       const values: Array<{ name: string; value: unknown }> = [];

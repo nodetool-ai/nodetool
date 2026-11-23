@@ -95,6 +95,7 @@ Start with these guides and then inspect the named tools:
 | Reusable workflow | `nodetool-workflow-builder` | `tools list workflow` |
 | Interactive mini app | `nodetool-app-builder` | `tools list app` |
 | Playable game | `native-game` | `tools list game` |
+| Markdown document | none | `tools list document` |
 
 Call `nodetool tools call list_projects` to obtain an owned project id for
 project-scoped documents. Local tool calls initialize the Personal project

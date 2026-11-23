@@ -43,7 +43,7 @@ export const storyboards: LocalizedPageContent = {
       kind: "catalog",
       id: "films",
       title: "{storyboardCount} 部影片和它们的故事板",
-      intro: "点开任何一部，先看成片，再看每个镜头的机位和导演说明（英文页面）。",
+      intro: "点开任何一部，先看成片，再看每个镜头的机位和导演说明。",
       source: "storyboards",
     },
   ],

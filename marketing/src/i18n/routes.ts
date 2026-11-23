@@ -52,7 +52,7 @@ export const TRANSLATED_ROUTES: Record<Locale, readonly string[]> = {
  */
 export const TRANSLATED_DETAIL_SECTIONS: Record<Locale, readonly string[]> = {
   zh: ["/storyboards", "/recipes", "/ad-library"],
-  ja: [],
+  ja: ["/storyboards", "/recipes", "/ad-library"],
   ko: [],
 };
 

@@ -3,8 +3,8 @@ import { callNode, streamNode } from "../guest-core.js";
 function loadDocumentFile(inputs) {
   return callNode("nodetool.document.LoadDocumentFile", inputs);
 }
-function saveDocumentFile(inputs) {
-  return callNode("nodetool.document.SaveDocumentFile", inputs);
+function saveDocument(inputs) {
+  return callNode("nodetool.document.SaveDocument", inputs);
 }
 function listDocuments(inputs) {
   return callNode("nodetool.document.ListDocuments", inputs);
@@ -15,5 +15,5 @@ listDocuments.stream = function(inputs) {
 export {
   listDocuments,
   loadDocumentFile,
-  saveDocumentFile
+  saveDocument
 };

@@ -338,6 +338,42 @@ describe("assets router", () => {
       expect(a.size).toBe(5);
     });
 
+    it("advances updated_at when new bytes are written", async () => {
+      const a = makeAsset({ id: "a1", updated_at: "2026-04-17T00:00:00.000Z" });
+      (Asset.find as ReturnType<typeof vi.fn>).mockResolvedValue(a);
+      vi.spyOn(getAssetAdapter(), "store").mockResolvedValue(undefined);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.assets.update({
+        id: "a1",
+        data: "# Notes\n",
+        expected_updated_at: "2026-04-17T00:00:00.000Z"
+      });
+      expect(Date.parse(a.updated_at)).toBeGreaterThan(
+        Date.parse("2026-04-17T00:00:00.000Z")
+      );
+      expect(result.updated_at).toBe(a.updated_at);
+    });
+
+    it("refuses a write whose expected_updated_at is stale", async () => {
+      const a = makeAsset({ id: "a1", updated_at: "2026-04-18T00:00:00.000Z" });
+      (Asset.find as ReturnType<typeof vi.fn>).mockResolvedValue(a);
+      const store = vi
+        .spyOn(getAssetAdapter(), "store")
+        .mockResolvedValue(undefined);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.assets.update({
+          id: "a1",
+          data: "# Notes\n",
+          expected_updated_at: "2026-04-17T00:00:00.000Z"
+        })
+      ).rejects.toThrow(/modified since last read/);
+      expect(store).not.toHaveBeenCalled();
+      expect(a.save).not.toHaveBeenCalled();
+    });
+
     it("throws NOT_FOUND when the asset does not exist", async () => {
       (Asset.find as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       const caller = createCaller(makeCtx());

@@ -44,7 +44,10 @@ import {
   saveFilename,
   assertSaveTargetIsOwn,
   writeSaveTargetFile,
-  writeSavedFile,
+  writeSavedFileAsset,
+  savedMediaRef,
+  workspaceFolderOf,
+  type FolderValue,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
@@ -490,17 +493,17 @@ export class LoadImageFolderNode extends BaseNode {
   }
 }
 
-/** Output handles SaveImageFileImageNode.process() emits. */
-type SaveImageFileImageNodeOutputs = {
+/** Output handles SaveImageNode.process() emits. */
+type SaveImageNodeOutputs = {
   output: ImageRef;
   path: string;
 };
 
-export class SaveImageFileImageNode extends BaseNode {
-  static readonly nodeType = "nodetool.image.SaveImageFile";
-  static readonly title = "Save Image File";
+export class SaveImageNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.SaveImage";
+  static readonly title = "Save Image";
   static readonly description =
-    "Write an image to disk.\n    image, output, save, file";
+    "Save an image into the project folder, or to a folder on disk.\n    image, output, save, file, asset";
   static readonly metadataOutputTypes = {
     output: "image",
     path: "str"
@@ -538,7 +541,7 @@ export class SaveImageFileImageNode extends BaseNode {
     description: "Folder where the file will be saved",
     json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
-  declare folder: string;
+  declare folder: FolderValue;
 
   @prop({
     type: "str",
@@ -558,7 +561,7 @@ export class SaveImageFileImageNode extends BaseNode {
   })
   declare overwrite: boolean;
 
-  async process(context?: ProcessingContext): Promise<SaveImageFileImageNodeOutputs> {
+  async process(context?: ProcessingContext): Promise<SaveImageNodeOutputs> {
     const bytes = await imageBytesAsync(this.image, context);
     // An empty name used to resolve to the destination folder itself, so the
     // image landed one level up named after the folder; a name typed without
@@ -568,9 +571,10 @@ export class SaveImageFileImageNode extends BaseNode {
       fallback: dateName("image_%Y-%m-%d_%H-%M-%S"),
       extension: imageExtension(bytes)
     });
-    const p = await writeSavedFile({
+    const { path: p, asset_id } = await writeSavedFileAsset({
       folder: this.folder,
       filename,
+      workspaceFolder: await workspaceFolderOf(this.folder, context),
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
@@ -581,12 +585,15 @@ export class SaveImageFileImageNode extends BaseNode {
     });
     const meta = await metadataFor(bytes);
     return {
-      output: imageRef(bytes, {
-        uri: `file://${p}`,
-        mimeType: inferImageMime(p, bytes),
-        width: meta.width,
-        height: meta.height
-      }),
+      output: savedMediaRef(
+        imageRef(bytes, {
+          uri: `file://${p}`,
+          mimeType: inferImageMime(p, bytes),
+          width: meta.width,
+          height: meta.height
+        }),
+        asset_id
+      ),
       path: p
     };
   }
@@ -640,115 +647,6 @@ export class LoadImageAssetsNode extends BaseNode {
     for await (const item of loader.genProcess()) {
       yield item;
     }
-  }
-}
-
-/** Output handles SaveImageNode.process() emits. */
-type SaveImageNodeOutputs = {
-  output: ImageRef;
-};
-
-export class SaveImageNode extends BaseNode {
-  static readonly nodeType = "nodetool.image.SaveImage";
-  static readonly title = "Save Image Asset";
-  static readonly description =
-    "Save an image to specified asset folder with customizable name format.\n    save, image, folder, naming";
-  static readonly metadataOutputTypes = {
-    output: "image"
-  };
-  static readonly inlineFields = ["name"];
-  static readonly inputFields = ["image"];
-  static readonly platforms = NODE_ONLY;
-
-  @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Image",
-    description: "The image to save."
-  })
-  declare image: ImageRefLike;
-
-  @prop({
-    type: "folder",
-    default: {
-      type: "folder",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Folder",
-    description: "The asset folder to save the image in."
-  })
-  declare folder: FolderRef | string;
-
-  @prop({
-    type: "str",
-    default: "%Y-%m-%d_%H-%M-%S.png",
-    title: "Name",
-    description:
-      "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
-  })
-  declare name: string;
-
-  async process(context?: ProcessingContext): Promise<SaveImageNodeOutputs> {
-    const bytes = await imageBytesAsync(this.image, context);
-    if (bytes.length === 0) throw new Error("The input image is not connected.");
-
-    const name = dateName(this.name);
-    const mime = inferImageMime(undefined, bytes);
-    const meta = await metadataFor(bytes);
-
-    // Create asset via context (persists to DB + storage)
-    // `createAsset` is a method on every context, wired or not — checking
-    // for the function always passed and the fallback below was unreachable,
-    // so a host without asset persistence threw instead of writing a file.
-    if (context?.hasModelInterface?.("createAsset")) {
-      const parentId = isString(this.folder)
-        ? null
-        : (this.folder.asset_id ?? null);
-      const asset = (await context.createAsset({
-        name,
-        contentType: mime === "image/unknown" ? "image/png" : mime,
-        content: bytes,
-        parentId,
-        nodeId: this.__node_id || null
-      })) as Record<string, unknown>;
-
-      const assetId = asset.id as string;
-      const ext = name.includes(".") ? name.slice(name.lastIndexOf(".")) : ".png";
-      return {
-        output: imageRef(bytes, {
-          uri: `asset://${assetId}${ext}`,
-          mimeType: mime,
-          width: meta.width,
-          height: meta.height
-        })
-      };
-    }
-
-    // Fallback: write to filesystem
-    const fs = await loadNodeFsPromises();
-    const path = await loadNodePath();
-    const folder = isString(this.folder) ? this.folder : ".";
-    const full = path.resolve(folder, name);
-    await assertSaveTargetIsOwn(context, full);
-    await fs.mkdir(path.dirname(full), { recursive: true });
-    await writeSaveTargetFile(context, full, bytes);
-    return {
-      output: imageRef(bytes, {
-        uri: `file://${full}`,
-        mimeType: mime,
-        width: meta.width,
-        height: meta.height
-      })
-    };
   }
 }
 
@@ -3426,7 +3324,6 @@ const IMAGE_TRANSFORM_NODES = tagAsContentCard(
 const IMAGE_SERVER_NODES = tagAsServer([
   LoadImageFileNode,
   LoadImageFolderNode,
-  SaveImageFileImageNode,
   LoadImageAssetsNode,
   SaveImageNode,
   GetMetadataNode,

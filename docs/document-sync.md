@@ -19,8 +19,8 @@ shared seam and update the inventory in the check and this table together.
 
 | Entry-point category                     | Current integrations                                                                                                                                                                                                           |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Shared lifecycle controller construction | JS Script `useJsScriptServerSync.ts`; Script `useScriptServerSync.ts`; Storyboard `useStoryboardServerSync.ts`; Timeline `useTimelineAutosave.ts`; Sketch `SketchSessionStore.ts`                                              |
-| External-change subscription             | Application `ApplicationAppBuilder.tsx`; JS Script `useJsScriptServerSync.ts`; Script `useScriptServerSync.ts`; Storyboard `useStoryboardServerSync.ts`; Timeline `useTimelineExternalSync.ts`; Sketch `SketchSessionStore.ts` |
+| Shared lifecycle controller construction | Document `useMarkdownDocumentSync.ts`; JS Script `useJsScriptServerSync.ts`; Script `useScriptServerSync.ts`; Storyboard `useStoryboardServerSync.ts`; Timeline `useTimelineAutosave.ts`; Sketch `SketchSessionStore.ts`                                              |
+| External-change subscription             | Application `ApplicationAppBuilder.tsx`; Document `useMarkdownDocumentSync.ts`; JS Script `useJsScriptServerSync.ts`; Script `useScriptServerSync.ts`; Storyboard `useStoryboardServerSync.ts`; Timeline `useTimelineExternalSync.ts`; Sketch `SketchSessionStore.ts` |
 | Save-flush registry declaration          | `jsScriptSaveRegistry.ts`; `storyboardSaveRegistry.ts`                                                                                                                                                                         |
 
 The two save-flush registries expose a pending shared-controller flush to agent

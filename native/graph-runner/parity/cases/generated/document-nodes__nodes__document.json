@@ -31,17 +31,46 @@
    }
   },
   {
-   "id": "nodetool.document.SaveDocumentFile#default",
-   "node": "nodetool.document.SaveDocumentFile",
+   "id": "nodetool.document.SaveDocument#default",
+   "node": "nodetool.document.SaveDocument",
    "graph": {
     "nodes": [
      {
       "id": "n",
-      "type": "nodetool.document.SaveDocumentFile",
+      "type": "nodetool.document.SaveDocument",
       "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "out_path",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "path"
+      }
      }
     ],
-    "edges": []
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_path",
+      "source": "n",
+      "sourceHandle": "path",
+      "target": "out_path",
+      "targetHandle": "value"
+     }
+    ]
    }
   },
   {

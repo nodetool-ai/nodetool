@@ -1832,18 +1832,17 @@ export const HARNESSES: HarnessEntry[] = [
 ];
 
 /**
- * Why `nodetool models download-hf` and `hf-cache` have no agent capability.
+ * Why `nodetool models hf-cache` and cache deletion have no agent capability.
  * Kept beside the CLI surface so an audit that finds the asymmetry finds the
  * decision too.
  */
 const CLI_MODELS_HF_GAP =
-  "Hugging Face downloads (`models download-hf`) and cache listing (`models hf-cache`) are CLI-only on purpose. " +
+  "Hugging Face cache listing (`models hf-cache`) and deletion are CLI-only on purpose. " +
   "packages/websocket/src/trpc/sandbox-coverage.ts withholds models.huggingfaceList, huggingfaceCacheStatus, " +
-  "huggingfaceDelete, huggingfaceByType and pullOllamaModel from agents: model management writes gigabytes to host " +
-  "disk from a third party, and a run that can start or delete a download can fill the disk or remove a model other " +
-  "runs depend on. The production server also refuses every download (/ws/download is unregistered and the SDK " +
-  "download service is disabled). An agent capability needs that verdict changed first, with a disk quota and a " +
-  "per-download approval that names the repo and its size.";
+  "huggingfaceDelete, huggingfaceByType and pullOllamaModel from agents: a run that can delete a cached model can " +
+  "remove one other runs depend on. Downloads (`models download-hf`) have the download_hf_model capability, which " +
+  "asks the user with the repo and its size every time, refuses when the disk would keep less than 5 GB free, and " +
+  "refuses on a production server.";
 
 export const SURFACES: SurfaceEntry[] = [
   ...CLI_COMMAND_PACKAGES.map((name): SurfaceEntry => ({

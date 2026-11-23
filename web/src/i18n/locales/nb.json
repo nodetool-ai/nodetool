@@ -21067,5 +21067,129 @@
       "paste": "Paste Page",
       "clear": "Clear Page"
     }
+  },
+  "documentEditor": {
+    "label": "Dokument",
+    "placeholder": "Begynn å skrive, eller skriv # for en overskrift",
+    "loadError": "Dokumentet kunne ikke lastes inn.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Dokumentvisning",
+      "formatted": "Formatert",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Overskrift 1",
+      "heading2": "Overskrift 2",
+      "heading3": "Overskrift 3",
+      "bold": "Fet",
+      "italic": "Kursiv",
+      "strikethrough": "Gjennomstreking",
+      "inlineCode": "Innebygd kode",
+      "link": "Lenke",
+      "bulletList": "Punktliste",
+      "numberedList": "Nummerert liste",
+      "checkList": "Oppgaveliste",
+      "quote": "Sitat",
+      "codeBlock": "Kodeblokk",
+      "table": "Tabell",
+      "image": "Bilde",
+      "rule": "Skillelinje"
+    },
+    "insert": {
+      "linkAddress": "Lenkeadresse",
+      "imagePath": "Bildesti eller URL",
+      "imagePathPlaceholder": "assets/bilde.png",
+      "imageAlt": "Beskrivelse",
+      "removeLink": "Fjern lenke",
+      "applyLink": "Bruk",
+      "insertImage": "Sett inn"
+    },
+    "agent": {
+      "toggle": "Assistent",
+      "welcomeTitle": "Skriv med assistenten",
+      "welcomeBody": "Be om et utkast, en endring eller en gjennomgang. Assistenten ser dette dokumentet og teksten du har merket."
+    },
+    "versions": {
+      "toggle": "Versjonshistorikk",
+      "title": "Versjoner",
+      "name": "Versjonsnavn",
+      "namePlaceholder": "Navn (valgfritt)",
+      "save": "Lagre versjon",
+      "restore": "Gjenopprett",
+      "loadError": "Versjonene kunne ikke lastes inn.",
+      "emptyTitle": "Ingen versjoner ennå",
+      "emptyBody": "En versjon lagres før hver endring fra assistenten, når du lagrer en, og med noen minutters mellomrom mens du redigerer.",
+      "versionNumber": "Versjon {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistent",
+        "workflow_run": "Arbeidsflytkjøring",
+        "manual": "Lagret",
+        "autosave": "Intervall",
+        "restore": "Før gjenoppretting"
+      },
+      "usedIn": "Brukt i arbeidsflyter: {{count}}"
+    },
+    "changes": {
+      "title": "Merkede endringer: {{count}}",
+      "show": "Vis",
+      "hide": "Skjul",
+      "dismiss": "Avvis",
+      "dismissAll": "Avvis alle",
+      "kinds": {
+        "modified": "Endret",
+        "inserted": "Lagt til",
+        "deleted": "Fjernet"
+      },
+      "actions": {
+        "modified": "Tilbakestill",
+        "inserted": "Fjern",
+        "deleted": "Gjenopprett"
+      }
+    },
+    "assist": {
+      "proposal": "Foreslått erstatning",
+      "note": "Merknad",
+      "discard": "Forkast",
+      "close": "Lukk",
+      "replace": "Erstatt",
+      "thinking": "Tenker…",
+      "stop": "Stopp",
+      "placeholder": "Hva skal endres?",
+      "refinePlaceholder": "Finjuster svaret",
+      "instruction": "Instruksjon",
+      "send": "Send",
+      "noModel": "Velg en modell i chatten først.",
+      "failed": "Forespørselen mislyktes."
+    },
+    "resizePanel": "Endre størrelse på sidepanelet",
+    "picker": {
+      "label": "Prosjektdokument",
+      "none": "Ingen",
+      "placeholder": "Velg et prosjektdokument",
+      "loading": "Laster…",
+      "error": "Dokumentene kunne ikke lastes.",
+      "empty": "Ingen Markdown-dokumenter i dette prosjektet"
+    },
+    "convert": {
+      "label": "Gjør om til dokument",
+      "tooltip": "Flytt denne teksten til et prosjektdokument og henvis til det fra denne noden"
+    },
+    "export": {
+      "label": "Eksporter",
+      "pdf": "Eksporter som PDF",
+      "html": "Eksporter som HTML",
+      "googleDoc": "Eksporter til Google Dokumenter"
+    },
+    "importGoogleDoc": {
+      "title": "Importer Google-dokument",
+      "confirm": "Importer",
+      "link": "Lenke til Google-dokumentet",
+      "help": "Lim inn lenken til dokumentet fra nettleseren. Du må være logget på med Google."
+    },
+    "import": {
+      "asDocument": "Importer som dokument",
+      "asDocumentTooltip": "Lag et redigerbart Markdown-dokument fra denne filen. Selve filen endres ikke."
+    }
   }
 }

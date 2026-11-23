@@ -376,8 +376,6 @@ PlaybackScrubber.displayName = "PlaybackScrubber";
 export const PreviewArea: React.FC<PreviewAreaProps> = memo(
   ({
     fps = 30,
-    sequenceWidth = 1920,
-    sequenceHeight = 1080,
     showTimecode = true,
     showDuration = true,
     showFps = true,

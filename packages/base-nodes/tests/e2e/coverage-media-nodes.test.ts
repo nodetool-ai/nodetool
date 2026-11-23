@@ -9,7 +9,6 @@ import {
   LoadAudioFileNode,
   LoadAudioFolderNode,
   SaveAudioNode,
-  SaveAudioFileNode,
   NormalizeAudioNode,
   OverlayAudioNode,
   RemoveSilenceNode,
@@ -30,9 +29,8 @@ import {
   // Image nodes
   LoadImageFileNode,
   LoadImageFolderNode,
-  SaveImageFileImageNode,
-  LoadImageAssetsNode,
   SaveImageNode,
+  LoadImageAssetsNode,
   GetMetadataNode,
   BatchToListNode,
   ImagesToListNode,
@@ -48,9 +46,8 @@ import {
   TextToVideoNode,
   ImageToVideoNode,
   LoadVideoFileNode,
-  SaveVideoFileVideoNode,
-  LoadVideoAssetsNode,
   SaveVideoNode,
+  LoadVideoAssetsNode,
   ForEachFrameNode,
   FpsNode,
   FrameToVideoNode,
@@ -76,7 +73,6 @@ import {
   GetVideoInfoNode,
   // Model3D nodes
   LoadModel3DFileNode,
-  SaveModel3DFileNode,
   SaveModel3DNode,
   FormatConverterNode,
   GetModel3DMetadataNode,
@@ -789,10 +785,10 @@ describe("audio nodes — full coverage", () => {
     expect(stat.size).toBeGreaterThan(0);
   });
 
-  it("SaveAudioFileNode writes audio to specific path", async () => {
+  it("SaveAudioNode writes audio to specific path", async () => {
     const filePath = `${tmpDir}/save-audio-file/out.wav`;
     const ref = audioRef();
-    const _n = new SaveAudioFileNode();
+    const _n = new SaveAudioNode();
     _n.assign({
       audio: ref,
       folder: path.dirname(filePath),
@@ -932,7 +928,7 @@ describe("audio nodes — full coverage", () => {
       folder: { type: "folder", uri: "" },
       name: "%Y-%m-%d-%H-%M-%S.wav"
     });
-    expect(new SaveAudioFileNode().serialize()).toMatchObject({
+    expect(new SaveAudioNode().serialize()).toMatchObject({
       audio: { type: "audio", uri: "" },
       folder: "",
       filename: ""
@@ -1152,10 +1148,10 @@ describe("image nodes — full coverage", () => {
     expect(result).toEqual({ image: {}, name: "", images: [] });
   });
 
-  it("SaveImageFileImageNode writes to file", async () => {
+  it("SaveImageNode writes to file", async () => {
     const filePath = `${tmpDir}/save-image-file/out.png`;
     const ref = imageRef();
-    const _n = new SaveImageFileImageNode();
+    const _n = new SaveImageNode();
     _n.assign({
       image: ref,
       folder: path.dirname(filePath),
@@ -1337,7 +1333,7 @@ describe("image nodes — full coverage", () => {
       extensions: [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tiff"],
       pattern: ""
     });
-    expect(new SaveImageFileImageNode().serialize()).toMatchObject({
+    expect(new SaveImageNode().serialize()).toMatchObject({
       image: { type: "image", uri: "" },
       folder: "",
       filename: "",
@@ -1471,10 +1467,10 @@ describe("video nodes — full coverage", () => {
     expect((result.output as { uri: string }).uri).toContain(filePath);
   });
 
-  it("SaveVideoFileVideoNode writes to file and returns a video ref", async () => {
+  it("SaveVideoNode writes to file and returns a video ref", async () => {
     const filePath = `${tmpDir}/save-video-file/out.mp4`;
     const ref = videoRef();
-    const _n = new SaveVideoFileVideoNode();
+    const _n = new SaveVideoNode();
     _n.assign({
       video: ref,
       folder: path.dirname(filePath),
@@ -1773,7 +1769,7 @@ describe("video nodes — full coverage", () => {
       duration: 4
     });
     expect(new LoadVideoFileNode().serialize()).toEqual({ path: "" });
-    expect(new SaveVideoFileVideoNode().serialize()).toMatchObject({
+    expect(new SaveVideoNode().serialize()).toMatchObject({
       video: { type: "video", uri: "" },
       folder: "",
       filename: ""
@@ -1902,10 +1898,10 @@ describe("model3d nodes — full coverage", () => {
     expect(output.format).toBe("obj");
   });
 
-  it("SaveModel3DFileNode writes model to file", async () => {
+  it("SaveModel3DNode writes model to file", async () => {
     const dir = `${tmpDir}/save-model-file`;
     const ref = modelRef();
-    const _n = new SaveModel3DFileNode();
+    const _n = new SaveModel3DNode();
     _n.assign({
       model: ref,
       folder: dir,
@@ -1919,10 +1915,10 @@ describe("model3d nodes — full coverage", () => {
     expect(stat.size).toBeGreaterThan(0);
   });
 
-  it("SaveModel3DFileNode applies date placeholders in filename", async () => {
+  it("SaveModel3DNode applies date placeholders in filename", async () => {
     const dir = `${tmpDir}/save-model-file-datename`;
     const ref = modelRef();
-    const _n = new SaveModel3DFileNode();
+    const _n = new SaveModel3DNode();
     _n.assign({
       model: ref,
       folder: dir,
@@ -1934,13 +1930,13 @@ describe("model3d nodes — full coverage", () => {
     expect(output.format).toBe("glb");
   });
 
-  it("SaveModel3DFileNode does not overwrite existing file when overwrite=false", async () => {
+  it("SaveModel3DNode does not overwrite existing file when overwrite=false", async () => {
     const dir = `${tmpDir}/save-model-file-no-overwrite`;
     await fs.mkdir(dir, { recursive: true });
     const originalPath = path.join(dir, "out.glb");
     await fs.writeFile(originalPath, Buffer.from("old-content"));
 
-    const _n = new SaveModel3DFileNode();
+    const _n = new SaveModel3DNode();
     _n.assign({
       model: modelRef(Buffer.from("new-content").toString("base64")),
       folder: dir,
@@ -2265,7 +2261,7 @@ describe("model3d nodes — full coverage", () => {
 
   it("defaults() methods return expected structures", () => {
     expect(new LoadModel3DFileNode().serialize()).toEqual({ path: "" });
-    expect(new SaveModel3DFileNode().serialize()).toMatchObject({
+    expect(new SaveModel3DNode().serialize()).toMatchObject({
       model: { type: "model_3d", uri: "" },
       save_to_workspace: true,
       folder: "",

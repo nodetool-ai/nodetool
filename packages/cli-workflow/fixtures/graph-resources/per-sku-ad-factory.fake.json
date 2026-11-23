@@ -122,7 +122,7 @@
         "id": "save_photo",
         "type": "nodetool.image.SaveImage",
         "data": {
-          "name": "gr-e1-product-photo.png"
+          "filename": "gr-e1-product-photo.png"
         },
         "ui_properties": {
           "position": {

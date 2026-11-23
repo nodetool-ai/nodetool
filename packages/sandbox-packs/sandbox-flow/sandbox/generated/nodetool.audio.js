@@ -69,9 +69,6 @@ loadAudioFolder.stream = function(inputs) {
 function saveAudio(inputs) {
   return callNode("nodetool.audio.SaveAudio", inputs);
 }
-function saveAudioFile(inputs) {
-  return callNode("nodetool.audio.SaveAudioFile", inputs);
-}
 function textToSpeech(inputs) {
   return callNode("nodetool.audio.TextToSpeech", inputs);
 }
@@ -101,7 +98,6 @@ export {
   repeat,
   reverse,
   saveAudio,
-  saveAudioFile,
   sliceAudio,
   stereoToMono,
   textToMusic,

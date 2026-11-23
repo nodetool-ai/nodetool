@@ -21383,5 +21383,129 @@
       "paste": "Paste Page",
       "clear": "Clear Page"
     }
+  },
+  "documentEditor": {
+    "label": "Documento",
+    "placeholder": "Inizia a scrivere o digita # per un titolo",
+    "loadError": "Impossibile caricare il documento.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Vista documento",
+      "formatted": "Formattato",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Titolo 1",
+      "heading2": "Titolo 2",
+      "heading3": "Titolo 3",
+      "bold": "Grassetto",
+      "italic": "Corsivo",
+      "strikethrough": "Barrato",
+      "inlineCode": "Codice in linea",
+      "link": "Link",
+      "bulletList": "Elenco puntato",
+      "numberedList": "Elenco numerato",
+      "checkList": "Elenco attività",
+      "quote": "Citazione",
+      "codeBlock": "Blocco di codice",
+      "table": "Tabella",
+      "image": "Immagine",
+      "rule": "Separatore"
+    },
+    "insert": {
+      "linkAddress": "Indirizzo del link",
+      "imagePath": "Percorso o URL dell’immagine",
+      "imagePathPlaceholder": "assets/immagine.png",
+      "imageAlt": "Descrizione",
+      "removeLink": "Rimuovi link",
+      "applyLink": "Applica",
+      "insertImage": "Inserisci"
+    },
+    "agent": {
+      "toggle": "Assistente",
+      "welcomeTitle": "Scrivi con l'assistente",
+      "welcomeBody": "Chiedi una bozza, una modifica o una revisione. L'assistente vede questo documento e il testo selezionato."
+    },
+    "versions": {
+      "toggle": "Cronologia versioni",
+      "title": "Versioni",
+      "name": "Nome della versione",
+      "namePlaceholder": "Nome (facoltativo)",
+      "save": "Salva versione",
+      "restore": "Ripristina",
+      "loadError": "Impossibile caricare le versioni.",
+      "emptyTitle": "Nessuna versione",
+      "emptyBody": "Una versione viene conservata prima di ogni modifica dell'assistente, quando ne salvi una e ogni pochi minuti durante la modifica.",
+      "versionNumber": "Versione {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistente",
+        "workflow_run": "Esecuzione workflow",
+        "manual": "Salvata",
+        "autosave": "Intervallo",
+        "restore": "Prima del ripristino"
+      },
+      "usedIn": "Usato nei workflow: {{count}}"
+    },
+    "changes": {
+      "title": "Modifiche segnate: {{count}}",
+      "show": "Mostra",
+      "hide": "Nascondi",
+      "dismiss": "Ignora",
+      "dismissAll": "Ignora tutto",
+      "kinds": {
+        "modified": "Modificato",
+        "inserted": "Aggiunto",
+        "deleted": "Rimosso"
+      },
+      "actions": {
+        "modified": "Annulla",
+        "inserted": "Rimuovi",
+        "deleted": "Ripristina"
+      }
+    },
+    "assist": {
+      "proposal": "Sostituzione proposta",
+      "note": "Nota",
+      "discard": "Scarta",
+      "close": "Chiudi",
+      "replace": "Sostituisci",
+      "thinking": "Sto pensando…",
+      "stop": "Interrompi",
+      "placeholder": "Cosa deve cambiare?",
+      "refinePlaceholder": "Perfeziona la risposta",
+      "instruction": "Istruzione",
+      "send": "Invia",
+      "noModel": "Scegli prima un modello nella chat.",
+      "failed": "La richiesta non è riuscita."
+    },
+    "resizePanel": "Ridimensiona il pannello laterale",
+    "picker": {
+      "label": "Documento del progetto",
+      "none": "Nessuno",
+      "placeholder": "Scegli un documento del progetto",
+      "loading": "Caricamento…",
+      "error": "Impossibile caricare i documenti.",
+      "empty": "Nessun documento Markdown in questo progetto"
+    },
+    "convert": {
+      "label": "Converti in documento",
+      "tooltip": "Sposta questo testo in un documento del progetto e fai riferimento a esso da questo nodo"
+    },
+    "export": {
+      "label": "Esporta",
+      "pdf": "Esporta come PDF",
+      "html": "Esporta come HTML",
+      "googleDoc": "Esporta in Google Docs"
+    },
+    "importGoogleDoc": {
+      "title": "Importa documento Google",
+      "confirm": "Importa",
+      "link": "Link del documento Google",
+      "help": "Incolla il link del documento dal browser. Devi aver effettuato l'accesso con Google."
+    },
+    "import": {
+      "asDocument": "Importa come documento",
+      "asDocumentTooltip": "Crea un documento Markdown modificabile da questo file. Il file non viene modificato."
+    }
   }
 }

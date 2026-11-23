@@ -1093,17 +1093,13 @@ export class AnthropicProvider extends BaseProvider {
           ? { type: "manual", budgetTokens: args.thinkingBudget }
           : { type: "adaptive" };
     const thinking = args.thinking ?? legacyThinking;
-    if (thinking?.type === "manual") {
-      if (policy !== "manual") {
-        throw new Error(
-          `${args.model} requires adaptive thinking; manual budgets are unsupported`
-        );
-      }
-      if (thinking.budgetTokens < 1024) {
-        throw new Error(
-          "Anthropic thinking budget must be at least 1024 tokens"
-        );
-      }
+    if (thinking?.type === "manual" && policy !== "manual") {
+      throw new Error(
+        `${args.model} requires adaptive thinking; manual budgets are unsupported`
+      );
+    }
+    if (thinking?.type === "manual" && thinking.budgetTokens < 1024) {
+      throw new Error("Anthropic thinking budget must be at least 1024 tokens");
     }
     if (thinking?.type === "disabled" && policy === "adaptive_required") {
       throw new Error(`${args.model} does not allow thinking to be disabled`);
@@ -1117,17 +1113,15 @@ export class AnthropicProvider extends BaseProvider {
     const implicitThinking =
       !thinking &&
       (policy === "adaptive_default" || policy === "adaptive_required");
-    if (args.toolChoice) {
-      if (explicitThinking) {
-        throw new Error(
-          "Anthropic does not allow a forced tool choice while thinking is active"
-        );
-      }
-      if (implicitThinking && policy === "adaptive_required") {
-        throw new Error(
-          `${args.model} does not allow thinking to be disabled, so a forced tool choice is unsupported`
-        );
-      }
+    if (args.toolChoice && explicitThinking) {
+      throw new Error(
+        "Anthropic does not allow a forced tool choice while thinking is active"
+      );
+    }
+    if (args.toolChoice && implicitThinking && policy === "adaptive_required") {
+      throw new Error(
+        `${args.model} does not allow thinking to be disabled, so a forced tool choice is unsupported`
+      );
     }
     const thinkingSuppressedByToolChoice = Boolean(
       args.toolChoice && implicitThinking

@@ -223,6 +223,64 @@ export async function driveCreateFile(
   );
 }
 
+/**
+ * A Google Doc as Markdown, through Drive's Markdown export, which keeps
+ * headings, lists, tables, links and emphasis.
+ */
+export async function docsExportMarkdown(
+  token: string,
+  documentId: string
+): Promise<{ name: string; markdown: string }> {
+  const meta = await driveGetFile(token, documentId);
+  if (meta.mimeType !== "application/vnd.google-apps.document") {
+    throw new GoogleApiError(400, `${meta.name} is not a Google Doc (${meta.mimeType}).`);
+  }
+  const res = await fetch(
+    `${DRIVE_API}/files/${encodeURIComponent(documentId)}/export${query({
+      mimeType: "text/markdown"
+    })}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new GoogleApiError(res.status, `Google Doc export failed: ${text}`);
+  }
+  return { name: meta.name, markdown: await res.text() };
+}
+
+/**
+ * Create a Google Doc from Markdown. Drive converts the upload, so the doc
+ * keeps the Markdown's headings, lists, tables, links and emphasis.
+ */
+export async function docsCreateFromMarkdown(
+  token: string,
+  opts: { name: string; markdown: string; folderId?: string }
+): Promise<DriveFile> {
+  const metadata: Record<string, unknown> = {
+    name: opts.name,
+    mimeType: "application/vnd.google-apps.document"
+  };
+  if (opts.folderId) metadata.parents = [opts.folderId];
+  const boundary = `nodetool-${Math.random().toString(36).slice(2)}`;
+  const body =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+    `${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\nContent-Type: text/markdown; charset=UTF-8\r\n\r\n` +
+    `${opts.markdown}\r\n--${boundary}--`;
+  return request<DriveFile>(
+    token,
+    `${DRIVE_UPLOAD_API}/files${query({
+      uploadType: "multipart",
+      fields: "id,name,mimeType,webViewLink"
+    })}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
+      body
+    }
+  );
+}
+
 // ── Gmail ────────────────────────────────────────────────────────────
 
 export interface GmailMessage {

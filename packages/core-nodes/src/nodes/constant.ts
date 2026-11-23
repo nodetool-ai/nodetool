@@ -22,6 +22,7 @@ import type {
   WorkflowDocumentRef
 } from "@nodetool-ai/protocol";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
+import { readDocumentText, type DocumentTextContext } from "./document-text.js";
 import {
   applicationRefDefault,
   audioRefDefault,
@@ -315,7 +316,8 @@ export class ConstantDocumentNode extends BaseNode {
   static readonly description =
     "Represents a document constant in the workflow.\n    document, pdf, word, docx";
   static readonly metadataOutputTypes = {
-    output: "document"
+    output: "document",
+    text: "str"
   };
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
@@ -327,8 +329,13 @@ export class ConstantDocumentNode extends BaseNode {
   })
   declare value: DocumentRef | null;
 
-  async process(): Promise<Record<string, unknown>> {
-    return { output: this.value ?? {} };
+  async process(
+    context?: DocumentTextContext
+  ): Promise<Record<string, unknown>> {
+    return {
+      output: this.value ?? {},
+      text: await readDocumentText(this.value, context)
+    };
   }
 }
 

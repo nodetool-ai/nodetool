@@ -82,22 +82,6 @@ export function loadVideoFile(inputs: LoadVideoFileInputs, options?: NodeOptions
   return createNode("nodetool.video.LoadVideoFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"video"}, defaultOutput: "output" });
 }
 
-// Save Video File — nodetool.video.SaveVideoFile
-export type SaveVideoFileInputs = {
-  video?: Connectable<VideoRef>;
-  save_to_workspace?: Connectable<boolean>;
-  folder?: Connectable<string>;
-  filename?: Connectable<string>;
-};
-
-export interface SaveVideoFileOutputs {
-  output: VideoRef;
-}
-
-export function saveVideoFile(inputs: SaveVideoFileInputs, options?: NodeOptions): NodeWithOutputs<SaveVideoFileOutputs, "output"> {
-  return createNode("nodetool.video.SaveVideoFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"video"}, defaultOutput: "output" });
-}
-
 // Load Video Folder — nodetool.video.LoadVideoAssets
 export type LoadVideoAssetsInputs = {
   folder?: Connectable<FolderRef>;
@@ -114,19 +98,22 @@ export function loadVideoAssets(inputs: LoadVideoAssetsInputs, options?: NodeOpt
   return createNode("nodetool.video.LoadVideoAssets", inputs, { id: options?.id, outputNames: ["video", "name", "videos", "names"], outputTypes: {"video":"video","name":"str","videos":"list","names":"list"}, streaming: true, inputMode: "buffered", outputCorrelation: {"video":{"kind":"iteration","source":"__execution__","group":"items"},"name":{"kind":"iteration","source":"__execution__","group":"items"},"videos":{"kind":"single","source":"__execution__"},"names":{"kind":"single","source":"__execution__"}} });
 }
 
-// Save Video Asset — nodetool.video.SaveVideo
+// Save Video — nodetool.video.SaveVideo
 export type SaveVideoInputs = {
   video?: Connectable<VideoRef>;
-  folder?: Connectable<FolderRef>;
-  name?: Connectable<string>;
+  save_to_workspace?: Connectable<boolean>;
+  folder?: Connectable<string>;
+  filename?: Connectable<string>;
+  overwrite?: Connectable<boolean>;
 };
 
 export interface SaveVideoOutputs {
   output: VideoRef;
+  path: string;
 }
 
-export function saveVideo(inputs: SaveVideoInputs, options?: NodeOptions): NodeWithOutputs<SaveVideoOutputs, "output"> {
-  return createNode("nodetool.video.SaveVideo", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"video"}, defaultOutput: "output" });
+export function saveVideo(inputs: SaveVideoInputs, options?: NodeOptions): NodeWithOutputs<SaveVideoOutputs> {
+  return createNode("nodetool.video.SaveVideo", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: {"output":"video","path":"str"} });
 }
 
 // For Each Frame — nodetool.video.ForEachFrame

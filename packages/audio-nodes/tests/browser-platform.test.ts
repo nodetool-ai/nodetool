@@ -68,7 +68,7 @@ const SERVER_ONLY_AUDIO_TYPES = [
   "nodetool.audio.LoadAudioFile",
   "nodetool.audio.LoadAudioFolder",
   "nodetool.audio.SaveAudio",
-  "nodetool.audio.SaveAudioFile",
+  "nodetool.audio.SaveAudio",
   "nodetool.audio.TextToSpeech"
 ];
 
