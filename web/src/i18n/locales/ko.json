@@ -20559,17 +20559,12 @@
       "quote": "인용",
       "codeBlock": "코드 블록",
       "table": "표",
-      "image": "이미지",
       "rule": "구분선"
     },
     "insert": {
       "linkAddress": "링크 주소",
-      "imagePath": "이미지 경로 또는 URL",
-      "imagePathPlaceholder": "assets/picture.png",
-      "imageAlt": "설명",
       "removeLink": "링크 제거",
-      "applyLink": "적용",
-      "insertImage": "삽입"
+      "applyLink": "적용"
     },
     "agent": {
       "toggle": "어시스턴트",

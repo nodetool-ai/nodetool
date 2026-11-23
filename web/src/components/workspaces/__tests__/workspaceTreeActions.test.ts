@@ -12,7 +12,8 @@ import {
   isDocumentFile,
   moveEntry,
   nextAvailableCopyName,
-  renameEntry
+  renameEntry,
+  uploadFileToFolder
 } from "../workspaceTreeActions";
 import { useAssetStore } from "../../../stores/AssetStore";
 
@@ -623,5 +624,59 @@ describe("copy helpers and copyEntry", () => {
     );
     expect(remove).toHaveBeenCalledTimes(1);
     expect(remove).toHaveBeenCalledWith({ id: dir("docs copy") });
+  });
+});
+
+describe("uploadFileToFolder", () => {
+  const original = {
+    createAsset: useAssetStore.getState().createAsset,
+    createFolder: useAssetStore.getState().createFolder
+  };
+  const createAsset = jest.fn();
+  const createFolderInStore = jest.fn();
+
+  beforeEach(() => {
+    list.mockReset();
+    createAsset.mockReset().mockResolvedValue({ id: "new" });
+    createFolderInStore.mockReset().mockResolvedValue({});
+    useAssetStore.setState({ createAsset, createFolder: createFolderInStore });
+  });
+
+  afterEach(() => {
+    useAssetStore.setState(original);
+  });
+
+  it("creates the missing folder, then uploads into it", async () => {
+    list.mockResolvedValue({ assets: [] });
+    const file = new File(["x"], "cover.png", { type: "image/png" });
+    await uploadFileToFolder("p1", "notes/assets", file);
+    expect(createFolderInStore).toHaveBeenCalledWith(dir("notes"), "assets", "p1");
+    const [uploaded, , parentId, , source, projectId, directory] = createAsset.mock.calls[0];
+    expect(uploaded).toBe(file);
+    expect(parentId).toBe(dir("notes/assets"));
+    expect(source).toBe("file");
+    expect(projectId).toBe("p1");
+    expect(directory).toBe("notes/assets");
+  });
+
+  it("keeps an existing folder and numbers a colliding name", async () => {
+    list.mockImplementation(async ({ parent_id }: { parent_id: string }) => ({
+      assets:
+        parent_id === dir("notes")
+          ? [{ id: dir("notes/assets"), name: "assets", content_type: "folder" }]
+          : [{ id: "a1", name: "cover.png", workspace_path: "notes/assets/cover.png" }]
+    }));
+    await uploadFileToFolder("p1", "notes/assets", new File(["x"], "cover.png", { type: "image/png" }));
+    expect(createFolderInStore).not.toHaveBeenCalled();
+    const [uploaded] = createAsset.mock.calls[0];
+    expect(uploaded.name).toBe("cover copy.png");
+    expect(uploaded.type).toBe("image/png");
+  });
+
+  it("uploads to the project root without a folder check", async () => {
+    list.mockResolvedValue({ assets: [] });
+    await uploadFileToFolder("p1", ".", new File(["x"], "a.mp3", { type: "audio/mpeg" }));
+    expect(createFolderInStore).not.toHaveBeenCalled();
+    expect(createAsset.mock.calls[0][6]).toBe(".");
   });
 });

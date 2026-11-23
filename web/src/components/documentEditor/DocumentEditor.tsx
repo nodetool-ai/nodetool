@@ -105,7 +105,7 @@ import { DocumentLocationProvider } from "./documentEditorContext";
 import { DOCUMENT_TRANSFORMERS } from "./documentTransformers";
 import { DOCUMENT_THEME, documentEditorStyles } from "./documentEditorStyles";
 import { DOCUMENT_NODES, MarkdownDocumentBinding } from "./markdownBlockCodec";
-import { insertImage, setLink } from "./documentCommands";
+import { insertEmbeds, setLink } from "./documentCommands";
 import DocumentToolbar from "./DocumentToolbar";
 import DocumentTitleHeader from "./DocumentTitleHeader";
 import DocumentDisplayControls, {
@@ -130,6 +130,9 @@ import {
 } from "./DocumentChangeMarks";
 import { DocumentSelectionAssistPlugin } from "./DocumentSelectionAssistPlugin";
 import DocumentAgentPanel from "./DocumentAgentPanel";
+import DocumentEmbedDialog from "./DocumentEmbedDialog";
+import { DocumentEmbedDropPlugin } from "./DocumentEmbedDropPlugin";
+import type { DocumentEmbedInsert } from "./documentEmbeds";
 
 type DocumentView = "formatted" | "markdown";
 
@@ -704,7 +707,13 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
     [editor]
   );
   const openLink = useCallback(() => openInsert("link"), [openInsert]);
-  const openImage = useCallback(() => openInsert("image"), [openInsert]);
+  const [embedOpen, setEmbedOpen] = useState(false);
+  const openEmbed = useCallback(() => {
+    editor.getEditorState().read(() => {
+      savedSelection.current = $getSelection()?.clone() ?? null;
+    });
+    setEmbedOpen(true);
+  }, [editor]);
   const withSavedSelection = (apply: () => void) => {
     editor.focus();
     editor.update(() => {
@@ -714,6 +723,18 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
       apply();
     });
   };
+
+  const location = useMemo(
+    () => ({
+      projectId: currentAsset.project_id ?? null,
+      path: currentAsset.workspace_path ?? null
+    }),
+    [currentAsset.project_id, currentAsset.workspace_path]
+  );
+  const handleEmbedError = useCallback(
+    (cause: unknown) => notifyMutationError(t("documentEditor.embed.title"), cause),
+    [t]
+  );
 
   const defaultDirectory = parentDirectoryOfPath(currentAsset.workspace_path);
   const baseName = currentAsset.name ?? "";
@@ -832,12 +853,7 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
   } as CSSProperties;
 
   return (
-    <DocumentLocationProvider
-      value={{
-        projectId: currentAsset.project_id ?? null,
-        path: currentAsset.workspace_path ?? null
-      }}
-    >
+    <DocumentLocationProvider value={location}>
       {documentBar ? (
         documentBar(barSlots)
       ) : (
@@ -907,7 +923,7 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
                 view === "formatted" && loadState === "ready" ? "flex" : "none"
             }}
           >
-            <DocumentToolbar onLink={openLink} onImage={openImage} />
+            <DocumentToolbar onLink={openLink} onEmbed={openEmbed} />
             <div
               className={cn(
                 "doc-scroll",
@@ -1051,10 +1067,15 @@ const DocumentEditorBody = ({ asset, documentBar }: DocumentEditorProps) => {
         request={insert}
         onClose={() => setInsert(null)}
         onLink={(url) => withSavedSelection(() => setLink(editor, url))}
-        onImage={(src, alt) =>
-          withSavedSelection(() => insertImage(editor, src, alt))
+      />
+      <DocumentEmbedDialog
+        open={embedOpen}
+        onClose={() => setEmbedOpen(false)}
+        onInsert={(embeds: DocumentEmbedInsert[]) =>
+          withSavedSelection(() => insertEmbeds(editor, embeds))
         }
       />
+      <DocumentEmbedDropPlugin location={location} onError={handleEmbedError} />
       <DocumentSaveAsDialog
         open={saveAsOpen}
         onClose={() => setSaveAsOpen(false)}

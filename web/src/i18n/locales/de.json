@@ -20559,17 +20559,12 @@
       "quote": "Zitat",
       "codeBlock": "Codeblock",
       "table": "Tabelle",
-      "image": "Bild",
       "rule": "Trennlinie"
     },
     "insert": {
       "linkAddress": "Linkadresse",
-      "imagePath": "Bildpfad oder URL",
-      "imagePathPlaceholder": "assets/bild.png",
-      "imageAlt": "Beschreibung",
       "removeLink": "Link entfernen",
-      "applyLink": "Übernehmen",
-      "insertImage": "Einfügen"
+      "applyLink": "Übernehmen"
     },
     "agent": {
       "toggle": "Assistent",

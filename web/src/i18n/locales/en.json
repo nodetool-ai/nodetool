@@ -20568,7 +20568,7 @@
       "quote": "Quote",
       "codeBlock": "Code block",
       "table": "Table",
-      "image": "Image",
+      "media": "Insert media",
       "rule": "Divider"
     },
     "title": {
@@ -20670,12 +20670,8 @@
     },
     "insert": {
       "linkAddress": "Link address",
-      "imagePath": "Image path or URL",
-      "imagePathPlaceholder": "assets/picture.png",
-      "imageAlt": "Description",
       "removeLink": "Remove link",
-      "applyLink": "Apply",
-      "insertImage": "Insert"
+      "applyLink": "Apply"
     },
     "agent": {
       "toggle": "Assistant",
@@ -20768,6 +20764,39 @@
     "import": {
       "asDocument": "Import as document",
       "asDocumentTooltip": "Make an editable Markdown document from this file. The file itself is not changed."
+    },
+    "embed": {
+      "title": "Insert media",
+      "tabMedia": "Media",
+      "tabShot": "Storyboard shot",
+      "searchAssets": "Search assets",
+      "kindLabel": "Type",
+      "kindAll": "All media",
+      "kindImage": "Images",
+      "kindVideo": "Videos",
+      "kindAudio": "Audio",
+      "kindModel3d": "3D models",
+      "upload": "Upload",
+      "uploading": "Uploading…",
+      "uploadFailed": "The file could not be uploaded.",
+      "loadingAssets": "Loading assets…",
+      "noAssets": "No media in this project",
+      "noAssetsDescription": "Upload a file, or paste a path or URL below.",
+      "insertNamed": "Insert {{name}}",
+      "linkLabel": "Path or URL",
+      "linkPlaceholder": "assets/picture.png",
+      "insert": "Insert",
+      "storyboardLabel": "Storyboard",
+      "untitledStoryboard": "Untitled storyboard",
+      "loadingStoryboards": "Loading storyboards…",
+      "noStoryboards": "No storyboards in this project",
+      "noStoryboardsDescription": "Create a storyboard to embed its shots here.",
+      "noShots": "This storyboard has no shots yet",
+      "shotHint": "An embedded shot shows its latest clip, or its keyframe until it has one.",
+      "loadingShot": "Loading shot…",
+      "shotMissing": "Shot not found: {{name}}",
+      "shotNotRendered": "This shot has no keyframe or clip yet.",
+      "openStoryboard": "Open storyboard"
     }
   }
 }

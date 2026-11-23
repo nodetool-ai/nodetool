@@ -20,7 +20,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { useInRouterContext, useLocation, useNavigate } from "react-router-dom";
-import ReactMarkdown, { type Options } from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import CodeOutlinedIcon from "@mui/icons-material/CodeOutlined";
@@ -69,6 +69,11 @@ import { getMimeTypeFromUri, useSignedUrl } from "./hooks";
 import { documentBytes, isPdfBytes } from "../outputRendererModel";
 import { isStoredUri } from "../outputValueResolvers";
 import { JSONRenderer } from "./JSONRenderer";
+import DocumentEmbed from "../../documentEditor/nodes/DocumentEmbed";
+import {
+  DocumentLocationProvider,
+  type DocumentLocation
+} from "../../documentEditor/documentEditorContext";
 import "../../../styles/markdown/github-markdown.css";
 import "../../../styles/markdown/nodetool-markdown.css";
 
@@ -83,6 +88,10 @@ const SCROLL_KEYS = new Set([
   " "
 ]);
 const SAFE_LINK_SCHEME = /^(https?:|mailto:)/i;
+/** Embed locators a document may hold; ReactMarkdown would blank them. */
+const EMBED_SCHEME = /^(asset|storyboard):\/\//i;
+const markdownUrlTransform = (url: string): string =>
+  EMBED_SCHEME.test(url) ? url : defaultUrlTransform(url);
 const SNIFF_BYTES = 4096;
 
 /** Query key shared with DocumentEditor, TextPreview, and resourceChangeHandler. */
@@ -359,9 +368,11 @@ const fullscreenBodyStyles = (theme: Theme) =>
   });
 
 const MarkdownContent = memo(function MarkdownContent({
-  content
+  content,
+  location
 }: {
   content: string;
+  location: DocumentLocation;
 }) {
   const components: Options["components"] = useMemo(
     () => ({
@@ -374,17 +385,27 @@ const MarkdownContent = memo(function MarkdownContent({
           );
         }
         return <span>{children}</span>;
-      }
+      },
+      img: ({ src, alt }: { src?: string | Blob; alt?: string }) =>
+        typeof src === "string" && src !== "" ? (
+          <DocumentEmbed src={src} alt={alt ?? ""} />
+        ) : null
     }),
     []
   );
 
   return (
-    <div className="doc-output-markdown markdown-body">
-      <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={components}>
-        {content}
-      </ReactMarkdown>
-    </div>
+    <DocumentLocationProvider value={location}>
+      <div className="doc-output-markdown markdown-body">
+        <ReactMarkdown
+          remarkPlugins={REMARK_PLUGINS}
+          components={components}
+          urlTransform={markdownUrlTransform}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    </DocumentLocationProvider>
   );
 });
 
@@ -556,6 +577,13 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = memo(
       !assetId && isStoredUri(rawUri) ? rawUri : undefined
     );
     const resolvedUrl = assetUri || signedFallbackUrl || "";
+    const documentLocation = useMemo<DocumentLocation>(
+      () => ({
+        projectId: asset?.project_id ?? null,
+        path: asset?.workspace_path ?? null
+      }),
+      [asset?.project_id, asset?.workspace_path]
+    );
 
     const inlinePayload = useMemo(() => {
       // Inline Markdown text wins over raw bytes or an underlying non-Markdown
@@ -855,7 +883,7 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = memo(
         return <pre className="doc-output-source">{text}</pre>;
       }
 
-      return <MarkdownContent content={text} />;
+      return <MarkdownContent content={text} location={documentLocation} />;
     };
 
     return (

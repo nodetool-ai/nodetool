@@ -12,6 +12,7 @@ import {
 } from "../src/websocket-client-session.js";
 import {
   APP_GUIDANCE_SECTION,
+  DOCUMENT_EMBED_GUIDANCE,
   WORKFLOW_GUIDANCE_SECTION,
   WORKFLOW_POINTER_SECTION,
   buildChatAgentSystemPrompt,
@@ -133,6 +134,21 @@ describe("resident toolbelt", () => {
       document_edit_mode: "direct"
     });
     expect(directGuidance).toContain("apply at once");
+  });
+
+  it("tells the agent how to embed media in a document in both edit modes", () => {
+    for (const mode of ["staged", "direct"] as const) {
+      const guidance = buildUiGuidanceSection({
+        focused: { type: "document", id: "doc-1", title: "Notes.md" },
+        source: "document_assistant",
+        document_edit_mode: mode
+      });
+      expect(guidance).toContain(DOCUMENT_EMBED_GUIDANCE);
+    }
+    expect(DOCUMENT_EMBED_GUIDANCE).toContain("storyboard://<storyboard_id>/shots/<shot_id>");
+    expect(
+      buildUiGuidanceSection({ focused: { type: "sketch", id: "s-1" } })
+    ).not.toContain(DOCUMENT_EMBED_GUIDANCE);
   });
 
   it("builds on the open canvas before the saved-workflow loop", () => {

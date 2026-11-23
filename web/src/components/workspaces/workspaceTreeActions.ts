@@ -323,6 +323,44 @@ export const createDocumentInFolder = async (
   );
 };
 
+/**
+ * Upload `file` into `folderPath`, creating the folder when it is missing.
+ * A name that exists gets a numbered copy, so nothing is overwritten.
+ */
+export const uploadFileToFolder = async (
+  projectId: string,
+  folderPath: string,
+  file: File
+): Promise<Asset> => {
+  const dirPath = assetDirectoryPath(folderPath);
+  if (dirPath !== "") {
+    const parentPath = parentDirectory(dirPath);
+    const siblings = await listAllFolderAssets(
+      projectId,
+      projectDirectoryId(projectId, parentPath)
+    );
+    const exists = siblings.some(
+      (entry) =>
+        entry.content_type === "folder" &&
+        (parseProjectDirectoryId(entry.id)?.path ?? entry.workspace_path) ===
+          dirPath
+    );
+    if (!exists) {
+      await createFolder(projectId, parentPath, directoryName(dirPath));
+    }
+  }
+  const parentId = projectDirectoryId(projectId, dirPath);
+  const existing = collectExistingNames(
+    await listAllFolderAssets(projectId, parentId)
+  );
+  const name = nextAvailableCopyName(file.name, existing, false);
+  const upload =
+    name === file.name ? file : new File([file], name, { type: file.type });
+  return useAssetStore
+    .getState()
+    .createAsset(upload, undefined, parentId, undefined, "file", projectId, dirPath || ".");
+};
+
 /** Whether `source` may be copied into the directory `target`. */
 export const canCopyInto = (
   source: string,

@@ -20876,17 +20876,12 @@
       "quote": "Cita",
       "codeBlock": "Bloque de código",
       "table": "Tabla",
-      "image": "Imagen",
       "rule": "Separador"
     },
     "insert": {
       "linkAddress": "Dirección del enlace",
-      "imagePath": "Ruta o URL de la imagen",
-      "imagePathPlaceholder": "assets/imagen.png",
-      "imageAlt": "Descripción",
       "removeLink": "Quitar enlace",
-      "applyLink": "Aplicar",
-      "insertImage": "Insertar"
+      "applyLink": "Aplicar"
     },
     "agent": {
       "toggle": "Asistente",

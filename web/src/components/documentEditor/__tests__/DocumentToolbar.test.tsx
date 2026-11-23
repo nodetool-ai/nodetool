@@ -72,7 +72,7 @@ describe("DocumentToolbar list indentation controls", () => {
             }
           }}
         >
-          <DocumentToolbar onLink={jest.fn()} onImage={jest.fn()} />
+          <DocumentToolbar onLink={jest.fn()} onEmbed={jest.fn()} />
           <CommandSpy
             onIndent={onIndent}
             onOutdent={onOutdent}

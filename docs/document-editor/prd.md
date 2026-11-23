@@ -611,6 +611,31 @@ plan, after a document profile is designed. Until then a document is a
 whole-document format with today's merge behavior, as that plan describes for
 workflows and sketches.
 
+## Media embeds
+
+A document holds images, video, audio clips, 3D models and storyboard shots.
+Every embed is Markdown image syntax, `![caption](src)`, so the file stays
+readable in other Markdown editors. The `src` decides what the page shows
+([`document-embeds.ts`](../../packages/protocol/src/document-embeds.ts)):
+
+| `src` | Shows |
+|---|---|
+| A path relative to the document, such as `assets/teaser.mp4` | The project file, typed by its extension |
+| `asset://<id>` | The asset, typed by its content type |
+| A URL | The media at that URL, typed by its extension |
+| `storyboard://<storyboard id>/shots/<shot id>` | The shot's selected clip, or its keyframe until it has a clip, with a link that opens the storyboard |
+
+The toolbar's Insert media button opens a dialog with the project's media,
+an upload button, a path or URL field and a Storyboard shot tab. Files
+dropped or pasted from the computer are saved to `assets/` beside the
+document. Assets from the asset panel, files from the Files panel and shots
+dragged from a timeline's storyboard panel are embedded where they are
+dropped. Each embed is inserted as its own paragraph after the block the
+caret is in. A project file is written as a relative path (Q2), any other
+asset as its `asset://` locator. The document output renderer on node cards
+shows the same embeds, and the chat agent's document guidance names the
+syntax.
+
 ## Open questions
 
 - **Q1 — Name.** "Document" is taken twice: the `document` tab previews PDF

@@ -20,7 +20,7 @@ import FormatIndentIncreaseIcon from "@mui/icons-material/FormatIndentIncrease";
 import FormatQuoteIcon from "@mui/icons-material/FormatQuote";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChartOutlined";
-import ImageIcon from "@mui/icons-material/ImageOutlined";
+import PermMediaIcon from "@mui/icons-material/PermMediaOutlined";
 import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
 import LooksOneIcon from "@mui/icons-material/LooksOneOutlined";
 import LooksTwoIcon from "@mui/icons-material/LooksTwoOutlined";
@@ -77,11 +77,11 @@ export function useDocumentSelectionState(): DocumentSelectionState {
 interface DocumentToolbarProps {
   /** Open the link field over the selection. */
   onLink: () => void;
-  /** Open the image field at the caret. */
-  onImage: () => void;
+  /** Open the media dialog for the caret. */
+  onEmbed: () => void;
 }
 
-const DocumentToolbar = ({ onLink, onImage }: DocumentToolbarProps) => {
+const DocumentToolbar = ({ onLink, onEmbed }: DocumentToolbarProps) => {
   const { t } = useTranslation();
   const [editor] = useLexicalComposerContext();
   const { block, formats, link } = useDocumentSelectionState();
@@ -204,10 +204,10 @@ const DocumentToolbar = ({ onLink, onImage }: DocumentToolbarProps) => {
           onClick={() => insertTable(editor)}
         />
         <ToolbarIconButton
-          icon={<ImageIcon fontSize="small" />}
-          tooltip={t("documentEditor.toolbar.image")}
+          icon={<PermMediaIcon fontSize="small" />}
+          tooltip={t("documentEditor.toolbar.media")}
           aria-haspopup="dialog"
-          onClick={onImage}
+          onClick={onEmbed}
         />
         <ToolbarIconButton
           icon={<HorizontalRuleIcon fontSize="small" />}

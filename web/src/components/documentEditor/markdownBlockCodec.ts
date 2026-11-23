@@ -54,7 +54,7 @@ import {
 
 import { HorizontalRuleNode } from "../textEditor/HorizontalRuleNode";
 import { DOCUMENT_TRANSFORMERS } from "./documentTransformers";
-import { DocumentImageNode } from "./nodes/DocumentImageNode";
+import { DocumentEmbedNode } from "./nodes/DocumentEmbedNode";
 import { RawMarkdownNode } from "./nodes/RawMarkdownNode";
 
 /** Every node class a document can hold. */
@@ -71,7 +71,7 @@ export const DOCUMENT_NODES: ReadonlyArray<Klass<LexicalNode>> = [
   TableNode,
   TableRowNode,
   TableCellNode,
-  DocumentImageNode,
+  DocumentEmbedNode,
   RawMarkdownNode
 ];
 

@@ -20559,17 +20559,12 @@
       "quote": "引用",
       "codeBlock": "代码块",
       "table": "表格",
-      "image": "图片",
       "rule": "分隔线"
     },
     "insert": {
       "linkAddress": "链接地址",
-      "imagePath": "图片路径或 URL",
-      "imagePathPlaceholder": "assets/picture.png",
-      "imageAlt": "描述",
       "removeLink": "移除链接",
-      "applyLink": "应用",
-      "insertImage": "插入"
+      "applyLink": "应用"
     },
     "agent": {
       "toggle": "助手",

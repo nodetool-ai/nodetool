@@ -20559,17 +20559,12 @@
       "quote": "Lainaus",
       "codeBlock": "Koodilohko",
       "table": "Taulukko",
-      "image": "Kuva",
       "rule": "Erotin"
     },
     "insert": {
       "linkAddress": "Linkin osoite",
-      "imagePath": "Kuvan polku tai URL",
-      "imagePathPlaceholder": "assets/kuva.png",
-      "imageAlt": "Kuvaus",
       "removeLink": "Poista linkki",
-      "applyLink": "Käytä",
-      "insertImage": "Lisää"
+      "applyLink": "Käytä"
     },
     "agent": {
       "toggle": "Avustaja",

@@ -20559,17 +20559,12 @@
       "quote": "引用",
       "codeBlock": "コードブロック",
       "table": "表",
-      "image": "画像",
       "rule": "区切り線"
     },
     "insert": {
       "linkAddress": "リンク先",
-      "imagePath": "画像のパスまたは URL",
-      "imagePathPlaceholder": "assets/picture.png",
-      "imageAlt": "説明",
       "removeLink": "リンクを削除",
-      "applyLink": "適用",
-      "insertImage": "挿入"
+      "applyLink": "適用"
     },
     "agent": {
       "toggle": "アシスタント",

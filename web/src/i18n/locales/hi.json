@@ -20559,17 +20559,12 @@
       "quote": "उद्धरण",
       "codeBlock": "कोड ब्लॉक",
       "table": "तालिका",
-      "image": "छवि",
       "rule": "विभाजक"
     },
     "insert": {
       "linkAddress": "लिंक पता",
-      "imagePath": "छवि पथ या URL",
-      "imagePathPlaceholder": "assets/picture.png",
-      "imageAlt": "विवरण",
       "removeLink": "लिंक हटाएँ",
-      "applyLink": "लागू करें",
-      "insertImage": "डालें"
+      "applyLink": "लागू करें"
     },
     "agent": {
       "toggle": "सहायक",

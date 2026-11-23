@@ -25,6 +25,19 @@ describe("document transformers", () => {
     expect(roundTrip(markdown)).toBe(markdown);
   });
 
+  it("keeps video, audio, asset and storyboard shot embeds byte for byte", () => {
+    const markdown = [
+      "![Teaser](assets/teaser%20cut.mp4)",
+      "",
+      "![Voice](../audio/voice.m4a)",
+      "",
+      "![](asset://0123456789abcdef0123456789abcdef)",
+      "",
+      "![SH 03 · Rooftop](storyboard://b1/shots/s3 \"Shot\")"
+    ].join("\n");
+    expect(roundTrip(markdown)).toBe(markdown);
+  });
+
   it("keeps escaped pipes and backslashes in table cells", () => {
     const markdown = "| a \\| b | C:\\\\dir |\n| --- | --- |\n| 1 | 2 |";
     expect(roundTrip(markdown)).toBe(markdown);

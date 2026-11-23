@@ -20559,17 +20559,12 @@
       "quote": "Citaat",
       "codeBlock": "Codeblok",
       "table": "Tabel",
-      "image": "Afbeelding",
       "rule": "Scheidingslijn"
     },
     "insert": {
       "linkAddress": "Linkadres",
-      "imagePath": "Pad of URL van afbeelding",
-      "imagePathPlaceholder": "assets/afbeelding.png",
-      "imageAlt": "Beschrijving",
       "removeLink": "Link verwijderen",
-      "applyLink": "Toepassen",
-      "insertImage": "Invoegen"
+      "applyLink": "Toepassen"
     },
     "agent": {
       "toggle": "Assistent",

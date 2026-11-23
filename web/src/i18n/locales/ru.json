@@ -21193,17 +21193,12 @@
       "quote": "Цитата",
       "codeBlock": "Блок кода",
       "table": "Таблица",
-      "image": "Изображение",
       "rule": "Разделитель"
     },
     "insert": {
       "linkAddress": "Адрес ссылки",
-      "imagePath": "Путь или URL изображения",
-      "imagePathPlaceholder": "assets/picture.png",
-      "imageAlt": "Описание",
       "removeLink": "Удалить ссылку",
-      "applyLink": "Применить",
-      "insertImage": "Вставить"
+      "applyLink": "Применить"
     },
     "agent": {
       "toggle": "Ассистент",

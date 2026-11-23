@@ -20559,17 +20559,12 @@
       "quote": "Citat",
       "codeBlock": "Kodblock",
       "table": "Tabell",
-      "image": "Bild",
       "rule": "Avdelare"
     },
     "insert": {
       "linkAddress": "Länkadress",
-      "imagePath": "Bildsökväg eller URL",
-      "imagePathPlaceholder": "assets/bild.png",
-      "imageAlt": "Beskrivning",
       "removeLink": "Ta bort länk",
-      "applyLink": "Använd",
-      "insertImage": "Infoga"
+      "applyLink": "Använd"
     },
     "agent": {
       "toggle": "Assistent",

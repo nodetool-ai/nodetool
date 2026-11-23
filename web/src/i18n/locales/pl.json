@@ -21193,17 +21193,12 @@
       "quote": "Cytat",
       "codeBlock": "Blok kodu",
       "table": "Tabela",
-      "image": "Obraz",
       "rule": "Separator"
     },
     "insert": {
       "linkAddress": "Adres linku",
-      "imagePath": "Ścieżka lub URL obrazu",
-      "imagePathPlaceholder": "assets/obraz.png",
-      "imageAlt": "Opis",
       "removeLink": "Usuń link",
-      "applyLink": "Zastosuj",
-      "insertImage": "Wstaw"
+      "applyLink": "Zastosuj"
     },
     "agent": {
       "toggle": "Asystent",
