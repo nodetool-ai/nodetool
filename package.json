@@ -94,7 +94,6 @@
     "packages/server-minimal",
     "packages/server-feature-sandbox",
     "packages/document-processing",
-    "packages/feature-documents",
     "packages/provider-anthropic",
     "packages/database-postgres",
     "packages/pack-core",

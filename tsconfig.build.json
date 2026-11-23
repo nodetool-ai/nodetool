@@ -89,7 +89,6 @@
     { "path": "packages/server-minimal" },
     { "path": "packages/server-feature-sandbox" },
     { "path": "packages/document-processing" },
-    { "path": "packages/feature-documents" },
     { "path": "packages/provider-anthropic" },
     { "path": "packages/database-postgres" },
     { "path": "packages/pack-core" },

@@ -315,7 +315,7 @@ const WEB_PROJECT_FILES_SUITES =
 const LEAN_SERVER_PACKAGES = [
   "cli", "pack-core", "pack-manager", "sandbox-runtime", "server-feature-packs",
   "database-postgres", "database-sqlite", "document-processing", "execution-core",
-  "feature-documents", "models-core", "nodes-core", "provider-anthropic",
+  "models-core", "nodes-core", "provider-anthropic",
   "runtime-core", "security-core", "server-core", "server-feature-sandbox",
   "server-features", "server-minimal"
 ];

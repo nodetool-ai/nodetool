@@ -21,7 +21,6 @@ retains the cause when loading fails.
 Optional modules install separately:
 
 - `@nodetool-ai/server-feature-sandbox` enables the Code node in QuickJS.
-- `@nodetool-ai/feature-documents` enables PDF text extraction.
 - `@nodetool-ai/provider-anthropic` supplies an Anthropic text adapter.
 - `@nodetool-ai/database-postgres` supplies a PostgreSQL repository adapter.
 
