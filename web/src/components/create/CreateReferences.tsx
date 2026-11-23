@@ -63,10 +63,6 @@ export const referenceRole = (
   }
 };
 
-/** Whether `mode` reads any attached references. */
-export const modeTakesReferences = (mode: CreateMode): boolean =>
-  CREATE_INPUT_NEEDS[mode] !== undefined;
-
 interface CreateReferencesProps {
   mode: CreateMode;
   references: readonly CreateReference[];
