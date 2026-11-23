@@ -357,7 +357,7 @@ function report(result, log) {
       `${result.context.length} elsewhere in changed files, ${result.errors.length} analysis error(s).`
   );
   if (process.env.GITHUB_STEP_SUMMARY) {
-    const rows = result.blocking.map((d) => `| \`${d.file}:${d.line}\` | ${d.check} | ${d.message.replace(/\|/g, "\\|")} |`);
+    const rows = result.blocking.map((d) => `| \`${d.file}:${d.line}\` | ${d.check} | ${d.message.replace(/[\\|]/g, "\\$&")} |`);
     appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
       [
