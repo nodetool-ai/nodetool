@@ -70,7 +70,7 @@ export const JA_RECIPES: Record<string, Line> = {
   "viral-video-ad-engine": { title: "商品コマーシャル", body: "商品にストーリーを与えます。ショットを演出し、音を整え、タイムラインで広告を仕上げます。" },
   "multilingual-video-dubber": { title: "多言語動画", body: "翻訳を確認し、声を選び、セリフごとに話し方を編集します。新しい言語のナレーションか、別途リップシンクで仕上げます。" },
   "ecommerce-sku-visual-factory": { title: "商品カタログ素材", body: "一つの商品参照から、スタジオ画像、季節のシーン、短いモーションクリップのセットを作ります。" },
-  "storyboard-to-trailer": { title: "ストーリーボードからトレーラーへ", body: "ストーリーのアイデアを六ショットのストーリーボードにし、同じワークスペースで声、動き、編集まで仕上げます。" },
+  "storyboard-to-trailer": { title: "絵コンテからトレーラーへ", body: "ストーリーのアイデアを六ショットの絵コンテにし、同じワークスペースで声、動き、編集まで仕上げます。" },
   "impossible-product-worlds": { title: "ありえない商品の世界", body: "巨大なカップに隠れたプールまで泳ぐ人を追い、彼女がそれを飲むときに人間のスケールへ戻ります。" },
 };
 

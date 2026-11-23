@@ -65,7 +65,7 @@ const CATALOGS: Record<Locale, Catalog> = {
     modality: ja.JA_MODALITY,
     vendor: ja.JA_VENDOR,
     words: {
-      storyboards: "ストーリーボード",
+      storyboards: "絵コンテ",
       shots: "{n}ショット",
       seconds: "{n}秒",
       beats: "{n}ビート",
