@@ -4,6 +4,7 @@
 // against MusicPlan, the Selection tool's rubber band, the program monitor
 // of a sequence with a video track, the loop control, the role chip and
 // picker, and New music project from the timeline list.
+#include <QDir>
 #include "wiring/WiringFixture.h"
 #include "TestHttpServer.h"
 #include "music/MusicPlan.h"
@@ -278,6 +279,73 @@ private slots:
             QCOMPARE(rects[i].toMap().value("repeated").toBool(), i > 0);
         }
         QCOMPARE(clip("m").value("notes").toArray()[0].toObject().value("durationTick").toDouble(), 5000.0);
+    }
+
+    // Review screenshots of looped clips and the clip menu, written when NT_PANEL_SCREENSHOTS is set.
+    void loopClipReviewScreenshot() {
+        auto raw = musicDocument(false);
+        auto tracks = raw.value("tracks").toArray();
+        auto keys = tracks[2].toObject();
+        keys.insert("type", "midi");
+        tracks[2] = keys;
+        raw.insert("tracks", tracks);
+        auto midi = audioClip("m", "c", barMs(1), 8000);
+        midi.insert("mediaType", "midi");
+        midi.insert("name", "Rhodes");
+        midi.insert("loopLengthMs", 2000);
+        midi.insert("notes", QJsonArray{QJsonObject{{"id", "n1"}, {"startTick", 0}, {"durationTick", 480}, {"pitch", 60}, {"velocity", 90}},
+                                        QJsonObject{{"id", "n2"}, {"startTick", 480}, {"durationTick", 480}, {"pitch", 64}, {"velocity", 90}},
+                                        QJsonObject{{"id", "n3"}, {"startTick", 960}, {"durationTick", 960}, {"pitch", 67}, {"velocity", 90}}});
+        auto bass = audioClip("b1", "b", barMs(7), 10000);
+        bass.insert("name", "Bass Loop");
+        bass.insert("loopLengthMs", 4000);
+        bass.insert("outPointMs", 4000);
+        auto clips = raw.value("clips").toArray();
+        clips.removeAt(1);
+        clips.append(midi);
+        clips.append(bass);
+        raw.insert("clips", clips);
+        openDocument(raw);
+        auto* lines = qobject_cast<nt::ui::MidiNoteLinesItem*>(item("midiNoteLines-m"));
+        auto* clipItem = item("clip-m");
+        QVERIFY(lines && clipItem);
+        QVERIFY2(lines->mapToScene({0, lines->height()}).y() <= clipItem->mapToScene({0, clipItem->height()}).y() + 0.5, "Note lines spill below the clip");
+        const auto folder = qEnvironmentVariable("NT_PANEL_SCREENSHOTS");
+        if (folder.isEmpty()) { return; }
+        QVERIFY(QDir().mkpath(folder));
+        gestures()->viewState()->zoomTo(25, 0);
+        gestures()->viewState()->flush();
+        QTest::qWait(100);
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, lanePoint("b", barMs(7) + 1000));
+        QTest::qWait(150);
+        auto* region = item("tracksRegion");
+        const QRect crop = region ? region->mapRectToScene(region->boundingRect()).toRect() : QRect(0, 0, 1800, 1000);
+        const auto frame = view->grabWindow();
+        QVERIFY(!frame.isNull());
+        const qreal dpr = frame.devicePixelRatio();
+        QVERIFY(frame.copy(QRect(crop.topLeft() * dpr, crop.size() * dpr)).save(QDir(folder).filePath("loop-clips.png")));
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, lanePoint("b", barMs(7) + 1000));
+        QTRY_VERIFY(item("clipMenu-repeatClip"));
+        QTest::qWait(200);
+        QVERIFY(view->grabWindow().save(QDir(folder).filePath("clip-menu.png")));
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+    }
+
+    void musicLoopMenuTogglesTheLoopAsOneUndo() {
+        openDocument(musicDocument(false));
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, lanePoint("b", 5000));
+        QTRY_VERIFY(item("clipMenu-loopClip"));
+        QVERIFY(!item("clipMenu-loopClip")->property("looped").toBool());
+        click("clipMenu-loopClip");
+        QTRY_COMPARE(clip("b1").value("loopLengthMs").toDouble(), 4000.0);
+        QVERIFY(clip("b1").value("durationMs").toDouble() > 4000.0);
+        QCOMPARE(model.undoStack()->count(), 1);
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, lanePoint("b", 5000));
+        QTRY_VERIFY(item("clipMenu-loopClip") && item("clipMenu-loopClip")->isVisible());
+        QTRY_VERIFY(item("clipMenu-loopClip")->property("looped").toBool());
+        click("clipMenu-loopClip");
+        QTRY_VERIFY(!clip("b1").contains("loopLengthMs"));
+        QCOMPARE(model.undoStack()->count(), 2);
     }
 
     void musicRepeatMenuMakesCountedCopiesOnce() {

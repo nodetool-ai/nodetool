@@ -209,8 +209,9 @@ Item {
         objectName: "musicLoopRepeats-" + (body.clipData.id || "")
         visible: body.loopLengthMs > 0
         readonly property double periodPx: body.loopLengthMs / body.msPerPx
-        readonly property color repeatFill: TimelineVisuals.loopRepeatFill
+        readonly property color repeatFill: Qt.alpha(TimelineVisuals.loopRepeatFill, 0.34)
         readonly property color notchInk: TimelineVisuals.clipText
+        readonly property color seamInk: Qt.alpha(TimelineVisuals.clipText, 0.45)
         x: Math.max(0, (body.viewState ? body.viewState.scrollLeftPx : 0) - body.contentX)
         width: Math.max(0, Math.min(body.width - x, body.viewState ? body.viewState.viewportWidthPx : body.width))
         height: body.height
@@ -225,13 +226,17 @@ Item {
             const ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
             if (!(periodPx > 0) || !visible) return
+            // The repeats keep the clip colour, shaded so the source period reads as the original.
             ctx.fillStyle = repeatFill
             const firstDim = Math.min(width, Math.max(0, periodPx - x))
             ctx.fillRect(firstDim, 0, width - firstDim, height)
-            ctx.fillStyle = notchInk
-            const stride = Math.max(1, Math.ceil(Ui.Metrics.border / periodPx))
+            const stride = Math.max(1, Math.ceil(Ui.Metrics.xs / periodPx))
             for (let repeat = Math.max(1, Math.floor(x / periodPx)); repeat * periodPx < x + width; repeat += stride) {
                 const at = repeat * periodPx - x
+                // A full-height seam at every repeat, with the notch on top.
+                ctx.fillStyle = seamInk
+                ctx.fillRect(Math.round(at), 0, Ui.Metrics.border, height)
+                ctx.fillStyle = notchInk
                 ctx.beginPath()
                 ctx.moveTo(at - Ui.Metrics.xs, 0)
                 ctx.lineTo(at, Ui.Metrics.sm)

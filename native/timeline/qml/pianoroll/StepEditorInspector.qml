@@ -45,6 +45,7 @@ Rectangle {
             id: column
             width: scroll.availableWidth
             padding: Ui.Metrics.md
+            bottomPadding: Ui.Metrics.xxxl
             spacing: Ui.Metrics.sm
             readonly property real inner: width - 2 * padding
 

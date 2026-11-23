@@ -25,14 +25,14 @@ Item {
     }
     anchors.fill: parent
 
+    // The Loader sizes its item, so the band offset sits on the Loader.
     Loader {
         active: root.clip.mediaType === "midi"
-        anchors.fill: parent
+        y: TimelineMetrics.clipNameBandHeight
+        width: root.width
+        height: Math.max(0, root.height - y)
         sourceComponent: MidiNoteLinesItem {
             objectName: "midiNoteLines-" + root.clip.id
-            y: TimelineMetrics.clipNameBandHeight
-            width: root.width
-            height: Math.max(0, root.height - y)
             timeline: root.timeline
             clipId: root.clip.id || ""
             msPerPx: root.viewState ? root.viewState.msPerPx : 10

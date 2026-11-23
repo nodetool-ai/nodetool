@@ -227,6 +227,8 @@ private slots:
             }
             expected.append("clipMenu-" + value);
         }
+        // The music rows stay in the list, hidden outside music mode.
+        expected.append({"clipMenu-loopClip:Loop", "clipMenu-repeatClip:Repeat…"});
         expected.append({"clipMenu-labelDivider:", "clipMenu-label:Label", "clipMenu-afterLabelDivider:",
                          "registryMenu-clip-addMarker:Add marker", "registryMenuGroup-clip-:",
                          "registryMenu-clip-speedDuration:Speed / Duration…", "registryMenuGroup-clip-frame:",

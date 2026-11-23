@@ -1073,6 +1073,22 @@ Item {
         QVERIFY(!frame.isNull());
         QVERIFY(bounds.bottom() * frame.devicePixelRatio() <= frame.height());
         QVERIFY(captureStepEditor("piano-roll"));
+        // At 640 px the inspector scrolls, and its last Note field comes fully into view.
+        auto* release = item("pianoRollReleaseVelocity");
+        QVERIFY(release);
+        auto* flick = release->parentItem();
+        while (flick && !flick->inherits("QQuickFlickable")) { flick = flick->parentItem(); }
+        QVERIFY(flick);
+        QVERIFY(flick->property("contentHeight").toDouble() > flick->height());
+        const double before = release->mapToScene({0, 0}).y();
+        flick->setProperty("contentY", flick->property("contentHeight").toDouble() - flick->height());
+        QTest::qWait(50);
+        QVERIFY2(release->mapToScene({0, 0}).y() < before, "Inspector does not scroll");
+        const auto field = release->mapRectToScene(release->boundingRect());
+        // The last field keeps a margin above the inspector's bottom edge.
+        QVERIFY(field.bottom() + 8 <= flick->mapToScene({0, flick->height()}).y());
+        QVERIFY2(field.bottom() <= flick->mapToScene({0, flick->height()}).y() + 0.5, "Note section stays cut off");
+        QVERIFY(captureStepEditor("piano-roll-inspector-scrolled"));
     }
 
     void stepEditorLineAndLaneSettings() {

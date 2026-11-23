@@ -91,12 +91,27 @@ Ui.ContextMenu {
             menu.removeItem(object)
         }
     }
+    // Loop repeats the clip's current length four times. Remove loop takes the repeats off. One undo each.
+    Ui.MenuItem {
+        objectName: "clipMenu-loopClip"
+        readonly property var clip: menu.context.clip || ({})
+        visible: menu.gestures.keymapContext === "music" && ["audio", "midi"].includes(clip.mediaType) && !clip.timeRemap
+        height: visible ? implicitHeight : 0
+        readonly property bool looped: (clip.loopLengthMs ?? 0) > 0 && clip.loopLengthMs < (clip.durationMs ?? 0)
+        text: looped ? qsTr("Remove loop") : qsTr("Loop")
+        enabled: menu.context.editable !== false
+        reasonText: enabled ? "" : qsTr("Unlock the clip first.")
+        onTriggered: {
+            const params = looped ? { clipId: menu.context.clipId, loopLengthMs: null }
+                                   : { clipId: menu.context.clipId, times: 4 }
+            menu.gestures.timeline.applyEdit("loop_clip", params)
+        }
+    }
     Ui.MenuItem {
         objectName: "clipMenu-repeatClip"
         visible: menu.gestures.keymapContext === "music"
         height: visible ? implicitHeight : 0
         text: qsTr("Repeat…")
-        iconName: "repeat"
         onTriggered: {
             repeatDialog.clipId = menu.context.clipId || ""
             repeatCount.value = 1
@@ -225,7 +240,6 @@ Ui.ContextMenu {
     MenuActionItem {
         objectName: "clipMenu-rippleDeleteSelected"
         text: "Ripple delete"
-        iconName: "deleteOutline"
         destructive: true
         actionName: "rippleDeleteSelected"
         actionContext: menu.actionContext
@@ -234,7 +248,6 @@ Ui.ContextMenu {
     MenuActionItem {
         objectName: "clipMenu-deleteSelected"
         text: "Delete"
-        iconName: "deleteOutline"
         destructive: true
         actionName: "deleteSelected"
         actionContext: menu.actionContext

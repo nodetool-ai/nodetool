@@ -309,17 +309,26 @@ Item {
     MouseArea {
         id: loopGrip
         objectName: "musicClipLoopHandle-" + clipItem.clipId
+        // The upper right corner, as in a DAW: the loop tool above, the trim grip below it.
         anchors.right: parent.right
         anchors.top: parent.top
-        width: Ui.Metrics.md
-        height: Ui.Metrics.md
+        width: Ui.Metrics.iconSm
+        height: Math.min(TimelineMetrics.clipNameBandHeight, parent.height / 2)
         z: TimelineMetrics.trimHandleLayer
+        hoverEnabled: true
         visible: clipItem.trimHandles && !!clipItem.gestures && clipItem.gestures.keymapContext === "music"
             && clipItem.gestures.activeTool === "select" && !clipItem.interactionLocked
             && ["audio", "midi"].includes(clipItem.mediaType) && !clipItem.clipData.timeRemap
         cursorShape: Qt.SizeHorCursor
         acceptedButtons: Qt.LeftButton
-        Ui.Icon { anchors.centerIn: parent; name: "repeat"; size: Ui.Metrics.sm; domainColor: TimelineVisuals.clipText }
+        // The grip shows on a hovered or selected clip and stays a hit target otherwise.
+        Rectangle {
+            anchors.fill: parent
+            radius: Ui.Metrics.micro
+            color: Qt.alpha(TimelineVisuals.clipText, loopGrip.pressed ? 0.45 : loopGrip.containsMouse ? 0.32 : 0.18)
+            opacity: hover.hovered || clipItem.selected || loopGrip.pressed ? 1 : 0
+            Ui.Icon { anchors.centerIn: parent; name: "repeat"; size: Ui.Metrics.iconXs - Ui.Metrics.xs; domainColor: TimelineVisuals.clipText }
+        }
         onPressed: mouse => clipItem.press("loop", mouse, this)
     }
 

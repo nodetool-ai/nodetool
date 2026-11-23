@@ -18,6 +18,8 @@ Rectangle {
         return Targets.automationTargetSpecs(track).filter(spec => !used.has(spec.key) && spec.key !== shown
             && (spec.group + " " + spec.label).toLowerCase().includes(needle))
     }
+    // The parameter column of AutomationHeaderRow.
+    readonly property real parameterX: Ui.Metrics.small + Ui.Metrics.xxxl * 2
     objectName: "automation-add-" + track.id
     height: TimelineMetrics.automationAddHeight
     color: Ui.Theme.surfacePanel
@@ -39,7 +41,8 @@ Rectangle {
         id: picker
         objectName: "automation-picker-" + root.track.id
         anchors.fill: parent
-        anchors.leftMargin: Ui.Metrics.xl
+        // Aligned with the parameter column of the rows above.
+        anchors.leftMargin: root.parameterX
         anchors.rightMargin: Ui.Metrics.sm
         anchors.topMargin: Ui.Metrics.xs
         anchors.bottomMargin: Ui.Metrics.xs
