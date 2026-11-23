@@ -557,7 +557,8 @@ export const StepSequencer: React.FC<Props> = memo(({ clipId, toolbarStart, tool
               list.push({ op: "clear_pattern", clipId, scope: "steps", row: target.id, steps: [s + 1] });
               const { stepRate, ...rest } = value;
               const rate = stepRate ?? targetRate;
-              const values = { ...rest, on: value.on === true, ...(rate ? { stepRate: rate } : {}) };
+              const values: typeof rest & { on: boolean; stepRate?: typeof rate } = { ...rest, on: value.on === true };
+              if (rate) values.stepRate = rate;
               list.push({ op: "set_steps", clipId, row: target.id, steps: [s + 1], values } as TimelineOp);
             }
           });
@@ -582,7 +583,7 @@ export const StepSequencer: React.FC<Props> = memo(({ clipId, toolbarStart, tool
                 row: src.rowId,
                 toClipId: clipId,
                 toRow: rowId,
-                ...(action.action === "pasteSettings" ? { settingsOnly: true } : {})
+                settingsOnly: action.action === "pasteSettings" || undefined
               }
             ]);
           }

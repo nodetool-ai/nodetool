@@ -195,16 +195,10 @@ FrontendToolRegistry.register({
     const detail = await handler.applyOp(
       timelineOpFromToolArgs("get_state", { clip, track })
     );
-    return {
-      ok: true,
-      ...snapshot,
-      ...(detail.clipDetail !== undefined
-        ? { clipDetail: detail.clipDetail }
-        : {}),
-      ...(detail.trackDetail !== undefined
-        ? { trackDetail: detail.trackDetail }
-        : {})
-    };
+    const result: Record<string, unknown> = { ok: true, ...snapshot };
+    if (detail.clipDetail !== undefined) result.clipDetail = detail.clipDetail;
+    if (detail.trackDetail !== undefined) result.trackDetail = detail.trackDetail;
+    return result;
   }
 });
 
@@ -539,13 +533,11 @@ FrontendToolRegistry.register({
     const { clips, children, ...clip } = await getTimelineAgentHandler(
       timeline_id
     ).duplicateClip(target, gapMs, { count, atBar, beat });
-    return {
-      ok: true,
-      clip,
-      ...(clips ? { clips } : {}),
-      ...(children ? { children } : {}),
-      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
-    };
+    const result: Record<string, unknown> = { ok: true, clip };
+    if (clips) result.clips = clips;
+    if (children) result.children = children;
+    result.url = docUrl("timeline", timeline_id, { key: "clip", value: clip.id });
+    return result;
   }
 });
 

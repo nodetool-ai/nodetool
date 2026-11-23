@@ -88,6 +88,7 @@ import type {
   StepEditMode,
   StepKey,
   StepPattern,
+  StepRate,
   StepRow,
   StepRowAssignment,
   TimelineClip,
@@ -110,6 +111,7 @@ import type {
   TimelineOpResult,
   TimelineOpState,
   TimelineOpStepPatternFolder,
+  TimelineOpStepPatternLibrary,
   TimelineOpUserStepPattern
 } from "./types.js";
 
@@ -289,12 +291,15 @@ export function patternSummary(pattern: StepPattern): string {
   return `${pattern.rows.length} rows x ${pattern.lengthSteps} @${pattern.stepRate}`;
 }
 
+/** One step's value as an edit mode shows it. */
+type StepModeValue = boolean | number | StepRate | undefined;
+
 function modeValueAtStep(
   row: StepRow,
   stepIndex: number,
   mode: StepEditMode,
   instrument?: MidiInstrument
-): unknown {
+): StepModeValue {
   const raw = row.steps[stepIndex] ?? {};
   const n = normalizeStep(raw);
   switch (mode) {
@@ -355,10 +360,10 @@ function serializePatternRow(
     loopEnd: row.loopEnd,
     midiChannel: row.midiChannel,
     automationMode: row.automationMode,
-    ...(row.color !== undefined ? { color: row.color } : {}),
-    ...(row.subrowsExpanded !== undefined ? { subrowsExpanded: row.subrowsExpanded } : {}),
     subrows: [...row.subrows]
   };
+  if (row.color !== undefined) out.color = row.color;
+  if (row.subrowsExpanded !== undefined) out.subrowsExpanded = row.subrowsExpanded;
   if (modes && modes.length > 0) {
     const values: Record<string, unknown[]> = {};
     for (const mode of modes) {
@@ -372,7 +377,7 @@ function serializePatternRow(
 }
 
 function serializePatternSettings(pattern: StepPattern): Record<string, unknown> {
-  return {
+  const out: Record<string, unknown> = {
     name: pattern.name,
     lengthSteps: pattern.lengthSteps,
     stepRate: pattern.stepRate,
@@ -388,9 +393,10 @@ function serializePatternSettings(pattern: StepPattern): Record<string, unknown>
     noTranspose: pattern.noTranspose,
     scaleQuantize: pattern.scaleQuantize,
     automationMode: pattern.automationMode,
-    ...(pattern.rowSort !== undefined ? { rowSort: pattern.rowSort } : {}),
     seed: pattern.seed
   };
+  if (pattern.rowSort !== undefined) out.rowSort = pattern.rowSort;
+  return out;
 }
 
 /** Build default kit rows for a DR-1 or Sampler kit track (SQ42). */
@@ -496,10 +502,7 @@ function resolveSavedPatternInstrument(entry: {
   if (entry.instrument) {
     const instrument = structuredClone(entry.instrument);
     const presetId = presetIdForInstrument(instrument);
-    return {
-      instrument,
-      ...(presetId ? { presetId } : {})
-    };
+    return presetId ? { instrument, presetId } : { instrument };
   }
   if (entry.instrumentPreset) {
     const preset = findInstrumentPreset(entry.instrumentPreset);
@@ -513,10 +516,7 @@ function resolveSavedPatternInstrument(entry: {
   return null;
 }
 
-async function resolveLibraryPattern(
-  scope: StepPatternScope,
-  ref: string
-): Promise<{
+interface ResolvedLibraryPattern {
   id: string;
   name: string;
   kind: "pattern" | "template";
@@ -524,7 +524,28 @@ async function resolveLibraryPattern(
   pattern: StepPattern;
   instrument?: MidiInstrument;
   instrumentPreset?: string;
-}> {
+}
+
+function resolvedLibraryPattern(
+  entry: Omit<ResolvedLibraryPattern, "source">,
+  source: ResolvedLibraryPattern["source"]
+): ResolvedLibraryPattern {
+  const resolved: ResolvedLibraryPattern = {
+    id: entry.id,
+    name: entry.name,
+    kind: entry.kind,
+    source,
+    pattern: normalizePattern(structuredClone(entry.pattern))
+  };
+  if (entry.instrument) resolved.instrument = structuredClone(entry.instrument);
+  if (entry.instrumentPreset) resolved.instrumentPreset = entry.instrumentPreset;
+  return resolved;
+}
+
+async function resolveLibraryPattern(
+  scope: StepPatternScope,
+  ref: string
+): Promise<ResolvedLibraryPattern> {
   const trimmed = ref.trim();
   const needle = trimmed.toLowerCase();
   if (scope.ctx.stepPatternLibrary) {
@@ -541,38 +562,10 @@ async function resolveLibraryPattern(
       }
       userMatch = prefixMatches[0];
     }
-    if (userMatch) {
-      return {
-        id: userMatch.id,
-        name: userMatch.name,
-        kind: userMatch.kind,
-        source: "user",
-        pattern: normalizePattern(structuredClone(userMatch.pattern)),
-        ...(userMatch.instrument
-          ? { instrument: structuredClone(userMatch.instrument) }
-          : {}),
-        ...(userMatch.instrumentPreset
-          ? { instrumentPreset: userMatch.instrumentPreset }
-          : {})
-      };
-    }
+    if (userMatch) return resolvedLibraryPattern(userMatch, "user");
   }
   const factory = findFactoryStepPattern(ref);
-  if (factory) {
-    return {
-      id: factory.id,
-      name: factory.name,
-      kind: factory.kind,
-      source: "factory",
-      pattern: normalizePattern(structuredClone(factory.pattern)),
-      ...(factory.instrument
-        ? { instrument: structuredClone(factory.instrument) }
-        : {}),
-      ...(factory.instrumentPreset
-        ? { instrumentPreset: factory.instrumentPreset }
-        : {})
-    };
-  }
+  if (factory) return resolvedLibraryPattern(factory, "factory");
   const sampleNames = [...FACTORY_STEP_PATTERNS, ...FACTORY_STEP_TEMPLATES]
     .slice(0, 10)
     .map((e) => `"${e.name}"`)
@@ -962,7 +955,7 @@ export const STEP_PATTERN_OP_HANDLERS: {
     } else if (track.stepTemplate) {
       pattern = normalizePattern({
         ...structuredClone(track.stepTemplate),
-        ...(op.name ? { name: op.name } : {}),
+        name: op.name || track.stepTemplate.name,
         seed
       });
     } else {
@@ -1198,9 +1191,9 @@ export const STEP_PATTERN_OP_HANDLERS: {
         harmony: clip.harmony ? structuredClone(clip.harmony) : undefined,
         pattern: oneRowPattern,
         patternPhaseTicks: clip.patternPhaseTicks,
-        ...(clip.patternRowCycles?.[row.id]
-          ? { patternRowCycles: { [row.id]: structuredClone(clip.patternRowCycles[row.id]!) } }
-          : {})
+        patternRowCycles: clip.patternRowCycles?.[row.id]
+          ? { [row.id]: structuredClone(clip.patternRowCycles[row.id]!) }
+          : undefined
       });
       newTracks.push(newTrack);
       newClips.push(newClip);
@@ -1354,7 +1347,8 @@ export const STEP_PATTERN_OP_HANDLERS: {
           id,
           assignment: resolved.assignment,
           name: rowInput.name ?? resolved.defaultName,
-          ...(rowInput.color !== undefined ? { color: rowInput.color } : {}),
+          // normalizeRow leaves undefined color and subrowsExpanded off the row.
+          color: rowInput.color,
           stepRate,
           lengthSteps,
           playback: rowInput.playback ?? pattern.playback,
@@ -1364,9 +1358,7 @@ export const STEP_PATTERN_OP_HANDLERS: {
           loopEnd: loopBounds.loopEnd,
           midiChannel: rowInput.midiChannel ?? pattern.midiChannel,
           automationMode: rowInput.automationMode ?? pattern.automationMode,
-          ...(rowInput.subrowsExpanded !== undefined
-            ? { subrowsExpanded: rowInput.subrowsExpanded }
-            : {}),
+          subrowsExpanded: rowInput.subrowsExpanded,
           subrows: rowInput.subrows ?? defaultSubrowsForAssignment(resolved.assignment),
           steps
         },
@@ -2094,15 +2086,17 @@ export const STEP_PATTERN_OP_HANDLERS: {
           query: op.query,
           kind: op.kind,
           category: op.category
-        }).map((e) => ({
-          id: e.id,
-          name: e.name,
-          kind: e.kind,
-          category: e.category,
-          tags: [...e.tags],
-          ...(e.instrumentPreset ? { instrumentPreset: e.instrumentPreset } : {}),
-          source: "factory" as const
-        }));
+        }).map((e) => {
+          const item = {
+            id: e.id,
+            name: e.name,
+            kind: e.kind,
+            category: e.category,
+            tags: [...e.tags],
+            source: "factory" as const
+          };
+          return e.instrumentPreset ? { ...item, instrumentPreset: e.instrumentPreset } : item;
+        });
 
     const user = rawUser
       .filter((e) => {
@@ -2123,16 +2117,18 @@ export const STEP_PATTERN_OP_HANDLERS: {
         }
         return true;
       })
-      .map((e) => ({
-        id: e.id,
-        name: e.name,
-        kind: e.kind,
-        category: e.category ?? "user",
-        tags: [...(e.tags ?? [])],
-        folder: e.folder,
-        ...(e.instrumentPreset ? { instrumentPreset: e.instrumentPreset } : {}),
-        source: "user" as const
-      }));
+      .map((e) => {
+        const item = {
+          id: e.id,
+          name: e.name,
+          kind: e.kind,
+          category: e.category ?? "user",
+          tags: [...(e.tags ?? [])],
+          folder: e.folder,
+          source: "user" as const
+        };
+        return e.instrumentPreset ? { ...item, instrumentPreset: e.instrumentPreset } : item;
+      });
 
     const folders = rawFolders
       .filter((f) => {
@@ -2149,13 +2145,15 @@ export const STEP_PATTERN_OP_HANDLERS: {
         }
         return true;
       })
-      .map((f) => ({
-        ...(f.id !== undefined ? { id: f.id } : {}),
-        name: f.name,
-        kind: f.kind,
-        folder: f.folder,
-        parentFolder: f.parentFolder
-      }));
+      .map((f) => {
+        const listed = {
+          name: f.name,
+          kind: f.kind,
+          folder: f.folder,
+          parentFolder: f.parentFolder
+        };
+        return f.id !== undefined ? { id: f.id, ...listed } : listed;
+      });
 
     return {
       ok: true,
@@ -2246,22 +2244,19 @@ export const STEP_PATTERN_OP_HANDLERS: {
     scope.clips.push(clip);
     scope.state.selectedClipIds = [clip.id];
     scope.touch(clip.id);
-    return {
+    const result: TimelineOpResult = {
       ok: true,
       clip: scope.clipOut(clip),
       appliedPattern: entry.name,
       source: entry.source,
-      text: patternToText(loaded, track.instrument),
-      ...(instrumentApplied
-        ? {
-            track: scope.trackOut(track),
-            instrumentApplied: true,
-            ...(appliedInstrumentPreset
-              ? { instrumentPreset: appliedInstrumentPreset }
-              : {})
-          }
-        : {})
+      text: patternToText(loaded, track.instrument)
     };
+    if (instrumentApplied) {
+      result.track = scope.trackOut(track);
+      result.instrumentApplied = true;
+      if (appliedInstrumentPreset) result.instrumentPreset = appliedInstrumentPreset;
+    }
+    return result;
   },
 
   save_step_pattern: async (scope, op) => {
@@ -2295,17 +2290,16 @@ export const STEP_PATTERN_OP_HANDLERS: {
         folder.length > rootFolder.length
           ? folder.slice(rootFolder.length + 1)
           : undefined;
-      const stored = await scope.ctx.stepPatternLibrary.save({
+      const entry: Parameters<TimelineOpStepPatternLibrary["save"]>[0] = {
         name: op.name,
         kind: op.kind,
         folder: sub,
-        pattern: savedPattern,
-        ...(savedInstrument ? { instrument: savedInstrument } : {}),
-        ...(savedInstrumentPreset
-          ? { instrumentPreset: savedInstrumentPreset }
-          : {})
-      });
-      return {
+        pattern: savedPattern
+      };
+      if (savedInstrument) entry.instrument = savedInstrument;
+      if (savedInstrumentPreset) entry.instrumentPreset = savedInstrumentPreset;
+      const stored = await scope.ctx.stepPatternLibrary.save(entry);
+      const saved: TimelineOpResult = {
         ok: true,
         id: stored.id,
         name: op.name,
@@ -2313,18 +2307,17 @@ export const STEP_PATTERN_OP_HANDLERS: {
         folder: stored.folder || folder,
         assetId: stored.assetId,
         contentType: STEP_PATTERN_ASSET_CONTENT_TYPE,
-        clipId: clip.id,
-        ...(savedInstrumentPreset
-          ? { instrumentPreset: savedInstrumentPreset }
-          : {})
+        clipId: clip.id
       };
+      if (savedInstrumentPreset) saved.instrumentPreset = savedInstrumentPreset;
+      return saved;
     }
 
     const slug = op.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
-    return {
+    const result: TimelineOpResult = {
       ok: true,
       id: `user:${op.kind}:${slug || "pattern"}`,
       name: op.name,
@@ -2332,12 +2325,11 @@ export const STEP_PATTERN_OP_HANDLERS: {
       folder,
       contentType: STEP_PATTERN_ASSET_CONTENT_TYPE,
       clipId: clip.id,
-      pattern: savedPattern,
-      ...(savedInstrument ? { instrument: savedInstrument } : {}),
-      ...(savedInstrumentPreset
-        ? { instrumentPreset: savedInstrumentPreset }
-        : {})
+      pattern: savedPattern
     };
+    if (savedInstrument) result.instrument = savedInstrument;
+    if (savedInstrumentPreset) result.instrumentPreset = savedInstrumentPreset;
+    return result;
   },
 
   set_track_step_template: (scope, op) => {
@@ -2375,8 +2367,8 @@ export const STEP_PATTERN_OP_HANDLERS: {
     }
     const created = await library.createFolder({
       name: op.name,
-      ...(op.kind !== undefined ? { kind: op.kind } : {}),
-      ...(op.parentFolder !== undefined ? { parentFolder: op.parentFolder } : {})
+      kind: op.kind,
+      parentFolder: op.parentFolder
     });
     return {
       ok: true,
@@ -2394,7 +2386,7 @@ export const STEP_PATTERN_OP_HANDLERS: {
     const renamed = await library.renameFolder({
       folder: op.folder,
       newName: op.newName,
-      ...(op.kind !== undefined ? { kind: op.kind } : {})
+      kind: op.kind
     });
     return {
       ok: true,
@@ -2411,7 +2403,7 @@ export const STEP_PATTERN_OP_HANDLERS: {
     }
     const deleted = await library.deleteFolder({
       folder: op.folder,
-      ...(op.kind !== undefined ? { kind: op.kind } : {})
+      kind: op.kind
     });
     return {
       ok: true,
@@ -2428,7 +2420,7 @@ export const STEP_PATTERN_OP_HANDLERS: {
     }
     const moved = await library.movePattern({
       pattern: op.pattern,
-      ...(op.folder !== undefined ? { folder: op.folder } : {})
+      folder: op.folder
     });
     return {
       ok: true,
@@ -2500,24 +2492,25 @@ export function createMemoryStepPatternLibrary(
         return { id: existing.id, folder: fullFolder };
       }
       const id = mintPatternId();
-      entries.push({
+      const created: TimelineOpUserStepPattern = {
         id,
         name,
         kind,
         category: kind === "template" ? "templates" : "user",
         tags: [kind, "user"],
         folder: fullFolder,
-        pattern: structuredClone(pattern),
-        ...(instrument ? { instrument: structuredClone(instrument) } : {}),
-        ...(instrumentPreset ? { instrumentPreset } : {})
-      });
+        pattern: structuredClone(pattern)
+      };
+      if (instrument) created.instrument = structuredClone(instrument);
+      if (instrumentPreset) created.instrumentPreset = instrumentPreset;
+      entries.push(created);
       return { id, folder: fullFolder };
     },
     async createFolder({ kind, name, parentFolder }) {
       const target = resolveCreateStepPatternFolderTarget(currentFolders(), {
-        ...(kind !== undefined ? { kind } : {}),
+        kind,
         name,
-        ...(parentFolder !== undefined ? { parentFolder } : {})
+        parentFolder
       });
       const id = mintFolderId();
       folderMarkers.push({ id, kind: target.kind, folder: target.folder });
@@ -2533,7 +2526,7 @@ export function createMemoryStepPatternLibrary(
       const plan = resolveRenameStepPatternFolderTarget(currentFolders(), {
         folder,
         newName,
-        ...(kind !== undefined ? { kind } : {})
+        kind
       });
       for (const marker of folderMarkers) {
         if (
@@ -2566,8 +2559,7 @@ export function createMemoryStepPatternLibrary(
           });
         }
       }
-      return {
-        ...(plan.current.id !== undefined ? { id: plan.current.id } : {}),
+      const renamed = {
         name: plan.name,
         kind: plan.kind,
         previousFolder: plan.previousFolder,
@@ -2576,6 +2568,7 @@ export function createMemoryStepPatternLibrary(
         movedPatternCount: movedPatterns.length,
         movedPatterns
       };
+      return plan.current.id !== undefined ? { id: plan.current.id, ...renamed } : renamed;
     },
     async deleteFolder({ folder, kind }) {
       const target = resolveStepPatternFolderRef(currentFolders(), folder, kind);

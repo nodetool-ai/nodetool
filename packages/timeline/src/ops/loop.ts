@@ -3,6 +3,7 @@
  * start-edge trim run before they edit a looped clip.
  */
 
+import type { serializeClip } from "./serialize.js";
 import {
   activeLoopMs,
   loopRepeatCount,
@@ -28,7 +29,7 @@ export interface LoopScope {
   resolveClip(target: string): TimelineClip;
   assertWritable(clips: readonly TimelineClip[]): void;
   touch(...ids: string[]): void;
-  clipOut(clip: TimelineClip): unknown;
+  clipOut(clip: TimelineClip): ReturnType<typeof serializeClip>;
   knownSourceMs?(clip: TimelineClip): Promise<number | undefined>;
 }
 

@@ -143,7 +143,7 @@ const randomize = (ctx: CommandContext, rowIds: readonly string[], all: boolean,
     clipId: ctx.clipId,
     mode,
     rows,
-    ...(steps ? { steps } : {}),
+    steps,
     seed: nextSeed()
   }));
 };

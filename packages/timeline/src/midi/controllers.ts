@@ -589,12 +589,12 @@ export function mergeTrackMidiControllers<C extends TimelineClip>(
       const lane: MidiControllerLane = {
         id: existing?.id ?? `merged:${key}`,
         kind: first.kind,
-        ...(first.kind === "cc" ? { cc: first.cc ?? 0 } : {}),
-        ...(first.kind === "polyPressure" ? { pitch: first.pitch ?? 0 } : {}),
         channel: first.channel,
         interpolation: "step",
         points
       };
+      if (first.kind === "cc") lane.cc = first.cc ?? 0;
+      if (first.kind === "polyPressure") lane.pitch = first.pitch ?? 0;
       mergedByKey.set(key, lane);
     }
 

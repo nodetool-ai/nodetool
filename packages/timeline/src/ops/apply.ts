@@ -1393,7 +1393,7 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       (m, c) => Math.max(m, c.startMs + c.durationMs),
       0
     );
-    return {
+    const result: TimelineOpResult = {
       ok: true,
       fps: state.fps,
       width: state.width,
@@ -1411,10 +1411,11 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
       tracks: scope.tracks.map((t) => scope.trackOut(t)),
       clips: scope.clips.map((c) => scope.clipOut(c)),
       mediaTracks: scope.mediaTracks.map(serializeMediaTrack),
-      markers: state.markers.map((m) => ({ ...m })),
-      ...(op.clip !== undefined ? { clipDetail: midiClipDetail(scope.resolveMidiClip(op.clip)) } : {}),
-      ...(op.track !== undefined ? { trackDetail: trackDetail(scope.resolveTrack(op.track)) } : {})
+      markers: state.markers.map((m) => ({ ...m }))
     };
+    if (op.clip !== undefined) result.clipDetail = midiClipDetail(scope.resolveMidiClip(op.clip));
+    if (op.track !== undefined) result.trackDetail = trackDetail(scope.resolveTrack(op.track));
+    return result;
   },
 
   add_track: runTrackOp,

@@ -327,23 +327,18 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
               : "";
         const instrumentPreset =
           rawInstrumentPreset.length > 0 ? rawInstrumentPreset : undefined;
-        return {
-          type: "pattern",
-          asset,
-          entry: {
-            id: asset.id,
-            name,
-            kind,
-            category,
-            tags,
-            ...(folder !== undefined ? { folder } : {}),
-            pattern: normalizePattern(rec.pattern as Partial<StepPattern>),
-            ...(parsedInstrument?.success
-              ? { instrument: parsedInstrument.data as MidiInstrument }
-              : {}),
-            ...(instrumentPreset !== undefined ? { instrumentPreset } : {})
-          }
+        const entry: TimelineOpUserStepPattern = {
+          id: asset.id,
+          name,
+          kind,
+          category,
+          tags,
+          pattern: normalizePattern(rec.pattern as Partial<StepPattern>)
         };
+        if (folder !== undefined) entry.folder = folder;
+        if (parsedInstrument?.success) entry.instrument = parsedInstrument.data as MidiInstrument;
+        if (instrumentPreset !== undefined) entry.instrumentPreset = instrumentPreset;
+        return { type: "pattern", asset, entry };
       } catch {
         // Skip unreadable user pattern assets without breaking the library list.
         return null;
@@ -377,6 +372,11 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
       item.entry.category ??
       (item.entry.kind === "template" ? "templates" : "user");
     const tags = [...(item.entry.tags ?? [item.entry.kind, "user"])];
+    const instrumentFields: { instrument?: MidiInstrument; instrumentPreset?: string } = {};
+    if (item.entry.instrument) instrumentFields.instrument = structuredClone(item.entry.instrument);
+    if (item.entry.instrumentPreset) instrumentFields.instrumentPreset = item.entry.instrumentPreset;
+    const presetField: { instrumentPreset?: string } = {};
+    if (item.entry.instrumentPreset) presetField.instrumentPreset = item.entry.instrumentPreset;
     const nextEnvelope = {
       version: 1 as const,
       name: item.entry.name,
@@ -385,12 +385,7 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
       tags,
       folder: nextFolder,
       pattern: item.entry.pattern,
-      ...(item.entry.instrument
-        ? { instrument: structuredClone(item.entry.instrument) }
-        : {}),
-      ...(item.entry.instrumentPreset
-        ? { instrumentPreset: item.entry.instrumentPreset }
-        : {})
+      ...instrumentFields
     };
     const prevMeta =
       item.asset.metadata &&
@@ -402,11 +397,13 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
             unknown
           >)
         : {};
+    const parentField: { parent_id?: string } = {};
+    if (listsByDirectory(item.asset.project_id)) {
+      parentField.parent_id = projectDirectoryId(item.asset.project_id, nextFolder);
+    }
     await store.update({
       id: item.asset.id,
-      ...(listsByDirectory(item.asset.project_id)
-        ? { parent_id: projectDirectoryId(item.asset.project_id, nextFolder) }
-        : {}),
+      ...parentField,
       metadata: {
         ...(item.asset.metadata ?? {}),
         [STEP_PATTERN_METADATA_KEY]: {
@@ -416,9 +413,7 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
           folder: nextFolder,
           category,
           tags,
-          ...(item.entry.instrumentPreset
-            ? { instrumentPreset: item.entry.instrumentPreset }
-            : {})
+          ...presetField
         }
       },
       data: `${JSON.stringify(nextEnvelope, null, 2)}\n`
@@ -466,6 +461,11 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
       const savedInstrumentPreset =
         instrumentPreset ??
         (savedInstrument ? presetIdForInstrument(savedInstrument) : undefined);
+      const presetField: { instrumentPreset?: string } = {};
+      if (savedInstrumentPreset) presetField.instrumentPreset = savedInstrumentPreset;
+      const instrumentFields: { instrument?: MidiInstrument; instrumentPreset?: string } = {};
+      if (savedInstrument) instrumentFields.instrument = savedInstrument;
+      if (savedInstrumentPreset) instrumentFields.instrumentPreset = savedInstrumentPreset;
       const envelope = {
         version: 1 as const,
         name,
@@ -474,10 +474,7 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
         tags,
         folder: fullFolder,
         pattern: normalizePattern(structuredClone(pattern)),
-        ...(savedInstrument ? { instrument: savedInstrument } : {}),
-        ...(savedInstrumentPreset
-          ? { instrumentPreset: savedInstrumentPreset }
-          : {})
+        ...instrumentFields
       };
       const fileSlug = slugForBrowserPatternFile(name, "pattern");
       const file = new File(
@@ -507,9 +504,7 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
                 folder: fullFolder,
                 category,
                 tags,
-                ...(savedInstrumentPreset
-                  ? { instrumentPreset: savedInstrumentPreset }
-                  : {})
+                ...presetField
               }
             }
           })
@@ -524,9 +519,9 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
         patternAssets.map((p) => p.entry)
       );
       const target = resolveCreateStepPatternFolderTarget(allFolders, {
-        ...(kind !== undefined ? { kind } : {}),
+        kind,
         name,
-        ...(parentFolder !== undefined ? { parentFolder } : {})
+        parentFolder
       });
       const envelope = {
         version: 1 as const,
@@ -579,7 +574,7 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
         {
           folder,
           newName,
-          ...(kind !== undefined ? { kind } : {})
+          kind
         }
       );
       useAssetStore.getState().invalidateQueries?.(["assets"]);
@@ -589,7 +584,7 @@ export function createBrowserStepPatternLibrary(): FullStepPatternLibrary {
       const result = await trpcClient.timeline.stepPatternFolders.delete.mutate(
         {
           folder,
-          ...(kind !== undefined ? { kind } : {})
+          kind
         }
       );
       useAssetStore.getState().invalidateQueries?.(["assets"]);
@@ -748,7 +743,7 @@ function toTrackNode(
   clipCount: number,
   tempoDoc?: { tempo?: TimelineTempo }
 ): TimelineTrackNode {
-  return {
+  const node: TimelineTrackNode = {
     id: track.id,
     name: track.name,
     type: track.type,
@@ -770,12 +765,11 @@ function toTrackNode(
     presetId:
       track.type === "midi" && track.instrument
         ? presetIdForInstrument(track.instrument)
-        : undefined,
-    // The chart that headless `get_state` returns, so a section edit can be read back.
-    ...(track.type === "chord" && tempoDoc
-      ? chordTrackFields(tempoDoc as never, track)
-      : {})
+        : undefined
   };
+  if (track.type !== "chord" || !tempoDoc) return node;
+  // The chart that headless `get_state` returns, so a section edit can be read back.
+  return { ...node, ...chordTrackFields(tempoDoc as never, track) };
 }
 
 export const useTimelineAgentBridge = (
@@ -1539,11 +1533,13 @@ export const useTimelineAgentBridge = (
         const children = Array.isArray(result.children)
           ? (result.children as string[])
           : undefined;
-        return {
-          ...node,
-          ...(copies ? { clips: copies } : {}),
-          ...(children ? { children } : {})
-        };
+        const duplicated: typeof node & {
+          clips?: typeof copies;
+          children?: string[];
+        } = { ...node };
+        if (copies) duplicated.clips = copies;
+        if (children) duplicated.children = children;
+        return duplicated;
       },
 
       async setClipParams(target, patch) {

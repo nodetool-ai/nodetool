@@ -477,7 +477,7 @@ export function rampOp(
       field: mode as never,
       from: ascending ? fromValue : toValue,
       to: ascending ? toValue : fromValue,
-      ...(leaveOff ? { leaveOff: true } : {})
+      leaveOff: leaveOff || undefined
     }
   };
 }

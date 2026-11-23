@@ -4,6 +4,7 @@
  * edits, shared by every host through `applyTimelineOp`.
  */
 
+import type { serializeClip, serializeTrack } from "./serialize.js";
 import type {
   ApplyProgressionParams,
   ClearChordsParams,
@@ -74,8 +75,8 @@ export interface ChordScope {
   resolveMidiClip(target: string): TimelineClip;
   assertWritable(clips: readonly TimelineClip[], destinationTrackId?: string): void;
   touch(...ids: string[]): void;
-  clipOut(clip: TimelineClip): unknown;
-  trackOut(track: TimelineTrack): unknown;
+  clipOut(clip: TimelineClip): ReturnType<typeof serializeClip>;
+  trackOut(track: TimelineTrack): ReturnType<typeof serializeTrack>;
   validUnits(units: readonly { id: string; name: string }[], kind: string): string;
 }
 
@@ -368,10 +369,9 @@ export function runApplyProgression(scope: ChordScope, op: ApplyProgressionParam
       : mode === "major" && tonicMinor === true
         ? `"${progression.name}" has a minor tonic chord, so its chords are built on the tonic as a minor-key progression.`
         : undefined;
-  return writeResult(scope, track, created, from, at, {
-    progression: progressionId(progression),
-    ...(note ? { note } : {})
-  });
+  const extra: TimelineOpResult = { progression: progressionId(progression) };
+  if (note) extra.note = note;
+  return writeResult(scope, track, created, from, at, extra);
 }
 
 /** Whether a clip's harmony makes it play from the chord track. */
@@ -720,14 +720,16 @@ export function runSetClipHarmony(scope: ChordScope, op: SetClipHarmonyParams): 
   clip.harmony = next;
   scope.touch(clip.id);
   const hasChords = scope.tracks.some((t) => t.type === "chord" && (t.chords?.length ?? 0) > 0);
-  return {
+  const result: TimelineOpResult = {
     ok: true,
     clip: scope.clipOut(clip),
-    harmony: harmonySummary(next) ?? "off",
-    ...(!hasChords && followsChords(clip)
-      ? { note: "The document has no chords yet, so the clip plays nothing until you write some with set_chords or apply_progression." }
-      : {})
+    harmony: harmonySummary(next) ?? "off"
   };
+  if (!hasChords && followsChords(clip)) {
+    result.note =
+      "The document has no chords yet, so the clip plays nothing until you write some with set_chords or apply_progression.";
+  }
+  return result;
 }
 
 export function runListHarmonyPresets(): TimelineOpResult {

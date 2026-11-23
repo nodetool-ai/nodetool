@@ -1226,9 +1226,7 @@ export function createTimelineToolBridge(
   };
   const opContext: TimelineOpContext = {
     newId,
-    ...(initial.defaultMidiInstrument
-      ? { defaultMidiInstrument: initial.defaultMidiInstrument }
-      : {}),
+    defaultMidiInstrument: initial.defaultMidiInstrument,
     resolveAsset,
     decodeClipAudio: initial.decodeClipAudio,
     bakeAnimation,

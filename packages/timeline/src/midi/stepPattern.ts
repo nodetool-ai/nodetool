@@ -226,8 +226,6 @@ export function normalizeRow(
   const row: StepRow = {
     id: partial.id,
     assignment: structuredClone(partial.assignment),
-    ...(partial.name !== undefined ? { name: partial.name } : {}),
-    ...(partial.color !== undefined ? { color: partial.color } : {}),
     mute: partial.mute === true,
     solo: partial.solo === true,
     lengthSteps,
@@ -238,9 +236,11 @@ export function normalizeRow(
     midiChannel: clampInt(partial.midiChannel ?? defaults.midiChannel, 1, 16),
     automationMode: partial.automationMode ?? defaults.automationMode,
     subrows,
-    ...(partial.subrowsExpanded !== undefined ? { subrowsExpanded: partial.subrowsExpanded } : {}),
     steps: fitSteps(partial.steps, lengthSteps)
   };
+  if (partial.name !== undefined) row.name = partial.name;
+  if (partial.color !== undefined) row.color = partial.color;
+  if (partial.subrowsExpanded !== undefined) row.subrowsExpanded = partial.subrowsExpanded;
   return row;
 }
 
@@ -269,7 +269,6 @@ export function normalizePattern(partial: Partial<StepPattern> = {}): StepPatter
     swing: clampInt(partial.swing ?? 0, 0, 100),
     swingDivision: partial.swingDivision ?? "1/16",
     pitchSource: partial.pitchSource ?? "off",
-    ...(partial.key !== undefined ? { key: resolveStepKey(partial.key) } : {}),
     scale: (partial.scale ?? "chromatic") as StepScaleId,
     noTranspose: partial.noTranspose === true,
     scaleQuantize: partial.scaleQuantize === true,
@@ -277,13 +276,16 @@ export function normalizePattern(partial: Partial<StepPattern> = {}): StepPatter
     automationMode,
     mono: partial.mono === true,
     name: partial.name ?? "Pattern",
-    ...(partial.rowSort !== undefined &&
-    partial.rowSort !== "none" &&
-    STEP_ROW_SORTS.includes(partial.rowSort)
-      ? { rowSort: partial.rowSort }
-      : {}),
     rows
   };
+  if (partial.key !== undefined) out.key = resolveStepKey(partial.key);
+  if (
+    partial.rowSort !== undefined &&
+    partial.rowSort !== "none" &&
+    STEP_ROW_SORTS.includes(partial.rowSort)
+  ) {
+    out.rowSort = partial.rowSort;
+  }
   return out;
 }
 
@@ -1004,17 +1006,18 @@ export function patternFromText(
   const rows: StepRow[] = lines.map((line, i) => {
     const inferred = assignmentFromRowName(line.name, options.instrument);
     const id = options.newRowId ? options.newRowId(i) : `row_${i + 1}`;
+    const partialRow: Partial<StepRow> & Pick<StepRow, "id" | "assignment"> = {
+      id,
+      assignment: inferred.assignment,
+      lengthSteps: line.steps.length,
+      loopStart: 0,
+      loopEnd: line.steps.length,
+      stepRate: line.stepRate ?? baseRate,
+      steps: line.steps
+    };
+    if (inferred.customName !== undefined) partialRow.name = inferred.customName;
     return normalizeRow(
-      {
-        id,
-        assignment: inferred.assignment,
-        ...(inferred.customName !== undefined ? { name: inferred.customName } : {}),
-        lengthSteps: line.steps.length,
-        loopStart: 0,
-        loopEnd: line.steps.length,
-        stepRate: line.stepRate ?? baseRate,
-        steps: line.steps
-      },
+      partialRow,
       {
         lengthSteps,
         stepRate: baseRate,
@@ -1397,12 +1400,9 @@ export function transposeRowSteps(
       noteVal -= octShift * 12;
       octaveVal = clampInt(baseOct + octShift, -2, 8);
     }
-    nextRow = setStepValue(
-      nextRow,
-      idx,
-      { note: clampInt(noteVal, -12, 12), ...(octaveVal !== undefined ? { octave: octaveVal } : {}) },
-      { keepOff: !cur.on }
-    );
+    const values: Partial<Step> = { note: clampInt(noteVal, -12, 12) };
+    if (octaveVal !== undefined) values.octave = octaveVal;
+    nextRow = setStepValue(nextRow, idx, values, { keepOff: !cur.on });
   }
   return nextRow;
 }
