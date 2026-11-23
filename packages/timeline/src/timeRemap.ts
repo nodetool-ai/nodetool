@@ -24,7 +24,7 @@
 
 import { ease } from "./animation/easing.js";
 import { sourceRate } from "./sourceRate.js";
-import { activeLoopMs, loopRepeatOffsets } from "./clipLoop.js";
+import { activeLoopMs, loopRepeatOffsets } from "./loopWindow.js";
 import type { ClipTimeRemap, TimelineClip } from "./types.js";
 
 /** True when a clip's source position comes from a curve rather than a rate. */

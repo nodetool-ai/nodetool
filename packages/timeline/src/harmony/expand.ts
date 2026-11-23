@@ -23,10 +23,12 @@ import type {
   MidiNote,
   TimelineChord,
   TimelineClip,
-  TimelineTempo,
-  TimelineTrack
+  TimelineTempo
 } from "../types.js";
 import { arpPool, stepRandom } from "./arp.js";
+import { chordTrackFor, type HarmonyDocument } from "./chordTrack.js";
+
+export { chordTrackFor, type HarmonyDocument };
 import { chordAtTick, chordNotes, sortChords } from "./chords.js";
 import { compVoices, parseCompSteps, spreadVoicing, strumDown } from "./comp.js";
 import { chordMask, chordScale, keyScale, remapNote, scaleMask, scaleRemap } from "./scales.js";
@@ -81,24 +83,6 @@ export function resolveClipHarmony(harmony: ClipHarmony): ResolvedClipHarmony {
 /** Whether `harmony` changes what the clip plays. */
 export function isHarmonyActive(harmony: ClipHarmony | undefined): harmony is ClipHarmony {
   return !!harmony && (harmony.style !== "off" || (harmony.scale ?? "off") !== "off");
-}
-
-/** What expansion reads from the document. */
-export interface HarmonyDocument {
-  tracks: ReadonlyArray<Pick<TimelineTrack, "id" | "type" | "chords"> & Partial<Pick<TimelineTrack, "instrument">>>;
-  tempo?: TimelineTempo;
-}
-
-/** The chord track a clip follows: `chordTrackId`, else the first chord track. */
-export function chordTrackFor(
-  harmony: Pick<ClipHarmony, "chordTrackId"> | undefined,
-  tracks: HarmonyDocument["tracks"]
-): Pick<TimelineTrack, "id" | "type" | "chords"> | undefined {
-  const chordTracks = tracks.filter((t) => t.type === "chord");
-  return (
-    (harmony?.chordTrackId && chordTracks.find((t) => t.id === harmony.chordTrackId)) ||
-    chordTracks[0]
-  );
 }
 
 /** The key root a clip's scale uses: `scaleKey`, else the first chord's root, else C. */

@@ -15,9 +15,9 @@ import {
   isAutomationLaneActive
 } from "../automation.js";
 import { chordAtTick, CHORD_QUALITIES } from "../harmony/chords.js";
-import { chordTrackFor } from "../harmony/expand.js";
+import { chordTrackFor } from "../harmony/chordTrack.js";
 import { chordScale, remapNote, scaleMask, scaleRemap, SCALES } from "../harmony/scales.js";
-import { activeLoopMs } from "../clipLoop.js";
+import { activeLoopMs } from "../loopWindow.js";
 import type {
   AutomationLane,
   AutomationPoint,
@@ -43,7 +43,7 @@ import type {
   TimelineTempo,
   TimelineTrack
 } from "../types.js";
-import { controllerValueRange } from "./controllers.js";
+import { controllerValueRange } from "./controllerRange.js";
 import { sortNotes } from "./notes.js";
 import { resolveTempo } from "./tempo.js";
 import { MIDI_PPQ, msToTicks, ticksToMs } from "./ticks.js";
