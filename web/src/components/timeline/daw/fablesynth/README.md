@@ -7,5 +7,4 @@ NodeTool, contributes this copy to NodeTool under NodeTool's licence
 (AGPL-3.0).
 
 The layout mirrors FableSynth's `src/` so diffs against upstream stay
-readable. The timeline hosts these engines per track: see
-`../README.md` for how they are wired into the timeline.
+readable. The timeline hosts these engines per track.
