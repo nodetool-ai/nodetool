@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="none">
+  <defs>
+    <linearGradient id="logo-gradient" x1="150" y1="100" x2="850" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#55A7EC" />
+      <stop offset="35%" stop-color="#7B8DF0" />
+      <stop offset="55%" stop-color="#A772F5" />
+      <stop offset="78%" stop-color="#D669B4" />
+      <stop offset="100%" stop-color="#FF666B" />
+    </linearGradient>
+  </defs>
+
+  <g fill="url(#logo-gradient)">
+    
+    <path d="M 24 249.94
+             A 45 45 0 0 1 91.50 210.97
+             L 278.70 319.03
+             A 45 45 0 0 1 278.70 396.97
+             L 91.50 505.03
+             A 45 45 0 0 1 24 466.06
+             Z" />
+
+    
+    <path d="M 24 688.36
+             A 90 90 0 0 1 69.00 610.42
+             L 274.50 491.77
+             A 45 45 0 0 1 342 530.74
+             L 342 766.44
+             A 90 90 0 0 1 297.00 844.38
+             L 91.50 963.03
+             A 45 45 0 0 1 24 924.06
+             Z" />
+
+    
+    <path d="M 269.50 221.34
+             A 45 45 0 0 1 269.50 143.40
+             L 447.00 40.92
+             A 90 90 0 0 1 537.00 40.92
+             L 931.00 268.40
+             A 90 90 0 0 1 976 346.34
+             L 976 924.06
+             A 45 45 0 0 1 908.50 963.03
+             L 703.00 844.38
+             A 90 90 0 0 1 658 766.44
+             L 658 497.60
+             A 90 90 0 0 0 613.00 419.66
+             Z" />
+  </g>
+</svg>
