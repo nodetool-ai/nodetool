@@ -23,15 +23,20 @@ inline bool shuttleKeepsPitch(double rate) noexcept {
 }
 inline constexpr int kShuttleMaxRequestFrames = 4096;
 
+// One render thread only. The caller borrows the source for a render attempt.
 class ShuttleSource {
 public:
     virtual ~ShuttleSource() = default;
+    // False defers the entire render attempt before cache or grain state advances.
+    virtual bool ready() const noexcept { return true; }
     // Overwrites interleaved stereo with the 1x mix. Requests never precede
     // the anchor, never decrease, and contain at most kShuttleMaxRequestFrames.
     // native-rules #5: raw float* sample buffer crosses the module boundary
     virtual void mix(double timelineMs, int frames, float* out) = 0;
 };
 
+// Constructed and destroyed by its owner outside rendering. One render thread
+// exclusively mutates its owned caches, grains, and windows.
 class ShuttleStretcher {
 public:
     explicit ShuttleStretcher(double sampleRate);

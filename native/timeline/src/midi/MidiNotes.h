@@ -40,4 +40,8 @@ inline constexpr int MAX_EXPRESSION_POINTS = 256;
 // unlocked midi clip. Any invalid input returns `raw` unchanged.
 [[nodiscard]] QJsonObject setClipNotes(QJsonObject raw, const QJsonObject& payload);
 
+// The `midi.setEvents` edit: {clipId, notes, controllers}. Validates both
+// event kinds before replacing either, so mixed selections remain one edit.
+[[nodiscard]] QJsonObject setClipEvents(QJsonObject raw, const QJsonObject& payload);
+
 }  // namespace nt::midi

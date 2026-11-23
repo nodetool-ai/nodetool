@@ -3,6 +3,9 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "midi/PianoRollController.h"
+#include "midi/StepEditorLaneModel.h"
+#include <QAbstractItemModelTester>
+#include <QElapsedTimer>
 #include <cmath>
 #include <stdexcept>
 
@@ -14,8 +17,11 @@
 #include <QJsonDocument>
 #include <QQmlComponent>
 #include <QQmlEngine>
+#include <QQmlExpression>
+#include <QQmlContext>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QRegularExpression>
 #include <QtTest>
 #include <qpa/qwindowsysteminterface.h>
 
@@ -151,6 +157,66 @@ Item {
         root.reset();
         window.reset();
         engine.reset();
+    }
+
+    void noteLabelsAreAnOptInViewSetting() {
+        framed();
+        auto* panel = item("panel");
+        QVERIFY(panel->property("noteLabels").isValid());
+        QVERIFY(!panel->property("noteLabels").toBool());
+        const auto entry = [&]() {
+            for (const auto& value : item("pianoRollToolbar")->property("viewEntries").toList()) {
+                const auto row = value.toMap();
+                if (row["id"].toString() == "noteLabels") { return row; }
+            }
+            return QVariantMap{};
+        };
+        QCOMPARE(entry()["label"].toString(), QStringLiteral("Note Labels"));
+        QCOMPARE(entry()["checked"].toBool(), false);
+        QVERIFY(QMetaObject::invokeMethod(panel, "runAction", Q_ARG(QVariant, "noteLabels")));
+        QVERIFY(panel->property("noteLabels").toBool());
+        QVERIFY(entry()["checked"].toBool());
+        setProp("drawVisible", false);
+        setProp("drawVisible", true);
+        QVERIFY(panel->property("noteLabels").toBool());
+        QVERIFY(QMetaObject::invokeMethod(panel, "runAction", Q_ARG(QVariant, "noteLabels")));
+        QVERIFY(!panel->property("noteLabels").toBool());
+    }
+
+    void keyboardClickSelectsPitchAndShiftAdds() {
+        framed();
+        setNotes(R"([{"id":"a","pitch":60,"velocity":100,"startTick":0,"durationTick":480},
+                     {"id":"b","pitch":60,"velocity":80,"startTick":960,"durationTick":480},
+                     {"id":"c","pitch":64,"velocity":70,"startTick":1920,"durationTick":480}])");
+        setProp("topPitch", 72);
+        auto* keyboard = item("pianoRollKeyboard");
+        const auto key = [&](int pitch) {
+            return QPoint(keyboard->mapToScene({keyboard->width() * 0.25, 0}).x(), tickPoint(0, pitch).y());
+        };
+        setProp("selectedIds", QVariantList{QStringLiteral("c")});
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::NoModifier, key(60));
+        QTRY_COMPARE(item("panel")->property("selectedIds").toStringList(), (QStringList{"a", "b"}));
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::ShiftModifier, key(64));
+        QTRY_COMPARE(item("panel")->property("selectedIds").toStringList(), (QStringList{"a", "b", "c"}));
+    }
+
+    void keyboardHoverPaintsTint() {
+        framed();
+        setProp("topPitch", 72);
+        auto* keyboard = item("pianoRollKeyboard");
+        const QPoint at(keyboard->mapToScene({keyboard->width() * 0.25, 0}).x(), tickPoint(0, 64).y());
+        QTest::mouseMove(window.get(), QPoint(790, 10));
+        QTest::qWait(80);
+        const auto before = window->grabWindow();
+        QVERIFY(!before.isNull());
+        QTest::mouseMove(window.get(), at);
+        QTRY_COMPARE(keyboard->property("hoverPitch").toInt(), 64);
+        QTest::qWait(80);
+        const auto after = window->grabWindow();
+        const auto pixel = at * after.devicePixelRatio();
+        QVERIFY(before.pixelColor(pixel) != after.pixelColor(pixel));
+        QTest::mouseMove(window.get(), QPoint(790, 10));
+        QTRY_COMPARE(keyboard->property("hoverPitch").toInt(), -1);
     }
 
     void clickAddsAndDeleteRemovesNote() {
@@ -583,7 +649,16 @@ Item {
     }
 
 
-    void stepEditorCreatesNotesAsOneGesture() {
+  private:
+    bool captureStepEditor(const QString& name) {
+        const auto folder = qEnvironmentVariable("NT_PANEL_SCREENSHOTS");
+        if (folder.isEmpty()) { return true; }
+        if (!QDir().mkpath(folder)) { return false; }
+        QTest::qWait(80);
+        return window->grabWindow().save(QDir(folder).filePath(name + ".png"));
+    }
+    void openStepEditor() {
+        QTest::failOnWarning(QRegularExpression(QStringLiteral(".*(TypeError|ReferenceError|Binding loop).*")));
         root.reset(); window.reset(); engine.reset();
         engine = std::make_unique<QQmlEngine>();
         m_testCache.install(*engine);
@@ -602,6 +677,364 @@ Item {
         window = std::make_unique<QQuickWindow>(); window->resize(1000,500);
         qobject_cast<QQuickItem*>(root.get())->setParentItem(window->contentItem());
         window->show(); QVERIFY(QTest::qWaitForWindowExposed(window.get()));
+    }
+
+  private slots:
+    void stepReviewPainting_data() {
+        QTest::addColumn<bool>("frames");
+        QTest::newRow("F9-contrasting-frames") << true;
+        QTest::newRow("F15-bounded-grid") << false;
+    }
+    void stepReviewPainting() {
+        QFETCH(bool, frames);
+        QFile file(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath("../../qml/pianoroll/StepEditorRow.qml"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto source=QString::fromUtf8(file.readAll());
+        const auto start=source.indexOf("onPaint: {")+QStringLiteral("onPaint: {").size();
+        const auto end=source.lastIndexOf("        }\n    }\n}");
+        QVERIFY(start>0 && end>start);
+        auto js=loadModule("PianoRollNotes.js"); QVERIFY(js);
+        QVERIFY(!js->evaluate(R"(
+            var Notes=this;
+            var Ui={Metrics:{border:1,xs:4},Theme:{actionSelected:'selected',surfaceCanvas:'canvas',borderSubtle:'grid',borderControl:'bar',textPrimary:'text',accentPrimary:{r:0.2,g:0.4,b:0.8}}};
+            var Tools={divisionTicks:()=>120, stepLineTicks:(from,to,step,phase)=>{var out=[];for(var t=phase+Math.ceil((from-phase)/step)*step;t<=to;t+=step)out.push(t);return out;}};
+            var fills=[],strokes=[];
+            var ctx={reset:()=>{},fillRect:function(x,y,w,h){fills.push({color:this.fillStyle,x:x,y:y,w:w,h:h});},strokeRect:function(){strokes.push(this.strokeStyle);}};
+            var getContext=()=>ctx,width=960,height=32;
+            var panel={scrollTick:0,pxPerTick:0.002,phase:0,selectedLane:null,selectedIds:[],
+                laneSettings:()=>({grid:'1/32',penWidth:5,frames:true}),laneRange:()=>({min:1,max:127}),laneData:()=>null,
+                midi:{valid:true,windowFromTick:0,windowToTick:1000000,gridStepTicks:()=>3840},
+                eventsOf:()=>[{id:'n',startTick:480,velocity:100}],tickOf:(l,e)=>e.startTick,valueOf:(l,e)=>e.velocity};
+            var row={selected:false,lane:{type:'note',pitch:36},panel:panel,pooled:false};
+        )").isError());
+        const auto result=js->evaluate("(function(){"+source.mid(start,end-start)+"})()");
+        QVERIFY2(!result.isError(),qPrintable(result.toString()));
+        qInfo() << "Step Editor row paint calls:" << js->evaluate("fills.length").toInt();
+        if (frames) {
+            QVERIFY(js->evaluate("strokes.length===1 && strokes[0]!==fills[fills.length-1].color").toBool());
+        } else {
+            QVERIFY2(js->evaluate("fills.filter(f=>f.color==='grid').length<=240").toBool(),"subpixel grid exceeds pixel budget");
+        }
+    }
+
+    void stepReviewRulerLabels() {
+        QFile file(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath("../../qml/pianoroll/StepEditorPanel.qml"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto source=QString::fromUtf8(file.readAll());
+        const auto marker=source.indexOf("id: rulerCanvas");
+        const auto start=source.indexOf("onPaint: {",marker)+QStringLiteral("onPaint: {").size();
+        const auto end=source.indexOf("\n                }\n            }",start);
+        QVERIFY(marker>=0 && start>marker && end>start);
+        QJSEngine js;
+        QVERIFY(!js.evaluate(R"(
+            var positions=[];
+            var ctx={reset:()=>{},fillRect:()=>{},fillText:(text,x,y)=>positions.push(x)};
+            var getContext=()=>ctx,width=960,height=28;
+            var controller={valid:true,gridStepTicks:()=>3840};
+            var root={scrollTick:0,pxPerTick:0.002,phase:0};
+            var Ui={Metrics:{touch:44,xs:4,sm:8,border:1},Theme:{textSecondary:'text',borderStrong:'line'},Typography:{SansCaption:0,canvasFont:()=>''}};
+            var Tools={stepLineTicks:(from,to,step,phase)=>{var out=[];for(var t=phase+Math.ceil((from-phase)/step)*step;t<=to;t+=step)out.push(t);return out;}};
+        )").isError());
+        const auto result=js.evaluate("(function(){"+source.mid(start,end-start)+"})()");
+        QVERIFY2(!result.isError(),qPrintable(result.toString()));
+        QVERIFY(js.evaluate("positions.length>0 && positions.every((x,i)=>i===0 || x-positions[i-1]>=44)").toBool());
+    }
+
+    void stepReview_data() {
+        QTest::addColumn<QString>("script");
+        QTest::newRow("F1-last-controller-point") << QStringLiteral(R"(
+            laneSet = "automatic"; newControllerLane("cc",7);
+            var lane = selectedLane;
+            writeEvents(lane,[{id:"p",tick:0,value:100}]);
+            previewEvents(lane,[]);
+            if (!laneData(lane)) return "lost lane metadata";
+            previewEvents(lane,[]);
+            if (!writeEvents(lane,[])) return "write failed";
+            return midi.controllers.length === 0;
+        )");
+        QTest::newRow("F2-origin-aware-location") << QStringLiteral(R"(
+            laneSet = "automatic";
+            for (var i=40; i<60; ++i) newNoteLane(i);
+            rows.forceLayout();
+            rows.contentY = rows.originY + rowHeight * 5;
+            rows.forceLayout();
+            newNoteLane(72); rows.forceLayout();
+            var offset = rows.contentY - rows.originY;
+            var index = Math.floor(offset / rowHeight);
+            var y = index * rowHeight - offset + rowHeight / 2;
+            var loc = events.location({x:0,y:y},laneList[index]);
+            return loc.value === 64;
+        )");
+        QTest::newRow("F3-pencil-current-step") << QStringLiteral(R"(
+            var lane = selectedLane;
+            events.gesture = {tool:"pencil",lane:lane,baseline:[],list:[],previous:{tick:50,value:100}};
+            events.drawAt({tick:50,value:100}); events.drawAt({tick:55,value:20});
+            if (events.gesture.list[0].velocity !== 20) return "same step froze";
+            events.gesture = {tool:"pencil",lane:lane,baseline:[],list:[],previous:{tick:300,value:100}};
+            events.drawAt({tick:300,value:100}); events.drawAt({tick:200,value:20});
+            return events.gesture.list.find(n=>n.startTick===240).velocity === 100 && events.gesture.list.find(n=>n.startTick===0).velocity === 20;
+        )");
+        QTest::newRow("F5-gm-lane-set") << QStringLiteral(R"(
+            newControllerLane("cc",7);
+            if (laneSet !== "automatic") return "new controller stayed in GM";
+            writeEvents(selectedLane,[{id:"p",tick:0,value:100}]);
+            laneSet = "gmDrums";
+            if (laneList.length !== 16) return "controllers in GM";
+            selectedLaneKey = "note:36"; deleteLane(false);
+            return hiddenPitches[36] === undefined;
+        )");
+        QTest::newRow("F7-leading-partial-step") << QStringLiteral(R"(
+            midi.timeline.moveClip("c",100);
+            var lane = selectedLane;
+            events.gesture = {tool:"pencil",lane:lane,baseline:[],list:[],previous:{tick:10,value:100}};
+            events.drawAt({tick:10,value:100});
+            if (!events.gesture.list.length) return "leading step dropped";
+            return events.gesture.list[0].startTick === midi.windowFromTick && events.location({x:(midi.windowToTick-scrollTick)*pxPerTick,y:0},lane).tick === midi.windowToTick;
+        )");
+        QTest::newRow("F7-fractional-note-trim") << QStringLiteral(R"(
+            midi.timeline.applyEdit("trimClipStart", {clipId:"c",deltaMs:-1});
+            if (Math.abs(midi.windowFromTick - 1.92) > 0.001) return "fixture did not trim";
+            var lane = selectedLane;
+            events.gesture = {tool:"pencil",lane:lane,baseline:[],list:[],previous:{tick:10,value:100}};
+            events.drawAt({tick:10,value:100});
+            if (!writeEvents(lane, events.gesture.list)) return "fractional note rejected";
+            return midi.notes.length === 1 && midi.notes[0].startTick === 2;
+        )");
+        QTest::newRow("F8-preserve-trimmed-events") << QStringLiteral(R"(
+            midi.setNotes([{id:"a",pitch:36,startTick:0,durationTick:120,velocity:100,channel:0},{id:"b",pitch:36,startTick:4000,durationTick:120,velocity:100,channel:0}]);
+            selectedLaneKey="note:36";
+            writeEvents(selectedLane, eventsOf(selectedLane).map(n=>Object.assign({},n,{velocity:50})));
+            return midi.notes.find(n=>n.id==="b").velocity===100;
+        )");
+        QTest::newRow("F8-window-selection") << QStringLiteral(R"(
+            midi.setNotes([{id:"a",pitch:36,startTick:0,durationTick:120,velocity:100,channel:0},{id:"b",pitch:36,startTick:4000,durationTick:120,velocity:100,channel:0}]);
+            selectedLaneKey = "note:36"; runAction("selectAll");
+            return selectedIds.length === 1 && selectedIds[0] === "a" && eventsOf(selectedLane).length === 1;
+        )");
+        QTest::newRow("F10-hidden-lane-removal") << QStringLiteral(R"(
+            midi.setNotes([{id:"a",pitch:36,startTick:0,durationTick:120,velocity:100,channel:0},{id:"b",pitch:36,startTick:480,durationTick:120,velocity:100,channel:0}]);
+            laneSet="automatic"; selectedLaneKey="note:36"; deleteLane(false);
+            midi.setNotes(midi.notes.filter(n=>n.id!=="b"));
+            if (laneList.some(l=>l.pitch===36)) return "deletion unhid lane";
+            midi.setNotes(midi.notes.concat([{id:"new",pitch:36,startTick:960,durationTick:120,velocity:100,channel:0}]));
+            return laneList.some(l=>l.pitch===36);
+        )");
+        QTest::newRow("F15-null-lane") << QStringLiteral(R"(return keyOf(null) === "";)");
+        QTest::newRow("F16-hidden-catch") << QStringLiteral(R"(
+            visible=false; scrollTick=500; clock.play(); clock.seek(5000);
+            return scrollTick===500;
+        )");
+        QTest::newRow("F18-no-cosmetic-midi-out") << QStringLiteral(R"(
+            function hasMidiOut(item) {
+                if (item.accessibleName === "MIDI Out") return true;
+                return item.children && Array.from(item.children).some(hasMidiOut);
+            }
+            return !hasMidiOut(root);
+        )");
+    }
+    void stepReview() {
+        QFETCH(QString, script);
+        openStepEditor(); QVERIFY(root);
+        QCoreApplication::processEvents();
+        auto* panel = item("stepPanel"); QVERIFY(panel);
+        QQmlExpression expression(QQmlEngine::contextForObject(item("stepEditorMouse")), panel,
+            "(function(){" + script + "})()");
+        const auto result = expression.evaluate();
+        QVERIFY2(!expression.hasError(), qPrintable(expression.error().toString()));
+        QVERIFY2(result.metaType().id() == QMetaType::Bool && result.toBool(), qPrintable(result.toString()));
+    }
+
+    void stepRound2TrimDrawing_data() {
+        QTest::addColumn<QString>("tool");
+        QTest::addColumn<bool>("controllerLane");
+        for (const auto* tool : {"pencil", "line"}) {
+            QTest::newRow(qPrintable(QStringLiteral("F7-F20-note-%1").arg(tool))) << QString::fromLatin1(tool) << false;
+            QTest::newRow(qPrintable(QStringLiteral("F7-F20-controller-%1").arg(tool))) << QString::fromLatin1(tool) << true;
+        }
+    }
+    void stepRound2TrimDrawing() {
+        QFETCH(QString, tool);
+        QFETCH(bool, controllerLane);
+        openStepEditor(); QVERIFY(root);
+        auto* panel=item("stepPanel"); QVERIFY(panel);
+        QQmlExpression expression(QQmlEngine::contextForObject(item("stepEditorMouse")), panel,
+            QStringLiteral(R"((function() {
+                midi.timeline.applyEdit("trimClipStart", {clipId:"c",deltaMs:-1});
+                if (Math.abs(midi.windowFromTick-1.92)>0.001) return "fixture did not trim";
+                if (%1) newControllerLane("cc",7);
+                var lane=selectedLane;
+                events.gesture={tool:"%2",lane:lane,baseline:[],list:[],previous:{tick:10,value:100}};
+                events.drawAt({tick:10,value:100});
+                var list=events.gesture.list;
+                events.gesture=null;
+                if (!writeEvents(lane,list)) return "fractional event rejected";
+                var stored=%1 ? midi.controllers[0].points[0] : midi.notes[0];
+                if ((%1 ? stored.tick : stored.startTick)!==2) return "wrong integer boundary";
+                midi.timeline.undoStack.undo();
+                if (%1 ? midi.controllers.length : midi.notes.length) return "undo did not remove event";
+                midi.timeline.undoStack.redo();
+                return (%1 ? midi.controllers[0].points.length : midi.notes.length)===1;
+            })())").arg(controllerLane ? "true" : "false",tool));
+        const auto result=expression.evaluate();
+        QVERIFY2(!expression.hasError(),qPrintable(expression.error().toString()));
+        QVERIFY2(result.metaType().id()==QMetaType::Bool && result.toBool(),qPrintable(result.toString()));
+    }
+    void stepRound2ControllerMergeF19() {
+        openStepEditor(); QVERIFY(root);
+        auto* panel=item("stepPanel"); QVERIFY(panel);
+        QQmlExpression expression(QQmlEngine::contextForObject(item("stepEditorMouse")),panel,R"((function() {
+            newControllerLane("cc",7);
+            var lane=selectedLane;
+            if (!writeEvents(lane,[{id:"hidden",tick:0,value:10},{id:"visible",tick:960,value:20}])) return "fixture rejected";
+            midi.timeline.applyEdit("trimClipStart",{clipId:"c",deltaMs:-500});
+            if (midi.windowFromTick!==960) return "fixture did not trim";
+            var edited=[{id:"visible",tick:960,value:90}];
+            previewEvents(lane,edited);
+            if (liveControllers[0].points[0].tick!==0) return "preview is out of order";
+            if (!writeEvents(lane,edited)) return "sorted edit rejected";
+            if (midi.controllers[0].points[0].value!==10 || midi.controllers[0].points[1].value!==90) return "wrong merged values";
+            midi.timeline.undoStack.undo();
+            return midi.controllers[0].points[1].value===20;
+        })())");
+        const auto result=expression.evaluate();
+        QVERIFY2(!expression.hasError(),qPrintable(expression.error().toString()));
+        QVERIFY2(result.metaType().id()==QMetaType::Bool && result.toBool(),qPrintable(result.toString()));
+    }
+    void stepRound2ControllerCapacityF21() {
+        openStepEditor(); QVERIFY(root);
+        auto* panel=item("stepPanel"); QVERIFY(panel);
+        QQmlExpression expression(QQmlEngine::contextForObject(item("stepEditorMouse")),panel,R"((function() {
+            newControllerLane("cc",7);
+            var lane=selectedLane, points=[{id:"visible",tick:0,value:20}];
+            for (var i=0;i<4095;++i) points.push({id:"hidden"+i,tick:4000+i,value:30});
+            if (!writeEvents(lane,points)) return "fixture rejected";
+            events.gesture={tool:"pencil",lane:lane,baseline:eventsOf(lane).slice(),list:eventsOf(lane).slice(),previous:{tick:10,value:90}};
+            events.drawAt({tick:10,value:90});
+            events.drawAt({tick:250,value:100});
+            if (liveControllers[0].points.length!==4096) return "over-capacity preview";
+            var list=events.gesture.list; events.gesture=null;
+            if (!writeEvents(lane,list)) return "existing point edit lost";
+            if (midi.controllers[0].points.length!==4096 || midi.controllers[0].points[0].value!==90) return "wrong accepted edit";
+            midi.timeline.undoStack.undo();
+            return midi.controllers[0].points[0].value===20 && midi.controllers[0].points[4095].value===30;
+        })())");
+        const auto result=expression.evaluate();
+        QVERIFY2(!expression.hasError(),qPrintable(expression.error().toString()));
+        QVERIFY2(result.metaType().id()==QMetaType::Bool && result.toBool(),qPrintable(result.toString()));
+    }
+
+    void stepReviewPointer_data() {
+        QTest::addColumn<QString>("finding");
+        for (const auto* id : {"F1-release", "F4", "F4-inspector-target", "F6", "F11-hit", "F11-jitter", "F17"}) {
+            QTest::newRow(id) << QString::fromLatin1(id);
+        }
+    }
+    void stepReviewPointer() {
+        QFETCH(QString, finding);
+        openStepEditor(); QVERIFY(root);
+        auto* panel=item("stepPanel"); QVERIFY(panel);
+        auto* area=item("stepEditorEvents"); QVERIFY(area);
+        const auto evaluate = [&](const QString& code) {
+            QQmlExpression expression(QQmlEngine::contextForObject(item("stepEditorMouse")),panel,code);
+            auto result=expression.evaluate();
+            if (expression.hasError()) QTest::qFail(qPrintable(expression.error().toString()),__FILE__,__LINE__);
+            return result;
+        };
+        const double h=panel->property("rowHeight").toDouble();
+        if (finding=="F1-release") {
+            evaluate("laneSet='automatic'; newControllerLane('cc',7); writeEvents(selectedLane,[{id:'p',tick:0,value:100}]); tool='eraser';");
+            const int before=model.undoStack()->index();
+            QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,area->mapToScene({1,10}).toPoint());
+            QVERIFY(controllers().isEmpty());
+            QVERIFY(!panel->property("gestureActive").toBool());
+            QCOMPARE(model.undoStack()->index(),before+1);
+            model.undoStack()->undo(); QCOMPARE(controllers().size(),1);
+        } else if (finding.startsWith("F4")) {
+            auto* length=item("stepEditorLength"); QVERIFY(length);
+            QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,length->mapToScene({length->width()/2,length->height()/2}).toPoint());
+            QTest::keyClick(window.get(),Qt::Key_A,Qt::ControlModifier);
+            for (auto key : {Qt::Key_1,Qt::Key_2,Qt::Key_0}) QTest::keyClick(window.get(),key);
+            if (finding=="F4-inspector-target") {
+                panel->setProperty("selectedLaneKey","note:38"); panel->forceActiveFocus();
+            } else {
+                QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,area->mapToScene({-30,h+h/2}).toPoint());
+            }
+            QCOMPARE(evaluate("laneSettings({type:'note',pitch:36}).length").toInt(),120);
+            QCOMPARE(evaluate("laneSettings({type:'note',pitch:38}).length").toInt(),240);
+            QCOMPARE(length->property("text").toString(),QStringLiteral("240"));
+        } else if (finding=="F6") {
+            panel->setProperty("tool","pointer");
+            auto at=area->mapToScene({40,5*h+10}).toPoint();
+            QTest::mousePress(window.get(),Qt::LeftButton,Qt::NoModifier,at);
+            QCOMPARE(evaluate("events.gesture.lastY === events.gesture.startY").toBool(),true);
+            QTest::mouseMove(window.get(),at+QPoint(30,static_cast<int>(h*3)));
+            QVERIFY(evaluate("events.gesture.marqueeBottom <= 6*rowHeight").toBool());
+            QTest::mouseRelease(window.get(),Qt::LeftButton,Qt::NoModifier,at);
+        } else if (finding.startsWith("F11")) {
+            evaluate("laneSet='automatic'; newControllerLane('cc',7); writeEvents(selectedLane,[{id:'p',tick:0,value:0}]); tool='pointer';");
+            auto at=area->mapToScene({1,h-3}).toPoint();
+            if (finding=="F11-hit") {
+                QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,at);
+                QVERIFY(evaluate("selectedIds.indexOf('p')>=0").toBool());
+            } else {
+                at=area->mapToScene({1,h-1}).toPoint();
+                int before=model.undoStack()->index();
+                QTest::mousePress(window.get(),Qt::LeftButton,Qt::NoModifier,at);
+                QTest::mouseMove(window.get(),at-QPoint(0,1));
+                QTest::mouseRelease(window.get(),Qt::LeftButton,Qt::NoModifier,at-QPoint(0,1));
+                QCOMPARE(model.undoStack()->index(),before);
+            }
+        } else {
+            evaluate("runAction('newNote')");
+            QTest::qWait(200);
+            QTRY_VERIFY_WITH_TIMEOUT(evaluate("field.activeFocus").toBool(),1000);
+            evaluate("field.text='72'");
+            QTest::keyClick(window.get(),Qt::Key_Return);
+            QVERIFY(evaluate("!numberDialog.opened && selectedLaneKey==='note:72'").toBool());
+        }
+    }
+
+    void a8ReviewSliderKeyboardGuard() {
+        setNotes(R"([{"id":"a","pitch":60,"velocity":100,"startTick":0,"durationTick":480}])");
+        auto* panel=item("panel"); QVERIFY(panel);
+        panel->setProperty("selectedIds",QStringList{"a"});
+        QVERIFY(QMetaObject::invokeMethod(panel,"velocityBegin"));
+        QVERIFY(QMetaObject::invokeMethod(panel,"velocityPreview",Q_ARG(QVariant,80)));
+        panel->forceActiveFocus();
+        QTest::keyClick(window.get(),Qt::Key_Delete);
+        QCOMPARE(notes().size(),1);
+        PianoRollController seed; seed.setTimeline(&model); seed.setClipId("c");
+        QVERIFY(seed.setNotes({}));
+        QQmlExpression state(QQmlEngine::contextForObject(panel),panel,"velocityGesture===null");
+        QVERIFY(state.evaluate().toBool());
+    }
+
+    void a8ReviewBrushPitchWithHorizontalDrift() {
+        auto* panel=item("panel"); QVERIFY(panel);
+        panel->setProperty("tool","brush"); panel->setProperty("snapOn",false);
+        panel->setProperty("pxPerTick",0.2);
+        const auto a=tickPoint(100,60), b=tickPoint(105,62);
+        QTest::mousePress(window.get(),Qt::LeftButton,Qt::NoModifier,a);
+        QTest::mouseMove(window.get(),b);
+        QTest::mouseRelease(window.get(),Qt::LeftButton,Qt::NoModifier,b);
+        bool found=false;
+        for (const auto& note:notes()) if (note.toObject()["pitch"].toInt()==62) found=true;
+        QVERIFY(found);
+    }
+
+    void a8ReviewIdenticalFloatingPosition() {
+        auto js=loadModule("PianoRollNotes.js"); QVERIFY(js);
+        QFile file(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath("../../qml/pianoroll/PianoRollTools.js"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        auto source=QString::fromUtf8(file.readAll()); source.remove(".pragma library");
+        source.replace(".import \"PianoRollNotes.js\" as Notes","var Notes=this;");
+        QVERIFY(!js->evaluate(source).isError());
+        QCOMPARE(callJs(*js,"positionText","null,959.9999999999999,959.9999999999999,960,4").toString(),QStringLiteral("  1 1 1 1"));
+    }
+
+    void stepEditorCreatesNotesAsOneGesture() {
+        openStepEditor();
+        QVERIFY(root);
         auto* area = item("stepEditorEvents"); QTRY_VERIFY(area && area->width() > 0);
         const auto a = area->mapToScene({20,20}).toPoint();
         const int before = model.undoStack()->count();
@@ -614,6 +1047,236 @@ Item {
         QCOMPARE(model.undoStack()->count(), before + 1);
         model.undoStack()->undo(); QVERIFY(notes().isEmpty());
         model.undoStack()->redo(); QVERIFY(notes().size() >= 2);
+        QVERIFY(captureStepEditor("step-editor-notes"));
+    }
+
+    // A review screenshot of the piano roll with a short phrase, written when NT_PANEL_SCREENSHOTS is set.
+    void pianoRollReviewScreenshot() {
+        window->resize(1200, 640);
+        qobject_cast<QQuickItem*>(root.get())->setSize({1200, 640});
+        framed();
+        setNotes(R"([{"id":"a","pitch":60,"velocity":110,"startTick":0,"durationTick":480},
+                     {"id":"b","pitch":64,"velocity":70,"startTick":480,"durationTick":240},
+                     {"id":"d","pitch":67,"velocity":40,"startTick":720,"durationTick":240},
+                     {"id":"e","pitch":72,"velocity":127,"startTick":960,"durationTick":960},
+                     {"id":"f","pitch":55,"velocity":90,"startTick":1920,"durationTick":960}])");
+        item("panel")->setProperty("topPitch", 76);
+        item("pianoRollKeyboard")->setProperty("hoverPitch", 64);
+        item("panel")->setProperty("selectedIds", QVariantList{QStringLiteral("e")});
+        auto* lane = item("pianoRollVelocity");
+        QVERIFY(lane && lane->isVisible());
+        const auto bounds = lane->mapRectToScene(lane->boundingRect());
+        QVERIFY(bounds.top() >= 0);
+        QVERIFY2(bounds.bottom() <= window->height(), "Velocity lane is clipped at 640 px");
+        QTest::qWait(80);
+        const auto frame = window->grabWindow();
+        QVERIFY(!frame.isNull());
+        QVERIFY(bounds.bottom() * frame.devicePixelRatio() <= frame.height());
+        QVERIFY(captureStepEditor("piano-roll"));
+    }
+
+    void stepEditorLineAndLaneSettings() {
+        openStepEditor();
+        QVERIFY(root);
+        auto* panel = item("stepPanel"); QVERIFY(panel);
+        panel->setProperty("tool", "line");
+        panel->setProperty("pxPerTick", 0.2);
+        QVERIFY(QMetaObject::invokeMethod(panel, "setLaneSetting", Q_ARG(QVariant, "length"), Q_ARG(QVariant, 120)));
+        auto* area = item("stepEditorEvents"); QVERIFY(area);
+        const auto a = area->mapToScene({0, 24}).toPoint();
+        const auto b = area->mapToScene({96, 4}).toPoint();
+        const int before = model.undoStack()->index();
+        QTest::mousePress(window.get(), Qt::LeftButton, Qt::NoModifier, a);
+        QTest::mouseMove(window.get(), b);
+        QCOMPARE(model.undoStack()->index(), before);
+        QVERIFY(notes().isEmpty());
+        QTest::mouseRelease(window.get(), Qt::LeftButton, Qt::NoModifier, b);
+        QCOMPARE(notes().size(), 3);
+        for (const auto& note : notes()) { QCOMPARE(note.toObject()["durationTick"].toInt(), 120); }
+        QCOMPARE(model.undoStack()->index(), before + 1);
+        QVERIFY(notes()[0].toObject()["velocity"].toInt() < notes()[2].toObject()["velocity"].toInt());
+        model.undoStack()->undo(); QVERIFY(notes().isEmpty());
+    }
+
+    void stepEditorFunctionsAndControllerWrites() {
+        openStepEditor();
+        QVERIFY(root);
+        auto* panel = item("stepPanel"); QVERIFY(panel);
+        panel->setProperty("laneSet", "automatic");
+        QVERIFY(QMetaObject::invokeMethod(panel, "newControllerLane", Q_ARG(QVariant, "cc"), Q_ARG(QVariant, 7)));
+        panel->setProperty("tool", "pencil");
+        auto* area = item("stepEditorEvents"); QVERIFY(area);
+        const auto a = area->mapToScene({20, 10}).toPoint();
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::NoModifier, a);
+        QCOMPARE(controllers().size(), 1);
+        auto points = controllers()[0].toObject()["points"].toArray();
+        QCOMPARE(points.size(), 1);
+        QCOMPARE(controllers()[0].toObject()["cc"].toInt(), 7);
+        const auto id = points[0].toObject()["id"].toString();
+        panel->setProperty("selectedIds", QStringList{id});
+        const int before = model.undoStack()->index();
+        QVERIFY(QMetaObject::invokeMethod(panel, "transformValues", Q_ARG(QVariant, "set"), Q_ARG(QVariant, 42)));
+        QCOMPARE(controllers()[0].toObject()["points"].toArray()[0].toObject()["value"].toInt(), 42);
+        QCOMPARE(model.undoStack()->index(), before + 1);
+        model.undoStack()->undo();
+        QCOMPARE(controllers()[0].toObject()["points"].toArray()[0].toObject()["value"], points[0].toObject()["value"]);
+        QVERIFY(captureStepEditor("step-editor-controller"));
+        // The minimum value still has an on-screen beam that Pointer can select.
+        QVERIFY(QMetaObject::invokeMethod(panel, "transformValues", Q_ARG(QVariant, "set"), Q_ARG(QVariant, 0)));
+        panel->setProperty("selectedIds", QVariantList{});
+        panel->setProperty("tool", "pointer");
+        const double bottom = panel->property("rowHeight").toDouble() - 1;
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::NoModifier, area->mapToScene({1,bottom}).toPoint());
+        QTest::keyClick(window.get(), Qt::Key_Delete);
+        QVERIFY(controllers().isEmpty());
+    }
+
+    void stepEditorPointerUsesSharedDeltaAndThinOutUsesTickOrder() {
+        setNotes(R"([{"id":"a","pitch":36,"velocity":40,"startTick":0,"durationTick":120},{"id":"b","pitch":36,"velocity":100,"startTick":480,"durationTick":120},{"id":"c","pitch":36,"velocity":60,"startTick":960,"durationTick":120}])");
+        openStepEditor();
+        QVERIFY(root);
+        auto* panel = item("stepPanel"); QVERIFY(panel);
+        panel->setProperty("tool", "pointer"); panel->setProperty("pxPerTick", 0.2);
+        panel->setProperty("selectedIds", QStringList{"a","b"});
+        auto* area = item("stepEditorEvents"); QVERIFY(area);
+        const auto at = area->mapToScene({1,25}).toPoint();
+        const int before = model.undoStack()->index();
+        QTest::mousePress(window.get(), Qt::LeftButton, Qt::NoModifier, at);
+        QTest::mouseMove(window.get(), at + QPoint(0,-20));
+        QCOMPARE(noteById("a")["velocity"].toInt(), 40);
+        QTest::mouseRelease(window.get(), Qt::LeftButton, Qt::NoModifier, at + QPoint(0,-20));
+        QCOMPARE(noteById("a")["velocity"].toInt(), 67);
+        QCOMPARE(noteById("b")["velocity"].toInt(), 127);
+        QCOMPARE(noteById("c")["velocity"].toInt(), 60);
+        QCOMPARE(model.undoStack()->index(), before + 1);
+        model.undoStack()->undo();
+        panel->setProperty("selectedIds", QStringList{"c","a","b"});
+        QVERIFY(QMetaObject::invokeMethod(panel, "transformValues", Q_ARG(QVariant, "thin"), Q_ARG(QVariant, 0)));
+        QCOMPARE(notes().size(), 2);
+        QVERIFY(noteById("b").isEmpty());
+        QVERIFY(!noteById("a").isEmpty()); QVERIFY(!noteById("c").isEmpty());
+    }
+
+    void stepEditorEraserSweepsOnlyTheStartingLane() {
+        setNotes(R"([{"id":"a","pitch":36,"velocity":127,"startTick":0,"durationTick":120},{"id":"b","pitch":36,"velocity":127,"startTick":480,"durationTick":120},{"id":"c","pitch":36,"velocity":127,"startTick":960,"durationTick":120},{"id":"d","pitch":38,"velocity":127,"startTick":0,"durationTick":120}])");
+        openStepEditor();
+        QVERIFY(root);
+        auto* panel = item("stepPanel"); QVERIFY(panel);
+        panel->setProperty("tool", "eraser"); panel->setProperty("pxPerTick", 0.2);
+        auto* area = item("stepEditorEvents"); QVERIFY(area);
+        const auto a = area->mapToScene({1,10}).toPoint();
+        const int before = model.undoStack()->index();
+        QTest::mousePress(window.get(), Qt::LeftButton, Qt::NoModifier, a);
+        QTest::mouseMove(window.get(), a + QPoint(200,0));
+        QTest::mouseRelease(window.get(), Qt::LeftButton, Qt::NoModifier, a + QPoint(200,0));
+        QCOMPARE(notes().size(), 1); QCOMPARE(notes()[0].toObject()["id"].toString(), QStringLiteral("d"));
+        QCOMPARE(model.undoStack()->index(), before + 1);
+        model.undoStack()->undo(); QCOMPARE(notes().size(), 4);
+    }
+
+    void stepEditorCancelAndReadOnlyDoNotWrite() {
+        openStepEditor();
+        QVERIFY(root);
+        auto* panel = item("stepPanel"); QVERIFY(panel);
+        auto* area = item("stepEditorEvents"); QVERIFY(area);
+        const auto a = area->mapToScene({20,10}).toPoint();
+        const int before = model.undoStack()->index();
+        QTest::mousePress(window.get(), Qt::LeftButton, Qt::NoModifier, a);
+        QTest::mouseMove(window.get(), a + QPoint(100,0));
+        QVERIFY(QMetaObject::invokeMethod(panel, "cancelGesture"));
+        QTest::mouseRelease(window.get(), Qt::LeftButton, Qt::NoModifier, a + QPoint(100,0));
+        QVERIFY(notes().isEmpty()); QCOMPARE(model.undoStack()->index(), before);
+        model.setReadOnly(true);
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::NoModifier, a);
+        QVERIFY(notes().isEmpty()); QCOMPARE(model.undoStack()->index(), before);
+        model.setReadOnly(false);
+    }
+
+    void stepEditorDocksBesideThePianoRoll() {
+        QFile file(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath("../../qml/dock/DockLayout.js"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        auto source = QString::fromUtf8(file.readAll()); source.remove(".pragma library");
+        QJSEngine js; QVERIFY(!js.evaluate(source).isError());
+        const auto result = js.evaluate(R"((function() {
+            var layout = createLayout("Music");
+            layout.regions.right[0].panels.push("pianoRoll");
+            var next = registerMissingPanels(layout,[{id:"stepEditor",defaultRegion:"bottom"}],"Music");
+            return groupOfPanel(next,"stepEditor").id === groupOfPanel(next,"pianoRoll").id;
+        })())");
+        QVERIFY2(!result.isError(), qPrintable(result.toString()));
+        QVERIFY(result.toBool());
+    }
+
+    void stepEditorLaneModelKeepsUnchangedRows() {
+        StepEditorLaneModel lanes;
+        QAbstractItemModelTester tester(&lanes, QAbstractItemModelTester::FailureReportingMode::QtTest);
+        QVariantList descriptors;
+        for (int pitch = 127; pitch >= 0; --pitch) {
+            descriptors.append(QVariantMap{{"type","note"},{"pitch",pitch}});
+        }
+        for (int i = 0; i < 32; ++i) {
+            descriptors.append(QVariantMap{{"type","controller"},{"laneId",QString::number(i)}});
+        }
+        lanes.setLanes(descriptors);
+        QCOMPARE(lanes.rowCount(), 160);
+        QSignalSpy reset(&lanes, &QAbstractItemModel::modelReset);
+        QSignalSpy inserted(&lanes, &QAbstractItemModel::rowsInserted);
+        QSignalSpy removed(&lanes, &QAbstractItemModel::rowsRemoved);
+        QElapsedTimer timer; timer.start();
+        for (int i = 0; i < 1000; ++i) { lanes.setLanes(descriptors); }
+        qInfo() << "Step Editor: 1000 unchanged 160-lane updates (ms):" << timer.elapsed();
+        QCOMPARE(reset.size(), 0); QCOMPARE(inserted.size(), 0); QCOMPARE(removed.size(), 0);
+        auto fewer = descriptors; fewer.removeAt(80);
+        lanes.setLanes(fewer);
+        QCOMPARE(lanes.rowCount(), 159); QCOMPARE(removed.size(), 1); QCOMPARE(inserted.size(), 0);
+        lanes.setLanes(descriptors);
+        QCOMPARE(lanes.rowCount(), 160); QCOMPARE(inserted.size(), 1); QCOMPARE(reset.size(), 0);
+        QCOMPARE(lanes.data(lanes.index(80,0), Qt::UserRole).toMap()["pitch"].toInt(), 47);
+    }
+
+    void stepEditorInspectorLengthIsLocalAndPerLane() {
+        setNotes(R"([{"id":"a","pitch":36,"velocity":100,"startTick":0,"durationTick":480}])");
+        openStepEditor(); QVERIFY(root);
+        auto* panel = item("stepPanel"); QVERIFY(panel);
+        auto* length = item("stepEditorLength"); QVERIFY(length && length->isVisible());
+        const int before = model.undoStack()->index();
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::NoModifier, length->mapToScene({length->width()/2,length->height()/2}).toPoint());
+        QTest::keyClick(window.get(), Qt::Key_A, Qt::ControlModifier);
+        for (const auto key : {Qt::Key_1, Qt::Key_2, Qt::Key_0}) { QTest::keyClick(window.get(), key); }
+        QTest::keyClick(window.get(), Qt::Key_Return);
+        QCOMPARE(length->property("value").toInt(), 120);
+        QCOMPARE(model.undoStack()->index(), before);
+        panel->setProperty("selectedLaneKey", "note:38");
+        QCOMPARE(length->property("value").toInt(), 240);
+        panel->setProperty("selectedLaneKey", "note:36");
+        QCOMPARE(length->property("value").toInt(), 120);
+        panel->setProperty("pxPerTick", 0.2);
+        auto* area = item("stepEditorEvents"); QVERIFY(area);
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::NoModifier, area->mapToScene({80,10}).toPoint());
+        QCOMPARE(notes().size(), 2);
+        QCOMPARE(noteById("a")["durationTick"].toInt(), 480);
+        QCOMPARE(notes()[1].toObject()["durationTick"].toInt(), 120);
+        QCOMPARE(model.undoStack()->index(), before + 1);
+    }
+
+    void stepEditorShiftSelectionDeletesNotesAndPointsInOneUndo() {
+        setNotes(R"([{"id":"n","pitch":36,"velocity":100,"startTick":0,"durationTick":480}])");
+        PianoRollController seed; seed.setTimeline(&model); seed.setClipId("c");
+        QVERIFY(seed.setControllers(QVariantList{QVariantMap{{"id","L1"},{"kind","cc"},{"cc",7},
+            {"points",QVariantList{QVariantMap{{"id","p"},{"tick",0},{"value",100}}}}}}));
+        openStepEditor(); QVERIFY(root);
+        auto* panel = item("stepPanel"); QVERIFY(panel);
+        panel->setProperty("laneSet", "automatic"); panel->setProperty("tool", "pointer");
+        auto* area = item("stepEditorEvents"); QVERIFY(area);
+        const double height = panel->property("rowHeight").toDouble();
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::NoModifier, area->mapToScene({1,10}).toPoint());
+        QTest::mouseClick(window.get(), Qt::LeftButton, Qt::ShiftModifier, area->mapToScene({1,height+10}).toPoint());
+        const int before = model.undoStack()->index();
+        QTest::keyClick(window.get(), Qt::Key_Delete);
+        QVERIFY(notes().isEmpty()); QVERIFY(controllers().isEmpty());
+        QCOMPARE(model.undoStack()->index(), before + 1);
+        model.undoStack()->undo(); QCOMPARE(notes().size(), 1); QCOMPARE(controllers().size(), 1);
+        model.undoStack()->redo(); QVERIFY(notes().isEmpty()); QVERIFY(controllers().isEmpty());
     }
 
     void stepEditorSharedVectors() {
@@ -895,7 +1558,8 @@ Item {
         QVERIFY(p["beat"].toInt() >= 1);
         QCOMPARE(callJs(*js,"positionText","60,1200,0,1920,2").toString(), QStringLiteral("C4  1 1 6 1"));
         QCOMPARE(callJs(*js,"positionText","60,3839.999999999999,0,960,4").toString(), QStringLiteral("C4  1 4 4 240"));
-        QVERIFY(callJs(*js,"positionParts","960,0,960.0000000000001,4").toMap()["division"].toInt() <= 4);
+        QCOMPARE(callJs(*js,"positionText","60,960,0,960.0000000000001,4").toString(), QStringLiteral("C4  1 2 1 1"));
+        QCOMPARE(callJs(*js,"positionText","60,1060,100.0000000000001,960.0000000000001,4").toString(), QStringLiteral("C4  1 2 1 1"));
     }
     void reviewF10QuarterSnapOption() {
         auto js = loadModule("PianoRollNotes.js"); QVERIFY(js);

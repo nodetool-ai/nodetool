@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 namespace nt::automation {
-// native-rules #9: written on the render thread and read on the UI thread, no affinity comment
+// Thread-safe atomic handoff. The renderer publishes peaks and the UI exchanges them.
 struct MeterPeaks {
     std::atomic<float> left{0}, right{0};
     static_assert(std::atomic<float>::is_always_lock_free);
@@ -14,4 +14,5 @@ void beginMeterPlan();
 // native-rules #1: returns std::shared_ptr with no comment on why unique ownership is impossible
 std::shared_ptr<MeterPeaks> publishMeter(const std::string& id);
 std::array<float,2> takeMeter(const std::string& id);
+bool hasMeter(const std::string& id);
 }

@@ -42,8 +42,8 @@ function drawStep(points, stepStart, step, value, newId) {
             hit = i;
     });
     const next = hit >= 0
-        ? points.map((p, i) => (i === hit ? { ...p, value } : { ...p }))
-        : [...points.map((p) => ({ ...p })), { id: newId(), tick: stepStart, value }];
+        ? points.map((p, i) => (i === hit ? Object.assign({}, p, { value: value }) : Object.assign({}, p)))
+        : [...points.map((p) => (Object.assign({}, p))), { id: newId(), tick: stepStart, value }];
     return next
         .map((p, i) => ({ p, i }))
         .sort((a, b) => a.p.tick - b.p.tick || a.i - b.i)
@@ -61,7 +61,7 @@ function drawNoteStep(notes, pitch, stepStart, step, velocity, length, newId) {
             hit = i;
     });
     if (hit >= 0)
-        return notes.map((n, i) => (i === hit ? { ...n, velocity: v } : n));
+        return notes.map((n, i) => (i === hit ? Object.assign({}, n, { velocity: v }) : n));
     return [
         ...notes,
         {

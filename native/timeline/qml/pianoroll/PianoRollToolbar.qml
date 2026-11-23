@@ -54,6 +54,7 @@ Item {
         {id: "collapse", label: qsTr("Collapse Mode"), checked: panel.collapseMode},
         {id: "catch", label: qsTr("Catch Playhead"), checked: panel.catchOn},
         {id: "link", label: qsTr("Link"), checked: panel.linkOn},
+        {id: "noteLabels", label: qsTr("Note Labels"), checked: panel.noteLabels},
         {separator: true},
         {id: "noteColor", label: qsTr("Note Color"), submenu: [
             {id: "noteColorVelocity", label: qsTr("Velocity"), checked: panel.noteColorMode === "velocity"},

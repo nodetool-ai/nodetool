@@ -1,4 +1,6 @@
 #include "audio/AudioEngine.h"
+#include "audio/automation/AutomationCurves.h"
+#include <QJsonArray>
 #include "audio/loudness/LiveLoudness.h"
 
 #include "audio/AudioSource.h"
@@ -56,6 +58,35 @@ constexpr int kWrapWithdrawn = 2;
 
 std::string voiceKey(const VoicePlan& voice) {
     return voice.segmentId.empty() ? voice.clipId : voice.clipId + '\x1f' + voice.segmentId;
+}
+
+bool onlyMixerAutomationChanged(const Timeline& before,const Timeline& after) {
+    auto a=before.raw,b=after.raw; a.remove("tracks"); b.remove("tracks");
+    if (a!=b || before.tracks.size()!=after.tracks.size() || before.clips.size()!=after.clips.size() || before.sourcePath!=after.sourcePath) { return false; }
+    for (std::size_t i=0;i<before.clips.size();++i) {
+        const auto& oldClip=before.clips[i]; const auto& newClip=after.clips[i];
+        if (oldClip.mediaPath!=newClip.mediaPath || oldClip.audioPath!=newClip.audioPath || oldClip.originalMediaPath!=newClip.originalMediaPath) { return false; }
+    }
+    for (std::size_t i=0;i<before.tracks.size();++i) {
+        const auto& oldTrack=before.tracks[i]; const auto& newTrack=after.tracks[i];
+        if (oldTrack.mixerOverride!=newTrack.mixerOverride) { return false; }
+        if (oldTrack.raw==newTrack.raw) { continue; }
+        if (oldTrack.id!=newTrack.id || !oldTrack.mixerOverride ||
+            (oldTrack.type!=TrackType::Audio && oldTrack.type!=TrackType::Midi)) { return false; }
+        auto oldRaw=oldTrack.raw,newRaw=newTrack.raw;
+        if ((oldRaw["automationMode"]=="off")!=(newRaw["automationMode"]=="off")) { return false; }
+        const auto inserts=[](const QJsonObject& track) {
+            QJsonArray result;
+            for (const auto& item:track["automation"].toArray()) {
+                if (item.toObject()["target"].toObject()["kind"]!="mixer") { result.append(item); }
+            }
+            return result;
+        };
+        if (inserts(oldRaw)!=inserts(newRaw)) { return false; }
+        for (auto* raw:{&oldRaw,&newRaw}) { raw->remove("automation"); raw->remove("automationMode"); }
+        if (oldRaw!=newRaw) { return false; }
+    }
+    return true;
 }
 
 // One mix snapshot's PCM: rings are retained across unchanged mappings and
@@ -168,11 +199,13 @@ struct AudioEngine::Impl {
 
     // ---- worker ----
     std::jthread worker;
-    std::mutex mutex;  // guards plan, planVersion, stopWorker
+    std::mutex mutex;  // guards plan, controlTimeline, planVersion, stopWorker
     std::condition_variable wake;
     bool stopWorker = false;
     // Shared with every session built from it (Session::plan).
     std::shared_ptr<const MixPlan> plan = std::make_shared<MixPlan>();
+    // Shared with source snapshots. Only the control thread compares this immutable document.
+    std::shared_ptr<const Timeline> controlTimeline;
     std::uint64_t planVersion = 1;
     std::uint64_t publishedPlanVersion = 0;  // guarded by mutex, caller publication acknowledgement
     std::map<std::string, std::unique_ptr<AudioSource>> sources;  // by clip id and path
@@ -755,10 +788,14 @@ struct AudioEngine::Impl {
         wrapSlot.store(raw, std::memory_order_seq_cst);
     }
 
+    // Worker thread only. Stack-owned for one synthesis attempt, borrowing the
+    // worker-retained session and engine. Its scoped lease ends before either borrow.
     struct ShuttleMixSource : ShuttleSource {
         Impl& engine;
         Session& session;
-        ShuttleMixSource(Impl& e, Session& s) : engine(e), session(s) {}
+        MixRenderLease lease;
+        ShuttleMixSource(Impl& e, Session& s) : engine(e), session(s), lease(*s.plan) {}
+        bool ready() const noexcept override { return static_cast<bool>(lease); }
         void mix(double timelineMs, int frames, float* out) override {
             const double step = 1000. / engine.sampleRate;
             const double end = timelineMs + frames * step;
@@ -771,7 +808,8 @@ struct AudioEngine::Impl {
                 if (overlaps && !session.shuttlePcm[i].ring && !session.failed[i].load(std::memory_order_relaxed)) missing = true;
             }
             MixStats stats;
-            mixBlock(plan, session.shuttlePcm.data(), engine.sampleRate, timelineMs, step, frames, out, stats);
+            lease.mix(session.shuttlePcm, engine.sampleRate, timelineMs, step,
+                      {out,static_cast<std::size_t>(frames)*2}, stats);
             if (stats.underruns > 0 || missing) engine.underruns.fetch_add(1, std::memory_order_relaxed);
             session.doneMs.store(std::max(session.doneMs.load(std::memory_order_relaxed), end), std::memory_order_release);
             session.consumed.store(true, std::memory_order_release);
@@ -808,6 +846,7 @@ struct AudioEngine::Impl {
                                      read + shuttleCapacity - write});
             if (n <= 0) return;
             ShuttleMixSource source(*this, *current);
+            if (!source.ready()) { return; }
             stretcher->render(source, write, static_cast<int>(n), shuttleOutput.data());
             // Reads that advanced during synthesis simply discard these late frames
             // on their next block. Capacity is measured against the older read,
@@ -952,12 +991,27 @@ void AudioEngine::setTimelineAsync(std::shared_ptr<const Timeline> timeline) {
 }
 
 std::uint64_t AudioEngine::publishPlan(std::shared_ptr<const Timeline> timeline) {
-    auto plan = std::make_shared<MixPlan>(timeline ? buildMixPlan(*timeline) : MixPlan{});
-    Impl& d = *m_impl;
-    prepareMixPlan(*plan, d.sampleRate);
-    d.planBuilds.fetch_add(1);
+    Impl& d=*m_impl;
+    std::shared_ptr<const MixPlan> previous;
+    std::shared_ptr<const Timeline> document;
+    {
+        std::lock_guard lock(d.mutex); previous=d.plan; document=d.controlTimeline;
+    }
+    std::shared_ptr<MixPlan> plan;
+    if (timeline && document && previous->state && onlyMixerAutomationChanged(*document,*timeline)) {
+        // Old and new sessions share the same DSP and prepared scratch buffers.
+        // The engine's active renderer continues them serially. No control-thread prepare/reset occurs.
+        plan=std::make_shared<MixPlan>(*previous);
+        automation::refreshMixerAutomation(*timeline,*plan);
+        applyMixPlanStage("automationMeters",*timeline,*plan);
+    } else {
+        plan=std::make_shared<MixPlan>(timeline ? buildMixPlan(*timeline) : MixPlan{});
+        prepareMixPlan(*plan,d.sampleRate);
+        d.planBuilds.fetch_add(1);
+    }
     std::lock_guard lock(d.mutex);
-    d.plan = std::move(plan);
+    d.controlTimeline=std::move(timeline);
+    d.plan=std::move(plan);
     const auto version = ++d.planVersion;
     d.wake.notify_all();
     return version;

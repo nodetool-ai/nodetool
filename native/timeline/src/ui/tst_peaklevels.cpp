@@ -34,6 +34,16 @@ std::vector<float> drawBars(const AudioPeaks& take, double inMs, double outMs, i
 class PeakLevelsTest : public QObject {
     Q_OBJECT
 private slots:
+    void loopWaveformRepeatsOnlyItsSourceWindow() {
+        const std::vector<float> peaks{0.1f, 0.9f, 0.2f, 0.8f};
+        const std::vector<float> expected{0.1f, 0.9f, 0.1f, 0.9f, 0.1f, 0.9f, 0.1f, 0.9f};
+        std::vector<float> result;
+        for (int i = 0; i < 8; ++i) { result.push_back(sampleLoopPeakAt(peaks, 4000, 0, 8000, 2000, 8, i)); }
+        QCOMPARE(result, expected);
+        const std::vector<float> offsetPeaks{0.1f, 0.9f, 0.2f, 0.8f, 0.3f, 0.7f};
+        for (int i = 0; i < 4; ++i) { QCOMPARE(sampleLoopPeakAt(offsetPeaks, 6000, 1000, 7000, 2000, 4, i), 0.9f); }
+    }
+
     void aTakeUpToAMinuteKeepsTheOneLevel() {
         QCOMPARE(finePeakCount(0), FULL_ASSET_PEAK_COUNT);
         QCOMPARE(finePeakCount(LONG_TAKE_MS), FULL_ASSET_PEAK_COUNT);

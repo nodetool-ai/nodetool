@@ -35,6 +35,8 @@ Item {
     property string mediaSource
     property double inPointMs: 0
     property double sourceOutMs: 0
+    readonly property double loopLengthMs: clipData.loopLengthMs > 0 && clipData.loopLengthMs < durationMs ? clipData.loopLengthMs : 0
+    readonly property double sourceRate: clipData.speedBaked ? 1 : (clipData.speedMultiplier ?? 1)
     // The body's x in the lanes content and the view: the pictures draw only
     // the part near the viewport.
     property double contentX: 0
@@ -113,7 +115,8 @@ Item {
             objectName: "waveform"
             source: body.mediaSource
             inPointMs: body.inPointMs
-            outPointMs: body.inPointMs + body.durationMs
+            outPointMs: body.inPointMs + body.durationMs * (body.loopLengthMs > 0 ? body.sourceRate : 1)
+            repeatSourceMs: body.loopLengthMs * body.sourceRate
             color: TimelineVisuals.audioWave
             contentX: body.contentX
             viewState: body.viewState
@@ -198,6 +201,44 @@ Item {
         sourceComponent: FadeRamp {
             edge: "out"
             shape: body.fadeOutShape
+        }
+    }
+
+    Canvas {
+        id: repeats
+        objectName: "musicLoopRepeats-" + (body.clipData.id || "")
+        visible: body.loopLengthMs > 0
+        readonly property double periodPx: body.loopLengthMs / body.msPerPx
+        readonly property color repeatFill: TimelineVisuals.loopRepeatFill
+        readonly property color notchInk: TimelineVisuals.clipText
+        x: Math.max(0, (body.viewState ? body.viewState.scrollLeftPx : 0) - body.contentX)
+        width: Math.max(0, Math.min(body.width - x, body.viewState ? body.viewState.viewportWidthPx : body.width))
+        height: body.height
+        onXChanged: requestPaint()
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        onPeriodPxChanged: requestPaint()
+        onRepeatFillChanged: requestPaint()
+        onNotchInkChanged: requestPaint()
+        onVisibleChanged: requestPaint()
+        onPaint: {
+            const ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+            if (!(periodPx > 0) || !visible) return
+            ctx.fillStyle = repeatFill
+            const firstDim = Math.min(width, Math.max(0, periodPx - x))
+            ctx.fillRect(firstDim, 0, width - firstDim, height)
+            ctx.fillStyle = notchInk
+            const stride = Math.max(1, Math.ceil(Ui.Metrics.border / periodPx))
+            for (let repeat = Math.max(1, Math.floor(x / periodPx)); repeat * periodPx < x + width; repeat += stride) {
+                const at = repeat * periodPx - x
+                ctx.beginPath()
+                ctx.moveTo(at - Ui.Metrics.xs, 0)
+                ctx.lineTo(at, Ui.Metrics.sm)
+                ctx.lineTo(at + Ui.Metrics.xs, 0)
+                ctx.closePath()
+                ctx.fill()
+            }
         }
     }
 

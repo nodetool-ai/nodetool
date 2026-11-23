@@ -14,6 +14,7 @@
 namespace {
 const bool setNotesRegistered = nt::app::registerEdit("midi.setNotes", nt::midi::setClipNotes);
 const bool setControllersRegistered = nt::app::registerEdit("midi.setControllers", nt::midi::setClipControllers);
+const bool setEventsRegistered = nt::app::registerEdit("midi.setEvents", nt::midi::setClipEvents);
 }  // namespace
 
 void PianoRollController::setTimeline(TimelineModel* timeline) {
@@ -132,6 +133,15 @@ bool PianoRollController::setControllers(const QVariantList& controllers) {
     }
     return m_timeline->applyEdit(QStringLiteral("midi.setControllers"),
                                  QJsonObject{{"clipId", m_clipId},
+                                             {"controllers", QJsonArray::fromVariantList(controllers)}}) != 0;
+}
+
+bool PianoRollController::setEvents(const QVariantList& notes, const QVariantList& controllers) {
+    if (!editable()) {
+        return false;
+    }
+    return m_timeline->applyEdit(QStringLiteral("midi.setEvents"),
+                                 QJsonObject{{"clipId", m_clipId}, {"notes", QJsonArray::fromVariantList(notes)},
                                              {"controllers", QJsonArray::fromVariantList(controllers)}}) != 0;
 }
 

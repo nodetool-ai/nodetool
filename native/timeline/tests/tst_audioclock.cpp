@@ -16,6 +16,9 @@
 //     one miss per pass that ends with no wrap.
 
 #include "playback/AudioClockFeed.h"
+#include "audio/ShuttleStretch.h"
+#include "audio/Mixer.h"
+#include <QScopeGuard>
 #include "audio/AvSyncInterpolation.h"
 #include "playback/PlaybackClock.h"
 
@@ -173,6 +176,72 @@ class TstAudioClock : public QObject {
     Q_OBJECT
 
 private slots:
+    void shuttleContentionDefersWithoutConsumingF19() {
+        // Test-thread owned source and buffers. No thread or buffer ownership crosses a callback.
+        class Source final : public nt::audio::ShuttleSource {
+        public:
+            bool available=false;
+            int calls=0;
+            bool ready() const noexcept override { return available; }
+            void mix(double,int frames,float* out) override {
+                ++calls;
+                std::fill_n(out,frames*2,available ? .5f : 0.f);
+            }
+        } source;
+        nt::audio::ShuttleStretcher stretcher(48000), reference(48000);
+        stretcher.begin(2,0); reference.begin(2,0);
+        std::array<float,960> actual{}, expected{};
+        stretcher.render(source,0,480,actual.data());
+        QCOMPARE(source.calls,0);
+        source.available=true;
+        stretcher.render(source,0,480,actual.data());
+        reference.render(source,0,480,expected.data());
+        QCOMPARE(actual,expected);
+        QVERIFY(actual.back()>.49f);
+    }
+    void shuttleBusyMixLeasePreservesRetryF19() {
+        // Test thread only. Plans retain the processor through their shared DSP owners.
+        class Constant final : public nt::audio::BlockProcessor {
+        public:
+            void process(std::span<float> out,const nt::audio::BlockContext&) noexcept override {
+                std::fill(out.begin(),out.end(),.5f);
+            }
+        };
+        const auto token=nt::audio::registerMixPlanStage("a12-shuttle-lease",[](const nt::Timeline&,nt::audio::MixPlan& plan) {
+            plan.processors.push_back(std::make_shared<Constant>());
+        },1000);
+        const auto cleanup=qScopeGuard([token] { nt::audio::unregisterMixPlanStage(token); });
+        const auto plan=nt::audio::buildMixPlan(nt::Timeline{});
+        QVERIFY(plan.state);
+        // Each stack source borrows the test-owned plan for one render attempt.
+        class Source final : public nt::audio::ShuttleSource {
+            nt::audio::MixRenderLease lease;
+        public:
+            int calls=0;
+            explicit Source(const nt::audio::MixPlan& plan) : lease(plan) {}
+            bool ready() const noexcept override { return static_cast<bool>(lease); }
+            void mix(double time,int frames,float* out) override {
+                ++calls;
+                nt::audio::MixStats stats;
+                lease.mix({},48000,time,1000./48000,{out,static_cast<std::size_t>(frames)*2},stats);
+            }
+        };
+        nt::audio::ShuttleStretcher stretcher(48000),reference(48000);
+        stretcher.begin(2,0); reference.begin(2,0);
+        std::array<float,960> actual{},expected{};
+        for (int attempt=0;attempt<3;++attempt) {
+            const nt::audio::MixRenderLease callback(plan); QVERIFY(callback);
+            Source contender(plan);
+            QVERIFY(!contender.ready());
+            stretcher.render(contender,0,480,actual.data());
+            QCOMPARE(contender.calls,0);
+        }
+        Source available(plan);
+        QVERIFY(available.ready());
+        stretcher.render(available,0,480,actual.data());
+        reference.render(available,0,480,expected.data());
+        QCOMPARE(actual,expected); QVERIFY(actual.back()>.49f);
+    }
     void clickInterpolationAfterSingleHeldSample() {
         const std::array<nt::audio::AvSyncSample, 4> samples{{
             {143400, 2998, 1, false, 0},

@@ -19,7 +19,7 @@ var nativeHidden = {
 };
 // The tab a native panel takes its place beside when a layout first meets it. A panel the layout
 // already places, as a saved layout may, stays where it is.
-var nativeNeighbours = {effectControls: "inspector", motion: "effectControls", effects: "assets", ai: "assistant"};
+var nativeNeighbours = {effectControls: "inspector", motion: "effectControls", effects: "assets", ai: "assistant", stepEditor: "pianoRoll"};
 
 // Field-for-field port of TimelineDockLayout.ts, checked by dock-conformance.mjs.
 function createLayout(name) {

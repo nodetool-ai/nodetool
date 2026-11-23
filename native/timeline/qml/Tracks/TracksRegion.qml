@@ -59,8 +59,7 @@ Rectangle {
     color: Ui.Theme.surfaceCanvas
     clip: true
     Preferences { id: columnPreferences }
-    AutomationRecorder { id: automationRecorder; timeline: region.timeline; clock: region.clock }
-    Binding { target: AutomationUIState; property: "recorder"; value: automationRecorder }
+    Binding { target: region.timeline.automationRecorder; property: "clock"; value: region.clock; restoreMode: Binding.RestoreNone }
 
     function saveHeaderWidth(value) {
         headerWidthDraft = value

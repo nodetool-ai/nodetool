@@ -141,6 +141,7 @@ double PlaybackClock::resolveStartLocked(double ms) const {
 
 void PlaybackClock::setLoop(bool loop) {
     bool sourceChanged = false;
+    double beforeMove=-1;
     {
         std::lock_guard lock(m_mutex);
         if (loop == m_loop) {
@@ -153,10 +154,12 @@ void PlaybackClock::setLoop(bool loop) {
             const bool wasAudio = m_source == Source::Audio;
             updateBoundsLocked();
             m_timeMs = resolveStartLocked(live);
+            if (m_timeMs!=live) { beforeMove=live; }
             anchorLocked(m_timeMs, now);
             sourceChanged = wasAudio != (m_source == Source::Audio);
         }
     }
+    if (beforeMove>=0) { emit aboutToSeek(beforeMove); }
     emit loopChanged();
     emit timeChanged();
     if (sourceChanged) {
@@ -320,8 +323,9 @@ void PlaybackClock::stop() {
 }
 
 void PlaybackClock::playInToOut() {
-    if (playing() && (m_rangeInMs >= 0.0 ? m_rangeInMs : 0.0) != time()) {
-        emit aboutToSeek(currentTimeMs());
+    const double from=currentTimeMs();
+    if (playing() && (m_rangeInMs >= 0.0 ? m_rangeInMs : 0.0) != from) {
+        emit aboutToSeek(from);
     }
     bool started = false;
     bool rateChangedNow = false;
@@ -359,8 +363,9 @@ void PlaybackClock::playInToOut() {
 }
 
 void PlaybackClock::playSpan(double fromMs, double toMs, double restMs, bool looping) {
-    if (playing() && clampTime(toMs) > clampTime(fromMs) && clampTime(fromMs) != time()) {
-        emit aboutToSeek(currentTimeMs());
+    const double from=currentTimeMs();
+    if (playing() && clampTime(toMs) > clampTime(fromMs) && clampTime(fromMs) != from) {
+        emit aboutToSeek(from);
     }
     bool started = false;
     bool rateChangedNow = false;
@@ -412,6 +417,7 @@ void PlaybackClock::shuttle(int direction) {
     bool started = false;
     bool rateChangedNow = false;
     bool sourceChanged = false;
+    double beforeMove=-1;
     {
         std::lock_guard lock(m_mutex);
         const auto now = m_nowNs();
@@ -426,10 +432,12 @@ void PlaybackClock::shuttle(int direction) {
         m_playing = true;
         updateBoundsLocked();
         m_timeMs = resolveStartLocked(live);
+        if (m_timeMs!=live) { beforeMove=live; }
         // Restart even at the maximum shuttle rate, as TracksRegion does.
         anchorLocked(m_timeMs, now);
         sourceChanged = wasAudio != (m_source == Source::Audio);
     }
+    if (beforeMove>=0) { emit aboutToSeek(beforeMove); }
     if (rateChangedNow) {
         emit rateChanged();
     }
@@ -448,7 +456,8 @@ void PlaybackClock::shuttleStop() {
 }
 
 void PlaybackClock::seek(double ms) {
-    if (clampTime(ms) != time()) { emit aboutToSeek(currentTimeMs()); }
+    const double from=currentTimeMs();
+    if (clampTime(ms) != from) { emit aboutToSeek(from); }
     bool sourceChanged = false;
     {
         std::lock_guard lock(m_mutex);
@@ -479,6 +488,7 @@ void PlaybackClock::scrub(double ms) {
 
 void PlaybackClock::setRate(double rate) {
     bool sourceChanged = false;
+    double beforeMove=-1;
     bool timeChangedNow = false;
     {
         std::lock_guard lock(m_mutex);
@@ -492,6 +502,7 @@ void PlaybackClock::setRate(double rate) {
             m_rate = rate;
             updateBoundsLocked();
             const double resolved = resolveStartLocked(t);
+            if (resolved!=t) { beforeMove=t; }
             m_monoAnchorMs = resolved;
             m_monoAnchorNs = now;
             if (m_source == Source::Audio && rate <= 0.0) {
@@ -514,6 +525,7 @@ void PlaybackClock::setRate(double rate) {
         }
         sourceChanged = wasAudio != (m_source == Source::Audio);
     }
+    if (beforeMove>=0) { emit aboutToSeek(beforeMove); }
     emit rateChanged();
     if (timeChangedNow) {
         emit timeChanged();
@@ -525,7 +537,7 @@ void PlaybackClock::tick() {
     bool stopped = false;
     bool rangeModeCleared = false;
     bool sourceChanged = false;
-    double beforeRestMs = -1.0;
+    double beforeMoveMs = -1.0;
     {
         std::lock_guard lock(m_mutex);
         if (!m_playing) {
@@ -555,6 +567,7 @@ void PlaybackClock::tick() {
         const bool engineLoops = m_source == Source::Audio && m_command.loopEndMs > m_command.loopStartMs;
         if (m_rate > 0.0 && m_endMs > 0.0 && t >= m_endMs + (engineLoops ? kEngineLoopSlackMs : 0.0)) {
             if ((m_loop || m_spanLoops) && m_endMs > m_floorMs) {
+                beforeMoveMs=m_endMs;
                 m_timeMs = m_floorMs;
                 ++m_seekSerial;
                 anchorLocked(m_timeMs, now);
@@ -572,7 +585,7 @@ void PlaybackClock::tick() {
         } else {
             // A wrap the device made counts as a seek for what follows the
             // clock (motion blur restarts its history).
-            if (engineLoops && t + 1.0 < m_timeMs) ++m_seekSerial;
+            if (engineLoops && t + 1.0 < m_timeMs) { beforeMoveMs=m_endMs; ++m_seekSerial; }
             m_timeMs = std::max(0.0, engineLoops ? std::min(t, m_endMs) : t);
         }
         if (stopped && m_playingInToOut) {
@@ -581,7 +594,7 @@ void PlaybackClock::tick() {
         }
         if (stopped && spanActive()) {
             if (m_spanRestMs >= 0.0) {
-                beforeRestMs = m_timeMs;
+                beforeMoveMs = m_timeMs;
                 m_timeMs = clampTime(m_spanRestMs);
                 ++m_seekSerial;
                 sendCommandLocked(true, m_timeMs, now);
@@ -591,8 +604,8 @@ void PlaybackClock::tick() {
         }
         sourceChanged = wasAudio != (m_source == Source::Audio);
     }
-    // Notify outside the clock lock, before stop/time observers see the rest position.
-    if (beforeRestMs >= 0.0) { emit aboutToSeek(beforeRestMs); }
+    // Notify outside the clock lock, before transport/time observers see the new position.
+    if (beforeMoveMs >= 0.0) { emit aboutToSeek(beforeMoveMs); }
     if (stopped) {
         emit playingChanged();
     }

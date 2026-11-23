@@ -20,5 +20,7 @@ QJsonArray automationPointsInRange(const QJsonArray& points, double fromMs, doub
 bool trackAcceptsAutomationTarget(const QJsonObject& track, const QJsonObject& target);
 QJsonValue call(const QString& name, const QJsonArray& args);
 QJsonObject edit(QJsonObject doc, const QString& name, const QJsonObject& payload);
+QJsonObject trackEffectDefaults(const QString& type);
+QJsonArray instrumentAutomationSpecs(const QJsonObject& instrument);
 void registerEdits();
 }

@@ -241,7 +241,8 @@ qsizetype editableMidiClip(const QJsonObject& raw, const QString& clipId) {
         if (clip.value(u"id").toString() != clipId) {
             continue;
         }
-        if (clip.value(u"mediaType").toString() != u"midi" || clip.value(u"locked").toBool()) {
+        if (clip.value(u"mediaType").toString() != u"midi" || clip.value(u"locked").toBool() ||
+            clip.contains(u"pattern")) {
             return -1;
         }
         const auto trackId = clip.value(u"trackId").toString();
@@ -256,6 +257,32 @@ qsizetype editableMidiClip(const QJsonObject& raw, const QString& clipId) {
 }
 
 }  // namespace
+
+QJsonObject setClipEvents(QJsonObject raw, const QJsonObject& payload) {
+    const auto clipId = payload.value(u"clipId").toString();
+    QJsonArray notes;
+    QJsonArray controllers;
+    if (clipId.isEmpty() || !payload.value(u"notes").isArray() || !payload.value(u"controllers").isArray() ||
+        !sanitizeNotes(payload.value(u"notes").toArray(), notes) ||
+        !sanitizeControllers(payload.value(u"controllers").toArray(), controllers)) {
+        return raw;
+    }
+    const auto index = editableMidiClip(raw, clipId);
+    if (index < 0) {
+        return raw;
+    }
+    auto clips = raw.value(u"clips").toArray();
+    auto clip = clips.at(index).toObject();
+    clip.insert("notes", notes);
+    if (controllers.isEmpty()) {
+        clip.remove("controllers");
+    } else {
+        clip.insert("controllers", controllers);
+    }
+    clips.replace(index, clip);
+    raw.insert("clips", clips);
+    return raw;
+}
 
 QJsonObject setClipControllers(QJsonObject raw, const QJsonObject& payload) {
     const auto clipId = payload.value(u"clipId").toString();

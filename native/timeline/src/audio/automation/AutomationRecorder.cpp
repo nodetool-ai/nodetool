@@ -84,11 +84,19 @@ void AutomationRecorder::start(const QString& id, const QString& param, const QS
 bool AutomationRecorder::gestureStart(const QString& id, const QString& param) {
     if (!consumes(id)) { return false; }
     const auto mode=nt::automation::automationModeOf(track(id));
+    const auto existing=std::find_if(gestures_.begin(),gestures_.end(),[&](const auto& g) { return g.track==id && g.param==param; });
+    if (existing==gestures_.end()) {
+        const auto pass=std::find_if(passes_.begin(),passes_.end(),[&](const auto& p) { return p.track==id && p.param==param; });
+        gestures_.append({id,param,pass==passes_.end() ? std::nullopt : std::optional<Pass>(*pass)});
+    }
     if (mode=="touch" || mode=="latch" || mode=="write") { start(id,param,mode,clock_->currentTimeMs()); }
     return true;
 }
 bool AutomationRecorder::record(const QString& id, const QString& param, double v) {
     reconcile();
+    if (consumes(id) && std::none_of(passes_.begin(),passes_.end(),[&](const auto& p) { return p.track==id && p.param==param; })) {
+        gestureStart(id,param);
+    }
     for (auto& p : passes_) {
         if (p.track!=id || p.param!=param) { continue; }
         const double now=clock_ ? clock_->currentTimeMs() : p.lastTime;
@@ -102,7 +110,22 @@ bool AutomationRecorder::record(const QString& id, const QString& param, double 
     }
     return consumes(id);
 }
+void AutomationRecorder::gestureCancel(const QString& id, const QString& param) {
+    const auto gesture=std::find_if(gestures_.begin(),gestures_.end(),[&](const auto& g) { return g.track==id && g.param==param; });
+    if (gesture==gestures_.end()) { return; }
+    auto before=std::move(gesture->before);
+    gestures_.erase(gesture);
+    for (qsizetype i=passes_.size(); i-- > 0;) {
+        if (passes_[i].track!=id || passes_[i].param!=param) { continue; }
+        if (before) {
+            passes_[i]=std::move(*before);
+            if (timeline_) { timeline_->setMixerOverride(id,param,passes_[i].lastValue); }
+        } else { finish(static_cast<int>(i),previousTime_,false); }
+        break;
+    }
+}
 void AutomationRecorder::gestureEnd(const QString& id, const QString& param) {
+    gestures_.removeIf([&](const auto& g) { return g.track==id && g.param==param; });
     for (qsizetype i=passes_.size(); i-- > 0;) {
         if (passes_[i].track==id && passes_[i].param==param && passes_[i].mode=="touch") {
             finish(static_cast<int>(i),clock_ ? clock_->currentTimeMs() : previousTime_,true);
@@ -111,10 +134,20 @@ void AutomationRecorder::gestureEnd(const QString& id, const QString& param) {
 }
 void AutomationRecorder::finish(int index, double end, bool write) {
     auto p=passes_.takeAt(index);
-    // Release before edits, including missing/locked track and generation cancellation.
-    if (timeline_) { timeline_->setMixerOverride(p.track,p.param,std::nullopt); }
+    gestures_.removeIf([&](const auto& g) { return g.track==p.track && g.param==p.param; });
     const auto t=track(p.track);
-    if (!write || !timeline_ || t.isEmpty() || t["locked"].toBool()) { return; }
+    if (!write || !timeline_ || t.isEmpty() || t["locked"].toBool()) {
+        if (timeline_) { timeline_->setMixerOverride(p.track,p.param,std::nullopt); }
+        return;
+    }
+    double after=t[p.param].toDouble();
+    for (const auto& item:t["automation"].toArray()) {
+        const auto lane=item.toObject(),target=lane["target"].toObject();
+        if (target["kind"]=="mixer" && target["param"]==p.param) {
+            after=nt::automation::automationValueAt(lane["points"].toArray(),end+200,after);
+            break;
+        }
+    }
     const QJsonObject last{{"timeMs",end},{"value",p.lastValue}};
     if (!p.samples.empty() && p.samples.last().toObject()["timeMs"].toDouble()==end) { p.samples[p.samples.size()-1]=last; }
     else { p.samples.append(last); }
@@ -126,11 +159,17 @@ void AutomationRecorder::finish(int index, double end, bool write) {
         if (!samples.empty() && samples.last().toObject()["timeMs"]==v["timeMs"]) { samples[samples.size()-1]=v; }
         else { samples.append(v); }
     }
-    timeline_->applyEdit("writeTrackAutomationPass",{{"trackId",p.track},{"param",p.param},
+    // Publish the bridge before observers can compile the new curve. Its generation
+    // distinguishes a stale plan from one that already contains the written pass.
+    if (nt::automation::automationModeOf(t)=="off") { timeline_->setMixerOverride(p.track,p.param,std::nullopt); }
+    else { timeline_->releaseMixerOverride(p.track,p.param,end,p.lastValue,after); }
+    const bool written=timeline_->applyEdit("writeTrackAutomationPass",{{"trackId",p.track},{"param",p.param},
         {"pass",QJsonObject{{"startMs",samples.first().toObject()["timeMs"]},{"endMs",samples.last().toObject()["timeMs"]},{"samples",samples}}},
         {"wasWrite",p.mode=="write"}});
+    if (!written) { timeline_->setMixerOverride(p.track,p.param,std::nullopt); }
 }
 void AutomationRecorder::finishAll(double end, bool write) {
+    gestures_.clear();
     const bool previous=finishing_; finishing_=true;
     while (!passes_.empty()) { finish(static_cast<int>(passes_.size()-1),end,write); }
     finishing_=previous;
@@ -141,7 +180,7 @@ void AutomationRecorder::reconcile() {
     for (qsizetype i=passes_.size(); i-- > 0;) {
         const auto t=track(passes_[i].track);
         if (t.isEmpty() || t["locked"].toBool()) { finish(static_cast<int>(i),previousTime_,false); }
-        else if (nt::automation::automationModeOf(t)!=passes_[i].mode) { finish(static_cast<int>(i),clock_ ? clock_->currentTimeMs() : previousTime_,true); }
+        else if (nt::automation::automationModeOf(t)!=passes_[i].mode) { finish(static_cast<int>(i),clock_ ? clock_->currentTimeMs() : previousTime_,!timeline_->undoStack()->canRedo()); }
     }
     finishing_=false;
 }

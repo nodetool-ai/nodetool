@@ -4,6 +4,7 @@
 // tst_musicjobs does (CommandRouter.runRpc in packages/websocket
 // session/commands.ts).
 
+#include "midi/PatternExpand.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "music/MusicAssistant.h"
@@ -113,6 +114,107 @@ class TestMusicAssistant : public QObject {
     }
 
 private slots:
+    void reviewF20RowText_data() {
+        QTest::addColumn<QString>("field"); QTest::addColumn<QJsonValue>("value");
+        for (const auto& field : {QString("name"), QString("color")}) {
+            QTest::newRow(qPrintable(field + "-number")) << field << QJsonValue(7);
+            QTest::newRow(qPrintable(field + "-null")) << field << QJsonValue(QJsonValue::Null);
+            QTest::newRow(qPrintable(field + "-object")) << field << QJsonValue(QJsonObject{});
+        }
+    }
+    void reviewF20RowText() {
+        QFETCH(QString, field); QFETCH(QJsonValue, value);
+        auto t = track(kDrums, 0); t.insert("type", "midi");
+        auto timeline = model(sequence(QJsonArray{t}, QJsonArray{QJsonObject{{"id", kClip}, {"trackId", kDrums},
+            {"mediaType", "midi"}, {"startMs", 0}, {"durationMs", 2000}, {"pattern", nt::midi::normalizePattern()}}}));
+        MusicJobs jobs;
+        const auto before = timeline->timeline().raw;
+        const auto result = run("add_pattern_rows", {{"clipId", kClip}, {"rows", QJsonArray{QJsonObject{{"pitch", 60}, {field, value}}}}}, *timeline, jobs);
+        QVERIFY(!result.value("ok").toBool());
+        QCOMPARE(timeline->timeline().raw, before);
+        QCOMPARE(timeline->undoStack()->count(), 0);
+    }
+    void reviewF26ClearStepRate() {
+        auto t = track(kDrums, 0); t.insert("type", "midi");
+        const auto pattern = nt::midi::normalizePattern({{"rows", QJsonArray{QJsonObject{{"id", "r"}, {"assignment", QJsonObject{{"type", "note"}, {"pitch", 60}}},
+            {"steps", QJsonArray{QJsonObject{{"on", true}, {"stepRate", "1/8"}}}}}}}});
+        auto timeline = model(sequence(QJsonArray{t}, QJsonArray{QJsonObject{{"id", kClip}, {"trackId", kDrums},
+            {"mediaType", "midi"}, {"startMs", 0}, {"durationMs", 2000}, {"pattern", pattern}}}));
+        MusicJobs jobs;
+        const auto result = run("set_steps", {{"clipId", kClip}, {"row", "r"}, {"steps", QJsonArray{1}},
+            {"values", QJsonObject{{"stepRate", QJsonValue::Null}}}}, *timeline, jobs);
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        const auto step = timeline->findClip(kClip)->raw.value("pattern").toObject().value("rows").toArray().first().toObject().value("steps").toArray().first().toObject();
+        QVERIFY(!step.contains("stepRate"));
+        QVERIFY(step.value("on").toBool());
+        timeline->undoStack()->undo();
+        QCOMPARE(timeline->findClip(kClip)->raw.value("pattern"), QJsonValue(pattern));
+    }
+    void reviewF22BusyGuards_data() {
+        QTest::addColumn<int>("busy");
+        QTest::newRow("drag") << 0;
+        QTest::newRow("trim") << 1;
+        QTest::newRow("take-recording") << 2;
+    }
+    void reviewF22BusyGuards() {
+        QFETCH(int, busy);
+        auto t = track(kDrums, 0); t.insert("type", "midi");
+        auto timeline = model(sequence(QJsonArray{t}, QJsonArray{QJsonObject{{"id", kClip}, {"trackId", kDrums},
+            {"mediaType", "midi"}, {"startMs", 0}, {"durationMs", 2000}, {"pattern", nt::midi::normalizePattern()}}}));
+        MusicJobs jobs;
+        const nt::music::assistant::EditState state{busy == 0, busy == 1, busy == 2};
+        const auto before = timeline->timeline().raw;
+        const auto result = nt::music::assistant::run("set_pattern", {{"clipId", kClip}, {"name", "Edited"}}, *timeline, jobs, state);
+        QVERIFY(!result.value("ok").toBool());
+        QCOMPARE(timeline->timeline().raw, before);
+        QCOMPARE(timeline->undoStack()->count(), 0);
+        const auto read = nt::music::assistant::run("get_pattern", {{"clipId", kClip}}, *timeline, jobs, state);
+        QVERIFY(read.value("ok").toBool());
+    }
+    void reviewF21CreationReportsCommittedId() {
+        auto t = track(kDrums, 0); t.insert("type", "midi");
+        auto timeline = model(sequence(QJsonArray{t}, {}));
+        MusicJobs jobs;
+        const auto result = run("apply_step_pattern", {{"trackId", kDrums}, {"pattern", "Boom Bap"}}, *timeline, jobs);
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        const auto clips = timeline->timeline().raw.value("clips").toArray();
+        QCOMPARE(clips.size(), 1);
+        QCOMPARE(result.value("clip").toObject().value("id"), clips.first().toObject().value("id"));
+        const auto read = run("get_pattern", {{"clipId", result.value("clip").toObject().value("id")}}, *timeline, jobs);
+        QVERIFY(read.value("ok").toBool());
+    }
+    void reviewF22UndoLabel() {
+        auto t = track(kDrums, 0); t.insert("type", "midi");
+        const auto pat = nt::midi::normalizePattern();
+        auto timeline = model(sequence(QJsonArray{t}, QJsonArray{QJsonObject{{"id", kClip}, {"trackId", kDrums},
+            {"mediaType", "midi"}, {"startMs", 0}, {"durationMs", 2000}, {"pattern", pat}}}));
+        MusicJobs jobs;
+        const auto result = run("set_pattern", {{"clipId", kClip}, {"name", "Edited"}}, *timeline, jobs);
+        QVERIFY(result.value("ok").toBool());
+        QCOMPARE(timeline->undoStack()->undoText(), QString("Edit Step Pattern"));
+    }
+    void reviewF21RebasesBeforeCommand() {
+        auto t = track(kDrums, 0); t.insert("type", "midi");
+        const auto pat = nt::midi::normalizePattern();
+        QJsonObject clip{{"id", kClip}, {"trackId", kDrums}, {"mediaType", "midi"}, {"startMs", 0}, {"durationMs", 2000}, {"pattern", pat}};
+        auto timeline = model(sequence(QJsonArray{t}, QJsonArray{clip}));
+        MusicJobs jobs;
+        QMetaObject::Connection connection;
+        connection = connect(timeline.get(), &TimelineModel::beforeCommand, timeline.get(), [&] {
+            disconnect(connection);
+            auto updated = timeline->timeline().raw;
+            updated.insert("name", "Committed by listener");
+            const auto parsed = nt::parseTimeline(updated);
+            QVERIFY(parsed.timeline.has_value());
+            timeline->setTimeline(*parsed.timeline);
+        });
+        const auto result = nt::music::assistant::run("ui_timeline_set_pattern", {{"clipId", kClip}, {"name", "Edited"}}, *timeline, jobs);
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        QCOMPARE(timeline->timeline().raw.value("name").toString(), QString("Committed by listener"));
+        timeline->undoStack()->undo();
+        QCOMPARE(timeline->timeline().raw.value("name").toString(), QString("Committed by listener"));
+        QCOMPARE(timeline->findClip(kClip)->raw.value("pattern").toObject().value("name"), pat.value("name"));
+    }
     void initTestCase() {
         QVERIFY(m_dir.isValid());
         qputenv("NODETOOL_TIMELINE_PREFERENCES", m_dir.filePath("preferences.ini").toUtf8());
@@ -121,21 +223,47 @@ private slots:
     void toolsAdvertiseSchemas() {
         const auto tools = assistant::tools();
         QStringList names;
+        QVariantMap byName;
         for (const auto& value : tools) {
             const auto tool = value.toMap();
-            names.append(tool.value("name").toString());
+            const auto name = tool.value("name").toString();
+            names.append(name);
+            byName.insert(name, tool);
             const auto parameters = tool.value("parameters").toMap();
+            QVERIFY(parameters.value("required").toStringList().contains("timeline_id"));
+            QVERIFY(!tool.value("description").toString().isEmpty());
+        }
+        const QStringList expectedMusic{"ui_timeline_music_generate", "ui_timeline_music_regenerate",
+                                        "ui_timeline_music_add_instrument"};
+        const QStringList expectedPattern{
+            "ui_timeline_get_pattern",           "ui_timeline_set_steps",          "ui_timeline_set_pattern_text",
+            "ui_timeline_set_pattern",           "ui_timeline_add_pattern_rows",   "ui_timeline_clear_pattern",
+            "ui_timeline_convert_pattern_to_midi", "ui_timeline_convert_midi_to_pattern",
+            "ui_timeline_apply_step_pattern"};
+        QCOMPARE(names, expectedMusic + expectedPattern);
+        for (const auto& name : expectedMusic) {
+            const auto parameters = byName.value(name).toMap().value("parameters").toMap();
             QCOMPARE(parameters.value("required").toStringList(),
                      QStringList({"timeline_id", "track_id", "start_bar", "end_bar", "prompt"}));
             const auto properties = parameters.value("properties").toMap();
             for (const auto* key : {"candidates", "seed", "model"}) QVERIFY(properties.contains(key));
-            QVERIFY(!tool.value("description").toString().isEmpty());
         }
-        QCOMPARE(names, QStringList({"ui_timeline_music_generate", "ui_timeline_music_regenerate", "ui_timeline_music_add_instrument"}));
         for (const auto& name : names) QVERIFY(assistant::handles(name));
+        for (const auto* bare : {"get_pattern", "set_steps", "set_pattern_text", "set_pattern", "add_pattern_rows",
+                                 "clear_pattern", "convert_pattern_to_midi", "convert_midi_to_pattern",
+                                 "apply_step_pattern"}) {
+            QVERIFY(assistant::handles(QLatin1String(bare)));
+        }
         QVERIFY(!assistant::handles("ui_timeline_run_command"));
         // Add instrument runs on the base model only, as in the panel.
-        const auto lego = tools.last().toMap().value("parameters").toMap().value("properties").toMap().value("model").toMap();
+        const auto lego = byName.value("ui_timeline_music_add_instrument")
+                              .toMap()
+                              .value("parameters")
+                              .toMap()
+                              .value("properties")
+                              .toMap()
+                              .value("model")
+                              .toMap();
         QCOMPARE(lego.value("enum").toList().size(), 1);
     }
 
@@ -293,6 +421,164 @@ private slots:
         result = run("ui_timeline_music_generate", {{"track_id", kBass}, {"start_bar", 1}, {"end_bar", 2}, {"prompt", "x"}}, *fractional, other);
         QCOMPARE(result.value("refusal").toString(), QString("tempo"));
         QVERIFY(!result.value("error").toString().isEmpty());
+    }
+
+    // SQ55: all 9 native step sequencer assistant tools match TS SQ52/SQ54 vectors and errors.
+    void stepSequencerToolsMatchTsVectors() {
+        Server server;
+        const QString kMidiTrack = QStringLiteral("55555555555500000000000000000005");
+        const QString kPatClip = QStringLiteral("66666666666600000000000000000006");
+        const QString kMidiClip = QStringLiteral("77777777777700000000000000000007");
+        QJsonArray emptySteps;
+        for (int i = 0; i < 16; ++i) emptySteps.append(QJsonObject{});
+        const QJsonObject initPattern{
+            {"version", 1}, {"seed", 1}, {"lengthSteps", 16}, {"stepRate", "1/16"}, {"playback", "forward"},
+            {"legato", false}, {"swing", 0}, {"swingDivision", "1/16"}, {"pitchSource", "off"},
+            {"scale", "chromatic"}, {"noTranspose", false}, {"scaleQuantize", false}, {"midiChannel", 1},
+            {"automationMode", "latch"}, {"mono", false}, {"name", "Beat"},
+            {"rows", QJsonArray{
+                QJsonObject{{"id", "r1"}, {"name", "Kick"},
+                            {"assignment", QJsonObject{{"type", "note"}, {"pitch", 36}}},
+                            {"mute", false}, {"solo", false}, {"lengthSteps", 16}, {"loopStart", 0}, {"loopEnd", 16},
+                            {"stepRate", "1/16"}, {"playback", "forward"}, {"midiChannel", 1},
+                            {"automationMode", "latch"}, {"subrows", QJsonArray{"velocity", "gate"}},
+                            {"steps", emptySteps}},
+                QJsonObject{{"id", "r2"}, {"name", "Snare"},
+                            {"assignment", QJsonObject{{"type", "note"}, {"pitch", 38}}},
+                            {"mute", false}, {"solo", false}, {"lengthSteps", 16}, {"loopStart", 0}, {"loopEnd", 16},
+                            {"stepRate", "1/16"}, {"playback", "forward"}, {"midiChannel", 1},
+                            {"automationMode", "latch"}, {"subrows", QJsonArray{"velocity", "gate"}},
+                            {"steps", emptySteps}}}}};
+        const QJsonObject midiTrackObj{
+            {"id", kMidiTrack}, {"name", "Drums"}, {"type", "midi"}, {"index", 0},
+            {"visible", true}, {"locked", false}};
+        const QJsonObject patClipObj{
+            {"id", kPatClip}, {"trackId", kMidiTrack}, {"name", "Beat"}, {"mediaType", "midi"},
+            {"sourceType", "imported"}, {"status", "generated"}, {"locked", false},
+            {"startMs", 0.0}, {"durationMs", 2000.0}, {"inPointMs", 0.0}, {"outPointMs", 2000.0},
+            {"pattern", initPattern}};
+        const QJsonObject plainMidiClipObj{
+            {"id", kMidiClip}, {"trackId", kMidiTrack}, {"name", "FourFloor"}, {"mediaType", "midi"},
+            {"sourceType", "imported"}, {"status", "generated"}, {"locked", false},
+            {"startMs", 2000.0}, {"durationMs", 2000.0}, {"inPointMs", 0.0}, {"outPointMs", 2000.0},
+            {"notes", QJsonArray{
+                QJsonObject{{"id", "n1"}, {"pitch", 36}, {"velocity", 100}, {"startTick", 0}, {"durationTick", 240}},
+                QJsonObject{{"id", "n2"}, {"pitch", 36}, {"velocity", 100}, {"startTick", 960}, {"durationTick", 240}},
+                QJsonObject{{"id", "n3"}, {"pitch", 36}, {"velocity", 100}, {"startTick", 1920}, {"durationTick", 240}},
+                QJsonObject{{"id", "n4"}, {"pitch", 36}, {"velocity", 100}, {"startTick", 2880}, {"durationTick", 240}}}}};
+
+        // Non-music project: Step Sequencer tools must work outside ACE-Step music projects too.
+        auto timeline = model(sequence({midiTrackObj}, {patClipObj, plainMidiClipObj}, 120, false));
+        auto& jobs = attach(*timeline, server);
+
+        // 1. SQ52: set_steps with ramp velocity 20..80 over steps "1-4" -> [20, 40, 60, 80] and turned on.
+        auto res = run("ui_timeline_set_steps",
+                       {{"clipId", kPatClip.left(12)}, {"row", "Kick"}, {"steps", "1-4"},
+                        {"ramp", QJsonObject{{"field", "velocity"}, {"from", 20}, {"to", 80}}}},
+                       *timeline, jobs);
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        QCOMPARE(timeline->undoStack()->count(), 1);
+        const auto kickSteps = timeline->findClip(kPatClip)->raw.value("pattern").toObject()
+                                   .value("rows").toArray().at(0).toObject().value("steps").toArray();
+        QCOMPARE(kickSteps.at(0).toObject().value("velocity").toInt(), 20);
+        QCOMPARE(kickSteps.at(1).toObject().value("velocity").toInt(), 40);
+        QCOMPARE(kickSteps.at(2).toObject().value("velocity").toInt(), 60);
+        QCOMPARE(kickSteps.at(3).toObject().value("velocity").toInt(), 80);
+        for (int i = 0; i < 4; ++i) QVERIFY(kickSteps.at(i).toObject().value("on").toBool());
+
+        // 2. SQ48: get_pattern with modes ["velocity"] returns 16 values per row.
+        res = run("ui_timeline_get_pattern", {{"clipId", kPatClip}, {"modes", QJsonArray{"velocity"}}}, *timeline, jobs);
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        QCOMPARE(res.value("rows").toArray().size(), 2);
+        const auto velArr = res.value("rows").toArray().at(0).toObject().value("values").toObject().value("velocity").toArray();
+        QCOMPARE(velArr.size(), 16);
+        QCOMPARE(velArr.at(0).toInt(), 20);
+        QCOMPARE(velArr.at(3).toInt(), 80);
+        QCOMPARE(velArr.at(4).toInt(), 0);
+
+        // 3. SQ52: set_pattern_text merge adds Clap row.
+        res = run("ui_timeline_set_pattern_text",
+                  {{"clipId", kPatClip}, {"text", "Clap: .... X... .... X..."}, {"mode", "merge"}},
+                  *timeline, jobs);
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        QCOMPARE(timeline->findClip(kPatClip)->raw.value("pattern").toObject().value("rows").toArray().size(), 3);
+
+        // 4. SQ52: clear_pattern scope "row" mode "velocity" keeps steps on, clears velocity.
+        res = run("ui_timeline_clear_pattern",
+                  {{"clipId", kPatClip}, {"scope", "row"}, {"row", "Kick"}, {"mode", "velocity"}},
+                  *timeline, jobs);
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        const auto kickAfterClear = timeline->findClip(kPatClip)->raw.value("pattern").toObject()
+                                        .value("rows").toArray().at(0).toObject().value("steps").toArray();
+        QVERIFY(kickAfterClear.at(0).toObject().value("on").toBool());
+        QVERIFY(!kickAfterClear.at(0).toObject().contains("velocity"));
+
+        // 5. SQ50: set_pattern lengthSteps 32 repeats steps and stepRate "1/8" writes through to all rows.
+        res = run("ui_timeline_set_pattern",
+                  {{"clipId", kPatClip}, {"lengthSteps", 32}, {"stepRate", "1/8"}, {"swing", 40}},
+                  *timeline, jobs);
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        const auto patAfterSet = timeline->findClip(kPatClip)->raw.value("pattern").toObject();
+        QCOMPARE(patAfterSet.value("lengthSteps").toInt(), 32);
+        QCOMPARE(patAfterSet.value("stepRate").toString(), QStringLiteral("1/8"));
+        QCOMPARE(patAfterSet.value("rows").toArray().at(0).toObject().value("stepRate").toString(), QStringLiteral("1/8"));
+        QVERIFY(patAfterSet.value("rows").toArray().at(0).toObject().value("steps").toArray().at(16).toObject().value("on").toBool());
+
+        // 6. SQ51: add_pattern_rows adds CC 74 row and refuses exceeding 128 rows.
+        res = run("ui_timeline_add_pattern_rows",
+                  {{"clipId", kPatClip}, {"rows", QJsonArray{QJsonObject{{"cc", 74}, {"name", "Cutoff"}}}}},
+                  *timeline, jobs);
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        QCOMPARE(timeline->findClip(kPatClip)->raw.value("pattern").toObject().value("rows").toArray().size(), 4);
+
+        QJsonArray overflowRows;
+        for (int i = 0; i < 126; ++i) overflowRows.append(QJsonObject{{"pitch", 36 + (i % 48)}});
+        res = run("ui_timeline_add_pattern_rows", {{"clipId", kPatClip}, {"rows", overflowRows}}, *timeline, jobs);
+        QVERIFY(!res.value("ok").toBool());
+        QVERIFY2(res.value("error").toString().contains("128"), qPrintable(res.value("error").toString()));
+
+        // 7. SQ21: convert_midi_to_pattern converts four-on-the-floor MIDI clip to pattern.
+        res = run("ui_timeline_convert_midi_to_pattern",
+                  {{"clipIds", QJsonArray{kMidiClip}}, {"stepRate", "1/16"}},
+                  *timeline, jobs);
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        const auto convertedPatClip = timeline->findClip(kMidiClip)->raw;
+        QVERIFY(!convertedPatClip.contains("notes"));
+        QVERIFY(convertedPatClip.value("pattern").isObject());
+        QCOMPARE(convertedPatClip.value("pattern").toObject().value("rows").toArray().size(), 1);
+
+        // 8. SQ20: convert_pattern_to_midi converts back to exact four-on-the-floor notes.
+        res = run("ui_timeline_convert_pattern_to_midi", {{"clipIds", QJsonArray{kMidiClip}}}, *timeline, jobs);
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        const auto backClip = timeline->findClip(kMidiClip)->raw;
+        QVERIFY(!backClip.contains("pattern"));
+        const auto backNotes = backClip.value("notes").toArray();
+        QCOMPARE(backNotes.size(), 4);
+        QCOMPARE(backNotes.at(0).toObject().value("pitch").toInt(), 36);
+        QCOMPARE(backNotes.at(1).toObject().value("startTick").toInt(), 960);
+        QCOMPARE(backNotes.at(2).toObject().value("startTick").toInt(), 1920);
+        QCOMPARE(backNotes.at(3).toObject().value("startTick").toInt(), 2880);
+
+        // 9. SQ54: apply_step_pattern "Boom Bap" loads factory library pattern onto clip and onto track.
+        res = run("ui_timeline_apply_step_pattern",
+                  {{"clipId", kPatClip}, {"pattern", "Boom Bap"}},
+                  *timeline, jobs);
+        QVERIFY2(res.value("ok").toBool(), qPrintable(res.value("error").toString()));
+        const auto boomBap = timeline->findClip(kPatClip)->raw.value("pattern").toObject();
+        QCOMPARE(boomBap.value("name").toString(), QStringLiteral("Boom Bap"));
+        QCOMPARE(boomBap.value("swing").toInt(), 36);
+        QVERIFY(boomBap.value("rows").toArray().size() >= 3);
+
+        // Refuses bad input (missing values & ramp) without pushing undo entry.
+        const int undoBeforeErr = timeline->undoStack()->count();
+        res = run("set_steps", {{"clipId", kPatClip}, {"row", "Kick"}, {"steps", "1-4"}}, *timeline, jobs);
+        QVERIFY(!res.value("ok").toBool());
+        QVERIFY(res.value("error").toString().contains("values"));
+        QCOMPARE(timeline->undoStack()->count(), undoBeforeErr);
+
+        // Undo reverses apply_step_pattern cleanly.
+        timeline->undoStack()->undo();
+        QCOMPARE(timeline->findClip(kPatClip)->raw.value("pattern").toObject().value("name").toString(), QStringLiteral("Beat"));
     }
 };
 

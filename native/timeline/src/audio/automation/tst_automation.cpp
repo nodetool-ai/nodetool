@@ -1,18 +1,21 @@
 #include "audio/automation/Automation.h"
 #include "audio/automation/Meters.h"
 #include "audio/Mixer.h"
-#include "audio/automation/Meters.h"
 #include "model/TimelineJson.h"
 #include "nodetool/kernels.h"
 #include "preview/SceneEval.h"
 #include <QCoreApplication>
 #include <QFile>
 #include <QJsonDocument>
+#include <QScopeGuard>
 #include <QtTest>
 #include <array>
+#include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <vector>
 #include <utility>
+#include <thread>
 using namespace nt::automation;
 namespace {
 QJsonObject document() {
@@ -25,6 +28,139 @@ QJsonObject lane(QString kind, QString param, QJsonArray points) {
 class TestAutomation : public QObject {
     Q_OBJECT
 private slots:
+    void completedBetweenBlocksGlidesF18() {
+        auto parsed=nt::parseTimelineJson(QJsonDocument(document()).toJson()); QVERIFY(parsed.timeline);
+        const auto state=std::make_shared<nt::MixerOverride>();
+        auto& track=parsed.timeline->tracks[0]; track.mixerOverride=state;
+        track.raw["automation"]=QJsonArray{lane("mixer","pan",{QJsonObject{{"timeMs",0},{"value",-1}}})};
+        const auto plan=nt::audio::buildMixPlan(*parsed.timeline);
+        nt::audio::prepareMixPlan(plan,48000);
+        const auto& pan=plan.tracks[0].panSource; QVERIFY(pan);
+        pan->beginBlock({.sampleRate=48000,.timelineMs=0,.msPerFrame=1000./48000},480,-1);
+        QCOMPARE(pan->valueAt(10,-1),-1.);
+        state->pan.store(0);
+        nt::MixerReturn::Snapshot release; release.startMs=10; release.values.fill(0);
+        state->panReturn.publish(release); state->pan.store(std::numeric_limits<double>::quiet_NaN());
+        pan->beginBlock({.sampleRate=48000,.timelineMs=10,.msPerFrame=1000./48000},480,-1);
+        QCOMPARE(pan->valueAt(10,-1),-1.);
+        QVERIFY(std::abs(pan->valueAt(15,-1)+.5)<1e-9);
+        QCOMPARE(pan->valueAt(20,-1),0.);
+    }
+    void publishingCurveKeepsReturnGlideF1() {
+        auto parsed=nt::parseTimelineJson(QJsonDocument(document()).toJson()); QVERIFY(parsed.timeline);
+        // The model/control side and both published plans retain the same atomic input.
+        const auto state=std::make_shared<nt::MixerOverride>();
+        auto& track=parsed.timeline->tracks[0]; track.mixerOverride=state;
+        track.raw["automation"]=QJsonArray{lane("mixer","volumeDb",{QJsonObject{{"timeMs",0},{"value",-30}}})};
+        const auto old=nt::audio::buildMixPlan(*parsed.timeline);
+        std::vector<float> input(96000,.25f),output(960);
+        nt::audio::VoicePcm pcm{.linear=input.data(),.linearCount=48000}; nt::audio::MixStats stats;
+        nt::audio::mixBlock(old,&pcm,48000,0,1000./48000,480,output.data(),stats);
+        state->volumeDb.store(0);
+        nt::audio::mixBlock(old,&pcm,48000,10,1000./48000,480,output.data(),stats);
+        nt::MixerReturn::Snapshot release; release.startMs=19;
+        for (std::size_t i=0;i<release.values.size();++i) { release.values[i]=std::pow(10.,-30.*static_cast<double>(i)/20./20.); }
+        state->volumeReturn.publish(release); state->volumeDb.store(std::numeric_limits<double>::quiet_NaN());
+        nt::audio::mixBlock(old,&pcm,48000,20,1000./48000,128,output.data(),stats);
+        const float previous=output[254];
+        track.raw["automation"]=QJsonArray{lane("mixer","volumeDb",{QJsonObject{{"timeMs",0},{"value",-30}},
+            QJsonObject{{"timeMs",19},{"value",0}},QJsonObject{{"timeMs",219},{"value",-30}}})};
+        auto current=old; nt::automation::refreshMixerAutomation(*parsed.timeline,current);
+        nt::audio::mixBlock(current,&pcm,48000,20+128*1000./48000,1000./48000,128,output.data(),stats);
+        QVERIFY2(std::abs(output[0]-previous)<.001f,"Publishing the written curve must retain an in-progress control glide");
+    }
+    void oneRendererOwnsSharedDspF1() {
+        // Shared by the test and the processor on two render threads, synchronized only through atomics.
+        struct Handoff { std::atomic<bool> began{false},release{false},overlap{false},firstCorrect{false}; std::atomic<int> entered{0}; };
+        // Thread-safe probe. The first render pauses so the other render's ownership is observable.
+        class Probe final : public nt::audio::BlockProcessor {
+            // The test and the plan's processor must retain the same synchronization handoff.
+            std::shared_ptr<Handoff> state_;
+        public:
+            explicit Probe(std::shared_ptr<Handoff> state) : state_(std::move(state)) {}
+            void process(std::span<float> samples,const nt::audio::BlockContext&) noexcept override {
+                if (state_->entered.fetch_add(1)==0) {
+                    state_->began.store(true,std::memory_order_release);
+                    while (!state_->release.load(std::memory_order_acquire)) { std::this_thread::yield(); }
+                } else { state_->overlap.store(true); }
+                std::fill(samples.begin(),samples.end(),.5f);
+            }
+        };
+        const auto state=std::make_shared<Handoff>();
+        const auto token=nt::audio::registerMixPlanStage("a12-render-ownership",[state](const nt::Timeline&,nt::audio::MixPlan& plan) {
+            plan.processors.push_back(std::make_shared<Probe>(state));
+        },1000);
+        const auto cleanup=qScopeGuard([token] { nt::audio::unregisterMixPlanStage(token); });
+        auto parsed=nt::parseTimelineJson(QJsonDocument(document()).toJson()); QVERIFY(parsed.timeline); parsed.timeline->clips.clear();
+        // Main and worker retain the plan while its prepared state is handed between renderers.
+        const auto plan=std::make_shared<nt::audio::MixPlan>(nt::audio::buildMixPlan(*parsed.timeline));
+        std::jthread first([weakPlan=std::weak_ptr<const nt::audio::MixPlan>(plan),weakState=std::weak_ptr<Handoff>(state)] {
+            const auto held=weakPlan.lock(); const auto sync=weakState.lock(); if (!held || !sync) { return; }
+            std::array<float,256> out{}; nt::audio::MixStats stats;
+            nt::audio::mixBlock(*held,nullptr,48000,0,1000./48000,128,out.data(),stats);
+            sync->firstCorrect.store(std::all_of(out.begin(),out.end(),[](float value) { return value==.5f; }));
+        });
+        while (!state->began.load(std::memory_order_acquire)) { std::this_thread::yield(); }
+        std::array<float,256> other{}; nt::audio::MixStats stats;
+        nt::audio::mixBlock(*plan,nullptr,48000,0,1000./48000,128,other.data(),stats);
+        state->release.store(true,std::memory_order_release); first.join();
+        QVERIFY(state->firstCorrect.load()); QVERIFY(!state->overlap.load());
+        QVERIFY(std::all_of(other.begin(),other.end(),[](float value) { return value==0; }));
+    }
+    void returnHandoffIsCoherentF1() {
+        // The test writer and reader share lifetime; their payload and completion handoffs are atomic.
+        struct Handoff {
+            nt::MixerReturn value;
+            std::atomic<bool> started{false},done{false};
+            std::atomic<int> errors{0},reads{0};
+        };
+        const auto state=std::make_shared<Handoff>();
+        std::jthread reader([weak=std::weak_ptr<Handoff>(state)] {
+            const auto held=weak.lock(); if (!held) { return; }
+            held->started.store(true,std::memory_order_release);
+            nt::MixerReturn::Snapshot copy;
+            do {
+                held->value.read(copy);
+                if (std::isfinite(copy.startMs)) {
+                    for (const auto value:copy.values) { if (value!=copy.startMs) { held->errors.fetch_add(1); } }
+                    held->reads.fetch_add(1);
+                }
+            } while (!held->done.load(std::memory_order_acquire));
+            held->value.read(copy);
+            for (const auto value:copy.values) { if (value!=copy.startMs) { held->errors.fetch_add(1); } }
+            held->reads.fetch_add(1);
+        });
+        while (!state->started.load(std::memory_order_acquire)) { std::this_thread::yield(); }
+        for (int i=1;i<=20000;++i) {
+            nt::MixerReturn::Snapshot next; next.startMs=i; next.values.fill(i);
+            state->value.publish(next);
+        }
+        state->done.store(true,std::memory_order_release); reader.join();
+        QVERIFY(state->reads.load()>0); QCOMPARE(state->errors.load(),0);
+    }
+    void livePanGlidesF2_data() {
+        QTest::addColumn<double>("step");
+        QTest::newRow("normal") << 1000./48000;
+        QTest::newRow("shuttle") << 2000./48000;
+        QTest::newRow("reverse") << -1000./48000;
+    }
+    void livePanGlidesF2() {
+        QFETCH(double,step);
+        auto parsed=nt::parseTimelineJson(QJsonDocument(document()).toJson()); QVERIFY(parsed.timeline);
+        auto state=std::make_shared<nt::MixerOverride>();
+        parsed.timeline->tracks[0].mixerOverride=state;
+        const auto plan=nt::audio::buildMixPlan(*parsed.timeline);
+        nt::audio::prepareMixPlan(plan,48000);
+        std::vector<float> input(48000*2,.25f), output(256*2);
+        nt::audio::VoicePcm pcm{.linear=input.data(),.linearCount=48000};
+        nt::audio::MixStats stats;
+        nt::audio::mixBlock(plan,&pcm,48000,20,step,128,output.data(),stats);
+        const float previous=output[254];
+        state->pan.store(1);
+        nt::audio::mixBlock(plan,&pcm,48000,20+128*step,step,128,output.data(),stats);
+        QVERIFY2(std::abs(output[0]-previous)<.01f,"Live pan must glide from the preceding sample");
+        QVERIFY(output[254]>.22f && output[254]<.24f);
+    }
     void modeAndPassVectors() {
         auto json = [](const char* text) { return QJsonDocument::fromJson(text).array(); };
         QCOMPARE(call("automationModeOf", {QJsonObject{}}).toString(), "read");

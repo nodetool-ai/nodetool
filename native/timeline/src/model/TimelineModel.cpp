@@ -1,11 +1,13 @@
 #include "motion/gesture/ClipDelta.h"
 #include "model/TimelineModel.h"
+#include "audio/automation/AutomationRecorder.h"
 
 #include "model/TimelineJson.h"
 #include "app/EditRegistry.h"
 
 #include <utility>
 #include <QHash>
+#include <QPointer>
 #include <QJsonDocument>
 #include <QUndoCommand>
 #include <QUuid>
@@ -553,7 +555,11 @@ void TimelineModel::setReadOnly(bool readOnly) {
 }
 
 quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload) {
-    const auto edit = nt::app::findEdit(name);
+    return applyEdit(name, payload, nt::app::findEdit(name));
+}
+
+quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload,
+                                const std::function<QJsonObject(QJsonObject, const QJsonObject&)>& edit) {
     if (m_readOnly || !edit) {
         return false;
     }
@@ -616,8 +622,15 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
         if (!after || !valid(before, *after)) { return false; }
     }
     const auto token = nextCommandToken();
-    auto command = std::make_unique<DocumentCommand>(name, before, *after,
-        [this](const QJsonObject& raw) { replaceFromHistory(raw); }, token);
+    const QPointer<TimelineModel> owner(this);
+    const QHash<QString, QString> musicLabels{
+        {QStringLiteral("insert_time"), tr("Insert silence")}, {QStringLiteral("delete_time"), tr("Delete section")},
+        {QStringLiteral("duplicate_range"), tr("Duplicate section")}, {QStringLiteral("paste_range"), tr("Paste section")},
+        {QStringLiteral("loop_clip"), tr("Loop clip")}, {QStringLiteral("duplicate_clip"), tr("Repeat clip")},
+        {QStringLiteral("move_clip"), tr("Move clip")}, {QStringLiteral("split_clip"), tr("Split clip")},
+        {QStringLiteral("trim_clip"), tr("Trim clip")}, {QStringLiteral("add_media_clip"), tr("Add media clip")}};
+    auto command = std::make_unique<DocumentCommand>(musicLabels.value(name, name), before, *after,
+        [owner](const QJsonObject& raw) { if (owner) owner->replaceFromHistory(raw); }, token);
     m_undo->push(command.release());
     return token;
 }
@@ -835,46 +848,73 @@ bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
 }
 
 std::shared_ptr<const nt::Timeline> TimelineModel::snapshot() const {
-    if (m_mixerOverrides.isEmpty()) { return m_timeline; }
-    auto next = std::make_shared<nt::Timeline>(*m_timeline);
-    for (auto& track : next->tracks) { track.mixerOverride = m_mixerOverrides.value(QString::fromStdString(track.id)); }
+    if (m_mixerSnapshotSource==m_timeline && m_mixerSnapshot) { return m_mixerSnapshot; }
+    if (std::none_of(m_timeline->tracks.begin(),m_timeline->tracks.end(),[](const auto& t) { return t.type==nt::TrackType::Audio || t.type==nt::TrackType::Midi; })) { return m_timeline; }
+    auto next=std::make_shared<nt::Timeline>(*m_timeline);
+    QSet<QString> present;
+    for (auto& track:next->tracks) {
+        if (track.type!=nt::TrackType::Audio && track.type!=nt::TrackType::Midi) { continue; }
+        const auto id=QString::fromStdString(track.id); present.insert(id);
+        auto& state=m_mixerOverrides[id];
+        // Every published sound track already has its handoff, including before its first gesture.
+        if (!state) { state=std::make_shared<nt::MixerOverride>(); }
+        track.mixerOverride=state;
+    }
+    for (auto i=m_mixerOverrides.begin();i!=m_mixerOverrides.end();) {
+        if (present.contains(i.key())) { ++i; continue; }
+        i.value()->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+        i.value()->pan.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+        i=m_mixerOverrides.erase(i);
+    }
+    m_mixerSnapshotSource=m_timeline; m_mixerSnapshot=next;
     return next;
 }
-void TimelineModel::setMixerOverride(const QString& trackId, const QString& param, std::optional<double> value) {
-    if (param != "volumeDb" && param != "pan") { return; }
-    auto state = m_mixerOverrides.value(trackId);
-    bool changed = false;
+void TimelineModel::setMixerOverride(const QString& trackId,const QString& param,std::optional<double> value) {
+    if (param!="volumeDb" && param!="pan") { return; }
+    auto state=m_mixerOverrides.value(trackId);
     if (!state) {
-        if (!value) { return; }
-        state = std::make_shared<nt::MixerOverride>();
+        if (!value || !m_timeline->findTrack(trackId.toStdString())) { return; }
+        state=std::make_shared<nt::MixerOverride>();
         m_mixerOverrides.insert(trackId,state);
-        changed = true;
     }
-    auto& slot = param == "volumeDb" ? state->volumeDb : state->pan;
-    const double nextValue=value.value_or(std::numeric_limits<double>::quiet_NaN());
-    const double previousValue=slot.exchange(nextValue,std::memory_order_relaxed);
-    if (std::isnan(state->volumeDb.load(std::memory_order_relaxed)) && std::isnan(state->pan.load(std::memory_order_relaxed))) {
-        m_mixerOverrides.remove(trackId); changed = true;
+    if (!value) { (param=="volumeDb" ? state->volumeReturn : state->panReturn).publish({}); }
+    auto& slot=param=="volumeDb" ? state->volumeDb : state->pan;
+    const double next=value.value_or(std::numeric_limits<double>::quiet_NaN());
+    const double previous=slot.exchange(next,std::memory_order_release);
+    if (previous!=next && !(std::isnan(previous) && std::isnan(next))) { emit mixerOverrideChanged(trackId,param); }
+}
+void TimelineModel::releaseMixerOverride(const QString& trackId,const QString& param,double endMs,double value,double after) {
+    const auto state=m_mixerOverrides.value(trackId);
+    if (!state) { return; }
+    nt::MixerReturn::Snapshot ramp; ramp.startMs=endMs;
+    for (std::size_t i=0;i<ramp.values.size();++i) {
+        const double v=value+(after-value)*static_cast<double>(i)/20.;
+        ramp.values[i]=param=="volumeDb" ? std::pow(10.,v/20.) : v;
     }
-    if (changed) {
-        auto next=std::make_shared<nt::Timeline>(*m_timeline);
-        next->revision=nt::nextTimelineRevision();
-        m_timeline=std::move(next);
-        m_tracks->rebind(m_timeline.get());
-        emit sourceChanged();
-    }
-    if (previousValue!=nextValue && !(std::isnan(previousValue) && std::isnan(nextValue))) {
-        emit mixerOverrideChanged(trackId,param);
-    }
+    (param=="volumeDb" ? state->volumeReturn : state->panReturn).publish(ramp);
+    (param=="volumeDb" ? state->volumeDb : state->pan).store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+    emit mixerOverrideChanged(trackId,param);
 }
 
-TimelineModel::~TimelineModel() { clearMixerOverrides(); }
+AutomationRecorder* TimelineModel::automationRecorder() {
+    if (!m_automationRecorder) {
+        m_automationRecorder=std::make_unique<AutomationRecorder>();
+        m_automationRecorder->setTimeline(this);
+    }
+    return m_automationRecorder.get();
+}
+TimelineModel::~TimelineModel() {
+    m_automationRecorder.reset();
+    clearMixerOverrides();
+}
 void TimelineModel::clearMixerOverrides() {
     for (const auto& state : m_mixerOverrides) {
-        state->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_relaxed);
+        state->volumeReturn.publish({}); state->panReturn.publish({});
+        state->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
         state->pan.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_relaxed);
     }
     m_mixerOverrides.clear();
+    m_mixerSnapshot.reset(); m_mixerSnapshotSource.reset();
 }
 std::optional<double> TimelineModel::mixerOverrideValue(const QString& trackId, const QString& param) const {
     const auto state=m_mixerOverrides.value(trackId);

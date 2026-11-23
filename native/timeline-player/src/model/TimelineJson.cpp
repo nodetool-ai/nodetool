@@ -1,3 +1,4 @@
+#include "model/StepPatternValidation.h"
 #include "model/TimelineJson.h"
 
 #include "scene/ClipScene.h"
@@ -108,6 +109,12 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         track.solo = t.value(u"solo").toBool(false);
         track.volumeDb = t.value(u"volumeDb").toDouble(0.0);
         track.pan = t.value(u"pan").toDouble(0.0);
+        const auto stepTemplate = t.value(u"stepTemplate");
+        if (!stepTemplate.isUndefined() && (!stepTemplate.isObject() ||
+            !midi::validateStoredStepPattern(stepTemplate.toObject()).isEmpty())) {
+            result.error = QStringLiteral("track %1: invalid step template").arg(QString::fromStdString(track.id));
+            return result;
+        }
         track.raw = t;
         tl.tracks.push_back(std::move(track));
     }
@@ -185,6 +192,46 @@ ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
         if (clip.durationMs <= 0.0) {
             result.error = QStringLiteral("clip %1: durationMs must be positive").arg(QString::fromStdString(clip.id));
             return result;
+        }
+        const QJsonValue patternVal = c.value(u"pattern");
+        const bool hasPattern = !patternVal.isUndefined();
+        if (hasPattern && !patternVal.isObject()) {
+            result.error = QStringLiteral("clip %1: pattern must be an object").arg(QString::fromStdString(clip.id));
+            return result;
+        }
+        const QJsonValue notesVal = c.value(u"notes");
+        const bool hasNotes = !notesVal.isUndefined();
+        if (hasPattern && hasNotes) {
+            result.error = QStringLiteral("clip %1: cannot hold both pattern and notes").arg(QString::fromStdString(clip.id));
+            return result;
+        }
+        if ((hasNotes && !notesVal.isArray()) ||
+            (hasPattern && (clip.mediaType != MediaType::Midi || c.contains(u"controllers") ||
+                            !midi::validateStoredStepPattern(patternVal.toObject()).isEmpty()))) {
+            result.error = QStringLiteral("clip %1: invalid MIDI pattern or notes").arg(QString::fromStdString(clip.id));
+            return result;
+        }
+        const auto nonnegativeInteger = [](const QJsonValue& value) {
+            return value.isDouble() && std::isfinite(value.toDouble()) && value.toDouble() >= 0 &&
+                   value.toDouble() <= 9007199254740991.0 && std::floor(value.toDouble()) == value.toDouble();
+        };
+        if (c.contains(u"patternPhaseTicks") && !nonnegativeInteger(c.value(u"patternPhaseTicks"))) {
+            result.error = QStringLiteral("patternPhaseTicks must be a nonnegative integer.");
+            return result;
+        }
+        if (c.contains(u"patternRowCycles")) {
+            const auto cycles = c.value(u"patternRowCycles");
+            if (!cycles.isObject()) { result.error = "patternRowCycles must be an object."; return result; }
+            const auto states = cycles.toObject();
+            for (auto it = states.begin(); it != states.end(); ++it) {
+                const auto state = it.value().toObject();
+                if (!it.value().isObject() || !nonnegativeInteger(state.value(u"cycleOffset")) ||
+                    (state.contains(u"lastCycle") && !nonnegativeInteger(state.value(u"lastCycle"))) ||
+                    (state.contains(u"wanderPos") && !nonnegativeInteger(state.value(u"wanderPos")))) {
+                    result.error = "Invalid pattern row cycle state.";
+                    return result;
+                }
+            }
         }
         tl.clips.push_back(std::move(clip));
     }

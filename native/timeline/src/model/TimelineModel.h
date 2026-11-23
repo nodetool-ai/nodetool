@@ -16,12 +16,15 @@
 #include <vector>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+class AutomationRecorder;
+
 // The document the editor shows. It owns the timeline; QML only observes it.
 // As a TimelineSource it forwards timelineChanged and previewChanged to
 // sourceChanged.
 // Thread affinity: UI thread only.
 class TimelineModel : public TimelineSource {
     Q_OBJECT
+    Q_MOC_INCLUDE("audio/automation/AutomationRecorder.h")
     QML_ELEMENT
     QML_UNCREATABLE("Created by main")
     Q_PROPERTY(QString effectMatteId READ effectMatteId NOTIFY effectMatteChanged)
@@ -38,6 +41,7 @@ class TimelineModel : public TimelineSource {
     Q_PROPERTY(double contentEndMs READ contentEndMs NOTIFY timelineChanged)
     Q_PROPERTY(int clipCount READ clipCount NOTIFY timelineChanged)
     Q_PROPERTY(TrackListModel* tracks READ tracks CONSTANT)
+    Q_PROPERTY(AutomationRecorder* automationRecorder READ automationRecorder CONSTANT)
     // The edit history (D5): one command per edit, one per gesture.
     Q_PROPERTY(QUndoStack* undoStack READ undoStack CONSTANT)
     // The document's `markers` ({id, timeMs, label, color?, note?}), in
@@ -53,6 +57,7 @@ public:
     ~TimelineModel() override;
 
     void setTimeline(nt::Timeline timeline);
+    AutomationRecorder* automationRecorder();
     // Rewrites one undo checkpoint (a raw sequence) for an adopted external change.
     using HistoryRebase = std::function<QJsonObject(const QJsonObject&)>;
     // Replace the document with an adopted external change and rebase the
@@ -74,6 +79,7 @@ public:
     // UI-thread writes, audio-thread atomic reads. Never changes document/undo.
     std::optional<double> mixerOverrideValue(const QString& trackId, const QString& param) const;
     void setMixerOverride(const QString& trackId, const QString& param, std::optional<double> value);
+    void releaseMixerOverride(const QString& trackId,const QString& param,double endMs,double value,double after);
 
     QString timelineId() const { return QString::fromStdString(m_timeline->id); }
     QString projectId() const { return m_timeline->raw.value(u"projectId").toString(); }
@@ -135,6 +141,9 @@ public:
                     bool continuation = false);
 
     Q_INVOKABLE quint64 applyEdit(const QString& name, const QJsonObject& payload);
+    // Synchronous callback. Undo stores document snapshots, never this callable.
+    quint64 applyEdit(const QString& label, const QJsonObject& payload,
+                      const std::function<QJsonObject(QJsonObject, const QJsonObject&)>& edit);
 
     bool readOnly() const { return m_readOnly; }
     // Turning it on clears the undo history, so undo cannot change the
@@ -199,7 +208,11 @@ private:
     void markClipsChanged(QSet<QString> clipIds, QSet<QString> trackIds);
     std::optional<QSet<QString>> m_changedClipIds;
     // UI-only map. The model and published plans share each atomic handoff.
-    QHash<QString, std::shared_ptr<nt::MixerOverride>> m_mixerOverrides;
+    mutable QHash<QString, std::shared_ptr<nt::MixerOverride>> m_mixerOverrides;
+    // Shared with snapshot readers. Keep the source alive to compare cache identity safely.
+    mutable std::shared_ptr<const nt::Timeline> m_mixerSnapshotSource, m_mixerSnapshot;
+    // UI thread, uniquely model-owned. Views borrow the recorder and its host clock.
+    std::unique_ptr<AutomationRecorder> m_automationRecorder;
     void clearMixerOverrides();
     QSet<QString> m_changedTrackIds;
     quint64 m_takesRevision = 0;

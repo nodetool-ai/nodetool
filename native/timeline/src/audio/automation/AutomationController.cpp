@@ -21,7 +21,7 @@ void AutomationController::setTimeline(TimelineModel* timeline) {
     if (timeline_ == timeline) { return; }
     if (timeline_) { disconnect(timeline_, nullptr, this, nullptr); }
     timeline_ = timeline;
-    if (timeline_) { connect(timeline_, &TimelineModel::timelineChanged, this, &AutomationController::refresh); }
+    if (timeline_) { connect(timeline_, &TimelineModel::timelineChanged, this, &AutomationController::refresh); connect(timeline_, &TimelineSource::sourceChanged, this, &AutomationController::refresh); }
     emit changed();
 }
 QVariantMap AutomationController::channel() const {
@@ -74,8 +74,15 @@ void AutomationController::patchLane(const QString& laneId, const QJsonObject& p
 #include "MeterReadings.h"
 QVariantList AutomationMeters::take(const QString& channelId) const {
     constexpr qint64 kFrameMs = 16;
-    Reading& last = readings_[channelId];
-    const qint64 now = clock_.elapsed();
+    const qint64 now=clock_.elapsed();
+    if (now-lastPrunedMs_>=kFrameMs) {
+        for (auto i=readings_.begin();i!=readings_.end();) {
+            if (!nt::automation::hasMeter(i.key().toStdString())) { i=readings_.erase(i); } else { ++i; }
+        }
+        lastPrunedMs_=now;
+    }
+    if (!nt::automation::hasMeter(channelId.toStdString())) { readings_.remove(channelId); return {0.f,0.f}; }
+    Reading& last=readings_[channelId];
     if (now - last.atMs >= kFrameMs) {
         const auto peaks=nt::automation::takeMeter(channelId.toStdString());
         last.peaks = {peaks[0],peaks[1]};
@@ -84,11 +91,11 @@ QVariantList AutomationMeters::take(const QString& channelId) const {
     return last.peaks;
 }
 
-bool AutomationController::clipNameAt(double timeMs) const {
+bool AutomationController::clipNameAt(double timeMs, double minimumDurationMs) const {
     if (!timeline_) { return false; }
     const auto id=trackId.toStdString();
     for (const auto& clip : timeline_->timeline().clips) {
-        if (clip.trackId==id && clip.startMs<=timeMs && clip.endMs()>=timeMs) { return true; }
+        if (clip.trackId==id && clip.startMs<=timeMs && clip.startMs+std::max(clip.durationMs,minimumDurationMs)>=timeMs) { return true; }
     }
     return false;
 }
@@ -109,7 +116,7 @@ void AutomationReadout::setTimeline(TimelineModel* next) {
     timeline_=next;
     if (timeline_) {
         connect(timeline_,&TimelineModel::timelineChanged,this,&AutomationReadout::compile);
-        connect(timeline_,&TimelineSource::sourceChanged,this,&AutomationReadout::update);
+        connect(timeline_,&TimelineSource::sourceChanged,this,&AutomationReadout::compile);
         connect(timeline_,&TimelineModel::mixerOverrideChanged,this,&AutomationReadout::overrideChanged);
     }
     compile(); emit sourceChanged();
@@ -131,8 +138,13 @@ void AutomationReadout::compile() {
     if (!track) { update(); return; }
     const auto kind=target_["kind"].toString(), param=target_["param"].toString();
     if (kind=="mixer") { base_=track->raw[param].toDouble(); }
-    else if (kind=="device") {
-        for (const auto& e : track->raw["effects"].toArray()) { if (e.toObject()["id"]==target_["deviceId"]) { base_=e.toObject()[param].toDouble(); } }
+    else if (kind=="device" && target_["deviceId"]=="instrument") {
+        for (const auto& item:nt::automation::instrumentAutomationSpecs(track->raw["instrument"].toObject())) {
+            const auto spec=item.toObject();
+            if (spec["target"].toObject()["param"]==param) { base_=spec["value"].toDouble(); break; }
+        }
+    } else if (kind=="device") {
+        for (const auto& e : track->raw["effects"].toArray()) { if (e.toObject()["id"]==target_["deviceId"]) { base_=e.toObject()[param].toDouble(nt::automation::trackEffectDefaults(e.toObject()["type"].toString())[param].toDouble()); } }
     } else {
         const auto property=target_["property"].toString();
         base_=(property=="opacity" || property=="scale" || property=="contrast" || property=="saturation") ? 1 : 0;
@@ -155,8 +167,9 @@ void AutomationReadout::update() {
     if (live) { next=*live; }
     else if (!points_.empty()) {
         const double time=clock_ ? clock_->currentTimeMs() : 0;
-        const auto b=std::upper_bound(points_.begin(),points_.end(),time,[](double t,const Point& p) { return t<p.time; });
-        if (b==points_.begin()) { next=b->value; }
+        const auto b=std::lower_bound(points_.begin(),points_.end(),time,[](const Point& p,double t) { return p.time<t; });
+        if (time<=points_.front().time) { next=points_.front().value; }
+        else if (time>=points_.back().time) { next=points_.back().value; }
         else if (b==points_.end()) { next=points_.back().value; }
         else { const auto& a=*(b-1); next=a.value+(b->value-a.value)*nt::scene::ease(b->easing,(time-a.time)/(b->time-a.time)); }
     }
@@ -173,3 +186,6 @@ double AutomationController::laneValueAt(const QString& laneId, double timeMs, d
     }
     return fallback;
 }
+
+QJsonArray AutomationParameters::instrumentTargets(const QJsonObject& instrument) const { return nt::automation::instrumentAutomationSpecs(instrument); }
+QJsonObject AutomationParameters::effectDefaults(const QString& type) const { return nt::automation::trackEffectDefaults(type); }

@@ -5,7 +5,7 @@
 // role as a chip before its name (docs/MUSIC-MODE.md MD4, UI-3). A color strip
 // on the left edge shows the track color. An audio or midi track also shows an
 // instrument icon and a volume slider with a level meter on a second row. The
-// slider writes the mixer's `setTrackVolume` edit, once per drag, and hides when
+// slider records through the mixer automation service and hides when
 // the header is too narrow.
 import QtQuick
 import QtQuick.Controls as Controls
@@ -70,6 +70,9 @@ Rectangle {
 
     HoverHandler { id: headerHover }
     AutomationController { id: automation; timeline: header.timeline; trackId: header.trackId }
+    readonly property AutomationRecorder volumeRecorder: timeline ? timeline.automationRecorder : null
+    AutomationReadout { id: volumeReading; timeline: header.timeline; trackId: header.trackId
+        target: ({kind:"mixer",param:"volumeDb"}); clock: header.visible && header.volumeRecorder ? header.volumeRecorder.clock : null }
 
     // One compact row, as a conventional NLE track header: grip, source
     // patch, lock, track target, sync lock, visibility, mute, solo, the name,
@@ -260,9 +263,8 @@ Rectangle {
     }
 
     // The instrument icon, the volume slider and its level meter. The slider
-    // shares the mixer's gain (`channel.volumeDb`), its dB taper and its
-    // `setTrackVolume` edit. A drag previews a draft and commits once on
-    // release, so it is one undo step. A double-click resets to 0 dB.
+    // uses the mixer's automation value and dB taper. A drag commits once on
+    // release. A double-click resets to 0 dB.
     Ui.Icon {
         id: instrumentIcon
         objectName: "trackInstrumentIcon-" + header.trackId
@@ -276,7 +278,8 @@ Rectangle {
     Item {
         id: volumeSlider
         objectName: "trackVolume-" + header.trackId
-        readonly property real channelDb: automation.channel.volumeDb || 0
+        readonly property real channelDb: volumeReading.value
+        property bool consumed: false
         property real draftDb: channelDb
         readonly property real displayDb: slider.editing ? draftDb : channelDb
         property var levels: [0, 0]
@@ -298,12 +301,29 @@ Rectangle {
             value: Taper.dbToFaderPosition(volumeSlider.channelDb)
             accessibleName: header.name + " volume"
             enabled: header.timeline !== null
-            onValuePreviewed: position => volumeSlider.draftDb = Taper.faderPositionToDb(position)
+            onEditStarted: volumeSlider.consumed=header.volumeRecorder ? header.volumeRecorder.gestureStart(header.trackId,"volumeDb") : false
+            onValuePreviewed: position => {
+                volumeSlider.draftDb=Taper.faderPositionToDb(position)
+                if (header.volumeRecorder && (volumeSlider.consumed || header.volumeRecorder.consumes(header.trackId))) {
+                    volumeSlider.consumed=true
+                    header.volumeRecorder.record(header.trackId,"volumeDb",volumeSlider.draftDb)
+                }
+            }
             onValueCommitted: position => {
                 const db = Taper.faderPositionToDb(position)
-                if (db !== volumeSlider.channelDb) { automation.edit("setTrackVolume", {db: db}) }
+                if (volumeSlider.consumed || (header.volumeRecorder && header.volumeRecorder.consumes(header.trackId))) {
+                    if (header.volumeRecorder) {
+                        header.volumeRecorder.record(header.trackId,"volumeDb",db)
+                        header.volumeRecorder.gestureEnd(header.trackId,"volumeDb")
+                    }
+                } else if (db !== volumeSlider.channelDb) { automation.edit("setTrackVolume", {db: db}) }
+                volumeSlider.consumed=false
             }
-            onEditCanceled: volumeSlider.draftDb = volumeSlider.channelDb
+            onEditCanceled: {
+                if (header.volumeRecorder) { header.volumeRecorder.gestureCancel(header.trackId,"volumeDb") }
+                volumeSlider.consumed=false
+                volumeSlider.draftDb=volumeSlider.channelDb
+            }
         }
         Ui.Text {
             id: volumeReadout

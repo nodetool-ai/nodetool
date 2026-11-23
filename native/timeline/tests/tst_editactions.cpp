@@ -6,6 +6,8 @@
 
 #include <QJsonArray>
 #include <QTest>
+#include <QSet>
+#include <algorithm>
 
 using namespace nt::edit;
 
@@ -48,6 +50,804 @@ class TestEditActions : public QObject {
     Q_OBJECT
 
 private slots:
+    void loopUnrollSlicesWholeClipCurves_data() {
+        QTest::addColumn<bool>("animation");
+        QTest::newRow("parameter-curve") << false;
+        QTest::newRow("keyframe-animation") << true;
+    }
+    void loopUnrollSlicesWholeClipCurves() {
+        QFETCH(bool, animation);
+        auto source = clip("a", "aud", 0, 6000, "audio");
+        source.insert("loopLengthMs", 2000);
+        source.insert("outPointMs", 2000);
+        const QJsonArray curves{QJsonObject{{"property", "volumeDb"}, {"keyframes", QJsonArray{
+            QJsonObject{{"t", 0}, {"value", 0}}, QJsonObject{{"t", 1}, {"value", 1}}}}}};
+        if (animation) {
+            source.insert("animations", QJsonArray{QJsonObject{{"id", "anim"}, {"preset", "custom"}, {"role", "emphasis"},
+                {"params", QJsonObject{{"keyframed", true}}}, {"custom", QJsonObject{{"curves", curves}}}}});
+        } else { source.insert("paramCurves", curves); }
+        const auto copies = expandMusicLoops({{"clips", QJsonArray{source}}}).value("clips").toArray();
+        QCOMPARE(copies.size(), 3);
+        for (qsizetype i = 0; i < copies.size(); ++i) {
+            const auto copy = copies[i].toObject();
+            const auto sliced = animation ? copy.value("animations").toArray()[0].toObject().value("custom").toObject().value("curves").toArray()
+                                          : copy.value("paramCurves").toArray();
+            const auto keys = sliced[0].toObject().value("keyframes").toArray();
+            QCOMPARE(keys.first().toObject().value("value").toDouble(), double(i) / 3);
+            QCOMPARE(keys.last().toObject().value("value").toDouble(), double(i + 1) / 3);
+        }
+    }
+    void barMoveKeepsLinkedOffsetsAndDestination() {
+        auto source = clip("a", "aud", 2000, 2000, "audio");
+        auto partner = clip("b", "other", 3000, 2000, "audio");
+        source.insert("linkId", "L"); partner.insert("linkId", "L");
+        const QJsonObject raw{{"clips", QJsonArray{source, partner}}, {"tracks", QJsonArray{
+            QJsonObject{{"id", "aud"}, {"type", "audio"}}, QJsonObject{{"id", "other"}, {"type", "audio"}},
+            QJsonObject{{"id", "destination"}, {"type", "audio"}}}}};
+        const auto result = applyMusicClipEdit(raw, "move_clip", {{"clipId", "a"}, {"atBar", 4}, {"trackId", "destination"}}).value("clips").toArray();
+        QCOMPARE(clipStartMs(result[0].toObject()), 6000.0);
+        QCOMPARE(clipTrackId(result[0].toObject()), QStringLiteral("destination"));
+        QCOMPARE(clipStartMs(result[1].toObject()), 7000.0);
+        QCOMPARE(clipTrackId(result[1].toObject()), QStringLiteral("other"));
+    }
+    void musicTrimKeepsLinkedEdges_data() {
+        QTest::addColumn<QString>("mode");
+        for (const auto* mode : {"head", "tail", "locked"}) { QTest::newRow(mode) << QString::fromLatin1(mode); }
+    }
+    void musicTrimKeepsLinkedEdges() {
+        QFETCH(QString, mode);
+        auto source = clip("a", "aud", 2000, 4000, "audio");
+        source.insert("inPointMs", 0); source.insert("outPointMs", 4000); source.insert("linkId", "L");
+        auto partner = source; partner.insert("id", "b"); partner.insert("trackId", "other");
+        if (mode == "locked") { partner.insert("locked", true); }
+        const QJsonObject raw{{"clips", QJsonArray{source, partner}}, {"tracks", QJsonArray{QJsonObject{{"id", "aud"}}, QJsonObject{{"id", "other"}}}}};
+        const QJsonObject payload = mode == "head" ? QJsonObject{{"clipId", "a"}, {"startMs", 3000}} : QJsonObject{{"clipId", "a"}, {"atBar", 3}};
+        if (mode == "locked") { QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(raw, "trim_clip", payload)); return; }
+        const auto result = applyMusicClipEdit(raw, "trim_clip", payload).value("clips").toArray();
+        QCOMPARE(clipStartMs(result[1].toObject()), mode == "head" ? 3000.0 : 2000.0);
+        QCOMPARE(clipDurationMs(result[1].toObject()), mode == "head" ? 3000.0 : 2000.0);
+    }
+    void nativeTrimActionsFollowLoopRules_data() {
+        QTest::addColumn<bool>("head");
+        QTest::newRow("head-unrolls") << true;
+        QTest::newRow("tail-keeps-window-with-source-cap") << false;
+    }
+    void nativeTrimActionsFollowLoopRules() {
+        QFETCH(bool, head);
+        auto source = clip("a", "aud", 0, 6000, "audio");
+        source.insert("inPointMs", 0); source.insert("outPointMs", 2000); source.insert("loopLengthMs", 2000);
+        EditDoc doc; doc.clips = {source}; doc.tracks = {{"aud", "audio", false}};
+        const auto result = head ? trimClipStart(doc, "a", -1000, true) : trimClipEnd(doc, "a", 2000, 2000, true);
+        QCOMPARE(result.size(), head ? size_t(3) : size_t(1));
+        QCOMPARE(clipDurationMs(result[0]), head ? 1000.0 : 8000.0);
+        QCOMPARE(result[0].contains("loopLengthMs"), !head);
+    }
+
+    void loopHeadTrimKeepsOrdinaryTrimBounds_data() {
+        QTest::addColumn<QString>("mode");
+        for (const auto* mode : {"extend", "before-source", "empty", "past-first-window"}) { QTest::newRow(mode) << QString::fromLatin1(mode); }
+    }
+    void loopHeadTrimKeepsOrdinaryTrimBounds() {
+        QFETCH(QString, mode);
+        auto source = clip("a", "aud", 2000, 6000, "audio");
+        source.insert("inPointMs", mode == "before-source" ? 0 : 500);
+        source.insert("outPointMs", mode == "before-source" ? 2000 : 2500);
+        source.insert("loopLengthMs", 2000);
+        const QJsonObject raw{{"clips", QJsonArray{source}}, {"tracks", QJsonArray{QJsonObject{{"id", "aud"}}}}};
+        const QJsonObject payload{{"clipId", "a"}, {"startMs", mode == "empty" ? 8000 : mode == "past-first-window" ? 4500 : 1800}};
+        if (mode != "extend") { QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(raw, "trim_clip", payload)); return; }
+        const auto clips = applyMusicClipEdit(raw, "trim_clip", payload).value("clips").toArray();
+        QCOMPARE(clips.size(), 3);
+        QCOMPARE(clipStartMs(clips[0].toObject()), 1800.0);
+        QCOMPARE(clipDurationMs(clips[0].toObject()), 2200.0);
+        QCOMPARE(clips[0].toObject().value("inPointMs").toDouble(), 300.0);
+        QCOMPARE(clipStartMs(clips[1].toObject()), 4000.0);
+    }
+
+    void pastedSectionsResolveAgentTrackPrefixes_data() {
+        QTest::addColumn<bool>("locked");
+        QTest::newRow("writable") << false;
+        QTest::newRow("locked") << true;
+    }
+    void pastedSectionsResolveAgentTrackPrefixes() {
+        QFETCH(bool, locked);
+        const QString trackId = "abcdef01234500000000000000000000";
+        const QJsonObject raw{{"clips", QJsonArray{}}, {"tracks", QJsonArray{QJsonObject{{"id", trackId}, {"locked", locked}, {"name", "Receiving track"}}}}};
+        const QJsonObject payload{{"atMs", 0}, {"content", QJsonObject{{"lengthMs", 1000},
+            {"clips", QJsonArray{clip("copy", "abcdef012345", 0, 1000, "audio")}}}}};
+        if (locked) {
+            QVERIFY_THROWS_EXCEPTION(OpError, applySectionEdit(raw, "paste_range", payload));
+        } else {
+            const auto result = applySectionEdit(raw, "paste_range", payload).value("clips").toArray();
+            QCOMPARE(result.size(), 1);
+            QCOMPARE(result[0].toObject().value("trackId"), QJsonValue(trackId));
+        }
+    }
+
+    void sectionEditsPreserveUnrelatedLinks_data() {
+        QTest::addColumn<bool>("insert");
+        QTest::newRow("insert") << true;
+        QTest::newRow("delete") << false;
+    }
+    void sectionEditsPreserveUnrelatedLinks() {
+        QFETCH(bool, insert);
+        auto unrelated = clip("a", "a", 10000, 2000, "audio");
+        unrelated.insert("linkId", "legacy");
+        const QJsonObject raw{{"clips", QJsonArray{unrelated, clip("b", "b", 0, 4000, "audio")}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "a"}}, QJsonObject{{"id", "b"}}}}};
+        const QJsonObject payload = insert ? QJsonObject{{"atMs", 2000}, {"ms", 1000}, {"trackIds", QJsonArray{"b"}}} :
+            QJsonObject{{"fromMs", 1000}, {"toMs", 2000}, {"trackIds", QJsonArray{"b"}}};
+        const auto result = applySectionEdit(raw, insert ? "insert_time" : "delete_time", payload);
+        QCOMPARE(result.value("clips").toArray()[0].toObject().value("linkId"), QJsonValue("legacy"));
+    }
+    void repeatDoesNotCreateASingletonLink() {
+        auto source = clip("a", "a", 0, 2000, "audio");
+        source.insert("linkId", "legacy");
+        const QJsonObject raw{{"clips", QJsonArray{source}}, {"tracks", QJsonArray{QJsonObject{{"id", "a"}}}}};
+        const auto clips = applyMusicClipEdit(raw, "duplicate_clip", {{"clipId", "a"}, {"count", 1}}).value("clips").toArray();
+        QCOMPARE(clips[0].toObject().value("linkId"), QJsonValue("legacy"));
+        QVERIFY(!clips[1].toObject().contains("linkId"));
+    }
+
+    void musicTrimHonorsTheResolvedSourceBound() {
+        auto source = clip("a", "aud", 0, 2000, "audio");
+        source.insert("inPointMs", 0);
+        source.insert("outPointMs", 2000);
+        const QJsonObject raw{{"clips", QJsonArray{source}}, {"tracks", QJsonArray{QJsonObject{{"id", "aud"}}}}};
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(raw, "trim_clip", {{"clipId", "a"}, {"durationMs", 4000}, {"maxSourceDurationMs", 2000}}));
+    }
+
+    void splitMusicAliasKeepsCrossingTail() {
+        auto source = clip("a", "m", 0, 1000, "midi");
+        source.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"startTick", 0}, {"durationTick", 1920}}});
+        const QJsonObject raw{{"clips", QJsonArray{source}}, {"tracks", QJsonArray{QJsonObject{{"id", "m"}}}}};
+        const auto result = applyMusicClipEdit(raw, "split_clip", {{"clipId", "a"}, {"atMs", 500}, {"crossing", "split"}}).value("clips").toArray();
+        QCOMPARE(result.size(), 2);
+        const auto notes = result[1].toObject().value("notes").toArray();
+        QCOMPARE(notes.size(), 1);
+        QCOMPARE(notes[0].toObject().value("durationTick").toDouble(), 960.0);
+    }
+
+    void musicTrimAcceptsExistingMillisecondShape() {
+        auto source = clip("a", "aud", 2000, 4000, "audio");
+        source.insert("inPointMs", 0);
+        source.insert("outPointMs", 4000);
+        const QJsonObject raw{{"clips", QJsonArray{source}}, {"tracks", QJsonArray{QJsonObject{{"id", "aud"}}}}};
+        QJsonObject result;
+        QVERIFY_THROWS_NO_EXCEPTION(result = applyMusicClipEdit(raw, "trim_clip", {{"clipId", "a"}, {"durationMs", 2000}}));
+        QCOMPARE(clipDurationMs(result.value("clips").toArray()[0].toObject()), 2000.0);
+    }
+    void splitMusicActionUnrollsAsOneResult() {
+        auto source = clip("a", "aud", 0, 6000, "audio");
+        source.insert("inPointMs", 0);
+        source.insert("outPointMs", 2000);
+        source.insert("loopLengthMs", 2000);
+        EditDoc doc;
+        doc.clips = {source};
+        doc.tracks = {{"aud", "audio", false}};
+        const auto result = splitClipAtTime(doc, "a", 3000);
+        QCOMPARE(result.size(), size_t(4));
+        for (const auto& piece : result) { QVERIFY(!piece.contains("loopLengthMs")); }
+    }
+
+    void sectionTrackIdsMustBeAnArray() {
+        const QJsonObject raw{{"clips", QJsonArray{clip("a", "t", 4000, 1000, "audio")}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "t"}}}}};
+        QVERIFY_THROWS_EXCEPTION(OpError, applySectionEdit(raw, "insert_time", {{"atMs", 0}, {"ms", 1000}, {"trackIds", "t"}}));
+    }
+
+    void scopedSectionEditsKeepGroupsEnclosingChildren_data() {
+        QTest::addColumn<bool>("insert");
+        QTest::newRow("insert-grows-tail") << true;
+        QTest::newRow("delete-grows-head") << false;
+    }
+    void scopedSectionEditsKeepGroupsEnclosingChildren() {
+        QFETCH(bool, insert);
+        auto group = clip("g", "groups", insert ? 0 : 5000, 4000, "group");
+        auto child = clip("c", "aud", insert ? 0 : 6000, insert ? 4000 : 2000, "audio");
+        child.insert("parentId", "g");
+        const QJsonObject raw{{"clips", QJsonArray{group, child}}, {"tracks", QJsonArray{QJsonObject{{"id", "groups"}}, QJsonObject{{"id", "aud"}}}}};
+        const QJsonObject payload = insert ? QJsonObject{{"atMs", 2000}, {"ms", 2000}, {"trackIds", QJsonArray{"aud"}}} :
+            QJsonObject{{"fromMs", 0}, {"toMs", 4000}, {"trackIds", QJsonArray{"aud"}}};
+        const auto result = applySectionEdit(raw, insert ? "insert_time" : "delete_time", payload).value("clips").toArray();
+        QCOMPARE(clipStartMs(result[0].toObject()), insert ? 0.0 : 2000.0);
+        QCOMPARE(clipDurationMs(result[0].toObject()), insert ? 6000.0 : 7000.0);
+        if (insert) {
+            QJsonArray chain;
+            for (int i = 0; i < 1000; ++i) {
+                auto parent = clip(QStringLiteral("g%1").arg(i), "groups", 0, 4000, "group");
+                if (i > 0) { parent.insert("parentId", QStringLiteral("g%1").arg(i - 1)); }
+                chain.append(parent);
+            }
+            child.insert("parentId", "g999");
+            chain.append(child);
+            auto large = raw;
+            large.insert("clips", chain);
+            const auto expanded = applySectionEdit(large, "insert_time", payload).value("clips").toArray();
+            QCOMPARE(clipDurationMs(expanded[0].toObject()), 6000.0);
+        }
+    }
+
+    void sectionEditsKeepTrackingResources_data() {
+        QTest::addColumn<QString>("operation");
+        for (const auto* name : {"insert_time", "delete_time", "duplicate_range", "paste_range", "split_clip"}) { QTest::newRow(name) << QString::fromLatin1(name); }
+    }
+    void sectionEditsKeepTrackingResources() {
+        QFETCH(QString, operation);
+        auto source = clip("v", "v", 0, 4000, "video");
+        source.insert("inPointMs", 0);
+        source.insert("outPointMs", 4000);
+        source.insert("reframe", QJsonObject{{"trackId", "mt"}});
+        const QJsonObject media{{"id", "mt"}, {"clipId", "v"}, {"sourceStartMs", 0}, {"sourceEndMs", 4000},
+            {"samples", QJsonArray{QJsonObject{{"sourceMs", 0}, {"x", 0}, {"y", 0}, {"width", 1}, {"height", 1}},
+                QJsonObject{{"sourceMs", 4000}, {"x", 4}, {"y", 0}, {"width", 1}, {"height", 1}}}}};
+        auto bound = clip("bound", "v", 5000, 1000, "video");
+        bound.insert("trackBinding", QJsonObject{{"trackId", "mt"}, {"mode", "position"}});
+        const QJsonObject raw{{"clips", operation == "delete_time" ? QJsonArray{source, bound} : QJsonArray{source}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}}}}, {"mediaTracks", QJsonArray{media}}};
+        QJsonObject payload;
+        if (operation == "insert_time") { payload = {{"atMs", 2000}, {"ms", 1000}}; }
+        if (operation == "delete_time") { payload = {{"fromMs", 0}, {"toMs", 4000}}; }
+        if (operation == "duplicate_range") { payload = {{"fromMs", 0}, {"toMs", 2000}}; }
+        if (operation == "split_clip") { payload = {{"clipId", "v"}, {"atMs", 2000}}; }
+        if (operation == "paste_range") {
+            auto copy = source;
+            copy.insert("durationMs", 2000); copy.insert("outPointMs", 2000);
+            auto copiedMedia = media;
+            copiedMedia.insert("sourceEndMs", 2000);
+            copiedMedia.insert("samples", QJsonArray{QJsonObject{{"sourceMs", 0}, {"x", 0}}, QJsonObject{{"sourceMs", 2000}, {"x", 2}}});
+            payload = {{"atMs", 2000}, {"content", QJsonObject{{"lengthMs", 2000}, {"clips", QJsonArray{copy}}, {"mediaTracks", QJsonArray{copiedMedia}}}}};
+        }
+        const auto result = operation == "split_clip" ? applyMusicClipEdit(raw, operation, payload) : applySectionEdit(raw, operation, payload);
+        const auto resources = result.value("mediaTracks").toArray();
+        if (operation == "delete_time") {
+            QCOMPARE(resources.size(), 0);
+            QVERIFY(!result.value("clips").toArray()[0].toObject().contains("trackBinding"));
+            return;
+        }
+        const auto clips = result.value("clips").toArray();
+        QCOMPARE(resources.size(), operation == "insert_time" || operation == "split_clip" ? 2 : 3);
+        QCOMPARE(resources.size(), clips.size());
+        for (const auto& value : clips) {
+            const auto c = value.toObject();
+            QJsonObject resource;
+            for (const auto& item : resources) {
+                if (item.toObject().value("id") == c.value("reframe").toObject().value("trackId")) { resource = item.toObject(); }
+            }
+            QVERIFY(!resource.isEmpty());
+            QCOMPARE(resource.value("clipId"), c.value("id"));
+            const bool tail = clipStartMs(c) == (operation == "insert_time" ? 3000 : operation == "split_clip" ? 2000 : 4000);
+            QCOMPARE(resource.value("sourceStartMs").toDouble(), tail ? 2000.0 : 0.0);
+            QCOMPARE(resource.value("sourceEndMs").toDouble(), tail ? 4000.0 : 2000.0);
+            QCOMPARE(resource.value("samples").toArray().first().toObject().value("x").toDouble(), tail ? 2.0 : 0.0);
+        }
+    }
+
+    void midiPatternSplitKeepsPhaseAndIndependentWindows() {
+        auto c = clip("p", "aud", 0, 2000, "midi");
+        const QJsonObject pattern{{"version", 1}, {"seed", 1}, {"lengthSteps", 16}, {"stepRate", "1/16"},
+            {"playback", "forward"}, {"legato", false}, {"swing", 0}, {"swingDivision", "1/16"},
+            {"pitchSource", "off"}, {"scale", "chromatic"}, {"noTranspose", false}, {"scaleQuantize", false},
+            {"midiChannel", 1}, {"automationMode", "latch"}, {"mono", false}, {"name", "Pattern"}, {"rows", QJsonArray{}}};
+        c.insert("pattern", pattern);
+        c.insert("patternPhaseTicks", 480);
+        c.insert("inPointMs", 250);
+        c.insert("outPointMs", 2250);
+        const auto [left, right] = splitClip(c, 500);
+        QCOMPARE(left.value("patternPhaseTicks").toDouble(), 960.0);
+        QCOMPARE(right.value("patternPhaseTicks").toDouble(), 1920.0);
+        QCOMPARE(left.value("inPointMs").toDouble(), 0.0);
+        QCOMPARE(right.value("inPointMs").toDouble(), 0.0);
+        QCOMPARE(left.value("outPointMs").toDouble(), 500.0);
+        QCOMPARE(right.value("outPointMs").toDouble(), 1500.0);
+        QCOMPARE(left.value("pattern"), QJsonValue(pattern));
+        QCOMPARE(right.value("pattern"), QJsonValue(pattern));
+        QVERIFY(!left.contains("notes"));
+        QVERIFY(!right.contains("notes"));
+    }
+
+    void musicClipEditsResolveUniqueResourcePrefixes() {
+        const QString first = "abcdef01234500000000000000000000";
+        const QString second = "abcdef01234511111111111111111111";
+        const QJsonObject raw{{"clips", QJsonArray{clip(first, "t", 0, 1000, "audio")}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "t"}}}}};
+        QJsonObject result;
+        QVERIFY_THROWS_NO_EXCEPTION(result = applyMusicClipEdit(raw, "loop_clip", {{"clipId", "abcdef012345"}, {"times", 2}}));
+        QCOMPARE(result.value("clips").toArray()[0].toObject().value("durationMs").toDouble(), 2000.0);
+        auto ambiguous = raw;
+        ambiguous.insert("clips", QJsonArray{clip(first, "t", 0, 1000, "audio"), clip(second, "t", 2000, 1000, "audio")});
+        bool refused = false;
+        try { applyMusicClipEdit(ambiguous, "loop_clip", {{"clipId", "abcdef012345"}, {"times", 2}}); }
+        catch (const OpError& e) { refused = QString::fromUtf8(e.what()).contains("ambiguous", Qt::CaseInsensitive); }
+        QVERIFY(refused);
+    }
+    void sectionEditsResolveUniqueTrackPrefixes() {
+        const QString first = "abcdef01234500000000000000000000";
+        const QString second = "abcdef01234511111111111111111111";
+        const QJsonObject raw{{"clips", QJsonArray{clip("a", first, 4000, 1000, "audio")}},
+            {"tracks", QJsonArray{QJsonObject{{"id", first}}}}};
+        QJsonObject result;
+        QVERIFY_THROWS_NO_EXCEPTION(result = applySectionEdit(raw, "insert_time", {{"atMs", 0}, {"ms", 1000}, {"trackIds", QJsonArray{"abcdef012345"}}}));
+        QCOMPARE(result.value("clips").toArray()[0].toObject().value("startMs").toDouble(), 5000.0);
+        auto ambiguous = raw;
+        ambiguous.insert("tracks", QJsonArray{QJsonObject{{"id", first}}, QJsonObject{{"id", second}}});
+        bool refused = false;
+        try { applySectionEdit(ambiguous, "insert_time", {{"atMs", 0}, {"ms", 1000}, {"trackIds", QJsonArray{"abcdef012345"}}}); }
+        catch (const OpError& e) { refused = QString::fromUtf8(e.what()).contains("ambiguous", Qt::CaseInsensitive); }
+        QVERIFY(refused);
+    }
+
+    void deleteLockedTrackMetadata_data() {
+        QTest::addColumn<bool>("automation");
+        QTest::newRow("chord") << false;
+        QTest::newRow("crossing-ramp") << true;
+    }
+    void deleteLockedTrackMetadata() {
+        QFETCH(bool, automation);
+        QJsonObject track{{"id", "t"}, {"name", "Locked track"}, {"locked", true}};
+        if (automation) { track.insert("automation", QJsonArray{QJsonObject{{"id", "lane"}, {"points", QJsonArray{
+            QJsonObject{{"timeMs", 0}, {"value", 0}}, QJsonObject{{"timeMs", 4000}, {"value", 4}}}}}}); }
+        else { track.insert("chords", QJsonArray{QJsonObject{{"id", "c"}, {"startTick", 0}, {"durationTick", 7680}}}); }
+        const QJsonObject raw{{"tracks", QJsonArray{track}}, {"clips", QJsonArray{}}};
+        bool refused = false;
+        try { applySectionEdit(raw, "delete_time", {{"fromMs", 1000}, {"toMs", 3000}}); }
+        catch (const OpError& e) { refused = QString::fromUtf8(e.what()).contains("Locked track"); }
+        QVERIFY(refused);
+    }
+    void deletionMovesTempoOrigin_data() {
+        QTest::addColumn<QString>("mode");
+        for (const auto* mode : {"before-origin", "through-origin", "scoped-refusal"}) { QTest::newRow(mode) << QString::fromLatin1(mode); }
+    }
+    void deletionMovesTempoOrigin() {
+        QFETCH(QString, mode);
+        const QJsonObject raw{{"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 2000}}},
+            {"clips", QJsonArray{clip("a", "t", 2000, 2000, "audio")}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "t"}, {"chords", QJsonArray{QJsonObject{{"id", "c"}, {"startTick", 0}, {"durationTick", 3840}}}}}}}};
+        QJsonObject payload = mode == "through-origin" ? QJsonObject{{"fromMs", 500}, {"toMs", 2500}} : QJsonObject{{"fromMs", 0}, {"toMs", 1000}};
+        if (mode == "scoped-refusal") {
+            payload.insert("trackIds", QJsonArray{"t"});
+            QVERIFY_THROWS_EXCEPTION(OpError, applySectionEdit(raw, "delete_time", payload));
+            return;
+        }
+        const auto result = applySectionEdit(raw, "delete_time", payload);
+        QCOMPARE(result.value("tempo").toObject().value("offsetMs").toDouble(), mode == "through-origin" ? 500.0 : 1000.0);
+        const auto chord = result.value("tracks").toArray()[0].toObject().value("chords").toArray()[0].toObject();
+        QCOMPARE(chord.value("startTick").toDouble(), 0.0);
+        QCOMPARE(chord.value("durationTick").toDouble(), mode == "through-origin" ? 2880.0 : 3840.0);
+    }
+    void sectionSplitLinksStayIndependent_data() {
+        QTest::addColumn<bool>("restricted");
+        QTest::newRow("all-tracks") << false;
+        QTest::newRow("one-track") << true;
+    }
+    void sectionSplitLinksStayIndependent() {
+        QFETCH(bool, restricted);
+        auto a = clip("a", "a", 0, 4000, "audio");
+        auto b = clip("b", "b", 0, 4000, "audio");
+        a.insert("linkId", "L"); b.insert("linkId", "L");
+        const QJsonObject raw{{"clips", QJsonArray{a, b}}, {"tracks", QJsonArray{QJsonObject{{"id", "a"}}, QJsonObject{{"id", "b"}}}}};
+        QJsonObject payload{{"atMs", 2000}, {"ms", 1000}};
+        if (restricted) { payload.insert("trackIds", QJsonArray{"a"}); }
+        const auto result = applySectionEdit(raw, "insert_time", payload).value("clips").toArray();
+        if (restricted) {
+            QVERIFY(!result[1].toObject().contains("linkId"));
+            QCOMPARE(result[0].toObject().value("linkId"), result[2].toObject().value("linkId"));
+        } else {
+            QVERIFY(result[0].toObject().value("linkId") != result[1].toObject().value("linkId"));
+            QCOMPARE(result[0].toObject().value("linkId"), result[2].toObject().value("linkId"));
+            QCOMPARE(result[1].toObject().value("linkId"), result[3].toObject().value("linkId"));
+        }
+    }
+
+    void loopEndTrimKeepsSourceWindow_data() {
+        QTest::addColumn<bool>("shorten");
+        QTest::newRow("grow-with-source-bound") << false;
+        QTest::newRow("below-one-window") << true;
+    }
+    void loopEndTrimKeepsSourceWindow() {
+        QFETCH(bool, shorten);
+        auto c = clip("loop", "aud", 0, 6000, "audio");
+        c.insert("loopLengthMs", 2000);
+        c.insert("inPointMs", 200);
+        c.insert("outPointMs", 4200);
+        c.insert("speedMultiplier", 2);
+        QJsonObject result;
+        QVERIFY_THROWS_NO_EXCEPTION(result = trimClip(c, "end", shorten ? -5000 : 2000, 4200));
+        QCOMPARE(clipDurationMs(result), shorten ? 1000.0 : 8000.0);
+        QCOMPARE(result.value("outPointMs").toDouble(), shorten ? 2200.0 : 4200.0);
+        QCOMPARE(result.contains("loopLengthMs"), !shorten);
+    }
+
+    void barAddressedClipEdits_data() {
+        QTest::addColumn<QString>("operation");
+        for (const auto* name : {"move_clip", "split_clip", "trim-tail", "trim-head", "mixed-time"}) { QTest::newRow(name) << QString::fromLatin1(name); }
+    }
+    void barAddressedClipEdits() {
+        QFETCH(QString, operation);
+        auto c = clip("a", "aud", 2000, 4000, "audio");
+        c.insert("inPointMs", 0);
+        c.insert("outPointMs", 4000);
+        const QJsonObject raw{{"clips", QJsonArray{c}}, {"tracks", QJsonArray{QJsonObject{{"id", "aud"}}}}};
+        QJsonObject payload{{"clipId", "a"}, {"atBar", 3}};
+        QString action = operation;
+        if (operation == "mixed-time") {
+            payload.insert("startMs", 1000);
+            QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(raw, "move_clip", payload));
+            return;
+        }
+        if (operation == "trim-tail") { action = "trim_clip"; }
+        if (operation == "trim-head") { action = "trim_clip"; payload = {{"clipId", "a"}, {"startMs", 3000}}; }
+        const auto result = applyMusicClipEdit(raw, action, payload).value("clips").toArray();
+        if (operation == "split_clip") {
+            QCOMPARE(result.size(), 2);
+            QCOMPARE(clipStartMs(result[1].toObject()), 4000.0);
+            QCOMPARE(clipDurationMs(result[0].toObject()), 2000.0);
+        } else {
+            const auto changed = result[0].toObject();
+            QCOMPARE(clipStartMs(changed), operation == "move_clip" ? 4000.0 : operation == "trim-head" ? 3000.0 : 2000.0);
+            QCOMPARE(clipDurationMs(changed), operation == "trim-tail" ? 2000.0 : operation == "trim-head" ? 3000.0 : 4000.0);
+        }
+    }
+    void musicEditsUnrollLoops_data() {
+        QTest::addColumn<QString>("operation");
+        QTest::addColumn<QString>("type");
+        for (const auto* operation : {"split_clip", "insert_time", "duplicate_range", "trim-head"}) {
+            for (const auto* type : {"audio", "midi"}) { QTest::newRow(qPrintable(QString::fromLatin1(operation) + '-' + type)) << QString::fromLatin1(operation) << QString::fromLatin1(type); }
+        }
+    }
+    void musicEditsUnrollLoops() {
+        QFETCH(QString, operation);
+        QFETCH(QString, type);
+        auto c = clip("loop", "aud", 0, 6000, type);
+        c.insert("loopLengthMs", 2000);
+        c.insert("inPointMs", 0);
+        c.insert("outPointMs", 2000);
+        if (type == "midi") { c.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"startTick", 0}, {"durationTick", 5000}}}); }
+        const QJsonObject raw{{"clips", QJsonArray{c}}, {"tracks", QJsonArray{QJsonObject{{"id", "aud"}}}}};
+        QJsonObject result;
+        if (operation == "split_clip") { result = applyMusicClipEdit(raw, operation, {{"clipId", "loop"}, {"atMs", 3000}}); }
+        else if (operation == "trim-head") { result = applyMusicClipEdit(raw, "trim_clip", {{"clipId", "loop"}, {"startMs", 1000}}); }
+        else if (operation == "insert_time") { result = applySectionEdit(raw, operation, {{"atMs", 3000}, {"ms", 1000}}); }
+        else { result = applySectionEdit(raw, operation, {{"fromMs", 1000}, {"toMs", 5000}}); }
+        const auto pieces = result.value("clips").toArray();
+        QCOMPARE(pieces.size(), operation == "duplicate_range" ? 7 : operation == "trim-head" ? 3 : 4);
+        for (const auto& value : pieces) { QVERIFY(!value.toObject().contains("loopLengthMs")); }
+        if (operation == "split_clip") {
+            const QList<double> starts{0, 2000, 3000, 4000};
+            const QList<double> durations{2000, 1000, 1000, 2000};
+            for (qsizetype i = 0; i < pieces.size(); ++i) {
+                QCOMPARE(clipStartMs(pieces[i].toObject()), starts[i]);
+                QCOMPARE(clipDurationMs(pieces[i].toObject()), durations[i]);
+            }
+            if (type == "midi") {
+                QCOMPARE(pieces[0].toObject().value("notes").toArray()[0].toObject().value("durationTick").toDouble(), 3840.0);
+                QCOMPARE(pieces[1].toObject().value("notes").toArray()[0].toObject().value("durationTick").toDouble(), 1920.0);
+                QVERIFY(pieces[2].toObject().value("notes").toArray().isEmpty());
+            }
+        }
+    }
+
+    void repeatClipCountAndBarPosition_data() {
+        QTest::addColumn<QString>("mode");
+        for (const auto* mode : {"back-to-back", "at-bar-beat", "invalid-count", "null-count"}) { QTest::newRow(mode) << QString::fromLatin1(mode); }
+    }
+    void repeatClipCountAndBarPosition() {
+        QFETCH(QString, mode);
+        const QJsonObject raw{{"clips", QJsonArray{clip("a", "aud", 0, 1000, "audio")}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "aud"}}}}};
+        QJsonObject payload{{"clipId", "a"}, {"count", 3}};
+        if (mode == "at-bar-beat") { payload.insert("atBar", 2); payload.insert("beat", 2); }
+        if (mode == "invalid-count" || mode == "null-count") {
+            payload.insert("count", mode == "null-count" ? QJsonValue(QJsonValue::Null) : QJsonValue(0));
+            QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(raw, "duplicate_clip", payload));
+            return;
+        }
+        const auto result = applyMusicClipEdit(raw, "duplicate_clip", payload).value("clips").toArray();
+        QCOMPARE(result.size(), 4);
+        QSet<QString> ids;
+        for (qsizetype i = 0; i < result.size(); ++i) {
+            const auto c = result[i].toObject();
+            ids.insert(clipId(c));
+            QCOMPARE(clipStartMs(c), i == 0 ? 0.0 : (mode == "at-bar-beat" ? 2500.0 : 1000.0) + (i - 1) * 1000);
+        }
+        QCOMPARE(ids.size(), 4);
+        if (mode == "back-to-back") {
+            QJsonArray family{clip("root", "aud", 0, 12000, "group")};
+            for (int i = 0; i < 10000; ++i) {
+                auto child = clip(QStringLiteral("child-%1").arg(i), "aud", i, 1, "audio");
+                child.insert("parentId", "root");
+                family.append(child);
+            }
+            const QJsonObject large{{"clips", family}, {"tracks", raw.value("tracks")}};
+            const auto copied = applyMusicClipEdit(large, "duplicate_clip", {{"clipId", "root"}, {"count", 1}}).value("clips").toArray();
+            QCOMPARE(copied.size(), 20002);
+            QCOMPARE(copied.last().toObject().value("parentId"), copied[10001].toObject().value("id"));
+        }
+    }
+
+    void loopClipEndpoints_data() {
+        QTest::addColumn<QString>("mode");
+        for (const auto* mode : {"times", "untilBar", "remove", "locked"}) { QTest::newRow(mode) << QString::fromLatin1(mode); }
+    }
+    void loopClipEndpoints() {
+        QFETCH(QString, mode);
+        auto c = clip("a", "aud", 1000, 1000, "audio");
+        c.insert("inPointMs", 200);
+        c.insert("outPointMs", mode == "remove" ? 700 : 1200);
+        if (mode == "remove") { c.insert("loopLengthMs", 500); }
+        if (mode == "locked") { c.insert("locked", true); }
+        const QJsonObject raw{{"clips", QJsonArray{c}}, {"tracks", QJsonArray{QJsonObject{{"id", "aud"}}}}};
+        QJsonObject payload{{"clipId", "a"}, {"times", 3}};
+        if (mode == "untilBar") { payload = {{"clipId", "a"}, {"untilBar", 3}}; }
+        if (mode == "remove") { payload = {{"clipId", "a"}, {"loopLengthMs", QJsonValue::Null}}; }
+        if (mode == "locked") { QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(raw, "loop_clip", payload)); return; }
+        const auto result = applyMusicClipEdit(raw, "loop_clip", payload).value("clips").toArray()[0].toObject();
+        if (mode == "remove") { QVERIFY(!result.contains("loopLengthMs")); }
+        else {
+            QCOMPARE(result.value("durationMs").toDouble(), 3000.0);
+            QCOMPARE(result.value("loopLengthMs").toDouble(), 1000.0);
+        }
+        QCOMPARE(result.value("outPointMs").toDouble(), 1200.0);
+        if (mode == "times") {
+            payload.insert("times", 2.5);
+            const auto partial = applyMusicClipEdit(raw, "loop_clip", payload).value("clips").toArray()[0].toObject();
+            QCOMPARE(clipDurationMs(partial), 2500.0);
+            QCOMPARE(partial.value("loopLengthMs").toDouble(), 1000.0);
+        }
+    }
+
+    void pasteSongSection_data() {
+        QTest::addColumn<QString>("mode");
+        for (const auto* mode : {"insert", "overwrite", "locked-track", "locked-clip"}) { QTest::newRow(mode) << QString::fromLatin1(mode); }
+    }
+    void pasteSongSection() {
+        QFETCH(QString, mode);
+        auto existing = clip("a", "aud", 0, 8000, "audio");
+        if (mode == "locked-clip") { existing.insert("locked", true); existing.insert("name", "Vox"); }
+        const QJsonObject raw{{"clips", QJsonArray{existing, clip("other", "other", 4000, 2000, "audio")}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "aud"}, {"name", "Audio"}, {"locked", mode == "locked-track"}}, QJsonObject{{"id", "other"}}}}};
+        const QJsonObject content{{"lengthMs", 2000}, {"clips", QJsonArray{clip("copy", "aud", 0, 2000, "audio")}},
+            {"markers", QJsonArray{QJsonObject{{"id", "k"}, {"timeMs", 500}}}}};
+        const QJsonObject payload{{"atBar", 3}, {"content", content}, {"mode", mode == "insert" ? "insert" : "overwrite"}};
+        if (mode.startsWith("locked")) {
+            bool refused = false;
+            try { applySectionEdit(raw, "paste_range", payload); }
+            catch (const OpError& e) { refused = QString::fromUtf8(e.what()).contains(mode == "locked-clip" ? "Vox" : "Audio"); }
+            QVERIFY(refused);
+            return;
+        }
+        const auto result = applySectionEdit(raw, "paste_range", payload);
+        const auto clips = result.value("clips").toArray();
+        QCOMPARE(clips.size(), 4);
+        double tailEnd = 0;
+        double otherStart = -1;
+        for (const auto& value : clips) {
+            const auto c = value.toObject();
+            if (c.value("trackId") == QJsonValue("aud")) { tailEnd = std::max(tailEnd, clipEndMs(c)); }
+            else { otherStart = clipStartMs(c); }
+        }
+        QCOMPARE(tailEnd, mode == "insert" ? 10000.0 : 8000.0);
+        QCOMPARE(otherStart, mode == "insert" ? 6000.0 : 4000.0);
+        QCOMPARE(result.value("markers").toArray()[0].toObject().value("timeMs").toDouble(), 4500.0);
+        QVERIFY(clips.last().toObject().value("id") != QJsonValue("copy"));
+    }
+
+    void duplicateSongSection_data() {
+        QTest::addColumn<bool>("crossing");
+        QTest::newRow("audio-and-metadata") << false;
+        QTest::newRow("crossing-midi") << true;
+    }
+    void duplicateSongSection() {
+        QFETCH(bool, crossing);
+        auto midi = clip("m", "aud", 0, 8000, "midi");
+        midi.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"startTick", 7680}, {"durationTick", 480}}});
+        const QJsonArray clips = crossing ? QJsonArray{midi} : QJsonArray{clip("a", "aud", 2000, 2000, "audio"), clip("b", "aud", 6000, 2000, "audio")};
+        const QJsonObject raw{{"clips", clips}, {"tracks", QJsonArray{QJsonObject{{"id", "aud"},
+            {"chords", QJsonArray{QJsonObject{{"id", "c"}, {"startTick", 3840}, {"durationTick", 1920}}}},
+            {"automation", QJsonArray{QJsonObject{{"id", "lane"}, {"points", QJsonArray{
+                QJsonObject{{"timeMs", 0}, {"value", 0}}, QJsonObject{{"timeMs", 8000}, {"value", 8}}}}}}}}}},
+            {"markers", QJsonArray{QJsonObject{{"id", "k"}, {"timeMs", 2500}}}}};
+        const auto result = applySectionEdit(raw, "duplicate_range", {{"fromBar", 2}, {"toBar", 3}});
+        const auto copied = result.value("clips").toArray();
+        QCOMPARE(copied.size(), 3);
+        QList<double> starts;
+        QSet<QString> ids;
+        for (const auto& value : copied) {
+            const auto c = value.toObject();
+            starts.append(c.value("startMs").toDouble());
+            ids.insert(c.value("id").toString());
+            if (crossing && c.value("startMs").toDouble() == 4000) {
+                QCOMPARE(c.value("durationMs").toDouble(), 2000.0);
+                QVERIFY(c.value("notes").toArray().isEmpty());
+            }
+        }
+        std::sort(starts.begin(), starts.end());
+        QCOMPARE(starts, crossing ? QList<double>({0, 4000, 6000}) : QList<double>({2000, 4000, 8000}));
+        QCOMPARE(ids.size(), 3);
+        QCOMPARE(result.value("markers").toArray().size(), 2);
+        QCOMPARE(result.value("markers").toArray()[1].toObject().value("timeMs").toDouble(), 4500.0);
+        const auto track = result.value("tracks").toArray()[0].toObject();
+        QCOMPARE(track.value("chords").toArray().size(), 2);
+        const auto points = track.value("automation").toArray()[0].toObject().value("points").toArray();
+        QCOMPARE(points.last().toObject().value("timeMs").toDouble(), 10000.0);
+        QCOMPARE(points[2].toObject().value("value").toDouble(), 2.0);
+    }
+
+    void deleteSectionTrimsMetadataAndPreservesAutomationSides() {
+        const QJsonObject track{{"id", "t"},
+            {"chords", QJsonArray{QJsonObject{{"id", "c1"}, {"startTick", 0}, {"durationTick", 3840}},
+                QJsonObject{{"id", "c2"}, {"startTick", 3840}, {"durationTick", 3840}}}},
+            {"automation", QJsonArray{QJsonObject{{"id", "lane"}, {"points", QJsonArray{
+                QJsonObject{{"timeMs", 0}, {"value", 0}}, QJsonObject{{"timeMs", 4000}, {"value", 4}}}}}}}};
+        const QJsonObject raw{{"clips", QJsonArray{}}, {"tracks", QJsonArray{track}},
+            {"markers", QJsonArray{QJsonObject{{"id", "k"}, {"timeMs", 5000}}}}};
+        const auto result = applySectionEdit(raw, "delete_time", {{"fromMs", 1000}, {"toMs", 3000}});
+        QCOMPARE(result.value("markers").toArray()[0].toObject().value("timeMs").toDouble(), 3000.0);
+        const auto changed = result.value("tracks").toArray()[0].toObject();
+        const auto chords = changed.value("chords").toArray();
+        QCOMPARE(chords[0].toObject().value("durationTick").toDouble(), 1920.0);
+        QCOMPARE(chords[1].toObject().value("startTick").toDouble(), 1920.0);
+        QCOMPARE(chords[1].toObject().value("durationTick").toDouble(), 1920.0);
+        const auto points = changed.value("automation").toArray()[0].toObject().value("points").toArray();
+        QCOMPARE(points.size(), 4);
+        QCOMPARE(points[1].toObject().value("timeMs").toDouble(), 1000.0);
+        QCOMPARE(points[1].toObject().value("value").toDouble(), 1.0);
+        QCOMPARE(points[2].toObject().value("timeMs").toDouble(), 1000.0);
+        QCOMPARE(points[2].toObject().value("value").toDouble(), 3.0);
+    }
+
+    void deleteSongSection_data() {
+        QTest::addColumn<QString>("mode");
+        for (const auto* mode : {"all", "restricted", "locked-cut", "locked-after"}) {
+            QTest::newRow(mode) << QString::fromLatin1(mode);
+        }
+    }
+    void deleteSongSection() {
+        QFETCH(QString, mode);
+        auto midi = clip("m", "keys", 0, 8000, "midi");
+        auto audio = clip("a", "aud", 4000, 2000, "audio");
+        if (mode.startsWith("locked")) { audio.insert("locked", true); audio.insert("name", "Vox"); }
+        const QJsonObject raw{{"clips", QJsonArray{midi, audio}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "keys"}}, QJsonObject{{"id", "aud"}}}}};
+        if (mode == "locked-cut") {
+            bool refused = false;
+            try { applySectionEdit(raw, "delete_time", {{"fromMs", 4500}, {"toMs", 5000}}); }
+            catch (const OpError& e) { refused = QString::fromUtf8(e.what()).contains("Vox"); }
+            QVERIFY(refused);
+            return;
+        }
+        QJsonObject payload{{"fromBar", 2}, {"toBar", 3}};
+        if (mode == "restricted") { payload.insert("trackIds", QJsonArray{"aud"}); }
+        if (mode == "locked-after") { payload = {{"fromMs", 0}, {"toMs", 2000}}; }
+        const auto result = applySectionEdit(raw, "delete_time", payload).value("clips").toArray();
+        QCOMPARE(result.last().toObject().value("startMs").toDouble(), 2000.0);
+        if (mode == "all") {
+            QCOMPARE(result.size(), 3);
+            QCOMPARE(result[0].toObject().value("durationMs").toDouble(), 2000.0);
+            QCOMPARE(result[1].toObject().value("startMs").toDouble(), 2000.0);
+            QCOMPARE(result[1].toObject().value("durationMs").toDouble(), 4000.0);
+        } else if (mode == "restricted") { QCOMPARE(result[0], QJsonValue(midi)); }
+    }
+
+    void insertSectionMovesMetadataAndHoldsAutomation() {
+        auto audio = clip("a", "aud", 4000, 2000, "audio");
+        audio.insert("locked", true);
+        const QJsonArray points{QJsonObject{{"timeMs", 1000}, {"value", 0}}, QJsonObject{{"timeMs", 5000}, {"value", -6}}};
+        const QJsonObject raw{{"clips", QJsonArray{audio}},
+            {"markers", QJsonArray{QJsonObject{{"id", "k"}, {"timeMs", 5000}}}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "aud"}, {"automation", QJsonArray{QJsonObject{{"id", "lane"}, {"points", points}}}}},
+                QJsonObject{{"id", "chd"}, {"chords", QJsonArray{QJsonObject{{"id", "c"}, {"startTick", 3840}, {"durationTick", 3840}}}}}}}};
+        const auto result = applySectionEdit(raw, "insert_time", {{"atMs", 2000}, {"ms", 2000}});
+        QCOMPARE(result.value("markers").toArray()[0].toObject().value("timeMs").toDouble(), 7000.0);
+        QCOMPARE(result.value("clips").toArray()[0].toObject().value("startMs").toDouble(), 6000.0);
+        const auto tracks = result.value("tracks").toArray();
+        QCOMPARE(tracks[1].toObject().value("chords").toArray()[0].toObject().value("startTick").toDouble(), 7680.0);
+        const auto ramp = tracks[0].toObject().value("automation").toArray()[0].toObject().value("points").toArray();
+        QCOMPARE(ramp.size(), 4);
+        QCOMPARE(ramp[1].toObject().value("timeMs").toDouble(), 2000.0);
+        QCOMPARE(ramp[2].toObject().value("timeMs").toDouble(), 4000.0);
+        QCOMPARE(ramp[1].toObject().value("value").toDouble(), -1.5);
+        QCOMPARE(ramp[2].toObject().value("value").toDouble(), -1.5);
+        const auto restricted = applySectionEdit(raw, "insert_time", {{"atMs", 2000}, {"ms", 2000}, {"trackIds", QJsonArray{"aud"}}});
+        QCOMPARE(restricted.value("markers"), raw.value("markers"));
+        QCOMPARE(restricted.value("tracks").toArray()[1], raw.value("tracks").toArray()[1]);
+    }
+
+    void insertSongSectionMatchesTypeScriptExample() {
+        auto midi = clip("m", "keys", 0, 8000, "midi");
+        midi.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"startTick", 7680}, {"durationTick", 480}}});
+        const QJsonObject raw{{"clips", QJsonArray{midi, clip("a", "aud", 4000, 2000, "audio")}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "keys"}}, QJsonObject{{"id", "aud"}}}}};
+        const auto result = applySectionEdit(raw, "insert_time", {{"atBar", 3}, {"bars", 1}});
+        const auto clips = result.value("clips").toArray();
+        QCOMPARE(clips.size(), 3);
+        QCOMPARE(clips[0].toObject().value("durationMs").toDouble(), 4000.0);
+        QCOMPARE(clips[1].toObject().value("startMs").toDouble(), 6000.0);
+        QCOMPARE(clips[1].toObject().value("durationMs").toDouble(), 4000.0);
+        QCOMPARE(clips[1].toObject().value("notes").toArray()[0].toObject().value("startTick").toDouble(), 0.0);
+        QCOMPARE(clips[2].toObject().value("startMs").toDouble(), 6000.0);
+        QJsonArray many;
+        for (int i = 0; i < 10000; ++i) { many.append(clip(QStringLiteral("clip-%1").arg(i), "aud", 0, 8000, "audio")); }
+        const QJsonObject large{{"clips", many}, {"tracks", raw.value("tracks")}};
+        QCOMPARE(applySectionEdit(large, "insert_time", {{"atMs", 4000}, {"ms", 2000}}).value("clips").toArray().size(), 20000);
+    }
+
+    void splitActionUsesDocumentTempoAndCrossing() {
+        auto c = clip("m", "a1", 0, 1000, "midi");
+        c.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"startTick", 600}, {"durationTick", 240}}});
+        auto doc = docOf({c});
+        doc.bpm = 90;
+        doc.splitCrossing = "split";
+        const auto result = splitClipAtTime(doc, "m", 500);
+        QCOMPARE(result.size(), size_t(2));
+        QCOMPARE(result[0].value("notes").toArray()[0].toObject().value("durationTick").toDouble(), 120.0);
+        QCOMPARE(result[1].value("notes").toArray().size(), 1);
+    }
+
+    void midiSplitCrossingAtDocumentTempo() {
+        auto c = clip("m", "a1", 0, 1000, "midi");
+        c.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"startTick", 600}, {"durationTick", 240},
+            {"expression", QJsonObject{{"pitch", QJsonArray{QJsonObject{{"tick", 0}, {"value", 0}},
+                QJsonObject{{"tick", 240}, {"value", 1}}}}}}}});
+        const auto [left, right] = splitClip(c, 500, 90, "split");
+        QCOMPARE(left.value("notes").toArray()[0].toObject().value("durationTick").toDouble(), 120.0);
+        const auto tail = right.value("notes").toArray()[0].toObject();
+        QCOMPARE(tail.value("startTick").toDouble(), 0.0);
+        QCOMPARE(tail.value("durationTick").toDouble(), 120.0);
+        QVERIFY(tail.value("id") != QJsonValue("n"));
+        const auto expression = tail.value("expression").toObject().value("pitch").toArray();
+        QCOMPARE(expression.first().toObject().value("tick").toDouble(), 0.0);
+        QCOMPARE(expression.first().toObject().value("value").toDouble(), 0.5);
+        QCOMPARE(expression.last().toObject().value("tick").toDouble(), 120.0);
+    }
+
+    void midiSplitCutsExpressionAndCarriesControllerRamp() {
+        auto c = clip("m", "a1", 0, 1000, "midi");
+        c.insert("notes", QJsonArray{QJsonObject{{"id", "crossing"}, {"startTick", 720}, {"durationTick", 480},
+            {"expression", QJsonObject{{"pitch", QJsonArray{QJsonObject{{"tick", 0}, {"value", 0}},
+                QJsonObject{{"tick", 480}, {"value", 1}}}}}}}});
+        c.insert("controllers", QJsonArray{QJsonObject{{"id", "cc"}, {"kind", "cc"}, {"cc", 1},
+            {"points", QJsonArray{QJsonObject{{"id", "p0"}, {"tick", 0}, {"value", 0}},
+                QJsonObject{{"id", "p1"}, {"tick", 1920}, {"value", 100}}}}}});
+        const auto [left, right] = splitClip(c, 500);
+        const auto note = left.value("notes").toArray()[0].toObject();
+        QCOMPARE(note.value("durationTick").toDouble(), 240.0);
+        const auto expression = note.value("expression").toObject().value("pitch").toArray();
+        QCOMPARE(expression.last().toObject().value("tick").toDouble(), 240.0);
+        QCOMPARE(expression.last().toObject().value("value").toDouble(), 0.5);
+        QVERIFY(right.value("notes").toArray().isEmpty());
+        const auto before = left.value("controllers").toArray()[0].toObject().value("points").toArray();
+        const auto after = right.value("controllers").toArray()[0].toObject().value("points").toArray();
+        QCOMPARE(before.last().toObject().value("tick").toDouble(), 959.0);
+        QCOMPARE(after.first().toObject().value("tick").toDouble(), 0.0);
+        QCOMPARE(after.first().toObject().value("value").toDouble(), 50.0);
+        QCOMPARE(after.last().toObject().value("tick").toDouble(), 959.0);
+    }
+
+    void midiSplitPartitionsVisibleNotes() {
+        auto c = clip("m", "a1", 0, 1000, "midi");
+        c.insert("notes", QJsonArray{
+            QJsonObject{{"id", "left"}, {"startTick", 240}, {"durationTick", 480}},
+            QJsonObject{{"id", "right"}, {"startTick", 960}, {"durationTick", 120}},
+            QJsonObject{{"id", "hidden"}, {"startTick", 2000}, {"durationTick", 120}}});
+        const auto [left, right] = splitClip(c, 500);
+        QCOMPARE(left.value("notes").toArray().size(), 1);
+        QCOMPARE(left.value("notes").toArray()[0].toObject().value("durationTick").toDouble(), 480.0);
+        QCOMPARE(right.value("notes").toArray().size(), 1);
+        QCOMPARE(right.value("notes").toArray()[0].toObject().value("startTick").toDouble(), 0.0);
+        QCOMPARE(right.value("inPointMs").toDouble(), 0.0);
+        c.insert("inPointMs", 250);
+        c.insert("notes", QJsonArray{
+            QJsonObject{{"id", "hidden-before"}, {"startTick", 240}, {"durationTick", 120}},
+            QJsonObject{{"id", "visible-left"}, {"startTick", 720}, {"durationTick", 480}},
+            QJsonObject{{"id", "visible-right"}, {"startTick", 1440}, {"durationTick", 240}},
+            QJsonObject{{"id", "hidden-after"}, {"startTick", 2400}, {"durationTick", 120}}});
+        const auto slipped = splitClip(c, 500);
+        QCOMPARE(slipped.first.value("notes").toArray().size(), 1);
+        QCOMPARE(slipped.second.value("notes").toArray().size(), 1);
+        QCOMPARE(slipped.second.value("notes").toArray()[0].toObject().value("startTick").toDouble(), 0.0);
+    }
+
     void moveClipRefusesALockedDestination_data() {
         QTest::addColumn<bool>("group");
         QTest::newRow("ordinary") << false;

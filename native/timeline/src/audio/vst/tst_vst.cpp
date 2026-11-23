@@ -8,6 +8,7 @@
 #include "audio/vst/VstEdits.h"
 #include "audio/vst/VstHostClient.h"
 #include "audio/vst/VstLiveChannel.h"
+#include "midi/PatternExpand.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 
@@ -100,6 +101,186 @@ std::vector<MidiStreamEvent> eventsWithStatus(const MidiTrackStream& stream, int
 class TestVst final : public QObject {
     Q_OBJECT
 private slots:
+    void musicLoopCutsAndRepeatsMidiSourceWindow_data() {
+        QTest::addColumn<bool>("offline");
+        QTest::newRow("offline") << true;
+        QTest::newRow("live") << false;
+    }
+    void musicLoopCutsAndRepeatsMidiSourceWindow() {
+        QFETCH(bool, offline);
+        const QJsonObject clip{{"id", "loop"}, {"trackId", "m"}, {"mediaType", "midi"},
+            {"startMs", 0}, {"durationMs", 6000}, {"inPointMs", 0}, {"outPointMs", 2000}, {"loopLengthMs", 2000},
+            {"notes", QJsonArray{midiNote("long", 60, 0, 5000), midiNote("hidden", 61, 4000, 200)}},
+            {"controllers", QJsonArray{QJsonObject{{"id", "sustain"}, {"kind", "cc"}, {"cc", 64}, {"interpolation", "step"},
+                {"points", QJsonArray{QJsonObject{{"id", "on"}, {"tick", 0}, {"value", 127}}}}}}}};
+        if (offline) {
+            const auto events = nt::audio::vst::extractMidiNoteEvents(clip, 120, 48000, 0, 6000);
+            QCOMPARE(events.size(), size_t(3));
+            for (size_t i = 0; i < events.size(); ++i) {
+                QCOMPARE(events[i].pitch, 60);
+                QCOMPARE(events[i].startFrame, static_cast<qint64>(i * 96000));
+                QCOMPARE(events[i].gateOffFrame, static_cast<qint64>((i + 1) * 96000));
+            }
+            return;
+        }
+        const QJsonObject raw{{"name", "Loop"}, {"fps", 30}, {"width", 640}, {"height", 360},
+            {"tracks", QJsonArray{QJsonObject{{"id", "m"}, {"type", "midi"}}}}, {"clips", QJsonArray{clip}}};
+        const auto parsed = nt::parseTimeline(raw);
+        QVERIFY(parsed.timeline);
+        const auto stream = nt::audio::vst::buildTrackMidiStream(*parsed.timeline, "m", 120);
+        std::vector<double> ons;
+        std::vector<double> offs;
+        std::vector<double> resets;
+        for (const auto& event : stream.events) {
+            if ((event.status & 0xf0) == 0x90) { QCOMPARE(event.data1, quint8(60)); ons.push_back(event.timeMs); }
+            if ((event.status & 0xf0) == 0x80) { offs.push_back(event.timeMs); }
+            if ((event.status & 0xf0) == 0xb0 && event.data1 == 64 && event.data2 == 0 && event.clipEndReset) { resets.push_back(event.timeMs); }
+        }
+        QCOMPARE(ons, (std::vector<double>{0, 2000, 4000}));
+        QCOMPARE(offs, (std::vector<double>{2000, 4000, 6000}));
+        QCOMPARE(resets, (std::vector<double>{2000, 4000, 6000}));
+    }
+
+    void reviewF3F24AudibleDeviceAutomation_data() {
+        QTest::addColumn<QString>("type"); QTest::addColumn<QString>("param");
+        QTest::addColumn<double>("base"); QTest::addColumn<double>("automated");
+        QTest::addColumn<bool>("defaultInstrument");
+        QTest::newRow("F3-instrument") << QString("instrument") << QString("cutoffHz") << 18000.0 << 80.0 << false;
+        QTest::newRow("F3-instrument-alias") << QString("instrument") << QString("filter.cutoff") << 18000.0 << 80.0 << false;
+        QTest::newRow("F24-filter") << QString("filter") << QString("frequency") << 18000.0 << 80.0 << false;
+        QTest::newRow("F24-eq3") << QString("eq3") << QString("midGainDb") << 0.0 << -18.0 << false;
+        QTest::newRow("F24-compressor") << QString("compressor") << QString("ratio") << 1.0 << 20.0 << false;
+        QTest::newRow("F3-default-instrument") << QString("instrument") << QString("cutoffHz") << 4000.0 << 80.0 << true;
+    }
+    void reviewF3F24AudibleDeviceAutomation() {
+        QFETCH(QString, type); QFETCH(QString, param); QFETCH(double, base); QFETCH(double, automated); QFETCH(bool, defaultInstrument);
+        const auto render = [&](bool patternEnabled, double fixed, double clipDb = 0.0) {
+            const auto device = type == "instrument" ? QString("instrument") : QString("fx");
+            const auto pattern = nt::midi::normalizePattern({{"lengthSteps", 1}, {"rows", QJsonArray{
+                QJsonObject{{"id", "note"}, {"assignment", QJsonObject{{"type", "note"}, {"pitch", 69}}},
+                    {"steps", QJsonArray{QJsonObject{{"on", true}, {"gate", 100}}}}},
+                QJsonObject{{"id", "auto"}, {"mute", !patternEnabled},
+                    {"assignment", QJsonObject{{"type", "automation"}, {"target", QJsonObject{{"kind", "device"}, {"deviceId", device}, {"param", param}}}}},
+                    {"steps", QJsonArray{QJsonObject{{"on", true}, {"value", automated}}}}}}}});
+            QJsonObject instrument{{"type", "subtractive"}, {"waveform", "saw"}, {"attackMs", 0},
+                {"decayMs", 0}, {"sustain", 1}, {"releaseMs", 0}, {"resonance", 0.707},
+                {"cutoffHz", type == "instrument" ? fixed : 18000.0}, {"gainDb", 0}};
+            if (defaultInstrument) {
+                instrument.insert("attackMs", 5); instrument.insert("decayMs", 120); instrument.insert("sustain", 0.7);
+                instrument.insert("releaseMs", 150); instrument.insert("gainDb", -6);
+            }
+            QJsonObject effect{{"id", "fx"}, {"type", type}, {"enabled", true}, {param, fixed},
+                {"thresholdDb", -35}, {"kneeDb", 0}, {"attackMs", 1}, {"releaseMs", 10}, {"midFreq", 440}, {"midQ", 0.7}};
+            QJsonObject track{{"id", "m1"}, {"type", "midi"}, {"instrument", instrument},
+                {"effects", type == "instrument" ? QJsonArray{} : QJsonArray{effect}}};
+            if (defaultInstrument && patternEnabled) { track.remove("instrument"); }
+            const QJsonObject raw{{"tracks", QJsonArray{track}},
+                {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "m1"}, {"mediaType", "midi"},
+                    {"startMs", 0}, {"durationMs", 1000}, {"volumeDb", clipDb}, {"pattern", pattern}}}}};
+            const auto timeline = parseRaw(raw);
+            auto plan = nt::audio::buildMixPlan(timeline);
+            nt::audio::prepareMixPlan(plan, 48000);
+            std::vector<float> pcm(48000 * 2);
+            for (int frame = 0; frame < 48000; frame += 128) {
+                const int count = std::min(128, 48000 - frame);
+                nt::audio::MixStats stats{};
+                nt::audio::mixBlock(plan, nullptr, 48000, frame * 1000.0/48000, 1000.0/48000,
+                    count, pcm.data() + frame * 2, stats);
+            }
+            return rmsInterleaved(pcm, 2400, 48000);
+        };
+        const double dry = render(false, base);
+        const double reference = render(false, automated);
+        const double actual = render(true, base);
+        QVERIFY2(dry > 1e-4, "Production instrument must produce audio");
+        const double quieter = render(false, base, -6.0);
+        QVERIFY(std::abs(quieter - dry * std::pow(10.0, -6.0 / 20.0)) < dry * 0.001);
+        QVERIFY2(std::abs(reference - dry) > dry * 0.1, "Real DSP target must change audible output");
+        QVERIFY2(std::abs(actual - reference) < dry * 0.03,
+            qPrintable(QString("dry=%1 reference=%2 automated=%3").arg(dry).arg(reference).arg(actual)));
+    }
+    void reviewF3F24InstrumentSlideAndStoredLane() {
+        const auto render = [](int mode) {
+            const QJsonObject target{{"kind", "device"}, {"deviceId", "instrument"}, {"param", "filter.cutoff"}};
+            QJsonArray clips{QJsonObject{{"id", "notes"}, {"trackId", "m1"}, {"mediaType", "midi"},
+                {"startMs", 0}, {"durationMs", 2000}, {"notes", QJsonArray{midiNote("n", 69, 0, 3840)}}}};
+            QJsonArray points{QJsonObject{{"timeMs", 0}, {"value", 500}}};
+            if (mode == 1) {
+                const auto pattern = nt::midi::normalizePattern({{"lengthSteps", 2}, {"stepRate", "1/4"}, {"automationMode", "slide"},
+                    {"rows", QJsonArray{QJsonObject{{"id", "cutoff"}, {"assignment", QJsonObject{{"type", "automation"}, {"target", target}}},
+                        {"steps", QJsonArray{QJsonObject{{"on", true}, {"value", 2000}}, QJsonObject{{"on", true}, {"value", 80}}}}}}}});
+                clips.append(QJsonObject{{"id", "pattern"}, {"trackId", "m1"}, {"mediaType", "midi"},
+                    {"startMs", 500}, {"durationMs", 1000}, {"pattern", pattern}});
+            } else if (mode == 2) {
+                // The contract's explicit linear cutoff ramp, through the stored-lane engine.
+                points = QJsonArray{QJsonObject{{"timeMs", 500}, {"value", 2000}}, QJsonObject{{"timeMs", 1000}, {"value", 80}}};
+            }
+            const QJsonObject instrument{{"type", "subtractive"}, {"waveform", "saw"}, {"attackMs", 0}, {"decayMs", 0},
+                {"sustain", 1}, {"releaseMs", 0}, {"cutoffHz", 500}, {"resonance", 0.707}, {"gainDb", 0}};
+            const QJsonObject raw{{"tracks", QJsonArray{QJsonObject{{"id", "m1"}, {"type", "midi"}, {"instrument", instrument},
+                {"automation", QJsonArray{QJsonObject{{"id", "stored"}, {"target", target}, {"points", points}}}}}}}, {"clips", clips}};
+            auto plan = nt::audio::buildMixPlan(parseRaw(raw));
+            nt::audio::prepareMixPlan(plan, 48000);
+            std::vector<float> pcm(96000 * 2);
+            for (int frame = 0; frame < 96000; frame += 128) {
+                nt::audio::MixStats stats{};
+                nt::audio::mixBlock(plan, nullptr, 48000, frame * 1000.0 / 48000, 1000.0 / 48000,
+                    128, pcm.data() + frame * 2, stats);
+            }
+            return pcm;
+        };
+        const auto baseline = render(0), actual = render(1), stored = render(2);
+        const double early = rmsInterleaved(actual, 28800, 33600);
+        const double late = rmsInterleaved(actual, 52800, 67200);
+        QVERIFY2(early > 1e-3 && late < early * 0.25, "Slide must audibly close the real instrument filter");
+        double difference = 0;
+        for (std::size_t frame = 28800; frame < 67200; ++frame) {
+            difference = std::max(difference, std::abs(static_cast<double>(actual[frame * 2] - stored[frame * 2])));
+        }
+        QVERIFY2(difference < 0.005, qPrintable(QString::number(difference)));
+        for (const auto& window : {std::pair{4800, 19200}, std::pair{81600, 91200}}) {
+            const double expected = rmsInterleaved(baseline, window.first, window.second);
+            QVERIFY(expected > 1e-3);
+            QVERIFY(std::abs(rmsInterleaved(actual, window.first, window.second) - expected) < 1e-4);
+        }
+    }
+    void reviewF5OfflinePatternContext_data() {
+        QTest::addColumn<QJsonObject>("clip"); QTest::addColumn<QJsonObject>("document");
+        QTest::addColumn<int>("pitch"); QTest::addColumn<qint64>("startFrame");
+        const QJsonObject midiTrack{{"id", "t"}, {"type", "midi"}};
+        const QJsonObject baseDoc{{"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 100}}}, {"tracks", QJsonArray{midiTrack}}};
+        const auto makePattern = [](const QJsonObject& assignment, const QJsonObject& settings = QJsonObject{}, int offset = 0) {
+            auto input = settings;
+            input.insert("lengthSteps", 1);
+            input.insert("rows", QJsonArray{QJsonObject{{"id", "r"}, {"assignment", assignment},
+                {"steps", QJsonArray{QJsonObject{{"on", true}, {"offset", offset}}}}}});
+            return nt::midi::normalizePattern(input);
+        };
+        const auto add = [](const char* name, const QJsonObject& pattern, const QJsonObject& doc, int expectedPitch, bool quantize = false) {
+            QJsonObject clip{{"id", "c"}, {"trackId", "t"}, {"mediaType", "midi"}, {"startMs", 100}, {"durationMs", 125}, {"pattern", pattern}};
+            if (quantize) clip.insert("quantize", QJsonObject{{"grid", "1/16"}, {"strength", 100}});
+            QTest::newRow(name) << clip << doc << expectedPitch << qint64{0};
+        };
+        auto kitDoc = baseDoc;
+        auto kitTrack = midiTrack; kitTrack.insert("instrument", QJsonObject{{"type", "drum"}, {"baseNote", 70}});
+        kitDoc.insert("tracks", QJsonArray{kitTrack});
+        add("kit", makePattern({{"type", "kit"}, {"pad", 2}}), kitDoc, 72);
+        auto keyDoc = baseDoc;
+        auto tempo = keyDoc.value("tempo").toObject(); tempo.insert("key", QJsonObject{{"tonic", "D"}, {"mode", "major"}}); keyDoc.insert("tempo", tempo);
+        add("key", makePattern({{"type", "note"}, {"pitch", 60}}, {{"pitchSource", "key"}, {"key", QJsonObject{{"tonic", 0}, {"mode", "major"}}}}), keyDoc, 62);
+        auto chordDoc = baseDoc;
+        chordDoc.insert("tracks", QJsonArray{midiTrack, QJsonObject{{"id", "chords"}, {"type", "chord"}, {"chords", QJsonArray{
+            QJsonObject{{"id", "ch"}, {"startTick", 0}, {"durationTick", 960}, {"root", 4}, {"quality", "min"}}}}}});
+        add("chords", makePattern({{"type", "degree"}, {"degree", "root"}, {"octave", 3}}, {{"pitchSource", "chords"}}), chordDoc, 64);
+        add("tempo-offset", makePattern({{"type", "note"}, {"pitch", 60}}, {}, 25), baseDoc, 60, true);
+    }
+    void reviewF5OfflinePatternContext() {
+        QFETCH(QJsonObject, clip); QFETCH(QJsonObject, document); QFETCH(int, pitch); QFETCH(qint64, startFrame);
+        const auto events = extractMidiNoteEvents(clip, 120, 48000, 0, 125, document);
+        QCOMPARE(events.size(), std::size_t{1});
+        QCOMPARE(events.front().pitch, pitch);
+        QCOMPARE(events.front().startFrame, startFrame);
+    }
     void editsSetTrackInstrumentAndState() {
         QJsonObject raw{
             {"id", "tl1"},
@@ -678,6 +859,70 @@ private slots:
             QVERIFY2(std::abs(liveDuring - 0.5 * duringNote) < 0.03 * duringNote,
                      qPrintable(QStringLiteral("liveDuring=%1 expected=%2").arg(liveDuring).arg(0.5 * duringNote)));
         }
+    }
+
+    void midiStreamExpandsPatternClipNotesControllersAndRegionParams() {
+        // 1-bar pattern clip at 120 BPM (duration 2000 ms = 3840 ticks):
+        // - Kick on steps 0, 4, 8, 12 with transpose +2, velocityOffset -10
+        // - CC 74 row in latch mode: 0 at step 0, 127 at step 8
+        QJsonArray kickSteps;
+        QJsonArray ccSteps;
+        for (int i = 0; i < 16; ++i) {
+            kickSteps.append(i % 4 == 0 ? QJsonObject{{"on", true}, {"velocity", 100}} : QJsonObject{});
+            ccSteps.append(i == 0 ? QJsonObject{{"on", true}, {"value", 0}}
+                                  : i == 8 ? QJsonObject{{"on", true}, {"value", 127}}
+                                           : QJsonObject{});
+        }
+        const QJsonObject pattern{
+            {"version", 1}, {"seed", 1}, {"lengthSteps", 16}, {"stepRate", "1/16"}, {"playback", "forward"},
+            {"legato", false}, {"swing", 0}, {"swingDivision", "1/16"}, {"pitchSource", "off"},
+            {"scale", "chromatic"}, {"noTranspose", false}, {"scaleQuantize", false}, {"midiChannel", 1},
+            {"automationMode", "latch"}, {"mono", false}, {"name", "Beat"},
+            {"rows", QJsonArray{
+                QJsonObject{{"id", "r1"}, {"assignment", QJsonObject{{"type", "note"}, {"pitch", 36}}},
+                            {"mute", false}, {"solo", false}, {"lengthSteps", 16}, {"loopStart", 0}, {"loopEnd", 16},
+                            {"stepRate", "1/16"}, {"playback", "forward"}, {"midiChannel", 1},
+                            {"automationMode", "latch"}, {"subrows", QJsonArray{"velocity", "gate"}},
+                            {"steps", kickSteps}},
+                QJsonObject{{"id", "cc74"},
+                            {"assignment", QJsonObject{{"type", "automation"}, {"target", QJsonObject{{"kind", "cc"}, {"cc", 74}}}}},
+                            {"mute", false}, {"solo", false}, {"lengthSteps", 16}, {"loopStart", 0}, {"loopEnd", 16},
+                            {"stepRate", "1/16"}, {"playback", "forward"}, {"midiChannel", 1},
+                            {"automationMode", "latch"}, {"subrows", QJsonArray{"value"}},
+                            {"steps", ccSteps}}}}};
+        const QJsonObject clipRaw{
+            {"id", "p1"}, {"trackId", "m1"}, {"name", "Beat"}, {"startMs", 0.0}, {"durationMs", 2000.0},
+            {"inPointMs", 0.0}, {"outPointMs", 2000.0}, {"mediaType", "midi"}, {"sourceType", "imported"},
+            {"status", "generated"}, {"locked", false}, {"transpose", 2}, {"velocityOffset", -10},
+            {"pattern", pattern}};
+        const QJsonObject raw{
+            {"id", "tl"}, {"name", "T"}, {"fps", 30}, {"width", 1920}, {"height", 1080}, {"durationMs", 4000},
+            {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "m1"}, {"name", "Drums"}, {"type", "midi"}, {"index", 0}}}},
+            {"clips", QJsonArray{clipRaw}}};
+        const auto stream = buildTrackMidiStream(parseRaw(raw), "m1", 120.0);
+        const auto noteOns = eventsWithStatus(stream, 0x90);
+        QCOMPARE(noteOns.size(), std::size_t{4});
+        QCOMPARE(noteOns[0].timeMs, 0.0);
+        QCOMPARE(noteOns[1].timeMs, 500.0);
+        QCOMPARE(noteOns[2].timeMs, 1000.0);
+        QCOMPARE(noteOns[3].timeMs, 1500.0);
+        QCOMPARE(noteOns[0].data1, std::uint8_t{38});  // 36 + transpose 2
+        QCOMPARE(noteOns[0].data2, std::uint8_t{90});  // 100 + velocityOffset -10
+
+        const auto ccs = eventsWithStatus(stream, 0xB0);
+        QCOMPARE(ccs.size(), std::size_t{2});
+        QCOMPARE(ccs[0].timeMs, 0.0);
+        QCOMPARE(ccs[0].data1, std::uint8_t{74});
+        QCOMPARE(ccs[0].data2, std::uint8_t{0});
+        QCOMPARE(ccs[1].timeMs, 1000.0);
+        QCOMPARE(ccs[1].data2, std::uint8_t{127});
+
+        // Offline note extraction also expands pattern clips.
+        const auto offline = extractMidiNoteEvents(clipRaw, 120.0, 48000.0, 0.0, 2000.0);
+        QCOMPARE(offline.size(), std::size_t{4});
+        QCOMPARE(offline[0].pitch, 38);
+        QCOMPARE(offline[0].velocity, 90);
     }
 };
 

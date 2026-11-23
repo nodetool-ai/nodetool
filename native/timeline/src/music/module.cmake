@@ -71,6 +71,14 @@ function(nt_music_ui_tests)
     qt_add_resources(tst_musicui music_sync_banner PREFIX /nodetool/sync BASE src/server/sync
         FILES src/server/sync/ExternalConflictsBanner.qml)
     add_test(NAME tst_musicui COMMAND tst_musicui)
+    add_test(NAME tst_music_clip_editing COMMAND tst_musicui
+        musicOpsAreCallableAssistantCommands loopAudioRendersTheSameSourceOnEveryRepeat
+        loopOverviewStaysBoundedWithManyTracks loopMidiNoteLinesRepeatAndStopAtBoundaries
+        musicRepeatMenuMakesCountedCopiesOnce sectionClipboardActions mediaPlacementAcceptsBarAddress
+        musicNudgeUsesSnapAndShiftUsesBar sectionRangeSpansTracksAndDuplicatesOnce cornerLoopDrag
+        loopSnapshotBuildsRepeatedWindowsWithoutChangingDocument loopBounceUsesRepeatedSourceWindows
+        sectionEditsAreOneUndoStep)
+    set_tests_properties(tst_music_clip_editing PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     set_tests_properties(tst_musicui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endfunction()
 nt_tests(nt_music_ui_tests)
@@ -92,6 +100,9 @@ function(nt_music_jobs_tests)
     qt_add_executable(tst_musicjobs src/music/tst_musicjobs.cpp
         src/music/MusicJobs.h src/music/MusicJobs.cpp
         src/music/MusicEdits.h src/music/MusicEdits.cpp
+        src/audio/automation/AutomationRecorder.h src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_musicjobs PROPERTIES MACOSX_BUNDLE FALSE)
@@ -149,6 +160,9 @@ function(nt_music_assist_tests)
         src/music/MusicAssistant.h src/music/MusicAssistant.cpp
         src/music/MusicJobs.h src/music/MusicJobs.cpp
         src/music/MusicEdits.h src/music/MusicEdits.cpp
+        src/audio/automation/AutomationRecorder.h src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_musicassistant PROPERTIES MACOSX_BUNDLE FALSE)

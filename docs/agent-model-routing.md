@@ -21,7 +21,8 @@ delegation rules only.
 | Closure review after each fix round | Sol | Not applicable |
 | Web search, page extraction, summaries | Haiku | Not applicable |
 
-Do not route UI work to Sol. Do not use Sol for the first sweep review. Its
+Do not route UI work to Sol. When a Sol or Neon task changes QML or React
+views, an Opus screenshot pass follows it before the task closes. Do not use Sol for the first sweep review. Its
 static pass is narrow, and Neon covers more surface in one review.
 
 ## Review Pipeline
@@ -43,7 +44,9 @@ static pass is narrow, and Neon covers more surface in one review.
 ## Invocation Rules
 
 - `agy` implementation runs may use `--dangerously-skip-permissions`. Review
-  runs use plan mode with no shell.
+  runs use plan mode with no shell. A review prompt also says "Do not write or
+  edit any file. Print the whole review as your final answer." Without it, a
+  reviewer that tries to save its review is blocked and prints nothing.
 - Do not use the Codex sandbox bypass flag. Use `-s read-only` for reviews and
   the workspace-write sandbox for implementation.
 - Measure free memory before you spawn an agent. Run at most two agents at

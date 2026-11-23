@@ -11,7 +11,10 @@
 #include <QJsonObject>
 #include <QString>
 
+#include <algorithm>
+#include <array>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -61,12 +64,48 @@ struct ClipTransitionIn {
 enum class TrackType { Video, Audio, Overlay, Subtitle, Midi, Chord };
 enum class MediaType { Image, Video, Audio, Overlay, Text, Shape, Model3d, Group, Adjustment, Midi };
 
+// One UI writer publishes a bounded return ramp. Render readers copy atomics
+// once per block with a sequence check, retaining their preceding copy on contention.
+struct MixerReturn {
+    static_assert(std::atomic<std::uint64_t>::is_always_lock_free);
+    struct Snapshot {
+        std::uint64_t generation=0;
+        double startMs=std::numeric_limits<double>::quiet_NaN();
+        std::array<double,21> values{};
+        bool active(double time) const noexcept { return std::isfinite(startMs) && time>=startMs && time<=startMs+200.; }
+        double at(double time) const noexcept {
+            const double position=std::clamp((time-startMs)/10.,0.,20.);
+            const auto i=static_cast<std::size_t>(position);
+            return i==20 ? values[20] : values[i]+(values[i+1]-values[i])*(position-static_cast<double>(i));
+        }
+    };
+    void publish(const Snapshot& next) noexcept {
+        sequence.fetch_add(1,std::memory_order_acq_rel);
+        startMs.store(next.startMs,std::memory_order_release);
+        for (std::size_t i=0;i<values.size();++i) { values[i].store(next.values[i],std::memory_order_release); }
+        sequence.fetch_add(1,std::memory_order_release);
+    }
+    void read(Snapshot& next) const noexcept {
+        const auto before=sequence.load(std::memory_order_acquire);
+        if (before&1) { return; }
+        Snapshot copy;
+        copy.startMs=startMs.load(std::memory_order_acquire);
+        for (std::size_t i=0;i<values.size();++i) { copy.values[i]=values[i].load(std::memory_order_acquire); }
+        if (before==sequence.load(std::memory_order_acquire)) { copy.generation=before; next=copy; }
+    }
+    std::uint64_t generation() const noexcept { return sequence.load(std::memory_order_acquire); }
+private:
+    std::atomic<std::uint64_t> sequence{0};
+    std::atomic<double> startMs{std::numeric_limits<double>::quiet_NaN()};
+    std::array<std::atomic<double>,21> values{};
+};
 // UI writes atomics, audio reads them. Shared by immutable mix plans so an old
 // plan can finish after the model releases its reference. NaN releases a target.
 struct MixerOverride {
     static_assert(std::atomic<double>::is_always_lock_free);
     std::atomic<double> volumeDb{std::numeric_limits<double>::quiet_NaN()};
     std::atomic<double> pan{std::numeric_limits<double>::quiet_NaN()};
+    MixerReturn volumeReturn, panReturn;
 };
 struct Track {
     std::string id;

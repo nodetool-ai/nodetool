@@ -45,7 +45,7 @@ struct BlockContext {
     int quantumOffset = 0;
 };
 
-// State belongs to one plan and one render thread. All storage must be
+// Prepared state belongs to one renderer at a time. All storage must be
 // allocated by the plan stage, never by process(), reset() or valueAt().
 class BlockProcessor {
 public:
@@ -61,14 +61,18 @@ public:
     // P2 can address an insert by its document id and set automatable fields.
     std::string id;
     virtual bool setParameter(std::string_view, double) noexcept { return false; }
+    // A merged device curve already includes stored lanes. Control-thread query.
+    virtual bool drivesDeviceAutomation() const noexcept { return false; }
 private:
     bool activeInQuantum_ = false;
 };
 
-// native-rules #9: read on the render thread while the plan is built elsewhere, no affinity comment
+// Constructed on the control thread. Only the active render thread calls beginBlock/valueAt.
+// Immutable sources need no synchronization. Live sources snapshot their atomic input in beginBlock.
 class ParameterSource {
 public:
     virtual ~ParameterSource() = default;
+    virtual void beginBlock(const BlockContext&, int, double) const noexcept {}
     virtual double valueAt(double timelineMs, double baseValue) const noexcept = 0;
 };
 
@@ -136,9 +140,10 @@ void prepareMixPlan(const MixPlan& plan, double sampleRate);
 // supports scoped registrations in tests and dynamically loaded modules.
 using MixPlanStage = std::function<void(const Timeline&, MixPlan&)>;
 using MixPlanStageToken = std::uint64_t;
-MixPlanStageToken registerMixPlanStage(std::string name, MixPlanStage stage, int priority = 100);
+MixPlanStageToken registerMixPlanStage(std::string name, MixPlanStage stage, int priority = 100, bool unique = false);
 void unregisterMixPlanStage(MixPlanStageToken token);
 bool hasMixPlanStage(std::string_view name);
+void applyMixPlanStage(std::string_view name,const Timeline& timeline,MixPlan& plan);
 
 // The PCM a voice reads: a ring in the device callback, or a whole decoded
 // span in the offline render. Missing frames are silence.
@@ -153,8 +158,7 @@ struct VoicePcm {
 };
 
 struct MixStats {
-    // Voices that needed a frame the ring did not hold yet, counted once per
-    // voice per block.
+    // Missing PCM, once per voice per block, or one busy render lease per block.
     std::int64_t underruns = 0;
     std::int64_t preparations = 0;
 };
@@ -170,4 +174,19 @@ void mixBlock(const MixPlan& plan, VoicePcm* pcm, double sampleRate, double time
               // native-rules #5: raw float* output buffer crosses the module boundary
               int frames, float* out, MixStats& stats);
 
+// Stack-owned on one render thread. Borrows a session-retained plan and releases
+// its atomic claim on destruction. No waiting, allocation, or ownership transfer.
+class MixRenderLease {
+public:
+    explicit MixRenderLease(const MixPlan& plan) noexcept;
+    ~MixRenderLease();
+    MixRenderLease(const MixRenderLease&)=delete;
+    MixRenderLease& operator=(const MixRenderLease&)=delete;
+    explicit operator bool() const noexcept { return owned_; }
+    void mix(std::span<VoicePcm> pcm, double sampleRate, double timelineMs0, double msPerFrame,
+             std::span<float> output, MixStats& stats) const;
+private:
+    const MixPlan& plan_;
+    bool owned_;
+};
 }  // namespace nt::audio

@@ -30,6 +30,8 @@ Item {
                     anchors.fill: parent
                     timeline: root.timeline; track: root.currentTrack; lane: parent.laneData
                     msPerPx: AutomationUIState.viewState ? AutomationUIState.viewState.msPerPx : 10
+                    viewportLeft: AutomationUIState.viewState ? AutomationUIState.viewState.scrollLeftPx : 0
+                    viewportWidth: AutomationUIState.viewState ? AutomationUIState.viewState.viewportWidthPx : width
                 }
             }
         }

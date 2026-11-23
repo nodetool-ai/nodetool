@@ -20,9 +20,11 @@ Item {
     signal volumeStarted()
     signal volumePreview(real db)
     signal volumeEnded()
+    signal volumeCanceled()
     signal panStarted()
     signal panPreview(real value)
     signal panEnded()
+    signal panCanceled()
     signal volumeCommit(real db)
     signal panCommit(real pan)
     signal mute()
@@ -33,7 +35,11 @@ Item {
     signal openInstrument(var anchor)
     readonly property real displayDb: volumeGesture ? draftDb : liveDb
     readonly property real displayPan: panGesture ? draftPan : livePan
-    function cancelGesture() { volumeGesture=false; panGesture=false; fader.dragging=false; pan.dragging=false }
+    function cancelGesture() {
+        if (volumeGesture) { volumeCanceled() }
+        if (panGesture) { panCanceled() }
+        volumeGesture=false; panGesture=false; fader.dragging=false; pan.dragging=false
+    }
     function endVolume() { if(volumeGesture) { volumeCommit(draftDb); volumeGesture=false; volumeEnded() } }
     function endPan() { if(panGesture) { panCommit(draftPan); panGesture=false; panEnded() } }
     Ui.Icon {
@@ -104,7 +110,7 @@ Item {
                 Accessible.name: root.channelName + " pan"
                 Accessible.description: Taper.panValueText(root.displayPan)
                 function finish() { dragging=false; root.endPan() }
-                function cancel() { dragging=false; root.panGesture=false; root.draftPan=root.channel.pan || 0; root.panEnded() }
+                function cancel() { dragging=false; root.panGesture=false; root.draftPan=root.channel.pan || 0; root.panCanceled() }
                 function nudge(next) {
                     if (!root.panGesture) { root.panStarted() }
                     root.panGesture=true
@@ -210,7 +216,7 @@ Item {
                 onStarted: root.volumeStarted()
                 onPreview: db => { root.volumeGesture=true; root.draftDb=db; root.volumePreview(db) }
                 onCommit: db => { root.volumeCommit(db); root.volumeGesture=false; root.volumeEnded() }
-                onCanceled: { root.volumeGesture=false; root.draftDb=root.channel.volumeDb || 0; root.volumeEnded() }
+                onCanceled: { root.volumeGesture=false; root.draftDb=root.channel.volumeDb || 0; root.volumeCanceled() }
             }
             MixerMeter {
                 x: fader.x+fader.width+Ui.Metrics.xs; width: 12; height: parent.height

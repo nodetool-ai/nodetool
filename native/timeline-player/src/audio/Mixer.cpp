@@ -4,6 +4,7 @@
 #include "scene/ClipScene.h"
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <limits>
 #include <mutex>
@@ -22,7 +23,9 @@ bool BlockProcessor::processBlock(std::span<float> stereo, const BlockContext& c
     activeInQuantum_ |= std::ranges::any_of(stereo, [](float x) { return x != 0; });
     return !activeInQuantum_;
 }
+// Prepared on the control thread. MixRenderLease grants exclusive access to mutable DSP and buffers.
 struct MixPlan::State {
+    std::atomic_flag rendering=ATOMIC_FLAG_INIT;
     std::array<float, kMixBlockFrames * 2> voice{};
     std::vector<std::array<float, kMixBlockFrames * 2>> tracks;
     std::vector<bool> trackSilent;
@@ -170,9 +173,14 @@ std::size_t clipVoiceEnd(const std::vector<VoicePlan>& voices, std::size_t first
 
 }  // namespace
 
-MixPlanStageToken registerMixPlanStage(std::string name, MixPlanStage stage, int priority) {
+MixPlanStageToken registerMixPlanStage(std::string name, MixPlanStage stage, int priority, bool unique) {
     auto& r = registry();
     const std::scoped_lock lock(r.mutex);
+    if (unique) {
+        for (const auto& existing : r.stages) {
+            if (existing.name == name) return existing.token;
+        }
+    }
     const auto token = r.next++;
     r.stages.push_back({token, std::move(name), std::move(stage), priority});
     return token;
@@ -184,6 +192,14 @@ bool hasMixPlanStage(std::string_view name) {
     return std::ranges::any_of(r.stages, [name](const Stage& stage) { return stage.name == name; });
 }
 
+void applyMixPlanStage(std::string_view name,const Timeline& timeline,MixPlan& plan) {
+    MixPlanStage apply;
+    {
+        auto& r=registry(); const std::scoped_lock lock(r.mutex);
+        for (const auto& stage:r.stages) { if (stage.name==name) { apply=stage.function; break; } }
+    }
+    if (apply) { apply(timeline,plan); }
+}
 void unregisterMixPlanStage(MixPlanStageToken token) {
     auto& r = registry();
     const std::scoped_lock lock(r.mutex);
@@ -409,11 +425,30 @@ void panAndAdd(std::span<const float> in, std::span<float> out, double gain, dou
 }
 } // namespace
 
+MixRenderLease::MixRenderLease(const MixPlan& plan) noexcept
+    : plan_(plan), owned_(!plan.state || !plan.state->rendering.test_and_set(std::memory_order_acquire)) {}
+MixRenderLease::~MixRenderLease() {
+    if (owned_ && plan_.state) { plan_.state->rendering.clear(std::memory_order_release); }
+}
 void mixBlock(const MixPlan& plan, VoicePcm* pcm, double sampleRate, double timelineMs0, double msPerFrame,
               int frames, float* out, MixStats& stats) {
     if (frames <= 0) { return; }
     const std::span<float> output(out, static_cast<std::size_t>(frames) * 2);
-    std::ranges::fill(output, 0.0f);
+    const MixRenderLease lease(plan);
+    if (!lease) {
+        std::ranges::fill(output,0.f);
+        ++stats.underruns;
+        return;
+    }
+    lease.mix({pcm,plan.voices.size()},sampleRate,timelineMs0,msPerFrame,output,stats);
+}
+void MixRenderLease::mix(std::span<VoicePcm> pcm, double sampleRate, double timelineMs0, double msPerFrame,
+                         std::span<float> output, MixStats& stats) const {
+    std::ranges::fill(output,0.f);
+    if (!owned_) { ++stats.underruns; return; }
+    const auto& plan=plan_;
+    const int frames=static_cast<int>(output.size()/2);
+    if (frames<=0) { return; }
     if (!plan.state) {
         // Keep the established no-effects arithmetic, including its rounding.
         for (std::size_t i = 0; i < plan.voices.size(); ++i) {
@@ -500,6 +535,8 @@ void mixBlock(const MixPlan& plan, VoicePcm* pcm, double sampleRate, double time
             auto scratch = std::span(state.tracks[i]).first(samples);
             auto trackContext = context;
             trackContext.silent = state.trackSilent[i];
+            if (track.gainSource) { track.gainSource->beginBlock(context,n,track.gain); }
+            if (track.panSource) { track.panSource->beginBlock(context,n,track.pan); }
             masterSilent = process(track.processors, scratch, trackContext) && masterSilent;
             if (!track.gainSource && !track.panSource) {
                 panAndAdd(scratch, dest, track.gain, track.pan);

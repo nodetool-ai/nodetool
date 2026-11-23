@@ -42,11 +42,13 @@ struct NoteLineView {
     double toPx = 0;
     double marginPx = 3;
     double minLengthPx = 2;
+    double loopLengthMs = 0;
 };
 
 struct NoteLine {
     QRectF rect;
     bool muted = false;
+    bool repeated = false;
 };
 
 // A body shorter than this draws 1 px lines, else 2 px.

@@ -761,6 +761,22 @@ float samplePeakAt(const std::vector<float>& fullPeaks, double sourceDurationMs,
     return max;
 }
 
+float sampleLoopPeakAt(const std::vector<float>& peaks, double sourceDurationMs, double inPointMs,
+                       double outPointMs, double repeatSourceMs, int peakCount, int index) {
+    if (!(repeatSourceMs > 0) || !std::isfinite(repeatSourceMs)) {
+        return samplePeakAt(peaks, sourceDurationMs, inPointMs, outPointMs, peakCount, index);
+    }
+    if (peakCount <= 0) { return 0; }
+    const double span = std::max(0.0, outPointMs - inPointMs) / peakCount;
+    if (span >= repeatSourceMs) {
+        return samplePeakAt(peaks, sourceDurationMs, inPointMs, inPointMs + repeatSourceMs, 1, 0);
+    }
+    const double phase = std::fmod(span * index, repeatSourceMs);
+    const double first = std::min(span, repeatSourceMs - phase);
+    const float a = samplePeakAt(peaks, sourceDurationMs, inPointMs + phase, inPointMs + phase + first, 1, 0);
+    return span > first ? std::max(a, samplePeakAt(peaks, sourceDurationMs, inPointMs, inPointMs + span - first, 1, 0)) : a;
+}
+
 std::vector<float> samplePeaksWindow(const std::vector<float>& fullPeaks, double sourceDurationMs, double inPointMs,
                                      double outPointMs, int peakCount) {
     if (peakCount <= 0) return {};
@@ -1281,6 +1297,13 @@ void WaveformItem::setColor(const QColor& c) {
     invalidate();
 }
 
+void WaveformItem::setRepeatSourceMs(double value) {
+    if (m_repeatSourceMs == value) { return; }
+    m_repeatSourceMs = value;
+    emit changed();
+    invalidate();
+}
+
 std::vector<QRectF> WaveformItem::computeBars(Span span) const {
     std::vector<QRectF> bars;
     if (!m_peaks || m_peaks->durationMs <= 0 || span.to <= span.from) return bars;
@@ -1289,8 +1312,9 @@ std::vector<QRectF> WaveformItem::computeBars(Span span) const {
     // The visible window: [in, out] cut to the source; past the source end
     // is empty space, not a stretched waveform.
     const double dur = m_peaks->durationMs;
-    const double visibleIn = std::max(0.0, std::min(dur, m_in));
-    const double visibleOut = std::max(visibleIn, std::min(dur, m_out));
+    const bool looping = m_repeatSourceMs > 0 && std::isfinite(m_repeatSourceMs);
+    const double visibleIn = looping ? m_in : std::max(0.0, std::min(dur, m_in));
+    const double visibleOut = looping ? m_out : std::max(visibleIn, std::min(dur, m_out));
     const double clipSpan = std::max(1.0, m_out - m_in);
     const double visibleWidth = cssWidth * ((visibleOut - visibleIn) / clipSpan);
     if (visibleWidth <= 0) return bars;
@@ -1302,9 +1326,12 @@ std::vector<QRectF> WaveformItem::computeBars(Span span) const {
     const int last = std::min(count, static_cast<int>(std::ceil(span.to / visibleWidth * count)) + 1);
     bars.reserve(static_cast<size_t>(std::max(0, last - first)));
     // A long take at a wide zoom draws from a coarse level (AU-7).
-    const auto& levelPeaks = m_peaks->level(nt::ui::choosePeakLevel(*m_peaks, visibleIn, visibleOut, count));
+    const double sampledOut = looping ? visibleIn + m_repeatSourceMs : visibleOut;
+    const auto& levelPeaks = m_peaks->level(nt::ui::choosePeakLevel(*m_peaks, visibleIn, sampledOut, count));
+    const bool wholeWindow = looping && (visibleOut - visibleIn) / count >= m_repeatSourceMs;
+    const float windowPeak = wholeWindow ? nt::ui::sampleLoopPeakAt(levelPeaks, dur, visibleIn, visibleOut, m_repeatSourceMs, count, 0) : 0;
     for (int i = first; i < last; ++i) {
-        const float peak = nt::ui::samplePeakAt(levelPeaks, dur, visibleIn, visibleOut, count, i);
+        const float peak = wholeWindow ? windowPeak : nt::ui::sampleLoopPeakAt(levelPeaks, dur, visibleIn, visibleOut, m_repeatSourceMs, count, i);
         const double h = std::max(1.0, peak * (cssHeight - 2));
         bars.emplace_back(double(i) / count * visibleWidth, mid - h / 2, w, h);
     }

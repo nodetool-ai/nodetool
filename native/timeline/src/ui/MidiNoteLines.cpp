@@ -19,6 +19,31 @@ double noteLineThickness(double heightPx) { return heightPx < kShortBodyPx ? 1.0
 std::vector<NoteLine> computeNoteLines(const QJsonArray& notes, const NoteLineView& view) {
     std::vector<NoteLine> out;
     if (view.widthPx <= 0 || view.heightPx <= 0 || view.msPerPx <= 0 || view.bpm <= 0) { return out; }
+    const double periodPx = view.loopLengthMs / view.msPerPx;
+    if (periodPx > 0 && periodPx < view.widthPx && std::isfinite(periodPx)) {
+        const double from = std::max(0.0, view.fromPx);
+        const double to = std::min(view.widthPx, view.toPx);
+        auto window = view;
+        window.loopLengthMs = 0;
+        window.widthPx = periodPx;
+        window.fromPx = 0;
+        window.toPx = periodPx;
+        const auto sourceLines = computeNoteLines(notes, window);
+        const double stride = std::max(1.0, std::ceil(1.0 / periodPx));
+        for (double repeat = std::floor(from / periodPx); repeat * periodPx < to; repeat += stride) {
+            const double offset = repeat * periodPx;
+            const double end = std::min(offset + periodPx, view.widthPx);
+            for (auto line : sourceLines) {
+                line.rect.translate(offset, 0);
+                const double right = std::min(end, line.rect.right());
+                if (line.rect.left() >= right || right < from || line.rect.left() > to) { continue; }
+                line.rect.setRight(right);
+                line.repeated = repeat > 0;
+                out.push_back(line);
+            }
+        }
+        return out;
+    }
     const double msPerTick = 60000.0 / (view.bpm * nt::tempo::MIDI_PPQ);
     const double windowEndMs = view.inPointMs + view.widthPx * view.msPerPx;
     struct Hit { double x0, x1; int pitch; bool muted; };
@@ -61,6 +86,27 @@ std::vector<NoteLine> computeNoteLines(const QJsonArray& notes, const NoteLineVi
 }
 
 std::vector<CurveSegment> computeControllerCurve(const QJsonArray& lanes, const NoteLineView& view) {
+    const double periodPx = view.msPerPx > 0 ? view.loopLengthMs / view.msPerPx : 0;
+    if (periodPx > 0 && periodPx < view.widthPx && std::isfinite(periodPx)) {
+        std::vector<CurveSegment> result;
+        const double from = std::max(0.0, view.fromPx);
+        const double to = std::min(view.widthPx, view.toPx);
+        const double stride = std::max(1.0, std::ceil(1.0 / periodPx));
+        for (double repeat = std::floor(from / periodPx); repeat * periodPx < to; repeat += stride) {
+            const double offset = repeat * periodPx;
+            auto window = view;
+            window.loopLengthMs = 0;
+            window.widthPx = std::min(periodPx, view.widthPx - offset);
+            window.fromPx = std::max(0.0, from - offset);
+            window.toPx = std::min(window.widthPx, to - offset);
+            for (auto segment : computeControllerCurve(lanes, window)) {
+                segment.from.rx() += offset;
+                segment.to.rx() += offset;
+                result.push_back(segment);
+            }
+        }
+        return result;
+    }
     std::vector<CurveSegment> out;
     if (view.widthPx <= 0 || view.heightPx <= 0 || view.msPerPx <= 0 || view.bpm <= 0) { return out; }
     QJsonObject lane;
@@ -186,6 +232,7 @@ NoteLineView MidiNoteLinesItem::currentView(const nt::Clip& clip) const {
     view.inPointMs = std::max(0.0, clip.inPointMs);
     view.msPerPx = m_msPerPx;
     view.widthPx = width();
+    view.loopLengthMs = clip.raw.value("loopLengthMs").toDouble();
     view.heightPx = height();
     view.fromPx = m_from;
     view.toPx = m_to > m_from ? m_to : width();
@@ -218,7 +265,7 @@ QVariantList MidiNoteLinesItem::lines() const {
     QVariantList out;
     for (const NoteLine& l : build()) {
         out.append(QVariantMap{{"x", l.rect.x()}, {"y", l.rect.y()}, {"width", l.rect.width()},
-                               {"height", l.rect.height()}, {"muted", l.muted}});
+                               {"height", l.rect.height()}, {"muted", l.muted}, {"repeated", l.repeated}});
     }
     return out;
 }
@@ -259,7 +306,7 @@ QSGNode* MidiNoteLinesItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) 
     const Rgba normal = premultiplied(m_color);
     const Rgba dim = premultiplied(m_mutedColor);
     for (const NoteLine& l : lines) {
-        const Rgba c = l.muted ? dim : normal;
+        const Rgba c = l.muted || l.repeated ? dim : normal;
         const float x0 = float(l.rect.left()), x1 = float(l.rect.right());
         const float y0 = float(l.rect.top()), y1 = float(l.rect.bottom());
         v[0].set(x0, y0, c.r, c.g, c.b, c.a);

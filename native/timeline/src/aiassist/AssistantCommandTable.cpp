@@ -74,6 +74,46 @@ QList<Command> buildAllowed() {
         return out.last();
     };
 
+    // Music clip and song-section operations share the editor's atomic edit path.
+    const P musicClip{"clipId", ParamKind::ClipId, true, "The clip id."};
+    const P barPosition{"atBar", ParamKind::Number, false, "One-based bar position, instead of milliseconds.", {}, {}, 1};
+    const P beatPosition{"beat", ParamKind::Number, false, "One-based beat within atBar.", {}, {}, 1};
+    const P timePosition{"atMs", ParamKind::Number, false, "Timeline milliseconds, instead of atBar.", {}, {}, 0};
+    const P scopedTracks{"trackIds", ParamKind::TrackIds, false, "Only these tracks. Omit for every track and global metadata."};
+    const QList<P> sectionRange{
+        P{"fromBar", ParamKind::Number, false, "First bar, included.", {}, {}, 1},
+        P{"toBar", ParamKind::Number, false, "End bar, excluded.", {}, {}, 1},
+        P{"fromMs", ParamKind::Number, false, "Range start in milliseconds, instead of bars.", {}, {}, 0},
+        P{"toMs", ParamKind::Number, false, "Range end in milliseconds, instead of bars.", {}, {}, 0}, scopedTracks};
+    edit("insert_time", "Insert silence", {barPosition, beatPosition, timePosition,
+        P{"bars", ParamKind::Number, false, "Inserted length in bars, instead of ms.", {}, {}, 0},
+        P{"ms", ParamKind::Number, false, "Inserted length in milliseconds, instead of bars.", {}, {}, 0}, scopedTracks});
+    edit("delete_time", "Delete section", sectionRange);
+    edit("duplicate_range", "Duplicate section", sectionRange);
+    edit("paste_range", "Paste section", {barPosition, beatPosition, timePosition,
+        P{"content", ParamKind::Object, true, "Section content with lengthMs, clips and optional metadata."},
+        P{"mode", ParamKind::Choice, false, "Insert silence or replace receiving tracks.", {"insert", "overwrite"}}});
+    edit("loop_clip", "Loop clip", {musicClip,
+        P{"times", ParamKind::Number, false, "How many source-window repetitions, including a partial final repeat.", {}, {}, 0},
+        P{"untilMs", ParamKind::Number, false, "Timeline end in milliseconds.", {}, {}, 0},
+        P{"untilBar", ParamKind::Number, false, "Timeline end as a one-based bar.", {}, {}, 1},
+        P{"loopLengthMs", ParamKind::NullableNumber, false, "Source-window length in timeline ms. Null removes the loop.", {}, {}, 0}}).sourceLimit = true;
+    edit("duplicate_clip", "Repeat clip", {musicClip, barPosition, beatPosition, timePosition,
+        P{"count", ParamKind::Number, false, "Whole number of additional copies, from 1 to 64.", {}, {}, 1, 64},
+        P{"gapMs", ParamKind::Number, false, "Gap between copies. Defaults to zero."}});
+    edit("move_clip", "Move clip", {musicClip, barPosition, beatPosition,
+        P{"startMs", ParamKind::Number, false, "New start in milliseconds, instead of atBar.", {}, {}, 0},
+        P{"trackId", ParamKind::TrackId, false, "Destination track. Linked partners retain their tracks."}});
+    edit("split_clip", "Split clip", {musicClip, barPosition, beatPosition, timePosition,
+        P{"crossing", ParamKind::Choice, false, "Shorten a crossing MIDI note or also keep its tail on the right.", {"shorten", "split"}}});
+    edit("trim_clip", "Trim clip", {musicClip, barPosition, beatPosition,
+        P{"durationMs", ParamKind::Number, false, "New duration, instead of an end bar.", {}, {}, 0},
+        P{"startMs", ParamKind::Number, false, "Head trim position. Send alone.", {}, {}, 0}}).sourceLimit = true;
+    edit("add_media_clip", "Add media clip", {barPosition, beatPosition,
+        P{"startMs", ParamKind::Number, false, "Start in milliseconds, instead of atBar.", {}, {}, 0},
+        P{"trackId", ParamKind::TrackId, false, "Receiving track. Omit to create a track."},
+        P{"asset", ParamKind::Object, true, "Resolved library asset metadata, including id and content_type."}});
+
     // History and clipboard.
     actions({"undo", "redo"});
     actions({"cut", "copy"}, clips);
@@ -340,7 +380,8 @@ QHash<QString, QString> buildDenied() {
     deny({"musicCleanUpTakes", "music.removeTakes"}, "it leads to deleting take audio on the server, which a person confirms in the clean-up dialog");
     deny({"assistant.foldedCommand"}, internal);
     deny({"assistant.ui_timeline_delete_clip", "assistant.ui_timeline_move_clip", "assistant.ui_timeline_plan_beats", "assistant.ui_timeline_remove_beat",
-          "assistant.ui_timeline_set_clip_binding", "assistant.ui_timeline_set_setup", "assistant.ui_timeline_split_clip", "assistant.ui_timeline_update_beat"},
+          "assistant.ui_timeline_set_clip_binding", "assistant.ui_timeline_set_setup", "assistant.ui_timeline_split_clip", "assistant.ui_timeline_update_beat",
+          "midi.stepPatternOp"},
          "the Assistant has its own tool for it");
     deny({"assist.addBeat", "assist.applyBeatTake", "assist.applyTranscription", "assist.assembleStoryboard", "assist.correctTranscript", "assist.deleteBeat",
           "assist.deleteTranscriptRange", "assist.reconcileScript", "assist.reorderBeats", "assist.setBeatText", "assist.syncStoryboardShot", "shot.accept", "shot.insertDerived",

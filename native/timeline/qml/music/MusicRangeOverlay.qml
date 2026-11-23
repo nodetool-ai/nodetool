@@ -90,4 +90,11 @@ Item {
             }
         }
     }
+    MusicSectionRange {
+        anchors.fill: parent
+        track: root.track
+        gestures: root.gestures
+        viewState: root.viewState
+    }
+
 }

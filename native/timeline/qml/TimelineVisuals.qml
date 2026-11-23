@@ -19,6 +19,7 @@ QtObject {
     readonly property color rangeFill: "#2e2d8ceb"
     readonly property color clipText: "#141414"
     readonly property color audioWave: "#7cf2c4"
+    readonly property color loopRepeatFill: Ui.Theme.scrimMedia
     readonly property color fxBadge: "#e8d44d"
 
     // The solid clip fill by media type, as the label colours of a

@@ -91,6 +91,67 @@ Ui.ContextMenu {
             menu.removeItem(object)
         }
     }
+    Ui.MenuItem {
+        objectName: "clipMenu-repeatClip"
+        visible: menu.gestures.keymapContext === "music"
+        height: visible ? implicitHeight : 0
+        text: qsTr("Repeat…")
+        iconName: "repeat"
+        onTriggered: {
+            repeatDialog.clipId = menu.context.clipId || ""
+            repeatCount.value = 1
+            repeatCount.text = "1"
+            repeatDialog.open()
+        }
+    }
+    Ui.Dialog {
+        id: repeatDialog
+        property string clipId: ""
+        title: qsTr("Repeat clip")
+        width: Math.min(Ui.Metrics.dialogCompactWidth, parent ? parent.width - Ui.Metrics.dialogNarrowInset * 2 : Ui.Metrics.dialogCompactWidth)
+        returnFocusTo: menu.gestures
+        onOpened: { repeatCount.forceActiveFocus(); repeatCount.selectAll() }
+        function applyCopies() {
+            const count = Number(repeatCount.text)
+            if (!Number.isInteger(count) || count < 1 || count > 64) return
+            if (menu.gestures.timeline.applyEdit("duplicate_clip", { clipId: clipId, count: count })) close()
+        }
+        contentItem: Column {
+            spacing: Ui.Metrics.md
+            Ui.Text { text: qsTr("Additional copies, placed back to back"); role: Ui.Typography.SansLabel }
+            Ui.NumberField {
+                id: repeatCount
+                objectName: "musicRepeatCount"
+                width: parent.width
+                value: 1
+                from: 1
+                to: 64
+                stepSize: 1
+                accessibleName: qsTr("Additional copies")
+                valid: Number.isInteger(Number(text))
+                errorText: qsTr("Enter a whole number from 1 to 64.")
+                onAccepted: repeatDialog.applyCopies()
+            }
+        }
+        footer: Item {
+            implicitHeight: repeatApply.implicitHeight + repeatDialog.padding * 2
+            Row {
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: repeatDialog.padding
+                spacing: Ui.Metrics.sm
+                Ui.EditorButton { text: qsTr("Cancel"); onClicked: repeatDialog.close() }
+                Ui.EditorButton {
+                    id: repeatApply
+                    objectName: "musicRepeatApply"
+                    text: qsTr("Repeat")
+                    variant: Ui.EditorButton.Primary
+                    enabled: repeatCount.draftValid && Number.isInteger(Number(repeatCount.text))
+                    onClicked: repeatDialog.applyCopies()
+                }
+            }
+        }
+    }
     MenuSeparator {
         id: labelDivider
         objectName: "clipMenu-labelDivider"

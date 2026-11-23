@@ -105,6 +105,8 @@ class ClipGestureController : public QQuickItem {
     Q_PROPERTY(TrimMode* trimMode READ trimMode CONSTANT)
     // The music generation target the Range tool selects (MD10): view state, never saved or undone.
     Q_PROPERTY(MusicSelection* musicSelection READ musicSelection CONSTANT)
+    Q_PROPERTY(QVariantMap sectionRange READ sectionRange NOTIFY selectionChanged)
+    Q_PROPERTY(bool hasMusicSectionClipboard READ hasMusicSectionClipboard NOTIFY selectionChanged)
 
 public:
     explicit ClipGestureController(QQuickItem* parent = nullptr);
@@ -171,6 +173,9 @@ public:
     // Makes the music range the sequence In and Out range and turns the loop on, so
     // playback loops on it (MUSIC-MODE.md section 7). False when there is no range.
     Q_INVOKABLE bool loopMusicSelection();
+    QVariantMap sectionRange() const { return m_sectionRange; }
+    bool hasMusicSectionClipboard() const;
+    Q_INVOKABLE bool editMusicSection(const QString& action);
     Q_INVOKABLE bool pressTrack(const QString& trackId, const QString& kind, double sceneX, double sceneY);
     Q_INVOKABLE void pressEmptyLane(const QString& trackId, double sceneX, double sceneY, int modifiers);
     Q_INVOKABLE QVariantMap groupSpan(const QString& clipId) const;
@@ -277,6 +282,7 @@ private:
         double dragStartMs = 0;
         double edgeMsAtStart = 0;
         double durationMsAtStart = 0;
+        double repeatWindowMs = 0;
         double inAtStart = 0;  // slip: the source in-point at the press
         bool dragging = false;
         SnapCandidates candidates;
@@ -291,6 +297,8 @@ private:
         std::int64_t rangeEndAtStart = 0;
         // The rest of a double-click that selected a clip's span: the release keeps the range.
         bool rangeHeld = false;
+        bool sectionRangeDrag = false;
+        QVariantMap sectionRangeAtStart;
     };
 
     nt::edit::ClipList resolveEdit(const QString& name, QJsonObject payload,
@@ -302,6 +310,8 @@ private:
     void clearLive();
     void applyMove();
     void applyTrim();
+    void applyLoop();
+    void setSectionRange(QVariantMap range);
     void updateTrimFeedback(const nt::edit::EditDoc& doc, const QJsonObject& clip, double requestedMs, bool landed);
     void applySlip();
     void applySlide();
@@ -376,6 +386,7 @@ private:
     QStringList m_trackOrder;
     QVariantMap m_rubberBand;
     QVariantMap m_selectedGap;
+    QVariantMap m_sectionRange;
     QVariantMap m_trimSourceRange;
     QVariantMap m_toolPreview;
     QString m_hoverPlanId;

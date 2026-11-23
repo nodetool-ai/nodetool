@@ -112,8 +112,10 @@ struct LiveBlockMidi {
 
 // Extracts MIDI note events falling inside [inPointMs, inPointMs + durationMs)
 // matching packages/timeline/src/midi/{ticks,notes,events}.ts (MIDI_PPQ = 960).
+// For patterns, document supplies tracks, key, chords and the tempo offset.
 [[nodiscard]] std::vector<VstNoteEvent> extractMidiNoteEvents(const QJsonObject& clipRaw, double bpm,
-                                                              double sampleRate, double inPointMs, double durationMs);
+                                                              double sampleRate, double inPointMs, double durationMs,
+                                                              const QJsonObject& document = {});
 
 // Attaches live shared-memory VST3 instrument BlockProcessors to MIDI tracks.
 void runVstInstrumentsStage(const Timeline& timeline, MixPlan& plan, VstHostClient& client, VstLivePool& pool);

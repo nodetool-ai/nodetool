@@ -230,6 +230,10 @@ function invertSelection(notes, ids) {
 // Bar, beat, sixteenth and tick of a content tick, each counted from 1.
 // `phase` is the grid anchor, so the bar matches the ruler.
 function positionParts(tick, phase, beatTicks, beatsPerBar) {
+    // Tempo conversion can put an integer beat duration a fraction of a tick above its boundary.
+    // Normalize grid anchors, not the position: a position just before a beat must stay before it.
+    if (Math.abs(beatTicks - Math.round(beatTicks)) < 1e-9) { beatTicks = Math.round(beatTicks) }
+    if (tick !== phase && Math.abs(phase - Math.round(phase)) < 1e-9) { phase = Math.round(phase) }
     var barTicks = beatTicks * beatsPerBar
     var rel = tick - phase
     var bar = Math.floor(rel / barTicks)

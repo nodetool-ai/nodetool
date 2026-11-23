@@ -22,6 +22,10 @@ function(nt_vst_tests)
     qt_add_executable(tst_vst
         src/audio/vst/tst_vst.cpp
         src/audio/vst/VstRegistrations.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TimelineModel.h
         src/model/TimelineModel.cpp
         src/model/TrackListModel.h
@@ -41,6 +45,8 @@ function(nt_vst_tests)
         Qt6::Test
     )
     add_test(NAME tst_vst COMMAND tst_vst)
+    add_test(NAME tst_vst_music_loops COMMAND tst_vst musicLoopCutsAndRepeatsMidiSourceWindow)
+    set_tests_properties(tst_vst_music_loops PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     set_tests_properties(tst_vst PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endfunction()
 nt_tests(nt_vst_tests)

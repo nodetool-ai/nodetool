@@ -9,7 +9,7 @@ void publish(std::atomic<float>& target, float value) noexcept {
     auto current = target.load(std::memory_order_relaxed);
     while (current < value && !target.compare_exchange_weak(current, value, std::memory_order_relaxed)) {}
 }
-// native-rules #9: runs on the render thread and publishes atomics read elsewhere, no affinity comment
+// Render-thread only; the UI reads the shared peak handoff through atomics.
 class Meter final : public audio::BlockProcessor {
 public:
     Meter(std::shared_ptr<MeterPeaks> peaks, double gain, double pan,
@@ -34,10 +34,10 @@ public:
         audio::BlockProcessor::reset(); peaks_->left.store(0,std::memory_order_relaxed); peaks_->right.store(0,std::memory_order_relaxed);
     }
 private:
-    // native-rules #1: std::shared_ptr MeterPeaks shared with the registry, no justification comment
+    // The meter retains the peaks while the UI registry exposes a weak reference to them.
     std::shared_ptr<MeterPeaks> peaks_;
     double gain_, pan_;
-    // native-rules #1: std::shared_ptr ParameterSource shared with the plan, no justification comment
+    // Shared with the bus so the meter observes exactly the same block snapshot and glide.
     std::shared_ptr<const audio::ParameterSource> gainSource_, panSource_;
 };
 std::shared_ptr<audio::BlockProcessor> tap(const std::string& id, double gain, double pan,
@@ -56,7 +56,11 @@ namespace {
 void attachMeters(const Timeline&, audio::MixPlan& plan) {
     if (suppressed) { return; }
     beginMeterPlan();
-    for (auto& track : plan.tracks) { track.processors.push_back(tap(track.trackId,track.gain,track.pan,track.gainSource,track.panSource)); }
+    for (auto& track : plan.tracks) {
+        std::erase_if(track.processors,[](const auto& p) { return p->id.starts_with("p2-meter:"); });
+        track.processors.push_back(tap(track.trackId,track.gain,track.pan,track.gainSource,track.panSource));
+    }
+    std::erase_if(plan.processors,[](const auto& p) { return p->id=="p2-meter:master"; });
     plan.processors.push_back(tap("master",plan.masterGain,0,plan.gainSource,{}));
 }
 } // namespace

@@ -120,7 +120,8 @@ void ShuttleStretcher::grain(ShuttleSource& source, std::int64_t centre, bool ma
 }
 
 void ShuttleStretcher::render(ShuttleSource& source, std::int64_t outFrame, int frames, float* out) noexcept {
-    if (frames <= 0) return;
+    if (!source.ready()) { return; }
+    if (frames <= 0) { return; }
     std::fill_n(out, static_cast<std::size_t>(frames) * 2, 0.f);
     // Leave ample headroom for rate multiplication, grain lookahead and the
     // end-of-call index. Reject before any signed coordinate arithmetic.

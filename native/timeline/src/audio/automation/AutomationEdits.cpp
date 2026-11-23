@@ -5,9 +5,7 @@
 #include <algorithm>
 #include <cmath>
 namespace nt::automation {
-namespace {
-QJsonObject makeTrackEffect(const QString& type) {
-    QJsonObject effect{{"id",QUuid::createUuid().toString(QUuid::Id128)},{"type",type},{"enabled",true}};
+QJsonObject trackEffectDefaults(const QString& type) {
     QJsonObject defaults;
     if (type=="gain") { defaults={{"gainDb",0}}; }
     else if (type=="eq3") { defaults={{"lowFreq",200},{"lowGainDb",0},{"midFreq",1000},{"midQ",1},{"midGainDb",0},{"highFreq",5000},{"highGainDb",0}}; }
@@ -20,7 +18,13 @@ QJsonObject makeTrackEffect(const QString& type) {
     else if (type=="sharpen") { defaults={{"amount",.5},{"threshold",0}}; }
     else if (type=="vignette") { defaults={{"intensity",.4},{"radius",.9},{"softness",.5}}; }
     else if (type=="chromaKey") { defaults={{"keyColor","#00ff00"},{"tolerance",.2},{"softness",.1},{"spill",.5}}; }
-    else { return {}; }
+    return defaults;
+}
+namespace {
+QJsonObject makeTrackEffect(const QString& type) {
+    QJsonObject effect{{"id",QUuid::createUuid().toString(QUuid::Id128)},{"type",type},{"enabled",true}};
+    const auto defaults=trackEffectDefaults(type);
+    if (defaults.isEmpty()) { return {}; }
     for (auto i=defaults.begin();i!=defaults.end();++i) { effect[i.key()]=i.value(); }
     return effect;
 }
@@ -32,15 +36,15 @@ QJsonObject editChannel(QJsonObject channel,const QString& action,const QJsonObj
     if (action=="setTrackVolume" || action=="setMasterVolume") { channel["volumeDb"]=mixerDb(p["db"]); }
     else if (action=="setTrackPan") { const double pan=p["pan"].toDouble(); channel["pan"]=std::isfinite(pan)?std::clamp(pan,-1.,1.):0; }
     else if (action=="writeTrackAutomationPass") {
-        if (channel["locked"].toBool()) { return channel; }
+        if (channel.value("locked").toBool()) { return channel; }
         const auto param=p["param"].toString();
         if (param!="volumeDb" && param!="pan") { return channel; }
         const QJsonObject target{{"kind","mixer"},{"param",param}};
-        auto lanes=channel["automation"].toArray();
+        auto lanes=channel.value("automation").toArray();
         qsizetype index=-1;
         for (qsizetype i=0;i<lanes.size();++i) { if (automationTargetKey(lanes[i].toObject()["target"].toObject())==automationTargetKey(target)) { index=i; break; } }
         auto lane=index<0 ? QJsonObject{{"id",QUuid::createUuid().toString(QUuid::Id128)},{"target",target}} : lanes[index].toObject();
-        lane["points"]=writeAutomationPass(lane["points"].toArray(),p["pass"].toObject(),channel[param].toDouble(),200,(param=="pan" ? 2 : 66)*.005);
+        lane["points"]=writeAutomationPass(lane["points"].toArray(),p["pass"].toObject(),channel.value(param).toDouble(),200,(param=="pan" ? 2 : 66)*.005);
         lane.remove("enabled");
         if (index<0) { lanes.append(lane); } else { lanes[index]=lane; }
         channel["automation"]=lanes;
@@ -48,13 +52,13 @@ QJsonObject editChannel(QJsonObject channel,const QString& action,const QJsonObj
     }
     else if (action=="setTrackAutomationMode") {
         const auto mode=p["mode"].toString();
-        if (!channel["locked"].toBool() && QStringList{"off","read","touch","latch","write"}.contains(mode)) { channel["automationMode"]=mode; }
+        if (!channel.value("locked").toBool() && QStringList{"off","read","touch","latch","write"}.contains(mode)) { channel["automationMode"]=mode; }
     }
     else if (action=="setTrackAutomation") {
-        if (channel["locked"].toBool()) { return channel; }
+        if (channel.value("locked").toBool()) { return channel; }
         if (p["automation"].toArray().empty()) { channel.remove("automation"); } else { channel["automation"]=p["automation"]; }
     } else {
-        auto effects=channel["effects"].toArray();
+        auto effects=channel.value("effects").toArray();
         if (action.startsWith("add")) {
             const auto value=p["effect"];
             const auto effect=value.isString()?makeTrackEffect(value.toString()):value.toObject();

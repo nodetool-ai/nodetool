@@ -80,6 +80,8 @@ class PianoRollController : public QObject {
     Q_INVOKABLE bool setNotes(const QVariantList& notes);
     // Writes the controller lanes as one `midi.setControllers` undo entry.
     Q_INVOKABLE bool setControllers(const QVariantList& controllers);
+    // Writes a mixed note/controller selection as one undo entry.
+    Q_INVOKABLE bool setEvents(const QVariantList& notes, const QVariantList& controllers);
     Q_INVOKABLE QString newNoteId() const;
 
   signals:

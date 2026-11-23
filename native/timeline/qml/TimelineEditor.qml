@@ -12,6 +12,7 @@ Controls.Control {
     id: root
     required property TimelineModel timeline
     required property PlaybackClock clock
+    Binding { target: root.timeline.automationRecorder; property: "clock"; value: root.clock; restoreMode: Binding.RestoreNone }
     property QtObject saver: typeof nativeSession !== "undefined" && nativeSession !== null
         ? nativeSession.autosave : (typeof autosave !== "undefined" ? autosave : null)
     // main sets nativeAccountServers for the app. Tests without it show no

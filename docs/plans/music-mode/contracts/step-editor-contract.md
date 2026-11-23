@@ -47,8 +47,8 @@ SE2 Layout (image 8), left to right:
   selected lane. A click on a row selects the lane.
 - Event area: a ruler with bar numbers on top, then the lanes. Every lane row has the same
   height (the vertical zoom slider sets it). The selected lane row is a shade lighter.
-- Toolbar: `Lanes`, `Edit`, `Functions`, `View` menus, then `MIDI Out` and `Catch` toggles
-  (same rules and on-colors as the piano roll), then the left-click and Cmd-click tool
+- Toolbar: `Lanes`, `Edit`, `Functions`, `View` menus, then the `Catch` toggle
+  (same rule and on-color as the piano roll), then the left-click and Cmd-click tool
   menus (SE6), the position display (same format as the piano roll), and the vertical and
   horizontal zoom sliders. Close/Back as the piano roll has them.
 

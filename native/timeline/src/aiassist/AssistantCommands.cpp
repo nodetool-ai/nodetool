@@ -1,3 +1,4 @@
+#include "midi/PatternOps.h"
 #include "aiassist/AssistantCommands.h"
 #include "aiassist/AssistDocument.h"
 #include "aiassist/AssistantCommandTable.h"
@@ -24,6 +25,7 @@
 #include <QVariantList>
 #include <algorithm>
 #include <cmath>
+#include <exception>
 #include <optional>
 
 namespace nt::aiassist {
@@ -107,6 +109,14 @@ QJsonObject parameterSchema(const Param& param) {
         schema = {{"type", "number"}};
         if (std::isfinite(param.min)) { schema.insert("minimum", param.min); }
         if (std::isfinite(param.max)) { schema.insert("maximum", param.max); }
+        break;
+    case ParamKind::NullableNumber:
+        schema = {{"type", QJsonArray{QStringLiteral("number"), QStringLiteral("null")}}};
+        if (std::isfinite(param.min)) { schema.insert("minimum", param.min); }
+        if (std::isfinite(param.max)) { schema.insert("maximum", param.max); }
+        break;
+    case ParamKind::Object:
+        schema = {{"type", "object"}};
         break;
     case ParamKind::Boolean:
         schema = {{"type", "boolean"}};
@@ -298,6 +308,9 @@ Prepared prepare(const Command& command, const QJsonObject& params, const QJsonO
         }
         std::optional<double> number;
         switch (param.kind) {
+        case ParamKind::NullableNumber:
+            if (value.isNull()) { break; }
+            [[fallthrough]];
         case ParamKind::Playhead:
         case ParamKind::RangeIn:
         case ParamKind::RangeOut:
@@ -345,6 +358,13 @@ Prepared prepare(const Command& command, const QJsonObject& params, const QJsonO
         case ParamKind::TrackIds: out.payload.insert(key, QJsonArray::fromStringList(manyIds(value, trackIds, "Track", param.name))); break;
         case ParamKind::MarkerIds: out.payload.insert(key, QJsonArray::fromStringList(manyIds(value, markerIds, "Marker", param.name))); break;
         case ParamKind::Number: out.payload.insert(key, *number); break;
+        case ParamKind::NullableNumber:
+            out.payload.insert(key, value.isNull() ? QJsonValue(QJsonValue::Null) : QJsonValue(*number));
+            break;
+        case ParamKind::Object:
+            if (!value.isObject()) { out.error = param.name + " must be an object."; }
+            out.payload.insert(key, value);
+            break;
         case ParamKind::Boolean:
             if (!value.isBool()) { out.error = param.name + " must be true or false."; }
             out.payload.insert(key, value);
@@ -618,7 +638,17 @@ QVariantMap AssistantCommands::execute(const QString& name, const QVariantMap& a
     else if (name == u"ui_timeline_read_scopes") { result = readScopes(json, callId); }
     else if (name == u"ui_timeline_capture_frame") { result = captureFrame(json, callId); }
     // The music panel's own submission, on the timeline's one job module (GN-8).
-    else if (nt::music::assistant::handles(name)) { result = nt::music::assistant::run(name, json, m_model, *nt::music::MusicJobs::forTimeline(&m_model)); }
+    else if (nt::music::assistant::handles(name)) {
+        nt::music::assistant::EditState editState;
+        if (nt::midi::isStepPatternTool(name) && nt::midi::canonicalStepPatternOp(name) != u"get_pattern") {
+            auto* editor = gestures();
+            if (!editor) return failure("The editor is still loading. Try again in a moment.").toVariantMap();
+            editState.dragging = !editor->gestureKind().isEmpty();
+            editState.trimming = editor->trimMode()->active();
+            if (auto* takes = TakeSwitcher::forTimeline(&m_model)) editState.recordingTakes = takes->recording();
+        }
+        result = nt::music::assistant::run(name, json, m_model, *nt::music::MusicJobs::forTimeline(&m_model), editState);
+    }
     else { result = failure("This native editor does not implement that capability."); }
     return result.toVariantMap();
 }
@@ -627,8 +657,12 @@ QJsonObject AssistantCommands::state(ClipGestureController& gestures) const {
     QJsonArray clips;
     for (const auto& value : raw.value("clips").toArray()) {
         const auto clip = value.toObject();
-        clips.append(QJsonObject{{"id", clip.value("id")}, {"trackId", clip.value("trackId")}, {"name", clip.value("name")}, {"mediaType", clip.value("mediaType")},
-                                 {"startMs", clip.value("startMs")}, {"durationMs", clip.value("durationMs")}});
+        QJsonObject summary{{"id", clip.value("id")}, {"trackId", clip.value("trackId")}, {"name", clip.value("name")}, {"mediaType", clip.value("mediaType")},
+                            {"startMs", clip.value("startMs")}, {"durationMs", clip.value("durationMs")}};
+        for (const auto* key : {"inPointMs", "outPointMs", "loopLengthMs"}) {
+            if (clip.contains(QLatin1String(key))) { summary.insert(QLatin1String(key), clip.value(QLatin1String(key))); }
+        }
+        clips.append(summary);
     }
     QJsonArray tracks;
     for (const auto& value : raw.value("tracks").toArray()) {
@@ -642,6 +676,7 @@ QJsonObject AssistantCommands::state(ClipGestureController& gestures) const {
                     {"tracks", tracks},
                     {"clips", clips},
                     {"markers", raw.value("markers").toArray()}};
+    if (raw.contains("tempo")) { out.insert("tempo", raw.value("tempo")); }
     // Nothing else shows the master effects' ids.
     if (raw.contains("master")) { out.insert("master", raw.value("master")); }
     if (!gestures.selectedGap().isEmpty()) { out.insert("selectedGap", QJsonObject::fromVariantMap(gestures.selectedGap())); }
@@ -701,7 +736,7 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
         });
     };
     const QString lockedReason = QStringLiteral("That clip or its track is locked. Unlock it first.");
-    if (command->runs == Runs::Edit) {
+    if (command->runs == Runs::Edit && id != u"duplicate_clip") {
         QStringList targets;
         if (const auto clip = prepared.payload.value("clipId"); clip.isString()) { targets.append(clip.toString()); }
         for (const auto* key : {"clipIds", "selectedIds"}) {
@@ -733,7 +768,16 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     const int indexBefore = stack->index();
     bool ran = false;
     if (command->runs == Runs::Edit) {
-        ran = m_model.applyEdit(id, editPayload(*command, prepared, *editor, m_model)) != 0;
+        QString editError;
+        const auto edit = app::findEdit(id);
+        if (!edit) { return disabled("The edit is unavailable."); }
+        // The transform runs synchronously. Undo retains its JSON result, not these references.
+        ran = m_model.applyEdit(id, editPayload(*command, prepared, *editor, m_model),
+            [&editError, &edit](QJsonObject raw, const QJsonObject& payload) {
+                try { return edit(std::move(raw), payload); }
+                catch (const std::exception& error) { editError = QString::fromUtf8(error.what()); throw; }
+            }) != 0;
+        if (!editError.isEmpty()) { return disabled(editError); }
     } else {
         ran = runAction(*command, *editor, context);
     }

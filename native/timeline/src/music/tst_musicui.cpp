@@ -7,18 +7,30 @@
 #include "wiring/WiringFixture.h"
 #include "TestHttpServer.h"
 #include "music/MusicPlan.h"
+#include "music/MusicBounce.h"
+#include "assets/AssetWav.h"
+#include "audio/AudioEngine.h"
+#include "audio/Mixer.h"
+#include "ui/MidiNoteLines.h"
 #include "music/MusicProject.h"
 #include "music/MusicRange.h"
 #include "music/MusicSelection.h"
 #include "server/TimelineList/TimelineListController.h"
 #include "app/MenuRegistry.h"
+#include "aiassist/AssistantCommands.h"
 
 #include <QFile>
+#include <QElapsedTimer>
+#include <QEventLoop>
+#include <QImage>
 #include <QJsonArray>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <algorithm>
+#include <cmath>
+#include <vector>
 
 using namespace nt::music;
 
@@ -119,6 +131,408 @@ class TestMusicUi : public WiringFixture {
 private slots:
     void cleanup() { view.reset(); }
 
+    void musicOpsAreCallableAssistantCommands_data() {
+        QTest::addColumn<QString>("operation");
+        for (const auto* name : {"insert_time", "delete_time", "duplicate_range", "paste_range", "loop_clip", "duplicate_clip", "move_clip", "split_clip", "trim_clip", "add_media_clip", "delete-locked"}) {
+            QTest::newRow(name) << QString::fromLatin1(name);
+        }
+    }
+    void musicOpsAreCallableAssistantCommands() {
+        QFETCH(QString, operation);
+        auto raw = musicDocument(false);
+        const QString timelineId = "aaaaaaaaaaaa00000000000000000001";
+        raw.insert("id", timelineId);
+        if (operation == "delete-locked") {
+            auto clips = raw.value("clips").toArray();
+            auto locked = clips[1].toObject();
+            locked.insert("locked", true);
+            locked.insert("name", "Locked bass");
+            clips[1] = locked;
+            raw.insert("clips", clips);
+        }
+        openDocument(raw);
+        nt::aiassist::AssistantCommands commands(model, clock);
+        commands.setEditor(view->rootObject());
+        QJsonObject payload;
+        if (operation == "insert_time") { payload = {{"atBar", 2}, {"bars", 1}}; }
+        if (operation == "delete_time" || operation == "duplicate_range") { payload = {{"fromBar", 2}, {"toBar", 3}}; }
+        if (operation == "delete-locked") { payload = {{"fromBar", 3}, {"toBar", 5}}; }
+        if (operation == "paste_range") { payload = {{"atBar", 3}, {"content", QJsonObject{{"lengthMs", 2000}, {"clips", QJsonArray{audioClip("copy", "a", 0, 2000)}}}}}; }
+        if (operation == "loop_clip") { payload = {{"clipId", "b1"}, {"times", 3}}; }
+        if (operation == "duplicate_clip") { payload = {{"clipId", "b1"}, {"count", 2}}; }
+        if (operation == "move_clip") { payload = {{"clipId", "b1"}, {"atBar", 4}}; }
+        if (operation == "split_clip") { payload = {{"clipId", "b1"}, {"atBar", 4}}; }
+        if (operation == "trim_clip") { payload = {{"clipId", "b1"}, {"atBar", 4}}; }
+        if (operation == "add_media_clip") { payload = {{"trackId", "a"}, {"atBar", 3}, {"asset", QJsonObject{{"id", "bbbbbbbbbbbb00000000000000000002"}, {"content_type", "audio/wav"}, {"duration", 1}}}}; }
+        const auto before = doc();
+        const auto result = commands.execute("ui_timeline_run_command", {{"timeline_id", timelineId}, {"command", operation == "delete-locked" ? QStringLiteral("delete_time") : operation}, {"params", payload.toVariantMap()}});
+        if (operation == "delete-locked") {
+            QVERIFY(!result.value("ok").toBool());
+            QVERIFY(result.value("error").toString().contains("Locked bass"));
+            QCOMPARE(model.undoStack()->count(), 0);
+            QCOMPARE(doc(), before);
+            return;
+        }
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        QCOMPARE(model.undoStack()->count(), 1);
+        if (operation == "loop_clip") {
+            bool shown = false;
+            for (const auto& value : result.value("state").toMap().value("clips").toList()) {
+                const auto c = value.toMap();
+                if (c.value("id").toString() == "b1") { shown = c.value("loopLengthMs").toDouble() == 4000; }
+            }
+            QVERIFY(shown);
+            const auto removed = commands.execute("ui_timeline_run_command", {{"timeline_id", timelineId}, {"command", operation},
+                {"params", QVariantMap{{"clipId", "b1"}, {"loopLengthMs", QVariant::fromValue(nullptr)}}}});
+            QVERIFY2(removed.value("ok").toBool(), qPrintable(removed.value("error").toString()));
+            QVERIFY(!clip("b1").contains("loopLengthMs"));
+            model.undoStack()->undo();
+        }
+        model.undoStack()->undo();
+        QCOMPARE(doc(), before);
+    }
+
+    void loopAudioRendersTheSameSourceOnEveryRepeat() {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const auto path = directory.filePath("source.wav");
+        std::vector<float> source(2 * 2 * 48000);
+        for (size_t i = 0; i < source.size(); ++i) { source[i] = i < 2 * 48000 ? 0.2f : 0.4f; }
+        QVERIFY(nt::assets::writeStereoFloatWav(path, source));
+        auto raw = musicDocument(false);
+        auto loop = audioClip("loop", "a", 0, 6000);
+        loop.insert("mediaPath", path);
+        loop.insert("inPointMs", 0);
+        loop.insert("outPointMs", 2000);
+        loop.insert("loopLengthMs", 2000);
+        raw.insert("clips", QJsonArray{loop});
+        const auto parsed = nt::parseTimeline(raw);
+        QVERIFY(parsed.timeline);
+        model.setTimeline(*parsed.timeline);
+        std::vector<std::string> problems;
+        const auto pcm = nt::audio::renderOffline(*model.snapshot(), 48000, 0, 6000, &problems);
+        QVERIFY(problems.empty());
+        QCOMPARE(pcm.size(), size_t(6 * 48000 * 2));
+        const auto at = [&](int second) { return pcm[static_cast<size_t>((second * 48000 + 12000) * 2)]; };
+        QVERIFY(std::abs(at(0)) > 0.01f);
+        QVERIFY(std::abs(at(0) - at(2)) < 0.0001f);
+        QVERIFY(std::abs(at(0) - at(4)) < 0.0001f);
+        QVERIFY(std::abs(at(1) - at(3)) < 0.0001f);
+        QVERIFY(std::abs(at(1) - at(5)) < 0.0001f);
+    }
+
+    void loopOverviewStaysBoundedWithManyTracks() {
+        auto raw = musicDocument(false);
+        QJsonArray tracks;
+        QJsonArray clips;
+        for (int i = 0; i < 400; ++i) {
+            const auto id = QStringLiteral("t%1").arg(i);
+            tracks.append(audioTrack(qPrintable(id), qPrintable(id), i, "keyboard"));
+            auto c = audioClip(qPrintable(QStringLiteral("c%1").arg(i)), qPrintable(id), 0, 3600000);
+            c.insert("loopLengthMs", 2000);
+            c.insert("outPointMs", 2000);
+            clips.append(c);
+        }
+        raw.insert("tracks", tracks);
+        raw.insert("clips", clips);
+        openDocument(raw);
+        QList<qint64> samples;
+        for (int i = 0; i < 15; ++i) {
+            QElapsedTimer timer;
+            timer.start();
+            gestures()->viewState()->setScrollLeftPx(i * 1000);
+            gestures()->viewState()->flush();
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+            const auto frame = view->grabWindow();
+            QVERIFY(!frame.isNull());
+            samples.append(timer.nsecsElapsed());
+        }
+        std::sort(samples.begin(), samples.end());
+        qInfo("CE3 400-track pan/render/readback median: %.3f ms", double(samples[samples.size() / 2]) / 1000000);
+        auto* repeats = item("musicLoopRepeats-c0");
+        QVERIFY(repeats);
+        QVERIFY(repeats->width() <= gestures()->viewState()->viewportWidthPx());
+        QVERIFY(repeats->width() > 0);
+    }
+
+    void loopMidiNoteLinesRepeatAndStopAtBoundaries() {
+        auto raw = musicDocument(false);
+        auto tracks = raw.value("tracks").toArray();
+        auto track = tracks[0].toObject();
+        track.insert("type", "midi");
+        tracks[0] = track;
+        raw.insert("tracks", tracks);
+        auto loop = audioClip("m", "a", 0, 6000);
+        loop.insert("mediaType", "midi");
+        loop.insert("loopLengthMs", 2000);
+        loop.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"startTick", 0}, {"durationTick", 5000}, {"pitch", 60}, {"velocity", 90}}});
+        raw.insert("clips", QJsonArray{loop});
+        openDocument(raw);
+        auto* lines = qobject_cast<nt::ui::MidiNoteLinesItem*>(item("midiNoteLines-m"));
+        QVERIFY(lines);
+        QTRY_COMPARE(lines->lines().size(), 3);
+        const auto rects = lines->lines();
+        for (qsizetype i = 0; i < rects.size(); ++i) {
+            QCOMPARE(rects[i].toMap().value("x").toDouble(), double(i) * 25);
+            QCOMPARE(rects[i].toMap().value("width").toDouble(), 25.0);
+            QCOMPARE(rects[i].toMap().value("repeated").toBool(), i > 0);
+        }
+        QCOMPARE(clip("m").value("notes").toArray()[0].toObject().value("durationTick").toDouble(), 5000.0);
+    }
+
+    void musicRepeatMenuMakesCountedCopiesOnce() {
+        openDocument(musicDocument(false));
+        const auto before = model.timeline().raw;
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, lanePoint("b", 5000));
+        QTRY_VERIFY(item("clipMenu-repeatClip"));
+        click("clipMenu-repeatClip");
+        QTRY_VERIFY(item("musicRepeatCount"));
+        auto* count = item("musicRepeatCount");
+        count->forceActiveFocus();
+        QVERIFY(QMetaObject::invokeMethod(count, "selectAll"));
+        QTest::keyClick(view.get(), Qt::Key_3);
+        click("musicRepeatApply");
+        QTRY_COMPARE(model.clipsJson().size(), 7);
+        QCOMPARE(model.undoStack()->count(), 1);
+        QList<double> starts;
+        for (const auto& value : model.clipsJson()) {
+            const auto c = value.toObject();
+            if (c.value("trackId") == QJsonValue("b")) { starts.append(c.value("startMs").toDouble()); }
+        }
+        std::sort(starts.begin(), starts.end());
+        QCOMPARE(starts, QList<double>({4000, 8000, 8000, 12000, 16000}));
+        model.undoStack()->undo();
+        QCOMPARE(model.timeline().raw, before);
+    }
+
+    void sectionClipboardActions_data() {
+        QTest::addColumn<QString>("action");
+        for (const auto* action : {"copy-paste", "cut", "delete", "insert"}) { QTest::newRow(action) << QString::fromLatin1(action); }
+    }
+    void sectionClipboardActions() {
+        QFETCH(QString, action);
+        openDocument(musicDocument(false));
+        const auto before = model.timeline().raw;
+        gestures()->setActiveTool("range");
+        drag(lanePoint("a", 2000), lanePoint("b", 4000));
+        QVERIFY(!gestures()->property("sectionRange").toMap().isEmpty());
+        bool accepted = false;
+        const auto run = [&](const QString& name) {
+            accepted = false;
+            return QMetaObject::invokeMethod(gestures(), "editMusicSection", Q_RETURN_ARG(bool, accepted), Q_ARG(QString, name));
+        };
+        if (action == "copy-paste") {
+            QVERIFY(run("copy"));
+            QVERIFY(accepted);
+            QCOMPARE(model.timeline().raw, before);
+            QCOMPARE(model.undoStack()->count(), 0);
+            const QVariantMap context{{"gestures", QVariant::fromValue(static_cast<QObject*>(gestures()))}};
+            bool pasteEnabled = false;
+            for (const auto& entry : nt::app::shellMenuEntries()) {
+                if (entry.action == "paste" && entry.enabled) { pasteEnabled = entry.enabled(context); }
+            }
+            QVERIFY(pasteEnabled);
+            clock.seek(10000);
+            QVERIFY(run("paste"));
+        } else { QVERIFY(run(action)); }
+        QVERIFY(accepted);
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(clip("d1").value("startMs").toDouble(), action == "cut" || action == "delete" ? 14000.0 : 18000.0);
+        model.undoStack()->undo();
+        QCOMPARE(model.timeline().raw, before);
+    }
+
+    void mediaPlacementAcceptsBarAddress_data() {
+        QTest::addColumn<QString>("operation");
+        QTest::addColumn<int>("bpm");
+        for (const auto* action : {"assets.dropAsset", "add_media_clip"}) {
+            QTest::newRow(qPrintable(QString::fromLatin1(action) + "-120")) << QString::fromLatin1(action) << 120;
+            QTest::newRow(qPrintable(QString::fromLatin1(action) + "-123")) << QString::fromLatin1(action) << 123;
+            QTest::newRow(qPrintable(QString::fromLatin1(action) + "-mixed")) << QString::fromLatin1(action) << 0;
+        }
+    }
+    void mediaPlacementAcceptsBarAddress() {
+        QFETCH(QString, operation);
+        QFETCH(int, bpm);
+        auto raw = musicDocument(false);
+        auto tempo = raw.value("tempo").toObject();
+        tempo.insert("bpm", bpm == 0 ? 120 : bpm);
+        raw.insert("tempo", tempo);
+        const auto parsed = nt::parseTimeline(raw);
+        QVERIFY(parsed.timeline);
+        model.setTimeline(*parsed.timeline);
+        const QJsonObject asset{{"id", "fedcba01234500000000000000000000"}, {"name", "tone.wav"}, {"content_type", "audio/wav"}, {"duration", 1}};
+        QJsonObject payload{{"asset", asset}, {"trackId", "a"}, {"atBar", 3}, {"beat", 2}};
+        if (bpm == 0) {
+            payload.insert("startMs", 1000);
+            QVERIFY(!model.applyEdit(operation, payload));
+            QCOMPARE(model.undoStack()->count(), 0);
+            return;
+        }
+        QVERIFY(model.applyEdit(operation, payload));
+        const auto added = model.clipsJson().last().toObject();
+        QCOMPARE(added.value("startMs").toDouble(), bpm == 120 ? 4500.0 : 4390.243902439024);
+        QCOMPARE(added.value("durationMs").toDouble(), 1000.0);
+        QCOMPARE(model.undoStack()->count(), 1);
+    }
+
+    void musicNudgeUsesSnapAndShiftUsesBar_data() {
+        QTest::addColumn<bool>("large");
+        QTest::addColumn<bool>("compound");
+        QTest::newRow("snap-eighth") << false << false;
+        QTest::newRow("shift-bar") << true << false;
+        QTest::newRow("shift-six-eight-bar") << true << true;
+    }
+    void musicNudgeUsesSnapAndShiftUsesBar() {
+        QFETCH(bool, large);
+        QFETCH(bool, compound);
+        auto raw = musicDocument(false);
+        if (compound) {
+            auto tempo = raw.value("tempo").toObject();
+            tempo.insert("timeSignature", QJsonObject{{"beatsPerBar", 6}, {"beatUnit", 8}});
+            raw.insert("tempo", tempo);
+        }
+        openDocument(raw);
+        gestures()->viewState()->setGridDivision("1/8");
+        gestures()->setSelection({"d1"});
+        const auto modifiers = int(Qt::AltModifier) | (large ? int(Qt::ShiftModifier) : 0);
+        QVERIFY(gestures()->handleKey(Qt::Key_Right, {}, modifiers, false));
+        QCOMPARE(clip("d1").value("startMs").toDouble(), 16000.0 + (large ? (compound ? 1500 : 2000) : 250));
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo();
+        QCOMPARE(clip("d1").value("startMs").toDouble(), 16000.0);
+    }
+    void sectionRangeSpansTracksAndDuplicatesOnce() {
+        openDocument(musicDocument(false));
+        gestures()->setActiveTool("range");
+        drag(lanePoint("a", 2000), lanePoint("c", 10000));
+        const auto range = gestures()->property("sectionRange").toMap();
+        QCOMPARE(range.value("fromMs").toDouble(), 2000.0);
+        QCOMPARE(range.value("toMs").toDouble(), 10000.0);
+        auto* menuButton = item("musicRangeSection-a");
+        QVERIFY(menuButton);
+        click("musicRangeSection-a");
+        QTRY_VERIFY(item("musicSectionDuplicate-a"));
+        click("musicSectionDuplicate-a");
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(clip("d1").value("startMs").toDouble(), 24000.0);
+        bool copied = false;
+        for (const auto& value : model.clipsJson()) {
+            const auto c = value.toObject();
+            if (c.value("trackId") == QJsonValue("a") && c.value("startMs").toDouble() == 10000 && c.value("durationMs").toDouble() == 8000) { copied = true; }
+        }
+        QVERIFY(copied);
+        model.undoStack()->undo();
+        QCOMPARE(model.clipsJson().size(), 4);
+    }
+    void cornerLoopDrag_data() {
+        QTest::addColumn<bool>("cancel");
+        QTest::newRow("commit") << false;
+        QTest::newRow("escape") << true;
+    }
+    void cornerLoopDrag() {
+        QFETCH(bool, cancel);
+        openDocument(musicDocument(false));
+        gestures()->setActiveTool("select");
+        auto* handle = item("musicClipLoopHandle-b1");
+        QVERIFY(handle);
+        QVERIFY(handle->isVisible());
+        const auto from = center(handle);
+        QTest::mousePress(view.get(), Qt::LeftButton, {}, from);
+        QCOMPARE(gestures()->gestureKind(), QStringLiteral("loop"));
+        QTest::mouseMove(view.get(), from + QPoint(50, 0), 20);
+        QCOMPARE(model.undoStack()->count(), 0);
+        if (cancel) { QTest::keyClick(view.get(), Qt::Key_Escape); }
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, from + QPoint(50, 0));
+        QCoreApplication::processEvents();
+        QCOMPARE(model.undoStack()->count(), cancel ? 0 : 1);
+        QCOMPARE(clip("b1").value("durationMs").toDouble(), cancel ? 4000.0 : 8000.0);
+        if (!cancel) {
+            QCOMPARE(clip("b1").value("loopLengthMs").toDouble(), 4000.0);
+            model.undoStack()->undo();
+            QCOMPARE(clip("b1").value("durationMs").toDouble(), 4000.0);
+        }
+    }
+
+    void loopSnapshotBuildsRepeatedWindowsWithoutChangingDocument() {
+        auto raw = musicDocument(false);
+        auto loop = audioClip("loop", "a", 0, 6000);
+        loop.insert("mediaPath", "/private/tmp/a23-loop-plan.wav");
+        loop.insert("loopLengthMs", 2000);
+        loop.insert("outPointMs", 2000);
+        raw.insert("clips", QJsonArray{loop});
+        const auto parsed = nt::parseTimeline(raw);
+        QVERIFY(parsed.timeline);
+        model.setTimeline(*parsed.timeline);
+        const auto snapshot = model.snapshot();
+        QCOMPARE(snapshot->clips.size(), size_t(1));
+        const auto plan = nt::audio::buildMixPlan(*snapshot);
+        QCOMPARE(plan.voices.size(), size_t(3));
+        QCOMPARE(model.clipsJson().size(), 1);
+        QCOMPARE(model.clipsJson()[0].toObject().value("loopLengthMs").toDouble(), 2000.0);
+        QCOMPARE(model.undoStack()->count(), 0);
+        for (size_t i = 0; i < plan.voices.size(); ++i) {
+            QCOMPARE(plan.voices[i].startMs, double(i) * 2000);
+            QCOMPARE(plan.voices[i].durationMs, 2000.0);
+            QCOMPARE(plan.voices[i].inPointMs, 0.0);
+        }
+    }
+    void loopBounceUsesRepeatedSourceWindows() {
+        auto raw = musicDocument(false);
+        auto loop = audioClip("loop", "a", 0, 6000);
+        loop.insert("mediaPath", "/private/tmp/a23-loop-plan.wav");
+        loop.insert("loopLengthMs", 2000);
+        loop.insert("outPointMs", 2000);
+        raw.insert("clips", QJsonArray{loop});
+        const auto parsed = nt::parseTimeline(raw);
+        QVERIFY(parsed.timeline);
+        const auto bounce = nt::music::bounceTimeline(*parsed.timeline, BounceKind::Dry, "a");
+        QCOMPARE(bounce.clips.size(), size_t(1));
+        const auto plan = nt::audio::buildMixPlan(bounce);
+        QCOMPARE(plan.voices.size(), size_t(3));
+        for (const auto& voice : plan.voices) {
+            QCOMPARE(voice.durationMs, 2000.0);
+            QCOMPARE(voice.inPointMs, 0.0);
+        }
+    }
+
+    void sectionEditsAreOneUndoStep_data() {
+        QTest::addColumn<QString>("operation");
+        for (const auto* name : {"insert_time", "delete_time", "duplicate_range", "paste_range", "loop_clip", "duplicate_clip", "move_clip", "split_clip", "trim_clip"}) { QTest::newRow(name) << QString::fromLatin1(name); }
+    }
+    void sectionEditsAreOneUndoStep() {
+        QFETCH(QString, operation);
+        const auto parsed = nt::parseTimeline(musicDocument(false));
+        QVERIFY(parsed.timeline);
+        model.setTimeline(*parsed.timeline);
+        const auto before = model.timeline().raw;
+        QJsonObject payload{{"fromBar", 2}, {"toBar", 3}};
+        if (operation == "insert_time") { payload = {{"atBar", 2}, {"bars", 1}}; }
+        if (operation == "paste_range") {
+            payload = {{"atBar", 2}, {"content", QJsonObject{{"lengthMs", 2000},
+                {"clips", QJsonArray{audioClip("copy", "a", 0, 2000)}}}}};
+        }
+        if (operation == "loop_clip") { payload = {{"clipId", "b1"}, {"times", 3}}; }
+        if (operation == "duplicate_clip") { payload = {{"clipId", "b1"}, {"count", 3}}; }
+        if (operation == "move_clip") { payload = {{"clipId", "d1"}, {"atBar", 10}}; }
+        if (operation == "split_clip" || operation == "trim_clip") { payload = {{"clipId", "b1"}, {"atBar", 4}}; }
+        QVERIFY(model.applyEdit(operation, payload));
+        QCOMPARE(model.undoStack()->count(), 1);
+        const QString label = operation == "insert_time" ? "Insert silence" : operation == "delete_time" ? "Delete section" :
+            operation == "duplicate_range" ? "Duplicate section" : operation == "paste_range" ? "Paste section" :
+            operation == "loop_clip" ? "Loop clip" : operation == "duplicate_clip" ? "Repeat clip" :
+            operation == "move_clip" ? "Move clip" : operation == "split_clip" ? "Split clip" : "Trim clip";
+        QCOMPARE(model.undoStack()->undoText(), label);
+        const auto after = model.timeline().raw;
+        QVERIFY(after != before);
+        model.undoStack()->undo();
+        QCOMPARE(model.timeline().raw, before);
+        model.undoStack()->redo();
+        QCOMPARE(model.timeline().raw, after);
+    }
+
+
+
     // MM2 exit 1 in the editor: the document New music project makes opens with the
     // music object, tempo and key, four role tracks, the bar ruler and the Music layout.
     void newProjectOpensInMusicMode() {
@@ -154,7 +568,8 @@ private slots:
             QCOMPARE(chip->property("label").toString(), labels[i]);
         }
         // The Music layout's toolbar carries the Range tool in place of the editing tools.
-        QTRY_VERIFY(item("musicTool_range") && item("musicTool_range")->isVisible());
+        // The tool list lives in the toolbar tool menu, as in Logic; the range tool is active.
+        QTRY_VERIFY(item("musicToolMenuButton") && item("musicToolMenuButton")->isVisible());
         QVERIFY(!item("toolToggle")->isVisible());
     }
 

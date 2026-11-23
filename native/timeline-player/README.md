@@ -175,7 +175,7 @@ Timeline documents use these registrations:
 - `render2d::registerRender2dHooks()` installs the text measurer and the text,
   shape and caption raster sources and styles.
 - `registerPlaybackHooks()` installs crop and dynamic reframe, picture and
-  mixer automation, and the voice expander for time-remapped audio.
+  mixer automation, and the voice expanders for time-remapped and looped audio.
 
 Link the three registrar object libraries for process-lifetime registration,
 as the timeline app does. Effects and render2d install at QGuiApplication

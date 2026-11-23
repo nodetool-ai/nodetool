@@ -31,7 +31,7 @@ public:
     Q_INVOKABLE quint64 generation() const;
     Q_INVOKABLE void setPoints(const QString& laneId, const QJsonArray& points, quint64 generation);
     Q_INVOKABLE double laneValueAt(const QString& laneId, double timeMs, double fallback) const;
-    Q_INVOKABLE bool clipNameAt(double timeMs) const;
+    Q_INVOKABLE bool clipNameAt(double timeMs, double minimumDurationMs = 0) const;
     Q_INVOKABLE void createWithPoints(const QJsonObject& target, const QJsonArray& points, quint64 generation);
     Q_INVOKABLE void addLane(const QJsonObject& target);
     Q_INVOKABLE void patchLane(const QString& laneId, const QJsonObject& patch, bool remove = false);
@@ -47,6 +47,7 @@ private:
     void refresh();
 };
 
+// UI thread only. The QML engine owns the singleton and its reading cache.
 class AutomationMeters : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -61,6 +62,7 @@ public:
   private:
     struct Reading { qint64 atMs = -1000; QVariantList peaks; };
     mutable QHash<QString, Reading> readings_;
+    mutable qint64 lastPrunedMs_=-1000;
     QElapsedTimer clock_ = [] { QElapsedTimer t; t.start(); return t; }();
 };
 
@@ -100,4 +102,15 @@ private:
     void compile();
     void update();
     void overrideChanged(const QString& trackId, const QString& param);
+};
+
+// UI thread only. The QML engine owns this immutable parameter-schema interface.
+class AutomationParameters : public QObject {
+    Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
+public:
+    explicit AutomationParameters(QObject* parent=nullptr) : QObject(parent) {}
+    Q_INVOKABLE QJsonArray instrumentTargets(const QJsonObject& instrument) const;
+    Q_INVOKABLE QJsonObject effectDefaults(const QString& type) const;
 };

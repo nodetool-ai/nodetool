@@ -29,7 +29,7 @@ Rectangle {
     readonly property real rulerHeight: Ui.Metrics.small
     readonly property real stripHeight: Ui.Metrics.iconXs
     readonly property real gridTop: rulerHeight + stripHeight
-    readonly property real velocityHeight: Ui.Metrics.xxxl * 2
+    readonly property real velocityHeight: Ui.Metrics.xxxl * 3
     readonly property real laneBarHeight: Ui.Metrics.standard
     readonly property real laneMargin: Ui.Metrics.sm
     readonly property real pointSize: Ui.Metrics.sm
@@ -111,6 +111,9 @@ Rectangle {
     property string dragMode: "overlap"
     property bool collapseMode: false
     property bool drawVisible: true
+    // Pitch names inside notes. Off by default, as in Logic (MUSIC_EDITOR_UI.md 4.1).
+    property bool noteLabels: false
+    onNoteLabelsChanged: grid.requestPaint()
     property bool catchOn: true
     property bool linkOn: true
     property bool inspectorVisible: true
@@ -155,6 +158,7 @@ Rectangle {
         timeline: root.editor ? root.editor.timeline : null
         onClipIdChanged: root.framed = false
         onClipChanged: {
+            root.velocityCancel()
             if (!valid) return
             if (root.scaleRootClip !== clipId) {
                 root.scaleRootClip = clipId
@@ -393,6 +397,7 @@ Rectangle {
         case "invertSelection": selectedIds = Tools.invertSelection(current, ids); return
         case "inspector": inspectorVisible = !inspectorVisible; return
         case "draw": drawVisible = !drawVisible; return
+        case "noteLabels": noteLabels = !noteLabels; return
         case "collapse": collapseMode = !collapseMode; return
         case "catch": catchOn = !catchOn; return
         case "link": linkOn = !linkOn; return
@@ -437,7 +442,7 @@ Rectangle {
         const ids = root.selectedIds
         const current = root.notes
         // A gesture owns the notes and lanes until its release.
-        if (gridMouse.drag || laneMouse.gesture) { event.accepted = true; return }
+        if (gridMouse.drag || laneMouse.gesture || velocityMouse.gesture || root.velocityGesture) { event.accepted = true; return }
         if (!controller.valid) return
         if (event.key === Qt.Key_Escape) {
             if (ids.length > 0) { root.selectedIds = []; event.accepted = true }
@@ -528,29 +533,138 @@ Rectangle {
             y: root.gridTop
             width: root.keyboardWidth
             height: gridArea.height
+            // The key under the pointer, and the key held down. Each takes the accent tint.
+            property int hoverPitch: -1
+            property int pressedPitch: -1
+            onHoverPitchChanged: requestPaint()
+            onPressedPitchChanged: requestPaint()
             onPaint: {
                 const ctx = getContext("2d")
                 ctx.reset()
-                ctx.fillStyle = Ui.Theme.surfacePanel
-                ctx.fillRect(0, 0, width, height)
-                const rows = Math.ceil(height / root.rowHeight) + 1
+                const dark = Ui.Theme.dark
+                const ivory = dark ? Ui.Theme.textPrimary : Ui.Theme.surfacePanel
+                const ebony = dark ? Ui.Theme.surfaceCanvas : Ui.Theme.textPrimary
+                const ink = dark ? Ui.Theme.surfaceCanvas : Ui.Theme.textSecondary
+                const rh = root.rowHeight
                 const collapsed = root.geometry.rows
+                const tint = pitch => pitch === pressedPitch ? 0.75 : pitch === hoverPitch ? 0.4 : 0
                 ctx.font = Ui.Typography.canvasFont(Ui.Typography.SansCaption)
                 ctx.textBaseline = "middle"
-                for (let row = 0; row < rows; ++row) {
-                    const pitch = collapsed ? collapsed.pitches[row + root.geometry.topRow] : root.topPitch - row
-                    if (pitch === undefined || pitch < 0) break
-                    const y = row * root.rowHeight
-                    // Collapse Mode shows only the keys that have notes, each labeled.
-                    ctx.fillStyle = Notes.isBlackKey(pitch) ? Ui.Theme.textPrimary : Ui.Theme.surfaceCanvas
-                    ctx.fillRect(0, y, Notes.isBlackKey(pitch) && !collapsed ? width * 0.6 : width, root.rowHeight)
-                    ctx.fillStyle = Ui.Theme.borderSubtle
-                    ctx.fillRect(0, y + root.rowHeight - 1, width, 1)
-                    if (collapsed || pitch % 12 === 0) {
-                        ctx.fillStyle = collapsed && Notes.isBlackKey(pitch) ? Ui.Theme.surfaceCanvas : Ui.Theme.textSecondary
-                        ctx.fillText(Notes.pitchName(pitch), collapsed ? Ui.Metrics.sm : width * 0.62, y + root.rowHeight / 2)
+                ctx.textAlign = "right"
+                if (collapsed) {
+                    // Collapse Mode shows only the keys that have notes, each a full-width labeled row.
+                    ctx.fillStyle = Ui.Theme.surfacePanel
+                    ctx.fillRect(0, 0, width, height)
+                    const rows = Math.ceil(height / rh) + 1
+                    for (let row = 0; row < rows; ++row) {
+                        const pitch = collapsed.pitches[row + root.geometry.topRow]
+                        if (pitch === undefined) break
+                        const y = row * rh, black = Notes.isBlackKey(pitch)
+                        ctx.fillStyle = black ? ebony : ivory
+                        ctx.fillRect(0, y, width, rh)
+                        if (tint(pitch) > 0) {
+                            ctx.globalAlpha = tint(pitch)
+                            ctx.fillStyle = Ui.Theme.accentPrimary
+                            ctx.fillRect(0, y, width, rh)
+                            ctx.globalAlpha = 1
+                        }
+                        ctx.fillStyle = Ui.Theme.borderStrong
+                        ctx.fillRect(0, y + rh - 1, width, 1)
+                        ctx.fillStyle = black ? Ui.Theme.textSecondary : ink
+                        ctx.fillText(Notes.pitchName(pitch), width - Ui.Metrics.xs, y + rh / 2)
+                    }
+                    return
+                }
+                // A real keyboard: seven white keys share each octave's twelve rows, so the white
+                // keys are wider than a row and their seams do not follow the grid. The black keys
+                // sit on top, 60% deep, each with a lit lower bevel.
+                ctx.fillStyle = ivory
+                ctx.fillRect(0, 0, width, height)
+                const topPitch = root.topPitch
+                const lowPitch = Math.max(0, topPitch - Math.ceil(height / rh) - 1)
+                const octaveBottom = c => (topPitch - c + 1) * rh
+                const whiteHeight = 12 * rh / 7
+                for (let c = Math.floor(lowPitch / 12) * 12; c <= topPitch; c += 12) {
+                    const base = octaveBottom(c)
+                    for (let k = 0; k < 7; ++k) {
+                        const semitone = [0, 2, 4, 5, 7, 9, 11][k]
+                        const bottom = base - k * whiteHeight, top = bottom - whiteHeight
+                        const amount = tint(c + semitone)
+                        if (amount > 0) {
+                            ctx.globalAlpha = amount
+                            ctx.fillStyle = Ui.Theme.accentPrimary
+                            ctx.fillRect(0, top, width, whiteHeight)
+                            ctx.globalAlpha = 1
+                        }
+                        // The seam under each white key. The B-C seam marks the octave.
+                        ctx.fillStyle = Ui.Theme.borderStrong
+                        ctx.globalAlpha = k === 0 ? 0.9 : 0.55
+                        ctx.fillRect(0, Math.round(bottom) - 1, width, 1)
+                        ctx.globalAlpha = 1
+                    }
+                    if (c >= 0 && c <= 127) {
+                        const y = base - whiteHeight / 2
+                        ctx.fillStyle = tint(c) > 0.5 ? Ui.Theme.textOnAccent : ink
+                        ctx.fillText(Notes.pitchName(c), width - Ui.Metrics.xs, y)
                     }
                 }
+                const blackWidth = Math.round(width * 0.6)
+                for (let pitch = lowPitch; pitch <= topPitch; ++pitch) {
+                    if (!Notes.isBlackKey(pitch)) continue
+                    const y = (topPitch - pitch) * rh
+                    // A soft shadow falls to the right of the key onto the white keys.
+                    ctx.fillStyle = Ui.Theme.scrimModal
+                    ctx.globalAlpha = 0.25
+                    ctx.fillRect(blackWidth, y + 1, Ui.Metrics.micro, rh - 1)
+                    ctx.globalAlpha = 1
+                    ctx.fillStyle = ebony
+                    ctx.fillRect(0, y, blackWidth, rh)
+                    // A faint sheen along the key's lower half reads as depth.
+                    ctx.fillStyle = dark ? Ui.Theme.borderControl : Ui.Theme.textSecondary
+                    ctx.fillRect(0, y + rh / 2, blackWidth - Ui.Metrics.micro, rh / 2 - 1)
+                    // The bevel: a lighter front edge at the key's tip.
+                    ctx.fillStyle = Ui.Theme.borderStrong
+                    ctx.globalAlpha = 0.5
+                    ctx.fillRect(blackWidth - Ui.Metrics.micro, y + 1, Ui.Metrics.micro, rh - 2)
+                    ctx.globalAlpha = 1
+                    const amount = tint(pitch)
+                    if (amount > 0) {
+                        ctx.globalAlpha = amount
+                        ctx.fillStyle = Ui.Theme.accentPrimary
+                        ctx.fillRect(0, y, blackWidth, rh)
+                        ctx.globalAlpha = 1
+                    }
+                }
+                // The edge between the keyboard and the grid.
+                ctx.fillStyle = Ui.Theme.borderStrong
+                ctx.fillRect(width - 1, 0, 1, height)
+            }
+            MouseArea {
+                id: keyboardMouse
+                objectName: "pianoRollKeyboardMouse"
+                anchors.fill: parent
+                hoverEnabled: true
+                // A black key covers only the left 60% of its row. Its right part belongs to the
+                // white key beside it, as on a real keyboard.
+                function pitchAt(x, y) {
+                    const pitch = Notes.yToPitch(y, root.geometry)
+                    if (root.geometry.rows || !Notes.isBlackKey(pitch) || x < keyboard.width * 0.6) return pitch
+                    const within = (y / root.rowHeight) % 1
+                    return within < 0.5 ? pitch + 1 : pitch - 1
+                }
+                onPositionChanged: mouse => keyboard.hoverPitch = pitchAt(mouse.x, mouse.y)
+                onExited: keyboard.hoverPitch = -1
+                // A click selects every note on the key. Shift adds them to the selection.
+                onPressed: mouse => {
+                    root.forceActiveFocus()
+                    const pitch = pitchAt(mouse.x, mouse.y)
+                    keyboard.pressedPitch = pitch
+                    const ids = root.notes.filter(note => note.pitch === pitch).map(note => note.id)
+                    root.selectedIds = mouse.modifiers & Qt.ShiftModifier
+                        ? Array.from(new Set(root.selectedIds.concat(ids))) : ids
+                }
+                onReleased: keyboard.pressedPitch = -1
+                onCanceled: keyboard.pressedPitch = -1
             }
         }
 
@@ -680,8 +794,11 @@ Rectangle {
                             ctx.fillStyle = Ui.Theme.actionSelected
                             ctx.fillRect(0, y, width, root.rowHeight)
                         }
-                        ctx.fillStyle = pitch % 12 === 0 ? Ui.Theme.borderControl : Ui.Theme.borderSubtle
+                        // The B-C boundary marks the octave.
+                        ctx.fillStyle = pitch % 12 === 0 ? Ui.Theme.borderStrong : Ui.Theme.borderSubtle
+                        ctx.globalAlpha = pitch % 12 === 0 ? 0.45 : 1
                         ctx.fillRect(0, y + root.rowHeight - 1, width, 1)
+                        ctx.globalAlpha = 1
                     }
                     const from = Notes.xToTick(0, geo), to = Notes.xToTick(width, geo)
                     // Bar lines are strong, beat lines medium and the lines at the snap step faint.
@@ -692,10 +809,12 @@ Rectangle {
                         for (const tick of Tools.stepLineTicks(from, to, faint, root.gridPhaseTick)) ctx.fillRect(Math.round(Notes.tickToX(tick, geo)), 0, 1, height)
                     }
                     if (root.beatTicks * root.pxPerTick >= Ui.Metrics.xs) {
-                        ctx.fillStyle = Ui.Theme.borderControl
+                        ctx.fillStyle = Ui.Theme.borderStrong
+                        ctx.globalAlpha = 0.3
                         for (const tick of controller.gridTicks("beat", from, to)) ctx.fillRect(Math.round(Notes.tickToX(tick, geo)), 0, 1, height)
                     }
                     if (controller.gridStepTicks("bar") * root.pxPerTick >= Ui.Metrics.xs) {
+                        ctx.globalAlpha = 0.75
                         ctx.fillStyle = Ui.Theme.borderStrong
                         for (const tick of controller.gridTicks("bar", from, to)) ctx.fillRect(Math.round(Notes.tickToX(tick, geo)), 0, 1, height)
                     }
@@ -714,31 +833,46 @@ Rectangle {
                         const isSelected = !!selected[list[i].id]
                         const muted = !!list[i].muted
                         const rgb = clipMode ? root.clipRgb : Notes.velocityColor(list[i].velocity)
-                        const fill = Notes.mixColor(rgb, rgb, 0)
-                        const edge = Notes.mixColor(rgb, [0, 0, 0], 0.35)
-                        const top = r.y + 1, h = r.height - 2
-                        ctx.beginPath()
-                        ctx.roundedRect(r.x + 0.5, top + 0.5, Math.max(1, r.width - 1), Math.max(1, h - 1), Ui.Metrics.micro, Ui.Metrics.micro)
+                        // A selected note lights up toward white, as in Logic, and keeps a white frame.
+                        const fill = Notes.mixColor(rgb, [255, 255, 255], isSelected ? 0.55 : 0)
+                        const edge = isSelected ? Ui.Theme.textPrimary : Notes.mixColor(rgb, [0, 0, 0], 0.4)
+                        // A note is a bar with a small radius and a one-pixel edge. The velocity line runs inside it.
+                        const top = Math.round(r.y) + 1, h = Math.max(1, Math.round(r.height) - 2)
+                        const nx = Math.round(r.x), nw = Math.max(1, Math.round(r.width) - 1)
+                        const radius = Math.min(Ui.Metrics.micro, nw / 2, h / 2)
                         if (muted) {
                             // A muted note is hollow: a faint fill and an outline.
-                            ctx.globalAlpha = 0.12
+                            ctx.globalAlpha = 0.15
                             ctx.fillStyle = fill
-                            ctx.fill()
+                            ctx.fillRect(nx, top, nw, h)
                             ctx.globalAlpha = 0.7
-                            ctx.strokeStyle = fill
-                            ctx.lineWidth = Ui.Metrics.border
-                            ctx.stroke()
+                            ctx.strokeStyle = isSelected ? Ui.Theme.textPrimary : fill
+                            ctx.lineWidth = 1
+                            ctx.strokeRect(nx + 0.5, top + 0.5, Math.max(0, nw - 1), Math.max(0, h - 1))
                         } else {
-                            ctx.fillStyle = fill
+                            ctx.fillStyle = edge
+                            ctx.beginPath()
+                            ctx.roundedRect(nx, top, nw, h, radius, radius)
                             ctx.fill()
-                            ctx.strokeStyle = edge
-                            ctx.lineWidth = Ui.Metrics.border
-                            ctx.stroke()
-                            // The velocity line: a thin bar from the left edge, as long as the velocity.
-                            if (r.width >= 8 && r.height >= 6) {
-                                ctx.fillStyle = Notes.mixColor(rgb, [255, 255, 255], 0.5)
-                                ctx.fillRect(Math.round(r.x + 3), Math.round(r.y + (r.height - Ui.Metrics.micro) / 2),
-                                             Math.round((r.width - 6) * list[i].velocity / 127), Ui.Metrics.micro)
+                            ctx.fillStyle = fill
+                            ctx.beginPath()
+                            ctx.roundedRect(nx + 1, top + 1, Math.max(0, nw - 2), Math.max(0, h - 2), Math.max(0, radius - 1), Math.max(0, radius - 1))
+                            ctx.fill()
+                            // With Note Labels on, the name sits at the left when the note is wide and tall enough.
+                            let lineX = nx + 2
+                            const name = Notes.pitchName(list[i].pitch)
+                            if (root.noteLabels && h >= Ui.Metrics.md && nw >= Ui.Metrics.xxxl) {
+                                ctx.font = Ui.Typography.canvasFont(Ui.Typography.SansCaption)
+                                ctx.textBaseline = "middle"
+                                ctx.textAlign = "left"
+                                ctx.fillStyle = Notes.mixColor(rgb, [0, 0, 0], 0.75)
+                                ctx.fillText(name, nx + Ui.Metrics.xs, top + h / 2)
+                                lineX = nx + Ui.Metrics.xs + ctx.measureText(name).width + Ui.Metrics.xs
+                            }
+                            const lineSpan = nx + nw - 2 - lineX
+                            if (lineSpan >= 2 && h >= 5) {
+                                ctx.fillStyle = Notes.mixColor(rgb, [0, 0, 0], 0.55)
+                                ctx.fillRect(lineX, top + Math.floor(h / 2), Math.max(1, Math.round(lineSpan * list[i].velocity / 127)), 1)
                             }
                         }
                         ctx.globalAlpha = 1
@@ -755,11 +889,6 @@ Rectangle {
                             for (const p of bend) ctx.lineTo(r.x + p.tick * root.pxPerTick, yOf(p.value))
                             ctx.lineTo(r.x + r.width, yOf(bend[bend.length - 1].value))
                             ctx.stroke()
-                        }
-                        if (isSelected) {
-                            ctx.strokeStyle = Ui.Theme.textPrimary
-                            ctx.lineWidth = 1
-                            ctx.strokeRect(r.x + 0.5, r.y + 1.5, Math.max(0, r.width - 1), r.height - 3)
                         }
                     }
                     const m = gridMouse.marquee
@@ -830,7 +959,7 @@ Rectangle {
                     const step = Math.max(1, Math.round(root.gridStepTicks))
                     const snapped = root.snapOn && !bypass
                     const positions = []
-                    if (from === null) positions.push(start)
+                    if (from === null || (start === from && pitch !== drag.lastPitch)) positions.push(start)
                     else if (snapped && start !== from) {
                         const direction = start > from ? 1 : -1
                         const lines = Tools.stepLineTicks(Math.min(from, start), Math.max(from, start), step, root.gridPhaseTick)
@@ -845,6 +974,7 @@ Rectangle {
                         const direction = start >= from ? 1 : -1
                         const count = Math.min(512, Math.floor(Math.abs(start - from) / step))
                         for (let i = 1; i <= count; ++i) positions.push(from + direction * i * step)
+                        if (pitch !== drag.lastPitch && positions.indexOf(start) < 0) positions.push(start)
                     }
                     let list = root.notes
                     for (const at of positions) {
@@ -854,6 +984,7 @@ Rectangle {
                         }
                         drag.lastStart = at
                     }
+                    if (positions.length > 0) { drag.lastPitch = pitch }
                     if (drag.changed) root.liveNotes = list
                 }
 
@@ -1065,6 +1196,35 @@ Rectangle {
             }
         }
 
+        // The velocity scale in the keyboard column, beside the lane: 127 at the top, 64, and 0 on the baseline.
+        Canvas {
+            objectName: "pianoRollVelocityScale"
+            visible: velocityLane.visible
+            x: 0
+            y: velocityLane.y
+            width: root.keyboardWidth
+            height: velocityLane.height
+            onPaint: {
+                const ctx = getContext("2d")
+                ctx.reset()
+                ctx.fillStyle = Ui.Theme.surfacePanel
+                ctx.fillRect(0, 0, width, height)
+                ctx.fillStyle = Ui.Theme.borderSubtle
+                ctx.fillRect(0, 0, width, 1)
+                ctx.fillRect(width - 1, 0, 1, height)
+                const base = height - Ui.Metrics.xs, usable = base - Ui.Metrics.xs
+                ctx.font = Ui.Typography.canvasFont(Ui.Typography.SansCaption)
+                ctx.textAlign = "right"
+                ctx.fillStyle = Ui.Theme.textSecondary
+                const label = (value, baseline) => {
+                    ctx.textBaseline = baseline
+                    ctx.fillText(String(value), width - Ui.Metrics.sm, Math.round(base - usable * value / 127))
+                }
+                label(127, "top")
+                label(64, "middle")
+                label(0, "bottom")
+            }
+        }
         Canvas {
             id: velocityLane
             objectName: "pianoRollVelocity"
@@ -1081,20 +1241,44 @@ Rectangle {
                 ctx.fillStyle = Ui.Theme.borderSubtle
                 ctx.fillRect(0, 0, width, 1)
                 const list = root.notes, selected = root.selectedSet, geo = root.geometry
-                const usable = height - Ui.Metrics.xs
-                for (let i = 0; i < list.length; ++i) {
-                    const x = Notes.tickToX(list[i].startTick, geo)
-                    if (x < -Ui.Metrics.xs || x > width) continue
-                    const h = usable * list[i].velocity / 127
-                    ctx.fillStyle = selected[list[i].id] ? Ui.Theme.accentSecondary : Ui.Theme.accentPrimary
-                    ctx.fillRect(Math.round(x), height - h, Ui.Metrics.micro, h)
-                    ctx.fillRect(Math.round(x) - Ui.Metrics.micro, height - h, Ui.Metrics.sm, Ui.Metrics.micro)
+                const head = Ui.Metrics.xs
+                // Velocity 0 sits on a baseline one margin above the bottom, so every stem ends in view.
+                const base = height - Ui.Metrics.xs
+                const usable = base - head
+                // Faint guides at a quarter, half and three quarters of full velocity, and the baseline.
+                ctx.fillStyle = Ui.Theme.borderSubtle
+                for (let q = 0; q < 4; ++q) ctx.fillRect(0, Math.round(base - usable * q / 4), width, 1)
+                const clipMode = root.noteColorMode === "clip"
+                // One stem per note with a round head, in the note's color. A selected note's head
+                // is white with a ring in its color, and its stem is brighter.
+                const drawStem = (note, isSelected) => {
+                    const x = Math.round(Notes.tickToX(note.startTick, geo)) + 1
+                    if (x < -head || x > width + head) return
+                    const rgb = clipMode ? root.clipRgb : Notes.velocityColor(note.velocity)
+                    const color = Notes.mixColor(rgb, [255, 255, 255], isSelected ? 0.35 : 0)
+                    const y = base - usable * note.velocity / 127
+                    ctx.globalAlpha = note.muted ? 0.4 : 1
+                    ctx.fillStyle = color
+                    ctx.fillRect(x - 1, y, Ui.Metrics.micro, base - y)
+                    ctx.beginPath()
+                    ctx.arc(x, y, head, 0, 2 * Math.PI)
+                    ctx.fillStyle = isSelected ? Ui.Theme.textPrimary : color
+                    ctx.fill()
+                    if (isSelected) {
+                        ctx.lineWidth = Ui.Metrics.micro
+                        ctx.strokeStyle = color
+                        ctx.stroke()
+                    }
+                    ctx.globalAlpha = 1
                 }
+                for (let i = 0; i < list.length; ++i) if (!selected[list[i].id]) drawStem(list[i], false)
+                for (let i = 0; i < list.length; ++i) if (selected[list[i].id]) drawStem(list[i], true)
             }
             MouseArea {
+                id: velocityMouse
                 anchors.fill: parent
                 property var gesture: null
-                function velocityAt(y) { return Math.max(1, Math.min(127, Math.round(127 * (parent.height - y) / (parent.height - Ui.Metrics.xs)))) }
+                function velocityAt(y) { return Math.max(1, Math.min(127, Math.round(127 * (parent.height - y) / (parent.height - 2 * Ui.Metrics.xs)))) }
                 function noteNear(x) {
                     const list = root.notes
                     let best = null, bestDistance = Ui.Metrics.sm

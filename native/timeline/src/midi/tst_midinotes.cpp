@@ -50,6 +50,22 @@ QJsonArray notesWith(const QJsonObject& extra) {
 class TestMidiNotes : public QObject {
     Q_OBJECT
   private slots:
+    void writesBothEventKindsAtomically() {
+        const auto raw = document();
+        const auto volume = QJsonObject{{"id","L1"},{"kind","cc"},{"cc",7},{"points",QJsonArray{point(0,80,"p")}}};
+        const auto payload = QJsonObject{{"clipId","c1"},{"notes",QJsonArray{note(60,100,0,240,"n")}},{"controllers",QJsonArray{volume}}};
+        const auto next = nt::midi::setClipEvents(raw, payload);
+        QCOMPARE(notesOf(next).size(), 1); QCOMPARE(controllersOf(next).size(), 1);
+        auto invalid = payload;
+        auto badLane = volume; badLane.insert("points",QJsonArray{point(0,200,"p")});
+        invalid.insert("controllers",QJsonArray{badLane});
+        QCOMPARE(nt::midi::setClipEvents(raw,invalid), raw);
+        invalid = payload; invalid.insert("notes",QJsonArray{note(60,0,0,240,"n")});
+        QCOMPARE(nt::midi::setClipEvents(raw,invalid), raw);
+        QCOMPARE(nt::midi::setClipEvents(document(true),payload), document(true));
+        QCOMPARE(nt::midi::setClipEvents(document(false,true),payload), document(false,true));
+    }
+
     void writesNotes() {
         const auto next = nt::midi::setClipNotes(document(), {{"clipId", "c1"},
             {"notes", QJsonArray{note(60, 100, 0, 960, "a"), note(64, 90, 960, 480)}}});

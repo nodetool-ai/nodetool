@@ -1,4 +1,5 @@
 .pragma library
+.import NodeTool.Timeline as Native
 function key(target) {
     return target.kind === "clip" ? "clip:" + target.property : target.kind === "device"
         ? "device:" + target.deviceId + ":" + target.param : "mixer:" + target.param
@@ -13,6 +14,7 @@ function automationTargetSpecs(track) {
     if (track.type === "audio" || track.type === "midi") {
         result.push(spec({kind:"mixer", param:"volumeDb"}, "Volume", "Mixer", -60, 6, track.volumeDb || 0))
         result.push(spec({kind:"mixer", param:"pan"}, "Pan", "Mixer", -1, 1, track.pan || 0))
+        if (track.type === "midi") { result=result.concat(Native.AutomationParameters.instrumentTargets(track.instrument || {})) }
         var freq = [20, 20000, "log"]
         var fields = {
             gain: [["gainDb", "Gain", -24, 24]],
@@ -26,7 +28,7 @@ function automationTargetSpecs(track) {
         ;(track.effects || []).forEach(function(effect, index) {
             ;(fields[effect.type] || []).forEach(function(field) {
                 result.push(spec({kind:"device", deviceId:effect.id, param:field[0]}, field[1],
-                    (index + 1) + ". " + EFFECT_LABELS[effect.type], field[2], field[3], effect[field[0]], field[4]))
+                    (index + 1) + ". " + EFFECT_LABELS[effect.type], field[2], field[3], effect[field[0]] === undefined ? Native.AutomationParameters.effectDefaults(effect.type)[field[0]] : effect[field[0]], field[4]))
             })
         })
     } else if (track.type === "video" || track.type === "overlay") {

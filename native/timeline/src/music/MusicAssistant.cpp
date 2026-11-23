@@ -1,6 +1,8 @@
 #include "music/MusicAssistant.h"
 
 #include "aiassist/AssistDocument.h"
+#include "app/EditRegistry.h"
+#include "midi/PatternOps.h"
 #include "model/TimelineModel.h"
 #include "music/MusicDocument.h"
 #include "music/MusicJobs.h"
@@ -15,6 +17,7 @@
 #include <array>
 #include <cmath>
 #include <optional>
+#include <stdexcept>
 
 namespace nt::music::assistant {
 namespace {
@@ -83,6 +86,14 @@ QString resolveTrack(const QString& input, const QJsonArray& tracks, QString* er
     return {};
 }
 
+// Single-undo-step edit hook for SQ55 step sequencer assistant mutations.
+[[maybe_unused]] const bool stepPatternEditRegistered =
+    nt::app::registerEdit(QStringLiteral("midi.stepPatternOp"), [](QJsonObject before, const QJsonObject& payload) {
+        const auto outcome = nt::midi::runStepPatternOp(before, payload.value(u"operation").toString(), payload.value(u"args").toObject());
+        if (!outcome.ok) throw std::runtime_error(outcome.error.toStdString());
+        return outcome.nextDocument;
+    });
+
 }  // namespace
 
 QVariantList tools() {
@@ -113,12 +124,35 @@ QVariantList tools() {
                                        {"required", QStringList{"timeline_id", "track_id", "start_bar", "end_bar", "prompt"}},
                                        {"additionalProperties", false}}}});
     }
+    out.append(nt::midi::stepPatternAssistantTools());
     return out;
 }
 
-bool handles(const QString& name) { return findTool(name) != nullptr; }
+bool handles(const QString& name) { return findTool(name) != nullptr || nt::midi::isStepPatternTool(name); }
 
-QJsonObject run(const QString& name, const QJsonObject& args, TimelineModel& model, MusicJobs& jobs) {
+QJsonObject run(const QString& name, const QJsonObject& args, TimelineModel& model, MusicJobs& jobs, const EditState& state) {
+    if (nt::midi::isStepPatternTool(name)) {
+        if (nt::midi::canonicalStepPatternOp(name) != u"get_pattern") {
+            if (state.dragging) return failure(QStringLiteral("The person is dragging in the timeline. Try again when the drag ends."));
+            if (state.trimming) return failure(QStringLiteral("The person is in trim mode. Try again when they leave it."));
+            if (state.recordingTakes) return failure(QStringLiteral("The person is recording take switches. Try again when they stop."));
+        }
+        auto outcome = nt::midi::runStepPatternOp(model.timeline().raw, name, args);
+        if (!outcome.ok) return failure(outcome.error);
+        if (outcome.mutated) {
+            if (model.readOnly()) return failure(QStringLiteral("This timeline is read-only."));
+            if (outcome.nextDocument != model.timeline().raw &&
+                model.applyEdit(QStringLiteral("Edit Step Pattern"), {},
+                    [&outcome, &name, &args](QJsonObject before, const QJsonObject&) {
+                        outcome = nt::midi::runStepPatternOp(before, name, args);
+                        if (!outcome.ok) throw std::runtime_error(outcome.error.toStdString());
+                        return outcome.nextDocument;
+                    }) == 0) {
+                return failure(QStringLiteral("Could not apply step sequencer edit."));
+            }
+        }
+        return outcome.result;
+    }
     const auto* tool = findTool(name);
     if (!tool) return failure(QStringLiteral("There is no music tool %1.").arg(name));
     const auto& raw = model.timeline().raw;

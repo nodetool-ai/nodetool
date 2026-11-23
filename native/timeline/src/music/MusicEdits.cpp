@@ -2,6 +2,7 @@
 
 #include "ai/Take.h"
 #include "app/EditRegistry.h"
+#include "edit/ClipOps.h"
 #include "music/MusicRange.h"
 #include "music/MusicTime.h"
 
@@ -405,6 +406,26 @@ QJsonObject createMidiClip(QJsonObject raw, const QJsonObject& payload) {
     }
     return raw;
 }
+
+const bool sectionEditsRegistered = [] {
+    for (const auto* operation : {"insert_time", "delete_time", "duplicate_range", "paste_range"}) {
+        const auto name = QString::fromLatin1(operation);
+        nt::app::registerEdit(name, [name](QJsonObject raw, const QJsonObject& payload) {
+            return nt::edit::applySectionEdit(std::move(raw), name, payload);
+        });
+    }
+    return true;
+}();
+
+const bool clipEditsRegistered = [] {
+    for (const auto* operation : {"loop_clip", "duplicate_clip", "move_clip", "split_clip", "trim_clip"}) {
+        const auto name = QString::fromLatin1(operation);
+        nt::app::registerEdit(name, [name](QJsonObject raw, const QJsonObject& payload) {
+            return nt::edit::applyMusicClipEdit(std::move(raw), name, payload);
+        });
+    }
+    return true;
+}();
 
 const bool placeholderRegistered = nt::app::registerEdit("music.insertPlaceholder", insertPlaceholder);
 const bool resultRegistered = nt::app::registerEdit("music.applyResult", applyResult);

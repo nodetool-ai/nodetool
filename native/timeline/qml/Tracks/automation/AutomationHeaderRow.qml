@@ -28,9 +28,13 @@ Item {
     function choose(next) {
         if (main) { AutomationUIState.setShown(track.id,next.key); return }
         if (next.key === AutomationUIState.shownKey(track) || (track.automation || []).some(l => l.id !== lane.id && Targets.key(l.target) === next.key)) { return }
-        const points = (lane.points || []).map(p => ({timeMs:p.timeMs,
-            value:Targets.automationNormToValue(next,spec ? Targets.automationValueToNorm(spec,p.value) : .5),
-            easing:p.easing || "linear"}))
+        const points = (lane.points || []).map(p => {
+            const point = {timeMs:p.timeMs, value:spec
+                ? Targets.automationNormToValue(next,Targets.automationValueToNorm(spec,p.value))
+                : Math.max(next.min,Math.min(next.max,p.value))}
+            if (p.easing && p.easing !== "linear") { point.easing = p.easing }
+            return point
+        })
         controller.patchLane(lane.id,{target:next.target,points:points})
     }
     Ui.ToolbarIconButton {
@@ -63,7 +67,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         density: Ui.EditorButton.Compact
         accessibleName: "Automation parameter: " + (root.spec ? root.spec.label : "Removed device")
-        onClicked: parameterMenu.popup()
+        onClicked: parameterMenu.openAt(parameter)
         Ui.Text {
             anchors.fill: parent
             anchors.margins: Ui.Metrics.xs
@@ -97,31 +101,74 @@ Item {
             }
         }
     }
-    Ui.ContextMenu {
+    Ui.Popover {
         id: parameterMenu
-        Repeater {
-            model: root.specs
-            delegate: Ui.MenuItem {
-                required property var modelData
-                readonly property bool populated: (root.track.automation || []).some(l => Targets.key(l.target) === modelData.key && l.points.length > 0)
-                text: (populated ? "• " : "") + modelData.group + " · " + modelData.label
-                enabled: root.main || (root.lane && !root.track.locked && modelData.key !== AutomationUIState.shownKey(root.track) && !(root.track.automation || []).some(l => l.id !== root.lane.id && Targets.key(l.target) === modelData.key))
-                onTriggered: root.choose(modelData)
+        width: parent ? Math.min(Ui.Metrics.dialogCompactWidth,parent.width) : Ui.Metrics.dialogCompactWidth
+        height: Math.min(implicitHeight,parent ? parent.height : implicitHeight)
+        onOpened: {
+            parameterList.currentIndex=Math.max(0,root.specs.findIndex(s => s.key===root.shown))
+            parameterList.positionViewAtIndex(parameterList.currentIndex,ListView.Contain)
+            parameterList.forceActiveFocus()
+        }
+        contentItem: Column {
+            ListView {
+                id: parameterList
+                width: parent.width
+                height: Math.max(Ui.Metrics.comfortable,Math.min(Math.min(root.specs.length,8)*Ui.Metrics.comfortable,
+                    parameterMenu.parent ? parameterMenu.parent.height-2*Ui.Metrics.md-(root.activeLane ? 2*Ui.Metrics.comfortable : 0) : Ui.Metrics.comfortable*8))
+                implicitHeight: height
+                model: root.specs
+                reuseItems: true
+                clip: true
+                keyNavigationEnabled: true
+                Keys.onReturnPressed: if (currentItem && currentItem.enabled) { currentItem.click() }
+                Keys.onEnterPressed: if (currentItem && currentItem.enabled) { currentItem.click() }
+                delegate: Ui.ListRow {
+                    id: parameterChoice
+                    required property var modelData
+                    required property int index
+                    readonly property bool populated: (root.track.automation || []).some(l => Targets.key(l.target)===modelData.key && l.points.length>0)
+                    width: parameterList.width
+                    height: Ui.Metrics.comfortable
+                    active: ListView.isCurrentItem
+                    accessibleName: modelData.group+" · "+modelData.label
+                    text: (populated ? "• " : "")+accessibleName
+                    enabled: root.main || (root.lane && !root.track.locked && modelData.key!==AutomationUIState.shownKey(root.track)
+                        && !(root.track.automation || []).some(l => l.id!==root.lane.id && Targets.key(l.target)===modelData.key))
+                    Ui.Text {
+                        width: parent.width
+                        anchors.verticalCenter: parent.verticalCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                        role: Ui.Typography.SansCaption
+                        domainColor: Targets.color(Ui.Theme,controller.call("automationParamColorRole",[index,modelData.target]))
+                        text: parameterChoice.text
+                    }
+                    onClicked: { root.choose(modelData); parameterMenu.close() }
+                }
             }
-        }
-        Ui.MenuItem {
-            objectName: "automation-power-" + (root.activeLane ? root.activeLane.id : "")
-            visible: !!root.activeLane
-            text: root.activeLane && root.activeLane.enabled === false ? "Enable lane" : "Disable lane"
-            enabled: !root.track.locked
-            onTriggered: controller.patchLane(root.activeLane.id,{enabled:root.activeLane.enabled === false})
-        }
-        Ui.MenuItem {
-            objectName: "automation-remove-" + (root.activeLane ? root.activeLane.id : "")
-            visible: !!root.activeLane
-            text: "Remove lane"
-            enabled: !root.track.locked
-            onTriggered: controller.patchLane(root.activeLane.id,{},true)
+            Ui.ListRow {
+                id: laneToggle
+                height: Ui.Metrics.comfortable
+                objectName: "automation-power-"+(root.activeLane ? root.activeLane.id : "")
+                width: parent.width
+                visible: !!root.activeLane
+                enabled: !root.track.locked
+                accessibleName: root.activeLane && root.activeLane.enabled===false ? "Enable lane" : "Disable lane"
+                Ui.Text { width: parent.width; anchors.verticalCenter: parent.verticalCenter; role: Ui.Typography.SansCaption; text: laneToggle.accessibleName }
+                onClicked: { controller.patchLane(root.activeLane.id,{enabled:root.activeLane.enabled===false}); parameterMenu.close() }
+            }
+            Ui.ListRow {
+                id: laneRemove
+                height: Ui.Metrics.comfortable
+                objectName: "automation-remove-"+(root.activeLane ? root.activeLane.id : "")
+                width: parent.width
+                visible: !!root.activeLane
+                enabled: !root.track.locked
+                accessibleName: "Remove lane"
+                Ui.Text { width: parent.width; anchors.verticalCenter: parent.verticalCenter; role: Ui.Typography.SansCaption; text: laneRemove.accessibleName }
+                onClicked: { controller.patchLane(root.activeLane.id,{},true); parameterMenu.close() }
+            }
         }
     }
 }

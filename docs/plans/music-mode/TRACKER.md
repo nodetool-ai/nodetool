@@ -12,7 +12,6 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | ID | Task | Model | Slot | Next step |
 |---|---|---|---|---|
 | SQ1c | Native Step Sequencer engine: PatternExpand with parity to 12 TS fixtures, playback, load/save | agy Neon | native | agy review, Sol second review |
-| SQ2r | SQ2 round 1 done (29 fixed, 2 rejected, 15 open; canvas grid); Sol second review running | Sol | light | Opus round 2: open items + Sol findings |
 
 ## Decisions accepted (user, 2026-11-22)
 
@@ -27,12 +26,14 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 
 | ID | Task | Model | Depends on |
 |---|---|---|---|
-| P2b | Native piano roll pass 2: keyboard key separators and white-key tone, thicker velocity stems with round heads, selected-note tint, note names on wide notes, Step Editor inspector sections and lane header widths | Opus | none |
+| P2c | (tests written, MIDI Out spec done; build blocked by lock) Native piano roll: note names off by default with a View > Note Labels toggle (spec 4.1 wins over the P2b brief); key-click and hover interaction tests; velocity lane cut at 640 px window height | Opus | A23 build lock |
 | SQ2-sortui | Switch the web row sort from localStorage to the new `rowSort` field | Opus | SQ2 inspector |
 | SQ2-browser | Browser folder UI and drag pattern to track | Opus | pattern folder ops |
 | SQ2-insp | Inspector controls (F19, F20) | Opus | SQ2 regions |
 | SQ2-rest | Value-drag audition, Learn inputs, length choices, page menus, menu parity test, coverage (F23, F27, F31, F41, F42), cross-row loop drag (F10) | Opus | SQ2 inspector |
+| SQ2tail | SQ2 closure leftovers: F29 Paste Row as New ignores the kept sort; F64 audition timers survive cancel/unmount | Opus | fold into P1c |
 | P1c | Web tracks pass 5: muted Logic-like palette (current colours too saturated), thinner name band, Arp region shows no notes under the chord strip, master pan control (field done) | Opus | SQ2 (one web UI agent at a time) |
+| P3 | Opus native design pass over Sol-built QML: Step Editor (A10), automation lanes and headers (A12), clip editing UI (A23), Step Sequencer native glue | Opus | A23 |
 | SQ3 | Step Sequencer native UI | Opus | SQ1 |
 | A22r | Close CE6/CE7: second-review check of round 2 | Sol | none |
 | P2 | Native polish: piano roll, automation, mixer, tracks (offscreen) | Opus | A10, D62-D68 |
@@ -64,6 +65,8 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | SQ2 | Step Sequencer web UI: SQ27-SQ38, SQ40, SQ43, SQ46; left: SQ39 recording, row assignment/reorder/marquee, browser folders and drag | Jest 42 + 12, web tsc 0; sq2-shots/ |
 | P2a | Native piano roll and Step Editor polish 1: flat notes with velocity line, grid weights, octave labels, velocity lane 96, collapsible inspector | tst_pianorollui 118, ctest 3/3, check_design clean; polish-native-pr/after/ |
 | SQ43f | Pattern library folder ops + `rowSort` field, all layers | protocol 21, timeline 195, agents 291, web 71, tsc 0 |
+| SQ2 | Step Sequencer web UI, 9 rounds (agy F1-F46, Sol F47-F63), closure: 1 open + 1 new -> SQ2tail | commits 62a6054f2c, 00f13b6c17; stepSequencer suites 371-448 green |
+| P2b | Native piano roll pass 2: keyboard seams, round velocity heads, selected tint, note names, Step Editor inspector sections | ctest 3/3, check_design clean; polish-native-pr2/ |
 | A27 | Model routing rule | [agent-model-routing.md](../../agent-model-routing.md), check:agents-docs exit 0 |
 | RA | Reviewer model analysis | [review-model-analysis.md](review-model-analysis.md) |
 | UI | Music editor UI spec | [MUSIC_EDITOR_UI.md](../../design/MUSIC_EDITOR_UI.md) |

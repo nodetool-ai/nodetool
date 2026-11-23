@@ -223,7 +223,7 @@ Item {
 
     function press(part, mouse, area) {
         if (!clipItem.gestures) return
-        if (part !== "body" && slotHit(area, mouse.x, mouse.y, mouse.button)) {
+        if (part !== "body" && part !== "loop" && slotHit(area, mouse.x, mouse.y, mouse.button)) {
             mouse.accepted = false
             return
         }
@@ -306,4 +306,21 @@ Item {
             else clipItem.press("end", mouse, this)
         }
     }
+    MouseArea {
+        id: loopGrip
+        objectName: "musicClipLoopHandle-" + clipItem.clipId
+        anchors.right: parent.right
+        anchors.top: parent.top
+        width: Ui.Metrics.md
+        height: Ui.Metrics.md
+        z: TimelineMetrics.trimHandleLayer
+        visible: clipItem.trimHandles && !!clipItem.gestures && clipItem.gestures.keymapContext === "music"
+            && clipItem.gestures.activeTool === "select" && !clipItem.interactionLocked
+            && ["audio", "midi"].includes(clipItem.mediaType) && !clipItem.clipData.timeRemap
+        cursorShape: Qt.SizeHorCursor
+        acceptedButtons: Qt.LeftButton
+        Ui.Icon { anchors.centerIn: parent; name: "repeat"; size: Ui.Metrics.sm; domainColor: TimelineVisuals.clipText }
+        onPressed: mouse => clipItem.press("loop", mouse, this)
+    }
+
 }

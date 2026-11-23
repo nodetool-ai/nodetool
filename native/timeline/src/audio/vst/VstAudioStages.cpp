@@ -1,6 +1,7 @@
 #include "audio/vst/VstAudioStages.h"
 
 #include "audio/FadeCurves.h"
+#include "midi/PatternExpand.h"
 
 #include <QDir>
 #include <QFile>
@@ -188,10 +189,10 @@ void addNoteExpression(const QJsonObject& note, double onMs, double offMs, doubl
 std::size_t chaseLaneEvents(const std::vector<MidiChaseLane>& lanes, double timeMs,
                             std::span<MidiStreamEvent> out) noexcept;
 
-void addControllerLanes(const Clip& clip, double windowStart, double msPerQuarter, MidiTrackStream& stream) {
+void addControllerLanes(const Clip& clip, const QJsonArray& lanes, double windowStart, double msPerQuarter,
+                        MidiTrackStream& stream) {
     const double clipStart = clip.startMs;
     const double clipEnd = clip.startMs + clip.durationMs;
-    const QJsonArray lanes = clip.raw.value(u"controllers").toArray();
     for (const auto& entry : lanes) {
         const QJsonObject lane = entry.toObject();
         std::uint8_t kindStatus = 0;
@@ -266,36 +267,50 @@ MidiTrackStream buildStream(const Timeline& timeline, const std::string& trackId
                                          parseFadeShape(clip.fadeOutShape), clip.durationMs);
             envelopes->push_back(env);
         }
-        const double windowStart = std::max(0.0, clip.inPointMs);
-        const double windowEnd = windowStart + clip.durationMs;
-        const double clipEndMs = clip.startMs + clip.durationMs;
-        const QJsonArray notes = clip.raw.value(u"notes").toArray();
-        for (const auto& entry : notes) {
-            if (!entry.isObject()) continue;
-            const QJsonObject n = entry.toObject();
-            if (n.value(u"muted").toBool(false)) continue;
-            const double startTick = n.value(u"startTick").toDouble(-1.0);
-            const double durationTick = n.value(u"durationTick").toDouble(0.0);
-            if (!std::isfinite(startTick) || startTick < 0.0 || !std::isfinite(durationTick) || durationTick <= 0.0) {
-                continue;
+        const bool isPatternClip = clip.raw.value(u"pattern").isObject();
+        const QJsonObject expandedPattern =
+            isPatternClip ? nt::midi::expandPatternClipForPlayback(clip.raw, timeline.raw) : QJsonObject{};
+        const double windowStart = isPatternClip ? 0.0 : std::max(0.0, clip.inPointMs);
+        const QJsonArray notes = isPatternClip ? expandedPattern.value(u"notes").toArray()
+                                               : clip.raw.value(u"notes").toArray();
+        const QJsonArray controllers = isPatternClip ? expandedPattern.value(u"controllers").toArray()
+                                                     : clip.raw.value(u"controllers").toArray();
+        const double loop = isPatternClip ? 0.0 : clip.raw.value(u"loopLengthMs").toDouble();
+        const double period = std::isfinite(loop) && loop > 0 && loop < clip.durationMs ? loop : clip.durationMs;
+        for (double offset = 0; offset < clip.durationMs; offset += period) {
+            const double length = std::min(period, clip.durationMs - offset);
+            const double windowEnd = windowStart + length;
+            const double clipEndMs = clip.startMs + offset + length;
+            for (const auto& entry : notes) {
+                if (!entry.isObject()) continue;
+                const QJsonObject n = entry.toObject();
+                if (n.value(u"muted").toBool(false)) continue;
+                const double startTick = n.value(u"startTick").toDouble(-1.0);
+                const double durationTick = n.value(u"durationTick").toDouble(0.0);
+                if (!std::isfinite(startTick) || startTick < 0.0 || !std::isfinite(durationTick) || durationTick <= 0.0) {
+                    continue;
+                }
+                const double noteStartMs = (startTick / kMidiPpq) * msPerQuarter;
+                if (noteStartMs < windowStart || noteStartMs >= windowEnd) continue;
+                const double noteEndMs = noteStartMs + (durationTick / kMidiPpq) * msPerQuarter;
+                const double onMs = clip.startMs + offset + (noteStartMs - windowStart);
+                const double offMs = std::max(onMs + 0.01, std::min(clipEndMs, clip.startMs + offset + (noteEndMs - windowStart)));
+                const auto pitch = static_cast<std::uint8_t>(std::clamp(n.value(u"pitch").toInt(60), 0, 127));
+                const auto vel = static_cast<std::uint8_t>(std::clamp(n.value(u"velocity").toInt(100), 1, 127));
+                const auto channel = static_cast<std::uint8_t>(std::clamp(n.value(u"channel").toInt(0), 0, 15));
+                const auto release = static_cast<std::uint8_t>(std::clamp(n.value(u"releaseVelocity").toInt(0), 0, 127));
+                const std::int32_t noteId = nextNoteId++;
+                events.push_back(MidiStreamEvent{onMs, static_cast<std::uint8_t>(0x90u | channel), pitch, vel, noteId, 0.0f});
+                events.push_back(MidiStreamEvent{offMs, static_cast<std::uint8_t>(0x80u | channel), pitch, release, noteId, 0.0f});
+                if (n.contains(u"expression")) {
+                    addNoteExpression(n, onMs, offMs, msPerQuarter, noteId, events);
+                }
             }
-            const double noteStartMs = (startTick / kMidiPpq) * msPerQuarter;
-            if (noteStartMs < windowStart || noteStartMs >= windowEnd) continue;
-            const double noteEndMs = noteStartMs + (durationTick / kMidiPpq) * msPerQuarter;
-            const double onMs = clip.startMs + (noteStartMs - windowStart);
-            const double offMs = std::max(onMs + 0.01, std::min(clipEndMs, clip.startMs + (noteEndMs - windowStart)));
-            const auto pitch = static_cast<std::uint8_t>(std::clamp(n.value(u"pitch").toInt(60), 0, 127));
-            const auto vel = static_cast<std::uint8_t>(std::clamp(n.value(u"velocity").toInt(100), 1, 127));
-            const auto channel = static_cast<std::uint8_t>(std::clamp(n.value(u"channel").toInt(0), 0, 15));
-            const auto release = static_cast<std::uint8_t>(std::clamp(n.value(u"releaseVelocity").toInt(0), 0, 127));
-            const std::int32_t noteId = nextNoteId++;
-            events.push_back(MidiStreamEvent{onMs, static_cast<std::uint8_t>(0x90u | channel), pitch, vel, noteId, 0.0f});
-            events.push_back(MidiStreamEvent{offMs, static_cast<std::uint8_t>(0x80u | channel), pitch, release, noteId, 0.0f});
-            if (n.contains(u"expression")) {
-                addNoteExpression(n, onMs, offMs, msPerQuarter, noteId, events);
-            }
+            Clip window = clip;
+            window.startMs += offset;
+            window.durationMs = length;
+            addControllerLanes(window, controllers, windowStart, msPerQuarter, stream);
         }
-        addControllerLanes(clip, windowStart, msPerQuarter, stream);
     }
     // Snap to whole microseconds so a sum such as 819.2 + 1638.4 equals the next clip's 2457.6
     // exactly and the equal-time sort classes apply (far below one audio sample).
@@ -706,35 +721,55 @@ std::size_t chaseMidiEvents(const MidiTrackStream& stream, double timeMs, std::s
 }
 
 std::vector<VstNoteEvent> extractMidiNoteEvents(const QJsonObject& clipRaw, double bpm,
-                                                double sampleRate, double inPointMs, double durationMs) {
+                                                double sampleRate, double inPointMs, double durationMs,
+                                                const QJsonObject& document) {
     std::vector<VstNoteEvent> events;
     if (!std::isfinite(bpm) || bpm <= 0.0 || !std::isfinite(sampleRate) || sampleRate <= 0.0 || durationMs <= 0.0) {
         return events;
     }
     const double msPerQuarter = 60000.0 / bpm;
-    const double windowStart = std::max(0.0, inPointMs);
-    const double windowEnd = windowStart + durationMs;
-    const QJsonArray notes = clipRaw.value(u"notes").toArray();
-    events.reserve(static_cast<std::size_t>(notes.size()));
-    for (const auto& entry : notes) {
-        if (!entry.isObject()) continue;
-        const QJsonObject n = entry.toObject();
-        if (n.value(u"muted").toBool(false)) continue;
-        const double startTick = n.value(u"startTick").toDouble(-1.0);
-        const double durationTick = n.value(u"durationTick").toDouble(0.0);
-        if (!std::isfinite(startTick) || startTick < 0.0 || !std::isfinite(durationTick) || durationTick <= 0.0) {
-            continue;
+    const bool isPatternClip = clipRaw.value(u"pattern").isObject();
+    double windowStart = std::max(0.0, inPointMs);
+    QJsonArray notes;
+    if (isPatternClip) {
+        QJsonObject effectiveClip = clipRaw;
+        effectiveClip.insert(QStringLiteral("inPointMs"), windowStart);
+        effectiveClip.insert(QStringLiteral("durationMs"), durationMs);
+        auto doc = document;
+        auto tempo = doc.value(u"tempo").toObject();
+        tempo.insert(QStringLiteral("bpm"), bpm);
+        if (!tempo.contains(u"offsetMs")) tempo.insert(QStringLiteral("offsetMs"), 0.0);
+        doc.insert(QStringLiteral("tempo"), tempo);
+        notes = nt::midi::expandPatternClipForPlayback(effectiveClip, doc).value(u"notes").toArray();
+        windowStart = 0.0;
+    } else {
+        notes = clipRaw.value(u"notes").toArray();
+    }
+    const double loop = isPatternClip ? 0.0 : clipRaw.value(u"loopLengthMs").toDouble();
+    const double period = std::isfinite(loop) && loop > 0 && loop < durationMs ? loop : durationMs;
+    for (double offset = 0; offset < durationMs; offset += period) {
+        const double length = std::min(period, durationMs - offset);
+        const double windowEnd = windowStart + length;
+        for (const auto& entry : notes) {
+            if (!entry.isObject()) continue;
+            const QJsonObject n = entry.toObject();
+            if (n.value(u"muted").toBool(false)) continue;
+            const double startTick = n.value(u"startTick").toDouble(-1.0);
+            const double durationTick = n.value(u"durationTick").toDouble(0.0);
+            if (!std::isfinite(startTick) || startTick < 0.0 || !std::isfinite(durationTick) || durationTick <= 0.0) {
+                continue;
+            }
+            const double noteStartMs = (startTick / kMidiPpq) * msPerQuarter;
+            if (noteStartMs < windowStart || noteStartMs >= windowEnd) continue;
+            const double noteEndMs = noteStartMs + (durationTick / kMidiPpq) * msPerQuarter;
+            const double relStartMs = offset + noteStartMs - windowStart;
+            const double relEndMs = std::max(relStartMs, std::min(offset + length, offset + noteEndMs - windowStart));
+            const auto startFrame = std::max<std::int64_t>(0, std::llround(relStartMs * sampleRate / 1000.0));
+            const auto gateOffFrame = std::max<std::int64_t>(startFrame + 1, std::llround(relEndMs * sampleRate / 1000.0));
+            const int pitch = std::clamp(n.value(u"pitch").toInt(60), 0, 127);
+            const int velocity = std::clamp(n.value(u"velocity").toInt(100), 1, 127);
+            events.push_back(VstNoteEvent{pitch, velocity, startFrame, gateOffFrame});
         }
-        const double noteStartMs = (startTick / kMidiPpq) * msPerQuarter;
-        if (noteStartMs < windowStart || noteStartMs >= windowEnd) continue;
-        const double noteEndMs = noteStartMs + (durationTick / kMidiPpq) * msPerQuarter;
-        const double relStartMs = noteStartMs - windowStart;
-        const double relEndMs = std::max(relStartMs, std::min(durationMs, noteEndMs - windowStart));
-        const auto startFrame = std::max<std::int64_t>(0, std::llround(relStartMs * sampleRate / 1000.0));
-        const auto gateOffFrame = std::max<std::int64_t>(startFrame + 1, std::llround(relEndMs * sampleRate / 1000.0));
-        const int pitch = std::clamp(n.value(u"pitch").toInt(60), 0, 127);
-        const int velocity = std::clamp(n.value(u"velocity").toInt(100), 1, 127);
-        events.push_back(VstNoteEvent{pitch, velocity, startFrame, gateOffFrame});
     }
     std::sort(events.begin(), events.end(), [](const VstNoteEvent& a, const VstNoteEvent& b) {
         return a.startFrame != b.startFrame ? a.startFrame < b.startFrame : a.pitch < b.pitch;

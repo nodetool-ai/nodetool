@@ -51,6 +51,16 @@ bool isGroupClip(const QJsonObject& c);
 double sourceRate(const QJsonObject& c);
 bool isHoldRemap(const QJsonObject& clip);
 
+// Value transforms. Callers own the returned JSON. No QObject or worker is created.
+// GUI edits and render-plan workers may call them, never the real-time audio callback.
+QJsonObject expandMusicLoops(QJsonObject raw);
+double resolveMusicTime(const QJsonObject& raw, const QJsonObject& payload, const QString& msKey);
+QJsonObject readSectionContent(const QJsonObject& raw, const QJsonObject& payload);
+
+// Pure document section edits. The host records the returned document as one undo command.
+QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const QJsonObject& payload);
+QJsonObject applySectionEdit(QJsonObject raw, const QString& operation, const QJsonObject& payload);
+
 // ── trimClip.ts ──
 QJsonArray sourceAnimationsForWindow(const QJsonArray& animations, double fromMs, double toMs, double clipDurationMs);
 QJsonObject retimeCaption(const QJsonObject& caption, double offsetMs, double scale = 1.0);
@@ -58,7 +68,8 @@ QJsonObject trimClip(const QJsonObject& clip, const QString& edge, double deltaM
                      std::optional<double> maxDurationMs = std::nullopt);
 
 // ── splitClip.ts ──
-std::pair<QJsonObject, QJsonObject> splitClip(const QJsonObject& clip, double atMs);
+std::pair<QJsonObject, QJsonObject> splitClip(const QJsonObject& clip, double atMs, double bpm = 120,
+                                             const QString& crossing = QStringLiteral("shorten"));
 
 // ── rippleEdit.ts ──
 struct RippleOptions {

@@ -34,6 +34,8 @@ struct TrackInfo {
 };
 
 struct EditDoc {
+    double bpm = 120;
+    QString splitCrossing = QStringLiteral("shorten");
     ClipList clips;
     std::vector<TrackInfo> tracks;
     // Clips that own a media track (`mediaTracks[].clipId`).
@@ -56,7 +58,8 @@ ClipList removeClipsLinkAware(const ClipList& clips, const IdSet& ids);
 IdSet splitTargetIds(const ClipList& clips, double atMs, const QStringList& targetIds,
                      const IdSet& clipsWithMediaTracks = {});
 ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringList& targetIds,
-                             const IdSet& clipsWithMediaTracks = {});
+                             const IdSet& clipsWithMediaTracks = {}, double bpm = 120,
+                             const QString& crossing = QStringLiteral("shorten"));
 // defaults.ts clipFitsTrack
 bool clipFitsTrack(const QString& mediaType, const QString& trackType);
 

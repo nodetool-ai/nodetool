@@ -25,11 +25,18 @@ class MusicJobs;
 
 namespace assistant {
 
-// The three tool schemas, each with the `timeline_id` the dispatcher checks.
+// A snapshot of editor state, borrowed for one synchronous tool call.
+struct EditState {
+    bool dragging = false;
+    bool trimming = false;
+    bool recordingTakes = false;
+};
+
+// The tool schemas, each with the `timeline_id` the dispatcher checks.
 QVariantList tools();
 bool handles(const QString& name);
 // Runs one tool. `{ok: true, job_id, ...}` or `{ok: false, error, refusal?, valid_tools?}`.
-QJsonObject run(const QString& name, const QJsonObject& args, TimelineModel& model, MusicJobs& jobs);
+QJsonObject run(const QString& name, const QJsonObject& args, TimelineModel& model, MusicJobs& jobs, const EditState& state = {});
 
 }  // namespace assistant
 }  // namespace nt::music

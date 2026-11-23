@@ -3,9 +3,11 @@
 #include "playback/PlaybackClock.h"
 #include <QPointer>
 #include <QList>
+#include <optional>
 #include <QtQmlIntegration/qqmlintegration.h>
 
-// UI thread only. QML parent owns the recorder. Samples never reach the audio
+// UI thread only. The model owns its document recorder. Explicit QML instances
+// belong to their QML parent. Samples never reach the audio
 // thread. TimelineModel owns the atomic handoffs retained by published plans.
 class AutomationRecorder : public QObject {
     Q_OBJECT
@@ -22,6 +24,7 @@ public:
     Q_INVOKABLE bool gestureStart(const QString& track, const QString& param);
     Q_INVOKABLE bool record(const QString& track, const QString& param, double value);
     Q_INVOKABLE void gestureEnd(const QString& track, const QString& param);
+    Q_INVOKABLE void gestureCancel(const QString& track, const QString& param);
     Q_INVOKABLE double value(const QString& track, const QString& param) const;
     Q_INVOKABLE bool consumes(const QString& track) const;
 signals:
@@ -35,6 +38,8 @@ private:
     QPointer<TimelineModel> timeline_;
     QPointer<PlaybackClock> clock_;
     QList<Pass> passes_;
+    struct Gesture { QString track, param; std::optional<Pass> before; };
+    QList<Gesture> gestures_;
     bool finishing_ = false;
     double previousTime_ = 0;
     QJsonObject track(const QString& id) const;

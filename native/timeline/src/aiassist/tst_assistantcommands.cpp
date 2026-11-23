@@ -671,9 +671,13 @@ private slots:
     }
     void toolsAdvertiseSchemas() {
         const auto tools = AssistantCommands::tools();
-        QCOMPARE(tools.size(), 7);
+        QCOMPARE(tools.size(), 16);
         for (const auto& name : {"ui_timeline_list_commands", "ui_timeline_run_command", "ui_timeline_read_scopes", "ui_timeline_capture_frame",
-                                 "ui_timeline_music_generate", "ui_timeline_music_regenerate", "ui_timeline_music_add_instrument"}) {
+                                 "ui_timeline_music_generate", "ui_timeline_music_regenerate", "ui_timeline_music_add_instrument",
+                                 "ui_timeline_get_pattern", "ui_timeline_set_steps", "ui_timeline_set_pattern_text",
+                                 "ui_timeline_set_pattern", "ui_timeline_add_pattern_rows", "ui_timeline_clear_pattern",
+                                 "ui_timeline_convert_pattern_to_midi", "ui_timeline_convert_midi_to_pattern",
+                                 "ui_timeline_apply_step_pattern"}) {
             QVERIFY(AssistantCommands::handles(name));
             const auto found = std::find_if(tools.begin(), tools.end(), [&](const QVariant& tool) { return tool.toMap().value("name") == name; });
             QVERIFY(found != tools.end());

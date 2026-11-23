@@ -935,7 +935,7 @@ replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.MenuItem"
 [[file]]
 path = "native/timeline/qml/Tracks/Clip.qml"
 category = "domain"
-controls = ["ClipContextMenu", "MouseArea"]
+controls = ["ClipContextMenu", "MouseArea", "Ui.Icon"]
 signals = []
 test_host = "tst_tracksui"
 test_scope = "build/import"
@@ -945,7 +945,7 @@ replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls 
 [[file]]
 path = "native/timeline/qml/Tracks/ClipBody.qml"
 category = "domain"
-controls = ["Rectangle", "Shape", "ShapePath", "MouseArea", "Ui.Text", "Ui.Icon"]
+controls = ["Rectangle", "Shape", "ShapePath", "MouseArea", "Ui.Text", "Ui.Icon", "Canvas"]
 signals = []
 test_host = "tst_tracksui"
 test_scope = "build/import"
@@ -1765,7 +1765,7 @@ replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.TextField, Ui.Tooltip, Ui.S
 [[file]]
 path = "native/timeline/qml/menus/ClipContextMenu.qml"
 category = "chrome"
-controls = ["Ui.ContextMenu", "Ui.Separator"]
+controls = ["Ui.ContextMenu", "Ui.Separator", "Ui.MenuItem", "Ui.Dialog", "Ui.NumberField", "Ui.EditorButton", "Ui.Text"]
 signals = []
 test_host = "tst_menus"
 test_scope = "build/import"
@@ -4695,7 +4695,7 @@ replacement = "NodeTool.UiPrimitives: Ui.Toast"
 [[file]]
 path = "native/timeline/qml/music/MusicRangeOverlay.qml"
 category = "domain"
-controls = ["Rectangle", "Ui.Text", "Ui.EditorButton", "MusicSequenceState"]
+controls = ["Rectangle", "Ui.Text", "Ui.EditorButton", "MusicSequenceState", "MusicSectionRange"]
 signals = []
 test_host = "tst_musicui"
 test_scope = "interaction"
@@ -4976,3 +4976,53 @@ binding = "stripInk"
 rule = "color"
 owner = "Timeline piano roll"
 reason = "Caption ink is selected by the document fill luminance. Its dark and light channels come from theme tokens, with opaque dark ink for contrast."
+
+[[file]]
+path = "native/timeline/qml/pianoroll/StepEditorPanel.qml"
+category = "chrome"
+controls = ["StepEditorToolbar", "StepEditorInspector", "StepEditorRow", "PianoRollController", "StepEditorLaneModel", "Ui.Banner", "Ui.EmptyState", "Ui.Dialog", "Ui.NumberField", "Ui.EditorButton", "Ui.Text", "ListView", "Canvas", "MouseArea"]
+signals = ["repaintRequested"]
+test_host = "tst_pianorollui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives and virtualized Step Editor lanes"
+
+[[file]]
+path = "native/timeline/qml/pianoroll/StepEditorToolbar.qml"
+category = "chrome"
+controls = ["Ui.MenuButton", "Ui.ContextMenu", "Ui.ToolbarIconButton", "Ui.Text", "Ui.Icon", "Ui.Slider"]
+signals = []
+test_host = "tst_pianorollui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/pianoroll/StepEditorPanel.qml"]
+replacement = "NodeTool.UiPrimitives and virtualized Step Editor lanes"
+
+[[file]]
+path = "native/timeline/qml/pianoroll/StepEditorInspector.qml"
+category = "chrome"
+controls = ["Ui.ScrollArea", "Ui.Select", "Ui.NumberField", "Ui.Text"]
+signals = []
+test_host = "tst_pianorollui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/pianoroll/StepEditorPanel.qml"]
+replacement = "NodeTool.UiPrimitives and virtualized Step Editor lanes"
+
+[[file]]
+path = "native/timeline/qml/pianoroll/StepEditorRow.qml"
+category = "chrome"
+controls = ["Ui.EditorButton", "Canvas"]
+signals = []
+test_host = "tst_pianorollui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/pianoroll/StepEditorPanel.qml"]
+replacement = "NodeTool.UiPrimitives and virtualized Step Editor lanes"
+
+[[file]]
+path = "native/timeline/qml/music/MusicSectionRange.qml"
+category = "domain"
+controls = ["Rectangle", "Ui.EditorButton", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/music/MusicRangeOverlay.qml"]
+replacement = "Section range band and menu use Ui controls and timeline colors"
