@@ -9,7 +9,9 @@
 //
 //   cwd()                            -> workspace directory, or ""
 //   readFile(path)                   -> Uint8Array
-//   writeFile(path, bytes, append)
+//   writeFile(path, bytes, append, exclusive)
+//                                    exclusive creates the file and fails
+//                                    with EEXIST when it is there
 //   stat(path, follow)               -> json {kind, size, mtimeMs, ctimeMs, birthtimeMs, mode}
 //   readdir(path)                    -> json [[name, kind], ...], sorted by name
 //   mkdir(path, recursive)           -> first directory created, or undefined
@@ -28,7 +30,7 @@
 //
 //   bound()                          -> whether a run is bound, so the *Async
 //                                       functions can be used
-//   readFileAsync(path), writeFileAsync(path, bytes, append),
+//   readFileAsync(path), writeFileAsync(path, bytes, append, exclusive),
 //   statAsync(path, follow), readdirAsync(path), mkdirAsync(path, recursive),
 //   mkdtempAsync(prefix), rmAsync(path, recursive, force), rmdirAsync(path),
 //   unlinkAsync(path), renameAsync(from, to), copyFileAsync(from, to),
@@ -423,10 +425,13 @@ struct FileGrants {
 
   // Writes `data` in chunks of kWriteChunk, checking `stop` before each.
   // Returns false when it stopped: the file then holds the chunks written.
+  // With `exclusive` the open creates the file or fails with EEXIST, so a
+  // file that is already there is never replaced.
   bool writeFile(const std::string& path, const std::vector<uint8_t>& data, bool append,
-                 const std::stop_token& stop = {}) const {
+                 const std::stop_token& stop = {}, bool exclusive = false) const {
     Resolved r = resolve(path, Access::Write, "open");
-    int flags = O_WRONLY | O_CREAT | O_NOFOLLOW | O_CLOEXEC | (append ? O_APPEND : O_TRUNC);
+    int flags = O_WRONLY | O_CREAT | O_NOFOLLOW | O_CLOEXEC |
+                (exclusive ? O_EXCL : (append ? O_APPEND : O_TRUNC));
     UniqueFd f(fsapi::open(r.real.c_str(), flags, 0644));
     if (!f) throwErrno(errno, "open", path);
     fsapi::FileStat st {};
@@ -974,9 +979,9 @@ void installFiles(js::Engine& e, const js::Value& object, const HostOptions& opt
     auto data = grants->readFile(stringArg(en, a, 0));
     return en.bytes(data.data(), data.size());
   }));
-  e.set(object, "writeFile", e.function("writeFile", 3, [grants](js::Engine& en, Args a) {
+  e.set(object, "writeFile", e.function("writeFile", 4, [grants](js::Engine& en, Args a) {
     if (a.size() < 2 || !en.isBytes(a[1])) throw std::runtime_error("files.writeFile needs bytes");
-    grants->writeFile(stringArg(en, a, 0), en.toBytes(a[1]), flagArg(en, a, 2));
+    grants->writeFile(stringArg(en, a, 0), en.toBytes(a[1]), flagArg(en, a, 2), {}, flagArg(en, a, 3));
     return en.undefined();
   }));
   e.set(object, "stat", e.function("stat", 2, [grants](js::Engine& en, Args a) {
@@ -1038,16 +1043,18 @@ void installFiles(js::Engine& e, const js::Value& object, const HostOptions& opt
     });
     return s.run.submit(s.io, std::move(job), wholeFileConverter(binding), true, std::move(s.reservation));
   }));
-  e.set(object, "writeFileAsync", e.function("writeFileAsync", 3, [grants, binding](js::Engine& en, Args a) {
+  e.set(object, "writeFileAsync", e.function("writeFileAsync", 4, [grants, binding](js::Engine& en, Args a) {
     Submission s = begin(*binding);
     std::string path = pathArg(en, a, 0, s.reservation);
     if (a.size() < 2) throw std::runtime_error("files.writeFileAsync needs bytes");
     std::vector<uint8_t> data = snapshotBytes(en, a[1], "data", s.reservation);
     const bool append = flagArg(en, a, 2);
+    const bool exclusive = flagArg(en, a, 3);
     const JobCost cost{path.size() + data.size(), 0, 0};
-    auto job = makeCostedJob(cost, [grants, path = std::move(path), data = std::move(data), append](
+    auto job = makeCostedJob(cost, [grants, path = std::move(path), data = std::move(data), append, exclusive](
                                        std::stop_token stop) {
-      return grants->writeFile(path, data, append, stop) ? JobOutcome::value(nullptr) : JobOutcome::stopped();
+      return grants->writeFile(path, data, append, stop, exclusive) ? JobOutcome::value(nullptr)
+                                                                    : JobOutcome::stopped();
     });
     return s.run.submit(s.io, std::move(job), nullptr, true, std::move(s.reservation));
   }));

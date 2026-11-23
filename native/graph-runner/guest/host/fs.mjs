@@ -220,7 +220,8 @@ export function writeFileSync(path, data, options) {
     files().writeFile(
       toPath(path),
       asBytes(data, encodingOf(options)),
-      flag === "a"
+      flag === "a",
+      flag === "wx"
     )
   );
 }
@@ -342,7 +343,8 @@ async function writeFileHosted(path, data, options) {
     files().writeFileAsync(
       toPath(path),
       asBytes(data, encodingOf(options)),
-      flag === "a"
+      flag === "a",
+      flag === "wx"
     )
   );
 }

@@ -132,6 +132,22 @@ export class LocalWorkspace {
     await fs.promises.writeFile(file, typeof data === "string" ? encoder.encode(data) : data);
   }
 
+  // The host creates the file exclusively, so an existing file is kept and
+  // the result is false. A staged write is not supported here.
+  async writeNew(path, data, _contentType, options) {
+    if (options?.stagingName) throw new Error("This workspace cannot stage a new file");
+    const file = this.file(path);
+    const slash = file.lastIndexOf("/");
+    if (slash > this.localDir.length) await fs.promises.mkdir(file.slice(0, slash), { recursive: true });
+    try {
+      await fs.promises.writeFile(file, typeof data === "string" ? encoder.encode(data) : data, { flag: "wx" });
+      return true;
+    } catch (err) {
+      if (err?.code === "EEXIST") return false;
+      throw err;
+    }
+  }
+
   async exists(path) {
     try {
       return fs.statSync(this.file(path)).isFile();
