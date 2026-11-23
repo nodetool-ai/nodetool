@@ -196,7 +196,8 @@ describe("listFolderAssets / getAssetInfo", () => {
       id: "a1",
       content_type: "image/png",
       name: "pic.png",
-      metadata: null
+      metadata: null,
+      workspace_path: null
     });
     expect(
       (await ifaces.getAssetInfo!({ userId: USER, assetId: "a2" }))?.metadata
