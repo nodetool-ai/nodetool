@@ -1,0 +1,42 @@
+# Memory-safety and undefined-behavior checks for the native C++ and Qt code.
+# scripts/native-lint.mjs runs these on the lines a pull request changes, and
+# the native CI jobs fail on any finding there. See native/AGENTS.md rule 18.
+# native/timeline/.clang-tidy keeps its own narrower set for its baseline.
+#
+# Left out on purpose: bugprone-easily-swappable-parameters and
+# bugprone-narrowing-conversions (style, hundreds of hits), the padding
+# analyzer (performance), and the pro-bounds checks, because the media code
+# indexes FFmpeg and Vulkan buffers. AddressSanitizer covers out-of-bounds
+# access at run time.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  clang-analyzer-*,
+  -clang-analyzer-optin.performance.Padding,
+  -clang-analyzer-osx.*,
+  concurrency-thread-canceltype-asynchronous,
+  cppcoreguidelines-avoid-capturing-lambda-coroutines,
+  cppcoreguidelines-avoid-reference-coroutine-parameters,
+  cppcoreguidelines-no-malloc,
+  cppcoreguidelines-no-suspend-with-lock,
+  cppcoreguidelines-owning-memory,
+  cppcoreguidelines-pro-type-member-init,
+  cppcoreguidelines-slicing,
+  cppcoreguidelines-special-member-functions,
+  cppcoreguidelines-virtual-class-destructor,
+  misc-coroutine-hostile-raii,
+  misc-new-delete-overloads,
+  misc-non-copyable-objects,
+  misc-throw-by-value-catch-by-reference,
+  misc-unconventional-assign-operator,
+  misc-uniqueptr-reset-release,
+  modernize-make-shared,
+  modernize-make-unique
+CheckOptions:
+  cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor: true
+  cppcoreguidelines-special-member-functions.AllowMissingMoveFunctionsWhenCopyIsDeleted: true
+HeaderFilterRegex: '(^|/)native/'
+SystemHeaders: false
+FormatStyle: none
