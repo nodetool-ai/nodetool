@@ -83,7 +83,6 @@ export const useUpdateAdminUser = () => {
 
 export type AdminQuotaLimits = admin.AdminQuotaLimits;
 export type AdminUserQuota = admin.AdminUserQuota;
-export type AdminDefaultQuota = admin.AdminDefaultQuotaOutput;
 
 export const adminDefaultQuotaQueryKey = ["admin", "quotas", "default"] as const;
 
@@ -186,7 +185,6 @@ export const useSetPermissions = () => {
   });
 };
 
-export type AdminSharingForUser = admin.AdminSharingForUserOutput;
 export type AdminShareLink = admin.AdminShareLink;
 export type AdminShareGrant = admin.AdminShareGrant;
 export type AdminSharedDocument = admin.AdminSharedDocument;
