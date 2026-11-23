@@ -34,6 +34,8 @@ on:
       - "native/realtime/**"
       - ".github/workflows/native-graph-runner.yml"
       - "docker/ci-native/**"
+      - "native/.clang-tidy"
+      - "scripts/native-lint.mjs"
   push:
     branches: [main]
     paths:
@@ -262,7 +264,7 @@ jobs:
             -DCMAKE_C_FLAGS="$SAN_FLAGS" -DCMAKE_CXX_FLAGS="$SAN_FLAGS" \
             -DCMAKE_EXE_LINKER_FLAGS="$SAN_FLAGS" -DCMAKE_SHARED_LINKER_FLAGS="$SAN_FLAGS" \
             -DGR_TEST_TESSDATA=/usr/share/tesseract-ocr/5/tessdata \
-            -DNODETOOL_GRAPH_RUNNER_REALTIME=ON
+            -DNODETOOL_GRAPH_RUNNER_REALTIME=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: Build
         id: native_build
@@ -372,6 +374,16 @@ jobs:
           if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
           env -u DISPLAY ctest --test-dir build --output-on-failure --timeout 900 "${sel[@]}"
 
+      # clang-tidy (native/.clang-tidy) on the runner's translation units that
+      # the pull request changes. Only findings on changed lines fail. The
+      # runner has no Qt, so clazy does not run here. The node editor lint
+      # below covers native/node-editor/.
+      - name: Lint changed C++ (clang-tidy)
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && matrix.name == 'ASan and UBSan' && steps.native_build.outcome == 'success' }}
+        run: |
+          node scripts/native-lint.mjs --build native/graph-runner/build --no-clazy --base HEAD^1 \
+            --paths native/graph-runner/ native/jobs/ native/kernels/ native/realtime/
+
       - name: Install Qt for the node editor
         id: editor_qt
         if: ${{ !cancelled() && matrix.name == 'Release' && steps.native_build.outcome == 'success' }}
@@ -388,7 +400,7 @@ jobs:
           # The editor compiles the runner as a subproject, so it needs the
           # runner's compiler (see Configure above).
           cmake -S native/node-editor -B native/node-editor/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
-            -DNODETOOL_NODE_EDITOR_RHI_TESTS=ON \
+            -DNODETOOL_NODE_EDITOR_RHI_TESTS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build native/node-editor/build --parallel 2 --target nodetool-node-editor \
@@ -405,3 +417,14 @@ jobs:
           test -n "$driver"
           VK_DRIVER_FILES="$driver" VK_ICD_FILENAMES="$driver" LIBGL_ALWAYS_SOFTWARE=1 \
             ctest --test-dir native/node-editor/build -L render --output-on-failure --no-tests=error
+
+      # clang-tidy and clazy on the node editor's changed translation units.
+      # The build above compiles only some targets, so the script first builds
+      # the objects it analyzes, which creates their moc headers.
+      - name: Lint changed node editor C++ (clang-tidy, clazy)
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && matrix.name == 'Release' && steps.editor_qt.outcome == 'success' }}
+        env:
+          CCACHE_DIR: ${{ runner.temp }}/ccache
+        run: |
+          node scripts/native-lint.mjs --build native/node-editor/build --require-clazy --base HEAD^1 \
+            --paths native/node-editor/

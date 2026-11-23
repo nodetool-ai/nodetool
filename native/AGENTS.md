@@ -94,3 +94,17 @@ that needs a marker.
     build through `scripts/native-ci-test-selection.mjs`. The graph runner's
     nightly run tests everything. A file under a project that maps
     to no test input runs every test, so new runtime inputs need no CI change.
+18. Changed C++ must pass `npm run lint:native -- --build <dir>`, which runs
+    clang-tidy with [native/.clang-tidy](.clang-tidy) and clazy's Qt
+    lifetime checks on the translation units of changed files. The build
+    directory needs a Clang `compile_commands.json`
+    (`-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`). A finding fails only on a line the
+    change added or edited, so existing code is not a blocker, but fix
+    findings you pass. Pull requests run it in the timeline ASan job and the
+    graph runner's ASan and Release jobs. Suppress a false positive only with
+    `// NOLINT(<check>): <reason>` (clang-tidy) or
+    `// clazy:exclude=<check> <reason>` (clazy) on that line. A Qt object parented to a
+    QObject tree (rule 2) takes
+    `// NOLINT(cppcoreguidelines-owning-memory): parented to <owner>`.
+    Flags and the header selection are in
+    [scripts/native-lint.mjs](../scripts/native-lint.mjs).
