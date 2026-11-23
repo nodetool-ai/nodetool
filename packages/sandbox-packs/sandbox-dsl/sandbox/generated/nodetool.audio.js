@@ -61,10 +61,7 @@ function loadAudioFolder(inputs, options) {
   return createNode("nodetool.audio.LoadAudioFolder", inputs, { id: options?.id, outputNames: ["audio", "path", "audios"], outputTypes: { "audio": "audio", "path": "str", "audios": "list" }, streaming: true, inputMode: "buffered", outputCorrelation: { "audio": { "kind": "iteration", "source": "__execution__", "group": "items" }, "path": { "kind": "iteration", "source": "__execution__", "group": "items" }, "audios": { "kind": "single", "source": "__execution__" } } });
 }
 function saveAudio(inputs, options) {
-  return createNode("nodetool.audio.SaveAudio", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
-}
-function saveAudioFile(inputs, options) {
-  return createNode("nodetool.audio.SaveAudioFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "audio" }, defaultOutput: "output" });
+  return createNode("nodetool.audio.SaveAudio", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: { "output": "audio", "path": "str" } });
 }
 function textToSpeech(inputs, options) {
   return createNode("nodetool.audio.TextToSpeech", inputs, { id: options?.id, outputNames: ["audio", "chunk"], outputTypes: { "audio": "audio", "chunk": "chunk" }, inputMode: "buffered", outputCorrelation: { "audio": { "kind": "single", "source": "__execution__" }, "chunk": { "kind": "single", "source": "__execution__" } } });
@@ -95,7 +92,6 @@ export {
   repeat,
   reverse,
   saveAudio,
-  saveAudioFile,
   sliceAudio,
   stereoToMono,
   textToMusic,

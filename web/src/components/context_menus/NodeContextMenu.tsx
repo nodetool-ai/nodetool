@@ -27,6 +27,11 @@ import { useRemoveFromGroup } from "../../hooks/nodes/useRemoveFromGroup";
 import { useGroupIntoSubgraph } from "../../hooks/nodes/useGroupIntoSubgraph";
 import { useNodes } from "../../contexts/NodeContext";
 import { useChatAboutNodesOnMenuClose } from "../../hooks/nodes/useChatAboutNodes";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import {
+  STRING_CONSTANT_TYPE,
+  useConvertStringToDocument
+} from "../../hooks/nodes/useConvertStringToDocument";
 
 const NodeContextMenu: React.FC = () => {
   const { t } = useTranslation();
@@ -62,6 +67,13 @@ const NodeContextMenu: React.FC = () => {
     chatAboutNodes([node.id]);
     closeContextMenu();
   }, [chatAboutNodes, node, closeContextMenu]);
+
+  const convertStringToDocument = useConvertStringToDocument();
+  const handleConvertToDocument = useCallback(() => {
+    if (!node) return;
+    void convertStringToDocument(node.id);
+    closeContextMenu();
+  }, [convertStringToDocument, node, closeContextMenu]);
 
   const menuItems = [
     <ContextMenuItem
@@ -220,6 +232,15 @@ const NodeContextMenu: React.FC = () => {
         label={t("screen_editor.convertToConstant")}
         IconComponent={<SwapHorizIcon />}
         tooltip={t("screen_editor.convertToConstantTooltip")}
+      />
+    ),
+    node?.type === STRING_CONSTANT_TYPE && (
+      <ContextMenuItem
+        key="convert-to-document"
+        onClick={handleConvertToDocument}
+        label={t("documentEditor.convert.label")}
+        IconComponent={<DescriptionOutlinedIcon />}
+        tooltip={t("documentEditor.convert.tooltip")}
       />
     ),
     <ContextMenuItem

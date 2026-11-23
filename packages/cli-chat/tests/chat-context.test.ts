@@ -24,7 +24,8 @@ const updateAssetBytesModelInterface = vi.fn(async () => ({
 
 vi.mock("@nodetool-ai/asset-services", () => ({
   createAssetModelInterface,
-  updateAssetBytesModelInterface
+  updateAssetBytesModelInterface,
+  textDocumentModelInterfaces: () => ({})
 }));
 // Asset persistence loads the folder service, which the wholesale `models`
 // mock below cannot back.

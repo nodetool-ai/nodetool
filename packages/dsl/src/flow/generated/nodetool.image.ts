@@ -240,24 +240,6 @@ loadImageFolder.stream = function (inputs: LoadImageFolderInputs): AsyncIterable
   return streamNode<Partial<LoadImageFolderOutputs>>("nodetool.image.LoadImageFolder", inputs);
 };
 
-// Save Image File — nodetool.image.SaveImageFile
-export type SaveImageFileInputs = {
-  image?: ImageRef;
-  save_to_workspace?: boolean;
-  folder?: string;
-  filename?: string;
-  overwrite?: boolean;
-};
-
-export interface SaveImageFileOutputs {
-  output: ImageRef;
-  path: string;
-}
-
-export function saveImageFile(inputs: SaveImageFileInputs): Promise<SaveImageFileOutputs> {
-  return callNode<SaveImageFileOutputs>("nodetool.image.SaveImageFile", inputs);
-}
-
 // Load Image Assets — nodetool.image.LoadImageAssets
 export type LoadImageAssetsInputs = {
   folder?: FolderRef;
@@ -277,15 +259,18 @@ loadImageAssets.stream = function (inputs: LoadImageAssetsInputs): AsyncIterable
   return streamNode<Partial<LoadImageAssetsOutputs>>("nodetool.image.LoadImageAssets", inputs);
 };
 
-// Save Image Asset — nodetool.image.SaveImage
+// Save Image — nodetool.image.SaveImage
 export type SaveImageInputs = {
   image?: ImageRef;
-  folder?: FolderRef;
-  name?: string;
+  save_to_workspace?: boolean;
+  folder?: string;
+  filename?: string;
+  overwrite?: boolean;
 };
 
 export interface SaveImageOutputs {
   output: ImageRef;
+  path: string;
 }
 
 export function saveImage(inputs: SaveImageInputs): Promise<SaveImageOutputs> {

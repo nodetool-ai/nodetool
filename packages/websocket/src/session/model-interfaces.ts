@@ -11,6 +11,7 @@ import {
   createAssetModelInterface,
   updateAssetBytesModelInterface
 } from "../lib/asset-model-interface.js";
+import { textDocumentModelInterfaces } from "@nodetool-ai/asset-services/text-documents";
 import { createFalGenerationLifecycleHooks } from "@nodetool-ai/execution";
 import { documentModelInterfaces } from "../lib/document-model-interfaces.js";
 import { getAssetAdapter, getTempAdapter } from "../lib/storage.js";
@@ -34,6 +35,7 @@ export function serverModelInterfaces(): ProcessingContextModelInterfaces {
     // one persistence path, one home-folder default.
     createAsset: createAssetModelInterface,
     updateAssetBytes: updateAssetBytesModelInterface,
+    ...textDocumentModelInterfaces(),
     createMessage: async ({ userId, req }) => {
       // Persist an AgentNode thread message. `content` / `tool_calls` are stored
       // raw — the `content` column is a jsonText type that serializes them, so
@@ -104,7 +106,8 @@ export function serverModelInterfaces(): ProcessingContextModelInterfaces {
         id: asset.id,
         content_type: asset.content_type,
         name: asset.name,
-        metadata: asset.metadata ?? null
+        metadata: asset.metadata ?? null,
+        workspace_path: asset.workspace_path ?? null
       };
     },
     // Documents, the entity library and the game templates: shared with the

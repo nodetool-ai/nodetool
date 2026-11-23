@@ -3,11 +3,8 @@ import { createNode } from "../core.js";
 function loadModel3DFile(inputs, options) {
   return createNode("nodetool.model3d.LoadModel3DFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "model_3d" }, defaultOutput: "output" });
 }
-function saveModel3DFile(inputs, options) {
-  return createNode("nodetool.model3d.SaveModel3DFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "model_3d" }, defaultOutput: "output" });
-}
 function saveModel3D(inputs, options) {
-  return createNode("nodetool.model3d.SaveModel3D", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "model_3d" }, defaultOutput: "output" });
+  return createNode("nodetool.model3d.SaveModel3D", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: { "output": "model_3d", "path": "str" } });
 }
 function formatConverter(inputs, options) {
   return createNode("nodetool.model3d.FormatConverter", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "model_3d" }, defaultOutput: "output" });
@@ -70,7 +67,6 @@ export {
   renderToImage,
   repairMesh,
   saveModel3D,
-  saveModel3DFile,
   textTo3D,
   transform3D
 };

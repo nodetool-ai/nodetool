@@ -235,7 +235,8 @@ function buildAgentToolContext(userId: string): ProcessingContext {
         id: asset.id,
         content_type: asset.content_type,
         name: asset.name,
-        metadata: asset.metadata ?? null
+        metadata: asset.metadata ?? null,
+        workspace_path: asset.workspace_path ?? null
       };
     }
   });

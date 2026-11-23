@@ -650,7 +650,7 @@ describe("constant nodes — full coverage", () => {
   it("ConstantDocumentNode", async () => {
     const node = new ConstantDocumentNode();
     node.assign({ value: { text: "doc" } });
-    expect(await node.process()).toEqual({ output: { text: "doc" } });
+    expect(await node.process()).toEqual({ output: { text: "doc" }, text: "doc" });
   });
 
   it("ConstantJSONNode", async () => {

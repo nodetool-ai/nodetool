@@ -21067,5 +21067,129 @@
       "paste": "Paste Page",
       "clear": "Clear Page"
     }
+  },
+  "documentEditor": {
+    "label": "दस्तावेज़",
+    "placeholder": "लिखना शुरू करें, या शीर्षक के लिए # टाइप करें",
+    "loadError": "दस्तावेज़ लोड नहीं हो सका।",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "दस्तावेज़ दृश्य",
+      "formatted": "फ़ॉर्मेट किया हुआ",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "शीर्षक 1",
+      "heading2": "शीर्षक 2",
+      "heading3": "शीर्षक 3",
+      "bold": "बोल्ड",
+      "italic": "इटैलिक",
+      "strikethrough": "स्ट्राइकथ्रू",
+      "inlineCode": "इनलाइन कोड",
+      "link": "लिंक",
+      "bulletList": "बुलेट सूची",
+      "numberedList": "क्रमांकित सूची",
+      "checkList": "कार्य सूची",
+      "quote": "उद्धरण",
+      "codeBlock": "कोड ब्लॉक",
+      "table": "तालिका",
+      "image": "छवि",
+      "rule": "विभाजक"
+    },
+    "insert": {
+      "linkAddress": "लिंक पता",
+      "imagePath": "छवि पथ या URL",
+      "imagePathPlaceholder": "assets/picture.png",
+      "imageAlt": "विवरण",
+      "removeLink": "लिंक हटाएँ",
+      "applyLink": "लागू करें",
+      "insertImage": "डालें"
+    },
+    "agent": {
+      "toggle": "सहायक",
+      "welcomeTitle": "सहायक के साथ लिखें",
+      "welcomeBody": "ड्राफ़्ट, संपादन या समीक्षा माँगें। सहायक यह दस्तावेज़ और आपका चुना हुआ टेक्स्ट देखता है।"
+    },
+    "versions": {
+      "toggle": "संस्करण इतिहास",
+      "title": "संस्करण",
+      "name": "संस्करण का नाम",
+      "namePlaceholder": "नाम (वैकल्पिक)",
+      "save": "संस्करण सहेजें",
+      "restore": "पुनर्स्थापित करें",
+      "loadError": "संस्करण लोड नहीं हो सके।",
+      "emptyTitle": "अभी कोई संस्करण नहीं",
+      "emptyBody": "सहायक के हर बदलाव से पहले, सहेजने पर और संपादन के दौरान हर कुछ मिनट में एक संस्करण रखा जाता है।",
+      "versionNumber": "संस्करण {{version}}",
+      "saveTypes": {
+        "agent_turn": "सहायक",
+        "workflow_run": "वर्कफ़्लो रन",
+        "manual": "सहेजा गया",
+        "autosave": "अंतराल",
+        "restore": "पुनर्स्थापन से पहले"
+      },
+      "usedIn": "वर्कफ़्लो में उपयोग: {{count}}"
+    },
+    "changes": {
+      "title": "चिह्नित बदलाव: {{count}}",
+      "show": "दिखाएँ",
+      "hide": "छिपाएँ",
+      "dismiss": "हटाएँ",
+      "dismissAll": "सभी हटाएँ",
+      "kinds": {
+        "modified": "बदला गया",
+        "inserted": "जोड़ा गया",
+        "deleted": "हटाया गया"
+      },
+      "actions": {
+        "modified": "वापस करें",
+        "inserted": "हटाएँ",
+        "deleted": "पुनर्स्थापित करें"
+      }
+    },
+    "assist": {
+      "proposal": "प्रस्तावित प्रतिस्थापन",
+      "note": "नोट",
+      "discard": "छोड़ें",
+      "close": "बंद करें",
+      "replace": "बदलें",
+      "thinking": "सोच रहा है…",
+      "stop": "रोकें",
+      "placeholder": "क्या बदलना चाहिए?",
+      "refinePlaceholder": "उत्तर सुधारें",
+      "instruction": "निर्देश",
+      "send": "भेजें",
+      "noModel": "पहले चैट में एक मॉडल चुनें।",
+      "failed": "अनुरोध विफल हुआ।"
+    },
+    "resizePanel": "साइड पैनल का आकार बदलें",
+    "picker": {
+      "label": "प्रोजेक्ट दस्तावेज़",
+      "none": "कोई नहीं",
+      "placeholder": "प्रोजेक्ट दस्तावेज़ चुनें",
+      "loading": "लोड हो रहा है…",
+      "error": "दस्तावेज़ लोड नहीं हो सके।",
+      "empty": "इस प्रोजेक्ट में कोई Markdown दस्तावेज़ नहीं"
+    },
+    "convert": {
+      "label": "दस्तावेज़ में बदलें",
+      "tooltip": "इस टेक्स्ट को प्रोजेक्ट दस्तावेज़ में ले जाएँ और इस नोड से उसका संदर्भ दें"
+    },
+    "export": {
+      "label": "निर्यात करें",
+      "pdf": "PDF के रूप में निर्यात करें",
+      "html": "HTML के रूप में निर्यात करें",
+      "googleDoc": "Google Docs में निर्यात करें"
+    },
+    "importGoogleDoc": {
+      "title": "Google Doc आयात करें",
+      "confirm": "आयात करें",
+      "link": "Google Doc का लिंक",
+      "help": "अपने ब्राउज़र से दस्तावेज़ का लिंक चिपकाएँ। आपको Google से साइन इन होना चाहिए।"
+    },
+    "import": {
+      "asDocument": "दस्तावेज़ के रूप में आयात करें",
+      "asDocumentTooltip": "इस फ़ाइल से संपादन योग्य Markdown दस्तावेज़ बनाएँ। फ़ाइल स्वयं नहीं बदलती।"
+    }
   }
 }

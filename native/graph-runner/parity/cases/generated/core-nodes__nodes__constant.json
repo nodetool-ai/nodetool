@@ -324,6 +324,13 @@
       "properties": {
        "name": "output"
       }
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
      }
     ],
     "edges": [
@@ -332,6 +339,13 @@
       "source": "n",
       "sourceHandle": "output",
       "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
       "targetHandle": "value"
      }
     ]
@@ -474,6 +488,93 @@
      {
       "id": "n",
       "type": "nodetool.constant.Storyboard",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Workflow#default",
+   "node": "nodetool.constant.Workflow",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Workflow",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Application#default",
+   "node": "nodetool.constant.Application",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Application",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.JsScript#default",
+   "node": "nodetool.constant.JsScript",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.JsScript",
       "properties": {}
      },
      {

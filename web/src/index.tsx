@@ -96,6 +96,7 @@ const CloudTransferHost = React.lazy(
 );
 import GitHubStarPrompt from "./components/onboarding/GitHubStarPrompt";
 import HelpDialogHost from "./components/content/Help/HelpDialogHost";
+import GoogleDocImportDialog from "./components/documentEditor/GoogleDocImportDialog";
 import BugReportDialogHost from "./components/support/BugReportDialogHost";
 import AnalyticsConsentPrompt from "./components/privacy/AnalyticsConsentPrompt";
 import CommandMenuHost from "./components/menus/CommandMenuHost";
@@ -904,6 +905,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <GitHubStarPrompt />
                       <CommandMenuHost />
                       <ConfirmDialogHost />
+                      <GoogleDocImportDialog />
                       <AnalyticsConsentPrompt />
                     </>
                   )}

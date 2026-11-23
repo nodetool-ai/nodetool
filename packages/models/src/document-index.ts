@@ -48,6 +48,7 @@ import { scripts } from "./schema/scripts.js";
 import { storyboards } from "./schema/storyboards.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { workflows } from "./schema/workflows.js";
+import { Workflow, type WorkflowGraph } from "./workflow.js";
 
 /**
  * What counts as a project document: every kind that opens in a workspace tab,
@@ -437,4 +438,89 @@ export async function listDocumentIndex(
 
   documents.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return { documents, partial };
+}
+
+/*
+ * Which workflows reference a document (document editor PRD R15). A workflow
+ * references a document through a node property that holds a `document`
+ * value naming the document's asset, as `nodetool.constant.Document`,
+ * `nodetool.input.DocumentInput` and the target of `SaveDocument` do. The
+ * reverse index is derived from the stored graphs when it is read, so it
+ * cannot go stale when a workflow is edited, copied or deleted.
+ */
+
+/** One property in a graph that names a document. */
+export interface DocumentReference {
+  nodeId: string;
+  nodeType: string;
+  property: string;
+  assetId: string;
+}
+
+/** A workflow and the nodes in it that reference a document. */
+export interface DocumentReferencingWorkflow {
+  workflowId: string;
+  name: string;
+  nodes: Array<{ nodeId: string; nodeType: string; property: string }>;
+}
+
+/** Graphs scanned per page. */
+const PAGE_SIZE = 200;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** The asset id a `document` value names, or null. */
+export function documentAssetIdOf(value: unknown): string | null {
+  if (!isRecord(value) || value["type"] !== "document") return null;
+  const assetId = value["asset_id"];
+  if (typeof assetId === "string" && assetId !== "") return assetId;
+  const uri = value["uri"];
+  if (typeof uri === "string" && uri.startsWith("asset://")) {
+    return uri.slice("asset://".length) || null;
+  }
+  return null;
+}
+
+/** Every node property in `graph` that names a document. */
+export function documentReferencesInGraph(
+  graph: Pick<WorkflowGraph, "nodes"> | null | undefined
+): DocumentReference[] {
+  const references: DocumentReference[] = [];
+  for (const node of graph?.nodes ?? []) {
+    const nodeId = typeof node["id"] === "string" ? node["id"] : "";
+    const nodeType = typeof node["type"] === "string" ? node["type"] : "";
+    // A stored graph keeps properties in `data`, an authored one in `properties`.
+    for (const bag of [node["data"], node["properties"]]) {
+      if (!isRecord(bag)) continue;
+      for (const [property, value] of Object.entries(bag)) {
+        const assetId = documentAssetIdOf(value);
+        if (assetId) references.push({ nodeId, nodeType, property, assetId });
+      }
+    }
+  }
+  return references;
+}
+
+/** The user's workflows that reference document `assetId`. */
+export async function workflowsReferencingDocument(
+  userId: string,
+  assetId: string
+): Promise<DocumentReferencingWorkflow[]> {
+  const found: DocumentReferencingWorkflow[] = [];
+  let startKey: string | undefined;
+  do {
+    const [page, next] = await Workflow.paginate(userId, { limit: PAGE_SIZE, startKey });
+    for (const workflow of page) {
+      const nodes = documentReferencesInGraph(workflow.getGraph())
+        .filter((reference) => reference.assetId === assetId)
+        .map(({ nodeId, nodeType, property }) => ({ nodeId, nodeType, property }));
+      if (nodes.length > 0) {
+        found.push({ workflowId: workflow.id, name: workflow.name, nodes });
+      }
+    }
+    startKey = next || undefined;
+  } while (startKey);
+  return found;
 }

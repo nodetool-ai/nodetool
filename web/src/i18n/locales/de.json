@@ -21067,5 +21067,129 @@
       "paste": "Paste Page",
       "clear": "Clear Page"
     }
+  },
+  "documentEditor": {
+    "label": "Dokument",
+    "placeholder": "Schreiben Sie los oder tippen Sie # für eine Überschrift",
+    "loadError": "Das Dokument konnte nicht geladen werden.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Dokumentansicht",
+      "formatted": "Formatiert",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Überschrift 1",
+      "heading2": "Überschrift 2",
+      "heading3": "Überschrift 3",
+      "bold": "Fett",
+      "italic": "Kursiv",
+      "strikethrough": "Durchgestrichen",
+      "inlineCode": "Inline-Code",
+      "link": "Link",
+      "bulletList": "Aufzählung",
+      "numberedList": "Nummerierte Liste",
+      "checkList": "Aufgabenliste",
+      "quote": "Zitat",
+      "codeBlock": "Codeblock",
+      "table": "Tabelle",
+      "image": "Bild",
+      "rule": "Trennlinie"
+    },
+    "insert": {
+      "linkAddress": "Linkadresse",
+      "imagePath": "Bildpfad oder URL",
+      "imagePathPlaceholder": "assets/bild.png",
+      "imageAlt": "Beschreibung",
+      "removeLink": "Link entfernen",
+      "applyLink": "Übernehmen",
+      "insertImage": "Einfügen"
+    },
+    "agent": {
+      "toggle": "Assistent",
+      "welcomeTitle": "Mit dem Assistenten schreiben",
+      "welcomeBody": "Bitten Sie um einen Entwurf, eine Änderung oder eine Prüfung. Der Assistent sieht dieses Dokument und den markierten Text."
+    },
+    "versions": {
+      "toggle": "Versionsverlauf",
+      "title": "Versionen",
+      "name": "Versionsname",
+      "namePlaceholder": "Name (optional)",
+      "save": "Version speichern",
+      "restore": "Wiederherstellen",
+      "loadError": "Die Versionen konnten nicht geladen werden.",
+      "emptyTitle": "Noch keine Versionen",
+      "emptyBody": "Eine Version wird vor jeder Änderung des Assistenten, beim Speichern und alle paar Minuten während der Bearbeitung angelegt.",
+      "versionNumber": "Version {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistent",
+        "workflow_run": "Workflow-Lauf",
+        "manual": "Gespeichert",
+        "autosave": "Intervall",
+        "restore": "Vor Wiederherstellung"
+      },
+      "usedIn": "Verwendet in Workflows: {{count}}"
+    },
+    "changes": {
+      "title": "Markierte Änderungen: {{count}}",
+      "show": "Anzeigen",
+      "hide": "Ausblenden",
+      "dismiss": "Verwerfen",
+      "dismissAll": "Alle verwerfen",
+      "kinds": {
+        "modified": "Geändert",
+        "inserted": "Hinzugefügt",
+        "deleted": "Entfernt"
+      },
+      "actions": {
+        "modified": "Zurücksetzen",
+        "inserted": "Entfernen",
+        "deleted": "Wiederherstellen"
+      }
+    },
+    "assist": {
+      "proposal": "Vorgeschlagener Ersatz",
+      "note": "Hinweis",
+      "discard": "Verwerfen",
+      "close": "Schließen",
+      "replace": "Ersetzen",
+      "thinking": "Denkt nach…",
+      "stop": "Stopp",
+      "placeholder": "Was soll sich ändern?",
+      "refinePlaceholder": "Antwort verfeinern",
+      "instruction": "Anweisung",
+      "send": "Senden",
+      "noModel": "Wählen Sie zuerst im Chat ein Modell.",
+      "failed": "Die Anfrage ist fehlgeschlagen."
+    },
+    "resizePanel": "Seitenleiste in der Größe ändern",
+    "picker": {
+      "label": "Projektdokument",
+      "none": "Keins",
+      "placeholder": "Projektdokument wählen",
+      "loading": "Wird geladen…",
+      "error": "Die Dokumente konnten nicht geladen werden.",
+      "empty": "Keine Markdown-Dokumente in diesem Projekt"
+    },
+    "convert": {
+      "label": "In Dokument umwandeln",
+      "tooltip": "Diesen Text in ein Projektdokument verschieben und von diesem Knoten aus darauf verweisen"
+    },
+    "export": {
+      "label": "Exportieren",
+      "pdf": "Als PDF exportieren",
+      "html": "Als HTML exportieren",
+      "googleDoc": "Nach Google Docs exportieren"
+    },
+    "importGoogleDoc": {
+      "title": "Google Doc importieren",
+      "confirm": "Importieren",
+      "link": "Link zum Google Doc",
+      "help": "Füge den Link des Dokuments aus deinem Browser ein. Du musst mit Google angemeldet sein."
+    },
+    "import": {
+      "asDocument": "Als Dokument importieren",
+      "asDocumentTooltip": "Aus dieser Datei ein bearbeitbares Markdown-Dokument erstellen. Die Datei selbst bleibt unverändert."
+    }
   }
 }

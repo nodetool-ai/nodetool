@@ -12,7 +12,8 @@ describe("SaveModel3DNode folder ref", () => {
     node.assign({
       model: { type: "model_3d", data: "AAECAw==", format: "glb" },
       folder: { type: "folder", uri: dir },
-      name: "mesh.glb"
+      filename: "mesh.glb",
+      save_to_workspace: false
     });
 
     const { output } = await node.process();

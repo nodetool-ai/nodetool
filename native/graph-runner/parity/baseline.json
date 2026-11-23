@@ -1,6 +1,6 @@
 {
  "counts": {
-  "parity": 323,
+  "parity": 318,
   "mismatch": 11,
   "native-unsupported": 22,
   "reference-unavailable": 88,
@@ -760,11 +760,6 @@
   "nodetool.audio.SaveAudio": {
    "status": "parity",
    "package": "@nodetool-ai/audio-nodes",
-   "reason": "1 case(s) match"
-  },
-  "nodetool.audio.SaveAudioFile": {
-   "status": "parity",
-   "package": "@nodetool-ai/audio-nodes",
    "reason": "2 case(s) match"
   },
   "nodetool.audio.SliceAudio": {
@@ -1282,7 +1277,7 @@
    "package": "@nodetool-ai/document-nodes",
    "reason": "2 case(s) match"
   },
-  "nodetool.document.SaveDocumentFile": {
+  "nodetool.document.SaveDocument": {
    "status": "parity",
    "package": "@nodetool-ai/document-nodes",
    "reason": "2 case(s) match"
@@ -1488,11 +1483,6 @@
    "reason": "3 case(s) match"
   },
   "nodetool.image.SaveImage": {
-   "status": "parity",
-   "package": "@nodetool-ai/image-nodes",
-   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
-  },
-  "nodetool.image.SaveImageFile": {
    "status": "parity",
    "package": "@nodetool-ai/image-nodes",
    "reason": "2 case(s) match"
@@ -1782,11 +1772,6 @@
    "package": "@nodetool-ai/video-nodes",
    "reason": "2 case(s) match"
   },
-  "nodetool.model3d.SaveModel3DFile": {
-   "status": "parity",
-   "package": "@nodetool-ai/video-nodes",
-   "reason": "2 case(s) match"
-  },
   "nodetool.model3d.TextTo3D": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
@@ -1933,11 +1918,6 @@
    "reason": "skip rule local-model: a model property defaults to a local provider"
   },
   "nodetool.text.SaveText": {
-   "status": "parity",
-   "package": "@nodetool-ai/text-nodes",
-   "reason": "2 case(s) match"
-  },
-  "nodetool.text.SaveTextFile": {
    "status": "parity",
    "package": "@nodetool-ai/text-nodes",
    "reason": "2 case(s) match"
@@ -2138,11 +2118,6 @@
    "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Saturation)"
   },
   "nodetool.video.SaveVideo": {
-   "status": "parity",
-   "package": "@nodetool-ai/video-nodes",
-   "reason": "1 case(s) match"
-  },
-  "nodetool.video.SaveVideoFile": {
    "status": "parity",
    "package": "@nodetool-ai/video-nodes",
    "reason": "1 case(s) match"

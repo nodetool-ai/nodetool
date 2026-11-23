@@ -88,7 +88,7 @@ export async function createPostgresRepositoryFromDatabase<T extends PgQueryResu
       if (!userId) { throw new Error("A resource owner is required"); }
       const existing = document.id ? await get(kind, userId, document.id) : null;
       const id = existing?.id ?? document.id ?? randomBytes(16).toString("hex");
-      const data: Record<string, unknown> = { ...existing, ...document, id, user_id: userId, created_at: existing?.created_at ?? new Date().toISOString(), updated_at: new Date().toISOString() };
+      const data: ResourceDocument = { ...existing, ...document, id, user_id: userId, created_at: existing?.created_at ?? new Date().toISOString(), updated_at: new Date().toISOString() };
       const table = tables[kind];
       const values = Object.entries(getTableColumns(table)).filter(([key]) => key in data).map(([key, column]) => ({ name: column.name, value: data[key] == null ? null : column.mapToDriverValue(data[key]) }));
       const names = sql.join(values.map(({ name }) => sql.identifier(name)), sql`, `);

@@ -59,6 +59,8 @@ interface AssistantChatPanelProps {
   composerPlaceholder?: string;
   requireToolSupport?: boolean;
   onThreadId?: (threadId: string | null) => void;
+  /** Runs before each message is sent, such as saving an open draft. */
+  beforeSend?: () => Promise<void>;
   focusMessage?: { threadId: string; messageId: string; requestId: number } | null;
 }
 
@@ -80,6 +82,7 @@ const AssistantChatPanel = ({
   composerPlaceholder,
   requireToolSupport = true,
   onThreadId,
+  beforeSend,
   focusMessage
 }: AssistantChatPanelProps) => {
   const theme = useTheme();
@@ -149,6 +152,20 @@ const AssistantChatPanel = ({
     }
   }, [createThread, chatSource]);
 
+  const send = useCallback<typeof sendMessage>(
+    async (...args) => {
+      if (beforeSend) {
+        try {
+          await beforeSend();
+        } catch (err) {
+          console.error(`Failed to prepare ${chatSource} message:`, err);
+        }
+      }
+      return sendMessage(...args);
+    },
+    [beforeSend, chatSource, sendMessage]
+  );
+
   const uiContext = useCallback((): BuildUiContextOptions => {
     return {
       focused: focused ?? undefined,
@@ -191,7 +208,7 @@ const AssistantChatPanel = ({
           status={chatStatus}
           messages={messages}
           workflowId={workflowId}
-          sendMessage={sendMessage}
+          sendMessage={send}
           progress={runtime.progress.current}
           total={runtime.progress.total}
           progressMessage={runtime.statusMessage}

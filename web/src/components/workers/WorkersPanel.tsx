@@ -22,10 +22,9 @@ import {
   ConfirmDialog,
   Dialog,
   SelectField,
-  StatusIndicator,
   AlertBanner,
   PanelHeader,
-  type StatusType, getSpacingPx, SPACING, BORDER_RADIUS,
+  getSpacingPx, SPACING, BORDER_RADIUS,
   EmptyState,
   SectionHeader,
   EditorMenu,
@@ -74,15 +73,6 @@ function readNumberField(
   const val = spec?.[key];
   return typeof val === "number" && Number.isFinite(val) ? val : null;
 }
-
-const STATUS_TONE: Record<string, StatusType> = {
-  provisioning: "running",
-  running: "info",
-  attached: "success",
-  stopping: "running",
-  stopped: "default",
-  error: "error"
-};
 
 const panelStyles =
   css({
@@ -192,11 +182,6 @@ function formatRunningCost(
   }).format(accrued);
 }
 
-function formatCost(cost: number | null, locale: string, t: TFunction): string {
-  if (cost === null) return t("screens4_8.workers.common.unavailable");
-  return new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(cost);
-}
-
 function formatRate(cost: number, locale: string, t: TFunction): string {
   const amount = new Intl.NumberFormat(locale, { style: "currency", currency: "USD" }).format(cost);
   return t("screens4_8.workers.rate", { amount });
@@ -247,10 +232,6 @@ const GpuStock: React.FC<GpuStockProps> = ({ gpuId, availability }) => {
     </FlexRow>
   );
 };
-
-function statusTone(status: string): StatusType {
-  return STATUS_TONE[status] ?? "default";
-}
 
 interface ProvisionDialogProps {
   open: boolean;
@@ -519,11 +500,6 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
       : "booting"
     : instance.status;
   const displayLabel = t(`screens4_8.workers.status.${displayLabelKey}`);
-  const displayTone: StatusType = isRunning
-    ? isHealthy
-      ? "success"
-      : "running"
-    : statusTone(instance.status);
   const statusHint =
     instance.status === "provisioning"
       ? t("screens4_8.workers.status.provisioningHint")

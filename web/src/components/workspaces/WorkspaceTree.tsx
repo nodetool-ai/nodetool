@@ -486,7 +486,13 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         }
       }
       const kind = workspaceFileKind(itemId);
-      if (kind === "audio" || kind === "image" || kind === "model3d") {
+      // A Markdown file opens in the document editor, a text tab (PRD Q4).
+      if (
+        kind === "audio" ||
+        kind === "image" ||
+        kind === "model3d" ||
+        kind === "markdown"
+      ) {
         const asset = await assetOfFile(projectId, itemId).catch(
           (error: unknown) => {
             console.warn("Could not find the asset of a file", error);
@@ -498,7 +504,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
           openTab({
             type: tabType,
             ref: asset.id,
-            mode: "view",
+            mode: kind === "markdown" ? "edit" : "view",
             title:
               asset.name || item?.label || itemId.split("/").pop() || itemId,
             projectId

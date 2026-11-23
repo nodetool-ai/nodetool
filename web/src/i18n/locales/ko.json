@@ -21067,5 +21067,129 @@
       "paste": "Paste Page",
       "clear": "Clear Page"
     }
+  },
+  "documentEditor": {
+    "label": "문서",
+    "placeholder": "글을 쓰기 시작하거나 #을 입력해 제목을 만드세요",
+    "loadError": "문서를 불러올 수 없습니다.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "문서 보기",
+      "formatted": "서식 적용",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "제목 1",
+      "heading2": "제목 2",
+      "heading3": "제목 3",
+      "bold": "굵게",
+      "italic": "기울임꼴",
+      "strikethrough": "취소선",
+      "inlineCode": "인라인 코드",
+      "link": "링크",
+      "bulletList": "글머리 기호 목록",
+      "numberedList": "번호 목록",
+      "checkList": "할 일 목록",
+      "quote": "인용",
+      "codeBlock": "코드 블록",
+      "table": "표",
+      "image": "이미지",
+      "rule": "구분선"
+    },
+    "insert": {
+      "linkAddress": "링크 주소",
+      "imagePath": "이미지 경로 또는 URL",
+      "imagePathPlaceholder": "assets/picture.png",
+      "imageAlt": "설명",
+      "removeLink": "링크 제거",
+      "applyLink": "적용",
+      "insertImage": "삽입"
+    },
+    "agent": {
+      "toggle": "어시스턴트",
+      "welcomeTitle": "어시스턴트와 함께 쓰기",
+      "welcomeBody": "초안, 수정 또는 검토를 요청하세요. 어시스턴트는 이 문서와 선택한 텍스트를 봅니다."
+    },
+    "versions": {
+      "toggle": "버전 기록",
+      "title": "버전",
+      "name": "버전 이름",
+      "namePlaceholder": "이름(선택)",
+      "save": "버전 저장",
+      "restore": "복원",
+      "loadError": "버전을 불러올 수 없습니다.",
+      "emptyTitle": "아직 버전이 없습니다",
+      "emptyBody": "어시스턴트가 변경하기 전, 직접 저장할 때, 편집 중 몇 분마다 버전이 저장됩니다.",
+      "versionNumber": "버전 {{version}}",
+      "saveTypes": {
+        "agent_turn": "어시스턴트",
+        "workflow_run": "워크플로 실행",
+        "manual": "저장됨",
+        "autosave": "주기",
+        "restore": "복원 전"
+      },
+      "usedIn": "사용 중인 워크플로: {{count}}"
+    },
+    "changes": {
+      "title": "표시된 변경: {{count}}",
+      "show": "보기",
+      "hide": "숨기기",
+      "dismiss": "닫기",
+      "dismissAll": "모두 닫기",
+      "kinds": {
+        "modified": "변경됨",
+        "inserted": "추가됨",
+        "deleted": "삭제됨"
+      },
+      "actions": {
+        "modified": "되돌리기",
+        "inserted": "제거",
+        "deleted": "복원"
+      }
+    },
+    "assist": {
+      "proposal": "제안된 대체 텍스트",
+      "note": "메모",
+      "discard": "취소",
+      "close": "닫기",
+      "replace": "바꾸기",
+      "thinking": "생각 중…",
+      "stop": "중지",
+      "placeholder": "무엇을 바꿀까요?",
+      "refinePlaceholder": "답변 다듬기",
+      "instruction": "지시",
+      "send": "보내기",
+      "noModel": "먼저 채팅에서 모델을 선택하세요.",
+      "failed": "요청이 실패했습니다."
+    },
+    "resizePanel": "사이드 패널 크기 조정",
+    "picker": {
+      "label": "프로젝트 문서",
+      "none": "없음",
+      "placeholder": "프로젝트 문서 선택",
+      "loading": "불러오는 중…",
+      "error": "문서를 불러올 수 없습니다.",
+      "empty": "이 프로젝트에 Markdown 문서가 없습니다"
+    },
+    "convert": {
+      "label": "문서로 변환",
+      "tooltip": "이 텍스트를 프로젝트 문서로 옮기고 이 노드에서 참조합니다"
+    },
+    "export": {
+      "label": "내보내기",
+      "pdf": "PDF로 내보내기",
+      "html": "HTML로 내보내기",
+      "googleDoc": "Google 문서로 내보내기"
+    },
+    "importGoogleDoc": {
+      "title": "Google 문서 가져오기",
+      "confirm": "가져오기",
+      "link": "Google 문서 링크",
+      "help": "브라우저에서 문서 링크를 붙여 넣으세요. Google로 로그인되어 있어야 합니다."
+    },
+    "import": {
+      "asDocument": "문서로 가져오기",
+      "asDocumentTooltip": "이 파일로 편집 가능한 Markdown 문서를 만듭니다. 파일 자체는 바뀌지 않습니다."
+    }
   }
 }

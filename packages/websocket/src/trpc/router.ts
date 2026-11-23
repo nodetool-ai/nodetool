@@ -5,6 +5,7 @@ import { assetsRouter } from "./routers/assets.js";
 import { cloudLocalRouter } from "./routers/cloud-local.js";
 import { cloudTransferRouter } from "./routers/cloud-transfer.js";
 import { deletedDocumentsRouter } from "./routers/deleted-documents.js";
+import { textDocumentsRouter } from "./routers/text-documents.js";
 import { codeGenRouter } from "./routers/code-gen.js";
 import { segmentationRouter } from "./routers/segmentation.js";
 import { collectionsRouter } from "./routers/collections.js";
@@ -94,6 +95,7 @@ type AppRouterRecord = {
   cloudLocal: typeof cloudLocalRouter;
   cloudTransfer: typeof cloudTransferRouter;
   deletedDocuments: typeof deletedDocumentsRouter;
+  textDocuments: typeof textDocumentsRouter;
   sketch: typeof sketchRouter;
   storyboards: typeof storyboardsRouter;
   sync: typeof syncRouter;
@@ -154,6 +156,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   cloudLocal: cloudLocalRouter,
   cloudTransfer: cloudTransferRouter,
   deletedDocuments: deletedDocumentsRouter,
+  textDocuments: textDocumentsRouter,
   sketch: sketchRouter,
   storyboards: storyboardsRouter,
   sync: syncRouter,

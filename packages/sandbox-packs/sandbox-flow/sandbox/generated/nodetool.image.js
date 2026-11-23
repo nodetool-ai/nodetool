@@ -45,9 +45,6 @@ function loadImageFolder(inputs) {
 loadImageFolder.stream = function(inputs) {
   return streamNode("nodetool.image.LoadImageFolder", inputs);
 };
-function saveImageFile(inputs) {
-  return callNode("nodetool.image.SaveImageFile", inputs);
-}
 function loadImageAssets(inputs) {
   return callNode("nodetool.image.LoadImageAssets", inputs);
 }
@@ -117,7 +114,6 @@ export {
   resizeImage,
   rotateAndFlip,
   saveImage,
-  saveImageFile,
   scale,
   segment,
   textToImage,

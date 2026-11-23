@@ -27,8 +27,8 @@ This namespace contains 26 node(s).
 - **[Remove Background](removebackground.md)** - Remove the background from an image, returning a cutout with transparency.
 - **[Resize](resize.md)**
 - **[Rotate & Flip](rotateflip.md)** - Rotate and/or flip an image in a single step.
+- **[Save Image](saveimage.md)** - Save an image into the project folder, or to a folder on disk.
 - **[Save Image Asset](saveimageasset.md)** - Save an image to specified asset folder with customizable name format.
-- **[Save Image File](saveimagefile.md)** - Write an image to disk.
 - **[Scale](scale.md)**
 - **[Text To Image](texttoimage.md)** - Generate images from text prompts using any supported image provider. Automat...
 - **[Upscale Image](upscaleimage.md)** - Increase the resolution and detail of an image using any supported upscaling ...

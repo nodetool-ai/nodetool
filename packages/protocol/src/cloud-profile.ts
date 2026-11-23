@@ -161,18 +161,16 @@ export const CLOUD_HOST_FILE_NODES: readonly string[] = [
   "nodetool.input.DocumentFileInput",
   "nodetool.input.FilePathInput",
   "nodetool.input.FolderPathInput",
-  // Media loaders/savers that go to disk. Their asset-store siblings
-  // (SaveImage, SaveAudio, SaveVideo, …) stay.
+  // Media loaders that read the disk. The save nodes (SaveImage, SaveAudio,
+  // SaveVideo, SaveModel3D, SaveText, SaveDocument) stay: the cloud hides
+  // their host folder field, and writeSavedFile refuses a host folder for a
+  // workspace in cloud storage (document editor PRD R28).
   "nodetool.audio.LoadAudioFile",
   "nodetool.audio.LoadAudioFolder",
-  "nodetool.audio.SaveAudioFile",
   "nodetool.image.LoadImageFile",
   "nodetool.image.LoadImageFolder",
-  "nodetool.image.SaveImageFile",
   "nodetool.video.LoadVideoFile",
-  "nodetool.video.SaveVideoFile",
   "nodetool.model3d.LoadModel3DFile",
-  "nodetool.model3d.SaveModel3DFile",
   // Named "Assets", but they read the folder ref's `uri` (or a plain string)
   // as a host directory with fs.readdir/readFile. They never consult the
   // asset store, so on a shared server they read whatever directory a graph
@@ -192,13 +190,11 @@ export const CLOUD_HOST_FILE_NODES: readonly string[] = [
  *   surfaces are already refused in production (`/api/files/local`, the
  *   workspace routes, tRPC `files.list`), so leaving the nodes in the palette
  *   only offers a picker that cannot pick and a run that cannot resolve.
- *   Assets are the cloud's file story: the `*Assets` loaders and the plain
- *   `SaveImage`/`SaveAudio`/`SaveVideo`/`SaveDataframe` savers go through the
- *   asset store and stay.
+ *   Assets are the cloud's file story: the `*Assets` loaders and the save
+ *   nodes write into the project folder and stay.
  * - `nodetool.text.*` file I/O — `nodetool.text` is whole-listed for its
- *   creative-text toolkit and ASR, but the folder/asset loaders and the two
- *   filesystem writers (`SaveText`, `SaveTextFile` — both call fs.writeFile on
- *   an unsandboxed host path) are dropped, for the same reason.
+ *   creative-text toolkit and ASR, but the folder/asset loaders read host
+ *   paths and are dropped, for the same reason.
  * - `nodetool.agents.*` — kept as a namespace for Agent, Classifier,
  *   Extractor, Summarizer, CreateThread, and EnhancePrompt. Specialist
  *   tool-agent nodes were removed; media editing, yt-dlp, and browser are
@@ -207,9 +203,7 @@ export const CLOUD_HOST_FILE_NODES: readonly string[] = [
 export const CLOUD_NODE_DENYLIST: readonly string[] = [
   ...CLOUD_HOST_FILE_NODES,
   "nodetool.text.LoadTextFolder",
-  "nodetool.text.LoadTextAssets",
-  "nodetool.text.SaveText",
-  "nodetool.text.SaveTextFile"
+  "nodetool.text.LoadTextAssets"
 ];
 
 /**

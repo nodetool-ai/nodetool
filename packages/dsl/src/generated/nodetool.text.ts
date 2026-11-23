@@ -53,35 +53,22 @@ export function rerank(inputs: RerankInputs, options?: NodeOptions): NodeWithOut
   return createNode("nodetool.text.Rerank", inputs, { id: options?.id, outputNames: ["documents", "scores", "indices"], outputTypes: {"documents":"list[str]","scores":"list[float]","indices":"list[int]"} });
 }
 
-// Save Text File — nodetool.text.SaveTextFile
-export type SaveTextFileInputs = {
-  text?: Connectable<string>;
-  save_to_workspace?: Connectable<boolean>;
-  folder?: Connectable<string>;
-  name?: Connectable<string>;
-};
-
-export interface SaveTextFileOutputs {
-  output: TextRef;
-}
-
-export function saveTextFile(inputs: SaveTextFileInputs, options?: NodeOptions): NodeWithOutputs<SaveTextFileOutputs, "output"> {
-  return createNode("nodetool.text.SaveTextFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"text"}, defaultOutput: "output" });
-}
-
 // Save Text — nodetool.text.SaveText
 export type SaveTextInputs = {
   text?: Connectable<string>;
-  folder?: Connectable<FolderRef>;
-  name?: Connectable<string>;
+  save_to_workspace?: Connectable<boolean>;
+  folder?: Connectable<string>;
+  filename?: Connectable<string>;
+  overwrite?: Connectable<boolean>;
 };
 
 export interface SaveTextOutputs {
   output: TextRef;
+  path: string;
 }
 
-export function saveText(inputs: SaveTextInputs, options?: NodeOptions): NodeWithOutputs<SaveTextOutputs, "output"> {
-  return createNode("nodetool.text.SaveText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"text"}, defaultOutput: "output" });
+export function saveText(inputs: SaveTextInputs, options?: NodeOptions): NodeWithOutputs<SaveTextOutputs> {
+  return createNode("nodetool.text.SaveText", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: {"output":"text","path":"str"} });
 }
 
 // Load Text Folder — nodetool.text.LoadTextFolder

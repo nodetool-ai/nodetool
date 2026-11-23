@@ -41,9 +41,8 @@ function constantFor(prop) {
 export function defaultCase(node) {
   const nodes = [{ id: "n", type: node.type, properties: {} }];
   const stableNames = {
-    "nodetool.image.SaveImageFile": { filename: "parity.png" },
-    "nodetool.model3d.SaveModel3DFile": { filename: "parity.glb" },
-    "nodetool.model3d.SaveModel3D": { name: "parity.glb" }
+    "nodetool.image.SaveImage": { filename: "parity.png" },
+    "nodetool.model3d.SaveModel3D": { filename: "parity.glb" }
   };
   Object.assign(nodes[0].properties, stableNames[node.type]);
   const edges = [];

@@ -21067,5 +21067,129 @@
       "paste": "Paste Page",
       "clear": "Clear Page"
     }
+  },
+  "documentEditor": {
+    "label": "Dokument",
+    "placeholder": "Börja skriva, eller skriv # för en rubrik",
+    "loadError": "Dokumentet kunde inte läsas in.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Dokumentvy",
+      "formatted": "Formaterad",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Rubrik 1",
+      "heading2": "Rubrik 2",
+      "heading3": "Rubrik 3",
+      "bold": "Fet",
+      "italic": "Kursiv",
+      "strikethrough": "Genomstruken",
+      "inlineCode": "Kod i text",
+      "link": "Länk",
+      "bulletList": "Punktlista",
+      "numberedList": "Numrerad lista",
+      "checkList": "Uppgiftslista",
+      "quote": "Citat",
+      "codeBlock": "Kodblock",
+      "table": "Tabell",
+      "image": "Bild",
+      "rule": "Avdelare"
+    },
+    "insert": {
+      "linkAddress": "Länkadress",
+      "imagePath": "Bildsökväg eller URL",
+      "imagePathPlaceholder": "assets/bild.png",
+      "imageAlt": "Beskrivning",
+      "removeLink": "Ta bort länk",
+      "applyLink": "Använd",
+      "insertImage": "Infoga"
+    },
+    "agent": {
+      "toggle": "Assistent",
+      "welcomeTitle": "Skriv med assistenten",
+      "welcomeBody": "Be om ett utkast, en ändring eller en granskning. Assistenten ser det här dokumentet och texten du markerat."
+    },
+    "versions": {
+      "toggle": "Versionshistorik",
+      "title": "Versioner",
+      "name": "Versionsnamn",
+      "namePlaceholder": "Namn (valfritt)",
+      "save": "Spara version",
+      "restore": "Återställ",
+      "loadError": "Versionerna kunde inte läsas in.",
+      "emptyTitle": "Inga versioner än",
+      "emptyBody": "En version sparas före varje ändring från assistenten, när du sparar en och med några minuters mellanrum medan du redigerar.",
+      "versionNumber": "Version {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistent",
+        "workflow_run": "Arbetsflödeskörning",
+        "manual": "Sparad",
+        "autosave": "Intervall",
+        "restore": "Före återställning"
+      },
+      "usedIn": "Används i arbetsflöden: {{count}}"
+    },
+    "changes": {
+      "title": "Markerade ändringar: {{count}}",
+      "show": "Visa",
+      "hide": "Dölj",
+      "dismiss": "Avfärda",
+      "dismissAll": "Avfärda alla",
+      "kinds": {
+        "modified": "Ändrat",
+        "inserted": "Tillagt",
+        "deleted": "Borttaget"
+      },
+      "actions": {
+        "modified": "Återställ",
+        "inserted": "Ta bort",
+        "deleted": "Återställ"
+      }
+    },
+    "assist": {
+      "proposal": "Föreslagen ersättning",
+      "note": "Anteckning",
+      "discard": "Kasta",
+      "close": "Stäng",
+      "replace": "Ersätt",
+      "thinking": "Tänker…",
+      "stop": "Stoppa",
+      "placeholder": "Vad ska ändras?",
+      "refinePlaceholder": "Förfina svaret",
+      "instruction": "Instruktion",
+      "send": "Skicka",
+      "noModel": "Välj en modell i chatten först.",
+      "failed": "Begäran misslyckades."
+    },
+    "resizePanel": "Ändra storlek på sidopanelen",
+    "picker": {
+      "label": "Projektdokument",
+      "none": "Inget",
+      "placeholder": "Välj ett projektdokument",
+      "loading": "Läser in…",
+      "error": "Dokumenten kunde inte läsas in.",
+      "empty": "Inga Markdown-dokument i det här projektet"
+    },
+    "convert": {
+      "label": "Gör om till dokument",
+      "tooltip": "Flytta texten till ett projektdokument och hänvisa till det från den här noden"
+    },
+    "export": {
+      "label": "Exportera",
+      "pdf": "Exportera som PDF",
+      "html": "Exportera som HTML",
+      "googleDoc": "Exportera till Google Dokument"
+    },
+    "importGoogleDoc": {
+      "title": "Importera Google-dokument",
+      "confirm": "Importera",
+      "link": "Länk till Google-dokumentet",
+      "help": "Klistra in länken till dokumentet från webbläsaren. Du måste vara inloggad med Google."
+    },
+    "import": {
+      "asDocument": "Importera som dokument",
+      "asDocumentTooltip": "Skapa ett redigerbart Markdown-dokument från filen. Själva filen ändras inte."
+    }
   }
 }

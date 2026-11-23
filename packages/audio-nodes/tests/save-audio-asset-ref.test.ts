@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { SaveAudioFileNode, SaveAudioNode } from "@nodetool-ai/audio-nodes";
+import { SaveAudioNode } from "@nodetool-ai/audio-nodes";
 
 const ASSET_ID = "7a5835f86af44d878e875730d37b05ca";
 const AUDIO = new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4]);
@@ -29,8 +29,8 @@ afterEach(async () => {
 });
 
 describe("save nodes write the bytes behind an asset ref", () => {
-  it("SaveAudioFile writes an asset:// audio", async () => {
-    const node = new SaveAudioFileNode();
+  it("SaveAudio writes an asset:// audio", async () => {
+    const node = new SaveAudioNode();
     node.assign({
       audio: { type: "audio", uri: `asset://${ASSET_ID}`, asset_id: ASSET_ID },
       folder: { type: "folder", uri: dir },
@@ -38,7 +38,7 @@ describe("save nodes write the bytes behind an asset ref", () => {
       save_to_workspace: false
     });
     const result = await node.process(assetContext());
-    expect(new Uint8Array(await readFile(String(result.output)))).toEqual(AUDIO);
+    expect(new Uint8Array(await readFile(String(result.path)))).toEqual(AUDIO);
   });
 
   it("SaveAudio writes an audio that carries only an asset_id", async () => {
@@ -46,7 +46,8 @@ describe("save nodes write the bytes behind an asset ref", () => {
     node.assign({
       audio: { type: "audio", uri: "", asset_id: ASSET_ID },
       folder: { type: "folder", uri: dir },
-      name: "out.wav"
+      filename: "out.wav",
+      save_to_workspace: false
     });
     await node.process(assetContext());
     expect(new Uint8Array(await readFile(path.join(dir, "out.wav")))).toEqual(AUDIO);

@@ -37,7 +37,7 @@ describe("SaveText in a run with a workspace", () => {
     [path.join("projects", "abc", "deep"), "x.txt"]
   ])("refuses to write into %s", async (folder, name) => {
     const node = new SaveTextNode();
-    node.assign({ text: "new", folder: path.join(dir, folder), name });
+    node.assign({ text: "new", save_to_workspace: false, folder: path.join(dir, folder), filename: name });
     await expect(node.process(context)).rejects.toThrow(WorkspaceReservedPathError);
     expect(await readFile(path.join(dir, "projects/abc/note.txt"), "utf8")).toBe("theirs");
     expect(await readFile(path.join(dir, ".nodetool/project.json"), "utf8")).toBe("manifest");
@@ -45,7 +45,7 @@ describe("SaveText in a run with a workspace", () => {
 
   it("writes in the project's own folder", async () => {
     const node = new SaveTextNode();
-    node.assign({ text: "mine", folder: path.join(dir, "out"), name: "a.txt" });
+    node.assign({ text: "mine", save_to_workspace: false, folder: path.join(dir, "out"), filename: "a.txt" });
     const { output } = await node.process(context);
     expect(await readFile(path.join(dir, "out", "a.txt"), "utf8")).toBe("mine");
     expect(output.data).toBe("mine");

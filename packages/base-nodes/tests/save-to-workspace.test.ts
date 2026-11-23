@@ -11,11 +11,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import {
-  SaveTextFileNode,
-  SaveDocumentFileNode
+  SaveTextNode,
+  SaveDocumentNode
 } from "@nodetool-ai/base-nodes";
-import { SaveAudioFileNode } from "@nodetool-ai/audio-nodes";
-import { SaveImageFileImageNode } from "@nodetool-ai/image-nodes";
+import { SaveAudioNode } from "@nodetool-ai/audio-nodes";
+import { SaveImageNode } from "@nodetool-ai/image-nodes";
 
 let workspace: string;
 let context: ProcessingContext;
@@ -38,24 +38,24 @@ afterEach(async () => {
 
 describe("save_to_workspace", () => {
   it("defaults to on for every save node", () => {
-    expect(new SaveTextFileNode().serialize()).toMatchObject({
+    expect(new SaveTextNode().serialize()).toMatchObject({
       save_to_workspace: true
     });
-    expect(new SaveImageFileImageNode().serialize()).toMatchObject({
+    expect(new SaveImageNode().serialize()).toMatchObject({
       save_to_workspace: true
     });
-    expect(new SaveAudioFileNode().serialize()).toMatchObject({
+    expect(new SaveAudioNode().serialize()).toMatchObject({
       save_to_workspace: true
     });
-    expect(new SaveDocumentFileNode().serialize()).toMatchObject({
+    expect(new SaveDocumentNode().serialize()).toMatchObject({
       save_to_workspace: true
     });
   });
 
   it("writes text into the workspace and numbers a repeat save", async () => {
     for (let i = 0; i < 2; i++) {
-      const node = new SaveTextFileNode();
-      node.assign({ text: `run ${i}`, save_to_workspace: true, name: "out.txt" });
+      const node = new SaveTextNode();
+      node.assign({ text: `run ${i}`, save_to_workspace: true, filename: "out.txt" });
       const result = await node.process(context);
       expect(result.output.uri.startsWith(workspace)).toBe(true);
     }
@@ -63,7 +63,7 @@ describe("save_to_workspace", () => {
   });
 
   it("writes an image into the workspace", async () => {
-    const node = new SaveImageFileImageNode();
+    const node = new SaveImageNode();
     node.assign({
       image: { type: "image", data: PNG.toString("base64") },
       save_to_workspace: true,
@@ -77,7 +77,7 @@ describe("save_to_workspace", () => {
     // The filename property defaults to empty. That used to resolve to the
     // workspace folder itself, so the image landed one level up, named after
     // the folder and with no extension at all.
-    const node = new SaveImageFileImageNode();
+    const node = new SaveImageNode();
     node.assign({
       image: { type: "image", data: PNG.toString("base64") },
       save_to_workspace: true
@@ -89,7 +89,7 @@ describe("save_to_workspace", () => {
   });
 
   it("appends the image's own extension to a name typed without one", async () => {
-    const node = new SaveImageFileImageNode();
+    const node = new SaveImageNode();
     node.assign({
       image: { type: "image", data: PNG.toString("base64") },
       save_to_workspace: true,
@@ -100,24 +100,24 @@ describe("save_to_workspace", () => {
   });
 
   it("writes a document into the workspace", async () => {
-    const node = new SaveDocumentFileNode();
+    const node = new SaveDocumentNode();
     node.assign({
       document: { type: "document", text: "hello" },
       save_to_workspace: true,
       filename: "notes.txt"
     });
     const result = await node.process(context);
-    expect(result.output).toBe(path.join(workspace, "notes.txt"));
+    expect(result.path).toBe(path.join(workspace, "notes.txt"));
   });
 
   it("uses the folder property when the toggle is off", async () => {
     const folder = path.join(workspace, "elsewhere");
-    const node = new SaveTextFileNode();
+    const node = new SaveTextNode();
     node.assign({
       text: "hi",
       save_to_workspace: false,
       folder,
-      name: "out.txt"
+      filename: "out.txt"
     });
     const result = await node.process(context);
     expect(result.output.uri).toBe(path.join(folder, "out.txt"));
@@ -125,8 +125,8 @@ describe("save_to_workspace", () => {
 
   it("falls back to the folder when the run has no workspace", async () => {
     const folder = path.join(workspace, "no-ws");
-    const node = new SaveTextFileNode();
-    node.assign({ text: "hi", save_to_workspace: true, folder, name: "out.txt" });
+    const node = new SaveTextNode();
+    node.assign({ text: "hi", save_to_workspace: true, folder, filename: "out.txt" });
     const result = await node.process(
       new ProcessingContext({ jobId: "no-workspace" })
     );
@@ -134,8 +134,8 @@ describe("save_to_workspace", () => {
   });
 
   it("reports a missing destination instead of writing to the process cwd", async () => {
-    const node = new SaveTextFileNode();
-    node.assign({ text: "hi", save_to_workspace: true, name: "out.txt" });
+    const node = new SaveTextNode();
+    node.assign({ text: "hi", save_to_workspace: true, filename: "out.txt" });
     await expect(
       node.process(new ProcessingContext({ jobId: "no-workspace" }))
     ).rejects.toThrow(/Save to workspace/);
@@ -143,8 +143,8 @@ describe("save_to_workspace", () => {
 
   it("leaves a file the workspace already holds alone", async () => {
     await writeFile(path.join(workspace, "out.txt"), "existing");
-    const node = new SaveTextFileNode();
-    node.assign({ text: "new", save_to_workspace: true, name: "out.txt" });
+    const node = new SaveTextNode();
+    node.assign({ text: "new", save_to_workspace: true, filename: "out.txt" });
     await node.process(context);
     expect((await readdir(workspace)).sort()).toEqual(["out.txt", "out_1.txt"]);
   });

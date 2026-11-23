@@ -407,9 +407,13 @@ const UI_SURFACE_LABELS = {
   app: "app",
   svg: "SVG asset",
   audio: "audio asset",
+  document: "Markdown document",
   chat: "chat",
   app_run: "running chat app"
 } satisfies Record<UiSurfaceType, string>;
+
+/** Longest selected text quoted to the agent, in characters. */
+const MAX_SELECTED_TEXT_CHARS = 4000;
 
 const CHAT_SOURCE_LABELS = {
   workspace_chat: "workspace chat",
@@ -426,6 +430,7 @@ const CHAT_SOURCE_LABELS = {
   model3d_assistant: "3D editor assistant",
   svg_assistant: "SVG editor assistant",
   audio_assistant: "audio editor assistant",
+  document_assistant: "document editor assistant",
   app_run: "chat app"
 } satisfies Record<ChatSource, string>;
 
@@ -476,7 +481,7 @@ function formatUiContext(uiContext?: UiContext | null): string {
   const selection = uiContext.selection;
   const selected = selection
     ? Object.entries(selection)
-        .filter(([, ids]) => Array.isArray(ids) && ids.length > 0)
+        .filter(([key, ids]) => key !== "text" && Array.isArray(ids) && ids.length > 0)
         .map(
           ([key, ids]) =>
             `${key.replace(/_ids$/, "")}: ${(ids as string[]).join(", ")}`
@@ -484,6 +489,14 @@ function formatUiContext(uiContext?: UiContext | null): string {
     : [];
   if (selected.length > 0) {
     lines.push(`Selected in the focused document — ${selected.join("; ")}.`);
+  }
+  const selectedText = selection?.text?.trim();
+  if (selectedText) {
+    const clipped =
+      selectedText.length > MAX_SELECTED_TEXT_CHARS
+        ? `${selectedText.slice(0, MAX_SELECTED_TEXT_CHARS)}…`
+        : selectedText;
+    lines.push(`Selected text in the focused document:\n\n${clipped}`);
   }
   return lines.join("\n");
 }
@@ -552,6 +565,14 @@ export function buildUiGuidanceSection(uiContext?: UiContext | null): string {
   if (hasAssetEditor) {
     lines.push(
       "SVG and audio `ui_*` edits change the editor's unsaved draft, and the user can undo each one. Call `ui_svg_save` or `ui_audio_save` only when the user asks to keep the result, since saving overwrites the asset."
+    );
+  }
+
+  const hasDocument =
+    focused?.type === "document" || open.some((ref) => ref.type === "document");
+  if (hasDocument) {
+    lines.push(
+      "A Markdown document's id is its asset id. Read it with `read_document` and change it with `edit_document`, which takes exact-text edits, a whole new content, or text to append. Your edits apply at once and the open editor shows them. The content before your first edit of the turn is kept as a version, so the user can restore it."
     );
   }
 

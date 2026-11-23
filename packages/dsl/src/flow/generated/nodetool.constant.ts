@@ -142,6 +142,7 @@ export type DocumentInputs = {
 
 export interface DocumentOutputs {
   output: unknown;
+  text: string;
 }
 
 export function document(inputs: DocumentInputs): Promise<DocumentOutputs> {

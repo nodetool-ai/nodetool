@@ -29,7 +29,7 @@ import {
   ForEachRowNode,
   // document
   LoadDocumentFileNode,
-  SaveDocumentFileNode,
+  SaveDocumentNode,
   ListDocumentsNode
 } from "../src/index.js";
 
@@ -1105,7 +1105,7 @@ describe("lib-pedalboard-extra gaps", () => {
 // ============================================================================
 
 describe("document.ts gaps", () => {
-  it("LoadDocumentFile + SaveDocumentFile", async () => {
+  it("LoadDocumentFile + SaveDocument", async () => {
     const dir = tmpDir();
     const filePath = join(dir, "test.txt");
     writeFileSync(filePath, "Hello World");
@@ -1116,40 +1116,40 @@ describe("document.ts gaps", () => {
     expect((loaded.output as any).uri).toContain("file://");
 
     const outPath = join(dir, "out.txt");
-    const __n198 = new SaveDocumentFileNode();
+    const __n198 = new SaveDocumentNode();
     __n198.assign({ document: loaded.output });
-    // SaveDocumentFileNode reads (this as any).path which is not a declared prop
+    // SaveDocumentNode reads (this as any).path which is not a declared prop
     (__n198 as any).path = outPath;
     const saved = await __n198.process();
-    expect(saved.output).toBe(outPath);
+    expect(saved.path).toBe(outPath);
   });
 
-  it("SaveDocumentFile with text", async () => {
+  it("SaveDocument with text", async () => {
     const dir = tmpDir();
     const outPath = join(dir, "out.txt");
-    const __n199 = new SaveDocumentFileNode();
+    const __n199 = new SaveDocumentNode();
     __n199.assign({ document: { text: "Hello" } });
     (__n199 as any).path = outPath;
     await __n199.process();
     expect(readFileSync(outPath, "utf8")).toBe("Hello");
   });
 
-  it("SaveDocumentFile with uri", async () => {
+  it("SaveDocument with uri", async () => {
     const dir = tmpDir();
     const srcPath = join(dir, "src.txt");
     writeFileSync(srcPath, "Source");
     const outPath = join(dir, "out.txt");
-    const __n200 = new SaveDocumentFileNode();
+    const __n200 = new SaveDocumentNode();
     __n200.assign({ document: { uri: `file://${srcPath}` } });
     (__n200 as any).path = outPath;
     await __n200.process();
     expect(readFileSync(outPath, "utf8")).toBe("Source");
   });
 
-  it("SaveDocumentFile empty doc writes empty file", async () => {
+  it("SaveDocument empty doc writes empty file", async () => {
     const dir = tmpDir();
     const outPath = join(dir, "empty.txt");
-    const __n201 = new SaveDocumentFileNode();
+    const __n201 = new SaveDocumentNode();
     __n201.assign({ document: {} });
     (__n201 as any).path = outPath;
     await __n201.process();
@@ -1183,7 +1183,7 @@ describe("document.ts gaps", () => {
 
   it("defaults for document nodes", () => {
     expect(new LoadDocumentFileNode().serialize()).toHaveProperty("path");
-    expect(new SaveDocumentFileNode().serialize()).toHaveProperty("document");
+    expect(new SaveDocumentNode().serialize()).toHaveProperty("document");
     expect(new ListDocumentsNode().serialize()).toHaveProperty("recursive");
   });
 });

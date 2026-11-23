@@ -25,6 +25,7 @@ Represents a document constant in the workflow.
 | Output | Type | Description |
 |--------|------|-------------|
 | output | `document` |  |
+| text | `str` |  |
 
 ## Related Nodes
 

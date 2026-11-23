@@ -235,24 +235,6 @@ export function loadImageFolder(inputs: LoadImageFolderInputs, options?: NodeOpt
   return createNode("nodetool.image.LoadImageFolder", inputs, { id: options?.id, outputNames: ["image", "path", "images"], outputTypes: {"image":"image","path":"str","images":"list"}, streaming: true, inputMode: "buffered", outputCorrelation: {"image":{"kind":"iteration","source":"__execution__","group":"items"},"path":{"kind":"iteration","source":"__execution__","group":"items"},"images":{"kind":"single","source":"__execution__"}} });
 }
 
-// Save Image File — nodetool.image.SaveImageFile
-export type SaveImageFileInputs = {
-  image?: Connectable<ImageRef>;
-  save_to_workspace?: Connectable<boolean>;
-  folder?: Connectable<string>;
-  filename?: Connectable<string>;
-  overwrite?: Connectable<boolean>;
-};
-
-export interface SaveImageFileOutputs {
-  output: ImageRef;
-  path: string;
-}
-
-export function saveImageFile(inputs: SaveImageFileInputs, options?: NodeOptions): NodeWithOutputs<SaveImageFileOutputs> {
-  return createNode("nodetool.image.SaveImageFile", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: {"output":"image","path":"str"} });
-}
-
 // Load Image Assets — nodetool.image.LoadImageAssets
 export type LoadImageAssetsInputs = {
   folder?: Connectable<FolderRef>;
@@ -268,19 +250,22 @@ export function loadImageAssets(inputs: LoadImageAssetsInputs, options?: NodeOpt
   return createNode("nodetool.image.LoadImageAssets", inputs, { id: options?.id, outputNames: ["image", "name", "images"], outputTypes: {"image":"image","name":"str","images":"list"}, streaming: true, inputMode: "buffered", outputCorrelation: {"image":{"kind":"iteration","source":"__execution__","group":"items"},"name":{"kind":"iteration","source":"__execution__","group":"items"},"images":{"kind":"single","source":"__execution__"}} });
 }
 
-// Save Image Asset — nodetool.image.SaveImage
+// Save Image — nodetool.image.SaveImage
 export type SaveImageInputs = {
   image?: Connectable<ImageRef>;
-  folder?: Connectable<FolderRef>;
-  name?: Connectable<string>;
+  save_to_workspace?: Connectable<boolean>;
+  folder?: Connectable<string>;
+  filename?: Connectable<string>;
+  overwrite?: Connectable<boolean>;
 };
 
 export interface SaveImageOutputs {
   output: ImageRef;
+  path: string;
 }
 
-export function saveImage(inputs: SaveImageInputs, options?: NodeOptions): NodeWithOutputs<SaveImageOutputs, "output"> {
-  return createNode("nodetool.image.SaveImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
+export function saveImage(inputs: SaveImageInputs, options?: NodeOptions): NodeWithOutputs<SaveImageOutputs> {
+  return createNode("nodetool.image.SaveImage", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: {"output":"image","path":"str"} });
 }
 
 // Get Metadata — nodetool.image.GetMetadata

@@ -49,7 +49,7 @@ describe('explicit installed legacy node adapter',()=>{
     const fixture=await hostFixture();
     try {
       await createInstalledPackFeature({packId:'text',nodeTypes:['nodetool.text.FilterString']}).activate(fixture.host);
-      expect(fixture.host.execution.nodeTypes()).not.toContain('nodetool.text.SaveTextFile');
+      expect(fixture.host.execution.nodeTypes()).not.toContain('nodetool.text.SaveText');
       expect(await fixture.host.execution.run({graph:{nodes:[{id:'filter',type:'nodetool.text.FilterString',properties:{value:'hello tenant',criteria:'tenant',filter_type:'contains'}}],edges:[]},userId:'alice',jobId:'job',signal:new AbortController().signal,emit:()=>undefined})).toEqual({'Filter String':['hello tenant']});
     }finally{await fixture.close();}
   });
@@ -58,8 +58,8 @@ describe('explicit installed legacy node adapter',()=>{
     try {
       await createInstalledPackFeature({packId:'image',nodeTypes:['nodetool.image.SaveImage']}).activate(fixture.host);
       const data=await encodeRawRgbaToPng(solidRgba(2,2,[255,0,0,255]),2,2);
-      const result=await fixture.host.execution.run({graph:{nodes:[{id:'save',type:'nodetool.image.SaveImage',properties:{name:'fixture.png',image:{type:'image',data,mime_type:'image/png'}}}],edges:[]},userId:'alice',jobId:'job',signal:new AbortController().signal,emit:()=>undefined});
-      expect(result['Save Image Asset']).toBeInstanceOf(Array);
+      const result=await fixture.host.execution.run({graph:{nodes:[{id:'save',type:'nodetool.image.SaveImage',properties:{filename:'fixture.png',image:{type:'image',data,mime_type:'image/png'}}}],edges:[]},userId:'alice',jobId:'job',signal:new AbortController().signal,emit:()=>undefined});
+      expect(result['Save Image']).toBeInstanceOf(Array);
       expect(fixture.assets.size).toBe(1);
       expect([...fixture.assets.values()][0]?.bytes).toEqual(data);
       await expect(fixture.host.readAsset('bob',[...fixture.assets.keys()][0])).rejects.toThrow('Asset not found');
@@ -69,7 +69,7 @@ describe('explicit installed legacy node adapter',()=>{
     const fixture=await hostFixture();
     try {
       await createInstalledPackFeature({packId:'image',nodeTypes:['lib.image.draw.Checkerboard','nodetool.image.SaveImage']}).activate(fixture.host);
-      await fixture.host.execution.run({graph:{nodes:[{id:'render',type:'lib.image.draw.Checkerboard',properties:{width:4,height:4,cell_size:2}},{id:'save',type:'nodetool.image.SaveImage',properties:{name:'render.png'}}],edges:[{source:'render',sourceHandle:'output',target:'save',targetHandle:'image'}]},userId:'alice',jobId:'render-job',signal:new AbortController().signal,emit:()=>undefined});
+      await fixture.host.execution.run({graph:{nodes:[{id:'render',type:'lib.image.draw.Checkerboard',properties:{width:4,height:4,cell_size:2}},{id:'save',type:'nodetool.image.SaveImage',properties:{filename:'render.png'}}],edges:[{source:'render',sourceHandle:'output',target:'save',targetHandle:'image'}]},userId:'alice',jobId:'render-job',signal:new AbortController().signal,emit:()=>undefined});
       const asset=[...fixture.assets.values()][0];
       expect(asset).toBeDefined();
       if(!asset){throw new Error('Rendered image was not persisted');}

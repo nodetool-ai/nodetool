@@ -21067,5 +21067,129 @@
       "paste": "Paste Page",
       "clear": "Clear Page"
     }
+  },
+  "documentEditor": {
+    "label": "Document",
+    "placeholder": "Begin met schrijven of typ # voor een kop",
+    "loadError": "Het document kon niet worden geladen.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Documentweergave",
+      "formatted": "Opgemaakt",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Kop 1",
+      "heading2": "Kop 2",
+      "heading3": "Kop 3",
+      "bold": "Vet",
+      "italic": "Cursief",
+      "strikethrough": "Doorhalen",
+      "inlineCode": "Inline code",
+      "link": "Link",
+      "bulletList": "Opsommingslijst",
+      "numberedList": "Genummerde lijst",
+      "checkList": "Takenlijst",
+      "quote": "Citaat",
+      "codeBlock": "Codeblok",
+      "table": "Tabel",
+      "image": "Afbeelding",
+      "rule": "Scheidingslijn"
+    },
+    "insert": {
+      "linkAddress": "Linkadres",
+      "imagePath": "Pad of URL van afbeelding",
+      "imagePathPlaceholder": "assets/afbeelding.png",
+      "imageAlt": "Beschrijving",
+      "removeLink": "Link verwijderen",
+      "applyLink": "Toepassen",
+      "insertImage": "Invoegen"
+    },
+    "agent": {
+      "toggle": "Assistent",
+      "welcomeTitle": "Schrijven met de assistent",
+      "welcomeBody": "Vraag om een concept, een bewerking of een review. De assistent ziet dit document en de geselecteerde tekst."
+    },
+    "versions": {
+      "toggle": "Versiegeschiedenis",
+      "title": "Versies",
+      "name": "Versienaam",
+      "namePlaceholder": "Naam (optioneel)",
+      "save": "Versie opslaan",
+      "restore": "Herstellen",
+      "loadError": "De versies konden niet worden geladen.",
+      "emptyTitle": "Nog geen versies",
+      "emptyBody": "Er wordt een versie bewaard vóór elke wijziging van de assistent, wanneer u er een opslaat en om de paar minuten tijdens het bewerken.",
+      "versionNumber": "Versie {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistent",
+        "workflow_run": "Workflow-run",
+        "manual": "Opgeslagen",
+        "autosave": "Interval",
+        "restore": "Vóór herstel"
+      },
+      "usedIn": "Gebruikt in workflows: {{count}}"
+    },
+    "changes": {
+      "title": "Gemarkeerde wijzigingen: {{count}}",
+      "show": "Tonen",
+      "hide": "Verbergen",
+      "dismiss": "Negeren",
+      "dismissAll": "Alles negeren",
+      "kinds": {
+        "modified": "Gewijzigd",
+        "inserted": "Toegevoegd",
+        "deleted": "Verwijderd"
+      },
+      "actions": {
+        "modified": "Terugdraaien",
+        "inserted": "Verwijderen",
+        "deleted": "Herstellen"
+      }
+    },
+    "assist": {
+      "proposal": "Voorgestelde vervanging",
+      "note": "Notitie",
+      "discard": "Weggooien",
+      "close": "Sluiten",
+      "replace": "Vervangen",
+      "thinking": "Denkt na…",
+      "stop": "Stoppen",
+      "placeholder": "Wat moet er veranderen?",
+      "refinePlaceholder": "Antwoord verfijnen",
+      "instruction": "Instructie",
+      "send": "Verzenden",
+      "noModel": "Kies eerst een model in de chat.",
+      "failed": "Het verzoek is mislukt."
+    },
+    "resizePanel": "Zijpaneel vergroten of verkleinen",
+    "picker": {
+      "label": "Projectdocument",
+      "none": "Geen",
+      "placeholder": "Kies een projectdocument",
+      "loading": "Laden…",
+      "error": "De documenten konden niet worden geladen.",
+      "empty": "Geen Markdown-documenten in dit project"
+    },
+    "convert": {
+      "label": "Omzetten naar document",
+      "tooltip": "Verplaats deze tekst naar een projectdocument en verwijs ernaar vanuit deze node"
+    },
+    "export": {
+      "label": "Exporteren",
+      "pdf": "Exporteren als PDF",
+      "html": "Exporteren als HTML",
+      "googleDoc": "Exporteren naar Google Documenten"
+    },
+    "importGoogleDoc": {
+      "title": "Google-document importeren",
+      "confirm": "Importeren",
+      "link": "Link naar het Google-document",
+      "help": "Plak de link van het document uit je browser. Je moet met Google zijn ingelogd."
+    },
+    "import": {
+      "asDocument": "Importeren als document",
+      "asDocumentTooltip": "Maak van dit bestand een bewerkbaar Markdown-document. Het bestand zelf verandert niet."
+    }
   }
 }

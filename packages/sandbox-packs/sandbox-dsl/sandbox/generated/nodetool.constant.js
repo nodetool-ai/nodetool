@@ -31,7 +31,7 @@ function video(inputs, options) {
   return createNode("nodetool.constant.Video", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video" }, defaultOutput: "output" });
 }
 function document(inputs, options) {
-  return createNode("nodetool.constant.Document", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "document" }, defaultOutput: "output" });
+  return createNode("nodetool.constant.Document", inputs, { id: options?.id, outputNames: ["output", "text"], outputTypes: { "output": "document", "text": "str" } });
 }
 function sketch(inputs, options) {
   return createNode("nodetool.constant.Sketch", inputs, { id: options?.id, outputNames: ["output", "image", "mask", "layers"], outputTypes: { "output": "sketch", "image": "image", "mask": "image", "layers": "list[image]" } });

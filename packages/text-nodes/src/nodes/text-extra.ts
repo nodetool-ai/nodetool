@@ -17,6 +17,8 @@ import {
   assertSaveTargetIsOwn,
   writeSaveTargetFile,
   writeSavedFile,
+  workspaceFolderOf,
+  type FolderValue,
   VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE,
   SAVE_TO_WORKSPACE_DESCRIPTION,
   SAVE_TO_WORKSPACE_TITLE
@@ -480,21 +482,23 @@ export class RerankNode extends BaseNode {
   }
 }
 
-/** Output handles SaveTextFileNode.process() emits. */
-type SaveTextFileNodeOutputs = {
+/** Output handles SaveTextNode.process() emits. */
+type SaveTextNodeOutputs = {
   output: { uri: string; data: string };
+  path: string;
 };
 
-export class SaveTextFileNode extends BaseNode {
-  static readonly nodeType = "nodetool.text.SaveTextFile";
+export class SaveTextNode extends BaseNode {
+  static readonly nodeType = "nodetool.text.SaveText";
   static readonly platforms = NODE_ONLY;
-  static readonly title = "Save Text File";
+  static readonly title = "Save Text";
   static readonly description =
-    "Saves input text to a file in the assets folder.\n    text, save, file";
+    "Save text to a file in the project folder, or to a folder on disk.\n    text, save, file, output\n\n    Use cases:\n    - Persisting processed text results\n    - Creating text files for downstream nodes or external use\n    - Archiving text data within the workflow";
   static readonly metadataOutputTypes = {
-    output: "text"
+    output: "text",
+    path: "str"
   };
-  static readonly inlineFields: string[] = ["save_to_workspace"];
+  static readonly inlineFields: string[] = ["save_to_workspace", "filename"];
   static readonly inputFields: string[] = ["text"];
 
   @prop({ type: "str", default: "", title: "Text" })
@@ -515,98 +519,51 @@ export class SaveTextFileNode extends BaseNode {
     description: "Path to the output folder.",
     json_schema_extra: VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE
   })
-  declare folder: string;
+  declare folder: FolderValue;
 
   @prop({
     type: "str",
     default: "%Y-%m-%d-%H-%M-%S.txt",
-    title: "Name",
+    title: "Filename",
     description:
       "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
   })
-  declare name: string;
+  declare filename: string;
 
-  async process(context?: ProcessingContext): Promise<SaveTextFileNodeOutputs> {
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Overwrite",
+    description:
+      "Overwrite the file if it already exists, otherwise file will be renamed"
+  })
+  declare overwrite: boolean;
+
+  async process(context?: ProcessingContext): Promise<SaveTextNodeOutputs> {
     const text = this.text;
     const saveToWorkspace = this.save_to_workspace;
     const folder = folderPathOf(this.folder);
-    if (!folder && !(saveToWorkspace && context?.workspace)) {
+    const workspaceFolder = await workspaceFolderOf(this.folder, context);
+    if (!folder && !workspaceFolder && !(saveToWorkspace && context?.workspace)) {
       throw new Error(
         "No destination: set a folder, or turn on \"Save to workspace\" and assign a workspace to this workflow."
       );
     }
     const fsPath = await writeSavedFile({
       folder: this.folder,
-      filename: formatFilename(this.name),
+      filename: formatFilename(this.filename),
+      workspaceFolder,
       saveToWorkspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
       context: context ?? null,
+      overwrite: this.overwrite,
       bytes: text
     });
     // The output `uri` is a portable, URI-style path (forward slashes) so
     // downstream nodes and the web UI never have to special-case Windows.
     const uri = fsPath.replace(/\\/g, "/");
-    return { output: { uri, data: text } };
-  }
-}
-
-/** Output handles SaveTextNode.process() emits. */
-type SaveTextNodeOutputs = {
-  output: { uri: string; data: string };
-};
-
-export class SaveTextNode extends BaseNode {
-  static readonly nodeType = "nodetool.text.SaveText";
-  static readonly platforms = NODE_ONLY;
-  static readonly title = "Save Text";
-  static readonly description =
-    "Saves input text to a file in the assets folder.\n    text, save, file\n\n    Use cases:\n    - Persisting processed text results\n    - Creating text files for downstream nodes or external use\n    - Archiving text data within the workflow";
-  static readonly metadataOutputTypes = {
-    output: "text"
-  };
-  static readonly inputFields: string[] = ["text"];
-
-  @prop({ type: "str", default: "", title: "Text" })
-  declare text: string;
-
-  @prop({
-    type: "folder",
-    default: {
-      type: "folder",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Folder",
-    description: "Name of the output folder."
-  })
-  declare folder: FolderLike;
-
-  @prop({
-    type: "str",
-    default: "%Y-%m-%d-%H-%M-%S.txt",
-    title: "Name",
-    description:
-      "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        "
-  })
-  declare name: string;
-
-  async process(context?: ProcessingContext): Promise<SaveTextNodeOutputs> {
-    const text = this.text;
-    const name = formatFilename(this.name);
-    const folder = folderPath(this.folder);
-    const fs = await loadNodeFsPromises();
-    const path = await loadNodePath();
-    const fsPath = folder ? path.join(folder, name) : name;
-    await assertSaveTargetIsOwn(context, path.resolve(fsPath));
-    if (folder) {
-      await fs.mkdir(folder, { recursive: true });
-    }
-    await writeSaveTargetFile(context, path.resolve(fsPath), text);
-    const uri = fsPath.replace(/\\/g, "/");
-    return { output: { uri, data: text } };
+    return { output: { uri, data: text }, path: fsPath };
   }
 }
 
@@ -1226,7 +1183,6 @@ export const TEXT_EXTRA_NODES = tagAsServer([
   AutomaticSpeechRecognitionNode,
   EmbeddingTextNode,
   RerankNode,
-  SaveTextFileNode,
   SaveTextNode,
   LoadTextFolderNode,
   LoadTextAssetsNode,

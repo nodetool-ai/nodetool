@@ -709,34 +709,12 @@
       "properties": {
        "name": "output"
       }
-     }
-    ],
-    "edges": [
-     {
-      "id": "e_out_output",
-      "source": "n",
-      "sourceHandle": "output",
-      "target": "out_output",
-      "targetHandle": "value"
-     }
-    ]
-   }
-  },
-  {
-   "id": "nodetool.audio.SaveAudioFile#default",
-   "node": "nodetool.audio.SaveAudioFile",
-   "graph": {
-    "nodes": [
-     {
-      "id": "n",
-      "type": "nodetool.audio.SaveAudioFile",
-      "properties": {}
      },
      {
-      "id": "out_output",
+      "id": "out_path",
       "type": "nodetool.output.Output",
       "properties": {
-       "name": "output"
+       "name": "path"
       }
      }
     ],
@@ -746,6 +724,13 @@
       "source": "n",
       "sourceHandle": "output",
       "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_path",
+      "source": "n",
+      "sourceHandle": "path",
+      "target": "out_path",
       "targetHandle": "value"
      }
     ]

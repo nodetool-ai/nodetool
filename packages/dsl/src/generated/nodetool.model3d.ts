@@ -1,7 +1,7 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
-import type { ImageRef, FolderRef } from "../types.js";
+import type { ImageRef } from "../types.js";
 
 // Load Model 3D File — nodetool.model3d.LoadModel3DFile
 export type LoadModel3DFileInputs = {
@@ -16,8 +16,8 @@ export function loadModel3DFile(inputs: LoadModel3DFileInputs, options?: NodeOpt
   return createNode("nodetool.model3d.LoadModel3DFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
 }
 
-// Save Model 3D File — nodetool.model3d.SaveModel3DFile
-export type SaveModel3DFileInputs = {
+// Save Model 3D — nodetool.model3d.SaveModel3D
+export type SaveModel3DInputs = {
   model?: Connectable<unknown>;
   save_to_workspace?: Connectable<boolean>;
   folder?: Connectable<string>;
@@ -25,27 +25,13 @@ export type SaveModel3DFileInputs = {
   overwrite?: Connectable<boolean>;
 };
 
-export interface SaveModel3DFileOutputs {
-  output: unknown;
-}
-
-export function saveModel3DFile(inputs: SaveModel3DFileInputs, options?: NodeOptions): NodeWithOutputs<SaveModel3DFileOutputs, "output"> {
-  return createNode("nodetool.model3d.SaveModel3DFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
-}
-
-// Save Model3D Asset — nodetool.model3d.SaveModel3D
-export type SaveModel3DInputs = {
-  model?: Connectable<unknown>;
-  folder?: Connectable<FolderRef>;
-  name?: Connectable<string>;
-};
-
 export interface SaveModel3DOutputs {
   output: unknown;
+  path: string;
 }
 
-export function saveModel3D(inputs: SaveModel3DInputs, options?: NodeOptions): NodeWithOutputs<SaveModel3DOutputs, "output"> {
-  return createNode("nodetool.model3d.SaveModel3D", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"model_3d"}, defaultOutput: "output" });
+export function saveModel3D(inputs: SaveModel3DInputs, options?: NodeOptions): NodeWithOutputs<SaveModel3DOutputs> {
+  return createNode("nodetool.model3d.SaveModel3D", inputs, { id: options?.id, outputNames: ["output", "path"], outputTypes: {"output":"model_3d","path":"str"} });
 }
 
 // Format Converter — nodetool.model3d.FormatConverter

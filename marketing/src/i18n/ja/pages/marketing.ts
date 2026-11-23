@@ -6,23 +6,23 @@ export const marketing: LocalizedPageContent = {
   name: "広告・マーケティング",
   title: "AI広告制作 | オープンソースのAI広告ソフトウェア · NodeTool",
   description:
-    "NodeToolは、オープンソースのAI広告ソフトウェアです。エージェントに商品写真と企画を渡すと、広告のストーリーボードを作り、プロバイダーキーで静止画とクリップをレンダリングして、編集できるタイムラインにカットします。",
+    "NodeToolは、オープンソースのAI広告ソフトウェアです。エージェントに商品写真と企画を渡すと、広告の絵コンテを作り、プロバイダーキーで静止画とクリップをレンダリングして、編集できるタイムラインにカットします。",
   hero: {
     kicker: "広告とマーケティング",
     h1: "AIで広告を作る。",
-    lead: "NodeToolは、オープンソースのAI広告ソフトウェアです。エージェントに商品写真と企画を渡すと、広告のストーリーボードを作り、プロバイダーキーで静止画とクリップをレンダリングして、編集できるタイムラインにカットします。",
+    lead: "NodeToolは、オープンソースのAI広告ソフトウェアです。エージェントに商品写真と企画を渡すと、広告の絵コンテを作り、プロバイダーキーで静止画とクリップをレンダリングして、編集できるタイムラインにカットします。",
     note: "開いて編集できるサンプル広告が{adCount}本 · 自分のキーでFlux、Veo、Kling、Seedanceを利用",
-    secondary: { label: "広告ライブラリを見る", href: "/ad-library" },
+    secondary: { label: "動画広告テンプレートを見る", href: "/ad-library" },
   },
   sections: [
     {
       kind: "catalog",
       id: "ads",
-      title: "{adCount}の広告コンセプトのうち4つ。どれも編集できるNodeToolのタイムラインからレンダリングしています。",
+      title: "{adCount}本の動画広告テンプレートから4本。どれも編集できるNodeToolのタイムラインからレンダリングしています。",
       intro: "ブランド、コピー、数字はすべて架空です。",
       source: "adLibrary",
       slugs: ["kinetic-offer-wall", "benefit-led-dashboard-punch-in", "binary-choice-participation-card", "result-seen-through-the-product"],
-      link: { label: "すべてのコンセプトを見る", href: "/ad-library" },
+      link: { label: "すべてのテンプレートを見る", href: "/ad-library" },
     },
     {
       kind: "steps",
@@ -41,8 +41,8 @@ export const marketing: LocalizedPageContent = {
       id: "more",
       title: "広告チーム向けのその他のページ",
       cards: [
-        { title: "広告ライブラリ", body: "縦型の短い広告のコンセプト。それぞれにビート、長さ、コピーの文字数の上限、レンダリング済みのサンプルが付いています。", link: { label: "開く", href: "/ad-library" } },
-        { title: "サンプルのストーリーボード", body: "完成した広告と、それを構成するすべてのショット。", link: { label: "開く", href: "/storyboards" } },
+        { title: "動画広告テンプレート", body: "縦型の短い広告のテンプレート。それぞれにビート、長さ、コピーの文字数の上限、レンダリング済みのサンプルが付いています。", link: { label: "開く", href: "/ad-library" } },
+        { title: "絵コンテの作例", body: "完成した広告と、それを構成するすべてのショット。", link: { label: "開く", href: "/storyboards" } },
         { title: "レシピ", body: "キャンペーンキット、UGC動画、商品コマーシャル、商品カタログ画像を、一歩ずつ。", link: { label: "開く", href: "/recipes" } },
       ],
     },
@@ -53,7 +53,7 @@ export const marketing: LocalizedPageContent = {
       {
         question: "AIは商品写真を動画広告にできますか？",
         answer:
-          "できます。NodeToolでは、商品写真を使って商品をエンティティとして保存し、企画を書くと、エージェントが広告のストーリーボードを作ります。各ショットは、選んだ画像モデルで静止画を、動画モデルでクリップをレンダリングし、「タイムラインを作成」がそれらを、トリムして書き出せるカットに組み立てます。公開する前に、生成された商品を実際の商品と比べてください。",
+          "できます。NodeToolでは、商品写真を使って商品をエンティティとして保存し、企画を書くと、エージェントが広告の絵コンテを作ります。各ショットは、選んだ画像モデルで静止画を、動画モデルでクリップをレンダリングし、「タイムラインを作成」がそれらを、トリムして書き出せるカットに組み立てます。公開する前に、生成された商品を実際の商品と比べてください。",
       },
       {
         question: "広告の9:16、4:5、1:1のバージョンはどう作りますか？",
@@ -63,7 +63,7 @@ export const marketing: LocalizedPageContent = {
       {
         question: "一つの広告を、カタログの別の商品に使い回せますか？",
         answer:
-          "できます。Per-SKU Ad Factoryテンプレートは、Recast Storyboardノードで、承認済みのストーリーボードを別の商品にコピーします。プロンプトが変わらないフレームは残り、商品が映るショットだけが再レンダリングされます。",
+          "できます。Per-SKU Ad Factoryテンプレートは、Recast Storyboardノードで、承認済みの絵コンテを別の商品にコピーします。プロンプトが変わらないフレームは残り、商品が映るショットだけが再レンダリングされます。",
       },
       {
         question: "NodeToolでAI広告クリエイティブを作るといくらかかりますか？",
@@ -78,6 +78,6 @@ export const marketing: LocalizedPageContent = {
   },
   closing: {
     title: "次の商品で、この流れを試しましょう。",
-    body: "macOS、Windows、Linux向けの無料のオープンソースのスタジオをダウンロードして、「演出するキャンペーンキット」を開いてください。",
+    body: "macOS、Windows、Linux向けの無料のオープンソースのStudioをダウンロードして、「演出するキャンペーンキット」を開いてください。",
   },
 };

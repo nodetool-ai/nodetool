@@ -4,7 +4,7 @@ import { basename, dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, expect, test } from "vitest";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { LoadCSVAssetsNode, LoadTextAssetsNode, SaveTextFileNode, SaveDocumentFileNode, SaveImageFileImageNode } from "@nodetool-ai/base-nodes";
+import { LoadCSVAssetsNode, LoadTextAssetsNode, SaveTextNode, SaveDocumentNode, SaveImageNode } from "@nodetool-ai/base-nodes";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 // Load the native runtime before test deadlines start; cold package imports
 // can consume the execution budget when CI runs package suites concurrently.
@@ -184,7 +184,7 @@ test("real exported workflow cannot read project credentials through string path
 test("real filesystem writers preserve nested destinations and blank filename fallbacks", async () => {
   const { root, storage } = await fixture();
   const registry = new NodeRegistry();
-  for (const cls of [SaveTextFileNode, SaveDocumentFileNode, SaveImageFileImageNode]) registry.register(cls);
+  for (const cls of [SaveTextNode, SaveDocumentNode, SaveImageNode]) registry.register(cls);
   const context = new ProcessingContext({ userId: "1", jobId: "writer-test", workflowId: null, workspaceDir: storage.rootDir });
   const assets = join(root, "assets");
   await mkdir(assets);
@@ -196,26 +196,26 @@ test("real filesystem writers preserve nested destinations and blank filename fa
     return executor.process(inputs, context);
   };
   const folder = join(storage.rootDir, "sub");
-  await execute(SaveTextFileNode.nodeType, { text: "text", folder, name: "note.txt", save_to_workspace: false });
+  await execute(SaveTextNode.nodeType, { text: "text", folder, filename: "note.txt", save_to_workspace: false });
   expect(await readFile(join(folder, "note.txt"), "utf8")).toBe("text");
-  await execute(SaveDocumentFileNode.nodeType, { document: { type: "document", text: "document" }, folder, filename: "", save_to_workspace: false });
+  await execute(SaveDocumentNode.nodeType, { document: { type: "document", text: "document" }, folder, filename: "", save_to_workspace: false });
   expect(await readFile(join(folder, "document.txt"), "utf8")).toBe("document");
   const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aP1cAAAAASUVORK5CYII=";
-  await execute(SaveImageFileImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "photo.png", save_to_workspace: false });
+  await execute(SaveImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "photo.png", save_to_workspace: false });
   expect((await readFile(join(folder, "photo.png"))).length).toBeGreaterThan(0);
-  const defaultImage = await execute(SaveImageFileImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "", save_to_workspace: false });
+  const defaultImage = await execute(SaveImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "", save_to_workspace: false });
   expect(dirname(defaultImage.path)).toBe(folder);
   expect(basename(defaultImage.path)).toMatch(/^image_/);
   const escapeFolder = process.platform === "win32" ? join(folder, "escape") : folder;
   const escapeName = process.platform === "win32" ? "outside" : "escape";
   await symlink(process.platform === "win32" ? root : join(root, "outside.png"), process.platform === "win32" ? escapeFolder : join(folder, "escape.png"), process.platform === "win32" ? "junction" : "file");
-  await expect(execute(SaveImageFileImageNode.nodeType, { image: { type: "image", data: png }, folder: escapeFolder, filename: escapeName, save_to_workspace: false })).rejects.toThrow("storage");
+  await expect(execute(SaveImageNode.nodeType, { image: { type: "image", data: png }, folder: escapeFolder, filename: escapeName, save_to_workspace: false })).rejects.toThrow("storage");
   for (const name of ["../../.env", ["../../.env"], join(root, "credential.txt")]) {
-    await expect(execute(SaveTextFileNode.nodeType, { text: "overwrite", folder, name, save_to_workspace: false })).rejects.toThrow("storage");
+    await expect(execute(SaveTextNode.nodeType, { text: "overwrite", folder, filename: name, save_to_workspace: false })).rejects.toThrow("storage");
   }
-  await expect(execute(SaveDocumentFileNode.nodeType, { document: { type: "document", text: "overwrite" }, folder, filename: "../../.env", save_to_workspace: false })).rejects.toThrow("storage");
-  await expect(execute(SaveDocumentFileNode.nodeType, { document: { type: "document", text: "overwrite" }, path: join(root, ".env"), save_to_workspace: false })).rejects.toThrow("storage");
-  await expect(execute(SaveDocumentFileNode.nodeType, { document: { type: "document", text: "overwrite" }, path: join(assets, "page.html"), save_to_workspace: false })).rejects.toThrow("storage");
+  await expect(execute(SaveDocumentNode.nodeType, { document: { type: "document", text: "overwrite" }, folder, filename: "../../.env", save_to_workspace: false })).rejects.toThrow("storage");
+  await expect(execute(SaveDocumentNode.nodeType, { document: { type: "document", text: "overwrite" }, path: join(root, ".env"), save_to_workspace: false })).rejects.toThrow("storage");
+  await expect(execute(SaveDocumentNode.nodeType, { document: { type: "document", text: "overwrite" }, path: join(assets, "page.html"), save_to_workspace: false })).rejects.toThrow("storage");
   expect(await boundary({ path: join(assets, "sample.txt") }, { properties: [{ name: "path" }] })).toEqual({ path: join(assets, "sample.txt") });
-  await expect(execute(SaveImageFileImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "../../.env", save_to_workspace: false })).rejects.toThrow("storage");
+  await expect(execute(SaveImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "../../.env", save_to_workspace: false })).rejects.toThrow("storage");
 }, 30_000);

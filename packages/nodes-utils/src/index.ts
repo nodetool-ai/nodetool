@@ -54,14 +54,26 @@ export {
   resolveSaveTarget,
   assertSaveTargetIsOwn,
   writeSaveTargetFile,
-  writeSavedFile
+  writeSavedFile,
+  writeSavedFileAsset,
+  savedMediaRef,
+  workspaceFolderOf
 } from "./save-target.js";
 export type {
+  FolderValue,
   SaveFilenameOptions,
+  SaveFolderLookup,
   SaveFolderOptions,
   SaveTargetFileOptions,
   SaveTargetOptions,
-  SaveWorkspace
+  SaveWorkspace,
+  WriteSavedFileOptions
 } from "./save-target.js";
 
 export * from "./file-watch-match.js";
+
+export {
+  isProjectRelativePath,
+  projectDocumentRef
+} from "./project-document.js";
+export type { ProjectDocumentContext } from "./project-document.js";

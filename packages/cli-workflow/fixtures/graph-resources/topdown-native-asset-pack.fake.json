@@ -140,7 +140,7 @@
         "id": "sheet_store",
         "type": "nodetool.image.SaveImage",
         "data": {
-          "name": "gr-e3-sheet.png"
+          "filename": "gr-e3-sheet.png"
         },
         "ui_properties": {
           "position": {
@@ -229,7 +229,7 @@
         "id": "tile_store",
         "type": "nodetool.image.SaveImage",
         "data": {
-          "name": "gr-e3-tiles.png"
+          "filename": "gr-e3-tiles.png"
         },
         "ui_properties": {
           "position": {
@@ -318,7 +318,7 @@
         "id": "image_store",
         "type": "nodetool.image.SaveImage",
         "data": {
-          "name": "gr-e3-image.png"
+          "filename": "gr-e3-image.png"
         },
         "ui_properties": {
           "position": {

@@ -539,6 +539,13 @@
       "properties": {
        "name": "output"
       }
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
      }
     ],
     "edges": [
@@ -547,6 +554,13 @@
       "source": "n",
       "sourceHandle": "output",
       "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
       "targetHandle": "value"
      }
     ]

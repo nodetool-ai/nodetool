@@ -168,7 +168,7 @@ end at `nodetool.text.Template` without a dedicated sink. For example,
 | `nodetool.code` | `Code`: a JavaScript body. See `nodetool-js-scripting` |
 | `nodetool.control` | `If`, `Switch`, `ForEach`, `Collect`, `Loop`, `Chunk`, `Take`, `Zip`, `RepeatCount`, `RepeatValue`, `TryCatch` |
 | `nodetool.data` | `ForEachRow`, `LoadCSVAssets` |
-| `nodetool.document` | `LoadDocumentFile`, `SaveDocumentFile`, `ListDocuments` |
+| `nodetool.document` | `LoadDocumentFile`, `SaveDocument`, `ListDocuments` |
 | `nodetool.image` | `TextToImage`, `ImageToImage`, `LoadImageFile`, `SaveImage`, `Resize`, `Crop`, `RotateAndFlip`, `Compositor`, `Upscale`, `RemoveBackground` |
 | `nodetool.audio` | `TextToSpeech`, `TextToMusic`, `LoadAudioFile`, `SaveAudio`, `AudioMixer`, `Concat`, `Trim`, `Normalize` |
 | `nodetool.video` | `TextToVideo`, `ImageToVideo`, `ReferenceToVideo`, `LoadVideoFile`, `SaveVideo`, `Concat`, `Trim`, `ExtractFrame`, `ExtractAudio`, `AddAudio`, `GetVideoInfo` |
