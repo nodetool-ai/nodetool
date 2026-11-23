@@ -38,11 +38,11 @@ import {
   convertDocumentSpec
 } from "./documents.specs.js";
 import { isNonBlankString, isString } from "../utils/type-guards.js";
-import {
-  MAX_HOST_INPUT_BYTES,
-  importOptionalLibrary
-} from "../host-modules/limits.js";
+import { MAX_HOST_INPUT_BYTES } from "../host-modules/limits.js";
 import { convertDocumentBytes } from "./document-conversion.js";
+import { extractPdfPages } from "./pdf-pages.js";
+
+export { extractPdfPages } from "./pdf-pages.js";
 import {
   isStorageReference,
   ownedStorageReference
@@ -256,26 +256,6 @@ async function nearestExisting(path: string): Promise<string> {
 /** Why an output file was returned inline instead of written. */
 const NO_WORKSPACE_NOTE =
   "No workspace is assigned, so output_file was not written. The result is returned inline.";
-
-interface PdfExtraction {
-  /** Per-page text arrays (one entry per page). */
-  pages: string[];
-  numPages: number;
-}
-
-/**
- * Extract text from a PDF buffer using @llamaindex/liteparse.
- * Returns per-page text so callers can slice by page range.
- */
-export async function extractPdfPages(buffer: Uint8Array): Promise<PdfExtraction> {
-  const { LiteParse } = await importOptionalLibrary<
-    typeof import("@llamaindex/liteparse")
-  >("documents", "@llamaindex/liteparse", "pdf-js");
-  const parser = new LiteParse({ ocrEnabled: false });
-  const result = await parser.parse(Buffer.from(buffer), true);
-  const pages = result.pages.map((p) => p.text);
-  return { pages, numPages: result.pages.length };
-}
 
 // ---------------------------------------------------------------------------
 // extract_pdf_text

@@ -14,7 +14,7 @@
 import type { Asset } from "@nodetool-ai/models";
 
 import { convertDocumentBytes } from "./capabilities/document-conversion.js";
-import { extractPdfPages } from "./capabilities/documents.js";
+import { extractPdfPages } from "./capabilities/pdf-pages.js";
 import { isString } from "./utils/type-guards.js";
 
 /** The formats a document imports from. */
