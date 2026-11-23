@@ -19,6 +19,9 @@ npm run crap -- --base origin/main --run-coverage --threshold 30
                          # CRAP scores for changed TypeScript functions
                          # (scripts/crap-score.mjs; rules pinned by
                          #  scripts/__tests__/crap-score.test.mjs)
+npm run generate:logos   # Regenerate every logo, favicon and app icon from
+                         # brand/nodetool-logo.svg (scripts/generate-logos.mjs
+                         # lists each target file, size and padding)
 npm run clean            # Remove build artifacts and dependencies
 npm run clean:build      # Remove build artifacts only
 ./scripts/setup-agent-env.sh  # Prepare a fresh agent container (see Root AGENTS.md)
