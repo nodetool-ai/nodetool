@@ -6,6 +6,27 @@
 #include <cstdlib>
 #include "../source/VstHost.h"
 
+namespace {
+// Windows has no POSIX setenv or unsetenv. _putenv_s sets the process
+// environment there, and an empty value removes the variable. The test plug-in
+// reads it through juce::SystemStats, which sees both.
+void setTestEnv(const char* name, const char* value) {
+#ifdef _WIN32
+    _putenv_s(name, value);
+#else
+    ::setenv(name, value, 1);
+#endif
+}
+
+void clearTestEnv(const char* name) {
+#ifdef _WIN32
+    _putenv_s(name, "");
+#else
+    ::unsetenv(name);
+#endif
+}
+} // namespace
+
 using namespace vsthost;
 
 // native-rules #14: file-scope mutable failure counter
@@ -139,7 +160,7 @@ int main(int argc, char** argv) {
         // note expression through processLiveBlock. The tone plug-in logs what it receives.
         const auto log = juce::File::createTempFile(".midilog");
         log.deleteFile();
-        ::setenv("NT_TONE_MIDI_LOG", log.getFullPathName().toRawUTF8(), 1);
+        setTestEnv("NT_TONE_MIDI_LOG", log.getFullPathName().toRawUTF8());
         Instance live;
         check(live.load(path, inst.uid(), error), "loads the live instrument", error);
         check(live.prepareLive(rate, 256, error), "prepares live streaming", error);
@@ -172,7 +193,7 @@ int main(int argc, char** argv) {
         NoteExpressionValue expressionOut;
         check(decodeNoteExpression(expression, expressionOut) && expressionOut.noteId == 7 && expressionOut.typeId == 2 &&
               std::abs(expressionOut.value - 0.75f) < 1e-6f, "decodes a tuning expression to the VST3 type id");
-        ::unsetenv("NT_TONE_MIDI_LOG");
+        clearTestEnv("NT_TONE_MIDI_LOG");
         log.deleteFile();
     }
 
@@ -182,7 +203,7 @@ int main(int argc, char** argv) {
         // channel, before the chase events of the same block.
         const auto log = juce::File::createTempFile(".resetlog");
         log.deleteFile();
-        ::setenv("NT_TONE_MIDI_LOG", log.getFullPathName().toRawUTF8(), 1);
+        setTestEnv("NT_TONE_MIDI_LOG", log.getFullPathName().toRawUTF8());
         Instance live;
         check(live.load(path, inst.uid(), error), "loads the reset instrument", error);
         check(live.prepareLive(rate, 256, error), "prepares reset streaming", error);
@@ -204,7 +225,7 @@ int main(int argc, char** argv) {
                           notesOff < chasePos && sustain < chasePos && bend < chasePos;
         }
         check(allChannels, "reset sends all-notes-off, sustain 0 and centred bend on 16 channels before the chase", text);
-        ::unsetenv("NT_TONE_MIDI_LOG");
+        clearTestEnv("NT_TONE_MIDI_LOG");
         log.deleteFile();
     }
 
