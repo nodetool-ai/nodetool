@@ -11,6 +11,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
+import { projectDocumentValue } from "../../components/properties/ProjectDocumentSelect";
 export const useAddNodeFromAsset = () => {
   const { addNode, createNode } = useNodes((state) => ({
     addNode: state.addNode,
@@ -81,7 +82,8 @@ export const useAddNodeFromAsset = () => {
 
       const createNodeWithAsset = (
         nodeType: string,
-        properties?: Record<string, unknown>
+        properties?: Record<string, unknown>,
+        title?: string
       ) => {
         const metadata = getMetadata(nodeType);
         if (!metadata) {
@@ -92,6 +94,9 @@ export const useAddNodeFromAsset = () => {
           newNode.data.properties,
           properties ?? { value: mediaRefFromAsset(asset, assetType ?? "asset") }
         );
+        if (title) {
+          newNode.data.title = title;
+        }
         addNode(newNode);
         return newNode;
       };
@@ -126,6 +131,13 @@ export const useAddNodeFromAsset = () => {
               createNodeWithAsset(nodeType, { value: content });
             })
             .catch(reportFailure);
+          break;
+        case "document":
+          createNodeWithAsset(
+            nodeType,
+            { value: projectDocumentValue(asset.id) },
+            asset.name || undefined
+          );
           break;
         case "folder":
           createNodeWithAsset(nodeType, {

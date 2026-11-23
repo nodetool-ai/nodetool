@@ -3071,52 +3071,6 @@
      }
     ]
    }
-  },
-  {
-   "id": "lib.pdf.ExtractText#pdf",
-   "node": "lib.pdf.ExtractText",
-   "graph": {
-    "nodes": [
-     {
-      "id": "d",
-      "type": "nodetool.constant.Document",
-      "properties": {
-       "value": {
-        "type": "document",
-        "uri": "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAyMDAgMTAwXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0MiA+PgpzdHJlYW0KQlQgL0YxIDEyIFRmIDIwIDUwIFRkIChIZWxsbyBwYXJpdHkpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzMzIDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDAzCiUlRU9GCg=="
-       }
-      }
-     },
-     {
-      "id": "n",
-      "type": "lib.pdf.ExtractText",
-      "properties": {}
-     },
-     {
-      "id": "o",
-      "type": "nodetool.output.Output",
-      "properties": {
-       "name": "text"
-      }
-     }
-    ],
-    "edges": [
-     {
-      "id": "e1",
-      "source": "d",
-      "sourceHandle": "output",
-      "target": "n",
-      "targetHandle": "pdf"
-     },
-     {
-      "id": "e2",
-      "source": "n",
-      "sourceHandle": "output",
-      "target": "o",
-      "targetHandle": "value"
-     }
-    ]
-   }
   }
  ]
 }

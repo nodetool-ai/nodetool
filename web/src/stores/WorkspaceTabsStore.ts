@@ -14,6 +14,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useAuth } from "./useAuth";
+import { useDocumentProposalStore } from "./DocumentProposalStore";
 
 export type WorkspaceTabType =
   | "workflow"
@@ -582,7 +583,8 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       openTab,
       openForegroundTab: (input) => openTab(input, true),
 
-      closeTab: (id) =>
+      closeTab: (id) => {
+        const closedTab = get().tabs.find((tab) => tab.id === id);
         set((state) => {
           const tabs = state.tabs.filter((t) => t.id !== id);
           const closed = state.tabs.find((tab) => tab.id === id);
@@ -627,9 +629,14 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
                 )
               : state.projectSessions
           };
-        }),
+        });
+        if (closedTab?.type === "text") {
+          useDocumentProposalStore.getState().clearProposal(closedTab.ref);
+        }
+      },
 
-      closeOthers: (id) =>
+      closeOthers: (id) => {
+        const closingTabs = tabsToCloseOthers(get().tabs, id);
         set((state) => {
           const keptTab = state.tabs.find((tab) => tab.id === id);
           if (!keptTab) return state;
@@ -654,7 +661,14 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             activeProjectId: keptTab.projectId ?? null,
             projectSessions
           };
-        }),
+        });
+        const proposalStore = useDocumentProposalStore.getState();
+        for (const tab of closingTabs) {
+          if (tab.type === "text") {
+            proposalStore.clearProposal(tab.ref);
+          }
+        }
+      },
 
       // Activating a tab that belongs to a project switches the scope to it;
       // a loose tab leaves the open project alone, so reading a scratch note
@@ -837,7 +851,13 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
 
       resolvePersonalProject: (projectId) =>
         set((state) => {
-          if (state.personalProjectId === projectId) return state;
+          const stalePersonalActive =
+            state.activeProjectId !== null &&
+            state.activeProjectId.startsWith("personal:") &&
+            state.activeProjectId !== projectId;
+          if (state.personalProjectId === projectId && !stalePersonalActive) {
+            return state;
+          }
           const looseSession = sessionFor(state.projectSessions, undefined);
           const existingSession = sessionFor(
             state.projectSessions,
@@ -881,11 +901,15 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           const activeProjectId =
             state.activeProjectId === null ||
             state.activeProjectId === LOOSE_PROJECT_ID ||
-            state.activeProjectId === state.personalProjectId
+            state.activeProjectId === state.personalProjectId ||
+            stalePersonalActive
               ? projectId
               : state.activeProjectId;
           return {
             tabs: gatherProjectTabs(migratedTabs, activeProjectId),
+            activeTabId: stalePersonalActive
+              ? (projectSessions[projectId]?.activeTabId ?? null)
+              : state.activeTabId,
             activeProjectId,
             personalProjectId: projectId,
             projectSessions
@@ -983,7 +1007,10 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           };
         }),
 
-      closeProject: (projectId) =>
+      closeProject: (projectId) => {
+        const closingTabs = get().tabs.filter(
+          (tab) => tab.projectId === projectId
+        );
         set((state) => {
           const tabs = state.tabs.filter((t) => t.projectId !== projectId);
           const activeStillOpen = tabs.some(
@@ -1009,7 +1036,14 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             activeProjectId,
             projectSessions
           };
-        })
+        });
+        const proposalStore = useDocumentProposalStore.getState();
+        for (const tab of closingTabs) {
+          if (tab.type === "text") {
+            proposalStore.clearProposal(tab.ref);
+          }
+        }
+      }
     };
     },
     {

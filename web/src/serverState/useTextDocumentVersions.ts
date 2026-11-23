@@ -22,12 +22,16 @@ export const textDocumentVersionsKey = (assetId: string) =>
 export const textDocumentVersionKey = (assetId: string, version: number) =>
   ["textDocuments", assetId, "version", version] as const;
 
-interface UseTextDocumentVersionsResult {
+export interface UseTextDocumentVersionsResult {
   versions: TextDocumentVersionItem[];
   isLoading: boolean;
   error: unknown;
   saveVersion: (name?: string) => Promise<void>;
   isSaving: boolean;
+  renameVersion: (version: number, name: string | null) => Promise<void>;
+  isRenaming: boolean;
+  deleteVersion: (version: number) => Promise<void>;
+  isDeleting: boolean;
   restoreVersion: (version: number) => Promise<void>;
   isRestoring: boolean;
 }
@@ -57,6 +61,23 @@ export function useTextDocumentVersions(
       }),
     onSuccess: invalidate
   });
+  const rename = useMutation({
+    mutationFn: ({ version, name }: { version: number; name: string | null }) =>
+      trpcClient.textDocuments.renameVersion.mutate({
+        asset_id: assetId,
+        version,
+        name: name?.trim() ? name.trim() : null
+      }),
+    onSuccess: invalidate
+  });
+  const remove = useMutation({
+    mutationFn: (version: number) =>
+      trpcClient.textDocuments.deleteVersion.mutate({
+        asset_id: assetId,
+        version
+      }),
+    onSuccess: invalidate
+  });
   const restore = useMutation({
     mutationFn: (version: number) =>
       trpcClient.textDocuments.restore.mutate({ asset_id: assetId, version }),
@@ -70,6 +91,14 @@ export function useTextDocumentVersions(
       await save.mutateAsync(name);
     },
     isSaving: save.isPending,
+    renameVersion: async (version, name) => {
+      await rename.mutateAsync({ version, name });
+    },
+    isRenaming: rename.isPending,
+    deleteVersion: async (version) => {
+      await remove.mutateAsync(version);
+    },
+    isDeleting: remove.isPending,
     restoreVersion: async (version) => {
       await restore.mutateAsync(version);
     },
@@ -81,7 +110,7 @@ export function useTextDocumentVersions(
 export function useTextDocumentVersionContent(
   assetId: string,
   version: number | null
-): { content: string | null; isLoading: boolean } {
+): { content: string | null; isLoading: boolean; error: unknown } {
   const query = useQuery({
     queryKey: textDocumentVersionKey(assetId, version ?? 0),
     queryFn: async () =>
@@ -92,7 +121,11 @@ export function useTextDocumentVersionContent(
     enabled: version !== null,
     staleTime: Infinity
   });
-  return { content: query.data ?? null, isLoading: query.isLoading && version !== null };
+  return {
+    content: query.data ?? null,
+    isLoading: version !== null && (query.isLoading || (query.isPending && !query.error)),
+    error: version !== null ? query.error : null
+  };
 }
 
 /**
@@ -103,6 +136,17 @@ export async function saveAutosaveVersion(assetId: string): Promise<void> {
   await trpcClient.textDocuments.createVersion.mutate({
     asset_id: assetId,
     save_type: "autosave"
+  });
+}
+
+/**
+ * Record a pre-turn version before accepting a staged assistant proposal
+ * (document editor PRD R11).
+ */
+export async function savePreTurnVersion(assetId: string): Promise<void> {
+  await trpcClient.textDocuments.createVersion.mutate({
+    asset_id: assetId,
+    save_type: "agent_turn"
   });
 }
 

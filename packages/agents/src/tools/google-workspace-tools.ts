@@ -14,18 +14,27 @@
 
 import type { Tool } from "./base-tool.js";
 import { googleSpecs } from "../capabilities/google.specs.js";
+import {
+  exportGoogleDocSpec,
+  importGoogleDocSpec
+} from "../capabilities/text-documents.specs.js";
 import { toolFromLazyCapability } from "../capabilities/lazy-tool.js";
+
+const ALL_GOOGLE_WORKSPACE_SPECS = [
+  ...googleSpecs,
+  importGoogleDocSpec,
+  exportGoogleDocSpec
+] as const;
 
 /**
  * Every Google Workspace tool name. Kept apart from `BUILTIN_TOOL_NAMES`
  * because these are only offered when the deployment can produce a Google
  * login token.
  */
-export const GOOGLE_WORKSPACE_TOOL_NAMES: readonly string[] = googleSpecs.map(
-  (spec) => spec.name
-);
+export const GOOGLE_WORKSPACE_TOOL_NAMES: readonly string[] =
+  ALL_GOOGLE_WORKSPACE_SPECS.map((spec) => spec.name);
 
 /** One fresh instance per Google Workspace tool. */
 export function getGoogleWorkspaceTools(): Tool[] {
-  return googleSpecs.map((spec) => toolFromLazyCapability(spec));
+  return ALL_GOOGLE_WORKSPACE_SPECS.map((spec) => toolFromLazyCapability(spec));
 }

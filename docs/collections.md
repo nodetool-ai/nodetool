@@ -26,7 +26,7 @@ A name is unique across the store. It can be at most 128 characters and cannot s
 
 ![The new-collection form with a name entered](assets/screenshots/collections-create.png)
 
-Dropping a file sends it to `POST /api/collections/:name/index`. The server reads it as UTF-8 text, splits it into chunks of 2000 characters with 1000 of overlap, and stores each as `<file name>#<n>`. Use text formats such as TXT, Markdown, HTML source, CSV, or transcripts. PDF, DOCX, EPUB, and images are not extracted. Extract their text in a workflow first (for example with `lib.pdf.ExtractText`) and index it with an index node. A file over `NODETOOL_MAX_UPLOAD_BYTES` (1 GiB by default) is rejected.
+Dropping a file sends it to `POST /api/collections/:name/index`. The server reads it as UTF-8 text, splits it into chunks of 2000 characters with 1000 of overlap, and stores each as `<file name>#<n>`. Use text formats such as TXT, Markdown, HTML source, CSV, or transcripts. PDF, DOCX, EPUB, and images are not extracted. Import them as editable Markdown documents first (or extract PDF text in a Code node with `@nodetool-ai/sandbox-pdf`) and index the text with an index node. A file over `NODETOOL_MAX_UPLOAD_BYTES` (1 GiB by default) is rejected.
 
 The route does not embed chunks with the collection's embedding model. Use the `vector.Index*` nodes for embeddings. See [Indexing]({{ '/indexing' | relative_url }}).
 

@@ -320,7 +320,7 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     value: "document",
     label: "Document",
     description:
-      "Structured document with text content and metadata. Supports PDF, DOCX, and text files.",
+      "Editable Markdown document in the project. Connect its text output to text and AI nodes, or pass the document to Save Document.",
     color: colour("reference"),
     textColor: "var(--palette-action-active)",
     name: "",

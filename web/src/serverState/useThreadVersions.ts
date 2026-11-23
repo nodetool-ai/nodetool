@@ -12,6 +12,10 @@
 
 import { useCallback, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ApiErrorCode,
+  isTRPCErrorWithCode
+} from "@nodetool-ai/protocol/api-schemas";
 
 import useGlobalChatStore from "../stores/GlobalChatStore";
 import { trpcClient } from "../trpc/client";
@@ -54,15 +58,27 @@ export const useThreadVersions = (
   const queryClient = useQueryClient();
   const loadMessages = useGlobalChatStore((state) => state.loadMessages);
 
+  const hasStoredMessages = signature.split(",").some((id) => id.length > 0);
+
   const query = useQuery({
     queryKey: threadVersionsQueryKey(threadId ?? "none", signature),
-    queryFn: async (): Promise<ThreadFork[]> =>
-      (
-        await trpcClient.messages.versions.query({
-          thread_id: threadId as string
-        })
-      ).forks,
-    enabled: Boolean(threadId) && enabled,
+    queryFn: async (): Promise<ThreadFork[]> => {
+      try {
+        return (
+          await trpcClient.messages.versions.query({
+            thread_id: threadId as string
+          })
+        ).forks;
+      } catch (error) {
+        // A thread created locally or deleted on the server has no stored
+        // versions; returning empty avoids retry loops on 404.
+        if (isTRPCErrorWithCode(error, ApiErrorCode.NOT_FOUND)) {
+          return [];
+        }
+        throw error;
+      }
+    },
+    enabled: Boolean(threadId) && enabled && hasStoredMessages,
     staleTime: Infinity
   });
 

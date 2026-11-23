@@ -38,6 +38,8 @@ interface ChatPanelHeaderProps {
   docsLabel?: string;
   /** Limit the conversation picker to one project's threads. */
   projectId?: string;
+  /** Additional controls rendered at the start of the header action strip. */
+  extraActions?: React.ReactNode;
 }
 
 /**
@@ -53,7 +55,8 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
   description,
   docsTopic = "agents",
   docsLabel,
-  projectId
+  projectId,
+  extraActions
 }) => {
   const { t } = useTranslation();
   const resolvedDocsLabel = docsLabel ?? t("i18n-next11.chat.chatAndAgents");
@@ -149,6 +152,7 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
       }}
       actions={
         <>
+          {extraActions}
           <ToolbarIconButton
             onClick={onNewChat}
             tooltip={t("i18n-next11.chat.newChat")}

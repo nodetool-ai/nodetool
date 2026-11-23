@@ -3,11 +3,15 @@ layout: page
 title: "nodetool.script Nodes"
 ---
 
-This namespace contains 4 node(s).
+This namespace contains 6 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Load Script](loadscript.md)** - Read a persisted script's text and metadata.
-- **[Script To Subtitles](scripttosubtitles.md)** - Export a voiced script as SRT or WebVTT subtitles, straight from each current...
-- **[Script To Timeline](scripttotimeline.md)** - Assemble a script's current takes into a voiceover timeline — one audio clip ...
-- **[Voice Script](voicescript.md)** - Synthesize speech for every draft or stale line of a script, using each line'...
+- **[Fill Script](fillscript.md)**
+- **[Load Script](loadscript.md)**
+- **[Script To Subtitles](scripttosubtitles.md)**
+- **[Script To Timeline](scripttotimeline.md)**
+- **[Voice Script](voicescript.md)**
+- **[Write Script](writescript.md)**
+
+[Back to all nodes](../../)

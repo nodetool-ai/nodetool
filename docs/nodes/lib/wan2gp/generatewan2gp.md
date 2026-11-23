@@ -26,6 +26,10 @@ Run any model on your own Wan2GP server with the settings you supply, and return
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
+| server_url | `str` | MCP endpoint of a Wan2GP server, for example http://127.0.0.1:7866/mcp. Leave blank to use the WAN2GP_MCP_URL setting, then the Wan2GP installed in the Package Manager, then localhost. | `` |
+| timeout_seconds | `int` | How long to wait for one generation, in seconds. The job is cancelled on the server when it runs out. | `1800` |
+| max_media_bytes | `int` | Largest upload or download in bytes. Defaults to 512 MiB, at most 8 GiB. | - |
+| seed | `int` | Random seed. Use -1 to let Wan2GP pick a new seed for every run. | `-1` |
 | model_type | `str` | Wan2GP model id. The List Models node shows the ids your server offers. | `t2v_2_2` |
 | settings | `dict[str, any]` | Wan2GP generation settings applied on top of the model defaults, such as prompt, resolution, video_length, num_inference_steps and guidance_scale. The reserved _api key is removed. | `{}` |
 | image | `image` | Sent as image_start. | null |

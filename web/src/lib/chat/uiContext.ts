@@ -67,6 +67,8 @@ export interface BuildUiContextOptions {
   /** Chat surface that sent this turn. Always forwarded to the LLM. */
   source?: ChatSource | null;
   run?: UiContext["run"];
+  /** How assistant edits apply to the focused Markdown document. */
+  documentEditMode?: "staged" | "direct" | null;
 }
 
 export type UiContextInput =
@@ -94,7 +96,13 @@ export const buildUiContext = (
   }
 
   const source = options.source ?? null;
-  if (!focused && open.length === 0 && !source && !options.run) {
+  if (
+    !focused &&
+    open.length === 0 &&
+    !source &&
+    !options.run &&
+    !options.documentEditMode
+  ) {
     return null;
   }
 
@@ -104,7 +112,12 @@ export const buildUiContext = (
     selection: options.selection ?? null,
     source
   };
-  if (options.run) { context.run = options.run; }
+  if (options.run) {
+    context.run = options.run;
+  }
+  if (options.documentEditMode) {
+    context.document_edit_mode = options.documentEditMode;
+  }
   return context;
 };
 

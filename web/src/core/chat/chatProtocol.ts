@@ -9,6 +9,7 @@
  * the store while message handling remains testable.
  */
 
+import { useDocumentProposalStore } from "../../stores/DocumentProposalStore";
 import { useGenerationBatchStore } from "../../stores/GenerationBatchStore";
 import { recordFirstResult } from "../../lib/analytics";
 import { visibleToolArgs } from "./toolCallFields";
@@ -150,6 +151,21 @@ interface SecretRequestMessage {
   help_url: string | null;
 }
 
+/**
+ * Server → client staged document edit proposal emitted when
+ * `document_edit_mode` is `"staged"`. Stored per asset in
+ * `DocumentProposalStore` for review in the document editor.
+ */
+interface DocumentProposalMessage {
+  type: "document_proposal";
+  proposal_id: string;
+  asset_id: string;
+  thread_id: string;
+  turn_id: string;
+  base_content: string;
+  proposed_content: string;
+}
+
 interface ToolCallMessage {
   type: "tool_call";
   tool_call_id: string;
@@ -197,6 +213,7 @@ type MsgpackData =
   | ToolApprovalRequestMessage
   | PlanApprovalRequestMessage
   | SecretRequestMessage
+  | DocumentProposalMessage
   | ChatResumedUpdate
   | ChatTurnActiveUpdate
   | ErrorMessage;
@@ -1748,6 +1765,17 @@ export async function handleChatWebSocketMessage(
     get().addPendingPlanApproval(data);
   } else if (data.type === "secret_request") {
     get().addPendingSecretRequest(data);
+  } else if (data.type === "document_proposal") {
+    useDocumentProposalStore.getState().setProposal({
+      proposalId: data.proposal_id,
+      assetId: data.asset_id,
+      threadId: data.thread_id,
+      turnId: data.turn_id,
+      baseContent: data.base_content,
+      proposedContent: data.proposed_content,
+      draftContent: data.proposed_content,
+      receivedAt: Date.now()
+    });
   } else if (data.type === "generation_stopped") {
     // Clear the safety timeout when generation is stopped
     clearSendTimeout();

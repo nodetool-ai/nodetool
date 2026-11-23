@@ -21,6 +21,7 @@ Generate videos from text prompts using any supported video provider. Automatica
 | model | `video_model` | The video generation model to use | `{"type":"video_model","provider":"gemini","id":...` |
 | prompt | `str` | Text prompt describing the desired video | `A cat playing with a ball of yarn` |
 | negative_prompt | `str` | Text prompt describing what to avoid in the video | `` |
+| entities | `list[entity]` | Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt | `[]` |
 | aspect_ratio | `str` | Aspect ratio for the video | `16:9` |
 | resolution | `str` | Video resolution | `1080p` |
 | duration | `int` | Video duration in seconds | `8` |

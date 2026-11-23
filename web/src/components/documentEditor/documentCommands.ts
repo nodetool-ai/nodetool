@@ -29,6 +29,8 @@ import {
   $isRangeSelection,
   $isRootOrShadowRoot,
   FORMAT_TEXT_COMMAND,
+  INDENT_CONTENT_COMMAND,
+  OUTDENT_CONTENT_COMMAND,
   type LexicalEditor,
   type LexicalNode,
   type TextFormatType
@@ -131,6 +133,16 @@ export function toggleList(
         ? INSERT_ORDERED_LIST_COMMAND
         : INSERT_CHECK_LIST_COMMAND;
   editor.dispatchCommand(command, undefined);
+}
+
+/** Increase indentation of the selected list items or blocks (PRD R2). */
+export function indentSelection(editor: LexicalEditor): void {
+  editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined);
+}
+
+/** Decrease indentation of the selected list items or blocks (PRD R2). */
+export function outdentSelection(editor: LexicalEditor): void {
+  editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined);
 }
 
 /** Link the selection to `url`, or remove the link when `url` is empty. */

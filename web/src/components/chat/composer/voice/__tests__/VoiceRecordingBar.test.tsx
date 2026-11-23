@@ -12,7 +12,6 @@ const levelsRef = { current: new Float32Array(8) };
 const renderBar = (
   props: Partial<React.ComponentProps<typeof VoiceRecordingBar>> = {}
 ) => {
-  const onConfirm = jest.fn();
   const onCancel = jest.fn();
   render(
     <ThemeProvider theme={mockTheme}>
@@ -20,13 +19,12 @@ const renderBar = (
         levelsRef={levelsRef}
         durationMs={0}
         isTranscribing={false}
-        onConfirm={onConfirm}
         onCancel={onCancel}
         {...props}
       />
     </ThemeProvider>
   );
-  return { onConfirm, onCancel };
+  return { onCancel };
 };
 
 describe("formatDuration", () => {
@@ -38,27 +36,38 @@ describe("formatDuration", () => {
 });
 
 describe("VoiceRecordingBar", () => {
-  it("offers accept and discard while recording", async () => {
-    const { onConfirm, onCancel } = renderBar({ durationMs: 3_000 });
+  it("shows the cancel button on the left and timer while recording", async () => {
+    const { onCancel } = renderBar({ durationMs: 3_000 });
     expect(screen.getByText("0:03")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Accept recording" }));
-    expect(onConfirm).toHaveBeenCalled();
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "Discard recording" })
-    );
-    expect(onCancel).toHaveBeenCalled();
+    const cancelButton = screen.getByRole("button", {
+      name: "Discard recording"
+    });
+    await userEvent.click(cancelButton);
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it("shows only the transcription status once the take is accepted", () => {
-    renderBar({ isTranscribing: true });
+  it("shows transcribing status and keeps the cancel button active while transcribing", async () => {
+    const { onCancel } = renderBar({ isTranscribing: true });
     expect(screen.getByText("Transcribing…")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Accept recording" })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Discard recording" })
-    ).not.toBeInTheDocument();
+
+    const cancelButton = screen.getByRole("button", {
+      name: "Cancel transcription"
+    });
+    await userEvent.click(cancelButton);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows pending send status while transcribing with pendingSend", async () => {
+    const { onCancel } = renderBar({
+      isTranscribing: true,
+      pendingSend: true
+    });
+    expect(screen.getByText("Sending once transcribed…")).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Cancel transcription" })
+    );
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });

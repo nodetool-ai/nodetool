@@ -3,11 +3,16 @@
  * store and server-side resource ownership checks.
  */
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  ApiErrorCode,
+  isTRPCErrorWithCode
+} from "@nodetool-ai/protocol/api-schemas";
 
 import { trpc, trpcClient } from "../trpc/client";
 import {
+  LOOSE_PROJECT_ID,
   PROJECT_NEW_REF,
   useWorkspaceTabsStore,
   type ProjectTabDocument,
@@ -275,4 +280,83 @@ export const useOpenProject = () => {
     },
     [addNotification, openProject]
   );
+};
+
+/** In-flight project existence checks keyed by project id, shared across selectors. */
+const inFlightProjectChecks = new Map<string, Promise<boolean>>();
+
+const checkProjectExists = (projectId: string): Promise<boolean> => {
+  const existing = inFlightProjectChecks.get(projectId);
+  if (existing) {
+    return existing;
+  }
+  const pending = trpcClient.projects.restoreTabs
+    .query({ id: projectId, tabs: [] })
+    .then(() => true)
+    .catch((error: unknown) => {
+      if (isTRPCErrorWithCode(error, ApiErrorCode.NOT_FOUND)) {
+        return false;
+      }
+      // A transient or offline failure does not prove the project is gone.
+      return true;
+    })
+    .finally(() => {
+      inFlightProjectChecks.delete(projectId);
+    });
+  inFlightProjectChecks.set(projectId, pending);
+  return pending;
+};
+
+/**
+ * Reconcile a persisted `activeProjectId` when it is absent from the loaded
+ * project list. Only a confirmed `NOT_FOUND` closes the stale project and
+ * switches to `fallbackProjectId`; newly created, archived, or unpaged projects
+ * and transient errors leave the selection intact.
+ */
+export const useReconcileActiveProject = (
+  projects: readonly { id: string }[] | undefined,
+  fallbackProjectId: string | null
+): void => {
+  const activeProjectId = useWorkspaceTabsStore(
+    (state) => state.activeProjectId
+  );
+  const closeProject = useWorkspaceTabsStore((state) => state.closeProject);
+  const setActiveProjectId = useWorkspaceTabsStore(
+    (state) => state.setActiveProjectId
+  );
+
+  useEffect(() => {
+    if (
+      !projects ||
+      !activeProjectId ||
+      activeProjectId === LOOSE_PROJECT_ID ||
+      activeProjectId === fallbackProjectId ||
+      projects.some((project) => project.id === activeProjectId)
+    ) {
+      return;
+    }
+    let cancelled = false;
+    const candidateId = activeProjectId;
+    void checkProjectExists(candidateId).then((exists) => {
+      if (cancelled || exists) {
+        return;
+      }
+      if (useWorkspaceTabsStore.getState().activeProjectId !== candidateId) {
+        return;
+      }
+      closeProject(candidateId);
+      if (fallbackProjectId) {
+        setActiveProjectId(fallbackProjectId);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeProjectId,
+    closeProject,
+    fallbackProjectId,
+    projects,
+    setActiveProjectId
+  ]);
 };

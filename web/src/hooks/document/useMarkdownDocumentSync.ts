@@ -16,7 +16,7 @@
  *   draft wins where both changed a block and the outside value is listed in
  *   the conflict banner (ADR 0001).
  */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CLEAR_HISTORY_COMMAND, type LexicalEditor } from "lexical";
 import {
   convertOutsideWrite,
@@ -111,6 +111,8 @@ interface UseMarkdownDocumentSyncResult {
   dismissChanges: (blockIds?: readonly string[]) => void;
   /** Take the next outside write without marks, such as a version restore. */
   expectOwnWrite: () => void;
+  /** Clear a pending own-write expectation if the operation fails before writing. */
+  cancelOwnWrite: () => void;
 }
 
 export function useMarkdownDocumentSync(
@@ -384,8 +386,17 @@ export function useMarkdownDocumentSync(
       sourceRef.current = null;
       revertRef.current = null;
       changesRef.current = [];
+      ownWriteRef.current = false;
     };
   }, [assetId, editor, binding]);
+
+  const expectOwnWrite = useCallback(() => {
+    ownWriteRef.current = true;
+  }, []);
+
+  const cancelOwnWrite = useCallback(() => {
+    ownWriteRef.current = false;
+  }, []);
 
   return {
     loadState,
@@ -398,9 +409,8 @@ export function useMarkdownDocumentSync(
     getSource: () => sourceRef.current?.get() ?? "",
     changes,
     revertChange: (blockId) => revertRef.current?.(blockId),
-    expectOwnWrite: () => {
-      ownWriteRef.current = true;
-    },
+    expectOwnWrite,
+    cancelOwnWrite,
     dismissChanges: (blockIds) => {
       const next = blockIds
         ? changesRef.current.filter((change) => !blockIds.includes(change.blockId))

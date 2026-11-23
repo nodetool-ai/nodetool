@@ -5,12 +5,14 @@ title: "nodetool.agents Nodes"
 
 This namespace contains 7 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Agent](agent.md)** - Chat with an LLM: send a prompt (plus optional images or audio), call tools, ...
-- **[Classifier](classifier.md)** - Classify text into predefined or dynamic categories using LLM.
-- **[Create Thread](createthread.md)** - Create a new conversation thread and return its ID.
-- **[Decision](decision.md)** - Let an LLM make a yes/no decision about the inputs, then route the value down...
-- **[Enhance Prompt](enhanceprompt.md)** - Rewrite a rough draft into a clearer, more detailed prompt using an LLM, with...
-- **[Extractor](extractor.md)** - Extract structured data from text content using LLM providers.
-- **[Summarizer](summarizer.md)** - Generate concise summaries of text content using LLM providers with streaming...
+- **[Agent](agent.md)**
+- **[Classifier](classifier.md)**
+- **[Create Thread](createthread.md)**
+- **[Decision](decision.md)**
+- **[Enhance Prompt](enhanceprompt.md)**
+- **[Extractor](extractor.md)**
+- **[Summarizer](summarizer.md)**
+
+[Back to all nodes](../../)

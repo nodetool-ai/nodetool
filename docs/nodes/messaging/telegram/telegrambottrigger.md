@@ -18,13 +18,10 @@ Listen for Telegram messages using long polling and emit them as events.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| max_events | `int` | Maximum number of events to process (0 = unlimited) | `0` |
 | token | `str` | Telegram bot token | `` |
 | chat_id | `int` | Optional chat ID to filter messages | null |
 | allow_bot_messages | `bool` | Include messages authored by bots | `false` |
 | include_edited_messages | `bool` | Include edited messages | `false` |
-| poll_timeout_seconds | `int` | Long polling timeout in seconds | `30` |
-| poll_interval_seconds | `float` | Delay between polling requests | `0.2` |
 
 ## Outputs
 

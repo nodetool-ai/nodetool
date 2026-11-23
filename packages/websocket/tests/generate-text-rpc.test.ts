@@ -354,6 +354,61 @@ describe("generate_text RPC", () => {
     ]);
   });
 
+  it("prepends system when both system and messages are provided", async () => {
+    const { calls, provider } = fakeProvider({
+      content: "<mode>replace</mode>\n<text>Clearer.</text>\n<why>Tighter.</why>"
+    });
+    const runner = await makeRunner(ws, async () => provider as never);
+
+    const out = await runOne(ws, runner, {
+      command: "generate_text",
+      request_id: "t-system-and-messages",
+      data: {
+        provider: "fake",
+        model: "fake-model",
+        system: "Reply with <mode>replace</mode>.",
+        messages: [
+          { role: "user", content: "Rewrite this." },
+          { role: "assistant", content: "First draft." },
+          { role: "user", content: "Make it shorter." }
+        ]
+      }
+    });
+
+    expect(out.error).toBeUndefined();
+    expect(calls[0].messages).toMatchObject([
+      { role: "system", content: "Reply with <mode>replace</mode>." },
+      { role: "user", content: "Rewrite this." },
+      { role: "assistant", content: "First draft." },
+      { role: "user", content: "Make it shorter." }
+    ]);
+  });
+
+  it("does not duplicate system when messages already begins with a system turn", async () => {
+    const { calls, provider } = fakeProvider({ content: "ok" });
+    const runner = await makeRunner(ws, async () => provider as never);
+
+    const out = await runOne(ws, runner, {
+      command: "generate_text",
+      request_id: "t-system-no-dup",
+      data: {
+        provider: "fake",
+        model: "fake-model",
+        system: "Fallback system.",
+        messages: [
+          { role: "system", content: "Explicit system." },
+          { role: "user", content: "Hi." }
+        ]
+      }
+    });
+
+    expect(out.error).toBeUndefined();
+    expect(calls[0].messages).toMatchObject([
+      { role: "system", content: "Explicit system." },
+      { role: "user", content: "Hi." }
+    ]);
+  });
+
   it("reports a request with neither prompt nor messages", async () => {
     const { provider } = fakeProvider({ content: "" });
     const runner = await makeRunner(ws, async () => provider as never);

@@ -23,7 +23,11 @@ import {
   tagAsUniversal,
   type ProjectDocumentContext
 } from "@nodetool-ai/nodes-utils";
-import { readDocumentText, type DocumentTextContext } from "./document-text.js";
+import {
+  readDocumentInput,
+  type DocumentInputResult,
+  type DocumentTextContext
+} from "./document-text.js";
 import {
   NAME_PROP,
   INPUT_DESCRIPTION_PROP,
@@ -626,7 +630,7 @@ export class DocumentInputNode extends BaseNode {
   static readonly retrySafe = true;
   static readonly title = "Document Input";
   static readonly description =
-    "Accepts a reference to a document asset for workflows, specified by a 'DocumentRef'.  A 'DocumentRef' points to a structured document (e.g., PDF, DOCX, TXT) which can be processed or analyzed. This node is used when the workflow needs to operate on a document as a whole entity, potentially including its structure and metadata, rather than just raw text.\n    input, parameter, document, file, asset, reference\n\n    Use cases:\n    - Load a specific document (e.g., PDF, Word, text file) for content extraction or analysis.\n    - Pass a document to models that are designed to process specific document formats.\n    - Manage documents as distinct assets within a workflow.\n    - If you have a local file path and need to convert it to a 'DocumentRef', consider using 'DocumentFileInput'.";
+    "Accepts an editable Markdown document or converts .txt, .html, .docx, or .pdf input files to Markdown, outputting both the document reference and its Markdown text.\n    input, parameter, document, markdown, text, pdf, docx, html, reference";
   static readonly metadataOutputTypes = {
     output: "document",
     text: "str"
@@ -650,11 +654,8 @@ export class DocumentInputNode extends BaseNode {
 
   async process(
     context?: DocumentTextContext
-  ): Promise<Record<string, unknown>> {
-    return {
-      output: this.value ?? {},
-      text: await readDocumentText(this.value, context)
-    };
+  ): Promise<DocumentInputResult> {
+    return readDocumentInput(this.value, context);
   }
 }
 
@@ -1144,7 +1145,7 @@ export class DocumentFileInputNode extends BaseNode {
   static readonly retrySafe = true;
   static readonly title = "Document File Input";
   static readonly description =
-    "Accepts a local file path pointing to a document and converts it into a 'DocumentRef'.\n    input, parameter, document, file, path, local_file, load";
+    "Accepts a project or local file path pointing to an editable document and converts it into a document reference.\n    input, parameter, document, markdown, file, path, local_file, load";
   static readonly metadataOutputTypes = {
     document: "document",
     path: "str"

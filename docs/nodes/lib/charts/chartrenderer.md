@@ -23,7 +23,6 @@ Node responsible for rendering chart configurations into image format using seab
 | height | `int` | The height of the chart in pixels. | `480` |
 | data | `dataframe` | The data to visualize as a pandas DataFrame. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | background_color | `str` | Background color of the chart (CSS color string). | `#ffffff` |
-| despine | `bool` | Whether to remove top and right spines. | `true` |
 | trim_margins | `bool` | Whether to use tight layout for margins. | `true` |
 
 ## Outputs

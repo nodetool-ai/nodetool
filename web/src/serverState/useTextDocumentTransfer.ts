@@ -21,7 +21,12 @@ import {
 
 export type TextDocumentFile = RouterOutputs["textDocuments"]["import"];
 
-export type DocumentExportFormat = "pdf" | "html" | "google_doc";
+export type DocumentExportFormat = "md" | "txt" | "pdf" | "html" | "google_doc";
+
+export interface DocumentExportOptions {
+  directory?: string;
+  name?: string;
+}
 
 /** File extensions an import reads. Markdown already opens as a document. */
 const IMPORTABLE_EXTENSIONS = new Set(["txt", "html", "htm", "docx", "pdf"]);
@@ -107,7 +112,10 @@ export function useTextDocumentImport(): UseTextDocumentImportResult {
 }
 
 interface UseTextDocumentExportResult {
-  exportDocument: (format: DocumentExportFormat) => Promise<void>;
+  exportDocument: (
+    format: DocumentExportFormat,
+    options?: DocumentExportOptions
+  ) => Promise<boolean>;
   exporting: DocumentExportFormat | null;
 }
 
@@ -120,25 +128,37 @@ export function useTextDocumentExport(
   const addNotification = useNotificationStore((state) => state.addNotification);
 
   const exportDocument = useCallback(
-    async (format: DocumentExportFormat) => {
+    async (
+      format: DocumentExportFormat,
+      options?: DocumentExportOptions
+    ): Promise<boolean> => {
       setExporting(format);
       // Opened before the await, so the browser treats it as the click's popup.
       const googleTab = format === "google_doc" ? window.open("", "_blank") : null;
       try {
         await flush();
         if (format === "google_doc") {
-          const doc = await trpcClient.textDocuments.exportGoogleDoc.mutate({ asset_id: assetId });
+          const doc = await trpcClient.textDocuments.exportGoogleDoc.mutate({
+            asset_id: assetId,
+            title: options?.name?.trim() || undefined
+          });
           if (googleTab && doc.url) {
             googleTab.location.href = doc.url;
           } else {
             googleTab?.close();
           }
           addNotification({ type: "success", content: `Exported to Google Docs as ${doc.name}` });
-          return;
+          return true;
         }
-        const file = await trpcClient.textDocuments.export.mutate({ asset_id: assetId, format });
+        const file = await trpcClient.textDocuments.export.mutate({
+          asset_id: assetId,
+          format,
+          directory: options?.directory,
+          name: options?.name?.trim() || undefined
+        });
         refreshDocumentLists();
         addNotification({ type: "success", content: `Exported ${file.path ?? file.name}` });
+        return true;
       } catch (error) {
         googleTab?.close();
         addNotification({
@@ -146,6 +166,7 @@ export function useTextDocumentExport(
           alert: true,
           content: `Could not export the document: ${errorMessage(error)}`
         });
+        return false;
       } finally {
         setExporting(null);
       }

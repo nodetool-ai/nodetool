@@ -1,6 +1,7 @@
 import type React from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas";
 
 const mockVersionsQuery = jest.fn();
 const mockSwitchVersion = jest.fn();
@@ -109,5 +110,34 @@ describe("useThreadVersions", () => {
     });
 
     expect(mockVersionsQuery).not.toHaveBeenCalled();
+  });
+
+  it("does not ask when the thread has no stored messages", () => {
+    renderHook(() => useThreadVersions("thread-new", "", true), {
+      wrapper: wrapperFor(newClient())
+    });
+    renderHook(() => useThreadVersions("thread-new", ",", true), {
+      wrapper: wrapperFor(newClient())
+    });
+
+    expect(mockVersionsQuery).not.toHaveBeenCalled();
+  });
+
+  it("treats a missing thread as having no forks without retrying", async () => {
+    mockVersionsQuery.mockRejectedValue({
+      data: { apiCode: ApiErrorCode.NOT_FOUND }
+    });
+    const retryingClient = new QueryClient({
+      defaultOptions: { queries: { retry: 2, retryDelay: 0 } }
+    });
+    const { result } = renderHook(
+      () => useThreadVersions("thread-missing", "m1", true),
+      { wrapper: wrapperFor(retryingClient) }
+    );
+
+    await waitFor(() => expect(mockVersionsQuery).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(mockVersionsQuery).toHaveBeenCalledTimes(1);
+    expect(result.current.navByMessageId).toEqual({});
   });
 });

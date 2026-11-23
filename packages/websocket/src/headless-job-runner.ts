@@ -25,7 +25,7 @@ import {
   toRawGraphInput,
   type RunResult
 } from "@nodetool-ai/execution";
-import { Job, Workflow, getSecret } from "@nodetool-ai/models";
+import { Asset, Job, Workflow, getSecret } from "@nodetool-ai/models";
 import {
   createGraphNodeTypeResolver,
   type NodeRegistry
@@ -220,7 +220,24 @@ export async function startHeadlessJob(
   });
   context.setModelInterfaces({
     ...documentModelInterfaces(),
-    ...textDocumentModelInterfaces()
+    ...textDocumentModelInterfaces(),
+    getAssetInfo: async ({ userId: ownerId, assetId }) => {
+      const asset = await Asset.find(ownerId, assetId);
+      if (!asset) return null;
+      return {
+        id: asset.id,
+        content_type: asset.content_type,
+        name: asset.name,
+        metadata: asset.metadata ?? null,
+        workspace_path: asset.workspace_path ?? null
+      };
+    },
+    convertDocumentToMarkdown: async (args) => {
+      const { convertDocumentBytesToMarkdown } = await import(
+        "@nodetool-ai/agents/text-document-transfer"
+      );
+      return convertDocumentBytesToMarkdown(args);
+    }
   });
   // Nobody is watching a triggered run, so an agent loop inside it gates in
   // `auto` and every escalation is denied. Set here, not left for a fallback:

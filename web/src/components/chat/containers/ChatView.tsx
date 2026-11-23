@@ -521,11 +521,17 @@ const ChatView = ({
 
   // Edit and Retry keep the turns they replace as an earlier version, which
   // the message where the versions part shows as "‹ 1/2 ›". A message the
-  // server never stored (a local placeholder) cannot be a fork yet.
-  const versionsSignature = useMemo(
-    () => messages.map((message) => message.id ?? "").join(","),
+  // server never stored (a local placeholder) cannot be a fork yet, and a
+  // brand-new local thread has no server row until its first message lands.
+  const storedMessageIds = useMemo(
+    () =>
+      messages.map((message) =>
+        message.id && !message.id.startsWith("local-stream-") ? message.id : ""
+      ),
     [messages]
   );
+  const versionsSignature = storedMessageIds.join(",");
+  const hasStoredMessages = storedMessageIds.some((id) => id.length > 0);
   const handleSwitchError = useCallback(
     (error: unknown) => {
       addNotification({
@@ -540,7 +546,7 @@ const ChatView = ({
   const { navByMessageId: versionNavByMessageId } = useThreadVersions(
     effectiveThreadId,
     versionsSignature,
-    canResend,
+    canResend && hasStoredMessages,
     handleSwitchError
   );
 

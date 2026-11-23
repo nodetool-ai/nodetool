@@ -512,6 +512,21 @@ async function isOwnProject(userId: string, projectId: string): Promise<boolean>
   return (await Project.findOwned(userId, projectId)) !== null;
 }
 
+/** Require an owned project for asset writes, lazily creating Personal on first use. */
+async function requireOwnedProject(
+  userId: string,
+  projectId: string
+): Promise<void> {
+  try {
+    await Project.requireOwned(userId, projectId);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Project not found") {
+      throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
+    }
+    throw error;
+  }
+}
+
 /** The directory a directory id names, when its project is the caller's. */
 async function requireOwnDirectory(
   userId: string,
@@ -1081,9 +1096,7 @@ export const assetsRouter = router({
     .output(createUploadOutput)
     .mutation(async ({ ctx, input }) => {
       if (input.project_id && input.project_id !== "default") {
-        if (!(await Project.findOwned(ctx.userId, input.project_id))) {
-          throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
-        }
+        await requireOwnedProject(ctx.userId, input.project_id);
       }
       const adapter = getAssetAdapter();
       const max = adapter instanceof FileStorageAdapter
@@ -1268,9 +1281,7 @@ export const assetsRouter = router({
       const file = await resolveExternalFile(input.path);
       const projectId = input.project_id ?? "default";
       if (projectId !== "default") {
-        if (!(await Project.findOwned(ctx.userId, projectId))) {
-          throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
-        }
+        await requireOwnedProject(ctx.userId, projectId);
       }
 
       // A second import of the same, unchanged file into the same project
@@ -1542,11 +1553,7 @@ export const assetsRouter = router({
     .output(copyToProjectOutput)
     .mutation(async ({ ctx, input }) => {
       if (input.project_id !== "default") {
-        try {
-          await Project.requireOwned(ctx.userId, input.project_id);
-        } catch {
-          throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
-        }
+        await requireOwnedProject(ctx.userId, input.project_id);
       }
       try {
         const { asset, copied } = await copyAssetToProject({
