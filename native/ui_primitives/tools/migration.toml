@@ -1833,6 +1833,16 @@ qml_callers = ["native/timeline/qml/mixer/MixerView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Popover, Ui.ScrollBar, Ui.Text, Ui.ToolbarIconButton, Ui.Surface, Ui.Select, Ui.EditorButton"
 
 [[file]]
+path = "native/timeline/qml/mixer/InstrumentDevicePopover.qml"
+category = "chrome"
+controls = ["Ui.Popover", "Column", "Row", "Ui.Text", "Ui.ToolbarIconButton", "Connections", "AutomationController", "VstPluginControl"]
+signals = []
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/mixer/MixerView.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Popover, Ui.Text, Ui.ToolbarIconButton"
+
+[[file]]
 path = "native/timeline/qml/mixer/InsertSlots.qml"
 category = "chrome"
 controls = ["Flickable", "Ui.Surface", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.ScrollBar", "Ui.ContextMenu", "Ui.MenuItem"]
@@ -2221,6 +2231,26 @@ qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Surface"
 
 [[file]]
+path = "native/timeline/qml/vst/VstPluginControl.qml"
+category = "chrome"
+controls = ["Column", "Row", "Ui.Text", "Ui.Select", "Ui.Status", "Ui.EditorButton", "Ui.ToolbarIconButton", "InspectorSliderRow"]
+signals = ["pluginChosen", "wetChangedRequested", "gainDbChangedRequested"]
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/mixer/EffectDevicePopover.qml", "native/timeline/qml/mixer/InstrumentDevicePopover.qml", "native/timeline/qml/wiring/w/TrackEffectParams.qml", "native/timeline/qml/wiring/w/TrackEffectsPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Select, Ui.Status, Ui.EditorButton, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/timeline/qml/vst/VstStateSync.qml"
+category = "chrome"
+controls = ["Item", "Connections"]
+signals = []
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
 path = "native/timeline/qml/wiring/FrameGizmoOverlay.qml"
 category = "domain"
 controls = []
@@ -2429,6 +2459,16 @@ test_host = "tst_wiringw"
 test_scope = "build/import"
 qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/TrackEffectsDockPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.Text", "Loader", "TrackEffectsModel"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text"
 
 [[file]]
 path = "native/timeline/qml/wiring/w/TrackEffectsPanel.qml"
