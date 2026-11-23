@@ -585,7 +585,7 @@ function resolveDeviceId(
   const exact = effects.find((e) => e.id === deviceId);
   if (exact) return exact.id;
   if (isShortResourceId(deviceId)) {
-    const matches = effects.filter((e) => e.id.startsWith(deviceId));
+    const matches = effects.filter((e) => e.id.startsWith(deviceId)); // key-boundary-ok: deviceId is an exact 12-char short id and more than one match is refused below.
     if (matches.length > 1) {
       throw new Error(
         `Device prefix "${deviceId}" matches ${matches.length} effects on track "${track?.name ?? ""}"; use a full effect id.`
