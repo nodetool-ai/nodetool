@@ -18316,9 +18316,12 @@
       "voice": {
         "record": "音声メッセージを録音する",
         "recording": "音声録音",
+        "stop": "録音を停止",
         "discard": "録音の破棄",
         "accept": "録音を受け入れる",
-        "transcribing": "文字起こし中…"
+        "transcribing": "文字起こし中…",
+        "cancelTranscription": "文字起こしをキャンセル",
+        "sendingOnceTranscribed": "文字起こし後に送信します…"
       },
       "skills": "スキル",
       "noMatchingSkills": "一致するスキルがありません",
@@ -20232,6 +20235,10 @@
       "revealInFinder": "Finderで表示",
       "revealInExplorer": "エクスプローラーで表示",
       "revealInFileManager": "ファイルマネージャーで表示",
+      "newDocument": "新規ドキュメント",
+      "copy": "コピー",
+      "paste": "貼り付け",
+      "pasteIntoItself": "フォルダーをそれ自身やそのサブフォルダーに貼り付けることはできません。",
       "moveIntoItself": "フォルダーをそれ自身やそのサブフォルダーに移動することはできません。",
       "notAnAsset": "このファイルはプロジェクトのアセットに含まれていないため、ここでは変更できません。",
       "actionFailed": "変更は保存されませんでした: {{error}}"
@@ -20556,10 +20563,110 @@
       "bulletList": "箇条書き",
       "numberedList": "番号付きリスト",
       "checkList": "タスクリスト",
+      "outdent": "リストのインデントを減らす",
+      "indent": "リストのインデントを増やす",
       "quote": "引用",
       "codeBlock": "コードブロック",
       "table": "表",
+      "media": "メディアを挿入",
       "rule": "区切り線"
+    },
+    "title": {
+      "untitled": "無題のドキュメント",
+      "ariaLabel": "ドキュメントのタイトル",
+      "clickToRename": "クリックして名前を変更",
+      "renameButton": "ドキュメント {{title}} の名前を変更",
+      "renameUntitled": "ドキュメントの名前を変更",
+      "invalidCharacters": "タイトルにはパス区切り文字やファイル名に使えない文字を含めることはできません。"
+    },
+    "display": {
+      "controlsLabel": "ドキュメントの表示",
+      "zoomOut": "縮小",
+      "zoomIn": "拡大",
+      "resetZoom": "ズームを 100% にリセット",
+      "resetZoomAria": "ズーム {{percent}}%、100% にリセット",
+      "paperTheme": "用紙のテーマ",
+      "themeApp": "アプリのテーマ",
+      "themeWhite": "白い用紙",
+      "themeGray": "グレーの用紙"
+    },
+    "saveAs": {
+      "title": "名前を付けて保存",
+      "confirm": "保存",
+      "format": "形式",
+      "formats": {
+        "md": "Markdown (.md)",
+        "txt": "プレーンテキスト (.txt)",
+        "pdf": "PDF (.pdf)",
+        "html": "HTML (.html)",
+        "googleDoc": "Google ドキュメント"
+      },
+      "filename": "ファイル名",
+      "outputPreview": "{{file}} として保存されます",
+      "folder": "保存先フォルダー",
+      "parentFolder": "親フォルダー",
+      "projectRoot": "プロジェクトのルート",
+      "noSubfolders": "サブフォルダーはありません",
+      "openFolder": "フォルダーを開く",
+      "error": "ドキュメントを保存できませんでした。"
+    },
+    "bar": {
+      "snapshot": "スナップショット",
+      "snapshotTooltip": "現在のドキュメントのスナップショットを保存",
+      "snapshotSaved": "スナップショットを保存しました",
+      "openSnapshots": "スナップショットを開く",
+      "closeSnapshots": "スナップショットを閉じる",
+      "saveAs": "名前を付けて保存"
+    },
+    "proposal": {
+      "title": "アシスタントが提案した変更",
+      "subtitle": "適用する前に、提案されたバージョンを確認または編集してください。",
+      "expand": "提案を表示",
+      "collapse": "提案を隠す",
+      "staleWarning": "この提案の作成後にドキュメントが変更されました。承認すると提案されたバージョンが適用されます。",
+      "mergedNotice": "この提案の作成後に、ドキュメントの別のセクションが変更されました。「承認して統合」は、現在の編集を上書きせずにその上へこの提案を適用します。",
+      "conflictWarning_one": "この提案の作成後にドキュメントが変更され、{{count}} 個のセクションが競合しています。承認すると重なっている編集が上書きされます。",
+      "conflictWarning_other": "この提案の作成後にドキュメントが変更され、{{count}} 個のセクションが競合しています。承認すると重なっている編集が上書きされます。",
+      "overwriteConfirmTitle": "新しい編集を上書きしますか？",
+      "overwriteConfirmBody": "このドキュメントの新しい編集がこの提案と重なっています。続行すると競合している編集が上書きされます。",
+      "overwriteConfirmAction": "自分の編集を上書き",
+      "acceptConflictAborted": "提案を適用する前にドキュメントが変更されました。承認する前に更新された差分を確認してください。",
+      "queuedBanner": "この提案の下書きに未保存の編集がある間に、新しい提案が届きました。",
+      "keepMyEdits": "自分の編集を残す",
+      "replaceWithQueued": "新しい提案に置き換える",
+      "noChanges": "基準バージョンとの差分はありません。",
+      "diffLabel": "提案された差分",
+      "editLabel": "提案されたバージョンを編集",
+      "editAction": "提案されたバージョンを編集",
+      "previewAction": "差分をプレビュー",
+      "reject": "却下",
+      "accept": "承認",
+      "acceptAndMerge": "承認して統合"
+    },
+    "snapshots": {
+      "noneSelectedTitle": "スナップショットが選択されていません",
+      "noneSelectedBody": "スナップショットを選択すると、並べて比較したり文章をコピーしたりできます。",
+      "emptyContentTitle": "空のスナップショット",
+      "emptyContentBody": "このスナップショットには保存時にテキストがありませんでした。",
+      "loadError": "このスナップショットを読み込めませんでした。",
+      "readOnly": "読み取り専用",
+      "viewerLabel": "スナップショットのプレビュー",
+      "listTitle": "スナップショット",
+      "emptyTitle": "スナップショットはまだありません",
+      "emptyBody": "大きな編集の前にスナップショットを作成すると、後で比較や復元ができます。",
+      "rename": "名前を変更",
+      "restore": "復元",
+      "delete": "削除",
+      "renameTitle": "スナップショットの名前を変更",
+      "nameLabel": "スナップショット名",
+      "restoreTitle": "スナップショットを復元",
+      "restoreConfirmBody": "{{name}} を現在のドキュメントとして復元しますか？現在のテキストと以前のスナップショットはすべて履歴に残ります。",
+      "deleteTitle": "スナップショットを削除",
+      "deleteConfirmBody": "{{name}} を完全に削除しますか？この操作は元に戻せません。",
+      "renameError": "スナップショットの名前を変更できませんでした。",
+      "restoreError": "スナップショットを復元できませんでした。",
+      "deleteError": "スナップショットを削除できませんでした。",
+      "resizeSplit": "スナップショット一覧とアシスタントのサイズを変更"
     },
     "insert": {
       "linkAddress": "リンク先",
@@ -20569,7 +20676,11 @@
     "agent": {
       "toggle": "アシスタント",
       "welcomeTitle": "アシスタントと書く",
-      "welcomeBody": "下書き、編集、レビューを依頼できます。アシスタントはこのドキュメントと選択したテキストを参照します。"
+      "welcomeBody": "下書き、編集、レビューを依頼できます。アシスタントはこのドキュメントと選択したテキストを参照します。",
+      "directApply": "直接適用",
+      "stagedApproval": "変更を確認",
+      "directApplyTooltip": "直接適用がオンです：アシスタントの編集はすぐに書き込まれます。クリックすると事前の承認が必要になります。",
+      "stagedApprovalTooltip": "変更の確認がオンです：アシスタントの編集は承認、編集、却下できる提案として開きます。クリックすると直接適用になります。"
     },
     "versions": {
       "toggle": "バージョン履歴",
@@ -20609,7 +20720,9 @@
       }
     },
     "assist": {
+      "open": "選択範囲についてアシスタントに質問",
       "proposal": "置換の提案",
+      "editProposal": "提案された置換を編集",
       "note": "メモ",
       "discard": "破棄",
       "close": "閉じる",
@@ -20651,6 +20764,39 @@
     "import": {
       "asDocument": "ドキュメントとしてインポート",
       "asDocumentTooltip": "このファイルから編集できる Markdown ドキュメントを作成します。ファイル自体は変更されません。"
+    },
+    "embed": {
+      "title": "メディアを挿入",
+      "tabMedia": "メディア",
+      "tabShot": "ストーリーボードのショット",
+      "searchAssets": "アセットを検索",
+      "kindLabel": "種類",
+      "kindAll": "すべてのメディア",
+      "kindImage": "画像",
+      "kindVideo": "動画",
+      "kindAudio": "オーディオ",
+      "kindModel3d": "3D モデル",
+      "upload": "アップロード",
+      "uploading": "アップロード中…",
+      "uploadFailed": "ファイルをアップロードできませんでした。",
+      "loadingAssets": "アセットを読み込み中…",
+      "noAssets": "このプロジェクトにメディアはありません",
+      "noAssetsDescription": "ファイルをアップロードするか、下にパスまたは URL を貼り付けてください。",
+      "insertNamed": "{{name}} を挿入",
+      "linkLabel": "パスまたは URL",
+      "linkPlaceholder": "assets/picture.png",
+      "insert": "挿入",
+      "storyboardLabel": "ストーリーボード",
+      "untitledStoryboard": "無題のストーリーボード",
+      "loadingStoryboards": "ストーリーボードを読み込み中…",
+      "noStoryboards": "このプロジェクトにストーリーボードはありません",
+      "noStoryboardsDescription": "ストーリーボードを作成すると、そのショットをここに埋め込めます。",
+      "noShots": "このストーリーボードにはまだショットがありません",
+      "shotHint": "埋め込んだショットには最新のクリップが表示され、クリップがない間はキーフレームが表示されます。",
+      "loadingShot": "ショットを読み込み中…",
+      "shotMissing": "ショットが見つかりません：{{name}}",
+      "shotNotRendered": "このショットにはまだキーフレームもクリップもありません。",
+      "openStoryboard": "ストーリーボードを開く"
     }
   }
 }

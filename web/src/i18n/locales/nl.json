@@ -18316,9 +18316,12 @@
       "voice": {
         "record": "Spraakbericht opnemen",
         "recording": "Stemopname",
+        "stop": "Opname stoppen",
         "discard": "Gooi de opname weg",
         "accept": "Accepteer de opname",
-        "transcribing": "Transcriberen…"
+        "transcribing": "Transcriberen…",
+        "cancelTranscription": "Transcriptie annuleren",
+        "sendingOnceTranscribed": "Wordt verzonden na transcriptie…"
       },
       "skills": "Vaardigheden",
       "noMatchingSkills": "Geen bijpassende vaardigheden",
@@ -20232,6 +20235,10 @@
       "revealInFinder": "Toon in Finder",
       "revealInExplorer": "Toon in Verkenner",
       "revealInFileManager": "Toon in bestandsbeheer",
+      "newDocument": "Nieuw document",
+      "copy": "Kopiëren",
+      "paste": "Plakken",
+      "pasteIntoItself": "Een map kan niet in zichzelf of in een van de submappen worden geplakt.",
       "moveIntoItself": "Een map kan niet naar zichzelf of een van de submappen worden verplaatst.",
       "notAnAsset": "Dit bestand hoort niet bij de assets van het project en kan hier niet worden gewijzigd.",
       "actionFailed": "De wijziging is niet opgeslagen: {{error}}"
@@ -20556,10 +20563,110 @@
       "bulletList": "Opsommingslijst",
       "numberedList": "Genummerde lijst",
       "checkList": "Takenlijst",
+      "outdent": "Inspringing van lijst verkleinen",
+      "indent": "Inspringing van lijst vergroten",
       "quote": "Citaat",
       "codeBlock": "Codeblok",
       "table": "Tabel",
+      "media": "Media invoegen",
       "rule": "Scheidingslijn"
+    },
+    "title": {
+      "untitled": "Naamloos document",
+      "ariaLabel": "Documenttitel",
+      "clickToRename": "Klik om te hernoemen",
+      "renameButton": "Document {{title}} hernoemen",
+      "renameUntitled": "Document hernoemen",
+      "invalidCharacters": "De titel mag geen padscheidingstekens of gereserveerde tekens voor bestandsnamen bevatten."
+    },
+    "display": {
+      "controlsLabel": "Documentweergave",
+      "zoomOut": "Uitzoomen",
+      "zoomIn": "Inzoomen",
+      "resetZoom": "Zoom herstellen naar 100%",
+      "resetZoomAria": "Zoom {{percent}}%, herstellen naar 100%",
+      "paperTheme": "Papierthema",
+      "themeApp": "App-thema",
+      "themeWhite": "Wit papier",
+      "themeGray": "Grijs papier"
+    },
+    "saveAs": {
+      "title": "Opslaan als",
+      "confirm": "Opslaan",
+      "format": "Indeling",
+      "formats": {
+        "md": "Markdown (.md)",
+        "txt": "Platte tekst (.txt)",
+        "pdf": "PDF (.pdf)",
+        "html": "HTML (.html)",
+        "googleDoc": "Google-document"
+      },
+      "filename": "Bestandsnaam",
+      "outputPreview": "Wordt opgeslagen als {{file}}",
+      "folder": "Doelmap",
+      "parentFolder": "Bovenliggende map",
+      "projectRoot": "Projectmap",
+      "noSubfolders": "Geen submappen",
+      "openFolder": "Map openen",
+      "error": "Het document kon niet worden opgeslagen."
+    },
+    "bar": {
+      "snapshot": "Momentopname",
+      "snapshotTooltip": "Een momentopname van het huidige document opslaan",
+      "snapshotSaved": "Momentopname opgeslagen",
+      "openSnapshots": "Momentopnamen openen",
+      "closeSnapshots": "Momentopnamen sluiten",
+      "saveAs": "Opslaan als"
+    },
+    "proposal": {
+      "title": "Door de assistent voorgestelde wijzigingen",
+      "subtitle": "Controleer of bewerk de voorgestelde versie voordat je die toepast.",
+      "expand": "Voorstel tonen",
+      "collapse": "Voorstel verbergen",
+      "staleWarning": "Het document is gewijzigd sinds dit voorstel is gemaakt. Accepteren past de voorgestelde versie toe.",
+      "mergedNotice": "Het document is in andere secties gewijzigd sinds dit voorstel is gemaakt. Accepteren en samenvoegen past dit voorstel toe bovenop je huidige bewerkingen zonder ze te overschrijven.",
+      "conflictWarning_one": "Het document is gewijzigd sinds dit voorstel is gemaakt, met {{count}} conflicterende sectie. Accepteren overschrijft je overlappende bewerkingen.",
+      "conflictWarning_other": "Het document is gewijzigd sinds dit voorstel is gemaakt, met {{count}} conflicterende secties. Accepteren overschrijft je overlappende bewerkingen.",
+      "overwriteConfirmTitle": "Nieuwere bewerkingen overschrijven?",
+      "overwriteConfirmBody": "Nieuwere bewerkingen in dit document overlappen met dit voorstel. Doorgaan overschrijft je conflicterende bewerkingen.",
+      "overwriteConfirmAction": "Mijn bewerkingen overschrijven",
+      "acceptConflictAborted": "Het document is gewijzigd voordat het voorstel werd toegepast. Controleer de bijgewerkte vergelijking voordat je accepteert.",
+      "queuedBanner": "Er is een nieuw voorstel binnengekomen terwijl dit conceptvoorstel niet-opgeslagen bewerkingen bevat.",
+      "keepMyEdits": "Mijn bewerkingen behouden",
+      "replaceWithQueued": "Vervangen door nieuw voorstel",
+      "noChanges": "Geen verschillen met de basisversie.",
+      "diffLabel": "Voorgestelde vergelijking",
+      "editLabel": "Voorgestelde versie bewerken",
+      "editAction": "Voorgestelde versie bewerken",
+      "previewAction": "Vergelijking bekijken",
+      "reject": "Weigeren",
+      "accept": "Accepteren",
+      "acceptAndMerge": "Accepteren en samenvoegen"
+    },
+    "snapshots": {
+      "noneSelectedTitle": "Geen momentopname geselecteerd",
+      "noneSelectedBody": "Selecteer een momentopname om die naast elkaar te vergelijken en passages te kopiëren.",
+      "emptyContentTitle": "Lege momentopname",
+      "emptyContentBody": "Deze momentopname bevatte geen tekst toen hij werd opgeslagen.",
+      "loadError": "Deze momentopname kon niet worden geladen.",
+      "readOnly": "Alleen-lezen",
+      "viewerLabel": "Voorbeeld van momentopname",
+      "listTitle": "Momentopnamen",
+      "emptyTitle": "Nog geen momentopnamen",
+      "emptyBody": "Maak een momentopname vóór grote bewerkingen om later te vergelijken of te herstellen.",
+      "rename": "Hernoemen",
+      "restore": "Herstellen",
+      "delete": "Verwijderen",
+      "renameTitle": "Momentopname hernoemen",
+      "nameLabel": "Naam van momentopname",
+      "restoreTitle": "Momentopname herstellen",
+      "restoreConfirmBody": "{{name}} herstellen als huidig document? Je huidige tekst en alle eerdere momentopnamen blijven in de geschiedenis.",
+      "deleteTitle": "Momentopname verwijderen",
+      "deleteConfirmBody": "{{name}} definitief verwijderen? Dit kan niet ongedaan worden gemaakt.",
+      "renameError": "De momentopname kon niet worden hernoemd.",
+      "restoreError": "De momentopname kon niet worden hersteld.",
+      "deleteError": "De momentopname kon niet worden verwijderd.",
+      "resizeSplit": "Grootte van momentopnamelijst en assistent aanpassen"
     },
     "insert": {
       "linkAddress": "Linkadres",
@@ -20569,7 +20676,11 @@
     "agent": {
       "toggle": "Assistent",
       "welcomeTitle": "Schrijven met de assistent",
-      "welcomeBody": "Vraag om een concept, een bewerking of een review. De assistent ziet dit document en de geselecteerde tekst."
+      "welcomeBody": "Vraag om een concept, een bewerking of een review. De assistent ziet dit document en de geselecteerde tekst.",
+      "directApply": "Direct toepassen",
+      "stagedApproval": "Wijzigingen controleren",
+      "directApplyTooltip": "Direct toepassen staat aan: bewerkingen van de assistent worden meteen geschreven. Klik om eerst goedkeuring te vragen.",
+      "stagedApprovalTooltip": "Wijzigingen controleren staat aan: bewerkingen van de assistent openen als voorstel om te accepteren, bewerken of weigeren. Klik voor direct toepassen."
     },
     "versions": {
       "toggle": "Versiegeschiedenis",
@@ -20609,7 +20720,9 @@
       }
     },
     "assist": {
+      "open": "Assistent vragen over selectie",
       "proposal": "Voorgestelde vervanging",
+      "editProposal": "Voorgestelde vervanging bewerken",
       "note": "Notitie",
       "discard": "Weggooien",
       "close": "Sluiten",
@@ -20651,6 +20764,39 @@
     "import": {
       "asDocument": "Importeren als document",
       "asDocumentTooltip": "Maak van dit bestand een bewerkbaar Markdown-document. Het bestand zelf verandert niet."
+    },
+    "embed": {
+      "title": "Media invoegen",
+      "tabMedia": "Media",
+      "tabShot": "Storyboardshot",
+      "searchAssets": "Assets zoeken",
+      "kindLabel": "Type",
+      "kindAll": "Alle media",
+      "kindImage": "Afbeeldingen",
+      "kindVideo": "Video's",
+      "kindAudio": "Audio",
+      "kindModel3d": "3D-modellen",
+      "upload": "Uploaden",
+      "uploading": "Bezig met uploaden…",
+      "uploadFailed": "Het bestand kon niet worden geüpload.",
+      "loadingAssets": "Assets laden…",
+      "noAssets": "Geen media in dit project",
+      "noAssetsDescription": "Upload een bestand of plak hieronder een pad of URL.",
+      "insertNamed": "{{name}} invoegen",
+      "linkLabel": "Pad of URL",
+      "linkPlaceholder": "assets/afbeelding.png",
+      "insert": "Invoegen",
+      "storyboardLabel": "Storyboard",
+      "untitledStoryboard": "Naamloos storyboard",
+      "loadingStoryboards": "Storyboards laden…",
+      "noStoryboards": "Geen storyboards in dit project",
+      "noStoryboardsDescription": "Maak een storyboard om de shots hier in te sluiten.",
+      "noShots": "Dit storyboard heeft nog geen shots",
+      "shotHint": "Een ingesloten shot toont de nieuwste clip, of het keyframe zolang er geen clip is.",
+      "loadingShot": "Shot laden…",
+      "shotMissing": "Shot niet gevonden: {{name}}",
+      "shotNotRendered": "Dit shot heeft nog geen keyframe of clip.",
+      "openStoryboard": "Storyboard openen"
     }
   }
 }

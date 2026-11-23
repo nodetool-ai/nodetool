@@ -18,15 +18,15 @@ describe("OptionalNodePacksStore", () => {
     const { setPackEnabled, isPackEnabled } =
       useOptionalNodePacksStore.getState();
 
-    setPackEnabled("documents", true);
-    expect(useOptionalNodePacksStore.getState().isPackEnabled("documents")).toBe(
+    setPackEnabled("audio_dsp", true);
+    expect(useOptionalNodePacksStore.getState().isPackEnabled("audio_dsp")).toBe(
       true
     );
     expect(isPackEnabled("imaging")).toBe(false);
 
-    setPackEnabled("documents", false);
+    setPackEnabled("audio_dsp", false);
     expect(
-      useOptionalNodePacksStore.getState().isPackEnabled("documents")
+      useOptionalNodePacksStore.getState().isPackEnabled("audio_dsp")
     ).toBe(false);
   });
 

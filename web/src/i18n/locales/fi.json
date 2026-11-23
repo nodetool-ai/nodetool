@@ -18316,9 +18316,12 @@
       "voice": {
         "record": "Tallenna ääniviesti",
         "recording": "Äänitallenne",
+        "stop": "Lopeta tallennus",
         "discard": "Hylkää tallenne",
         "accept": "Hyväksy tallenne",
-        "transcribing": "Litteroidaan…"
+        "transcribing": "Litteroidaan…",
+        "cancelTranscription": "Peruuta litterointi",
+        "sendingOnceTranscribed": "Lähetetään litteroinnin jälkeen…"
       },
       "skills": "Taidot",
       "noMatchingSkills": "Ei vastaavia taitoja",
@@ -20232,6 +20235,10 @@
       "revealInFinder": "Näytä Finderissa",
       "revealInExplorer": "Näytä Resurssienhallinnassa",
       "revealInFileManager": "Näytä tiedostonhallinnassa",
+      "newDocument": "Uusi asiakirja",
+      "copy": "Kopioi",
+      "paste": "Liitä",
+      "pasteIntoItself": "Kansiota ei voi liittää itseensä tai johonkin sen alikansioista.",
       "moveIntoItself": "Kansiota ei voi siirtää itseensä tai sen alikansioon.",
       "notAnAsset": "Tämä tiedosto ei kuulu projektin resursseihin, joten sitä ei voi muuttaa täällä.",
       "actionFailed": "Muutosta ei tallennettu: {{error}}"
@@ -20556,10 +20563,110 @@
       "bulletList": "Luettelo",
       "numberedList": "Numeroitu luettelo",
       "checkList": "Tehtävälista",
+      "outdent": "Pienennä luettelon sisennystä",
+      "indent": "Suurenna luettelon sisennystä",
       "quote": "Lainaus",
       "codeBlock": "Koodilohko",
       "table": "Taulukko",
+      "media": "Lisää mediaa",
       "rule": "Erotin"
+    },
+    "title": {
+      "untitled": "Nimetön asiakirja",
+      "ariaLabel": "Asiakirjan otsikko",
+      "clickToRename": "Nimeä uudelleen napsauttamalla",
+      "renameButton": "Nimeä asiakirja {{title}} uudelleen",
+      "renameUntitled": "Nimeä asiakirja uudelleen",
+      "invalidCharacters": "Otsikossa ei voi olla polun erottimia eikä tiedostonimissä varattuja merkkejä."
+    },
+    "display": {
+      "controlsLabel": "Asiakirjan näyttö",
+      "zoomOut": "Loitonna",
+      "zoomIn": "Lähennä",
+      "resetZoom": "Palauta zoomaus 100 %:iin",
+      "resetZoomAria": "Zoomaus {{percent}} %, palauta 100 %:iin",
+      "paperTheme": "Paperin teema",
+      "themeApp": "Sovelluksen teema",
+      "themeWhite": "Valkoinen paperi",
+      "themeGray": "Harmaa paperi"
+    },
+    "saveAs": {
+      "title": "Tallenna nimellä",
+      "confirm": "Tallenna",
+      "format": "Muoto",
+      "formats": {
+        "md": "Markdown (.md)",
+        "txt": "Pelkkä teksti (.txt)",
+        "pdf": "PDF (.pdf)",
+        "html": "HTML (.html)",
+        "googleDoc": "Google-dokumentti"
+      },
+      "filename": "Tiedostonimi",
+      "outputPreview": "Tallennetaan nimellä {{file}}",
+      "folder": "Kohdekansio",
+      "parentFolder": "Yläkansio",
+      "projectRoot": "Projektin juuri",
+      "noSubfolders": "Ei alikansioita",
+      "openFolder": "Avaa kansio",
+      "error": "Asiakirjaa ei voitu tallentaa."
+    },
+    "bar": {
+      "snapshot": "Tilannekuva",
+      "snapshotTooltip": "Tallenna tilannekuva nykyisestä asiakirjasta",
+      "snapshotSaved": "Tilannekuva tallennettu",
+      "openSnapshots": "Avaa tilannekuvat",
+      "closeSnapshots": "Sulje tilannekuvat",
+      "saveAs": "Tallenna nimellä"
+    },
+    "proposal": {
+      "title": "Avustajan ehdottamat muutokset",
+      "subtitle": "Tarkista tai muokkaa ehdotettua versiota ennen käyttöönottoa.",
+      "expand": "Näytä ehdotus",
+      "collapse": "Piilota ehdotus",
+      "staleWarning": "Asiakirja on muuttunut ehdotuksen luomisen jälkeen. Hyväksyminen ottaa käyttöön ehdotetun version.",
+      "mergedNotice": "Asiakirja on muuttunut muissa osioissa ehdotuksen luomisen jälkeen. Hyväksy ja yhdistä lisää ehdotuksen nykyisten muokkaustesi päälle korvaamatta niitä.",
+      "conflictWarning_one": "Asiakirja on muuttunut ehdotuksen luomisen jälkeen, ja {{count}} osio on ristiriidassa. Hyväksyminen korvaa päällekkäiset muokkauksesi.",
+      "conflictWarning_other": "Asiakirja on muuttunut ehdotuksen luomisen jälkeen, ja {{count}} osiota on ristiriidassa. Hyväksyminen korvaa päällekkäiset muokkauksesi.",
+      "overwriteConfirmTitle": "Korvataanko uudemmat muokkaukset?",
+      "overwriteConfirmBody": "Asiakirjan uudemmat muokkaukset menevät päällekkäin tämän ehdotuksen kanssa. Jatkaminen korvaa ristiriitaiset muokkauksesi.",
+      "overwriteConfirmAction": "Korvaa muokkaukseni",
+      "acceptConflictAborted": "Asiakirja muuttui ennen ehdotuksen käyttöönottoa. Tarkista päivitetty vertailu ennen hyväksymistä.",
+      "queuedBanner": "Uusi ehdotus saapui, kun tässä ehdotusluonnoksessa on tallentamattomia muokkauksia.",
+      "keepMyEdits": "Säilytä muokkaukseni",
+      "replaceWithQueued": "Korvaa uudella ehdotuksella",
+      "noChanges": "Ei eroja perusversioon.",
+      "diffLabel": "Ehdotettu vertailu",
+      "editLabel": "Muokkaa ehdotettua versiota",
+      "editAction": "Muokkaa ehdotettua versiota",
+      "previewAction": "Esikatsele vertailua",
+      "reject": "Hylkää",
+      "accept": "Hyväksy",
+      "acceptAndMerge": "Hyväksy ja yhdistä"
+    },
+    "snapshots": {
+      "noneSelectedTitle": "Tilannekuvaa ei ole valittu",
+      "noneSelectedBody": "Valitse tilannekuva verrataksesi sitä rinnakkain ja kopioidaksesi kohtia.",
+      "emptyContentTitle": "Tyhjä tilannekuva",
+      "emptyContentBody": "Tilannekuvassa ei ollut tekstiä, kun se tallennettiin.",
+      "loadError": "Tilannekuvaa ei voitu ladata.",
+      "readOnly": "Vain luku",
+      "viewerLabel": "Tilannekuvan esikatselu",
+      "listTitle": "Tilannekuvat",
+      "emptyTitle": "Ei vielä tilannekuvia",
+      "emptyBody": "Ota tilannekuva ennen suuria muokkauksia, niin voit verrata tai palauttaa myöhemmin.",
+      "rename": "Nimeä uudelleen",
+      "restore": "Palauta",
+      "delete": "Poista",
+      "renameTitle": "Nimeä tilannekuva uudelleen",
+      "nameLabel": "Tilannekuvan nimi",
+      "restoreTitle": "Palauta tilannekuva",
+      "restoreConfirmBody": "Palautetaanko {{name}} nykyiseksi asiakirjaksi? Nykyinen tekstisi ja kaikki aiemmat tilannekuvat säilyvät historiassa.",
+      "deleteTitle": "Poista tilannekuva",
+      "deleteConfirmBody": "Poistetaanko {{name}} pysyvästi? Toimintoa ei voi kumota.",
+      "renameError": "Tilannekuvaa ei voitu nimetä uudelleen.",
+      "restoreError": "Tilannekuvaa ei voitu palauttaa.",
+      "deleteError": "Tilannekuvaa ei voitu poistaa.",
+      "resizeSplit": "Muuta tilannekuvaluettelon ja avustajan kokoa"
     },
     "insert": {
       "linkAddress": "Linkin osoite",
@@ -20569,7 +20676,11 @@
     "agent": {
       "toggle": "Avustaja",
       "welcomeTitle": "Kirjoita avustajan kanssa",
-      "welcomeBody": "Pyydä luonnosta, muokkausta tai tarkistusta. Avustaja näkee tämän asiakirjan ja valitsemasi tekstin."
+      "welcomeBody": "Pyydä luonnosta, muokkausta tai tarkistusta. Avustaja näkee tämän asiakirjan ja valitsemasi tekstin.",
+      "directApply": "Suora käyttöönotto",
+      "stagedApproval": "Tarkista muutokset",
+      "directApplyTooltip": "Suora käyttöönotto on päällä: avustajan muokkaukset kirjoitetaan heti. Napsauta, jos haluat vaatia hyväksynnän ensin.",
+      "stagedApprovalTooltip": "Muutosten tarkistus on päällä: avustajan muokkaukset avautuvat ehdotuksena, jonka voit hyväksyä, muokata tai hylätä. Napsauta suoraa käyttöönottoa varten."
     },
     "versions": {
       "toggle": "Versiohistoria",
@@ -20609,7 +20720,9 @@
       }
     },
     "assist": {
+      "open": "Kysy avustajalta valinnasta",
       "proposal": "Ehdotettu korvaus",
+      "editProposal": "Muokkaa ehdotettua korvausta",
       "note": "Huomautus",
       "discard": "Hylkää",
       "close": "Sulje",
@@ -20651,6 +20764,39 @@
     "import": {
       "asDocument": "Tuo asiakirjaksi",
       "asDocumentTooltip": "Tee tästä tiedostosta muokattava Markdown-asiakirja. Itse tiedosto ei muutu."
+    },
+    "embed": {
+      "title": "Lisää mediaa",
+      "tabMedia": "Media",
+      "tabShot": "Kuvakäsikirjoituksen otos",
+      "searchAssets": "Hae resursseja",
+      "kindLabel": "Tyyppi",
+      "kindAll": "Kaikki media",
+      "kindImage": "Kuvat",
+      "kindVideo": "Videot",
+      "kindAudio": "Ääni",
+      "kindModel3d": "3D-mallit",
+      "upload": "Lataa",
+      "uploading": "Ladataan…",
+      "uploadFailed": "Tiedostoa ei voitu ladata.",
+      "loadingAssets": "Ladataan resursseja…",
+      "noAssets": "Tässä projektissa ei ole mediaa",
+      "noAssetsDescription": "Lataa tiedosto tai liitä polku tai URL alle.",
+      "insertNamed": "Lisää {{name}}",
+      "linkLabel": "Polku tai URL",
+      "linkPlaceholder": "assets/kuva.png",
+      "insert": "Lisää",
+      "storyboardLabel": "Kuvakäsikirjoitus",
+      "untitledStoryboard": "Nimetön kuvakäsikirjoitus",
+      "loadingStoryboards": "Ladataan kuvakäsikirjoituksia…",
+      "noStoryboards": "Tässä projektissa ei ole kuvakäsikirjoituksia",
+      "noStoryboardsDescription": "Luo kuvakäsikirjoitus upottaaksesi sen otoksia tähän.",
+      "noShots": "Tässä kuvakäsikirjoituksessa ei ole vielä otoksia",
+      "shotHint": "Upotettu otos näyttää uusimman leikkeensä, tai avainkuvansa siihen asti kunnes sillä on leike.",
+      "loadingShot": "Ladataan otosta…",
+      "shotMissing": "Otosta ei löytynyt: {{name}}",
+      "shotNotRendered": "Tällä otoksella ei ole vielä avainkuvaa eikä leikettä.",
+      "openStoryboard": "Avaa kuvakäsikirjoitus"
     }
   }
 }

@@ -78,7 +78,7 @@ describe("usePackageManager", () => {
     // Core (required) first, then keyless local pack, plus optional categories.
     expect(names[0]).toBe("Base Nodes");
     expect(names).toContain("Transformers.js");
-    expect(names).toContain("Documents"); // an optional node-pack category
+    expect(names).toContain("Audio processing"); // an optional node-pack category
     // ElevenLabs is key-gated → managed by its API key, not shown here.
     expect(names).not.toContain("ElevenLabs");
     expect(result.current.rows[0].badge).toBe("alwaysOn");
@@ -102,7 +102,7 @@ describe("usePackageManager", () => {
     // packs remain.
     expect(names).not.toContain("Base Nodes");
     expect(names).toContain("Transformers.js");
-    expect(names).toContain("Documents");
+    expect(names).toContain("Audio processing");
   });
 
   it("offers Install for an uninstalled registry pack", () => {

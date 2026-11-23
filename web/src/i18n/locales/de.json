@@ -18316,9 +18316,12 @@
       "voice": {
         "record": "Sprachnachricht aufnehmen",
         "recording": "Sprachaufnahme",
+        "stop": "Aufnahme beenden",
         "discard": "Aufnahme verwerfen",
         "accept": "Aufnahme übernehmen",
-        "transcribing": "Wird transkribiert…"
+        "transcribing": "Wird transkribiert…",
+        "cancelTranscription": "Transkription abbrechen",
+        "sendingOnceTranscribed": "Wird nach der Transkription gesendet…"
       },
       "skills": "Skills",
       "noMatchingSkills": "Keine passenden Skills",
@@ -20232,6 +20235,10 @@
       "revealInFinder": "Im Finder anzeigen",
       "revealInExplorer": "Im Datei-Explorer anzeigen",
       "revealInFileManager": "Im Dateimanager anzeigen",
+      "newDocument": "Neues Dokument",
+      "copy": "Kopieren",
+      "paste": "Einfügen",
+      "pasteIntoItself": "Ein Ordner kann nicht in sich selbst oder einen seiner Unterordner eingefügt werden.",
       "moveIntoItself": "Ein Ordner kann nicht in sich selbst oder einen seiner Unterordner verschoben werden.",
       "notAnAsset": "Diese Datei gehört nicht zu den Assets des Projekts und kann hier nicht geändert werden.",
       "actionFailed": "Die Änderung wurde nicht gespeichert: {{error}}"
@@ -20556,10 +20563,110 @@
       "bulletList": "Aufzählung",
       "numberedList": "Nummerierte Liste",
       "checkList": "Aufgabenliste",
+      "outdent": "Listeneinzug verringern",
+      "indent": "Listeneinzug erhöhen",
       "quote": "Zitat",
       "codeBlock": "Codeblock",
       "table": "Tabelle",
+      "media": "Medien einfügen",
       "rule": "Trennlinie"
+    },
+    "title": {
+      "untitled": "Unbenanntes Dokument",
+      "ariaLabel": "Dokumenttitel",
+      "clickToRename": "Zum Umbenennen klicken",
+      "renameButton": "Dokument {{title}} umbenennen",
+      "renameUntitled": "Dokument umbenennen",
+      "invalidCharacters": "Der Titel darf keine Pfadtrennzeichen oder reservierten Dateinamenzeichen enthalten."
+    },
+    "display": {
+      "controlsLabel": "Dokumentanzeige",
+      "zoomOut": "Verkleinern",
+      "zoomIn": "Vergrößern",
+      "resetZoom": "Zoom auf 100 % zurücksetzen",
+      "resetZoomAria": "Zoom {{percent}} %, auf 100 % zurücksetzen",
+      "paperTheme": "Papierdesign",
+      "themeApp": "App-Design",
+      "themeWhite": "Weißes Papier",
+      "themeGray": "Graues Papier"
+    },
+    "saveAs": {
+      "title": "Speichern unter",
+      "confirm": "Speichern",
+      "format": "Format",
+      "formats": {
+        "md": "Markdown (.md)",
+        "txt": "Nur Text (.txt)",
+        "pdf": "PDF (.pdf)",
+        "html": "HTML (.html)",
+        "googleDoc": "Google-Dokument"
+      },
+      "filename": "Dateiname",
+      "outputPreview": "Wird als {{file}} gespeichert",
+      "folder": "Zielordner",
+      "parentFolder": "Übergeordneter Ordner",
+      "projectRoot": "Projektstammordner",
+      "noSubfolders": "Keine Unterordner",
+      "openFolder": "Ordner öffnen",
+      "error": "Das Dokument konnte nicht gespeichert werden."
+    },
+    "bar": {
+      "snapshot": "Snapshot",
+      "snapshotTooltip": "Snapshot des aktuellen Dokuments speichern",
+      "snapshotSaved": "Snapshot gespeichert",
+      "openSnapshots": "Snapshots öffnen",
+      "closeSnapshots": "Snapshots schließen",
+      "saveAs": "Speichern unter"
+    },
+    "proposal": {
+      "title": "Vom Assistenten vorgeschlagene Änderungen",
+      "subtitle": "Prüfe oder bearbeite die vorgeschlagene Fassung, bevor du sie übernimmst.",
+      "expand": "Vorschlag anzeigen",
+      "collapse": "Vorschlag ausblenden",
+      "staleWarning": "Das Dokument wurde seit diesem Vorschlag geändert. Beim Annehmen wird die vorgeschlagene Fassung übernommen.",
+      "mergedNotice": "Das Dokument wurde seit diesem Vorschlag in anderen Abschnitten geändert. Annehmen und zusammenführen übernimmt den Vorschlag zusätzlich zu deinen aktuellen Änderungen, ohne sie zu überschreiben.",
+      "conflictWarning_one": "Das Dokument wurde seit diesem Vorschlag geändert, mit {{count}} Abschnitt im Konflikt. Beim Annehmen werden deine überlappenden Änderungen überschrieben.",
+      "conflictWarning_other": "Das Dokument wurde seit diesem Vorschlag geändert, mit {{count}} Abschnitten im Konflikt. Beim Annehmen werden deine überlappenden Änderungen überschrieben.",
+      "overwriteConfirmTitle": "Neuere Änderungen überschreiben?",
+      "overwriteConfirmBody": "Neuere Änderungen in diesem Dokument überschneiden sich mit diesem Vorschlag. Wenn du fortfährst, werden deine widersprüchlichen Änderungen überschrieben.",
+      "overwriteConfirmAction": "Meine Änderungen überschreiben",
+      "acceptConflictAborted": "Das Dokument wurde geändert, bevor der Vorschlag übernommen wurde. Prüfe den aktualisierten Vergleich, bevor du annimmst.",
+      "queuedBanner": "Ein neuer Vorschlag ist eingetroffen, während dieser Vorschlagsentwurf ungespeicherte Änderungen enthält.",
+      "keepMyEdits": "Meine Änderungen behalten",
+      "replaceWithQueued": "Durch neuen Vorschlag ersetzen",
+      "noChanges": "Keine Unterschiede zur Ausgangsfassung.",
+      "diffLabel": "Vorgeschlagener Vergleich",
+      "editLabel": "Vorgeschlagene Fassung bearbeiten",
+      "editAction": "Vorgeschlagene Fassung bearbeiten",
+      "previewAction": "Vergleich anzeigen",
+      "reject": "Ablehnen",
+      "accept": "Annehmen",
+      "acceptAndMerge": "Annehmen und zusammenführen"
+    },
+    "snapshots": {
+      "noneSelectedTitle": "Kein Snapshot ausgewählt",
+      "noneSelectedBody": "Wähle einen Snapshot, um ihn nebeneinander zu vergleichen und Passagen zu kopieren.",
+      "emptyContentTitle": "Leerer Snapshot",
+      "emptyContentBody": "Dieser Snapshot enthielt beim Speichern keinen Text.",
+      "loadError": "Dieser Snapshot konnte nicht geladen werden.",
+      "readOnly": "Schreibgeschützt",
+      "viewerLabel": "Snapshot-Vorschau",
+      "listTitle": "Snapshots",
+      "emptyTitle": "Noch keine Snapshots",
+      "emptyBody": "Erstelle vor größeren Änderungen einen Snapshot, um später vergleichen oder wiederherstellen zu können.",
+      "rename": "Umbenennen",
+      "restore": "Wiederherstellen",
+      "delete": "Löschen",
+      "renameTitle": "Snapshot umbenennen",
+      "nameLabel": "Snapshot-Name",
+      "restoreTitle": "Snapshot wiederherstellen",
+      "restoreConfirmBody": "{{name}} als aktuelles Dokument wiederherstellen? Dein aktueller Text und alle früheren Snapshots bleiben im Verlauf erhalten.",
+      "deleteTitle": "Snapshot löschen",
+      "deleteConfirmBody": "{{name}} endgültig löschen? Das kann nicht rückgängig gemacht werden.",
+      "renameError": "Der Snapshot konnte nicht umbenannt werden.",
+      "restoreError": "Der Snapshot konnte nicht wiederhergestellt werden.",
+      "deleteError": "Der Snapshot konnte nicht gelöscht werden.",
+      "resizeSplit": "Größe von Snapshot-Liste und Assistent ändern"
     },
     "insert": {
       "linkAddress": "Linkadresse",
@@ -20569,7 +20676,11 @@
     "agent": {
       "toggle": "Assistent",
       "welcomeTitle": "Mit dem Assistenten schreiben",
-      "welcomeBody": "Bitten Sie um einen Entwurf, eine Änderung oder eine Prüfung. Der Assistent sieht dieses Dokument und den markierten Text."
+      "welcomeBody": "Bitten Sie um einen Entwurf, eine Änderung oder eine Prüfung. Der Assistent sieht dieses Dokument und den markierten Text.",
+      "directApply": "Direkt übernehmen",
+      "stagedApproval": "Änderungen prüfen",
+      "directApplyTooltip": "Direkt übernehmen ist an: Änderungen des Assistenten werden sofort geschrieben. Klicke, um vorher eine Freigabe zu verlangen.",
+      "stagedApprovalTooltip": "Änderungen prüfen ist an: Änderungen des Assistenten öffnen sich als Vorschlag zum Annehmen, Bearbeiten oder Ablehnen. Klicke für direktes Übernehmen."
     },
     "versions": {
       "toggle": "Versionsverlauf",
@@ -20609,7 +20720,9 @@
       }
     },
     "assist": {
+      "open": "Assistenten zur Auswahl fragen",
       "proposal": "Vorgeschlagener Ersatz",
+      "editProposal": "Vorgeschlagenen Ersatz bearbeiten",
       "note": "Hinweis",
       "discard": "Verwerfen",
       "close": "Schließen",
@@ -20651,6 +20764,39 @@
     "import": {
       "asDocument": "Als Dokument importieren",
       "asDocumentTooltip": "Aus dieser Datei ein bearbeitbares Markdown-Dokument erstellen. Die Datei selbst bleibt unverändert."
+    },
+    "embed": {
+      "title": "Medien einfügen",
+      "tabMedia": "Medien",
+      "tabShot": "Storyboard-Shot",
+      "searchAssets": "Assets durchsuchen",
+      "kindLabel": "Typ",
+      "kindAll": "Alle Medien",
+      "kindImage": "Bilder",
+      "kindVideo": "Videos",
+      "kindAudio": "Audio",
+      "kindModel3d": "3D-Modelle",
+      "upload": "Hochladen",
+      "uploading": "Wird hochgeladen…",
+      "uploadFailed": "Die Datei konnte nicht hochgeladen werden.",
+      "loadingAssets": "Assets werden geladen…",
+      "noAssets": "Keine Medien in diesem Projekt",
+      "noAssetsDescription": "Lade eine Datei hoch oder füge unten einen Pfad oder eine URL ein.",
+      "insertNamed": "{{name}} einfügen",
+      "linkLabel": "Pfad oder URL",
+      "linkPlaceholder": "assets/bild.png",
+      "insert": "Einfügen",
+      "storyboardLabel": "Storyboard",
+      "untitledStoryboard": "Unbenanntes Storyboard",
+      "loadingStoryboards": "Storyboards werden geladen…",
+      "noStoryboards": "Keine Storyboards in diesem Projekt",
+      "noStoryboardsDescription": "Erstelle ein Storyboard, um seine Shots hier einzubetten.",
+      "noShots": "Dieses Storyboard hat noch keine Shots",
+      "shotHint": "Ein eingebetteter Shot zeigt seinen neuesten Clip oder bis dahin sein Keyframe.",
+      "loadingShot": "Shot wird geladen…",
+      "shotMissing": "Shot nicht gefunden: {{name}}",
+      "shotNotRendered": "Dieser Shot hat noch kein Keyframe und keinen Clip.",
+      "openStoryboard": "Storyboard öffnen"
     }
   }
 }

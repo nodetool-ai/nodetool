@@ -18316,9 +18316,12 @@
       "voice": {
         "record": "Ta opp talemelding",
         "recording": "Stemmeopptak",
+        "stop": "Stopp opptak",
         "discard": "Kast opptaket",
         "accept": "Godta opptak",
-        "transcribing": "Transkriberer …"
+        "transcribing": "Transkriberer …",
+        "cancelTranscription": "Avbryt transkribering",
+        "sendingOnceTranscribed": "Sendes når transkriberingen er ferdig…"
       },
       "skills": "Ferdigheter",
       "noMatchingSkills": "Ingen matchende ferdigheter",
@@ -20232,6 +20235,10 @@
       "revealInFinder": "Vis i Finder",
       "revealInExplorer": "Vis i Filutforsker",
       "revealInFileManager": "Vis i filbehandleren",
+      "newDocument": "Nytt dokument",
+      "copy": "Kopier",
+      "paste": "Lim inn",
+      "pasteIntoItself": "En mappe kan ikke limes inn i seg selv eller i en av undermappene sine.",
       "moveIntoItself": "En mappe kan ikke flyttes inn i seg selv eller en av undermappene sine.",
       "notAnAsset": "Denne filen er ikke blant prosjektets ressurser, så den kan ikke endres her.",
       "actionFailed": "Endringen ble ikke lagret: {{error}}"
@@ -20556,10 +20563,110 @@
       "bulletList": "Punktliste",
       "numberedList": "Nummerert liste",
       "checkList": "Oppgaveliste",
+      "outdent": "Reduser innrykk i listen",
+      "indent": "Øk innrykk i listen",
       "quote": "Sitat",
       "codeBlock": "Kodeblokk",
       "table": "Tabell",
+      "media": "Sett inn medier",
       "rule": "Skillelinje"
+    },
+    "title": {
+      "untitled": "Dokument uten navn",
+      "ariaLabel": "Dokumenttittel",
+      "clickToRename": "Klikk for å gi nytt navn",
+      "renameButton": "Gi dokumentet {{title}} nytt navn",
+      "renameUntitled": "Gi dokumentet nytt navn",
+      "invalidCharacters": "Tittelen kan ikke inneholde baneskilletegn eller reserverte tegn for filnavn."
+    },
+    "display": {
+      "controlsLabel": "Dokumentvisning",
+      "zoomOut": "Zoom ut",
+      "zoomIn": "Zoom inn",
+      "resetZoom": "Tilbakestill zoom til 100 %",
+      "resetZoomAria": "Zoom {{percent}} %, tilbakestill til 100 %",
+      "paperTheme": "Papirtema",
+      "themeApp": "Apptema",
+      "themeWhite": "Hvitt papir",
+      "themeGray": "Grått papir"
+    },
+    "saveAs": {
+      "title": "Lagre som",
+      "confirm": "Lagre",
+      "format": "Format",
+      "formats": {
+        "md": "Markdown (.md)",
+        "txt": "Ren tekst (.txt)",
+        "pdf": "PDF (.pdf)",
+        "html": "HTML (.html)",
+        "googleDoc": "Google-dokument"
+      },
+      "filename": "Filnavn",
+      "outputPreview": "Lagres som {{file}}",
+      "folder": "Målmappe",
+      "parentFolder": "Overordnet mappe",
+      "projectRoot": "Prosjektrot",
+      "noSubfolders": "Ingen undermapper",
+      "openFolder": "Åpne mappe",
+      "error": "Dokumentet kunne ikke lagres."
+    },
+    "bar": {
+      "snapshot": "Øyeblikksbilde",
+      "snapshotTooltip": "Lagre et øyeblikksbilde av det gjeldende dokumentet",
+      "snapshotSaved": "Øyeblikksbilde lagret",
+      "openSnapshots": "Åpne øyeblikksbilder",
+      "closeSnapshots": "Lukk øyeblikksbilder",
+      "saveAs": "Lagre som"
+    },
+    "proposal": {
+      "title": "Endringer foreslått av assistenten",
+      "subtitle": "Se gjennom eller rediger den foreslåtte versjonen før du bruker den.",
+      "expand": "Vis forslag",
+      "collapse": "Skjul forslag",
+      "staleWarning": "Dokumentet er endret siden forslaget ble laget. Godtar du, brukes den foreslåtte versjonen.",
+      "mergedNotice": "Dokumentet er endret i andre deler siden forslaget ble laget. Godta og slå sammen bruker forslaget oppå de gjeldende endringene dine uten å overskrive dem.",
+      "conflictWarning_one": "Dokumentet er endret siden forslaget ble laget, med {{count}} del i konflikt. Godtar du, overskrives de overlappende endringene dine.",
+      "conflictWarning_other": "Dokumentet er endret siden forslaget ble laget, med {{count}} deler i konflikt. Godtar du, overskrives de overlappende endringene dine.",
+      "overwriteConfirmTitle": "Overskrive nyere endringer?",
+      "overwriteConfirmBody": "Nyere endringer i dokumentet overlapper med forslaget. Fortsetter du, overskrives endringene dine som er i konflikt.",
+      "overwriteConfirmAction": "Overskriv endringene mine",
+      "acceptConflictAborted": "Dokumentet ble endret før forslaget ble brukt. Se gjennom den oppdaterte sammenligningen før du godtar.",
+      "queuedBanner": "Et nytt forslag kom mens dette forslagsutkastet har ulagrede endringer.",
+      "keepMyEdits": "Behold endringene mine",
+      "replaceWithQueued": "Erstatt med det nye forslaget",
+      "noChanges": "Ingen forskjeller fra grunnversjonen.",
+      "diffLabel": "Foreslått sammenligning",
+      "editLabel": "Rediger foreslått versjon",
+      "editAction": "Rediger foreslått versjon",
+      "previewAction": "Forhåndsvis sammenligning",
+      "reject": "Avvis",
+      "accept": "Godta",
+      "acceptAndMerge": "Godta og slå sammen"
+    },
+    "snapshots": {
+      "noneSelectedTitle": "Ingen øyeblikksbilde valgt",
+      "noneSelectedBody": "Velg et øyeblikksbilde for å sammenligne side om side og kopiere avsnitt.",
+      "emptyContentTitle": "Tomt øyeblikksbilde",
+      "emptyContentBody": "Øyeblikksbildet inneholdt ingen tekst da det ble lagret.",
+      "loadError": "Øyeblikksbildet kunne ikke lastes inn.",
+      "readOnly": "Skrivebeskyttet",
+      "viewerLabel": "Forhåndsvisning av øyeblikksbilde",
+      "listTitle": "Øyeblikksbilder",
+      "emptyTitle": "Ingen øyeblikksbilder ennå",
+      "emptyBody": "Ta et øyeblikksbilde før store endringer, så kan du sammenligne eller gjenopprette senere.",
+      "rename": "Gi nytt navn",
+      "restore": "Gjenopprett",
+      "delete": "Slett",
+      "renameTitle": "Gi øyeblikksbildet nytt navn",
+      "nameLabel": "Navn på øyeblikksbilde",
+      "restoreTitle": "Gjenopprett øyeblikksbilde",
+      "restoreConfirmBody": "Gjenopprette {{name}} som gjeldende dokument? Den gjeldende teksten og alle tidligere øyeblikksbilder blir værende i historikken.",
+      "deleteTitle": "Slett øyeblikksbilde",
+      "deleteConfirmBody": "Slette {{name}} permanent? Dette kan ikke angres.",
+      "renameError": "Kunne ikke gi øyeblikksbildet nytt navn.",
+      "restoreError": "Kunne ikke gjenopprette øyeblikksbildet.",
+      "deleteError": "Kunne ikke slette øyeblikksbildet.",
+      "resizeSplit": "Endre størrelse på listen over øyeblikksbilder og assistenten"
     },
     "insert": {
       "linkAddress": "Lenkeadresse",
@@ -20569,7 +20676,11 @@
     "agent": {
       "toggle": "Assistent",
       "welcomeTitle": "Skriv med assistenten",
-      "welcomeBody": "Be om et utkast, en endring eller en gjennomgang. Assistenten ser dette dokumentet og teksten du har merket."
+      "welcomeBody": "Be om et utkast, en endring eller en gjennomgang. Assistenten ser dette dokumentet og teksten du har merket.",
+      "directApply": "Bruk direkte",
+      "stagedApproval": "Se gjennom endringer",
+      "directApplyTooltip": "Bruk direkte er på: assistentens endringer skrives med en gang. Klikk for å kreve godkjenning først.",
+      "stagedApprovalTooltip": "Se gjennom endringer er på: assistentens endringer åpnes som et forslag du kan godta, redigere eller avvise. Klikk for å bruke direkte."
     },
     "versions": {
       "toggle": "Versjonshistorikk",
@@ -20609,7 +20720,9 @@
       }
     },
     "assist": {
+      "open": "Spør assistenten om markeringen",
       "proposal": "Foreslått erstatning",
+      "editProposal": "Rediger foreslått erstatning",
       "note": "Merknad",
       "discard": "Forkast",
       "close": "Lukk",
@@ -20651,6 +20764,39 @@
     "import": {
       "asDocument": "Importer som dokument",
       "asDocumentTooltip": "Lag et redigerbart Markdown-dokument fra denne filen. Selve filen endres ikke."
+    },
+    "embed": {
+      "title": "Sett inn medier",
+      "tabMedia": "Medier",
+      "tabShot": "Storyboard-bilde",
+      "searchAssets": "Søk i ressurser",
+      "kindLabel": "Type",
+      "kindAll": "Alle medier",
+      "kindImage": "Bilder",
+      "kindVideo": "Videoer",
+      "kindAudio": "Lyd",
+      "kindModel3d": "3D-modeller",
+      "upload": "Last opp",
+      "uploading": "Laster opp…",
+      "uploadFailed": "Filen kunne ikke lastes opp.",
+      "loadingAssets": "Laster inn ressurser…",
+      "noAssets": "Ingen medier i dette prosjektet",
+      "noAssetsDescription": "Last opp en fil, eller lim inn en bane eller URL nedenfor.",
+      "insertNamed": "Sett inn {{name}}",
+      "linkLabel": "Bane eller URL",
+      "linkPlaceholder": "assets/bilde.png",
+      "insert": "Sett inn",
+      "storyboardLabel": "Storyboard",
+      "untitledStoryboard": "Storyboard uten navn",
+      "loadingStoryboards": "Laster inn storyboards…",
+      "noStoryboards": "Ingen storyboards i dette prosjektet",
+      "noStoryboardsDescription": "Lag et storyboard for å bygge inn bildene her.",
+      "noShots": "Dette storyboardet har ingen bilder ennå",
+      "shotHint": "Et innebygd bilde viser det nyeste klippet, eller nøkkelbildet til det har et klipp.",
+      "loadingShot": "Laster inn bilde…",
+      "shotMissing": "Fant ikke bildet: {{name}}",
+      "shotNotRendered": "Dette bildet har ikke nøkkelbilde eller klipp ennå.",
+      "openStoryboard": "Åpne storyboard"
     }
   }
 }
