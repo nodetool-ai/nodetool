@@ -67,9 +67,9 @@ import {
   getStalePacks,
   getRuntimePackageStatuses,
   installRuntimePackage,
-  getCondaInstallLocation,
   RUNTIME_PACKAGE_IDS,
 } from "./packageManager";
+import { getCondaEnvPath } from "./config";
 import {
   installNodePack,
   trustNodePack,
@@ -971,7 +971,7 @@ export function initializeIpcHandlers(): void {
   );
 
   createIpcMainHandler(IpcChannels.RUNTIME_GET_INSTALL_LOCATION, async () => {
-    return getCondaInstallLocation();
+    return getCondaEnvPath();
   });
 
   createIpcMainHandler(
