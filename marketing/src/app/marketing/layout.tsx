@@ -1,5 +1,6 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata, Viewport } from "next";
+import { languageAlternates } from "@/i18n/routes";
 
 export const metadata: Metadata = {
   title: "AI for Advertising | NodeTool",
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/marketing",
+    languages: languageAlternates("/marketing"),
   },
   keywords: [
     "AI for advertising",

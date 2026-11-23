@@ -15,9 +15,16 @@
 // successful Locate, and the autosave socket's `documentfile` push for this
 // timeline refresh the state. A refresh asked while a call runs runs once
 // after it.
+// - lock: the project lock `.nodetool/open.lock` (WP2.13). While another app
+//   holds it the timeline is read-only and ProjectLockBanner names the
+//   holder. The timeline app opens one timeline per process, so this object
+//   keeps the process's ProjectLocks.
 
 #include "model/TimelineModel.h"
 #include "server/AutosaveController.h"
+
+#include "nodetool/account/project_lock.h"
+#include "nodetool/account/qt/ProjectLockState.h"
 
 #include <QJsonObject>
 #include <QObject>
@@ -68,6 +75,8 @@ class ProjectFolderState : public QObject {
     // The project is a folder on that bundled server, so File > Publish to
     // Cloud and Synchronize can open the review sheet for it.
     Q_PROPERTY(bool canTransfer READ canTransfer NOTIFY changed)
+    // The project lock of the folder on this computer.
+    Q_PROPERTY(nodetool::account::qt::ProjectLockState* lock READ lock CONSTANT)
 public:
     explicit ProjectFolderState(QObject* parent = nullptr);
     ~ProjectFolderState() override;
@@ -105,6 +114,7 @@ public:
     QString serverToken() const { return m_target ? m_target->token : QString(); }
     static QUrl bundledServerUrl();
     bool canTransfer() const;
+    nodetool::account::qt::ProjectLockState* lock() { return &m_lock; }
 
     Q_INVOKABLE void refresh();
     // Opens the folder in the platform's file manager. False when it is not on this machine.
@@ -158,6 +168,10 @@ private:
     QString documentTimeline() const;
     QString documentSourcePath() const;
     QString documentKey() const;
+    // Names the folder to the lock when it is on this computer.
+    void updateLock();
+    // The timeline is read-only while another app holds the lock.
+    void applyLock();
 
     std::optional<nt::server::SaveTarget> m_target;
     bool m_explicitTarget = false;
@@ -180,4 +194,9 @@ private:
     QString m_error;
     QString m_locateError;
     QString m_restoreError;
+    bool m_lockedTimeline = false;  // applyLock() made m_timeline read-only
+    // Declared last, so the lock state gives back its count before the
+    // locks it borrows are destroyed.
+    nodetool::account::ProjectLocks m_locks{"timeline"};
+    nodetool::account::qt::ProjectLockState m_lock{&m_locks};
 };

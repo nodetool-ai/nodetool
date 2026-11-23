@@ -16,6 +16,12 @@ import {
 import { resolveExistingAssetKey } from "../../lib/asset-paths.js";
 import { getAssetAdapter } from "../../lib/storage.js";
 import {
+  eraseFileInput,
+  eraseFileOutput,
+  erasePreviewOutput,
+  projectFileListsInput,
+  projectFileListsOutput,
+  uneraseFileOutput,
   signUrlInput,
   signUrlOutput,
   storageAllowanceOutput,
@@ -28,7 +34,15 @@ import {
   storageFiles,
   type StorageHolder as ModelStorageHolder
 } from "@nodetool-ai/models";
-import { loadAccessDocument } from "../../lib/document-access.js";
+import {
+  eraseProjectFile,
+  EraseRequestError,
+  previewErase,
+  takeOffErasedList,
+  type EraseHost
+} from "@nodetool-ai/project-services/project-erase";
+import { effectiveAccess, loadAccessDocument } from "../../lib/document-access.js";
+import { projectFileLists, ProjectFileListsNotFound } from "../../lib/project-file-lists.js";
 import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
 
 // ── Key validation (mirrors storage-api.ts) ──────────────────────────────────
@@ -89,6 +103,32 @@ function holderResponse(holder: ModelStorageHolder): StorageHolder {
       };
     case "deleted_project":
       return { kind: "deleted_project", project_id: holder.projectId, name: holder.name, purge_at: holder.purgeAt };
+  }
+}
+
+// ── Erase ────────────────────────────────────────────────────────────────────
+
+function eraseHost(): EraseHost {
+  return {
+    storage: getAssetAdapter(),
+    async documentRole(userId, kind, id) {
+      return (await effectiveAccess(userId, kind, id))?.role ?? null;
+    }
+  };
+}
+
+const API_CODE_BY_ERASE_CODE: Record<EraseRequestError["code"], ApiErrorCode> = {
+  NOT_FOUND: ApiErrorCode.NOT_FOUND,
+  FORBIDDEN: ApiErrorCode.FORBIDDEN,
+  INVALID: ApiErrorCode.INVALID_INPUT
+};
+
+async function withEraseRefusal<T>(body: () => Promise<T>): Promise<T> {
+  try {
+    return await body();
+  } catch (error) {
+    if (error instanceof EraseRequestError) throwApiError(API_CODE_BY_ERASE_CODE[error.code], error.message);
+    throw error;
   }
 }
 
@@ -187,5 +227,44 @@ export const storageRouter = router({
         holders: file.holders.map(holderResponse)
       }))
     };
-  })
+  }),
+
+  /** What the erase dialog lists before the confirmation (FR79). Owner only. */
+  erasePreview: protectedProcedure
+    .input(eraseFileInput)
+    .output(erasePreviewOutput)
+    .query(({ ctx, input }) => withEraseRefusal(() => previewErase(eraseHost(), ctx.userId, input))),
+
+  /**
+   * Erases a file of a cloud project, or answers with the current content
+   * that shows it. Owner only (SR33).
+   */
+  erase: protectedProcedure
+    .input(eraseFileInput)
+    .output(eraseFileOutput)
+    .mutation(({ ctx, input }) => withEraseRefusal(() => eraseProjectFile(eraseHost(), ctx.userId, input))),
+
+  /**
+   * The project's Incomplete and erased lists as the caller may see them:
+   * only files that content the caller may read refers to (SR32, AC73).
+   */
+  projectFileLists: protectedProcedure
+    .input(projectFileListsInput)
+    .output(projectFileListsOutput)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await projectFileLists(ctx.userId, input.project_id);
+      } catch (error) {
+        if (error instanceof ProjectFileListsNotFound) throwApiError(ApiErrorCode.NOT_FOUND, error.message);
+        throw error;
+      }
+    }),
+
+  /** Takes a file off the project's erased list. Owner only. */
+  unerase: protectedProcedure
+    .input(eraseFileInput)
+    .output(uneraseFileOutput)
+    .mutation(async ({ ctx, input }) => ({
+      removed: await withEraseRefusal(() => takeOffErasedList(eraseHost(), ctx.userId, input))
+    }))
 });

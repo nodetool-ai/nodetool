@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QUrl>
 #include <functional>
+#include "nodetool/account/qt/ProjectLockState.h"
 
 namespace nodetool::node_editor {
 // The folder of the project a tab shows, and the file state of the workflow
@@ -12,6 +13,9 @@ namespace nodetool::node_editor {
 // packages/websocket/src/trpc/routers/projects.ts. ProjectFolderNotice.qml and
 // DocumentFileBanner.qml take it as a required property. The editor window
 // owns one per tab. Credentials never leave this object's memory.
+// `lock` is the project lock `.nodetool/open.lock` of a folder on this
+// computer (WP2.13). While another app holds it the tab is read-only and
+// ProjectLockBanner names the holder.
 //
 // UI thread only.
 class ProjectFolder : public QObject {
@@ -34,6 +38,7 @@ class ProjectFolder : public QObject {
   Q_PROPERTY(QString fileError READ fileError NOTIFY changed)
   Q_PROPERTY(QString restoreError READ restoreError NOTIFY changed)
   Q_PROPERTY(bool busy READ busy NOTIFY changed)
+  Q_PROPERTY(nodetool::account::qt::ProjectLockState *lock READ lock CONSTANT)
 public:
   explicit ProjectFolder(QObject *parent = nullptr);
   void configure(const QUrl &origin, const QString &token, const QString &userId);
@@ -55,6 +60,10 @@ public:
   QString fileError() const { return m_file.value("error").toString(); }
   QString restoreError() const { return m_restoreError; }
   bool busy() const { return m_busy; }
+  nodetool::account::qt::ProjectLockState *lock() { return &m_lock; }
+  const nodetool::account::qt::ProjectLockState *lock() const { return &m_lock; }
+  // The app's locks, which the tab owner keeps. Null leaves the tab writable.
+  void setLocks(nodetool::account::ProjectLocks *locks) { m_lock.setLocks(locks); }
   // Reads the project list, then the open workflow's file state.
   Q_INVOKABLE void refresh();
   // Opens the folder in the platform's file manager.
@@ -74,11 +83,14 @@ private:
   QJsonObject folder() const { return m_project.value("folder").toObject(); }
   void request(const QByteArray &method, const QString &procedure, const QJsonObject &input, Done done);
   void loadDocuments();
+  // Names the folder to the lock when the server reports one on this computer.
+  void updateLock();
   QNetworkAccessManager m_network;
   QUrl m_origin;
   QString m_token, m_user, m_key, m_document, m_locateError, m_restoreError;
   QJsonObject m_project, m_file;
   quint64 m_epoch = 0;
   bool m_busy = false;
+  nodetool::account::qt::ProjectLockState m_lock{nullptr};
 };
 }

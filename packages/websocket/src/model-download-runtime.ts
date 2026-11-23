@@ -12,9 +12,12 @@ export async function runTransformersJsModelDownload(
   repoId: string,
   modelType: string,
   signal: AbortSignal,
-  onProgress: ModelDownloadProgress
+  onProgress: ModelDownloadProgress,
+  /** Hub host from the user's `HF_ENDPOINT` setting. Unset keeps the current host. */
+  endpoint?: string
 ): Promise<void> {
   const tjs = await importPack<typeof import("@nodetool-ai/transformers-js-nodes")>("transformers-js");
+  if (endpoint) await tjs.setTransformersJsRemoteHost(endpoint);
   const fileTotals = new Map<string, { loaded: number; total: number }>();
   const completedFiles = new Set<string>();
 

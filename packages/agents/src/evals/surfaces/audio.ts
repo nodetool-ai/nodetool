@@ -16,9 +16,11 @@
  * The bridge drives one implicit asset, so no tool takes `asset_id`.
  */
 
-import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
+
 import {
+  AUDIO_ASSETLESS_TOOL_NAMES,
   AUDIO_TOOL_CONTRACTS,
+  assertAudioEditChanges,
   audioRangeFromArgs,
   describeAudioEffects,
   validateAudioEffectParams,
@@ -27,7 +29,7 @@ import {
   type AudioToolRange
 } from "@nodetool-ai/protocol/api-schemas/asset-editor-tool-contracts.js";
 import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
-import type { HeadlessTool } from "../tool-loop-bridge.js";
+import { closedParams, parseBridgeArgs, withHostField, type HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
@@ -70,14 +72,18 @@ function tool(
   name: AudioToolName,
   impl: (args: Record<string, unknown>) => Promise<unknown>
 ): HeadlessTool {
-  const parameters = uiToolParams(AUDIO_TOOL_CONTRACTS[name]);
+  const contract = uiToolParams(AUDIO_TOOL_CONTRACTS[name]);
+  const parameters = AUDIO_ASSETLESS_TOOL_NAMES.includes(name)
+    ? contract
+    : withHostField(contract, "asset_id");
+  const closed = closedParams(parameters);
   return {
     name,
     description: AUDIO_TOOL_CONTRACTS[name].description,
     parameters,
     execute: (args) =>
       impl(
-        parseWithTypeCoercion(parameters, args ?? {}) as Record<string, unknown>
+        parseBridgeArgs(closed, args) as Record<string, unknown>
       )
   };
 }
@@ -98,6 +104,9 @@ const peaksOf = (
   return peaks;
 };
 
+/** Undo steps the browser's audio editor keeps (`MAX_HISTORY` in useEditHistory.ts). */
+const AUDIO_UNDO_STEPS = 50;
+
 export function createAudioToolBridge(
   initial: AudioBridgeInitialState
 ): HeadlessSurfaceBridge<AudioBridgeFinalState> {
@@ -117,6 +126,15 @@ export function createAudioToolBridge(
   let selection = initial.selection ?? null;
   const edits: AudioBridgeFinalState["edits"] = [];
   const effects: AudioBridgeEffectRecord[] = [];
+  /**
+   * The state before each edit or effect, newest last, for `ui_audio_undo`.
+   * Capped at the browser editor's undo history (50 steps).
+   */
+  const history: Array<{
+    samples: Float32Array;
+    selection: typeof selection;
+    record: "edit" | "effect";
+  }> = [];
 
   const duration = () => samples.length / rate;
   const frameRange = (range?: AudioToolRange) => {
@@ -147,6 +165,7 @@ export function createAudioToolBridge(
     if (op === "gain" && (gainDb === undefined || !Number.isFinite(gainDb))) {
       throw new Error('"gain" needs gain_db, e.g. 6 to boost or -6 to cut.');
     }
+    assertAudioEditChanges(op, range, duration(), rate);
     const { start, end } = frameRange(range);
     const out = samples.slice();
     const span = end - start;
@@ -231,7 +250,10 @@ export function createAudioToolBridge(
         args.end as number | undefined
       );
       const gainDb = args.gain_db as number | undefined;
+      const before = { samples, selection };
       applyEdit(op, range, gainDb);
+      history.push({ ...before, record: "edit" });
+      if (history.length > AUDIO_UNDO_STEPS) history.shift();
       const record: AudioBridgeFinalState["edits"][number] = {
         op,
         range: range ?? null
@@ -256,6 +278,8 @@ export function createAudioToolBridge(
         (args.params as Record<string, number> | undefined) ?? {}
       );
       const { start, end } = frameRange(range);
+      history.push({ samples, selection, record: "effect" });
+      if (history.length > AUDIO_UNDO_STEPS) history.shift();
       if (checked.effect.id === "speed") {
         const factor = checked.params.rate;
         const section = samples.slice(start, end);
@@ -278,6 +302,17 @@ export function createAudioToolBridge(
         params: checked.params,
         range: range ?? null
       });
+      return changed();
+    }),
+    tool("ui_audio_undo", async () => {
+      const last = history.pop();
+      if (!last) {
+        throw new Error("Nothing you applied to this audio is left to undo.");
+      }
+      samples = last.samples;
+      selection = last.selection;
+      if (last.record === "edit") edits.pop();
+      else effects.pop();
       return changed();
     }),
     tool("ui_audio_save", async () => {

@@ -47,6 +47,7 @@ const LANDING_PAGES = {
   "/hi": "hi",
   "/es": "es",
   "/pt": "pt",
+  "/ko": "ko",
 } as const;
 
 export type LandingPage = typeof LANDING_PAGES[keyof typeof LANDING_PAGES];

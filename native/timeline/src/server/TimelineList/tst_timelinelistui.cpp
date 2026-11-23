@@ -81,6 +81,12 @@ class TestTimelineListUi : public QObject {
         QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
     }
+    // Lays out every ancestor top-down, so a point mapped from the item is where it is drawn.
+    static void polishAncestors(QQuickItem* target) {
+        QList<QQuickItem*> ancestors;
+        for (auto* ancestor = target; ancestor; ancestor = ancestor->parentItem()) { ancestors.prepend(ancestor); }
+        for (auto* ancestor : ancestors) { ancestor->ensurePolished(); }
+    }
     void show(QQuickWindow& window, QObject* object, int width, int height) {
         auto* root = qobject_cast<QQuickItem*>(object);
         QVERIFY(root);
@@ -308,6 +314,8 @@ private slots:
         QCOMPARE(projectButton->property("trailingIconName").toString(), QString("arrowDropDown"));
 
         // Clicking the project button opens the timeline list pre-selected to the open timeline's project.
+        // The button appears when the folder loads, and its row places it at the next polish.
+        polishAncestors(projectButton);
         QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier,
             projectButton->mapToScene(QPointF(projectButton->width() / 2, projectButton->height() / 2)).toPoint());
         QTRY_VERIFY(item(window.contentItem(), "TimelineListPanel"));
@@ -322,11 +330,7 @@ private slots:
         // Clicking an unreadable timeline keeps the editor and popover open and shows the error.
         auto* brokenRow = item(panel, "TimelineListItem_t-broken");
         QVERIFY(brokenRow);
-        {
-            QList<QQuickItem*> ancestors;
-            for (auto* ancestor = brokenRow; ancestor; ancestor = ancestor->parentItem()) { ancestors.prepend(ancestor); }
-            for (auto* ancestor : ancestors) { ancestor->ensurePolished(); }
-        }
+        polishAncestors(brokenRow);
         QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier,
             brokenRow->mapToScene(QPointF(brokenRow->width() / 2, brokenRow->height() / 2)).toPoint());
         auto* errorText = item(panel, "timelineListError");

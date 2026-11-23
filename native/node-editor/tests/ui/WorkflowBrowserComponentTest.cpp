@@ -4,6 +4,8 @@
 #include "interfaces/PanelLayout.h"
 #include "interfaces/StatusModel.h"
 #include "server/ProjectFolder.h"
+#include "nodetool/account/project_lock.h"
+#include "nodetool/account/storage.h"
 #include "server/WorkflowBrowser.h"
 
 #include <QGuiApplication>
@@ -408,6 +410,54 @@ private slots:
         // Another document has its own state, none loaded yet.
         folder.setDocument({});
         QVERIFY(folder.fileState().isEmpty());
+    }
+
+    // WP2.13, AC25: another computer's app has the project open, so the tab
+    // is read-only and the banner names it. Open for editing asks first,
+    // then takes the lock over.
+    void lockBannerNamesTheOtherApp() {
+        namespace acc = nodetool::account;
+        QTemporaryDir disk;
+        QVERIFY(disk.isValid());
+        const auto here = disk.path();
+        const auto folderPath = std::filesystem::path(here.toStdU16String());
+        acc::writeFileAtomically(acc::projectLockPath(folderPath),
+                                 acc::serializeProjectLock({"timeline", 4242, "laptop", "1.0", "p1"}));
+        ProjectServer server;
+        server.answers["/trpc/projects.list"] = {200, ProjectServer::data(QJsonArray{project("p1", "Poster", folderOf(here, true))})};
+        acc::ProjectLocks locks("node-editor");
+        ProjectFolder folder;
+        folder.setLocks(&locks);
+        folder.configure(server.url(), {}, "1");
+        folder.setProject("p1");
+        QTRY_COMPARE(folder.lock()->state(), QString("heldElsewhere"));
+        QVERIFY(folder.lock()->readOnly());
+
+        QQuickView view;
+        view.setInitialProperties({{"folder", QVariant::fromValue(&folder)}});
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/DocumentFileBanner.qml"));
+        QCOMPARE(view.status(), QQuickView::Ready);
+        view.resize(700, 400);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        auto *root = view.rootObject();
+        QTRY_VERIFY(visibleNamed(root, "projectLockBanner"));
+        QVERIFY(root->implicitHeight() > 0);
+        QCOMPARE(folder.lock()->message(), QString("Read-only: The timeline app on laptop has this project open."));
+        auto *action = named(named(root, "projectLockBanner"), "bannerActionButton");
+        QCOMPARE(action->property("text").toString(), QString("Open for editing…"));
+        click(view, action);
+        QTRY_VERIFY(visibleNamed(view.contentItem(), "projectLockTakeOverConfirm"));
+        click(view, named(view.contentItem(), "projectLockTakeOverConfirm"));
+        QTRY_COMPARE(folder.lock()->state(), QString("writing"));
+        QTRY_VERIFY(!visibleNamed(root, "projectLockBanner"));
+        const auto bytes = acc::readWholeFile(acc::projectLockPath(folderPath));
+        QVERIFY(bytes.has_value());
+        QCOMPARE(QString::fromStdString(acc::parseProjectLock(*bytes)->app), QString("node-editor"));
+        // Another project gives the lock back.
+        folder.setProject({});
+        QTRY_VERIFY(!std::filesystem::exists(acc::projectLockPath(folderPath)));
     }
 
     void browserRequestsGoThroughTheModel() {

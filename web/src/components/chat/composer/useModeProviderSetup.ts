@@ -1,8 +1,9 @@
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useProvidersByCapability } from "../../../hooks/useProviders";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
-import { capabilityForMode, setupReasonForMode } from "./modeProviderSetup";
+import { capabilityForMode, setupReasonKeyForMode } from "./modeProviderSetup";
 
 interface ModeProviderSetup {
   /** True when the mode needs a capability no configured provider serves. */
@@ -22,21 +23,24 @@ interface ModeProviderSetup {
  * connection banner already surfaces fetch errors.
  */
 export const useModeProviderSetup = (mode: MediaMode): ModeProviderSetup => {
+  const { t } = useTranslation();
   const capability = capabilityForMode(mode);
+  const reasonKey = setupReasonKeyForMode(mode);
+  const modeReason = reasonKey ? t(reasonKey) : null;
   const { providers, isLoading, error } = useProvidersByCapability(
     capability ?? "generate_message"
   );
   const needsSetup =
     capability !== null && !isLoading && !error && providers.length === 0;
-  const reason = needsSetup ? setupReasonForMode(mode) : null;
+  const reason = needsSetup ? modeReason : null;
 
   const openSetup = useCallback(() => {
     if (!capability) return;
     openProviderOnboarding({
       capability,
-      reason: setupReasonForMode(mode) ?? undefined
+      reason: modeReason ?? undefined
     });
-  }, [capability, mode]);
+  }, [capability, modeReason]);
 
   return { needsSetup, reason, openSetup };
 };

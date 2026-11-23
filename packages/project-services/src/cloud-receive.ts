@@ -13,34 +13,47 @@
  */
 import {
   addRevisionSetEntry,
+  addRevisionSetWorkspaceFile,
   createRevisionSet,
+  deleteProjectWorkspaceHashes,
   deleteRevisionSet,
+  erasedFilesOf,
   getDatabase,
+  getErasedFile,
   getLiveRevisionSet,
   getRevisionSet,
   getRevisionSetEntry,
+  listProjectWorkspaceHashes,
   lockAccessEpochs,
   lockTransferDocumentRow,
   Project,
+  removeRevisionSetWorkspaceFile,
   revisionSetFilesWithHash,
+  revisionSetWorkspaceFilesWithHash,
+  setProjectWorkspaceHash,
   TimelineSequence,
+  withBlobLock,
   withTransaction,
   Workflow,
   type AccessKey,
   type RevisionSetRow
 } from "@nodetool-ai/models";
-import { blobKey } from "@nodetool-ai/asset-services/blob-store";
+import { blobHash, blobKey, storeNamedBlob } from "@nodetool-ai/asset-services/blob-store";
+import { contentHashOfWorkspaceFile, requireProjectFolder } from "@nodetool-ai/asset-services/project-asset-file";
+import { getProjectFolderResolver } from "@nodetool-ai/runtime";
 import { pausePoint } from "@nodetool-ai/config/pause-points";
 import type {
   CaptureRevisionSetInput,
   CaptureRevisionSetOutput,
   ReceiveDocumentInput,
   ReceiveDocumentOutput,
-  RevisionSetDocument
+  RevisionSetDocument,
+  RevisionSetWorkspaceFile
 } from "@nodetool-ai/protocol/api-schemas/receive.js";
 import type { TransferDocumentKind } from "@nodetool-ai/protocol/api-schemas/transfer.js";
 import type { TransferHost } from "./cloud-transfer.js";
 import { identityHash, TRANSFER_DOCUMENT_KINDS, type TransferPayloadContent } from "./transfer-documents.js";
+import { listWorkspaceFiles } from "./workspace-files.js";
 
 /** A file of a revision, as the server holds it. */
 export interface ReceiveFileInfo {
@@ -136,7 +149,11 @@ async function captureDocument(
   const held = await handler.holdRevision(id);
   if (!held || held.projectId !== set.project_id) return null;
   const files = await host.readableFiles(userId, kind, id, handler.content(held.payload));
-  const present = files.filter((file): file is ReceiveFileInfo & { hash: string } => file.hash !== null);
+  // An erased file is not served, so the set does not name it (FR79).
+  const erased = (await erasedFilesOf(set.project_id)).hashes;
+  const present = files.filter(
+    (file): file is ReceiveFileInfo & { hash: string } => file.hash !== null && !erased.has(file.hash)
+  );
   const contentHash = identityHash(held.payload);
   await addRevisionSetEntry(set, {
     kind,
@@ -160,7 +177,8 @@ async function captureDocument(
       content_type: file.contentType,
       path: file.path
     })),
-    missing_files: files.filter((file) => file.hash === null).map((file) => file.assetId)
+    missing_files: files.filter((file) => file.hash === null).map((file) => file.assetId),
+    erased_files: files.filter((file) => file.hash !== null && erased.has(file.hash)).map((file) => file.assetId)
   };
 }
 
@@ -221,6 +239,71 @@ async function captureMembers(
 }
 
 /**
+ * The workspace files of the owner's cloud folder, each held by the set
+ * (technical design, "Receiving workspace files", RW2 to RW4). A file whose
+ * size and modification time match the server's hash row is not read. Any
+ * other file is hashed outside every lock and its row written. Each listed
+ * hash gets a set row under the hash's blob lock before its bytes are copied
+ * to the blob store, so no cleanup deletes the copy. A file that changed
+ * while it was read is left out: the next capture offers it. A project
+ * without a folder, or a host without project folders, lists none.
+ */
+async function captureWorkspaceFiles(
+  host: ReceiveHost,
+  set: RevisionSetRow,
+  project: Project
+): Promise<RevisionSetWorkspaceFile[]> {
+  if (!getProjectFolderResolver() || !project.workspace_id) return [];
+  const { workspace } = await requireProjectFolder(project.id, project.user_id);
+  const found = await listWorkspaceFiles(project.user_id, project.id, workspace);
+  const known = await listProjectWorkspaceHashes(project.id);
+  const erased = (await erasedFilesOf(project.id)).hashes;
+  const listed: RevisionSetWorkspaceFile[] = [];
+  for (const file of found) {
+    const row = known.get(file.path);
+    // Whole milliseconds, as a BIGINT column holds them.
+    const mtimeMs = Math.floor(file.modifiedAt);
+    let hash: string;
+    if (row && Number(row.size) === file.size && Number(row.mtime_ms) === mtimeMs) {
+      hash = row.hash;
+    } else {
+      hash = await contentHashOfWorkspaceFile(workspace, file.path);
+      const after = await workspace.stat(file.path);
+      if (!after || after.size !== file.size || after.modifiedAt !== file.modifiedAt) continue;
+      await setProjectWorkspaceHash({
+        projectId: project.id,
+        userId: project.user_id,
+        path: file.path,
+        size: file.size,
+        mtimeMs,
+        hash
+      });
+    }
+    // An erased file is not served (FR79).
+    if (erased.has(hash)) continue;
+    const entry = { path: file.path, hash, size: file.size };
+    await withBlobLock(hash, (db) => addRevisionSetWorkspaceFile(set, entry, db));
+    const uri = host.storage.uriForKey(blobKey(hash));
+    const stored = await host.storage.stat(uri);
+    if (stored?.size !== file.size) {
+      const bytes = await workspace.read(file.path);
+      if (!bytes || blobHash(bytes) !== hash) {
+        await removeRevisionSetWorkspaceFile(set.id, file.path);
+        continue;
+      }
+      await storeNamedBlob(host.storage, hash, bytes, set.id);
+    }
+    listed.push(entry);
+  }
+  const present = new Set(found.map((file) => file.path));
+  await deleteProjectWorkspaceHashes(
+    project.id,
+    [...known.keys()].filter((path) => !present.has(path))
+  );
+  return listed;
+}
+
+/**
  * Captures a revision set of a whole project or one document. An entry
  * exists only for documents the caller may open now, and its files are those
  * the caller's role may read. A project the caller may open nothing of is
@@ -239,7 +322,15 @@ export async function captureRevisionSet(
     const documents = await captureMembers(host, userId, set, project, input);
     const ownsProject = "project_id" in input && project.user_id === userId;
     if (documents.length === 0 && !ownsProject) throw new ReceiveRequestError("NOT_FOUND", "Not found");
-    return { set_id: set.id, project_id: project.id, expires_at: set.expires_at, documents };
+    // Only the owner receives workspace files in phase 2 (RW1).
+    const workspaceFiles = ownsProject ? await captureWorkspaceFiles(host, set, project) : [];
+    return {
+      set_id: set.id,
+      project_id: project.id,
+      expires_at: set.expires_at,
+      documents,
+      workspace_files: workspaceFiles
+    };
   } catch (error) {
     await deleteRevisionSet(set.id);
     throw error;
@@ -307,7 +398,16 @@ export async function receiveFile(
       break;
     }
   }
+  // A workspace file of the set serves its owner only, checked again on
+  // every call, so a former owner's live set serves nothing (RW5, Y6).
+  if (!authorized && (await revisionSetWorkspaceFilesWithHash(set.id, input.hash)).length > 0) {
+    const project = await Project.get<Project>(set.project_id);
+    authorized = project !== null && !project.deleted_at && project.user_id === userId;
+  }
   if (!authorized) throw new ReceiveRequestError("NOT_FOUND", "File not found");
+  // The owner erased it after the capture. The object may still exist for
+  // another project or another set, but this project serves it to nobody (SR33).
+  if (await getErasedFile(set.project_id, input.hash)) return ERASED;
   const bytes = await host.storage.retrieve(host.storage.uriForKey(blobKey(input.hash)));
   return bytes ?? ERASED;
 }

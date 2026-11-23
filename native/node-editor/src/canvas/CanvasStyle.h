@@ -65,6 +65,7 @@ struct CanvasTheme {
   QColor alphaChecker;
   QString sansFamily{"Inter"};
   QString monoFamily{"JetBrains Mono"};
+  bool operator==(const CanvasTheme &) const = default;
   // Reads every member from the presentation map that EditorCommands::present receives.
   static CanvasTheme fromRoles(const QVariantMap &roles);
 };

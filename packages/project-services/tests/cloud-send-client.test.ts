@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { PauseGate } from "@nodetool-ai/config/testing/pause-harness";
+import { setPauseHandler } from "@nodetool-ai/config/pause-points";
 import { withProjectFolderLock } from "@nodetool-ai/asset-services/project-asset";
 import {
   Asset,
@@ -251,6 +252,134 @@ describe("sending a project to the cloud", { timeout: 30_000 }, () => {
     const again = await captureSend(TARGET);
     expect(again.firstPublication).toBe(false);
     expect(again.operations).toEqual([]);
+  });
+
+  /** Includes every workspace file the review offers, as a person who ticks each one. */
+  const includeAll = (review: Awaited<ReturnType<typeof captureSend>>) => ({
+    includeWorkspaceFiles: review.fileOperations.flatMap((op) =>
+      op.op === "put_workspace_file" ? [{ path: op.path, hash: op.hash }] : []
+    )
+  });
+
+  it("sends a workspace file only when the review includes it (SR7)", async () => {
+    await workflowWithFile(null);
+    const notes = new TextEncoder().encode("shot list");
+    await folder.write("notes.txt", notes);
+    await folder.write("brief.md", new TextEncoder().encode("brief"));
+    const puts = () => (cloud.commits.at(-1)!.manifest.file_operations ?? []).filter((op) => op.op === "put_workspace_file");
+
+    const review = await captureSend(TARGET);
+    expect(await runSend(cloud, review.transferId)).toMatchObject({ status: "committed" });
+    expect(puts()).toEqual([]);
+
+    // Left out, it keeps no base and is offered again.
+    const again = await captureSend(TARGET);
+    expect(again.fileOperations.map((op) => op.path)).toEqual(["brief.md", "notes.txt"]);
+    // An inclusion for other bytes includes nothing.
+    await runSend(cloud, again.transferId, {
+      includeWorkspaceFiles: [{ path: "notes.txt", hash: "0".repeat(64) }]
+    });
+    expect(puts()).toEqual([]);
+
+    const third = await captureSend(TARGET);
+    await runSend(cloud, third.transferId, { includeWorkspaceFiles: [{ path: "notes.txt", hash: sha(notes) }] });
+    expect(puts()).toEqual([{ op: "put_workspace_file", path: "notes.txt", hash: sha(notes), size: notes.byteLength, base_hash: null }]);
+    expect((await captureSend(TARGET)).fileOperations.map((op) => op.path)).toEqual(["brief.md"]);
+  });
+
+  it("sends the folder's workspace files, and only the ones that changed since (CF2, CF5, TC101)", async () => {
+    const { workflow } = await workflowWithFile(randomBytes(64));
+    const notes = new TextEncoder().encode("shot list");
+    await folder.write("notes.txt", notes);
+    await folder.write("docs/brief.md", new TextEncoder().encode("brief"));
+    // Workflow and timeline files travel as documents only (CF2).
+    await folder.write("cuts/rough.timeline.json", new TextEncoder().encode("{}"));
+    await folder.write("by-row.json", new TextEncoder().encode("{}"));
+    workflow.file_path = "by-row.json";
+    await workflow.save();
+    // The index's scan leaves out dot directories and node_modules (CF5).
+    await folder.write(".git/config", new TextEncoder().encode("[core]"));
+    await folder.write("node_modules/pkg/index.js", new TextEncoder().encode("x"));
+
+    const review = await captureSend(TARGET);
+    const workspacePuts = () =>
+      cloud.commits.at(-1)!.manifest.file_operations!.filter((op) => op.op === "put_workspace_file");
+    expect(review.fileOperations.filter((op) => op.op === "put_workspace_file").map((op) => op.path)).toEqual([
+      "docs/brief.md",
+      "notes.txt"
+    ]);
+    expect(await runSend(cloud, review.transferId, includeAll(review))).toMatchObject({ status: "committed" });
+    expect(workspacePuts()).toEqual([
+      { op: "put_workspace_file", path: "docs/brief.md", hash: sha(new TextEncoder().encode("brief")), size: 5, base_hash: null },
+      { op: "put_workspace_file", path: "notes.txt", hash: sha(notes), size: notes.byteLength, base_hash: null }
+    ]);
+    expect(cloud.blobs.has(sha(notes))).toBe(true);
+
+    // Nothing changed: no workspace file goes again.
+    expect((await captureSend(TARGET)).fileOperations).toEqual([]);
+
+    // An edited file goes over the base of its path.
+    const edited = new TextEncoder().encode("shot list, take two");
+    await folder.write("notes.txt", edited);
+    const next = await captureSend(TARGET);
+    expect(next.fileOperations).toEqual([
+      { op: "put_workspace_file", path: "notes.txt", hash: sha(edited), size: edited.byteLength, base_hash: sha(notes) }
+    ]);
+  });
+
+  it("deletes a workspace file on the cloud only once the review confirms it", async () => {
+    const { workflow } = await workflowWithFile(null);
+    await folder.write("graph.json", new TextEncoder().encode("{}"));
+    const notes = new TextEncoder().encode("shot list");
+    await folder.write("notes.txt", notes);
+    await folder.write("keep.txt", new TextEncoder().encode("keep"));
+    const first = await captureSend(TARGET);
+    await runSend(cloud, first.transferId, includeAll(first));
+    await folder.delete("notes.txt");
+    // A file that a document now names stays, so it is no deletion.
+    workflow.file_path = "graph.json";
+    await workflow.save();
+    const deletes = () =>
+      (cloud.commits.at(-1)!.manifest.file_operations ?? []).filter((op) => op.op === "delete_workspace_file");
+
+    // Not confirmed: nothing is deleted, and the next capture lists it again.
+    const review = await captureSend(TARGET);
+    expect(review.deletedWorkspaceFiles).toEqual([{ path: "notes.txt", baseHash: sha(notes) }]);
+    expect(review.fileOperations).toEqual([]);
+    expect(await runSend(cloud, review.transferId)).toMatchObject({ status: "committed" });
+    expect(deletes()).toEqual([]);
+
+    // A confirmation for another base hash deletes nothing.
+    const again = await captureSend(TARGET);
+    expect(again.deletedWorkspaceFiles).toEqual([{ path: "notes.txt", baseHash: sha(notes) }]);
+    await runSend(cloud, again.transferId, { confirmWorkspaceDeletes: [{ path: "notes.txt", baseHash: "0".repeat(64) }] });
+    expect(deletes()).toEqual([]);
+
+    const confirmed = await captureSend(TARGET);
+    await runSend(cloud, confirmed.transferId, { confirmWorkspaceDeletes: confirmed.deletedWorkspaceFiles });
+    expect(deletes()).toEqual([{ op: "delete_workspace_file", path: "notes.txt", base_hash: sha(notes) }]);
+    // The committed delete forgets the base, so the path is not listed again.
+    expect((await captureSend(TARGET)).deletedWorkspaceFiles).toEqual([]);
+  });
+
+  it("captures again when a workspace file changes while it is read (CF4)", async () => {
+    await workflowWithFile(null);
+    await folder.write("notes.txt", new TextEncoder().encode("first"));
+    let writes = 0;
+    setPauseHandler(async (name) => {
+      if (name !== "send.capture.workspace-file-read" || writes > 0) return;
+      writes += 1;
+      await folder.write("notes.txt", new TextEncoder().encode("second, longer"));
+    });
+    try {
+      const review = await captureSend(TARGET);
+      expect(writes).toBe(1);
+      expect(review.fileOperations).toEqual([
+        expect.objectContaining({ path: "notes.txt", hash: sha(new TextEncoder().encode("second, longer")) })
+      ]);
+    } finally {
+      setPauseHandler(null);
+    }
   });
 
   it("replaces an edited document over its base, and stages no file the cloud holds", async () => {

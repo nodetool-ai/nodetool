@@ -12,6 +12,7 @@ import {
 import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 import PageUpdated from "@/components/PageUpdated";
 import FaqSection from "@/components/FaqSection";
+import { languageAlternates } from "@/i18n/routes";
 
 // Checked against docs/storyboard-editor.md (Direct a screenplay, Render
 // stills and clips, Takes, Change a still, Assemble a timeline, Assistant).
@@ -38,7 +39,7 @@ const entry = storyboardEntryPages[0];
 export const metadata: Metadata = {
   title: entry.title,
   description: entry.description,
-  alternates: { canonical: "https://nodetool.ai/storyboards" },
+  alternates: { canonical: "https://nodetool.ai/storyboards", languages: languageAlternates("/storyboards") },
   openGraph: {
     images: DEFAULT_OG_IMAGES,
     title: entry.title,

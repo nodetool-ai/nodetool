@@ -1,3 +1,4 @@
+import { rewriteHfHubUrl } from "@nodetool-ai/config";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
@@ -6,6 +7,7 @@ import {
   asString,
   extractRepoId,
   getPipeline,
+  getTransformersJsHubEndpoint,
   tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
@@ -136,7 +138,14 @@ export class TextToSpeechNode extends BaseNode {
       const opts: Record<string, unknown> = {};
       if (isSpeechT5Repo(repoId)) {
         const speakerEmbeddings = asString(this.speaker_embeddings);
-        if (speakerEmbeddings) opts.speaker_embeddings = speakerEmbeddings;
+        // The default URL is on huggingface.co. With a mirror set, it is
+        // fetched from the mirror. A URL on any other host is kept.
+        if (speakerEmbeddings) {
+          opts.speaker_embeddings = rewriteHfHubUrl(
+            speakerEmbeddings,
+            getTransformersJsHubEndpoint()
+          );
+        }
       }
 
       const result = await pipeline(text, opts);

@@ -1,4 +1,4 @@
-import { sqliteTable, text, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 /**
  * The link state of a native app's local projects that are linked to a cloud
@@ -71,6 +71,27 @@ export const cloudLinkFiles = sqliteTable(
     updated_at: text("updated_at").notNull()
   },
   (table) => [uniqueIndex("idx_cloud_link_files_asset").on(table.link_id, table.asset_id)]
+);
+
+/**
+ * One row per workspace file of a linked project, a file of the folder that
+ * no asset names: the hash, size and modification time of the bytes the last
+ * exchange gave the path.
+ */
+export const cloudLinkWorkspaceFiles = sqliteTable(
+  "cloud_link_workspace_files",
+  {
+    id: text("id").primaryKey(),
+    link_id: text("link_id").notNull(),
+    user_id: text("user_id").notNull(),
+    project_id: text("project_id").notNull(),
+    path: text("path").notNull(),
+    base_hash: text("base_hash").notNull(),
+    size: integer("size").notNull(),
+    mtime_ms: integer("mtime_ms").notNull(),
+    updated_at: text("updated_at").notNull()
+  },
+  (table) => [uniqueIndex("idx_cloud_link_workspace_files_path").on(table.link_id, table.path)]
 );
 
 /**

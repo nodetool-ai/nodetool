@@ -18,6 +18,7 @@ import {
   useJsScriptStore
 } from "../../stores/jsScript/JsScriptStore";
 import { useJsScriptServerSync } from "../../hooks/jsScript/useJsScriptServerSync";
+import { useCloudWindowJsScriptDrafts } from "../../hooks/jsScript/useCloudWindowJsScriptDrafts";
 import { useJsScriptAgentBridge } from "../../hooks/jsScript/useJsScriptAgentBridge";
 import { useDocumentUndoShortcuts } from "../../hooks/useDocumentUndoShortcuts";
 import {
@@ -115,6 +116,7 @@ const JsScriptSurface = ({
   }, [ensureScript, refId]);
 
   const loadState = useJsScriptServerSync(refId);
+  useCloudWindowJsScriptDrafts(refId);
   useJsScriptAgentBridge(refId);
 
   useDocumentUndoShortcuts({

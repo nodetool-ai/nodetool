@@ -29,7 +29,7 @@ const COMPLEXITY_LEVEL: Record<string, number> = {
   advanced: 3
 };
 
-export function ComplexityMeter({ complexity }: { complexity: string }) {
+export function ComplexityMeter({ complexity, label }: { complexity: string; label?: string }) {
   const level = COMPLEXITY_LEVEL[complexity] ?? 1;
   return (
     <span className="inline-flex items-center gap-2">
@@ -43,7 +43,7 @@ export function ComplexityMeter({ complexity }: { complexity: string }) {
           />
         ))}
       </span>
-      <span className="capitalize">{complexity}</span>
+      <span className="capitalize">{label ?? complexity}</span>
     </span>
   );
 }

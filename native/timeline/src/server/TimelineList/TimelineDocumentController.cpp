@@ -241,11 +241,13 @@ void TimelineDocumentController::createAndOpen() {
     m_list.openTimeline(created.value("id").toString());
 }
 void TimelineDocumentController::createMusicAndOpen(const QVariantMap& settings) {
-    if (m_switching || m_list.busy()) {
+    if (switching() || m_list.busy()) {
         return;
     }
     m_error.clear();
     emit errorChanged();
+    syncPreferredProject();
+    m_list.resetProjectSelection();
     m_list.refresh();
     if (!m_list.error().isEmpty()) {
         fail(m_list.error());

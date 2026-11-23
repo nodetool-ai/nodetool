@@ -537,8 +537,22 @@ describe("harness gate", () => {
       "packages/cli-sketch/src/commands/sketch-versions.ts"
     ]);
     expect(plan.surfaces.map((s) => s.id)).toContain("sketch");
-    expect(plan.manual.map((m) => m.harnessId)).toContain("sketch-versions");
+    expect(plan.checks.map((c) => c.harnessId)).toContain("sketch-versions");
     expect(plan.unmappedFiles).toEqual([]);
+  });
+
+  it("runs every sketch harness selfcheck for a paint-core change", () => {
+    const plan = planGate(["packages/image-editor/src/render/compose.ts"]);
+    expect(plan.unmappedFiles).toEqual([]);
+    const checks = plan.checks.filter((c) => c.surfaces.includes("sketch"));
+    expect(checks.map((c) => c.harnessId).sort()).toEqual([
+      "sketch-debug",
+      "sketch-render",
+      "sketch-validate",
+      "sketch-versions"
+    ]);
+    for (const check of checks) expect(check.cost).toBe("cheap");
+    expect(plan.manual.map((m) => m.harnessId)).not.toContain("sketch-validate");
   });
 
   it("maps a JS-script change onto the jsscript surface and its cheap selfcheck", () => {
@@ -550,6 +564,22 @@ describe("harness gate", () => {
     expect(plan.checks.map((c) => c.harnessId)).toContain("jsscript-test");
     // validate/run/debug/versions need a target, so they land in manual.
     expect(plan.manual.map((m) => m.harnessId)).toContain("jsscript-validate");
+    expect(plan.unmappedFiles).toEqual([]);
+  });
+
+  it("maps a web feature-area change onto its Jest selfcheck and journey", () => {
+    const plan = planGate([
+      "web/src/components/chat/containers/ChatView.tsx",
+      "web/src/stores/SecretsStore.ts"
+    ]);
+    const surfaces = plan.surfaces.map((s) => s.id);
+    expect(surfaces).toEqual(expect.arrayContaining(["web-chat", "web-settings", "web-editor"]));
+    expect(surfaces).not.toContain("web-library");
+    const checks = plan.checks.map((c) => c.harnessId);
+    expect(checks).toEqual(expect.arrayContaining(["web-chat-ui", "web-settings-ui"]));
+    expect(checks).not.toContain("web-library-ui");
+    // The journeys start a server and a browser, so they are manual work.
+    expect(plan.manual.map((m) => m.harnessId)).toContain("web-chat-browser");
     expect(plan.unmappedFiles).toEqual([]);
   });
 
@@ -636,7 +666,7 @@ describe("harness gate", () => {
       );
       expect(plan.changedFiles).toEqual(["packages/timeline/src/script.ts"]);
     }
-    expect(isUnclaimedPath("./packages/compute/src/index.ts")).toBe(true);
+    expect(isUnclaimedPath("./packages/sdk/src/index.ts")).toBe(true);
   });
 
   it("reports files no surface claims", () => {
@@ -646,9 +676,18 @@ describe("harness gate", () => {
   });
 
   it("reports a touched gap surface as uncovered", () => {
-    const plan = planGate(["mobile/App.tsx"]);
-    expect(plan.uncoveredSurfaces).toEqual(["mobile"]);
+    const plan = planGate(["marketing/next.config.mjs"]);
+    expect(plan.uncoveredSurfaces).toEqual(["marketing-site"]);
     expect(plan.checks).toEqual([]);
+  });
+
+  it.each([
+    ["mobile/src/documents/documentStore.ts", "mobile-document-tools"],
+    ["electron/src/preload.ts", "electron-ipc-surface"]
+  ])("runs the app harness when %s changes", (path, harnessId) => {
+    const plan = planGate([path]);
+    expect(plan.uncoveredSurfaces).toEqual([]);
+    expect(plan.checks.map((check) => check.harnessId)).toContain(harnessId);
   });
 
   it("selfchecks are keyless commands from the repo root", () => {

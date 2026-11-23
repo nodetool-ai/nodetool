@@ -561,6 +561,8 @@ export enum IpcChannels {
   CLOUD_WINDOW_ORIGIN = "cloud-window-origin",
   CLOUD_WINDOW_READY = "cloud-window-ready",
   CLOUD_WINDOW_DOCUMENT = "cloud-window-document",
+  CLOUD_WINDOW_CLOSING = "cloud-window-closing",
+  CLOUD_WINDOW_FLUSHED = "cloud-window-flushed",
   CLOUD_LOCAL_CALL = "cloud-local-call",
   // Native OS notifications, shown while no app window is focused
   SYSTEM_NOTIFICATION_SHOW = "system-notification-show",
@@ -613,7 +615,7 @@ export type CloudResponse =
 /** The workflow socket of a cloud document, opened by the main process (D25). */
 /** A document of the signed-in cloud server that opens in the cloud window (D26, D27). */
 export interface CloudDocumentRef {
-  type: "workflow" | "timeline";
+  type: "workflow" | "timeline" | "jsscript" | "script" | "storyboard" | "sketch" | "application";
   id: string;
 }
 
@@ -924,6 +926,7 @@ export interface IpcRequest {
   [IpcChannels.CLOUD_SOCKET_CLOSE]: CloudSocketCloseInput;
   [IpcChannels.CLOUD_WINDOW_OPEN]: CloudDocumentRef;
   [IpcChannels.CLOUD_WINDOW_READY]: void;
+  [IpcChannels.CLOUD_WINDOW_FLUSHED]: void;
   [IpcChannels.CLOUD_LOCAL_CALL]: CloudLocalCall;
   [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: SystemNotificationRequest;
 }
@@ -1040,6 +1043,7 @@ export interface IpcResponse {
   [IpcChannels.CLOUD_SOCKET_CLOSE]: void;
   [IpcChannels.CLOUD_WINDOW_OPEN]: CloudWindowOpenResult;
   [IpcChannels.CLOUD_WINDOW_READY]: CloudDocumentRef[];
+  [IpcChannels.CLOUD_WINDOW_FLUSHED]: void;
   [IpcChannels.CLOUD_LOCAL_CALL]: CloudLocalResult;
   [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: boolean;
 }
@@ -1059,6 +1063,7 @@ export interface IpcEvents {
   [IpcChannels.CLOUD_ACCOUNT_EVENT]: CloudAccountState;
   [IpcChannels.CLOUD_SOCKET_EVENT]: CloudSocketEvent;
   [IpcChannels.CLOUD_WINDOW_DOCUMENT]: CloudDocumentRef;
+  [IpcChannels.CLOUD_WINDOW_CLOSING]: void;
 }
 
 export type PythonPackages = string[];

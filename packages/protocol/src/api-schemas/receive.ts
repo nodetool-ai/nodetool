@@ -49,15 +49,34 @@ export const revisionSetDocument = z.object({
   content_hash: sha256,
   files: z.array(revisionSetFile),
   /** Files the revision names that the cloud holds no bytes for. */
-  missing_files: z.array(fullId)
+  missing_files: z.array(fullId),
+  /**
+   * Files the revision names that the owner erased (FR79). They are not
+   * served, and their entries show File erased.
+   */
+  erased_files: z.array(fullId).default([])
 });
 export type RevisionSetDocument = z.infer<typeof revisionSetDocument>;
+
+/**
+ * A workspace file of the owner's cloud folder: a file no asset or document
+ * names (technical design, "Receiving workspace files", RW2). Its bytes come
+ * from the same REST route as a document's file.
+ */
+export const revisionSetWorkspaceFile = z.object({
+  path: workspacePath,
+  hash: sha256,
+  size: z.number().int().nonnegative()
+});
+export type RevisionSetWorkspaceFile = z.infer<typeof revisionSetWorkspaceFile>;
 
 export const captureRevisionSetOutput = z.object({
   set_id: fullId,
   project_id: fullId,
   expires_at: z.string(),
-  documents: z.array(revisionSetDocument)
+  documents: z.array(revisionSetDocument),
+  /** Only a capture of a whole project by its owner lists workspace files (RW1). */
+  workspace_files: z.array(revisionSetWorkspaceFile).default([])
 });
 export type CaptureRevisionSetOutput = z.infer<typeof captureRevisionSetOutput>;
 

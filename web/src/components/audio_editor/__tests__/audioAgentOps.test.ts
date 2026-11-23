@@ -26,6 +26,15 @@ describe("applyAudioEdit", () => {
     expect(() => applyAudioEdit(sample, "delete")).toThrow('"delete" needs a range');
   });
 
+  it("refuses a trim that keeps everything and a delete past the end", () => {
+    expect(() => applyAudioEdit(sample, "trim", { start: 0, end: 2 })).toThrow("covers the whole audio");
+    expect(() => applyAudioEdit(sample, "delete", { start: 2, end: 3 })).toThrow("nothing would be removed");
+    // At 4 frames per second, ranges that miss by less than a frame change nothing.
+    expect(() => applyAudioEdit(sample, "trim", { start: 0.1, end: 2 })).toThrow("covers the whole audio");
+    expect(() => applyAudioEdit(sample, "delete", { start: 1.95, end: 2 })).toThrow("nothing would be removed");
+    expect(() => applyAudioEdit(sample, "trim", { start: 1.01, end: 1.02 })).toThrow("it would keep nothing");
+  });
+
   it("applies whole-sample edits when the range is omitted", () => {
     expect(frames(applyAudioEdit(sample, "silence"))).toEqual(new Array(8).fill(0));
     expect(frames(applyAudioEdit(sample, "reverse"))).toEqual(

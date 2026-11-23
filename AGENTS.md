@@ -326,8 +326,9 @@ links workspaces missing from a cached tree, and creates `.env` with a
 installs only when the file system cannot clone. It is idempotent, so run it
 at the start of every session. Then run `npm run build:packages`.
 
-`./start.sh` performs setup and starts the API on port 7777 (`full`, `web`,
-`check`, `doctor` modes). Python 3.11+ with conda is optional for Python nodes.
+`npm start` performs first-run setup (`npm run bootstrap`) and starts the API
+on port 7777. `npm run dev` adds the web UI and `npm run doctor` reports
+environment state. Python 3.11+ with conda is optional for Python nodes.
 Slash commands are in [.claude/README.md](.claude/README.md).
 
 - On missing-module/type-definition failures in untouched files, install
@@ -541,6 +542,7 @@ from `packages/agents/src/tools/mcp-tools.ts` over shell commands.
 | [Probe provider contracts](docs/harnesses.md#npm-run-probeproviders-provider-contract-probes) | `npm run probe:providers` |
 | [Measure agent task completion](docs/harnesses.md#nodetool-jtbd-jobs-to-be-done--the-optimization-loop) | `nodetool jtbd run` / `jtbd optimize` |
 | [Find mutants the tests miss](docs/harnesses.md#npm-run-mutate-mutation-testing-for-typescript) | `npm run mutate -- --base origin/main packages/<name>/src` |
+| [Check GPU worker and self-hosted rollout fixtures](docs/harnesses.md#gpu-worker-and-self-hosted-rollout-fixtures) | `npm run test --workspace=packages/compute -- provider-lifecycle-harness` / `--workspace=packages/deploy -- self-hosted-rollout-harness` |
 | [Run shipped resource fixtures](docs/harnesses.md#graph-resource-fixtures) | `npm run fixtures:graph-resources` |
 | [Inspect generation status, cost, and assets](docs/harnesses.md#nodetool-generations) | `nodetool generations list\|get\|await\|cancel\|reconcile\|sweep` |
 

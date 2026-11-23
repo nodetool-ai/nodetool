@@ -7,11 +7,12 @@
 import { and, eq, gt, inArray, lte } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
-import { revisionSetEntries, revisionSetFiles, revisionSets } from "./schema/revision-sets.js";
+import { revisionSetEntries, revisionSetFiles, revisionSets, revisionSetWorkspaceFiles } from "./schema/revision-sets.js";
 
 export type RevisionSetRow = typeof revisionSets.$inferSelect;
 export type RevisionSetEntryRow = typeof revisionSetEntries.$inferSelect;
 export type RevisionSetFileRow = typeof revisionSetFiles.$inferSelect;
+export type RevisionSetWorkspaceFileRow = typeof revisionSetWorkspaceFiles.$inferSelect;
 
 /** How long a set lives when its reader never releases it (Y1). */
 export const REVISION_SET_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
@@ -76,6 +77,44 @@ export async function addRevisionSetEntry(set: RevisionSetRow, entry: RevisionSe
   }
 }
 
+/**
+ * Adds one workspace file of the owner's folder to a set (RW4). `db` lets a
+ * caller write the row under the hash's blob lock.
+ */
+export async function addRevisionSetWorkspaceFile(
+  set: RevisionSetRow,
+  file: { path: string; hash: string; size: number },
+  db: ReturnType<typeof getPortableDb> = getPortableDb()
+): Promise<void> {
+  await db.insert(revisionSetWorkspaceFiles).values({
+    id: createTimeOrderedUuid(),
+    set_id: set.id,
+    user_id: set.user_id,
+    project_id: set.project_id,
+    path: file.path,
+    hash: file.hash,
+    size: file.size
+  });
+}
+
+/** Removes the workspace file of `path` from a set, for a file that changed while it was copied. */
+export async function removeRevisionSetWorkspaceFile(setId: string, path: string): Promise<void> {
+  await getPortableDb()
+    .delete(revisionSetWorkspaceFiles)
+    .where(and(eq(revisionSetWorkspaceFiles.set_id, setId), eq(revisionSetWorkspaceFiles.path, path)));
+}
+
+/** The workspace file rows of a set that name `hash`. */
+export async function revisionSetWorkspaceFilesWithHash(
+  setId: string,
+  hash: string
+): Promise<RevisionSetWorkspaceFileRow[]> {
+  return getPortableDb()
+    .select()
+    .from(revisionSetWorkspaceFiles)
+    .where(and(eq(revisionSetWorkspaceFiles.set_id, setId), eq(revisionSetWorkspaceFiles.hash, hash)));
+}
+
 /** The set, expired or not, or null. */
 export async function getRevisionSet(id: string): Promise<RevisionSetRow | null> {
   const [row] = await getPortableDb().select().from(revisionSets).where(eq(revisionSets.id, id)).limit(1);
@@ -124,6 +163,7 @@ export async function revisionSetFilesWithHash(setId: string, hash: string): Pro
 export async function deleteRevisionSet(id: string): Promise<void> {
   const db = getPortableDb();
   await db.delete(revisionSetFiles).where(eq(revisionSetFiles.set_id, id));
+  await db.delete(revisionSetWorkspaceFiles).where(eq(revisionSetWorkspaceFiles.set_id, id));
   await db.delete(revisionSetEntries).where(eq(revisionSetEntries.set_id, id));
   await db.delete(revisionSets).where(eq(revisionSets.id, id));
 }
@@ -151,7 +191,11 @@ export async function isHashInLiveRevisionSet(
     .selectDistinct({ setId: revisionSetFiles.set_id })
     .from(revisionSetFiles)
     .where(eq(revisionSetFiles.hash, hash));
-  const ids = sets.map((row) => row.setId);
+  const workspaceSets = await db
+    .selectDistinct({ setId: revisionSetWorkspaceFiles.set_id })
+    .from(revisionSetWorkspaceFiles)
+    .where(eq(revisionSetWorkspaceFiles.hash, hash));
+  const ids = [...new Set([...sets, ...workspaceSets].map((row) => row.setId))];
   for (let i = 0; i < ids.length; i += IN_LIST_CHUNK) {
     const [live] = await db
       .select({ id: revisionSets.id })

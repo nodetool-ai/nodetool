@@ -17,8 +17,8 @@
  */
 
 import { z } from "zod";
-import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
-import type { HeadlessTool } from "../tool-loop-bridge.js";
+
+import { closedParams, parseBridgeArgs, type HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase,
@@ -112,12 +112,13 @@ function tool<TResult>(
   parameters: z.ZodTypeAny,
   impl: (args: Record<string, unknown>) => Promise<TResult>
 ): HeadlessTool {
+  const closed = closedParams(parameters);
   return {
     name,
     description,
     parameters,
     execute: (args) => {
-      const parsed = parseWithTypeCoercion(parameters, args ?? {}) as Record<
+      const parsed = parseBridgeArgs(closed, args) as Record<
         string,
         unknown
       >;
@@ -199,6 +200,22 @@ export function createModel3DToolBridge(
       async () => {
         const objects = nodes.map(serialize);
         return { ok: true, count: objects.length, objects };
+      }
+    ),
+
+    tool(
+      "ui_3d_get_object",
+      "Read one object in the 3D editor in full: its transform, parent and children, its material color, and its type. Call this before changing an object to see its current values.",
+      z.object({ target: targetParam }),
+      async ({ target }) => {
+        const node = resolveTarget(target as string);
+        return {
+          ok: true,
+          object: {
+            ...serialize(node),
+            children: nodes.filter((n) => n.parentUuid === node.uuid).map((n) => n.uuid)
+          }
+        };
       }
     ),
 

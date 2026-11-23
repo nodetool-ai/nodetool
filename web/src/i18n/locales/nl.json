@@ -14506,7 +14506,9 @@
       "connect": "Verbinden",
       "getKey": "Haal een sleutel op van {{provider}}",
       "saveAnyway": "Toch sparen",
-      "rejectedKey": "De provider heeft deze sleutel afgewezen."
+      "rejectedKey": "De provider heeft deze sleutel afgewezen.",
+      "regionSwitched": "{{provider}} heeft deze sleutel geaccepteerd op de host voor het Chinese vasteland. NodeTool gebruikt nu die host.",
+      "hfMirrorNote": "Kun je huggingface.co niet bereiken? Stel een mirror zoals https://hf-mirror.com in onder Instellingen → Integraties → HF endpoint."
     },
     "hardware": {
       "autoDetect": "Automatische detectie",
@@ -14559,6 +14561,19 @@
       "memoryEstimate_other": "{{count}} GB geheugen",
       "installed": "Geïnstalleerd",
       "download": "Downloaden"
+    },
+    "providerSetup": {
+      "chat": "Chat heeft een taalmodel nodig. Verbind een provider om te beginnen.",
+      "image": "Afbeeldingen genereren vereist een afbeeldingsprovider. Verbind er een om door te gaan.",
+      "image_edit": "Afbeeldingen bewerken vereist een afbeeldingsprovider. Verbind er een om door te gaan.",
+      "video": "Video's genereren vereist een videoprovider. Verbind er een om door te gaan.",
+      "image_to_video": "Afbeeldingen animeren vereist een videoprovider. Verbind er een om door te gaan.",
+      "reference_to_video": "Referentie naar video vereist een videoprovider. Verbind er een om door te gaan.",
+      "retake": "Opnieuw opnemen vereist een videoprovider. Verbind er een om door te gaan.",
+      "extend": "Een video verlengen vereist een videoprovider. Verbind er een om door te gaan.",
+      "audio_to_video": "Lipsync vereist een lipsyncprovider. Verbind er een om door te gaan.",
+      "music": "Muziek genereren vereist een muziekprovider. Verbind er een om door te gaan.",
+      "audio": "Spraak genereren vereist een tekst-naar-spraakprovider. Verbind er een om door te gaan."
     }
   },
   "i18n-next29": {
@@ -17774,7 +17789,11 @@
         "allResults": "Alle resultaten",
         "home": "Thuis",
         "local": "Lokaal",
-        "providers": "Aanbieders"
+        "providers": "Aanbieders",
+        "resultsInPath": "Resultaten in {{path}}: {{count}} · Totaal aantal treffers voor '{{term}}': {{total}}",
+        "resultsRelevant": "Resultaten: {{count}} · Meest relevant voor '{{term}}' eerst",
+        "nodesInPath": "Nodes in {{path}}: {{count}}",
+        "nodesMatchFilters": "Nodes die aan de filters voldoen: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Blader door knooppunten",
@@ -19956,7 +19975,8 @@
       },
       "openInSketch": "Openen in schets",
       "reusePrompt": "Prompt hergebruiken",
-      "sketchTitle": "Gemaakte afbeelding"
+      "sketchTitle": "Gemaakte afbeelding",
+      "keyRejected": "De provider heeft de API-sleutel geweigerd. Controleer hem onder Instellingen → Modellen en providers."
     },
     "kindLabel": "Wat je maakt",
     "modeLabel": "Hoe je het maakt",
@@ -20643,6 +20663,12 @@
       "cancel": "Annuleren",
       "signOutNow": "Nu afmelden",
       "waitingNote": "Wachten tot de wijzigingen zijn verzonden. Houd het cloudvenster open."
+    },
+    "syncStatus": {
+      "savedToCloud": "Opgeslagen in de cloud",
+      "changesWaiting": "Wijzigingen wachten",
+      "offline": "Offline",
+      "notSaving": "Wordt niet opgeslagen"
     }
   },
   "cloudTransfer": {
@@ -20652,6 +20678,10 @@
     },
     "capturing": "Wijzigingen lezen…",
     "running": "Verzenden en ontvangen…",
+    "collect": "Verzamelen",
+    "collecting": "Gekoppelde bestanden worden naar de projectmap gekopieerd…",
+    "include": "Verzenden",
+    "includeReceive": "Ontvangen",
     "apply": {
       "publish": "Publiceren",
       "synchronize": "Synchroniseren"
@@ -20686,6 +20716,11 @@
       "keepBoth": "Wordt verzonden als kopie naast de cloudversie",
       "addVersions": "Opgeslagen versies worden verzonden",
       "putAssetFile": "Bestand hier gewijzigd, wordt verzonden",
+      "putWorkspaceFile": "Gewijzigd in de projectmap",
+      "newWorkspaceFile": "Nieuw in de projectmap",
+      "workspaceBothChanged": "Hier en in de cloud gewijzigd. Het cloudbestand komt naast het jouwe",
+      "workspaceLocalDeleted": "Hier verwijderd, gewijzigd in de cloud",
+      "workspaceCloudDeleted": "Verwijderd in de cloud. Je bestand blijft hier",
       "newInCloud": "Nieuw in de cloud",
       "cloudChanged": "Gewijzigd in de cloud",
       "cloudFileChanged": "Een bestand dat het gebruikt is gewijzigd in de cloud",
@@ -20708,7 +20743,7 @@
       "localUnavailable": "De projectserver van deze app heeft niet geantwoord.",
       "cancelled": "De overdracht is gestopt omdat het cloudaccount is gewijzigd.",
       "refused": "De server heeft de overdracht geweigerd ({{reason}}).",
-      "collectFirst": "Sommige bestanden van dit project staan buiten de projectmap. Verzamel ze in de map en probeer het opnieuw.",
+      "collectFirst": "Sommige bestanden die dit project gebruikt, staan buiten de projectmap. Verzamelen kopieert ze naar de map Imported en leest het project daarna opnieuw.",
       "receiveExpired": "Het cloudproject is gewijzigd terwijl dit venster open was. Synchroniseer opnieuw.",
       "receiveChangedWhileOpen": "Er is iets gewijzigd terwijl dit venster open was. Controleer de keuzes opnieuw.",
       "receivingChangedAgain": "Het cloudproject is tijdens het ontvangen opnieuw gewijzigd. Kies opnieuw.",
@@ -20719,7 +20754,9 @@
       "notPreparedAgain": "Ontvangen. De wijzigingen hier konden niet opnieuw worden voorbereid: {{reason}} Synchroniseer opnieuw om ze te verzenden.",
       "sendChangedWhileOpen": "Dit project is gewijzigd terwijl het venster open was. Controleer wat er wordt verzonden.",
       "missingFilesUnconfirmed": "Bestanden die dit project nodig heeft ontbreken. Bevestig elk bestand om zonder te verzenden.",
-      "sendRefused": "De cloud heeft het verzenden geweigerd: {{reasons}}"
+      "sendRefused": "De cloud heeft het verzenden geweigerd: {{reasons}}",
+      "notCollected": "Deze gekoppelde bestanden konden niet naar de projectmap worden gekopieerd: {{files}}",
+      "collectInterrupted": "Het kopiëren stopte voordat alle gekoppelde bestanden waren geprobeerd. Probeer het opnieuw."
     },
     "done": {
       "published": "Gepubliceerd in de cloud.",

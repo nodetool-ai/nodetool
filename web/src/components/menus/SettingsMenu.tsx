@@ -704,6 +704,14 @@ function SettingsPage() {
     return () => observer.disconnect();
   }, [section, search, remoteSettings]);
 
+  const settingsTabs = useMemo(
+    () =>
+      SETTINGS_TAB_ITEMS.map((tab) => ({
+        value: tab.value,
+        label: t(SETTINGS_TAB_KEYS[tab.value])
+      })),
+    [t]
+  );
   const matchingOtherTabs = otherMatchingTabs(section, searchTerm);
   const currentTabHasMatches = tabHasMatches(section, searchTerm);
 
@@ -754,7 +762,7 @@ function SettingsPage() {
               <TabGroup
                 className="settings-tabs"
                 aria-label={t("screens4_6.settings.tabsLabel")}
-                tabs={[...SETTINGS_TAB_ITEMS]}
+                tabs={settingsTabs}
                 value={section}
                 onChange={handleSectionChange}
                 variant={isMobile ? "scrollable" : "standard"}

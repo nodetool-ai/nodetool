@@ -573,3 +573,90 @@ describe("AlibabaProvider speech", () => {
     expect(bodyOf(fetchFn, MULTIMODAL).input).toEqual({ text: "Hello", voice: "Cherry" });
   });
 });
+
+describe("DASHSCOPE_REGION", () => {
+  const INTL = "https://dashscope-intl.aliyuncs.com";
+  const CN = "https://dashscope.aliyuncs.com";
+  const CUSTOM = "https://ws-1.cn-beijing.maas.aliyuncs.com";
+
+  /** Answers every DashScope call the provider makes, keyed on the URL. */
+  const answer = vi.fn(async (input: string | URL | Request, init: RequestInit = {}) => {
+    const url = input instanceof Request ? input.url : String(input);
+    if (url.startsWith(OSS)) return new Response(new Uint8Array([1]));
+    if (url.endsWith("/chat/completions")) {
+      return json({ choices: [{ message: { content: "ok", tool_calls: null } }] });
+    }
+    if (url.endsWith("/models")) return json({ data: [{ id: "qwen-plus" }] });
+    if (url.endsWith("/video-synthesis")) return created("t-1")();
+    if (url.includes("/tasks/")) {
+      return status("t-1", "SUCCEEDED", { video_url: `${OSS}/v.mp4` })();
+    }
+    const model = (JSON.parse(String(init.body)) as { model: string }).model;
+    return model.includes("tts")
+      ? json({ output: { audio: { url: `${OSS}/s.wav` } } })
+      : json({
+          output: {
+            choices: [{ message: { content: [{ type: "image", image: `${OSS}/i.png` }] } }]
+          }
+        });
+  });
+
+  async function hostsFor(secrets: Record<string, string | undefined>): Promise<string[]> {
+    answer.mockClear();
+    const alibaba = new AlibabaProvider(
+      { DASHSCOPE_API_KEY: "sk-test", ...secrets },
+      { fetchFn: answer as unknown as typeof fetch }
+    );
+    await alibaba.generateMessage({ messages: [{ role: "user", content: "hi" }], model: "qwen-plus" });
+    await alibaba.getAvailableLanguageModels();
+    await alibaba.textToImage({
+      model: { id: "qwen-image-3.0", name: "Qwen", provider: "alibaba" },
+      prompt: "a lighthouse"
+    });
+    await settle(
+      alibaba.textToVideo({
+        model: { id: "wan2.7-t2v", name: "Wan", provider: "alibaba" },
+        prompt: "waves"
+      })
+    );
+    await alibaba.textToSpeechEncoded({ text: "Hello", model: "qwen3-tts-flash", voice: "Ethan" });
+    return answer.mock.calls
+      .map(([input]) => (input instanceof Request ? input.url : String(input)))
+      .filter((url) => !url.startsWith(OSS));
+  }
+
+  const paths = (origin: string) => [
+    `${origin}/compatible-mode/v1/chat/completions`,
+    `${origin}/compatible-mode/v1/models`,
+    `${origin}/api/v1/services/aigc/multimodal-generation/generation`,
+    `${origin}/api/v1/services/aigc/video-generation/video-synthesis`,
+    `${origin}/api/v1/tasks/t-1`,
+    `${origin}/api/v1/services/aigc/multimodal-generation/generation`
+  ];
+
+  it.each([[undefined], [""], ["mars"], ["international"]])(
+    "keeps chat, models, image, video and speech on Singapore for %j",
+    async (region) => {
+      expect(await hostsFor({ DASHSCOPE_REGION: region })).toEqual(paths(INTL));
+    }
+  );
+
+  it("moves chat, models, image, video and speech to Beijing for china", async () => {
+    expect(await hostsFor({ DASHSCOPE_REGION: "china" })).toEqual(paths(CN));
+  });
+
+  it("lets an explicit DASHSCOPE_BASE_URL win over the region", async () => {
+    expect(
+      await hostsFor({
+        DASHSCOPE_REGION: "china",
+        DASHSCOPE_BASE_URL: `${CUSTOM}/compatible-mode/v1`
+      })
+    ).toEqual(paths(CUSTOM));
+    expect(
+      await hostsFor({
+        DASHSCOPE_REGION: "international",
+        DASHSCOPE_BASE_URL: `${CN}/compatible-mode/v1`
+      })
+    ).toEqual(paths(CN));
+  });
+});

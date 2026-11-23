@@ -2,8 +2,10 @@
  * The navigator's Cloud and Shared with me groups in the desktop app (PRD
  * flow "Open and edit a cloud document"; WP1.15). They list the signed-in
  * account's documents on its cloud server, and the documents others shared
- * with it there, through the cloud client. Workflows and timelines only
- * (D26), as in the native apps' cloud browser.
+ * with it there, through the cloud client. Workflows and timelines, as in
+ * the native apps' cloud browser, and JS scripts, scripts, storyboards,
+ * sketches and apps, whose file references the server checks since WP2.10
+ * (D26).
  *
  * The query keys start with the server and the account (TC124), so a local
  * and a cloud document with the same id never share a cache entry, and
@@ -31,7 +33,7 @@ type CloudOrigin = Extract<DocumentOrigin, { kind: "cloud" }>;
 interface Listed {
   readonly id: string;
   readonly name: string;
-  readonly type: "workflow" | "timeline";
+  readonly type: "workflow" | "timeline" | "jsscript" | "script" | "storyboard" | "sketch" | "application";
   readonly updatedAt: string;
   readonly role?: "viewer" | "editor";
 }
@@ -66,6 +68,26 @@ async function ownDocuments(origin: CloudOrigin, signal: AbortSignal): Promise<L
   for (const timeline of timelines) {
     listed.push({ id: timeline.id, name: timeline.name, type: "timeline", updatedAt: timeline.updatedAt });
   }
+  const scripts = await client.jsScripts.list.query({}, { signal });
+  for (const script of scripts) {
+    listed.push({ id: script.id, name: script.name, type: "jsscript", updatedAt: script.updatedAt });
+  }
+  const screenplays = await client.scripts.list.query({}, { signal });
+  for (const script of screenplays) {
+    listed.push({ id: script.id, name: script.name, type: "script", updatedAt: script.updatedAt });
+  }
+  const boards = await client.storyboards.list.query({}, { signal });
+  for (const board of boards) {
+    listed.push({ id: board.id, name: board.name, type: "storyboard", updatedAt: board.updatedAt });
+  }
+  const sketches = await client.sketch.list.query({}, { signal });
+  for (const sketch of sketches) {
+    listed.push({ id: sketch.id, name: sketch.name, type: "sketch", updatedAt: sketch.updatedAt });
+  }
+  const applications = await client.applications.list.query({}, { signal });
+  for (const application of applications) {
+    listed.push({ id: application.id, name: application.name, type: "application", updatedAt: application.updatedAt });
+  }
   return listed;
 }
 
@@ -86,16 +108,13 @@ async function sharedDocuments(origin: CloudOrigin, signal: AbortSignal): Promis
     role: workflow.shared_role
   }));
   for (const document of documents.documents) {
-    // The list holds every shared kind. Only timelines open here (D26).
-    if (document.type === "timeline") {
-      listed.push({
-        id: document.id,
-        name: document.name,
-        type: "timeline",
-        updatedAt: document.updated_at ?? "",
-        role: document.role
-      });
-    }
+    listed.push({
+      id: document.id,
+      name: document.name,
+      type: document.type,
+      updatedAt: document.updated_at ?? "",
+      role: document.role
+    });
   }
   return listed;
 }

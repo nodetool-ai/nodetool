@@ -12,6 +12,7 @@ import {
   getDownloadManager,
   getExistingDownloadManager,
   resolveWorkerHfToken,
+  resolveStoredHfEndpoint,
   type DownloadStateSnapshot,
   type DownloadUpdate
 } from "@nodetool-ai/huggingface";
@@ -64,7 +65,8 @@ interface CreateSdkV1ModelDownloadServiceOptions {
   startTransformersJsDownload?: (
     request: SdkV1ModelDownloadStartRequest,
     signal: AbortSignal,
-    onProgress: (update: DownloadUpdate) => void
+    onProgress: (update: DownloadUpdate) => void,
+    userId?: string
   ) => Promise<void>;
   startWorkerDownload?: (
     userId: string,
@@ -145,6 +147,7 @@ export function createSdkV1ModelDownloadService(
         token:
           (await resolveWorkerHfToken((key) => getStoredSecret(key, userId))) ??
           null,
+        endpoint: await resolveStoredHfEndpoint((key) => getStoredSecret(key, userId)),
         allowPatterns: request.path
           ? [request.path]
           : (request.allow_patterns ?? null),
@@ -158,12 +161,15 @@ export function createSdkV1ModelDownloadService(
       getDownloadManager(userId).cancelDownload(managerId(request)));
   const startTransformersJsDownload =
     options.startTransformersJsDownload ??
-    ((request, signal, onProgress) =>
+    (async (request, signal, onProgress, userId) =>
       runTransformersJsModelDownload(
         request.repo_id,
         request.model_type,
         signal,
-        onProgress
+        onProgress,
+        userId
+          ? await resolveStoredHfEndpoint((key) => getStoredSecret(key, userId))
+          : undefined
       ));
   const listHuggingFaceDownloads =
     options.listHuggingFaceDownloads ??
@@ -276,7 +282,8 @@ export function createSdkV1ModelDownloadService(
             await startTransformersJsDownload(
               request,
               run.abortController.signal,
-              update
+              update,
+              userId
             );
           } else {
             await startHuggingFaceDownload(userId, request, update);

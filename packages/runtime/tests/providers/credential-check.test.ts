@@ -136,6 +136,156 @@ describe("checkCredential", () => {
   });
 });
 
+describe("checkCredential region settings", () => {
+  async function probedUrl(
+    key: string,
+    settings: Record<string, string>
+  ): Promise<string> {
+    const fetchImpl = vi.fn().mockResolvedValue(respond(401));
+    await checkCredential(key, "k", {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getSetting: async (name) => settings[name] ?? null
+    });
+    return String(fetchImpl.mock.calls[0][0]);
+  }
+
+  it("probes DashScope in the international region when no region is set", async () => {
+    expect(await probedUrl("DASHSCOPE_API_KEY", {})).toBe(
+      "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models"
+    );
+    expect(await probedUrl("DASHSCOPE_API_KEY", { DASHSCOPE_REGION: "mars" })).toBe(
+      "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models"
+    );
+  });
+
+  it("probes a mainland DashScope key on the Beijing host", async () => {
+    expect(await probedUrl("DASHSCOPE_API_KEY", { DASHSCOPE_REGION: "china" })).toBe(
+      "https://dashscope.aliyuncs.com/compatible-mode/v1/models"
+    );
+  });
+
+  it("probes the stored DASHSCOPE_BASE_URL over the region", async () => {
+    expect(
+      await probedUrl("DASHSCOPE_API_KEY", {
+        DASHSCOPE_REGION: "china",
+        DASHSCOPE_BASE_URL: "https://ws-1.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1"
+      })
+    ).toBe("https://ws-1.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/models");
+  });
+
+  it("probes the stored BYTEPLUS_ARK_BASE_URL", async () => {
+    expect(
+      await probedUrl("BYTEPLUS_ARK_API_KEY", {
+        BYTEPLUS_ARK_BASE_URL: "https://ark.eu-west.example.com/api/v3"
+      })
+    ).toBe("https://ark.eu-west.example.com/api/v3/models");
+  });
+
+  it("probes Kling's free resource-pack listing on the host KLING_REGION picks", async () => {
+    const international = new URL(await probedUrl("KLING_API_KEY", {}));
+    expect(`${international.origin}${international.pathname}`).toBe(
+      "https://api-singapore.klingai.com/account/costs"
+    );
+    const start = Number(international.searchParams.get("start_time"));
+    const end = Number(international.searchParams.get("end_time"));
+    expect(end - start).toBe(24 * 60 * 60 * 1000);
+
+    const mainland = new URL(await probedUrl("KLING_API_KEY", { KLING_REGION: "china" }));
+    expect(`${mainland.origin}${mainland.pathname}`).toBe(
+      "https://api-beijing.klingai.com/account/costs"
+    );
+  });
+
+  it("falls back to the environment when the setting cannot be read", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(respond(401));
+    const result = await checkCredential("DASHSCOPE_API_KEY", "k", {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getSetting: async () => {
+        throw new Error("locked");
+      }
+    });
+    expect(result.status).toBe("invalid");
+    expect(String(fetchImpl.mock.calls[0][0])).toBe(
+      "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models"
+    );
+  });
+});
+
+describe("checkCredential cross-region retry", () => {
+  const mainlandOnly = (url: string): Response =>
+    respond(url.startsWith("https://dashscope.aliyuncs.com") || url.startsWith("https://api.moonshot.cn") ? 200 : 401);
+
+  it("finds a mainland DashScope key on the Beijing host and names the region", async () => {
+    const fetchImpl = vi.fn(async (url: string) => mainlandOnly(String(url)));
+    const result = await checkCredential("DASHSCOPE_API_KEY", "k", {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getSetting: async () => null
+    });
+    expect(result.status).toBe("valid");
+    expect(result.region).toEqual({ setting: "DASHSCOPE_REGION", value: "china" });
+    expect(result.message).toContain("DASHSCOPE_REGION is now china");
+    expect(fetchImpl.mock.calls.map((c) => String(c[0]))).toEqual([
+      "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models",
+      "https://dashscope.aliyuncs.com/compatible-mode/v1/models"
+    ]);
+  });
+
+  it("finds a mainland Kimi key on the .cn host", async () => {
+    const fetchImpl = vi.fn(async (url: string) => mainlandOnly(String(url)));
+    const result = await checkCredential("KIMI_API_KEY", "k", {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getSetting: async () => null
+    });
+    expect(result.status).toBe("valid");
+    expect(result.region).toEqual({ setting: "KIMI_REGION", value: "china" });
+  });
+
+  it("finds a mainland Kling key on the Beijing host", async () => {
+    const fetchImpl = vi.fn(async (url: string) =>
+      respond(String(url).startsWith("https://api-beijing.klingai.com") ? 200 : 401));
+    const result = await checkCredential("KLING_API_KEY", "k", {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getSetting: async () => null
+    });
+    expect(result.status).toBe("valid");
+    expect(result.region).toEqual({ setting: "KLING_REGION", value: "china" });
+    expect(fetchImpl.mock.calls[0][1]).toMatchObject({ headers: { Authorization: "Bearer k" } });
+  });
+
+  it("reports the first rejection when every region rejects the key", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(respond(401));
+    const result = await checkCredential("DASHSCOPE_API_KEY", "k", {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getSetting: async () => null
+    });
+    expect(result.status).toBe("invalid");
+    expect(result.region).toBeUndefined();
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not move a key off a pinned DASHSCOPE_BASE_URL", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(respond(401));
+    const result = await checkCredential("DASHSCOPE_API_KEY", "k", {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getSetting: async (name) =>
+        name === "DASHSCOPE_BASE_URL" ? "https://ws-1.example.com/compatible-mode/v1" : null
+    });
+    expect(result.status).toBe("invalid");
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the configured region when the key works there", async () => {
+    const fetchImpl = vi.fn(async (url: string) => mainlandOnly(String(url)));
+    const result = await checkCredential("DASHSCOPE_API_KEY", "k", {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getSetting: async (name) => (name === "DASHSCOPE_REGION" ? "china" : null)
+    });
+    expect(result.status).toBe("valid");
+    expect(result.region).toBeUndefined();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("isCredentialVerifiable", () => {
   it("agrees with the probe table", () => {
     expect(isCredentialVerifiable("OPENAI_API_KEY")).toBe(true);

@@ -513,6 +513,19 @@ export function applyWorkflowDocumentTool(
 
   const update = isRecord(args.data) ? args.data : {};
   const { properties, title, ...rest } = update;
+  const unknown = Object.keys(rest).filter(
+    (key) => !DYNAMIC_NODE_DATA_FIELDS.has(key) && !UI_NODE_DATA_FIELDS.has(key)
+  );
+  if (unknown.length > 0) {
+    // Dropping these reported success for an edit that changed nothing: a
+    // property set at `data.prompt` instead of `data.properties.prompt`.
+    throw new Error(
+      `ui_update_node_data: unknown data keys ${unknown.join(", ")}. ` +
+        "Node property values go under data.properties " +
+        `(data: {properties: {${unknown[0]}: …}}). data also accepts: ` +
+        `${[...UI_NODE_DATA_FIELDS, ...DYNAMIC_NODE_DATA_FIELDS].join(", ")}.`
+    );
+  }
   const propertyPatch = isRecord(properties) ? properties : {};
   node.data = { ...nodeData(node), ...propertyPatch };
   const uiPatch: Record<string, unknown> = {};

@@ -111,9 +111,9 @@ const cloudSocketSendSchema = z
   .strict();
 const cloudSocketCloseSchema = z.object({ id: z.number().int().positive() }).strict();
 // A cloud document id is one path segment of a tRPC input, never a URL.
-const cloudDocumentRefSchema = z
+export const cloudDocumentRefSchema = z
   .object({
-    type: z.enum(["workflow", "timeline"]),
+    type: z.enum(["workflow", "timeline", "jsscript", "script", "storyboard", "sketch", "application"]),
     id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
   })
   .strict();
@@ -1146,6 +1146,9 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.CLOUD_WINDOW_READY, async (event) =>
     getCloudWindow().takePending(event.sender.id),
   );
+  createIpcMainHandler(IpcChannels.CLOUD_WINDOW_FLUSHED, async (event) => {
+    getCloudWindow().flushed(event.sender.id);
+  });
   createIpcMainHandler(IpcChannels.CLOUD_LOCAL_CALL, async (event, request) => {
     const parsed = cloudLocalCallSchema.safeParse(request);
     return parsed.success

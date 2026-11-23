@@ -61,9 +61,14 @@ describe("refusedInCloudWindow", () => {
 });
 
 describe("cloudDocumentRef", () => {
-  it("opens workflows and timelines only (D26)", () => {
+  it("opens the kinds of D26 whose drafts it keeps", () => {
     expect(cloudDocumentRef("workflow", "w1")).toEqual({ type: "workflow", id: "w1" });
     expect(cloudDocumentRef("timeline", "t1")).toEqual({ type: "timeline", id: "t1" });
-    expect(cloudDocumentRef("sketch", "s1")).toBeNull();
+    expect(cloudDocumentRef("jsscript", "j1")).toEqual({ type: "jsscript", id: "j1" });
+    expect(cloudDocumentRef("script", "s2")).toEqual({ type: "script", id: "s2" });
+    expect(cloudDocumentRef("storyboard", "b1")).toEqual({ type: "storyboard", id: "b1" });
+    expect(cloudDocumentRef("sketch", "k1")).toEqual({ type: "sketch", id: "k1" });
+    expect(cloudDocumentRef("application", "a1")).toEqual({ type: "application", id: "a1" });
+    expect(cloudDocumentRef("text", "s1")).toBeNull();
   });
 });

@@ -205,6 +205,23 @@ const ASSET_EDITOR_TOOL_SUITES =
   "npm run test --workspace=web -- svgTools audioTools audioAgentOps audioEffects AudioSampleEditor SvgSurface AudioSurface";
 
 /**
+ * The mobile document harness: a scripted agent drives mobile's own
+ * `ui_storyboard_*` tools, agent bridge, document store, and `resources.*`
+ * backend over an in-memory server, and the saved board is checked against the
+ * protocol's storyboard schema. It lives in the agents suite because `mobile/`
+ * is not a root workspace.
+ */
+const MOBILE_DOCUMENT_TOOL_SUITES =
+  "npm run test --workspace=packages/agents -- mobile-storyboard-tool-loop";
+
+/**
+ * Both ends of every Electron IPC channel: preload invokes against main
+ * handlers, sends against listeners, subscriptions against emitters, read from
+ * source so no `electron` mock can hide a missing end.
+ */
+const ELECTRON_IPC_SURFACE_SUITES = "npm run test --workspace=electron -- ipc.surface";
+
+/**
  * The audio-driven-motion suites: `bake_audio_animation`'s own arithmetic
  * (the two clock hops, the envelope/beats curve shapes) plus the end-to-end
  * demonstration that bakes a beat-synced pulse onto a clip that already
@@ -243,7 +260,7 @@ const CAPABILITY_SUITES =
   "npm run test --workspace=packages/agents -- capabilities capability " +
   "mcp-tools memory-tools workflow-version-tools nodetool-api-workflows " +
   "sandbox-package-docs sandbox-package-listing browser-tools " +
-  "timelines-op-input timeline-video-flow game-asset-pipeline";
+  "media-read-bytes timelines-op-input timeline-video-flow game-asset-pipeline";
 
 /**
  * The pure derivations behind the graph-resource nodes plus the node suites
@@ -261,6 +278,39 @@ const GRAPH_RESOURCES_SUITES =
   "npm run test --workspace=packages/game-nodes && " +
   "npm run test --workspace=packages/core-nodes -- entity-nodes && " +
   "npm run test --workspace=packages/video-nodes -- storyboard-nodes script-nodes";
+
+/**
+ * Jest suites for the web feature areas outside the graph canvas. Each
+ * positional argument is a Jest path pattern; together they select the related
+ * component, store, hook and server-state tests for one surface. One constant
+ * per surface so the entry's `command` and its `selfcheck` cannot drift.
+ */
+const WEB_CHAT_SUITES =
+  "npm run test --workspace=web -- src/components/chat/ src/__tests__/components/chat/ " +
+  "src/core/chat/ src/hooks/chat/ src/lib/chat/ stores/__tests__/GlobalChatStore " +
+  "stores/__tests__/CanvasChatDockStore stores/__tests__/ChatDraftStore serverState/__tests__/useThreadVersions";
+const WEB_LIBRARY_SUITES =
+  "npm run test --workspace=web -- src/components/assets/ src/components/asset_viewer/ " +
+  "src/components/collections/ src/components/workflows/ stores/__tests__/AssetStore " +
+  "stores/__tests__/AssetGridStore stores/__tests__/CollectionStore.test stores/__tests__/RecentAssetsStore " +
+  "stores/__tests__/WorkflowAssetStore stores/__tests__/WorkflowListViewStore " +
+  "stores/__tests__/FavoriteWorkflowsStore serverState/__tests__/useAsset";
+const WEB_MODELS_SUITES =
+  "npm run test --workspace=web -- src/components/hugging_face/ src/components/model_menu/ " +
+  "src/components/provider_onboarding/ stores/__tests__/Model stores/__tests__/HfCacheStatusStore " +
+  "stores/__tests__/ProviderOnboardingStore stores/__tests__/ProviderCallFailureStore " +
+  "stores/__tests__/UnavailableModelStore hooks/__tests__/useProviders hooks/__tests__/useModelsByProvider " +
+  "serverState/__tests__/checkHfCacheStatus";
+const WEB_SETTINGS_SUITES =
+  "npm run test --workspace=web -- src/components/settings/ src/components/menus/ src/components/costs/ " +
+  "src/components/workers/ src/components/packages/ src/components/sharing/ stores/__tests__/SecretsStore " +
+  "stores/__tests__/SettingsStore stores/__tests__/RemoteSettingStore stores/__tests__/PacksStore " +
+  "stores/__tests__/NodePacksStore stores/__tests__/OptionalNodePacksStore stores/__tests__/RuntimePackage " +
+  "stores/__tests__/WorkflowShareDialogStore hooks/__tests__/useSecrets hooks/__tests__/useApiKeyValidation";
+const WEB_PROJECT_FILES_SUITES =
+  "npm run test --workspace=web -- src/components/projects/ src/components/workspaces/ " +
+  "src/components/textEditor/ stores/__tests__/DocumentDraftStore stores/__tests__/SidebarDocumentActionsStore " +
+  "stores/__tests__/AssetStore.projectFolders serverState/__tests__/useAssetUploadProject";
 
 const LEAN_SERVER_PACKAGES = [
   "cli", "pack-core", "pack-manager", "sandbox-runtime", "server-feature-packs",
@@ -452,6 +502,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "app-session-route-walk",
+    title: "Deployed app session token route walk on the live server",
+    command: "npm run test --workspace=packages/websocket -- app-session-route-walk",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Deployed app session walk",
+    selfcheck: {
+      command: "npm run test --workspace=packages/websocket -- app-session-route-walk",
+      cost: "cheap"
+    }
+  },
+  {
     id: "run-traces",
     title: "Durable app trace, content policy and ancestry check",
     command: "npm run test --workspace=packages/execution --workspace=packages/runtime --workspace=packages/models --workspace=packages/websocket -- run-trace external-trace-privacy http-tracing",
@@ -553,6 +615,94 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["browser"],
     docs: "docs/harnesses.md § App instances and history phase 5"
+  },
+  {
+    id: "web-chat-ui",
+    title: "Chat panel, thread runtime and chat stores check",
+    command: WEB_CHAT_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_CHAT_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-chat-browser",
+    title: "Chat history, streamed reply and phone layout journeys",
+    command: "npm run test:journeys --workspace=web -- chat.spec.ts mobile-chat.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
+  },
+  {
+    id: "web-library-ui",
+    title: "Asset browser, collections and workflow library check",
+    command: WEB_LIBRARY_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_LIBRARY_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-library-browser",
+    title: "Workflow library and asset browser journey",
+    command: "npm run test:journeys --workspace=web -- library.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
+  },
+  {
+    id: "web-models-ui",
+    title: "Model menu, Hugging Face downloads and provider onboarding check",
+    command: WEB_MODELS_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_MODELS_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-settings-ui",
+    title: "Settings, secrets, costs, workers and node packs check",
+    command: WEB_SETTINGS_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_SETTINGS_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-project-files-ui",
+    title: "Projects, workspace file tree and text editor check",
+    command: WEB_PROJECT_FILES_SUITES,
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Web feature suites",
+    selfcheck: { command: WEB_PROJECT_FILES_SUITES, cost: "cheap" }
+  },
+  {
+    id: "web-project-files-browser",
+    title: "Project files, generated files, text file and Home creation journeys",
+    command:
+      "npm run test:journeys --workspace=web -- project-files.spec.ts project-generate.spec.ts text-file.spec.ts home-creation.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
+  },
+  {
+    id: "storyboard-browser",
+    title: "Storyboard design, phone layout and scene clip journeys",
+    command:
+      "npm run test:journeys --workspace=web -- storyboard-design.spec.ts storyboard-mobile.spec.ts storyboard-scene-clip.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
+  },
+  {
+    id: "web-editor-browser",
+    title: "Graph editor, canvas selection, subgraph and phone editor journeys",
+    command:
+      "npm run test:journeys --workspace=web -- editor.spec.ts canvas-selection.spec.ts subgraph.spec.ts mobile-editor.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Web feature suites"
   },
   {
     id: "app-build",
@@ -695,6 +845,24 @@ export const HARNESSES: HarnessEntry[] = [
     selfcheck: { command: ASSET_EDITOR_TOOL_SUITES, cost: "cheap" }
   },
   {
+    id: "mobile-document-tools",
+    title: "Mobile storyboard agent tools (ui_storyboard_* over the document store)",
+    command: MOBILE_DOCUMENT_TOOL_SUITES,
+    kind: "execution",
+    capabilities: ["interact", "no-db"],
+    docs: "mobile/ARCHITECTURE.md § Documents",
+    selfcheck: { command: MOBILE_DOCUMENT_TOOL_SUITES, cost: "cheap" }
+  },
+  {
+    id: "electron-ipc-surface",
+    title: "Electron IPC surface (preload channels against main handlers)",
+    command: ELECTRON_IPC_SURFACE_SUITES,
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "electron/src/AGENTS.md § Tests",
+    selfcheck: { command: ELECTRON_IPC_SURFACE_SUITES, cost: "cheap" }
+  },
+  {
     id: "timeline-audio-drive",
     title:
       "Audio-driven clip motion (bake_audio_animation → the animation fold)",
@@ -742,7 +910,16 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "static",
     capabilities: ["json", "no-db"],
     agentTool: "validate_sketch",
-    docs: "docs/harnesses.md § nodetool sketch validate / debug"
+    docs: "docs/harnesses.md § nodetool sketch validate / debug",
+    selfcheck: {
+      // The validator rules and report in execution, then the CLI wiring:
+      // command registration, the validation renderer, and target resolution
+      // for an id or a file.
+      command:
+        "npm run test --workspace=packages/execution -- sketch-debug && " +
+        "npm run test --workspace=packages/cli-sketch -- sketch-command sketch-target",
+      cost: "cheap"
+    }
   },
   {
     id: "sketch-debug",
@@ -750,7 +927,13 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool sketch debug <id|file.json> --interact '[...]'",
     kind: "execution",
     capabilities: ["json", "interact", "no-db"],
-    docs: "docs/harnesses.md § nodetool sketch validate / debug"
+    docs: "docs/harnesses.md § nodetool sketch validate / debug",
+    selfcheck: {
+      // Interaction-script parsing and the validate/debug runners on
+      // in-memory and on-disk documents.
+      command: "npm run test --workspace=packages/cli-sketch -- sketch-harness",
+      cost: "cheap"
+    }
   },
   {
     id: "sketch-render",
@@ -759,7 +942,17 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json", "no-db"],
     agentTool: "render_sketch",
-    docs: "docs/harnesses.md § nodetool sketch render"
+    docs: "docs/harnesses.md § nodetool sketch render",
+    selfcheck: {
+      // The paint core (types, dependency hashing, raster ops, compositing)
+      // the renderer draws with, the agent render capability, and the CLI
+      // command that writes PNG and PSD files.
+      command:
+        "npm run test --workspace=packages/image-editor && " +
+        "npm run test --workspace=packages/agents -- capabilities-sketch-render && " +
+        "npm run test --workspace=packages/cli-sketch -- sketch-render-command",
+      cost: "cheap"
+    }
   },
   {
     id: "sketch-versions",
@@ -769,7 +962,15 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json"],
     agentTool: "restore_sketch_version",
-    docs: "docs/harnesses.md § nodetool sketch versions"
+    docs: "docs/harnesses.md § nodetool sketch versions",
+    selfcheck: {
+      // The agent version tools on an in-memory test database and the CLI
+      // subcommands on a mocked client: no server, no keys.
+      command:
+        "npm run test --workspace=packages/agents -- sketch-version-tools && " +
+        "npm run test --workspace=packages/cli-sketch -- sketch-versions-command",
+      cost: "cheap"
+    }
   },
   {
     id: "jsscript-validate",
@@ -959,6 +1160,43 @@ export const HARNESSES: HarnessEntry[] = [
       command:
         "npm run test --workspace=packages/runtime -- provider-contract-probes",
       cost: "cheap"
+    }
+  },
+  {
+    id: "compute-provider-lifecycle",
+    title:
+      "GPU worker lifecycle (provision, poll, reap) against a fake RunPod and Vast.ai API",
+    command:
+      "npm run test --workspace=packages/compute -- provider-lifecycle-harness",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § GPU worker and self-hosted rollout fixtures",
+    selfcheck: {
+      // The real WorkerManager, providers and HTTP transports against a
+      // stateful fake of both provider APIs installed as `fetch`. Asserts the
+      // exact provider calls; any unrouted call fails the case.
+      command:
+        "npm run test --workspace=packages/compute -- provider-lifecycle-harness",
+      cost: "cheap",
+      suiteOnly: true
+    }
+  },
+  {
+    id: "deploy-rollout",
+    title: "Self-hosted Docker rollout (plan, apply) over a fake SSH host",
+    command:
+      "npm run test --workspace=packages/deploy -- self-hosted-rollout-harness",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § GPU worker and self-hosted rollout fixtures",
+    selfcheck: {
+      // DockerDeployer with the real SSHConnection, DockerRunGenerator and
+      // StateManager; only the ssh2 transport is faked. Asserts the exact
+      // command sequence a rollout sends over SSH.
+      command:
+        "npm run test --workspace=packages/deploy -- self-hosted-rollout-harness",
+      cost: "cheap",
+      suiteOnly: true
     }
   },
   {
@@ -1262,6 +1500,25 @@ export const HARNESSES: HarnessEntry[] = [
       // an --expensive selfcheck rather than the default gate.
       command: "npm run test --workspace=packages/websocket",
       cost: "expensive",
+      suiteOnly: true
+    }
+  },
+  {
+    id: "api-access-control",
+    title: "API access control (sharing, agent access, per-user tRPC routers)",
+    command:
+      "npm run test --workspace=packages/websocket -- trpc-document-sharing trpc-agent-access trpc-cloud-local trpc-bug-reports trpc-mcp-config trpc-project-folder-migration app-runs-phase1-api",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "docs/harnesses.md § nodetool serve",
+    selfcheck: {
+      // The router files that assert who may call what: an owner succeeds, a
+      // collaborator, another user or no session is refused, and a share id
+      // or token reaches only its own document. Seconds, against the
+      // multi-minute full websocket suite of api-routes.
+      command:
+        "npm run test --workspace=packages/websocket -- trpc-document-sharing trpc-agent-access trpc-cloud-local trpc-bug-reports trpc-mcp-config trpc-project-folder-migration app-runs-phase1-api",
+      cost: "cheap",
       suiteOnly: true
     }
   },
@@ -1574,12 +1831,27 @@ export const HARNESSES: HarnessEntry[] = [
   }
 ];
 
+/**
+ * Why `nodetool models download-hf` and `hf-cache` have no agent capability.
+ * Kept beside the CLI surface so an audit that finds the asymmetry finds the
+ * decision too.
+ */
+const CLI_MODELS_HF_GAP =
+  "Hugging Face downloads (`models download-hf`) and cache listing (`models hf-cache`) are CLI-only on purpose. " +
+  "packages/websocket/src/trpc/sandbox-coverage.ts withholds models.huggingfaceList, huggingfaceCacheStatus, " +
+  "huggingfaceDelete, huggingfaceByType and pullOllamaModel from agents: model management writes gigabytes to host " +
+  "disk from a third party, and a run that can start or delete a download can fill the disk or remove a model other " +
+  "runs depend on. The production server also refuses every download (/ws/download is unregistered and the SDK " +
+  "download service is disabled). An agent capability needs that verdict changed first, with a disk quota and a " +
+  "per-download approval that names the repo and its size.";
+
 export const SURFACES: SurfaceEntry[] = [
   ...CLI_COMMAND_PACKAGES.map((name): SurfaceEntry => ({
     id: `${name}-module`,
     title: `Command package ${name}`,
     harnesses: [`${name}-module`],
-    paths: [`packages/${name}/`]
+    paths: [`packages/${name}/`],
+    ...(name === "cli-models" && { gap: CLI_MODELS_HF_GAP })
   })),
   {
     id: "runtime-install",
@@ -2103,7 +2375,8 @@ export const SURFACES: SurfaceEntry[] = [
       "script-storyboard-link",
       "timeline-validate",
       "validate",
-      "eval"
+      "eval",
+      "storyboard-browser"
     ],
     paths: [
       "packages/protocol/src/script-link.ts",
@@ -2133,7 +2406,10 @@ export const SURFACES: SurfaceEntry[] = [
       "scripts/example-storyboards/",
       "web/src/components/storyboard/",
       "web/src/lib/tools/builtin/storyboard.ts",
-      "web/src/studio/"
+      "web/src/studio/",
+      "web/tests/journeys/storyboard-design.spec.ts",
+      "web/tests/journeys/storyboard-mobile.spec.ts",
+      "web/tests/journeys/storyboard-scene-clip.spec.ts"
     ]
   },
   {
@@ -2183,7 +2459,12 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/workspace/svgAgentBridge.ts",
       "web/src/components/workspace/AssetAgentPanel.tsx",
       "web/src/lib/tools/builtin/svg.ts"
-    ]
+    ],
+    gap:
+      "Only an open SvgSurface can edit an SVG asset: the ui_svg_* tools route to its live handler. " +
+      "The headless bridge in packages/agents/src/evals/surfaces/svg.ts holds a draft string for the tool-loop eval " +
+      "and is not reachable from the CLI, MCP or a chat with no editor open. A headless driver would load the asset, " +
+      "apply the same SVG_TOOL_CONTRACTS edits and save it back as a capability."
   },
   {
     id: "audio-editor",
@@ -2196,7 +2477,12 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/workspace/AudioSurface.tsx",
       "web/src/components/workspace/AssetAgentPanel.tsx",
       "web/src/lib/tools/builtin/audio.ts"
-    ]
+    ],
+    gap:
+      "Only an open AudioSurface can apply ui_audio_* edits (trim, fade, normalize, effects) to an audio asset. " +
+      "The headless bridge in packages/agents/src/evals/surfaces/audio.ts serves the tool-loop eval only. " +
+      "media_edit covers trim, fade and normalize as new workspace files, not as edits of the asset in place, and " +
+      "none of the editor's effects. A headless driver would decode the asset, run the shared effect catalog and save it back."
   },
   {
     id: "native-game",
@@ -2221,6 +2507,18 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Blender headless render (op scripts, runner, blender nodes)",
     harnesses: ["blender"],
     paths: ["packages/blender-nodes/"]
+  },
+  {
+    id: "compute-workers",
+    title: "Rented GPU workers (profiles, RunPod/Vast/Verda providers, reaper)",
+    harnesses: ["compute-provider-lifecycle"],
+    paths: ["packages/compute/"]
+  },
+  {
+    id: "self-hosted-deploy",
+    title: "Self-hosted Docker deployments (`nodetool deploy`)",
+    harnesses: ["deploy-rollout"],
+    paths: ["packages/deploy/"]
   },
   {
     id: "manimgx",
@@ -2296,8 +2594,124 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "web-editor",
     title: "Web editor (graph canvas, run rendering)",
-    harnesses: ["debug", "docker-smoke"],
+    harnesses: ["debug", "docker-smoke", "web-editor-browser"],
     paths: ["web/"]
+  },
+  // The web feature areas outside the canvas. Each overlaps `web-editor`
+  // (web/), so a diff here runs the area's Jest suites as well as the canvas
+  // checks. The browser journeys need a server and Playwright, so they are
+  // manual like `run-inspection-browser`.
+  {
+    id: "web-chat",
+    title: "Web chat (thread view, composer, chat stores)",
+    harnesses: ["web-chat-ui", "web-chat-browser"],
+    paths: [
+      "web/src/components/chat/",
+      "web/src/__tests__/components/chat/",
+      "web/src/core/chat/",
+      "web/src/hooks/chat/",
+      "web/src/lib/chat/",
+      "web/src/stores/GlobalChatStore.ts",
+      "web/src/stores/CanvasChatDockStore.ts",
+      "web/src/stores/ChatDraftStore.ts",
+      "web/src/serverState/useThreadVersions.ts",
+      "web/tests/journeys/chat.spec.ts",
+      "web/tests/journeys/mobile-chat.spec.ts"
+    ]
+  },
+  {
+    id: "web-library",
+    title: "Web library (asset browser, collections, workflow list)",
+    harnesses: ["web-library-ui", "web-library-browser"],
+    paths: [
+      "web/src/components/assets/",
+      "web/src/components/asset_viewer/",
+      "web/src/components/collections/",
+      "web/src/components/workflows/",
+      "web/src/stores/AssetStore.ts",
+      "web/src/stores/AssetGridStore.ts",
+      "web/src/stores/AssetRevisionStore.ts",
+      "web/src/stores/CollectionStore.ts",
+      "web/src/stores/RecentAssetsStore.ts",
+      "web/src/stores/WorkflowAssetStore.ts",
+      "web/src/stores/WorkflowListViewStore.ts",
+      "web/src/stores/FavoriteWorkflowsStore.ts",
+      "web/src/serverState/useAsset.ts",
+      "web/src/serverState/useAssetById.ts",
+      "web/src/serverState/useAssetDeletion.ts",
+      "web/src/serverState/useAssetFavorite.ts",
+      "web/src/serverState/useAssetSearch.ts",
+      "web/src/serverState/useAssetUpdate.ts",
+      "web/src/serverState/useAssetUpload.ts",
+      "web/src/serverState/useAssets.ts",
+      "web/tests/journeys/library.spec.ts"
+    ]
+  },
+  {
+    id: "web-models",
+    title: "Web model menu, Hugging Face downloads and provider onboarding",
+    harnesses: ["web-models-ui"],
+    paths: [
+      "web/src/components/hugging_face/",
+      "web/src/components/model_menu/",
+      "web/src/components/provider_onboarding/",
+      "web/src/stores/ModelCalloutStore.ts",
+      "web/src/stores/ModelDownloadStore.ts",
+      "web/src/stores/ModelFiltersStore.ts",
+      "web/src/stores/ModelManagerStore.ts",
+      "web/src/stores/ModelMenuStore.ts",
+      "web/src/stores/ModelPreferencesStore.ts",
+      "web/src/stores/HfCacheStatusStore.ts",
+      "web/src/stores/ProviderOnboardingStore.ts",
+      "web/src/stores/ProviderSignInStore.ts",
+      "web/src/stores/ProviderCallFailureStore.ts",
+      "web/src/stores/UnavailableModelStore.ts",
+      "web/src/hooks/useProviders.ts",
+      "web/src/hooks/useModelsByProvider.ts",
+      "web/src/serverState/useProviderCredits.ts"
+    ]
+  },
+  {
+    id: "web-settings",
+    title: "Web settings (secrets, API keys, costs, workers, node packs, sharing)",
+    harnesses: ["web-settings-ui"],
+    paths: [
+      "web/src/components/settings/",
+      "web/src/components/menus/",
+      "web/src/components/costs/",
+      "web/src/components/workers/",
+      "web/src/components/packages/",
+      "web/src/components/sharing/",
+      "web/src/stores/SecretsStore.ts",
+      "web/src/stores/SettingsStore.ts",
+      "web/src/stores/SettingsPageStore.ts",
+      "web/src/stores/RemoteSettingStore.ts",
+      "web/src/stores/PacksStore.ts",
+      "web/src/stores/NodePacksStore.ts",
+      "web/src/stores/OptionalNodePacksStore.ts",
+      "web/src/stores/RuntimePackagesStore.ts",
+      "web/src/stores/RuntimePackagePromptStore.ts",
+      "web/src/stores/WorkflowShareDialogStore.ts",
+      "web/src/hooks/useSecrets.ts",
+      "web/src/hooks/useApiKeyValidation.ts"
+    ]
+  },
+  {
+    id: "web-project-files",
+    title: "Web projects, workspace file tree and text editor",
+    harnesses: ["web-project-files-ui", "web-project-files-browser"],
+    paths: [
+      "web/src/components/projects/",
+      "web/src/components/workspaces/",
+      "web/src/components/textEditor/",
+      "web/src/stores/DocumentDraftStore.ts",
+      "web/src/stores/SidebarDocumentActionsStore.ts",
+      "web/src/serverState/useProjectDocumentFile.ts",
+      "web/tests/journeys/project-files.spec.ts",
+      "web/tests/journeys/project-generate.spec.ts",
+      "web/tests/journeys/text-file.spec.ts",
+      "web/tests/journeys/home-creation.spec.ts"
+    ]
   },
   {
     id: "tutorial-rendering",
@@ -2436,14 +2850,13 @@ export const SURFACES: SurfaceEntry[] = [
     paths: [
       "Dockerfile",
       "docker-compose.yml",
-      "fly.toml",
       "scripts/docker-smoke.mjs"
     ]
   },
   {
     id: "public-app-deployments",
     title: "Deployed mini apps (hidden URL, no login)",
-    harnesses: [],
+    harnesses: ["app-session-route-walk"],
     paths: [
       "packages/websocket/src/lib/app-deployment-service.ts",
       "packages/websocket/src/lib/app-session-scope.ts",
@@ -2453,41 +2866,34 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/applications/PublicAppPage.tsx"
     ],
     gap:
-      "Covered by unit tests only, and the two halves they cannot reach are " +
-      "the ones that matter: what a real logged-out browser can load from " +
-      "the link, and what the auth hook actually refuses an `nda_` token " +
-      "outside `/ws`. A harness would boot the server with " +
-      "NODETOOL_ENV=production, deploy a published example app, then (a) " +
-      "walk every non-`/ws` path with the minted session and assert 401, and " +
-      "(b) drive the page with Playwright carrying no account session, the " +
-      "way the debug harness drives the graph canvas."
+      "The route walk covers what the auth hook does with an `nda_` token " +
+      "on every registered path. Nothing covers what a real logged-out " +
+      "browser can load from the link. A browser harness would drive the " +
+      "deployed page with Playwright carrying no account session, the way " +
+      "the debug harness drives the graph canvas."
   },
   {
     id: "mobile",
     title: "Mobile app (documents via chat agent ui_* tools)",
-    harnesses: [],
-    paths: ["mobile/"],
-    gap:
-      "No headless harness yet. Mobile edits already flow through the chat " +
-      "agent's ui_* tools (mobile/ARCHITECTURE.md § Documents), so the harness " +
-      "shape exists: drive the same tool contract against a headless bridge " +
-      "the way the tool-loop evals do, and validate the document each session " +
-      "leaves behind."
+    harnesses: ["mobile-document-tools"],
+    // The harness covers the document tool path only. Screens, mini-app
+    // widgets, chat transport and the game player have Jest tests in
+    // mobile/ and no headless harness.
+    paths: ["mobile/"]
   },
   {
     id: "electron-shell",
     title: "Electron shell (windows, IPC, menus, auto-update)",
-    harnesses: [],
-    paths: ["electron/"],
-    gap:
-      "Covered by Jest unit tests only. A harness would boot the packaged " +
-      "shell headlessly (Playwright's Electron driver), assert the " +
-      "IPC surface, and reuse backend-smoke for the server half."
+    harnesses: ["electron-ipc-surface"],
+    // The harness checks the IPC contract from source. Nothing boots the
+    // packaged shell yet: that needs Playwright's Electron driver against a
+    // built app, with backend-smoke for the server half.
+    paths: ["electron/"]
   },
   {
     id: "api-server",
     title: "API server (Fastify HTTP + WebSocket routes)",
-    harnesses: ["api-routes"],
+    harnesses: ["api-routes", "api-access-control"],
     paths: [
       "packages/websocket/", "packages/asset-services/", "packages/document-services/",
       "packages/error-trace-services/", "packages/pack-host/", "packages/project-services/",
@@ -2577,7 +2983,36 @@ export const SURFACES: SurfaceEntry[] = [
     id: "lipsync-studio",
     title: "Lipsync studio",
     harnesses: ["lipsync-studio"],
-    paths: ["web/src/components/lipsync/", "web/src/stores/LipsyncStudioStore.ts", "web/tests/journeys/lipsync-studio.spec.ts"]
+    paths: ["web/src/components/lipsync/", "web/src/stores/LipsyncStudioStore.ts", "web/tests/journeys/lipsync-studio.spec.ts"],
+    gap:
+      "The studio is a browser flow: LipsyncStudioStore chains two generate_media calls (speech, then audio_to_video " +
+      "with person_consent) and its harness is a Playwright journey plus store tests. No CLI command or agent " +
+      "capability runs that chain. An agent has generate_speech, and lip_sync only for a timeline clip with an " +
+      "accepted voice-replacement candidate. A headless form would be one capability that takes text, voice, source " +
+      "image and consent and runs the same two requests."
+  },
+  {
+    id: "effects-gallery",
+    title: "Effects gallery (effect presets applied to one picture)",
+    harnesses: [],
+    paths: ["web/src/components/effects/", "web/src/stores/EffectsGalleryStore.ts"],
+    gap:
+      "UI-only flow. effectsRun.ts picks the mode and model and builds the generate_media request in the browser; " +
+      "only Jest suites (effectsRun, EffectsGallery, EffectsGalleryStore) cover it, and no harness owns it. An agent " +
+      "reaches the same result with list_presets plus edit_image or animate_image and preset_ids, but not through " +
+      "the gallery's choices. A harness would move effectsRun into a shared package and check its requests against " +
+      "the preset catalog."
+  },
+  {
+    id: "chain-editor",
+    title: "Chain editor (linear workflow editor)",
+    harnesses: [],
+    paths: ["web/src/components/chain_editor/", "web/src/components/workspace/WorkflowChainSurface.tsx"],
+    gap:
+      "UI-only editor. The chain-to-graph conversion (chainTypes.ts: autoMapInputs, buildConnections, chainToGraph) " +
+      "lives in the web bundle and only Jest suites cover it. The saved result is an ordinary workflow, so " +
+      "create_workflow, update_workflow and nodetool validate cover the output, not the chain model. A headless " +
+      "driver would move chainTypes into protocol and expose chain edits as workflow operations."
   },
   {
     id: "presets",
@@ -2724,7 +3159,7 @@ export const SURFACES: SurfaceEntry[] = [
     // its esbuild metafile. A new import of a host package in any of them
     // must be classified in guest/module-contract.mjs, and the native
     // workflow does not run for most of them. packages/compute is bundled
-    // too and stays in UNCLAIMED_PATHS.
+    // too and is claimed by the compute-workers surface.
     paths: [
       "native/graph-runner/guest/",
       "packages/agents/src/", "packages/app-runtime/src/", "packages/asset-services/src/",
@@ -2839,15 +3274,6 @@ export const UNCLAIMED_PATHS: Record<string, string> = {
     "editor work, kept out of the gate on purpose. Its runner needs a Qt " +
     "build and Chromium. `npm run test:affected` runs its census check and " +
     "unit tests for a diff here (PATH_CHECKS in scripts/test-affected.mjs).",
-  "packages/compute/":
-    "Provisions and reaps real RunPod/Vast.ai GPU workers; only its hermetic " +
-    "unit tests run headlessly today. A harness needs a recorded-fixture " +
-    "mode against a fake provider API, the way `blender` and " +
-    "`provider-contract` fake their externals.",
-  "packages/deploy/":
-    "The `nodetool deploy` toolkit (Docker/SSH/RunPod/GCP/Supabase " +
-    "self-hosting) needs a real target to prove a rollout; only its " +
-    "planning-logic unit tests run headlessly today.",
   "packages/sdk/":
     "Generated TypeScript client re-exporting the tRPC/WebSocket surface; " +
     "has no test script of its own (build + lint only) — exercised " +

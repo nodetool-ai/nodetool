@@ -162,6 +162,33 @@ describe("createJsScriptToolBridge", () => {
     expect(bridge.finalState().lastRun?.ok).toBe(false);
   });
 
+  it("fails a run and a test of a document that does not validate, even when the body runs", async () => {
+    const bridge = createJsScriptToolBridge({
+      document: {
+        code: 'await output("sum", 1);',
+        outputs: [
+          { name: "sum", type: "int" },
+          { name: "sum", type: "int" }
+        ],
+        tests: [{ name: "one", inputs: {}, expect: { sum: 1 } }]
+      }
+    });
+    const run = (await call(bridge)("ui_jsscript_run", { inputs: {} })) as {
+      ok: boolean;
+      run: { ok: boolean };
+      error: string;
+      validationErrors: Array<{ code: string }>;
+    };
+    expect(run.run.ok).toBe(true);
+    expect(run.ok).toBe(false);
+    expect(run.error).toContain("js_script_duplicate_port");
+    expect(bridge.finalState().lastRun?.ok).toBe(false);
+
+    const test = (await call(bridge)("ui_jsscript_test", {})) as { ok: boolean; passed: number };
+    expect(test).toMatchObject({ ok: false, passed: 1 });
+    expect(bridge.finalState().lastTest?.ok).toBe(false);
+  });
+
   it("does not fail a run when no outputs are declared", async () => {
     const bridge = createJsScriptToolBridge({
       document: { code: "const unused = 1;" }

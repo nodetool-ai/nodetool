@@ -604,10 +604,7 @@ export const SANDBOX_API_COVERAGE: Readonly<
     elsewhere:
       "The sandbox has its own contained list_directory and glob."
   },
-  "fonts.list": {
-    gap:
-      "Font discovery for the editor; no headless consumer yet."
-  },
+  "fonts.list": { capability: "list_fonts" },
   "healthz": {
     elsewhere:
       "Liveness of a server the in-process capabilities do not use."
@@ -1329,6 +1326,20 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "storage.files": {
     gap: "The storage view lists stored files and what holds them in the app; the agent has no capability for it."
   },
+  "storage.erasePreview": {
+    gap: "The storage view shows what refers to a file before an erase; the agent has no capability for it."
+  },
+  "storage.projectFileLists": {
+    gap: "The app shows a project's Incomplete and erased lists; the agent has no capability that reads them."
+  },
+  "storage.erase": {
+    withheld:
+      "Erasing deletes a file's stored bytes for everyone who shares the " +
+      "project, and nothing restores them. Only the owner decides that, in the app."
+  },
+  "storage.unerase": {
+    gap: "Taking a file off the erased list is available in the app; the agent has no capability for it."
+  },
   "storage.signUrl": {
     withheld:
       "A signed URL grants whoever holds it direct object access, " +
@@ -1362,12 +1373,8 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "receive.release": {
     withheld: "Revision sets belong to the desktop app that captured them."
   },
-  "deletedDocuments.list": {
-    gap: "The app lists deleted documents for restore; the agent has no capability that reads them."
-  },
-  "deletedDocuments.restore": {
-    gap: "Restoring a deleted document is available in the app; the agent has no restore capability."
-  },
+  "deletedDocuments.list": { capability: "list_deleted_documents" },
+  "deletedDocuments.restore": { capability: "restore_deleted_document" },
   "deletedDocuments.endRestorePeriod": {
     withheld:
       "Ending the restore period destroys the kept copy for good. Only the " +

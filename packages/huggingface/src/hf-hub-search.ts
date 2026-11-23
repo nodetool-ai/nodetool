@@ -8,6 +8,7 @@
  */
 
 import { listModels } from "@huggingface/hub";
+import { resolveHfEndpoint } from "@nodetool-ai/config";
 import type { PipelineType } from "@huggingface/hub";
 
 import { resolveHfToken } from "./hf-auth.js";
@@ -49,6 +50,8 @@ export interface SearchHfHubOptions {
   limit?: number;
   /** HF Hub token; default: resolveHfToken(undefined). */
   token?: string | null;
+  /** Hub host; default: resolveHfEndpoint(). */
+  endpoint?: string | null;
 }
 
 export interface ListAllHfModelsOptions {
@@ -208,7 +211,8 @@ export async function searchHfHub(
     }
     const listArgs: Parameters<typeof listModels>[0] & object = {
       search,
-      additionalFields: ["tags", "library_name"]
+      additionalFields: ["tags", "library_name"],
+      hubUrl: resolveHfEndpoint(options.endpoint)
     };
     if (options.limit && !libraryFilter) {
       listArgs.limit = options.limit;

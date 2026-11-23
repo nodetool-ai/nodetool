@@ -7,6 +7,8 @@ import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+import { I18nextProvider } from "react-i18next";
+import { createAppI18n } from "../../../i18n/i18n";
 
 import ProviderOnboardingDialog from "../ProviderOnboardingDialog";
 import useProviderOnboardingStore from "../../../stores/ProviderOnboardingStore";
@@ -87,6 +89,26 @@ const renderDialog = () =>
       <ProviderOnboardingDialog />
     </ThemeProvider>
   );
+
+describe("ProviderOnboardingDialog in Chinese", () => {
+  it("lists providers that work in mainland China before the blocked ones", () => {
+    render(
+      <I18nextProvider i18n={createAppI18n("zh-CN")}>
+        <ThemeProvider theme={mockTheme}>
+          <ProviderOnboardingDialog />
+        </ThemeProvider>
+      </I18nextProvider>
+    );
+    const cards = screen
+      .getAllByRole("article")
+      .map((card) => card.getAttribute("aria-label"));
+    const deepseek = cards.indexOf("DeepSeek");
+    expect(deepseek).toBeGreaterThanOrEqual(0);
+    expect(cards.indexOf("Alibaba Cloud")).toBeGreaterThanOrEqual(0);
+    expect(deepseek).toBeLessThan(cards.indexOf("ChatGPT (Codex)"));
+    expect(deepseek).toBeLessThan(cards.indexOf("OpenAI"));
+  });
+});
 
 describe("ProviderOnboardingDialog", () => {
   it("renders outside a Router without crashing", () => {

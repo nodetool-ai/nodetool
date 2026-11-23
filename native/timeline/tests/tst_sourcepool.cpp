@@ -368,6 +368,202 @@ private slots:
         pool.update(tl, 5500.0);
         QVERIFY2(pool.sourceFor("a") == nullptr, "clip past kPrerollMs was not retired");
     }
+
+    // Jumping across split clips that share one media file adopts the retiring
+    // decoder instead of reopening from disk, and never flashes the old clip's frame.
+    void sameMediaClipAdoptsRetiringDecoder() {
+        FrameCache::shared().clear();
+        Timeline tl;
+        tl.durationMs = 8000;
+        Track track;
+        track.id = "t";
+        tl.tracks.push_back(track);
+        Clip a;
+        a.id = "cut-a";
+        a.trackId = "t";
+        a.startMs = 0;
+        a.durationMs = 2000;
+        a.inPointMs = 0;
+        a.mediaPath = media("numbered-a-1080p30.mp4");
+        Clip a2;
+        a2.id = "cut-a2";
+        a2.trackId = "t";
+        a2.startMs = 6000;
+        a2.durationMs = 2000;
+        a2.inPointMs = 15000;
+        a2.mediaPath = media("numbered-a-1080p30.mp4");
+        tl.clips.push_back(a);
+        tl.clips.push_back(a2);
+
+        std::atomic<int> videoOpens{0};
+        SourcePool pool(SourcePool::WorkerReadProbes{[&] { ++videoOpens; }, {}});
+        QElapsedTimer t;
+        t.start();
+        bool exact = false;
+        while (!exact && t.elapsed() < 4000) {
+            pool.update(tl, 500.0);
+            if (auto* src = dynamic_cast<FfmpegSource*>(pool.sourceFor("cut-a"))) {
+                auto f = src->decoder().frameAt(0.5);
+                exact = f && src->decoder().exact();
+            }
+            if (!exact) QThread::msleep(2);
+        }
+        QVERIFY(exact);
+        QCOMPARE(videoOpens.load(), 1);
+
+        // Jump past kPrerollMs to cut-a2 (source 16.0 s): cut-a retires and
+        // cut-a2 adopts its open decoder with no new file open and no stale frame flash.
+        pool.update(tl, 7000.0);
+        QVERIFY(pool.sourceFor("cut-a") == nullptr);
+        auto* adopted = dynamic_cast<FfmpegSource*>(pool.sourceFor("cut-a2"));
+        QVERIFY(adopted != nullptr);
+        QCOMPARE(videoOpens.load(), 1);
+        auto immediate = adopted->decoder().frameAt(16.0);
+        QVERIFY2(!immediate || std::abs(immediate->ptsSec - 16.0) < 0.05,
+                 "adopted decoder flashed previous clip's frame");
+
+        t.restart();
+        exact = false;
+        double pts = -1.0;
+        while (!exact && t.elapsed() < 4000) {
+            pool.update(tl, 7000.0);
+            auto* src = dynamic_cast<FfmpegSource*>(pool.sourceFor("cut-a2"));
+            QVERIFY(src != nullptr);
+            auto f = src->decoder().frameAt(16.0);
+            if (f && src->decoder().exact()) {
+                exact = true;
+                pts = f->ptsSec;
+            } else {
+                QThread::msleep(2);
+            }
+        }
+        QVERIFY(exact);
+        QCOMPARE(std::lround(pts * 30.0), 480L);
+        QCOMPARE(videoOpens.load(), 1);
+    }
+
+    // Software decode thread budgeting: solo active video (and single-track
+    // cut lookahead) gets auto (0), still images get 1, multi-track active and
+    // multi-track upcoming clips get the multi-track cap, and idle recently-
+    // passed clips keep their budget to avoid codec rebuilds on backward scrub.
+    void softwareThreadBudgetScalesWithActiveTracks() {
+        ModeScope scope(DecodeMode::Software);
+        FrameCache::shared().clear();
+
+        const int hwCores = std::max(1, static_cast<int>(std::thread::hardware_concurrency()));
+        const int expectedMulti = std::clamp((hwCores * 2) / 3, std::min(4, hwCores), 8);
+
+        Timeline tl;
+        tl.durationMs = 15000;
+        for (int i = 0; i < 4; ++i) {
+            Track t;
+            t.id = "t" + std::to_string(i);
+            tl.tracks.push_back(t);
+        }
+        Clip v1;
+        v1.id = "v1";
+        v1.trackId = "t0";
+        v1.startMs = 0;
+        v1.durationMs = 15000;
+        v1.mediaPath = media("numbered-a-1080p30.mp4");
+
+        Clip v2;
+        v2.id = "v2";
+        v2.trackId = "t1";
+        v2.startMs = 2000;
+        v2.durationMs = 8000;
+        v2.mediaPath = media("numbered-b-1080p30.mp4");
+
+        Clip v3;
+        v3.id = "v3";
+        v3.trackId = "t2";
+        v3.startMs = 2500;
+        v3.durationMs = 7500;
+        v3.mediaPath = media("numbered-c-1080p30.mp4");
+
+        Clip img;
+        img.id = "img";
+        img.trackId = "t3";
+        img.startMs = 0;
+        img.durationMs = 15000;
+        img.mediaType = MediaType::Image;
+        img.mediaPath = media("numbered-a-1080p30.mp4");
+
+        // Single-track cut lookahead: 1 active video + 1 upcoming cut both get 0.
+        Timeline singleCut;
+        singleCut.durationMs = 10000;
+        singleCut.tracks.push_back(tl.tracks[0]);
+        Clip cutA = v1;
+        cutA.id = "cutA";
+        cutA.durationMs = 2000;
+        Clip cutB = v2;
+        cutB.id = "cutB";
+        cutB.trackId = "t0";
+        cutB.startMs = 2000;
+        singleCut.clips = {cutA, cutB};
+        {
+            SourcePool cutPool;
+            cutPool.update(singleCut, 1000.0, {"cutA"});
+            auto* a = dynamic_cast<FfmpegSource*>(cutPool.sourceFor("cutA"));
+            auto* b = dynamic_cast<FfmpegSource*>(cutPool.sourceFor("cutB"));
+            QVERIFY(a && b);
+            QCOMPARE(a->decoder().softwareThreads(), 0);
+            QCOMPARE(b->decoder().softwareThreads(), 0);
+        }
+
+        tl.clips = {v1, v2, v3, img};
+
+        SourcePool pool;
+        // At 1000 ms: v1 is the sole active video clip, img is an image clip,
+        // and v2/v3 are 2 upcoming multi-track clips (pre-opened with expectedMulti).
+        pool.update(tl, 1000.0, {"v1", "img"});
+        auto* s1 = dynamic_cast<FfmpegSource*>(pool.sourceFor("v1"));
+        auto* s2 = dynamic_cast<FfmpegSource*>(pool.sourceFor("v2"));
+        auto* s3 = dynamic_cast<FfmpegSource*>(pool.sourceFor("v3"));
+        auto* sImg = dynamic_cast<FfmpegSource*>(pool.sourceFor("img"));
+        QVERIFY(s1 && s2 && s3 && sImg);
+        QCOMPARE(s1->decoder().softwareThreads(), 0);
+        QCOMPARE(sImg->decoder().softwareThreads(), 1);
+        QCOMPARE(s2->decoder().softwareThreads(), expectedMulti);
+        QCOMPARE(s3->decoder().softwareThreads(), expectedMulti);
+
+        // At 4000 ms: v1, v2, v3 are all active video tracks. Each gets the
+        // multi-track cap, and resized decoders still seek to exact frames.
+        pool.update(tl, 4000.0, {"v1", "v2", "v3", "img"});
+        QCOMPARE(s1->decoder().softwareThreads(), expectedMulti);
+        QCOMPARE(s2->decoder().softwareThreads(), expectedMulti);
+        QCOMPARE(s3->decoder().softwareThreads(), expectedMulti);
+        QCOMPARE(sImg->decoder().softwareThreads(), 1);
+
+        QElapsedTimer t;
+        t.start();
+        bool exact1 = false, exact2 = false;
+        double pts1 = -1.0, pts2 = -1.0;
+        while ((!exact1 || !exact2) && t.elapsed() < 4000) {
+            pool.update(tl, 4000.0, {"v1", "v2", "v3", "img"});
+            if (auto f1 = s1->decoder().frameAt(4.0); f1 && s1->decoder().exact()) {
+                exact1 = true;
+                pts1 = f1->ptsSec;
+            }
+            if (auto f2 = s2->decoder().frameAt(2.0); f2 && s2->decoder().exact()) {
+                exact2 = true;
+                pts2 = f2->ptsSec;
+            }
+            if (!exact1 || !exact2) QThread::msleep(2);
+        }
+        QVERIFY(exact1);
+        QVERIFY(exact2);
+        QCOMPARE(std::lround(pts1 * 30.0), 120L);
+        QCOMPARE(std::lround(pts2 * 30.0), 60L);
+
+        // At 11000 ms: v1 is solo active again (0), while v2/v3 are recently
+        // passed and keep their open thread budget without churn.
+        pool.update(tl, 11000.0, {"v1", "img"});
+        QCOMPARE(s1->decoder().softwareThreads(), 0);
+        QVERIFY(pool.sourceFor("v2") != nullptr);
+        QCOMPARE(s2->decoder().softwareThreads(), expectedMulti);
+        QCOMPARE(s3->decoder().softwareThreads(), expectedMulti);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestSourcePool)

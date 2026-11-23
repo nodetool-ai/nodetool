@@ -97,6 +97,7 @@ Item {
         cursorShape: pressed ? Qt.ClosedHandCursor : Qt.SizeHorCursor
         property double startSceneX: 0
         property double startMs: 0
+        property double lastScrubMs: -1
         onPressed: mouse => {
             if (playhead.passthroughRoot && playhead.passthroughAt(playhead.passthroughRoot,
                 mapToItem(playhead.passthroughRoot, mouse.x, mouse.y))) {
@@ -105,13 +106,21 @@ Item {
             }
             startSceneX = mapToItem(null, mouse.x, 0).x
             startMs = playhead.clock.time
+            lastScrubMs = startMs
         }
         onPositionChanged: mouse => {
             if (!pressed) return
             const deltaMs = (mapToItem(null, mouse.x, 0).x - startSceneX) * playhead.viewState.msPerPx
             const cap = playhead.endMs > 0 ? playhead.endMs : Number.MAX_SAFE_INTEGER
-            playhead.clock.scrub(Math.max(0, Math.min(cap, startMs + deltaMs)))
+            const ms = Math.max(0, Math.min(cap, startMs + deltaMs))
+            if (ms === lastScrubMs) return
+            lastScrubMs = ms
+            playhead.clock.scrub(ms)
         }
-        onCanceled: playhead.clock.seek(startMs)
+        onReleased: lastScrubMs = -1
+        onCanceled: {
+            lastScrubMs = -1
+            playhead.clock.seek(startMs)
+        }
     }
 }

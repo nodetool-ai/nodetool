@@ -8,8 +8,19 @@
  * reader may read.
  */
 
-/** The document kinds that have a reference set function. */
-export const REF_DOCUMENT_KINDS = ["workflow", "timeline"] as const;
+/**
+ * The document kinds that have a reference set function: every kind a grant
+ * can name. All are whole documents until phases 3 and 5.
+ */
+export const REF_DOCUMENT_KINDS = [
+  "workflow",
+  "timeline",
+  "storyboard",
+  "script",
+  "sketch",
+  "application",
+  "jsscript"
+] as const;
 export type RefDocumentKind = (typeof REF_DOCUMENT_KINDS)[number];
 
 export function isRefDocumentKind(value: unknown): value is RefDocumentKind {
@@ -30,11 +41,16 @@ export const DOCUMENT_REF_SCOPES = [
 export type DocumentRefScope = (typeof DOCUMENT_REF_SCOPES)[number];
 
 import { isRecord, isString } from "./predicates.js";
+import { decodeSketchLayerData, SERIALIZED_LAYER_DATA_PREFIX } from "./api-schemas/sketch.js";
 
 const ASSET_ID = /^[0-9a-f]{32}$/;
 
-/** A field whose value is asset ids: `assetId`, `asset_ids`, `sourceVideoAssetId`, … */
-const ASSET_ID_KEY = /asset_?ids?$/i;
+/**
+ * A field whose value is asset ids: `assetId`, `asset_ids`,
+ * `sourceVideoAssetId`, … An entity of the ingredient library is an image
+ * asset, so `entity_id`, `entityId` and `entity_ids` name assets too.
+ */
+const ASSET_ID_KEY = /(?:asset|entity)_?ids?$/i;
 
 /** A map keyed by asset id, such as `durationsByAssetId`. */
 const BY_ASSET_ID_KEY = /by_?asset_?id$/i;
@@ -53,6 +69,12 @@ function idFromLocator(value: string): string | null {
 }
 
 function addFromString(value: string, found: Set<string>): void {
+  // A sketch layer's `data` holds its image inside an envelope.
+  if (value.startsWith(SERIALIZED_LAYER_DATA_PREFIX)) {
+    const { image } = decodeSketchLayerData(value, 0, 0);
+    if (image !== null && !image.startsWith(SERIALIZED_LAYER_DATA_PREFIX)) addFromString(image, found);
+    return;
+  }
   const locator = idFromLocator(value);
   if (locator) found.add(locator);
   if (value.includes("/api/storage/")) {
@@ -94,14 +116,17 @@ function collect(content: unknown): Set<string> {
 
 /**
  * The asset ids `content` refers to, sorted. `content` is the stored
- * document: a workflow's graph, or a timeline's document. It may also be
- * the JSON text of either.
+ * document: a workflow's graph, a timeline's, storyboard's, script's,
+ * app's or JS script's document, or a sketch's document with its thumbnail.
+ * It may also be the JSON text of any of them.
  *
- * Both kinds are whole documents in phase 1, so every value they hold is
- * current content: a clip's versions and a node's properties are followed
- * like any other field. A reference is an `asset://` locator, a storage URL,
- * a 32-character id under a field named like `assetId` or `asset_ids`, or a
- * key of a map named like `durationsByAssetId`.
+ * Every kind is a whole document in phase 2, so every value it holds is
+ * current content: a clip's versions, a shot's earlier keyframes and a
+ * node's properties are followed like any other field. A reference is an
+ * `asset://` locator, a storage URL, a 32-character id under a field named
+ * like `assetId`, `asset_ids` or `entityId`, a key of a map named like
+ * `durationsByAssetId`, or either of the first two inside a sketch layer's
+ * `ntlayer:` envelope.
  */
 export function refsOf(kind: RefDocumentKind, content: unknown): string[] {
   if (!isRefDocumentKind(kind)) {

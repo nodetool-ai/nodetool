@@ -428,7 +428,23 @@ export const JOBS_TO_BE_DONE: readonly ErasedJob[] = [
       {
         name: "actually-drawn",
         describe: "Something was painted, not just set up.",
-        test: (s) => s.strokedFraction > 0
+        test: (s) => s.paintedFraction > 0
+      },
+      {
+        name: "parts-on-their-layers",
+        describe: "The sky, the hills and the sun each sit on a layer named for them, and that layer holds pixels.",
+        test: (s) => {
+          // Three different visible layers, one per part, each holding pixels.
+          const painted = s.layers.filter((l) => l.visible && l.opacity > 0 && l.paintedPixels > 0);
+          const assign = (parts: RegExp[], used: Set<string>): boolean => {
+            const [part, ...rest] = parts;
+            if (part === undefined) return true;
+            return painted.some(
+              (l) => !used.has(l.id) && part.test(l.name) && assign(rest, new Set([...used, l.id]))
+            );
+          };
+          return assign([/sky/i, /hill/i, /sun/i], new Set());
+        }
       }
     ]
   }),

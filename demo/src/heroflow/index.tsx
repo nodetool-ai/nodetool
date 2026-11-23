@@ -4,6 +4,7 @@ import { Composition, Still, registerRoot } from "remotion";
 import { DURATION_FRAMES, FPS } from "./clock";
 import { HeroFlow } from "./HeroFlow";
 import { MOCKUPS, MockupFrame, MockupOverview } from "./Mockups";
+import { VerticalCut } from "./VerticalCut";
 import { LOOP_FRAMES } from "./editors/common";
 import { GameLoop } from "./editors/GameLoop";
 import { Model3DLoop } from "./editors/Model3DLoop";
@@ -35,6 +36,31 @@ export function HeroFlowRoot(): React.JSX.Element {
         width={1920}
         height={1080}
       />
+      {/* The Chinese, Japanese and Korean cuts for their pages and video feeds: same
+          film and timing, localized copy. The Chinese cut shows DeepSeek as
+          the agent's model. */}
+      {(["zh", "ja", "ko"] as const).map((locale) => (
+        <React.Fragment key={locale}>
+          <Composition
+            id={`HeroFlow-${locale}`}
+            component={HeroFlow}
+            defaultProps={{ locale }}
+            durationInFrames={DURATION_FRAMES}
+            fps={FPS}
+            width={1920}
+            height={1080}
+          />
+          <Composition
+            id={`HeroFlow-${locale}-Vertical`}
+            component={VerticalCut}
+            defaultProps={{ locale }}
+            durationInFrames={DURATION_FRAMES}
+            fps={FPS}
+            width={1080}
+            height={1920}
+          />
+        </React.Fragment>
+      ))}
       {SURFACE_LOOPS.map((loop) => (
         <Composition
           key={loop.id}

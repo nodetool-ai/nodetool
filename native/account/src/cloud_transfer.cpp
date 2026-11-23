@@ -16,6 +16,8 @@ using nlohmann::json;
 // A send or receive uploads or downloads every file it carries in one call.
 constexpr std::chrono::minutes kRunTimeout{30};
 constexpr std::chrono::seconds kCaptureTimeout{120};
+// The bundled server's Collect step (D22), outside the cloudTransfer router.
+constexpr std::string_view kCollectProcedure = "assets.collect";
 
 json unwrap(const json& value) {
   if (value.is_object() && value.contains("json")) {
@@ -100,6 +102,12 @@ std::vector<TransferOperation> unreviewedOperations(const std::vector<TransferOp
   return out;
 }
 
+bool hasRequiredWork(const SendCapture& send) {
+  return !send.operations.empty() ||
+         std::ranges::any_of(send.fileOperations,
+                             [](const TransferFileOperation& op) { return op.op != "put_workspace_file"; });
+}
+
 std::vector<TransferFileOperation> unreviewedFileOperations(const std::vector<TransferFileOperation>& approved,
                                                             const std::vector<TransferFileOperation>& recaptured) {
   const auto same = [](const TransferFileOperation& a, const TransferFileOperation& b) {
@@ -146,7 +154,8 @@ LocalTransferClient::Answer LocalTransferClient::post(const std::string& procedu
   request.headers = headers_;
   request.headers.emplace_back("Content-Type", "application/json");
   request.body = body;
-  const bool run = procedure.ends_with(".run") || procedure.ends_with("resume");
+  // Collecting copies whole files, so it gets the time of a run.
+  const bool run = procedure.ends_with(".run") || procedure.ends_with("resume") || procedure == kCollectProcedure;
   request.timeout = run ? std::chrono::milliseconds(kRunTimeout) : std::chrono::milliseconds(kCaptureTimeout);
   request.cancel = cancel_;
   const HttpResponse response = transport_.send(request);
@@ -316,12 +325,17 @@ SendCapture LocalTransferClient::captureSend(const std::string& projectId, const
     out.deletedLocally.push_back(
         {str(item, "kind"), str(item, "local_id"), str(item, "cloud_id"), str(item, "base_hash")});
   }
+  for (const json& item : data.value("deleted_workspace_files", json::array())) {
+    out.deletedWorkspaceFiles.push_back({str(item, "path"), str(item, "base_hash")});
+  }
   return out;
 }
 
 SendRun LocalTransferClient::runSend(const std::string& transferId, const std::vector<KeepLocalDecision>& decisions,
                                      const std::vector<DeleteConfirmation>& confirmDeletes,
-                                     const std::vector<TransferMissingFile>& confirmMissing) {
+                                     const std::vector<TransferMissingFile>& confirmMissing,
+                                     const std::vector<TransferDeletedFile>& confirmFileDeletes,
+                                     const std::vector<IncludedFile>& includeFiles) {
   json input{{"transfer_id", transferId}};
   if (!decisions.empty()) {
     json list = json::array();
@@ -343,6 +357,22 @@ SendRun LocalTransferClient::runSend(const std::string& transferId, const std::v
           {{"kind", confirmation.kind}, {"cloud_id", confirmation.cloudId}, {"cloud_hash", confirmation.cloudHash}});
     }
     input["confirm_deletes"] = std::move(list);
+  }
+  {
+    // Also always complete, for the same reason.
+    json list = json::array();
+    for (const TransferDeletedFile& file : confirmFileDeletes) {
+      list.push_back({{"path", file.path}, {"base_hash", file.baseHash}});
+    }
+    input["confirm_workspace_deletes"] = std::move(list);
+  }
+  {
+    // Complete as well: a file left out on this attempt is not put.
+    json list = json::array();
+    for (const IncludedFile& file : includeFiles) {
+      list.push_back({{"path", file.path}, {"hash", file.hash}});
+    }
+    input["include_workspace_files"] = std::move(list);
   }
   if (!confirmMissing.empty()) {
     json list = json::array();
@@ -417,6 +447,35 @@ LocalTransferClient::LinkStatus LocalTransferClient::linkStatus(const std::strin
   return out;
 }
 
+LocalTransferClient::Collect LocalTransferClient::collectLinked(const std::string& projectId) {
+  const Answer answer = mutate(std::string(kCollectProcedure), json{{"project_id", projectId}}.dump(), false);
+  Collect out;
+  out.status = answer.status;
+  out.reason = answer.reason;
+  if (answer.status != TransferStatus::Ok) {
+    return out;
+  }
+  const json data = json::parse(answer.data, nullptr, false);
+  if (!data.is_object() || !data.contains("copied") || !data["copied"].is_array()) {
+    out.status = TransferStatus::Refused;
+    out.reason = "INVALID_RESPONSE";
+    return out;
+  }
+  for (const json& file : data["copied"]) {
+    out.copied.push_back(str(file, "name"));
+  }
+  for (const char* list : {"skipped", "failed"}) {
+    if (!data.contains(list) || !data[list].is_array()) {
+      continue;
+    }
+    for (const json& file : data[list]) {
+      out.notCollected.push_back(str(file, "name") + ": " + str(file, "reason"));
+    }
+  }
+  out.interrupted = data.value("interrupted", false);
+  return out;
+}
+
 LocalTransferClient::ReceiveCancel LocalTransferClient::cancelReceive(const std::string& setId) {
   const Answer answer = mutate("cloudTransfer.receive.cancel", json{{"set_id", setId}}.dump(), true);
   ReceiveCancel out;
@@ -459,6 +518,22 @@ static bool readReceiveDocuments(const json& list, std::vector<ReceiveDocument>&
   return true;
 }
 
+// Reads the workspace files of a receive review. False for a state this
+// client does not know.
+static bool readReceiveWorkspaceFiles(const json& list, std::vector<ReceiveWorkspaceFile>& out) {
+  out.clear();
+  for (const json& item : list) {
+    ReceiveWorkspaceFile file{str(item, "path"), str(item, "hash"), str(item, "status")};
+    if (file.state != "same" && file.state != "new" && file.state != "cloud_changed" && file.state != "both_changed" &&
+        file.state != "local_deleted") {
+      out.clear();
+      return false;
+    }
+    out.push_back(std::move(file));
+  }
+  return true;
+}
+
 ReceiveCapture LocalTransferClient::captureReceive(const std::string& projectId) {
   const Answer answer = mutate("cloudTransfer.receive.capture", json{{"project_id", projectId}}.dump(), true);
   ReceiveCapture out;
@@ -469,15 +544,29 @@ ReceiveCapture LocalTransferClient::captureReceive(const std::string& projectId)
   }
   const json data = json::parse(answer.data, nullptr, false);
   out.setId = str(data, "set_id");
-  if (!readReceiveDocuments(data.value("documents", json::array()), out.documents)) {
+  if (!readReceiveDocuments(data.value("documents", json::array()), out.documents) ||
+      !readReceiveWorkspaceFiles(data.value("workspace_files", json::array()), out.workspaceFiles)) {
     out.status = TransferStatus::Refused;
     out.reason = "INVALID_RESPONSE";
+    return out;
+  }
+  for (const json& path : data.value("cloud_deleted_workspace_files", json::array())) {
+    if (path.is_string()) {
+      out.cloudDeletedWorkspaceFiles.push_back(path.get<std::string>());
+    }
   }
   return out;
 }
 
-ReceiveRun LocalTransferClient::runReceive(const std::string& setId, const std::vector<ReceiveDecision>& decisions) {
+ReceiveRun LocalTransferClient::runReceive(const std::string& setId,
+                                           const std::vector<ReceiveDecision>& decisions,
+                                           const std::vector<IncludedFile>& includeFiles) {
   json input{{"set_id", setId}};
+  json included = json::array();
+  for (const IncludedFile& file : includeFiles) {
+    included.push_back({{"path", file.path}, {"hash", file.hash}});
+  }
+  input["include_workspace_files"] = std::move(included);
   if (!decisions.empty()) {
     json list = json::array();
     for (const ReceiveDecision& decision : decisions) {
@@ -501,11 +590,21 @@ ReceiveRun LocalTransferClient::runReceive(const std::string& setId, const std::
     out.changedDuringReceive = namesOf(result.value("changed_during_receive", json::array()));
     out.notReceived = namesOf(result.value("not_received", json::array()));
     out.missingFiles = result.value("missing_files", json::array()).size();
+    // A workspace file kept beside the local one is received under its kept path.
+    for (const json& path : result.value("received_workspace_files", json::array())) {
+      if (path.is_string()) {
+        out.received.push_back(path.get<std::string>());
+      }
+    }
+    for (const json& kept : result.value("kept_beside_workspace_files", json::array())) {
+      out.received.push_back(str(kept, "kept_path"));
+    }
   } else if (out.outcome == "waiting_for_review") {
     // The set to review, which may be a new one, and its documents (F50).
     out.setId = str(data, "set_id");
     out.reviewProvided = data.contains("documents");
-    if (!readReceiveDocuments(data.value("documents", json::array()), out.documents)) {
+    if (!readReceiveDocuments(data.value("documents", json::array()), out.documents) ||
+        !readReceiveWorkspaceFiles(data.value("workspace_files", json::array()), out.workspaceFiles)) {
       out.status = TransferStatus::Refused;
       out.reason = "INVALID_RESPONSE";
     }
@@ -582,6 +681,31 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     }
     rows_.push_back(std::move(row));
   }
+  // A workspace file the cloud changed is offered, off by default (RW7). One
+  // the folder holds already needs no row.
+  for (const ReceiveWorkspaceFile& file : receive.workspaceFiles) {
+    if (file.state == "same") {
+      continue;
+    }
+    ReviewRow row;
+    row.section = ReviewSection::Receive;
+    row.kind = "file";
+    row.documentId = file.path;
+    row.name = file.path;
+    row.detail = "workspace_" + file.state;
+    row.optional = true;
+    row.seenHash = file.hash;
+    rows_.push_back(std::move(row));
+  }
+  for (const std::string& path : receive.cloudDeletedWorkspaceFiles) {
+    ReviewRow row;
+    row.section = ReviewSection::Receive;
+    row.kind = "file";
+    row.documentId = path;
+    row.name = path;
+    row.detail = "workspace_cloud_deleted";
+    rows_.push_back(std::move(row));
+  }
   for (const TransferOperation& op : send.operations) {
     ReviewRow row;
     row.section = ReviewSection::Send;
@@ -627,17 +751,24 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     }
   }
   // A file sent over its earlier version gets a row, also when no document
-  // that uses it changed (review F33). A new file goes with its new document.
+  // that uses it changed (review F33). A new asset file goes with its new
+  // document. A workspace file belongs to no document, so a new one gets a
+  // row too, keyed by its path (CF5).
   for (const TransferFileOperation& op : send.fileOperations) {
-    if (op.baseHash.empty()) {
+    const bool workspaceFile = op.op == "put_workspace_file";
+    if (op.baseHash.empty() && !workspaceFile) {
       continue;
     }
     ReviewRow row;
     row.section = ReviewSection::Send;
     row.kind = "file";
-    row.documentId = op.assetId;
+    row.documentId = workspaceFile ? op.path : op.assetId;
     row.name = op.path;
-    row.detail = op.op;
+    row.detail = workspaceFile && op.baseHash.empty() ? "new_workspace_file" : op.op;
+    if (workspaceFile) {
+      row.optional = true;
+      row.seenHash = op.hash;
+    }
     rows_.push_back(std::move(row));
   }
   for (const TransferDeleted& deleted : send.deletedLocally) {
@@ -647,6 +778,14 @@ TransferReview::TransferReview(const SendCapture& send, const ReceiveCapture& re
     if (row.seenHash.empty()) {
       row.seenHash = deleted.baseHash;
     }
+  }
+  // A workspace file deleted here stays in the cloud unless the person
+  // confirms it, like a document.
+  for (const TransferDeletedFile& deleted : send.deletedWorkspaceFiles) {
+    ReviewRow& row = deletionRow("file", deleted.path);
+    row.name = deleted.path;
+    row.sendListed = true;
+    row.seenHash = deleted.baseHash;
   }
   for (const TransferSkipped& skipped : send.skipped) {
     ReviewRow row;
@@ -774,6 +913,14 @@ bool TransferReview::confirmDeletion(std::size_t index, bool confirmed) {
   return true;
 }
 
+bool TransferReview::includeFile(std::size_t index, bool included) {
+  if (index >= rows_.size() || !rows_[index].optional) {
+    return false;
+  }
+  rows_[index].confirmed = included;
+  return true;
+}
+
 bool TransferReview::confirmMissingFile(std::size_t index, bool confirmed) {
   if (index >= rows_.size() || rows_[index].section != ReviewSection::Problem || rows_[index].assetId.empty()) {
     return false;
@@ -835,8 +982,38 @@ std::vector<KeepLocalDecision> TransferReview::keepLocalDecisions() const {
 std::vector<DeleteConfirmation> TransferReview::confirmedDeletes() const {
   std::vector<DeleteConfirmation> out;
   for (const ReviewRow& row : rows_) {
-    if (row.section == ReviewSection::Deletion && row.sendListed && row.confirmed) {
+    if (row.section == ReviewSection::Deletion && row.kind != "file" && row.sendListed && row.confirmed) {
       out.push_back({row.kind, row.cloudId, row.seenHash});
+    }
+  }
+  return out;
+}
+
+std::vector<IncludedFile> TransferReview::includedFiles() const {
+  std::vector<IncludedFile> out;
+  for (const ReviewRow& row : rows_) {
+    if (row.section == ReviewSection::Send && row.optional && row.confirmed) {
+      out.push_back({row.documentId, row.seenHash});
+    }
+  }
+  return out;
+}
+
+std::vector<IncludedFile> TransferReview::includedReceiveFiles() const {
+  std::vector<IncludedFile> out;
+  for (const ReviewRow& row : rows_) {
+    if (row.section == ReviewSection::Receive && row.optional && row.confirmed) {
+      out.push_back({row.documentId, row.seenHash});
+    }
+  }
+  return out;
+}
+
+std::vector<TransferDeletedFile> TransferReview::confirmedFileDeletes() const {
+  std::vector<TransferDeletedFile> out;
+  for (const ReviewRow& row : rows_) {
+    if (row.section == ReviewSection::Deletion && row.kind == "file" && row.sendListed && row.confirmed) {
+      out.push_back({row.documentId, row.seenHash});
     }
   }
   return out;

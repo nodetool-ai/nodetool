@@ -768,8 +768,8 @@ QString ProjectFiles::resolveLocalEntry(const QString &relativePath, bool requir
       return {};
     }
     const QFileInfo info(QDir(current).filePath(segment));
-    // canonicalFilePath does not follow a Windows .lnk shortcut, so a shortcut
-    // would pass the containment checks below as an ordinary file.
+    // Qt treats a Windows .lnk shortcut as a link and reports its target's
+    // properties, so a shortcut is never resolved, listed or opened.
     if (!info.exists() || info.isShortcut()) { return {}; }
     const QString canonical = info.canonicalFilePath();
     if (canonical.isEmpty() || !canonical.startsWith(m_localRootCanonical + '/')) { return {}; }

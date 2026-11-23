@@ -112,6 +112,21 @@ struct TransferDeleted {
   std::string baseHash;
 };
 
+// A workspace file sent earlier and deleted from the project folder since.
+// A confirmed deletion names it with the same base hash, the delete's
+// precondition.
+struct TransferDeletedFile {
+  std::string path;
+  std::string baseHash;
+};
+
+// A workspace file the person included in a send, with the hash the
+// capture listed.
+struct IncludedFile {
+  std::string path;
+  std::string hash;
+};
+
 // A deletion the person confirmed, bound to the cloud revision the sheet
 // showed. That hash is the delete's precondition (V4, review F40).
 struct DeleteConfirmation {
@@ -138,10 +153,16 @@ struct SendCapture {
   std::vector<TransferMissingFile> missingFiles;
   std::vector<TransferSkipped> skipped;
   std::vector<TransferDeleted> deletedLocally;
+  std::vector<TransferDeletedFile> deletedWorkspaceFiles;
   // Documents whose file is missing from the project folder. Each is sent
   // from its last saved row (CF3, review F56).
   std::vector<TransferSkipped> missingDocumentFiles;
 };
+
+// Whether the capture holds work that is sent without a choice: a document
+// operation, or a file operation other than an optional workspace file put
+// (PRD SR7).
+bool hasRequiredWork(const SendCapture& send);
 
 // A Keep local choice for a document whose cloud version changed since its
 // base. `cloudHash` is the stored hash the review showed.
@@ -203,11 +224,23 @@ struct ReceiveDocument {
   std::size_t changedFiles = 0;
 };
 
+// A workspace file of the owner's cloud folder that changed since the last
+// exchange (technical design, "Receiving workspace files", RW6). `state` is
+// one of `same`, `new`, `cloud_changed`, `both_changed` and `local_deleted`.
+struct ReceiveWorkspaceFile {
+  std::string path;
+  std::string hash;
+  std::string state;
+};
+
 struct ReceiveCapture {
   TransferStatus status = TransferStatus::LocalUnavailable;
   std::string reason;
   std::string setId;
   std::vector<ReceiveDocument> documents;
+  std::vector<ReceiveWorkspaceFile> workspaceFiles;
+  // Paths deleted in the cloud since the last exchange. The local files stay (OQ14).
+  std::vector<std::string> cloudDeletedWorkspaceFiles;
 };
 
 struct ReceiveDecision {
@@ -230,6 +263,7 @@ struct ReceiveRun {
   std::string setId;
   bool reviewProvided = false;
   std::vector<ReceiveDocument> documents;
+  std::vector<ReceiveWorkspaceFile> workspaceFiles;
 };
 
 struct TransferResume {
@@ -261,7 +295,9 @@ public:
   // confirmed each one, or empty.
   SendRun runSend(const std::string& transferId, const std::vector<KeepLocalDecision>& decisions,
                   const std::vector<DeleteConfirmation>& confirmDeletes,
-                  const std::vector<TransferMissingFile>& confirmMissing = {});
+                  const std::vector<TransferMissingFile>& confirmMissing = {},
+                  const std::vector<TransferDeletedFile>& confirmFileDeletes = {},
+                  const std::vector<IncludedFile>& includeFiles = {});
   // Ends a send before it commits. `committed` is true when it had already
   // committed.
   struct Cancel {
@@ -272,7 +308,11 @@ public:
   Cancel cancelSend(const std::string& transferId);
 
   ReceiveCapture captureReceive(const std::string& projectId);
-  ReceiveRun runReceive(const std::string& setId, const std::vector<ReceiveDecision>& decisions);
+  // Always names `includeFiles`, so a receive leaves out every workspace
+  // file the person did not tick (RW7).
+  ReceiveRun runReceive(const std::string& setId,
+                        const std::vector<ReceiveDecision>& decisions,
+                        const std::vector<IncludedFile>& includeFiles = {});
   // Ends a receive before it applies: releases the cloud set and deletes
   // the local receive row (review F41). `applied` is true when it had
   // already applied.
@@ -294,6 +334,23 @@ public:
     std::string cloudProjectId;
   };
   LinkStatus linkStatus(const std::string& projectId);
+
+  // Copies every linked file of the project into its `Imported/` directory
+  // through the bundled server's `assets.collect`, the Collect step of
+  // decision D22 (CF6). Each asset keeps its id. Reads and writes the
+  // bundled server only and sends no token.
+  struct Collect {
+    TransferStatus status = TransferStatus::LocalUnavailable;
+    std::string reason;
+    // The names of the files copied into the folder.
+    std::vector<std::string> copied;
+    // "name: reason" for each linked file that was missing, changed since it
+    // was linked, or could not be copied and verified.
+    std::vector<std::string> notCollected;
+    // The server stopped before it tried every linked file.
+    bool interrupted = false;
+  };
+  Collect collectLinked(const std::string& projectId);
 
   // Continues every send and receive of this account that a restart
   // interrupted.
@@ -360,8 +417,12 @@ struct ReviewRow {
   std::optional<ReceiveChoice> choice;
   // For a Deletion row: true once the person confirms Keep local deletion,
   // which deletes the cloud document. The default restores the document from
-  // the cloud (PRD V4 and V5).
+  // the cloud (PRD V4 and V5). For an optional Send row: true once the
+  // person includes the file.
   bool confirmed = false;
+  // A Send row of a workspace file. It is optional and off by default, and
+  // only an included one is sent (PRD SR7). `seenHash` holds its hash.
+  bool optional = false;
   // For a Deletion row: whether the send half lists the deletion (it can be
   // sent) and whether the receive half lists the cloud version (it can be
   // restored).
@@ -419,6 +480,9 @@ public:
   // Confirms or withdraws the deletion of Deletion row `index`. Returns
   // false for another row.
   bool confirmDeletion(std::size_t index, bool confirmed);
+  // Includes or leaves out the workspace file of optional Send or Receive
+  // row `index`. Returns false for another row.
+  bool includeFile(std::size_t index, bool included);
   // Confirms that the send goes without the missing file of Problem row
   // `index`, for every document that needs it. Returns false for another
   // row.
@@ -433,6 +497,12 @@ public:
   // The deletions the person confirmed, each with the cloud revision the
   // sheet showed.
   std::vector<DeleteConfirmation> confirmedDeletes() const;
+  // The workspace file deletions the person confirmed.
+  std::vector<TransferDeletedFile> confirmedFileDeletes() const;
+  // The workspace files the person included in the send.
+  std::vector<IncludedFile> includedFiles() const;
+  // The cloud's workspace files the person included in the receive (RW7).
+  std::vector<IncludedFile> includedReceiveFiles() const;
   // The capture's missing files once each one is confirmed, or empty.
   std::vector<TransferMissingFile> confirmedMissingFiles() const;
 

@@ -17,6 +17,8 @@ import {
 } from "@/data/adLibrary";
 import type { AdBeat } from "@/data/adLibrary";
 import { usePrefersReducedMotion } from "@/lib/useGridParallax";
+import { EN_AD_LABELS, fmt } from "@/i18n/detailLabels";
+import type { AdSequenceLabels } from "@/i18n/detailLabels";
 import { BeatProgress } from "./BeatProgress";
 import { useVideoBeatClock } from "./useVideoBeatClock";
 
@@ -32,6 +34,9 @@ interface AdBeatSequenceProps {
   readonly video: AdVideo;
   /** Server-rendered recipe header shown above the beat sheet. */
   readonly children: ReactNode;
+  readonly labels?: AdSequenceLabels;
+  /** Beat roles and copy slots by key. A missing key falls back to formatKey. */
+  readonly keyLabels?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -51,8 +56,13 @@ export default function AdBeatSequence({
   title,
   beats,
   video,
-  children
+  children,
+  labels = EN_AD_LABELS.sequence,
+  keyLabels = {}
 }: AdBeatSequenceProps) {
+  const keyLabel = (key: string) => keyLabels[key] ?? formatKey(key);
+  const seconds = (ms: number) =>
+    fmt(labels.seconds, { n: formatSeconds(ms).slice(0, -1) });
   const videoRef = useRef<HTMLVideoElement>(null);
   const clock = useVideoBeatClock(videoRef, beats);
   const reducedMotion = usePrefersReducedMotion();
@@ -145,10 +155,10 @@ export default function AdBeatSequence({
               id="beats-title"
               className="text-3xl font-semibold tracking-tight text-white md:text-4xl"
             >
-              Beat sheet
+              {labels.beatsTitle}
             </h2>
             <p className="font-jetbrains text-sm text-slate-400">
-              {beats.length} beats · {formatSeconds(durationMs)}
+              {fmt(labels.beatsSummary, { count: beats.length, duration: seconds(durationMs) })}
             </p>
           </div>
           <figure className="mb-14 lg:hidden">
@@ -159,12 +169,11 @@ export default function AdBeatSequence({
               muted
               playsInline
               preload="none"
-              aria-label={`${title}, rendered from a NodeTool timeline`}
+              aria-label={fmt(labels.film, { title })}
               className="mx-auto aspect-[9/16] w-full max-w-[340px] rounded-[1.5rem] bg-slate-900 object-cover ring-1 ring-white/15"
             />
             <figcaption className="mx-auto mt-3 max-w-[340px] text-xs leading-relaxed text-slate-500">
-              Rendered from a NodeTool timeline at these beat times. The
-              brand, copy and numbers are fictional.
+              {labels.note}
             </figcaption>
           </figure>
           <ol>
@@ -208,12 +217,12 @@ export default function AdBeatSequence({
                   </div>
                   <div className={isLast ? "pb-4" : "pb-16"}>
                     <p className="font-jetbrains text-xs text-slate-400">
-                      <span className="lg:hidden">Beat {index + 1} · </span>
-                      {formatSeconds(beat.start_ms)}–
-                      {formatSeconds(beat.end_ms)}
+                      <span className="lg:hidden">{fmt(labels.beat, { n: index + 1 })}</span>
+                      {seconds(beat.start_ms)}–
+                      {seconds(beat.end_ms)}
                       <span className="text-slate-600">
                         {" "}
-                        · {formatSeconds(beat.end_ms - beat.start_ms)}
+                        · {seconds(beat.end_ms - beat.start_ms)}
                       </span>
                     </p>
                     <h3
@@ -222,27 +231,27 @@ export default function AdBeatSequence({
                         isActive ? "text-amber-200" : "text-white"
                       }`}
                     >
-                      {formatKey(beat.role)}
+                      {keyLabel(beat.role)}
                     </h3>
                     <p className="mt-3 max-w-2xl text-lg leading-relaxed text-slate-200">
                       {beat.composition}
                     </p>
                     <dl className="mt-6 grid gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 md:grid-cols-3">
-                      <BeatDetail icon={Move} label="Motion">
+                      <BeatDetail icon={Move} label={labels.motion}>
                         {beat.motion}
                       </BeatDetail>
-                      <BeatDetail icon={Volume2} label="Sound">
+                      <BeatDetail icon={Volume2} label={labels.sound}>
                         {beat.audio_cue}
                       </BeatDetail>
-                      <BeatDetail icon={ListChecks} label="Check">
+                      <BeatDetail icon={ListChecks} label={labels.check}>
                         {beat.qa}
                       </BeatDetail>
                     </dl>
                     <p className="mt-4 inline-flex items-center gap-2 text-xs text-slate-400">
                       <Type className="h-3.5 w-3.5" aria-hidden="true" />
-                      Copy slot:
+                      {labels.copySlot}
                       <span className="text-slate-200">
-                        {formatKey(beat.copy_slot)}
+                        {keyLabel(beat.copy_slot)}
                       </span>
                     </p>
                   </div>
@@ -252,7 +261,7 @@ export default function AdBeatSequence({
           </ol>
         </section>
       </div>
-      <aside aria-label="Sequence preview" className="hidden lg:block">
+      <aside aria-label={labels.preview} className="hidden lg:block">
         <div
           className="sticky top-36"
           style={{ width: "min(340px, calc((100vh - 20rem) * 0.5625))" }}
@@ -265,12 +274,12 @@ export default function AdBeatSequence({
               muted
               playsInline
               preload="metadata"
-              aria-label={`${title}, rendered from a NodeTool timeline`}
+              aria-label={fmt(labels.film, { title })}
               className="block aspect-[9/16] w-full bg-slate-900 object-cover"
             />
             <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/55 to-transparent px-4 pb-10 pt-4 text-xs font-medium text-white">
               <span className="rounded-full bg-black/40 px-2.5 py-1 backdrop-blur">
-                {formatKey(active.role)}
+                {keyLabel(active.role)}
               </span>
               <span className="font-jetbrains">
                 {clock.activeIndex + 1}/{beats.length}
@@ -281,7 +290,7 @@ export default function AdBeatSequence({
             <button
               type="button"
               onClick={clock.playing ? clock.pause : clock.play}
-              aria-label={clock.playing ? "Pause preview" : "Play preview"}
+              aria-label={clock.playing ? labels.pause : labels.play}
               className="focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-slate-950 transition-colors hover:bg-amber-200"
             >
               {clock.playing ? (
@@ -295,14 +304,15 @@ export default function AdBeatSequence({
               elapsedMs={clock.elapsedMs}
               onSelect={selectBeat}
               className="min-w-0 flex-1"
+              showBeatLabel={labels.showBeat}
+              keyLabels={keyLabels}
             />
             <span className="w-11 shrink-0 text-right font-jetbrains text-xs tabular-nums text-slate-400">
               {(clock.elapsedMs / 1000).toFixed(1)}s
             </span>
           </div>
           <p className="mt-4 text-xs leading-relaxed text-slate-500">
-            Rendered from a NodeTool timeline at these beat times. The brand,
-            copy and numbers are fictional.
+            {labels.note}
           </p>
         </div>
       </aside>

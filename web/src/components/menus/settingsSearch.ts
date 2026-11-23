@@ -1,4 +1,8 @@
-import { isProviderAvailable, PROVIDER_META } from "./providerCatalog";
+import {
+  isProviderAvailable,
+  PROVIDER_META,
+  providerMatchesSearch
+} from "./providerCatalog";
 import type { SettingsSection } from "../../stores/SettingsPageStore";
 
 export const SETTINGS_TAB_ITEMS: ReadonlyArray<{
@@ -71,6 +75,8 @@ const INTEGRATION_KEYWORDS = [
   "search provider serp brave serpapi",
   "local model servers ollama vllm llamacpp lmstudio comfyui comfy server worker",
   "provider options zai kie",
+  "other hf endpoint hugging face huggingface mirror 镜像 hf-mirror 下载 download",
+  "region 地域 区域 china mainland 中国大陆 国内 dashscope 阿里云 百炼 通义 kimi 月之暗面 minimax 海螺 kling 可灵",
   "observability traceloop",
   "data storage supabase",
   "nodetool api token"
@@ -106,10 +112,7 @@ export function tabHasMatches(tab: SettingsSection, search: string): boolean {
     case "providers":
       return PROVIDER_META.some(
         (provider) =>
-          isProviderAvailable(provider) &&
-          (provider.name.toLowerCase().includes(query) ||
-          provider.description.toLowerCase().includes(query) ||
-          provider.key.toLowerCase().includes(query))
+          isProviderAvailable(provider) && providerMatchesSearch(provider, query)
       );
     case "integrations":
       return INTEGRATION_KEYWORDS.some((keywords) => keywords.includes(query));

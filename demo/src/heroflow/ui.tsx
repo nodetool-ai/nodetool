@@ -8,6 +8,7 @@ import React from "react";
 import { AbsoluteFill, Img } from "remotion";
 
 import { KIND_COLOR, type EntityKind } from "./data";
+import { useCopy } from "./locale";
 import { C, FONT, MONO, R, heroAsset } from "./theme";
 
 // ─── Icons ──────────────────────────────────────────────────────────────────
@@ -152,6 +153,7 @@ export const AgentStatusContext = React.createContext<AgentStatus | null>(null);
 
 /** The agent's chip: a pulsing sparkle while it works, a check when done. */
 export const AgentChip: React.FC<AgentStatus> = ({ text, done = false }) => {
+  const copy = useCopy();
   const color = done ? C.success : C.fuchsia;
   return (
     <div
@@ -176,7 +178,7 @@ export const AgentChip: React.FC<AgentStatus> = ({ text, done = false }) => {
         fill={!done}
         stroke={2.4}
       />
-      <span style={{ color }}>Agent</span>
+      <span style={{ color }}>{copy.ui.agent}</span>
       <span style={{ color: C.dim }}>{text}</span>
     </div>
   );
@@ -224,6 +226,7 @@ export const KindChip: React.FC<{ kind: EntityKind; size?: number }> = ({
   size = 14
 }) => {
   const color = KIND_COLOR[kind];
+  const copy = useCopy();
   return (
     <div
       style={{
@@ -240,7 +243,7 @@ export const KindChip: React.FC<{ kind: EntityKind; size?: number }> = ({
         flexShrink: 0
       }}
     >
-      {kind}
+      {copy.ui.kind[kind]}
     </div>
   );
 };
@@ -361,16 +364,17 @@ export const StatusPill: React.FC<{ state: ShotState }> = ({ state }) => {
   const isClip = state === "clip" || state === "clip-rendering";
   const busy = state === "still-rendering" || state === "clip-rendering";
   const color = state === "queued" ? C.dim : isClip ? C.video : C.image;
+  const { pill } = useCopy().ui;
   const label =
     state === "queued"
-      ? "Queued"
+      ? pill.queued
       : busy
         ? isClip
-          ? "Animating"
-          : "Rendering"
+          ? pill.animating
+          : pill.rendering
         : isClip
-          ? "Clip"
-          : "Still";
+          ? pill.clip
+          : pill.still;
   return (
     <div
       style={{
@@ -446,19 +450,13 @@ export const MagicFill: React.FC<{ phase?: number; color?: string }> = ({
 
 // ─── Narrative chrome ───────────────────────────────────────────────────────
 
-export const STEPS = [
-  "Prompt",
-  "Beat sheet",
-  "Entities",
-  "Storyboard",
-  "Timeline"
-] as const;
-
 /**
  * The step rail at the top of the stage. It is the viewer's map: one line,
  * the active step lit, the done steps checked.
  */
-export const StepRail: React.FC<{ active: number }> = ({ active }) => (
+export const StepRail: React.FC<{ active: number }> = ({ active }) => {
+  const steps = useCopy().ui.steps;
+  return (
   <div
     style={{
       position: "absolute",
@@ -473,7 +471,7 @@ export const StepRail: React.FC<{ active: number }> = ({ active }) => (
       fontWeight: 500
     }}
   >
-    {STEPS.map((step, i) => {
+    {steps.map((step, i) => {
       const done = i < active;
       const on = i === active;
       return (
@@ -512,13 +510,16 @@ export const StepRail: React.FC<{ active: number }> = ({ active }) => (
       );
     })}
   </div>
-);
+  );
+};
 
 /** The agent's one-line status under the rail: what it is doing now. */
 export const AgentLine: React.FC<{ text: string; done?: boolean }> = ({
   text,
   done = false
-}) => (
+}) => {
+  const copy = useCopy();
+  return (
   <div
     style={{
       position: "absolute",
@@ -561,11 +562,12 @@ export const AgentLine: React.FC<{ text: string; done?: boolean }> = ({
           stroke={2.4}
         />
       </div>
-      <span style={{ color: C.text, fontWeight: 500 }}>Agent</span>
+      <span style={{ color: C.text, fontWeight: 500 }}>{copy.ui.agent}</span>
       {text}
     </div>
   </div>
-);
+  );
+};
 
 /**
  * Renders a beat line, swapping `{id}` placeholders for mention chips. `at`

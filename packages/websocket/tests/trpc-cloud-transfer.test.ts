@@ -6,7 +6,7 @@
  * cloud is a recording fake behind the transport factory.
  */
 import { createHash, randomBytes } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
@@ -26,6 +26,8 @@ const cloud = {
   captures: 0,
   /** The documents the next revision set lists. */
   documents: [] as unknown[],
+  /** The owner's workspace files the next revision set lists, with their bytes. */
+  workspaceFiles: new Map<string, Uint8Array>(),
   lastCommit: null as { manifest: { operations: Array<Record<string, unknown>> }; missing_files: unknown[] } | null,
   released: [] as string[]
 };
@@ -73,14 +75,24 @@ vi.mock("../src/lib/cloud-transfer-transport.js", () => ({
           set_id: randomBytes(16).toString("hex"),
           project_id: PROJECT,
           documents: cloud.documents,
+          workspace_files: [...cloud.workspaceFiles].map(([path, bytes]) => ({
+            path,
+            hash: createHash("sha256").update(bytes).digest("hex"),
+            size: bytes.byteLength
+          })),
           expires_at: new Date().toISOString()
         };
       },
       async document() {
         throw new Error("not used");
       },
-      async downloadFile() {
-        throw new Error("not used");
+      async downloadFile(input: { hash: string }, destination: string) {
+        const bytes = [...cloud.workspaceFiles.values()].find(
+          (entry) => createHash("sha256").update(entry).digest("hex") === input.hash
+        );
+        if (!bytes) throw new Error("not in the set");
+        await writeFile(destination, bytes);
+        return "ok" as const;
       },
       async release(input: { set_id: string }) {
         cloud.released.push(input.set_id);
@@ -127,6 +139,7 @@ describe("cloudTransfer router", () => {
     cloud.commits = 0;
     cloud.captures = 0;
     cloud.documents = [];
+    cloud.workspaceFiles = new Map();
     cloud.lastCommit = null;
     cloud.released = [];
     root = await mkdtemp(join(tmpdir(), "nodetool-cloud-transfer-"));
@@ -233,6 +246,30 @@ describe("cloudTransfer router", () => {
     expect(await apiCodeOf(caller.cloudTransfer.receive.run({ ...SESSION, account_id: "account-b", set_id: set.set_id }))).toBe(
       "NOT_FOUND"
     );
+  });
+
+  it("lists the cloud's workspace files unticked and receives only those the app includes (RW7)", async () => {
+    await createCloudLink({ userId: USER, projectId: PROJECT, serverKey: SERVER_KEY, accountId: "account-a", cloudProjectId: PROJECT });
+    cloud.workspaceFiles.set("notes.txt", new TextEncoder().encode("notes"));
+    cloud.workspaceFiles.set("data.csv", new TextEncoder().encode("a,b"));
+    const caller = createCaller(makeCtx(USER));
+    const set = await caller.cloudTransfer.receive.capture({ ...SESSION, project_id: PROJECT });
+    expect(set.workspace_files).toEqual([
+      expect.objectContaining({ path: "notes.txt", status: "new", included: false, local_hash: null }),
+      expect.objectContaining({ path: "data.csv", status: "new", included: false, local_hash: null })
+    ]);
+    const notes = set.workspace_files[0]!;
+    const outcome = await caller.cloudTransfer.receive.run({
+      ...SESSION,
+      set_id: set.set_id,
+      decisions: [],
+      include_workspace_files: [{ path: notes.path, hash: notes.hash }]
+    });
+    expect(outcome).toMatchObject({
+      status: "finished",
+      result: { received_workspace_files: ["notes.txt"], not_received_workspace_files: ["data.csv"] }
+    });
+    expect(await readFile(join(root, PROJECT, "notes.txt"), "utf8")).toBe("notes");
   });
 
   it("names the cloud revision each received document shows", async () => {
@@ -355,6 +392,39 @@ describe("cloudTransfer router", () => {
     expect(outcome.status).toBe("committed");
     expect(cloud.lastCommit?.manifest.operations).toMatchObject([
       { op: "delete_document", document_id: deleted!.cloud_id, base_hash: reviewed, confirmed: true }
+    ]);
+  });
+
+  it("lists a deleted workspace file and deletes it on the cloud once confirmed", async () => {
+    const caller = createCaller(makeCtx(USER));
+    const folder = createLocalWorkspace(join(root, PROJECT));
+    const notes = new TextEncoder().encode("shot list");
+    await folder.write("notes.txt", notes);
+    const first = await caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT });
+    if (first.status !== "captured") throw new Error("expected a capture");
+    // Workspace files are off by default (SR7), so the first send includes it.
+    const [put] = first.file_operations;
+    expect(put).toMatchObject({ op: "put_workspace_file", path: "notes.txt" });
+    await caller.cloudTransfer.send.run({
+      ...SESSION,
+      transfer_id: first.transfer_id,
+      include_workspace_files: [{ path: "notes.txt", hash: put!.op === "put_workspace_file" ? put!.hash : "" }]
+    });
+    expect(cloud.lastCommit?.manifest.file_operations).toMatchObject([{ op: "put_workspace_file", path: "notes.txt" }]);
+    await folder.delete("notes.txt");
+
+    const review = await caller.cloudTransfer.send.capture({ ...ACCOUNT, project_id: PROJECT });
+    if (review.status !== "captured") throw new Error("expected a capture");
+    const hash = createHash("sha256").update(notes).digest("hex");
+    expect(review.deleted_workspace_files).toEqual([{ path: "notes.txt", base_hash: hash }]);
+    const outcome = await caller.cloudTransfer.send.run({
+      ...SESSION,
+      transfer_id: review.transfer_id,
+      confirm_workspace_deletes: review.deleted_workspace_files
+    });
+    expect(outcome.status).toBe("committed");
+    expect(cloud.lastCommit?.manifest.file_operations).toEqual([
+      { op: "delete_workspace_file", path: "notes.txt", base_hash: hash }
     ]);
   });
 

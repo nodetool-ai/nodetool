@@ -92,6 +92,7 @@ int hardwareBarcode(const DecodedFrame& f) {
 bool needsHardware() {
     static const QSet<QByteArray> functions{"hardwareSeekBetweenFrames", "twelveHardwareSessions", "hardwareFallback",
                                             "autoSeekDecodesInSoftwareThenPlaysInHardware",
+                                            "autoPausedJumpDoesNotSwitchToHardware",
                                             "importFailureFallsBackInAuto", "importFailureFailsTheClipInHardware",
                                             "sendErrorBeforeFirstFrameFallsBack", "hardwareSetupFailurePolicy",
                                             "hardwareDecodeIsNotStarvedByHeldFrames",
@@ -980,6 +981,122 @@ private slots:
                  qPrintable(QStringLiteral("cache retained %1 bytes (~%2 frames) of skipped catch-up")
                                 .arg(FrameCache::shared().bytes())
                                 .arg(FrameCache::shared().bytes() / singleFrameBytes)));
+    }
+
+    // Early soft-drain on software seeks must resume seamlessly for sequential
+    // forward stepping (both all-intra fast keyframe resume and inter-frame GOP
+    // resume) and handle forward jumps right at the 1.0..1.033s gap boundary.
+    void earlyDrainSeekThenSequentialAndBoundaryJump() {
+        // 1. All-intra fast keyframe resume after early drain.
+        FrameCache::shared().clear();
+        {
+            FfmpegDecoder d(media("numbered-a-proxy-960-intra.mp4"), 5.0);
+            auto f = waitExact(d, 5.0);
+            QVERIFY(f);
+            QCOMPARE(barcode(*f), 150);
+            const long long seeksAfterInitial = d.seeks();
+            for (int n = 151; n <= 160; ++n) {
+                f = waitExact(d, n / 30.0);
+                QVERIFY2(f, qPrintable(QStringLiteral("intra frame %1 never exact").arg(n)));
+                QCOMPARE(barcode(*f), n);
+            }
+            QCOMPARE(d.seeks(), seeksAfterInitial);
+            // Boundary jump: +1.0333s (delta > kMaxSequentialGapSec while delta - frameDur == kMaxSequentialGapSec).
+            f = waitExact(d, 152.0 / 30.0);
+            QVERIFY(f && barcode(*f) == 152);
+            f = waitExact(d, 183.0 / 30.0);
+            QVERIFY2(f, "boundary jump +1.0333s timed out on intra");
+            QCOMPARE(barcode(*f), 183);
+        }
+
+        // 2. Inter-frame GOP resume + boundary jump + valid successor proofs.
+        FrameCache::shared().clear();
+        {
+            FfmpegDecoder d(media("seek-360p30.mp4"), 5.0);
+            auto f = waitExact(d, 152.0 / 30.0);
+            QVERIFY(f && barcode(*f) == 152);
+            // Boundary jump +1.0333s (152 -> 183) must never deadlock between seekDrained and frameAt().
+            f = waitExact(d, 183.0 / 30.0);
+            QVERIFY2(f, "boundary jump +1.0333s timed out on GOP");
+            QCOMPARE(barcode(*f), 183);
+            // Direct paused jump +0.7s across GOP boundary (175 -> 196).
+            f = waitExact(d, 175.0 / 30.0);
+            QVERIFY(f && barcode(*f) == 175);
+            f = waitExact(d, 196.0 / 30.0);
+            QVERIFY(f && barcode(*f) == 196);
+            // Sequential stepping after early-drained seek keeps contiguous frames and cache links.
+            for (int n = 197; n <= 205; ++n) {
+                f = waitExact(d, n / 30.0);
+                QVERIFY2(f, qPrintable(QStringLiteral("gop frame %1 never exact").arg(n)));
+                QCOMPARE(barcode(*f), n);
+            }
+            // FrameCache must prove the stepped frames with exact timestamps.
+            for (int n = 196; n <= 204; ++n) {
+                auto cached = FrameCache::shared().lookup(media("seek-360p30.mp4"), n / 30.0 + 0.001);
+                QVERIFY2(cached != nullptr, qPrintable(QStringLiteral("frame %1 missing cache proof").arg(n)));
+                QCOMPARE(std::lround(cached->ptsSec * 30.0), static_cast<long>(n));
+            }
+        }
+    }
+
+    // In Auto mode, paused forward jumps within (0.5s, 1.0s] must stay on the
+    // software seek engine instead of triggering a VideoToolbox switch spike.
+    void autoPausedJumpDoesNotSwitchToHardware() {
+        ModeScope mode(DecodeMode::Auto);
+        FrameCache::shared().clear();
+        FfmpegDecoder d(media("numbered-a-proxy-960-intra.mp4"), 0.0);
+        QVERIFY(waitExact(d, 0.0));
+        auto f = waitExact(d, 5.0);
+        QVERIFY(f && !f->hardware);
+        const long long switchesBefore = d.engineSwitches();
+        // Paused forward jumps of +0.7s across keyframes: not sequential playback.
+        for (const double t : {5.7, 6.4, 7.1}) {
+            FrameCache::shared().clear();
+            f = waitExact(d, t);
+            QVERIFY(f);
+            QVERIFY2(!f->hardware, "paused jump switched back to hardware decoder");
+            QCOMPARE(barcode(*f), static_cast<int>(std::lround(t * 30.0)));
+        }
+        QCOMPARE(d.engineSwitches(), switchesBefore);
+    }
+
+    // Continuous backward drag on 4K HEVC (2 s GOP > 256 MB cache budget)
+    // must keep updating live and stay within FrameCache's memory budget.
+    void continuous4kHevcBackwardScrubUpdatesLive() {
+        FrameCache::shared().clear();
+        FfmpegDecoder d(media("numbered-a-2160p30-hevc.mp4"), 10.0);
+        QElapsedTimer seekTimer;
+        seekTimer.start();
+        auto first = waitExact(d, 10.0, 6000);
+        QVERIFY(first);
+        const qint64 seekMs = seekTimer.elapsed();
+        double lastShownPts = first->ptsSec;
+        int distinctShown = 1;
+        const int steps = 60;
+        // The opening decode is one seek from a keyframe. The drag lasts at
+        // least six seeks, so sanitizer builds slow it down, and each step
+        // still comes ten times faster than a seek lands. A decoder that
+        // cancels every seek in flight shows only the first frame.
+        const qint64 stepMs = std::max<qint64>(16, seekMs * 6 / steps);
+        for (int i = 1; i <= steps; ++i) {
+            const double target = 10.0 - 1.5 * (static_cast<double>(i) / steps);
+            auto f = d.frameAt(target);
+            QVERIFY(f);
+            if (std::abs(f->ptsSec - lastShownPts) > 1e-6) {
+                lastShownPts = f->ptsSec;
+                ++distinctShown;
+            }
+            QThread::msleep(static_cast<unsigned long>(stepMs));
+        }
+        const long long hits = FrameCache::shared().hits();
+        qInfo("4k-bwd: seekMs=%lld stepMs=%lld distinctShown=%d hits=%lld seeks=%lld cacheMB=%zu",
+              seekMs, stepMs, distinctShown, hits, d.seeks(), FrameCache::shared().bytes() / 1048576);
+        QVERIFY2(distinctShown >= 3, qPrintable(QStringLiteral("only %1 distinct 4K frames shown").arg(distinctShown)));
+        QVERIFY2(hits >= 2, qPrintable(QStringLiteral("only %1 4K cache hits").arg(hits)));
+        QVERIFY(FrameCache::shared().peakBytes() <= FrameCache::shared().budgetBytes());
+        auto settled = waitExact(d, 8.5, 6000);
+        QVERIFY(settled);
+        QCOMPARE(std::lround(settled->ptsSec * 30.0), 255L);
     }
 };
 

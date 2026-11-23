@@ -324,3 +324,31 @@ describe("ui_app_debug interaction steps", () => {
     }
   });
 });
+
+describe("ui_app_list_operations", () => {
+  it("reports the implicit operation when the app declares none", async () => {
+    setPuckAgentHandler(
+      APP_ID,
+      stubHandler({
+        getBindingTargets: () => ({
+          operations: [
+            { operationId: "main", name: "Run", workflowId: "wf-1", ioAvailable: true, inputs: [], outputs: [], execution: [] }
+          ],
+          variables: [],
+          resources: []
+        })
+      })
+    );
+    await expect(call("ui_app_list_operations", { application_id: APP_ID })).resolves.toEqual({
+      ok: true,
+      operations: [expect.objectContaining({ id: "main", workflowId: "wf-1", implicit: true })]
+    });
+  });
+
+  it("refuses an operation with an empty workflow id", async () => {
+    setPuckAgentHandler(APP_ID, stubHandler({}));
+    await expect(
+      call("ui_app_add_operation", { application_id: APP_ID, target_workflow_id: "  " })
+    ).rejects.toThrow("target_workflow_id is empty");
+  });
+});

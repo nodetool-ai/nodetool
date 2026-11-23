@@ -14751,7 +14751,9 @@
       "connect": "Se connecter",
       "getKey": "Obtenez une clé de {{provider}}",
       "saveAnyway": "Enregistrer quand même",
-      "rejectedKey": "Le fournisseur a rejeté cette clé."
+      "rejectedKey": "Le fournisseur a rejeté cette clé.",
+      "regionSwitched": "{{provider}} a accepté cette clé sur son serveur de Chine continentale. NodeTool utilise désormais ce serveur.",
+      "hfMirrorNote": "huggingface.co inaccessible ? Indiquez un miroir comme https://hf-mirror.com dans Paramètres → Intégrations → HF endpoint."
     },
     "hardware": {
       "autoDetect": "Détection automatique",
@@ -14805,6 +14807,19 @@
       "installed": "Installé",
       "download": "Télécharger",
       "memoryEstimate_many": "{{count}} Go de mémoire"
+    },
+    "providerSetup": {
+      "chat": "Le chat a besoin d'un modèle de langage. Connectez un fournisseur pour commencer.",
+      "image": "La génération d'images nécessite un fournisseur d'images. Connectez-en un pour continuer.",
+      "image_edit": "La retouche d'images nécessite un fournisseur d'images. Connectez-en un pour continuer.",
+      "video": "La génération de vidéos nécessite un fournisseur de vidéo. Connectez-en un pour continuer.",
+      "image_to_video": "L'animation d'images nécessite un fournisseur de vidéo. Connectez-en un pour continuer.",
+      "reference_to_video": "La référence vers vidéo nécessite un fournisseur de vidéo. Connectez-en un pour continuer.",
+      "retake": "La reprise nécessite un fournisseur de vidéo. Connectez-en un pour continuer.",
+      "extend": "L'extension d'une vidéo nécessite un fournisseur de vidéo. Connectez-en un pour continuer.",
+      "audio_to_video": "La synchronisation labiale nécessite un fournisseur de synchronisation labiale. Connectez-en un pour continuer.",
+      "music": "La génération de musique nécessite un fournisseur de musique. Connectez-en un pour continuer.",
+      "audio": "La génération de voix nécessite un fournisseur de synthèse vocale. Connectez-en un pour continuer."
     }
   },
   "i18n-next29": {
@@ -18073,7 +18088,11 @@
         "allResults": "Tous les résultats",
         "home": "Accueil",
         "local": "Locale",
-        "providers": "Fournisseurs"
+        "providers": "Fournisseurs",
+        "resultsInPath": "Résultats dans {{path}} : {{count}} · Correspondances pour « {{term}} » au total : {{total}}",
+        "resultsRelevant": "Résultats : {{count}} · Les plus pertinents pour « {{term}} » d'abord",
+        "nodesInPath": "Nœuds dans {{path}} : {{count}}",
+        "nodesMatchFilters": "Nœuds correspondant aux filtres : {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Parcourir les nœuds",
@@ -20266,7 +20285,8 @@
       },
       "openInSketch": "Ouvrir dans le croquis",
       "reusePrompt": "Réutiliser le prompt",
-      "sketchTitle": "Image créée"
+      "sketchTitle": "Image créée",
+      "keyRejected": "Le fournisseur a refusé la clé API. Vérifiez-la dans Paramètres → Modèles et fournisseurs."
     },
     "takes_many": "{{count}} prend",
     "kindLabel": "Quoi créer",
@@ -20956,6 +20976,12 @@
       "waitingNote": "En attente de l'envoi des modifications. Gardez la fenêtre cloud ouverte.",
       "waiting_many": "{{count}} documents cloud contiennent des modifications pas encore envoyées.",
       "unsent_many": "Le serveur a refusé les modifications de {{count}} documents cloud."
+    },
+    "syncStatus": {
+      "savedToCloud": "Enregistré dans le cloud",
+      "changesWaiting": "Modifications en attente",
+      "offline": "Hors ligne",
+      "notSaving": "Enregistrement impossible"
     }
   },
   "cloudTransfer": {
@@ -20965,6 +20991,10 @@
     },
     "capturing": "Lecture des modifications…",
     "running": "Envoi et réception…",
+    "collect": "Rassembler",
+    "collecting": "Copie des fichiers liés dans le dossier du projet…",
+    "include": "Envoyer",
+    "includeReceive": "Recevoir",
     "apply": {
       "publish": "Publier",
       "synchronize": "Synchroniser"
@@ -20999,6 +21029,11 @@
       "keepBoth": "Sera envoyé comme copie à côté de la version du cloud",
       "addVersions": "Les versions enregistrées seront envoyées",
       "putAssetFile": "Fichier modifié ici, sera envoyé",
+      "putWorkspaceFile": "Modifié dans le dossier du projet",
+      "newWorkspaceFile": "Nouveau dans le dossier du projet",
+      "workspaceBothChanged": "Modifié ici et dans le cloud. Le fichier du cloud est placé à côté du vôtre",
+      "workspaceLocalDeleted": "Supprimé ici, modifié dans le cloud",
+      "workspaceCloudDeleted": "Supprimé dans le cloud. Votre fichier reste ici",
       "newInCloud": "Nouveau dans le cloud",
       "cloudChanged": "Modifié dans le cloud",
       "cloudFileChanged": "Un fichier qu’il utilise a changé dans le cloud",
@@ -21021,7 +21056,7 @@
       "localUnavailable": "Le serveur de projets de cette app n’a pas répondu.",
       "cancelled": "Le transfert s’est arrêté, car le compte cloud a changé.",
       "refused": "Le serveur a refusé le transfert ({{reason}}).",
-      "collectFirst": "Certains fichiers de ce projet sont hors du dossier du projet. Rassemblez-les dans le dossier, puis réessayez.",
+      "collectFirst": "Certains fichiers utilisés par ce projet sont en dehors du dossier du projet. Rassembler les copie dans son dossier Imported, puis relit le projet.",
       "receiveExpired": "Le projet cloud a changé pendant que cette fenêtre était ouverte. Synchronisez à nouveau.",
       "receiveChangedWhileOpen": "Quelque chose a changé pendant que cette fenêtre était ouverte. Vérifiez à nouveau les choix.",
       "receivingChangedAgain": "Le projet cloud a encore changé pendant la réception. Choisissez à nouveau.",
@@ -21033,6 +21068,8 @@
       "sendChangedWhileOpen": "Ce projet a changé pendant que la fenêtre était ouverte. Vérifiez ce qui sera envoyé.",
       "missingFilesUnconfirmed": "Des fichiers nécessaires à ce projet manquent. Confirmez chacun pour envoyer sans lui.",
       "sendRefused": "Le cloud a refusé l’envoi : {{reasons}}",
+      "notCollected": "Ces fichiers liés n’ont pas pu être copiés dans le dossier du projet : {{files}}",
+      "collectInterrupted": "La copie s’est arrêtée avant que tous les fichiers liés aient été essayés. Réessayez.",
       "chooseAgain_many": "{{count}} documents ont changé ici ou dans le cloud depuis votre choix. Choisissez à nouveau.",
       "cloudChangedChooseAgain_many": "La version cloud de {{count}} documents a changé depuis la lecture de cette fenêtre. Choisissez à nouveau."
     },

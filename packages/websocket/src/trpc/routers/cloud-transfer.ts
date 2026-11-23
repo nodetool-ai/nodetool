@@ -43,6 +43,8 @@ import {
   resumeReceives,
   runReceive,
   type PlannedDocument,
+  type PlannedWorkspaceFile,
+  type ReceiveRunOptions,
   type ReceiveOutcome
 } from "@nodetool-ai/project-services/cloud-receive-client";
 import {
@@ -139,15 +141,31 @@ function reviewDocument(document: PlannedDocument) {
     changed_files: document.changedFiles,
     decision: document.decision,
     files: document.files,
-    missing_files: document.missingFiles
+    missing_files: document.missingFiles,
+    erased_files: document.erasedFiles ?? []
+  };
+}
+
+function reviewWorkspaceFile(file: PlannedWorkspaceFile) {
+  return {
+    path: file.path,
+    hash: file.hash,
+    size: file.size,
+    local_hash: file.localHash,
+    status: file.status,
+    included: file.included
   };
 }
 
 function receiveOutput(outcome: ReceiveOutcome): RunReceiveOutput {
   if (outcome.status === "waiting_for_review") {
-    return outcome.documents
-      ? { status: outcome.status, set_id: outcome.setId, documents: outcome.documents.map(reviewDocument) }
-      : { status: outcome.status, set_id: outcome.setId };
+    if (!outcome.documents) return { status: outcome.status, set_id: outcome.setId };
+    return {
+      status: outcome.status,
+      set_id: outcome.setId,
+      documents: outcome.documents.map(reviewDocument),
+      workspace_files: (outcome.workspaceFiles ?? []).map(reviewWorkspaceFile)
+    };
   }
   if (outcome.status !== "finished") return { status: outcome.status, set_id: outcome.setId };
   const result = outcome.result;
@@ -164,7 +182,15 @@ function receiveOutput(outcome: ReceiveOutcome): RunReceiveOutput {
         kept_path: entry.keptPath
       })),
       missing_files: result.missingFiles,
-      file_kept: result.fileKept
+      erased_files: result.erasedFiles ?? [],
+      file_kept: result.fileKept,
+      received_workspace_files: result.workspaceReceived ?? [],
+      kept_beside_workspace_files: (result.workspaceKeptBeside ?? []).map((entry) => ({
+        path: entry.path,
+        kept_path: entry.keptPath
+      })),
+      not_received_workspace_files: result.workspaceNotReceived ?? [],
+      cloud_deleted_workspace_files: result.workspaceCloudDeleted ?? []
     }
   };
 }
@@ -211,6 +237,10 @@ export const cloudTransferRouter = router({
               local_id: entry.localId,
               cloud_id: entry.cloudId,
               base_hash: entry.baseHash
+            })),
+            deleted_workspace_files: review.deletedWorkspaceFiles.map((entry) => ({
+              path: entry.path,
+              base_hash: entry.baseHash
             }))
           };
         } catch (error) {
@@ -238,6 +268,13 @@ export const cloudTransferRouter = router({
             cloudHash: entry.cloud_hash
           }));
         }
+        if (input.confirm_workspace_deletes) {
+          options.confirmWorkspaceDeletes = input.confirm_workspace_deletes.map((entry) => ({
+            path: entry.path,
+            baseHash: entry.base_hash
+          }));
+        }
+        if (input.include_workspace_files) options.includeWorkspaceFiles = input.include_workspace_files;
         if (input.confirm_missing_files) options.confirmMissingFiles = input.confirm_missing_files;
         const outcome = await reachingCloud(() => runSend(transport, input.transfer_id, options));
         return sendOutput(outcome);
@@ -269,7 +306,9 @@ export const cloudTransferRouter = router({
         const captured = await reachingCloud(() => captureReceive(transport, link));
         return {
           set_id: captured.setId,
-          documents: captured.documents.map(reviewDocument)
+          documents: captured.documents.map(reviewDocument),
+          workspace_files: captured.workspaceFiles.map(reviewWorkspaceFile),
+          cloud_deleted_workspace_files: captured.cloudDeletedWorkspaceFiles
         };
       }),
 
@@ -281,7 +320,9 @@ export const cloudTransferRouter = router({
         const serverKey = serverKeyOf(input);
         await ownedReceive(ctx.userId, input.set_id, serverKey, input.account_id);
         const transport = cloudTransport(input.origin, input.access_token);
-        return receiveOutput(await reachingCloud(() => runReceive(transport, input.set_id, input.decisions)));
+        const options: ReceiveRunOptions = {};
+        if (input.include_workspace_files) options.includeWorkspaceFiles = input.include_workspace_files;
+        return receiveOutput(await reachingCloud(() => runReceive(transport, input.set_id, input.decisions, options)));
       }),
 
     /** Closes a receive's review: releases the set and clears the local receive (review F41). */

@@ -139,6 +139,97 @@ describe("CloudTransferSheet", () => {
     expect(router.calls[4].input.confirm_deletes).toEqual([]);
   });
 
+  it("lists new and changed files of the project folder (CF5)", async () => {
+    const router = fakeRouter({
+      "cloudTransfer.link": [{ state: "linked", cloud_project_id: id("c9") }],
+      "cloudTransfer.send.capture": [
+        {
+          ...capture,
+          operations: [],
+          documents: [],
+          deleted_locally: [],
+          file_operations: [
+            { op: "put_workspace_file", path: "notes/plan.md", hash: hash("a"), size: 4, base_hash: hash("b") },
+            { op: "put_workspace_file", path: "data/new.csv", hash: hash("c"), size: 4, base_hash: null }
+          ]
+        }
+      ],
+      "cloudTransfer.receive.capture": [{ set_id: id("s1"), documents: [] }]
+    });
+    const controller = new TransferController({
+      call: router.call,
+      projectId: id("f1"),
+      readLink: true,
+      signedIn: () => true
+    });
+    renderSheet(controller);
+    await act(() => controller.start());
+
+    expect(screen.getByText("notes/plan.md")).toBeInTheDocument();
+    expect(screen.getByText("Changed in the project folder")).toBeInTheDocument();
+    expect(screen.getByText("data/new.csv")).toBeInTheDocument();
+    expect(screen.getByText("New in the project folder")).toBeInTheDocument();
+    // Each is off by default (SR7), and ticking one includes it.
+    const boxes = screen.getAllByRole("checkbox", { name: "Send" });
+    expect(boxes).toHaveLength(2);
+    for (const box of boxes) expect(box).not.toBeChecked();
+    await userEvent.click(boxes[0]);
+    expect(controller.snapshot.rows[0]).toMatchObject({ label: "notes/plan.md", confirmed: true });
+  });
+
+  it("offers the cloud's workspace files with a Receive box, unticked (RW7)", async () => {
+    const router = fakeRouter({
+      "cloudTransfer.link": [{ state: "linked", cloud_project_id: id("c9") }],
+      "cloudTransfer.send.capture": [{ ...capture, operations: [], documents: [], deleted_locally: [] }],
+      "cloudTransfer.receive.capture": [
+        {
+          set_id: id("s1"),
+          documents: [],
+          workspace_files: [
+            { path: "notes.txt", hash: hash("n"), size: 4, local_hash: hash("l"), status: "both_changed", included: false }
+          ],
+          cloud_deleted_workspace_files: ["old.txt"]
+        }
+      ]
+    });
+    const controller = new TransferController({ call: router.call, projectId: id("f1"), readLink: true, signedIn: () => true });
+    renderSheet(controller);
+    await act(() => controller.start());
+
+    expect(screen.getByText("notes.txt")).toBeInTheDocument();
+    expect(screen.getByText("Changed here and in the cloud. The cloud file goes beside yours")).toBeInTheDocument();
+    expect(screen.getByText("Deleted in the cloud. Your file stays here")).toBeInTheDocument();
+    const boxes = screen.getAllByRole("checkbox", { name: "Receive" });
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0]).not.toBeChecked();
+    await userEvent.click(boxes[0]);
+    expect(controller.snapshot.rows[0]).toMatchObject({ label: "notes.txt", confirmed: true });
+  });
+
+  it("offers Collect for linked files and shows the sheet after it", async () => {
+    const router = fakeRouter({
+      "cloudTransfer.send.capture": [
+        { status: "collect_first", external: ["clip.mov"], message: "Collect." },
+        { ...capture, deleted_locally: [] }
+      ]
+    });
+    const collect = jest.fn().mockResolvedValue({ copied: [], skipped: [], failed: [], interrupted: false });
+    const controller = new TransferController({ call: router.call, projectId: id("f1"), signedIn: () => true, collect });
+    renderSheet(controller);
+    await act(() => controller.start());
+
+    expect(
+      screen.getByText(
+        "Some files this project uses are outside the project folder. Collect copies them into its Imported folder, then reads the project again."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText("clip.mov")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Collect" }));
+    await waitFor(() => expect(screen.getByText("Mine")).toBeInTheDocument());
+    expect(collect).toHaveBeenCalledWith(id("f1"));
+    expect(screen.getByRole("button", { name: "Publish" })).toBeInTheDocument();
+  });
+
   it("shows a failure with a retry and ends the sheet on close", async () => {
     const router = fakeRouter({});
     const onClose = jest.fn();

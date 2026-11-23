@@ -95,6 +95,19 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  ...shared("ui_audio_undo"),
+  async execute({ asset_id }) {
+    const snapshot = getAudioAgentHandler(asset_id).undo();
+    return {
+      ok: true,
+      durationSeconds: snapshot.durationSeconds,
+      dirty: snapshot.dirty,
+      url: docUrl("asset", asset_id)
+    };
+  }
+});
+
+FrontendToolRegistry.register({
   ...shared("ui_audio_save"),
   async execute({ asset_id }) {
     const snapshot = await getAudioAgentHandler(asset_id).save();

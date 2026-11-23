@@ -15,6 +15,7 @@ import { modelComparisonEntries } from "@/data/modelComparisonEntries";
 import { modelDirectoryCounts } from "@/data/modelDirectory";
 import ModelDirectorySection from "@/components/models/ModelDirectorySection";
 import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
+import { languageAlternates } from "@/i18n/routes";
 
 const BASE_URL = "https://nodetool.ai";
 
@@ -23,7 +24,7 @@ const hub = modelPageEntries[0];
 export const metadata: Metadata = {
   title: hub.title,
   description: hub.description,
-  alternates: { canonical: "/models" },
+  alternates: { canonical: "/models", languages: languageAlternates("/models") },
   openGraph: {
     images: DEFAULT_OG_IMAGES,
     title: hub.title,

@@ -25,6 +25,24 @@ describe("matchBasicNodes", () => {
     ]);
   });
 
+  it("matches a Chinese search written without spaces", () => {
+    expect(labels("文本")).toEqual(["Text", "Generate text"]);
+    expect(labels("图像")).toEqual(["Generate image", "Edit image"]);
+    expect(labels("生成图片")).toEqual(["Generate image"]);
+    expect(labels("生成图")).toEqual(["Generate image"]);
+    expect(labels("编辑视频")).toEqual(["Edit video"]);
+    expect(labels("生成")).toEqual([
+      "Generate text",
+      "Generate image",
+      "Generate video"
+    ]);
+  });
+
+  it("pins nothing for a Chinese search no keyword covers", () => {
+    expect(labels("放大图片")).toEqual([]);
+    expect(labels("图")).toEqual([]);
+  });
+
   it("pins nothing for specialized or one-letter searches", () => {
     expect(labels("upscale")).toEqual([]);
     expect(labels("agent")).toEqual([]);

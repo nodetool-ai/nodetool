@@ -14,6 +14,7 @@
 #include "preview/SurfacePool.h"
 #include "preview/SyntheticSource.h"
 #include "preview/layers/LayerRegistry.h"
+#include "preview/layers/SceneHooks.h"
 #include "preview/compose/ComposeRegistry.h"
 #include "preview/effects/ClipEffects.h"
 
@@ -269,6 +270,18 @@ private:
     std::vector<nt::ActiveLayer> m_layers;
     std::vector<nt::Clip> m_evaluatedClips;
     std::vector<nt::PrecompositeLayer> m_precomposites;  // innermost first
+    // Cached scene tap key so repeated synchronize() ticks while decoders settle
+    // at the same time and snapshot skip re-running evaluateSceneTap().
+    bool m_tapCacheValid = false;
+    const nt::Timeline* m_tapCacheSnapshot = nullptr;
+    quint64 m_tapCacheSourceSerial = 0;
+    quint64 m_tapCacheGeneration = 0;
+    std::uint64_t m_tapCacheRevision = 0;
+    std::uint64_t m_tapCacheHooksVersion = 0;
+    double m_tapCacheTapTimeMs = 0.0;
+    double m_tapCacheTimeMs = 0.0;
+    int m_tapCacheBlurIndex = 0;
+    int m_tapCacheShutterSamples = 0;
     std::string m_resourceError;  // the first GPU resource failure, for the GUI side
     bool m_warnedOverBudget = false;
     QRectF m_canvasRegion{0, 0, 1, 1};
@@ -570,10 +583,6 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
         }
     }
 
-    m_adjustments.clear();
-    m_layers.clear();
-    m_evaluatedClips.clear();
-    m_precomposites.clear();
     m_playing = false;
     const auto& next = item->m_renderState;
     const bool leasesChanged = m_renderState.mediaLeases != next.mediaLeases;
@@ -598,6 +607,11 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
 
     // A source without a document draws nothing.
     if (!m_renderState.snapshot) {
+        m_adjustments.clear();
+        m_layers.clear();
+        m_evaluatedClips.clear();
+        m_precomposites.clear();
+        m_tapCacheValid = false;
         m_tapTimes.clear();
         m_blurFrameTime = -1;
         m_blurRevision = 0;
@@ -646,16 +660,41 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
         m_tapTimes = nt::motion::shutterTimes(m_blurFrameTime, frameMs, m_shutter);
     }
     m_timeMs = m_blurFrameTime;
-    evaluateTap();
+    const double nextTapTimeMs = m_tapTimes[static_cast<size_t>(m_blurIndex)];
+    const std::uint64_t hooksVersion = nt::sceneHooksVersion();
+    const bool tapUnchanged = m_tapCacheValid &&
+                              m_tapCacheSnapshot == m_renderState.snapshot.get() &&
+                              m_tapCacheSourceSerial == m_sourceSerial &&
+                              m_tapCacheGeneration == m_renderState.generation &&
+                              m_tapCacheRevision == m_blurRevision &&
+                              m_tapCacheHooksVersion == hooksVersion &&
+                              m_tapCacheTapTimeMs == nextTapTimeMs &&
+                              m_tapCacheTimeMs == m_timeMs &&
+                              m_tapCacheBlurIndex == m_blurIndex &&
+                              m_tapCacheShutterSamples == m_shutter.samples;
+    if (!tapUnchanged) {
+        evaluateTap();
+    }
 }
 
 void PreviewCompositorRenderer::evaluateTap() {
     m_tapTimeMs = m_tapTimes[static_cast<size_t>(m_blurIndex)];
+    const std::uint64_t hooksVersion = nt::sceneHooksVersion();
     nt::SceneFrame scene = nt::evaluateSceneTap(*m_renderState.snapshot, m_tapTimeMs, m_timeMs, m_blurIndex, m_shutter.samples);
     m_adjustments = std::move(scene.adjustments);
     m_layers = std::move(scene.layers);
     m_evaluatedClips = std::move(scene.evaluatedClips);
     m_precomposites = std::move(scene.precomposites);
+    m_tapCacheValid = true;
+    m_tapCacheSnapshot = m_renderState.snapshot.get();
+    m_tapCacheSourceSerial = m_sourceSerial;
+    m_tapCacheGeneration = m_renderState.generation;
+    m_tapCacheRevision = m_blurRevision;
+    m_tapCacheHooksVersion = hooksVersion;
+    m_tapCacheTapTimeMs = m_tapTimeMs;
+    m_tapCacheTimeMs = m_timeMs;
+    m_tapCacheBlurIndex = m_blurIndex;
+    m_tapCacheShutterSamples = m_shutter.samples;
 }
 
 // Group effects and backdrop treatments take sizes in document pixels and work on canvas-sized
@@ -969,69 +1008,75 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
     std::map<const nt::ActiveLayer*, std::map<std::string, std::pair<std::string,double>>> requestedSources;
     const auto providers = nt::registeredSecondSourceProviders();
     if (m_renderState.snapshot) {
-        std::optional<nt::Timeline> poolTimeline;
-        const auto writableTimeline = [&]() -> nt::Timeline& {
-            if (!poolTimeline) { poolTimeline = *m_renderState.snapshot; }
-            return *poolTimeline;
-        };
-        std::map<std::string, const nt::Clip*> clips;
-        std::set<std::string> usedIds;
-        std::set<std::string> requiredIds;
-        for (const auto& clip : m_renderState.snapshot->clips) {
-            clips.emplace(clip.id, &clip);
-            usedIds.insert(clip.id);
-        }
-        for (const auto& clip : m_evaluatedClips) {
-            clips.insert_or_assign(clip.id, &clip);
-        }
-        for (const auto& prepared : prepare) {
-            requiredIds.insert(prepared.first->clipId);
-            const auto clip = clips.find(prepared.first->clipId);
-            if (clip != clips.end() && usedIds.insert(clip->first).second) {
-                writableTimeline().clips.push_back(*clip->second);
+        if (m_evaluatedClips.empty() && providers.empty() && matteSources.empty()) {
+            std::set<std::string> requiredIds;
+            for (const auto& prepared : prepare) { requiredIds.insert(prepared.first->clipId); }
+            m_pool.update(*m_renderState.snapshot, m_tapTimeMs, requiredIds, m_renderState.mediaLeases);
+        } else {
+            std::optional<nt::Timeline> poolTimeline;
+            const auto writableTimeline = [&]() -> nt::Timeline& {
+                if (!poolTimeline) { poolTimeline = *m_renderState.snapshot; }
+                return *poolTimeline;
+            };
+            std::map<std::string, const nt::Clip*> clips;
+            std::set<std::string> usedIds;
+            std::set<std::string> requiredIds;
+            for (const auto& clip : m_renderState.snapshot->clips) {
+                clips.emplace(clip.id, &clip);
+                usedIds.insert(clip.id);
             }
-        }
-        if (!providers.empty() || !matteSources.empty()) {
-            std::map<std::pair<std::string, std::string>, std::string> derivedIds;
-            for (const auto& [layer, matteSource] : prepare) {
-                const auto found = clips.find(layer->clipId);
-                if (found == clips.end()) { continue; }
-                const auto& clip = *found->second;
-                if (matteSource && clip.hidden && !layer->mediaPath.empty() && !entryFor(*layer).ownedSource) {
-                    auto& copy = writableTimeline();
-                    for (auto& candidate : copy.clips) {
-                        if (candidate.id == clip.id) { candidate.hidden = false; break; }
-                    }
-                }
-                std::map<std::string, nt::SecondSourceRequest> requests;
-                for (const auto& provider : providers) {
-                    for (auto& request : provider(*layer, clip)) {
-                        requests[request.key] = std::move(request);
-                    }
-                }
-                for (const auto& [key, request] : requests) {
-                    const auto identity = std::pair{clip.id, key};
-                    auto [id, inserted] = derivedIds.try_emplace(identity);
-                    if (inserted) {
-                        // Check both document and derived ids, including unusual
-                        // document ids containing the separator. Never alias a clip.
-                        id->second = clip.id + '\x1f' + key;
-                        while (usedIds.contains(id->second)) { id->second += '\x1f'; }
-                        usedIds.insert(id->second);
-                        auto second = clip;
-                        second.id = id->second;
-                        second.mediaPath = request.mediaPath;
-                        second.hidden = false;
-                        writableTimeline().clips.push_back(std::move(second));
-                    }
-                    requestedSources[layer][key] = {id->second,request.sourceTimeMs.value_or(layer->sourceTimeMs)};
-                    requiredIds.insert(id->second);
+            for (const auto& clip : m_evaluatedClips) {
+                clips.insert_or_assign(clip.id, &clip);
+            }
+            for (const auto& prepared : prepare) {
+                requiredIds.insert(prepared.first->clipId);
+                const auto clip = clips.find(prepared.first->clipId);
+                if (clip != clips.end() && usedIds.insert(clip->first).second) {
+                    writableTimeline().clips.push_back(*clip->second);
                 }
             }
+            if (!providers.empty() || !matteSources.empty()) {
+                std::map<std::pair<std::string, std::string>, std::string> derivedIds;
+                for (const auto& [layer, matteSource] : prepare) {
+                    const auto found = clips.find(layer->clipId);
+                    if (found == clips.end()) { continue; }
+                    const auto& clip = *found->second;
+                    if (matteSource && clip.hidden && !layer->mediaPath.empty() && !entryFor(*layer).ownedSource) {
+                        auto& copy = writableTimeline();
+                        for (auto& candidate : copy.clips) {
+                            if (candidate.id == clip.id) { candidate.hidden = false; break; }
+                        }
+                    }
+                    std::map<std::string, nt::SecondSourceRequest> requests;
+                    for (const auto& provider : providers) {
+                        for (auto& request : provider(*layer, clip)) {
+                            requests[request.key] = std::move(request);
+                        }
+                    }
+                    for (const auto& [key, request] : requests) {
+                        const auto identity = std::pair{clip.id, key};
+                        auto [id, inserted] = derivedIds.try_emplace(identity);
+                        if (inserted) {
+                            // Check both document and derived ids, including unusual
+                            // document ids containing the separator. Never alias a clip.
+                            id->second = clip.id + '\x1f' + key;
+                            while (usedIds.contains(id->second)) { id->second += '\x1f'; }
+                            usedIds.insert(id->second);
+                            auto second = clip;
+                            second.id = id->second;
+                            second.mediaPath = request.mediaPath;
+                            second.hidden = false;
+                            writableTimeline().clips.push_back(std::move(second));
+                        }
+                        requestedSources[layer][key] = {id->second,request.sourceTimeMs.value_or(layer->sourceTimeMs)};
+                        requiredIds.insert(id->second);
+                    }
+                }
+            }
+            // No handler/request: pass the original document, with no copy.
+            m_pool.update(poolTimeline ? *poolTimeline : *m_renderState.snapshot, m_tapTimeMs, requiredIds,
+                          m_renderState.mediaLeases);
         }
-        // No handler/request: pass the original document, with no copy.
-        m_pool.update(poolTimeline ? *poolTimeline : *m_renderState.snapshot, m_tapTimeMs, requiredIds,
-                      m_renderState.mediaLeases);
     } else {
         m_pool.update(nt::Timeline{}, 0.0);
     }

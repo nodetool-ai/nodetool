@@ -175,7 +175,87 @@ function checked(
   if (missing.length > 0) {
     throw new Error(missingArgsMessage(spec, missing, args));
   }
-  return args;
+  return typeChecked(spec, args);
+}
+
+type JsonType = "string" | "number" | "integer" | "boolean" | "array" | "object" | "null";
+
+function declaredTypes(field: unknown): JsonType[] {
+  if (!isRecord(field)) return [];
+  const type = field.type;
+  if (isString(type)) return [type as JsonType];
+  return Array.isArray(type) ? type.filter((t): t is JsonType => isString(t)) : [];
+}
+
+function hasType(value: unknown, type: JsonType): boolean {
+  switch (type) {
+    case "string":
+      return isString(value);
+    case "number":
+      return typeof value === "number" && Number.isFinite(value);
+    case "integer":
+      return Number.isInteger(value);
+    case "boolean":
+      return typeof value === "boolean";
+    case "array":
+      return Array.isArray(value);
+    case "object":
+      return isRecord(value);
+    case "null":
+      return value === null;
+  }
+}
+
+/** A numeric or boolean string read as the type the schema declares. */
+function coerced(value: unknown, types: readonly JsonType[]): unknown {
+  if (!isString(value) || value.trim() === "") return value;
+  const text = value.trim();
+  if ((types.includes("number") || types.includes("integer")) && Number.isFinite(Number(text))) {
+    return Number(text);
+  }
+  if (types.includes("boolean") && (text === "true" || text === "false")) {
+    return text === "true";
+  }
+  return value;
+}
+
+/**
+ * Check every argument whose schema declares only primitive types against
+ * them. The implementations read only the type they expect, so `content: 5`
+ * reached `memory_update` as a change to nothing and reported success.
+ *
+ * Only a primitive of the wrong primitive type is refused. An object, an
+ * array or null passes as before: several implementations take more than
+ * their schema states (a find_model hit where `model` says string), and a
+ * null can mean "clear this field".
+ */
+function typeChecked(
+  spec: CapabilityArgSpec,
+  args: Record<string, unknown>
+): Record<string, unknown> {
+  const properties = isRecord(spec.inputSchema.properties) ? spec.inputSchema.properties : {};
+  const primitive = (value: unknown) =>
+    isString(value) || typeof value === "number" || typeof value === "boolean";
+  const out: Record<string, unknown> = {};
+  const issues: string[] = [];
+  for (const [key, raw] of Object.entries(args)) {
+    const types = declaredTypes(properties[key]);
+    const primitiveOnly =
+      types.length > 0 && types.every((t) => t === "string" || t === "number" || t === "integer" || t === "boolean");
+    if (!primitiveOnly || !primitive(raw)) {
+      out[key] = raw;
+      continue;
+    }
+    const value = coerced(raw, types);
+    if (!types.some((t) => hasType(value, t))) {
+      issues.push(`${key} must be ${types.join(" or ")}, got ${typeof raw}`);
+    }
+    out[key] = value;
+  }
+  if (issues.length > 0) {
+    throw new Error(`${spec.name}: ${issues.join("; ")}.`);
+  }
+  return out;
 }
 
 /**

@@ -5,6 +5,7 @@
 #include "canvas/NodeGeometry.h"
 #include "canvas/NodeItem.h"
 #include "canvas/PaintStates.h"
+#include "graph/CardControls.h"
 #include "graph/NodeLayout.h"
 #include "graph/TypeStyle.h"
 #include "graph/WorkflowGraphModel.h"
@@ -52,7 +53,8 @@ constexpr double kGroupZ = -1000000;
 } // namespace
 
 EditorCanvasScene::EditorCanvasScene(WorkflowGraphModel &model, QQuickItem &layer, QObject *parent)
-    : CanvasScene(model, layer, parent), model_(model), interaction_(model, *this, theme_) {
+    : CanvasScene(model, layer, parent), model_(model), interaction_(model, *this, theme_),
+      iconCache_(std::make_unique<CanvasIconCache>()) {
   animation_.setInterval(16);
   clock_.start();
   connect(&animation_, &QTimer::timeout, this, &EditorCanvasScene::animate);
@@ -406,20 +408,29 @@ void EditorCanvasScene::setButtonHover(NodeId id, bool footer, bool action, cons
 }
 
 void EditorCanvasScene::paintNode(QPainter &painter, const NodeItem &item, double zoom) const {
-  NodePainter::paint(&painter, cardPaintState(*this, model_, cardItem(item, zoom)));
+  auto state = cardPaintState(*this, model_, cardItem(item, zoom));
+  state.icons = iconCache_.get();
+  state.body.icons = iconCache_.get();
+  NodePainter::paint(&painter, state);
 }
 
-void EditorCanvasScene::paintConnection(QPainter &painter, const ConnectionItem &item, double zoom) const {
+std::optional<WirePaintState> EditorCanvasScene::connectionPaintState(const ConnectionItem &item, double zoom) const {
   const auto id = item.connectionId();
   auto state = wireGeometry(model_, id, item.endPoint(PortType::Out), item.endPoint(PortType::In),
                             item.connectionState().requiresPort());
-  if (!state.visible) { return; }
+  if (!state.visible) { return state; }
   const auto nodeSelected = [this](NodeId node) {
     const auto *card = nodeItem(node);
     return card && card->isSelected();
   };
   fillWirePaintState(state, *this, model_, id, item.isSelected(), item.connectionState().hovered(), zoom, nodeSelected);
-  WirePainter::paint(&painter, theme_, state);
+  return state;
+}
+
+void EditorCanvasScene::paintConnection(QPainter &painter, const ConnectionItem &item, double zoom) const {
+  const auto state = connectionPaintState(item, zoom);
+  if (!state || !state->visible) { return; }
+  WirePainter::paint(&painter, theme_, *state);
 }
 
 QPainterPath EditorCanvasScene::connectionStroke(const ConnectionItem &item) const {
@@ -549,16 +560,22 @@ QList<EditorCanvasScene::ForegroundPart> EditorCanvasScene::foregroundParts(cons
     part.bounds = bounds.translated(-part.origin).adjusted(-2, -2, 2, 2);
     if (bounds.intersects(area)) { parts.append(std::move(part)); }
   };
-  for (const auto id : model_.groupIds()) {
-    const auto *item = nodeItem(id);
-    if (!item) { continue; }
-    const auto &layout = model_.layout(id);
-    const auto origin = item->scenePosition() + QPointF(0, -5 / zoom);
-    const auto width = std::max(24.0, layout.size.width() / labelScale);
-    const QRectF rect(0, -32, width, 32);
-    add({{ForegroundPart::GroupLabel, id, 0}, rect, origin, layout.title,
-         layout.accent.isValid() ? layout.accent : QColor("#9ca3af"), labelScale, item->opacity() * groupOpacity(id)},
-        QRectF(origin + rect.topLeft() * labelScale, rect.size() * labelScale));
+  const auto groupIds = model_.groupIds();
+  if (!groupIds.isEmpty()) {
+    const QFontMetricsF groupMetrics(canvasFont(theme_, 15, QFont::Medium));
+    for (const auto id : groupIds) {
+      const auto *item = nodeItem(id);
+      if (!item) { continue; }
+      const auto &layout = model_.layout(id);
+      if (layout.title.isEmpty()) { continue; }
+      const auto origin = item->scenePosition() + QPointF(0, -5 / zoom);
+      const auto width = std::max(24.0, layout.size.width() / labelScale);
+      const QRectF rect(0, -32, width, 32);
+      const auto paintedWidth = std::min(width, std::ceil(groupMetrics.horizontalAdvance(layout.title)) + 8.0);
+      add({{ForegroundPart::GroupLabel, id, 0}, rect, origin, layout.title,
+           layout.accent.isValid() ? layout.accent : QColor("#9ca3af"), labelScale, item->opacity() * groupOpacity(id)},
+          QRectF(origin + rect.topLeft() * labelScale, QSizeF(paintedWidth, rect.height()) * labelScale));
+    }
   }
   if (dropHintVisible()) {
     if (const auto *group = nodeItem(dropGroup())) {
@@ -570,24 +587,32 @@ QList<EditorCanvasScene::ForegroundPart> EditorCanvasScene::foregroundParts(cons
   }
   auto named = CanvasScene::selectedNodes();
   if (hoveredHandle().node != InvalidNodeId && !named.contains(hoveredHandle().node)) { named.append(hoveredHandle().node); }
-  for (const auto id : named) {
-    const auto *node = nodeItem(id);
-    if (!node || model_.isReroute(id)) { continue; }
-    const auto &layout = model_.layout(id);
-    const auto origin = node->scenePosition();
-    for (int i = 0; i < layout.rows.size(); ++i) {
-      const auto &row = layout.rows[i];
-      if (row.kind != NodeRowKind::Handle) { continue; }
-      const QRectF rect(-210, row.y - nm::rowHeight / 2, 200, nm::rowHeight);
-      add({{ForegroundPart::InputLabel, id, i}, rect, origin, row.label, typeColor(row.typeName)}, rect.translated(origin));
-    }
-    const auto outputs = model_.ports(id, PortType::Out);
-    for (int i = 0; i < layout.outputY.size(); ++i) {
-      if (!model_.portVisible(id, PortType::Out, i) || outputs[i].toObject()["name"] == "__control__") { continue; }
-      const QRectF rect(layout.size.width() + 10, layout.outputY[i] - nm::rowHeight / 2, 200, nm::rowHeight);
-      add({{ForegroundPart::OutputLabel, id, i}, rect, origin,
-           model_.portData<QString>(id, PortType::Out, PortIndex(i), PortRole::Caption),
-           typeColor(model_.portData<QString>(id, PortType::Out, PortIndex(i), PortRole::DataType))}, rect.translated(origin));
+  if (!named.isEmpty()) {
+    const QFontMetricsF portMetrics(canvasFont(theme_, nm::fontValue, QFont::DemiBold));
+    for (const auto id : named) {
+      const auto *node = nodeItem(id);
+      if (!node || model_.isReroute(id)) { continue; }
+      const auto &layout = model_.layout(id);
+      const auto origin = node->scenePosition();
+      for (int i = 0; i < layout.rows.size(); ++i) {
+        const auto &row = layout.rows[i];
+        if (row.kind != NodeRowKind::Handle || row.label.isEmpty()) { continue; }
+        const QRectF rect(-210, row.y - nm::rowHeight / 2, 200, nm::rowHeight);
+        const auto w = std::clamp(std::ceil(portMetrics.horizontalAdvance(row.label)) + 8.0, 1.0, 200.0);
+        const QRectF tight(-10 - w, rect.top(), w, rect.height());
+        add({{ForegroundPart::InputLabel, id, i}, rect, origin, row.label, typeColor(row.typeName)}, tight.translated(origin));
+      }
+      const auto outputs = model_.ports(id, PortType::Out);
+      for (int i = 0; i < layout.outputY.size(); ++i) {
+        if (!model_.portVisible(id, PortType::Out, i) || outputs[i].toObject()["name"] == "__control__") { continue; }
+        const auto caption = model_.portData<QString>(id, PortType::Out, PortIndex(i), PortRole::Caption);
+        if (caption.isEmpty()) { continue; }
+        const QRectF rect(layout.size.width() + 10, layout.outputY[i] - nm::rowHeight / 2, 200, nm::rowHeight);
+        const auto w = std::clamp(std::ceil(portMetrics.horizontalAdvance(caption)) + 8.0, 1.0, 200.0);
+        const QRectF tight(rect.left(), rect.top(), w, rect.height());
+        add({{ForegroundPart::OutputLabel, id, i}, rect, origin, caption,
+             typeColor(model_.portData<QString>(id, PortType::Out, PortIndex(i), PortRole::DataType))}, tight.translated(origin));
+      }
     }
   }
   std::sort(parts.begin(), parts.end(), [](const auto &a, const auto &b) { return a.key < b.key; });

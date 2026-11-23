@@ -159,6 +159,22 @@ describe("applyWorkflowDocumentTool", () => {
     expect(graph.nodes[0].data).toEqual({ first: 1, second: 2 });
   });
 
+  it("refuses a data key it would drop, naming data.properties", () => {
+    const graph: Graph = {
+      nodes: [{ id: "source", type: "test.Source", data: { first: 1 } }],
+      edges: []
+    };
+    expect(() =>
+      applyWorkflowDocumentTool(
+        graph,
+        "ui_update_node_data",
+        { node_id: "source", data: { first: 2 } },
+        options
+      )
+    ).toThrow(/unknown data keys first\. Node property values go under data\.properties/);
+    expect(graph.nodes[0].data).toEqual({ first: 1 });
+  });
+
   it("connects compatible handles and treats duplicates as idempotent", () => {
     const graph: Graph = {
       nodes: [

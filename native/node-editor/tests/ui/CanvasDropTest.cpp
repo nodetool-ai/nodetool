@@ -275,10 +275,18 @@ private slots:
     return drop(window, mime, point);
   }
   // The viewport point of a row of the only card, by its action or kind.
-  static QPointF rowPoint(EditorWindow &window, NodeRowKind kind, const QString &action = {}) {
-    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel()); const auto id = *model.allNodeIds().begin();
-    auto *view = window.findChild<QGraphicsView *>(); auto *node = window.scene()->nodeGraphicsObject(id);
-    for (const auto &row : model.layout(id).rows) if (row.kind == kind && (action.isEmpty() || row.action == action)) return view->mapFromScene(node->scenePos() + row.rect.center());
+  static QPoint rowPoint(EditorWindow &window, NodeRowKind kind, const QString &action = {}) {
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    const auto ids = model.allNodeIds();
+    if (ids.empty()) { return {}; }
+    const auto id = *ids.begin();
+    const test::CanvasProbe probe(window);
+    if (!probe.surface().hasNode(id)) { return {}; }
+    for (const auto &row : model.layout(id).rows) {
+      if (row.kind == kind && (action.isEmpty() || row.action == action)) {
+        return probe.cardPoint(id, row.rect.center());
+      }
+    }
     return {};
   }
   static QJsonObject storyboard(const QString &ref, const QString &name) {
@@ -318,8 +326,7 @@ private slots:
     QCOMPARE(window.document()->nodes()[0].toObject()["type"].toString(), QString("nodetool.constant.Workflow"));
     const auto tabs = window.workflowTabs().size();
     QTRY_VERIFY(!rowPoint(window, NodeRowKind::Action, "openDocument").isNull()); const auto edit = rowPoint(window, NodeRowKind::Action, "openDocument");
-    auto *view = window.findChild<QGraphicsView *>();
-    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, edit.toPoint());
+    test::CanvasProbe(window).click(edit);
     QTRY_COMPARE(window.workflowTabs().size(), tabs + 1);
     // The workflow that holds the constant stays open in its own tab.
     QCOMPARE(window.workflowTabs().size(), 2);
@@ -330,8 +337,7 @@ private slots:
     QVERIFY(dropProjectFile(window, "launch.storyboard.json", QPointF(220, 180))); QTRY_COMPARE(window.document()->nodes().size(), 1);
     const auto tabs = window.workflowTabs().size();
     QTRY_VERIFY(!rowPoint(window, NodeRowKind::Action, "openDocument").isNull()); const auto edit = rowPoint(window, NodeRowKind::Action, "openDocument");
-    auto *view = window.findChild<QGraphicsView *>();
-    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, edit.toPoint());
+    test::CanvasProbe(window).click(edit);
     QTRY_COMPARE(window.workflowTabs().size(), tabs + 1);
     QTRY_COMPARE(server.documentGets, QStringList{"board-7"});
     const auto tab = window.workflowTabs().last().toMap();
@@ -341,7 +347,7 @@ private slots:
     QVERIFY(window.findChild<QQuickWidget *>("story-document-editor"));
     // A second Edit activates the open tab instead of a new one.
     window.activateTab(0); QTRY_VERIFY(!rowPoint(window, NodeRowKind::Action, "openDocument").isNull());
-    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, rowPoint(window, NodeRowKind::Action, "openDocument").toPoint());
+    test::CanvasProbe(window).click(rowPoint(window, NodeRowKind::Action, "openDocument"));
     QTRY_COMPARE(window.activeTab(), tabs);
     QCOMPARE(window.workflowTabs().size(), tabs + 1);
   }
@@ -352,8 +358,7 @@ private slots:
     QCOMPARE(window.document()->nodes()[0].toObject()["type"].toString(), QString("nodetool.constant.Script"));
     const auto tabs = window.workflowTabs().size();
     QTRY_VERIFY(!rowPoint(window, NodeRowKind::Action, "openDocument").isNull());
-    auto *view = window.findChild<QGraphicsView *>();
-    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, rowPoint(window, NodeRowKind::Action, "openDocument").toPoint());
+    test::CanvasProbe(window).click(rowPoint(window, NodeRowKind::Action, "openDocument"));
     QTRY_COMPARE(window.workflowTabs().size(), tabs + 1);
     QTRY_COMPARE(server.documentGets, QStringList{"script-3"});
     QCOMPARE(window.workflowTabs().last().toMap()["kind"].toString(), QString("scripts"));

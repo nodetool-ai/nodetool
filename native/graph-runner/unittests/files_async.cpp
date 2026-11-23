@@ -775,7 +775,7 @@ track('bad', () => a.writeAsync('../x.bin', enc('x')));
     CHECK(step5::contains(h.result("list"), "\"key\":\"u/same.bin\""));
     CHECK(h.released());
   }
-  CHECK(gr::processDestinationQueue().pending(destination(h, "u/same.bin")) == 0);
+  CHECK(eventually([&] { return gr::processDestinationQueue().pending(destination(h, "u/same.bin")) == 0; }));
 }
 
 // The run's cancellation after a write staged and before its turn to commit
@@ -1173,7 +1173,8 @@ void syncAndAsyncWritesShareTheQueue(Suite& t) {
   run.runUntil([&] { return h.settled({"A"}); });
   CHECK(h.result("A") == "ok:undefined");
   CHECK(readText(h.dir.path("assets/k.bin")) == "A");
-  CHECK(gr::processDestinationQueue().pending(destination(h, "k.bin")) == 0);
+  // The commit step settles the promise before the I/O thread frees the slot.
+  CHECK(eventually([&] { return gr::processDestinationQueue().pending(destination(h, "k.bin")) == 0; }));
   CHECK(temporaries(h.dir.path("assets")) == 0);
   CHECK(h.released());
 }
@@ -1205,6 +1206,7 @@ void syncWriteBesideADeferredWrite(Suite& t) {
     run.runUntil([&] { return h.settled({"other", "k"}); });
     CHECK(h.result("k") == "ok:undefined");
     CHECK(readText(h.dir.path("assets/k.bin")) == "A");
+    CHECK(eventually([&] { return gr::processDestinationQueue().pending(destination(h, "k.bin")) == 0; }));
     CHECK(syncWrite(*b, "k.bin", 'B') == "ok");
   }
   CHECK(readText(h.dir.path("assets/k.bin")) == "B");

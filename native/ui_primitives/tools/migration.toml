@@ -2941,6 +2941,16 @@ qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.Status"
 
 [[file]]
+path = "native/account/qt/qml/ProjectLockBanner.qml"
+category = "chrome"
+controls = ["ProjectLockState", "Item", "ColumnLayout", "RowLayout", "Ui.Banner", "Ui.Dialog", "Ui.Text", "Ui.EditorButton"]
+signals = []
+test_host = "native/node-editor/tests/ui/WorkflowBrowserComponentTest.cpp"
+test_scope = "interaction"
+qml_callers = ["native/node-editor/qml/DocumentFileBanner.qml", "native/timeline/qml/TimelineEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Banner, Ui.Dialog, Ui.Text, Ui.EditorButton"
+
+[[file]]
 path = "native/account/qt/qml/ShareDialog.qml"
 category = "chrome"
 controls = ["Ui.Dialog", "SharePanel"]
@@ -3111,6 +3121,16 @@ qml_callers = ["native/node-editor/qml/DataTableEditor.qml", "native/node-editor
 replacement = "unreviewed"
 
 [[file]]
+path = "native/node-editor/qml/CommandMenu.qml"
+category = "chrome"
+controls = ["Item", "Connections", "Rectangle", "MouseArea", "ColumnLayout", "Ui.TextField", "Ui.Separator", "ListView", "Ui.Text", "Ui.ScrollBar", "Ui.ListRow", "Ui.Icon", "Row", "Repeater", "Ui.ShortcutHint", "HoverHandler", "Column"]
+signals = []
+test_host = "native/node-editor/tests/ui/MenusTest.cpp"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.TextField, Ui.Separator, Ui.Text, Ui.ScrollBar, Ui.ListRow, Ui.Icon, Ui.ShortcutHint"
+
+[[file]]
 path = "native/node-editor/qml/ComfyWorkflowDialog.qml"
 category = "pending"
 controls = ["Rectangle", "Connections", "ColumnLayout", "Ui.Text", "Ui.TextArea", "DropArea", "RowLayout", "Ui.ToolbarIconButton", "ListView", "Ui.EditorButton", "FileDialog"]
@@ -3223,7 +3243,7 @@ replacement = "Node editor geometry in Ui.Metrics and Ui.Theme tokens"
 [[file]]
 path = "native/node-editor/qml/DocumentFileBanner.qml"
 category = "chrome"
-controls = ["Rectangle", "EditorRoles", "ColumnLayout", "Ui.Banner"]
+controls = ["Rectangle", "EditorRoles", "ColumnLayout", "ProjectLockBanner", "Ui.Banner"]
 signals = []
 test_host = "native/node-editor/tests/ui/WorkflowBrowserComponentTest.cpp"
 test_scope = "interaction"

@@ -10,6 +10,8 @@
 #include "nodetool/account/qt/AccountServers.h"
 #include "nodetool/account/qt/CloudBrowser.h"
 #include "nodetool/account/qt/CloudDocument.h"
+#include "nodetool/account/project_lock.h"
+#include "nodetool/account/qt/ProjectLockState.h"
 #include "nodetool/account/qt/QtHttpTransport.h"
 #include "nodetool/account/qt/ServerToken.h"
 #include "nodetool/account/qt/ShareController.h"
@@ -1479,6 +1481,71 @@ private slots:
     QVERIFY(!transfer.result().value("published").toBool());
   }
 
+  // The Collect step of D22 (CF6, TC103): a publish that needs a linked file
+  // stops at CollectFirst. Collect copies the linked files on the bundled
+  // server, then the project is captured again and the sheet shows it. A
+  // file that cannot be copied fails the transfer and is named.
+  void collectsLinkedFilesThenCapturesAgain() {
+    Computer computer;
+    computer.server.addCode("code-c", "u1", "Ada");
+    auto account = computer.app("timeline");
+    signInWith(this, *account, "code-c");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+    const HttpResponse collectFirst = trpcData(
+        R"({"status":"collect_first","external":["a1"],"message":"Some files are linked from outside the project folder."})");
+    const HttpResponse captured =
+        trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":true,"operations":[)"
+                 R"({"op":"create_document","kind":"workflow","document_id":"w1"}],)"
+                 R"("documents":[{"kind":"workflow","local_id":"w1","cloud_id":"w1","name":"Mine"}],)"
+                 R"("missing_files":[],"skipped":[],"deleted_locally":[]})");
+    const auto controllerFor = [&](QueueServer& server) {
+      auto transfer = std::make_unique<TransferController>(std::make_unique<SharedTransport>(server));
+      transfer->setAccount(account.get());
+      transfer->setServerUrl(QUrl(kLocalServer));
+      transfer->setBundledServerUrl(QUrl(kLocalServer));
+      transfer->setServerToken("local-token");
+      transfer->setProjectId(QString(32, 'p'));
+      return transfer;
+    };
+
+    {
+      QueueServer server;
+      server.answer("cloudTransfer.send.capture", collectFirst);
+      server.answer("cloudTransfer.send.capture", captured);
+      server.answer("assets.collect", trpcData(R"({"copied":[{"id":"a1","name":"still.png","workspace_path":"Imported/still.png"}],)"
+                                               R"("skipped":[],"failed":[],"interrupted":false})"));
+      auto transfer = controllerFor(server);
+      transfer->collect();
+      QCOMPARE(transfer->stage(), TransferController::Stage::Idle);
+      transfer->start();
+      QTRY_COMPARE(transfer->stage(), TransferController::Stage::CollectFirst);
+      QCOMPARE(transfer->external(), QStringList{"a1"});
+      transfer->collect();
+      QTRY_COMPARE(transfer->stage(), TransferController::Stage::Reviewing);
+      QCOMPARE(server.calls(), (std::vector<std::string>{"cloudTransfer.send.capture", "assets.collect",
+                                                          "cloudTransfer.send.capture"}));
+      const auto body = nlohmann::json::parse(server.body("assets.collect"));
+      QCOMPARE(body["project_id"].get<std::string>(), std::string(32, 'p'));
+      // The bundled server copies the files: no cloud token goes with it.
+      QVERIFY(!body.contains("access_token"));
+      QCOMPARE(transfer->rows().size(), 1);
+      QVERIFY(transfer->external().isEmpty());
+    }
+    {
+      QueueServer server;
+      server.answer("cloudTransfer.send.capture", collectFirst);
+      server.answer("assets.collect", trpcData(R"({"copied":[],"skipped":[{"id":"a1","name":"still.png","reason":"missing"}],)"
+                                               R"("failed":[],"interrupted":false})"));
+      auto transfer = controllerFor(server);
+      transfer->start();
+      QTRY_COMPARE(transfer->stage(), TransferController::Stage::CollectFirst);
+      transfer->collect();
+      QTRY_COMPARE(transfer->stage(), TransferController::Stage::Failed);
+      QVERIFY(transfer->message().contains("still.png: missing"));
+      QCOMPARE(server.calls(), (std::vector<std::string>{"cloudTransfer.send.capture", "assets.collect"}));
+    }
+  }
+
   // A workflow created here while the sheet was open shows up in the send
   // captured again after the receive. Nothing is sent until the sheet shows
   // it (review F22).
@@ -2043,6 +2110,51 @@ private slots:
     QCOMPARE(again["confirm_deletes"], nlohmann::json::array());
   }
 
+  // A workspace file deleted here shows as a deletion. Confirming it is the
+  // only work of the send, and the send names it with its base hash.
+  void aConfirmedWorkspaceFileDeletionIsSent() {
+    Computer computer;
+    computer.server.addCode("code-x", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-x");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string base(64, 'b');
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("file_operations":[],"documents":[],"missing_files":[],"missing_document_files":[],)"
+                           R"("skipped":[],"deleted_locally":[],"deleted_workspace_files":[{"path":"notes/plan.md",)"
+                           R"("base_hash":")" + base + R"("}]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.send.run", trpcData(R"({"status":"committed","transfer_id":"t1","result":{}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 1);
+    QCOMPARE(transfer.rows().at(0).toMap().value("section").toString(), QString("deletion"));
+    QCOMPARE(transfer.rows().at(0).toMap().value("name").toString(), QString("notes/plan.md"));
+    QVERIFY(transfer.rows().at(0).toMap().value("canKeepDeletion").toBool());
+    QVERIFY(transfer.confirmDeletion(0, true));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    QCOMPARE(server.calls().back(), std::string("cloudTransfer.send.run"));
+    const auto sent = nlohmann::json::parse(server.body("cloudTransfer.send.run", 0));
+    QCOMPARE(sent["confirm_workspace_deletes"],
+             nlohmann::json::array({{{"path", "notes/plan.md"}, {"base_hash", base}}}));
+    QCOMPARE(sent["confirm_deletes"], nlohmann::json::array());
+  }
+
   // A confirmed deletion names the cloud revision the sheet showed. When the
   // cloud refuses it because the document changed there since, the sheet
   // withdraws the confirmation and asks again for the newer revision
@@ -2130,6 +2242,146 @@ private slots:
     QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
     QCOMPARE(server.calls().back(), std::string("cloudTransfer.send.run"));
     QVERIFY(transfer.result().value("sent").toBool());
+  }
+
+  // A changed and a new file of the project folder each get a send row that
+  // says where they are (CF5). Each is off by default, and only an included
+  // one is sent, with the hash the sheet showed (PRD SR7).
+  void workspaceFilesShowAsSendRows() {
+    Computer computer;
+    computer.server.addCode("code-w", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-w");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string before(64, 'b');
+    const std::string after(64, 'a');
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("file_operations":[{"op":"put_workspace_file","path":"notes/plan.md",)"
+                           R"("hash":")" + after + R"(","size":4,"base_hash":")" + before + R"("},)"
+                           R"({"op":"put_workspace_file","path":"data/new.csv","hash":")" + after +
+                           R"(","size":4,"base_hash":null}],"documents":[],)"
+                           R"("missing_files":[],"missing_document_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.send.run", trpcData(R"({"status":"committed","transfer_id":"t1","result":{}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 2);
+    const QVariantMap changed = transfer.rows().at(0).toMap();
+    QCOMPARE(changed.value("name").toString(), QString("notes/plan.md"));
+    QCOMPARE(changed.value("text").toString(), QString("Changed in the project folder"));
+    QVERIFY(changed.value("optional").toBool());
+    QVERIFY(!changed.value("confirmed").toBool());
+    QCOMPARE(transfer.rows().at(1).toMap().value("name").toString(), QString("data/new.csv"));
+    QCOMPARE(transfer.rows().at(1).toMap().value("text").toString(), QString("New in the project folder"));
+    QVERIFY(transfer.includeFile(changed.value("index").toInt(), true));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    const auto sent = nlohmann::json::parse(server.body("cloudTransfer.send.run", 0));
+    QCOMPARE(sent["include_workspace_files"], nlohmann::json::array({{{"path", "notes/plan.md"}, {"hash", after}}}));
+  }
+
+  // The cloud's changed workspace files are receive rows that say what
+  // happens to the local file, off by default, and a receive names only the
+  // ticked ones (RW7, OQ14).
+  void cloudWorkspaceFilesShowAsReceiveRows() {
+    Computer computer;
+    computer.server.addCode("code-r", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-r");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    const std::string cloud(64, 'c');
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("file_operations":[],"documents":[],)"
+                           R"("missing_files":[],"missing_document_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture",
+                  trpcData(R"({"set_id":"s1","documents":[],"workspace_files":[)"
+                           R"({"path":"notes.txt","hash":")" + cloud + R"(","size":4,"local_hash":null,)"
+                           R"("status":"both_changed","included":false}],"cloud_deleted_workspace_files":["old.txt"]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[],"kept_beside_workspace_files":[{"path":"notes.txt",)"
+                           R"("kept_path":"notes (cloud).txt"}]}})"));
+    server.answer("cloudTransfer.send.run", trpcData(R"({"status":"committed","transfer_id":"t1","result":{}})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    QCOMPARE(transfer.rows().size(), 2);
+    const QVariantMap notes = transfer.rows().at(0).toMap();
+    QCOMPARE(notes.value("section").toString(), QString("receive"));
+    QCOMPARE(notes.value("name").toString(), QString("notes.txt"));
+    QCOMPARE(notes.value("text").toString(),
+             QString("Changed here and in the cloud. The cloud file goes beside yours"));
+    QVERIFY(notes.value("optional").toBool());
+    QVERIFY(!notes.value("confirmed").toBool());
+    const QVariantMap old = transfer.rows().at(1).toMap();
+    QCOMPARE(old.value("text").toString(), QString("Deleted in the cloud. Your file stays here"));
+    QVERIFY(!old.value("optional").toBool());
+    QVERIFY(transfer.includeFile(notes.value("index").toInt(), true));
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    const auto run = nlohmann::json::parse(server.body("cloudTransfer.receive.run", 0));
+    QCOMPARE(run["include_workspace_files"], nlohmann::json::array({{{"path", "notes.txt"}, {"hash", cloud}}}));
+  }
+
+  // A capture whose only work is workspace files the person leaves out sends
+  // nothing (PRD SR7).
+  void workspaceFilesLeftOutSendNothing() {
+    Computer computer;
+    computer.server.addCode("code-o", "u1", "Ada");
+    auto account = computer.app("node-editor");
+    signInWith(this, *account, "code-o");
+    QTRY_COMPARE(account->state(), AccountController::State::SignedIn);
+
+    QueueServer server;
+    server.answer("cloudTransfer.send.capture",
+                  trpcData(R"({"status":"captured","transfer_id":"t1","first_publication":false,"operations":[],)"
+                           R"("file_operations":[{"op":"put_workspace_file","path":"data/new.csv","hash":")" +
+                           std::string(64, 'a') + R"(","size":4,"base_hash":null}],"documents":[],)"
+                           R"("missing_files":[],"missing_document_files":[],"skipped":[],"deleted_locally":[]})"));
+    server.answer("cloudTransfer.receive.capture", trpcData(R"({"set_id":"s1","documents":[]})"));
+    server.answer("cloudTransfer.receive.run",
+                  trpcData(R"({"status":"finished","set_id":"s1","result":{"received":[],)"
+                           R"("changed_during_receive":[],"not_received":[],"kept_beside":[],"missing_files":[],)"
+                           R"("file_kept":[]}})"));
+    server.answer("cloudTransfer.send.cancel", trpcData(R"({"state":"cancelled"})"));
+
+    TransferController transfer(std::make_unique<SharedTransport>(server));
+    transfer.setAccount(account.get());
+    transfer.setServerUrl(QUrl(kLocalServer));
+    transfer.setBundledServerUrl(QUrl(kLocalServer));
+    transfer.setProjectId(QString(32, 'p'));
+    transfer.setLinked(true);
+    transfer.start();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Reviewing);
+    transfer.apply();
+    QTRY_COMPARE(transfer.stage(), TransferController::Stage::Finished);
+    for (const std::string& call : server.calls()) {
+      QVERIFY(call != "cloudTransfer.send.run");
+    }
   }
 
   // A send with a missing file waits until the person confirms each file,
@@ -2288,6 +2540,88 @@ private slots:
     const int readsAfterReload = denied.reads.load();
     QTest::qWait(2300);
     QCOMPARE(denied.reads.load(), readsAfterReload);
+  }
+
+  // WP2.13, TC105 through the window state: the second app's window opens
+  // read-only and names the first, then writes once the first closed it.
+  void projectLockNamesTheOtherApp() {
+    account_test::TempDir folder;
+    const QString path = QString::fromStdU16String(folder.path().u16string());
+    const QString project(32, 'a');
+    const std::vector<std::pair<int64_t, std::string>> table{{10, "boot:10"}, {20, "boot:20"}};
+    const auto probe = [table](int64_t pid) -> std::optional<std::string> {
+      for (const auto& [id, start] : table) {
+        if (id == pid) return start;
+      }
+      return std::nullopt;
+    };
+    auto timelineLocks = std::make_unique<ProjectLocks>(ProjectLockHolder{"timeline", 10, "studio", "boot:10", ""}, probe);
+    ProjectLocks editorLocks(ProjectLockHolder{"node-editor", 20, "studio", "boot:20", ""}, probe);
+    auto timeline = std::make_unique<ProjectLockState>(timelineLocks.get());
+    timeline->setTarget(path, project);
+    QCOMPARE(timeline->state(), QString("writing"));
+    QVERIFY(!timeline->readOnly());
+    QVERIFY(timeline->message().isEmpty());
+
+    ProjectLockState editor(&editorLocks);
+    QSignalSpy changed(&editor, &ProjectLockState::changed);
+    editor.setTarget(path, project);
+    QCOMPARE(changed.count(), 1);
+    QCOMPARE(editor.state(), QString("heldHere"));
+    QVERIFY(editor.readOnly());
+    QCOMPARE(editor.holderApp(), QString("timeline"));
+    QVERIFY(editor.message().contains("The timeline app"));
+    // Taking over is only for another computer.
+    editor.takeOver();
+    QCOMPARE(editor.state(), QString("heldHere"));
+
+    // The timeline closes the project, so Check again writes.
+    timeline.reset();
+    QVERIFY(!std::filesystem::exists(projectLockPath(folder.path())));
+    editor.retry();
+    QCOMPARE(editor.state(), QString("writing"));
+    QVERIFY(!editor.readOnly());
+    // Leaving the project gives the lock back.
+    editor.setTarget({}, {});
+    QCOMPARE(editor.state(), QString());
+    QVERIFY(!std::filesystem::exists(projectLockPath(folder.path())));
+  }
+
+  void projectLockFromAnotherComputerIsTakenOver() {
+    account_test::TempDir folder;
+    const QString path = QString::fromStdU16String(folder.path().u16string());
+    const QString project(32, 'b');
+    writeFileAtomically(projectLockPath(folder.path()),
+                        serializeProjectLock({"timeline", 10, "laptop", "boot:10", project.toStdString()}));
+    ProjectLocks locks(ProjectLockHolder{"node-editor", 20, "studio", "boot:20", ""},
+                       [](int64_t pid) -> std::optional<std::string> {
+                         return pid == 20 ? std::optional<std::string>("boot:20") : std::nullopt;
+                       });
+    ProjectLockState state(&locks);
+    state.setTarget(path, project);
+    QCOMPARE(state.state(), QString("heldElsewhere"));
+    QVERIFY(state.readOnly());
+    QCOMPARE(state.holderHost(), QString("laptop"));
+    QVERIFY(state.message().contains("laptop"));
+    state.retry();
+    QCOMPARE(state.state(), QString("heldElsewhere"));
+    state.takeOver();
+    QCOMPARE(state.state(), QString("writing"));
+    const auto bytes = readWholeFile(projectLockPath(folder.path()));
+    QVERIFY(bytes && parseProjectLock(*bytes)->host == "studio");
+  }
+
+  void projectLockNeedsAFolderOnThisComputer() {
+    account_test::TempDir folder;
+    ProjectLocks locks("node-editor");
+    ProjectLockState state(&locks);
+    state.setTarget(QString::fromStdU16String((folder.path() / "gone").u16string()), QString(32, 'c'));
+    QCOMPARE(state.state(), QString());
+    QVERIFY(!state.readOnly());
+    ProjectLockState noLocks(nullptr);
+    noLocks.setTarget(QString::fromStdU16String(folder.path().u16string()), QString(32, 'c'));
+    QCOMPARE(noLocks.state(), QString());
+    QVERIFY(!std::filesystem::exists(projectLockPath(folder.path())));
   }
 };
 

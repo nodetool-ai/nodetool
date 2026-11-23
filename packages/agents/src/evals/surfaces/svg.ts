@@ -14,14 +14,14 @@
  */
 
 import { XMLParser, XMLValidator } from "fast-xml-parser";
-import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
+
 import {
   SVG_TOOL_CONTRACTS,
   replaceExactlyOnce,
   type SvgToolName
 } from "@nodetool-ai/protocol/api-schemas/asset-editor-tool-contracts.js";
 import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
-import type { HeadlessTool } from "../tool-loop-bridge.js";
+import { closedParams, parseBridgeArgs, withHostField, type HeadlessTool } from "../tool-loop-bridge.js";
 import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
@@ -63,13 +63,15 @@ function tool(
   impl: (args: Record<string, unknown>) => Promise<unknown>
 ): HeadlessTool {
   const parameters = uiToolParams(SVG_TOOL_CONTRACTS[name]);
+  const advertised = withHostField(parameters, "asset_id");
+  const closed = closedParams(advertised);
   return {
     name,
     description: SVG_TOOL_CONTRACTS[name].description,
-    parameters,
+    parameters: advertised,
     execute: (args) =>
       impl(
-        parseWithTypeCoercion(parameters, args ?? {}) as Record<string, unknown>
+        parseBridgeArgs(closed, args) as Record<string, unknown>
       )
   };
 }

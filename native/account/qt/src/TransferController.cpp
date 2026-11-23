@@ -92,6 +92,12 @@ static QString transferRowDetail(const ReviewRow& row) {
     if (d == "put_asset_file") {
       return TransferController::tr("File changed here, will be sent");
     }
+    if (d == "put_workspace_file") {
+      return TransferController::tr("Changed in the project folder");
+    }
+    if (d == "new_workspace_file") {
+      return TransferController::tr("New in the project folder");
+    }
     break;
   case ReviewSection::Receive:
     if (d == "new") {
@@ -102,6 +108,21 @@ static QString transferRowDetail(const ReviewRow& row) {
     }
     if (d == "cloud_file_changed") {
       return TransferController::tr("A file it uses changed in the cloud");
+    }
+    if (d == "workspace_new") {
+      return TransferController::tr("New in the cloud");
+    }
+    if (d == "workspace_cloud_changed") {
+      return TransferController::tr("Changed in the cloud");
+    }
+    if (d == "workspace_both_changed") {
+      return TransferController::tr("Changed here and in the cloud. The cloud file goes beside yours");
+    }
+    if (d == "workspace_local_deleted") {
+      return TransferController::tr("Deleted here, changed in the cloud");
+    }
+    if (d == "workspace_cloud_deleted") {
+      return TransferController::tr("Deleted in the cloud. Your file stays here");
     }
     break;
   case ReviewSection::Choice:
@@ -324,6 +345,7 @@ QVariantList TransferController::rows() const {
                              {QStringLiteral("choice"), choice},
                              {QStringLiteral("confirmed"), row.confirmed},
                              {QStringLiteral("canKeepDeletion"), row.sendListed},
+                             {QStringLiteral("optional"), row.optional},
                              {QStringLiteral("canRestore"), row.receiveListed},
                              {QStringLiteral("canSendWithout"), !row.assetId.empty()},
                              {QStringLiteral("canReceive"), linked_ || row.cloudHash.empty()}});
@@ -339,7 +361,7 @@ void TransferController::fail(const QString& message) {
 }
 
 void TransferController::start() {
-  if (stage_ == Stage::Capturing || stage_ == Stage::Running) {
+  if (stage_ == Stage::Capturing || stage_ == Stage::Running || stage_ == Stage::Collecting) {
     return;
   }
   const std::shared_ptr<AccountSession> current = session();
@@ -397,6 +419,53 @@ void TransferController::start() {
   });
 }
 
+void TransferController::collect() {
+  if (stage_ != Stage::CollectFirst) {
+    return;
+  }
+  const std::shared_ptr<AccountSession> current = session();
+  if (!current) {
+    fail(linked_ ? tr("Sign in to synchronize this project.") : tr("Sign in to publish this project."));
+    return;
+  }
+  const quint64 sequence = ++sequence_;
+  stage_ = Stage::Collecting;
+  message_.clear();
+  emit stateChanged();
+  tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(),
+                headers = headers(), projectId = projectId_.toStdString(), sequence]() {
+    LocalTransferClient client(*state->transport, origin, headers, *current, cancel);
+    LocalTransferClient::Collect collected = client.collectLinked(projectId);
+    state->toUi([sequence, collected = std::move(collected)](TransferController& self) {
+      self.finishCollect(sequence, collected);
+    });
+  });
+}
+
+void TransferController::finishCollect(quint64 sequence, const LocalTransferClient::Collect& collected) {
+  if (sequence != sequence_) {
+    return;
+  }
+  if (collected.status != TransferStatus::Ok) {
+    fail(failure(collected.status, collected.reason));
+    return;
+  }
+  if (!collected.notCollected.empty() || collected.interrupted) {
+    QString text = tr("These linked files could not be copied into the project folder:");
+    for (const std::string& file : collected.notCollected) {
+      text += QStringLiteral("\n") + QString::fromStdString(file);
+    }
+    if (collected.interrupted) {
+      text += QStringLiteral("\n") + tr("Copying stopped before every file was tried.");
+    }
+    fail(text);
+    return;
+  }
+  // Every linked file is in the folder now: read the project again.
+  stage_ = Stage::Idle;
+  start();
+}
+
 void TransferController::finishCapture(quint64 sequence, const Captured& captured) {
   if (sequence != sequence_) {
     // Cancelled while it captured: end the send it opened.
@@ -434,7 +503,7 @@ void TransferController::finishCapture(quint64 sequence, const Captured& capture
     return;
   }
   setId_ = captured.receive.setId;
-  sendWork_ = !captured.send.operations.empty() || !captured.send.fileOperations.empty();
+  sendWork_ = hasRequiredWork(captured.send);
   review_ = TransferReview(captured.send, captured.receive);
   sendCapture_ = captured.send;
   approved_ = captured.send.operations;
@@ -481,6 +550,17 @@ bool TransferController::confirmMissingFile(int index, bool confirmed) {
   return true;
 }
 
+bool TransferController::includeFile(int index, bool included) {
+  if (index < 0 || stage_ != Stage::Reviewing) {
+    return false;
+  }
+  if (!review_.includeFile(static_cast<std::size_t>(index), included)) {
+    return false;
+  }
+  emit rowsChanged();
+  return true;
+}
+
 bool TransferController::confirmDeletion(int index, bool confirmed) {
   if (index < 0 || stage_ != Stage::Reviewing) {
     return false;
@@ -514,7 +594,8 @@ void TransferController::apply() {
   tasks_->post([state = shared_, cancel = std::shared_ptr<const RequestCancel>(cancel_), current, origin = origin(), headers = headers(), review = review_, transferId = transferId_,
                 setId = received_ ? std::string() : setId_,
                 refusals = linked_ ? review_.refusalsToReceive() : std::vector<TransferReview::RefusalReceive>{},
-                sendWork = sendWork_ || !linked_ || !review_.confirmedDeletes().empty(),
+                sendWork = sendWork_ || !linked_ || !review_.confirmedDeletes().empty() ||
+                           !review_.confirmedFileDeletes().empty() || !review_.includedFiles().empty(),
                 approved = approved_, approvedFiles = approvedFiles_, projectId = projectId_.toStdString(), name = projectName_.toStdString(),
                 sequence]() mutable {
     LocalTransferClient client(*state->transport, origin, headers, *current, cancel);
@@ -526,7 +607,7 @@ void TransferController::apply() {
     };
     bool replaced = false;
     if (!setId.empty()) {
-      applied.receive = client.runReceive(setId, review.receiveDecisions());
+      applied.receive = client.runReceive(setId, review.receiveDecisions(), review.includedReceiveFiles());
       if (applied.receive->status != TransferStatus::Ok || applied.receive->outcome != "finished") {
         report();
         return;
@@ -619,22 +700,24 @@ void TransferController::apply() {
           report();
           return;
         }
-        sendWork = !applied.recaptured->operations.empty() || !applied.recaptured->fileOperations.empty() ||
-                   !review.confirmedDeletes().empty();
+        sendWork = hasRequiredWork(*applied.recaptured) || !review.confirmedDeletes().empty() ||
+                   !review.confirmedFileDeletes().empty() || !review.includedFiles().empty();
       }
     }
     if (sendWork) {
       std::vector<KeepLocalDecision> keep = review.keepLocalDecisions();
       const std::vector<DeleteConfirmation> deletes = review.confirmedDeletes();
       const std::vector<TransferMissingFile> missing = review.confirmedMissingFiles();
-      SendRun run = client.runSend(transferId, keep, deletes, missing);
+      const std::vector<TransferDeletedFile> fileDeletes = review.confirmedFileDeletes();
+      const std::vector<IncludedFile> included = review.includedFiles();
+      SendRun run = client.runSend(transferId, keep, deletes, missing, fileDeletes, included);
       if (run.status == TransferStatus::Ok && !run.committed) {
         // Documents kept local are refused once: their base is older than
         // the cloud revision the person saw.
         const std::vector<KeepLocalDecision> answered = review.answeredRefusals(run.failures);
         if (!answered.empty() && answered.size() == run.failures.size()) {
           keep.insert(keep.end(), answered.begin(), answered.end());
-          run = client.runSend(transferId, keep, deletes, missing);
+          run = client.runSend(transferId, keep, deletes, missing, fileDeletes, included);
         }
       }
       applied.send = std::move(run);
@@ -737,7 +820,7 @@ void TransferController::finishApply(quint64 sequence, const Applied& applied) {
       return;
     }
     transferId_ = again.transferId;
-    sendWork_ = !again.operations.empty() || !again.fileOperations.empty();
+    sendWork_ = hasRequiredWork(again);
     if (!applied.unreviewed.empty() || !applied.unreviewedFiles.empty()) {
       // The receive is done. The send shows again with what changed here.
       review_ = TransferReview(again, ReceiveCapture{TransferStatus::Ok, {}, {}, {}});

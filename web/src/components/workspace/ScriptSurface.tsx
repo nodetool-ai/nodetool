@@ -17,6 +17,7 @@ import {
 } from "../../stores/script/ScriptStore";
 import { redoScript, undoScript } from "../../stores/script/timelineSync";
 import { useScriptServerSync } from "../../hooks/script/useScriptServerSync";
+import { useCloudWindowScriptDrafts } from "../../hooks/script/useCloudWindowScriptDrafts";
 import { useScriptAgentBridge } from "../../hooks/script/useScriptAgentBridge";
 import { useDocumentUndoShortcuts } from "../../hooks/useDocumentUndoShortcuts";
 import {
@@ -93,6 +94,7 @@ const ScriptSurface = ({ refId, mode, active, tab }: ScriptSurfaceProps) => {
   }, [ensureScript, refId]);
 
   const loadState = useScriptServerSync(refId);
+  useCloudWindowScriptDrafts(refId);
   useScriptAgentBridge(refId);
 
   // A script still in setup renders the flow in place of the editor (PRD

@@ -12,7 +12,13 @@ namespace nodetool::node_editor {
 namespace {
 constexpr qint64 ResponseLimit = 16 * 1024 * 1024;
 }
-ProjectFolder::ProjectFolder(QObject *parent) : QObject(parent), m_network(this) {}
+ProjectFolder::ProjectFolder(QObject *parent) : QObject(parent), m_network(this) {
+  connect(&m_lock, &nodetool::account::qt::ProjectLockState::changed, this, &ProjectFolder::changed);
+}
+void ProjectFolder::updateLock() {
+  const bool local = revealable();
+  m_lock.setTarget(local ? folderPath() : QString(), local ? projectId() : QString());
+}
 void ProjectFolder::configure(const QUrl &origin, const QString &token, const QString &userId) {
   ++m_epoch;
   for (auto *reply : m_network.findChildren<QNetworkReply *>()) { reply->abort(); }
@@ -26,6 +32,7 @@ void ProjectFolder::configure(const QUrl &origin, const QString &token, const QS
   m_locateError.clear();
   m_restoreError.clear();
   m_busy = false;
+  updateLock();
   emit changed();
   refresh();
 }
@@ -38,6 +45,7 @@ void ProjectFolder::setProject(const QString &projectKey) {
   m_locateError.clear();
   m_restoreError.clear();
   m_busy = false;
+  updateLock();
   emit changed();
   refresh();
 }
@@ -119,6 +127,7 @@ void ProjectFolder::refresh() {
       }
     }
     m_project = found;
+    updateLock();
     emit changed();
     loadDocuments();
   });

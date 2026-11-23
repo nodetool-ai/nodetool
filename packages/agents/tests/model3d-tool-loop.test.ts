@@ -51,7 +51,7 @@ function createScriptedProvider(script: ScriptedCall[]): BaseProvider {
 // --- createModel3DToolBridge --------------------------------------------------
 
 describe("createModel3DToolBridge", () => {
-  it("exposes exactly the 9 non-capture ui_3d_* tools", () => {
+  it("exposes exactly the 10 non-capture ui_3d_* tools", () => {
     const bridge = createModel3DToolBridge();
     const names = bridge.tools.map((t) => t.name).sort();
     expect(names).toEqual(
@@ -59,6 +59,7 @@ describe("createModel3DToolBridge", () => {
         "ui_3d_add_object",
         "ui_3d_delete_object",
         "ui_3d_frame_scene",
+        "ui_3d_get_object",
         "ui_3d_list_scene",
         "ui_3d_rename_object",
         "ui_3d_select_object",
@@ -68,6 +69,16 @@ describe("createModel3DToolBridge", () => {
       ].sort()
     );
     expect(names).not.toContain("ui_3d_capture_view");
+  });
+
+  it("reads one object with its children", async () => {
+    const bridge = createModel3DToolBridge({ objects: [{ name: "Table", kind: "box" }] });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+    const read = (await byName["ui_3d_get_object"]!.execute({ target: "table" })) as {
+      object: { name: string; children: string[] };
+    };
+    expect(read.object).toMatchObject({ name: "Table", children: [] });
+    await expect(byName["ui_3d_get_object"]!.execute({ target: "Lamp" })).rejects.toThrow('No object found matching "Lamp"');
   });
 
   it("adds two primitives and lists them", async () => {

@@ -14506,7 +14506,9 @@
       "connect": "Yhdistä",
       "getKey": "Hanki avain palvelusta {{provider}}",
       "saveAnyway": "Tallenna silti",
-      "rejectedKey": "Palveluntarjoaja hylkäsi tämän avaimen."
+      "rejectedKey": "Palveluntarjoaja hylkäsi tämän avaimen.",
+      "regionSwitched": "{{provider}} hyväksyi tämän avaimen Manner-Kiinan palvelimellaan. NodeTool käyttää nyt sitä palvelinta.",
+      "hfMirrorNote": "Eikö huggingface.co vastaa? Aseta peilipalvelin, kuten https://hf-mirror.com, kohdassa Asetukset → Integraatiot → HF endpoint."
     },
     "hardware": {
       "autoDetect": "Tunnista automaattisesti",
@@ -14559,6 +14561,19 @@
       "memoryEstimate_other": "{{count}} Gt muistia",
       "installed": "Asennettu",
       "download": "Lataa"
+    },
+    "providerSetup": {
+      "chat": "Keskustelu tarvitsee kielimallin. Yhdistä palveluntarjoaja aloittaaksesi.",
+      "image": "Kuvien luominen vaatii kuvapalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "image_edit": "Kuvien muokkaus vaatii kuvapalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "video": "Videoiden luominen vaatii videopalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "image_to_video": "Kuvien animointi vaatii videopalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "reference_to_video": "Viitteestä videoksi vaatii videopalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "retake": "Uusintaotto vaatii videopalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "extend": "Videon jatkaminen vaatii videopalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "audio_to_video": "Huulisynkronointi vaatii huulisynkronoinnin palveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "music": "Musiikin luominen vaatii musiikkipalveluntarjoajan. Yhdistä sellainen jatkaaksesi.",
+      "audio": "Puheen luominen vaatii puhesynteesin palveluntarjoajan. Yhdistä sellainen jatkaaksesi."
     }
   },
   "i18n-next29": {
@@ -17774,7 +17789,11 @@
         "allResults": "Kaikki tulokset",
         "home": "Koti",
         "local": "Paikallinen",
-        "providers": "Palveluntarjoajat"
+        "providers": "Palveluntarjoajat",
+        "resultsInPath": "Tulokset kohteessa {{path}}: {{count}} · Osumia haulle ”{{term}}” yhteensä: {{total}}",
+        "resultsRelevant": "Tulokset: {{count}} · Osuvimmat haulle ”{{term}}” ensin",
+        "nodesInPath": "Solmut kohteessa {{path}}: {{count}}",
+        "nodesMatchFilters": "Suodattimia vastaavat solmut: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Selaa solmuja",
@@ -19956,7 +19975,8 @@
       },
       "openInSketch": "Avaa luonnoksessa",
       "reusePrompt": "Käytä kehotetta uudelleen",
-      "sketchTitle": "Luotu kuva"
+      "sketchTitle": "Luotu kuva",
+      "keyRejected": "Palveluntarjoaja hylkäsi API-avaimen. Tarkista se kohdassa Asetukset → Mallit ja palveluntarjoajat."
     },
     "kindLabel": "Mitä luodaan",
     "modeLabel": "Miten se luodaan",
@@ -20643,6 +20663,12 @@
       "cancel": "Peruuta",
       "signOutNow": "Kirjaudu ulos nyt",
       "waitingNote": "Odotetaan muutosten lähettämistä. Pidä pilvi-ikkuna auki."
+    },
+    "syncStatus": {
+      "savedToCloud": "Tallennettu pilveen",
+      "changesWaiting": "Muutoksia odottaa",
+      "offline": "Ei yhteyttä",
+      "notSaving": "Ei tallenneta"
     }
   },
   "cloudTransfer": {
@@ -20652,6 +20678,10 @@
     },
     "capturing": "Luetaan muutoksia…",
     "running": "Lähetetään ja vastaanotetaan…",
+    "collect": "Kerää",
+    "collecting": "Kopioidaan linkitettyjä tiedostoja projektikansioon…",
+    "include": "Lähetä",
+    "includeReceive": "Vastaanota",
     "apply": {
       "publish": "Julkaise",
       "synchronize": "Synkronoi"
@@ -20686,6 +20716,11 @@
       "keepBoth": "Lähetetään kopiona pilviversion rinnalle",
       "addVersions": "Tallennetut versiot lähetetään",
       "putAssetFile": "Tiedosto muutettu täällä, lähetetään",
+      "putWorkspaceFile": "Muutettu projektikansiossa",
+      "newWorkspaceFile": "Uusi projektikansiossa",
+      "workspaceBothChanged": "Muutettu täällä ja pilvessä. Pilven tiedosto tallennetaan omasi viereen",
+      "workspaceLocalDeleted": "Poistettu täältä, muutettu pilvessä",
+      "workspaceCloudDeleted": "Poistettu pilvestä. Tiedostosi jää tänne",
       "newInCloud": "Uusi pilvessä",
       "cloudChanged": "Muutettu pilvessä",
       "cloudFileChanged": "Sen käyttämä tiedosto muuttui pilvessä",
@@ -20708,7 +20743,7 @@
       "localUnavailable": "Tämän sovelluksen projektipalvelin ei vastannut.",
       "cancelled": "Siirto keskeytyi, koska pilvitili vaihtui.",
       "refused": "Palvelin hylkäsi siirron ({{reason}}).",
-      "collectFirst": "Osa projektin tiedostoista on projektikansion ulkopuolella. Kerää ne kansioon ja yritä uudelleen.",
+      "collectFirst": "Osa projektin käyttämistä tiedostoista on projektikansion ulkopuolella. Kerää kopioi ne sen Imported-kansioon ja lukee projektin uudelleen.",
       "receiveExpired": "Pilviprojekti muuttui, kun tämä ikkuna oli auki. Synkronoi uudelleen.",
       "receiveChangedWhileOpen": "Jokin muuttui, kun tämä ikkuna oli auki. Tarkista valinnat uudelleen.",
       "receivingChangedAgain": "Pilviprojekti muuttui uudelleen vastaanoton aikana. Valitse uudelleen.",
@@ -20719,7 +20754,9 @@
       "notPreparedAgain": "Vastaanotettu. Täällä tehtyjä muutoksia ei voitu valmistella uudelleen: {{reason}} Synkronoi uudelleen lähettääksesi ne.",
       "sendChangedWhileOpen": "Tämä projekti muuttui, kun ikkuna oli auki. Tarkista, mitä lähetetään.",
       "missingFilesUnconfirmed": "Projektin tarvitsemia tiedostoja puuttuu. Vahvista jokainen lähettääksesi ilman sitä.",
-      "sendRefused": "Pilvi hylkäsi lähetyksen: {{reasons}}"
+      "sendRefused": "Pilvi hylkäsi lähetyksen: {{reasons}}",
+      "notCollected": "Näitä linkitettyjä tiedostoja ei voitu kopioida projektikansioon: {{files}}",
+      "collectInterrupted": "Kopiointi pysähtyi ennen kuin kaikkia linkitettyjä tiedostoja yritettiin. Yritä uudelleen."
     },
     "done": {
       "published": "Julkaistu pilveen.",

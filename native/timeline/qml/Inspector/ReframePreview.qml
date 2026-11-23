@@ -9,8 +9,11 @@ Item {
     property var gestures: null
     property MonitorViewState monitor: null
     readonly property var selection: gestures ? gestures.selection : []
+    readonly property var emptyState: ({})
     // Read the revision, so the binding reruns on a document change without a copy of the document.
-    readonly property var state: edits.revision >= 0 ? edits.previewState(selection, clock.time) : ({})
+    // Short-circuit before reading clock.time when the selection has no reframe.
+    readonly property bool activeReframe: edits.revision >= 0 && edits.hasReframe(selection)
+    readonly property var state: activeReframe ? edits.previewState(selection, clock.time) : emptyState
     function findGestures(item) {
         if (!item) return null
         if (item.gestures !== undefined) return item.gestures

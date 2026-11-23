@@ -236,6 +236,25 @@ interface ActionObservation {
 }
 
 /**
+ * The calls a failed action completed before it threw. Their effects persist,
+ * and a model that retries the whole action repeats them: an image generated
+ * twice, a node added twice.
+ */
+export function completedCallsNote(completed: readonly string[]): string | null {
+  if (completed.length === 0) return null;
+  const counts = new Map<string, number>();
+  for (const name of completed) counts.set(name, (counts.get(name) ?? 0) + 1);
+  const list = [...counts.entries()]
+    .map(([name, count]) => (count > 1 ? `${name} ×${count}` : name))
+    .join(", ");
+  return (
+    `Before the error, this action completed ${completed.length} tool ` +
+    `call${completed.length === 1 ? "" : "s"}: ${list}. Their effects persist. ` +
+    "Read the current state, then do only what is still missing."
+  );
+}
+
+/**
  * What the router returns is transcript-shaped (JSON strings, content
  * blocks); the guest wants values. Parse JSON strings and flatten
  * `MessageContent[]` to their text.
@@ -393,6 +412,7 @@ export function createChatCodeActSession(
   const callToolFor = (action: {
     calls: number;
     disclosure: SignatureDisclosure;
+    completed: string[];
   }): CallTool => async (
     name,
     argsJson
@@ -460,6 +480,7 @@ export function createChatCodeActSession(
           : errorPayload;
         return { ok: false, error: `tools.${name}: ${message}` };
       }
+      action.completed.push(name);
       return { ok: true, result: toTransferable(value) };
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -613,11 +634,16 @@ export function createChatCodeActSession(
         toolCalls: 0
       } satisfies ActionObservation);
     }
-    const action = { calls: 0, disclosure: createSignatureDisclosure() };
+    const action = {
+      calls: 0,
+      disclosure: createSignatureDisclosure(),
+      completed: [] as string[]
+    };
     const callTool = callToolFor(action);
     const sessionModules = sessionModulesFor(callTool);
     const mountOptions: MountCapabilityModulesOptions = {
-      disclosure: action.disclosure
+      disclosure: action.disclosure,
+      onCallCompleted: (name) => action.completed.push(name)
     };
     if (options.signal !== undefined) mountOptions.signal = options.signal;
     if (sessionModules.length > 0) mountOptions.session = sessionModules;
@@ -727,6 +753,8 @@ export function createChatCodeActSession(
         observation,
         annotateFailure(outcome.error, outcome.stack, prelude, code)
       );
+      const ran = completedCallsNote(action.completed);
+      if (ran !== null) observation.error = `${observation.error ?? ""}\n${ran}`;
     }
     if (outcome.logs && outcome.logs.length > 0) {
       observation.logs = outcome.logs;

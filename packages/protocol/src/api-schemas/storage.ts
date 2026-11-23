@@ -125,3 +125,116 @@ export const storageFilesOutput = z.object({
 });
 
 export type StorageFilesOutput = z.infer<typeof storageFilesOutput>;
+
+// ── storage.erasePreview, storage.erase, storage.unerase ────────────────────
+// Erasing a file of a cloud project (WP2.9, PRD FR79, SR33). Owner only. The
+// erase is refused while current content shows the file, and the refusal
+// names that content. The file goes on the project's erased list until the
+// owner takes it off.
+
+const fileHash = z.string().regex(/^[0-9a-f]{64}$/);
+
+export const eraseFileInput = z.object({
+  project_id: z.string().regex(/^[0-9a-f]{32}$/),
+  hash: fileHash
+});
+
+export type EraseFileInput = z.infer<typeof eraseFileInput>;
+
+/** Current content that shows the file: a document's current revision, or a file in the project's folder. */
+export const eraseBlockerSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("workflow"), document_id: z.string(), name: z.string() }),
+  z.object({ kind: z.literal("timeline"), document_id: z.string(), name: z.string() }),
+  z.object({ kind: z.literal("file"), asset_id: z.string(), path: z.string() })
+]);
+
+export type EraseBlocker = z.infer<typeof eraseBlockerSchema>;
+
+/** Content that refers to the file and shows File erased afterwards. */
+export const eraseReferenceSchema = z.object({
+  kind: z.string(),
+  document_id: z.string(),
+  name: z.string(),
+  where: z.enum(["version", "deleted"]),
+  version_ids: z.array(z.string())
+});
+
+export const erasePreviewOutput = z.object({
+  hash: fileHash,
+  size: z.number(),
+  asset_ids: z.array(z.string()),
+  /** Empty when the erase may go ahead. */
+  current: z.array(eraseBlockerSchema),
+  references: z.array(eraseReferenceSchema)
+});
+
+export type ErasePreviewOutput = z.infer<typeof erasePreviewOutput>;
+
+export const eraseFileOutput = z.discriminatedUnion("outcome", [
+  z.object({
+    outcome: z.literal("erased"),
+    hash: fileHash,
+    size: z.number(),
+    asset_ids: z.array(z.string()),
+    references: z.array(eraseReferenceSchema),
+    erased_at: z.string()
+  }),
+  z.object({ outcome: z.literal("refused"), hash: fileHash, current: z.array(eraseBlockerSchema) })
+]);
+
+export type EraseFileOutput = z.infer<typeof eraseFileOutput>;
+
+export const uneraseFileOutput = z.object({
+  /** False when the file was not on the erased list. */
+  removed: z.boolean()
+});
+
+export type UneraseFileOutput = z.infer<typeof uneraseFileOutput>;
+
+// ── storage.projectFileLists ─────────────────────────────────────────────────
+// The Incomplete list and the erased list of a cloud project, filtered for the
+// caller (WP2.9, PRD X7, SR32, AC73). A row appears only when content the
+// caller may read refers to it, and names only those documents. Counts and
+// sizes cover the returned rows.
+
+export const projectFileListsInput = z.object({
+  project_id: z.string().regex(/^[0-9a-f]{32}$/)
+});
+
+const listedDocument = z.object({
+  kind: z.enum(["workflow", "timeline"]),
+  document_id: z.string(),
+  name: z.string()
+});
+
+export const projectFileListsOutput = z.object({
+  /** The Incomplete mark: true while the caller's missing-file list is not empty. */
+  incomplete: z.boolean(),
+  missing_files: z.array(
+    z.object({
+      asset_id: z.string(),
+      /** The hash and size the sender knew, or null. */
+      hash: z.string().nullable(),
+      size: z.number().nullable(),
+      reason: z.enum(["missing_locally", "too_large", "over_allowance"]),
+      documents: z.array(listedDocument)
+    })
+  ),
+  /** The sum of the known sizes of the listed missing files. */
+  missing_bytes: z.number(),
+  erased_files: z.array(
+    z.object({
+      hash: z.string(),
+      size: z.number(),
+      /** The assets with this content that the caller's documents refer to. */
+      asset_ids: z.array(z.string()),
+      /** The owner, the only person who erases. */
+      erased_by: z.string(),
+      erased_at: z.string(),
+      documents: z.array(listedDocument)
+    })
+  ),
+  erased_bytes: z.number()
+});
+
+export type ProjectFileListsOutput = z.infer<typeof projectFileListsOutput>;

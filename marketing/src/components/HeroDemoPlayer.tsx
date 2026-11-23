@@ -24,8 +24,25 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { usePrefersReducedMotion } from "../lib/useGridParallax";
 import { track } from "../lib/analytics";
+import { localeOfPath } from "../i18n/routes";
+import { ZH_PLAYER } from "../i18n/zh/chrome";
+import { JA_PLAYER } from "../i18n/ja/chrome";
+import { KO_PLAYER } from "../i18n/ko/chrome";
+import type { Locale } from "../i18n/routes";
+
+const ENGLISH_PLAYER = {
+  soundOn: "Turn the sound on",
+  soundOff: "Turn the sound off",
+  pause: "Pause the demo",
+  play: "Play the demo",
+  fullscreenLabel: "Play the demo full screen",
+  fullscreen: "Full screen",
+};
+
+const PLAYER_COPY: Record<Locale, typeof ENGLISH_PLAYER> = { zh: ZH_PLAYER, ja: JA_PLAYER, ko: KO_PLAYER };
 
 interface HeroDemoPlayerProps {
   alt: string;
@@ -53,6 +70,8 @@ export default function HeroDemoPlayer({
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const reducedMotion = usePrefersReducedMotion();
+  const locale = localeOfPath(usePathname());
+  const copy = locale ? PLAYER_COPY[locale] : ENGLISH_PLAYER;
 
   // Load the reel only when the hero is actually on screen — a multi-MB file
   // has no business competing with the first paint.
@@ -186,7 +205,7 @@ export default function HeroDemoPlayer({
             <button
               type="button"
               onClick={toggleSound}
-              aria-label={muted ? "Turn the sound on" : "Turn the sound off"}
+              aria-label={muted ? copy.soundOn : copy.soundOff}
               className="rounded-full border border-slate-600/80 bg-slate-950/70 p-2 text-slate-200 backdrop-blur hover:text-white focus-ring"
             >
               {muted ? (
@@ -200,7 +219,7 @@ export default function HeroDemoPlayer({
             <button
               type="button"
               onClick={toggle}
-              aria-label={playing ? "Pause the demo" : "Play the demo"}
+              aria-label={playing ? copy.pause : copy.play}
               className="rounded-full border border-slate-600/80 bg-slate-950/70 p-2 text-slate-200 backdrop-blur hover:text-white focus-ring"
             >
               {playing ? (
@@ -213,11 +232,11 @@ export default function HeroDemoPlayer({
           <button
             type="button"
             onClick={enterFullscreen}
-            aria-label="Play the demo full screen"
+            aria-label={copy.fullscreenLabel}
             className="inline-flex items-center gap-1.5 rounded-full border border-slate-600/80 bg-slate-950/70 px-3 py-2 text-xs font-semibold text-slate-200 backdrop-blur hover:text-white focus-ring"
           >
             <Maximize2 className="h-4 w-4" aria-hidden />
-            Full screen
+            {copy.fullscreen}
           </button>
         </div>
       </div>

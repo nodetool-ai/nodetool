@@ -3,7 +3,7 @@
  */
 jest.mock("../types.d", () => ({}));
 
-import { CloudWindow, originOfState, type WindowLike } from "../cloudWindow";
+import { CLOSE_GRACE_MS, CloudWindow, originOfState, type WindowLike } from "../cloudWindow";
 import { accountChanged } from "../cloudAccount";
 import type { CloudAccountState, CloudDocumentRef } from "../types.d";
 
@@ -26,6 +26,7 @@ class FakeWindow implements WindowLike {
   focused = 0;
   loaded: string[] = [];
   sent: CloudDocumentRef[] = [];
+  closing = 0;
   private closedListeners: (() => void)[] = [];
 
   constructor(readonly webContentsId: number) {}
@@ -55,6 +56,9 @@ class FakeWindow implements WindowLike {
   send(document: CloudDocumentRef): void {
     this.sent.push(document);
   }
+  sendClosing(): void {
+    this.closing += 1;
+  }
   onClosed(listener: () => void): void {
     this.closedListeners.push(listener);
   }
@@ -64,6 +68,7 @@ function setup(appUrl: string | null = "http://127.0.0.1:7777") {
   let state = SIGNED_IN;
   let nextId = 10;
   const windows: FakeWindow[] = [];
+  const timers: { ms: number; run: () => void; cancelled: boolean }[] = [];
   const cloudWindow = new CloudWindow({
     account: { state: () => state },
     createWindow: () => {
@@ -73,10 +78,18 @@ function setup(appUrl: string | null = "http://127.0.0.1:7777") {
     },
     appUrl: () => appUrl,
     log: () => {},
+    after: (ms, run) => {
+      const timer = { ms, run, cancelled: false };
+      timers.push(timer);
+      return () => {
+        timer.cancelled = true;
+      };
+    },
   });
   return {
     cloudWindow,
     windows,
+    timers,
     setState: (next: CloudAccountState) => {
       state = next;
       cloudWindow.stateChanged(next);
@@ -144,6 +157,52 @@ test("a sign-out closes the window, and so does another account", () => {
   expect(cloudWindow.originFor(11)).toEqual({ server: "https://api.nodetool.ai", account: "u2" });
   setState({ ...SIGNED_IN, state: "signedOut", accountId: "" });
   expect(windows[1].destroyed).toBe(true);
+});
+
+test("AC77: a ready page writes its drafts before the window closes on a sign-out", () => {
+  const { cloudWindow, windows, timers, setState } = setup();
+  cloudWindow.open(FLOW);
+  cloudWindow.takePending(10);
+  setState({ ...SIGNED_IN, state: "signedOut", accountId: "" });
+  expect(windows[0].closing).toBe(1);
+  expect(windows[0].destroyed).toBe(false);
+  // Its drafts calls still name its account, its cloud requests are refused.
+  expect(cloudWindow.originFor(10)).toEqual({ server: "https://api.nodetool.ai", account: "u1" });
+  expect(cloudWindow.mayCallCloud(10)).toBe(false);
+  // A second state event does not announce the close again.
+  setState({ ...SIGNED_IN, state: "signedOut", accountId: "" });
+  expect(windows[0].closing).toBe(1);
+
+  cloudWindow.flushed(1);
+  expect(windows[0].destroyed).toBe(false);
+  cloudWindow.flushed(10);
+  expect(windows[0].destroyed).toBe(true);
+  expect(cloudWindow.originFor(10)).toBeNull();
+  expect(timers.map((timer) => [timer.ms, timer.cancelled])).toEqual([[CLOSE_GRACE_MS, true]]);
+});
+
+test("AC77: a page that does not answer is closed after the grace period", () => {
+  const { cloudWindow, windows, timers, setState } = setup();
+  cloudWindow.open(FLOW);
+  cloudWindow.takePending(10);
+  setState({ ...SIGNED_IN, accountId: "u2" });
+  expect(windows[0].destroyed).toBe(false);
+  expect(CLOSE_GRACE_MS).toBeLessThan(5_000);
+  timers[0].run();
+  expect(windows[0].destroyed).toBe(true);
+});
+
+test("a document opened while the window closes gets a new window", () => {
+  const { cloudWindow, windows, setState } = setup();
+  cloudWindow.open(FLOW);
+  cloudWindow.takePending(10);
+  setState({ ...SIGNED_IN, state: "signedOut", accountId: "" });
+  setState(SIGNED_IN);
+  cloudWindow.open(CUT);
+  expect(windows).toHaveLength(2);
+  expect(windows[0].destroyed).toBe(true);
+  expect(windows[0].sent).toEqual([]);
+  expect(cloudWindow.takePending(11)).toEqual([CUT]);
 });
 
 test("a window of another account is replaced, not reused", () => {

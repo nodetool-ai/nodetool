@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+import { MAX_HISTORY } from "../useEditHistory";
 import AudioSampleEditor from "../AudioSampleEditor";
 import { DocumentBar } from "../../ui_primitives";
 import type { AudioSample } from "../audioSample";
@@ -310,6 +311,42 @@ it("serves the agent tools: edits are undo steps and save writes the asset", asy
       expect((await handler.save()).dirty).toBe(false);
     });
     expect(mockSave).toHaveBeenCalledTimes(1);
+
+    // The agent takes back its own effect, but not past the user's Undo.
+    act(() => {
+      expect(handler.undo().durationSeconds).toBe(3);
+    });
+    expect(screen.getByTestId("sample")).toHaveTextContent("0.5,0.75,1");
+    expect(() => handler.undo()).toThrow("The user changed the audio after your last edit");
+
+    // No more agent undos than the editor's history keeps.
+    act(() => {
+      for (let i = 0; i <= MAX_HISTORY; i++) handler.edit("reverse");
+    });
+    act(() => {
+      for (let i = 0; i < MAX_HISTORY; i++) handler.undo();
+    });
+    expect(() => handler.undo()).toThrow("Nothing you applied to this audio is left to undo.");
+
+    // A user edit in the same batch as a rendering agent effect wins: the
+    // effect was computed from audio that is no longer there.
+    await act(async () => {
+      const pending = handler.applyEffect("invert", {});
+      fireEvent.click(screen.getByText("Reverse"));
+      await expect(pending).rejects.toThrow("The audio changed while the effect rendered");
+    });
+
+    // The step before the agent's edit fell out of the history: no undo.
+    act(() => {
+      handler.edit("reverse");
+    });
+    for (let i = 0; i < MAX_HISTORY; i++) {
+      fireEvent.click(screen.getByText("Reverse"));
+    }
+    for (let i = 0; i < MAX_HISTORY; i++) {
+      fireEvent.click(screen.getByText("Undo"));
+    }
+    expect(() => handler.undo()).toThrow("The user changed the audio after your last edit");
 
     result.unmount();
     expect(hasAudioAgentHandler("audio-agent")).toBe(false);

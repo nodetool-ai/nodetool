@@ -102,6 +102,12 @@
       "import": "./dist/fonts/google-fonts-fetch.js",
       "default": "./dist/fonts/google-fonts-fetch.js"
     },
+    "./fonts/list": {
+      "nodetool-dev": "./src/fonts/list-node.ts",
+      "types": "./dist/fonts/list-node.d.ts",
+      "import": "./dist/fonts/list-node.js",
+      "default": "./dist/fonts/list-node.js"
+    },
     "./examples/node": {
       "nodetool-dev": "./src/examples/node.ts",
       "types": "./dist/examples/node.d.ts",

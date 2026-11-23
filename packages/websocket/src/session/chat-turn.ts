@@ -260,6 +260,18 @@ const SIGN_IN_PROVIDER_LABELS: Record<string, string> = {
   [PROVIDER_IDS.CLAUDE_AGENT_SDK]: "Claude"
 };
 
+/**
+ * Providers that issue separate keys for an international and a mainland
+ * China host. A key sent to the other region's host is rejected as invalid.
+ */
+const REGION_SETTINGS: Record<string, string> = {
+  [PROVIDER_IDS.ALIBABA]: "DASHSCOPE_REGION",
+  [PROVIDER_IDS.MOONSHOT]: "KIMI_REGION",
+  [PROVIDER_IDS.MINIMAX]: "MINIMAX_REGION",
+  [PROVIDER_IDS.ZAI]: "ZAI_REGION",
+  [PROVIDER_IDS.KLING]: "KLING_REGION"
+};
+
 const GENERIC_CHAT_ERROR =
   "Something went wrong while processing your request. Please try again.";
 
@@ -473,9 +485,13 @@ function providerFailureMessage(
   if (detail?.code === "provider_auth") {
     const signIn = SIGN_IN_PROVIDER_LABELS[detail.provider];
     const remedy = signIn ? `Sign in to ${signIn} again` : "Check the API key";
+    const region = REGION_SETTINGS[detail.provider];
+    const regionHint = region
+      ? ` A key from the mainland China console also needs ${region} set to china in Settings → Integrations → Other.`
+      : "";
     return {
       errorType: "error",
-      message: `Authentication failed: ${detail.provider} rejected the configured credentials. ${remedy} in Settings → Models & Providers.`,
+      message: `Authentication failed: ${detail.provider} rejected the configured credentials. ${remedy} in Settings → Models & Providers.${regionHint}`,
       statusCode
     };
   }

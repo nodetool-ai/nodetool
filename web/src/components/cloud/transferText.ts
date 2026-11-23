@@ -57,6 +57,10 @@ export const transferMessageText = (t: TFunction, message: TransferMessage): str
       return t("cloudTransfer.message.missingFilesUnconfirmed");
     case "sendRefused":
       return t("cloudTransfer.message.sendRefused", { reasons: message.reasons.join("; ") });
+    case "notCollected":
+      return t("cloudTransfer.message.notCollected", { files: message.files.join("; ") });
+    case "collectInterrupted":
+      return t("cloudTransfer.message.collectInterrupted");
   }
 };
 
@@ -74,6 +78,10 @@ const sendText = (t: TFunction, row: TransferRowView): string => {
       return t("cloudTransfer.row.addVersions");
     case "put_asset_file":
       return t("cloudTransfer.row.putAssetFile");
+    case "put_workspace_file":
+      return t("cloudTransfer.row.putWorkspaceFile");
+    case "new_workspace_file":
+      return t("cloudTransfer.row.newWorkspaceFile");
     default:
       return row.detail;
   }
@@ -100,8 +108,17 @@ const detailText = (t: TFunction, row: TransferRowView): string => {
     case "send":
       return sendText(t, row);
     case "receive":
-      if (row.detail === "new") {
+      if (row.detail === "new" || row.detail === "workspace_new") {
         return t("cloudTransfer.row.newInCloud");
+      }
+      if (row.detail === "workspace_both_changed") {
+        return t("cloudTransfer.row.workspaceBothChanged");
+      }
+      if (row.detail === "workspace_local_deleted") {
+        return t("cloudTransfer.row.workspaceLocalDeleted");
+      }
+      if (row.detail === "workspace_cloud_deleted") {
+        return t("cloudTransfer.row.workspaceCloudDeleted");
       }
       if (row.detail === "cloud_file_changed") {
         return t("cloudTransfer.row.cloudFileChanged");

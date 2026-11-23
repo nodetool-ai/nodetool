@@ -795,6 +795,101 @@ const CLOUD_SENDS_DDL: readonly string[] = [
     ON cloud_sends (user_id, project_id)`
 ];
 
+/**
+ * The erased list and the Incomplete list of cloud projects
+ * (docs/plans/native-cloud-sync/technical-design.md, "Deletion, restore and
+ * storage", WP2.9). Applied by the `add_project_file_lists` migration. Sizes
+ * are SQLite INTEGERs; the migration writes BIGINT on PostgreSQL.
+ */
+/**
+ * The bases of a linked project's workspace files
+ * (docs/plans/native-cloud-sync/technical-design.md, "Capture from the
+ * project folder", WP2.11). Applied by the `add_cloud_link_workspace_files`
+ * migration, which writes BIGINT on PostgreSQL.
+ */
+const CLOUD_LINK_WORKSPACE_FILES_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS cloud_link_workspace_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    link_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    base_hash TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    mtime_ms INTEGER NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_cloud_link_workspace_files_path
+    ON cloud_link_workspace_files (link_id, path)`
+];
+
+/**
+ * The server's hashes of a cloud folder's workspace files and the workspace
+ * files of a revision set (docs/plans/native-cloud-sync/technical-design.md,
+ * "Receiving workspace files", RW3 and RW4). Applied by the
+ * `add_receive_workspace_files` migration, which writes BIGINT on PostgreSQL.
+ */
+const RECEIVE_WORKSPACE_FILES_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS project_workspace_hashes (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    mtime_ms INTEGER NOT NULL,
+    hash TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_project_workspace_hashes_path
+    ON project_workspace_hashes (project_id, path)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_workspace_hashes_user
+    ON project_workspace_hashes (user_id)`,
+  `CREATE TABLE IF NOT EXISTS revision_set_workspace_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    set_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    size INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_set_workspace_files_set
+    ON revision_set_workspace_files (set_id, hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_revision_set_workspace_files_hash
+    ON revision_set_workspace_files (hash)`
+];
+
+const PROJECT_FILE_LISTS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS project_erased_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    asset_ids TEXT NOT NULL,
+    erased_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_project_erased_files_entry
+    ON project_erased_files (project_id, hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_erased_files_user
+    ON project_erased_files (user_id)`,
+  `CREATE TABLE IF NOT EXISTS project_missing_files (
+    id TEXT PRIMARY KEY NOT NULL,
+    project_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    asset_id TEXT NOT NULL,
+    hash TEXT,
+    size INTEGER,
+    reason TEXT NOT NULL,
+    transfer_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_project_missing_files_entry
+    ON project_missing_files (project_id, asset_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_missing_files_user
+    ON project_missing_files (user_id)`
+];
+
 const REVISION_SETS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS revision_sets (
     id TEXT PRIMARY KEY NOT NULL,
@@ -924,7 +1019,10 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...REVISION_SETS_DDL,
   ...CLOUD_LINKS_DDL,
   ...CLOUD_SENDS_DDL,
-  MESSAGE_TURN_CONTEXT_DDL
+  MESSAGE_TURN_CONTEXT_DDL,
+  ...PROJECT_FILE_LISTS_DDL,
+  ...CLOUD_LINK_WORKSPACE_FILES_DDL,
+  ...RECEIVE_WORKSPACE_FILES_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5542,6 +5640,54 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // The column stays: without it a thread's next turn resends every block.
+    }
+  },
+  {
+    version: "20261130_000010",
+    name: "add_project_file_lists",
+    createsTables: ["project_erased_files", "project_missing_files"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of PROJECT_FILE_LISTS_DDL) {
+        await db.execute(db.dbType === "sqlite" ? statement : statement.replace(/size INTEGER/g, "size BIGINT"));
+      }
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS project_missing_files");
+      await db.execute("DROP TABLE IF EXISTS project_erased_files");
+    }
+  },
+  {
+    version: "20261130_000011",
+    name: "add_cloud_link_workspace_files",
+    createsTables: ["cloud_link_workspace_files"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of CLOUD_LINK_WORKSPACE_FILES_DDL) {
+        await db.execute(
+          db.dbType === "sqlite" ? statement : statement.replace(/(size|mtime_ms) INTEGER/g, "$1 BIGINT")
+        );
+      }
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS cloud_link_workspace_files");
+    }
+  },
+  {
+    version: "20261130_000012",
+    name: "add_receive_workspace_files",
+    createsTables: ["project_workspace_hashes", "revision_set_workspace_files"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of RECEIVE_WORKSPACE_FILES_DDL) {
+        await db.execute(
+          db.dbType === "sqlite" ? statement : statement.replace(/(size|mtime_ms) INTEGER/g, "$1 BIGINT")
+        );
+      }
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS revision_set_workspace_files");
+      await db.execute("DROP TABLE IF EXISTS project_workspace_hashes");
     }
   }
 ];

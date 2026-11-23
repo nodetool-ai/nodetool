@@ -1,6 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import { useModeProviderSetup } from "../useModeProviderSetup";
-import { capabilityForMode, setupReasonForMode } from "../modeProviderSetup";
+import { capabilityForMode, setupReasonKeyForMode } from "../modeProviderSetup";
 import { useProvidersByCapability } from "../../../../hooks/useProviders";
 import { openProviderOnboarding } from "../../../../stores/ProviderOnboardingStore";
 
@@ -62,7 +62,7 @@ describe("capabilityForMode", () => {
       "extend",
       "audio"
     ] as const) {
-      expect(setupReasonForMode(mode)).toEqual(expect.any(String));
+      expect(setupReasonKeyForMode(mode)).toBe(`i18n-next33.providerSetup.${mode}`);
     }
   });
 });
@@ -79,12 +79,14 @@ describe("useModeProviderSetup", () => {
 
     expect(mockUseProvidersByCapability).toHaveBeenCalledWith("text_to_image");
     expect(result.current.needsSetup).toBe(true);
-    expect(result.current.reason).toBe(setupReasonForMode("image"));
+    expect(result.current.reason).toBe(
+      "Generating images needs an image provider. Connect one to continue."
+    );
 
     act(() => result.current.openSetup());
     expect(mockOpenProviderOnboarding).toHaveBeenCalledWith({
       capability: "text_to_image",
-      reason: setupReasonForMode("image")
+      reason: "Generating images needs an image provider. Connect one to continue."
     });
   });
 

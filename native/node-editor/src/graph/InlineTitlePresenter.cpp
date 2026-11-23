@@ -40,7 +40,16 @@ InlineTitlePresenter::~InlineTitlePresenter() {
 void InlineTitlePresenter::clearControls() {
   controls_.clear();
 }
+void InlineTitlePresenter::scheduleRepositionControls() {
+  if (controlsRepositionScheduled_ || controls_.empty()) return;
+  controlsRepositionScheduled_ = true;
+  QTimer::singleShot(0, this, [this] {
+    controlsRepositionScheduled_ = false;
+    repositionControls();
+  });
+}
 void InlineTitlePresenter::repositionControls() {
+  if (controls_.empty()) return;
   auto *editor = qobject_cast<EditorWindow *>(parent());
   if (!editor) return;
   const auto pointer = canvas_.hostWidget().mapFromGlobal(QCursor::pos());
@@ -236,8 +245,9 @@ void InlineTitlePresenter::reposition() {
   emit geometryChanged();
 }
 bool InlineTitlePresenter::eventFilter(QObject *object, QEvent *event) {
-  if (event->type() == QEvent::MouseMove || event->type() == QEvent::Resize || event->type() == QEvent::Wheel)
-    QTimer::singleShot(0, this, &InlineTitlePresenter::repositionControls);
+  if (!controls_.empty() &&
+      (event->type() == QEvent::MouseMove || event->type() == QEvent::Resize || event->type() == QEvent::Wheel))
+    scheduleRepositionControls();
   if (active() && widget_) {
     if (event->type() == QEvent::ShortcutOverride && widget_->ownsFocus(object)) { event->accept(); return true; }
     if (object == &canvas_.viewportWidget() || object == &canvas_.hostWidget()) {

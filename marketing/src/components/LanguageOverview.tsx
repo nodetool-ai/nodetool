@@ -15,9 +15,11 @@ import {
   LANGUAGE_PAGES,
   type LanguageCode,
 } from "@/data/languagePages";
+import { LOCALES, type Locale } from "@/i18n/routes";
+import { localeHref } from "@/i18n/links";
 
 /*
- * The translated overview pages (/ja, /zh, /hi, /es, /pt). Japan sent the
+ * The translated overview pages (/ja, /zh, /hi, /es, /pt, /ko). Japan sent the
  * third-most search clicks with no Japanese content (search-performance
  * report, 2026-11-12), which started this set. The root layout renders
  * <html lang="en">, so each page marks its own content with its language.
@@ -46,6 +48,23 @@ export function languageMetadata(locale: LanguageCode): Metadata {
 const sectionTitle = "text-2xl font-semibold tracking-tight md:text-3xl";
 const bodyText = "leading-relaxed text-slate-300";
 const cardLink = "focus-ring mt-4 inline-flex items-center gap-1 rounded font-medium text-cyan-200 hover:text-cyan-100";
+
+/** Language pages with a localized hero reel. The rest play the English one. */
+const HERO_REEL: Partial<Record<LanguageCode, string>> = {
+  zh: "/hero-flow-zh",
+  ja: "/hero-flow-ja",
+  ko: "/hero-flow-ko",
+};
+
+/**
+ * On a language with translated pages (/zh, /ja, /ko), a link goes to the
+ * translated page. Elsewhere it stays on the English page, marked hrefLang.
+ */
+function overviewLink(locale: LanguageCode, href: string): { href: string; hrefLang?: string } {
+  if (!(locale in LOCALES)) return { href, hrefLang: "en" };
+  const target = localeHref(locale as Locale, href);
+  return { href: target.href, hrefLang: target.hrefLang };
+}
 
 export default function LanguageOverview({ locale }: { locale: LanguageCode }) {
   const page = LANGUAGE_PAGES[locale];
@@ -80,7 +99,11 @@ export default function LanguageOverview({ locale }: { locale: LanguageCode }) {
           </section>
 
           <div className="mt-14">
-            <HeroDemoPlayer mediaBase="/hero-flow" alt={page.videoAlt} />
+            {/* /zh, /ja and /ko play their own cut of the reel (demo/src/heroflow/locale.ts). */}
+            <HeroDemoPlayer
+              mediaBase={HERO_REEL[locale] ?? "/hero-flow"}
+              alt={page.videoAlt}
+            />
           </div>
 
           <ul aria-label={page.cardsLabel} className="mt-16 grid gap-8 md:grid-cols-3">
@@ -88,7 +111,7 @@ export default function LanguageOverview({ locale }: { locale: LanguageCode }) {
               <li key={CARD_HREFS[index]} className="rounded-xl border border-slate-700 p-6">
                 <h2 className="text-xl font-medium">{card.title}</h2>
                 <p className={`mt-3 ${bodyText}`}>{card.body}</p>
-                <a href={CARD_HREFS[index]} hrefLang="en" className={cardLink}>
+                <a {...overviewLink(locale, CARD_HREFS[index])} className={cardLink}>
                   {card.linkLabel}
                   <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                 </a>
@@ -101,7 +124,7 @@ export default function LanguageOverview({ locale }: { locale: LanguageCode }) {
               <h2 id={block.id} className={sectionTitle}>{block.title}</h2>
               <div>
                 <p className={bodyText}>{block.body}</p>
-                <a href={block.href} hrefLang="en" className={cardLink}>
+                <a {...overviewLink(locale, block.href)} className={cardLink}>
                   {block.linkLabel}
                   <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                 </a>

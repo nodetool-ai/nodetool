@@ -4,13 +4,16 @@ import SiteHeader from "./SiteHeader";
 
 interface MarketingPageShellProps {
   children: React.ReactNode;
+  /** The page's language when it is not English (the root layout says "en"). */
+  lang?: string;
 }
 
 export default function MarketingPageShell({
   children,
+  lang,
 }: MarketingPageShellProps) {
   return (
-    <main className="relative min-h-screen overflow-clip-safe bg-slate-950 text-white">
+    <main lang={lang} className="relative min-h-screen overflow-clip-safe bg-slate-950 text-white">
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 bg-grid-pattern"

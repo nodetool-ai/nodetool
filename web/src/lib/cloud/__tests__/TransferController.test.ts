@@ -85,6 +85,7 @@ const captured = (
     fileOperations?: Operation[];
     missingFiles?: Record<string, unknown>[];
     deleted?: Record<string, unknown>[];
+    deletedFiles?: Record<string, unknown>[];
   } = {}
 ) => ({
   status: "captured",
@@ -96,7 +97,8 @@ const captured = (
   missing_files: fields.missingFiles ?? [],
   missing_document_files: [],
   skipped: [],
-  deleted_locally: fields.deleted ?? []
+  deleted_locally: fields.deleted ?? [],
+  deleted_workspace_files: fields.deletedFiles ?? []
 });
 
 const reviewDocument = (
@@ -556,6 +558,121 @@ describe("TransferController (TC123)", () => {
     ]);
   });
 
+  it("sends only the workspace files the person includes (SR7)", async () => {
+    const put = (path: string, label: string) => ({
+      op: "put_workspace_file",
+      path,
+      hash: hash(label),
+      size: 4,
+      base_hash: null
+    });
+    const server = new QueueServer();
+    server.answer(
+      "cloudTransfer.send.capture",
+      captured("t1", { fileOperations: [put("notes/plan.md", "n"), put("data/new.csv", "d")] })
+    );
+    server.answer("cloudTransfer.receive.capture", receiveSet("s1"));
+    server.answer("cloudTransfer.receive.run", finished("s1"));
+    server.answer("cloudTransfer.send.run", committed("t1"));
+
+    const transfer = controller(server, { linked: true });
+    await transfer.start();
+    expect(transfer.snapshot.rows.map((row) => [row.label, row.optional, row.confirmed])).toEqual([
+      ["notes/plan.md", true, false],
+      ["data/new.csv", true, false]
+    ]);
+    expect(transfer.includeFile(0, true)).toBe(true);
+    await transfer.apply();
+    expect(transfer.snapshot.stage).toBe("finished");
+    expect(server.body("cloudTransfer.send.run", 0).include_workspace_files).toEqual([
+      { path: "notes/plan.md", hash: hash("n") }
+    ]);
+  });
+
+  it("receives only the cloud workspace files the person ticks (RW7)", async () => {
+    const file = (path: string, label: string) => ({
+      path,
+      hash: hash(label),
+      size: 4,
+      local_hash: null,
+      status: "new",
+      included: false
+    });
+    const server = new QueueServer();
+    server.answer("cloudTransfer.send.capture", captured("t1"));
+    server.answer("cloudTransfer.receive.capture", {
+      ...receiveSet("s1"),
+      workspace_files: [file("notes.txt", "n"), file("data.csv", "d")],
+      cloud_deleted_workspace_files: []
+    });
+    const done = finished("s1");
+    server.answer("cloudTransfer.receive.run", {
+      ...done,
+      result: { ...done.result, received_workspace_files: ["data.csv"], kept_beside_workspace_files: [] }
+    });
+    server.answer("cloudTransfer.send.cancel", { state: "cancelled" });
+
+    const transfer = controller(server, { linked: true });
+    await transfer.start();
+    expect(transfer.snapshot.rows.map((row) => [row.label, row.section, row.optional, row.confirmed])).toEqual([
+      ["notes.txt", "receive", true, false],
+      ["data.csv", "receive", true, false]
+    ]);
+    expect(transfer.includeFile(1, true)).toBe(true);
+    await transfer.apply();
+    expect(transfer.snapshot.stage).toBe("finished");
+    expect(server.body("cloudTransfer.receive.run", 0).include_workspace_files).toEqual([
+      { path: "data.csv", hash: hash("d") }
+    ]);
+    expect(transfer.snapshot.result?.received).toEqual(["data.csv"]);
+  });
+
+  it("sends nothing when every offered workspace file is left out (SR7)", async () => {
+    const server = new QueueServer();
+    server.answer(
+      "cloudTransfer.send.capture",
+      captured("t1", {
+        fileOperations: [{ op: "put_workspace_file", path: "data/new.csv", hash: hash("d"), size: 4, base_hash: null }]
+      })
+    );
+    server.answer("cloudTransfer.receive.capture", receiveSet("s1"));
+    server.answer("cloudTransfer.receive.run", finished("s1"));
+    server.answer("cloudTransfer.send.cancel", { state: "cancelled" });
+
+    const transfer = controller(server, { linked: true });
+    await transfer.start();
+    await transfer.apply();
+    expect(transfer.snapshot.stage).toBe("finished");
+    expect(server.calls()).not.toContain("cloudTransfer.send.run");
+  });
+
+  it("sends a confirmed workspace file deletion as the only work", async () => {
+    const server = new QueueServer();
+    server.answer(
+      "cloudTransfer.send.capture",
+      captured("t1", { deletedFiles: [{ path: "notes/plan.md", base_hash: hash("b") }] })
+    );
+    server.answer("cloudTransfer.receive.capture", receiveSet("s1"));
+    server.answer("cloudTransfer.receive.run", finished("s1"));
+    server.answer("cloudTransfer.send.run", committed("t1"));
+
+    const transfer = controller(server, { linked: true });
+    await transfer.start();
+    expect(transfer.snapshot.rows).toHaveLength(1);
+    expect(transfer.snapshot.rows[0]).toMatchObject({
+      section: "deletion",
+      label: "notes/plan.md",
+      canKeepDeletion: true
+    });
+    expect(transfer.confirmDeletion(0, true)).toBe(true);
+    await transfer.apply();
+    expect(transfer.snapshot.stage).toBe("finished");
+    expect(server.calls().at(-1)).toBe("cloudTransfer.send.run");
+    const sent = server.body("cloudTransfer.send.run", 0);
+    expect(sent.confirm_workspace_deletes).toEqual([{ path: "notes/plan.md", base_hash: hash("b") }]);
+    expect(sent.confirm_deletes).toEqual([]);
+  });
+
   it("sends a file-only change (review F33)", async () => {
     const server = new QueueServer();
     server.answer(
@@ -635,6 +752,78 @@ describe("TransferController (TC123)", () => {
     expect(transfer.snapshot.external).toEqual(["/Users/ada/clip.mov"]);
     expect(transfer.snapshot.message).toEqual({ key: "serverMessage", text: "Collect the files first." });
     expect(server.calls()).toEqual(["cloudTransfer.send.capture"]);
+  });
+
+  it("collects the linked files, then reads the project again (D22, TC103)", async () => {
+    const server = new QueueServer();
+    server.answer("cloudTransfer.send.capture", {
+      status: "collect_first",
+      external: ["a1"],
+      message: "Collect the files first."
+    });
+    server.answer("cloudTransfer.send.capture", captured("t1", { operations: [create("w1")] }));
+    const collect = jest.fn().mockResolvedValue({
+      copied: [{ id: "a1", name: "clip.mov", workspace_path: "Imported/clip.mov" }],
+      skipped: [],
+      failed: [],
+      interrupted: false
+    });
+
+    const transfer = controller(server, { collect });
+    expect(transfer.canCollect).toBe(true);
+    await transfer.collect();
+    expect(collect).not.toHaveBeenCalled();
+    await transfer.start();
+    expect(transfer.snapshot.stage).toBe("collectFirst");
+    await transfer.collect();
+    expect(collect).toHaveBeenCalledWith(PROJECT);
+    expect(transfer.snapshot.stage).toBe("reviewing");
+    expect(transfer.snapshot.external).toEqual([]);
+    expect(sections(transfer)).toEqual(["send"]);
+    expect(server.calls()).toEqual(["cloudTransfer.send.capture", "cloudTransfer.send.capture"]);
+  });
+
+  it("fails and names each linked file that could not be collected", async () => {
+    const server = new QueueServer();
+    server.answer("cloudTransfer.send.capture", { status: "collect_first", external: ["a1"], message: "Collect." });
+    const transfer = controller(server, {
+      collect: jest.fn().mockResolvedValue({
+        copied: [],
+        skipped: [{ id: "a1", name: "clip.mov", reason: "missing" }],
+        failed: [{ id: "a2", name: "song.wav", reason: "copy did not verify" }],
+        interrupted: false
+      })
+    });
+    await transfer.start();
+    await transfer.collect();
+    expect(transfer.snapshot.stage).toBe("failed");
+    expect(transfer.snapshot.message).toEqual({
+      key: "notCollected",
+      files: ["clip.mov: missing", "song.wav: copy did not verify"]
+    });
+    expect(server.calls()).toEqual(["cloudTransfer.send.capture"]);
+
+    const stopped = controller(server, {
+      collect: jest.fn().mockResolvedValue({ copied: [], skipped: [], failed: [], interrupted: true })
+    });
+    await stopped.start();
+    await stopped.collect();
+    expect(stopped.snapshot.message).toEqual({ key: "collectInterrupted" });
+
+    const unreachable = controller(server, { collect: jest.fn().mockRejectedValue(new Error("down")) });
+    await unreachable.start();
+    await unreachable.collect();
+    expect(unreachable.snapshot.message).toEqual({ key: "failure", status: "localUnavailable", reason: "" });
+  });
+
+  it("offers no Collect without the app's own server", async () => {
+    const server = new QueueServer();
+    server.answer("cloudTransfer.send.capture", { status: "collect_first", external: ["a1"], message: "Collect." });
+    const transfer = controller(server);
+    expect(transfer.canCollect).toBe(false);
+    await transfer.start();
+    await transfer.collect();
+    expect(transfer.snapshot.stage).toBe("collectFirst");
   });
 
   it("refuses an answer the router's schema does not accept", async () => {

@@ -135,6 +135,8 @@ export interface MountCapabilityModulesOptions {
    * failure carries its signature once per action, like a belt tool's.
    */
   disclosure?: SignatureDisclosure;
+  /** Told the name of each registry capability call that completed. */
+  onCallCompleted?: (name: string) => void;
 }
 
 /**
@@ -275,7 +277,9 @@ export async function mountCapabilityModules(
         `"${exportName}" is not available in this run — it needs a capability run.`
       );
     }
-    return withoutPixels(await dispatcher.call(moduleKey, exportName, args));
+    const result = await dispatcher.call(moduleKey, exportName, args);
+    options.onCallCompleted?.(exportName);
+    return withoutPixels(result);
   };
   return { ok: true, mount: { facades, call } };
 }

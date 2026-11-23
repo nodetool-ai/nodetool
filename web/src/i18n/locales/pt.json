@@ -14751,7 +14751,9 @@
       "connect": "Conectar",
       "getKey": "Obtenha uma chave de {{provider}}",
       "saveAnyway": "Salve mesmo assim",
-      "rejectedKey": "O provedor rejeitou esta chave."
+      "rejectedKey": "O provedor rejeitou esta chave.",
+      "regionSwitched": "{{provider}} aceitou esta chave no servidor da China continental. O NodeTool agora usa esse servidor.",
+      "hfMirrorNote": "Não consegue acessar huggingface.co? Defina um espelho como https://hf-mirror.com em Configurações → Integrações → HF endpoint."
     },
     "hardware": {
       "autoDetect": "Detecção automática",
@@ -14805,6 +14807,19 @@
       "installed": "Instalado",
       "download": "Baixar",
       "memoryEstimate_many": "{{count}} GB de memória"
+    },
+    "providerSetup": {
+      "chat": "O chat precisa de um modelo de linguagem. Conecte um provedor para começar.",
+      "image": "Gerar imagens requer um provedor de imagens. Conecte um para continuar.",
+      "image_edit": "Editar imagens requer um provedor de imagens. Conecte um para continuar.",
+      "video": "Gerar vídeos requer um provedor de vídeo. Conecte um para continuar.",
+      "image_to_video": "Animar imagens requer um provedor de vídeo. Conecte um para continuar.",
+      "reference_to_video": "Referência para vídeo requer um provedor de vídeo. Conecte um para continuar.",
+      "retake": "Refazer a tomada requer um provedor de vídeo. Conecte um para continuar.",
+      "extend": "Estender um vídeo requer um provedor de vídeo. Conecte um para continuar.",
+      "audio_to_video": "A sincronia labial requer um provedor de sincronia labial. Conecte um para continuar.",
+      "music": "Gerar música requer um provedor de música. Conecte um para continuar.",
+      "audio": "Gerar fala requer um provedor de texto para fala. Conecte um para continuar."
     }
   },
   "i18n-next29": {
@@ -18073,7 +18088,11 @@
         "allResults": "Todos os resultados",
         "home": "Página inicial",
         "local": "locais",
-        "providers": "Provedores"
+        "providers": "Provedores",
+        "resultsInPath": "Resultados em {{path}}: {{count}} · Total de correspondências para '{{term}}': {{total}}",
+        "resultsRelevant": "Resultados: {{count}} · Os mais relevantes para '{{term}}' primeiro",
+        "nodesInPath": "Nós em {{path}}: {{count}}",
+        "nodesMatchFilters": "Nós que correspondem aos filtros: {{count}}"
       },
       "renderNodes": {
         "browseNodes": "Navegar pelos nós",
@@ -20266,7 +20285,8 @@
       },
       "openInSketch": "Abrir no esboço",
       "reusePrompt": "Reutilizar prompt",
-      "sketchTitle": "Imagem criada"
+      "sketchTitle": "Imagem criada",
+      "keyRejected": "O provedor recusou a chave de API. Verifique-a em Configurações → Modelos e provedores."
     },
     "takes_many": "{{count}} leva",
     "kindLabel": "O que criar",
@@ -20956,6 +20976,12 @@
       "waitingNote": "Aguardando o envio das alterações. Mantenha a janela da nuvem aberta.",
       "waiting_many": "{{count}} documentos na nuvem têm alterações que ainda não foram enviadas.",
       "unsent_many": "O servidor recusou as alterações de {{count}} documentos na nuvem."
+    },
+    "syncStatus": {
+      "savedToCloud": "Salvo na nuvem",
+      "changesWaiting": "Alterações pendentes",
+      "offline": "Offline",
+      "notSaving": "Não está salvando"
     }
   },
   "cloudTransfer": {
@@ -20965,6 +20991,10 @@
     },
     "capturing": "Lendo as alterações…",
     "running": "Enviando e recebendo…",
+    "collect": "Reunir",
+    "collecting": "Copiando os arquivos vinculados para a pasta do projeto…",
+    "include": "Enviar",
+    "includeReceive": "Receber",
     "apply": {
       "publish": "Publicar",
       "synchronize": "Sincronizar"
@@ -20999,6 +21029,11 @@
       "keepBoth": "Será enviado como cópia ao lado da versão da nuvem",
       "addVersions": "As versões salvas serão enviadas",
       "putAssetFile": "Arquivo alterado aqui, será enviado",
+      "putWorkspaceFile": "Alterado na pasta do projeto",
+      "newWorkspaceFile": "Novo na pasta do projeto",
+      "workspaceBothChanged": "Alterado aqui e na nuvem. O arquivo da nuvem fica ao lado do seu",
+      "workspaceLocalDeleted": "Excluído aqui, alterado na nuvem",
+      "workspaceCloudDeleted": "Excluído na nuvem. Seu arquivo fica aqui",
       "newInCloud": "Novo na nuvem",
       "cloudChanged": "Alterado na nuvem",
       "cloudFileChanged": "Um arquivo que ele usa foi alterado na nuvem",
@@ -21021,7 +21056,7 @@
       "localUnavailable": "O servidor de projetos deste app não respondeu.",
       "cancelled": "A transferência parou porque a conta na nuvem mudou.",
       "refused": "O servidor recusou a transferência ({{reason}}).",
-      "collectFirst": "Alguns arquivos deste projeto estão fora da pasta do projeto. Reúna-os na pasta e tente novamente.",
+      "collectFirst": "Alguns arquivos usados por este projeto estão fora da pasta do projeto. Reunir os copia para a pasta Imported e lê o projeto novamente.",
       "receiveExpired": "O projeto na nuvem mudou enquanto esta janela estava aberta. Sincronize novamente.",
       "receiveChangedWhileOpen": "Algo mudou enquanto esta janela estava aberta. Confira as escolhas novamente.",
       "receivingChangedAgain": "O projeto na nuvem mudou de novo durante o recebimento. Escolha novamente.",
@@ -21033,6 +21068,8 @@
       "sendChangedWhileOpen": "Este projeto mudou enquanto a janela estava aberta. Confira o que será enviado.",
       "missingFilesUnconfirmed": "Faltam arquivos de que este projeto precisa. Confirme cada um para enviar sem ele.",
       "sendRefused": "A nuvem recusou o envio: {{reasons}}",
+      "notCollected": "Estes arquivos vinculados não puderam ser copiados para a pasta do projeto: {{files}}",
+      "collectInterrupted": "A cópia parou antes de tentar todos os arquivos vinculados. Tente novamente.",
       "chooseAgain_many": "{{count}} documentos foram alterados aqui ou na nuvem depois da sua escolha. Escolha novamente.",
       "cloudChangedChooseAgain_many": "A versão na nuvem de {{count}} documentos mudou desde que esta janela foi lida. Escolha novamente."
     },

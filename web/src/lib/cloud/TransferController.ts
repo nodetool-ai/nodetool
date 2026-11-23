@@ -27,6 +27,7 @@ import {
 } from "./transferCalls";
 import {
   failuresFrom,
+  hasRequiredWork,
   receiveCaptureFrom,
   sendCaptureFrom,
   TransferReview,
@@ -45,8 +46,17 @@ import {
   type TransferOperation
 } from "./transferReview";
 import type { RunReceiveOutput } from "@nodetool-ai/protocol/api-schemas/cloud-transfer-local.js";
+import type { CollectOutput } from "@nodetool-ai/protocol/api-schemas/assets.js";
 
-export type TransferStage = "idle" | "capturing" | "reviewing" | "collectFirst" | "running" | "finished" | "failed";
+export type TransferStage =
+  | "idle"
+  | "capturing"
+  | "reviewing"
+  | "collectFirst"
+  | "collecting"
+  | "running"
+  | "finished"
+  | "failed";
 
 type Failed = Exclude<TransferStatus, "ok">;
 
@@ -59,7 +69,9 @@ export type TransferMessage =
   | { key: "chooseAgain" | "cloudChangedChooseAgain"; count: number }
   | { key: "notPreparedAgain"; status: Failed; reason: string }
   | { key: "sendChangedWhileOpen" | "missingFilesUnconfirmed" }
-  | { key: "sendRefused"; reasons: string[] };
+  | { key: "sendRefused"; reasons: string[] }
+  | { key: "notCollected"; files: string[] }
+  | { key: "collectInterrupted" };
 
 /** A row as the sheet lists it. `index` is its place in the review, which choose and confirm take. */
 export interface TransferRowView extends ReviewRow {
@@ -104,6 +116,12 @@ export interface TransferControllerOptions {
   readLink?: boolean;
   /** Whether the cloud account is signed in now. */
   signedIn: () => boolean;
+  /**
+   * The Collect step of decision D22: `assets.collect` on the app's own
+   * server, which copies the project's linked files into `Imported/`.
+   * Without it the sheet stops at collectFirst.
+   */
+  collect?: (projectId: string) => Promise<CollectOutput>;
 }
 
 const FULL_ID = /^[0-9a-f]{32}$/;
@@ -145,7 +163,15 @@ const sendRunOf = async (
   review: TransferReview,
   keep: readonly KeepLocalDecision[]
 ): Promise<NonNullable<Applied["send"]>> => {
-  const run = await runSend(call, transferId, keep, review.confirmedDeletes(), review.confirmedMissingFiles());
+  const run = await runSend(
+    call,
+    transferId,
+    keep,
+    review.confirmedDeletes(),
+    review.confirmedMissingFiles(),
+    review.confirmedFileDeletes(),
+    review.includedFiles()
+  );
   if (run.status !== "ok") {
     return run;
   }
@@ -187,6 +213,7 @@ export class TransferController {
   private readonly projectName: string;
   private readonly readLink: boolean;
   private readonly signedIn: () => boolean;
+  private readonly collectFiles: ((projectId: string) => Promise<CollectOutput>) | null;
   private readonly listeners = new Set<() => void>();
 
   private stage: TransferStage = "idle";
@@ -215,6 +242,7 @@ export class TransferController {
     this.linked = options.linked ?? false;
     this.readLink = options.readLink ?? false;
     this.signedIn = options.signedIn;
+    this.collectFiles = options.collect ?? null;
     this.current = this.build();
   }
 
@@ -279,8 +307,52 @@ export class TransferController {
     this.changed();
   }
 
+  /** Whether the sheet can offer Collect at collectFirst. */
+  get canCollect(): boolean {
+    return this.collectFiles !== null;
+  }
+
+  /**
+   * The Collect step of decision D22 (CF6): copies the project's linked
+   * files into its folder, then captures again. A file that cannot be
+   * copied fails the transfer and is named, so nothing is sent without it.
+   */
+  async collect(): Promise<void> {
+    if (this.stage !== "collectFirst" || this.collectFiles === null) {
+      return;
+    }
+    const sequence = ++this.sequence;
+    this.stage = "collecting";
+    this.message = null;
+    this.changed();
+    let collected: CollectOutput;
+    try {
+      collected = await this.collectFiles(this.projectId);
+    } catch {
+      if (sequence === this.sequence) {
+        this.fail({ key: "failure", status: "localUnavailable", reason: "" });
+      }
+      return;
+    }
+    if (sequence !== this.sequence) {
+      return;
+    }
+    const notCollected = [...collected.skipped, ...collected.failed].map((file) => `${file.name}: ${file.reason}`);
+    if (notCollected.length > 0) {
+      this.fail({ key: "notCollected", files: notCollected });
+      return;
+    }
+    if (collected.interrupted) {
+      this.fail({ key: "collectInterrupted" });
+      return;
+    }
+    // Every linked file is in the folder now: read the project again.
+    this.stage = "idle";
+    await this.start();
+  }
+
   async start(): Promise<void> {
-    if (this.stage === "capturing" || this.stage === "running") {
+    if (this.stage === "capturing" || this.stage === "running" || this.stage === "collecting") {
       return;
     }
     this.review = new TransferReview(null, null);
@@ -365,7 +437,7 @@ export class TransferController {
       return;
     }
     this.setId = captured.receive.data.setId;
-    this.sendWork = send.data.operations.length > 0 || send.data.fileOperations.length > 0;
+    this.sendWork = hasRequiredWork(send.data);
     this.review = new TransferReview(send.data, captured.receive.data);
     this.sendCapture = send.data;
     this.approved = send.data.operations;
@@ -398,6 +470,15 @@ export class TransferController {
     return true;
   }
 
+  /** Includes the workspace file of an optional send row. Each is off by default (PRD SR7). */
+  includeFile(index: number, included: boolean): boolean {
+    if (index < 0 || this.stage !== "reviewing" || !this.review.includeFile(index, included)) {
+      return false;
+    }
+    this.changed();
+    return true;
+  }
+
   confirmDeletion(index: number, confirmed: boolean): boolean {
     if (index < 0 || this.stage !== "reviewing" || !this.review.confirmDeletion(index, confirmed)) {
       return false;
@@ -424,7 +505,12 @@ export class TransferController {
       transferId: this.transferId,
       setId: this.received ? "" : this.setId,
       refusals: this.linked ? this.review.refusalsToReceive() : [],
-      sendWork: this.sendWork || !this.linked || this.review.confirmedDeletes().length > 0,
+      sendWork:
+        this.sendWork ||
+        !this.linked ||
+        this.review.confirmedDeletes().length > 0 ||
+        this.review.confirmedFileDeletes().length > 0 ||
+        this.review.includedFiles().length > 0,
       approved: this.approved,
       approvedFiles: this.approvedFiles
     });
@@ -446,7 +532,7 @@ export class TransferController {
     const applied: Applied = { changedAgain: [], unreviewed: [], unreviewedFiles: [] };
     let replaced = false;
     if (plan.setId !== "") {
-      applied.receive = await runReceive(call, plan.setId, review.receiveDecisions());
+      applied.receive = await runReceive(call, plan.setId, review.receiveDecisions(), review.includedReceiveFiles());
       if (applied.receive.status !== "ok" || applied.receive.data.status !== "finished") {
         return applied;
       }
@@ -522,9 +608,10 @@ export class TransferController {
         return applied;
       }
       sendWork =
-        again.data.operations.length > 0 ||
-        again.data.fileOperations.length > 0 ||
-        review.confirmedDeletes().length > 0;
+        hasRequiredWork(again.data) ||
+        review.confirmedDeletes().length > 0 ||
+        review.confirmedFileDeletes().length > 0 ||
+        review.includedFiles().length > 0;
     }
     if (sendWork) {
       const keep = review.keepLocalDecisions();
@@ -575,7 +662,12 @@ export class TransferController {
       const result = run.data.result;
       this.received = true;
       this.receivedResult = {
-        received: namesOf(result.received),
+        // A workspace file kept beside the local one is received under its kept path.
+        received: [
+          ...namesOf(result.received),
+          ...(result.received_workspace_files ?? []),
+          ...(result.kept_beside_workspace_files ?? []).map((entry) => entry.kept_path)
+        ],
         notReceived: namesOf(result.not_received),
         changedDuringReceive: namesOf(result.changed_during_receive),
         missingFiles: result.missing_files.length,
@@ -638,7 +730,7 @@ export class TransferController {
         return;
       }
       this.transferId = again.data.transferId;
-      this.sendWork = again.data.operations.length > 0 || again.data.fileOperations.length > 0;
+      this.sendWork = hasRequiredWork(again.data);
       if (applied.unreviewed.length > 0 || applied.unreviewedFiles.length > 0) {
         // The receive is done. The send shows again with what changed here.
         this.review = new TransferReview(again.data, null);

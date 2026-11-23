@@ -3,12 +3,77 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QSvgRenderer>
+#include <QTextDocument>
 #include <cmath>
 
 namespace nodetool {
 namespace nm = node_metrics;
 
-void paintMaterialIcon(QPainter *painter, const QString &name, const QRectF &rect, const QColor &color) {
+CanvasIconCache::CanvasIconCache() = default;
+CanvasIconCache::~CanvasIconCache() = default;
+
+QSvgRenderer *CanvasIconCache::material(const QString &name, const QColor &color) {
+    const std::pair<QString, QRgb> key{name, color.rgba()};
+    if (const auto found = material_.find(key); found != material_.end()) {
+        return found->second.get();
+    }
+    const auto path = iconPath(name);
+    if (path.isEmpty()) {
+        return nullptr;
+    }
+    if (material_.size() >= 256) {
+        material_.clear();
+    }
+    const auto svg = QStringLiteral("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"%1\" fill-opacity=\"%2\" d=\"%3\"/></svg>")
+                         .arg(color.name()).arg(color.alphaF()).arg(path);
+    auto renderer = std::make_unique<QSvgRenderer>(svg.toUtf8());
+    auto *raw = renderer.get();
+    material_.emplace(key, std::move(renderer));
+    return raw;
+}
+
+QSvgRenderer *CanvasIconCache::typeIcon(const QString &key, const QColor &color) {
+    if (key.isEmpty()) {
+        return nullptr;
+    }
+    const std::pair<QString, QRgb> cacheKey{key, color.rgb()};
+    if (const auto found = type_.find(cacheKey); found != type_.end()) {
+        return found->second.get();
+    }
+    const auto svg = webTypeIconSvg(key, color);
+    if (svg.isEmpty()) {
+        return nullptr;
+    }
+    if (type_.size() >= 256) {
+        type_.clear();
+    }
+    auto renderer = std::make_unique<QSvgRenderer>(svg);
+    auto *raw = renderer.get();
+    type_.emplace(cacheKey, std::move(renderer));
+    return raw;
+}
+
+QTextDocument *CanvasIconCache::textDocument(const QString &key, const std::function<void(QTextDocument &)> &populate) {
+    if (const auto found = textDocs_.find(key); found != textDocs_.end()) {
+        return found->second.get();
+    }
+    if (textDocs_.size() >= 64) {
+        textDocs_.clear();
+    }
+    auto doc = std::make_unique<QTextDocument>();
+    populate(*doc);
+    auto *raw = doc.get();
+    textDocs_.emplace(key, std::move(doc));
+    return raw;
+}
+
+void paintMaterialIcon(QPainter *painter, const QString &name, const QRectF &rect, const QColor &color, CanvasIconCache *icons) {
+    if (icons) {
+        if (auto *renderer = icons->material(name, color)) {
+            renderer->render(painter, rect);
+        }
+        return;
+    }
     const auto path = iconPath(name);
     if (path.isEmpty()) {
         return;
@@ -18,25 +83,36 @@ void paintMaterialIcon(QPainter *painter, const QString &name, const QRectF &rec
     QSvgRenderer(svg.toUtf8()).render(painter, rect);
 }
 
-void paintCardIcon(QPainter *painter, const QString &typeIcon, const QString &fallback, const QRectF &rect, const QColor &color) {
+void paintCardIcon(QPainter *painter, const QString &typeIcon, const QString &fallback, const QRectF &rect, const QColor &color, CanvasIconCache *icons) {
+    auto renderSvg = [&](QSvgRenderer &renderer) {
+        // The web scales each icon into its box and keeps its aspect ratio.
+        const auto view = renderer.viewBoxF().size();
+        auto target = rect;
+        if (view.width() > 0 && view.height() > 0) {
+            const auto size = view.scaled(rect.size(), Qt::KeepAspectRatio);
+            target = QRectF(QPointF(), size);
+            target.moveCenter(rect.center());
+        }
+        painter->save();
+        painter->setOpacity(painter->opacity() * color.alphaF());
+        renderer.render(painter, target);
+        painter->restore();
+    };
+    if (icons) {
+        if (auto *renderer = icons->typeIcon(typeIcon, color)) {
+            renderSvg(*renderer);
+            return;
+        }
+        paintMaterialIcon(painter, fallback, rect, color, icons);
+        return;
+    }
     const auto svg = typeIcon.isEmpty() ? QByteArray{} : webTypeIconSvg(typeIcon, color);
     if (svg.isEmpty()) {
         paintMaterialIcon(painter, fallback, rect, color);
         return;
     }
     QSvgRenderer renderer(svg);
-    // The web scales each icon into its box and keeps its aspect ratio.
-    const auto view = renderer.viewBoxF().size();
-    auto target = rect;
-    if (view.width() > 0 && view.height() > 0) {
-        const auto size = view.scaled(rect.size(), Qt::KeepAspectRatio);
-        target = QRectF(QPointF(), size);
-        target.moveCenter(rect.center());
-    }
-    painter->save();
-    painter->setOpacity(painter->opacity() * color.alphaF());
-    renderer.render(painter, target);
-    painter->restore();
+    renderSvg(renderer);
 }
 
 namespace card_controls {
@@ -75,7 +151,8 @@ void fillField(QPainter *painter, const CanvasTheme &theme, const QRectF &rect) 
 }
 
 // CheckerDropzone: a checker field with an icon over a centered message.
-void paintPlaceholder(QPainter *painter, const CanvasTheme &theme, const QRectF &rect, const QString &icon, const QString &message) {
+void paintPlaceholder(QPainter *painter, const CanvasTheme &theme, const QRectF &rect, const QString &icon, const QString &message,
+                      CanvasIconCache *icons) {
     fillField(painter, theme, rect);
     painter->save();
     QPainterPath clip;
@@ -90,7 +167,7 @@ void paintPlaceholder(QPainter *painter, const CanvasTheme &theme, const QRectF 
     painter->restore();
     const auto ink = faded(theme.textSecondary, nm::placeholderIconOpacity);
     const auto top = rect.center().y() - nm::iconSize;
-    paintMaterialIcon(painter, icon, QRectF(rect.center().x() - nm::iconSize / 2.0, top, nm::iconSize, nm::iconSize), ink);
+    paintMaterialIcon(painter, icon, QRectF(rect.center().x() - nm::iconSize / 2.0, top, nm::iconSize, nm::iconSize), ink, icons);
     painter->setPen(theme.textSecondary);
     painter->setFont(sans(theme, nm::fontValue));
     painter->drawText(QRectF(rect.x(), top + nm::iconSize + nm::micro, rect.width(), nm::rowHeight), Qt::AlignHCenter | Qt::AlignTop,
@@ -177,7 +254,7 @@ void paintComposer(QPainter *painter, const CanvasTheme &theme, const NodeRow &r
 
 // A small icon button. An active toggle tints its icon and a round fill with
 // the primary color, as StateIconButton's isActive.
-void paintIconButton(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+void paintIconButton(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, CanvasIconCache *icons) {
     // A placeholder button is disabled, as the Painter's Undo with no history.
     const auto ink = row.checked ? theme.primary : row.placeholder ? faded(theme.textSecondary, 0.4) : theme.textSecondary;
     if (row.checked) {
@@ -189,11 +266,11 @@ void paintIconButton(QPainter *painter, const CanvasTheme &theme, const NodeRow 
     painter->save();
     painter->translate(row.rect.center());
     painter->rotate(row.number);
-    paintMaterialIcon(painter, row.icon, QRectF(-icon / 2, -icon / 2, icon, icon), ink);
+    paintMaterialIcon(painter, row.icon, QRectF(-icon / 2, -icon / 2, icon, icon), ink, icons);
     painter->restore();
 }
 
-void paintAction(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+void paintAction(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, CanvasIconCache *icons) {
     if (row.warning) {
         // The Connect provider button: dark ink on the warning fill.
         painter->setPen(Qt::NoPen);
@@ -212,13 +289,13 @@ void paintAction(QPainter *painter, const CanvasTheme &theme, const NodeRow &row
         painter->setFont(sans(theme, nm::fontLabel));
         const auto labelWidth = painter->fontMetrics().horizontalAdvance(row.label);
         const auto left = row.rect.center().x() - (labelWidth + nm::iconSize) / 2.0;
-        paintMaterialIcon(painter, row.icon, QRectF(left, row.rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize), theme.textSecondary);
+        paintMaterialIcon(painter, row.icon, QRectF(left, row.rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize), theme.textSecondary, icons);
         painter->setPen(theme.textPrimary);
         painter->drawText(QRectF(left + nm::iconSize, row.rect.y(), labelWidth + nm::micro, row.rect.height()), Qt::AlignLeft | Qt::AlignVCenter, row.label);
         return;
     }
     if (!row.icon.isEmpty()) {
-        paintIconButton(painter, theme, row);
+        paintIconButton(painter, theme, row, icons);
         return;
     }
     if (row.bare) {
@@ -237,7 +314,7 @@ void paintAction(QPainter *painter, const CanvasTheme &theme, const NodeRow &row
     painter->setFont(sans(theme, nm::fontLabel));
     const auto labelWidth = painter->fontMetrics().horizontalAdvance(row.label);
     const auto left = row.rect.center().x() - (labelWidth + nm::iconSize) / 2.0;
-    paintMaterialIcon(painter, QStringLiteral("add"), QRectF(left, row.rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize), theme.textSecondary);
+    paintMaterialIcon(painter, QStringLiteral("add"), QRectF(left, row.rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize), theme.textSecondary, icons);
     painter->setPen(theme.textSecondary);
     painter->drawText(QRectF(left + nm::iconSize, row.rect.y(), labelWidth + nm::micro, row.rect.height()), Qt::AlignLeft | Qt::AlignVCenter, row.label);
 }
@@ -386,7 +463,7 @@ void paintTextArea(QPainter *painter, const CanvasTheme &theme, const NodeRow &r
     painter->restore();
 }
 
-void paintDropZone(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+void paintDropZone(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, CanvasIconCache *icons) {
     painter->setPen(theme.textSecondary);
     painter->setFont(sans(theme, nm::fontLabel));
     painter->drawText(QRectF(row.rect.x(), row.y, row.rect.width(), nm::rowHeight), Qt::AlignLeft | Qt::AlignVCenter, row.label);
@@ -402,7 +479,7 @@ void paintDropZone(QPainter *painter, const CanvasTheme &theme, const NodeRow &r
         constexpr double line = nm::dropZoneLine;
         const double icon = nm::iconSize;
         const auto top = row.rect.top() + (row.rect.height() - (icon + 2 * line + 2 * nm::micro)) / 2.0;
-        paintMaterialIcon(painter, row.icon, QRectF(row.rect.center().x() - icon / 2.0, top, icon, icon), theme.textSecondary);
+        paintMaterialIcon(painter, row.icon, QRectF(row.rect.center().x() - icon / 2.0, top, icon, icon), theme.textSecondary, icons);
         const auto width = int(row.rect.width() - 2 * nm::padding);
         painter->drawText(QRectF(row.rect.x(), top + icon + nm::micro, row.rect.width(), line), Qt::AlignCenter,
                           painter->fontMetrics().elidedText(row.value, Qt::ElideMiddle, width));
@@ -417,7 +494,7 @@ void paintDropZone(QPainter *painter, const CanvasTheme &theme, const NodeRow &r
 
 // ImageSizeProperty.tsx: 70 px W and H boxes, then the swap, lock and presets
 // buttons at the right, and the matched preset's name under the boxes.
-void paintImageSize(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+void paintImageSize(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, CanvasIconCache *icons) {
     painter->setPen(theme.textSecondary);
     painter->setFont(sans(theme, nm::fontLabel));
     painter->drawText(QRectF(row.rect.x(), row.y, row.rect.width(), nm::rowHeight), Qt::AlignLeft | Qt::AlignVCenter, row.label);
@@ -436,7 +513,7 @@ void paintImageSize(QPainter *painter, const CanvasTheme &theme, const NodeRow &
     const double icon = nm::iconSize;
     auto x = row.rect.right() - icon;
     for (const auto name : {"moreVert", "lockOpen", "swapHoriz"}) {
-        paintMaterialIcon(painter, QString::fromLatin1(name), QRectF(x, row.rect.center().y() - icon / 2.0, icon, icon), theme.textSecondary);
+        paintMaterialIcon(painter, QString::fromLatin1(name), QRectF(x, row.rect.center().y() - icon / 2.0, icon, icon), theme.textSecondary, icons);
         x -= icon + nm::micro;
     }
     if (!row.value.isEmpty()) {

@@ -109,10 +109,33 @@ const SURFACE_FOCUS: Record<string, UiSurfaceType | undefined> = {
 
 /** The `ui_context` a browser sends with the job's surface in focus. */
 export function jobUiContext(job: ErasedJob): UiContext | undefined {
+  // The 3D editor has no focus type: its chat names only its source.
+  if (job.surfaces[0] === "model3d") return { source: "model3d_assistant" };
   const type = SURFACE_FOCUS[job.surfaces[0] ?? ""];
   if (type === undefined) return undefined;
   const ref = { type, id: `${type}-eval`, title: job.id };
   return { focused: ref, open: [ref] };
+}
+
+/**
+ * What the job answers for a browser tool its world does not serve. The
+ * manifest still lists every browser tool, so the system prompt matches the
+ * product's. The answer says what is open instead, the way a browser tool
+ * names the open documents when its own is not.
+ */
+export function unservedToolError(
+  name: string,
+  uiContext: UiContext | undefined,
+  served: readonly string[]
+): string {
+  const focused = uiContext?.focused;
+  const open = focused
+    ? `The open document is the ${focused.type} "${focused.id}"`
+    : uiContext?.source === "model3d_assistant"
+      ? "The open document is the 3D scene"
+      : "No editor document is open";
+  const tools = served.length > 0 ? `, and the tools that act on it are ${served.join(", ")}.` : ".";
+  return `${name} has nothing to act on: the document it edits is not open. ${open}${tools}`;
 }
 
 /**
@@ -226,6 +249,7 @@ export async function runChatJob(
     finish = resolve;
   });
 
+  const uiContext = jobUiContext(job);
   const answer = async (frame: Record<string, unknown>): Promise<void> => {
     const id = String(frame.tool_call_id);
     const name = String(frame.name);
@@ -233,7 +257,7 @@ export async function runChatJob(
     const tool = bridgeTools.get(name);
     let payload: Record<string, unknown>;
     if (tool === undefined) {
-      payload = { tool_call_id: id, result: { error: `${name} is not open in this job` } };
+      payload = { tool_call_id: id, result: { error: unservedToolError(name, uiContext, [...bridgeTools.keys()]) } };
       toolCalls.push({ name, args, ok: false });
     } else {
       try {
@@ -282,7 +306,6 @@ export async function runChatJob(
   (session as unknown as { clientToolsManifest: Record<string, ClientToolManifestEntry> })
     .clientToolsManifest = Object.fromEntries(manifest.map((t) => [t.name, t]));
 
-  const uiContext = jobUiContext(job);
   let error: string | undefined;
   let completed = false;
   const timeoutMs = opts.timeoutMs ?? 30 * 60_000;

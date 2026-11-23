@@ -148,6 +148,13 @@ npm run dev:nodetool -- serve --host 0.0.0.0      # Bind all interfaces
 npm run dev:nodetool -- serve --port 8080          # Custom port
 ```
 
+The `api-routes` selfcheck runs the whole websocket suite and needs
+`--expensive`. The `api-access-control` selfcheck runs only the router files
+that check who may call a procedure: document sharing, agent access, cloud
+drafts, bug reports, MCP config, project folder migration and app instances.
+`test:affected` already runs these files for an API diff, so the gate lists the
+check as a suite and runs it with `--include-suites`.
+
 ### MCP bundle (.mcpb) for Claude Desktop
 
 ```bash
@@ -1074,6 +1081,17 @@ check `sketch validate` runs. An old document is restored against today's
 schema, so what it used to pass is not what it passes now — a restore whose
 document no longer validates exits non-zero and prints the issues. Layer
 bitmaps stay opaque to that check.
+
+`nodetool harness gate` runs a keyless selfcheck for each of the four sketch
+harnesses when a diff touches the sketch surface, `packages/image-editor/`
+included. These are the checked-in suites, not a run against a saved sketch:
+
+| Harness | Suites |
+| --- | --- |
+| `sketch-validate` | `execution` sketch-debug; `cli-sketch` sketch-command, sketch-target |
+| `sketch-debug` | `cli-sketch` sketch-harness |
+| `sketch-render` | all of `image-editor`; `agents` capabilities-sketch-render; `cli-sketch` sketch-render-command |
+| `sketch-versions` | `agents` sketch-version-tools; `cli-sketch` sketch-versions-command |
 
 ### nodetool jsscript (JS Script Harness)
 
@@ -2223,6 +2241,38 @@ the wire shapes of acestep.cpp at the commit pinned in
 header. Start the server with both DiT models and `--max-batch 2` first. It
 needs models on disk, so CI does not run it.
 
+### GPU worker and self-hosted rollout fixtures
+
+Two keyless harnesses drive the remote-compute packages against fakes of
+their external systems. Neither needs a provider key, a GPU, Docker or a
+reachable host.
+
+```bash
+npm run test --workspace=packages/compute -- provider-lifecycle-harness
+npm run test --workspace=packages/deploy -- self-hosted-rollout-harness
+```
+
+- **GPU workers (`packages/compute`).** The real `WorkerManager`, the RunPod
+  and Vast.ai providers and their HTTP transports run against a stateful fake
+  of both APIs, installed as the global `fetch`
+  (`src/__tests__/fixtures/fake-provider-api.ts`). Each case provisions a
+  worker, polls it to running, then lets `runReaperOnce` pause it at the idle
+  window and destroy it at the hard TTL. It asserts the exact provider calls
+  and request bodies. Failure cases cover a pod or instance that dies while
+  polling: it must be deleted and no instance row written. A call the fake
+  does not route is recorded as unexpected and fails the case. The Verda
+  provider is not driven by the fake and relies on its unit tests.
+- **Self-hosted Docker (`packages/deploy`).** `DockerDeployer.plan()` and
+  `apply()` run with the real `SSHConnection`, `DockerRunGenerator` and
+  `StateManager` on a temporary `deployment.yaml`. Only the ssh2 transport is
+  replaced, through `_setClientCtorForTest`, by a fake host that answers from a
+  small simulated Docker state. The cases assert the exact command sequence of
+  a first rollout, a redeploy that replaces the old and a legacy container,
+  and a rollout whose health probe never passes. A dry run must open no
+  connection. The image transfer from a local Docker daemon is not covered.
+
+Both run as selfchecks for diffs under their package.
+
 ### Pause points, races and process kills
 
 Crash and race tests for the cloud transfer and the access rules stop code at
@@ -2360,6 +2410,29 @@ also carries a fingerprint of what each capability *declares*, so
 `harness gate --base <ref>` can refuse a contract change that left its coverage
 mapping untouched while saying nothing about an ordinary refactor. See
 [packages/agents/docs/capabilities.md § Capability coverage](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/capabilities.md#capability-coverage--every-capability-names-its-check).
+
+### Web feature suites
+
+The web app's feature areas outside the graph canvas each have a surface in the
+registry: chat, the library (assets, collections, workflow list), models and
+provider onboarding, settings (secrets, API keys, costs, workers, node packs,
+sharing), and project files. A diff in one of them runs that area's Jest suites
+as a cheap selfcheck, in addition to the `web-editor` checks that claim all of
+`web/`.
+
+| Harness | Runs |
+| --- | --- |
+| `web-chat-ui` | Chat components, thread runtime, chat hooks and stores |
+| `web-library-ui` | Asset browser, asset viewer, collections, workflow list and their stores |
+| `web-models-ui` | Model menu, Hugging Face model list, provider onboarding and model stores |
+| `web-settings-ui` | Settings menus, costs, workers, packages, sharing, secrets and pack stores |
+| `web-project-files-ui` | Projects, workspace file tree, text editor and document stores |
+
+The matching [user journeys](https://github.com/nodetool-ai/nodetool/blob/main/web/tests/journeys/README.md) are manual
+harnesses, because each one starts the seeded backend and a browser:
+`web-chat-browser`, `web-library-browser`, `web-project-files-browser`,
+`storyboard-browser` and `web-editor-browser`. Their commands run
+`npm run test:journeys --workspace=web -- <spec files>`.
 
 ### nodetool reliability (Cross-Surface Journey Diffs)
 
@@ -3077,6 +3150,35 @@ npm run test:journeys --workspace=web -- app-instances.spec.ts run-observability
 The registry lists browser journeys as manual checks. Instance tabs retain the
 application and instance IDs separately. Selecting a historical run is inspection
 state and does not replace working variables or invoke an operation.
+
+## Deployed app session walk
+
+Run the deployed-app session check from the repository root:
+
+```bash
+npm run test --workspace=packages/websocket -- app-session-route-walk
+```
+
+A deployed mini app's visitor holds an `nda_` session token that
+authenticates as the app's owner. The auth hook in `server.ts` grants it on
+`/ws` and refuses it on every other path. The check boots the real server with
+`NODETOOL_ENV=production` and no node packs, publishes and deploys an app,
+and mints a session through the public route. It then walks every route the
+live Fastify instance registered, collected from `onRoute`. A root
+`preParsing` hook answers each probed request and records the identity the
+auth chain resolved, so no handler runs.
+
+The walk asserts that the token opens no route except `/ws` and that every
+route a caller without a credential cannot reach answers it with 401. An owner
+credential walks the same routes as a control. On `/ws` the check opens a real
+socket with the token and confirms the app scope, the command allowlist, the
+refusal of `/ws/download`, expired, tampered and foreign-key tokens, and the
+refusal outside production.
+
+The `public-app-deployments` entry in the
+[harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-harness/src/harness/registry.ts)
+selects this check. What a logged-out browser loads from the hidden link has
+no harness yet.
 
 
 ### Native graph runner

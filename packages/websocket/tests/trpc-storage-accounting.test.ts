@@ -10,7 +10,8 @@ import {
   Project,
   setStorageAllowanceBytes,
   stageProjectBlob,
-  Workflow
+  Workflow,
+  WorkflowCollaborator
 } from "@nodetool-ai/models";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
@@ -96,5 +97,47 @@ describe("storage accounting over tRPC", () => {
       }
     ]);
     expect((await createCaller(makeCtx(OTHER)).storage.files()).files).toEqual([]);
+  });
+
+  it("erases a file for the owner only, and answers a refusal with the content that shows it (FR79, SR33)", async () => {
+    const project = await Project.create<Project>({ user_id: OWNER, name: "Film", kind: "project" });
+    await stageProjectBlob({ projectId: project.id, userId: OWNER, hash: HASH, size: 10, transferId: "t" });
+    await commitProjectBlobs(project.id, "t");
+    const asset = await Asset.create<Asset>({
+      user_id: OWNER,
+      project_id: project.id,
+      name: "still",
+      content_type: "image/png",
+      content_hash: HASH
+    });
+    const shown = await Workflow.create<Workflow>({
+      user_id: OWNER,
+      project_id: project.id,
+      name: "Cut",
+      description: "",
+      tags: [],
+      access: "private",
+      graph: { nodes: [{ id: "n1", type: "nodetool.constant.Image", data: { value: { type: "image", asset_id: asset.id } } }], edges: [] },
+      run_mode: "workflow"
+    });
+    await WorkflowCollaborator.upsert({ workflowId: shown.id, userId: OTHER, role: "editor", invitedBy: OWNER });
+    const input = { project_id: project.id, hash: HASH };
+
+    await expect(createCaller(makeCtx(OTHER)).storage.erase(input)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(createCaller(makeCtx("stranger-1")).storage.erasePreview(input)).rejects.toMatchObject({
+      code: "NOT_FOUND"
+    });
+    const owner = createCaller(makeCtx(OWNER));
+    expect(await owner.storage.erase(input)).toEqual({
+      outcome: "refused",
+      hash: HASH,
+      current: [{ kind: "workflow", document_id: shown.id, name: "Cut" }]
+    });
+
+    shown.graph = { nodes: [], edges: [] };
+    await shown.save();
+    expect(await owner.storage.erase(input)).toMatchObject({ outcome: "erased", hash: HASH, size: 10, asset_ids: [asset.id] });
+    expect(await owner.storage.allowance()).toMatchObject({ used_bytes: 0 });
+    expect(await owner.storage.unerase(input)).toEqual({ removed: true });
   });
 });

@@ -11,6 +11,7 @@ qt_standard_project_setup(REQUIRES 6.12)
 # parity harness host (native/parity/host), without QtNodes, the graph runner
 # or the editor window. A components-only build needs Qt and nothing else.
 option(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY "Build only the QML components and the parity host" OFF)
+option(NODETOOL_NODE_EDITOR_RHI_TESTS "Run node editor GPU tests under Xvfb" OFF)
 option(NODETOOL_PARITY_HOST "Build the native/parity component host" ON)
 add_subdirectory(../ui_primitives ui_primitives)
 add_subdirectory(../model-picker model-picker)
@@ -80,6 +81,7 @@ list(APPEND node_editor_qml_files
     ../account/qt/qml/AccountControl.qml
     ../account/qt/qml/CloudDocumentsPanel.qml
     ../account/qt/qml/CloudSyncStatus.qml
+    ../account/qt/qml/ProjectLockBanner.qml
     ../account/qt/qml/ShareDialog.qml
     ../account/qt/qml/SharePanel.qml
     ../account/qt/qml/TransferPanel.qml)
@@ -236,7 +238,7 @@ add_library(node_editor_core STATIC
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
- src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp
+ src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/CommandScore.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp src/ui/EditorPriceChip.cpp
  src/ui/CanvasCapture.cpp src/ui/CanvasCapture.h
  src/ui/CanvasOverlay.h src/ui/CanvasSurface.h
  src/ui/QuickCanvas.cpp src/ui/QuickCanvas.h)
@@ -296,7 +298,7 @@ if(BUILD_TESTING)
     target_compile_definitions(node_editor_slider_preview_profile PRIVATE GUEST_BUNDLE="${NODETOOL_GUEST_BUNDLE}"
         REPO_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/../..")
     nodetool_use_ui_primitives(node_editor_slider_preview_profile)
-    set_tests_properties(node_editor_large_graph PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    set_tests_properties(node_editor_large_graph PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_MAX_CACHED_GLYPH_SIZE=256")
     qt_add_executable(node_editor_dynamic_card_tests tests/ui/DynamicCardTest.cpp)
     target_link_libraries(node_editor_dynamic_card_tests PRIVATE node_editor_core Qt6::Test)
     nodetool_use_ui_primitives(node_editor_dynamic_card_tests)
@@ -619,7 +621,7 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_canvas_media_host_tests)
  add_test(NAME node_editor_canvas_media_host COMMAND node_editor_canvas_media_host_tests)
  set_tests_properties(node_editor_canvas_media_host PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-# Scene capture against screen capture for overlays over a playing preview
+# Scene capture against screen capture for overlays over a decoded video frame
 # (tests/ui/CompositionTest.cpp). The software entry is a gate.
 qt_add_executable(node_editor_composition_tests tests/ui/CompositionTest.cpp)
 target_link_libraries(node_editor_composition_tests PRIVATE node_editor_core Qt6::Test)
@@ -627,26 +629,28 @@ target_compile_definitions(node_editor_composition_tests PRIVATE MEDIA_VIDEO_FIX
 nodetool_use_ui_primitives(node_editor_composition_tests)
 add_test(NAME node_editor_composition COMMAND node_editor_composition_tests)
 set_tests_properties(node_editor_composition PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-# The same cases on RHI, disabled pending Q10 qualification. To run the
-# binary under xvfb with a Vulkan driver such as lavapipe:
-#   VK_ICD_FILENAMES=<lvp_icd.json> VK_DRIVER_FILES=<lvp_icd.json> QT_QPA_PLATFORM=xcb \
-#   QSG_RHI_BACKEND=vulkan NODETOOL_COMPOSITION_BACKEND=rhi \
-#   xvfb-run -a -s "-screen 0 1920x1080x24" <build>/node_editor_composition_tests
-# Failure recorded on lavapipe Vulkan with Qt 6.12 (plan step Q0). The scene
-# capture is right in every case. The screen differs:
-#   mediaUnderCard:       6,754 of 6,771 pixels. The preview's controls draw
-#                         over the text card stacked above it
-#   mediaUnderChat:       2,132 of 23,580 pixels. The preview draws over the
-#                         chat window
-#   mediaUnderNoteEditor: 10,290 of 47,160 pixels. The preview draws over the
-#                         inline note editor, whose transparent parts go dark
-#   translucentOverlay:   1,732 of 1,792 pixels. The group header controls
-#                         are black where their overlay is transparent
-# The same binary passes on xcb with QT_QUICK_BACKEND=software.
-add_test(NAME node_editor_composition_rhi COMMAND node_editor_composition_tests)
-set_tests_properties(node_editor_composition_rhi PROPERTIES DISABLED TRUE LABELS render RUN_SERIAL TRUE
-    ENVIRONMENT "QT_QPA_PLATFORM=xcb;QSG_RHI_BACKEND=vulkan;NODETOOL_COMPOSITION_BACKEND=rhi"
-    ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
+if(NODETOOL_NODE_EDITOR_RHI_TESTS)
+    find_program(NODE_EDITOR_XVFB_RUN xvfb-run REQUIRED)
+    foreach(backend IN ITEMS opengl vulkan)
+        set(test_name node_editor_composition_${backend})
+        add_test(NAME ${test_name} COMMAND "${NODE_EDITOR_XVFB_RUN}" -a -s "-screen 0 1920x1200x24"
+            $<TARGET_FILE:node_editor_composition_tests>)
+        set_tests_properties(${test_name} PROPERTIES LABELS render RUN_SERIAL TRUE TIMEOUT 60
+            ENVIRONMENT "QT_QPA_PLATFORM=xcb;QSG_RHI_BACKEND=${backend};NODETOOL_COMPOSITION_BACKEND=rhi"
+            ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
+    endforeach()
+    foreach(mode IN ITEMS gpu fallback)
+        set(test_name node_editor_startup_${mode})
+        add_test(NAME ${test_name} COMMAND "${CMAKE_COMMAND}"
+            "-DEDITOR=$<TARGET_FILE:nodetool-node-editor>"
+            "-DXVFB_RUN=${NODE_EDITOR_XVFB_RUN}"
+            "-DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/${test_name}" "-DMODE=${mode}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/ui/GraphicsStartup.cmake")
+        set_tests_properties(${test_name} PROPERTIES LABELS render RUN_SERIAL TRUE TIMEOUT 40
+            ENVIRONMENT "QT_QPA_PLATFORM=xcb"
+            ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:;QSG_RHI_BACKEND=unset:")
+    endforeach()
+endif()
 endif()
 
 if(BUILD_TESTING)
@@ -938,7 +942,7 @@ if(BUILD_TESTING)
     target_link_libraries(node_editor_quick_canvas_tests PRIVATE node_editor_core Qt6::Test)
     nodetool_use_ui_primitives(node_editor_quick_canvas_tests)
     add_test(NAME node_editor_quick_canvas COMMAND node_editor_quick_canvas_tests)
-    set_tests_properties(node_editor_quick_canvas PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    set_tests_properties(node_editor_quick_canvas PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_MAX_CACHED_GLYPH_SIZE=256")
     foreach(scale IN ITEMS 1.25 1.5 2)
         set(density_tests settledCardTextMatchesDevicePixels rasterInvariants)
         if(scale EQUAL 2)
@@ -946,7 +950,7 @@ if(BUILD_TESTING)
         endif()
         add_test(NAME node_editor_quick_canvas_dpr${scale} COMMAND node_editor_quick_canvas_tests ${density_tests})
         set_tests_properties(node_editor_quick_canvas_dpr${scale} PROPERTIES
-            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_SCALE_FACTOR=${scale}")
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_MAX_CACHED_GLYPH_SIZE=256;QT_SCALE_FACTOR=${scale}")
     endforeach()
     # The large-raster rows enforce a wall-clock polish limit.
     set_tests_properties(node_editor_quick_canvas node_editor_quick_canvas_dpr1.25

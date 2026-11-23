@@ -4,6 +4,7 @@
 #include "document/ChildPorts.h"
 #include "properties/CodeHighlighter.h"
 #include "EditorWindow.h"
+#include "nodetool/account/project_lock.h"
 #include "media/LocalMediaStore.h"
 #include "graph/CardBodies.h"
 #include "document/GroupIntoSubgraph.h"
@@ -139,7 +140,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindowOptions options)
     : EditorWindow(parent, nullptr, options) {}
 EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner, EditorWindowOptions options)
     : QMainWindow(parent), tabOwner_(tabOwner), dynamicPorts_(&document_, tabOwner ? this : nullptr), model_(tabOwner ? this : nullptr) {
+  if (tabOwner_) {
+    projectFolder_.setLocks(tabOwner_->projectLocks_.get());
+  }
   if (!tabOwner_) {
+    projectLocks_ = std::make_unique<nodetool::account::ProjectLocks>("node-editor");
     resize(1440, 900);
     tabStack_ = new QStackedWidget(this);
     setCentralWidget(tabStack_);
@@ -467,6 +472,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner, EditorWindow
   canvas_->graphCanvas().viewportWheel = [this](QWheelEvent &wheel) {
     canvas_->scene().interaction().viewportWheel(wheel.pixelDelta(), wheel.angleDelta(),
                                                  wheel.phase(), wheel.modifiers(), *this);
+    if (wheel.phase() == Qt::ScrollEnd && canvas_->graphCanvas().zoomSettling()) {
+      canvas_->graphCanvas().finishZoomGesture();
+    }
   };
   // The canvas dispatches to the item under the press before starting a viewport gesture.
   canvas_->graphCanvas().viewportPointer = [this](canvas::PointerAction action, QMouseEvent &mouse) {
@@ -621,7 +629,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner, EditorWindow
   connect(&canvas_->scene().interaction(), &canvas::CanvasInteraction::inlineEditRequested, inlineTitle_, &InlineTitlePresenter::cancel);
   canvasMedia_ = new CanvasMediaPresenter(model_, *canvas_, engine_, mediaResolver_, this);
   cardMediaLoader_ = new CardMediaLoader(model_, mediaResolver_, this);
-  connect(this, &EditorWindow::zoomChanged, canvasMedia_, &CanvasMediaPresenter::refresh);
+  connect(this, &EditorWindow::zoomChanged, canvasMedia_, &CanvasMediaPresenter::schedule);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, canvasMedia_, &CanvasMediaPresenter::clear);
   compatiblePicker_ = new CompatibleNodePicker(model_, canvas_->scene(), *canvas_, engine_, this);
   compatiblePicker_->applyCommand = [this](const QJsonObject &command) { return apply(command); };
@@ -2117,10 +2125,16 @@ QJsonArray EditorWindow::expandParentCommands(const QJsonObject &positions, cons
 
 void EditorWindow::positionSelectionToolbar() {
   if (!selectionOverlay_ || !canvas_) { return; }
+  bool visible = selectedCount() > 0 && !browserVisible();
+  if (!visible && !selectionOverlay_->isVisible()) {
+    selectionToolbarFloating_ = false;
+    toolbarSelectedAt_.clear();
+    positionPriceChip();
+    return;
+  }
   const auto area = canvas_->hostWidget().rect();
   const auto selection = selectionOverlay_->sizeHint();
   QPoint origin(std::max(0, (area.width() - selection.width()) / 2), 30);
-  bool visible = selectedCount() > 0 && !browserVisible();
   selectionToolbarFloating_ = false;
   // NodeSelectionToolbar.tsx shows the card toolbar only for one selected card
   // that is not being dragged, centered above it with an 8 px gap.
@@ -2500,6 +2514,9 @@ QString EditorWindow::readOnlyReason() const {
   if (!tabOwner_) { return activeEditor_->readOnlyReason(); }
   if (cloud_ && cloud_->readOnly()) {
     return tr("Read-only: %1").arg(cloud_->readOnlyReason());
+  }
+  if (projectFolder_.lock()->readOnly()) {
+    return projectFolder_.lock()->message();
   }
   if (document_.isReadOnly()) {
     return document_.readOnlyReason();
@@ -3627,7 +3644,8 @@ void EditorWindow::action(const QString &name) {
     apply({{"op", "batch"}, {"commands", commands}});
     return;
   }
-  if (name == "Command menu" || name == "Keyboard shortcuts") { showActionMenu(name == "Command menu" ? "command" : "shortcuts", canvas_->viewportWidget().mapToGlobal(unobstructedViewport().center().toPoint())); return; }
+  if (name == "Command menu") { toggleCommandMenu(); return; }
+  if (name == "Keyboard shortcuts") { showActionMenu("shortcuts", canvas_->viewportWidget().mapToGlobal(unobstructedViewport().center().toPoint())); return; }
   if (name == "Disable toggle") { action(selectionMostlyDisabled() ? "Enable selected" : "Disable selected"); return; }
   if (name == "Select all") {
     const auto ids = model_.allNodeIds();
@@ -4257,6 +4275,10 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     }
     if (type == QEvent::NativeGesture) {
       const auto &gesture = *static_cast<QNativeGestureEvent *>(event);
+      if (gesture.gestureType() == Qt::EndNativeGesture && canvas_->graphCanvas().zoomSettling()) {
+        canvas_->graphCanvas().finishZoomGesture();
+        return false;
+      }
       if (gesture.gestureType() != Qt::ZoomNativeGesture) { return false; }
       zoomUnderCursor(1.0 + gesture.value());
       return true;

@@ -1,13 +1,13 @@
 /**
- * Copy for the translated overview pages (/ja, /zh, /hi, /es, /pt).
+ * Copy for the translated overview pages (/ja, /zh, /hi, /es, /pt, /ko).
  *
  * Every sentence translates copy already published on the English site (home
  * hero, home cards, landing FAQ in faqEntries.ts), so no page makes a claim
  * the English pages do not. The one added fact is the interface language:
  * web/src/i18n/locales.ts lists each of these locales in the Settings →
  * General → Appearance selector, and untranslated screens fall back to
- * English. web/src/i18n/README.md marks the Japanese, Hindi, Spanish and
- * Portuguese catalogs as machine translated, so those pages say so. The menu
+ * English. web/src/i18n/README.md marks the Japanese, Hindi, Spanish,
+ * Portuguese and Korean catalogs as machine translated, so those pages say so. The menu
  * path on each page uses the labels from that locale's catalog.
  *
  * The provider list on /ja, /zh and /hi translates docs/providers.md: each
@@ -15,12 +15,18 @@
  * provider with a /providers/<slug> page links there, the others link to
  * their section of the providers reference in the docs.
  *
+ * /zh leads with the providers a mainland China key reaches and moves the
+ * ChatGPT/Claude plan sign-in last, since neither plan is sold there. Its
+ * mainland notes come from packages/config/src/setting-catalog.ts
+ * (DASHSCOPE_BASE_URL, ZAI_REGION). Moonshot, MiniMax chat and video, Kling
+ * and BytePlus call international hosts only, so the list marks them 国际版.
+ *
  * Add a language: add an entry here, a route that renders
  * <LanguageOverview locale="…" />, and its key in LANDING_PAGES.
  */
 import type { QaPair } from "@/lib/jsonld";
 
-export type LanguageCode = "ja" | "zh" | "hi" | "es" | "pt";
+export type LanguageCode = "ja" | "zh" | "hi" | "es" | "pt" | "ko";
 
 type LinkedBlock = { title: string; body: string; linkLabel: string };
 
@@ -115,37 +121,37 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       {
         title: "映画",
         body: "脚本を書き、すべてのショットの絵コンテを作り、タイムラインでクリップを編集します。すべてが一つのプロジェクトに入っています。",
-        linkLabel: "デスクトップアプリについて（英語）",
+        linkLabel: "デスクトップアプリについて",
       },
       {
         title: "エージェント",
         body: "変えたいことを普段の言葉で伝えると、エージェントがプロジェクトを編集します。いつでも自分で作業を引き継げます。",
-        linkLabel: "エージェントの仕組み（英語）",
+        linkLabel: "エージェントの仕組み",
       },
       {
         title: "ライブタイムライン",
         body: "クリップにワークフローを結び付けます。入力を一つ変えるとそのクリップが古くなったと表示されるので、そのテイクだけを再生成し、残りの編集はそのまま残ります。",
-        linkLabel: "動画エディターについて（英語）",
+        linkLabel: "動画エディターについて",
       },
     ],
     storyboard: {
       title: "クリップの料金を払う前に、静止画を承認する。",
       body: "絵コンテにはショットごとに一枚の静止画があります。承認したショットだけが動画になります。",
-      linkLabel: "NodeToolで作った映画を見る（英語）",
+      linkLabel: "NodeToolで作った映画を見る",
     },
     workflow: {
       title: "すべてのプロジェクトの下に、ノードグラフがある。",
       body: "同じグラフを次のエピソードや20種類の広告バリエーションに実行したり、手持ちのComfyUIワークフローを読み込んだり、エージェントにグラフを組ませたりできます。",
-      linkLabel: "ノードワークフローについて（英語）",
+      linkLabel: "ノードワークフローについて",
     },
     local: {
       title: "プロジェクトは自分のコンピューターに。",
       body: `NodeTool Studioは、ワークスペース、ワークフロー、ファイル、設定した認証情報をあなたのコンピューターに保存します。対応するオープンウェイトモデルは、${LOCAL_RUNTIMES}でローカル実行できます。ホスト型のモデルを呼び出すと、リクエストはそのプロバイダーに送られます。`,
-      linkLabel: "Studioについて（英語）",
+      linkLabel: "Studioについて",
     },
     language: {
       title: "アプリは日本語で使えます。",
-      body: "設定 → 一般 → 外観 で表示言語を日本語に切り替えられます。翻訳は機械翻訳で、まだ英語のまま表示される画面もあります。このページ以外のサイトとドキュメントは英語です。",
+      body: "設定 → 一般 → 外観 で表示言語を日本語に切り替えられます。翻訳は機械翻訳で、まだ英語のまま表示される画面もあります。サイトの主なページは日本語でも読めます。ドキュメントは英語です。",
       linkLabel: "ドキュメント（英語）",
     },
     providers: {
@@ -208,12 +214,12 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
     label: "简体中文",
     title: "NodeTool | 开源 AI 电影工作室、智能体与节点工作流",
     description:
-      "用一句话生成可逐镜头编辑的 AI 短片。开源，免费支持 macOS、Windows 和 Linux。可使用 ChatGPT 或 Claude 订阅、自己的 API 密钥或本地模型。",
+      "用一句话生成可逐镜头编辑的 AI 短片。开源，免费支持 macOS、Windows 和 Linux。可使用 DeepSeek、通义千问、智谱 GLM 等服务商的 API 密钥，或在本地运行模型。",
     badge: "开源 AI 电影工作室",
     h1: "逐个镜头，导演你的 AI 电影。",
     lead: "从一句话开始。智能体编写故事，为每个镜头绘制一张静帧，并在时间线上剪辑片段。在为片段付费之前先审批静帧，任何镜头都可以单独重拍，把有效的做法保存为可以再次运行的工作流。",
     setup:
-      "在桌面应用中，用你的 ChatGPT 或 Claude 订阅登录，智能体就在该订阅上运行。你也可以添加自己的服务商 API 密钥，按官方价格付费，不加价。",
+      "添加 DeepSeek、阿里云百炼（通义千问）或智谱 GLM 的 API 密钥，按官方价格付费，不加价。也可以通过 Ollama、llama.cpp 等在本地运行开放权重模型。在桌面应用中，你还可以用 ChatGPT 或 Claude 订阅登录。",
     platforms: "免费开源，支持 macOS、Windows 和 Linux。浏览器版本处于 alpha 阶段。",
     download: "免费下载",
     tryBrowser: "在浏览器中试用",
@@ -223,50 +229,50 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       {
         title: "电影",
         body: "编写剧本，为每个镜头制作故事板，并在时间线上剪辑片段，全部在一个项目中完成。",
-        linkLabel: "关于桌面应用（英文）",
+        linkLabel: "关于桌面应用",
       },
       {
         title: "智能体",
         body: "用日常语言告诉智能体要改什么。它会编辑项目，你可以随时接手。",
-        linkLabel: "智能体如何工作（英文）",
+        linkLabel: "智能体如何工作",
       },
       {
         title: "实时时间线",
         body: "把工作流绑定到片段上。更改其中一个输入，该片段会显示为已过期，你只需重新生成这一条，剪辑的其余部分保持不变。",
-        linkLabel: "关于视频编辑器（英文）",
+        linkLabel: "关于视频编辑器",
       },
     ],
     storyboard: {
       title: "先审批静帧，再为片段付费。",
       body: "故事板中每个镜头有一张静帧。只有你审批通过的镜头才会生成视频。",
-      linkLabel: "观看用 NodeTool 制作的影片（英文）",
+      linkLabel: "观看用 NodeTool 制作的影片",
     },
     workflow: {
       title: "每个项目的底层都是一张节点图。",
       body: "你可以在下一集或 20 个广告变体上运行同一张图，导入你已有的 ComfyUI 工作流，或者让智能体搭建这张图。",
-      linkLabel: "关于节点工作流（英文）",
+      linkLabel: "关于节点工作流",
     },
     local: {
       title: "项目保存在你自己的电脑上。",
       body: `NodeTool Studio 将工作区、工作流、文件和你配置的凭据保存在你的电脑上。受支持的开放权重模型可以通过 ${LOCAL_RUNTIMES} 在本地运行。调用托管模型时，请求会发送到相应的服务商。`,
-      linkLabel: "关于 Studio（英文）",
+      linkLabel: "关于 Studio",
     },
     language: {
       title: "应用支持简体中文界面。",
-      body: "在 设置 → 常规 → 外观 中可以把界面语言切换为简体中文。部分尚未翻译的页面仍显示英文。本页之外的网站和文档为英文。",
+      body: "在 设置 → 常规 → 外观 中可以把界面语言切换为简体中文。部分尚未翻译的页面仍显示英文。网站的主要页面有中文版，文档为英文。",
       linkLabel: "文档（英文）",
     },
     providers: {
-      title: "直接连接 DeepSeek、通义千问和可灵。",
-      body: "在设置中添加服务商的 API 密钥，NodeTool 就会直接调用该服务商。链接指向英文页面。",
+      title: "直接连接 DeepSeek、通义千问和智谱 GLM。",
+      body: "在设置中添加服务商的 API 密钥，NodeTool 就会直接调用该服务商。使用阿里云百炼国内站的密钥时，把 DASHSCOPE_BASE_URL 设为 https://dashscope.aliyuncs.com/compatible-mode/v1；使用智谱开放平台（bigmodel.cn）的密钥时，把 ZAI_REGION 设为 china。月之暗面、MiniMax、可灵和 BytePlus 目前需要国际版平台的密钥。链接指向英文页面。",
       items: [
         { provider: "deepseek", name: "DeepSeek", does: "对话（V3 和 R1 推理模型）" },
-        { provider: "alibaba", name: "阿里云（通义千问 Qwen、通义万相 Wan）", does: "Qwen 对话，Qwen-Image 和 Wan 图像生成，Wan 视频生成，Qwen TTS 语音合成" },
-        { provider: "moonshot", name: "月之暗面（Kimi）", does: "Kimi 对话" },
-        { provider: "minimax", name: "MiniMax", does: "对话、图像生成、海螺 Hailuo 视频生成、语音合成" },
-        { provider: "zai", name: "智谱 Z.ai（GLM）", does: "GLM 对话，GLM-Image 图像生成，CogVideoX 视频生成，语音识别" },
-        { provider: "kling", name: "可灵 Kling AI", does: "可灵视频生成和图像生成" },
-        { provider: "byteplus", name: "BytePlus ModelArk", does: "Seed 对话，Seedream 图像生成和编辑，Seedance 视频生成" },
+        { provider: "alibaba", name: "阿里云百炼（通义千问 Qwen、通义万相 Wan）", does: "Qwen 对话，Qwen-Image 和 Wan 图像生成，Wan 视频生成，Qwen TTS 语音合成" },
+        { provider: "zai", name: "智谱 GLM（Z.ai / bigmodel.cn）", does: "GLM 对话，GLM-Image 图像生成，CogVideoX 视频生成，语音识别" },
+        { provider: "moonshot", name: "月之暗面（Kimi，国际版）", does: "Kimi 对话" },
+        { provider: "minimax", name: "MiniMax（国际版）", does: "对话、图像生成、海螺 Hailuo 视频生成、语音合成" },
+        { provider: "kling", name: "可灵 Kling AI（国际版）", does: "可灵视频生成和图像生成" },
+        { provider: "byteplus", name: "BytePlus ModelArk（国际版）", does: "Seed 对话，Seedream 图像生成和编辑，Seedance 视频生成" },
       ],
     },
     faqHeading: "常见问题",
@@ -274,7 +280,7 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       {
         question: "NodeTool 是什么？",
         answer:
-          "NodeTool 是一款开源 AI 视频编辑器，同时提供图像、音频、文本和节点工作流工具。你可以让智能体创建或编辑项目，然后自己修改。可以用 ChatGPT 或 Claude 订阅登录，使用自己的服务商密钥，或在本地运行受支持的模型。",
+          "NodeTool 是一款开源 AI 视频编辑器，同时提供图像、音频、文本和节点工作流工具。你可以让智能体创建或编辑项目，然后自己修改。可以使用自己的服务商密钥，在本地运行受支持的模型，或用 ChatGPT 或 Claude 订阅登录。",
       },
       {
         question: "NodeTool 收费吗？",
@@ -294,7 +300,7 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       {
         question: "可以使用我的 ChatGPT 或 Claude 订阅吗？",
         answer:
-          "可以，在 Studio 中使用。用 ChatGPT 或 Claude 登录后，智能体会使用该订阅而不是 API 密钥运行。这些运行计入你订阅方案的额度。",
+          "可以，在 Studio 中使用。用 ChatGPT 或 Claude 登录后，智能体会使用该订阅而不是 API 密钥运行。这些运行计入你订阅方案的额度。没有这些订阅时，智能体也可以使用 DeepSeek、通义千问、智谱 GLM 等服务商的 API 密钥或本地模型运行。",
       },
       {
         question: "需要 GPU 吗？",
@@ -606,6 +612,101 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       },
     ],
     closing: "O NodeTool Studio é grátis e de código aberto.",
+  },
+
+  ko: {
+    path: "/ko",
+    hreflang: "ko",
+    ogLocale: "ko_KR",
+    label: "한국어",
+    title: "NodeTool | 오픈소스 AI 영화 스튜디오, 에이전트, 노드 워크플로",
+    description:
+      "한 문장으로 AI 단편 영화를 만들고 샷마다 편집하세요. macOS, Windows, Linux용 무료 오픈소스입니다. ChatGPT나 Claude 플랜, 내 API 키, 로컬 모델로 실행됩니다.",
+    badge: "오픈소스 AI 영화 스튜디오",
+    h1: "AI 영화를 샷 단위로 연출하세요.",
+    lead: "한 문장으로 시작하세요. 에이전트가 이야기를 쓰고, 샷마다 스틸 이미지를 그리고, 타임라인에서 클립을 편집합니다. 클립 비용을 내기 전에 스틸을 확인하고 승인할 수 있고, 어떤 샷이든 따로 다시 만들 수 있습니다. 잘 된 과정은 다시 실행할 수 있는 워크플로로 저장하세요.",
+    setup:
+      "데스크톱 앱에서 ChatGPT 또는 Claude 플랜으로 로그인하면 에이전트가 그 플랜으로 실행됩니다. 내 프로바이더 API 키를 추가해 추가 요금 없이 정가로 결제할 수도 있습니다.",
+    platforms: "macOS, Windows, Linux용 무료 오픈소스입니다. 브라우저 버전은 알파 단계입니다.",
+    download: "무료 다운로드",
+    tryBrowser: "브라우저에서 사용해 보기",
+    videoAlt: "NodeTool: 한 문장이 비트 시트, 등장인물, 스틸과 클립으로 된 스토리보드, 완성된 편집본이 되기까지",
+    cardsLabel: "NodeTool로 만들 수 있는 것",
+    cards: [
+      {
+        title: "영화",
+        body: "대본을 쓰고, 모든 샷의 스토리보드를 만들고, 타임라인에서 클립을 편집합니다. 모두 하나의 프로젝트 안에 있습니다.",
+        linkLabel: "데스크톱 앱 알아보기",
+      },
+      {
+        title: "에이전트",
+        body: "바꾸고 싶은 점을 평소 말투로 전하면 에이전트가 프로젝트를 편집합니다. 언제든 직접 이어서 작업할 수 있습니다.",
+        linkLabel: "에이전트 작동 방식",
+      },
+      {
+        title: "라이브 타임라인",
+        body: "클립에 워크플로를 연결합니다. 입력 하나를 바꾸면 그 클립이 오래된 것으로 표시되므로 그 테이크만 다시 생성하고 나머지 편집은 그대로 둡니다.",
+        linkLabel: "동영상 편집기 알아보기",
+      },
+    ],
+    storyboard: {
+      title: "클립 비용을 내기 전에 스틸을 승인하세요.",
+      body: "스토리보드에는 샷마다 스틸 이미지가 한 장씩 있습니다. 승인한 샷만 동영상이 됩니다.",
+      linkLabel: "NodeTool로 만든 영화 보기",
+    },
+    workflow: {
+      title: "모든 프로젝트 아래에는 노드 그래프가 있습니다.",
+      body: "같은 그래프를 다음 에피소드나 광고 변형 20개에 실행하고, 가지고 있는 ComfyUI 워크플로를 가져오거나, 에이전트에게 그래프를 만들게 할 수 있습니다.",
+      linkLabel: "노드 워크플로 알아보기",
+    },
+    local: {
+      title: "프로젝트는 내 컴퓨터에 저장됩니다.",
+      body: `NodeTool Studio는 워크스페이스, 워크플로, 파일, 설정한 자격 증명을 내 컴퓨터에 저장합니다. 지원되는 오픈 웨이트 모델은 ${LOCAL_RUNTIMES}로 로컬에서 실행할 수 있습니다. 호스팅 모델을 호출하면 요청이 해당 프로바이더로 전송됩니다.`,
+      linkLabel: "Studio 알아보기",
+    },
+    language: {
+      title: "앱을 한국어로 사용할 수 있습니다.",
+      body: "설정 → 일반 → 외관에서 표시 언어를 한국어로 바꿀 수 있습니다. 번역은 기계 번역이라 아직 영어로 표시되는 화면도 있습니다. 사이트의 주요 페이지는 한국어로도 읽을 수 있습니다. 문서는 영어입니다.",
+      linkLabel: "문서(영어)",
+    },
+    faqHeading: "자주 묻는 질문",
+    faq: [
+      {
+        question: "NodeTool은 무엇인가요?",
+        answer:
+          "NodeTool은 이미지, 오디오, 텍스트, 노드 워크플로 도구를 갖춘 오픈소스 AI 동영상 편집기입니다. 에이전트에게 프로젝트를 만들거나 편집해 달라고 요청한 다음 직접 수정할 수 있습니다. ChatGPT나 Claude 플랜으로 로그인하거나, 내 프로바이더 키를 쓰거나, 지원되는 모델을 로컬에서 실행하세요.",
+      },
+      {
+        question: "비용이 드나요?",
+        answer:
+          "Studio는 무료 오픈소스입니다. Cloud는 알파 기간 동안 무료이며 이후 요금은 아직 발표되지 않았습니다. 프로바이더 API 요금은 별도이고, 구독으로 실행한 작업은 해당 플랜의 한도에 포함됩니다. 로컬 모델은 내 하드웨어와 전기로 실행되며 호출당 프로바이더 요금이 없습니다.",
+      },
+      {
+        question: "NodeTool은 오픈소스인가요?",
+        answer:
+          "네. 소스 코드는 GitHub에 AGPL-3.0 라이선스로 공개되어 있습니다. Studio와 Cloud는 같은 소스를 사용하며, NodeTool을 직접 호스팅할 수도 있습니다.",
+      },
+      {
+        question: "한국어로 사용할 수 있나요?",
+        answer:
+          "네. 설정 → 일반 → 외관에서 표시 언어를 한국어로 바꾸세요. 기계 번역이라 아직 영어로 표시되는 화면도 있습니다. 문서는 영어입니다.",
+      },
+      {
+        question: "ChatGPT나 Claude 구독을 쓸 수 있나요?",
+        answer:
+          "네, Studio에서 쓸 수 있습니다. ChatGPT 또는 Claude로 로그인하면 에이전트가 API 키 대신 그 구독으로 실행됩니다. 이 실행은 플랜의 사용 한도에 포함됩니다.",
+      },
+      {
+        question: "GPU가 필요한가요?",
+        answer:
+          "아니요. Studio는 호스팅 프로바이더를 사용할 수 있으므로 모델은 프로바이더의 하드웨어에서 실행됩니다. GPU는 지원되는 오픈 웨이트 모델을 내 컴퓨터에서 실행할 때만 필요하며, 필요한 성능은 모델과 실행 환경에 따라 다릅니다.",
+      },
+      {
+        question: "어떤 모델을 지원하나요?",
+        answer: `${MODELS} 등 주요 모델을 ${PROVIDERS} 같은 프로바이더를 통해 사용할 수 있습니다. ${LOCAL_RUNTIMES}로 내 컴퓨터에서 실행할 수도 있습니다.`,
+      },
+    ],
+    closing: "NodeTool Studio는 무료 오픈소스입니다.",
   },
 };
 

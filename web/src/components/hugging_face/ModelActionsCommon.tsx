@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Tooltip, EditorButton, SPACING, getSpacingPx } from "../ui_primitives";
 import FolderIcon from "@mui/icons-material/FolderOutlined";
 import { TOOLTIP_DESCRIPTION_DELAY } from "../../config/constants";
+import huggingfaceColorIcon from "../../icons/providers/huggingface-color.svg";
 
 export const ModelShowInExplorerButton: React.FC<{
   onClick: () => void;
@@ -48,7 +49,7 @@ export const HuggingFaceLink: React.FC<{
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
           <img
-            src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
+            src={huggingfaceColorIcon}
             alt={t("screen_models.huggingFace.huggingFaceLogoAlt")}
             style={{
               width: "1.25em",

@@ -29,10 +29,11 @@ class CardOverlay;
 // CanvasInteraction. It borrows the model, which outlives it.
 //
 // Card and wire textures exist only near the viewport. The raster pass runs in
-// updatePolish, prioritizing visible device tiles within the frame budget.
-// A zoom gesture scales the existing textures; the pass paints them at
-// the new scale 100 ms after the last zoom step. GraphCanvas.cpp describes
-// the scheduler's states above rebuildRasterWork.
+// updatePolish and budgeted event-loop slices, prioritizing visible device
+// tiles within the frame budget. A zoom gesture scales the existing textures;
+// the pass paints them at the new scale when the gesture ends or after the
+// settle pause. GraphCanvas.cpp describes the scheduler's states above
+// rebuildRasterWork.
 class GraphCanvas final : public QQuickItem {
   Q_OBJECT
 public:
@@ -69,15 +70,22 @@ public:
   void setViewShown(bool shown);
   void cancelPointerGrab();
   bool moveGrabbedCard(QMouseEvent &event);
+  // Notes that the host widget received an explicit MouseMove so the first
+  // HoverEnter it produces updates canvas hover, unlike synthetic window-show enters.
+  void notePointerMove() { pointerMoved_ = true; }
   // The widget shell can host focused overlays outside this Quick window.
   void setOverlayFocusCheck(std::function<bool()> check) { overlayHasFocus_ = std::move(check); }
 
   // Drains queued tiles immediately, retaining the offscreen cache limit.
   void flushRaster();
+  // Ends an active zoom gesture immediately (e.g., pinch end or animated zoom landing)
+  // so exact-scale rasters begin without waiting for the debounce pause.
+  void finishZoomGesture();
   // Whether polish still has queued raster work, or the view or an item
   // moved and the settled rasters have not caught up yet.
   bool rasterPending() const {
-    return rasterQueued_ || rasterWorkDirty_ || draftRasterDirty_ || nextRasterJob_ < rasterJobs_.size() || still_.isActive();
+    return rasterQueued_ || rasterTimer_.isActive() || rasterWorkDirty_ || draftRasterDirty_ ||
+           nextRasterJob_ < rasterJobs_.size() || still_.isActive();
   }
   // QGraphicsScene::render of a scene area at a zoom: background, items and
   // foreground painted directly, without textures.
@@ -109,7 +117,11 @@ public:
     explicit RasterTestHooks(GraphCanvas &canvas) : canvas_(canvas) {}
     void setCacheBudget(qsizetype bytes) { canvas_.rasterCacheBudget_ = bytes; }
     void setTimeBudget(qint64 ns) { canvas_.rasterTimeBudgetNs_ = ns; }
-    void endZoom() { canvas_.settle_.stop(); }
+    void endZoom() {
+      canvas_.settle_.stop();
+      canvas_.lastZoom_.invalidate();
+      canvas_.zoomGestureStart_.invalidate();
+    }
     void polish() { canvas_.updatePolish(); }
 
   private:
@@ -131,6 +143,7 @@ protected:
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
   void mouseDoubleClickEvent(QMouseEvent *event) override;
+  void hoverEnterEvent(QHoverEvent *event) override;
   void hoverMoveEvent(QHoverEvent *event) override;
   void hoverLeaveEvent(QHoverEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
@@ -150,14 +163,20 @@ private:
   bool viewportCovered(const QRectF &visible) const;
   void updateRasterCoverage(const QRectF &visible);
   void viewChanged(bool zoomed);
+  void syncRhiItems();
+  // Ends the grid's zoom mode. GPU backends also resync the grid and the
+  // vector wires to the settled zoom.
+  void endGridZoom();
   void rasterPass(bool flush);
   bool rasterDraft(const QRectF &visible, double scale, double zoom, bool settled, double dpr);
   void scheduleRaster();
+  void scheduleRasterNow();
   void invalidateRasterWork();
   void invalidateDraftRaster();
-  void syncForeground(const QRectF &area, double zoom);
+  bool syncForeground(const QRectF &area, double zoom);
   void sortRasterJobs();
-  void rebuildRasterWork(const QRectF &visible, double scale, double zoom, bool settled);
+  bool directSoftwareWires() const;
+  bool rebuildRasterWork(const QRectF &visible, double scale, double zoom, bool settled);
   // The fractional device offset of the current scroll.
   QPointF viewPhase() const;
   // A released tile image of the size, or a null image.
@@ -165,6 +184,7 @@ private:
   void keepSpare(const QImage &image);
   void startMotion();
   void settleMotion();
+  void settleZoom();
 
   WorkflowGraphModel &model_;
   CanvasViewport viewport_;
@@ -178,6 +198,13 @@ private:
   QQuickItem overlay_;
   RubberBandItem band_;
   QTimer settle_;
+  QElapsedTimer lastZoom_;
+  QElapsedTimer zoomGestureStart_;
+  // Drives budgeted raster slices across event-loop turns without waiting on
+  // QQuickWidget display sync between non-publishing staged or prefetch tiles.
+  QTimer rasterTimer_;
+  QElapsedTimer rasterBurst_;
+  bool rasterWorkZoomedOut_ = false;
   // Runs from the last pan or item move. While it runs, items keep the
   // sub-pixel phase of their rasters. Its timeout restores exact phases.
   QTimer still_;
@@ -199,6 +226,7 @@ private:
     int priority;
     qsizetype age;
     double distance;
+    bool group = false;
   };
   QSet<quint64> near_;
   QList<RasterJob> rasterJobs_;
@@ -222,6 +250,8 @@ private:
   QElapsedTimer planOnly_;
   bool rasterWorkSettled_ = false;
   double rasterWorkScale_ = 0;
+  double lastWireFeatherScale_ = 0;
+  bool lastWireZoomedOut_ = false;
   QPointF devicePhase_;
   QRectF rasterCoverage_;
   QRectF prefetchArea_;
@@ -254,6 +284,7 @@ private:
   bool pressAccepted_ = false;
   bool skipPress_ = false;
   bool viewShown_ = false;
+  bool pointerMoved_ = false;
   Qt::MouseButtons buttonsDown_ = Qt::NoButton;
   bool rasterQueued_ = false;
   RasterStats stats_;

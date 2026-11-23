@@ -381,20 +381,33 @@ const InfoBox = memo(function InfoBox({
   searchResults: NodeMetadata[];
   allSearchMatches: NodeMetadata[];
 }) {
+  const { t } = useTranslation();
   const buildContextMessage = () => {
     if (searchTerm.length > minSearchTermLength) {
       const matchCount = searchResults.length;
       const totalMatches = allSearchMatches.length;
       if (selectedPathString) {
-        return `${matchCount} results in ${selectedPathString} • ${totalMatches} total match '${searchTerm}'`;
+        return t("i18n-next74.nodeMenu.namespacePanel.resultsInPath", {
+          count: matchCount,
+          path: selectedPathString,
+          term: searchTerm,
+          total: totalMatches
+        });
       }
-      return `${matchCount} results • Showing most relevant for '${searchTerm}'`;
+      return t("i18n-next74.nodeMenu.namespacePanel.resultsRelevant", {
+        count: matchCount,
+        term: searchTerm
+      });
     }
     if (selectedPathString) {
-      return `${searchResults.length} nodes in ${selectedPathString}`;
+      return t("i18n-next74.nodeMenu.namespacePanel.nodesInPath", {
+        count: searchResults.length,
+        path: selectedPathString
+      });
     }
-    const count = searchResults.length;
-    return `${count} ${count === 1 ? "node matches" : "nodes match"} the filters`;
+    return t("i18n-next74.nodeMenu.namespacePanel.nodesMatchFilters", {
+      count: searchResults.length
+    });
   };
 
   return (
