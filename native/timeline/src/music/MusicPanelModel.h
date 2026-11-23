@@ -7,8 +7,7 @@
 // the primary action, and the takes of the clip under the range with their
 // generation records (part 7, TK-2, TK-3, AL-5). Every selection or document
 // change runs planMusicOperation again, so the panel shows what MusicPlan
-// answers. Wording follows the music mode mockup
-// (native/timeline/docs/music-mode-mockup.html).
+// answers. Wording follows section 15 of native/timeline/docs/MUSIC-MODE.md.
 //
 // Thread affinity: GUI thread only. QML creates it; its QML parent owns it.
 // The timeline and the selection are held by QPointer.

@@ -4,8 +4,8 @@
 // summary, the prompt with the project's prompt history, candidates, seed and
 // model, the primary action (or the first-use setup while the server lacks the
 // music engine), the job list, the takes of the clip under the range, and the
-// backend status line. Layout and copy follow the music mode mockup
-// (native/timeline/docs/music-mode-mockup.html).
+// backend status line. Layout and copy follow section 15 of
+// native/timeline/docs/MUSIC-MODE.md.
 //
 // The job module is the timeline's one MusicJobs (MusicJobsRegistry), which the
 // assistant commands and the take clean-up share, so jobs keep running while this
