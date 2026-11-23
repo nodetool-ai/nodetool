@@ -176,7 +176,7 @@ describe("useFileDrop", () => {
     expect(onChangeAsset).toHaveBeenCalled();
   });
 
-  it("accepts document assets with application content type", () => {
+  it("rejects PDF assets on a document dropzone", () => {
     const onChangeAsset = jest.fn();
 
     mockDeserialize.mockReturnValue({
@@ -200,7 +200,13 @@ describe("useFileDrop", () => {
       result.current.onDrop(createMockDragEvent());
     });
 
-    expect(onChangeAsset).toHaveBeenCalled();
+    expect(onChangeAsset).not.toHaveBeenCalled();
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "error",
+        content: expect.stringContaining("document")
+      })
+    );
   });
 
   it("handles external file drops with uploadAsset", () => {
@@ -266,16 +272,16 @@ describe("useFileDrop", () => {
     );
   });
 
-  it("accepts document assets with text content type", () => {
+  it("accepts markdown document assets", () => {
     const onChangeAsset = jest.fn();
 
     mockDeserialize.mockReturnValue({
       type: "asset",
       payload: {
         id: "doc2",
-        name: "notes.txt",
-        content_type: "text/plain",
-        get_url: "http://example.com/notes.txt"
+        name: "notes.md",
+        content_type: "text/markdown",
+        get_url: "http://example.com/notes.md"
       } as any
     });
 
@@ -385,7 +391,7 @@ describe("useFileDrop", () => {
     expect(result.current.filename).toBe("test.png");
   });
 
-  it("accepts a pdf dropped onto a document dropzone", () => {
+  it("rejects a pdf dropped onto a document dropzone", () => {
     mockDeserialize.mockReturnValue(null);
     mockHasExternalFiles.mockReturnValue(true);
     const mockFile = new File(["content"], "doc.pdf", {
@@ -409,16 +415,19 @@ describe("useFileDrop", () => {
       );
     });
 
-    expect(mockUploadAsset).toHaveBeenCalledWith(
-      expect.objectContaining({ file: mockFile, source: "file" })
+    expect(mockUploadAsset).not.toHaveBeenCalled();
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "error",
+        content: expect.stringContaining("document")
+      })
     );
-    expect(mockAddNotification).not.toHaveBeenCalled();
   });
 
   it.each([
-    ["notes.txt", "text/plain"],
-    ["page.html", "text/html"],
-    ["readme.md", "text/markdown"]
+    ["readme.md", "text/markdown"],
+    ["notes.markdown", "text/plain"],
+    ["draft.md", ""]
   ])("accepts %s dropped onto a document dropzone", (name, type) => {
     mockDeserialize.mockReturnValue(null);
     mockHasExternalFiles.mockReturnValue(true);
@@ -445,6 +454,94 @@ describe("useFileDrop", () => {
       expect.objectContaining({ file: mockFile })
     );
     expect(mockAddNotification).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["report.pdf", "application/pdf"],
+    ["brief.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    ["page.html", "text/html"],
+    ["notes.txt", "text/plain"],
+    ["readme.md", "text/markdown"]
+  ])(
+    "accepts %s when acceptDocumentImport is enabled",
+    (name, type) => {
+      mockDeserialize.mockReturnValue(null);
+      mockHasExternalFiles.mockReturnValue(true);
+      const mockFile = new File(["content"], name, { type });
+      mockExtractFiles.mockReturnValue([mockFile]);
+
+      const { result } = renderHook(() =>
+        useFileDrop({
+          type: "document",
+          acceptDocumentImport: true,
+          uploadAsset: true
+        })
+      );
+
+      act(() => {
+        result.current.onDrop(
+          createMockDragEvent({
+            dataTransfer: {
+              items: [],
+              files: { length: 1 },
+              getData: jest.fn(() => "")
+            }
+          })
+        );
+      });
+
+      expect(mockUploadAsset).toHaveBeenCalledWith(
+        expect.objectContaining({ file: mockFile })
+      );
+      expect(mockAddNotification).not.toHaveBeenCalled();
+    }
+  );
+
+  it("accepts PDF assets when acceptDocumentImport is enabled and rejects unrelated files", () => {
+    const onChangeAsset = jest.fn();
+    mockDeserialize.mockReturnValue({
+      type: "asset",
+      payload: {
+        id: "pdf1",
+        name: "doc.pdf",
+        content_type: "application/pdf",
+        get_url: "http://example.com/doc.pdf"
+      } as any
+    });
+
+    const { result } = renderHook(() =>
+      useFileDrop({
+        type: "document",
+        acceptDocumentImport: true,
+        onChangeAsset
+      })
+    );
+
+    act(() => {
+      result.current.onDrop(createMockDragEvent());
+    });
+    expect(onChangeAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "pdf1" })
+    );
+
+    onChangeAsset.mockClear();
+    mockDeserialize.mockReturnValue({
+      type: "asset",
+      payload: {
+        id: "zip1",
+        name: "archive.zip",
+        content_type: "application/zip",
+        get_url: "http://example.com/archive.zip"
+      } as any
+    });
+
+    act(() => {
+      result.current.onDrop(createMockDragEvent());
+    });
+    expect(onChangeAsset).not.toHaveBeenCalled();
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "error" })
+    );
   });
 
   it("forwards the uploaded asset and upload failures", () => {

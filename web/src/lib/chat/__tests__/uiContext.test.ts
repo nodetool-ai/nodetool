@@ -46,6 +46,28 @@ describe("buildUiContext", () => {
     expect(ctx?.selection?.layer_ids).toEqual(["layer-2"]);
     expect(ctx?.source).toBe("sketch_assistant");
   });
+
+  it("forwards documentEditMode as document_edit_mode when set", () => {
+    expect(
+      buildUiContext({
+        focused: { type: "document", id: "doc-1" },
+        documentEditMode: "staged"
+      })?.document_edit_mode
+    ).toBe("staged");
+
+    expect(
+      buildUiContext({
+        focused: { type: "document", id: "doc-1" },
+        documentEditMode: "direct"
+      })?.document_edit_mode
+    ).toBe("direct");
+
+    const omitted = buildUiContext({
+      focused: { type: "document", id: "doc-1" },
+      documentEditMode: null
+    });
+    expect(omitted?.document_edit_mode).toBeUndefined();
+  });
 });
 
 describe("resolveUiContext", () => {

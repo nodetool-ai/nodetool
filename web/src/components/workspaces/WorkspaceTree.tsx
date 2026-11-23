@@ -19,6 +19,10 @@ import { usePanelStore } from "../../stores/PanelStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useProjectFolder } from "../../hooks/useProjectFolder";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
+import {
+  isImportableAsDocument,
+  useTextDocumentImport
+} from "../../serverState/useTextDocumentTransfer";
 import { fileManagerKind } from "../../utils/platform";
 import { useOpenProjectConnection } from "../../lib/websocket/openProjectSignal";
 import { serializeDragData } from "../../lib/dragdrop/serialization";
@@ -41,8 +45,11 @@ import {
   NotAnAssetError,
   assetDirectoryPath,
   assetOfFile,
+  canCopyInto,
   canMoveInto,
+  copyEntry,
   countFilesUnder,
+  createDocumentInFolder,
   createFolder,
   deleteEntry,
   isDocumentFile,
@@ -594,6 +601,13 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
 
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore((state) => state.addNotification);
+  const { importAsset } = useTextDocumentImport();
+  const [copiedEntry, setCopiedEntry] = useState<{
+    readonly projectId: string;
+    readonly path: string;
+    readonly isDirectory: boolean;
+    readonly name: string;
+  } | null>(null);
   const [nameRequest, setNameRequest] = useState<
     (NameRequest & { path: string }) | null
   >(null);
@@ -601,7 +615,17 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     (DeleteRequest & { path: string }) | null
   >(null);
 
-  // Every change reaches the tree and the asset library.
+  const ensureFolderExpanded = useCallback((folderPath: string) => {
+    if (!folderPath || folderPath === ".") { return; }
+    if (!expandedItemsRef.current.includes(folderPath)) {
+      expandedItemsRef.current = [...expandedItemsRef.current, folderPath];
+    }
+    setExpandedItems((prev) =>
+      prev.includes(folderPath) ? prev : [...prev, folderPath]
+    );
+  }, []);
+
+  // Every change reaches the tree, the asset library, and document lists.
   const runChange = useCallback(
     async (change: () => Promise<void>): Promise<void> => {
       try {
@@ -620,6 +644,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
       } finally {
         void refetchFiles();
         void queryClient.invalidateQueries({ queryKey: ["assets"] });
+        void queryClient.invalidateQueries({ queryKey: [["documents"]] });
       }
     },
     [addNotification, queryClient, refetchFiles, t]
@@ -646,6 +671,35 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
 
   const menuItem = menu ? findItemInTree(files, menu.itemId) : undefined;
   const menuIsDirectory = !menu?.itemId || isFolderItem(menuItem);
+  const canPaste = Boolean(copiedEntry && copiedEntry.projectId === projectId);
+  const canImportAsDocument = Boolean(
+    menu?.itemId && !menuIsDirectory && isImportableAsDocument(menu.itemId)
+  );
+
+  const handleNewDocument = useCallback(() => {
+    if (!menu) { return; }
+    const targetFolder = menu.itemId || ".";
+    setMenu(null);
+    void runChange(async () => {
+      const asset = await createDocumentInFolder(projectId, targetFolder);
+      ensureFolderExpanded(targetFolder);
+      openTab({
+        type: "text",
+        ref: asset.id,
+        mode: "edit",
+        title: asset.name,
+        projectId
+      });
+      setPanelVisibility(false);
+    });
+  }, [
+    ensureFolderExpanded,
+    menu,
+    openTab,
+    projectId,
+    runChange,
+    setPanelVisibility
+  ]);
 
   const handleNewFolder = useCallback(() => {
     if (!menu) { return; }
@@ -658,6 +712,70 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     });
     setMenu(null);
   }, [menu, t]);
+
+  const handleCopy = useCallback(() => {
+    if (!menu?.itemId) { return; }
+    const path = menu.itemId;
+    const item = findItemInTree(filesRef.current, path);
+    setCopiedEntry({
+      projectId,
+      path,
+      isDirectory: isFolderItem(item),
+      name: item?.label ?? path.split("/").pop() ?? path
+    });
+    setMenu(null);
+  }, [menu, projectId]);
+
+  const handlePaste = useCallback(() => {
+    if (!menu || !copiedEntry || copiedEntry.projectId !== projectId) {
+      return;
+    }
+    const targetItem = menu.itemId
+      ? findItemInTree(filesRef.current, menu.itemId)
+      : undefined;
+    const targetDirectory = dropDirectoryFor(menu.itemId || null, targetItem);
+    const source = copiedEntry;
+    setMenu(null);
+    if (!canCopyInto(source.path, source.isDirectory, targetDirectory)) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: t(
+          "projectFolder.tree.pasteIntoItself",
+          "A folder cannot be pasted into itself or a folder inside it."
+        )
+      });
+      return;
+    }
+    void runChange(async () => {
+      await copyEntry(projectId, source.path, source.isDirectory, targetDirectory);
+      ensureFolderExpanded(targetDirectory);
+    });
+  }, [
+    addNotification,
+    copiedEntry,
+    ensureFolderExpanded,
+    menu,
+    projectId,
+    runChange,
+    t
+  ]);
+
+  const handleImportAsDocument = useCallback(() => {
+    if (!menu?.itemId) { return; }
+    const path = menu.itemId;
+    setMenu(null);
+    void runChange(async () => {
+      const asset = await assetOfFile(projectId, path);
+      if (!asset) {
+        throw new NotAnAssetError(path);
+      }
+      const created = await importAsset(asset.id, projectId);
+      if (created) {
+        setPanelVisibility(false);
+      }
+    });
+  }, [importAsset, menu, projectId, runChange, setPanelVisibility]);
 
   const handleRename = useCallback(() => {
     if (!menu?.itemId) { return; }
@@ -982,14 +1100,38 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
       >
         {menuIsDirectory && (
           <MenuItemPrimitive
+            label={t("projectFolder.tree.newDocument", "New document")}
+            onClick={handleNewDocument}
+          />
+        )}
+        {menuIsDirectory && (
+          <MenuItemPrimitive
             label={t("assets.newFolder")}
             onClick={handleNewFolder}
+          />
+        )}
+        {canImportAsDocument && (
+          <MenuItemPrimitive
+            label={t("documentEditor.import.asDocument", "Import as document")}
+            onClick={handleImportAsDocument}
           />
         )}
         {Boolean(menu?.itemId) && (
           <MenuItemPrimitive
             label={t("batch2_0.rename")}
             onClick={handleRename}
+          />
+        )}
+        {Boolean(menu?.itemId) && (
+          <MenuItemPrimitive
+            label={t("projectFolder.tree.copy", "Copy")}
+            onClick={handleCopy}
+          />
+        )}
+        {canPaste && (
+          <MenuItemPrimitive
+            label={t("projectFolder.tree.paste", "Paste")}
+            onClick={handlePaste}
           />
         )}
         {Boolean(menu?.itemId) && (

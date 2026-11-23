@@ -151,6 +151,34 @@ async function recordDocumentVersionBeforeWrite(
   await recordDocumentVersionBeforeFileWrite(context, key, previous);
 }
 
+/**
+ * Read the staged content of an open Markdown document if the current turn is
+ * staging edits for `key`. Loaded on demand so non-Markdown files pay nothing.
+ */
+async function readStagedDocumentContent(
+  context: ProcessingContext,
+  key: string
+): Promise<string | null> {
+  if (!/\.(md|markdown)$/i.test(key)) return null;
+  const { readStagedFileContentIfActive } = await import("./text-documents.js");
+  return readStagedFileContentIfActive(context, key);
+}
+
+/**
+ * Stage a write to a Markdown document when staged approval is active for `key`
+ * (PRD D2, R8). Returns true when staged so disk bytes remain untouched.
+ */
+async function stageDocumentWrite(
+  context: ProcessingContext,
+  key: string,
+  previous: string,
+  nextContent: string
+): Promise<boolean> {
+  if (!/\.(md|markdown)$/i.test(key)) return false;
+  const { stageFileWriteIfActive } = await import("./text-documents.js");
+  return stageFileWriteIfActive(context, key, previous, nextContent);
+}
+
 async function isDirectory(
   workspace: Workspace,
   path: string
@@ -263,7 +291,11 @@ const readFileCapability: CapabilityExport = {
       return `Error: ${filePath} contains binary data and cannot be read as text`;
     }
 
-    const raw = new TextDecoder("utf-8").decode(bytes);
+    const stagedContent = await readStagedDocumentContent(
+      context,
+      trackerKey(workspace, filePath)
+    );
+    const raw = stagedContent ?? new TextDecoder("utf-8").decode(bytes);
     const allLines = raw.split("\n");
     const totalLines = allLines.length;
 
@@ -356,13 +388,20 @@ const writeFileCapability: CapabilityExport = {
 
     try {
       if (exists) {
-        const previous = await workspace.readText(filePath);
-        if (previous !== null && previous !== content) {
-          await recordDocumentVersionBeforeWrite(
-            context,
-            workspace.key(filePath),
-            previous
-          );
+        const key = workspace.key(filePath);
+        const stagedContent = await readStagedDocumentContent(context, key);
+        const previous = stagedContent ?? (await workspace.readText(filePath));
+        if (previous !== null) {
+          if (previous !== content) {
+            if (await stageDocumentWrite(context, key, previous, content)) {
+              markRead(context, workspace, filePath);
+              return `Staged changes to ${filePath} for user review in the editor (disk file was not modified yet).`;
+            }
+            await recordDocumentVersionBeforeWrite(context, key, previous);
+          } else if (stagedContent !== null) {
+            markRead(context, workspace, filePath);
+            return `Staged changes to ${filePath} are unchanged (disk file was not modified).`;
+          }
         }
       }
       await workspace.write(filePath, content, mimeForPath(filePath));
@@ -800,7 +839,9 @@ const editFile: CapabilityExport = {
     }
 
     try {
-      const content = existing;
+      const key = workspace.key(rawPath);
+      const stagedContent = await readStagedDocumentContent(context, key);
+      const content = stagedContent ?? existing;
 
       if (!content.includes(oldString)) {
         return {
@@ -866,11 +907,17 @@ const editFile: CapabilityExport = {
           content.slice(firstIdx + searchString.length);
       }
 
-      await recordDocumentVersionBeforeWrite(
-        context,
-        workspace.key(rawPath),
-        content
-      );
+      if (await stageDocumentWrite(context, key, content, newContent)) {
+        markRead(context, workspace, rawPath);
+        return {
+          success: true,
+          path: rawPath,
+          replacements: replaceAll ? count : 1,
+          staged: true,
+          note: "Changes staged for user review in the editor. Disk file was not modified yet."
+        };
+      }
+      await recordDocumentVersionBeforeWrite(context, key, content);
       await workspace.write(rawPath, newContent, mimeForPath(rawPath));
       // An edit is a read plus a write: `write_file` must not go on to demand a
       // read of the file this call just showed the model and rewrote.

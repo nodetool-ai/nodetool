@@ -99,7 +99,7 @@ export class LoadDocumentFileNode extends BaseNode {
   static readonly platforms = NODE_ONLY;
   static readonly title = "Load Document File";
   static readonly description =
-    "Read a document from disk.\n    files, document, read, input, load, file";
+    "Read an editable document from the project or disk.\n    files, document, markdown, read, input, load, file";
   static readonly inlineFields = ["path"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
@@ -358,12 +358,12 @@ function targetAssetId(target: DocumentRefLike | null | undefined): string | nul
   return uri.startsWith("asset://") ? uri.slice("asset://".length) || null : null;
 }
 
-/** UTF-8 text, refusing a binary document such as a PDF. */
+/** UTF-8 text, refusing a binary file. */
 function decodeText(bytes: Uint8Array): string {
   const head = String.fromCharCode(...bytes.subarray(0, 4));
   if (head === "%PDF" || head === "PK\u0003\u0004" || bytes.subarray(0, 8192).includes(0)) {
     throw new Error(
-      "SaveDocument: the content is a binary document. Extract its text first, for example with lib.pdf.ExtractMarkdown."
+      "SaveDocument: the content is a binary document. Import it as an editable document first."
     );
   }
   return new TextDecoder("utf-8").decode(bytes);
@@ -376,13 +376,9 @@ function decodeText(bytes: Uint8Array): string {
 type ListedDocument = { type?: "document"; uri: string; asset_id?: string };
 
 const LISTED_EXTENSIONS = new Set([
-  ".txt",
   ".md",
   ".markdown",
-  ".json",
-  ".html",
-  ".pdf",
-  ".docx"
+  ".txt"
 ]);
 
 function extensionOf(name: string): string {

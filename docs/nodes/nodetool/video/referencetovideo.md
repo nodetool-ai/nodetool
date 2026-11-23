@@ -21,7 +21,7 @@ Generate video using ordered image and video references for identity, style, sce
 | reference_images | `list[image]` | Ordered identity, style, subject, or scene image references. | `[]` |
 | reference_videos | `list[video]` | Ordered motion, scene, edit, or soundtrack video references. | `[]` |
 | model | `video_model` | The reference-to-video model to use | `{"type":"video_model","provider":"","id":"","na...` |
-| prompt | `str` | Describe the video using image 1, image 2, video 1, and video 2 numbering in list order. | `` |
+| prompt | `str` | Describe the video using image 1, image 2, video 1, and video 2 numbering in list order. An image mentioned in the prompt joins the references after the wired ones and takes the next number. | `` |
 | use_reference_video_audio | `bool` | Use audio tracks carried by reference videos where supported. | `false` |
 | negative_prompt | `str` | Text prompt describing what to avoid in the video | `` |
 | entities | `list[entity]` | Consistency entities whose descriptors are injected into the prompt | `[]` |

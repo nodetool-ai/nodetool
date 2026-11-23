@@ -56,6 +56,104 @@ describe("document text output", () => {
       "Cannot read document asset://gone"
     );
   });
+
+  it("converts PDF bytes to Markdown on DocumentInput while ConstantDocument keeps binary empty", async () => {
+    const pdf = encode("%PDF-1.7 binary");
+    const calls: Array<{ filename?: string | null; contentType?: string | null }> = [];
+    const context = {
+      ...contextWith({ "asset://pdf": pdf }),
+      getAssetInfo: async () => ({ name: "report.pdf", content_type: "application/pdf" }),
+      convertDocumentToMarkdown: async (args: {
+        bytes: Uint8Array;
+        filename?: string | null;
+        contentType?: string | null;
+      }) => {
+        calls.push({ filename: args.filename, contentType: args.contentType });
+        return "# Report\n\nExtracted text.\n";
+      }
+    };
+
+    const inputNode = new DocumentInputNode();
+    inputNode.assign({ value: { type: "document", uri: "asset://pdf", asset_id: "pdf" } });
+    const inputResult = await inputNode.process(context);
+    expect(inputResult.text).toBe("# Report\n\nExtracted text.\n");
+    expect(inputResult.output).toMatchObject({
+      type: "document",
+      uri: "asset://pdf",
+      asset_id: "pdf",
+      data: null,
+      text: "# Report\n\nExtracted text.\n"
+    });
+    expect(calls).toEqual([{ filename: "report.pdf", contentType: "application/pdf" }]);
+
+    const constantNode = new ConstantDocumentNode();
+    constantNode.assign({ value: { type: "document", uri: "asset://pdf", asset_id: "pdf" } });
+    const constantResult = await constantNode.process(context);
+    expect(constantResult.text).toBe("");
+  });
+
+  it("converts HTML assets and data URIs on DocumentInput", async () => {
+    const htmlBytes = encode("<h1>Brief</h1><p>Ship <strong>it</strong>.</p>");
+    const calls: Array<{ filename?: string | null; contentType?: string | null }> = [];
+    const context = {
+      ...contextWith({ "asset://html1": htmlBytes }),
+      getAssetInfo: async () => ({ name: "brief.html", content_type: "text/html" }),
+      convertDocumentToMarkdown: async (args: {
+        bytes: Uint8Array;
+        filename?: string | null;
+        contentType?: string | null;
+      }) => {
+        calls.push({ filename: args.filename, contentType: args.contentType });
+        return "# Brief\n\nShip **it**.\n";
+      }
+    };
+
+    const assetNode = new DocumentInputNode();
+    assetNode.assign({ value: { type: "document", uri: "asset://html1", asset_id: "html1" } });
+    const assetResult = await assetNode.process(context);
+    expect(assetResult.text).toBe("# Brief\n\nShip **it**.\n");
+    expect(assetResult.output).toMatchObject({ text: "# Brief\n\nShip **it**.\n", data: null });
+
+    const dataUriNode = new DocumentInputNode();
+    const encodedHtml = Buffer.from("<h1>Inline</h1>").toString("base64");
+    dataUriNode.assign({
+      value: { type: "document", uri: `data:text/html;base64,${encodedHtml}` }
+    });
+    const dataUriResult = await dataUriNode.process(context);
+    expect(dataUriResult.text).toBe("# Brief\n\nShip **it**.\n");
+    expect(calls).toEqual([
+      { filename: "brief.html", contentType: "text/html" },
+      { filename: null, contentType: "text/html" }
+    ]);
+  });
+
+  it("passes plain UTF-8 formats like CSV and Markdown through DocumentInput without conversion", async () => {
+    let converted = 0;
+    const context = {
+      ...contextWith({ "asset://catalog": encode("sku,name\n1,Lamp\n") }),
+      getAssetInfo: async () => ({ name: "products.csv", content_type: "text/csv" }),
+      convertDocumentToMarkdown: async () => {
+        converted += 1;
+        return "should not run";
+      }
+    };
+    const node = new DocumentInputNode();
+    node.assign({ value: { type: "document", uri: "asset://catalog", asset_id: "catalog" } });
+    const result = await node.process(context);
+    expect(result.text).toBe("sku,name\n1,Lamp\n");
+    expect(converted).toBe(0);
+  });
+
+  it("falls back to empty text on DocumentInput when no converter matches a binary file", async () => {
+    const context = {
+      ...contextWith({ "asset://bin": encode("%PDF-1.7 binary") }),
+      convertDocumentToMarkdown: async () => null
+    };
+    const node = new DocumentInputNode();
+    node.assign({ value: { type: "document", uri: "asset://bin", asset_id: "bin" } });
+    const result = await node.process(context);
+    expect(result.text).toBe("");
+  });
 });
 
 describe("DocumentFileInput resolves project paths (R23)", () => {

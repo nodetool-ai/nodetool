@@ -5,7 +5,9 @@ title: "nodetool.fake Nodes"
 
 This namespace contains 2 node(s).
 
-## Available Nodes
+## Nodes
 
 - **[Color Grade (browser)](colorgradebrowser.md)**
 - **[Fake Generate Image](fakegenerateimage.md)**
+
+[Back to all nodes](../../)

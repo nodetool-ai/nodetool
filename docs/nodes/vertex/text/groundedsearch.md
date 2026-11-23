@@ -16,11 +16,17 @@ Search the web with Gemini on Vertex AI, grounded in Google Search results, bill
 
 ## Properties
 
-_(none)_
+| Property | Type | Description | Default |
+|----------|------|-------------|---------|
+| query | `str` | The search query to execute | `` |
 
 ## Outputs
 
-_(none)_
+| Output | Type | Description |
+|--------|------|-------------|
+| results | `list[str]` |  |
+| sources | `list[source]` |  |
+| text | `str` |  |
 
 ## Related Nodes
 

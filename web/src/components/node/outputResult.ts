@@ -74,6 +74,16 @@ export const getCopySource = (value: unknown): unknown => {
   if (
     typeof value === "object" &&
     "type" in value &&
+    value.type === "document" &&
+    "text" in value &&
+    isString(value.text)
+  ) {
+    return value.text;
+  }
+
+  if (
+    typeof value === "object" &&
+    "type" in value &&
     value.type === "text" &&
     "data" in value &&
     isString(value.data)

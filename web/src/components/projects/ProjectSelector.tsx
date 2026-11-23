@@ -46,7 +46,8 @@ import {
 import {
   useOpenNewProjectTab,
   useOpenProject,
-  useProjects
+  useProjects,
+  useReconcileActiveProject
 } from "../../hooks/useProjects";
 import { useAuth } from "../../stores/useAuth";
 import { usePanelStore } from "../../stores/PanelStore";
@@ -259,6 +260,10 @@ const ProjectSelector = ({
   useEffect(() => {
     if (resolvedPersonalId) resolvePersonalProject(resolvedPersonalId);
   }, [resolvePersonalProject, resolvedPersonalId]);
+  useReconcileActiveProject(
+    !isPending && !error ? projects : undefined,
+    personalProject?.id ?? resolvedPersonalId
+  );
   const documentsProjectId =
     activeProjectId && activeProjectId !== LOOSE_PROJECT_ID
       ? activeProjectId

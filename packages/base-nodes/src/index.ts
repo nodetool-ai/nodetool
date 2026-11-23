@@ -427,16 +427,6 @@ export {
   LIB_PEDALBOARD_EXTRA_NODES
 } from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
 export {
-  PdfExtractTextNode,
-  PdfExtractMarkdownNode,
-  PdfExtractTablesNode,
-  PdfExtractStyledTextNode,
-  PdfScreenshotNode,
-  PdfToppmNode,
-  PdfExtractOcrNode,
-  LIB_PDF_NODES
-} from "@nodetool-ai/document-nodes/nodes/lib-pdf";
-export {
   KieAINode,
   KIE_DYNAMIC_NODES,
   resolveKieDynamicSchema
@@ -525,7 +515,6 @@ import { LIB_SQLITE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-sqlite
 import { LIB_BROWSER_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
 import { LIB_SEABORN_NODES } from "@nodetool-ai/data-nodes/nodes/lib-charts";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
-import { LIB_PDF_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pdf";
 import { KIE_DYNAMIC_NODES } from "@nodetool-ai/integration-nodes/nodes/kie-dynamic";
 import { VECTOR_NODES } from "@nodetool-ai/core-nodes/nodes/vector";
 import { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
@@ -602,7 +591,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_BROWSER_NODES,
   ...LIB_SEABORN_NODES,
   ...LIB_PEDALBOARD_EXTRA_NODES,
-  ...LIB_PDF_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,
   ...GEMINI_NODES,

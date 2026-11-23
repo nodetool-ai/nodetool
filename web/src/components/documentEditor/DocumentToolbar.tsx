@@ -15,6 +15,8 @@ import LinkIcon from "@mui/icons-material/Link";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 import ChecklistIcon from "@mui/icons-material/Checklist";
+import FormatIndentDecreaseIcon from "@mui/icons-material/FormatIndentDecrease";
+import FormatIndentIncreaseIcon from "@mui/icons-material/FormatIndentIncrease";
 import FormatQuoteIcon from "@mui/icons-material/FormatQuote";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChartOutlined";
@@ -33,8 +35,10 @@ import {
 import { isMac } from "../../utils/platform";
 import {
   $readSelectionState,
+  indentSelection,
   insertRule,
   insertTable,
+  outdentSelection,
   setBlockType,
   toggleFormat,
   toggleList,
@@ -166,6 +170,18 @@ const DocumentToolbar = ({ onLink, onImage }: DocumentToolbarProps) => {
           shortcut={[mod, shift, "9"]}
           active={block === "check"}
           onClick={() => toggleList(editor, "check", block)}
+        />
+        <ToolbarIconButton
+          icon={<FormatIndentDecreaseIcon fontSize="small" />}
+          tooltip={t("documentEditor.toolbar.outdent", "Decrease list indentation")}
+          shortcut={[shift, "Tab"]}
+          onClick={() => outdentSelection(editor)}
+        />
+        <ToolbarIconButton
+          icon={<FormatIndentIncreaseIcon fontSize="small" />}
+          tooltip={t("documentEditor.toolbar.indent", "Increase list indentation")}
+          shortcut={["Tab"]}
+          onClick={() => indentSelection(editor)}
         />
         <ToolbarIconButton
           icon={<FormatQuoteIcon fontSize="small" />}

@@ -14,9 +14,9 @@ namespace: "nodetool.fake"
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | image | `image` | Source image to grade. | - |
-| hue | `float` |  | `0` |
-| saturation | `float` |  | `100` |
-| brightness | `float` |  | `100` |
+| hue | `float` |  | - |
+| saturation | `float` |  | - |
+| brightness | `float` |  | - |
 
 ## Outputs
 

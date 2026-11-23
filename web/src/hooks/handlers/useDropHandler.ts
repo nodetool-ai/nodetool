@@ -79,13 +79,8 @@ function detectFileType(file: File): string {
       return "json";
     case "text/csv":
       return "csv";
-    case "application/pdf":
-      return "document";
-    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-      return "document";
-    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-      return "document";
-    case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    case "text/markdown":
+    case "text/x-markdown":
       return "document";
     default:
       if (fileName.endsWith(".png")) {
@@ -97,12 +92,7 @@ function detectFileType(file: File): string {
       if (fileName.endsWith(".csv")) {
         return "csv";
       }
-      if (
-        fileName.endsWith(".pdf") ||
-        fileName.endsWith(".docx") ||
-        fileName.endsWith(".xlsx") ||
-        fileName.endsWith(".pptx")
-      ) {
+      if (fileName.endsWith(".md") || fileName.endsWith(".markdown")) {
         return "document";
       }
       return "unknown";

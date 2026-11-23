@@ -46,6 +46,8 @@ import { useTextareaAssetMention } from "./useTextareaAssetMention";
 import { useTextareaSkillMention } from "./useTextareaSkillMention";
 import { MentionedEntities } from "./MentionedEntities";
 import { VoiceInputControl } from "./voice/VoiceInputControl";
+import { VoiceRecordingBar } from "./voice/VoiceRecordingBar";
+import { useVoiceInput } from "./voice/useVoiceInput";
 import { FilePreview } from "./FilePreview";
 import {
   ComposerAttachDialog,
@@ -91,6 +93,15 @@ const parseCommand = (
   return match
     ? { name: match[1].toLowerCase(), argument: (match[2] ?? "").trim() }
     : null;
+};
+
+/** Appends a dictated transcript to an existing prompt with a clean space separator. */
+const appendVoiceTranscript = (current: string, transcript: string): string => {
+  const trimmedCurrent = current.trimEnd();
+  if (trimmedCurrent.length === 0) {
+    return transcript;
+  }
+  return `${trimmedCurrent} ${transcript}`;
 };
 
 interface MediaChatComposerProps {
@@ -152,6 +163,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const composeCardRef = useRef<HTMLDivElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
   const [prompt, setPrompt] = useState("");
+  const promptRef = useRef(prompt);
+  promptRef.current = prompt;
   const [cardWidth, setCardWidth] = useState(0);
   const isBusy = isLoading || isStreaming;
 
@@ -529,25 +542,59 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     ]
   );
 
-  const handleSend = useCallback(() => {
-    submitPrompt(prompt);
-  }, [prompt, submitPrompt]);
+  const handleVoiceTranscript = useCallback((transcript: string) => {
+    // Draft-first dictation: append cleanly to the composer textarea and focus
+    // it for review/editing instead of auto-sending.
+    setPrompt((current) => appendVoiceTranscript(current, transcript));
+    seedCaretPending.current = true;
+  }, []);
 
-  const handleVoiceTranscript = useCallback(
+  const handleVoiceSubmit = useCallback(
     (transcript: string) => {
-      const typed = prompt.trim();
-      const text = typed.length > 0 ? `${typed} ${transcript}` : transcript;
-      // A dictated prompt sends straight away, unless a file is still
-      // uploading: then it lands in the box for review.
+      const currentPrompt = promptRef.current;
+      const text = appendVoiceTranscript(currentPrompt, transcript);
       if (isUploading) {
         setPrompt(text);
-        textareaRef.current?.focus();
+        seedCaretPending.current = true;
         return;
       }
-      submitPrompt(text, prompt);
+      setPrompt(text);
+      void submitPrompt(text, text);
     },
-    [prompt, submitPrompt, isUploading]
+    [isUploading, submitPrompt]
   );
+
+  const voice = useVoiceInput({
+    onTranscript: handleVoiceTranscript,
+    onSubmitTranscript: handleVoiceSubmit
+  });
+  const isVoiceActive = voice.phase !== "idle";
+
+  const prevVoicePhaseRef = useRef(voice.phase);
+  useEffect(() => {
+    const prev = prevVoicePhaseRef.current;
+    prevVoicePhaseRef.current = voice.phase;
+    if (autoFocusEnabled && voice.phase !== "idle" && voice.phase !== prev) {
+      textareaRef.current?.focus();
+    }
+  }, [autoFocusEnabled, voice.phase]);
+
+  const handleVoiceCancel = useCallback(() => {
+    voice.cancelRecording();
+    if (autoFocusEnabled) {
+      textareaRef.current?.focus();
+    }
+  }, [autoFocusEnabled, voice]);
+
+  const handleSend = useCallback(() => {
+    if (disabled) {
+      return;
+    }
+    if (voice.requestSend()) {
+      return;
+    }
+    submitPrompt(prompt);
+  }, [disabled, prompt, submitPrompt, voice]);
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -686,6 +733,16 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         />
         {skillMenu}
 
+        {isVoiceActive && (
+          <VoiceRecordingBar
+            levelsRef={voice.levelsRef}
+            durationMs={voice.durationMs}
+            isTranscribing={voice.phase === "transcribing"}
+            pendingSend={voice.pendingSend}
+            onCancel={handleVoiceCancel}
+          />
+        )}
+
         {providerSetup.needsSetup && providerSetup.reason && (
           <ModeProviderSetupBanner
             reason={providerSetup.reason}
@@ -803,8 +860,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               </>
             )}
             <VoiceInputControl
-              onTranscript={handleVoiceTranscript}
-              overlayHost={composeCardRef}
+              voice={voice}
+              shortcutHost={composeCardRef}
               disabled={disabled}
             />
             {isBusy ? (
@@ -816,7 +873,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                     type="button"
                     className="media-send-btn"
                     onClick={handleSend}
-                    disabled={isDisabled || !canGenerate}
+                    disabled={isDisabled || (!canGenerate && !isVoiceActive)}
                     aria-label={t("i18n-next54.composer.send")}
                   >
                     <ArrowUpwardIcon fontSize="small" />

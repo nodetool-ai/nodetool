@@ -24,7 +24,7 @@ Inject reusable entity descriptors into a prompt for cross-shot consistency.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | text | `str` | The prompt to inject entities into. Empty text applies every entity. | `` |
-| entities | `list[dict]` | Entities whose descriptors and reference images are injected. | `[]` |
+| entities | `list[entity]` | Entities whose descriptors and reference images are injected. | `[]` |
 
 ## Outputs
 

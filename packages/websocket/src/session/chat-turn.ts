@@ -43,6 +43,7 @@ import {
   toRawGraphInput
 } from "@nodetool-ai/execution";
 import {
+  Asset,
   COMPACTION_EVENT_TYPE,
   compactionMessageContent,
   isCompactionMessage,
@@ -133,6 +134,7 @@ import {
   APIFY_TOOL_NAMES,
   SERPAPI_TOOL_NAMES,
   capabilityForName,
+  capabilitySpec,
   capabilityProviderTool,
   type CapabilitySpec,
   getAllMcpCapabilitySpecs,
@@ -143,7 +145,11 @@ import {
   BackgroundSubtaskRegistry,
   PERMISSION_GATE_CONTEXT_KEY,
   GAME_ASSET_NODE_RUNNER_CONTEXT_KEY,
+  STAGED_DOCUMENT_EDITS_CONTEXT_KEY,
+  blockWorkspaceMarkdownWrites,
+  stageWorkspaceDocument,
   type GameAssetNodeRunner,
+  type StagedDocumentEditHandler,
   extractInjectableImages,
   registerTemporaryImageHandle,
   type CapabilityRun,
@@ -943,12 +949,15 @@ export class ChatTurnHandler {
     userId: string,
     projectId: string | null
   ): Promise<
-    { ok: true; workspace: Workspace | null } | { ok: false; reason: string }
+    | { ok: true; workspace: Workspace | null; projectId: string | null }
+    | { ok: false; reason: string }
   > {
-    if (!this.session.workspaceResolver) return { ok: true, workspace: null };
+    if (!this.session.workspaceResolver) {
+      return { ok: true, workspace: null, projectId: null };
+    }
     const folder = await this.session.workspaceResolver(projectId, userId);
     return folder.ok
-      ? { ok: true, workspace: folder.workspace }
+      ? { ok: true, workspace: folder.workspace, projectId: folder.projectId }
       : { ok: false, reason: folder.reason };
   }
 
@@ -2221,7 +2230,10 @@ export class ChatTurnHandler {
         request: ApprovalRequest
       ): Promise<ApprovalDecision> => {
         const decision = await this.requestToolApproval(threadId, request);
-        if (decision === "allow_always") {
+        if (
+          decision === "allow_always" &&
+          !capabilitySpec(request.toolName)?.alwaysAsk
+        ) {
           const ruleKey = request.ruleKey ?? request.toolName;
           alwaysAllow.add(ruleKey);
           await this.saveAlwaysAllow(userId, ruleKey);
@@ -2448,13 +2460,122 @@ export class ChatTurnHandler {
     });
 
     // Create a processing context for tool execution, in the turn's folder.
+    const turnJobId = randomUUID();
+    let stagedHandler: StagedDocumentEditHandler | null = null;
+    let effectiveWorkspace: Workspace | null = chatWorkspace;
+    if (
+      uiContext?.focused?.type === "document" &&
+      uiContext.document_edit_mode !== "direct"
+    ) {
+      const focusedDocId = isString(uiContext.focused.id)
+        ? uiContext.focused.id.trim()
+        : "";
+      let focusedAsset: Asset | null = null;
+      let lookupFailed = false;
+      if (focusedDocId.length > 0) {
+        try {
+          focusedAsset = await Asset.find(userId, focusedDocId);
+        } catch (err) {
+          lookupFailed = true;
+          log.warn("Failed to resolve focused document for staged approval", {
+            userId,
+            focusedDocId,
+            error: err instanceof Error ? err.message : String(err)
+          });
+        }
+      }
+      if (!focusedAsset) {
+        if (!lookupFailed) {
+          log.warn(
+            "Focused document unavailable for staged approval; blocking direct Markdown writes",
+            { userId, focusedDocId }
+          );
+        }
+        const refuseReason =
+          "Focused document could not be loaded for staged approval; direct writes are blocked.";
+        stagedHandler = {
+          assetId: focusedDocId,
+          workspacePath: null,
+          projectId: chatProjectId ?? null,
+          refuseReason,
+          currentContent: null,
+          baseContent: null,
+          onProposal: () => {}
+        };
+        if (chatWorkspace) {
+          effectiveWorkspace = blockWorkspaceMarkdownWrites(
+            chatWorkspace,
+            refuseReason
+          );
+        }
+      } else {
+        stagedHandler = {
+          assetId: focusedAsset.id,
+          workspacePath: focusedAsset.workspace_path ?? null,
+          projectId: focusedAsset.project_id ?? chatProjectId ?? null,
+          currentContent: null,
+          baseContent: null,
+          onProposal: (proposal) => {
+            void this.session
+              .send({
+                type: "document_proposal",
+                proposal_id: proposal.proposalId,
+                asset_id: proposal.assetId,
+                thread_id: threadId,
+                turn_id: turnJobId,
+                base_content: proposal.baseContent,
+                proposed_content: proposal.proposedContent
+              })
+              .catch((err) => this.session.logError("document_proposal", err));
+          }
+        };
+        const stagedSameProject =
+          !stagedHandler.projectId ||
+          !turnFolder.projectId ||
+          stagedHandler.projectId === turnFolder.projectId;
+        const stagedWorkspacePath =
+          isString(stagedHandler.workspacePath) &&
+          stagedHandler.workspacePath.trim().length > 0
+            ? stagedHandler.workspacePath
+            : null;
+        const canStageWorkspace = Boolean(
+          chatWorkspace && stagedWorkspacePath !== null && stagedSameProject
+        );
+        if (canStageWorkspace && chatWorkspace && stagedWorkspacePath !== null) {
+          effectiveWorkspace = stageWorkspaceDocument(
+            chatWorkspace,
+            stagedWorkspacePath,
+            stagedHandler
+          );
+        } else if (chatWorkspace) {
+          log.warn(
+            "Focused document workspace could not be mapped for staged approval; blocking direct Markdown writes",
+            {
+              userId,
+              focusedDocId,
+              assetProjectId: stagedHandler.projectId,
+              turnProjectId: turnFolder.projectId,
+              workspacePath: stagedHandler.workspacePath
+            }
+          );
+          const workspaceRefuseReason =
+            "Focused document path could not be mapped in this workspace while staged approval is active; direct Markdown writes are blocked.";
+          stagedHandler.workspaceRefuseReason = workspaceRefuseReason;
+          effectiveWorkspace = blockWorkspaceMarkdownWrites(
+            chatWorkspace,
+            workspaceRefuseReason
+          );
+        }
+      }
+    }
+
     const ctx = createRuntimeContext({
-      jobId: randomUUID(),
+      jobId: turnJobId,
       workflowId,
       threadId: threadId || null,
       projectId: chatProjectId,
       userId,
-      workspace: chatWorkspace,
+      workspace: effectiveWorkspace,
       authToken: this.deps.authToken()
     });
     ctx.runTraceContext = rootContext.runTraceContext;
@@ -2492,6 +2613,9 @@ export class ChatTurnHandler {
     // The object is shared by reference: `chatGate.mode` reads `liveMode`, so
     // a mid-turn `set_permission_mode` reaches a node that started before it.
     ctx.set(PERMISSION_GATE_CONTEXT_KEY, chatGate);
+    if (stagedHandler) {
+      ctx.set(STAGED_DOCUMENT_EDITS_CONTEXT_KEY, stagedHandler);
+    }
 
     // The capability run for this turn: the same gate the belt is wrapped in,
     // this context, and the singletons the tool constructors take today. Every

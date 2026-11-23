@@ -138,11 +138,6 @@
         "file": "sandbox/generated/lib.image.warp.js"
       },
       {
-        "name": "lib.pdf",
-        "kind": "js",
-        "file": "sandbox/generated/lib.pdf.js"
-      },
-      {
         "name": "lib.sqlite",
         "kind": "js",
         "file": "sandbox/generated/lib.sqlite.js"

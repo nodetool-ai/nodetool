@@ -9,10 +9,16 @@ import {
   resolveAssetsMultiple
 } from "../../lib/dragdrop";
 import { isString } from "../../utils/typePredicates";
+import {
+  isEditableMarkdownDocument,
+  isImportableDocument
+} from "../../utils/assetLanguage";
 
 type FileDropProps = {
   /** The type of files to accept: image, audio, video, document, or all */
   type: "image" | "audio" | "video" | "document" | "all";
+  /** When `type === "document"`, also accept `.txt`, `.html`, `.docx`, `.pdf` for conversion */
+  acceptDocumentImport?: boolean;
   /** Whether to upload dropped files as assets to the server */
   uploadAsset?: boolean;
   /** Callback fired when a file is dropped and processed (returns URI) */
@@ -34,33 +40,33 @@ type FileDropResult = {
 
 type AcceptedType = FileDropProps["type"];
 
-const DOCUMENT_FILE_TYPES = new Set([
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-]);
-
-/**
- * Matched on the top-level part of the content type, so a document dropzone
- * takes any `application/*` or `text/*` asset — deliberately looser than
- * {@link acceptsFile}, which admits PDF, Word and `text/*` files.
- */
-const acceptsAsset = (contentType: string, accept: AcceptedType): boolean => {
+const acceptsAsset = (
+  asset: Pick<Asset, "content_type" | "name">,
+  accept: AcceptedType,
+  acceptDocumentImport?: boolean
+): boolean => {
   if (accept === "all") return true;
-  const category = contentType.split("/")[0];
-  if (category === accept) return true;
-  return (
-    accept === "document" && (category === "application" || category === "text")
-  );
+  if (accept === "document") {
+    return acceptDocumentImport
+      ? isImportableDocument(asset.content_type, asset.name)
+      : isEditableMarkdownDocument(asset.content_type, asset.name);
+  }
+  const category = asset.content_type.split("/")[0];
+  return category === accept;
 };
 
-const acceptsFile = (file: File, accept: AcceptedType): boolean => {
+const acceptsFile = (
+  file: File,
+  accept: AcceptedType,
+  acceptDocumentImport?: boolean
+): boolean => {
   if (accept === "all") return true;
-  if (file.type.startsWith(`${accept}/`)) return true;
-  return (
-    accept === "document" &&
-    (DOCUMENT_FILE_TYPES.has(file.type) || file.type.startsWith("text/"))
-  );
+  if (accept === "document") {
+    return acceptDocumentImport
+      ? isImportableDocument(file.type, file.name)
+      : isEditableMarkdownDocument(file.type, file.name);
+  }
+  return file.type.startsWith(`${accept}/`);
 };
 
 const invalidTypeNotification = (accept: AcceptedType) => ({
@@ -109,7 +115,7 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
           return;
         }
         const asset = droppedAssets.find((candidate) =>
-          acceptsAsset(candidate.content_type, props.type)
+          acceptsAsset(candidate, props.type, props.acceptDocumentImport)
         );
         if (!asset) {
           addNotification(invalidTypeNotification(props.type));
@@ -136,7 +142,7 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
       const file = extractFiles(event.dataTransfer)[0];
       if (!file) return;
 
-      if (!acceptsFile(file, props.type)) {
+      if (!acceptsFile(file, props.type, props.acceptDocumentImport)) {
         addNotification(invalidTypeNotification(props.type));
         return;
       }

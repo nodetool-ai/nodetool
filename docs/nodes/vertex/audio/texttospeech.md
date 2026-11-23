@@ -16,11 +16,17 @@ Generate speech from text with Gemini text-to-speech models on Vertex AI, billed
 
 ## Properties
 
-_(none)_
+| Property | Type | Description | Default |
+|----------|------|-------------|---------|
+| text | `str` | The text to convert to speech. | `` |
+| voice_name | `enum` | The voice to use for speech generation | `kore` |
+| style_prompt | `str` | Optional style prompt to control speech characteristics (e.g., 'Say cheerfully', 'Speak with excitement') | `` |
 
 ## Outputs
 
-_(none)_
+| Output | Type | Description |
+|--------|------|-------------|
+| output | `audio` |  |
 
 ## Related Nodes
 

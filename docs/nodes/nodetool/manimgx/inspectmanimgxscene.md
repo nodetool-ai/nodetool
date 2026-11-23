@@ -23,6 +23,9 @@ Check a ManimGX scene without rendering video: a storyboard of key frames, the t
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
+| code | `str` |  | - |
+| scene_name | `str` | The Scene class to run. Empty runs the file's only scene. | `` |
+| timeout | `int` | Maximum run time in seconds | `300` |
 | times | `str` | Seconds from the start, or 'end', separated by commas (e.g. 0.5,2,end). Empty samples each play's end. | `` |
 
 ## Outputs

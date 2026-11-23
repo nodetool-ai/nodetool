@@ -11,8 +11,8 @@ namespace: "nodetool.constant"
 
 ## Description
 
-Represents a document constant in the workflow.
-    document, pdf, word, docx
+Reference to an editable Markdown document in the project.
+    document, markdown, text, notes, writing
 
 ## Properties
 

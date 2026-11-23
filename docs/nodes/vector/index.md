@@ -3,20 +3,23 @@ layout: page
 title: "vector Nodes"
 ---
 
-This namespace contains 13 node(s).
+This namespace contains 14 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Collection](collection.md)** - Get or create a named vector database collection for storing embeddings.
-- **[Count Documents](countdocuments.md)** - Count the number of documents in a collection.
-- **[Get Documents](getdocuments.md)** - Get documents from a collection.
-- **[Hybrid Search](hybridsearch.md)** - Fuse a semantic ranking with a keyword-filtered semantic ranking via reciproc...
-- **[Index Aggregated Text](indexaggregatedtext.md)** - Index multiple text chunks at once with aggregated embeddings from Ollama. Ou...
-- **[Index Embedding](indexembedding.md)** - Index a single embedding vector into a collection with optional metadata. Cre...
-- **[Index Image](indeximage.md)** - Index a list of image assets or files. Outputs the collection once indexing f...
-- **[Index String](indexstring.md)** - Index a string with a Document ID to a collection. Outputs the collection onc...
-- **[Index Text Chunk](indextextchunk.md)** - Index a single text chunk. Outputs the collection once indexing finishes, so ...
-- **[Peek](peek.md)** - Peek at the documents in a collection.
-- **[Query Image](queryimage.md)** - Query the index for similar images.
-- **[Query Text](querytext.md)** - Query the index for similar text.
-- **[Remove Overlap](removeoverlap.md)** - Removes overlapping words between consecutive strings in a list. Splits text ...
+- **[Collection](collection.md)**
+- **[Count](count.md)**
+- **[Count Documents](countdocuments.md)**
+- **[Get Documents](getdocuments.md)**
+- **[Hybrid Search](hybridsearch.md)**
+- **[Index Aggregated Text](indexaggregatedtext.md)**
+- **[Index Embedding](indexembedding.md)**
+- **[Index Image](indeximage.md)**
+- **[Index String](indexstring.md)**
+- **[Index Text Chunk](indextextchunk.md)**
+- **[Peek](peek.md)**
+- **[Query Image](queryimage.md)**
+- **[Query Text](querytext.md)**
+- **[Remove Overlap](removeoverlap.md)**
+
+[Back to all nodes](../)

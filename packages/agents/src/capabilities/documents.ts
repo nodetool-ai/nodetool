@@ -183,6 +183,14 @@ async function readDocumentBytes(
   }
   const filePath = context.resolveWorkspacePath(value);
   await assertWithinWorkspace(context, filePath);
+  const relKey = relative(context.resolveWorkspacePath("."), filePath).replaceAll("\\", "/");
+  if (/\.(md|markdown)$/i.test(relKey)) {
+    const { readStagedFileContentIfActive } = await import("./text-documents.js");
+    const staged = await readStagedFileContentIfActive(context, relKey);
+    if (staged !== null) {
+      return new TextEncoder().encode(staged);
+    }
+  }
   return readFile(filePath);
 }
 
@@ -204,10 +212,25 @@ async function writeDocumentOutput(
   }
   if (hasNoWorkspace(context)) return null;
   const outputFile = context.resolveWorkspacePath(raw);
+  await assertWithinWorkspace(context, await nearestExisting(outputFile));
   await assertWithinWorkspace(context, await nearestExisting(dirname(outputFile)));
+  const relKey = relative(context.resolveWorkspacePath("."), outputFile).replaceAll("\\", "/");
+  if (/\.(md|markdown)$/i.test(relKey)) {
+    const { readStagedFileContentIfActive, stageFileWriteIfActive } = await import(
+      "./text-documents.js"
+    );
+    const staged = await readStagedFileContentIfActive(context, relKey);
+    const previous = staged ?? (await readFile(outputFile, "utf-8").catch(() => ""));
+    const nextContent = isString(data)
+      ? data
+      : new TextDecoder("utf-8").decode(data);
+    if (await stageFileWriteIfActive(context, relKey, previous, nextContent)) {
+      return outputFile;
+    }
+  }
   await mkdir(dirname(outputFile), { recursive: true });
   await assertWithinWorkspace(context, outputFile);
-  if (typeof data === "string") {
+  if (isString(data)) {
     await writeFile(outputFile, data, "utf-8");
   } else {
     await writeFile(outputFile, data);

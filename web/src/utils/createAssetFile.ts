@@ -28,6 +28,7 @@ interface DataFrame {
 interface TypedOutput {
   type?: string;
   data?: unknown;
+  text?: unknown;
   value?: unknown;
   content?: unknown;
   mime_type?: string;
@@ -84,6 +85,7 @@ const MIME_EXTENSION_MAP: Record<string, string> = {
   "video/mp4": "mp4",
   "video/webm": "webm",
   "text/plain": "txt",
+  "text/markdown": "md",
   "text/csv": "csv",
   "application/json": "json"
 };
@@ -360,6 +362,9 @@ const getOutputData = (output: AssetOutput): unknown => {
     if (output.data !== undefined && output.data !== null) {
       return output.data;
     }
+    if (output.text !== undefined && output.text !== null) {
+      return output.text;
+    }
     if (output.value !== undefined && output.value !== null) {
       return output.value;
     }
@@ -617,6 +622,17 @@ const createSingleAssetFile = async (
       mimeType = "application/json";
       filename = buildFilename(desiredFilename, id, suffix, "json", index);
       break;
+    case "document": {
+      mimeType = getMimeType(output, serverContentType ?? "text/markdown");
+      const extension = getExtension(mimeType, "md");
+      content = isString(data)
+        ? data
+        : data instanceof Uint8Array
+          ? toArrayBuffer(data)
+          : JSON.stringify(output, null, 2);
+      filename = buildFilename(desiredFilename, id, suffix, extension, index);
+      break;
+    }
     case "text":
       content = isString(data) ? data : JSON.stringify(data, null, 2);
       mimeType = getMimeType(output, "text/plain");

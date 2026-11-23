@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -9,9 +9,27 @@ import type { Asset } from "../../../stores/ApiTypes";
 import { stub } from "../../../test-utils/doubles";
 
 const mockUploadAsset = jest.fn();
+const mockImportDocument = jest.fn();
+const mockAddNotification = jest.fn();
 let mockDocumentUri: string | undefined;
 let mockAsset: Asset | undefined;
 const mockOpenTab = jest.fn();
+
+jest.mock("../../../trpc/client", () => ({
+  trpcClient: {
+    textDocuments: {
+      import: {
+        mutate: (...args: unknown[]) => mockImportDocument(...args)
+      }
+    }
+  }
+}));
+
+jest.mock("../../../stores/NotificationStore", () => ({
+  useNotificationStore: <T,>(
+    selector: (state: { addNotification: typeof mockAddNotification }) => T
+  ) => selector({ addNotification: mockAddNotification })
+}));
 
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   useWorkspaceTabsStore: <T,>(
@@ -81,26 +99,28 @@ describe("DocumentProperty", () => {
     mockDocumentUri = undefined;
     mockAsset = undefined;
     mockOpenTab.mockReset();
+    mockImportDocument.mockReset();
+    mockAddNotification.mockReset();
     mockIsElectron = false;
     delete (window as any).api;
     mockUploadAsset.mockReset();
     mockUploadAsset.mockImplementation(({ onCompleted }) =>
       onCompleted?.({
         id: "asset-1",
-        name: "doc.pdf",
-        content_type: "application/pdf",
-        get_url: "/api/storage/1/asset-1.pdf"
+        name: "notes.md",
+        content_type: "text/markdown",
+        get_url: "/api/storage/1/asset-1.md"
       })
     );
   });
 
-  it("opens an uploaded document in a NodeTool tab using its durable locator", async () => {
-    mockDocumentUri = "https://storage.example/doc.pdf?signature=123";
+  it("opens an editable markdown document in the document editor tab", async () => {
+    mockDocumentUri = "https://storage.example/notes.md?signature=123";
     const assetId = "0123456789abcdef0123456789abcdef";
     mockAsset = stub<Asset>({
       id: assetId,
-      name: "doc.pdf",
-      content_type: "application/pdf"
+      name: "notes.md",
+      content_type: "text/markdown"
     });
     renderWithTheme(
       <DocumentProperty
@@ -119,10 +139,10 @@ describe("DocumentProperty", () => {
       })
     );
     expect(mockOpenTab).toHaveBeenCalledWith({
-      type: "document",
-      ref: `asset://${assetId}`,
+      type: "text",
+      ref: assetId,
       mode: "view",
-      title: "doc.pdf",
+      title: "notes.md",
       projectId: "default"
     });
   });
@@ -178,7 +198,7 @@ describe("DocumentProperty", () => {
     });
   });
 
-  it("writes the picked PDF onto the property", async () => {
+  it("writes the picked Markdown file onto the property", async () => {
     const { container } = renderWithTheme(
       <DocumentProperty {...(props as any)} />
     );
@@ -188,8 +208,8 @@ describe("DocumentProperty", () => {
     const input = container.querySelector(
       'input[type="file"]'
     ) as HTMLInputElement;
-    const file = new File(["%PDF-1.4"], "doc.pdf", {
-      type: "application/pdf"
+    const file = new File(["# Notes\n"], "notes.md", {
+      type: "text/markdown"
     });
     await userEvent.upload(input, file);
 
@@ -203,19 +223,19 @@ describe("DocumentProperty", () => {
     );
   });
 
-  it("writes the picked PDF onto the property in the desktop app", async () => {
+  it("writes the picked Markdown file onto the property in the desktop app", async () => {
     mockIsElectron = true;
     (window as any).api = {
       dialog: {
         openFile: jest.fn().mockResolvedValue({
           canceled: false,
-          filePaths: ["/Users/me/doc.pdf"]
+          filePaths: ["/Users/me/notes.md"]
         })
       },
       clipboard: {
         readFileBuffer: jest.fn().mockResolvedValue({
-          buffer: new Uint8Array([0x25, 0x50, 0x44, 0x46]),
-          mimeType: "application/pdf"
+          buffer: new TextEncoder().encode("# Notes\n"),
+          mimeType: "text/markdown"
         })
       }
     };
@@ -224,6 +244,7 @@ describe("DocumentProperty", () => {
     await userEvent.click(screen.getByText(/click or drop document/i));
 
     expect(mockUploadAsset).toHaveBeenCalled();
+    expect(mockImportDocument).not.toHaveBeenCalled();
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         uri: "asset://asset-1",
@@ -231,5 +252,95 @@ describe("DocumentProperty", () => {
         type: "document"
       })
     );
+  });
+
+  it("converts a picked PDF into an editable Markdown document on DocumentInput", async () => {
+    mockUploadAsset.mockImplementation(({ onCompleted }) =>
+      onCompleted?.({
+        id: "pdf-asset-1",
+        name: "report.pdf",
+        content_type: "application/pdf",
+        get_url: "/api/storage/1/pdf-asset-1.pdf"
+      })
+    );
+    mockImportDocument.mockResolvedValue({
+      asset_id: "md-asset-2",
+      name: "report.md",
+      path: "Imported/report.md"
+    });
+
+    const { container } = renderWithTheme(
+      <DocumentProperty {...(props as any)} />
+    );
+
+    const input = container.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    expect(input.accept).toContain(".pdf");
+    expect(input.accept).toContain(".docx");
+    expect(input.accept).toContain(".html");
+    expect(input.accept).toContain(".txt");
+
+    const file = new File(["%PDF-1.7"], "report.pdf", {
+      type: "application/pdf"
+    });
+    await userEvent.upload(input, file);
+
+    await waitFor(() => {
+      expect(mockImportDocument).toHaveBeenCalledWith({
+        asset_id: "pdf-asset-1"
+      });
+    });
+    expect(onChange).toHaveBeenCalledWith({
+      type: "document",
+      uri: "asset://md-asset-2",
+      asset_id: "md-asset-2"
+    });
+  });
+
+  it("reports conversion errors without binding the raw PDF on DocumentInput", async () => {
+    mockUploadAsset.mockImplementation(({ onCompleted }) =>
+      onCompleted?.({
+        id: "bad-pdf",
+        name: "broken.pdf",
+        content_type: "application/pdf",
+        get_url: "/api/storage/1/bad-pdf.pdf"
+      })
+    );
+    mockImportDocument.mockRejectedValue(new Error("PDF is encrypted"));
+
+    const { container } = renderWithTheme(
+      <DocumentProperty {...(props as any)} />
+    );
+    const input = container.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    await userEvent.upload(
+      input,
+      new File(["%PDF-1.7"], "broken.pdf", { type: "application/pdf" })
+    );
+
+    await waitFor(() => {
+      expect(mockAddNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "error",
+          content: expect.stringContaining("PDF is encrypted")
+        })
+      );
+    });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps ConstantDocument restricted to Markdown files", () => {
+    const { container } = renderWithTheme(
+      <DocumentProperty
+        {...(props as any)}
+        nodeType="nodetool.constant.Document"
+      />
+    );
+    const input = container.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    expect(input.accept).toBe(".md,.markdown,text/markdown");
   });
 });

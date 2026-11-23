@@ -1,6 +1,6 @@
 # Document Editor — PRD
 
-> Status: implemented (phases 1 to 4, R26 to R29), except DOCX export · Owner: matti
+> Status: phases 1 to 4 and R26 to R29 implemented, phase 5 planned · Owner: matti
 
 ## Problem
 
@@ -37,13 +37,20 @@ which file format backs it.
 ## Decisions
 
 D1 to D3 were agreed before this PRD was written. D4 was agreed after a
-comparison of seven replication options. D5 was agreed during review.
+comparison of seven replication options. D5 was agreed during review. D2 was
+revised and D6 was added for phase 5.
 
 - **D1 — Markdown is the document.** The saved file is plain Markdown. The
   editor state is derived from it on open. This is the reverse of the
-  storyboard Text view, where Markdown is a projection of saved JSON.
-- **D2 — Agent edits apply directly.** There is no accept step. Suggestion
-  mode is a non-goal for this version.
+  storyboard Text view, where Markdown is a projection of saved JSON. The
+  document title header displays and renames the file name without adding a
+  non-Markdown block to the file.
+- **D2 — Staged agent approval by default, with a direct-apply toggle.** When
+  a document is open, edits proposed by the docked agent appear separately so
+  the person can accept, reject, or edit the proposed version before writing.
+  A toggle switches to direct-apply mode, where agent edits write immediately
+  with per-block marks and revert (R9). Headless agent runs with no editor
+  open still write directly and record a pre-turn version (R11).
 - **D3 — Workflows reference documents.** A workflow reads and writes the
   document file itself. This is in scope for the first release.
 - **D4 — Blocks replicate as whole values.** When documents become
@@ -54,30 +61,43 @@ comparison of seven replication options. D5 was agreed during review.
   name without "File". Old workflows keep working because their nodes are
   mapped to the new types on load. The DSL functions named after the old types
   are removed. See Save node consolidation.
+- **D6 — Draft-first voice dictation.** Dictated voice input lands in the chat
+  composer as an editable draft rather than auto-sending, while still allowing
+  a send before transcription finishes or a cancel without transcribing. This
+  behavior applies globally across chat composers.
 
 ## Goals
 
 1. One document is one file. Every surface that shows or changes it (editor
    tab, agent, workflow run, CLI) works on that file.
-2. The project browser creates and opens a document in a formatted editor
-   that saves on its own.
-3. An agent docked beside the editor reads the document and the selection,
-   and its edits appear in the open editor.
-4. Every agent edit can be reverted, per change and per turn.
+2. The project browser creates, organizes, and opens documents in a formatted
+   editor that saves on its own, with comfortable zoom and paper themes.
+3. An agent docked beside the editor reads the document and persistent
+   selection, accepts voice-dictated instructions, and proposes edits for
+   review (or applies them directly when direct-apply mode is toggled on).
+4. Every revision is reversible, through staged approval, per-block revert in
+   direct-apply mode, and named snapshots with side-by-side comparison.
 5. A workflow can take a document as input and write its result back to a
    document without creating a copy.
-6. A document can be brought in from, and sent out to, formats that people
-   outside NodeTool use.
+6. A document can be imported from and saved out to common formats using the
+   existing conversion stack, with destination folder selection on Save As.
 
 ## Non-goals
 
-- **No page layout.** Fonts, text colour, alignment, margins and page breaks
-  are outside what Markdown stores. D1 excludes them.
+- **No page layout.** Fonts, text colour, text alignment (left, center,
+  right), margins and page breaks are outside what Markdown stores. D1
+  excludes them. View-only zoom and paper background themes (R30) do not alter
+  the saved file.
 - **No realtime co-editing in this PRD.** The cloud sync plan owns
   replication (see Relation to the CRDT plan). This PRD ships whole-document
   saves with the existing compare-and-swap, and meets R20 to R22 so the
   document can become a replicated document later.
-- **No suggestion mode and no comment threads.** See D2.
+- **No comment threads.** Staged proposal review is in scope (D2), while
+  threaded inline comments are not.
+- **No legacy binary `.doc`, `.rtf`, or DOCX export.** Import and Save As stay
+  within the existing format libraries: import `.md`, `.txt`, `.html`,
+  `.docx`, `.pdf`, and Google Docs, and export `.md`, `.txt`, `.pdf`, `.html`,
+  and Google Docs.
 - **No merge of script or storyboard into this editor.** Both keep their
   schemas and their editors. The editor shell is built so the storyboard Text
   view can move onto it later.
@@ -110,7 +130,7 @@ for documents can be added without changing the editor or the file format.
 | This PRD | Rule in the CRDT designs | Match |
 | --- | --- | --- |
 | A block is the merge unit (R5). | Entities with registers, ordered by run-preserving order keys (E2). | A block becomes an entity. Its content and its position become registers. |
-| An agent edit applies directly, and a block the person changed keeps the person's text (R8). | A generated write defers to a person's concurrent value and is offered as an alternative (E6, rule J5). | Same outcome. D2 holds whenever no person edited the block concurrently. |
+| Staged agent edits wait for approval, and in direct-apply mode or headless runs a block the person changed keeps the person's text (R8). | A generated write defers to a person's concurrent value and is offered as an alternative (E6, rule J5). | Same outcome. In direct-apply mode D2 writes whenever no person edited the block concurrently. |
 | A restore creates a new version (R11). | A restore is a new transaction and never rewinds (amendment A3). | Same rule. |
 | A write from outside the editor is compared with the last saved content (R22). | A whole-document save is converted relative to the base the client was sent (rules V1 to V3). | The same conversion, with the Markdown file as the whole document. |
 
@@ -151,16 +171,26 @@ plan.
 
 ## User stories
 
-1. **Write.** I choose "New document" in the project browser. An empty page
-   opens. I type, add a heading and a table from the toolbar, and close the
-   tab without pressing save. The file in my project folder holds my text.
-2. **Co-edit.** I select two paragraphs and ask the docked agent to shorten
-   them. The paragraphs change in place and are marked as changed. I revert
-   one of them and keep the other.
+1. **Write.** I right-click a folder in the project browser and choose "New
+   document". An empty page opens immediately with a clickable title field at
+   the top. I rename it, add headings and lists from the toolbar, zoom to a
+   comfortable reading size on a gray paper background, and close the tab
+   without pressing save. The file in that folder holds my text.
+2. **Co-edit.** I select two paragraphs and click into the docked agent to
+   dictate an instruction. The selection stays highlighted on the page while I
+   review my transcribed draft and send it. The agent proposes a revision in a
+   separate preview where I edit one sentence and accept it. When I want
+   faster iteration, I toggle direct-apply mode and revert individual marked
+   blocks instead.
 3. **Ask in place.** I select a sentence and a prompt opens beside it. I type
-   "make this more formal". The sentence is replaced as one undo step.
-4. **Undo a turn.** The agent rewrote half the document and I dislike it. I
-   open version history and restore the version from before that turn.
+   "make this more formal", tweak the proposed text in the popover, and click
+   Replace. The sentence is replaced as one undo step.
+4. **Snapshots.** Before a major rewrite I click "Snapshot" in the top bar.
+   Later I click "Open Snapshots" to enter three-panel Snapshots Mode, keep
+   editing on the left, copy a scene fragment (`Ctrl+C`/`Ctrl+V`) from the
+   read-only snapshot in the center, and keep the Snapshot List above the AI
+   Assistant on the right with a draggable divider. From the snapshot context
+   menu I rename, restore (after confirming), or delete a snapshot.
 5. **Use in a workflow.** I add my document to a workflow as an input and
    connect it to an Agent node. I edit the document, run again, and the run
    reads the new text. The workflow's result is written to a second document.
@@ -171,22 +201,28 @@ plan.
 7. **Headless.** In chat with no editor open: "Tighten the intro of
    launch-notes." The agent edits the file. When I open it, the change is
    there, and version history shows the state before the agent's turn.
-8. **Share.** I export the document as PDF or DOCX, or send it to Google
-   Docs. I import a DOCX and get a document with its headings, lists and
-   tables.
+8. **Share.** I click "Save As", pick a destination folder, and save the
+   document as Markdown, plain text, PDF, HTML, or a Google Doc. In the file
+   browser I right-click a PDF or DOCX file and convert it into an editable
+   document that opens immediately.
 
 ## Requirements
 
 ### Functional
 
-- **R1 — Editor.** A `.md` file opens in a formatted editor in both tab types
-  that can show it today (`text` and `workspace-file`). The editor is built on
-  Lexical, which the web app already ships. View mode and edit mode merge into
-  one editable surface.
-- **R2 — Formatting set.** Headings, bold, italic, strikethrough, inline
-  code, links, bulleted, numbered and task lists, quotes, code blocks, tables,
-  images and horizontal rules. Each has a toolbar control, a keyboard
-  shortcut where one is conventional, and Markdown typing shortcuts.
+- **R1 — Editor and title header.** A `.md` file opens in a formatted editor
+  in both tab types that can show it today (`text` and `workspace-file`). The
+  editor is built on Lexical, which the web app already ships. View mode and
+  edit mode merge into one editable surface. Above the formatting toolbar sits
+  a wide, clickable document title field styled larger than H1 that renames
+  the document file directly without storing a title block in the Markdown
+  body (D1).
+- **R2 — Formatting set.** Three heading levels (H1, H2, H3), bold, italic,
+  strikethrough, inline code, links, bulleted, numbered and task lists,
+  increase and decrease list indentation, quotes, code blocks, tables, images,
+  horizontal dividers, undo and redo. Each has a toolbar control, a keyboard
+  shortcut where one is conventional, and Markdown typing shortcuts. Text
+  alignment stays out of scope under D1.
 - **R3 — Source view.** A toggle shows the Markdown source in Monaco. Edits in
   either view are edits to the same draft. Switching from Monaco back to
   Lexical reconciles the text against the pre-toggle state using R22, so
@@ -204,56 +240,76 @@ plan.
   `web/src/stores/documentSync.ts`, with the block as its merge unit, and is
   added to the inventory that `npm run check:document-sync` checks. There is
   no save button requirement, and closing a tab flushes the draft.
-- **R6 — Create and open.** "New document" appears in the "+ New" menu, the
-  Files tree, the command menu and the home screen. It creates a Markdown
-  file in the current project and opens it with the cursor in the page. The
-  Files tree gains a "New file" action.
-- **R7 — Docked agent.** The editor has an agent panel built on
-  `AssistantChatPanel`, as the script, storyboard, sketch and timeline editors
-  have. The agent receives the focused document and the current selection.
-- **R8 — One edit path.** An agent tool that edits a document has the same
-  result whether the document is open or closed. Before an agent turn runs
-  against an open document, the editor flushes any dirty draft (or routes
-  `edit_file` and `write_file` on open document paths through the document
-  sync layer against the latest base) so the agent never reads unsaved editor
-  text and patches stale disk bytes. When the document is open, the edit shows
-  in the editor without a reload, and a later autosave does not overwrite it.
+- **R6 — Create, open, and file browser management.** "New document" appears
+  in the "+ New" menu, the Files tree, the command menu and the home screen.
+  In the Files tree it creates a Markdown file inside the selected folder and
+  opens it immediately in the editor with the cursor in the page. The Files
+  tree right-click context menu provides New document, New folder, Rename,
+  Copy, Paste, Delete, and Import as document (R17) for supported source
+  files.
+- **R7 — Docked agent and persistent selection.** The editor has an agent
+  panel built on `AssistantChatPanel`, as the script, storyboard, sketch and
+  timeline editors have. The agent receives the focused document and the
+  current selection. When focus moves from the page into the chat composer,
+  the selected fragment stays active and visually highlighted in the editor so
+  the target passage remains visible while writing or dictating an
+  instruction.
+- **R8 — One edit path.** An agent tool that edits a document reads the latest
+  flushed draft and applies through the same block operations whether the
+  document is open or closed. Before an agent turn runs against an open
+  document, the editor flushes any dirty draft so the agent never patches
+  stale disk bytes. In staged approval mode (default under D2), edits from the
+  docked assistant are held as a pending proposal until accepted, and
+  accepting writes through the same sync path. In direct-apply mode or
+  headless runs with no editor open, edits apply immediately and show in an
+  open editor without a reload, and a later autosave does not overwrite them.
   This holds for `edit_file` and `write_file` on a document path, not only for
-  document-specific tools. Where the user edits a block while an agent turn is
-  in flight and both change the same block, [ADR
+  document-specific tools. Where the user edits a block while an agent write
+  lands and both change the same block, [ADR
   0001](../adr/0001-document-sync-draft-wins.md) applies: the user's draft
   wins and the agent's value is listed as a conflict. This is the outcome
   extension E6 of the CRDT designs specifies for generated writes.
-- **R9 — Direct edits with a trail.** Agent edits apply at once (D2). Each
-  changed block is marked until the user edits it or dismisses the mark. Marks
-  cover all block changes. A modified block offers a revert that restores its
-  previous content from the pre-turn version (R11) as one set-content
-  operation. An inserted block offers a remove action that deletes it. A
-  deleted block shows an inline removed-block marker with a restore action.
-  Splits or merges that fall back to delete and create under R20 revert
-  through those marks or through the per-turn restore in R11. A revert is the
-  user's own edit and goes on the undo stack. Agent edits do not, as ADR 0001
-  requires. A block an agent changed records the turn id and the replaced
-  block's id and content hash, so a revert can fetch the exact prior bytes
-  from the pre-turn version.
+- **R9 — Staged approval and direct-apply trail.** By default when a document
+  is open (D2), edits proposed by the docked assistant appear in a separate
+  proposal view rather than modifying the document immediately. From that view
+  the person can accept the proposed changes, reject them, or edit the
+  proposed version before applying. Accepting writes the approved text to the
+  document and records a pre-turn version (R11). A visible toggle switches to
+  direct-apply mode, where agent edits write at once and each changed block is
+  marked until the user edits it or dismisses the mark. Marks cover all block
+  changes: a modified block offers a revert from the pre-turn version as one
+  set-content operation, an inserted block offers a remove action, and a
+  deleted block shows a restore action. Splits or merges that fall back to
+  delete and create under R20 revert through those marks or through the
+  per-turn restore in R11. A revert is the user's own edit and goes on the
+  undo stack. Agent edits do not, as ADR 0001 requires. A block an agent
+  changed records the turn id and the replaced block's id and content hash, so
+  a revert can fetch the exact prior bytes from the pre-turn version.
 - **R10 — Selection prompt.** Selecting text opens a prompt beside the
-  selection, as `SelectionAssistPlugin` does in the storyboard Text view. A
+  selection, as `SelectionAssistPlugin` does in the storyboard Text view. The
+  proposed replacement is editable directly inside the prompt before clicking
+  Replace, in addition to Discard and follow-up refinement. Accepting a
   replacement is treated as a user-initiated edit: it lands as one undo step,
   does not add an R9 change mark, and does not create an R11 pre-turn version.
   An answer that is not a replacement is shown as a note and leaves the text
   unchanged.
-- **R11 — Version history.** Documents get stored versions. Text assets have
-  none today, while workflows, sketches, JS scripts and timelines do. A
-  version is recorded before the first edit of each agent turn (with a turn id
-  threaded through tool execution, including headless CLI runs, so multiple
-  `edit_file` calls in one turn produce one pre-turn version), before a
-  workflow run writes the document, on a manual "Save version", and at an
-  interval while the user edits. When the document is open, the pre-turn
-  version captures the live draft. The editor lists versions with their cause
-  and restores one as a new version. Logically, a version is a complete copy
-  of the Markdown and does not depend on replicated state, so history survives
-  a change of sync design (storage may deduplicate or compress blobs
-  underneath).
+- **R11 — Version history and Snapshots.** Documents store complete Markdown
+  snapshots in `text_document_versions`, associated with the document but kept
+  separate from the project folder so the file browser and the agent never see
+  duplicate files. A snapshot is recorded on manual "Snapshot" (from the top
+  bar or Snapshots panel), before the first applied edit of each agent turn
+  (with a turn id threaded through tool execution, including headless CLI
+  runs, so multiple edits in one turn produce one pre-turn version), before a
+  workflow run writes the document, and at an interval while the user edits.
+  When the document is open, the pre-turn version captures the live draft.
+  Right-clicking a snapshot in the Snapshot List opens a context menu with
+  **Rename**, **Restore**, and **Delete**. Both Restore and Delete require
+  confirmation. Restoring a snapshot makes it the current editable document
+  and records it as a new latest version in history while preserving every
+  prior snapshot (and preserving the overwritten draft in history so nothing
+  is lost). Logically, a snapshot is a complete copy of the Markdown and does
+  not depend on replicated state, so history survives a change of sync design
+  (storage may deduplicate or compress blobs underneath).
 - **R12 — Document as workflow input.** In a workflow a Markdown document is a
   `document` value, the type the existing document nodes carry. No new value
   type and no new reference node is added. `nodetool.constant.Document` and
@@ -285,15 +341,22 @@ plan.
   workflow, node and job ids. A document lists the workflows that reference
   it, backed by a reverse index in `packages/models/src/document-index.ts`.
   `validate_workflow` reports a reference to a deleted document.
-- **R16 — Headless surface.** Create, read, edit, list versions and restore
-  are available as agent tools and CLI commands with no editor open, as
+- **R16 — Headless surface.** Create, read, edit, list versions, create
+  version, rename version, delete version, restore, import and export are
+  available as agent tools and CLI commands with no editor open, as
   [Harness-First Engineering](../HARNESS_FIRST.md) requires.
-- **R17 — Import.** `.md`, `.txt` and `.docx` files and PDF text import as
-  documents. DOCX import keeps headings, lists, tables, links and emphasis.
-  The `convert_document` tool already reads DOCX and HTML into Markdown.
-- **R18 — Export.** PDF, DOCX and HTML export from the editor and from an
-  agent tool. Markdown to PDF exists (`convert_markdown_to_pdf`). No code
-  writes DOCX today, so R18 adds a dependency.
+- **R17 — Import.** `.md`, `.txt`, `.html`, `.docx` and `.pdf` (plain text)
+  files import as editable Markdown documents and open immediately in the
+  editor. DOCX import keeps headings, lists, tables, links and emphasis.
+  Import is available from "+ New", the Asset Library context menu, and the
+  Files tree right-click context menu (R6). Legacy `.doc` and `.rtf` are out
+  of scope.
+- **R18 — Export and Save As.** A **Save As** action in the top bar (and the
+  `export_document` agent tool) lets the person choose both the destination
+  folder and the output format. Supported export formats are **Markdown
+  (`.md`)**, **plain text (`.txt`)**, **PDF (`.pdf`)**, **HTML (`.html`)**,
+  and **Google Doc** (R19). No new format libraries are added: DOCX, `.doc`,
+  and `.rtf` export are out of scope.
 - **R19 — Google Docs.** Import a Google Doc as a document and export a
   document to a new Google Doc, both from the editor. The agent tools
   `google_docs_read`, `google_docs_create` and `google_docs_append` exist and
@@ -315,6 +378,36 @@ plan.
   document, a workflow run) is turned into block operations by comparing it
   with the content NodeTool last saved. An unchanged block produces no
   operation and keeps its id.
+- **R30 — Document display (zoom and paper theme).** The editor supports
+  smooth visual zoom in and out to a comfortable reading size without changing
+  the stored Markdown, exported formatting, or underlying typography. A
+  display option switches the document page between a white background with
+  black text and a gray background with black text.
+- **R31 — Two workspace modes (Default Mode and Snapshots Mode).** The top bar
+  provides three actions: **Snapshot** (saves a complete version), **Open
+  Snapshots** (toggles Snapshots Mode), and **Save As** (R18). The editor runs
+  in one of two workspace modes and never shows three panels by default:
+  - **Mode 1 — Default Mode (two panels).** Left panel: Document Editor
+    (clickable title field at top, formatting toolbar below it, main editing
+    area below that). Right panel: AI Assistant at full height. No snapshot
+    viewer or snapshot list is shown.
+  - **Mode 2 — Snapshots Mode (three panels).** Opened only by clicking Open
+    Snapshots, and closed cleanly back to Default Mode. Left panel: current
+    document, fully editable. Center panel: selected snapshot rendered
+    full-height as read-only and immutable, with a right-side scrollbar and
+    selectable text that copies (`Ctrl+C` / `Cmd+C`) and pastes (`Ctrl+V` /
+    `Cmd+V`) into the current document. Right panel: split vertically into an
+    upper scrollable Snapshot List and a lower AI Assistant chat (with its own
+    right-side scrollbar), separated by a mouse-draggable horizontal divider.
+- **R32 — Draft-first voice dictation.** Across chat composers (D6), clicking
+  the microphone icon or pressing a keyboard shortcut starts voice dictation,
+  and clicking the same microphone icon or pressing the same shortcut stops
+  it. Recognized text lands in the chat input field as an editable draft
+  rather than auto-sending. Pressing `Enter` or clicking Send submits the
+  instruction either after transcription completes or while transcription is
+  still running (sending as soon as the transcript resolves). An `X` button on
+  the opposite side of the chat input deletes the voice message without
+  sending and without waiting for or requiring transcription.
 
 ### Document nodes
 
@@ -329,8 +422,8 @@ builds an SVG.
 | `nodetool.document.SaveDocumentFile` | Writes folder plus filename. In the project folder, a name that exists gets a numbered copy. | R13, renamed to `SaveDocument` by R26 |
 | `nodetool.input.DocumentFileInput` | Turns a local path into a `file://` reference. | R23 |
 | `nodetool.document.LoadDocumentFile` | Reads a path from the host disk and returns the bytes. | R23 |
-| `nodetool.document.ListDocuments` | Scans a host folder, `~` by default, for seven extensions including `.md`. Emits `file://` references. | R24 |
-| `lib.pdf.ExtractText`, `ExtractMarkdown`, `ExtractTables`, `ExtractStyledText`, `Screenshot`, `Pdftoppm`, `ExtractOcr` | Take a PDF as a `document` value. | R25 |
+| `nodetool.document.ListDocuments` | Scans a host folder, `~` by default, for editable document files. Emits `file://` references. | R24 |
+| `lib.pdf.*` | Retired. Previously took a PDF as a `document` value. | R25 |
 
 - **R23 — Paths resolve to documents.** `DocumentFileInput` and
   `LoadDocumentFile` given a path to a document in the project output that
@@ -341,10 +434,11 @@ builds an SVG.
 - **R24 — Listing returns documents.** `ListDocuments` given a
   project-relative folder lists it through `context.workspace` and emits each
   project document with its asset id. A host folder behaves as today.
-- **R25 — PDF nodes stay PDF.** The `lib.pdf` nodes keep a PDF input. Given a
-  Markdown document they fail with an error that names the format, not with a
-  PDF parse error. The string output of `lib.pdf.ExtractMarkdown` connects to
-  the content input of R13, which makes PDF import (R17) a two-node workflow.
+- **R25 — `lib.pdf.*` retired; `document` is editable documents only.** The
+  `lib.pdf.*` nodes are retired (`lib.pdf.ExtractText` migrates to a Code node
+  via `@nodetool-ai/sandbox-pdf`), and the `document` type represents editable
+  Markdown documents rather than PDFs or binary office files. PDF import (R17)
+  converts PDFs into editable Markdown documents.
 
 ### Save node consolidation
 
@@ -443,7 +537,21 @@ Four design points are decided.
 - A workflow fixture with a document input and a document output runs through
   `nodetool debug` and leaves one new version on the output document.
 - A person can go from the home screen to typing in a new document in two
-  actions.
+  actions, or create and open one inside a chosen Files tree folder in one
+  context-menu action.
+- With an open document in default staged approval mode, an agent revision
+  appears in the proposal view without modifying disk bytes until accepted,
+  can be edited before accepting or rejected cleanly, and applies directly
+  when the direct-apply toggle is on.
+- Opening Snapshots Mode displays the editable document, the read-only center
+  snapshot (supporting copy/paste into the current document), and the
+  draggable split Snapshot List and AI Assistant panel, and closing returns to
+  the two-panel Default Mode.
+- Voice dictation puts transcribed text into the composer as an editable
+  draft, supports sending before or after transcription finishes, and cancels
+  without transcribing via the `X` button.
+- Save As writes a copy to a chosen destination folder in `.md`, `.txt`,
+  `.pdf`, or `.html`.
 
 ## Experiments
 
@@ -467,27 +575,41 @@ Three short tests check D4. Each is one to three days.
 
 ## Rollout
 
-Four phases. Each one ships alone.
+Five phases. Phases 1 to 4 and R26 to R29 are implemented. Phase 5 is planned.
 
-1. **Editor.** R1 to R6. The browser becomes a usable text editor with no
-   agent.
-2. **Agent and versions.** R7 to R11, and the document tools of R16. Versions
-   ship with the agent because R9's per-block revert and Goal 4's per-turn
-   restore both read from the pre-turn version.
-3. **Workflow references.** R12 to R15 and R23 to R25.
-4. **Import and export.** R17 to R19.
+1. **Editor (implemented).** R1 to R6. The browser becomes a usable text
+   editor with no agent.
+2. **Agent and versions (implemented).** R7 to R11, and the document tools of
+   R16. Versions ship with the agent because R9's per-block revert and Goal
+   4's per-turn restore both read from the pre-turn version.
+3. **Workflow references (implemented).** R12 to R15 and R23 to R25.
+4. **Import and export (implemented).** R17 to R19 for `.md`, `.txt`, `.html`,
+   `.docx`, `.pdf`, and Google Docs.
+5. **Writing workflow, staged approval, and Snapshots Mode (planned).**
+   - **5a — Editor ergonomics, file actions, and Save As.** Clickable desktop
+     title header (R1), list indent toolbar buttons (R2), Files tree New
+     document / Copy / Paste / Import as document (R6, R17), Save As with
+     folder picker and `.md`/`.txt`/`.pdf`/`.html`/Google Doc outputs (R18),
+     and display zoom plus white/gray paper themes (R30).
+   - **5b — Staged agent approval and voice dictation.** Persistent selection
+     highlight on blur (R7), staged proposal review with accept, reject, edit,
+     and direct-apply toggle (D2, R8, R9), editable inline selection proposal
+     (R10), and draft-first global voice dictation (D6, R32).
+   - **5c — Snapshots Mode and snapshot management.** Top bar `Snapshot`,
+     `Open Snapshots`, and `Save As` actions, three-panel Snapshots Mode with
+     read-only formatted center viewer and draggable right split (R31), and
+     snapshot context-menu Rename, confirmed Restore (latest-entry history),
+     and confirmed Delete across UI, tRPC, model, and headless tools (R11,
+     R16).
 
-Phases 1 and 2 answer the main request. Phase 3 removes the copies. The
-reporter called phase 4 secondary.
+R26 to R29 shipped independently of the editor. R13 depends on them for the
+node name only.
 
-R26 to R29 do not depend on the editor and can ship before phase 1. R13
-depends on them for the node name only.
-
-R20 to R22 ship with phase 1, since the block model of phase 1 defines ids and
-operations. Replication of documents is a later phase of the cloud sync plan,
-after a document profile is designed. Until then a document is a whole-document
-format with today's merge behavior, as that plan describes for workflows and
-sketches.
+R20 to R22 shipped with phase 1, since the block model of phase 1 defines ids
+and operations. Replication of documents is a later phase of the cloud sync
+plan, after a document profile is designed. Until then a document is a
+whole-document format with today's merge behavior, as that plan describes for
+workflows and sketches.
 
 ## Open questions
 
@@ -533,3 +655,10 @@ sketches.
   the cloud sync PRD's capability matrix needs a row for it. Until then a
   linked project transfers a document as a file and keeps both copies when
   both sides changed.
+- **Q9 — Voice dictation shortcut.** Pick a default keyboard shortcut for
+  starting and stopping dictation (R32) that does not collide with OS input
+  switching or Lexical editing shortcuts on macOS, Windows, and Linux.
+- **Q10 — Paper background default.** Decide whether the white/gray paper
+  background option (R30) overrides the workspace dark theme by default or
+  defaults to the workspace theme until toggled, and whether the choice
+  persists per user across documents.

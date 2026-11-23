@@ -81,18 +81,14 @@ describe("useAddNodeFromAsset", () => {
     expect(mockAddNode).toHaveBeenCalledWith(createdNode);
   });
 
-  it("creates a String constant node holding the text of a markdown asset", async () => {
-    const metadata = { node_type: "nodetool.constant.String" };
-    const createdNode: { data: { properties: Record<string, unknown> } } = {
+  it("creates a Document constant node referencing a markdown asset", () => {
+    const metadata = { node_type: "nodetool.constant.Document" };
+    const createdNode: { data: { properties: Record<string, unknown>; title?: string } } = {
       data: { properties: {} }
     };
 
     mockGetMetadata.mockReturnValue(metadata);
     mockCreateNode.mockReturnValue(createdNode);
-    asMock(global.fetch).mockResolvedValue({
-      ok: true,
-      arrayBuffer: async () => new TextEncoder().encode("# hello").buffer
-    } as unknown as Response);
 
     const asset = {
       id: "asset-md-1",
@@ -103,12 +99,53 @@ describe("useAddNodeFromAsset", () => {
 
     const { result } = renderHook(() => useAddNodeFromAsset());
 
+    act(() => {
+      result.current(asset as any, { x: 10, y: 20 });
+    });
+
+    expect(mockGetMetadata).toHaveBeenCalledWith("nodetool.constant.Document");
+    expect(mockCreateNode).toHaveBeenCalledWith(metadata, { x: 10, y: 20 });
+    expect(createdNode.data.properties.value).toEqual({
+      type: "document",
+      uri: "asset://asset-md-1",
+      asset_id: "asset-md-1",
+      data: null,
+      metadata: null
+    });
+    expect(createdNode.data.title).toBe("notes.md");
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockAddNode).toHaveBeenCalledWith(createdNode);
+    expect(mockAddNotification).not.toHaveBeenCalled();
+  });
+
+  it("creates a String constant node holding the text of a plain text asset", async () => {
+    const metadata = { node_type: "nodetool.constant.String" };
+    const createdNode: { data: { properties: Record<string, unknown> } } = {
+      data: { properties: {} }
+    };
+
+    mockGetMetadata.mockReturnValue(metadata);
+    mockCreateNode.mockReturnValue(createdNode);
+    asMock(global.fetch).mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode("plain hello").buffer
+    } as unknown as Response);
+
+    const asset = {
+      id: "asset-txt-1",
+      name: "notes.txt",
+      content_type: "text/plain",
+      get_url: "/assets/notes.txt"
+    };
+
+    const { result } = renderHook(() => useAddNodeFromAsset());
+
     await act(async () => {
       result.current(asset as any, { x: 10, y: 20 });
     });
 
     expect(mockGetMetadata).toHaveBeenCalledWith("nodetool.constant.String");
-    expect(createdNode.data.properties.value).toBe("# hello");
+    expect(createdNode.data.properties.value).toBe("plain hello");
     expect(mockAddNode).toHaveBeenCalledWith(createdNode);
     expect(mockAddNotification).not.toHaveBeenCalled();
   });

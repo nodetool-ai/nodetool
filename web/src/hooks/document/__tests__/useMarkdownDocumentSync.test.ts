@@ -247,4 +247,24 @@ describe("useMarkdownDocumentSync", () => {
     expect(rendered.result.current.changes).toEqual([]);
     rendered.unmount();
   });
+
+  it("marks the next outside write when a pending own write is cancelled", async () => {
+    const { rendered } = await mount("alpha\n\nbeta\n");
+    act(() => {
+      rendered.result.current.expectOwnWrite();
+      rendered.result.current.cancelOwnWrite();
+    });
+    writeOutside("alpha\n\nbeta changed outside\n", "2026-01-02T00:00:00.000Z");
+    act(() => {
+      handleDocumentResourceChange("asset", {
+        event: "updated",
+        id: "doc-1",
+        updatedAt: server.updatedAt
+      });
+    });
+    await waitFor(() => expect(rendered.result.current.status).toBe("reloaded"));
+    expect(rendered.result.current.changes).toHaveLength(1);
+    expect(rendered.result.current.changes[0].kind).toBe("modified");
+    rendered.unmount();
+  });
 });

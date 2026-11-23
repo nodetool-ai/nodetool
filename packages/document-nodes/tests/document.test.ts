@@ -140,9 +140,11 @@ describe("document nodes read project paths (R23, R24)", () => {
     return { dir, context };
   }
 
-  it("lists a project folder with asset ids where rows exist", async () => {
+  it("lists a project folder with asset ids where rows exist and skips binary files", async () => {
     const { dir, context } = await projectContext();
     try {
+      await context.workspace!.write("notes/report.pdf", new TextEncoder().encode("%PDF-1.7"));
+      await context.workspace!.write("notes/brief.docx", new Uint8Array([0x50, 0x4b, 0x03, 0x04]));
       const node = new ListDocumentsNode();
       node.assign({ folder: "notes", pattern: "*" });
       const { documents } = await node.process(context);
