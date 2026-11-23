@@ -194,12 +194,16 @@ function sourceTimeForTimelineTime(
 }
 
 function slugForBrowserPatternFile(name: string, fallback: string): string {
-  return (
-    name
-      .trim()
-      .replace(/[^\w.-]+/g, "-")
-      .replace(/^-+|-+$/g, "") || fallback
-  );
+  return trimDashes(name.trim().replace(/[^\w.-]+/g, "-")) || fallback;
+}
+
+/** `value` without leading and trailing dashes, in one linear pass. */
+function trimDashes(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === "-") start++;
+  while (end > start && value[end - 1] === "-") end--;
+  return value.slice(start, end);
 }
 
 /**
