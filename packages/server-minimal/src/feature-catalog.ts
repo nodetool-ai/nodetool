@@ -243,7 +243,6 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodetool.audio.Repeat",
       "nodetool.audio.Reverse",
       "nodetool.audio.SaveAudio",
-      "nodetool.audio.SaveAudioFile",
       "nodetool.audio.SliceAudio",
       "nodetool.audio.StereoToMono",
       "nodetool.audio.TextToMusic",
@@ -497,7 +496,7 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "lib.pdf.Screenshot",
       "nodetool.document.ListDocuments",
       "nodetool.document.LoadDocumentFile",
-      "nodetool.document.SaveDocumentFile"
+      "nodetool.document.SaveDocument"
     ]
   },
   {
@@ -2496,7 +2495,6 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodetool.image.ResizeImage",
       "nodetool.image.RotateAndFlip",
       "nodetool.image.SaveImage",
-      "nodetool.image.SaveImageFile",
       "nodetool.image.Scale",
       "nodetool.image.Segment",
       "nodetool.image.TextToImage",
@@ -3585,7 +3583,6 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodetool.text.Prompt",
       "nodetool.text.Rerank",
       "nodetool.text.SaveText",
-      "nodetool.text.SaveTextFile",
       "nodetool.text.Template"
     ]
   },
@@ -3739,7 +3736,6 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodetool.model3d.RenderToImage",
       "nodetool.model3d.RepairMesh",
       "nodetool.model3d.SaveModel3D",
-      "nodetool.model3d.SaveModel3DFile",
       "nodetool.model3d.TextTo3D",
       "nodetool.model3d.Transform3D",
       "nodetool.script.FillScript",
@@ -3787,7 +3783,6 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodetool.video.Rotate",
       "nodetool.video.Saturation",
       "nodetool.video.SaveVideo",
-      "nodetool.video.SaveVideoFile",
       "nodetool.video.SetSpeed",
       "nodetool.video.Sharpness",
       "nodetool.video.Shot",

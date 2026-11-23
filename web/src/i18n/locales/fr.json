@@ -20850,5 +20850,129 @@
       "missingFiles_other": "{{count}} fichiers n’ont pas pu être reçus.",
       "missingFiles_many": "{{count}} fichiers n’ont pas pu être reçus."
     }
+  },
+  "documentEditor": {
+    "label": "Document",
+    "placeholder": "Commencez à écrire ou tapez # pour un titre",
+    "loadError": "Impossible de charger le document.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Vue du document",
+      "formatted": "Mis en forme",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Titre 1",
+      "heading2": "Titre 2",
+      "heading3": "Titre 3",
+      "bold": "Gras",
+      "italic": "Italique",
+      "strikethrough": "Barré",
+      "inlineCode": "Code en ligne",
+      "link": "Lien",
+      "bulletList": "Liste à puces",
+      "numberedList": "Liste numérotée",
+      "checkList": "Liste de tâches",
+      "quote": "Citation",
+      "codeBlock": "Bloc de code",
+      "table": "Tableau",
+      "image": "Image",
+      "rule": "Séparateur"
+    },
+    "insert": {
+      "linkAddress": "Adresse du lien",
+      "imagePath": "Chemin ou URL de l’image",
+      "imagePathPlaceholder": "assets/image.png",
+      "imageAlt": "Description",
+      "removeLink": "Supprimer le lien",
+      "applyLink": "Appliquer",
+      "insertImage": "Insérer"
+    },
+    "agent": {
+      "toggle": "Assistant",
+      "welcomeTitle": "Écrire avec l'assistant",
+      "welcomeBody": "Demandez un brouillon, une modification ou une relecture. L'assistant voit ce document et le texte sélectionné."
+    },
+    "versions": {
+      "toggle": "Historique des versions",
+      "title": "Versions",
+      "name": "Nom de la version",
+      "namePlaceholder": "Nom (facultatif)",
+      "save": "Enregistrer une version",
+      "restore": "Restaurer",
+      "loadError": "Les versions n'ont pas pu être chargées.",
+      "emptyTitle": "Aucune version",
+      "emptyBody": "Une version est conservée avant chaque modification de l'assistant, quand vous en enregistrez une et toutes les quelques minutes pendant l'édition.",
+      "versionNumber": "Version {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistant",
+        "workflow_run": "Exécution de workflow",
+        "manual": "Enregistrée",
+        "autosave": "Intervalle",
+        "restore": "Avant restauration"
+      },
+      "usedIn": "Utilisé dans les workflows : {{count}}"
+    },
+    "changes": {
+      "title": "Modifications marquées : {{count}}",
+      "show": "Afficher",
+      "hide": "Masquer",
+      "dismiss": "Ignorer",
+      "dismissAll": "Tout ignorer",
+      "kinds": {
+        "modified": "Modifié",
+        "inserted": "Ajouté",
+        "deleted": "Supprimé"
+      },
+      "actions": {
+        "modified": "Annuler",
+        "inserted": "Retirer",
+        "deleted": "Restaurer"
+      }
+    },
+    "assist": {
+      "proposal": "Remplacement proposé",
+      "note": "Note",
+      "discard": "Ignorer",
+      "close": "Fermer",
+      "replace": "Remplacer",
+      "thinking": "Réflexion…",
+      "stop": "Arrêter",
+      "placeholder": "Que faut-il changer ?",
+      "refinePlaceholder": "Affiner la réponse",
+      "instruction": "Instruction",
+      "send": "Envoyer",
+      "noModel": "Choisissez d'abord un modèle dans le chat.",
+      "failed": "La demande a échoué."
+    },
+    "resizePanel": "Redimensionner le panneau latéral",
+    "picker": {
+      "label": "Document du projet",
+      "none": "Aucun",
+      "placeholder": "Choisir un document du projet",
+      "loading": "Chargement…",
+      "error": "Les documents n'ont pas pu être chargés.",
+      "empty": "Aucun document Markdown dans ce projet"
+    },
+    "convert": {
+      "label": "Convertir en document",
+      "tooltip": "Déplacer ce texte dans un document du projet et y faire référence depuis ce nœud"
+    },
+    "export": {
+      "label": "Exporter",
+      "pdf": "Exporter en PDF",
+      "html": "Exporter en HTML",
+      "googleDoc": "Exporter vers Google Docs"
+    },
+    "importGoogleDoc": {
+      "title": "Importer un Google Doc",
+      "confirm": "Importer",
+      "link": "Lien du Google Doc",
+      "help": "Collez le lien du document depuis votre navigateur. Vous devez être connecté avec Google."
+    },
+    "import": {
+      "asDocument": "Importer comme document",
+      "asDocumentTooltip": "Créer un document Markdown modifiable à partir de ce fichier. Le fichier lui-même n'est pas modifié."
+    }
   }
 }

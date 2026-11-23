@@ -5,7 +5,7 @@
  *   1. LoadImageFolder include_subdirectories was ignored (flat readdir)
  *   2. LoadImageFolder extensions were hardcoded
  *   3. LoadImageFolder pattern was ignored
- *   4. SaveImageFile overwrite=false always overwrote
+ *   4. SaveImage overwrite=false always overwrote
  *   5. GetMetadata returned wrong output schema
  *   6. TextToImage missing provider params
  *   7. ImageToImage empty image validation
@@ -22,7 +22,7 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 import {
   LoadImageFolderNode,
-  SaveImageFileImageNode,
+  SaveImageNode,
   GetMetadataNode,
   TextToImageNode,
   ImageToImageNode,
@@ -259,17 +259,17 @@ describe("LoadImageFolderNode — pattern matching", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 4. SaveImageFile overwrite=false generates unique names
+// 4. SaveImage overwrite=false generates unique names
 // ---------------------------------------------------------------------------
 
-describe("SaveImageFileImageNode — overwrite=false", () => {
+describe("SaveImageNode — overwrite=false", () => {
   it("appends _1 suffix when file already exists", async () => {
     const dir = createTempDir();
     const png = await makePngBuffer();
     const imgRef = imageRefFromBuffer(png);
 
     // First save
-    const node1 = new SaveImageFileImageNode();
+    const node1 = new SaveImageNode();
     node1.assign({ image: imgRef, folder: dir, filename: "test.png", overwrite: false });
     const result1 = await node1.process();
     const path1 = result1.path as string;
@@ -277,7 +277,7 @@ describe("SaveImageFileImageNode — overwrite=false", () => {
     expect(path1).not.toContain("_1");
 
     // Second save — same name, overwrite=false
-    const node2 = new SaveImageFileImageNode();
+    const node2 = new SaveImageNode();
     node2.assign({ image: imgRef, folder: dir, filename: "test.png", overwrite: false });
     const result2 = await node2.process();
     const path2 = result2.path as string;
@@ -296,11 +296,11 @@ describe("SaveImageFileImageNode — overwrite=false", () => {
     const png = await makePngBuffer();
     const imgRef = imageRefFromBuffer(png);
 
-    const node1 = new SaveImageFileImageNode();
+    const node1 = new SaveImageNode();
     node1.assign({ image: imgRef, folder: dir, filename: "test.png", overwrite: true });
     const result1 = await node1.process();
 
-    const node2 = new SaveImageFileImageNode();
+    const node2 = new SaveImageNode();
     node2.assign({ image: imgRef, folder: dir, filename: "test.png", overwrite: true });
     const result2 = await node2.process();
 

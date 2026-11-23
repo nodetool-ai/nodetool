@@ -121,21 +121,24 @@ const DOCUMENT_TRPC_ROUTER = {
   jsscript: "jsScripts",
   game: "games",
   application: "applications"
-} satisfies Record<SyncedDocumentType, string>;
+} satisfies Record<Exclude<SyncedDocumentType, "asset">, string>;
 
 /**
  * List-shaped procedures beyond `list` a document change must refetch. The
  * node menu's custom nodes come from `jsScripts.palette`, so saving a script
  * has to reach it too.
  */
-const DOCUMENT_EXTRA_PROCEDURES: Partial<Record<SyncedDocumentType, string[]>> =
+const DOCUMENT_EXTRA_PROCEDURES: Partial<
+  Record<keyof typeof DOCUMENT_TRPC_ROUTER, string[]>
+> =
   {
     jsscript: ["palette"],
     game: ["draftChanges", "revisions"]
   };
 
-const isSyncedDocumentType = (value: string): value is SyncedDocumentType =>
-  value in DOCUMENT_TRPC_ROUTER;
+const isSyncedDocumentType = (
+  value: string
+): value is keyof typeof DOCUMENT_TRPC_ROUTER => value in DOCUMENT_TRPC_ROUTER;
 
 export const PROVIDER_QUERY_KEYS = ["providers"] as const;
 export const MODEL_QUERY_KEYS = [
@@ -448,6 +451,13 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
     invalidateQueryKey(["entities"]);
     invalidateProjectViews(projectId);
     invalidateDocumentIndex();
+    // A Markdown document is an asset; its open editor merges the write.
+    handleDocumentResourceChange("asset", {
+      event,
+      id: resource.id,
+      updatedAt: isString(resource.updated_at) ? resource.updated_at : null,
+      ops: update.ops
+    });
   }
 
   if (resource_type === "workflow") {

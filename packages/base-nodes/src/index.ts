@@ -47,7 +47,6 @@ export {
   AutomaticSpeechRecognitionNode,
   EmbeddingTextNode,
   RerankNode,
-  SaveTextFileNode,
   SaveTextNode,
   LoadTextFolderNode,
   LoadTextAssetsNode,
@@ -140,7 +139,7 @@ export {
 } from "@nodetool-ai/core-nodes/nodes/entity";
 export {
   LoadDocumentFileNode,
-  SaveDocumentFileNode,
+  SaveDocumentNode,
   ListDocumentsNode,
   DOCUMENT_NODES
 } from "@nodetool-ai/document-nodes/nodes/document";
@@ -158,7 +157,6 @@ export {
   LoadAudioFileNode,
   LoadAudioFolderNode,
   SaveAudioNode,
-  SaveAudioFileNode,
   NormalizeAudioNode,
   OverlayAudioNode,
   RemoveSilenceNode,
@@ -210,7 +208,6 @@ export {
 export {
   LoadImageFileNode,
   LoadImageFolderNode,
-  SaveImageFileImageNode,
   LoadImageAssetsNode,
   SaveImageNode,
   GetMetadataNode,
@@ -247,7 +244,6 @@ export {
   ImageToVideoNode,
   ReferenceToVideoNode,
   LoadVideoFileNode,
-  SaveVideoFileVideoNode,
   LoadVideoAssetsNode,
   SaveVideoNode,
   ForEachFrameNode,
@@ -331,7 +327,6 @@ export {
 } from "@nodetool-ai/llm-nodes/nodes/shots";
 export {
   LoadModel3DFileNode,
-  SaveModel3DFileNode,
   SaveModel3DNode,
   FormatConverterNode,
   GetModel3DMetadataNode,

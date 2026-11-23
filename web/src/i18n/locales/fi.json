@@ -20533,5 +20533,129 @@
       "missingFiles_one": "{{count}} tiedostoa ei voitu vastaanottaa.",
       "missingFiles_other": "{{count}} tiedostoa ei voitu vastaanottaa."
     }
+  },
+  "documentEditor": {
+    "label": "Dokumentti",
+    "placeholder": "Aloita kirjoittaminen tai kirjoita # otsikkoa varten",
+    "loadError": "Dokumenttia ei voitu ladata.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Dokumentin näkymä",
+      "formatted": "Muotoiltu",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Otsikko 1",
+      "heading2": "Otsikko 2",
+      "heading3": "Otsikko 3",
+      "bold": "Lihavointi",
+      "italic": "Kursiivi",
+      "strikethrough": "Yliviivaus",
+      "inlineCode": "Koodi tekstissä",
+      "link": "Linkki",
+      "bulletList": "Luettelo",
+      "numberedList": "Numeroitu luettelo",
+      "checkList": "Tehtävälista",
+      "quote": "Lainaus",
+      "codeBlock": "Koodilohko",
+      "table": "Taulukko",
+      "image": "Kuva",
+      "rule": "Erotin"
+    },
+    "insert": {
+      "linkAddress": "Linkin osoite",
+      "imagePath": "Kuvan polku tai URL",
+      "imagePathPlaceholder": "assets/kuva.png",
+      "imageAlt": "Kuvaus",
+      "removeLink": "Poista linkki",
+      "applyLink": "Käytä",
+      "insertImage": "Lisää"
+    },
+    "agent": {
+      "toggle": "Avustaja",
+      "welcomeTitle": "Kirjoita avustajan kanssa",
+      "welcomeBody": "Pyydä luonnosta, muokkausta tai tarkistusta. Avustaja näkee tämän asiakirjan ja valitsemasi tekstin."
+    },
+    "versions": {
+      "toggle": "Versiohistoria",
+      "title": "Versiot",
+      "name": "Version nimi",
+      "namePlaceholder": "Nimi (valinnainen)",
+      "save": "Tallenna versio",
+      "restore": "Palauta",
+      "loadError": "Versioita ei voitu ladata.",
+      "emptyTitle": "Ei vielä versioita",
+      "emptyBody": "Versio tallennetaan ennen jokaista avustajan muutosta, kun tallennat sellaisen ja muutaman minuutin välein muokatessasi.",
+      "versionNumber": "Versio {{version}}",
+      "saveTypes": {
+        "agent_turn": "Avustaja",
+        "workflow_run": "Työnkulun ajo",
+        "manual": "Tallennettu",
+        "autosave": "Väliaika",
+        "restore": "Ennen palautusta"
+      },
+      "usedIn": "Käytössä työnkuluissa: {{count}}"
+    },
+    "changes": {
+      "title": "Merkityt muutokset: {{count}}",
+      "show": "Näytä",
+      "hide": "Piilota",
+      "dismiss": "Ohita",
+      "dismissAll": "Ohita kaikki",
+      "kinds": {
+        "modified": "Muutettu",
+        "inserted": "Lisätty",
+        "deleted": "Poistettu"
+      },
+      "actions": {
+        "modified": "Palauta",
+        "inserted": "Poista",
+        "deleted": "Palauta"
+      }
+    },
+    "assist": {
+      "proposal": "Ehdotettu korvaus",
+      "note": "Huomautus",
+      "discard": "Hylkää",
+      "close": "Sulje",
+      "replace": "Korvaa",
+      "thinking": "Miettii…",
+      "stop": "Pysäytä",
+      "placeholder": "Mitä pitäisi muuttaa?",
+      "refinePlaceholder": "Tarkenna vastausta",
+      "instruction": "Ohje",
+      "send": "Lähetä",
+      "noModel": "Valitse ensin malli keskustelussa.",
+      "failed": "Pyyntö epäonnistui."
+    },
+    "resizePanel": "Muuta sivupaneelin kokoa",
+    "picker": {
+      "label": "Projektin asiakirja",
+      "none": "Ei mitään",
+      "placeholder": "Valitse projektin asiakirja",
+      "loading": "Ladataan…",
+      "error": "Asiakirjoja ei voitu ladata.",
+      "empty": "Tässä projektissa ei ole Markdown-asiakirjoja"
+    },
+    "convert": {
+      "label": "Muunna asiakirjaksi",
+      "tooltip": "Siirrä tämä teksti projektin asiakirjaan ja viittaa siihen tästä solmusta"
+    },
+    "export": {
+      "label": "Vie",
+      "pdf": "Vie PDF-tiedostona",
+      "html": "Vie HTML-tiedostona",
+      "googleDoc": "Vie Google Docsiin"
+    },
+    "importGoogleDoc": {
+      "title": "Tuo Google-dokumentti",
+      "confirm": "Tuo",
+      "link": "Google-dokumentin linkki",
+      "help": "Liitä dokumentin linkki selaimesta. Sinun on oltava kirjautunut Googlella."
+    },
+    "import": {
+      "asDocument": "Tuo asiakirjaksi",
+      "asDocumentTooltip": "Tee tästä tiedostosta muokattava Markdown-asiakirja. Itse tiedosto ei muutu."
+    }
   }
 }

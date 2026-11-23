@@ -468,6 +468,21 @@ export type { JsScriptResponse } from "./js-script.js";
 export { Skill, SkillConflictError } from "./skill.js";
 export type { SkillResponse, SkillListItem } from "./skill.js";
 export { JsScriptVersion } from "./js-script-version.js";
+export {
+  TextDocumentVersion,
+  TEXT_DOCUMENT_SAVE_TYPES,
+  textDocumentContentHash,
+  type TextDocumentSaveType
+} from "./text-document-version.js";
+export {
+  documentAssetIdOf,
+  documentReferencesInGraph,
+  workflowsReferencingDocument
+} from "./document-index.js";
+export type {
+  DocumentReference,
+  DocumentReferencingWorkflow
+} from "./document-index.js";
 export type { JsScriptSaveType } from "./js-script-version.js";
 export { createJsScriptResolver } from "./js-script-resolver.js";
 export type {

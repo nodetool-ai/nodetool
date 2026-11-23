@@ -1879,6 +1879,30 @@ export class ProcessingContext implements RuntimeNodeContext {
     return fn({ userId: this.userId, ...args });
   }
 
+  /**
+   * Replace or append to an owned Markdown document. Null when the asset is
+   * missing or belongs to someone else.
+   */
+  async writeTextDocument(
+    args: ModelInterfaceArgs<"writeTextDocument">
+  ): Promise<AssetInfoEntry | null> {
+    const fn = this.requireModelInterface("writeTextDocument");
+    return fn({ userId: this.userId, ...args });
+  }
+
+  /**
+   * The asset of the file at `path` in this run's project folder. Null when
+   * the run has no project, the host has no asset lookup, or no asset row
+   * names the file.
+   */
+  async findProjectAsset(path: string): Promise<AssetInfoEntry | null> {
+    const fn = this.modelInterfaces()?.findProjectAsset;
+    if (!fn || !this.projectId) {
+      return null;
+    }
+    return fn({ userId: this.userId, projectId: this.projectId, path });
+  }
+
   /** Load a persisted sketch (image document) owned by the current user. */
   async getImageDocument(id: string): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("getImageDocument");

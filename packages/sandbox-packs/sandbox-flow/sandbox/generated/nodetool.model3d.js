@@ -3,9 +3,6 @@ import { callNode } from "../guest-core.js";
 function loadModel3DFile(inputs) {
   return callNode("nodetool.model3d.LoadModel3DFile", inputs);
 }
-function saveModel3DFile(inputs) {
-  return callNode("nodetool.model3d.SaveModel3DFile", inputs);
-}
 function saveModel3D(inputs) {
   return callNode("nodetool.model3d.SaveModel3D", inputs);
 }
@@ -70,7 +67,6 @@ export {
   renderToImage,
   repairMesh,
   saveModel3D,
-  saveModel3DFile,
   textTo3D,
   transform3D
 };

@@ -637,7 +637,8 @@ describe("SaveVideoNode — resolves a folder ref object to a path", () => {
       node.assign({
         video: videoRef([1, 2, 3, 4]),
         folder: { type: "folder", uri: `file://${targetDir}`, asset_id: null },
-        name: "clip.mp4"
+        filename: "clip.mp4",
+        save_to_workspace: false
       });
       await node.process().catch(() => undefined);
 

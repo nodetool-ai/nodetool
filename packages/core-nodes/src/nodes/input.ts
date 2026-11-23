@@ -18,7 +18,12 @@ import type {
   VideoModel,
   VideoRef
 } from "@nodetool-ai/protocol";
-import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
+import {
+  projectDocumentRef,
+  tagAsUniversal,
+  type ProjectDocumentContext
+} from "@nodetool-ai/nodes-utils";
+import { readDocumentText, type DocumentTextContext } from "./document-text.js";
 import {
   NAME_PROP,
   INPUT_DESCRIPTION_PROP,
@@ -623,7 +628,8 @@ export class DocumentInputNode extends BaseNode {
   static readonly description =
     "Accepts a reference to a document asset for workflows, specified by a 'DocumentRef'.  A 'DocumentRef' points to a structured document (e.g., PDF, DOCX, TXT) which can be processed or analyzed. This node is used when the workflow needs to operate on a document as a whole entity, potentially including its structure and metadata, rather than just raw text.\n    input, parameter, document, file, asset, reference\n\n    Use cases:\n    - Load a specific document (e.g., PDF, Word, text file) for content extraction or analysis.\n    - Pass a document to models that are designed to process specific document formats.\n    - Manage documents as distinct assets within a workflow.\n    - If you have a local file path and need to convert it to a 'DocumentRef', consider using 'DocumentFileInput'.";
   static readonly metadataOutputTypes = {
-    output: "document"
+    output: "document",
+    text: "str"
   };
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
@@ -642,8 +648,13 @@ export class DocumentInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<Record<string, unknown>> {
-    return { output: this.value ?? {} };
+  async process(
+    context?: DocumentTextContext
+  ): Promise<Record<string, unknown>> {
+    return {
+      output: this.value ?? {},
+      text: await readDocumentText(this.value, context)
+    };
   }
 }
 
@@ -1124,7 +1135,7 @@ export class RealtimeAudioInputNode extends BaseNode {
 
 /** Output handles DocumentFileInputNode.process() emits. */
 type DocumentFileInputNodeOutputs = {
-  document: { type: string; uri: string };
+  document: { type: string; uri: string; asset_id?: string };
   path: string;
 };
 
@@ -1158,8 +1169,13 @@ export class DocumentFileInputNode extends BaseNode {
   @prop(INPUT_DESCRIPTION_PROP)
   declare description: string;
 
-  async process(): Promise<DocumentFileInputNodeOutputs> {
+  async process(
+    context?: ProjectDocumentContext
+  ): Promise<DocumentFileInputNodeOutputs> {
     const p = String(this.value ?? "");
+    // A path in the project names the project's document (PRD R23).
+    const project = await projectDocumentRef(p, context);
+    if (project) return { document: project, path: p };
     return {
       document: { type: "document", uri: p ? `file://${p}` : "" },
       path: p

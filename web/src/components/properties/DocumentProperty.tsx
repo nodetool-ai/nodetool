@@ -13,6 +13,7 @@ import isEqual from "../../utils/isEqual";
 import { assetIdOf, assetLocator } from "../../utils/mediaRef";
 import { isSpreadsheetAsset, isTextAsset } from "../../utils/assetLanguage";
 import PropertyDropzone from "./PropertyDropzone";
+import ProjectDocumentSelect, { projectDocumentValue } from "./ProjectDocumentSelect";
 
 const DocumentProperty = (props: PropertyProps) => {
   const id = `document-${props.property.name}-${props.propertyIndex}`;
@@ -56,6 +57,15 @@ const DocumentProperty = (props: PropertyProps) => {
   const showDropzone =
     props.nodeType === "nodetool.constant.Document" ||
     props.nodeType === "nodetool.input.DocumentInput";
+  // A save node's target is a project document, picked rather than dropped.
+  const showSelect = showDropzone || props.property.name === "target";
+  const { onChange } = props;
+  const handleSelect = useCallback(
+    (value: ReturnType<typeof projectDocumentValue> | null) => {
+      onChange(value ?? { type: "document", uri: "", asset_id: null, data: null, metadata: null });
+    },
+    [onChange]
+  );
 
   return (
     <div className="document-property">
@@ -66,6 +76,14 @@ const DocumentProperty = (props: PropertyProps) => {
           id={id}
         />
       )}
+      {showSelect && (
+        <ProjectDocumentSelect
+          id={`${id}-select`}
+          assetId={assetId ?? ""}
+          onChange={handleSelect}
+          allowNone={!showDropzone}
+        />
+      )}
       {showDropzone ? (
         <PropertyDropzone
           asset={asset}
@@ -74,10 +92,10 @@ const DocumentProperty = (props: PropertyProps) => {
           contentType="document"
           props={props}
         />
-      ) : (
+      ) : showSelect ? null : (
         <Text>{props.value?.id}</Text>
       )}
-      {showDropzone && documentUri && (
+      {showSelect && documentUri && (
         <ToolbarIconButton
           onClick={handleOpenDocument}
           className="nodrag nopan"

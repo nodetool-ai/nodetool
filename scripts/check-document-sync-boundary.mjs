@@ -10,6 +10,7 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const defaultRepoRoot = resolve(scriptDir, "..");
 
 const CONTROLLER_FILES = new Set([
+  "web/src/hooks/document/useMarkdownDocumentSync.ts",
   "web/src/hooks/jsScript/useJsScriptServerSync.ts",
   "web/src/hooks/script/useScriptServerSync.ts",
   "web/src/hooks/storyboard/useStoryboardServerSync.ts",
@@ -21,6 +22,7 @@ const SUBSCRIBER_FILES = new Set([
   "web/src/components/appbuilder/ApplicationAppBuilder.tsx",
   "web/src/components/game/GameEditor.tsx",
   "web/src/components/game/GameEditor3D.tsx",
+  "web/src/hooks/document/useMarkdownDocumentSync.ts",
   "web/src/hooks/jsScript/useJsScriptServerSync.ts",
   "web/src/hooks/script/useScriptServerSync.ts",
   "web/src/hooks/storyboard/useStoryboardServerSync.ts",

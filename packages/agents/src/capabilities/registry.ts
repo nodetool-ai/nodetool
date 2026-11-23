@@ -141,6 +141,10 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
     loader: () => import("./trash.js").then((m) => m.module),
     specs: CAPABILITY_SPECS["trash"]
   },
+  "text-documents": {
+    loader: () => import("./text-documents.js").then((m) => m.module),
+    specs: CAPABILITY_SPECS["text-documents"]
+  },
   "example-timelines": {
     loader: () => import("./example-timelines.js").then((m) => m.module),
     specs: CAPABILITY_SPECS["example-timelines"]

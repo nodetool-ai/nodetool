@@ -12,6 +12,7 @@
 import { useCallback, useState, type ReactNode } from "react";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
@@ -23,6 +24,8 @@ import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
+import CloudDownloadOutlinedIcon from "@mui/icons-material/CloudDownloadOutlined";
 import { COMFY_RUN_MODE } from "@nodetool-ai/protocol";
 import { comfyStarterGraph } from "../../lib/comfy/comfyStarterGraph";
 import { starterCheckpointForTarget } from "../../hooks/useStartComfyWorkflow";
@@ -37,6 +40,8 @@ import { useCreateApplication } from "../../hooks/useApplications";
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { useCreateJsScript } from "../../hooks/jsScript/useJsScripts";
 import { useCreateSkill } from "../../hooks/skills/useSkills";
+import { useTextDocumentImport } from "../../serverState/useTextDocumentTransfer";
+import { useGoogleDocImportStore } from "../../stores/GoogleDocImportStore";
 import { queryClient } from "../../queryClient";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -96,6 +101,20 @@ const createBlankModelFile = async (): Promise<File> => {
   const blob = await exportSceneToGlb(scene);
   return new File([blob], "Untitled.glb", { type: "model/gltf-binary" });
 };
+
+/** The files "Import document" offers in the picker. */
+const IMPORT_ACCEPT = ".docx,.pdf,.html,.htm,.txt";
+
+/** Ask the user for one file. Resolves null when they cancel. */
+const pickFile = (accept: string): Promise<File | null> =>
+  new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.addEventListener("change", () => resolve(input.files?.[0] ?? null));
+    input.addEventListener("cancel", () => resolve(null));
+    input.click();
+  });
 
 export interface TextFileTemplate {
   label: string;
@@ -210,6 +229,7 @@ export const useNewDocumentCatalog = (
   const createScript = useCreateScript();
   const createJsScript = useCreateJsScript();
   const createSkill = useCreateSkill();
+  const { importAsset } = useTextDocumentImport();
 
   const { projectId } = options;
   // Read at click time, not at render: a project opened after this mounted is
@@ -324,6 +344,37 @@ export const useNewDocumentCatalog = (
       }),
     [runCreate, createProjectAsset, openTab]
   );
+
+  // A Markdown file that opens in the document editor (document editor PRD R6).
+  const createDocument = useCallback(
+    () =>
+      createTextFile({
+        label: "Document",
+        filename: "Untitled.md",
+        mimeType: "text/markdown",
+        content: ""
+      }),
+    [createTextFile]
+  );
+
+  // A .docx, .pdf, .html or .txt file becomes a document beside its upload
+  // (document editor PRD R17).
+  const importDocument = useCallback(
+    () =>
+      runCreate("document", async (destinationProjectId) => {
+        const file = await pickFile(IMPORT_ACCEPT);
+        if (!file) return;
+        const source = await createProjectAsset(file, destinationProjectId);
+        const created = await importAsset(source.id, destinationProjectId);
+        if (!created) throw new Error(`${file.name} could not be imported`);
+      }),
+    [runCreate, createProjectAsset, importAsset]
+  );
+
+  const importGoogleDoc = useCallback(async () => {
+    useGoogleDocImportStore.getState().open(targetProject());
+    onCreated?.();
+  }, [onCreated, targetProject]);
 
   const createImage = useCallback(
     () =>
@@ -534,6 +585,30 @@ export const useNewDocumentCatalog = (
       type: "chat",
       icon: <ForumOutlinedIcon fontSize="small" />,
       create: createChat
+    },
+    {
+      key: "document",
+      label: "Document",
+      menuLabel: "New document",
+      type: "text",
+      icon: <DescriptionOutlinedIcon fontSize="small" />,
+      create: createDocument
+    },
+    {
+      key: "import-document",
+      label: "Imported document",
+      menuLabel: "Import document…",
+      type: "text",
+      icon: <FileUploadOutlinedIcon fontSize="small" />,
+      create: importDocument
+    },
+    {
+      key: "google-doc",
+      label: "Google Doc",
+      menuLabel: "Import Google Doc…",
+      type: "text",
+      icon: <CloudDownloadOutlinedIcon fontSize="small" />,
+      create: importGoogleDoc
     },
     {
       key: "text",

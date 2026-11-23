@@ -1,0 +1,230 @@
+/**
+ * Text documents router: the stored versions of a Markdown document
+ * (docs/document-editor/prd.md, R11) and the workflows that reference it
+ * (R15), and imports and exports (R17-R19). The editor lists versions, saves one on
+ * "Save version" and at an interval while the user edits, and restores one.
+ * Reads and writes go through `@nodetool-ai/asset-services/text-documents`,
+ * the service the `text-documents` agent capabilities call.
+ */
+
+import {
+  Asset,
+  GOOGLE_ACCESS_TOKEN_KEY,
+  TextDocumentVersion,
+  getSecret,
+  textDocumentContentHash,
+  workflowsReferencingDocument
+} from "@nodetool-ai/models";
+import {
+  TextDocumentError,
+  readTextDocument,
+  recordTextDocumentVersion,
+  requireTextDocument,
+  restoreTextDocumentVersion
+} from "@nodetool-ai/asset-services/text-documents";
+import {
+  createTextDocumentVersionInput,
+  createTextDocumentVersionOutput,
+  exportGoogleDocInput,
+  exportGoogleDocOutput,
+  exportTextDocumentInput,
+  importGoogleDocInput,
+  importTextDocumentInput,
+  textDocumentFileOutput,
+  getTextDocumentVersionInput,
+  getTextDocumentVersionOutput,
+  listTextDocumentVersionsOutput,
+  restoreTextDocumentVersionInput,
+  restoreTextDocumentVersionOutput,
+  textDocumentReferencesOutput,
+  textDocumentRef
+} from "@nodetool-ai/protocol/api-schemas/text-documents.js";
+import { ApiErrorCode } from "../../error-codes.js";
+import { router } from "../index.js";
+import { protectedProcedure } from "../middleware.js";
+import { throwApiError } from "../error-formatter.js";
+
+function versionResponse(version: TextDocumentVersion) {
+  return {
+    version: version.version,
+    name: version.name,
+    save_type: version.save_type,
+    cause_id: version.cause_id,
+    created_at: version.created_at,
+    content_hash: version.content_hash
+  };
+}
+
+async function loadDocument(userId: string, assetId: string) {
+  try {
+    return await requireTextDocument(userId, assetId);
+  } catch (error) {
+    if (error instanceof TextDocumentError) {
+      throwApiError(ApiErrorCode.NOT_FOUND, error.message);
+    }
+    throw error;
+  }
+}
+
+const transfer = () => import("@nodetool-ai/agents/text-document-transfer");
+
+function fileResponse(asset: Asset) {
+  return { asset_id: asset.id, name: asset.name, path: asset.workspace_path ?? null };
+}
+
+/** Run an import or export, answering a source it cannot handle as invalid input. */
+async function transferring<T>(body: () => Promise<T>): Promise<T> {
+  const { DocumentTransferError } = await transfer();
+  try {
+    return await body();
+  } catch (error) {
+    if (error instanceof DocumentTransferError || error instanceof TextDocumentError) {
+      throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+    }
+    throw error;
+  }
+}
+
+/** The user's Google access token, or an error that asks them to sign in. */
+async function googleToken(userId: string): Promise<string> {
+  const token = await getSecret(GOOGLE_ACCESS_TOKEN_KEY, userId);
+  if (!token) {
+    throwApiError(
+      ApiErrorCode.UNAUTHORIZED,
+      "Sign in with Google in Settings to use Google Docs."
+    );
+  }
+  return token;
+}
+
+export const textDocumentsRouter = router({
+  references: protectedProcedure
+    .input(textDocumentRef)
+    .output(textDocumentReferencesOutput)
+    .query(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      const workflows = await workflowsReferencingDocument(ctx.userId, asset.id);
+      return {
+        workflows: workflows.map((workflow) => ({
+          workflow_id: workflow.workflowId,
+          name: workflow.name,
+          node_ids: workflow.nodes.map((node) => node.nodeId)
+        }))
+      };
+    }),
+
+  versions: protectedProcedure
+    .input(textDocumentRef)
+    .output(listTextDocumentVersionsOutput)
+    .query(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      const versions = await TextDocumentVersion.listForAsset(asset.id);
+      return { versions: versions.map(versionResponse) };
+    }),
+
+  version: protectedProcedure
+    .input(getTextDocumentVersionInput)
+    .output(getTextDocumentVersionOutput)
+    .query(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      const version = await TextDocumentVersion.findByVersion(asset.id, input.version);
+      if (!version) {
+        throwApiError(ApiErrorCode.NOT_FOUND, `Version ${input.version} not found`);
+      }
+      return { ...versionResponse(version), content: version.content };
+    }),
+
+  createVersion: protectedProcedure
+    .input(createTextDocumentVersionInput)
+    .output(createTextDocumentVersionOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      const content = await readTextDocument(asset);
+      if (input.save_type === "autosave") {
+        // An interval version of unchanged content would only fill the list.
+        const [newest] = await TextDocumentVersion.listForAsset(asset.id);
+        if (newest?.content_hash === textDocumentContentHash(content)) {
+          return { version: null };
+        }
+      }
+      const version = await recordTextDocumentVersion(
+        asset,
+        content,
+        { saveType: input.save_type },
+        input.name ?? null
+      );
+      return { version: versionResponse(version) };
+    }),
+
+  restore: protectedProcedure
+    .input(restoreTextDocumentVersionInput)
+    .output(restoreTextDocumentVersionOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      try {
+        const { asset: saved, restored } = await restoreTextDocumentVersion(
+          asset,
+          input.version
+        );
+        return { restored_version: restored.version, updated_at: saved.updated_at };
+      } catch (error) {
+        if (error instanceof TextDocumentError) {
+          throwApiError(ApiErrorCode.NOT_FOUND, error.message);
+        }
+        throw error;
+      }
+    }),
+
+  import: protectedProcedure
+    .input(importTextDocumentInput)
+    .output(textDocumentFileOutput)
+    .mutation(async ({ ctx, input }) => {
+      const { importAssetAsDocument } = await transfer();
+      const created = await transferring(() =>
+        importAssetAsDocument({ userId: ctx.userId, sourceAssetId: input.asset_id, name: input.name })
+      );
+      return fileResponse(created);
+    }),
+
+  export: protectedProcedure
+    .input(exportTextDocumentInput)
+    .output(textDocumentFileOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      const { exportDocumentFile } = await transfer();
+      return fileResponse(await transferring(() => exportDocumentFile(asset, input.format)));
+    }),
+
+  importGoogleDoc: protectedProcedure
+    .input(importGoogleDocInput)
+    .output(textDocumentFileOutput)
+    .mutation(async ({ ctx, input }) => {
+      const { googleDocIdOf, importGoogleDoc } = await transfer();
+      const documentId = googleDocIdOf(input.document);
+      if (!documentId) {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "Paste a Google Doc link or its id.");
+      }
+      const token = await googleToken(ctx.userId);
+      const created = await transferring(() =>
+        importGoogleDoc({
+          userId: ctx.userId,
+          token,
+          documentId,
+          projectId: input.project_id,
+          directory: input.directory
+        })
+      );
+      return fileResponse(created);
+    }),
+
+  exportGoogleDoc: protectedProcedure
+    .input(exportGoogleDocInput)
+    .output(exportGoogleDocOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      const token = await googleToken(ctx.userId);
+      const { exportGoogleDoc } = await transfer();
+      const doc = await exportGoogleDoc({ token, document: asset, title: input.title });
+      return { document_id: doc.id, name: doc.name, url: doc.url };
+    })
+});

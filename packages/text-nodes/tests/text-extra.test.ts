@@ -18,10 +18,10 @@ describe("AutomaticSpeechRecognitionNode platforms", () => {
   });
 
   it("keeps filesystem-bound text nodes node-only", async () => {
-    const { SaveTextFileNode, SaveTextNode, LoadTextFolderNode } = await import(
+    const { SaveTextNode, LoadTextFolderNode } = await import(
       "@nodetool-ai/text-nodes"
     );
-    for (const cls of [SaveTextFileNode, SaveTextNode, LoadTextFolderNode]) {
+    for (const cls of [SaveTextNode, LoadTextFolderNode]) {
       expect(cls.platforms).toEqual(["node"]);
     }
   });

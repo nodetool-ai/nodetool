@@ -14,11 +14,34 @@ import {
 } from "../document-bytes.js";
 import { loadLiteParse, parsePdfBuffer } from "../lib/pdf-text.js";
 
+/**
+ * The format a non-PDF document appears to be, for the error that refuses
+ * it (document editor PRD R25).
+ */
+function describeNonPdf(bytes: Uint8Array, ref: DocumentRefLike): string {
+  const name = (ref.uri ?? "").toLowerCase();
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
+    return name.endsWith(".docx") ? "a DOCX document" : "a ZIP-based document such as DOCX";
+  }
+  if (/\.(md|markdown)$/.test(name)) return "a Markdown document";
+  if (!bytes.subarray(0, 8192).includes(0)) return "a text or Markdown document";
+  return "not a PDF";
+}
+
+/** The PDF's bytes. Refuses another format by name, before any PDF parser sees it. */
 async function resolvePdfBuffer(
   pdf: DocumentRefLike,
   context?: ProcessingContext
 ): Promise<Buffer> {
-  return requireDocumentBytes(pdf, context, "PDF");
+  const bytes = await requireDocumentBytes(pdf, context, "PDF");
+  // The header may follow up to 1024 bytes of leading junk (PDF 1.7, 7.5.2).
+  if (!bytes.subarray(0, 1024 + 5).includes("%PDF-")) {
+    throw new Error(
+      `This node needs a PDF, and the document is ${describeNonPdf(bytes, pdf)}. ` +
+        "Connect a Markdown document's text output to a text node instead."
+    );
+  }
+  return bytes;
 }
 
 async function parsePdf(

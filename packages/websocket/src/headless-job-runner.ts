@@ -38,6 +38,7 @@ import {
 } from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { createRunSupervisor } from "./run-supervisor.js";
+import { textDocumentModelInterfaces } from "@nodetool-ai/asset-services/text-documents";
 import { documentModelInterfaces } from "./lib/document-model-interfaces.js";
 import { resolveProjectWorkspace } from "./lib/workflow-workspace.js";
 import { getAssetAdapter } from "./lib/storage.js";
@@ -217,7 +218,10 @@ export async function startHeadlessJob(
     // included, until a long triggered run finished.
     retainMessageQueue: false
   });
-  context.setModelInterfaces(documentModelInterfaces());
+  context.setModelInterfaces({
+    ...documentModelInterfaces(),
+    ...textDocumentModelInterfaces()
+  });
   // Nobody is watching a triggered run, so an agent loop inside it gates in
   // `auto` and every escalation is denied. Set here, not left for a fallback:
   // `gateFromContext` treats a context with no gate as a host bug.

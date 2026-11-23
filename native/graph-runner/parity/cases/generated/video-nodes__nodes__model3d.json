@@ -31,13 +31,13 @@
    }
   },
   {
-   "id": "nodetool.model3d.SaveModel3DFile#default",
-   "node": "nodetool.model3d.SaveModel3DFile",
+   "id": "nodetool.model3d.SaveModel3D#default",
+   "node": "nodetool.model3d.SaveModel3D",
    "graph": {
     "nodes": [
      {
       "id": "n",
-      "type": "nodetool.model3d.SaveModel3DFile",
+      "type": "nodetool.model3d.SaveModel3D",
       "properties": {
        "filename": "parity.glb"
       }
@@ -48,6 +48,13 @@
       "properties": {
        "name": "output"
       }
+     },
+     {
+      "id": "out_path",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "path"
+      }
      }
     ],
     "edges": [
@@ -57,36 +64,12 @@
       "sourceHandle": "output",
       "target": "out_output",
       "targetHandle": "value"
-     }
-    ]
-   }
-  },
-  {
-   "id": "nodetool.model3d.SaveModel3D#default",
-   "node": "nodetool.model3d.SaveModel3D",
-   "graph": {
-    "nodes": [
-     {
-      "id": "n",
-      "type": "nodetool.model3d.SaveModel3D",
-      "properties": {
-       "name": "parity.glb"
-      }
      },
      {
-      "id": "out_output",
-      "type": "nodetool.output.Output",
-      "properties": {
-       "name": "output"
-      }
-     }
-    ],
-    "edges": [
-     {
-      "id": "e_out_output",
+      "id": "e_out_path",
       "source": "n",
-      "sourceHandle": "output",
-      "target": "out_output",
+      "sourceHandle": "path",
+      "target": "out_path",
       "targetHandle": "value"
      }
     ]

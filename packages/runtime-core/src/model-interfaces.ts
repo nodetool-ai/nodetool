@@ -54,6 +54,8 @@ export interface AssetInfoEntry {
   content_type: string;
   name: string;
   metadata: Record<string, unknown> | null;
+  /** The file's or folder's path in its project folder, when it has one. */
+  workspace_path?: string | null;
 }
 
 /**
@@ -100,6 +102,36 @@ export interface ProcessingContextModelInterfaces {
     content: Uint8Array;
     contentType?: string;
     name?: string;
+  }) => Promise<AssetInfoEntry | null>;
+  /**
+   * Replace or append to a Markdown document's content from a workflow run
+   * (document editor PRD R13). The content before the run's first write is
+   * kept as one version per `causeId`. Returns `null` when the asset does
+   * not exist or is not owned by the user, and throws for an asset that is
+   * not a Markdown document.
+   */
+  writeTextDocument?: (args: {
+    userId: string;
+    assetId: string;
+    content: string;
+    mode: "replace" | "append";
+    /** The run's job id. Writes with one cause record one version. */
+    causeId: string | null;
+    /** Who wrote it, kept on the asset (R15). */
+    provenance?: {
+      workflowId?: string | null;
+      nodeId?: string | null;
+      jobId?: string | null;
+    };
+  }) => Promise<AssetInfoEntry | null>;
+  /**
+   * The user's asset for the file at `path` in project `projectId`'s
+   * folder, or `null` when no asset row names that file (PRD R23).
+   */
+  findProjectAsset?: (args: {
+    userId: string;
+    projectId: string;
+    path: string;
   }) => Promise<AssetInfoEntry | null>;
   /**
    * Recursively list the non-folder assets contained in `folderId`. Returns

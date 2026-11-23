@@ -931,9 +931,50 @@ const validateWorkflow: CapabilityExport = {
     }
 
     const report = validateGraph(checked, registryView, { availableSecrets });
+    await reportMissingDocuments(run, checked, report);
     return await withSecretRemediation(run, report);
   }
 };
+
+/**
+ * Add a `missing_document` error for each node property that names a
+ * document the user no longer has (document editor PRD R15). Stops when the
+ * database cannot be reached: an unanswerable lookup is not a finding.
+ */
+async function reportMissingDocuments(
+  run: CapabilityRun,
+  graph: { nodes: readonly unknown[] },
+  report: GraphValidationReport
+): Promise<void> {
+  const { Asset, documentReferencesInGraph } = await import("@nodetool-ai/models");
+  const references = documentReferencesInGraph({
+    nodes: graph.nodes as Record<string, unknown>[]
+  });
+  if (references.length === 0) return;
+  const userId = userIdOf(run.context);
+  const known = new Map<string, boolean>();
+  for (const reference of references) {
+    let exists = known.get(reference.assetId);
+    if (exists === undefined) {
+      try {
+        exists = (await Asset.find(userId, reference.assetId)) !== null;
+      } catch {
+        return;
+      }
+      known.set(reference.assetId, exists);
+    }
+    if (exists) continue;
+    report.issues.push({
+      severity: "error",
+      code: "missing_document",
+      nodeId: reference.nodeId,
+      nodeType: reference.nodeType,
+      message: `Property "${reference.property}" names document ${reference.assetId}, which was deleted or is not yours. Pick another document.`
+    });
+    report.counts.errors += 1;
+    report.ok = false;
+  }
+}
 
 /**
  * Tell the agent what to do about a `missing_secret` warning.

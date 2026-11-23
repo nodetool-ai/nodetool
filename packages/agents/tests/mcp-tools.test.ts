@@ -1203,6 +1203,47 @@ describe("validate_workflow", () => {
   });
 });
 
+describe("validate_workflow document references (R15)", () => {
+  it("reports a document that no longer exists", async () => {
+    const { Asset } = await import("@nodetool-ai/models");
+    const kept = await Asset.create({
+      user_id: ctx.userId ?? "1",
+      name: "kept.md",
+      content_type: "text/markdown"
+    });
+    const registry = Object.assign(new NodeRegistry(), {
+      has: () => true,
+      getMetadata: () => ({ properties: [], outputs: [] }),
+      validateNode: () => []
+    });
+    const withRegistry = capTool("validate_workflow", {
+      nodeRegistry: registry,
+      modelCatalogs: RUNTIME_MODEL_CATALOGS
+    });
+    const result = (await withRegistry.process(ctx, {
+      graph: {
+        nodes: [
+          {
+            id: "kept",
+            type: "nodetool.constant.Document",
+            data: { value: { type: "document", asset_id: kept.id } }
+          },
+          {
+            id: "gone",
+            type: "nodetool.constant.Document",
+            data: { value: { type: "document", uri: "asset://deadbeefdeadbeefdeadbeefdeadbeef" } }
+          }
+        ],
+        edges: []
+      }
+    })) as { ok: boolean; issues: Array<{ code: string; nodeId?: string }> };
+    expect(result.ok).toBe(false);
+    expect(
+      result.issues.filter((issue) => issue.code === "missing_document").map((issue) => issue.nodeId)
+    ).toEqual(["gone"]);
+  });
+});
+
 // The credential half. `validate_workflow` reported a graph as clean when the
 // node it names needs a key nobody has set — the same graph `nodetool validate`
 // warns about on a DB target — because nothing on this surface ever asked the

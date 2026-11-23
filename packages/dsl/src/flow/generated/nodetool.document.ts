@@ -17,19 +17,25 @@ export function loadDocumentFile(inputs: LoadDocumentFileInputs): Promise<LoadDo
   return callNode<LoadDocumentFileOutputs>("nodetool.document.LoadDocumentFile", inputs);
 }
 
-// Save Document File — nodetool.document.SaveDocumentFile
-export type SaveDocumentFileInputs = {
+// Save Document — nodetool.document.SaveDocument
+export type SaveDocumentInputs = {
   document?: unknown;
+  text?: string;
+  target?: unknown;
+  mode?: "replace" | "append";
   save_to_workspace?: boolean;
   folder?: string;
   filename?: string;
+  overwrite?: boolean;
 };
 
-export interface SaveDocumentFileOutputs {
+export interface SaveDocumentOutputs {
+  output: unknown;
+  path: string;
 }
 
-export function saveDocumentFile(inputs: SaveDocumentFileInputs): Promise<SaveDocumentFileOutputs> {
-  return callNode<SaveDocumentFileOutputs>("nodetool.document.SaveDocumentFile", inputs);
+export function saveDocument(inputs: SaveDocumentInputs): Promise<SaveDocumentOutputs> {
+  return callNode<SaveDocumentOutputs>("nodetool.document.SaveDocument", inputs);
 }
 
 // List Documents — nodetool.document.ListDocuments

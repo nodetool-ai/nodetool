@@ -55,31 +55,18 @@ export function rerank(inputs: RerankInputs): Promise<RerankOutputs> {
   return callNode<RerankOutputs>("nodetool.text.Rerank", inputs);
 }
 
-// Save Text File — nodetool.text.SaveTextFile
-export type SaveTextFileInputs = {
-  text?: string;
-  save_to_workspace?: boolean;
-  folder?: string;
-  name?: string;
-};
-
-export interface SaveTextFileOutputs {
-  output: TextRef;
-}
-
-export function saveTextFile(inputs: SaveTextFileInputs): Promise<SaveTextFileOutputs> {
-  return callNode<SaveTextFileOutputs>("nodetool.text.SaveTextFile", inputs);
-}
-
 // Save Text — nodetool.text.SaveText
 export type SaveTextInputs = {
   text?: string;
-  folder?: FolderRef;
-  name?: string;
+  save_to_workspace?: boolean;
+  folder?: string;
+  filename?: string;
+  overwrite?: boolean;
 };
 
 export interface SaveTextOutputs {
   output: TextRef;
+  path: string;
 }
 
 export function saveText(inputs: SaveTextInputs): Promise<SaveTextOutputs> {

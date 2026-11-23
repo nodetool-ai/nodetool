@@ -490,7 +490,7 @@ describe("node types the server does not run", () => {
     vi.stubEnv("NODETOOL_NODE_PROFILE", "cloud");
     const fake = pinFake();
     const result = await run().invoke("open_node_stream", {
-      type: "nodetool.text.SaveTextFile",
+      type: "nodetool.text.LoadTextFolder",
       inputs: {}
     });
     expect(result).toMatchObject({ error: "node_not_available" });

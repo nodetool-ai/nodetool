@@ -1,7 +1,7 @@
 /**
- * Destination resolution shared by every node that writes a file to disk
- * (`nodetool.image.SaveImageFile`, `SaveAudioFile`, `SaveTextFile`,
- * `SaveVideoFile`, `SaveDocumentFile`, `SaveModel3DFile`).
+ * Destination resolution shared by every save node
+ * (`nodetool.image.SaveImage`, `SaveAudio`, `SaveText`, `SaveVideo`,
+ * `SaveDocument`, `SaveModel3D`).
  *
  * Two things every one of them needs and each used to solve on its own:
  *
@@ -39,7 +39,10 @@ export const SAVE_TO_WORKSPACE_DESCRIPTION =
  * path that has no effect.
  */
 export const VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE = {
-  visible_when: { property: "save_to_workspace", equals: false }
+  visible_when: { property: "save_to_workspace", equals: false },
+  // A host folder has no meaning in the managed cloud, which hides the field
+  // (PRD R28). A run there with the toggle off is refused by writeSavedFile.
+  host_path: true
 } as const;
 
 /** Turn a `file://` URI into a plain path; leave a plain path alone. */
@@ -53,9 +56,13 @@ function toPath(value: string): string {
   }
 }
 
-/** A folder ref — what a `folder`-typed property carries. */
+/**
+ * A folder ref — what the `folder` property of a save node saved before the
+ * save nodes merged (document editor PRD R26, R27) still carries.
+ */
 interface FolderRefValue {
   uri?: string;
+  asset_id?: string | null;
 }
 
 /** Every shape a node's `folder` property arrives in. */
@@ -81,6 +88,29 @@ export function folderPathOf(raw: FolderValue): string {
   if (isPathString(raw)) return toPath(raw.trim());
   if (isFolderRef(raw) && isSetString(raw.uri)) return toPath(raw.uri.trim());
   return "";
+}
+
+/** The slice of a run that resolves an asset folder to its project path. */
+export interface SaveFolderLookup {
+  getAssetInfo?: (
+    assetId: string
+  ) => Promise<{ content_type: string; workspace_path?: string | null } | null>;
+}
+
+/**
+ * The project-relative folder a saved folder reference names, or "" when the
+ * value is a path or names no asset folder. An old `SaveImage` saved an asset
+ * folder as its target; the merged node writes into that folder's path in the
+ * project, so the file lands where it did before (PRD R27).
+ */
+export async function workspaceFolderOf(
+  raw: FolderValue,
+  run: SaveFolderLookup | null | undefined
+): Promise<string> {
+  if (!isFolderRef(raw) || !isSetString(raw.asset_id ?? undefined)) return "";
+  const info = await run?.getAssetInfo?.(String(raw.asset_id));
+  if (!info || info.content_type !== "folder") return "";
+  return (info.workspace_path ?? "").replace(/^\/+|\/+$/g, "");
 }
 
 /**
@@ -391,6 +421,11 @@ export async function writeSaveTargetFile(
 export interface SaveTargetOptions extends SaveFolderOptions {
   /** The node's filename property, with date tokens already expanded. */
   filename: string;
+  /**
+   * A folder in the project, from {@link workspaceFolderOf}, that a save to
+   * the workspace writes into. Ignored for a host folder.
+   */
+  workspaceFolder?: string;
   /** Skip the numbered suffix and write over an existing file. */
   overwrite?: boolean;
 }
@@ -427,23 +462,34 @@ export async function resolveSaveTarget(
  * local install; a cloud run has no such folder and says so rather than writing
  * somewhere the user will never find.
  */
-export async function writeSavedFile(
-  opts: SaveTargetOptions & {
-    bytes: Uint8Array | string;
-    /**
-     * The run, when the saved file should be an asset. Without it the file
-     * is written and no row is created.
-     */
-    context?: RunFileAssetContext | null;
-    /** The file's MIME type. Unset, the asset host infers it from the name. */
-    contentType?: string;
-  }
-): Promise<string> {
+export async function writeSavedFile(opts: WriteSavedFileOptions): Promise<string> {
+  return (await writeSavedFileAsset(opts)).path;
+}
+
+export type WriteSavedFileOptions = SaveTargetOptions & {
+  bytes: Uint8Array | string;
+  /**
+   * The run, when the saved file should be an asset. Without it the file
+   * is written and no row is created.
+   */
+  context?: RunFileAssetContext | null;
+  /** The file's MIME type. Unset, the asset host infers it from the name. */
+  contentType?: string;
+};
+
+/**
+ * `writeSavedFile`, also reporting the asset the save created: its id, or
+ * null when the save wrote a host folder or the host keeps no asset rows.
+ */
+export async function writeSavedFileAsset(
+  opts: WriteSavedFileOptions
+): Promise<{ path: string; asset_id: string | null }> {
   const workspace = opts.workspace ?? null;
   const isVirtual = workspace !== null && workspace.localDir === null;
 
   if (opts.saveToWorkspace === true && workspace) {
-    const filename = requireFilename(opts.filename);
+    const name = requireFilename(opts.filename);
+    const filename = opts.workspaceFolder ? `${opts.workspaceFolder}/${name}` : name;
     const bytes =
       opts.bytes instanceof Uint8Array
         ? opts.bytes
@@ -459,14 +505,16 @@ export async function writeSavedFile(
             bytes,
             opts.contentType
           );
+    let assetId: string | null = null;
     if (opts.context) {
       // The asset takes the claimed file: its row points at that path, and
       // the host writes the same bytes there again.
-      await saveRunFileAsset(opts.context, bytes, {
+      const saved = await saveRunFileAsset(opts.context, bytes, {
         path: target,
         name: target.slice(target.lastIndexOf("/") + 1),
         contentType: opts.contentType ?? "application/octet-stream"
       });
+      assetId = saved.asset_id;
     } else if (opts.overwrite === true) {
       await workspace.write(target, bytes, opts.contentType);
     }
@@ -474,9 +522,9 @@ export async function writeSavedFile(
     // their workspace on disk expects.
     if (workspace.localDir) {
       const path = await loadNodePath();
-      return path.join(workspace.localDir, target);
+      return { path: path.join(workspace.localDir, target), asset_id: assetId };
     }
-    return target;
+    return { path: target, asset_id: assetId };
   } else if (isVirtual) {
     throw new Error(
       "This node writes to a folder on the machine running the workflow, and " +
@@ -488,7 +536,7 @@ export async function writeSavedFile(
   const target = await resolveSaveTarget(opts);
   if (opts.overwrite === true) {
     await writeSaveTargetFile(opts, target, opts.bytes);
-    return target;
+    return { path: target, asset_id: null };
   }
   // The free name is claimed with an exclusive create. One taken since it
   // was found is passed over for the next.
@@ -496,7 +544,7 @@ export async function writeSavedFile(
   while (!(await writeSaveTargetFile(opts, candidate, opts.bytes, { exclusive: true }))) {
     candidate = await uniqueFilePath(target);
   }
-  return candidate;
+  return { path: candidate, asset_id: null };
 }
 
 /**
@@ -518,4 +566,16 @@ async function claimWorkspacePath(
     const candidate = i === 0 ? filename : `${base}_${i}${ext}`;
     if (await workspace.writeNew(candidate, bytes, contentType)) return candidate;
   }
+}
+
+/**
+ * A save node's output ref. When the save created an asset, the ref names
+ * it, so downstream nodes and the editor read the asset rather than a path
+ * on the machine that ran the workflow.
+ */
+export function savedMediaRef<T extends object>(
+  ref: T,
+  assetId: string | null
+): T | (T & { uri: string; asset_id: string }) {
+  return assetId ? { ...ref, uri: `asset://${assetId}`, asset_id: assetId } : ref;
 }

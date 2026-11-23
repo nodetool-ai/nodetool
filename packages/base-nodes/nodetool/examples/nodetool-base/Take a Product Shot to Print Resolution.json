@@ -145,7 +145,7 @@
       },
       {
         "id": "save",
-        "type": "nodetool.image.SaveImageFile",
+        "type": "nodetool.image.SaveImage",
         "data": {
           "filename": "product_%Y-%m-%d_%H-%M-%S.png",
           "save_to_workspace": true

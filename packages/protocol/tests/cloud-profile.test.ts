@@ -128,14 +128,24 @@ describe("code is node-level trimmed; text is whole-listed minus file I/O", () =
     }
   });
 
-  it("drops the text file-I/O nodes from the managed cloud", () => {
+  it("drops the text file loaders from the managed cloud", () => {
     for (const nodeType of [
       "nodetool.text.LoadTextFolder",
-      "nodetool.text.LoadTextAssets",
-      "nodetool.text.SaveText",
-      "nodetool.text.SaveTextFile"
+      "nodetool.text.LoadTextAssets"
     ]) {
       expect(isCloudNodeType(nodeType)).toBe(false);
+    }
+  });
+
+  it("keeps one save node per type in the managed cloud (PRD R28)", () => {
+    for (const nodeType of [
+      "nodetool.image.SaveImage",
+      "nodetool.audio.SaveAudio",
+      "nodetool.video.SaveVideo",
+      "nodetool.model3d.SaveModel3D",
+      "nodetool.text.SaveText"
+    ]) {
+      expect(isCloudNodeType(nodeType)).toBe(true);
     }
   });
 

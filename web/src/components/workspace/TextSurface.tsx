@@ -10,7 +10,11 @@ import { FlexColumn, LoadingSpinner, Text } from "../ui_primitives";
 import TextDocumentEditor from "./TextDocumentEditor";
 import TextPreview from "./TextPreview";
 import SpreadsheetDocumentEditor from "./SpreadsheetDocumentEditor";
-import { isSpreadsheetAsset } from "../../utils/assetLanguage";
+import DocumentEditor from "../documentEditor/DocumentEditor";
+import {
+  isSpreadsheetAsset,
+  languageFromAsset
+} from "../../utils/assetLanguage";
 import { WithDocumentBar, workspaceDocumentBar } from "./documentBarParts";
 
 interface TextSurfaceProps {
@@ -31,6 +35,8 @@ interface TextSurfaceProps {
  *   asset update API.
  * - Excel workbooks open in the SpreadsheetDocumentEditor table in both
  *   modes, read-only in view mode.
+ * - Markdown files open in the formatted DocumentEditor in both modes. Its
+ *   Formatted/Markdown switch takes the place of View/Edit.
  *
  * The editors draw the tab's document bar with their save status and Save.
  * The other states get the bar with the title and View/Edit.
@@ -86,6 +92,10 @@ const TextSurface = ({ refId, mode, active, tab }: TextSurfaceProps) => {
         documentBar={documentBar}
       />
     );
+  }
+
+  if (languageFromAsset(asset) === "markdown") {
+    return <DocumentEditor asset={asset} documentBar={documentBar} />;
   }
 
   if (mode === "edit") {

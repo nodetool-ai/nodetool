@@ -1448,11 +1448,11 @@
   ]
  },
  {
-  "type": "nodetool.text.SaveTextFile",
-  "class": "SaveTextFileNode",
+  "type": "nodetool.text.SaveText",
+  "class": "SaveTextNode",
   "package": "@nodetool-ai/text-nodes",
   "module": "@nodetool-ai/text-nodes/nodes/text-extra",
-  "title": "Save Text File",
+  "title": "Save Text",
   "platforms": [
    "node"
   ],
@@ -1488,9 +1488,15 @@
     "required": false
    },
    {
-    "name": "name",
+    "name": "filename",
     "type": "str",
     "default": "%Y-%m-%d-%H-%M-%S.txt",
+    "required": false
+   },
+   {
+    "name": "overwrite",
+    "type": "bool",
+    "default": false,
     "required": false
    }
   ],
@@ -1499,60 +1505,10 @@
     "name": "output",
     "type": "text",
     "stream": false
-   }
-  ]
- },
- {
-  "type": "nodetool.text.SaveText",
-  "class": "SaveTextNode",
-  "package": "@nodetool-ai/text-nodes",
-  "module": "@nodetool-ai/text-nodes/nodes/text-extra",
-  "title": "Save Text",
-  "platforms": [
-   "node"
-  ],
-  "input_mode": null,
-  "is_streaming_input": false,
-  "is_streaming_output": false,
-  "has_run": false,
-  "is_trigger": false,
-  "is_controlled": false,
-  "supports_dynamic_inputs": false,
-  "supports_dynamic_outputs": false,
-  "required_settings": [],
-  "required_runtimes": [],
-  "requires_gpu": false,
-  "effect": "external",
-  "properties": [
-   {
-    "name": "text",
-    "type": "str",
-    "default": "",
-    "required": false
    },
    {
-    "name": "folder",
-    "type": "folder",
-    "default": {
-     "type": "folder",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
-    "name": "name",
+    "name": "path",
     "type": "str",
-    "default": "%Y-%m-%d-%H-%M-%S.txt",
-    "required": false
-   }
-  ],
-  "outputs": [
-   {
-    "name": "output",
-    "type": "text",
     "stream": false
    }
   ]
@@ -2423,6 +2379,11 @@
     "name": "output",
     "type": "document",
     "stream": false
+   },
+   {
+    "name": "text",
+    "type": "str",
+    "stream": false
    }
   ]
  },
@@ -2649,6 +2610,135 @@
    {
     "name": "output",
     "type": "storyboard",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.constant.Workflow",
+  "class": "ConstantWorkflowNode",
+  "package": "@nodetool-ai/core-nodes",
+  "module": "@nodetool-ai/core-nodes/nodes/constant",
+  "title": "Workflow",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "has_run": false,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "value",
+    "type": "workflow",
+    "default": {
+     "type": "workflow",
+     "id": null
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": "workflow",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.constant.Application",
+  "class": "ConstantApplicationNode",
+  "package": "@nodetool-ai/core-nodes",
+  "module": "@nodetool-ai/core-nodes/nodes/constant",
+  "title": "Application",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "has_run": false,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "value",
+    "type": "application",
+    "default": {
+     "type": "application",
+     "id": null
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": "application",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.constant.JsScript",
+  "class": "ConstantJsScriptNode",
+  "package": "@nodetool-ai/core-nodes",
+  "module": "@nodetool-ai/core-nodes/nodes/constant",
+  "title": "JS Script",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "has_run": false,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "value",
+    "type": "jsscript",
+    "default": {
+     "type": "jsscript",
+     "id": null
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": "jsscript",
     "stream": false
    }
   ]
@@ -4690,6 +4780,11 @@
     "name": "output",
     "type": "document",
     "stream": false
+   },
+   {
+    "name": "text",
+    "type": "str",
+    "stream": false
    }
   ]
  },
@@ -6161,11 +6256,11 @@
   ]
  },
  {
-  "type": "nodetool.document.SaveDocumentFile",
-  "class": "SaveDocumentFileNode",
+  "type": "nodetool.document.SaveDocument",
+  "class": "SaveDocumentNode",
   "package": "@nodetool-ai/document-nodes",
   "module": "@nodetool-ai/document-nodes/nodes/document",
-  "title": "Save Document File",
+  "title": "Save Document",
   "platforms": [
    "node"
   ],
@@ -6195,6 +6290,34 @@
     "required": false
    },
    {
+    "name": "text",
+    "type": "str",
+    "default": "",
+    "required": false
+   },
+   {
+    "name": "target",
+    "type": "document",
+    "default": {
+     "type": "document",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
+   },
+   {
+    "name": "mode",
+    "type": "enum",
+    "default": "replace",
+    "required": false,
+    "values": [
+     "replace",
+     "append"
+    ]
+   },
+   {
     "name": "save_to_workspace",
     "type": "bool",
     "default": true,
@@ -6211,9 +6334,26 @@
     "type": "str",
     "default": "",
     "required": false
+   },
+   {
+    "name": "overwrite",
+    "type": "bool",
+    "default": false,
+    "required": false
    }
   ],
-  "outputs": []
+  "outputs": [
+   {
+    "name": "output",
+    "type": "document",
+    "stream": false
+   },
+   {
+    "name": "path",
+    "type": "str",
+    "stream": false
+   }
+  ]
  },
  {
   "type": "nodetool.document.ListDocuments",
@@ -7476,68 +7616,7 @@
   "class": "SaveAudioNode",
   "package": "@nodetool-ai/audio-nodes",
   "module": "@nodetool-ai/audio-nodes/nodes/audio",
-  "title": "Save Audio Asset",
-  "platforms": [
-   "node"
-  ],
-  "input_mode": null,
-  "is_streaming_input": false,
-  "is_streaming_output": false,
-  "has_run": false,
-  "is_trigger": false,
-  "is_controlled": false,
-  "supports_dynamic_inputs": false,
-  "supports_dynamic_outputs": false,
-  "required_settings": [],
-  "required_runtimes": [],
-  "requires_gpu": false,
-  "effect": "external",
-  "properties": [
-   {
-    "name": "audio",
-    "type": "audio",
-    "default": {
-     "type": "audio",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
-    "name": "folder",
-    "type": "folder",
-    "default": {
-     "type": "folder",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
-    "name": "name",
-    "type": "str",
-    "default": "%Y-%m-%d-%H-%M-%S.wav",
-    "required": false
-   }
-  ],
-  "outputs": [
-   {
-    "name": "output",
-    "type": "audio",
-    "stream": false
-   }
-  ]
- },
- {
-  "type": "nodetool.audio.SaveAudioFile",
-  "class": "SaveAudioFileNode",
-  "package": "@nodetool-ai/audio-nodes",
-  "module": "@nodetool-ai/audio-nodes/nodes/audio",
-  "title": "Save Audio File",
+  "title": "Save Audio",
   "platforms": [
    "node"
   ],
@@ -7583,12 +7662,23 @@
     "type": "str",
     "default": "",
     "required": false
+   },
+   {
+    "name": "overwrite",
+    "type": "bool",
+    "default": false,
+    "required": false
    }
   ],
   "outputs": [
    {
     "name": "output",
     "type": "audio",
+    "stream": false
+   },
+   {
+    "name": "path",
+    "type": "str",
     "stream": false
    }
   ]
@@ -11315,11 +11405,64 @@
   ]
  },
  {
-  "type": "nodetool.image.SaveImageFile",
-  "class": "SaveImageFileImageNode",
+  "type": "nodetool.image.LoadImageAssets",
+  "class": "LoadImageAssetsNode",
   "package": "@nodetool-ai/image-nodes",
   "module": "@nodetool-ai/image-nodes/nodes/image",
-  "title": "Save Image File",
+  "title": "Load Image Assets",
+  "platforms": [
+   "node"
+  ],
+  "input_mode": "buffered",
+  "is_streaming_input": false,
+  "is_streaming_output": true,
+  "has_run": false,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "folder",
+    "type": "folder",
+    "default": {
+     "type": "folder",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
+   }
+  ],
+  "outputs": [
+   {
+    "name": "image",
+    "type": "image",
+    "stream": false
+   },
+   {
+    "name": "name",
+    "type": "str",
+    "stream": false
+   },
+   {
+    "name": "images",
+    "type": "list",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.image.SaveImage",
+  "class": "SaveImageNode",
+  "package": "@nodetool-ai/image-nodes",
+  "module": "@nodetool-ai/image-nodes/nodes/image",
+  "title": "Save Image",
   "platforms": [
    "node"
   ],
@@ -11382,120 +11525,6 @@
    {
     "name": "path",
     "type": "str",
-    "stream": false
-   }
-  ]
- },
- {
-  "type": "nodetool.image.LoadImageAssets",
-  "class": "LoadImageAssetsNode",
-  "package": "@nodetool-ai/image-nodes",
-  "module": "@nodetool-ai/image-nodes/nodes/image",
-  "title": "Load Image Assets",
-  "platforms": [
-   "node"
-  ],
-  "input_mode": "buffered",
-  "is_streaming_input": false,
-  "is_streaming_output": true,
-  "has_run": false,
-  "is_trigger": false,
-  "is_controlled": false,
-  "supports_dynamic_inputs": false,
-  "supports_dynamic_outputs": false,
-  "required_settings": [],
-  "required_runtimes": [],
-  "requires_gpu": false,
-  "effect": "external",
-  "properties": [
-   {
-    "name": "folder",
-    "type": "folder",
-    "default": {
-     "type": "folder",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   }
-  ],
-  "outputs": [
-   {
-    "name": "image",
-    "type": "image",
-    "stream": false
-   },
-   {
-    "name": "name",
-    "type": "str",
-    "stream": false
-   },
-   {
-    "name": "images",
-    "type": "list",
-    "stream": false
-   }
-  ]
- },
- {
-  "type": "nodetool.image.SaveImage",
-  "class": "SaveImageNode",
-  "package": "@nodetool-ai/image-nodes",
-  "module": "@nodetool-ai/image-nodes/nodes/image",
-  "title": "Save Image Asset",
-  "platforms": [
-   "node"
-  ],
-  "input_mode": null,
-  "is_streaming_input": false,
-  "is_streaming_output": false,
-  "has_run": false,
-  "is_trigger": false,
-  "is_controlled": false,
-  "supports_dynamic_inputs": false,
-  "supports_dynamic_outputs": false,
-  "required_settings": [],
-  "required_runtimes": [],
-  "requires_gpu": false,
-  "effect": "external",
-  "properties": [
-   {
-    "name": "image",
-    "type": "image",
-    "default": {
-     "type": "image",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
-    "name": "folder",
-    "type": "folder",
-    "default": {
-     "type": "folder",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
-    "name": "name",
-    "type": "str",
-    "default": "%Y-%m-%d_%H-%M-%S.png",
-    "required": false
-   }
-  ],
-  "outputs": [
-   {
-    "name": "output",
-    "type": "image",
     "stream": false
    }
   ]
@@ -12628,6 +12657,18 @@
     "required": false
    },
    {
+    "name": "end_image",
+    "type": "image",
+    "default": {
+     "type": "image",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
+   },
+   {
     "name": "model",
     "type": "video_model",
     "default": {
@@ -12893,69 +12934,6 @@
   ]
  },
  {
-  "type": "nodetool.video.SaveVideoFile",
-  "class": "SaveVideoFileVideoNode",
-  "package": "@nodetool-ai/video-nodes",
-  "module": "@nodetool-ai/video-nodes/nodes/video",
-  "title": "Save Video File",
-  "platforms": [
-   "node"
-  ],
-  "input_mode": null,
-  "is_streaming_input": false,
-  "is_streaming_output": false,
-  "has_run": false,
-  "is_trigger": false,
-  "is_controlled": false,
-  "supports_dynamic_inputs": false,
-  "supports_dynamic_outputs": false,
-  "required_settings": [],
-  "required_runtimes": [],
-  "requires_gpu": false,
-  "effect": "external",
-  "properties": [
-   {
-    "name": "video",
-    "type": "video",
-    "default": {
-     "type": "video",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null,
-     "duration": null,
-     "format": null
-    },
-    "required": false
-   },
-   {
-    "name": "save_to_workspace",
-    "type": "bool",
-    "default": true,
-    "required": false
-   },
-   {
-    "name": "folder",
-    "type": "str",
-    "default": "",
-    "required": false
-   },
-   {
-    "name": "filename",
-    "type": "str",
-    "default": "",
-    "required": false
-   }
-  ],
-  "outputs": [
-   {
-    "name": "output",
-    "type": "video",
-    "stream": false
-   }
-  ]
- },
- {
   "type": "nodetool.video.LoadVideoAssets",
   "class": "LoadVideoAssetsNode",
   "package": "@nodetool-ai/video-nodes",
@@ -13018,7 +12996,7 @@
   "class": "SaveVideoNode",
   "package": "@nodetool-ai/video-nodes",
   "module": "@nodetool-ai/video-nodes/nodes/video",
-  "title": "Save Video Asset",
+  "title": "Save Video",
   "platforms": [
    "node"
   ],
@@ -13050,21 +13028,27 @@
     "required": false
    },
    {
-    "name": "folder",
-    "type": "folder",
-    "default": {
-     "type": "folder",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
+    "name": "save_to_workspace",
+    "type": "bool",
+    "default": true,
     "required": false
    },
    {
-    "name": "name",
+    "name": "folder",
     "type": "str",
-    "default": "%Y-%m-%d-%H-%M-%S.mp4",
+    "default": "",
+    "required": false
+   },
+   {
+    "name": "filename",
+    "type": "str",
+    "default": "",
+    "required": false
+   },
+   {
+    "name": "overwrite",
+    "type": "bool",
+    "default": false,
     "required": false
    }
   ],
@@ -13072,6 +13056,11 @@
    {
     "name": "output",
     "type": "video",
+    "stream": false
+   },
+   {
+    "name": "path",
+    "type": "str",
     "stream": false
    }
   ]
@@ -16498,7 +16487,7 @@
    {
     "name": "system_prompt",
     "type": "str",
-    "default": "\nYou are a precise classifier.\n\nGoal\n- Select exactly one category from the list provided by the user.\n\nOutput format (MANDATORY)\n- Return ONLY a single JSON object with this exact schema and nothing else:\n  {\"category\": \"<one-of-the-allowed-categories>\"}\n- No prose, no Markdown, no code fences, no explanations, no extra keys.\n\nSelection criteria\n- Choose the single best category that captures the main intent of the text.\n- If multiple categories seem plausible, pick the most probable one; do not return multiple.\n- If none fit perfectly, choose the closest allowed category. If the list includes \"Other\" or \"Unknown\", prefer it when appropriate.\n- Be robust to casing, punctuation, emojis, and minor typos. Handle negation correctly (e.g., \"not spam\" \u2260 spam).\n- Never invent categories that are not in the provided list.\n\nBehavior\n- Be deterministic for the same input.\n- Do not ask clarifying questions; make the best choice with what's given.\n",
+    "default": "\nYou are a precise classifier.\n\nGoal\n- Select exactly one category from the list provided by the user.\n\nOutput format (MANDATORY)\n- Return ONLY a single JSON object with this exact schema and nothing else:\n  {\"category\": \"<one-of-the-allowed-categories>\"}\n- No prose, no Markdown, no code fences, no explanations, no extra keys.\n\nSelection criteria\n- Choose the single best category that captures the main intent of the text.\n- If multiple categories seem plausible, pick the most probable one; do not return multiple.\n- If none fit perfectly, choose the closest allowed category. If the list includes \"Other\" or \"Unknown\", prefer it when appropriate.\n- Be robust to casing, punctuation, emojis, and minor typos. Handle negation correctly (e.g., \"not spam\" ≠ spam).\n- Never invent categories that are not in the provided list.\n\nBehavior\n- Be deterministic for the same input.\n- Do not ask clarifying questions; make the best choice with what's given.\n",
     "required": false
    },
    {
@@ -17535,11 +17524,11 @@
   ]
  },
  {
-  "type": "nodetool.model3d.SaveModel3DFile",
-  "class": "SaveModel3DFileNode",
+  "type": "nodetool.model3d.SaveModel3D",
+  "class": "SaveModel3DNode",
   "package": "@nodetool-ai/video-nodes",
   "module": "@nodetool-ai/video-nodes/nodes/model3d",
-  "title": "Save Model 3D File",
+  "title": "Save Model 3D",
   "platforms": [
    "node"
   ],
@@ -17601,69 +17590,10 @@
     "name": "output",
     "type": "model_3d",
     "stream": false
-   }
-  ]
- },
- {
-  "type": "nodetool.model3d.SaveModel3D",
-  "class": "SaveModel3DNode",
-  "package": "@nodetool-ai/video-nodes",
-  "module": "@nodetool-ai/video-nodes/nodes/model3d",
-  "title": "Save Model3D Asset",
-  "platforms": [
-   "node"
-  ],
-  "input_mode": null,
-  "is_streaming_input": false,
-  "is_streaming_output": false,
-  "has_run": false,
-  "is_trigger": false,
-  "is_controlled": false,
-  "supports_dynamic_inputs": false,
-  "supports_dynamic_outputs": false,
-  "required_settings": [],
-  "required_runtimes": [],
-  "requires_gpu": false,
-  "effect": "external",
-  "properties": [
-   {
-    "name": "model",
-    "type": "model_3d",
-    "default": {
-     "type": "model_3d",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null,
-     "format": null,
-     "material_file": null,
-     "texture_files": []
-    },
-    "required": false
    },
    {
-    "name": "folder",
-    "type": "folder",
-    "default": {
-     "type": "folder",
-     "uri": "",
-     "asset_id": null,
-     "data": null,
-     "metadata": null
-    },
-    "required": false
-   },
-   {
-    "name": "name",
+    "name": "path",
     "type": "str",
-    "default": "%Y-%m-%d_%H-%M-%S.glb",
-    "required": false
-   }
-  ],
-  "outputs": [
-   {
-    "name": "output",
-    "type": "model_3d",
     "stream": false
    }
   ]
@@ -24991,7 +24921,13 @@
     "required": false
    }
   ],
-  "outputs": []
+  "outputs": [
+   {
+    "name": "output",
+    "type": "collection",
+    "stream": false
+   }
+  ]
  },
  {
   "type": "vector.IndexEmbedding",
@@ -25053,7 +24989,13 @@
     "required": false
    }
   ],
-  "outputs": []
+  "outputs": [
+   {
+    "name": "output",
+    "type": "collection",
+    "stream": false
+   }
+  ]
  },
  {
   "type": "vector.IndexTextChunk",
@@ -25108,7 +25050,13 @@
     "required": false
    }
   ],
-  "outputs": []
+  "outputs": [
+   {
+    "name": "output",
+    "type": "collection",
+    "stream": false
+   }
+  ]
  },
  {
   "type": "vector.IndexAggregatedText",
@@ -25181,7 +25129,13 @@
     ]
    }
   ],
-  "outputs": []
+  "outputs": [
+   {
+    "name": "output",
+    "type": "collection",
+    "stream": false
+   }
+  ]
  },
  {
   "type": "vector.IndexString",
@@ -25236,7 +25190,13 @@
     "required": false
    }
   ],
-  "outputs": []
+  "outputs": [
+   {
+    "name": "output",
+    "type": "collection",
+    "stream": false
+   }
+  ]
  },
  {
   "type": "vector.QueryImage",
@@ -25847,6 +25807,18 @@
     "required": false
    },
    {
+    "name": "end_image",
+    "type": "image",
+    "default": {
+     "type": "image",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
+   },
+   {
     "name": "prompt",
     "type": "str",
     "default": "",
@@ -26378,6 +26350,18 @@
   "properties": [
    {
     "name": "image",
+    "type": "image",
+    "default": {
+     "type": "image",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
+   },
+   {
+    "name": "end_image",
     "type": "image",
     "default": {
      "type": "image",

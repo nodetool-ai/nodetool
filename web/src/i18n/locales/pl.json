@@ -21167,5 +21167,129 @@
       "missingFiles_few": "Nie udało się odebrać {{count}} plików.",
       "missingFiles_many": "Nie udało się odebrać {{count}} plików."
     }
+  },
+  "documentEditor": {
+    "label": "Dokument",
+    "placeholder": "Zacznij pisać lub wpisz # dla nagłówka",
+    "loadError": "Nie udało się wczytać dokumentu.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Widok dokumentu",
+      "formatted": "Sformatowany",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Nagłówek 1",
+      "heading2": "Nagłówek 2",
+      "heading3": "Nagłówek 3",
+      "bold": "Pogrubienie",
+      "italic": "Kursywa",
+      "strikethrough": "Przekreślenie",
+      "inlineCode": "Kod w tekście",
+      "link": "Link",
+      "bulletList": "Lista punktowana",
+      "numberedList": "Lista numerowana",
+      "checkList": "Lista zadań",
+      "quote": "Cytat",
+      "codeBlock": "Blok kodu",
+      "table": "Tabela",
+      "image": "Obraz",
+      "rule": "Separator"
+    },
+    "insert": {
+      "linkAddress": "Adres linku",
+      "imagePath": "Ścieżka lub URL obrazu",
+      "imagePathPlaceholder": "assets/obraz.png",
+      "imageAlt": "Opis",
+      "removeLink": "Usuń link",
+      "applyLink": "Zastosuj",
+      "insertImage": "Wstaw"
+    },
+    "agent": {
+      "toggle": "Asystent",
+      "welcomeTitle": "Pisz z asystentem",
+      "welcomeBody": "Poproś o szkic, poprawkę lub recenzję. Asystent widzi ten dokument i zaznaczony tekst."
+    },
+    "versions": {
+      "toggle": "Historia wersji",
+      "title": "Wersje",
+      "name": "Nazwa wersji",
+      "namePlaceholder": "Nazwa (opcjonalnie)",
+      "save": "Zapisz wersję",
+      "restore": "Przywróć",
+      "loadError": "Nie udało się wczytać wersji.",
+      "emptyTitle": "Brak wersji",
+      "emptyBody": "Wersja jest zapisywana przed każdą zmianą asystenta, gdy ją zapiszesz, i co kilka minut podczas edycji.",
+      "versionNumber": "Wersja {{version}}",
+      "saveTypes": {
+        "agent_turn": "Asystent",
+        "workflow_run": "Uruchomienie przepływu",
+        "manual": "Zapisana",
+        "autosave": "Okresowa",
+        "restore": "Przed przywróceniem"
+      },
+      "usedIn": "Używany w przepływach: {{count}}"
+    },
+    "changes": {
+      "title": "Oznaczone zmiany: {{count}}",
+      "show": "Pokaż",
+      "hide": "Ukryj",
+      "dismiss": "Odrzuć",
+      "dismissAll": "Odrzuć wszystkie",
+      "kinds": {
+        "modified": "Zmieniono",
+        "inserted": "Dodano",
+        "deleted": "Usunięto"
+      },
+      "actions": {
+        "modified": "Cofnij",
+        "inserted": "Usuń",
+        "deleted": "Przywróć"
+      }
+    },
+    "assist": {
+      "proposal": "Proponowana zamiana",
+      "note": "Notatka",
+      "discard": "Odrzuć",
+      "close": "Zamknij",
+      "replace": "Zamień",
+      "thinking": "Myślę…",
+      "stop": "Zatrzymaj",
+      "placeholder": "Co ma się zmienić?",
+      "refinePlaceholder": "Doprecyzuj odpowiedź",
+      "instruction": "Polecenie",
+      "send": "Wyślij",
+      "noModel": "Najpierw wybierz model w czacie.",
+      "failed": "Żądanie nie powiodło się."
+    },
+    "resizePanel": "Zmień rozmiar panelu bocznego",
+    "picker": {
+      "label": "Dokument projektu",
+      "none": "Brak",
+      "placeholder": "Wybierz dokument projektu",
+      "loading": "Ładowanie…",
+      "error": "Nie udało się wczytać dokumentów.",
+      "empty": "Brak dokumentów Markdown w tym projekcie"
+    },
+    "convert": {
+      "label": "Zamień na dokument",
+      "tooltip": "Przenieś ten tekst do dokumentu projektu i odwołuj się do niego z tego węzła"
+    },
+    "export": {
+      "label": "Eksportuj",
+      "pdf": "Eksportuj jako PDF",
+      "html": "Eksportuj jako HTML",
+      "googleDoc": "Eksportuj do Dokumentów Google"
+    },
+    "importGoogleDoc": {
+      "title": "Importuj dokument Google",
+      "confirm": "Importuj",
+      "link": "Link do dokumentu Google",
+      "help": "Wklej link do dokumentu z przeglądarki. Musisz być zalogowany przez Google."
+    },
+    "import": {
+      "asDocument": "Importuj jako dokument",
+      "asDocumentTooltip": "Utwórz z tego pliku edytowalny dokument Markdown. Sam plik się nie zmienia."
+    }
   }
 }

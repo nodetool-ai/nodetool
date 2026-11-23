@@ -9,9 +9,6 @@ function embedding(inputs) {
 function rerank(inputs) {
   return callNode("nodetool.text.Rerank", inputs);
 }
-function saveTextFile(inputs) {
-  return callNode("nodetool.text.SaveTextFile", inputs);
-}
 function saveText(inputs) {
   return callNode("nodetool.text.SaveText", inputs);
 }
@@ -63,6 +60,5 @@ export {
   prompt,
   rerank,
   saveText,
-  saveTextFile,
   template
 };

@@ -16,7 +16,7 @@ it('composes the actual installed image feature with authenticated SQLite HTTP r
     const uploaded=await app.inject({method:'POST',url:'/api/assets',headers:{...headers,'content-type':'application/octet-stream'},payload:Buffer.from(bytes)});
     expect(uploaded.statusCode).toBe(200);
     const assetId:string=uploaded.json().id;
-    const created=await app.inject({method:'POST',url:'/api/workflows',headers,payload:{graph:{nodes:[{id:'save',type:'nodetool.image.SaveImage',properties:{name:'copied.png',image:{type:'image',asset_id:assetId,uri:`asset://${assetId}`}}}],edges:[]}}});
+    const created=await app.inject({method:'POST',url:'/api/workflows',headers,payload:{graph:{nodes:[{id:'save',type:'nodetool.image.SaveImage',properties:{filename:'copied.png',image:{type:'image',asset_id:assetId,uri:`asset://${assetId}`}}}],edges:[]}}});
     expect(created.statusCode).toBe(200);
     const run=await app.inject({method:'POST',url:`/api/workflows/${created.json().id}/run`,headers,payload:{}});
     expect(run.statusCode).toBe(202);
@@ -27,7 +27,7 @@ it('composes the actual installed image feature with authenticated SQLite HTTP r
       await new Promise(resolve=>setTimeout(resolve,10));
     }
     expect(job.status,job.error).toBe('completed');
-    const results=job.metadata_json?.result?.['Save Image Asset'];
+    const results=job.metadata_json?.result?.['Save Image'];
     expect(Array.isArray(results)).toBe(true);
     if(!Array.isArray(results)){throw new Error('Image result missing');}
     const result:unknown=results[0];

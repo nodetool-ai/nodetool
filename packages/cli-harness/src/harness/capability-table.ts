@@ -2163,6 +2163,106 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "create_document",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "819fbe0128d1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "read_document",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "2c7dfb12374f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "edit_document",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "da6ea7a451f9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "list_document_versions",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "2470b4fa4242",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "create_document_version",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "79b2aa737476",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "restore_document_version",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "597d86e4548f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "import_document",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "1d06c5bb1795",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "export_document",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "b4d77aff4483",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "import_google_doc",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "f38a1d7bb96b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "export_google_doc",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "17db2467c3c7",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
     name: "list_example_timelines",
     module: "example-timelines",
     impl: "packages/agents/src/capabilities/example-timelines.ts",

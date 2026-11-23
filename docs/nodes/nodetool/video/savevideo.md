@@ -1,40 +1,40 @@
 ---
 layout: page
-title: "Save Audio File"
-node_type: "nodetool.audio.SaveAudioFile"
-namespace: "nodetool.audio"
+title: "Save Video"
+node_type: "nodetool.video.SaveVideo"
+namespace: "nodetool.video"
 ---
 
-**Type:** `nodetool.audio.SaveAudioFile`
+**Type:** `nodetool.video.SaveVideo`
 
-**Namespace:** `nodetool.audio`
+**Namespace:** `nodetool.video`
 
 ## Description
 
-Write an audio file to disk.
-    audio, output, save, file
+Save a video into the project folder, or to a folder on disk.
+    video, output, save, file, asset
 
     The filename can include time and date variables:
     %Y - Year, %m - Month, %d - Day
     %H - Hour, %M - Minute, %S - Second
 
-    Supported formats: mp3, wav, ogg, flac, aac, m4a
-
 ## Properties
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| audio | `audio` | The audio to save | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| video | `video` | The video to save | - |
+| save_to_workspace | `bool` |  | `true` |
 | folder | `str` | Folder where the file will be saved | `` |
 | filename | `str` |          Name of the file to save.         You can use time and date variables to create unique names:         %Y - Year         %m - Month         %d - Day         %H - Hour         %M - Minute         %S - Second          | `` |
-| FORMAT_MAP | `dict[str, str]` |  | `{".mp3":"mp3",".wav":"wav",".ogg":"ogg",".flac"...` |
+| overwrite | `bool` | Overwrite the file if it already exists, otherwise file will be renamed | `false` |
 
 ## Outputs
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `audio` |  |
+| output | `video` |  |
+| path | `str` |  |
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](./) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

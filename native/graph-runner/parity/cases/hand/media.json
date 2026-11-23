@@ -2504,8 +2504,8 @@
    }
   },
   {
-   "id": "nodetool.audio.SaveAudioFile#workspace",
-   "node": "nodetool.audio.SaveAudioFile",
+   "id": "nodetool.audio.SaveAudio#workspace",
+   "node": "nodetool.audio.SaveAudio",
    "graph": {
     "nodes": [
      {
@@ -2520,7 +2520,7 @@
      },
      {
       "id": "n",
-      "type": "nodetool.audio.SaveAudioFile",
+      "type": "nodetool.audio.SaveAudio",
       "properties": {
        "save_to_workspace": true,
        "filename": "saved.wav"
@@ -2573,41 +2573,9 @@
       "id": "n",
       "type": "nodetool.text.SaveText",
       "properties": {
-       "text": "hello from parity",
-       "name": "note.txt"
-      }
-     },
-     {
-      "id": "o",
-      "type": "nodetool.output.Output",
-      "properties": {
-       "name": "saved"
-      }
-     }
-    ],
-    "edges": [
-     {
-      "id": "e1",
-      "source": "n",
-      "sourceHandle": "output",
-      "target": "o",
-      "targetHandle": "value"
-     }
-    ]
-   }
-  },
-  {
-   "id": "nodetool.text.SaveTextFile#workspace",
-   "node": "nodetool.text.SaveTextFile",
-   "graph": {
-    "nodes": [
-     {
-      "id": "n",
-      "type": "nodetool.text.SaveTextFile",
-      "properties": {
        "text": "line one\nline two",
        "save_to_workspace": true,
-       "name": "out/notes.txt"
+       "filename": "out/notes.txt"
       }
      },
      {
@@ -2752,8 +2720,8 @@
    }
   },
   {
-   "id": "nodetool.document.SaveDocumentFile#workspace",
-   "node": "nodetool.document.SaveDocumentFile",
+   "id": "nodetool.document.SaveDocument#workspace",
+   "node": "nodetool.document.SaveDocument",
    "graph": {
     "nodes": [
      {
@@ -2769,7 +2737,7 @@
      },
      {
       "id": "n",
-      "type": "nodetool.document.SaveDocumentFile",
+      "type": "nodetool.document.SaveDocument",
       "properties": {
        "save_to_workspace": true,
        "filename": "doc.txt"

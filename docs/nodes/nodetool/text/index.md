@@ -3,7 +3,7 @@ layout: page
 title: "nodetool.text Nodes"
 ---
 
-This namespace contains 14 node(s).
+This namespace contains 13 node(s).
 
 ## Available Nodes
 
@@ -18,6 +18,5 @@ This namespace contains 14 node(s).
 - **[Load Text Assets](loadtextassets.md)** - Load text files from an asset folder.
 - **[Load Text Folder](loadtextfolder.md)** - Load all text files from a folder, optionally including subfolders.
 - **[Prompt](prompt.md)** - Compose a prompt string with named variables. Add variables via the Add Varia...
-- **[Save Text](savetext.md)** - Saves input text to a file in the assets folder.
-- **[Save Text File](savetextfile.md)** - Saves input text to a file in the assets folder.
+- **[Save Text](savetext.md)** - Save text to a file in the project folder, or to a folder on disk.
 - **[Template](template.md)** - Uses template syntax to format strings with variables. Supports {{ variable }...

@@ -11,8 +11,8 @@ describe("Document sync boundary audit", () => {
 
     expect(result.inspectedFiles).toBeGreaterThan(0);
     expect(result.counts).toEqual({
-      controllers: 5,
-      subscribers: 8,
+      controllers: 6,
+      subscribers: 9,
       saveRegistries: 2
     });
     expect(result.violations).toEqual([]);

@@ -603,7 +603,7 @@
       },
       {
         "id": "frame-png",
-        "type": "nodetool.image.SaveImageFile",
+        "type": "nodetool.image.SaveImage",
         "data": {
           "filename": "visualizer-frame.png",
           "save_to_workspace": true

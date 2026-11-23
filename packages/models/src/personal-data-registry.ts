@@ -603,6 +603,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Revision history of those JavaScript documents. Same content, older revisions, deleted with the document rather than left behind by the cascade."
   },
   {
+    table: "text_document_versions",
+    schemaExport: "textDocumentVersions",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "Revision history of the person's Markdown documents. Authored content, deleted on request and exported in full."
+  },
+  {
     table: "image_documents",
     schemaExport: "imageDocuments",
     disposition: "delete",

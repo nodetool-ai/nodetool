@@ -1,5 +1,5 @@
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { describe, it, expect, vi } from "vitest";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { supportsPlatform } from "@nodetool-ai/protocol";
@@ -10,7 +10,6 @@ import {
   ForEachNode,
   RerouteNode,
   CollectNode,
-  SaveTextFileNode,
   SaveTextNode,
   LoadTextFolderNode,
   EmbeddingTextNode,
@@ -27,7 +26,7 @@ import {
   OutputNode,
   PreviewNode,
   CompareImagesNode,
-  SaveDocumentFileNode,
+  SaveDocumentNode,
   LoadDocumentFileNode,
   WaitNode,
   CreateSilenceNode,
@@ -289,14 +288,14 @@ describe("input/output nodes", () => {
 
   it("document save/load nodes work", async () => {
     const file = join(tmpdir(), `nodetool-doc-${Date.now()}.json`);
-    const save = new SaveDocumentFileNode();
+    const save = new SaveDocumentNode();
     save.assign({
       document: {
         text: '{"a":1,"b":2}'
       }
     });
     (save as any).path = file;
-    await expect(save.process()).resolves.toEqual({ output: file });
+    await expect(save.process()).resolves.toMatchObject({ path: file });
 
     const load = new LoadDocumentFileNode();
     load.assign({ path: file });
@@ -528,16 +527,18 @@ describe("text nodes", () => {
   it("filesystem text save/load and embedding fallback", async () => {
     const savePath = join(tmpdir(), `nodetool-save-text-${Date.now()}.txt`);
     const _st = new SaveTextNode();
-    _st.assign({ text: "hello", name: savePath });
+    _st.assign({ text: "hello", save_to_workspace: false, folder: tmpdir(), filename: basename(savePath) });
     await expect(_st.process()).resolves.toEqual({
-      output: { uri: savePath, data: "hello" }
+      output: { uri: savePath, data: "hello" },
+      path: savePath
     });
 
     const saveDir = join(tmpdir(), `nodetool-save-text-dir-${Date.now()}`);
-    const _sf = new SaveTextFileNode();
-    _sf.assign({ text: "abc", folder: saveDir, name: "x.txt" });
+    const _sf = new SaveTextNode();
+    _sf.assign({ text: "abc", save_to_workspace: false, folder: saveDir, filename: "x.txt" });
     await expect(_sf.process()).resolves.toEqual({
-      output: { uri: `${saveDir}/x.txt`, data: "abc" }
+      output: { uri: `${saveDir}/x.txt`, data: "abc" },
+      path: `${saveDir}/x.txt`
     });
 
     const load = new LoadTextFolderNode();

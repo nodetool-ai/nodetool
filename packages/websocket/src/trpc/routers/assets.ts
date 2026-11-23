@@ -705,6 +705,14 @@ async function applyUpdateFields(
   input: UpdateInput
 ): Promise<string | null> {
   const isExternal = Boolean(asset.external_path);
+  if (input.data != null) {
+    // New bytes are a new version: the compare-and-swap of a document
+    // editor's autosave and the versioned `get_url` both read `updated_at`.
+    const previous = Date.parse(asset.updated_at);
+    asset.updated_at = new Date(
+      Number.isFinite(previous) ? Math.max(Date.now(), previous + 1) : Date.now()
+    ).toISOString();
+  }
   // The asset is a file in its project folder: a rename renames the
   // file and new data is written to it.
   const hasProjectFile = Boolean(asset.workspace_path);
@@ -799,6 +807,22 @@ async function saveUpdatedRow(
     throwApiError(
       ApiErrorCode.ALREADY_EXISTS,
       "Asset metadata changed. Reload it and try again."
+    );
+  }
+}
+
+/**
+ * The compare-and-swap of a document editor's autosave: refuse the write when
+ * the row changed after the caller read it.
+ */
+function assertUnchangedSince(
+  asset: AssetModel,
+  expectedUpdatedAt: string | undefined
+): void {
+  if (expectedUpdatedAt !== undefined && asset.updated_at !== expectedUpdatedAt) {
+    throwApiError(
+      ApiErrorCode.ALREADY_EXISTS,
+      "Asset was modified since last read (optimistic concurrency conflict)"
     );
   }
 }
@@ -1461,6 +1485,7 @@ export const assetsRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
       }
       assertWritable(loaded);
+      assertUnchangedSince(loaded, input.expected_updated_at);
       if (input.expected_metadata !== undefined && input.data != null) {
         throwApiError(
           ApiErrorCode.INVALID_INPUT,
@@ -1478,6 +1503,7 @@ export const assetsRouter = router({
           throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
         }
         assertWritable(current);
+        assertUnchangedSince(current, input.expected_updated_at);
         if (!mayMoveIntoFolder(current) || current.workspace_path) {
           return { asset: current, saved: false, stored: null };
         }

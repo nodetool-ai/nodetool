@@ -31,6 +31,13 @@ jest.mock("../../../serverState/useAssetUpload", () => {
   };
 });
 
+// The project document list is tested on its own; here it needs no server.
+jest.mock("../ProjectDocumentSelect", () => ({
+  __esModule: true,
+  default: () => null,
+  projectDocumentValue: (assetId: string) => ({ type: "document", uri: `asset://${assetId}`, asset_id: assetId })
+}));
+
 jest.mock("../../../serverState/useAsset", () => ({
   useAsset: () => ({ asset: mockAsset, uri: mockDocumentUri })
 }));

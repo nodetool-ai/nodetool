@@ -282,6 +282,11 @@ export const updateInput = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
   /** Reject the update if metadata changed since the caller read the asset. */
   expected_metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+  /**
+   * Reject the update if the row's `updated_at` changed since the caller read
+   * it. Document editors autosave with this compare-and-swap token.
+   */
+  expected_updated_at: z.string().optional(),
   sketch_document_id: z.string().nullable().optional(),
   timeline_id: z.string().nullable().optional(),
   favorite: z.boolean().optional(),

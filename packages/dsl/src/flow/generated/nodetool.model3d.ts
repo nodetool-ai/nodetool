@@ -3,7 +3,7 @@
 // "@nodetool-ai/sandbox-nodetool/flow" — see ../guest-core.ts.
 
 import { callNode } from "../guest-core.js";
-import type { ImageRef, FolderRef } from "../../types.js";
+import type { ImageRef } from "../../types.js";
 
 // Load Model 3D File — nodetool.model3d.LoadModel3DFile
 export type LoadModel3DFileInputs = {
@@ -18,8 +18,8 @@ export function loadModel3DFile(inputs: LoadModel3DFileInputs): Promise<LoadMode
   return callNode<LoadModel3DFileOutputs>("nodetool.model3d.LoadModel3DFile", inputs);
 }
 
-// Save Model 3D File — nodetool.model3d.SaveModel3DFile
-export type SaveModel3DFileInputs = {
+// Save Model 3D — nodetool.model3d.SaveModel3D
+export type SaveModel3DInputs = {
   model?: unknown;
   save_to_workspace?: boolean;
   folder?: string;
@@ -27,23 +27,9 @@ export type SaveModel3DFileInputs = {
   overwrite?: boolean;
 };
 
-export interface SaveModel3DFileOutputs {
-  output: unknown;
-}
-
-export function saveModel3DFile(inputs: SaveModel3DFileInputs): Promise<SaveModel3DFileOutputs> {
-  return callNode<SaveModel3DFileOutputs>("nodetool.model3d.SaveModel3DFile", inputs);
-}
-
-// Save Model3D Asset — nodetool.model3d.SaveModel3D
-export type SaveModel3DInputs = {
-  model?: unknown;
-  folder?: FolderRef;
-  name?: string;
-};
-
 export interface SaveModel3DOutputs {
   output: unknown;
+  path: string;
 }
 
 export function saveModel3D(inputs: SaveModel3DInputs): Promise<SaveModel3DOutputs> {

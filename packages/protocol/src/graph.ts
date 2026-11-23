@@ -336,7 +336,53 @@ export interface NodeTypeMigration {
    * one would silently lose.
    */
   setDynamicSlots?: Record<string, DynamicSlotMeta>;
+  /**
+   * Match only a node whose saved values have this shape. Two entries can
+   * share a `from` when a type kept its name and changed its properties, as
+   * the save nodes did (document editor PRD R27): the first entry whose shape
+   * matches applies, and a node that matches none is left alone.
+   */
+  whenShape?: {
+    /** Property names the saved node must have. */
+    has?: readonly string[];
+    /** Property names the saved node must not have. */
+    lacks?: readonly string[];
+  };
 }
+
+/**
+ * The save nodes merged into one per type (document editor PRD R26, R27).
+ * The `File` variant becomes the plain name, and a plain node saved before
+ * the merge (a `name` and no `filename`) keeps its type with `name` renamed.
+ * Its `folder` keeps the saved folder reference, which the merged node
+ * resolves to that folder's path in the project.
+ */
+const SAVE_NODE_MIGRATIONS: readonly NodeTypeMigration[] = [
+  { from: "nodetool.image.SaveImageFile", to: "nodetool.image.SaveImage" },
+  { from: "nodetool.audio.SaveAudioFile", to: "nodetool.audio.SaveAudio" },
+  { from: "nodetool.video.SaveVideoFile", to: "nodetool.video.SaveVideo" },
+  { from: "nodetool.model3d.SaveModel3DFile", to: "nodetool.model3d.SaveModel3D" },
+  {
+    from: "nodetool.text.SaveTextFile",
+    to: "nodetool.text.SaveText",
+    renameProperties: { name: "filename" }
+  },
+  { from: "nodetool.document.SaveDocumentFile", to: "nodetool.document.SaveDocument" },
+  ...[
+    "nodetool.image.SaveImage",
+    "nodetool.audio.SaveAudio",
+    "nodetool.video.SaveVideo",
+    "nodetool.model3d.SaveModel3D",
+    "nodetool.text.SaveText"
+  ].map(
+    (type): NodeTypeMigration => ({
+      from: type,
+      to: type,
+      renameProperties: { name: "filename" },
+      whenShape: { has: ["name"], lacks: ["filename"] }
+    })
+  )
+];
 
 /**
  * Node types removed in favor of a replacement. Old workflows keep loading
@@ -391,6 +437,8 @@ ${code}`
 }
 
 export const NODE_TYPE_MIGRATIONS: readonly NodeTypeMigration[] = [
+  ...SAVE_NODE_MIGRATIONS,
+
   // FormatText was identical to Prompt apart from its input field name.
   {
     from: "nodetool.text.FormatText",
@@ -839,9 +887,35 @@ return { output: matches };`
   )
 ];
 
-const MIGRATION_BY_FROM: ReadonlyMap<string, NodeTypeMigration> = new Map(
-  NODE_TYPE_MIGRATIONS.map((m) => [m.from, m])
-);
+const MIGRATIONS_BY_FROM: ReadonlyMap<string, readonly NodeTypeMigration[]> = (() => {
+  const byFrom = new Map<string, NodeTypeMigration[]>();
+  for (const migration of NODE_TYPE_MIGRATIONS) {
+    const list = byFrom.get(migration.from) ?? [];
+    list.push(migration);
+    byFrom.set(migration.from, list);
+  }
+  return byFrom;
+})();
+
+/** Whether the node's saved `data` or `properties` hold `key`. */
+function savedHas(node: Record<string, unknown>, key: string): boolean {
+  return (
+    (isRecord(node.data) && key in node.data) ||
+    (isRecord(node.properties) && key in node.properties)
+  );
+}
+
+/** The migration that applies to `node`, if any. */
+function migrationFor(node: Record<string, unknown> & { type: string }): NodeTypeMigration | undefined {
+  return MIGRATIONS_BY_FROM.get(node.type)?.find((migration) => {
+    const shape = migration.whenShape;
+    if (!shape) return true;
+    return (
+      (shape.has ?? []).every((key) => savedHas(node, key)) &&
+      !(shape.lacks ?? []).some((key) => savedHas(node, key))
+    );
+  });
+}
 
 /** Return a renamed copy of `container`, or undefined if nothing changed. */
 function renameKeys(
@@ -882,7 +956,7 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
 
   const nodes = graph.nodes.map((node) => {
     if (!isRecord(node) || !isString(node.type)) return node;
-    const migration = MIGRATION_BY_FROM.get(node.type);
+    const migration = migrationFor(node as Record<string, unknown> & { type: string });
     if (!migration) return node;
     changed = true;
     const next: Record<string, unknown> = { ...node, type: migration.to };

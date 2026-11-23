@@ -112,6 +112,11 @@
       "nodetool-dev": "./src/scratch-keys.ts",
       "types": "./dist/scratch-keys.d.ts",
       "import": "./dist/scratch-keys.js"
+    },
+    "./text-documents": {
+      "nodetool-dev": "./src/text-documents.ts",
+      "types": "./dist/text-documents.d.ts",
+      "import": "./dist/text-documents.js"
     }
   },
   "license": "MIT",

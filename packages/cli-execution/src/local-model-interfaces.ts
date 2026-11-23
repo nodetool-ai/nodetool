@@ -18,8 +18,11 @@ import type { ProcessingContextModelInterfaces } from "@nodetool-ai/runtime";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
 
 export async function localModelInterfaces(): Promise<ProcessingContextModelInterfaces> {
-  const { createAssetModelInterface, updateAssetBytesModelInterface } =
-    await import("@nodetool-ai/asset-services");
+  const {
+    createAssetModelInterface,
+    updateAssetBytesModelInterface,
+    textDocumentModelInterfaces
+  } = await import("@nodetool-ai/asset-services");
   // `createAsset` saves a file into the run's project folder. Loading the
   // folder service installs the resolver asset services reach it through.
   await import("@nodetool-ai/execution/service");
@@ -38,6 +41,7 @@ export async function localModelInterfaces(): Promise<ProcessingContextModelInte
   return {
     createAsset: createAssetModelInterface,
     updateAssetBytes: updateAssetBytesModelInterface,
+    ...textDocumentModelInterfaces(),
     ...documentModelInterfaces()
   };
 }

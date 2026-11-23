@@ -365,6 +365,29 @@ describe("WorkspaceTree", () => {
       expect(usePanelStore.getState().panel.isVisible).toBe(false);
     });
 
+    it("opens a Markdown file in the document editor's text tab", async () => {
+      listFiles.mockResolvedValue([
+        { name: "notes.md", path: "notes.md", is_dir: false, size: 128 }
+      ]);
+      mockActions.assetOfFile.mockResolvedValue({
+        id: "asset-md-1",
+        name: "notes.md",
+        content_type: "text/markdown"
+      });
+      renderTree();
+      await userEvent.dblClick(await screen.findByText("notes.md"));
+
+      await waitFor(() =>
+        expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(1)
+      );
+      expect(useWorkspaceTabsStore.getState().tabs[0]).toMatchObject({
+        type: "text",
+        ref: "asset-md-1",
+        mode: "edit",
+        projectId: "project-a"
+      });
+    });
+
     it("opens an image file as an image asset tab", async () => {
       listFiles.mockResolvedValue([
         { name: "cover.png", path: "cover.png", is_dir: false, size: 2048 }

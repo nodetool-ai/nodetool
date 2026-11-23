@@ -20533,5 +20533,129 @@
       "missingFiles_one": "{{count}} file could not be received.",
       "missingFiles_other": "{{count}} files could not be received."
     }
+  },
+  "documentEditor": {
+    "label": "Document",
+    "placeholder": "Start writing, or type # for a heading",
+    "loadError": "The document could not be loaded.",
+    "rawBlockLabel": "Markdown",
+    "view": {
+      "label": "Document view",
+      "formatted": "Formatted",
+      "markdown": "Markdown"
+    },
+    "toolbar": {
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "bold": "Bold",
+      "italic": "Italic",
+      "strikethrough": "Strikethrough",
+      "inlineCode": "Inline code",
+      "link": "Link",
+      "bulletList": "Bulleted list",
+      "numberedList": "Numbered list",
+      "checkList": "Task list",
+      "quote": "Quote",
+      "codeBlock": "Code block",
+      "table": "Table",
+      "image": "Image",
+      "rule": "Divider"
+    },
+    "insert": {
+      "linkAddress": "Link address",
+      "imagePath": "Image path or URL",
+      "imagePathPlaceholder": "assets/picture.png",
+      "imageAlt": "Description",
+      "removeLink": "Remove link",
+      "applyLink": "Apply",
+      "insertImage": "Insert"
+    },
+    "agent": {
+      "toggle": "Assistant",
+      "welcomeTitle": "Write with the assistant",
+      "welcomeBody": "Ask for a draft, an edit or a review. The assistant sees this document and the text you selected."
+    },
+    "versions": {
+      "toggle": "Version history",
+      "title": "Versions",
+      "name": "Version name",
+      "namePlaceholder": "Name (optional)",
+      "save": "Save version",
+      "restore": "Restore",
+      "loadError": "Versions could not be loaded.",
+      "emptyTitle": "No versions yet",
+      "emptyBody": "A version is kept before each assistant change, when you save one, and every few minutes while you edit.",
+      "versionNumber": "Version {{version}}",
+      "saveTypes": {
+        "agent_turn": "Assistant",
+        "workflow_run": "Workflow run",
+        "manual": "Saved",
+        "autosave": "Interval",
+        "restore": "Before restore"
+      },
+      "usedIn": "Used in workflows: {{count}}"
+    },
+    "changes": {
+      "title": "Marked changes: {{count}}",
+      "show": "Show",
+      "hide": "Hide",
+      "dismiss": "Dismiss",
+      "dismissAll": "Dismiss all",
+      "kinds": {
+        "modified": "Changed",
+        "inserted": "Added",
+        "deleted": "Removed"
+      },
+      "actions": {
+        "modified": "Revert",
+        "inserted": "Remove",
+        "deleted": "Restore"
+      }
+    },
+    "assist": {
+      "proposal": "Proposed replacement",
+      "note": "Note",
+      "discard": "Discard",
+      "close": "Close",
+      "replace": "Replace",
+      "thinking": "Thinking…",
+      "stop": "Stop",
+      "placeholder": "What should change?",
+      "refinePlaceholder": "Refine the answer",
+      "instruction": "Instruction",
+      "send": "Send",
+      "noModel": "Pick a model in the chat first.",
+      "failed": "The request failed."
+    },
+    "resizePanel": "Resize the side panel",
+    "picker": {
+      "label": "Project document",
+      "none": "None",
+      "placeholder": "Pick a project document",
+      "loading": "Loading…",
+      "error": "Documents could not be loaded.",
+      "empty": "No Markdown documents in this project"
+    },
+    "convert": {
+      "label": "Convert to document",
+      "tooltip": "Move this text into a project document and reference it from this node"
+    },
+    "export": {
+      "label": "Export",
+      "pdf": "Export as PDF",
+      "html": "Export as HTML",
+      "googleDoc": "Export to Google Docs"
+    },
+    "importGoogleDoc": {
+      "title": "Import Google Doc",
+      "confirm": "Import",
+      "link": "Google Doc link",
+      "help": "Paste the doc's link from your browser. You need to be signed in with Google."
+    },
+    "import": {
+      "asDocument": "Import as document",
+      "asDocumentTooltip": "Make an editable Markdown document from this file. The file itself is not changed."
+    }
   }
 }
