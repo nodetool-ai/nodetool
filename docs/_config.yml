@@ -312,6 +312,11 @@ exclude:
   - plans/finetune-v4/
   - plans/timeline-player/
   - plans/node-editor-quick-canvas/
+  - plans/music-mode/
+  # Music editor UI spec and agent model routing. They cite native/ and web/
+  # source and excluded engineering docs, which no built page can resolve.
+  - design/MUSIC_EDITOR_UI.md
+  - agent-model-routing.md
   # Native runner and editor plans. They cite native/ and web/ source, which
   # no built page can resolve, and only each other link to them.
   - plans/audio-signal-nodes.md
