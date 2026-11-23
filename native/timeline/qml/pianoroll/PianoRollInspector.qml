@@ -41,6 +41,8 @@ Rectangle {
             id: column
             width: scroll.availableWidth
             padding: Ui.Metrics.md
+            // Room under the last section, so the Note fields never sit on the panel edge.
+            bottomPadding: Ui.Metrics.xxxl
             spacing: Ui.Metrics.sm
             readonly property real inner: width - 2 * padding
 

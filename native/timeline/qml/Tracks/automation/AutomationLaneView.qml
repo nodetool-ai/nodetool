@@ -142,7 +142,9 @@ Rectangle {
             ctx.lineTo(width,root.spec?root.yOf(last.value):28)
             ctx.strokeStyle=stroke; ctx.lineWidth=1.5
             ctx.stroke()
-            ctx.globalAlpha=.12; ctx.fillStyle=stroke; ctx.fillRect(0,0,width,height)
+            // The area under the curve carries a light tint, so the lane reads as a level, not a box.
+            ctx.lineTo(width,height); ctx.lineTo(ps.length ? Math.min(0,vertices[0].timeMs/root.msPerPx-curve.x) : 0,height); ctx.closePath()
+            ctx.globalAlpha=root.on ? .16 : .06; ctx.fillStyle=stroke; ctx.fill()
             ctx.globalAlpha=1
             ps.forEach(function(p,i) {
                 ctx.beginPath(); ctx.arc(p.timeMs/root.msPerPx-curve.x,root.yOf(p.value),Ui.Metrics.sm/2,0,2*Math.PI)

@@ -1,3 +1,4 @@
+#include <QDir>
 #include "../../../tests/TestAssetCacheRoot.h"
 #include "audio/automation/Automation.h"
 #include "audio/automation/MeterReadings.h"
@@ -950,6 +951,29 @@ TracksRegion { anchors.fill:parent; timeline:host.timeline; clock:host.clock }
         click("show-automation");
         QTRY_COMPARE(below->mapToScene({0,0}).y(),item("trackHeader-a")->mapToScene({0,item("trackHeader-a")->height()}).y());
         QTRY_COMPARE(below->mapToScene({0,0}).y(),belowLane->mapToScene({0,0}).y());
+    }
+    // A review screenshot of two shown lanes with points, written when NT_PANEL_SCREENSHOTS is set.
+    void automationReviewScreenshot() {
+        auto raw=doc(); auto tracks=raw["tracks"].toArray(); auto first=tracks[0].toObject();
+        first["automation"]=QJsonArray{
+            QJsonObject{{"id","lane"},{"target",QJsonObject{{"kind","mixer"},{"param","volumeDb"}}},{"points",QJsonArray{
+                QJsonObject{{"timeMs",500},{"value",-12}},QJsonObject{{"timeMs",2500},{"value",0}},QJsonObject{{"timeMs",4000},{"value",-6}},QJsonObject{{"timeMs",6500},{"value",-24}}}}},
+            QJsonObject{{"id","pan"},{"target",QJsonObject{{"kind","mixer"},{"param","pan"}}},{"points",QJsonArray{
+                QJsonObject{{"timeMs",1000},{"value",-0.5}},QJsonObject{{"timeMs",5000},{"value",0.6}}}}}};
+        tracks[0]=first; raw["tracks"]=tracks;
+        raw["clips"]=QJsonArray{QJsonObject{{"id","c"},{"trackId","a"},{"name","Vox"},{"mediaType","audio"},{"status","generated"},{"startMs",0},{"durationMs",7000}}};
+        const auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        QVERIFY(openTracks(true));
+        QTRY_VERIFY(item("automation-lane-pan"));
+        window->resize(1100,420); qobject_cast<QQuickItem*>(root.get())->setSize({1100,420});
+        const auto folder=qEnvironmentVariable("NT_PANEL_SCREENSHOTS");
+        if (folder.isEmpty()) { return; }
+        QVERIFY(QDir().mkpath(folder));
+        QTest::qWait(150);
+        QImage image;
+        QTRY_VERIFY_WITH_TIMEOUT(([&] { window->requestUpdate(); image=window->grabWindow(); return !image.isNull(); })(),2000);
+        QVERIFY(image.save(QDir(folder).filePath("automation-lanes.png")));
     }
     void toolbarHasNoAutomationMenu() {
         QVERIFY(open(R"(MixerToolbar { required timeline })"));

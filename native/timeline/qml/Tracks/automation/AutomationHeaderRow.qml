@@ -17,7 +17,25 @@ Item {
     readonly property color modeColor: ({off:Ui.Theme.textDisabled,read:Ui.Theme.statusSuccess,touch:Ui.Theme.statusWarning,latch:Ui.Theme.accentSecondary,write:Ui.Theme.statusError})[mode]
     objectName: (main ? "automation-row-" : "automation-header-") + (main ? track.id : lane ? lane.id : "")
     implicitHeight: Ui.Metrics.standard
+    // The parameter column starts at one x on the main row and every sub-lane row.
+    readonly property real parameterX: Ui.Metrics.small + Ui.Metrics.xxxl * 2
     AutomationController { id: controller; timeline: root.timeline; trackId: root.track.id || "" }
+    // A sub-lane row is a raised strip with the parameter colour at its left edge.
+    Rectangle {
+        anchors.fill: parent
+        visible: !root.main
+        color: Ui.Theme.surfacePanel
+        Rectangle {
+            x: root.parameterX - Ui.Metrics.md
+            width: Ui.Metrics.micro
+            height: parent.height - 2 * Ui.Metrics.sm
+            anchors.verticalCenter: parent.verticalCenter
+            radius: Ui.Metrics.radiusControl
+            color: root.parameterColor
+            opacity: root.activeLane && root.activeLane.enabled === false ? 0.35 : 1
+        }
+        Ui.Separator { anchors.bottom: parent.bottom; width: parent.width }
+    }
     AutomationReadout {
         id: reading
         timeline: root.timeline
@@ -62,15 +80,25 @@ Item {
     Ui.EditorButton {
         id: parameter
         objectName: "automation-parameter-" + (root.main ? root.track.id : root.lane ? root.lane.id : "")
-        x: root.main ? modeButton.x + modeButton.width : Ui.Metrics.xs
-        width: Math.max(Ui.Metrics.small, parent.width-x-valueLabel.width-Ui.Metrics.xs)
+        x: root.main ? modeButton.x + modeButton.width + Ui.Metrics.xs : root.parameterX
+        width: Math.max(Ui.Metrics.small, parent.width-x-valueLabel.width-Ui.Metrics.sm)
         anchors.verticalCenter: parent.verticalCenter
         density: Ui.EditorButton.Compact
+        variant: Ui.EditorButton.Flat
         accessibleName: "Automation parameter: " + (root.spec ? root.spec.label : "Removed device")
         onClicked: parameterMenu.openAt(parameter)
+        Ui.Icon {
+            anchors.right: parent.right
+            anchors.rightMargin: Ui.Metrics.micro
+            anchors.verticalCenter: parent.verticalCenter
+            name: "arrowDropDown"
+            size: Ui.Metrics.iconSm
+            tone: Ui.Text.Secondary
+        }
         Ui.Text {
             anchors.fill: parent
-            anchors.margins: Ui.Metrics.xs
+            anchors.leftMargin: Ui.Metrics.sm
+            anchors.rightMargin: Ui.Metrics.iconSm + Ui.Metrics.micro
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
             role: Ui.Typography.SansCaption
@@ -84,6 +112,7 @@ Item {
         anchors.rightMargin: Ui.Metrics.xs
         anchors.verticalCenter: parent.verticalCenter
         width: Ui.Metrics.xxxl * 2
+        horizontalAlignment: Text.AlignRight
         role: Ui.Typography.MonoCaption
         domainColor: root.parameterColor
         text: root.spec ? Targets.format(root.spec,reading.value) : ""

@@ -9,10 +9,18 @@ Item {
     id: row
     required property var panel
     required property var lane
+    required property int index
     property bool pooled: false
     ListView.onPooled: row.pooled = true
     ListView.onReused: { row.pooled = false; beams.requestPaint(); }
+    onIndexChanged: beams.requestPaint()
     readonly property bool selected: panel.keyOf(lane) === panel.selectedLaneKey
+    // The header column is a raised strip, so lane names read apart from the steps.
+    Rectangle {
+        width: row.panel.nameWidth
+        height: parent.height
+        color: row.selected ? Ui.Theme.actionSelected : Ui.Theme.surfacePanel
+    }
     // The lane header: a flat button with a left-aligned name. The selected lane carries the
     // accent bar at its left edge and the selected shade across header and steps.
     Ui.EditorButton {
@@ -29,6 +37,15 @@ Item {
             row.panel.forceActiveFocus();
             row.panel.selectLane(row.lane);
         }
+    }
+    // A named drum lane also shows its note, right-aligned, as a DAW step editor does.
+    Ui.Text {
+        x: row.panel.nameWidth - width - Ui.Metrics.md
+        anchors.verticalCenter: parent.verticalCenter
+        visible: !!row.lane && row.lane.type === "note" && text !== row.panel.laneName(row.lane)
+        text: row.lane && row.lane.type === "note" ? Notes.pitchName(row.lane.pitch) : ""
+        role: Ui.Typography.MonoCaption
+        tone: Ui.Text.Secondary
     }
     Rectangle {
         width: Ui.Metrics.micro
@@ -65,8 +82,15 @@ Item {
         onPaint: {
             const ctx = getContext("2d");
             ctx.reset();
+            // Alternate rows carry a faint band, so a beam is easy to follow to its lane.
             ctx.fillStyle = row.selected ? Ui.Theme.actionSelected : Ui.Theme.surfaceCanvas;
             ctx.fillRect(0, 0, width, height);
+            if (!row.selected && row.index % 2 === 1) {
+                ctx.globalAlpha = 0.35;
+                ctx.fillStyle = Ui.Theme.surfacePanel;
+                ctx.fillRect(0, 0, width, height);
+                ctx.globalAlpha = 1;
+            }
             const lane = row.lane, panel = row.panel;
             if (!lane || row.pooled) { return; }
             const settings = panel.laneSettings(lane), range = panel.laneRange(lane);
@@ -77,6 +101,16 @@ Item {
                 ctx.fillRect(Math.round((tick - panel.scrollTick) * panel.pxPerTick), 0, Ui.Metrics.border, height);
             }
             if (panel.midi.valid) {
+                // Beat lines sit between the step and the bar lines.
+                const beat = panel.midi.gridStepTicks("beat");
+                if (beat > step && beat * panel.pxPerTick >= Ui.Metrics.xs) {
+                    ctx.fillStyle = Ui.Theme.borderStrong;
+                    ctx.globalAlpha = 0.35;
+                    for (const tick of Tools.stepLineTicks(panel.scrollTick, end, beat, panel.phase)) {
+                        ctx.fillRect(Math.round((tick - panel.scrollTick) * panel.pxPerTick), 0, Ui.Metrics.border, height);
+                    }
+                    ctx.globalAlpha = 1;
+                }
                 // Bar lines match the piano roll: the strong border at partial opacity.
                 ctx.fillStyle = Ui.Theme.borderStrong;
                 ctx.globalAlpha = 0.75;
