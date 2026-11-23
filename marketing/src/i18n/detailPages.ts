@@ -20,6 +20,10 @@ import zhStoryboards from "./zh/details/storyboards.json";
 import zhAdLibrary from "./zh/details/adLibrary.json";
 import zhRecipes from "./zh/details/recipes.json";
 import { ZH_AD_LABELS, ZH_RECIPE_LABELS, ZH_STORYBOARD_LABELS } from "./zh/detailLabels";
+import jaStoryboards from "./ja/details/storyboards.json";
+import jaAdLibrary from "./ja/details/adLibrary.json";
+import jaRecipes from "./ja/details/recipes.json";
+import { JA_AD_LABELS, JA_RECIPE_LABELS, JA_STORYBOARD_LABELS } from "./ja/detailLabels";
 
 type DetailText = {
   storyboards: Record<string, StoryboardText>;
@@ -28,11 +32,16 @@ type DetailText = {
 };
 
 /** Locales with translated detail pages; see TRANSLATED_DETAIL_SECTIONS. */
-export const DETAIL_TEXT: Partial<Record<Locale, DetailText>> & { zh: DetailText } = {
+export const DETAIL_TEXT: Partial<Record<Locale, DetailText>> & { zh: DetailText; ja: DetailText } = {
   zh: {
     storyboards: zhStoryboards as Record<string, StoryboardText>,
     adLibrary: zhAdLibrary as unknown as Record<string, AdText>,
     recipes: zhRecipes as unknown as Record<string, RecipeText>,
+  },
+  ja: {
+    storyboards: jaStoryboards as Record<string, StoryboardText>,
+    adLibrary: jaAdLibrary as unknown as Record<string, AdText>,
+    recipes: jaRecipes as unknown as Record<string, RecipeText>,
   },
 };
 
@@ -40,6 +49,7 @@ type Labels = { storyboard: StoryboardLabels; ad: AdLabels; recipe: RecipeLabels
 
 const LABELS: Partial<Record<Locale, Labels>> = {
   zh: { storyboard: ZH_STORYBOARD_LABELS, ad: ZH_AD_LABELS, recipe: ZH_RECIPE_LABELS },
+  ja: { storyboard: JA_STORYBOARD_LABELS, ad: JA_AD_LABELS, recipe: JA_RECIPE_LABELS },
 };
 
 function labels(locale: Locale): Labels {

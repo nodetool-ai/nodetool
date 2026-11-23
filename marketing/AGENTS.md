@@ -177,13 +177,14 @@ set in `src/data/languagePages.ts` and pair with the home page.
   the path. Their strings are in `src/i18n/<locale>/chrome.ts`, and the
   catalog card words are in `LocalizedCatalog.tsx`. An English page shows a
   switch to each of its translations.
-- Detail pages (`/zh/storyboards/<slug>`, `/zh/recipes/<slug>`,
-  `/zh/ad-library/<slug>`) render the English page's component with a
-  translated entry. `src/i18n/details.ts` picks each entry's visible text, the
-  translation in `src/i18n/zh/details/*.json` holds that shape per slug, and
-  the page's fixed words are in `src/i18n/zh/detailLabels.ts`.
+- Detail pages (`/<locale>/storyboards/<slug>`, `/<locale>/recipes/<slug>`,
+  `/<locale>/ad-library/<slug>`, in Chinese and Japanese) render the English
+  page's component with a translated entry. `src/i18n/details.ts` picks each
+  entry's visible text, the translation in `src/i18n/<locale>/details/*.json`
+  holds that shape per slug, and the page's fixed words are in
+  `src/i18n/<locale>/detailLabels.ts`.
   `TRANSLATED_DETAIL_SECTIONS` lists the sections.
-  `tests/e2e/zh-detail-pages.spec.ts` fails when an English entry gains,
+  `tests/e2e/localized-detail-pages.spec.ts` fails when an English entry gains,
   loses or renames a shot, beat, step or slug, so translate the change in the
   same PR. Recipe step diagrams and example briefs stay in the run's English.
 
