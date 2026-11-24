@@ -688,7 +688,7 @@ Item {
     void stepReviewPainting() {
         QFETCH(bool, frames);
         QFile file(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath("../../qml/pianoroll/StepEditorRow.qml"));
-        QVERIFY(file.open(QIODevice::ReadOnly));
+        QVERIFY(file.open(QIODevice::ReadOnly | QIODevice::Text));
         const auto source=QString::fromUtf8(file.readAll());
         const auto start=source.indexOf("onPaint: {")+QStringLiteral("onPaint: {").size();
         const auto end=source.lastIndexOf("        }\n    }\n}");
@@ -719,7 +719,7 @@ Item {
 
     void stepReviewRulerLabels() {
         QFile file(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath("../../qml/pianoroll/StepEditorPanel.qml"));
-        QVERIFY(file.open(QIODevice::ReadOnly));
+        QVERIFY(file.open(QIODevice::ReadOnly | QIODevice::Text));
         const auto source=QString::fromUtf8(file.readAll());
         const auto marker=source.indexOf("id: rulerCanvas");
         const auto start=source.indexOf("onPaint: {",marker)+QStringLiteral("onPaint: {").size();
