@@ -689,6 +689,7 @@
         "packages/mutator/src/**",
         "packages/node-catalog/src/**",
         "packages/nodes-utils/src/**",
+        "packages/pack-core/src/**",
         "packages/pack-host/src/**",
         "packages/provider-anthropic/src/**",
         "packages/realtime-compiler/src/**",
