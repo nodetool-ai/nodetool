@@ -1,51 +1,49 @@
 ---
 layout: page
-title: "Performance, Validation, and Debugging"
+title: "Performance and Debugging"
 permalink: /game-engine/debugging
-description: "Validate documents, inspect runtime failures, measure frames, and verify exported games."
+description: "Find script errors with the editor Console, watch frame cost in the Profiler, and keep large 3D scenes within budget."
 ---
 
-Each check covers one failure boundary:
+![Game editor with scene tree, inspector, assets, and status line](/assets/screenshots/game-editor.png)
 
-| Boundary | Command |
-|---|---|
-| Document | `nodetool game validate game.json --json` |
-| Gameplay | `nodetool game simulate game.json --ticks 600 --inputs route.json --json` |
-| Renderer | `nodetool game capture game.json --ticks 60 --out frame.png` |
-| Tick cost | `nodetool game bench game.json --fail-on-budget` |
-| Frame cost | `nodetool game perf game.json --fail-on-budget` |
-| Exported player | `nodetool game smoke game-build --json` |
+*The game editor. The Console and Profiler are panels in the same editor.*
 
-Browser play checks input and audio. No command covers them.
+## Console
 
-![Existing game editor with scene tree, inspector, assets, and diagnostic status](/assets/screenshots/game-editor.png)
+The **Console** panel collects messages while the game plays. Each line has a level (Error, Warning, or Log) and comes from a script, the runtime, a validation check, a build, or a diagnostic run.
 
-*The status line reports an unavailable GPU-effects path rather than silently claiming it rendered. [Screenshot provenance](/game-engine/screenshots).*
+- Use the level buttons to hide or show one level, the **Filter** box to search, and **Clear** to empty the list.
+- A line that repeats is shown once with a count.
+- A line that belongs to an entity has a link that selects it. **Ask the assistant** sends the line to the agent.
 
-## Find the first failure
+When a script fails, the script editor shows the error and the tick where it happened. **Replay to tick** runs the game up to the tick before the failure. **Run 10 s** in the script editor header plays 10 seconds in a separate session so you can try a script change without touching your current play session. If a script fails to compile after a change, the previous version keeps running.
 
-Read the diagnostic path from `validate` and fix the referenced field. Then simulate a short recorded input sequence. Preserve the seed and inputs when comparing a fix.
+## Profiler
 
-The editor Console shows validation failures, script errors with entity and tick, log messages, reload errors, and diagnostic runs. **Run 10 s** uses an independent session. **Replay to tick** returns to an earlier point after a script failure. A script hot-reload compilation error keeps the previous source active.
+Open the **Profiler** panel and press Play. It records every tick while the panel is open. It shows:
 
-For 3D appearance, capture through the actual WebGL2 renderer and inspect the image. A capture report includes capabilities, state hash, bounds, and rendering statistics. Missing required assets, unsupported rendering features, or unavailable Chromium should produce explicit errors.
+- **Frame time** and the tick budget for the game's tick rate.
+- **Simulation CPU** per system, and **Scripts** time per entity with call counts.
+- **Rendering** draw calls, triangles, and texture and geometry memory. These are not reported in 2D.
+- **Physics and audio** counts: bodies, contacts, and audio voices.
 
-## Measure the relevant work
+**Record** and **Stop** make a capture, **Export JSON** saves it, and **Clear** resets the totals.
 
-Runtime timing records separate simulation systems. Use the game benchmark command described in the [renderer reference](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-renderer/README.md) for warmed measurements and allocation information. The editor Profiler presents runtime and rendering information while playing.
+## Hide distant objects in 3D
 
-Measure under a known renderer and host load. A software WebGL adapter and a hardware GPU are not interchangeable performance evidence. Preserve the original fixture, input count, and time limits when diagnosing a regression.
+Distance culling stops drawing an entity when it is farther from the game camera than a set distance. It only affects what is drawn. Physics and scripts keep running for hidden entities, and the editor's inspection camera ignores culling.
 
-## Cull presentation, not gameplay
+Culling is a 3D document setting. The editor has no field for it, so ask the agent to set it or edit the document.
 
-3D `performance.cullLayers` declares named maximum distances. An entity can select a layer or set its own `renderCulling.maxDistance`. The nearest setting in its parent chain wins. Distance is measured from the entity origin to the game camera.
+- `performance.cullLayers` names distance presets, for example `{ "small-props": { "maxDistance": 60 } }`.
+- An entity picks a preset with `renderCulling.layer`, or sets its own distance with `renderCulling.maxDistance`. Its own distance wins over the preset.
+- If an entity sets neither, the nearest parent that does applies to it. Hiding a parent hides its children.
 
-Use this for small decoration. A large building can disappear while its nearest wall is still close to the camera because its origin is far away. Do not hide an essential objective or player. Culling changes visibility only. Physics and scripts continue. The editor inspection camera bypasses distance culling.
+Distance is measured from the entity's origin, not its nearest surface. A large building can vanish while one wall is still close, so use culling for small decoration and never for the player or an objective.
 
-Frame budgets cover draw calls, triangles, particles, and audio voices. Omitted settings use player defaults. Overruns produce diagnostics rather than silently reducing the game. The document has no general quality-tier field.
+## Frame budgets
 
-## Recheck the whole route
+`performance.budgets` in a 3D document sets limits for draw calls, triangles, particles, audio voices, tick time (`tickMs`, default 4 ms), and frame time (`frameMs`, default 16.6 ms). Players log a warning to the browser console when a frame goes over a count budget. Settings you omit use the defaults. A budget never lowers quality on its own.
 
-After a fix, verify objective order, failure recovery, and [snapshot replay](/game-engine/saves-replay). Capture meaningful ticks and smoke-test the exported build. Keep exact commands, source revision, inputs, seed, renderer, and exit statuses with the result.
-
-The [CLI reference](/cli#nodetool-game) and [native game pipeline](/harnesses#native-game-pipeline-templates-staging-playtest-web-build) describe validation, simulation, capture, and export options.
+To check budgets from the command line, see [Game Testing and Replay](/developer/game-testing).

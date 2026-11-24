@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "ComfyUI Recipes"
-description: "What a ComfyUI workflow is good for once it is a node in a NodeTool graph: LLM-written prompts, batches, stored assets, cuts, mini apps, and running the whole thing from the CLI, the DSL, or the API."
+description: "What a ComfyUI workflow is good for once it is a node in a NodeTool graph: LLM-written prompts, batches, stored assets, cuts, mini apps, and chat."
 ---
 
 Patterns for what surrounds a ComfyUI node: where the prompt comes from, how often it runs, where the files go, and what triggers it. For the nodes and their properties see [ComfyUI](comfyui.md), and for the server see [ComfyUI Setup](comfyui-setup.md).
@@ -40,22 +40,21 @@ Two facts shape every recipe below:
 into the ComfyUI graph, so one saved workflow covers a brief rather than a
 sentence.
 
-**Nodes.** `nodetool.input.StringInput`, `nodetool.agents.EnhancePrompt`,
-`lib.comfy.RunWorkflow`, `nodetool.output.Output`
+**Nodes.** String Input, Enhance Prompt, Run ComfyUI Workflow, Output
 
 {% mermaid %}
 graph LR
-  brief["StringInput (Brief)"]
-  enhance["EnhancePrompt (target: image)"]
-  comfy["RunWorkflow"]
+  brief["String Input (Brief)"]
+  enhance["Enhance Prompt (target: image)"]
+  comfy["Run ComfyUI Workflow"]
   out["Output"]
   brief --> enhance -->|text| comfy
   comfy -->|"9:image"| out
 {% endmermaid %}
 
-**Wiring.** `EnhancePrompt`'s `text` output goes to the comfy node's `6:text`
-handle. `nodetool.agents.Agent` works the same way when you want tools or a
-system prompt, and its `text` output is the one to wire.
+**Wiring.** Enhance Prompt's `text` output goes to the ComfyUI node's `6:text`
+handle. An Agent node works the same way when you want tools or a system
+prompt, and its `text` output is the one to wire.
 
 **Watch out.** A negative prompt is a second `CLIPTextEncode` with its own id
 and its own handle. Leaving it unconnected keeps its exported text, so driving
@@ -67,31 +66,30 @@ only the positive one is the usual arrangement.
 
 **What it does.** The same diffusion graph runs once per item, unattended.
 
-**Nodes.** `nodetool.input.StringInput`, `nodetool.generators.ListGenerator`,
-`lib.comfy.RunWorkflow`, `nodetool.control.Collect`, `nodetool.output.Output`
+**Nodes.** String Input, List Generator, Run ComfyUI Workflow, Collect, Output
 
 {% mermaid %}
 graph LR
-  brief["StringInput (Brief)"]
-  list["ListGenerator (streams item)"]
-  comfy["RunWorkflow"]
+  brief["String Input (Brief)"]
+  list["List Generator (streams item)"]
+  comfy["Run ComfyUI Workflow"]
   collect["Collect"]
   out["Output"]
   brief --> list -->|item| comfy
   comfy -->|"9:image"| collect --> out
 {% endmermaid %}
 
-**Wiring.** `ListGenerator` emits `item` (a string) once per generated line, and
-each item drives one run of the comfy node. `nodetool.control.ForEach` does the
-same for a list you already have, and `nodetool.image.LoadImageAssets` does it
-for a folder of image assets, streaming `image` and `name` per file.
-`nodetool.control.Collect` gathers the results back into one list.
+**Wiring.** List Generator emits `item` (a string) once per generated line, and
+each item drives one run of the ComfyUI node. For Each does the same for a list
+you already have, and Load Image Assets does it for a folder of image assets,
+streaming `image` and `name` per file. Collect gathers the results back into
+one list.
 
 **Watch out.** Every run gets its own `timeout`, not a shared one, so a
 fifty-item batch on a 600 second timeout can take hours before anything fails.
 On Comfy Cloud, the plan's concurrent-job limit (1, 3, or 5) is the real width
-of the fan-out: a full queue answers `429`, the SDK retries for 60 seconds, and
-then the node fails with `Comfy queue is full`.
+of the fan-out: when the queue stays full for a minute, the node fails with
+`Comfy queue is full`.
 
 ---
 
@@ -100,31 +98,27 @@ then the node fails with `Comfy queue is full`.
 **What it does.** Feeds a NodeTool image asset into a `LoadImage` node and puts
 what comes back into an asset folder.
 
-**Nodes.** `nodetool.input.ImageInput`, `lib.comfy.RunWorkflow`,
-`nodetool.image.SaveImage`
+**Nodes.** Image Input, Run ComfyUI Workflow, Save Image
 
 {% mermaid %}
 graph LR
-  input["ImageInput"]
-  comfy["RunWorkflow"]
-  save["SaveImage (folder, name)"]
+  input["Image Input"]
+  comfy["Run ComfyUI Workflow"]
+  save["Save Image (folder, name)"]
   input -->|"10:image"| comfy
   comfy -->|"9:image"| save
 {% endmermaid %}
 
-**Wiring.** A connected image, audio, or video ref is uploaded to the ComfyUI
-server before the prompt is submitted (`POST /upload/image`, which ComfyUI
-accepts for any input file) and the stored filename is substituted into the
-prompt. On Comfy Cloud the same ref goes through the SDK's asset API and is
-deduplicated by a blake3 hash of the bytes, so re-running with the same file
-uploads nothing the second time.
+**Wiring.** A connected image, audio, or video is uploaded to the ComfyUI
+server before the workflow runs, and the uploaded file replaces the one named in
+the workflow. On Comfy Cloud, re-running with the same file uploads nothing the
+second time.
 
-**Watch out.** Outputs arrive as media refs carrying the bytes, not as saved
-assets. Nothing is written to your asset library until a node writes it, which
-is what `nodetool.image.SaveImage` is for (`nodetool.video.SaveVideo` for
-video). And a `LoadImage` field you leave as a literal filename still resolves
-against the ComfyUI server's own input directory, which is why an unwired
-workflow keeps working and a wired one replaces the file.
+**Watch out.** Outputs arrive as media in the run, not as saved assets. Nothing
+is written to your asset library until a node writes it, which is what Save
+Image is for (Save Video for video). And a `LoadImage` field you leave
+unconnected still resolves against the ComfyUI server's own input folder, which
+is why an unwired workflow keeps working and a wired one replaces the file.
 
 ---
 
@@ -133,29 +127,26 @@ workflow keeps working and a wired one replaces the file.
 **What it does.** A batch of stills out of ComfyUI becomes a video without a
 second tool.
 
-**Nodes.** `lib.comfy.RunWorkflow`, `nodetool.video.FrameToVideo`,
-`nodetool.output.Output`
+**Nodes.** Run ComfyUI Workflow, Frame To Video, Output
 
 {% mermaid %}
 graph LR
-  comfy["RunWorkflow (SaveImage batch)"]
-  frames["FrameToVideo (fps)"]
+  comfy["Run ComfyUI Workflow (SaveImage batch)"]
+  frames["Frame To Video (fps)"]
   out["Output (Video)"]
   comfy -->|"9:image"| frames --> out
 {% endmermaid %}
 
-**Wiring.** The comfy node emits one media ref per output file on the same
-slot, so a batch of four images is four frames rather than one list.
-`nodetool.video.FrameToVideo` takes a streamed input and collects them into a
-video at the `fps` you set. For a timeline instead of a flat encode, send the
-slot through `nodetool.control.Collect` into `nodetool.timeline.AddClips`
-(which has an `image_duration_ms` property) and render it with
-`nodetool.timeline.RenderTimeline`.
+**Wiring.** The ComfyUI node emits one result per output file on the same
+slot, so a batch of four images is four frames rather than one list. Frame To
+Video takes the stream and collects the frames into a video at the `fps` you
+set. For a timeline instead of a flat encode, send the slot through Collect into
+Add Clips To Timeline (which has an `image_duration_ms` property) and render it
+with Render Timeline.
 
-**Watch out.** Nodes ComfyUI serves from its cache never emit an `executed`
-event, so their files are reconciled from `/history/<prompt_id>` after the run
-rather than streamed during it. A fully cached batch therefore arrives all at
-once at the end. Frame order follows emission order, so a graph with several
+**Watch out.** Nodes that ComfyUI serves from its cache are collected after the
+run rather than streamed during it, so a fully cached batch arrives all at once
+at the end. Frame order follows emission order, so a graph with several
 save nodes gives you several slots to wire separately rather than one ordered
 stream.
 
@@ -173,8 +164,8 @@ comfy slot. [App Builder](app-builder.md) covers the editor, and
 [Mini Apps](mini-apps.md) covers how one runs.
 
 **Watch out.** Widgets wire to Input and Output nodes, not to comfy handles, so
-every parameter the form should expose needs its own `nodetool.input.*` node in
-front of the handle. Publishing locks in the current state of every workflow the
+every parameter the form should expose needs its own Input node in front of
+the handle. Publishing locks in the current state of every workflow the
 app runs, so a later edit to the graph does not reach the published app until
 you publish again.
 
@@ -197,155 +188,28 @@ reachable from the backend rather than only from your machine.
 
 ## Running it without the editor
 
-### The CLI harnesses
-
-`validate` first, because it costs nothing:
-
-```bash
-npm run dev:nodetool -- validate <workflow_id>
-npm run dev:nodetool -- validate comfy-graph.json --json
-```
-
-It checks the **NodeTool** graph: unknown node types, missing required
-properties, dangling or mis-typed edges, and model properties naming a provider
-or a model id that does not exist (which is what catches a bad model on the
-`EnhancePrompt` node in Recipe 1). It never opens a socket to ComfyUI, so
-everything inside the `workflow` string is invisible to it. A missing
-checkpoint, an uninstalled custom node, and a `class_type` that server does not
-have all pass validation and fail at submit with `Submit failed (400)`. An empty
-`workflow` property passes too, and the node raises
-`ComfyUI workflow is required` at run time.
-
-Then `debug`, which runs the graph and keeps everything it emitted:
-
-```bash
-npm run dev:nodetool -- debug <workflow_id>
-npm run dev:nodetool -- debug comfy-graph.json --params '{"brief":"a red bicycle"}'
-npm run dev:nodetool -- debug <workflow_id> --trace
-```
-
-The bundle's `server/messages.jsonl` holds the ComfyUI lifecycle the node
-forwards into the run log: execution start, the count of reused nodes, the class
-name of each executing node, sampler progress, and the error text ComfyUI
-returned. That is the ComfyUI console without a ComfyUI browser tab.
-`--watch` re-runs a file target on every save and prints a diff of the verdict.
-
-To just run it:
-
-```bash
-npm run dev:nodetool -- workflows run <workflow_id> --params '{"brief":"a red bicycle"}'
-npm run dev:nodetool -- run comfy-graph.ts --json
-```
-
-With `--json`, an image or video payload over 64 KiB is written to
-`nodetool-output/<job_id>/payload-N.<ext>` and appears as a `{"$file": …}`
-reference instead of being inlined. Flag reference:
-[CLI › validate](cli.md#nodetool-validate-workflow_id_or_file),
-[CLI › debug](cli.md#nodetool-debug-workflow_id_or_file),
-[Harness reference](harnesses.md).
-
-### The DSL
-
-`packages/dsl/src/generated/lib.comfy.ts` exports one function per node:
-`runWorkflow`, `runWorkflowOnWorker`, and `runWorkflowOnCloud`. A file like this
-runs with `nodetool run`:
-
-```typescript
-import { libComfy, output, workflow } from "@nodetool-ai/dsl";
-
-const prompt = {
-  "3": {
-    class_type: "KSampler",
-    inputs: { seed: 42, steps: 20, cfg: 7, model: ["4", 0] }
-  }
-};
-
-const comfy = libComfy.runWorkflow({
-  endpoint: "127.0.0.1:8188",
-  workflow: JSON.stringify(prompt),
-  timeout: 600
-});
-
-export const comfyRun = workflow(
-  output.output({ name: "result", value: comfy.output() })
-);
-```
-
-**Dynamic inputs type-check, dynamic outputs do not resolve.** Because the node
-supports dynamic inputs, `RunWorkflowInputs` names the four static properties
-(`endpoint`, `api`, `workflow`, `timeout`) and also has a
-`[name: string]: unknown` index signature, so a `"6:text"` key compiles. A
-literal under that key is stored as a dynamic property and injected into
-`prompt["6"].inputs.text` at run time. An upstream node's output handle under a
-key such as `"10:image"` becomes an edge into that handle, which is how a
-NodeTool media ref reaches a `Load*` node.
-
-The generated function declares one output slot, `output`, which carries the raw
-ComfyUI history (the job manifest when `api` is `v2`). It declares none of the `<comfyNodeId>:<kind>` slots, because
-they come from a workflow the generator has never seen, and
-`comfy.output("9:image")` throws `Unknown output slot '9:image'`. A DSL script
-therefore cannot select the per-file image, audio or video slots. Two ways
-around it:
-
-1. **Read `output`** when the script only needs ComfyUI's history payload.
-2. **Author the graph in the editor** when downstream nodes need the media on a
-   save slot. Run the saved graph by id from the CLI or the API.
-
-### The API
-
-A saved workflow containing a ComfyUI node runs like any other:
-
-```bash
-curl -X POST "http://localhost:7777/api/workflows/YOUR_WORKFLOW_ID/run" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"params": {"brief": "a red bicycle"}}'
-```
-
-The response is one JSON object with `job_id`, `workflow_id`, `status`,
-`outputs`, `error`, `message_count`, and `background`. `outputs` is keyed by
-output-node name, so the comfy slot reaches the caller under whatever you named
-the `nodetool.output.Output` node wired to it.
-
-`params` is keyed by **input-node name**, not by comfy handle. A workflow whose
-`6:text` is fed by a literal takes no parameter at all. Put a
-`nodetool.input.StringInput` in front of the handle and its `name` becomes the
-key. The route does not stream, so per-node progress and the ComfyUI lifecycle
-lines need the `/ws` WebSocket instead. Full shapes:
-[API Reference](api-reference.md), [WebSocket API](websocket-api.md).
+To run a graph with a ComfyUI node from the command line, a TypeScript script or the HTTP API, see [ComfyUI from Code](developer/comfyui.md#running-it-without-the-editor).
 
 ---
 
 ## Cost, time, and failure
 
-**Cost.** No ComfyUI run writes a provider cost record, on any of the three
-nodes, so `nodetool costs` shows nothing for one. A direct or worker run is
-billed by whoever owns the GPU. A Comfy Cloud run is billed per GPU second by
-plan, and Comfy's v2 job response carries no cost field, so the node records the
-job id and no charge amount. The run log line `Comfy job <id> submitted` is the
-join key against Comfy's own billing. See
-[Known limitations](comfyui.md#known-limitations).
+**Cost.** No ComfyUI run writes a cost record, so `nodetool costs` shows nothing
+for one. A run on your own server or a worker is billed by whoever owns the GPU.
+A Comfy Cloud run is billed per GPU second by plan. The node records Comfy's job
+id in the run log (`Comfy job <id> submitted`), which you can match against
+Comfy's own billing. See [Known limitations](comfyui.md#known-limitations).
 
-**Time.** All three nodes default `timeout` to 600 seconds and each bounds the
-NodeTool side of the run. Raise it for video and upscale graphs. The message
-names which side gave up: `Timeout waiting for ComfyUI result` on the direct
-native path, `ComfyUI workflow did not finish within <n>s` on a v2 path, and
-`Comfy Cloud job did not finish within <n>s` on Cloud, whose own cap is 30
+**Time.** All three nodes default `timeout` to 600 seconds. Raise it for video
+and upscale graphs. The message names which side gave up:
+`Timeout waiting for ComfyUI result` on a ComfyUI server, and
+`Comfy Cloud job did not finish within <n>s` on Comfy Cloud, whose own cap is 30
 minutes per job (60 on Pro) regardless of what you set here.
 
-**Cancellation** does not reach ComfyUI the same way everywhere:
-
-| Path | What a cancelled NodeTool run does |
-|---|---|
-| `RunWorkflow`, `api: native` | Posts `/interrupt` and closes the WebSocket, then fails with `ComfyUI execution was canceled` |
-| `RunWorkflow`, `api: v2` | Calls the job's cancel endpoint, so the job stops server-side |
-| `RunWorkflowOnCloud` | Calls the job's cancel endpoint, so Comfy stops billing the run |
-| `RunWorkflowOnWorker`, v2 path | Calls the job's cancel endpoint |
-| `RunWorkflowOnWorker`, bridge path | Makes no cancel call. The bridge connection closes when the call settles, and the prompt runs on inside the worker's ComfyUI |
-
-The bridge path is the one every shipped worker takes today, so treat a
-long-running worker run as uncancellable and set `timeout` accordingly. The
-error message table for everything else is
+**Cancellation.** Cancelling a run stops the job on a ComfyUI server and on Comfy
+Cloud, so Comfy stops billing. It does not stop a run on a NodeTool worker: the
+ComfyUI prompt keeps running there while NodeTool stops waiting, so set
+`timeout` accordingly. The error messages are in
 [Troubleshooting](comfyui.md#troubleshooting).
 
 ---
@@ -355,7 +219,5 @@ error message table for everything else is
 - [ComfyUI](comfyui.md): the three nodes, their properties, handles, outputs, and limitations
 - [ComfyUI Setup](comfyui-setup.md): getting a server the node can reach
 - [Creative Cookbook](cookbook.md): the same fan-out, collect, and render shapes, without ComfyUI in the middle
-- [CLI Reference](cli.md): every flag on `validate`, `debug`, `run`, and `workflows run`
-- [Harness Reference](harnesses.md): what each harness simulates and what it does not
+- [ComfyUI from Code](developer/comfyui.md): running a graph from the CLI, a script, or the API
 - [App Builder](app-builder.md): the Design view Recipe 5 uses
-- [API Reference](api-reference.md): endpoint matrix, auth, and the run payload
