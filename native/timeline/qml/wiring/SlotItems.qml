@@ -31,7 +31,14 @@ Item {
                 }
                 return properties
             }
-            Component.onCompleted: Qt.callLater(() => setSource(modelData.source, initialProperties()))
+            // A timer the delegate owns, unlike Qt.callLater, dies with it, so a
+            // delegate the Repeater drops before the next turn never loads.
+            Timer {
+                id: loadLater
+                interval: 0
+                onTriggered: panelLoader.setSource(panelLoader.modelData.source, panelLoader.initialProperties())
+            }
+            Component.onCompleted: loadLater.start()
         }
     }
 }
