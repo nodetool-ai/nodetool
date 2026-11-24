@@ -5,11 +5,20 @@ permalink: /projects
 description: "Group the documents for one job under a project, start a project from a skill, and file, copy, export, import, archive, or delete them."
 ---
 
-A project groups the documents for one job (storyboard, script, cut, key art, mini app) and owns no content itself. The project card reads status, stills, and spend from the documents filed under it. Each project also has a [project folder](workspaces.md), the folder of files its runs read and write.
+A project is a folder. In the desktop app it is a real folder on your disk, `~/NodeTool/<project name>` unless you pick another place. On NodeTool Cloud it is a folder in cloud storage. The project's workflows, timelines, storyboards, scripts, sketches, mini apps, generated media and uploads are files in that folder, and every run, agent and node in the project reads and writes there. [Project folders](workspaces.md) lists what goes where.
+
+| | Desktop app | NodeTool Cloud |
+|---|---|---|
+| Where the folder is | `~/NodeTool/<project name>` on your disk, or a folder you choose | Cloud storage, one folder per project |
+| Choose the place | **Location** in **New project**, or **PROJECTS DIR** under **Settings → Integrations → Folders** | No |
+| Open a folder you already have | **New project → Open folder…** | No |
+| Use the files in other apps | Yes: Finder, File Explorer, git, a text editor | No. The **Files** panel and the asset browser show them |
+
+The project card reads status, stills, and spend from the documents in the project. Chats, version history, jobs and spend records stay in NodeTool's database, not in the folder.
 
 ## The Personal project
 
-Every account has a **Personal** project. It is where documents land when you have not switched to a named project. You cannot archive or delete it, and it does not appear as a card in the project list.
+Every account has a **Personal** project. It is where documents land when you have not switched to a named project. You cannot archive or delete it, and it does not appear as a card in the project list. Its folder sits in NodeTool's data folder: `~/.local/share/nodetool/workspaces/` on macOS and Linux, `%APPDATA%\nodetool\workspaces\` on Windows.
 
 ## Projects from before project folders
 
@@ -33,7 +42,7 @@ Click a card to open the project. The dashed **Start a project** card does the s
 
 ## Start a project
 
-**+ New project**, on the Projects page or at the top of the **Project** selector, asks for a project name. **Create project** adds the project to the list, makes it the active project, and opens its home surface, titled "What would you like to create?".
+**+ New project**, on the Projects page or at the top of the **Project** selector, asks for a project name. On the desktop app, **Location** shows where the folder will go, and **Choose…** picks another directory. **Create project** creates the folder, adds the project to the list, makes it the active project, and opens its home surface, titled "What would you like to create?". To make a project from a folder you already have, use **Open folder…** in the same dialog. See [Open a folder as a project](workspaces.md#open-a-folder-as-a-project).
 
 ![Start a project](assets/screenshots/project-new.png)
 

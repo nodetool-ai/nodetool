@@ -68,7 +68,9 @@ conversion rules are in [Data Types and Connections]({{ '/data-types' | relative
 An **asset** is any file NodeTool stores for you: an image, video, audio clip,
 PDF, text file, 3D model, or anything else a node can read or write. Assets live
 in the Asset Explorer and can be used again in any workflow, sketch, timeline,
-or chat.
+or chat. Each asset is a file in its [project folder](workspaces.md): a real
+folder on your disk in the desktop app, a folder in cloud storage on NodeTool
+Cloud.
 
 - Drag an image asset onto a workflow and it becomes an input.
 - Save a workflow's result as an asset to use later.
@@ -187,6 +189,7 @@ You choose per node, so one step can use an online model while the rest runs loc
 | **Preview**                | A node that displays whatever reaches it, for checking your work            |
 | **Run**                    | Execute the workflow                                                        |
 | **Asset**                  | A stored file used by workflows, sketches, timelines, chats, or collections |
+| **Project**                | A folder holding one job's documents and media: on your disk in the desktop app, in cloud storage on NodeTool Cloud |
 | **Sketch**                 | A layered image document for painting, masking, and combining               |
 | **Timeline**               | Tracks for arranging video, audio, and images over time                     |
 | **Clip**                   | One piece of media placed on a timeline track                               |

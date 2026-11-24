@@ -11,7 +11,7 @@ New here? Start with [Getting Started](getting-started.md).
 | View | What it is | Docs |
 |---|---|---|
 | **Workspace** | Where the app opens: your tabs, or the new-project surface when you have none | [Getting Started](getting-started.md) |
-| **Projects** — rail button | Documents grouped by the job they belong to, with their own agent | [Projects](projects.md) |
+| **Projects** — rail button | One folder per job, holding its documents and media, with its own agent | [Projects](projects.md) |
 | **Workflow Editor** — workspace tab | The node canvas, with panels on every edge | [Workflow Editor](workflow-editor.md) · [Panels](editor-panels.md) |
 | **Chain Editor** — Graph / Chain switch | Linear card pipeline instead of a graph | [Chain Editor](chain-editor.md) |
 | **Chat** — Chats panel | Threads open as workspace tabs; the agent edits what you have open | [Chat](global-chat.md) |
@@ -39,14 +39,18 @@ The [mobile app](mobile-app.md) has its own Chat, Mini-Apps, and Graph Editor. T
 
 ## Projects
 
-A project is a name over the documents that belong to one job, such as a board,
-a script, a cut, or the key art. The **Project** selector at the left of the tab
-bar switches the active project, and new documents land in it.
+A project is a folder that holds the documents and media of one job, such as a
+board, a script, a cut, or the key art. In the desktop app it is a real folder on
+your disk, `~/NodeTool/<project name>` by default. On NodeTool Cloud it is a
+folder in cloud storage. The **Files** section of the left panel shows it. The
+**Project** selector at the left of the tab bar switches the active project, and
+new documents land in it as files.
 
 ![Projects list](assets/screenshots/project-list.png)
 
 See [Projects](projects.md) for the project list, starting a project, filing and
-copying documents, and archiving or deleting.
+copying documents, and archiving or deleting, and [Project folders](workspaces.md)
+for what each file in the folder is.
 
 ---
 

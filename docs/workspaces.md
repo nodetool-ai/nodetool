@@ -4,7 +4,7 @@ title: "Project folders"
 description: "Every project is a folder on your disk. What NodeTool writes there, how edits from other apps are picked up, and how to move, open or copy a project folder."
 ---
 
-Every project has one folder. Generated media, uploads, workflows, timelines and other documents of the project are files in it, and every run, agent and Code node in the project reads and writes there. The **Files** section of the left panel shows it.
+Every project has one folder. In the desktop app it is a real folder on your disk that Finder, File Explorer, git and any other app can open. On NodeTool Cloud it is a folder in cloud storage, which you reach through NodeTool. Generated media, uploads, workflows, timelines and other documents of the project are files in it, and every run, agent and Code node in the project reads and writes there. The **Files** section of the left panel shows it.
 
 ```
 ~/NodeTool/My Film/
@@ -27,7 +27,7 @@ A new project gets the folder `~/NodeTool/<project name>`. A name already taken 
 
 - **One project elsewhere**: on the desktop app, **Location** in the **New project** dialog puts the folder in another directory, such as a project drive or a client folder. It must exist and be writable, and it cannot be inside another project's folder.
 - **All new projects elsewhere**: change **PROJECTS DIR** under **Settings → Integrations → Folders**. The folder must already exist. Existing projects keep their folders.
-- **Personal** is the project for loose work. Its folder is NodeTool's own managed folder.
+- **Personal** is the project for loose work. Its folder sits in NodeTool's data folder: `~/.local/share/nodetool/workspaces/` on macOS and Linux, `%APPDATA%\nodetool\workspaces\` on Windows.
 
 Deleting a project leaves its files on disk.
 
@@ -130,9 +130,11 @@ While files move, a panel shows the progress, the project being worked on, **Pau
 
 From a terminal, [`nodetool projects migrate --yes`](cli.md#nodetool-projects) runs the same move to the end.
 
-## On a server
+## On NodeTool Cloud and servers
 
-A self-hosted server with `NODETOOL_ENV=production` keeps project folders in its asset storage, not on a disk you can browse. **Location**, **Open folder…**, **Locate** and **Reveal in Finder** are not offered there. See [Storage](storage.md).
+NodeTool Cloud keeps each project folder in cloud storage, not on a disk you can browse. The folder has the same layout, and the **Files** panel and the asset browser show it. **Location**, **Open folder…**, **Locate** and **Reveal in Finder** are not offered there, and the **PROJECTS DIR** setting has no effect.
+
+A self-hosted server with `NODETOOL_ENV=production` works the same way and keeps project folders in its asset storage. Setting `NODETOOL_WORKSPACE_STORAGE=local` keeps them on the server's disk under `PROJECTS_DIR` instead. See [Storage](storage.md).
 
 ## If it fails
 
