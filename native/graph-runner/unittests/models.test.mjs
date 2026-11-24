@@ -1,11 +1,9 @@
+// First, so structuredClone exists before any imported module evaluates.
+import './models-env.mjs';
 import { randomUUID } from '../guest/host/crypto.mjs';
 import { Buffer } from 'buffer/';
 globalThis.Buffer ??= Buffer;
 globalThis.crypto ??= { randomUUID };
-// The guest entry installs structuredClone before any node code runs, and the
-// timeline document ops the models reach call it.
-import { installStructuredClone } from '../guest/env/structured-clone.mjs';
-installStructuredClone(globalThis);
 import Database from 'better-sqlite3';
 import { getTableColumns, getTableName } from 'drizzle-orm';
 import { createGuestModels, openModelRepository, MODEL_METHODS, MODEL_TABLES } from '../guest/host/models.mjs';
