@@ -28,6 +28,33 @@ QJsonObject lane(QString kind, QString param, QJsonArray points) {
 class TestAutomation : public QObject {
     Q_OBJECT
 private slots:
+    void concurrentReturnSnapshotsF16() {
+        nt::MixerReturn handoff;
+        std::atomic<bool> done{false};
+        std::jthread writer([&] {
+            for (int i=1;i<=100000;++i) {
+                nt::MixerReturn::Snapshot next;
+                next.startMs=i;
+                next.untilPlan=(i%2)!=0;
+                next.values.fill(i);
+                handoff.publish(next);
+            }
+            done.store(true,std::memory_order_release);
+        });
+        nt::MixerReturn::Snapshot copy;
+        bool coherent=true;
+        do {
+            handoff.read(copy);
+            if (std::isfinite(copy.startMs)) {
+                coherent &= copy.untilPlan==(static_cast<int>(copy.startMs)%2!=0);
+                for (double value:copy.values) { coherent &= value==copy.startMs; }
+            }
+        } while (!done.load(std::memory_order_acquire));
+        writer.join();
+        QVERIFY2(coherent,"F16: every accepted ramp must come from one publication");
+        handoff.read(copy);
+        QCOMPARE(copy.startMs,100000.);
+    }
     void completedBetweenBlocksGlidesF18() {
         auto parsed=nt::parseTimelineJson(QJsonDocument(document()).toJson()); QVERIFY(parsed.timeline);
         const auto state=std::make_shared<nt::MixerOverride>();

@@ -117,6 +117,8 @@ Item {
                     root.draftPan=Math.max(-1,Math.min(1,next))
                     root.panPreview(root.draftPan)
                 }
+                onEnabledChanged: if (!enabled && root.panGesture) cancel()
+                onVisibleChanged: if (!visible && root.panGesture) cancel()
                 onActiveFocusChanged: if(!activeFocus) finish()
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Escape && root.panGesture) { cancel(); event.accepted=true; return }

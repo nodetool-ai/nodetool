@@ -38,6 +38,7 @@ public:
     Q_INVOKABLE void edit(const QString& action, QJsonObject payload);
     // Live mixer value during a drag: the audio and the readout hear it, the document does not. NaN releases it.
     Q_INVOKABLE void previewMixer(const QString& param, double value);
+    Q_INVOKABLE void commitMixer(const QString& param, double value);
 signals:
     void changed();
     void channelChanged();

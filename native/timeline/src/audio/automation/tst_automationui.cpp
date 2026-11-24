@@ -99,6 +99,7 @@ Component.onCompleted: { Ui.Theme.uiScale=testScale; AutomationUIState.showAutom
     }
 private slots:
     void init() {
+        model.setReadOnly(false);
         clock.pause(); clock.setDurationMs(10000); clock.seek(0);
         nt::automation::registerEdits();
         const auto parsed=nt::parseTimelineJson(R"({"name":"P2","fps":30,"width":640,"height":360,"durationMs":10000,"tracks":[{"id":"a","type":"audio","index":0,"name":"Vox","volumeDb":-6,"automation":[{"id":"lane","target":{"kind":"mixer","param":"volumeDb"},"points":[]}]},{"id":"v","type":"video","index":1}],"clips":[],"master":{"volumeDb":0}})");
@@ -109,6 +110,124 @@ private slots:
         window.reset(); root.reset(); engine.reset();
         QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
         QCoreApplication::processEvents();
+    }
+    void previewBecomesLatchF17_data() {
+        QTest::addColumn<QString>("mode"); QTest::addColumn<bool>("volume");
+        for (const auto& mode:{QString("touch"),QString("latch"),QString("write")}) {
+            QTest::newRow(qPrintable(mode+"-pan")) << mode << false;
+            QTest::newRow(qPrintable(mode+"-volume")) << mode << true;
+        }
+    }
+    void previewBecomesLatchF17() {
+        QFETCH(QString,mode); QFETCH(bool,volume);
+        QVERIFY(model.applyEdit("setTrackAutomationMode",{{"trackId","a"},{"mode",mode}}));
+        model.automationRecorder()->setClock(&clock);
+        const auto handoff=model.snapshot()->findTrack("a")->mixerOverride;
+        QVERIFY(open(R"(ChannelStrip { width:120; height:360; required timeline; trackId:"a" })"));
+        auto* control=item(volume ? "mixerFaderInput" : "pan-a"); QVERIFY(control); control->forceActiveFocus();
+        const auto param=volume ? QString("volumeDb") : QString("pan");
+        QTest::keyPress(window.get(),Qt::Key_Right);
+        QVERIFY(model.mixerOverrideValue("a",param));
+        clock.play();
+        QTest::keyPress(window.get(),Qt::Key_Right);
+        QTest::keyRelease(window.get(),Qt::Key_Right);
+        if (mode=="touch") {
+            nt::MixerReturn::Snapshot release;
+            (volume ? handoff->volumeReturn : handoff->panReturn).read(release);
+            QVERIFY(release.active(clock.currentTimeMs()));
+        } else {
+            QVERIFY2(model.mixerOverrideValue("a",param),"F17: latch/write must retain override after preview-to-record handoff");
+        }
+    }
+    void changingStripTargetReleasesPreviewF19_data() {
+        QTest::addColumn<bool>("changeTimeline");
+        QTest::newRow("track") << false;
+        QTest::newRow("timeline") << true;
+    }
+    void changingStripTargetReleasesPreviewF19() {
+        QFETCH(bool,changeTimeline);
+        TimelineModel other;
+        other.setTimeline(model.timeline());
+        QVERIFY(open(R"(ChannelStrip { width:120; height:360; required timeline; trackId:"a" })"));
+        auto* pan=item("pan-a"); QVERIFY(pan); pan->forceActiveFocus();
+        QTest::keyPress(window.get(),Qt::Key_Right);
+        QVERIFY(model.mixerOverrideValue("a","pan"));
+        if (changeTimeline) { root->setProperty("timeline",QVariant::fromValue(&other)); }
+        else { root->setProperty("trackId","v"); }
+        QVERIFY2(!model.mixerOverrideValue("a","pan"),"F19: changing the strip target must release the old owner's preview");
+        QTest::keyRelease(window.get(),Qt::Key_Right);
+        root.reset();
+    }
+    void panKeyboardExitF20_data() {
+        QTest::addColumn<QString>("property");
+        QTest::newRow("disabled") << QString("enabled");
+        QTest::newRow("hidden") << QString("visible");
+    }
+    void panKeyboardExitF20() {
+        QFETCH(QString,property);
+        QVERIFY(open(R"(ChannelStrip { width:120; height:360; required timeline; trackId:"a" })"));
+        auto* pan=item("pan-a"); QVERIFY(pan); pan->forceActiveFocus();
+        QTest::keyPress(window.get(),Qt::Key_Right);
+        QVERIFY(model.mixerOverrideValue("a","pan"));
+        pan->setProperty(property.toLatin1().constData(),false);
+        QVERIFY2(!model.mixerOverrideValue("a","pan"),"F20: hidden/disabled keyboard pan must release the override");
+        QTest::keyRelease(window.get(),Qt::Key_Right);
+    }
+    void committedPreviewBridgesOldPlanF21() {
+        auto raw=doc();
+        raw["clips"]=QJsonArray{QJsonObject{{"id","c"},{"trackId","a"},{"mediaType","audio"},{"status","generated"},{"mediaPath","memory.wav"},{"startMs",0},{"durationMs",9000}}};
+        const auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        if (parsed.timeline) { model.setTimeline(*parsed.timeline); }
+        else { QFAIL("Invalid mixer preview test fixture"); }
+        const auto plan=nt::audio::buildMixPlan(*model.snapshot());
+        QVERIFY(!plan.tracks.empty());
+        QVERIFY(plan.tracks[0].panSource);
+        QVERIFY(open(R"(ChannelStrip { width:120; height:360; required timeline; trackId:"a" })"));
+        auto* pan=item("pan-a"); QVERIFY(pan); pan->forceActiveFocus();
+        QTest::keyPress(window.get(),Qt::Key_Right);
+        QTest::keyRelease(window.get(),Qt::Key_Right);
+        QCOMPARE(track()["pan"].toDouble(),.01);
+        QCOMPARE(model.undoStack()->count(),1);
+        QVERIFY(!model.mixerOverrideValue("a","pan"));
+        QCOMPARE(plan.tracks[0].panSource->valueAt(1000,0),.01);
+        const auto next=nt::audio::buildMixPlan(*model.snapshot());
+        QCOMPARE(next.tracks[0].panSource->valueAt(1000,.01),.01);
+    }
+    void deletingLastSoundTrackClearsHandoffF22() {
+        const auto before=model.snapshot();
+        const auto state=before->findTrack("a")->mixerOverride;
+        model.setMixerOverride("a","pan",.5);
+        QVERIFY(model.applyEdit("removeTrack",{{"trackId","a"}}));
+        const auto after=model.snapshot();
+        QVERIFY(!after->findTrack("a"));
+        QVERIFY2(std::isnan(state->pan.load()),"F22: deleting the last sound track must clear retained audio-plan overrides");
+        QVERIFY(!model.mixerOverrideValue("a","pan"));
+    }
+    void previewInputBoundaryF23_data() {
+        QTest::addColumn<QString>("param"); QTest::addColumn<double>("input");
+        QTest::addColumn<bool>("readOnly"); QTest::addColumn<double>("expected");
+        QTest::newRow("readonly") << QString("pan") << .5 << true << std::numeric_limits<double>::quiet_NaN();
+        QTest::newRow("infinite") << QString("pan") << std::numeric_limits<double>::infinity() << false << std::numeric_limits<double>::quiet_NaN();
+        QTest::newRow("pan-high") << QString("pan") << 4. << false << 1.;
+        QTest::newRow("pan-low") << QString("pan") << -4. << false << -1.;
+        QTest::newRow("volume-high") << QString("volumeDb") << 200. << false << 24.;
+        QTest::newRow("volume-low") << QString("volumeDb") << -200. << false << -120.;
+    }
+    void previewInputBoundaryF23() {
+        QFETCH(QString,param); QFETCH(double,input); QFETCH(bool,readOnly); QFETCH(double,expected);
+        AutomationController controller; controller.setTimeline(&model); controller.trackId="a";
+        model.setReadOnly(readOnly);
+        const auto state=model.snapshot()->findTrack("a")->mixerOverride;
+        controller.previewMixer(param,input);
+        if (std::isnan(expected)) {
+            QVERIFY2(std::isnan((param=="pan" ? state->pan : state->volumeDb).load()),"F23: rejected input must never reach the audio handoff");
+        }
+        const auto actual=model.mixerOverrideValue("a",param);
+        if (std::isnan(expected)) { QVERIFY2(!actual,"F23: read-only and infinite previews must be rejected"); }
+        else { QCOMPARE(actual.value_or(std::numeric_limits<double>::quiet_NaN()),expected); }
+        controller.previewMixer(param,std::numeric_limits<double>::quiet_NaN());
+        QVERIFY(!model.mixerOverrideValue("a",param));
+        model.setReadOnly(false);
     }
     void overrideUsesPublishedHandoffF1() {
         const auto before=model.snapshot();

@@ -79,6 +79,7 @@ public:
     // UI-thread writes, audio-thread atomic reads. Never changes document/undo.
     std::optional<double> mixerOverrideValue(const QString& trackId, const QString& param) const;
     void setMixerOverride(const QString& trackId, const QString& param, std::optional<double> value);
+    void holdMixerOverride(const QString& trackId,const QString& param,double value);
     void releaseMixerOverride(const QString& trackId,const QString& param,double endMs,double value,double after);
 
     QString timelineId() const { return QString::fromStdString(m_timeline->id); }

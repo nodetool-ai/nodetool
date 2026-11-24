@@ -70,10 +70,12 @@ struct MixerReturn {
     static_assert(std::atomic<std::uint64_t>::is_always_lock_free);
     struct Snapshot {
         std::uint64_t generation=0;
+        bool untilPlan=false;
         double startMs=std::numeric_limits<double>::quiet_NaN();
         std::array<double,21> values{};
-        bool active(double time) const noexcept { return std::isfinite(startMs) && time>=startMs && time<=startMs+200.; }
+        bool active(double time) const noexcept { return untilPlan || (std::isfinite(startMs) && time>=startMs && time<=startMs+200.); }
         double at(double time) const noexcept {
+            if (untilPlan) { return values[0]; }
             const double position=std::clamp((time-startMs)/10.,0.,20.);
             const auto i=static_cast<std::size_t>(position);
             return i==20 ? values[20] : values[i]+(values[i+1]-values[i])*(position-static_cast<double>(i));
@@ -81,6 +83,7 @@ struct MixerReturn {
     };
     void publish(const Snapshot& next) noexcept {
         sequence.fetch_add(1,std::memory_order_acq_rel);
+        untilPlan.store(next.untilPlan,std::memory_order_release);
         startMs.store(next.startMs,std::memory_order_release);
         for (std::size_t i=0;i<values.size();++i) { values[i].store(next.values[i],std::memory_order_release); }
         sequence.fetch_add(1,std::memory_order_release);
@@ -89,13 +92,17 @@ struct MixerReturn {
         const auto before=sequence.load(std::memory_order_acquire);
         if (before&1) { return; }
         Snapshot copy;
+        copy.untilPlan=untilPlan.load(std::memory_order_acquire);
         copy.startMs=startMs.load(std::memory_order_acquire);
         for (std::size_t i=0;i<values.size();++i) { copy.values[i]=values[i].load(std::memory_order_acquire); }
-        if (before==sequence.load(std::memory_order_acquire)) { copy.generation=before; next=copy; }
+        // Keep every payload load before the closing sequence check on weakly ordered CPUs.
+        std::atomic_thread_fence(std::memory_order_acquire);
+        if (before==sequence.load(std::memory_order_relaxed)) { copy.generation=before; next=copy; }
     }
     std::uint64_t generation() const noexcept { return sequence.load(std::memory_order_acquire); }
 private:
     std::atomic<std::uint64_t> sequence{0};
+    std::atomic<bool> untilPlan{false};
     std::atomic<double> startMs{std::numeric_limits<double>::quiet_NaN()};
     std::array<std::atomic<double>,21> values{};
 };

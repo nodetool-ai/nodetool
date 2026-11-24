@@ -851,7 +851,6 @@ bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
 
 std::shared_ptr<const nt::Timeline> TimelineModel::snapshot() const {
     if (m_mixerSnapshotSource==m_timeline && m_mixerSnapshot) { return m_mixerSnapshot; }
-    if (std::none_of(m_timeline->tracks.begin(),m_timeline->tracks.end(),[](const auto& t) { return t.type==nt::TrackType::Audio || t.type==nt::TrackType::Midi; })) { return m_timeline; }
     auto next=std::make_shared<nt::Timeline>(*m_timeline);
     QSet<QString> present;
     for (auto& track:next->tracks) {
@@ -864,6 +863,7 @@ std::shared_ptr<const nt::Timeline> TimelineModel::snapshot() const {
     }
     for (auto i=m_mixerOverrides.begin();i!=m_mixerOverrides.end();) {
         if (present.contains(i.key())) { ++i; continue; }
+        i.value()->volumeReturn.publish({}); i.value()->panReturn.publish({});
         i.value()->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
         i.value()->pan.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
         i=m_mixerOverrides.erase(i);
@@ -884,6 +884,16 @@ void TimelineModel::setMixerOverride(const QString& trackId,const QString& param
     const double next=value.value_or(std::numeric_limits<double>::quiet_NaN());
     const double previous=slot.exchange(next,std::memory_order_release);
     if (previous!=next && !(std::isnan(previous) && std::isnan(next))) { emit mixerOverrideChanged(trackId,param); }
+}
+void TimelineModel::holdMixerOverride(const QString& trackId,const QString& param,double value) {
+    const auto state=m_mixerOverrides.value(trackId);
+    if (!state || (param!="volumeDb" && param!="pan") || !std::isfinite(value)) { return; }
+    nt::MixerReturn::Snapshot hold;
+    hold.untilPlan=true;
+    hold.values.fill(param=="volumeDb" ? std::pow(10.,value/20.) : value);
+    (param=="volumeDb" ? state->volumeReturn : state->panReturn).publish(hold);
+    (param=="volumeDb" ? state->volumeDb : state->pan).store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+    emit mixerOverrideChanged(trackId,param);
 }
 void TimelineModel::releaseMixerOverride(const QString& trackId,const QString& param,double endMs,double value,double after) {
     const auto state=m_mixerOverrides.value(trackId);
@@ -913,7 +923,7 @@ void TimelineModel::clearMixerOverrides() {
     for (const auto& state : m_mixerOverrides) {
         state->volumeReturn.publish({}); state->panReturn.publish({});
         state->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
-        state->pan.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_relaxed);
+        state->pan.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
     }
     m_mixerOverrides.clear();
     m_mixerSnapshot.reset(); m_mixerSnapshotSource.reset();
