@@ -13,6 +13,9 @@
 #include "wiring/WiringFixture.h"
 #include <QJsonArray>
 #include <QSignalSpy>
+#include <QTemporaryDir>
+#include <QFile>
+#include <QElapsedTimer>
 
 using nt::aiassist::AssistantCommands;
 
@@ -98,6 +101,38 @@ private slots:
         view.reset();
     }
     void init() { loadDocument(); }
+
+    void closingCancelsPluginRequest() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile helper(dir.filePath("host"));
+        QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json, sys, time
+for line in sys.stdin:
+    req = json.loads(line)
+    if req['cmd'] == 'quit': break
+    open(__file__ + '.started', 'w').close()
+    time.sleep(1)
+    print(json.dumps(dict(id=req['id'], ok=True, plugins=[])), flush=True)
+)PY");
+        helper.close();
+        QVERIFY(helper.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const auto client = nt::audio::vst::sharedVstHostClient();
+        const auto original = client->executablePath();
+        client->setOverrideExecutable(helper.fileName());
+        const auto result = commands->execute("ui_timeline_list_plugins", {{"timeline_id", TIMELINE}, {"rescan", true}}, "close-test");
+        QVERIFY(result.value("deferred").toBool());
+        QTRY_VERIFY(QFileInfo::exists(helper.fileName() + ".started"));
+        QElapsedTimer elapsed;
+        elapsed.start();
+        commands.reset();
+        const auto closeMs = elapsed.elapsed();
+        client->setOverrideExecutable(original);
+        commands = std::make_unique<AssistantCommands>(model, clock);
+        commands->setEditor(view->rootObject());
+        QVERIFY2(closeMs < 300, qPrintable(QStringLiteral("Closing waited %1 ms for plugin RPC").arg(closeMs)));
+    }
 
     // Acceptance: a registered command that is neither allowed nor denied fails this test.
     void everyRegisteredCommandIsDecided() {

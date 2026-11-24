@@ -98,6 +98,7 @@ struct SyncWaiter {
     std::mutex mutex;
     std::condition_variable cv;
     bool done = false;
+    bool cancelled = false;
     bool ok = false;
     QJsonObject reply;
     QString error;
@@ -400,7 +401,11 @@ QString VstHostClient::unavailableReason() const {
         "The VST host (NodeToolVstHost) is not installed. Build native/vst-host or set NODETOOL_VST_HOST.");
 }
 
-bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QString* error, int timeoutMs) {
+bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QString* error, int timeoutMs, std::stop_token stop) {
+    if (stop.stop_requested()) {
+        if (error) *error = QStringLiteral("Plugin request cancelled");
+        return false;
+    }
     if (m_shutDown || !m_worker || !m_thread.isRunning()) {
         if (error) *error = QStringLiteral("VST host is not running");
         return false;
@@ -410,11 +415,20 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
         if (error) *error = unavailableReason();
         return false;
     }
+    // Shared with the queued request callback, which can finish after cancellation.
     auto waiter = std::make_shared<SyncWaiter>();
+    std::stop_callback cancelled(stop, [waiter] {
+        {
+            std::lock_guard<std::mutex> lock(waiter->mutex);
+            waiter->cancelled = true;
+        }
+        waiter->cv.notify_all();
+    });
     HostWorker* worker = m_worker.get();
     QMetaObject::invokeMethod(
         worker,
-        [worker, exe, request, timeoutMs, waiter]() {
+        [worker, exe, request, timeoutMs, waiter, stop]() {
+            if (stop.stop_requested()) { return; }
             worker->sendRequest(exe, request, timeoutMs, [waiter](bool ok, const QJsonObject& r, const QString& err) {
                 {
                     std::lock_guard<std::mutex> lock(waiter->mutex);
@@ -430,7 +444,11 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
 
     std::unique_lock<std::mutex> lock(waiter->mutex);
     const bool finished = waiter->cv.wait_for(lock, std::chrono::milliseconds(timeoutMs + 2000),
-                                              [&] { return waiter->done; });
+                                              [&] { return waiter->done || waiter->cancelled; });
+    if (stop.stop_requested()) {
+        if (error) *error = QStringLiteral("Plugin request cancelled");
+        return false;
+    }
     if (!finished) {
         if (error) *error = QStringLiteral("VST host request timed out");
         return false;
@@ -443,31 +461,31 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
     return true;
 }
 
-bool VstHostClient::listPresets(const QJsonObject& target, QJsonObject* reply, QString* error) {
+bool VstHostClient::listPresets(const QJsonObject& target, QJsonObject* reply, QString* error, std::stop_token stop) {
     auto request = target;
     request.insert(QStringLiteral("cmd"), QStringLiteral("listPresets"));
-    return sendSync(request, reply, error, 30000);
+    return sendSync(request, reply, error, 30000, stop);
 }
 
-bool VstHostClient::selectPreset(const QJsonObject& target, QJsonObject* reply, QString* error) {
+bool VstHostClient::selectPreset(const QJsonObject& target, QJsonObject* reply, QString* error, std::stop_token stop) {
     auto request = target;
     request.insert(QStringLiteral("cmd"), QStringLiteral("selectPreset"));
-    return sendSync(request, reply, error, 30000);
+    return sendSync(request, reply, error, 30000, stop);
 }
 
-bool VstHostClient::getParameters(const QJsonObject& target, QJsonObject* reply, QString* error) {
+bool VstHostClient::getParameters(const QJsonObject& target, QJsonObject* reply, QString* error, std::stop_token stop) {
     auto request = target;
     request.insert(QStringLiteral("cmd"), QStringLiteral("getParameters"));
-    return sendSync(request, reply, error, 30000);
+    return sendSync(request, reply, error, 30000, stop);
 }
 
-bool VstHostClient::setParameters(const QJsonObject& target, QJsonObject* reply, QString* error) {
+bool VstHostClient::setParameters(const QJsonObject& target, QJsonObject* reply, QString* error, std::stop_token stop) {
     auto request = target;
     request.insert(QStringLiteral("cmd"), QStringLiteral("setParameters"));
-    return sendSync(request, reply, error, 30000);
+    return sendSync(request, reply, error, 30000, stop);
 }
 
-bool VstHostClient::scanSync(bool rescan, std::vector<VstPluginInfo>* out, QString* error, int timeoutMs) {
+bool VstHostClient::scanSync(bool rescan, std::vector<VstPluginInfo>* out, QString* error, int timeoutMs, std::stop_token stop) {
     QStringList dirs;
     {
         std::lock_guard<std::mutex> lock(m_configMutex);
@@ -485,7 +503,7 @@ bool VstHostClient::scanSync(bool rescan, std::vector<VstPluginInfo>* out, QStri
         {QStringLiteral("includeEffects"), true},
     };
     QJsonObject reply;
-    if (!sendSync(req, &reply, error, timeoutMs)) return false;
+    if (!sendSync(req, &reply, error, timeoutMs, stop)) return false;
     auto plugins = parsePlugins(reply);
     {
         std::lock_guard<std::mutex> lock(m_configMutex);

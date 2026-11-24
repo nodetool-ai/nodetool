@@ -24,6 +24,7 @@
 #include <memory>
 #include <mutex>
 #include <span>
+#include <stop_token>
 #include <vector>
 
 namespace nt::audio::vst {
@@ -71,7 +72,7 @@ public:
     [[nodiscard]] QString unavailableReason() const;
 
     // Scans VST3 instruments and audio effects. Caches results until rescan == true.
-    bool scanSync(bool rescan, std::vector<VstPluginInfo>* out, QString* error = nullptr, int timeoutMs = 180000);
+    bool scanSync(bool rescan, std::vector<VstPluginInfo>* out, QString* error = nullptr, int timeoutMs = 180000, std::stop_token stop = {});
     void scanAsync(bool rescan = false);
 
     // Renders MIDI note events through a VST3 instrument to interleaved stereo float32 PCM.
@@ -85,10 +86,10 @@ public:
                       std::vector<float>* interleavedOut, QString* error = nullptr, int timeoutMs = 120000);
 
     // Worker/offline threads only. Requests use the Electron JSON-line shapes.
-    bool listPresets(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr);
-    bool selectPreset(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr);
-    bool getParameters(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr);
-    bool setParameters(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr);
+    bool listPresets(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr, std::stop_token stop = {});
+    bool selectPreset(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr, std::stop_token stop = {});
+    bool getParameters(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr, std::stop_token stop = {});
+    bool setParameters(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr, std::stop_token stop = {});
 
     // Live shared-memory session control (used by VstLiveChannel / VstLivePool).
     bool openLive(const QString& instance, const QString& path, const QString& uid, const QString& state,
@@ -123,7 +124,7 @@ signals:
 private:
     class HostWorker;
 
-    bool sendSync(const QJsonObject& request, QJsonObject* reply, QString* error, int timeoutMs);
+    bool sendSync(const QJsonObject& request, QJsonObject* reply, QString* error, int timeoutMs, std::stop_token stop = {});
 
     mutable std::mutex m_configMutex;
     QString m_overrideExecutable;

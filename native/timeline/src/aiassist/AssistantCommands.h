@@ -15,6 +15,7 @@
 #include <QStringList>
 #include <QThreadPool>
 #include <QVariantMap>
+#include <stop_token>
 
 class ClipGestureController;
 class FrameCapture;
@@ -66,6 +67,7 @@ private:
     PlaybackClock& m_clock;
     QPointer<QObject> m_editor;
     ScopesController* m_scopes = nullptr;
+    std::stop_source m_pluginStop;
     QThreadPool m_encoder;
 };
 }

@@ -145,8 +145,9 @@ QVariantList pluginAssistantTools() {
 }
 
 PluginToolResult runPluginTool(const QString &name, const QJsonObject &args, const QJsonObject &original,
-                               VstHostClient &client) {
+                               VstHostClient &client, std::stop_token stop) {
     try {
+        require(!stop.stop_requested(), "Plugin request cancelled");
         const auto op = operation(name);
         require(isPluginTool(name), "Unknown plugin tool.");
         for (const auto *key : {"track", "effectId", "query", "kind", "format", "slot"}) {
@@ -165,7 +166,7 @@ PluginToolResult runPluginTool(const QString &name, const QJsonObject &args, con
         };
         if (op == u"list_plugins" || op == u"load_plugin") {
             std::vector<VstPluginInfo> scanned;
-            rpc(client.scanSync(args.value("rescan").toBool(), &scanned, &error));
+            rpc(client.scanSync(args.value("rescan").toBool(), &scanned, &error, 180000, stop));
             QJsonArray plugins;
             for (const auto &info : scanned) {
                 auto plugin = QJsonObject::fromVariantMap(pluginInfoToVariant(info));
@@ -282,6 +283,7 @@ PluginToolResult runPluginTool(const QString &name, const QJsonObject &args, con
                 slot.insert("enabled", args.value("enabled").toBool(true));
                 slot.insert("wet", wet);
                 if (effectIndex < 0) {
+                    require(effects.size() < 32, "The maximum is 32 insert effects. Pass effectId to replace a slot.");
                     const double index = args.value("index").toDouble(effects.size());
                     require(std::isfinite(index) && index >= 0 && index <= effects.size() && std::floor(index) == index,
                             "Invalid effect insertion index.");
@@ -308,7 +310,7 @@ PluginToolResult runPluginTool(const QString &name, const QJsonObject &args, con
         }
         QJsonObject reply;
         if (op == u"list_plugin_presets") {
-            rpc(client.listPresets(request, &reply, &error));
+            rpc(client.listPresets(request, &reply, &error, stop));
             result.insert("presets", filter(reply.value("presets").toArray(), args.value("query").toString()));
             result.insert("currentPresetIndex", reply.value("currentPresetIndex"));
         } else if (op == u"select_plugin_preset") {
@@ -318,15 +320,15 @@ PluginToolResult runPluginTool(const QString &name, const QJsonObject &args, con
             } else {
                 require(preset.isString() && !preset.toString().isEmpty(), "Pass preset index or name.");
                 QJsonObject listed;
-                rpc(client.listPresets(request, &listed, &error));
+                rpc(client.listPresets(request, &listed, &error, stop));
                 const auto presets = listed.value("presets").toArray();
                 const auto index = uniqueMatch(presets, preset, {"name"});
                 request.insert("presetIndex", presets[index].toObject().value("index"));
             }
-            rpc(client.selectPreset(request, &reply, &error));
+            rpc(client.selectPreset(request, &reply, &error, stop));
             result.insert("preset", reply.value("preset"));
         } else if (op == u"get_plugin_parameters" || op == u"set_plugin_parameters") {
-            rpc(client.getParameters(request, &reply, &error));
+            rpc(client.getParameters(request, &reply, &error, stop));
             const auto parameters = reply.value("parameters").toArray();
             if (op == u"get_plugin_parameters") {
                 QJsonArray selected;
@@ -359,7 +361,7 @@ PluginToolResult runPluginTool(const QString &name, const QJsonObject &args, con
                     resolved.append(entry);
                 }
                 request.insert("changes", resolved);
-                rpc(client.setParameters(request, &reply, &error));
+                rpc(client.setParameters(request, &reply, &error, stop));
                 QJsonArray updated;
                 for (const auto &entry : resolved) {
                     const auto all = reply.value("parameters").toArray();
@@ -370,7 +372,7 @@ PluginToolResult runPluginTool(const QString &name, const QJsonObject &args, con
         }
         if (op == u"select_plugin_preset" || op == u"set_plugin_parameters") {
             const QJsonValue state =
-                reply.value("state").toString().isEmpty() ? QJsonValue(QJsonValue::Null) : reply.value("state");
+                reply.value("state").toString().isEmpty() ? slot.value("state") : reply.value("state");
             result.insert("stateUpdated", state != slot.value("state"));
             slot.insert("state", state);
         }

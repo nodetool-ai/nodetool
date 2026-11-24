@@ -567,6 +567,7 @@ AssistantCommands::AssistantCommands(TimelineModel& model, PlaybackClock& clock,
     m_encoder.setMaxThreadCount(1);
 }
 AssistantCommands::~AssistantCommands() {
+    m_pluginStop.request_stop();
     m_encoder.waitForDone();
     QCoreApplication::removePostedEvents(this, QEvent::MetaCall);
 }
@@ -649,9 +650,9 @@ QVariantMap AssistantCommands::execute(const QString& name, const QVariantMap& a
         // Shared ownership keeps the process client alive until the worker finishes.
         const auto client = nt::audio::vst::sharedVstHostClient();
         const QPointer<AssistantCommands> self(this);
-        m_encoder.start([self, client, snapshot, name, json, callId] {
-            auto outcome = nt::music::assistant::run(name, json, snapshot, *client);
-            if (!self) { return; }
+        m_encoder.start([self, client, snapshot, name, json, callId, stop = m_pluginStop.get_token()] {
+            auto outcome = nt::audio::vst::runPluginTool(name, json, snapshot, *client, stop);
+            if (stop.stop_requested() || !self) { return; }
             QMetaObject::invokeMethod(self, [self, snapshot, outcome = std::move(outcome), callId]() mutable {
                 if (!self) { return; }
                 if (outcome.result.value("ok").toBool() && outcome.document != snapshot) {

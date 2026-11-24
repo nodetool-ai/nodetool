@@ -14,5 +14,5 @@ bool pluginToolMutates(const QString &name);
 QVariantList pluginAssistantTools();
 // Worker thread only. Borrows the thread-safe client for the duration of the call.
 PluginToolResult runPluginTool(const QString &name, const QJsonObject &args, const QJsonObject &document,
-                               VstHostClient &client);
+                               VstHostClient &client, std::stop_token stop = {});
 } // namespace nt::audio::vst

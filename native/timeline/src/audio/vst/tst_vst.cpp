@@ -16,6 +16,7 @@
 
 #include <QDir>
 #include <QElapsedTimer>
+#include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -103,6 +104,125 @@ std::vector<MidiStreamEvent> eventsWithStatus(const MidiTrackStream& stream, int
 class TestVst final : public QObject {
     Q_OBJECT
 private slots:
+    void pluginAssistantCancellation_data() {
+        QTest::addColumn<QString>("operation");
+        for (const auto *op : {"list_plugins", "list_plugin_presets", "select_plugin_preset", "get_plugin_parameters", "set_plugin_parameters"}) {
+            QTest::newRow(op) << QString::fromLatin1(op);
+        }
+    }
+    void pluginAssistantCancellation() {
+        QFETCH(QString, operation);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile helper(dir.filePath("host"));
+        QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json, sys, time
+for line in sys.stdin:
+    req = json.loads(line)
+    if req['cmd'] == 'quit': break
+    open(__file__ + '.started', 'w').close()
+    time.sleep(1)
+    print(json.dumps(dict(id=req['id'], ok=True)), flush=True)
+)PY");
+        helper.close();
+        QVERIFY(helper.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        VstHostClient client;
+        client.setOverrideExecutable(helper.fileName());
+        const QJsonObject slot{{"type", "vst"}, {"plugin", QJsonObject{{"path", "/test.vst3"}}}, {"state", "saved"}};
+        const QJsonObject document{{"tracks", QJsonArray{QJsonObject{{"id", "track"}, {"type", "midi"}, {"instrument", slot}}}}};
+        PluginToolResult outcome;
+        std::stop_source cancellation;
+        std::jthread worker([&] {
+            outcome = runPluginTool(operation, {{"track", "track"}, {"preset", 0}}, document, client, cancellation.get_token());
+        });
+        QTRY_VERIFY(QFileInfo::exists(helper.fileName() + ".started"));
+        QElapsedTimer elapsed;
+        elapsed.start();
+        cancellation.request_stop();
+        worker.join();
+        QVERIFY(elapsed.elapsed() < 300);
+        QVERIFY(!outcome.result.value("ok").toBool());
+        QVERIFY(outcome.result.value("error").toString().contains("cancelled"));
+        QCOMPARE(outcome.document, document);
+    }
+
+    void pluginAssistantPreservesUnavailableState_data() {
+        QTest::addColumn<QString>("operation");
+        QTest::addColumn<QString>("replyState");
+        for (const auto &op : {QStringLiteral("select_plugin_preset"), QStringLiteral("set_plugin_parameters")}) {
+            for (const auto &state : {QStringLiteral(""), QStringLiteral("null"), QStringLiteral("missing")}) {
+                QTest::newRow(qPrintable(op + state)) << op << state;
+            }
+        }
+    }
+    void pluginAssistantPreservesUnavailableState() {
+        QFETCH(QString, operation);
+        QFETCH(QString, replyState);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile helper(dir.filePath("host"));
+        QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json, sys
+for line in sys.stdin:
+    req = json.loads(line)
+    if req['cmd'] == 'quit': break
+    res = dict(id=req['id'], ok=True, parameters=[dict(id='level', index=0, name='Level')])
+    mode = ')PY" + replyState.toUtf8() + R"PY('
+    if mode != 'missing': res['state'] = None if mode == 'null' else ''
+    print(json.dumps(res), flush=True)
+)PY");
+        helper.close();
+        QVERIFY(helper.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        VstHostClient client;
+        client.setOverrideExecutable(helper.fileName());
+        const QJsonObject slot{{"type", "vst"}, {"plugin", QJsonObject{{"path", "/test.vst3"}}}, {"state", "saved-patch"}};
+        const QJsonObject document{{"tracks", QJsonArray{QJsonObject{{"id", "track"}, {"type", "midi"}, {"instrument", slot}}}}};
+        PluginToolResult outcome;
+        std::jthread worker([&] {
+            outcome = runPluginTool(operation, {{"track", "track"}, {"preset", 0}, {"parameter", "Level"}, {"value", 0.5}}, document, client);
+        });
+        worker.join();
+        QVERIFY2(outcome.result.value("ok").toBool(), qPrintable(outcome.result.value("error").toString()));
+        QCOMPARE(outcome.document, document);
+        QVERIFY(!outcome.result.value("stateUpdated").toBool());
+    }
+
+    void pluginAssistantEffectLimit() {
+        const QString host = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString gain = findTestArtifact(QStringLiteral("GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3"));
+        QVERIFY(!host.isEmpty());
+        VstHostClient client;
+        client.setOverrideExecutable(host);
+        client.setExtraScanDirs({QFileInfo(gain).absolutePath()});
+        QJsonArray effects;
+        for (int i = 0; i < 32; ++i) {
+            effects.append(QJsonObject{{"id", QString::number(i)}, {"type", "gain"}});
+        }
+        for (const auto &target : {QStringLiteral("track"), QStringLiteral("master")}) {
+            const QJsonObject document{{"tracks", QJsonArray{QJsonObject{{"id", "track"}, {"type", "audio"}, {"effects", effects}}}},
+                                       {"master", QJsonObject{{"effects", effects}}}};
+            PluginToolResult outcome;
+            std::jthread worker([&] {
+                outcome = runPluginTool("load_plugin", {{"track", target}, {"plugin", "NodeTool Test Gain"}}, document, client);
+            });
+            worker.join();
+            QVERIFY2(!outcome.result.value("ok").toBool(), "33rd effect must be rejected");
+            QVERIFY(outcome.result.value("error").toString().contains("32"));
+            QCOMPARE(outcome.document, document);
+            std::jthread replacement([&] {
+                outcome = runPluginTool("load_plugin", {{"track", target}, {"plugin", "NodeTool Test Gain"}, {"effectId", "0"}}, document, client);
+            });
+            replacement.join();
+            QVERIFY2(outcome.result.value("ok").toBool(), qPrintable(outcome.result.value("error").toString()));
+            const auto changedTrack = target == u"master" ? outcome.document.value("master").toObject()
+                : outcome.document.value("tracks").toArray()[0].toObject();
+            QCOMPARE(changedTrack.value("effects").toArray().size(), 32);
+            QCOMPARE(changedTrack.value("effects").toArray()[0].toObject().value("id").toString(), QStringLiteral("0"));
+        }
+    }
+
     void pluginAssistantRoundTrip() {
         const QString host = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
         const QString tone = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
