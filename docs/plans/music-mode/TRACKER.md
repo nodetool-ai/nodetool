@@ -37,6 +37,8 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | A16 | Native automation follow-up, incl. A12 F20 (pending lane creation commits after Undo) | Sol | A23 (one Codex task at a time) |
 | A17 | Native follow-up after A16 and A8 | Sol | A16 |
 | A24 | Native clip editing part 2 | Sol | none |
+| MX1 | Mixer faders and knobs change the value while dragging, not on release; web and native | Opus | none |
+| VST1 | Agent tools: load a VST instrument or effect on a track, list and select its presets, list, read and set its parameters; bridge and harness coverage | agy Neon | none |
 | CHK | Rerun lost native checks: A2, A2b, A5, A7 | Sol | none |
 | CRV | Lost Codex second reviews: A14, A2b | Sol | none |
 

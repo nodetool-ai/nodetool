@@ -1052,6 +1052,30 @@ track: ({id:"a",type:"audio"}); lane: ({id:"lane",target:{kind:"mixer",param:"vo
         QVERIFY(std::abs(track()["volumeDb"].toDouble())<=.3);
         model.undoStack()->undo(); QCOMPARE(track()["volumeDb"].toDouble(),-6.);
     }
+    void faderAndPanPreviewLiveWhileDragging() {
+        QVERIFY(open(R"(ChannelStrip { width:120; height:360; required timeline; trackId:"a" })"));
+        auto* fader=item("fader-a"); QVERIFY(fader);
+        const auto from=point(fader,12,fader->height()*.6),to=point(fader,12,10+(fader->height()-20)*.14);
+        QTest::mousePress(window.get(),Qt::LeftButton,Qt::NoModifier,from);
+        QTest::mouseMove(window.get(),to,20);
+        const auto live=model.mixerOverrideValue("a","volumeDb");
+        QVERIFY(live); QVERIFY(std::abs(*live)<=.3);
+        QCOMPARE(model.undoStack()->count(),0);
+        QTest::mouseRelease(window.get(),Qt::LeftButton,Qt::NoModifier,to);
+        QVERIFY(!model.mixerOverrideValue("a","volumeDb"));
+        QCOMPARE(model.undoStack()->count(),1);
+        auto* pan=item("pan-a"); QVERIFY(pan);
+        const auto center=point(pan,pan->width()/2,pan->height()/2);
+        QTest::mousePress(window.get(),Qt::LeftButton,Qt::NoModifier,center);
+        QTest::mouseMove(window.get(),center+QPoint(12,-12),20);
+        const auto livePan=model.mixerOverrideValue("a","pan");
+        QVERIFY(livePan); QVERIFY(*livePan!=0.);
+        QTest::keyClick(window.get(),Qt::Key_Escape);
+        QVERIFY(!model.mixerOverrideValue("a","pan"));
+        QTest::mouseRelease(window.get(),Qt::LeftButton,Qt::NoModifier,center+QPoint(12,-12));
+        QCOMPARE(model.undoStack()->count(),1);
+        QCOMPARE(track()["pan"].toDouble(),0.);
+    }
     void faderCancellationRestoresDraftWithoutUndo() {
         QVERIFY(open(R"(ChannelStrip { width:120; height:360; required timeline; trackId:"a" })"));
         auto* fader = item("fader-a");

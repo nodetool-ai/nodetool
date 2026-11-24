@@ -14,6 +14,10 @@ Ui.Surface {
     readonly property color accent: master ? Ui.Theme.textPrimary : TimelineVisuals.trackAccent(channel.type)
     property bool volumeConsumed: false
     property bool panConsumed: false
+    // The params whose live value this strip holds in the mixer override during a drag.
+    property var previewing: ({})
+    function preview(param, value) { previewing[param] = true; controller.previewMixer(param, value) }
+    function release(param) { if (previewing[param]) { delete previewing[param]; controller.previewMixer(param, NaN) } }
     readonly property AutomationRecorder recorder: master || !timeline ? null
         : AutomationUIState.recorder && AutomationUIState.recorder.timeline === timeline ? AutomationUIState.recorder : timeline.automationRecorder
     function start(param) {
@@ -31,6 +35,7 @@ Ui.Surface {
             param === "pan" ? {pan:value} : {db:value})
     }
     Component.onDestruction: {
+        release("volumeDb"); release("pan")
         if (recorder) { recorder.gestureEnd(trackId,"volumeDb"); recorder.gestureEnd(trackId,"pan") }
     }
     signal openEffect(string trackId, string effectId, var anchor)
@@ -50,15 +55,15 @@ Ui.Surface {
         volumeRecording: root.volumeConsumed
         channel: root.channel; channelId: root.channelId; channelName: root.channelName; master: root.master; compact: root.compact
         onVolumeStarted: root.start("volumeDb")
-        onVolumePreview: db => { if (root.recorder && (root.volumeConsumed || root.recorder.consumes(root.trackId))) { if (!root.volumeConsumed) { root.start("volumeDb") }; view.draftDb=Math.max(-60,Math.min(6,db)); root.recorder.record(root.trackId,"volumeDb",view.draftDb) } }
+        onVolumePreview: db => { if (root.recorder && (root.volumeConsumed || root.recorder.consumes(root.trackId))) { if (!root.volumeConsumed) { root.start("volumeDb") }; view.draftDb=Math.max(-60,Math.min(6,db)); root.recorder.record(root.trackId,"volumeDb",view.draftDb) } else { root.preview("volumeDb",db) } }
         onVolumeCommit: db => root.commit("volumeDb",db)
-        onVolumeEnded: { if (root.recorder) { root.recorder.gestureEnd(root.trackId,"volumeDb") }; root.volumeConsumed=false }
-        onVolumeCanceled: { if (root.recorder) { root.recorder.gestureCancel(root.trackId,"volumeDb") }; root.volumeConsumed=false }
+        onVolumeEnded: { root.release("volumeDb"); if (root.recorder) { root.recorder.gestureEnd(root.trackId,"volumeDb") }; root.volumeConsumed=false }
+        onVolumeCanceled: { root.release("volumeDb"); if (root.recorder) { root.recorder.gestureCancel(root.trackId,"volumeDb") }; root.volumeConsumed=false }
         onPanStarted: root.start("pan")
-        onPanPreview: value => { if (root.recorder && (root.panConsumed || root.recorder.consumes(root.trackId))) { if (!root.panConsumed) { root.start("pan") }; root.recorder.record(root.trackId,"pan",value) } }
+        onPanPreview: value => { if (root.recorder && (root.panConsumed || root.recorder.consumes(root.trackId))) { if (!root.panConsumed) { root.start("pan") }; root.recorder.record(root.trackId,"pan",value) } else { root.preview("pan",value) } }
         onPanCommit: pan => root.commit("pan",pan)
-        onPanEnded: { if (root.recorder) { root.recorder.gestureEnd(root.trackId,"pan") }; root.panConsumed=false }
-        onPanCanceled: { if (root.recorder) { root.recorder.gestureCancel(root.trackId,"pan") }; root.panConsumed=false }
+        onPanEnded: { root.release("pan"); if (root.recorder) { root.recorder.gestureEnd(root.trackId,"pan") }; root.panConsumed=false }
+        onPanCanceled: { root.release("pan"); if (root.recorder) { root.recorder.gestureCancel(root.trackId,"pan") }; root.panConsumed=false }
         onMute: controller.edit("setTrackMuted", {muted:!root.channel.muted})
         onSolo: controller.edit("setTrackSolo", {solo:!root.channel.solo})
         onAddEffect: effect => controller.edit(root.master?"addMasterEffect":"addTrackEffect", {effect:effect})

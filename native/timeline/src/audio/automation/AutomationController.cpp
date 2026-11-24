@@ -1,3 +1,4 @@
+#include <cmath>
 #include "AutomationController.h"
 #include "Automation.h"
 #include <QUuid>
@@ -43,6 +44,10 @@ void AutomationController::edit(const QString& action, QJsonObject payload) {
     if (!timeline_) { return; }
     if (!master) { payload["trackId"] = trackId; }
     timeline_->applyEdit(action, payload);
+}
+void AutomationController::previewMixer(const QString& param, double value) {
+    if (!timeline_ || master) { return; }
+    timeline_->setMixerOverride(trackId, param, std::isnan(value) ? std::nullopt : std::optional<double>(value));
 }
 void AutomationController::setPoints(const QString& laneId, const QJsonArray& points, quint64 generation) {
     if (!timeline_ || generation != timeline_->documentGeneration()) { return; }
