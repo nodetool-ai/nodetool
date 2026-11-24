@@ -16,6 +16,9 @@
 #include <QPointer>
 #include <QSGFlatColorMaterial>
 #include <QSGGeometryNode>
+#include <QImage>
+#include <QSGRendererInterface>
+#include <QSGImageNode>
 #include <QSGOpacityNode>
 #include <QSGSimpleTextureNode>
 #include <QQuickWindow>
@@ -1352,6 +1355,13 @@ QSGNode* WaveformItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     m_drawn = drawSpan();
     m_bars = computeBars(m_drawn);
     m_barCount = static_cast<int>(m_bars.size());
+    // The software scene graph (offscreen tests and shots) draws no custom
+    // geometry, so there the bars are painted into an image of the drawn span.
+    if (window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software) {
+        QSGNode* result = softwareBars(old);
+        QMetaObject::invokeMethod(this, &WaveformItem::painted, Qt::QueuedConnection);
+        return result;
+    }
     if (!node) {
         // native-rules #2: naked new QSGGeometryNode, scene graph owner not documented
         node = new QSGGeometryNode;
@@ -1382,6 +1392,34 @@ QSGNode* WaveformItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     }
     node->markDirty(QSGNode::DirtyGeometry);
     QMetaObject::invokeMethod(this, &WaveformItem::painted, Qt::QueuedConnection);
+    return node;
+}
+
+QSGNode* WaveformItem::softwareBars(QSGNode* old) {
+    const double from = std::clamp(m_drawn.from, 0.0, width());
+    const double to = std::clamp(m_drawn.to, from, width());
+    const QSize size(int(std::ceil(to - from)), int(std::ceil(height())));
+    if (size.isEmpty() || m_bars.empty()) {
+        delete old;
+        return nullptr;
+    }
+    const qreal dpr = window()->effectiveDevicePixelRatio();
+    QImage image(size * dpr, QImage::Format_ARGB32_Premultiplied);
+    image.setDevicePixelRatio(dpr);
+    image.fill(Qt::transparent);
+    {
+        QPainter painter(&image);
+        painter.translate(-from, 0);
+        for (const QRectF& r : m_bars) { painter.fillRect(r, m_color); }
+    }
+    auto* node = static_cast<QSGImageNode*>(old);
+    if (!node) {
+        // The scene graph owns the node; the node owns its texture.
+        node = window()->createImageNode();
+        node->setOwnsTexture(true);
+    }
+    node->setTexture(window()->createTextureFromImage(image, QQuickWindow::TextureHasAlphaChannel));
+    node->setRect(QRectF(from, 0, size.width(), size.height()));
     return node;
 }
 

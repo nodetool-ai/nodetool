@@ -16,6 +16,8 @@ Item {
         id: panels
         model: PanelRegistry.forSlot(host.slot)
         delegate: Loader {
+            id: panelLoader
+            readonly property var panelProperties: host.slotProperties
             required property var modelData
             required property int index
             anchors.fill: host.overlay ? host : null
@@ -24,8 +26,8 @@ Item {
             y: !host.overlay && host.vertical && index > 0 ? panels.itemAt(index - 1).y + panels.itemAt(index - 1).height : 0
             function initialProperties() {
                 const properties = {}
-                for (const name of Object.keys(host.slotProperties)) {
-                    properties[name] = Qt.binding(() => host.slotProperties[name])
+                for (const name of Object.keys(panelProperties)) {
+                    properties[name] = Qt.binding(() => panelLoader.panelProperties[name])
                 }
                 return properties
             }

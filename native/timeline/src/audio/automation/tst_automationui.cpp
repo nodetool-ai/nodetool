@@ -1,5 +1,8 @@
 #include <QDir>
 #include "../../../tests/TestAssetCacheRoot.h"
+#include "assets/AssetWav.h"
+#include <QTemporaryDir>
+#include <cmath>
 #include "audio/automation/Automation.h"
 #include "audio/automation/MeterReadings.h"
 #include "audio/Mixer.h"
@@ -961,7 +964,17 @@ TracksRegion { anchors.fill:parent; timeline:host.timeline; clock:host.clock }
             QJsonObject{{"id","pan"},{"target",QJsonObject{{"kind","mixer"},{"param","pan"}}},{"points",QJsonArray{
                 QJsonObject{{"timeMs",1000},{"value",-0.5}},QJsonObject{{"timeMs",5000},{"value",0.6}}}}}};
         tracks[0]=first; raw["tracks"]=tracks;
-        raw["clips"]=QJsonArray{QJsonObject{{"id","c"},{"trackId","a"},{"name","Vox"},{"mediaType","audio"},{"status","generated"},{"startMs",0},{"durationMs",7000}}};
+        // Real generated media, so the region shows a waveform: a voice-like swell.
+        QTemporaryDir media; QVERIFY(media.isValid());
+        const auto wav=media.filePath("vox.wav");
+        std::vector<float> pcm(size_t(7*48000*2));
+        for (size_t frame=0; frame<pcm.size()/2; ++frame) {
+            const double t=double(frame)/48000;
+            const double level=0.15+0.65*std::abs(std::sin(M_PI*t/1.3))*(0.6+0.4*std::sin(2*M_PI*t*3.1));
+            pcm[frame*2]=pcm[frame*2+1]=float(level*std::sin(2*M_PI*220*t));
+        }
+        QVERIFY(nt::assets::writeStereoFloatWav(wav,pcm));
+        raw["clips"]=QJsonArray{QJsonObject{{"id","c"},{"trackId","a"},{"name","Vox"},{"mediaType","audio"},{"status","generated"},{"mediaPath",wav},{"startMs",0},{"durationMs",7000}}};
         const auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson());
         QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
         QVERIFY(openTracks(true));
@@ -970,7 +983,7 @@ TracksRegion { anchors.fill:parent; timeline:host.timeline; clock:host.clock }
         const auto folder=qEnvironmentVariable("NT_PANEL_SCREENSHOTS");
         if (folder.isEmpty()) { return; }
         QVERIFY(QDir().mkpath(folder));
-        QTest::qWait(150);
+        QTest::qWait(800);
         QImage image;
         QTRY_VERIFY_WITH_TIMEOUT(([&] { window->requestUpdate(); image=window->grabWindow(); return !image.isNull(); })(),2000);
         QVERIFY(image.save(QDir(folder).filePath("automation-lanes.png")));

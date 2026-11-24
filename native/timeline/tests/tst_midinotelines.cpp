@@ -218,6 +218,40 @@ class TestMidiNoteLines : public QObject {
         item.setClipId("au");
         QCOMPARE(item.lines().size(), 0);
     }
+    void theLinesReachThePixels() {
+        // The tests and the offscreen shots run the software scene graph.
+        TimelineModel model;
+        const QJsonObject raw{{"name", "t"}, {"fps", 30}, {"width", 640}, {"height", 360},
+            {"tracks", QJsonArray{QJsonObject{{"id", "m"}, {"name", "Keys"}, {"type", "midi"}, {"index", 0}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "m"}, {"name", "Riff"}, {"mediaType", "midi"},
+                                             {"startMs", 0}, {"durationMs", 2000},
+                                             {"notes", QJsonArray{note(0, 960, 60), note(960, 960, 72)}}}}}};
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(*parsed.timeline);
+        QQuickWindow window;
+        window.setColor(Qt::white);
+        window.resize(400, 40);
+        MidiNoteLinesItem item;
+        item.setParentItem(window.contentItem());
+        item.setSize({400, 40});
+        item.setTimeline(&model);
+        item.setClipId("c");
+        item.setMsPerPx(5);
+        item.setColor(Qt::black);
+        item.setMutedColor(Qt::gray);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        const auto lines = item.lines();
+        QCOMPARE(lines.size(), 2);
+        const auto first = lines[0].toMap();
+        const QPoint at(int(first.value("x").toDouble() + 20), int(first.value("y").toDouble()));
+        QTRY_VERIFY(item.paintCount() >= 1);
+        const QImage frame = window.grabWindow();
+        const qreal dpr = frame.devicePixelRatio();
+        QCOMPARE(frame.pixelColor(at * dpr).lightness(), 0);
+        QCOMPARE(frame.pixelColor(QPoint(at.x(), 30) * dpr).lightness(), 255);
+    }
 };
 
 QTEST_MAIN(TestMidiNoteLines)

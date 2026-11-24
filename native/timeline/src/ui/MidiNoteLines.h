@@ -124,6 +124,7 @@ class MidiNoteLinesItem : public QQuickItem {
     std::vector<NoteLine> build() const;
     std::vector<CurveSegment> buildCurve() const;
     NoteLineView currentView(const nt::Clip& clip) const;
+    QSGNode* softwarePaintNode(QSGNode* old, const std::vector<NoteLine>& lines, const std::vector<CurveSegment>& curve);
     void markDirty();
 
     QPointer<TimelineModel> m_timeline;

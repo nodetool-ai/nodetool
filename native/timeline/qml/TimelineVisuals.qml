@@ -17,7 +17,8 @@ QtObject {
     readonly property color targetFill: "#1f5c9e"
     // The music range band (docs/MUSIC-MODE.md section 7): editBlue at 18%.
     readonly property color rangeFill: "#2e2d8ceb"
-    readonly property color clipText: "#141414"
+    // Clip text on the muted region band: light on the dark scheme, as the web regions.
+    readonly property color clipText: Ui.Theme.dark ? Ui.Theme.textPrimary : "#141414"
     readonly property color audioWave: "#7cf2c4"
     readonly property color loopRepeatFill: Ui.Theme.scrimMedia
     readonly property color fxBadge: "#e8d44d"
@@ -33,6 +34,23 @@ QtObject {
         case "adjustment": return "#e0b45c"
         default: return "#9a9aa6"
         }
+    }
+
+    // Region colours (web regionColors.ts): the hue kept, about half the
+    // saturation, a fixed lightness, so neighbouring regions read as one palette.
+    function regionBand(base) {
+        const c = Qt.darker(base, 1)
+        c.hslSaturation = Math.min(c.hslSaturation, 0.85) * (Ui.Theme.dark ? 0.5 : 0.55)
+        c.hslLightness = Ui.Theme.dark ? 0.4 : 0.62
+        return c
+    }
+    // The body under the band: the band toward the canvas.
+    function regionBody(base) {
+        return Qt.tint(regionBand(base), Qt.alpha(Ui.Theme.surfaceCanvas, Ui.Theme.dark ? 0.5 : 0.62))
+    }
+    // Note lines, curves and waveforms on the body.
+    function regionContent(base) {
+        return Qt.tint(regionBand(base), Qt.alpha(Ui.Theme.textPrimary, Ui.Theme.dark ? 0.72 : 0.6))
     }
 
     function trackAccent(type) {

@@ -50,7 +50,10 @@ Item {
     // The clip's colour label: a CSS colour, or empty.
     readonly property string clipLabel: clipData.labelColor ?? ""
     readonly property int radius: 1
-    readonly property color fill: clipLabel !== "" ? clipLabel : TimelineVisuals.clipFill(mediaType)
+    readonly property color baseColor: clipLabel !== "" ? clipLabel : TimelineVisuals.clipFill(mediaType)
+    // The muted name band; the body under it is a darker tint.
+    readonly property color fill: TimelineVisuals.regionBand(baseColor)
+    readonly property color bodyFill: TimelineVisuals.regionBody(baseColor)
     readonly property bool hasEffects: (clipData.effects || []).length > 0
     // COMPACT_THRESHOLD_PX, MIN_TRIM_HANDLE_CLIP_WIDTH_PX (8 * 2 + 12)
     readonly property bool showDuration: width >= 96
@@ -81,7 +84,14 @@ Item {
         objectName: "clipTint"
         anchors.fill: parent
         radius: body.radius
-        color: body.selected ? Qt.lighter(body.fill, 1.18) : body.fill
+        color: body.selected ? Qt.lighter(body.bodyFill, 1.18) : body.bodyFill
+        Rectangle {
+            objectName: "clipBand"
+            width: parent.width
+            height: TimelineMetrics.clipNameBandHeight
+            radius: body.radius
+            color: body.selected ? Qt.lighter(body.fill, 1.18) : body.fill
+        }
     }
 
     // The filmstrip (video) or the picture (image): edge to edge under the
@@ -117,7 +127,7 @@ Item {
             inPointMs: body.inPointMs
             outPointMs: body.inPointMs + body.durationMs * (body.loopLengthMs > 0 ? body.sourceRate : 1)
             repeatSourceMs: body.loopLengthMs * body.sourceRate
-            color: TimelineVisuals.audioWave
+            color: TimelineVisuals.regionContent(body.baseColor)
             contentX: body.contentX
             viewState: body.viewState
         }
@@ -354,25 +364,26 @@ Item {
         Rectangle {
             id: dot
             objectName: "clipFxBadge"
+            visible: body.hasEffects
             x: Ui.Metrics.xs
             anchors.verticalCenter: parent.verticalCenter
             width: fxText.implicitWidth + 2 * Ui.Metrics.micro
             height: 11
             radius: 1
-            color: body.hasEffects ? TimelineVisuals.fxBadge : "transparent"
+            color: TimelineVisuals.fxBadge
             border.width: 1
-            border.color: TimelineVisuals.clipText
+            border.color: TimelineVisuals.overlayContrast
             Ui.Text {
                 id: fxText
                 anchors.centerIn: parent
                 text: "fx"
                 role: Ui.Typography.MonoCaption
-                domainColor: TimelineVisuals.clipText
+                domainColor: TimelineVisuals.overlayContrast
             }
         }
         Ui.Text {
             id: nameText
-            x: dot.x + dot.width + Ui.Metrics.xs
+            x: dot.visible ? dot.x + dot.width + Ui.Metrics.xs : Ui.Metrics.xs
             anchors.verticalCenter: parent.verticalCenter
             width: Math.max(0, (body.showDuration ? durationText.x - Ui.Metrics.sm : headerRow.width - Ui.Metrics.md) - x)
             text: body.name

@@ -303,6 +303,7 @@ protected:
 
 private:
     std::vector<QRectF> computeBars(Span span) const;
+    QSGNode* softwareBars(QSGNode* old);
     QColor m_color;
     double m_repeatSourceMs = 0;
     // The immutable peak data is shared by the cache and every waveform of the same source.

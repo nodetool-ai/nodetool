@@ -69,13 +69,39 @@ Item {
         visible: root.main
         x: root.main ? disclosure.width : 0
         width: root.main ? Ui.Metrics.xxxl * 2 : 0
+        objectName: "automation-mode-" + (root.track.id || "")
         density: Ui.EditorButton.Compact
+        variant: Ui.EditorButton.Flat
         anchors.verticalCenter: parent.verticalCenter
-        text: root.mode.charAt(0).toUpperCase() + root.mode.slice(1)
         enabled: !root.track.locked
-        accessibleName: "Automation mode"
+        accessibleName: "Automation mode: " + modeLabel.text
         onClicked: modeMenu.popup()
-        Rectangle { anchors.fill: parent; color: root.modeColor; opacity: .12; z: Ui.Metrics.layerContent }
+        // A quiet mode menu, as in Logic: a small status dot, the mode name, a caret.
+        Rectangle {
+            id: modeDot
+            x: Ui.Metrics.sm
+            anchors.verticalCenter: parent.verticalCenter
+            width: Ui.Metrics.xs
+            height: width
+            radius: Ui.Metrics.radiusPill
+            color: root.modeColor
+        }
+        Ui.Text {
+            id: modeLabel
+            x: modeDot.x + modeDot.width + Ui.Metrics.xs
+            anchors.verticalCenter: parent.verticalCenter
+            role: Ui.Typography.SansCaption
+            tone: root.mode === "read" || root.mode === "off" ? Ui.Text.Secondary : Ui.Text.Primary
+            text: root.mode.charAt(0).toUpperCase() + root.mode.slice(1)
+        }
+        Ui.Icon {
+            anchors.right: parent.right
+            anchors.rightMargin: Ui.Metrics.micro
+            anchors.verticalCenter: parent.verticalCenter
+            name: "arrowDropDown"
+            size: Ui.Metrics.iconSm
+            tone: Ui.Text.Secondary
+        }
     }
     Ui.EditorButton {
         id: parameter

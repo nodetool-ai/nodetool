@@ -8,6 +8,12 @@
 #include <QSGGeometry>
 #include <QSGGeometryNode>
 #include <QSGVertexColorMaterial>
+#include <QImage>
+#include <QPainter>
+#include <QQuickWindow>
+#include <QSGImageNode>
+#include <QSGRendererInterface>
+#include <QSGTexture>
 
 #include <algorithm>
 #include <cmath>
@@ -282,13 +288,54 @@ Rgba premultiplied(const QColor& c) {
 }
 }  // namespace
 
+// The software scene graph draws no custom geometry, so there the lines are
+// painted into an image of the visible window.
+QSGNode* MidiNoteLinesItem::softwarePaintNode(QSGNode* old, const std::vector<NoteLine>& lines,
+                                              const std::vector<CurveSegment>& curve) {
+    const double from = std::clamp(m_from, 0.0, width());
+    const double to = std::clamp(m_to > m_from ? m_to : width(), from, width());
+    const QSize size(int(std::ceil(to - from)), int(std::ceil(height())));
+    if (size.isEmpty() || (lines.empty() && curve.empty())) {
+        delete old;
+        return nullptr;
+    }
+    const qreal dpr = window()->effectiveDevicePixelRatio();
+    QImage image(size * dpr, QImage::Format_ARGB32_Premultiplied);
+    image.setDevicePixelRatio(dpr);
+    image.fill(Qt::transparent);
+    {
+        QPainter painter(&image);
+        painter.translate(-from, 0);
+        for (const NoteLine& l : lines) { painter.fillRect(l.rect, l.muted || l.repeated ? m_mutedColor : m_color); }
+        QColor curveColor = m_color;
+        curveColor.setAlphaF(m_color.alphaF() * 0.7);
+        painter.setPen(QPen(curveColor, 1));
+        painter.setRenderHint(QPainter::Antialiasing);
+        for (const CurveSegment& s : curve) { painter.drawLine(s.from, s.to); }
+    }
+    auto* node = static_cast<QSGImageNode*>(old);
+    if (!node) {
+        // The scene graph owns the node; the node owns its texture.
+        node = window()->createImageNode();
+        node->setOwnsTexture(true);
+    }
+    node->setTexture(window()->createTextureFromImage(image, QQuickWindow::TextureHasAlphaChannel));
+    node->setRect(QRectF(from, 0, size.width(), size.height()));
+    return node;
+}
+
 QSGNode* MidiNoteLinesItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
-    auto* node = static_cast<QSGGeometryNode*>(old);
-    if (!m_dirty && node) { return node; }
+    if (!m_dirty && old) { return old; }
     m_dirty = false;
     ++m_paintCount;
     const std::vector<NoteLine> lines = build();
     const std::vector<CurveSegment> curve = buildCurve();
+    if (window()->rendererInterface()->graphicsApi() == QSGRendererInterface::Software) {
+        QSGNode* result = softwarePaintNode(old, lines, curve);
+        QMetaObject::invokeMethod(this, &MidiNoteLinesItem::painted, Qt::QueuedConnection);
+        return result;
+    }
+    auto* node = static_cast<QSGGeometryNode*>(old);
     if (!node) {
         // The scene graph owns the node, its geometry and its material.
         node = new QSGGeometryNode;

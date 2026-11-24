@@ -304,6 +304,22 @@ private slots:
         clips.removeAt(1);
         clips.append(midi);
         clips.append(bass);
+        // Real generated media, so the audio regions show a waveform: decaying hits on the beat.
+        QTemporaryDir media;
+        QVERIFY(media.isValid());
+        const auto wav = media.filePath("beat.wav");
+        std::vector<float> pcm(size_t(16 * 48000 * 2));
+        for (size_t frame = 0; frame < pcm.size() / 2; ++frame) {
+            const double t = double(frame % 24000) / 48000;
+            const double hit = std::exp(-t * 9) * std::sin(2 * M_PI * (frame % 96000 < 48000 ? 110 : 82) * double(frame) / 48000);
+            pcm[frame * 2] = pcm[frame * 2 + 1] = float(0.8 * hit);
+        }
+        QVERIFY(nt::assets::writeStereoFloatWav(wav, pcm));
+        for (qsizetype i = 0; i < clips.size(); ++i) {
+            auto c = clips[i].toObject();
+            if (c.value("mediaType").toString() == "audio") { c.insert("mediaPath", wav); }
+            clips[i] = c;
+        }
         raw.insert("clips", clips);
         openDocument(raw);
         auto* lines = qobject_cast<nt::ui::MidiNoteLinesItem*>(item("midiNoteLines-m"));
@@ -317,7 +333,7 @@ private slots:
         gestures()->viewState()->flush();
         QTest::qWait(100);
         QTest::mouseClick(view.get(), Qt::LeftButton, {}, lanePoint("b", barMs(7) + 1000));
-        QTest::qWait(150);
+        QTest::qWait(800);
         auto* region = item("tracksRegion");
         const QRect crop = region ? region->mapRectToScene(region->boundingRect()).toRect() : QRect(0, 0, 1800, 1000);
         const auto frame = view->grabWindow();
@@ -329,6 +345,22 @@ private slots:
         QTest::qWait(200);
         QVERIFY(view->grabWindow().save(QDir(folder).filePath("clip-menu.png")));
         QTest::keyClick(view.get(), Qt::Key_Escape);
+    }
+
+    void fxBadgeShowsOnlyOnAClipWithEffects() {
+        auto raw = musicDocument(false);
+        auto clips = raw.value("clips").toArray();
+        auto withFx = clips[1].toObject();
+        withFx.insert("effects", QJsonArray{QJsonObject{{"id", "e1"}, {"type", "eq"}}});
+        clips[1] = withFx;
+        raw.insert("clips", clips);
+        openDocument(raw);
+        auto* plain = item("clip-a1");
+        auto* effected = item("clip-b1");
+        QVERIFY(plain && effected);
+        QVERIFY(named(plain, "clipFxBadge"));
+        QVERIFY(!named(plain, "clipFxBadge")->isVisible());
+        QVERIFY(named(effected, "clipFxBadge")->isVisible());
     }
 
     void musicLoopMenuTogglesTheLoopAsOneUndo() {
