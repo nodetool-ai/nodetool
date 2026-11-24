@@ -238,6 +238,8 @@
 - id: deploy
   title: "Deployment"
   pages:
+    - title: "Advanced Installs"
+      url: "/advanced-install"
     - title: "Deployment Guide"
       url: "/deployment"
     - title: "End-to-End Guide"

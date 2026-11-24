@@ -189,10 +189,10 @@ With none available, the server logs `Python not found — Python nodes will not
 NODETOOL_PYTHON=/opt/conda/envs/nodetool/bin/python nodetool serve
 ```
 
-The interpreter needs `nodetool-core` and the packs installed from PyPI. See [Python nodes without the desktop app](installation.md#python-nodes-without-the-desktop-app).
+The interpreter needs `nodetool-core` and the packs installed from PyPI. See [Python nodes without the desktop app](advanced-install.md#python-nodes-without-the-desktop-app).
 
 - The worker starts with the server. With `NODETOOL_PYTHON_ON_DEMAND=true` it starts when a workflow first needs a Python node, and Python-only providers such as `huggingface-local` and MLX appear in model menus only after that. Settings has no field for it. Set it in the environment, or store it under the same name with the agent's `set_setting` tool. The server reads it at startup.
-- Python nodes run on the device PyTorch finds: Apple Metal (MPS), then CUDA, then CPU. `NODETOOL_TORCH_DEVICE` overrides that with `cuda`, `cuda:<N>`, `mps`, or `cpu`. The worker reads it at start. Hardware limits are in [GPU requirements](installation.md#gpu-requirements).
+- Python nodes run on the device PyTorch finds: Apple Metal (MPS), then CUDA, then CPU. `NODETOOL_TORCH_DEVICE` overrides that with `cuda`, `cuda:<N>`, `mps`, or `cpu`. The worker reads it at start. Hardware limits are in [GPU requirements](advanced-install.md#gpu-requirements).
 - With `NODETOOL_ENV=production` the bridge refuses to connect, and a workflow reaching a Python node fails with "Python bridge is disabled in production". `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1` overrides that. The published Docker image ships no Python worker, so also derive an image that installs `nodetool-core` and point `NODETOOL_PYTHON` at it. See [Self-hosted deployment](self-hosted-deployment.md#mcp-over-http-and-python-nodes).
 - The three `NODETOOL_PYTHON_*_TIMEOUT_MS` variables bound how long the server waits on the worker. Raise `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` past its 12-minute default for longer nodes.
 - `NODETOOL_WORKER_NAMESPACES` is passed unchanged as `--namespaces <value>` to the worker, which parses it. Unset, the worker loads everything installed.

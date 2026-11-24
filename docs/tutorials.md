@@ -6,13 +6,13 @@ description: "Short videos that show NodeTool at work: edit a sketch, voice a sc
 
 Each video is under a minute and replays a real session in the NodeTool editor. The same videos play in the app under the logo menu → **Tutorials**.
 
-Groups: [make it by asking](#make-it-by-asking), [steer the assistant](#steer-the-assistant), [repeat it with a workflow](#repeat-it-with-a-workflow). Start with the [Quick Start](getting-started.md). Terms are in the [Glossary](glossary.md).
+Groups: [make it by asking](#make-it-by-asking), [steer the assistant](#steer-the-assistant), [repeat it with a workflow](#repeat-it-with-a-workflow), [write code with the assistant](#write-code-with-the-assistant). Start with the [Quick Start](getting-started.md). Terms are in the [Glossary](glossary.md).
 
 ## Make it by asking
 
 ### Edit a sketch by asking
 
-The Sketch Assistant calls the layer tools: it adds a layer, sets the blend mode, and sets the opacity.
+The Sketch Assistant edits the layers for you: it adds a layer, sets the blend mode, and sets the opacity.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/sketch-assistant.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/sketch-assistant.mp4' | relative_url }}" type="video/mp4">
@@ -52,8 +52,8 @@ Read more: [Storyboard Editor](storyboard-editor.md), [Creative Agent](creative-
 ### Build a mini app
 
 Describe an app in one sentence: an input, a button, and an answer.
-The App Assistant adds the operation, declares a setting that persists between sessions,
-and places each widget against something the app declares.
+The App Assistant adds the action, saves a setting between sessions,
+and wires up the controls.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/app-assistant.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/app-assistant.mp4' | relative_url }}" type="video/mp4">
@@ -62,19 +62,6 @@ and places each widget against something the app declares.
 **Try it:** open a mini app from the Examples page, fill in its input, and run it.
 
 Read more: [Mini Apps](mini-apps.md), [App Builder](app-builder.md), [Building Mini Apps](mini-apps-guide.md).
-
-### Write a JS script
-
-Say what goes in and what should come out. The assistant declares the ports first,
-writes the body, and saves a test case that runs in the sandbox.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/jsscript-assistant.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/jsscript-assistant.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-The script runs sandboxed with no file system access, and the saved case catches the next edit that breaks it.
-
-Read more: [JS Scripts](js-scripts.md), [JavaScript Sandbox](javascript-sandbox.md).
 
 ### Ask the chat agent
 
@@ -86,7 +73,7 @@ then streams its answer.
 </video>
 
 **Try it:** start a new chat and ask about something that happened this week.
-The tool call appears before the answer.
+The search step appears before the answer.
 
 Read more: [Chat](global-chat.md), [Chat & Agents](global-chat-agents.md).
 
@@ -114,7 +101,7 @@ that is already there. The layer count stays the same and nothing is generated a
   <source src="{{ '/assets/tutorials/sketch-correction.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-The chat shows which tool call the correction ran, and the layer panel lets you finish the edit yourself.
+The chat shows which step the correction ran, and the layer panel lets you finish the edit yourself.
 
 Read more: [Sketch Editor](sketch-editor.md), [Chat & Agents](global-chat-agents.md).
 
@@ -129,19 +116,6 @@ Your answer sets the format and the number of shots.
 </video>
 
 Read more: [Storyboard Editor](storyboard-editor.md), [Creative Agent](creative-agent.md).
-
-### A test catches it
-
-Name the case you do not trust. The assistant saves it as a test and runs it.
-The test fails and shows why. The assistant repairs the body and runs the same cases again, and they pass.
-
-<video controls preload="metadata" poster="{{ '/assets/tutorials/jsscript-repair.jpg' | relative_url }}">
-  <source src="{{ '/assets/tutorials/jsscript-repair.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-The case stays saved, so the next edit that breaks it fails there first.
-
-Read more: [JS Scripts](js-scripts.md), [JavaScript Sandbox](javascript-sandbox.md).
 
 ## Repeat it with a workflow
 
@@ -222,6 +196,36 @@ The model looks at the picture and describes it in words you can use in the next
 </video>
 
 Read more: [Image to Audio Story](workflows/image-to-audio-story.md), [Models & Providers](models-and-providers.md).
+
+## Write code with the assistant
+
+These two videos are for developers. A JS script is a small program with inputs and outputs that you can use as a node.
+
+### Write a JS script
+
+Say what goes in and what should come out. The assistant sets up the script's inputs
+and outputs, writes the code, and saves a test that checks it.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/jsscript-assistant.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/jsscript-assistant.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+The script runs in a sandbox with no access to your files, and the saved test catches the next edit that breaks it.
+
+Read more: [JS Scripts](js-scripts.md), [JavaScript Sandbox](javascript-sandbox.md).
+
+### A test catches it
+
+Name an input you do not trust. The assistant saves it as a test and runs it.
+The test fails and shows why. The assistant fixes the code and runs the tests again, and they pass.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/jsscript-repair.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/jsscript-repair.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+The test stays saved, so the next edit that breaks it fails there first.
+
+Read more: [JS Scripts](js-scripts.md), [JavaScript Sandbox](javascript-sandbox.md).
 
 ---
 

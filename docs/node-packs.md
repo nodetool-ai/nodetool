@@ -39,7 +39,7 @@ Open **Tools > Package Manager** in the desktop app, or go to `/packages` in the
 - **Python nodes** lists the Python node packs that NodeTool offers. They install from PyPI. Use **Install**, **Update**, or **Uninstall**, or **Update all** when several have updates. Installing a pack sets up Python first if it is missing.
   - A pack installs at its newest stable release, not a version tied to the app version. Prereleases are skipped.
   - Each install or update resolves the new pack together with every Python pack already installed, so shared dependencies such as PyTorch stay at versions all of them accept.
-  - The HuggingFace pack gets the PyTorch build that matches your graphics card. See [GPU requirements](installation.md#gpu-requirements).
+  - The HuggingFace pack gets the PyTorch build that matches your graphics card. See [GPU requirements](advanced-install.md#gpu-requirements).
   - A pack appears only where it can install. MLX needs an Apple Silicon Mac. HuggingFace runs on Windows, Linux, and Apple Silicon Macs. On a Mac, both need macOS 14 or newer.
 - **Community nodes** installs npm packs from other authors. Paste a package name such as `@acme/cool-nodes` or `cool-nodes@1.2.3` and click **Install**. Restart the server to load it.
 
