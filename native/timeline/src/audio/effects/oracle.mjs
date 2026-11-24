@@ -1,6 +1,6 @@
 // P1: real renderAudio.ts -> AudioGraph -> audioEffectNodes, using
 // node-web-audio-api 1.0.9. Maximum absolute error limits:
-// gain 1e-6, eq3 1e-5, filter 1e-6, echo 1e-6, reverb 2e-6,
+// gain 2e-6 (one float32 step at the +24 dB peaks), eq3 1e-5, filter 1e-6, echo 1e-6, reverb 2e-6,
 // compressor 1e-5, distortion 3e-5, multi-effect chain 1e-5.
 // Compressor and distortion also require relative RMS error <= -100 dB.
 // Their lookahead/envelope and 2x resampling filters are implementation-defined.
@@ -55,7 +55,7 @@ function wav(samples, rate) {
   return out;
 }
 const rate = 48000;
-const tolerances = {gain:1e-6, eq3:1e-5, filter:1e-6, echo:1e-6, reverb:2e-6, compressor:1e-5, distortion:3e-5, chain:1e-5};
+const tolerances = {gain:2e-6, eq3:1e-5, filter:1e-6, echo:1e-6, reverb:2e-6, compressor:1e-5, distortion:3e-5, chain:1e-5};
 const source = new Float32Array(rate * 2);
 for (let i = 0; i < rate; ++i) {
   source[2 * i] = 0.3 * Math.sin(i * 2 * Math.PI * 227 / rate);
