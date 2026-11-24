@@ -118,6 +118,84 @@ export const isSpreadsheetAsset = (asset: TextAssetLike): boolean =>
   asset.content_type === XLSX_CONTENT_TYPE ||
   (asset.name ?? "").toLowerCase().endsWith(".xlsx");
 
+const MARKDOWN_CONTENT_TYPES = new Set([
+  "text/markdown",
+  "text/x-markdown"
+]);
+const MARKDOWN_EXTENSION = /\.(md|markdown)$/i;
+
+const SPECIFIC_IMPORTABLE_DOCUMENT_TYPES = new Set([
+  "text/markdown",
+  "text/x-markdown",
+  "text/html",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+]);
+const GENERIC_OR_TEXT_DOCUMENT_TYPES = new Set([
+  "",
+  "text/plain",
+  "application/octet-stream"
+]);
+const IMPORTABLE_DOCUMENT_EXTENSION =
+  /\.(md|markdown|txt|html|htm|docx|pdf)$/i;
+
+/** File picker `accept` string for editable Markdown documents. */
+export const MARKDOWN_DOCUMENT_ACCEPT = ".md,.markdown,text/markdown";
+
+/** Electron file dialog extensions for editable Markdown documents. */
+export const MARKDOWN_DOCUMENT_EXTENSIONS = ["md", "markdown"] as const;
+
+/** File picker `accept` string for `DocumentInput` (Markdown + convertible formats). */
+export const IMPORTABLE_DOCUMENT_ACCEPT =
+  ".md,.markdown,.txt,.html,.htm,.docx,.pdf,text/markdown,text/plain,text/html,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+/** Electron file dialog extensions for `DocumentInput`. */
+export const IMPORTABLE_DOCUMENT_EXTENSIONS = [
+  "md",
+  "markdown",
+  "txt",
+  "html",
+  "htm",
+  "docx",
+  "pdf"
+] as const;
+
+/** Whether a file or asset is already an editable Markdown document. */
+export const isEditableMarkdownDocument = (
+  contentType: string | null | undefined,
+  name: string | null | undefined
+): boolean => {
+  const mime = (contentType ?? "").toLowerCase().split(";")[0].trim();
+  if (MARKDOWN_CONTENT_TYPES.has(mime)) {
+    return true;
+  }
+  return (
+    Boolean(name && MARKDOWN_EXTENSION.test(name)) &&
+    GENERIC_OR_TEXT_DOCUMENT_TYPES.has(mime)
+  );
+};
+
+/**
+ * Whether a file or asset can be accepted by `DocumentInput` (either already
+ * Markdown or convertible via document import: `.txt`, `.html`, `.docx`, `.pdf`).
+ */
+export const isImportableDocument = (
+  contentType: string | null | undefined,
+  name: string | null | undefined
+): boolean => {
+  const mime = (contentType ?? "").toLowerCase().split(";")[0].trim();
+  if (SPECIFIC_IMPORTABLE_DOCUMENT_TYPES.has(mime)) {
+    return true;
+  }
+  if (!GENERIC_OR_TEXT_DOCUMENT_TYPES.has(mime)) {
+    return false;
+  }
+  if (name && IMPORTABLE_DOCUMENT_EXTENSION.test(name)) {
+    return true;
+  }
+  return mime === "text/plain" && Boolean(name && !name.includes("."));
+};
+
 /** How a text asset should be rendered/edited, beyond raw language. */
 type PreviewKind = "markdown" | "csv" | "code" | "text";
 

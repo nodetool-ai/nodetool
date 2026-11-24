@@ -67,7 +67,7 @@
     "react-syntax-highlighter": "^16.1.1",
     "uuid": "14.0.3",
     "zod": "^4.6.7",
-    "zustand": "^5.0.16"
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.1",

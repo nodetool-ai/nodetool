@@ -16,11 +16,18 @@ Generate a video from a text prompt with Veo on Vertex AI, billed to your Google
 
 ## Properties
 
-_(none)_
+| Property | Type | Description | Default |
+|----------|------|-------------|---------|
+| prompt | `str` | The text prompt describing the video to generate | `` |
+| aspect_ratio | `enum` | The aspect ratio of the generated video | `16:9` |
+| negative_prompt | `str` | Negative prompt to guide what to avoid in the video | `` |
+| resolution | `enum` | The output video resolution | `720p` |
 
 ## Outputs
 
-_(none)_
+| Output | Type | Description |
+|--------|------|-------------|
+| output | `video` |  |
 
 ## Related Nodes
 

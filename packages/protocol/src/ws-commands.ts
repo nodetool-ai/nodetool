@@ -1020,6 +1020,18 @@ export const jobResumedMessageOutSchema = z
   })
   .passthrough();
 
+export const documentProposalMessageOutSchema = z
+  .object({
+    type: z.literal("document_proposal"),
+    proposal_id: z.string(),
+    asset_id: z.string(),
+    thread_id: z.string(),
+    turn_id: z.string(),
+    base_content: z.string(),
+    proposed_content: z.string()
+  })
+  .passthrough();
+
 /** Non-`ProcessingMessage` outbound frame schemas, keyed by `type`. */
 export const outboundControlMessageSchemas = {
   pong: pongMessageOutSchema,
@@ -1034,5 +1046,6 @@ export const outboundControlMessageSchemas = {
   chat_resumed: chatResumedMessageOutSchema,
   chat_turn_active: chatTurnActiveMessageOutSchema,
   job_resumed: jobResumedMessageOutSchema,
-  acestep_setup_progress: aceStepSetupProgressMessageOutSchema
+  acestep_setup_progress: aceStepSetupProgressMessageOutSchema,
+  document_proposal: documentProposalMessageOutSchema
 } as const;

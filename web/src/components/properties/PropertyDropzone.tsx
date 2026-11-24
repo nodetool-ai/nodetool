@@ -23,6 +23,12 @@ import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
 import { useImageThumbnail } from "../../hooks/useImageThumbnail";
+import {
+  IMPORTABLE_DOCUMENT_ACCEPT,
+  IMPORTABLE_DOCUMENT_EXTENSIONS,
+  MARKDOWN_DOCUMENT_ACCEPT,
+  MARKDOWN_DOCUMENT_EXTENSIONS
+} from "../../utils/assetLanguage";
 
 interface PropertyDropzoneProps {
   asset: Asset | undefined;
@@ -31,6 +37,12 @@ interface PropertyDropzoneProps {
   contentType: string;
   props: PropertyProps;
   showRecorder?: boolean;
+  /** For `contentType === "document"`, accept `.txt`, `.html`, `.docx`, `.pdf` for conversion. */
+  acceptImportableDocuments?: boolean;
+  /** Override asset handling when picked or dropped (e.g. convert before writing ref). */
+  onAssetSelected?: (asset: Asset) => void | Promise<void>;
+  /** Show busy status while post-upload processing runs. */
+  busy?: boolean;
 }
 
 /** The last path segment of a document URI, without its query. */
@@ -50,23 +62,38 @@ const PropertyDropzone = ({
   props,
   onChange,
   contentType,
-  showRecorder = true
+  showRecorder = true,
+  acceptImportableDocuments = false,
+  onAssetSelected,
+  busy = false
 }: PropertyDropzoneProps) => {
   const { t } = useTranslation("translation", { keyPrefix: "i18n-next9" });
   const theme = useTheme();
   const emitRef = useCallback(
-    (next: Asset) => onChange(mediaRefFromAsset(next, contentType)),
-    [onChange, contentType]
+    (next: Asset) => {
+      if (onAssetSelected) {
+        void onAssetSelected(next);
+        return;
+      }
+      onChange(mediaRefFromAsset(next, contentType));
+    },
+    [onAssetSelected, onChange, contentType]
   );
   const onChangeAsset = useCallback(
     (next: Asset) => props.onChange(mediaRefFromAsset(next, contentType)),
     [props, contentType]
   );
 
-  const { onDrop, onDragOver, filename } = useFileDrop({
+  const {
+    onDrop,
+    onDragOver,
+    filename,
+    uploading: dropUploading
+  } = useFileDrop({
     uploadAsset: true,
     onChangeAsset: emitRef,
-    type: contentType as "image" | "audio" | "video" | "all"
+    type: contentType as "image" | "audio" | "video" | "document" | "all",
+    acceptDocumentImport: acceptImportableDocuments
   });
 
   const [openViewer, setOpenViewer] = useState(false);
@@ -254,6 +281,7 @@ const PropertyDropzone = ({
   const uploadAssetFn = useAssetUpload((state) => state.uploadAsset);
   const addNotification = useNotificationStore((state) => state.addNotification);
   const [pickerUploading, setPickerUploading] = useState(false);
+  const isBusy = pickerUploading || dropUploading || busy;
 
   // Picked files report failures like dropped ones do (useFileDrop).
   const uploadPickedFile = useCallback(
@@ -284,11 +312,13 @@ const PropertyDropzone = ({
       case "video":
         return "video/*,.mp4,.avi,.mov,.wmv,.flv,.webm,.mkv";
       case "document":
-        return ".pdf,.doc,.docx,.txt,.html,.csv,.tsv";
+        return acceptImportableDocuments
+          ? IMPORTABLE_DOCUMENT_ACCEPT
+          : MARKDOWN_DOCUMENT_ACCEPT;
       default:
         return "*/*";
     }
-  }, [contentType]);
+  }, [acceptImportableDocuments, contentType]);
 
   const handleBrowserFilePicker = useCallback(() => {
     fileInputRef.current?.click();
@@ -331,7 +361,12 @@ const PropertyDropzone = ({
             ];
           case "document":
             return [
-              { name: t("propertyDropzone.documents"), extensions: ["pdf", "doc", "docx", "txt", "html", "csv", "tsv"] }
+              {
+                name: t("propertyDropzone.documents"),
+                extensions: acceptImportableDocuments
+                  ? [...IMPORTABLE_DOCUMENT_EXTENSIONS]
+                  : [...MARKDOWN_DOCUMENT_EXTENSIONS]
+              }
             ];
           default:
             return undefined;
@@ -368,7 +403,7 @@ const PropertyDropzone = ({
     } catch (error) {
       console.error("Error opening file picker:", error);
     }
-  }, [contentType, uploadPickedFile]);
+  }, [acceptImportableDocuments, contentType, t, uploadPickedFile]);
 
   const handleDropzoneClick = useCallback(() => {
     if (isElectron && window.api?.dialog?.openFile) {
@@ -478,44 +513,18 @@ const PropertyDropzone = ({
           </>
         );
       case "document": {
-        const fileExtension = uri?.toLowerCase().split(".").pop();
-
-        if (fileExtension === "pdf") {
-          return (
-            <iframe
-              src={uri}
-              style={{ width: "100%", height: "400px", border: "none" }}
-              allow="fullscreen; clipboard-write"
-              title={t("propertyDropzone.pdfViewer")}
-            />
-          );
-        }
-
-        if (fileExtension === "txt" || fileExtension === "html") {
-          return (
-            <iframe
-              src={uri}
-              // Asset bytes are user content served from the app's own origin.
-              // An empty sandbox drops it into an opaque origin so a stored
-              // .html document can't run script against the session, matching
-              // every other HTML iframe in the app. The storage endpoint also
-              // serves .html as text/plain; this is the second lock.
-              sandbox=""
-              style={{ width: "100%", height: "400px", border: "none" }}
-              allow="fullscreen"
-              title={t("propertyDropzone.textViewer")}
-            />
-          );
-        }
-
-        // A document with no asset row (a package:// sample, a URL) still
-        // names its file, so the picker never looks empty.
-        return <pre>{asset?.name || documentFileName(uri)}</pre>;
+        return (
+          <pre>
+            {isBusy
+              ? t("propertyDropzone.uploading")
+              : asset?.name || documentFileName(uri)}
+          </pre>
+        );
       }
       default:
         return null;
     }
-  }, [contentType, uri, openViewer, asset, id, filename, handleImageLoad, handleImageError, imageError, handleDoubleClick, handleCloseViewer, imageSource, shownDimensions, handleVolumeChange, t]);
+  }, [contentType, uri, openViewer, asset, id, filename, handleImageLoad, handleImageError, imageError, handleDoubleClick, handleCloseViewer, imageSource, shownDimensions, handleVolumeChange, isBusy, t]);
 
   return (
     <div css={styles(theme)}>
@@ -574,7 +583,7 @@ const PropertyDropzone = ({
           ) : (
             <Tooltip title={t("propertyDropzone.selectOrDropTooltip")}>
               <p className="prop-drop centered uppercase">
-                {pickerUploading ? t("propertyDropzone.uploading") : t("propertyDropzone.clickOrDrop", { type: contentType })}
+                {isBusy ? t("propertyDropzone.uploading") : t("propertyDropzone.clickOrDrop", { type: contentType })}
               </p>
             </Tooltip>
           )}

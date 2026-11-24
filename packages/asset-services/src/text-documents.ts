@@ -14,6 +14,7 @@
 import {
   Asset,
   TextDocumentVersion,
+  textDocumentContentHash,
   type TextDocumentSaveType
 } from "@nodetool-ai/models";
 
@@ -39,6 +40,14 @@ export class TextDocumentError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "TextDocumentError";
+  }
+}
+
+/** Thrown when a document's backing file or legacy blob does not exist. */
+export class TextDocumentMissingFileError extends TextDocumentError {
+  constructor(message: string) {
+    super(message);
+    this.name = "TextDocumentMissingFileError";
   }
 }
 
@@ -85,7 +94,9 @@ export async function readAssetFileBytes(asset: Asset): Promise<Uint8Array> {
     }
     const bytes = await file.workspace.read(file.path);
     if (bytes === null) {
-      throw new TextDocumentError(`The file of ${asset.name} is missing.`);
+      throw new TextDocumentMissingFileError(
+        `The file of ${asset.name} is missing.`
+      );
     }
     return bytes;
   }
@@ -96,7 +107,7 @@ export async function readAssetFileBytes(asset: Asset): Promise<Uint8Array> {
     asset.content_type
   );
   if (!bytes) {
-    throw new TextDocumentError(`${asset.name} has no stored content.`);
+    throw new TextDocumentMissingFileError(`${asset.name} has no stored content.`);
   }
   return bytes;
 }
@@ -104,6 +115,34 @@ export async function readAssetFileBytes(asset: Asset): Promise<Uint8Array> {
 /** The document's Markdown as it is saved now. */
 export async function readTextDocument(asset: Asset): Promise<string> {
   return decoder.decode(await readAssetFileBytes(asset));
+}
+
+async function readTextDocumentIfPresent(asset: Asset): Promise<string | null> {
+  try {
+    return await readTextDocument(asset);
+  } catch (error) {
+    if (error instanceof TextDocumentMissingFileError) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function assertExpectedUpdatedAt(
+  asset: Asset,
+  expectedUpdatedAt: string
+): Promise<void> {
+  if (asset.updated_at !== expectedUpdatedAt) {
+    throw new TextDocumentError(
+      `${asset.name} changed since it was read. Read it again and repeat the edit.`
+    );
+  }
+  const fresh = await Asset.find(asset.user_id, asset.id);
+  if (!fresh || fresh.updated_at !== expectedUpdatedAt) {
+    throw new TextDocumentError(
+      `${asset.name} changed since it was read. Read it again and repeat the edit.`
+    );
+  }
 }
 
 /** Why a version is recorded, and the turn or run it belongs to. */
@@ -150,18 +189,24 @@ export async function writeTextDocument(
   text: string,
   options: WriteTextDocumentOptions = {}
 ): Promise<Asset> {
-  if (
-    options.expectedUpdatedAt !== undefined &&
-    asset.updated_at !== options.expectedUpdatedAt
-  ) {
-    throw new TextDocumentError(
-      `${asset.name} changed since it was read. Read it again and repeat the edit.`
-    );
+  if (options.expectedUpdatedAt !== undefined) {
+    await assertExpectedUpdatedAt(asset, options.expectedUpdatedAt);
   }
   if (options.cause) {
-    const previous = await readTextDocument(asset).catch(() => null);
+    const previous = await readTextDocumentIfPresent(asset);
+    if (options.expectedUpdatedAt !== undefined) {
+      await assertExpectedUpdatedAt(asset, options.expectedUpdatedAt);
+    }
     if (previous !== null && previous !== text) {
-      await recordTextDocumentVersion(asset, previous, options.cause);
+      const shouldDedupAutomatic =
+        options.cause.saveType === "agent_turn" ||
+        options.cause.saveType === "autosave";
+      const [newest] = shouldDedupAutomatic
+        ? await TextDocumentVersion.listForAsset(asset.id, { limit: 1 })
+        : [];
+      if (!shouldDedupAutomatic || newest?.content_hash !== textDocumentContentHash(previous)) {
+        await recordTextDocumentVersion(asset, previous, options.cause);
+      }
     }
   }
   const bytes = encoder.encode(text);
@@ -216,24 +261,97 @@ export async function createTextDocument(
 }
 
 
+/** Rename a stored version of `asset`, throwing when the version does not exist. */
+export async function renameTextDocumentVersion(
+  asset: Asset,
+  version: number,
+  name: string | null
+): Promise<TextDocumentVersion> {
+  const normalized = name === null ? null : name.trim() || null;
+  const updated = await TextDocumentVersion.renameVersion(
+    asset.id,
+    version,
+    normalized
+  );
+  if (!updated) {
+    throw new TextDocumentError(`${asset.name} has no version ${version}.`);
+  }
+  return updated;
+}
+
+/** Delete a stored version of `asset`, throwing when the version does not exist. */
+export async function deleteTextDocumentVersion(
+  asset: Asset,
+  version: number
+): Promise<void> {
+  const deleted = await TextDocumentVersion.deleteVersion(asset.id, version);
+  if (!deleted) {
+    throw new TextDocumentError(`${asset.name} has no version ${version}.`);
+  }
+}
+
 /**
- * Restore version `version` of the document. The current content is
- * recorded first as a `restore` version, so the restore can be undone.
+ * Restore version `version` of the document. Preserves any unsaved or
+ * overwritten current draft in history first (unless the newest version
+ * already holds identical content), writes the restored content to the
+ * document, and records a new latest `restore` entry so prior history stays
+ * intact and the restored state is the latest snapshot.
  */
 export async function restoreTextDocumentVersion(
   asset: Asset,
   version: number
-): Promise<{ asset: Asset; restored: TextDocumentVersion }> {
+): Promise<{
+  asset: Asset;
+  restored: TextDocumentVersion;
+  latest: TextDocumentVersion;
+  changed: boolean;
+}> {
   const restored = await TextDocumentVersion.findByVersion(asset.id, version);
   if (!restored) {
     throw new TextDocumentError(
       `${asset.name} has no version ${version}.`
     );
   }
-  const saved = await writeTextDocument(asset, restored.content, {
-    cause: { saveType: "restore" }
+  const expectedUpdatedAt = asset.updated_at;
+  const current = await readTextDocumentIfPresent(asset);
+  const [newest] = await TextDocumentVersion.listForAsset(asset.id, {
+    limit: 1
   });
-  return { asset: saved, restored };
+  if (current !== null && current === restored.content) {
+    return { asset, restored, latest: newest ?? restored, changed: false };
+  }
+  await assertExpectedUpdatedAt(asset, expectedUpdatedAt);
+  let preRestoreSnapshot: TextDocumentVersion | null = null;
+  if (
+    current !== null &&
+    (!newest || newest.content_hash !== textDocumentContentHash(current))
+  ) {
+    preRestoreSnapshot = await recordTextDocumentVersion(asset, current, {
+      saveType: "restore"
+    });
+  }
+  let saved: Asset;
+  try {
+    saved = await writeTextDocument(asset, restored.content, {
+      expectedUpdatedAt
+    });
+  } catch (error) {
+    if (preRestoreSnapshot) {
+      await TextDocumentVersion.deleteVersion(
+        asset.id,
+        preRestoreSnapshot.version
+      ).catch(() => undefined);
+    }
+    throw error;
+  }
+  const label = restored.name || `Version ${restored.version}`;
+  const latest = await recordTextDocumentVersion(
+    saved,
+    restored.content,
+    { saveType: "restore" },
+    `Restored from ${label}`
+  );
+  return { asset: saved, restored, latest, changed: true };
 }
 
 /** Apply exact-text replacements, as `edit_file` does. */

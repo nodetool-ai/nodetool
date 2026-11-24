@@ -40,12 +40,6 @@ interface OptionalNodePack {
  */
 export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
   {
-    id: "documents",
-    label: "Documents",
-    description: "Rasterize a PDF.",
-    namespaces: ["lib.pdf"]
-  },
-  {
     id: "imaging",
     label: "Image & graphics",
     description:

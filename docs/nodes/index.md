@@ -5,7 +5,7 @@ title: "Node Reference"
 
 A node is one step in a NodeTool workflow. It takes inputs, does one job such as calling a model, resizing an image or branching on a condition, and passes the result to the next node. This reference is generated from the node registry. Each node page shows the node type, its properties with their types, descriptions and defaults, and its outputs.
 
-The reference covers 504 nodes in 73 namespaces, grouped below by what you work with.
+The reference covers 559 nodes in 85 namespaces, grouped below by what you work with.
 
 ## Text and LLMs
 
@@ -13,6 +13,9 @@ Work with strings, structured text, embeddings and language models.
 
 | Namespace | What it does | Nodes |
 |---|---|---|
+| [anthropic.text](anthropic/text/) | Web search with Claude on an Anthropic API key. | 1 |
+| [claude_code.text](claude_code/text/) | Web search with Claude Code on a Claude subscription. | 1 |
+| [codex.text](codex/text/) | Web search on a ChatGPT sign-in. | 1 |
 | [gemini.text](gemini/text/) | Gemini embeddings and search-grounded answers. | 2 |
 | [huggingface](huggingface/) | Hugging Face inference tasks such as chat completion, classification, summarization and text to image. | 19 |
 | [mistral.embeddings](mistral/embeddings/) | Mistral text embeddings. | 1 |
@@ -20,7 +23,8 @@ Work with strings, structured text, embeddings and language models.
 | [nodetool.generators](nodetool/generators/) | Generate lists, data, charts, SVG and structured output with a language model. | 5 |
 | [nodetool.text](nodetool/text/) | String editing, regex, JSON parsing, templates, splitting, token counting and embeddings. | 51 |
 | [openai.text](openai/text/) | OpenAI embeddings, moderation and web search. | 3 |
-| [transformers](transformers/) | Run Transformers models locally for classification, generation, summarization, translation, detection and speech. | 16 |
+| [transformers](transformers/) | Run Transformers models locally for classification, generation, summarization, translation, detection and speech. | 17 |
+| [vertex.text](vertex/text/) | Gemini embeddings and search-grounded answers on Vertex AI. | 2 |
 | [xai.text](xai/text/) | xAI chat completion and web search. | 2 |
 
 ## Images
@@ -29,6 +33,7 @@ Generate, edit, filter and composite images.
 
 | Namespace | What it does | Nodes |
 |---|---|---|
+| [codex.image](codex/image/) | GPT Image generation on a ChatGPT sign-in. | 1 |
 | [gemini.image](gemini/image/) | Gemini image generation. | 1 |
 | [lib.grid](lib/grid/) | Slice an image into a grid of tiles. | 1 |
 | [lib.image.channel](lib/image/channel/) | Merge and shuffle image channels. | 2 |
@@ -43,10 +48,11 @@ Generate, edit, filter and composite images.
 | [lib.svg](lib/svg/) | Build SVG documents and convert SVG to an image. | 2 |
 | [mistral.vision](mistral/vision/) | Mistral image to text and OCR. | 2 |
 | [nodetool.compare](nodetool/compare/) | Compare two images. | 1 |
-| [nodetool.image](nodetool/image/) | Load, save, resize, crop, composite and upscale images, plus text to image and image to image. | 26 |
+| [nodetool.image](nodetool/image/) | Load, save, resize, crop, composite and upscale images, plus text to image and image to image. | 28 |
 | [nodetool.sketch](nodetool/sketch/) | Create, layer and render sketch documents. | 3 |
 | [openai.image](openai/image/) | OpenAI image creation, editing and variations. | 3 |
 | [reve](reve/) | Reve image creation, editing and remixing. | 3 |
+| [vertex.image](vertex/image/) | Gemini and Imagen image generation on Vertex AI. | 1 |
 | [xai.image](xai/image/) | xAI image generation. | 1 |
 | [xai.vision](xai/vision/) | xAI image to text. | 1 |
 
@@ -61,9 +67,10 @@ Generate, edit and assemble video, timelines and scripts.
 | [lib.wan2gp](lib/wan2gp/) | Generate video, images, audio and 3D models with a Wan2GP server you run. | 4 |
 | [nodetool.creative](nodetool/creative/) | Storyboard helpers such as director, screenplay shots, shot batches and entity application. | 5 |
 | [nodetool.manimgx](nodetool/manimgx/) | Write, inspect and render ManimGX math and 3D animation scenes in Python. | 3 |
-| [nodetool.script](nodetool/script/) | Load voiceover scripts and convert them to subtitles, timelines and voiced audio. | 4 |
-| [nodetool.timeline](nodetool/timeline/) | Add clips to a timeline, render it and read its transcript. | 3 |
-| [nodetool.video](nodetool/video/) | Load, trim, concatenate, filter and subtitle video, plus text to video, image to video and lip sync. | 33 |
+| [nodetool.script](nodetool/script/) | Load voiceover scripts and convert them to subtitles, timelines and voiced audio. | 6 |
+| [nodetool.timeline](nodetool/timeline/) | Add clips to a timeline, render it and read its transcript. | 5 |
+| [nodetool.video](nodetool/video/) | Load, trim, concatenate, filter and subtitle video, plus text to video, image to video and lip sync. | 37 |
+| [vertex.video](vertex/video/) | Veo text to video and image to video on Vertex AI. | 2 |
 
 ## Audio
 
@@ -74,10 +81,11 @@ Generate, transform, mix and transcribe audio.
 | [elevenlabs](elevenlabs/) | ElevenLabs text to speech, speech to text, realtime streaming and voice selection. | 5 |
 | [gemini.audio](gemini/audio/) | Gemini text to speech and transcription. | 2 |
 | [lib.audio](lib/audio/) | Audio effects such as reverb, delay, compressor, EQ filters, pitch shift and time stretch. | 16 |
-| [nodetool.audio](nodetool/audio/) | Load, save, trim, mix, fade, normalize and convert audio, plus text to speech and text to music. | 24 |
-| [nodetool.audio.realtime](nodetool/audio/realtime/) | Process audio as a live stream of chunks, with streaming filters and audio output. | 6 |
+| [nodetool.audio](nodetool/audio/) | Load, save, trim, mix, fade, normalize and convert audio, plus text to speech and text to music. | 25 |
+| [nodetool.audio.realtime](nodetool/audio/realtime/) | Process audio as a live stream of chunks, with streaming filters and audio output. | 17 |
 | [nodetool.audio.synth](nodetool/audio/synth/) | Modular synth parts such as oscillator, LFO, ADSR, gate and mixer. | 11 |
 | [openai.audio](openai/audio/) | OpenAI text to speech, transcription and translation. | 3 |
+| [vertex.audio](vertex/audio/) | Gemini text to speech and transcription on Vertex AI. | 2 |
 | [whisper_cpp](whisper_cpp/) | Live transcription with whisper.cpp. | 1 |
 
 ## 3D
@@ -95,9 +103,8 @@ Constants, inputs, outputs, files, documents, PDFs, databases and vector search.
 | Namespace | What it does | Nodes |
 |---|---|---|
 | [lib.charts](lib/charts/) | Render a chart from data. | 1 |
-| [lib.pdf](lib/pdf/) | Extract text, tables and styled text from PDFs, run OCR, and render pages as images. | 7 |
 | [lib.sqlite](lib/sqlite/) | Get the path of the workflow SQLite database. | 1 |
-| [nodetool.constant](nodetool/constant/) | Fixed values of every type, including text, numbers, media, lists and model selections. | 31 |
+| [nodetool.constant](nodetool/constant/) | Fixed values of every type, including text, numbers, media, lists and model selections. | 36 |
 | [nodetool.data](nodetool/data/) | Iterate over data frame rows and load CSV assets. | 2 |
 | [nodetool.document](nodetool/document/) | List, load and save document files. | 3 |
 | [nodetool.input](nodetool/input/) | Workflow inputs of every type, filled in when the workflow runs. | 34 |
@@ -137,7 +144,7 @@ Nodes for hosted model providers, local model runtimes and messaging services.
 |---|---|---|
 | [fal.dynamic](fal/dynamic/) | Run any FAL model by endpoint, with a schema-driven or raw request. | 2 |
 | [kie.dynamic_schema](kie/dynamic_schema/) | Run Kie AI models through a schema-driven node. | 1 |
-| [lib.comfy](lib/comfy/) | Run a ComfyUI workflow, locally or on a worker. | 2 |
+| [lib.comfy](lib/comfy/) | Run a ComfyUI workflow, locally or on a worker. | 3 |
 | [messaging.discord](messaging/discord/) | Start a workflow from a Discord bot message. | 1 |
 | [messaging.telegram](messaging/telegram/) | Start a workflow from a Telegram bot message. | 1 |
 | [minimax](minimax/) | MiniMax text to image, text to video, image to video, text to speech, music and voice. | 6 |
@@ -151,6 +158,16 @@ Game asset helpers and nodes used to test the workflow engine.
 | [nodetool.fake](nodetool/fake/) | Stand-in nodes that return fake output for testing. | 2 |
 | [nodetool.game](nodetool/game/) | Game assets such as sprite sheets, tilesets, sound effects and music loops. | 8 |
 | [nodetool.test](nodetool/test/) | Nodes that exercise the workflow engine in tests, such as streaming, error and slow nodes. | 22 |
+
+## Other
+
+Namespaces not yet assigned to a group.
+
+| Namespace | What it does | Nodes |
+|---|---|---|
+| [nodetool.blender](nodetool/blender/) |  | 5 |
+| [nodetool.entity](nodetool/entity/) |  | 3 |
+| [nodetool.storyboard](nodetool/storyboard/) |  | 7 |
 
 ## Find a node
 

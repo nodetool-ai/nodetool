@@ -41,6 +41,8 @@ interface DocumentVersionsPanelProps {
   flush: () => Promise<void>;
   /** Called before a restore writes the file. */
   onBeforeRestore: () => void;
+  /** Called if a restore fails after `onBeforeRestore`. */
+  onRestoreFailed?: () => void;
 }
 
 const VersionRow = ({
@@ -99,7 +101,12 @@ const DocumentUsedIn = ({ assetId }: { assetId: string }) => {
   );
 };
 
-const DocumentVersionsPanel = ({ assetId, flush, onBeforeRestore }: DocumentVersionsPanelProps) => {
+const DocumentVersionsPanel = ({
+  assetId,
+  flush,
+  onBeforeRestore,
+  onRestoreFailed
+}: DocumentVersionsPanelProps) => {
   const { t } = useTranslation();
   const { versions, isLoading, error, saveVersion, isSaving, restoreVersion, isRestoring } =
     useTextDocumentVersions(assetId);
@@ -119,15 +126,20 @@ const DocumentVersionsPanel = ({ assetId, flush, onBeforeRestore }: DocumentVers
 
   const restore = useCallback(async () => {
     if (selected === null) return;
+    let armedRestore = false;
     try {
       await flush();
       onBeforeRestore();
+      armedRestore = true;
       await restoreVersion(selected);
       setSelected(null);
     } catch (cause) {
+      if (armedRestore) {
+        onRestoreFailed?.();
+      }
       notifyMutationError(t("documentEditor.versions.restore"), cause);
     }
-  }, [flush, onBeforeRestore, restoreVersion, selected, t]);
+  }, [flush, onBeforeRestore, onRestoreFailed, restoreVersion, selected, t]);
 
   return (
     <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0 }}>

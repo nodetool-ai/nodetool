@@ -1,8 +1,8 @@
 # @nodetool-ai/document-nodes
 
-PDF and generic document I/O nodes for [NodeTool](https://nodetool.ai).
+Editable document I/O nodes for [NodeTool](https://nodetool.ai).
 
-Load and save documents, extract PDF text, and rasterize PDF pages, in visual AI workflows.
+List, load, and save editable documents in visual AI workflows.
 
 ## Install
 
@@ -12,11 +12,8 @@ npm install @nodetool-ai/document-nodes
 
 ## Nodes
 
-**Document** (`nodetool.document.*`) — load and save documents:
-`LoadDocumentFile`, `SaveDocumentFile`, `ListDocuments`.
-
-**PDF** (`lib.pdf.*`) — `ExtractText`, `ExtractMarkdown`, `ExtractTables`,
-`ExtractStyledText`, `ExtractOcr`, `Screenshot`, `Pdftoppm`.
+**Document** (`nodetool.document.*`) — list, load, and save editable documents:
+`LoadDocumentFile`, `SaveDocument`, `ListDocuments`.
 
 ## Links
 

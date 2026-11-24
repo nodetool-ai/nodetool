@@ -16,6 +16,7 @@ import {
   registerHarnessCommands,
   printGatePlan,
   selectChecks,
+  unclaimedCodeFiles,
   type ExecuteChecksOptions
 } from "../src/commands/harness.js";
 import { HARNESSES, SURFACES, planGate, type GateCheck, type GatePlan } from "../src/harness/registry.js";
@@ -224,6 +225,29 @@ const runOpts = (
   timeoutSeconds: 20,
   jobs: 1,
   ...extra
+});
+
+describe("unclaimedCodeFiles", () => {
+  it("fails on an existing unclaimed code file and skips deleted, documented and test files", () => {
+    const root = mkdtempSync(join(tmpdir(), "gate-unclaimed-"));
+    try {
+      mkdirSync(join(root, "packages/kept/src"), { recursive: true });
+      writeFileSync(join(root, "packages/kept/src/index.ts"), "export {};\n");
+      expect(
+        unclaimedCodeFiles(
+          [
+            "packages/kept/src/index.ts",
+            "packages/removed/src/index.ts",
+            "packages/sdk/src/index.ts",
+            "packages/kept/tests/index.test.ts"
+          ],
+          root
+        )
+      ).toEqual(["packages/kept/src/index.ts"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("selectChecks", () => {

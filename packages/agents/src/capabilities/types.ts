@@ -59,6 +59,14 @@ export interface CapabilitySpec {
    */
   readonly category: PermissionCategory;
   /**
+   * When true, every invocation calls `run.gate.requestApproval`, even in
+   * `auto` mode and even if the capability appears in `sessionAllow` or
+   * `alwaysAllow`. Approval answers are never added to `sessionAllow`, so each
+   * call requires fresh explicit user confirmation. Plan mode
+   * (`decision === "block"`) still blocks before prompting.
+   */
+  readonly alwaysAsk?: boolean;
+  /**
    * The capability nests the events of what it runs under the call that
    * started it, so it needs the caller's tool-call id. It arrives in the args
    * under the reserved `_tool_call_id` field — `Tool.needsToolCallId` on the

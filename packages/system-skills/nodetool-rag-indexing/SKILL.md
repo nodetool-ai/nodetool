@@ -66,8 +66,9 @@ chunk. For a folder of documents, build a workflow and run it.
 
 1. **List files.** A Code node with `await workspace.list(dir)`, or
    `nodetool.document.ListDocuments {folder, pattern, recursive}`.
-2. **Load text.** `nodetool.document.LoadDocumentFile {path}` for text and
-   Markdown. For PDFs use `lib.pdf.ExtractText` or `lib.pdf.ExtractMarkdown`.
+2. **Load text.** `nodetool.document.LoadDocumentFile {path}` for editable
+   Markdown and text documents. Import PDFs as editable Markdown documents
+   first, or extract PDF text in a Code node with `@nodetool-ai/sandbox-pdf`.
 3. **Chunk.** There is no chunking node. Use a Code node, starting from the
    "Chunk Text" snippet, and record the list with
    `await output("chunks", chunks)`. Read a document input with

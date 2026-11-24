@@ -18,6 +18,8 @@ import {
 interface DocumentShortcutsPluginProps {
   /** Open the link field (Mod+K). */
   onLink: () => void;
+  /** Take a manual snapshot (Mod+S). */
+  onSave?: () => void;
 }
 
 const HEADINGS: Record<string, "paragraph" | HeadingTagType> = {
@@ -30,7 +32,8 @@ const HEADINGS: Record<string, "paragraph" | HeadingTagType> = {
 const LISTS = { Digit7: "number", Digit8: "bullet", Digit9: "check" } as const;
 
 export function DocumentShortcutsPlugin({
-  onLink
+  onLink,
+  onSave
 }: DocumentShortcutsPluginProps): null {
   const [editor] = useLexicalComposerContext();
   useEffect(
@@ -55,6 +58,8 @@ export function DocumentShortcutsPlugin({
             toggleFormat(editor, "code");
           } else if (!event.shiftKey && !event.altKey && code === "KeyK") {
             onLink();
+          } else if (!event.shiftKey && !event.altKey && code === "KeyS" && onSave) {
+            onSave();
           } else {
             handled = false;
           }
@@ -65,7 +70,7 @@ export function DocumentShortcutsPlugin({
         },
         COMMAND_PRIORITY_NORMAL
       ),
-    [editor, onLink]
+    [editor, onLink, onSave]
   );
   return null;
 }

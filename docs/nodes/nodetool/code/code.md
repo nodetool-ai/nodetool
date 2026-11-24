@@ -14,7 +14,6 @@ namespace: "nodetool.code"
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | code | `str` |  | `return {};` |
-| packages | `list[dict]` |  | `[]` |
 | secrets | `list[str]` |  | `[]` |
 | script | `dict` |  | `{}` |
 | timeout | `int` | Max seconds before execution is aborted (0 = no limit). | `30` |

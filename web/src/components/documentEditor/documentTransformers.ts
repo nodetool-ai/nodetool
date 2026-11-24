@@ -37,18 +37,18 @@ import {
   HorizontalRuleNode
 } from "../textEditor/HorizontalRuleNode";
 import {
-  $createDocumentImageNode,
-  $isDocumentImageNode,
-  DocumentImageNode
-} from "./nodes/DocumentImageNode";
+  $createDocumentEmbedNode,
+  $isDocumentEmbedNode,
+  DocumentEmbedNode
+} from "./nodes/DocumentEmbedNode";
 
 /** Escape the characters that end or escape image alt text. */
 const escapeAlt = (text: string): string => text.replace(/([\\[\]])/g, "\\$1");
 
 export const IMAGE: TextMatchTransformer = {
-  dependencies: [DocumentImageNode],
+  dependencies: [DocumentEmbedNode],
   export: (node) => {
-    if (!$isDocumentImageNode(node)) {
+    if (!$isDocumentEmbedNode(node)) {
       return null;
     }
     const title = node.getTitle();
@@ -59,7 +59,7 @@ export const IMAGE: TextMatchTransformer = {
   replace: (textNode, match) => {
     const [, alt, src, title] = match;
     textNode.replace(
-      $createDocumentImageNode(src, alt.replace(/\\([\\[\]])/g, "$1"), title ?? "")
+      $createDocumentEmbedNode(src, alt.replace(/\\([\\[\]])/g, "$1"), title ?? "")
     );
   },
   trigger: ")",

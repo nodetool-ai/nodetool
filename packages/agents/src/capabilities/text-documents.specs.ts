@@ -135,11 +135,59 @@ export const createDocumentVersionSpec: CapabilitySpec = {
   userMessage: () => "Saving a document version"
 };
 
+export const renameDocumentVersionSpec: CapabilitySpec = {
+  name: "rename_document_version",
+  description:
+    "Rename a stored version (snapshot) of a Markdown document. Pass null or " +
+    "an empty string to clear its label.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      ...documentTarget,
+      version: {
+        type: "integer",
+        description: "The version number list_document_versions reported."
+      },
+      name: {
+        type: ["string", "null"],
+        description: "The new label for the version, or null to clear it."
+      }
+    },
+    required: ["version"],
+    additionalProperties: false
+  },
+  category: "write",
+  userMessage: (params) => `Renaming document version ${String(params["version"])}`
+};
+
+export const deleteDocumentVersionSpec: CapabilitySpec = {
+  name: "delete_document_version",
+  description:
+    "Permanently delete a stored version (snapshot) of a Markdown document " +
+    "without changing the document's current content. This cannot be undone " +
+    "and always prompts the user for explicit approval.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      ...documentTarget,
+      version: {
+        type: "integer",
+        description: "The version number list_document_versions reported."
+      }
+    },
+    required: ["version"],
+    additionalProperties: false
+  },
+  category: "write",
+  alwaysAsk: true,
+  userMessage: (params) => `Deleting document version ${String(params["version"])}`
+};
+
 export const restoreDocumentVersionSpec: CapabilitySpec = {
   name: "restore_document_version",
   description:
-    "Restore a stored version of a document. The current content is kept as " +
-    "a new version first, so the restore can be undone.",
+    "Restore a stored version of a document. Preserves any overwritten draft " +
+    "in history first and records the restored content as the new latest version.",
   inputSchema: {
     type: "object",
     properties: {
@@ -189,14 +237,28 @@ export const importDocumentSpec: CapabilitySpec = {
 export const exportDocumentSpec: CapabilitySpec = {
   name: "export_document",
   description:
-    "Export a Markdown document as a PDF or HTML file next to it in the " +
-    "project folder, and return the new file's asset_id and path. A name " +
-    "that exists gets a numbered copy.",
+    "Export a Markdown document as an .md, .txt, .pdf or .html file in the " +
+    "project folder (defaulting to the document's folder), and return the new " +
+    "file's asset_id and path. A name that exists gets a numbered copy.",
   inputSchema: {
     type: "object",
     properties: {
       ...documentTarget,
-      format: { type: "string", enum: ["pdf", "html"], description: "The file format." }
+      format: {
+        type: "string",
+        enum: ["md", "txt", "pdf", "html"],
+        description: "The output file format."
+      },
+      directory: {
+        type: "string",
+        description:
+          "Destination directory in the project folder. Defaults to the document's folder."
+      },
+      name: {
+        type: "string",
+        description:
+          "Base name for the exported file (matching extension optional). Defaults to the document's name."
+      }
     },
     required: ["format"],
     additionalProperties: false
@@ -262,6 +324,8 @@ export const textDocumentsSpecs: readonly CapabilitySpec[] = [
   editDocumentSpec,
   listDocumentVersionsSpec,
   createDocumentVersionSpec,
+  renameDocumentVersionSpec,
+  deleteDocumentVersionSpec,
   restoreDocumentVersionSpec,
   importDocumentSpec,
   exportDocumentSpec,

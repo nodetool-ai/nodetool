@@ -93,14 +93,15 @@ function between(raw: string, tag: string): string | undefined {
  * as it got. A reply that ignored the format is shown as a note.
  */
 export function parseAssistReply(raw: string, selection: Pick<AssistSelection, "mode">): AssistReply {
-  const mode = /<mode>\s*(replace|note)/i.exec(raw)?.[1]?.toLowerCase();
-  const text = between(raw, "text");
-  const why = between(raw, "why");
-  const tagged = mode !== undefined || /^\s*<\w*$/.test(raw) || /^\s*<mode/i.test(raw);
+  const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  const mode = /<mode>\s*(replace|note)/i.exec(cleaned)?.[1]?.toLowerCase();
+  const text = between(cleaned, "text");
+  const why = between(cleaned, "why");
+  const tagged = mode !== undefined || /^\s*<\w*$/.test(cleaned) || /^\s*<mode/i.test(cleaned);
   return {
     // Only a selection inside one value can be replaced.
     mode: mode === "replace" && selection.mode === "single" ? "replace" : "note",
-    text: text !== undefined ? text.trim() : tagged ? "" : raw.trim(),
+    text: text !== undefined ? text.trim() : tagged ? "" : cleaned,
     why: why?.trim() ?? ""
   };
 }

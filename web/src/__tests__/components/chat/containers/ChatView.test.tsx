@@ -26,6 +26,7 @@ import {
 } from "../../../../stores/ApiTypes";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 import type { ChatCommand } from "../../../../components/chat/types/chat.types";
+import { trpcClient } from "../../../../trpc/client";
 
 // Mock react-router-dom hooks
 const mockNavigate = jest.fn();
@@ -952,6 +953,65 @@ describe("ChatView", () => {
       expect(
         screen.queryByRole("region", { name: "Tasks" })
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Thread Versions", () => {
+    it("does not query versions for a new thread with no stored messages", () => {
+      const spy = jest
+        .spyOn(trpcClient.messages.versions, "query")
+        .mockResolvedValue({ forks: [] });
+      try {
+        renderWithProviders(
+          <ChatView {...baseProps} threadId="new-local-thread" messages={[]} />
+        );
+        expect(spy).not.toHaveBeenCalled();
+
+        renderWithProviders(
+          <ChatView
+            {...baseProps}
+            threadId="new-local-thread"
+            messages={[
+              {
+                id: "local-stream-1",
+                type: "message",
+                role: "assistant",
+                content: [{ type: "text", text: "Draft" }]
+              }
+            ]}
+          />
+        );
+        expect(spy).not.toHaveBeenCalled();
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it("queries versions once the thread has a stored message", async () => {
+      const spy = jest
+        .spyOn(trpcClient.messages.versions, "query")
+        .mockResolvedValue({ forks: [] });
+      try {
+        renderWithProviders(
+          <ChatView
+            {...baseProps}
+            threadId="saved-thread"
+            messages={[
+              {
+                id: "m1",
+                type: "message",
+                role: "user",
+                content: [{ type: "text", text: "Hello" }]
+              }
+            ]}
+          />
+        );
+        await waitFor(() =>
+          expect(spy).toHaveBeenCalledWith({ thread_id: "saved-thread" })
+        );
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 });

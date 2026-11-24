@@ -18,6 +18,7 @@ const isStateUpdater = (
   typeof value === "function";
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+import { useDocumentProposalStore } from "../../../stores/DocumentProposalStore";
 import useResultsStore from "../../../stores/ResultsStore";
 import { notifySystem } from "../../../utils/systemNotification";
 
@@ -26,10 +27,6 @@ jest.mock("../../../lib/tools/frontendTools", () => ({
     has: jest.fn(),
     call: jest.fn()
   }
-}));
-
-jest.mock("../../../utils/systemNotification", () => ({
-  notifySystem: jest.fn()
 }));
 
 jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
@@ -42,7 +39,54 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
   }
 }));
 
+jest.mock("../../../utils/systemNotification", () => ({
+  notifySystem: jest.fn()
+}));
+
 describe("chatProtocol", () => {
+  describe("document_proposal", () => {
+    beforeEach(() => {
+      useDocumentProposalStore.setState({ directApply: false, proposals: {} });
+    });
+
+    it("stores incoming document_proposal frames in DocumentProposalStore", async () => {
+      const state = partialChatState({
+        status: "streaming",
+        currentThreadId: "thread-1",
+        threads: {},
+        threadRuntime: {},
+        messageCache: {}
+      });
+      const set = jest.fn();
+
+      await handleChatWebSocketMessage(
+        stub<WebSocketMessage>({
+          type: "document_proposal",
+          proposal_id: "prop-42",
+          asset_id: "asset-99",
+          thread_id: "thread-1",
+          turn_id: "turn-7",
+          base_content: "# Old",
+          proposed_content: "# New"
+        }),
+        set,
+        () => state
+      );
+
+      const stored = useDocumentProposalStore.getState().proposals["asset-99"];
+      expect(stored).toMatchObject({
+        proposalId: "prop-42",
+        assetId: "asset-99",
+        threadId: "thread-1",
+        turnId: "turn-7",
+        baseContent: "# Old",
+        proposedContent: "# New",
+        draftContent: "# New"
+      });
+      expect(typeof stored?.receivedAt).toBe("number");
+    });
+  });
+
   describe("agent turn status", () => {
     const makeState = (threadRuntimeStatus: string): GlobalChatState =>
       partialChatState({

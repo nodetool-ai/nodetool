@@ -49,7 +49,7 @@ describe("isImportableAsDocument", () => {
 });
 
 describe("useTextDocumentExport", () => {
-  it("saves the draft before it exports a file", async () => {
+  it("saves the draft before it exports a file and returns true", async () => {
     const order: string[] = [];
     const flush = jest.fn(async () => {
       order.push("flush");
@@ -59,19 +59,105 @@ describe("useTextDocumentExport", () => {
       return { asset_id: "a2", name: "Plan.pdf", path: "docs/Plan.pdf" };
     });
     const { result } = renderHook(() => useTextDocumentExport("a1", flush));
-    await act(() => result.current.exportDocument("pdf"));
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.exportDocument("pdf");
+    });
+    expect(ok).toBe(true);
     expect(order).toEqual(["flush", "export"]);
-    expect(exportMutate).toHaveBeenCalledWith({ asset_id: "a1", format: "pdf" });
+    expect(exportMutate).toHaveBeenCalledWith({
+      asset_id: "a1",
+      format: "pdf",
+      directory: undefined,
+      name: undefined
+    });
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({ type: "success", content: "Exported docs/Plan.pdf" })
     );
   });
 
-  it("shows the server's message when an export fails", async () => {
+  it("exports md and txt formats with destination directory and trimmed name", async () => {
+    exportMutate.mockResolvedValueOnce({
+      asset_id: "a3",
+      name: "Release.md",
+      path: "exports/Release.md"
+    });
+    exportMutate.mockResolvedValueOnce({
+      asset_id: "a4",
+      name: "Notes.txt",
+      path: "exports/Notes.txt"
+    });
+    const { result } = renderHook(() => useTextDocumentExport("a1", async () => {}));
+
+    let mdOk = false;
+    let txtOk = false;
+    await act(async () => {
+      mdOk = await result.current.exportDocument("md", {
+        directory: "exports",
+        name: "  Release  "
+      });
+      txtOk = await result.current.exportDocument("txt", {
+        directory: "exports",
+        name: "Notes"
+      });
+    });
+
+    expect(mdOk).toBe(true);
+    expect(txtOk).toBe(true);
+    expect(exportMutate).toHaveBeenNthCalledWith(1, {
+      asset_id: "a1",
+      format: "md",
+      directory: "exports",
+      name: "Release"
+    });
+    expect(exportMutate).toHaveBeenNthCalledWith(2, {
+      asset_id: "a1",
+      format: "txt",
+      directory: "exports",
+      name: "Notes"
+    });
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "success", content: "Exported exports/Release.md" })
+    );
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "success", content: "Exported exports/Notes.txt" })
+    );
+  });
+
+  it("passes trimmed name as title when exporting a Google Doc", async () => {
+    const popup = { location: { href: "" }, close: jest.fn() };
+    window.open = jest.fn(() => popup as unknown as Window);
+    exportGoogleMutate.mockResolvedValue({
+      document_id: "g1",
+      name: "Launch Brief",
+      url: "https://docs.google.com/document/d/g1/edit"
+    });
+    const { result } = renderHook(() => useTextDocumentExport("a1", async () => {}));
+
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.exportDocument("google_doc", {
+        name: "  Launch Brief  "
+      });
+    });
+
+    expect(ok).toBe(true);
+    expect(exportGoogleMutate).toHaveBeenCalledWith({
+      asset_id: "a1",
+      title: "Launch Brief"
+    });
+    expect(popup.location.href).toBe("https://docs.google.com/document/d/g1/edit");
+  });
+
+  it("shows the server's message and returns false when an export fails", async () => {
     window.open = jest.fn(() => null);
     exportGoogleMutate.mockRejectedValue(new Error("Sign in with Google in Settings to use Google Docs."));
     const { result } = renderHook(() => useTextDocumentExport("a1", async () => {}));
-    await act(() => result.current.exportDocument("google_doc"));
+    let ok = true;
+    await act(async () => {
+      ok = await result.current.exportDocument("google_doc");
+    });
+    expect(ok).toBe(false);
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({ type: "error", content: expect.stringContaining("Sign in with Google") })
     );

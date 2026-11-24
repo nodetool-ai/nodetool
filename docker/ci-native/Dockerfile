@@ -7,13 +7,35 @@
 # LGPL FFmpeg build still install per job, because their versions live in the
 # workflows. See docker/ci/README.md for the tag scheme and container options.
 
+# clazy, the Qt checker scripts/native-lint.mjs runs. Ubuntu's clazy package
+# is built on Clang 15, which cannot parse libstdc++ 13's <ranges>, so this
+# stage builds clazy 1.12 against the image's LLVM 18 (clazy 1.16 and later
+# require LLVM 19). The final stage keeps only the install prefix.
+FROM ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852 AS clazy
+ARG DEBIAN_FRONTEND=noninteractive
+# The commit tag v1.12 points to.
+ARG CLAZY_COMMIT=f3fb82cb8cd82664e5e5a546aa2a73d3a297d1bd
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ca-certificates git g++ cmake ninja-build llvm-18-dev libclang-18-dev clang-18 \
+ && rm -rf /var/lib/apt/lists/*
+RUN git init -q /src \
+ && git -C /src fetch -q --depth 1 https://github.com/KDE/clazy.git "$CLAZY_COMMIT" \
+ && git -C /src checkout -q FETCH_HEAD \
+ && test "$(git -C /src rev-parse HEAD)" = "$CLAZY_COMMIT" \
+ && cmake -S /src -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCLAZY_MAN_PAGE=OFF \
+      -DLLVM_ROOT=/usr/lib/llvm-18 -DCMAKE_INSTALL_PREFIX=/opt/clazy \
+ && cmake --build /build \
+ && cmake --install /build
+
 FROM ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
 
 ARG DEBIAN_FRONTEND=noninteractive
 
 # General tools the jobs call (git, jq, pipx for aqtinstall, zstd for
 # actions/cache) and both toolchains: GCC for the release build, Clang with
-# its runtime libraries for the ASan and TSan presets, and lld, which links
+# its runtime libraries for the ASan and TSan presets, clang-tidy for
+# scripts/native-lint.mjs, and lld, which links
 # the many test executables faster than GNU ld for both. llvm puts
 # llvm-symbolizer on PATH: without it sanitizer stacks have no function names
 # and the name-based suppressions in tools/sanitizers/lsan.supp match nothing.
@@ -21,7 +43,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates curl gnupg git openssh-client sudo \
       jq zstd xz-utils unzip zip file rsync procps psmisc lsof \
-      build-essential clang libclang-rt-dev llvm lld cmake ninja-build pkg-config nasm ccache gdb \
+      build-essential clang clang-tidy libclang-rt-dev llvm lld cmake ninja-build pkg-config nasm ccache gdb \
       python3 python3-venv python3-pip pipx \
  && rm -rf /var/lib/apt/lists/*
 
@@ -68,6 +90,12 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       libclang-dev vulkan-validationlayers libxcb-sync1 libxcb-shm0 libxcb-glx0 \
  && rm -rf /var/lib/apt/lists/*
+
+# clazy from the stage above. It loads the system libclang-cpp18 and LLVM 18
+# that the clang package installed, so the version check proves it links.
+COPY --from=clazy /opt/clazy /opt/clazy
+RUN ln -s /opt/clazy/bin/clazy-standalone /usr/local/bin/clazy-standalone \
+ && clazy-standalone --version
 
 # Jobs run as the hosted runner's user (uid 1001), which owns the mounted
 # workspace, tool cache and home, as in the Node CI image.

@@ -1903,6 +1903,23 @@ export class ProcessingContext implements RuntimeNodeContext {
     return fn({ userId: this.userId, projectId: this.projectId, path });
   }
 
+  /**
+   * Convert document bytes (`.html`, `.docx`, `.pdf`) into Markdown when the
+   * host has installed a document converter. Returns `null` when none is
+   * configured or the format is unrecognized.
+   */
+  async convertDocumentToMarkdown(args: {
+    bytes: Uint8Array;
+    filename?: string | null;
+    contentType?: string | null;
+  }): Promise<string | null> {
+    const fn = this.modelInterfaces()?.convertDocumentToMarkdown;
+    if (!fn) {
+      return null;
+    }
+    return fn(args);
+  }
+
   /** Load a persisted sketch (image document) owned by the current user. */
   async getImageDocument(id: string): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("getImageDocument");

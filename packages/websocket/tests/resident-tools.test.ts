@@ -12,9 +12,11 @@ import {
 } from "../src/websocket-client-session.js";
 import {
   APP_GUIDANCE_SECTION,
+  DOCUMENT_EMBED_GUIDANCE,
   WORKFLOW_GUIDANCE_SECTION,
   WORKFLOW_POINTER_SECTION,
   buildChatAgentSystemPrompt,
+  buildUiGuidanceSection,
   workflowGuidanceForTurn
 } from "../src/session/chat-prompt.js";
 
@@ -73,6 +75,82 @@ describe("resident toolbelt", () => {
     expect(
       focusedUiToolNames({ focused: { type: "app", id: "app-1" } }, names)
     ).toEqual(["ui_app_add_component"]);
+  });
+
+  it("keeps the non-destructive Markdown document tools in the turn block when a document has focus", () => {
+    const names = [
+      "read_document",
+      "edit_document",
+      "list_document_versions",
+      "create_document_version",
+      "rename_document_version",
+      "delete_document_version",
+      "restore_document_version",
+      "export_document",
+      "ui_app_add_component"
+    ];
+
+    expect(
+      focusedUiToolNames(
+        {
+          focused: { type: "document", id: "doc-1", title: "Untitled.md" },
+          source: "document_assistant"
+        },
+        names
+      )
+    ).toEqual([
+      "read_document",
+      "edit_document",
+      "list_document_versions",
+      "create_document_version",
+      "rename_document_version",
+      "restore_document_version",
+      "export_document"
+    ]);
+    expect(
+      focusedUiToolNames({ focused: { type: "app", id: "app-1" } }, names)
+    ).toEqual(["ui_app_add_component"]);
+  });
+
+  it("explains staged proposal behavior by default and when staged, and direct mode only when direct", () => {
+    const defaultGuidance = buildUiGuidanceSection({
+      focused: { type: "document", id: "doc-1", title: "Notes.md" },
+      source: "document_assistant"
+    });
+    expect(defaultGuidance).toContain("staged as a reviewable proposal");
+    expect(defaultGuidance).not.toContain("apply at once");
+
+    const stagedGuidance = buildUiGuidanceSection({
+      focused: { type: "document", id: "doc-1", title: "Notes.md" },
+      source: "document_assistant",
+      document_edit_mode: "staged"
+    });
+    expect(stagedGuidance).toContain("staged as a reviewable proposal");
+    expect(stagedGuidance).not.toContain("apply at once");
+
+    const directGuidance = buildUiGuidanceSection({
+      focused: { type: "document", id: "doc-1", title: "Notes.md" },
+      source: "document_assistant",
+      document_edit_mode: "direct"
+    });
+    expect(directGuidance).toContain("apply at once");
+  });
+
+  it("tells the agent how to embed media in a document in both edit modes", () => {
+    for (const mode of ["staged", "direct"] as const) {
+      const guidance = buildUiGuidanceSection({
+        focused: { type: "document", id: "doc-1", title: "Notes.md" },
+        source: "document_assistant",
+        document_edit_mode: mode
+      });
+      expect(guidance).toContain(DOCUMENT_EMBED_GUIDANCE);
+    }
+    expect(DOCUMENT_EMBED_GUIDANCE).toContain("storyboard://<storyboard_id>#shot=<shot_id>");
+    expect(DOCUMENT_EMBED_GUIDANCE).toContain("timeline://<timeline_id>");
+    expect(DOCUMENT_EMBED_GUIDANCE).toContain("script://<script_id>");
+    expect(
+      buildUiGuidanceSection({ focused: { type: "sketch", id: "s-1" } })
+    ).not.toContain(DOCUMENT_EMBED_GUIDANCE);
   });
 
   it("builds on the open canvas before the saved-workflow loop", () => {

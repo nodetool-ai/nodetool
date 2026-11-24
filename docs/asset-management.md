@@ -81,7 +81,7 @@ A collection stores indexed text chunks for semantic search, not asset files. Se
 
 ## Document Indexing
 
-Extract text from binary formats first (for example with `lib.pdf.ExtractText`), index it into a collection with an index node or by dropping text files onto the collection tile, then search it with `vector.QueryText` or `vector.HybridSearch`. See [Indexing](indexing.md).
+Import binary formats such as PDF or DOCX into editable Markdown documents first (or extract PDF text in a Code node with `@nodetool-ai/sandbox-pdf`), index the text into a collection with an index node or by dropping text files onto the collection tile, then search it with `vector.QueryText` or `vector.HybridSearch`. See [Indexing](indexing.md).
 
 ---
 

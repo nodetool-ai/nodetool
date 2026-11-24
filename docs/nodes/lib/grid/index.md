@@ -5,6 +5,8 @@ title: "lib.grid Nodes"
 
 This namespace contains 1 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Slice Image Grid](sliceimagegrid.md)** - Slice an image into a grid of tiles.
+- **[Slice Image Grid](sliceimagegrid.md)**
+
+[Back to all nodes](../../)

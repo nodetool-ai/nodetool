@@ -134,6 +134,16 @@ export interface ProcessingContextModelInterfaces {
     path: string;
   }) => Promise<AssetInfoEntry | null>;
   /**
+   * Convert non-Markdown document bytes (`.html`, `.docx`, `.pdf`, or plain
+   * text) to Markdown for `DocumentInput`. Returns `null` when the bytes do
+   * not match a supported document format.
+   */
+  convertDocumentToMarkdown?: (args: {
+    bytes: Uint8Array;
+    filename?: string | null;
+    contentType?: string | null;
+  }) => Promise<string | null>;
+  /**
    * Recursively list the non-folder assets contained in `folderId`. Returns
    * `null` when the id is not a folder (or does not exist) so callers can tell
    * "not a folder" apart from "empty folder" (`[]`).

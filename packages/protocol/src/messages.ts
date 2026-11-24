@@ -1069,6 +1069,8 @@ export type WebSocketControlMessage =
   | RendererToolResultMessage
   | ToolResultMessage;
 
+export type DocumentProposalMessage = import("./api-types.js").DocumentProposalEvent;
+
 export type WebSocketServerMessage =
   | ProcessingMessage
   | PongMessage
@@ -1077,6 +1079,7 @@ export type WebSocketServerMessage =
   | SystemStatsMessage
   | ResourceChangeMessage
   | RunTraceMessage
+  | DocumentProposalMessage
   | RpcResponseMessage
   | Record<string, unknown>;
 

@@ -918,11 +918,13 @@ export class CommandRouter {
               };
             })
           : [];
+      const system = isString(data.system) ? data.system.trim() : "";
       if (messages.length === 0) {
-        const system = isString(data.system) ? data.system.trim() : "";
         const prompt = isString(data.prompt) ? data.prompt : "";
         if (system) messages.push({ role: "system", content: system });
         if (prompt.trim()) messages.push({ role: "user", content: prompt });
+      } else if (system && messages[0]?.role !== "system") {
+        messages.unshift({ role: "system", content: system });
       }
       const schema = isRecord(data.schema)
         ? (data.schema as Record<string, unknown>)

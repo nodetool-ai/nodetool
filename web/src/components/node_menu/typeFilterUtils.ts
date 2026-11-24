@@ -102,13 +102,25 @@ const sortByPriorityThenTitle = (
  * - 3: Compatible only because the property is `any`
  * - 4: No match (should be filtered out)
  */
+const connectableInputProperties = (node: NodeMetadata) => {
+  if (
+    Array.isArray(node.input_fields) &&
+    node.input_fields.length === 0 &&
+    (node.node_type.startsWith("nodetool.constant.") ||
+      node.node_type.startsWith("nodetool.input."))
+  ) {
+    return [];
+  }
+  return node.properties;
+};
+
 const getInputMatchPriority = (
   inputType: TypeMetadata,
   node: NodeMetadata
 ): number => {
   let bestPriority = 4;
 
-  for (const prop of node.properties) {
+  for (const prop of connectableInputProperties(node)) {
     if (!isConnectableCached(inputType, prop.type)) {
       continue;
     }
@@ -151,7 +163,7 @@ export const filterTypesByInputType = (
   inputType: TypeMetadata
 ): NodeMetadata[] => {
   const filtered = metadata.filter((node) => {
-    return node.properties.some((prop) =>
+    return connectableInputProperties(node).some((prop) =>
       isConnectableCached(inputType, prop.type)
     );
   });

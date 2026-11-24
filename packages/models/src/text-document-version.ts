@@ -194,6 +194,45 @@ export class TextDocumentVersion extends DBModel {
     }
   }
 
+  /** Update the label of one stored version, returning the updated row or null when absent. */
+  static async renameVersion(
+    assetId: string,
+    version: number,
+    name: string | null
+  ): Promise<TextDocumentVersion | null> {
+    const existing = await TextDocumentVersion.findByVersion(assetId, version);
+    if (!existing) return null;
+    await getPortableDb()
+      .update(textDocumentVersions)
+      .set({ name })
+      .where(
+        and(
+          eq(textDocumentVersions.asset_id, assetId),
+          eq(textDocumentVersions.version, version)
+        )
+      );
+    existing.name = name;
+    return existing;
+  }
+
+  /** Delete one stored version. Returns true when a row existed and was deleted. */
+  static async deleteVersion(
+    assetId: string,
+    version: number
+  ): Promise<boolean> {
+    const existing = await TextDocumentVersion.findByVersion(assetId, version);
+    if (!existing) return false;
+    await getPortableDb()
+      .delete(textDocumentVersions)
+      .where(
+        and(
+          eq(textDocumentVersions.asset_id, assetId),
+          eq(textDocumentVersions.version, version)
+        )
+      );
+    return true;
+  }
+
   /** Delete every version of a document. */
   static async deleteForAsset(assetId: string): Promise<void> {
     await getPortableDb()

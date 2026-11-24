@@ -267,15 +267,12 @@ async function invokeCapabilityImpl(
   const args = checked.args;
   const category = spec.category;
   const decision = decidePermission(run.gate.mode, category);
+  const alwaysAsk = spec.alwaysAsk === true;
 
   // Read-class capabilities go straight to the implementation, so the "never
   // consulted by the monitor" invariant holds by construction.
-  if (category === "read") {
+  if (category === "read" && !alwaysAsk) {
     return impl(run, args);
-  }
-
-  if (decision === "allow") {
-    return runImpl(run, entry, args, category);
   }
 
   if (decision === "block") {
@@ -288,8 +285,12 @@ async function invokeCapabilityImpl(
     };
   }
 
-  // decision === "ask"
-  if (isPreapproved(run.gate, spec.name)) {
+  if (!alwaysAsk && decision === "allow") {
+    return runImpl(run, entry, args, category);
+  }
+
+  // decision === "ask", or spec.alwaysAsk demands explicit confirmation every time
+  if (!alwaysAsk && isPreapproved(run.gate, spec.name)) {
     return runImpl(run, entry, args, category);
   }
 
@@ -314,7 +315,7 @@ async function invokeCapabilityImpl(
     };
   }
 
-  if (grantsStandingApproval(answer)) {
+  if (!alwaysAsk && grantsStandingApproval(answer)) {
     run.gate.sessionAllow.add(spec.name);
   }
 

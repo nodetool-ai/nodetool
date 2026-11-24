@@ -179,6 +179,8 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   edit_document: "write",
   list_document_versions: "read",
   create_document_version: "write",
+  rename_document_version: "write",
+  delete_document_version: "write",
   restore_document_version: "write",
   list_workers: "read",
   get_worker_status: "read",

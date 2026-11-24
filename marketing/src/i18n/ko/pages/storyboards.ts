@@ -43,7 +43,7 @@ export const storyboards: LocalizedPageContent = {
       kind: "catalog",
       id: "films",
       title: "영화 {storyboardCount}편과 그 스토리보드",
-      intro: "아무 영화나 열면 완성된 영화를 먼저 보여 주고, 이어서 샷마다 카메라와 연출 노트를 보여 줍니다(영어 페이지).",
+      intro: "아무 영화나 열면 완성된 영화를 먼저 보여 주고, 이어서 샷마다 카메라와 연출 노트를 보여 줍니다.",
       source: "storyboards",
     },
   ],

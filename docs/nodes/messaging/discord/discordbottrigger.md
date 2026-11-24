@@ -18,7 +18,6 @@ Listen for Discord messages from a bot account and emit them as events.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| max_events | `int` | Maximum number of events to process (0 = unlimited) | `0` |
 | token | `str` | Discord bot token | `` |
 | channel_id | `str` | Optional channel ID to filter messages | null |
 | allow_bot_messages | `bool` | Include messages authored by bots | `false` |

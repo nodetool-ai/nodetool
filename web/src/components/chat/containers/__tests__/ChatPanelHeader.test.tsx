@@ -76,6 +76,16 @@ describe("ChatPanelHeader", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders extraActions ahead of the standard actions", () => {
+    renderHeader({
+      extraActions: <button type="button">Direct apply</button>
+    });
+
+    const buttons = screen.getAllByRole("button");
+    expect(buttons[0]).toHaveAccessibleName("Direct apply");
+    expect(buttons[1]).toHaveAccessibleName("New chat");
+  });
+
   it("starts a new chat", async () => {
     const user = userEvent.setup();
     const { onNewChat } = renderHeader();

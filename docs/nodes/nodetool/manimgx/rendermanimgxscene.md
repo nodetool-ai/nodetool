@@ -23,6 +23,9 @@ Render a ManimGX scene, written in Python with Manim Community Edition's API, to
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
+| code | `str` |  | - |
+| scene_name | `str` | The Scene class to run. Empty runs the file's only scene. | `` |
+| timeout | `int` | Maximum run time in seconds | `300` |
 | width | `int` | Video width in pixels (rounded up to even) | `1920` |
 | height | `int` | Video height in pixels (rounded up to even) | `1080` |
 | fps | `int` | Frames per second; motion keeps its timing at any rate | `30` |

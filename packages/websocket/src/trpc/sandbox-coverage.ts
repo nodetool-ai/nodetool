@@ -1381,6 +1381,8 @@ export const SANDBOX_API_COVERAGE: Readonly<
     gap: "The agent reads the current document; a stored version's content has no read capability."
   },
   "textDocuments.createVersion": { capability: "create_document_version" },
+  "textDocuments.renameVersion": { capability: "rename_document_version" },
+  "textDocuments.deleteVersion": { capability: "delete_document_version" },
   "textDocuments.restore": { capability: "restore_document_version" },
   "textDocuments.import": { capability: "import_document" },
   "textDocuments.export": { capability: "export_document" },

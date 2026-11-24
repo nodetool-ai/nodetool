@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useEffect, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import type { ChatSource, UiContext, UiDocumentRef } from "@nodetool-ai/protocol";
 
@@ -62,6 +62,10 @@ interface AssistantChatPanelProps {
   /** Runs before each message is sent, such as saving an open draft. */
   beforeSend?: () => Promise<void>;
   focusMessage?: { threadId: string; messageId: string; requestId: number } | null;
+  /** How assistant edits apply to the focused Markdown document. */
+  documentEditMode?: "staged" | "direct" | null;
+  /** Extra controls rendered at the start of the header action strip. */
+  headerActions?: ReactNode;
 }
 
 /**
@@ -83,7 +87,9 @@ const AssistantChatPanel = ({
   requireToolSupport = true,
   onThreadId,
   beforeSend,
-  focusMessage
+  focusMessage,
+  documentEditMode,
+  headerActions
 }: AssistantChatPanelProps) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -169,9 +175,10 @@ const AssistantChatPanel = ({
   const uiContext = useCallback((): BuildUiContextOptions => {
     return {
       focused: focused ?? undefined,
-      selection: getSelection?.() ?? undefined
+      selection: getSelection?.() ?? undefined,
+      documentEditMode: documentEditMode ?? undefined
     };
-  }, [focused, getSelection]);
+  }, [documentEditMode, focused, getSelection]);
 
   const welcomePlaceholder = useMemo(
     () => (
@@ -202,6 +209,7 @@ const AssistantChatPanel = ({
         threadId={threadId}
         docsTopic={docsTopic}
         docsLabel={docsLabel}
+        extraActions={headerActions}
       />
       <div style={{ flex: 1, minHeight: 0 }}>
         <ChatView

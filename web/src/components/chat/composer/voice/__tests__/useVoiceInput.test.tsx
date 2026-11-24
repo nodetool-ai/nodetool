@@ -10,12 +10,13 @@ const mockStart = jest.fn<Promise<string | null>, []>();
 const mockConfirm = jest.fn<Promise<Blob | null>, []>();
 const mockCancel = jest.fn();
 const levelsRef = { current: new Float32Array(4) };
+let mockIsRecording = false;
 
 jest.mock("../../../../../hooks/browser/useMicrophoneRecorder", () => ({
   LEVEL_BUFFER_SIZE: 4,
   useMicrophoneRecorder: () => ({
-    status: "idle",
-    isRecording: false,
+    status: mockIsRecording ? "recording" : "idle",
+    isRecording: mockIsRecording,
     error: null,
     durationMs: 0,
     levelsRef,
@@ -44,6 +45,17 @@ jest.mock("../../../../../lib/trpc", () => ({
     models: {
       asrByProvider: {
         query: (input: { provider: string }) => mockAsrByProvider(input)
+      }
+    }
+  }
+}));
+
+const mockDeleteAsset = jest.fn();
+jest.mock("../../../../../trpc/client", () => ({
+  trpcClient: {
+    assets: {
+      delete: {
+        mutate: (input: { id: string }) => mockDeleteAsset(input)
       }
     }
   }
@@ -88,6 +100,7 @@ function pinDefaultModel() {
 describe("useVoiceInput", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsRecording = false;
     useModelPreferencesStore.setState({ defaults: {} });
     useNotificationStore.setState({ notifications: [] });
     useRuntimePackagePromptStore.setState({ packageId: null });
@@ -97,6 +110,7 @@ describe("useVoiceInput", () => {
       error: null
     });
     mockAsrByProvider.mockResolvedValue([]);
+    mockDeleteAsset.mockResolvedValue({ deleted_asset_ids: ["asset-1"] });
     mockStart.mockResolvedValue(null);
     mockUploadAsset.mockImplementation(
       ({ onCompleted }: { onCompleted: (asset: { id: string }) => void }) => {
@@ -248,22 +262,222 @@ describe("useVoiceInput", () => {
     expect(mockStart).toHaveBeenCalled();
   });
 
-  it("uploads the take and transcribes it with the default model", async () => {
+  it("uploads the take and transcribes it to draft with the default model", async () => {
     pinDefaultModel();
     const onTranscript = jest.fn();
+    const onSubmitTranscript = jest.fn();
     mockConfirm.mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }));
 
-    const { result } = renderHook(() => useVoiceInput({ onTranscript }));
+    const { result } = renderHook(() =>
+      useVoiceInput({ onTranscript, onSubmitTranscript })
+    );
     await act(async () => {
       result.current.confirmRecording();
     });
 
     await waitFor(() => expect(onTranscript).toHaveBeenCalledWith("hello there"));
+    expect(onSubmitTranscript).not.toHaveBeenCalled();
     expect(mockRpcRequest).toHaveBeenCalledWith("transcribe_audio", {
       provider: "openai",
       model: "whisper-1",
       asset_id: "asset-1"
     });
+  });
+
+  it("toggles start when idle and confirm when recording", async () => {
+    pinDefaultModel();
+    const onTranscript = jest.fn();
+    const onSubmitTranscript = jest.fn();
+    mockConfirm.mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }));
+
+    const { result, rerender } = renderHook(() =>
+      useVoiceInput({ onTranscript, onSubmitTranscript })
+    );
+
+    act(() => {
+      result.current.toggleRecording();
+    });
+    expect(mockStart).toHaveBeenCalledTimes(1);
+
+    mockIsRecording = true;
+    rerender();
+
+    await act(async () => {
+      result.current.toggleRecording();
+    });
+    expect(mockConfirm).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onTranscript).toHaveBeenCalledWith("hello there"));
+    expect(onSubmitTranscript).not.toHaveBeenCalled();
+  });
+
+  it("stops, transcribes, and submits when requestSend is called while recording", async () => {
+    pinDefaultModel();
+    const onTranscript = jest.fn();
+    const onSubmitTranscript = jest.fn();
+    let resolveRpc: (value: { text: string }) => void = () => undefined;
+    mockConfirm.mockImplementation(async () => {
+      mockIsRecording = false;
+      return new Blob(["audio"], { type: "audio/webm" });
+    });
+    mockRpcRequest.mockReturnValue(
+      new Promise<{ text: string }>((resolve) => {
+        resolveRpc = resolve;
+      })
+    );
+
+    mockIsRecording = true;
+    const { result, rerender } = renderHook(() =>
+      useVoiceInput({ onTranscript, onSubmitTranscript })
+    );
+
+    let handled = false;
+    act(() => {
+      handled = result.current.requestSend();
+    });
+    expect(handled).toBe(true);
+    expect(result.current.phase).toBe("transcribing");
+    expect(result.current.pendingSend).toBe(true);
+    expect(mockConfirm).toHaveBeenCalledTimes(1);
+
+    await waitFor(() => expect(mockRpcRequest).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      resolveRpc({ text: "send me now" });
+    });
+    rerender();
+
+    await waitFor(() =>
+      expect(onSubmitTranscript).toHaveBeenCalledWith("send me now")
+    );
+    expect(onTranscript).not.toHaveBeenCalled();
+    expect(result.current.pendingSend).toBe(false);
+    expect(result.current.phase).toBe("idle");
+  });
+
+  it("queues send when requestSend is called while transcribing", async () => {
+    pinDefaultModel();
+    const onTranscript = jest.fn();
+    const onSubmitTranscript = jest.fn();
+    let resolveRpc: (value: { text: string }) => void = () => undefined;
+    mockConfirm.mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }));
+    mockRpcRequest.mockReturnValue(
+      new Promise<{ text: string }>((resolve) => {
+        resolveRpc = resolve;
+      })
+    );
+
+    const { result } = renderHook(() =>
+      useVoiceInput({ onTranscript, onSubmitTranscript })
+    );
+
+    act(() => {
+      result.current.confirmRecording();
+    });
+    await waitFor(() => expect(mockRpcRequest).toHaveBeenCalledTimes(1));
+    expect(result.current.phase).toBe("transcribing");
+    expect(result.current.pendingSend).toBe(false);
+
+    let handled = false;
+    act(() => {
+      handled = result.current.requestSend();
+    });
+    expect(handled).toBe(true);
+    expect(result.current.pendingSend).toBe(true);
+
+    await act(async () => {
+      resolveRpc({ text: "queued submit" });
+    });
+
+    await waitFor(() =>
+      expect(onSubmitTranscript).toHaveBeenCalledWith("queued submit")
+    );
+    expect(onTranscript).not.toHaveBeenCalled();
+    expect(result.current.pendingSend).toBe(false);
+    expect(result.current.phase).toBe("idle");
+  });
+
+  it("returns false from requestSend when idle", () => {
+    pinDefaultModel();
+    const { result } = renderHook(() =>
+      useVoiceInput({ onTranscript: jest.fn() })
+    );
+
+    expect(result.current.requestSend()).toBe(false);
+    expect(result.current.pendingSend).toBe(false);
+  });
+
+  it("drops late transcription results and clears pendingSend when cancelled during transcription", async () => {
+    pinDefaultModel();
+    const onTranscript = jest.fn();
+    const onSubmitTranscript = jest.fn();
+    let resolveRpc: (value: { text: string }) => void = () => undefined;
+    mockConfirm.mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }));
+    mockRpcRequest.mockReturnValue(
+      new Promise<{ text: string }>((resolve) => {
+        resolveRpc = resolve;
+      })
+    );
+
+    const { result } = renderHook(() =>
+      useVoiceInput({ onTranscript, onSubmitTranscript })
+    );
+
+    act(() => {
+      result.current.confirmRecording();
+    });
+    await waitFor(() => expect(mockRpcRequest).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      result.current.requestSend();
+    });
+    expect(result.current.pendingSend).toBe(true);
+
+    act(() => {
+      result.current.cancelRecording();
+    });
+    expect(result.current.phase).toBe("idle");
+    expect(result.current.pendingSend).toBe(false);
+
+    // Late resolution from the cancelled transcription must be ignored.
+    await act(async () => {
+      resolveRpc({ text: "stale transcript" });
+    });
+
+    expect(onTranscript).not.toHaveBeenCalled();
+    expect(onSubmitTranscript).not.toHaveBeenCalled();
+    expect(useNotificationStore.getState().notifications).toHaveLength(0);
+    expect(result.current.phase).toBe("idle");
+  });
+
+  it("ignores stale transcription rejection after cancel", async () => {
+    pinDefaultModel();
+    let rejectRpc: (error: Error) => void = () => undefined;
+    mockConfirm.mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }));
+    mockRpcRequest.mockReturnValue(
+      new Promise<{ text: string }>((_, reject) => {
+        rejectRpc = reject;
+      })
+    );
+
+    const { result } = renderHook(() =>
+      useVoiceInput({ onTranscript: jest.fn() })
+    );
+
+    act(() => {
+      result.current.confirmRecording();
+    });
+    await waitFor(() => expect(mockRpcRequest).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      result.current.cancelRecording();
+    });
+
+    await act(async () => {
+      rejectRpc(new Error("late failure"));
+    });
+
+    expect(useNotificationStore.getState().notifications).toHaveLength(0);
+    expect(result.current.phase).toBe("idle");
   });
 
   it("does not transcribe a discarded recording", async () => {
@@ -313,5 +527,154 @@ describe("useVoiceInput", () => {
 
     expect(mockCancel).toHaveBeenCalled();
     expect(mockRpcRequest).not.toHaveBeenCalled();
+  });
+
+  it("deletes the uploaded asset and skips transcription when cancelled while upload is in flight", async () => {
+    pinDefaultModel();
+    const onTranscript = jest.fn();
+    const onSubmitTranscript = jest.fn();
+    let completeUpload: (asset: { id: string }) => void = () => undefined;
+    mockConfirm.mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }));
+    mockUploadAsset.mockImplementation(
+      ({ onCompleted }: { onCompleted: (asset: { id: string }) => void }) => {
+        completeUpload = onCompleted;
+      }
+    );
+
+    const { result } = renderHook(() =>
+      useVoiceInput({ onTranscript, onSubmitTranscript })
+    );
+
+    act(() => {
+      result.current.confirmRecording();
+    });
+    await waitFor(() => expect(mockUploadAsset).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      result.current.cancelRecording();
+    });
+    expect(mockDeleteAsset).not.toHaveBeenCalled();
+
+    // Upload finishes after cancel -> delete orphaned asset and never transcribe.
+    await act(async () => {
+      completeUpload({ id: "asset-late-upload" });
+    });
+
+    expect(mockDeleteAsset).toHaveBeenCalledTimes(1);
+    expect(mockDeleteAsset).toHaveBeenCalledWith({ id: "asset-late-upload" });
+    expect(mockRpcRequest).not.toHaveBeenCalled();
+    expect(onTranscript).not.toHaveBeenCalled();
+    expect(onSubmitTranscript).not.toHaveBeenCalled();
+    expect(useNotificationStore.getState().notifications).toHaveLength(0);
+  });
+
+  it("deletes the uploaded asset immediately when cancelled while transcribe_audio is in flight", async () => {
+    pinDefaultModel();
+    const onTranscript = jest.fn();
+    const onSubmitTranscript = jest.fn();
+    let resolveRpc: (value: { text: string }) => void = () => undefined;
+    mockConfirm.mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }));
+    mockRpcRequest.mockReturnValue(
+      new Promise<{ text: string }>((resolve) => {
+        resolveRpc = resolve;
+      })
+    );
+
+    const { result } = renderHook(() =>
+      useVoiceInput({ onTranscript, onSubmitTranscript })
+    );
+
+    act(() => {
+      result.current.confirmRecording();
+    });
+    await waitFor(() => expect(mockRpcRequest).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      result.current.cancelRecording();
+    });
+
+    expect(mockDeleteAsset).toHaveBeenCalledTimes(1);
+    expect(mockDeleteAsset).toHaveBeenCalledWith({ id: "asset-1" });
+
+    // Late RPC settlement must not emit a transcript or double-delete.
+    await act(async () => {
+      resolveRpc({ text: "late transcript" });
+    });
+
+    expect(mockDeleteAsset).toHaveBeenCalledTimes(1);
+    expect(onTranscript).not.toHaveBeenCalled();
+    expect(onSubmitTranscript).not.toHaveBeenCalled();
+    expect(useNotificationStore.getState().notifications).toHaveLength(0);
+  });
+
+  it("cleans up the uploaded asset and drops callbacks when unmounted while transcribe_audio is in flight", async () => {
+    pinDefaultModel();
+    const onTranscript = jest.fn();
+    const onSubmitTranscript = jest.fn();
+    let resolveRpc: (value: { text: string }) => void = () => undefined;
+    mockConfirm.mockResolvedValue(new Blob(["audio"], { type: "audio/webm" }));
+    mockRpcRequest.mockReturnValue(
+      new Promise<{ text: string }>((resolve) => {
+        resolveRpc = resolve;
+      })
+    );
+
+    const { result, unmount } = renderHook(() =>
+      useVoiceInput({ onTranscript, onSubmitTranscript })
+    );
+
+    act(() => {
+      result.current.confirmRecording();
+    });
+    await waitFor(() => expect(mockRpcRequest).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      result.current.requestSend();
+    });
+
+    unmount();
+
+    expect(mockCancel).toHaveBeenCalledTimes(1);
+    expect(mockDeleteAsset).toHaveBeenCalledTimes(1);
+    expect(mockDeleteAsset).toHaveBeenCalledWith({ id: "asset-1" });
+
+    await act(async () => {
+      resolveRpc({ text: "unmounted transcript" });
+    });
+
+    expect(mockDeleteAsset).toHaveBeenCalledTimes(1);
+    expect(onTranscript).not.toHaveBeenCalled();
+    expect(onSubmitTranscript).not.toHaveBeenCalled();
+    expect(useNotificationStore.getState().notifications).toHaveLength(0);
+  });
+
+  it("ignores late recorder.start failure and cancels capture when unmounted", async () => {
+    pinDefaultModel();
+    const onTranscript = jest.fn();
+    let resolveStart: (failure: string | null) => void = () => undefined;
+    mockStart.mockReturnValue(
+      new Promise<string | null>((resolve) => {
+        resolveStart = resolve;
+      })
+    );
+
+    const { result, unmount } = renderHook(() =>
+      useVoiceInput({ onTranscript })
+    );
+
+    act(() => {
+      result.current.startRecording();
+    });
+    expect(mockStart).toHaveBeenCalledTimes(1);
+
+    unmount();
+    expect(mockCancel).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveStart("Microphone access was denied.");
+    });
+
+    expect(onTranscript).not.toHaveBeenCalled();
+    expect(useNotificationStore.getState().notifications).toHaveLength(0);
   });
 });

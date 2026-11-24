@@ -240,7 +240,10 @@ export const trpcClient = {
     list: { query: emptyQuery() },
     get: { query: emptyQuery() },
     create: { mutate: emptyMutate() },
-    delete: { mutate: emptyMutate() }
+    delete: { mutate: emptyMutate() },
+    rewind: { mutate: jest.fn(async () => ({ deleted_ids: [] })) },
+    versions: { query: jest.fn(async () => ({ forks: [] })) },
+    switchVersion: { mutate: emptyMutate() }
   },
   workspace: {
     list: { query: emptyQuery() },

@@ -2213,10 +2213,30 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "rename_document_version",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "163825afb678",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
+    name: "delete_document_version",
+    module: "text-documents",
+    impl: "packages/agents/src/capabilities/text-documents.ts",
+    contract: "d34dc5bb594e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-text-documents.test.ts",
+    ],
+  },
+  {
     name: "restore_document_version",
     module: "text-documents",
     impl: "packages/agents/src/capabilities/text-documents.ts",
-    contract: "597d86e4548f",
+    contract: "a8024d61d309",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-text-documents.test.ts",
@@ -2236,7 +2256,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "export_document",
     module: "text-documents",
     impl: "packages/agents/src/capabilities/text-documents.ts",
-    contract: "b4d77aff4483",
+    contract: "5743fd49f53e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-text-documents.test.ts",

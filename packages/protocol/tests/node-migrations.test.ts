@@ -461,24 +461,29 @@ describe("migrateGraphNodeTypes", () => {
     });
   });
 
-  it("migrates removed lib.pdf.PageCount and SearchText to Code", () => {
-    for (const from of ["lib.pdf.PageCount", "lib.pdf.SearchText"]) {
+  it("migrates retired lib.pdf.ExtractText, PageCount and SearchText to Code", () => {
+    for (const from of [
+      "lib.pdf.ExtractText",
+      "lib.pdf.PageCount",
+      "lib.pdf.SearchText"
+    ]) {
       const m = NODE_TYPE_MIGRATIONS.find((x) => x.from === from);
       expect(m, `missing migration for ${from}`).toBeDefined();
       expect(m?.to).toBe("nodetool.code.Code");
       expect(String(m?.setProperties?.code)).toContain(
-        '@nodetool-ai/sandbox-pdf'
+        "@nodetool-ai/sandbox-pdf"
       );
     }
   });
 
-  it("does not migrate kept lib.pdf conversion nodes", () => {
+  it("leaves retired lib.pdf nodes without a text-layer equivalent unmigrated", () => {
     for (const from of [
-      "lib.pdf.ExtractText",
       "lib.pdf.ExtractMarkdown",
       "lib.pdf.ExtractTables",
       "lib.pdf.ExtractStyledText",
       "lib.pdf.ExtractOcr",
+      "lib.pdf.Screenshot",
+      "lib.pdf.Pdftoppm",
       "lib.pdf.ExtractTextBlocks",
       "lib.pdf.PageMetadata"
     ]) {

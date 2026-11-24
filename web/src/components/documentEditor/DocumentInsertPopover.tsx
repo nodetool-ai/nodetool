@@ -1,6 +1,6 @@
 /**
- * The small form that asks for a link address, or an image path and its
- * description. It opens over the selection; Enter applies, Escape closes.
+ * The small form that asks for a link address. It opens over the selection;
+ * Enter applies, Escape closes. Media goes through `DocumentEmbedDialog`.
  */
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,7 +15,7 @@ import {
   TextInput
 } from "../ui_primitives";
 
-export type DocumentInsertKind = "link" | "image";
+export type DocumentInsertKind = "link";
 
 export interface DocumentInsertRequest {
   kind: DocumentInsertKind;
@@ -30,27 +30,19 @@ interface DocumentInsertPopoverProps {
   request: DocumentInsertRequest | null;
   onClose: () => void;
   onLink: (url: string) => void;
-  onImage: (src: string, alt: string) => void;
 }
 
 const InsertForm = ({
   request,
   onClose,
-  onLink,
-  onImage
+  onLink
 }: DocumentInsertPopoverProps & { request: DocumentInsertRequest }) => {
   const { t } = useTranslation();
   const [url, setUrl] = useState(request.initialUrl ?? "");
-  const [alt, setAlt] = useState("");
-  const isLink = request.kind === "link";
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (isLink) {
-      onLink(url);
-    } else {
-      onImage(url, alt);
-    }
+    onLink(url);
     onClose();
   };
 
@@ -60,29 +52,13 @@ const InsertForm = ({
         <TextInput
           autoFocus
           compact
-          label={
-            isLink
-              ? t("documentEditor.insert.linkAddress")
-              : t("documentEditor.insert.imagePath")
-          }
-          placeholder={
-            isLink
-              ? "https://"
-              : t("documentEditor.insert.imagePathPlaceholder")
-          }
+          label={t("documentEditor.insert.linkAddress")}
+          placeholder="https://"
           value={url}
           onChange={(event) => setUrl(event.target.value)}
         />
-        {!isLink && (
-          <TextInput
-            compact
-            label={t("documentEditor.insert.imageAlt")}
-            value={alt}
-            onChange={(event) => setAlt(event.target.value)}
-          />
-        )}
         <FlexRow gap={GAP.tight} sx={{ justifyContent: "flex-end" }}>
-          {isLink && request.initialUrl && (
+          {request.initialUrl && (
             <EditorButton
               variant="text"
               onClick={() => {
@@ -97,16 +73,13 @@ const InsertForm = ({
             {t("common.cancel")}
           </EditorButton>
           <EditorButton type="submit" variant="contained" disabled={url.trim() === ""}>
-            {isLink
-              ? t("documentEditor.insert.applyLink")
-              : t("documentEditor.insert.insertImage")}
+            {t("documentEditor.insert.applyLink")}
           </EditorButton>
         </FlexRow>
       </FlexColumn>
     </form>
   );
 };
-
 const DocumentInsertPopover = (props: DocumentInsertPopoverProps) => {
   const { request, onClose } = props;
   return (

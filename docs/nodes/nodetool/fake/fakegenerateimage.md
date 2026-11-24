@@ -14,8 +14,8 @@ namespace: "nodetool.fake"
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | prompt | `str` | Describes the image. Seeds the placeholder; no real model runs. | `a serene mountain lake at sunset` |
-| width | `int` |  | `512` |
-| height | `int` |  | `512` |
+| width | `int` |  | - |
+| height | `int` |  | - |
 
 ## Outputs
 

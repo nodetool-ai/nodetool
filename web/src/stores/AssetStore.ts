@@ -21,6 +21,7 @@ import {
 import { isFunction, isNumber, isObjectLike } from "../utils/typePredicates";
 import { getLocalFilePath } from "../utils/localFile";
 import { creationProjectId } from "./WorkspaceTabsStore";
+import { useDocumentProposalStore } from "./DocumentProposalStore";
 
 type AssetCreatePayload = {
   workflow_id?: string;
@@ -527,6 +528,16 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     }
 
     const { deleted_asset_ids } = await trpcClient.assets.delete.mutate({ id });
+
+    const proposalStore = useDocumentProposalStore.getState();
+    const clearedIds = new Set<string>([
+      id,
+      assetIdFromRef(id),
+      ...deleted_asset_ids
+    ]);
+    clearedIds.forEach((assetId) => {
+      proposalStore.clearProposal(assetId);
+    });
 
     deleted_asset_ids.forEach((assetId) => {
       get().invalidateQueries(["asset", assetId]);

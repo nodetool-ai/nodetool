@@ -10,6 +10,7 @@ import {
   LOOSE_PROJECT_ID,
   type WorkspaceTab
 } from "../WorkspaceTabsStore";
+import { useDocumentProposalStore } from "../DocumentProposalStore";
 
 const tab = (
   type: WorkspaceTab["type"],
@@ -323,6 +324,63 @@ describe("closeTab", () => {
     expect(useWorkspaceTabsStore.getState().activeTabId).toBeNull();
     expect(useWorkspaceTabsStore.getState().activeProjectId).toBe("p1");
   });
+
+  it("clears staged and queued document proposals when closing text tabs", () => {
+    useDocumentProposalStore.setState({
+      directApply: false,
+      proposals: {},
+      queuedProposals: {}
+    });
+    const makeDocProposal = (assetId: string, proposalId: string) => ({
+      proposalId,
+      assetId,
+      threadId: "t-1",
+      turnId: "turn-1",
+      baseContent: "base",
+      proposedContent: "proposed",
+      draftContent: "proposed",
+      receivedAt: 1700000000000
+    });
+    const proposalStore = useDocumentProposalStore.getState();
+    proposalStore.setProposal(makeDocProposal("doc-a", "p-a1"));
+    proposalStore.updateDraft("doc-a", "edited draft");
+    proposalStore.setProposal(makeDocProposal("doc-a", "p-a2"));
+    proposalStore.setProposal(makeDocProposal("doc-b", "p-b1"));
+    proposalStore.setProposal(makeDocProposal("doc-c", "p-c1"));
+
+    reset(
+      [
+        { ...tab("text", "doc-a"), projectId: "p1" },
+        { ...tab("text", "doc-b"), projectId: "p1" },
+        { ...tab("text", "doc-c"), projectId: "p2" }
+      ],
+      "text:doc-a"
+    );
+    useWorkspaceTabsStore.setState({ activeProjectId: "p1" });
+
+    // Closing a single text tab clears both its active and queued proposals.
+    useWorkspaceTabsStore.getState().closeTab("text:doc-a");
+    expect(useDocumentProposalStore.getState().proposals["doc-a"]).toBeUndefined();
+    expect(
+      useDocumentProposalStore.getState().queuedProposals["doc-a"]
+    ).toBeUndefined();
+    expect(useDocumentProposalStore.getState().proposals["doc-b"]).toBeDefined();
+    expect(useDocumentProposalStore.getState().proposals["doc-c"]).toBeDefined();
+
+    // Closing other tabs in the same project clears closed sibling text tabs only.
+    useWorkspaceTabsStore.getState().openTab({
+      type: "workflow",
+      ref: "wf-keep",
+      projectId: "p1"
+    });
+    useWorkspaceTabsStore.getState().closeOthers("workflow:wf-keep");
+    expect(useDocumentProposalStore.getState().proposals["doc-b"]).toBeUndefined();
+    expect(useDocumentProposalStore.getState().proposals["doc-c"]).toBeDefined();
+
+    // Closing a project clears proposals for its text tabs.
+    useWorkspaceTabsStore.getState().closeProject("p2");
+    expect(useDocumentProposalStore.getState().proposals["doc-c"]).toBeUndefined();
+  });
 });
 
 describe("closing the last tab of a project", () => {
@@ -456,6 +514,18 @@ describe("creationProjectId", () => {
 
   it("uses the resolved Personal project when no named project is active", () => {
     useWorkspaceTabsStore.getState().resolvePersonalProject("personal:u1");
+    expect(creationProjectId()).toBe("personal:u1");
+  });
+
+  it("replaces a stale personal activeProjectId from another user when Personal resolves", () => {
+    useWorkspaceTabsStore.setState({
+      activeProjectId: "personal:other-user",
+      personalProjectId: "personal:u1"
+    });
+    useWorkspaceTabsStore.getState().resolvePersonalProject("personal:u1");
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBe(
+      "personal:u1"
+    );
     expect(creationProjectId()).toBe("personal:u1");
   });
 

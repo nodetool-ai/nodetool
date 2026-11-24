@@ -314,7 +314,7 @@ export class ConstantDocumentNode extends BaseNode {
   static readonly retrySafe = true;
   static readonly title = "Document";
   static readonly description =
-    "Represents a document constant in the workflow.\n    document, pdf, word, docx";
+    "Reference to an editable Markdown document in the project.\n    document, markdown, text, notes, writing";
   static readonly metadataOutputTypes = {
     output: "document",
     text: "str"

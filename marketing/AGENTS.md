@@ -178,7 +178,7 @@ set in `src/data/languagePages.ts` and pair with the home page.
   catalog card words are in `LocalizedCatalog.tsx`. An English page shows a
   switch to each of its translations.
 - Detail pages (`/<locale>/storyboards/<slug>`, `/<locale>/recipes/<slug>`,
-  `/<locale>/ad-library/<slug>`, in Chinese and Japanese) render the English
+  `/<locale>/ad-library/<slug>`, in Chinese, Japanese and Korean) render the English
   page's component with a translated entry. `src/i18n/details.ts` picks each
   entry's visible text, the translation in `src/i18n/<locale>/details/*.json`
   holds that shape per slug, and the page's fixed words are in

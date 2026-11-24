@@ -474,5 +474,33 @@ describe.each(["local", "cloud"] as const)(
       ).rejects.toThrow(/Project not found/);
       expect(await Project.findOwned(USER, theirs.project.id)).toBeNull();
     });
+
+    it("a direct upload to the caller's Personal project lazily creates Personal and refuses another user's", async () => {
+      const caller = createCaller(makeCtx());
+      const personalId = `personal:${USER}`;
+      expect(await Project.findOwned(USER, personalId)).toBeNull();
+
+      const created = await caller.assets.createUpload({
+        name: "Untitled.md",
+        content_type: "text/markdown",
+        size: 0,
+        project_id: personalId
+      });
+      if (mode === "local") {
+        expect(created.upload).toBeNull();
+      } else {
+        expect(created.upload).not.toBeNull();
+      }
+      expect(await Project.findOwned(USER, personalId)).not.toBeNull();
+
+      await expect(
+        caller.assets.createUpload({
+          name: "Untitled.md",
+          content_type: "text/markdown",
+          size: 0,
+          project_id: `personal:${OTHER_USER}`
+        })
+      ).rejects.toThrow(/Project not found/);
+    });
   }
 );

@@ -129,6 +129,11 @@ export const PATH_CHECKS = [
     steps: [{ label: "native test selection", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/test-affected-native.test.mjs", "scripts/__tests__/native-ci-test-selection.test.mjs"] }]
   },
   {
+    // native/.clang-tidy feeds only this lint, which the native CI jobs run.
+    path: /^(?:native\/\.clang-tidy$|scripts\/(?:native-lint\.mjs|__tests__\/native-lint\.test\.mjs)$)/,
+    steps: [{ label: "native lint helpers", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/native-lint.test.mjs"] }]
+  },
+  {
     path: /^scripts\/(?:bump-version\.mjs|__tests__\/bump-version\.test\.mjs)$/,
     steps: [{ label: "catalog version bump", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/bump-version.test.mjs"] }]
   },

@@ -12,7 +12,12 @@ describe('NodeTypeMapping utilities', () => {
       expect(contentTypeToNodeType('image/png')).toBe('image');
       expect(contentTypeToNodeType('video/mp4')).toBe('video');
       expect(contentTypeToNodeType('audio/webm')).toBe('audio');
-      expect(contentTypeToNodeType('application/pdf')).toBe('document');
+      expect(contentTypeToNodeType('application/pdf')).toBeNull();
+      expect(contentTypeToNodeType('text/markdown', 'notes.md')).toBe('document');
+      expect(contentTypeToNodeType('text/x-markdown', 'notes.md')).toBe('document');
+      expect(contentTypeToNodeType('', 'notes.md')).toBe('document');
+      expect(contentTypeToNodeType('text/plain', 'notes.markdown')).toBe('document');
+      expect(contentTypeToNodeType('text/plain', 'notes.txt')).toBe('text');
       expect(contentTypeToNodeType('model/gltf-binary')).toBe('model_3d');
       expect(contentTypeToNodeType('folder')).toBe('folder');
     });
