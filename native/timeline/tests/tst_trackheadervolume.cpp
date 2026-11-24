@@ -1,6 +1,7 @@
 // The track header's color strip, instrument icon and volume slider, in an
 // offscreen window. The slider writes the mixer's `setTrackVolume` edit once
 // per drag, and it hides when the header is narrow.
+#include "RequireValue.h"
 #include "TestAssetCacheRoot.h"
 #include "audio/automation/Automation.h"
 #include "model/TimelineJson.h"
@@ -69,7 +70,7 @@ TrackHeader {
             "tracks":[{"id":"a","type":"audio","index":0,"name":"Vox","volumeDb":-6},
                       {"id":"m","type":"midi","index":1,"name":"Keys","volumeDb":0}],"clips":[],"master":{"volumeDb":0}})");
         QVERIFY(parsed.timeline);
-        model.setTimeline(*parsed.timeline);
+        model.setTimeline(requireValue(parsed.timeline));
         engine = std::make_unique<QQmlEngine>();
         m_testCache.install(*engine);
         window = std::make_unique<QQuickWindow>();
@@ -105,8 +106,8 @@ TrackHeader {
         QCOMPARE(trackDb("a"), -6.0);
         const int steps = model.undoStack()->count();
         QTest::mousePress(window.get(), Qt::LeftButton, Qt::NoModifier, at(slider, 0.5));
-        for (double f = 0.5; f <= 0.9; f += 0.05) {
-            QTest::mouseMove(window.get(), at(slider, f));
+        for (int step = 0; step <= 8; ++step) {
+            QTest::mouseMove(window.get(), at(slider, 0.5 + step * 0.05));
         }
         // The drag previews a draft: the document has not changed yet.
         QCOMPARE(model.undoStack()->count(), steps);

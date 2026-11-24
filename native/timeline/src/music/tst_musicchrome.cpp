@@ -4,6 +4,7 @@
 // position), the context bracket under the ruler, the hint line, the toast
 // after a scripted job places its takes, the take header of a music clip, and
 // the keys of the Music layout's keymap context against the Editing layout's.
+#include "../../tests/RequireValue.h"
 #include "wiring/WiringFixture.h"
 #include "music/MusicJobs.h"
 #include "music/MusicRange.h"
@@ -88,7 +89,7 @@ class TestMusicChrome : public WiringFixture {
         QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));
         auto parsed = nt::parseTimeline(document);
         QVERIFY(parsed.timeline);
-        model.setTimeline(std::move(*parsed.timeline));
+        model.setTimeline(requireValue(std::move(parsed.timeline)));
         clock.pause();
         clock.setLoop(false);
         clock.clearRange();

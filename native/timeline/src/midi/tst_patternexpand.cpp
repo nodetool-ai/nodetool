@@ -3,6 +3,7 @@
 // through nt::midi::PatternExpand and verifies exact equality, plus real-time-safe device
 // automation playback through PatternAudioStage.
 
+#include "../../tests/RequireValue.h"
 #include "audio/Mixer.h"
 #include "audio/TestAllocationCounter.h"
 #include "audio/automation/AutomationCurves.h"
@@ -100,7 +101,7 @@ private slots:
                 {"attackMs", 0}, {"decayMs", 0}, {"sustain", 1}, {"releaseMs", 0}, {"gainDb", 0}}}}}},
             {"clips", clips}});
         QVERIFY(parsed.timeline);
-        auto plan = nt::audio::buildMixPlan(*parsed.timeline);
+        auto plan = nt::audio::buildMixPlan(requireValue(parsed.timeline));
         nt::audio::prepareMixPlan(plan, 48000);
         QVERIFY(nt::testing::countsAnAllocation());
         std::array<float, 256> samples{}; nt::audio::MixStats stats{};
@@ -251,8 +252,8 @@ private slots:
         // Shared because both the plan and test inspect the same processor.
         auto probe = std::make_shared<ParameterProbe>(); probe->id = device.toStdString();
         bus.processors.push_back(probe); plan.tracks.push_back(std::move(bus));
-        runPatternDeviceAutomationStage(*parsed.timeline, plan);
-        if (stored) nt::audio::applyMixPlanStage("automation", *parsed.timeline, plan);
+        runPatternDeviceAutomationStage(requireValue(parsed.timeline), plan);
+        if (stored) nt::audio::applyMixPlanStage("automation", requireValue(parsed.timeline), plan);
         std::array<float, 2> sample{};
         nt::audio::BlockContext ctx{}; ctx.timelineMs = 25; ctx.msPerFrame = 1000.0/48000; ctx.sampleRate = 48000;
         plan.tracks.front().processors.front()->process(sample, ctx);
@@ -470,7 +471,7 @@ private slots:
             const auto key = it.key().toStdString();
             const auto got = stepRateTicks(key);
             QVERIFY2(got.has_value(), qPrintable(it.key()));
-            QCOMPARE(*got, it.value().toInt());
+            QCOMPARE(requireValue(got), it.value().toInt());
         }
         QVERIFY(!stepRateTicks("1/5").has_value());
         QCOMPARE(nudgeStepRate("1/16", 1), std::string_view("8T"));
@@ -596,7 +597,7 @@ private slots:
             const auto o = v.toObject();
             const auto got = stepPitch(o.value(u"row").toObject(), o.value(u"step").toObject(), {});
             QVERIFY(got.has_value());
-            QCOMPARE(*got, o.value(u"expected").toInt());
+            QCOMPARE(requireValue(got), o.value(u"expected").toInt());
         }
         const auto defPat = normalizePattern({});
         QCOMPARE(defPat.value(u"version").toInt(), 1);
@@ -741,21 +742,21 @@ private slots:
         const auto parsed = nt::parseTimeline(raw);
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
 
-        auto plan = nt::audio::buildMixPlan(*parsed.timeline);
+        auto plan = nt::audio::buildMixPlan(requireValue(parsed.timeline));
         nt::audio::prepareMixPlan(plan, 48000.0);
 
         // Render blocks and verify zero audio-thread allocations.
         QVERIFY(nt::testing::countsAnAllocation());
         std::size_t totalAllocs = 0;
         auto sampleAt = [&](double ms) -> float {
-            std::array<float, 128 * 2> buf{};
+            std::array<float, std::size_t{128} * 2> buf{};
             nt::audio::MixStats stats{};
             nt::testing::allocations = 0;
             nt::testing::countAllocations = true;
             nt::audio::mixBlock(plan, nullptr, 48000.0, ms, 1000.0 / 48000.0, 128, buf.data(), stats);
             nt::testing::countAllocations = false;
             totalAllocs += nt::testing::allocations;
-            return buf[64 * 2];
+            return buf[std::size_t{64} * 2];
         };
 
         const float beforeClip = sampleAt(500.0);    // stored -12 dB => 0.5 * 10^(-12/20) ~= 0.1256

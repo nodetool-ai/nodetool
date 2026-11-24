@@ -237,7 +237,7 @@ private slots:
 #else
         constexpr std::size_t kWraps = 1000;
 #endif
-        std::vector<float> block(kPeriod * 2);
+        std::vector<float> block(std::size_t{kPeriod} * 2);
         float last[2] = {0, 0};
         float worstStep = 0;
         std::int64_t frame = 0;
@@ -362,7 +362,7 @@ private slots:
         QCOMPARE(sent.loopEndMs, loopOut);
         const std::uint64_t seekSeq = sent.seekSeq;
 
-        std::vector<float> block(kPeriod * 2);
+        std::vector<float> block(std::size_t{kPeriod} * 2);
         std::int64_t frame = 0;
         std::int64_t playStart = -1;
         std::vector<std::int64_t> wraps;
@@ -624,7 +624,7 @@ private slots:
         clock.seek(1000);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         clock.play();
-        std::vector<float> block(kPeriod * 2);
+        std::vector<float> block(std::size_t{kPeriod} * 2);
         std::int64_t nextTickNs = t0;
         const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(4);
         std::int64_t frame = 0;

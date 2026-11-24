@@ -4,6 +4,7 @@
 // musicFields.protocolCompat.test.ts parses through the server schema with
 // nothing stripped. Here the native load keeps every field, the typed reads
 // see them, and the autosave request sends exactly that document.
+#include "../../tests/RequireValue.h"
 #include "model/TimelineJson.h"
 #include "midi/PatternExpand.h"
 #include "music/MusicDocument.h"
@@ -85,8 +86,8 @@ private slots:
         pattern.insert("rows", QJsonArray{row});
         const auto parsed = nt::parseTimeline(patternDocument(pattern, stepTemplate));
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
-        const auto stored = stepTemplate ? parsed.timeline->tracks.back().raw.value("stepTemplate") :
-            parsed.timeline->clips.front().raw.value("pattern");
+        const auto stored = stepTemplate ? requireValue(parsed.timeline).tracks.back().raw.value("stepTemplate") :
+            requireValue(parsed.timeline).clips.front().raw.value("pattern");
         QCOMPARE(stored, QJsonValue(pattern));
     }
     void loadKeepsEveryMusicField() {
@@ -94,7 +95,7 @@ private slots:
         QVERIFY(raw.contains("music"));
         const auto parsed = nt::parseTimeline(raw);
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
-        const auto& timeline = *parsed.timeline;
+        const auto& timeline = requireValue(parsed.timeline);
         QCOMPARE(timeline.raw, raw);
         QCOMPARE(timeline.tracks.size(), std::size_t{4});
         for (std::size_t i = 0; i < timeline.tracks.size(); ++i) {
@@ -109,18 +110,18 @@ private slots:
         QVERIFY(parsed.timeline.has_value());
         const auto key = nt::music::tempoKey(raw);
         QVERIFY(key.has_value());
-        QCOMPARE(key->tonic, std::string("F#"));
-        QCOMPARE(key->mode, std::string("minor"));
+        QCOMPARE(requireValue(key).tonic, std::string("F#"));
+        QCOMPARE(requireValue(key).mode, std::string("minor"));
         QVERIFY(nt::music::isMusicSequence(raw));
         QCOMPARE(nt::music::promptHistory(raw),
                  QStringList({"warm analog bass, slow groove", "dusty breakbeat drums"}));
         std::vector<std::string> roles;
-        for (const auto& track : parsed.timeline->tracks) {
+        for (const auto& track : requireValue(parsed.timeline).tracks) {
             roles.push_back(nt::music::trackMusicRole(track).value_or(""));
         }
         QCOMPARE(roles, (std::vector<std::string>{"drums", "bass", "keyboard", "guitar"}));
         QCOMPARE(nt::music::musicRoleLabel("backing_vocals"), std::string_view("Backing vocals"));
-        const auto versions = parsed.timeline->clips.front().raw["versions"].toArray();
+        const auto versions = requireValue(parsed.timeline).clips.front().raw["versions"].toArray();
         const auto repaint = nt::music::musicGeneration(versions[1].toObject());
         QCOMPARE(repaint["task"].toString(), QStringLiteral("repaint"));
         QCOMPARE(repaint["splice"].toObject()["crossfadeFrames"].toInt(), 960);
@@ -155,7 +156,7 @@ private slots:
             return QByteArray(R"({"result":{"data":{"id":"music-seq","updatedAt":"u1","stripped":[]}}})");
         });
         QUndoStack undo;
-        auto draft = parsed.timeline->raw;
+        auto draft = requireValue(parsed.timeline).raw;
         nt::server::SaveTarget target{http.base(), QString(), "music-seq", dir.path(), QString()};
         nt::server::AutosaveController save(nt::server::AssetCacheRoot(dir.path()), target, &undo, [&draft] { return draft; }, "u0");
         save.setExternalSync(false);
@@ -163,7 +164,7 @@ private slots:
         // An edit the native model owns: a marker. Everything else rides along untouched.
         draft.insert("markers", QJsonArray{QJsonObject{{"id", "m1"}, {"timeMs", 4000}}});
         // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
-        undo.push(new QUndoCommand("edit"));
+        undo.push(new QUndoCommand("edit"));  // NOLINT(cppcoreguidelines-owning-memory): QUndoStack::push takes ownership
         QTRY_VERIFY_WITH_TIMEOUT(!sent.isEmpty(), 5000);
         QTRY_VERIFY_WITH_TIMEOUT(!save.dirty(), 5000);
         QVERIFY(save.stripped().isEmpty());
@@ -218,18 +219,18 @@ private slots:
         // 1. parseTimeline keeps every pattern field intact.
         const auto parsed = nt::parseTimeline(doc);
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
-        const auto loadedClip = parsed.timeline->clips.front().raw;
+        const auto loadedClip = requireValue(parsed.timeline).clips.front().raw;
         QCOMPARE(loadedClip.value(u"pattern").toObject(), pattern);
         QCOMPARE(loadedClip.value(u"patternPhaseTicks").toInt(), 240);
         QCOMPARE(loadedClip.value(u"patternRowCycles").toObject(), rowCycles);
-        QCOMPARE(parsed.timeline->tracks.front().raw.value(u"stepTemplate").toObject(), pattern);
+        QCOMPARE(requireValue(parsed.timeline).tracks.front().raw.value(u"stepTemplate").toObject(), pattern);
 
         // 2. Local .timeline.json file save & reload round-trip.
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
         const QString filePath = dir.filePath(QStringLiteral("beat.timeline.json"));
         const QJsonObject wrapped = nt::timelineFileWithSequence(
-            QJsonObject{{"format", "nodetool.timeline"}, {"version", nt::kTimelineFileVersion}}, parsed.timeline->raw);
+            QJsonObject{{"format", "nodetool.timeline"}, {"version", nt::kTimelineFileVersion}}, requireValue(parsed.timeline).raw);
         {
             QFile f(filePath);
             QVERIFY(f.open(QIODevice::WriteOnly));
@@ -237,12 +238,12 @@ private slots:
         }
         const auto reloaded = nt::loadTimelineFile(filePath);
         QVERIFY2(reloaded.timeline.has_value(), qPrintable(reloaded.error));
-        QCOMPARE(reloaded.timeline->clips.front().raw.value(u"pattern").toObject(), pattern);
-        QCOMPARE(reloaded.timeline->clips.front().raw.value(u"patternPhaseTicks").toInt(), 240);
-        QCOMPARE(reloaded.timeline->clips.front().raw.value(u"patternRowCycles").toObject(), rowCycles);
+        QCOMPARE(requireValue(reloaded.timeline).clips.front().raw.value(u"pattern").toObject(), pattern);
+        QCOMPARE(requireValue(reloaded.timeline).clips.front().raw.value(u"patternPhaseTicks").toInt(), 240);
+        QCOMPARE(requireValue(reloaded.timeline).clips.front().raw.value(u"patternRowCycles").toObject(), rowCycles);
 
         // 3. Autosave payload sends the pattern clip intact.
-        const auto saveDoc = nt::server::documentForSave(parsed.timeline->raw);
+        const auto saveDoc = nt::server::documentForSave(requireValue(parsed.timeline).raw);
         QCOMPARE(saveDoc.value(u"clips").toArray().at(0).toObject().value(u"pattern").toObject(), pattern);
 
         // 4. SQ1 validator refuses a clip holding both `pattern` and stored `notes`, naming the clip.

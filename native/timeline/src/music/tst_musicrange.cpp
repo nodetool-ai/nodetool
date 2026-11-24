@@ -1,5 +1,6 @@
 // The Range tool's edges and labels (MUSIC-MODE.md MD11, MT-3, MT-4) and the
 // New music project document (section 15, MD9) as pure functions.
+#include "../../tests/RequireValue.h"
 #include "music/MusicDocument.h"
 #include "music/MusicProject.h"
 #include "music/MusicRange.h"
@@ -22,14 +23,14 @@ private slots:
     }
 
     void sequenceTempoReadsTheDocument() {
-        QCOMPARE(sequenceTempo(QJsonObject{})->bpm, 120.0);
+        QCOMPARE(requireValue(sequenceTempo(QJsonObject{})).bpm, 120.0);
         const QJsonObject raw{{"tempo", QJsonObject{{"bpm", 87}, {"offsetMs", 10},
                                                      {"timeSignature", QJsonObject{{"beatsPerBar", 6}, {"beatUnit", 8}}}}}};
         const auto tempo = sequenceTempo(raw);
         QVERIFY(tempo);
-        QCOMPARE(tempo->bpm, 87.0);
-        QCOMPARE(tempo->beatsPerBar, 6.0);
-        QCOMPARE(tempo->beatUnit, 8.0);
+        QCOMPARE(requireValue(tempo).bpm, 87.0);
+        QCOMPARE(requireValue(tempo).beatsPerBar, 6.0);
+        QCOMPARE(requireValue(tempo).beatUnit, 8.0);
         QVERIFY(!sequenceTempo(QJsonObject{{"tempo", QJsonObject{{"bpm", 0}}}}));
     }
 
@@ -121,7 +122,7 @@ private slots:
         QCOMPARE(settings.beatsPerBar, 6);
         QCOMPARE(settings.beatUnit, 8);
         QVERIFY(settings.key);
-        QCOMPARE(settings.key->tonic, std::string("Eb"));
+        QCOMPARE(requireValue(settings.key).tonic, std::string("Eb"));
         QVERIFY(!musicProjectSettings({{"bpm", 96}, {"keyTonic", ""}}).key);
     }
 
@@ -133,8 +134,8 @@ private slots:
         QVERIFY(promptHistory(doc).isEmpty());
         QCOMPARE(doc.value("tempo").toObject().value("bpm").toDouble(), 96.0);
         QCOMPARE(doc.value("tempo").toObject().value("timeSignature").toObject().value("beatsPerBar").toInt(), 3);
-        QCOMPARE(tempoKey(doc)->tonic, std::string("A"));
-        QCOMPARE(tempoKey(doc)->mode, std::string("minor"));
+        QCOMPARE(requireValue(tempoKey(doc)).tonic, std::string("A"));
+        QCOMPARE(requireValue(tempoKey(doc)).mode, std::string("minor"));
         const auto tracks = doc.value("tracks").toArray();
         QCOMPARE(tracks.size(), 4);
         const QStringList roles{"drums", "bass", "keyboard", "guitar"};

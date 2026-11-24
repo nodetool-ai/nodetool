@@ -1,6 +1,7 @@
 // The markers feature through the production editor: atomic edits, the key
 // actions, the Edit Marker dialog opened from the ruler, the marker context menu,
 // the Markers panel, the CSV export and the document audit.
+#include "../../tests/RequireValue.h"
 #include "app/MenuRegistry.h"
 #include "markers/MarkerSession.h"
 #include "server/FieldAudit.h"
@@ -80,7 +81,7 @@ class TestMarkers : public WiringFixture {
         view.reset();
         auto parsed = nt::parseTimeline(musicDocument(markers));
         QVERIFY(parsed.timeline);
-        model.setTimeline(std::move(*parsed.timeline));
+        model.setTimeline(requireValue(std::move(parsed.timeline)));
         clock.pause();
         clock.seek(0);
         view = std::make_unique<QQuickView>();

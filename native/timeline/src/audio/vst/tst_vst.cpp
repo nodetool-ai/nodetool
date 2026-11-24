@@ -3,6 +3,7 @@
 // NodeToolVstHost scanning of both instruments and effects, offline rendering of
 // MIDI clips through ToneInstrument.vst3, and offline processing of audio tracks
 // and master bus through GainEffect.vst3 (with bypass, wet/dry, and built-in chaining).
+#include "../../../tests/RequireValue.h"
 #include "audio/AudioEngine.h"
 #include "audio/vst/VstAudioStages.h"
 #include "audio/vst/VstEdits.h"
@@ -55,7 +56,7 @@ QString findTestArtifact(const QString& relPath) {
 nt::Timeline parseRaw(const QJsonObject& raw) {
     auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson(QJsonDocument::Compact));
     Q_ASSERT(parsed.timeline);
-    return std::move(*parsed.timeline);
+    return requireValue(std::move(parsed.timeline));
 }
 
 QJsonObject midiNote(const QString& id, int pitch, int startTick, int durationTick, const QJsonObject& extra = {}) {
@@ -127,7 +128,7 @@ private slots:
             {"tracks", QJsonArray{QJsonObject{{"id", "m"}, {"type", "midi"}}}}, {"clips", QJsonArray{clip}}};
         const auto parsed = nt::parseTimeline(raw);
         QVERIFY(parsed.timeline);
-        const auto stream = nt::audio::vst::buildTrackMidiStream(*parsed.timeline, "m", 120);
+        const auto stream = nt::audio::vst::buildTrackMidiStream(requireValue(parsed.timeline), "m", 120);
         std::vector<double> ons;
         std::vector<double> offs;
         std::vector<double> resets;
@@ -180,12 +181,12 @@ private slots:
             const auto timeline = parseRaw(raw);
             auto plan = nt::audio::buildMixPlan(timeline);
             nt::audio::prepareMixPlan(plan, 48000);
-            std::vector<float> pcm(48000 * 2);
+            std::vector<float> pcm(std::size_t{48000} * 2);
             for (int frame = 0; frame < 48000; frame += 128) {
                 const int count = std::min(128, 48000 - frame);
                 nt::audio::MixStats stats{};
                 nt::audio::mixBlock(plan, nullptr, 48000, frame * 1000.0/48000, 1000.0/48000,
-                    count, pcm.data() + frame * 2, stats);
+                    count, pcm.data() + static_cast<std::ptrdiff_t>(frame) * 2, stats);
             }
             return rmsInterleaved(pcm, 2400, 48000);
         };
@@ -221,11 +222,11 @@ private slots:
                 {"automation", QJsonArray{QJsonObject{{"id", "stored"}, {"target", target}, {"points", points}}}}}}}, {"clips", clips}};
             auto plan = nt::audio::buildMixPlan(parseRaw(raw));
             nt::audio::prepareMixPlan(plan, 48000);
-            std::vector<float> pcm(96000 * 2);
+            std::vector<float> pcm(std::size_t{96000} * 2);
             for (int frame = 0; frame < 96000; frame += 128) {
                 nt::audio::MixStats stats{};
                 nt::audio::mixBlock(plan, nullptr, 48000, frame * 1000.0 / 48000, 1000.0 / 48000,
-                    128, pcm.data() + frame * 2, stats);
+                    128, pcm.data() + static_cast<std::ptrdiff_t>(frame) * 2, stats);
             }
             return pcm;
         };
@@ -562,7 +563,7 @@ private slots:
         auto channel = pool.acquire(*client, QStringLiteral("fx:close:race"), gain->path, gain->uid, {}, 48000.0);
         QVERIFY(channel && channel->connected());
         // A device at 44.1 kHz: the control thread prepares, and the block then succeeds.
-        std::vector<float> block(128 * 2, 0.25f);
+        std::vector<float> block(std::size_t{128} * 2, 0.25f);
         QVERIFY(channel->prepareRate(44100.0));
         QVERIFY(channel->processBlock(block, {}, 44100.0, false, 500));
 
@@ -570,7 +571,7 @@ private slots:
         std::atomic<bool> stop{false};
         std::atomic<int> okBlocks{0};
         std::thread audio([&] {
-            std::vector<float> b(128 * 2, 0.25f);
+            std::vector<float> b(std::size_t{128} * 2, 0.25f);
             while (!stop.load()) {
                 if (channel->processBlock(b, {}, 44100.0, false, 500)) ++okBlocks;
             }
@@ -677,8 +678,11 @@ private slots:
             if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
             if (QFileInfo(p.path).canonicalFilePath() == gainVst) gain = &p;
         }
-        QVERIFY(tone != nullptr && tone->isInstrument);
-        QVERIFY(gain != nullptr && !gain->isInstrument);
+        if (!tone || !gain) {
+            QFAIL("the scan did not list ToneInstrument.vst3 and GainEffect.vst3");
+        }
+        QVERIFY(tone->isInstrument);
+        QVERIFY(!gain->isInstrument);
 
         // 2. Render a MIDI clip through ToneInstrument.vst3 via renderOffline.
         const QJsonObject toneRef{{"uid", tone->uid}, {"name", tone->name}, {"vendor", tone->vendor}, {"path", tone->path}};
@@ -731,7 +735,7 @@ private slots:
         };
 
         const auto dryPcm = nt::audio::renderOffline(makeMidiTimeline(QJsonArray{}), 48000, 0, 1000);
-        QCOMPARE(dryPcm.size(), std::size_t{48000 * 2});
+        QCOMPARE(dryPcm.size(), std::size_t{96000});
         const double beforeNote = rmsInterleaved(dryPcm, 0, 10000);
         const double duringNote = rmsInterleaved(dryPcm, 14000, 34000);
         QVERIFY2(beforeNote < 1e-4, qPrintable(QString::number(beforeNote)));
@@ -776,7 +780,7 @@ private slots:
         QTemporaryDir tmp;
         QVERIFY(tmp.isValid());
         const QString wavPath = tmp.filePath(QStringLiteral("sine.wav"));
-        std::vector<float> sine(48000 * 2);
+        std::vector<float> sine(std::size_t{48000} * 2);
         for (int i = 0; i < 48000; ++i) {
             const float s = 0.5f * std::sin(2.0f * 3.14159265f * 440.0f * static_cast<float>(i) / 48000.0f);
             sine[static_cast<std::size_t>(i) * 2] = s;
@@ -812,7 +816,7 @@ private slots:
                                                   gain->path, gain->uid, {}, 48000.0);
         QVERIFY(liveFx && liveFx->connected());
         client->terminateHostForTest();
-        std::vector<float> testBlock(128 * 2, 0.5f);
+        std::vector<float> testBlock(std::size_t{128} * 2, 0.5f);
         QElapsedTimer timer;
         timer.start();
         QVERIFY(!liveFx->processBlock(testBlock, {}, 48000.0, false, 200));
@@ -844,9 +848,9 @@ private slots:
             engine.feed().command.store(cmd);
             QTRY_VERIFY(engine.stats().sessions >= 1);
             // Render 0.5s (50 blocks of 480 frames) through the manual real-time callback.
-            std::vector<float> block(480 * 2, 0.0f);
+            std::vector<float> block(std::size_t{480} * 2, 0.0f);
             std::vector<float> recorded;
-            recorded.reserve(50 * 480 * 2);
+            recorded.reserve(std::size_t{50} * 480 * 2);
             for (int b = 0; b < 50; ++b) {
                 engine.renderManual(block, static_cast<std::int64_t>(b) * 10'000'000LL);
                 recorded.insert(recorded.end(), block.begin(), block.end());

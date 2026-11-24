@@ -1,3 +1,4 @@
+#include "../../../tests/RequireValue.h"
 #include <QDir>
 #include "../../../tests/TestAssetCacheRoot.h"
 #include "assets/AssetWav.h"
@@ -122,7 +123,7 @@ private slots:
     }
     void touchReleaseKeepsOldPlanContinuousF1() {
         auto raw=doc(); raw["clips"]=QJsonArray{QJsonObject{{"id","c"},{"trackId","a"},{"mediaType","audio"},{"status","generated"},{"mediaPath","memory.wav"},{"startMs",0},{"durationMs",9000}}};
-        model.setTimeline(*nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline);
+        model.setTimeline(requireValue(nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline));
         const QJsonArray points{QJsonObject{{"timeMs",0},{"value",-30}},QJsonObject{{"timeMs",9000},{"value",-30}}};
         model.applyEdit("setTrackAutomation",{{"trackId","a"},{"automation",QJsonArray{QJsonObject{{"id","lane"},{"target",QJsonObject{{"kind","mixer"},{"param","volumeDb"}}},{"points",points}}}}});
         model.applyEdit("setTrackAutomationMode",{{"trackId","a"},{"mode","touch"}});
@@ -143,7 +144,7 @@ private slots:
     }
     void mixerPassDoesNotRebuildInsertsF1() {
         auto raw=doc(); raw["clips"]=QJsonArray{QJsonObject{{"id","c"},{"trackId","a"},{"mediaType","audio"},{"status","generated"},{"mediaPath","memory.wav"},{"startMs",0},{"durationMs",9000}}};
-        model.setTimeline(*nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline);
+        model.setTimeline(requireValue(nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline));
         model.applyEdit("addTrackEffect",{{"trackId","a"},{"effect","filter"}});
         // The stage and this test share the counter until the scoped registration ends.
         auto constructions=std::make_shared<int>(0);
@@ -233,7 +234,7 @@ private slots:
     void instrumentReadoutF10() {
         auto raw=doc(); auto tracks=raw["tracks"].toArray(); auto t=tracks[0].toObject();
         t["type"]="midi"; t["instrument"]=QJsonObject{{"type","bass"},{"fableParams",QJsonObject{{"flt.cut",450}}}};
-        tracks[0]=t; raw["tracks"]=tracks; model.setTimeline(*nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline);
+        tracks[0]=t; raw["tracks"]=tracks; model.setTimeline(requireValue(nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline));
         AutomationReadout reading; reading.setTimeline(&model); reading.setTrackId("a");
         reading.setTarget({{"kind","device"},{"deviceId","instrument"},{"param","flt.cut"}});
         QCOMPARE(reading.value(),450.);
@@ -318,7 +319,7 @@ private slots:
  property var expandedTracks: AutomationUIState.shownAutomationTrackIds
 })"));
         const auto replacement=nt::parseTimelineJson(model.documentJson()); QVERIFY(replacement.timeline);
-        model.setTimeline(*replacement.timeline);
+        model.setTimeline(requireValue(replacement.timeline));
         QCoreApplication::processEvents();
         QVERIFY(root->property("selectedParameters").toMap().empty());
         QVERIFY(root->property("expandedTracks").toList().empty());
@@ -353,7 +354,7 @@ private slots:
         model.applyEdit("addTrackEffect",{{"trackId","a"},{"effect",QJsonObject{{"id","f"},{"type","filter"}}}});
         auto raw=doc(); auto ts=raw["tracks"].toArray(); auto t=ts[0].toObject();
         t["effects"]=QJsonArray{QJsonObject{{"id","f"},{"type","filter"}}}; ts[0]=t; raw["tracks"]=ts;
-        model.setTimeline(*nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline);
+        model.setTimeline(requireValue(nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline));
         AutomationReadout reading; reading.setTimeline(&model); reading.setTrackId("a");
         reading.setTarget({{"kind","device"},{"deviceId","f"},{"param","frequency"}});
         QCOMPARE(reading.value(),1000.);
@@ -456,7 +457,7 @@ track: ({id:"a",type:"audio"}); lane: ({id:"gone",target:{kind:"device",deviceId
     }
     void minimumClipWidthOwnsPointerF17() {
         auto raw=doc(); raw["clips"]=QJsonArray{QJsonObject{{"id","tiny"},{"trackId","a"},{"name","Tiny"},{"mediaType","audio"},{"status","generated"},{"startMs",1000},{"durationMs",1}}};
-        model.setTimeline(*nt::parseTimeline(raw).timeline); QVERIFY(openTracks());
+        model.setTimeline(requireValue(nt::parseTimeline(raw).timeline)); QVERIFY(openTracks());
         auto* curve=item("automation-lane-lane"); auto* clip=item("clip-tiny"); QVERIFY(curve); QVERIFY(clip);
         const auto at=clip->mapToItem(curve,{clip->width()-1,8});
         QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,point(curve,at.x(),at.y()));
@@ -496,7 +497,7 @@ track: ({id:"a",type:"audio"}); lane: ({id:"gone",target:{kind:"device",deviceId
         model.applyEdit("setTrackAutomationMode",{{"trackId","a"},{"mode","touch"}});
         QCOMPARE(track()["automationMode"].toString(),"touch");
         auto saved=nt::parseTimelineJson(model.documentJson()); QVERIFY(saved.timeline);
-        QCOMPARE(saved.timeline->findTrack("a")->raw["automationMode"].toString(),"touch");
+        QCOMPARE(requireValue(saved.timeline).findTrack("a")->raw["automationMode"].toString(),"touch");
         model.undoStack()->undo(); QVERIFY(!track().contains("automationMode"));
         model.undoStack()->redo();
         qint64 now=0;
@@ -717,7 +718,7 @@ Component.onCompleted: AutomationUIState.setShown("a","mixer:volumeDb") })"));
         t["effects"]=QJsonArray{QJsonObject{{"id","gain"},{"type","gain"},{"gainDb",0}}};
         t["automation"]=QJsonArray{QJsonObject{{"id","pan"},{"target",QJsonObject{{"kind","mixer"},{"param","pan"}}},
             {"points",QJsonArray{QJsonObject{{"timeMs",0},{"value",-1}},QJsonObject{{"timeMs",1000},{"value",1}}}}}};
-        tracks[0]=t; raw["tracks"]=tracks; model.setTimeline(*nt::parseTimeline(raw).timeline);
+        tracks[0]=t; raw["tracks"]=tracks; model.setTimeline(requireValue(nt::parseTimeline(raw).timeline));
         QVERIFY(open(R"(AutomationHeaderRow { id:host; width:400; height:56; required timeline; main:false
  AutomationController { id: source; timeline:host.timeline; trackId:"a" }
  track:source.channel; lane:track.automation[0]
@@ -761,7 +762,7 @@ lane: ({id:"virtual-volume",target:{kind:"mixer",param:"volumeDb"},points:[{time
         QFETCH(double,uiScale);
         auto raw=doc();
         raw["clips"]=QJsonArray{QJsonObject{{"id","c"},{"trackId","a"},{"name","Vox"},{"mediaType","audio"},{"status","generated"},{"startMs",1000},{"durationMs",2000}}};
-        const auto parsed=nt::parseTimeline(raw); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        const auto parsed=nt::parseTimeline(raw); QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
         QVERIFY(openTracks(false,uiScale));
         QTRY_VERIFY(item("automation-lane-lane"));
         auto* curve=item("automation-lane-lane");
@@ -828,7 +829,7 @@ Component.onCompleted: { AutomationUIState.showAutomation=false; AutomationUISta
         auto lanes=t["automation"].toArray();
         lanes.append(QJsonObject{{"id","pan"},{"target",QJsonObject{{"kind","mixer"},{"param","pan"}}},{"points",QJsonArray{}}});
         lanes.append(QJsonObject{{"id","gain-lane"},{"target",QJsonObject{{"kind","device"},{"deviceId","gain"},{"param","gainDb"}}},{"points",QJsonArray{QJsonObject{{"timeMs",0},{"value",0}}}}});
-        t["automation"]=lanes; tracks[0]=t; raw["tracks"]=tracks; model.setTimeline(*nt::parseTimeline(raw).timeline);
+        t["automation"]=lanes; tracks[0]=t; raw["tracks"]=tracks; model.setTimeline(requireValue(nt::parseTimeline(raw).timeline));
         QVERIFY(open(R"(AutomationHeaderRow { id:host; width:400; height:32; required timeline
  AutomationController { id:source; timeline:host.timeline; trackId:"a" }
  track:source.channel
@@ -889,7 +890,7 @@ Component.onCompleted: { AutomationUIState.showAutomation=true; AutomationUIStat
         raw["tracks"]=QJsonArray{raw["tracks"].toArray()[0]};
         raw["tempo"]=QJsonObject{{"bpm",120},{"offsetMs",0},{"timeSignature",QJsonObject{{"beatsPerBar",4},{"beatUnit",4}}}};
         raw["music"]=QJsonObject{};
-        const auto parsed=nt::parseTimeline(raw); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        const auto parsed=nt::parseTimeline(raw); QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
         QVERIFY(open(R"(Item { id:host; width:800; height:600; required property TimelineModel timeline; required property PlaybackClock clock
 property var dockStore: ({workspace:"Music"})
 TracksRegion { anchors.fill:parent; timeline:host.timeline; clock:host.clock }
@@ -976,7 +977,7 @@ TracksRegion { anchors.fill:parent; timeline:host.timeline; clock:host.clock }
         QVERIFY(nt::assets::writeStereoFloatWav(wav,pcm));
         raw["clips"]=QJsonArray{QJsonObject{{"id","c"},{"trackId","a"},{"name","Vox"},{"mediaType","audio"},{"status","generated"},{"mediaPath",wav},{"startMs",0},{"durationMs",7000}}};
         const auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson());
-        QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
         QVERIFY(openTracks(true));
         QTRY_VERIFY(item("automation-lane-pan"));
         window->resize(1100,420); qobject_cast<QQuickItem*>(root.get())->setSize({1100,420});

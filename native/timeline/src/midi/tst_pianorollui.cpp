@@ -1,3 +1,4 @@
+#include "../../tests/RequireValue.h"
 #include "../../tests/TestAssetCacheRoot.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -126,7 +127,7 @@ class TestPianoRollUi : public QObject {
                                              {"notes", QJsonArray{}}}}}};
         const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
         QVERIFY(parsed.timeline);
-        model.setTimeline(*parsed.timeline);
+        model.setTimeline(requireValue(parsed.timeline));
         engine = std::make_unique<QQmlEngine>();
         m_testCache.install(*engine);
         QQmlComponent component(engine.get());
@@ -1394,7 +1395,7 @@ Item {
     void reviewF2BrushIncludesFirstPhaseStep() {
         framed(); auto doc = QJsonDocument::fromJson(model.documentJson()).object(); auto clips = doc["clips"].toArray();
         auto clip = clips[0].toObject(); clip["startMs"] = 200; clips[0] = clip; doc["clips"] = clips;
-        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
         setProp("tool", "brush"); setProp("snapValue", "1/8"); setProp("pxPerTick", 0.5);
         const auto a = tickPoint(0,60), b = tickPoint(100,60);
         QTest::mousePress(window.get(), Qt::LeftButton, Qt::NoModifier, a);
@@ -1473,7 +1474,7 @@ Item {
     void reviewF14FollowingIncludesPlayheadNote() {
         framed(); auto doc = QJsonDocument::fromJson(model.documentJson()).object();
         auto tempo = doc["tempo"].toObject(); tempo["bpm"] = 42; doc["tempo"] = tempo;
-        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
         setNotes(R"([{"id":"a","pitch":60,"velocity":100,"startTick":960,"durationTick":480}])");
         clock.setDurationMs(4000);
         clock.seek(1428.5714285714287);
@@ -1516,7 +1517,7 @@ Item {
         framed(); setProp("selectedIds", QVariantList{QStringLiteral("a")});
         auto doc = QJsonDocument::fromJson(model.documentJson()).object(); auto clips = doc["clips"].toArray();
         auto clip = clips[0].toObject(); clip["locked"] = true; clips[0] = clip; doc["clips"] = clips;
-        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
         auto* toolbar = item("pianoRollToolbar");
         for (const auto& entry : toolbar->property("functionEntries").toList()) {
             const auto row = entry.toMap(); if (row["separator"].toBool()) continue;
@@ -1526,7 +1527,7 @@ Item {
     void reviewF18CssAlphaColor() {
         framed(); auto doc = QJsonDocument::fromJson(model.documentJson()).object(); auto clips = doc["clips"].toArray();
         auto clip = clips[0].toObject(); clip["color"] = "#00ff0080"; clips[0] = clip; doc["clips"] = clips;
-        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
         const auto color = item("panel")->property("clipAccent").value<QColor>();
         QCOMPARE(color.green(), 255); QCOMPARE(color.alpha(), 128);
     }
@@ -1535,7 +1536,7 @@ Item {
         framed(); auto doc = QJsonDocument::fromJson(model.documentJson()).object(); auto clips = doc["clips"].toArray();
         auto clip = clips[0].toObject(); clip["color"] = "invalid"; clips[0] = clip; doc["clips"] = clips;
         auto tracks = doc["tracks"].toArray(); auto track = tracks[0].toObject(); track["color"] = "#ffeb3b"; tracks[0] = track; doc["tracks"] = tracks;
-        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
         QCOMPARE(item("panel")->property("clipAccent").value<QColor>(), QColor("#ffeb3b"));
         const auto strip = item("pianoRollRegionStrip");
         const auto labels = strip->findChildren<QQuickItem*>();
@@ -1550,7 +1551,7 @@ Item {
         // Disconnect the QML consumer so the pre-fix exception can be asserted rather than terminate QML.
         root.reset(); window.reset(); engine.reset();
         auto doc = QJsonDocument::fromJson(model.documentJson()).object(); doc["tempo"] = QJsonObject{{"bpm",120}};
-        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline); model.setTimeline(requireValue(parsed.timeline));
         PianoRollController controller; controller.setTimeline(&model); controller.setClipId("c");
         bool threw = false; double step = 0;
         try { step = controller.gridStepTicks("beat"); } catch (const std::invalid_argument&) { threw = true; }

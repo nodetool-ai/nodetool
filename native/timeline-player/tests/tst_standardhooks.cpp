@@ -89,7 +89,9 @@ private slots:
           "tracks":[{"id":"a","type":"audio"}],"clips":[
           {"id":"loop","trackId":"a","mediaType":"audio","status":"generated","audioPath":"synthetic",
            "startMs":0,"durationMs":5500,"inPointMs":250,"loopLengthMs":2000,"speedMultiplier":2}]})");
-        QVERIFY(parsed.timeline);
+        if (!parsed.timeline) {
+            QFAIL("the loop fixture did not parse");
+        }
         const auto plan = nt::audio::buildMixPlan(*parsed.timeline);
         QCOMPARE(plan.voices.size(), size_t(3));
         for (size_t i = 0; i < plan.voices.size(); ++i) {

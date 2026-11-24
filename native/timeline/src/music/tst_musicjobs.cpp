@@ -15,6 +15,7 @@
 // MM6: recovery on reopen, one resubmit of an interrupted acestep job, cancel,
 //   retry, placement of an orphaned result, expected duration.
 
+#include "../../tests/RequireValue.h"
 #include "assets/AssetWav.h"
 #include "audio/AudioEngine.h"
 #include "model/TimelineJson.h"
@@ -443,7 +444,7 @@ private slots:
         QJsonArray clips;
         for (int i = 0; i < 8; ++i) {
             const auto path = cache.filePath(QStringLiteral("t%1.wav").arg(i));
-            QVERIFY(nt::assets::writeStereoFloatWav(path, noise(20 * 48000, 100 + i)));
+            QVERIFY(nt::assets::writeStereoFloatWav(path, noise(qint64{20} * 48000, 100 + i)));
             const auto id = QStringLiteral("t%1").arg(i);
             tracks.append(track(id, i));
             clips.append(QJsonObject{{"id", "c" + id}, {"trackId", id}, {"name", id}, {"mediaType", "audio"}, {"sourceType", "imported"},
@@ -492,9 +493,9 @@ private slots:
         QCOMPARE(music.value("request_frames").toInteger(), 6 * kBar + 24000);
         server.result(id, "generate_media", server.takes(request(server), 1));
         QTRY_COMPARE(state(jobs, id), QString("done"));
-        QVERIFY2(engine.stats().playedFrames < 3 * 48000, "the job outlasted the lookahead before the range");
+        QVERIFY2(engine.stats().playedFrames < qint64{3} * 48000, "the job outlasted the lookahead before the range");
         // Play into the placed take and two seconds through it.
-        QTRY_VERIFY_WITH_TIMEOUT(engine.stats().playedFrames > 6 * 48000, 15000);
+        QTRY_VERIFY_WITH_TIMEOUT(engine.stats().playedFrames > qint64{6} * 48000, 15000);
         const auto stats = engine.stats();
         engine.stop();
         QCOMPARE(stats.underruns, std::int64_t(0));
@@ -549,7 +550,7 @@ private slots:
         connectSocket(jobs, server);
         QTRY_VERIFY(jobs.ready());
         for (int i = 0; i < MusicJobs::kMaxActiveJobs; ++i) {
-            QVERIFY2(!jobs.submit("drums", i * 8 * kBar, (i + 1) * 8 * kBar, "text2music", "beat", 1, i, "turbo").isEmpty(),
+            QVERIFY2(!jobs.submit("drums", kBar * 8 * i, kBar * 8 * (i + 1), "text2music", "beat", 1, i, "turbo").isEmpty(),
                      qPrintable(jobs.error()));
         }
         QVERIFY(jobs.submit("bass", 0, 8 * kBar, "text2music", "bass", 1, 1, "turbo").isEmpty());
@@ -784,7 +785,7 @@ private slots:
         QTemporaryDir cache;
         Server server;
         const auto path = cache.filePath("source.wav");
-        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(20 * 48000, 3)));
+        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(qint64{20} * 48000, 3)));
         // An 8-bar clip at bar 2 that plays its asset from 0.5 s.
         QJsonObject source{{"id", "loop"}, {"trackId", "keys"}, {"name", "loop"}, {"mediaType", "audio"}, {"sourceType", "imported"},
                            {"startMs", 2000}, {"durationMs", 16000}, {"inPointMs", 500}, {"outPointMs", 16500},
@@ -838,7 +839,7 @@ private slots:
         QTemporaryDir cache;
         Server server;
         const auto path = cache.filePath("source.wav");
-        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(20 * 48000, 3)));
+        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(qint64{20} * 48000, 3)));
         QJsonObject source{{"id", "loop"}, {"trackId", "keys"}, {"name", "loop"}, {"mediaType", "audio"}, {"sourceType", "imported"},
                            {"startMs", 0}, {"durationMs", 16000}, {"currentAssetId", assetId(9)}, {"mediaPath", path},
                            {"status", "generated"}, {"locked", false}, {"versions", QJsonArray{}}};
@@ -879,7 +880,7 @@ private slots:
         QTemporaryDir cache;
         Server server;
         const auto path = cache.filePath("source.wav");
-        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(20 * 48000, 3)));
+        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(qint64{20} * 48000, 3)));
         QJsonObject source{{"id", "loop"}, {"trackId", "keys"}, {"name", "loop"}, {"mediaType", "audio"}, {"sourceType", "imported"},
                            {"startMs", 0}, {"durationMs", 16000}, {"currentAssetId", assetId(9)}, {"mediaPath", path},
                            {"status", "generated"}, {"locked", false}, {"versions", QJsonArray{}}};
@@ -922,7 +923,7 @@ private slots:
         MusicJobs jobs;
         attach(jobs, *timeline, server, cache.path());
         // open() goes to the WebSocket server here; no take is downloaded.
-        jobs.m_target->server = server.base();
+        requireValue(jobs.m_target).server = server.base();
         connectSocket(jobs, server);
         QTRY_VERIFY(jobs.ready());
         const auto id = jobs.submit("bass", 0, 8 * kBar, {}, "walking bass", 1, 5, "turbo");
@@ -962,8 +963,8 @@ private slots:
         original.selection = Selection{"keys", static_cast<double>(start), static_cast<double>(start + length)};
         const auto plan = planMusicOperation(original);
         QVERIFY(plan.refusal.empty());
-        QCOMPARE(plan.segments->size(), std::size_t{3});
-        const auto requestFrames = *plan.requestFrames;
+        QCOMPARE(requireValue(plan.segments).size(), std::size_t{3});
+        const auto requestFrames = requireValue(plan.requestFrames);
         auto timeline = model(sequence(generateDocumentTracks(), {segmentedClip("keys", start, length, requestFrames, {0, 2})}));
         MusicJobs jobs;
         attach(jobs, *timeline, server, cache.path());
@@ -1025,7 +1026,7 @@ private slots:
         QTemporaryDir cache;
         Server server;
         const auto path = cache.filePath("drums.wav");
-        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(20 * 48000, 4)));
+        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(qint64{20} * 48000, 4)));
         QJsonObject drums{{"id", "beat"}, {"trackId", "drums"}, {"name", "beat"}, {"mediaType", "audio"}, {"sourceType", "imported"},
                           {"startMs", 0}, {"durationMs", 16000}, {"currentAssetId", assetId(8)}, {"mediaPath", path},
                           {"status", "generated"}, {"locked", false}, {"versions", QJsonArray{}}};
@@ -1061,7 +1062,7 @@ private slots:
         QTemporaryDir cache;
         Server server;
         const auto path = cache.filePath("drums.wav");
-        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(20 * 48000, 4)));
+        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(qint64{20} * 48000, 4)));
         QJsonObject drums{{"id", "beat"}, {"trackId", "drums"}, {"name", "beat"}, {"mediaType", "audio"}, {"sourceType", "imported"},
                           {"startMs", 0}, {"durationMs", 16000}, {"currentAssetId", assetId(8)}, {"mediaPath", path},
                           {"status", "generated"}, {"locked", false}, {"versions", QJsonArray{}}};
