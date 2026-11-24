@@ -1,4 +1,4 @@
-// nt-panel: slot=bottom id=pianoRoll order=105 title="Piano roll"
+// nt-panel: slot=bottom id=pianoRoll order=105 title="Piano Roll"
 // The piano roll (web PianoRollPanel.tsx and PianoRoll.tsx): the note editor
 // for one midi clip. It follows the selection: select one midi clip and the
 // panel edits it. It keeps that clip when the selection moves to something

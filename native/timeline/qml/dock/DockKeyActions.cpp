@@ -122,7 +122,10 @@ const bool registered = [] {
         {"panelEntities", "Go to Entities", "entities", "Entities"}, {"panelMarkers", "Go to Markers", "markers", "Markers"},
         {"panelFiles", "Go to Files", "files", "Files"},
         {"panelAssistant", "Go to the Assistant", "assistant", "Assistant"}, {"panelAi", "Go to AI", "ai", "AI"},
-        {"panelActivity", "Go to Activity", "activity", "Activity"}, {"panelMusic", "Go to Music", "music", "Music"}};
+        {"panelActivity", "Go to Activity", "activity", "Activity"}, {"panelMusic", "Go to Music", "music", "Music"},
+        {"panelPianoRoll", "Go to the Piano Roll", "pianoRoll", "Piano Roll"},
+        {"panelStepEditor", "Go to the Step Editor", "stepEditor", "Step Editor"},
+        {"panelTrackEffects", "Go to the Effect Chain", "trackEffects", "Effect Chain"}};
     int panelOrder = 100;
     for (const auto& entry : panels) {
         const QString panel = entry.panel;

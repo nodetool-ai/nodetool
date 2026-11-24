@@ -182,7 +182,8 @@ QList<Command> buildAllowed() {
     actions({"zoomIn", "zoomOut", "zoomFit", "zoomSelection", "expandTracks", "shrinkTracks", "expandAllTracks", "minimizeAllTracks", "audioTracksTaller",
              "audioTracksShorter", "toggleTimecodeRuler", "nextPanel", "prevPanel", "toggleLeftPanels", "toggleRightPanels", "toggleDawMode"});
     actions(family("panel", {"Assets", "Effects", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Script", "Storyboard",
-                             "Text", "EffectControls", "Motion", "Color", "Scopes", "Entities", "Markers", "Assistant", "Ai", "Activity", "Files", "Music"}));
+                             "Text", "EffectControls", "Motion", "Color", "Scopes", "Entities", "Markers", "Assistant", "Ai", "Activity", "Files", "Music",
+                             "PianoRoll", "StepEditor", "TrackEffects"}));
     actions(numbered("workspace", 7));
     actions(family("monitorZoom", {"Fit", "10", "25", "50", "75", "100", "150", "200", "400", "800", "1600"}));
     actions({"monitorDisplayComposite", "monitorDisplayAlpha", "monitorDisplay:comparison", "monitorDisplay:takes", "monitorShowControls",

@@ -1127,7 +1127,8 @@ private slots:
             "Play Audio While Scrubbing", "Keep Pitch While Shuttling"};
         QTest::newRow("window") << "Window" << QStringList{"Workspaces", "---", "Maximize Frame", "Next Panel", "Previous Panel", "Left Panels", "Right Panels", "---",
             "Library", "Effects", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Scripts", "Storyboards", "Text", "Effect Controls", "Motion", "Color", "Scopes",
-            "Entities", "Markers", "Files", "Assistant", "AI", "Activity", "Music"};
+            "Entities", "Markers", "Files", "Assistant", "AI", "Activity", "Music",
+            "Piano Roll", "Step Editor", "Effect Chain"};
     }
     void menuBarGroups() {
         QFETCH(QString, path);
