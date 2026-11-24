@@ -1,11 +1,11 @@
 ---
 layout: page
-title: "Behaviors, Scripts, and Events"
+title: "Scripts and Events"
 permalink: /game-engine/scripts
-description: "Use built-in behavior and bounded JavaScript for deterministic gameplay."
+description: "Add behaviors and write JavaScript scripts that react to input, collisions, timers, and events."
 ---
 
-Built-in behaviors cover movement, patrol, collection, health, triggers, spawning, scene transitions, win conditions, and lifetime. Each is an entry in an entity's `behaviors` array, and the 3D engine shares the nonspatial ones:
+Built-in behaviors cover movement, patrol, collection, health, triggers, spawning, scene transitions, win conditions, and lifetime. Add them to an object in the Inspector, or write a `script` behavior when you need custom logic:
 
 ```json
 "behaviors": [
@@ -14,19 +14,17 @@ Built-in behaviors cover movement, patrol, collection, health, triggers, spawnin
 ]
 ```
 
-3D movement uses the character controller or body commands.
+In 3D, movement uses the character controller or body commands instead.
 
-![Diagram of input entering fixed simulation ticks and producing snapshots and presentation](/assets/game-engine/simulation-presentation.svg)
+## Write a script
 
-*Scripts return state and commands. Rendering and audio consume the result without becoming gameplay state.*
-
-## Write a script behavior
+Open the **Scripts** panel to edit a script.
 
 ![AETHER's explorer behavior open in the editor's Scripts panel](/assets/game-engine/editor-script.png)
 
-*The script reads the player's velocity and grounding state. The editor displays the code and its execution limits while the game remains at tick 0. [Capture provenance](/game-engine/screenshots).*
+*The explorer script reads the player's velocity and whether the player is on the ground.*
 
-A script is a function expression or an object of lifecycle methods. It receives an immutable view of input, tick, entity, world, events, and its previous state. Return new `state` and `commands` rather than relying on mutable global variables or closures.
+A script is an object of hooks. Each hook receives the current input, tick, object, world, events, and the script's saved `state`. A hook returns new `state` and a list of `commands`. Do not keep values in outside variables, because only `state` is kept between ticks and in snapshots.
 
 ```js
 ({
@@ -41,26 +39,55 @@ A script is a function expression or an object of lifecycle methods. It receives
 })
 ```
 
-Run the game to validate the script in its actual scene. Compilation alone cannot prove that referenced entities, actions, assets, or clips exist.
+A script can also be one function that runs every tick. Use hooks for collisions, events, and timers.
 
-## Use the lifecycle
+## Hooks
 
-Hooks include start, scene entry, trigger enter/exit, contact, event, fixed update, and destroy. `onUpdate` and `onFixedUpdate` are aliases. Define one. Contacts and events describe the previous tick.
+| Hook | Runs when |
+|---|---|
+| `onStart` | The object first appears |
+| `onSceneEnter` | The scene starts |
+| `onTriggerEnter`, `onTriggerExit` | Something enters or leaves a trigger area |
+| `onContact` | The object touches a solid object |
+| `onEvent` | An event is sent to the object |
+| `onFixedUpdate` or `onUpdate` | Every tick. They mean the same thing, so define only one |
+| `onDestroy` | After the object is removed. It runs once, and commands that act on the removed object are rejected |
 
-Script functions, hooks, and named timer methods must run synchronously. Async functions and generators are rejected during preparation. Returning a promise, thenable, or iterator fails the call instead of scheduling deferred work. Use tick timers for delayed actions.
+Contacts and events describe the previous tick.
 
-Use `after(ticks, method)` and `every(ticks, method)` for timers stored in snapshot state. Timer names refer to methods on the same lifecycle object. Scheduling the same name replaces its timer. Scene transitions discard the old scene's behavior state without calling destroy.
+## Read input and the world
 
-`emit` can carry a bounded JSON payload and target an entity or tag. The event reaches listeners on the next tick. Omitting the target broadcasts. `input.events` still contains the previous event stream, while `onEvent` receives events addressed to that entity.
+The `input` argument holds:
 
-## Query and parameterize
+- `input.pressed` and `input.justPressed`: action names held now and pressed this tick.
+- `input.entity`: the object's position, velocity, rotation, tags, props, and whether it touches ground, ceiling, or walls.
+- `input.events`: events from the previous tick.
+- `input.params`: values you set in the Inspector for the script's declared parameters (numbers, booleans, colors, enums, vectors, and object or asset references).
+- `input.random()`: random numbers. Use it instead of `Math.random()` so replays match.
 
-`world.get(id)` and `world.query({tag, source, near, radius, limit})` read the tick-start world. Returned values are copies. Use tags to avoid coupling behavior to display names. Declare script parameters for editable numbers, booleans, colors, enums, vectors, and entity or asset references. Read resolved values from `input.params`.
+To look at other objects, call `world.get(id)` or `world.query({tag, source, near, radius, limit})`. They return copies from the start of the tick, so changing them does nothing. Tags are safer than display names for finding objects.
 
-Commands include movement, spawning, despawning, scene changes, animation, HUD/UI changes, properties, events, saves, and presentation effects. Spatial command shapes differ between dimensions. Refer to the [field reference](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/native-game-reference/SKILL.md) before authoring a command.
+## Commands
 
-## Diagnose failures
+Return commands to change the game. They cover movement, spawning and despawning, scene changes, animation, HUD updates, properties, events, and saving. Spatial commands differ between 2D and 3D. See the [native game field reference](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/native-game-reference/SKILL.md) for every command shape. For saving and loading player progress, see [Saving player progress](/game-engine/saves-replay).
 
-Scripts run in a bounded QuickJS sandbox without host network or filesystem access. Source size, command count, input/output size, per-call execution, and the total tick are limited. A failed tick stops the session. Fix the source, reset, or replay from a prior state. Increasing a limit is not a substitute for finding runaway work.
+`log` writes a message to the editor **Console** without changing the game.
 
-`log` writes to the editor Console without changing snapshots. **Run 10 s** diagnoses a draft in an independent session. Editing an existing script during play can hot-reload compatible source while preserving state. Reload revisions depend on the resulting document content, so a restored session can accept later source edits with the same identity as continuous play. Switching between a function and lifecycle object requires restarting from tick 0.
+## Timers and events
+
+- `after(ticks, "methodName")` calls a method of your script object once after the given number of ticks.
+- `every(ticks, "methodName")` calls it repeatedly.
+- Scheduling the same method name again replaces its timer. Timers survive saves and replays.
+- `{ kind: "emit", event: "name", target: ... }` sends an event. The target can be an object or a tag. Leave it out to broadcast to everyone. The event arrives on the next tick.
+
+## Limits
+
+- Scripts have no network or file access, and they cannot be `async`. Use tick timers for delayed actions.
+- A script's source is at most 16,384 characters.
+- `maxCommands` (1 to 64, default 16) caps commands per call, and `maxTickMs` (1 to 20, default 8) caps run time per call.
+- A script that exceeds a limit or throws stops the session. Fix the script and restart. Raising a limit will not fix an endless loop.
+- A scene change discards the previous scene's script state without calling `onDestroy`.
+
+## Test and reload
+
+**Run 10 s** tests a draft in a separate session. You can edit a script during play and it reloads with its state kept. Switching between a single function and a hooks object needs a restart from tick 0.

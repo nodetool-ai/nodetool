@@ -1,19 +1,27 @@
 ---
 layout: page
-title: "Saves, Snapshots, and Replay"
+title: "Saving Player Progress"
 permalink: /game-engine/saves-replay
-description: "Persist player data and verify exact runtime restoration with recorded input."
+description: "Store and load player progress and settings from game scripts."
 ---
 
-A player save stores progress or settings. A session snapshot stores simulation state for restoration. A replay supplies the input frames that reproduce a session. All three are separate from the game document.
+A save stores player progress or settings between play sessions. Scripts request saves with commands, and saves are separate from the game document. Saves are not synced to a cloud account.
 
-![Diagram showing input frames, fixed simulation, snapshots, and separate presentation](/assets/game-engine/simulation-presentation.svg)
+## Save and load commands
 
-*Replay compares simulation state and events. Pixels, sound mixing, and particle fields have separate presentation checks.*
+A script returns `save` and `load` commands from a lifecycle hook such as `onStart` or `onUpdate`.
 
-## Save progress or settings
+| Command | Fields |
+|---|---|
+| `save` | `slot`, `data`, optional `scope` |
+| `load` | `slot`, optional `scope` |
 
-Scripts return `save {slot, data, scope?}` and `load {slot, scope?}` commands. Scope defaults to progress. Settings uses a separate store. Slot names contain letters, digits, underscores, or hyphens. Data is a bounded JSON object.
+- `scope` is `progress` (the default) or `settings`. The two scopes are stored separately, so the same slot name can exist in both.
+- A slot name is 1 to 32 letters, digits, underscores, or hyphens. A game has at most 16 slots per scope.
+- `data` is a JSON object up to 16 KB, nested at most 16 levels deep, with at most 256 keys in total.
+- A script tick can request at most 4 saves and loads in total. More fail the tick.
+
+A load result arrives on a later input frame as `input.loaded`, a list of `{slot, data}` items. A slot that is empty or fails to load returns null data. Keep the values your game needs in script state, and read them back from `input.loaded` when it arrives.
 
 ```js
 ({ onStart() {
@@ -24,29 +32,10 @@ Scripts return `save {slot, data, scope?}` and `load {slot, scope?}` commands. S
 } })
 ```
 
-Loads arrive on later input frames. Empty or failed loads return null data. Keep the values needed for play in script state. Recorded loaded frames replay without contacting storage.
+To write a save, return `{ kind: "save", slot: "progress", data: { best: 12 } }` from a hook.
 
-Standalone players use IndexedDB. Browser permissions and storage quota can make saves unavailable. The player reports a save error and continues play when storage is blocked. A failed write is not a durable save. Editor play uses localStorage, and CLI simulation keeps saves in memory. A progress save may request `snapshot: true` in the player. Settings saves cannot include snapshots, and the editor retains the data without the snapshot. Saves are local to that host and browser, not automatic cloud synchronization.
+## Where saves are stored
 
-## Restore the simulation
+Saves are stored in the player's browser, so they stay on that device and browser. The editor's play mode keeps them separately from an exported game. If the browser blocks storage, the player reports a save error and play continues without saving.
 
-Snapshots include gameplay state such as entity state, script state, timers, UI overrides, and animation graph state. Restoration checks engine build and document digest. A snapshot from an incompatible document is not a migration mechanism.
-
-Older 3D snapshots with a removed instance still awaiting `onDestroy` use an ambiguous script-source identity. Restoration rejects those records explicitly rather than selecting the wrong scene or prefab hook. Snapshots without a pending removed-instance hook retain their existing state keys.
-
-Script state retains JSON property order. A script can observe that order with `Object.keys`, so 3D snapshot hashes distinguish states with different property order even when their key/value pairs match.
-
-Particles, mixer graphs, and render resources are not gameplay snapshot data. Their hosts rebuild or resume presentation from the accepted session.
-
-## Verify a route
-
-Record meaningful inputs through the objective, then run the same sequence with snapshot verification:
-
-```bash
-nodetool game simulate game.json --ticks 1200 --seed 1 \
-  --inputs route.json --assets-dir game-assets --verify-replay --expect-win --json
-```
-
-This is a command template. Choose a tick count and input file that actually complete your game. `--verify-replay` restores at the midpoint and compares later snapshots and events tick by tick. Add score or explicit assertions where winning alone would miss a regression.
-
-Include falling, manual recovery, repeated actions, and scene transitions in your acceptance routes. Reaching the objective once does not prove recovery or exact restoration. Inspect the command's exit status and report, then capture selected ticks to check presentation.
+To test scripts that read saves without a browser, see [Game Testing and Replay](/developer/game-testing).

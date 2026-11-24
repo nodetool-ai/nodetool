@@ -117,6 +117,6 @@ JavaScript. Scripts run in a QuickJS sandbox with lifecycle hooks such as onStar
 
 - [Game Editor guide](https://docs.nodetool.ai/game-editor)
 - [Native Game Engine reference](https://docs.nodetool.ai/game-engine/)
-- [How agents author games](https://docs.nodetool.ai/game-engine/agent-authoring)
+- [How agents author games](https://docs.nodetool.ai/developer/creative-agent-tools#games)
 - [MCP server setup](https://docs.nodetool.ai/mcp-server)
 - [Engine source on GitHub](https://github.com/nodetool-ai/nodetool/tree/main/packages/game-runtime)

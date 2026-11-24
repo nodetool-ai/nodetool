@@ -215,6 +215,45 @@ All state is persisted in the database, so a forgotten pod is recoverable from t
 
 ---
 
+## ComfyUI on a worker
+
+There are two ways to run ComfyUI on a rented GPU. Expose a plain ComfyUI and use **Run ComfyUI Workflow**, or deploy the NodeTool ComfyUI worker and use **Run ComfyUI Workflow (Worker)**. The one-click **Start** button in the Workers panel is the shortest path and is described in [ComfyUI Setup](comfyui-setup.md#on-a-rented-gpu).
+
+### Expose ComfyUI yourself
+
+Run ComfyUI on a pod and reach the port from outside: a RunPod pod's HTTP proxy URL, a Cloudflare tunnel, or an SSH tunnel. Put the resulting `https://` URL in the `endpoint` of **Run ComfyUI Workflow**. The scheme is derived from the endpoint, so an `https://` address upgrades the WebSocket to `wss://` on its own.
+
+This publishes ComfyUI to whoever holds the URL. The node sends no `Authorization` header, so the proxy URL is the only secret, and anyone with it can queue prompts, read `/history`, and download outputs. Put a tunnel with its own auth in front of it, or use the NodeTool ComfyUI worker below.
+
+`nodetool worker` can rent this pod from any ComfyUI image:
+
+```bash
+nodetool worker create --target runpod --image <comfyui-image> \
+  --gpu "NVIDIA A40" --comfy --max-lifetime 240
+```
+
+The command waits for `/system_stats`, then prints the `https://` endpoint. It terminates the pod if ComfyUI does not answer within 10 minutes. A pod that downloads models at boot needs a longer `--ready-timeout <minutes>`.
+
+To start from a RunPod template, replace `--image` with `--template <id>`. RunPod supplies the template's image, environment, ports and disks, and `--disk` overrides the volume size. The template must publish the `--comfy` port. A pod that bills for a volume keeps billing after `worker stop`, and `nodetool worker terminate <id>` ends all billing.
+
+- `--max-lifetime` is required, and only a running NodeTool API server enforces it. Without the server, stop the pod yourself.
+- `--idle-timeout` and `--attach` are rejected. The idle clock reads worker bridge traffic, and this pod has no bridge.
+- The persistent volume mounts at `/workspace`. An image that keeps ComfyUI or its models in that path needs its own copy step at start.
+
+### The NodeTool ComfyUI worker
+
+Deploy `ghcr.io/nodetool-ai/nodetool-worker-comfy:latest`, which runs a co-located ComfyUI that stays loopback-only inside the container, and drive it with **Run ComfyUI Workflow (Worker)** (`lib.comfy.RunWorkflowOnWorker`). The node connects to `worker_url` (default `ws://127.0.0.1:7777/ws`, use `wss://` for a proxied pod) with the worker's bearer token in the `worker_token` property. ComfyUI's own ports are never published.
+
+Pick the ComfyUI image from the **Worker image preset** dropdown, or pass `--image ghcr.io/nodetool-ai/nodetool-worker-comfy:latest` to `nodetool worker create` or `nodetool worker profile add`. The profile and instance model and the idle-stop and TTL guards that stop a forgotten pod billing are described above.
+
+The worker node has no workflow loader in the editor, so its `workflow` property and dynamic handles are filled in by hand. That and the slot naming on the bridge path are in [Known limitations](comfyui.md#known-limitations).
+
+### Comfy API v2 in front of a local ComfyUI
+
+The direct node can speak the Comfy API v2 through Comfy-Org's `comfy-api-proxy`. Setup and the `extra_data.api_key_comfy_org` key that authenticates partner nodes are in [ComfyUI from Code](developer/comfyui.md#comfy-api-proxy).
+
+---
+
 ## If it fails
 
 - **`<NAME> not found in the secret store or environment. Store with: nodetool secrets store <NAME>`**: the provider key is missing (`RUNPOD_API_KEY`, `VAST_API_KEY`, or both `VERDA_*` names).
@@ -228,5 +267,4 @@ All state is persisted in the database, so a forgotten pod is recoverable from t
 - [Self-Hosted Deployment](self-hosted-deployment.md)
 - [Deployment Guide](deployment.md)
 - [CLI Reference](cli.md)
-</content>
-</invoke>
+- [ComfyUI](comfyui.md)

@@ -16,7 +16,7 @@ Use the chain for mostly linear pipelines with one output per step. Use the grap
 
 There are two entry points:
 
-- **In a workflow tab.** Pick **Chain** in the **Graph / Chain** switch of the document bar. The choice is the `editorViewMode` setting, so it applies to every workflow tab and is remembered. The graph editor stays mounted underneath, so switching back keeps your canvas position.
+- **In a workflow tab.** Pick **Chain** in the **Graph / Chain** switch of the document bar. The choice applies to every workflow tab and is remembered. Switching back keeps your canvas position.
 - **As a page.** Go to `/chain/:workflowId` to edit a stored workflow, or `/chain` to start an empty chain called "Untitled Workflow".
 
 ![Chain Editor — Empty](assets/screenshots/web-chain-editor-empty.png)
@@ -41,7 +41,7 @@ Click the **+** between cards, or **Add First Node** on an empty chain. The **Ad
 
 ![Node Picker](assets/screenshots/web-chain-editor-picker.png)
 
-The node is inserted at the chosen position and the editor wires one of its inputs to the nearest earlier step that produces a matching type. It prefers that step's selected output, and prefers an input whose type matches exactly over one typed `any`. Insert into the middle of a chain and the step below follows: an input it took from the step now above the new card moves to the new card's output when the types allow.
+The node is inserted at the chosen position and the editor wires one of its inputs to the nearest earlier step that produces a matching type. It prefers that step's selected output, and prefers an input that accepts exactly that type over one that accepts anything. Insert into the middle of a chain and the step below follows: an input it took from the step now above the new card moves to the new card's output when the types allow.
 
 ---
 
@@ -70,7 +70,7 @@ There is no drag handle and no keyboard delete in the chain view.
 - **Input mapping.** Each field has a link button, **Use output from a previous step**, that opens a menu of every earlier step's outputs, not just the previous card's. Compatible outputs are listed first. Incompatible ones appear greyed out with the type they produce. A wired field shows `step · node title` and the output name instead of an editor. **Disconnect** gives the editor back. A warning icon marks a wired source whose type does not match the field.
 - **Output selector.** If a card has multiple outputs, pick the one that flows into the next step.
 
-Type compatibility uses the graph editor's connection rule, plus `int` widening to `float`.
+Compatibility follows the graph editor's connection rule, and whole numbers also connect to decimal inputs.
 
 ---
 
@@ -89,7 +89,7 @@ Chain cards have no run button of their own. In a workflow tab, use the composer
 A chain is a different view of the workflow graph.
 
 1. **Chain → Graph.** Pick **Graph** in the document bar's switch. Edits made in the chain are already in the graph, and positions of nodes that existed before are kept.
-2. **Graph → Chain.** The chain lists every node that has registered metadata in depth-first order from the nodes with no incoming connection, with inputs first and outputs last. Branches become extra cards, and a field wired to an earlier step shows that step as its source.
+2. **Graph → Chain.** The chain orders your nodes from inputs to outputs. Branches become extra cards, and a field wired to an earlier step shows that step as its source.
 
 Nodes the chain cannot show, such as comments and groups, are left untouched in the graph. Saving from the standalone `/chain` page writes only the chain's nodes and lays them out in a single column.
 
