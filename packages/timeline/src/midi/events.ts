@@ -62,14 +62,15 @@ export function midiClipNoteEvents(
     if (offMs <= onMs) continue;
     const channel = note.channel ?? 0;
     const pitchOffset = expressionValueAt(note.expression?.pitch, 0, 0);
-    events.push({
+    const onEvent: MidiClipNoteEvent = {
       timeMs: onMs,
       pitch: note.pitch,
       velocity: note.velocity,
       on: true,
-      channel,
-      ...(pitchOffset !== 0 ? { pitchOffset } : {})
-    });
+      channel
+    };
+    if (pitchOffset !== 0) onEvent.pitchOffset = pitchOffset;
+    events.push(onEvent);
     events.push({
       timeMs: offMs,
       pitch: note.pitch,

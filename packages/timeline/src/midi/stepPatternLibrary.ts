@@ -240,15 +240,16 @@ function drumPattern(
     swing: opts.swing ?? 0,
     swingDivision: opts.swingDivision ?? "1/16"
   });
-  return {
+  const entry: StepPatternLibraryEntry = {
     id,
     name,
     kind: "pattern",
     category: "drums",
     tags,
-    pattern,
-    ...(opts.instrumentPreset ? { instrumentPreset: opts.instrumentPreset } : {})
+    pattern
   };
+  if (opts.instrumentPreset) entry.instrumentPreset = opts.instrumentPreset;
+  return entry;
 }
 
 function melodicPattern(
@@ -281,7 +282,8 @@ function melodicPattern(
     normalizeRow(
       {
         id: r.id,
-        ...(r.name ? { name: r.name } : {}),
+        // normalizeRow leaves an undefined name off the row.
+        name: r.name || undefined,
         assignment: r.assignment,
         lengthSteps: r.steps.length,
         loopStart: 0,
@@ -300,7 +302,7 @@ function melodicPattern(
       }
     )
   );
-  return {
+  const entry: StepPatternLibraryEntry = {
     id,
     name,
     kind: "pattern",
@@ -316,9 +318,10 @@ function melodicPattern(
       pitchSource: opts.pitchSource ?? "off",
       scale: opts.scale ?? "chromatic",
       rows: builtRows
-    }),
-    ...(opts.instrumentPreset ? { instrumentPreset: opts.instrumentPreset } : {})
+    })
   };
+  if (opts.instrumentPreset) entry.instrumentPreset = opts.instrumentPreset;
+  return entry;
 }
 
 function buildSteps(length: number, hits: Record<number, Partial<Step>>): Array<Partial<Step>> {
@@ -800,7 +803,8 @@ function blankRow(
   return normalizeRow(
     {
       id,
-      ...(opts.name ? { name: opts.name } : {}),
+      // normalizeRow leaves an undefined name off the row.
+      name: opts.name || undefined,
       assignment,
       lengthSteps,
       loopStart: 0,

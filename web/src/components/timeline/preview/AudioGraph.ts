@@ -12,7 +12,13 @@ import {
   sampleFadeShape,
   timeRemapAudioSegments
 } from "@nodetool-ai/timeline";
-import type { AutomationMode, ClipFadeShape, TimeRemapAudioSegment } from "@nodetool-ai/timeline";
+import type {
+  AutomationMode,
+  ClipFadeShape,
+  MidiClipNoteEvent,
+  MidiControllerEvent,
+  TimeRemapAudioSegment
+} from "@nodetool-ai/timeline";
 import type {
   AutomationLane,
   MidiInstrument,
@@ -158,6 +164,26 @@ interface TrackAutomationState {
 }
 
 /** Longest straight ramp a curved automation segment is cut into. */
+/** A clip note event as a live device schedules it, at `timeSec`. */
+function liveNoteEvent(event: MidiClipNoteEvent, timeSec: number): LiveNoteEvent {
+  const live: LiveNoteEvent = {
+    timeSec,
+    pitch: event.pitch,
+    velocity: event.velocity,
+    on: event.on
+  };
+  if (event.pitchOffset !== undefined) live.pitchOffset = event.pitchOffset;
+  return live;
+}
+
+/** A clip controller event as a live device schedules it, at `timeSec`. */
+function liveControllerEvent(event: MidiControllerEvent, timeSec: number): LiveControllerEvent {
+  const live: LiveControllerEvent = { timeSec, kind: event.kind, value: event.value };
+  if (event.cc !== undefined) live.cc = event.cc;
+  if (event.pitch !== undefined) live.pitch = event.pitch;
+  return live;
+}
+
 const AUTOMATION_STEP_MS = 10;
 
 /**
@@ -1246,7 +1272,7 @@ export class AudioGraph {
       instrument,
       device: factory(ctx, instrument, {
         events,
-        ...(controllers && controllers.length > 0 ? { controllers } : {})
+        controllers: controllers && controllers.length > 0 ? controllers : undefined
       }).then(
         (device) => {
           if (this.trackDevices.get(track.id) !== state) {
@@ -1302,15 +1328,9 @@ export class AudioGraph {
           Number.NEGATIVE_INFINITY,
           gridOffsetMs,
           track.instrument
-        ).map((event) => ({
-          timeSec: event.timeMs / 1000,
-          pitch: event.pitch,
-          velocity: event.velocity,
-          on: event.on,
-          ...(event.pitchOffset !== undefined
-            ? { pitchOffset: event.pitchOffset }
-            : {})
-        }))
+        ).map((event) =>
+          liveNoteEvent(event, event.timeMs / 1000)
+        )
       );
       const controllers: LiveControllerEvent[] = trackMidiClips
         .flatMap((clip) =>
@@ -1320,13 +1340,7 @@ export class AudioGraph {
             Number.NEGATIVE_INFINITY,
             gridOffsetMs,
             track.instrument
-          ).map((event) => ({
-            timeSec: event.timeMs / 1000,
-            kind: event.kind,
-            ...(event.cc !== undefined ? { cc: event.cc } : {}),
-            ...(event.pitch !== undefined ? { pitch: event.pitch } : {}),
-            value: event.value
-          }))
+          ).map((event) => liveControllerEvent(event, event.timeMs / 1000))
         )
         .sort((a, b) => a.timeSec - b.timeSec);
       this.getOrCreateTrackChain(track.id);
@@ -1377,28 +1391,18 @@ export class AudioGraph {
       currentTimeMs,
       gridOffsetMs,
       instrument
-    ).map((event) => ({
-      timeSec: now + (event.timeMs - currentTimeMs) / 1000 / g,
-      pitch: event.pitch,
-      velocity: event.velocity,
-      on: event.on,
-      ...(event.pitchOffset !== undefined
-        ? { pitchOffset: event.pitchOffset }
-        : {})
-    }));
+    ).map((event) =>
+      liveNoteEvent(event, now + (event.timeMs - currentTimeMs) / 1000 / g)
+    );
     const controllerEvents: LiveControllerEvent[] = midiClipControllerEvents(
       clip,
       bpm,
       currentTimeMs,
       gridOffsetMs,
       instrument
-    ).map((event) => ({
-      timeSec: now + (event.timeMs - currentTimeMs) / 1000 / g,
-      kind: event.kind,
-      ...(event.cc !== undefined ? { cc: event.cc } : {}),
-      ...(event.pitch !== undefined ? { pitch: event.pitch } : {}),
-      value: event.value
-    }));
+    ).map((event) =>
+      liveControllerEvent(event, now + (event.timeMs - currentTimeMs) / 1000 / g)
+    );
     this.liveClips.set(clip.id, clip.trackId);
     if (events.length > 0) {
       device.schedule(events, clip.id);

@@ -8,7 +8,7 @@
 
 import { createTimeOrderedUuid } from "../defaults.js";
 import type { MidiNote, TimelineClip } from "../types.js";
-import { expressionProblems } from "./controllers.js";
+import { expressionProblems } from "./expression.js";
 import { noteWindowMs } from "./ticks.js";
 
 /**

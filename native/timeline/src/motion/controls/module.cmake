@@ -1,6 +1,9 @@
 nt_qml_sources(src/motion/controls/FollowPathControls.h src/motion/controls/FollowPathControls.cpp)
 function(nt_motion_control_tests)
-    qt_add_executable(tst_followpathcontrols src/motion/controls/tst_followpathcontrols.cpp src/motion/controls/FollowPathControls.cpp src/model/TimelineModel.cpp src/model/TrackListModel.cpp
+    qt_add_executable(tst_followpathcontrols src/motion/controls/tst_followpathcontrols.cpp src/motion/controls/FollowPathControls.cpp src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        src/model/TrackListModel.cpp
         src/edit/keyframes/ClipInspectorController.cpp src/edit/keyframes/KeyframeEdits.cpp)
     target_compile_options(tst_followpathcontrols PRIVATE ${NT_WARNINGS})
     target_link_libraries(tst_followpathcontrols PRIVATE nodetool_timeline_player timeline_core Qt6::Gui Qt6::Qml Qt6::Test)

@@ -73,11 +73,10 @@ export function useStepPatternOps(): StepPatternOps {
   const library = useMemo(() => {
     const inner = createBrowserStepPatternLibrary();
     // Without a reachable asset store the factory library still lists.
-    return {
-      ...inner,
-      list: () => inner.list().catch(() => []),
-      ...(inner.listFolders ? { listFolders: () => inner.listFolders!().catch(() => []) } : {})
-    };
+    const wrapped: typeof inner = { ...inner, list: () => inner.list().catch(() => []) };
+    const listFolders = inner.listFolders;
+    if (listFolders) wrapped.listFolders = () => listFolders().catch(() => []);
+    return wrapped;
   }, []);
 
   const apply = useCallback(

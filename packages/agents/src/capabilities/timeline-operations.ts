@@ -350,12 +350,16 @@ function stepPatternProjectIdForAsset(
 }
 
 function slugForStepPatternFile(name: string, fallback: string): string {
-  return (
-    name
-      .trim()
-      .replace(/[^\w.-]+/g, "-")
-      .replace(/^-+|-+$/g, "") || fallback
-  );
+  return trimDashes(name.trim().replace(/[^\w.-]+/g, "-")) || fallback;
+}
+
+/** `value` without leading and trailing dashes, in one linear pass. */
+function trimDashes(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === "-") start++;
+  while (end > start && value[end - 1] === "-") end--;
+  return value.slice(start, end);
 }
 
 /**
@@ -419,7 +423,7 @@ export function createServerStepPatternLibrary(
       const [page, nextCursor] = await Asset.paginate(userId, {
         contentType: STEP_PATTERN_ASSET_CONTENT_TYPE,
         limit: STEP_PATTERN_ASSET_LIMIT,
-        ...(startKey ? { startKey } : {})
+        startKey: startKey || undefined
       });
       for (const asset of page) {
         if (!seenAssetIds.has(asset.id)) {
@@ -506,7 +510,7 @@ export function createServerStepPatternLibrary(
                 category,
                 tags,
                 folder,
-                ...(rawPreset.length > 0 ? { instrumentPreset: rawPreset } : {})
+                instrumentPreset: rawPreset.length > 0 ? rawPreset : undefined
               }
             });
           }
@@ -573,13 +577,11 @@ export function createServerStepPatternLibrary(
           kind,
           category,
           tags,
-          ...(folder !== undefined ? { folder } : {}),
-          pattern: normalizePattern(parsed["pattern"] as Partial<StepPattern>),
-          ...(parsedInstrument?.success
-            ? { instrument: parsedInstrument.data as MidiInstrument }
-            : {}),
-          ...(instrumentPreset !== undefined ? { instrumentPreset } : {})
+          pattern: normalizePattern(parsed["pattern"] as Partial<StepPattern>)
         };
+        if (folder !== undefined) entry.folder = folder;
+        if (parsedInstrument?.success) entry.instrument = parsedInstrument.data as MidiInstrument;
+        if (instrumentPreset !== undefined) entry.instrumentPreset = instrumentPreset;
         patternAssets.push({ asset, parsed, entry });
         allPatternAssets.push({ asset, hasPattern: true, entry });
       } catch {
@@ -632,39 +634,37 @@ export function createServerStepPatternLibrary(
       item.entry.category ??
       (item.entry.kind === "template" ? "templates" : "user");
     const tags = [...(item.entry.tags ?? [item.entry.kind, "user"])];
-    const nextEnvelope: StoredStepPatternEnvelope | null =
-      item.hasPattern && item.entry.pattern
-        ? {
-            version: 1,
-            name: item.entry.name,
-            kind: item.entry.kind,
-            category,
-            tags,
-            folder: nextFolder,
-            pattern: item.entry.pattern,
-            ...(item.entry.instrument
-              ? { instrument: structuredClone(item.entry.instrument) }
-              : {}),
-            ...(item.entry.instrumentPreset
-              ? { instrumentPreset: item.entry.instrumentPreset }
-              : {})
-          }
-        : null;
+    let nextEnvelope: StoredStepPatternEnvelope | null = null;
+    if (item.hasPattern && item.entry.pattern) {
+      nextEnvelope = {
+        version: 1,
+        name: item.entry.name,
+        kind: item.entry.kind,
+        category,
+        tags,
+        folder: nextFolder,
+        pattern: item.entry.pattern
+      };
+      if (item.entry.instrument) nextEnvelope.instrument = structuredClone(item.entry.instrument);
+      if (item.entry.instrumentPreset) nextEnvelope.instrumentPreset = item.entry.instrumentPreset;
+    }
     return {
       asset: item.asset,
       nextFolder,
       metadataKey: STEP_PATTERN_METADATA_KEY,
-      buildMetadataEntry: (prevMeta) => ({
-        ...prevMeta,
-        name: item.entry.name,
-        kind: item.entry.kind,
-        folder: nextFolder,
-        category,
-        tags,
-        ...(item.entry.instrumentPreset
-          ? { instrumentPreset: item.entry.instrumentPreset }
-          : {})
-      }),
+      buildMetadataEntry: (prevMeta) => {
+        const meta = {
+          ...prevMeta,
+          name: item.entry.name,
+          kind: item.entry.kind,
+          folder: nextFolder,
+          category,
+          tags
+        };
+        return item.entry.instrumentPreset
+          ? { ...meta, instrumentPreset: item.entry.instrumentPreset }
+          : meta;
+      },
       nextEnvelope
     };
   };
@@ -822,12 +822,10 @@ export function createServerStepPatternLibrary(
         category,
         tags,
         folder: fullFolder,
-        pattern: normalizePattern(structuredClone(pattern)),
-        ...(savedInstrument ? { instrument: savedInstrument } : {}),
-        ...(savedInstrumentPreset
-          ? { instrumentPreset: savedInstrumentPreset }
-          : {})
+        pattern: normalizePattern(structuredClone(pattern))
       };
+      if (savedInstrument) envelope.instrument = savedInstrument;
+      if (savedInstrumentPreset) envelope.instrumentPreset = savedInstrumentPreset;
       const fileSlug = slugForStepPatternFile(name, "pattern");
       const fileName = `${fileSlug}-${createTimeOrderedUuid()}.step-pattern.json`;
       const assetPath = `${fullFolder}/${fileName}`;
@@ -836,16 +834,10 @@ export function createServerStepPatternLibrary(
         run.context.projectId
       );
       const parentId = directoryFolderId(userId, effectiveProjectId, fullFolder);
-      const stepPatternMeta = {
-        name,
-        kind,
-        folder: fullFolder,
-        category,
-        tags,
-        ...(savedInstrumentPreset
-          ? { instrumentPreset: savedInstrumentPreset }
-          : {})
-      };
+      const baseMeta = { name, kind, folder: fullFolder, category, tags };
+      const stepPatternMeta = savedInstrumentPreset
+        ? { ...baseMeta, instrumentPreset: savedInstrumentPreset }
+        : baseMeta;
       const created = await run.context.createAsset({
         name: fileName,
         contentType: STEP_PATTERN_ASSET_CONTENT_TYPE,
@@ -888,9 +880,9 @@ export function createServerStepPatternLibrary(
         allPatternAssets.map((p) => p.entry)
       );
       const target = resolveCreateStepPatternFolderTarget(allFolders, {
-        ...(kind !== undefined ? { kind } : {}),
+        kind,
         name,
-        ...(parentFolder !== undefined ? { parentFolder } : {})
+        parentFolder
       });
       const envelope: StoredStepPatternFolderEnvelope = {
         version: 1,
@@ -961,7 +953,7 @@ export function createServerStepPatternLibrary(
       const plan = resolveRenameStepPatternFolderTarget(allFolders, {
         folder,
         newName,
-        ...(kind !== undefined ? { kind } : {})
+        kind
       });
       const stagedWrites: StagedAssetWrite[] = [];
       for (const marker of folderAssets) {
@@ -997,8 +989,7 @@ export function createServerStepPatternLibrary(
         }
       }
       await commitAtomicFolderMutation(userId, stagedWrites);
-      return {
-        ...(plan.current.id !== undefined ? { id: plan.current.id } : {}),
+      const renamed = {
         name: plan.name,
         kind: plan.kind,
         previousFolder: plan.previousFolder,
@@ -1007,6 +998,7 @@ export function createServerStepPatternLibrary(
         movedPatternCount: movedPatterns.length,
         movedPatterns
       };
+      return plan.current.id !== undefined ? { id: plan.current.id, ...renamed } : renamed;
     },
     async deleteFolder({ folder, kind }) {
       const userId = run.context.userId;

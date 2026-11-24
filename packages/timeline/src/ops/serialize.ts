@@ -20,13 +20,9 @@ import type { TimelineOpState } from "./types.js";
 
 /** What `get_state` shows of the master bus. Absent means 0 dB, centred. */
 export function serializeMaster(master: TimelineMasterChannel | undefined) {
-  return {
-    volumeDb: master?.volumeDb ?? 0,
-    pan: master?.pan ?? 0,
-    ...(master?.effects !== undefined
-      ? { effects: structuredClone(master.effects) }
-      : {})
-  };
+  const out = { volumeDb: master?.volumeDb ?? 0, pan: master?.pan ?? 0 };
+  if (master?.effects === undefined) return out;
+  return { ...out, effects: structuredClone(master.effects) };
 }
 
 export function serializeTrack(
@@ -34,7 +30,7 @@ export function serializeTrack(
   t: TimelineTrack,
   clipCount?: number
 ) {
-  return {
+  const out = {
     id: t.id,
     name: t.name,
     type: t.type,
@@ -54,9 +50,10 @@ export function serializeTrack(
     musicRole: t.musicRole,
     effectCount: t.effects?.length ?? 0,
     automationMode: t.automationMode,
-    automationLaneCount: t.automation?.length ?? 0,
-    ...(t.type === "chord" ? chordTrackFields(state, t) : {})
+    automationLaneCount: t.automation?.length ?? 0
   };
+  if (t.type !== "chord") return out;
+  return { ...out, ...chordTrackFields(state, t) };
 }
 
 /** What get_state shows of a chord track: the chart from bar 1, the key and the signature. */
@@ -177,18 +174,18 @@ export function serializeMediaTrack(track: MediaTrack) {
 
 /** What `get_state` shows of one midi clip when asked: every note and controller lane. */
 export function midiClipDetail(c: TimelineClip) {
-  return {
+  const out = {
     id: c.id,
     name: c.name,
     notes: (c.notes ?? []).map((n) => ({ ...n })),
-    controllers: structuredClone(c.controllers ?? []),
-    ...(c.pattern
-      ? {
-          pattern: `${c.pattern.rows.length} rows x ${c.pattern.lengthSteps} @${c.pattern.stepRate}`,
-          patternName: c.pattern.name,
-          patternText: patternToText(c.pattern)
-        }
-      : {})
+    controllers: structuredClone(c.controllers ?? [])
+  };
+  if (!c.pattern) return out;
+  return {
+    ...out,
+    pattern: `${c.pattern.rows.length} rows x ${c.pattern.lengthSteps} @${c.pattern.stepRate}`,
+    patternName: c.pattern.name,
+    patternText: patternToText(c.pattern)
   };
 }
 

@@ -346,14 +346,14 @@ export const PianoRoll: React.FC<PianoRollProps> = memo(
     const maxTopRow = rows
       ? Math.max(0, rows.pitches.length - Math.max(1, Math.floor(size.height / rowHeightPx)))
       : 0;
-    const geometry: PianoRollGeometry = useMemo(
-      () => ({
-        pxPerTick,
-        scrollTick,
-        rowHeightPx,
-        topPitch,
-        ...(rows ? { rows, topRow: Math.min(topRow, maxTopRow) } : {})
-      }),
+    const geometry: PianoRollGeometry = useMemo(() => {
+      const base: PianoRollGeometry = { pxPerTick, scrollTick, rowHeightPx, topPitch };
+      if (rows) {
+        base.rows = rows;
+        base.topRow = Math.min(topRow, maxTopRow);
+      }
+      return base;
+    },
       [pxPerTick, scrollTick, rowHeightPx, topPitch, rows, topRow, maxTopRow]
     );
     const geometryRef = useRef(geometry);

@@ -17,6 +17,10 @@ function(nt_model_tests)
     # It links TimelineModel to check that every edit makes a new revision.
     qt_add_executable(tst_flexlayout tests/tst_flexlayout.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_flexlayout PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_flexlayout PRIVATE ${NT_WARNINGS})
@@ -26,6 +30,10 @@ function(nt_model_tests)
     # Change notification costs of TimelineModel edits.
     qt_add_executable(tst_timelinemodel tests/tst_timelinemodel.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_timelinemodel PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_timelinemodel PRIVATE ${NT_WARNINGS})

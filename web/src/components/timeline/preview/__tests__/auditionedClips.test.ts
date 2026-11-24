@@ -2,7 +2,7 @@ import { describe, it, expect } from "@jest/globals";
 import { makeClip } from "@nodetool-ai/timeline";
 import { auditionedClips } from "../auditionedClips";
 
-const audio = (id: string, startMs: number, extra: object = {}) =>
+const audio = (id: string, startMs: number, extra: Partial<Parameters<typeof makeClip>[0]> = {}) =>
   makeClip({
     id,
     trackId: "a1",

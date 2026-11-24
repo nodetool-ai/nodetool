@@ -207,12 +207,11 @@ export function laneEvents(
   if (lane.type === "note") {
     return doc.notes
       .filter((n) => n.pitch === lane.pitch)
-      .map((n) => ({
-        id: n.id,
-        tick: n.startTick,
-        value: n.velocity,
-        ...(n.muted ? { muted: true } : {})
-      }));
+      .map((n) => {
+        const event: StepEvent = { id: n.id, tick: n.startTick, value: n.velocity };
+        if (n.muted) event.muted = true;
+        return event;
+      });
   }
   const found = lane.target ? findControllerLane(doc.controllers, lane.target) : undefined;
   return (found?.points ?? []).map((p) => ({ id: p.id, tick: p.tick, value: p.value }));

@@ -9,6 +9,8 @@ nt_tests(nt_shutter_tests)
 function(nt_blur_pool_tests)
     qt_add_executable(tst_blurpool src/motion/blur/tst_blurpool.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
         src/export/OffscreenFrames.h src/export/OffscreenFrames.cpp)
     set_target_properties(tst_blurpool PROPERTIES MACOSX_BUNDLE FALSE)

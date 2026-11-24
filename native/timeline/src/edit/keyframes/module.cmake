@@ -3,7 +3,10 @@ nt_qml_sources(src/edit/keyframes/KeyframeEdits.cpp
     src/edit/keyframes/ClipInspectorController.h src/edit/keyframes/ClipInspectorController.cpp)
 function(nt_keyframe_tests)
     qt_add_executable(tst_keyframes src/edit/keyframes/tst_keyframes.cpp
-        src/model/TimelineModel.cpp src/model/TrackListModel.cpp
+        src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        src/model/TrackListModel.cpp
         src/edit/keyframes/ClipInspectorController.cpp src/edit/keyframes/KeyframeEdits.cpp)
     set_target_properties(tst_keyframes PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_keyframes PRIVATE ${NT_WARNINGS})
@@ -33,6 +36,8 @@ function(nt_keyed_render_tests)
         src/edit/keyframes/KeyframeEdits.cpp
         ${NT_EFFECTS_REGISTRAR}
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
         src/export/OffscreenFrames.h src/export/OffscreenFrames.cpp)
     set_target_properties(tst_keyedrender PROPERTIES MACOSX_BUNDLE FALSE)

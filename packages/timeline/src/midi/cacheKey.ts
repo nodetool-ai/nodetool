@@ -105,34 +105,46 @@ export function midiRenderKey(input: MidiRenderKeyInput): string {
     lane.interpolation ?? "linear",
     lane.points.map((p) => [p.id, p.tick, p.value])
   ]);
-  const canonical = JSON.stringify({
-    notes,
-    controllers,
-    ...(clip.pattern ? { pattern: fnv1a(JSON.stringify(clip.pattern)) } : {}),
-    ...(clip.pattern?.pitchSource === "chords"
-      ? {
-          patternStartMs: clip.startMs ?? 0,
-          patternGridOffsetMs: input.gridOffsetMs ?? 0,
-          patternChords: input.chords ? fnv1a(JSON.stringify(input.chords)) : null,
-          patternKey: input.key ?? null
-        }
-      : clip.pattern?.pitchSource === "key"
-        ? { patternKey: input.key ?? null }
-        : {}),
-    ...(clip.patternPhaseTicks ? { patternPhaseTicks: clip.patternPhaseTicks } : {}),
-    ...(clip.patternRowCycles ? { patternRowCycles: clip.patternRowCycles } : {}),
-    ...(input.controls ? { controls: input.controls } : {}),
-    inPointMs: clip.inPointMs ?? 0,
-    durationMs: clip.durationMs,
-    ...(clip.transpose ? { transpose: clip.transpose } : {}),
-    ...(clip.velocityOffset ? { velocityOffset: clip.velocityOffset } : {}),
-    ...(clip.quantize && clip.quantize.strength > 0
-      ? { quantize: [clip.quantize.grid, clip.quantize.strength, quantizePhase] }
-      : {}),
-    ...(activeLoopMs(clip) !== undefined ? { loopLengthMs: clip.loopLengthMs } : {}),
-    bpm,
-    instrument: instrumentSignature(instrument),
-    sampleRate
-  });
+  // Insertion order is the key order JSON.stringify writes, so it is part of
+  // the cache key: keep each field where it was.
+  const key: Record<string, unknown> = { notes, controllers };
+  if (clip.pattern) {
+    key.pattern = fnv1a(JSON.stringify(clip.pattern));
+  }
+  if (clip.pattern?.pitchSource === "chords") {
+    key.patternStartMs = clip.startMs ?? 0;
+    key.patternGridOffsetMs = input.gridOffsetMs ?? 0;
+    key.patternChords = input.chords ? fnv1a(JSON.stringify(input.chords)) : null;
+    key.patternKey = input.key ?? null;
+  } else if (clip.pattern?.pitchSource === "key") {
+    key.patternKey = input.key ?? null;
+  }
+  if (clip.patternPhaseTicks) {
+    key.patternPhaseTicks = clip.patternPhaseTicks;
+  }
+  if (clip.patternRowCycles) {
+    key.patternRowCycles = clip.patternRowCycles;
+  }
+  if (input.controls) {
+    key.controls = input.controls;
+  }
+  key.inPointMs = clip.inPointMs ?? 0;
+  key.durationMs = clip.durationMs;
+  if (clip.transpose) {
+    key.transpose = clip.transpose;
+  }
+  if (clip.velocityOffset) {
+    key.velocityOffset = clip.velocityOffset;
+  }
+  if (clip.quantize && clip.quantize.strength > 0) {
+    key.quantize = [clip.quantize.grid, clip.quantize.strength, quantizePhase];
+  }
+  if (activeLoopMs(clip) !== undefined) {
+    key.loopLengthMs = clip.loopLengthMs;
+  }
+  key.bpm = bpm;
+  key.instrument = instrumentSignature(instrument);
+  key.sampleRate = sampleRate;
+  const canonical = JSON.stringify(key);
   return `midi-${fnv1a(canonical)}`;
 }

@@ -195,8 +195,9 @@ export const createBl1Device: LiveDeviceFactory = async (ctx, instrument, option
       params,
       tables: bl1ProcessorTables(),
       events: options?.events ? encodeLiveEvents(options.events, ctx.sampleRate) : undefined,
-      ...(eventPitchOffsets ? { eventPitchOffsets } : {}),
-      ...(controllers ? { controllers } : {})
+      // The worklet skips an absent (undefined) list.
+      eventPitchOffsets,
+      controllers
     }
   });
   const device = new Bl1Device(ctx, node, params);

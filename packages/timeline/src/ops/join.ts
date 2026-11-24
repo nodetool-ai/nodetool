@@ -236,15 +236,17 @@ export function runJoinClips(
     ...state.selectedClipIds.filter((id) => id !== head.id && !removed.has(id))
   ];
   scope.touch(head.id, ...removed);
-  return {
+  const result: TimelineOpResult = {
     ok: true,
     clip: scope.clipOut(head),
     joined: plain.length,
-    removedClipIds: [...removed],
-    ...(convertedPatternClipIds.length > 0
-      ? { convertedToMidi: true, convertedPatternClipIds }
-      : {})
+    removedClipIds: [...removed]
   };
+  if (convertedPatternClipIds.length > 0) {
+    result.convertedToMidi = true;
+    result.convertedPatternClipIds = convertedPatternClipIds;
+  }
+  return result;
 }
 
 function joinMidi(

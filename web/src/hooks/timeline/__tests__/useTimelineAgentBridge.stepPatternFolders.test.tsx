@@ -206,7 +206,7 @@ function installMockAssetStore(seed?: {
       if (pMeta) {
         entries.push({
           kind: pMeta.kind === "template" ? "template" : "pattern",
-          ...(typeof pMeta.folder === "string" ? { folder: pMeta.folder } : {})
+          folder: typeof pMeta.folder === "string" ? pMeta.folder : undefined
         });
       }
     }
@@ -250,8 +250,7 @@ function installMockAssetStore(seed?: {
           movedPatterns.push({ id: row.id, name: String(pMeta.name ?? row.name), folder: nextFolder });
         }
       }
-      return {
-        ...(plan.current.id !== undefined ? { id: plan.current.id } : {}),
+      const renamed = {
         name: plan.name,
         kind: plan.kind,
         previousFolder: plan.previousFolder,
@@ -260,6 +259,7 @@ function installMockAssetStore(seed?: {
         movedPatternCount: movedPatterns.length,
         movedPatterns
       };
+      return plan.current.id !== undefined ? { id: plan.current.id, ...renamed } : renamed;
     }
   );
 

@@ -771,7 +771,7 @@ function rowActions(
     {
       id: "clear",
       label: t("stepSequencer.row.clear"),
-      ops: [{ op: "clear_pattern", clipId, scope: "row", row: row.id, ...(mode === "onOff" ? {} : { mode }) }]
+      ops: [{ op: "clear_pattern", clipId, scope: "row", row: row.id, mode: mode === "onOff" ? undefined : mode }]
     }
   ];
 }

@@ -136,13 +136,14 @@ export function readSectionContent(
       // A lane with a point before the window end plays through the window:
       // its points sit inside it, or it holds the value of an earlier point.
       if (sorted.length === 0 || sorted[0]!.timeMs >= to - EPS) continue;
-      automation.push({
-        ...(lane.enabled === false ? { enabled: false } : {}),
+      const piece: SectionContent["automation"][number] = {
         trackId: track.id,
         laneId: lane.id,
         target: structuredClone(lane.target),
         points: shiftPoints(lanePiece(sorted, from, to), -from)
-      });
+      };
+      if (lane.enabled === false) piece.enabled = false;
+      automation.push(piece);
     }
   }
   return {
@@ -195,7 +196,7 @@ export function runPasteRange(
 ): TimelineOpResult {
   const at = resolveBarTime(scope.state, op, op.atMs, "atMs");
   if (at === undefined) throw new Error("Send `atBar` or `atMs`.");
-  const content = op.content as unknown as SectionContentParams & SectionContent;
+  const content: SectionContentParams = op.content;
   const len = content.lengthMs;
   if (!Number.isFinite(len) || len <= 0) throw new Error("The section must be longer than 0 ms.");
   const mode = op.mode ?? "insert";

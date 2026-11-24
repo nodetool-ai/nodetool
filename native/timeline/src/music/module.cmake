@@ -180,6 +180,10 @@ function(nt_music_assist_tests)
         src/music/MusicJobs.h src/music/MusicJobs.cpp
         src/music/MusicEdits.h src/music/MusicEdits.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_musiccleanup PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_musiccleanup PRIVATE ${NT_WARNINGS})

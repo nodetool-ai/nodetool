@@ -5,6 +5,7 @@
  * so a tool call and a click write the same document.
  */
 
+import type { serializeClip, serializeTrack } from "./serialize.js";
 import { isShortResourceId } from "@nodetool-ai/protocol";
 import { MAX_AUTOMATION_LANES_PER_TRACK } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import {
@@ -18,7 +19,7 @@ import {
   controllerValueRange,
   validateControllerLanes
 } from "../midi/controllers.js";
-import { setLanePoints } from "../midi/controllerEdit.js";
+import { setLanePoints, type MidiControllerTarget } from "../midi/controllerEdit.js";
 import {
   deleteDuplicates,
   forceLegato,
@@ -34,6 +35,7 @@ import { tonicPitchClass } from "../harmony/progressionLibrary.js";
 import { SCALES } from "../harmony/scales.js";
 import type {
   AutomationLane,
+  AutomationPoint,
   MidiControllerLane,
   MidiNote,
   TimelineClip,
@@ -133,8 +135,8 @@ export interface MidiMixScope {
   resolveTrack(target: string): TimelineTrack;
   assertWritable(clips: readonly TimelineClip[], destinationTrackId?: string): void;
   touch(...ids: string[]): void;
-  clipOut(clip: TimelineClip): unknown;
-  trackOut(track: TimelineTrack): unknown;
+  clipOut(clip: TimelineClip): ReturnType<typeof serializeClip>;
+  trackOut(track: TimelineTrack): ReturnType<typeof serializeTrack>;
 }
 
 /** The notes a selection names: `note_ids`, `pitches` or both, else every note. */
@@ -273,12 +275,10 @@ function writeControllers(
         `A ${entry.kind} lane takes values ${range.min}..${range.max}; got ${bad.value} at tick ${bad.tick}.`
       );
     }
-    const target = {
-      kind: entry.kind,
-      ...(entry.cc !== undefined ? { cc: entry.cc } : {}),
-      ...(entry.pitch !== undefined ? { pitch: entry.pitch } : {}),
-      ...(entry.channel !== undefined ? { channel: entry.channel } : {})
-    };
+    const target: MidiControllerTarget = { kind: entry.kind };
+    if (entry.cc !== undefined) target.cc = entry.cc;
+    if (entry.pitch !== undefined) target.pitch = entry.pitch;
+    if (entry.channel !== undefined) target.channel = entry.channel;
     const next = setLanePoints(
       lanes,
       target,
@@ -449,11 +449,11 @@ export function runSetTrackMix(
       const key = automationTargetKey(target);
       const points = [...entry.points]
         .sort((a, b) => a.timeMs - b.timeMs)
-        .map((p) => ({
-          timeMs: p.timeMs,
-          value: p.value,
-          ...(p.easing !== undefined ? { easing: p.easing } : {})
-        }));
+        .map((p) => {
+          const point: AutomationPoint = { timeMs: p.timeMs, value: p.value };
+          if (p.easing !== undefined) point.easing = p.easing;
+          return point;
+        });
       const existing = lanes.find((lane) => automationTargetKey(lane.target) === key);
       if (points.length === 0) {
         lanes = lanes.filter((lane) => lane !== existing);

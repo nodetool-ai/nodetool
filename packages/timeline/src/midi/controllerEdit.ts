@@ -85,15 +85,12 @@ export function setLanePoints(
     return [...lanes, lane];
   }
   if (clamped.length === 0) return lanes.filter((lane) => lane !== existing);
-  return lanes.map((lane) =>
-    lane === existing
-      ? {
-          ...lane,
-          points: clamped,
-          ...(interpolation ? { interpolation } : {})
-        }
-      : lane
-  );
+  return lanes.map((lane) => {
+    if (lane !== existing) return lane;
+    const edited: MidiControllerLane = { ...lane, points: clamped };
+    if (interpolation) edited.interpolation = interpolation;
+    return edited;
+  });
 }
 
 /** Set a lane's interpolation. A lane that does not exist is left alone. */

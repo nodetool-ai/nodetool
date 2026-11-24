@@ -87,7 +87,7 @@ export const KEY_HELP =
 export function parseKey(
   text: string
 ): { ok: true; tonic: number; mode: "major" | "minor" } | { ok: false; error: string } {
-  const m = /^\s*([A-Ga-g])([#b♯♭]?)\s*(major|minor|maj|min|m|M)?\s*$/.exec(text);
+  const m = /^([A-Ga-g])([#b♯♭]?)\s*(major|minor|maj|min|m|M)?$/.exec(text.trim());
   if (m) {
     const name = m[1].toUpperCase() + m[2].replace("♯", "#").replace("♭", "b");
     const root = KEY_ROOTS[name];

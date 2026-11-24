@@ -15,9 +15,9 @@ import {
   isAutomationLaneActive
 } from "../automation.js";
 import { chordAtTick, CHORD_QUALITIES } from "../harmony/chords.js";
-import { chordTrackFor } from "../harmony/expand.js";
+import { chordTrackFor } from "../harmony/chordTrack.js";
 import { chordScale, remapNote, scaleMask, scaleRemap, SCALES } from "../harmony/scales.js";
-import { activeLoopMs } from "../clipLoop.js";
+import { activeLoopMs } from "../loopWindow.js";
 import type {
   AutomationLane,
   AutomationPoint,
@@ -43,7 +43,7 @@ import type {
   TimelineTempo,
   TimelineTrack
 } from "../types.js";
-import { controllerValueRange } from "./controllers.js";
+import { controllerValueRange } from "./controllerRange.js";
 import { sortNotes } from "./notes.js";
 import { resolveTempo } from "./tempo.js";
 import { MIDI_PPQ, msToTicks, ticksToMs } from "./ticks.js";
@@ -685,12 +685,11 @@ function rowSegmentOccurrences(
   let lastCycle = -1;
   let prevWanderPos: number | undefined = rowState?.wanderPos;
   for (const seg of segments) {
-    segmentStarts.push({
-      cycleOffset: cycle,
-      ...(row.playback === "wander" && prevWanderPos !== undefined
-        ? { wanderPos: prevWanderPos }
-        : {})
-    });
+    const segmentStart: PatternRowCycleState = { cycleOffset: cycle };
+    if (row.playback === "wander" && prevWanderPos !== undefined) {
+      segmentStart.wanderPos = prevWanderPos;
+    }
+    segmentStarts.push(segmentStart);
     const limit = seg.phase + seg.segLen;
     // For an unlooped clip, look ahead enough for a negative-offset step on the
     // next pass to pull into the end of this window (SQ23 split continuity).
@@ -785,11 +784,10 @@ export function computeRowSegmentStates(
       const needsLast = hasLast && lastCycle >= 0 && lastCycle !== localLast;
       const needsWander = row.playback === "wander" && start.wanderPos !== undefined;
       if (start.cycleOffset > 0 || needsLast || needsWander) {
-        perSeg[s]![row.id] = {
-          cycleOffset: start.cycleOffset,
-          ...(needsLast ? { lastCycle } : {}),
-          ...(needsWander ? { wanderPos: start.wanderPos } : {})
-        };
+        const state: PatternRowCycleState = { cycleOffset: start.cycleOffset };
+        if (needsLast) state.lastCycle = lastCycle;
+        if (needsWander) state.wanderPos = start.wanderPos;
+        perSeg[s]![row.id] = state;
       }
     }
   }
@@ -902,11 +900,11 @@ export function expandPattern(
           const lane: MidiControllerLane = {
             id: `p:${row.id}`,
             kind,
-            ...(target.kind === "cc" ? { cc: target.cc } : {}),
             channel: rowChannel,
             interpolation,
             points: clampedPoints
           };
+          if (target.kind === "cc") lane.cc = target.cc;
           controllerMap.set(key, lane);
         }
       }

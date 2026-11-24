@@ -1078,7 +1078,7 @@ export const timelineRouter = router({
           return await library.renameFolder({
             folder: input.folder,
             newName: input.newName,
-            ...(input.kind !== undefined ? { kind: input.kind } : {})
+            kind: input.kind
           });
         } catch (error) {
           rethrowStepPatternFolderError(error);
@@ -1095,7 +1095,7 @@ export const timelineRouter = router({
         try {
           return await library.deleteFolder({
             folder: input.folder,
-            ...(input.kind !== undefined ? { kind: input.kind } : {})
+            kind: input.kind
           });
         } catch (error) {
           rethrowStepPatternFolderError(error);

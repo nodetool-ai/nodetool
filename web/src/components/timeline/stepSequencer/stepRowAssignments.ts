@@ -141,7 +141,7 @@ function pitchSourceOps(clipId: string, pattern: StepPattern, assignment: StepRo
 export function addRowOps(clipId: string, pattern: StepPattern, choice: AssignmentChoice, sort: RowSort | null): TimelineOp[] {
   return [
     ...pitchSourceOps(clipId, pattern, choice.assignment),
-    { op: "add_pattern_rows", clipId, rows: [{ assignment: choice.assignment, ...(choice.name ? { name: choice.name } : {}) }] },
+    { op: "add_pattern_rows", clipId, rows: [{ assignment: choice.assignment, name: choice.name || undefined }] },
     ...sortOps(clipId, sort)
   ] as TimelineOp[];
 }

@@ -3,6 +3,10 @@ nt_qml_sources(src/aiassist/AssistController.h src/aiassist/AssistController.cpp
 function(nt_aiassist_tests)
     qt_add_executable(tst_aiassist src/aiassist/tst_aiassist.cpp src/aiassist/AssistEdits.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_aiassist PRIVATE timeline_core Qt6::Gui Qt6::Qml Qt6::Test)
     add_test(NAME tst_aiassist COMMAND tst_aiassist)
@@ -21,6 +25,10 @@ function(nt_assistantsession_tests)
     qt_add_executable(tst_assistantsession src/aiassist/tst_assistantsession.cpp
         src/aiassist/AssistantSession.h src/aiassist/AssistantSession.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_assistantsession PRIVATE timeline_core timeline_server Qt6::WebSockets Qt6::Qml Qt6::Gui Qt6::Test)
     add_test(NAME tst_assistantsession COMMAND tst_assistantsession)
@@ -33,6 +41,10 @@ function(nt_transcriptrequest_tests)
     qt_add_executable(tst_transcriptrequest src/aiassist/tst_transcriptrequest.cpp
         src/aiassist/TranscriptRequest.h src/aiassist/TranscriptRequest.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_transcriptrequest PRIVATE timeline_core timeline_server Qt6::WebSockets Qt6::Qml Qt6::Gui Qt6::Test)
     add_test(NAME tst_transcriptrequest COMMAND tst_transcriptrequest)
@@ -43,6 +55,10 @@ function(nt_assistcontroller_tests)
     qt_add_executable(tst_assistcontroller src/aiassist/tst_assistcontroller.cpp
         src/aiassist/AssistController.h src/aiassist/AssistController.cpp src/aiassist/AssistEdits.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_assistcontroller PRIVATE timeline_core timeline_server Qt6::WebSockets Qt6::Qml Qt6::Gui Qt6::Test)
     add_test(NAME tst_assistcontroller COMMAND tst_assistcontroller)
@@ -62,6 +78,10 @@ function(nt_scriptvoicingcontroller_tests)
     qt_add_executable(tst_scriptvoicingcontroller src/aiassist/tst_scriptvoicingcontroller.cpp
         src/aiassist/ScriptVoicing.h src/aiassist/ScriptVoicing.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_scriptvoicingcontroller PRIVATE timeline_core timeline_server Qt6::WebSockets Qt6::Qml Qt6::Gui Qt6::Test)
     add_test(NAME tst_scriptvoicingcontroller COMMAND tst_scriptvoicingcontroller)
@@ -100,6 +120,10 @@ function(nt_transcriptbeats_tests)
     qt_add_executable(tst_beatvoicing src/aiassist/tst_beatvoicing.cpp
         src/aiassist/BeatVoicing.h src/aiassist/BeatVoicing.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_beatvoicing PRIVATE timeline_core timeline_server Qt6::WebSockets Qt6::Qml Qt6::Gui Qt6::Test)
     add_test(NAME tst_beatvoicing COMMAND tst_beatvoicing)
@@ -125,6 +149,10 @@ function(nt_shotworkflow_tests)
     qt_add_executable(tst_shotworkflow src/aiassist/tst_shotworkflow.cpp
         src/aiassist/ShotWorkflow.h src/aiassist/ShotWorkflow.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_shotworkflow PRIVATE timeline_core timeline_server Qt6::WebSockets Qt6::Qml Qt6::Gui Qt6::Test)
     add_test(NAME tst_shotworkflow COMMAND tst_shotworkflow)
@@ -140,6 +168,10 @@ function(nt_scriptpanel_tests)
     qt_add_executable(tst_productionreview src/aiassist/tst_productionreview.cpp
         src/aiassist/ProductionReview.h src/aiassist/ProductionReview.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_productionreview PRIVATE timeline_core timeline_server Qt6::Gui Qt6::Qml Qt6::Test)
     add_test(NAME tst_productionreview COMMAND tst_productionreview)

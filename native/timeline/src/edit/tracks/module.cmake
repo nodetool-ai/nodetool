@@ -9,6 +9,10 @@ function(nt_track_tests)
 
     qt_add_executable(tst_trackedits src/edit/tracks/tst_trackedits.cpp src/edit/tracks/TrackEditRegistrations.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_trackedits PRIVATE timeline_core Qt6::Gui Qt6::Qml Qt6::Test)
     set_target_properties(tst_trackedits PROPERTIES MACOSX_BUNDLE FALSE)

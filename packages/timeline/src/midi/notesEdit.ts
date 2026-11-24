@@ -20,7 +20,7 @@ import {
   MIDI_EXPRESSION_KINDS,
   MIDI_EXPRESSION_SPEC,
   expressionValueAt
-} from "./controllers.js";
+} from "./expression.js";
 import { DEFAULT_MIDI_VELOCITY } from "./notes.js";
 
 /** The lowest pitch MIDI stores. */

@@ -298,8 +298,9 @@ export const createWt1Device: LiveDeviceFactory = async (
       params: { ...params },
       tables: tables.map(tablePayload),
       events,
-      ...(eventPitchOffsets ? { eventPitchOffsets } : {}),
-      ...(controllers ? { controllers } : {})
+      // The worklet skips an absent (undefined) list.
+      eventPitchOffsets,
+      controllers
     }
   });
   const output = ctx.createGain();

@@ -92,7 +92,7 @@ export const StepPatternBrowser: React.FC<Props> = memo(({ clipId, patternName, 
 
   useEffect(() => {
     let alive = true;
-    run([{ op: "list_step_patterns", ...(submitted ? { query: submitted } : {}) }])
+    run([{ op: "list_step_patterns", query: submitted || undefined }])
       .then(([result]) => {
         if (!alive) return;
         const listed = result as { entries?: Entry[]; folders?: Folder[] };
@@ -107,7 +107,7 @@ export const StepPatternBrowser: React.FC<Props> = memo(({ clipId, patternName, 
 
   const load = useCallback(
     (entry: Entry) => {
-      run([{ op: "apply_step_pattern", clipId, pattern: entry.id, ...(useProjectKey ? { useProjectKey: true } : {}) }]).catch(fail);
+      run([{ op: "apply_step_pattern", clipId, pattern: entry.id, useProjectKey: useProjectKey || undefined }]).catch(fail);
     },
     [run, clipId, useProjectKey, fail]
   );
@@ -129,7 +129,7 @@ export const StepPatternBrowser: React.FC<Props> = memo(({ clipId, patternName, 
       const kind = parent?.kind ?? "pattern";
       const parentPath = parent?.folder ?? ROOT_FOLDER[kind];
       const name = uniqueFolderName(t("stepSequencer.browser.newFolder"), parentPath, folders);
-      run([{ op: "create_step_pattern_folder", name, kind, ...(parent ? { parentFolder: parent.folder } : {}) }])
+      run([{ op: "create_step_pattern_folder", name, kind, parentFolder: parent?.folder }])
         .then(([result]) => {
           const created = (result as { folder?: string }).folder;
           if (created) {
