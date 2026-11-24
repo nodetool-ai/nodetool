@@ -36,7 +36,6 @@ import {
   PackageUpdateInfo,
 } from "./types";
 import type { RuntimePackageId, RuntimePackageStatus } from "./types.d";
-import { getCondaEnvPath } from "./config";
 import { getDesktopRuntimeHost, getDesktopRuntimeRegistry } from "./runtimeHost";
 
 /**
@@ -592,13 +591,6 @@ export async function getRuntimePackageStatuses(): Promise<RuntimePackageStatus[
       updateAvailable: s.updateAvailable,
     };
   });
-}
-
-/**
- * Get the current conda environment install location, or the default if not set.
- */
-export function getCondaInstallLocation(): string {
-  return getCondaEnvPath();
 }
 
 /**
