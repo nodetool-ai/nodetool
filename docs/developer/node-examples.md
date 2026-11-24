@@ -368,5 +368,5 @@ class MyAudioGen(HuggingFacePipelineNode):
   `True`.
 - To make a model usable outside the node graph (e.g. via an agent or the
   generation API), implement the matching method on the package's
-  [local provider](../providers.md#provider-capabilities) — e.g. `text_to_audio()`
+  [local provider](providers/index.md#provider-capabilities) — e.g. `text_to_audio()`
   for the `TEXT_TO_AUDIO` capability.

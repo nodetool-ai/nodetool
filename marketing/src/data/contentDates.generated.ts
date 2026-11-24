@@ -15,8 +15,8 @@ export const contentDates: {
       "hash": "9588275884052993"
     },
     "/gamedev": {
-      "date": "2026-11-20",
-      "hash": "fd3372bb7fe857d2"
+      "date": "2026-11-24",
+      "hash": "a07fc532b321adaa"
     },
     "/gamedev/ai-game-engines": {
       "date": "2026-11-06",

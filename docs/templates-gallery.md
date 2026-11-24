@@ -4,7 +4,7 @@ title: "Templates Gallery"
 description: "Browse ready-to-run example workflows and use them as starting points."
 ---
 
-The **Examples** page lists shipped workflows, apps, storyboards, timelines, sketches, 3D models, and games you can copy into your project. Open it from **More → Examples** or **Browse examples** on the new-project surface. It is a workspace tab, not a URL route.
+The **Examples** page lists shipped workflows, apps, storyboards, timelines, sketches, 3D models, and games you can copy into your project. Open it from **More → Examples** or **Browse examples** on the new-project surface.
 
 ## Tabs
 
@@ -69,15 +69,7 @@ Model fields in shipped templates are empty. When you open one, NodeTool fills e
 
 ---
 
-## Adding Your Own Template
-
-Shipped templates are JSON files in `packages/base-nodes/nodetool/examples/nodetool-base/`. Their listing metadata (name, description, tags) lives in `packages/base-nodes/nodetool/package_metadata/nodetool-base.json`. A new template needs:
-
-1. A graph that does real work and is not a re-skin of an existing example.
-2. Empty model fields, a description under 80 characters, and a thumbnail at `packages/base-nodes/nodetool/assets/nodetool-base/<name>.jpg`.
-3. A passing `npm run dev:nodetool -- validate "<file>.json"`.
-
-The full checklist is in `packages/base-nodes/nodetool/examples/nodetool-base/README_EXAMPLES.md`. To turn a saved workflow into code, use `nodetool workflows export-dsl <id>`.
+Contributors who ship new templates: see [Adding Workflow Templates]({{ '/developer/workflow-examples' | relative_url }}).
 
 ---
 
