@@ -5,7 +5,7 @@ permalink: /projects
 description: "Group the documents for one job under a project, start a project from a skill, and file, copy, export, import, archive, or delete them."
 ---
 
-A project groups the documents for one job (storyboard, script, cut, key art, mini app) and owns no content itself. A document belongs to a project by carrying its id, and the project card reads status, stills, and spend from those documents. Each project also has a [project folder](workspaces.md), the folder of files its runs read and write.
+A project groups the documents for one job (storyboard, script, cut, key art, mini app) and owns no content itself. The project card reads status, stills, and spend from the documents filed under it. Each project also has a [project folder](workspaces.md), the folder of files its runs read and write.
 
 ## The Personal project
 
@@ -38,7 +38,7 @@ Click a card to open the project. The dashed **Start a project** card does the s
 ![Start a project](assets/screenshots/project-new.png)
 
 1. Describe the work in the prompt. Type `/` to pick a skill, or `@` to attach an asset or an entity.
-2. Optionally add **Reference images** and pick **Entities**. A picked entity goes to the agent as an `entity://` reference.
+2. Optionally add **Reference images** and pick **Entities** from your library, which the agent can then use.
 3. Pick a model with **Select a model**. If no language model is connected, NodeTool opens provider setup first.
 4. Click **Send to chat**.
 
@@ -99,18 +99,15 @@ A project that links media from outside its folder (see
 export dialog names the linked files. **Collect and export** copies them into
 the folder and then exports. **Cancel** keeps the links and exports nothing.
 
-The same files move through the command line with `nodetool projects export`
-and `nodetool projects import`. See the [CLI reference](cli.md#nodetool-projects).
+The command line can export and import project files too. See the [CLI reference](cli.md#nodetool-projects).
 
 ## Link or copy media
 
 On the desktop app, importing files into the asset browser asks **Copy into
 the project folder** or **Link in place**. Copy writes the file into the
 folder's `Imported/` directory. Link copies nothing: the asset reads the file
-where it is, which suits large footage. A file at or above the link
-threshold (`NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES`, default 1 GiB) starts
-on Link. In a browser, and on a server with `NODETOOL_ENV=production`,
-import always copies.
+where it is, which suits large footage. A file of 1 GiB or more
+starts on Link. In a browser and on a production server, import always copies.
 
 **Collect files** on a project card copies every linked file into
 `Imported/` and points its asset at the copy. Asset ids stay the same, so
@@ -136,21 +133,15 @@ What delete does to the project folder depends on who made it:
 | NodeTool created it in cloud storage | The folder and every file in it are deleted. |
 | You brought it | Every file stays where it is. NodeTool removes only the `.nodetool` folder inside it. |
 
-NodeTool writes a record, `.nodetool/created.json`, into each folder it creates. A folder without that record counts as one you brought. That includes a folder you added by hand before projects had folders and a project folder created before this record existed.
+NodeTool marks each folder it creates. A folder without that mark counts as one you brought. That includes a folder you added by hand before projects had folders and a project folder created before NodeTool marked folders.
 
-There is no rename control in the project list. Ask the agent to rename a project, as described next.
+To rename a project, double-click its name at the left of the tab bar, or right-click it and choose **Rename**. The Personal project cannot be renamed. You can also ask the agent to rename, archive, or find a project.
 
 ## The agent and projects
 
-A project's conversations are chats filed under it, and the server can also hold one agent thread per project, created the first time it is asked for and titled with the project's name. Agents can manage projects with four tools:
+A project's conversations are chats filed under it, and each project can have its own agent thread, created the first time it is needed and titled with the project's name. The agent can manage projects for you. Try asking:
 
-| Tool | What it does |
-|---|---|
-| `list_projects` | Lists your projects, newest first. Pass `archived` to list archived ones. |
-| `search_projects` | Finds projects by name or kind. Every word must match. |
-| `create_project` | Creates a project and its folder. |
-| `update_project` | Renames a project, changes its kind, or archives and restores it. |
-| `move_to_project` | Moves one asset, entity, storyboard, script, timeline, sketch, app or JS script into another project. A file in the project folder moves too. Workflows and games do not move this way. |
-| `delete_project` | Permanently deletes a project and reports what happened to its folder, as described above. It refuses the Personal project and the project the conversation belongs to. |
+- "Rename this project to Spring campaign."
+- "Archive my old projects about the product launch."
 
-The agent is told to confirm with you before deleting and to prefer archiving.
+The agent confirms with you before deleting and prefers archiving. Builders can find the tool names and arguments in [Project tools](developer/creative-agent-tools.md#projects).

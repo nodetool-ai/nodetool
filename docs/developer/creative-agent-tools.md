@@ -18,6 +18,7 @@ The creative editors' pages describe what a person does in the app. This page is
 | [Sketch and 3D tools](#sketch-3d) | [Sketch Editor](../sketch-editor.md), [3D Editor](../3d-editor.md), [Blender](../blender.md) |
 | [Audio tools](#audio) | [Audio Editor](../audio-editor.md) |
 | [Document and game tools](#documents-games) | [Document Editor](../document-editor.md), [Text and SVG Documents](../text-and-svg-documents.md), [Game Editor](../game-editor.md) |
+| [Project tools](#projects) | [Projects](../projects.md) |
 
 ## Storyboard and Creative Agent tools {#storyboards}
 
@@ -771,4 +772,15 @@ The pane footer shows source length against the 16,384 character limit, **maxCom
 
 When a script throws during play, the 2D pane shows the tick and message. **Replay to tick N** reruns to the tick before the failure. **Ask the assistant** drafts a message with scene, entity, behavior index, tick, and error. 2D also has **Run 10 s**, a headless ten-second run that reports script calls, total script time, and a per-entity breakdown. The 3D editor shows **Replay before error**. Agents and JS scripts can build a whole document with the `@nodetool-ai/sandbox-game` pack.
 
+## Project tools {#projects}
 
+Agents manage [projects](../projects.md) with these tools. The agent confirms with the user before deleting and prefers archiving.
+
+| Tool | What it does |
+|---|---|
+| `list_projects` | Lists your projects, newest first. Pass `archived` to list archived ones. |
+| `search_projects` | Finds projects by name or kind. Every word must match. |
+| `create_project` | Creates a project and its folder. |
+| `update_project` | Renames a project, changes its kind, or archives and restores it. |
+| `move_to_project` | Moves one asset, entity, storyboard, script, timeline, sketch, app or JS script into another project. A file in the project folder moves too. A document or entity that other documents reference cannot move. Workflows and games do not move this way. |
+| `delete_project` | Permanently deletes a project and reports what happened to its folder. It refuses the Personal project and the project the conversation belongs to. |

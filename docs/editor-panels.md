@@ -93,7 +93,7 @@ Drag the top edge to resize. Views:
 
 ![Bottom Panel](assets/screenshots/editor-bottom-panel.png)
 
-Its header also carries the node and edge counts of the open workflow and a live readout of the **server's** CPU and memory use. The figures come from the `system_stats` frame the server pushes every 5s (see [WebSocket API](websocket-api.md#system_stats)), so on a local install they describe your own machine. A server that enforces auth (a hosted deployment) sends no such frame by default, because the numbers would describe a shared container, so the header shows the counts alone. Set `NODETOOL_SYSTEM_STATS=1` to force the broadcast on, or `0` to turn it off.
+Its header also carries the node and connection counts of the open workflow. On a local install it also shows CPU and memory use of the machine running the server. A hosted deployment shows the counts only. When the panel is narrow, the CPU and memory readout is hidden.
 
 ### Logs
 
@@ -140,7 +140,7 @@ The row under the tab bar belongs to the open workflow. It holds the name (doubl
 | Mini map | Graph view | Show or hide the mini map |
 | ⋮ | Always | **Make app** (or **Open app**), **Download JSON**, **Convert to JS script**, **Download Node.js script** |
 
-**Download JSON** saves the workflow as `<name>.json` with an empty `id`.
+**Download JSON** saves the workflow as a JSON file.
 
 ## Composer Bar
 
