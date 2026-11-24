@@ -1,129 +1,64 @@
 ---
 layout: page
 title: "Vector Storage"
-description: "Pluggable vector storage backends for NodeTool: SQLite-vec, Supabase/pgvector, Pinecone."
+description: "Choose where a NodeTool server keeps collections: the local SQLite store or a Supabase project with pgvector."
 ---
 
-`@nodetool-ai/vectorstore` exposes one `VectorProvider` / `VectorCollection` interface over the local SQLite-vec store, Supabase/pgvector, and a Pinecone stub. Core nodes, the tRPC `collections` router, the file-upload REST handler, and agent tools all go through it.
+Collections are stored in a vector database. A server keeps them in a local SQLite file by default, or in a Supabase project for a multi-user deployment.
 
 ```bash
-NODETOOL_VECTOR_PROVIDER=supabase SUPABASE_URL=https://xyz.supabase.co SUPABASE_KEY=<service-role-key> nodetool serve
+NODETOOL_VECTOR_PROVIDER=supabase \
+SUPABASE_URL=https://xyz.supabase.co \
+SUPABASE_KEY=<service-role-key> \
+nodetool serve
 ```
 
 ## Choosing a Backend
 
-| Backend | When to use | Setup |
+| `NODETOOL_VECTOR_PROVIDER` | When to use | Setup |
 |---|---|---|
-| `sqlite-vec` (default) | Local-first, single-machine deployments. | None. First use creates `vectorstore.db` in the NodeTool data dir. |
-| `supabase` | Hosted multi-user deployments backed by a Supabase / Postgres+pgvector project. | Install [`packages/vectorstore/sql/supabase-migration.sql`](https://github.com/nodetool-ai/nodetool/blob/main/packages/vectorstore/sql/supabase-migration.sql) once on the project, then set `SUPABASE_URL` + `SUPABASE_KEY`. |
-| `pinecone` | Stub. Every collection method throws `PineconeProvider is not yet implemented`. | Selecting it requires `PINECONE_API_KEY`. `PINECONE_ENVIRONMENT` and `PINECONE_CONTROLLER_HOST` are optional. |
+| `sqlite-vec` (default) | Desktop app, or a server on one machine | None. First use creates `vectorstore.db` in the NodeTool data folder. |
+| `supabase` | A hosted multi-user deployment backed by a Supabase or PostgreSQL project with pgvector | Install the SQL migration once, then set `SUPABASE_URL` and `SUPABASE_KEY`. |
 
-`getDefaultVectorProvider()` calls `createVectorProviderFromEnv()` (`packages/vectorstore/src/provider-factory.ts`) on first use. An unknown value throws a `ProviderConfigError`: `Unknown NODETOOL_VECTOR_PROVIDER: '<value>'. Expected one of: sqlite-vec, pinecone, supabase.`
+Any other value makes every collection request fail. An unknown name fails with `Unknown NODETOOL_VECTOR_PROVIDER: '<value>'`.
 
-## Configuration
+## Local SQLite
 
-### `NODETOOL_VECTOR_PROVIDER=sqlite-vec` (default)
-
-| Env var | Purpose |
+| Variable | Purpose |
 |---|---|
-| `VECTORSTORE_DB_PATH` | SQLite file. Default `vectorstore.db` in the NodeTool data dir (`getDefaultVectorstoreDbPath()` in `@nodetool-ai/config`) |
+| `VECTORSTORE_DB_PATH` | The SQLite file. Default `vectorstore.db` in the NodeTool data folder, separate from the main database |
 
-The provider reuses the process-wide `getDefaultStore()`, so code on the lower-level `SqliteVecStore` API and code on `getDefaultVectorProvider()` share one connection.
+The file needs disk headroom for everything you index. Back it up with the rest of the data folder.
 
-### `NODETOOL_VECTOR_PROVIDER=supabase`
+## Supabase
 
-| Env var | Purpose |
+| Variable | Purpose |
 |---|---|
 | `SUPABASE_URL` | Project URL |
-| `SUPABASE_KEY` or `SUPABASE_SERVICE_ROLE_KEY` | `SUPABASE_SERVICE_ROLE_KEY` wins when both are set. An anon key needs RLS policies that grant access to the registry and records tables |
-| `NODETOOL_VECTOR_SCHEMA` | Postgres schema, default `public` |
+| `SUPABASE_KEY` or `SUPABASE_SERVICE_ROLE_KEY` | `SUPABASE_SERVICE_ROLE_KEY` wins when both are set. An anon key needs row-level security policies that grant access to the two tables below |
+| `NODETOOL_VECTOR_SCHEMA` | PostgreSQL schema, default `public` |
 
-`SupabaseProvider` constructed directly also accepts `registryTable`, `recordsTable`, and `matchRpc` to rename the two tables and the RPC. `SUPABASE_URL` and `SUPABASE_KEY` are the variables the Supabase storage backend uses, so one project can back both.
+These are the variables the Supabase storage backend uses, so one project can hold both assets and collections.
 
-#### One-time SQL install
+### One-time SQL install
 
-The provider runs no DDL. Run [`packages/vectorstore/sql/supabase-migration.sql`](https://github.com/nodetool-ai/nodetool/blob/main/packages/vectorstore/sql/supabase-migration.sql) once through the Supabase SQL editor or `supabase migration`. It creates:
+NodeTool creates no tables itself. Run [`packages/vectorstore/sql/supabase-migration.sql`](https://github.com/nodetool-ai/nodetool/blob/main/packages/vectorstore/sql/supabase-migration.sql) once through the Supabase SQL editor or `supabase migration`. It creates:
 
-- `nodetool_vec_collections` is the registry table (`name PK, metadata jsonb, dimension int, metric text`).
-- `nodetool_vec_records` is the shared records table (`collection FK, id, document, embedding vector, uri, metadata jsonb`). The FK has `ON UPDATE CASCADE` so renaming a collection needs no record rewrite.
-- `nodetool_vec_match` is the RPC for similarity search. Required because PostgREST cannot use pgvector operators (`<=>`, `<->`, `<#>`) directly.
+- `nodetool_vec_collections`, one row per collection (name, metadata, dimension, metric).
+- `nodetool_vec_records`, the chunks of every collection with their embeddings. Renaming a collection needs no rewrite of its chunks.
+- `nodetool_vec_match`, the function similarity search calls.
 
 Once a collection's dimension is fixed, you can add an `ivfflat` index for faster search. The migration file documents the statement.
 
-## Filter Support Matrix
-
-`VectorFilter` is a MongoDB-style predicate language. Adapters translate the subset they can support and **must throw `UnsupportedFilterError`** for anything else, rather than silently dropping conditions.
-
-| Operator | sqlite-vec | supabase |
-|---|---|---|
-| `{field: scalar}` (equality) | no | yes (jsonb `@>`) |
-| `{field: {$eq: v}}` | no | yes |
-| `$ne`, `$gt`, `$gte`, `$lt`, `$lte` | no | no |
-| `$in` | no | no |
-| `{$and: [...]}` | no | yes (flattens into the metadata predicate) |
-| `{$or: [...]}` | no | no |
-| `{$document: {$contains: "text"}}` | yes | yes (case-insensitive `ILIKE`) |
-| `{$document: {$or: [{$contains}, ...]}}` | yes | no |
-
-For a richer Supabase filter, extend the SQL function and the `splitFilter()` translator in `packages/vectorstore/src/supabase-provider.ts` together. The translator is the contract.
-
-## Programmatic API
-
-```ts
-import {
-  getDefaultVectorProvider,
-  type VectorCollection
-} from "@nodetool-ai/vectorstore";
-
-const provider = getDefaultVectorProvider();
-
-const docs = await provider.getOrCreateCollection({
-  name: "support_articles",
-  dimension: 1536,
-  metric: "cosine",
-  metadata: { embedding_model: "text-embedding-3-small" }
-});
-
-// Embeddings can be pre-computed or generated by the collection's embedding function.
-await docs.upsert([
-  { id: "kb-101", document: "How to reset your password", uri: "https://…" }
-]);
-
-const matches = await docs.query({
-  text: "I forgot my password",
-  topK: 5,
-  filter: { $document: { $contains: "password" } }
-});
-```
-
-For tests or migrations, swap the active provider with `setDefaultVectorProvider(...)` (and `resetDefaultVectorProvider()` to release it). When constructing `SupabaseProvider` directly, pass a pre-built `client` to mock the network layer:
-
-```ts
-import { SupabaseProvider } from "@nodetool-ai/vectorstore";
-
-const provider = new SupabaseProvider({
-  client: fakePostgrestClient   // any object satisfying PostgrestClientApi
-});
-```
-
-## Callers
-
-- **Workflow nodes**: every node under `vector.*` in `@nodetool-ai/core-nodes` (`packages/core-nodes/src/nodes/vector.ts`) goes through the default provider.
-- **Collections REST/tRPC API**: `packages/websocket/src/trpc/routers/collections.ts` and `packages/websocket/src/collection-api.ts`.
-- **Agent tools**: `list_collections`, `query_collection`, `create_collection`, `delete_collection`, `vector_index`, `vector_text_search`, `vector_hybrid_search`, `vector_recursive_split_and_index`, `vector_markdown_split_and_index`, and `vector_batch_index` in the `collections` capability module (`packages/agents/src/capabilities/collections.specs.ts`, `collections.ts`). The collection each tool works on rides on the run (`CapabilityRun.vectorCollection`) rather than being a constructor argument.
-
-## Adding a New Backend
-
-1. Implement `VectorProvider` and `VectorCollection` (`packages/vectorstore/src/provider.ts`) in a new `<backend>-provider.ts`.
-2. Translate `VectorFilter` to the backend's query language. Throw `UnsupportedFilterError` for predicates it cannot express.
-3. Wire it into `createVectorProviderFromEnv()` in `provider-factory.ts` under a new kind.
-4. Add a tests file under `tests/` that injects a mock client (no live backend).
-5. Re-export the provider class and its options interface from `src/index.ts`.
-
-Keep adapter state mutable so `modify({ name, metadata })` is observable on the same handle, and return `uri` on every read path (part of the `VectorRecord` / `VectorMatch` contract). `SqliteVecProvider` and `SupabaseProvider` are the references.
-
 ## If it fails
 
-- **`NODETOOL_VECTOR_PROVIDER=pinecone but PINECONE_API_KEY is not set`**: selecting Pinecone requires the key, and every collection method then throws `PineconeProvider is not yet implemented`.
 - **`NODETOOL_VECTOR_PROVIDER=supabase but SUPABASE_URL and SUPABASE_KEY (or SUPABASE_SERVICE_ROLE_KEY) are not set`**: set both. The message also reminds you to install the migration.
-- **`UnsupportedFilterError`**: the filter uses an operator the backend cannot translate. See the matrix above.
+- **Supabase errors on every collection call**: the migration did not run on this project, or ran in another schema than `NODETOOL_VECTOR_SCHEMA`. Set `NODETOOL_VECTOR_PROVIDER=sqlite-vec` to fall back to local storage meanwhile.
+- **`UnsupportedFilterError`**: a query node or tool used a metadata filter the backend cannot run. The local store supports only text-contains filters. See [Filters](developer/storage.md#filters).
+
+## Related
+
+- [Collections](collections.md)
+- [Storage](storage.md)
+- [Supabase Deployment](supabase-deployment.md)
+- [Storage and Vector Store APIs](developer/storage.md)

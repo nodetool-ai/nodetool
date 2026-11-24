@@ -37,7 +37,7 @@ export BLENDER_PATH=/opt/blender-5.2/blender
 
 NodeTool remembers the result while the server runs and looks again when `BLENDER_PATH` changes. If nothing is found, the node fails before it renders with the error "blender was not found". When `BLENDER_PATH` points at a file that does not run, the error includes the reason.
 
-A server without Blender can send the job to a NodeTool worker that has Blender enabled, when `NODETOOL_WORKER_URL` names that worker (see [Configuration](configuration.md)). A Blender found on the local machine always wins over a worker.
+A server without Blender can send the job to a NodeTool worker that has Blender enabled, when `NODETOOL_WORKER_URL` names that worker (see [Environment Variables](environment-variables.md)). A Blender found on the local machine always wins over a worker.
 
 ## Common properties
 

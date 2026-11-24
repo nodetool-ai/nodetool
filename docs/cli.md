@@ -26,7 +26,7 @@ Or run a single command without installing:
 npx --package=@nodetool-ai/cli nodetool --help
 ```
 
-**Requires Node.js 22 or later** (`engines` in `packages/cli/package.json`, and the repository pins 24 in `.nvmrc`). Check with `node --version`, and install via [nvm](https://github.com/nvm-sh/nvm) if needed.
+**Requires Node.js 22 or later.** Check with `node --version`, and install via [nvm](https://github.com/nvm-sh/nvm) if needed.
 
 ## Install command features
 
@@ -97,20 +97,9 @@ Start with these guides and then inspect the named tools:
 | Playable game | `native-game` | `tools list game` |
 | Markdown document | none | `tools list document` |
 
-Call `nodetool tools call list_projects` to obtain an owned project id for
-project-scoped documents. Local tool calls initialize the Personal project
-(`personal:1`) on a fresh installation.
-
-For a deterministic mini app build without provider charges, run:
-
-```bash
-nodetool packs add audio --yes
-nodetool app build "greeting fixture" --provider fake --model fake-app-greeting --no-judge
-```
-
-The audio pack supplies the required `nodetool.output.Output` node.
-`fake-app-greeting` builds a fixed greeting app and ignores the prompt. It tests
-the build pipeline and interaction checks, not general app generation.
+Documents that belong to a project need a project id. Run
+`nodetool tools call list_projects` to list yours. A fresh installation creates
+the Personal project on the first local tool call.
 
 For games, `list_example_games` and `get_example_game` expose shipped starting
 documents. Follow the guide's installation instructions when a bundled example
@@ -224,7 +213,7 @@ nodetool serve --host 127.0.0.1 --port 7777
 For the classic application API, explicitly install `cli-server` and use
 `nodetool server serve`.
 
-### `nodetool server server serve`
+### `nodetool server serve`
 
 Starts the classic TypeScript WebSocket and HTTP application server, including
 its application routes and static assets. Requires `cli-server`.
@@ -2690,7 +2679,7 @@ the linking routes the bridge calls do not exist.
 
 Configuration is environment variables plus that optional file. The env vars are
 listed in the
-[Environment Variables Index](configuration.md#environment-variables-index);
+[Environment Variables Index](environment-variables.md);
 the file carries only the tuning knobs:
 
 ```jsonc
@@ -3326,7 +3315,7 @@ again, and a person can read the transcript before any model proposes anything.
 ## Tips
 
 - Set `NODETOOL_API_URL` to avoid passing `--api-url` on every command.
-- See [Environment Variables](configuration.md#environment-variables-index) for a complete list of configurable variables.
+- See [Environment Variables](environment-variables.md) for a complete list of configurable variables.
 
 ## Generation presets
 

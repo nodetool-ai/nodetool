@@ -18,10 +18,10 @@ New here? Start with [Getting Started](getting-started.md).
 | **Mini-Apps** — Documents panel | A form over one or more workflows | [Mini Apps](mini-apps.md) |
 | **Assets** — More panel | Every file your workflows touch | [Assets](asset-management.md) · [Sketch Editor](sketch-editor.md) |
 | **Video Editor** — workspace tab | Multi-track timeline; clips can be live workflow outputs | [Video Editor](video-editor.md) |
-| **Collections** — More panel | Searchable document collections | [Collections](collections.md) · [Indexing](indexing.md) |
+| **Collections** — More panel | Searchable document collections | [Collections](collections.md) |
 | **Examples** — workspace tab | Ready-to-run workflows, apps, storyboards, timelines, and games | [Templates Gallery](templates-gallery.md) |
 | **Model Manager** — More panel | Find, install, and manage local and cloud models | [Models Manager](models-manager.md) |
-| **Settings** — workspace tab | API keys, folders, secrets, remote | [Configuration](configuration.md) · [Providers](models-and-providers.md) |
+| **Settings** — workspace tab | API keys, folders, secrets, remote | [Settings](configuration.md) · [Providers](models-and-providers.md) |
 
 The logo at the top of the left rail opens the app menu: **Settings**, **Help**,
 and **Downloads**. Settings opens as a workspace tab.

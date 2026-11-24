@@ -25,7 +25,7 @@ Server deployment is Docker only. Docker Compose, a plain `docker run` or `podma
 | **Rent a GPU to run Python nodes (RunPod, Vast, Verda)** | [Worker Deployment](worker-deployment.md) |
 | **Cap memory, CPU, and GPU for the server container** | [Docker Resource Management](docker-resource-management.md) |
 | **Use Supabase for login and asset storage** | [Supabase Deployment Integration](supabase-deployment.md) |
-| **Set up TLS/HTTPS** | [Serving the Web UI and TLS](configuration.md#serving-the-web-ui-and-tls) |
+| **Set up TLS/HTTPS** | [Serving the Web UI and TLS](server-configuration.md#serving-the-web-ui-and-tls) |
 | **Connect Claude Code or another MCP client to a deployed server** | [MCP on a Production Server](mcp-production.md) |
 | **See how api.nodetool.ai itself is deployed** | [Production Deploy (Docker)](docker-production-deploy.md) |
 | **Fix a deployment that fails to start** | [Troubleshooting](troubleshooting.md#a-deployment-fails-or-the-service-wont-start) |

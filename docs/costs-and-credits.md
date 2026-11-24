@@ -106,7 +106,7 @@ Runs also record token counts and cost on their trace spans. See [observing agen
 
 ### Agent runs
 
-An agent run (a chat turn, its sub-agents, and any agent node it starts) shares one budget. By default a run is capped at 5 US dollars of provider spend and 30 minutes. A turn whose worst case would cross the cap is refused before the call, so the money is not spent first. On the command line, `--cost-cap <usd>` overrides the cap for one run, and `0` lifts it, which suits a local-only install. See [Run budget](cli.md#run-budget) and the [Agent CLI](agent-cli.md). Server settings for these limits are in [Agent run limits](configuration.md#agent-run-limits).
+An agent run (a chat turn, its sub-agents, and any agent node it starts) shares one budget. By default a run is capped at 5 US dollars of provider spend and 30 minutes. A turn whose worst case would cross the cap is refused before the call, so the money is not spent first. On the command line, `--cost-cap <usd>` overrides the cap for one run, and `0` lifts it, which suits a local-only install. See [Run budget](cli.md#run-budget) and the [Agent CLI](agent-cli.md). Server settings for these limits are in [Agent run limits](server-configuration.md#agent-run-limits).
 
 ### Mini apps
 

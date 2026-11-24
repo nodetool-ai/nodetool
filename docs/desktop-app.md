@@ -113,4 +113,4 @@ Uninstalling removes the application files only. Your data, settings, logs, and 
 - [Installation](installation.md)
 - [Desktop App Views](electron-views.md)
 - [Self-Hosted Deployment](self-hosted-deployment.md) for running the server without the desktop app
-- [Configuration](configuration.md)
+- [Settings](configuration.md)

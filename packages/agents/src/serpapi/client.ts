@@ -115,7 +115,7 @@ export class SerpApiClient {
     if (!isNonBlankString(key)) {
       throw new SerpApiError(
         "auth",
-        "No SerpAPI key is configured. Add SERPAPI_API_KEY in Settings → Secrets."
+        "No SerpAPI key is configured. Add SERPAPI_API_KEY in Settings → Models & providers → Web search."
       );
     }
     this.#key = key;

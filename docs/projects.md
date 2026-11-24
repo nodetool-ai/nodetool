@@ -13,7 +13,7 @@ Every account has a **Personal** project. It is where documents land when you ha
 
 ## Projects from before project folders
 
-A project made before project folders gets its folder the first time the server starts. Its assets then move into the folder in the background. While they move, the project card and the left panel show **Moving files into the project folder** with a count. Every asset keeps its ID and stays usable throughout. See [existing assets move into the folder](workspaces.md#existing-assets-move-into-the-folder).
+A project made before project folders gets its folder the first time the server starts. Its assets then move into the folder in the background. While they move, the project card and the left panel show **Moving files into the project folder** with a count. Every asset keeps its ID and stays usable throughout. See [existing assets move into the folder](workspaces.md#upgrading-from-before-project-folders).
 
 ## The project list
 

@@ -25,7 +25,7 @@ The NodeTool server keeps its state in a data directory. The desktop app runs th
 | Vector store (`vectorstore.db`) | Same directory |
 | Log file | `~/.local/share/nodetool/logs/nodetool.log` on macOS and Linux, `%LOCALAPPDATA%\nodetool\logs\nodetool.log` on Windows |
 
-`DB_PATH`, `DATABASE_URL`, `ASSET_FOLDER`, `STORAGE_PATH`, and `VECTORSTORE_DB_PATH` move these. The full list of locations is in [Desktop App](desktop-app.md#where-your-data-lives) and [Configuration](configuration.md). Other storage backends are in [Storage](storage.md).
+`DB_PATH`, `DATABASE_URL`, `ASSET_FOLDER`, `STORAGE_PATH`, and `VECTORSTORE_DB_PATH` move these. The full list of locations is in [Desktop App](desktop-app.md#where-your-data-lives) and [Environment Variables](environment-variables.md). Other storage backends are in [Storage](storage.md).
 
 Desktop users can keep separate data sets in vaults. Each vault has its own database, assets, and collections. See [Desktop App](desktop-app.md#desktop-only-settings).
 
@@ -43,7 +43,7 @@ The master key comes from the first of these that exists:
 
 In the Docker image, if `SECRETS_MASTER_KEY` is unset the entrypoint generates a key and saves it to `/workspace/.secrets_master_key` on the data volume.
 
-A database copied to another machine can be decrypted only where the master key has the same value. Losing the master key means losing the stored secrets, and you re-enter them. Details are in [Configuration](configuration.md#secret-storage-and-master-key).
+A database copied to another machine can be decrypted only where the master key has the same value. Losing the master key means losing the stored secrets, and you re-enter them. Details are in [Server Configuration](server-configuration.md#secret-storage-and-master-key).
 
 ## What leaves your machine
 
@@ -120,6 +120,6 @@ See [API Reference](api-reference.md). Workflows and apps also export as bundles
 
 ## Related pages
 
-- [Configuration](configuration.md) for storage, secrets, and retention variables
+- [Settings](configuration.md) for keys and retention, and [Environment Variables](environment-variables.md) for storage variables
 - [Error Tracing](error-tracing.md) for what is recorded and how to turn it off
 - [Security Hardening](security-hardening.md) for deployments

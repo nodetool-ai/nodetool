@@ -259,6 +259,6 @@ Build with `npm run build`, then publish to npm or provide a Git URL. To offer a
 ## Related Documentation
 
 - [CLI Reference](cli.md) -- package subcommands.
-- [Configuration Guide](configuration.md) -- where package metadata is cached.
+- [Environment Variables](environment-variables.md) -- where package metadata is cached.
 - [Custom Nodes Guide](developer/custom-nodes-guide.md) -- step-by-step node implementation.
 - [TypeScript DSL Guide](developer/ts-dsl-guide.md) -- type-safe workflow definitions with `@nodetool-ai/dsl`.

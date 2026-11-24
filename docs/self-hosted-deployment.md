@@ -76,7 +76,7 @@ Auth is configured on the backend. The web UI reads its auth mode and public Sup
 
 See also [Authentication](authentication.md) and [Supabase Deployment](supabase-deployment.md).
 
-> **Do not expose Local mode to the internet.** Local mode has no login. `NODETOOL_TRUST_LOCAL_NETWORKS` trusts source IPs as admin user `"1"` with no password, so anyone who can reach the published port from a trusted range gets your data, secrets, and API keys. The default `172.16.0.0/12,192.168.65.0/24` covers only Docker's bridge and Desktop VM gateway. Never change it to `0.0.0.0/0` on a public IP. For a public address or untrusted users, enable Supabase or SSO mode and terminate TLS in front of the server or give it a certificate ([Serving the Web UI and TLS](configuration.md#serving-the-web-ui-and-tls)).
+> **Do not expose Local mode to the internet.** Local mode has no login. `NODETOOL_TRUST_LOCAL_NETWORKS` trusts source IPs as admin user `"1"` with no password, so anyone who can reach the published port from a trusted range gets your data, secrets, and API keys. The default `172.16.0.0/12,192.168.65.0/24` covers only Docker's bridge and Desktop VM gateway. Never change it to `0.0.0.0/0` on a public IP. For a public address or untrusted users, enable Supabase or SSO mode and terminate TLS in front of the server or give it a certificate ([Serving the Web UI and TLS](server-configuration.md#serving-the-web-ui-and-tls)).
 {: .callout-warning}
 
 To serve the web UI from a **different origin** (a CDN, for example), point the frontend at the backend with the build-time `VITE_API_URL` and add that origin to `NODETOOL_ALLOWED_ORIGINS` so cross-origin `GET /api/config` and API calls are allowed.
@@ -403,7 +403,7 @@ The server checks the balance before a run that uses a managed model starts. It 
 | `NODETOOL_PLATFORM_ANTHROPIC_KEY` | The platform-owned Anthropic key that funds managed language models |
 | `NODETOOL_ENABLE_TEST_TOPUP` | Set to `1` or `true` to allow the test top-up on a development server |
 
-A managed model is offered only when its delegate provider has a platform key and the model is on the allowlist. The test top-up adds credits with no payment behind it, and the server refuses it unless `NODETOOL_ENABLE_TEST_TOPUP` is set, because minted credits unlock spend on platform-owned keys. When it is set, the Plan & credits page shows an **Add 1000 credits (test)** button. Leave it unset on anything reachable by other people. See also [Configuration](configuration.md#environment-variables-index).
+A managed model is offered only when its delegate provider has a platform key and the model is on the allowlist. The test top-up adds credits with no payment behind it, and the server refuses it unless `NODETOOL_ENABLE_TEST_TOPUP` is set, because minted credits unlock spend on platform-owned keys. When it is set, the Plan & credits page shows an **Add 1000 credits (test)** button. Leave it unset on anything reachable by other people. See also [Environment Variables](environment-variables.md).
 
 ## If it fails
 

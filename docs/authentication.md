@@ -1,16 +1,16 @@
 ---
 layout: page
-title: "NodeTool Server Authentication"
+title: "Authentication"
 description: "How the NodeTool server decides who a request is: Supabase mode, SSO mode, Local mode, access tokens, and the trust settings for proxies and Docker."
 ---
 
-The server picks its auth mode from the environment. Endpoint auth requirements are in the [API Reference](api-reference.md), variable defaults in the [Configuration Guide](configuration.md#environment-variables-index).
+A self-hosted server picks how people sign in from its environment. The desktop app needs none of this: its server answers only your own computer. Endpoint auth requirements are in the [API Reference](api-reference.md#authentication-and-headers), and every variable is in [Environment Variables](environment-variables.md).
 
 ## Quick Start
 
 - **Supabase mode**: `SUPABASE_URL` and `SUPABASE_KEY` both set. Auth is enforced on every non-public request.
 - **SSO mode**: `OIDC_ISSUER` and `OIDC_CLIENT_ID` both set. Users sign in through your OpenID Connect provider, and auth is enforced the same way.
-- **Local mode**: neither pair set. Loopback connections run as user `"1"`. Non-loopback requests get `401` unless they come from a network in `NODETOOL_TRUST_LOCAL_NETWORKS` or carry a valid access token.
+- **Local mode**: neither pair set. Connections from the same machine run as user `"1"` with no login. Other requests get `401` unless they come from a network in `NODETOOL_TRUST_LOCAL_NETWORKS` or carry a valid token.
 
 The server refuses to start with both Supabase and OIDC configured.
 
@@ -35,17 +35,17 @@ nodetool serve
 
 ## Authentication Modes
 
-The mode comes only from the presence of both Supabase variables or both OIDC variables (`packages/websocket/src/server.ts`). The server never reads `AUTH_PROVIDER`. Only the `@nodetool-ai/deploy` tooling writes it into container environments.
+The mode comes only from the presence of both Supabase variables or both OIDC variables.
 
 - **Supabase mode** validates a Supabase JWT on every non-public request, over HTTP and WebSocket.
-- **SSO mode** runs the OpenID Connect sign-in itself and validates its own `nts_` session token. See [Single Sign-On (OIDC)](#single-sign-on-oidc).
-- **Local mode** (`LocalAuthProvider`) maps requests to user `"1"`. Loopback bypasses auth, gated by `NODETOOL_TRUST_LOCALHOST`. Other sources get `401` unless a trust rule, a valid access token, or the `SERVER_AUTH_TOKEN` bearer token applies.
+- **SSO mode** runs the OpenID Connect sign-in itself and validates its own session token. See [Single Sign-On (OIDC)](#single-sign-on-oidc).
+- **Local mode** maps requests to user `"1"`. Loopback connections skip sign-in, gated by `NODETOOL_TRUST_LOCALHOST`. Other sources get `401` unless a trust rule, an access token, the `SERVER_AUTH_TOKEN` bearer token, or an [API user's](#static-token-and-api-users) token applies.
 
 In Supabase mode the web UI shows a sign-in screen before anything else loads:
 
 ![Sign-in screen](assets/screenshots/login-screen.png)
 
-Supabase token verification results are cached in-process for 60 seconds, up to 2000 entries. These are `SupabaseAuthProvider` constructor options, not environment variables.
+A Supabase token that was checked once is trusted for 60 seconds without asking Supabase again.
 
 ---
 
@@ -59,19 +59,20 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:7777/api/workflows/
 
 ### Token Types
 
-The server recognizes these credentials. Prefixed tokens are checked before the mode's own rules.
+The server accepts these credentials. The token prefixes are listed in the [API Reference](api-reference.md#authentication-and-headers).
 
-| Token | Prefix | Works on | Notes |
-|---|---|---|---|
-| Supabase JWT | none | Everything | Supabase mode only. |
-| SSO session token | `nts_` | Everything | SSO mode only. Minted by the server after an OIDC sign-in. Expires after `OIDC_SESSION_TTL_SECONDS`. |
-| Access token | `ntk_` | Everything, in every mode | Minted by a signed-in person for an agent or MCP client. Revocable. A failed check falls through to the mode's rules. |
-| MCP OAuth access token | `nta_` | `/mcp` only | Issued by the MCP OAuth flow. Presented anywhere else, or after the server was rehosted, it is refused with `invalid_token`. See [MCP production](mcp-production.md). |
-| Desktop session token | `ntd_` | Everything except `/mcp` | Issued when a person signs in from the NodeTool desktop apps. Lives 15 minutes and is renewed with its refresh token. See [Desktop sign-in](#desktop-sign-in). |
-| App session token | `nda_` | `/ws` only | Issued to a visitor of a deployed mini app. Confined to that one app. A failed check is refused, never retried against other providers. |
-| Delegated token | none | Everything, as the linked user | Used by messaging bridges. Enabled only when `NODETOOL_INTEGRATION_TOKEN` is set to 16 or more characters. |
+| Credential | Works on | Notes |
+|---|---|---|
+| Supabase sign-in | Everything | Supabase mode only |
+| SSO session | Everything | SSO mode only. Created by the server after an OIDC sign-in. Expires after `OIDC_SESSION_TTL_SECONDS` |
+| Access token | Everything, in every mode | Created by a signed-in person for an agent or MCP client, and revocable. A token that fails its check falls through to the mode's own rules |
+| MCP OAuth token | `/mcp` only | Issued by the MCP OAuth flow. Refused with `invalid_token` anywhere else, or after the server moved to another address. See [MCP production](mcp-production.md) |
+| Desktop session | Everything except `/mcp` | Issued when a person signs in from the NodeTool desktop apps. See [Desktop sign-in](#desktop-sign-in) |
+| Deployed app session | `/ws` only | Issued to a visitor of a deployed mini app, and confined to that app |
+| Messaging-bridge token | Everything, as the linked user | Used by messaging bridges such as the Telegram bot. Enabled only when `NODETOOL_INTEGRATION_TOKEN` is set to 16 or more characters |
+| `SERVER_AUTH_TOKEN` | Everything, as user `1` | Local mode only. See [Static token and API users](#static-token-and-api-users) |
 
-Delegated, app session, and SSO session tokens are signed with keys derived from the master key, so rotating `SECRETS_MASTER_KEY` revokes every outstanding one.
+Messaging-bridge, deployed-app and SSO session tokens are signed with keys derived from the master key, so rotating `SECRETS_MASTER_KEY` revokes every outstanding one.
 
 ---
 
@@ -93,7 +94,6 @@ These paths skip session auth. They are still covered by the per-IP rate limiter
 - The MCP OAuth surface: `/.well-known/oauth-protected-resource*`, `/.well-known/oauth-authorization-server*`, `/oauth/authorize`, `/oauth/token`, `/oauth/register`, `/oauth/revoke`, and `/oauth/session/end`, which ends a desktop session by its revocation handle.
 - Static web app files, when the server serves the bundled UI. Paths under `/api`, `/ws`, `/v1`, `/trpc`, and `/mcp` still require auth.
 
-Source: `packages/websocket/src/lib/public-routes.ts`.
 
 ---
 
@@ -125,34 +125,24 @@ A rejected WebSocket upgrade gets a bare `401 Unauthorized` response with no bod
 
 ## Rate Limiting
 
-Requests are limited per client IP before any token verification runs. Loopback is exempt. Excess requests receive `429`. The limit is 1000 requests per 60 seconds per IP by default, and WebSocket connections have their own cap of 200 messages per second. Variables (`NODETOOL_RATE_LIMIT_*`, `NODETOOL_WS_RATE_LIMIT_*`) are in the [Configuration Guide](configuration.md#environment-variables-index). Source: `packages/websocket/src/lib/http-rate-limit.ts`, `packages/websocket/src/lib/ws-rate-limit.ts`.
+Requests are limited per client IP before any token is checked. Loopback is exempt. Excess requests receive `429`. The limit is 1000 requests per 60 seconds per IP by default, and each WebSocket connection has its own cap of 200 messages per second. The `NODETOOL_RATE_LIMIT_*` and `NODETOOL_WS_RATE_LIMIT_*` variables are in [Environment Variables](environment-variables.md).
 
 ---
 
-## Deploy Token Helpers
+## Static token and API users
 
-The `@nodetool-ai/auth` package defines the abstract `AuthProvider` base class (header and WebSocket token extraction, `verifyToken`), plus the `AuthResult` and `TokenType` types.
+These two credentials exist in Local mode only. Supabase and SSO mode ignore them, because a shared secret must never stand in for a real sign-in.
 
-The `@nodetool-ai/deploy` package ships a separate static-token helper set in `packages/deploy/src/auth.ts`:
+- **`SERVER_AUTH_TOKEN`**: a bearer token for user `1`. `nodetool deploy` generates one per deployment, stores it as `server_auth_token` in `deployment.yaml`, and passes it to the container. The `nodetool deploy` commands send it.
+- **API users**: `nodetool deploy users-add` creates a user and prints its token once. Each API user has its own workflows and assets. The records live in the file named by `USERS_FILE`. See [API Users](self-hosted-deployment.md#api-users).
 
-```ts
-function getServerAuthToken(): string;   // SERVER_AUTH_TOKEN env, then deployment.yaml, then generate and save
-function getTokenSource(): "environment" | "config" | "generated";
-function generateSecureToken(): string;  // crypto.randomBytes(32).toString("base64url")
-function verifyServerToken(auth: string): Promise<"authenticated">;  // timing-safe compare
-function loadAuthConfig(): Record<string, unknown>;
-function saveAuthConfig(config: Record<string, unknown>): void;  // file mode 0600
-```
-
-The token is stored as `server_auth_token` in `~/.config/nodetool/deployment.yaml` (the path is built from the home directory on every platform, including Windows).
-
-**The running server does not call these helpers.** Setting `SERVER_AUTH_TOKEN` or creating `deployment.yaml` does not protect the API. The only gates are Supabase mode, SSO mode, the trust settings below, and `ntk_` access tokens. To protect a self-hosted server, use SSO mode or Supabase mode.
+Both suit a server that only scripts and the CLI reach. For people using the web app, turn on SSO or Supabase mode.
 
 ---
 
 ## Single Sign-On (OIDC)
 
-SSO mode signs people in through an OpenID Connect provider you already run, such as Keycloak, Authentik, Okta, Microsoft Entra ID, Google Workspace, Auth0, or Dex, with no Supabase project. The server is the OIDC client. It uses the authorization code flow with PKCE and a nonce, verifies the ID token's signature against the provider's published keys (asymmetric algorithms only), and checks its issuer, audience, expiry, nonce, and `azp`. It then mints an `nts_` session token, which the web app sends as its bearer token on HTTP and WebSocket requests.
+SSO mode signs people in through an OpenID Connect provider you already run, such as Keycloak, Authentik, Okta, Microsoft Entra ID, Google Workspace, Auth0, or Dex, with no Supabase project. The server is the OIDC client. It uses the authorization code flow with PKCE and a nonce, verifies the ID token's signature against the provider's published keys (asymmetric algorithms only), and checks its issuer, audience, expiry, nonce, and `azp`. It then creates its own session token, which the web app sends as its bearer token on HTTP and WebSocket requests.
 
 SAML is not built in. Providers that only speak SAML can sit behind an OIDC bridge such as Keycloak or Dex.
 
@@ -195,23 +185,23 @@ NODETOOL_PUBLIC_URL=https://nodetool.example.com
 
 Each person's NodeTool user ID is the first 32 hexadecimal characters of SHA-256 over the issuer and their `sub` claim. It stays the same across sign-ins and never changes when their email or name does. A different issuer gives the same person a different ID, so changing `OIDC_ISSUER` starts everyone with an empty library.
 
-Each sign-in creates or refreshes the person's row in the user directory (`nodetool_user_accounts`) with their email, name and groups. The server also logs `SSO sign-in` with the user ID and email.
+Each sign-in creates or refreshes the person's entry in the user directory with their email, name and groups. The server also logs `SSO sign-in` with the user ID and email.
 
 A person is an admin when any of these holds:
 
 - their user ID is in `ADMIN_USER_IDS`, which is how the first admin is set up
 - their groups at the last sign-in include one of `OIDC_ADMIN_GROUPS`
-- an admin gave them the admin role through the `admin.users.update` API
+- an admin gave them the admin role on the [Admin page](#the-admin-page)
 
-Access tokens (`ntk_`) and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
+Access tokens and the MCP OAuth flow work in SSO mode as they do in Supabase mode. Google Workspace tools stay off, because an SSO sign-in carries no Google token.
 
 A session is a signed token, not a database row. Signing out in NodeTool drops it from the browser and leaves the identity provider's own session alone, so the next **Sign in** may complete without a prompt.
 
-An admin can disable an account through `admin.users.update`. The server then refuses that user's requests and access tokens with 403 `account_disabled`, closes their open WebSocket connections, and refuses their next sign-in. With several replicas, the others apply the change within 30 seconds. A user removed only from the identity provider keeps access until their session expires, so disable the account as well. Rotating `SECRETS_MASTER_KEY` signs everyone out at once.
+An admin can disable an account on the Admin page. The server then refuses that user's requests and access tokens with 403 `account_disabled`, closes their open WebSocket connections, and refuses their next sign-in. With several replicas, the others apply the change within 30 seconds. A user removed only from the identity provider keeps access until their session expires, so disable the account as well. Rotating `SECRETS_MASTER_KEY` signs everyone out at once.
 
 ### The Admin page
 
-Admins manage people on the **Admin** page. The app menu shows it only to admins in SSO mode. Everything on it is also available through the `admin.*` API, and the directory through [`nodetool deploy accounts-list` and `accounts-set`](cli.md#sso-accounts-on-the-deployment).
+Admins manage people on the **Admin** page. The app menu shows it only to admins in SSO mode. Everything on it is also available through the admin API, and the directory through [`nodetool deploy accounts-list` and `accounts-set`](cli.md#sso-accounts-on-the-deployment).
 
 The page lists everyone who has signed in at least once. Nobody needs to be added in advance, because the first sign-in creates the account. Search by name, email or user ID, and filter by **Status**. Each row shows the person's groups, role, status, last activity, and what they spent this period against their limits. Its buttons do the following:
 
@@ -227,15 +217,15 @@ Above the list, **Edit default limits** and **Edit default permissions** set wha
 
 ### Spend limits
 
-An admin can cap what each person spends on the server's own provider keys, on the Admin page or through `admin.quotas.*`. There are two budgets: language-model tokens (input plus output), and media generation (image, video, audio and 3D) in USD. Each applies per UTC day or month. A default applies to everyone. A person given limits of their own uses those instead, and an empty limit there means no limit.
+An admin can cap what each person spends on the server's own provider keys, on the Admin page. There are two budgets: language-model tokens (input plus output), and media generation (image, video, audio and 3D) in USD. Each applies per UTC day or month. A default applies to everyone. A person given limits of their own uses those instead, and an empty limit there means no limit.
 
-Only work paid with the server's keys counts. Each prediction row records whose key paid (`key_source`): `user` when the person saved that provider's key in Settings, `server` otherwise. Rows written before this column existed count as `server`. A local model with no key counts as `server` too, because it runs on the server.
+Only work paid with the server's keys counts. Each generation records whose key paid: the person's, when they saved that provider's key in Settings, or the server's otherwise. Generations recorded before NodeTool tracked this count as the server's. A local model with no key counts as the server's too, because it runs on the server.
 
 The limit is checked before a chat turn, a workflow run, or a direct generation starts, using the price estimate for media work. A run already admitted finishes even when it crosses the limit, and the next one is refused with a message that names the budget. Workflow runs are checked by the models their nodes select, so a node that calls a model without selecting one is not checked. With several replicas, a limit change reaches the others within 30 seconds.
 
 ### Permissions
 
-An admin can turn off what a person may do, on the Admin page or through `admin.permissions.*`. Every permission is allowed until an admin blocks it. The default applies to everyone, and a person can be given their own value for any single permission, which then replaces the default for that permission only. Admins always hold every permission.
+An admin can turn off what a person may do, on the Admin page. Every permission is allowed until an admin blocks it. The default applies to everyone, and a person can be given their own value for any single permission, which then replaces the default for that permission only. Admins always hold every permission.
 
 | Permission | What blocking it stops |
 |---|---|
@@ -252,23 +242,22 @@ The checks for `use_llm`, `generate_media` and `use_server_keys` run at the same
 
 ### Sharing
 
-In SSO mode the share dialog of a workflow or document can give a person access by name, without a link. Typing two or more characters searches active accounts by name and email through `people.search`, and **Invite** gives the chosen person viewer or editor access through `workflows.sharing.invite` or `documentSharing.invite`. Inviting someone who already has access sets their role. Searching and inviting need the `share_links` permission, and disabled accounts never appear. The dialog shows each collaborator's name and email instead of their user id.
+In SSO mode the share dialog of a workflow or document can give a person access by name, without a link. Typing two or more characters searches active accounts by name and email, and **Invite** gives the chosen person viewer or editor access. Inviting someone who already has access sets their role. Searching and inviting need the `share_links` permission, and disabled accounts never appear. The dialog shows each collaborator's name and email instead of their user id.
 
-The **Sharing** button on a person's row on the Admin page lists what that person shares and holds: their active share links, the people they gave access, the documents others gave them access to, and their public workflows. From there an admin can revoke a link, remove one person's access, or make a public workflow private. The same actions are available as `admin.sharing.*`. Moving a document to another owner is not supported yet.
+The **Sharing** button on a person's row on the Admin page lists what that person shares and holds: their active share links, the people they gave access, the documents others gave them access to, and their public workflows. From there an admin can revoke a link, remove one person's access, or make a public workflow private. Moving a document to another owner is not supported yet.
 
 ### Desktop sign-in
 
-The NodeTool desktop apps sign in to a server through the same OAuth authorization server as MCP clients, with the built-in client `nodetool-native` and the scope `native`. The app opens the server's `/oauth/authorize` page in the browser. The person approves on a consent page that names the app and the computer, and the browser returns to a loopback address the app listens on.
+The NodeTool desktop apps sign in to a server through the same OAuth flow as MCP clients. The app opens the server's sign-in page in the browser. The person approves on a consent page that names the app and the computer, and the browser returns to a loopback address the app listens on.
 
 Desktop sign-in needs a server that enforces authentication (Supabase or SSO mode) and has `NODETOOL_PUBLIC_URL` set to an `https` address or a loopback address. It works whether or not the MCP endpoint is mounted. In Local mode the routes answer 404, because there is no account to sign in to.
 
-| Credential | Prefix | Lifetime |
-|---|---|---|
-| Access token | `ntd_` | 15 minutes |
-| Refresh token | `ntr_` | Rotated on every use. Expires after 90 days without use. |
-| Revocation handle | `nth_` | Until the session ends. Returned once, on the code exchange. |
+| Credential | Lifetime |
+|---|---|
+| Access token | 15 minutes |
+| Refresh token | Replaced on every use. Expires after 90 days without use. |
 
-Each computer holds one session, shared by both apps on it. Signing in on one computer never ends the session on another. **Settings → Signed-in devices** lists the sessions with their computer name, app and last use, and **End session** ends one. Its tokens are deleted at once, its open WebSockets close with code `4401`, and requests on other server processes are refused within 30 seconds. An app that signs out sends its revocation handle to `POST /oauth/session/end`.
+Each computer holds one session, shared by both apps on it. Signing in on one computer never ends the session on another. **Settings → Signed-in devices** lists the sessions with their computer name, app and last use, and **End session** ends one. Its tokens are deleted at once, its open connections close, and other server processes refuse it within 30 seconds. Signing out in the app ends its session the same way.
 
 A desktop session cannot mint access tokens or approve OAuth requests. Those need a sign-in in the web app.
 
@@ -343,12 +332,10 @@ The bypass also checks who sent a browser request. Any website can open
 header runs as user `"1"` only when that origin is the server's own, a
 localhost dev server, `file://`, a browser extension, or listed in
 `NODETOOL_ALLOWED_ORIGINS`. `Origin: null` is refused, because any sandboxed
-iframe sends it. The desktop app's `file://` window sends `null` too, so
-Electron generates a secret per launch, passes it to the backend as
-`NODETOOL_LOCAL_CLIENT_TOKEN`, and adds it to its own windows' requests as the
-`X-NodeTool-Local-Client` header. Clients that send no `Origin` (the CLI, MCP
+iframe sends it. The desktop app's own windows send `null` too, so the app
+adds a secret it generates at each launch to their requests. Clients that send no `Origin` (the CLI, MCP
 clients, scripts) are unaffected.
 
 ## Security Hardening
 
-For production, enable SSO or Supabase mode, terminate TLS in front of all non-public endpoints, keep `NODETOOL_TRUST_LOCALHOST` off behind proxies, and list only real proxies in `NODETOOL_TRUSTED_PROXIES`. Checklists are in [Security Hardening](security-hardening.md).
+For production, enable SSO or Supabase mode, terminate TLS in front of the server, keep `NODETOOL_TRUST_LOCALHOST` off behind proxies, and list only real proxies in `NODETOOL_TRUSTED_PROXIES`. Checklists are in [Security Hardening](security-hardening.md).
