@@ -98,7 +98,12 @@ function(nt_ui_tests)
 
     # The midi note lines of a clip body: geometry and the drawing item.
     qt_add_executable(tst_midinotelines tests/tst_midinotelines.cpp src/ui/MidiNoteLines.cpp src/ui/MidiNoteLines.h
-        src/model/TimelineModel.h src/model/TimelineModel.cpp src/model/TrackListModel.h src/model/TrackListModel.cpp)
+        src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
+        src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_midinotelines PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(tst_midinotelines PRIVATE ${NT_WARNINGS})
     target_link_libraries(tst_midinotelines PRIVATE timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate

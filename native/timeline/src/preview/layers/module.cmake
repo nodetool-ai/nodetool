@@ -2,6 +2,8 @@
 function(nt_layer_hook_tests)
     qt_add_executable(tst_layerhooks src/preview/layers/tst_layerhooks.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_layerhooks PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(tst_layerhooks PRIVATE nodetool_timeline_player timeline_core timeline_decode

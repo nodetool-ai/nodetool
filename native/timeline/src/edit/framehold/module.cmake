@@ -3,6 +3,10 @@ function(nt_framehold_tests)
     qt_add_executable(tst_framehold src/edit/framehold/tst_framehold.cpp src/edit/keys/AudioCrossfade.cpp
         src/edit/framehold/FrameHoldRegistrations.cpp src/edit/framehold/FrameHoldController.h src/edit/framehold/FrameHoldController.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_framehold PRIVATE nodetool_timeline_playback_registrar timeline_core timeline_audio Qt6::Gui Qt6::Qml Qt6::Test)
     add_test(NAME tst_framehold COMMAND tst_framehold)

@@ -4,6 +4,10 @@ function(nt_project_folder_tests)
     qt_add_executable(tst_projectfolder src/server/projectfolder/tst_projectfolder.cpp
         src/server/projectfolder/ProjectFolderState.h src/server/projectfolder/ProjectFolderState.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_projectfolder PROPERTIES MACOSX_BUNDLE FALSE)
     target_include_directories(tst_projectfolder PRIVATE tests)

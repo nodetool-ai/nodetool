@@ -7,7 +7,12 @@ function(nt_clip_delta_tests)
 endfunction()
 nt_tests(nt_clip_delta_tests)
 function(nt_preview_model_tests)
-    qt_add_executable(tst_previewmodel src/motion/gesture/tst_previewmodel.cpp src/model/TimelineModel.cpp src/model/TrackListModel.cpp src/app/startup/LocalDocumentSaver.cpp)
+    qt_add_executable(tst_previewmodel src/motion/gesture/tst_previewmodel.cpp src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
+        src/model/TrackListModel.cpp src/app/startup/LocalDocumentSaver.cpp)
     target_compile_options(tst_previewmodel PRIVATE ${NT_WARNINGS})
     target_link_libraries(tst_previewmodel PRIVATE timeline_core Qt6::Gui Qt6::Qml Qt6::Test)
     add_test(NAME tst_previewmodel COMMAND tst_previewmodel)

@@ -16,6 +16,10 @@ function(nt_assets_tests)
     target_link_libraries(nt_assets_oracle PRIVATE timeline_core)
     qt_add_executable(tst_assets src/assets/tst_assets.cpp src/assets/AssetRegistration.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     target_link_libraries(tst_assets PRIVATE timeline_core Qt6::Gui Qt6::Qml Qt6::Test)
     add_test(NAME tst_assets COMMAND tst_assets)

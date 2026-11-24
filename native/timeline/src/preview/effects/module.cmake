@@ -43,6 +43,10 @@ function(nt_effects_tests)
         ${NT_EFFECTS_REGISTRAR}
         ${NT_RENDER2D_REGISTRAR}
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
         ${precision_player_sources})
     set_target_properties(tst_sceneprecision PROPERTIES MACOSX_BUNDLE FALSE)
@@ -59,6 +63,10 @@ function(nt_effects_tests)
         ${NT_EFFECTS_REGISTRAR}
         ${NT_RENDER2D_REGISTRAR}
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
         ${precision_player_sources})
     set_target_properties(tst_precisioncost PROPERTIES MACOSX_BUNDLE FALSE)
@@ -74,6 +82,8 @@ function(nt_effects_tests)
     qt_add_executable(tst_effectsblend src/preview/effects/tst_effectsblend.cpp
         ${NT_EFFECTS_REGISTRAR}
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     set_target_properties(tst_effectsblend PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(tst_effectsblend PRIVATE nodetool_timeline_player timeline_core timeline_decode

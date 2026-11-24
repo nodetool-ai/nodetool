@@ -2,6 +2,8 @@
 function(nt_compose_hook_tests)
     qt_add_executable(tst_composehooks src/preview/compose/tst_composehooks.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
         src/export/OffscreenFrames.h src/export/OffscreenFrames.cpp)
     set_target_properties(tst_composehooks PROPERTIES MACOSX_BUNDLE FALSE)

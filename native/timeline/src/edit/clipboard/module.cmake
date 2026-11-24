@@ -10,7 +10,12 @@ function(nt_clipboard_tests)
     set_target_properties(structure-ops PROPERTIES MACOSX_BUNDLE FALSE)
 
     qt_add_executable(tst_fclipboard src/edit/clipboard/tst_fclipboard.cpp
-        src/model/TimelineModel.cpp src/model/TimelineModel.h
+        src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/../timeline-player/src/playback/PlaybackClock.cpp
+        src/model/TimelineModel.h
         src/model/TrackListModel.cpp src/model/TrackListModel.h src/app/BuiltinEdits.cpp)
     nt_target_sources(tst_fclipboard)
     nodetool_use_ui_primitives(tst_fclipboard)

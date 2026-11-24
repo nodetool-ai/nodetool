@@ -5,6 +5,8 @@ function(nt_storyworkspace_tests)
         src/aiassist/CandidatePreview.h src/aiassist/CandidatePreview.cpp
         src/aiassist/ShotWorkflow.h src/aiassist/ShotWorkflow.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/audio/automation/AutomationRecorder.h
+        src/audio/automation/AutomationRecorder.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
     nodetool_use_ui_primitives(tst_storyworkspace)
     target_link_libraries(tst_storyworkspace PRIVATE nodetool_timeline_player timeline_core timeline_decode timeline_server timeline_audio nodetool_media nodetool_mediaplugin nodetool_model_picker nodetool_model_pickerplugin nodetool_storyboard nodetool_storyboardplugin Qt6::WebSockets Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Gui Qt6::GuiPrivate Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
