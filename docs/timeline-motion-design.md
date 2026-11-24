@@ -1,6 +1,6 @@
 # Timeline motion design
 
-Timeline document fields for easing, animation, links, camera, layout, effects, and transitions, with JSON examples. The editor has no control for some of these fields. When a field is not listed here, the protocol schema and renderer decide.
+Developer reference for the timeline document fields behind easing, animation, links, camera, layout, effects, and transitions, with JSON examples. Use it when you write or generate timeline JSON from code or an agent. The editor has no control for some of these fields. When a field is not listed here, the protocol schema and renderer decide. To animate clips in the app, see [Video Editor](video-editor.md).
 
 ![A motion title animating in the timeline viewer, with its motion clips on the track below](assets/screenshots/timeline-motion-design.png)
 

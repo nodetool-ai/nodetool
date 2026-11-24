@@ -1,39 +1,17 @@
 ---
 layout: page
-title: "Video Editor: AI Timeline Editing"
+title: "Video Editor"
 description: "A multi-track timeline where a clip is imported media or a workflow output that regenerates when its parameters change. Cut, composite, and generate in place."
 ---
 
 The timeline editor is a multi-track editor where a clip is imported media or the output of a workflow. A generated clip regenerates on its own when you change its parameters.
 
-> **Runs:** in the browser. Preview uses WebGPU with a Canvas2D fallback, and export runs in the browser or server-side. **Needs:** no API key to cut and export. Generated clips need the model's provider key or a local model (see [Providers](providers.md)). **Costs:** each generation on a paid provider is billed at provider rates. Editing, effects, animation, and export are free.
+> **Runs:** in the browser. Export runs in the browser or on the server. **Needs:** no API key to cut and export. Generated clips need the model's provider key or a local model (see [Providers](providers.md)). **Costs:** each generation on a paid provider is billed at provider rates. Editing, effects, animation, and export are free.
 {: .callout-note}
 
-Create a sequence with **+** then **New timeline** in the workspace tab bar, or from the timeline list panel. A timeline also opens at `/timeline/:sequenceId` or as a workspace tab. Each open timeline runs in its own set of stores.
+Create a sequence with **+** then **New timeline** in the workspace tab bar, or from the timeline list panel. A timeline also opens as a workspace tab.
 
 ![Video Editor — Timeline](assets/screenshots/video-editor-timeline.png)
-
-## Trace: agent edits a timeline
-
-The agent edits a saved timeline with `edit_timeline` (`packages/agents/src/capabilities/timelines.specs.ts`), up to 60 ops per call, run in order. With the editor open it picks the change up live.
-
-User prompt: "Add a music track and lay these two clips end to end."
-
-```json
-{ "tool": "edit_timeline",
-  "args": { "timeline_id": "<id>", "ops": [
-    { "op": "add_track", "type": "audio", "name": "Music" },
-    { "op": "add_media_clip", "asset": "asset://<id>.mp4" },
-    { "op": "add_media_clip", "asset": "asset://<id>.mp4" } ] } }
-```
-
-| Step | Change to the timeline document |
-|---|---|
-| `add_track` | A new audio track named "Music". |
-| `add_media_clip` | Each call appends a clip after the last one. |
-| Result | Each op reports its own `ok`. A partial batch may already have saved the ops that succeeded, so check each result before dependent edits. |
-
-`edit_timeline` authors the cut and renders nothing. `validate_timeline` checks it. `render_timeline` renders it as a job (`get_job` polls, `cancel_job` stops) to `mp4` (default), `webm`, `mov`, or `png_sequence`. `alpha: true` is refused with mp4. `set_timeline_document` replaces the whole document and takes `expected_updated_at`, refusing the write as a conflict if the stored row changed since you read it. A timeline of a project is also a file in the project's folder, and an edit to that file passes the same checks ([Timelines are files in the folder](workspaces.md#timelines-are-files-in-the-folder)).
 
 ---
 
@@ -71,7 +49,7 @@ The toolbar above the tracks toggles **Select** and **Cut** tools, **Ripple** (t
 - **Snapping** — clips snap to the playhead and to neighbouring clip boundaries. Hold `Alt` while dragging to turn snapping off.
 - **Insert on drop** — hold `Ctrl/⌘` when releasing a dragged clip to push later clips right.
 - **Roll edit** — `Ctrl/⌘`-drag a clip edge to move the cut with its neighbour.
-- **Transitions** — `Ctrl/⌘ + T` cross-fades into the selected clips. Other transition types are `dipToColor`, `wipe`, `push`, `slide`, `zoom`, `whip`, `zoomBlur`, `glitch`, `gradientWipe`, `iris`, and `lightLeak`, set from the clip's **Transition** section.
+- **Transitions** — `Ctrl/⌘ + D` adds the default transition to the selected clips (`Ctrl/⌘ + T` in the Final Cut Pro shortcut layout). The clip's **Transition** section sets the type: **Auto**, **None (hard cut)**, **Crossfade**, **Dip to color**, **Wipe**, **Push**, **Slide**, or **Zoom**. Auto cross-fades where the clip overlaps the previous one on the same track.
 - **Fades** — drag the grip at a clip's top corner for an audio fade. `Alt + T` fades the selection in and out.
 
 - **Duplicate by dragging** — hold `Alt` when you start dragging a clip to leave a copy where it was.
@@ -94,7 +72,7 @@ The preview composites every visible, unmuted track in real time.
 - **Loop** — the loop button (`Shift + L`) repeats the in to out range. With loop off, Play runs past the marks and `Ctrl/⌘ + Shift + Space` plays from in to out once.
 - **Match frame** — `F` opens the media of the clip under the playhead in the source monitor at the same frame. `Shift + F` only selects it in Assets.
 - **Zoom** — `Ctrl/⌘ + scroll` zooms the timeline anchored at the cursor. `Shift + scroll` pans. The timeline view control holds horizontal and vertical zoom sliders.
-- **Audio** — per-clip gain and fades, per-track mute/solo and volume, mixed to a master output. Playback is driven against the audio clock.
+- **Audio** — per-clip gain and fades, per-track mute/solo and volume, mixed to a master output.
 
 ---
 
@@ -110,16 +88,15 @@ The preview composites every visible, unmuted track in real time.
 
 The add menu opens prompt-first: type a prompt, pick a model, and press `Enter` to drop a clip at the playhead. Workflow-bound clips are under the **Templates** and **All workflows** tabs. The menu also adds a 3D model clip and an adjustment layer.
 
-Binding a workflow clones it into a clip-private variant and exposes its `Input*` nodes as parameters in the Inspector.
+Binding a workflow makes a copy private to the clip and shows the workflow's input nodes as parameters in the Inspector. Edits to the copy do not change the original workflow.
 
 **Staleness & versions:**
 
-- Each clip tracks a content hash of the bound workflow plus its parameter overrides. Edit the workflow (or its inputs) and the clip is flagged **stale**.
-- A clip moves through states: **draft → queued → generating → generated**, plus **stale**, **failed**, **locked**, and **missing**.
+- A generated clip is marked out of date when you edit its inputs or the bound workflow.
+- A clip moves through states: **draft → queued → generating → generated**, plus **stale** (out of date), **failed**, **locked**, and **missing**.
 - Successful generations are kept as **versions** — restore, favourite, or delete previous results per clip.
-- Generation runs on the standard `WorkflowRunner` and reports status over the WebSocket connection, keyed by job.
 
-**Round-tripping to the node editor:** select a generated clip and choose **Open in Node Editor** to edit the bound workflow on the full canvas and save. Back in the timeline the clip is flagged **stale**. Choose **Regenerate** to render it with the new logic.
+**Round-tripping to the node editor:** select a generated clip and choose **Open in Node Editor** to edit the bound workflow on the full canvas and save. Back in the timeline the clip is marked out of date. Choose **Regenerate** to render it with the new logic.
 
 ---
 
@@ -135,7 +112,7 @@ Every visual clip includes an **Animate** section. Add an entrance, exit, emphas
 
 ### Image to Video
 
-Select an image clip, open **Image to Video** in the Inspector, describe the motion, pick a model that supports `image_to_video`, and press **Generate video**. The video clip lands on the video track directly above the image over the same span, and a new track is inserted when that span is taken. It keeps the image clip's duration when the model can render it, and otherwise takes the shortest duration the model offers that covers the clip. Aspect ratio and resolution are the model's nearest match to the image's size. The clip regenerates like any other generated clip.
+Select an image clip, open **Image to Video** in the Inspector, describe the motion, pick a model that supports image to video, and press **Generate video**. The video clip lands on the video track directly above the image over the same span, and a new track is inserted when that span is taken. It keeps the image clip's duration when the model can render it, and otherwise takes the shortest duration the model offers that covers the clip. Aspect ratio and resolution are the model's nearest match to the image's size. The clip regenerates like any other generated clip.
 
 ---
 
@@ -147,7 +124,7 @@ Clips and tracks carry an effects chain that runs in the same compositor as the 
 - **Track effects** — video tracks take color correction, blur, sharpen, vignette, and chroma key. Audio tracks take gain, 3-band EQ, filter (lowpass, highpass, bandpass), and compressor.
 - **Clip transforms** — opacity, blend mode (normal, multiply, screen, overlay, darken, lighten, color dodge, color burn, hard light, soft light, difference, exclusion, add), speed, time remap, and fade-in/out.
 
-The Canvas2D fallback skips chroma key, vignette, and sharpen.
+On a device without WebGPU, the preview skips chroma key, vignette, and sharpen.
 
 ---
 
@@ -158,11 +135,9 @@ Motion presets add animation without a keyframe editor. Select a visual clip, op
 - **In / Out** — fade, slide, pop, spin, wipe, blur, and colorFade at a clip boundary. On text clips, `typewriter` is an In preset. Wipe reveals the clip behind a directional mask with an adjustable feathered edge, blur racks from soft to sharp. ColorFade blooms grayscale into full color.
 - **Emphasis** — pulse, flash, shake, bounce, squash, or followPath while the clip is active.
 - **Loop** — kenBurns, float, breathe, rotate, hueShift, orbit, or followPath.
-- **Word stagger** — on text clips, any animation can run once per word, each word offset in time from the previous (offset and on/off in the inspector, `stagger` on `ui_timeline_animate_clip` for the agent). Words pop, slide, or fade in sequence — motion typography without keyframes. See [plans/motion-typography.md](plans/motion-typography.md).
+- **Stagger** — on text clips, any animation can run once per word, character, or line, each offset in time from the previous. Set the unit, the starting point (start, end, or center), and the offset in the **Stagger** controls. Words pop, slide, or fade in sequence without keyframes.
 - **Track markers** — shaded edge wedges show entrance and exit windows. A loop icon marks emphasis or repeating motion. Select a marker to open its controls.
-- **Agent authoring** — timeline tools can list presets, apply or clear motion, and inspect fixed-time frames before export.
-
-Preview and export sample the same animation resolver.
+Preview and export render the same animation. Developers: timeline document fields are in [Timeline Motion Design](timeline-motion-design.md) and [Timeline Custom Animations](timeline-custom-animations.md).
 
 ---
 
@@ -184,14 +159,13 @@ Preview and export sample the same animation resolver.
 - **Export for Premiere Pro** downloads a zip with a Final Cut Pro 7 XML sequence, the media its clips use, and `export-report.txt`. In Premiere Pro, choose **File > Import** and pick the XML. Video, image, and audio clips keep their tracks, positions, in and out points, constant speed, opacity, volume, and enabled state. A video's own sound lands on a linked audio track. Text, shapes, captions, effects, animations, transitions, and fades are not carried, and the report lists every clip affected. If Premiere asks to link media, locate one file in the `media` folder and it relinks the rest.
 - **Export media (.zip)** downloads the original file of every video, image, and audio clip under `media/`, untrimmed, with `clips.csv` listing each clip's track, timeline start and end, source in-point, and file.
 - **Import** (the upload button beside **New timeline** in the timeline list) takes a NodeTool project zip or a Premiere Pro sequence. For Premiere, choose **File > Export > Final Cut Pro XML**, zip the XML together with its media files, and import the zip. NodeTool matches media by file name and creates a new timeline with the same tracks, clip positions, in points, constant speed, opacity, volume, enabled state, and markers. Transitions become overlapping cuts. Nested sequences, titles, generators, and effects are left out, and the import says what it skipped.
-- The `render_timeline` agent tool and the `nodetool.timeline.RenderTimeline` node render the same sequence server-side. They run this exporter in headless Chrome or Chromium, so the server render matches the export. Without a browser they fall back to a Node compositor and say so in the job log. `render_timeline` returns a job id: poll it with `get_job` and stop it with `cancel_job`.
 
 Change the sequence width, height, frame rate, and tempo in **Project settings**.
 
 ## AI timeline editing
 
-Generated clips can hold multiple takes, source-time media tracks, derived
-reframes, and nondestructive generative edits. See
+Generated clips can hold multiple takes, subject tracks, reframed versions for other
+formats, and generative edits that leave the original untouched. See
 [AI Timeline Editing](ai-timeline-editing.md).
 
 ---
@@ -222,7 +196,7 @@ reframes, and nondestructive generative edits. See
 | `Ctrl/⌘ + scroll`        | Zoom timeline (anchored at cursor) |
 | `?`                      | Open the full shortcut sheet       |
 
-These are the Premiere Pro layout, the default. The shortcut sheet (`?`) also offers the Final Cut Pro layout, stored in the `timelineKeyboardPreset` setting, and lists every binding for the layout you pick.
+These are the Premiere Pro layout, the default. The shortcut sheet (`?`) also offers the Final Cut Pro layout, and lists every binding for the layout you pick.
 
 ---
 
@@ -241,6 +215,17 @@ These are the Premiere Pro layout, the default. The shortcut sheet (`?`) also of
 2. In the Inspector, set the prompt and inputs exposed from the workflow.
 3. **Generate** — the clip streams through queued → generating → generated.
 4. Not quite right? Tweak a parameter and **Regenerate**, or use **Regenerate as new clip** to keep the current render and compare takes.
+
+---
+
+## Ask the assistant
+
+- "Add a music track and lay these two clips end to end."
+- "Check my timeline for problems, then export it as an MP4."
+- "Render this timeline as a WebM with a transparent background."
+- "Show me the frame at 0:12 and compare it with the frame at 0:20."
+
+Builders driving this from code or MCP: see [Creative Agent Tools](developer/creative-agent-tools.md#timelines).
 
 ---
 

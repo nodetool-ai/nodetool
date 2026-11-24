@@ -86,15 +86,15 @@ the edits the agent can make on a timeline.
 
 | You want | Start with | You finish in |
 |---|---|---|
-| One image with variations to choose from | **Image** flow | [Sketch editor]({{ '/sketch-editor' | relative_url }}) |
+| One image with variations to choose from | **Create image** (a Create tab) | [Sketch editor]({{ '/sketch-editor' | relative_url }}) |
 | A composition where you control each layer | A sketch, or `/nodetool-sketch` | Sketch editor |
 | A recurring character, product, or location | **Entity** flow | [Entities]({{ '/entities' | relative_url }}) |
 | A set blocked out in 3D as a shot reference | Ask the agent, or `/nodetool-3d-scene` | [3D editor]({{ '/3d-editor' | relative_url }}) |
 | A playable 2D or 3D game | **Game** flow, or `/native-game` | [Game editor]({{ '/game-editor' | relative_url }}) |
 
-**Key art.** The [Image flow]({{ '/guided-flows' | relative_url }}#image) turns
-an idea into a brief, then a contact sheet of variations. The pick opens as a
-sketch. Bind a layer to a prompt to regenerate that layer alone, or paint a
+**Key art.** **Create image** on the home screen opens a Create tab that
+generates a batch of variations from one prompt. Open the one you want in the
+sketch editor from its menu. Bind a layer to a prompt to regenerate that layer alone, or paint a
 mask to change one region.
 
 **A character that stays the same.** Make the character once with the

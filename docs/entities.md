@@ -2,10 +2,10 @@
 layout: page
 title: "Entities"
 permalink: /entities
-description: "Entities are image assets tagged with a kind, a name, and a descriptor that is pasted verbatim into every prompt that names them, across storyboards, prompts, and workflows."
+description: "Save a character, location, style, or prop once so it stays consistent across shots, storyboards, prompts, and workflows."
 ---
 
-An entity is an image asset tagged with a kind, a name, and a descriptor. When a prompt uses the entity, NodeTool appends the descriptor verbatim and passes the image as a reference to models that accept one.
+Save a character, location, style, or prop once so it stays consistent across shots. An entity is a reference image with a kind, a name, and a descriptor. When a prompt uses the entity, NodeTool adds the descriptor to the prompt and passes the image as a reference to models that accept one.
 
 ```
 Consistency references:
@@ -57,13 +57,13 @@ If you have no images, the picker says "No images". Generate or upload one first
 
 ## Edit or remove an entity
 
-**Edit entity** opens the **Edit entity** dialog with the same fields. **Change image** swaps the reference image. The entity keeps its id when you swap, so storyboards and scripts that already use it stay linked. Choose **Save** to apply the change.
+**Edit entity** opens the **Edit entity** dialog with the same fields. **Change image** swaps the reference image. Storyboards and scripts that already use the entity stay linked when you swap the image. Choose **Save** to apply the change.
 
-**Remove entity** removes the entity but leaves the image in your assets. Script speakers linked to a removed entity keep the stale id until you clear it.
+**Remove entity** removes the entity but leaves the image in your assets. Script speakers linked to a removed entity stay linked to something that no longer exists until you clear the speaker's entity.
 
 ## Reference images
 
-The first reference image is the primary one. An entity is stored as metadata on its image asset, so it needs no separate storage and appears wherever assets do.
+The first reference image is the primary one. An entity lives on its image asset, so it appears wherever your assets do.
 
 ## How entities are used in generation
 
@@ -80,32 +80,15 @@ Where this happens:
 |---------|--------------|
 | Storyboard | The **Entities** field under **Board settings** pins a cast to the board. Styles and locations season every shot. Characters and props apply to shots that name them. Each shot's **Edit** view shows the cast as chips you can include or exclude for that shot. See [Creative Agent](creative-agent.md#entities-reusable-ingredients). |
 | `@` mentions | The mention picker in the chat composer and the Prompt node lists entities first. A picked entity carries its descriptor and reference image into the generation. |
-| Prompt boxes | Type `@` in a storyboard shot's **Description**, **Motion**, or **End** field, in the Sketch Editor's prompt boxes, and in the timeline's image and video prompts. These pickers list entities only. In a shot, the entity joins **In this shot**. In the timeline's **Generate** dialog for video, it joins the clip's reference entities. Elsewhere the prompt holds an `entity://` reference that is expanded when the prompt is sent. |
+| Prompt boxes | Type `@` in a storyboard shot's **Description**, **Motion**, or **End** field, in the Sketch Editor's prompt boxes, and in the timeline's image and video prompts. These pickers list entities only. In a shot, the entity joins **In this shot**. In the timeline's **Generate** dialog for video, it joins the clip's reference entities. Elsewhere the picked entity is expanded into its descriptor and reference image when the prompt is sent. |
 | Workflow nodes | `nodetool.creative.ApplyEntities` injects descriptors into a prompt and outputs `prompt` and `reference_images`. `LoadEntity`, `ListEntities`, and `CreateEntity` read and write the library. See [the node table in Creative Agent](creative-agent.md). |
 | Entity picker | Entity properties on workflow nodes open a picker titled **Pick an entity**. It has a search box ("Search entities by name, kind, or tag") and filters for All, Characters, Locations, Styles, and Props. |
 
-## Agent tools
+## Ask the assistant
 
-Trace: a user asks the agent to "save this render as a character called Nova". The agent calls
+- "Save this render as a character called Nova with a descriptor of a young astronaut in an orange flight suit."
+- "List my location entities."
+- "Rewrite this prompt so it includes Nova and the Harbor location: Nova opens the airlock."
+- "Change the descriptor of Nova to say she now wears a blue suit."
 
-```json
-{ "tool": "create_entity",
-  "args": { "asset_id": "<image asset id>", "kind": "character", "name": "Nova",
-            "descriptor": "A young astronaut with cropped black hair and a worn orange flight suit" } }
-```
-
-The image asset gets the entity marker and keeps its bytes. Its asset id becomes the entity id. A later `apply_entities` call with `text: "Nova opens the airlock"` returns the seasoned prompt and the reference image asset ids.
-
-`create_entity` fails when the asset is not yours, is not an image, or is already an entity (use `update_entity`). Source: `packages/agents/src/capabilities/entities.specs.ts`.
-
-| Tool | What it does |
-|------|--------------|
-| `list_entities` | Lists entities with id, name, kind, and descriptor. Filters by kind, text in the name or descriptor, and project. |
-| `get_entity` | Reads one entity in full, including tags, reference images, voice, palette, and LoRA. |
-| `apply_entities` | Returns a prompt seasoned with descriptors, plus the asset ids of the reference images. |
-| `create_entity` | Tags an image asset as an entity. The image must exist already, so generate it first. |
-| `update_entity` | Changes any field, or swaps the picture. Only the fields you pass change. |
-| `delete_entity` | Removes the entity marker and keeps the image. |
-| `ui_entity_list`, `ui_entity_apply` | The same list and apply behavior from the browser. |
-
-Tools take the entity id, which is the id of its image asset.
+Builders driving this from code or MCP: see [Creative Agent Tools](developer/creative-agent-tools.md#entities).

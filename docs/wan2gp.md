@@ -115,7 +115,7 @@ the setting in its error.
 The nodes take a plain prompt. In the chat composer, the Create view and
 ejected preset workflows, pick a model under **Wan2GP**. The `wangp` provider
 lists the server's video and image models and the tasks each one supports, and
-[presets](presets.md#local-wan2gp-models) compile for the chosen model before
+[presets](developer/presets.md#local-wan2gp-models) compile for the chosen model before
 the prompt reaches the server. The list is empty while no server answers.
 
 | Task | What the provider sends |

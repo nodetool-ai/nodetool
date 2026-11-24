@@ -4,9 +4,9 @@ title: "3D Editor"
 description: "Block out a set with shapes and lights by hand or by asking the agent, and render it as a shot reference."
 ---
 
-The 3D Editor edits glTF scenes made of boxes, spheres, planes, cylinders, cones, tori, and lights. You move objects by hand or ask the agent, then render the scene as a reference image.
+The 3D Editor edits scenes made of boxes, spheres, planes, cylinders, cones, rings (toruses), and lights. You move objects by hand or ask the agent, then render the scene as a reference image.
 
-> **Runs:** locally in the browser. Rendering needs Blender 5.2 or newer on the machine that runs the server (see [Blender Nodes](blender.md)) and is off on cloud deployments. **Needs:** an LLM provider only for the agent (see [Providers](providers.md)).
+> **Runs:** locally in the browser. Rendering needs Blender 5.2 or newer on the machine that runs the server and is off on cloud deployments. **Needs:** an LLM provider only for the agent (see [Providers](providers.md)).
 {: .callout-note}
 
 ![3D Editor with a product-shot set open: the scene list, the viewport with the product selected, and its transform and material in the inspector](assets/screenshots/3d-editor.png)
@@ -15,7 +15,7 @@ The 3D Editor edits glTF scenes made of boxes, spheres, planes, cylinders, cones
 
 ## What a 3D model is
 
-A 3D model in NodeTool is a glTF asset. The editor reads and writes `.glb` and `.gltf` files only. A new model is a `.glb`, and **Save** always writes binary glTF back over the same asset. The asset id does not change.
+A 3D model in NodeTool is a `.glb` or `.gltf` file, the standard formats for 3D models. A `.glb` holds everything in one file. A `.gltf` can refer to separate files for textures and data. A new model is a `.glb`, and **Save** always writes a `.glb` back over the same asset, so the asset stays the same.
 
 | File | Opens in the editor | Notes |
 |---|---|---|
@@ -31,7 +31,7 @@ When a model is not editable, or the tab is in view mode, you get the viewer ins
 1. **New model.** **+** in the workspace tab bar, then **New 3D model**. NodeTool creates an asset in the current project holding one box named "Box" and opens it in edit mode.
 2. **From an asset.** Open a `.glb` or `.gltf` in the asset viewer and click **Edit in 3D Editor** (library assets only).
 3. **From the examples.** The Examples page **3D models** tab lists low-poly game models in six packs: Adventure, Dungeon, Platformer, Seaside, Sci-fi, and Sci-fi outpost. **Open model** copies the model into the current project and opens the copy.
-4. **From the agent.** See [Asking the agent](#asking-the-agent).
+4. **From the agent.** See [Ask the assistant](#ask-the-assistant).
 
 ---
 
@@ -46,7 +46,7 @@ The ground grid has a red X axis and a blue Z axis. The built-in studio lighting
 | Control | What it does |
 |---|---|
 | Undo, redo | Steps back and forward through your edits. The tooltip names the step |
-| Move, rotate, scale | Sets the gizmo mode |
+| Move, rotate, scale | Sets what the on-canvas handles (the gizmo) do |
 | Transform space | Switches the gizmo between world axes and the object's own axes |
 | Snapping | Turns snapping on or off: 0.25 units, 15 degrees, and 0.1 scale. Holding `Ctrl` while you drag inverts the setting |
 | **Add** | Adds a shape, light, or empty group. See [Adding and deleting objects](#adding-and-deleting-objects) |
@@ -115,7 +115,7 @@ Every edit can be undone: gizmo drags, Inspector values, adding, duplicating, de
 | Plane | 2 x 2, laid flat |
 | Cylinder | Radius 0.5, height 1 |
 | Cone | Radius 0.5, height 1 |
-| Torus | Radius 0.5, tube 0.2 |
+| Torus (ring) | Radius 0.5, tube 0.2 |
 | Directional Light | White, intensity 1, aimed at the view center |
 | Point Light | White, intensity 1, 2 units above the view center |
 | Spot Light | White, intensity 10, 30-degree cone, aimed at the view center |
@@ -142,7 +142,7 @@ To add another model to the scene, choose **Import model…** at the bottom of t
 | 3MF | `.3mf` | |
 | USD | `.usdz`, `.usda`, `.usdc` | |
 
-Pick or drop the files a model refers to together with it: the `.mtl` of an OBJ, the `.bin` of a `.gltf`, and texture images. The editor matches them to the model's references by file name. A model asset dragged from the Asset Explorer resolves its references next to the asset, so a `.gltf` asset must be self-contained. OBJ, Collada, and 3MF materials are converted to the PBR material the Inspector edits, keeping color, textures, and transparency.
+Pick or drop the files a model refers to together with it: the `.mtl` of an OBJ, the `.bin` of a `.gltf`, and texture images. The editor matches them to the model's references by file name. A model asset dragged from the Asset Explorer resolves its references next to the asset, so a `.gltf` asset must be self-contained, with its data embedded. OBJ, Collada, and 3MF materials are converted to the PBR material the Inspector edits, keeping color, textures, and transparency.
 
 ---
 
@@ -164,7 +164,7 @@ For exact values use **Transform** in the Inspector. Rotation is in degrees. Dra
 
 A light has **Color** and **Intensity**. A point or spot light also has **Range** and **Decay**, and a spot light has **Angle** and **Penumbra**.
 
-Directional and spot lights shine down their own forward axis. Use the rotate gizmo to aim them. Lights are written into the file with the glTF `KHR_lights_punctual` extension, so other glTF tools read them.
+Directional and spot lights shine down their own forward axis. Use the rotate gizmo to aim them. Lights are saved in the model file, so other 3D tools read them.
 
 ### Geometry
 
@@ -187,64 +187,26 @@ Lowering **Opacity** turns on transparency. Raising it back to 1 turns it off ag
 
 ---
 
-## Asking the agent
+## Ask the assistant
 
-The sparkle button in the toolbar opens the **3D Assistant**. While the editor is the visible tab, the agent works on the live scene and every change is an undoable step. Changes reach the asset only when you press **Save**.
+The sparkle button in the toolbar opens the **3D Assistant**. While the editor is the visible tab, the assistant works on the live scene and every change is an undoable step. Changes reach the asset only when you press **Save**.
 
-The agent can list the scene and read an object in full, add shapes, lights, and groups, select, rename, duplicate, hide, and delete objects, reparent them, set transforms (rotation in degrees), change material and light values, resize a shape's geometry, undo and redo, frame the scene, and capture a screenshot of the viewport to check its own work. The screenshot shows the model only. Objects are addressed by id or by name (case-insensitive), so give objects distinct names.
+- "Add a crate and a sun, lift the crate two units, color it orange, and call it Cargo."
+- "Group the lamps under one object and hide them."
+- "Make the sphere shinier and a little smaller."
+- "Render the set from a low angle at 1920 by 1080."
 
-With no editor open, the agent edits a model by asset id through `list_model3ds`, `create_model3d`, `get_model3d`, `edit_model3d`, `validate_model3d`, and `render_model3d`. These edits save straight to the asset, and an open editor reloads it. See the [nodetool-3d-scene skill](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/nodetool-3d-scene/SKILL.md) for the operation list. Framing the scene and capturing the viewport need an open editor with WebGL.
+The assistant can list and inspect the scene, add shapes, lights, and groups, rename, duplicate, hide, delete, and regroup objects, set positions and rotations (in degrees), change material and light values, resize a shape, frame the scene, and take a screenshot of the viewport to check its own work. The screenshot shows the model only. It finds objects by name, so give objects distinct names.
 
-### Trace: building a scene by asset id
+With no editor open, the assistant edits a saved model directly and the change is written to the asset. Framing the scene and taking a screenshot need an open editor.
 
-From `packages/agents/tests/capabilities-model3d.test.ts`. The prompt is illustrative.
-
-```text
-User: Add a crate and a sun, then lift the crate, color it orange, and call it Cargo.
-```
-
-```json
-{
-  "tool": "create_model3d",
-  "arguments": {
-    "name": "studio",
-    "ops": [
-      { "op": "add_object", "kind": "box", "name": "Crate" },
-      { "op": "add_object", "kind": "directionalLight" }
-    ]
-  }
-}
-```
-
-The result holds `model_id`, `name` (`studio.gltf`), and `url` (`asset://<model_id>.gltf`). The scene has two objects: `Crate` (a mesh) and `Directional Light`. Then:
-
-```json
-{
-  "tool": "edit_model3d",
-  "arguments": {
-    "model_id": "<model_id>",
-    "ops": [
-      { "op": "set_transform", "target": "Crate", "position": [0, 2, 0] },
-      { "op": "set_material_color", "target": "Crate", "color": "#ff8800" },
-      { "op": "rename_object", "target": "Crate", "name": "Cargo" }
-    ]
-  }
-}
-```
-
-The result reports `validation.ok: true` and the first object as `{ "name": "Cargo", "position": [0, 2, 0], "materialColor": "#ff8800" }`. A fresh `get_model3d` returns the same state, because the edit is written to the asset.
-
-### If an edit fails
-
-- A failing operation rejects the whole call and leaves the asset unchanged. The error names the operation, for example `ops[1] (set_material_color) failed: No object found matching "Ghost"`.
-- An unknown `op` returns an error that lists the valid operations. An operation with missing arguments, such as `set_visibility` without a boolean, returns an error and applies no default.
-- An empty `ops` array fails with "non-empty array". One call takes at most 60 operations.
+Builders driving this from code or MCP: see [Creative Agent Tools](developer/creative-agent-tools.md#sketch-3d).
 
 ---
 
 ## Rendering a shot reference
 
-The editor has no **Render** button. Ask the agent in chat, for example "render the set from a low angle at 1920 by 1080". `render_model3d` renders the saved model through headless Blender and stores a PNG image asset.
+The editor has no **Render** button. Ask the assistant in chat, for example "render the set from a low angle at 1920 by 1080". It renders the saved model with Blender running in the background and stores a PNG image asset.
 
 | Setting | Default | Notes |
 |---|---|---|
@@ -256,21 +218,20 @@ The editor has no **Render** button. Ask the agent in chat, for example "render 
 | Engine | `eevee` | `cycles` is slower and cleaner |
 | Samples | 16 | Denoise is on by default and applies to Cycles |
 
-Behavior and errors:
+Limits:
 
-- Blender 5.2 or newer must be installed on the server machine. Discovery order and `BLENDER_PATH` are in [Blender Nodes](blender.md#find-blender-blender_path-and-auto-detection).
-- On a cloud deployment the tool answers "Rendering 3D models is not available on this deployment." It works on the desktop app, a local server, and a self-hosted install.
-- A server without Blender answers "this server has no Blender installed. Rendering needs a desktop install with Blender 5.2 or newer (set BLENDER_PATH to its executable)."
+- Blender 5.2 or newer must be installed on the machine that runs the server. See [Set up Blender](blender.md#set-up-blender).
+- Rendering is not available on cloud deployments. It works on the desktop app, a local server, and a self-hosted install. Without Blender, the assistant tells you that rendering needs a desktop install with Blender 5.2 or newer.
 - The render reads the **saved** asset. Save first or the image misses your edits.
-- A render can run in the background. The agent gets a generation id and collects the image later.
+- A render can run in the background. The assistant collects the image when it finishes.
 
-If you prefer a graph, the Blender nodes (`nodetool.blender.RenderImage`, `RenderAnimation`, `RenderPasses`, `PrepareForEngine`, and `ExportModel`) use the same Blender install.
+To render from a graph instead, use the Blender nodes: Render 3D With Blender, Render 3D Animation With Blender, Render 3D Passes With Blender, Prepare 3D Model For Engine, and Export 3D Model With Blender.
 
 ---
 
 ## Exporting
 
-**Save** serializes the scene to a `.glb` and updates the asset, then shows "Saved" with the asset name. Animations that came with an imported model are kept, also after you rename the animated object. Hidden objects are saved too, marked with a `nodetool_hidden` value in the node's `extras`, and come back hidden when the model is reopened. Other glTF tools ignore that value and show them. Names keep their spaces and punctuation. If saving fails, a banner over the viewport shows the error with a button to report it.
+**Save** serializes the scene to a `.glb` and updates the asset, then shows "Saved" with the asset name. Animations that came with an imported model are kept, also after you rename the animated object. Hidden objects are saved too and come back hidden when the model is reopened. Other 3D tools do not know about hiding and show them. Names keep their spaces and punctuation. If saving fails, a banner over the viewport shows the error with a button to report it.
 
 **Export** downloads a file for another tool and leaves the asset alone. Pick **Scene as** a format to export everything, or **Selection as** a format to export the selected object and its children, placed where it sits in the scene. The Cmd+K menu lists the scene exports too. Hidden objects are left out. Unsaved edits are included. If an animation preview is playing, it stops first, so the file holds the rest pose.
 
@@ -289,8 +250,8 @@ A selection exported to GLB or glTF has no animations. OBJ, STL, and PLY need at
 
 ## Using a model elsewhere
 
-- **Workflows.** Drag the asset from the Asset Explorer onto the canvas to add a `nodetool.constant.Model3D` node.
-- **Timelines.** The timeline add menu has a **3D model** entry that lists the glTF assets in your library and places the one you pick as a clip on a video or overlay track. You can also drag the asset onto a track. See [Video Editor](video-editor.md).
+- **Workflows.** Drag the asset from the Asset Explorer onto the canvas to add a **Model 3D** constant node.
+- **Timelines.** The timeline add menu has a **3D model** entry that lists the `.glb` and `.gltf` assets in your library and places the one you pick as a clip on a video or overlay track. You can also drag the asset onto a track. See [Video Editor](video-editor.md).
 - **Image references.** A rendered PNG is an ordinary image asset, so you can drop it into a sketch or use it as a reference in an image workflow.
 
 The editor has no direct link to the storyboard surface. Use a rendered image asset to bring a set into one.
@@ -309,4 +270,4 @@ The editor has no direct link to the storyboard surface. Use a rendered image as
 - [Asset Management](asset-management.md)
 - [Video Editor](video-editor.md)
 - [Sketch Editor](sketch-editor.md)
-- [Game Editor](game-editor.md), where a 3D game binds glTF models to its entities
+- [Game Editor](game-editor.md), where a 3D game binds 3D models to its entities

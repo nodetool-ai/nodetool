@@ -24,7 +24,7 @@ A document is a Markdown file in a project folder. The document editor shows it 
 | **+ New → Import Google Doc…** | Takes a Google Doc link and imports it. |
 | Right-click a file → **Import as document** | In the Files panel or the asset library. Makes a new document beside the file and leaves the file unchanged. |
 | Open any `.md` file | Every Markdown file in a project opens in this editor. `.txt`, JSON, YAML and CSV files keep their editors (see [Text and SVG Documents](text-and-svg-documents.md)). |
-| Chat or an agent | `create_document` makes a document. See [Agent tools](#agent-tools). |
+| Chat or an agent | Ask the assistant to create a document. See [Ask the assistant](#ask-the-assistant). |
 
 DOCX import keeps headings, lists, tables, links and emphasis. PDF import keeps the text only.
 
@@ -56,7 +56,7 @@ Blocks the formatted view has no control for, such as front matter, raw HTML, li
 
 ### Saving
 
-There is no Save button. The editor saves a moment after you stop typing, and closing the tab saves what is left. The document bar shows the save state and a retry when a save fails. A block you did not edit is written back with its exact original bytes, so a diff of the file shows only what you changed.
+There is no Save button. The editor saves a moment after you stop typing, and closing the tab saves what is left. The document bar shows the save state and a retry when a save fails. A block you did not edit is saved exactly as it was, so a diff of the file shows only what you changed.
 
 If something else writes the file while you have unsaved edits, such as an agent or a workflow run, your edits win block by block, and a conflict banner offers the other version for each block it refused.
 
@@ -79,21 +79,11 @@ The **Insert media** button opens a dialog with these tabs:
 
 You can also drop or paste files from your computer, which saves them to `assets/` beside the document. Assets from the asset panel, files from the Files panel, shots from a timeline's storyboard panel and timelines from the timeline list embed where you drop them.
 
-Every embed is saved as Markdown image syntax, so the file still reads in any other Markdown editor:
-
-```markdown
-![Teaser](assets/teaser.mp4)
-![Hero still](asset://<asset id>)
-![Unmasked](storyboard://<storyboard id>#shot=<shot id>)
-![Cut v3](timeline://<timeline id>)
-![Voiceover](script://<script id>)
-```
-
-A project file is written as a path relative to the document, and any other asset as its `asset://` locator.
+Every embed is saved as a Markdown image line, so the file still reads in any other Markdown editor. Media from the project is saved as a path relative to the document.
 
 ---
 
-## Edit with the assistant
+## Ask the assistant
 
 The assistant is docked on the right. It sees the document and the text you selected, and the editor saves your draft before each message, so the assistant never edits an older copy. Selected text stays highlighted while you type in the chat box.
 
@@ -107,6 +97,17 @@ The button in the assistant's header picks how its edits land:
 ![A proposal from the assistant: the Tone paragraph rewritten, shown as a diff with Accept, Reject and Edit proposed version](assets/screenshots/document-editor-proposal.png)
 
 If you edited the document after the proposal arrived, the panel says so. Edits in other sections merge, and the button reads **Accept & merge**. Edits that overlap the proposal ask **Overwrite newer edits?** before accepting. The content from before an accepted proposal is kept as a snapshot.
+
+### Example prompts
+
+The assistant also works on a document that is not open. An open editor shows each change without reloading.
+
+- "Create a trailer brief with sections for tone, audience and shot list."
+- "Tighten the Tone section."
+- "Import this Google Doc" (then paste its link)
+- "Restore the First draft snapshot."
+
+Builders driving this from code or MCP: see [Creative Agent Tools](developer/creative-agent-tools.md#documents-games).
 
 ### Ask about a selection
 
@@ -160,27 +161,6 @@ A workflow reads and writes the document file, so the editor, the agent and the 
 To move the text of a String node into a document, right-click the node and choose **Convert to document**. The node becomes a Document node that references the new file, and its `text` output takes over the String node's connections.
 
 ---
-
-## Agent tools
-
-These tools work on a document whether or not it is open. An open editor shows each change without reloading.
-
-| Tool | Does |
-|---|---|
-| `create_document` | Create a document from Markdown. A name that exists gets a numbered copy. |
-| `read_document` | Return the Markdown with name, path and `updated_at`. |
-| `edit_document` | Apply exact-text replacements, replace the whole content, or append. |
-| `list_document_versions`, `create_document_version`, `rename_document_version`, `delete_document_version`, `restore_document_version` | Manage snapshots. Delete always asks you first. |
-| `import_document`, `export_document` | Import a file, or write `.md`, `.txt`, `.pdf` or `.html`. |
-| `import_google_doc`, `export_google_doc` | Google Docs in and out. |
-
-`write_file` and `edit_file` on a document path keep the same pre-turn snapshot as `edit_document`.
-
-```text
-User: Tighten the Tone section of Trailer brief.md.
-```
-
-The agent calls `read_document`, then `edit_document` with an `edits` list. Opening **Snapshots** afterwards shows the brief as it was before the turn.
 
 ---
 
