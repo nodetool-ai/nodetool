@@ -1396,8 +1396,11 @@ QSGNode* WaveformItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
 }
 
 QSGNode* WaveformItem::softwareBars(QSGNode* old) {
-    const double from = std::clamp(m_drawn.from, 0.0, width());
-    const double to = std::clamp(m_drawn.to, from, width());
+    // A layout can give the item a negative width, and std::clamp asserts
+    // when its upper bound is below the lower one.
+    const double w = std::max(0.0, width());
+    const double from = std::clamp(m_drawn.from, 0.0, w);
+    const double to = std::clamp(m_drawn.to, from, w);
     const QSize size(int(std::ceil(to - from)), int(std::ceil(height())));
     if (size.isEmpty() || m_bars.empty()) {
         delete old;
