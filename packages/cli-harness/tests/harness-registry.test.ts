@@ -41,7 +41,7 @@ import {
 describe("harness registry", () => {
   it.each([
     "database-postgres", "database-sqlite", "document-processing", "execution-core",
-    "feature-documents", "models-core", "nodes-core", "provider-anthropic",
+    "models-core", "nodes-core", "provider-anthropic",
     "runtime-core", "security-core", "server-core", "server-feature-sandbox",
     "server-features", "server-minimal"
   ])("selects the execution and packed checks for the %s package", (name) => {

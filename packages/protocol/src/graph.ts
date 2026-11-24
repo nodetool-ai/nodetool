@@ -861,8 +861,14 @@ return { output: await count(String(inputs.text ?? ""), inputs.encoding ?? "cl10
     }
   },
 
-  // PageCount and SearchText stay as Code rewrites. ExtractTextBlocks and
-  // PageMetadata have no text-layer equivalent, so they stay unmigrated.
+  // All lib.pdf.* nodes are retired. ExtractText, PageCount, and SearchText
+  // rewrite to Code nodes via @nodetool-ai/sandbox-pdf; the other retired
+  // PDF nodes have no text-layer equivalent and stay unmigrated.
+  pdfToCodeMigration(
+    "lib.pdf.ExtractText",
+    `${PDF_PAGE_RANGE}
+return { output: pages.slice(start, end + 1).map((page) => page.text).join("\\n\\n").trim() };`
+  ),
   pdfToCodeMigration("lib.pdf.PageCount", "return { output: pages.length };"),
   pdfToCodeMigration(
     "lib.pdf.SearchText",

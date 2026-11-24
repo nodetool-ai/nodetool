@@ -412,7 +412,7 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     const checkType = (item: unknown): boolean => {
       if (item && isObjectLike(item) && "type" in item) {
         const t = (item as Record<string, unknown>).type;
-        return t === "image" || t === "video";
+        return t === "image" || t === "video" || t === "document";
       }
       return false;
     };

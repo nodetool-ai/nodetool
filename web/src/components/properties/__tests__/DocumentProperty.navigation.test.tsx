@@ -23,7 +23,7 @@ jest.mock("../ProjectDocumentSelect", () => ({
 }));
 
 jest.mock("../../../serverState/useAsset", () => ({
-  useAsset: () => ({ asset: mockAsset, uri: "https://example.com/report.pdf" })
+  useAsset: () => ({ asset: mockAsset, uri: "https://example.com/notes.md" })
 }));
 jest.mock("../PropertyDropzone", () => ({
   __esModule: true,
@@ -39,13 +39,13 @@ beforeEach(() => {
   });
   mockAsset = stub<Asset>({
     id: assetId,
-    name: "report.pdf",
-    content_type: "application/pdf",
+    name: "notes.md",
+    content_type: "text/markdown",
     project_id: "current-project"
   });
 });
 
-const openDocument = async () => {
+const openDocument = async (expectedTabType: "text" | "document" = "text") => {
   render(
     <MemoryRouter initialEntries={["/workspace"]}>
       <ThemeProvider theme={mockTheme}>
@@ -59,7 +59,7 @@ const openDocument = async () => {
             type: "document",
             uri: mockAsset
               ? `asset://${assetId}`
-              : "https://example.com/report.pdf"
+              : "https://example.com/notes.md"
           }}
           nodeType="nodetool.input.DocumentInput"
           nodeId="input"
@@ -74,7 +74,7 @@ const openDocument = async () => {
   );
   const state = useWorkspaceTabsStore.getState();
   const opened = state.tabs.find((tab) => tab.id === state.activeTabId);
-  expect(opened?.type).toBe("document");
+  expect(opened?.type).toBe(expectedTabType);
   expect(opened && isTabInScope(opened, state.activeProjectId)).toBe(true);
   return state;
 };
@@ -98,6 +98,6 @@ it("switches to the loose scope for an unassigned document", async () => {
 
 it("keeps external documents in the active project scope", async () => {
   mockAsset = undefined;
-  const state = await openDocument();
+  const state = await openDocument("document");
   expect(state.activeProjectId).toBe("current-project");
 });

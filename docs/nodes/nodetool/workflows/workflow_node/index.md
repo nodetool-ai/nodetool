@@ -5,6 +5,8 @@ title: "nodetool.workflows.workflow_node Nodes"
 
 This namespace contains 1 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Workflow](workflow.md)** - Execute a sub-workflow. Select a workflow to populate its inputs and outputs ...
+- **[Workflow](workflow.md)**
+
+[Back to all nodes](../../../)

@@ -14,6 +14,7 @@ import {
 } from "../appbuilder/workflowIO";
 import type { WorkflowInputKind } from "../appbuilder/inputKinds";
 import { assetLocator, assetIdOf } from "../../utils/mediaRef";
+import { isImportableDocument } from "../../utils/assetLanguage";
 import { isRecord, isString } from "../../utils/typePredicates";
 
 export type TransformKind = "image" | "video" | "audio" | "model3d" | "document";
@@ -46,15 +47,15 @@ const LIST_INPUT: Partial<Record<WorkflowInputKind, TransformKind>> = {
 const MODEL3D_EXTENSION = /\.(glb|gltf|obj|fbx|stl|ply|usdz)$/i;
 
 /**
- * The media kind of an asset, or null for a folder. Anything that is not an
- * image, video, audio clip or 3D model goes to a `DocumentInput`, which takes
- * any file.
+ * The media kind of an asset, or null when no transform input matches.
+ * `DocumentInput` accepts editable Markdown documents and converts `.txt`,
+ * `.html`, `.docx`, and `.pdf` files to Markdown.
  */
 export const transformKindOfAsset = (asset: {
   content_type?: string | null;
   name?: string | null;
 }): TransformKind | null => {
-  const contentType = (asset.content_type ?? "").toLowerCase();
+  const contentType = (asset.content_type ?? "").toLowerCase().split(";")[0].trim();
   if (contentType === "folder") {
     return null;
   }
@@ -70,7 +71,10 @@ export const transformKindOfAsset = (asset: {
   if (contentType.startsWith("model/") || MODEL3D_EXTENSION.test(asset.name ?? "")) {
     return "model3d";
   }
-  return "document";
+  if (isImportableDocument(contentType, asset.name)) {
+    return "document";
+  }
+  return null;
 };
 
 /** The media kind a `*Ref` value names, or null when it is not media. */

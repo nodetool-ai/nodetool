@@ -11,14 +11,14 @@ namespace: "nodetool.image"
 
 ## Description
 
-Re-light a subject according to a text prompt using any supported relighting provider.
-    image, relight, lighting, AI
+Re-light a subject according to a text prompt using any supported image-editing model.
+    image, relight, lighting, AI, image-to-image
 
 ## Properties
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| model | `image_model` | The relighting model to use | `{"type":"image_model","provider":"fal_ai","id":...` |
+| model | `image_model` | The image-editing or dedicated relighting model to use | `{"type":"image_model","provider":"fal_ai","id":...` |
 | image | `image` | Input image to relight | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | prompt | `str` | Description of the desired lighting | `studio lighting from the left` |
 | negative_prompt | `str` | Text prompt describing what to avoid | `` |

@@ -3,6 +3,7 @@ import { authHeader } from "../../lib/auth";
 import { restFetch } from "../../lib/rest-fetch";
 import { Asset, AssetList, AssetSearchResult } from "../ApiTypes";
 import { useAssetStore } from "../AssetStore";
+import { useDocumentProposalStore } from "../DocumentProposalStore";
 import { useWorkspaceTabsStore } from "../WorkspaceTabsStore";
 
 jest.mock("../../lib/rest-fetch", () => ({
@@ -825,6 +826,49 @@ describe("AssetStore", () => {
 
       expect(deleteMutate).toHaveBeenCalledWith({ id: "asset1" });
       expect(result).toEqual(["asset1"]);
+    });
+
+    it("clears staged and queued document proposals for deleted assets", async () => {
+      useDocumentProposalStore.setState({
+        directApply: false,
+        proposals: {},
+        queuedProposals: {}
+      });
+      const makeProposal = (assetId: string, proposalId: string) => ({
+        proposalId,
+        assetId,
+        threadId: "thread-1",
+        turnId: "turn-1",
+        baseContent: "base",
+        proposedContent: "proposed",
+        draftContent: "proposed",
+        receivedAt: 1700000000000
+      });
+      const proposalStore = useDocumentProposalStore.getState();
+      proposalStore.setProposal(makeProposal("folder1", "p-folder"));
+      proposalStore.setProposal(makeProposal("child-doc", "p-child-1"));
+      proposalStore.updateDraft("child-doc", "edited child draft");
+      proposalStore.setProposal(makeProposal("child-doc", "p-child-2"));
+      proposalStore.setProposal(makeProposal("other-doc", "p-other"));
+
+      deleteMutate.mockResolvedValueOnce({
+        deleted_asset_ids: ["folder1", "child-doc"]
+      });
+
+      await useAssetStore.getState().delete("folder1");
+
+      expect(
+        useDocumentProposalStore.getState().proposals["folder1"]
+      ).toBeUndefined();
+      expect(
+        useDocumentProposalStore.getState().proposals["child-doc"]
+      ).toBeUndefined();
+      expect(
+        useDocumentProposalStore.getState().queuedProposals["child-doc"]
+      ).toBeUndefined();
+      expect(
+        useDocumentProposalStore.getState().proposals["other-doc"]
+      ).toBeDefined();
     });
   });
 

@@ -8,7 +8,11 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
-import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
+import {
+  creationProjectId,
+  useWorkspaceTabsStore
+} from "../../../stores/WorkspaceTabsStore";
+import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas";
 
 const projects = {
   data: [
@@ -64,6 +68,7 @@ const menuChats = {
 };
 const createProject = jest.fn();
 const updateProject = jest.fn();
+const restoreTabsQuery = jest.fn();
 jest.mock("../../../trpc/client", () => {
   const invalidate = { invalidate: jest.fn() };
   return {
@@ -92,7 +97,7 @@ jest.mock("../../../trpc/client", () => {
     projects: {
       documents: { query: (...args: unknown[]) => documentsQuery(...args) },
       update: { mutate: (...args: unknown[]) => updateProject(...args) },
-      restoreTabs: { query: async () => [] }
+      restoreTabs: { query: (...args: unknown[]) => restoreTabsQuery(...args) }
     }
   }
   };
@@ -115,6 +120,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  restoreTabsQuery.mockResolvedValue([]);
   documentsQuery.mockResolvedValue([
     { type: "script", ref: "a-script", name: "Aurora script" }
   ]);
@@ -389,5 +395,80 @@ describe("ProjectSelector", () => {
     expect(home).toBe(0);
     expect(tagline).toBeGreaterThan(home);
     expect(newProject).toBeGreaterThan(tagline);
+  });
+
+  it("closes a stale persisted activeProjectId and falls back to Personal when the server reports NOT_FOUND", async () => {
+    restoreTabsQuery.mockRejectedValueOnce({
+      data: { apiCode: ApiErrorCode.NOT_FOUND }
+    });
+    useWorkspaceTabsStore.setState({
+      tabs: [
+        {
+          id: "chat:stale-thread",
+          type: "chat",
+          ref: "stale-thread",
+          mode: "view",
+          title: "Old chat",
+          projectId: "deleted-project"
+        }
+      ],
+      activeTabId: "chat:stale-thread",
+      activeProjectId: "deleted-project",
+      personalProjectId: "personal:u1",
+      projectSessions: {
+        "deleted-project": {
+          tabIds: ["chat:stale-thread"],
+          activeTabId: "chat:stale-thread",
+          selectedChatThreadId: "stale-thread"
+        }
+      }
+    });
+
+    renderSelector();
+
+    await waitFor(() => {
+      expect(useWorkspaceTabsStore.getState().activeProjectId).toBe(
+        "personal:u1"
+      );
+    });
+    expect(creationProjectId()).toBe("personal:u1");
+    expect(useWorkspaceTabsStore.getState().tabs).toEqual([]);
+    expect(
+      useWorkspaceTabsStore.getState().projectSessions["deleted-project"]
+    ).toBeUndefined();
+  });
+
+  it("keeps an activeProjectId outside the cached list when the server still finds it or verification fails transiently", async () => {
+    useWorkspaceTabsStore.setState({
+      activeProjectId: "archived-project",
+      personalProjectId: "personal:u1"
+    });
+    const first = renderSelector();
+    await waitFor(() =>
+      expect(restoreTabsQuery).toHaveBeenCalledWith({
+        id: "archived-project",
+        tabs: []
+      })
+    );
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBe(
+      "archived-project"
+    );
+    first.unmount();
+
+    restoreTabsQuery.mockRejectedValueOnce(new Error("offline"));
+    useWorkspaceTabsStore.setState({
+      activeProjectId: "offline-check-project",
+      personalProjectId: "personal:u1"
+    });
+    renderSelector();
+    await waitFor(() =>
+      expect(restoreTabsQuery).toHaveBeenCalledWith({
+        id: "offline-check-project",
+        tabs: []
+      })
+    );
+    expect(useWorkspaceTabsStore.getState().activeProjectId).toBe(
+      "offline-check-project"
+    );
   });
 });

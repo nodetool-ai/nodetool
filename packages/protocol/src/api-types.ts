@@ -893,6 +893,26 @@ export interface UiContext {
   source?: ChatSource | null;
   /** The stored run the user asked the agent to inspect. Readers enforce ownership. */
   run?: UiRunReference | null;
+  /**
+   * How agent edits to the focused Markdown document apply (PRD D2):
+   * `"staged"` (default when omitted) holds edits as a proposal for review
+   * without touching disk; `"direct"` writes immediately.
+   */
+  document_edit_mode?: "staged" | "direct" | null;
+}
+
+/**
+ * Staged proposal emitted over WebSocket when `document_edit_mode` is not
+ * `"direct"` and an agent proposes edits to the open Markdown document (PRD D2, R8, R9).
+ */
+export interface DocumentProposalEvent {
+  type: "document_proposal";
+  proposal_id: string;
+  asset_id: string;
+  thread_id: string;
+  turn_id: string;
+  base_content: string;
+  proposed_content: string;
 }
 
 export interface MessageCreateRequest {

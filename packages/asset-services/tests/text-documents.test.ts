@@ -22,9 +22,13 @@ import { ProjectAssetStorageAdapter } from "../src/project-asset-storage.js";
 import { getAssetAdapter } from "../src/storage.js";
 import {
   TextDocumentError,
+  TextDocumentMissingFileError,
   applyTextDocumentEdits,
   createTextDocument,
+  deleteTextDocumentVersion,
   readTextDocument,
+  recordTextDocumentVersion,
+  renameTextDocumentVersion,
   requireTextDocument,
   restoreTextDocumentVersion,
   writeTextDocument,
@@ -106,7 +110,7 @@ describe("text documents", () => {
     ).rejects.toBeInstanceOf(TextDocumentError);
   });
 
-  it("restores a version and keeps the replaced content as a version", async () => {
+  it("restores a version, preserves overwritten draft, and appends restored snapshot as latest", async () => {
     const asset = await createTextDocument({
       userId: USER,
       projectId: PROJECT,
@@ -117,13 +121,174 @@ describe("text documents", () => {
       cause: { saveType: "manual" }
     });
     const [first] = await TextDocumentVersion.listForAsset(asset.id);
-    await restoreTextDocumentVersion(asset, first!.version);
+    const { restored, latest } = await restoreTextDocumentVersion(asset, first!.version);
+    expect(restored.version).toBe(first!.version);
     expect(await readTextDocument(asset)).toBe("first\n");
+
     const versions = await TextDocumentVersion.listForAsset(asset.id);
-    expect(versions.map((v) => [v.save_type, v.content])).toContainEqual([
-      "restore",
-      "second\n"
+    expect(versions).toHaveLength(3);
+    expect(versions[0]?.version).toBe(latest.version);
+    expect(versions[0]?.save_type).toBe("restore");
+    expect(versions[0]?.content).toBe("first\n");
+    expect(versions[0]?.name).toBe(`Restored from Version ${first!.version}`);
+    expect(versions[1]?.save_type).toBe("restore");
+    expect(versions[1]?.content).toBe("second\n");
+    expect(versions[2]?.version).toBe(first!.version);
+    expect(versions[2]?.content).toBe("first\n");
+  });
+
+  it("avoids duplicating current content on restore when newest version already matches", async () => {
+    const asset = await createTextDocument({
+      userId: USER,
+      projectId: PROJECT,
+      name: "r2.md",
+      content: "v1\n"
+    });
+    const snap1 = await recordTextDocumentVersion(asset, "v1\n", { saveType: "manual" }, "Draft 1");
+    await writeTextDocument(asset, "v2\n");
+    await recordTextDocumentVersion(asset, "v2\n", { saveType: "manual" }, "Draft 2");
+
+    const { latest } = await restoreTextDocumentVersion(asset, snap1.version);
+    expect(await readTextDocument(asset)).toBe("v1\n");
+    const versions = await TextDocumentVersion.listForAsset(asset.id);
+    expect(versions.map((v) => [v.version, v.name, v.content])).toEqual([
+      [latest.version, "Restored from Draft 1", "v1\n"],
+      [2, "Draft 2", "v2\n"],
+      [1, "Draft 1", "v1\n"]
     ]);
+  });
+
+  it("treats restoring a version identical to current content as a no-op with zero new version rows", async () => {
+    const asset = await createTextDocument({
+      userId: USER,
+      projectId: PROJECT,
+      name: "noop-restore.md",
+      content: "same content\n"
+    });
+    const snap = await recordTextDocumentVersion(
+      asset,
+      "same content\n",
+      { saveType: "manual" },
+      "Current"
+    );
+    const updatedAtBefore = asset.updated_at;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    const outcome = await restoreTextDocumentVersion(asset, snap.version);
+    expect(outcome.changed).toBe(false);
+    expect(outcome.restored.version).toBe(snap.version);
+    expect(outcome.latest.version).toBe(snap.version);
+    expect(outcome.asset.updated_at).toBe(updatedAtBefore);
+    expect(await TextDocumentVersion.listForAsset(asset.id)).toHaveLength(1);
+    expect(await readTextDocument(asset)).toBe("same content\n");
+  });
+
+  it("fails restore with CAS conflict when a concurrent autosave updates the document", async () => {
+    const asset = await createTextDocument({
+      userId: USER,
+      projectId: PROJECT,
+      name: "race.md",
+      content: "v1\n"
+    });
+    const snap1 = await recordTextDocumentVersion(asset, "v1\n", { saveType: "manual" }, "V1");
+    await writeTextDocument(asset, "v2\n");
+    const staleSnapshot = await requireTextDocument(USER, asset.id);
+    const versionsBefore = await TextDocumentVersion.listForAsset(asset.id);
+
+    // Concurrent autosave happens after staleSnapshot was loaded, advancing DB updated_at.
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const concurrent = await requireTextDocument(USER, asset.id);
+    await writeTextDocument(concurrent, "autosaved v3\n");
+
+    await expect(
+      restoreTextDocumentVersion(staleSnapshot, snap1.version)
+    ).rejects.toThrow(/changed since it was read/);
+
+    // Disk keeps the concurrent autosave and no stray pre-restore snapshot was added.
+    const latestAsset = await requireTextDocument(USER, asset.id);
+    expect(await readTextDocument(latestAsset)).toBe("autosaved v3\n");
+    expect(await TextDocumentVersion.listForAsset(asset.id)).toHaveLength(
+      versionsBefore.length
+    );
+  });
+
+  it("propagates real workspace read errors instead of swallowing them on write and restore", async () => {
+    const asset = await createTextDocument({
+      userId: USER,
+      projectId: PROJECT,
+      name: "io-fail.md",
+      content: "v1\n"
+    });
+    const snap1 = await recordTextDocumentVersion(asset, "v1\n", { saveType: "manual" });
+
+    const realWorkspace = createLocalWorkspace(join(root, PROJECT));
+    const ioFailure = new Error("EIO: disk read failed");
+    const failingWorkspace = {
+      ...realWorkspace,
+      read: async () => {
+        throw ioFailure;
+      }
+    };
+    setProjectFolderResolver(async (projectId) => ({
+      ok: true,
+      projectId: projectId ?? PROJECT,
+      workspace: failingWorkspace
+    }));
+
+    await expect(
+      writeTextDocument(asset, "v2\n", { cause: { saveType: "manual" } })
+    ).rejects.toThrow("EIO: disk read failed");
+
+    await expect(
+      restoreTextDocumentVersion(asset, snap1.version)
+    ).rejects.toThrow("EIO: disk read failed");
+  });
+
+  it("throws TextDocumentMissingFileError when the backing file is absent and still allows restore", async () => {
+    const asset = await createTextDocument({
+      userId: USER,
+      projectId: PROJECT,
+      name: "missing.md",
+      content: "recovered\n"
+    });
+    const snap = await recordTextDocumentVersion(asset, "recovered\n", { saveType: "manual" });
+    const ws = createLocalWorkspace(join(root, PROJECT));
+    await ws.delete("missing.md");
+
+    await expect(readTextDocument(asset)).rejects.toBeInstanceOf(
+      TextDocumentMissingFileError
+    );
+
+    const restored = await restoreTextDocumentVersion(asset, snap.version);
+    expect(restored.changed).toBe(true);
+    expect(await readTextDocument(asset)).toBe("recovered\n");
+  });
+
+  it("renames and deletes stored versions and throws on missing versions", async () => {
+    const asset = await createTextDocument({
+      userId: USER,
+      projectId: PROJECT,
+      name: "snaps.md",
+      content: "hello\n"
+    });
+    const snap = await recordTextDocumentVersion(asset, "hello\n", { saveType: "manual" }, "Before");
+    const renamed = await renameTextDocumentVersion(asset, snap.version, "  Milestone 1  ");
+    expect(renamed.name).toBe("Milestone 1");
+
+    const cleared = await renameTextDocumentVersion(asset, snap.version, "   ");
+    expect(cleared.name).toBeNull();
+
+    await expect(renameTextDocumentVersion(asset, 99, "Missing")).rejects.toBeInstanceOf(
+      TextDocumentError
+    );
+
+    await deleteTextDocumentVersion(asset, snap.version);
+    expect(await TextDocumentVersion.listForAsset(asset.id)).toEqual([]);
+    expect(await readTextDocument(asset)).toBe("hello\n");
+
+    await expect(deleteTextDocumentVersion(asset, snap.version)).rejects.toBeInstanceOf(
+      TextDocumentError
+    );
   });
 
   it("writes a legacy document under its storage key", async () => {

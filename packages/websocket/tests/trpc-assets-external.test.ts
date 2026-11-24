@@ -252,4 +252,23 @@ describe("external asset reads and deletes", () => {
     expect(await Asset.find(USER, created.id)).toBeNull();
     expect(await fs.readFile(externalFile, "utf8")).toBe(CONTENT);
   });
+
+  it("lazily creates the caller's Personal project and refuses another user's", async () => {
+    const caller = createCaller(makeCtx());
+    const personalId = `personal:${USER}`;
+    const created = await caller.assets.createExternal({
+      path: externalFile,
+      content_type: "text/plain",
+      project_id: personalId
+    });
+    expect(created.project_id).toBe(personalId);
+
+    await expect(
+      caller.assets.createExternal({
+        path: externalFile,
+        content_type: "text/plain",
+        project_id: "personal:user-2"
+      })
+    ).rejects.toThrow(/Project not found/);
+  });
 });

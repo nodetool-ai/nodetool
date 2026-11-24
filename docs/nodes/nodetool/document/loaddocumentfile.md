@@ -11,8 +11,8 @@ namespace: "nodetool.document"
 
 ## Description
 
-Read a document from disk.
-    files, document, read, input, load, file
+Read an editable document from the project or disk.
+    files, document, markdown, read, input, load, file
 
 ## Properties
 

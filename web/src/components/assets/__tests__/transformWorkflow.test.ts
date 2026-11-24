@@ -58,14 +58,24 @@ describe("transformKindOfAsset", () => {
     ["audio/wav", "take.wav", "audio"],
     ["model/gltf-binary", "chair.glb", "model3d"],
     ["application/octet-stream", "chair.glb", "model3d"],
+    ["text/markdown", "brief.md", "document"],
+    ["text/plain", "notes.markdown", "document"],
+    ["text/plain", "notes.txt", "document"],
+    ["text/html", "brief.html", "document"],
     ["application/pdf", "brief.pdf", "document"],
-    ["text/plain", "notes.txt", "document"]
+    [
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "brief.docx",
+      "document"
+    ]
   ])("reads %s (%s) as %s", (contentType, name, kind) => {
     expect(transformKindOfAsset({ content_type: contentType, name })).toBe(kind);
   });
 
-  it("has nothing to transform for a folder", () => {
+  it("returns null for folders and unsupported files", () => {
     expect(transformKindOfAsset({ content_type: "folder", name: "Shots" })).toBeNull();
+    expect(transformKindOfAsset({ content_type: "application/zip", name: "bundle.zip" })).toBeNull();
+    expect(transformKindOfAsset({ content_type: "text/csv", name: "table.csv" })).toBeNull();
   });
 });
 

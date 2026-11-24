@@ -11,8 +11,8 @@ namespace: "nodetool.input"
 
 ## Description
 
-Accepts a local file path pointing to a document and converts it into a 'DocumentRef'.
-    input, parameter, document, file, path, local_file, load
+Accepts a project or local file path pointing to an editable document and converts it into a document reference.
+    input, parameter, document, markdown, file, path, local_file, load
 
 ## Properties
 

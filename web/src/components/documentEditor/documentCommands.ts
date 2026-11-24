@@ -24,19 +24,23 @@ import { INSERT_TABLE_COMMAND } from "@lexical/table";
 import { $findMatchingParent, $getNearestNodeOfType } from "@lexical/utils";
 import {
   $createParagraphNode,
+  $getRoot,
   $getSelection,
-  $insertNodes,
+  $isParagraphNode,
   $isRangeSelection,
   $isRootOrShadowRoot,
   FORMAT_TEXT_COMMAND,
+  INDENT_CONTENT_COMMAND,
+  OUTDENT_CONTENT_COMMAND,
   type LexicalEditor,
   type LexicalNode,
+  type ParagraphNode,
   type TextFormatType
 } from "lexical";
 import { ListNode } from "@lexical/list";
 
 import { INSERT_HORIZONTAL_RULE_COMMAND } from "../textEditor/horizontalRuleCommand";
-import { $createDocumentImageNode } from "./nodes/DocumentImageNode";
+import { $createDocumentEmbedNode } from "./nodes/DocumentEmbedNode";
 
 /** The block the caret is in, as the toolbar names it. */
 export type DocumentBlockType =
@@ -133,6 +137,16 @@ export function toggleList(
   editor.dispatchCommand(command, undefined);
 }
 
+/** Increase indentation of the selected list items or blocks (PRD R2). */
+export function indentSelection(editor: LexicalEditor): void {
+  editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined);
+}
+
+/** Decrease indentation of the selected list items or blocks (PRD R2). */
+export function outdentSelection(editor: LexicalEditor): void {
+  editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined);
+}
+
 /** Link the selection to `url`, or remove the link when `url` is empty. */
 export function setLink(editor: LexicalEditor, url: string): void {
   editor.dispatchCommand(TOGGLE_LINK_COMMAND, url.trim() === "" ? null : url.trim());
@@ -150,11 +164,41 @@ export function insertRule(editor: LexicalEditor): void {
   editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined);
 }
 
-export function insertImage(editor: LexicalEditor, src: string, alt: string): void {
-  if (src.trim() === "") {
+/**
+ * Insert embeds after the block the caret is in, one paragraph each, in
+ * order, so media never sits mid-sentence. An empty paragraph at the caret
+ * takes the first embed. Empty sources are skipped.
+ */
+export function insertEmbeds(
+  editor: LexicalEditor,
+  embeds: ReadonlyArray<{ src: string; alt: string }>
+): void {
+  const nodes = embeds
+    .filter((embed) => embed.src.trim() !== "")
+    .map((embed) => ({ src: embed.src.trim(), alt: embed.alt.trim() }));
+  if (nodes.length === 0) {
     return;
   }
   editor.update(() => {
-    $insertNodes([$createDocumentImageNode(src.trim(), alt.trim())]);
+    const selection = $getSelection();
+    let previous: LexicalNode | null = $isRangeSelection(selection)
+      ? selection.anchor.getNode().getTopLevelElement()
+      : null;
+    let last: ParagraphNode | null = null;
+    for (const embed of nodes) {
+      const block = $createParagraphNode().append(
+        $createDocumentEmbedNode(embed.src, embed.alt)
+      );
+      if (previous === null) {
+        $getRoot().append(block);
+      } else if ($isParagraphNode(previous) && previous.isEmpty()) {
+        previous.replace(block);
+      } else {
+        previous.insertAfter(block);
+      }
+      previous = block;
+      last = block;
+    }
+    last?.selectEnd();
   });
 }

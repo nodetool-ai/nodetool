@@ -487,13 +487,6 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodes:document"
     ],
     "nodeTypes": [
-      "lib.pdf.ExtractMarkdown",
-      "lib.pdf.ExtractOcr",
-      "lib.pdf.ExtractStyledText",
-      "lib.pdf.ExtractTables",
-      "lib.pdf.ExtractText",
-      "lib.pdf.Pdftoppm",
-      "lib.pdf.Screenshot",
       "nodetool.document.ListDocuments",
       "nodetool.document.LoadDocumentFile",
       "nodetool.document.SaveDocument"

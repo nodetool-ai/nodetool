@@ -110,6 +110,12 @@ export function serverModelInterfaces(): ProcessingContextModelInterfaces {
         workspace_path: asset.workspace_path ?? null
       };
     },
+    convertDocumentToMarkdown: async (args) => {
+      const { convertDocumentBytesToMarkdown } = await import(
+        "@nodetool-ai/agents/text-document-transfer"
+      );
+      return convertDocumentBytesToMarkdown(args);
+    },
     // Documents, the entity library and the game templates: shared with the
     // CLI's local runs so a harness run writes the rows the server writes.
     ...documentModelInterfaces()

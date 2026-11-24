@@ -22,7 +22,7 @@ const mockAddNotification = jest.fn();
 const mockAddNode = jest.fn();
 const mockCreateNode = jest.fn(() => ({
   id: "node-1",
-  data: { properties: {} as Record<string, unknown> }
+  data: { properties: {} as Record<string, unknown>, title: undefined as string | undefined }
 }));
 const mockGetLocalFilePath = jest.fn<string | null, [File]>(() => null);
 
@@ -38,10 +38,11 @@ jest.mock("../../../stores/useAuth", () => ({
   default: (selector: (state: unknown) => unknown) =>
     selector({ user: { id: "user-1" } })
 }));
+const mockGetMetadata = jest.fn((nodeType: string) => ({ node_type: nodeType }));
 jest.mock("../../../stores/MetadataStore", () => ({
   __esModule: true,
   default: (selector: (state: unknown) => unknown) =>
-    selector({ getMetadata: () => ({ node_type: "nodetool.constant.Image" }) })
+    selector({ getMetadata: mockGetMetadata })
 }));
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: (selector: (state: unknown) => unknown) =>
@@ -125,5 +126,59 @@ describe("handleGenericFile", () => {
       asset_id: null,
       temp_id: null
     });
+  });
+
+  it("adds a Document constant node referencing an uploaded markdown file", async () => {
+    const markdownFile = new File(["# Notes\n"], "notes.md", {
+      type: "text/markdown"
+    });
+    mockUploadAsset.mockImplementation(({ onCompleted }) => {
+      onCompleted?.({
+        id: "asset-doc-1",
+        name: "notes.md",
+        content_type: "text/markdown",
+        get_url: "http://localhost:7777/api/storage/user-1/asset-doc-1.md"
+      } as Asset);
+    });
+
+    const { result } = renderHook(() => useFileHandlers());
+    const outcome = await result.current.handleGenericFile(
+      markdownFile,
+      position
+    );
+
+    expect(outcome.success).toBe(true);
+    expect(mockGetMetadata).toHaveBeenCalledWith("nodetool.constant.Document");
+    expect(mockAddNode).toHaveBeenCalledTimes(1);
+    expect(mockCreateNode.mock.results[0].value.data.properties.value).toEqual({
+      type: "document",
+      uri: "asset://asset-doc-1",
+      asset_id: "asset-doc-1",
+      data: null,
+      metadata: null
+    });
+    expect(mockCreateNode.mock.results[0].value.data.title).toBe("notes.md");
+  });
+
+  it("references a dropped local markdown file as a Document constant node", async () => {
+    const markdownFile = new File(["# Local\n"], "local.md", { type: "" });
+    mockGetLocalFilePath.mockReturnValue("/Users/me/docs/local.md");
+
+    const { result } = renderHook(() => useFileHandlers());
+    const outcome = await result.current.handleGenericFile(
+      markdownFile,
+      position
+    );
+
+    expect(outcome.success).toBe(true);
+    expect(mockUploadAsset).not.toHaveBeenCalled();
+    expect(mockGetMetadata).toHaveBeenCalledWith("nodetool.constant.Document");
+    expect(mockCreateNode.mock.results[0].value.data.properties.value).toEqual({
+      type: "document",
+      uri: "file:///Users/me/docs/local.md",
+      asset_id: null,
+      temp_id: null
+    });
+    expect(mockCreateNode.mock.results[0].value.data.title).toBe("local.md");
   });
 });

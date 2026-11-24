@@ -499,10 +499,11 @@ describe("document.ts uncovered lines", () => {
     await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   });
 
-  it("ListDocumentsNode streams document files", async () => {
+  it("ListDocumentsNode streams editable document files and skips PDFs", async () => {
     await fs.writeFile(path.join(tmpDir, "a.txt"), "text");
-    await fs.writeFile(path.join(tmpDir, "b.pdf"), "pdf");
-    await fs.writeFile(path.join(tmpDir, "c.xyz"), "unknown");
+    await fs.writeFile(path.join(tmpDir, "b.md"), "# Markdown");
+    await fs.writeFile(path.join(tmpDir, "c.pdf"), "%PDF-1.7");
+    await fs.writeFile(path.join(tmpDir, "d.xyz"), "unknown");
     const node = new ListDocumentsNode();
     const results: any[] = [];
     node.assign({ folder: tmpDir });
@@ -510,7 +511,10 @@ describe("document.ts uncovered lines", () => {
       if ("documents" in item) continue; // skip final list yield
       results.push(item);
     }
-    expect(results.length).toBe(2); // .txt and .pdf
+    expect(results.length).toBe(2); // .txt and .md only
+    expect(
+      results.every((item) => !String(item.document?.uri).endsWith(".pdf"))
+    ).toBe(true);
   });
 
   it("ListDocumentsNode recursive", async () => {

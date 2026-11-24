@@ -1,6 +1,7 @@
 import { TypeName } from "../stores/ApiTypes";
 
 const model3dFileExtensions = new Set(["glb", "gltf", "obj", "fbx", "stl", "ply"]);
+const markdownFileExtensions = new Set(["md", "markdown"]);
 
 const getFileExtension = (filename?: string): string | null => {
   if (!filename) {
@@ -24,24 +25,37 @@ export const contentTypeToNodeType = (
     return "model_3d";
   }
 
+  const extension = getFileExtension(filename);
+
   if (normalizedContentType === "application/octet-stream") {
-    const extension = getFileExtension(filename);
     if (extension && model3dFileExtensions.has(extension)) {
       return "model_3d";
     }
+  }
+
+  if (
+    extension &&
+    markdownFileExtensions.has(extension) &&
+    (normalizedContentType === "" ||
+      normalizedContentType === "application/octet-stream" ||
+      normalizedContentType === "text/plain")
+  ) {
+    return "document";
   }
 
   switch (normalizedContentType) {
     case "application/json":
     case "text/plain":
     case "text/html":
-    case "text/markdown":
     case "text/xml":
     case "application/xml":
     case "text/javascript":
     case "application/javascript":
     case "text/css":
       return "text";
+    case "text/markdown":
+    case "text/x-markdown":
+      return "document";
     case "text/csv":
     case "application/vnd.ms-excel.sheet.macroEnabled.12":
     case "application/x-yaml":
@@ -81,20 +95,6 @@ export const contentTypeToNodeType = (
     case "audio/flac":
     case "audio/x-m4a":
       return "audio";
-    case "application/pdf":
-    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-    case "application/msword":
-    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-    case "application/vnd.ms-excel":
-    case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-    case "application/vnd.ms-powerpoint":
-    case "application/vnd.oasis.opendocument.text":
-    case "application/vnd.oasis.opendocument.spreadsheet":
-    case "application/vnd.oasis.opendocument.presentation":
-    case "application/rtf":
-    case "application/x-tex":
-    case "application/epub+zip":
-      return "document";
     // internal asset types
     case "folder":
       return "folder";

@@ -1,7 +1,7 @@
 ---
 layout: redirect
-redirect_to: /nodes/lib/pdf/
+redirect_to: /nodes/nodetool/document/
 permalink: /nodes/lib/pdfplumber/extractimages.html
 ---
 
-This page has moved. Please go to [lib.pdf Nodes](/nodes/lib/pdf/).
+This page has moved. The PDF nodes were retired. See [nodetool.document Nodes](/nodes/nodetool/document/).

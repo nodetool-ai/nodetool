@@ -223,7 +223,7 @@ describe("useNamespaceTree", () => {
   describe("optional node packs", () => {
     const metadataWithOptional = {
       core: { namespace: "nodetool.text", type: "nodetool.text.Concat" },
-      optional: { namespace: "lib.pdf", type: "lib.pdf.ReadPdf" }
+      optional: { namespace: "lib.audio", type: "lib.audio.Reverb" }
     };
 
     beforeEach(() => {
@@ -255,11 +255,11 @@ describe("useNamespaceTree", () => {
 
     it("reveals an optional-pack namespace once its pack is enabled", () => {
       act(() => {
-        useOptionalNodePacksStore.setState({ enabledPackIds: ["documents"] });
+        useOptionalNodePacksStore.setState({ enabledPackIds: ["audio_dsp"] });
       });
       const { result } = renderHook(() => useNamespaceTree());
       expect(result.current["lib"]).toBeDefined();
-      expect(result.current["lib"].children["pdf"]).toBeDefined();
+      expect(result.current["lib"].children["audio"]).toBeDefined();
     });
   });
 

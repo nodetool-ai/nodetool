@@ -5,6 +5,8 @@ title: "nodetool.output Nodes"
 
 This namespace contains 1 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Output](output.md)** - Generic output node for any type.
+- **[Output](output.md)**
+
+[Back to all nodes](../../)

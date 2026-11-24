@@ -38,8 +38,8 @@ export const getTextDocumentVersionOutput = textDocumentVersionResponse.extend({
 });
 
 export const createTextDocumentVersionInput = textDocumentRef.extend({
-  /** `manual` for "Save version", `autosave` for the editor's interval versions. */
-  save_type: z.enum(["manual", "autosave"]).default("manual"),
+  /** `manual` for "Save version", `autosave` for the editor's interval versions, `agent_turn` for accepted staged proposals. */
+  save_type: z.enum(["manual", "autosave", "agent_turn"]).default("manual"),
   name: z.string().max(200).optional()
 });
 export const createTextDocumentVersionOutput = z.object({
@@ -47,10 +47,23 @@ export const createTextDocumentVersionOutput = z.object({
   version: textDocumentVersionResponse.nullable()
 });
 
+export const renameTextDocumentVersionInput = getTextDocumentVersionInput.extend({
+  name: z.string().max(200).nullable()
+});
+export const renameTextDocumentVersionOutput = z.object({
+  version: textDocumentVersionResponse
+});
+
+export const deleteTextDocumentVersionInput = getTextDocumentVersionInput;
+export const deleteTextDocumentVersionOutput = z.object({
+  deleted_version: z.number().int()
+});
+
 export const restoreTextDocumentVersionInput = getTextDocumentVersionInput;
 export const restoreTextDocumentVersionOutput = z.object({
   restored_version: z.number().int(),
-  updated_at: z.string()
+  updated_at: z.string(),
+  latest_version: z.number().int().optional()
 });
 
 /** The workflows that reference a document (PRD R15). */
@@ -80,9 +93,11 @@ export const importTextDocumentInput = z.object({
   name: z.string().optional()
 });
 
-/** Export a document as a file next to it (PRD R18). */
+/** Export a document to a chosen format and optional destination folder (PRD R18). */
 export const exportTextDocumentInput = textDocumentRef.extend({
-  format: z.enum(["pdf", "html"])
+  format: z.enum(["md", "txt", "pdf", "html"]),
+  directory: z.string().max(1024).optional(),
+  name: z.string().max(255).optional()
 });
 
 /** Import a Google Doc as a new document (PRD R19). */

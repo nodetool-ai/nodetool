@@ -293,6 +293,44 @@ describe("useDropHandler", () => {
     expect(mockAddNodeFromAsset).toHaveBeenCalledWith(asset, { x: 0, y: 0 });
   });
 
+  it("loads a markdown file dragged from the Files panel and passes its asset to addNodeFromAsset", async () => {
+    const asset = {
+      id: "asset-md-1",
+      name: "Untitled.md",
+      content_type: "text/markdown"
+    };
+    mockAssetOfFile.mockResolvedValue({ id: "asset-md-1" });
+    mockGetAsset.mockResolvedValue(asset);
+    const { result } = renderHook(() => useDropHandler());
+    const dropEvent = stub<React.DragEvent<HTMLDivElement>>({
+      preventDefault: jest.fn(),
+      target: paneTarget(true),
+      clientX: 10,
+      clientY: 10,
+      dataTransfer: {
+        getData: (format: string) =>
+          format === "application/x-nodetool-drag"
+            ? JSON.stringify({
+                type: "project-file",
+                payload: { projectId: "project-a", path: "Imported/Untitled.md" }
+              })
+            : "",
+        types: ["application/x-nodetool-drag"],
+        items: [],
+        files: []
+      }
+    });
+
+    await act(async () => {
+      await result.current.onDrop(dropEvent);
+    });
+
+    expect(mockDocumentByFile).not.toHaveBeenCalled();
+    expect(mockAssetOfFile).toHaveBeenCalledWith("project-a", "Imported/Untitled.md");
+    expect(mockGetAsset).toHaveBeenCalledWith("asset-md-1");
+    expect(mockAddNodeFromAsset).toHaveBeenCalledWith(asset, { x: 0, y: 0 });
+  });
+
   it("adds the document's constant node for a document file from the Files panel", async () => {
     mockDocumentByFile.mockResolvedValue({
       type: "storyboard",

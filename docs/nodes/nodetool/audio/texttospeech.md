@@ -21,6 +21,10 @@ Generate speech audio from text using any supported TTS provider. Automatically 
 | model | `tts_model` | The text-to-speech model to use | `{"type":"tts_model","provider":"openai","id":"t...` |
 | text | `str` | Text to convert to speech | `Hello! This is a text-to-speech demonstration.` |
 | speed | `float` | Speech speed multiplier (0.25 to 4.0) | `1` |
+| reference_audio | `audio` | A voice recording used by models that support voice cloning. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| reference_text | `str` | Transcript of the reference recording when required. | `` |
+| language | `str` | Optional language code or name. | `` |
+| instructions | `str` | Optional voice style and delivery instructions. | `` |
 
 ## Outputs
 

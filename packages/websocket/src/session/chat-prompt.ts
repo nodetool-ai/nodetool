@@ -255,9 +255,25 @@ export function focusedUiToolNames(
   return [...toolNames].filter(
     (name) =>
       name.startsWith(prefix) ||
-      (type === "workflow" && WORKFLOW_GRAPH_UI_TOOL_NAMES.has(name))
+      (type === "workflow" && WORKFLOW_GRAPH_UI_TOOL_NAMES.has(name)) ||
+      (type === "document" && DOCUMENT_FOCUS_TOOL_NAMES.has(name))
   );
 }
+
+/**
+ * Markdown documents have no `ui_document_*` client tools: edits go through
+ * the headless `text-documents` capabilities and merge live into the open
+ * editor. Keep them in the turn's tool block while a document has focus.
+ */
+const DOCUMENT_FOCUS_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "read_document",
+  "edit_document",
+  "list_document_versions",
+  "create_document_version",
+  "rename_document_version",
+  "restore_document_version",
+  "export_document"
+]);
 
 /**
  * The node editor's graph tools predate the `ui_<type>_` naming, so the
@@ -502,6 +518,13 @@ function formatUiContext(uiContext?: UiContext | null): string {
 }
 
 /**
+ * How media is embedded in a Markdown document, for the agent. The syntax is
+ * defined in `document-embeds.ts` in protocol.
+ */
+export const DOCUMENT_EMBED_GUIDANCE =
+  "A Markdown document can embed media in image syntax. Write `![caption](assets/clip.mp4)` for an image, video, audio or 3D model file of the project, with the path relative to the document. Write `![caption](asset://<asset_id>)` for any asset, `![caption](storyboard://<storyboard_id>#shot=<shot_id>)` for a storyboard shot, which shows the shot's latest clip, or its keyframe until it has a clip, `![caption](timeline://<timeline_id>)` for a timeline, which plays in the document, and `![caption](script://<script_id>)` for a voice script, which lists each line with its current take. Use full ids in embeds.";
+
+/**
  * How to work with the documents the user has open: the fixed guidance for
  * each surface. It depends only on the surface and the types of the focused
  * and open documents, so it is a turn-context block apart from
@@ -571,9 +594,19 @@ export function buildUiGuidanceSection(uiContext?: UiContext | null): string {
   const hasDocument =
     focused?.type === "document" || open.some((ref) => ref.type === "document");
   if (hasDocument) {
-    lines.push(
-      "A Markdown document's id is its asset id. Read it with `read_document` and change it with `edit_document`, which takes exact-text edits, a whole new content, or text to append. Your edits apply at once and the open editor shows them. The content before your first edit of the turn is kept as a version, so the user can restore it."
-    );
+    if (
+      focused?.type === "document" &&
+      uiContext.document_edit_mode !== "direct"
+    ) {
+      lines.push(
+        "A Markdown document's id is its asset id. Read it with `read_document` and propose edits with `edit_document`, which takes exact-text edits, a whole new content, or text to append. Edits to this open document are staged as a reviewable proposal rather than written to disk until the user approves them."
+      );
+    } else {
+      lines.push(
+        "A Markdown document's id is its asset id. Read it with `read_document` and change it with `edit_document`, which takes exact-text edits, a whole new content, or text to append. Your edits apply at once and the open editor shows them. The content before your first edit of the turn is kept as a version, so the user can restore it."
+      );
+    }
+    lines.push(DOCUMENT_EMBED_GUIDANCE);
   }
 
   const hasSketch =

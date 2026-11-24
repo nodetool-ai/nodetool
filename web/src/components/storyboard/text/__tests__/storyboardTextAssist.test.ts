@@ -53,4 +53,17 @@ describe("parseAssistReply", () => {
   it("never replaces across several objects", () => {
     expect(parseAssistReply("<mode>replace</mode><text>x</text>", { mode: "multi" }).mode).toBe("note");
   });
+
+  it("ignores <think> blocks before the structured reply", () => {
+    expect(
+      parseAssistReply(
+        "<think>Should this be <mode>note</mode> or replace?</think>\n<mode>replace</mode>\n<text>Nova drops to one knee.</text>\n<why>Stronger verb.</why>",
+        selection
+      )
+    ).toEqual({
+      mode: "replace",
+      text: "Nova drops to one knee.",
+      why: "Stronger verb."
+    });
+  });
 });

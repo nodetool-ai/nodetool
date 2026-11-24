@@ -48,4 +48,37 @@ describe("TextDocumentVersion", () => {
     const kept = await TextDocumentVersion.listForAsset(asset.id);
     expect(kept.map((v) => v.content)).toEqual(["3", "m"]);
   });
+
+  it("renames a stored version and returns null when missing", async () => {
+    const asset = await makeAsset();
+    const snap = await TextDocumentVersion.snapshot({
+      assetId: asset.id,
+      userId: "u1",
+      content: "draft",
+      saveType: "manual",
+      name: "Initial"
+    });
+    const renamed = await TextDocumentVersion.renameVersion(asset.id, snap.version, "Final Cut");
+    expect(renamed?.name).toBe("Final Cut");
+    expect((await TextDocumentVersion.findByVersion(asset.id, snap.version))?.name).toBe("Final Cut");
+
+    const cleared = await TextDocumentVersion.renameVersion(asset.id, snap.version, null);
+    expect(cleared?.name).toBeNull();
+    expect((await TextDocumentVersion.findByVersion(asset.id, snap.version))?.name).toBeNull();
+
+    expect(await TextDocumentVersion.renameVersion(asset.id, 999, "Nope")).toBeNull();
+  });
+
+  it("deletes a single stored version without disturbing others", async () => {
+    const asset = await makeAsset();
+    const v1 = await TextDocumentVersion.snapshot({ assetId: asset.id, userId: "u1", content: "one", saveType: "manual" });
+    const v2 = await TextDocumentVersion.snapshot({ assetId: asset.id, userId: "u1", content: "two", saveType: "manual" });
+
+    expect(await TextDocumentVersion.deleteVersion(asset.id, v1.version)).toBe(true);
+    expect(await TextDocumentVersion.deleteVersion(asset.id, v1.version)).toBe(false);
+    expect(await TextDocumentVersion.deleteVersion(asset.id, 999)).toBe(false);
+
+    const remaining = await TextDocumentVersion.listForAsset(asset.id);
+    expect(remaining.map((v) => v.version)).toEqual([v2.version]);
+  });
 });

@@ -16,11 +16,15 @@ Embed text as a vector with Gemini embedding models on Vertex AI, billed to your
 
 ## Properties
 
-_(none)_
+| Property | Type | Description | Default |
+|----------|------|-------------|---------|
+| input | `str` | The text to embed. | `` |
 
 ## Outputs
 
-_(none)_
+| Output | Type | Description |
+|--------|------|-------------|
+| output | `list` |  |
 
 ## Related Nodes
 

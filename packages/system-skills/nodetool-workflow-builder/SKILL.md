@@ -173,15 +173,16 @@ end at `nodetool.text.Template` without a dedicated sink. For example,
 | `nodetool.audio` | `TextToSpeech`, `TextToMusic`, `LoadAudioFile`, `SaveAudio`, `AudioMixer`, `Concat`, `Trim`, `Normalize` |
 | `nodetool.video` | `TextToVideo`, `ImageToVideo`, `ReferenceToVideo`, `LoadVideoFile`, `SaveVideo`, `Concat`, `Trim`, `ExtractFrame`, `ExtractAudio`, `AddAudio`, `GetVideoInfo` |
 | `vector` | `Collection`, `IndexTextChunk`, `QueryText`, `HybridSearch`. See `nodetool-rag-indexing` |
-| `lib.*` | `lib.pdf` (text, tables, page images), `lib.image.*` (filters, color, draw), `lib.audio.*` (effects), `lib.svg`, `lib.charts.ChartRenderer`, `lib.browser.Screenshot`, `lib.sqlite.GetDatabasePath` |
+| `lib.*` | `lib.image.*` (filters, color, draw), `lib.audio.*` (effects), `lib.svg`, `lib.charts.ChartRenderer`, `lib.browser.Screenshot`, `lib.sqlite.GetDatabasePath` |
 
 `lib.http`, `lib.os`, `lib.datetime`, `lib.json`, `lib.math`, `lib.uuid`,
-`nodetool.boolean`, `nodetool.dictionary`, `nodetool.list`, `nodetool.numbers`,
-the old `nodetool.text` helpers such as `Slugify` and `Chunk`, and all `skills.*`
-nodes have been removed. Use the Code node (`nodetool.code.Code`) and its
-snippet library instead. Its body is plain JavaScript with `fetch`,
-`workspace.*` and the other globals `nodetool-js-scripting` lists. Libraries
-such as `@nodetool-ai/sandbox-dates` are imported sandbox packages, not globals.
+`lib.pdf`, `nodetool.boolean`, `nodetool.dictionary`, `nodetool.list`,
+`nodetool.numbers`, the old `nodetool.text` helpers such as `Slugify` and
+`Chunk`, and all `skills.*` nodes have been removed. Use the Code node
+(`nodetool.code.Code`) and its snippet library instead. Its body is plain
+JavaScript with `fetch`, `workspace.*` and the other globals
+`nodetool-js-scripting` lists. Libraries such as `@nodetool-ai/sandbox-dates`
+and `@nodetool-ai/sandbox-pdf` are imported sandbox packages, not globals.
 
 ### Generation nodes
 
@@ -301,7 +302,7 @@ npm run workflow -- ./workflow.json --input text='hello' --show-messages
 
 Write workflows as TypeScript with `@nodetool-ai/dsl`. Namespaces mirror node
 namespaces: `nodetool.text` is `text`, `nodetool.control` is `control`,
-`lib.pdf` is `libPdf`, `vector` is `vector`.
+`lib.svg` is `libSvg`, `vector` is `vector`.
 
 ```typescript
 import { workflow, input, text, agents, output } from "@nodetool-ai/dsl";

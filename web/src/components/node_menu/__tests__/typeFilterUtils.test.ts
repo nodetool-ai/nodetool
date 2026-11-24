@@ -246,4 +246,35 @@ describe("connection-driven filtering across `any` handles", () => {
     const result = filterTypesByInputType([intNode], makeType("image"));
     expect(result).toHaveLength(0);
   });
+
+  it("excludes constant and input nodes with empty input_fields from connectable targets", () => {
+    const docConstant = makeNode({
+      title: "Document",
+      node_type: "nodetool.constant.Document",
+      input_fields: [],
+      properties: [
+        { name: "value", type: makeType("document"), default: null, description: "", required: false }
+      ]
+    });
+    const docInput = makeNode({
+      title: "Document Input",
+      node_type: "nodetool.input.DocumentInput",
+      input_fields: [],
+      properties: [
+        { name: "value", type: makeType("document"), default: null, description: "", required: false }
+      ]
+    });
+    const saveDoc = makeNode({
+      title: "Save Document",
+      node_type: "nodetool.document.SaveDocument",
+      input_fields: ["document", "text"],
+      properties: [
+        { name: "document", type: makeType("document"), default: null, description: "", required: false }
+      ]
+    });
+    const result = filterTypesByInputType([docConstant, docInput, saveDoc], makeType("document"));
+    expect(result.map((node) => node.node_type)).toEqual([
+      "nodetool.document.SaveDocument"
+    ]);
+  });
 });

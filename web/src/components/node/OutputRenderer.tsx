@@ -62,11 +62,13 @@ import SketchRenderer from "../sketch/SketchRenderer";
 /** In-flight raw straight-alpha RGBA image format (see protocol RAW_RGBA_MIME). */
 const RAW_RGBA_MIME = "image/x-raw-rgba";
 
-const FULL_SIZE_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
+const FULL_SIZE_STYLE: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  minHeight: 0
+};
 const AUDIO_WRAPPER_STYLE: React.CSSProperties = { padding: getSpacingPx(SPACING.xl) };
 const IFRAME_STYLE: React.CSSProperties = { width: "100%", height: "100%", minHeight: 320, border: "none" };
-const IFRAME_PDF_STYLE: React.CSSProperties = { width: "100%", height: "100%", minHeight: 360, border: "none" };
-const DOCUMENT_LINK_STYLE: React.CSSProperties = { padding: getSpacingPx(SPACING.lg) };
 const MODEL_3D_WRAPPER_STYLE: React.CSSProperties = {
   width: "100%",
   height: "100%",
@@ -134,6 +136,7 @@ import {
 import { TextRenderer } from "./output/TextRenderer";
 import { BooleanRenderer } from "./output/BooleanRenderer";
 import { DatetimeRenderer } from "./output/DatetimeRenderer";
+import { DocumentRenderer } from "./output/DocumentRenderer";
 import { EmailRenderer, type Email } from "./output/EmailRenderer";
 import { ArrayRenderer } from "./output/ArrayRenderer";
 import { AssetGrid } from "./output/AssetGrid";
@@ -148,13 +151,11 @@ import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
 import {
   MAX_RENDERED_TEXT_CHARS,
   concatTextChunksSafely,
-  documentBytes,
   formatAudioChunkTimestamp,
   groupTextChunks,
   hasNestedRecordValues,
   hashStringBounded,
   htmlFromData,
-  isPdfBytes,
   stableKeyForOutputValue,
   withOccurrenceSuffix
 } from "./outputRendererModel";
@@ -292,30 +293,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     [timelineQuery.data]
   );
   const timelineSequence = inlineTimelineSequence ?? loadedTimelineSequence;
-  const documentDataPreview = useMemo(() => {
-    if (type !== "document") {
-      return { url: "", isPdf: false };
-    }
-
-    const bytes = documentBytes((value as Record<string, unknown>)?.data);
-    if (!bytes) {
-      return { url: "", isPdf: false };
-    }
-
-    const isPdf = isPdfBytes(bytes);
-    const mimeType = isPdf ? "application/pdf" : "application/octet-stream";
-    const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-    const url = URL.createObjectURL(new Blob([arrayBuffer], { type: mimeType }));
-    return { url, isPdf };
-  }, [type, value]);
-
-  useEffect(() => {
-    return () => {
-      if (documentDataPreview.url) {
-        URL.revokeObjectURL(documentDataPreview.url);
-      }
-    };
-  }, [documentDataPreview.url]);
 
   const computedViewer = useImageAssets(value);
   useRevokeBlobUrls(computedViewer.urls);
@@ -342,12 +319,13 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
   // Extract the primary URI from the current value for signing.
   // memory:// URIs are excluded — they're in-memory only and never stored.
+  // Document values resolve their own asset/URI inside DocumentRenderer.
   const valueUri = useMemo(() => {
-    if (!isRecord(value)) return undefined;
+    if (type === "document" || !isRecord(value)) return undefined;
     const v = value;
     if (isStoredUri(v.uri)) return v.uri;
     return undefined;
-  }, [value]);
+  }, [type, value]);
   const signedValueUrl = useSignedUrl(valueUri);
 
   const renderContent = useMemo(() => {
@@ -464,40 +442,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           />
         );
       }
-      case "document": {
-        const rawUri = isString(v.uri) ? v.uri : "";
-        const uriFromRef =
-          rawUri && !rawUri.startsWith("memory://") ? signedValueUrl : "";
-        const uri = uriFromRef || documentDataPreview.url;
-        const mimeType = uriFromRef ? getMimeTypeFromUri(uriFromRef) : undefined;
-        const isPdf =
-          documentDataPreview.isPdf ||
-          mimeType === "application/pdf" ||
-          rawUri.toLowerCase().endsWith(".pdf") ||
-          uri.toLowerCase().endsWith(".pdf");
-
-        if (uri && isPdf) {
-          return (
-            <iframe
-              src={uri}
-              style={IFRAME_PDF_STYLE}
-              title={t("output.pdfOutput")}
-            />
-          );
-        }
-
-        if (uri) {
-          return (
-            <div className="output value" style={DOCUMENT_LINK_STYLE}>
-              <a href={uri} target="_blank" rel="noreferrer">
-                {t("output.openDocument")}
-              </a>
-            </div>
-          );
-        }
-
-        return <JSONRenderer value={v} showActions={showTextActions} />;
-      }
+      case "document":
+        return <DocumentRenderer value={v} showActions={showTextActions} />;
       case "video":
         return (
           <video
@@ -802,7 +748,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             }
             if (
               isString(first.type) &&
-              ["audio", "video", "html", "sketch"].includes(first.type)
+              ["audio", "video", "html", "sketch", "document"].includes(first.type)
             ) {
               const seen = new Map<string, number>();
               return (
@@ -909,7 +855,6 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     value,
     type,
     signedValueUrl,
-    documentDataPreview,
     onDoubleClickAsset,
     videoRef,
     handleMouseDown,
@@ -925,7 +870,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     shouldLoadTimeline,
     timelineQuery.error,
     timelineQuery.isError,
-    timelineQuery.isLoading
+    timelineQuery.isLoading,
+    t
   ]);
 
   const handleCloseAsset = useCallback(() => {

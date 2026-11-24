@@ -14,6 +14,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { GOOGLE_CAPABILITIES } from "../src/capabilities/google.js";
 import {
+  exportGoogleDocSpec,
+  importGoogleDocSpec
+} from "../src/capabilities/text-documents.specs.js";
+import {
   capabilityCategoryFor,
   capabilityModuleDrift,
   loadCapabilityModule
@@ -67,16 +71,21 @@ describe("the google capability module", () => {
     }
   });
 
-  it("leaves the deprecated classes with the surface they had", () => {
+  it("exposes every google capability plus Google Docs import and export with matching specs", () => {
+    const expectedSpecs = [
+      ...GOOGLE_CAPABILITIES.map((entry) => entry.spec),
+      importGoogleDocSpec,
+      exportGoogleDocSpec
+    ];
     const tools = new Map(getGoogleWorkspaceTools().map((t) => [t.name, t]));
-    expect(tools.size).toBe(GOOGLE_CAPABILITIES.length);
-    for (const entry of GOOGLE_CAPABILITIES) {
-      const tool = tools.get(entry.spec.name);
+    expect(tools.size).toBe(expectedSpecs.length);
+    for (const spec of expectedSpecs) {
+      const tool = tools.get(spec.name);
       expect(tool).toBeDefined();
-      expect(tool?.description).toBe(entry.spec.description);
-      expect(tool?.inputSchema).toEqual(entry.spec.inputSchema);
+      expect(tool?.description).toBe(spec.description);
+      expect(tool?.inputSchema).toEqual(spec.inputSchema);
       expect(tool?.userMessage({ query: "q", name: "n", title: "t" })).toBe(
-        entry.spec.userMessage?.({ query: "q", name: "n", title: "t" })
+        spec.userMessage?.({ query: "q", name: "n", title: "t" })
       );
     }
   });

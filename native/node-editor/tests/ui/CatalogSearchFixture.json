@@ -2141,48 +2141,6 @@
    "description": "Changes the speed of an audio file without altering its pitch.\n    audio, transform, time\n\n    Use cases:\n    - Adjust audio duration to fit video length\n    - Create slow-motion or fast-motion audio effects\n    - Synchronize audio tracks of different lengths"
   },
   {
-   "node_type": "lib.pdf.ExtractText",
-   "title": "PDF Extract Text",
-   "namespace": "lib.pdf",
-   "description": "Extract plain text from a PDF, preserving line breaks based on layout position.\n    pdf, text, extract, read, content"
-  },
-  {
-   "node_type": "lib.pdf.ExtractMarkdown",
-   "title": "PDF to Markdown",
-   "namespace": "lib.pdf",
-   "description": "Convert PDF to Markdown, inferring headings from font size.\n    pdf, markdown, convert, headings, structure"
-  },
-  {
-   "node_type": "lib.pdf.ExtractTables",
-   "title": "PDF Extract Tables",
-   "namespace": "lib.pdf",
-   "description": "Detect and extract tables from a PDF by analysing text layout.\n    pdf, tables, extract, data, rows, columns"
-  },
-  {
-   "node_type": "lib.pdf.ExtractStyledText",
-   "title": "PDF Extract Styled Text",
-   "namespace": "lib.pdf",
-   "description": "Extract text spans with font name, size, bounding box, and color (always null; liteparse does not expose per-span color).\n    pdf, text, style, font, size, formatting, color"
-  },
-  {
-   "node_type": "lib.pdf.Screenshot",
-   "title": "PDF Page Screenshot",
-   "namespace": "lib.pdf",
-   "description": "Render PDF pages as PNG images.\n    pdf, screenshot, render, image, pages, png"
-  },
-  {
-   "node_type": "lib.pdf.Pdftoppm",
-   "title": "PDF Rasterize",
-   "namespace": "lib.pdf",
-   "description": "Rasterize PDF pages to PNG, JPEG or TIFF images at a DPI or a target size.\n    pdf, pdftoppm, rasterize, render, image, pages, jpeg, tiff"
-  },
-  {
-   "node_type": "lib.pdf.ExtractOcr",
-   "title": "PDF Extract Text (OCR)",
-   "namespace": "lib.pdf",
-   "description": "Extract text from a PDF using OCR, suitable for scanned documents and image-based PDFs.\n    pdf, ocr, scan, text, extract, image-based"
-  },
-  {
    "node_type": "kie.dynamic_schema.KieAI",
    "title": "Kie AI",
    "namespace": "kie.dynamic_schema",

@@ -19,6 +19,7 @@ import { Graph, Workflow } from "../../stores/ApiTypes";
 import { shallow } from "zustand/shallow";
 import { getLocalFilePath, pathToFileUri } from "../../utils/localFile";
 import { readImportedWorkflow } from "../../utils/readImportedWorkflow";
+import { projectDocumentValue } from "../../components/properties/ProjectDocumentSelect";
 
 export type FileHandlerResult = {
   success: boolean;
@@ -85,6 +86,9 @@ export const useFileHandlers = () => {
               asset_id: null,
               temp_id: null
             };
+      if (assetType === "document" && file.name) {
+        newNode.data.title = file.name;
+      }
       addNode(newNode);
       return { success: true };
     },
@@ -145,12 +149,20 @@ export const useFileHandlers = () => {
         newNode.data.properties.value =
           assetType === "text"
             ? await file.text()
-            : {
-                type: assetType,
-                uri: uploadedAsset.get_url,
-                asset_id: uploadedAsset.id,
-                temp_id: null
-              };
+            : assetType === "document"
+              ? projectDocumentValue(uploadedAsset.id)
+              : {
+                  type: assetType,
+                  uri: uploadedAsset.get_url,
+                  asset_id: uploadedAsset.id,
+                  temp_id: null
+                };
+        if (assetType === "document") {
+          const title = uploadedAsset.name || file.name;
+          if (title) {
+            newNode.data.title = title;
+          }
+        }
         addNode(newNode);
 
         return { success: true };

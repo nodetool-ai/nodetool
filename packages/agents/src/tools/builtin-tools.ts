@@ -285,7 +285,19 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "extract_pdf_tables",
   "convert_pdf_to_markdown",
   "convert_markdown_to_pdf",
-  "convert_document"
+  "convert_document",
+
+  // Markdown documents (create, read, edit, version, import/export without an editor)
+  "create_document",
+  "read_document",
+  "edit_document",
+  "list_document_versions",
+  "create_document_version",
+  "rename_document_version",
+  "delete_document_version",
+  "restore_document_version",
+  "import_document",
+  "export_document"
 ];
 
 /**

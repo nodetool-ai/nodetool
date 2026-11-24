@@ -17,14 +17,18 @@ import {
 } from "@nodetool-ai/models";
 import {
   TextDocumentError,
+  deleteTextDocumentVersion,
   readTextDocument,
   recordTextDocumentVersion,
+  renameTextDocumentVersion,
   requireTextDocument,
   restoreTextDocumentVersion
 } from "@nodetool-ai/asset-services/text-documents";
 import {
   createTextDocumentVersionInput,
   createTextDocumentVersionOutput,
+  deleteTextDocumentVersionInput,
+  deleteTextDocumentVersionOutput,
   exportGoogleDocInput,
   exportGoogleDocOutput,
   exportTextDocumentInput,
@@ -34,6 +38,8 @@ import {
   getTextDocumentVersionInput,
   getTextDocumentVersionOutput,
   listTextDocumentVersionsOutput,
+  renameTextDocumentVersionInput,
+  renameTextDocumentVersionOutput,
   restoreTextDocumentVersionInput,
   restoreTextDocumentVersionOutput,
   textDocumentReferencesOutput,
@@ -140,9 +146,12 @@ export const textDocumentsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const asset = await loadDocument(ctx.userId, input.asset_id);
       const content = await readTextDocument(asset);
-      if (input.save_type === "autosave") {
-        // An interval version of unchanged content would only fill the list.
-        const [newest] = await TextDocumentVersion.listForAsset(asset.id);
+      const shouldDedupAutomatic =
+        input.save_type === "autosave" ||
+        (input.save_type === "agent_turn" && !input.name?.trim());
+      if (shouldDedupAutomatic) {
+        // Automatic checkpoints with unchanged content would only stack duplicates.
+        const [newest] = await TextDocumentVersion.listForAsset(asset.id, { limit: 1 });
         if (newest?.content_hash === textDocumentContentHash(content)) {
           return { version: null };
         }
@@ -156,17 +165,57 @@ export const textDocumentsRouter = router({
       return { version: versionResponse(version) };
     }),
 
+  renameVersion: protectedProcedure
+    .input(renameTextDocumentVersionInput)
+    .output(renameTextDocumentVersionOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      try {
+        const updated = await renameTextDocumentVersion(
+          asset,
+          input.version,
+          input.name
+        );
+        return { version: versionResponse(updated) };
+      } catch (error) {
+        if (error instanceof TextDocumentError) {
+          throwApiError(ApiErrorCode.NOT_FOUND, error.message);
+        }
+        throw error;
+      }
+    }),
+
+  deleteVersion: protectedProcedure
+    .input(deleteTextDocumentVersionInput)
+    .output(deleteTextDocumentVersionOutput)
+    .mutation(async ({ ctx, input }) => {
+      const asset = await loadDocument(ctx.userId, input.asset_id);
+      try {
+        await deleteTextDocumentVersion(asset, input.version);
+        return { deleted_version: input.version };
+      } catch (error) {
+        if (error instanceof TextDocumentError) {
+          throwApiError(ApiErrorCode.NOT_FOUND, error.message);
+        }
+        throw error;
+      }
+    }),
+
   restore: protectedProcedure
     .input(restoreTextDocumentVersionInput)
     .output(restoreTextDocumentVersionOutput)
     .mutation(async ({ ctx, input }) => {
       const asset = await loadDocument(ctx.userId, input.asset_id);
       try {
-        const { asset: saved, restored } = await restoreTextDocumentVersion(
+        const { asset: saved, restored, latest } = await restoreTextDocumentVersion(
           asset,
           input.version
         );
-        return { restored_version: restored.version, updated_at: saved.updated_at };
+        return {
+          restored_version: restored.version,
+          updated_at: saved.updated_at,
+          latest_version: latest.version
+        };
       } catch (error) {
         if (error instanceof TextDocumentError) {
           throwApiError(ApiErrorCode.NOT_FOUND, error.message);
@@ -192,7 +241,14 @@ export const textDocumentsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const asset = await loadDocument(ctx.userId, input.asset_id);
       const { exportDocumentFile } = await transfer();
-      return fileResponse(await transferring(() => exportDocumentFile(asset, input.format)));
+      return fileResponse(
+        await transferring(() =>
+          exportDocumentFile(asset, input.format, {
+            directory: input.directory,
+            name: input.name
+          })
+        )
+      );
     }),
 
   importGoogleDoc: protectedProcedure

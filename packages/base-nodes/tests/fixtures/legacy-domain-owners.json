@@ -210,14 +210,7 @@
   "document": [
     "nodetool.document.LoadDocumentFile",
     "nodetool.document.SaveDocument",
-    "nodetool.document.ListDocuments",
-    "lib.pdf.ExtractText",
-    "lib.pdf.ExtractMarkdown",
-    "lib.pdf.ExtractTables",
-    "lib.pdf.ExtractStyledText",
-    "lib.pdf.Screenshot",
-    "lib.pdf.Pdftoppm",
-    "lib.pdf.ExtractOcr"
+    "nodetool.document.ListDocuments"
   ],
   "data": [
     "nodetool.data.ForEachRow",
