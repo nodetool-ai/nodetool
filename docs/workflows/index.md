@@ -48,6 +48,8 @@ into two groups.
 | Brand & Social | An agent reads your website and fills in your brand. |
 | Photo Studio | A live photo editor and a batch retoucher. |
 | Vary Image | Change one thing in an image, such as lighting or pose, and keep the rest. |
+| Catalog Motion | Upload a product catalog as CSV and each product's own photo becomes a short video. |
+| Catalog Motion with References | The same, with a background and a decoration image you add once for the whole catalog. |
 | Model Arena | Three models answer side by side, and a judge model scores them. |
 
 **Ad formats** are sixteen apps that each build an editable 8 to 15 second
@@ -75,7 +77,7 @@ shows a real run.
 ## Workflows
 
 The **Workflows** tab lists graph templates by category: Image, Video, Audio,
-Multimodal, Agents, and Data & Web. The showcase graphs below have their own
+Multimodal, Agents, and Data & web. The showcase graphs below have their own
 walkthroughs.
 
 | Workflow | Walkthrough |
@@ -158,6 +160,9 @@ the model into your project and opens it in the
 | Neon Drift | A neon arena shooter |
 | AETHER // Skybound | A platform climb across floating islands |
 | BLACKSITE | A first-person mission through a reactor facility |
+| RIDGELINE | A jet flight through 13 gates along a river canyon |
+| Signal Forge | A 3D run through an industrial relay to restore its reactor beacon |
+| Sunrush Kart | A three-lap kart race against five rivals |
 
 The [game development page](https://nodetool.ai/gamedev) shows Kindle,
 Lumen, and Neon Drift. See
