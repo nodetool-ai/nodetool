@@ -1,49 +1,37 @@
 ---
 layout: page
-title: "Retained Construction and Overrides"
+title: "Rebuilding Generated Games"
 permalink: /game-engine/construction
-description: "Rebuild generated games while preserving deliberate manual changes."
+description: "Change a parameter of a generated game, preview the rebuild, and apply it while your manual edits are kept."
 ---
 
-Retained construction stores the program and inputs that produced a game. Change a parameter, preview the resulting document, and apply the rebuild while recorded manual overrides stay.
-
-```js
-import { constructGame, saveGame } from "@nodetool-ai/sandbox-game";
-const bundle = constructGame({ seed: 17, inputs: { speed: 4 } }, (inputs, builder) => {
-  const speed = builder.parameter("speed", { type: "number", default: 4, min: 1, max: 10 });
-  const document = builder.game();
-  builder.prefab("marker", builder.entity("definition", 0, 0));
-  builder.instance(document.scenes[0], "north-marker", "marker", {
-    transform2d: { x: speed, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }
-  });
-  return document;
-});
-```
+When the agent generates a game from a program and inputs, the game editor keeps that program with the game. You can change an input, preview the rebuilt game, and apply it. Edits you made by hand stay in place.
 
 ![Diagram of a draft, construction preview, reviewed apply, and separate publication](/assets/game-engine/authoring-flow.svg)
 
-*Preview does not save. Apply checks the accepted preview against the current draft. Publishing is a separate step.*
+*Preview does not change the draft. Applying the rebuild is separate from publishing.*
 
-## Construct with stable identity
+A game you built by hand has no construction program, and the section described here does not appear for it.
 
-`constructGame` returns a construction bundle for `saveGame`. The callback receives explicit inputs and cannot close over outside variables. Give generated objects and prefab instances explicit keys. Names and construction order do not define their identity.
+## Rebuild a game
 
-Retained metadata records the program, inputs, seed, generated baseline, parameter schemas, and prefab relationships. The resulting document still uses the ordinary 2D or 3D schema. A hand-authored document does not need construction metadata.
+1. Open the **Retained construction** section in the game editor.
+2. Edit **Construction inputs (JSON)**, for example change a speed or a count. You can also edit **Construction source**.
+3. Choose **Preview rebuild**. The section lists the changed entities, the changed dependencies, and whether you must restart play to use the result.
+4. Choose **Highlight changes** to select the affected entities in the viewport.
+5. Choose **Apply rebuild**, or **Discard preview** to throw the preview away.
 
-## Review a rebuild
+**Apply rebuild** stays disabled while the preview has conflicts. If you edit the draft after previewing, the editor shows "The draft changed. Preview the rebuild again." and you preview again. Applying does not publish the game.
 
-Open **Retained construction**, change source or inputs, and choose **Preview rebuild**. Review changed entities, dependencies, conflicts, and whether play must restart. **Highlight changes** selects affected entities in the viewport. Apply is disabled for stale previews and unresolved conflicts.
+An open play session keeps the game it started with. Restart play to use the rebuild.
 
-The API exposes the same sequence through `nodetool.games.previewAuthoring` and `applyAuthoring`. Apply rebakes and compares the candidate, then checks that the draft timestamp and digest still match. It does not publish the result.
+## What happens to your manual edits
 
-## Preserve manual work
+- Moving or changing a generated entity is remembered as your edit. A later rebuild can change another field of that entity and your change stays.
+- Deleting a generated entity keeps it deleted after a rebuild. The section lists it as **Suppressed** with a **Restore** button.
 
-Moving a generated entity records a property override. A later generated scale change can still apply while the manual position remains. Deleting a generated object records suppression. Detaching transfers it out of generated ownership. Resetting an override returns that field to construction control.
+A rebuild conflicts with your edits when it removes an entity you changed or referenced, or when it creates an entity with an ID you used manually. Resolve the conflict before you apply.
 
-Removing an overridden or referenced object, colliding with a manual ID, or making competing scene-setting changes creates a conflict. Resolve the ownership decision instead of blindly replacing the draft. Behavior arrays are atomic override values.
+If you edit the game while the rebuild is being applied, a dialog titled **Resolve edits made during rebuild** lists the edits that conflict. For each one choose **Keep ... detached** to keep your entity outside the program, or **Discard edits made during rebuild**.
 
-Rebuild programs cannot use network, media storage, secrets, workspace access, or host modules. Prepare resources before construction and pass accepted bindings as inputs. Use the builder's seeded random source for reproducible placement.
-
-An active play session keeps its accepted document and assets. Restart to adopt a rebuild. Runtime spawning, collection, and death never become authored entities automatically.
-
-The [retained-authoring reference](https://github.com/nodetool-ai/nodetool/blob/main/docs/game-retained-authoring.md) documents ownership operations and the delivery proof. The [builder reference](https://github.com/nodetool-ai/nodetool/blob/main/packages/sandbox-packs/sandbox-game/SKILL.md) contains its callable API.
+To write the construction program yourself, see the [Game Construction API](/developer/game-construction).
