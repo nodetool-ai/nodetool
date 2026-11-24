@@ -4,9 +4,9 @@ title: "Models & Providers"
 description: "Model catalog by task type (text, image, video, audio, 3D, embeddings) with the provider that serves each, local or cloud."
 ---
 
-Provider setup is in [Providers](providers.md), local models are in [Supported Models](models.md), and the download panel is in [Models Manager](models-manager.md).
+This page lists which models exist for each task. Keys and setup for each provider are in [Providers](providers.md). Models that run on your computer are in [Local Models](models.md), and the download panel is in [Models Manager](models-manager.md).
 
-> **Runs:** locally or cloud, chosen per node. **Needs:** a provider key for cloud models (secret names in [Providers](providers.md)), nothing for local engines. **Hardware:** local models need disk space and a GPU or Apple Silicon. Sizes depend on the model, so check the download size in the Model Manager.
+> **Runs:** on your computer or in the cloud, chosen per node. **Needs:** a provider key for cloud models (see [Providers](providers.md)), nothing for local models. **Hardware:** local models need disk space and ideally a GPU or an Apple Silicon Mac. Check each model's download size in the Models Manager.
 {: .callout-note}
 
 ## Local vs. cloud
@@ -14,7 +14,7 @@ Provider setup is in [Providers](providers.md), local models are in [Supported M
 | | Local | Cloud (bring your own key) |
 |---|---|---|
 | Data | Stays on your disk | Sent to the provider |
-| Cost | Free after download | Billed by the provider at its price, no NodeTool markup |
+| Cost | Free after download | Billed by the provider at its own price, with no NodeTool markup |
 | Network | Works offline | Needs internet |
 | Models | What you downloaded | Latest provider releases |
 
@@ -22,19 +22,17 @@ Provider setup is in [Providers](providers.md), local models are in [Supported M
 
 Missing key, rejected key, rate limit, and insufficient balance errors are described under [Providers: If it fails](providers.md#if-it-fails). Add keys in **Settings → Models & Providers**.
 
-- **Local model not downloaded:** download it in the [Models Manager](models-manager.md) before running.
+- **Local model not downloaded:** download it in the [Models Manager](models-manager.md) before running. See [Local Models](models.md) for what runs on your machine.
 
 ---
 
 ## Cloud models
 
-Add a key in **Settings → Models & Providers** and that provider's models appear in the node's model dropdown. Most chat providers fetch their list live from the provider's API. A few use fixed lists, such as kie.ai's chat gateway and Meta AI's offline fallback. Image, video, audio, and 3D models come from lists that ship with NodeTool and grow with each release. Model names below are examples.
+Add a key in **Settings → Models & Providers** and that provider's models appear in the node's model dropdown. Chat model lists usually come straight from the provider, so new releases show up without an update. Image, video, audio, and 3D model lists ship with NodeTool and grow with each release. Model names below are examples. The secret each provider needs is in [Providers](providers.md).
 
 ### Text & chat models (LLMs)
 
-Most people need one row from the first table. The other tables are for
-running models on your own computer, reaching many companies' models through
-one key, or using a subscription you already pay for.
+Most people need one row from the first table. The other tables are for running models on your own computer, reaching many companies' models through one key, or using a subscription you already pay for.
 
 **Direct providers.** The company that makes the models also serves them.
 
@@ -74,7 +72,7 @@ one key, or using a subscription you already pay for.
 | FAL | The OpenRouter catalog, on your FAL key |
 
 **Open-model hosts.** These companies serve models that anyone can download, on
-their own fast hardware.
+their own servers.
 
 | Provider | Models |
 |---|---|
@@ -92,7 +90,7 @@ against the plan you already pay for.
 | Codex | GPT chat models, with your ChatGPT sign-in |
 | Claude | Claude models, through Claude Code installed on your computer and your Claude plan |
 
-Reasoning, tool calling, and vision input are exposed where the provider supports them. For local text generation, see [Supported Models](models.md#local-inference-engines) (Ollama, llama.cpp, MLX, Transformers.js).
+Reasoning, tool calling, and vision input are available where the provider supports them. For local text generation, see [Local Models](models.md#local-inference-engines).
 
 ### Models for agents
 
@@ -100,12 +98,12 @@ An agent calls NodeTool's tools on every step, so its model must support tool ca
 
 | Label | Meaning |
 |---|---|
-| No tools | The provider says the model can't call tools. Agents can't use it. For OpenRouter this comes from `supported_parameters` in its model list. |
+| No tools | The provider says the model can't call tools, so agents can't use it. |
 | Free tier | An OpenRouter `:free` route. OpenRouter [limits free models](https://openrouter.ai/docs/api-reference/limits) to 20 requests a minute, and to 50 a day on an account that has bought fewer than 10 credits. An agent run makes a request per step, so a long run often stalls or fails. The paid route of the same model is not under these limits. |
 | Agent default | A model NodeTool uses by default for agent work: Claude Sonnet 5, GPT-5.4 mini and GPT-5 mini. |
 | No label | NodeTool has no information either way. The model may work. |
 
-No per-task results are published yet. The labels do not say which model is best for text, image or video work. To measure a model on NodeTool's agent tasks, run the [agent evals](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/evals.md) with `nodetool eval <suite> -p <provider> -m <model>`.
+The labels say whether a model can run an agent. They do not say which model is best for text, image, or video work.
 
 ### Image generation models
 
@@ -218,7 +216,7 @@ Generate 3D models with the **Text To 3D** and **Image To 3D** nodes.
 | **Meshy AI** | Meshy (`MESHY_API_KEY`) | T2M/I2M | Textured mesh generation |
 | **Rodin AI** | Rodin (`RODIN_API_KEY`) | T2M/I2M | High-fidelity 3D creation |
 
-AtlasCloud also lists 3D models. Open 3D families such as Hunyuan3D and Trellis run through provider-specific FAL and Replicate nodes, not the generic nodes. See [Providers](providers.md) for details.
+AtlasCloud also lists 3D models. Open 3D families such as Hunyuan3D and Trellis run through provider-specific FAL and Replicate nodes, not the generic nodes. See [Providers](providers.md#media-specialists) for the providers.
 
 ### Embedding models
 
@@ -233,12 +231,12 @@ Embedding models turn text into numbers so that [collections](collections.md) ca
 | Voyage AI | voyage-3.5 and the Voyage line |
 | Jina AI | jina-embeddings-v3 |
 | Together AI | m2-bert, BGE, and other open embedding models |
-| Ollama · llama.cpp local · Transformers.js | Embedding models that run on your machine with no key (Transformers.js downloads ONNX models on first use) |
+| Ollama · llama.cpp local · Transformers.js | Embedding models that run on your machine with no key (Transformers.js downloads its models on first use) |
 | vLLM · OpenRouter · Replicate · HuggingFace | Any embedding model the server or provider lists |
 
 ### Using these models
 
-Music uses the kie.ai Suno nodes (Generate Music, Extend Music, Upload And Cover Audio, Add Vocals, and others). kie.ai (`KIE_API_KEY`) and fal.ai (`FAL_API_KEY`) carry many of the models above. Cloud models charge per generation.
+Music uses the kie.ai Suno nodes (Generate Music, Extend Music, Upload And Cover Audio, Add Vocals, and others). kie.ai and fal.ai carry many of the models above under one key each. Cloud models charge per generation.
 
 ---
 
@@ -251,8 +249,9 @@ Music uses the kie.ai Suno nodes (Generate Music, Extend Music, Upload And Cover
 ---
 ## Detailed Guides
 
-- **[Providers Guide](providers.md)**: set up OpenAI, Anthropic, Google
-- **[HuggingFace Integration](huggingface.md)**: access 500,000+ models
+- **[Providers](providers.md)**: which key each provider needs and what it offers
+- **[Local Models](models.md)**: engines that run on your machine
+- **[HuggingFace Integration](huggingface.md)**: models from the Hugging Face Hub
 - **[ComfyUI](comfyui.md)**: run an exported ComfyUI workflow as a node, locally, on a GPU worker, or on Comfy Cloud
 - **[Self-Hosted Deployment](self-hosted-deployment.md)**: secure deployments
 - **[Deployment Guide](deployment.md)**: cloud infrastructure

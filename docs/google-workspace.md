@@ -2,89 +2,55 @@
 layout: page
 title: "Google Workspace"
 permalink: /google-workspace
-description: "Connect a Google account so agents and Code nodes can use Drive, Gmail, Docs, Sheets and Calendar."
+description: "Connect a Google account so the agent can search Drive, read and send Gmail, edit Docs and Sheets, and manage Calendar."
 ---
 
-Google Workspace signs in with your Google account and gives agents 20 tools (`google_*` and `gmail_*`) for Drive, Gmail, Docs, Sheets and Calendar.
+Connect a Google account and the agent can work in your Drive, Gmail, Docs, Sheets and Calendar. You ask in chat, for example "Summarize the unread mail from this week" or "Add tomorrow's shoot to my calendar."
 
-> **Runs:** cloud (Google's APIs). **Needs:** a Google account and an install with a login. A server running Workspace also needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+> **Runs:** cloud, on Google's services. **Needs:** a NodeTool account you sign in to, and a Google account. There is no API key to paste.
 {: .callout-note}
 
-## Which installs have Google Workspace
-
-The integration authenticates with the Google access token that a Supabase Google login returns. There is no API key to paste. A local install has no login, so the tools and the connect card are hidden there.
-
-| Install | Google Workspace |
-|---|---|
-| Supabase auth mode (hosted, or a server with `SUPABASE_URL` and `SUPABASE_KEY` set) | On |
-| Local mode, no login | Off |
-| Local server pointed at a hosted Supabase project | Off until you set `NODETOOL_GOOGLE_WORKSPACE=1` |
-
-`NODETOOL_GOOGLE_WORKSPACE` accepts `1` or `true` to force the integration on and `0` or `false` to force it off. When it is unset, the server follows its auth mode. See [Environment Variables](environment-variables.md) and [Authentication](authentication.md).
-
-A server that runs the integration also needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, the same OAuth client you configured for the Google provider in Supabase. Supabase does not refresh Google tokens, so without these the connection stops working about an hour after you connect.
+Google Workspace needs a login, because the connection is stored with your NodeTool account. A desktop install without a login does not show it. A self-hosted server with a login needs a Google OAuth client first. See [Integrations on Your Server](integrations-hosting.md#google-workspace).
 
 ## Connect a Google account
 
-1. Open **Settings** and go to **Models & providers**.
-2. Find the **Google Workspace** card at the top. It shows a **Not connected** chip.
-3. Click **Connect**. NodeTool sends you to Google's consent screen.
-4. Approve the requested access. Google returns you to NodeTool, and the card shows **Connected** with the account name.
+1. Open **Settings → Models & providers**. The **Google Workspace** card sits above the provider list and shows **Not connected**.
+2. Click **Connect**. Google's consent screen opens.
+3. Approve the access NodeTool asks for. Google sends you back, and the card shows **Connected** with your account name.
 
-Connecting is a separate step from signing in. Gmail and Drive are restricted Google scopes, so the login screen asks for identity only. You grant Workspace access when you click **Connect**.
+Signing in with Google and connecting Google Workspace are separate steps. The login asks only who you are. Access to Drive, Gmail, Docs, Sheets and Calendar is granted when you click **Connect**.
 
-The consent screen requests these scopes:
+## What the agent can do
 
-| Scope | Used for |
+| App | The agent can |
 |---|---|
-| `drive` | Drive search, read, and file creation |
-| `gmail.modify` | Reading Gmail, changing labels |
-| `gmail.send` | Sending email |
-| `documents` | Google Docs |
-| `spreadsheets` | Google Sheets |
-| `calendar` | Google Calendar |
+| Drive | Search files, read a file's details, read a file as text (Docs, Sheets and Slides come back as text or CSV), create a text file in a folder |
+| Gmail | Search mail with Gmail search terms such as `from:alice@example.com is:unread newer_than:7d`, read a message, send a plain-text email with cc and bcc, add or remove labels to archive or mark as read |
+| Docs | Read a document, create one, append text to the end |
+| Sheets | Read a range such as `Sheet1!A1:D50`, append rows, overwrite a range, create a spreadsheet |
+| Calendar | List your calendars, list upcoming events, create an event with attendees, delete an event. Your primary calendar unless you name another |
 
-The server stores the token as an OAuth credential for your account, one per Google account. Token status routes return metadata only and never the token itself.
+Every Google action, reading included, reaches your real account. In the *Default* [permission mode](global-chat.md#permission-modes), NodeTool asks before each one. In *Auto* it runs them without asking. Workflows can use the same tools through a Code node. See [Categorize Mails](workflows/categorize-mails.md) for an example.
 
-If a tool reports `No Google account connected`, the credential is missing or has expired. Click **Connect** again.
+## Things to try
 
-## What agents can do
-
-The tools are available to the chat agent and to the MCP agent tools on servers where the integration is on. Code nodes and code actions call them as functions of the `google` module, for example `gmail_search` from `@nodetool-ai/sandbox-nodetool/google`. See [Categorize Mails](workflows/categorize-mails.md) for a workflow that does this.
-
-Every tool belongs to the `external` permission category because each one acts on a third-party service. A failure comes back as an `error` result, not a thrown exception, so an agent can reconnect or try another file and continue.
-
-### Tool list
-
-| Tool | What it does |
-|---|---|
-| `google_drive_search` | Search Drive with a plain phrase or Drive query syntax. Up to 100 files |
-| `google_drive_get_file` | Get name, MIME type, size, owners and link for a file |
-| `google_drive_read_file` | Read a file as text. Docs, Sheets and Slides export to plain text or CSV |
-| `google_drive_create_file` | Create a text file, optionally in a folder (default is the My Drive root) |
-| `gmail_search` | Search with Gmail query syntax such as `from:alice@example.com is:unread newer_than:7d`. Up to 50 messages with subject, sender, date and body |
-| `gmail_get_message` | Fetch one message by id |
-| `gmail_send_message` | Send a plain-text email with `to`, `subject`, `body`, optional `cc` and `bcc` |
-| `gmail_modify_labels` | Add or remove labels on a message. Remove `INBOX` to archive and `UNREAD` to mark read |
-| `gmail_list_labels` | List label ids and names |
-| `google_docs_read` | Read a document's title and text |
-| `google_docs_create` | Create a document, optionally with starting text. Returns the id and URL |
-| `google_docs_append` | Append text to the end of a document |
-| `google_sheets_read` | Read an A1 range such as `Sheet1!A1:D50` |
-| `google_sheets_append` | Append rows below the last populated row of a range |
-| `google_sheets_update` | Overwrite a range with new values |
-| `google_sheets_create` | Create a spreadsheet, optionally seeded with rows from A1. Returns the id and URL |
-| `google_calendar_list_calendars` | List calendar ids and names |
-| `google_calendar_list_events` | List events in a time window, soonest first. Times are RFC3339 and the start defaults to now. Up to 250 events |
-| `google_calendar_create_event` | Create an event with a summary, start, end, and optional description, location and attendees |
-| `google_calendar_delete_event` | Delete an event by id |
-
-Calendar tools use your primary calendar unless you pass a `calendar_id`.
+- "Find the latest invoice PDF in my Drive and tell me the total."
+- "Draft a reply to Alice's last email and send it after I confirm."
+- "Append today's render costs to the Budget sheet."
+- "What's on my calendar Thursday? Block 2–4 pm for color grading."
 
 ## Disconnect
 
-Click **Disconnect** on the Google Workspace card. NodeTool deletes your stored Google credentials from the server and shows "Disconnected Google Workspace. Use Connect to restore access." The Google tools then return `No Google account connected` until you connect again.
+Click **Disconnect** on the Google Workspace card. NodeTool deletes the stored Google connection and shows "Disconnected Google Workspace. Use Connect to restore access."
 
-Disconnecting removes the credential on the NodeTool server only. To revoke the grant on Google's side, remove NodeTool from your Google account's third-party access page.
+This removes the connection from NodeTool only. To revoke access on Google's side as well, remove NodeTool from your Google account's third-party access page.
 
-For the HTTP routes behind the card (`/api/oauth/google/*`) see [API Reference](api-reference.md).
+## When something goes wrong
+
+| What you see | What to do |
+|---|---|
+| The agent says "No Google account connected" | The connection is missing or expired. Click **Connect** again. |
+| The Google Workspace card is missing | This install has no login, or the server has Google Workspace turned off. Ask your admin, or see [Integrations on Your Server](integrations-hosting.md#google-workspace). |
+| The connection stops working after about an hour | The server is missing its Google OAuth client. See [Integrations on Your Server](integrations-hosting.md#google-workspace). |
+
+The tool names and how to call them from code are in [Integration Tools](developer/integration-tools.md#google-workspace).

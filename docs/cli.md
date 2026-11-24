@@ -2596,7 +2596,7 @@ get to postpone.
 - `--token-policy <generate|fixed>` — default `generate`.
 - `--profile <name>` / `--attach` — for `create`.
 - `--comfy [port]` — run an unmodified ComfyUI image on RunPod and publish this
-  port (default `8188`). See [ComfyUI setup](comfyui-setup.md#expose-comfyui-yourself).
+  port (default `8188`). See [ComfyUI setup](worker-deployment.md#expose-comfyui-yourself).
 - `--template <id>` — with `--comfy`, use a RunPod template instead of `--image`.
 - `--ready-timeout <minutes>` — for `create` with `--comfy`: how long to wait for
   ComfyUI (default `10`).

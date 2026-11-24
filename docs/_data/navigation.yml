@@ -156,7 +156,7 @@
   pages:
     - title: "Overview"
       url: "/models-and-providers"
-    - title: "Local vs Cloud"
+    - title: "Local Models"
       url: "/models"
     - title: "Provider Reference"
       url: "/providers"
@@ -242,8 +242,12 @@
       url: "/docker-resource-management"
     - title: "Worker Deployment"
       url: "/worker-deployment"
+    - title: "Wan2GP Server"
+      url: "/wan2gp-server"
     - title: "Supabase"
       url: "/supabase-deployment"
+    - title: "Integrations on Your Server"
+      url: "/integrations-hosting"
 - id: cli
   title: "CLI"
   pages:
@@ -315,6 +319,10 @@
       url: "/developer/workflow-examples"
     - title: "Preset Catalog Reference"
       url: "/developer/presets"
+    - title: "Integration Tools"
+      url: "/developer/integration-tools"
+    - title: "ComfyUI from Code"
+      url: "/developer/comfyui"
     - title: "Timeline Motion Design"
       url: "/timeline-motion-design"
     - title: "Custom Animations"

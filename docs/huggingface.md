@@ -6,23 +6,29 @@ description: "How NodeTool uses Hugging Face: the hosted Inference Providers nod
 
 # <img src="assets/icons/huggingface.svg" width="28" height="28" style="vertical-align: middle; display: inline-block;" alt="HuggingFace" /> HuggingFace Integration
 
-| Surface | Runs | Needs | Where it appears |
-|---|---|---|---|
-| **HuggingFace provider** | Hosted, on Hugging Face Inference Providers | `HF_TOKEN` | Generic nodes (chat, image, video, TTS, ASR, embeddings) |
-| **`huggingface.*` nodes** | Hosted, on the same router | `HF_TOKEN` | One node per Inference Providers task |
-| **`transformers.*` nodes** | Locally, in-process, ONNX | The Transformers.js runtime, no key | Local small models |
-| **`nodetool-huggingface` pack** | Locally, Python (Diffusers, Transformers) | The pack, from the Package Manager | Local image, audio, and speech models |
-| **Model Manager Hub source** | Downloads Hub repos to disk | A token for gated repos | [Models Manager](models-manager.md) |
+> **Runs:** hosted on Hugging Face, or locally, depending on the option below. **Needs:** a Hugging Face token for hosted models and gated downloads, nothing for public local models.
+{: .callout-note}
+
+NodeTool uses Hugging Face in four ways. Pick the one that matches what you want to do.
+
+## Which one do I want?
+
+| I want to | Use | Steps |
+|---|---|---|
+| Run models hosted by Hugging Face, with no download | The **HuggingFace** provider and the `huggingface.*` nodes | Paste a token into the HuggingFace card in **Settings → Models & Providers**. Then pick a HuggingFace model in any model menu |
+| Run small models on my own machine with no key and no Python | The `transformers.*` nodes (Transformers.js) | Install **Transformers.js** from the Package Manager. Add a `transformers.*` node to your workflow |
+| Run larger image, audio and speech models on my own GPU | The `nodetool-huggingface` Python pack | Open **Package Manager → Python nodes** and install the pack |
+| Download a model file to disk | The Models Manager | Choose **Model Manager** in the logo menu, search the **Hub** source and click **Download**. See [Models Manager](models-manager.md) |
 
 ## HuggingFace provider
 
-The provider (id `huggingface`) routes generic nodes to Hugging Face Inference Providers through the `@huggingface/inference` client. It offers text-to-image, image-to-image, text-to-video, text-to-speech, speech recognition, and embeddings, plus chat. Tool calling is off.
+The HuggingFace provider sends chat, image, video, speech, transcription and embedding requests to Hugging Face's hosted service, called Inference Providers. Hugging Face runs the model and you download nothing. It appears in the model menus once a token is saved.
 
-Model lists come from the Hub. For each task NodeTool asks for models with warm inference, sorted by likes, limited to 100, and caches the answer for 10 minutes. A token is required. Without one the provider does not register as configured. If the `@huggingface/inference` package is missing, the provider reports it instead of failing at the first call.
+Tool calling is off for this provider. Each model menu lists the 100 most-liked models that Hugging Face currently has running and ready to answer, per task. The list is cached for 10 minutes. Without a token the provider does not appear as configured.
 
 ## `huggingface.*` task nodes
 
-Nineteen nodes call the Inference Providers router at `https://router.huggingface.co`. Chat completion uses the OpenAI-compatible `/v1/chat/completions` route. Every other task posts to `/hf-inference/models/{model}`. Each node has a `model` field that defaults to a recommended model for its task. Enter any repo id that serves that pipeline to use another.
+Nineteen nodes call the same hosted service, one per task. Each node has a `model` field that defaults to a recommended model. Enter any repo id that serves that task to use another.
 
 | Group | Nodes |
 |---|---|
@@ -33,41 +39,27 @@ Nineteen nodes call the Inference Providers router at `https://router.huggingfac
 
 Text to Image takes a prompt, negative prompt, width, height, guidance scale, inference steps, and seed. Node references are in the [`huggingface` namespace](nodes/huggingface/index.md).
 
-These nodes need a token with the **Inference Providers** permission, stored as `HF_TOKEN`. `HUGGINGFACE_API_KEY` is also accepted. Without one the node fails with `HF_TOKEN is not configured`.
+These nodes need a token with the **Inference Providers** permission, saved as `HF_TOKEN`. Without one the node fails with `HF_TOKEN is not configured`. A token that only has Hub read access is not enough.
 
-## Transformers.js nodes (local ONNX)
+## Transformers.js nodes (local, no key)
 
-The `transformers.*` nodes run ONNX models inside the NodeTool backend. They need no key and no Python.
+The `transformers.*` nodes run small models inside the NodeTool backend. They need no key and no Python.
 
 - **Text:** Text Classification, Token Classification, Question Answering, Summarization, Translation, Text Generation, Fill Mask, Feature Extraction, Zero Shot Classification
 - **Vision:** Image Classification, Object Detection, Image To Text, Zero Shot Image Classification
 - **Audio:** Automatic Speech Recognition, Audio Classification, Text To Speech, Text To Music
 
-Install the **Transformers.js** runtime from the Package Manager first. Without it, the first run fails and names the missing runtime. Models must be ONNX exports, usually from the `Xenova/*` or `onnx-community/*` Hub organizations. Each node defaults to a recommended repo. Models download on first use into `<data-dir>/transformers-js-cache`, or the directory in the `TRANSFORMERS_JS_CACHE_DIR` setting. This cache is separate from the Hugging Face Hub cache. Text To Music runs MusicGen (`Xenova/musicgen-small`), makes instrumental music only, and stops at 30 seconds. The same models also serve the `transformers_js` provider for chat, TTS, music, ASR, and embeddings. Node references are in the [`transformers` namespace](nodes/transformers/index.md).
+Install the **Transformers.js** runtime from the Package Manager first. Without it, the first run fails and names the missing runtime. These nodes need models published in ONNX format, a portable model file type. Look for repos from the `Xenova` or `onnx-community` organizations on the Hub. Each node defaults to a recommended repo, and models download on first use. Text To Music makes instrumental music only and stops at 30 seconds. The same models also serve the `transformers_js` provider for chat, speech, music, transcription and embeddings. Node references are in the [`transformers` namespace](nodes/transformers/index.md). Where the downloads are stored is under [Hugging Face tokens and cache](server-configuration.md#cache-locations).
 
 ## Local Python pack
 
-The optional `nodetool-huggingface` pack adds local Diffusers and Transformers nodes for image, audio, and speech models. Install it from **Package Manager → Python nodes**, which sets up Python first if it is missing. It runs on PyTorch 2.14, and the desktop app installs the PyTorch build that matches your graphics card. See [GPU requirements](advanced-install.md#gpu-requirements). Without the desktop app, see [Python nodes without the desktop app](advanced-install.md#python-nodes-without-the-desktop-app). NodeTool does not install it by default. When the Python worker runs, its local Hugging Face provider appears as `huggingface-local`, so it does not clash with the hosted `huggingface` provider.
+The optional `nodetool-huggingface` pack adds local nodes for image, audio and speech models. Install it from **Package Manager → Python nodes**, which sets up Python first if it is missing. The desktop app installs the PyTorch build that matches your graphics card. See [GPU requirements](advanced-install.md#gpu-requirements). Without the desktop app, see [Python nodes without the desktop app](advanced-install.md#python-nodes-without-the-desktop-app). NodeTool does not install the pack by default. When the Python worker runs, its local provider appears as `huggingface-local`, so it does not clash with the hosted `huggingface` provider.
 
-The Model Manager recognizes the model types this pack uses, such as Flux (including Kontext, Canny, Depth, and Redux), Stable Diffusion 1.5, XL, and 3, Qwen Image and Qwen Image Edit, ControlNet, IP Adapter, and LoRA. MLX variants are also detected. The pack's own node reference ships with the pack.
+The Models Manager recognizes the model types this pack uses, such as Flux (including Kontext, Canny, Depth, and Redux), Stable Diffusion 1.5, XL, and 3, Qwen Image and Qwen Image Edit, ControlNet, IP Adapter, and LoRA. MLX variants are also detected. The pack's own node reference ships with the pack.
 
 ## Authentication and gated models
 
-Create a token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens). Each feature reads it from a different place.
-
-| Feature | Token source |
-|---|---|
-| HuggingFace provider and `huggingface.*` nodes | The stored `HF_TOKEN` secret, then the `HF_TOKEN` environment variable. Paste it into the HuggingFace card in **Settings → Models & Providers**, or run `nodetool secrets store HF_TOKEN` |
-| Model Manager downloads, local or to an attached worker | The stored `HF_TOKEN` secret, then the `HF_TOKEN`, `HF_API_TOKEN`, or `HUGGING_FACE_HUB_TOKEN` environment variable, then the token file from `hf auth login` (`$HF_TOKEN_PATH`, or `token` under `$HF_HOME`, default `~/.cache/huggingface/token`). The server sends the token to a worker, which has no token of its own |
-| `nodetool models download-hf` | The environment variables, then the token file. The stored secret is not read |
-| Hub search in the Model Manager | The `HF_TOKEN` or `HUGGING_FACE_HUB_TOKEN` environment variable, sent when set |
-| Downloads a Python node starts while it runs | The stored `HF_TOKEN` when the node declares it, otherwise the worker's environment and token file |
-
-A token pasted in Settings covers Model Manager downloads. For a gated repo, download the model in the Model Manager before you run the workflow. A Python node that downloads on its own may not receive the Settings token. In that case set `HF_TOKEN` in the environment before starting NodeTool, or run `hf auth login`.
-
-### Hub mirror
-
-Where huggingface.co is unreachable, set `HF_ENDPOINT` to a mirror such as `https://hf-mirror.com`, in **Settings** under HF or in the environment. Model Manager downloads, Hub search, llama.cpp GGUF downloads, and Transformers.js model downloads then use that host, and your HF token is sent to it. The Settings value applies to downloads the server starts, `nodetool models list-hf` and `download-hf`, and Python node downloads. Transformers.js models a workflow fetches on first run, and Python nodes, read it when the server starts, so restart NodeTool after you change it. Inference Providers, sign-in, and the token check stay on huggingface.co.
+Create a token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) and paste it into the HuggingFace card in **Settings → Models & Providers**. That one token covers the provider, the `huggingface.*` nodes and Models Manager downloads. For a gated repo, download the model in the Models Manager before you run the workflow. A Python node that downloads on its own may not receive the Settings token. In that case set `HF_TOKEN` in the environment before starting NodeTool, or run `hf auth login`. Which feature reads the token from where, the cache folders and the Hub mirror setting are in [Hugging Face tokens and cache](server-configuration.md#hugging-face-tokens-and-cache).
 
 ### Gated models
 
@@ -75,28 +67,26 @@ Some repos, such as FLUX.1 dev, require you to accept a license:
 
 1. Open the model page on huggingface.co while signed in.
 2. Accept the license or choose **Request access**, and wait if approval is manual.
-3. Make sure the token above has read access, then retry the download.
+3. Make sure the token has read access, then retry the download.
 
 A blocked download shows a message starting `Hugging Face blocked this download` with these steps.
 
-## Model cache
-
-Hub downloads use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. `HF_HUB_CACHE`, `HUGGINGFACE_HUB_CACHE`, `HF_HOME`, or `XDG_CACHE_HOME` relocate it, in that order of precedence, the same as the `huggingface_hub` library. The Model Manager's **Installed** source lists what is in it and can delete cached models. See [Models Manager](models-manager.md#storage-location).
-
 ## Troubleshooting
 
-**`HF_TOKEN is not configured`.** Add `HF_TOKEN` in Settings or the environment.
+**`HF_TOKEN is not configured`.** Add the token in **Settings → Models & Providers**.
 
-**`@huggingface/inference is required for HuggingFaceProvider`.** The client package is missing. It is a dependency of `@nodetool-ai/runtime`, so a normal install has it. Reinstall NodeTool, or run `npm install` in a source checkout.
+**The HuggingFace provider reports a missing client package.** A normal NodeTool install includes it. Reinstall NodeTool.
 
-**401 or 403 on a download.** The repo is gated or private, or the token is missing. Follow [Gated models](#gated-models). The CLI and Python nodes may not read the Settings token. See the table in [Authentication and gated models](#authentication-and-gated-models).
+**401 or 403 on a download.** The repo is gated or private, or the token is missing. Follow [Gated models](#gated-models). The CLI and Python nodes may not read the Settings token. See [which token each feature reads](server-configuration.md#hugging-face-tokens-and-cache).
 
 **A `transformers.*` node fails on first run.** Install the Transformers.js runtime from the Package Manager.
 
-**A model is missing from the HuggingFace provider's picker.** The list contains only the 100 most-liked models with warm inference per task. Use a `huggingface.*` node and enter the repo id, or download the model through the Model Manager.
+**A model is missing from the HuggingFace provider's picker.** The list contains only the 100 most-liked ready-to-run models per task. Use a `huggingface.*` node and enter the repo id, or download the model through the Models Manager.
+
+Self-hosting or using the CLI? See [Hugging Face tokens and cache](server-configuration.md#hugging-face-tokens-and-cache) and the [Hugging Face provider guide](developer/providers/huggingface.md).
 
 ## Related documentation
 
 - [`huggingface` nodes](nodes/huggingface/index.md) and [`transformers` nodes](nodes/transformers/index.md): node reference
-- [Hugging Face provider guide](developer/providers/huggingface.md): how the provider is built
+- [Models Manager](models-manager.md): download and delete models
 - [Hugging Face Hub](https://huggingface.co/models)
