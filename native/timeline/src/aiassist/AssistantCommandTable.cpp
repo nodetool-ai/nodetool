@@ -381,8 +381,10 @@ QHash<QString, QString> buildDenied() {
     deny({"assistant.foldedCommand"}, internal);
     deny({"assistant.ui_timeline_delete_clip", "assistant.ui_timeline_move_clip", "assistant.ui_timeline_plan_beats", "assistant.ui_timeline_remove_beat",
           "assistant.ui_timeline_set_clip_binding", "assistant.ui_timeline_set_setup", "assistant.ui_timeline_split_clip", "assistant.ui_timeline_update_beat",
-          "midi.stepPatternOp"},
+          "midi.stepPatternOp", "midi.setNotes", "midi.setControllers", "midi.setEvents", "music.createMidiClip"},
          "the Assistant has its own tool for it");
+    deny({"setTrackAutomationMode", "writeTrackAutomationPass"}, "it is a step of automation recording, which a person performs during playback");
+    deny({"setTrackInstrument", "setTrackInstrumentState"}, "it chooses the plugin the audio host loads and its saved state, which the instrument panel sets");
     deny({"assist.addBeat", "assist.applyBeatTake", "assist.applyTranscription", "assist.assembleStoryboard", "assist.correctTranscript", "assist.deleteBeat",
           "assist.deleteTranscriptRange", "assist.reconcileScript", "assist.reorderBeats", "assist.setBeatText", "assist.syncStoryboardShot", "shot.accept", "shot.insertDerived",
           "shot.link", "storyboard.placeShot"}, internal);
