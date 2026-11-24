@@ -1,5 +1,5 @@
 #pragma once
-// Hosts third-party VST3 instruments and audio effects for another application
+// Hosts third-party VST3/AU instruments and audio effects for another application
 // (NodeTool's timeline). The host renders note events or processes stereo audio
 // offline into PCM and opens a plug-in's own editor window, so the caller never
 // loads native plug-in code into its own process: a crashing plug-in takes down
@@ -16,6 +16,7 @@ struct PluginInfo {
     juce::String uid;       // PluginDescription::createIdentifierString()
     juce::String name, vendor, version, path;
     bool isInstrument = false;
+    juce::String format = "vst3";
 };
 
 struct NoteEvent {
@@ -39,7 +40,7 @@ struct NoteExpressionValue {
 // expression type is unknown.
 bool decodeNoteExpression(const ShmMidiEvent& event, NoteExpressionValue& out);
 
-// Every VST3 under the platform's standard folders plus `extraDirs`.
+// VST3 bundles in standard folders plus `extraDirs`, and registered AudioUnits on Apple.
 // `instrumentsOnly` drops effects. Each bundle is scanned in this process.
 std::vector<PluginInfo> scan(const juce::StringArray& extraDirs, bool instrumentsOnly);
 
@@ -47,7 +48,7 @@ std::vector<PluginInfo> scan(const juce::StringArray& extraDirs, bool instrument
 juce::FileSearchPath defaultSearchPath();
 
 // One loaded plug-in instance, keyed by the caller (one per timeline track).
-// render() runs on any thread; state and editor calls belong to the message
+// render() runs on any thread; state, preset, parameter and editor calls belong to the message
 // thread. `lock` serializes rendering against state reads and writes.
 class Instance {
 public:
@@ -60,6 +61,10 @@ public:
 
     // Base64 of getStateInformation(); empty when the plug-in reports none.
     juce::String getState();
+    juce::var listPresets();
+    bool selectPreset(const juce::var& index, const juce::String& name, juce::String& error);
+    juce::var getParameters();
+    bool setParameters(const juce::var& changes, juce::String& error);
     // Applies base64 state unless it is what the instance already holds. Empty
     // state restores the sound the plug-in loaded with, so one instance can
     // render a track with saved state and then a track without.

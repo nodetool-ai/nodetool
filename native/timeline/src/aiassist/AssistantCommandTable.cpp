@@ -385,7 +385,7 @@ QHash<QString, QString> buildDenied() {
           "midi.stepPatternOp", "midi.setNotes", "midi.setControllers", "midi.setEvents", "music.createMidiClip"},
          "the Assistant has its own tool for it");
     deny({"setTrackAutomationMode", "writeTrackAutomationPass"}, "it is a step of automation recording, which a person performs during playback");
-    deny({"setTrackInstrument", "setTrackInstrumentState"}, "it chooses the plugin the audio host loads and its saved state, which the instrument panel sets");
+    deny({"setTrackInstrument", "setTrackInstrumentState"}, "the Assistant uses ui_timeline_load_plugin, ui_timeline_select_plugin_preset and ui_timeline_set_plugin_parameters");
     deny({"assist.addBeat", "assist.applyBeatTake", "assist.applyTranscription", "assist.assembleStoryboard", "assist.correctTranscript", "assist.deleteBeat",
           "assist.deleteTranscriptRange", "assist.reconcileScript", "assist.reorderBeats", "assist.setBeatText", "assist.syncStoryboardShot", "shot.accept", "shot.insertDerived",
           "shot.link", "storyboard.placeShot"}, internal);

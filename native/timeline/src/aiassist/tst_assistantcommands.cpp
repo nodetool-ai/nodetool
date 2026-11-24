@@ -1,4 +1,7 @@
 #include "aiassist/AgentBridge.h"
+#include "audio/vst/VstHostClient.h"
+#include <QDir>
+#include <QFileInfo>
 #include "aiassist/AssistantCommands.h"
 #include "aiassist/AssistantSession.h"
 #include "app/EditRegistry.h"
@@ -671,13 +674,15 @@ private slots:
     }
     void toolsAdvertiseSchemas() {
         const auto tools = AssistantCommands::tools();
-        QCOMPARE(tools.size(), 16);
+        QCOMPARE(tools.size(), 22);
         for (const auto& name : {"ui_timeline_list_commands", "ui_timeline_run_command", "ui_timeline_read_scopes", "ui_timeline_capture_frame",
                                  "ui_timeline_music_generate", "ui_timeline_music_regenerate", "ui_timeline_music_add_instrument",
                                  "ui_timeline_get_pattern", "ui_timeline_set_steps", "ui_timeline_set_pattern_text",
                                  "ui_timeline_set_pattern", "ui_timeline_add_pattern_rows", "ui_timeline_clear_pattern",
                                  "ui_timeline_convert_pattern_to_midi", "ui_timeline_convert_midi_to_pattern",
-                                 "ui_timeline_apply_step_pattern"}) {
+                                 "ui_timeline_apply_step_pattern", "ui_timeline_list_plugins", "ui_timeline_load_plugin",
+                                 "ui_timeline_list_plugin_presets", "ui_timeline_select_plugin_preset",
+                                 "ui_timeline_get_plugin_parameters", "ui_timeline_set_plugin_parameters"}) {
             QVERIFY(AssistantCommands::handles(name));
             const auto found = std::find_if(tools.begin(), tools.end(), [&](const QVariant& tool) { return tool.toMap().value("name") == name; });
             QVERIFY(found != tools.end());
@@ -699,6 +704,47 @@ private slots:
         QVERIFY(commands->execute("ui_timeline_music_generate", other).value("error").toString().contains("not open"));
         QCOMPARE(model.undoStack()->count(), 0);
     }
+    void pluginToolsDispatchAsynchronously() {
+        const QDir build(QCoreApplication::applicationDirPath());
+        const auto host = build.absoluteFilePath("../../vst-host/build/tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol");
+        const auto plugin = build.absoluteFilePath("../../vst-host/build/GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3");
+        QVERIFY(QFileInfo::exists(host));
+        QVERIFY(QFileInfo::exists(plugin));
+        const auto client = nt::audio::vst::sharedVstHostClient();
+        client->setOverrideExecutable(host);
+        client->setExtraScanDirs({QFileInfo(plugin).absolutePath()});
+        QSignalSpy completed(commands.get(), &AssistantCommands::toolCompleted);
+        const QVariantMap args{{"timeline_id", TIMELINE}, {"track", TRACK_A}, {"plugin", "NodeTool Test Gain"}};
+        const auto pending = commands->execute("ui_timeline_load_plugin", args, "plugin-load");
+        QVERIFY(pending.value("deferred").toBool());
+        QTRY_COMPARE_WITH_TIMEOUT(completed.size(), 1, 180000);
+        QCOMPARE(completed[0][0].toString(), QStringLiteral("plugin-load"));
+        const auto result = completed[0][1].toMap();
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        QCOMPARE(model.undoStack()->count(), 1);
+        const auto loaded = doc();
+        const auto effectId = result.value("effectId").toString();
+        QCOMPARE(effectId.size(), 32);
+        completed.clear();
+        QVERIFY(commands->execute("ui_timeline_set_plugin_parameters", {{"timeline_id", TIMELINE}, {"track", TRACK_A},
+            {"effectId", effectId.left(12)}, {"parameter", "Gain"}, {"value", 0.75}}, "plugin-change").value("deferred").toBool());
+        QTRY_COMPARE_WITH_TIMEOUT(completed.size(), 1, 30000);
+        const auto changed = completed[0][1].toMap();
+        QVERIFY2(changed.value("ok").toBool(), qPrintable(changed.value("error").toString()));
+        QCOMPARE(model.undoStack()->count(), 2);
+        QVERIFY(doc() != loaded);
+        model.undoStack()->undo();
+        QCOMPARE(doc(), loaded);
+        completed.clear();
+        QVERIFY(commands->execute("ui_timeline_load_plugin", args, "stale-plugin-load").value("deferred").toBool());
+        QVERIFY(run("setTrackName", {{"track_id", TRACK_A}, {"name", "Changed during plugin RPC"}}).value("ok").toBool());
+        const auto edited = doc();
+        QTRY_COMPARE_WITH_TIMEOUT(completed.size(), 1, 30000);
+        QVERIFY(!completed[0][1].toMap().value("ok").toBool());
+        QVERIFY(completed[0][1].toMap().value("error").toString().contains("changed"));
+        QCOMPARE(doc(), edited);
+    }
+
     void scopesRefuseBadInputSynchronously() {
         const auto base = QVariantMap{{"timeline_id", TIMELINE}};
         auto args = base;

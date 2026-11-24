@@ -3,6 +3,8 @@ nt_sources(core
     src/audio/vst/VstEdits.cpp
 )
 nt_sources(audio
+    src/audio/vst/PluginAssistant.h
+    src/audio/vst/PluginAssistant.cpp
     src/audio/vst/VstHostClient.h
     src/audio/vst/VstHostClient.cpp
     src/audio/vst/VstLiveChannel.h

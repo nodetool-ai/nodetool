@@ -1,3 +1,4 @@
+#include "audio/vst/PluginAssistant.h"
 #include "midi/PatternOps.h"
 #include "aiassist/AssistantCommands.h"
 #include "aiassist/AssistDocument.h"
@@ -631,6 +632,43 @@ QVariantMap AssistantCommands::execute(const QString& name, const QVariantMap& a
     const auto json = QJsonObject::fromVariantMap(args);
     if (!json.value("timeline_id").isString() || !resolveId(json.value("timeline_id").toString(), {timelineId()})) {
         return failure("This timeline is not open in the editor.").toVariantMap();
+    }
+    if (nt::audio::vst::isPluginTool(name)) {
+        auto* editor = gestures();
+        if (nt::audio::vst::pluginToolMutates(name)) {
+            if (!editor || !editor->gestureKind().isEmpty() || editor->trimMode()->active()) {
+                return failure("Finish the current timeline gesture first.").toVariantMap();
+            }
+            if (m_model.readOnly()) { return failure("This timeline is read-only.").toVariantMap(); }
+            if (auto* takes = TakeSwitcher::forTimeline(&m_model); takes && takes->recording()) {
+                return failure("Stop take recording first.").toVariantMap();
+            }
+        }
+        if (callId.isEmpty()) { return failure("Plugin tools require an asynchronous call id.").toVariantMap(); }
+        const auto snapshot = m_model.timeline().raw;
+        // Shared ownership keeps the process client alive until the worker finishes.
+        const auto client = nt::audio::vst::sharedVstHostClient();
+        const QPointer<AssistantCommands> self(this);
+        m_encoder.start([self, client, snapshot, name, json, callId] {
+            auto outcome = nt::music::assistant::run(name, json, snapshot, *client);
+            if (!self) { return; }
+            QMetaObject::invokeMethod(self, [self, snapshot, outcome = std::move(outcome), callId]() mutable {
+                if (!self) { return; }
+                if (outcome.result.value("ok").toBool() && outcome.document != snapshot) {
+                    auto* currentEditor = self->gestures();
+                    auto* takes = TakeSwitcher::forTimeline(&self->m_model);
+                    if (self->m_model.readOnly() || self->m_model.timeline().raw != snapshot || !currentEditor ||
+                        !currentEditor->gestureKind().isEmpty() || currentEditor->trimMode()->active() || (takes && takes->recording())) {
+                        outcome.result = failure("The timeline changed while the plugin request ran. Read its state and retry.");
+                    } else if (self->m_model.applyEdit(QStringLiteral("Edit plugin"), {},
+                        [next = outcome.document](QJsonObject, const QJsonObject&) { return next; }) == 0) {
+                        outcome.result = failure("Could not save the plugin edit.");
+                    }
+                }
+                emit self->toolCompleted(callId, outcome.result.toVariantMap());
+            }, Qt::QueuedConnection);
+        });
+        return {{"ok", true}, {"deferred", true}};
     }
     QJsonObject result;
     if (name == u"ui_timeline_list_commands") { result = listCommands(json); }

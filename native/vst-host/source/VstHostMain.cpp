@@ -1,4 +1,4 @@
-// NodeToolVstHost — hosts VST3 instruments for NodeTool's timeline in a separate
+// NodeToolVstHost — hosts VST3/AU instruments and effects for NodeTool's timeline in a separate
 // process, so a plug-in crash never takes down the editor.
 //
 // Requests arrive on stdin and replies leave on stdout, one JSON object per
@@ -6,7 +6,7 @@
 //
 //   {"id":1,"cmd":"hello"}                     -> {"id":1,"ok":true,"protocol":1,"version":"..."}
 //   {"id":2,"cmd":"scan","dirs":[...],"includeEffects":true}
-//                                              -> {"id":2,"ok":true,"plugins":[{uid,name,vendor,version,path,isInstrument}]}
+//                                              -> {"id":2,"ok":true,"plugins":[{uid,name,vendor,version,path,format,isInstrument}]}
 //   {"id":3,"cmd":"render","instance":"t1","path":P,"uid":U,"state":B64|null,
 //    "sampleRate":48000,"frames":N,"events":[{pitch,velocity,startFrame,gateOffFrame}],
 //    "out":"/tmp/x.f32"}                       -> {"id":3,"ok":true,"channels":2,"frames":N}
@@ -19,6 +19,11 @@
 //                                              -> {"id":4,"ok":true,"hasEditor":true}
 //   {"id":5,"cmd":"closeEditor","instance":"t1"} / {"id":6,"cmd":"dispose","instance":"t1"}
 //   {"id":7,"cmd":"getState","instance":"t1"}  -> {"id":7,"ok":true,"state":B64}
+//   listPresets / selectPreset / getParameters / setParameters also take instance, path, uid and state.
+//   listPresets -> {presets:[{index,name}],currentPresetIndex}
+//   selectPreset takes presetIndex or presetName -> {preset:{index,name},state:B64}
+//   getParameters -> {parameters:[{id,index,name,label,value,displayValue,defaultValue,...}]}
+//   setParameters takes changes:[{id|index,value|displayValue}] -> {parameters:[...],state:B64}
 //   {"cmd":"quit"}
 //
 // Failures reply {"id":n,"ok":false,"error":"..."}. Unrequested events:
@@ -237,7 +242,7 @@ private:
     std::function<void()> onClose_;
 };
 
-// native-rules #9: used from the message, render, scan and reader threads, no affinity comment
+// Message thread only. Render workers receive shared Instance handles and send static replies.
 class Host : private Timer {
 public:
     Host() { startTimer(400); }
@@ -349,6 +354,24 @@ public:
         } else if (cmd == "closeEditor") {
             closeEditor(key, false);
             reply(id, object());
+        } else if (cmd == "listPresets" || cmd == "selectPreset" || cmd == "getParameters" || cmd == "setParameters") {
+            String error;
+            auto inst = ensure(key, req, error, true);
+            if (!inst) { fail(id, error); return; }
+            std::lock_guard<std::recursive_mutex> guard(inst->lock);
+            if (cmd == "selectPreset" && !inst->selectPreset(req["presetIndex"], req["presetName"].toString(), error)) {
+                fail(id, error); return;
+            }
+            if (cmd == "setParameters" && !inst->setParameters(req["changes"], error)) { fail(id, error); return; }
+            auto body = cmd == "listPresets" || cmd == "selectPreset" ? inst->listPresets() : inst->getParameters();
+            if (cmd == "selectPreset") {
+                const int index = static_cast<int>(body["currentPresetIndex"]);
+                body.getDynamicObject()->setProperty("preset", body["presets"][index]);
+            }
+            if (cmd == "selectPreset" || cmd == "setParameters") {
+                body.getDynamicObject()->setProperty("state", inst->getState());
+            }
+            reply(id, body);
         } else if (cmd == "getState") {
             auto it = instances_.find(key);
             if (it == instances_.end()) { fail(id, "Unknown instance " + key); return; }
@@ -394,8 +417,7 @@ private:
         if (auto* arr = req["dirs"].getArray())
             for (auto& d : *arr) dirs.add(d.toString());
         const bool all = (bool)req["includeEffects"];
-        // native-rules #13: detached thread is not joined or cancelled at shutdown
-        std::thread([id, dirs, all] {
+        {
             Array<var> list;
             for (auto& p : scan(dirs, !all)) {
                 auto o = object();
@@ -406,12 +428,13 @@ private:
                 d->setProperty("version", p.version);
                 d->setProperty("path", p.path);
                 d->setProperty("isInstrument", p.isInstrument);
+                d->setProperty("format", p.format);
                 list.add(o);
             }
             auto body = object();
             body.getDynamicObject()->setProperty("plugins", list);
             reply(id, body);
-        }).detach();
+        }
     }
 
     void renderAsync(const var& id, std::shared_ptr<Instance> inst, const var& req, bool applyState) {

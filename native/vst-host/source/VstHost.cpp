@@ -1,4 +1,5 @@
 #include "VstHost.h"
+#include <cmath>
 
 namespace vsthost {
 
@@ -36,22 +37,34 @@ bool decodeNoteExpression(const ShmMidiEvent& event, NoteExpressionValue& out) {
 
 juce::FileSearchPath defaultSearchPath() {
     juce::VST3PluginFormat format;
-    return format.getDefaultLocationsToSearch();
+    auto paths = format.getDefaultLocationsToSearch();
+#if JUCE_PLUGINHOST_AU
+    paths.addPath(juce::AudioUnitPluginFormat().getDefaultLocationsToSearch());
+#endif
+    return paths;
 }
 
 std::vector<PluginInfo> scan(const juce::StringArray& extraDirs, bool instrumentsOnly) {
-    juce::VST3PluginFormat format;
+    // JUCE owns formats passed to addFormat and destroys them with the manager.
+    juce::AudioPluginFormatManager formats;
+    formats.addFormat(std::make_unique<juce::VST3PluginFormat>().release());
+#if JUCE_PLUGINHOST_AU
+    formats.addFormat(std::make_unique<juce::AudioUnitPluginFormat>().release());
+#endif
     auto search = defaultSearchPath();
-    for (auto& d : extraDirs)
+    for (const auto& d : extraDirs) {
         if (juce::File(d).isDirectory()) search.add(juce::File(d));
+    }
     std::vector<PluginInfo> out;
-    for (auto& file : format.searchPathsForPlugins(search, true, false)) {
-        juce::OwnedArray<juce::PluginDescription> descs;
-        format.findAllTypesForFile(descs, file);
-        for (auto* d : descs) {
-            if (instrumentsOnly && !d->isInstrument) continue;
-            out.push_back({ d->createIdentifierString(), d->name, d->manufacturerName, d->version,
-                            d->fileOrIdentifier, d->isInstrument });
+    for (auto* format : formats.getFormats()) {
+        for (const auto& file : format->searchPathsForPlugins(search, true, false)) {
+            juce::OwnedArray<juce::PluginDescription> descs;
+            format->findAllTypesForFile(descs, file);
+            for (const auto* d : descs) {
+                if (instrumentsOnly && !d->isInstrument) { continue; }
+                out.push_back({d->createIdentifierString(), d->name, d->manufacturerName, d->version,
+                               d->fileOrIdentifier, d->isInstrument, format->getName() == "AudioUnit" ? "au" : "vst3"});
+            }
         }
     }
     std::sort(out.begin(), out.end(), [](const PluginInfo& a, const PluginInfo& b) {
@@ -61,11 +74,16 @@ std::vector<PluginInfo> scan(const juce::StringArray& extraDirs, bool instrument
 }
 
 bool Instance::load(const juce::String& path, const juce::String& uid, juce::String& error) {
-    // native-rules #2: naked new, ownership passes to the JUCE format manager
-    if (formats_.getNumFormats() == 0) formats_.addFormat(new juce::VST3PluginFormat());
+    if (formats_.getNumFormats() == 0) {
+        formats_.addFormat(std::make_unique<juce::VST3PluginFormat>().release());
+#if JUCE_PLUGINHOST_AU
+        formats_.addFormat(std::make_unique<juce::AudioUnitPluginFormat>().release());
+#endif
+    }
     juce::OwnedArray<juce::PluginDescription> descs;
-    juce::VST3PluginFormat format;
-    format.findAllTypesForFile(descs, path);
+    for (auto* format : formats_.getFormats()) {
+        format->findAllTypesForFile(descs, path);
+    }
     const juce::PluginDescription* pick = nullptr;
     for (auto* d : descs)
         if (d->createIdentifierString() == uid) pick = d;
@@ -73,7 +91,7 @@ bool Instance::load(const juce::String& path, const juce::String& uid, juce::Str
         for (auto* d : descs)
             if (d->isInstrument) { pick = d; break; }
     if (!pick && !descs.isEmpty()) pick = descs[0];
-    if (!pick) { error = "No VST3 plug-in found in " + path; return false; }
+    if (!pick) { error = "No VST3/AU plug-in found in " + path; return false; }
     double rate = 48000.0;
     {
         std::lock_guard<std::recursive_mutex> guard(lock);
@@ -114,6 +132,130 @@ bool Instance::setState(const juce::String& base64, juce::String& error) {
     if (!juce::Base64::convertFromBase64(decoded, target)) { error = "Plug-in state is not valid base64"; return false; }
     plugin_->setStateInformation(decoded.getData(), (int)decoded.getDataSize());
     appliedState_ = target;
+    return true;
+}
+
+namespace {
+// JUCE var retains the DynamicObject and releases it when the last var copy dies.
+juce::var jsonObject() { return juce::var(std::make_unique<juce::DynamicObject>().release()); }
+juce::String parameterId(juce::AudioProcessorParameter& parameter, int index) {
+    if (auto* hosted = dynamic_cast<juce::HostedAudioProcessorParameter*>(&parameter)) { return hosted->getParameterID(); }
+    if (auto* identified = dynamic_cast<juce::AudioProcessorParameterWithID*>(&parameter)) { return identified->paramID; }
+    return juce::String(index);
+}
+}
+
+juce::var Instance::listPresets() {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+    auto result = jsonObject();
+    juce::Array<juce::var> presets;
+    if (plugin_) {
+        for (int i = 0; i < plugin_->getNumPrograms(); ++i) {
+            auto preset = jsonObject();
+            preset.getDynamicObject()->setProperty("index", i);
+            preset.getDynamicObject()->setProperty("name", plugin_->getProgramName(i));
+            presets.add(preset);
+        }
+    }
+    result.getDynamicObject()->setProperty("presets", presets);
+    result.getDynamicObject()->setProperty("currentPresetIndex", plugin_ ? plugin_->getCurrentProgram() : 0);
+    return result;
+}
+
+bool Instance::selectPreset(const juce::var& requested, const juce::String& name, juce::String& error) {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+    if (!plugin_) { error = "No plug-in loaded"; return false; }
+    int index = -1;
+    if (requested.isInt() || requested.isInt64() || requested.isDouble()) {
+        const double value = static_cast<double>(requested);
+        if (std::isfinite(value) && value >= 0 && value < plugin_->getNumPrograms() && std::floor(value) == value) {
+            index = static_cast<int>(value);
+        }
+    } else if (name.isNotEmpty()) {
+        for (int i = 0; i < plugin_->getNumPrograms(); ++i) {
+            if (plugin_->getProgramName(i).equalsIgnoreCase(name)) {
+                if (index >= 0) { error = "Ambiguous preset name"; return false; }
+                index = i;
+            }
+        }
+    }
+    if (index < 0) { error = "Unknown preset"; return false; }
+    plugin_->setCurrentProgram(index);
+    appliedState_.clear();
+    return true;
+}
+
+juce::var Instance::getParameters() {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+    auto result = jsonObject();
+    juce::Array<juce::var> parameters;
+    if (plugin_) {
+        int index = 0;
+        for (auto* parameter : plugin_->getParameters()) {
+            auto entry = jsonObject();
+            auto& obj = *entry.getDynamicObject();
+            obj.setProperty("id", parameterId(*parameter, index));
+            obj.setProperty("index", index++);
+            obj.setProperty("name", parameter->getName(256));
+            obj.setProperty("label", parameter->getLabel());
+            obj.setProperty("value", parameter->getValue());
+            obj.setProperty("displayValue", parameter->getCurrentValueAsText());
+            obj.setProperty("defaultValue", parameter->getDefaultValue());
+            obj.setProperty("minValue", 0.0);
+            obj.setProperty("maxValue", 1.0);
+            obj.setProperty("numSteps", parameter->getNumSteps());
+            obj.setProperty("isDiscrete", parameter->isDiscrete());
+            obj.setProperty("isBoolean", parameter->isBoolean());
+            obj.setProperty("isAutomatable", parameter->isAutomatable());
+            parameters.add(entry);
+        }
+    }
+    result.getDynamicObject()->setProperty("parameters", parameters);
+    return result;
+}
+
+bool Instance::setParameters(const juce::var& changes, juce::String& error) {
+    std::lock_guard<std::recursive_mutex> guard(lock);
+    if (!plugin_) { error = "No plug-in loaded"; return false; }
+    const auto* entries = changes.getArray();
+    if (!entries || entries->isEmpty() || entries->size() > 128) { error = "Expected 1 to 128 changes"; return false; }
+    std::vector<std::pair<juce::AudioProcessorParameter*, float>> updates;
+    for (const auto& change : *entries) {
+        auto* obj = change.getDynamicObject();
+        if (!obj || obj->hasProperty("value") == obj->hasProperty("displayValue")) {
+            error = "Expected exactly one of value or displayValue"; return false;
+        }
+        if (obj->hasProperty("id") && (!change["id"].isString() || change["id"].toString().isEmpty())) {
+            error = "Parameter id must be nonempty text"; return false;
+        }
+        juce::AudioProcessorParameter* selected = nullptr;
+        int index = 0;
+        for (auto* parameter : plugin_->getParameters()) {
+            const bool matches = obj->hasProperty("id")
+                ? parameterId(*parameter, index) == change["id"].toString()
+                : obj->hasProperty("index") && (change["index"].isInt() || change["index"].isInt64() || change["index"].isDouble()) &&
+                  juce::exactlyEqual(static_cast<double>(change["index"]), static_cast<double>(index));
+            if (matches) { selected = parameter; }
+            ++index;
+        }
+        if (!selected) { error = "Unknown parameter"; return false; }
+        if (obj->hasProperty("value") && !change["value"].isDouble() && !change["value"].isInt() && !change["value"].isInt64()) {
+            error = "Parameter value must be a number"; return false;
+        }
+        if (obj->hasProperty("displayValue") && (!change["displayValue"].isString() || change["displayValue"].toString().isEmpty())) {
+            error = "displayValue must be nonempty text"; return false;
+        }
+        const double value = obj->hasProperty("value") ? static_cast<double>(change["value"])
+            : selected->getValueForText(change["displayValue"].toString());
+        if (!std::isfinite(value) || value < 0 || value > 1) { error = "Parameter value must be from 0 to 1"; return false; }
+        updates.emplace_back(selected, static_cast<float>(value));
+    }
+    for (const auto& [parameter, value] : updates) {
+        parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost(value);
+        parameter->endChangeGesture();
+    }
+    appliedState_.clear();
     return true;
 }
 

@@ -1,11 +1,11 @@
 # NodeToolVstHost
 
-NodeToolVstHost hosts third-party VST3 instruments for the timeline. The
+NodeToolVstHost hosts VST3 instruments and effects, plus AudioUnits on macOS, for the timeline. The
 desktop app starts it as a child process (`electron/src/vstHost.ts`), so a
 plug-in that crashes ends the helper and never the editor. The helper restarts
 on the next request.
 
-It does two jobs:
+It renders audio offline, opens plugin editors, and exposes presets and parameters.
 
 - **Offline render.** It plays note events through a plug-in and writes the
   result as planar stereo float32 to a file the caller names. Each render resets
@@ -13,6 +13,10 @@ It does two jobs:
   only on that state and the notes.
 - **Plug-in window.** It opens the plug-in's own editor in a native window and
   reports each change to the plug-in's state, so the timeline can save it.
+
+The `listPresets`, `selectPreset`, `getParameters`, and `setParameters` commands
+inspect or edit a loaded plugin. Mutations return base64 state for the timeline
+to save. Parameter values are normalized to 0..1, or supplied as display text.
 
 The JSON-line protocol is documented at the top of
 [`source/VstHostMain.cpp`](source/VstHostMain.cpp). The render, state and scan
@@ -40,7 +44,9 @@ and notarized with the app.
 
 ## Plug-in folders
 
-The helper scans the standard VST3 folders:
+The helper scans the standard VST3 folders below. On macOS it also enumerates
+AudioUnits through the system component registry. Scan results include `format`
+(`vst3` or `au`).
 
 | Platform | Folders |
 | --- | --- |

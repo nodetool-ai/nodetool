@@ -35,6 +35,7 @@ struct VstPluginInfo {
     QString version;
     QString path;
     bool isInstrument = false;
+    QString format = QStringLiteral("vst3");
 };
 
 struct VstNoteEvent {
@@ -82,6 +83,12 @@ public:
     bool processAudio(const QString& path, const QString& uid, const QString& state,
                       double sampleRate, std::span<const float> interleavedIn,
                       std::vector<float>* interleavedOut, QString* error = nullptr, int timeoutMs = 120000);
+
+    // Worker/offline threads only. Requests use the Electron JSON-line shapes.
+    bool listPresets(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr);
+    bool selectPreset(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr);
+    bool getParameters(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr);
+    bool setParameters(const QJsonObject& target, QJsonObject* reply, QString* error = nullptr);
 
     // Live shared-memory session control (used by VstLiveChannel / VstLivePool).
     bool openLive(const QString& instance, const QString& path, const QString& uid, const QString& state,

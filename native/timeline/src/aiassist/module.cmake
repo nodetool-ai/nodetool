@@ -191,7 +191,7 @@ function(nt_assistantcommands_tests)
     target_link_libraries(tst_assistantcommands PRIVATE timeline_core timeline_decode timeline_audio timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_assistantcommands OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_assistantcommands_qml/NodeTool/Timeline)
-    add_dependencies(tst_assistantcommands nodetool-timeline)
+    # The CLI audit uses an independently built application. Unit tests do not build its bundle.
     add_test(NAME tst_assistantcommands COMMAND tst_assistantcommands)
     set_tests_properties(tst_assistantcommands PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     # Frames need a real graphics backend, like the other render tests.

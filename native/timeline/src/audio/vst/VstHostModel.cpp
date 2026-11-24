@@ -121,6 +121,7 @@ QVariantMap VstHostModel::makeVstEffect(const QVariantMap& plugin) const {
             {QStringLiteral("name"), plugin.value(QStringLiteral("name")).toString()},
             {QStringLiteral("vendor"), plugin.value(QStringLiteral("vendor")).toString()},
             {QStringLiteral("path"), plugin.value(QStringLiteral("path")).toString()},
+            {QStringLiteral("format"), plugin.value(QStringLiteral("format"), QStringLiteral("vst3")).toString()},
         };
     }
     return QVariantMap{
@@ -142,6 +143,7 @@ QVariantMap VstHostModel::makeVstInstrument(const QVariantMap& plugin, double ga
             {QStringLiteral("name"), plugin.value(QStringLiteral("name")).toString()},
             {QStringLiteral("vendor"), plugin.value(QStringLiteral("vendor")).toString()},
             {QStringLiteral("path"), plugin.value(QStringLiteral("path")).toString()},
+            {QStringLiteral("format"), plugin.value(QStringLiteral("format"), QStringLiteral("vst3")).toString()},
         };
     }
     return QVariantMap{

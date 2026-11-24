@@ -38,7 +38,7 @@ CommandAudit auditCommands(const QSet<QString>& registered = registeredCommandId
 // more than one would otherwise take several undos to reverse.
 void foldUndoEntries(TimelineModel& model, int indexBefore, const QString& label);
 
-// native-rules #9: a QThreadPool job posts results back to it from another thread, no affinity comment
+// GUI thread only. Worker jobs receive snapshots and post results through queued invocations.
 class AssistantCommands : public QObject {
     Q_OBJECT
 public:

@@ -1,4 +1,5 @@
 #include "music/MusicAssistant.h"
+#include "audio/vst/PluginAssistant.h"
 
 #include "aiassist/AssistDocument.h"
 #include "app/EditRegistry.h"
@@ -125,10 +126,16 @@ QVariantList tools() {
                                        {"additionalProperties", false}}}});
     }
     out.append(nt::midi::stepPatternAssistantTools());
+    out.append(nt::audio::vst::pluginAssistantTools());
     return out;
 }
 
-bool handles(const QString& name) { return findTool(name) != nullptr || nt::midi::isStepPatternTool(name); }
+bool handles(const QString& name) { return findTool(name) != nullptr || nt::midi::isStepPatternTool(name) || nt::audio::vst::isPluginTool(name); }
+
+nt::audio::vst::PluginToolResult run(const QString& name, const QJsonObject& args,
+                                   const QJsonObject& document, nt::audio::vst::VstHostClient& client) {
+    return nt::audio::vst::runPluginTool(name, args, document, client);
+}
 
 QJsonObject run(const QString& name, const QJsonObject& args, TimelineModel& model, MusicJobs& jobs, const EditState& state) {
     if (nt::midi::isStepPatternTool(name)) {

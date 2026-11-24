@@ -1,12 +1,19 @@
 // NodeToolVstHost core against a real VST3: the test instrument this build produces.
 //   vst_host_test <path to NodeTool Test Tone.vst3>
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include "../source/VstHost.h"
 
 namespace {
+juce::File testTempFile(const juce::String& extension) {
+    const auto directory = juce::SystemStats::getEnvironmentVariable("NT_VST_TEST_TMPDIR", {});
+    if (directory.isEmpty()) return juce::File::createTempFile(extension);
+    return juce::File(directory).getNonexistentChildFile(juce::Uuid().toString(), extension);
+}
+
 // Windows has no POSIX setenv or unsetenv. _putenv_s sets the process
 // environment there, and an empty value removes the variable. The test plug-in
 // reads it through juce::SystemStats, which sees both.
@@ -56,11 +63,47 @@ int main(int argc, char** argv) {
     check(tone && tone->isInstrument && tone->name == "NodeTool Test Tone", "reports it as an instrument by name",
           tone ? tone->name : juce::String());
 
+#if JUCE_PLUGINHOST_AU
+    const auto au = std::find_if(found.begin(), found.end(), [](const PluginInfo& info) { return info.format == "au"; });
+    juce::AudioUnitPluginFormat auFormat;
+    const auto registered = auFormat.searchPathsForPlugins({}, true, false);
+    if (registered.isEmpty()) {
+        std::printf("  AudioUnit registry is empty in this environment; AU loading needs an accessible component registry.\n");
+    } else {
+        check(au != found.end(), "scans Apple AudioUnit instruments");
+    }
+    if (au != found.end()) {
+        Instance apple;
+        juce::String auError;
+        check(apple.load(au->path, au->uid, auError), "loads an Apple AudioUnit by identifier", auError);
+        check(apple.getParameters()["parameters"].isArray(), "AudioUnit parameter shape matches VST3");
+    }
+#endif
+
     std::printf("\n== NodeToolVstHost: render ==\n");
     Instance inst;
     juce::String error;
     check(inst.load(path, tone ? tone->uid : juce::String(), error), "loads the plug-in", error);
     if (!inst.plugin()) return 1;
+
+    check(tone && tone->format == "vst3", "scan reports format");
+    const auto presets = inst.listPresets();
+    check(presets["presets"].isArray(), "preset list has Electron shape");
+    check(!inst.selectPreset(juce::var(), "missing-preset", error), "unknown preset rejected");
+    check(!inst.selectPreset(-1, {}, error), "negative preset rejected");
+    const auto parameters = inst.getParameters();
+    check(parameters["parameters"].isArray(), "parameters have Electron shape");
+    if (auto* values = parameters["parameters"].getArray(); values && !values->isEmpty()) {
+        auto change = juce::var(std::make_unique<juce::DynamicObject>().release());
+        change.getDynamicObject()->setProperty("index", 0);
+        change.getDynamicObject()->setProperty("value", 0.7);
+        check(inst.setParameters(juce::Array<juce::var>{change}, error), "sets normalized parameter");
+        check(std::abs((double)inst.getParameters()["parameters"][0]["value"] - 0.7) < 0.001,
+              "reads normalized parameter");
+        change.getDynamicObject()->setProperty("value", 2.0);
+        check(!inst.setParameters(juce::Array<juce::var>{change}, error), "rejects out of range parameter");
+        inst.setState({}, error);
+    }
 
     const double rate = 48000;
     const std::vector<NoteEvent> events = { { 60, 110, 4800, 4800 + 24000 } };
@@ -158,7 +201,7 @@ int main(int argc, char** argv) {
     {
         // Note-off release velocity, channel nibble, pitch bend, CC, pressure and
         // note expression through processLiveBlock. The tone plug-in logs what it receives.
-        const auto log = juce::File::createTempFile(".midilog");
+        const auto log = testTempFile(".midilog");
         log.deleteFile();
         setTestEnv("NT_TONE_MIDI_LOG", log.getFullPathName().toRawUTF8());
         Instance live;
@@ -201,7 +244,7 @@ int main(int argc, char** argv) {
     {
         // A discontinuous seek releases sustain and centres pitch bend on every
         // channel, before the chase events of the same block.
-        const auto log = juce::File::createTempFile(".resetlog");
+        const auto log = testTempFile(".resetlog");
         log.deleteFile();
         setTestEnv("NT_TONE_MIDI_LOG", log.getFullPathName().toRawUTF8());
         Instance live;
@@ -254,7 +297,7 @@ int main(int argc, char** argv) {
     }
 
     std::printf("\n== NodeToolVstHost: output file ==\n");
-    const auto file = juce::File::createTempFile(".f32");
+    const auto file = testTempFile(".f32");
     check(writePlanarF32(a, file) && file.getSize() == (juce::int64)(2 * 48000 * sizeof(float)), "writes planar float32");
     juce::FileInputStream in(file);
     in.setPosition((juce::int64)(48000 + 10000) * 4);

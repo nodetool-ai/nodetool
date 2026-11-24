@@ -12,8 +12,10 @@
 // AssistantCommands lists and dispatches these tools after it has checked
 // the timeline id.
 //
-// Thread affinity: GUI thread only, as MusicJobs and TimelineModel are.
+// Thread affinity: model/job operations run on the GUI thread. The value-only
+// plugin overload runs on an assistant worker and borrows a thread-safe host client.
 
+#include "audio/vst/PluginAssistant.h"
 #include <QJsonObject>
 #include <QString>
 #include <QVariantList>
@@ -36,6 +38,9 @@ struct EditState {
 QVariantList tools();
 bool handles(const QString& name);
 // Runs one tool. `{ok: true, job_id, ...}` or `{ok: false, error, refusal?, valid_tools?}`.
+// Worker thread overload for plugin RPCs. Returns a document snapshot for GUI-thread commit.
+nt::audio::vst::PluginToolResult run(const QString& name, const QJsonObject& args,
+                                   const QJsonObject& document, nt::audio::vst::VstHostClient& client);
 QJsonObject run(const QString& name, const QJsonObject& args, TimelineModel& model, MusicJobs& jobs, const EditState& state = {});
 
 }  // namespace assistant

@@ -85,6 +85,7 @@ std::vector<VstPluginInfo> parsePlugins(const QJsonObject& reply) {
         info.vendor = obj.value(u"vendor").toString();
         info.version = obj.value(u"version").toString();
         info.path = obj.value(u"path").toString();
+        info.format = obj.value(u"format").toString(QStringLiteral("vst3"));
         info.isInstrument = obj.value(u"isInstrument").toBool(false);
         if (!info.uid.isEmpty() && !info.path.isEmpty()) {
             out.push_back(std::move(info));
@@ -148,6 +149,7 @@ QVariantMap pluginInfoToVariant(const VstPluginInfo& info) {
         {QStringLiteral("version"), info.version},
         {QStringLiteral("path"), info.path},
         {QStringLiteral("isInstrument"), info.isInstrument},
+        {QStringLiteral("format"), info.format},
         {QStringLiteral("key"), info.path + QChar('\n') + info.uid},
     };
 }
@@ -439,6 +441,30 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
     }
     if (reply) *reply = waiter->reply;
     return true;
+}
+
+bool VstHostClient::listPresets(const QJsonObject& target, QJsonObject* reply, QString* error) {
+    auto request = target;
+    request.insert(QStringLiteral("cmd"), QStringLiteral("listPresets"));
+    return sendSync(request, reply, error, 30000);
+}
+
+bool VstHostClient::selectPreset(const QJsonObject& target, QJsonObject* reply, QString* error) {
+    auto request = target;
+    request.insert(QStringLiteral("cmd"), QStringLiteral("selectPreset"));
+    return sendSync(request, reply, error, 30000);
+}
+
+bool VstHostClient::getParameters(const QJsonObject& target, QJsonObject* reply, QString* error) {
+    auto request = target;
+    request.insert(QStringLiteral("cmd"), QStringLiteral("getParameters"));
+    return sendSync(request, reply, error, 30000);
+}
+
+bool VstHostClient::setParameters(const QJsonObject& target, QJsonObject* reply, QString* error) {
+    auto request = target;
+    request.insert(QStringLiteral("cmd"), QStringLiteral("setParameters"));
+    return sendSync(request, reply, error, 30000);
 }
 
 bool VstHostClient::scanSync(bool rescan, std::vector<VstPluginInfo>* out, QString* error, int timeoutMs) {

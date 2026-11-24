@@ -114,6 +114,19 @@ class TestMusicAssistant : public QObject {
     }
 
 private slots:
+    void pluginToolsAdvertised() {
+        for (const auto* suffix : {"list_plugins", "load_plugin", "list_plugin_presets", "select_plugin_preset",
+                                   "get_plugin_parameters", "set_plugin_parameters"}) {
+            const auto name = QStringLiteral("ui_timeline_") + QString::fromLatin1(suffix);
+            QVERIFY2(assistant::handles(name), qPrintable(name));
+            bool found = false;
+            for (const auto& tool : assistant::tools()) {
+                if (tool.toMap().value("name").toString() == name) { found = true; }
+            }
+            QVERIFY(found);
+        }
+    }
+
     void reviewF20RowText_data() {
         QTest::addColumn<QString>("field"); QTest::addColumn<QJsonValue>("value");
         for (const auto& field : {QString("name"), QString("color")}) {
@@ -240,7 +253,9 @@ private slots:
             "ui_timeline_set_pattern",           "ui_timeline_add_pattern_rows",   "ui_timeline_clear_pattern",
             "ui_timeline_convert_pattern_to_midi", "ui_timeline_convert_midi_to_pattern",
             "ui_timeline_apply_step_pattern"};
-        QCOMPARE(names, expectedMusic + expectedPattern);
+        const QStringList expectedPlugins{"ui_timeline_list_plugins", "ui_timeline_load_plugin", "ui_timeline_list_plugin_presets",
+                                          "ui_timeline_select_plugin_preset", "ui_timeline_get_plugin_parameters", "ui_timeline_set_plugin_parameters"};
+        QCOMPARE(names, expectedMusic + expectedPattern + expectedPlugins);
         for (const auto& name : expectedMusic) {
             const auto parameters = byName.value(name).toMap().value("parameters").toMap();
             QCOMPARE(parameters.value("required").toStringList(),

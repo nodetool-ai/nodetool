@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 
+// Host calls are serialized by Instance::lock, including audio processing and program changes.
 class ToneInstrument : public juce::AudioProcessor {
 public:
     ToneInstrument()
@@ -19,10 +20,13 @@ public:
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     double getTailLengthSeconds() const override { return 0; }
-    int getNumPrograms() override { return 1; }
-    int getCurrentProgram() override { return 0; }
-    void setCurrentProgram(int) override {}
-    const juce::String getProgramName(int) override { return {}; }
+    int getNumPrograms() override { return 2; }
+    int getCurrentProgram() override { return currentProgram_; }
+    void setCurrentProgram(int index) override {
+        currentProgram_ = juce::jlimit(0, 1, index);
+        *level_ = currentProgram_ == 0 ? 0.5f : 0.9f;
+    }
+    const juce::String getProgramName(int index) override { return index == 0 ? "Default" : "Bright"; }
     void changeProgramName(int, const juce::String&) override {}
     bool hasEditor() const override { return true; }
     // native-rules #4: returns a raw owning pointer the caller must free
@@ -62,10 +66,16 @@ public:
     }
 
     void getStateInformation(juce::MemoryBlock& dest) override {
-        juce::MemoryOutputStream(dest, false).writeFloat(level_->get());
+        juce::MemoryOutputStream stream(dest, false);
+        stream.writeFloat(level_->get());
+        stream.writeInt(currentProgram_);
     }
     void setStateInformation(const void* data, int size) override {
-        if (size >= (int)sizeof(float)) *level_ = juce::MemoryInputStream(data, (size_t)size, false).readFloat();
+        if (size >= static_cast<int>(sizeof(float))) {
+            juce::MemoryInputStream stream(data, static_cast<size_t>(size), false);
+            *level_ = stream.readFloat();
+            currentProgram_ = size >= static_cast<int>(sizeof(float) + sizeof(int)) ? juce::jlimit(0, 1, stream.readInt()) : 0;
+        }
     }
 
 private:
@@ -105,6 +115,7 @@ private:
     std::map<int, double> notes_;
     juce::String logPath_;
     double rate_ = 48000;
+    int currentProgram_ = 0;
 };
 
 // native-rules #4: returns a raw owning pointer the caller must free

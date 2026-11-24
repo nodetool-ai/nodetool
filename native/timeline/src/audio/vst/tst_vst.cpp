@@ -7,6 +7,7 @@
 #include "audio/vst/VstAudioStages.h"
 #include "audio/vst/VstEdits.h"
 #include "audio/vst/VstHostClient.h"
+#include "audio/vst/PluginAssistant.h"
 #include "audio/vst/VstLiveChannel.h"
 #include "midi/PatternExpand.h"
 #include "model/TimelineJson.h"
@@ -101,6 +102,63 @@ std::vector<MidiStreamEvent> eventsWithStatus(const MidiTrackStream& stream, int
 class TestVst final : public QObject {
     Q_OBJECT
 private slots:
+    void pluginAssistantRoundTrip() {
+        const QString host = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString tone = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        const QString gain = findTestArtifact(QStringLiteral("GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3"));
+        QVERIFY(!host.isEmpty());
+        QVERIFY(!tone.isEmpty());
+        QVERIFY(!gain.isEmpty());
+        VstHostClient client;
+        client.setOverrideExecutable(host);
+        client.setExtraScanDirs({QFileInfo(tone).absolutePath(), QFileInfo(gain).absolutePath()});
+        QJsonObject document{{"tracks", QJsonArray{QJsonObject{{"id", "aaaaaaaaaaaa00000000000000000001"}, {"name", "Keys"}, {"type", "midi"}}}}};
+        const auto run = [&](const QString& op, QJsonObject args) {
+            PluginToolResult outcome;
+            std::jthread worker([&] { outcome = runPluginTool("ui_timeline_" + op, args, document, client); });
+            worker.join();
+            return outcome;
+        };
+        const auto listed = run("list_plugins", {{"query", "NodeTool Test"}});
+        QVERIFY2(listed.result.value("ok").toBool(), qPrintable(listed.result.value("error").toString()));
+        QVERIFY(listed.result.value("plugins").toArray().size() >= 2);
+        const auto loaded = run("load_plugin", {{"track", "aaaaaaaaaaaa"}, {"plugin", "NodeTool Test Tone"}});
+        QVERIFY2(loaded.result.value("ok").toBool(), qPrintable(loaded.result.value("error").toString()));
+        document = loaded.document;
+        QCOMPARE(loaded.result.value("plugin").toObject().value("format").toString(), QStringLiteral("vst3"));
+        auto presets = run("list_plugin_presets", {{"track", "Keys"}});
+        QVERIFY(presets.result.value("ok").toBool());
+        QVERIFY(presets.result.value("presets").isArray());
+        auto selected = run("select_plugin_preset", {{"track", "Keys"}, {"preset", 0}});
+        QVERIFY2(selected.result.value("ok").toBool(), qPrintable(selected.result.value("error").toString()));
+        document = selected.document;
+        auto parameters = run("get_plugin_parameters", {{"track", "Keys"}, {"parameters", QJsonArray{"Level"}}});
+        QVERIFY(parameters.result.value("ok").toBool());
+        QCOMPARE(parameters.result.value("parameters").toArray().size(), 1);
+        const auto changed = run("set_plugin_parameters", {{"track", "Keys"}, {"parameter", "Level"}, {"value", 0.8}});
+        QVERIFY2(changed.result.value("ok").toBool(), qPrintable(changed.result.value("error").toString()));
+        document = changed.document;
+        QVERIFY(changed.result.value("stateUpdated").toBool());
+        parameters = run("get_plugin_parameters", {{"track", "Keys"}, {"parameters", QJsonArray{"Level"}}});
+        QVERIFY(std::abs(parameters.result.value("parameters").toArray()[0].toObject().value("value").toDouble() - 0.8) < 0.001);
+        const auto bad = run("set_plugin_parameters", {{"track", "Keys"}, {"parameter", "Level"}, {"value", 2}});
+        QVERIFY(!bad.result.value("ok").toBool());
+        QCOMPARE(bad.document, document);
+        const auto effect = run("load_plugin", {{"track", "master"}, {"plugin", "NodeTool Test Gain"}});
+        QVERIFY2(effect.result.value("ok").toBool(), qPrintable(effect.result.value("error").toString()));
+        document = effect.document;
+        QCOMPARE(document.value("master").toObject().value("volumeDb").toDouble(-1), 0.0);
+        QCOMPARE(effect.result.value("effectId").toString().size(), 32);
+        const auto effectParams = run("get_plugin_parameters", {{"track", "master"}, {"effectId", effect.result.value("effectId").toString().left(12)}});
+        QVERIFY2(effectParams.result.value("ok").toBool(), qPrintable(effectParams.result.value("error").toString()));
+        auto tracks = document.value("tracks").toArray();
+        tracks.append(QJsonObject{{"id", "aaaaaaaaaaaa00000000000000000002"}, {"name", "Keys 2"}, {"type", "midi"}});
+        document.insert("tracks", tracks);
+        QVERIFY(!run("get_plugin_parameters", {{"track", "aaaaaaaaaaaa"}}).result.value("ok").toBool());
+        auto locked = tracks[0].toObject(); locked.insert("locked", true); tracks[0] = locked; document.insert("tracks", tracks);
+        QVERIFY(!run("set_plugin_parameters", {{"track", "Keys"}, {"parameter", "Level"}, {"value", 0.2}}).result.value("ok").toBool());
+    }
+
     void musicLoopCutsAndRepeatsMidiSourceWindow_data() {
         QTest::addColumn<bool>("offline");
         QTest::newRow("offline") << true;
@@ -543,7 +601,7 @@ private slots:
     }
 
     void liveChannelCloseWaitsForTheAudioCallbackAndPreparesAtTheRealRate() {
-        const QString hostExe = findTestArtifact(QStringLiteral("NodeToolVstHost_artefacts/Release/NodeToolVstHost"));
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
         const QString gainVst = findTestArtifact(QStringLiteral("GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3"));
         if (hostExe.isEmpty() || gainVst.isEmpty()) QSKIP("NodeToolVstHost or test VST3 plugins not built");
         auto client = sharedVstHostClient();
@@ -655,7 +713,7 @@ private slots:
     }
 
     void rendersVstInstrumentAndProcessesVstEffectEndToEnd() {
-        const QString hostExe = findTestArtifact(QStringLiteral("NodeToolVstHost_artefacts/Release/NodeToolVstHost"));
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
         const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
         const QString gainVst = findTestArtifact(QStringLiteral("GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3"));
         if (hostExe.isEmpty() || toneVst.isEmpty() || gainVst.isEmpty()) {
