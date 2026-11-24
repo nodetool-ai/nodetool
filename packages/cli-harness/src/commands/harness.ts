@@ -364,13 +364,7 @@ export function registerHarnessCommands(program: Command): void {
             workspaces: readWorkspacePackages(repoRoot)
           }
         );
-        // A directory recorded in UNCLAIMED_PATHS has already been judged: no
-        // harness reaches it, and the entry says why. `auditPathClaims` honors
-        // that; the gate did not, so the first diff to touch such a directory
-        // failed with no way to satisfy it short of inventing a surface.
-        const unmappedCodeFiles = plan.unmappedFiles
-          .filter(isGateRelevantCodeFile)
-          .filter((f) => !isUnclaimedPath(f));
+        const unmappedCodeFiles = unclaimedCodeFiles(plan.unmappedFiles, repoRoot);
 
         if (!opts.json) {
           printGatePlan(
@@ -492,6 +486,21 @@ export function registerHarnessCommands(program: Command): void {
  * steps are kept outside a global diff, because `test:affected` may run only
  * the tests related to their own changed files.
  */
+/**
+ * The changed code files no surface claims, which fail the gate. A directory
+ * recorded in UNCLAIMED_PATHS has already been judged. A deleted file has no
+ * code left to cover, so removing a package does not need a surface for it.
+ */
+export function unclaimedCodeFiles(
+  unmappedFiles: readonly string[],
+  repoRoot: string
+): string[] {
+  return unmappedFiles
+    .filter(isGateRelevantCodeFile)
+    .filter((f) => !isUnclaimedPath(f))
+    .filter((f) => existsSync(join(repoRoot, f)));
+}
+
 export function selectChecks(
   checks: readonly GateCheck[],
   opts: {
