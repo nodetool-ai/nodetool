@@ -3985,6 +3985,56 @@
     }
   },
   {
+    "name": "ui_timeline_get_plugin_parameters",
+    "description": "List or read parameters of a loaded VST3/AU instrument or insert effect, returning each parameter's id, index, name, normalized value (0..1), and formatted displayValue.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "timeline_id": {
+          "type": "string",
+          "description": "Id of the target timeline sequence."
+        },
+        "track": {
+          "type": "string",
+          "description": "Track id or name, or \"master\" for a master bus insert effect."
+        },
+        "effectId": {
+          "description": "Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument.",
+          "type": "string",
+          "minLength": 1
+        },
+        "parameters": {
+          "description": "Optional parameter ids, indices, or names to read. Omit to list every parameter exposed by the plugin.",
+          "maxItems": 256,
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              }
+            ]
+          }
+        },
+        "query": {
+          "description": "Optional case-insensitive substring filter on parameter id, name, or unit label.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "timeline_id",
+        "track"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "ui_timeline_get_state",
     "description": "Read the specified timeline sequence: resolution + fps + duration, the playhead position, the current selection, every track, and every clip with its timing, media type, generation binding (prompt/provider/model/status) and render params. Call this first to discover what's on the timeline and to get the ids/names other timeline tools need. It also reports the master bus and the project key. Send `clip` to read a midi clip's notes and controller lanes, or `track` to read a track's automation, effects and instrument.",
     "parameters": {
@@ -4134,6 +4184,80 @@
     }
   },
   {
+    "name": "ui_timeline_list_plugin_presets",
+    "description": "List the presets (programs) exposed by a loaded VST3/AU instrument or insert effect, together with its active preset index.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "timeline_id": {
+          "type": "string",
+          "description": "Id of the target timeline sequence."
+        },
+        "track": {
+          "type": "string",
+          "description": "Track id or name, or \"master\" for a master bus insert effect."
+        },
+        "effectId": {
+          "description": "Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument.",
+          "type": "string",
+          "minLength": 1
+        },
+        "query": {
+          "description": "Optional case-insensitive substring filter on preset names.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "timeline_id",
+        "track"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "ui_timeline_list_plugins",
+    "description": "List available third-party VST3 and AU instruments and audio effects installed on the host machine.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "timeline_id": {
+          "type": "string",
+          "description": "Id of the target timeline sequence."
+        },
+        "kind": {
+          "description": "Filter by plugin role: \"instrument\", \"effect\", or \"all\" (default \"all\").",
+          "type": "string",
+          "enum": [
+            "instrument",
+            "effect",
+            "all"
+          ]
+        },
+        "format": {
+          "description": "Filter by plugin format: \"vst3\", \"au\", or \"all\" (default \"all\").",
+          "type": "string",
+          "enum": [
+            "vst3",
+            "au",
+            "all"
+          ]
+        },
+        "query": {
+          "description": "Optional case-insensitive substring filter on plugin name, vendor, uid, or path.",
+          "type": "string"
+        },
+        "rescan": {
+          "description": "Force a fresh scan of standard VST3/AU plugin folders instead of reading the cached scan.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "timeline_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "ui_timeline_list_progressions",
     "description": "List the progression library: id, name, family, numerals and length in bars. Pass an id or a name to ui_timeline_apply_progression.",
     "parameters": {
@@ -4182,6 +4306,116 @@
       },
       "required": [
         "timeline_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "ui_timeline_load_plugin",
+    "description": "Load a third-party VST3/AU instrument onto a MIDI track or insert a VST3/AU effect onto an audio, MIDI, or master bus chain.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "timeline_id": {
+          "type": "string",
+          "description": "Id of the target timeline sequence."
+        },
+        "track": {
+          "type": "string",
+          "description": "Track id or name, or \"master\" for master bus insert effects."
+        },
+        "plugin": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "object",
+              "properties": {
+                "uid": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "vendor": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "format": {
+                  "type": "string",
+                  "enum": [
+                    "vst3",
+                    "au"
+                  ]
+                }
+              }
+            }
+          ],
+          "description": "Plugin identifier from ui_timeline_list_plugins: uid, bundle path, unique case-insensitive name, or { uid, path, name, vendor, format }."
+        },
+        "slot": {
+          "description": "Where to load the plugin: \"instrument\" (MIDI tracks only) or \"effect\" (audio, MIDI, or master insert chain). Omit to infer from the plugin role and track type.",
+          "type": "string",
+          "enum": [
+            "instrument",
+            "effect"
+          ]
+        },
+        "effectId": {
+          "description": "When loading an insert effect, replace an existing effect by id (or 12-char prefix) instead of appending a new slot.",
+          "type": "string",
+          "minLength": 1
+        },
+        "index": {
+          "description": "Optional 0-based insertion index in the track or master insert effect chain.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "enabled": {
+          "description": "Whether a newly loaded insert effect starts enabled (default true).",
+          "type": "boolean"
+        },
+        "wet": {
+          "description": "Dry/wet mix for an insert effect in 0..1 (default 1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "gainDb": {
+          "description": "Output gain in dB for a VST/AU instrument (-60..12, default 0).",
+          "type": "number",
+          "minimum": -60,
+          "maximum": 12
+        },
+        "state": {
+          "description": "Optional initial base64 plugin state. Omit or pass null for the plugin default sound.",
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 8000000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "timeline_id",
+        "track",
+        "plugin"
       ],
       "additionalProperties": false
     }
@@ -12988,6 +13222,49 @@
     }
   },
   {
+    "name": "ui_timeline_select_plugin_preset",
+    "description": "Select a preset by index or name on a loaded VST3/AU instrument or insert effect and persist the resulting plugin state on the timeline.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "timeline_id": {
+          "type": "string",
+          "description": "Id of the target timeline sequence."
+        },
+        "track": {
+          "type": "string",
+          "description": "Track id or name, or \"master\" for a master bus insert effect."
+        },
+        "effectId": {
+          "description": "Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument.",
+          "type": "string",
+          "minLength": 1
+        },
+        "preset": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          ],
+          "description": "0-based preset index or case-insensitive preset name from ui_timeline_list_plugin_presets."
+        }
+      },
+      "required": [
+        "timeline_id",
+        "track",
+        "preset"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "ui_timeline_separate_pattern_rows",
     "description": "Separate a step sequencer pattern region into one MIDI track per row below the source track and remove the source region.",
     "parameters": {
@@ -16439,6 +16716,101 @@
     }
   },
   {
+    "name": "ui_timeline_set_plugin_parameters",
+    "description": "Set one or more parameters on a loaded VST3/AU instrument or insert effect by id, index, or name using either a normalized 0..1 value or a displayValue string, and persist the updated plugin state.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "timeline_id": {
+          "type": "string",
+          "description": "Id of the target timeline sequence."
+        },
+        "track": {
+          "type": "string",
+          "description": "Track id or name, or \"master\" for a master bus insert effect."
+        },
+        "effectId": {
+          "description": "Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument.",
+          "type": "string",
+          "minLength": 1
+        },
+        "parameter": {
+          "description": "Single parameter id, 0-based index, or name (shorthand for a one-entry `parameters` array).",
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            }
+          ]
+        },
+        "value": {
+          "description": "Normalized 0..1 value for the single `parameter` shorthand.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "displayValue": {
+          "description": "Formatted display value for the single `parameter` shorthand.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "parameters": {
+          "description": "One or more parameter updates: [{ parameter, value | displayValue }].",
+          "minItems": 1,
+          "maxItems": 128,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "parameter": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  }
+                ],
+                "description": "Parameter id, 0-based index, or case-insensitive name from ui_timeline_get_plugin_parameters."
+              },
+              "value": {
+                "description": "Normalized parameter value in 0..1. Provide either value or displayValue, not both.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "displayValue": {
+                "description": "Formatted display value (e.g. \"1200 Hz\", \"-6 dB\", \"On\"). Provide either value or displayValue, not both.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "parameter"
+            ]
+          }
+        }
+      },
+      "required": [
+        "timeline_id",
+        "track"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "ui_timeline_set_reframe_subject",
     "description": "Set the subject track that drives one clip's source-time Smart Reframe crop. The clip and MediaTrack must belong to the current sequence. This changes editorial framing only and does not alter or regenerate the source asset.",
     "parameters": {
@@ -17182,6 +17554,88 @@
               {
                 "type": "object",
                 "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "vst"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "plugin": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "uid": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 512
+                          },
+                          "name": {
+                            "type": "string",
+                            "maxLength": 256
+                          },
+                          "vendor": {
+                            "type": "string",
+                            "maxLength": 256
+                          },
+                          "path": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 4096
+                          },
+                          "format": {
+                            "type": "string",
+                            "enum": [
+                              "vst3",
+                              "au"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "uid",
+                          "name",
+                          "vendor",
+                          "path"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "state": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 8000000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "wet": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "enabled",
+                  "plugin",
+                  "state",
+                  "wet"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
                   "exposure": {
                     "type": "number",
                     "minimum": -5,
@@ -17680,6 +18134,13 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 4096
+                            },
+                            "format": {
+                              "type": "string",
+                              "enum": [
+                                "vst3",
+                                "au"
+                              ]
                             }
                           },
                           "required": [
