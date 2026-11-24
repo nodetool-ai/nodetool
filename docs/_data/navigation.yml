@@ -252,6 +252,8 @@
       url: "/worker-deployment"
     - title: "Supabase"
       url: "/supabase-deployment"
+    - title: "Integrations on Your Server"
+      url: "/integrations-hosting"
 - id: cli
   title: "CLI"
   pages:
@@ -301,6 +303,8 @@
       url: "/developer/creative-agent-tools"
     - title: "Preset Catalog Reference"
       url: "/developer/presets"
+    - title: "Integration Tools"
+      url: "/developer/integration-tools"
     - title: "Timeline Motion Design"
       url: "/timeline-motion-design"
     - title: "Custom Animations"

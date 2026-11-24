@@ -74,6 +74,7 @@ Full walkthrough: [Custom Nodes Guide](custom-nodes-guide.md) (packaging, govern
 - [Headless Mode](../api-reference.md#headless-mode-running-workflows-via-cliapi) -- Run workflows via CLI and HTTP API
 - [Chat API](../chat-api.md) -- OpenAI-compatible chat endpoints
 - [Workflow API](../workflow-api.md) -- Execute workflows programmatically
+- [Integration Tools](integration-tools.md) -- Google Workspace, Apify and SerpAPI tools from Code nodes, JS scripts and MCP
 - [TypeScript SDK](sdk.md) -- `@nodetool-ai/sdk`: a typed tRPC client and the chat WebSocket
 
 
