@@ -20,7 +20,8 @@ HookRegistrations registerPlaybackHooks() {
             period >= clip.durationMs || clip.raw.value(u"timeRemap").isObject()) { return std::nullopt; }
         // Control-thread values become plan-owned voices. The audio thread only reads them.
         std::vector<audio::VoiceSegment> segments;
-        for (double offset = 0; offset < clip.durationMs; offset += period) {
+        for (int k = 0; k * period < clip.durationMs; ++k) {
+            const double offset = k * period;
             segments.push_back({clip.startMs + offset, std::min(period, clip.durationMs - offset),
                 clip.inPointMs, voice.sourceRate, false});
         }

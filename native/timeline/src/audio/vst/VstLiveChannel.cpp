@@ -231,8 +231,11 @@ bool VstLiveChannel::processBlock(std::span<float> stereo, std::span<const vstho
     // momentarily mid-exchange, never stall the real-time audio callback.
     if (m_busy.test_and_set(std::memory_order_acquire)) return false;
     struct BusyGuard {
-        std::atomic_flag& flag;
+        explicit BusyGuard(std::atomic_flag& busy) : flag(busy) {}
+        BusyGuard(const BusyGuard&) = delete;
+        BusyGuard& operator=(const BusyGuard&) = delete;
         ~BusyGuard() { flag.clear(std::memory_order_release); }
+        std::atomic_flag& flag;
     } busyGuard{m_busy};
 
     if (!m_connected.load(std::memory_order_acquire) || !m_shm || m_sockFd < 0) return false;

@@ -169,8 +169,7 @@ void AutomationReadout::update() {
         const double time=clock_ ? clock_->currentTimeMs() : 0;
         const auto b=std::lower_bound(points_.begin(),points_.end(),time,[](const Point& p,double t) { return p.time<t; });
         if (time<=points_.front().time) { next=points_.front().value; }
-        else if (time>=points_.back().time) { next=points_.back().value; }
-        else if (b==points_.end()) { next=points_.back().value; }
+        else if (time>=points_.back().time || b==points_.end()) { next=points_.back().value; }
         else { const auto& a=*(b-1); next=a.value+(b->value-a.value)*nt::scene::ease(b->easing,(time-a.time)/(b->time-a.time)); }
     }
     if (next!=value_) { value_=next; emit valueChanged(); }

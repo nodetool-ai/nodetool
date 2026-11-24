@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 namespace nt::ui {
 
@@ -296,7 +297,7 @@ QSGNode* MidiNoteLinesItem::softwarePaintNode(QSGNode* old, const std::vector<No
     const double to = std::clamp(m_to > m_from ? m_to : width(), from, width());
     const QSize size(int(std::ceil(to - from)), int(std::ceil(height())));
     if (size.isEmpty() || (lines.empty() && curve.empty())) {
-        delete old;
+        delete old;  // NOLINT(cppcoreguidelines-owning-memory): updatePaintNode hands the item its old scene graph node
         return nullptr;
     }
     const qreal dpr = window()->effectiveDevicePixelRatio();
@@ -338,13 +339,12 @@ QSGNode* MidiNoteLinesItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) 
     auto* node = static_cast<QSGGeometryNode*>(old);
     if (!node) {
         // The scene graph owns the node, its geometry and its material.
-        node = new QSGGeometryNode;
-        auto* geometry = new QSGGeometry(QSGGeometry::defaultAttributes_ColoredPoint2D(), 0);
+        node = new QSGGeometryNode;  // NOLINT(cppcoreguidelines-owning-memory): returned to the scene graph, which owns it
+        auto geometry = std::make_unique<QSGGeometry>(QSGGeometry::defaultAttributes_ColoredPoint2D(), 0);
         geometry->setDrawingMode(QSGGeometry::DrawTriangles);
-        node->setGeometry(geometry);
+        node->setGeometry(geometry.release());
         node->setFlag(QSGNode::OwnsGeometry);
-        auto* material = new QSGVertexColorMaterial;
-        node->setMaterial(material);
+        node->setMaterial(std::make_unique<QSGVertexColorMaterial>().release());
         node->setFlag(QSGNode::OwnsMaterial);
     }
     QSGGeometry* geometry = node->geometry();

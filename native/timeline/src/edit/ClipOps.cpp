@@ -1597,7 +1597,8 @@ QJsonArray unrollMusicClip(const QJsonObject& clip, double bpm) {
     const double period = clip.value("loopLengthMs").toDouble();
     if (period <= 0 || period >= clipDurationMs(clip) || !std::isfinite(period)) { return {clip}; }
     QJsonArray copies;
-    for (double offset = 0; offset < clipDurationMs(clip) - SECTION_EPS; offset += period) {
+    for (int k = 0; k * period < clipDurationMs(clip) - SECTION_EPS; ++k) {
+        const double offset = k * period;
         auto copy = clip;
         copy.remove(QStringLiteral("loopLengthMs"));
         const double duration = std::min(period, clipDurationMs(clip) - offset);

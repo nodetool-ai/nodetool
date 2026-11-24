@@ -42,6 +42,7 @@ class SubtractiveInstrumentProcessor final : public audio::BlockProcessor {
 public:
     SubtractiveInstrumentProcessor(const SubtractiveInstrumentProcessor&) = delete;
     SubtractiveInstrumentProcessor& operator=(const SubtractiveInstrumentProcessor&) = delete;
+    ~SubtractiveInstrumentProcessor() override = default;
     SubtractiveInstrumentProcessor(const Timeline& timeline, const Track& track) {
         id = "instrument";
         const auto instrument = track.raw.value(u"instrument").toObject();
@@ -123,7 +124,8 @@ public:
             }
         }
         for (std::size_t sample = 0; sample + 1 < stereo.size(); sample += 2) {
-            const double time = context.timelineMs + static_cast<double>(sample / 2) * context.msPerFrame;
+            const std::size_t frame = sample / 2;
+            const double time = context.timelineMs + static_cast<double>(frame) * context.msPerFrame;
             for (std::size_t i = 0; i < voices_.size(); ++i) {
                 if (voices_[i].note && voices_[i].note->endMs <= time) {
                     voices_[i].note = nullptr; freeSlots_[freeCount_++] = i;
@@ -163,7 +165,8 @@ public:
             const float value = static_cast<float>(std::clamp(output * gain_, -limit, limit));
             stereo[sample] += value; stereo[sample + 1] += value;
         }
-        expectedMs_ = context.timelineMs + static_cast<double>(stereo.size() / 2) * context.msPerFrame;
+        const std::size_t frames = stereo.size() / 2;
+        expectedMs_ = context.timelineMs + static_cast<double>(frames) * context.msPerFrame;
     }
 private:
     static double bounded(const QJsonObject& object, const char* key, double fallback, double lo, double hi) {
@@ -357,8 +360,9 @@ public:
         }
         for (std::size_t i = 0; i < stereo.size(); i += 2) {
             auto sample = context;
-            sample.timelineMs += static_cast<double>(i / 2) * context.msPerFrame;
-            sample.quantumOffset += static_cast<int>(i / 2);
+            const std::size_t frame = i / 2;
+            sample.timelineMs += static_cast<double>(frame) * context.msPerFrame;
+            sample.quantumOffset += static_cast<int>(frame);
             apply(sample.timelineMs);
             inner_->process(stereo.subspan(i, 2), sample);
         }
