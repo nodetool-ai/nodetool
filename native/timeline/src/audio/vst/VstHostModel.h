@@ -20,7 +20,9 @@
 
 namespace nt::audio::vst {
 
-class VstHostModel final : public QObject {
+// Not final: QML registration derives QQmlPrivate::QQmlElement<T> from a
+// QML element, and MSVC instantiates it for this singleton.
+class VstHostModel : public QObject {
     Q_OBJECT
     QML_NAMED_ELEMENT(VstHost)
     QML_SINGLETON
