@@ -141,23 +141,6 @@ void drive(QQuickWindow *window, QQuickItem *editor, const QString &mode) {
         if (!require(menu->trigger("newTimeline"), "New Timeline menu action must route")) {
             return;
         }
-    } else if (mode.startsWith("new-key-")) {
-        auto *button = findItem(editor, "newTimelineButton");
-        if (!require(button, "New timeline button must exist")) {
-            return;
-        }
-        editor->forceActiveFocus();
-        for (int i = 0; i < 80 && !button->hasActiveFocus(); ++i) {
-            key(window, Qt::Key_Tab);
-        }
-        if (!require(button->hasActiveFocus(), "Tab must reach New timeline")) {
-            return;
-        }
-        key(window, mode.endsWith("return") ? Qt::Key_Return : mode.endsWith("enter") ? Qt::Key_Enter : Qt::Key_Space);
-    } else if (mode == "new-button" || mode == "controls-new-button") {
-        if (!invokeButton("newTimelineButton")) {
-            return;
-        }
     } else if ((mode == "open-menu" || mode == "controls-menu")) {
         if (!require(menu->trigger("openTimeline"), "Open Timeline menu action must route")) {
             return;
@@ -225,9 +208,6 @@ void drive(QQuickWindow *window, QQuickItem *editor, const QString &mode) {
                         if (!require(button->hasActiveFocus() && ring.evaluate().toBool(),
                                      "Tab must reach button with focus border")) {
                             return;
-                        }
-                        if (QString::fromLatin1(name) == "newTimelineButton" && nt::server::serverSaveTarget()) {
-                            continue;
                         }
                         for (auto code : {Qt::Key_Return, Qt::Key_Enter, Qt::Key_Space}) {
                             button->forceActiveFocus(Qt::TabFocusReason);

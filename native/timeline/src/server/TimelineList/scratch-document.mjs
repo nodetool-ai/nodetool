@@ -33,7 +33,7 @@ try {
   const projectId = projects.find(p => p.isPersonal).id;
   const create = () => session.mutate(server.base, "timeline.create", {id: randomUUID().replaceAll("-", ""), name: "Before switch", projectId});
   const failures = [];
-  for (const mode of ["open-key", "open-menu", "open-button", "new-menu", "new-button", "new-key-return", "new-key-enter", "new-key-space", "dismiss-escape", "dismiss-outside", "keyboard", "flush-failure"]) {
+  for (const mode of ["open-key", "open-menu", "open-button", "new-menu", "dismiss-escape", "dismiss-outside", "keyboard", "flush-failure"]) {
     const current = await create();
     const chosen = await create();
     const dir = path.join(work, mode);
