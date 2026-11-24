@@ -1,10 +1,10 @@
-import { memo, useCallback } from "react";
+import { lazy, memo, Suspense, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
   embedKindFromContentType,
   embedKindFromSrc,
-  parseShotEmbedSrc,
+  parseResourceEmbedSrc,
   type DocumentEmbedKind,
   type Shot
 } from "@nodetool-ai/protocol";
@@ -16,13 +16,9 @@ import LazyModel3DViewer from "../../asset_viewer/LazyModel3DViewer";
 import { assetOfFile } from "../../workspaces/workspaceTreeActions";
 import {
   AudioPlayback,
-  BORDER_RADIUS,
   Caption,
-  EditorButton,
   FlexColumn,
-  FlexRow,
   GAP,
-  PADDING,
   ResponsiveImage,
   VideoPlayer
 } from "../../ui_primitives";
@@ -31,6 +27,10 @@ import {
   useDocumentLocation
 } from "../documentEditorContext";
 import { hasMedia, shotLabel } from "../documentEmbeds";
+import { EmbedCard } from "./EmbedCard";
+
+const TimelineEmbed = lazy(() => import("./TimelineEmbed"));
+const ScriptEmbed = lazy(() => import("./ScriptEmbed"));
 
 interface DocumentEmbedProps {
   src: string;
@@ -191,17 +191,11 @@ const ShotEmbed = ({
   const label = alt || shotLabel(shot);
 
   return (
-    <FlexColumn
-      component="span"
-      gap={GAP.tight}
-      data-testid="document-shot-embed"
-      sx={{
-        ...BLOCK_SX,
-        p: PADDING.compact,
-        border: 1,
-        borderColor: "divider",
-        borderRadius: BORDER_RADIUS.md
-      }}
+    <EmbedCard
+      caption={`${board.name} · ${label}`}
+      openLabel={t("documentEditor.embed.openStoryboard")}
+      onOpen={open}
+      testId="document-shot-embed"
     >
       {media === null ? (
         <Fallback text={t("documentEditor.embed.shotNotRendered")} />
@@ -216,26 +210,37 @@ const ShotEmbed = ({
           sx={{ display: "block", maxWidth: "100%", width: "auto" }}
         />
       )}
-      <FlexRow component="span" gap={GAP.normal} align="center" justify="space-between">
-        <Caption size="small" color="muted" component="span">
-          {`${board.name} · ${label}`}
-        </Caption>
-        <EditorButton variant="text" size="small" onClick={open}>
-          {t("documentEditor.embed.openStoryboard")}
-        </EditorButton>
-      </FlexRow>
-    </FlexColumn>
+    </EmbedCard>
   );
 };
 
-/** An embed in a document: a storyboard shot or a media file. */
+/** An embed in a document: a storyboard shot, timeline, voice script or media file. */
 const DocumentEmbed = ({ src, alt }: DocumentEmbedProps) => {
-  const shot = parseShotEmbedSrc(src);
-  return shot ? (
-    <ShotEmbed storyboardId={shot.storyboardId} shotId={shot.shotId} alt={alt} />
-  ) : (
-    <MediaEmbed src={src} alt={alt} />
-  );
+  const resource = parseResourceEmbedSrc(src);
+  switch (resource?.kind) {
+    case "shot":
+      return (
+        <ShotEmbed
+          storyboardId={resource.storyboardId}
+          shotId={resource.shotId}
+          alt={alt}
+        />
+      );
+    case "timeline":
+      return (
+        <Suspense fallback={<Fallback text={alt || src} />}>
+          <TimelineEmbed timelineId={resource.timelineId} alt={alt} />
+        </Suspense>
+      );
+    case "script":
+      return (
+        <Suspense fallback={<Fallback text={alt || src} />}>
+          <ScriptEmbed scriptId={resource.scriptId} alt={alt} />
+        </Suspense>
+      );
+    default:
+      return <MediaEmbed src={src} alt={alt} />;
+  }
 };
 
 export default memo(DocumentEmbed);

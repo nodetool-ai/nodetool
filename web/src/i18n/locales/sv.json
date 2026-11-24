@@ -20796,7 +20796,28 @@
       "loadingShot": "Läser in bild…",
       "shotMissing": "Bilden hittades inte: {{name}}",
       "shotNotRendered": "Den här bilden har ingen nyckelbild eller inget klipp än.",
-      "openStoryboard": "Öppna storyboard"
+      "openStoryboard": "Öppna storyboard",
+      "tabTimeline": "Tidslinje",
+      "tabScript": "Röstmanus",
+      "untitledTimeline": "Namnlös tidslinje",
+      "loadingTimelines": "Läser in tidslinjer…",
+      "noTimelines": "Inga tidslinjer i det här projektet",
+      "noTimelinesDescription": "Skapa en tidslinje för att bädda in den här.",
+      "timelineHint": "En inbäddad tidslinje spelas upp i dokumentet och följer senare ändringar.",
+      "loadingTimeline": "Läser in tidslinje…",
+      "timelineMissing": "Tidslinjen hittades inte: {{name}}",
+      "openTimeline": "Öppna tidslinje",
+      "untitledScript": "Namnlöst manus",
+      "lineCount_one": "{{count}} replik",
+      "lineCount_other": "{{count}} repliker",
+      "loadingScripts": "Läser in manus…",
+      "noScripts": "Inga röstmanus i det här projektet",
+      "noScriptsDescription": "Skapa ett röstmanus för att bädda in det här.",
+      "scriptHint": "Ett inbäddat manus visar varje replik med dess aktuella tagning.",
+      "loadingScript": "Läser in manus…",
+      "scriptMissing": "Manuset hittades inte: {{name}}",
+      "scriptEmpty": "Det här manuset har inga repliker än.",
+      "openScript": "Öppna manus"
     }
   }
 }

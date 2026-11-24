@@ -6,39 +6,54 @@
  * - A path or URL with a media extension shows that media: an image, video,
  *   audio clip or 3D model.
  * - An `asset://<id>` locator shows the asset by its content type.
- * - `storyboard://<storyboard id>/shots/<shot id>` shows the shot's current
- *   clip, or its keyframe while it has no clip, and follows re-renders.
+ * - A resource URI (`resource-uri.ts`) shows a project document:
+ *   `storyboard://<id>#shot=<shot id>` the shot's current clip, or its
+ *   keyframe while it has no clip, `timeline://<id>` a player for the
+ *   timeline, and `script://<id>` the script with its voiced takes.
  */
 import { mimeTypeForPath } from "./mime-types.js";
+import { formatResourceUri, parseResourceUri } from "./resource-uri.js";
 
 export type DocumentEmbedKind = "image" | "video" | "audio" | "model3d";
 
-const SHOT_EMBED = /^storyboard:\/\/([^/?#\s]+)\/shots\/([^/?#\s]+)$/;
+/** A project document a document embeds by its resource URI. */
+export type DocumentResourceEmbed =
+  | { kind: "shot"; storyboardId: string; shotId: string }
+  | { kind: "timeline"; timelineId: string }
+  | { kind: "script"; scriptId: string };
 
-export interface ShotEmbedTarget {
-  storyboardId: string;
-  shotId: string;
+/** The `src` that embeds a storyboard shot, a timeline or a script. */
+export function resourceEmbedSrc(target: DocumentResourceEmbed): string {
+  switch (target.kind) {
+    case "shot":
+      return formatResourceUri({
+        kind: "storyboard",
+        id: target.storyboardId,
+        subTarget: { key: "shot", value: target.shotId }
+      });
+    case "timeline":
+      return formatResourceUri({ kind: "timeline", id: target.timelineId });
+    case "script":
+      return formatResourceUri({ kind: "script", id: target.scriptId });
+  }
 }
 
-/** The `src` that embeds a storyboard shot. */
-export function shotEmbedSrc(storyboardId: string, shotId: string): string {
-  return `storyboard://${encodeURIComponent(storyboardId)}/shots/${encodeURIComponent(shotId)}`;
-}
-
-/** The shot a `storyboard://` embed names, or null for any other `src`. */
-export function parseShotEmbedSrc(src: string): ShotEmbedTarget | null {
-  const match = SHOT_EMBED.exec(src.trim());
-  if (!match) {
+/** The document an embed's `src` names, or null for media and other links. */
+export function parseResourceEmbedSrc(src: string): DocumentResourceEmbed | null {
+  const ref = parseResourceUri(src.trim());
+  if (ref === null) {
     return null;
   }
-  try {
-    return {
-      storyboardId: decodeURIComponent(match[1]),
-      shotId: decodeURIComponent(match[2])
-    };
-  } catch {
-    return null;
+  if (ref.kind === "storyboard" && ref.subTarget?.key === "shot") {
+    return { kind: "shot", storyboardId: ref.id, shotId: ref.subTarget.value };
   }
+  if (ref.kind === "timeline" && !ref.subTarget) {
+    return { kind: "timeline", timelineId: ref.id };
+  }
+  if (ref.kind === "script" && !ref.subTarget) {
+    return { kind: "script", scriptId: ref.id };
+  }
+  return null;
 }
 
 /** The embed kind of a content type, or null when it is not media. */

@@ -20796,7 +20796,28 @@
       "loadingShot": "샷 불러오는 중…",
       "shotMissing": "샷을 찾을 수 없습니다: {{name}}",
       "shotNotRendered": "이 샷에는 아직 키프레임이나 클립이 없습니다.",
-      "openStoryboard": "스토리보드 열기"
+      "openStoryboard": "스토리보드 열기",
+      "tabTimeline": "타임라인",
+      "tabScript": "음성 스크립트",
+      "untitledTimeline": "제목 없는 타임라인",
+      "loadingTimelines": "타임라인을 불러오는 중…",
+      "noTimelines": "이 프로젝트에 타임라인이 없습니다",
+      "noTimelinesDescription": "타임라인을 만들면 여기에 삽입할 수 있습니다.",
+      "timelineHint": "삽입한 타임라인은 문서 안에서 재생되며 이후 편집 내용을 따라갑니다.",
+      "loadingTimeline": "타임라인을 불러오는 중…",
+      "timelineMissing": "타임라인을 찾을 수 없습니다: {{name}}",
+      "openTimeline": "타임라인 열기",
+      "untitledScript": "제목 없는 스크립트",
+      "lineCount_one": "대사 {{count}}줄",
+      "lineCount_other": "대사 {{count}}줄",
+      "loadingScripts": "스크립트를 불러오는 중…",
+      "noScripts": "이 프로젝트에 음성 스크립트가 없습니다",
+      "noScriptsDescription": "음성 스크립트를 만들면 여기에 삽입할 수 있습니다.",
+      "scriptHint": "삽입한 스크립트는 각 대사를 현재 테이크와 함께 보여 줍니다.",
+      "loadingScript": "스크립트를 불러오는 중…",
+      "scriptMissing": "스크립트를 찾을 수 없습니다: {{name}}",
+      "scriptEmpty": "이 스크립트에는 아직 대사가 없습니다.",
+      "openScript": "스크립트 열기"
     }
   }
 }

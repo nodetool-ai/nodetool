@@ -3,13 +3,22 @@ import { embedsFromDrag } from "../DocumentEmbedDropPlugin";
 
 const mockGet = jest.fn();
 const mockAssetOfFile = jest.fn();
+const mockDocumentByFile = jest.fn();
 
 jest.mock("../../../stores/AssetStore", () => ({
   useAssetStore: { getState: () => ({ get: mockGet, createAsset: jest.fn() }) }
 }));
 jest.mock("../../workspaces/workspaceTreeActions", () => ({
   assetOfFile: (projectId: string, path: string) => mockAssetOfFile(projectId, path),
+  isDocumentFile: (path: string) => path.endsWith(".timeline.json") || path.endsWith(".script.json"),
   uploadFileToFolder: jest.fn()
+}));
+jest.mock("../../../trpc/client", () => ({
+  trpcClient: {
+    projects: {
+      documentByFile: { query: (input: unknown) => mockDocumentByFile(input) }
+    }
+  }
 }));
 
 /** A DataTransfer stand-in: jsdom has none. */
@@ -72,7 +81,7 @@ describe("embedsFromDrag", () => {
       data
     );
     await expect(embedsFromDrag(data, location)).resolves.toEqual([
-      { src: "storyboard://b1/shots/s2", alt: "SH 02" }
+      { src: "storyboard://b1#shot=s2", alt: "SH 02" }
     ]);
   });
 
@@ -98,6 +107,37 @@ describe("embedsFromDrag", () => {
     await expect(embedsFromDrag(data, location)).resolves.toEqual([
       { src: `asset://${ASSET.id}`, alt: "cover" }
     ]);
+  });
+
+  it("embeds a timeline dragged from the timeline list", async () => {
+    const data = transfer();
+    serializeDragData({ type: "timeline", payload: { id: "tl1", name: "Teaser cut" } }, data);
+    await expect(embedsFromDrag(data, location)).resolves.toEqual([
+      { src: "timeline://tl1", alt: "Teaser cut" }
+    ]);
+  });
+
+  it("embeds the timeline or script a Files panel document file holds", async () => {
+    mockDocumentByFile
+      .mockResolvedValueOnce({ type: "timeline", ref: "tl1", name: "Teaser cut" })
+      .mockResolvedValueOnce({ type: "script", ref: "sc1", name: "Voiceover" });
+    const timelineDrag = transfer();
+    serializeDragData(
+      { type: "project-file", payload: { projectId: "p1", path: "cuts/teaser.timeline.json" } },
+      timelineDrag
+    );
+    await expect(embedsFromDrag(timelineDrag, location)).resolves.toEqual([
+      { src: "timeline://tl1", alt: "Teaser cut" }
+    ]);
+    const scriptDrag = transfer();
+    serializeDragData(
+      { type: "project-file", payload: { projectId: "p1", path: "vo.script.json" } },
+      scriptDrag
+    );
+    await expect(embedsFromDrag(scriptDrag, location)).resolves.toEqual([
+      { src: "script://sc1", alt: "Voiceover" }
+    ]);
+    expect(mockDocumentByFile).toHaveBeenCalledWith({ id: "p1", path: "vo.script.json" });
   });
 
   it("ignores drags that carry nothing to embed", async () => {

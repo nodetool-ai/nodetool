@@ -3,22 +3,28 @@ import { describe, expect, it } from "vitest";
 import {
   embedKindFromContentType,
   embedKindFromSrc,
-  parseShotEmbedSrc,
-  shotEmbedSrc
+  parseResourceEmbedSrc,
+  resourceEmbedSrc
 } from "../src/document-embeds.js";
 
 describe("document embeds", () => {
-  it("round-trips a shot embed", () => {
-    const src = shotEmbedSrc("board1", "shot 2");
-    expect(src).toBe("storyboard://board1/shots/shot%202");
-    expect(parseShotEmbedSrc(src)).toEqual({ storyboardId: "board1", shotId: "shot 2" });
+  it("round-trips shot, timeline and script embeds", () => {
+    const shot = { kind: "shot", storyboardId: "board1", shotId: "s2" } as const;
+    expect(resourceEmbedSrc(shot)).toBe("storyboard://board1#shot=s2");
+    expect(parseResourceEmbedSrc("storyboard://board1#shot=s2")).toEqual(shot);
+    expect(resourceEmbedSrc({ kind: "timeline", timelineId: "tl1" })).toBe("timeline://tl1");
+    expect(parseResourceEmbedSrc(" timeline://tl1 ")).toEqual({ kind: "timeline", timelineId: "tl1" });
+    expect(resourceEmbedSrc({ kind: "script", scriptId: "sc1" })).toBe("script://sc1");
+    expect(parseResourceEmbedSrc("script://sc1")).toEqual({ kind: "script", scriptId: "sc1" });
   });
 
-  it("rejects other sources as shots", () => {
-    expect(parseShotEmbedSrc("asset://abc")).toBeNull();
-    expect(parseShotEmbedSrc("storyboard://board1")).toBeNull();
-    expect(parseShotEmbedSrc("storyboard://board1/shots/a/b")).toBeNull();
-    expect(parseShotEmbedSrc("storyboard://board1/shots/%E0")).toBeNull();
+  it("rejects media and documents it cannot embed", () => {
+    expect(parseResourceEmbedSrc("asset://abc")).toBeNull();
+    expect(parseResourceEmbedSrc("assets/clip.mp4")).toBeNull();
+    expect(parseResourceEmbedSrc("storyboard://board1")).toBeNull();
+    expect(parseResourceEmbedSrc("storyboard://board1#clip=c1")).toBeNull();
+    expect(parseResourceEmbedSrc("timeline://tl1#clip=c1")).toBeNull();
+    expect(parseResourceEmbedSrc("sketch://sk1")).toBeNull();
   });
 
   it("types a source by its extension", () => {

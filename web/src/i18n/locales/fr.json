@@ -21114,7 +21114,29 @@
       "loadingShot": "Chargement du plan…",
       "shotMissing": "Plan introuvable : {{name}}",
       "shotNotRendered": "Ce plan n'a pas encore d'image clé ni de clip.",
-      "openStoryboard": "Ouvrir le storyboard"
+      "openStoryboard": "Ouvrir le storyboard",
+      "tabTimeline": "Timeline",
+      "tabScript": "Script vocal",
+      "untitledTimeline": "Timeline sans titre",
+      "loadingTimelines": "Chargement des timelines…",
+      "noTimelines": "Aucune timeline dans ce projet",
+      "noTimelinesDescription": "Créez une timeline pour l’intégrer ici.",
+      "timelineHint": "Une timeline intégrée se lit dans le document et suit les modifications ultérieures.",
+      "loadingTimeline": "Chargement de la timeline…",
+      "timelineMissing": "Timeline introuvable : {{name}}",
+      "openTimeline": "Ouvrir la timeline",
+      "untitledScript": "Script sans titre",
+      "lineCount_one": "{{count}} ligne",
+      "lineCount_other": "{{count}} lignes",
+      "lineCount_many": "{{count}} lignes",
+      "loadingScripts": "Chargement des scripts…",
+      "noScripts": "Aucun script vocal dans ce projet",
+      "noScriptsDescription": "Créez un script vocal pour l’intégrer ici.",
+      "scriptHint": "Un script intégré affiche chaque ligne avec sa prise actuelle.",
+      "loadingScript": "Chargement du script…",
+      "scriptMissing": "Script introuvable : {{name}}",
+      "scriptEmpty": "Ce script n’a pas encore de lignes.",
+      "openScript": "Ouvrir le script"
     }
   }
 }

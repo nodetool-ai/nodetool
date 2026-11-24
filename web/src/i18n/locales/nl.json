@@ -20796,7 +20796,28 @@
       "loadingShot": "Shot laden…",
       "shotMissing": "Shot niet gevonden: {{name}}",
       "shotNotRendered": "Dit shot heeft nog geen keyframe of clip.",
-      "openStoryboard": "Storyboard openen"
+      "openStoryboard": "Storyboard openen",
+      "tabTimeline": "Tijdlijn",
+      "tabScript": "Stemscript",
+      "untitledTimeline": "Naamloze tijdlijn",
+      "loadingTimelines": "Tijdlijnen laden…",
+      "noTimelines": "Geen tijdlijnen in dit project",
+      "noTimelinesDescription": "Maak een tijdlijn om die hier in te voegen.",
+      "timelineHint": "Een ingevoegde tijdlijn speelt af in het document en volgt latere wijzigingen.",
+      "loadingTimeline": "Tijdlijn laden…",
+      "timelineMissing": "Tijdlijn niet gevonden: {{name}}",
+      "openTimeline": "Tijdlijn openen",
+      "untitledScript": "Naamloos script",
+      "lineCount_one": "{{count}} regel",
+      "lineCount_other": "{{count}} regels",
+      "loadingScripts": "Scripts laden…",
+      "noScripts": "Geen stemscripts in dit project",
+      "noScriptsDescription": "Maak een stemscript om dat hier in te voegen.",
+      "scriptHint": "Een ingevoegd script toont elke regel met de huidige take.",
+      "loadingScript": "Script laden…",
+      "scriptMissing": "Script niet gevonden: {{name}}",
+      "scriptEmpty": "Dit script heeft nog geen regels.",
+      "openScript": "Script openen"
     }
   }
 }

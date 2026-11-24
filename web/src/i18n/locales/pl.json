@@ -21432,7 +21432,30 @@
       "loadingShot": "Wczytywanie ujęcia…",
       "shotMissing": "Nie znaleziono ujęcia: {{name}}",
       "shotNotRendered": "To ujęcie nie ma jeszcze klatki kluczowej ani klipu.",
-      "openStoryboard": "Otwórz storyboard"
+      "openStoryboard": "Otwórz storyboard",
+      "tabTimeline": "Oś czasu",
+      "tabScript": "Skrypt głosowy",
+      "untitledTimeline": "Oś czasu bez nazwy",
+      "loadingTimelines": "Wczytywanie osi czasu…",
+      "noTimelines": "Brak osi czasu w tym projekcie",
+      "noTimelinesDescription": "Utwórz oś czasu, aby ją tu osadzić.",
+      "timelineHint": "Osadzona oś czasu odtwarza się w dokumencie i uwzględnia późniejsze zmiany.",
+      "loadingTimeline": "Wczytywanie osi czasu…",
+      "timelineMissing": "Nie znaleziono osi czasu: {{name}}",
+      "openTimeline": "Otwórz oś czasu",
+      "untitledScript": "Skrypt bez nazwy",
+      "lineCount_one": "{{count}} kwestia",
+      "lineCount_other": "{{count}} kwestii",
+      "lineCount_few": "{{count}} kwestie",
+      "lineCount_many": "{{count}} kwestii",
+      "loadingScripts": "Wczytywanie skryptów…",
+      "noScripts": "Brak skryptów głosowych w tym projekcie",
+      "noScriptsDescription": "Utwórz skrypt głosowy, aby go tu osadzić.",
+      "scriptHint": "Osadzony skrypt pokazuje każdą kwestię z jej bieżącym ujęciem.",
+      "loadingScript": "Wczytywanie skryptu…",
+      "scriptMissing": "Nie znaleziono skryptu: {{name}}",
+      "scriptEmpty": "Ten skrypt nie ma jeszcze kwestii.",
+      "openScript": "Otwórz skrypt"
     }
   }
 }

@@ -21114,7 +21114,29 @@
       "loadingShot": "Cargando plano…",
       "shotMissing": "Plano no encontrado: {{name}}",
       "shotNotRendered": "Este plano aún no tiene fotograma clave ni clip.",
-      "openStoryboard": "Abrir storyboard"
+      "openStoryboard": "Abrir storyboard",
+      "tabTimeline": "Línea de tiempo",
+      "tabScript": "Guion de voz",
+      "untitledTimeline": "Línea de tiempo sin título",
+      "loadingTimelines": "Cargando líneas de tiempo…",
+      "noTimelines": "No hay líneas de tiempo en este proyecto",
+      "noTimelinesDescription": "Crea una línea de tiempo para insertarla aquí.",
+      "timelineHint": "Una línea de tiempo insertada se reproduce en el documento y sigue los cambios posteriores.",
+      "loadingTimeline": "Cargando línea de tiempo…",
+      "timelineMissing": "Línea de tiempo no encontrada: {{name}}",
+      "openTimeline": "Abrir línea de tiempo",
+      "untitledScript": "Guion sin título",
+      "lineCount_one": "{{count}} línea",
+      "lineCount_other": "{{count}} líneas",
+      "lineCount_many": "{{count}} líneas",
+      "loadingScripts": "Cargando guiones…",
+      "noScripts": "No hay guiones de voz en este proyecto",
+      "noScriptsDescription": "Crea un guion de voz para insertarlo aquí.",
+      "scriptHint": "Un guion insertado muestra cada línea con su toma actual.",
+      "loadingScript": "Cargando guion…",
+      "scriptMissing": "Guion no encontrado: {{name}}",
+      "scriptEmpty": "Este guion aún no tiene líneas.",
+      "openScript": "Abrir guion"
     }
   }
 }

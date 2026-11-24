@@ -21114,7 +21114,29 @@
       "loadingShot": "Carregando plano…",
       "shotMissing": "Plano não encontrado: {{name}}",
       "shotNotRendered": "Este plano ainda não tem quadro-chave nem clipe.",
-      "openStoryboard": "Abrir storyboard"
+      "openStoryboard": "Abrir storyboard",
+      "tabTimeline": "Linha do tempo",
+      "tabScript": "Roteiro de voz",
+      "untitledTimeline": "Linha do tempo sem título",
+      "loadingTimelines": "Carregando linhas do tempo…",
+      "noTimelines": "Nenhuma linha do tempo neste projeto",
+      "noTimelinesDescription": "Crie uma linha do tempo para incorporá-la aqui.",
+      "timelineHint": "Uma linha do tempo incorporada é reproduzida no documento e acompanha as edições posteriores.",
+      "loadingTimeline": "Carregando linha do tempo…",
+      "timelineMissing": "Linha do tempo não encontrada: {{name}}",
+      "openTimeline": "Abrir linha do tempo",
+      "untitledScript": "Roteiro sem título",
+      "lineCount_one": "{{count}} fala",
+      "lineCount_other": "{{count}} falas",
+      "lineCount_many": "{{count}} falas",
+      "loadingScripts": "Carregando roteiros…",
+      "noScripts": "Nenhum roteiro de voz neste projeto",
+      "noScriptsDescription": "Crie um roteiro de voz para incorporá-lo aqui.",
+      "scriptHint": "Um roteiro incorporado mostra cada fala com o take atual.",
+      "loadingScript": "Carregando roteiro…",
+      "scriptMissing": "Roteiro não encontrado: {{name}}",
+      "scriptEmpty": "Este roteiro ainda não tem falas.",
+      "openScript": "Abrir roteiro"
     }
   }
 }

@@ -20796,7 +20796,28 @@
       "loadingShot": "正在加载镜头…",
       "shotMissing": "未找到镜头：{{name}}",
       "shotNotRendered": "此镜头还没有关键帧或片段。",
-      "openStoryboard": "打开故事板"
+      "openStoryboard": "打开故事板",
+      "tabTimeline": "时间线",
+      "tabScript": "配音脚本",
+      "untitledTimeline": "未命名时间线",
+      "loadingTimelines": "正在加载时间线…",
+      "noTimelines": "此项目中没有时间线",
+      "noTimelinesDescription": "创建时间线后即可在此嵌入。",
+      "timelineHint": "嵌入的时间线会在文档中播放，并跟随之后的编辑。",
+      "loadingTimeline": "正在加载时间线…",
+      "timelineMissing": "未找到时间线：{{name}}",
+      "openTimeline": "打开时间线",
+      "untitledScript": "未命名脚本",
+      "lineCount_one": "{{count}} 行台词",
+      "lineCount_other": "{{count}} 行台词",
+      "loadingScripts": "正在加载脚本…",
+      "noScripts": "此项目中没有配音脚本",
+      "noScriptsDescription": "创建配音脚本后即可在此嵌入。",
+      "scriptHint": "嵌入的脚本会显示每行台词及其当前录音。",
+      "loadingScript": "正在加载脚本…",
+      "scriptMissing": "未找到脚本：{{name}}",
+      "scriptEmpty": "此脚本还没有台词。",
+      "openScript": "打开脚本"
     }
   }
 }

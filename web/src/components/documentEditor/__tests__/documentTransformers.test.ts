@@ -33,7 +33,7 @@ describe("document transformers", () => {
       "",
       "![](asset://0123456789abcdef0123456789abcdef)",
       "",
-      "![SH 03 · Rooftop](storyboard://b1/shots/s3 \"Shot\")"
+      "![SH 03 · Rooftop](storyboard://b1#shot=s3 \"Shot\")"
     ].join("\n");
     expect(roundTrip(markdown)).toBe(markdown);
   });

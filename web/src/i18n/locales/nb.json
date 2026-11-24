@@ -20796,7 +20796,28 @@
       "loadingShot": "Laster inn bilde…",
       "shotMissing": "Fant ikke bildet: {{name}}",
       "shotNotRendered": "Dette bildet har ikke nøkkelbilde eller klipp ennå.",
-      "openStoryboard": "Åpne storyboard"
+      "openStoryboard": "Åpne storyboard",
+      "tabTimeline": "Tidslinje",
+      "tabScript": "Stemmemanus",
+      "untitledTimeline": "Tidslinje uten navn",
+      "loadingTimelines": "Laster inn tidslinjer…",
+      "noTimelines": "Ingen tidslinjer i dette prosjektet",
+      "noTimelinesDescription": "Lag en tidslinje for å bygge den inn her.",
+      "timelineHint": "En innebygd tidslinje spilles av i dokumentet og følger senere endringer.",
+      "loadingTimeline": "Laster inn tidslinje…",
+      "timelineMissing": "Fant ikke tidslinjen: {{name}}",
+      "openTimeline": "Åpne tidslinje",
+      "untitledScript": "Manus uten navn",
+      "lineCount_one": "{{count}} replikk",
+      "lineCount_other": "{{count}} replikker",
+      "loadingScripts": "Laster inn manus…",
+      "noScripts": "Ingen stemmemanus i dette prosjektet",
+      "noScriptsDescription": "Lag et stemmemanus for å bygge det inn her.",
+      "scriptHint": "Et innebygd manus viser hver replikk med gjeldende opptak.",
+      "loadingScript": "Laster inn manus…",
+      "scriptMissing": "Fant ikke manuset: {{name}}",
+      "scriptEmpty": "Dette manuset har ingen replikker ennå.",
+      "openScript": "Åpne manus"
     }
   }
 }

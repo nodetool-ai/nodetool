@@ -613,7 +613,8 @@ workflows and sketches.
 
 ## Media embeds
 
-A document holds images, video, audio clips, 3D models and storyboard shots.
+A document holds images, video, audio clips, 3D models, storyboard shots,
+timelines and voice scripts.
 Every embed is Markdown image syntax, `![caption](src)`, so the file stays
 readable in other Markdown editors. The `src` decides what the page shows
 ([`document-embeds.ts`](../../packages/protocol/src/document-embeds.ts)):
@@ -623,14 +624,17 @@ readable in other Markdown editors. The `src` decides what the page shows
 | A path relative to the document, such as `assets/teaser.mp4` | The project file, typed by its extension |
 | `asset://<id>` | The asset, typed by its content type |
 | A URL | The media at that URL, typed by its extension |
-| `storyboard://<storyboard id>/shots/<shot id>` | The shot's selected clip, or its keyframe until it has a clip, with a link that opens the storyboard |
+| `storyboard://<storyboard id>#shot=<shot id>` | The shot's selected clip, or its keyframe until it has a clip, with a link that opens the storyboard |
+| `timeline://<timeline id>` | A player for the timeline, with a link that opens it in the timeline editor |
+| `script://<script id>` | The voice script's lines with speaker, direction and the current take's audio, with a link that opens the script |
 
 The toolbar's Insert media button opens a dialog with the project's media,
-an upload button, a path or URL field and a Storyboard shot tab. Files
-dropped or pasted from the computer are saved to `assets/` beside the
-document. Assets from the asset panel, files from the Files panel and shots
-dragged from a timeline's storyboard panel are embedded where they are
-dropped. Each embed is inserted as its own paragraph after the block the
+an upload button, a path or URL field, and Storyboard shot, Timeline and
+Voice script tabs. Files dropped or pasted from the computer are saved to
+`assets/` beside the document. Assets from the asset panel, files from the
+Files panel (a timeline or script file embeds that document), shots dragged
+from a timeline's storyboard panel and timelines from the timeline list are
+embedded where they are dropped. Each embed is inserted as its own paragraph after the block the
 caret is in. A project file is written as a relative path (Q2), any other
 asset as its `asset://` locator. The document output renderer on node cards
 shows the same embeds, and the chat agent's document guidance names the

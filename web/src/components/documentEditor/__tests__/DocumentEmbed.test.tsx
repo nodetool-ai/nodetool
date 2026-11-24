@@ -12,11 +12,16 @@ const mockOpenTab = jest.fn();
 const mockUseStoryboard = jest.fn();
 const mockResolved = jest.fn();
 const mockAssetOfFile = jest.fn();
+const mockUseScript = jest.fn();
+const mockUseTimeline = jest.fn();
 
 jest.mock("../../../trpc/client", () => ({
   trpc: {
     storyboards: {
       get: { useQuery: (input: { id: string }) => mockUseStoryboard(input) }
+    },
+    scripts: {
+      get: { useQuery: (input: { id: string }) => mockUseScript(input) }
     }
   },
   trpcClient: {}
@@ -30,6 +35,19 @@ jest.mock("../../../hooks/useResolvedMediaUri", () => ({
 }));
 jest.mock("../../workspaces/workspaceTreeActions", () => ({
   assetOfFile: (projectId: string, path: string) => mockAssetOfFile(projectId, path)
+}));
+jest.mock("../../../hooks/useTimelineSequence", () => ({
+  useTimeline: (id: string) => mockUseTimeline(id)
+}));
+jest.mock("../../timeline/TimelinePlayer", () => ({
+  __esModule: true,
+  default: ({ sequenceId, active }: { sequenceId: string; active: boolean }) => (
+    <div data-testid="timeline-player" data-id={sequenceId} data-active={String(active)} />
+  )
+}));
+jest.mock("../../script/ScriptSpeakerAvatar", () => ({
+  __esModule: true,
+  default: () => <span data-testid="avatar" />
 }));
 jest.mock("../../asset_viewer/LazyModel3DViewer", () => ({
   __esModule: true,
@@ -141,7 +159,7 @@ describe("DocumentEmbed storyboard shots", () => {
   it("shows the clip of a rendered shot and opens its storyboard", async () => {
     mockUseStoryboard.mockReturnValue({ data: board, isLoading: false });
     const user = userEvent.setup();
-    renderEmbed("storyboard://b1/shots/s2");
+    renderEmbed("storyboard://b1#shot=s2");
     expect(mockUseStoryboard).toHaveBeenCalledWith({ id: "b1" });
     expect(screen.getByTestId("video").getAttribute("data-locator")).toContain("asset://clip");
     expect(screen.getByText("Launch film · SH 02 · Hero close")).toBeInTheDocument();
@@ -157,15 +175,125 @@ describe("DocumentEmbed storyboard shots", () => {
 
   it("shows the keyframe of a shot with no clip yet", () => {
     mockUseStoryboard.mockReturnValue({ data: board, isLoading: false });
-    renderEmbed("storyboard://b1/shots/s1", "Opening");
+    renderEmbed("storyboard://b1#shot=s1", "Opening");
     expect(screen.getByTestId("image")).toHaveAttribute("alt", "Opening");
     expect(screen.queryByTestId("video")).not.toBeInTheDocument();
   });
 
   it("says so when the shot is gone", () => {
     mockUseStoryboard.mockReturnValue({ data: board, isLoading: false });
-    renderEmbed("storyboard://b1/shots/deleted", "Old shot");
+    renderEmbed("storyboard://b1#shot=deleted", "Old shot");
     expect(screen.queryByTestId("document-shot-embed")).not.toBeInTheDocument();
     expect(screen.getByText(/Old shot/)).toBeInTheDocument();
+  });
+});
+
+describe("DocumentEmbed timelines", () => {
+  const timeline = { id: "tl1", name: "Teaser cut", projectId: "p1", width: 1080, height: 1920 };
+
+  it("plays the timeline in an inactive player and opens it in the editor", async () => {
+    mockUseTimeline.mockReturnValue({ data: timeline, isLoading: false });
+    renderEmbed("timeline://tl1");
+    const player = await screen.findByTestId("timeline-player");
+    expect(player).toHaveAttribute("data-id", "tl1");
+    expect(player).toHaveAttribute("data-active", "false");
+    expect(mockUseTimeline).toHaveBeenCalledWith("tl1");
+    expect(screen.getByText("Teaser cut")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open timeline" }));
+    expect(mockOpenTab).toHaveBeenCalledWith({
+      type: "timeline",
+      ref: "tl1",
+      mode: "edit",
+      title: "Teaser cut",
+      projectId: "p1"
+    });
+  });
+
+  it("names a timeline that no longer exists", async () => {
+    mockUseTimeline.mockReturnValue({ data: undefined, isLoading: false });
+    renderEmbed("timeline://gone", "Old cut");
+    expect(await screen.findByText("Timeline not found: Old cut")).toBeInTheDocument();
+    expect(screen.queryByTestId("timeline-player")).not.toBeInTheDocument();
+  });
+});
+
+describe("DocumentEmbed voice scripts", () => {
+  const script = {
+    id: "sc1",
+    name: "Launch voiceover",
+    projectId: "p1",
+    document: {
+      cast: [{ id: "n", name: "Narrator" }],
+      sections: [
+        {
+          id: "intro",
+          title: "Intro",
+          lines: [
+            {
+              id: "l1",
+              speakerId: "n",
+              text: "Meet the city.",
+              direction: "warm",
+              takes: [
+                { id: "t1", assetId: "first", durationMs: 900 },
+                { id: "t2", assetId: "chosen", durationMs: 1000 }
+              ],
+              currentTakeId: "t2"
+            },
+            { id: "l2", speakerId: "n", text: "Not voiced yet.", takes: [] }
+          ]
+        }
+      ]
+    }
+  };
+
+  it("lists each line with its speaker and plays the chosen take", async () => {
+    mockUseScript.mockReturnValue({ data: script, isLoading: false });
+    renderEmbed("script://sc1");
+    expect(await screen.findByTestId("document-script-embed")).toBeInTheDocument();
+    expect(mockUseScript).toHaveBeenCalledWith({ id: "sc1" });
+    expect(screen.getByText("Intro")).toBeInTheDocument();
+    expect(screen.getByText("Meet the city.")).toBeInTheDocument();
+    expect(screen.getByText("(warm)")).toBeInTheDocument();
+    expect(screen.getAllByText("Narrator")).toHaveLength(2);
+    const audio = screen.getAllByTestId("audio");
+    expect(audio).toHaveLength(1);
+    expect(audio[0]).toHaveAttribute("data-locator", "asset://chosen");
+    await userEvent.click(screen.getByRole("button", { name: "Open script" }));
+    expect(mockOpenTab).toHaveBeenCalledWith({
+      type: "script",
+      ref: "sc1",
+      mode: "edit",
+      title: "Launch voiceover",
+      projectId: "p1"
+    });
+  });
+
+  it("plays the newest take when none is chosen", async () => {
+    const line = { ...script.document.sections[0].lines[0], currentTakeId: null };
+    mockUseScript.mockReturnValue({
+      data: {
+        ...script,
+        document: { ...script.document, sections: [{ id: "s", lines: [line] }] }
+      },
+      isLoading: false
+    });
+    renderEmbed("script://sc1");
+    expect(await screen.findByTestId("audio")).toHaveAttribute("data-locator", "asset://chosen");
+  });
+
+  it("says when the script has no lines", async () => {
+    mockUseScript.mockReturnValue({
+      data: { ...script, document: { cast: [], sections: [{ id: "s", lines: [] }] } },
+      isLoading: false
+    });
+    renderEmbed("script://sc1");
+    expect(await screen.findByText("This script has no lines yet.")).toBeInTheDocument();
+  });
+
+  it("names a script that no longer exists", async () => {
+    mockUseScript.mockReturnValue({ data: undefined, isLoading: false });
+    renderEmbed("script://gone", "Old script");
+    expect(await screen.findByText("Script not found: Old script")).toBeInTheDocument();
   });
 });

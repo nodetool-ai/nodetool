@@ -8,7 +8,7 @@ import { useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { mergeRegister } from "@lexical/utils";
 import { DRAG_DROP_PASTE } from "@lexical/rich-text";
-import { shotEmbedSrc } from "@nodetool-ai/protocol";
+import { resourceEmbedSrc } from "@nodetool-ai/protocol";
 import {
   $createRangeSelection,
   $getNearestNodeFromDOMNode,
@@ -24,7 +24,8 @@ import {
 import type { Asset } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";
 import { DRAG_DATA_MIME, deserializeDragData } from "../../lib/dragdrop/serialization";
-import { assetOfFile } from "../workspaces/workspaceTreeActions";
+import { trpcClient } from "../../trpc/client";
+import { assetOfFile, isDocumentFile } from "../workspaces/workspaceTreeActions";
 import { insertEmbeds } from "./documentCommands";
 import type { DocumentLocation } from "./documentEditorContext";
 import {
@@ -37,7 +38,7 @@ import {
 } from "./documentEmbeds";
 
 /** The legacy drag keys the asset panel still writes beside the unified one. */
-const DRAG_TYPES = [DRAG_DATA_MIME, "asset", "selectedAssetIds"];
+const DRAG_TYPES = [DRAG_DATA_MIME, "asset", "selectedAssetIds", "timeline"];
 
 /** Put the caret where the pointer is, as Lexical's own file drop does. */
 function $selectAtPoint(editor: LexicalEditor, x: number, y: number): void {
@@ -78,7 +79,7 @@ function $selectAtPoint(editor: LexicalEditor, x: number, y: number): void {
 
 /**
  * The embeds a drag from inside NodeTool carries, or null when it carries
- * nothing a document embeds (a node, a timeline, plain text).
+ * nothing a document embeds (a node, a sketch, plain text).
  */
 export async function embedsFromDrag(
   dataTransfer: DataTransfer,
@@ -99,12 +100,45 @@ export async function embedsFromDrag(
     case "storyboard-shot":
       return [
         {
-          src: shotEmbedSrc(drag.payload.boardId, drag.payload.shotId),
+          src: resourceEmbedSrc({
+            kind: "shot",
+            storyboardId: drag.payload.boardId,
+            shotId: drag.payload.shotId
+          }),
+          alt: drag.payload.name
+        }
+      ];
+    case "timeline":
+      return [
+        {
+          src: resourceEmbedSrc({ kind: "timeline", timelineId: drag.payload.id }),
           alt: drag.payload.name
         }
       ];
     case "project-file": {
       const { projectId, path } = drag.payload;
+      if (isDocumentFile(path)) {
+        const document = await trpcClient.projects.documentByFile.query({
+          id: projectId,
+          path
+        });
+        if (document?.type === "timeline") {
+          return [
+            {
+              src: resourceEmbedSrc({ kind: "timeline", timelineId: document.ref }),
+              alt: document.name
+            }
+          ];
+        }
+        if (document?.type === "script") {
+          return [
+            {
+              src: resourceEmbedSrc({ kind: "script", scriptId: document.ref }),
+              alt: document.name
+            }
+          ];
+        }
+      }
       if (projectId === location.projectId) {
         return [{ src: relativeDocumentPath(location.path, path), alt: captionFromName(path) }];
       }

@@ -1,6 +1,7 @@
 /**
  * Insert media into a document: an image, video, audio clip or 3D model from
- * the project's assets, an uploaded file, a path or URL, or a storyboard shot.
+ * the project's assets, an uploaded file, a path or URL, a storyboard shot, a
+ * timeline or a voice script.
  * Picking an item inserts it at the caret and closes the dialog.
  */
 import {
@@ -18,7 +19,7 @@ import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import {
   embedKindFromContentType,
-  shotEmbedSrc,
+  resourceEmbedSrc,
   type DocumentEmbedKind,
   type Shot
 } from "@nodetool-ai/protocol";
@@ -26,6 +27,8 @@ import {
 import type { Asset } from "../../stores/ApiTypes";
 import { trpc, trpcClient } from "../../trpc/client";
 import { useStoryboards } from "../../hooks/storyboard/useStoryboards";
+import { useScripts } from "../../hooks/script/useScripts";
+import { useTimelines } from "../../hooks/useTimelineSequence";
 import ErrorBanner from "../support/ErrorBanner";
 import {
   AutoGrid,
@@ -59,7 +62,7 @@ import {
   type DocumentEmbedInsert
 } from "./documentEmbeds";
 
-type EmbedTab = "media" | "shot";
+type EmbedTab = "media" | "shot" | "timeline" | "script";
 type KindFilter = "all" | DocumentEmbedKind;
 
 interface DocumentEmbedDialogProps {
@@ -375,7 +378,16 @@ const ShotTab = ({
                   label={title}
                   ariaLabel={t("documentEditor.embed.insertNamed", { name: title })}
                   onPick={() =>
-                    onInsert([{ src: shotEmbedSrc(selectedBoard, shot.id), alt: title }])
+                    onInsert([
+                      {
+                        src: resourceEmbedSrc({
+                          kind: "shot",
+                          storyboardId: selectedBoard,
+                          shotId: shot.id
+                        }),
+                        alt: title
+                      }
+                    ])
                   }
                 >
                   <MediaThumbnail
@@ -396,9 +408,161 @@ const ShotTab = ({
   );
 };
 
+interface DocumentRow {
+  id: string;
+  name: string;
+  detail: string;
+}
+
+/** A list of project documents. Picking one inserts it. */
+const DocumentList = ({
+  rows,
+  isLoading,
+  loadingText,
+  emptyTitle,
+  emptyDescription,
+  hint,
+  onPick
+}: {
+  rows: DocumentRow[];
+  isLoading: boolean;
+  loadingText: string;
+  emptyTitle: string;
+  emptyDescription: string;
+  hint: string;
+  onPick: (row: DocumentRow) => void;
+}) => {
+  const { t } = useTranslation();
+  if (isLoading) {
+    return (
+      <FlexRow align="center" justify="center" sx={{ p: SPACING.lg }}>
+        <LoadingSpinner text={loadingText} />
+      </FlexRow>
+    );
+  }
+  if (rows.length === 0) {
+    return (
+      <EmptyState
+        variant="no-data"
+        title={emptyTitle}
+        description={emptyDescription}
+        size="small"
+      />
+    );
+  }
+  return (
+    <FlexColumn gap={GAP.normal}>
+      <ScrollArea maxHeight="50vh" sx={{ width: "100%" }}>
+        <FlexColumn gap={GAP.tight}>
+          {rows.map((row) => (
+            <FlexRow
+              key={row.id}
+              role="button"
+              tabIndex={0}
+              aria-label={t("documentEditor.embed.insertNamed", { name: row.name })}
+              onClick={() => onPick(row)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onPick(row);
+                }
+              }}
+              gap={GAP.normal}
+              align="center"
+              justify="space-between"
+              sx={(theme) => ({
+                ...selectableTileStyles(theme),
+                p: SPACING.sm,
+                cursor: "pointer"
+              })}
+            >
+              <Text size="small" truncate>
+                {row.name}
+              </Text>
+              <Caption color="muted">{row.detail}</Caption>
+            </FlexRow>
+          ))}
+        </FlexColumn>
+      </ScrollArea>
+      <Caption color="muted">{hint}</Caption>
+    </FlexColumn>
+  );
+};
+
+const TimelineTab = ({
+  onInsert
+}: {
+  onInsert: (embeds: DocumentEmbedInsert[]) => void;
+}) => {
+  const { t } = useTranslation();
+  const { projectId } = useDocumentLocation();
+  const { data, isLoading } = useTimelines(projectId ?? undefined);
+  const rows = (data ?? []).map((timeline) => ({
+    id: timeline.id,
+    name: timeline.name || t("documentEditor.embed.untitledTimeline"),
+    detail: new Date(timeline.updatedAt).toLocaleDateString()
+  }));
+  return (
+    <DocumentList
+      rows={rows}
+      isLoading={isLoading}
+      loadingText={t("documentEditor.embed.loadingTimelines")}
+      emptyTitle={t("documentEditor.embed.noTimelines")}
+      emptyDescription={t("documentEditor.embed.noTimelinesDescription")}
+      hint={t("documentEditor.embed.timelineHint")}
+      onPick={(row) =>
+        onInsert([
+          { src: resourceEmbedSrc({ kind: "timeline", timelineId: row.id }), alt: row.name }
+        ])
+      }
+    />
+  );
+};
+
+const ScriptTab = ({
+  onInsert
+}: {
+  onInsert: (embeds: DocumentEmbedInsert[]) => void;
+}) => {
+  const { t } = useTranslation();
+  const { projectId } = useDocumentLocation();
+  const { data, isLoading } = useScripts(projectId ?? undefined);
+  const rows = (data ?? []).map((script) => ({
+    id: script.id,
+    name: script.name || t("documentEditor.embed.untitledScript"),
+    detail: t("documentEditor.embed.lineCount", { count: script.lineCount })
+  }));
+  return (
+    <DocumentList
+      rows={rows}
+      isLoading={isLoading}
+      loadingText={t("documentEditor.embed.loadingScripts")}
+      emptyTitle={t("documentEditor.embed.noScripts")}
+      emptyDescription={t("documentEditor.embed.noScriptsDescription")}
+      hint={t("documentEditor.embed.scriptHint")}
+      onPick={(row) =>
+        onInsert([
+          { src: resourceEmbedSrc({ kind: "script", scriptId: row.id }), alt: row.name }
+        ])
+      }
+    />
+  );
+};
+
+const TAB_CONTENT: Record<
+  EmbedTab,
+  (props: { onInsert: (embeds: DocumentEmbedInsert[]) => void }) => ReactNode
+> = {
+  media: MediaTab,
+  shot: ShotTab,
+  timeline: TimelineTab,
+  script: ScriptTab
+};
+
 const DocumentEmbedDialog = ({ open, onClose, onInsert }: DocumentEmbedDialogProps) => {
   const { t } = useTranslation();
   const [tab, setTab] = useState<EmbedTab>("media");
+  const TabContent = TAB_CONTENT[tab];
   const insert = (embeds: DocumentEmbedInsert[]) => {
     onInsert(embeds);
     onClose();
@@ -417,11 +581,13 @@ const DocumentEmbedDialog = ({ open, onClose, onInsert }: DocumentEmbedDialogPro
           onChange={(value) => setTab(value as EmbedTab)}
           tabs={[
             { value: "media", label: t("documentEditor.embed.tabMedia") },
-            { value: "shot", label: t("documentEditor.embed.tabShot") }
+            { value: "shot", label: t("documentEditor.embed.tabShot") },
+            { value: "timeline", label: t("documentEditor.embed.tabTimeline") },
+            { value: "script", label: t("documentEditor.embed.tabScript") }
           ]}
           size="small"
         />
-        {open && (tab === "media" ? <MediaTab onInsert={insert} /> : <ShotTab onInsert={insert} />)}
+        {open && <TabContent onInsert={insert} />}
       </FlexColumn>
     </Dialog>
   );

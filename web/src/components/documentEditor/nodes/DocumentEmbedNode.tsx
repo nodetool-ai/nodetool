@@ -16,10 +16,11 @@ export type SerializedDocumentEmbedNode = Spread<
 
 /**
  * An embed written in Markdown image syntax, `![alt](src "title")`: an image,
- * video, audio clip, 3D model or storyboard shot (see `document-embeds.ts` in
- * protocol). `src` is stored as written: a path relative to the document
- * (PRD Q2), an `asset://` locator, a `storyboard://` shot or a URL. It is
- * resolved for display only, through the media resolution boundary.
+ * video, audio clip, 3D model, storyboard shot, timeline or voice script (see
+ * `document-embeds.ts` in protocol). `src` is stored as written: a path
+ * relative to the document (PRD Q2), an `asset://` locator, a `storyboard://`,
+ * `timeline://` or `script://` resource URI, or a URL. It is resolved for
+ * display only, through the media resolution boundary.
  */
 export class DocumentEmbedNode extends DecoratorNode<JSX.Element> {
   __src: string;

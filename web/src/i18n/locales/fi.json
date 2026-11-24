@@ -20796,7 +20796,28 @@
       "loadingShot": "Ladataan otosta…",
       "shotMissing": "Otosta ei löytynyt: {{name}}",
       "shotNotRendered": "Tällä otoksella ei ole vielä avainkuvaa eikä leikettä.",
-      "openStoryboard": "Avaa kuvakäsikirjoitus"
+      "openStoryboard": "Avaa kuvakäsikirjoitus",
+      "tabTimeline": "Aikajana",
+      "tabScript": "Äänikäsikirjoitus",
+      "untitledTimeline": "Nimetön aikajana",
+      "loadingTimelines": "Ladataan aikajanoja…",
+      "noTimelines": "Tässä projektissa ei ole aikajanoja",
+      "noTimelinesDescription": "Luo aikajana upottaaksesi sen tähän.",
+      "timelineHint": "Upotettu aikajana toistuu dokumentissa ja seuraa myöhempiä muutoksia.",
+      "loadingTimeline": "Ladataan aikajanaa…",
+      "timelineMissing": "Aikajanaa ei löytynyt: {{name}}",
+      "openTimeline": "Avaa aikajana",
+      "untitledScript": "Nimetön käsikirjoitus",
+      "lineCount_one": "{{count}} repliikki",
+      "lineCount_other": "{{count}} repliikkiä",
+      "loadingScripts": "Ladataan käsikirjoituksia…",
+      "noScripts": "Tässä projektissa ei ole äänikäsikirjoituksia",
+      "noScriptsDescription": "Luo äänikäsikirjoitus upottaaksesi sen tähän.",
+      "scriptHint": "Upotettu käsikirjoitus näyttää jokaisen repliikin nykyisen oton kanssa.",
+      "loadingScript": "Ladataan käsikirjoitusta…",
+      "scriptMissing": "Käsikirjoitusta ei löytynyt: {{name}}",
+      "scriptEmpty": "Tässä käsikirjoituksessa ei ole vielä repliikkejä.",
+      "openScript": "Avaa käsikirjoitus"
     }
   }
 }

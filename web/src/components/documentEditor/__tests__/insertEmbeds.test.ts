@@ -27,7 +27,7 @@ const insert = (editor: LexicalEditor, place: () => void) => {
   insertEmbeds(editor, [
     { src: "assets/a.mp4", alt: "A" },
     { src: " ", alt: "skipped" },
-    { src: "storyboard://b1/shots/s1", alt: "" }
+    { src: "storyboard://b1#shot=s1", alt: "" }
   ]);
   editor.update(() => undefined, { discrete: true });
 };
@@ -39,7 +39,7 @@ describe("insertEmbeds", () => {
       $getRoot().getFirstChildOrThrow().selectEnd();
     });
     expect(markdownOf(editor)).toBe(
-      "First line.\n\n![A](assets/a.mp4)\n\n![](storyboard://b1/shots/s1)\n\nSecond line."
+      "First line.\n\n![A](assets/a.mp4)\n\n![](storyboard://b1#shot=s1)\n\nSecond line."
     );
   });
 
@@ -52,7 +52,7 @@ describe("insertEmbeds", () => {
     });
     expect(editor.getEditorState().read(() => $getRoot().getChildrenSize())).toBe(3);
     expect(markdownOf(editor)).toBe(
-      "Intro\n\n![A](assets/a.mp4)\n\n![](storyboard://b1/shots/s1)"
+      "Intro\n\n![A](assets/a.mp4)\n\n![](storyboard://b1#shot=s1)"
     );
   });
 

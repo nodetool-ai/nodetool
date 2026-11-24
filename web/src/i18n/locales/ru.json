@@ -21432,7 +21432,30 @@
       "loadingShot": "Загрузка кадра…",
       "shotMissing": "Кадр не найден: {{name}}",
       "shotNotRendered": "У этого кадра пока нет ключевого кадра или клипа.",
-      "openStoryboard": "Открыть раскадровку"
+      "openStoryboard": "Открыть раскадровку",
+      "tabTimeline": "Таймлайн",
+      "tabScript": "Голосовой сценарий",
+      "untitledTimeline": "Таймлайн без названия",
+      "loadingTimelines": "Загрузка таймлайнов…",
+      "noTimelines": "В этом проекте нет таймлайнов",
+      "noTimelinesDescription": "Создайте таймлайн, чтобы встроить его сюда.",
+      "timelineHint": "Встроенный таймлайн воспроизводится в документе и учитывает последующие изменения.",
+      "loadingTimeline": "Загрузка таймлайна…",
+      "timelineMissing": "Таймлайн не найден: {{name}}",
+      "openTimeline": "Открыть таймлайн",
+      "untitledScript": "Сценарий без названия",
+      "lineCount_one": "{{count}} реплика",
+      "lineCount_other": "{{count}} реплики",
+      "lineCount_few": "{{count}} реплики",
+      "lineCount_many": "{{count}} реплик",
+      "loadingScripts": "Загрузка сценариев…",
+      "noScripts": "В этом проекте нет голосовых сценариев",
+      "noScriptsDescription": "Создайте голосовой сценарий, чтобы встроить его сюда.",
+      "scriptHint": "Встроенный сценарий показывает каждую реплику с текущим дублем.",
+      "loadingScript": "Загрузка сценария…",
+      "scriptMissing": "Сценарий не найден: {{name}}",
+      "scriptEmpty": "В этом сценарии пока нет реплик.",
+      "openScript": "Открыть сценарий"
     }
   }
 }

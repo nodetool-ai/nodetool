@@ -20796,7 +20796,28 @@
       "loadingShot": "Loading shot…",
       "shotMissing": "Shot not found: {{name}}",
       "shotNotRendered": "This shot has no keyframe or clip yet.",
-      "openStoryboard": "Open storyboard"
+      "openStoryboard": "Open storyboard",
+      "tabTimeline": "Timeline",
+      "tabScript": "Voice script",
+      "untitledTimeline": "Untitled timeline",
+      "loadingTimelines": "Loading timelines…",
+      "noTimelines": "No timelines in this project",
+      "noTimelinesDescription": "Create a timeline to embed it here.",
+      "timelineHint": "An embedded timeline plays in the document and follows later edits.",
+      "loadingTimeline": "Loading timeline…",
+      "timelineMissing": "Timeline not found: {{name}}",
+      "openTimeline": "Open timeline",
+      "untitledScript": "Untitled script",
+      "lineCount_one": "{{count}} line",
+      "lineCount_other": "{{count}} lines",
+      "loadingScripts": "Loading scripts…",
+      "noScripts": "No voice scripts in this project",
+      "noScriptsDescription": "Create a voice script to embed it here.",
+      "scriptHint": "An embedded script shows each line with its current take.",
+      "loadingScript": "Loading script…",
+      "scriptMissing": "Script not found: {{name}}",
+      "scriptEmpty": "This script has no lines yet.",
+      "openScript": "Open script"
     }
   }
 }

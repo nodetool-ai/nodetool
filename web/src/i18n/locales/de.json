@@ -20796,7 +20796,28 @@
       "loadingShot": "Shot wird geladen…",
       "shotMissing": "Shot nicht gefunden: {{name}}",
       "shotNotRendered": "Dieser Shot hat noch kein Keyframe und keinen Clip.",
-      "openStoryboard": "Storyboard öffnen"
+      "openStoryboard": "Storyboard öffnen",
+      "tabTimeline": "Timeline",
+      "tabScript": "Sprechertext",
+      "untitledTimeline": "Unbenannte Timeline",
+      "loadingTimelines": "Timelines werden geladen…",
+      "noTimelines": "Keine Timelines in diesem Projekt",
+      "noTimelinesDescription": "Erstelle eine Timeline, um sie hier einzubetten.",
+      "timelineHint": "Eine eingebettete Timeline läuft im Dokument und übernimmt spätere Änderungen.",
+      "loadingTimeline": "Timeline wird geladen…",
+      "timelineMissing": "Timeline nicht gefunden: {{name}}",
+      "openTimeline": "Timeline öffnen",
+      "untitledScript": "Unbenannter Sprechertext",
+      "lineCount_one": "{{count}} Zeile",
+      "lineCount_other": "{{count}} Zeilen",
+      "loadingScripts": "Sprechertexte werden geladen…",
+      "noScripts": "Keine Sprechertexte in diesem Projekt",
+      "noScriptsDescription": "Erstelle einen Sprechertext, um ihn hier einzubetten.",
+      "scriptHint": "Ein eingebetteter Sprechertext zeigt jede Zeile mit ihrem aktuellen Take.",
+      "loadingScript": "Sprechertext wird geladen…",
+      "scriptMissing": "Sprechertext nicht gefunden: {{name}}",
+      "scriptEmpty": "Dieser Sprechertext hat noch keine Zeilen.",
+      "openScript": "Sprechertext öffnen"
     }
   }
 }

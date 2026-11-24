@@ -20796,7 +20796,28 @@
       "loadingShot": "शॉट लोड हो रहा है…",
       "shotMissing": "शॉट नहीं मिला: {{name}}",
       "shotNotRendered": "इस शॉट में अभी कोई कीफ़्रेम या क्लिप नहीं है।",
-      "openStoryboard": "स्टोरीबोर्ड खोलें"
+      "openStoryboard": "स्टोरीबोर्ड खोलें",
+      "tabTimeline": "टाइमलाइन",
+      "tabScript": "वॉइस स्क्रिप्ट",
+      "untitledTimeline": "बिना नाम की टाइमलाइन",
+      "loadingTimelines": "टाइमलाइन लोड हो रही हैं…",
+      "noTimelines": "इस प्रोजेक्ट में कोई टाइमलाइन नहीं है",
+      "noTimelinesDescription": "यहाँ एम्बेड करने के लिए एक टाइमलाइन बनाएँ।",
+      "timelineHint": "एम्बेड की गई टाइमलाइन दस्तावेज़ में चलती है और बाद के बदलावों को दिखाती है।",
+      "loadingTimeline": "टाइमलाइन लोड हो रही है…",
+      "timelineMissing": "टाइमलाइन नहीं मिली: {{name}}",
+      "openTimeline": "टाइमलाइन खोलें",
+      "untitledScript": "बिना नाम की स्क्रिप्ट",
+      "lineCount_one": "{{count}} पंक्ति",
+      "lineCount_other": "{{count}} पंक्तियाँ",
+      "loadingScripts": "स्क्रिप्ट लोड हो रही हैं…",
+      "noScripts": "इस प्रोजेक्ट में कोई वॉइस स्क्रिप्ट नहीं है",
+      "noScriptsDescription": "यहाँ एम्बेड करने के लिए एक वॉइस स्क्रिप्ट बनाएँ।",
+      "scriptHint": "एम्बेड की गई स्क्रिप्ट हर पंक्ति को उसके मौजूदा टेक के साथ दिखाती है।",
+      "loadingScript": "स्क्रिप्ट लोड हो रही है…",
+      "scriptMissing": "स्क्रिप्ट नहीं मिली: {{name}}",
+      "scriptEmpty": "इस स्क्रिप्ट में अभी कोई पंक्ति नहीं है।",
+      "openScript": "स्क्रिप्ट खोलें"
     }
   }
 }

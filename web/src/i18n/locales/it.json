@@ -21114,7 +21114,29 @@
       "loadingShot": "Caricamento inquadratura…",
       "shotMissing": "Inquadratura non trovata: {{name}}",
       "shotNotRendered": "Questa inquadratura non ha ancora fotogramma chiave né clip.",
-      "openStoryboard": "Apri storyboard"
+      "openStoryboard": "Apri storyboard",
+      "tabTimeline": "Timeline",
+      "tabScript": "Copione vocale",
+      "untitledTimeline": "Timeline senza titolo",
+      "loadingTimelines": "Caricamento delle timeline…",
+      "noTimelines": "Nessuna timeline in questo progetto",
+      "noTimelinesDescription": "Crea una timeline per incorporarla qui.",
+      "timelineHint": "Una timeline incorporata si riproduce nel documento e segue le modifiche successive.",
+      "loadingTimeline": "Caricamento della timeline…",
+      "timelineMissing": "Timeline non trovata: {{name}}",
+      "openTimeline": "Apri timeline",
+      "untitledScript": "Copione senza titolo",
+      "lineCount_one": "{{count}} battuta",
+      "lineCount_other": "{{count}} battute",
+      "lineCount_many": "{{count}} battute",
+      "loadingScripts": "Caricamento dei copioni…",
+      "noScripts": "Nessun copione vocale in questo progetto",
+      "noScriptsDescription": "Crea un copione vocale per incorporarlo qui.",
+      "scriptHint": "Un copione incorporato mostra ogni battuta con la sua take attuale.",
+      "loadingScript": "Caricamento del copione…",
+      "scriptMissing": "Copione non trovato: {{name}}",
+      "scriptEmpty": "Questo copione non ha ancora battute.",
+      "openScript": "Apri copione"
     }
   }
 }

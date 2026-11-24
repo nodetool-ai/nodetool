@@ -522,7 +522,7 @@ function formatUiContext(uiContext?: UiContext | null): string {
  * defined in `document-embeds.ts` in protocol.
  */
 export const DOCUMENT_EMBED_GUIDANCE =
-  "A Markdown document can embed media in image syntax. Write `![caption](assets/clip.mp4)` for an image, video, audio or 3D model file of the project, with the path relative to the document. Write `![caption](asset://<asset_id>)` for any asset, and `![caption](storyboard://<storyboard_id>/shots/<shot_id>)` for a storyboard shot, which shows the shot's latest clip, or its keyframe until it has a clip. Use full ids in embeds.";
+  "A Markdown document can embed media in image syntax. Write `![caption](assets/clip.mp4)` for an image, video, audio or 3D model file of the project, with the path relative to the document. Write `![caption](asset://<asset_id>)` for any asset, `![caption](storyboard://<storyboard_id>#shot=<shot_id>)` for a storyboard shot, which shows the shot's latest clip, or its keyframe until it has a clip, `![caption](timeline://<timeline_id>)` for a timeline, which plays in the document, and `![caption](script://<script_id>)` for a voice script, which lists each line with its current take. Use full ids in embeds.";
 
 /**
  * How to work with the documents the user has open: the fixed guidance for

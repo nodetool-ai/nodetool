@@ -20796,7 +20796,28 @@
       "loadingShot": "ショットを読み込み中…",
       "shotMissing": "ショットが見つかりません：{{name}}",
       "shotNotRendered": "このショットにはまだキーフレームもクリップもありません。",
-      "openStoryboard": "ストーリーボードを開く"
+      "openStoryboard": "ストーリーボードを開く",
+      "tabTimeline": "タイムライン",
+      "tabScript": "音声スクリプト",
+      "untitledTimeline": "無題のタイムライン",
+      "loadingTimelines": "タイムラインを読み込み中…",
+      "noTimelines": "このプロジェクトにはタイムラインがありません",
+      "noTimelinesDescription": "タイムラインを作成すると、ここに埋め込めます。",
+      "timelineHint": "埋め込んだタイムラインはドキュメント内で再生され、後の編集にも追従します。",
+      "loadingTimeline": "タイムラインを読み込み中…",
+      "timelineMissing": "タイムラインが見つかりません：{{name}}",
+      "openTimeline": "タイムラインを開く",
+      "untitledScript": "無題のスクリプト",
+      "lineCount_one": "{{count}} 行",
+      "lineCount_other": "{{count}} 行",
+      "loadingScripts": "スクリプトを読み込み中…",
+      "noScripts": "このプロジェクトには音声スクリプトがありません",
+      "noScriptsDescription": "音声スクリプトを作成すると、ここに埋め込めます。",
+      "scriptHint": "埋め込んだスクリプトは各セリフを現在のテイクとともに表示します。",
+      "loadingScript": "スクリプトを読み込み中…",
+      "scriptMissing": "スクリプトが見つかりません：{{name}}",
+      "scriptEmpty": "このスクリプトにはまだセリフがありません。",
+      "openScript": "スクリプトを開く"
     }
   }
 }

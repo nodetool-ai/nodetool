@@ -145,7 +145,9 @@ describe("resident toolbelt", () => {
       });
       expect(guidance).toContain(DOCUMENT_EMBED_GUIDANCE);
     }
-    expect(DOCUMENT_EMBED_GUIDANCE).toContain("storyboard://<storyboard_id>/shots/<shot_id>");
+    expect(DOCUMENT_EMBED_GUIDANCE).toContain("storyboard://<storyboard_id>#shot=<shot_id>");
+    expect(DOCUMENT_EMBED_GUIDANCE).toContain("timeline://<timeline_id>");
+    expect(DOCUMENT_EMBED_GUIDANCE).toContain("script://<script_id>");
     expect(
       buildUiGuidanceSection({ focused: { type: "sketch", id: "s-1" } })
     ).not.toContain(DOCUMENT_EMBED_GUIDANCE);

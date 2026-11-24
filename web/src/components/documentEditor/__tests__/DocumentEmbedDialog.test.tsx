@@ -10,6 +10,8 @@ import { DocumentLocationProvider } from "../documentEditorContext";
 const mockSearch = jest.fn();
 const mockUseStoryboards = jest.fn();
 const mockUseStoryboard = jest.fn();
+const mockUseTimelines = jest.fn();
+const mockUseScripts = jest.fn();
 
 jest.mock("../../../trpc/client", () => ({
   trpc: {
@@ -23,6 +25,12 @@ jest.mock("../../../trpc/client", () => ({
 }));
 jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
   useStoryboards: (projectId?: string) => mockUseStoryboards(projectId)
+}));
+jest.mock("../../../hooks/useTimelineSequence", () => ({
+  useTimelines: (projectId?: string) => mockUseTimelines(projectId)
+}));
+jest.mock("../../../hooks/script/useScripts", () => ({
+  useScripts: (projectId?: string) => mockUseScripts(projectId)
 }));
 jest.mock("../../ui_primitives/MediaThumbnail", () => ({
   MediaThumbnail: ({ alt }: { alt: string }) => <span data-testid="thumb">{alt}</span>
@@ -60,6 +68,14 @@ beforeEach(() => {
   mockSearch.mockResolvedValue({ assets: ASSETS });
   mockUseStoryboards.mockReturnValue({
     data: [{ id: "b1", name: "Launch film" }],
+    isLoading: false
+  });
+  mockUseTimelines.mockReturnValue({
+    data: [{ id: "tl1", projectId: "p1", name: "Teaser cut", updatedAt: "2026-11-20T10:00:00Z" }],
+    isLoading: false
+  });
+  mockUseScripts.mockReturnValue({
+    data: [{ id: "sc1", projectId: "p1", name: "Voiceover", lineCount: 3, updatedAt: "2026-11-20T10:00:00Z" }],
     isLoading: false
   });
   mockUseStoryboard.mockReturnValue({
@@ -121,8 +137,40 @@ describe("DocumentEmbedDialog", () => {
     await user.click(tiles[1]);
     await waitFor(() =>
       expect(onInsert).toHaveBeenCalledWith([
-        { src: "storyboard://b1/shots/s2", alt: "SH 02 · Hero close" }
+        { src: "storyboard://b1#shot=s2", alt: "SH 02 · Hero close" }
       ])
     );
+  });
+
+  it("inserts a timeline of the project", async () => {
+    const user = userEvent.setup();
+    const onInsert = jest.fn();
+    renderDialog(onInsert);
+
+    await user.click(screen.getByRole("tab", { name: /^timeline$/i }));
+    expect(mockUseTimelines).toHaveBeenCalledWith("p1");
+    await user.click(await screen.findByRole("button", { name: "Insert Teaser cut" }));
+    expect(onInsert).toHaveBeenCalledWith([{ src: "timeline://tl1", alt: "Teaser cut" }]);
+  });
+
+  it("inserts a voice script with its line count shown", async () => {
+    const user = userEvent.setup();
+    const onInsert = jest.fn();
+    renderDialog(onInsert);
+
+    await user.click(screen.getByRole("tab", { name: /voice script/i }));
+    expect(mockUseScripts).toHaveBeenCalledWith("p1");
+    expect(await screen.findByText("3 lines")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Insert Voiceover" }));
+    expect(onInsert).toHaveBeenCalledWith([{ src: "script://sc1", alt: "Voiceover" }]);
+  });
+
+  it("says when the project has no timelines", async () => {
+    mockUseTimelines.mockReturnValue({ data: [], isLoading: false });
+    const user = userEvent.setup();
+    renderDialog(jest.fn());
+
+    await user.click(screen.getByRole("tab", { name: /^timeline$/i }));
+    expect(await screen.findByText("No timelines in this project")).toBeInTheDocument();
   });
 });
