@@ -4,7 +4,7 @@ title: "Quick Start"
 description: "Install NodeTool, connect a language model and a video model, and generate a video from one sentence with the Video flow."
 ---
 
-Type one sentence, plan the beats, generate the clips, export an MP4. Render time dominates. No NodeTool account is needed.
+Type one sentence, plan the beats, generate the clips, export an MP4. Most of the wait is video rendering. No NodeTool account is needed.
 
 > **Runs:** cloud models, no graphics card needed. **Needs:** one language provider key and one video provider key.
 {: .callout-note}
@@ -27,7 +27,7 @@ Connect a provider for each row you need:
 | Video model | Renders the clips | FAL, Replicate, Gemini, OpenAI, kie.ai, and others |
 | Voice model (optional) | Reads the voiceover | OpenAI, ElevenLabs, Gemini, and others |
 
-> A minimal setup is FAL plus one language provider. The [capability matrix](providers.md#capability-matrix) lists which provider covers which model type.
+> A minimal setup is FAL plus one language provider. The [Providers page](providers.md#capability-matrix) lists what each provider can make.
 {: .callout-tip}
 
 ![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)

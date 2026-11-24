@@ -128,7 +128,7 @@ export default function LocalModelDemo() {
           <p className="mt-4 text-sm leading-relaxed text-slate-400">
             Approximate figures from the Model Manager.{" "}
             <a
-              href="https://docs.nodetool.ai/installation#gpu-requirements"
+              href="https://docs.nodetool.ai/advanced-install#gpu-requirements"
               className="text-emerald-300 underline underline-offset-2 hover:text-emerald-200 focus-ring"
             >
               GPU requirements for image, speech, and video models

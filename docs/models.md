@@ -37,7 +37,7 @@ The engines below run on your machine. The Model Manager's **Get Started** tab l
 
 ### HuggingFace Transformers
 
-**Transformers** and **Diffusers** are the Python libraries behind the optional `nodetool-huggingface` node pack, which you install from the Package Manager. They run Hub models locally on GPU, Apple Silicon, or CPU on PyTorch 2.14. See [HuggingFace Integration](huggingface.md) and [GPU requirements](installation.md#gpu-requirements).
+**Transformers** and **Diffusers** are the Python libraries behind the optional `nodetool-huggingface` node pack, which you install from the Package Manager. They run Hub models locally on GPU, Apple Silicon, or CPU on PyTorch 2.14. See [HuggingFace Integration](huggingface.md) and [GPU requirements](advanced-install.md#gpu-requirements).
 
 ### Wan2GP
 

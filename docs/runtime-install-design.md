@@ -92,7 +92,7 @@ Other hosts:
   `CONDA_ENV`.
 - **F3. The Python bridge misses the `install.sh` env on macOS.** Its macOS
   list is `~/nodetool_env`, `~/miniconda3/envs/nodetool` and
-  `~/anaconda3/envs/nodetool`. [installation.md](installation.md#python-nodes-without-the-desktop-app)
+  `~/anaconda3/envs/nodetool`. [installation.md](advanced-install.md#python-nodes-without-the-desktop-app)
   works around it by telling macOS users to set `NODETOOL_PYTHON`.
 - **F4. A library installed in the desktop app is invisible to the CLI.** D2
   keeps it that way on purpose.

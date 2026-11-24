@@ -5,7 +5,7 @@ permalink: /first-workflow
 description: "Build a four-node workflow from an empty canvas: a text input, an Agent that writes an image prompt, Text To Image, and a Preview."
 ---
 
-Build a four-node workflow on an empty canvas that turns one short idea into an image: String Input → Agent → Text To Image → Preview.
+Build a four-node workflow on an empty canvas that turns one short idea into an image: String Input (a text input node) → Agent → Text To Image → Preview.
 
 > **Runs:** cloud. **Needs:** a language provider for the Agent and an image provider for Text To Image. The image is billed at the provider's rate.
 {: .callout-note}
@@ -20,7 +20,7 @@ Build a four-node workflow on an empty canvas that turns one short idea into an 
 
 ## Before you begin
 
-Connect providers as in [Quick Start](getting-started.md#1-install-and-connect). Text To Image defaults to **FLUX.1 Schnell** on FAL, so a FAL key covers the image model. Other providers are in the [capability matrix](providers.md#capability-matrix).
+Connect providers as in [Quick Start](getting-started.md#1-install-and-connect). Text To Image defaults to **FLUX.1 Schnell** on FAL, so a FAL key covers the image model. The [Providers page](providers.md#capability-matrix) lists what other providers can make.
 
 ## 1. Create an empty workflow
 
