@@ -99,6 +99,13 @@ test('QML-only packages discover resources, singletons, panels and nested module
     writeFileSync(path.join(qml, 'UnlistedPanel.qml'), '// nt-panel: slot=seamProbe id=unlisted order=-10 title="Unlisted panel"\nimport QtQuick\nItem {}\n');
     writeFileSync(path.join(qml, 'UnlistedSingleton.qml'), 'pragma Singleton\nimport QtQml\nQtObject {}\n');
     writeFileSync(path.join(qml, 'helper.js'), '.pragma library\nfunction answer() { return 42 }\n');
+    const cmakePath = path.join(directory, 'CMakeLists.txt');
+    writeFileSync(cmakePath, readFileSync(cmakePath, 'utf8').replace('set(NT_MODULES\n', 'set(NT_MODULES\n    qml/seamProbe/module.cmake\n'));
+    const discoveryPath = path.join(directory, 'src', 'app', 'QmlDiscovery.cmake');
+    writeFileSync(discoveryPath, readFileSync(discoveryPath, 'utf8').replace(
+      'set(NT_QML_DISCOVERY_FILES\n',
+      'set(NT_QML_DISCOVERY_FILES\n        qml/seamProbe/UnlistedPanel.qml\n        qml/seamProbe/UnlistedSingleton.qml\n        qml/seamProbe/helper.js\n'
+    ));
     writeFileSync(path.join(qml, 'module.cmake'), `
 function(nt_qml_probe)
     if(NOT EXISTS "\${CMAKE_CURRENT_BINARY_DIR}/nt_qml_panels.cpp")

@@ -5,9 +5,27 @@ nt_sources(app ${NT_RENDER2D_REGISTRAR})
 nt_qml_sources(src/render2d/Render2dSections.cpp)
 
 function(nt_render2d_copy_fonts)
-    file(GLOB fonts CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/timeline/fonts/*.ttf"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/timeline/fonts/*.txt")
+    set(font_dir "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/timeline/fonts")
+    set(fonts
+        "${font_dir}/BebasNeue-Regular.ttf"
+        "${font_dir}/Inter-ExtraBold.ttf"
+        "${font_dir}/Inter-Italic-Variable.ttf"
+        "${font_dir}/Inter-SemiBold.ttf"
+        "${font_dir}/Inter-Variable.ttf"
+        "${font_dir}/JetBrainsMono-Italic-Variable.ttf"
+        "${font_dir}/JetBrainsMono-Variable.ttf"
+        "${font_dir}/Lora-Italic-Variable.ttf"
+        "${font_dir}/Lora-Variable.ttf"
+        "${font_dir}/PlayfairDisplay-Italic-Variable.ttf"
+        "${font_dir}/PlayfairDisplay-Variable.ttf"
+        "${font_dir}/SpaceGrotesk-Variable.ttf"
+        "${font_dir}/OFL-BebasNeue.txt"
+        "${font_dir}/OFL-Inter.txt"
+        "${font_dir}/OFL-JetBrainsMono.txt"
+        "${font_dir}/OFL-Lora.txt"
+        "${font_dir}/OFL-PlayfairDisplay.txt"
+        "${font_dir}/OFL-SpaceGrotesk.txt"
+    )
     add_custom_target(timeline_fonts
         COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:nodetool-timeline>/fonts"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${fonts} "$<TARGET_FILE_DIR:nodetool-timeline>/fonts"
