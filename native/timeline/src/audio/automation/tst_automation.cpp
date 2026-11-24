@@ -1,3 +1,4 @@
+#include "../../../tests/RequireValue.h"
 #include "audio/automation/Automation.h"
 #include "audio/automation/Meters.h"
 #include "audio/Mixer.h"
@@ -58,9 +59,9 @@ private slots:
     void completedBetweenBlocksGlidesF18() {
         auto parsed=nt::parseTimelineJson(QJsonDocument(document()).toJson()); QVERIFY(parsed.timeline);
         const auto state=std::make_shared<nt::MixerOverride>();
-        auto& track=parsed.timeline->tracks[0]; track.mixerOverride=state;
+        auto& track=requireValue(parsed.timeline).tracks[0]; track.mixerOverride=state;
         track.raw["automation"]=QJsonArray{lane("mixer","pan",{QJsonObject{{"timeMs",0},{"value",-1}}})};
-        const auto plan=nt::audio::buildMixPlan(*parsed.timeline);
+        const auto plan=nt::audio::buildMixPlan(requireValue(parsed.timeline));
         nt::audio::prepareMixPlan(plan,48000);
         const auto& pan=plan.tracks[0].panSource; QVERIFY(pan);
         pan->beginBlock({.sampleRate=48000,.timelineMs=0,.msPerFrame=1000./48000},480,-1);
@@ -77,9 +78,9 @@ private slots:
         auto parsed=nt::parseTimelineJson(QJsonDocument(document()).toJson()); QVERIFY(parsed.timeline);
         // The model/control side and both published plans retain the same atomic input.
         const auto state=std::make_shared<nt::MixerOverride>();
-        auto& track=parsed.timeline->tracks[0]; track.mixerOverride=state;
+        auto& track=requireValue(parsed.timeline).tracks[0]; track.mixerOverride=state;
         track.raw["automation"]=QJsonArray{lane("mixer","volumeDb",{QJsonObject{{"timeMs",0},{"value",-30}}})};
-        const auto old=nt::audio::buildMixPlan(*parsed.timeline);
+        const auto old=nt::audio::buildMixPlan(requireValue(parsed.timeline));
         std::vector<float> input(96000,.25f),output(960);
         nt::audio::VoicePcm pcm{.linear=input.data(),.linearCount=48000}; nt::audio::MixStats stats;
         nt::audio::mixBlock(old,&pcm,48000,0,1000./48000,480,output.data(),stats);
@@ -92,7 +93,7 @@ private slots:
         const float previous=output[254];
         track.raw["automation"]=QJsonArray{lane("mixer","volumeDb",{QJsonObject{{"timeMs",0},{"value",-30}},
             QJsonObject{{"timeMs",19},{"value",0}},QJsonObject{{"timeMs",219},{"value",-30}}})};
-        auto current=old; nt::automation::refreshMixerAutomation(*parsed.timeline,current);
+        auto current=old; nt::automation::refreshMixerAutomation(requireValue(parsed.timeline),current);
         nt::audio::mixBlock(current,&pcm,48000,20+128*1000./48000,1000./48000,128,output.data(),stats);
         QVERIFY2(std::abs(output[0]-previous)<.001f,"Publishing the written curve must retain an in-progress control glide");
     }
@@ -118,9 +119,9 @@ private slots:
             plan.processors.push_back(std::make_shared<Probe>(state));
         },1000);
         const auto cleanup=qScopeGuard([token] { nt::audio::unregisterMixPlanStage(token); });
-        auto parsed=nt::parseTimelineJson(QJsonDocument(document()).toJson()); QVERIFY(parsed.timeline); parsed.timeline->clips.clear();
+        auto parsed=nt::parseTimelineJson(QJsonDocument(document()).toJson()); QVERIFY(parsed.timeline); requireValue(parsed.timeline).clips.clear();
         // Main and worker retain the plan while its prepared state is handed between renderers.
-        const auto plan=std::make_shared<nt::audio::MixPlan>(nt::audio::buildMixPlan(*parsed.timeline));
+        const auto plan=std::make_shared<nt::audio::MixPlan>(nt::audio::buildMixPlan(requireValue(parsed.timeline)));
         std::jthread first([weakPlan=std::weak_ptr<const nt::audio::MixPlan>(plan),weakState=std::weak_ptr<Handoff>(state)] {
             const auto held=weakPlan.lock(); const auto sync=weakState.lock(); if (!held || !sync) { return; }
             std::array<float,256> out{}; nt::audio::MixStats stats;
@@ -175,10 +176,10 @@ private slots:
         QFETCH(double,step);
         auto parsed=nt::parseTimelineJson(QJsonDocument(document()).toJson()); QVERIFY(parsed.timeline);
         auto state=std::make_shared<nt::MixerOverride>();
-        parsed.timeline->tracks[0].mixerOverride=state;
-        const auto plan=nt::audio::buildMixPlan(*parsed.timeline);
+        requireValue(parsed.timeline).tracks[0].mixerOverride=state;
+        const auto plan=nt::audio::buildMixPlan(requireValue(parsed.timeline));
         nt::audio::prepareMixPlan(plan,48000);
-        std::vector<float> input(48000*2,.25f), output(256*2);
+        std::vector<float> input(std::size_t{48000}*2,.25f), output(std::size_t{256}*2);
         nt::audio::VoicePcm pcm{.linear=input.data(),.linearCount=48000};
         nt::audio::MixStats stats;
         nt::audio::mixBlock(plan,&pcm,48000,20,step,128,output.data(),stats);
@@ -222,13 +223,13 @@ private slots:
         t["automation"]=QJsonArray{lane("mixer","pan",{QJsonObject{{"timeMs",0},{"value",.5}}})};
         t["automationMode"]="off"; tracks[0]=t; raw["tracks"]=tracks;
         auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson()); QVERIFY(parsed.timeline);
-        auto plan=nt::audio::buildMixPlan(*parsed.timeline);
+        auto plan=nt::audio::buildMixPlan(requireValue(parsed.timeline));
         QVERIFY(!plan.tracks[0].panSource);
         t["automationMode"]="read"; tracks[0]=t; raw["tracks"]=tracks;
         parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson()); QVERIFY(parsed.timeline);
         auto state=std::make_shared<nt::MixerOverride>();
-        parsed.timeline->tracks[0].mixerOverride=state;
-        plan=nt::audio::buildMixPlan(*parsed.timeline);
+        requireValue(parsed.timeline).tracks[0].mixerOverride=state;
+        plan=nt::audio::buildMixPlan(requireValue(parsed.timeline));
         QVERIFY(plan.tracks[0].panSource);
         QCOMPARE(plan.tracks[0].panSource->valueAt(0,0),.5);
         state->pan.store(-.25); QCOMPARE(plan.tracks[0].panSource->valueAt(0,0),-.25);
@@ -251,7 +252,7 @@ private slots:
         auto off=doc; auto tracks=off["tracks"].toArray(); auto track=tracks[0].toObject();
         track["automationMode"]="off"; tracks[0]=track; off["tracks"]=tracks;
         parsed=nt::parseTimelineJson(QJsonDocument(off).toJson()); QVERIFY(parsed.timeline);
-        QCOMPARE(nt::evaluateScene(*parsed.timeline,250).layers[0].opacity,1.);
+        QCOMPARE(nt::evaluateScene(requireValue(parsed.timeline),250).layers[0].opacity,1.);
     }
     void valuesAndBreakpoints() {
         const QJsonArray points{QJsonObject{{"timeMs",0},{"value",-20}},QJsonObject{{"timeMs",100},{"value",0},{"easing","hold"}}};

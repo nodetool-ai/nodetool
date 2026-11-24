@@ -185,7 +185,7 @@ private slots:
         QVERIFY2(problems.empty(), problems.empty() ? "" : problems.front().c_str());
         QCOMPARE(dry.size(), static_cast<std::size_t>(frames) * 2);
         // The clip reads the asset from 500 ms: frame 24000.
-        const float* asset = m_targetPcm.data() + 24000 * 2;
+        const float* asset = m_targetPcm.data() + std::ptrdiff_t{24000} * 2;
         const double worst = worstDifference(dry, asset, dry.size());
         QVERIFY2(worst <= 1e-6, qPrintable(QString::number(worst)));
         // The check has something to find: playback of the same window is not the asset.
@@ -195,7 +195,7 @@ private slots:
         const auto early = renderBounce(tl, BounceKind::Dry, "b", kRate / 2, kRate);
         QCOMPARE(early.size(), static_cast<std::size_t>(kRate) * 2);
         for (std::size_t i = 0; i < static_cast<std::size_t>(kRate); ++i) QCOMPARE(early[i], 0.0f);
-        QVERIFY(worstDifference(std::vector<float>(early.begin() + kRate, early.end()), m_targetPcm.data() + 24000 * 2,
+        QVERIFY(worstDifference(std::vector<float>(early.begin() + kRate, early.end()), m_targetPcm.data() + std::ptrdiff_t{24000} * 2,
                                 static_cast<std::size_t>(kRate)) <= 1e-6);
     }
 
@@ -300,7 +300,7 @@ private slots:
         QVERIFY(report.value("problems").toArray().isEmpty());
         const auto written = readFloatWav(out);
         QCOMPARE(written.size(), std::size_t(96000 * 2));
-        QVERIFY(worstDifference(written, m_targetPcm.data() + 24000 * 2, written.size()) <= 1e-6);
+        QVERIFY(worstDifference(written, m_targetPcm.data() + std::ptrdiff_t{24000} * 2, written.size()) <= 1e-6);
         QProcess bad;
         bad.start(QStringLiteral(NT_TIMELINE_BINARY), {fixture, "--music-bounce", out, "--kind", "wet", "--track", "b", "--frames", "10"});
         QVERIFY(bad.waitForFinished(60000));

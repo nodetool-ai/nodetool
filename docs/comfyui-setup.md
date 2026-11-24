@@ -1,178 +1,102 @@
 ---
 layout: page
 title: "ComfyUI Setup: Endpoint and Ports"
-description: "Point NodeTool's ComfyUI nodes at a server: a local ComfyUI on 127.0.0.1:8188 (the default), comfy-api-proxy on 8189, a rented GPU, or Comfy Cloud."
+description: "Point NodeTool's ComfyUI nodes at a server: a ComfyUI on your computer or another machine on your network, Comfy Cloud, or a rented GPU."
 ---
 
-This page covers getting a ComfyUI endpoint for the ComfyUI nodes and what the server must have installed.
+This page covers connecting NodeTool to a ComfyUI server and what that server must have installed.
 
-> **Runs:** locally, on a rented GPU, or on Comfy Cloud. **Needs:** `COMFY_API_KEY` for Comfy Cloud, a worker bearer token for the NodeTool worker, nothing for a local ComfyUI. Default local endpoint is `127.0.0.1:8188`.
+> **Runs:** on your computer, another machine, a rented GPU, or Comfy Cloud. **Needs:** a Comfy key for Comfy Cloud, nothing for a local ComfyUI. The default local address is `127.0.0.1:8188`.
 {: .callout-note}
 
-The nodes themselves, their properties, the workflow loader and the output slots
-are in [ComfyUI](comfyui.md).
+The nodes, the workflow loader and the outputs are in [ComfyUI](comfyui.md).
 
 ---
 
 ## Choosing a path
 
-| Path | Node | Who holds the models | Cost | Reachable by |
-|---|---|---|---|---|
-| ComfyUI on your own machine | `lib.comfy.RunWorkflow` | You, on your disk | Electricity | Nothing outside your machine, when it stays on loopback |
-| ComfyUI on a rented GPU you expose | `lib.comfy.RunWorkflow` | You, on the pod's volume | Per minute while the pod is up | Anyone with the URL |
-| NodeTool ComfyUI worker on a rented GPU | `lib.comfy.RunWorkflowOnWorker` | You, on the pod's volume | Per minute while the pod is up | The bearer token holder |
-| Comfy Cloud | `lib.comfy.RunWorkflowOnCloud` | Comfy | Per job, from your Comfy account | Comfy's API key holder |
+| Path | Node | Who holds the models | Cost |
+|---|---|---|---|
+| ComfyUI on your own machine | Run ComfyUI Workflow | You, on your disk | Electricity |
+| ComfyUI on a rented GPU | Run ComfyUI Workflow, or Run ComfyUI Workflow (Worker) | You, on the rented machine's volume | Per minute while the GPU is rented |
+| Comfy Cloud | Run ComfyUI Workflow (Comfy Cloud) | Comfy | Per job, from your Comfy account |
 
-Three questions usually settle it:
+Two questions usually settle it:
 
-- **Do you have a GPU that fits the workflow?** If yes, run ComfyUI locally and
-  point the direct node at it. Nothing leaves the machine and there is no start-up
-  wait.
+- **Do you have a GPU that fits the workflow?** If yes, run ComfyUI on it and
+  point **Run ComfyUI Workflow** at it. Nothing leaves your machine and there is
+  no start-up wait.
 - **Do the weights have to stay yours?** A rented GPU keeps them on a volume you
   control. Comfy Cloud does not: you submit a graph and Comfy supplies the models.
-- **Is the endpoint allowed to be public?** A pod's proxy URL is reachable by
-  anyone who has it, since the direct node sends no credential. The NodeTool
-  ComfyUI worker keeps ComfyUI on loopback inside the container and puts a bearer
-  token in front of it.
 
-Cold starts differ. A local ComfyUI is already warm. A rented pod pays for boot
-plus whatever model downloads its volume still needs. Comfy Cloud has no boot,
-but a full queue answers `429` and the plan's concurrent-job limit is 1, 3, or 5.
+A local ComfyUI is already running. A rented GPU takes time to boot and may need
+model downloads. Comfy Cloud has no boot, but a full queue makes a run wait, and
+the plan allows 1, 3, or 5 jobs at a time.
 
 ---
 
 ## A ComfyUI on your own machine
 
-`lib.comfy.RunWorkflow` has an `endpoint` property, defaulting to
-`127.0.0.1:8188`. A bare `host:port` gets `http://` prepended. A full `http://`
-or `https://` URL is taken as given.
+**Run ComfyUI Workflow** has an `endpoint` property, defaulting to
+`127.0.0.1:8188`, which is where a stock ComfyUI listens. Start ComfyUI as
+[ComfyUI's documentation](https://docs.comfy.org) describes, then run the node.
+A bare `host:port` is enough, and a full `http://` or `https://` URL also works.
 
-The process at that address has to serve ComfyUI's HTTP API and its WebSocket on
-the same port. NodeTool submits to `/prompt`, follows the run on `/ws`, downloads
-finished files from `/view`, reconciles anything it missed from
-`/history/<prompt_id>`, uploads connected media through `/upload/image`, and
-posts `/interrupt` when you cancel. A stock ComfyUI serves all of it on one
-port. See [ComfyUI's documentation](https://docs.comfy.org) for how to start it.
-
-No credential is sent on this path, so the endpoint has to accept an
-unauthenticated submit.
+No credential is sent, so the server has to accept requests without one.
 
 ### Where `127.0.0.1` is resolved from
 
-The ComfyUI nodes are server-tagged (`node`, `workers`, `edge`, never `browser`),
-so the submit is made by the NodeTool backend, not by your browser tab.
-`127.0.0.1:8188` means "port 8188 on the machine running the NodeTool server". In
-the desktop app the bundled backend runs on your machine, so a local ComfyUI is
-reachable with the default. If your NodeTool server runs somewhere else, a
-Docker container or a self-hosted box, then that host is what must reach ComfyUI,
-and loopback there is its loopback.
+The ComfyUI nodes run on the NodeTool server, not in your browser tab.
+`127.0.0.1:8188` means port 8188 on the machine running the NodeTool server. In
+the desktop app that server runs on your computer, so a local ComfyUI is reached
+with the default. If your NodeTool server runs somewhere else, such as a Docker
+container or a self-hosted machine, that machine must be able to reach ComfyUI,
+and `127.0.0.1` there means that machine.
 
-### ComfyUI on another machine on the LAN
+### ComfyUI on another machine on your network
 
-A ComfyUI bound to loopback is unreachable from any other machine, including the
-one running NodeTool. ComfyUI's flag for binding a wider interface is `--listen`, and
-`--port` moves it off 8188. Both belong to ComfyUI, not to NodeTool: see
-[ComfyUI's documentation](https://docs.comfy.org) for the exact syntax and for
-install steps.
+A ComfyUI that listens only on its own machine cannot be reached from any other
+machine, including the one running NodeTool. ComfyUI has a `--listen` option that
+makes it accept connections from the network, and `--port` changes the port from
+8188. Both belong to ComfyUI, so see [ComfyUI's documentation](https://docs.comfy.org)
+for the exact syntax and for install steps.
 
-Once it listens, set `endpoint` to that machine's `host:port`. Anyone who can
-reach the address can submit prompts to it, so keep it on a network you trust.
+Once it listens, set `endpoint` to that machine's `host:port`, for example
+`192.168.1.20:8188`. Anyone who can reach the address can submit workflows to it,
+so keep it on a network you trust.
 
 ---
 
-## A rented GPU
-
-### Start a model with one click
+## On a rented GPU
 
 Open the Workers panel and select **Start** beside a model. NodeTool rents a
-RunPod pod from a tested template and tries the next GPU when RunPod has no
-capacity. Copy the URL from the pod's row into the `endpoint` of Run ComfyUI
-Workflow when the row shows **Ready**. The first start can take several minutes.
+RunPod GPU from a tested template and tries the next GPU when RunPod has no
+capacity. When the row shows **Ready**, copy its URL into the `endpoint` of
+**Run ComfyUI Workflow**. The first start can take several minutes.
 
-The pod ends after the time on the card and deletes its files, while the
-NodeTool server runs. Anyone with the URL can use the pod. MiniMax H3 is tested.
-Wan 2.2 and LTX 2.3 are untested. The models are listed in
-[`comfy-presets.ts`](https://github.com/nodetool-ai/nodetool/blob/main/packages/compute/src/comfy-presets.ts).
+The GPU shuts down after the time shown on the card and deletes its files, while
+the NodeTool server runs. Anyone with the URL can use it. MiniMax H3 is tested.
+Wan 2.2 and LTX 2.3 are untested.
 
-### Expose ComfyUI yourself
-
-Run ComfyUI on a pod and reach the port from outside: a RunPod pod's HTTP proxy
-URL, a Cloudflare tunnel, an SSH tunnel. Put the resulting `https://` URL in
-`endpoint` and use the direct node. The scheme is derived from the endpoint, so a
-`https://` address upgrades the WebSocket to `wss://` on its own.
-
-This publishes ComfyUI to whoever holds the URL. There is no `Authorization`
-header on the direct node's requests, so the proxy URL is the only secret, and
-anyone with it can queue prompts, read `/history`, and download outputs. Put a
-tunnel with its own auth in front of it, or use the worker below.
-
-`nodetool worker` can rent this pod from any ComfyUI image:
-
-```bash
-nodetool worker create --target runpod --image <comfyui-image> \
-  --gpu "NVIDIA A40" --comfy --max-lifetime 240
-```
-
-The command waits for `/system_stats`, then prints the `https://` endpoint. It
-terminates the pod if ComfyUI does not answer within 10 minutes. A pod that
-downloads models at boot needs a longer `--ready-timeout <minutes>`.
-
-To start from a RunPod template, replace `--image` with `--template <id>`. RunPod
-supplies the template's image, environment, ports and disks, and `--disk`
-overrides the volume size. The template must publish the `--comfy` port. A pod
-that bills for a volume keeps billing after `worker stop`, and
-`nodetool worker terminate <id>` ends all billing.
-
-- `--max-lifetime` is required, and only a running NodeTool API server enforces
-  it. Without the server, stop the pod yourself.
-- `--idle-timeout` and `--attach` are rejected. The idle clock reads worker
-  bridge traffic, and this pod has no bridge.
-- The persistent volume mounts at `/workspace`. An image that keeps ComfyUI or
-  its models in that path needs its own copy step at start.
-
-### The NodeTool ComfyUI worker
-
-Deploy `ghcr.io/nodetool-ai/nodetool-worker-comfy:latest`, which runs a
-co-located ComfyUI that stays loopback-only inside the container, and drive it
-with `lib.comfy.RunWorkflowOnWorker`. The node talks to the worker's bridge at
-`worker_url` (default `ws://127.0.0.1:7777/ws`, use `wss://` for a proxied pod),
-authenticated with the worker's bearer token in the `worker_token` property. ComfyUI's own ports are never published.
-
-Provisioning, the profile and instance model, and the idle-stop and TTL guards
-that stop a forgotten pod billing are in
-[Worker Deployment](worker-deployment.md). Pick the ComfyUI image from the
-**Worker image preset** dropdown, or pass
-`--image ghcr.io/nodetool-ai/nodetool-worker-comfy:latest` to
-`nodetool worker create` or `nodetool worker profile add`.
-
-The worker node has no workflow loader in the editor, so its `workflow` property
-and dynamic handles are filled in by hand. That and the bridge path's slot naming
-are in [Known limitations](comfyui.md#known-limitations).
+Other ways to run ComfyUI on a rented GPU, including keeping it private behind a
+token, are in [Worker Deployment](worker-deployment.md#comfyui-on-a-worker).
 
 ---
 
 ## Comfy Cloud
 
-No GPU and no ComfyUI install. `lib.comfy.RunWorkflowOnCloud` submits the same
-API-format prompt to `https://cloud.comfy.org`.
+No GPU and no ComfyUI install. **Run ComfyUI Workflow (Comfy Cloud)** submits the
+same API-format workflow to Comfy's hosted service.
 
-A graph of `comfy.*` nodes also runs there as one job. Each node shows its live
-status from the Comfy Cloud WebSocket, and each `Save*` file becomes an asset of
-the node that saved it.
+A graph made of ComfyUI nodes also runs there as one job. Each node shows its
+live status, and each saved file becomes an asset of the node that saved it.
 
 1. Get a key at [platform.comfy.org](https://platform.comfy.org).
-2. Store it as `COMFY_API_KEY`, either on the Comfy Cloud card in
-   **Settings → Models & Providers** or with `nodetool secrets store
-   COMFY_API_KEY`, which prompts for the value and writes it to the encrypted
-   secret store.
+2. Add it on the Comfy Cloud card in **Settings → Models & Providers**.
 
-The node declares `COMFY_API_KEY` in `requiredSettings`, so the editor badges it
-as unconfigured until the key is there, and a run without it fails with
-`COMFY_API_KEY is required to run a workflow on Comfy Cloud`.
-
-The same key is sent with the workflow as `extra_data.api_key_comfy_org`, which
-is what authenticates any partner (API) node inside the graph. One key covers
-both the job and the API nodes in it.
+The editor marks the node as unconfigured until the key is there, and a run
+without it fails with `COMFY_API_KEY is required to run a workflow on Comfy Cloud`.
+The same key authenticates any Comfy partner node inside the graph.
 
 Comfy's own limits apply to the run: 1, 3, or 5 concurrent jobs by plan, and 30
 minutes per job, 60 on Pro. Provider details are in
@@ -180,69 +104,33 @@ minutes per job, 60 on Pro. Provider details are in
 
 ---
 
-## `comfy-api-proxy` for the Comfy API v2
-
-`lib.comfy.RunWorkflow`'s `api` property selects the transport. `native` is
-ComfyUI's own protocol. `v2` sends the workflow through the Comfy API v2 client
-the Cloud node uses, pointed at `endpoint`.
-
-ComfyUI core does not serve `/api/v2` yet, so a local ComfyUI needs Comfy-Org's
-own adapter in front of it. It translates v2 onto the native protocol:
-
-```bash
-pip install comfy-api-proxy
-comfy-api-proxy --comfyui http://127.0.0.1:8188 --port 8189
-```
-
-Then set `endpoint` to `127.0.0.1:8189` and `api` to `v2`. Leaving `api` on `v2`
-while `endpoint` points at a plain ComfyUI gets a `404` on `/api/v2/jobs`.
-
-No API key is sent on this path, so the proxy has to accept an unauthenticated
-submit. What changes about the run, including the different output slot naming,
-is in [Using the v2 API](comfyui.md#using-the-v2-api).
-
----
-
 ## What the server must already have
 
 A workflow in API format names its checkpoints, LoRAs, VAEs, and node classes by
-string. Those strings are resolved by the ComfyUI that runs the prompt, not by
-NodeTool. NodeTool clones the prompt, writes the connected input values into
-`prompt[nodeId].inputs[field]`, and posts it. It downloads no weights and
-installs no extensions.
+string. The ComfyUI that runs the workflow resolves those names, not NodeTool.
+NodeTool downloads no weights and installs no extensions.
 
 So the server needs, before the first run:
 
-- **Every model file the workflow names**, under the filename the prompt uses.
-  `sd_xl_base_1.0.safetensors` in the prompt is the name ComfyUI looks for in its
+- **Every model file the workflow names**, under the filename the workflow uses.
+  `sd_xl_base_1.0.safetensors` in the workflow is the name ComfyUI looks for in its
   own model folders, subfolder included.
-- **Every custom node class the workflow uses.** A `class_type` that is not
-  registered on that ComfyUI is rejected at submit, exactly as it would be in
-  ComfyUI's own UI.
+- **Every custom node the workflow uses.** A node that is not installed on that
+  ComfyUI is rejected at submit, exactly as it would be in ComfyUI's own UI.
 
-Media inputs are the exception: a connected image, audio, or video ref is
-uploaded to the server before the prompt goes out, so input files do not have to
-pre-exist.
+Media inputs are the exception: a connected image, audio, or video is uploaded to
+the server before the run, so input files do not have to exist there already.
 
-A missing model or an unknown `class_type` fails the submit rather than the run.
-The direct node reports `Submit failed (400)` with ComfyUI's own response body
-included, which names the offending node. The full message list is in
-[Troubleshooting](comfyui.md#troubleshooting).
+A missing model or an unknown node fails the submit rather than the run. The node
+reports `Submit failed (400)` with ComfyUI's own response included, which names the
+offending node. The full message list is in [Troubleshooting](comfyui.md#troubleshooting).
 
 ### Checking what is there
 
-On a worker, the Python bridge exposes `comfyObjectInfo()` for the node catalog
-and `comfyModelsList(folder?)` for the model files on the volume. **No shipped
-node calls either one.** They are reachable from code against a connected bridge,
-which is what [Known limitations](comfyui.md#known-limitations) records. The
-message shapes are in [Python Bridge Protocol](python-bridge-protocol.md).
-
-For a ComfyUI you reach directly, NodeTool offers no enumeration at all. Open
-ComfyUI's own UI on that endpoint and check the loader dropdowns.
-
-For Comfy Cloud there is nothing to check from NodeTool: what is installed is
-Comfy's business, and the Comfy API enumerates no models. That is why the
-provider contributes none to the model pickers, as
+NodeTool cannot list what a ComfyUI server has installed. Open ComfyUI's own UI
+on that address and check the loader dropdowns. For Comfy Cloud there is nothing to
+check from NodeTool, because what is installed is Comfy's business. That is why
+the provider adds no models to the model pickers, as
 [Providers › Comfy Cloud](providers.md#comfy-cloud) notes.
 
 ---
@@ -281,7 +169,8 @@ reachable but missing something the workflow names.
 
 ## Related
 
-- [ComfyUI](comfyui.md) - the three nodes, their properties, the loader, and the outputs
-- [ComfyUI Recipes](comfyui-recipes.md) - worked examples of ComfyUI nodes inside NodeTool graphs
-- [Worker Deployment](worker-deployment.md) - renting a GPU and provisioning the ComfyUI worker image
-- [Providers](providers.md) - Comfy Cloud alongside every other provider, and where keys go
+- [ComfyUI](comfyui.md): the three nodes, the loader, and the outputs
+- [ComfyUI Recipes](comfyui-recipes.md): worked examples of ComfyUI nodes inside NodeTool graphs
+- [Worker Deployment](worker-deployment.md#comfyui-on-a-worker): renting a GPU and running ComfyUI on a worker
+- [ComfyUI from Code](developer/comfyui.md): the v2 API, the worker bridge, and running without the editor
+- [Providers](providers.md): Comfy Cloud alongside every other provider, and where keys go

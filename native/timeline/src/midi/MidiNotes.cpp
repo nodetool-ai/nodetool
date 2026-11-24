@@ -26,8 +26,8 @@ bool numberIn(const QJsonValue& value, double low, double high, double& out) {
 
 struct ExpressionKind {
     QLatin1StringView key;
-    double low;
-    double high;
+    double low = 0;
+    double high = 0;
 };
 constexpr ExpressionKind kExpressionKinds[] = {
     {QLatin1StringView("pitch"), -48.0, 48.0},

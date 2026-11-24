@@ -2,20 +2,18 @@
 layout: page
 title: "Guided Creation Flows"
 permalink: /guided-flows
-description: "Start an image, workflow, app, entity, storyboard, video, script, or game from a short guided sequence of steps."
+description: "Start a workflow, app, entity, storyboard, video, script, or game from a short guided sequence of steps."
 ---
 
-A guided flow is a short sequence of steps that ends in a document you keep editing. You describe what you want, review the proposal, and only then does the flow call paid models. Progress is saved on the document the flow creates, so a reload or a second window resumes at the same step.
+A guided flow is a short sequence of steps that ends in a document you keep editing. You describe what you want, review the proposal, and only then does the flow call paid models. Progress is saved on the document the flow creates, so a reload or a second window resumes at the same step. The **Image** and **Read aloud** cards are not guided flows. They open a new Create tab. For the Storyboard, Video, and Script flows, see [AI Video Production](ai-video-production.md). For reusable characters, places, styles, and props, see [Entities](entities.md).
 
-> **Runs:** locally or cloud, depending on the models you pick. **Needs:** a connected language model, plus an image model for Image, Entity, and Storyboard. Hosted models need their provider key (see [Providers](providers.md)). **Costs:** the render or build step calls the chosen model at provider rates. The footer shows an estimate when it can be measured. The App build is capped at $2.00.
+> **Runs:** locally or cloud, depending on the models you pick. **Needs:** a connected language model, plus an image model for Entity and Storyboard. Hosted models need their provider key (see [Providers](providers.md)). **Costs:** the render or build step calls the chosen model at provider rates. The footer shows an estimate when it can be measured. The App build is capped at $2.00.
 {: .callout-note}
 
 | Flow | What it makes | Steps |
 |------|---------------|-------|
-| [Image](#image) | A sketch with variations to pick from | Idea, Brief, Look |
 | [Workflow](#workflow) | A graph, checked and run once | Idea, Plan, Build |
 | [App](#app) | A mini app with the workflow behind its button, test-run | Idea, Design, Build |
-| Read aloud | A chat whose composer speaks the next line | Opens the chat |
 | [Entity](#entity) | A reusable character, location, style, or prop | Details, Reference, Review |
 | [Storyboard](#storyboard-video-and-script) | A rendered board of shots | See [AI Video Production](ai-video-production.md) |
 | [Video](#storyboard-video-and-script) | A cut on the timeline, no board | See [AI Video Production](ai-video-production.md) |
@@ -26,73 +24,15 @@ A guided flow is a short sequence of steps that ends in a document you keep edit
 
 ## Start a flow
 
-**From the new-project screen.** The **Start with a guided flow** section shows the **Storyboard**, **Read aloud**, **Image**, **Workflow**, **Game**, and **App** cards. Choose **More formats** to also show **Entity**, **Video**, and **Script**. **Fewer formats** hides them again. Text typed in the prompt box is not sent to a flow unless you click its card, and the Image card uses it as the first brief.
+**From the new-project screen.** The flow cards are **Create video**, **Create storyboard**, **Create app**, and **Create workflow**. **Explore all creation types** adds **Script**, **Game**, and **Entity**. **Create image**, and **Read aloud** under **Explore all creation types**, open a Create tab instead. Text typed in the prompt box is not sent to a flow unless you click its card.
 
-**From the tab bar.** The **+ New** menu lists the same flows in its first section. The menu names the Video card **Timeline** and the Image card **Sketch**. Each choice creates an untitled document in the selected project and opens it as a tab, except **App**, which opens its flow and creates the app only when the build succeeds. A failed start shows the notification "Could not start the guided flow".
+**From the tab bar.** The **+ New** menu lists flows under **Guided flows**. Each choice creates an untitled document in the selected project and opens it as a tab, except **App**, which opens its flow and creates the app only when the build succeeds. A failed start shows the notification "Could not start the guided flow".
 
 **From the Games examples.** The **Games** tab under the flows has **Make a game**, which starts the Game flow.
 
-**From Studio.** The Studio home offers only **Storyboard**, **Video**, and **Script**.
-
 **From the Entities page.** **Add entity** runs the Entity flow in place.
 
-When a step's primary button is disabled, a line beside it says why, for example "Pick an image use case". Where a step spends money, the cost estimate sits beside the button. Step 1 of the Image, Workflow, and Entity flows has **Other ways to start**, which skips the flow. Flows opened from the new-project screen also show **Change flow** on step 1, which asks for confirmation before it discards the draft.
-
-## Image
-
-The quick path renders your sentence from step 1. The step-by-step path expands it into a brief, lets you choose size and style, then renders one, two, or four variations. See [Sketch Editor](sketch-editor.md).
-
-### Step 1: Idea
-
-The **Your image** box is required. Three example briefs below it fill the box when clicked.
-
-Reference images or entities attached on the new-project prompt appear under **Came with your prompt**. The step-by-step brief reads the reference images. The quick path uses your text only.
-
-**Other ways to start** skips the brief:
-
-- **Upload an image to edit** opens the sketch editor with your PNG, JPEG, WebP, or GIF as the first layer.
-- **Start with a blank canvas** opens the editor on an empty canvas.
-
-The footer has the image model picker and the cost estimate. **Generate your image** renders one variation on a square canvas with no style. If the model does not accept a square, the canvas moves to the first size it accepts. **Refine step by step** takes the full path through steps 2 and 3. Nothing is rendered or charged until step 3.
-
-### Step 2: Brief
-
-First choose what the picture is for. The cards set the canvas size and the default number of variations.
-
-| Use case | Description | Canvas | Default variations |
-|----------|-------------|--------|--------------------|
-| Product shot | One object, clean background, ready to place | 1024 x 1024 | 4 |
-| Portrait | A person, framed head and shoulders | 819 x 1024 | 4 |
-| Key art | A poster frame with room for a title | 683 x 1024 | 2 |
-| Social post | A square that survives a feed | 1024 x 1024 | 4 |
-| Logo | A flat mark on a plain field | 1024 x 1024 | 4 |
-| Concept art | A world, painted wide | 1024 x 683 | 2 |
-| Texture | A flat surface that tiles | 1024 x 1024 | 2 |
-
-**Refine the brief** makes one language-model call that expands your sentence into five editable fields: **Subject**, **Composition**, **Lighting**, **Style words**, and **Leave out**. Nothing is rendered. If the brief already matches your sentence and use case, the button reads **Continue to the brief** and makes no model call. **Re-refine** runs the expansion again over the text in the boxes. Under **How many variations?** choose 1, 2, or 4, then **Continue to look**.
-
-### Step 3: Look
-
-- **Size** offers five tiles: Square (1:1), Portrait (4:5), Landscape (3:2), Story (9:16), and Banner (21:9). Only the sizes the selected model accepts are shown.
-- **Style** offers style presets and a **No style** tile, which renders exactly what the brief says.
-- **Model** is picked in the footer. If no image provider is connected, the step says so and points you to Settings.
-
-**Generate your image** renders the batch. The estimated cost appears beside the button when it can be measured.
-
-### The contact sheet
-
-Variations render as a contact sheet. Each has these buttons:
-
-| Button | Result |
-|--------|--------|
-| **Sketch editor** | Opens the editor with that variation |
-| **Save to entities** | Saves the variation as an entity |
-| **New node canvas** | Starts a node canvas from the image |
-| **Image to video** | Sends the image toward video |
-| **Regenerate** | Renders that variation again. A failed one reads **Try ... again** |
-| **Download** | Saves the image file |
-
-Below the sheet, **Make more variations** renders another batch, **Back to generation settings** returns to the Look step, and **Open editor** goes to the sketch editor with every variation present.
+When a step's primary button is disabled, a line beside it says why, for example when a required field is empty. Where a step spends money, the cost estimate sits beside the button. Step 1 of the Workflow and Entity flows has **Other ways to start**, which skips the flow. Flows opened from the new-project screen also show **Change flow** on step 1, which asks for confirmation before it discards the draft.
 
 ## Workflow
 
@@ -105,12 +45,12 @@ Describe only the task in the **The task** box, for example "Summarize a PDF and
 **Other ways to start**:
 
 - **Start from an example** opens a searchable browser of shipped workflows. Picking one copies it and opens it in the editor.
-- **Import a workflow** reads a JSON file or a DSL `.ts` file.
+- **Import a workflow** reads a JSON file or a TypeScript workflow file.
 - **Start with a blank canvas** skips the plan.
 
 ### Step 2: Plan
 
-The category changes which nodes the planner considers and which run mode step 3 starts on. A wrong choice costs a re-plan, not a graph.
+The category changes which nodes the plan uses and which run mode step 3 starts on. A wrong choice costs a re-plan, not a graph.
 
 | Category | Description | Starts as |
 |----------|-------------|-----------|
@@ -121,18 +61,18 @@ The category changes which nodes the planner considers and which run mode step 3
 | Automation on a trigger | Runs on a schedule or a webhook, with no one watching | On a trigger |
 | Chat app | A conversation with your data behind it | App with a form |
 
-Pick the planner model in the footer, then **Plan the steps**. A shipped example brief can use a stored plan with no model call. If the plan already matches your brief and category, the button reads **Continue to your plan**.
+Pick the text model in the footer, then **Plan the steps**. A shipped example brief can use a stored plan with no model call. If the plan already matches your brief and category, the button reads **Continue to your plan**.
 
 The plan is a numbered list of inputs, steps, and outputs. You can edit titles and descriptions, reorder or remove steps, and use **Add a step**. Two markers can block **Continue to setup**:
 
 - A red marker, "No node for this step", means the step names a node type that does not exist. Pick a real node type in the field beside it.
-- An amber marker, "No ... provider connected", means the step needs a model role that no connected provider covers. **Connect** opens provider setup in place.
+- An amber marker, "No ... provider connected", means the step needs a model type (text, image, or voice) that no connected provider covers. **Connect** opens provider setup in place.
 
 Every step needs a title and every output needs a name. **Re-plan** asks the model again.
 
 ### Step 3: Build
 
-Pick a model for each role the plan needs, then choose how the workflow starts:
+Pick a model for each model type the plan needs, then choose how the workflow starts:
 
 | Run mode | After the test run |
 |----------|--------------------|
@@ -176,10 +116,10 @@ Continue with **Review entity**.
 
 ## Storyboard, Video, and Script
 
-[AI Video Production](ai-video-production.md) documents all three, with their steps, creative context fields, and review screens.
+[AI Video Production](ai-video-production.md) documents all three, with their steps and review screens.
 
 - **Storyboard** takes a sentence to a rendered board in four steps. You review the screenplay, assign entities, choose the look, then render stills and clips.
-- **Video** takes a sentence to a cut on the timeline with no board. Each beat stays a separate clip.
+- **Video** takes a sentence to a cut on the timeline with no board. Each beat stays a separate clip. Start it from **Create video** on the new-project screen or the Studio home. **Video** in the **+ New** menu opens a Create tab instead.
 - **Script** takes a topic to voiced lines. You write or import the script, add production context, assign speakers and voices, and can create a linked storyboard from it.
 
 ## App

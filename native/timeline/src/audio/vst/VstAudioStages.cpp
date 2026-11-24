@@ -147,8 +147,8 @@ int sortClass(const MidiStreamEvent& e) {
 
 struct ExpressionKind {
     QLatin1StringView key;
-    std::uint8_t type;
-    double (*normalize)(double);
+    std::uint8_t type = 0;
+    double (*normalize)(double) = nullptr;
 };
 constexpr ExpressionKind kExpressionKinds[] = {
     {QLatin1StringView("pitch"), vsthost::kShmExprTuning, [](double v) { return 0.5 + v / 240.0; }},
@@ -277,7 +277,8 @@ MidiTrackStream buildStream(const Timeline& timeline, const std::string& trackId
                                                      : clip.raw.value(u"controllers").toArray();
         const double loop = isPatternClip ? 0.0 : clip.raw.value(u"loopLengthMs").toDouble();
         const double period = std::isfinite(loop) && loop > 0 && loop < clip.durationMs ? loop : clip.durationMs;
-        for (double offset = 0; offset < clip.durationMs; offset += period) {
+        for (int k = 0; k * period < clip.durationMs; ++k) {
+            const double offset = k * period;
             const double length = std::min(period, clip.durationMs - offset);
             const double windowEnd = windowStart + length;
             const double clipEndMs = clip.startMs + offset + length;
@@ -502,7 +503,7 @@ private:
     std::size_t m_cursor = 0;
     int m_activeNotes = 0;
     int m_tailFrames = 0;
-    std::array<float, kMixBlockFrames * 2> m_scratch{};
+    std::array<float, std::size_t{kMixBlockFrames} * 2> m_scratch{};
 };
 
 // Real-time shared-memory VST3 audio effect BlockProcessor.
@@ -580,7 +581,7 @@ private:
     float m_wet = 1.0f;
     LiveBlockClock m_clock;
     int m_tailFrames = 0;
-    std::array<float, kMixBlockFrames * 2> m_dry{};
+    std::array<float, std::size_t{kMixBlockFrames} * 2> m_dry{};
 };
 
 bool hasEnabledVstEffect(const QJsonArray& effects) {
@@ -625,12 +626,10 @@ void interleaveVstEffects(const QJsonArray& effects, const QString& instancePref
     std::unordered_map<std::string, std::shared_ptr<BlockProcessor>> builtInById;
     for (auto& proc : processors) {
         if (!proc) continue;
-        if (proc->id == "vst-instrument") {
+        if (proc->id == "vst-instrument" || proc->id.empty()) {
             leading.push_back(std::move(proc));
-        } else if (!proc->id.empty()) {
-            builtInById.emplace(proc->id, std::move(proc));
         } else {
-            leading.push_back(std::move(proc));
+            builtInById.emplace(proc->id, std::move(proc));
         }
     }
 
@@ -747,7 +746,8 @@ std::vector<VstNoteEvent> extractMidiNoteEvents(const QJsonObject& clipRaw, doub
     }
     const double loop = isPatternClip ? 0.0 : clipRaw.value(u"loopLengthMs").toDouble();
     const double period = std::isfinite(loop) && loop > 0 && loop < durationMs ? loop : durationMs;
-    for (double offset = 0; offset < durationMs; offset += period) {
+    for (int k = 0; k * period < durationMs; ++k) {
+        const double offset = k * period;
         const double length = std::min(period, durationMs - offset);
         const double windowEnd = windowStart + length;
         for (const auto& entry : notes) {

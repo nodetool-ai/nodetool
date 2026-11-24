@@ -1294,7 +1294,7 @@ StepPatternOpOutcome runStepPatternOp(const QJsonObject& document, const QString
                 args.value(u"steps"),
                 resolvedRow->row.value(u"lengthSteps").toInt(resolvedRow->row.value(u"steps").toArray().size()), &err);
             if (!indices) return fail(err);
-            rows.replace(resolvedRow->index, clearRowSteps(resolvedRow->row, *indices, modeStr));
+            rows.replace(resolvedRow->index, clearRowSteps(resolvedRow->row, indices, modeStr));
         } else if (scopeStr == u"row") {
             if (!args.value(u"row").isString()) {
                 return fail(QStringLiteral("clear_pattern with scope \"row\" requires `row`."));

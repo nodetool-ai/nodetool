@@ -24,19 +24,28 @@ description: "Recipes for what people make in NodeTool: product films, ads, shor
 > **Needs:** provider keys for cloud models, or local models. Storyboards render stills before video, and each provider call's cost is recorded. See [Costs & Credits]({{ '/costs-and-credits' | relative_url }}).
 {: .callout-note}
 
-## Video recipes
+## Video and ad recipes
 
 | You want | Start with | You finish in |
 |---|---|---|
 | A launch film from a product page | `/launch-commercial` and the page URL | Storyboard, then timeline |
 | A polished product film or brand spot | `/product-commercial`, or the **Storyboard** flow | Storyboard, then timeline |
-| A phone-shot creator ad or testimonial | `/ugc-video` | Timeline |
-| A 15-second sound-off ad from real screenshots | `/motion-ad` | Timeline |
+| Lifestyle mockups of a product, then video | The **Product Launch Kit** app | App results, then timeline |
+| A campaign: one cast, stills, several cuts | `/launch-kit`, or the **Directed Campaign Kit** app | Entities, storyboards, timelines |
+| A phone-shot creator ad, testimonial, or vlog | `/ugc-video`, or the **UGC Product Video** recipe | Timeline |
+| A 15-second sound-off ad from real screenshots | `/motion-ad`, or one of the ad-format apps | Timeline |
+| Ad copy and hooks compared before rendering | The **Viral Ad Engine** or **Ad Maker** app | App results |
+| Your version of an ad you saw | `/video-clone` with the reference video | Storyboard, then timeline |
+| The same ad in 9:16, 1:1, and 16:9 | The **Three Ratios** workflow | Three video files |
 | A narrated explainer | **Script** flow, or `/script-video` | Script, then timeline |
 | A short film, scene, or trailer | **Storyboard** flow, or `/short-film` | Storyboard, then timeline |
-| Your version of an ad you saw | `/video-clone` with the reference video | Storyboard, then timeline |
-| A campaign: one cast, stills, several cuts | `/launch-kit` | Entities, storyboards, timelines |
+| A trailer from a story pitch | The **Trailer Room** app | App results |
+| A music video treatment | `/music-video-treatment` | Storyboard |
+| Captions and titles on a finished cut | The [timeline]({{ '/video-editor' | relative_url }}), or `/caption-titles` | Timeline |
 | A fix to a shot that is already cut | `/nodetool-video-post` | Timeline |
+
+The apps, recipes, and workflows named here open from **Examples** in the app
+menu. See [Examples]({{ '/workflows/' | relative_url }}).
 
 ### Launch film from a product page
 
@@ -62,7 +71,8 @@ single shot by note.
 
 Pick the **Script** flow when the words drive the timing. Write or import the
 script, assign a voice per speaker, and generate the takes. Create a linked
-storyboard from the script for the visuals. When you edit a line, its take is marked stale. See
+storyboard from the script for the visuals. When you edit a line, its take is
+marked out of date until you voice it again. See
 [Script: write and cast the words first]({{ '/ai-video-production' | relative_url }}#script-write-and-cast-the-words-first).
 
 ### Sound-off social ad
@@ -77,24 +87,39 @@ read [a 15-second vertical product ad]({{ '/ai-video-production' | relative_url 
 
 Open the timeline and ask the agent for the fix, or type
 `/nodetool-video-post`. It covers cutouts, tracking, outpainting, upscaling,
-generated sound, voice replacement, and lip sync. Each repair lands on the
-timeline as an inactive candidate next to the original clip, and you choose
-whether to use it. The rest of the cut stays as it was. [AI Timeline Editing]({{ '/ai-timeline-editing' | relative_url }}) lists
+generated sound, voice replacement, and lip sync. Each repair is added to the
+clip as a new take, and the original stays in the cut until you choose
+**Use take**. The rest of the cut stays as it was. [AI Timeline Editing]({{ '/ai-timeline-editing' | relative_url }}) lists
 the edits the agent can make on a timeline.
+
+## Podcast and localization recipes
+
+| You want | Start with | You finish in |
+|---|---|---|
+| Show notes, a newsletter, and social posts from an episode | The **Podcast Production Desk** app | App results |
+| A clip dubbed into another language | The **Dubbing Desk** app, or the [dubbing recipe](https://nodetool.ai/recipes/multilingual-video-dubber) | Timeline |
+| An explainer voiced and captioned per language | The **Localized Explainer** workflow | One video per language |
+
+You review and edit a translation before it is voiced.
 
 ## Image, 3D, and game recipes
 
 | You want | Start with | You finish in |
 |---|---|---|
-| One image with variations to choose from | **Image** flow | [Sketch editor]({{ '/sketch-editor' | relative_url }}) |
+| One image with variations to choose from | **Create image** (a Create tab) | [Sketch editor]({{ '/sketch-editor' | relative_url }}) |
 | A composition where you control each layer | A sketch, or `/nodetool-sketch` | Sketch editor |
+| Concept art directions from one brief | The **Concept Studio** app | App results |
+| One change to an image, such as lighting or pose | The **Vary Image** app | App results |
+| Photo grading and batch retouching | The **Photo Studio** app | App results |
+| A full image set from one product photo | The **SKU Factory** app, or the [product photo recipe](https://nodetool.ai/recipes/ecommerce-sku-visual-factory) | App results |
+| Your brand filled in from your website | The **Brand & Social** app | App results |
 | A recurring character, product, or location | **Entity** flow | [Entities]({{ '/entities' | relative_url }}) |
 | A set blocked out in 3D as a shot reference | Ask the agent, or `/nodetool-3d-scene` | [3D editor]({{ '/3d-editor' | relative_url }}) |
 | A playable 2D or 3D game | **Game** flow, or `/native-game` | [Game editor]({{ '/game-editor' | relative_url }}) |
 
-**Key art.** The [Image flow]({{ '/guided-flows' | relative_url }}#image) turns
-an idea into a brief, then a contact sheet of variations. The pick opens as a
-sketch. Bind a layer to a prompt to regenerate that layer alone, or paint a
+**Key art.** **Create image** on the home screen opens a Create tab that
+generates a batch of variations from one prompt. Open the one you want in the
+sketch editor from its menu. Bind a layer to a prompt to regenerate that layer alone, or paint a
 mask to change one region.
 
 **A character that stays the same.** Make the character once with the
@@ -112,7 +137,9 @@ first when the game plays correctly but feels flat.
 | You want | Start with | Read |
 |---|---|---|
 | A simple screen a coworker can run without the graph | `/nodetool-app-builder` | [Mini Apps]({{ '/mini-apps' | relative_url }}) |
-| Answers grounded in your own documents | `/nodetool-rag-indexing` | [Collections]({{ '/collections' | relative_url }}) |
+| Answers from your own documents | A collection, or `/nodetool-rag-indexing` | [Collections]({{ '/collections' | relative_url }}) |
+| Work in Drive, Gmail, Docs, Sheets, and Calendar | Ask the agent | [Google Workspace]({{ '/google-workspace' | relative_url }}) |
+| Your agent in Telegram | A Telegram bot token | [Telegram Bot]({{ '/telegram-bot' | relative_url }}) |
 | An agent that browses, extracts, and fills forms | `/nodetool-browser-agent` | [Chat & Agents]({{ '/global-chat-agents' | relative_url }}) |
 | A run on a schedule, a file drop, or a webhook | A trigger node in a workflow | [Triggers]({{ '/triggers' | relative_url }}) |
 | A procedure the agent should follow every time | Your own skill | [Skills]({{ '/skills' | relative_url }}) |
@@ -128,9 +155,9 @@ first when the game plays correctly but feels flat.
 
 A workflow graph makes the same piece again for the next brief, SKU, language,
 or aspect ratio. Ask the agent to build a workflow for the job, type `/video-workflow`,
-or use the **Workflow** flow. Storyboards, scripts, timelines, and sketches are
-typed values a graph can read and write, so an approved document can feed the
-graph directly.
+or use the **Workflow** flow. A workflow can read and write storyboards,
+scripts, timelines, and sketches, so an approved document can feed the
+workflow directly.
 
 | What you are doing | Where it belongs |
 |---|---|
@@ -146,17 +173,17 @@ graph directly.
 The [workflow patterns]({{ '/cookbook/patterns' | relative_url }}) give each
 graph and the closest shipped template.
 [Workflow concepts]({{ '/cookbook/core-concepts' | relative_url }}) covers
-typed edges, documents as values, fan-out, and how to check a graph before it
-spends.
+how nodes connect, how documents flow through a graph, how one input becomes
+many results, and how to check a graph before it spends.
 
 | I want to… | Pattern | Key nodes |
 |---|---|---|
 | Turn a brief into a rendered film, unattended | [1 · Brief to cut]({{ '/cookbook/patterns' | relative_url }}#pattern-1-brief-to-cut) | `Director`, `ShotBatch`, `ShotChain`, `RenderTimeline` |
-| Gate each shot on a cheap still first | [2 · Shot fan-out]({{ '/cookbook/patterns' | relative_url }}#pattern-2-shot-fan-out) | `ScreenplayShots`, `TextToImage`, `ImageToVideo` |
+| Approve a cheap still of each shot before its clip | [2 · Stills before clips]({{ '/cookbook/patterns' | relative_url }}#pattern-2-stills-before-clips) | `ScreenplayShots`, `TextToImage`, `ImageToVideo` |
 | Hold one cast and look across a batch | [3 · Entities]({{ '/cookbook/patterns' | relative_url }}#pattern-3-entities) | `ApplyEntities`, `ListGenerator`, `TextToImage` |
 | Voice a script and caption the cut | [4 · Script to voiced cut]({{ '/cookbook/patterns' | relative_url }}#pattern-4-script-to-voiced-cut) | `WriteScript`, `VoiceScript`, `ScriptToTimeline`, `ScriptToSubtitles` |
 | Drive generation from a drawn composition | [5 · Sketch as control]({{ '/cookbook/patterns' | relative_url }}#pattern-5-sketch-as-control) | `RenderSketch`, `SketchLayers`, `ImageToImage` |
-| Get a gallery of variants from one brief | [6 · Variant fan-out]({{ '/cookbook/patterns' | relative_url }}#pattern-6-variant-fan-out) | `Agent`, `ListGenerator`, `TextToImage`, `Collect` |
+| Get a gallery of variations from one brief | [6 · Multiple variations]({{ '/cookbook/patterns' | relative_url }}#pattern-6-multiple-variations) | `Agent`, `ListGenerator`, `TextToImage`, `Collect` |
 | Ship one cut in every required shape | [7 · Derivatives]({{ '/cookbook/patterns' | relative_url }}#pattern-7-derivatives) | `Transcript`, `RetargetTimeline`, `RenderTimeline`, `AddSubtitles` |
 | Handle naming, packaging, and subtitle math | [8 · Code node]({{ '/cookbook/patterns' | relative_url }}#pattern-8-code-glue) | `Code` |
 
@@ -173,14 +200,13 @@ so the original stays unchanged. The
 - **Three Ratios**: one approved cut, delivered at 9:16, 1:1, and 16:9.
 - **Podcast Repurposing Studio**: one recording, a whole content pack.
 
-Before an expensive run, `nodetool validate` checks the graph without spending.
-After a failed run, `nodetool debug` returns each node's output and error. See
+To check a workflow before an expensive run, or find the node that failed, see
 [Debugging]({{ '/workflow-debugging' | relative_url }}).
 
 ## More examples
 
 <div class="card-grid">
-  <a class="doc-card" href="{{ '/use-cases' | relative_url }}"><strong>Use Cases</strong><span>Flagship projects end to end: trailers, product videos, ad batches, posters.</span></a>
+  <a class="doc-card" href="{{ '/use-cases' | relative_url }}"><strong>Use Cases</strong><span>What people make, by kind of work, and showcase projects taken apart step by step.</span></a>
   <a class="doc-card" href="{{ '/workflows/' | relative_url }}"><strong>Examples</strong><span>Every shipped example: apps, recipes, workflows, storyboards, timelines, sketches, 3D models, and games.</span></a>
   <a class="doc-card" href="{{ '/skills' | relative_url }}"><strong>Shipped Skills</strong><span>Every skill the agent can load, grouped by the work it covers.</span></a>
   <a class="doc-card" href="https://nodetool.ai/ad-library"><strong>Ad Library</strong><span>Vertical ad formats with beat sheets and sample cuts.</span></a>

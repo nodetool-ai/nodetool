@@ -255,7 +255,7 @@ MusicJobs* MusicJobs::forTimeline(TimelineModel* timeline) {
     if (!timeline) return nullptr;
     if (auto* existing = timeline->findChild<MusicJobs*>(QString(), Qt::FindDirectChildrenOnly)) return existing;
     // Owned by the model through the Qt parent; QML never takes it.
-    auto* jobs = new MusicJobs(timeline);
+    auto* jobs = new MusicJobs(timeline);  // NOLINT(cppcoreguidelines-owning-memory): parented to the TimelineModel
     QQmlEngine::setObjectOwnership(jobs, QQmlEngine::CppOwnership);
     jobs->setTimeline(timeline);
     return jobs;
@@ -263,7 +263,7 @@ MusicJobs* MusicJobs::forTimeline(TimelineModel* timeline) {
 
 MusicJobs* MusicJobs::attach(TimelineModel& timeline, const nt::server::AssetCacheRoot& cache) {
     if (auto* existing = timeline.findChild<MusicJobs*>(QString(), Qt::FindDirectChildrenOnly)) return existing;
-    auto* jobs = new MusicJobs(cache, &timeline);
+    auto* jobs = new MusicJobs(cache, &timeline);  // NOLINT(cppcoreguidelines-owning-memory): parented to the TimelineModel
     QQmlEngine::setObjectOwnership(jobs, QQmlEngine::CppOwnership);
     jobs->setTimeline(&timeline);
     return jobs;
@@ -327,7 +327,7 @@ bool MusicJobs::canonicalizeTarget() {
 }
 
 void MusicJobs::open() {
-    if (!canonicalizeTarget()) return;
+    if (!canonicalizeTarget() || !m_target) return;
     if (!m_target->expectedInstance.isEmpty()) {
         setError(QStringLiteral("Generation is unavailable for a server that requires instance verification."));
         return;
@@ -537,6 +537,7 @@ void MusicJobs::updatePolling() {
 // ---------------------------------------------------------------- persistence
 
 QString MusicJobs::recordPath(const QString& jobId) const {
+    if (!m_target) return {};
     return QDir(m_target->backupDir).filePath(recordPrefix(*m_target) + nt::server::safePathPart(jobId) + QStringLiteral(".json"));
 }
 
@@ -613,7 +614,7 @@ bool MusicJobs::canStart() {
 QString MusicJobs::submit(const QString& trackId, double startFrame, double endFrame, const QString& operation,
                           const QString& prompt, int candidates, double seed, const QString& model,
                           const QVariantMap& options) {
-    if (!canStart()) return {};
+    if (!canStart() || !m_target) return {};
     if (prompt.trimmed().isEmpty() || model.trimmed().isEmpty()) {
         setError(QStringLiteral("Enter a prompt and choose a model before generating."));
         return {};
@@ -757,7 +758,7 @@ QString MusicJobs::submit(const QString& trackId, double startFrame, double endF
 }
 
 QString MusicJobs::regenerate(const QString& clipId, const QString& takeId, bool sameSeed) {
-    if (!canStart()) return {};
+    if (!canStart() || !m_target) return {};
     QJsonObject clip;
     for (const auto& value : m_timeline->clipsJson()) {
         if (value.toObject().value("id").toString() == clipId) clip = value.toObject();
@@ -889,6 +890,10 @@ QString MusicJobs::regenerate(const QString& clipId, const QString& takeId, bool
 }
 
 void MusicJobs::startBounce(Job& job, const nt::Timeline& snapshot) {
+    if (!m_target) {
+        fail(job, QStringLiteral("The timeline is not saved to a server."));
+        return;
+    }
     MusicBounce::Job work;
     work.timeline = snapshot;
     work.kind = job.operation == u"repaint" ? BounceKind::Dry : BounceKind::Mix;

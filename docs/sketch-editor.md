@@ -4,7 +4,7 @@ title: "Sketch Editor"
 description: "A layered paint canvas with AI generation onto layers, backed by an image asset."
 ---
 
-The Sketch Editor is a layered raster editor. A layer can be painted by hand or generated from a prompt or a workflow, and **Save to image** renders the composite back into the image asset.
+The Sketch Editor is a pixel-painting canvas with layers. You paint a layer by hand or generate it from a prompt or a workflow. **Save to image** flattens the layers and writes the result back into the image asset.
 
 ![Sketch Editor](assets/screenshots/sketch-editor.png)
 
@@ -63,15 +63,15 @@ Shapes: `Shift` constrains proportions or snaps lines and arrows to 30 degree st
 | Mode | Behavior |
 |------|----------|
 | **Move/Scale** | Scale and rotate the box. `Ctrl/⌘` on a side handle shears. `Ctrl/⌘ + Alt + Shift` promotes the drag to Perspective |
-| **Perspective** | Four-point projective transform. Dragging a corner mirrors the opposite edge |
-| **Deform** | Free four-point quad. Only the dragged corner moves. `Shift` locks one axis |
+| **Perspective** | Drag a corner to skew the layer into perspective. The opposite corner moves with it |
+| **Deform** | Drag any corner on its own. Only that corner moves. `Shift` locks one axis |
 
-Perspective and Deform produce a four-point quad, so a layer carrying one is transformed on its own. A multi-layer union applies one affine delta and cannot carry a quad. `.` resets the box. `Ctrl/⌘ + Shift + T` repeats the last transform.
+Perspective and Deform work on one layer at a time. When several layers are selected, you can only move, scale, rotate, and shear them together. `.` returns the box to the layer's original shape. `Ctrl/⌘ + Shift + T` repeats the last transform.
 
 ## Layers
 
 - **Blend modes**: Normal, Multiply, Screen, Overlay, Darken, Lighten, Color Dodge, Color Burn, Hard Light, Soft Light, Difference, Exclusion, Add. `↑` and `↓` in the Layers panel step through them.
-- **Mask layer**: the document's mask. It is exported as the separate `mask` output for inpainting and compositing nodes.
+- **Mask layer**: the layer that marks the area to change. Workflows get it as a separate `mask` output, which inpainting and compositing nodes take as input.
 - **Symmetry**: horizontal, vertical, dual, radial, or mandala. Radial and mandala take 2 to 12 rays (6 by default).
 - **Pen pressure**: pressure can drive size, opacity, or both. The pen-pressure settings tune the light-press scale and curve.
 - **History**: the last 30 steps. Older steps merge into the baseline.
@@ -80,30 +80,20 @@ Perspective and Deform produce a four-point quad, so a layer carrying one is tra
 
 Select a layer and open **Properties** to bind it to a generator.
 
-- **Prompt**: pick a provider and model, write a prompt, and generate text-to-image or image-to-image. Image-to-image takes a source layer, edit strength, and inference steps. Properties shows an estimated cost before you generate. Typing `@` in the prompt picks an entity from the library. The prompt holds an `entity://` reference, and the server replaces it with the entity's name, descriptor, and reference image at generation time.
-- **Workflow**: click **Generate Layer** in the Properties toolbar and pick a workflow with an image output node (`ImageOutput`, `MaskOutput`, or `Output`). If it has several, choose which node feeds the layer.
+- **Prompt**: pick a provider and model, write a prompt, and generate text-to-image or image-to-image. Image-to-image takes a source layer, edit strength, and inference steps. Properties shows an estimated cost before you generate. Typing `@` in the prompt picks an entity from the library. At generation time NodeTool adds the entity's name, description, and reference image to the prompt.
+- **Workflow**: click **Generate Layer** in the Properties toolbar and pick a workflow that returns an image. The workflow needs an `ImageOutput`, `MaskOutput`, or `Output` node, which marks what the workflow hands back. If it has several, choose which one feeds the layer.
 
-Each generation is a **version** on the layer. If a prompt, parameter, or upstream layer changes, the layer is flagged **stale**. **Re-generate Stale** runs all stale layers in dependency order and skips locked layers. Generation runs as a job over the WebSocket connection with progress on the layer.
+Each generation is a **version** on the layer. A layer is marked out of date when you edit its prompt, its settings, or a layer it is generated from. **Re-generate Stale** regenerates every out-of-date layer, starting with the layers that others depend on, and skips locked layers. Progress shows on the layer while it generates.
 
-## Agent editing
+## Ask the assistant
 
-The agent edits a saved sketch's layer structure with `edit_sketch`, which takes `ops` that run in order against the stored document. An open editor picks the change up live. It never reads or writes pixels: painting and generation happen in an open editor or a workflow run.
+- "Add a layer called Ink to this sketch."
+- "List my sketches and show me the layers in the latest one."
+- "Check that this sketch has no problems, then render it."
 
-From `packages/agents/tests/capabilities-sketches.test.ts`, on a sketch created with `create_sketch`:
+The assistant changes a sketch's layer structure and can render it. It does not paint pixels: painting and generation happen in the editor or through a workflow. An open editor shows the change as it happens.
 
-```json
-{
-  "tool": "edit_sketch",
-  "arguments": {
-    "image_document_id": "<sketch id>",
-    "ops": [{ "op": "add_layer", "name": "Ink" }]
-  }
-}
-```
-
-The result reports `applied: 1` and the layer list changes from `["Layer 1"]` to `["Layer 1", "Ink"]`. The id may be the full 32-character id or its first 12 characters. Run `validate_sketch` afterwards. Other sketch tools are `list_sketches`, `get_sketch`, `render_sketch`, and the `*_sketch_version` tools.
-
-An open editor receives the `ui_sketch_*` tools. `nodetool sketch debug` replays them headlessly (see [CLI: nodetool sketch](cli.md#nodetool-sketch)).
+Builders driving this from code or MCP: see [Creative Agent Tools](developer/creative-agent-tools.md#sketch-3d).
 
 ## Recipes
 

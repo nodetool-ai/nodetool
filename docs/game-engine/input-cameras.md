@@ -2,18 +2,22 @@
 layout: page
 title: "Input and Cameras"
 permalink: /game-engine/input-cameras
-description: "Map physical controls to actions and configure 2D and 3D cameras."
+description: "Map keyboard, mouse, gamepad, and touch controls to game actions and set up 2D and 3D cameras."
 ---
 
-Declare actions and, in 3D, axes. Keyboard, mouse, gamepad, and touch bindings turn into the input frames that simulation and replay use.
+Players control a game through named actions such as `jump` or `interact`. You declare the actions, then bind keys, mouse, gamepad, and touch controls to them.
 
 ![Signal Forge HUD showing WASD movement, Space jump, E interaction, R recovery, and drag look](/assets/game-engine/signal-forge.png)
 
-*Signal Forge's displayed controls include its authored E action. Document bindings and on-screen instructions should agree. [Capture source](/game-engine/screenshots).*
+*Signal Forge shows its controls on screen: WASD, Space, E, R, and drag to look.*
 
-## Bind an action
+## Set up controls in the editor
 
-Declare an action in `inputActions`, then add bindings under `inputBindings.actions`. This document fragment binds `interact` to physical E and a touch button:
+1. Open the **Inspector** and switch to its **Game** tab.
+2. In **Input actions**, add the name of each action your game uses.
+3. Bind those actions to controls. The Inspector lists action names only. Bindings live in the game document's `inputBindings`, which you can edit in the document or ask the **Assistant** panel to change.
+
+This fragment binds `interact` to the E key and an on-screen touch button labeled "Use":
 
 ```json
 {
@@ -27,26 +31,23 @@ Declare an action in `inputActions`, then add bindings under `inputBindings.acti
 }
 ```
 
-Keep the rest of the game's declared actions when applying this fragment. `key` matches physical key position. `keyValue` follows the keyboard's character value. Actions also accept mouse buttons, gamepad buttons, thresholded gamepad axes, and touch-stick directions.
+`key` matches the physical key position, so WASD works on any keyboard layout. `keyValue` matches the typed character. Mouse, gamepad button, gamepad stick, and touch stick bindings use `mouseButton`, `gamepadButton`, `gamepadAxis`, and `touchStick`.
 
-A listed action uses exactly its listed bindings. An empty array unbinds it. An omitted action retains its name-based defaults. In 2D, arrows and WASD map directions and Space maps `space`. In 3D, defaults include Space for `jump`, R for `respawn`, and mouse button 0 or F for `fire`.
+A listed action uses exactly the bindings you list. An empty list removes all controls from it. An action you do not list keeps its default bindings. In 2D, arrows and WASD move and Space maps to `space`. In 3D, Space is `jump`, R is `respawn`, and the left mouse button or F is `fire`.
 
-## Add axes and look
+## Movement axes and mouse look (3D)
 
-3D axes use key pairs, gamepad axes or buttons, and touch-stick axes. When several bindings contribute, the largest magnitude wins. Default `moveX` and `moveZ` use WASD, arrows, and gamepad/touch movement.
+3D games also have axes, which give a value from -1 to 1 for movement. An axis can use a pair of keys, a gamepad stick, or a touch stick. When several controls push the same axis, the strongest wins. The default `moveX` and `moveZ` axes use WASD, arrows, and gamepad or touch movement.
 
-Look accepts mouse motion, a gamepad stick, or touch drag, with sensitivity and inversion controls. A 3D player requests pointer lock on click only when mouse look is bound. Mouse-button actions work on that first click, including when pointer lock is unavailable or denied. An explicit `look: []` disables mouse capture.
+Look turns the camera. It accepts mouse motion, a gamepad stick, or touch drag, each with sensitivity and an invert option. When mouse look is bound, the first click captures the mouse for mouse-look. Setting `look: []` turns that off.
 
-Editor play and public and exported players support authored mouse-button actions. HUD buttons take priority over gameplay buttons, including touch zones. HUD hit tests use the rendered canvas content and reject letterbox bars.
+On touch screens the player shows the sticks and buttons your bindings declare. One finger can drag to look while another moves the stick. HUD buttons take priority over gameplay controls under the same pointer, and the black bars around the picture do not count as HUD.
 
-On touch screens, both 2D and 3D players show the stick and action buttons declared by their bindings. A 3D touch drag can control look while another finger moves the stick or holds an action. Pausing, leaving the active view, or cancelling a pointer releases those controls. Input pressed while paused is discarded. Player rebinding is not persisted automatically.
+## Set up the camera
 
-## Frame the scene
+- **2D camera:** width, height, and zoom set how much of the world is visible.
+- **3D camera:** choose either a perspective camera, which uses a field of view in degrees, or an orthographic camera, which uses a size in world units and has no perspective. Set near and far planes close around your scene, because a very wide gap can make distant surfaces flicker.
+- **Fixed camera:** stays where you place it. Characters move relative to its facing.
+- **Follow camera:** names a target and takes offsets, yaw, pitch limits, sensitivity, and a collision radius so the camera does not pass through walls.
 
-A 2D camera defines width, height, and zoom. Its world dimensions combine with pixels-per-unit to determine HUD coordinates.
-
-A 3D camera uses perspective field of view or orthographic size, plus near and far planes. A fixed camera follows its authored world transform. Its current orientation also supplies script camera angles and camera-relative character movement, including after scripted rotation of the camera or its parent. A follow camera names a target and provides position and look-at offsets, yaw, pitch limits, sensitivity, and collision radius. Keep near/far values appropriate to the scene to avoid clipping and depth precision problems.
-
-In 2D edit mode, tiles and entity lights are selected against the editor camera, zoom and viewport aspect ratio. Panning or framing a remote object displays its tiles and lights without changing the scene camera.
-
-The editor orbit camera is an inspection tool. The scene's active camera controls play and capture. Verify framing with the active camera and exported aspect ratio, not only the editor viewport.
+The editor's orbit camera is only for looking around while you edit. Play and capture use the scene's active camera, so check framing there and at the aspect ratio you will publish.

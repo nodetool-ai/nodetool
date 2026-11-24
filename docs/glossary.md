@@ -116,6 +116,9 @@ The **Design** view of an app tab, where you place widgets on a canvas and wire 
 ### Clip
 One item on a timeline track: imported media, a generated result bound to a workflow, or an authored text, shape, or 3D model item. See [Video Editor](video-editor.md).
 
+### Document
+A Markdown file in a project folder that opens formatted, saves as you type, embeds shots, timelines and media, and keeps snapshots. Workflows read and write the same file. See [Document Editor](document-editor.md).
+
 ### Game
 A 2D or 3D game document with scenes, entities, behaviors, and assets, which the built-in engine plays in the editor and exports as a standalone web player. See [Game Editor](game-editor.md).
 

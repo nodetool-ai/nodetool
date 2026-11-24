@@ -1403,7 +1403,7 @@ QSGNode* WaveformItem::softwareBars(QSGNode* old) {
     const double to = std::clamp(m_drawn.to, from, w);
     const QSize size(int(std::ceil(to - from)), int(std::ceil(height())));
     if (size.isEmpty() || m_bars.empty()) {
-        delete old;
+        delete old;  // NOLINT(cppcoreguidelines-owning-memory): updatePaintNode hands the item its old scene graph node
         return nullptr;
     }
     const qreal dpr = window()->effectiveDevicePixelRatio();

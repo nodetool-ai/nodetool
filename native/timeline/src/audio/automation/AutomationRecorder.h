@@ -16,6 +16,7 @@ class AutomationRecorder : public QObject {
     Q_PROPERTY(PlaybackClock* clock READ clock WRITE setClock NOTIFY changed)
 public:
     explicit AutomationRecorder(QObject* parent = nullptr) : QObject(parent) {}
+    Q_DISABLE_COPY_MOVE(AutomationRecorder)
     ~AutomationRecorder() override;
     TimelineModel* timeline() const { return timeline_; }
     PlaybackClock* clock() const { return clock_; }

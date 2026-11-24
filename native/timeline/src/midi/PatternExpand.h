@@ -69,7 +69,7 @@ struct RowScheduleEntry {
 [[nodiscard]] std::vector<RowScheduleEntry> rowSchedule(const QJsonObject& row, std::uint32_t seed,
                                                         std::uint32_t cycle = 0);
 [[nodiscard]] std::int64_t patternMusicalLengthTicks(const QJsonObject& pattern,
-                                                     std::int64_t barTicks = 4 * kMidiPpq);
+                                                     std::int64_t barTicks = std::int64_t{4} * kMidiPpq);
 
 // Swing and note repeats (SQ14, SQ15, SQ60).
 [[nodiscard]] std::int64_t swingDelay(std::int64_t tick, std::string_view division, double swing) noexcept;

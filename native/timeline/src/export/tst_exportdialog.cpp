@@ -1,3 +1,4 @@
+#include "../../tests/RequireValue.h"
 #include "../../tests/TestAssetCacheRoot.h"
 #include "export/ExportController.h"
 #include "export/ExportEngine.h"
@@ -467,10 +468,10 @@ private slots:
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
         constexpr int frames = 24000;  // half a second
-        std::vector<float> signal(frames * 2);
+        std::vector<float> signal(std::size_t{frames} * 2);
         for (int i = 0; i < frames; ++i) {
             const double t = i / 48000.0;
-            signal[2 * i] = float(0.7 * std::sin(2 * M_PI * 440 * t));
+            signal[std::size_t{2} * i] = float(0.7 * std::sin(2 * M_PI * 440 * t));
             signal[2 * i + 1] = float(0.3 * std::sin(2 * M_PI * 1234.5 * t) + 1e-5 * std::sin(2 * M_PI * 3 * t));
         }
         signal[0] = 1.0f;       // full scale
@@ -483,7 +484,7 @@ private slots:
                 {"startMs", 0}, {"durationMs", 500}, {"status", "generated"}, {"mediaPath", source}}}}};
         auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
         QVERIFY(parsed.timeline);
-        const auto reference = nt::audio::renderOffline(*parsed.timeline, 48000, 0, 500);
+        const auto reference = nt::audio::renderOffline(requireValue(parsed.timeline), 48000, 0, 500);
         QCOMPARE(reference.size(), size_t(frames * 2));
         QVERIFY(std::any_of(reference.begin(), reference.end(), [](float v) { return std::fabs(v) > 0.1f; }));
 
@@ -491,7 +492,7 @@ private slots:
         options.format = "wav";
         options.audioBitDepth = 24;
         options.output = dir.filePath("mix24.wav");
-        const auto result = nt::exporting::exportTimeline(*parsed.timeline, options, m_testCache.root());
+        const auto result = nt::exporting::exportTimeline(requireValue(parsed.timeline), options, m_testCache.root());
         QVERIFY2(result.ok(), qPrintable(result.error));
         QCOMPARE(result.audioEncoder, QString("pcm_s24le"));
 
@@ -541,7 +542,7 @@ private slots:
         // The same mix at 16 bit keeps its header and its coarser step.
         options.audioBitDepth = 16;
         options.output = dir.filePath("mix16.wav");
-        QVERIFY(nt::exporting::exportTimeline(*parsed.timeline, options, m_testCache.root()).ok());
+        QVERIFY(nt::exporting::exportTimeline(requireValue(parsed.timeline), options, m_testCache.root()).ok());
         QFile file16(options.output);
         QVERIFY(file16.open(QIODevice::ReadOnly));
         const QByteArray bytes16 = file16.readAll();

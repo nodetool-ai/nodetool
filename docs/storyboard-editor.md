@@ -10,30 +10,6 @@ A storyboard is a board of shots. Each shot has a prompt, a camera setup, and th
 > **Runs:** locally or cloud, depending on the models you pick. **Needs:** a language model for **Direct**, an image model for stills, and a video model for clips. Hosted models need their provider key (see [Providers](providers.md)). **Costs:** stills, clips, still edits that call a model, and **Iterate** are billed by paid providers at provider rates. **Adjust**, reordering, and slideshow call no provider.
 {: .callout-note}
 
-## Trace: agent builds a board
-
-Without an open editor, the agent uses the backend tools in `packages/agents/src/capabilities/storyboards.specs.ts`. With the editor open, it uses the `ui_storyboard_*` tools (see [Creative Agent](creative-agent.md#trace-brief-to-timeline)).
-
-User prompt: "Break this brief into six shots and render stills."
-
-```json
-{ "tool": "create_storyboard", "args": { "name": "Trail shoe ad", "aspect_ratio": "16:9" } }
-{ "tool": "edit_storyboard", "args": { "storyboard_id": "<id>", "ops": [ { "op": "set_setup", "brief": "30-second trail-running shoe ad" } ] } }
-{ "tool": "direct_storyboard", "args": { "storyboard_id": "<id>", "shot_count": 6 } }
-{ "tool": "render_storyboard_stills", "args": { "storyboard_id": "<id>" } }
-```
-
-| Call | Change to the board document |
-|---|---|
-| `create_storyboard` | A new board row. `name` is required. Passing an existing `id` you own returns that row instead of a duplicate. |
-| `edit_storyboard` `set_setup` | The brief is stored. `direct_storyboard` needs it. |
-| `direct_storyboard` | Scenes with sluglines and shots with action, camera, and motion are written. A board that already has shots is refused unless `redirect: true`. Renders nothing. |
-| `render_storyboard_stills` | With no `targets`, one still renders for every shot that has none and is not set to render directly. Each still is saved as an asset and becomes the shot's selected keyframe. Earlier stills stay as versions. |
-
-`render_storyboard_clips` then animates each selected still (`mode` overrides the shot's `render_mode` for one call). A keyframe-mode shot with no still is reported, not rendered. `assemble_storyboard_timeline` takes `storyboard_id`, optional `name` and `fps` (default 30). `revise_storyboard_clip` takes `target` and `instruction`, and swaps the result in as the selected take while keeping the previous one as a version. `edit_storyboard` takes `expected_revision` and rejects the edit if the board changed since it was read.
-
----
-
 ## Overview
 
 ![Storyboard editor](assets/screenshots/storyboard-board.png)
@@ -84,7 +60,7 @@ To skip directing, use **Add shot** in the shot row, or the **+** between two ca
 
 ## The board
 
-Shots sit under scene headers labeled **Scene 1**, **Scene 2**, and so on, with the scene's slugline beside the label. Each card shows the shot's still or clip, its caption, and a status pill.
+Shots sit under scene headers labeled **Scene 1**, **Scene 2**, and so on, with the scene heading (for example "INT. GREENHOUSE DOME - DAWN") beside the label. Each card shows the shot's still or clip, its caption, and a status pill.
 
 | Status pill | Meaning |
 |---|---|
@@ -125,23 +101,23 @@ Select a card to open the shot inspector under the grid. It repeats **Edit**, **
 
 Type `@` in **Description**, **Motion**, or **End** to pick an entity from the library. Its name goes into the text and the entity joins **In this shot**, the same as picking it there. A picked entity also joins the board, and joins the shot at once, before you save the text.
 
-Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** shows the still prompt and clip prompt the render will send, so you can check them before you spend anything. When the shot has camera presets, the clip prompt shows the camera wording compiled for the board's video model, and a note lists any preset that has no wording tuned for that model. The **More shot actions** menu holds **Render clip** (or **Re-render clip**), **Move earlier in scene**, and **Move later in scene**. A clip in keyframe mode needs a still first.
+Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** shows the still prompt and clip prompt the render will send, so you can check them before you spend anything. When the shot has camera presets, the clip prompt shows the camera wording for the board's video model, and a note lists any preset that has no wording for that model. The **More shot actions** menu holds **Render clip** (or **Re-render clip**), **Move earlier in scene**, and **Move later in scene**. A clip in keyframe mode needs a still first.
 
 ### Look presets
 
-Open **Change Style** and choose a **Board look**. In the shot editor, **Choose look** overrides that selection for one shot. An empty selection inherits the board look. Looks apply to still and clip prompts when they support that generation mode. Video-only speed ramps skip stills. Camera and effective look selections share a three-preset limit. **Prompts** shows the compiled look for the selected models. Changes preserve existing takes and mark affected renders stale.
+Open **Change Style** and choose a **Board look**. In the shot editor, **Choose look** overrides that selection for one shot. An empty selection uses the board look. A look is added to the still prompt and the clip prompt when it supports that kind of render. Video-only speed ramps skip stills. The camera presets and the look on a shot share a limit of three presets. **Prompts** shows the wording each model will receive. Changing a look keeps existing takes and marks the affected renders out of date. See [Presets](presets.md).
 
 ### Camera movement presets
 
 The **Movement** field takes typed words or opens a picker of camera presets: named moves such as a dolly zoom or a whip pan, rigs such as handheld or steadicam, and speed ramps. Pick up to three. A preset in each slot (move, rig, speed) can combine. The picker disables a card that conflicts with one already chosen and says which one.
 
-- Picking presets saves their ids on the shot and writes their names into **Movement**, so the screenplay camera pass and the CSV export still read one text string.
+- Picking presets also writes their names into **Movement**, so the screenplay camera pass and the CSV export still read one text string.
 - Typing in the field replaces the movement with your words and detaches the presets. A render uses the presets in place of the text, so keeping both would ignore what you typed.
 - A rig preset also replaces **Equipment** in the clip prompt. A move or speed preset leaves it alone.
-- A board saved before presets opens with the card whose alias matches the saved movement already selected. Nothing is saved until you change the field.
+- Older boards automatically match existing movement text to presets until you edit the field.
 - A shot with only typed movement renders as it always did.
 
-At render time the presets compile for the board's video model, so the same move is worded differently for each model family. Details are in [Presets](presets.md).
+The same move is worded differently for each video model. See [Presets](presets.md).
 
 ---
 
@@ -161,7 +137,7 @@ If an entity is attached and the chosen still model cannot take reference images
 
 The Render button shows the next batch, stills until every shot has one and then clips. Its arrow offers both. The dialog and confirm button show a price, for example "Render stills · ~$0.40". Text under the picker explains any request that could not be priced, and **Select a priced model to see the estimate.** appears when no priced model is selected. After you choose stills, the dialog also shows what rendering the clips for the same shots would add. See [Costs and Credits](costs-and-credits.md).
 
-The bottom panel's **Generations** view lists every render with its status, next to generations from chat, other editors and workflow runs. Its tab shows how many are still running. Clicking a render opens its board on that shot, and **Stop generating** cancels it on the server. On a phone a queue overlay lists the renders instead. Its **Stop tracking** hides local progress only, and the provider may still finish the request and charge for it.
+The bottom panel's **Generations** view lists every render with its status, next to generations from chat, other editors and workflow runs. Its tab shows how many are still running. Clicking a render opens its board on that shot, and **Stop generating** cancels it on the server. On a phone a queue overlay lists the renders instead. Its **Stop tracking** only hides the progress in your browser. The provider may still finish the request and charge for it.
 
 ---
 
@@ -195,7 +171,7 @@ To change only part of the image, press **Paint area** on the **Edit** tab. The 
 
 ## Style
 
-Press the board actions button (**More board actions**) and choose **Change style…**. Pick an **Art style** and it applies to every shot. Rendered stills and clips are marked stale and nothing re-renders until you ask.
+Press the board actions button (**More board actions**) and choose **Change style…**. Pick an **Art style** and it applies to every shot. Rendered stills and clips are marked stale (out of date) and nothing re-renders until you ask.
 
 When versions are stale, a banner reads for example "Inputs changed (style). 3 stills and 1 clip are stale." with **Regenerate stale stills** and **Regenerate stale clips** buttons. A confirmation shows the estimated cost. Each shot renders a new take with the model it last used, and the current take stays selected until you choose the new one.
 
@@ -221,27 +197,24 @@ When a render fails, **Retry N failed** appears under the document bar. It retri
 **Text** in the document bar shows the whole board as Markdown in place of the grid. The text is the board: each change is read back into the same scenes and shots the grid shows, and autosave stores it.
 
 ```markdown
-# Mars Greenhouse {#5f2c…}
+# Mars Greenhouse
 A twenty second opening.
 
 - **Style:** Warm practicals against cold Martian blue
 - **Aspect ratio:** 2.39:1
 
-# Act I (Setup) {#9a41…}
+# Act I (Setup)
 Show how fragile the greenhouse is.
 
-## INT. GREENHOUSE DOME - DAWN {#c3d0…}
+## INT. GREENHOUSE DOME - DAWN
 - **Lighting:** Cold blue dawn through the panels
 
-### First light {#b7e2…}
-![Still](asset://c0a1….png)
-
-[Nova](entity://0f1e…) kneels by a single green shoot under the dome.
+### First light
+Nova kneels by a single green shoot under the dome.
 
 - **Framing:** wide
 - **Motion:** Slow push in
 - **Duration:** 5s
-- **Continuity:** until [Shot 2](#d4f9…) — One breath of the score {#c1}
 ```
 
 | You write | It becomes |
@@ -249,15 +222,17 @@ Show how fragile the greenhouse is.
 | The first `#` heading, and the text under it | The screenplay title and the board brief |
 | `- **Style:**`, `Logline`, `Aspect ratio`, `Genre`, `Cast`, `Music`, `Narration` under the title | The board's fields |
 | A later `#` heading, and the text under it | An act and its objective |
-| `## Slugline` and `- **Lighting:**` | A scene. Shots below it belong to it |
-| `### Slug` and the text under it | A shot and its action. Shot numbers are computed |
+| `##` heading and `- **Lighting:**` | A scene, named by its scene heading. Shots below it belong to it |
+| `###` heading and the text under it | A shot and its action. Shot numbers are computed |
 | `Framing`, `Lens`, `Angle`, `Camera movement`, `Rig`, `Motion`, `End`, `Sound`, `Dialogue`, `Narration`, `Duration`, `Render`, `Notes` | The shot's fields |
-| `[Nova](entity://<id>)` in a shot, or `- **Cast:**` and `- **Location:**` | The shot's entities |
-| `![Still](asset://<id>.png)` under a shot heading | The selected still. A video file selects the clip |
+| A mentioned entity in a shot, or `- **Cast:**` and `- **Location:**` | The shot's entities |
+| An image under a shot heading | The selected still. A video file selects the clip |
 | `- **Transition:**` | A transition to the next shot |
-| `- **Continuity:** until [Shot 7](#<id>)` | Intent that runs from this shot through shot 7 |
+| `- **Continuity:** until Shot 7` | Intent that runs from this shot through shot 7 |
 
-Type `@` to mention an entity or an image from the library. The `{#…}` marks and link targets show only on the line that holds the caret. A new heading gets its mark when you type it.
+The editor adds hidden identifiers to headings and links so each shot keeps its takes. The raw syntax is in [Creative Agent Tools](developer/creative-agent-tools.md#storyboard-editor).
+
+Type `@` to mention an entity or an image from the library. The identifiers show only on the line that holds the caret. A new heading gets one when you type it.
 
 A still line shows the image under it. Beside the text, **Outline** lists the acts, scenes and shots, marks the one the caret is in, and lists the lines that need attention. Click an entry to jump to its line. The outline needs a window at least as wide as a laptop screen.
 
@@ -267,18 +242,18 @@ Select text and a prompt opens under it. Type what to do with the passage, or us
 
 The agent receives the whole board as Markdown, the entity library with each descriptor, and the selection marked inside its lines. It answers with a proposed replacement or a note. **Replace selection** puts the replacement in the text as one undo step. Type again in the prompt to refine the answer.
 
-The board's director model answers. Before one is picked, the chat model answers. With neither, the prompt says to pick one. The call goes through `generate_text` and is billed by the provider at its rates.
+The board's director model answers. Before one is picked, the chat model answers. With neither, the prompt says to pick one. The call is billed by the provider at its rates.
 
 - A selection across several shots gets a note, never a replacement.
 - If the passage changes while the agent works, **Replace selection** refuses and asks you to select it again.
 - A failed call shows the provider's error with **Report**.
 
-The marks are what keep a shot's takes, render records, status and models with it. Deleting a still line clears the selection and keeps the takes. Moving a shot's lines moves the shot. Deleting a heading's mark gives the shot a new id, and its takes stay with the old one.
+The identifiers keep a shot's takes, render history, status and models with it. Deleting a still line clears the selection and keeps the takes. Moving a shot's lines moves the shot. If you delete a heading's identifier, the shot is treated as a new shot and its takes stay with the old one.
 
 Field labels are English in every language. A line that does not fit gets a red mark in the margin and a tooltip:
 
 - A label the grammar does not know is saved in the shot's notes. On the board, an act or a scene it is not saved.
-- Plain text under a scene heading is not saved. A scene holds a slugline and lighting only.
+- Plain text under a scene heading is not saved. A scene holds a scene heading and lighting only.
 - A duration that is not a number, or a transition on the last shot, is ignored.
 
 When the board changes elsewhere while the text is open, for example a render finishes or **Undo** in the document bar runs, the text is written again from the board, in the standard layout. Extra blank lines and alias labels such as `Movement:` for `Motion:` are not kept.
@@ -287,7 +262,7 @@ When the board changes elsewhere while the text is open, for example a render fi
 
 ## Link a script
 
-Dialogue and narration can live in a [script](script-editor.md). Press **Extract script** under the grid to project the board's lines into a new script. The button then reads **Open script**. A linked board keeps shot timing tied to the voiced takes, and warnings appear if a script line is claimed twice or no longer exists. The shot inspector links to the script lines for each shot.
+Dialogue and narration can live in a [script](script-editor.md). Press **Extract script** under the grid to copy the board's dialogue and narration into a new script. The button then reads **Open script**. A linked board keeps shot timing tied to the voiced takes, and warnings appear if a script line is claimed twice or no longer exists. The shot inspector links to the script lines for each shot.
 
 ---
 
@@ -303,7 +278,14 @@ Once a timeline exists, the button reads **Rebuild linked timeline…**. The con
 
 The **Assistant** button opens the Storyboard Assistant beside the board, and **Hide Assistant** or **Show Assistant** in the command palette toggles it. It sees the board and the selected shot. Example requests: "add a close-up after shot 3", "assemble the shots into a timeline". On phones, **Board** and **Assistant** are separate tabs.
 
-The backend storyboard tools are `list_storyboards`, `create_storyboard`, `get_storyboard`, `direct_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard`, `extract_script_from_storyboard`, and `delete_storyboard`. `delete_storyboard` removes the board with its saved version history and cannot be undone.
+## Ask the assistant
+
+- "Break this brief into six shots and render stills."
+- "Add a close-up after shot 3."
+- "Re-render shot 2's clip with a slower push in."
+- "Assemble the shots into a timeline."
+
+Builders driving this from code or MCP: see [Creative Agent Tools](developer/creative-agent-tools.md#storyboards).
 
 ---
 

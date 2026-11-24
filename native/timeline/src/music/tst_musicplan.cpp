@@ -1,6 +1,7 @@
 // The C++ music planner and frame math on the spec's own examples
 // (docs/MUSIC-MODE.md MD8, GN-4 to GN-6, MD6, MD9). The oracle
 // (music-oracle.test.ts) holds the same functions to the TypeScript.
+#include "../../tests/RequireValue.h"
 #include "music/MusicPlan.h"
 #include "music/MusicTime.h"
 
@@ -45,7 +46,7 @@ private slots:
         QCOMPARE(barStartFrame(2, MusicTempo{120, 0, 6, 8}), 72000);
         QCOMPARE(barStartFrame(0, MusicTempo{120, 250, 4, 4}), 12000 - 96000);
         // 9999 bars at 87 BPM: round(9999 * 4 * 60 * 48000 / 87) computed exactly.
-        QCOMPARE(barStartFrame(10000, MusicTempo{87, 0, 4, 4}), static_cast<std::int64_t>((9999LL * 240 * 48000 * 2 + 87) / (2 * 87)));
+        QCOMPARE(barStartFrame(10000, MusicTempo{87, 0, 4, 4}), static_cast<std::int64_t>((9999LL * 240 * 48000 * 2 + 87) / (2LL * 87)));
         QCOMPARE(beatLengthFrames(MusicTempo{120, 0, 6, 8}), 12000);
         QCOMPARE(msToFrame(frameToMs(123457)), 123457);
         QCOMPARE(jsRound(-2.5), -2.0);
@@ -109,8 +110,8 @@ private slots:
         QCOMPARE(plan.windowStartFrame, std::optional<std::int64_t>(bar(5)));
         QCOMPARE(plan.requestFrames, std::optional<std::int64_t>(3 * 192000 + 24000));
         QVERIFY(plan.segments && plan.segments->size() == 3);
-        QCOMPARE(plan.segments->at(2).startFrame, 384000);
-        QCOMPARE(plan.segments->at(2).endFrame, 576000);
+        QCOMPARE(requireValue(plan.segments).at(2).startFrame, 384000);
+        QCOMPARE(requireValue(plan.segments).at(2).endFrame, 576000);
         QCOMPARE(plan.beatPhaseFrames, std::optional<std::int64_t>(0));
     }
 
@@ -121,12 +122,12 @@ private slots:
         QCOMPARE(plan.windowStartFrame, std::optional<std::int64_t>(0));
         QCOMPARE(plan.requestFrames, std::optional<std::int64_t>(480000));
         QVERIFY(plan.region);
-        QCOMPARE(plan.region->startFrame, 192000);
-        QCOMPARE(plan.region->endFrame, 384000);
+        QCOMPARE(requireValue(plan.region).startFrame, 192000);
+        QCOMPARE(requireValue(plan.region).endFrame, 384000);
         QVERIFY(plan.splice);
-        QCOMPARE(plan.splice->parentAssetId, std::string("asset-b"));
-        QCOMPARE(plan.splice->startFrame, 72000 + 192000);
-        QCOMPARE(plan.splice->endFrame, 72000 + 384000);
+        QCOMPARE(requireValue(plan.splice).parentAssetId, std::string("asset-b"));
+        QCOMPARE(requireValue(plan.splice).startFrame, 72000 + 192000);
+        QCOMPARE(requireValue(plan.splice).endFrame, 72000 + 384000);
     }
 
     void refusalsNameTheReason() {
@@ -139,7 +140,7 @@ private slots:
         remapped.clips[0].timeRemap = true;
         QCOMPARE(planMusicOperation(remapped).reason,
                  std::string("Regenerate cannot replace bars in a clip with a time remap."));
-        const auto tooLong = planMusicOperation(input(0, 600 * 48000, {}));
+        const auto tooLong = planMusicOperation(input(0, std::int64_t{600} * 48000, {}));
         QCOMPARE(tooLong.refusal, std::string("window_too_long"));
         auto noRole = input(bar(1), bar(3), {clip("d", "drums", bar(1), bar(9))});
         noRole.tracks[0].musicRole.clear();

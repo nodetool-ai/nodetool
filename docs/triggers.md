@@ -4,34 +4,34 @@ title: "Triggers"
 description: "Run a workflow on a schedule, when a file changes, when a webhook arrives, or by hand."
 ---
 
-A trigger node starts one workflow run per event, with no editor open. Add the node, save the workflow, then click the bolt button in the floating toolbar and turn on **Workflow active**.
+Each trigger starts a workflow automatically in the background when its event happens. The editor does not need to be open. Add the node, save the workflow, then click the bolt button in the floating toolbar and turn on **Workflow active**.
 
 | Node | Fires when |
 |---|---|
 | Interval Trigger | A fixed number of seconds passes |
 | File Watch Trigger | A file or folder changes on the server |
 | Webhook Trigger | An HTTP request reaches `/api/webhooks/{token}` |
-| Manual Trigger | You click **Fire now** or call `triggers.fire` |
+| Manual Trigger | You click **Fire now**, or something calls the [API](api-reference.md) |
 
 ---
 
 ## What a trigger is
 
-Each trigger node becomes a trigger registration when you save. The registration records whether the trigger is armed, when it last fired, the last error, and how many runs it has started. Saving never arms a trigger. A new registration starts off, and an existing one keeps the state you last set.
+Saving the workflow records each trigger node. NodeTool tracks whether the trigger is on, when it last fired, the last error, and how many runs it has started. Saving never turns a trigger on. A new trigger starts off, and an existing one keeps the state you last set.
 
-When an event arrives, the server starts a separate run and hands the event to the trigger node, which passes it to the nodes on its outputs. Triggered runs run headlessly in the server and appear in your run history like any other job.
+When an event arrives, the server starts a separate run and gives the event to the trigger node, which passes it to the nodes on its outputs. Triggered runs happen in the background and appear in your run history like any other job.
 
 A triggered run also receives three parameters. An Input node with a matching name picks them up, and a workflow without such nodes ignores them.
 
 | Parameter | Value |
 |-----------|-------|
 | `last_fired_at` | When this trigger last fired, or null |
-| `now` | The time the run started, as an ISO 8601 string |
+| `now` | The time the run started, as a timestamp |
 | `is_first_run` | True until one run has completed successfully |
 
 ## Trigger nodes
 
-The nodes live in the `nodetool.triggers` namespace. Interval, file watch, webhook, and manual triggers create registrations. The Wait node is not a trigger and is listed here because it sits in the same group.
+Interval, file watch, webhook, and manual triggers start runs. The Wait node is not a trigger. It is listed here because it sits in the same node group.
 
 ### Interval Trigger
 
@@ -41,7 +41,7 @@ The nodes live in the `nodetool.triggers` namespace. Interval, file watch, webho
 | Initial Delay Seconds | 0 | Delay before the first run |
 | Emit On Start | On | When on, the first run is due as soon as the trigger is armed after the initial delay. When off, the first run waits one full interval |
 | Max Events | 0 | Applies only when the node runs inside the editor. The scheduler ignores it |
-| Include Drift Compensation | On | Applies only when the node runs inside the editor. The scheduler ignores it |
+| Include Drift Compensation | On | Keeps the spacing even when a run takes time. Applies only when the node runs inside the editor. Armed triggers ignore it |
 
 Outputs: `tick`, `elapsed_seconds`, `interval_seconds`, `timestamp`, `source`, `event_type`.
 
@@ -53,15 +53,15 @@ Fires when a file or folder changes.
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
-| Path | `.` | File or folder to watch. A relative path resolves against the server's working directory, so use an absolute path |
+| Path | `.` | File or folder to watch. A relative path is read from the folder the server was started in, so use a full path |
 | Recursive | Off | Also watch subfolders |
 | Patterns | `*` | File names to include, such as `*.csv`. Matching uses the file name only. `*` matches any run of characters and `?` matches one character |
 | Ignore Patterns | none | File names to skip. These are checked before Patterns |
 | Events | created, modified, deleted, moved | Which event types start a run |
-| Debounce Seconds | 0.5 | Ignores a repeat event for the same path within this window |
+| Debounce Seconds | 0.5 | Waits briefly to avoid running twice on rapid file saves. A repeat event for the same file inside this window is ignored |
 | Max Events | 0 | Applies only when the node runs inside the editor |
 
-Outputs: `event`, `path`, `dest_path`, `is_directory`, `timestamp`.
+Outputs: `event`, `path`, `dest_path` (the new location of a moved file), `is_directory`, `timestamp`.
 
 The server watches the path on its own machine, so the folder must exist there. If the path does not exist, the trigger stays quiet and the popover shows `Watch path does not exist`. The server's file watcher reports `created`, `modified`, and `deleted`. It does not report `moved` events, and `dest_path` is empty. The server does not see changes made while it is not running.
 
@@ -73,7 +73,7 @@ Outputs: `body`, `headers`, `query`, `method`, `path`, `timestamp`, `source`, `e
 
 ### Manual Trigger
 
-Fires only when you click **Fire now** in the trigger popover, or when something calls the `triggers.fire` procedure.
+Fires only when you click **Fire now** in the trigger popover, or when something calls the [API](api-reference.md) to fire it.
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
@@ -98,13 +98,13 @@ Outputs: `data`, `resumed_at`, `waited_seconds`.
 
 1. Open the workflow and add a trigger node from the node menu.
 2. Set its properties and connect its outputs to the rest of the graph.
-3. Save the workflow. A trigger registration exists only after a save, and a changed setting takes effect only after the next save.
+3. Save the workflow. The server only knows about a trigger after a save, and a changed setting takes effect only after the next save.
 4. Click the bolt button in the floating toolbar. It appears only when the graph contains at least one trigger node.
 5. Turn on **Workflow active** to arm every trigger, or turn on **Enabled** for one trigger.
 
 Until you save, the switch is off and the popover says to save the workflow first.
 
-Removing a trigger node and saving deletes its registration, including a webhook's token and secret. Adding the node again creates new ones.
+Removing a trigger node and saving deletes the trigger, including a webhook's token and secret. Adding the node again creates new ones.
 
 The toolbar button reads **Triggers: active**, **partly active**, or **inactive** to screen readers, with the extra note `last run failed` or `disabled automatically` when that applies. In the popover, the header badge shows the same state:
 
@@ -113,7 +113,7 @@ The toolbar button reads **Triggers: active**, **partly active**, or **inactive*
 | Active | Every trigger in the workflow is armed |
 | Partly active | Some are armed. Turning on **Workflow active** arms the rest |
 | Inactive | None are armed |
-| Not registered | The workflow has no saved registrations yet |
+| Not registered | The workflow has no saved triggers yet |
 | Unavailable | The status could not be loaded. Check the connection to the server |
 
 ## The bolt badge
@@ -133,8 +133,8 @@ A workflow with no armed or stopped triggers shows no bolt.
 The server disarms a trigger by itself in three cases.
 
 - **Failures.** After 5 failed runs in a row, the trigger turns off. A successful run resets the count.
-- **Expiry.** A registration with an expiry time turns off once that time passes.
-- **Run limit.** A registration with a maximum number of runs turns off after it reaches that number of successful runs.
+- **Expiry.** A trigger with an expiry time turns off once that time passes.
+- **Run limit.** A trigger with a maximum number of runs turns off after it reaches that number of successful runs.
 
 Neither the expiry nor the run limit can be set from the editor.
 
@@ -201,7 +201,7 @@ Triggers run inside the NodeTool server process. Nothing fires while the server 
 
 On restart, a webhook or file event that the server stored but had not yet run starts its run. A missed interval tick does not repeat. The trigger fires once when the server comes back, then continues from there.
 
-To turn trigger handling off for a process, set `NODETOOL_DISABLE_TRIGGERS=1`. The process then starts no dispatcher, scheduler, or file watcher, and it does not serve the webhook route, so webhook requests return `404`. Use it when a second server shares the same database and should not run triggers too. See [Configuration](configuration.md).
+A server administrator can turn triggers off for one server with `NODETOOL_DISABLE_TRIGGERS=1`. That server runs no triggers and webhook requests to it return `404`. Use it when a second server shares the same database and should not run triggers too. See [Configuration](configuration.md).
 
 You can test a triggered workflow from the command line without arming anything. `nodetool workflows run` accepts `--trigger-event` to deliver one event to a trigger node. See [CLI](cli.md).
 
@@ -216,7 +216,7 @@ The mobile app has no Triggers screen. Manage triggers on desktop or web.
 - Check that the server is running and that `NODETOOL_DISABLE_TRIGGERS` is not set on it.
 - Save the workflow after changing a property. The server uses the last saved settings.
 
-**An interval trigger fires right after I arm it.** A schedule is measured from when the registration was created or last fired. If that moment is more than one interval ago, the next run is already due and starts at the scheduler's next check. Turn off **Emit On Start** and set **Initial Delay Seconds** to shape the first run.
+**An interval trigger fires right after I arm it.** A schedule is measured from when the trigger was created or last fired. If that moment is more than one interval ago, the next run is already due and starts at the scheduler's next check. Turn off **Emit On Start** and set **Initial Delay Seconds** to shape the first run.
 
 **A file trigger stays silent.** Read the last error. `Watch path does not exist` means the path is missing on the server's machine. Also check that the file name matches **Patterns** and not **Ignore Patterns**, that **Recursive** is on for files in subfolders, and that the event type is in **Events**. Rapid repeat changes to one file count once within the debounce window.
 

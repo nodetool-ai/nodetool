@@ -15,6 +15,7 @@
 //
 // The setup status mirrors packages/websocket/src/acestep-setup.ts status()
 // and aceStepSetupResultSchema in packages/protocol/src/ws-commands.ts.
+#include "../../tests/RequireValue.h"
 #include "wiring/WiringFixture.h"
 #include "music/MusicEdits.h"
 #include "music/MusicJobs.h"
@@ -127,7 +128,7 @@ class TestMusicWire : public WiringFixture {
     void openDocument(const QJsonObject& document) {
         auto parsed = nt::parseTimeline(document);
         QVERIFY(parsed.timeline);
-        model.setTimeline(std::move(*parsed.timeline));
+        model.setTimeline(requireValue(std::move(parsed.timeline)));
         clock.pause();
         clock.seek(0);
         view = std::make_unique<QQuickView>();
@@ -387,7 +388,7 @@ private slots:
         auto parsed = nt::parseTimeline(plain);
         QVERIFY(parsed.timeline);
         TimelineModel other;
-        other.setTimeline(std::move(*parsed.timeline));
+        other.setTimeline(requireValue(std::move(parsed.timeline)));
         QVERIFY(!other.applyEdit("music.recordPrompt", {{"prompt", "x"}}));
     }
 
@@ -405,8 +406,8 @@ private slots:
         QVERIFY(item("musicTakeHeader-keys")->isVisible());
         // Same seed through the take's menu.
         press(named(inPanel("musicTake_1"), "musicTakeRegenerate"));
-        QQuickItem* same = nullptr;
-        QTRY_VERIFY((same = item("musicTakeSameSeed")) && same->isVisible());
+        QTRY_VERIFY(item("musicTakeSameSeed") && item("musicTakeSameSeed")->isVisible());
+        QQuickItem* same = item("musicTakeSameSeed");
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(same));
         QTRY_COMPARE(server.all("generate_media").size(), 1);
         auto sent = server.last("generate_media");

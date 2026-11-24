@@ -4,6 +4,7 @@
 // against MusicPlan, the Selection tool's rubber band, the program monitor
 // of a sequence with a video track, the loop control, the role chip and
 // picker, and New music project from the timeline list.
+#include "../../tests/RequireValue.h"
 #include <QDir>
 #include "wiring/WiringFixture.h"
 #include "TestHttpServer.h"
@@ -89,7 +90,7 @@ class TestMusicUi : public WiringFixture {
         QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));
         auto parsed = nt::parseTimeline(document);
         QVERIFY(parsed.timeline);
-        model.setTimeline(std::move(*parsed.timeline));
+        model.setTimeline(requireValue(std::move(parsed.timeline)));
         clock.pause();
         clock.setLoop(false);
         clock.clearRange();
@@ -197,8 +198,8 @@ private slots:
         QTemporaryDir directory;
         QVERIFY(directory.isValid());
         const auto path = directory.filePath("source.wav");
-        std::vector<float> source(2 * 2 * 48000);
-        for (size_t i = 0; i < source.size(); ++i) { source[i] = i < 2 * 48000 ? 0.2f : 0.4f; }
+        std::vector<float> source(std::size_t{2} * 2 * 48000);
+        for (size_t i = 0; i < source.size(); ++i) { source[i] = i < std::size_t{2} * 48000 ? 0.2f : 0.4f; }
         QVERIFY(nt::assets::writeStereoFloatWav(path, source));
         auto raw = musicDocument(false);
         auto loop = audioClip("loop", "a", 0, 6000);
@@ -209,12 +210,12 @@ private slots:
         raw.insert("clips", QJsonArray{loop});
         const auto parsed = nt::parseTimeline(raw);
         QVERIFY(parsed.timeline);
-        model.setTimeline(*parsed.timeline);
+        model.setTimeline(requireValue(parsed.timeline));
         std::vector<std::string> problems;
         const auto pcm = nt::audio::renderOffline(*model.snapshot(), 48000, 0, 6000, &problems);
         QVERIFY(problems.empty());
         QCOMPARE(pcm.size(), size_t(6 * 48000 * 2));
-        const auto at = [&](int second) { return pcm[static_cast<size_t>((second * 48000 + 12000) * 2)]; };
+        const auto at = [&](int second) { return pcm[(static_cast<size_t>(second) * 48000 + 12000) * 2]; };
         QVERIFY(std::abs(at(0)) > 0.01f);
         QVERIFY(std::abs(at(0) - at(2)) < 0.0001f);
         QVERIFY(std::abs(at(0) - at(4)) < 0.0001f);
@@ -460,7 +461,7 @@ private slots:
         raw.insert("tempo", tempo);
         const auto parsed = nt::parseTimeline(raw);
         QVERIFY(parsed.timeline);
-        model.setTimeline(*parsed.timeline);
+        model.setTimeline(requireValue(parsed.timeline));
         const QJsonObject asset{{"id", "fedcba01234500000000000000000000"}, {"name", "tone.wav"}, {"content_type", "audio/wav"}, {"duration", 1}};
         QJsonObject payload{{"asset", asset}, {"trackId", "a"}, {"atBar", 3}, {"beat", 2}};
         if (bpm == 0) {
@@ -563,7 +564,7 @@ private slots:
         raw.insert("clips", QJsonArray{loop});
         const auto parsed = nt::parseTimeline(raw);
         QVERIFY(parsed.timeline);
-        model.setTimeline(*parsed.timeline);
+        model.setTimeline(requireValue(parsed.timeline));
         const auto snapshot = model.snapshot();
         QCOMPARE(snapshot->clips.size(), size_t(1));
         const auto plan = nt::audio::buildMixPlan(*snapshot);
@@ -586,7 +587,7 @@ private slots:
         raw.insert("clips", QJsonArray{loop});
         const auto parsed = nt::parseTimeline(raw);
         QVERIFY(parsed.timeline);
-        const auto bounce = nt::music::bounceTimeline(*parsed.timeline, BounceKind::Dry, "a");
+        const auto bounce = nt::music::bounceTimeline(requireValue(parsed.timeline), BounceKind::Dry, "a");
         QCOMPARE(bounce.clips.size(), size_t(1));
         const auto plan = nt::audio::buildMixPlan(bounce);
         QCOMPARE(plan.voices.size(), size_t(3));
@@ -604,7 +605,7 @@ private slots:
         QFETCH(QString, operation);
         const auto parsed = nt::parseTimeline(musicDocument(false));
         QVERIFY(parsed.timeline);
-        model.setTimeline(*parsed.timeline);
+        model.setTimeline(requireValue(parsed.timeline));
         const auto before = model.timeline().raw;
         QJsonObject payload{{"fromBar", 2}, {"toBar", 3}};
         if (operation == "insert_time") { payload = {{"atBar", 2}, {"bars", 1}}; }
@@ -684,7 +685,7 @@ private slots:
         dockStore()->switchWorkspace(int(dockStore()->workspaces().indexOf("Music")));
         auto parsed = nt::parseTimeline(video);
         QVERIFY(parsed.timeline);
-        model.setTimeline(std::move(*parsed.timeline));
+        model.setTimeline(requireValue(std::move(parsed.timeline)));
         QTRY_COMPARE(dockStore()->workspace(), QStringLiteral("Editing"));
         QTRY_VERIFY(visiblePanels().contains("program"));
         QVERIFY(!visiblePanels().contains("music"));

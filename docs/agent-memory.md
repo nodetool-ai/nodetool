@@ -5,7 +5,7 @@ permalink: /agent-memory
 description: "Unified, structured memory shared by every agent, task, and step in NodeTool — accessed via tool calls with progressive disclosure."
 ---
 
-**Navigation**: [Chat & Agents](global-chat-agents.md) → **Agent Memory**
+**Navigation**: [Developer Guide](developer/index.md) | [Architecture](architecture.md) → **Agent Memory**
 
 > For notes an agent saves across conversations, see [Memory](memory.md). This page covers only the per-run store.
 

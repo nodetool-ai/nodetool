@@ -48,7 +48,7 @@ bool writePlanarFromInterleaved(const QString& path, std::span<const float> inte
     }
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) return false;
-    const qint64 bytes = static_cast<qint64>(planar.size() * sizeof(float));
+    const qint64 bytes = static_cast<qint64>(planar.size()) * qint64{sizeof(float)};
     return file.write(reinterpret_cast<const char*>(planar.data()), bytes) == bytes && file.flush();
 }
 

@@ -76,7 +76,7 @@ second job to the page that owns it.
 |---|---|
 | Quickstart | `installation`, `getting-started`, `first-workflow`, `game-engine/quick-start` |
 | Concept | `key-concepts`, `data-types`, `glossary`, `architecture`, `execution-strategies`, `execution-lifecycle`, `agent-memory`, `memory`, `projects`, `workspaces`, `models`, `models-and-providers`, `cookbook/core-concepts`, `game-engine/` overview and engine subsystem pages |
-| Guide | `tutorials`, `cookbook`, `cookbook/patterns`, `use-cases`, editor pages (`storyboard-editor`, `video-editor`, `sketch-editor`, `3d-editor`, `game-editor`, `audio-editor`, `script-editor`, and the rest of the Creative Editors and Workflow Editor sections), `guided-flows`, `mini-apps-guide`, `app-builder`, integration pages, deployment pages, `comfyui-setup`, `troubleshooting` |
+| Guide | `tutorials`, `cookbook`, `cookbook/patterns`, `use-cases`, editor pages (`storyboard-editor`, `video-editor`, `sketch-editor`, `3d-editor`, `game-editor`, `audio-editor`, `script-editor`, and the rest of the Creative Editors and Workflow Editor sections), `guided-flows`, `mini-apps-guide`, `app-builder`, integration pages, deployment pages, `advanced-install`, `comfyui-setup`, `troubleshooting` |
 | Reference | `providers`, `mini-apps-reference`, `configuration`, `keyboard-shortcuts`, `cli`, `api-reference`, `workflow-api`, `websocket-api`, `chat-api`, `harnesses`, `python-bridge-protocol`, `costs-and-credits`, `nodes/` |
 | Developer | `developer/` and its pages, `javascript-sandbox`, `js-scripts`, `mcp-server`, `mcp-production`, `node-packs`, `dev-environment`, `packages` |
 

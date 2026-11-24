@@ -1,5 +1,6 @@
 // The note lines of a midi clip: the geometry for a trimmed clip, a clip of
 // 2000 notes, and the drawing item that rebuilds only when its inputs change.
+#include "RequireValue.h"
 #include "app/EditRegistry.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -177,7 +178,7 @@ class TestMidiNoteLines : public QObject {
                                              {"outPointMs", 2000}}}}};
         const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
         QVERIFY(parsed.timeline);
-        model.setTimeline(*parsed.timeline);
+        model.setTimeline(requireValue(parsed.timeline));
 
         QQuickWindow window;
         window.resize(400, 120);
@@ -228,7 +229,7 @@ class TestMidiNoteLines : public QObject {
                                              {"notes", QJsonArray{note(0, 960, 60), note(960, 960, 72)}}}}}};
         const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
         QVERIFY(parsed.timeline);
-        model.setTimeline(*parsed.timeline);
+        model.setTimeline(requireValue(parsed.timeline));
         QQuickWindow window;
         window.setColor(Qt::white);
         window.resize(400, 40);

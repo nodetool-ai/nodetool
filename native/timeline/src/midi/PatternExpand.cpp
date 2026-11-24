@@ -629,7 +629,7 @@ QJsonObject fitExpressionToDuration(QJsonObject note) {
     const double dur = note.value(u"durationTick").toDouble();
     struct Spec {
         QLatin1StringView key;
-        double neutral;
+        double neutral = 0;
     };
     constexpr std::array<Spec, 4> kSpecs{{
         {QLatin1StringView("pitch"), 0.0},
@@ -905,7 +905,7 @@ std::vector<int> playOrder(int n, std::string_view mode, std::uint32_t seed, std
     }
     if (mode == "pingPong") {
         std::vector<int> out;
-        out.reserve(static_cast<std::size_t>(n * 2));
+        out.reserve(static_cast<std::size_t>(n) * 2);
         for (int i = 0; i < n; ++i) out.push_back(i);
         for (int i = n - 1; i >= 0; --i) out.push_back(i);
         return out;
@@ -1986,7 +1986,7 @@ QJsonObject expandPattern(const QJsonObject& pattern, const QJsonObject& ctx) {
                         const std::int64_t subStart = contentStart + positions[static_cast<std::size_t>(k)];
                         if (subStart >= seg.segEnd) break;
                         const std::int64_t nextPos =
-                            (k + 1 < repeat) ? positions[static_cast<std::size_t>(k + 1)] : chainLen;
+                            (k + 1 < repeat) ? positions[static_cast<std::size_t>(k) + 1] : chainLen;
                         const std::int64_t subSpan =
                             std::max<std::int64_t>(1, nextPos - positions[static_cast<std::size_t>(k)]);
                         std::int64_t subDur =
@@ -2349,7 +2349,7 @@ QJsonObject midiToPattern(const QJsonArray& notes, const QJsonArray& controllers
                     const bool isLast = (k == span - 1);
                     const double tailTicks = durTick - static_cast<double>((span - 1) * stepTicks);
                     const int gate = isLast ? clampInt((tailTicks / static_cast<double>(stepTicks)) * 100.0, 1, 100) : 100;
-                    stepsVec[static_cast<std::size_t>(entry.idx + k)] =
+                    stepsVec[static_cast<std::size_t>(entry.idx) + static_cast<std::size_t>(k)] =
                         compactStep(QJsonObject{{QStringLiteral("tie"), true}, {QStringLiteral("gate"), gate}});
                 }
             }
