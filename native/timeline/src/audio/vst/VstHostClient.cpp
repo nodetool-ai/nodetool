@@ -99,7 +99,6 @@ struct SyncWaiter {
     std::condition_variable cv;
     bool done = false;
     bool cancelled = false;
-    bool dispatched = false;
     bool ok = false;
     QJsonObject reply;
     QString error;
@@ -191,6 +190,12 @@ public:
         }
     }
 
+    void disposeTemporary(const QString& executable, const QString& instance) {
+        if (m_shuttingDown || !m_process || m_process->state() != QProcess::Running || m_startedPath != executable) { return; }
+        sendRequest(executable, {{"cmd", "dispose"}, {"instance", instance}}, 15000,
+                    [](bool, const QJsonObject&, const QString&) {});
+    }
+
     void terminateOnWorkerThread() {
         if (m_process && m_process->state() != QProcess::NotRunning) {
             m_process->kill();
@@ -275,15 +280,16 @@ private:
             const QString event = msg.value(u"event").toString();
             const QString instance = msg.value(u"instance").toString();
             const QString state = msg.value(u"state").toString();
+            const auto generation = static_cast<quint64>(msg.value("generation").toDouble());
             const QPointer<VstHostClient> owner = m_owner;
             if (!owner) return;
             if (event == u"state") {
-                QMetaObject::invokeMethod(owner, [owner, instance, state]() {
-                    if (owner) emit owner->pluginStateChanged(instance, state);
+                QMetaObject::invokeMethod(owner, [owner, instance, state, generation]() {
+                    if (owner) emit owner->pluginStateChanged(instance, state, generation);
                 }, Qt::QueuedConnection);
             } else if (event == u"editorClosed") {
-                QMetaObject::invokeMethod(owner, [owner, instance, state]() {
-                    if (owner) emit owner->pluginEditorClosed(instance, state);
+                QMetaObject::invokeMethod(owner, [owner, instance, state, generation]() {
+                    if (owner) emit owner->pluginEditorClosed(instance, state, generation);
                 }, Qt::QueuedConnection);
             }
             return;
@@ -423,14 +429,6 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
         if (!worker) { return; }
         QMetaObject::invokeMethod(worker, [worker, waiter] {
             if (!worker) { return; }
-            bool dispatched;
-            {
-                std::lock_guard<std::mutex> lock(waiter->mutex);
-                dispatched = waiter->dispatched;
-            }
-            // A dispatched mutation cannot be recalled through the JSON-line protocol.
-            // End its process before reporting cancellation or accepting another request.
-            if (dispatched) { worker->terminateOnWorkerThread(); }
             {
                 std::lock_guard<std::mutex> lock(waiter->mutex);
                 waiter->cancelled = true;
@@ -442,11 +440,14 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
         worker,
         [worker, exe, request, timeoutMs, waiter, stop]() {
             if (!worker || stop.stop_requested()) { return; }
-            {
-                std::lock_guard<std::mutex> lock(waiter->mutex);
-                waiter->dispatched = true;
-            }
-            worker->sendRequest(exe, request, timeoutMs, [waiter](bool ok, const QJsonObject& r, const QString& err) {
+            auto dispatched = request;
+            const auto cmd = request.value("cmd").toString();
+            const bool isolated = cmd == "listPresets" || cmd == "selectPreset" || cmd == "getParameters" || cmd == "setParameters";
+            const auto temporary = isolated ? "request:" + QUuid::createUuid().toString(QUuid::Id128) : QString();
+            // Assistant results become live only through the document commit. An
+            // abandoned request must never alter an editor or live audio instance.
+            if (isolated) { dispatched.insert("instance", temporary); }
+            worker->sendRequest(exe, dispatched, timeoutMs, [waiter, worker, exe, temporary](bool ok, const QJsonObject& r, const QString& err) {
                 {
                     std::lock_guard<std::mutex> lock(waiter->mutex);
                     waiter->done = true;
@@ -455,6 +456,9 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
                     waiter->error = err;
                 }
                 waiter->cv.notify_one();
+                if (worker && !temporary.isEmpty()) {
+                    worker->disposeTemporary(exe, temporary);
+                }
             });
         },
         Qt::QueuedConnection);
@@ -734,7 +738,7 @@ void VstHostClient::terminateHostForTest() {
 }
 
 void VstHostClient::openEditorAsync(const QString& instance, const QString& path, const QString& uid,
-                                    const QString& state, const QString& title) {
+                                    const QString& state, const QString& title, quint64 generation) {
     const QString exe = executablePath();
     if (exe.isEmpty()) {
         const QString reason = unavailableReason();
@@ -751,6 +755,7 @@ void VstHostClient::openEditorAsync(const QString& instance, const QString& path
         {QStringLiteral("uid"), uid},
         {QStringLiteral("state"), state},
         {QStringLiteral("title"), title},
+        {QStringLiteral("generation"), static_cast<double>(generation)},
     };
     const QPointer<VstHostClient> self(this);
     HostWorker* worker = m_worker.get();
@@ -768,25 +773,25 @@ void VstHostClient::openEditorAsync(const QString& instance, const QString& path
         Qt::QueuedConnection);
 }
 
-void VstHostClient::restoreStateAsync(const QString& instance, const QJsonObject& slot) {
+void VstHostClient::restoreStateAsync(const QString& instance, const QJsonObject& slot, quint64 generation) {
     const QString exe = executablePath();
     if (exe.isEmpty() || m_shutDown || !m_worker) {
         emit stateRestored(instance, slot.value("state").toString(),
-                           exe.isEmpty() ? unavailableReason() : QStringLiteral("VST host has shut down."));
+                           exe.isEmpty() ? unavailableReason() : QStringLiteral("VST host has shut down."), generation);
         return;
     }
     const auto plugin = slot.value("plugin").toObject();
-    const QJsonObject req{{"cmd", "setState"}, {"instance", instance},
+    const QJsonObject req{{"cmd", "setState"}, {"instance", instance}, {"generation", static_cast<double>(generation)},
                           {"path", plugin.value("path")}, {"uid", plugin.value("uid")},
                           {"state", slot.value("state")}};
     const QPointer<HostWorker> worker(m_worker.get());
     const QPointer<VstHostClient> self(this);
     QMetaObject::invokeMethod(worker, [worker, exe, req, instance, self] {
         if (!worker) { return; }
-        worker->sendRequest(exe, req, 30000, [self, instance, state = req.value("state").toString()](bool ok, const QJsonObject&, const QString& err) {
+        worker->sendRequest(exe, req, 30000, [self, instance, state = req.value("state").toString(), generation = static_cast<quint64>(req.value("generation").toDouble())](bool ok, const QJsonObject&, const QString& err) {
             if (self) {
-                QMetaObject::invokeMethod(self, [self, instance, state, error = ok ? QString() : err] {
-                    if (self) { emit self->stateRestored(instance, state, error); }
+                QMetaObject::invokeMethod(self, [self, instance, state, generation, error = ok ? QString() : err] {
+                    if (self) { emit self->stateRestored(instance, state, error, generation); }
                 }, Qt::QueuedConnection);
             }
         });

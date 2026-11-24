@@ -9,10 +9,10 @@
 namespace nt::audio::vst {
 
 VstHostModel::VstHostModel(QObject* parent) : QObject(parent), m_client(sharedVstHostClient()) {
-    connect(m_client.get(), &VstHostClient::stateRestored, this, [this](const QString& instance, const QString& state, const QString& error) {
+    connect(m_client.get(), &VstHostClient::stateRestored, this, [this](const QString& instance, const QString& state, const QString& error, quint64 generation) {
         auto pending = m_restorations.find(instance);
         if (pending == m_restorations.end()) { return; }
-        if (--pending.value() > 0) { return; }
+        if (pending.value() != generation) { return; }
         m_restorations.erase(pending);
         setLastError(error);
         if (error.isEmpty()) {
@@ -63,15 +63,17 @@ VstHostModel::VstHostModel(QObject* parent) : QObject(parent), m_client(sharedVs
         if (m_openEditors.removeAll(instance) > 0) emit openEditorsChanged();
     });
 
-    connect(m_client.get(), &VstHostClient::pluginStateChanged, this, [this](const QString& instance, const QString& state) {
+    connect(m_client.get(), &VstHostClient::pluginStateChanged, this, [this](const QString& instance, const QString& state, quint64 generation) {
+        if (generation != m_generations.value(instance)) { return; }
         sharedVstLivePool().noteStateFromEditor(instance, state);
         noteEditorState(instance, state);
         emit pluginStateChanged(instance, state);
     });
 
-    connect(m_client.get(), &VstHostClient::pluginEditorClosed, this, [this](const QString& instance, const QString& state) {
+    connect(m_client.get(), &VstHostClient::pluginEditorClosed, this, [this](const QString& instance, const QString& state, quint64 generation) {
         sharedVstLivePool().setEditorOpen(instance, false);
         if (m_openEditors.removeAll(instance) > 0) emit openEditorsChanged();
+        if (generation != m_generations.value(instance)) { return; }
         sharedVstLivePool().noteStateFromEditor(instance, state);
         noteEditorState(instance, state);
         emit pluginEditorClosed(instance, state);
@@ -142,8 +144,9 @@ void VstHostModel::synchronizeDocument() {
             if (previous != m_documentSlots.cend() && previous->value("plugin") != it->value("plugin")) {
                 closeEditor(it.key());
             }
-            ++m_restorations[it.key()];
-            m_client->restoreStateAsync(it.key(), it.value());
+            const auto generation = ++m_generations[it.key()];
+            m_restorations.insert(it.key(), generation);
+            m_client->restoreStateAsync(it.key(), it.value(), generation);
         }
     }
     m_documentSlots = std::move(nextSlots);
@@ -171,7 +174,7 @@ void VstHostModel::openEditor(const QString& instance, const QString& path, cons
                               const QString& state, const QString& title) {
     if (!m_client || instance.isEmpty() || path.isEmpty() || uid.isEmpty()) return;
     setLastError({});
-    m_client->openEditorAsync(instance, path, uid, state, title);
+    m_client->openEditorAsync(instance, path, uid, state, title, m_generations.value(instance));
 }
 
 void VstHostModel::closeEditor(const QString& instance) {

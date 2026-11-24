@@ -116,6 +116,10 @@ for line in sys.stdin:
     req = json.loads(line)
     if req['cmd'] == 'quit': break
     with open(__file__ + '.requests', 'a') as log: log.write(req['cmd'] + '\n')
+    if req['cmd'] == 'setState':
+        with open(__file__ + '.state', 'w') as log: log.write(req['state'])
+        print(json.dumps(dict(event='state', instance=req['instance'], state='stale-from-pipe', generation=req['generation'] - 1)), flush=True)
+        print(json.dumps(dict(event='editorClosed', instance=req['instance'], state='stale-close-from-pipe', generation=req['generation'] - 1)), flush=True)
     print(json.dumps(dict(id=req['id'], ok=True)), flush=True)
 )PY");
         helper.close();
@@ -133,6 +137,9 @@ for line in sys.stdin:
         connect(&host, &VstHostModel::pluginStateChanged, &timeline, [&timeline](const QString&, const QString& state) {
             timeline.applyEdit("setTrackInstrumentState", {{"trackId", "m1"}, {"state", state}});
         });
+        connect(&host, &VstHostModel::pluginEditorClosed, &timeline, [&timeline](const QString&, const QString& state) {
+            timeline.applyEdit("setTrackInstrumentState", {{"trackId", "m1"}, {"state", state}});
+        });
         QSignalSpy restored(client.get(), &VstHostClient::stateRestored);
         emit client->pluginStateChanged("inst:m1", "edit-one");
         emit client->pluginStateChanged("inst:m1", "edit-two");
@@ -144,8 +151,26 @@ for line in sys.stdin:
         timeline.undoStack()->undo();
         emit client->pluginStateChanged("inst:m1", "edit-during-restore");
         QCOMPARE(timeline.timeline().raw.value("tracks").toArray()[0].toObject().value("instrument").toObject().value("state").toString(),
-                 QStringLiteral("edit-during-restore"));
+                 QStringLiteral("edit-one"));
+        QVERIFY(timeline.undoStack()->canRedo());
         QTRY_COMPARE(restored.count(), 1);
+        // Delayed events remain stale even after the restoration reply.
+        emit client->pluginStateChanged("inst:m1", "late-state", 0);
+        emit client->pluginEditorClosed("inst:m1", "late-close", 0);
+        QVERIFY(timeline.undoStack()->canRedo());
+        timeline.undoStack()->redo();
+        emit client->pluginStateChanged("inst:m1", "late-undo", 1);
+        QTRY_COMPARE(restored.count(), 2);
+        QCOMPARE(timeline.timeline().raw.value("tracks").toArray()[0].toObject().value("instrument").toObject().value("state").toString(),
+                 QStringLiteral("edit-two"));
+        QFile helperState(helper.fileName() + ".state");
+        QVERIFY(helperState.open(QIODevice::ReadOnly));
+        QCOMPARE(helperState.readAll(), QByteArray("edit-two"));
+        emit client->pluginStateChanged("inst:m1", "fresh-edit", 2);
+        QCOMPARE(timeline.timeline().raw.value("tracks").toArray()[0].toObject().value("instrument").toObject().value("state").toString(),
+                 QStringLiteral("fresh-edit"));
+        QTest::qWait(100);
+        QCOMPARE(restored.count(), 2);
         client->setOverrideExecutable({});
     }
 
@@ -291,9 +316,17 @@ for line in sys.stdin:
         QVERIFY(helper.open(QIODevice::WriteOnly));
         helper.write(R"PY(#!/usr/bin/env python3
 import json, sys, time
+operation = ')PY" + operation.toUtf8() + R"PY('
 for line in sys.stdin:
     req = json.loads(line)
     if req['cmd'] == 'quit': break
+    if req['cmd'] == 'dispose':
+        print(json.dumps(dict(id=req['id'], ok=True)), flush=True)
+        continue
+    if operation == 'set_plugin_parameters' and req['cmd'] == 'getParameters':
+        print(json.dumps(dict(id=req['id'], ok=True, parameters=[dict(id='level', index=0, name='Level')])), flush=True)
+        continue
+    with open(__file__ + '.instances', 'a') as log: log.write(req.get('instance', '') + '\n')
     open(__file__ + '.started', 'w').close()
     time.sleep(1)
     open(__file__ + '.executed', 'w').close()
@@ -306,9 +339,11 @@ for line in sys.stdin:
         const QJsonObject slot{{"type", "vst"}, {"plugin", QJsonObject{{"path", "/test.vst3"}}}, {"state", "saved"}};
         const QJsonObject document{{"tracks", QJsonArray{QJsonObject{{"id", "track"}, {"type", "midi"}, {"instrument", slot}}}}};
         PluginToolResult outcome;
+        const auto epoch = client.hostEpoch();
+        QSignalSpy exited(&client, &VstHostClient::hostExited);
         std::stop_source cancellation;
         std::jthread worker([&] {
-            outcome = runPluginTool(operation, {{"track", "track"}, {"preset", 0}}, document, client, cancellation.get_token());
+            outcome = runPluginTool(operation, {{"track", "track"}, {"preset", 0}, {"parameter", "Level"}, {"value", 0.5}}, document, client, cancellation.get_token());
         });
         QTRY_VERIFY(QFileInfo::exists(helper.fileName() + ".started"));
         QElapsedTimer elapsed;
@@ -320,7 +355,14 @@ for line in sys.stdin:
         QVERIFY(outcome.result.value("error").toString().contains("cancelled"));
         QCOMPARE(outcome.document, document);
         QTest::qWait(1200);
-        QVERIFY2(!QFileInfo::exists(helper.fileName() + ".executed"), "cancelled RPC must not continue executing in the helper");
+        QCOMPARE(client.hostEpoch(), epoch);
+        QCOMPARE(exited.count(), 0);
+        QFile instances(helper.fileName() + ".instances");
+        QVERIFY(instances.open(QIODevice::ReadOnly));
+        const auto instanceLog = instances.readAll();
+        QVERIFY(!instanceLog.contains("inst:track"));
+        if (operation != "list_plugins") { QVERIFY(instanceLog.startsWith("request:")); }
+        QVERIFY2(QFileInfo::exists(helper.fileName() + ".executed"), "abandoned RPC may finish without killing the shared helper");
     }
 
     void pluginAssistantPreservesUnavailableState_data() {

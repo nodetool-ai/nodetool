@@ -79,7 +79,8 @@ private:
     void noteEditorState(const QString& instance, const QString& state);
     QPointer<TimelineModel> m_timeline;
     QMap<QString, QJsonObject> m_documentSlots;
-    QHash<QString, int> m_restorations;
+    QHash<QString, quint64> m_restorations;
+    QHash<QString, quint64> m_generations;
     bool m_hasDocument = false;
     QMetaObject::Connection m_documentConnection;
     void setLastError(const QString& error);

@@ -109,19 +109,19 @@ public:
     void terminateHostForTest();
 
     void openEditorAsync(const QString& instance, const QString& path, const QString& uid,
-                         const QString& state, const QString& title);
+                         const QString& state, const QString& title, quint64 generation = 0);
     // UI thread only. Explicit document restoration also updates open editors.
-    void restoreStateAsync(const QString& instance, const QJsonObject& slot);
+    void restoreStateAsync(const QString& instance, const QJsonObject& slot, quint64 generation = 0);
     void closeEditorAsync(const QString& instance);
     void disposeAsync(const QString& instance);
 
 signals:
-    void stateRestored(const QString& instance, const QString& state, const QString& error);
+    void stateRestored(const QString& instance, const QString& state, const QString& error, quint64 generation = 0);
     void scanFinished(const QVariantList& plugins, const QString& error);
     void editorOpened(const QString& instance, const QString& error);
     void editorClosedReply(const QString& instance);
-    void pluginStateChanged(const QString& instance, const QString& state);
-    void pluginEditorClosed(const QString& instance, const QString& state);
+    void pluginStateChanged(const QString& instance, const QString& state, quint64 generation = 0);
+    void pluginEditorClosed(const QString& instance, const QString& state, quint64 generation = 0);
     void hostExited();
 
 private:

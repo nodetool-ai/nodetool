@@ -10,10 +10,12 @@ test('plugin RPCs match the Electron contract and persist changes', { timeout: 3
   const exited = new Promise(resolve => host.once('exit', resolve));
   const watchdog = setTimeout(() => host.kill('SIGKILL'), 25000);
   const pending = new Map();
+  const events = [];
   let id = 0;
   const lines = createInterface({ input: host.stdout });
   lines.on('line', line => {
     const reply = JSON.parse(line);
+    if (reply.event) events.push(reply);
     const waiter = pending.get(reply.id);
     if (waiter) { pending.delete(reply.id); reply.ok ? waiter.resolve(reply) : waiter.reject(new Error(reply.error)); }
   });
@@ -59,6 +61,24 @@ test('plugin RPCs match the Electron contract and persist changes', { timeout: 3
     await assert.rejects(request('setParameters', { changes: [{ id: 'missing', value: 0.5 }] }), /parameter/i);
     await assert.rejects(request('setParameters', { changes: [{ index: 0, value: 0.5, displayValue: '0.5' }] }), /exactly one/i);
     await request('setState', { state: changed.state });
+    const waitForEvent = async generation => {
+      const deadline = Date.now() + 3000;
+      while (!events.some(event => event.event === 'state' && event.generation === generation)) {
+        assert.ok(Date.now() < deadline, `missing editor event for generation ${generation}`);
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+    };
+    await request('setState', { state: changed.state, generation: 7 });
+    await request('setParameters', { changes: [{ index: 0, value: 0.2 }] });
+    await waitForEvent(7);
+    await request('setState', { state: changed.state, generation: 8 });
+    assert.equal((await request('getState')).state, changed.state, 'restoration must finish on the document state');
+    const countAfterRestore = events.length;
+    await new Promise(resolve => setTimeout(resolve, 150));
+    assert.equal(events.length, countAfterRestore, 'restoration must not echo as an editor edit');
+    await request('setParameters', { changes: [{ index: 0, value: 0.3 }] });
+    await waitForEvent(8);
+    await request('setState', { state: changed.state, generation: 9 });
     let scanFinished = false;
     const scanning = request('scan', { dirs: [dirname(path)], includeEffects: true }).then(result => {
       scanFinished = true;

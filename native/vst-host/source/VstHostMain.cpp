@@ -89,9 +89,10 @@ static void fail(const var& id, const String& error) {
     send(body);
 }
 
-static void event(const String& name, const String& instance, const String& state) {
+static void event(const String& name, const String& instance, const String& state, const var& generation) {
     auto body = object();
     body.getDynamicObject()->setProperty("event", name);
+    body.getDynamicObject()->setProperty("generation", generation);
     body.getDynamicObject()->setProperty("instance", instance);
     body.getDynamicObject()->setProperty("state", state);
     send(body);
@@ -422,6 +423,7 @@ public:
             String error;
             auto inst = ensure(key, req, error, false);
             if (!inst || !inst->setState(req["state"].toString(), error)) { fail(id, error); return; }
+            generations_[key] = req["generation"];
             if (auto editor = editors_.find(key); editor != editors_.end()) {
                 editor->second.lastState = inst->getState();
             }
@@ -444,6 +446,7 @@ public:
             auto inst = ensure(key, req, error, true);
             if (!inst) { fail(id, error); return; }
             if (!openEditor(key, *inst, req["title"].toString(), error)) { fail(id, error); return; }
+            generations_[key] = req["generation"];
             auto body = object();
             body.getDynamicObject()->setProperty("hasEditor", true);
             reply(id, body);
@@ -481,6 +484,7 @@ public:
             closeEditor(key, false);
             // A render still running keeps its instance until it finishes.
             instances_.erase(key);
+            generations_.erase(key);
             reply(id, object());
         } else if (cmd == "quit") {
             MessageManager::getInstance()->stopDispatchLoop();
@@ -621,7 +625,7 @@ private:
         editors_.erase(it);
         if (announce)
             if (auto inst = instances_.find(key); inst != instances_.end())
-                event("editorClosed", key, inst->second->getState());
+                event("editorClosed", key, inst->second->getState(), generations_[key]);
     }
 
     // The editor changes the sound by setting parameters inside the plug-in;
@@ -654,7 +658,7 @@ private:
             const auto state = inst->second->getState();
             if (state != editor.lastState) {
                 editor.lastState = state;
-                event("state", key, state);
+                event("state", key, state, generations_[key]);
             }
         }
     }
@@ -685,6 +689,7 @@ private:
     // Render workers and live sessions retain the same plugin while the host owns editors.
     std::map<String, std::shared_ptr<Instance>> instances_;
     std::map<String, Editor> editors_;
+    std::map<String, var> generations_;
 #if !JUCE_WINDOWS
     std::map<String, std::unique_ptr<LiveSession>> liveSessions_;
 #endif
