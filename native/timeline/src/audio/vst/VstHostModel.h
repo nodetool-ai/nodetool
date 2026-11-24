@@ -76,6 +76,7 @@ signals:
 
 private:
     void synchronizeDocument();
+    void noteEditorState(const QString& instance, const QString& state);
     QPointer<TimelineModel> m_timeline;
     QMap<QString, QJsonObject> m_documentSlots;
     QHash<QString, int> m_restorations;

@@ -99,6 +99,7 @@ struct SyncWaiter {
     std::condition_variable cv;
     bool done = false;
     bool cancelled = false;
+    bool dispatched = false;
     bool ok = false;
     QJsonObject reply;
     QString error;
@@ -190,7 +191,7 @@ public:
         }
     }
 
-    void terminateForTestOnWorkerThread() {
+    void terminateOnWorkerThread() {
         if (m_process && m_process->state() != QProcess::NotRunning) {
             m_process->kill();
             m_process->waitForFinished(1500);
@@ -417,18 +418,34 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
     }
     // Shared with the queued request callback, which can finish after cancellation.
     auto waiter = std::make_shared<SyncWaiter>();
-    std::stop_callback cancelled(stop, [waiter] {
-        {
-            std::lock_guard<std::mutex> lock(waiter->mutex);
-            waiter->cancelled = true;
-        }
-        waiter->cv.notify_all();
+    const QPointer<HostWorker> worker(m_worker.get());
+    std::stop_callback cancelled(stop, [worker, waiter] {
+        if (!worker) { return; }
+        QMetaObject::invokeMethod(worker, [worker, waiter] {
+            if (!worker) { return; }
+            bool dispatched;
+            {
+                std::lock_guard<std::mutex> lock(waiter->mutex);
+                dispatched = waiter->dispatched;
+            }
+            // A dispatched mutation cannot be recalled through the JSON-line protocol.
+            // End its process before reporting cancellation or accepting another request.
+            if (dispatched) { worker->terminateOnWorkerThread(); }
+            {
+                std::lock_guard<std::mutex> lock(waiter->mutex);
+                waiter->cancelled = true;
+            }
+            waiter->cv.notify_all();
+        }, Qt::QueuedConnection);
     });
-    HostWorker* worker = m_worker.get();
     QMetaObject::invokeMethod(
         worker,
         [worker, exe, request, timeoutMs, waiter, stop]() {
-            if (stop.stop_requested()) { return; }
+            if (!worker || stop.stop_requested()) { return; }
+            {
+                std::lock_guard<std::mutex> lock(waiter->mutex);
+                waiter->dispatched = true;
+            }
             worker->sendRequest(exe, request, timeoutMs, [waiter](bool ok, const QJsonObject& r, const QString& err) {
                 {
                     std::lock_guard<std::mutex> lock(waiter->mutex);
@@ -444,8 +461,9 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
 
     std::unique_lock<std::mutex> lock(waiter->mutex);
     const bool finished = waiter->cv.wait_for(lock, std::chrono::milliseconds(timeoutMs + 2000),
-                                              [&] { return waiter->done || waiter->cancelled; });
+                                              [&] { return waiter->cancelled || (waiter->done && !stop.stop_requested()); });
     if (stop.stop_requested()) {
+        waiter->cv.wait_for(lock, std::chrono::milliseconds(2000), [&] { return waiter->cancelled; });
         if (error) *error = QStringLiteral("Plugin request cancelled");
         return false;
     }
@@ -708,10 +726,10 @@ void VstHostClient::closeLiveAsync(const QString& instance) {
 
 void VstHostClient::terminateHostForTest() {
     if (m_shutDown || !m_worker || !m_thread.isRunning()) return;
-    HostWorker* worker = m_worker.get();
+    const QPointer<HostWorker> worker(m_worker.get());
     QMetaObject::invokeMethod(
         worker,
-        [worker]() { worker->terminateForTestOnWorkerThread(); },
+        [worker]() { if (worker) { worker->terminateOnWorkerThread(); } },
         Qt::BlockingQueuedConnection);
 }
 

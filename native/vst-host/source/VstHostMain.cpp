@@ -38,12 +38,15 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <atomic>
 #include <cstring>
-#include <filesystem>
+#include <condition_variable>
+#include <cstdlib>
 #include <iostream>
 #include <thread>
 #include "VstHost.h"
 #include "VstShmProtocol.h"
-#if !JUCE_WINDOWS
+#if JUCE_WINDOWS
+#include <windows.h>
+#else
 #include <cerrno>
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -59,6 +62,7 @@ using namespace juce;
 using namespace vsthost;
 
 static constexpr int PROTOCOL = 1;
+static constexpr const char* SCAN_RESULT_PREFIX = "NT_VST_SCAN_RESULT:";
 // native-rules #14: process-wide stdout mutex
 static std::mutex outMutex;
 
@@ -92,6 +96,63 @@ static void event(const String& name, const String& instance, const String& stat
     body.getDynamicObject()->setProperty("state", state);
     send(body);
 }
+
+// Scanner main thread owns and joins the monitor. Its state crosses threads under
+// the mutex. Parent death ends the entire scanner even when plug-in discovery hangs.
+class ScannerParentWatch {
+public:
+    explicit ScannerParentWatch(const String& parentId) {
+#if JUCE_WINDOWS
+        state_->parent.reset(OpenProcess(SYNCHRONIZE, FALSE, static_cast<DWORD>(parentId.getLargeIntValue())));
+#else
+        state_->parent = static_cast<pid_t>(parentId.getLargeIntValue());
+#endif
+        const std::weak_ptr<State> weak = state_;
+        monitor_ = std::thread([weak] {
+            const auto state = weak.lock();
+            if (!state) { return; }
+            std::unique_lock<std::mutex> lock(state->mutex);
+            while (!state->finished) {
+#if JUCE_WINDOWS
+                const bool alive = state->parent && WaitForSingleObject(state->parent.get(), 0) == WAIT_TIMEOUT;
+#else
+                const bool alive = getppid() == state->parent;
+#endif
+                if (!alive) { std::_Exit(1); }
+                state->changed.wait_for(lock, std::chrono::milliseconds(20), [&state] { return state->finished; });
+            }
+        });
+    }
+    ScannerParentWatch(const ScannerParentWatch&) = delete;
+    ScannerParentWatch& operator=(const ScannerParentWatch&) = delete;
+    ScannerParentWatch(ScannerParentWatch&&) = delete;
+    ScannerParentWatch& operator=(ScannerParentWatch&&) = delete;
+    ~ScannerParentWatch() {
+        {
+            std::lock_guard<std::mutex> lock(state_->mutex);
+            state_->finished = true;
+        }
+        state_->changed.notify_one();
+        if (monitor_.joinable()) { monitor_.join(); }
+    }
+private:
+    // Shared because the monitor locks a weak handle and retains it until it exits.
+    struct State {
+        std::mutex mutex;
+        std::condition_variable changed;
+        bool finished = false;
+#if JUCE_WINDOWS
+        struct CloseParent {
+            void operator()(void* handle) const { CloseHandle(handle); }
+        };
+        std::unique_ptr<void, CloseParent> parent;
+#else
+        pid_t parent = 0;
+#endif
+    };
+    std::shared_ptr<State> state_ = std::make_shared<State>();
+    std::thread monitor_;
+};
 
 // Scanner child main thread only. JUCE formats and discovered plugins die before GUI shutdown.
 static var scanResult(const var& req) {
@@ -451,19 +512,20 @@ private:
     }
 
     void scanAsync(const var& id, const var& req) {
-        std::error_code error;
-        const auto directory = std::filesystem::temp_directory_path(error);
-        if (error) { fail(id, "Cannot locate scanner temporary directory"); return; }
-        auto job = std::make_unique<ScanJob>(File(String(directory.string())));
+        auto job = std::make_unique<ScanJob>();
         job->id = id;
-        if (!job->request.getFile().replaceWithText(JSON::toString(req, true))) {
-            fail(id, "Cannot write scanner request");
-            return;
-        }
+#if JUCE_WINDOWS
+        const auto parentId = String(static_cast<int64>(GetCurrentProcessId()));
+#else
+        const auto parentId = String(static_cast<int64>(getpid()));
+#endif
         const StringArray args{File::getSpecialLocation(File::currentExecutableFile).getFullPathName(),
-                               "--scan", job->request.getFile().getFullPathName(),
-                               job->result.getFile().getFullPathName()};
-        if (!job->process.start(args, 0)) { fail(id, "Cannot start plugin scanner"); return; }
+                               "--scan", JSON::toString(req, true), parentId};
+        if (!job->output->process.start(args, ChildProcess::wantStdOut)) { fail(id, "Cannot start plugin scanner"); return; }
+        const std::weak_ptr<ScanOutput> output = job->output;
+        job->reader = std::thread([output] {
+            if (const auto state = output.lock()) { state->result = state->process.readAllProcessOutput(); }
+        });
         scans_.push_back(std::move(job));
     }
 
@@ -567,13 +629,16 @@ private:
     void timerCallback() override {
         for (auto it = scans_.begin(); it != scans_.end();) {
             auto& job = **it;
-            const bool running = job.process.isRunning();
+            const bool running = job.output->process.isRunning();
             if (running && Time::getMillisecondCounterHiRes() - job.started < 180000.0) { ++it; continue; }
             if (running) {
                 fail(job.id, "Plugin scanner timed out");
             } else {
-                const auto result = JSON::parse(job.result.getFile().loadFileAsString());
-                if (job.process.getExitCode() != 0 || !result.isObject() || !result["plugins"].isArray()) {
+                if (job.reader.joinable()) { job.reader.join(); }
+                const auto offset = job.output->result.lastIndexOf(SCAN_RESULT_PREFIX);
+                const auto result = offset < 0 ? var() : JSON::parse(job.output->result.substring(
+                    offset + static_cast<int>(std::strlen(SCAN_RESULT_PREFIX))));
+                if (job.output->process.getExitCode() != 0 || !result.isObject() || !result["plugins"].isArray()) {
                     fail(job.id, "Plugin scanner failed");
                 } else {
                     reply(job.id, result);
@@ -594,19 +659,22 @@ private:
         }
     }
 
-    // Message thread only. Owns the child and both IPC files. Destruction kills and
-    // reaps a running scanner before deleting its files, including during host shutdown.
+    // Start, status, kill and reaping stay on the message thread. Only the pipe
+    // reader touches ChildProcess's read handle. The result transfers through join.
+    struct ScanOutput {
+        ChildProcess process;
+        String result;
+    };
+    // Message thread owns the job and joins its pipe reader after killing/reaping.
     struct ScanJob {
-        explicit ScanJob(const File& directory)
-            : request(directory.getChildFile("nodetool-scan-request.json")),
-              result(directory.getChildFile("nodetool-scan-result.json")) {}
         ~ScanJob() {
-            if (process.isRunning()) { process.kill(); process.waitForProcessToFinish(1000); }
+            if (output->process.isRunning()) { output->process.kill(); output->process.waitForProcessToFinish(1000); }
+            if (reader.joinable()) { reader.join(); }
         }
         var id;
-        TemporaryFile request;
-        TemporaryFile result;
-        ChildProcess process;
+        // Shared because an asynchronous pipe read must retain the process until EOF.
+        std::shared_ptr<ScanOutput> output = std::make_shared<ScanOutput>();
+        std::thread reader;
         double started = Time::getMillisecondCounterHiRes();
     };
     std::vector<std::unique_ptr<ScanJob>> scans_;
@@ -628,9 +696,12 @@ int main(int argc, char** argv) {
    #endif
     ScopedJuceInitialiser_GUI init;
     if (argc == 4 && String(argv[1]) == "--scan") {
-        const auto req = JSON::parse(File(String(argv[2])).loadFileAsString());
+        ScannerParentWatch parent{String(argv[3])};
+        const auto req = JSON::parse(String(argv[2]));
         if (!req.isObject()) { return 1; }
-        return File(String(argv[3])).replaceWithText(JSON::toString(scanResult(req), true)) ? 0 : 1;
+        const auto result = scanResult(req);
+        std::cout << '\n' << SCAN_RESULT_PREFIX << JSON::toString(result, true) << std::endl;
+        return std::cout.good() ? 0 : 1;
     }
     auto host = std::make_unique<Host>();
     auto* hostPtr = host.get();

@@ -110,6 +110,10 @@ if(VSTHOST_BUILD_TESTS)
     add_test(NAME vst_plugins
         COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/plugins.test.mjs"
             "$<TARGET_FILE:tst_vsthostprotocol>" "${VSTHOST_TEST_PLUGIN}")
+    add_test(NAME vst_scanner_lifetime
+        COMMAND "${NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test/scanner-lifetime.test.mjs"
+            "$<TARGET_FILE:tst_vsthostprotocol>" "${VSTHOST_TEST_PLUGIN}")
+    set_tests_properties(vst_scanner_lifetime PROPERTIES TIMEOUT 40)
     set_tests_properties(vst_plugins PROPERTIES TIMEOUT 40)
     set_tests_properties(vst_editor_state PROPERTIES FIXTURES_REQUIRED vst_nondefault_state TIMEOUT 40)
 endif()

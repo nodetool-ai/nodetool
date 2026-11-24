@@ -15,7 +15,11 @@ VstHostModel::VstHostModel(QObject* parent) : QObject(parent), m_client(sharedVs
         if (--pending.value() > 0) { return; }
         m_restorations.erase(pending);
         setLastError(error);
-        if (error.isEmpty()) { sharedVstLivePool().noteStateFromEditor(instance, state); }
+        if (error.isEmpty()) {
+            const auto slot = m_documentSlots.constFind(instance);
+            sharedVstLivePool().noteStateFromEditor(instance,
+                slot == m_documentSlots.cend() ? state : slot->value("state").toString());
+        }
     });
     connect(m_client.get(), &VstHostClient::scanFinished, this, [this](const QVariantList& plugins, const QString& error) {
         m_scanning = false;
@@ -60,16 +64,16 @@ VstHostModel::VstHostModel(QObject* parent) : QObject(parent), m_client(sharedVs
     });
 
     connect(m_client.get(), &VstHostClient::pluginStateChanged, this, [this](const QString& instance, const QString& state) {
-        if (m_restorations.contains(instance)) { return; }
         sharedVstLivePool().noteStateFromEditor(instance, state);
+        noteEditorState(instance, state);
         emit pluginStateChanged(instance, state);
     });
 
     connect(m_client.get(), &VstHostClient::pluginEditorClosed, this, [this](const QString& instance, const QString& state) {
         sharedVstLivePool().setEditorOpen(instance, false);
         if (m_openEditors.removeAll(instance) > 0) emit openEditorsChanged();
-        if (m_restorations.contains(instance)) { return; }
         sharedVstLivePool().noteStateFromEditor(instance, state);
+        noteEditorState(instance, state);
         emit pluginEditorClosed(instance, state);
     });
 
@@ -96,6 +100,11 @@ void VstHostModel::followTimeline(TimelineModel* timeline) {
     if (!timeline) { return; }
     synchronizeDocument();
     m_documentConnection = connect(timeline, &TimelineModel::timelineChanged, this, &VstHostModel::synchronizeDocument);
+}
+
+void VstHostModel::noteEditorState(const QString& instance, const QString& state) {
+    auto slot = m_documentSlots.find(instance);
+    if (slot != m_documentSlots.end()) { slot->insert("state", state); }
 }
 
 void VstHostModel::synchronizeDocument() {
