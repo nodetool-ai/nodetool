@@ -97,14 +97,15 @@ describe("useModelAvailability", () => {
     expect(check.providerEnabled).toBe(true);
   });
 
-  it("normalizes gemini/google provider key", () => {
+  it("normalizes gemini/google provider key without aliasing google_flow", () => {
     mockEnabledProviders = { gemini: false };
     mockIsApiKeySet.mockReturnValue(true);
 
     const { result } = renderHook(() => useModelAvailability());
-    const check = result.current({ provider: "google" });
-
-    expect(check.providerEnabled).toBe(false);
+    expect(result.current({ provider: "google" }).providerEnabled).toBe(false);
+    expect(result.current({ provider: "google_flow" }).providerEnabled).toBe(
+      true
+    );
   });
 
   it("disables a model whose resolved execution target is unavailable", () => {

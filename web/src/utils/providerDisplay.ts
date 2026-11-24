@@ -267,7 +267,8 @@ const PROVIDER_URLS: Record<string, string> = {
   "hunyuan3d-v2": "https://github.com/Tencent/Hunyuan3D",
   "hunyuan3d-3.0": "https://github.com/Tencent/Hunyuan3D",
   "hunyuan3d-30": "https://github.com/Tencent/Hunyuan3D",
-  hunyuan3d_3_0: "https://github.com/Tencent/Hunyuan3D"
+  hunyuan3d_3_0: "https://github.com/Tencent/Hunyuan3D",
+  google_flow: "https://flow.google.com"
 };
 
 /** Returns an external URL for a given provider name when known; otherwise null. */
@@ -450,6 +451,10 @@ export const getModelUrl = (
 
   if (p.includes("anthropic")) {
     return "https://docs.anthropic.com/claude/docs/models-overview";
+  }
+
+  if (p === "google_flow") {
+    return "https://flow.google.com";
   }
 
   if (p.includes("gemini") || p.includes("google")) {

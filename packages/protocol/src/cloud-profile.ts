@@ -255,6 +255,9 @@ export const NON_CLOUD_PROVIDER_IDS: readonly string[] = [
   // A logged-in gemini.google.com tab in the user's own Chrome, reached through
   // the NodeTool extension.
   "gemini_web",
+  // A logged-in flow.google.com tab in the user's own Chrome, reached through
+  // the NodeTool extension.
+  "google_flow",
   // Test double, dev-gated at registration.
   "fake"
 ];
