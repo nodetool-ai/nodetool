@@ -52,6 +52,75 @@ export interface PluginOpScope {
 const NO_HOST_ERROR =
   "No VST/AU plugin host is available on this surface. Run inside the desktop app with NodeToolVstHost installed.";
 
+const MAX_INT32 = 2_147_483_647;
+const MAX_PLUGIN_STATE_LENGTH = 8_000_000;
+const MAX_TRACK_EFFECTS = 32;
+const MAX_PARAMETER_CHANGES = 128;
+const MAX_DISPLAY_VALUE_LENGTH = 256;
+const MAX_VST_INSTANCE_LENGTH = 128;
+const VST_INSTANCE_UNSAFE = /[^A-Za-z0-9_.:-]/g;
+
+function fnv1aHex(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+function buildVstInstanceKey(prefix: string, parts: readonly string[]): string {
+  const raw = `${prefix}:${parts.join(":")}`;
+  const sanitized = parts
+    .map((part) => part.replace(VST_INSTANCE_UNSAFE, "_"))
+    .join(":");
+  const candidate = `${prefix}:${sanitized}`;
+  if (candidate === raw && candidate.length <= MAX_VST_INSTANCE_LENGTH) {
+    return candidate;
+  }
+  const suffix = `_${fnv1aHex(raw)}`;
+  const maxBody = MAX_VST_INSTANCE_LENGTH - prefix.length - 1 - suffix.length;
+  const body = sanitized.slice(0, Math.max(1, maxBody));
+  return `${prefix}:${body}${suffix}`;
+}
+
+/** Canonical VST host instance key for a track's instrument editor and ops. */
+export function vstEditorInstanceKey(trackId: string): string {
+  return buildVstInstanceKey("track", [trackId]);
+}
+
+function vstEffectInstanceKey(
+  target: { isMaster: true; effectId: string } | { isMaster: false; trackId: string; effectId: string }
+): string {
+  return target.isMaster
+    ? buildVstInstanceKey("master-fx", [target.effectId])
+    : buildVstInstanceKey("fx", [target.trackId, target.effectId]);
+}
+
+function assertFiniteRange(value: unknown, name: string, min: number, max: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < min || value > max) {
+    throw new Error(`Invalid ${name}: expected a finite number between ${min} and ${max}.`);
+  }
+  return value;
+}
+
+function assertIntRange(value: unknown, name: string, min: number, max: number): number {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < min || value > max) {
+    throw new Error(`Invalid ${name}: expected an integer between ${min} and ${max}.`);
+  }
+  return value;
+}
+
+function assertOptionalState(state: unknown): string | null {
+  if (state === undefined || state === null) return null;
+  if (typeof state !== "string" || state.length > MAX_PLUGIN_STATE_LENGTH) {
+    throw new Error(
+      `Invalid plugin state: expected null or a string up to ${MAX_PLUGIN_STATE_LENGTH} characters.`
+    );
+  }
+  return state;
+}
+
 function inferFormat(path: string, explicit?: VstPluginFormat): VstPluginFormat {
   if (explicit === "au" || explicit === "vst3") return explicit;
   return path.toLowerCase().endsWith(".component") ? "au" : "vst3";
@@ -180,12 +249,12 @@ function resolveLoadedPluginSlot(
       effect: found,
       plugin: found.plugin,
       state: found.state,
-      instance: `master-fx:${found.id}`
+      instance: vstEffectInstanceKey({ isMaster: true, effectId: found.id })
     };
   }
 
   const track = scope.resolveTrack(trackRef);
-  if (effectId && effectId.toLowerCase() !== "instrument") {
+  if (effectId) {
     const effects = track.effects ?? [];
     const found = resolveEffectByIdOrName(effects, effectId);
     if (!found) {
@@ -212,7 +281,7 @@ function resolveLoadedPluginSlot(
       effect: found,
       plugin: found.plugin,
       state: found.state,
-      instance: `fx:${track.id}:${found.id}`
+      instance: vstEffectInstanceKey({ isMaster: false, trackId: track.id, effectId: found.id })
     };
   }
 
@@ -240,7 +309,7 @@ function resolveLoadedPluginSlot(
     instrument: track.instrument,
     plugin: track.instrument.plugin,
     state: track.instrument.state,
-    instance: `track:${track.id}`
+    instance: vstEditorInstanceKey(track.id)
   };
 }
 
@@ -315,10 +384,11 @@ function resolveParameterRef(
   ref: string | number
 ): PluginHostParameterInfo {
   if (typeof ref === "number") {
-    const byIndex = params.find((p) => p.index === ref);
+    const idx = assertIntRange(ref, "parameter index", 0, MAX_INT32);
+    const byIndex = params.find((p) => p.index === idx);
     if (!byIndex) {
       throw new Error(
-        `No plugin parameter at index ${ref}. Valid range: 0..${Math.max(0, params.length - 1)}.`
+        `No plugin parameter at index ${idx}. Valid range: 0..${Math.max(0, params.length - 1)}.`
       );
     }
     return byIndex;
@@ -335,9 +405,11 @@ function resolveParameterRef(
     );
   }
   if (/^\d+$/.test(trimmed)) {
-    const idx = Number.parseInt(trimmed, 10);
-    const byNumericIndex = params.find((p) => p.index === idx);
-    if (byNumericIndex) return byNumericIndex;
+    const idx = Number(trimmed);
+    if (Number.isSafeInteger(idx) && idx >= 0 && idx <= MAX_INT32) {
+      const byNumericIndex = params.find((p) => p.index === idx);
+      if (byNumericIndex) return byNumericIndex;
+    }
   }
   const sample = params
     .slice(0, 10)
@@ -380,43 +452,30 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
 
   load_plugin: async (scope, op) => {
     const master = isMasterTarget(scope, op.track);
-    let scannedInfo: PluginHostPluginInfo | undefined;
-    let ref: VstPluginRef;
-
-    if (scope.ctx.pluginHost) {
-      const host = await requirePluginHost(scope);
-      const scanned = await host.scan({ rescan: false, includeEffects: true });
-      scannedInfo = matchPluginFromScan(scanned, op.plugin);
-      ref = toPluginRef(scannedInfo);
-    } else if (
-      typeof op.plugin === "object" &&
-      op.plugin.uid &&
-      op.plugin.path &&
-      op.plugin.name
-    ) {
-      ref = {
-        uid: op.plugin.uid,
-        name: op.plugin.name,
-        vendor: op.plugin.vendor ?? "",
-        path: op.plugin.path,
-        format: inferFormat(op.plugin.path, op.plugin.format)
-      };
-    } else {
-      throw new Error(NO_HOST_ERROR);
+    const initialState = assertOptionalState(op.state);
+    if (op.gainDb !== undefined) {
+      assertFiniteRange(op.gainDb, "gainDb", -60, 12);
     }
+    if (op.wet !== undefined) {
+      assertFiniteRange(op.wet, "wet", 0, 1);
+    }
+    if (op.index !== undefined) {
+      assertIntRange(op.index, "index", 0, MAX_INT32);
+    }
+
+    const host = await requirePluginHost(scope);
+    const scanned = await host.scan({ rescan: false, includeEffects: true });
+    const scannedInfo = matchPluginFromScan(scanned, op.plugin);
+    const ref = toPluginRef(scannedInfo);
 
     const track = master ? undefined : scope.resolveTrack(op.track);
     const inferredSlot: "instrument" | "effect" =
       op.slot ??
       (master
         ? "effect"
-        : scannedInfo !== undefined
-          ? scannedInfo.isInstrument
-            ? "instrument"
-            : "effect"
-          : track?.type === "midi" && op.effectId === undefined && op.wet === undefined && op.index === undefined
-            ? "instrument"
-            : "effect");
+        : scannedInfo.isInstrument
+          ? "instrument"
+          : "effect");
 
     if (inferredSlot === "instrument") {
       if (master || !track || track.type !== "midi") {
@@ -426,7 +485,7 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
             : `Track "${track!.name}" is a ${track!.type} track. VST/AU instruments can only load on midi tracks.`
         );
       }
-      if (scannedInfo && !scannedInfo.isInstrument) {
+      if (!scannedInfo.isInstrument) {
         throw new Error(
           `Plugin "${scannedInfo.name}" is an audio effect, not an instrument. Pass slot: "effect" to insert it as an effect.`
         );
@@ -435,7 +494,7 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
       const instrument: VstMidiInstrument = {
         type: "vst",
         plugin: ref,
-        state: op.state ?? null,
+        state: initialState,
         gainDb: op.gainDb ?? 0
       };
       track.instrument = instrument;
@@ -448,7 +507,7 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
     }
 
     // Insert effect slot
-    if (scannedInfo && scannedInfo.isInstrument) {
+    if (scannedInfo.isInstrument) {
       throw new Error(
         `Plugin "${scannedInfo.name}" is an instrument, not an audio effect. Load it on a midi track with slot: "instrument".`
       );
@@ -477,6 +536,11 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
       targetEffectId = matched.id;
       replaceIndex = existing.findIndex((e) => e.id === matched.id);
     } else {
+      if (existing.length >= MAX_TRACK_EFFECTS) {
+        throw new Error(
+          `${master ? "The master bus" : `Track "${track!.name}"`} already has the maximum of ${MAX_TRACK_EFFECTS} insert effects. Pass effectId to replace an existing slot.`
+        );
+      }
       targetEffectId = scope.ctx.newId("effect");
     }
 
@@ -485,7 +549,7 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
       type: "vst",
       enabled: op.enabled ?? true,
       plugin: ref,
-      state: op.state ?? null,
+      state: initialState,
       wet: op.wet ?? 1
     };
 
@@ -554,14 +618,19 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
     let presetName: string | undefined;
 
     if (typeof op.preset === "number") {
-      presetIndex = op.preset;
-    } else {
+      presetIndex = assertIntRange(op.preset, "preset", 0, MAX_INT32);
+    } else if (typeof op.preset === "string") {
+      const trimmed = op.preset.trim();
+      if (trimmed.length === 0 || trimmed.length > MAX_DISPLAY_VALUE_LENGTH) {
+        throw new Error(
+          `Invalid preset name: expected a non-empty string up to ${MAX_DISPLAY_VALUE_LENGTH} characters.`
+        );
+      }
       const listed = await host.listPresets({
         instance: slot.instance,
         plugin: target,
         state: slot.state
       });
-      const trimmed = op.preset.trim();
       const lower = trimmed.toLowerCase();
       const byName = listed.presets.filter((p) => p.name.toLowerCase() === lower);
       if (byName.length === 1) {
@@ -572,7 +641,24 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
           `Preset name "${trimmed}" matches multiple presets (indices ${byName.map((p) => p.index).join(", ")}); pass the preset index.`
         );
       } else if (/^\d+$/.test(trimmed)) {
-        presetIndex = Number.parseInt(trimmed, 10);
+        const parsedIndex = Number(trimmed);
+        if (!Number.isSafeInteger(parsedIndex) || parsedIndex < 0 || parsedIndex > MAX_INT32) {
+          throw new Error(
+            `Preset index "${trimmed}" is out of range (expected an integer between 0 and ${MAX_INT32}).`
+          );
+        }
+        const byIndex = listed.presets.find((p) => p.index === parsedIndex);
+        if (!byIndex) {
+          const sample = listed.presets
+            .slice(0, 10)
+            .map((p) => `${p.index}: ${p.name}`)
+            .join(", ");
+          throw new Error(
+            `No preset at index ${parsedIndex} on "${slot.plugin.name}".${sample ? ` Available presets: ${sample}.` : ""}`
+          );
+        }
+        presetIndex = byIndex.index;
+        presetName = byIndex.name;
       } else {
         const sample = listed.presets
           .slice(0, 10)
@@ -582,6 +668,8 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
           `No preset named "${trimmed}" on "${slot.plugin.name}".${sample ? ` Available presets: ${sample}.` : ""}`
         );
       }
+    } else {
+      throw new Error("Invalid preset: expected a 0-based index or non-empty preset name.");
     }
 
     const selected = await host.selectPreset({
@@ -591,8 +679,14 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
       presetIndex,
       presetName
     });
-    const stateUpdated = selected.state !== slot.state;
-    writeSlotState(scope, slot, selected.state);
+    const nextState =
+      typeof selected.state === "string" && selected.state.length > 0
+        ? selected.state
+        : slot.state;
+    const stateUpdated = nextState !== slot.state;
+    if (stateUpdated) {
+      writeSlotState(scope, slot, nextState);
+    }
 
     return {
       ok: true,
@@ -648,15 +742,47 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
       scope.assertWritable([], slot.track.id);
     }
     const target: PluginHostTarget = { path: slot.plugin.path, uid: slot.plugin.uid };
+    if (op.parameters !== undefined && op.parameter !== undefined) {
+      throw new Error("Pass either `parameters` or single-parameter `parameter`, not both.");
+    }
     const requested = op.parameters
       ? op.parameters
-      : [
-          {
-            parameter: op.parameter!,
-            ...(op.value !== undefined ? { value: op.value } : {}),
-            ...(op.displayValue !== undefined ? { displayValue: op.displayValue } : {})
-          }
-        ];
+      : op.parameter !== undefined
+        ? [
+            {
+              parameter: op.parameter,
+              ...(op.value !== undefined ? { value: op.value } : {}),
+              ...(op.displayValue !== undefined ? { displayValue: op.displayValue } : {})
+            }
+          ]
+        : [];
+    if (!Array.isArray(requested) || requested.length === 0 || requested.length > MAX_PARAMETER_CHANGES) {
+      throw new Error(
+        `Invalid parameter changes: expected between 1 and ${MAX_PARAMETER_CHANGES} updates.`
+      );
+    }
+
+    const validatedRequested = requested.map((entry) => {
+      const hasValue = entry.value !== undefined;
+      const hasDisplay = entry.displayValue !== undefined;
+      if (hasValue === hasDisplay) {
+        throw new Error("Each parameter change requires exactly one of value (0..1) or displayValue.");
+      }
+      if (hasValue) {
+        const value = assertFiniteRange(entry.value, "parameter value", 0, 1);
+        return { parameter: entry.parameter, value };
+      }
+      if (typeof entry.displayValue !== "string") {
+        throw new Error("Invalid displayValue: expected a non-empty string.");
+      }
+      const trimmedDisplay = entry.displayValue.trim();
+      if (trimmedDisplay.length === 0 || trimmedDisplay.length > MAX_DISPLAY_VALUE_LENGTH) {
+        throw new Error(
+          `Invalid displayValue: expected 1..${MAX_DISPLAY_VALUE_LENGTH} characters.`
+        );
+      }
+      return { parameter: entry.parameter, displayValue: trimmedDisplay };
+    });
 
     const current = await host.getParameters({
       instance: slot.instance,
@@ -664,7 +790,7 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
       state: slot.state
     });
     const resolvedIds: string[] = [];
-    const changes: PluginHostParameterChange[] = requested.map((entry) => {
+    const changes: PluginHostParameterChange[] = validatedRequested.map((entry) => {
       const param = resolveParameterRef(current.parameters, entry.parameter);
       resolvedIds.push(param.id);
       return {
@@ -683,8 +809,14 @@ export const PLUGIN_OP_HANDLERS: { [N in PluginOpName]: PluginHandler<N> } = {
       state: slot.state,
       changes
     });
-    const stateUpdated = applied.state !== slot.state;
-    writeSlotState(scope, slot, applied.state);
+    const nextState =
+      typeof applied.state === "string" && applied.state.length > 0
+        ? applied.state
+        : slot.state;
+    const stateUpdated = nextState !== slot.state;
+    if (stateUpdated) {
+      writeSlotState(scope, slot, nextState);
+    }
 
     const byId = new Map(applied.parameters.map((p) => [p.id, p]));
     const updated = resolvedIds

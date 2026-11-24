@@ -222,4 +222,97 @@ describe("useTimelineAgentBridge VST/AU plugin tools", () => {
       unmount();
     }
   });
+
+  it("F3: does not replay side-effecting selectPreset/setParameters on concurrent store updates and bounds retries", async () => {
+    let selectCalls = 0;
+    const vst = window.api!.vst!;
+    vst.selectPreset = jest.fn(async () => {
+      selectCalls++;
+      // Simulate concurrent store updates landing while awaiting the out-of-process host.
+      if (selectCalls <= 5) {
+        mockDoc.setState((s) => ({ ...s, tracks: [...s.tracks] }));
+      }
+      return {
+        preset: { index: 1, name: "Warm Pad" },
+        state: "cHJlc2V0MQ=="
+      };
+    });
+
+    const { unmount } = renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    try {
+      await runTool("ui_timeline_load_plugin", {
+        timeline_id: SEQ_ID,
+        track: "Synth",
+        plugin: "Acme Pad"
+      });
+
+      const res = await runTool("ui_timeline_select_plugin_preset", {
+        timeline_id: SEQ_ID,
+        track: "Synth",
+        preset: "Warm Pad"
+      });
+      expect(res).toMatchObject({ ok: true, preset: { index: 1, name: "Warm Pad" } });
+      expect(selectCalls).toBe(1);
+      expect(mockDoc.getState().tracks[0].instrument).toMatchObject({ state: "cHJlc2V0MQ==" });
+    } finally {
+      unmount();
+    }
+  });
+
+  it("F3: stops retrying after the retry bound when the store keeps changing concurrently", async () => {
+    const vst = window.api!.vst!;
+    let setCalls = 0;
+    vst.setParameters = jest.fn(async () => {
+      setCalls++;
+      return {
+        parameters: [
+          {
+            id: "cutoff",
+            index: 0,
+            name: "Cutoff",
+            label: "Hz",
+            value: 0.75,
+            displayValue: "4000 Hz"
+          }
+        ],
+        state: "cGFyYW0x"
+      };
+    });
+    // Mutate the store during every getParameters read so every retry sees a changed store.
+    vst.getParameters = jest.fn(async () => {
+      mockDoc.setState((s) => ({ ...s, tracks: [...s.tracks] }));
+      return {
+        parameters: [
+          {
+            id: "cutoff",
+            index: 0,
+            name: "Cutoff",
+            label: "Hz",
+            value: 0.5,
+            displayValue: "1000 Hz"
+          }
+        ]
+      };
+    });
+
+    const { unmount } = renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    try {
+      await runTool("ui_timeline_load_plugin", {
+        timeline_id: SEQ_ID,
+        track: "Synth",
+        plugin: "Acme Pad"
+      });
+      await expect(
+        runTool("ui_timeline_set_plugin_parameters", {
+          timeline_id: SEQ_ID,
+          track: "Synth",
+          parameter: "Cutoff",
+          value: 0.75
+        })
+      ).rejects.toThrow(/retry limit/i);
+      expect(setCalls).toBe(1);
+    } finally {
+      unmount();
+    }
+  });
 });

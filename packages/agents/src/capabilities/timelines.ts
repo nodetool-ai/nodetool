@@ -18,6 +18,7 @@
  * Design: docs/tool-class-retirement-design.md § "Migration".
  */
 
+import { isShortResourceId } from "@nodetool-ai/protocol";
 import { timelineColorSpaceError } from "@nodetool-ai/timeline";
 import type {
   TimelineDocument,
@@ -499,11 +500,19 @@ function resolveNamedUnit(
   scope: "any" | "clip" | "track"
 ): string {
   const lower = value.toLowerCase();
-  const match = (units: { id: string; name: string }[]): string | undefined =>
-    (
-      units.find((u) => u.id === value) ??
-      units.find((u) => u.name.toLowerCase() === lower)
-    )?.id;
+  const match = (units: { id: string; name: string }[]): string | undefined => {
+    const exact = units.find((u) => u.id === value);
+    if (exact) return exact.id;
+    if (isShortResourceId(value)) {
+      const prefixIds = new Set(
+        units.filter((u) => u.id.startsWith(value)).map((u) => u.id)
+      );
+      if (prefixIds.size === 1) {
+        return prefixIds.values().next().value;
+      }
+    }
+    return units.find((u) => u.name.toLowerCase() === lower)?.id;
+  };
   if (scope !== "track") {
     const clip = match(clips);
     if (clip) return clip;
@@ -511,6 +520,50 @@ function resolveNamedUnit(
   if (scope !== "clip") {
     const track = match(tracks);
     if (track) return track;
+  }
+  return value;
+}
+
+function resolveEffectIdFromUnits(
+  value: string,
+  effects: readonly { id: string; type?: string; plugin?: { name?: string } | null }[],
+  result: unknown
+): string {
+  if (isRecord(result)) {
+    if (isString(result["effectId"]) && result["effectId"].length > 0) {
+      return result["effectId"];
+    }
+    if (
+      isRecord(result["effect"]) &&
+      isString(result["effect"]["id"]) &&
+      result["effect"]["id"].length > 0
+    ) {
+      return result["effect"]["id"];
+    }
+  }
+  const exact = effects.find((e) => e.id === value);
+  if (exact) return exact.id;
+  if (isShortResourceId(value)) {
+    const prefixIds = new Set(
+      effects.filter((e) => e.id.startsWith(value)).map((e) => e.id)
+    );
+    if (prefixIds.size === 1) {
+      return prefixIds.values().next().value!;
+    }
+  }
+  const lower = value.toLowerCase();
+  const byPluginName = new Set(
+    effects
+      .filter(
+        (e) =>
+          e.type === "vst" &&
+          typeof e.plugin?.name === "string" &&
+          e.plugin.name.toLowerCase() === lower
+      )
+      .map((e) => e.id)
+  );
+  if (byPluginName.size === 1) {
+    return byPluginName.values().next().value!;
   }
   return value;
 }
@@ -572,6 +625,17 @@ export function resolveTimelineOpInput(
   const next = { ...input };
   if (isMasterResult && typeof next["track"] === "string") {
     next["track"] = "master";
+    if (typeof next["effectId"] === "string" && next["effectId"].length > 0) {
+      const masterEffects = [
+        ...(before.master?.effects ?? []),
+        ...(state.master?.effects ?? [])
+      ];
+      next["effectId"] = resolveEffectIdFromUnits(
+        next["effectId"],
+        masterEffects,
+        result
+      );
+    }
     return next;
   }
   for (const [key, scope] of Object.entries(TIMELINE_OP_ID_KEYS)) {
@@ -582,6 +646,27 @@ export function resolveTimelineOpInput(
       continue;
     }
     next[key] = resolveNamedUnit(value, clips, tracks, scope);
+  }
+  if (typeof next["effectId"] === "string" && next["effectId"].length > 0) {
+    const trackId =
+      typeof next["track"] === "string"
+        ? next["track"]
+        : typeof next["trackId"] === "string"
+          ? next["trackId"]
+          : typeof next["track_id"] === "string"
+            ? next["track_id"]
+            : undefined;
+    const trackEffects = [
+      ...(before.tracks ?? []),
+      ...(state.documentTracks ?? [])
+    ]
+      .filter((t) => !trackId || t.id === trackId)
+      .flatMap((t) => t.effects ?? []);
+    next["effectId"] = resolveEffectIdFromUnits(
+      next["effectId"],
+      trackEffects,
+      result
+    );
   }
   if (Array.isArray(next["clipIds"])) {
     next["clipIds"] = next["clipIds"].map((entry) =>

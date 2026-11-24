@@ -27,6 +27,67 @@ import type {
 } from "@nodetool-ai/timeline/ops";
 
 const TIMEOUT_MS = { scan: 180_000, default: 30_000 } as const;
+const MAX_INT32 = 2_147_483_647;
+const INSTANCE_PATTERN = /^[A-Za-z0-9_.:-]{1,128}$/;
+
+const instanceSchema = z
+  .string()
+  .regex(INSTANCE_PATTERN, "Invalid VST instance id");
+const targetSchema = z.object({
+  path: z.string().min(1).max(4096),
+  uid: z.string().min(1).max(512)
+});
+const stateSchema = z.string().max(8_000_000).nullable();
+const listPresetsRequestSchema = z.object({
+  instance: instanceSchema,
+  plugin: targetSchema,
+  state: stateSchema
+});
+const selectPresetRequestSchema = z
+  .object({
+    instance: instanceSchema,
+    plugin: targetSchema,
+    state: stateSchema,
+    presetIndex: z.number().int().min(0).max(MAX_INT32).optional(),
+    presetName: z.string().min(1).max(256).optional()
+  })
+  .refine((v) => v.presetIndex !== undefined || v.presetName !== undefined, {
+    message: "presetIndex or presetName is required"
+  });
+const getParametersRequestSchema = z.object({
+  instance: instanceSchema,
+  plugin: targetSchema,
+  state: stateSchema
+});
+const parameterChangeSchema = z
+  .object({
+    id: z.string().min(1).max(256).optional(),
+    index: z.number().int().min(0).max(MAX_INT32).optional(),
+    value: z.number().finite().min(0).max(1).optional(),
+    displayValue: z.string().min(1).max(256).optional()
+  })
+  .refine((v) => v.id !== undefined || v.index !== undefined, {
+    message: "parameter change requires id or index"
+  })
+  .refine((v) => (v.value !== undefined) !== (v.displayValue !== undefined), {
+    message: "parameter change requires exactly one of value or displayValue"
+  });
+const setParametersRequestSchema = z.object({
+  instance: instanceSchema,
+  plugin: targetSchema,
+  state: stateSchema,
+  changes: z.array(parameterChangeSchema).min(1).max(128)
+});
+
+function parseRequest<T>(schema: z.ZodType<T>, value: unknown, what: string): T {
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid VST ${what}: ${parsed.error.issues[0]?.message ?? "malformed"}`
+    );
+  }
+  return parsed.data;
+}
 
 function helperBinaryName(platform: NodeJS.Platform): string {
   return platform === "win32" ? "NodeToolVstHost.exe" : "NodeToolVstHost";
@@ -253,18 +314,46 @@ export function createNodePluginHost(
     });
   }
 
+  function resolveSelectedPreset(
+    reply: Record<string, unknown>,
+    req: { presetIndex?: number; presetName?: string }
+  ): PluginHostPresetInfo {
+    const direct = presetInfoSchema.safeParse(reply.preset);
+    if (direct.success) return direct.data;
+    const presets = parsePresets(reply.presets);
+    if (req.presetIndex !== undefined) {
+      const byIndex = presets.find((p) => p.index === req.presetIndex);
+      if (byIndex) return byIndex;
+      return { index: req.presetIndex, name: req.presetName ?? "" };
+    }
+    if (req.presetName !== undefined) {
+      const lower = req.presetName.toLowerCase();
+      const byName = presets.find((p) => p.name.toLowerCase() === lower);
+      if (byName) return byName;
+      const currentIdx =
+        typeof reply.currentPresetIndex === "number" &&
+        Number.isInteger(reply.currentPresetIndex) &&
+        reply.currentPresetIndex >= 0
+          ? reply.currentPresetIndex
+          : 0;
+      return { index: currentIdx, name: req.presetName };
+    }
+    return { index: 0, name: "" };
+  }
+
   return {
     status,
     scan,
 
     async listPresets(req): Promise<PluginHostListPresetsResult> {
-      const plugin = await checkPlugin(req.plugin);
+      const parsed = parseRequest(listPresetsRequestSchema, req, "listPresets request");
+      const plugin = await checkPlugin(parsed.plugin);
       const reply = await request({
         cmd: "listPresets",
-        instance: req.instance,
+        instance: parsed.instance,
         path: plugin.path,
         uid: plugin.uid,
-        state: req.state ?? ""
+        state: parsed.state ?? ""
       });
       return {
         currentPresetIndex:
@@ -276,32 +365,34 @@ export function createNodePluginHost(
     },
 
     async selectPreset(req): Promise<PluginHostSelectPresetResult> {
-      const plugin = await checkPlugin(req.plugin);
+      const parsed = parseRequest(selectPresetRequestSchema, req, "selectPreset request");
+      const plugin = await checkPlugin(parsed.plugin);
       const reply = await request({
         cmd: "selectPreset",
-        instance: req.instance,
+        instance: parsed.instance,
         path: plugin.path,
         uid: plugin.uid,
-        state: req.state ?? "",
-        ...(req.presetIndex !== undefined ? { presetIndex: req.presetIndex } : {}),
-        ...(req.presetName !== undefined ? { presetName: req.presetName } : {})
+        state: parsed.state ?? "",
+        ...(parsed.presetIndex !== undefined ? { presetIndex: parsed.presetIndex } : {}),
+        ...(parsed.presetName !== undefined ? { presetName: parsed.presetName } : {})
       });
-      const preset = presetInfoSchema.parse(reply.preset);
+      const preset = resolveSelectedPreset(reply, parsed);
       const state =
         typeof reply.state === "string" && reply.state.length > 0
           ? reply.state
-          : null;
+          : parsed.state;
       return { preset, state };
     },
 
     async getParameters(req): Promise<PluginHostGetParametersResult> {
-      const plugin = await checkPlugin(req.plugin);
+      const parsed = parseRequest(getParametersRequestSchema, req, "getParameters request");
+      const plugin = await checkPlugin(parsed.plugin);
       const reply = await request({
         cmd: "getParameters",
-        instance: req.instance,
+        instance: parsed.instance,
         path: plugin.path,
         uid: plugin.uid,
-        state: req.state ?? ""
+        state: parsed.state ?? ""
       });
       return { parameters: parseParameters(reply.parameters) };
     },
@@ -312,19 +403,20 @@ export function createNodePluginHost(
       state: string | null;
       changes: PluginHostParameterChange[];
     }): Promise<PluginHostSetParametersResult> {
-      const plugin = await checkPlugin(req.plugin);
+      const parsed = parseRequest(setParametersRequestSchema, req, "setParameters request");
+      const plugin = await checkPlugin(parsed.plugin);
       const reply = await request({
         cmd: "setParameters",
-        instance: req.instance,
+        instance: parsed.instance,
         path: plugin.path,
         uid: plugin.uid,
-        state: req.state ?? "",
-        changes: req.changes
+        state: parsed.state ?? "",
+        changes: parsed.changes
       });
       const state =
         typeof reply.state === "string" && reply.state.length > 0
           ? reply.state
-          : null;
+          : parsed.state;
       return {
         parameters: parseParameters(reply.parameters),
         state

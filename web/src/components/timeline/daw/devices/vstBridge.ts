@@ -6,7 +6,10 @@
  * device view says why. These types mirror `electron/src/types.d.ts`.
  */
 
-import type { TimelineOpPluginHost } from "@nodetool-ai/timeline/ops";
+import {
+  vstEditorInstanceKey,
+  type TimelineOpPluginHost
+} from "@nodetool-ai/timeline/ops";
 
 export interface VstHostStatus {
   available: boolean;
@@ -155,6 +158,51 @@ export function vstBridge(): VstBridge | null {
   return typeof window !== "undefined" ? window.api?.vst ?? null : null;
 }
 
+const inFlightHostMutations = new Map<string, number>();
+const recentHostAppliedStates = new Map<string, string | null>();
+
+/** Whether an agent preset/parameter mutation is currently in flight for `instance`. */
+export function isVstHostMutationInFlight(instance: string): boolean {
+  return (inFlightHostMutations.get(instance) ?? 0) > 0;
+}
+
+/**
+ * Returns true if `state` was just applied to the live host by an agent op for
+ * `instance` (so `VstDeviceView` does not need to close and reopen the editor).
+ */
+export function consumeVstHostAppliedState(
+  instance: string,
+  state: string | null
+): boolean {
+  if (!recentHostAppliedStates.has(instance)) return false;
+  if (recentHostAppliedStates.get(instance) === state) {
+    recentHostAppliedStates.delete(instance);
+    return true;
+  }
+  return false;
+}
+
+async function trackHostMutation<T extends { state: string | null }>(
+  instance: string,
+  work: () => Promise<T>
+): Promise<T> {
+  inFlightHostMutations.set(instance, (inFlightHostMutations.get(instance) ?? 0) + 1);
+  try {
+    const result = await work();
+    if (typeof result.state === "string" && result.state.length > 0) {
+      recentHostAppliedStates.set(instance, result.state);
+    }
+    return result;
+  } finally {
+    const remaining = (inFlightHostMutations.get(instance) ?? 1) - 1;
+    if (remaining <= 0) {
+      inFlightHostMutations.delete(instance);
+    } else {
+      inFlightHostMutations.set(instance, remaining);
+    }
+  }
+}
+
 /** Adapt the desktop Electron `window.api.vst` bridge to `TimelineOpPluginHost`. */
 export function createBrowserPluginHost(): TimelineOpPluginHost | undefined {
   const bridge = vstBridge();
@@ -173,7 +221,7 @@ export function createBrowserPluginHost(): TimelineOpPluginHost | undefined {
       if (!bridge.selectPreset) {
         return Promise.reject(new Error("This desktop build does not support selecting VST/AU presets."));
       }
-      return bridge.selectPreset(request);
+      return trackHostMutation(request.instance, () => bridge.selectPreset!(request));
     },
     getParameters: (request) => {
       if (!bridge.getParameters) {
@@ -185,12 +233,12 @@ export function createBrowserPluginHost(): TimelineOpPluginHost | undefined {
       if (!bridge.setParameters) {
         return Promise.reject(new Error("This desktop build does not support setting VST/AU parameters."));
       }
-      return bridge.setParameters(request);
+      return trackHostMutation(request.instance, () => bridge.setParameters!(request));
     }
   };
 }
 
 /** The editor instance a track's plug-in window uses. */
 export function vstEditorInstance(trackId: string): string {
-  return `track:${trackId.replace(/[^A-Za-z0-9_.:-]/g, "_").slice(0, 120)}`;
+  return vstEditorInstanceKey(trackId);
 }

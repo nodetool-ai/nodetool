@@ -246,6 +246,20 @@ declare global {
         delete: (id: string) => Promise<VaultListResult>;
         switch: (id: string) => Promise<VaultListResult>;
       };
+
+      // VST3/AU plug-in hosting (available in local desktop windows, omitted in cloud window)
+      vst?: {
+        status: () => Promise<VstHostStatus>;
+        scan: (rescan?: boolean, includeEffects?: boolean) => Promise<VstPluginInfo[]>;
+        render: (request: VstRenderRequest) => Promise<VstRenderResult>;
+        openEditor: (request: VstOpenEditorRequest) => Promise<void>;
+        closeEditor: (instance: string) => Promise<void>;
+        listPresets: (request: VstListPresetsRequest) => Promise<VstListPresetsResult>;
+        selectPreset: (request: VstSelectPresetRequest) => Promise<VstSelectPresetResult>;
+        getParameters: (request: VstGetParametersRequest) => Promise<VstGetParametersResult>;
+        setParameters: (request: VstSetParametersRequest) => Promise<VstSetParametersResult>;
+        onEvent: (callback: (event: VstHostEvent) => void) => () => void;
+      };
     };
 
     // Alias exposed by preload for legacy pages.

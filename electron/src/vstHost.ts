@@ -19,7 +19,9 @@ import * as path from "path";
 import { createInterface } from "readline";
 import { app, BrowserWindow } from "electron";
 import { z } from "zod";
+import { isCloudWindowId } from "./cloudWindow";
 import { logMessage } from "./logger";
+import { isTrustedAppOrigin } from "./windowSecurity";
 import {
   IpcChannels,
   type VstGetParametersRequest,
@@ -76,6 +78,7 @@ const TIMEOUT_MS = { scan: 180_000, render: 120_000, default: 30_000 } as const;
 /** The longest render accepted, in frames at any rate (ten minutes at 192 kHz). */
 const MAX_RENDER_FRAMES = 192_000 * 600;
 const MAX_EVENTS = 100_000;
+const MAX_INT32 = 2_147_483_647;
 const INSTANCE_PATTERN = /^[A-Za-z0-9_.:-]{1,128}$/;
 
 // The renderer is untrusted: every request is parsed here.
@@ -114,7 +117,7 @@ const selectPresetRequestSchema = z
     instance: instanceSchema,
     plugin: targetSchema,
     state: stateSchema,
-    presetIndex: z.number().int().min(0).optional(),
+    presetIndex: z.number().int().min(0).max(MAX_INT32).optional(),
     presetName: z.string().min(1).max(256).optional(),
   })
   .refine((v) => v.presetIndex !== undefined || v.presetName !== undefined, {
@@ -128,8 +131,8 @@ const getParametersRequestSchema = z.object({
 const parameterChangeSchema = z
   .object({
     id: z.string().min(1).max(256).optional(),
-    index: z.number().int().min(0).optional(),
-    value: z.number().min(0).max(1).optional(),
+    index: z.number().int().min(0).max(MAX_INT32).optional(),
+    value: z.number().finite().min(0).max(1).optional(),
     displayValue: z.string().min(1).max(256).optional(),
   })
   .refine((v) => v.id !== undefined || v.index !== undefined, {
@@ -353,9 +356,41 @@ export class VstHost {
       ...(request.presetIndex !== undefined ? { presetIndex: request.presetIndex } : {}),
       ...(request.presetName !== undefined ? { presetName: request.presetName } : {}),
     });
-    const preset = presetInfoSchema.parse(reply.preset);
-    const state = typeof reply.state === "string" && reply.state.length > 0 ? reply.state : null;
+    const preset = this.resolveSelectedPreset(reply, request);
+    const state = typeof reply.state === "string" && reply.state.length > 0 ? reply.state : request.state;
     return { preset, state };
+  }
+
+  private resolveSelectedPreset(
+    reply: Record<string, unknown>,
+    request: { presetIndex?: number; presetName?: string },
+  ): { index: number; name: string } {
+    const direct = presetInfoSchema.safeParse(reply.preset);
+    if (direct.success) return direct.data;
+    const presets = Array.isArray(reply.presets)
+      ? reply.presets.flatMap((entry) => {
+          const parsed = presetInfoSchema.safeParse(entry);
+          return parsed.success ? [parsed.data] : [];
+        })
+      : [];
+    if (request.presetIndex !== undefined) {
+      const byIndex = presets.find((p) => p.index === request.presetIndex);
+      if (byIndex) return byIndex;
+      return { index: request.presetIndex, name: request.presetName ?? "" };
+    }
+    if (request.presetName !== undefined) {
+      const lower = request.presetName.toLowerCase();
+      const byName = presets.find((p) => p.name.toLowerCase() === lower);
+      if (byName) return byName;
+      const currentIdx =
+        typeof reply.currentPresetIndex === "number" &&
+        Number.isInteger(reply.currentPresetIndex) &&
+        reply.currentPresetIndex >= 0
+          ? reply.currentPresetIndex
+          : 0;
+      return { index: currentIdx, name: request.presetName };
+    }
+    return { index: 0, name: "" };
   }
 
   async getParameters(input: VstGetParametersRequest): Promise<VstGetParametersResult> {
@@ -394,7 +429,7 @@ export class VstHost {
           return parsed.success ? [parsed.data] : [];
         })
       : [];
-    const state = typeof reply.state === "string" && reply.state.length > 0 ? reply.state : null;
+    const state = typeof reply.state === "string" && reply.state.length > 0 ? reply.state : request.state;
     return { parameters, state };
   }
 
@@ -493,13 +528,23 @@ export class VstHost {
 }
 
 let shared: VstHost | null = null;
+let excludedVstEventWindow: ((webContentsId: number) => boolean) | null = null;
 
-/** The app's one VST host. Its events go to every window. */
+/** Registers an additional exclusion predicate (e.g. cloud window) for VST_EVENT broadcasts. */
+export function setVstEventWindowFilter(filter: ((webContentsId: number) => boolean) | null): void {
+  excludedVstEventWindow = filter;
+}
+
+/** The app's one VST host. Its events go only to trusted local windows. */
 export function getVstHost(): VstHost {
   shared ??= new VstHost({
     onEvent: (event) => {
       for (const w of BrowserWindow.getAllWindows()) {
-        if (!w.isDestroyed()) w.webContents.send(IpcChannels.VST_EVENT, event);
+        if (w.isDestroyed()) continue;
+        if (isCloudWindowId(w.webContents.id) || excludedVstEventWindow?.(w.webContents.id)) continue;
+        const url = typeof w.webContents.getURL === "function" ? w.webContents.getURL() : "";
+        if (url && !isTrustedAppOrigin(url)) continue;
+        w.webContents.send(IpcChannels.VST_EVENT, event);
       }
     },
   });

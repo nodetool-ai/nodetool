@@ -119,6 +119,75 @@ describe("resolveTimelineOpInput", () => {
     ).toEqual({ id: "T9" });
   });
 
+  it("F7: resolves 12-char short track IDs and short effectId prefixes for track and master plugin ops", () => {
+    const fullTrackId = "11111111111122222222222233333333";
+    const fullEffectId = "aaaaaaaaaaaabbbbbbbbbbbbcccccccc";
+    const fullMasterFxId = "ddddddddddddeeeeeeeeeeeeffffffff";
+    const beforeWithFx = {
+      tracks: [
+        {
+          id: fullTrackId,
+          name: "Synth",
+          effects: [{ id: fullEffectId, type: "vst", plugin: { name: "Comp" } }]
+        }
+      ],
+      master: {
+        volumeDb: 0,
+        effects: [{ id: fullMasterFxId, type: "vst", plugin: { name: "Limiter" } }]
+      },
+      clips: []
+    } as unknown as TimelineDocument;
+    const stateWithFx = {
+      tracks: [{ id: fullTrackId, name: "Synth", type: "midi", index: 0 }],
+      documentTracks: beforeWithFx.tracks,
+      master: beforeWithFx.master,
+      clips: []
+    } as unknown as TimelineBridgeFinalState;
+
+    expect(
+      resolveTimelineOpInput(
+        {
+          track: fullTrackId.slice(0, 12),
+          effectId: fullEffectId.slice(0, 12),
+          preset: "Warm"
+        },
+        beforeWithFx,
+        stateWithFx,
+        {
+          ok: true,
+          track: { id: fullTrackId },
+          effectId: fullEffectId
+        }
+      )
+    ).toEqual({
+      track: fullTrackId,
+      effectId: fullEffectId,
+      preset: "Warm",
+      id: fullTrackId
+    });
+
+    expect(
+      resolveTimelineOpInput(
+        {
+          track: "master",
+          effectId: fullMasterFxId.slice(0, 12),
+          preset: "Loud"
+        },
+        beforeWithFx,
+        stateWithFx,
+        {
+          ok: true,
+          master: { volumeDb: 0 },
+          effectId: fullMasterFxId
+        }
+      )
+    ).toEqual({
+      track: "master",
+      effectId: fullMasterFxId,
+      preset: "Loud"
+    });
+  });
+
   // The midi ops name their unit `clip` and `track` rather than `target`, so
   // the canonicalizer has to read those keys or the broadcast carries a name.
   it("resolves the `clip` and `track` keys the midi ops use", () => {

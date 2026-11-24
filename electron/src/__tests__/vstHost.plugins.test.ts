@@ -101,4 +101,87 @@ describe("VstHost presets, parameters, and effects scan", () => {
       })
     ).rejects.toThrow(/not installed on this computer/);
   });
+
+  it("F1 & F9: preserves prior state on empty reply.state and handles out-of-range getCurrentProgram", async () => {
+    const quirkyScript = path.join(dir, "quirky-helper.js");
+    await fs.writeFile(
+      quirkyScript,
+      String.raw`
+const readline = require("readline");
+const send = (m) => process.stdout.write(JSON.stringify(m) + "\n");
+const plugins = [
+  { uid: "VST3-Pad", name: "Pad", vendor: "Acme", version: "1.0", path: "/plugins/Pad.vst3", format: "vst3", isInstrument: true }
+];
+readline.createInterface({ input: process.stdin }).on("line", (line) => {
+  const req = JSON.parse(line);
+  if (req.cmd === "scan") return send({ id: req.id, ok: true, plugins });
+  if (req.cmd === "selectPreset") {
+    return send({
+      id: req.id,
+      ok: true,
+      currentPresetIndex: -1,
+      presets: [{ index: 0, name: "Init" }, { index: 1, name: "Lush" }],
+      preset: null,
+      state: ""
+    });
+  }
+  if (req.cmd === "setParameters") {
+    return send({
+      id: req.id,
+      ok: true,
+      parameters: [{ id: "cutoff", index: 0, name: "Cutoff", value: 0.8, displayValue: "4000 Hz" }],
+      state: ""
+    });
+  }
+  send({ id: req.id, ok: false, error: "Unknown command" });
+});
+`
+    );
+    const quirkyHost = new VstHost({
+      locate: () => "NodeToolVstHost",
+      spawnHelper: () => spawn(process.execPath, [quirkyScript], { stdio: ["pipe", "pipe", "pipe"] }),
+      tmpDir: dir
+    });
+    const target = { path: "/plugins/Pad.vst3", uid: "VST3-Pad" };
+    try {
+      const sel = await quirkyHost.selectPreset({
+        instance: "track:t1",
+        plugin: target,
+        state: "cHJldg==",
+        presetIndex: 1
+      });
+      expect(sel.preset).toEqual({ index: 1, name: "Lush" });
+      expect(sel.state).toBe("cHJldg==");
+
+      const set = await quirkyHost.setParameters({
+        instance: "track:t1",
+        plugin: target,
+        state: "cHJldg==",
+        changes: [{ id: "cutoff", value: 0.8 }]
+      });
+      expect(set.state).toBe("cHJldg==");
+    } finally {
+      quirkyHost.dispose();
+    }
+  });
+
+  it("F10: rejects 32-bit integer overflow in presetIndex and parameter index", async () => {
+    const target = { path: "/plugins/Pad.vst3", uid: "VST3-Pad" };
+    await expect(
+      host.selectPreset({
+        instance: "track:t1",
+        plugin: target,
+        state: null,
+        presetIndex: 2_147_483_648
+      })
+    ).rejects.toThrow(/Invalid VST selectPreset request/);
+    await expect(
+      host.setParameters({
+        instance: "track:t1",
+        plugin: target,
+        state: null,
+        changes: [{ index: 2_147_483_648, value: 0.5 }]
+      })
+    ).rejects.toThrow(/Invalid VST setParameters request/);
+  });
 });

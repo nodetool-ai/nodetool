@@ -153,4 +153,110 @@ describe("VST/AU plugin bridge & Node host adapter", () => {
       host.dispose();
     }
   });
+
+  it("F1 & F9: preserves prior state on empty reply.state and handles null reply.preset", async () => {
+    const quirkyScript = path.join(tmpDir, "quirky-vst-host.js");
+    await fs.writeFile(
+      quirkyScript,
+      String.raw`
+const readline = require("readline");
+const send = (m) => process.stdout.write(JSON.stringify(m) + "\n");
+const plugins = [
+  { uid: "VST3-Pad", name: "Acme Pad", vendor: "Acme", version: "1.0", path: "/plugins/AcmePad.vst3", format: "vst3", isInstrument: true }
+];
+readline.createInterface({ input: process.stdin }).on("line", (line) => {
+  const req = JSON.parse(line);
+  if (req.cmd === "scan") return send({ id: req.id, ok: true, plugins });
+  if (req.cmd === "selectPreset") {
+    return send({
+      id: req.id,
+      ok: true,
+      currentPresetIndex: -1,
+      presets: [{ index: 0, name: "Init" }, { index: 1, name: "Warm Pad" }],
+      preset: null,
+      state: ""
+    });
+  }
+  if (req.cmd === "setParameters") {
+    return send({
+      id: req.id,
+      ok: true,
+      parameters: [{ id: "cutoff", index: 0, name: "Cutoff", value: 0.9, displayValue: "18000 Hz" }],
+      state: ""
+    });
+  }
+  if (req.cmd === "quit") process.exit(0);
+  return send({ id: req.id, ok: false, error: "Unknown" });
+});
+`
+    );
+    const host = createNodePluginHost({
+      locate: () => "NodeToolVstHost",
+      spawnHelper: () =>
+        spawn(process.execPath, [quirkyScript], { stdio: ["pipe", "pipe", "pipe"] })
+    });
+    const target = { path: "/plugins/AcmePad.vst3", uid: "VST3-Pad" };
+    try {
+      const sel = await host.selectPreset({
+        instance: "track:t1",
+        plugin: target,
+        state: "U0FWRUQ=",
+        presetIndex: 1
+      });
+      expect(sel.preset).toEqual({ index: 1, name: "Warm Pad" });
+      expect(sel.state).toBe("U0FWRUQ=");
+
+      const set = await host.setParameters({
+        instance: "track:t1",
+        plugin: target,
+        state: "U0FWRUQ=",
+        changes: [{ id: "cutoff", value: 0.9 }]
+      });
+      expect(set.state).toBe("U0FWRUQ=");
+    } finally {
+      host.dispose();
+    }
+  });
+
+  it("F5: validates untrusted inputs before spawning or forwarding to helper", async () => {
+    let spawned = 0;
+    const host = createNodePluginHost({
+      locate: () => "NodeToolVstHost",
+      spawnHelper: () => {
+        spawned++;
+        return spawn(process.execPath, [helperScript], { stdio: ["pipe", "pipe", "pipe"] });
+      }
+    });
+    const target = { path: "/plugins/AcmePad.vst3", uid: "VST3-Pad" };
+    try {
+      await expect(
+        host.listPresets({ instance: "../bad instance", plugin: target, state: null })
+      ).rejects.toThrow(/Invalid VST/i);
+      await expect(
+        host.getParameters({ instance: "track:t1", plugin: target, state: "A".repeat(8_000_001) })
+      ).rejects.toThrow(/Invalid VST/i);
+      await expect(
+        host.selectPreset({ instance: "track:t1", plugin: target, state: null, presetIndex: 2_147_483_648 })
+      ).rejects.toThrow(/Invalid VST/i);
+      await expect(
+        host.setParameters({
+          instance: "track:t1",
+          plugin: target,
+          state: null,
+          changes: [{ id: "cutoff", value: Number.NaN }]
+        })
+      ).rejects.toThrow(/Invalid VST/i);
+      await expect(
+        host.setParameters({
+          instance: "track:t1",
+          plugin: target,
+          state: null,
+          changes: [{ id: "cutoff", displayValue: "x".repeat(257) }]
+        })
+      ).rejects.toThrow(/Invalid VST/i);
+      expect(spawned).toBe(0);
+    } finally {
+      host.dispose();
+    }
+  });
 });

@@ -3255,6 +3255,8 @@ export type ListPluginsParams = z.infer<typeof listPluginsParams>;
 export const LIST_PLUGINS_DESCRIPTION =
   "List available third-party VST3 and AU instruments and audio effects installed on the host machine.";
 
+const MAX_INT32 = 2_147_483_647;
+
 export const loadPluginParams = z.object({
   track: trackTargetParam.describe('Track id or name, or "master" for master bus insert effects.'),
   plugin: pluginSelectorParam,
@@ -3274,6 +3276,7 @@ export const loadPluginParams = z.object({
     .number()
     .int()
     .min(0)
+    .max(MAX_INT32)
     .optional()
     .describe("Optional 0-based insertion index in the track or master insert effect chain."),
   enabled: z
@@ -3329,7 +3332,7 @@ export const selectPluginPresetParams = z.object({
     .optional()
     .describe("Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument."),
   preset: z
-    .union([z.number().int().min(0), z.string().trim().min(1)])
+    .union([z.number().int().min(0).max(MAX_INT32), z.string().trim().min(1).max(256)])
     .describe("0-based preset index or case-insensitive preset name from ui_timeline_list_plugin_presets.")
 });
 export type SelectPluginPresetParams = z.infer<typeof selectPluginPresetParams>;
@@ -3345,7 +3348,7 @@ export const getPluginParametersParams = z.object({
     .optional()
     .describe("Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument."),
   parameters: z
-    .array(z.union([z.string().trim().min(1), z.number().int().min(0)]))
+    .array(z.union([z.string().trim().min(1).max(256), z.number().int().min(0).max(MAX_INT32)]))
     .max(256)
     .optional()
     .describe("Optional parameter ids, indices, or names to read. Omit to list every parameter exposed by the plugin."),
@@ -3361,7 +3364,7 @@ export const GET_PLUGIN_PARAMETERS_DESCRIPTION =
 const pluginParameterChangeParam = z
   .object({
     parameter: z
-      .union([z.string().trim().min(1), z.number().int().min(0)])
+      .union([z.string().trim().min(1).max(256), z.number().int().min(0).max(MAX_INT32)])
       .describe("Parameter id, 0-based index, or case-insensitive name from ui_timeline_get_plugin_parameters."),
     value: z
       .number()
@@ -3373,6 +3376,7 @@ const pluginParameterChangeParam = z
       .string()
       .trim()
       .min(1)
+      .max(256)
       .optional()
       .describe('Formatted display value (e.g. "1200 Hz", "-6 dB", "On"). Provide either value or displayValue, not both.')
   })
@@ -3396,7 +3400,7 @@ export const setPluginParametersShape = {
     .optional()
     .describe("Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument."),
   parameter: z
-    .union([z.string().trim().min(1), z.number().int().min(0)])
+    .union([z.string().trim().min(1).max(256), z.number().int().min(0).max(MAX_INT32)])
     .optional()
     .describe("Single parameter id, 0-based index, or name (shorthand for a one-entry `parameters` array)."),
   value: z
@@ -3409,6 +3413,7 @@ export const setPluginParametersShape = {
     .string()
     .trim()
     .min(1)
+    .max(256)
     .optional()
     .describe("Formatted display value for the single `parameter` shorthand."),
   parameters: z

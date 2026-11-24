@@ -100,6 +100,7 @@ const KEYED_UNIT_KINDS: Record<string, TimelineUnitKind> = {
   clipId: "clip",
   track_id: "track",
   trackId: "track",
+  track: "track",
   marker_id: "marker"
 };
 
@@ -155,7 +156,12 @@ export const timelineUnitsTouchedByOp = (
   if (tool === "bind_to_track" || tool === "unbind_track") {
     return [{ kind: "clip" }];
   }
-  if (tool === "set_track") {
+  if (
+    tool === "set_track" ||
+    tool === "load_plugin" ||
+    tool === "select_plugin_preset" ||
+    tool === "set_plugin_parameters"
+  ) {
     if (
       typeof input.track === "string" &&
       input.track.toLowerCase() === "master" &&
@@ -176,7 +182,7 @@ export const timelineUnitsTouchedByOp = (
     if (hits.length === 0) {
       hits.push({ kind: "track" });
     }
-    if (input.folder !== undefined && input.folder !== null) {
+    if (tool === "set_track" && input.folder !== undefined && input.folder !== null) {
       hits.push({ kind: "trackFolder" });
     }
     return hits;

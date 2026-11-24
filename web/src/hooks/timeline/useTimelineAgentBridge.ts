@@ -934,13 +934,92 @@ export const useTimelineAgentBridge = (
           op.op === "seek" ||
           (op.op === "detect_chords" && op.write === false);
         assertSameSequence();
+        // Keep side-effecting out-of-process plugin mutations idempotent across
+        // concurrent store updates and cap retries so the loop stays bounded.
+        const MAX_CONCURRENT_OP_RETRIES = 3;
+        const basePluginHost = context.pluginHost;
+        let cachedSelectPreset:
+          | {
+              instance: string;
+              path: string;
+              uid: string;
+              result: Awaited<ReturnType<NonNullable<typeof basePluginHost>["selectPreset"]>>;
+            }
+          | undefined;
+        let cachedSetParameters:
+          | {
+              instance: string;
+              path: string;
+              uid: string;
+              result: Awaited<ReturnType<NonNullable<typeof basePluginHost>["setParameters"]>>;
+            }
+          | undefined;
+        const opContext: TimelineOpContext = basePluginHost
+          ? {
+              ...context,
+              pluginHost: {
+                ...basePluginHost,
+                selectPreset: async (req) => {
+                  if (cachedSelectPreset) {
+                    if (
+                      cachedSelectPreset.instance === req.instance &&
+                      cachedSelectPreset.path === req.plugin.path &&
+                      cachedSelectPreset.uid === req.plugin.uid
+                    ) {
+                      return cachedSelectPreset.result;
+                    }
+                    throw new Error(
+                      "Plugin slot changed concurrently while applying select_plugin_preset."
+                    );
+                  }
+                  const result = await basePluginHost.selectPreset(req);
+                  cachedSelectPreset = {
+                    instance: req.instance,
+                    path: req.plugin.path,
+                    uid: req.plugin.uid,
+                    result
+                  };
+                  return result;
+                },
+                setParameters: async (req) => {
+                  if (cachedSetParameters) {
+                    if (
+                      cachedSetParameters.instance === req.instance &&
+                      cachedSetParameters.path === req.plugin.path &&
+                      cachedSetParameters.uid === req.plugin.uid
+                    ) {
+                      return cachedSetParameters.result;
+                    }
+                    throw new Error(
+                      "Plugin slot changed concurrently while applying set_plugin_parameters."
+                    );
+                  }
+                  const result = await basePluginHost.setParameters(req);
+                  cachedSetParameters = {
+                    instance: req.instance,
+                    path: req.plugin.path,
+                    uid: req.plugin.uid,
+                    result
+                  };
+                  return result;
+                }
+              }
+            }
+          : context;
         let before = doc.getState();
-        let outcome = await applyTimelineOp(stateOf(), op, context);
+        let outcome = await applyTimelineOp(stateOf(), op, opContext);
+        let retries = 0;
         while (doc.getState() !== before && !skipsDocumentWrite) {
+          if (retries >= MAX_CONCURRENT_OP_RETRIES) {
+            throw new Error(
+              `Timeline changed concurrently while applying ${op.op}; retry limit (${MAX_CONCURRENT_OP_RETRIES}) exceeded.`
+            );
+          }
+          retries++;
           assertSameSequence();
           before = doc.getState();
           positions = new Map();
-          outcome = await applyTimelineOp(stateOf(), op, context);
+          outcome = await applyTimelineOp(stateOf(), op, opContext);
         }
         assertSameSequence();
         if (outcome.error) {

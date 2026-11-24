@@ -307,4 +307,297 @@ describe("VST/AU plugin timeline ops", () => {
       expect.objectContaining({ id: "resonance", value: 0.75, displayValue: "75%" })
     ]);
   });
+
+  it("F1: preserves previously persisted state when host returns empty or null state", async () => {
+    const baseHost = makeHost();
+    const emptyStateHost = {
+      ...baseHost,
+      selectPreset: async (req: Parameters<typeof baseHost.selectPreset>[0]) => {
+        const res = await baseHost.selectPreset(req);
+        return { preset: res.preset, state: null };
+      },
+      setParameters: async (req: Parameters<typeof baseHost.setParameters>[0]) => {
+        const res = await baseHost.setParameters(req);
+        return { parameters: res.parameters, state: "" as unknown as string | null };
+      }
+    };
+    const ctx = makeCtx(emptyStateHost);
+    const loaded = await applyTimelineOp(
+      makeState(),
+      timelineOpFromToolArgs("load_plugin", {
+        track: "Lead",
+        plugin: "VST3-Pad",
+        state: "U0FWRURfUEFUQ0g="
+      }),
+      ctx
+    );
+    expect(loaded.error).toBeUndefined();
+
+    const afterPreset = await applyTimelineOp(
+      loaded.state,
+      timelineOpFromToolArgs("select_plugin_preset", { track: "Lead", preset: 1 }),
+      ctx
+    );
+    expect(afterPreset.error).toBeUndefined();
+    expect(afterPreset.result.stateUpdated).toBe(false);
+    expect(
+      afterPreset.state.tracks[0].instrument?.type === "vst"
+        ? afterPreset.state.tracks[0].instrument.state
+        : null
+    ).toBe("U0FWRURfUEFUQ0g=");
+
+    const afterParams = await applyTimelineOp(
+      afterPreset.state,
+      timelineOpFromToolArgs("set_plugin_parameters", {
+        track: "Lead",
+        parameter: "Cutoff",
+        value: 0.9
+      }),
+      ctx
+    );
+    expect(afterParams.error).toBeUndefined();
+    expect(afterParams.result.stateUpdated).toBe(false);
+    expect(
+      afterParams.state.tracks[0].instrument?.type === "vst"
+        ? afterParams.state.tracks[0].instrument.state
+        : null
+    ).toBe("U0FWRURfUEFUQ0g=");
+  });
+
+  it("F5: rejects NaN, Infinity, and out-of-range inputs when applyTimelineOp is called directly", async () => {
+    const ctx = makeCtx();
+    const state = makeState();
+
+    const badIndex = await applyTimelineOp(
+      state,
+      { op: "load_plugin", track: "Vocals", plugin: "AU-Comp", index: Number.NaN },
+      ctx
+    );
+    expect(badIndex.error).toMatch(/index/i);
+
+    const badWet = await applyTimelineOp(
+      state,
+      { op: "load_plugin", track: "Vocals", plugin: "AU-Comp", wet: Number.NaN },
+      ctx
+    );
+    expect(badWet.error).toMatch(/wet/i);
+
+    const badGain = await applyTimelineOp(
+      state,
+      { op: "load_plugin", track: "Lead", plugin: "VST3-Pad", gainDb: Number.POSITIVE_INFINITY },
+      ctx
+    );
+    expect(badGain.error).toMatch(/gainDb/i);
+
+    const loaded = await applyTimelineOp(
+      state,
+      { op: "load_plugin", track: "Lead", plugin: "VST3-Pad" },
+      ctx
+    );
+    const badPreset = await applyTimelineOp(
+      loaded.state,
+      { op: "select_plugin_preset", track: "Lead", preset: Number.NaN },
+      ctx
+    );
+    expect(badPreset.error).toMatch(/preset/i);
+
+    const badParamVal = await applyTimelineOp(
+      loaded.state,
+      {
+        op: "set_plugin_parameters",
+        track: "Lead",
+        parameters: [{ parameter: "cutoff", value: Number.NaN }]
+      },
+      ctx
+    );
+    expect(badParamVal.error).toMatch(/value/i);
+  });
+
+  it("F8: sanitizes and bounds plugin host instance keys to match /^[A-Za-z0-9_.:-]{1,128}$/", async () => {
+    const seenInstances: string[] = [];
+    const baseHost = makeHost();
+    const spyHost = {
+      ...baseHost,
+      listPresets: async (req: Parameters<typeof baseHost.listPresets>[0]) => {
+        seenInstances.push(req.instance);
+        return baseHost.listPresets(req);
+      }
+    };
+    const longTrackId = `track with spaces/${"a".repeat(90)}`;
+    const longEffectId = `fx with spaces/${"b".repeat(90)}`;
+    const state: TimelineOpState = {
+      ...makeState(),
+      tracks: [makeTrack({ id: longTrackId, type: "midi", name: "Weird", index: 0 })]
+    };
+    const ctx: TimelineOpContext = {
+      newId: () => longEffectId,
+      pluginHost: spyHost
+    };
+    const withInst = await applyTimelineOp(
+      state,
+      { op: "load_plugin", track: longTrackId, plugin: "VST3-Pad" },
+      ctx
+    );
+    const withFx = await applyTimelineOp(
+      withInst.state,
+      { op: "load_plugin", track: longTrackId, plugin: "AU-Comp" },
+      ctx
+    );
+    const withMasterFx = await applyTimelineOp(
+      withFx.state,
+      { op: "load_plugin", track: "master", plugin: "AU-Comp" },
+      ctx
+    );
+    await applyTimelineOp(
+      withMasterFx.state,
+      { op: "list_plugin_presets", track: longTrackId },
+      ctx
+    );
+    await applyTimelineOp(
+      withMasterFx.state,
+      { op: "list_plugin_presets", track: longTrackId, effectId: longEffectId },
+      ctx
+    );
+    await applyTimelineOp(
+      withMasterFx.state,
+      { op: "list_plugin_presets", track: "master", effectId: longEffectId },
+      ctx
+    );
+    expect(seenInstances).toHaveLength(3);
+    for (const key of seenInstances) {
+      expect(key).toMatch(/^[A-Za-z0-9_.:-]{1,128}$/);
+    }
+  });
+
+  it("F10: enforces displayValue max length, 32-bit int upper bounds, and numeric string preset bounds", async () => {
+    expect(() =>
+      timelineOpFromToolArgs("set_plugin_parameters", {
+        track: "Lead",
+        parameter: "cutoff",
+        displayValue: "x".repeat(257)
+      })
+    ).toThrow();
+    expect(() =>
+      timelineOpFromToolArgs("select_plugin_preset", {
+        track: "Lead",
+        preset: 2_147_483_648
+      })
+    ).toThrow();
+    expect(() =>
+      timelineOpFromToolArgs("load_plugin", {
+        track: "Vocals",
+        plugin: "AU-Comp",
+        index: 2_147_483_648
+      })
+    ).toThrow();
+
+    const ctx = makeCtx();
+    const loaded = await applyTimelineOp(
+      makeState(),
+      { op: "load_plugin", track: "Lead", plugin: "VST3-Pad" },
+      ctx
+    );
+    const overflowStr = await applyTimelineOp(
+      loaded.state,
+      { op: "select_plugin_preset", track: "Lead", preset: "999999999999999999999" },
+      ctx
+    );
+    expect(overflowStr.error).toMatch(/out of range|no preset/i);
+
+    const outOfBoundsStr = await applyTimelineOp(
+      loaded.state,
+      { op: "select_plugin_preset", track: "Lead", preset: "99" },
+      ctx
+    );
+    expect(outOfBoundsStr.error).toMatch(/no preset at index 99/i);
+  });
+
+  it("F11: refuses load_plugin with an object selector when pluginHost is absent", async () => {
+    const res = await applyTimelineOp(
+      makeState(),
+      {
+        op: "load_plugin",
+        track: "Lead",
+        plugin: {
+          uid: "fake",
+          name: "Evil",
+          path: "/etc/passwd"
+        }
+      },
+      { newId: (k) => `${k}_1` }
+    );
+    expect(res.error).toMatch(/plugin host/i);
+    expect(res.state.tracks[0].instrument).toBeUndefined();
+  });
+
+  it("F12: enforces the 32-effect insert chain limit on tracks and master bus", async () => {
+    const ctx = makeCtx();
+    let state = makeState();
+    for (let i = 0; i < 32; i++) {
+      const added = await applyTimelineOp(
+        state,
+        { op: "load_plugin", track: "Vocals", plugin: "AU-Comp" },
+        ctx
+      );
+      expect(added.error).toBeUndefined();
+      state = added.state;
+    }
+    expect(state.tracks[1].effects).toHaveLength(32);
+
+    const overflow = await applyTimelineOp(
+      state,
+      { op: "load_plugin", track: "Vocals", plugin: "AU-Comp" },
+      ctx
+    );
+    expect(overflow.error).toMatch(/32/);
+
+    // Replacing an existing slot at capacity is still allowed.
+    const replaced = await applyTimelineOp(
+      state,
+      {
+        op: "load_plugin",
+        track: "Vocals",
+        plugin: "AU-Comp",
+        effectId: state.tracks[1].effects![0].id
+      },
+      ctx
+    );
+    expect(replaced.error).toBeUndefined();
+    expect(replaced.state.tracks[1].effects).toHaveLength(32);
+  });
+
+  it('F15: allows selecting an insert effect named "Instrument" via effectId', async () => {
+    const host = createMemoryPluginHost([
+      {
+        info: {
+          uid: "VST3-InstFx",
+          name: "Instrument",
+          vendor: "Acme",
+          version: "1.0.0",
+          path: "/Library/Audio/Plug-Ins/VST3/InstrumentFx.vst3",
+          format: "vst3",
+          isInstrument: false
+        },
+        presets: [{ index: 0, name: "Fx Preset" }],
+        parameters: [{ id: "mix", index: 0, name: "Mix", value: 0.5 }]
+      }
+    ]);
+    const ctx = makeCtx(host);
+    const loaded = await applyTimelineOp(
+      makeState(),
+      { op: "load_plugin", track: "Lead", plugin: "Instrument", slot: "effect" },
+      ctx
+    );
+    expect(loaded.error).toBeUndefined();
+    const presets = await applyTimelineOp(
+      loaded.state,
+      { op: "list_plugin_presets", track: "Lead", effectId: "Instrument" },
+      ctx
+    );
+    expect(presets.error).toBeUndefined();
+    expect(presets.result).toMatchObject({
+      target: "effect",
+      presets: [{ index: 0, name: "Fx Preset" }]
+    });
+  });
 });

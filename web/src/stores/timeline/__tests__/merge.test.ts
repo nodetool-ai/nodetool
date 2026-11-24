@@ -105,6 +105,53 @@ describe("timelineUnitsTouchedByOp", () => {
       { kind: "clip" }
     ]);
   });
+
+  it("F6: attributes master-bus and track plugin ops to master field or target track alone", () => {
+    for (const tool of [
+      "ui_timeline_load_plugin",
+      "ui_timeline_select_plugin_preset",
+      "ui_timeline_set_plugin_parameters"
+    ]) {
+      expect(
+        timelineUnitsTouchedByOp({
+          tool,
+          input: { track: "master", plugin: "Comp" }
+        })
+      ).toEqual([{ kind: "field", unitId: "master" }]);
+
+      expect(
+        timelineUnitsTouchedByOp({
+          tool,
+          input: { track: "T1", plugin: "Pad" }
+        })
+      ).toEqual([{ kind: "track", unitId: "T1" }]);
+    }
+
+    // Master-bus plugin op must not spuriously contest unrelated dirty clips,
+    // and must contest concurrent local master edits.
+    const base = {
+      ...docOf([trackOf("T1")], [clipOf("C1", "T1")]),
+      master: { volumeDb: 0, effects: [] }
+    };
+    const draft = {
+      ...base,
+      clips: [clipOf("C1", "T1", { durationMs: 400 })]
+    };
+    const server = {
+      ...base,
+      clips: [clipOf("C1", "T1", { durationMs: 900 })],
+      master: {
+        volumeDb: 0,
+        effects: [{ id: "fx1", type: "vst", enabled: true, wet: 1, plugin: null, state: "U1R8" }]
+      }
+    };
+    const merged = mergeTimelineDocuments(base, draft, server, [
+      { tool: "ui_timeline_load_plugin", input: { track: "master", plugin: "Comp" } }
+    ]);
+    expect(merged.conflicts).toEqual([]);
+    expect((merged.doc.clips[0] as { durationMs: number }).durationMs).toBe(400);
+    expect(merged.doc.master?.effects).toHaveLength(1);
+  });
 });
 
 describe("mergeTimelineDocuments", () => {
