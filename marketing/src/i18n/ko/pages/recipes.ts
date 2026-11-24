@@ -18,7 +18,7 @@ export const recipes: LocalizedPageContent = {
       kind: "catalog",
       id: "recipes",
       title: "모든 가이드는 실제로 실행해 본 프로젝트입니다.",
-      intro: "아무 가이드나 열어 각 단계와 그 결과를 확인하세요(영어 페이지).",
+      intro: "아무 가이드나 열어 각 단계와 그 결과를 확인하세요.",
       source: "recipes",
     },
     {

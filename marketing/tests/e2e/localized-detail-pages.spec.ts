@@ -7,16 +7,17 @@ import { DETAIL_LOCALES, DETAIL_TEXT } from "../../src/i18n/detailPages";
 import { LOCALES, SWITCH_LABELS, type Locale } from "../../src/i18n/routes";
 import { ZH_AD_LABELS } from "../../src/i18n/zh/detailLabels";
 import { JA_AD_LABELS } from "../../src/i18n/ja/detailLabels";
+import { KO_AD_LABELS } from "../../src/i18n/ko/detailLabels";
 import type { AdLabels } from "../../src/i18n/detailLabels";
 
 /*
  * /<locale>/storyboards/<slug>, /<locale>/recipes/<slug> and
- * /<locale>/ad-library/<slug> in Simplified Chinese and Japanese. Each
+ * /<locale>/ad-library/<slug> in Simplified Chinese, Japanese and Korean. Each
  * translation must keep the shape of its English text, so a new shot, beat or
  * step, or a removed one, fails here until the translation follows.
  */
 
-const AD_LABELS: Record<string, AdLabels> = { zh: ZH_AD_LABELS, ja: JA_AD_LABELS };
+const AD_LABELS: Record<string, AdLabels> = { zh: ZH_AD_LABELS, ja: JA_AD_LABELS, ko: KO_AD_LABELS };
 
 /** hreflang alternates as { lang: href } from a page's <head>. */
 function alternates(html: string): Record<string, string> {
@@ -44,8 +45,8 @@ function expectedAlternates(route: string): Record<string, string> {
   };
 }
 
-test("detail pages are translated into Chinese and Japanese", () => {
-  expect([...DETAIL_LOCALES].sort()).toEqual(["ja", "zh"]);
+test("detail pages are translated into Chinese, Japanese and Korean", () => {
+  expect([...DETAIL_LOCALES].sort()).toEqual(["ja", "ko", "zh"]);
 });
 
 for (const locale of DETAIL_LOCALES as Locale[]) {

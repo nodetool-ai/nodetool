@@ -53,7 +53,7 @@ export const TRANSLATED_ROUTES: Record<Locale, readonly string[]> = {
 export const TRANSLATED_DETAIL_SECTIONS: Record<Locale, readonly string[]> = {
   zh: ["/storyboards", "/recipes", "/ad-library"],
   ja: ["/storyboards", "/recipes", "/ad-library"],
-  ko: [],
+  ko: ["/storyboards", "/recipes", "/ad-library"],
 };
 
 const LOCALE_LIST = Object.keys(LOCALES) as Locale[];
