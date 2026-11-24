@@ -12,6 +12,7 @@ describe("ModelMenuStore", () => {
     it("asks no key from providers that sign in or run on this computer", () => {
       for (const id of [
         "gemini_web",
+        "google_flow",
         "chatgpt",
         "dreamina",
         "claude_agent_sdk",

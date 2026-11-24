@@ -39,6 +39,7 @@ import { CopilotProvider } from "./copilot-provider.js";
 import { DreaminaProvider } from "./dreamina-provider.js";
 import { ChatGPTProvider } from "./chatgpt-provider.js";
 import { GeminiWebProvider } from "./gemini-web-provider.js";
+import { GoogleFlowProvider } from "./google-flow-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { GeminiVertexProvider } from "./gemini-vertex-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
@@ -263,6 +264,8 @@ export { CopilotProvider };
 export { DreaminaProvider, setDreaminaPageRunner, type DreaminaPageRunner } from "./dreamina-provider.js";
 export { ChatGPTProvider, setChatGPTTab } from "./chatgpt-provider.js";
 export { GeminiWebProvider, setGeminiWebTab } from "./gemini-web-provider.js";
+export { GoogleFlowProvider, setGoogleFlowTab } from "./google-flow-provider.js";
+export { GOOGLE_FLOW_IMAGE_MODELS, GOOGLE_FLOW_VIDEO_MODELS } from "./google-flow-models.js";
 export { GeminiVertexProvider } from "./gemini-vertex-provider.js";
 export {
   ToolCallTextFilter,
@@ -673,6 +676,10 @@ registerBuiltinProvider(PROVIDER_IDS.CHATGPT, ChatGPTProvider, {});
 // tab, driven by the NodeTool Chrome extension. No credentials. Pruned from the
 // cloud profile (NON_CLOUD_PROVIDER_IDS).
 registerBuiltinProvider(PROVIDER_IDS.GEMINI_WEB, GeminiWebProvider, {});
+// Google Flow: image and video generation through the user's logged-in
+// flow.google.com tab, driven by the NodeTool Chrome extension. No credentials.
+// Pruned from the cloud profile (NON_CLOUD_PROVIDER_IDS).
+registerBuiltinProvider(PROVIDER_IDS.GOOGLE_FLOW, GoogleFlowProvider, {});
 registerBuiltinProvider(PROVIDER_IDS.GEMINI, GeminiProvider, {
   GEMINI_API_KEY: ""
 });

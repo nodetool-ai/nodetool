@@ -1248,6 +1248,9 @@ export const PROVIDER_IDS = {
   // Gemini driven through the NodeTool Chrome extension in the user's own
   // logged-in gemini.google.com tab (no API key, local installs only).
   GEMINI_WEB: "gemini_web",
+  // Google Flow driven through the NodeTool Chrome extension in the user's own
+  // logged-in flow.google.com tab (no API key, local installs only).
+  GOOGLE_FLOW: "google_flow",
   GEMINI: "gemini",
   // Gemini through Vertex AI, billed to the user's Google Cloud project.
   GEMINI_VERTEX: "gemini_vertex",

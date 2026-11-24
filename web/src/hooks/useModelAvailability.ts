@@ -33,7 +33,9 @@ export const useModelAvailability = (): ((
       const provider = model.provider || "";
       const env = requiredSecretForProvider(model.provider);
       const normKey =
-        provider !== PROVIDER_IDS.GEMINI_VERTEX && /gemini|google/i.test(provider)
+        provider !== PROVIDER_IDS.GEMINI_VERTEX &&
+        provider !== PROVIDER_IDS.GOOGLE_FLOW &&
+        /gemini|google/i.test(provider)
           ? "gemini"
           : provider;
       const providerEnabled = enabledProviders?.[normKey] !== false;

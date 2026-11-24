@@ -20,4 +20,37 @@ describe("extension tab opening", () => {
     expect(goto).not.toHaveBeenCalled();
     expect(close).toHaveBeenCalledOnce();
   });
+
+  it("dispatches trusted CDP mouse events via clickAt", async () => {
+    const dispatchMouseEvent = vi.fn().mockResolvedValue(undefined);
+    const setWebLifecycleState = vi.fn().mockResolvedValue(undefined);
+    const close = vi.fn().mockResolvedValue(undefined);
+    mocks.open.mockResolvedValue({
+      page: { evaluate: vi.fn().mockResolvedValue("flow.google.com"), goto: vi.fn() },
+      client: {
+        Page: { setWebLifecycleState },
+        Input: { dispatchMouseEvent }
+      },
+      close
+    });
+    const tab = createExtensionTab("flow.google.com");
+    await tab.clickAt?.(420, 680);
+    expect(setWebLifecycleState).toHaveBeenCalledWith({ state: "active" });
+    expect(dispatchMouseEvent).toHaveBeenNthCalledWith(1, { type: "mouseMoved", x: 420, y: 680 });
+    expect(dispatchMouseEvent).toHaveBeenNthCalledWith(2, {
+      type: "mousePressed",
+      x: 420,
+      y: 680,
+      button: "left",
+      clickCount: 1
+    });
+    expect(dispatchMouseEvent).toHaveBeenNthCalledWith(3, {
+      type: "mouseReleased",
+      x: 420,
+      y: 680,
+      button: "left",
+      clickCount: 1
+    });
+    await tab.release?.();
+  });
 });
