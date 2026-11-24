@@ -18,6 +18,7 @@ The creative editors' pages describe what a person does in the app. This page is
 | [Sketch and 3D tools](#sketch-3d) | [Sketch Editor](../sketch-editor.md), [3D Editor](../3d-editor.md), [Blender](../blender.md) |
 | [Audio tools](#audio) | [Audio Editor](../audio-editor.md) |
 | [Document and game tools](#documents-games) | [Document Editor](../document-editor.md), [Text and SVG Documents](../text-and-svg-documents.md), [Game Editor](../game-editor.md) |
+| [Project tools](#projects) | [Projects](../projects.md) |
 
 ## Storyboard and Creative Agent tools {#storyboards}
 
@@ -809,11 +810,22 @@ Each check answers one question:
 - Browser play: do the physical controls, sound start, and host behave.
 - Smoke test of a build: does the exported package load and run.
 
-A screenshot cannot show that a win condition works, and a simulated run cannot show that sound plays or touch controls are usable. Ask the agent to run the check that fits the change and report each command's exit status. [Debugging](/game-engine/debugging) lists the commands.
+A screenshot cannot show that a win condition works, and a simulated run cannot show that sound plays or touch controls are usable. Ask the agent to run the check that fits the change. [Game Testing and Replay](/developer/game-testing) lists the commands.
 
 ### Workflow nodes and the API
 
 **Load Game Template**, **Slot Prompt**, and **Stage Game Assets** are workflow nodes. The guided game flow builds a design and asset graph before assembling the game. Staging produces candidate bindings, and installing them puts them in the destination project. The agent's current tool schemas and preparation order are in the [native-game skill](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/native-game/SKILL.md).
 
-The JavaScript sandbox's game builder offers construction with preview and apply. See [Construction](/game-engine/construction). For direct integration use the [API reference](/api-reference) and the game procedures, not database rows or UI state.
+The JavaScript sandbox's game builder offers construction with preview and apply. See [Game Construction API](/developer/game-construction). For direct integration use the [API reference](/api-reference) and the game procedures, not database rows or UI state.
+## Project tools {#projects}
 
+Agents manage [projects](../projects.md) with these tools. The agent confirms with the user before deleting and prefers archiving.
+
+| Tool | What it does |
+|---|---|
+| `list_projects` | Lists your projects, newest first. Pass `archived` to list archived ones. |
+| `search_projects` | Finds projects by name or kind. Every word must match. |
+| `create_project` | Creates a project and its folder. |
+| `update_project` | Renames a project, changes its kind, or archives and restores it. |
+| `move_to_project` | Moves one asset, entity, storyboard, script, timeline, sketch, app or JS script into another project. A file in the project folder moves too. A document or entity that other documents reference cannot move. Workflows and games do not move this way. |
+| `delete_project` | Permanently deletes a project and reports what happened to its folder. It refuses the Personal project and the project the conversation belongs to. |
