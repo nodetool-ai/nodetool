@@ -19,7 +19,7 @@ NodeTool estimates a run's cost before it starts, records each provider call's c
 
 With your own keys, NodeTool does not mark up a provider's price and never charges you. The provider invoices you. Local models (Ollama, vLLM, LM Studio, llama.cpp) need no key and have no catalog price. See [Providers](providers.md).
 
-Hosted credits exist only where the `nodetool` provider is registered. That provider runs a curated model catalog on NodeTool's own platform keys and is cloud-only. Desktop and self-hosted installs do not register it, so the credit features below do not apply to them. Calls on your own keys never reduce a credit balance, even on a hosted server where both kinds coexist.
+Hosted credits exist only where the `nodetool` provider is available. That provider runs a curated model catalog on NodeTool's own keys and is cloud-only. Desktop and self-hosted installs do not have it, so the credit features below do not apply to them. Calls on your own keys never reduce a credit balance, even on a hosted server where both kinds coexist.
 
 ---
 
@@ -98,9 +98,7 @@ If the data cannot be loaded, the page says so instead of showing zeros.
 
 Supervisor spend lands in the same records, tagged `supervisor` in `node_type`, so it can be separated from the workflow's own spend.
 
-### In traces
-
-Runs emit OpenTelemetry spans. Every `llm.chat` and `llm.stream` span carries `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `gen_ai.usage.total_tokens`, and `gen_ai.usage.cost_usd`. Use `--trace-file` or `--trace-stdout` on CLI runs to see them. See [observing agent execution](harnesses.md#observing-agent-execution).
+Runs also record token counts and cost on their trace spans. See [observing agent execution](harnesses.md#observing-agent-execution).
 
 ---
 
@@ -108,16 +106,7 @@ Runs emit OpenTelemetry spans. Every `llm.chat` and `llm.stream` span carries `g
 
 ### Agent runs
 
-An agent run (a chat turn, its sub-agents, and any agent node it starts) shares one budget:
-
-| Setting | Default | What it bounds |
-|---|---|---|
-| `NODETOOL_AGENT_TURN_COST_CAP_USD` | 5.00 | Provider spend for the whole run, in US dollars. `0` means no cap. |
-| `NODETOOL_AGENT_TURN_DEADLINE_MS` | 1800000 (30 minutes) | Wall-clock time for the run. |
-| `NODETOOL_AGENT_MAX_TURNS` | 200 | Model turns in total. This still holds for a local model with no price. |
-| `NODETOOL_AGENT_UNPRICED_TOKEN_CEILING` | 400000 | Prompt tokens for a turn on a model the catalog does not price. |
-
-The cost cap works as admission. A turn whose worst case would cross the cap is refused before the call, so the money is not spent first. A model without a catalog price has no worst case, so it is bounded by the token ceiling and counted as unpriced rather than free. On the command line, `--cost-cap <usd>` overrides the dollar cap for one run, and `0` lifts it, which suits a local-only install. See [Run budget](cli.md#run-budget) and the [Agent CLI](agent-cli.md).
+An agent run (a chat turn, its sub-agents, and any agent node it starts) shares one budget. By default a run is capped at 5 US dollars of provider spend and 30 minutes. A turn whose worst case would cross the cap is refused before the call, so the money is not spent first. On the command line, `--cost-cap <usd>` overrides the cap for one run, and `0` lifts it, which suits a local-only install. See [Run budget](cli.md#run-budget) and the [Agent CLI](agent-cli.md). Server settings for these limits are in [Agent run limits](configuration.md#agent-run-limits).
 
 ### Mini apps
 
@@ -133,22 +122,16 @@ In the [creative agent](creative-agent.md#the-storyboard-plan-pick-a-still-then-
 
 ### Hosted credits
 
-Where the `nodetool` provider is available, the server checks the credit balance before a run that uses a managed model starts. A run is refused in two cases:
+On NodeTool's hosted cloud, a run that uses one of NodeTool's managed models is checked against your credit balance before it starts. A run is refused when:
 
-- It names a managed model the operator did not open for spend. This is refused regardless of balance.
-- The balance is empty, or does not cover the run's estimate. The message reads like `This run needs about N credits but M remain.` Spend already admitted to runs still in flight counts against the balance, so several simultaneous runs cannot each pass against the same balance.
+- The model is not open for credits. This is refused regardless of balance.
+- The balance is empty, or does not cover the run's estimate. The message reads like `This run needs about N credits but M remain.`
 
-Estimates are a floor, because an unpriced node estimates as zero. For that reason an empty balance blocks a managed run even when its estimate is zero. If the credit check itself fails, the run is allowed, so a metering fault never stops the runner.
+Estimates are a floor, because an unpriced node estimates as zero. For that reason an empty balance blocks a managed run even when its estimate is zero.
 
 #### How credits work
 
-One credit is one US cent (USD 0.01) of provider spend at the delegate's price. The balance is every grant ever recorded, minus the spend recorded for the `nodetool` provider, rounded up to whole credits. 
-Grants arrive lazily, the first time the balance is read:
-
-- A one-time welcome grant when you are first seen. The default is 500 credits.
-- A monthly plan grant, keyed to the calendar month in UTC.
-
-The plans are defined in code:
+One credit is one US cent (USD 0.01) of provider spend. Your balance is the credits granted to you minus what your managed-model runs have used. You receive a one-time welcome grant the first time your account is used and a monthly allowance from your plan, which resets each calendar month in UTC.
 
 | Plan | Credits per month | Displayed price |
 |---|---|---|
@@ -156,25 +139,9 @@ The plans are defined in code:
 | Creator | 3,000 | $12 per month |
 | Pro | 10,000 | $40 per month |
 
-The price is for display. Payment processing is not implemented, so switching plans takes effect immediately and no card is charged. The top-up below also has no payment behind it.
+You see the balance as a credits chip in the **Studio** header. Hover it for the plan and how many credits are used, and click it to open the **Plan & credits** page. That page lists the plans, and **Switch to** buttons change your plan. Credits meter NodeTool's managed models only. Calls on your own provider keys stay unmetered.
 
-You see the balance in the **Studio** header as a credits chip, and on the **Plan & credits** page at `/studio/account`, which also lists the plans and switches between them. The same data is available from the `credits` tRPC router (`status`, `setPlan`, and `topup`).
-
-#### Operator settings
-
-A server operator controls hosted credits with these environment variables:
-
-| Variable | Effect |
-|---|---|
-| `NODETOOL_CREDIT_MODELS` | The managed models credits may be spent on, separated by commas, spaces, or newlines. Unset means the whole catalog. Any other model is refused before a key is used. |
-| `NODETOOL_SIGNUP_CREDITS` | The one-time welcome grant. The default is 500. `0`, a negative value, or an unparseable value means no welcome grant. |
-| `NODETOOL_PLATFORM_FAL_KEY` | The platform-owned fal key that funds managed image and video models. |
-| `NODETOOL_PLATFORM_ANTHROPIC_KEY` | The platform-owned Anthropic key that funds managed language models. |
-| `NODETOOL_ENABLE_TEST_TOPUP` | Set to `1` or `true` to allow the test top-up on a development server. |
-
-A managed model is offered only when its delegate provider has a platform key and the model is on the allowlist.
-
-The top-up is for development only. It adds credits with no payment behind it, and the server refuses it unless `NODETOOL_ENABLE_TEST_TOPUP` is set, because minted credits unlock spend on platform-owned keys. When the variable is set, the account page shows an **Add 1000 credits (test)** button.
+Running your own server? See [Hosted credits](self-hosted-deployment.md#hosted-credits) for the operator settings.
 
 ---
 

@@ -13,7 +13,7 @@ The **Model Manager** lists the local models NodeTool can run, searches the Hugg
 
 ## Opening the Manager
 
-Choose **Model Manager** in the logo menu. It opens at the `/models` route.
+Choose **Model Manager** in the logo menu.
 
 ![Models Manager — Full View](assets/screenshots/models-list.png)
 
@@ -44,7 +44,7 @@ When a worker is attached, a second toggle switches between **Local** and the wo
 
 ### Categories
 
-The left sidebar, **Model Categories**, filters by model type with a count for each. Hugging Face types follow Hub pipeline tags such as `text-generation`, `text-to-image`, `image-to-image`, `text-to-video`, `automatic-speech-recognition`, `text-to-speech`, and `feature-extraction`. Each Hugging Face category has a **View on Hugging Face** link to the Hub's list for that tag. Only categories present in the current list appear. Ollama and llama.cpp models group under their own types. In the Hub source the sidebar shows the full list of pipeline tags.
+The left sidebar, **Model Categories**, filters by model type with a count for each. Hugging Face types follow the Hub's task tags such as `text-generation`, `text-to-image`, `image-to-image`, `text-to-video`, `automatic-speech-recognition`, `text-to-speech`, and `feature-extraction`. Each Hugging Face category has a **View on Hugging Face** link to the Hub's list for that tag. Only categories present in the current list appear. Ollama and llama.cpp models group under their own types. In the Hub source the sidebar shows the full list of task tags.
 
 ### Filters
 
@@ -66,7 +66,7 @@ Selecting an active goal or format chip again clears it. Changing the source or 
 - A **status** badge with the reason on hover, for example when a runtime the model needs is not installed.
 - A **fit** badge: **Fits your machine**, **Tight fit**, or **Needs ~N GB**. NodeTool estimates it from the model's size against the memory budget on the Get Started tab.
 - **Works with N nodes**, which opens a dialog listing the nodes that can use the model.
-- The pipeline tag, which links to trending models with that tag on Hugging Face.
+- The task tag, which links to trending models with that tag on Hugging Face.
 
 ---
 
@@ -81,12 +81,12 @@ Selecting an active goal or format chip again clears it. Changing the source or 
 ### Download details
 
 - Downloads continue in the background, and the Downloads dialog shows each file's progress.
-- The download connection reconnects automatically after a drop, up to 5 attempts with exponential backoff.
+- The download connection reconnects automatically after a drop, up to 5 attempts, waiting longer between each one.
 - Gated Hub repos need a Hugging Face token. See [HuggingFace Integration](huggingface.md#authentication-and-gated-models).
 
 ### Storage location
 
-Hugging Face models use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. NodeTool resolves it the way the `huggingface_hub` library does: `HF_HUB_CACHE`, then `HUGGINGFACE_HUB_CACHE`, then `$HF_HOME/hub`, then `$XDG_CACHE_HOME/huggingface/hub`. Downloads, the **Installed** list, llama.cpp, whisper.cpp, and the Python worker all read the same directory. On Linux with `XDG_CACHE_HOME` set, as in the Flatpak build, the desktop app keeps using `~/.cache/huggingface/hub` when it already holds models. The full rule is under [`HF_HUB_CACHE`](configuration.md#environment-variables-index). Ollama keeps its models in its own directory. Transformers.js models download to `<data-dir>/transformers-js-cache`, or to `TRANSFORMERS_JS_CACHE_DIR` if set. On the desktop app, the Downloads dialog has **Open HuggingFace folder** and **Open Ollama folder** buttons.
+Hugging Face models are stored in the standard Hugging Face cache folder, `~/.cache/huggingface/hub` by default. Downloads, the **Installed** list and the Python worker all read it. To move it, or to see how the Flatpak build and Transformers.js choose their folders, see [Hugging Face tokens and cache](configuration.md#cache-locations). Ollama keeps its models in its own directory. On the desktop app, the Downloads dialog has **Open HuggingFace folder** and **Open Ollama folder** buttons.
 
 ---
 
