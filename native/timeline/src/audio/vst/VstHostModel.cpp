@@ -1,12 +1,22 @@
 #include "audio/vst/VstHostModel.h"
 #include "audio/vst/VstLiveChannel.h"
 
+#include "model/TimelineModel.h"
+#include <QJsonArray>
 #include <QPointer>
 #include <QUuid>
 
 namespace nt::audio::vst {
 
 VstHostModel::VstHostModel(QObject* parent) : QObject(parent), m_client(sharedVstHostClient()) {
+    connect(m_client.get(), &VstHostClient::stateRestored, this, [this](const QString& instance, const QString& state, const QString& error) {
+        auto pending = m_restorations.find(instance);
+        if (pending == m_restorations.end()) { return; }
+        if (--pending.value() > 0) { return; }
+        m_restorations.erase(pending);
+        setLastError(error);
+        if (error.isEmpty()) { sharedVstLivePool().noteStateFromEditor(instance, state); }
+    });
     connect(m_client.get(), &VstHostClient::scanFinished, this, [this](const QVariantList& plugins, const QString& error) {
         m_scanning = false;
         emit scanningChanged();
@@ -50,18 +60,21 @@ VstHostModel::VstHostModel(QObject* parent) : QObject(parent), m_client(sharedVs
     });
 
     connect(m_client.get(), &VstHostClient::pluginStateChanged, this, [this](const QString& instance, const QString& state) {
+        if (m_restorations.contains(instance)) { return; }
         sharedVstLivePool().noteStateFromEditor(instance, state);
         emit pluginStateChanged(instance, state);
     });
 
     connect(m_client.get(), &VstHostClient::pluginEditorClosed, this, [this](const QString& instance, const QString& state) {
         sharedVstLivePool().setEditorOpen(instance, false);
-        sharedVstLivePool().noteStateFromEditor(instance, state);
         if (m_openEditors.removeAll(instance) > 0) emit openEditorsChanged();
+        if (m_restorations.contains(instance)) { return; }
+        sharedVstLivePool().noteStateFromEditor(instance, state);
         emit pluginEditorClosed(instance, state);
     });
 
     connect(m_client.get(), &VstHostClient::hostExited, this, [this]() {
+        m_restorations.clear();
         sharedVstLivePool().evictAll(nullptr);
         if (!m_openEditors.isEmpty()) {
             m_openEditors.clear();
@@ -72,6 +85,60 @@ VstHostModel::VstHostModel(QObject* parent) : QObject(parent), m_client(sharedVs
             emit scanningChanged();
         }
     });
+}
+
+void VstHostModel::followTimeline(TimelineModel* timeline) {
+    if (m_timeline == timeline) { return; }
+    disconnect(m_documentConnection);
+    m_timeline = timeline;
+    m_documentSlots.clear();
+    m_hasDocument = false;
+    if (!timeline) { return; }
+    synchronizeDocument();
+    m_documentConnection = connect(timeline, &TimelineModel::timelineChanged, this, &VstHostModel::synchronizeDocument);
+}
+
+void VstHostModel::synchronizeDocument() {
+    if (!m_timeline) { return; }
+    QMap<QString, QJsonObject> nextSlots;
+    const auto add = [&nextSlots](const QString& key, const QJsonObject& slot) {
+        if (slot.value("type") == "vst" && !slot.value("plugin").toObject().value("path").toString().isEmpty()) {
+            nextSlots.insert(key, slot);
+        }
+    };
+    const auto raw = m_timeline->timeline().raw;
+    for (const auto& value : raw.value("tracks").toArray()) {
+        const auto track = value.toObject();
+        const auto id = track.value("id").toString();
+        add("inst:" + id, track.value("instrument").toObject());
+        for (const auto& effect : track.value("effects").toArray()) {
+            const auto slot = effect.toObject();
+            add("fx:" + id + ":" + slot.value("id").toString(), slot);
+        }
+    }
+    for (const auto& effect : raw.value("master").toObject().value("effects").toArray()) {
+        const auto slot = effect.toObject();
+        add("master-fx:" + slot.value("id").toString(), slot);
+    }
+    for (auto it = m_documentSlots.cbegin(); it != m_documentSlots.cend(); ++it) {
+        if (!nextSlots.contains(it.key())) {
+            closeEditor(it.key());
+            m_client->disposeAsync(it.key());
+        }
+    }
+    for (auto it = nextSlots.cbegin(); it != nextSlots.cend(); ++it) {
+        const auto previous = m_documentSlots.constFind(it.key());
+        if (m_hasDocument && (previous == m_documentSlots.cend() ||
+            previous->value("plugin") != it->value("plugin") || previous->value("state") != it->value("state"))) {
+            if (previous != m_documentSlots.cend() && previous->value("plugin") != it->value("plugin")) {
+                closeEditor(it.key());
+            }
+            ++m_restorations[it.key()];
+            m_client->restoreStateAsync(it.key(), it.value());
+        }
+    }
+    m_documentSlots = std::move(nextSlots);
+    m_hasDocument = true;
 }
 
 bool VstHostModel::available() const { return m_client && m_client->available(); }

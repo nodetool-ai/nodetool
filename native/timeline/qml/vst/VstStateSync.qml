@@ -42,7 +42,11 @@ Item {
     }
 
     Component.onCompleted: Qt.callLater(() => { root.timeline = findTimeline() })
-    Component.onDestruction: VstHost.closeAllEditors()
+    onTimelineChanged: VstHost.followTimeline(root.timeline)
+    Component.onDestruction: {
+        VstHost.followTimeline(null)
+        VstHost.closeAllEditors()
+    }
 
     Connections {
         target: root.timeline

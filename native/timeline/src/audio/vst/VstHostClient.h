@@ -110,10 +110,13 @@ public:
 
     void openEditorAsync(const QString& instance, const QString& path, const QString& uid,
                          const QString& state, const QString& title);
+    // UI thread only. Explicit document restoration also updates open editors.
+    void restoreStateAsync(const QString& instance, const QJsonObject& slot);
     void closeEditorAsync(const QString& instance);
     void disposeAsync(const QString& instance);
 
 signals:
+    void stateRestored(const QString& instance, const QString& state, const QString& error);
     void scanFinished(const QVariantList& plugins, const QString& error);
     void editorOpened(const QString& instance, const QString& error);
     void editorClosedReply(const QString& instance);

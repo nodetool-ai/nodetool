@@ -17,6 +17,10 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 
 #include <memory>
+#include <QPointer>
+#include <QMap>
+
+class TimelineModel;
 
 namespace nt::audio::vst {
 
@@ -24,6 +28,7 @@ namespace nt::audio::vst {
 // QML element, and MSVC instantiates it for this singleton.
 class VstHostModel : public QObject {
     Q_OBJECT
+    Q_MOC_INCLUDE("model/TimelineModel.h")
     QML_NAMED_ELEMENT(VstHost)
     QML_SINGLETON
     Q_PROPERTY(bool available READ available NOTIFY statusChanged)
@@ -50,6 +55,7 @@ public:
     [[nodiscard]] QStringList openEditors() const { return m_openEditors; }
     [[nodiscard]] QString lastError() const { return m_lastError; }
 
+    Q_INVOKABLE void followTimeline(TimelineModel* timeline);
     Q_INVOKABLE void scan(bool rescan = false);
     Q_INVOKABLE void openEditor(const QString& instance, const QString& path, const QString& uid,
                                 const QString& state, const QString& title);
@@ -69,6 +75,12 @@ signals:
     void pluginEditorClosed(const QString& instance, const QString& state);
 
 private:
+    void synchronizeDocument();
+    QPointer<TimelineModel> m_timeline;
+    QMap<QString, QJsonObject> m_documentSlots;
+    QHash<QString, int> m_restorations;
+    bool m_hasDocument = false;
+    QMetaObject::Connection m_documentConnection;
     void setLastError(const QString& error);
 
     // Shared with the process-level VST mix stages so UI editor sessions and

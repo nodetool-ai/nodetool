@@ -32,11 +32,13 @@
 //
 // While an instance's editor is open the window is the source of truth: a
 // render's "state" is not applied over it, so a render cannot undo a tweak the
-// caller has not heard about yet.
+// caller has not heard about yet. Explicit setState requests restore document
+// history even with an editor open.
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <atomic>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <thread>
 #include "VstHost.h"
@@ -89,6 +91,30 @@ static void event(const String& name, const String& instance, const String& stat
     body.getDynamicObject()->setProperty("instance", instance);
     body.getDynamicObject()->setProperty("state", state);
     send(body);
+}
+
+// Scanner child main thread only. JUCE formats and discovered plugins die before GUI shutdown.
+static var scanResult(const var& req) {
+    StringArray dirs;
+    if (auto* arr = req["dirs"].getArray()) {
+        for (const auto& d : *arr) { dirs.add(d.toString()); }
+    }
+    Array<var> list;
+    for (const auto& p : scan(dirs, !static_cast<bool>(req["includeEffects"]))) {
+        auto o = object();
+        auto* d = o.getDynamicObject();
+        d->setProperty("uid", p.uid);
+        d->setProperty("name", p.name);
+        d->setProperty("vendor", p.vendor);
+        d->setProperty("version", p.version);
+        d->setProperty("path", p.path);
+        d->setProperty("isInstrument", p.isInstrument);
+        d->setProperty("format", p.format);
+        list.add(o);
+    }
+    auto body = object();
+    body.getDynamicObject()->setProperty("plugins", list);
+    return body;
 }
 
 class Host;
@@ -248,6 +274,7 @@ public:
     Host() { startTimer(400); }
     ~Host() override {
         stopTimer();
+        scans_.clear();
 #if !JUCE_WINDOWS
         liveSessions_.clear();
 #endif
@@ -330,6 +357,14 @@ public:
 #else
             fail(id, "Live shared-memory VST hosting is not supported on Windows yet");
 #endif
+        } else if (cmd == "setState") {
+            String error;
+            auto inst = ensure(key, req, error, false);
+            if (!inst || !inst->setState(req["state"].toString(), error)) { fail(id, error); return; }
+            if (auto editor = editors_.find(key); editor != editors_.end()) {
+                editor->second.lastState = inst->getState();
+            }
+            reply(id, object());
         } else if (cmd == "setLiveState") {
             auto it = instances_.find(key);
             if (it == instances_.end()) { fail(id, "Unknown instance " + key); return; }
@@ -402,6 +437,9 @@ private:
         const String path = req["path"].toString(), uid = req["uid"].toString();
         auto& slot = instances_[key];
         if (!slot || slot->path() != path || (uid.isNotEmpty() && slot->uid() != uid)) {
+#if !JUCE_WINDOWS
+            liveSessions_.erase(key);
+#endif
             closeEditor(key, false);
             auto inst = std::make_shared<Instance>();
             if (!inst->load(path, uid, error)) { instances_.erase(key); return nullptr; }
@@ -413,28 +451,20 @@ private:
     }
 
     void scanAsync(const var& id, const var& req) {
-        StringArray dirs;
-        if (auto* arr = req["dirs"].getArray())
-            for (auto& d : *arr) dirs.add(d.toString());
-        const bool all = (bool)req["includeEffects"];
-        {
-            Array<var> list;
-            for (auto& p : scan(dirs, !all)) {
-                auto o = object();
-                auto* d = o.getDynamicObject();
-                d->setProperty("uid", p.uid);
-                d->setProperty("name", p.name);
-                d->setProperty("vendor", p.vendor);
-                d->setProperty("version", p.version);
-                d->setProperty("path", p.path);
-                d->setProperty("isInstrument", p.isInstrument);
-                d->setProperty("format", p.format);
-                list.add(o);
-            }
-            auto body = object();
-            body.getDynamicObject()->setProperty("plugins", list);
-            reply(id, body);
+        std::error_code error;
+        const auto directory = std::filesystem::temp_directory_path(error);
+        if (error) { fail(id, "Cannot locate scanner temporary directory"); return; }
+        auto job = std::make_unique<ScanJob>(File(String(directory.string())));
+        job->id = id;
+        if (!job->request.getFile().replaceWithText(JSON::toString(req, true))) {
+            fail(id, "Cannot write scanner request");
+            return;
         }
+        const StringArray args{File::getSpecialLocation(File::currentExecutableFile).getFullPathName(),
+                               "--scan", job->request.getFile().getFullPathName(),
+                               job->result.getFile().getFullPathName()};
+        if (!job->process.start(args, 0)) { fail(id, "Cannot start plugin scanner"); return; }
+        scans_.push_back(std::move(job));
     }
 
     void renderAsync(const var& id, std::shared_ptr<Instance> inst, const var& req, bool applyState) {
@@ -495,11 +525,18 @@ private:
 
     bool openEditor(const String& key, Instance& inst, const String& title, String& error) {
         if (auto it = editors_.find(key); it != editors_.end()) {
-            it->second.window->toFront(true);
+            if (it->second.window) { it->second.window->toFront(true); }
             return true;
         }
         auto* plugin = inst.plugin();
         if (!plugin->hasEditor()) { error = plugin->getName() + " has no editor"; return false; }
+        // Headless harnesses exercise the editor session and polling without an OS window.
+        if (SystemStats::getEnvironmentVariable("QT_QPA_PLATFORM", {}) == "offscreen") {
+            Editor session;
+            session.lastState = inst.getState();
+            editors_[key] = std::move(session);
+            return true;
+        }
         auto* editor = plugin->createEditorIfNeeded();
         if (!editor) { error = plugin->getName() + " did not create its editor"; return false; }
        #if JUCE_MAC
@@ -528,6 +565,22 @@ private:
     // The editor changes the sound by setting parameters inside the plug-in;
     // poll its state and announce each change.
     void timerCallback() override {
+        for (auto it = scans_.begin(); it != scans_.end();) {
+            auto& job = **it;
+            const bool running = job.process.isRunning();
+            if (running && Time::getMillisecondCounterHiRes() - job.started < 180000.0) { ++it; continue; }
+            if (running) {
+                fail(job.id, "Plugin scanner timed out");
+            } else {
+                const auto result = JSON::parse(job.result.getFile().loadFileAsString());
+                if (job.process.getExitCode() != 0 || !result.isObject() || !result["plugins"].isArray()) {
+                    fail(job.id, "Plugin scanner failed");
+                } else {
+                    reply(job.id, result);
+                }
+            }
+            it = scans_.erase(it);
+        }
         for (auto& [key, editor] : editors_) {
             auto inst = instances_.find(key);
             if (inst == instances_.end()) continue;
@@ -541,11 +594,27 @@ private:
         }
     }
 
+    // Message thread only. Owns the child and both IPC files. Destruction kills and
+    // reaps a running scanner before deleting its files, including during host shutdown.
+    struct ScanJob {
+        explicit ScanJob(const File& directory)
+            : request(directory.getChildFile("nodetool-scan-request.json")),
+              result(directory.getChildFile("nodetool-scan-result.json")) {}
+        ~ScanJob() {
+            if (process.isRunning()) { process.kill(); process.waitForProcessToFinish(1000); }
+        }
+        var id;
+        TemporaryFile request;
+        TemporaryFile result;
+        ChildProcess process;
+        double started = Time::getMillisecondCounterHiRes();
+    };
+    std::vector<std::unique_ptr<ScanJob>> scans_;
     struct Editor {
         std::unique_ptr<EditorWindow> window;
         String lastState;
     };
-    // native-rules #1: shared with render threads, no comment says why unique fails
+    // Render workers and live sessions retain the same plugin while the host owns editors.
     std::map<String, std::shared_ptr<Instance>> instances_;
     std::map<String, Editor> editors_;
 #if !JUCE_WINDOWS
@@ -553,11 +622,16 @@ private:
 #endif
 };
 
-int main(int, char**) {
+int main(int argc, char** argv) {
    #if JUCE_MAC
     initialiseMacApplication();
    #endif
     ScopedJuceInitialiser_GUI init;
+    if (argc == 4 && String(argv[1]) == "--scan") {
+        const auto req = JSON::parse(File(String(argv[2])).loadFileAsString());
+        if (!req.isObject()) { return 1; }
+        return File(String(argv[3])).replaceWithText(JSON::toString(scanResult(req), true)) ? 0 : 1;
+    }
     auto host = std::make_unique<Host>();
     auto* hostPtr = host.get();
     // stdin closing (the caller exited) ends the helper.

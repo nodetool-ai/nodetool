@@ -23,6 +23,8 @@ nt_sources(app
 function(nt_vst_tests)
     qt_add_executable(tst_vst
         src/audio/vst/tst_vst.cpp
+        src/audio/vst/VstHostModel.h
+        src/audio/vst/VstHostModel.cpp
         src/audio/vst/VstRegistrations.cpp
         src/audio/automation/AutomationRecorder.h
         src/audio/automation/AutomationRecorder.cpp

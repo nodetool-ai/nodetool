@@ -8,6 +8,7 @@
 #include "audio/vst/VstAudioStages.h"
 #include "audio/vst/VstEdits.h"
 #include "audio/vst/VstHostClient.h"
+#include "audio/vst/VstHostModel.h"
 #include "audio/vst/PluginAssistant.h"
 #include "audio/vst/VstLiveChannel.h"
 #include "midi/PatternExpand.h"
@@ -104,6 +105,135 @@ std::vector<MidiStreamEvent> eventsWithStatus(const MidiTrackStream& stream, int
 class TestVst final : public QObject {
     Q_OBJECT
 private slots:
+    void documentHistoryRestoresHelperState_data() {
+        QTest::addColumn<QString>("kind");
+        QTest::addColumn<int>("backgroundTracks");
+        QTest::newRow("instrument") << QStringLiteral("instrument") << 0;
+        QTest::newRow("track-effect") << QStringLiteral("track-effect") << 0;
+        QTest::newRow("master-effect") << QStringLiteral("master-effect") << 0;
+        QTest::newRow("large-document") << QStringLiteral("instrument") << 3000;
+    }
+    void documentHistoryRestoresHelperState() {
+        QFETCH(QString, kind);
+        QFETCH(int, backgroundTracks);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile helper(dir.filePath("host"));
+        QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json, sys
+for line in sys.stdin:
+    req = json.loads(line)
+    if req['cmd'] == 'quit': break
+    if req['cmd'] == 'setState':
+        with open(__file__ + '.states', 'a') as log: log.write(json.dumps(req) + '\n')
+        print(json.dumps(dict(event='state', instance=req['instance'], state='stale-editor-state')), flush=True)
+    print(json.dumps(dict(id=req['id'], ok=True)), flush=True)
+)PY");
+        helper.close();
+        QVERIFY(helper.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        auto client = sharedVstHostClient();
+        client->setOverrideExecutable(helper.fileName());
+        const QJsonObject plugin{{"uid", "tone"}, {"path", "/tone.vst3"}};
+        const QJsonObject instrument{{"type", "vst"}, {"plugin", plugin}, {"state", "before"}};
+        QJsonObject raw{{"id", "tl"}, {"name", "T"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+                        {"durationMs", 4000}, {"clips", QJsonArray{}},
+                        {"tracks", QJsonArray{QJsonObject{{"id", "m1"}, {"name", "Synth"}, {"type", "midi"},
+                                                        {"index", 0}, {"instrument", instrument}}}}};
+        if (kind != "instrument") {
+            auto effect = instrument;
+            effect.insert("id", "fx1");
+            effect.insert("enabled", true);
+            effect.insert("wet", 1.0);
+            if (kind == "master-effect") {
+                raw.insert("master", QJsonObject{{"volumeDb", 0}, {"effects", QJsonArray{effect}}});
+            } else {
+                auto tracks = raw.value("tracks").toArray();
+                auto track = tracks[0].toObject();
+                track.remove("instrument");
+                track.insert("effects", QJsonArray{effect});
+                tracks[0] = track;
+                raw.insert("tracks", tracks);
+            }
+        }
+        auto tracks = raw.value("tracks").toArray();
+        for (int i = 0; i < backgroundTracks; ++i) {
+            tracks.append(QJsonObject{{"id", "background-" + QString::number(i)}, {"name", "Synth"},
+                                      {"type", "midi"}, {"index", i + 1}, {"instrument", instrument}});
+        }
+        raw.insert("tracks", tracks);
+        TimelineModel timeline;
+        timeline.setTimeline(parseRaw(raw));
+        VstHostModel host;
+        QSignalSpy editorChanges(&host, &VstHostModel::pluginStateChanged);
+        QSignalSpy restored(client.get(), &VstHostClient::stateRestored);
+        host.followTimeline(&timeline);
+        const auto editEffect = [&](const QJsonObject& patch) {
+            return timeline.applyEdit("Plugin edit", patch, [kind](QJsonObject document, const QJsonObject& fields) {
+                auto tracks = document.value("tracks").toArray();
+                auto track = kind == "master-effect" ? document.value("master").toObject() : tracks[0].toObject();
+                auto effects = track.value("effects").toArray();
+                auto effect = effects[0].toObject();
+                for (auto field = fields.begin(); field != fields.end(); ++field) { effect.insert(field.key(), field.value()); }
+                effects[0] = effect;
+                track.insert("effects", effects);
+                if (kind == "master-effect") {
+                    document.insert("master", track);
+                } else {
+                    tracks[0] = track;
+                    document.insert("tracks", tracks);
+                }
+                return document;
+            });
+        };
+        const auto editState = [&](const QJsonValue& state) {
+            return kind == "instrument"
+                ? timeline.applyEdit("setTrackInstrumentState", {{"trackId", "m1"}, {"state", state}})
+                : editEffect({{"state", state}});
+        };
+        QVERIFY(editState("after"));
+        timeline.undoStack()->undo();
+        timeline.undoStack()->redo();
+        QVERIFY(editState(QJsonValue::Null));
+        timeline.undoStack()->undo();
+        const auto states = [&] {
+            QFile log(helper.fileName() + ".states");
+            QJsonArray results;
+            if (log.open(QIODevice::ReadOnly)) {
+                for (const auto& line : log.readAll().split('\n')) {
+                    if (!line.isEmpty()) results.append(QJsonDocument::fromJson(line).object().value("state"));
+                }
+            }
+            return results;
+        };
+        QTRY_COMPARE(states(), (QJsonArray{"after", "before", "after", QJsonValue::Null, "after"}));
+        const QJsonObject replacementPlugin{{"uid", "other"}, {"path", "/other.vst3"}};
+        auto replacement = instrument;
+        replacement.insert("plugin", replacementPlugin);
+        replacement.insert("state", "loaded");
+        QVERIFY(kind == "instrument"
+            ? timeline.applyEdit("setTrackInstrument", {{"trackId", "m1"}, {"instrument", replacement}})
+            : editEffect({{"plugin", replacementPlugin}, {"state", "loaded"}}));
+        timeline.undoStack()->undo();
+        timeline.undoStack()->redo();
+        QTRY_COMPARE(states(), (QJsonArray{"after", "before", "after", QJsonValue::Null, "after", "loaded", "after", "loaded"}));
+        QFile log(helper.fileName() + ".states");
+        QVERIFY(log.open(QIODevice::ReadOnly));
+        const QString expectedInstance = kind == "instrument" ? "inst:m1" : kind == "master-effect" ? "master-fx:fx1" : "fx:m1:fx1";
+        QJsonArray paths;
+        for (const auto& line : log.readAll().split('\n')) {
+            if (line.isEmpty()) continue;
+            const auto request = QJsonDocument::fromJson(line).object();
+            QCOMPARE(request.value("instance").toString(), expectedInstance);
+            paths.append(request.value("path"));
+        }
+        QTRY_COMPARE(restored.count(), 8);
+        QCOMPARE(editorChanges.count(), 0);
+        QCOMPARE(paths, (QJsonArray{"/tone.vst3", "/tone.vst3", "/tone.vst3", "/tone.vst3", "/tone.vst3",
+                                   "/other.vst3", "/tone.vst3", "/other.vst3"}));
+        client->setOverrideExecutable({});
+    }
+
     void pluginAssistantCancellation_data() {
         QTest::addColumn<QString>("operation");
         for (const auto *op : {"list_plugins", "list_plugin_presets", "select_plugin_preset", "get_plugin_parameters", "set_plugin_parameters"}) {
