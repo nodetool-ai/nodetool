@@ -1,7 +1,6 @@
 import type { JSX } from "react";
 import {
   DecoratorNode,
-  type LexicalNode,
   type NodeKey,
   type SerializedLexicalNode,
   type Spread
@@ -73,10 +72,4 @@ export class RawMarkdownNode extends DecoratorNode<JSX.Element> {
 
 export function $createRawMarkdownNode(markdown: string): RawMarkdownNode {
   return new RawMarkdownNode(markdown);
-}
-
-export function $isRawMarkdownNode(
-  node: LexicalNode | null | undefined
-): node is RawMarkdownNode {
-  return node instanceof RawMarkdownNode;
 }
