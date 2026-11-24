@@ -17,7 +17,7 @@ NodeTool runs a single Fastify HTTP + WebSocket server (`@nodetool-ai/websocket`
 - Health and liveness probes.
 - The built web app, when the server finds one, for every `GET` outside `/api`, `/ws`, `/v1`, `/trpc`, and `/mcp`.
 
-Start it with `nodetool serve` (default `127.0.0.1:7777`). `serve` accepts only `--host` and `--port` — there is no `--mode` flag.
+Start it with `nodetool server serve` after `nodetool packs add cli-server --yes` (default `127.0.0.1:7777`). It accepts only `--host` and `--port`. The lean `nodetool serve` starts a smaller execution server without these routes. See [API Server Overview](api-server.md).
 
 ## Endpoint Matrix
 
@@ -3126,6 +3126,6 @@ route family:
 
 - [Chat API](chat-api.md) — OpenAI-compatible request/response schema and WebSocket usage.  
 - [Workflow API](workflow-api.md) — Workflow REST paths and execution.  
-- [API Server Overview](api-server.md) — Server architecture and modules.  
+- [API Server Overview](api-server.md) — Running the server, environment variables, and health checks.  
 - [Deployment Guide](deployment.md) — How servers are built and exposed.  
 - [CLI Reference](cli.md) — Commands including `serve`.

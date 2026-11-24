@@ -261,8 +261,6 @@
       url: "/chat-cli"
     - title: "Agent CLI"
       url: "/agent-cli"
-    - title: "Chat Server"
-      url: "/chat-server"
     - title: "API Server"
       url: "/api-server"
 - id: api
@@ -276,6 +274,8 @@
       url: "/websocket-api"
     - title: "Chat API"
       url: "/chat-api"
+    - title: "OpenAI-Compatible API"
+      url: "/chat-server"
 - id: dev
   title: "Developers"
   pages:
