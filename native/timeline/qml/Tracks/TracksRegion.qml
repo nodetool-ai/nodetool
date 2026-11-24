@@ -235,6 +235,7 @@ Rectangle {
                 objectName: "addTextButton"
                 anchors.verticalCenter: parent.verticalCenter
                 label: "Add text"
+                iconOnly: toolbar.narrow
                 description: "Put words over the picture at the playhead"
                 iconName: "title"
                 onClicked: clipGestures.runAction("addTextAtPlayhead")

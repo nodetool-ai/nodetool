@@ -302,7 +302,8 @@ private slots:
         QTRY_VERIFY(!frame.isEmpty());
         auto* viewport = item("timelineToolViewport");
         QVERIFY(viewport);
-        QVERIFY(viewport->width() >= select->width());
+        QVERIFY2(viewport->width() >= select->width(),
+                 qPrintable(QString("viewport %1 select %2").arg(viewport->width()).arg(select->width())));
         const auto right = select->mapToItem(viewport, {select->width(), 0}).x();
         const auto contentX = viewport->property("contentX").toDouble();
         QVERIFY(viewport->setProperty("contentX", qMax(0.0, contentX + right - viewport->width())));
