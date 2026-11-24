@@ -323,6 +323,9 @@ exclude:
   # docs excluded above, which no built page can resolve, and nothing links
   # to them, so they are excluded rather than noindexed.
   - strategy/
+  # Capture record for the game engine guide's images: source revisions and
+  # hashes. Kept in the repo for maintainers, not published.
+  - game-engine/screenshots.md
 
 # Custom theme settings
 # Using custom futuristic dark theme located in _layouts, _includes, and assets

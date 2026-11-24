@@ -104,10 +104,11 @@ When a script throws during play, the 2D pane shows the tick and message. **Repl
 - "Show the score in the top right."
 - "Generate a pixel-art sprite for the player and use it."
 - "Playtest the game and tell me whether the player can reach the goal."
+- "Make the jump feel floatier and add a double jump."
 
 Agent edits land in your draft. The **Changes** list groups them by chat message. **View in chat** jumps to the message and **Undo** reverts that group. Your later edits are merged, and overlapping ones show as conflicts. The assistant publishes only when you ask.
 
-Builders driving this from code or MCP: see [Creative Agent Tools](developer/creative-agent-tools.md#documents-games).
+For the tool reference, see [Creative Agent Tools](/developer/creative-agent-tools#games).
 
 ---
 
@@ -193,7 +194,7 @@ Games bind art and sound by slot name, so you can replace placeholders without t
 
 ## Rebuild a generated game
 
-A game made by a generating script keeps that script and its inputs, so you can change an input and regenerate the game without losing edits you made by hand. **Retained construction** shows the script and inputs. See [Retained Construction](game-engine/construction.md). **Preview rebuild** shows changed entities and dependencies, **Highlight changes** selects them in the viewport, and **Apply rebuild** writes them into the draft. A rebuild is blocked while it has conflicts or the draft is out of date. If your hand edits conflict with the rebuild, a dialog lets you keep that entity as it is, detached from the script, or discard those edits.
+A game made by a generating script keeps that script and its inputs, so you can change an input and regenerate the game without losing edits you made by hand. **Retained construction** shows the script and inputs. See [Rebuilding Generated Games](game-engine/construction.md). **Preview rebuild** shows changed entities and dependencies, **Highlight changes** selects them in the viewport, and **Apply rebuild** writes them into the draft. A rebuild is blocked while it has conflicts or the draft is out of date. If your hand edits conflict with the rebuild, a dialog lets you keep that entity as it is, detached from the script, or discard those edits.
 
 ---
 
