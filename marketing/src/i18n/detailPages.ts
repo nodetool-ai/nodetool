@@ -24,6 +24,10 @@ import jaStoryboards from "./ja/details/storyboards.json";
 import jaAdLibrary from "./ja/details/adLibrary.json";
 import jaRecipes from "./ja/details/recipes.json";
 import { JA_AD_LABELS, JA_RECIPE_LABELS, JA_STORYBOARD_LABELS } from "./ja/detailLabels";
+import koStoryboards from "./ko/details/storyboards.json";
+import koAdLibrary from "./ko/details/adLibrary.json";
+import koRecipes from "./ko/details/recipes.json";
+import { KO_AD_LABELS, KO_RECIPE_LABELS, KO_STORYBOARD_LABELS } from "./ko/detailLabels";
 
 type DetailText = {
   storyboards: Record<string, StoryboardText>;
@@ -32,7 +36,7 @@ type DetailText = {
 };
 
 /** Locales with translated detail pages; see TRANSLATED_DETAIL_SECTIONS. */
-export const DETAIL_TEXT: Partial<Record<Locale, DetailText>> & { zh: DetailText; ja: DetailText } = {
+export const DETAIL_TEXT: Partial<Record<Locale, DetailText>> & { zh: DetailText; ja: DetailText; ko: DetailText } = {
   zh: {
     storyboards: zhStoryboards as Record<string, StoryboardText>,
     adLibrary: zhAdLibrary as unknown as Record<string, AdText>,
@@ -43,6 +47,11 @@ export const DETAIL_TEXT: Partial<Record<Locale, DetailText>> & { zh: DetailText
     adLibrary: jaAdLibrary as unknown as Record<string, AdText>,
     recipes: jaRecipes as unknown as Record<string, RecipeText>,
   },
+  ko: {
+    storyboards: koStoryboards as Record<string, StoryboardText>,
+    adLibrary: koAdLibrary as unknown as Record<string, AdText>,
+    recipes: koRecipes as unknown as Record<string, RecipeText>,
+  },
 };
 
 type Labels = { storyboard: StoryboardLabels; ad: AdLabels; recipe: RecipeLabels };
@@ -50,6 +59,7 @@ type Labels = { storyboard: StoryboardLabels; ad: AdLabels; recipe: RecipeLabels
 const LABELS: Partial<Record<Locale, Labels>> = {
   zh: { storyboard: ZH_STORYBOARD_LABELS, ad: ZH_AD_LABELS, recipe: ZH_RECIPE_LABELS },
   ja: { storyboard: JA_STORYBOARD_LABELS, ad: JA_AD_LABELS, recipe: JA_RECIPE_LABELS },
+  ko: { storyboard: KO_STORYBOARD_LABELS, ad: KO_AD_LABELS, recipe: KO_RECIPE_LABELS },
 };
 
 function labels(locale: Locale): Labels {
