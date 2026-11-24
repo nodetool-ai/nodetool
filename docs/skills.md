@@ -87,7 +87,7 @@ A user skill has the same three parts, edited as the **Name** and **Description*
 
 On startup the agent loads system skills from the first of these that exists:
 
-1. The directory in `NODETOOL_SYSTEM_SKILLS_DIR`, if you set it. See [Configuration](configuration.md).
+1. The directory in `NODETOOL_SYSTEM_SKILLS_DIR`, if you set it. See [Environment Variables](environment-variables.md).
 2. A `_skills` directory beside the bundled server, which is how the desktop app and the Docker image ship them.
 3. `packages/system-skills` in a source checkout.
 
@@ -246,4 +246,4 @@ The `api-*` skills document the `nodetool` object model that code actions call. 
 - [Global Chat](global-chat.md): composer and slash commands
 - [Editor Panels](editor-panels.md): the **More** menu that holds **Skills**
 - [User Interface](user-interface.md): starting a project from a skill
-- [Configuration](configuration.md): `NODETOOL_SYSTEM_SKILLS_DIR`
+- [Environment Variables](environment-variables.md): `NODETOOL_SYSTEM_SKILLS_DIR`

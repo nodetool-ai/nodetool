@@ -35,7 +35,7 @@ Set these on the **NodeTool server** and restart it:
 | `TELEGRAM_BOT_USERNAME` | The bot's username without the `@`. Optional. With it, the settings page shows an **Open Telegram and press Start** link. Without it, you type the link code into the bot yourself |
 | `NODETOOL_PUBLIC_URL` | Optional. The base URL that link confirmation pages use. Set it when the bridge reaches the server at an address your browser cannot, such as `http://nodetool:7777` inside a compose network |
 
-See [Configuration](configuration.md) for the full variable table.
+See [Environment Variables](environment-variables.md) for the full variable table.
 
 ## 3. Set the token and start the bridge
 

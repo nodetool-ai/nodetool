@@ -365,7 +365,7 @@ User prompt: "Add a music track and lay these two clips end to end."
 | `add_media_clip` | Each call appends a clip after the last one. |
 | Result | Each op reports its own `ok`. A partial batch may already have saved the ops that succeeded, so check each result before dependent edits. |
 
-`edit_timeline` authors the cut and renders nothing. `validate_timeline` checks it. `render_timeline` renders it as a job (`get_job` polls, `cancel_job` stops) to `mp4` (default), `webm`, `mov`, or `png_sequence`. `alpha: true` is refused with mp4. `set_timeline_document` replaces the whole document and takes `expected_updated_at`, refusing the write as a conflict if the stored row changed since you read it. A timeline of a project is also a file in the project's folder, and an edit to that file passes the same checks ([Timelines are files in the folder](../workspaces.md#timelines-are-files-in-the-folder)).
+`edit_timeline` authors the cut and renders nothing. `validate_timeline` checks it. `render_timeline` renders it as a job (`get_job` polls, `cancel_job` stops) to `mp4` (default), `webm`, `mov`, or `png_sequence`. `alpha: true` is refused with mp4. `set_timeline_document` replaces the whole document and takes `expected_updated_at`, refusing the write as a conflict if the stored row changed since you read it. A timeline of a project is also a file in the project's folder, and an edit to that file passes the same checks ([Timelines are files in the folder](project-folders.md#timelines-are-files-in-the-folder)).
 
 ### Server-side render
 

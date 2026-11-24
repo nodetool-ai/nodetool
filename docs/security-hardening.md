@@ -12,7 +12,7 @@ Checklists for exposing NodeTool beyond your laptop. The [Quick Security Audit](
 
 ### Network Security
 
-- Terminate TLS at the proxy or ingress with real certificates and redirect HTTP to HTTPS. To terminate in NodeTool itself, see [Serving the Web UI and TLS](configuration.md#serving-the-web-ui-and-tls).
+- Terminate TLS at the proxy or ingress with real certificates and redirect HTTP to HTTPS. To terminate in NodeTool itself, see [Serving the Web UI and TLS](server-configuration.md#serving-the-web-ui-and-tls).
 - Run the proxy on a dedicated Docker network and do not expose the Docker socket beyond the host.
 - Expose only the ports you need (typically 443) and block direct access to internal service ports.
 
@@ -24,7 +24,7 @@ Checklists for exposing NodeTool beyond your laptop. The [Quick Security Audit](
 - **Enforce auth on any network-accessible deployment.** The server enforces authentication only in Supabase mode (**both** `SUPABASE_URL` and `SUPABASE_KEY` set) or SSO mode (**both** `OIDC_ISSUER` and `OIDC_CLIENT_ID` set). Without them it runs in Local mode and trusts loopback connections (and any `NODETOOL_TRUST_LOCAL_NETWORKS` you configure). See [Authentication](authentication.md#authentication-modes).
 - **Lock down localhost trust.** Behind a reverse proxy or in a container, set `NODETOOL_TRUST_LOCALHOST=false` (it already defaults off when auth is enforced) and list only your real proxies in `NODETOOL_TRUSTED_PROXIES`, so a proxy connecting from loopback cannot silently bypass auth.
 - **Keep `NODETOOL_TRUST_LOCAL_NETWORKS` tight.** Trust the smallest range that works (the Docker bridge, not `0.0.0.0/0`), and firewall the published port. It is ignored in Supabase mode.
-- **Know what the server ignores.** `SERVER_AUTH_TOKEN` and `~/.config/nodetool/deployment.yaml` are read only by the `@nodetool-ai/deploy` helpers. The running server does not check them, so they do not protect the API. See [Authentication](authentication.md#deploy-token-helpers).
+- **Treat static tokens as script credentials.** In Local mode the server accepts `SERVER_AUTH_TOKEN` and API-user tokens as bearer tokens. They give scripts and the CLI access, not people a sign-in, and Supabase and SSO mode ignore them. See [Static token and API users](authentication.md#static-token-and-api-users).
 - **Use access tokens for agents.** A signed-in person can mint a revocable `ntk_` token for an MCP client or script. It works in every auth mode, so there is no need to widen `NODETOOL_TRUST_LOCAL_NETWORKS` to reach `/mcp`.
 - **Keep `/mcp` off unless needed.** With `NODETOOL_ENV=production` the `/mcp` mount is not registered unless `NODETOOL_ENABLE_MCP=1`. It carries the full agent toolbelt, so enable it only when clients authenticate. See [MCP production](mcp-production.md).
 - **Keep rate limits on.** The per-IP HTTP limiter defaults to 1000 requests per 60 seconds and exempts loopback. Behind a proxy set `NODETOOL_TRUSTED_PROXIES` and `NODETOOL_RATE_LIMIT_TRUST_PROXY` so clients are keyed by their real address. See [Authentication](authentication.md#rate-limiting).
@@ -42,12 +42,12 @@ Asset objects live at `<userId>/<assetId>.<ext>`. The owner is the leading path 
 - Run `nodetool storage migrate-keys` when upgrading a deployment that predates this layout. The local file backend falls back to the old flat key on a miss. Supabase and S3 resolve through signed URLs and need the objects moved. `--dry-run` reports what would move.
 - Keep the bucket private. Reads use short-lived signed URLs minted per request, and a public bucket bypasses that.
 - Add a storage policy keyed on the prefix: on Supabase an RLS policy on `storage.objects` matching `(storage.foldername(name))[1] = auth.uid()::text`, on S3 a bucket policy on the key prefix. The API already enforces this, and a policy holds even if a signed URL leaks or a handler regresses.
-- Never ship `SUPABASE_KEY` to a client. Browsers upload through the key-scoped, single-object targets that `assets.createUpload` mints.
+- Never ship `SUPABASE_KEY` to a client. Browsers upload through single-object upload links the server creates for each file.
 
 ### Local File Access
 
-The file browser (tRPC `files.list`) and the preview stream
-(`GET /api/files/local`) read the server's own filesystem. Both are off when
+The file browser and the local-file preview read the server's own
+filesystem. Both are off when
 `NODETOOL_ENV=production`, and outside production both resolve paths against an
 allowlist of roots — the user's home directory unless
 `NODETOOL_LOCAL_FILE_ROOTS` overrides it (platform-delimited, like `PATH`).
@@ -55,7 +55,7 @@ Sensitive entries under home (`.ssh`, `.aws`, `.gnupg`, `.kube`, `.docker`,
 `.config/gcloud`, `.netrc`, `.pgpass`, `.npmrc`) are refused inside a root, and
 symlinks that leave the roots are refused too.
 
-- Widen `NODETOOL_LOCAL_FILE_ROOTS` only to directories that hold media you preview, never to `/`. The single entry `*` lifts the containment check (the denylist still applies). It belongs to the desktop app, which runs the server as one user's process on loopback so they can drag a file onto the canvas from anywhere. Electron sets it, and a launching environment that configured its own roots keeps them.
+- Widen `NODETOOL_LOCAL_FILE_ROOTS` only to directories that hold media you preview, never to `/`. The single entry `*` lifts the containment check (the denylist still applies). It belongs to the desktop app, which runs the server as one user's process on loopback so they can drag a file onto the canvas from anywhere. The desktop app sets it, unless the environment it was started from already sets its own roots.
 - Set `NODETOOL_ENV=production` on any deployment more than one person can reach. It disables both surfaces.
 
 ### Resource Limits
@@ -124,7 +124,7 @@ Set `mem_limit` and `cpus` on containers and use read-only mounts where possible
 ## Related
 
 - [Authentication](authentication.md)
-- [Configuration Guide](configuration.md)
+- [Server Configuration](server-configuration.md)
 - [Deployment Guide](deployment.md)
 - [Self-Hosted Deployment](self-hosted-deployment.md)
 - [Docker Resource Management](docker-resource-management.md)

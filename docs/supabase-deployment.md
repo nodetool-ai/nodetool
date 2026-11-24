@@ -81,5 +81,5 @@ Keep the service role key out of client code, because it has full admin access. 
 - [Deployment Guide](deployment.md)
 - [Authentication](authentication.md)
 - [Storage](storage.md)
-- [Configuration](configuration.md)
+- [Server Configuration](server-configuration.md)
 - [Security Hardening](security-hardening.md)

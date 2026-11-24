@@ -20,7 +20,7 @@ The integration authenticates with the Google access token that a Supabase Googl
 | Local mode, no login | Off |
 | Local server pointed at a hosted Supabase project | Off until you set `NODETOOL_GOOGLE_WORKSPACE=1` |
 
-`NODETOOL_GOOGLE_WORKSPACE` accepts `1` or `true` to force the integration on and `0` or `false` to force it off. When it is unset, the server follows its auth mode. See [Configuration](configuration.md) and [Authentication](authentication.md).
+`NODETOOL_GOOGLE_WORKSPACE` accepts `1` or `true` to force the integration on and `0` or `false` to force it off. When it is unset, the server follows its auth mode. See [Environment Variables](environment-variables.md) and [Authentication](authentication.md).
 
 A server that runs the integration also needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, the same OAuth client you configured for the Google provider in Supabase. Supabase does not refresh Google tokens, so without these the connection stops working about an hour after you connect.
 

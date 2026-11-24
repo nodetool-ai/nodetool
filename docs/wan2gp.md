@@ -168,5 +168,5 @@ before you redistribute or sell access to it.
 ## Related
 
 - [Supported Models](models.md): local engines and hardware
-- [Configuration](configuration.md): `WAN2GP_MCP_URL` and `WAN2GP_MCP_TOKEN`
+- [Environment Variables](environment-variables.md): `WAN2GP_MCP_URL` and `WAN2GP_MCP_TOKEN`
 - [Node reference](nodes/lib/wan2gp/): the `lib.wan2gp` nodes

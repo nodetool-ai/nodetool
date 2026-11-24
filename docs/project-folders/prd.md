@@ -357,7 +357,7 @@ Each step is idempotent and safe to interrupt.
    `workspace_path`, then delete the legacy object. The legacy key keeps
    resolving until the object is deleted, and the row names the file before
    that. See
-   [existing assets move into the folder](../workspaces.md#existing-assets-move-into-the-folder).
+   [existing assets move into the folder](../developer/project-folders.md#existing-assets-move-into-the-folder).
 
 ## Delivery order
 

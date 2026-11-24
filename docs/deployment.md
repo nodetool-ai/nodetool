@@ -27,7 +27,7 @@ For a walkthrough across desktop, public, private, and Docker/Podman self-hostin
 | **Rent a GPU to run Python nodes (RunPod / Vast / Verda)** | [Worker Deployment](worker-deployment.md) |
 | **Tune GPU/memory/volumes for the server container** | [Docker Resource Management](docker-resource-management.md) |
 | **Use Supabase for auth/storage** | [Supabase Deployment Integration](supabase-deployment.md) |
-| **Set up TLS/HTTPS** | [Serving the Web UI and TLS](configuration.md#serving-the-web-ui-and-tls) |
+| **Set up TLS/HTTPS** | [Serving the Web UI and TLS](server-configuration.md#serving-the-web-ui-and-tls) |
 | **Connect Claude Code or another MCP client to a deployed server** | [MCP on a Production Server](mcp-production.md) |
 
 ---

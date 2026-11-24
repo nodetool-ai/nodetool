@@ -1,55 +1,52 @@
 ---
 layout: page
-title: "Storage Guide"
-description: "Asset and temp storage backends (local disk, S3, Supabase), their environment variables, retention defaults, and failure behavior."
+title: "Storage"
+description: "Where a NodeTool server keeps asset bytes and temp files (local disk, S3, Supabase), the variables for each backend, linked files, retention, and failure behavior."
 ---
 
-Assets, workflow artifacts, and temp files go through the adapters in `@nodetool-ai/storage` (`packages/storage/src/`). `NODETOOL_STORAGE_BACKEND` picks the backend once, and assets and temp files share it with different buckets.
+A server keeps asset bytes and temp files on local disk by default, or in an S3-compatible or Supabase bucket. `NODETOOL_STORAGE_BACKEND` picks one backend for both, each with its own bucket.
 
-```
+```bash
 NODETOOL_STORAGE_BACKEND=s3
 ASSET_BUCKET=nodetool-assets
 TEMP_BUCKET=nodetool-temp
 S3_REGION=eu-central-1
 ```
 
+New assets are files in their [project folder](workspaces.md), so on a server the project folders live in the same storage. Collections are stored separately, see [Vector Storage](vector-storage.md).
+
 ## Asset Storage Backends
 
-| Backend | Module (`src/`) | Selected by | Notes |
-|---------|--------|-----------------|-------|
-| Local filesystem | `file-storage-adapter.ts` | `file` or unset | Default root `$XDG_DATA_HOME/nodetool/assets`, else `~/.local/share/nodetool/assets` (`%APPDATA%\nodetool\assets` on Windows). Override with `ASSET_FOLDER` or `STORAGE_PATH`. Served through `/api/storage/*` |
-| Supabase Storage | `supabase-storage-adapter.ts` | `supabase` | Supabase bucket |
-| Amazon S3 or compatible | `s3-storage-adapter.ts` | `s3` | Optional custom endpoint for MinIO or Wasabi |
-| In-memory | `memory-storage-adapter.ts` | Tests only | Process-local, not selectable by configuration |
+| `NODETOOL_STORAGE_BACKEND` | Stores files in | Notes |
+|---------|--------|-------|
+| `file` (default) | A local directory | `~/.local/share/nodetool/assets` on macOS and Linux (under `$XDG_DATA_HOME` when set), `%APPDATA%\nodetool\assets` on Windows. Override with `ASSET_FOLDER` or `STORAGE_PATH` |
+| `s3` | Amazon S3 or a compatible service (MinIO, Cloudflare R2, Wasabi) | Needs `ASSET_BUCKET` and `TEMP_BUCKET` |
+| `supabase` | Supabase Storage buckets | Needs `SUPABASE_URL`, `SUPABASE_KEY`, `ASSET_BUCKET` and `TEMP_BUCKET` |
 
-`loadAssetStorageConfig()` and `loadTempStorageConfig()` in `@nodetool-ai/config` (`src/storage-config.ts`) read the variables below and `createStorageAdapter()` (`src/factory.ts`) builds the adapter.
+Credentials never select the backend. A server with S3 keys and no `NODETOOL_STORAGE_BACKEND` still uses local disk.
 
 | Variable | Notes |
 |----------|-------------|
 | `NODETOOL_STORAGE_BACKEND` | `file`, `s3`, or `supabase`. Default `file` |
 | `ASSET_BUCKET` | Required for S3 and Supabase |
-| `TEMP_BUCKET` | Required for S3 and Supabase |
+| `TEMP_BUCKET` | Required for S3 and Supabase. Holds scratch files, so it can have its own retention and access policy. On `file` both share the assets directory |
 | `SUPABASE_URL`, `SUPABASE_KEY` | Required for `supabase` |
-| `NODETOOL_MAX_UPLOAD_BYTES` | Default 1 GiB, 2 GiB for local file reads and uploads (`src/storage-limits.ts`) |
-| `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` | Local file backend only. See [External assets](#external-assets) |
-| `FONT_PATH`, `VECTORSTORE_DB_PATH` | Paths for specific nodes (`setting-catalog.ts`) |
+| `NODETOOL_MAX_UPLOAD_BYTES` | Largest single upload. Default 1 GiB |
+| `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` | Local `file` backend only. See [Linked files](#external-assets) |
 
-S3-compatible services also use:
+### S3 and compatible services
 
-- `S3_ENDPOINT` (or `S3_ENDPOINT_URL`): optional custom endpoint. When set, requests use path-style addressing.
-- `S3_REGION`: defaults to `us-east-1` when signing URLs.
+- `S3_ENDPOINT` (or `S3_ENDPOINT_URL`) sets a custom endpoint for MinIO, R2 or Wasabi. With an endpoint set, requests use path-style addressing.
+- `S3_REGION` defaults to `us-east-1`.
+- Credentials come from `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN`, or from a profile in `~/.aws/credentials` named by `AWS_PROFILE`. Instance and container roles (EC2, ECS, EKS) are not picked up, so give the server keys or a profile.
+- Grant read and write on both buckets.
+- The endpoint must honor conditional writes (`If-None-Match: *`). AWS S3, Cloudflare R2 and current MinIO do. Older MinIO releases do not, and the server refuses to write project files there. See [Object storage must honor conditional writes](developer/project-folders.md#object-storage-must-honor-conditional-writes).
 
-Credentials come from the standard AWS chain (`src/s3/credentials.ts`): `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, or a profile in `~/.aws/credentials` selected with `AWS_PROFILE`. ECS, EC2 IMDS, and EKS web identity chains are not built in. Pass a custom `credentialProvider` to `S3Client` for those.
-
-`createAssetUrlBuilder()` (`src/url-builder.ts`) returns a pre-signed URL (S3) or a Supabase signed URL, both valid for `SIGNED_URL_TTL` (7 days, from `@nodetool-ai/config`), so private buckets work as is.
-
-## Temporary Storage
-
-Temp storage holds scratch files. It uses the asset backend with `TEMP_BUCKET` in place of `ASSET_BUCKET`, so temp files can carry their own retention and access policy (`getTempAdapter()` in `@nodetool-ai/websocket`, `src/lib/storage.ts`). On the `file` backend both share the local assets directory.
+Download links are signed URLs that last 7 days, so the buckets can stay private.
 
 ## Supabase Storage
 
-```
+```bash
 NODETOOL_STORAGE_BACKEND=supabase
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your-service-role-key
@@ -57,69 +54,42 @@ ASSET_BUCKET=assets
 TEMP_BUCKET=assets-temp
 ```
 
-Create the two buckets in the Supabase dashboard first. The key is a service role key, so keep it server-side.
+Create the two buckets in the Supabase dashboard first. The key is a service role key, so keep it on the server. Bucket policies are in [Security Hardening](security-hardening.md#asset-storage).
 
 ## Assets in project folders
 
-A new asset, whether a workflow output, an agent's output or an upload, is a file in its [project's folder](workspaces.md#assets-are-files-in-the-folder), not an object under `<user>/<asset id>.<ext>`. A direct upload to S3 or Supabase lands under that key first and is moved into the folder when the upload is finalized. In a storage-backed folder the file is created with a conditional write (`If-None-Match: *` on S3, an upload without upsert on Supabase), so it cannot replace an existing object. An S3-compatible endpoint must support conditional writes. AWS S3, Cloudflare R2 and current MinIO do. Its thumbnail still goes to asset storage. A read of the asset's storage key finds no object there and is resolved through the asset row to the file: by path with the `file` backend, and through the project folder's storage with S3 or Supabase, where the signed URL names the file's own object.
+A new asset, whether a workflow output, an agent's output or an upload, is a file in its project's folder. With S3 or Supabase, a project folder is a key prefix in the asset bucket. Thumbnails and video previews stay outside the folder in asset storage.
 
-An asset created before project folders keeps its object under `<user>/<asset id>.<ext>` until the API server moves it into its project's folder. The move copies the object, compares the copy byte for byte, points the row at the file, and then deletes the object. Thumbnails and video proxies stay in asset storage. See [existing assets move into the folder](workspaces.md#existing-assets-move-into-the-folder).
+An asset created before project folders keeps its object under `<user>/<asset id>.<ext>` until the server moves it into its project's folder. The move copies the object, compares the copy byte for byte, and only then deletes the original. See [Upgrading from before project folders](workspaces.md#upgrading-from-before-project-folders).
 
 ## External assets
 
-On a local desktop or dev server with the `file` backend, an import the creator links, or one at or above `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` (default 1 GiB) when no choice is made, is not copied. The asset row stores `external_path`, the file stays where it is, and the server records its size and modification time (`externalAssetsAvailable()` in `src/lib/external-assets.ts`). If the file is missing or either value changed, the asset reads as offline until you relink it. `NODETOOL_ENV=production` and the S3 and Supabase backends never create external assets.
-
-`assets.collect({ project_id })` copies each linked file of a project into the folder's `Imported/` directory, one asset at a time (`collectLinkedAssets` in `@nodetool-ai/asset-services`). It copies the bytes to a hidden staging file and publishes the copy under a free name in one step that never replaces a file, records the copy on the row as `metadata.collect_path`, and compares the copy with the linked file by size and partial content hash. Only then does the row get `workspace_path` and lose `external_path`. A run that stops after publishing, a crash included, reuses the recorded copy on the next run when it still holds the linked file's bytes. Any other file at the recorded path stays, and the next run copies under a new name. Until then the reconciler leaves the recorded copy alone, so it never becomes a second asset. An offline file is skipped. Project export refuses a project with linked files and names them (HTTP 409), unless it is called with `?linked=collect`, which collects first.
+On the desktop app or a local server with the `file` backend, a file the creator links is used where it is instead of being copied. A file of 1 GiB or more (`NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES`) starts out linked. If the linked file is moved or changed, the asset shows as missing until you relink it. **Collect files** on a project copies its linked files into the folder's `Imported/` directory. A server with `NODETOOL_ENV=production`, or with the S3 or Supabase backend, never links files.
 
 ## Database History Retention
 
-Run history, workflow versions, and prediction payloads live in the database. A per-user retention policy trims them (`src/storage-retention.ts` in `@nodetool-ai/websocket`, defaults in `src/storage-maintenance.ts` in `@nodetool-ai/models`). Edit it under **Settings** in the storage history section.
+Run history, workflow versions and generation records live in the database. Each user trims them under **Settings → General → Autosave & version history**. See [Version history and cleanup](configuration.md#version-history-and-cleanup) for the defaults.
 
-| Setting | Default |
-|---------|---------|
-| Autosaves kept per workflow | 10 |
-| Autosave retention | 7 days |
-| Manual version retention | 90 days |
-| Finished job retention | 30 days |
-| Run event retention | 30 days |
-| Prediction request payload retention | 400 days |
-| Automatic cleanup | Off locally, on with `NODETOOL_STORAGE_AUTO_CLEANUP=1` |
-
-With automatic cleanup on, the sweep runs at most once every 24 hours.
-
-## Caches
-
-- `MemoryNodeCache` (`src/memory-node-cache.ts`) is an in-process cache of node outputs. `ProcessingContext` builds its keys with `generateNodeCacheKey()` (`@nodetool-ai/runtime`, `src/context.ts`).
-- `src/memory-uri-cache.ts` caches resolved asset URIs.
-
-## Accessing Storage in Workflows
-
-`ProcessingContext` (`@nodetool-ai/runtime`, `src/context.ts`) provides:
-
-- `resolveAssetBytes(assetId)` loads an asset's raw bytes.
-- `assetsToStorageUrl(value)` rewrites asset references to storage URLs.
-- `downloadFile(url)` fetches file contents from a URL.
-- `assetsToWorkspaceFiles(value)` writes asset values to `assets/` in the run's project folder. It needs a folder on local disk.
-- `uploadAssetsToTemp(value)` uploads asset values to temp storage and returns temp URLs.
+**Automatic cleanup** starts off. `NODETOOL_STORAGE_AUTO_CLEANUP=1` makes it start on. With it on, the sweep runs at most once every 24 hours.
 
 ## Deployment Considerations
 
-- Mount persistent volumes for the data directory (`/workspace` in the Docker image) and the asset storage directory on self-hosted deployments.
-- New asset bytes live in project folders. The Docker image runs with `NODETOOL_ENV=production`, so each project folder is a key prefix in asset storage. A server that sets `NODETOOL_WORKSPACE_STORAGE=local` keeps them under `PROJECTS_DIR`, default `~/NodeTool`, so point that at a persistent volume, such as `/workspace/projects`.
-- Docker execution (`@nodetool-ai/deploy`, `src/docker-run.ts`) mounts the deployment's data path into containers at `/workspace`, so the host directory must exist with correct permissions.
-- With S3, grant read and write on the buckets named by `ASSET_BUCKET` and `TEMP_BUCKET`.
+- Mount persistent volumes for the data directory (`/workspace` in the Docker image) and the asset directory.
+- The Docker image runs with `NODETOOL_ENV=production`, so each project folder is a key prefix in asset storage. A server that sets `NODETOOL_WORKSPACE_STORAGE=local` keeps project folders under `PROJECTS_DIR` (default `~/NodeTool`) instead, so point that at a persistent volume such as `/workspace/projects`.
+- `nodetool deploy` mounts the deployment's data path into the container at `/workspace`, so the host directory must exist with permissions the container user can write.
 
 ## If it fails
 
-- **`Missing required env var <name> for NODETOOL_STORAGE_BACKEND=<backend>`**: set the named variable. An unknown backend throws `Unknown NODETOOL_STORAGE_BACKEND: "<value>". Expected file|s3|supabase.`
+- **`Missing required env var <name> for NODETOOL_STORAGE_BACKEND=<backend>`**: set the named variable. An unknown backend fails with `Unknown NODETOOL_STORAGE_BACKEND: "<value>". Expected file|s3|supabase.`
 - **`Upload for key "<key>" exceeds maximum size: <n> > <max> bytes`**: raise `NODETOOL_MAX_UPLOAD_BYTES`.
-- **Asset bytes fail to load in a run**: the context falls back to `GET <NODETOOL_API_URL>/api/storage/<id>.<ext>` when it cannot read an asset directly. `NODETOOL_API_URL` defaults to `http://localhost:7777`, so set it when the API runs elsewhere.
-- **S3 authentication errors**: check the credential chain and endpoint. `nodetool settings show` prints the resolved environment and `nodetool secrets list` the stored keys.
-- **Docker jobs cannot reach assets**: mount the asset directory into the server container and point `ASSET_FOLDER` or `STORAGE_PATH` at the mounted path.
-- **Local file permissions**: the asset folder must be writable by the user running the service, especially in Docker.
+- **Asset bytes fail to load in a run**: when a run cannot read an asset directly, it asks the API at `NODETOOL_API_URL` (default `http://localhost:7777`). Set it when the API runs elsewhere.
+- **`The storage endpoint <endpoint> ignores the If-None-Match header on writes`**: the S3-compatible service does not support conditional writes. Use AWS S3, Cloudflare R2 or current MinIO.
+- **S3 authentication errors**: check the keys or profile and the endpoint. `nodetool settings show` prints the resolved environment.
+- **Local file permissions**: the asset folder must be writable by the user running the server, which in Docker is the container user.
 
-## Related Documentation
+## Related
 
-- [Configuration Guide](configuration.md)
-- [Deployment Guide](deployment.md)
+- [Server Configuration](server-configuration.md)
+- [Vector Storage](vector-storage.md)
 - [Docker Resource Management](docker-resource-management.md)
+- [Storage and Vector Store APIs](developer/storage.md)
