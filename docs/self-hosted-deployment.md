@@ -1,15 +1,20 @@
 ---
 layout: page
 title: "Self-Hosted Deployment Guide"
-description: "Run the NodeTool server in Docker with Compose or nodetool deploy: ports, volumes, auth modes, API users, and production MCP and Python opt-ins."
+description: "Run the NodeTool server with Docker Compose, docker or podman run, nodetool deploy, or the CLI: ports, volumes, auth modes, API users, health checks, and production MCP and Python opt-ins."
 ---
 
-NodeTool self-hosts as one Docker container, on `localhost` or on a remote host reached over SSH. Docker is the only deployment `type` (`SUPPORTED_TYPES = ["docker"]`).
+NodeTool self-hosts as one container, on `localhost` or on a remote host reached over SSH. This page is the single guide for running the server: with Docker Compose, with a plain `docker run` or `podman run`, with `nodetool deploy`, or straight from the CLI.
 
-> **Runs:** on a Docker or Podman host you control. **Needs:** the `ghcr.io/nodetool-ai/nodetool` image, `DB_PATH` or `DATABASE_URL` (the Compose file sets `DB_PATH`), and provider keys for the models you use. **Ports:** container `7777`, published on `17777` by Compose and `8000` by `nodetool deploy`. **Secrets:** `SECRETS_MASTER_KEY` (generated if unset), plus `SUPABASE_*` or `OIDC_*` for login. **Hardware:** not measured.
+> **Runs:** on a Docker or Podman host you control, or any host with Node.js 22 or newer. **Needs:** the `ghcr.io/nodetool-ai/nodetool` image, `DB_PATH` or `DATABASE_URL` (the Compose file sets `DB_PATH`), and provider keys for the models you use. **Ports:** container `7777`, published on `17777` by Compose and `8000` by `nodetool deploy`. **Secrets:** `SECRETS_MASTER_KEY` (generated if unset), plus `SUPABASE_*` or `OIDC_*` for login.
 {: .callout-note}
 
-Two paths: a `docker-compose.yml` you run yourself (fastest for one server), or the `nodetool deploy` CLI, driven by `deployment.yaml`, which also handles remote hosts over SSH, image transfer, and workflow sync. See [Deployment Configuration](#deployment-configuration).
+| Path | Use it when |
+|---|---|
+| [Docker Compose](#docker-compose-reference) | one server on a host you are logged in to. The fastest start |
+| [Docker or Podman without Compose](#docker-or-podman-without-compose) | you want a single `run` command, or use Podman |
+| [`nodetool deploy`](#deploy-with-nodetool-deploy) | you deploy from your machine to a remote host over SSH, and want workflow sync and API users |
+| [Without a container](#without-a-container) | the host runs Node.js and you do not want a container |
 
 ## Docker Compose (reference)
 
@@ -40,7 +45,7 @@ Commented-out blocks in the compose file enable:
 
 - **Ollama**: set `OLLAMA_API_URL` (`http://host.docker.internal:11434` for Ollama on the host, with the `extra_hosts` entry uncommented).
 - **llama.cpp** and **vLLM** services: uncomment the service and set `LLAMA_CPP_URL` or `VLLM_BASE_URL`. vLLM needs an NVIDIA GPU on Linux.
-- **PostgreSQL**: uncomment the `postgres` service, remove `DB_PATH`, and set `DATABASE_URL`. With `DATABASE_URL` set, the entrypoint runs `db-migrate.mjs` on every start unless `NODETOOL_MIGRATE_ON_BOOT=0`.
+- **PostgreSQL**: uncomment the `postgres` service, remove `DB_PATH`, and set `DATABASE_URL`. With `DATABASE_URL` set, the container applies database migrations on every start unless `NODETOOL_MIGRATE_ON_BOOT=0`.
 
 Upgrade in place:
 
@@ -76,9 +81,130 @@ See also [Authentication](authentication.md) and [Supabase Deployment](supabase-
 
 To serve the web UI from a **different origin** (a CDN, for example), point the frontend at the backend with the build-time `VITE_API_URL` and add that origin to `NODETOOL_ALLOWED_ORIGINS` so cross-origin `GET /api/config` and API calls are allowed.
 
-## Deployment Configuration
+## Docker or Podman without Compose
 
-### Docker Deployment
+To run the image with a single command, for example on a host without Compose:
+
+```bash
+docker run -d --name nodetool -p 127.0.0.1:17777:7777 \
+  -e DB_PATH=/workspace/nodetool.sqlite3 \
+  -v nodetool-data:/workspace \
+  ghcr.io/nodetool-ai/nodetool:latest
+```
+
+The image sets `NODETOOL_ENV=production` and generates a master key into `/workspace` on first start, so keep the volume. Podman takes the same command with `podman run`. Docker and Podman keep separate image stores, so pull or build the image with the runtime you run it with. To build your own image from a repository checkout, run `docker build -t nodetool:local .` (or `podman build`) at the repository root.
+
+`docker run` does not set `NODETOOL_TRUST_LOCAL_NETWORKS`, so in Local mode the server answers `401 "Remote access requires authentication"` to the browser on your host, whose requests arrive from the Docker bridge. Add `-e NODETOOL_TRUST_LOCAL_NETWORKS=172.16.0.0/12,192.168.65.0/24` for a local install, or turn on login with `-e SUPABASE_URL=… -e SUPABASE_KEY=… -e SUPABASE_ANON_KEY=…`. See [Authentication → Local mode in Docker](authentication.md#local-mode-in-docker).
+
+## Without a container
+
+The server also runs straight from the CLI. Install the `cli-server` command feature, which holds the full application server, and start it:
+
+```bash
+npm install -g @nodetool-ai/cli
+nodetool packs add cli-server --yes
+
+export NODETOOL_ENV=production
+export DB_PATH=/srv/nodetool/nodetool.sqlite3
+export SECRETS_MASTER_KEY="$(openssl rand -base64 32)"   # keep this value
+nodetool server serve --host 0.0.0.0 --port 7777
+```
+
+`nodetool server serve` takes only `--host` (default `127.0.0.1`) and `--port` (default `7777`). Everything else comes from environment variables, the same ones the container reads. The plain `nodetool serve` is a different server, the lean execution server described in the [CLI Reference](cli.md#nodetool-serve).
+
+The master key comes from `SECRETS_MASTER_KEY`, then the system keychain. When neither holds one, the server generates a key into the keychain. A headless Linux host has no keychain, so set `SECRETS_MASTER_KEY` there and keep the value: stored secrets cannot be decrypted without it.
+
+Set `SUPABASE_URL`, `SUPABASE_KEY`, and `SUPABASE_ANON_KEY` to require login, as in [Authentication / login screen](#authentication--login-screen). Without them the server runs in Local mode and trusts only loopback, so bind to `0.0.0.0` only with login on or behind a proxy that adds its own.
+
+## Deploy with `nodetool deploy`
+
+`nodetool deploy` manages a Docker container on `localhost` or on a remote host over SSH, from a `deployment.yaml` file. It also copies your image to a remote host, syncs workflows, and manages API users. The commands come with the `cli-admin` feature:
+
+```bash
+nodetool packs add cli-admin --yes
+```
+
+### 1. Pull the image
+
+```bash
+docker pull ghcr.io/nodetool-ai/nodetool:latest
+```
+
+`deploy apply` never pulls. A local host needs the image already present. For a remote host, apply copies the image from your local Docker daemon when the remote has none.
+
+### 2. Add a deployment
+
+```bash
+nodetool deploy init                       # creates deployment.yaml
+nodetool deploy add local --type docker
+```
+
+`deploy init` creates `deployment.yaml` in the NodeTool config directory: `~/.config/nodetool/` on Linux, `~/Library/Application Support/nodetool/` on macOS, `%APPDATA%\nodetool` on Windows. `--type docker` is required. `deploy add` then prompts for the rest:
+
+- Docker host (IP or hostname): `localhost`
+- SSH user and SSH key path: asked only for a remote host (defaults `root` and `~/.ssh/id_rsa`)
+- Docker image name: `ghcr.io/nodetool-ai/nodetool`
+- Image tag: `latest`
+- Container name: `nodetool-<deployment name>`
+- Container port: `8000`
+
+It does not prompt for GPU or paths. It sets `paths.workspace` to `~/.nodetool-workspace` and `paths.hf_cache` to the Hugging Face cache it finds (`HF_HUB_CACHE`, then `$HF_HOME/hub`, then `~/.cache/huggingface/hub`). The workspace mounts at `/workspace` (database, assets, temporary data) and the HF cache at `/hf-cache`, read-only. Change `container.gpu`, `container.environment`, and `paths` with `nodetool deploy edit`, which opens the whole file in `$EDITOR`.
+
+### 3. Review the plan
+
+```bash
+nodetool deploy list
+nodetool deploy show local                # the entry as YAML
+nodetool deploy plan local                # the plan as JSON
+nodetool deploy apply local --dry-run
+```
+
+None of these change the host. `deploy show` includes `enabled`, `state`, `server_auth_token`, and `container.environment` with a generated `SECRETS_MASTER_KEY`:
+
+```yaml
+local:
+  type: docker
+  host: localhost
+  image:
+    name: ghcr.io/nodetool-ai/nodetool
+    tag: latest
+  container:
+    name: nodetool-local
+    port: 8000
+  paths:
+    workspace: <your workspace path>
+    hf_cache: <your HF cache path>
+```
+
+### 4. Apply
+
+```bash
+nodetool deploy apply local
+```
+
+Apply prints each step, then the result as JSON. A successful run shows:
+
+- directories created
+- `Image already present.`
+- app container started
+- `Health endpoint OK: http://127.0.0.1:8000/health`
+- `"status": "success"` in the final JSON
+
+The server is then at `http://localhost:8000`. Confirm its state:
+
+{% raw %}
+```bash
+nodetool deploy status local
+nodetool deploy logs local --follow
+docker ps --filter name=nodetool --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+```
+{% endraw %}
+
+`nodetool deploy destroy local` removes the container. The workspace directory stays on the host.
+
+### Configuration reference
+
+A remote deployment with a GPU looks like this:
 
 ```yaml
 deployments:
@@ -103,107 +229,64 @@ deployments:
 
 For a local host, set `host: localhost` and omit the `ssh` block.
 
-## Apply Flow
+- `type`: always `docker`
+- `enabled`: whether the deployment is active
+- `host`: Docker host (IP, hostname, or `localhost`)
+- `ssh`: connection details for a remote host. The host key must already be in `~/.ssh/known_hosts`, so run `ssh <user>@<host>` once and check the fingerprint before the first deploy
+- `paths`: host directories for the workspace (mounted at `/workspace`) and the HF cache (mounted at `/hf-cache`, read-only unless `persistent_paths` is set)
+- `persistent_paths`: optional container paths for the users file, database, vector store (`vectorstore_db_path`), HF home, assets, and logs. Setting it changes the injected environment, see below
+- `image`: container image name, tag, and registry
+- `container`: `name`, `port`, `gpu` (device ids such as `0` or `0,1`, passed as `--gpus "device=…"`), and `environment` (variables injected into the container)
+- `server_auth_token`: generated bearer token for admin and sync calls. A Local-mode server accepts it, see [API users](#api-users)
+- `server_url`: optional URL the CLI uses instead of `http://<host>:<port>`. The CLI sends `server_auth_token` only over `https://` or to `localhost`, so set it to your TLS proxy (`https://nodetool.example.com`) or to an SSH tunnel (`http://localhost:8000` after `ssh -L 8000:localhost:8000 <host>`). `NODETOOL_ALLOW_INSECURE_HTTP=1` lifts the check
+- `state`: deployment state the deployer tracks
 
-1. **Directory Creation**: Creates `workspace` (with `data`, `assets`, `temp`, `proxy`, and `acme` subdirectories) and `hf_cache` on the host.
-2. **Image Check**: Verifies the configured image exists on the host. `deploy apply` does not pull. A local host without the image fails with an error, so pull or build it first.
-3. **Image Transfer**: For a remote host that lacks the image, pipes `docker save` from your local daemon into `docker load` over SSH. An image the remote already holds is never replaced.
-4. **Container Management**: Stops and removes the existing container, and any other `nodetool-*` container publishing the same host port, then runs a new one named `nodetool-<container.name>`. Docker is used when installed, otherwise Podman. Set `NODETOOL_CONTAINER_RUNTIME=docker` or `podman` to choose.
-5. **Health Check**: Polls `http://127.0.0.1:<host port>/health` on the host, 30 attempts 2 seconds apart, and fails the apply if the server never answers.
+When a deployment loads, `deploy` generates `SECRETS_MASTER_KEY` in `container.environment` and a `server_auth_token` if missing, and saves them to `deployment.yaml`. Keep that file private.
 
-`container.port` is the host port. The container serves on `7777`, and a `container.port` of `7777` is published as `8000`. The container starts with `--restart unless-stopped` and a Docker health check on `/health`.
+On top of `container.environment`, the deployer sets `PORT`, `NODETOOL_API_URL`, `DB_PATH` (`/workspace/nodetool.db`), `VECTORSTORE_DB_PATH` (`/workspace/vectorstore.db`), `ASSET_FOLDER` (`/workspace/assets`), `HF_HUB_CACHE` (`/hf-cache`), and `SERVER_AUTH_TOKEN`. With `persistent_paths` set, the first three and `HF_HOME` come from it instead.
 
-## End-to-End: Local Docker Deployment
+### What apply does
 
-### 0. Pull the Image First
+1. **Directories**: creates `workspace` (with `data`, `assets`, `temp`, `proxy`, and `acme` subdirectories) and `hf_cache` on the host.
+2. **Image check**: verifies the configured image exists on the host. A local host without the image fails with an error, so pull or build it first.
+3. **Image transfer**: for a remote host that lacks the image, pipes `docker save` from your local daemon into `docker load` over SSH. An image the remote already holds is never replaced.
+4. **Container**: stops and removes the existing container, and any other `nodetool-*` container publishing the same host port, then runs a new one named `nodetool-<container.name>` with `--restart unless-stopped` and a Docker health check on `/health`. Docker is used when installed, otherwise Podman. Set `NODETOOL_CONTAINER_RUNTIME=docker` or `podman` to choose.
+5. **Health check**: polls `http://127.0.0.1:<host port>/health` on the host, 30 attempts 2 seconds apart, and fails the apply if the server never answers.
 
-```bash
-docker pull ghcr.io/nodetool-ai/nodetool:latest
-```
+`container.port` is the host port. The container serves on `7777`, and a `container.port` of `7777` is published as `8000`.
 
-### 1. Add Local Docker Deployment
-
-```bash
-nodetool deploy add local --type docker
-```
-
-`--type docker` is required. The command then prompts for the rest:
-
-- Docker host (IP or hostname): `localhost`
-- SSH user and SSH key path: asked only for a remote host (defaults `root` and `~/.ssh/id_rsa`)
-- Docker image name: `ghcr.io/nodetool-ai/nodetool`
-- Image tag: `latest`
-- Container name: `nodetool-<deployment name>`
-- Container port: `8000`
-
-It does not prompt for GPU or paths. It sets `paths.workspace` to `~/.nodetool-workspace` and `paths.hf_cache` to the Hugging Face cache it finds (`HF_HUB_CACHE`, then `$HF_HOME/hub`, then `~/.cache/huggingface/hub`). The workspace mounts at `/workspace` (database, assets, temporary data) and the HF cache at `/hf-cache`, read-only. Edit `container.gpu` and `paths` with `nodetool deploy edit`.
-
-### 2. Review Deployment Config
+### Upgrade a `nodetool deploy` server
 
 ```bash
-nodetool deploy show local
+docker pull ghcr.io/nodetool-ai/nodetool:latest   # on the Docker host
+nodetool deploy apply <name>
+nodetool deploy status <name>
 ```
 
-This dumps the entry as YAML, including `enabled`, `state`, `server_auth_token`, and `container.environment` (with a generated `SECRETS_MASTER_KEY`):
+`apply` replaces the container with one started from the image the host holds. For a remote host, pull on that host or change `image.tag`, because an image already on the remote is not replaced. Workflows, assets, and settings stay, because `/workspace` is a host directory. Archive it first, as described in [Upgrading](upgrading.md#self-hosted-docker).
 
-```yaml
-local:
-  type: docker
-  host: localhost
-  image:
-    name: ghcr.io/nodetool-ai/nodetool
-    tag: latest
-  container:
-    name: nodetool-local
-    port: 8000
-  paths:
-    workspace: <your workspace path>
-    hf_cache: <your HF cache path>
-```
-
-The server is at `http://localhost:8000`. The raw file is `~/.config/nodetool/deployment.yaml`. To change a field `deploy add` did not prompt for, run `nodetool deploy edit`. It takes no deployment name and opens the whole file in `$EDITOR`. With no file on disk it stops and tells you to run `nodetool deploy init` first.
-
-### 3. Apply Deployment
-
-```bash
-nodetool deploy apply local
-```
-
-Apply prints each step, then the result as JSON. A successful run shows:
-
-- directories created
-- `Image already present.`
-- app container started
-- `Health endpoint OK: http://127.0.0.1:8000/health`
-- `"status": "success"` in the final JSON
-
-Confirm runtime state:
-
-{% raw %}
-```bash
-nodetool deploy status local
-docker ps --filter name=nodetool --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-curl http://127.0.0.1:8000/health
-```
-{% endraw %}
-
-### 4. Sync Workflows to the Deployment
+### Sync and run workflows
 
 Find the ID with `nodetool workflows list`, then sync:
 
 ```bash
 nodetool deploy workflows sync local <workflow_id>
+nodetool deploy workflows list local
 ```
 
 Sync pushes the workflow definition (name, description, access, graph, and settings) to `PUT /api/workflows/<id>` on the deployment. It does not upload assets or download models.
 
-All `deploy workflows` subcommands (`sync`, `list`, `delete`, `run`) need an admin bearer token, resolved like the [API users](#api-users) commands below. `delete` prompts first unless you pass `--force`. `nodetool deploy workflows list local` verifies the sync.
+All `deploy workflows` subcommands (`sync`, `list`, `delete`, `run`) need an admin bearer token, resolved like the [API users](#api-users) commands below. `delete` prompts first unless you pass `--force`.
 
-### 5. Test Workflow Execution on Deployed Instance
+Run a synced workflow from the CLI or over REST:
 
 ```bash
 nodetool deploy workflows run local <workflow_id> -p prompt="hello"   # -p is repeatable
-nodetool deploy logs local --tail 200                                  # if the run fails
+
+curl -s -X POST http://<host>:8000/api/workflows/<workflow_id>/run \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
 ## API Users
@@ -284,17 +367,44 @@ ENV NODETOOL_PYTHON=/opt/venv/bin/python \
 
 With the flag set and no interpreter found, the boot log says `Python not found — Python nodes will not be available`. With the flag unset it names the flag instead.
 
+## Check the server
+
+These endpoints need no login. Use the published host port: `17777` for the bundled Compose file, `container.port` (default `8000`) for `nodetool deploy`, `7777` without a container.
+
+```bash
+curl http://your-server:17777/health   # 200 {"status": "ok", ...}, or 503
+curl http://your-server:17777/ready    # liveness only, always 200
+curl http://your-server:17777/api/health   # version and uptime
+```
+
+`/health` answers 503 with status `degraded` when the database check fails, and `draining` while the server shuts down. Model caches and assets grow over time, so watch disk on the `/workspace` and `/hf-cache` volumes.
+
+Before you hand the URL to anyone, check that:
+
+- `SECRETS_MASTER_KEY` is set, or `/workspace` is a persistent volume so the image keeps its generated key
+- login is on (Supabase or SSO), or the port is reachable only from trusted networks
+- `/health` and `/ready` return `200`
+- an API call without a token, such as `curl -i http://your-server:17777/api/workflows`, returns `401`
+- a synced workflow runs
+
 ## If it fails
 
 - **Container exits at start** with `ERROR: No database configured. Set DATABASE_URL (PostgreSQL) or DB_PATH (SQLite).`: set one of them.
+- **Server outside a container exits at start**: a host with no keychain needs `SECRETS_MASTER_KEY`. Generate one with `openssl rand -base64 32`.
+- **`Image '<image>' not found locally.`** from `deploy apply`: run `docker pull ghcr.io/nodetool-ai/nodetool:latest` or build the image. With `docker run` or `podman run`, check the runtime you run with (`docker image ls`, `podman image ls`), because the two keep separate image stores.
 - **`Deployment health check failed: …`** from `deploy apply`: the container was not running or `/health` never answered in 30 probes. Read the logs below and apply again.
+- **Port already in use**: another service holds the host port. Change `NODETOOL_PORT` for Compose or `container.port` in `deployment.yaml`.
+- **Permission denied on volumes**: the image runs as the `node` user, so make the host directory writable by it.
 - **`401 "Remote access requires authentication"`** from every API call in Local mode: the request did not arrive from loopback or a `NODETOOL_TRUST_LOCAL_NETWORKS` range. See [Authentication → Local mode in Docker](authentication.md#local-mode-in-docker).
 - **`/mcp` answers 404** in production: set `NODETOOL_ENABLE_MCP=1`.
 - **`Admin token required. Provide --token or set NODETOOL_ADMIN_TOKEN.`**: pass a token to `deploy users-*` and `deploy workflows`.
 
-## Manual Troubleshooting
+Read the logs:
 
 ```bash
-nodetool deploy logs local --tail 200
+docker compose logs -f                                   # Compose
+nodetool deploy logs local --tail 200                    # nodetool deploy
 ssh user@host "docker logs nodetool-<container.name>"   # remote host, directly
 ```
+
+More causes are in [Troubleshooting](troubleshooting.md#a-deployment-fails-or-the-service-wont-start).

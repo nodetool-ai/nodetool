@@ -242,8 +242,6 @@
       url: "/advanced-install"
     - title: "Deployment Guide"
       url: "/deployment"
-    - title: "End-to-End Guide"
-      url: "/deployment-e2e-guide"
     - title: "Self-Hosted"
       url: "/self-hosted-deployment"
     - title: "Docker Resources"

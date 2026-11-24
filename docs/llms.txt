@@ -119,12 +119,12 @@ NodeTool is an open-source, agent-first creative workspace. Agents and people wo
 
 ## Deployment
 
-- [Deployment Guide]({{ site.url }}/deployment): Where and how to deploy.
-- [End-to-End Guide]({{ site.url }}/deployment-e2e-guide): Full production walkthrough.
-- [Self-Hosted]({{ site.url }}/self-hosted-deployment): Run on your own infra with Docker.
+- [Advanced Installs]({{ site.url }}/advanced-install): CLI, source, Python nodes, GPU drivers.
+- [Deployment Guide]({{ site.url }}/deployment): Server or worker, and which guide to read.
+- [Self-Hosted]({{ site.url }}/self-hosted-deployment): Run the server with Docker Compose, docker or podman run, nodetool deploy, or the CLI.
 - [Docker Resources]({{ site.url }}/docker-resource-management): GPU, memory, volumes.
-- [Worker Deployment]({{ site.url }}/worker-deployment): Rent GPU workers (RunPod, Vast), attach, tear down.
-- [Supabase]({{ site.url }}/supabase-deployment): Postgres + auth backend.
+- [Worker Deployment]({{ site.url }}/worker-deployment): Rent GPU workers (RunPod, Vast, Verda), attach, stop.
+- [Supabase]({{ site.url }}/supabase-deployment): Login and asset storage with Supabase.
 
 ## CLI
 

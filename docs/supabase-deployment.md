@@ -34,7 +34,7 @@ The service role key bypasses Row Level Security, so RLS policies do not restric
 
 ## Authentication
 
-Supabase auth turns on when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set. The server reads no `AUTH_PROVIDER` variable. Without the pair it falls back to the local auth provider. With it, every API request needs `Authorization: Bearer <supabase_jwt>`, and users sign in through Supabase (email and password, OAuth, magic link).
+Supabase auth turns on when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set. Without the pair it falls back to the local auth provider. With it, every API request needs `Authorization: Bearer <supabase_jwt>`, and users sign in through Supabase (email and password, OAuth, magic link).
 
 ---
 
@@ -46,7 +46,7 @@ Supabase auth turns on when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set. 
 - `s3`: requires `ASSET_BUCKET` and `TEMP_BUCKET`, with optional `S3_REGION` and `S3_ENDPOINT` (or `S3_ENDPOINT_URL`).
 - `supabase`: requires `SUPABASE_URL`, `SUPABASE_KEY`, `ASSET_BUCKET`, and `TEMP_BUCKET`.
 
-Public buckets yield direct Supabase Storage URLs. Private buckets yield signed URLs that expire after 7 days (`SIGNED_URL_TTL`, the Supabase maximum).
+Public buckets yield direct Supabase Storage URLs. Private buckets yield signed URLs that expire after 7 days, the Supabase maximum.
 
 ---
 
