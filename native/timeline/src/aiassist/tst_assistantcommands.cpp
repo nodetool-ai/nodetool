@@ -141,7 +141,7 @@ private slots:
         const auto entry = commandEntry("rippleDeleteSelected");
         QCOMPARE(entry.value("label").toString(), QString("Ripple Delete"));
         QCOMPARE(entry.value("enabled").toBool(), false);
-        QCOMPARE(entry.value("disabledReason").toString(), QString("Select a clip or a gap first."));
+        QCOMPARE(entry.value("disabledReason").toString(), QString("Select clips, a gap or a section first."));
         const auto properties = entry.value("parameters").toMap().value("properties").toMap();
         QVERIFY(properties.contains("clip_ids"));
         QCOMPARE(properties.value("clip_ids").toMap().value("type").toString(), QString("array"));
@@ -228,7 +228,7 @@ private slots:
         QTest::addColumn<QString>("id");
         QTest::addColumn<QVariantMap>("params");
         QTest::addColumn<QString>("message");
-        QTest::newRow("no selection") << QString("rippleDeleteSelected") << QVariantMap{} << QString("Select a clip or a gap first.");
+        QTest::newRow("no selection") << QString("rippleDeleteSelected") << QVariantMap{} << QString("Select clips, a gap or a section first.");
         QTest::newRow("no range") << QString("liftRange") << QVariantMap{{"inMs", 3000.0}} << QString("Set In and Out points first.");
         QTest::newRow("one clip group") << QString("groupClips") << QVariantMap{{"clip_ids", QStringList{CLIP_A}}}
                                         << QString("Select two or more clips first.");
@@ -236,7 +236,7 @@ private slots:
                                                << QString("Select one clip and move the playhead over it.");
         QTest::newRow("no undo") << QString("undo") << QVariantMap{} << QString("Nothing to undo.");
         QTest::newRow("no edit point") << QString("trimEditLeft") << QVariantMap{} << QString("Pass clip_id and edge, or select an edit point first.");
-        QTest::newRow("empty clipboard") << QString("paste") << QVariantMap{{"atMs", 3000.0}} << QString("Copy a clip first.");
+        QTest::newRow("empty clipboard") << QString("paste") << QVariantMap{{"atMs", 3000.0}} << QString("Copy a clip or section first.");
     }
     void disabledCommands() {
         QFETCH(QString, id);
