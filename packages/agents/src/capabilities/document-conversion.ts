@@ -57,7 +57,8 @@ export const SUPPORTED_CONVERSIONS_TEXT = SUPPORTED_CONVERSIONS.map(
 
 /** Resolve a format name or alias, or `null` when it is not one we read or write. */
 export function normalizeFormat(name: string): DocumentFormat | null {
-  return FORMAT_ALIASES[name.trim().toLowerCase()] ?? null;
+  const key = name.trim().toLowerCase();
+  return Object.hasOwn(FORMAT_ALIASES, key) ? FORMAT_ALIASES[key]! : null;
 }
 
 function unsupportedPairError(from: string, to: string): Error {
