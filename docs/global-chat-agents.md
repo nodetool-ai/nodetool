@@ -19,6 +19,7 @@ Every chat message runs the agent loop: the agent plans the steps, connects node
 | Add voiced lines or subtitles | Scripts | [Creative Agent](creative-agent.md) |
 | Build forms, fields, buttons, or outputs | Mini Apps | [App Builder](app-builder.md) |
 | Add a level, an enemy, or a rule | Games | [Game Editor](game-editor.md) |
+| Draft, tighten, or restructure a brief or notes | Documents | [Document Editor](document-editor.md) |
 
 ## Core guides
 

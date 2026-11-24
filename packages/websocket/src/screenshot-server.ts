@@ -31,7 +31,8 @@ import {
   Storyboard,
   secrets,
   closeDb,
-  clearAllSecretCache
+  clearAllSecretCache,
+  Setting
 } from "@nodetool-ai/models";
 import {
   initMasterKey,
@@ -1708,6 +1709,17 @@ async function seedDatabase(): Promise<void> {
 
   const projectCount = await seedProjects(USER_ID);
   await seedDocsExtras(USER_ID);
+  // The seeded assets predate project folders, so the app would open on the
+  // "Move your projects into folders" question. Record it as answered.
+  await Setting.upsert({
+    userId: USER_ID,
+    key: "PROJECT_FOLDER_MIGRATION",
+    value: JSON.stringify({
+      state: "done",
+      nothing_to_move: true,
+      dismissed: true
+    })
+  });
 
   console.log(
     `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_APPLICATIONS.length} applications, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 3 timeline sequences, ${projectCount} projects, ${demoSecrets.length} secrets (asset bytes in ${ASSET_ROOT})`

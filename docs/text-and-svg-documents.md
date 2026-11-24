@@ -19,6 +19,9 @@ The menu has **Guided flows** and **Blank documents** sections. Blank documents 
 | **New workflow** | An empty workflow in edit mode | [Workflow Editor](workflow-editor.md) |
 | **New Comfy workflow** | A workflow in Comfy run mode with a starter graph | [ComfyUI](comfyui.md) |
 | **New chat** | A chat thread | [Chat](global-chat.md) |
+| **New document** | `Untitled.md`, opened in the document editor | [Document Editor](document-editor.md) |
+| **Import document…** | A Markdown document from a `.docx`, `.pdf`, `.html` or `.txt` file | [Document Editor](document-editor.md#create-or-open-a-document) |
+| **Import Google Doc…** | A Markdown document from a Google Doc link | [Document Editor](document-editor.md#create-or-open-a-document) |
 | **New text file…** | A text file from a template (submenu) | [Text files](#text-files) |
 | **New sketch** | A blank 1024 by 1024 white image | [Sketch Editor](sketch-editor.md) |
 | **New SVG** | A blank SVG drawing | [SVG documents](#svg-documents) |
@@ -36,7 +39,7 @@ Items with an ellipsis open a second list, and **Back** returns. Games are not i
 
 ## Text files
 
-**New text file…** lists six templates. Choosing one creates the asset and opens it in **Edit** mode.
+**New text file…** lists six templates. Choosing one creates the asset and opens it in **Edit** mode. A Markdown file opens in the [Document Editor](document-editor.md), and the rest open in the editors below.
 
 | Template | File name | Starts with |
 |---|---|---|
@@ -51,10 +54,10 @@ The extension decides how the document is shown and highlighted.
 
 ### View and Edit
 
-| Mode | Markdown | CSV and TSV | Everything else |
-|---|---|---|---|
-| **View** | Rendered Markdown | A read-only table. The first 2000 rows are shown | Read-only code with syntax highlighting |
-| **Edit** | Code editor | An editable table | Code editor |
+| Mode | CSV and TSV | Everything else |
+|---|---|---|
+| **View** | A read-only table. The first 2000 rows are shown | Read-only code with syntax highlighting |
+| **Edit** | An editable table | Code editor |
 
 The view header shows the file name, the detected language, and a copy button that copies the whole text.
 

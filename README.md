@@ -290,6 +290,7 @@ Everything the film surfaces do is reachable on the canvas without the film.
 - **[Sketch Editor](https://docs.nodetool.ai/sketch-editor)** — Draw, mask, and generate on a layered canvas
 - **[3D Editor](https://docs.nodetool.ai/3d-editor)** — Place objects, lights, and cameras in a glTF scene
 - **[Game Editor](https://docs.nodetool.ai/game-editor)** — Build, play, and export 2D and 3D games
+- **[Document Editor](https://docs.nodetool.ai/document-editor)** — Write Markdown briefs with embedded shots, assistant edits, and snapshots
 - **[Node Packs](https://docs.nodetool.ai/packs)** — Available nodes and integrations
 - **[Custom Nodes](https://docs.nodetool.ai/developer/custom-nodes-guide)** — Extend NodeTool
 - **[Provider Guides](https://docs.nodetool.ai/developer/providers/)** — Add new models and nodes for any provider
