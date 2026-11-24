@@ -1,10 +1,10 @@
 ---
 layout: page
 title: "Models & Providers"
-description: "Model catalog by modality (text, image, video, audio, 3D, embeddings) with the provider that serves each, local or cloud."
+description: "Model catalog by task type (text, image, video, audio, 3D, embeddings) with the provider that serves each, local or cloud."
 ---
 
-Provider setup is in [Providers](providers.md), local weights are in [Supported Models](models.md), and the download panel is in [Models Manager](models-manager.md).
+Provider setup is in [Providers](providers.md), local models are in [Supported Models](models.md), and the download panel is in [Models Manager](models-manager.md).
 
 > **Runs:** locally or cloud, chosen per node. **Needs:** a provider key for cloud models (secret names in [Providers](providers.md)), nothing for local engines. **Hardware:** local models need disk space and a GPU or Apple Silicon. Sizes depend on the model, so check the download size in the Model Manager.
 {: .callout-note}
@@ -28,9 +28,15 @@ Missing key, rejected key, rate limit, and insufficient balance errors are descr
 
 ## Cloud models
 
-Add a key in **Settings → Models & Providers** and that provider's models appear in the node's model dropdown. Most chat providers fetch their list live from the provider's API. A few use fixed lists, such as kie.ai's chat gateway and Meta AI's offline fallback. Image, video, audio, and 3D models come from manifests or static lists in `packages/runtime/src/providers/` and the `packages/*-nodes/` packages. Model names below are examples.
+Add a key in **Settings → Models & Providers** and that provider's models appear in the node's model dropdown. Most chat providers fetch their list live from the provider's API. A few use fixed lists, such as kie.ai's chat gateway and Meta AI's offline fallback. Image, video, audio, and 3D models come from lists that ship with NodeTool and grow with each release. Model names below are examples.
 
 ### Text & chat models (LLMs)
+
+Most people need one row from the first table. The other tables are for
+running models on your own computer, reaching many companies' models through
+one key, or using a subscription you already pay for.
+
+**Direct providers.** The company that makes the models also serves them.
 
 | Provider | Model families |
 |---|---|
@@ -39,30 +45,52 @@ Add a key in **Settings → Models & Providers** and that provider's models appe
 | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google Gemini | Gemini 3.5 Flash, Gemini 3.1 Pro, Gemini 3.1 Flash-Lite, Gemini 2.5 Pro |
 | <img src="assets/icons/xai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> xAI | Grok 4, Grok 3, Grok Code |
 | DeepSeek | DeepSeek-V3, DeepSeek-R1 (reasoning) |
-| Groq | Llama, Qwen, GPT-OSS, Kimi K2 on LPU inference |
 | Mistral | Mistral Large, Mistral Medium, Mistral Small, Mixtral, Codestral, Magistral |
-| Cerebras | Llama, Qwen, GPT-OSS on wafer-scale inference |
 | Alibaba Cloud | Qwen3-Max, Qwen-Plus, Qwen-Flash, Qwen-Turbo, Qwen3-VL |
-| GMI Cloud | Llama, DeepSeek, Qwen (open-weight) |
 | Moonshot | Kimi K2, Kimi latest |
-| Meta AI | Muse Spark |
 | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | MiniMax M2.7, M2.5, M2.1, M2 (plus high-speed variants) |
-| OpenRouter | 300+ models proxied through one key (Claude, GPT, Gemini, Llama, Qwen, DeepSeek, …) |
-| Requesty | Claude, GPT, Gemini, DeepSeek, Grok and more through one OpenAI-compatible router |
-| API Route | Hosted Claude, GPT, Gemini and DeepSeek chat models through an OpenAI-compatible API |
-| Opper | Claude, GPT, Gemini, DeepSeek, Kimi and more through one EU-hosted OpenAI-compatible gateway |
-| Cheaper Inference | Claude, GPT, Gemini, DeepSeek and more through one OpenAI-compatible gateway |
-| Runcrate | DeepSeek, Qwen, GLM, Kimi, gpt-oss and more open-weight models through one OpenAI-compatible API |
-| Standard Compute | Open and frontier chat models through one OpenAI-compatible gateway, with a routed `StandardCompute` model |
-| UberLLM | Claude, GPT, Gemini, DeepSeek, Qwen and more chat models, plus FLUX, Seedream, Qwen Image and other image models, through one OpenAI-compatible key |
-| Together AI | Llama, Qwen, DeepSeek, Mixtral, GLM, Kimi, and more open models |
-| Evolink | GPT, Claude, Gemini, DeepSeek through one gateway key |
-| kie.ai | GPT, Claude, Grok, Kimi, DeepSeek, and Gemini models through its chat gateway |
-| Codex (OpenAI OAuth) | GPT chat models via your ChatGPT/Codex login |
-| Claude Agent SDK | Claude via your local `claude` CLI subscription |
-| Ollama · vLLM · LM Studio · llama.cpp · llama.cpp local | Any local open-weight model served by your own engine (Llama, Qwen, Gemma, DeepSeek, Mistral, Phi, GPT-OSS) |
-| HuggingFace | The most-liked warm inference models on the Hub, through Inference Providers |
-| FAL | Chat through fal's OpenAI-compatible route (OpenRouter's catalog) |
+| Meta AI | Muse Spark |
+
+**Local engines.** Models run on your computer, with no key and no per-use cost.
+
+| Engine | Models |
+|---|---|
+| Ollama · vLLM · LM Studio · llama.cpp · llama.cpp local | Any downloadable model the engine runs, such as Llama, Qwen, Gemma, DeepSeek, Mistral, Phi, and GPT-OSS |
+
+**Multi-model routers.** One key reaches models from many companies.
+
+| Provider | Models |
+|---|---|
+| OpenRouter | 300+ models, including Claude, GPT, Gemini, Llama, Qwen, and DeepSeek |
+| Requesty | Claude, GPT, Gemini, DeepSeek, Grok, and more |
+| API Route | Claude, GPT, Gemini, and DeepSeek |
+| Opper | Claude, GPT, Gemini, DeepSeek, Kimi, and more, hosted in the EU |
+| Cheaper Inference | Claude, GPT, Gemini, DeepSeek, and more |
+| Runcrate | DeepSeek, Qwen, GLM, Kimi, GPT-OSS, and other downloadable models |
+| Standard Compute | Downloadable and commercial models, plus a `StandardCompute` model that picks one for you |
+| UberLLM | Claude, GPT, Gemini, DeepSeek, Qwen, and more, plus image models such as FLUX, Seedream, and Qwen Image |
+| Evolink | GPT, Claude, Gemini, and DeepSeek |
+| kie.ai | GPT, Claude, Grok, Kimi, DeepSeek, and Gemini |
+| FAL | The OpenRouter catalog, on your FAL key |
+
+**Open-model hosts.** These companies serve models that anyone can download, on
+their own fast hardware.
+
+| Provider | Models |
+|---|---|
+| Groq | Llama, Qwen, GPT-OSS, Kimi K2 |
+| Cerebras | Llama, Qwen, GPT-OSS |
+| Together AI | Llama, Qwen, DeepSeek, Mixtral, GLM, Kimi, and more |
+| GMI Cloud | Llama, DeepSeek, Qwen |
+| HuggingFace | Popular models on the Hub that a hosting partner is serving right now |
+
+**Your existing subscription.** Sign in instead of pasting a key, and use goes
+against the plan you already pay for.
+
+| Provider | Models |
+|---|---|
+| Codex | GPT chat models, with your ChatGPT sign-in |
+| Claude | Claude models, through Claude Code installed on your computer and your Claude plan |
 
 Reasoning, tool calling, and vision input are exposed where the provider supports them. For local text generation, see [Supported Models](models.md#local-inference-engines) (Ollama, llama.cpp, MLX, Transformers.js).
 
@@ -81,7 +109,7 @@ No per-task results are published yet. The labels do not say which model is best
 
 ### Image generation models
 
-Generate and edit images through `nodetool.image.TextToImage` and `nodetool.image.ImageToImage`.
+Generate and edit images with the **Text To Image** and **Image To Image** nodes, or ask the agent.
 
 **Flagship models**
 
@@ -113,7 +141,7 @@ Access aggregators ([FAL](https://fal.ai/), [Replicate](https://replicate.com/),
 
 ### Video generation models
 
-Generate video through `nodetool.video.TextToVideo` and `nodetool.video.ImageToVideo`.
+Generate video with the **Text To Video** and **Image To Video** nodes, or ask the agent.
 
 **Flagship models**
 
@@ -149,7 +177,7 @@ Generate video through `nodetool.video.TextToVideo` and `nodetool.video.ImageToV
 
 ### Speech, audio & music models
 
-Generate speech through `nodetool.audio.TextToSpeech`, transcribe with `nodetool.text.AutomaticSpeechRecognition`, and create music through provider music nodes.
+Generate speech with the **Text To Speech** node, transcribe with the **Automatic Speech Recognition** node, and create music with each provider's music nodes.
 
 **Text-to-speech (TTS)**
 
@@ -183,7 +211,7 @@ Generate speech through `nodetool.audio.TextToSpeech`, transcribe with `nodetool
 
 ### 3D generation models
 
-Generate 3D assets through `nodetool.model3d.TextTo3D` and `nodetool.model3d.ImageTo3D`.
+Generate 3D models with the **Text To 3D** and **Image To 3D** nodes.
 
 | Model | Provider | Capabilities | Key features |
 |-------|----------|-------------|--------------|
@@ -194,7 +222,7 @@ AtlasCloud also lists 3D models. Open 3D families such as Hunyuan3D and Trellis 
 
 ### Embedding models
 
-Embedding nodes feed RAG and semantic search.
+Embedding models turn text into numbers so that [collections](collections.md) can find passages by meaning instead of exact words.
 
 | Provider | Embedding models |
 |---|---|

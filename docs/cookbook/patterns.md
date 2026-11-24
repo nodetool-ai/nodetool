@@ -54,8 +54,9 @@ still before paying for its clip.
 ______________________________________________________________________
 
 <span id="pattern-2-shot-fan-out"></span>
+<span id="pattern-2-stills-before-clips"></span>
 
-### Pattern 2 · Shot fan-out through stills
+### Pattern 2 · Stills before clips
 
 The same trip from brief to cut, but with a keyframe in the middle:
 `ScreenplayShots` streams one prompt per shot (`shot_prompt`), each prompt
@@ -236,8 +237,9 @@ composition itself is still the question.
 ______________________________________________________________________
 
 <span id="pattern-6-variant-fan-out"></span>
+<span id="pattern-6-multiple-variations"></span>
 
-### Pattern 6 · Variant fan-out from one brief
+### Pattern 6 · Multiple variations from one brief
 
 An agent turns a brief into a direction, a list generator writes N distinct
 prompts against it, and each prompt renders. One input gives a gallery.

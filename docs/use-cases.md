@@ -5,101 +5,87 @@ description: "What people make with NodeTool, by kind of work: product marketing
 image: /assets/use-cases/poster-singularity-1.png
 ---
 
-Results grouped by kind of work. Each section names where to start: a shipped skill you type after `/` in chat, a guided flow on **New project**, or an app from the [Examples]({{ '/workflows/' | relative_url }}) page. Models run on your provider keys, hosted credits, or locally, and any model can be swapped without rebuilding the project. See [Costs & Credits]({{ '/costs-and-credits' | relative_url }}).
+What people make with NodeTool, grouped by kind of work. Each section links to
+the [Cookbook]({{ '/cookbook' | relative_url }}) recipes that start that work, and the
+[showcase walkthroughs](#showcase-walkthroughs) at the end take finished
+projects apart step by step. Models run on your provider keys, hosted credits,
+or your own computer, and you can swap a model without rebuilding the project.
+See [Costs & Credits]({{ '/costs-and-credits' | relative_url }}).
 
 ## Product marketing and e-commerce
 
-Launch films, product spots, and listing images built from your real product
-photos and pages.
+Launch films, product spots, lifestyle mockups, and listing images built from
+your real product photos and pages. Add the product as an
+[entity]({{ '/entities' | relative_url }}) once, and every shot uses its
+reference image. A campaign keeps the same cast across stills and several cuts,
+and your brand colors and copy can be filled in from your website.
 
-| You want | Start with |
-|---|---|
-| A launch film from a product page | `/launch-commercial` with the page URL |
-| A polished product film | `/product-commercial`, or the **Storyboard** flow |
-| A full image set from one packshot | The **SKU Factory** app, or the [packshot recipe](https://nodetool.ai/recipes/ecommerce-sku-visual-factory) |
-| Lifestyle mockups, then video | The **Product Launch Kit** app |
-| A campaign with one cast across stills and cuts | `/launch-kit`, or the **Directed Campaign Kit** app |
-| Your brand filled in from your website | The **Brand & Social** app |
-
-Add the product as an [entity]({{ '/entities' | relative_url }}) once, and
-every shot uses its reference image.
+Start from the [video and ad recipes]({{ '/cookbook' | relative_url }}#video-and-ad-recipes) or the
+[image recipes]({{ '/cookbook' | relative_url }}#image-3d-and-game-recipes).
 
 ## Performance ads
 
-Many ad variants, each editable, so you can test angles and refresh them.
+Many ad variants, each one editable, so you can test angles and refresh them.
+Copy and hooks are compared before anything renders. A 15-second sound-off ad
+is built from your real screenshots, a phone-shot testimonial from a short
+brief, and one approved cut ships in 9:16, 1:1, and 16:9. The
+[ad library](https://nodetool.ai/ad-library) shows each ad format with a beat
+sheet and a sample cut.
 
-| You want | Start with |
-|---|---|
-| A 15-second sound-off ad from screenshots | `/motion-ad`, or one of the sixteen ad-format apps |
-| A phone-shot creator testimonial | `/ugc-video`, or the **UGC Product Video** app |
-| Copy and hooks compared before rendering | The **Viral Ad Engine** or **Ad Maker** app |
-| Your version of an ad you saw | `/video-clone` with the reference video |
-| The same ad in 9:16, 1:1, and 16:9 | The **Three Ratios** workflow |
-
-The [ad library](https://nodetool.ai/ad-library) shows each ad format with a
-beat sheet and a sample cut.
+Start from the [video and ad recipes]({{ '/cookbook' | relative_url }}#video-and-ad-recipes).
 
 ## Film, trailers, and narrative
 
 Stories boarded shot by shot, with stills approved before any video renders.
+Characters and locations are entities, so they look the same in every shot.
+A trailer can start from a one-line pitch, and a music video from a treatment.
+The [Storyboard Editor]({{ '/storyboard-editor' | relative_url }}) covers
+boarding and redoing a single shot by note.
 
-| You want | Start with |
-|---|---|
-| A short film, scene, or trailer | The **Storyboard** flow, or `/short-film` |
-| A trailer from a story pitch | The **Trailer Room** app |
-| A music video treatment | `/music-video-treatment` |
-| One brief in, a cut film out, unattended | The **Direct a Short Film** workflow |
-
-Characters and locations are [entities]({{ '/entities' | relative_url }}), so
-they look the same in every shot. The
-[Creative Agent]({{ '/creative-agent' | relative_url }}) page covers redoing a
-single shot by note.
+Start from the [video and ad recipes]({{ '/cookbook' | relative_url }}#video-and-ad-recipes).
 
 ## Creators, podcasts, and explainers
 
-| You want | Start with |
-|---|---|
-| Show notes, a newsletter, and social posts from an episode | The **Podcast Production Desk** app |
-| A narrated explainer | The **Script** flow, or `/script-video` |
-| A vlog or creator video | `/ugc-video` |
-| Captions and titles on a finished cut | The [timeline]({{ '/video-editor' | relative_url }}), or `/caption-titles` |
+One episode becomes show notes, a newsletter, and social posts. A narrated
+explainer is timed to its voiceover, and captions and titles go on in the
+[timeline]({{ '/video-editor' | relative_url }}).
+
+Start from the [podcast recipes]({{ '/cookbook' | relative_url }}#podcast-and-localization-recipes) or the
+[video recipes]({{ '/cookbook' | relative_url }}#video-and-ad-recipes).
 
 ## Localization
 
-| You want | Start with |
-|---|---|
-| A clip dubbed into another language | The **Dubbing Desk** app, or the [dubbing recipe](https://nodetool.ai/recipes/multilingual-video-dubber) |
-| An explainer voiced and captioned per language | The **Localized Explainer** workflow |
+A clip dubbed into another language, or one explainer voiced and captioned for
+each language. You review and edit the translation before it is voiced.
 
-You review and edit the translation before it is voiced.
+Start from the [localization recipes]({{ '/cookbook' | relative_url }}#podcast-and-localization-recipes).
 
 ## Design and key art
 
-| You want | Start with |
-|---|---|
-| One image with variations to choose from | The **Image** flow, which opens the pick as a [sketch]({{ '/sketch-editor' | relative_url }}) |
-| Concept art directions from one brief | The **Concept Studio** app |
-| One change to an image, such as lighting or pose | The **Vary Image** app |
-| Photo grading and batch retouching | The **Photo Studio** app |
-| A set blocked out in 3D as a shot reference | The [3D editor]({{ '/3d-editor' | relative_url }}), or `/nodetool-3d-scene` |
+Variations to choose from, concept art directions from one brief, a single
+change to an image such as lighting or pose, batch photo retouching, and sets
+blocked out in 3D as a shot reference. The image you pick opens as a
+[sketch]({{ '/sketch-editor' | relative_url }}), where each layer stays
+editable.
+
+Start from the [image and 3D recipes]({{ '/cookbook' | relative_url }}#image-3d-and-game-recipes).
 
 ## Games
 
 Describe a world, a player, and a goal. The agent builds a playable 2D or 3D
 game in the [game editor]({{ '/game-editor' | relative_url }}), where you play
-it, change it, and export a web player. Start with the **Game** flow or
-`/native-game`, or open one of the five shipped games.
+it, change it, and export a web player. Start with the **Game** flow, or open
+one of the shipped games from **Examples**.
 
 ## Team tools and automation
 
-| You want | Start with |
-|---|---|
-| A simple screen a coworker runs without seeing the graph | A [mini app]({{ '/mini-apps' | relative_url }}), or `/nodetool-app-builder` |
-| Answers from your own documents | [Collections]({{ '/collections' | relative_url }}), or `/nodetool-rag-indexing` |
-| Work in Drive, Gmail, Docs, Sheets, and Calendar | [Google Workspace]({{ '/google-workspace' | relative_url }}) |
-| A run on a schedule, a file drop, or a webhook | [Triggers]({{ '/triggers' | relative_url }}) |
-| Your agent in Telegram | [Telegram Bot]({{ '/telegram-bot' | relative_url }}) |
-| A procedure the agent repeats the same way | Your own [skill]({{ '/skills' | relative_url }}) |
+Simple screens a coworker runs without seeing the workflow behind them,
+answers drawn from your own documents, work across Drive, Gmail, Docs, Sheets,
+and Calendar, runs on a schedule or a file drop, and your agent in Telegram.
+A procedure you repeat becomes a [skill]({{ '/skills' | relative_url }}) the
+agent follows the same way every time.
+
+Start from the [team recipes]({{ '/cookbook' | relative_url }}#tools-for-a-team).
 
 ## Developers
 
@@ -112,10 +98,10 @@ written in TypeScript, as covered in the
 
 ## Private and local AI
 
-Run language, image, and speech models on your own machine with Ollama,
-llama.cpp, or MLX on Apple Silicon, so your files stay on it. Self-host the
-server with Docker for a team. See [Local vs Cloud]({{ '/models' | relative_url }})
-and [Self-Hosted]({{ '/self-hosted-deployment' | relative_url }}).
+Run language, image, and speech models on your own computer, so your files
+never leave it. A team can run its own NodeTool server. See
+[Local vs Cloud]({{ '/models' | relative_url }}) and
+[Self-Hosted]({{ '/self-hosted-deployment' | relative_url }}).
 
 ## Showcase walkthroughs
 
@@ -173,7 +159,7 @@ brief.
     <div class="usecase-body">
       <span class="usecase-tag">Advertising</span>
       <h3><a href="{{ '/use-cases/ad-creative-factory' | relative_url }}">Ad Creative Factory</a></h3>
-      <p>One product photo and one offer become a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, and every cell becomes a spoken hook, a staged scene, an animated clip, and a voiceover.</p>
+      <p>One product photo and one offer become a batch of ready-to-test vertical video ads. A strategist agent plans which audiences and selling points to test, and each combination becomes a spoken hook, a staged scene, an animated clip, and a voiceover.</p>
       <div class="pipeline-chips">
         <span>Offer</span><span>Matrix</span><span>Hooks</span><span>Scenes</span><span>Ads</span>
       </div>
@@ -227,7 +213,7 @@ the node lists on their pages.
 ## Related pages
 
 <div class="card-grid">
-  <a class="doc-card" href="{{ '/cookbook' | relative_url }}"><strong>Cookbook</strong><span>Where to start for each kind of project, and when to turn it into a workflow.</span></a>
+  <a class="doc-card" href="{{ '/cookbook' | relative_url }}"><strong>Cookbook</strong><span>The skill, flow, or app that starts each kind of project, and when to turn it into a workflow.</span></a>
   <a class="doc-card" href="{{ '/workflows/' | relative_url }}"><strong>Examples</strong><span>Every shipped example: apps, recipes, workflows, storyboards, timelines, sketches, 3D models, and games.</span></a>
   <a class="doc-card" href="{{ '/skills' | relative_url }}"><strong>Shipped Skills</strong><span>The procedures the agent follows for each kind of project.</span></a>
   <a class="doc-card" href="{{ '/getting-started' | relative_url }}"><strong>Quick Start</strong><span>Install NodeTool and make a first project.</span></a>
