@@ -1,46 +1,32 @@
 ---
 layout: page
 title: "API Server Overview"
-description: "The unified NodeTool HTTP + WebSocket server — REST routes, workflow execution, and OpenAI-compatible `/v1` endpoints."
+description: "Run the full NodeTool HTTP and WebSocket server with `nodetool server serve`: install, flags, environment variables, and health checks."
 ---
 
+`nodetool server serve` runs the full NodeTool server: the REST API, `/trpc`,
+WebSocket workflow execution and chat at `/ws`, the `/mcp` endpoint, and the
+OpenAI-compatible `/v1` routes. It also serves the built web app when one is
+present.
 
-
-NodeTool exposes a single TypeScript HTTP + WebSocket server runtime built on Node.js. The same process serves REST API routes, tRPC procedures under `/trpc`, WebSocket workflow execution at `/ws`, the `/mcp` endpoint, and OpenAI-compatible `/v1` routes. It also serves the built web app when one is present.
-
-The server is implemented in the `@nodetool-ai/websocket` package (`packages/websocket/src/server.ts`).
-
-## Key Modules
-
-- **`server.ts`** – Fastify entry point. Registers CORS, rate limiting, auth, the WebSocket plugin, tRPC, and the route plugins, then starts the listener.
-- **`routes/`** – Fastify route plugins, one per area (health, workflows, assets, nodes, storage, files, collections, applications, timelines, storyboards, OAuth, provider webhooks, `/v1`).
-- **`trpc/`** – The tRPC router mounted at `/trpc`. JSON list, metadata, and delete operations live here.
-- **`websocket-client-session.ts`** – Handles WebSocket connections for workflow execution and chat.
-- **`http-api.ts`** – Shared request handler and options (`handleApiRequest`, `getUserId`) that route plugins call.
-- **`models-api.ts`** – Model management and provider registration.
-- **`settings-registry.ts`** – Reads setting values from the database. The setting definitions live in `@nodetool-ai/config`.
-- **`storage-api.ts`** – Binary `GET` and `HEAD` for stored assets.
-- **`mcp-server.ts`** – Model Context Protocol (MCP) server integration, mounted at `/mcp`.
-- **`openai-api.ts`** – OpenAI-compatible `/v1/chat/completions` and `/v1/models` endpoints.
+`nodetool serve` without `server` starts a smaller execution server instead.
+It runs core nodes only, needs `SECRETS_MASTER_KEY` and `NODETOOL_API_TOKEN`,
+and has no `/v1`, `/mcp`, or web app. See
+[`nodetool serve`](cli.md#nodetool-serve).
 
 ## Running the Server
+
+The full server ships in the `cli-server` command feature.
 
 ```bash
 # Install the CLI globally (once)
 npm install -g @nodetool-ai/cli
 
+# Add the server feature (once)
+nodetool packs add cli-server --yes
+
 # Start the server
-nodetool serve --host 127.0.0.1 --port 7777
-
-# Or run without installing globally
-npx --package=@nodetool-ai/cli nodetool serve --host 0.0.0.0 --port 7777
-```
-
-Development (from repo root):
-
-```bash
-npm run build:packages
-npm run dev:server   # scripts/dev-server.mjs: runs the server from TypeScript source under tsx watch
+nodetool server serve --host 127.0.0.1 --port 7777
 ```
 
 ## Configuration
@@ -59,7 +45,7 @@ The server is configured via environment variables:
 | `GEMINI_API_KEY` | — | Google Gemini API key |
 | `OLLAMA_API_URL` | `http://127.0.0.1:11434` | Ollama server URL |
 
-`nodetool serve --host <host> --port <port>` sets `HOST` and `PORT` for the server process and overrides any value already in the environment. See [Configuration](environment-variables.md) for the full list.
+`nodetool server serve --host <host> --port <port>` sets `HOST` and `PORT` for the server process and overrides any value already in the environment. See [Environment Variables](environment-variables.md) for the full list.
 
 ## Health Check
 
