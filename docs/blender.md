@@ -5,22 +5,20 @@ permalink: /blender
 description: "Render 3D models to images, passes and video, and prepare or convert meshes, with headless Blender inside a workflow."
 ---
 
-The Blender nodes run a Blender install in the background to render and convert 3D models. They live in the `nodetool.blender` namespace. Every node takes a 3D model (GLB, or glTF with embedded buffers) and returns an image, a video, a set of control passes, or a model file.
+The Blender nodes render and convert 3D models by running Blender in the background. Every node takes a 3D model (GLB, or glTF with embedded data) and returns an image, a video, a set of control images, or a model file.
 
-> **Requires:** Blender 5.2 or newer, installed locally on the machine that runs the NodeTool server. NodeTool does not bundle it. **Runs:** locally, on the desktop app, a local server, or a self-hosted install. Off on cloud deployments. **Needs:** no API key.
+> **Requires:** Blender 5.2 or newer, installed on the machine that runs the NodeTool server. NodeTool does not bundle it. **Runs:** locally, on the desktop app, a local server, or a self-hosted install. Off on cloud deployments. **Needs:** no API key.
 {: .callout-note}
 
-Scene cameras and lights are honored, and you can pick EEVEE or Cycles. The [3D Editor](3d-editor.md) agent uses the same Blender install.
+Scene cameras and lights are honored, and you can pick EEVEE or Cycles. The [3D Editor](3d-editor.md) assistant uses the same Blender install to render shots.
 
-## Install Blender
+## Set up Blender
 
 Install Blender from [blender.org](https://www.blender.org/download/) or your system package manager. An older version fails with an error that names the version found and the minimum.
 
-## Find Blender: BLENDER_PATH and auto-detection
+NodeTool tries these places in order and uses the first one that answers `--version`:
 
-NodeTool tries these candidates in order and uses the first one that answers `--version`:
-
-1. A `BLENDER_PATH` value saved in your settings. It is ignored on cloud deployments.
+1. A Blender path saved in your settings. It is ignored on cloud deployments.
 2. The `BLENDER_PATH` environment variable.
 3. `blender` on your `PATH`.
 4. The usual install location for your system.
@@ -37,9 +35,9 @@ If Blender is installed somewhere else, set `BLENDER_PATH` to the executable its
 export BLENDER_PATH=/opt/blender-5.2/blender
 ```
 
-The result is cached while the server runs and refreshed when `BLENDER_PATH` changes. If nothing is found, the node fails before it renders and the error says "blender was not found". When `BLENDER_PATH` points at a file that does not run, the error includes the reason.
+NodeTool remembers the result while the server runs and looks again when `BLENDER_PATH` changes. If nothing is found, the node fails before it renders with the error "blender was not found". When `BLENDER_PATH` points at a file that does not run, the error includes the reason.
 
-If the server has no Blender but `NODETOOL_WORKER_URL` names a NodeTool worker with Blender enabled, the job runs on the worker. A Blender found on the local machine always wins over a worker.
+A server without Blender can send the job to a NodeTool worker that has Blender enabled, when `NODETOOL_WORKER_URL` names that worker (see [Configuration](configuration.md)). A Blender found on the local machine always wins over a worker.
 
 ## Common properties
 
@@ -95,14 +93,21 @@ Timeout is 600 seconds by default. For a turntable clip, use a static model, `or
 
 ### RenderPasses
 
-Renders control passes from the same camera, which is useful for guiding video and image models.
+Renders extra images of the same view, called passes. Each pass shows one property of the scene, and all passes share the camera, so they line up pixel for pixel. Use them to guide image and video models or to composite.
+
+| Pass | What it is for |
+|------|----------------|
+| `color` | The finished picture. The base image for compositing or for a model's reference input |
+| `depth` | How far each pixel is from the camera. Use it for fog or depth of field in compositing, or as a depth-guided ControlNet input |
+| `normal` | The direction each surface faces. Use it for relighting, or as a normal-guided ControlNet input |
+| `mask` | White where the model is, black elsewhere. Use it to cut the model out and place it on another background |
 
 | Property | Default | What it does |
 |----------|---------|--------------|
 | Passes | color, depth, normal, mask | Which passes to produce. Select at least one |
-| Depth Format | `png16` | `png16` is normalized between `depth_near` and `depth_far`, with background 65535. `exr` is raw float depth with background infinity |
+| Depth Format | `png16` | `png16` for a standard image file, `exr` for exact distances. See [Pass formats](#pass-formats) |
 
-The passes are `color` (beauty), `depth` (distance along the view axis), `normal` (camera space), and `mask` (binary foreground). Passes you do not request come back empty. `depth_near` and `depth_far` are floats that give the real distance range of the depth image. They are 0 when depth is not requested.
+Passes you do not request come back empty. `depth_near` and `depth_far` give the real distance range of the depth image and are 0 when depth is not requested.
 
 ### PrepareForEngine
 
@@ -111,12 +116,12 @@ Cleans up a mesh for a game engine and returns it as a GLB.
 | Property | Default | What it does |
 |----------|---------|--------------|
 | Target Faces | 5000 | Face budget per mesh. Meshes already under it are left alone |
-| Unwrap | On | UV-unwrap every mesh before baking |
-| Bake | `none` | `none`, `ao` (occlusion multiplied into base color), `normal` (tangent-space normal map), or `both` |
+| Unwrap | On | Lay out the texture coordinates (UVs) of every mesh before baking |
+| Bake | `none` | Which maps to bake into the materials: `none`, `ao`, `normal`, or `both`. See [Pass formats](#pass-formats) |
 | Bake Resolution | 1024 | Pixel size of each baked map |
 | LOD Count | 0 | Extra levels of detail, 0 to 8. Each halves the face count of the one before |
 
-`model` is the prepared model. `lods` is a list with one model per LOD, in order.
+`model` is the prepared model. `lods` is a list with one model per level of detail, in order.
 
 ### ExportModel
 
@@ -128,7 +133,7 @@ Converts a model to a format Blender writes and stores it as an asset.
 | `obj` | Geometry only, with no `.mtl` file |
 | `usd` | For USD pipelines |
 
-The output `file` is an asset with the format and MIME type in its metadata. To keep a GLB, use PrepareForEngine instead.
+The output `file` is an asset. Its metadata records the format and file type. To keep a GLB, use PrepareForEngine instead.
 
 ## Example: turntable video and an FBX
 
@@ -142,3 +147,17 @@ The output `file` is an asset with the format and MIME type in its metadata. To 
 - A render that exceeds its Timeout fails with a message that suggests lowering samples, using EEVEE, or raising the timeout.
 - An empty model input fails with "model input is empty".
 - A node never returns an empty result silently. A missing Blender, an old version, or a missing output each raise an error that names the cause.
+
+## Pass formats
+
+| Output | Format |
+|--------|--------|
+| `color`, `normal`, `mask` | PNG |
+| `depth` with `png16` | 16-bit PNG, normalized between `depth_near` and `depth_far`. Background pixels are 65535 |
+| `depth` with `exr` | EXR with raw float distances. Background pixels are infinity |
+| `depth_near`, `depth_far` | Floats, the real distance range of the depth image |
+
+- `depth` is the distance along the view axis.
+- `normal` is in camera space.
+- `mask` is binary: foreground or background.
+- Bake `ao` multiplies ambient occlusion into the base color. Bake `normal` writes a tangent-space normal map.

@@ -22,14 +22,12 @@ If a generated take fails, the previously active take remains in place.
 
 ## Track a subject
 
-A media track stores a subject's position over source time. Bind a clip's
+A subject track records where a subject is in the footage. Bind a clip's
 position, scale, or mask to that track when a title, graphic, or mask must
 follow a moving subject.
 
-Create the track with the agent's `track_object` tool (it needs a provider that implements `track_object`, and a box around the subject at the start of the range), then attach the dependent clip. The **AI** panel's **Tracking** section lists a clip's tracks. Its **Follow object** section binds the clip to a track in **Position** or **Position + scale** mode, with offsets and smoothing. The **Subject matte** section uses a track for a mask.
-The binding follows trims and clip movement because it uses source time rather
-than the timeline's absolute position. A changed source asset makes its media
-tracks stale. Re-run tracking before relying on a stale track.
+Ask the assistant to track the subject (see [Ask the assistant](#ask-the-assistant)), then attach the dependent clip. Tracking needs a model provider that supports object tracking, and a box around the subject at the start of the range. The **AI** panel's **Tracking** section lists a clip's tracks. Its **Follow object** section binds the clip to a track in **Position** or **Position + scale** mode, with offsets and smoothing. The **Subject matte** section uses a track for a mask.
+The binding stays locked to the footage even when you trim or move the clip. A track is marked out of date when its source file changes. Run tracking again before relying on it.
 
 ## Adapt a cut for another frame
 
@@ -41,89 +39,58 @@ Choose **Adapt format** in the timeline's overflow menu (the three-dot button in
 | Smart Reframe | Uses subject tracks or authored framing. Unavailable until every visual clip has a current subject track or authored framing. |
 | Follow selected object | Follows one ready subject track. Unavailable until a track exists. |
 
-Review the derived cut, then open **Smart Reframe** in the **AI** panel for a clip. Choose its subject (auto, center, or a track) and add manual framing keys where the automatic crop needs direction. Framing is stored in source time, so it follows trims and moves. The section flags automatic framing as stale when the source asset changes. Preview and render use the same framing data.
+Review the derived cut, then open **Smart Reframe** in the **AI** panel for a clip. Choose its subject (auto, center, or a track) and add manual framing keys where the automatic crop needs direction. Framing stays locked to the footage even when you trim or move the clip. The section flags automatic framing as out of date when the source file changes. Preview and render use the same framing data.
 
 ## Repair or extend a shot
 
-Generative timeline edits (the **AI Edit** section for a video clip, or the agent's `ui_timeline_generatively_edit_clip` tool) create a candidate take. They do not replace the
+Generative edits (the **AI Edit** section for a video clip, or a request to the assistant) create a candidate take. They do not replace the
 active media until you select the result.
 
 Available operations include:
 
-- Extend a shot at its start or end (`extend`).
-- Replace a source range (`replace_range`).
-- Remove or replace a tracked object (`remove_object`, `replace_object`).
-- Restyle a shot (`restyle`) or regenerate it (`regenerate`).
+- Extend a shot at its start or end.
+- Replace a range of the footage.
+- Remove or replace a tracked object.
+- Restyle a shot, or regenerate it.
 
 The clip must be a video clip with a current asset and a positive duration.
 
-Object operations require a ready media track for the active source. Before
+Object operations need a finished subject track on the clip. Before
 running an edit, NodeTool checks the requested operation against the selected
-model's capabilities. If the model cannot perform the edit, choose another
-model or change the operation.
+model. If the model cannot perform the edit, choose another model or change the operation.
 
 ## Hand off a sequence
 
-`exportInterchange` in `@nodetool-ai/timeline` writes an editable project document for another editor. The native editor's **File > Export to Premiere Pro** calls it through the server, and **File > Import Premiere XML** reads a sequence back. Both need a timeline opened from a server. No other editor menu, CLI command, or agent tool calls it yet.
+The native editor's **File > Export to Premiere Pro** writes an editable project document for another editor, and **File > Import Premiere XML** reads a sequence back. Both need a timeline opened from a server.
 
 | Target | Output | Carries |
 | --- | --- | --- |
 | Final Cut Pro | FCPXML | sequence format, active media, timing, tracks, and markers |
 | Premiere Pro | Legacy FCP XML | sequence format, active media, audio and video tracks, timing, markers, Basic Motion (scale, rotation, position, anchor), opacity, constant speed and reverse, clip volume, fades, track fader and pan, with keyframes |
 
-The export report names missing media and edits that need baking, including
+The export report names missing media and effects that must be rendered into the video before export, including
 effects, masks, 3D transforms, speed ramps and freezes, presets and keyframes
 on other properties, captions, and unsupported clip types. FCPXML also lists
-transforms, opacity, speed, volume, and fades. Resolve or bake those items before delivery. NodeTool never reports an
+transforms, opacity, speed, volume, and fades. Resolve or render those items into the video before delivery. NodeTool never reports an
 incomplete editable export as lossless.
 
-## Work with the agent
+## Ask the assistant
 
-The agent reads each clip's active take id with `ui_timeline_get_state` and edits through `ui_timeline_apply_take`, `track_object`, `ui_timeline_retarget_format`, `ui_timeline_set_reframe_subject`, `ui_timeline_add_reframe_keyframe`, and `ui_timeline_generatively_edit_clip`. Check the resulting takes, tracks, and framing before export.
+- "Track the person in the red jacket on clip 2 so the title follows them."
+- "Make this station deserted at night." The result is a new take. Choose **Use take** to put it in the cut.
+- "Make a 9:16 version of this timeline."
+- "Extend the last shot by two seconds."
 
-A repair, as the agent runs it. The prompt is illustrative. The arguments and result fields come from
-`packages/agents/tests/timeline-generative-edit.test.ts`, where `fal` and `video-edit-model` are fixture values.
+Check the resulting takes, tracks, and framing before export.
 
-```text
-User: Make this station deserted at night.
-```
+Builders driving this from code or MCP: see [Creative Agent Tools](developer/creative-agent-tools.md#timelines).
 
-```json
-{
-  "tool": "ui_timeline_generatively_edit_clip",
-  "arguments": {
-    "clip_id": "clip-1",
-    "instruction": "Make this station deserted at night",
-    "provider": "fal",
-    "model": "video-edit-model"
-  }
-}
-```
+## If it fails
 
-The result is a candidate take. The clip keeps its active take (`take-1`) and its trimmed source range:
-
-```json
-{
-  "generationId": "<candidate id>",
-  "activeTakeId": "take-1",
-  "candidate": { "id": "<candidate id>", "status": "success", "source": "video_to_video" },
-  "clip": { "currentAssetId": "asset-1", "inPointMs": 40000, "outPointMs": 44000 }
-}
-```
-
-The candidate's `mediaEdit` records the instruction, provider, model, and the source context (sequence, clip, source asset, source range, timeline start and duration). The edit takes effect only after a second call:
-
-```json
-{ "tool": "ui_timeline_apply_take", "arguments": { "clip_id": "clip-1", "take_id": "<candidate id>" } }
-```
-
-The clip then points at a `generative://clip-1/...` asset with `inPointMs` 0 and `outPointMs` 4000.
-
-### If it fails
-
-- Unknown `clip_id`: the tool throws a "clip with id" error. Clip ids must be explicit.
-- `ui_timeline_apply_take` on a take that is not an AI edit candidate throws an "AI edit candidate" error.
-- `provider` without `model` (or the reverse) is rejected before any call.
+- The assistant says it cannot find the clip: name the clip or select it first.
+- A generative edit is refused when the model does not support that operation, or when only one of provider and model is given. Pick both, or pick another model.
+- A take that did not come from an AI edit cannot be applied as one. Use **Use take** in the clip's **History** instead.
+- Follow and reframe options stay unavailable until the clip has a current subject track. Run tracking again if the source file changed.
 
 ## Related features
 
