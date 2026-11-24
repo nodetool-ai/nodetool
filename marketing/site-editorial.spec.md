@@ -51,11 +51,12 @@ breaks a rule here fixes the rule or the page in the same PR.
 
 Five blocks, in order:
 
-1. **The overview.** The `<h1>` is "Direct AI films, shot by shot." The
-   subhead carries the promise: one sentence to a film you can edit, with
-   clips paid for only after their stills are approved. Under Download, one
-   line says Studio signs in with a ChatGPT or Claude plan or uses your own
-   provider keys at list price. Then the hero
+1. **The overview.** The `<h1>` is "The open-source AI studio you actually
+   control." The subhead names storyboard, generate, and cut on a live
+   timeline backed by node graphs, on local models or your own keys at list
+   price. Under Download, one line says the agent can also run on a ChatGPT or
+   Claude plan in Studio, and a trust line names AGPL-3.0, the desktop
+   platforms, and list prices on your keys. Then the hero
    reel and three linked cards for films, the agent, and the live timeline
    (a clip bound to a workflow goes stale when its inputs change). The cards
    carry no `h2`. Developer surfaces (API, CLI, MCP) stay on `/developers`.
