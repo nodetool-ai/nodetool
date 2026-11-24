@@ -1,11 +1,11 @@
 ---
 layout: page
-title: "Feature Coverage and Source Reference"
+title: "Game Engine Coverage"
 permalink: /game-engine/coverage
-description: "Map native game components and host limits to their guides and source implementations."
+description: "Map game document components and host surfaces to their source code and guides."
 ---
 
-This inventory maps each document component and host surface to its source and guide. A field present in a schema is not proof that every host renders or edits it.
+This page is for contributors. If you are making a game, start at the [Game Engine overview](/game-engine/). It maps each document component and host surface to its source and guide. A field present in a schema is not proof that every host renders or edits it.
 
 ![Diagram separating simulation state from renderer, audio, and particle presentation](/assets/game-engine/simulation-presentation.svg)
 
@@ -23,7 +23,7 @@ This inventory maps each document component and host surface to its source and g
 | [Particle schema](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-particles.ts) | Emission, ranges, shapes, curves, gradients, sub-emitters, 2D and 3D render choices | [Particles](/game-engine/particles) |
 | [HUD](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-ui.ts) and [screens](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-screens.ts) | Widgets, layout, safe areas, focus. Screens, transitions, and generated settings are schema-only | [HUD and screens](/game-engine/hud-screens) |
 | [Script parameters](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-script-params.ts) and [events](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-script-events.ts) | Typed tunables, references, payloads, entity/tag targeting | [Scripts](/game-engine/scripts) |
-| [Saves](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-saves.ts) | Progress/settings data, asynchronous loaded frames, bounded slots | [Saves and replay](/game-engine/saves-replay) |
+| [Saves](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-saves.ts) | Progress/settings data, asynchronous loaded frames, bounded slots | [Saving player progress](/game-engine/saves-replay) |
 | [Authoring metadata](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-authoring.ts) | Retained programs, parameters, prefabs, overrides, suppression, detachment | [Construction](/game-engine/construction) |
 
 ## Consumers and delivery
@@ -39,18 +39,8 @@ This inventory maps each document component and host surface to its source and g
 | [Game tools](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/native-game/SKILL.md) | Agent creation, preparation, editing, playtesting, capture, and build |
 | [CLI](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-game/src/commands/game.ts) | Validate, simulate, benchmark, capture, build, and smoke commands |
 
-## Compatibility and incomplete paths
+## Schema versions
 
-New 2D games use schema 4 with engine version `3`. Legacy schemas 1 and 2 use engine `1`. Schema 2 introduces the expanded presentation features. Schema 4 adds entity metadata and script parameters. Reserved 2D schema 5 with engine `4` is rejected as unavailable by the current runtime. 3D uses schema 3 with engine `2`.
+New 2D games use schema 4 with engine version `3`. Legacy schemas 1 and 2 use engine `1`. Schema 2 introduces the expanded presentation features. Schema 4 adds entity metadata and script parameters. Reserved 2D schema 5 with engine `4` is rejected as unavailable by the current runtime. 3D uses schema 3 with engine `2`. The source links above follow main.
 
-The following limits matter when choosing a workflow:
-
-- 2D has static and kinematic physics. 3D has Rapier rigid bodies and a character controller. Triangle meshes are static-only.
-- 3D renders with WebGL2. Its particle field is ticked by editor play, standalone, and capture hosts.
-- 3D particle sprite sheets, separate material textures, named material lookup, toon shading, and outlines are not completed renderer paths. Embedded supported GLB textures remain available.
-- HDRI callback contracts exist, but the standard hosts do not complete their preparation and loading path. Solid and procedural skies work.
-- Height fog and projected decals are available in 3D. Decals require prepared images and supported rigid receivers, with an authored scene limit and bounded projection work. See [3D graphics](/game-engine/graphics-3d).
-- Built-in localization is outside this guide's shipped baseline.
-- Multiplayer, navigation meshes, terrain streaming, vehicles, ragdolls, retargeting, and root motion are not supplied by the current engine.
-
-Feature screenshots and their exact source revision are recorded in [screenshot provenance](/game-engine/screenshots). The source links above follow main and may contain later additions than the captured guide baseline.
+Limitations that affect game makers are listed once in [Current limitations](/game-engine/#current-limitations).

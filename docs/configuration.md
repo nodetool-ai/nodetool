@@ -32,7 +32,7 @@ Configuration helpers live in `@nodetool-ai/config` (`environment.ts`): `loadEnv
 |---------|---------------|
 | **General** | Editor, Updates and Vaults (desktop app only), Appearance, Execution, Canvas, Default Models, Autosave |
 | **Models & Providers** | Provider API keys, stored as encrypted secrets |
-| **Integrations** | Configuration groups (including Folders), Connected Accounts, MCP Servers and Browser Extension (local server only), Nodetool API Token (hosted only) |
+| **Integrations** | Configuration groups (including Folders), Connected Accounts, MCP integration and Browser Extension (local server only), Nodetool API Token (hosted only) |
 | **About** | Application, operating system, features and versions, installation paths (development builds), links |
 
 Stored settings are defined in `setting-catalog.ts` in `@nodetool-ai/config`. A setting read through the server checks the database first, then the environment variable of the same name (`getSetting` in `packages/websocket/src/settings-registry.ts`).

@@ -1,73 +1,74 @@
 ---
 layout: page
-title: "3D Models, Lighting, and Rendering"
+title: "3D Graphics"
 permalink: /game-engine/graphics-3d
-description: "Render prepared models and primitives with lights, shadows, skies, fog, and post-processing."
+description: "Add models and shapes, light and sky, fog, decals, shadows, and post-processing to a 3D scene."
 ---
 
-3D games render through WebGL2. World coordinates use meters, +Y up, and −Z forward. Entity rotations are quaternions in `[x, y, z, w]` order. A scene's `environment` holds the fog, sky, shadows, and post-processing, for example height fog:
-
-```json
-"environment": {
-  "background": "#202838",
-  "ambient": { "color": "#ffffff", "intensity": 0.5 },
-  "fog": { "kind": "height", "color": "#c4d9ed", "density": 0.02,
-           "baseHeight": 0, "heightFalloff": 0.2, "maxOpacity": 1 }
-}
-```
-
-Linear fog is `{ "color", "near", "far" }`. The two fog forms are alternatives.
+3D games render through WebGL2. Positions are in meters with +Y up. The scene's environment holds its sky, fog, shadows, and post-processing.
 
 ![BLACKSITE first-person night view with shadowed lighting, rain particles, floor decals, and HUD](/assets/game-engine/blacksite.png)
 
-*BLACKSITE combines prepared model assets with cascaded shadows, height fog, bloom, decals, and particles. Embedded GLB textures are distinct from the unfinished separate material-texture interface. [Capture source](/game-engine/screenshots).*
+*BLACKSITE combines models with cascaded shadows, height fog, bloom, decals, and particles.*
 
-## Add a model or primitive
+## Models and Primitives
 
-Bind a prepared GLB and add `model: {assetId}` to an entity. A `nodeId` selects a prepared model node. Model preparation reports bounds, node IDs, clip IDs, and resource costs. Use those reported IDs rather than names guessed from the original file.
+Install a GLB model as an asset, then add a model component to an entity and pick the asset. Choose a node to show only part of the model. Use the node and animation clip names that the model report lists, not names guessed from the original file.
 
-Primitives provide procedural geometry without an imported model. Inline materials support color, metalness, roughness, opacity, emissive color, and opaque, masked, or blended alpha. Model material overrides support scalar fields. An embedded model can retain its own supported textures.
+Primitives (box, sphere, capsule, and plane) give you shapes without importing anything. A material sets color, metalness (metal look), roughness (matte or glossy), opacity, and emissive color (self-lit glow). Models keep their own embedded textures. Separate material and texture slots, toon shading, and outlines are not rendered yet, so do not rely on them.
 
-The schema also accepts named materials, separate texture slots, toon shading, and outlines. The current primitive and model-override renderers do not apply those fields. Do not use their schema acceptance as proof that a captured frame will show them.
+A visible shape has no collision. Add a collider separately.
 
-## Set the environment
+## Lighting and Sky
 
 ![AETHER editor showing the 3D viewport and scene environment inspector](/assets/game-engine/editor-3d.png)
 
-*The scene inspector exposes the environment preset, ambient light, and linear fog. The viewport includes editing helpers. [Capture provenance](/game-engine/screenshots).*
+*The scene inspector sets the environment preset, ambient light, and fog.*
 
-The environment contains the background, ambient light, fog, shadows, sky, and post-processing. An `update_scene` environment edit replaces the whole environment object. Preserve the fields you are not changing.
+Start from an environment preset in the scene inspector: Sunny day, Night, Overcast, or Neon interior. Then adjust the scene's sun and ambient light.
 
-Use the Sunny day, Night, Overcast, or Neon interior preset as a starting point. Then adjust the scene's sun and environment. A solid sky uses the background color. A procedural sky uses a directional light for the sun, with turbidity, Rayleigh scattering, ground color, and intensity controlling its appearance and reflected light.
+The sky has two usable styles:
 
-Linear fog fades between `near` and `far`. Choose **Height** in the scene inspector's **Fog mode** control for exponential height fog. Fog modes are alternatives. Height fog does not add a second layer over linear fog.
+- **Solid** fills the background with one color.
+- **Procedural** draws a sky from the scene's sun light. **Turbidity** is haze: higher values whiten the sky. **Rayleigh** sets how blue the sky is and how strong sunsets look. **Ground color** tints the lower half. **Intensity** brightens the sky and the light it casts on objects.
 
-Density controls attenuation through the fog. Base height sets its reference altitude, and height falloff reduces density above that altitude. Max opacity caps the result. Perspective and orthographic cameras are supported. Fog changes presentation without changing simulation state or replay.
+Image-based (HDRI) skies are not available. Use a solid or procedural sky.
 
-Height fog and cascaded shadows can be enabled, changed, or removed independently. Newly created lit mesh particles use the active cascaded lighting on their first rendered frame.
+Changing the environment in an edit replaces the whole environment, so keep the fields you are not changing.
 
-HDRI schemas and renderer callbacks exist, but the standard editor, capture, and player hosts do not provide the complete loading path. Use a solid or procedural sky.
+## Fog and Decals
 
-## Project image decals
+Fog hides distance. Linear fog fades objects in between a near and a far distance. In the scene inspector, set **Fog mode** to **Height** for fog that is thicker near the ground:
 
-Install an image asset, select a projector entity, then use its **Decal** section to choose an image and receiver. **Add decal** creates a valid component. Adjust its size, opacity, and render order, or remove it from the same section. A scene supports up to 32 authored decals.
+- **Density** is how quickly objects disappear into the fog.
+- **Base height** is the altitude where fog is thickest.
+- **Height falloff** is how fast fog thins above that altitude.
+- **Max opacity** caps how opaque the fog gets.
 
-A `decal3d` component specifies `assetId`, `receiverId`, `size: {x, y, z}`, `opacity`, and `renderOrder`. The receiver must be a different entity in the same scene with a primitive or rigid model. Template entities and animated models are not valid receivers. Hidden receiver meshes are excluded. Skinned, morph-deformed, instanced, transparent, and masked receiving meshes are rejected with diagnostics. Decals use prepared image bindings, including image alpha.
+Linear and height fog are alternatives, not layers. Fog works with perspective and orthographic cameras and does not affect gameplay or replays.
 
-Position and rotate the projector so its volume intersects the receiving surface. Entity and parent transforms affect the projector, including scale. Parent it to a moving receiver to keep the marking attached. An unparented projector remains fixed in world space and projects onto surfaces that enter its volume.
+Decals project an image onto a surface, such as a stain, a scorch mark, or a sign. Install an image asset, select a projector entity, and in its **Decal** section choose the image and the receiving entity, then choose **Add decal**. Adjust size, opacity, and render order there. A scene can have up to 32 decals.
 
-Decals test scene depth, do not write depth, and use polygon offset to avoid flicker against the receiving surface. Only the chosen receiver gets the image. Foreground geometry can still occlude it. Render order resolves decal overlaps deterministically before ordinary transparent foreground geometry is composited.
+- The receiver must be a different entity in the same scene, a primitive or a rigid model. Animated, skinned, transparent, and masked meshes cannot receive decals and report a warning.
+- Place and rotate the projector so its box overlaps the receiving surface. Parent it to a moving receiver to keep the mark attached.
+- Image transparency is respected. Other objects in front can still hide the decal.
+- Decals do not affect collision or replays.
 
-Projection has bounded node, triangle, candidate, and output work. Large or unsupported receivers report diagnostics rather than allocating without a limit. Decals affect rendering, not collision geometry or replay state.
+## Shadows and Post-Processing
 
-## Budget shadows
+Directional lights, and up to four point or spot lights, can cast shadows. Each point light shadow costs six views, so use few. **Map size** sets shadow sharpness. **Cascades** split the camera's view into two to four ranges so nearby shadows stay sharp and far ones stay cheap. Use them for large outdoor scenes.
 
-Without cascades, each shadow-casting directional light uses `mapSize` and `extent`. Cascades select one directional light and distribute resolution through two to four ranges of camera depth. Up to four point or spot lights can cast shadows in a scene. A point shadow renders six views, so use it selectively.
+If a surface shows stripes of self-shadowing, raise the light's shadow bias slightly. Too much bias makes a shadow float away from its object.
 
-Start with the default bias. If a surface shows striped self-shadowing, adjust `shadowNormalBias` or `shadowBias` in small steps and capture the result. Excessive bias separates a shadow from its caster.
+Post-processing runs in this order:
 
-## Finish the image
+1. **Bloom** adds a glow around bright areas.
+2. **Exposure and tone mapping** set overall brightness and contrast. Choose ACES, AgX, Neutral, or Linear.
+3. **Vignette** darkens the corners.
+4. **Antialiasing** smooths jagged edges. Choose MSAA, FXAA, SMAA, or none.
 
-Post-processing applies bloom, exposure and tone mapping, vignette, then antialiasing. Tone mapping offers ACES, AgX, Neutral, or Linear. Antialiasing offers MSAA, FXAA, SMAA, or none. `enabled: false` preserves the settings while bypassing the chain.
+Turn **Enabled** off to bypass the effects and keep the settings.
 
-Use [distance culling and frame budgets](/game-engine/debugging) for larger scenes. The editor's inspection camera shows culled entities so they remain editable. Editor wireframe, normal, selection, and light-helper views are inspection aids, not exported gameplay effects.
+For big scenes, see [distance culling and frame budgets](/game-engine/debugging). The editor camera still shows culled objects so you can edit them. Wireframe, normal, selection, and light-helper views are editing aids and are not exported with the game.
+
+Coordinate conventions and field-level settings are in the [Game Document Reference](/developer/game-documents).
