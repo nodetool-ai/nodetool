@@ -598,6 +598,42 @@ describe("timelines capability behaviour", () => {
     expect(result.tracks.map((t) => t.name)).toContain("Music");
   });
 
+  // The Step Sequencer ops the description advertises, through the real
+  // capability: a region on a midi track, steps written by row name, and the
+  // grid read back from the stored row.
+  it("creates a pattern region, writes steps by row name, and reads them back", async () => {
+    const row = await makeTimeline({
+      document: JSON.stringify({ tracks: [], clips: [], markers: [] })
+    });
+    const created = (await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [
+        { op: "add_track", type: "midi", name: "Drums" },
+        { op: "create_pattern_region", trackId: "Drums", atBar: 1, bars: 1, text: "Kick: x... .... x... ...." }
+      ]
+    })) as { applied: number; failed: number; ops: Array<{ result?: { clip?: { id: string } } }> };
+    expect(created).toMatchObject({ applied: 2, failed: 0 });
+    const clipId = created.ops[1]?.result?.clip?.id;
+    expect(clipId).toBeDefined();
+
+    expect(await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "set_steps", clipId, row: "Kick", steps: "5,13", values: { on: true } }]
+    })).toMatchObject({ applied: 1, failed: 0 });
+
+    const stored = (await TimelineSequence.findById(row.id))!.toDocument().clips
+      .find((clip) => clip.id === clipId);
+    const kick = stored?.pattern?.rows.find((r) => r.name === "Kick");
+    const onSteps = (kick?.steps ?? []).flatMap((step, index) => (step?.on ? [index + 1] : []));
+    expect(onSteps).toEqual([1, 5, 9, 13]);
+
+    const read = (await run().invoke("edit_timeline", {
+      timeline_id: row.id,
+      ops: [{ op: "get_pattern", clipId }]
+    })) as { failed: number; updated_at: string };
+    expect(read.failed).toBe(0);
+  });
+
   it("round trips compact clip and track IDs through edits and deletion", async () => {
     const clipId = "fac9a239f3434aeea8215b680013f047";
     const trackId = "a2aee50221dc4c4bb342a137c045e88a";
