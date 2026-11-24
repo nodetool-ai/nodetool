@@ -11,7 +11,6 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 
 | ID | Task | Model | Slot | Next step |
 |---|---|---|---|---|
-| F2 | CMake: explicit module source lists, so a new file does not start a full regeneration | agy Neon | native | start |
 
 ## Decisions accepted (user, 2026-11-22)
 
@@ -37,8 +36,7 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | A16 | Native automation follow-up, incl. A12 F20 (pending lane creation commits after Undo) | Sol | A23 (one Codex task at a time) |
 | A17 | Native follow-up after A16 and A8 | Sol | A16 |
 | A24 | Native clip editing part 2 | Sol | none |
-| MX1 | Mixer faders and knobs change the value while dragging, not on release; web and native | Opus | none |
-| VST1 | Agent tools: load a VST instrument or effect on a track, list and select its presets, list, read and set its parameters; bridge and harness coverage | agy Neon | none |
+| VST3 | VST follow-up: F35 duplicate setState on the live pool, F36 agent edit can overwrite an editor change not yet polled; F24 master fader live preview | Sol | none |
 | CHK | Rerun lost native checks: A2, A2b, A5, A7 | Sol | none |
 | CRV | Lost Codex second reviews: A14, A2b | Sol | none |
 
@@ -71,6 +69,10 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | P2c | Note Labels off by default, velocity scale | f443b2f8a8 |
 | P3 | Opus native design pass: Step Editor, automation, clip loops | d6577a43b4 |
 | P3b | Muted clip colours, software-backend note lines, fx badge, toolbar load fix (Sol) | musicui, midinotelines, automationui green; pushed |
+| F2 | CMake explicit module and QML lists; new QML file builds with no regeneration | d7746c0f01 |
+| MX1 | Mixer values change while dragging (native fix, web test); Neon F16-F23 fixed | 6643214478, 675873bd24 |
+| VST1 | Agent VST tools (list, load, presets, parameters), TS/electron/web; Neon F1-F15 fixed; Sol closure clean | 70a68ffe6e, ae33ccadb4 |
+| VST2 | Native VST: AU scan, presets, parameters, assistant tools; Sol F25-F34 fixed in 4 rounds; closure: 2 new -> VST3 | d6f92a9818..fbcb91a258 |
 | A27 | Model routing rule | [agent-model-routing.md](../../agent-model-routing.md), check:agents-docs exit 0 |
 | RA | Reviewer model analysis | [review-model-analysis.md](review-model-analysis.md) |
 | UI | Music editor UI spec | [MUSIC_EDITOR_UI.md](../../design/MUSIC_EDITOR_UI.md) |
