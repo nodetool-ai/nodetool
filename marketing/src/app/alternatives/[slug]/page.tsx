@@ -169,6 +169,21 @@ export default async function AlternativesPage({
               caption={visuals.heroReel.caption}
             />
           </div>
+          {c.quickPicks && (
+            <div className="mx-auto mt-12 max-w-3xl rounded-2xl border border-slate-800/70 bg-slate-950/50 p-6 text-left ring-1 ring-white/5">
+              <h2 id="quick-picks-title" className="text-base font-semibold text-white">
+                {c.name} alternatives by need
+              </h2>
+              <dl className="mt-3 divide-y divide-slate-800/70 text-sm">
+                {c.quickPicks.map((pick) => (
+                  <div key={pick.need} className="grid gap-1 py-2.5 sm:grid-cols-[14rem_1fr] sm:gap-4">
+                    <dt className="font-medium text-slate-200">{pick.need}</dt>
+                    <dd className="text-slate-300">{pick.tools}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
         </section>
 
         {/* Product evidence: three stages of one project, each in its editor. */}
