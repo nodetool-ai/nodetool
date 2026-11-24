@@ -198,12 +198,14 @@ void TimelineModel::installTimeline(nt::Timeline timeline, const HistoryRebase* 
     m_timeline = std::make_shared<const nt::Timeline>(std::move(timeline));
     markAllChanged();
     ++m_generation;
+    // The track rows point into the document just freed, so they move to the
+    // new one before any signal lets QML read them.
+    m_tracks->reset(m_timeline.get());
     emit effectMatteChanged();
     emit documentReplaced();
     // An external change keeps undo when every checkpoint can take its delta
     // (web useTimelineExternalSync rebases the zundo history the same way).
     if (!rebase || !rebaseHistory(*rebase)) { m_undo->clear(); }
-    m_tracks->reset(m_timeline.get());
     // A new document replaces the clips too: lane models that outlive the
     // reset must drop the old snapshot.
     emit clipsChanged();
