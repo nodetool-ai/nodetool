@@ -84,6 +84,7 @@ import {
 } from "./usePlanBeats";
 
 import { renderRasterClipFrames } from "../../components/timeline/preview/rasterClipFrames";
+import { createBrowserPluginHost } from "../../components/timeline/daw/devices/vstBridge";
 import {
   getTimelineAgentHandler,
   hasTimelineAgentHandler,
@@ -887,6 +888,7 @@ export const useTimelineAgentBridge = (
             return resolved;
           },
           stepPatternLibrary: createBrowserStepPatternLibrary(),
+          pluginHost: createBrowserPluginHost(),
           ...opContextOverrides
         };
         if (
@@ -924,6 +926,9 @@ export const useTimelineAgentBridge = (
           op.op === "rename_step_pattern_folder" ||
           op.op === "delete_step_pattern_folder" ||
           op.op === "move_step_pattern" ||
+          op.op === "list_plugins" ||
+          op.op === "list_plugin_presets" ||
+          op.op === "get_plugin_parameters" ||
           op.op === "retarget_format" ||
           op.op === "select_clip" ||
           op.op === "seek" ||

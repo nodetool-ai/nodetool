@@ -537,12 +537,16 @@ export enum IpcChannels {
   FRONTEND_LOG = "frontend-log",
   // MCP bundle (.mcpb) install for Claude Desktop
   MCP_INSTALL_BUNDLE = "mcp-install-bundle",
-  // VST3 instruments, hosted by the NodeToolVstHost helper process
+  // VST3/AU instruments and effects, hosted by the NodeToolVstHost helper process
   VST_STATUS = "vst-status",
   VST_SCAN = "vst-scan",
   VST_RENDER = "vst-render",
   VST_OPEN_EDITOR = "vst-open-editor",
   VST_CLOSE_EDITOR = "vst-close-editor",
+  VST_LIST_PRESETS = "vst-list-presets",
+  VST_SELECT_PRESET = "vst-select-preset",
+  VST_GET_PARAMETERS = "vst-get-parameters",
+  VST_SET_PARAMETERS = "vst-set-parameters",
   VST_EVENT = "vst-event",
   // The cloud account the native apps share, through nodetool-account-helper
   CLOUD_ACCOUNT_STATE = "cloud-account-state",
@@ -686,6 +690,7 @@ export interface VstPluginInfo {
   vendor: string;
   version: string;
   path: string;
+  format?: "vst3" | "au";
   isInstrument: boolean;
 }
 
@@ -723,6 +728,80 @@ export interface VstOpenEditorRequest {
   plugin: VstPluginTarget;
   state: string | null;
   title: string;
+}
+
+export interface VstPluginPresetInfo {
+  index: number;
+  name: string;
+}
+
+export interface VstListPresetsRequest {
+  instance: string;
+  plugin: VstPluginTarget;
+  state: string | null;
+}
+
+export interface VstListPresetsResult {
+  currentPresetIndex: number;
+  presets: VstPluginPresetInfo[];
+}
+
+export interface VstSelectPresetRequest {
+  instance: string;
+  plugin: VstPluginTarget;
+  state: string | null;
+  presetIndex?: number;
+  presetName?: string;
+}
+
+export interface VstSelectPresetResult {
+  preset: VstPluginPresetInfo;
+  state: string | null;
+}
+
+export interface VstPluginParameterInfo {
+  id: string;
+  index: number;
+  name: string;
+  label?: string;
+  value: number;
+  displayValue: string;
+  defaultValue?: number;
+  minValue?: number;
+  maxValue?: number;
+  numSteps?: number;
+  isDiscrete?: boolean;
+  isBoolean?: boolean;
+  isAutomatable?: boolean;
+}
+
+export interface VstPluginParameterChange {
+  id?: string;
+  index?: number;
+  value?: number;
+  displayValue?: string;
+}
+
+export interface VstGetParametersRequest {
+  instance: string;
+  plugin: VstPluginTarget;
+  state: string | null;
+}
+
+export interface VstGetParametersResult {
+  parameters: VstPluginParameterInfo[];
+}
+
+export interface VstSetParametersRequest {
+  instance: string;
+  plugin: VstPluginTarget;
+  state: string | null;
+  changes: VstPluginParameterChange[];
+}
+
+export interface VstSetParametersResult {
+  parameters: VstPluginParameterInfo[];
+  state: string | null;
 }
 
 /** The plug-in window changed the sound, or the user closed it. */
@@ -911,10 +990,14 @@ export interface IpcRequest {
   [IpcChannels.FRONTEND_LOG]: FrontendLogRequest;
   [IpcChannels.MCP_INSTALL_BUNDLE]: void;
   [IpcChannels.VST_STATUS]: void;
-  [IpcChannels.VST_SCAN]: { rescan?: boolean } | undefined;
+  [IpcChannels.VST_SCAN]: { rescan?: boolean; includeEffects?: boolean } | undefined;
   [IpcChannels.VST_RENDER]: VstRenderRequest;
   [IpcChannels.VST_OPEN_EDITOR]: VstOpenEditorRequest;
   [IpcChannels.VST_CLOSE_EDITOR]: string;
+  [IpcChannels.VST_LIST_PRESETS]: VstListPresetsRequest;
+  [IpcChannels.VST_SELECT_PRESET]: VstSelectPresetRequest;
+  [IpcChannels.VST_GET_PARAMETERS]: VstGetParametersRequest;
+  [IpcChannels.VST_SET_PARAMETERS]: VstSetParametersRequest;
   [IpcChannels.CLOUD_ACCOUNT_STATE]: void;
   [IpcChannels.CLOUD_ACCOUNT_SIGN_IN]: void;
   [IpcChannels.CLOUD_ACCOUNT_CANCEL_SIGN_IN]: void;
@@ -1032,6 +1115,10 @@ export interface IpcResponse {
   [IpcChannels.VST_RENDER]: VstRenderResult;
   [IpcChannels.VST_OPEN_EDITOR]: void;
   [IpcChannels.VST_CLOSE_EDITOR]: void;
+  [IpcChannels.VST_LIST_PRESETS]: VstListPresetsResult;
+  [IpcChannels.VST_SELECT_PRESET]: VstSelectPresetResult;
+  [IpcChannels.VST_GET_PARAMETERS]: VstGetParametersResult;
+  [IpcChannels.VST_SET_PARAMETERS]: VstSetParametersResult;
   [IpcChannels.CLOUD_ACCOUNT_STATE]: CloudAccountState;
   [IpcChannels.CLOUD_ACCOUNT_SIGN_IN]: void;
   [IpcChannels.CLOUD_ACCOUNT_CANCEL_SIGN_IN]: void;

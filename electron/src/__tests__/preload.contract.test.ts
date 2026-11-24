@@ -81,6 +81,10 @@ const IpcChannels = {
   VST_RENDER: "vst-render",
   VST_OPEN_EDITOR: "vst-open-editor",
   VST_CLOSE_EDITOR: "vst-close-editor",
+  VST_LIST_PRESETS: "vst-list-presets",
+  VST_SELECT_PRESET: "vst-select-preset",
+  VST_GET_PARAMETERS: "vst-get-parameters",
+  VST_SET_PARAMETERS: "vst-set-parameters",
   VST_EVENT: "vst-event",
   SYSTEM_NOTIFICATION_SHOW: "system-notification-show",
   CLOUD_ACCOUNT_STATE: "cloud-account-state",
@@ -242,6 +246,10 @@ describe("preload contract", () => {
     api.vst.render({ plugin, state: null, sampleRate: 48000, frames: 4, events: [] });
     api.vst.openEditor({ instance: "track:t1", plugin, state: null, title: "Pad" });
     api.vst.closeEditor("track:t1");
+    api.vst.listPresets({ instance: "track:t1", plugin, state: null });
+    api.vst.selectPreset({ instance: "track:t1", plugin, state: null, presetIndex: 0 });
+    api.vst.getParameters({ instance: "track:t1", plugin, state: null });
+    api.vst.setParameters({ instance: "track:t1", plugin, state: null, changes: [{ id: "cutoff", value: 0.5 }] });
     api.vst.onEvent(() => {});
 
     const channels = jest.mocked(electronMock.ipcRenderer.invoke).mock.calls
@@ -252,6 +260,10 @@ describe("preload contract", () => {
       IpcChannels.VST_RENDER,
       IpcChannels.VST_OPEN_EDITOR,
       IpcChannels.VST_CLOSE_EDITOR,
+      IpcChannels.VST_LIST_PRESETS,
+      IpcChannels.VST_SELECT_PRESET,
+      IpcChannels.VST_GET_PARAMETERS,
+      IpcChannels.VST_SET_PARAMETERS,
     ]);
     expect(jest.mocked(electronMock.ipcRenderer.invoke).mock.calls[1][1]).toEqual({ rescan: true });
     expect(jest.mocked(electronMock.ipcRenderer.on).mock.calls[0][0]).toBe(IpcChannels.VST_EVENT);

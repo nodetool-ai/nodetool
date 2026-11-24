@@ -181,6 +181,7 @@ import {
   trackDetail
 } from "./serialize.js";
 import { STEP_PATTERN_OP_HANDLERS } from "./stepPattern.js";
+import { PLUGIN_OP_HANDLERS } from "./plugin.js";
 import type {
   TimelineAnimationInput,
   TimelineOpContext,
@@ -3587,7 +3588,8 @@ const OP_HANDLERS: { [N in TimelineOp["op"]]: OpHandler<N> } = {
     return outcome.result;
   },
 
-  ...STEP_PATTERN_OP_HANDLERS
+  ...STEP_PATTERN_OP_HANDLERS,
+  ...PLUGIN_OP_HANDLERS
 };
 
 /** Dispatch one op against `scope`. Throws on refusal; the caller maps it. */

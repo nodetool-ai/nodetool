@@ -3212,6 +3212,252 @@ export type MoveStepPatternParams = z.infer<typeof moveStepPatternParams>;
 export const MOVE_STEP_PATTERN_DESCRIPTION =
   "Move a user step sequencer pattern or template into another library folder or back to the root.";
 
+// ── VST/AU plug-in hosting (VST1) ───────────────────────────────────────────
+
+const pluginSelectorParam = z
+  .union([
+    z.string().trim().min(1),
+    z
+      .object({
+        uid: z.string().min(1).max(512).optional(),
+        path: z.string().min(1).max(4096).optional(),
+        name: z.string().min(1).max(256).optional(),
+        vendor: z.string().max(256).optional(),
+        format: z.enum(["vst3", "au"]).optional()
+      })
+      .refine((v) => Boolean(v.uid || v.path || v.name), {
+        message: "Provide at least one of uid, path, or name to select a plugin."
+      })
+  ])
+  .describe(
+    "Plugin identifier from ui_timeline_list_plugins: uid, bundle path, unique case-insensitive name, or { uid, path, name, vendor, format }."
+  );
+
+export const listPluginsParams = z.object({
+  kind: z
+    .enum(["instrument", "effect", "all"])
+    .optional()
+    .describe('Filter by plugin role: "instrument", "effect", or "all" (default "all").'),
+  format: z
+    .enum(["vst3", "au", "all"])
+    .optional()
+    .describe('Filter by plugin format: "vst3", "au", or "all" (default "all").'),
+  query: z
+    .string()
+    .optional()
+    .describe("Optional case-insensitive substring filter on plugin name, vendor, uid, or path."),
+  rescan: z
+    .boolean()
+    .optional()
+    .describe("Force a fresh scan of standard VST3/AU plugin folders instead of reading the cached scan.")
+});
+export type ListPluginsParams = z.infer<typeof listPluginsParams>;
+export const LIST_PLUGINS_DESCRIPTION =
+  "List available third-party VST3 and AU instruments and audio effects installed on the host machine.";
+
+export const loadPluginParams = z.object({
+  track: trackTargetParam.describe('Track id or name, or "master" for master bus insert effects.'),
+  plugin: pluginSelectorParam,
+  slot: z
+    .enum(["instrument", "effect"])
+    .optional()
+    .describe(
+      'Where to load the plugin: "instrument" (MIDI tracks only) or "effect" (audio, MIDI, or master insert chain). Omit to infer from the plugin role and track type.'
+    ),
+  effectId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("When loading an insert effect, replace an existing effect by id (or 12-char prefix) instead of appending a new slot."),
+  index: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe("Optional 0-based insertion index in the track or master insert effect chain."),
+  enabled: z
+    .boolean()
+    .optional()
+    .describe("Whether a newly loaded insert effect starts enabled (default true)."),
+  wet: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("Dry/wet mix for an insert effect in 0..1 (default 1)."),
+  gainDb: z
+    .number()
+    .min(-60)
+    .max(12)
+    .optional()
+    .describe("Output gain in dB for a VST/AU instrument (-60..12, default 0)."),
+  state: z
+    .string()
+    .max(8_000_000)
+    .nullable()
+    .optional()
+    .describe("Optional initial base64 plugin state. Omit or pass null for the plugin default sound.")
+});
+export type LoadPluginParams = z.infer<typeof loadPluginParams>;
+export const LOAD_PLUGIN_DESCRIPTION =
+  "Load a third-party VST3/AU instrument onto a MIDI track or insert a VST3/AU effect onto an audio, MIDI, or master bus chain.";
+
+export const listPluginPresetsParams = z.object({
+  track: trackTargetParam.describe('Track id or name, or "master" for a master bus insert effect.'),
+  effectId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument."),
+  query: z
+    .string()
+    .optional()
+    .describe("Optional case-insensitive substring filter on preset names.")
+});
+export type ListPluginPresetsParams = z.infer<typeof listPluginPresetsParams>;
+export const LIST_PLUGIN_PRESETS_DESCRIPTION =
+  "List the presets (programs) exposed by a loaded VST3/AU instrument or insert effect, together with its active preset index.";
+
+export const selectPluginPresetParams = z.object({
+  track: trackTargetParam.describe('Track id or name, or "master" for a master bus insert effect.'),
+  effectId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument."),
+  preset: z
+    .union([z.number().int().min(0), z.string().trim().min(1)])
+    .describe("0-based preset index or case-insensitive preset name from ui_timeline_list_plugin_presets.")
+});
+export type SelectPluginPresetParams = z.infer<typeof selectPluginPresetParams>;
+export const SELECT_PLUGIN_PRESET_DESCRIPTION =
+  "Select a preset by index or name on a loaded VST3/AU instrument or insert effect and persist the resulting plugin state on the timeline.";
+
+export const getPluginParametersParams = z.object({
+  track: trackTargetParam.describe('Track id or name, or "master" for a master bus insert effect.'),
+  effectId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument."),
+  parameters: z
+    .array(z.union([z.string().trim().min(1), z.number().int().min(0)]))
+    .max(256)
+    .optional()
+    .describe("Optional parameter ids, indices, or names to read. Omit to list every parameter exposed by the plugin."),
+  query: z
+    .string()
+    .optional()
+    .describe("Optional case-insensitive substring filter on parameter id, name, or unit label.")
+});
+export type GetPluginParametersParams = z.infer<typeof getPluginParametersParams>;
+export const GET_PLUGIN_PARAMETERS_DESCRIPTION =
+  "List or read parameters of a loaded VST3/AU instrument or insert effect, returning each parameter's id, index, name, normalized value (0..1), and formatted displayValue.";
+
+const pluginParameterChangeParam = z
+  .object({
+    parameter: z
+      .union([z.string().trim().min(1), z.number().int().min(0)])
+      .describe("Parameter id, 0-based index, or case-insensitive name from ui_timeline_get_plugin_parameters."),
+    value: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Normalized parameter value in 0..1. Provide either value or displayValue, not both."),
+    displayValue: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
+      .describe('Formatted display value (e.g. "1200 Hz", "-6 dB", "On"). Provide either value or displayValue, not both.')
+  })
+  .superRefine((entry, ctx) => {
+    const hasValue = entry.value !== undefined;
+    const hasDisplay = entry.displayValue !== undefined;
+    if (hasValue === hasDisplay) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Provide exactly one of value (0..1) or displayValue."
+      });
+    }
+  });
+
+export const setPluginParametersShape = {
+  track: trackTargetParam.describe('Track id or name, or "master" for a master bus insert effect.'),
+  effectId: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Insert effect id (or 12-char prefix or unique plugin name). Omit to address the track's VST/AU instrument."),
+  parameter: z
+    .union([z.string().trim().min(1), z.number().int().min(0)])
+    .optional()
+    .describe("Single parameter id, 0-based index, or name (shorthand for a one-entry `parameters` array)."),
+  value: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("Normalized 0..1 value for the single `parameter` shorthand."),
+  displayValue: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Formatted display value for the single `parameter` shorthand."),
+  parameters: z
+    .array(pluginParameterChangeParam)
+    .min(1)
+    .max(128)
+    .optional()
+    .describe("One or more parameter updates: [{ parameter, value | displayValue }].")
+};
+
+export const setPluginParametersParams = z
+  .object(setPluginParametersShape)
+  .superRefine((input, ctx) => {
+    const hasList = input.parameters !== undefined;
+    const hasSingle = input.parameter !== undefined;
+    if (hasList && hasSingle) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Pass either `parameters` or single-parameter `parameter`, not both."
+      });
+      return;
+    }
+    if (!hasList && !hasSingle) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Pass `parameters` or `parameter` with `value` or `displayValue`."
+      });
+      return;
+    }
+    if (hasSingle) {
+      const hasValue = input.value !== undefined;
+      const hasDisplay = input.displayValue !== undefined;
+      if (hasValue === hasDisplay) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Provide exactly one of value (0..1) or displayValue for `parameter`."
+        });
+      }
+    } else if (input.value !== undefined || input.displayValue !== undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Top-level value/displayValue only applies with single `parameter`, not `parameters`."
+      });
+    }
+  });
+export type SetPluginParametersParams = z.infer<typeof setPluginParametersParams>;
+export const SET_PLUGIN_PARAMETERS_DESCRIPTION =
+  "Set one or more parameters on a loaded VST3/AU instrument or insert effect by id, index, or name using either a normalized 0..1 value or a displayValue string, and persist the updated plugin state.";
+
 // ── The shared tool surface ─────────────────────────────────────────────────
 
 /**
@@ -3350,5 +3596,12 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_create_step_pattern_folder",
   "ui_timeline_rename_step_pattern_folder",
   "ui_timeline_delete_step_pattern_folder",
-  "ui_timeline_move_step_pattern"
+  "ui_timeline_move_step_pattern",
+  // VST/AU plug-in hosting (VST1).
+  "ui_timeline_list_plugins",
+  "ui_timeline_load_plugin",
+  "ui_timeline_list_plugin_presets",
+  "ui_timeline_select_plugin_preset",
+  "ui_timeline_get_plugin_parameters",
+  "ui_timeline_set_plugin_parameters"
 ] as const;

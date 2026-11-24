@@ -72,7 +72,10 @@ export const READ_ONLY_OPS = new Set([
   `${TOOL_PREFIX}create_step_pattern_folder`,
   `${TOOL_PREFIX}rename_step_pattern_folder`,
   `${TOOL_PREFIX}delete_step_pattern_folder`,
-  `${TOOL_PREFIX}move_step_pattern`
+  `${TOOL_PREFIX}move_step_pattern`,
+  `${TOOL_PREFIX}list_plugins`,
+  `${TOOL_PREFIX}list_plugin_presets`,
+  `${TOOL_PREFIX}get_plugin_parameters`
 ]);
 
 /**
@@ -1281,6 +1284,8 @@ export async function applyOps(
     generateMediaEdit?: (request: MediaEditRequest, operationIndex: number) => Promise<{ generationId: string; assetId: string }>;
     /** A baker shared across retries of one call; see {@link timelineModel3DBaker}. */
     bakeModel3DClip?: TimelineModel3DBaker;
+    /** Optional plugin host override for VST/AU ops. */
+    pluginHost?: import("@nodetool-ai/timeline/ops").TimelineOpContext["pluginHost"];
   } = {}
 ): Promise<ApplyOutcome> {
   assertTimelineColorSpaceSupported(document);
@@ -1334,6 +1339,12 @@ export async function applyOps(
       }
     }
   };
+  if (options.pluginHost) {
+    init.pluginHost = options.pluginHost;
+  } else if (!options.hermetic) {
+    const { getSharedNodePluginHost } = await import("./vst-host-adapter.js");
+    init.pluginHost = getSharedNodePluginHost();
+  }
   if (!options.hermetic) {
     Object.assign(init, writingHooks(run, sequence));
     if (options.bakeModel3DClip) {

@@ -569,7 +569,13 @@ type ContractOpName =
   | "create_step_pattern_folder"
   | "rename_step_pattern_folder"
   | "delete_step_pattern_folder"
-  | "move_step_pattern";
+  | "move_step_pattern"
+  | "list_plugins"
+  | "load_plugin"
+  | "list_plugin_presets"
+  | "select_plugin_preset"
+  | "get_plugin_parameters"
+  | "set_plugin_parameters";
 type ContractOp = {
   [K in ContractOpName]: { op: K } & (K extends "add_midi_clip"
     ? Omit<
@@ -752,5 +758,11 @@ export const TIMELINE_OP_NAMES = [
   "create_step_pattern_folder",
   "rename_step_pattern_folder",
   "delete_step_pattern_folder",
-  "move_step_pattern"
+  "move_step_pattern",
+  "list_plugins",
+  "load_plugin",
+  "list_plugin_presets",
+  "select_plugin_preset",
+  "get_plugin_parameters",
+  "set_plugin_parameters"
 ] as const satisfies readonly TimelineOpName[];

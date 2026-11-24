@@ -165,7 +165,20 @@ import {
   deleteStepPatternFolderParams,
   DELETE_STEP_PATTERN_FOLDER_DESCRIPTION,
   moveStepPatternParams,
-  MOVE_STEP_PATTERN_DESCRIPTION
+  MOVE_STEP_PATTERN_DESCRIPTION,
+  listPluginsParams,
+  LIST_PLUGINS_DESCRIPTION,
+  loadPluginParams,
+  LOAD_PLUGIN_DESCRIPTION,
+  listPluginPresetsParams,
+  LIST_PLUGIN_PRESETS_DESCRIPTION,
+  selectPluginPresetParams,
+  SELECT_PLUGIN_PRESET_DESCRIPTION,
+  getPluginParametersParams,
+  GET_PLUGIN_PARAMETERS_DESCRIPTION,
+  setPluginParametersShape,
+  setPluginParametersParams,
+  SET_PLUGIN_PARAMETERS_DESCRIPTION
 } from "./timeline-tool-params.js";
 import {
   strictParams,
@@ -1359,6 +1372,54 @@ function makeTimelineToolContracts(vocab: TimelineToolVocabulary) {
       description: MOVE_STEP_PATTERN_DESCRIPTION,
       shape: moveStepPatternParams.shape,
       finalize: strictParams
+    },
+
+    ui_timeline_list_plugins: {
+      description: LIST_PLUGINS_DESCRIPTION,
+      shape: listPluginsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_load_plugin: {
+      description: LOAD_PLUGIN_DESCRIPTION,
+      shape: loadPluginParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_list_plugin_presets: {
+      description: LIST_PLUGIN_PRESETS_DESCRIPTION,
+      shape: listPluginPresetsParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_select_plugin_preset: {
+      description: SELECT_PLUGIN_PRESET_DESCRIPTION,
+      shape: selectPluginPresetParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_get_plugin_parameters: {
+      description: GET_PLUGIN_PARAMETERS_DESCRIPTION,
+      shape: getPluginParametersParams.shape,
+      finalize: strictParams
+    },
+
+    ui_timeline_set_plugin_parameters: {
+      description: SET_PLUGIN_PARAMETERS_DESCRIPTION,
+      shape: setPluginParametersShape,
+      finalize: (schema) =>
+        schema.strict().superRefine((input, ctx) => {
+          const parsed = setPluginParametersParams.safeParse(input);
+          if (!parsed.success) {
+            for (const issue of parsed.error.issues) {
+              ctx.addIssue({
+                code: "custom",
+                path: issue.path,
+                message: issue.message
+              });
+            }
+          }
+        })
     }
   } satisfies Record<string, UiToolContract>;
 }

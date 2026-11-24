@@ -24,8 +24,12 @@ import {
   DialogOpenFileRequest,
   DialogOpenFolderRequest,
   RuntimePackageId,
+  VstGetParametersRequest,
+  VstListPresetsRequest,
   VstOpenEditorRequest,
   VstRenderRequest,
+  VstSelectPresetRequest,
+  VstSetParametersRequest,
   SystemNotificationRequest,
   CloudRequestInput,
   CloudResponse,
@@ -680,14 +684,19 @@ const api = {
   },
 
   // ============================================================================
-  // vst: VST3 instruments, hosted by the NodeToolVstHost helper process
+  // vst: VST3/AU instruments and effects, hosted by the NodeToolVstHost helper process
   // ============================================================================
   vst: {
     /** Whether the helper is installed. */
     status: () => ipcRenderer.invoke(IpcChannels.VST_STATUS),
-    /** The VST3 instruments on this computer. */
-    scan: (rescan?: boolean) =>
-      ipcRenderer.invoke(IpcChannels.VST_SCAN, { rescan: rescan === true }),
+    /** The VST3/AU plug-ins on this computer. */
+    scan: (rescan?: boolean, includeEffects?: boolean) =>
+      ipcRenderer.invoke(
+        IpcChannels.VST_SCAN,
+        includeEffects === true
+          ? { rescan: rescan === true, includeEffects: true }
+          : { rescan: rescan === true },
+      ),
     /** Render note events through a plug-in, as planar stereo. */
     render: (request: VstRenderRequest) =>
       ipcRenderer.invoke(IpcChannels.VST_RENDER, request),
@@ -696,6 +705,18 @@ const api = {
       ipcRenderer.invoke(IpcChannels.VST_OPEN_EDITOR, request),
     closeEditor: (instance: string) =>
       ipcRenderer.invoke(IpcChannels.VST_CLOSE_EDITOR, instance),
+    /** List presets (programs) exposed by a plug-in instance. */
+    listPresets: (request: VstListPresetsRequest) =>
+      ipcRenderer.invoke(IpcChannels.VST_LIST_PRESETS, request),
+    /** Select a preset on a plug-in instance and return its updated state. */
+    selectPreset: (request: VstSelectPresetRequest) =>
+      ipcRenderer.invoke(IpcChannels.VST_SELECT_PRESET, request),
+    /** Read parameters of a plug-in instance (normalized and display values). */
+    getParameters: (request: VstGetParametersRequest) =>
+      ipcRenderer.invoke(IpcChannels.VST_GET_PARAMETERS, request),
+    /** Update parameters of a plug-in instance and return its updated state. */
+    setParameters: (request: VstSetParametersRequest) =>
+      ipcRenderer.invoke(IpcChannels.VST_SET_PARAMETERS, request),
     /** State changes from an open plug-in window, and the helper exiting. */
     onEvent: createEventSubscription(IpcChannels.VST_EVENT),
   },

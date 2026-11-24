@@ -579,6 +579,30 @@ const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
   move_step_pattern: (args) => ({
     op: "move_step_pattern",
     ...parseContract(contracts.ui_timeline_move_step_pattern, args)
+  }),
+  list_plugins: (args) => ({
+    op: "list_plugins",
+    ...parseContract(contracts.ui_timeline_list_plugins, args)
+  }),
+  load_plugin: (args) => ({
+    op: "load_plugin",
+    ...parseContract(contracts.ui_timeline_load_plugin, args)
+  }),
+  list_plugin_presets: (args) => ({
+    op: "list_plugin_presets",
+    ...parseContract(contracts.ui_timeline_list_plugin_presets, args)
+  }),
+  select_plugin_preset: (args) => ({
+    op: "select_plugin_preset",
+    ...parseContract(contracts.ui_timeline_select_plugin_preset, args)
+  }),
+  get_plugin_parameters: (args) => ({
+    op: "get_plugin_parameters",
+    ...parseContract(contracts.ui_timeline_get_plugin_parameters, args)
+  }),
+  set_plugin_parameters: (args) => ({
+    op: "set_plugin_parameters",
+    ...parseContract(contracts.ui_timeline_set_plugin_parameters, args)
   })
 };
 

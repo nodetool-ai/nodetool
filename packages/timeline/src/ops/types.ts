@@ -125,7 +125,8 @@ export type TimelineOpIdKind =
   | "link"
   | "lane"
   | "point"
-  | "folder";
+  | "folder"
+  | "effect";
 
 /** One user-saved step sequencer pattern or template entry (SQ44, D92). */
 export interface TimelineOpUserStepPattern {
@@ -231,6 +232,119 @@ export interface TimelineOpStepPatternLibrary {
 /** Complete step pattern library with required folder management functions. */
 export type FullStepPatternLibrary = Required<TimelineOpStepPatternLibrary>;
 
+/** Status reported by a VST3/AU plugin host. */
+export interface PluginHostStatus {
+  available: boolean;
+  path?: string;
+  reason?: string;
+}
+
+/** One scanned VST3/AU plug-in descriptor returned by the host. */
+export interface PluginHostPluginInfo {
+  uid: string;
+  name: string;
+  vendor: string;
+  version: string;
+  path: string;
+  format?: "vst3" | "au";
+  isInstrument: boolean;
+}
+
+/** Target plug-in bundle + type identifier. */
+export interface PluginHostTarget {
+  path: string;
+  uid: string;
+}
+
+/** One preset (program) exposed by a loaded VST3/AU plug-in. */
+export interface PluginHostPresetInfo {
+  index: number;
+  name: string;
+}
+
+/** Result of listing presets on a loaded VST3/AU plug-in. */
+export interface PluginHostListPresetsResult {
+  currentPresetIndex: number;
+  presets: PluginHostPresetInfo[];
+}
+
+/** Result of selecting a preset on a loaded VST3/AU plug-in. */
+export interface PluginHostSelectPresetResult {
+  preset: PluginHostPresetInfo;
+  state: string | null;
+}
+
+/** One parameter exposed by a loaded VST3/AU plug-in. */
+export interface PluginHostParameterInfo {
+  id: string;
+  index: number;
+  name: string;
+  label?: string;
+  /** Normalized value in 0..1. */
+  value: number;
+  /** Formatted display value (e.g. "1200 Hz", "-6.0 dB"). */
+  displayValue: string;
+  defaultValue?: number;
+  minValue?: number;
+  maxValue?: number;
+  numSteps?: number;
+  isDiscrete?: boolean;
+  isBoolean?: boolean;
+  isAutomatable?: boolean;
+}
+
+/** One requested parameter write (by id/index, normalized or displayValue). */
+export interface PluginHostParameterChange {
+  id?: string;
+  index?: number;
+  value?: number;
+  displayValue?: string;
+}
+
+/** Result of reading parameters from a loaded VST3/AU plug-in. */
+export interface PluginHostGetParametersResult {
+  parameters: PluginHostParameterInfo[];
+}
+
+/** Result of writing parameters on a loaded VST3/AU plug-in. */
+export interface PluginHostSetParametersResult {
+  parameters: PluginHostParameterInfo[];
+  state: string | null;
+}
+
+/**
+ * Host adapter for scanning third-party VST3/AU plug-ins and reading or
+ * updating their presets and parameters (VST1). Absent on surfaces with no
+ * plug-in host (plain browser without desktop helper).
+ */
+export interface TimelineOpPluginHost {
+  status?(): Promise<PluginHostStatus> | PluginHostStatus;
+  scan(options?: { rescan?: boolean; includeEffects?: boolean }): Promise<PluginHostPluginInfo[]>;
+  listPresets(request: {
+    instance: string;
+    plugin: PluginHostTarget;
+    state: string | null;
+  }): Promise<PluginHostListPresetsResult>;
+  selectPreset(request: {
+    instance: string;
+    plugin: PluginHostTarget;
+    state: string | null;
+    presetIndex?: number;
+    presetName?: string;
+  }): Promise<PluginHostSelectPresetResult>;
+  getParameters(request: {
+    instance: string;
+    plugin: PluginHostTarget;
+    state: string | null;
+  }): Promise<PluginHostGetParametersResult>;
+  setParameters(request: {
+    instance: string;
+    plugin: PluginHostTarget;
+    state: string | null;
+    changes: PluginHostParameterChange[];
+  }): Promise<PluginHostSetParametersResult>;
+}
+
 /** Everything an op needs that the document cannot answer. */
 export interface TimelineOpContext {
   newId(kind: TimelineOpIdKind): string;
@@ -283,6 +397,8 @@ export interface TimelineOpContext {
   parseSvgPath?(d: string): { ok: boolean; error?: string };
   /** User step sequencer pattern/template library adapter (SQ44, SQ54, D92). */
   stepPatternLibrary?: TimelineOpStepPatternLibrary;
+  /** Third-party VST3/AU plugin host adapter (VST1). */
+  pluginHost?: TimelineOpPluginHost;
 }
 
 /** What one op did. `error` set means `state` is the state that went in. */

@@ -1231,6 +1231,29 @@ for (const opName of STEP_SEQUENCER_SHARED_OPS) {
   });
 }
 
+// ── VST/AU Plug-in Hosting (VST1) ───────────────────────────────────────────
+
+const PLUGIN_SHARED_OPS = [
+  "list_plugins",
+  "load_plugin",
+  "list_plugin_presets",
+  "select_plugin_preset",
+  "get_plugin_parameters",
+  "set_plugin_parameters"
+] as const;
+
+for (const opName of PLUGIN_SHARED_OPS) {
+  FrontendToolRegistry.register({
+    ...shared(`ui_timeline_${opName}`),
+    async execute({ timeline_id, ...args }) {
+      const result = await getTimelineAgentHandler(timeline_id).applyOp(
+        timelineOpFromToolArgs(opName, args)
+      );
+      return { ...result, url: docUrl("timeline", timeline_id) };
+    }
+  });
+}
+
 FrontendToolRegistry.register({
   name: "ui_timeline_undo",
   description:

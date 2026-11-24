@@ -22,13 +22,21 @@ import { z } from "zod";
 import { logMessage } from "./logger";
 import {
   IpcChannels,
+  type VstGetParametersRequest,
+  type VstGetParametersResult,
   type VstHostEvent,
   type VstHostStatus,
+  type VstListPresetsRequest,
+  type VstListPresetsResult,
   type VstOpenEditorRequest,
   type VstPluginInfo,
   type VstPluginTarget,
   type VstRenderRequest,
   type VstRenderResult,
+  type VstSelectPresetRequest,
+  type VstSelectPresetResult,
+  type VstSetParametersRequest,
+  type VstSetParametersResult,
 } from "./types.d";
 
 /** Names the helper executable may have, per platform. */
@@ -96,6 +104,46 @@ const openEditorRequestSchema = z.object({
   state: stateSchema,
   title: z.string().max(200),
 });
+const listPresetsRequestSchema = z.object({
+  instance: instanceSchema,
+  plugin: targetSchema,
+  state: stateSchema,
+});
+const selectPresetRequestSchema = z
+  .object({
+    instance: instanceSchema,
+    plugin: targetSchema,
+    state: stateSchema,
+    presetIndex: z.number().int().min(0).optional(),
+    presetName: z.string().min(1).max(256).optional(),
+  })
+  .refine((v) => v.presetIndex !== undefined || v.presetName !== undefined, {
+    message: "presetIndex or presetName is required",
+  });
+const getParametersRequestSchema = z.object({
+  instance: instanceSchema,
+  plugin: targetSchema,
+  state: stateSchema,
+});
+const parameterChangeSchema = z
+  .object({
+    id: z.string().min(1).max(256).optional(),
+    index: z.number().int().min(0).optional(),
+    value: z.number().min(0).max(1).optional(),
+    displayValue: z.string().min(1).max(256).optional(),
+  })
+  .refine((v) => v.id !== undefined || v.index !== undefined, {
+    message: "parameter change requires id or index",
+  })
+  .refine((v) => (v.value !== undefined) !== (v.displayValue !== undefined), {
+    message: "parameter change requires exactly one of value or displayValue",
+  });
+const setParametersRequestSchema = z.object({
+  instance: instanceSchema,
+  plugin: targetSchema,
+  state: stateSchema,
+  changes: z.array(parameterChangeSchema).min(1).max(128),
+});
 
 // What the helper writes on stdout.
 const pluginInfoSchema = z.object({
@@ -104,7 +152,27 @@ const pluginInfoSchema = z.object({
   name: z.string(),
   vendor: z.string().catch(""),
   version: z.string().catch(""),
+  format: z.enum(["vst3", "au"]).optional(),
   isInstrument: z.boolean().catch(false),
+});
+const presetInfoSchema = z.object({
+  index: z.number().int().min(0),
+  name: z.string(),
+});
+const parameterInfoSchema = z.object({
+  id: z.string(),
+  index: z.number().int().min(0),
+  name: z.string(),
+  label: z.string().optional(),
+  value: z.number(),
+  displayValue: z.string(),
+  defaultValue: z.number().optional(),
+  minValue: z.number().optional(),
+  maxValue: z.number().optional(),
+  numSteps: z.number().int().optional(),
+  isDiscrete: z.boolean().optional(),
+  isBoolean: z.boolean().optional(),
+  isAutomatable: z.boolean().optional(),
 });
 const helperEventSchema = z.object({
   event: z.enum(["state", "editorClosed"]),
@@ -174,24 +242,27 @@ export class VstHost {
     return { available: true, path: found };
   }
 
-  /** The VST3 instruments on this machine. Cached until `rescan`. */
-  async scan(rescan = false): Promise<VstPluginInfo[]> {
-    if (this.scanned && !rescan) return this.scanned;
-    if (!this.scanning) {
-      this.scanning = this.request({ cmd: "scan" }, TIMEOUT_MS.scan)
-        .then((reply) => {
-          // One malformed entry drops that entry, not the whole list.
-          this.scanned = scanReplySchema.parse(reply).plugins.flatMap((entry) => {
-            const plugin = pluginInfoSchema.safeParse(entry);
-            return plugin.success ? [plugin.data] : [];
+  /** The VST3/AU plug-ins on this machine. Cached until `rescan`. */
+  async scan(rescan = false, includeEffects = false): Promise<VstPluginInfo[]> {
+    if (!this.scanned || rescan) {
+      if (!this.scanning) {
+        this.scanning = this.request({ cmd: "scan", includeEffects: true }, TIMEOUT_MS.scan)
+          .then((reply) => {
+            // One malformed entry drops that entry, not the whole list.
+            this.scanned = scanReplySchema.parse(reply).plugins.flatMap((entry) => {
+              const plugin = pluginInfoSchema.safeParse(entry);
+              return plugin.success ? [plugin.data] : [];
+            });
+            return this.scanned;
+          })
+          .finally(() => {
+            this.scanning = null;
           });
-          return this.scanned;
-        })
-        .finally(() => {
-          this.scanning = null;
-        });
+      }
+      await this.scanning;
     }
-    return this.scanning;
+    const all = this.scanned ?? [];
+    return includeEffects ? all : all.filter((plugin) => plugin.isInstrument);
   }
 
   async render(input: VstRenderRequest): Promise<VstRenderResult> {
@@ -248,6 +319,85 @@ export class VstHost {
     await this.request({ cmd: "closeEditor", instance });
   }
 
+  async listPresets(input: VstListPresetsRequest): Promise<VstListPresetsResult> {
+    const request = parseRequest(listPresetsRequestSchema, input, "listPresets request");
+    const plugin = await this.checkPlugin(request.plugin);
+    const reply = await this.request({
+      cmd: "listPresets",
+      instance: request.instance,
+      path: plugin.path,
+      uid: plugin.uid,
+      state: request.state ?? "",
+    });
+    const presets = Array.isArray(reply.presets)
+      ? reply.presets.flatMap((entry) => {
+          const parsed = presetInfoSchema.safeParse(entry);
+          return parsed.success ? [parsed.data] : [];
+        })
+      : [];
+    return {
+      currentPresetIndex: typeof reply.currentPresetIndex === "number" ? reply.currentPresetIndex : 0,
+      presets,
+    };
+  }
+
+  async selectPreset(input: VstSelectPresetRequest): Promise<VstSelectPresetResult> {
+    const request = parseRequest(selectPresetRequestSchema, input, "selectPreset request");
+    const plugin = await this.checkPlugin(request.plugin);
+    const reply = await this.request({
+      cmd: "selectPreset",
+      instance: request.instance,
+      path: plugin.path,
+      uid: plugin.uid,
+      state: request.state ?? "",
+      ...(request.presetIndex !== undefined ? { presetIndex: request.presetIndex } : {}),
+      ...(request.presetName !== undefined ? { presetName: request.presetName } : {}),
+    });
+    const preset = presetInfoSchema.parse(reply.preset);
+    const state = typeof reply.state === "string" && reply.state.length > 0 ? reply.state : null;
+    return { preset, state };
+  }
+
+  async getParameters(input: VstGetParametersRequest): Promise<VstGetParametersResult> {
+    const request = parseRequest(getParametersRequestSchema, input, "getParameters request");
+    const plugin = await this.checkPlugin(request.plugin);
+    const reply = await this.request({
+      cmd: "getParameters",
+      instance: request.instance,
+      path: plugin.path,
+      uid: plugin.uid,
+      state: request.state ?? "",
+    });
+    const parameters = Array.isArray(reply.parameters)
+      ? reply.parameters.flatMap((entry) => {
+          const parsed = parameterInfoSchema.safeParse(entry);
+          return parsed.success ? [parsed.data] : [];
+        })
+      : [];
+    return { parameters };
+  }
+
+  async setParameters(input: VstSetParametersRequest): Promise<VstSetParametersResult> {
+    const request = parseRequest(setParametersRequestSchema, input, "setParameters request");
+    const plugin = await this.checkPlugin(request.plugin);
+    const reply = await this.request({
+      cmd: "setParameters",
+      instance: request.instance,
+      path: plugin.path,
+      uid: plugin.uid,
+      state: request.state ?? "",
+      changes: request.changes,
+    });
+    const parameters = Array.isArray(reply.parameters)
+      ? reply.parameters.flatMap((entry) => {
+          const parsed = parameterInfoSchema.safeParse(entry);
+          return parsed.success ? [parsed.data] : [];
+        })
+      : [];
+    const state = typeof reply.state === "string" && reply.state.length > 0 ? reply.state : null;
+    return { parameters, state };
+  }
+
   dispose(): void {
     const child = this.child;
     this.child = null;
@@ -263,7 +413,7 @@ export class VstHost {
   private async checkPlugin(target: VstPluginTarget): Promise<VstPluginInfo> {
     const match = (list: VstPluginInfo[]) =>
       list.find((p) => p.path === target.path && p.uid === target.uid);
-    const found = match(await this.scan()) ?? match(await this.scan(true));
+    const found = match(await this.scan(false, true)) ?? match(await this.scan(true, true));
     if (!found) {
       throw new Error(`The VST instrument at ${target.path} is not installed on this computer`);
     }

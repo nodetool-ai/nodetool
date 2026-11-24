@@ -17,3 +17,8 @@ export { readSectionContent } from "./pasteRange.js";
 export type { SectionContent, SectionReadRange } from "./pasteRange.js";
 export { createMemoryStepPatternLibrary } from "./stepPattern.js";
 export * from "./stepPatternFolders.js";
+export { createMemoryPluginHost } from "./plugin.js";
+export type {
+  MemoryPluginDefinition,
+  MemoryPluginParameterDef
+} from "./plugin.js";

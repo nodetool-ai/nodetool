@@ -751,6 +751,7 @@ export type TrackEffect =
   | TrackFilterEffect
   | TrackCompressorEffect
   | TrackFableEffect
+  | TrackVstEffect
   | TrackColorCorrectionEffect
   | TrackVideoBlurEffect
   | TrackSharpenEffect
@@ -763,7 +764,8 @@ export type AudioTrackEffectType =
   | "eq3"
   | "filter"
   | "compressor"
-  | "fable";
+  | "fable"
+  | "vst";
 
 /** Video-side effect types. */
 export type VideoTrackEffectType =
@@ -1183,14 +1185,32 @@ export type MidiInstrument =
   | SamplerMidiInstrument
   | VstMidiInstrument;
 
-/** Which VST3 plug-in a `vst` instrument loads, as the host's scan reported it. */
+/** Plug-in format reported by the host scan (`vst3` on all platforms, `au` on macOS). */
+export type VstPluginFormat = "vst3" | "au";
+
+/** Which VST3/AU plug-in a `vst` instrument or insert effect loads, as the host's scan reported it. */
 export interface VstPluginRef {
   /** The host's identifier for the plug-in type inside its bundle. */
   uid: string;
   name: string;
   vendor: string;
-  /** The `.vst3` bundle on the machine that picked it. */
+  /** The `.vst3` or `.component` bundle on the machine that picked it. */
   path: string;
+  /** Plug-in format (`vst3` or `au`). Absent on older VST3 documents. */
+  format?: VstPluginFormat;
+}
+
+/** A third-party VST3/AU insert effect on an audio, MIDI, or master channel. */
+export interface TrackVstEffect {
+  id: string;
+  type: "vst";
+  enabled: boolean;
+  /** Null until a plug-in is chosen. */
+  plugin: VstPluginRef | null;
+  /** The plug-in's own saved state, base64. Null plays its default sound. */
+  state: string | null;
+  /** Dry/wet mix in 0..1. Default 1. */
+  wet: number;
 }
 
 /**

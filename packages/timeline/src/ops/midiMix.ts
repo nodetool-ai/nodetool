@@ -53,7 +53,8 @@ const AUDIO_TRACK_EFFECT_TYPES: ReadonlySet<string> = new Set([
   "eq3",
   "filter",
   "compressor",
-  "fable"
+  "fable",
+  "vst"
 ]);
 
 const VIDEO_TRACK_EFFECT_TYPES: ReadonlySet<string> = new Set([

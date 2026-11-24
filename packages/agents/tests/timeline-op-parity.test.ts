@@ -29,6 +29,7 @@ import {
   seedClips,
   seedMarkers,
   seedMediaTracks,
+  seedPluginHost,
   seedStepPatternLibrary,
   seedTracks
 } from "@nodetool-ai/timeline/testing";
@@ -67,6 +68,7 @@ function bridgeInit(): TimelineBridgeInitialState {
       listIds: async () => [COMPOSITION.id]
     },
     stepPatternLibrary: seedStepPatternLibrary(),
+    pluginHost: seedPluginHost(),
     generateTransition: async ({ source, request }) => ({
       generationId: `generation-${source.outgoingClipId}-${source.incomingClipId}`,
       assetId: `asset-transition-${request.type}`

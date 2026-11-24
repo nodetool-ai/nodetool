@@ -1059,10 +1059,10 @@ export function initializeIpcHandlers(): void {
     return installMcpBundle();
   });
 
-  // VST3 instruments: the helper process hosts the plug-ins (vstHost.ts).
+  // VST3/AU instruments and effects: the helper process hosts the plug-ins (vstHost.ts).
   createIpcMainHandler(IpcChannels.VST_STATUS, async () => getVstHost().status());
   createIpcMainHandler(IpcChannels.VST_SCAN, async (_event, request) =>
-    getVstHost().scan(request?.rescan === true),
+    getVstHost().scan(request?.rescan === true, request?.includeEffects === true),
   );
   createIpcMainHandler(IpcChannels.VST_RENDER, async (_event, request) =>
     getVstHost().render(request),
@@ -1072,6 +1072,18 @@ export function initializeIpcHandlers(): void {
   );
   createIpcMainHandler(IpcChannels.VST_CLOSE_EDITOR, async (_event, instance) =>
     getVstHost().closeEditor(instance),
+  );
+  createIpcMainHandler(IpcChannels.VST_LIST_PRESETS, async (_event, request) =>
+    getVstHost().listPresets(request),
+  );
+  createIpcMainHandler(IpcChannels.VST_SELECT_PRESET, async (_event, request) =>
+    getVstHost().selectPreset(request),
+  );
+  createIpcMainHandler(IpcChannels.VST_GET_PARAMETERS, async (_event, request) =>
+    getVstHost().getParameters(request),
+  );
+  createIpcMainHandler(IpcChannels.VST_SET_PARAMETERS, async (_event, request) =>
+    getVstHost().setParameters(request),
   );
 
   // The shared cloud account (cloudAccount.ts). The requests carry no data,

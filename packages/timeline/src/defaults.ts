@@ -26,6 +26,7 @@ import type {
   TrackFilterEffect,
   TrackCompressorEffect,
   TrackFableEffect,
+  TrackVstEffect,
   TrackColorCorrectionEffect,
   TrackVideoBlurEffect,
   TrackSharpenEffect,
@@ -278,6 +279,15 @@ export function makeTrackEffect(type: TrackEffect["type"]): TrackEffect {
         kind: "eq",
         params: {}
       } satisfies TrackFableEffect;
+    case "vst":
+      return {
+        id,
+        type: "vst",
+        enabled: true,
+        plugin: null,
+        state: null,
+        wet: 1
+      } satisfies TrackVstEffect;
     case "colorCorrection":
       return {
         id,

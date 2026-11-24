@@ -432,12 +432,39 @@ export const trackChromaKeyEffect = z.object({
   spill: z.number()
 });
 
+/** Plug-in format reported by the host scan (`vst3` on all platforms, `au` on macOS). */
+export const vstPluginFormat = z.enum(["vst3", "au"]);
+export type VstPluginFormat = z.infer<typeof vstPluginFormat>;
+
+/** `VstPluginRef` in `@nodetool-ai/timeline`: the VST3/AU plug-in a track or insert loads. */
+export const vstPluginRef = z.object({
+  uid: z.string().min(1).max(512),
+  name: z.string().max(256),
+  vendor: z.string().max(256),
+  path: z.string().min(1).max(4096),
+  format: vstPluginFormat.optional()
+});
+
+/** Base64 plug-in state above this is refused, so one track cannot bloat the document. */
+export const VST_STATE_MAX_CHARS = 8_000_000;
+
+/** `TrackVstEffect` in `@nodetool-ai/timeline`: a third-party VST3/AU insert effect. */
+export const trackVstEffect = z.object({
+  id: z.string(),
+  type: z.literal("vst"),
+  enabled: z.boolean(),
+  plugin: vstPluginRef.nullable(),
+  state: z.string().max(VST_STATE_MAX_CHARS).nullable(),
+  wet: z.number().min(0).max(1)
+});
+
 export const trackEffect = z.discriminatedUnion("type", [
   trackGainEffect,
   trackEq3Effect,
   trackFilterEffect,
   trackCompressorEffect,
   trackFableEffect,
+  trackVstEffect,
   trackColorCorrectionEffect,
   trackVideoBlurEffect,
   trackSharpenEffect,
@@ -803,18 +830,7 @@ export const samplerMidiInstrument = z.object({
     gainDb: z.number().min(-60).max(12)
   });
 
-/** `VstPluginRef` in `@nodetool-ai/timeline`: the VST3 plug-in a track loads. */
-export const vstPluginRef = z.object({
-  uid: z.string().min(1).max(512),
-  name: z.string().max(256),
-  vendor: z.string().max(256),
-  path: z.string().min(1).max(4096)
-});
-
-/** Base64 plug-in state above this is refused, so one track cannot bloat the document. */
-export const VST_STATE_MAX_CHARS = 8_000_000;
-
-/** A VST3 instrument hosted by the desktop app. Silent wherever no host runs. */
+/** A VST3/AU instrument hosted by the desktop app. Silent wherever no host runs. */
 export const vstMidiInstrument = z.object({
   type: z.literal("vst"),
   plugin: vstPluginRef.nullable(),

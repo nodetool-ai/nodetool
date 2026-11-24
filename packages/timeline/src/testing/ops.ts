@@ -12,6 +12,7 @@ import {
   type TimelineTrack
 } from "../index.js";
 import {
+  createMemoryPluginHost,
   createMemoryStepPatternLibrary,
   type TimelineOp,
   type TimelineOpContext,
@@ -59,7 +60,23 @@ export function seedTracks(): TimelineTrack[] {
       type: "midi",
       name: "Music",
       index: 2,
-      instrument: DEFAULT_MIDI_INSTRUMENT
+      instrument: DEFAULT_MIDI_INSTRUMENT,
+      effects: [
+        {
+          id: "fx_vst_seed",
+          type: "vst",
+          enabled: true,
+          plugin: {
+            uid: "VST3-Gain",
+            name: "Seed Gain",
+            vendor: "Acme",
+            path: "/plugins/SeedGain.vst3",
+            format: "vst3"
+          },
+          state: null,
+          wet: 1
+        }
+      ]
     })
   ];
 }
@@ -302,6 +319,67 @@ export function seedStepPatternLibrary() {
   });
 }
 
+export function seedPluginHost() {
+  return createMemoryPluginHost([
+    {
+      info: {
+        uid: "VST3-Pad",
+        name: "Seed Pad",
+        vendor: "Acme",
+        version: "1.0.0",
+        path: "/plugins/SeedPad.vst3",
+        format: "vst3",
+        isInstrument: true
+      },
+      presets: [
+        { index: 0, name: "Init" },
+        { index: 1, name: "Warm Pad" }
+      ],
+      parameters: [
+        {
+          id: "cutoff",
+          index: 0,
+          name: "Cutoff",
+          label: "Hz",
+          value: 0.5,
+          defaultValue: 0.5,
+          formatDisplay: (v) => `${Math.round(20 + v * 19980)} Hz`
+        }
+      ]
+    },
+    {
+      info: {
+        uid: "VST3-Gain",
+        name: "Seed Gain",
+        vendor: "Acme",
+        version: "1.0.0",
+        path: "/plugins/SeedGain.vst3",
+        format: "vst3",
+        isInstrument: false
+      },
+      presets: [
+        { index: 0, name: "Unity" },
+        { index: 1, name: "Boost" }
+      ],
+      parameters: [
+        {
+          id: "gain",
+          index: 0,
+          name: "Gain",
+          label: "dB",
+          value: 0.5,
+          defaultValue: 0.5,
+          formatDisplay: (v) => `${(-24 + v * 48).toFixed(1)} dB`,
+          parseDisplay: (text) => {
+            const db = Number.parseFloat(text);
+            return Number.isFinite(db) ? Math.min(1, Math.max(0, (db + 24) / 48)) : null;
+          }
+        }
+      ]
+    }
+  ]);
+}
+
 export function directContext(state: TimelineOpState): TimelineOpContext {
   const used = new Set<string>();
   for (const t of state.tracks) used.add(t.id);
@@ -321,7 +399,8 @@ export function directContext(state: TimelineOpState): TimelineOpContext {
     version: 0,
     lane: 0,
     point: 0,
-    folder: 0
+    folder: 0,
+    effect: 0
   };
   return {
     generateFromBeats: async (document) => {
@@ -384,7 +463,8 @@ export function directContext(state: TimelineOpState): TimelineOpContext {
     },
     retargetFormat: async () => ({ sequenceId: "adapted_1", name: "Adapted" }),
     parseSvgPath: () => ({ ok: true }),
-    stepPatternLibrary: seedStepPatternLibrary()
+    stepPatternLibrary: seedStepPatternLibrary(),
+    pluginHost: seedPluginHost()
   };
 }
 
@@ -1435,6 +1515,50 @@ export const FIXTURES: Fixture[] = [
       op: "move_step_pattern",
       pattern: SEEDED_STEP_PATTERN_ENTRY_ID.slice(0, 12),
       folder: "Moved"
+    }
+  },
+  {
+    tool: "list_plugins",
+    args: {},
+    op: { op: "list_plugins" }
+  },
+  {
+    tool: "load_plugin",
+    args: { track: "track_midi", plugin: "Seed Pad" },
+    op: { op: "load_plugin", track: "track_midi", plugin: "Seed Pad" }
+  },
+  {
+    tool: "list_plugin_presets",
+    args: { track: "track_midi", effectId: "fx_vst_seed" },
+    op: { op: "list_plugin_presets", track: "track_midi", effectId: "fx_vst_seed" }
+  },
+  {
+    tool: "select_plugin_preset",
+    args: { track: "track_midi", effectId: "fx_vst_seed", preset: "Boost" },
+    op: {
+      op: "select_plugin_preset",
+      track: "track_midi",
+      effectId: "fx_vst_seed",
+      preset: "Boost"
+    }
+  },
+  {
+    tool: "get_plugin_parameters",
+    args: { track: "track_midi", effectId: "fx_vst_seed" },
+    op: { op: "get_plugin_parameters", track: "track_midi", effectId: "fx_vst_seed" }
+  },
+  {
+    tool: "set_plugin_parameters",
+    args: {
+      track: "track_midi",
+      effectId: "fx_vst_seed",
+      parameters: [{ parameter: "Gain", value: 0.75 }]
+    },
+    op: {
+      op: "set_plugin_parameters",
+      track: "track_midi",
+      effectId: "fx_vst_seed",
+      parameters: [{ parameter: "Gain", value: 0.75 }]
     }
   }
 ];

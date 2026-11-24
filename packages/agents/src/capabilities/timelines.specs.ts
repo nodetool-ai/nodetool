@@ -143,7 +143,8 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "add_pattern_rows, set_pattern_row, remove_pattern_rows, move_pattern_row, sort_pattern_rows, set_pattern_row_sort, copy_pattern_row, set_steps, set_pattern_text, " +
         "clear_pattern, copy_steps, repeat_step, rotate_pattern, transpose_pattern, randomize_pattern, nudge_pattern_values, tie_steps, " +
         "list_step_patterns, apply_step_pattern, save_step_pattern, set_track_step_template, " +
-        "create_step_pattern_folder, rename_step_pattern_folder, delete_step_pattern_folder, move_step_pattern. " +
+        "create_step_pattern_folder, rename_step_pattern_folder, delete_step_pattern_folder, move_step_pattern, " +
+        "list_plugins, load_plugin, list_plugin_presets, select_plugin_preset, get_plugin_parameters, set_plugin_parameters. " +
         "retarget_format creates a new " +
         "sequence and must be the only op in its call; call it once per " +
         "target format. " +
@@ -333,7 +334,14 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         'save_step_pattern {"clipId", "name", "kind": "pattern"|"template", folder?}, ' +
         'set_track_step_template {"trackId", fromClipId?|clear?}, ' +
         'create_step_pattern_folder {"name", kind?, parentFolder?}, rename_step_pattern_folder {"folder", "newName", kind?}, ' +
-        'delete_step_pattern_folder {"folder", kind?}, move_step_pattern {"pattern", folder?}.',
+        'delete_step_pattern_folder {"folder", kind?}, move_step_pattern {"pattern", folder?}. ' +
+        "VST3/AU plug-in hosting: " +
+        'list_plugins {kind?: "instrument"|"effect"|"all", format?: "vst3"|"au"|"all", query?, rescan?}, ' +
+        'load_plugin {"track", "plugin", slot?: "instrument"|"effect", effectId?, index?, enabled?, wet?, gainDb?, state?}, ' +
+        'list_plugin_presets {"track", effectId?, query?}, ' +
+        'select_plugin_preset {"track", effectId?, "preset": index|name}, ' +
+        'get_plugin_parameters {"track", effectId?, parameters?, query?}, ' +
+        'set_plugin_parameters {"track", effectId?, parameter?, value?, displayValue?, parameters?: [{parameter, value?|displayValue?}]}.',
       items: { type: "object" }
     }
   },

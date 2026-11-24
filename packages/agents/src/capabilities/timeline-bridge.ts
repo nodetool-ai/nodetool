@@ -331,6 +331,8 @@ export interface TimelineBridgeInitialState {
   loadComposition?: TimelineCompositionLoader;
   /** User step sequencer pattern/template library adapter (SQ44, SQ54, D92). */
   stepPatternLibrary?: TimelineOpContext["stepPatternLibrary"];
+  /** Third-party VST3/AU plugin host adapter (VST1). */
+  pluginHost?: TimelineOpContext["pluginHost"];
   /** Host default MIDI instrument for newly created MIDI tracks. */
   defaultMidiInstrument?: TimelineOpContext["defaultMidiInstrument"];
   /**
@@ -1235,6 +1237,7 @@ export function createTimelineToolBridge(
     parseSvgPath,
     stepPatternLibrary:
       initial.stepPatternLibrary ?? createMemoryStepPatternLibrary(),
+    pluginHost: initial.pluginHost,
     sequence: { id: sequenceId, name: sequenceName, projectId },
     retargetFormat: async (sequence) => {
       const stored = retargetFormat
@@ -2013,6 +2016,26 @@ export function createTimelineToolBridge(
     ),
     sharedTool("ui_timeline_move_step_pattern", async (args) =>
       editOp("move_step_pattern", args)
+    ),
+
+    // VST/AU Plug-in Hosting (VST1)
+    sharedTool("ui_timeline_list_plugins", async (args) =>
+      editOp("list_plugins", args)
+    ),
+    sharedTool("ui_timeline_load_plugin", async (args) =>
+      editOp("load_plugin", args)
+    ),
+    sharedTool("ui_timeline_list_plugin_presets", async (args) =>
+      editOp("list_plugin_presets", args)
+    ),
+    sharedTool("ui_timeline_select_plugin_preset", async (args) =>
+      editOp("select_plugin_preset", args)
+    ),
+    sharedTool("ui_timeline_get_plugin_parameters", async (args) =>
+      editOp("get_plugin_parameters", args)
+    ),
+    sharedTool("ui_timeline_set_plugin_parameters", async (args) =>
+      editOp("set_plugin_parameters", args)
     )
   ];
 
