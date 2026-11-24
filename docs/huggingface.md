@@ -49,7 +49,7 @@ The `transformers.*` nodes run small models inside the NodeTool backend. They ne
 - **Vision:** Image Classification, Object Detection, Image To Text, Zero Shot Image Classification
 - **Audio:** Automatic Speech Recognition, Audio Classification, Text To Speech, Text To Music
 
-Install the **Transformers.js** runtime from the Package Manager first. Without it, the first run fails and names the missing runtime. These nodes need models published in ONNX format, a portable model file type. Look for repos from the `Xenova` or `onnx-community` organizations on the Hub. Each node defaults to a recommended repo, and models download on first use. Text To Music makes instrumental music only and stops at 30 seconds. The same models also serve the `transformers_js` provider for chat, speech, music, transcription and embeddings. Node references are in the [`transformers` namespace](nodes/transformers/index.md). Where the downloads are stored is under [Hugging Face tokens and cache](configuration.md#cache-locations).
+Install the **Transformers.js** runtime from the Package Manager first. Without it, the first run fails and names the missing runtime. These nodes need models published in ONNX format, a portable model file type. Look for repos from the `Xenova` or `onnx-community` organizations on the Hub. Each node defaults to a recommended repo, and models download on first use. Text To Music makes instrumental music only and stops at 30 seconds. The same models also serve the `transformers_js` provider for chat, speech, music, transcription and embeddings. Node references are in the [`transformers` namespace](nodes/transformers/index.md). Where the downloads are stored is under [Hugging Face tokens and cache](server-configuration.md#cache-locations).
 
 ## Local Python pack
 
@@ -59,7 +59,7 @@ The Models Manager recognizes the model types this pack uses, such as Flux (incl
 
 ## Authentication and gated models
 
-Create a token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) and paste it into the HuggingFace card in **Settings → Models & Providers**. That one token covers the provider, the `huggingface.*` nodes and Models Manager downloads. For a gated repo, download the model in the Models Manager before you run the workflow. A Python node that downloads on its own may not receive the Settings token. In that case set `HF_TOKEN` in the environment before starting NodeTool, or run `hf auth login`. Which feature reads the token from where, the cache folders and the Hub mirror setting are in [Hugging Face tokens and cache](configuration.md#hugging-face-tokens-and-cache).
+Create a token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) and paste it into the HuggingFace card in **Settings → Models & Providers**. That one token covers the provider, the `huggingface.*` nodes and Models Manager downloads. For a gated repo, download the model in the Models Manager before you run the workflow. A Python node that downloads on its own may not receive the Settings token. In that case set `HF_TOKEN` in the environment before starting NodeTool, or run `hf auth login`. Which feature reads the token from where, the cache folders and the Hub mirror setting are in [Hugging Face tokens and cache](server-configuration.md#hugging-face-tokens-and-cache).
 
 ### Gated models
 
@@ -77,13 +77,13 @@ A blocked download shows a message starting `Hugging Face blocked this download`
 
 **The HuggingFace provider reports a missing client package.** A normal NodeTool install includes it. Reinstall NodeTool.
 
-**401 or 403 on a download.** The repo is gated or private, or the token is missing. Follow [Gated models](#gated-models). The CLI and Python nodes may not read the Settings token. See [which token each feature reads](configuration.md#hugging-face-tokens-and-cache).
+**401 or 403 on a download.** The repo is gated or private, or the token is missing. Follow [Gated models](#gated-models). The CLI and Python nodes may not read the Settings token. See [which token each feature reads](server-configuration.md#hugging-face-tokens-and-cache).
 
 **A `transformers.*` node fails on first run.** Install the Transformers.js runtime from the Package Manager.
 
 **A model is missing from the HuggingFace provider's picker.** The list contains only the 100 most-liked ready-to-run models per task. Use a `huggingface.*` node and enter the repo id, or download the model through the Models Manager.
 
-Self-hosting or using the CLI? See [Hugging Face tokens and cache](configuration.md#hugging-face-tokens-and-cache) and the [Hugging Face provider guide](developer/providers/huggingface.md).
+Self-hosting or using the CLI? See [Hugging Face tokens and cache](server-configuration.md#hugging-face-tokens-and-cache) and the [Hugging Face provider guide](developer/providers/huggingface.md).
 
 ## Related documentation
 

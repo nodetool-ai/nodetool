@@ -2690,7 +2690,7 @@ the linking routes the bridge calls do not exist.
 
 Configuration is environment variables plus that optional file. The env vars are
 listed in the
-[Environment Variables Index](configuration.md#environment-variables-index);
+[Environment Variables Index](environment-variables.md);
 the file carries only the tuning knobs:
 
 ```jsonc
@@ -3326,7 +3326,7 @@ again, and a person can read the transcript before any model proposes anything.
 ## Tips
 
 - Set `NODETOOL_API_URL` to avoid passing `--api-url` on every command.
-- See [Environment Variables](configuration.md#environment-variables-index) for a complete list of configurable variables.
+- See [Environment Variables](environment-variables.md) for a complete list of configurable variables.
 
 ## Generation presets
 
