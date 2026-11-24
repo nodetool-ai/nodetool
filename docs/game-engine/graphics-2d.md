@@ -1,52 +1,50 @@
 ---
 layout: page
-title: "2D Sprites, Tilemaps, and Lighting"
+title: "2D Graphics"
 permalink: /game-engine/graphics-2d
-description: "Prepare 2D art, layer backgrounds, animate sprites, and apply lighting and GPU effects."
+description: "Place sprites, build tile terrain, layer backgrounds, and add 2D lighting and screen effects."
 ---
 
-Sprites, tilemaps, and background layers draw from image asset bindings, each a logical slot that points at prepared image bytes. Replacing the slot updates the art without replacing gameplay entities.
-
-```json
-{
-  "sprite": { "assetId": "hero-sheet", "width": 1, "height": 2, "layer": 1,
-              "frame": { "x": 0, "y": 0, "width": 32, "height": 64 }, "faceMotion": "right" },
-  "tilemap": { "assetId": "ground", "layer": 0,
-               "tiles": [{ "x": 0, "y": 0, "width": 1, "height": 1, "solid": true }] }
-}
-```
+2D art comes from image assets you install in the game. A sprite or tilemap points at an image asset by its slot name. Replace the image in the slot and every use updates, with no change to your entities.
 
 ![Kindle title scene with layered temple art, a character sprite, a tiled floor, and animated water](/assets/game-engine/kindle.png)
 
-*Kindle's WebGPU capture combines sprites, scenery, an animated water sheet, additive light shafts, particles, and HUD widgets. [Capture source](/game-engine/screenshots).*
+*Kindle combines sprites, scenery, animated water, light shafts, particles, and HUD widgets.*
 
 ## Place and animate art
 
-Add a `sprite` to an entity, choose its asset slot, and set its size and layer. Prepare the image's pivot and sampling before arranging many instances. Nearest sampling suits pixel art. Linear sampling suits painted or soft images.
+Add a sprite component to an entity, choose its image asset, and set its size and draw layer. Higher layers draw on top.
 
-Use normal alpha blending for ordinary art and `blend: "additive"` for light painted on black. `flipX` mirrors a sprite. `faceMotion` turns art toward horizontal movement. Sprite-sheet clips and presentation-only transform tracks are covered in [animation](/game-engine/animation).
+Each image asset has a sampling setting:
+
+- **nearest** keeps hard pixel edges. Use it for pixel art.
+- **linear** blends neighboring pixels. Use it for painted or smooth art.
+
+A sprite also has a blend mode:
+
+- **normal** draws the image as is, with transparency.
+- **additive** adds the image's color to what is behind it, so light and glow look brighter. Paint light shafts, sparks, and glows on black and use additive.
+
+Flip X mirrors a sprite, and face motion turns the art toward the direction it moves. Sprite-sheet clips and visual tracks are covered in [Animation](/game-engine/animation).
 
 ## Build terrain
 
-A `tilemap` contains positioned tiles with optional atlas frames. Mark tiles solid where they should block bodies. One-way tiles admit travel through the platform from below. Collision categories and masks determine which bodies meet the terrain.
+A tilemap is a set of positioned tiles, optionally cut from an atlas image. Mark a tile solid to make it block bodies. A one-way tile lets a character jump up through a platform and land on it. Collision categories and masks decide which bodies meet the terrain.
 
-Keep the collision surface aligned with the visible floor. A tile image alone is not a solid. Use a short recorded walk and jump to verify seams, ledges, and one-way platforms.
+A tile image is only a picture until the tile is marked solid, so keep solid tiles aligned with the visible floor. Playtest a short walk and jump to check seams and ledges.
 
 ## Add depth with backgrounds
 
-Scene `backgrounds` are separate from entities. Each layer has a world size, origin, draw layer, parallax, scroll rate, and repeat mode. `parallax: 0` stays fixed to the screen and `1` stays fixed in the world. `repeatX` suits a horizontal strip. `repeat` and `mirror` tile both axes. An optional frame selects an atlas rectangle.
+Backgrounds are scene layers separate from entities. Each layer has a size, an origin, a draw layer, parallax, scroll rate, and a repeat mode. Parallax 0 keeps the layer fixed to the screen like a distant sky. Parallax 1 moves it with the world. Repeat X tiles a horizontal strip. Repeat and mirror tile both directions. A frame picks one rectangle from an atlas.
 
 ## Light and grade the scene
 
-Scene lighting combines ambient light with point lights. Entity `light2d` components move their light with the entity. The renderer combines fixed points and nearby entity lights up to the scene light limit. Set a glowing sprite `unlit: true` to preserve its color. The HUD stays unlit.
+Scene lighting combines an ambient level with point lights. Add a 2D light component to an entity and the light follows it. Turn on unlit for a glowing sprite to keep its own color. The HUD is never lit.
 
-The ordered `renderEffects` chain supports `brightnessContrast`, `bloom`, and packed-image `lut` grading. Put the HUD after effects to keep text crisp, or before effects when it should share the treatment. Effects marked `required` must be available before play starts.
+Screen effects run in order and include brightness and contrast, bloom (a soft glow around bright areas), and LUT color grading. Place the HUD after the effects to keep text crisp, or before them if it should share the look. An effect marked required must be available before play starts. A scene can chain up to eight effects.
 
-Canvas2D supports the core scene but omits optional GPU effects with a diagnostic. Select WebGPU when capturing an effect-dependent result:
+Canvas2D draws the core scene but skips optional GPU effects with a warning. Check effect-dependent scenes on WebGPU. To capture a frame on a specific renderer, see [Debugging](/game-engine/debugging) and the [`nodetool game` command](/cli#nodetool-game).
 
-```bash
-nodetool game capture game.json --ticks 120 --backend webgpu \
-  --assets-dir game-assets --out frame.png
-```
+Art, lighting, and visual effects never change collision shapes.
 
-The chain accepts up to eight effects. Changing art, lighting, or visual tracks does not change the collision shape. Test both the intended renderer and any fallback you plan to distribute.
+Field names for these components are in the [Game Document Reference](/developer/game-documents).

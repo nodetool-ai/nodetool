@@ -163,7 +163,7 @@ export type ReadMoreLink = { label: string; href: string };
 export const GAMEDEV_LINKS: ReadMoreLink[] = [
   { label: "Game Editor guide", href: "https://docs.nodetool.ai/game-editor" },
   { label: "Native Game Engine reference", href: "https://docs.nodetool.ai/game-engine/" },
-  { label: "How agents author games", href: "https://docs.nodetool.ai/game-engine/agent-authoring" },
+  { label: "How agents author games", href: "https://docs.nodetool.ai/developer/creative-agent-tools#games" },
   { label: "MCP server setup", href: "https://docs.nodetool.ai/mcp-server" },
   { label: "Engine source on GitHub", href: "https://github.com/nodetool-ai/nodetool/tree/main/packages/game-runtime" },
 ];

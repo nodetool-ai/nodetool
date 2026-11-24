@@ -69,8 +69,8 @@ them:
 
 - **Entities** — characters, locations, styles, and props from your entity
   library appear first. Picking one inlines its name into the message and
-  attaches its reference image, so generations stay consistent with the
-  entity's canonical look.
+  attaches its reference image, so generated images and clips keep the
+  entity's look.
 - **Assets** — recent and saved library files. Picking one attaches it to the
   message like a drag from the asset library.
 
@@ -94,7 +94,7 @@ Type `/` at the start of a word in the composer to open a list of your skills an
 
 ## Agents {#agent-mode}
 
-### The Agent Loop
+### How the agent works
 
 Per request, the agent either answers directly or breaks the task into a plan, then calls tools step by step. Progress, tool calls, and reasoning stream into the thread as the turn runs.
 
@@ -110,17 +110,14 @@ The permission chip sets how far the agent may act on its own, per thread:
 | **Default** | Reads run automatically; actions ask first. |
 | **Auto** | Routine work runs unattended; the agent asks once before an action it declares risky. |
 
-In Plan mode a request that needs several steps is decomposed by the task
-planner rather than described in prose: the agent calls `create_plan`, and the
-plan arrives as a DAG of tasks and steps with the independent ones marked, so
-you can see what would run concurrently. Nothing in it executes. A question
-that needs no plan still gets a plain answer.
+In Plan mode a request that needs several steps comes back as a visual plan of
+steps, with the steps that can run in parallel marked. Nothing in it runs. A
+question that needs no plan still gets a plain answer.
 
-Switch to Default or Auto and say to run it, and the agent calls `execute_plan`
-with that same plan — not a fresh one derived from the conversation. You are
-asked once, for the plan as a whole, and then tasks stream in as they finish,
-independent ones together. Ask for a change first ("run it without the last
-task") and the amended plan is what runs.
+Switch to Default or Auto and say to run it, and the agent runs that same plan,
+not a new one. You are asked once, for the plan as a whole. Steps then appear
+as they finish, the parallel ones together. Ask for a change first ("run it
+without the last step") and the changed plan is what runs.
 
 In Auto the agent labels every code action it writes `low` or `high` risk. A `low` action — reading, computing, work you asked for and can undo — runs with no prompt. A `high` one — deleting or overwriting something, publishing or sending anything outside the account, spending real money — asks you first, once, showing the program it wants to run. Unlabeled counts as high. "Always allow" stops the asking in every chat.
 
@@ -181,14 +178,9 @@ Chat agents have access to these tools:
 | **Vectors** | Query and manage vector database collections |
 | **Google** | Interact with Google APIs (search, drive, etc.) |
 
-### MCP Tools (Model Context Protocol)
+### Tools from other MCP servers
 
-Add external MCP servers in **Settings → MCP Servers → External servers** (local app only). Click **Add server** and give the server an id (lowercase letters, digits, and `_`, up to 32 characters), a name, and one of two transports:
-
-- **stdio**: a command, arguments (one per line), environment variables, and an optional working directory. Stdio servers are unavailable on some hosted deployments.
-- **http**: an `http` or `https` URL and optional request headers.
-
-Environment and header values can reference stored secrets as `${SECRET_NAME}`. A server's tools join the agent's toolbelt on the next message, named `mcp_<id>_<tool>`. **Test** connects to a server and checks it. **Disable** turns a server off without deleting it. See the [MCP documentation](https://modelcontextprotocol.io/) for available MCP servers.
+In the desktop app, add an MCP server in **Settings → Integrations → MCP integration → External servers**, and its tools join the agent's toolbelt on the next message. See [Add other MCP servers to NodeTool](mcp-server.md#add-other-mcp-servers-to-nodetool) for the fields and secrets.
 
 To use NodeTool from another agent instead, see [NodeTool as an MCP Server](mcp-server.md).
 

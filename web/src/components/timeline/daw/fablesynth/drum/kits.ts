@@ -991,59 +991,6 @@ export const FACTORY_KITS: Kit[] = FACTORY_KIT_BASES.map((k) => {
   return { ...k, params };
 });
 
-// -- Pattern presets ----------------------------------------------------------
-// One entry per distinct groove, named by style. Every factory layout keeps the
-// core slots (0 KICK, 1 KICK 2/SUB, 2 SNARE, 3 CLAP, 4 RIM, 5 CH HAT, 6 OH HAT,
-// 7 RIDE/SHAKER, 8-10 TOMS, 11 CRASH), so each groove loads onto any kit.
-
-export interface PatternPreset {
-  name: string;
-  patterns: number[];
-  chain: number[];
-}
-
-const preset = (name: string, patterns: number[], chain: number[] = AB_CHAIN): PatternPreset =>
-  ({ name, patterns, chain: [...chain] });
-
-export const PATTERN_PRESETS: PatternPreset[] = [
-  preset('FOUR ON FLOOR', PATTERNS, [0]),
-  preset('DEEP HOUSE', CC0_DEEP_HOUSE_PATTERNS),
-  preset('WAREHOUSE', CC0_WAREHOUSE_PATTERNS),
-  preset('DUB TECHNO', buildPatterns(
-    { 0: { on: [0, 4, 8, 12], acc: [0] }, 3: { on: [12] }, 5: { on: [2, 6, 10, 14], acc: [6, 14] }, 6: { on: [10] }, 8: { on: [7] }, 12: { on: [3, 13] } },
-    { 0: { on: [0, 4, 8, 12], acc: [0] }, 3: { on: [4, 12] }, 5: { on: [2, 6, 10, 14], acc: [6, 14] }, 6: { on: [10, 14] }, 8: { on: [7, 15] }, 12: { on: [3, 9, 13] } },
-  )),
-  preset('MINIMAL', buildPatterns(
-    { 0: { on: [0, 4, 8, 12], acc: [0] }, 4: { on: [3, 9, 14] }, 5: { on: [2, 10] }, 12: { on: [6] }, 13: { on: [13] } },
-    { 0: { on: [0, 4, 8, 12], acc: [0] }, 3: { on: [12] }, 4: { on: [3, 6, 9, 14] }, 5: { on: [2, 10, 15] }, 12: { on: [6, 11] }, 13: { on: [13] } },
-  )),
-  preset('DISCO', buildPatterns(
-    { 0: { on: [0, 4, 8, 12], acc: [0] }, 2: { on: [4, 12] }, 3: { on: [4, 12], acc: [12] }, 5: { on: [0, 1, 3, 4, 5, 7, 8, 9, 11, 12, 13, 15], acc: [0, 4, 8, 12] }, 6: { on: [2, 6, 10, 14], acc: [2, 6, 10, 14] } },
-    { 0: { on: [0, 4, 8, 12], acc: [0] }, 2: { on: [4, 12, 13, 14, 15], acc: [12, 15] }, 3: { on: [4] }, 5: { on: [0, 1, 3, 4, 5, 7, 8, 9, 11], acc: [0, 4, 8] }, 6: { on: [2, 6, 10], acc: [2, 6, 10] }, 10: { on: [9] }, 9: { on: [10] }, 8: { on: [11] } },
-  )),
-  preset('ACID TECHNO', ACID_CAVE_PATTERNS),
-  preset('SYNTHWAVE', NEON_GRID_PATTERNS),
-  preset('ELECTRO', buildPatterns(
-    { 0: { on: [0, 6, 10], acc: [0] }, 2: { on: [4, 12], acc: [4, 12] }, 3: { on: [12] }, 5: { on: [0, 2, 4, 6, 8, 10, 12, 14, 15], acc: [2, 6, 10, 14] }, 8: { on: [14] } },
-    { 0: { on: [0, 6, 10, 11], acc: [0] }, 2: { on: [4, 12, 15], acc: [4, 12] }, 3: { on: [12] }, 5: { on: [0, 2, 4, 6, 8, 10], acc: [2, 6] }, 10: { on: [9] }, 9: { on: [11] }, 8: { on: [13, 14] } },
-  )),
-  preset('UK GARAGE', PIRATE_RADIO_PATTERNS),
-  preset('BASSLINE', CC0_BASS_RUSH_PATTERNS),
-  preset('BREAKBEAT', buildPatterns(
-    { 0: { on: [0, 2, 10], acc: [0] }, 2: { on: [4, 7, 9, 12, 15], acc: [4, 12] }, 5: { on: [0, 2, 4, 6, 8, 10, 12, 14], acc: [4, 12] }, 6: { on: [14] } },
-    { 0: { on: [0, 2, 10, 11], acc: [0] }, 2: { on: [4, 7, 9, 12, 13, 14, 15], acc: [4, 12, 15] }, 5: { on: [0, 2, 4, 6, 8, 10], acc: [4] }, 11: { on: [0] } },
-  )),
-  preset('BOOM BAP', BOOM_BAP_PATTERNS),
-  preset('TRAP', buildPatterns(
-    { 0: { on: [0, 10], acc: [0] }, 1: { on: [0, 10] }, 3: { on: [8], acc: [8] }, 2: { on: [8] }, 5: { on: [0, 2, 4, 6, 8, 10, 12, 13, 14, 15], acc: [0, 8] }, 6: { on: [6] } },
-    { 0: { on: [0, 3, 10, 14], acc: [0] }, 1: { on: [0, 3, 10, 14] }, 3: { on: [8], acc: [8] }, 2: { on: [8, 15] }, 5: { on: [0, 2, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15], acc: [0, 8, 12] }, 6: { on: [6] } },
-  )),
-  preset('DEMBOW', buildPatterns(
-    { 0: { on: [0, 4, 8, 12], acc: [0, 8] }, 2: { on: [3, 6, 11, 14], acc: [6, 14] }, 5: { on: [0, 2, 4, 6, 8, 10, 12, 14] }, 4: { on: [7] } },
-    { 0: { on: [0, 4, 8, 12], acc: [0, 8] }, 2: { on: [3, 6, 11, 13, 14, 15], acc: [6, 14] }, 5: { on: [0, 2, 4, 6, 8, 10] }, 4: { on: [7, 15] }, 9: { on: [12] }, 8: { on: [13] } },
-  )),
-];
-
 export function kitToState(kit: Kit): {
   params: ParamValues;
   padNames: string[];

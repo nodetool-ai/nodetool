@@ -19,6 +19,9 @@ The menu has **Guided flows** and **Blank documents** sections. Blank documents 
 | **New workflow** | An empty workflow in edit mode | [Workflow Editor](workflow-editor.md) |
 | **New Comfy workflow** | A workflow in Comfy run mode with a starter graph | [ComfyUI](comfyui.md) |
 | **New chat** | A chat thread | [Chat](global-chat.md) |
+| **New document** | `Untitled.md`, opened in the document editor | [Document Editor](document-editor.md) |
+| **Import document…** | A Markdown document from a `.docx`, `.pdf`, `.html` or `.txt` file | [Document Editor](document-editor.md#create-or-open-a-document) |
+| **Import Google Doc…** | A Markdown document from a Google Doc link | [Document Editor](document-editor.md#create-or-open-a-document) |
 | **New text file…** | A text file from a template (submenu) | [Text files](#text-files) |
 | **New sketch** | A blank 1024 by 1024 white image | [Sketch Editor](sketch-editor.md) |
 | **New SVG** | A blank SVG drawing | [SVG documents](#svg-documents) |
@@ -36,7 +39,7 @@ Items with an ellipsis open a second list, and **Back** returns. Games are not i
 
 ## Text files
 
-**New text file…** lists six templates. Choosing one creates the asset and opens it in **Edit** mode.
+**New text file…** lists six templates. Choosing one creates the asset and opens it in **Edit** mode. A Markdown file opens in the [Document Editor](document-editor.md), and the rest open in the editors below.
 
 | Template | File name | Starts with |
 |---|---|---|
@@ -51,20 +54,20 @@ The extension decides how the document is shown and highlighted.
 
 ### View and Edit
 
-| Mode | Markdown | CSV and TSV | Everything else |
-|---|---|---|---|
-| **View** | Rendered Markdown | A read-only table. The first 2000 rows are shown | Read-only code with syntax highlighting |
-| **Edit** | Code editor | An editable table | Code editor |
+| Mode | CSV and TSV | Everything else |
+|---|---|---|
+| **View** | A read-only table. The first 2000 rows are shown | Read-only code with syntax highlighting |
+| **Edit** | An editable table | Code editor |
 
 The view header shows the file name, the detected language, and a copy button that copies the whole text.
 
 ### The code editor
 
-Edit mode uses Monaco with a minimap and word wrap on by default. The language comes from the file extension. A file with no known extension but a `text/` content type is plain text. The toolbar has **Undo**, **Redo**, **Toggle Word Wrap**, and **Save** (a dot marks unsaved changes). Ctrl+S (Cmd+S on macOS) saves. The Find & Replace and Format as Code Block buttons appear in the toolbar but are not wired up in this editor.
+Edit mode uses Monaco with a minimap and word wrap on by default. The language comes from the file extension. A file with no known extension is treated as plain text. The toolbar has **Undo**, **Redo**, **Toggle Word Wrap**, and **Save** (a dot marks unsaved changes). Ctrl+S (Cmd+S on macOS) saves. The toolbar also shows **Find & Replace** and **Format as Code Block** buttons, but they do nothing yet.
 
 ### The table editor
 
-CSV and TSV files open as an editable table. On save the file is re-serialized with a comma for `.csv` or a tab for `.tsv`.
+CSV and TSV files open as an editable table. On save the file is written as comma-separated (`.csv`) or tab-separated (`.tsv`) text.
 
 ---
 
@@ -88,37 +91,21 @@ The preview renders as you type, before you save. Markup with no `<svg>` element
 
 ### Saving
 
-**Save** (or Ctrl+S, Cmd+S on macOS) is disabled until you change something. A notification confirms the save or shows the error. The asset keeps its original content type, `image/svg+xml` by default.
+**Save** (or Ctrl+S, Cmd+S on macOS) is disabled until you change something. A notification confirms the save or shows the error. The file stays an SVG.
 
-### What the preview removes
+### Preview and scripts
 
-The preview drops `<script>`, `<foreignObject>`, and the `onload`, `onerror`, and `onclick` attributes, and keeps shapes, paths, text, gradients, filters, masks, and symbols. The saved file is not changed, so the preview can differ from the raw file if it relies on scripts or embedded HTML.
+For security, the live preview ignores scripts and embedded HTML, while keeping your saved file intact. A drawing that relies on them can look different in the preview than in the raw file.
 
 ### Ask the assistant
 
-In edit mode an SVG assistant docks beside the editor (desktop only). It edits the same draft through `ui_svg_get_state`, `ui_svg_set_markup`, `ui_svg_replace`, and `ui_svg_save`. Edits show in the preview and undo like your own. The file is not saved until `ui_svg_save` runs, which you can ask for.
+In edit mode an SVG assistant docks beside the editor (desktop only). It edits the same draft you do, and its edits show in the preview and undo like your own. Nothing is saved until you ask for it.
 
-From the `recolor-and-save` case in `packages/agents/src/evals/surfaces/svg.ts`, whose fixture is an SVG with a blue circle (`fill="#1e64ff"`). The golden transcript is in `packages/agents/tests/svg-tool-loop.test.ts`.
+- "Make the circle red, then save the SVG."
+- "Add a thin black border around the drawing."
+- "Change the text to say Summer Sale."
 
-```text
-User: The SVG has a blue circle. Make the circle red, then save the SVG.
-```
-
-```json
-[
-  { "tool": "ui_svg_get_state", "arguments": {} },
-  { "tool": "ui_svg_replace", "arguments": { "find": "fill=\"#1e64ff\"", "replace": "fill=\"#ff0000\"" } },
-  { "tool": "ui_svg_save", "arguments": {} }
-]
-```
-
-The draft markup changes from `#1e64ff` to `#ff0000` and the draft is marked unsaved. After `ui_svg_save` the asset holds the new markup.
-
-If a call fails, the draft stays as it was:
-
-- `ui_svg_set_markup` with markup that does not parse: "The markup was not applied".
-- `ui_svg_replace` whose result does not parse: "The replacement was not applied".
-- `find` that is absent: "does not occur". `find` that occurs more than once: add surrounding markup until it matches one place.
+Builders driving this from code or MCP: see [Creative Agent Tools](developer/creative-agent-tools.md#documents-games).
 
 ---
 

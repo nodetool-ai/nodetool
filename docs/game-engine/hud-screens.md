@@ -1,11 +1,19 @@
 ---
 layout: page
-title: "HUD Widgets and Screen Contracts"
+title: "HUD and UI"
 permalink: /game-engine/hud-screens
-description: "Build working game HUDs and understand the limits of the document screen schema."
+description: "Add health bars, text, panels, and buttons to a 2D or 3D game and update them from scripts."
 ---
 
-The shared widget tree draws persistent HUD elements in both dimensions. Document screen definitions pass validation, but the shipped runtime and renderer do not implement their menu behavior.
+The HUD is the interface drawn over your game: health bars, score text, objective panels, and on-screen buttons. It works the same way in 2D and 3D.
+
+![BLACKSITE HUD with objective, armor, and ammunition panels](/assets/game-engine/blacksite.png)
+
+*BLACKSITE's HUD is built from panels, text, and bars, and its player script updates them while the game runs.*
+
+## Build a HUD
+
+There is no visual HUD designer yet. You describe the HUD in the game's `ui` section, either in the document or by asking the **Assistant** panel to add it, then check it in the viewport while you play. This example puts a health bar in the top-right corner:
 
 ```json
 "ui": { "nodes": [
@@ -16,32 +24,41 @@ The shared widget tree draws persistent HUD elements in both dimensions. Documen
 ] }
 ```
 
-![BLACKSITE HUD with objective, armor, and ammunition panels drawn by the UI widget tree](/assets/game-engine/blacksite.png)
+A game-level `ui` shows in every scene. A scene's own `ui` draws on top.
 
-*BLACKSITE builds its HUD from UI panels, text, and bars with bundled fonts, and its player script updates them with `ui` commands. The screenshot does not imply a dedicated visual HUD editor. [Capture source](/game-engine/screenshots).*
+## Widgets
 
-## Lay out a HUD
+| Widget | What it does |
+|---|---|
+| `panel` | A colored rectangle, optionally with rounded corners. It can hold child widgets |
+| `text` | A line of text with size, color, alignment, and an optional font |
+| `bar` | A fill bar for health or any value. Choose the fill direction and colors |
+| `button` | A clickable button that presses an input action |
+| `image` | Draws an image asset. Works in 2D only |
+| `stack`, `grid` | Lay out their children in a row, column, or grid. They draw nothing themselves |
 
-Document `ui` appears in every scene. Scene `ui` draws above it. A tree contains panels, text, images, bars, buttons, stacks, and grids. A child follows its parent in the node list, and only panels, stacks, and grids contain children.
+A child widget names its parent with `parent` and follows it in the list. Only panels, stacks, and grids can have children.
 
-Anchor positions use 0–1 coordinates within the parent rectangle. The pivot selects the point on the widget placed at the anchor. Offsets are HUD pixels. For a top-right counter, use anchor and pivot `{x: 1, y: 0}` and an inward offset. Safe-area handling keeps root widgets away from device cutouts.
+## Position widgets
 
-2D HUD dimensions come from the camera and pixels-per-unit. 3D uses `presentation.hudWidth` and `hudHeight`, stretched over the viewport. Prepare fonts and reference their logical binding IDs for repeatable typography.
+`anchor` picks a point on the parent from 0 to 1 on each axis, so `{x: 1, y: 0}` is the top-right corner. `pivot` picks which point of the widget sits on that anchor. `offset` then nudges the widget in HUD pixels. For a top-right counter, use `{x: 1, y: 0}` for both anchor and pivot and a negative x offset to move it inward. The HUD stays clear of notches and rounded screen corners unless you set `safeArea` to false.
 
-An image widget needs an image asset and a renderer path that resolves it. Use image widgets in 2D. Although 3D image bindings now exist for preparation, the standard 3D HUD host does not supply a completed image-widget rendering path. Text, panels, bars, and buttons avoid that limitation.
+In 2D, the HUD size follows the camera size and pixels per unit. In 3D, set `hudWidth` and `hudHeight` in the game's presentation settings. The HUD is stretched to fill the viewport.
 
-## Connect gameplay
+To use a custom font, add it as a font asset (see [Assets](/game-engine/assets)) and set the widget's `fontId`.
 
-A bar can read an entity's health or use explicit value and maximum fields. Scripts update widgets with `{kind: "ui", id, text?, value?, max?, visible?}`. These overrides last until the scene changes and survive snapshots. A missing widget or an incompatible property fails the step.
+## Connect the HUD to gameplay
 
-A button presses a declared input action, so scripts receive the same `pressed` and `justPressed` values as keyboard input. With focus navigation enabled, the gamepad D-pad and button 0 operate visible buttons. In 3D, the pointer must be released from camera capture to click a HUD button.
+A bar can follow an entity's health with `"source": {"kind": "health", "entityId": "hero"}`, or show a value your script sets. Scripts change a widget with a `ui` command:
 
-Legacy script `hud` labels remain available and draw above the widget tree.
+```js
+return { commands: [{ kind: "ui", id: "score", text: "Score: 12" }] };
+```
 
-## Screen definitions are schema-only
+A `ui` command can set `text`, `value`, `max`, and `visible`. The change stays until the scene changes and is saved with the game. Naming a widget that does not exist, or a property the widget lacks, fails the step.
 
-The document `screens` contract describes title, pause, settings, game-over, and custom screens, plus transitions driven by actions, events, or a win. The current runtime, renderer, editor, and CLI do not consume that contract. Declaring it does not display a menu, pause simulation, run transitions, or generate settings controls.
+A button presses an input action you declared, so scripts see it like a key press. Turn on `focusNavigation` and the gamepad D-pad moves between visible buttons while button 0 presses the focused one. In 3D, the mouse must be released from mouse-look before it can click a button.
 
-Use working HUD widgets and authored scene behavior for visible game instructions and buttons. Do not rely on screen definitions to control gameplay or persistence.
+The older script `hud` labels still work and draw above the widget tree.
 
-There is no built-in localization catalog in the shipped document schema. Author translated text deliberately, use suitable fonts, and check long labels at the intended viewport sizes.
+The engine has no translation system, so write each language's text yourself and check that long labels fit.

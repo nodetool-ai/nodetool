@@ -5,7 +5,7 @@ permalink: /audio-editor
 description: "Trim, fade, normalize, reverse, and apply effects to an audio asset as a waveform, then save it back as WAV."
 ---
 
-The audio editor decodes an audio asset into samples in your browser, shows the waveform, and edits a selected region or the whole clip. **Save** writes the result back to the asset as WAV.
+The audio editor opens an audio asset in your browser, shows its waveform, and edits a selected region or the whole clip. **Save** writes the result back to the asset as a WAV file.
 
 ![Audio Editor with a trailer score open: the edit toolbar above a stereo waveform](assets/screenshots/audio-editor.png)
 
@@ -39,8 +39,8 @@ Edits change the in-editor copy only. Nothing reaches the asset until you save. 
 | **Delete selection** | Yes | Removes it and joins both sides. The playhead moves to the cut |
 | **Silence selection** | Yes | Replaces it with silence and keeps the length |
 | **Fade in selection**, **Fade out selection** | Yes | Linear ramp from silence, or to silence |
-| **Normalize** | No | Scales the selection or clip so its loudest sample reaches full scale. A silent region is unchanged |
-| **Amplify** | No | Multiplies the level by 1.4. Peaks above full scale clip |
+| **Normalize** | No | Scales the selection or clip so its loudest point reaches the maximum level without clipping. A silent region is unchanged |
+| **Amplify** | No | Multiplies the level by 1.4. Peaks above the maximum level clip (distort) |
 | **Quieten** | No | Multiplies the level by 0.7 |
 | **Reverse** | No | Reverses the selection or clip |
 
@@ -62,39 +62,18 @@ Reverb and echo tails mix onto the audio after the range. If an effect fails, th
 
 ## Save
 
-**Save** encodes the clip as 16-bit PCM WAV and overwrites the asset. The content type becomes `audio/wav` whatever it was before. Sample rate and channel count are kept. A "Saved edits to audio." notification confirms it. On failure a "Failed to save audio: ..." notification shows the reason and your edits stay in the editor. Workflows that reference the asset use the edited audio from the next run.
+**Save** overwrites the asset with a standard WAV file (16-bit), whatever format it was before. Sample rate and channel count are kept. A "Saved edits to audio." notification confirms it. On failure a "Failed to save audio: ..." notification shows the reason and your edits stay in the editor. Workflows that reference the asset use the edited audio from the next run.
 
 ## Ask the assistant
 
-The assistant edits the open audio through the `ui_audio_*` tools. Each edit is one undo step, and nothing is saved until the assistant calls `ui_audio_save`, which you can ask for. The tools are `ui_audio_get_state`, `ui_audio_edit`, `ui_audio_list_effects`, `ui_audio_apply_effect`, and `ui_audio_save`.
+The assistant edits the open audio. Each edit is one undo step, and nothing is saved until you ask for it.
 
-`ui_audio_get_state` returns the duration, sample rate, channel count, unsaved state, your selection, and a peak level from 0 to 1 per window, which is how the assistant finds silence. `ui_audio_edit` takes `op` (`trim`, `delete`, `silence`, `fade_in`, `fade_out`, `normalize`, `reverse`, `gain` with `gain_db` from -60 to 24) and an optional `start` and `end` in seconds.
+- "Remove the silence at the start and save the audio."
+- "Normalize the volume, then save."
+- "Fade out the last two seconds."
+- "Add a light reverb to the whole clip."
 
-A trace from `packages/agents/tests/audio-tool-loop.test.ts` (the `trim-leading-silence` case, on a 5 second recording with 2 seconds of silence first). The audio fixture is the test's, and the call order is its golden transcript.
-
-```text
-User: This recording starts with dead air before anyone speaks. Remove the silence at the start and save the audio.
-```
-
-```json
-[
-  { "tool": "ui_audio_get_state", "arguments": {} },
-  { "tool": "ui_audio_edit", "arguments": { "op": "delete", "start": 0, "end": 2 } },
-  { "tool": "ui_audio_save", "arguments": {} }
-]
-```
-
-The state call shows peaks of 0 for the first 2 seconds. After the delete, the duration is 3 seconds and the first peaks are above 0.1. After the save, the draft is clean.
-
-### If a call fails
-
-The tool throws and the audio is unchanged. Messages from the same test file:
-
-- `trim` or `delete` without a range: `"trim" needs a range`.
-- `start` without `end`: "Pass both `start` and `end`".
-- `gain` without `gain_db`: "needs gain_db".
-- Unknown effect id: `Unknown effect "nope"`. Unknown or out-of-range parameter: `"reverb" has no parameter "wet"` or `"mix" must be between 0 and 100`.
-- If the audio changed while an effect rendered, the result is dropped and the tool asks the assistant to read the state again and retry.
+Builders driving this from code or MCP: see [Creative Agent Tools](developer/creative-agent-tools.md#audio).
 
 ## Related
 

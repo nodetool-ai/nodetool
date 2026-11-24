@@ -1,49 +1,53 @@
 ---
 layout: page
-title: "Asset Preparation and Binding"
+title: "Assets"
 permalink: /game-engine/assets
-description: "Prepare images, models, colliders, audio, and fonts before installing them in a game."
+description: "Add images, 3D models, audio, and fonts to a game and assign them to objects."
 ---
 
-A game refers to logical asset slots, and each binding records the installed asset and its preparation metadata. Keep slot names stable when replacing artwork so entities and scripts keep working.
-
-```json
-"assets": {
-  "hero-sheet": {
-    "assetId": "<full asset id>", "digest": "<content digest>", "mediaKind": "image",
-    "width": 256, "height": 64, "pivot": { "x": 0.5, "y": 0.5 }, "sampling": "nearest"
-  }
-}
-```
-
-`mediaKind` is `image`, `audio`, or `font`. `pivot` and `sampling` default to the values shown.
+Assets are the images, 3D models, audio clips, and fonts your game uses. Every asset sits in a named asset slot, such as `hero-sheet`. Objects and scripts refer to the slot name, so you can swap the artwork behind a slot later without touching anything that uses it. Keep slot names stable.
 
 ![Diagram showing source media becoming prepared assets, game bindings, and an exported build](/assets/game-engine/asset-pipeline.svg)
 
-*Generation creates a candidate. Preparation and installation establish the bytes the game will use.*
+*An asset is created or imported, prepared for the game, bound to a slot, and included in exports.*
+
+## Add and generate assets
+
+- **Generate in the editor.** Open the **Assets** panel, select an asset, and choose **Generate** (or **Regenerate** to replace it). Write a prompt in the dialog and choose **Generate and install**. The result is added to the slot. Earlier versions stay listed as staged candidates.
+- **Ask the assistant.** **Ask the assistant to generate** sends the slot and prompt to the **Assistant** panel. You can also ask it to install an existing file.
+- **From the command line.** See the [CLI reference](/cli#nodetool-game).
+
+Models use the GLB format. Fonts use TTF or OTF. Audio is installed before you assign it as music or to an audio source.
+
+## Browse and configure assets
+
+The **Assets** panel has tabs for **Assets**, **Prefabs**, and **Scenes**. Search, filter by type (images, audio, fonts, models, colliders), and switch between list and grid view. Selecting an asset shows where it is used and its staged candidates. Choose **Use** on a candidate to make it the current asset. If the new image changes a sprite sheet's size, the panel warns when frames fall outside it or still point at the old image.
+
+For more control, open the **Inspector**, switch to the **Game** tab, and use **Asset bindings**. Each slot lists its settings, including:
+
+- **Pivot:** the point the image is positioned and rotated around. The default is the center.
+- **Sampling:** `nearest` keeps pixel art crisp, and `linear` smooths scaled art.
+
+Add a **New asset slot** at the bottom, or remove a slot with the close button.
 
 ## Prepare 2D images
 
-Use the asset tools to trim alpha, resize with an explicit crop policy, choose a pivot, and set nearest or linear sampling. Trimming retains offsets so the intended anchor survives. Sprite-sheet preparation aligns frames. Terrain preparation can produce a 16-variant tile set. LUT preparation creates the packed image required by the 2D grading effect.
+Generated and imported images can be prepared as they are installed:
 
-Inspect the sheet or prepared image before binding it. Check transparent edges on contrasting backgrounds, frame alignment during animation, and tile seams while scrolling.
+- **Trim transparent edges** removes empty margins and keeps the original anchor point.
+- **Resize** to a target width and height, filling the frame (`cover`), fitting inside it (`contain`), or stretching.
+- **Mirror** horizontally or vertically.
+- **Sprite sheet** setup splits a generated image into frames of equal size.
+- **Terrain tiles** can produce a 16-variant tile set.
 
-## Prepare 3D content
+Check transparent edges on dark and light backgrounds, frame alignment in animation, and tile seams while scrolling.
 
-Models use GLB. Preparation validates supported features and reports a digest, bounds, node IDs, clip IDs, triangle count, and geometry and texture bytes. Import settings normalize scale, forward direction, and origin. Use the prepared node and clip IDs when attaching animation or selecting a model subtree.
+## 3D models and colliders
 
-Colliders have a separate preparation path. Use a convex hull for moving geometry or a static triangle mesh for a detailed fixed surface. Bind the verified collider bytes and add a collider component. A model binding alone provides no collision.
+A model is only a visual. To make it solid, add a collider: a convex hull for moving objects or a static triangle mesh for detailed fixed surfaces, then add a collider component to the object. Imported models are normalized for scale, forward direction, and origin. Use the model's listed node and animation clip names when you attach animation.
 
-The current image-preparation contract accepts PNG, JPEG, and WebP for 3D image bindings. That does not complete the separate material texture, toon, or outline renderer. HDRI has schema and renderer callback contracts but lacks the standard host preparation/loading route. See [3D rendering limits](/game-engine/graphics-3d).
+## Assign an asset to an object
 
-## Install sound and fonts
+Select the object in the **Hierarchy**, then pick the slot in the matching **Inspector** field. For example, choose an image slot on a sprite, an audio slot on an audio source, or a model slot on a 3D mesh. The **Used by** list in the Assets panel then shows the object.
 
-Bind audio before assigning scene music or an audio source. Bind TTF or OTF fonts by logical ID. Required fonts must load before play or capture. Optional fonts may fall back with a diagnostic. Exports include the bytes for offline use.
-
-In the editor Assets panel, **Generate** or **Regenerate** produces a candidate. **Use** selects a candidate and updates the slot's frame or tile references. Agent and workflow staging is also a candidate step until installation succeeds.
-
-## Keep a game portable
-
-Export from installed bindings and verified bytes. A database asset ID from another machine is not portable by itself. The example installer copies bundled assets into the destination project and rewrites bindings. Keep model node IDs and content digests intact while letting installation assign owned resource IDs.
-
-For CLI files, supply an asset directory containing the files expected by their full asset IDs. A prepared collider uses `<full-asset-id>.json`. Use the [CLI reference](/cli#nodetool-game) for each command's asset-directory behavior.
+Exports include every bound asset, so a finished game works offline. See [Publishing](/game-engine/publishing).

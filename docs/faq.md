@@ -31,7 +31,7 @@ NodeTool reaches cloud models from more than 30 providers, including OpenAI, Ant
 Yes, with local models. The desktop app runs its server on your machine, and local models run without a connection once they are downloaded. Cloud providers need internet. See [Models and Providers](models-and-providers.md#local-vs-cloud).
 
 ### Do I need a GPU?
-No. Cloud providers need no graphics card. For local models, NVIDIA cards run the HuggingFace pack, llama.cpp, and Ollama, Apple Silicon Macs also run MLX, and a CPU works but slowly. See [What different tasks need](installation.md#what-different-tasks-need) and [GPU requirements](installation.md#gpu-requirements).
+No. Cloud providers need no graphics card. For local models, NVIDIA cards run the HuggingFace pack, llama.cpp, and Ollama, Apple Silicon Macs also run MLX, and a CPU works but slowly. See [What different tasks need](installation.md#what-different-tasks-need) and [GPU requirements](advanced-install.md#gpu-requirements).
 
 ### How big are local models?
 Several GB per model, depending on the model. Models, Python, and model runners download only when you install them. See [What downloads later](installation.md#what-downloads-later) and [Models Manager](models-manager.md).

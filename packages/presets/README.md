@@ -10,14 +10,14 @@ first, then add their prefix and suffix. Strings append with a space.
 Optional `family_params` entries override shared `params` for that family.
 Settings with no value for the selected family, or outside the mode's generation
 allowlist, are dropped with warnings before stack conflict checks. See
-[family settings support](../../docs/presets.md#family-settings-support).
+[family settings support](../../docs/developer/presets.md#family-settings-support).
 
 `createCatalog(data)` validates an array of presets and studios. It exposes
 `getPreset(id)`, `byAlias(text)` and `filter({ kind, mode })` for presets, and
 `studios` and `getStudio(id)` for studios. It rejects a studio whose
 `preset_ids` do not fit its `target` (`studioPresetProblem`). `listCatalog(catalog,
 { kind, mode, family })` returns the rows the CLI and agent listings print.
-`compilePresets` throws on a studio id. See [Studios](../../docs/presets.md#studios). `loadCatalog(loader)` accepts
+`compilePresets` throws on a studio id. See [Studios](../../docs/developer/presets.md#studios). `loadCatalog(loader)` accepts
 a synchronous JSON reader. On the server, use the registered asset:
 
 ```ts
@@ -54,7 +54,7 @@ Node APIs. Hosts own disk access.
 the latter as `local-wan/<model>` or `local-wan:<model>`. Wan2GP's own Wan 2.1
 and 2.2 model ids, listed in the `localWan` pattern, also map to `local-wan`.
 Provider manifests do not identify local execution, so remote Wan ids keep
-their provider family. See [Local Wan2GP models](../../docs/presets.md#local-wan2gp-models).
+their provider family. See [Local Wan2GP models](../../docs/developer/presets.md#local-wan2gp-models).
 
 Edit individual files in `catalog/<kind>/<id>.json`. Run
 `npm run build --workspace=packages/presets` to regenerate the catalogue index

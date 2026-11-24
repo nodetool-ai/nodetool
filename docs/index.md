@@ -109,7 +109,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
       </div>
       <div class="surface-body">
         <h3>Script &amp; voice</h3>
-        <p>Draft the dialogue and cast a voice per character. Change the words and the take flags itself stale.</p>
+        <p>Draft the dialogue and cast a voice per character. Change the words and the take is marked out of date.</p>
         <a href="{{ '/script-editor' | relative_url }}">Script Editor →</a>
       </div>
     </article>
@@ -156,7 +156,18 @@ description: "Open-source agent-first creative workspace. Create images, video, 
         <a href="{{ '/game-engine/' | relative_url }}">Game engine feature guide →</a>
       </div>
     </article>
-    <article class="surface-card full">
+    <article class="surface-card wide">
+      <div class="media-frame">
+        <img src="{{ '/assets/screenshots/document-editor.png' | relative_url }}" loading="lazy"
+          alt="Document editor with a trailer brief, an embedded storyboard shot and the assistant">
+      </div>
+      <div class="surface-body">
+        <h3>Documents</h3>
+        <p>Write the brief, the treatment or the shot list as Markdown, with shots and timelines embedded. The assistant proposes edits you accept or reject, and workflows read and write the same file.</p>
+        <a href="{{ '/document-editor' | relative_url }}">Document Editor →</a>
+      </div>
+    </article>
+    <article class="surface-card wide">
       <div class="media-frame">
         <video class="inview-video" muted loop playsinline preload="none"
           poster="https://nodetool.ai/surface-nodes-poster.webp" aria-label="Node editor">
@@ -166,7 +177,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
       </div>
       <div class="surface-body">
         <h3>Nodes</h3>
-        <p>Underneath the editors is the node graph. Bind a clip or a layer to a workflow, wire typed ports, press Run, and read the output at every step.</p>
+        <p>Underneath the editors is the node graph. Bind a clip or a layer to a workflow, connect nodes, press Run, and read the output at every step.</p>
         <a href="{{ '/workflow-editor' | relative_url }}">Workflow Editor →</a>
       </div>
     </article>
@@ -340,7 +351,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
 * **Mix models from any provider.** An image model, a language model, and a voice model in one workflow, each picked for its job.
 * **Run models on your own machine.** Local language and image models work offline, and their files stay on disk.
 * **Turn a workflow into a mini app.** Give it inputs and a Run button for teammates who never open the canvas.
-* **Search your own files.** Index documents in the built-in vector store and query them from a workflow or chat.
+* **Search your own files.** Add documents to a built-in search index and query them from a workflow or chat.
 
 ## Run it on your plan or your keys
 
@@ -362,19 +373,9 @@ key and pay that provider its list price. NodeTool adds nothing on top. See
 [Models and providers]({{ '/models-and-providers' | relative_url }}) and
 [Costs and credits]({{ '/costs-and-credits' | relative_url }}).
 
-## Give Claude Code a creative harness
+## Use NodeTool from Claude Code
 
-A harness is everything an agent works inside: tools, editors, models, keys,
-and a record of each step. NodeTool supplies all five to the built-in agent,
-and over MCP to Claude Code, Codex, or Cursor. The agent builds a workflow,
-runs it, reads the log of the step that failed, and saves the fix as a new
-version. One command registers the server with the clients it finds:
-
-```bash
-npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
-```
-
-See [NodeTool as an MCP Server]({{ '/mcp-server' | relative_url }}).
+Claude Code, Codex, and Cursor can connect to NodeTool over MCP and use the same tools, editors, models, and keys as the built-in agent. See [NodeTool as an MCP Server]({{ '/mcp-server' | relative_url }}) for setup.
 
 ## Studio or Cloud
 
@@ -384,7 +385,7 @@ Same source, same workflows. Both AGPL-3.0.
   <article class="pattern-card">
     <h5>NodeTool Studio — desktop</h5>
     <p>
-      Free on macOS, Windows, and Linux. Runs local models through Ollama, MLX, and GGUF, offline once the models are downloaded. Connects your ChatGPT, Claude, or Gemini plan and your own provider keys.
+      Free on macOS, Windows, and Linux. Runs local models through Ollama, MLX, and llama.cpp, offline once the models are downloaded. Connects your ChatGPT, Claude, or Gemini plan and your own provider keys.
     </p>
     <a href="https://nodetool.ai/studio">Download Studio →</a>
   </article>

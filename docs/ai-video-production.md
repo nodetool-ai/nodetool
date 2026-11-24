@@ -14,30 +14,40 @@ A guided flow plans beats, a storyboard, or a script, you review the plan, and e
 
 Reference-based shots need a video model that accepts references. On-camera performance needs an audio-driven or lip-sync model, prepared speech audio, and source footage of the performer. Add product photos, character images, logos, and style frames to the Asset Explorer first. See [Asset Management](asset-management.md).
 
-## Trace: generate and accept a take
+## How the pieces fit
 
-The agent runs the same four steps the buttons do, through tools in `packages/agents/src/capabilities/video-production.specs.ts`.
-
-User prompt in chat:
-
-> Generate two takes of the product close-up in the Northline bottle ad. Show me before you use one.
-
-| Step | Tool call | Effect on the document |
+| Stage | What you do there | Page |
 |---|---|---|
-| 1 | `prepare_video_production` with `project_id`, `destination` (`document_id`, `target_type: "timeline_clip"`, `target_id`), `review` (`status: "reviewed"`, `plan_fingerprint`), `operation: "initial_generation"`, `visual_treatment: "product_close_up"`, `speech_mode: "none"`, `route: "reference_to_video"`, `provider`, `model`, `prompt`, `reference_asset_ids`, `timing`, `candidate_count: 2` | None. Returns a manifest with two frozen candidate and request ids, before any provider spend. |
-| 2 | `submit_video_production` with `prepared` (the manifest, unedited) | Generation starts. Results stay inactive and unaccepted. Existing request ids are recovered, not resubmitted. |
-| 3 | `inspect_video_production_candidates` with `candidates` and optionally `preview: { kind: "preview_take", batch_id, document_id, selection }` | None. Refreshes candidate state and builds a preview. It writes no accepted media. |
-| 4 | `accept_video_production_candidates` with `action: "use_take"`, `batch_id`, `document_id`, `project_id`, `candidates`, `selection`, `targets` | The chosen take becomes the clip's media. Only that destination changes. |
+| 1. Script | Write dialogue and narration, cast voices, generate speech takes | [Script Editor](script-editor.md) |
+| 2. Storyboard | Direct each shot, render stills, generate clips | [Storyboard Editor](storyboard-editor.md) |
+| 3. Entities | Save characters, locations, styles, and props once so they stay consistent across shots | [Entities](entities.md) |
+| 4. Creative Agent | Ask the assistant to plan, generate, and revise across all of these | [Creative Agent](creative-agent.md) |
+| 5. Video Editor | Trim, mix, caption, and export the accepted clips on the timeline | [Video Editor](video-editor.md) |
 
-`provider` and `model` come from `find_model`. `action: "use_draft"` applies one selection per destination as a single atomic manifest.
+You can start at Script, Storyboard, or Video, and skip stages you do not need. The sections below cover each starting point, the production plan, and takes.
 
-Rejections the tools return, from `packages/timeline/src/production.ts`:
+## Example: a 15-second vertical product ad
 
-- "Production take count must be between 1 and 3."
-- "Product close-up generation requires a resolved product reference asset."
-- "The selected generation route cannot consume the required reference assets."
-- "Speech duration Nms exceeds the Nms production slot."
-- A destination whose host has no shared adapter is rejected and no media changes.
+This example makes a three-beat social ad for a reusable water bottle.
+
+1. Add a clean product photo, a lifestyle photo of the recurring character,
+   and two warm daylight style frames to the Asset Explorer.
+2. Start **Video** and choose a 15-second vertical social format. Enter: “A
+   quick product ad for the Northline bottle, aimed at commuters who want cold
+   water all day.”
+3. In **Creative context**, add the product name, audience, tone, the approved
+   claim “keeps drinks cold for 24 hours,” and any claim the ad must avoid.
+   Attach the product, character, and style references.
+4. Review three five-second beats:
+   - Hook: Lifestyle B-roll of the character leaving home, with off-camera
+     narration.
+   - Demonstration: Product close-up showing the cap and condensation.
+   - Call to action: Product and character together with the final line.
+5. Request two takes for the product close-up and one take for the other beats.
+   Choose a reference-capable video model and generate.
+6. Preview both close-up options and choose the better one. Retry only the failed beat if a generation fails.
+7. Continue in the timeline. Trim the accepted clips, adjust audio, add
+   captions, and export the vertical cut.
 
 ## Choose where to start
 
@@ -109,12 +119,11 @@ Changing the brief, references, or production choices later requires a new revie
 **Off-camera** is narration or voiceover over a product shot, B-roll, or another scene.
 
 The guided Video and Storyboard editors do not support **On-camera**. They show
-it as unavailable and block generation with "On-camera speech is unavailable in
-this guided flow" if a shot carries it. Choose Off-camera or None there.
+it as unavailable and block generation if a shot carries it. Choose Off-camera
+or None there.
 
-The agent can run an on-camera performance when the visible performer must
-match the recorded line. That route (`audio_driven_performance`) needs all of
-the following:
+The assistant can run an on-camera performance when the visible performer must
+match the recorded line. It needs all of the following:
 
 - the exact speech take or recorded audio,
 - a character entity with a character reference,
@@ -122,13 +131,13 @@ the following:
 - an audio-driven or lip-sync model available through a connected provider,
 - enough time in the shot for the complete speech take.
 
-An unsupported on-camera request is never turned into narration. It is rejected with the missing requirement, for example "On-camera performance requires recorded speech audio before video generation." or "The selected generation route does not support audio-driven on-camera performance." Use off-camera speech for that shot, or prepare the missing inputs.
+An unsupported on-camera request is never turned into narration. Generation stops and names the missing requirement. Use off-camera speech for that shot, or prepare the missing inputs.
 
 Speech must fit inside its beat or shot. On a timing conflict, shorten the line, choose a shorter speech take, or lengthen the section.
 
 ## Generate and compare takes
 
-Generation creates the requested one to three options per destination. Options can finish in any order and keep their take numbers.
+Generation creates the requested one to three options per shot or clip. Options can finish in any order and keep their take numbers.
 
 In Storyboard:
 
@@ -143,7 +152,7 @@ In the timeline:
 2. Choose **Preview Candidate** to audition an option in place.
 3. Choose **Use take** to make that option active for the selected clip.
 
-The agent can collect one preview per destination into a draft. Ask it to show the draft, then tell it to **Use draft**. The whole draft is validated before it applies, so a failed or outdated choice leaves the timeline unchanged.
+The agent can collect one preview per shot or clip into a draft. Ask it to show the draft, then tell it to **Use draft**. The whole draft is validated before it applies, so a failed or outdated choice leaves the timeline unchanged.
 
 Other options remain until you remove them.
 
@@ -153,35 +162,21 @@ A failed option does not discard successful takes from the same run.
 
 - Use **Retry N failed** in the Storyboard toolbar to retry failed shots.
 - Use **Retry N failed** above the timeline to retry failed generated clips.
-- Retry a single destination when only one take needs attention.
+- Retry a single shot or clip when only one take needs attention.
 
 The error appears on the affected shot or clip. Causes include a missing reference, a model without the required video capability, missing performance audio, a missing character or source face video, and speech longer than the target slot.
-
-## Example: a 15-second vertical product ad
-
-This example makes a three-beat social ad for a reusable water bottle.
-
-1. Add a clean product photo, a lifestyle photo of the recurring character,
-   and two warm daylight style frames to the Asset Explorer.
-2. Start **Video** and choose a 15-second vertical social format. Enter: “A
-   quick product ad for the Northline bottle, aimed at commuters who want cold
-   water all day.”
-3. In **Creative context**, add the product name, audience, tone, the approved
-   claim “keeps drinks cold for 24 hours,” and any claim the ad must avoid.
-   Attach the product, character, and style references.
-4. Review three five-second beats:
-   - Hook: Lifestyle B-roll of the character leaving home, with off-camera
-     narration.
-   - Demonstration: Product close-up showing the cap and condensation.
-   - Call to action: Product and character together with the final line.
-5. Request two takes for the product close-up and one take for the other beats.
-   Choose a reference-capable video model and generate.
-6. Preview both close-up options and choose the better one. Retry only the failed beat if a generation fails.
-7. Continue in the timeline. Trim the accepted clips, adjust audio, add
-   captions, and export the vertical cut.
 
 ## Finish the cut
 
 Accepted takes are ordinary timeline media. See the [Video Editor](video-editor.md) for
 timeline controls and [AI Timeline Editing](ai-timeline-editing.md) for
 generation history and local media edits.
+
+## Ask the assistant
+
+- "Generate two takes of the product close-up in the Northline bottle ad. Show me before you use one."
+- "Retry the failed clips in this storyboard."
+- "Show me the draft with one take per shot, then use it."
+- "Make the hook a lifestyle B-roll shot with off-camera narration."
+
+Builders driving this from code or MCP: see [Creative Agent Tools](developer/creative-agent-tools.md#video-production).

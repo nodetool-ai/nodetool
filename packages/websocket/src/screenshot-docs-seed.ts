@@ -12,6 +12,8 @@
  *   stores with counts and ingestion workflows instead of its empty state
  * - pictures behind the mock photo and entity rows the main seed creates, so
  *   asset grids, entity cards and mention pickers show images, not swatches
+ * - a Markdown document in the SCRAPHEART project with stored snapshots, so
+ *   the document editor opens on a formatted brief with an embedded shot
  *
  * Media bytes are files the repo already ships, copied into the asset store
  * through the same call an upload makes.
@@ -21,7 +23,15 @@ import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { Asset, JsScript, Memory, Skill } from "@nodetool-ai/models";
+import { saveProjectAsset } from "@nodetool-ai/asset-services";
+import {
+  Asset,
+  JsScript,
+  Memory,
+  Skill,
+  TextDocumentVersion,
+  textDocumentContentHash
+} from "@nodetool-ai/models";
 import { STYLE_PRESETS } from "@nodetool-ai/protocol";
 import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import {
@@ -45,6 +55,7 @@ const REPO_ROOT = resolve(
 export const DOCS_MODEL3D_ASSET_ID = "model3d-product-shot";
 export const DOCS_AUDIO_ASSET_ID = "audio-trailer-score";
 export const DOCS_JS_SCRIPT_ID = "js-headline-variants";
+export const DOCS_DOCUMENT_ASSET_ID = "doc-scrapheart-brief";
 
 const agoIso = (hours: number): string =>
   new Date(Date.now() - hours * 3_600_000).toISOString();
@@ -462,6 +473,110 @@ async function seedStylePresetMedia(userId: string): Promise<void> {
   }
 }
 
+// ── Document ────────────────────────────────────────────────────────────────
+
+const DOCUMENT_PROJECT_ID = "proj-scrapheart";
+const DOCUMENT_NAME = "Trailer brief.md";
+
+/** The brief as the first snapshot kept it, before the shot list existed. */
+const BRIEF_FIRST_DRAFT = [
+  "# SCRAPHEART: trailer brief",
+  "",
+  "A ninety-second teaser. A convoy, a chain, and one rider who takes the buggy apart from the outside.",
+  "",
+  "## Tone",
+  "",
+  "Sun-blown desert, practical dust, long lenses. No colour outside rust and bone.",
+  ""
+].join("\n");
+
+/** The brief as the editor opens it. */
+const BRIEF_CURRENT = [
+  "# SCRAPHEART: trailer brief",
+  "",
+  "A ninety-second teaser. A convoy, a chain, and one rider who takes the buggy apart **from the outside**. The trailer never shows who sent her.",
+  "",
+  "## Tone",
+  "",
+  "Sun-blown desert, practical dust, long lenses. No colour outside *rust and bone*. Sound carries the cut: engine, chain, then nothing.",
+  "",
+  "## Shot list",
+  "",
+  "| Shot | Framing | Seconds |",
+  "| --- | --- | --- |",
+  "| Convoy | Extreme wide | 5 |",
+  "| The chain | Medium | 4 |",
+  "| Drift | Wide | 4 |",
+  "| Unmasked | Close-up | 4 |",
+  "",
+  "![Unmasked](storyboard://sb-scrapheart#shot=shot-5)",
+  "",
+  "## Before picture lock",
+  "",
+  "- [x] Lock the voiceover script",
+  "- [x] Render stills for every shot",
+  "- [ ] Clip for Unmasked and Wreck at dusk",
+  "- [ ] Score pass on the final 20 seconds",
+  ""
+].join("\n");
+
+const DOCUMENT_SNAPSHOTS: {
+  name: string | null;
+  saveType: string;
+  content: string;
+  hoursAgo: number;
+}[] = [
+  { name: "First draft", saveType: "manual", content: BRIEF_FIRST_DRAFT, hoursAgo: 28 },
+  { name: null, saveType: "agent_turn", content: BRIEF_FIRST_DRAFT, hoursAgo: 26 },
+  { name: "Shot list agreed", saveType: "manual", content: BRIEF_CURRENT, hoursAgo: 3 }
+];
+
+/**
+ * A Markdown document in the SCRAPHEART project folder. The row is created
+ * first so it keeps a fixed id the screenshot tests can open, then the file
+ * is written through the same call an upload makes.
+ */
+async function seedDocument(userId: string): Promise<void> {
+  const row = await Asset.create<Asset>({
+    id: DOCS_DOCUMENT_ASSET_ID,
+    user_id: userId,
+    project_id: DOCUMENT_PROJECT_ID,
+    parent_id: null,
+    name: DOCUMENT_NAME,
+    content_type: "text/markdown",
+    size: 0,
+    duration: null,
+    metadata: null,
+    workflow_id: null,
+    node_id: null,
+    job_id: null,
+    created_at: agoIso(30),
+    updated_at: agoIso(1)
+  });
+  await saveProjectAsset({
+    userId,
+    projectId: DOCUMENT_PROJECT_ID,
+    name: DOCUMENT_NAME,
+    contentType: "text/markdown",
+    path: DOCUMENT_NAME,
+    bytes: new TextEncoder().encode(BRIEF_CURRENT),
+    asset: row
+  });
+  for (const [index, snapshot] of DOCUMENT_SNAPSHOTS.entries()) {
+    await new TextDocumentVersion({
+      id: `doc-scrapheart-brief-v${index + 1}`,
+      asset_id: DOCS_DOCUMENT_ASSET_ID,
+      user_id: userId,
+      name: snapshot.name,
+      version: index + 1,
+      save_type: snapshot.saveType,
+      content: snapshot.content,
+      content_hash: textDocumentContentHash(snapshot.content),
+      created_at: agoIso(snapshot.hoursAgo)
+    }).save();
+  }
+}
+
 /** Seed every extra documentation fixture. */
 export async function seedDocsExtras(userId: string): Promise<void> {
   for (const media of MEDIA) {
@@ -498,4 +613,5 @@ export async function seedDocsExtras(userId: string): Promise<void> {
   await seedCollections(userId);
   await seedMockMedia(userId);
   await seedStylePresetMedia(userId);
+  await seedDocument(userId);
 }
