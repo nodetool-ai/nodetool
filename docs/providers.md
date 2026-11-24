@@ -449,7 +449,7 @@ When a missing provider blocks you (a model dropdown, a node warning, the gettin
 
 ![Models & Providers settings](assets/screenshots/settings-providers-test.png)
 
-NodeTool stores every key encrypted (AES-256-GCM) in a local SQLite database, not in a plaintext config file. See [Configuration](configuration.md#api-keys-and-secrets) for how the encryption key itself is managed.
+NodeTool stores every key encrypted (AES-256-GCM) in a local SQLite database, not in a plaintext config file. See [Server Configuration](server-configuration.md#secret-storage-and-master-key) for how the encryption key itself is managed.
 
 From the CLI:
 
