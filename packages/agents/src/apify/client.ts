@@ -191,7 +191,7 @@ export class ApifyClient {
     if (!isNonBlankString(token)) {
       throw new ApifyError(
         "auth",
-        "No Apify API token is configured. Add APIFY_API_TOKEN in Settings → Secrets."
+        "No Apify API token is configured. Add APIFY_API_TOKEN in Settings → Models & providers → Web search."
       );
     }
     this.#token = token;
