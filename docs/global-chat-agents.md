@@ -24,7 +24,8 @@ Each chat message is a request to the agent. It plans the steps, picks models, b
 ## Core guides
 
 - [Chat](global-chat.md): the message box, threads, and permissions.
-- [Agent Memory](agent-memory.md): how steps of one run share results.
+- [Skills](skills.md): saved instructions you call with `/`.
+- [Memory](memory.md): what the agent remembers between chats.
 - [Agent CLI](agent-cli.md): run the agent from a terminal.
 - [Chat CLI](chat-cli.md) and [Chat Server](chat-server.md): automate chats or build your own interface.
 - [NodeTool as an MCP Server](mcp-server.md): drive NodeTool from Claude Code, Codex, OpenCode, or another MCP client.

@@ -1,125 +1,63 @@
 ---
 layout: page
 title: "Skills"
-description: "Saved instructions the NodeTool agent loads for a kind of work: your own skills, the built-in ones, the SKILL.md format, and the slash command."
+description: "Use, write, and manage skills: saved instructions the NodeTool agent loads for one kind of work, plus the built-in skills that ship with the app."
 ---
 
-A skill is a Markdown file with a name, a one-line description, and a body of instructions. This is the start of `packages/system-skills/logo-reveal/SKILL.md`:
+A skill is saved instructions the agent loads for one kind of work, such as writing release notes or building a commercial.
 
-```markdown
----
-name: logo-reveal
-description: Animate a brand mark on a NodeTool timeline — stroke draw-on, mask wipe, staggered build, wordmark type, an idle loop, and landing the settle on a sound logo. Use for an intro sting, a sign-off, an end card, a splash, or a loader loop. Not for designing the mark itself.
----
-
-# Logo Reveal → the sting
-
-One idea per logo. Draw it, build it, or wipe it — never all three. The whole
-reveal runs 800–2500ms and ends on the clean mark, held.
-```
-
-The agent reads the name and description on every turn. It reads the body only when it needs it, or when you name the skill with `/` in chat. In the app, create one with **+** in the workspace tab bar → **New skill**, or open the **Skills** panel from the left panel's **More** menu.
+![Skill editor with a brand-voice skill: its name, the description agents match against, and the Markdown body](assets/screenshots/skill-editor.png)
 
 > **Runs:** locally or cloud, with no extra setup. **Needs:** no API key. Skills only add instructions to a chat turn.
 {: .callout-note}
 
-![Skill editor with a brand-voice skill: its name, the description agents match against, and the Markdown body](assets/screenshots/skill-editor.png)
+---
+
+## Use a skill
+
+Type `/` at the start of a word in the chat composer to open a list of your skills and the built-in ones. The list filters by name and description as you type. Pick one and the composer inserts `/<skill-name> ` into your message.
+
+When a message names a skill this way, the agent receives that skill's full instructions with the message and follows them. A `/` inside a word, such as the path `src/utils`, does not count.
+
+The prompt box on **New project** shows the same skills as pills. Picking a pill writes `/<skill-name>` into the prompt and the skill becomes the starter for the project.
+
+You do not have to name a skill. The agent sees the name and description of your skills on every turn and loads one by itself when the request matches its description.
+
+See [Chat](global-chat.md#slash-commands--for-skills) and [Projects](projects.md).
 
 ---
 
-## Two kinds of skill
+## Create a skill
 
-| | User skill | System skill |
+1. Click **+** in the workspace tab bar and choose **New skill**, or click **+** at the top of the Skills panel. The Skills panel is in the left panel's **More** menu. A skill opens with a generated name such as `skill-m3x9k2`, a placeholder description, and a starter body.
+2. Set the **Name**. Use lowercase letters, digits, and hyphens, up to 64 characters. The name cannot contain `anthropic` or `claude`.
+3. Set the **Description**. Write it as when to use the skill, for example "Use when writing release notes from a changelog." The agent always sees the description, so it decides from this line whether to load the skill. It can be up to 1024 characters, must fit on one line, and cannot contain markup such as `<tag>`.
+4. Write the instructions in the Markdown editor below the two fields. Keep one skill to one kind of work.
+
+The editor autosaves about three-quarters of a second after you stop typing. **Save** saves immediately, and a dot beside it marks unsaved changes.
+
+In the Skills panel, right-click a skill for **Rename**, **Delete**, and **Duplicate**. Duplicate creates `<name>-copy`.
+
+You can also ask the agent: "Save these steps as a skill called weekly-report."
+
+---
+
+## Your skills and built-in skills
+
+| | Your skill | Built-in skill |
 |---|---|---|
 | Who wrote it | You, or the agent for you | NodeTool ships it |
-| Where it lives | Your database | A `SKILL.md` file in the install |
 | Editable | Yes | No. It opens read-only |
 | Shown in the panel as | A skill with a sparkle icon | A skill with a lock icon and the label **Built in** |
 | Available to the agent | Yes | Yes, on every install |
 
-System skills cannot be renamed, edited, or deleted from the app or by the agent. Their names are reserved: you cannot create a skill with the name of a system skill. A user skill that already had such a name before the system skill shipped keeps working and wins over the system one.
-
----
-
-## Create and edit a skill
-
-1. Click **+** in the workspace tab bar and choose **New skill** (or **+** at the top of the Skills panel). A skill opens with a generated name such as `skill-m3x9k2`, a placeholder description, and a starter body.
-2. Set the **Name**. Use lowercase letters, digits, and hyphens, up to 64 characters. The name cannot contain `anthropic` or `claude`.
-3. Set the **Description**. Write it as when to use the skill, for example "Use when writing release notes from a changelog." It is the only part the agent always sees. It can be up to 1024 characters and cannot contain markup such as `<tag>`.
-4. Write the instructions in the Markdown editor below the two fields.
-
-The editor autosaves about three-quarters of a second after you stop typing. **Save** saves immediately, and a dot beside it marks unsaved changes.
-
-In the Skills panel, right-click a skill for **Rename**, **Delete**, and **Duplicate** (creates `<name>-copy`). Built-in skills are read-only.
-
-You can also ask the agent: "Save these steps as a skill called weekly-report." See [How the agent finds and loads skills](#how-the-agent-finds-and-loads-skills).
-
-Write the description as a trigger ("Use when the user asks for a changelog summary"), and keep one skill to one kind of work.
-
----
-
-## The SKILL.md format
-
-System skills are files. Each lives in `packages/system-skills/<name>/SKILL.md`, and the directory name is the skill name. A `SKILL.md` has front matter between two `---` lines, then the body.
-
-### Front matter fields
-
-| Field | Required | Meaning |
-|---|---|---|
-| `name` | Yes | The skill name. Same rules as above, and it must equal the directory name or the skill is skipped. |
-| `description` | Yes | One line saying when the skill applies. Up to 1024 characters, no `<tag>` markup. |
-| `featured` | No | `true` lists a system skill in the agent's always-on catalog. Any other value, or no field, leaves it out. |
-
-The parser reads `key: value` lines, not full YAML. Keep each value on one line. A value wrapped in a matching pair of single or double quotes has the quotes removed. Other front matter keys are ignored.
-
-A `SKILL.md` is skipped, without an error, when any of these hold:
-
-- The first line is not `---`, or the closing `---` line is missing.
-- `name` or `description` is missing, invalid, or empty.
-- The body after the front matter is empty.
-- `name` differs from the directory name.
-
-The body is everything after the closing `---`. It is plain Markdown. `load_skill` returns it in one piece, so a skill is a single `SKILL.md` and nothing beside it is read.
-
-A user skill has the same three parts, edited as the **Name** and **Description** fields and the Markdown editor.
-
-### Where NodeTool looks for system skills
-
-On startup the agent loads system skills from the first of these that exists:
-
-1. The directory in `NODETOOL_SYSTEM_SKILLS_DIR`, if you set it. See [Configuration](configuration.md).
-2. A `_skills` directory beside the bundled server, which is how the desktop app and the Docker image ship them.
-3. `packages/system-skills` in a source checkout.
-
----
-
-## How the agent finds and loads skills
-
-Every chat turn carries a catalog: the name and description of each of your skills, plus system skills marked `featured: true`. The remaining system skills are counted but not listed, and the agent finds them with `list_skills`. Five tools reach skills:
-
-| Tool | What it does |
-|---|---|
-| `list_skills` | Lists skills with name, description, and whether each is a system skill. An optional `query` matches word by word against name and description, and returns the best matches first. |
-| `load_skill` | Returns one skill's full instructions by name. The agent calls it before acting on a skill the catalog only summarizes. |
-| `create_skill` | Creates a user skill from `name`, `description`, and `content`. All three are required. |
-| `update_skill` | Changes a user skill's `description`, `content`, or name (through `new_name`). Only the fields passed change. |
-| `delete_skill` | Deletes a user skill permanently. The agent should ask first unless you asked for the deletion. |
-
-Both `list_skills` and `load_skill` read system and user skills. The three authoring tools refuse a system skill's name. Names are matched in lowercase and a leading slash is ignored, so `/Release-Notes` and `release-notes` are the same skill.
-
----
-
-## The / slash command in chat
-
-Type `/` at the start of a word in the chat composer to open a skill list. The list includes your skills and the built-in ones, and it filters by name and description as you type. Pick one and the composer inserts `/<skill-name> ` into your message.
-
-When a message names a skill this way, the agent receives that skill's full instructions with the turn and follows them, with no `load_skill` round trip. A `/` inside a word, such as the path `src/utils`, does not count. The same picker appears in the prompt box on **New project**, where the chosen skill becomes the starter for the project. See [Global Chat](global-chat.md#slash-commands--for-skills) and [User Interface](user-interface.md).
+Built-in skills cannot be renamed, edited, or deleted from the app or by the agent. Their names are reserved, so you cannot create a skill with the name of a built-in skill. If you already had a skill with that name before the built-in one shipped, yours keeps working and wins.
 
 ---
 
 ## Shipped skills
 
-One row per directory in `packages/system-skills`. Open any of them read-only from the Skills panel, or type `/` and the name in chat.
+These skills ship with NodeTool. Open any of them read-only from the Skills panel, or type `/` and the name in chat.
 
 ### Video production
 
@@ -176,6 +114,7 @@ One row per directory in `packages/system-skills`. Open any of them read-only fr
 
 | Skill | Use it for |
 |---|---|
+| `nodetool-concepts` | Explaining how NodeTool works: projects, threads, memory, assets, workflows, documents, and skills. |
 | `nodetool-workflow-builder` | Creating and editing workflow graphs, connections, and properties. |
 | `nodetool-app-builder` | Building or repairing a mini app. |
 | `nodetool-js-scripting` | JavaScript for the QuickJS sandbox: Code node bodies and saved JS scripts. |
@@ -211,27 +150,9 @@ Each guide covers the prompt structure, controls, and common failures of one mod
 |---|---|
 | `nodetool-api-reference` | Integrating over REST, tRPC, WebSocket, MCP, or the OpenAI-compatible chat API. |
 | `nodetool-model-provider-config` | Providers, credentials, local models, and model selection. |
-| `nodetool-chat-cli` | Chat CLI sessions, provider selection, and Global Chat features. |
+| `nodetool-chat-cli` | Chat CLI sessions, provider selection, and Chat features. |
 
-The `api-*` skills document the `nodetool` object model that code actions call. The agent loads one before its first call into that area.
-
-| Skill | Covers |
-|---|---|
-| `api-workflows` | `nodetool.workflows`, `jobs`, `nodes` |
-| `api-models` | `nodetool.models` |
-| `api-media` | `nodetool.media`, `generations` |
-| `api-assets` | `nodetool.assets`, `documents` |
-| `api-web` | `nodetool.web`, `email` |
-| `api-memory` | `nodetool.memory`, `shared`, `threads` |
-| `api-agents` | `nodetool.agents` |
-| `api-settings` | `nodetool.settings`, `secrets` |
-| `api-collections` | `nodetool.collections` |
-| `api-apps` | `nodetool.apps` |
-| `api-timelines` | `nodetool.timelines` |
-| `api-sketches` | `nodetool.sketches` |
-| `api-scripts` | `nodetool.scripts` |
-| `api-storyboards` | `nodetool.storyboards` |
-| `api-games` | `nodetool.games` |
+The `api-*` skills document the object model that code actions call. They are listed in [Skill Files and Tools](developer/skill-files.md#api-skills).
 
 ### Operations
 
@@ -243,7 +164,7 @@ The `api-*` skills document the `nodetool` object model that code actions call. 
 
 ## Related pages
 
-- [Global Chat](global-chat.md): composer and slash commands
+- [Chat](global-chat.md): composer and slash commands
 - [Editor Panels](editor-panels.md): the **More** menu that holds **Skills**
-- [User Interface](user-interface.md): starting a project from a skill
-- [Configuration](configuration.md): `NODETOOL_SYSTEM_SKILLS_DIR`
+- [Projects](projects.md): starting a project from a skill
+- [Skill Files and Tools](developer/skill-files.md): the `SKILL.md` format, where system skills load from, and the agent's skill tools

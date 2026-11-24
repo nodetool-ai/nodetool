@@ -1,55 +1,42 @@
 ---
 layout: page
-title: "Scenes, Entities, and Prefabs"
+title: "Scenes and Prefabs"
 permalink: /game-engine/scenes
-description: "Organize a native game with stable entities, components, and reusable prefabs."
+description: "Build a game from scenes, entities, components, behaviors, and reusable prefabs."
 ---
 
-A document declares an entry scene. Each scene owns its entities, camera, environment, and optional music and HUD. A 2D entity looks like this:
-
-```json
-{
-  "id": "hero", "name": "Hero",
-  "transform2d": { "x": 4, "y": 2 },
-  "sprite": { "assetId": "hero-sheet", "width": 1, "height": 2, "layer": 1 },
-  "body2d": { "type": "kinematic" },
-  "collider2d": { "width": 0.8, "height": 1.8 },
-  "behaviors": [{ "kind": "health", "maximum": 3 }]
-}
-```
-
-A scene transition changes which scene the session runs.
+A game is a set of scenes. Each scene holds the objects you place in it, plus its camera, environment, and optional music and HUD. The game starts in its entry scene, and a scene transition switches to another one.
 
 ![AETHER with repeated platforms and columns arranged into a route](/assets/game-engine/aether.png)
 
-*AETHER's repeated architecture illustrates a scene assembled from reusable objects. The image alone does not identify which objects are prefabs. [Capture source](/game-engine/screenshots).*
+*AETHER's route is built from repeated platforms and columns.*
 
-## Compose an entity
+## Build a scene in the editor
 
-An entity's ID is its stable identity. Its name is a label. Components supply appearance, physics, camera, sound, or particles. Behaviors supply actions such as collection, triggers, spawning, health, or scripts.
+The scene tree lists every object (entity) in the open scene. Use it to select, duplicate, rename, reparent, or delete objects. Drag an entity onto another to group them, for example a lamp under a street pole.
 
-In 2D, place sprites and tilemaps with the entity transform. Add a body and collider when an object must move or participate in collisions. In 3D, `transform3d` supplies position, quaternion rotation, and positive scale. Add a primitive or prepared model independently of its collider. Visible geometry does not automatically create physics.
+Select an entity to edit it in the inspector. The inspector shows the entity's components. Choose **Add component** to give the object a new ability:
 
-Use the scene tree to select, duplicate, rename, reparent, or delete objects. Group related entities with parent IDs. A physics hierarchy has stricter rules than a decorative hierarchy: scale and competing pose owners are rejected. [Physics](/game-engine/physics) explains the distinction.
+- **Appearance:** sprite, tilemap, primitive shape, or model.
+- **Physics:** body and collider. An object only moves or collides when it has them. In 3D, a visible shape does not create a collider by itself.
+- **Other:** camera, sound, light, or particles.
+
+Behaviors add game actions such as collecting an item, triggering an event, spawning, health, or a script. Add them from the same inspector. See [Scripts](/game-engine/scripts) for custom logic.
+
+An entity has a name for you to read and a stable ID the game uses internally. Rename freely, because scripts and saves refer to the ID.
+
+In 2D, a transform sets position and a sprite or tilemap supplies the art. In 3D, a transform sets position, rotation, and scale, and a primitive or model supplies the geometry. Physics groups have stricter rules than decorative groups, so read [Physics](/game-engine/physics) before parenting moving bodies.
 
 ## Tag and parameterize
 
-`tags` identify groups such as `guard` or `collectible`. `props` hold JSON data such as a door's required key. Scripts can query tags and read properties without depending on display names.
-
-```json
-{
-  "op": "update_entity",
-  "entity_id": "door",
-  "set": {"tags": ["gate"], "props": {"requiredKey": "amber"}}
-}
-```
-
-This is an `edit_native_game` operation, not a complete document. It replaces each supplied metadata field. A top-level `null` removes the field. Nested `null` remains JSON data. Tags and properties require 2D schema 4 and are supported in 3D schema 3.
+Tags mark groups of entities, such as `guard` or `collectible`. Properties store values such as the key a door needs. Scripts can find entities by tag and read properties without relying on display names. Set both in the inspector, or ask the agent to set them.
 
 ## Reuse a prefab
 
-Keep repeated gameplay objects in prefabs and spawn them through a behavior or script. Each instance has its own runtime state. A 3D prefab declares a root, child entities, and external asset and scene references. A template-only entity is excluded from the initial active scene.
+A prefab is an object you define once and spawn many times, such as an enemy, a coin, or a bullet. Template entities appear in their own list in the scene tree and do not show up when the game starts. Spawn one from a spawn behavior or a script. Each spawned copy keeps its own health, position, and other state. You can also ask the agent to create a prefab.
 
-Use [retained construction](/game-engine/construction) when you also need generated placement, stable explicit construction keys, per-instance overrides, and rebuild previews. Resetting an override, detaching a generated entity, and deleting it have different effects on future rebuilds.
+For levels placed by rule rather than by hand, such as a row of platforms, generate them with a script and use [rebuilding generated games](/game-engine/construction). It lets you tweak individual generated objects and rebuild the rest.
 
-A scene transition discards the previous scene's behavior state. Persist progress explicitly with [save commands](/game-engine/saves-replay) when it must survive a new session.
+A scene transition resets the previous scene's behavior state. If progress must survive, use [save commands](/game-engine/saves-replay).
+
+The JSON behind these objects is in the [Game Document Reference](/developer/game-documents).

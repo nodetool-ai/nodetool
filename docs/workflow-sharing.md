@@ -5,17 +5,14 @@ permalink: /workflow-sharing
 description: "Share a workflow or document with collaborators through view, edit, or public links, and manage who has access."
 ---
 
-A share link carries a permission level, and opening it gives the visitor that level of access. Only the owner can create links or change access. Storyboards, scripts, timelines, sketches, apps, and JS scripts share the same way (see [Other documents](#other-documents)). Sharing depends on user accounts, so it depends on your server's [authentication mode](authentication.md).
+A share link carries a permission level, and opening it gives the visitor that level of access. Only the owner can create links or change access. Storyboards, scripts, timelines, sketches, apps, and JS scripts share the same way (see [Other documents](#other-documents)). Sharing depends on user accounts. See [Who can share](#who-can-share).
 
-## Which deployments support sharing
+## Who can share
 
-| Mode | Sharing |
-|------|---------|
-| Supabase mode (`SUPABASE_URL` and `SUPABASE_KEY` set) | Works. Each person signs in with their own account, and a link gives that account access. |
-| SSO mode (`OIDC_ISSUER` set) | Works. People sign in through your identity provider, and you can also [invite people by name](#invite-people-by-name) without a link. |
-| Local mode, one person on loopback | Not useful. Loopback connections all run as the same user (`"1"`), so you are always the owner of your own links. |
+> Sharing requires a hosted or multi-user server where each person signs in with their own account. It is not useful on a single-user local install, where you are always the owner.
+{: .callout-note}
 
-Opening a share link requires being signed in to the server. The one exception is a public link, which anyone can open to view the workflow without an account. See [Authentication](authentication.md) and [Supabase Deployment](supabase-deployment.md) for setting up accounts.
+Opening a share link requires being signed in to the server. The one exception is a public link, which anyone can open to view the workflow without an account. For setting up accounts, see [Authentication](authentication.md) and [Supabase Deployment](supabase-deployment.md).
 
 ## Permission levels
 
@@ -38,16 +35,11 @@ The link is copied to your clipboard. If the browser blocks clipboard access, No
 
 Each role has one active link per workflow. Clicking the same button again returns the existing link instead of making a new one.
 
-The links look like this:
-
-| Link type | Path |
-|-----------|------|
-| Can view, Can edit | `/share/<token>` |
-| Public view | `/view/<token>` |
+Send the copied link to the person you want to share with.
 
 ## Invite people by name
 
-On a server in SSO mode, the share dialog has an **Invite people** field under **People with access**. Type at least two characters of a person's name or email, pick them from the list, choose **Can view** or **Can edit**, and click **Invite**. They get access at once and see the workflow under **Shared with me**. No link is needed. Inviting someone who already has access changes their role.
+On a server that uses single sign-on, the share dialog has an **Invite people** field under **People with access**. Type at least two characters of a person's name or email, pick them from the list, choose **Can view** or **Can edit**, and click **Invite**. They get access at once and see the workflow under **Shared with me**. No link is needed. Inviting someone who already has access changes their role.
 
 The list shows only active accounts on the server, and never you. Inviting needs the **Create share links** permission, which an admin can block. See [Permissions](authentication.md#permissions).
 
@@ -87,7 +79,7 @@ Storyboards, scripts, timelines, sketches, apps and JS scripts use the same view
 These differences apply:
 
 - There is no public link.
-- A link has the path `/share/document/<token>`. Opening it adds you as a collaborator and opens the document in the workspace, read-only for a viewer.
+- Opening a link adds you as a collaborator and opens the document in the workspace, read-only for a viewer.
 - A viewer can open the document and its version history. An editor can also save changes, create versions and restore them. Only the owner can delete the document, delete versions, publish an app, or manage its budget and deployment.
 - A collaborator can open the owner's images, video and audio that the document refers to directly, and nothing else in the owner's library.
 
@@ -95,7 +87,7 @@ Deleting a document removes its links and everyone's access.
 
 ## Shared with me
 
-The **Documents** panel ends with a **Shared with me** group listing every workflow and document shared with your account, with your role on each. Click a row to open it. Documents whose owner deleted them are left out. The API serves the same lists as `workflows.sharing.sharedWithMe` and `documentSharing.sharedWithMe`.
+The **Documents** panel shows a **Shared with me** group listing the workflows and documents shared with your account, with your role on each. Click a row to open it. Documents whose owner deleted them are left out. 
 
 ## Related
 

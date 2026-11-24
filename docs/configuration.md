@@ -32,7 +32,7 @@ Configuration helpers live in `@nodetool-ai/config` (`environment.ts`): `loadEnv
 |---------|---------------|
 | **General** | Editor, Updates and Vaults (desktop app only), Appearance, Execution, Canvas, Default Models, Autosave |
 | **Models & Providers** | Provider API keys, stored as encrypted secrets |
-| **Integrations** | Configuration groups (including Folders), Connected Accounts, MCP Servers and Browser Extension (local server only), Nodetool API Token (hosted only) |
+| **Integrations** | Configuration groups (including Folders), Connected Accounts, MCP integration and Browser Extension (local server only), Nodetool API Token (hosted only) |
 | **About** | Application, operating system, features and versions, installation paths (development builds), links |
 
 Stored settings are defined in `setting-catalog.ts` in `@nodetool-ai/config`. A setting read through the server checks the database first, then the environment variable of the same name (`getSetting` in `packages/websocket/src/settings-registry.ts`).
@@ -324,6 +324,43 @@ NODETOOL_BUNDLE_PLATFORM=win32 NODETOOL_BUNDLE_ARCH=x64 node scripts/bundle-back
 ```
 
 [`scripts/verify-backend-bundle.mjs`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/verify-backend-bundle.mjs) reads the same variables and resolves the `@seydx/node-av-<platform>-<arch>` binary it expects (`node-av-win32-<arch>-msvc` on Windows), so verification needs the target the staging run used. When no prebuild matches, staging warns and keeps every prebuild, so a mis-set variable costs size, never a missing binary.
+
+## Hugging Face Tokens and Cache
+
+Create a token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens). Each feature reads it from a different place.
+
+| Feature | Token source |
+|---|---|
+| HuggingFace provider and `huggingface.*` nodes | The stored `HF_TOKEN` secret, then the `HF_TOKEN` environment variable. Paste it into the HuggingFace card in **Settings → Models & Providers**, or run `nodetool secrets store HF_TOKEN` |
+| Model Manager downloads, local or to an attached worker | The stored `HF_TOKEN` secret, then the `HF_TOKEN`, `HF_API_TOKEN`, or `HUGGING_FACE_HUB_TOKEN` environment variable, then the token file from `hf auth login` (`$HF_TOKEN_PATH`, or `token` under `$HF_HOME`, default `~/.cache/huggingface/token`). The server sends the token to a worker, which has no token of its own |
+| `nodetool models download-hf` | The environment variables, then the token file. The stored secret is not read |
+| Hub search in the Model Manager | The `HF_TOKEN` or `HUGGING_FACE_HUB_TOKEN` environment variable, sent when set |
+| Downloads a Python node starts while it runs | The stored `HF_TOKEN` when the node declares it, otherwise the worker's environment and token file |
+
+A token pasted in Settings covers Model Manager downloads. A Python node that downloads on its own may not receive it. In that case set `HF_TOKEN` in the environment before starting NodeTool, or run `hf auth login`.
+
+### Cache locations
+
+Hub downloads use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. NodeTool resolves it the way the `huggingface_hub` library does: `HF_HUB_CACHE`, then `HUGGINGFACE_HUB_CACHE`, then `$HF_HOME/hub`, then `$XDG_CACHE_HOME/huggingface/hub`. Downloads, the **Installed** list, llama.cpp, whisper.cpp, and the Python worker all read the same directory. On Linux with `XDG_CACHE_HOME` set, as in the Flatpak build, the desktop app keeps using `~/.cache/huggingface/hub` when it already holds models. The full rule is under [`HF_HUB_CACHE`](#environment-variables-index).
+
+Transformers.js models download to `<data-dir>/transformers-js-cache`, or to `TRANSFORMERS_JS_CACHE_DIR` if set. This cache is separate from the Hugging Face hub cache. Ollama keeps its models in its own directory.
+
+### Hub mirror
+
+Where huggingface.co is unreachable, set `HF_ENDPOINT` to a mirror such as `https://hf-mirror.com`, in **Settings** under HF or in the environment. Model Manager downloads, Hub search, llama.cpp GGUF downloads, and Transformers.js model downloads then use that host, and your HF token is sent to it. The Settings value applies to downloads the server starts, `nodetool models list-hf` and `download-hf`, and Python node downloads. Transformers.js models fetched on first run, and Python nodes, read it when the server starts, so restart NodeTool after you change it. Inference Providers, sign-in, and the token check stay on huggingface.co.
+
+## Agent Run Limits
+
+An agent run (a chat turn, its sub-agents, and any agent node it starts) shares one budget. See [Costs and credits](costs-and-credits.md#limiting-spend) for how the limits behave.
+
+| Setting | Default | What it bounds |
+|---|---|---|
+| `NODETOOL_AGENT_TURN_COST_CAP_USD` | 5.00 | Provider spend for the whole run, in US dollars. `0` means no cap. Clearing the value restores the default |
+| `NODETOOL_AGENT_TURN_DEADLINE_MS` | 1800000 (30 minutes) | Wall-clock time for the run |
+| `NODETOOL_AGENT_MAX_TURNS` | 200 | Model turns in total. This still holds for a local model with no price |
+| `NODETOOL_AGENT_UNPRICED_TOKEN_CEILING` | 400000 | Prompt tokens for a turn on a model the catalog does not price |
+
+The cost cap works as admission. A turn whose worst case would cross the cap is refused before the call, so the money is not spent first. A model without a catalog price has no worst case, so it is bounded by the token ceiling and counted as unpriced rather than free. On the command line, `--cost-cap <usd>` overrides the dollar cap for one run, and `0` lifts it, which suits a local-only install. See [Run budget](cli.md#run-budget) and the [Agent CLI](agent-cli.md).
 
 ## Environment Variables Index
 
