@@ -336,6 +336,9 @@ it("accepts equivalent typed event scripts and rejects incorrect ones", async ()
   // Quoted keys, another key order, a function-valued hook and destructuring are equivalent answers.
   expect(await score("({ \"onStart\": function (input) { const command = { \"target\": { \"entityId\": 'gem' }, payload: { 'points': 5 }, event: `bonus`, kind: \"emit\" }; return { commands: [command] }; } })",
     "({ onEvent: (input, { payload: { points } }) => ({ state: points }) })")).toBe(true);
+  const sender = "({ onStart() { return { commands: [{ kind: 'emit', event: 'bonus', payload: { points: 5 }, target: { entityId: 'gem' } }] }; } })";
+  expect(await score(sender, "({ onEvent(input, event) { return { state: event[\"payload\"][`points`] }; } })")).toBe(true);
+  expect(await score(sender, "({ onEvent(input, event) { const key = \"points\"; return { state: event.payload[key] }; } })")).toBe(false);
   expect(await score("({ onStart() { return { commands: [{ kind: 'emit', event: 'bonus', payload: { points: 5 }, target: { entityId: 'gem', tag: 'loot' } }] }; } })", receiver)).toBe(false);
   expect(await score("({ onStart() { return { commands: [{ kind: 'emit', event: 'bonus', payload: { points: 4 }, target: { entityId: 'gem' } }] }; } })", receiver)).toBe(false);
   expect(await score("({ onUpdate() { return { commands: [{ kind: 'emit', event: 'bonus', payload: { points: 5 }, target: { entityId: 'gem' } }] }; } })", receiver)).toBe(false);
