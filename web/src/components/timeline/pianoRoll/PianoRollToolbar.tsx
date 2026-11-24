@@ -11,7 +11,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import NearMeIcon from "@mui/icons-material/NearMe";
-import EditIcon from "@mui/icons-material/Edit";
+import EditIcon from "@mui/icons-material/EditOutlined";
 import BrushIcon from "@mui/icons-material/Brush";
 import ContentCutIcon from "@mui/icons-material/ContentCut";
 import CallMergeIcon from "@mui/icons-material/CallMerge";
