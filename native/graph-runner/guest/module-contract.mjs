@@ -465,6 +465,7 @@ export const MODULES = {
   "node:https": { whole: unavailable("server-only", "opens network servers and sockets") },
   "node:module": { whole: unavailable("server-only", "Node's module loader") },
   "node:net": { whole: unavailable("server-only", "opens network servers and sockets") },
+  "node:readline": { whole: unavailable("host-binary", "reads the output of a host program line by line") },
   "node:perf_hooks": { whole: pure("Node's perf_hooks module, not the global performance the guest has") },
   "node:stream": { whole: pure("Node streams") },
   "node:stream/promises": { whole: pure("Node streams") },
