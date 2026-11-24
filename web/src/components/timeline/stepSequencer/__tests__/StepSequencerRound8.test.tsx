@@ -316,18 +316,27 @@ describe("Step Sequencer review round 8", () => {
       setup([{ id: "kick", assignment: { type: "note", pitch: 36 }, steps: [{ on: true }, { on: true }, { on: true }, { on: true }] } as RowSeed]);
       await pickMode(user, /Velocity/);
       const strip = screen.getByTestId("strip-kick-velocity");
-      await user.keyboard("{Control>}{Alt>}");
-      await user.pointer([
-        press(strip, x(0), y(0.2)),
-        move(strip, x(1), y(0.3)),
-        move(strip, x(1) + 5, y(0.35)),
-        move(strip, x(2), y(0.5)),
-        move(strip, x(3), y(0.9)),
-        move(strip, x(3), y(0.95)),
-        release(strip, x(3), y(0.95))
-      ]);
-      await user.keyboard("{/Alt}{/Control}");
-      expect(audition().playAuditionNote).toHaveBeenCalledTimes(4);
+      // A changed value on the same step schedules a trailing audition on a
+      // real timer. Hold timers still so a slow run cannot fire one before
+      // the count, which covers only the notes played on entering a step.
+      jest.useFakeTimers({ doNotFake: ["performance"] });
+      try {
+        const held = userEvent.setup({ advanceTimers: (ms) => jest.advanceTimersByTime(ms) });
+        await held.keyboard("{Control>}{Alt>}");
+        await held.pointer([
+          press(strip, x(0), y(0.2)),
+          move(strip, x(1), y(0.3)),
+          move(strip, x(1) + 5, y(0.35)),
+          move(strip, x(2), y(0.5)),
+          move(strip, x(3), y(0.9)),
+          move(strip, x(3), y(0.95)),
+          release(strip, x(3), y(0.95))
+        ]);
+        await held.keyboard("{/Alt}{/Control}");
+        expect(audition().playAuditionNote).toHaveBeenCalledTimes(4);
+      } finally {
+        jest.useRealTimers();
+      }
     });
   });
 
