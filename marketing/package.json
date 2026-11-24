@@ -71,7 +71,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.20.15",
+    "@opennextjs/cloudflare": "^1.20.18",
     "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/lodash": "^4.17.15",
