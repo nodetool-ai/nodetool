@@ -303,6 +303,7 @@ exclude:
   - plans/external-asset-refs.md
   - plans/geometry-nodes.md
   - plans/generation-recovery.md
+  - plans/library-search.md
   - plans/native-game-3d-upgrade.md
   - plans/open-source-higgsfield.md
   - plans/open-source-higgsfield-implementation.md
