@@ -60,6 +60,7 @@ NodeTool is an open-source, agent-first creative workspace. Agents and people wo
 - [Game Editor]({{ site.url }}/game-editor): Build, play and publish 2D and 3D games.
 - [Native Game Engine]({{ site.url }}/game-engine/): Game documents, scripts, physics, assets, agent authoring, publishing, and current coverage.
 - [Audio Editor]({{ site.url }}/audio-editor): Trim, fade, normalize, and reverse an audio asset and save it back.
+- [Document Editor]({{ site.url }}/document-editor): Markdown documents with formatting, embedded shots and timelines, assistant proposals, snapshots, and Save As.
 - [Text and SVG Documents]({{ site.url }}/text-and-svg-documents): Every document type the + New menu creates, and the text, CSV, and SVG editors.
 
 ## Mini Apps

@@ -90,6 +90,8 @@
       url: "/game-editor"
     - title: "Audio Editor"
       url: "/audio-editor"
+    - title: "Document Editor"
+      url: "/document-editor"
     - title: "Text and SVG Documents"
       url: "/text-and-svg-documents"
 - id: game-engine

@@ -156,7 +156,18 @@ description: "Open-source agent-first creative workspace. Create images, video, 
         <a href="{{ '/game-engine/' | relative_url }}">Game engine feature guide →</a>
       </div>
     </article>
-    <article class="surface-card full">
+    <article class="surface-card wide">
+      <div class="media-frame">
+        <img src="{{ '/assets/screenshots/document-editor.png' | relative_url }}" loading="lazy"
+          alt="Document editor with a trailer brief, an embedded storyboard shot and the assistant">
+      </div>
+      <div class="surface-body">
+        <h3>Documents</h3>
+        <p>Write the brief, the treatment or the shot list as Markdown, with shots and timelines embedded. The assistant proposes edits you accept or reject, and workflows read and write the same file.</p>
+        <a href="{{ '/document-editor' | relative_url }}">Document Editor →</a>
+      </div>
+    </article>
+    <article class="surface-card wide">
       <div class="media-frame">
         <video class="inview-video" muted loop playsinline preload="none"
           poster="https://nodetool.ai/surface-nodes-poster.webp" aria-label="Node editor">

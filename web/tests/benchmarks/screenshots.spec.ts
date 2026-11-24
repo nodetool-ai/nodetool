@@ -2213,6 +2213,125 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "js-script-editor.png");
     });
 
+    // The document editor over the seeded SCRAPHEART brief
+    // (packages/websocket/src/screenshot-docs-seed.ts).
+    const DOCUMENT_TAB: SeededTab = {
+      type: "text",
+      ref: "doc-scrapheart-brief",
+      title: "Trailer brief.md",
+      projectId: "proj-scrapheart"
+    };
+
+    /** Open the brief and wait for the embedded shot's keyframe. */
+    async function openDocument(page: Page): Promise<void> {
+      await captureTab(page, DOCUMENT_TAB, "Before picture lock", 1200);
+      await page
+        .locator(".doc-page img")
+        .first()
+        .waitFor({ state: "visible", timeout: 30000 });
+      await waitForImages(page);
+    }
+
+    test("Document editor", async ({ page }) => {
+      test.skip(shouldSkip("document-editor.png"), "Already captured");
+      await openDocument(page);
+      await saveScreenshot(page, "document-editor.png");
+    });
+
+    test("Document editor – selection prompt", async ({ page }) => {
+      test.skip(
+        shouldSkip("document-editor-selection.png"),
+        "Already captured"
+      );
+      await openDocument(page);
+      // Select the first sentence of the Tone paragraph with the keyboard:
+      // the prompt's icon follows a Shift selection on key up.
+      const sentence = "Sun-blown desert, practical dust, long lenses.";
+      await page.getByText("Sun-blown desert", { exact: false }).first().click();
+      await page.keyboard.press("Home");
+      await page.keyboard.down("Shift");
+      for (let i = 0; i < sentence.length; i += 1) {
+        await page.keyboard.press("ArrowRight");
+      }
+      await page.keyboard.up("Shift");
+      await page
+        .getByRole("button", { name: "Ask assistant about selection" })
+        .click();
+      await page
+        .getByPlaceholder("What should change?")
+        .fill("Make this read like a field report");
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "document-editor-selection.png");
+    });
+
+    test("Document editor – assistant proposal", async ({ page }) => {
+      test.skip(
+        shouldSkip("document-editor-proposal.png"),
+        "Already captured"
+      );
+      await openDocument(page);
+      // A staged proposal as the docked assistant leaves one: the saved brief
+      // as the base, with the Tone paragraph rewritten.
+      await page.evaluate(async (assetId) => {
+        const assetStorePath = "/src/stores/AssetStore.ts";
+        const proposalStorePath = "/src/stores/DocumentProposalStore.ts";
+        const { useAssetStore } = (await import(assetStorePath)) as {
+          useAssetStore: {
+            getState: () => {
+              get: (id: string) => Promise<{ get_url?: string | null }>;
+            };
+          };
+        };
+        const { useDocumentProposalStore } = (await import(
+          proposalStorePath
+        )) as {
+          useDocumentProposalStore: {
+            getState: () => { setProposal: (p: unknown) => void };
+          };
+        };
+        const asset = await useAssetStore.getState().get(assetId);
+        const base = await (
+          await fetch(asset.get_url ?? "", { cache: "no-store" })
+        ).text();
+        const proposed = base.replace(
+          "Sun-blown desert, practical dust, long lenses.",
+          "Heat, grit and distance. Shoot on long lenses so the desert flattens behind her."
+        );
+        useDocumentProposalStore.getState().setProposal({
+          proposalId: "proposal-docs",
+          assetId,
+          threadId: "thread-docs",
+          turnId: "turn-docs",
+          baseContent: base,
+          proposedContent: proposed,
+          draftContent: proposed,
+          receivedAt: Date.now()
+        });
+      }, DOCUMENT_TAB.ref);
+      await page
+        .getByText("Assistant proposed changes")
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 });
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "document-editor-proposal.png");
+    });
+
+    test("Document editor – snapshots", async ({ page }) => {
+      test.skip(
+        shouldSkip("document-editor-snapshots.png"),
+        "Already captured"
+      );
+      await openDocument(page);
+      await page.getByRole("button", { name: "Open Snapshots" }).click();
+      await page.getByText("First draft").first().click();
+      await page
+        .getByText("Read-only")
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 });
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "document-editor-snapshots.png");
+    });
+
     test("Skill editor", async ({ page }) => {
       test.skip(shouldSkip("skill-editor.png"), "Already captured");
       await captureTab(
