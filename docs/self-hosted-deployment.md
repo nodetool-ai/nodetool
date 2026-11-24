@@ -71,7 +71,7 @@ Auth is configured on the backend. The web UI reads its auth mode and public Sup
 
 See also [Authentication](authentication.md) and [Supabase Deployment](supabase-deployment.md).
 
-> **Do not expose Local mode to the internet.** Local mode has no login. `NODETOOL_TRUST_LOCAL_NETWORKS` trusts source IPs as admin user `"1"` with no password, so anyone who can reach the published port from a trusted range gets your data, secrets, and API keys. The default `172.16.0.0/12,192.168.65.0/24` covers only Docker's bridge and Desktop VM gateway. Never change it to `0.0.0.0/0` on a public IP. For a public address or untrusted users, enable Supabase or SSO mode and terminate TLS in front of the server or give it a certificate ([Serving the Web UI and TLS](configuration.md#serving-the-web-ui-and-tls)).
+> **Do not expose Local mode to the internet.** Local mode has no login. `NODETOOL_TRUST_LOCAL_NETWORKS` trusts source IPs as admin user `"1"` with no password, so anyone who can reach the published port from a trusted range gets your data, secrets, and API keys. The default `172.16.0.0/12,192.168.65.0/24` covers only Docker's bridge and Desktop VM gateway. Never change it to `0.0.0.0/0` on a public IP. For a public address or untrusted users, enable Supabase or SSO mode and terminate TLS in front of the server or give it a certificate ([Serving the Web UI and TLS](server-configuration.md#serving-the-web-ui-and-tls)).
 {: .callout-warning}
 
 To serve the web UI from a **different origin** (a CDN, for example), point the frontend at the backend with the build-time `VITE_API_URL` and add that origin to `NODETOOL_ALLOWED_ORIGINS` so cross-origin `GET /api/config` and API calls are allowed.
@@ -283,6 +283,24 @@ ENV NODETOOL_PYTHON=/opt/venv/bin/python \
 ```
 
 With the flag set and no interpreter found, the boot log says `Python not found — Python nodes will not be available`. With the flag unset it names the flag instead.
+
+## Hosted Credits
+
+Hosted credits meter the `nodetool` provider, which runs a curated model catalog on keys that the platform owns. Only a cloud deployment registers that provider. Desktop and plain self-hosted installs do not, and calls on a user's own provider keys never reduce a credit balance. For what users see, read [Costs and credits](costs-and-credits.md#hosted-credits).
+
+Credits are accounted in a ledger. One credit is one US cent of provider spend at the delegate's price. The balance is every grant ever recorded, minus the spend recorded for the `nodetool` provider. Grants arrive the first time a balance is read: a one-time signup grant, then a monthly plan grant keyed to the calendar month in UTC. Plans are defined in code (Free 300 credits a month, Creator 3,000 for a displayed $12, Pro 10,000 for a displayed $40). The price is for display only and no payment processor is connected.
+
+The server checks the balance before a run that uses a managed model starts. It refuses the run when the model is not on the allowlist, or when the balance does not cover the run's estimate. Spend already admitted to runs still in flight counts against the balance. If the credit check itself fails, the run is allowed. The data is available through the `credits` tRPC router (`status`, `setPlan`, `topup`).
+
+| Variable | Effect |
+|---|---|
+| `NODETOOL_CREDIT_MODELS` | The managed models credits may be spent on, separated by commas, spaces, or newlines. Unset means the whole catalog. Any other model is refused before a key is used |
+| `NODETOOL_SIGNUP_CREDITS` | The one-time signup grant. The default is 500. `0`, a negative value, or an unparseable value means no signup grant |
+| `NODETOOL_PLATFORM_FAL_KEY` | The platform-owned fal key that funds managed image and video models |
+| `NODETOOL_PLATFORM_ANTHROPIC_KEY` | The platform-owned Anthropic key that funds managed language models |
+| `NODETOOL_ENABLE_TEST_TOPUP` | Set to `1` or `true` to allow the test top-up on a development server |
+
+A managed model is offered only when its delegate provider has a platform key and the model is on the allowlist. The test top-up adds credits with no payment behind it, and the server refuses it unless `NODETOOL_ENABLE_TEST_TOPUP` is set, because minted credits unlock spend on platform-owned keys. When it is set, the Plan & credits page shows an **Add 1000 credits (test)** button. Leave it unset on anything reachable by other people. See also [Environment Variables](environment-variables.md).
 
 ## If it fails
 

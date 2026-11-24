@@ -364,7 +364,7 @@ from inside an agent:
   `create_workflow` and `update_workflow` also refuse a node type the registry
   does not have. A workflow file edited in a project folder passes the same
   checks before it is stored
-  ([Workflows are files in the folder](workspaces.md#workflows-are-files-in-the-folder)).
+  ([Workflows are files in the folder](developer/project-folders.md#workflows-are-files-in-the-folder)).
 - **`debug_workflow`** — run a workflow and return status, outputs, errors, job
   logs, and a graph overview in one call.
 - **`debug_app`** — validate a mini app's bindings, simulate it, and return each
@@ -482,7 +482,7 @@ A **system skill** ships with the build instead of living in a row. It is a
 carries its name, in `packages/system-skills/` in a checkout and staged to
 `_skills/` beside the bundled `server.mjs` in the desktop app and the Docker
 image. `NODETOOL_SYSTEM_SKILLS_DIR` overrides both roots
-([Configuration](configuration.md#environment-variables-index)).
+([Environment Variables](environment-variables.md)).
 
 ```markdown
 ---

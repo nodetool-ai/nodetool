@@ -1,39 +1,34 @@
 ---
 layout: page
-title: "Your First Native Game"
+title: "Your First Game"
 permalink: /game-engine/quick-start
-description: "Install an example, edit its draft, and verify a playable change."
+description: "Install an example game, play it, change one thing, and publish or export it."
 ---
 
-Install an example to get your own editable copy of a complete game with prepared assets.
+Install an example to get your own editable copy of a complete game with art and sound already in place.
 
 ![Kindle editor with the selected hero sprite, scene tree, inspector, and asset panel](/assets/game-engine/editor-sprite.png)
 
-*Kindle open in the shipped editor at tick 0, with the hero sprite selected. [Capture provenance](/game-engine/screenshots).*
+*Kindle open in the editor with the hero sprite selected.*
 
 ## Install and play
 
 1. Open **Browse examples** from the workspace, or **Examples** from the logo menu, then choose **Games**.
-2. Choose **Install game**. Choose Kindle for a 2D platformer, Lumen for exploration, Neon Drift for a shooter, AETHER for 3D platforming, BLACKSITE for first-person play, or Signal Forge for a 3D interaction puzzle. Open **Edit** on the installed game.
-3. Press **Play** in the editor. Click the 3D viewport before using mouse look. Follow the example's on-screen controls.
-4. Stop play before changing the level. Select an entity in the scene tree, change one visible property, and play again.
+2. Choose **Install game**. Kindle is a 2D platformer, Lumen is exploration, Neon Drift is a shooter, AETHER is 3D platforming, BLACKSITE is first person, and Signal Forge is a 3D puzzle. Open **Edit** on the installed game.
+3. Press **Play** in the editor. In a 3D game, click the viewport before using mouse look. The example shows its controls on screen.
 
-Signal Forge includes prepared collision for its authored static machinery and aligned column colliders. Small decorative details do not each have a collider. Its recorded route checks the objectives and recovery paths, but does not establish collision coverage for every visible detail.
+## Change one thing
 
-## Make a small change
+Stop play first. Select an entity in the scene tree, then change a visible property in the inspector, such as a collectible's position or a light's color. Press **Play** again to see it. Changes made while playing do not rewrite the game, and most edits need a fresh play session.
 
-Move a collectible or change a light color in the inspector. Draft changes and runtime state are separate: moving during play does not rewrite the document, and most document changes need a fresh play session.
+You can also ask the assistant:
 
-Ask the agent for a bounded edit such as:
+> Move the first collectible closer to the starting platform.
 
-> Move the first collectible closer to the starting platform. Preserve its ID and behavior. Validate the draft, replay the route, and capture a frame showing its new position.
+See [Ask the assistant](/game-editor#ask-the-assistant) for more prompts.
 
-The agent should inspect the draft before editing it. [Agent authoring](/game-engine/agent-authoring) explains the edit and verification tools.
+## Publish or export
 
-## Verify before sharing
+Publish the draft to create a revision that players can open. To share a game outside NodeTool, [export a standalone build](/game-engine/publishing).
 
-Test starting, completing the objective, failing, and recovering. A screenshot proves appearance at one moment. It does not prove collision, audio playback, or a complete route.
-
-Publish an accepted draft to create a revision for the player. To share outside NodeTool, [export a standalone build](/game-engine/publishing). The authenticated player URL is not a public share link.
-
-For a blank game, the new-project format selector offers 2D or 3D. The guided **+ New → Game** flow starts in 2D. Choose the dimension before building the scene.
+To start a blank game, the new-project screen offers 2D or 3D. The guided **+ New → Game** flow starts in 2D.

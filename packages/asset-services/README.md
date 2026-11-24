@@ -54,7 +54,7 @@ hash job in `project-services` stores it, and every writer here that replaces
 an asset's bytes sets it back to null. `refreshAssetThumbnail` replaces the
 thumbnail of a file that changed in place, and `projectAssetMtime` versions
 the thumbnail URL.
-See [the asset index follows the folder](../../docs/workspaces.md#the-asset-index-follows-the-folder).
+See [the asset index follows the folder](../../docs/developer/project-folders.md#the-asset-index-follows-the-folder).
 
 `moveLegacyAssetIntoFolder` in `legacy-asset-move` moves the bytes of one asset
 from before project folders out of the asset store and into its project's
@@ -75,11 +75,11 @@ job in
 [`@nodetool-ai/project-services`](../project-services/src/project-asset-move-job.ts)
 runs it for every asset of a project and deletes the folder rows that are left
 empty. See
-[existing assets move into the folder](../../docs/workspaces.md#existing-assets-move-into-the-folder).
+[existing assets move into the folder](../../docs/developer/project-folders.md#existing-assets-move-into-the-folder).
 
 Within a project the asset browser's folders are directories of the folder.
 `project-asset-directories` lists a project by directory, makes a directory
 for a new folder, and moves a directory with `moveProjectDirectory`, which
 rewrites the rows under it in one statement. `moveProjectAssetToDirectory`
 moves one asset's file. See
-[folders in the asset browser](../../docs/workspaces.md#folders-in-the-asset-browser).
+[folders in the asset browser](../../docs/developer/project-folders.md#folders-in-the-asset-browser).

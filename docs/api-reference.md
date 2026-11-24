@@ -142,17 +142,20 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 
 ## Authentication and Headers
 
-The server picks one of two modes at startup. When both `SUPABASE_URL` and `SUPABASE_KEY` are set it runs in **Supabase mode** and validates a Supabase JWT on every request that is not public. Otherwise it runs in **Local mode**. Loopback callers are trusted as user `1` with no token, and other callers need an access token or an address listed in `NODETOOL_TRUST_LOCAL_NETWORKS`. The full rules are in [Authentication](authentication.md).
+The server picks one of three modes at startup. When both `SUPABASE_URL` and `SUPABASE_KEY` are set it runs in **Supabase mode** and validates a Supabase JWT on every request that is not public. When both `OIDC_ISSUER` and `OIDC_CLIENT_ID` are set it runs in **SSO mode** and validates its own session token. Otherwise it runs in **Local mode**. Loopback callers are trusted as user `1` with no token, and other callers need an access token or an address listed in `NODETOOL_TRUST_LOCAL_NETWORKS`. The full rules are in [Authentication](authentication.md).
 
 Credentials a client can present:
 
 | Credential | Prefix | Where it works |
 |------------|--------|----------------|
 | Supabase JWT | none | Everything, in Supabase mode |
-| Access token minted in Settings → MCP | `ntk_` | Everything, in both modes |
-| MCP OAuth access token | `nta_` | `/mcp` only |
+| SSO session token | `nts_` | Everything, in SSO mode. Expires after `OIDC_SESSION_TTL_SECONDS` |
+| Access token minted in Settings → MCP | `ntk_` | Everything, in every mode. A failed check falls through to the mode's own rules |
+| MCP OAuth access token | `nta_` | `/mcp` only. Refused with `invalid_token` anywhere else |
+| Desktop session token | `ntd_` | Everything except `/mcp`. Lives 15 minutes and is renewed with an `ntr_` refresh token |
 | Deployed app session | `nda_` | `/ws` only, confined to one app |
-| Delegated token from a messaging bridge | `ndt_` | Everything, for the linked user. See [Linking an External Messaging Account](#linking-an-external-messaging-account) |
+| Delegated token from a messaging bridge | `ndt_` | Everything, for the linked user. Only when `NODETOOL_INTEGRATION_TOKEN` is set. See [Linking an External Messaging Account](#linking-an-external-messaging-account) |
+| `SERVER_AUTH_TOKEN` | none | Everything, as user `1`, in Local mode only |
 
 ### How to include credentials
 
@@ -1987,7 +1990,7 @@ answer `503` with `{"code": "SDK_LIFECYCLE_DISABLED", …}`.
 `SDK_WORKFLOW_INTERFACE_DISABLED`, except `/node-types`, which reports
 `SDK_NODE_TYPE_INVENTORY_DISABLED`. The model catalog at `/api/sdk/v1/models`
 and the model-download routes are unaffected by either. See
-[Configuration](configuration.md#environment-variables-index).
+[Configuration](environment-variables.md).
 
 ### The Node Type Inventory
 
@@ -2634,7 +2637,7 @@ response. `ssoProviderName` is the sign-in button label from
 `OIDC_PROVIDER_NAME` (default `"SSO"`) in SSO mode, and `null` otherwise.
 
 `googleWorkspace` says whether the Google Workspace capability is on (see
-`NODETOOL_GOOGLE_WORKSPACE` in [Configuration](configuration.md)). When it is,
+`NODETOOL_GOOGLE_WORKSPACE` in [Environment Variables](environment-variables.md)). When it is,
 `googleScopes` lists the OAuth scopes the connect step must request; when it is
 not, that array is empty.
 
@@ -2881,12 +2884,28 @@ default), both lexically and after symlinks. A missing `path` or a directory is 
 ### Indexing a File into a Collection
 
 `POST /api/collections/{name}/index` takes a `multipart/form-data` body with one
-`file` field, splits the text into chunks, and adds them to the vector collection.
-The response is `{"path": "<file name>", "chunks": 12, "error": null}`. A
-collection that does not exist or belongs to someone else is a `404`, a body that
-is not multipart or has no file is a `400`, and a file over
-`NODETOOL_MAX_UPLOAD_BYTES` is a `413`. Create, list, query, and delete are tRPC
-procedures on `collections`.
+`file` field, splits the text into chunks of 2000 characters with 1000 of
+overlap, embeds them with the collection's embedding model, and adds them to the
+vector collection as `<file name>#<n>`.
+
+```bash
+curl -X POST http://localhost:7777/api/collections/support/index \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@guide.txt"
+```
+
+The response is `{"path": "guide.txt", "chunks": 12, "error": null}`.
+
+| Status | Meaning |
+|--------|---------|
+| `400` | The body is not multipart, has no `file`, or the collection has no embedding model |
+| `404` | The collection does not exist or belongs to someone else |
+| `405` | The method is not `POST` |
+| `413` | The file is larger than `NODETOOL_MAX_UPLOAD_BYTES` (1 GiB by default) |
+| `415` | The file is not UTF-8 text. PDFs, Office files and images are not extracted |
+| `500` | The vector store or the embedding provider failed. The detail is in the server log |
+
+Create, list, query, and delete are tRPC procedures on `collections`.
 
 ### Extracting Text from a Document
 

@@ -45,7 +45,7 @@ The server is configured via environment variables:
 | `GEMINI_API_KEY` | — | Google Gemini API key |
 | `OLLAMA_API_URL` | `http://127.0.0.1:11434` | Ollama server URL |
 
-`nodetool server serve --host <host> --port <port>` sets `HOST` and `PORT` for the server process and overrides any value already in the environment. See [Configuration](configuration.md#environment-variables-index) for the full list.
+`nodetool server serve --host <host> --port <port>` sets `HOST` and `PORT` for the server process and overrides any value already in the environment. See [Environment Variables](environment-variables.md) for the full list.
 
 ## Health Check
 

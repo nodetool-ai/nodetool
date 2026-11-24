@@ -1,11 +1,11 @@
 ---
 layout: page
-title: "Music, Sound Effects, and Mixing"
+title: "Audio"
 permalink: /game-engine/audio
-description: "Route game audio through buses, scene music, spatial emitters, and mix snapshots."
+description: "Add music and sound effects, balance them with buses, and place sounds in 3D space."
 ---
 
-Bind prepared audio to logical slots, then play it through scene music or entity audio sources. Audio is presentation state and does not change simulation results or replay.
+Bind audio assets to named slots, then play them as scene music or from entity audio sources. Audio does not affect gameplay logic, so muting it never changes how a game plays or replays.
 
 ```json
 {
@@ -19,32 +19,41 @@ Bind prepared audio to logical slots, then play it through scene music or entity
 
 ![Audio routing diagram from scene music and entity effects through mixer buses to output](/assets/game-engine/audio-routing.svg)
 
-*Scene music uses the music bus. Effects use sfx unless the asset-to-bus map selects another route.*
+*Scene music uses the music bus. Effects use sfx unless `assetBuses` picks another route.*
 
-## Play a scene track or effect
+## Music
 
 ![Kindle scene inspector showing music volume and fade tick settings](/assets/game-engine/editor-2d.png)
 
-*Scene music settings beside the paused Kindle viewport. This capture shows configuration, not an audio playback test. [Capture provenance](/game-engine/screenshots).*
+*Scene music settings in the inspector.*
 
-Set `scene.music` to an audio slot, volume, and optional fade-in and fade-out ticks. Music starts at scene entry. Pause suspends playback, reset starts the entry scene again, and restore resumes from the logical tick.
+In the scene inspector, set the music slot, volume, and optional fade-in and fade-out ticks. Music starts when the scene starts. Pausing the game pauses the music, and reset starts it again from the beginning.
 
-An entity's `audioSource.onEvent` responds to an event kind or emitted trigger name. Effects have separate voices so repeated triggers can overlap within the voice cap. Inspect the actual player after a gesture: browsers may block sound until the player clicks or presses a key. A silent image capture is not an audio playback test.
+For a long track, add `streaming` with a loop start and an optional loop end, in seconds. The intro plays once, then the loop repeats. Leave streaming out for short tracks.
 
-For a long music track, add `streaming` with loop start and optional loop end in seconds. The intro plays once, then the loop repeats. Browser media events determine custom streaming loop boundaries. Omit streaming for decoded playback.
+## Sound effects
 
-## Route and balance
+An entity's `audioSource.onEvent` plays a sound when an event of that kind or a named trigger happens, such as `collected`. Repeated triggers overlap on separate voices, up to a voice cap. When the cap is reached, new sounds are dropped so the mix does not turn to noise.
 
-The mixer supplies master, music, sfx, voice, and ui buses. Custom buses have a parent, gain, mute state, low-pass frequency, and reverb send. A child multiplies its parent's gain. Muting sfx also mutes its descendants.
+Browsers often block sound until the player clicks or presses a key, so test in the real player after interacting. If a sound stays silent after that, check the player's console for a load or decode error.
 
-`assetBuses` routes a slot to a bus. Put dialogue on voice to use the default music ducking rule. The master limiter controls peaks. Replace ducking rules when the game needs a different relationship.
+## Mixing
 
-Mix snapshots override selected bus fields. Transitions enter a snapshot on a trigger, win, or scene entry and fade over ticks. The reserved base snapshot restores the ordinary mix. Restoring a session resets the appropriate mix without saving an audio graph in gameplay state.
+The mixer has master, music, sfx, voice, and ui buses. A bus is a volume channel that sounds are routed through. You can add custom buses, each with a parent, a gain, a mute switch, a low-pass frequency, and a reverb send.
 
-## Place sound in space
+- A child bus is as loud as its own gain times its parent's gain. Muting sfx also mutes the buses under it.
+- **Low-pass** cuts high frequencies, which makes a sound dull and muffled, like hearing it through a wall.
+- **Reverb send** adds echo, as if the sound were in a large room.
+- The master limiter stops loud peaks from distorting.
 
-Set `audioSource.spatial: true` for position-aware playback. The active camera is the listener. Minimum and maximum distance, distance model, and rolloff control attenuation. Doppler can shift pitch with relative motion.
+`assetBuses` routes an audio slot to a bus. Ducking lowers music while dialogue plays. Put dialogue on the voice bus to get the default ducking, or replace the rules for a different balance.
 
-3D sources can have a cone pointing along their −Z axis. 2D ignores the cone. The triggering event includes the emitter position so a collectible can disappear and still sound from where it was collected.
+Mix snapshots save a set of bus settings, such as a muffled underwater mix. A trigger, a win, or a scene entry switches to a snapshot and fades over a number of ticks. The reserved base snapshot returns to the normal mix.
 
-Check sounds on headphones and speakers, during pause and recovery, and after export. A configured audio asset may still fail to load or decode. Use the player's diagnostics and console to distinguish that from browser gesture restrictions.
+## 3D sound
+
+Set `audioSource.spatial: true` to make a sound come from a position. The active camera is the listener, so the sound gets quieter and pans left or right as the player moves. Minimum and maximum distance, the distance model, and rolloff set how quickly it fades with distance. Doppler shifts pitch as a sound moves toward or away from the listener.
+
+In 3D, a source can have a cone that points along its -Z axis. The sound is loudest inside the cone and quieter outside it. 2D ignores the cone. The event that triggers a sound carries the emitter's position, so a collectible can disappear and still sound from where it was.
+
+Listen on both headphones and speakers, and test after exporting the game.

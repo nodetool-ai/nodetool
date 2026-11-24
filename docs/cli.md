@@ -2585,7 +2585,7 @@ get to postpone.
 - `--token-policy <generate|fixed>` — default `generate`.
 - `--profile <name>` / `--attach` — for `create`.
 - `--comfy [port]` — run an unmodified ComfyUI image on RunPod and publish this
-  port (default `8188`). See [ComfyUI setup](comfyui-setup.md#expose-comfyui-yourself).
+  port (default `8188`). See [ComfyUI setup](worker-deployment.md#expose-comfyui-yourself).
 - `--template <id>` — with `--comfy`, use a RunPod template instead of `--image`.
 - `--ready-timeout <minutes>` — for `create` with `--comfy`: how long to wait for
   ComfyUI (default `10`).
@@ -2679,7 +2679,7 @@ the linking routes the bridge calls do not exist.
 
 Configuration is environment variables plus that optional file. The env vars are
 listed in the
-[Environment Variables Index](configuration.md#environment-variables-index);
+[Environment Variables Index](environment-variables.md);
 the file carries only the tuning knobs:
 
 ```jsonc
@@ -3315,7 +3315,7 @@ again, and a person can read the transcript before any model proposes anything.
 ## Tips
 
 - Set `NODETOOL_API_URL` to avoid passing `--api-url` on every command.
-- See [Environment Variables](configuration.md#environment-variables-index) for a complete list of configurable variables.
+- See [Environment Variables](environment-variables.md) for a complete list of configurable variables.
 
 ## Generation presets
 

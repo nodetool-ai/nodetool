@@ -10,18 +10,18 @@ New here? Start with [Getting Started](getting-started.md).
 
 | View | What it is | Docs |
 |---|---|---|
-| **Workspace** `/workspace` | Where the app opens: your tabs, or the new-project surface when you have none | [Getting Started](getting-started.md) |
+| **Workspace** | Where the app opens: your tabs, or the new-project surface when you have none | [Getting Started](getting-started.md) |
 | **Projects** — rail button | Documents grouped by the job they belong to, with their own agent | [Projects](projects.md) |
 | **Workflow Editor** — workspace tab | The node canvas, with panels on every edge | [Workflow Editor](workflow-editor.md) · [Panels](editor-panels.md) |
-| **Chain Editor** `/chain/:workflowId?` | Linear card pipeline instead of a graph | [Chain Editor](chain-editor.md) |
+| **Chain Editor** — Graph / Chain switch | Linear card pipeline instead of a graph | [Chain Editor](chain-editor.md) |
 | **Chat** — Chats panel | Threads open as workspace tabs; the agent edits what you have open | [Chat](global-chat.md) |
 | **Mini-Apps** — Documents panel | A form over one or more workflows | [Mini Apps](mini-apps.md) |
-| **Assets** `/assets` | Every file your workflows touch | [Assets](asset-management.md) · [Sketch Editor](sketch-editor.md) |
-| **Video Editor** `/timeline/:sequenceId` | Multi-track timeline; clips can be live workflow outputs | [Video Editor](video-editor.md) |
-| **Collections** `/collections` | Indexed documents for RAG | [Collections](collections.md) · [Indexing](indexing.md) |
+| **Assets** — More panel | Every file your workflows touch | [Assets](asset-management.md) · [Sketch Editor](sketch-editor.md) |
+| **Video Editor** — workspace tab | Multi-track timeline; clips can be live workflow outputs | [Video Editor](video-editor.md) |
+| **Collections** — More panel | Searchable document collections | [Collections](collections.md) |
 | **Examples** — workspace tab | Ready-to-run workflows, apps, storyboards, timelines, and games | [Templates Gallery](templates-gallery.md) |
-| **Models** `/models` and **Model Manager** tab | Find, install, and manage local and cloud models | [Models Manager](models-manager.md) |
-| **Settings** — workspace tab | API keys, folders, secrets, remote | [Configuration](configuration.md) · [Providers](models-and-providers.md) |
+| **Model Manager** — More panel | Find, install, and manage local and cloud models | [Models Manager](models-manager.md) |
+| **Settings** — workspace tab | API keys, folders, secrets, remote | [Settings](configuration.md) · [Providers](models-and-providers.md) |
 
 The logo at the top of the left rail opens the app menu: **Settings**, **Help**,
 and **Downloads**. Settings opens as a workspace tab.
@@ -92,8 +92,8 @@ main app.
 A form over your workflows with the graph hidden. See [Mini Apps](mini-apps.md).
 
 1. Build the workflows in the editor.
-2. Choose **+ New → New app** in the tab bar. To scaffold one from a graph, use
-   the from-workflow button in the left panel's **Apps** list.
+2. Choose **+ New → New app** in the tab bar. To start from an existing workflow, use
+   **Create app from workflow** in the left panel's **Apps** list.
 3. Lay out input widgets, a run button, and display widgets in the app's tab.
 4. Flip the tab to **Run**, then publish.
 
@@ -108,7 +108,7 @@ its own window.
 ![Asset Explorer](assets/screenshots/asset-explorer.png)
 
 Supported types: images (PNG, JPG, GIF, WebP), audio (MP3, WAV, M4A), video (MP4, MOV, WebM), and documents (PDF, TXT, Markdown). Drag files into the panel to upload, drag one onto the canvas to use it, click to
-preview. Audio previews render a WaveSurfer waveform you can scrub, in the
+preview. Audio previews render a interactive waveform you can scrub, in the
 explorer and in node results.
 
 ---

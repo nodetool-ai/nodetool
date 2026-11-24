@@ -18,6 +18,7 @@ The creative editors' pages describe what a person does in the app. This page is
 | [Sketch and 3D tools](#sketch-3d) | [Sketch Editor](../sketch-editor.md), [3D Editor](../3d-editor.md), [Blender](../blender.md) |
 | [Audio tools](#audio) | [Audio Editor](../audio-editor.md) |
 | [Document and game tools](#documents-games) | [Document Editor](../document-editor.md), [Text and SVG Documents](../text-and-svg-documents.md), [Game Editor](../game-editor.md) |
+| [Project tools](#projects) | [Projects](../projects.md) |
 
 ## Storyboard and Creative Agent tools {#storyboards}
 
@@ -365,7 +366,7 @@ User prompt: "Add a music track and lay these two clips end to end."
 | `add_media_clip` | Each call appends a clip after the last one. |
 | Result | Each op reports its own `ok`. A partial batch may already have saved the ops that succeeded, so check each result before dependent edits. |
 
-`edit_timeline` authors the cut and renders nothing. `validate_timeline` checks it. `render_timeline` renders it as a job (`get_job` polls, `cancel_job` stops) to `mp4` (default), `webm`, `mov`, or `png_sequence`. `alpha: true` is refused with mp4. `set_timeline_document` replaces the whole document and takes `expected_updated_at`, refusing the write as a conflict if the stored row changed since you read it. A timeline of a project is also a file in the project's folder, and an edit to that file passes the same checks ([Timelines are files in the folder](../workspaces.md#timelines-are-files-in-the-folder)).
+`edit_timeline` authors the cut and renders nothing. `validate_timeline` checks it. `render_timeline` renders it as a job (`get_job` polls, `cancel_job` stops) to `mp4` (default), `webm`, `mov`, or `png_sequence`. `alpha: true` is refused with mp4. `set_timeline_document` replaces the whole document and takes `expected_updated_at`, refusing the write as a conflict if the stored row changed since you read it. A timeline of a project is also a file in the project's folder, and an edit to that file passes the same checks ([Timelines are files in the folder](project-folders.md#timelines-are-files-in-the-folder)).
 
 ### Server-side render
 
@@ -651,7 +652,7 @@ The live preview runs the markup through `sanitizeSvgMarkup` (`web/src/utils/san
 
 ### Game editor
 
-Source: `packages/agents/` (tests in `packages/agents/tests/capabilities-game.test.ts`). The creator page is [Game Editor](../game-editor.md). Agent authoring guidance is on [Agent authoring](../game-engine/agent-authoring.md), so this section lists only the tools the editor assistant has.
+Source: `packages/agents/` (tests in `packages/agents/tests/capabilities-game.test.ts`). The creator page is [Game Editor](../game-editor.md). This section lists the tools the editor assistant has. [Game tools](#games) covers how to prompt it.
 
 **Show assistant** opens a chat beside the viewport. The agent knows the open game, your selected entities, and the script you are editing. It follows the `native-game` skill and edits the draft through these tools:
 
@@ -721,7 +722,7 @@ Agent edits land in your draft. The **Changes** list groups them by chat message
 - Desktop project: `dist/` (web player), `src-tauri/` (native shell, icons, `tauri.conf.json`), `package.json`, and a README. The identifier defaults to `ai.nodetool.game.<name>`. Installers: install the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) and run `npm install && npm run build`. Output lands in `src-tauri/target/release/bundle/`. `cargo build --release` in `src-tauri/` makes the executable alone. The in-editor executable build lands in `bin/` inside the build's project folder and a hosted server refuses it.
 - Mobile project: `App.js`, `app.json` (name, identifier, version, orientation), `assets/`, `package.json`, `eas.json`, and a README. The game is one page, `assets/game/game.html`, loaded under the fixed origin `https://game.invalid/`, which never resolves and gives the player the secure origin it needs for asset digests, WebAssembly, and saved games. A build carries at most 128 MB of game files. Run `npm install && npx expo start`, or `eas build --platform android --profile preview` (APK) or `eas build --platform ios`. `npx expo run:android` and `npx expo run:ios` build locally.
 - Schema limits per game: up to 8 render effects, 32 collision layer names, and 32 lights and backgrounds per scene. A sprite has up to 5 visual animation tracks. 3D triangle-mesh colliders require static bodies. Physics hierarchies reject scale and competing pose owners.
-- Retained construction rebuilds are also exposed through `nodetool.games.previewAuthoring` and `applyAuthoring`. See [Retained Construction](../game-engine/construction.md).
+- Retained construction rebuilds are also exposed through `nodetool.games.previewAuthoring` and `applyAuthoring`. See [Game Construction API](game-construction.md).
 
 ### Game scripts
 
@@ -771,4 +772,60 @@ The pane footer shows source length against the 16,384 character limit, **maxCom
 
 When a script throws during play, the 2D pane shows the tick and message. **Replay to tick N** reruns to the tick before the failure. **Ask the assistant** drafts a message with scene, entity, behavior index, tick, and error. 2D also has **Run 10 s**, a headless ten-second run that reports script calls, total script time, and a per-entity breakdown. The 3D editor shows **Replay before error**. Agents and JS scripts can build a whole document with the `@nodetool-ai/sandbox-game` pack.
 
+## Game tools {#games}
 
+The agent inspects a game, prepares assets, edits the document, runs a playtest, captures frames, and builds a standalone player. The tools are listed under [Game editor](#game-editor). Give it a concrete outcome. A draft, a staged asset, and a published revision are separate things, and the agent only publishes when you ask.
+
+![Diagram of media preparation, installed bindings, a game document, and export](/assets/game-engine/asset-pipeline.svg)
+
+Generating media does not add it to a game. Assets become playable when they are prepared and bound to a slot.
+
+### Ask for a specific change
+
+> In this draft, add a checkpoint before the last jump. Keep the movement settings and existing asset bindings. Test falling after the checkpoint, recovery, and completion. Show the changed operations and capture the checkpoint view.
+
+The agent reads the draft and its validation results first, then sends `edit_native_game` an `ops` array:
+
+```json
+{
+  "game_id": "<game id>",
+  "ops": [
+    { "op": "update_entity", "entity_id": "door", "set": { "tags": ["gate"] } }
+  ]
+}
+```
+
+Operations cover entities, scene settings, input bindings, UI trees, animation graphs, and audio and performance settings. An operation that replaces a whole object must keep the fields you did not ask to change.
+
+Use full resource IDs in saved documents. An asset slot is a name inside the game, an installed asset ID identifies owned media, and a prepared model node ID identifies geometry inside that asset. They are not interchangeable.
+
+### Check the result
+
+Each check answers one question:
+
+- Validation: does the document parse and do its references resolve.
+- Playtest: does the game behave correctly for the recorded inputs.
+- Replay: does a saved state restore.
+- Capture: does it look right.
+- Browser play: do the physical controls, sound start, and host behave.
+- Smoke test of a build: does the exported package load and run.
+
+A screenshot cannot show that a win condition works, and a simulated run cannot show that sound plays or touch controls are usable. Ask the agent to run the check that fits the change. [Game Testing and Replay](/developer/game-testing) lists the commands.
+
+### Workflow nodes and the API
+
+**Load Game Template**, **Slot Prompt**, and **Stage Game Assets** are workflow nodes. The guided game flow builds a design and asset graph before assembling the game. Staging produces candidate bindings, and installing them puts them in the destination project. The agent's current tool schemas and preparation order are in the [native-game skill](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/native-game/SKILL.md).
+
+The JavaScript sandbox's game builder offers construction with preview and apply. See [Game Construction API](/developer/game-construction). For direct integration use the [API reference](/api-reference) and the game procedures, not database rows or UI state.
+## Project tools {#projects}
+
+Agents manage [projects](../projects.md) with these tools. The agent confirms with the user before deleting and prefers archiving.
+
+| Tool | What it does |
+|---|---|
+| `list_projects` | Lists your projects, newest first. Pass `archived` to list archived ones. |
+| `search_projects` | Finds projects by name or kind. Every word must match. |
+| `create_project` | Creates a project and its folder. |
+| `update_project` | Renames a project, changes its kind, or archives and restores it. |
+| `move_to_project` | Moves one asset, entity, storyboard, script, timeline, sketch, app or JS script into another project. A file in the project folder moves too. A document or entity that other documents reference cannot move. Workflows and games do not move this way. |
+| `delete_project` | Permanently deletes a project and reports what happened to its folder. It refuses the Personal project and the project the conversation belongs to. |
