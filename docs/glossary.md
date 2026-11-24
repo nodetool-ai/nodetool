@@ -81,6 +81,11 @@ The agent interface. Chat with a model, run workflows, or let the agent plan and
 ### Inspector / Properties Panel
 The panel on the right that shows settings for the selected node.
 
+### Project
+A folder that holds the documents and media of one job. In the desktop app it is a real folder on your disk, `~/NodeTool/<project name>` by default. On NodeTool Cloud it is a folder in cloud storage. See [Projects](projects.md) and [Project folders](workspaces.md).
+
+*Technical: The code calls the folder the project's workspace. Runs in the project read and write it through `context.workspace`.*
+
 ### Workspace
 The tabbed surface the app opens on. Every document and app page is a tab in
 it. With no tabs open it shows the new-project surface instead.
