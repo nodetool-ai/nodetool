@@ -37,6 +37,42 @@ export interface CoercedAssetRef {
   uri: string;
 }
 
+/**
+ * What the host hands a trigger node's poller each time its schedule is due.
+ */
+export interface TriggerPollInput {
+  /** The trigger node's saved properties, as snapshotted into its registration. */
+  properties: Record<string, unknown>;
+  /** The cursor the previous poll returned, or `null` before the first poll. */
+  cursor: string | null;
+  /** The node's `requiredSettings`, resolved for the workflow's owner. */
+  secrets: Record<string, string>;
+}
+
+/** One event a poll found. */
+export interface TriggerPollEvent {
+  /** Unique within the registration. The host derives the delivery's idempotency key from it. */
+  id: string;
+  /** Delivered to the node's `emitTriggerEvent` as the event payload. */
+  payload: unknown;
+  /** The cursor that means "everything up to and including this event is delivered". */
+  cursor: string;
+}
+
+/** What one poll found. */
+export interface TriggerPollResult {
+  /** New events, oldest first. */
+  events: TriggerPollEvent[];
+  /**
+   * The cursor after every event in `events` is delivered. With no events it
+   * is the cursor to keep, which is how a first poll records its baseline.
+   */
+  cursor: string;
+}
+
+/** A trigger node's poller. See `BaseNode.pollTrigger`. */
+export type PollTrigger = (input: TriggerPollInput) => Promise<TriggerPollResult>;
+
 export function coerceToDeclaredType<TValue>(
   value: TValue,
   declaredType: string
@@ -178,6 +214,8 @@ export type NodeClass = {
     properties?: Record<string, unknown>;
   }) => DerivedDynamicSlots | undefined;
   isTrigger: boolean;
+  /** Host-driven polling for a trigger. See `BaseNode.pollTrigger`. */
+  pollTrigger?: PollTrigger;
   alwaysEmitOutputUpdates?: boolean;
   readonly audioSink?: "live" | "render";
   inputMode?: InputMode;
@@ -364,6 +402,17 @@ export abstract class BaseNode {
    * docs/superpowers/specs/2026-07-10-trigger-wakeup-redesign.md.
    */
   static readonly isTrigger: boolean = false;
+  /**
+   * Set by a trigger whose events live in an external system that has to be
+   * asked, such as a mailbox. The trigger still compiles to a `schedule`
+   * registration. When the schedule is due the host calls this instead of
+   * delivering a bare tick, starts one run per returned event, and stores the
+   * returned cursor on the registration, so the poll resumes where it stopped
+   * after a restart. A poll that finds nothing starts no run. A poller that
+   * throws is recorded on the registration and counts toward its failure
+   * limit. The next poll runs one interval later.
+   */
+  static readonly pollTrigger: PollTrigger | undefined = undefined;
   /**
    * Emit output_update for this node's handles even when they are connected
    * onward. The runner suppresses output_update for connected handles by

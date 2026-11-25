@@ -28,17 +28,32 @@ npm install @nodetool-ai/integration-nodes
 **Messaging** (`messaging.*`) — Discord and Telegram bot triggers:
 `discord.DiscordBotTrigger`, `telegram.TelegramBotTrigger`. A trigger holds a
 long-lived connection, which is what a script cannot do; sending a message is a
-`fetch` call and is one.
+`fetch` call and is one. These two listen only while a workflow containing them
+runs. They are not in `TRIGGER_KIND_BY_NODE_TYPE`, so they cannot be armed to
+run in the background.
 
-**Mail** (`lib.mail.*`) — Gmail over IMAP with a Google app password, for
-installs that have no Google sign-in: `GmailSearch`, `AddLabel`, `MoveToArchive`.
+**Mail** (`lib.mail.*`) — Gmail with a Google app password, for installs that
+have no Google sign-in: `GmailSearch`, `AddLabel`, `MoveToArchive`, `SendEmail`
+and `EmailTrigger`. The host is `imap.gmail.com` for reading and
+`smtp.gmail.com` for sending. Another provider needs host settings and an
+egress review first, see [URL Egress Inventory](../../docs/url-egress-inventory.md).
 IMAP is a long-lived socket protocol, which `fetch` cannot speak, so these stay
 nodes. `GmailSearch` returns the newest matches first, with the body decoded to
 text. `AddLabel` and `MoveToArchive` find a message by its `Message-ID` header
 and act on it by UID. Sent, Drafts, Spam, Trash and All Mail are found by their
 IMAP role, so they work when Gmail names them in another language or under
-`[Google Mail]`. A workflow that runs under a Google sign-in can use the
-`gmail_*` capabilities from a Code node instead, with no app password.
+`[Google Mail]`. `SendEmail` sends through `nodemailer`. It accepts plain
+addresses only, refuses a line break in a subject or address so a value from an
+upstream node cannot add headers, and sends no attachments. `EmailTrigger`
+starts a run for each new message. It compiles to a `schedule` registration,
+and the server calls its `pollTrigger` when the schedule is due. The cursor is
+the highest UID seen plus the folder's UIDVALIDITY, stored on the registration,
+so a restart neither re-runs old mail nor skips new mail. The first check only
+records a baseline. The design is in
+[`websocket/src/triggers/poll.ts`](../websocket/src/triggers/poll.ts) and the
+user-facing behavior is in [Triggers](../../docs/triggers.md#email-trigger). A
+workflow that runs under a Google sign-in can use the `gmail_*` capabilities
+from a Code node instead, with no app password.
 
 **ComfyUI** (`lib.comfy.*`) — `RunWorkflow` runs an API-format ComfyUI workflow
 against any reachable ComfyUI server, streaming each output file as its save node

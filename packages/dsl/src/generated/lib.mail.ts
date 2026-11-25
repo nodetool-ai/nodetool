@@ -56,3 +56,47 @@ export interface MoveToArchiveOutputs {
 export function moveToArchive(inputs: MoveToArchiveInputs, options?: NodeOptions): NodeWithOutputs<MoveToArchiveOutputs, "output"> {
   return createNode("lib.mail.MoveToArchive", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"bool"}, defaultOutput: "output" });
 }
+
+// Send Email — lib.mail.SendEmail
+export type SendEmailInputs = {
+  to?: Connectable<string>;
+  cc?: Connectable<string>;
+  bcc?: Connectable<string>;
+  subject?: Connectable<string>;
+  text?: Connectable<string>;
+  html?: Connectable<string>;
+};
+
+export interface SendEmailOutputs {
+  message_id: string;
+  accepted: string[];
+  rejected: string[];
+}
+
+export function sendEmail(inputs: SendEmailInputs, options?: NodeOptions): NodeWithOutputs<SendEmailOutputs> {
+  return createNode("lib.mail.SendEmail", inputs, { id: options?.id, outputNames: ["message_id", "accepted", "rejected"], outputTypes: {"message_id":"str","accepted":"list[str]","rejected":"list[str]"} });
+}
+
+// Email Trigger — lib.mail.EmailTrigger
+export type EmailTriggerInputs = {
+  folder?: Connectable<"INBOX" | "[Gmail]/Sent Mail" | "[Gmail]/Drafts" | "[Gmail]/Spam" | "[Gmail]/Trash">;
+  from_address?: Connectable<string>;
+  subject?: Connectable<string>;
+  interval_seconds?: Connectable<number>;
+  max_messages?: Connectable<number>;
+};
+
+export interface EmailTriggerOutputs {
+  email: Record<string, unknown>;
+  message_id: string;
+  subject: string;
+  sender: string;
+  date: string;
+  body: string;
+  source: string;
+  event_type: string;
+}
+
+export function emailTrigger(inputs: EmailTriggerInputs, options?: NodeOptions): NodeWithOutputs<EmailTriggerOutputs> {
+  return createNode("lib.mail.EmailTrigger", inputs, { id: options?.id, outputNames: ["email", "message_id", "subject", "sender", "date", "body", "source", "event_type"], outputTypes: {"email":"dict","message_id":"str","subject":"str","sender":"str","date":"str","body":"str","source":"str","event_type":"str"}, streaming: true });
+}

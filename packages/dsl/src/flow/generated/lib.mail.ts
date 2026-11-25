@@ -62,3 +62,51 @@ export interface MoveToArchiveOutputs {
 export function moveToArchive(inputs: MoveToArchiveInputs): Promise<MoveToArchiveOutputs> {
   return callNode<MoveToArchiveOutputs>("lib.mail.MoveToArchive", inputs);
 }
+
+// Send Email — lib.mail.SendEmail
+export type SendEmailInputs = {
+  to?: string;
+  cc?: string;
+  bcc?: string;
+  subject?: string;
+  text?: string;
+  html?: string;
+};
+
+export interface SendEmailOutputs {
+  message_id: string;
+  accepted: string[];
+  rejected: string[];
+}
+
+export function sendEmail(inputs: SendEmailInputs): Promise<SendEmailOutputs> {
+  return callNode<SendEmailOutputs>("lib.mail.SendEmail", inputs);
+}
+
+// Email Trigger — lib.mail.EmailTrigger
+export type EmailTriggerInputs = {
+  folder?: "INBOX" | "[Gmail]/Sent Mail" | "[Gmail]/Drafts" | "[Gmail]/Spam" | "[Gmail]/Trash";
+  from_address?: string;
+  subject?: string;
+  interval_seconds?: number;
+  max_messages?: number;
+};
+
+export interface EmailTriggerOutputs {
+  email: Record<string, unknown>;
+  message_id: string;
+  subject: string;
+  sender: string;
+  date: string;
+  body: string;
+  source: string;
+  event_type: string;
+}
+
+export function emailTrigger(inputs: EmailTriggerInputs): Promise<EmailTriggerOutputs> {
+  return callNode<EmailTriggerOutputs>("lib.mail.EmailTrigger", inputs);
+}
+
+emailTrigger.stream = function (inputs: EmailTriggerInputs): AsyncIterable<Partial<EmailTriggerOutputs>> {
+  return streamNode<Partial<EmailTriggerOutputs>>("lib.mail.EmailTrigger", inputs);
+};

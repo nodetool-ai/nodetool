@@ -9,8 +9,16 @@ function addLabel(inputs, options) {
 function moveToArchive(inputs, options) {
   return createNode("lib.mail.MoveToArchive", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "bool" }, defaultOutput: "output" });
 }
+function sendEmail(inputs, options) {
+  return createNode("lib.mail.SendEmail", inputs, { id: options?.id, outputNames: ["message_id", "accepted", "rejected"], outputTypes: { "message_id": "str", "accepted": "list[str]", "rejected": "list[str]" } });
+}
+function emailTrigger(inputs, options) {
+  return createNode("lib.mail.EmailTrigger", inputs, { id: options?.id, outputNames: ["email", "message_id", "subject", "sender", "date", "body", "source", "event_type"], outputTypes: { "email": "dict", "message_id": "str", "subject": "str", "sender": "str", "date": "str", "body": "str", "source": "str", "event_type": "str" }, streaming: true });
+}
 export {
   addLabel,
+  emailTrigger,
   gmailSearch,
-  moveToArchive
+  moveToArchive,
+  sendEmail
 };
