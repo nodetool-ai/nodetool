@@ -85,6 +85,8 @@ export interface DocumentSource {
   name: string;
   description?: string | null;
   tags?: unknown;
+  /** The JSON document of the kinds that keep their description inside it, such as JS scripts. */
+  document?: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -272,6 +274,20 @@ export function assetSourceVersion(asset: Pick<AssetSource, "updated_at" | "cont
   return `${asset.updated_at}|${asset.content_hash ?? ""}`;
 }
 
+/** The `description` field of a stored JSON document, when it has one. */
+function documentDescription(document: unknown): string | undefined {
+  let parsed = document;
+  if (typeof document === "string") {
+    try {
+      parsed = JSON.parse(document);
+    } catch {
+      return undefined;
+    }
+  }
+  if (typeof parsed !== "object" || parsed === null) return undefined;
+  return nonEmpty((parsed as { description?: unknown }).description);
+}
+
 /** What the index stores for a document row of any kind. */
 export function extractDocument(
   resourceType: Exclude<SearchResourceType, "asset" | "project_file">,
@@ -281,7 +297,7 @@ export function extractDocument(
   const projectId = doc.project_id || "default";
   const title = doc.name || "";
   const tags = normalizeSearchTags(Array.isArray(doc.tags) ? doc.tags : []);
-  const description = nonEmpty(doc.description);
+  const description = nonEmpty(doc.description) ?? documentDescription(doc.document);
   const item: SearchMetadata = {
     kind,
     title,
