@@ -77,7 +77,8 @@ Five blocks, in order:
 
 One template renders every `/alternatives/<slug>` page. It keeps:
 
-- the hero and its reel,
+- the hero and its reel, with an optional `quickPicks` block after the reel
+  that groups the listed alternatives by need for list queries,
 - the three product stages,
 - one feature table, introduced by the short answer that answer engines lift,
 - the cost and preset tables where the record has them,
@@ -90,7 +91,7 @@ paragraph that names the alternatives in a sentence, for the list queries
 answer engines send. `listFacts` is one line per tool with its platforms and
 licence. `otherTools` names tools that have no comparison page, each with a
 source URL and one `checked` date for the set, and links to the project's own
-page. The ComfyUI record uses all three.
+page. The ComfyUI record uses all three, plus `quickPicks`.
 
 A FAQ row must not restate the short answer or the table. A record may set
 `answer` when the generic short answer would only repeat the hero, and `hero`

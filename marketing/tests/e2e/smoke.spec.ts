@@ -342,11 +342,11 @@ test.describe("marketing smoke", () => {
   }) => {
     await page.goto("/alternatives/comfyui");
     await expect(page).toHaveTitle(
-      "ComfyUI Alternatives: NodeTool, Figma Weave, Flora, Krea"
+      "8 ComfyUI Alternatives: Open Source, Mac, Linux & Online"
     );
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",
-      "ComfyUI Alternatives: NodeTool, Figma Weave, Flora, Krea"
+      "8 ComfyUI Alternatives: Open Source, Mac, Linux & Online"
     );
     await expect(
       page.locator('section[aria-labelledby="alt-list-title"] h3')

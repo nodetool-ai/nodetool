@@ -38,6 +38,21 @@ test("ComfyUI alternatives list answers with platform and licence", async ({
   ).toBeVisible();
 });
 
+test("ComfyUI alternatives by need sit under the hero and name listed tools", async ({
+  page
+}) => {
+  const comfy = competitors.find((c) => c.slug === "comfyui");
+  expect(comfy?.quickPicks?.length).toBeGreaterThan(0);
+  await page.goto("/alternatives/comfyui");
+  const block = page.locator('h2#quick-picks-title + dl');
+  for (const pick of comfy!.quickPicks!) {
+    await expect(block.getByText(pick.need, { exact: true })).toBeVisible();
+    await expect(block.getByText(pick.tools, { exact: true })).toBeVisible();
+  }
+  const questions = await faqSchemaQuestions(page);
+  expect(questions).toContain("ComfyUI vs n8n: which one do I need?");
+});
+
 test("storyboards h1 names the category and the FAQ reaches the schema", async ({
   page
 }) => {
