@@ -485,12 +485,36 @@ export async function findProjectAssetModelInterface(args: {
   };
 }
 
+/** The `getAssetInfo` model interface: one owned asset's identity and metadata. */
+export async function getAssetInfoModelInterface(args: {
+  userId: string;
+  assetId: string;
+}): Promise<{
+  id: string;
+  content_type: string;
+  name: string;
+  metadata: Record<string, unknown> | null;
+  workspace_path: string | null;
+} | null> {
+  const asset = await Asset.find(args.userId, args.assetId);
+  if (!asset) return null;
+  return {
+    id: asset.id,
+    content_type: asset.content_type,
+    name: asset.name,
+    metadata: asset.metadata ?? null,
+    workspace_path: asset.workspace_path ?? null
+  };
+}
+
 /** The document model interfaces a workflow run host installs. */
 export function textDocumentModelInterfaces(): {
   writeTextDocument: typeof writeTextDocumentModelInterface;
   findProjectAsset: typeof findProjectAssetModelInterface;
+  getAssetInfo: typeof getAssetInfoModelInterface;
 } {
   return {
+    getAssetInfo: getAssetInfoModelInterface,
     writeTextDocument: writeTextDocumentModelInterface,
     findProjectAsset: findProjectAssetModelInterface
   };
