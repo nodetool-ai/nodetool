@@ -56,6 +56,7 @@ import {
 } from "./lib/resource-change-bus.js";
 import {
   reconcileLibraryIndex,
+  setLibraryIndexMaintained,
   startLibraryIndexWrites
 } from "@nodetool-ai/search-services";
 import {
@@ -413,8 +414,9 @@ try {
   startResourceChangeFeeds();
   // Library search (docs/plans/library-search.md, D4): index assets and
   // documents as they are written. The reconcile below repairs what a raw
-  // update or a stopped server missed.
+  // update or a stopped server missed, so searches never reconcile.
   startLibraryIndexWrites();
+  setLibraryIndexMaintained(true);
 
   // Initialize master key from keychain before any secret access. Callers
   // that need provider credentials bind their own `(key) => getSecret(key,
@@ -556,8 +558,8 @@ try {
   historyCleanupTimer.unref?.();
 
   // Backfill, repair and content extraction for the library index run in
-  // the indexer process (D13). Searches never wait for it: each one
-  // reconciles its own owner's metadata first.
+  // the indexer process (D13). Searches never wait for it: they read the
+  // index as the inline writes and this reconcile left it.
   const indexerMode = searchIndexerMode();
   if (indexerMode === "child") {
     searchIndexer = superviseSearchIndexer();

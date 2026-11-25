@@ -3,10 +3,16 @@
  * and its neighbours, without extracting the file again.
  */
 
-import { and, eq, like, or } from "drizzle-orm";
-import { getPortableDb, searchChunks, searchItems } from "@nodetool-ai/models";
-import { isShortResourceId, type SearchField, type SearchKind } from "@nodetool-ai/protocol";
+import { and, eq, isNotNull, like, or } from "drizzle-orm";
+import { getPortableDb, projects, searchChunks, searchItems } from "@nodetool-ai/models";
+import {
+  isShortResourceId,
+  type SearchField,
+  type SearchKind,
+  type SearchResourceType
+} from "@nodetool-ai/protocol";
 import { METADATA_FIELDS } from "./index-writer.js";
+import { existingSourceIds } from "./sources.js";
 
 export interface LibraryReadRequest {
   userId: string;
@@ -84,12 +90,35 @@ async function findItem(userId: string, id: string) {
   return { row };
 }
 
+/**
+ * Whether an item may still be read: its source row exists for the owner and
+ * its project is not deleted. The index lags behind both, so a read never
+ * trusts the item row alone.
+ */
+async function sourceIsReadable(item: {
+  user_id: string;
+  resource_type: string;
+  resource_id: string;
+  project_id: string;
+}): Promise<boolean> {
+  const present = await existingSourceIds(item.resource_type as SearchResourceType, item.user_id, [
+    item.resource_id
+  ]);
+  if (present.size === 0) return false;
+  const deleted = await getPortableDb()
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, item.project_id), isNotNull(projects.deleted_at)))
+    .limit(1);
+  return deleted.length === 0;
+}
+
 /** Read the passage at a locator of one item and its neighbours. */
 export async function readLibraryPassage(request: LibraryReadRequest): Promise<LibraryReadResult> {
   const found = await findItem(request.userId, request.id);
   if ("error" in found && found.error) return { ok: false, error: found.error };
   const item = found.row;
-  if (!item || item.state === "excluded") {
+  if (!item || item.state === "excluded" || !(await sourceIsReadable(item))) {
     return { ok: false, error: `No library item ${request.id}.` };
   }
   const chunks = await getPortableDb()

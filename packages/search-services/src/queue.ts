@@ -15,6 +15,7 @@ import {
 import type { SearchResourceType } from "@nodetool-ai/protocol";
 import type { ExtractedChunk } from "./extract.js";
 import { METADATA_FIELDS } from "./index-writer.js";
+import { existingSourceIds } from "./sources.js";
 
 /** How long one claim holds an item. */
 export const LEASE_MS = 10 * 60 * 1000;
@@ -182,17 +183,24 @@ export async function failItem(item: ClaimedItem, reason: string, now = new Date
     .where(stillOurs(item));
 }
 
-/** Put a claimed item whose source row is gone out of the index. */
-export async function dropClaimedItem(item: ClaimedItem): Promise<void> {
-  await withTransaction(async () => {
+/**
+ * Put a claimed item whose source row is gone out of the index. The delete is
+ * conditional on the claim and the source version, and the source row is
+ * checked again inside the transaction, so a source that came back or was
+ * rewritten meanwhile keeps its item. Returns whether the item was removed.
+ */
+export async function dropClaimedItem(item: ClaimedItem): Promise<boolean> {
+  return withTransaction(async () => {
+    const present = await existingSourceIds(item.resourceType, item.userId, [item.resourceId]);
+    if (present.size > 0) return false;
     const db = getPortableDb();
-    const owned = await db
-      .select({ id: searchItems.id })
-      .from(searchItems)
-      .where(eq(searchItems.id, item.id));
-    if (owned.length === 0) return;
+    const removed = await db
+      .delete(searchItems)
+      .where(stillOurs(item))
+      .returning({ id: searchItems.id });
+    if (removed.length === 0) return false;
     await db.delete(searchChunks).where(eq(searchChunks.item_id, item.id));
-    await db.delete(searchItems).where(eq(searchItems.id, item.id));
+    return true;
   });
 }
 

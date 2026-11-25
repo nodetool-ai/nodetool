@@ -15,6 +15,7 @@ import {
   reconcileLibraryIndex,
   searchAssets,
   searchLibrary,
+  setLibraryIndexMaintained,
   snippetOf,
   stopLibraryIndexWrites
 } from "../src/index.js";
@@ -162,6 +163,20 @@ describe.each(dialects)("library search on %s", (_name, init) => {
 
     await asset.delete();
     expect(await reconcileLibraryIndex()).toEqual({ indexed: 0, excluded: 0, removed: 1, pending: 0 });
+  });
+
+  it("does not reconcile on a query in a host that maintains the index", async () => {
+    await init();
+    setLibraryIndexMaintained(true);
+    try {
+      stopLibraryIndexWrites();
+      await Asset.create({ user_id: USER, name: "unsignalled.png", content_type: "image/png" });
+      expect((await searchLibrary({ userId: USER, query: "unsignalled" })).total).toBe(0);
+      await reconcileLibraryIndex();
+      expect((await searchLibrary({ userId: USER, query: "unsignalled" })).total).toBe(1);
+    } finally {
+      setLibraryIndexMaintained(false);
+    }
   });
 
   it("answers asset searches with rows, folder paths and the full total", async () => {

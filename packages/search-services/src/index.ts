@@ -11,6 +11,7 @@ export {
   ensureLibraryIndexed,
   flushLibraryIndexWrites,
   reconcileLibraryIndex,
+  setLibraryIndexMaintained,
   startLibraryIndexWrites,
   setLibraryIndexerWake,
   stopLibraryIndexWrites,
@@ -45,6 +46,7 @@ export {
 export {
   claimPendingItems,
   completeItem,
+  dropClaimedItem,
   failItem,
   retryFailedItems,
   MAX_ATTEMPTS,
