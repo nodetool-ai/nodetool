@@ -289,14 +289,23 @@ function codeNodeGate(
  * The bridge invokes the belt run, which applies the host's gate once.
  */
 async function toolBridgeGlobals(
-  context: ProcessingContext | undefined
+  context: ProcessingContext | undefined,
+  code: string
 ): Promise<SandboxGlobals> {
   if (!context) return NO_TOOLS_GLOBALS;
   const mod = await loadAgentsModule();
   if (!mod) return NO_TOOLS_GLOBALS;
-  const tools = toolOverride ?? assembleToolbelt(mod);
+  const gate = codeNodeGate(mod, context);
+  // The user's external MCP tools join the belt only for a body that names
+  // one, and under the gate's rule for agent-chosen calls (see
+  // `workflowExternalMcp`), so an unrelated body never opens a connection.
+  const external = mod.mcpToolsMentioned(code)
+    ? await mod.workflowExternalMcp(context, gate)
+    : null;
+  const tools = [...(toolOverride ?? assembleToolbelt(mod)), ...(external?.tools ?? [])];
   const run = mod.capabilityRunForTools(tools, context, {
-    gate: codeNodeGate(mod, context)
+    gate,
+    ...(external && { overrides: external.capabilities })
   });
   return mod.buildToolBridge({ tools, invoke: run.invoke }).globals;
 }
@@ -774,7 +783,8 @@ export class CodeNode extends BaseNode {
    * persist across calls.
    */
   private async sandboxGlobals(
-    context: ProcessingContext | undefined
+    context: ProcessingContext | undefined,
+    code: string
   ): Promise<SandboxGlobals> {
     const allInputs = {
       ...this.serialize(),
@@ -783,7 +793,7 @@ export class CodeNode extends BaseNode {
     return {
       [CODE_INPUTS_GLOBAL]: deepCopyInputs(extractDynamicInputs(allInputs)),
       state: this._state,
-      ...(await toolBridgeGlobals(context))
+      ...(await toolBridgeGlobals(context, code))
     };
   }
 
@@ -827,7 +837,7 @@ export class CodeNode extends BaseNode {
       code: `${NODETOOL_PRELUDE}\n${code}`,
       context,
       timeoutMs: this.timeoutMs(envelope),
-      globals: await this.sandboxGlobals(context),
+      globals: await this.sandboxGlobals(context, code),
       limits: this.sandboxLimits(envelope),
       onProgress: this.progressSink(context),
       onLog: this.logSink(context),
@@ -855,13 +865,18 @@ export class CodeNode extends BaseNode {
     if (!context) return undefined;
     const mod = await loadAgentsModule();
     if (!mod) return undefined;
+    const gate = codeNodeGate(mod, context);
+    const external = mod.mcpToolsMentioned(code)
+      ? await mod.workflowExternalMcp(context, gate)
+      : null;
     const mounted = await mod.mountCapabilityModules(
       code,
       mod.createCapabilityRun({
         context,
-        gate: codeNodeGate(mod, context),
+        gate,
         availableSecrets: mod.contextSecretAvailability(context)
-      })
+      }),
+      external?.session ? { session: [external.session] } : {}
     );
     if (!mounted.ok) {
       throw new Error(
