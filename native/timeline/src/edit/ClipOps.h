@@ -69,7 +69,7 @@ QJsonObject trimClip(const QJsonObject& clip, const QString& edge, double deltaM
 
 // ── splitClip.ts ──
 std::pair<QJsonObject, QJsonObject> splitClip(const QJsonObject& clip, double atMs, double bpm = 120,
-                                             const QString& crossing = QStringLiteral("shorten"));
+                                             const QString& crossing = QStringLiteral("shorten"), double gridOffsetMs = 0);
 
 // ── rippleEdit.ts ──
 struct RippleOptions {

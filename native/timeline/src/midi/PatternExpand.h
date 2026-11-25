@@ -12,6 +12,7 @@
 
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 
@@ -163,5 +164,15 @@ struct ParsedPatternLine {
 [[nodiscard]] QJsonObject applyPatternRowSort(const QJsonObject& pattern, const QJsonObject& instrument = {});
 [[nodiscard]] std::optional<std::vector<int>> parseStepSelection(const QJsonValue& spec, int maxSteps,
                                                                  QString* error = nullptr);
+
+// Row and pattern transforms (SQ35, SQ53). `mode` empty rotates whole steps.
+[[nodiscard]] QJsonObject rotateRowSteps(const QJsonObject& row, int by, const QString& mode = {});
+[[nodiscard]] QJsonObject nudgeRowValues(const QJsonObject& row, const QString& mode, double delta,
+                                         const QJsonObject& instrument = {});
+[[nodiscard]] QJsonObject tieRowSteps(const QJsonObject& row, int fromIdx, int toIdx, bool tie);
+[[nodiscard]] QJsonObject randomizePatternSteps(const QJsonObject& pattern, const QString& mode,
+                                                const std::optional<QSet<QString>>& rowIds,
+                                                const std::optional<std::vector<int>>& stepIndices, std::uint32_t seed,
+                                                double density = 50);
 
 }  // namespace nt::midi

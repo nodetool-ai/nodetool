@@ -279,7 +279,7 @@ IdSet splitTargetIds(const ClipList& clips, double atMs, const QStringList& targ
 }
 
 ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringList& targetIds,
-                            const IdSet& clipsWithMediaTracks, double bpm, const QString& crossing) {
+                            const IdSet& clipsWithMediaTracks, double bpm, const QString& crossing, double gridOffsetMs) {
     const auto toSplit = splitTargetIds(clips, atMs, targetIds, clipsWithMediaTracks);
     if (toSplit.empty()) { return clips; }
     ClipList prepared;
@@ -289,7 +289,7 @@ ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringLi
     for (const auto& clip : clips) {
         const double period = clip.value("loopLengthMs").toDouble();
         if (toSplit.contains(clipId(clip)) && period > 0 && period < clipDurationMs(clip)) {
-            const auto raw = expandMusicLoops({{"clips", QJsonArray{clip}}, {"tempo", QJsonObject{{"bpm", bpm}}}});
+            const auto raw = expandMusicLoops({{"clips", QJsonArray{clip}}, {"tempo", QJsonObject{{"bpm", bpm}, {"offsetMs", gridOffsetMs}}}});
             for (const auto& value : raw.value("clips").toArray()) {
                 prepared.push_back(value.toObject());
                 preparedTargets.append(clipId(value.toObject()));
@@ -297,7 +297,7 @@ ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringLi
             unrolled = true;
         } else { prepared.push_back(clip); }
     }
-    if (unrolled) { return splitClipsLinkAware(prepared, atMs, preparedTargets, clipsWithMediaTracks, bpm, crossing); }
+    if (unrolled) { return splitClipsLinkAware(prepared, atMs, preparedTargets, clipsWithMediaTracks, bpm, crossing, gridOffsetMs); }
     std::map<QString, QString> leftLinkByGroup;
     std::map<QString, QString> rightLinkByGroup;
     const auto groupLink = [](std::map<QString, QString>& map, const QString& source) {
@@ -312,7 +312,7 @@ ClipList splitClipsLinkAware(const ClipList& clips, double atMs, const QStringLi
             continue;
         }
         try {
-            auto [left, right] = splitClip(c, atMs, bpm, crossing);
+            auto [left, right] = splitClip(c, atMs, bpm, crossing, gridOffsetMs);
             const QString link = clipLinkId(c);
             if (!link.isEmpty()) {
                 left.insert(QStringLiteral("linkId"), groupLink(leftLinkByGroup, link));
@@ -436,7 +436,7 @@ ClipList trimClipStart(const EditDoc& doc, const QString& id, double deltaMs, bo
         QJsonArray tracks;
         for (const auto& track : doc.tracks) { tracks.append(QJsonObject{{"id", track.id}, {"type", track.type}, {"locked", track.locked}}); }
         try {
-            const auto result = applyMusicClipEdit({{"clips", clips}, {"tracks", tracks}, {"tempo", QJsonObject{{"bpm", doc.bpm}}}},
+            const auto result = applyMusicClipEdit({{"clips", clips}, {"tracks", tracks}, {"tempo", QJsonObject{{"bpm", doc.bpm}, {"offsetMs", doc.gridOffsetMs}}}},
                 "trim_clip", {{"clipId", id}, {"startMs", clipStartMs(primary) - deltaMs}, {"linked", linked}});
             ClipList next;
             for (const auto& clip : result.value("clips").toArray()) { next.push_back(clip.toObject()); }
@@ -519,7 +519,7 @@ ClipList rippleDeleteSelected(const EditDoc& doc, const IdSet& selectedIds) {
 
 ClipList splitClipAtTime(const EditDoc& doc, const QString& id, double atMs) {
     if (!isEditable(doc, id, true, false)) return doc.clips;
-    return splitClipsLinkAware(doc.clips, atMs, {id}, doc.clipsWithMediaTracks, doc.bpm, doc.splitCrossing);
+    return splitClipsLinkAware(doc.clips, atMs, {id}, doc.clipsWithMediaTracks, doc.bpm, doc.splitCrossing, doc.gridOffsetMs);
 }
 
 SplitResult splitSelectedAtPlayhead(const EditDoc& doc, double timeMs, const QStringList& selectedIds) {
@@ -538,7 +538,7 @@ SplitResult splitSelectedAtPlayhead(const EditDoc& doc, double timeMs, const QSt
         if (targets.count(id)) targetList.append(id);
     }
     SplitResult result;
-    result.clips = splitClipsLinkAware(doc.clips, timeMs, targetList, doc.clipsWithMediaTracks, doc.bpm, doc.splitCrossing);
+    result.clips = splitClipsLinkAware(doc.clips, timeMs, targetList, doc.clipsWithMediaTracks, doc.bpm, doc.splitCrossing, doc.gridOffsetMs);
     IdSet oldIds;
     IdSet targetTracks;
     for (const auto& c : doc.clips) {

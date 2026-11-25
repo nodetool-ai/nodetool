@@ -2,6 +2,7 @@
 
 #include "audio/FadeCurves.h"
 #include "midi/PatternExpand.h"
+#include "midi/RegionParams.h"
 
 #include <QDir>
 #include <QFile>
@@ -271,10 +272,12 @@ MidiTrackStream buildStream(const Timeline& timeline, const std::string& trackId
         const QJsonObject expandedPattern =
             isPatternClip ? nt::midi::expandPatternClipForPlayback(clip.raw, timeline.raw) : QJsonObject{};
         const double windowStart = isPatternClip ? 0.0 : std::max(0.0, clip.inPointMs);
+        const auto projected = isPatternClip ? QJsonObject{} : nt::midi::applyRegionParams(clip.raw, bpm,
+            timeline.raw.value("tempo").toObject().value("offsetMs").toDouble());
         const QJsonArray notes = isPatternClip ? expandedPattern.value(u"notes").toArray()
-                                               : clip.raw.value(u"notes").toArray();
+                                               : projected.value(u"notes").toArray();
         const QJsonArray controllers = isPatternClip ? expandedPattern.value(u"controllers").toArray()
-                                                     : clip.raw.value(u"controllers").toArray();
+                                                     : projected.value(u"controllers").toArray();
         const double loop = isPatternClip ? 0.0 : clip.raw.value(u"loopLengthMs").toDouble();
         const double period = std::isfinite(loop) && loop > 0 && loop < clip.durationMs ? loop : clip.durationMs;
         for (int k = 0; k * period < clip.durationMs; ++k) {
@@ -742,7 +745,11 @@ std::vector<VstNoteEvent> extractMidiNoteEvents(const QJsonObject& clipRaw, doub
         notes = nt::midi::expandPatternClipForPlayback(effectiveClip, doc).value(u"notes").toArray();
         windowStart = 0.0;
     } else {
-        notes = clipRaw.value(u"notes").toArray();
+        auto effectiveClip = clipRaw;
+        effectiveClip.insert("inPointMs", inPointMs);
+        effectiveClip.insert("durationMs", durationMs);
+        notes = nt::midi::applyRegionParams(effectiveClip, bpm,
+            document.value("tempo").toObject().value("offsetMs").toDouble()).value("notes").toArray();
     }
     const double loop = isPatternClip ? 0.0 : clipRaw.value(u"loopLengthMs").toDouble();
     const double period = std::isfinite(loop) && loop > 0 && loop < durationMs ? loop : durationMs;

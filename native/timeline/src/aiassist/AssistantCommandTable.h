@@ -38,6 +38,8 @@ enum class ParamKind {
     EffectId,     // resolved in the effects of the track or clip before it, else the master's
     Number,
     NullableNumber,
+    NullableObject,
+    NullableText,
     Object,
     Boolean,
     Text,

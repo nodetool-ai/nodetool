@@ -139,7 +139,7 @@ nt::audio::vst::PluginToolResult run(const QString& name, const QJsonObject& arg
 
 QJsonObject run(const QString& name, const QJsonObject& args, TimelineModel& model, MusicJobs& jobs, const EditState& state) {
     if (nt::midi::isStepPatternTool(name)) {
-        if (nt::midi::canonicalStepPatternOp(name) != u"get_pattern") {
+        if (const auto op = nt::midi::canonicalStepPatternOp(name); op != u"get_pattern" && op != u"list_step_patterns") {
             if (state.dragging) return failure(QStringLiteral("The person is dragging in the timeline. Try again when the drag ends."));
             if (state.trimming) return failure(QStringLiteral("The person is in trim mode. Try again when they leave it."));
             if (state.recordingTakes) return failure(QStringLiteral("The person is recording take switches. Try again when they stop."));

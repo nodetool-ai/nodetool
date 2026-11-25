@@ -19,6 +19,7 @@ class PianoRollController : public QObject {
     Q_PROPERTY(QString clipId READ clipId WRITE setClipId NOTIFY clipIdChanged)
     Q_PROPERTY(bool valid READ valid NOTIFY clipChanged)
     Q_PROPERTY(bool editable READ editable NOTIFY clipChanged)
+    Q_PROPERTY(QVariantMap regionParams READ regionParams NOTIFY clipChanged)
     Q_PROPERTY(QString clipName READ clipName NOTIFY clipChanged)
     // The clip's own color and its track's, as stored ("" when none), and the track's name.
     Q_PROPERTY(QString clipColor READ clipColor NOTIFY clipChanged)
@@ -51,6 +52,7 @@ class PianoRollController : public QObject {
 
     bool valid() const { return m_valid; }
     bool editable() const;
+    QVariantMap regionParams() const { return m_regionParams; }
     QString clipName() const { return m_clipName; }
     QString clipColor() const { return m_clipColor; }
     QString trackColor() const { return m_trackColor; }
@@ -97,6 +99,7 @@ class PianoRollController : public QObject {
     QString m_clipId;
     bool m_valid = false;
     bool m_locked = false;
+    QVariantMap m_regionParams;
     QString m_clipName;
     QString m_clipColor;
     QString m_trackColor;

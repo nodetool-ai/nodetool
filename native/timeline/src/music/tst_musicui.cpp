@@ -13,6 +13,8 @@
 #include "assets/AssetWav.h"
 #include "audio/AudioEngine.h"
 #include "audio/Mixer.h"
+#include "audio/vst/VstAudioStages.h"
+#include "midi/PatternExpand.h"
 #include "ui/MidiNoteLines.h"
 #include "music/MusicProject.h"
 #include "music/MusicRange.h"
@@ -89,7 +91,7 @@ class TestMusicUi : public WiringFixture {
     void openDocument(const QJsonObject& document) {
         QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));
         auto parsed = nt::parseTimeline(document);
-        QVERIFY(parsed.timeline);
+        QVERIFY2(parsed.timeline, qPrintable(parsed.error));
         model.setTimeline(requireValue(std::move(parsed.timeline)));
         clock.pause();
         clock.setLoop(false);
@@ -133,9 +135,137 @@ class TestMusicUi : public WiringFixture {
 private slots:
     void cleanup() { view.reset(); }
 
+    void midiRegionParamsReachNoteLines() {
+        auto raw = musicDocument(false);
+        auto c = audioClip("m", "a", 4000, 4000);
+        c.insert("mediaType", "midi"); c.insert("transpose", 12);
+        c.insert("quantize", QJsonObject{{"grid", "1/16"}, {"strength", 100}});
+        const QJsonArray notes{QJsonObject{{"id", "low"}, {"pitch", 120}, {"velocity", 90}, {"startTick", 100}, {"durationTick", 240}},
+            QJsonObject{{"id", "high"}, {"pitch", 127}, {"velocity", 90}, {"startTick", 1000}, {"durationTick", 240}}};
+        c.insert("notes", notes); raw.insert("clips", QJsonArray{c});
+        auto parsed = nt::parseTimeline(raw); QVERIFY2(parsed.timeline, qPrintable(parsed.error));
+        model.setTimeline(requireValue(std::move(parsed.timeline)));
+        nt::ui::MidiNoteLinesItem lines;
+        lines.setTimeline(&model); lines.setClipId("m"); lines.setMsPerPx(1); lines.setWidth(4000); lines.setHeight(50);
+        const auto geometry = lines.lines();
+        QCOMPARE(geometry.size(), 2);
+        QCOMPARE(geometry[0].toMap().value("x").toDouble(), 0.0);
+        QCOMPARE(geometry[1].toMap().value("x").toDouble(), 500.0);
+        QCOMPARE(geometry[0].toMap().value("y"), geometry[1].toMap().value("y"));
+        QCOMPARE(model.clipsJson()[0].toObject().value("notes").toArray(), notes);
+    }
+    void midiRegionControlsKeepStoredNotesAndShowBadges() {
+        auto raw = musicDocument(false);
+        auto clips = raw.value("clips").toArray();
+        auto c = clips[1].toObject(); c.insert("mediaType", "midi");
+        const QJsonArray notes{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 100}, {"durationTick", 240}}};
+        c.insert("notes", notes); clips[1] = c; raw.insert("clips", clips);
+        openDocument(raw);
+        gestures()->setSelection({"b1"});
+        dockStore()->dispatch({{"type", "activate"}, {"panelId", "pianoRoll"}});
+        QTRY_VERIFY(item("midiRegionTranspose"));
+        auto* field = item("midiRegionTranspose");
+        QVERIFY(QMetaObject::invokeMethod(field, "valueCommitted", Q_ARG(double, 12.0)));
+        QTRY_COMPARE(clip("b1").value("transpose").toInt(), 12);
+        QCOMPARE(clip("b1").value("notes").toArray(), notes);
+        QTRY_VERIFY(item("midiTransposeBadge")->isVisible());
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo();
+        QTRY_VERIFY(!item("midiTransposeBadge")->isVisible());
+    }
+    void musicAudioGetsAutomaticCrossfade() {
+        auto raw = musicDocument(false);
+        auto a = audioClip("one", "a", 0, 1000);
+        auto b = audioClip("two", "a", 1000, 1000);
+        raw.insert("clips", QJsonArray{a, b});
+        auto parsed = nt::parseTimeline(raw);
+        QVERIFY(parsed.timeline);
+        for (auto& clip : parsed.timeline->clips) { clip.mediaPath = "unused.wav"; }
+        const auto plan = nt::audio::buildMixPlan(*parsed.timeline);
+        QCOMPARE(plan.voices.size(), size_t(2));
+        QCOMPARE(plan.voices[0].fades.fadeOutMs, 5.0);
+        QCOMPARE(plan.voices[1].fades.fadeInMs, 5.0);
+        QCOMPARE(parsed.timeline->clips[0].fadeOutMs, 0.0);
+    }
+    void automaticCrossfadeRespectsStoredFadesAndProjectSetting() {
+        auto raw = musicDocument(false);
+        auto a = audioClip("one", "a", 0, 1000);
+        auto b = audioClip("two", "a", 996, 1000);
+        const auto check = [&](QJsonObject doc, double out, double in, nt::audio::FadeShape shape) {
+            auto parsed = nt::parseTimeline(doc);
+            QVERIFY(parsed.timeline);
+            for (auto& c : parsed.timeline->clips) { c.mediaPath = "unused.wav"; }
+            const auto plan = nt::audio::buildMixPlan(*parsed.timeline);
+            QCOMPARE(plan.voices.size(), size_t(2));
+            QCOMPARE(plan.voices[0].fades.fadeOutMs, out);
+            QCOMPARE(plan.voices[1].fades.fadeInMs, in);
+            QCOMPARE(plan.voices[1].fades.fadeInShape, shape);
+        };
+        raw.insert("clips", QJsonArray{a, b});
+        check(raw, 4, 4, nt::audio::FadeShape::Plus3dB);
+        a.insert("fadeOutMs", 200); b.insert("fadeInMs", 50);
+        raw.insert("clips", QJsonArray{a, b});
+        check(raw, 200, 50, nt::audio::FadeShape::Linear);
+        a.remove("fadeOutMs"); b.remove("fadeInMs"); raw.insert("clips", QJsonArray{a, b});
+        raw.insert("music", QJsonObject{{"autoCrossfadeMs", 0}});
+        check(raw, 0, 0, nt::audio::FadeShape::Linear);
+        raw.remove("music");
+        check(raw, 0, 0, nt::audio::FadeShape::Linear);
+    }
+    void clipMenuRenamesAnyClipOnce_data() {
+        QTest::addColumn<QString>("mediaType");
+        for (const auto* type : {"audio", "midi", "video", "image"}) { QTest::newRow(type) << QString::fromLatin1(type); }
+    }
+    void clipMenuRenamesAnyClipOnce() {
+        QFETCH(QString, mediaType);
+        auto raw = musicDocument(false);
+        auto clips = raw.value("clips").toArray();
+        auto c = clips[1].toObject(); c.insert("mediaType", mediaType); clips[1] = c; raw.insert("clips", clips);
+        openDocument(raw);
+        const auto before = clip("b1");
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, lanePoint("b", 5000));
+        QTRY_VERIFY(item("clipMenu-renameClip"));
+        click("clipMenu-renameClip");
+        QTRY_VERIFY(item("clipRenameField"));
+        auto* field = item("clipRenameField");
+        field->setProperty("text", "New bass");
+        click("clipRenameApply");
+        QTRY_COMPARE(clip("b1").value("name").toString(), QString("New bass"));
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo();
+        QCOMPARE(clip("b1"), before);
+    }
+    void midiRegionParamsReachPlayback() {
+        QJsonObject c{{"mediaType", "midi"}, {"startMs", 0}, {"durationMs", 2000}, {"transpose", 12}, {"velocityOffset", -20},
+            {"quantize", QJsonObject{{"grid", "1/16"}, {"strength", 100}}},
+            {"notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 100}, {"durationTick", 240}}}}};
+        const auto events = nt::audio::vst::extractMidiNoteEvents(c, 120, 48000, 0, 2000);
+        QCOMPARE(events.size(), size_t(1));
+        QCOMPARE(events[0].pitch, 72);
+        QCOMPARE(events[0].velocity, 70);
+        QCOMPARE(events[0].startFrame, 0);
+    }
+    void joinMenuJoinsSelectionOnce() {
+        auto raw = musicDocument(false);
+        auto clips = raw.value("clips").toArray();
+        for (int i : {1, 2}) {
+            auto c = clips[i].toObject(); c.insert("mediaType", "midi"); c.insert("notes", QJsonArray{}); clips[i] = c;
+        }
+        raw.insert("clips", clips);
+        openDocument(raw);
+        gestures()->setSelection({"b1", "b2"});
+        QTest::mouseClick(view.get(), Qt::RightButton, {}, lanePoint("b", 5000));
+        QTRY_VERIFY(item("clipMenu-joinClips"));
+        click("clipMenu-joinClips");
+        QTRY_COMPARE(model.clipsJson().size(), 3);
+        QCOMPARE(clip("b1").value("durationMs").toDouble(), 8000.0);
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo();
+        QCOMPARE(model.clipsJson().size(), 4);
+    }
     void musicOpsAreCallableAssistantCommands_data() {
         QTest::addColumn<QString>("operation");
-        for (const auto* name : {"insert_time", "delete_time", "duplicate_range", "paste_range", "loop_clip", "duplicate_clip", "move_clip", "split_clip", "trim_clip", "add_media_clip", "delete-locked"}) {
+        for (const auto* name : {"insert_time", "delete_time", "duplicate_range", "paste_range", "loop_clip", "duplicate_clip", "move_clip", "split_clip", "trim_clip", "add_media_clip", "delete-locked", "join_clips", "set_clip_params", "music.setAutoCrossfade", "midi-params", "join-pattern"}) {
             QTest::newRow(name) << QString::fromLatin1(name);
         }
     }
@@ -152,10 +282,25 @@ private slots:
             clips[1] = locked;
             raw.insert("clips", clips);
         }
+        if (operation == "join_clips" || operation == "midi-params" || operation == "join-pattern") {
+            auto clips = raw.value("clips").toArray();
+            for (int i : {1, 2}) { auto c = clips[i].toObject(); c.insert("mediaType", "midi"); c.insert("notes", QJsonArray{}); clips[i] = c; }
+            if (operation == "join-pattern") {
+                const auto pattern = nt::midi::normalizePattern({{"lengthSteps", 4}, {"stepRate", "1/4"}, {"rows", QJsonArray{
+                    QJsonObject{{"id", "r"}, {"assignment", QJsonObject{{"type", "note"}, {"pitch", 60}}}, {"lengthSteps", 4},
+                        {"stepRate", "1/4"}, {"steps", QJsonArray{QJsonObject{{"on", true}}, QJsonObject{}, QJsonObject{}, QJsonObject{}}}}}}});
+                for (int i : {1, 2}) { auto c = clips[i].toObject(); c.remove("notes"); c.insert("pattern", pattern); if (i == 2) { c.insert("startMs", 10000); } clips[i] = c; }
+            }
+            raw.insert("clips", clips);
+        }
         openDocument(raw);
         nt::aiassist::AssistantCommands commands(model, clock);
         commands.setEditor(view->rootObject());
         QJsonObject payload;
+        if (operation == "join_clips" || operation == "join-pattern") { payload = {{"clips", QJsonArray{"b1", "b2"}}}; }
+        if (operation == "midi-params") { payload = {{"clipId", "b1"}, {"transpose", 12}, {"velocityOffset", -20}, {"quantize", QJsonObject{{"grid", "1/16"}, {"strength", 50}}}}; }
+        if (operation == "set_clip_params") { payload = {{"clipId", "b1"}, {"name", "Renamed bass"}, {"labelColor", "#3E63DD"}}; }
+        if (operation == "music.setAutoCrossfade") { payload = {{"autoCrossfadeMs", 25}}; }
         if (operation == "insert_time") { payload = {{"atBar", 2}, {"bars", 1}}; }
         if (operation == "delete_time" || operation == "duplicate_range") { payload = {{"fromBar", 2}, {"toBar", 3}}; }
         if (operation == "delete-locked") { payload = {{"fromBar", 3}, {"toBar", 5}}; }
@@ -167,7 +312,7 @@ private slots:
         if (operation == "trim_clip") { payload = {{"clipId", "b1"}, {"atBar", 4}}; }
         if (operation == "add_media_clip") { payload = {{"trackId", "a"}, {"atBar", 3}, {"asset", QJsonObject{{"id", "bbbbbbbbbbbb00000000000000000002"}, {"content_type", "audio/wav"}, {"duration", 1}}}}; }
         const auto before = doc();
-        const auto result = commands.execute("ui_timeline_run_command", {{"timeline_id", timelineId}, {"command", operation == "delete-locked" ? QStringLiteral("delete_time") : operation}, {"params", payload.toVariantMap()}});
+        const auto result = commands.execute("ui_timeline_run_command", {{"timeline_id", timelineId}, {"command", operation == "delete-locked" ? QStringLiteral("delete_time") : operation == "midi-params" ? QStringLiteral("set_clip_params") : operation == "join-pattern" ? QStringLiteral("join_clips") : operation}, {"params", payload.toVariantMap()}});
         if (operation == "delete-locked") {
             QVERIFY(!result.value("ok").toBool());
             QVERIFY(result.value("error").toString().contains("Locked bass"));
@@ -177,6 +322,27 @@ private slots:
         }
         QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
         QCOMPARE(model.undoStack()->count(), 1);
+        if (operation == "join-pattern") {
+            QVERIFY(result.value("convertedToMidi").toBool());
+            QCOMPARE(result.value("convertedPatternClipIds").toList().size(), 2);
+            QVERIFY(!clip("b1").contains("pattern"));
+            QCOMPARE(clip("b1").value("notes").toArray().size(), 4);
+        }
+        if (operation == "join_clips" || operation == "join-pattern") {
+            QCOMPARE(result.value("state").toMap().value("selectedClipIds").toStringList(), QStringList{"b1"});
+        }
+        if (operation == "midi-params") {
+            QCOMPARE(clip("b1").value("transpose").toInt(), 12);
+            QCOMPARE(clip("b1").value("velocityOffset").toInt(), -20);
+            QCOMPARE(clip("b1").value("quantize").toObject().value("strength").toInt(), 50);
+        }
+        if (operation == "set_clip_params") {
+            QCOMPARE(clip("b1").value("labelColor").toString(), QString("#3E63DD"));
+            QCOMPARE(clip("b1").value("name").toString(), QString("Renamed bass"));
+        }
+        if (operation == "music.setAutoCrossfade") {
+            QCOMPARE(result.value("state").toMap().value("music").toMap().value("autoCrossfadeMs").toDouble(), 25.0);
+        }
         if (operation == "loop_clip") {
             bool shown = false;
             for (const auto& value : result.value("state").toMap().value("clips").toList()) {

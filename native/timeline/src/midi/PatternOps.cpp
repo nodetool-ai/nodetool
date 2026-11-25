@@ -19,7 +19,7 @@
 namespace nt::midi {
 namespace {
 
-constexpr std::array<const char*, 9> kPatternOps{{
+constexpr std::array<const char*, 19> kPatternOps{{
     "get_pattern",
     "set_steps",
     "set_pattern_text",
@@ -29,6 +29,16 @@ constexpr std::array<const char*, 9> kPatternOps{{
     "convert_pattern_to_midi",
     "convert_midi_to_pattern",
     "apply_step_pattern",
+    "set_pattern_seed",
+    "set_pattern_row",
+    "remove_pattern_rows",
+    "move_pattern_row",
+    "rotate_pattern",
+    "randomize_pattern",
+    "nudge_pattern_values",
+    "tie_steps",
+    "list_step_patterns",
+    "sort_pattern_rows",
 }};
 
 constexpr QLatin1StringView kPrefix("ui_timeline_");
@@ -735,6 +745,65 @@ QVariantList stepPatternAssistantTools() {
                   {QStringLiteral("atBar"), intType},
                   {QStringLiteral("useProjectKey"), boolType}},
                  {QStringLiteral("pattern")}),
+        makeTool(QStringLiteral("set_pattern_seed"),
+                 QStringLiteral("Set the pattern's random seed (chance, shuffle, random playback). Absent seed picks a new one and returns it."),
+                 {{QStringLiteral("clipId"), strType}, {QStringLiteral("seed"), intType}}, {QStringLiteral("clipId")}),
+        makeTool(QStringLiteral("set_pattern_row"),
+                 QStringLiteral("Change one row's settings: name, assignment, stepRate, playback, mute, solo, midiChannel, "
+                                "automationMode, color, subrows, subrowsExpanded, lengthSteps, loopStart, loopEnd (1-based)."),
+                 {{QStringLiteral("clipId"), strType}, {QStringLiteral("row"), strType}, {QStringLiteral("name"), strType},
+                  {QStringLiteral("assignment"), QVariantMap{{QStringLiteral("type"), QStringLiteral("object")}}},
+                  {QStringLiteral("stepRate"), strType}, {QStringLiteral("playback"), strType},
+                  {QStringLiteral("mute"), boolType}, {QStringLiteral("solo"), boolType},
+                  {QStringLiteral("midiChannel"), intType}, {QStringLiteral("automationMode"), strType},
+                  {QStringLiteral("color"), strType}, {QStringLiteral("subrows"), strArray},
+                  {QStringLiteral("subrowsExpanded"), boolType}, {QStringLiteral("lengthSteps"), intType},
+                  {QStringLiteral("loopStart"), intType}, {QStringLiteral("loopEnd"), intType}},
+                 {QStringLiteral("clipId"), QStringLiteral("row")}),
+        makeTool(QStringLiteral("remove_pattern_rows"),
+                 QStringLiteral("Remove rows by id or name, or every row with no step on (unused: true)."),
+                 {{QStringLiteral("clipId"), strType}, {QStringLiteral("rows"), strArray}, {QStringLiteral("unused"), boolType}},
+                 {QStringLiteral("clipId")}),
+        makeTool(QStringLiteral("move_pattern_row"),
+                 QStringLiteral("Move one row to a 0-based index. Clears the stored row sort."),
+                 {{QStringLiteral("clipId"), strType}, {QStringLiteral("row"), strType}, {QStringLiteral("toIndex"), intType}},
+                 {QStringLiteral("clipId"), QStringLiteral("row"), QStringLiteral("toIndex")}),
+        makeTool(QStringLiteral("rotate_pattern"),
+                 QStringLiteral("Rotate steps right (by > 0) or left, on one row or all rows. With mode, only that edit mode's values move."),
+                 {{QStringLiteral("clipId"), strType}, {QStringLiteral("by"), intType}, {QStringLiteral("row"), strType},
+                  {QStringLiteral("mode"), strType}},
+                 {QStringLiteral("clipId"), QStringLiteral("by")}),
+        makeTool(QStringLiteral("randomize_pattern"),
+                 QStringLiteral("Seeded randomize of one edit mode on rows and steps. density 0..100 applies to onOff. Same seed, same result."),
+                 {{QStringLiteral("clipId"), strType}, {QStringLiteral("mode"), strType}, {QStringLiteral("rows"), strArray},
+                  {QStringLiteral("steps"), QVariantMap{{QStringLiteral("description"), QStringLiteral("1-based steps string or integer array.")}}},
+                  {QStringLiteral("seed"), intType}, {QStringLiteral("density"), numType}},
+                 {QStringLiteral("clipId"), QStringLiteral("mode")}),
+        makeTool(QStringLiteral("nudge_pattern_values"),
+                 QStringLiteral("Increment (delta > 0) or decrement one edit mode's values on a row or all rows. onOff: all on/off. tie: tie all/untie all."),
+                 {{QStringLiteral("clipId"), strType}, {QStringLiteral("mode"), strType}, {QStringLiteral("delta"), numType},
+                  {QStringLiteral("row"), strType},
+                  {QStringLiteral("steps"), QVariantMap{{QStringLiteral("description"), QStringLiteral("1-based steps on `row`; only these steps change.")}}}},
+                 {QStringLiteral("clipId"), QStringLiteral("mode"), QStringLiteral("delta")}),
+        makeTool(QStringLiteral("tie_steps"),
+                 QStringLiteral("Tie (tie: true) or untie the 1-based steps from..to on one row."),
+                 {{QStringLiteral("clipId"), strType}, {QStringLiteral("row"), strType}, {QStringLiteral("from"), intType},
+                  {QStringLiteral("to"), intType}, {QStringLiteral("tie"), boolType}},
+                 {QStringLiteral("clipId"), QStringLiteral("row"), QStringLiteral("from"), QStringLiteral("to"), QStringLiteral("tie")}),
+        makeTool(QStringLiteral("sort_pattern_rows"),
+                 QStringLiteral("Sort rows once: by type, typeAndNote, typeAndName or typeAndKitPad, optionally descending."),
+                 {{QStringLiteral("clipId"), strType},
+                  {QStringLiteral("by"), QVariantMap{{QStringLiteral("type"), QStringLiteral("string")},
+                      {QStringLiteral("enum"), QVariantList{QStringLiteral("type"), QStringLiteral("typeAndNote"), QStringLiteral("typeAndName"), QStringLiteral("typeAndKitPad")}}}},
+                  {QStringLiteral("descending"), boolType}},
+                 {QStringLiteral("clipId"), QStringLiteral("by")}),
+        makeTool(QStringLiteral("list_step_patterns"),
+                 QStringLiteral("List factory step patterns and templates: id, name, category, tags, kind, source."),
+                 {{QStringLiteral("query"), strType},
+                  {QStringLiteral("kind"), QVariantMap{{QStringLiteral("type"), QStringLiteral("string")},
+                                                       {QStringLiteral("enum"), QVariantList{QStringLiteral("pattern"), QStringLiteral("template")}}}},
+                  {QStringLiteral("category"), strType}},
+                 {}),
     };
 }
 
@@ -1656,6 +1725,264 @@ StepPatternOpOutcome runStepPatternOp(const QJsonObject& document, const QString
             response.insert("instrumentPreset", entry.value(u"instrumentPreset"));
             response.insert("track", appliedTrack);
         }
+        return {true, true, doc, response, {}};
+    }
+
+    // ── 10. list_step_patterns (factory entries; user assets live on the web host) ──
+    if (op == u"list_step_patterns") {
+        const QString q = args.value(u"query").toString().trimmed().toLower();
+        const QString kind = args.value(u"kind").toString();
+        const QString cat = args.value(u"category").toString().trimmed().toLower();
+        if (!kind.isEmpty() && kind != u"pattern" && kind != u"template") {
+            return fail(QStringLiteral("kind must be pattern or template."));
+        }
+        QJsonArray out;
+        for (const auto& ev : factoryStepPatternLibrary()) {
+            const auto e = ev.toObject();
+            const QString eKind = e.value(u"kind").toString(QStringLiteral("pattern"));
+            if (!kind.isEmpty() && eKind != kind) continue;
+            if (!cat.isEmpty() && e.value(u"category").toString().toLower() != cat) continue;
+            if (!q.isEmpty()) {
+                QString hay = e.value(u"name").toString() + u' ' + e.value(u"category").toString();
+                for (const auto& t : e.value(u"tags").toArray()) hay += u' ' + t.toString();
+                if (!hay.toLower().contains(q)) continue;
+            }
+            out.append(QJsonObject{{QStringLiteral("id"), e.value(u"id")}, {QStringLiteral("name"), e.value(u"name")},
+                                   {QStringLiteral("category"), e.value(u"category")}, {QStringLiteral("tags"), e.value(u"tags")},
+                                   {QStringLiteral("kind"), eKind}, {QStringLiteral("source"), QStringLiteral("factory")}});
+        }
+        return {true, false, document, QJsonObject{{QStringLiteral("ok"), true}, {QStringLiteral("patterns"), out}}, {}};
+    }
+
+    // ── 11-18. Row settings and transforms (SQ50, SQ51, SQ53) ─────────────────
+    if (op == u"set_pattern_seed" || op == u"set_pattern_row" || op == u"remove_pattern_rows" || op == u"move_pattern_row" ||
+        op == u"rotate_pattern" || op == u"randomize_pattern" || op == u"nudge_pattern_values" || op == u"tie_steps" ||
+        op == u"sort_pattern_rows") {
+        int clipIdx = -1;
+        QJsonObject clip, pattern, instrument;
+        QString err;
+        if (!resolvePatClip(args.value(u"clipId").toString(), clipIdx, clip, pattern, instrument, &err)) return fail(err);
+        if (!checkWritable(tracks, clip, &err)) return fail(err);
+        auto rows = pattern.value(u"rows").toArray();
+        const auto needMode = [&](bool required) -> bool {
+            const QString mode = args.value(u"mode").toString();
+            if (mode.isEmpty()) {
+                if (required) err = QStringLiteral("mode is required. Valid modes: %1.").arg(editModes.join(QStringLiteral(", ")));
+                return !required;
+            }
+            if (!editModes.contains(mode)) {
+                err = QStringLiteral("Unknown mode \"%1\". Valid modes: %2.").arg(mode, editModes.join(QStringLiteral(", ")));
+                return false;
+            }
+            return true;
+        };
+        QJsonObject response{{QStringLiteral("ok"), true}, {QStringLiteral("clipId"), clip.value(u"id")}};
+        const auto rowsOut = [&]() {
+            QJsonArray out;
+            for (const auto& rv : pattern.value(u"rows").toArray()) out.append(serializePatternRow(rv.toObject(), instrument));
+            return out;
+        };
+
+        if (op == u"set_pattern_seed") {
+            std::uint32_t seed = 0;
+            if (args.value(u"seed").isDouble()) {
+                seed = static_cast<std::uint32_t>(static_cast<std::int64_t>(args.value(u"seed").toDouble()));
+            } else {
+                const auto cur = static_cast<std::uint32_t>(static_cast<std::int64_t>(pattern.value(u"seed").toDouble(0)));
+                const auto id = clip.value(u"id").toString().toUtf8();
+                seed = fnv1a32Uints(rowKeyHash(std::string_view(id.constData(), static_cast<std::size_t>(id.size()))), cur, 0x9e3779b9u, 1u);
+                if (seed == 0 || seed == cur) seed = (cur + 1u) == 0u ? 1u : cur + 1u;
+            }
+            pattern.insert(QStringLiteral("seed"), static_cast<double>(seed));
+            response.insert(QStringLiteral("seed"), static_cast<double>(seed));
+        } else if (op == u"set_pattern_row") {
+            const auto resolved = resolveRow(pattern, args.value(u"row").toString(), instrument, &err);
+            if (!resolved) return fail(err);
+            QJsonObject next = resolved->row;
+            if (args.contains(u"subrows") && !assertUniqueSubrows(args.value(u"subrows"), &err)) return fail(err);
+            if (args.value(u"lengthSteps").isDouble()) {
+                const int len = args.value(u"lengthSteps").toInt();
+                const int patLen = pattern.value(u"lengthSteps").toInt(16);
+                if (len > patLen) {
+                    return fail(QStringLiteral("Row lengthSteps (%1) cannot exceed pattern lengthSteps (%2). Resize the pattern length first.").arg(len).arg(patLen));
+                }
+                if (len < 1) return fail(QStringLiteral("Row lengthSteps must be 1..%1.").arg(patLen));
+                if (len != next.value(u"lengthSteps").toInt()) next = resizeRowLength(next, len);
+            }
+            if (args.value(u"name").isString()) next.insert(QStringLiteral("name"), args.value(u"name"));
+            if (args.value(u"assignment").isObject()) {
+                auto assign = args.value(u"assignment").toObject();
+                if (assign.value(u"type").toString() == u"automation" && assign.value(u"target").toObject().value(u"kind").toString() == u"device") {
+                    auto target = assign.value(u"target").toObject();
+                    const auto deviceId = resolveDeviceId(target.value(u"deviceId").toString(), findTrackById(tracks, clip.value(u"trackId").toString()), &err);
+                    if (!err.isEmpty()) return fail(err);
+                    target.insert(QStringLiteral("deviceId"), deviceId);
+                    assign.insert(QStringLiteral("target"), target);
+                }
+                if (!assertAssignmentAllowed(assign, pattern, instrument, &err)) return fail(err);
+                next.insert(QStringLiteral("assignment"), assign);
+            }
+            if (args.value(u"stepRate").isString()) next.insert(QStringLiteral("stepRate"), args.value(u"stepRate"));
+            if (args.value(u"playback").isString()) {
+                static const QStringList modes{"forward", "backward", "pingPong", "shuffle", "pendulum", "wander", "random"};
+                if (!modes.contains(args.value(u"playback").toString())) {
+                    return fail(QStringLiteral("Unknown playback \"%1\". Valid values: %2.").arg(args.value(u"playback").toString(), modes.join(QStringLiteral(", "))));
+                }
+                next.insert(QStringLiteral("playback"), args.value(u"playback"));
+            }
+            for (const char* field : {"mute", "solo", "subrowsExpanded"}) {
+                if (args.value(QLatin1String(field)).isBool()) next.insert(QLatin1String(field), args.value(QLatin1String(field)));
+            }
+            if (args.value(u"midiChannel").isDouble()) next.insert(QStringLiteral("midiChannel"), clampInt(args.value(u"midiChannel").toDouble(), 1, 16));
+            if (args.value(u"automationMode").isString()) next.insert(QStringLiteral("automationMode"), args.value(u"automationMode"));
+            if (args.contains(u"color")) {
+                if (args.value(u"color").isNull()) next.remove(QStringLiteral("color"));
+                else next.insert(QStringLiteral("color"), args.value(u"color"));
+            }
+            if (args.value(u"subrows").isArray()) next.insert(QStringLiteral("subrows"), args.value(u"subrows"));
+            if (args.contains(u"loopStart") || args.contains(u"loopEnd")) {
+                const auto bounds = validateLoopBounds1Based(args.value(u"loopStart"), args.value(u"loopEnd"),
+                                                             next.value(u"lengthSteps").toInt(16), next.value(u"loopStart").toInt(0),
+                                                             next.value(u"loopEnd").toInt(16), &err);
+                if (!bounds) return fail(err);
+                next.insert(QStringLiteral("loopStart"), bounds->loopStart);
+                next.insert(QStringLiteral("loopEnd"), bounds->loopEnd);
+            }
+            rows.replace(resolved->index, next);
+            pattern.insert(QStringLiteral("rows"), rows);
+            response.insert(QStringLiteral("row"), serializePatternRow(next, instrument));
+        } else if (op == u"remove_pattern_rows") {
+            const bool unused = args.value(u"unused").toBool(false);
+            const auto refs = args.value(u"rows").toArray();
+            if (!unused && refs.isEmpty()) return fail(QStringLiteral("remove_pattern_rows requires `rows` (row ids or names) or `unused: true`."));
+            QSet<QString> remove;
+            for (const auto& ref : refs) {
+                const auto resolved = resolveRow(pattern, ref.toString(), instrument, &err);
+                if (!resolved) return fail(err);
+                remove.insert(resolved->row.value(u"id").toString());
+            }
+            if (unused) {
+                for (const auto& rv : rows) {
+                    bool any = false;
+                    for (const auto& sv : rv.toObject().value(u"steps").toArray()) any = any || sv.toObject().value(u"on").toBool(false);
+                    if (!any) remove.insert(rv.toObject().value(u"id").toString());
+                }
+            }
+            QJsonArray kept, removed;
+            for (const auto& rv : rows) {
+                const QString id = rv.toObject().value(u"id").toString();
+                if (remove.contains(id)) removed.append(id);
+                else kept.append(rv);
+            }
+            pattern.insert(QStringLiteral("rows"), kept);
+            response.insert(QStringLiteral("removedRowIds"), removed);
+            response.insert(QStringLiteral("rows"), rowsOut());
+        } else if (op == u"move_pattern_row") {
+            const auto resolved = resolveRow(pattern, args.value(u"row").toString(), instrument, &err);
+            if (!resolved) return fail(err);
+            const auto toIndex = args.value(u"toIndex");
+            if (!toIndex.isDouble() || toIndex.toInt() < 0 || toIndex.toInt() >= rows.size()) {
+                return fail(QStringLiteral("toIndex %1 is out of range. Valid indices are 0..%2.").arg(toIndex.toVariant().toString()).arg(std::max<qsizetype>(0, rows.size() - 1)));
+            }
+            rows.removeAt(resolved->index);
+            rows.insert(toIndex.toInt(), resolved->row);
+            pattern.insert(QStringLiteral("rows"), rows);
+            pattern.remove(QStringLiteral("rowSort"));
+            response.insert(QStringLiteral("rows"), rowsOut());
+        } else if (op == u"rotate_pattern" || op == u"nudge_pattern_values") {
+            const bool rotate = op == u"rotate_pattern";
+            if (!needMode(!rotate)) return fail(err);
+            const QString key = rotate ? QStringLiteral("by") : QStringLiteral("delta");
+            if (!args.value(key).isDouble()) return fail(QStringLiteral("%1 must be a number.").arg(key));
+            const double amount = args.value(key).toDouble();
+            const QString mode = args.value(u"mode").toString();
+            const auto apply = [&](const QJsonObject& r) {
+                return rotate ? rotateRowSteps(r, static_cast<int>(std::trunc(amount)), mode) : nudgeRowValues(r, mode, amount, instrument);
+            };
+            if (args.contains(u"row")) {
+                const auto resolved = resolveRow(pattern, args.value(u"row").toString(), instrument, &err);
+                if (!resolved) return fail(err);
+                auto next = apply(resolved->row);
+                if (!rotate && args.contains(u"steps")) {
+                    // Only the listed steps change. Row-level loop nudges ignore the list.
+                    const auto picked = parseStepSelection(args.value(u"steps"), resolved->row.value(u"lengthSteps").toInt(16), &err);
+                    if (!picked) return fail(err);
+                    auto merged = resolved->row.value(u"steps").toArray();
+                    const auto changed = next.value(u"steps").toArray();
+                    for (int i : *picked) {
+                        if (i < changed.size()) merged.replace(i, changed.at(i));
+                    }
+                    next.insert(QStringLiteral("steps"), merged);
+                }
+                rows.replace(resolved->index, next);
+            } else {
+                for (qsizetype i = 0; i < rows.size(); ++i) rows.replace(i, apply(rows.at(i).toObject()));
+            }
+            pattern.insert(QStringLiteral("rows"), rows);
+        } else if (op == u"randomize_pattern") {
+            if (!needMode(true)) return fail(err);
+            const QString mode = args.value(u"mode").toString();
+            std::optional<QSet<QString>> rowIds;
+            if (!args.value(u"rows").toArray().isEmpty()) {
+                rowIds.emplace();
+                for (const auto& ref : args.value(u"rows").toArray()) {
+                    const auto resolved = resolveRow(pattern, ref.toString(), instrument, &err);
+                    if (!resolved) return fail(err);
+                    rowIds->insert(resolved->row.value(u"id").toString());
+                }
+            }
+            int maxLen = pattern.value(u"lengthSteps").toInt(16);
+            if (!rows.isEmpty()) {
+                maxLen = 0;
+                for (const auto& rv : rows) maxLen = std::max(maxLen, rv.toObject().value(u"lengthSteps").toInt(16));
+            }
+            std::optional<std::vector<int>> stepIndices;
+            if (args.contains(u"steps")) {
+                stepIndices = parseStepSelection(args.value(u"steps"), maxLen, &err);
+                if (!stepIndices) return fail(err);
+            }
+            const double density = args.value(u"density").toDouble(50);
+            std::uint32_t seed = 0;
+            if (args.value(u"seed").isDouble()) {
+                seed = static_cast<std::uint32_t>(static_cast<std::int64_t>(args.value(u"seed").toDouble()));
+            } else {
+                const auto id = clip.value(u"id").toString().toUtf8();
+                const auto m = mode.toUtf8();
+                seed = fnv1a32Uints(static_cast<std::uint32_t>(static_cast<std::int64_t>(pattern.value(u"seed").toDouble(0))),
+                                    rowKeyHash(std::string_view(id.constData(), static_cast<std::size_t>(id.size()))),
+                                    rowKeyHash(std::string_view(m.constData(), static_cast<std::size_t>(m.size()))),
+                                    static_cast<std::uint32_t>(jsRound(density)));
+                if (seed == 0) seed = 1;
+            }
+            pattern = randomizePatternSteps(pattern, mode, rowIds, stepIndices, seed, density);
+            response.insert(QStringLiteral("seed"), static_cast<double>(seed));
+        } else if (op == u"sort_pattern_rows") {
+            static const QStringList sorts{"type", "typeAndNote", "typeAndName", "typeAndKitPad"};
+            const QString by = args.value(u"by").toString();
+            if (!sorts.contains(by)) return fail(QStringLiteral("Unknown sort \"%1\". Valid values: %2.").arg(by, sorts.join(QStringLiteral(", "))));
+            const auto kept = pattern.value(u"rowSort");
+            pattern.insert(QStringLiteral("rowSort"), by + (args.value(u"descending").toBool(false) ? u"Desc" : u"Asc"));
+            pattern = applyPatternRowSort(pattern, instrument);
+            if (kept.isUndefined()) pattern.remove(QStringLiteral("rowSort"));
+            else pattern.insert(QStringLiteral("rowSort"), kept);
+            response.insert(QStringLiteral("rows"), rowsOut());
+        } else {  // tie_steps
+            const auto resolved = resolveRow(pattern, args.value(u"row").toString(), instrument, &err);
+            if (!resolved) return fail(err);
+            const int len = resolved->row.value(u"lengthSteps").toInt(16);
+            const int from = args.value(u"from").toInt(0);
+            const int to = args.value(u"to").toInt(0);
+            if (from < 1 || from > len || to < 1 || to > len) {
+                return fail(QStringLiteral("tie_steps range [%1, %2] is outside 1..%3.").arg(from).arg(to).arg(len));
+            }
+            if (!args.value(u"tie").isBool()) return fail(QStringLiteral("tie must be true or false."));
+            rows.replace(resolved->index, tieRowSteps(resolved->row, from - 1, to - 1, args.value(u"tie").toBool()));
+            pattern.insert(QStringLiteral("rows"), rows);
+        }
+        response.insert(QStringLiteral("text"), patternToText(pattern, instrument));
+        clip.insert(QStringLiteral("pattern"), pattern);
+        clips.replace(clipIdx, clip);
+        doc.insert(QStringLiteral("clips"), clips);
         return {true, true, doc, response, {}};
     }
 

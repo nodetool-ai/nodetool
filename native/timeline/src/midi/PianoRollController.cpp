@@ -53,6 +53,10 @@ void PianoRollController::reload() {
     const nt::Clip* clip = m_timeline && !m_clipId.isEmpty() ? m_timeline->findClip(m_clipId) : nullptr;
     const auto raw = clip ? clip->raw : QJsonObject{};
     m_valid = clip && raw.value(u"mediaType").toString() == u"midi";
+    m_regionParams.clear();
+    for (const auto* key : {"transpose", "velocityOffset", "quantize"}) {
+        if (raw.contains(QLatin1String(key))) { m_regionParams.insert(QLatin1String(key), raw.value(QLatin1String(key)).toVariant()); }
+    }
     m_clipName = raw.value(u"name").toString();
     m_notes = raw.value(u"notes").toArray().toVariantList();
     m_controllers = raw.value(u"controllers").toArray().toVariantList();

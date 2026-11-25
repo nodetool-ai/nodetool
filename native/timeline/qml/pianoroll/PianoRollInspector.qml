@@ -46,6 +46,75 @@ Rectangle {
             spacing: Ui.Metrics.sm
             readonly property real inner: width - 2 * padding
 
+            SectionLabel { text: qsTr("Region parameters") }
+            Ui.NumberField {
+                objectName: "midiRegionTranspose"
+                width: column.inner
+                accessibleName: qsTr("Region transpose")
+                valid: Number.isInteger(Number(text))
+                errorText: qsTr("Enter a whole number from -48 to 48.")
+                enabled: root.panel.controllerEditable
+                value: root.panel.regionParams.transpose ?? 0
+                from: -48
+                to: 48
+                stepSize: 1
+                onValueCommitted: next => root.panel.setRegionParam("transpose", next)
+            }
+            Ui.NumberField {
+                objectName: "midiRegionVelocity"
+                width: column.inner
+                accessibleName: qsTr("Region velocity offset")
+                valid: Number.isInteger(Number(text))
+                errorText: qsTr("Enter a whole number from -127 to 127.")
+                enabled: root.panel.controllerEditable
+                value: root.panel.regionParams.velocityOffset ?? 0
+                from: -127
+                to: 127
+                stepSize: 1
+                onValueCommitted: next => root.panel.setRegionParam("velocityOffset", next)
+            }
+            Ui.Select {
+                objectName: "midiRegionQuantize"
+                width: column.inner
+                accessibleName: qsTr("Region quantize")
+                enabled: root.panel.controllerEditable
+                options: [{value: "off", label: qsTr("Off")}, {value: "1/4", label: "1/4"}, {value: "1/8", label: "1/8"},
+                    {value: "1/16", label: "1/16"}, {value: "1/32", label: "1/32"}, {value: "1/8T", label: "1/8T"}, {value: "1/16T", label: "1/16T"}]
+                value: root.panel.regionParams.quantize?.grid ?? "off"
+                onValueCommitted: next => root.panel.setRegionParam("quantize", next === "off" ? null : {grid: next, strength: root.panel.regionParams.quantize?.strength ?? 100})
+            }
+            Ui.NumberField {
+                objectName: "midiRegionQuantizeStrength"
+                width: column.inner
+                accessibleName: qsTr("Region quantize strength")
+                enabled: root.panel.controllerEditable && root.panel.regionParams.quantize !== undefined
+                value: root.panel.regionParams.quantize?.strength ?? 100
+                from: 0
+                to: 100
+                stepSize: 1
+                onValueCommitted: next => root.panel.setRegionParam("quantize", {grid: root.panel.regionParams.quantize.grid, strength: next})
+            }
+            Ui.Chip {
+                objectName: "midiTransposeBadge"
+                visible: (root.panel.regionParams.transpose ?? 0) !== 0
+                text: qsTr("Transpose %1").arg(root.panel.regionParams.transpose ?? 0)
+                variant: Ui.Chip.Tone
+                maximumWidth: column.inner
+            }
+            Ui.Chip {
+                objectName: "midiVelocityBadge"
+                visible: (root.panel.regionParams.velocityOffset ?? 0) !== 0
+                text: qsTr("Velocity %1").arg(root.panel.regionParams.velocityOffset ?? 0)
+                variant: Ui.Chip.Tone
+                maximumWidth: column.inner
+            }
+            Ui.Chip {
+                objectName: "midiQuantizeBadge"
+                visible: (root.panel.regionParams.quantize?.strength ?? 0) > 0
+                text: qsTr("Quantize %1 · %2%").arg(root.panel.regionParams.quantize?.grid ?? "").arg(root.panel.regionParams.quantize?.strength ?? 0)
+                variant: Ui.Chip.Tone
+                maximumWidth: column.inner
+            }
             // a. Clip header
             Row {
                 width: column.inner

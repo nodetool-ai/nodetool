@@ -5086,3 +5086,87 @@ test_host = "tst_musicui"
 test_scope = "interaction"
 qml_callers = ["native/timeline/qml/music/MusicRangeOverlay.qml"]
 replacement = "Section range band and menu use Ui controls and timeline colors"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerPanel.qml"
+category = "chrome"
+controls = ["StepSequencerToolbar", "StepSequencerPatternBar", "StepSequencerBrowser", "StepSequencerInspector", "StepSequencerRow", "StepSequencerController", "Ui.Banner", "Ui.EmptyState", "Ui.Dialog", "Ui.TextField", "Ui.ContextMenu", "ListView", "WheelHandler"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerToolbar.qml"
+category = "chrome"
+controls = ["Ui.MenuButton", "Ui.ContextMenu", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Select", "Ui.Slider", "Ui.Icon"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerPatternBar.qml"
+category = "chrome"
+controls = ["Ui.MenuButton", "Ui.ContextMenu", "Ui.ToolbarIconButton", "Ui.Select", "Ui.Text", "Repeater", "MouseArea"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerRow.qml"
+category = "chrome"
+controls = ["Ui.EditorButton", "Ui.Select", "Ui.Icon", "Ui.Text", "Repeater", "MouseArea"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerInspector.qml"
+category = "chrome"
+controls = ["Ui.TabBar", "Ui.Select", "Ui.NumberField", "Ui.Toggle", "Ui.Text", "Flickable"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[file]]
+path = "native/timeline/qml/stepsequencer/StepSequencerBrowser.qml"
+category = "chrome"
+controls = ["Ui.TextField", "Ui.EditorButton", "Ui.Text", "ListView"]
+signals = []
+test_host = "tst_stepsequencerui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/stepsequencer/StepSequencerPanel.qml"]
+replacement = "NodeTool.UiPrimitives and a virtualized Step Sequencer row list"
+
+[[exception]]
+path = "native/timeline/qml/stepsequencer/StepSequencerPatternBar.qml"
+object = "root/Row[1]/Repeater[0]/page/MouseArea[0]"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Step Sequencer page overview"
+reason = "A page overview is a thumbnail of 16 steps per row. A click shows that page of the grid, as in the Logic Step Sequencer."
+
+[[exception]]
+path = "native/timeline/qml/stepsequencer/StepSequencerRow.qml"
+object = "root/lane/header/MouseArea[0]"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Step Sequencer row header"
+reason = "A click on the row header background selects the row and a right click opens the row menu. The header buttons are primitives."
+
+[[exception]]
+path = "native/timeline/qml/stepsequencer/StepSequencerRow.qml"
+object = "root/lane/header/MouseArea[0]"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Step Sequencer row header"
+reason = "A double click on the row header opens Rename Row, as Shift-Return does."

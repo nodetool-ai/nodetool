@@ -628,7 +628,7 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
     const QHash<QString, QString> musicLabels{
         {QStringLiteral("insert_time"), tr("Insert silence")}, {QStringLiteral("delete_time"), tr("Delete section")},
         {QStringLiteral("duplicate_range"), tr("Duplicate section")}, {QStringLiteral("paste_range"), tr("Paste section")},
-        {QStringLiteral("loop_clip"), tr("Loop clip")}, {QStringLiteral("duplicate_clip"), tr("Repeat clip")},
+        {QStringLiteral("music.setAutoCrossfade"), tr("Set automatic crossfade")}, {QStringLiteral("set_clip_params"), tr("Set clip parameters")}, {QStringLiteral("join_clips"), tr("Join clips")}, {QStringLiteral("loop_clip"), tr("Loop clip")}, {QStringLiteral("duplicate_clip"), tr("Repeat clip")},
         {QStringLiteral("move_clip"), tr("Move clip")}, {QStringLiteral("split_clip"), tr("Split clip")},
         {QStringLiteral("trim_clip"), tr("Trim clip")}, {QStringLiteral("add_media_clip"), tr("Add media clip")}};
     auto command = std::make_unique<DocumentCommand>(musicLabels.value(name, name), before, *after,

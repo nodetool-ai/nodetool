@@ -252,7 +252,10 @@ private slots:
             "ui_timeline_get_pattern",           "ui_timeline_set_steps",          "ui_timeline_set_pattern_text",
             "ui_timeline_set_pattern",           "ui_timeline_add_pattern_rows",   "ui_timeline_clear_pattern",
             "ui_timeline_convert_pattern_to_midi", "ui_timeline_convert_midi_to_pattern",
-            "ui_timeline_apply_step_pattern"};
+            "ui_timeline_apply_step_pattern",    "ui_timeline_set_pattern_seed",   "ui_timeline_set_pattern_row",
+            "ui_timeline_remove_pattern_rows",   "ui_timeline_move_pattern_row",   "ui_timeline_rotate_pattern",
+            "ui_timeline_randomize_pattern",     "ui_timeline_nudge_pattern_values", "ui_timeline_tie_steps",
+            "ui_timeline_sort_pattern_rows",     "ui_timeline_list_step_patterns"};
         const QStringList expectedPlugins{"ui_timeline_list_plugins", "ui_timeline_load_plugin", "ui_timeline_list_plugin_presets",
                                           "ui_timeline_select_plugin_preset", "ui_timeline_get_plugin_parameters", "ui_timeline_set_plugin_parameters"};
         QCOMPARE(names, expectedMusic + expectedPattern + expectedPlugins);

@@ -82,6 +82,13 @@ Rectangle {
     readonly property bool canUndo: !!undoStack && undoStack.canUndo
     readonly property bool canRedo: !!undoStack && undoStack.canRedo
     readonly property bool controllerEditable: controller.editable
+    function setRegionParam(key, value) {
+        if (!controllerEditable || !controller.timeline) return
+        const params = {clipId: clipId}
+        params[key] = value
+        controller.timeline.applyEdit("set_clip_params", params)
+    }
+    readonly property var regionParams: controller.regionParams
     readonly property string clipName: controller.valid ? controller.clipName : ""
     readonly property string trackName: controller.valid ? controller.trackName : ""
     readonly property color clipAccent: {

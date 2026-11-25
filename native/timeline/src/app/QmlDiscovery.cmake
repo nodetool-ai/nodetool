@@ -238,6 +238,13 @@ if(NOT DEFINED NT_QML_DISCOVERY_FILES)
         qml/remix/RemixHost.qml
         qml/remix/RemixPlanStrip.qml
         qml/scenedetect/SceneEditDialog.qml
+        qml/stepsequencer/StepSequencerBrowser.qml
+        qml/stepsequencer/StepSequencerInspector.qml
+        qml/stepsequencer/StepSequencerModes.js
+        qml/stepsequencer/StepSequencerPanel.qml
+        qml/stepsequencer/StepSequencerPatternBar.qml
+        qml/stepsequencer/StepSequencerRow.qml
+        qml/stepsequencer/StepSequencerToolbar.qml
         qml/scenedetect/SceneEditHost.qml
         qml/storyworkspace/ScriptVoicePicker.qml
         qml/storyworkspace/ShotClipPlayer.qml

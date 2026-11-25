@@ -3,6 +3,8 @@
 // unit, a group tree) and the media-track ownership guard on drops.
 #include "edit/EditActions.h"
 #include "edit/groups/GroupOps.h"
+#include "edit/clipboard/RawDocument.h"
+#include "midi/PatternExpand.h"
 
 #include <QJsonArray>
 #include <QTest>
@@ -50,6 +52,158 @@ class TestEditActions : public QObject {
     Q_OBJECT
 
 private slots:
+    void joinPatternRegions_data() {
+        QTest::addColumn<double>("nextStart");
+        QTest::addColumn<bool>("keepsPattern");
+        QTest::newRow("continuous") << 2000.0 << true;
+        QTest::newRow("gap") << 3000.0 << false;
+    }
+    void joinPatternRegions() {
+        QFETCH(double, nextStart); QFETCH(bool, keepsPattern);
+        const auto pattern = nt::midi::normalizePattern({{"lengthSteps", 4}, {"stepRate", "1/4"}, {"rows", QJsonArray{
+            QJsonObject{{"id", "r"}, {"assignment", QJsonObject{{"type", "note"}, {"pitch", 60}}}, {"lengthSteps", 4},
+                {"stepRate", "1/4"}, {"steps", QJsonArray{QJsonObject{{"on", true}}, QJsonObject{}, QJsonObject{}, QJsonObject{}}}}}}});
+        auto a = clip("a", "m", 0, 2000, "midi");
+        auto b = clip("b", "m", nextStart, 2000, "midi");
+        a.insert("pattern", pattern); b.insert("pattern", pattern);
+        QJsonArray joined;
+        try { joined = applyMusicClipEdit({{"clips", QJsonArray{a, b}}}, "join_clips", {{"clips", QJsonArray{"a", "b"}}}).value("clips").toArray(); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        QCOMPARE(joined.size(), 1);
+        QCOMPARE(joined[0].toObject().contains("pattern"), keepsPattern);
+        if (!keepsPattern) { QCOMPARE(joined[0].toObject().value("notes").toArray().size(), 2); }
+    }
+    void joinManyMidiClips() {
+        QJsonArray clips, ids;
+        for (int i = 0; i < 2000; ++i) {
+            const auto id = QString::number(i);
+            auto c = clip(id, "m", i * 10, 10, "midi"); c.insert("notes", QJsonArray{});
+            clips.append(c); ids.append(id);
+        }
+        const auto joined = applyMusicClipEdit({{"clips", clips}}, "join_clips", {{"clips", ids}}).value("clips").toArray();
+        QCOMPARE(joined.size(), 1);
+        QCOMPARE(joined[0].toObject().value("durationMs").toDouble(), 20000.0);
+    }
+    void uiSplitUsesRegionQuantizeTempoOrigin() {
+        auto c = clip("m", "m", 0, 1000, "midi");
+        c.insert("quantize", QJsonObject{{"grid", "1/4"}, {"strength", 100}});
+        c.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 100}, {"durationTick", 100}}});
+        const QJsonObject raw{{"clips", QJsonArray{c}}, {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 125}}}};
+        const auto result = splitClipAtTime(nt::edit::structure::editDocument(raw), "m", 50);
+        QCOMPARE(result.size(), size_t(2));
+        QVERIFY(result[0].value("notes").toArray().isEmpty());
+        QCOMPARE(result[1].value("notes").toArray()[0].toObject().value("startTick").toInt(), 144);
+    }
+    void splitBakesQuantizeBeforePartitioning() {
+        auto c = clip("m", "m", 0, 1000, "midi");
+        c.insert("transpose", 12);
+        c.insert("quantize", QJsonObject{{"grid", "1/4"}, {"strength", 100}});
+        c.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 100}, {"durationTick", 240}}});
+        const auto [left, right] = splitClip(c, 50);
+        QCOMPARE(left.value("notes").toArray().size(), 1);
+        QCOMPARE(right.value("notes").toArray().size(), 0);
+        QCOMPARE(left.value("notes").toArray()[0].toObject().value("durationTick").toInt(), 96);
+        QCOMPARE(left.value("transpose").toInt(), 12);
+        QCOMPARE(right.value("transpose").toInt(), 12);
+        QVERIFY(!left.contains("quantize"));
+        QVERIFY(!right.contains("quantize"));
+    }
+    void regionParamsAreStoredWithoutChangingNotes() {
+        auto c = clip("m", "m", 0, 2000, "midi");
+        const QJsonArray notes{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 100}, {"durationTick", 240}}};
+        c.insert("notes", notes);
+        const auto result = applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params",
+            {{"clipId", "m"}, {"transpose", 12}, {"velocityOffset", -20}, {"quantize", QJsonObject{{"grid", "1/16"}, {"strength", 100}}}});
+        const auto changed = result.value("clips").toArray()[0].toObject();
+        QCOMPARE(changed.value("transpose").toInt(), 12);
+        QCOMPARE(changed.value("notes").toArray(), notes);
+    }
+    void joinBakesDifferentMidiParameters() {
+        auto a = clip("a", "m", 0, 500, "midi");
+        auto b = clip("b", "m", 1000, 500, "midi");
+        a.insert("transpose", 12); b.insert("transpose", -12);
+        const QJsonArray notes{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 240}}};
+        a.insert("notes", notes); b.insert("notes", notes);
+        const auto joined = applyMusicClipEdit({{"clips", QJsonArray{a, b}}}, "join_clips", {{"clips", QJsonArray{"a", "b"}}}).value("clips").toArray()[0].toObject();
+        QVERIFY(!joined.contains("transpose"));
+        QCOMPARE(joined.value("notes").toArray()[0].toObject().value("pitch").toInt(), 72);
+        QCOMPARE(joined.value("notes").toArray()[1].toObject().value("pitch").toInt(), 48);
+    }
+    void joinAudioRequiresContinuousSource() {
+        auto a = clip("a", "a", 0, 1000, "audio");
+        auto b = clip("b", "a", 1000, 1000, "audio");
+        a.insert("currentAssetId", "source"); b.insert("currentAssetId", "source");
+        b.insert("inPointMs", 1000);
+        const QJsonObject raw{{"clips", QJsonArray{a, b}}};
+        const QJsonObject params{{"clips", QJsonArray{"a", "b"}}};
+        const auto joined = applyMusicClipEdit(raw, "join_clips", params).value("clips").toArray();
+        QCOMPARE(joined.size(), 1);
+        QCOMPARE(joined[0].toObject().value("durationMs").toDouble(), 2000.0);
+        b.insert("currentAssetId", "other");
+        try {
+            applyMusicClipEdit({{"clips", QJsonArray{a, b}}}, "join_clips", params);
+            QFAIL("Different sources must need a bounce");
+        } catch (const OpError& error) { QVERIFY(QString::fromUtf8(error.what()).contains("needs bounce")); }
+        b.insert("currentAssetId", "source"); b.insert("locked", true);
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit({{"clips", QJsonArray{a, b}}}, "join_clips", params));
+    }
+    void regionParamsRefuseInvalidValuesAtomically() {
+        auto c = clip("m", "m", 0, 2000, "midi");
+        const QJsonObject raw{{"clips", QJsonArray{c}}};
+        for (double value : {49.0, -49.0, 1.5}) {
+            QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(raw, "set_clip_params", {{"clipId", "m"}, {"transpose", value}}));
+        }
+        c.insert("mediaType", "audio");
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params", {{"clipId", "m"}, {"transpose", 12}}));
+    }
+    void joinMidiRebasesControllersAndFitsExpression() {
+        auto a = clip("a", "m", 1000, 500, "midi");
+        auto b = clip("b", "m", 2000, 500, "midi");
+        a.insert("inPointMs", 250);
+        a.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 480}, {"durationTick", 1200},
+            {"expression", QJsonObject{{"pitch", QJsonArray{QJsonObject{{"tick", 0}, {"value", 0}}, QJsonObject{{"tick", 1200}, {"value", 12}}}}}}}});
+        b.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 64}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 240}}});
+        a.insert("controllers", QJsonArray{QJsonObject{{"id", "cc-a"}, {"kind", "cc"}, {"cc", 1}, {"points", QJsonArray{
+            QJsonObject{{"id", "p1"}, {"tick", 480}, {"value", 64}}, QJsonObject{{"id", "p2"}, {"tick", 960}, {"value", 100}}}}}});
+        b.insert("controllers", QJsonArray{QJsonObject{{"id", "cc-b"}, {"kind", "cc"}, {"cc", 1}, {"points", QJsonArray{
+            QJsonObject{{"id", "p3"}, {"tick", 0}, {"value", 32}}}}}});
+        const auto joined = applyMusicClipEdit({{"clips", QJsonArray{a, b}}}, "join_clips", {{"clips", QJsonArray{"a", "b"}}}).value("clips").toArray()[0].toObject();
+        const auto notes = joined.value("notes").toArray();
+        QCOMPARE(notes[0].toObject().value("startTick").toInt(), 0);
+        QCOMPARE(notes[0].toObject().value("durationTick").toInt(), 960);
+        const auto expression = notes[0].toObject().value("expression").toObject().value("pitch").toArray();
+        QCOMPARE(expression.last().toObject().value("tick").toInt(), 960);
+        QCOMPARE(expression.last().toObject().value("value").toDouble(), 9.6);
+        QCOMPARE(notes[1].toObject().value("startTick").toInt(), 1920);
+        QVERIFY(notes[0].toObject().value("id") != notes[1].toObject().value("id"));
+        const auto lanes = joined.value("controllers").toArray();
+        QCOMPARE(lanes.size(), 1);
+        const auto points = lanes[0].toObject().value("points").toArray();
+        QCOMPARE(points.size(), 3);
+        QCOMPARE(points[0].toObject().value("tick").toInt(), 0);
+        QCOMPARE(points[1].toObject().value("tick").toInt(), 480);
+        QCOMPARE(points[2].toObject().value("tick").toInt(), 1920);
+    }
+    void joinDropsControllersOutsideTheOriginalWindows() {
+        auto a = clip("a", "m", 0, 500, "midi");
+        auto b = clip("b", "m", 2000, 500, "midi");
+        a.insert("controllers", QJsonArray{QJsonObject{{"id", "lane"}, {"kind", "cc"}, {"cc", 1}, {"points", QJsonArray{
+            QJsonObject{{"id", "point"}, {"tick", 1920}, {"value", 100}}}}}});
+        const auto joined = applyMusicClipEdit({{"clips", QJsonArray{a, b}}}, "join_clips", {{"clips", QJsonArray{"a", "b"}}}).value("clips").toArray()[0].toObject();
+        QVERIFY(joined.value("controllers").toArray().isEmpty());
+    }
+    void joinMidiKeepsGapAndRebasesNotes() {
+        auto a = clip("a", "m", 1000, 500, "midi");
+        auto b = clip("b", "m", 2000, 500, "midi");
+        a.insert("notes", QJsonArray{QJsonObject{{"id", "n1"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 0}, {"durationTick", 240}}});
+        b.insert("notes", QJsonArray{QJsonObject{{"id", "n2"}, {"pitch", 64}, {"velocity", 80}, {"startTick", 0}, {"durationTick", 240}}});
+        const auto after = applyMusicClipEdit({{"clips", QJsonArray{a, b}}}, "join_clips", {{"clips", QJsonArray{"b", "a"}}});
+        QVERIFY(!after.contains("selectedClipIds"));
+        const auto result = after.value("clips").toArray();
+        QCOMPARE(result.size(), 1);
+        QCOMPARE(result[0].toObject().value("durationMs").toDouble(), 1500.0);
+        QCOMPARE(result[0].toObject().value("notes").toArray()[1].toObject().value("startTick").toInt(), 1920);
+    }
     void loopUnrollSlicesWholeClipCurves_data() {
         QTest::addColumn<bool>("animation");
         QTest::newRow("parameter-curve") << false;

@@ -2813,4 +2813,239 @@ std::optional<std::vector<int>> parseStepSelection(const QJsonValue& spec, int m
     return sorted;
 }
 
+// ── Row and pattern transforms (SQ35, SQ53; TS stepPattern.ts) ─────────────
+
+QJsonObject rotateRowSteps(const QJsonObject& row, int by, const QString& mode) {
+    const auto steps = row.value(u"steps").toArray();
+    const int n = static_cast<int>(steps.size());
+    if (n <= 1) return row;
+    const int shift = floorMod(by % n, n);
+    if (shift == 0) return row;
+    QJsonArray next;
+    if (mode.isEmpty()) {
+        for (int i = 0; i < n; ++i) next.append(steps.at(floorMod(i - shift, n)));
+    } else {
+        const QString field = modeToField(mode);
+        if (field.isEmpty()) return row;
+        for (int i = 0; i < n; ++i) {
+            auto cur = steps.at(i).toObject();
+            const auto donor = steps.at(floorMod(i - shift, n)).toObject();
+            if (donor.contains(field)) cur.insert(field, donor.value(field));
+            else cur.remove(field);
+            next.append(compactStep(cur));
+        }
+    }
+    auto out = row;
+    out.insert(QStringLiteral("steps"), next);
+    return out;
+}
+
+QJsonObject nudgeRowValues(const QJsonObject& row, const QString& mode, double delta, const QJsonObject& instrument) {
+    const auto assignment = row.value(u"assignment").toObject();
+    const QString type = assignment.value(u"type").toString();
+    const QString kind = assignment.value(u"target").toObject().value(u"kind").toString();
+    const bool isDeviceValue = mode == u"value" && type == u"automation" && kind == u"device";
+    if (!std::isfinite(delta) || delta == 0) return row;
+    const int d = static_cast<int>(std::trunc(delta));
+    if (!isDeviceValue && d == 0) return row;
+    const auto steps = row.value(u"steps").toArray();
+    QJsonArray next;
+    auto out = row;
+    if (mode == u"loop") {
+        const int lengthSteps = row.value(u"lengthSteps").toInt(static_cast<int>(steps.size()));
+        const int loopStart = row.value(u"loopStart").toInt(0);
+        out.insert(QStringLiteral("loopEnd"), clampInt(row.value(u"loopEnd").toInt(lengthSteps) + d, loopStart + 1, lengthSteps));
+        return out;
+    }
+    for (qsizetype i = 0; i < steps.size(); ++i) {
+        auto s = steps.at(i).toObject();
+        const auto n = normalizeStep(s);
+        if (mode == u"onOff") {
+            s.insert(QStringLiteral("on"), d > 0);
+        } else if (mode == u"tie") {
+            s.insert(QStringLiteral("tie"), d > 0 && i > 0);
+        } else if (mode == u"skip") {
+            s.insert(QStringLiteral("skip"), d > 0);
+        } else if (mode == u"velocity") {
+            s.insert(QStringLiteral("velocity"), clampInt(n.value(u"velocity").toDouble() + d, 1, 127));
+        } else if (mode == u"gate") {
+            s.insert(QStringLiteral("gate"), clampInt(n.value(u"gate").toDouble() + d, 1, 100));
+        } else if (mode == u"note") {
+            s.insert(QStringLiteral("note"), clampInt(n.value(u"note").toDouble() + d, -12, 12));
+        } else if (mode == u"octave") {
+            int cur = 3;
+            if (n.contains(u"octave")) cur = n.value(u"octave").toInt();
+            else if (type == u"degree") cur = assignment.value(u"octave").toInt(3);
+            else if (type == u"kit") cur = static_cast<int>(std::floor(kitPadPitch(assignment.value(u"pad").toInt(0), instrument) / 12.0)) - 2;
+            else if (type == u"note" || type == u"melodic") cur = static_cast<int>(std::floor(assignment.value(u"pitch").toInt(60) / 12.0)) - 2;
+            s.insert(QStringLiteral("octave"), clampInt(cur + d, -2, 8));
+        } else if (mode == u"repeat") {
+            s.insert(QStringLiteral("repeat"), clampInt(n.value(u"repeat").toDouble() + d, 1, 16));
+        } else if (mode == u"chance") {
+            s.insert(QStringLiteral("chance"), clampInt(n.value(u"chance").toDouble() + d, 0, 100));
+        } else if (mode == u"offset") {
+            s.insert(QStringLiteral("offset"), clampInt(n.value(u"offset").toDouble() + d, -50, 50));
+        } else if (mode == u"stepRate") {
+            const auto rate = n.contains(u"stepRate") ? n.value(u"stepRate").toString() : row.value(u"stepRate").toString();
+            s.insert(QStringLiteral("stepRate"), QString::fromUtf8(nudgeStepRate(rate.toStdString(), d)));
+        } else if (mode == u"value") {
+            const double cur = n.value(u"value").toDouble(0);
+            if (isDeviceValue) {
+                s.insert(QStringLiteral("value"), cur + delta);
+            } else {
+                const bool bend = type == u"automation" && kind == u"pitchBend";
+                s.insert(QStringLiteral("value"), clampInt(cur + d, bend ? -8192 : 0, bend ? 8191 : 127));
+            }
+        }
+        next.append(compactStep(s));
+    }
+    out.insert(QStringLiteral("steps"), next);
+    if ((mode == u"note" || mode == u"octave") && type == u"note") {
+        out.insert(QStringLiteral("assignment"), QJsonObject{{QStringLiteral("type"), QStringLiteral("melodic")}, {QStringLiteral("pitch"), assignment.value(u"pitch")}});
+    }
+    return out;
+}
+
+QJsonObject tieRowSteps(const QJsonObject& row, int fromIdx, int toIdx, bool tie) {
+    auto steps = row.value(u"steps").toArray();
+    const int lo = std::max(0, std::min(fromIdx, toIdx));
+    const int hi = std::min(static_cast<int>(steps.size()) - 1, std::max(fromIdx, toIdx));
+    if (lo > hi) return row;
+    if (tie) {
+        auto first = steps.at(lo).toObject();
+        if (!first.value(u"on").toBool(false)) {
+            first.insert(QStringLiteral("on"), true);
+            first.insert(QStringLiteral("tie"), false);
+            steps.replace(lo, compactStep(first));
+        }
+        for (int i = lo + 1; i <= hi; ++i) {
+            auto s = steps.at(i).toObject();
+            s.insert(QStringLiteral("tie"), true);
+            steps.replace(i, compactStep(s));
+        }
+    } else {
+        for (int i = lo; i <= hi; ++i) {
+            auto s = steps.at(i).toObject();
+            s.insert(QStringLiteral("tie"), false);
+            steps.replace(i, compactStep(s));
+        }
+    }
+    auto out = row;
+    out.insert(QStringLiteral("steps"), steps);
+    return out;
+}
+
+QJsonObject randomizePatternSteps(const QJsonObject& pattern, const QString& mode, const std::optional<QSet<QString>>& rowIds,
+                                  const std::optional<std::vector<int>>& stepIndices, std::uint32_t seed, double density) {
+    const int dens = clampInt(density, 0, 100);
+    QSet<int> targetSteps;
+    if (stepIndices) {
+        for (int i : *stepIndices) targetSteps.insert(i);
+    }
+    const bool mono = pattern.value(u"mono").toBool(false);
+    QSet<int> monoOccupied;
+    const auto rows = pattern.value(u"rows").toArray();
+    if (mode == u"onOff" && mono) {
+        for (const auto& rv : rows) {
+            const auto r = rv.toObject();
+            if (rowIds && !rowIds->contains(r.value(u"id").toString()) && isNoteRowObj(r)) {
+                const auto st = r.value(u"steps").toArray();
+                for (int i = 0; i < st.size(); ++i) {
+                    if (st.at(i).toObject().value(u"on").toBool(false)) monoOccupied.insert(i);
+                }
+            }
+        }
+    }
+    QJsonArray nextRows;
+    for (const auto& rv : rows) {
+        auto row = rv.toObject();
+        const QString rowId = row.value(u"id").toString();
+        if (rowIds && !rowIds->contains(rowId)) {
+            nextRows.append(row);
+            continue;
+        }
+        const std::uint32_t rk = rowKeyHash(rowId.toStdString());
+        const auto assignment = row.value(u"assignment").toObject();
+        const QString type = assignment.value(u"type").toString();
+        const QString kind = assignment.value(u"target").toObject().value(u"kind").toString();
+        const auto steps = row.value(u"steps").toArray();
+        std::optional<std::pair<double, double>> devRange;
+        if (mode == u"value" && type == u"automation" && kind == u"device") {
+            std::vector<double> vals;
+            for (const auto& sv : steps) {
+                const auto v = sv.toObject().value(u"value");
+                if (v.isDouble() && std::isfinite(v.toDouble())) vals.push_back(v.toDouble());
+            }
+            if (vals.size() >= 2) {
+                const double lo = *std::min_element(vals.begin(), vals.end());
+                const double hi = *std::max_element(vals.begin(), vals.end());
+                devRange = hi > lo ? std::pair{lo, hi} : (lo > 1 ? std::pair{0.0, lo * 2} : std::pair{0.0, 1.0});
+            } else if (vals.size() == 1) {
+                devRange = vals[0] > 1 ? std::pair{0.0, vals[0] * 2} : std::pair{0.0, 1.0};
+            } else {
+                devRange = std::pair{0.0, 1.0};
+            }
+        }
+        QJsonArray next;
+        for (int i = 0; i < steps.size(); ++i) {
+            auto s = steps.at(i).toObject();
+            if (stepIndices && !targetSteps.contains(i)) {
+                next.append(s);
+                continue;
+            }
+            const double u = stepHash(seed, rk, static_cast<std::uint32_t>(i), 0);
+            if (mode == u"onOff") {
+                bool on = u * 100 < dens;
+                if (on && mono && isNoteRowObj(row)) {
+                    if (monoOccupied.contains(i)) on = false;
+                    else monoOccupied.insert(i);
+                }
+                s.insert(QStringLiteral("on"), on);
+            } else if (mode == u"velocity") {
+                s.insert(QStringLiteral("velocity"), clampInt(1 + u * 126, 1, 127));
+            } else if (mode == u"gate") {
+                s.insert(QStringLiteral("gate"), clampInt(10 + u * 90, 1, 100));
+            } else if (mode == u"tie") {
+                s.insert(QStringLiteral("tie"), i > 0 && u < 0.35);
+            } else if (mode == u"note") {
+                s.insert(QStringLiteral("note"), clampInt(-12 + u * 24, -12, 12));
+            } else if (mode == u"octave") {
+                s.insert(QStringLiteral("octave"), clampInt(1 + u * 4, -2, 8));
+            } else if (mode == u"repeat") {
+                s.insert(QStringLiteral("repeat"), clampInt(1 + u * 3, 1, 16));
+            } else if (mode == u"chance") {
+                s.insert(QStringLiteral("chance"), clampInt(u * 100, 0, 100));
+            } else if (mode == u"offset") {
+                s.insert(QStringLiteral("offset"), clampInt(-50 + u * 100, -50, 50));
+            } else if (mode == u"stepRate") {
+                static const std::array<const char*, 4> choices{"1/8", "1/16", "1/32", "16T"};
+                s.insert(QStringLiteral("stepRate"), QString::fromLatin1(choices[static_cast<std::size_t>(std::floor(u * 4))]));
+            } else if (mode == u"skip") {
+                s.insert(QStringLiteral("skip"), u < 0.25);
+            } else if (mode == u"value") {
+                if (devRange) {
+                    const double v = devRange->first + u * (devRange->second - devRange->first);
+                    s.insert(QStringLiteral("value"), QString::number(v, 'f', 4).toDouble());
+                } else if (type == u"automation" && kind == u"pitchBend") {
+                    s.insert(QStringLiteral("value"), clampInt(-8192 + u * 16383, -8192, 8191));
+                } else {
+                    s.insert(QStringLiteral("value"), clampInt(u * 127, 0, 127));
+                }
+            } else {
+                next.append(s);
+                continue;
+            }
+            next.append(compactStep(s));
+        }
+        if ((mode == u"note" || mode == u"octave") && type == u"note") {
+            row.insert(QStringLiteral("assignment"), QJsonObject{{QStringLiteral("type"), QStringLiteral("melodic")}, {QStringLiteral("pitch"), assignment.value(u"pitch")}});
+        }
+        row.insert(QStringLiteral("steps"), next);
+        nextRows.append(row);
+    }
+    auto out = pattern;
+    out.insert(QStringLiteral("rows"), nextRows);
+    return out;
+}
+
 }  // namespace nt::midi

@@ -381,6 +381,7 @@ EditDoc ClipGestureController::editDoc() const {
     // The snapshot's id index, converted once while the ids stay the same.
     const auto& typed = m_timeline->timeline();
     doc.bpm = typed.raw.value("tempo").toObject().value("bpm").toDouble(120);
+    doc.gridOffsetMs = typed.raw.value("tempo").toObject().value("offsetMs").toDouble();
     if (m_editIndexSource != typed.clipIndex || !m_editIndex) {
         auto index = std::make_shared<QHash<QString, int>>();
         index->reserve(static_cast<int>(typed.clips.size()));

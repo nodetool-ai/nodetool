@@ -13,11 +13,12 @@ function(nt_step_pattern_audio_registration)
 endfunction()
 cmake_language(DEFER CALL nt_step_pattern_audio_registration)
 if(NOT MSVC)
-    set_source_files_properties(src/midi/PatternExpand.cpp
+    set_source_files_properties(src/midi/PatternExpand.cpp src/midi/RegionParams.cpp
         PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
 nt_qml_sources(src/midi/PianoRollController.h src/midi/PianoRollController.cpp)
 nt_qml_sources(src/midi/StepEditorLaneModel.h src/midi/StepEditorLaneModel.cpp)
+nt_qml_sources(src/midi/StepSequencerController.h src/midi/StepSequencerController.cpp)
 
 function(nt_midi_tests)
     nt_qt_test(tst_midinotes SOURCES src/midi/tst_midinotes.cpp LIBS timeline_core Qt6::Test)
@@ -32,5 +33,14 @@ function(nt_midi_tests)
     nt_add_timeline_qml(tst_pianorollui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_pianorollui_qml/NodeTool/Timeline)
     add_test(NAME tst_pianorollui COMMAND tst_pianorollui)
     set_tests_properties(tst_pianorollui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    qt_add_executable(tst_stepsequencerui src/midi/tst_stepsequencerui.cpp ${NT_app})
+    set_target_properties(tst_stepsequencerui PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(tst_stepsequencerui PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_stepsequencerui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_stepsequencerui_qml/NodeTool/Timeline)
+    add_test(NAME tst_stepsequencerui COMMAND tst_stepsequencerui)
+    set_tests_properties(tst_stepsequencerui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endfunction()
 nt_tests(nt_midi_tests)
+
+nt_sources(core src/midi/RegionParams.h src/midi/RegionParams.cpp)

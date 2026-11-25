@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <cmath>
 #include <numbers>
+#include <optional>
 #include <set>
 
 namespace nt::audio {
@@ -206,7 +207,69 @@ void unregisterMixPlanStage(MixPlanStageToken token) {
     std::erase_if(r.stages, [token](const Stage& s) { return s.token == token; });
 }
 
-MixPlan buildMixPlan(const Timeline& tl) {
+namespace {
+// Plan-building thread only. These values never reach the real-time callback.
+void projectAutoCrossfades(std::vector<Clip>& clips, double durationMs) {
+    using Want = std::pair<double, FadeShape>;
+    std::vector<std::optional<Want>> ins(clips.size()), outs(clips.size());
+    std::unordered_map<std::string, std::vector<std::size_t>> tracks;
+    for (std::size_t i = 0; i < clips.size(); ++i) {
+        if (clips[i].mediaType == MediaType::Audio && clips[i].durationMs > 0) { tracks[clips[i].trackId].push_back(i); }
+    }
+    const auto want = [](auto& values, std::size_t i, double ms, FadeShape shape) {
+        if (ms > 0 && (!values[i] || ms < values[i]->first)) { values[i] = Want{ms, shape}; }
+    };
+    const auto room = [](const Clip& c, double opposite, double ms) {
+        return std::min({ms, c.durationMs / 2, std::max(0.0, c.durationMs - opposite)});
+    };
+    for (auto& [trackId, list] : tracks) {
+        (void)trackId;
+        std::stable_sort(list.begin(), list.end(), [&clips](auto a, auto b) { return clips[a].startMs < clips[b].startMs; });
+        for (std::size_t i = 0; i < list.size(); ++i) {
+            const auto& a = clips[list[i]];
+            for (std::size_t j = i + 1; j < list.size(); ++j) {
+                const auto& b = clips[list[j]];
+                const double aEnd = a.startMs + a.durationMs, bEnd = b.startMs + b.durationMs;
+                const double overlap = aEnd - b.startMs;
+                if (overlap < -std::min(1.0, durationMs / 2)) { break; }
+                double outMs, inMs;
+                FadeShape shape;
+                if (overlap > durationMs) {
+                    outMs = aEnd <= bEnd + 1e-6 ? durationMs : 0;
+                    inMs = durationMs; shape = FadeShape::Linear;
+                } else if (overlap > 1e-6) {
+                    outMs = inMs = overlap; shape = FadeShape::Plus3dB;
+                } else {
+                    outMs = inMs = durationMs / 2; shape = FadeShape::Linear;
+                }
+                want(outs, list[i], room(a, a.fadeInMs, outMs), shape);
+                want(ins, list[j], room(b, b.fadeOutMs, inMs), shape);
+                if (bEnd < aEnd - 1e-6) {
+                    const double bOut = std::min(durationMs, overlap > 1e-6 ? overlap : durationMs);
+                    want(outs, list[j], room(b, b.fadeInMs, bOut), bOut >= durationMs ? FadeShape::Linear : shape);
+                }
+            }
+        }
+    }
+    const auto shapeName = [](FadeShape shape) { return shape == FadeShape::Plus3dB ? "plus3dB" : "linear"; };
+    for (std::size_t i = 0; i < clips.size(); ++i) {
+        auto& c = clips[i];
+        if (ins[i] && !(c.fadeInMs > 0)) { c.fadeInMs = ins[i]->first; c.fadeInShape = shapeName(ins[i]->second); }
+        if (outs[i] && !(c.fadeOutMs > 0)) { c.fadeOutMs = outs[i]->first; c.fadeOutShape = shapeName(outs[i]->second); }
+    }
+}
+}
+
+MixPlan buildMixPlan(const Timeline& document) {
+    std::optional<Timeline> projected;
+    if (document.raw.value("music").isObject()) {
+        const double ms = document.raw.value("music").toObject().value("autoCrossfadeMs").toDouble(10);
+        if (std::isfinite(ms) && ms > 0) {
+            projected = document;
+            projectAutoCrossfades(projected->clips, ms);
+        }
+    }
+    const auto& tl = projected ? *projected : document;
     MixPlan plan;
     plan.masterGain = dbToGain(tl.masterVolumeDb);
 

@@ -93,6 +93,15 @@ QList<Command> buildAllowed() {
     edit("paste_range", "Paste section", {barPosition, beatPosition, timePosition,
         P{"content", ParamKind::Object, true, "Section content with lengthMs, clips and optional metadata."},
         P{"mode", ParamKind::Choice, false, "Insert silence or replace receiving tracks.", {"insert", "overwrite"}}});
+    edit("music.setAutoCrossfade", "Set automatic crossfade", {
+        P{"autoCrossfadeMs", ParamKind::Number, true, "Automatic audio crossfade length in ms. Zero disables it. Default 10.", {}, {}, 0, 1000}});
+    edit("set_clip_params", "Set clip parameters", {musicClip,
+        P{"name", ParamKind::Text, false, "Clip name."},
+        P{"labelColor", ParamKind::NullableText, false, "Label color, or null to clear."},
+        P{"transpose", ParamKind::NullableNumber, false, "MIDI semitones, or null to clear.", {}, {}, -48, 48},
+        P{"velocityOffset", ParamKind::NullableNumber, false, "MIDI velocity offset, or null to clear.", {}, {}, -127, 127},
+        P{"quantize", ParamKind::NullableObject, false, "MIDI {grid, strength} or null to clear."}});
+    edit("join_clips", "Join clips", {P{"clips", ParamKind::ClipIds, true, "MIDI clips on one track, or continuous pieces of one audio source."}});
     edit("loop_clip", "Loop clip", {musicClip,
         P{"times", ParamKind::Number, false, "How many source-window repetitions, including a partial final repeat.", {}, {}, 0},
         P{"untilMs", ParamKind::Number, false, "Timeline end in milliseconds.", {}, {}, 0},

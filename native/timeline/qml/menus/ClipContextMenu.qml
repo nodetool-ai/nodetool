@@ -91,6 +91,15 @@ Ui.ContextMenu {
             menu.removeItem(object)
         }
     }
+    Ui.MenuItem {
+        objectName: "clipMenu-joinClips"
+        visible: menu.gestures.keymapContext === "music"
+        height: visible ? implicitHeight : 0
+        text: qsTr("Join clips")
+        enabled: menu.context.editable !== false && menu.gestures.selection.length >= 2
+        reasonText: qsTr("Select at least two clips on one track.")
+        onTriggered: menu.gestures.timeline.applyEdit("join_clips", { clips: menu.gestures.selection })
+    }
     // Loop repeats the clip's current length four times. Remove loop takes the repeats off. One undo each.
     Ui.MenuItem {
         objectName: "clipMenu-loopClip"
@@ -163,6 +172,54 @@ Ui.ContextMenu {
                     variant: Ui.EditorButton.Primary
                     enabled: repeatCount.draftValid && Number.isInteger(Number(repeatCount.text))
                     onClicked: repeatDialog.applyCopies()
+                }
+            }
+        }
+    }
+    Ui.MenuItem {
+        objectName: "clipMenu-renameClip"
+        text: qsTr("Rename…")
+        enabled: menu.context.editable !== false
+        reasonText: qsTr("Unlock the clip first.")
+        onTriggered: {
+            renameDialog.clipId = menu.context.clipId || ""
+            renameDialog.originalName = menu.context.clip?.name || ""
+            renameField.value = renameDialog.originalName
+            renameField.text = renameDialog.originalName
+            renameDialog.open()
+        }
+    }
+    Ui.Dialog {
+        id: renameDialog
+        property string clipId: ""
+        property string originalName: ""
+        title: qsTr("Rename clip")
+        width: Math.min(Ui.Metrics.dialogCompactWidth, parent ? parent.width - Ui.Metrics.dialogNarrowInset * 2 : Ui.Metrics.dialogCompactWidth)
+        returnFocusTo: menu.gestures
+        onOpened: { renameField.forceActiveFocus(); renameField.selectAll() }
+        function applyName() {
+            if (renameField.text === originalName || menu.gestures.timeline.applyEdit("set_clip_params", {clipId: clipId, name: renameField.text})) close()
+        }
+        contentItem: Ui.TextField {
+            id: renameField
+            objectName: "clipRenameField"
+            accessibleName: qsTr("Clip name")
+            onAccepted: renameDialog.applyName()
+        }
+        footer: Item {
+            implicitHeight: renameApply.implicitHeight + renameDialog.padding * 2
+            Row {
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: renameDialog.padding
+                spacing: Ui.Metrics.sm
+                Ui.EditorButton { text: qsTr("Cancel"); onClicked: renameDialog.close() }
+                Ui.EditorButton {
+                    id: renameApply
+                    objectName: "clipRenameApply"
+                    text: qsTr("Rename")
+                    variant: Ui.EditorButton.Primary
+                    onClicked: renameDialog.applyName()
                 }
             }
         }

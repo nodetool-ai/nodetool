@@ -418,7 +418,7 @@ const bool sectionEditsRegistered = [] {
 }();
 
 const bool clipEditsRegistered = [] {
-    for (const auto* operation : {"loop_clip", "duplicate_clip", "move_clip", "split_clip", "trim_clip"}) {
+    for (const auto* operation : {"loop_clip", "duplicate_clip", "move_clip", "split_clip", "trim_clip", "join_clips", "set_clip_params", "music.setAutoCrossfade"}) {
         const auto name = QString::fromLatin1(operation);
         nt::app::registerEdit(name, [name](QJsonObject raw, const QJsonObject& payload) {
             return nt::edit::applyMusicClipEdit(std::move(raw), name, payload);

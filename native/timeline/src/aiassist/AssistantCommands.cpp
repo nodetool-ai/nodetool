@@ -116,6 +116,12 @@ QJsonObject parameterSchema(const Param& param) {
         if (std::isfinite(param.min)) { schema.insert("minimum", param.min); }
         if (std::isfinite(param.max)) { schema.insert("maximum", param.max); }
         break;
+    case ParamKind::NullableObject:
+        schema = {{"type", QJsonArray{"object", "null"}}};
+        break;
+    case ParamKind::NullableText:
+        schema = {{"type", QJsonArray{"string", "null"}}};
+        break;
     case ParamKind::Object:
         schema = {{"type", "object"}};
         break;
@@ -361,6 +367,14 @@ Prepared prepare(const Command& command, const QJsonObject& params, const QJsonO
         case ParamKind::Number: out.payload.insert(key, *number); break;
         case ParamKind::NullableNumber:
             out.payload.insert(key, value.isNull() ? QJsonValue(QJsonValue::Null) : QJsonValue(*number));
+            break;
+        case ParamKind::NullableObject:
+            if (!value.isNull() && !value.isObject()) { out.error = param.name + " must be an object or null."; }
+            out.payload.insert(key, value);
+            break;
+        case ParamKind::NullableText:
+            if (!value.isNull() && !value.isString()) { out.error = param.name + " must be text or null."; }
+            out.payload.insert(key, value);
             break;
         case ParamKind::Object:
             if (!value.isObject()) { out.error = param.name + " must be an object."; }
@@ -698,7 +712,7 @@ QJsonObject AssistantCommands::state(ClipGestureController& gestures) const {
         const auto clip = value.toObject();
         QJsonObject summary{{"id", clip.value("id")}, {"trackId", clip.value("trackId")}, {"name", clip.value("name")}, {"mediaType", clip.value("mediaType")},
                             {"startMs", clip.value("startMs")}, {"durationMs", clip.value("durationMs")}};
-        for (const auto* key : {"inPointMs", "outPointMs", "loopLengthMs"}) {
+        for (const auto* key : {"inPointMs", "outPointMs", "loopLengthMs", "transpose", "velocityOffset", "quantize", "labelColor"}) {
             if (clip.contains(QLatin1String(key))) { summary.insert(QLatin1String(key), clip.value(QLatin1String(key))); }
         }
         clips.append(summary);
@@ -716,6 +730,9 @@ QJsonObject AssistantCommands::state(ClipGestureController& gestures) const {
                     {"clips", clips},
                     {"markers", raw.value("markers").toArray()}};
     if (raw.contains("tempo")) { out.insert("tempo", raw.value("tempo")); }
+    if (raw.value("music").isObject()) {
+        out.insert("music", QJsonObject{{"autoCrossfadeMs", raw.value("music").toObject().value("autoCrossfadeMs").toDouble(10)}});
+    }
     // Nothing else shows the master effects' ids.
     if (raw.contains("master")) { out.insert("master", raw.value("master")); }
     if (!gestures.selectedGap().isEmpty()) { out.insert("selectedGap", QJsonObject::fromVariantMap(gestures.selectedGap())); }
@@ -821,6 +838,15 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
         ran = runAction(*command, *editor, context);
     }
     const bool changed = m_model.timeline().raw != before;
+    if (id == u"join_clips" && changed) {
+        QStringList joinedSelection;
+        const auto targets = prepared.payload.value("clips").toArray();
+        for (const auto& value : m_model.clipsJson()) {
+            const auto id = value.toObject().value("id");
+            if (targets.contains(id)) { joinedSelection.append(id.toString()); }
+        }
+        editor->setSelection(joinedSelection);
+    }
     if (stack->index() - indexBefore > 1) {
         // Stepping back through the entries drops the clips they made from the selection.
         const auto selection = editor->selection();
@@ -844,6 +870,23 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
     QJsonObject undo{{"added", added > 0}, {"canUndo", stack->canUndo()}, {"canRedo", stack->canRedo()}, {"undoCount", stack->index()}};
     if (stack->canUndo()) { undo.insert("entry", stack->undoText()); }
     QJsonObject result{{"ok", true}, {"command", id}, {"changed", changed}, {"undo", undo}, {"state", state(*editor)}};
+    if (id == u"join_clips") {
+        const auto targets = prepared.payload.value("clips").toArray();
+        QJsonArray converted;
+        for (const auto& value : before.value("clips").toArray()) {
+            const auto c = value.toObject();
+            if (targets.contains(c.value("id")) && c.value("pattern").isObject()) { converted.append(c.value("id")); }
+        }
+        bool retainsPattern = false;
+        for (const auto& value : m_model.clipsJson()) {
+            const auto c = value.toObject();
+            retainsPattern = retainsPattern || (targets.contains(c.value("id")) && c.value("pattern").isObject());
+        }
+        if (!converted.isEmpty() && !retainsPattern) {
+            result.insert("convertedToMidi", true);
+            result.insert("convertedPatternClipIds", converted);
+        }
+    }
     if (command->background) { result.insert("running", true); }
     return result;
 }

@@ -52,6 +52,19 @@ class TestMenus : public WiringFixture {
         auto* entry = item(name);
         QVERIFY2(entry, qPrintable("Missing menu item " + name));
         QVERIFY2(entry->isVisible(), qPrintable("Hidden menu item " + name));
+        auto* list = activeMenu->property("contentItem").value<QObject*>();
+        if (list) {
+            for (int i = 0; i < activeMenu->property("count").toInt(); ++i) {
+                QQuickItem* row = nullptr;
+                QMetaObject::invokeMethod(activeMenu, "itemAt", Q_RETURN_ARG(QQuickItem*, row), Q_ARG(int, i));
+                if (row == entry) {
+                    constexpr int contain = 4; // Qt Quick exposes ListView.Contain as 4.
+                    QVERIFY(QMetaObject::invokeMethod(list, "positionViewAtIndex", Q_ARG(int, i), Q_ARG(int, contain)));
+                    break;
+                }
+            }
+            QCoreApplication::processEvents();
+        }
         QSignalSpy triggered(entry, SIGNAL(triggered()));
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(entry));
         QCoreApplication::processEvents();
@@ -228,7 +241,7 @@ private slots:
             expected.append("clipMenu-" + value);
         }
         // The music rows stay in the list, hidden outside music mode.
-        expected.append({"clipMenu-loopClip:Loop", "clipMenu-repeatClip:Repeat…"});
+        expected.append({"clipMenu-joinClips:Join clips", "clipMenu-loopClip:Loop", "clipMenu-repeatClip:Repeat…", "clipMenu-renameClip:Rename…"});
         expected.append({"clipMenu-labelDivider:", "clipMenu-label:Label", "clipMenu-afterLabelDivider:",
                          "registryMenu-clip-addMarker:Add marker", "registryMenuGroup-clip-:",
                          "registryMenu-clip-speedDuration:Speed / Duration…", "registryMenuGroup-clip-frame:",

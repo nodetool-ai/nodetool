@@ -2,6 +2,7 @@
 
 #include "Tempo/TempoGrid.h"
 #include "Tempo/TempoJson.h"
+#include "midi/RegionParams.h"
 #include "model/TimelineModel.h"
 
 #include <QJsonObject>
@@ -250,7 +251,9 @@ std::vector<NoteLine> MidiNoteLinesItem::build() const {
     if (!m_timeline || m_clipId.isEmpty()) { return {}; }
     const nt::Clip* clip = m_timeline->findClip(m_clipId);
     if (!clip || clip->mediaType != nt::MediaType::Midi) { return {}; }
-    return computeNoteLines(clip->raw.value(QLatin1String("notes")).toArray(), currentView(*clip));
+    const auto tempo = nt::tempo::json::resolveTempo(m_timeline->timeline().raw);
+    const auto projected = nt::midi::applyRegionParams(clip->raw, tempo.value("bpm").toDouble(120), tempo.value("offsetMs").toDouble());
+    return computeNoteLines(projected.value("notes").toArray(), currentView(*clip));
 }
 
 std::vector<CurveSegment> MidiNoteLinesItem::buildCurve() const {

@@ -125,6 +125,7 @@ const bool registered = [] {
         {"panelActivity", "Go to Activity", "activity", "Activity"}, {"panelMusic", "Go to Music", "music", "Music"},
         {"panelPianoRoll", "Go to the Piano Roll", "pianoRoll", "Piano Roll"},
         {"panelStepEditor", "Go to the Step Editor", "stepEditor", "Step Editor"},
+        {"panelStepSequencer", "Go to the Step Sequencer", "stepSequencer", "Step Sequencer"},
         {"panelTrackEffects", "Go to the Effect Chain", "trackEffects", "Effect Chain"}};
     int panelOrder = 100;
     for (const auto& entry : panels) {
