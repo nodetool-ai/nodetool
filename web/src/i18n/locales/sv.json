@@ -9056,7 +9056,8 @@
         "provider-options": "Leverantörsalternativ",
         "observability": "Observerbarhet",
         "data-and-storage": "Data & lagring",
-        "other": "Annat"
+        "other": "Annat",
+        "library-search": "Bibliotekssökning"
       },
       "credentials": {
         "genericButton": "Få din API-nyckel",
@@ -20818,6 +20819,47 @@
       "scriptMissing": "Manuset hittades inte: {{name}}",
       "scriptEmpty": "Det här manuset har inga repliker än.",
       "openScript": "Öppna manus"
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "Namn",
+      "prompt": "Prompt",
+      "description": "Beskrivning",
+      "body": "Text",
+      "caption": "Bildtext",
+      "transcript": "Transkription"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "Bibliotek",
+      "indexing": "Indexerar biblioteket: {{ready}} av {{total}} objekt klara",
+      "embedding": "Avsnitt kvar att bädda in för sökning på betydelse: {{count}}",
+      "noMatch": "Inget i ditt bibliotek matchar ”{{query}}”. Sökte i alla projekt.",
+      "failed": "Bibliotekssökningen misslyckades. Resultat från ditt bibliotek saknas."
+    },
+    "setup": {
+      "heading": "Sök på betydelse",
+      "description": "Hitta objekt efter vad de visar eller säger, inte bara efter orden i dem. Den lokala modellen körs på den här datorn, så ditt innehåll stannar här.",
+      "local": "Ladda ned den lokala modellen ({{size}} MB)",
+      "provider": "Använd en leverantörs modell",
+      "providerNote": "Avsnitt som skickas till leverantören du väljer: {{count}}",
+      "notNow": "Inte nu"
+    },
+    "status": {
+      "loadFailed": "Det gick inte att läsa status för bibliotekssökningen.",
+      "items": "{{ready}} av {{total}} objekt indexerade",
+      "pending": "Väntar på indexering: {{count}}",
+      "failed": "Kunde inte indexeras: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "Sökning på betydelse använder {{model}}.",
+      "semanticOff": "Sökning på betydelse är av. Ordsökning fungerar utan den.",
+      "vectors": "{{embedded}} av {{total}} avsnitt inbäddade",
+      "rebuildingVectors": "Den nya modellen bäddar in biblioteket. Sökningen använder föregående modell tills den är klar.",
+      "turnOff": "Stäng av sökning på betydelse",
+      "embedAgain": "Bädda in igen",
+      "rebuild": "Bygg om indexet",
+      "providerHint": "För att använda en leverantörs modell anger du leverantör och modell ovan. Avsnitt som skickas dit: {{count}}"
     }
   }
 }

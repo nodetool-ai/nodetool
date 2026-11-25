@@ -8,7 +8,12 @@
 import { and, count, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { getPortableDb, searchChunks, searchItems } from "@nodetool-ai/models";
 import { unembeddedChunkCount } from "./embed.js";
-import { dropLibraryCollections, libraryCollections, libraryEmbeddingSpace } from "./semantic.js";
+import {
+  dropLibraryCollections,
+  libraryCollections,
+  libraryEmbeddingSpace,
+  librarySemanticChoice
+} from "./semantic.js";
 import { reconcileLibraryIndex, wakeLibraryIndexer } from "./sync.js";
 
 export interface LibraryIndexStatus {
@@ -17,6 +22,8 @@ export interface LibraryIndexStatus {
   semantic: {
     /** `provider:model`, or null when search by meaning is off. */
     space: string | null;
+    /** `unset` until someone turns search by meaning on or off. */
+    choice: "on" | "off" | "unset";
     /** Chunks with a vector in the configured space. */
     embedded: number;
     /** Chunks still waiting for one, outside excluded projects. */
@@ -72,7 +79,7 @@ export async function libraryIndexStatus(userId: string): Promise<LibraryIndexSt
   return {
     items,
     chunks: Number(chunkRow?.n ?? 0),
-    semantic: { space: space?.id ?? null, embedded, remaining, collections },
+    semantic: { space: space?.id ?? null, choice: await librarySemanticChoice(), embedded, remaining, collections },
     failures
   };
 }

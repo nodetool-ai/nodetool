@@ -128,7 +128,27 @@ as a 12-character prefix.
 
 `searchAssets` returns asset rows for the asset surfaces: `assets.search`,
 `asset_search`, `asset_list`, `list_images`, `list_assets` and
-`list_model3ds`.
+`list_model3ds`. `assets.search` returns each row's best match as `match`,
+so the asset browser and the mobile Assets screen show the prompt or passage
+that matched when it was not the name.
+
+## App surfaces
+
+The `search` tRPC router in `packages/websocket` serves the apps:
+
+| Procedure | Calls |
+|---|---|
+| `search.query` | `searchLibrary`, for the command palette's library group |
+| `search.read` | `readLibraryPassage` |
+| `search.status` | `libraryIndexStatus`, plus whether the caller may set up search and the size of the default local model |
+| `search.rebuild` | `rebuildLibraryIndex` |
+| `search.setup` | `setupLibrarySemanticSearch`. The cloud profile refuses it |
+
+`libraryIndexStatus` reports `semantic.choice` as `unset` until someone turns
+search by meaning on or off. On desktop, the command palette offers the local
+model once while it is `unset`: download it, use a provider model, or not now.
+Settings, Integrations, Library search shows the counts, failures, model and
+rebuild actions.
 
 ## Agent tools
 

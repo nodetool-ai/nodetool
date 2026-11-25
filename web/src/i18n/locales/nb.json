@@ -9056,7 +9056,8 @@
         "provider-options": "Leverandøralternativer",
         "observability": "Observerbarhet",
         "data-and-storage": "Data og lagring",
-        "other": "Annet"
+        "other": "Annet",
+        "library-search": "Biblioteksøk"
       },
       "credentials": {
         "genericButton": "Få API-nøkkelen din",
@@ -20818,6 +20819,47 @@
       "scriptMissing": "Fant ikke manuset: {{name}}",
       "scriptEmpty": "Dette manuset har ingen replikker ennå.",
       "openScript": "Åpne manus"
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "Navn",
+      "prompt": "Ledetekst",
+      "description": "Beskrivelse",
+      "body": "Tekst",
+      "caption": "Bildetekst",
+      "transcript": "Transkripsjon"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "Bibliotek",
+      "indexing": "Indekserer biblioteket: {{ready}} av {{total}} elementer klare",
+      "embedding": "Avsnitt som gjenstår å bygge inn for søk etter betydning: {{count}}",
+      "noMatch": "Ingenting i biblioteket ditt samsvarer med «{{query}}». Søkte i alle prosjekter.",
+      "failed": "Biblioteksøket mislyktes. Resultater fra biblioteket ditt mangler."
+    },
+    "setup": {
+      "heading": "Søk etter betydning",
+      "description": "Finn elementer etter hva de viser eller sier, ikke bare etter ordene i dem. Den lokale modellen kjører på denne datamaskinen, så innholdet ditt blir her.",
+      "local": "Last ned den lokale modellen ({{size}} MB)",
+      "provider": "Bruk en modell fra en leverandør",
+      "providerNote": "Avsnitt som sendes til leverandøren du velger: {{count}}",
+      "notNow": "Ikke nå"
+    },
+    "status": {
+      "loadFailed": "Kunne ikke lese statusen for biblioteksøket.",
+      "items": "{{ready}} av {{total}} elementer indeksert",
+      "pending": "Venter på indeksering: {{count}}",
+      "failed": "Kunne ikke indekseres: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "Søk etter betydning bruker {{model}}.",
+      "semanticOff": "Søk etter betydning er av. Ordsøk fungerer uten det.",
+      "vectors": "{{embedded}} av {{total}} avsnitt bygget inn",
+      "rebuildingVectors": "Den nye modellen bygger inn biblioteket. Søket bruker forrige modell til den er ferdig.",
+      "turnOff": "Slå av søk etter betydning",
+      "embedAgain": "Bygg inn på nytt",
+      "rebuild": "Bygg indeksen på nytt",
+      "providerHint": "For å bruke en leverandørmodell, angi leverandør og modell ovenfor. Avsnitt sendt til den leverandøren: {{count}}"
     }
   }
 }

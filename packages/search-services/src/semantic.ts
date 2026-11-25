@@ -35,10 +35,15 @@ export const LIBRARY_SEARCH_SETTINGS = {
   dailySpendLimit: "NODETOOL_SEARCH_DAILY_SPEND_LIMIT"
 } as const;
 
-/** The default local model (D31): 384 dimensions, runs through Transformers.js. */
+/**
+ * The default local model (D31): 384 dimensions, runs through Transformers.js.
+ * `downloadMegabytes` is the size of `onnx/model.onnx` on the model card, the
+ * full-precision weights Transformers.js loads in Node, rounded up.
+ */
 export const DEFAULT_LOCAL_EMBEDDING = {
   provider: "transformers_js",
-  model: "Xenova/all-MiniLM-L6-v2"
+  model: "Xenova/all-MiniLM-L6-v2",
+  downloadMegabytes: 91
 } as const;
 
 /** Providers that load the model into the calling process. Only the indexer process may run them (D13). */
@@ -164,6 +169,16 @@ export async function libraryEmbeddingSpace(): Promise<EmbeddingSpace | null> {
     return embeddingSpace(provider ?? DEFAULT_LOCAL_EMBEDDING.provider, model ?? DEFAULT_LOCAL_EMBEDDING.model);
   }
   return null;
+}
+
+/**
+ * What the owner chose about search by meaning: `on`, `off`, or `unset` when
+ * nobody has chosen yet. The setup card is offered only while it is `unset` (D25).
+ */
+export async function librarySemanticChoice(): Promise<"on" | "off" | "unset"> {
+  const switched = (await readSetting(LIBRARY_SEARCH_SETTINGS.semantic))?.toLowerCase();
+  if (switched === "off") return "off";
+  return (await libraryEmbeddingSpace()) ? "on" : "unset";
 }
 
 /** Projects whose text is never sent to an embedding model. */

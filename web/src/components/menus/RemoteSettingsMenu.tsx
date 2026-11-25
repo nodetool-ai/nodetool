@@ -29,6 +29,7 @@ import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { formatSettingLabel } from "./settingsLabel";
 import ExternalLink from "../common/ExternalLink";
 import SearchProviderSection from "./SearchProviderSection";
+import LibrarySearchStatusPanel from "../search/LibrarySearchStatusPanel";
 import { ComfyServerStatusLine } from "../comfy/LocalComfyConnect";
 import { matchesSearch } from "./settingsSearch";
 
@@ -80,6 +81,11 @@ const META_SECTION_GROUPS: ReadonlyArray<{
       "PythonNodes",
       "Wan2GP"
     ]
+  },
+  {
+    key: "library-search",
+    label: "Library search",
+    groups: ["Library Search"]
   },
   {
     key: "provider-options",
@@ -605,6 +611,9 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
                           )}
                         </Fragment>
                       ))}
+                      {section.key === "library-search" && (
+                        <LibrarySearchStatusPanel />
+                      )}
                     </div>
                   )}
                   {section.key === "local-model-servers" && data && (

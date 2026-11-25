@@ -70,6 +70,7 @@ export {
 } from "./read.js";
 export {
   DEFAULT_LOCAL_EMBEDDING,
+  librarySemanticChoice,
   IN_PROCESS_EMBEDDING_PROVIDERS,
   LIBRARY_SEARCH_SETTINGS,
   dropLibraryCollections,

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Command, CommandInput } from "cmdk";
 
@@ -9,6 +9,7 @@ import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { Dialog } from "../ui_primitives";
 import ContextCommandGroups from "./ContextCommandGroups";
 import GlobalCommandGroups, { SwitchTabCommands } from "./GlobalCommandGroups";
+import LibrarySearchCommands from "./LibrarySearchCommands";
 
 const styles = css({
   ".MuiDialog-paper": {
@@ -27,7 +28,7 @@ interface CommandPaletteProps {
 
 /**
  * The Cmd+K dialog. Open tabs come first, then the active view's commands,
- * then the commands that work everywhere.
+ * then the commands that work everywhere, then library items that match.
  */
 const CommandPalette: React.FC<CommandPaletteProps> = ({ children }) => {
   const { t } = useTranslation();
@@ -35,6 +36,14 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ children }) => {
   const setOpen = useCommandMenuStore((state) => state.setOpen);
   const input = useRef<HTMLInputElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
+  const [search, setSearch] = useState("");
+
+  // Each open starts with an empty input.
+  useEffect(() => {
+    if (!open) {
+      setSearch("");
+    }
+  }, [open]);
 
   // Skipped on touch, where the virtual keyboard would cover the command list.
   useEffect(() => {
@@ -56,6 +65,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ children }) => {
       <Command label={t("screens4_2.commandPalette.accessibility.commandList")} className="command-menu">
         <CommandInput
           ref={input}
+          value={search}
+          onValueChange={setSearch}
           placeholder={t("screens4_2.commandPalette.searchPlaceholder")}
           aria-label={t("screens4_2.commandPalette.accessibility.search")}
         />
@@ -65,6 +76,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ children }) => {
           <ContextCommandGroups />
           {children}
           <GlobalCommandGroups />
+          {open && <LibrarySearchCommands search={search} />}
         </Command.List>
       </Command>
     </Dialog>

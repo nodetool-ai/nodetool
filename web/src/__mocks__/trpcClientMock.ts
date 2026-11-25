@@ -159,6 +159,14 @@ export const trpc = {
   // test that doesn't set one up wants.
   jsScripts: {
     get: { useQuery: jest.fn(() => ({ data: undefined })) }
+  },
+  // The command palette renders the library group on every open. No data
+  // leaves it empty: no hits, no index line and no setup card.
+  search: {
+    query: { useQuery: jest.fn(() => ({ data: undefined, isFetching: false, isError: false })) },
+    status: { useQuery: jest.fn(() => ({ data: undefined, isLoading: false, isError: false })) },
+    setup: { useMutation: jest.fn(() => ({ mutateAsync: jest.fn(), isPending: false, error: null })) },
+    rebuild: { useMutation: jest.fn(() => ({ mutateAsync: jest.fn(async () => ({ items: 0 })), isPending: false })) }
   }
 };
 

@@ -9056,7 +9056,8 @@
         "provider-options": "제공업체 옵션",
         "observability": "관찰 가능성",
         "data-and-storage": "데이터 및 스토리지",
-        "other": "기타"
+        "other": "기타",
+        "library-search": "라이브러리 검색"
       },
       "credentials": {
         "genericButton": "API 키 받기",
@@ -20818,6 +20819,47 @@
       "scriptMissing": "스크립트를 찾을 수 없습니다: {{name}}",
       "scriptEmpty": "이 스크립트에는 아직 대사가 없습니다.",
       "openScript": "스크립트 열기"
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "이름",
+      "prompt": "프롬프트",
+      "description": "설명",
+      "body": "텍스트",
+      "caption": "캡션",
+      "transcript": "대본"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "라이브러리",
+      "indexing": "라이브러리 색인 중: {{total}}개 중 {{ready}}개 준비됨",
+      "embedding": "의미 검색을 위해 임베딩할 남은 구절: {{count}}",
+      "noMatch": "라이브러리에 “{{query}}”와 일치하는 항목이 없습니다. 모든 프로젝트를 검색했습니다.",
+      "failed": "라이브러리 검색에 실패했습니다. 라이브러리 결과가 표시되지 않습니다."
+    },
+    "setup": {
+      "heading": "의미로 검색",
+      "description": "단어뿐 아니라 항목이 보여 주거나 말하는 내용으로 찾습니다. 로컬 모델은 이 컴퓨터에서 실행되므로 콘텐츠가 이곳에 남습니다.",
+      "local": "로컬 모델 다운로드 ({{size}} MB)",
+      "provider": "프로바이더 모델 사용",
+      "providerNote": "선택한 프로바이더로 보낼 구절: {{count}}",
+      "notNow": "나중에"
+    },
+    "status": {
+      "loadFailed": "라이브러리 검색 상태를 읽을 수 없습니다.",
+      "items": "{{total}}개 중 {{ready}}개 항목 색인됨",
+      "pending": "색인 대기 중: {{count}}",
+      "failed": "색인할 수 없음: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "의미 검색은 {{model}}을(를) 사용합니다.",
+      "semanticOff": "의미 검색이 꺼져 있습니다. 키워드 검색은 없이도 작동합니다.",
+      "vectors": "{{total}}개 중 {{embedded}}개 구절 임베딩됨",
+      "rebuildingVectors": "새 모델이 라이브러리를 임베딩하고 있습니다. 끝날 때까지 검색은 이전 모델을 사용합니다.",
+      "turnOff": "의미 검색 끄기",
+      "embedAgain": "다시 임베딩",
+      "rebuild": "색인 다시 만들기",
+      "providerHint": "프로바이더 모델을 쓰려면 위에서 프로바이더와 모델을 설정하세요. 해당 프로바이더로 보낼 구절: {{count}}"
     }
   }
 }

@@ -9056,7 +9056,8 @@
         "provider-options": "Palveluntarjoajien asetukset",
         "observability": "Havainnoitavuus",
         "data-and-storage": "Data ja tallennus",
-        "other": "Muut"
+        "other": "Muut",
+        "library-search": "Kirjastohaku"
       },
       "credentials": {
         "genericButton": "Hanki API-avain",
@@ -20818,6 +20819,47 @@
       "scriptMissing": "Käsikirjoitusta ei löytynyt: {{name}}",
       "scriptEmpty": "Tässä käsikirjoituksessa ei ole vielä repliikkejä.",
       "openScript": "Avaa käsikirjoitus"
+    }
+  },
+  "librarySearch": {
+    "field": {
+      "title": "Nimi",
+      "prompt": "Kehote",
+      "description": "Kuvaus",
+      "body": "Teksti",
+      "caption": "Kuvateksti",
+      "transcript": "Litterointi"
+    },
+    "matchedIn": "{{field}}: {{snippet}}",
+    "palette": {
+      "heading": "Kirjasto",
+      "indexing": "Kirjastoa indeksoidaan: {{ready}}/{{total}} kohdetta valmiina",
+      "embedding": "Merkityshaun upotettavia katkelmia jäljellä: {{count}}",
+      "noMatch": "Mikään kirjastossasi ei vastaa hakua ”{{query}}”. Kaikki projektit haettiin.",
+      "failed": "Kirjastohaku epäonnistui. Kirjastosi tulokset puuttuvat."
+    },
+    "setup": {
+      "heading": "Merkityshaku",
+      "description": "Löydä kohteet sen perusteella, mitä ne näyttävät tai sanovat, ei vain niiden sanoista. Paikallinen malli toimii tällä tietokoneella, joten sisältösi pysyy täällä.",
+      "local": "Lataa paikallinen malli ({{size}} Mt)",
+      "provider": "Käytä palveluntarjoajan mallia",
+      "providerNote": "Valitsemallesi palveluntarjoajalle lähetettävät katkelmat: {{count}}",
+      "notNow": "Ei nyt"
+    },
+    "status": {
+      "loadFailed": "Kirjastohaun tilaa ei voitu lukea.",
+      "items": "{{ready}}/{{total}} kohdetta indeksoitu",
+      "pending": "Odottaa indeksointia: {{count}}",
+      "failed": "Indeksointi epäonnistui: {{count}}",
+      "failure": "{{title}}: {{error}}",
+      "semanticOn": "Merkityshaku käyttää mallia {{model}}.",
+      "semanticOff": "Merkityshaku on pois päältä. Sanahaku toimii ilman sitä.",
+      "vectors": "{{embedded}}/{{total}} katkelmaa upotettu",
+      "rebuildingVectors": "Uusi malli upottaa kirjastoa. Haku käyttää edellistä mallia, kunnes se valmistuu.",
+      "turnOff": "Poista merkityshaku käytöstä",
+      "embedAgain": "Upota uudelleen",
+      "rebuild": "Rakenna indeksi uudelleen",
+      "providerHint": "Jos haluat käyttää palveluntarjoajan mallia, aseta palveluntarjoaja ja malli yllä. Sille lähetettävät katkelmat: {{count}}"
     }
   }
 }

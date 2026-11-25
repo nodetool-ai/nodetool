@@ -1665,12 +1665,20 @@ export const assetsRouter = router({
       if (input.project_id !== undefined) options.projectId = input.project_id;
       if (input.workflow_id) options.workflowId = input.workflow_id;
       if (input.cursor) options.cursor = input.cursor;
+      const filter: NonNullable<AssetSearchOptions["filter"]> = {};
+      if (input.favorite !== undefined) filter.favorite = input.favorite;
+      if (input.tags?.length) filter.tags = input.tags;
+      if (input.model) filter.model = input.model;
+      if (input.created_after) filter.createdAfter = input.created_after;
+      if (input.created_before) filter.createdBefore = input.created_before;
+      if (Object.keys(filter).length > 0) options.filter = filter;
       const result = await searchAssets(ctx.userId, input.query, options);
       return {
         assets: await Promise.all(
           result.assets.map(async (asset) => ({
             ...(await toAssetResponse(asset)),
-            folder_path: result.folderPaths.get(asset.id) ?? null
+            folder_path: result.folderPaths.get(asset.id) ?? null,
+            match: result.hits.get(asset.id)?.matches[0] ?? null
           }))
         ),
         next_cursor: result.nextCursor,
