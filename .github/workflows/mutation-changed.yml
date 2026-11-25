@@ -122,7 +122,10 @@ jobs:
         - /usr/local/lib/android:/reclaim/android
         - /opt/ghc:/reclaim/ghc
         - /usr/local/.ghcup:/reclaim/ghcup
-    timeout-minutes: 180
+    # A job normally runs one partition. A selection of more than 256
+    # partitions (the backlog after failed days) runs several in turn in each
+    # job, so allow the GitHub-hosted maximum.
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       max-parallel: 32
@@ -145,22 +148,24 @@ jobs:
       - name: Enable and verify the Chromium sandbox
         uses: ./.github/actions/chromium-sandbox
 
+      # Writes one mutation-result-partition-<id> directory per partition of
+      # this job.
       - name: Mutate every assigned changed-function site
         env:
-          PARTITION: ${{ matrix.partition }}
-        run: node scripts/mutation-ci.mjs run .metrics/mutation-ci/plan.json "$PARTITION" ".metrics/mutation-ci/partition-$PARTITION"
+          JOB: ${{ matrix.job }}
+        run: node scripts/mutation-ci.mjs run-job .metrics/mutation-ci/plan.json "$JOB" .metrics/mutation-ci/results
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: mutation-evidence-partition-${{ matrix.partition }}-attempt-${{ github.run_attempt }}
-          path: .metrics/mutation-ci/partition-${{ matrix.partition }}
+          name: mutation-evidence-job-${{ matrix.job }}-attempt-${{ github.run_attempt }}
+          path: .metrics/mutation-ci/results
           include-hidden-files: true
           if-no-files-found: error
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: mutation-result-partition-${{ matrix.partition }}
-          path: .metrics/mutation-ci/partition-${{ matrix.partition }}
+          name: mutation-result-job-${{ matrix.job }}
+          path: .metrics/mutation-ci/results
           include-hidden-files: true
           if-no-files-found: error
           overwrite: true
@@ -196,18 +201,14 @@ jobs:
         with:
           name: mutation-plan
           path: .metrics/mutation-ci
-      - name: Download one partition result
-        if: ${{ !fromJSON(needs.plan.outputs.matrix).partition[1] }}
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: mutation-result-partition-${{ fromJSON(needs.plan.outputs.matrix).partition[0] }}
-          path: .metrics/mutation-ci/results/mutation-result-partition-${{ fromJSON(needs.plan.outputs.matrix).partition[0] }}
+      # Each job artifact holds its partitions' directories, so merging the
+      # artifacts yields one directory per partition.
       - name: Download partition results
-        if: ${{ fromJSON(needs.plan.outputs.matrix).partition[1] }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: mutation-result-partition-*
+          pattern: mutation-result-job-*
           path: .metrics/mutation-ci/results
+          merge-multiple: true
       - name: Verify the exact union and report survivors
         run: >-
           node scripts/mutation-ci.mjs aggregate .metrics/mutation-ci/plan.json
