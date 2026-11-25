@@ -140,8 +140,8 @@ export class Skill extends DBModel {
   }
 
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
-    const row = await Skill.findById(id);
-    if (!row || row.user_id !== userId) return false;
+    const row = await Skill.getForUser<Skill>(userId, id);
+    if (!row) return false;
     await row.delete();
     return true;
   }

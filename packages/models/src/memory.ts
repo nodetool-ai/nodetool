@@ -111,9 +111,7 @@ export class Memory extends DBModel {
 
   /** Find a memory by id, scoped to the user. */
   static async find(userId: string, memoryId: string): Promise<Memory | null> {
-    const memory = await Memory.get<Memory>(memoryId);
-    if (!memory || memory.user_id !== userId) return null;
-    return memory;
+    return Memory.getForUser<Memory>(userId, memoryId);
   }
 
   /**
