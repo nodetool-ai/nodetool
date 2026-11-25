@@ -1002,6 +1002,13 @@ const TEXT_DOCUMENT_VERSIONS_DDL: readonly string[] = [
   "CREATE UNIQUE INDEX IF NOT EXISTS idx_tdv_asset_version ON text_document_versions (asset_id, version)"
 ];
 
+/** The cross-process leases of the library indexers (docs/plans/library-search.md, D27). */
+const SEARCH_LEASES_DDL = `CREATE TABLE IF NOT EXISTS nodetool_search_leases (
+  name TEXT NOT NULL PRIMARY KEY,
+  owner TEXT NOT NULL,
+  expires_at TEXT NOT NULL
+)`;
+
 /**
  * DDL for the library index tables (docs/plans/library-search.md, D2), valid
  * on both dialects. The lexical index differs per dialect and follows in
@@ -1153,7 +1160,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...RECEIVE_WORKSPACE_FILES_DDL,
   ...TEXT_DOCUMENT_VERSIONS_DDL,
   ...SEARCH_INDEX_TABLES_DDL,
-  ...SEARCH_INDEX_SQLITE_FTS_DDL
+  ...SEARCH_INDEX_SQLITE_FTS_DDL,
+  SEARCH_LEASES_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5869,10 +5877,14 @@ export const migrations: MigrationDef[] = [
   {
     version: "20261203_000001",
     name: "create_library_search_index",
-    createsTables: ["nodetool_search_items", "nodetool_search_chunks"],
+    createsTables: ["nodetool_search_items", "nodetool_search_chunks", "nodetool_search_leases"],
     modifiesTables: [],
     async up(db) {
       for (const statement of SEARCH_INDEX_TABLES_DDL) await db.execute(statement);
+      await db.execute(SEARCH_LEASES_DDL);
+      if (db.dbType === "postgres") {
+        await db.execute("ALTER TABLE nodetool_search_leases ENABLE ROW LEVEL SECURITY");
+      }
       const lexical =
         db.dbType === "postgres" ? SEARCH_INDEX_PG_FTS_DDL : SEARCH_INDEX_SQLITE_FTS_DDL;
       for (const statement of lexical) await db.execute(statement);
@@ -5884,6 +5896,7 @@ export const migrations: MigrationDef[] = [
         await db.execute("DROP TRIGGER IF EXISTS nodetool_search_chunks_ai");
         await db.execute("DROP TABLE IF EXISTS nodetool_search_chunks_fts");
       }
+      await db.execute("DROP TABLE IF EXISTS nodetool_search_leases");
       await db.execute("DROP TABLE IF EXISTS nodetool_search_chunks");
       await db.execute("DROP TABLE IF EXISTS nodetool_search_items");
     }

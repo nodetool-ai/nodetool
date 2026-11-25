@@ -13,7 +13,8 @@
 
 import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
-import { Setting } from "@nodetool-ai/models";
+import { and, eq, inArray } from "drizzle-orm";
+import { appSettings, getPortableDb, Setting, withTransaction } from "@nodetool-ai/models";
 import {
   CollectionNotFoundError,
   getDefaultVectorProvider,
@@ -115,15 +116,32 @@ function vectors(): VectorProvider {
   return vectorProvider ?? getDefaultVectorProvider();
 }
 
-async function readSetting(key: string): Promise<string | null> {
+/**
+ * Read settings in one query, so a reader never sees half of a change that
+ * `setupLibrarySemanticSearch` writes in one transaction. A key with no row
+ * falls back to the environment variable of the same name.
+ */
+async function readSettings<K extends string>(keys: readonly K[]): Promise<Record<K, string | null>> {
+  const stored = new Map<string, string>();
   try {
-    const row = await Setting.find("1", key);
-    if (row && row.value.trim()) return row.value.trim();
+    const rows = await getPortableDb()
+      .select({ key: appSettings.key, value: appSettings.value })
+      .from(appSettings)
+      .where(and(eq(appSettings.user_id, "1"), inArray(appSettings.key, [...keys])));
+    for (const row of rows) if (row.value.trim()) stored.set(row.key, row.value.trim());
   } catch {
     // No settings table (a bare test database): the environment decides.
   }
-  const env = process.env[key]?.trim();
-  return env ? env : null;
+  const out = {} as Record<K, string | null>;
+  for (const key of keys) {
+    const env = process.env[key]?.trim();
+    out[key] = stored.get(key) ?? (env ? env : null);
+  }
+  return out;
+}
+
+async function readSetting(key: string): Promise<string | null> {
+  return (await readSettings([key]))[key];
 }
 
 /**
@@ -132,10 +150,15 @@ async function readSetting(key: string): Promise<string | null> {
  * without a model uses the default local model.
  */
 export async function libraryEmbeddingSpace(): Promise<EmbeddingSpace | null> {
-  const switched = (await readSetting(LIBRARY_SEARCH_SETTINGS.semantic))?.toLowerCase();
+  const settings = await readSettings([
+    LIBRARY_SEARCH_SETTINGS.semantic,
+    LIBRARY_SEARCH_SETTINGS.provider,
+    LIBRARY_SEARCH_SETTINGS.model
+  ]);
+  const switched = settings[LIBRARY_SEARCH_SETTINGS.semantic]?.toLowerCase();
   if (switched === "off") return null;
-  const provider = await readSetting(LIBRARY_SEARCH_SETTINGS.provider);
-  const model = await readSetting(LIBRARY_SEARCH_SETTINGS.model);
+  const provider = settings[LIBRARY_SEARCH_SETTINGS.provider];
+  const model = settings[LIBRARY_SEARCH_SETTINGS.model];
   if (provider && model) return embeddingSpace(provider, model);
   if (switched === "on") {
     return embeddingSpace(provider ?? DEFAULT_LOCAL_EMBEDDING.provider, model ?? DEFAULT_LOCAL_EMBEDDING.model);
@@ -169,9 +192,12 @@ export async function setupLibrarySemanticSearch(space: { provider: string; mode
     await Setting.upsert({ userId: "1", key: LIBRARY_SEARCH_SETTINGS.semantic, value: "off" });
     return;
   }
-  await Setting.upsert({ userId: "1", key: LIBRARY_SEARCH_SETTINGS.provider, value: space.provider });
-  await Setting.upsert({ userId: "1", key: LIBRARY_SEARCH_SETTINGS.model, value: space.model });
-  await Setting.upsert({ userId: "1", key: LIBRARY_SEARCH_SETTINGS.semantic, value: "on" });
+  // One transaction: a reader never pairs the new provider with the old model.
+  await withTransaction(async () => {
+    await Setting.upsert({ userId: "1", key: LIBRARY_SEARCH_SETTINGS.provider, value: space.provider });
+    await Setting.upsert({ userId: "1", key: LIBRARY_SEARCH_SETTINGS.model, value: space.model });
+    await Setting.upsert({ userId: "1", key: LIBRARY_SEARCH_SETTINGS.semantic, value: "on" });
+  });
 }
 
 /** Scale a vector to unit length, so L2 distance orders like cosine similarity. */

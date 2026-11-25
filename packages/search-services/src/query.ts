@@ -216,9 +216,14 @@ async function runRows<T>(query: SQL): Promise<T[]> {
 async function rankItems(
   request: LibrarySearchRequest,
   limit: number,
-  offset: number
+  offset: number,
+  exclude: readonly string[] = []
 ): Promise<{ ids: string[]; total: number }> {
-  const where = itemConditions(request);
+  const conditions = itemConditions(request);
+  const where =
+    exclude.length === 0
+      ? conditions
+      : sql`${conditions} AND i.id NOT IN (${sql.join(exclude.map((id) => sql`${id}`), sql`, `)})`;
   const raw = request.query.trim();
   const terms = queryTerms(raw);
   const dialect = getDatabase().dialect;
@@ -392,9 +397,24 @@ async function rankRequest(request: LibrarySearchRequest, limit: number, offset:
   }
   const lexical = await rankItems(request, FUSION_DEPTH, 0);
   const fused = fuseRankings([lexical.ids, semantic.ids]);
+  const page = fused.slice(offset, offset + limit);
+  if (lexical.total <= lexical.ids.length) {
+    return { ids: page, total: fused.length, mode: "hybrid", chunks: semantic.chunks };
+  }
+  // Word matches ranked below the fusion window follow the fused list in word
+  // order. Items the vectors already placed in it are left out, so no item
+  // shows on two pages and the total counts each once.
+  const inWindow = new Set(lexical.ids);
+  const placed = semantic.ids.filter((id) => !inWindow.has(id));
+  const rest = await rankItems(
+    request,
+    limit - page.length,
+    FUSION_DEPTH + Math.max(0, offset - fused.length),
+    placed
+  );
   return {
-    ids: fused.slice(offset, offset + limit),
-    total: fused.length + Math.max(0, lexical.total - lexical.ids.length),
+    ids: [...page, ...rest.ids],
+    total: fused.length + rest.total - FUSION_DEPTH,
     mode: "hybrid",
     chunks: semantic.chunks
   };

@@ -87,3 +87,14 @@ export const searchChunks = sqliteTable(
   },
   (table) => [index("idx_search_chunks_item").on(table.item_id, table.ordinal)]
 );
+
+/**
+ * Named leases the library indexers share across processes: the hosted
+ * embedding budget is one, held while a process checks the day's spend and
+ * makes the paid call, so two processes never both spend the last of it.
+ */
+export const searchLeases = sqliteTable("nodetool_search_leases", {
+  name: text("name").primaryKey(),
+  owner: text("owner").notNull(),
+  expires_at: text("expires_at").notNull()
+});

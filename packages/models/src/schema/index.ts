@@ -85,4 +85,4 @@ export {
   cloudReceives,
   cloudSends
 } from "./cloud-links.js";
-export { searchItems, searchChunks } from "./search-index.js";
+export { searchItems, searchChunks, searchLeases } from "./search-index.js";
