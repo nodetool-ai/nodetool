@@ -1078,15 +1078,32 @@ const SEARCH_INDEX_SQLITE_FTS_DDL: readonly string[] = [
 ];
 
 /**
+ * The precomposed Latin letters with an accent (U+00C0 to U+024F) and the
+ * letter each one folds to, character for character. The PostgreSQL index
+ * folds text with `translate()` because `unaccent()` is neither always
+ * installed nor immutable, and a generated column needs an immutable
+ * expression. `foldText` in search-services folds queries the same way, and
+ * SQLite's FTS5 `remove_diacritics 2` matches it.
+ */
+const SEARCH_ACCENTED_LETTERS = "ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïñòóôõöùúûüýÿĀāĂăĄąĆćĈĉĊċČčĎďĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĨĩĪīĬĭĮįİĴĵĶķĹĺĻļĽľŃńŅņŇňŌōŎŏŐőŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžƠơƯưǍǎǏǐǑǒǓǔǕǖǗǘǙǚǛǜǞǟǠǡǢǣǦǧǨǩǪǫǬǭǮǯǰǴǵǸǹǺǻǼǽǾǿȀȁȂȃȄȅȆȇȈȉȊȋȌȍȎȏȐȑȒȓȔȕȖȗȘșȚțȞȟȦȧȨȩȪȫȬȭȮȯȰȱȲȳ";
+const SEARCH_FOLDED_LETTERS = "AAAAAACEEEEIIIINOOOOOUUUUYaaaaaaceeeeiiiinooooouuuuyyAaAaAaCcCcCcCcDdEeEeEeEeEeGgGgGgGgHhIiIiIiIiIJjKkLlLlLlNnNnNnOoOoOoRrRrRrSsSsSsSsTtTtUuUuUuUuUuUuWwYyYZzZzZzOoUuAaIiOoUuUuUuUuUuAaAaÆæGgKkOoOoƷʒjGgNnAaÆæØøAaAaEeEeIiIiOoOoRrRrUuUuSsTtHhAaEeOoOoOoOoYy";
+
+/**
  * PostgreSQL's lexical index: a generated `tsvector` column with a GIN index.
  * The `simple` configuration lower-cases without stemming. Punctuation is
  * replaced with spaces first, because the default parser reads a name such
- * as `sunset-beach.png` as one host token. Both steps match the SQLite
+ * as `sunset-beach.png` as one host token. Accents are folded before that, so
+ * an accented letter is not read as punctuation. These steps match the SQLite
  * tokenizer, which splits on everything but letters and digits.
  */
 const SEARCH_INDEX_PG_FTS_DDL: readonly string[] = [
-  "ALTER TABLE nodetool_search_chunks ADD COLUMN IF NOT EXISTS text_tsv tsvector GENERATED ALWAYS AS (to_tsvector('simple', regexp_replace(text, '[^[:alnum:]]+', ' ', 'g'))) STORED",
-  "CREATE INDEX IF NOT EXISTS idx_search_chunks_tsv ON nodetool_search_chunks USING GIN (text_tsv)"
+  `ALTER TABLE nodetool_search_chunks ADD COLUMN IF NOT EXISTS text_tsv tsvector GENERATED ALWAYS AS (to_tsvector('simple', regexp_replace(translate(text, '${SEARCH_ACCENTED_LETTERS}', '${SEARCH_FOLDED_LETTERS}'), '[^[:alnum:]]+', ' ', 'g'))) STORED`,
+  "CREATE INDEX IF NOT EXISTS idx_search_chunks_tsv ON nodetool_search_chunks USING GIN (text_tsv)",
+  // The index holds the text of every user's files. Only the server reads it,
+  // so row-level security with no policy denies every client role
+  // (PostgREST's anon and authenticated) while the table owner keeps access.
+  "ALTER TABLE nodetool_search_items ENABLE ROW LEVEL SECURITY",
+  "ALTER TABLE nodetool_search_chunks ENABLE ROW LEVEL SECURITY"
 ];
 
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
