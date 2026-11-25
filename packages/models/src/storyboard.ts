@@ -279,8 +279,8 @@ export class Storyboard extends DBModel {
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
     return changingAccess([{ kind: "storyboard", id }], async () => {
-      const row = await Storyboard.findById(id);
-      if (!row || row.user_id !== userId) return false;
+      const row = await Storyboard.getForUser<Storyboard>(userId, id);
+      if (!row) return false;
       await row.delete();
       await removeDocumentSharing("storyboard", row.id);
       return true;

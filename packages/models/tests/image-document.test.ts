@@ -192,18 +192,37 @@ describe("ImageDocument model", () => {
 
   it("mutateDocumentData throws after repeated CAS conflicts", async () => {
     const doc = await createDoc();
-    vi.spyOn(ImageDocument, "updateDocumentDataIfUnchanged").mockResolvedValue(
-      null
-    );
+    const spy = vi
+      .spyOn(ImageDocument, "updateDocumentDataIfUnchanged")
+      .mockResolvedValue(null);
 
-    await expect(
-      ImageDocument.mutateDocumentData(
-        doc.id,
-        (data) => {
-          data.layerBindings.push(makeBinding("new"));
-        },
-        2
-      )
-    ).rejects.toBeInstanceOf(ImageDocumentConflictError);
+    try {
+      await expect(
+        ImageDocument.mutateDocumentData(
+          doc.id,
+          (data) => {
+            data.layerBindings.push(makeBinding("new"));
+          },
+          2
+        )
+      ).rejects.toBeInstanceOf(ImageDocumentConflictError);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("mutateDocumentData resolves a 12-character short id", async () => {
+    const doc = await createDoc();
+    const shortId = doc.id.slice(0, 12);
+
+    const outcome = await ImageDocument.mutateDocumentData(shortId, (data) => {
+      data.layerBindings.push(makeBinding("short-id-layer"));
+      return "ok";
+    });
+
+    expect(outcome).not.toBeNull();
+    expect(outcome!.result).toBe("ok");
+    expect(outcome!.document.id).toBe(doc.id);
+    expect(outcome!.document.toDocumentData().layerBindings).toHaveLength(1);
   });
 });

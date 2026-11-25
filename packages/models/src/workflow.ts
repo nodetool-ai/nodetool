@@ -565,8 +565,8 @@ export class Workflow extends DBModel {
     options: { deletedWithProject?: string } = {}
   ): Promise<boolean> {
     return changingAccess([{ kind: "workflow", id }], async () => {
-      const wf = await Workflow.get<Workflow>(id);
-      if (!wf || wf.user_id !== userId) return false;
+      const wf = await Workflow.getForUser<Workflow>(userId, id);
+      if (!wf) return false;
       // `id` may be a 12-character prefix; the rows below key on the full id.
       // The row, its versions, grants and references go in one transaction,
       // with the copy kept for a restore (PRD D4).

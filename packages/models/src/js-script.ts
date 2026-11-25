@@ -183,8 +183,8 @@ export class JsScript extends DBModel {
    */
   static async deleteOwned(userId: string, id: string): Promise<boolean> {
     return changingAccess([{ kind: "jsscript", id }], async () => {
-      const row = await JsScript.findById(id);
-      if (!row || row.user_id !== userId) return false;
+      const row = await JsScript.getForUser<JsScript>(userId, id);
+      if (!row) return false;
       await row.delete();
       await removeDocumentSharing("jsscript", row.id);
       // Belt-and-braces with the FK cascade: version rows outliving their

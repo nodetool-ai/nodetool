@@ -851,4 +851,32 @@ describe("durable app instances and operation runs", () => {
     expect(await deleteAppRun("u2", run.id)).toBe(false);
     expect(await deleteAppInstance("u1", i.id)).toBe(true);
   });
+
+  it("settles and reconciles tombstoned app run billing when given a 12-character short id", async () => {
+    await Application.create<Application>({ id: "saved-short", user_id: "u1" });
+    await setApplicationBudget("saved-short", { period: "total", maxUsd: 10 });
+    const instance = await create("saved-short");
+    const { run } = await reserve(instance.id, "private", 1.5);
+    const shortId = run.id.slice(0, 12);
+
+    expect(await deleteAppRun("u1", shortId)).toBe(true);
+    expect(await getAppRun("u1", run.id)).toBeNull();
+
+    await expect(
+      settleAppRun("u1", shortId, {
+        status: "completed",
+        actualUsd: 0.4,
+        knownLlmUsd: 0.25
+      })
+    ).rejects.toThrow(/not found/i);
+
+    const row = getRawDb()
+      .prepare("SELECT status, actual_usd FROM application_invocations WHERE id = ?")
+      .get(run.id) as { status: string; actual_usd: number | null };
+    expect(row.status).toBe("completed");
+    expect(row.actual_usd).toBeCloseTo(0.25);
+
+    await reconcileAppRunCost("u1", shortId, 0.35);
+    expect((await applicationUsage("saved-short", "total")).spentUsd).toBeCloseTo(0.35);
+  });
 });

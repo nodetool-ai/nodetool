@@ -570,5 +570,20 @@ describe("TimelineSequence model", () => {
       expect(clips.find((c) => c.id === "X")!.versions).toEqual([{ id: "vx" }]);
       expect(clips.find((c) => c.id === "Y")!.versions).toEqual([{ id: "vy" }]);
     });
+
+    it("mutateDocument resolves a 12-character short id", async () => {
+      const seq = await createSeq();
+      const shortId = seq.id.slice(0, 12);
+
+      const outcome = await TimelineSequence.mutateDocument(shortId, (doc) => {
+        doc.markers.push({ id: "m-short" } as TimelineMarker);
+        return "ok";
+      });
+
+      expect(outcome).not.toBeNull();
+      expect(outcome!.result).toBe("ok");
+      expect(outcome!.sequence.id).toBe(seq.id);
+      expect(outcome!.sequence.toDocument().markers).toEqual([{ id: "m-short" }]);
+    });
   });
 });

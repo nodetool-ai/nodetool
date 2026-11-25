@@ -206,4 +206,13 @@ describe("credits", () => {
       expect(decision.refusal).toBe("insufficient_credits");
     }
   });
+
+  it("rejects NaN and negative estimates in checkCredits and sub-credit fractional deltas in grantCredits", async () => {
+    await creditStatus(USER);
+    await expect(checkCredits(USER, Number.NaN)).rejects.toThrow();
+    await expect(checkCredits(USER, -1)).rejects.toThrow();
+    await expect(checkCredits(USER, Number.POSITIVE_INFINITY)).rejects.toThrow();
+    await expect(grantCredits(USER, 0.5, "adjustment")).rejects.toThrow();
+    await expect(grantCredits(USER, -0.5, "adjustment")).rejects.toThrow();
+  });
 });
