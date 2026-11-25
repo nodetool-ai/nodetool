@@ -201,6 +201,7 @@ export {
   WaitNode,
   ManualTriggerNode,
   IntervalTriggerNode,
+  ScheduleTriggerNode,
   WebhookTriggerNode,
   FileWatchTriggerNode,
   TRIGGER_NODES
@@ -464,6 +465,7 @@ export {
   MoveToArchiveLibNode,
   LIB_MAIL_NODES
 } from "@nodetool-ai/integration-nodes/nodes/lib-mail";
+export { CallMcpToolNode, MCP_TOOL_NODES } from "@nodetool-ai/integration-nodes/nodes/mcp-tool";
 export { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 export { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
@@ -531,6 +533,7 @@ import { WAN2GP_NODES } from "@nodetool-ai/integration-nodes/nodes/wan2gp";
 export { WAN2GP_NODES } from "@nodetool-ai/integration-nodes/nodes/wan2gp";
 import { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
 import { LIB_MAIL_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-mail";
+import { MCP_TOOL_NODES } from "@nodetool-ai/integration-nodes/nodes/mcp-tool";
 import { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
@@ -606,6 +609,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...WAN2GP_NODES,
   ...MESSAGING_NODES,
   ...LIB_MAIL_NODES,
+  ...MCP_TOOL_NODES,
   ...MISTRAL_NODES,
   ...OPENAI_NODES,
   ...XAI_NODES,

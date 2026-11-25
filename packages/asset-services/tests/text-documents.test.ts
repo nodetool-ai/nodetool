@@ -26,6 +26,7 @@ import {
   applyTextDocumentEdits,
   createTextDocument,
   deleteTextDocumentVersion,
+  getAssetInfoModelInterface,
   readTextDocument,
   recordTextDocumentVersion,
   renameTextDocumentVersion,
@@ -399,6 +400,33 @@ describe("workflow run writes (R13)", () => {
         mode: "replace",
         causeId: null
       })
+    ).toBeNull();
+  });
+});
+
+describe("getAssetInfoModelInterface", () => {
+  it("returns an owned asset's identity and null for a stranger or a missing id", async () => {
+    const asset = await createTextDocument({
+      userId: USER,
+      projectId: PROJECT,
+      name: "info.md",
+      content: "x"
+    });
+    const info = await getAssetInfoModelInterface({
+      userId: USER,
+      assetId: asset.id
+    });
+    expect(info).toMatchObject({
+      id: asset.id,
+      name: "info.md",
+      content_type: asset.content_type
+    });
+    expect(info).toHaveProperty("workspace_path");
+    expect(
+      await getAssetInfoModelInterface({ userId: "other", assetId: asset.id })
+    ).toBeNull();
+    expect(
+      await getAssetInfoModelInterface({ userId: USER, assetId: "missing" })
     ).toBeNull();
   });
 });

@@ -297,6 +297,7 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodetool.triggers.FileWatchTrigger",
       "nodetool.triggers.IntervalTrigger",
       "nodetool.triggers.ManualTrigger",
+      "nodetool.triggers.ScheduleTrigger",
       "nodetool.triggers.Wait",
       "nodetool.triggers.WebhookTrigger"
     ]
@@ -2520,6 +2521,7 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "lib.mail.GmailSearch",
       "lib.mail.MoveToArchive",
       "lib.mail.SendEmail",
+      "lib.mcp.CallMcpTool",
       "lib.stable_diffusion_cpp.GenerateImage",
       "lib.wan2gp.Generate",
       "lib.wan2gp.ImageToVideo",

@@ -127,6 +127,9 @@ const STATE_TRANSITIONS: Record<string, ConnectionStateTransition> = {
   }
 };
 
+/** The fields of a `CloseEvent` the manager reads, so a synthesized close can be passed too. */
+type CloseDetails = Pick<CloseEvent, "code" | "reason" | "wasClean">;
+
 export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
   private config: Required<Omit<WebSocketConfig, "protocols" | "urlProvider" | "createSocket">> & {
     protocols?: string | string[];
@@ -347,7 +350,9 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
           "arrayBuffer" in event.data &&
           isFunction(event.data.arrayBuffer)
         ) {
-          const buf = await (event.data.arrayBuffer as () => Promise<ArrayBuffer>)();
+          // SAFETY: a non-Blob object exposing arrayBuffer() is a Blob-like
+          // (React Native, jsdom), whose arrayBuffer() resolves an ArrayBuffer.
+          const buf = await (event.data.arrayBuffer() as Promise<ArrayBuffer>);
           data = unpack(new Uint8Array(buf));
         } else if (isString(event.data)) {
           data = JSON.parse(event.data);
@@ -378,9 +383,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
    */
   private handleLivenessFrame(data: unknown): boolean {
     const type =
-      data && isObjectLike(data)
-        ? (data as { type?: unknown }).type
-        : undefined;
+      data && isObjectLike(data) ? data.type : undefined;
 
     if (type === "ping") {
       try {
@@ -399,7 +402,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
     this.emit("error", new Error("WebSocket error occurred"));
   }
 
-  private handleClose(event: CloseEvent): void {
+  private handleClose(event: CloseDetails): void {
     console.info(
       `WebSocket closed: code=${event.code}, reason=${event.reason}, clean=${event.wasClean}, intentional=${this.intentionalDisconnect}`
     );
@@ -442,7 +445,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
     }
   }
 
-  private shouldReconnect(event: CloseEvent): boolean {
+  private shouldReconnect(event: CloseDetails): boolean {
     // Don't reconnect if:
     // 1. Reconnection is disabled
     // 2. It was an intentional disconnect
@@ -699,7 +702,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
       code: 1006,
       reason: "Heartbeat timeout",
       wasClean: false
-    } as CloseEvent);
+    });
   }
 
   private startConnectionTimeout(): void {

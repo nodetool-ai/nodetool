@@ -53,6 +53,8 @@ interface RegistrationOverrides {
   webhook_secret?: string | null;
   next_fire_at?: string | null;
   interval_seconds?: number | null;
+  cron_expr?: string | null;
+  cron_tz?: string | null;
   disabled_reason?: string | null;
   consecutive_failures?: number;
 }
@@ -440,6 +442,36 @@ describe("TriggerActivationButton", () => {
       expect(
         within(region).getByText("Runs every 5m — next in 4m")
       ).toBeInTheDocument();
+    });
+
+    it("shows the cron expression, its timezone and the countdown for a Schedule Trigger", async () => {
+      mockNodeState.nodes = [
+        { id: "n1", type: "nodetool.triggers.ScheduleTrigger" }
+      ];
+      mockUseWorkflowTriggers.mockReturnValue(
+        withData([
+          registration({
+            kind: "schedule",
+            enabled: true,
+            interval_seconds: null,
+            cron_expr: "0 8 * * 1-5",
+            cron_tz: "Europe/Berlin",
+            next_fire_at: "2026-07-26T14:05:00.000Z"
+          })
+        ])
+      );
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderWithTheme(<TriggerActivationButton />);
+      await user.click(screen.getByRole("button", { name: /^triggers:/i }));
+      const region = await screen.findByRole("region", {
+        name: /trigger status/i
+      });
+      expect(
+        within(region).getByText(
+          "Cron 0 8 * * 1-5 (Europe/Berlin) — next in 2h 5m"
+        )
+      ).toBeInTheDocument();
+      expect(within(region).queryByText(/runs every/i)).toBeNull();
     });
 
     it("shows nothing rather than 'Invalid Date' when the server omits the fields", async () => {

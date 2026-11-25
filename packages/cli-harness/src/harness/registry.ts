@@ -1536,6 +1536,19 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "library-search",
+    title: "Library search (index tables, indexer, keyword and meaning query)",
+    command: "npm run test --workspace=packages/search-services",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "packages/search-services/README.md",
+    selfcheck: {
+      command: "npm run test --workspace=packages/search-services",
+      cost: "cheap",
+      suiteOnly: true
+    }
+  },
+  {
     id: "analytics",
     title: "Product analytics (event schema, privacy validation, consent client)",
     command: "npm run test --workspace=packages/analytics",
@@ -2904,6 +2917,12 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Data models (SQLite/Postgres persistence, Drizzle ORM)",
     harnesses: ["data-models"],
     paths: ["packages/models/"]
+  },
+  {
+    id: "library-search",
+    title: "Library search (index, indexer and query)",
+    harnesses: ["library-search"],
+    paths: ["packages/search-services/"]
   },
   {
     id: "analytics",

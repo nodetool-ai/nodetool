@@ -94,7 +94,8 @@ function links(tag: string): Record<string, string> {
     thread_id: `${tag}-thread`,
     generation_id: `${tag}-generation`,
     attempt_id: `${tag}-generation-attempt`,
-    output_id: `${tag}-generation-output`
+    output_id: `${tag}-generation-output`,
+    item_id: `${tag}-search-item`
   };
 }
 
@@ -114,7 +115,8 @@ function parentIds(tag: string): Record<string, string> {
     nodetool_threads: `${tag}-thread`,
     nodetool_predictions: `${tag}-generation`,
     nodetool_generation_attempts: `${tag}-generation-attempt`,
-    nodetool_generation_outputs: `${tag}-generation-output`
+    nodetool_generation_outputs: `${tag}-generation-output`,
+    nodetool_search_items: `${tag}-search-item`
   };
 }
 
@@ -133,7 +135,8 @@ const SEED_ORDER = [
   "timeline_sequences",
   "nodetool_predictions",
   "nodetool_generation_attempts",
-  "nodetool_generation_outputs"
+  "nodetool_generation_outputs",
+  "nodetool_search_items"
 ];
 
 function orderedEntries(): PersonalDataEntry[] {
@@ -298,6 +301,7 @@ describe("erasePersonalData", () => {
       "nodetool_generation_attempts",
       "nodetool_generation_outputs",
       "nodetool_generation_webhook_deliveries",
+      "nodetool_search_chunks",
       "run_events",
       "run_inbox_messages",
       "trigger_inputs"
@@ -579,6 +583,8 @@ describe("exportPersonalData", () => {
       "nodetool_generation_attempts",
       "nodetool_generation_outputs",
       "nodetool_generation_webhook_deliveries",
+      "nodetool_search_chunks",
+      "nodetool_search_items",
       "nodetool_team_tasks",
       "oauth_pending_entries",
       "project_blobs",

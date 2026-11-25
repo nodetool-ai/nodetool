@@ -80,6 +80,7 @@ import { imageDocuments } from "./schema/image-documents.js";
 import { jobs } from "./schema/jobs.js";
 import { jsScriptVersions } from "./schema/js-script-versions.js";
 import { textDocumentVersions } from "./schema/text-document-versions.js";
+import { searchChunks, searchItems } from "./schema/search-index.js";
 import { jsScripts } from "./schema/js-scripts.js";
 import {
   mcpOauthGrants,
@@ -548,6 +549,24 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
     workflowVersions.user_id
   ),
   directStep("nodetool_workflows", workflows, workflows.user_id),
+
+  // The library search index, a copy of asset and document text. Chunks
+  // first: they are reached through the person's items.
+  {
+    table: "nodetool_search_chunks",
+    async run(ctx) {
+      const items = getPortableDb()
+        .select({ id: searchItems.id })
+        .from(searchItems)
+        .where(eq(searchItems.user_id, ctx.userId));
+      return deleted(
+        "nodetool_search_chunks",
+        "delete",
+        await deleteRows(searchChunks, inArray(searchChunks.item_id, items))
+      );
+    }
+  },
+  directStep("nodetool_search_items", searchItems, searchItems.user_id),
 
   // Content the person authored.
   directStep(

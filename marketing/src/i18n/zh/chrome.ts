@@ -50,6 +50,7 @@ export const ZH_NAV_LABELS: Record<string, string> = {
   "/alternatives": "替代方案对比",
   "/alternatives/comfyui": "对比 ComfyUI",
   "/faq": "常见问题",
+  "/demo": "在线演示",
   "/pricing": "价格",
   "/blog": "博客",
   "/tasks": "任务",

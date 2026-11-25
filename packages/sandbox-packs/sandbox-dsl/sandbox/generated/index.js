@@ -25,6 +25,7 @@ import * as libImageKeyer from "./lib.image.keyer.js";
 import * as libImageMask from "./lib.image.mask.js";
 import * as libImageWarp from "./lib.image.warp.js";
 import * as libMail from "./lib.mail.js";
+import * as libMcp from "./lib.mcp.js";
 import * as libSqlite from "./lib.sqlite.js";
 import * as libStable_diffusion_cpp from "./lib.stable_diffusion_cpp.js";
 import * as libSvg from "./lib.svg.js";
@@ -126,6 +127,7 @@ export {
   libImageMask,
   libImageWarp,
   libMail,
+  libMcp,
   libSqlite,
   libStable_diffusion_cpp,
   libSvg,

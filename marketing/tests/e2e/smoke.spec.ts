@@ -131,7 +131,7 @@ test.describe("marketing smoke", () => {
     }
     // The plan sign-in sits by Download, and "alpha" stays out of the buttons.
     await expect(
-      page.getByText(/sign in with your ChatGPT or Claude plan and the agent runs on it/i)
+      page.getByText(/the agent can also run on your ChatGPT or Claude plan/i)
     ).toBeVisible();
     await expect(
       page
@@ -342,11 +342,11 @@ test.describe("marketing smoke", () => {
   }) => {
     await page.goto("/alternatives/comfyui");
     await expect(page).toHaveTitle(
-      "ComfyUI Alternatives: NodeTool, Figma Weave, Flora, Krea"
+      "8 ComfyUI Alternatives: Open Source, Mac, Linux & Online"
     );
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",
-      "ComfyUI Alternatives: NodeTool, Figma Weave, Flora, Krea"
+      "8 ComfyUI Alternatives: Open Source, Mac, Linux & Online"
     );
     await expect(
       page.locator('section[aria-labelledby="alt-list-title"] h3')

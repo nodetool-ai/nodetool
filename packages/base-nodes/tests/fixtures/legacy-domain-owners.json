@@ -224,6 +224,7 @@
     "nodetool.triggers.Wait",
     "nodetool.triggers.ManualTrigger",
     "nodetool.triggers.IntervalTrigger",
+    "nodetool.triggers.ScheduleTrigger",
     "nodetool.triggers.WebhookTrigger",
     "nodetool.triggers.FileWatchTrigger",
     "lib.sqlite.GetDatabasePath",
@@ -499,6 +500,7 @@
     "lib.mail.AddLabel",
     "lib.mail.MoveToArchive",
     "lib.mail.SendEmail",
-    "lib.mail.EmailTrigger"
+    "lib.mail.EmailTrigger",
+    "lib.mcp.CallMcpTool"
   ]
 }

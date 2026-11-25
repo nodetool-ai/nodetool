@@ -67,6 +67,7 @@
     "@nodetool-ai/server-features": "*",
     "@nodetool-ai/asset-services": "*",
     "@nodetool-ai/document-services": "*",
+    "@nodetool-ai/search-services": "*",
     "@nodetool-ai/workflow-services": "*",
     "@nodetool-ai/pack-host": "*",
     "@nodetool-ai/project-services": "*",

@@ -6,13 +6,18 @@ import type { PermissionGateOptions } from "../tools/tool-permissions.js";
 import { capabilityFromTool } from "./adapters.js";
 import { nativeCapabilityTool } from "./lazy-tool-core.js";
 import { contextSecretAvailability, createCapabilityRun } from "./invoke.js";
-import type { CapabilityRun } from "./types.js";
+import type { CapabilityExport, CapabilityRun } from "./types.js";
 
 /** Preserve each native capability's injected dependencies on one belt run. */
 export function capabilityRunForTools(
   tools: Tool[],
   context: ProcessingContext,
-  options: { gate: PermissionGateOptions; signal?: AbortSignal }
+  options: {
+    gate: PermissionGateOptions;
+    signal?: AbortSignal;
+    /** Entries that replace the same-named tool's, with their own category. */
+    overrides?: readonly CapabilityExport[];
+  }
 ): CapabilityRun {
   const capabilities = tools.map((tool) => {
     const native = nativeCapabilityTool(tool);
@@ -35,10 +40,11 @@ export function capabilityRunForTools(
       }
     };
   });
+  const { overrides = [], ...runOptions } = options;
   return createCapabilityRun({
     context,
-    ...options,
-    capabilities,
+    ...runOptions,
+    capabilities: [...capabilities, ...overrides],
     availableSecrets: contextSecretAvailability(context)
   });
 }

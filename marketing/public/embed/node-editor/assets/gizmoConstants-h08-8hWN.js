@@ -1,0 +1,1 @@
+var a=.7,O="rgba(0, 120, 255, 1)",R="rgba(0, 120, 255, 0.8)",_="rgba(0, 120, 255, 0.6)",r="#ffffff",I="rgba(0, 120, 255, 0.15)",A="rgba(255, 200, 0, 0.75)",L="rgba(0,0,0,0.45)",s="rgba(255,255,255,0.9)",C="rgba(255,255,255,0.35)";export{_ as a,I as c,O as i,A as l,L as n,R as o,C as r,r as s,s as t,a as u};

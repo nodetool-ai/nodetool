@@ -38,8 +38,8 @@ breaks a rule here fixes the rule or the page in the same PR.
 |---|---|---|---|
 | `/` | One sentence to a short film you can edit, with clips paid for only after their stills are approved. | The hero reel, the node reel, three finished films with their briefs, the cheap-stills cost example | Ad library, recipes, the seven-editor tour, model lists, plan table, comparisons, Studio vs Cloud, API, CLI and MCP |
 | `/agents` | The agent works inside the same editors and records as you, and the harness catches its mistakes. | The failed-run-and-repair session, the build-validate-run-inspect-repair loop, what validation reports, the permission modes | MCP install, CLI, HTTP API (linked to `/developers`), film production pitch, plan and key explanations |
-| `/studio` | The desktop app: every editor, and the project stays on your computer. | The seven-editor tour (its storyboard panel shows a shot edited by hand), the agent redoing one shot while the cut stays (`ProjectSection`), the films that open as timelines, local models and setup | The still-versus-clip cost example (homepage), plan and key explanations, ad and recipe catalogues |
-| `/node-based-workflows` | A graph you can check before a paid run, and run again. | The node reel, the node-by-node walkthrough | Plan explanation, Studio facts |
+| `/studio` | The desktop app: every editor, and the project stays on your computer. | The seven-editor tour (its storyboard panel shows a shot edited by hand), the agent redoing one shot while the cut stays (`ProjectSection`), the films that open as timelines, the read-only timeline editor demo, local models and setup | The still-versus-clip cost example (homepage), plan and key explanations, ad and recipe catalogues |
+| `/node-based-workflows` | A graph you can check before a paid run, and run again. | The node reel, the node editor demo with sample results, the node-by-node walkthrough | Plan explanation, Studio facts |
 | `/marketing` | One brief becomes a campaign, with a bounded revision. | Three rendered ads from the ad library in the hero, then the Directed Campaign Kit run: hero, square, story, one revision note | The full ad library, storyboards, recipes, other workflows (linked) |
 | `/developers` | Programmatic use: MCP, CLI, HTTP, and a real asset pipeline. | The sprite session with filenames and terminal output, the MCP install, the run endpoint | The harness loop and validation (`/agents`), filmmaking copy, plan explanation |
 | `/solutions/local-first` | A workflow that runs on a local model with the network off. | The Private Assistant run on Ollama, the model memory table, what stays local and what stops offline | Film production, the editor tour, plan explanation, hosted model lists |
@@ -51,11 +51,12 @@ breaks a rule here fixes the rule or the page in the same PR.
 
 Five blocks, in order:
 
-1. **The overview.** The `<h1>` is "Direct AI films, shot by shot." The
-   subhead carries the promise: one sentence to a film you can edit, with
-   clips paid for only after their stills are approved. Under Download, one
-   line says Studio signs in with a ChatGPT or Claude plan or uses your own
-   provider keys at list price. Then the hero
+1. **The overview.** The `<h1>` is "The open-source AI studio you actually
+   control." The subhead names storyboard, generate, and cut on a live
+   timeline backed by node graphs, on local models or your own keys at list
+   price. Under Download, one line says the agent can also run on a ChatGPT or
+   Claude plan in Studio, and a trust line names AGPL-3.0, the desktop
+   platforms, and list prices on your keys. Then the hero
    reel and three linked cards for films, the agent, and the live timeline
    (a clip bound to a workflow goes stale when its inputs change). The cards
    carry no `h2`. Developer surfaces (API, CLI, MCP) stay on `/developers`.
@@ -76,7 +77,8 @@ Five blocks, in order:
 
 One template renders every `/alternatives/<slug>` page. It keeps:
 
-- the hero and its reel,
+- the hero and its reel, with an optional `quickPicks` block after the reel
+  that groups the listed alternatives by need for list queries,
 - the three product stages,
 - one feature table, introduced by the short answer that answer engines lift,
 - the cost and preset tables where the record has them,
@@ -89,7 +91,7 @@ paragraph that names the alternatives in a sentence, for the list queries
 answer engines send. `listFacts` is one line per tool with its platforms and
 licence. `otherTools` names tools that have no comparison page, each with a
 source URL and one `checked` date for the set, and links to the project's own
-page. The ComfyUI record uses all three.
+page. The ComfyUI record uses all three, plus `quickPicks`.
 
 A FAQ row must not restate the short answer or the table. A record may set
 `answer` when the generic short answer would only repeat the hero, and `hero`

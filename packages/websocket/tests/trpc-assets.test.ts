@@ -39,7 +39,12 @@ vi.mock("@nodetool-ai/asset-services/thumbnail", async (orig) => {
   };
 });
 
+vi.mock("@nodetool-ai/search-services", () => ({
+  searchAssets: vi.fn()
+}));
+
 import { Asset } from "@nodetool-ai/models";
+import { searchAssets } from "@nodetool-ai/search-services";
 import { getAssetAdapter } from "../src/lib/storage.js";
 import { storeAssetThumbnail } from "../src/lib/thumbnail.js";
 
@@ -485,69 +490,74 @@ describe("assets router", () => {
 
   // ── search ──────────────────────────────────────────────────────
   describe("search", () => {
-    it("searches the whole library via searchAssetsGlobal, not just the first page", async () => {
+    const searchMock = () => searchAssets as ReturnType<typeof vi.fn>;
+    const found = (
+      assets: ReturnType<typeof makeAsset>[],
+      extra: { total?: number; nextCursor?: string | null; paths?: Record<string, string> } = {}
+    ) => ({
+      assets,
+      folderPaths: new Map(Object.entries(extra.paths ?? {})),
+      hits: new Map(),
+      nextCursor: extra.nextCursor ?? null,
+      total: extra.total ?? assets.length
+    });
+
+    it("searches the library index and returns folder paths and the full total", async () => {
       const a1 = makeAsset({ id: "a1", name: "Vacation.png" });
       const a3 = makeAsset({ id: "a3", name: "HOLIDAY vacation.jpg" });
-      (
-        Asset.searchAssetsGlobal as ReturnType<typeof vi.fn>
-      ).mockResolvedValue([[a1, a3], "", []]);
+      searchMock().mockResolvedValue(
+        found([a1, a3], { total: 7, nextCursor: "2", paths: { a1: "Home / Trips" } })
+      );
 
       const caller = createCaller(makeCtx());
       const result = await caller.assets.search({ query: "vacation" });
 
-      // The DB-level global search is what makes matches past page one
-      // reachable; paginate-then-filter used to drop them.
-      expect(Asset.searchAssetsGlobal).toHaveBeenCalledWith("user-1", "vacation", {
-        limit: 200
-      });
-      expect(result.assets.map((a) => a.id)).toEqual(["a1", "a3"]);
-      expect(result.total_count).toBe(2);
+      expect(searchAssets).toHaveBeenCalledWith("user-1", "vacation", { limit: 200 });
+      expect(result.assets.map((a) => [a.id, a.folder_path])).toEqual([
+        ["a1", "Home / Trips"],
+        ["a3", null]
+      ]);
+      // The total counts every match, not the page.
+      expect(result.total_count).toBe(7);
+      expect(result.next_cursor).toBe("2");
       expect(result.is_global_search).toBe(true);
     });
 
-    it("forwards content_type and page_size to the global search", async () => {
-      (
-        Asset.searchAssetsGlobal as ReturnType<typeof vi.fn>
-      ).mockResolvedValue([[], "", []]);
-
-      const caller = createCaller(makeCtx());
-      await caller.assets.search({
-        query: "cat",
-        content_type: "image",
-        page_size: 24
-      });
-
-      expect(Asset.searchAssetsGlobal).toHaveBeenCalledWith("user-1", "cat", {
-        contentType: "image",
-        limit: 24
-      });
-    });
-
-    it("forwards project scope to asset search", async () => {
-      (
-        Asset.searchAssetsGlobal as ReturnType<typeof vi.fn>
-      ).mockResolvedValue([[], "", []]);
-
-      const caller = createCaller(makeCtx());
-      await caller.assets.search({ query: "same", project_id: "project-a" });
-
-      expect(Asset.searchAssetsGlobal).toHaveBeenCalledWith("user-1", "same", {
-        projectId: "project-a",
-        limit: 200
-      });
-    });
-
-    it("sets is_global_search=false when workflow_id is present", async () => {
-      (
-        Asset.searchAssetsGlobal as ReturnType<typeof vi.fn>
-      ).mockResolvedValue([[], "", []]);
+    it("forwards content_type, page_size, cursor, project and workflow", async () => {
+      searchMock().mockResolvedValue(found([]));
 
       const caller = createCaller(makeCtx());
       const result = await caller.assets.search({
-        query: "abc",
+        query: "cat",
+        content_type: "image",
+        page_size: 24,
+        cursor: "24",
+        project_id: "project-a",
         workflow_id: "wf-1"
       });
+
+      expect(searchAssets).toHaveBeenCalledWith("user-1", "cat", {
+        contentType: "image",
+        limit: 24,
+        cursor: "24",
+        projectId: "project-a",
+        workflowId: "wf-1"
+      });
       expect(result.is_global_search).toBe(false);
+    });
+  });
+
+  // ── update: tags ────────────────────────────────────────────────
+  describe("update tags", () => {
+    it("normalizes tags into metadata.tags and keeps other metadata", async () => {
+      const asset = makeAsset({ id: "a1", metadata: { prompt: "a fox" } });
+      (Asset.find as ReturnType<typeof vi.fn>).mockResolvedValue(asset);
+
+      const caller = createCaller(makeCtx());
+      await caller.assets.update({ id: "a1", tags: [" Hero ", "hero", "Night", ""] });
+
+      expect(asset.metadata).toEqual({ prompt: "a fox", tags: ["hero", "night"] });
+      expect(asset.save).toHaveBeenCalled();
     });
   });
 });

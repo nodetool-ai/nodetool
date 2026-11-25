@@ -1110,7 +1110,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "asset_search",
     module: "assets",
     impl: "packages/agents/src/capabilities/assets.ts",
-    contract: "48cf8b892c51",
+    contract: "7825b4f9e558",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-assets.test.ts",
@@ -1152,7 +1152,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "update_asset",
     module: "assets",
     impl: "packages/agents/src/capabilities/assets.ts",
-    contract: "8dfc3e1b4b9e",
+    contract: "598b24b0dd60",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-assets.test.ts",

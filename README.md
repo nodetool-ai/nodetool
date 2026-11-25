@@ -8,15 +8,14 @@
 
 English · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-**Open-source AI film studio · agent + node workflows**
+**Films · agent · node workflows**
 
-**Direct AI films, shot by shot.** Start with one sentence. The agent writes
-the story, draws a still for every shot, and cuts the clips on a timeline.
-Approve each still before you pay for its clip, reshoot any shot on its own,
-and save what works as a workflow you can run again.
+**The open-source AI studio you actually control.** Storyboard, generate, and
+cut video on a live timeline backed by editable node graphs. Run local models
+or your own API keys at list price.
 
 **[Download NodeTool Studio](https://github.com/nodetool-ai/nodetool/releases/latest)** ·
-**[Try it in your browser](https://app.nodetool.ai)** (alpha) ·
+**[Try in your browser](https://app.nodetool.ai)** (alpha) ·
 **[Quick start](#first-run-in-studio)** ·
 **[Documentation](https://docs.nodetool.ai/)** · **[MCP setup](#mcp)** ·
 **[Contribute](#contributing)**

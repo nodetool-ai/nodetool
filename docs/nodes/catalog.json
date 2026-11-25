@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-11-25T11:37:42.432Z",
+  "generated_at": "2026-11-25T21:40:14.253Z",
   "nodes": [
     {
       "type": "anthropic.text.WebSearch",
@@ -3591,6 +3591,51 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/lib/mail/sendemail",
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/mail/sendemail.md"
+    },
+    {
+      "type": "lib.mcp.CallMcpTool",
+      "title": "Call MCP Tool",
+      "namespace": "lib.mcp",
+      "description": "Call a tool on an external MCP server you configured in Settings.\n    mcp, tool, n8n, home assistant, obsidian, integration, server\n\n    Use cases:\n    - Trigger an n8n or Home Assistant action from a workflow\n    - Read or write notes through an Obsidian MCP server\n    - Run a local script that speaks MCP\n\n    The node runs exactly the server and tool named here, also in a background run. Image content in a tool result is not passed on.",
+      "inputs": [
+        {
+          "name": "server",
+          "type": "str",
+          "description": "Id of an external MCP server from Settings, for example n8n.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "tool",
+          "type": "str",
+          "description": "Name of the tool on that server, as the server lists it.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "input_schema",
+          "type": "dict",
+          "description": "JSON Schema of the tool's arguments. The editor fills it when you pick a tool. Each property becomes an input.",
+          "required": false,
+          "default": {}
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "str"
+        },
+        {
+          "name": "result",
+          "type": "any"
+        },
+        {
+          "name": "resource_links",
+          "type": "list[dict[str, any]]"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/mcp/callmcptool",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/mcp/callmcptool.md"
     },
     {
       "type": "lib.sqlite.GetDatabasePath",
@@ -17101,6 +17146,53 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/triggers/manualtrigger",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/triggers/manualtrigger.md"
+    },
+    {
+      "type": "nodetool.triggers.ScheduleTrigger",
+      "title": "Schedule Trigger",
+      "namespace": "nodetool.triggers",
+      "description": "",
+      "inputs": [
+        {
+          "name": "max_events",
+          "type": "int",
+          "description": "Events to emit before the node stops (0 = unlimited). Applies only while the node runs in the editor. The scheduler keeps firing an activated trigger regardless.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "cron_expr",
+          "type": "str",
+          "description": "Five fields: minute hour day-of-month month day-of-week. For example 0 8 * * 1-5 is every weekday at 08:00.",
+          "required": true
+        },
+        {
+          "name": "cron_tz",
+          "type": "str",
+          "description": "IANA timezone the expression is read in, such as Europe/Berlin or America/New_York.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "scheduled_at",
+          "type": "str"
+        },
+        {
+          "name": "timestamp",
+          "type": "str"
+        },
+        {
+          "name": "source",
+          "type": "str"
+        },
+        {
+          "name": "event_type",
+          "type": "str"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/triggers/scheduletrigger",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/triggers/scheduletrigger.md"
     },
     {
       "type": "nodetool.triggers.Wait",

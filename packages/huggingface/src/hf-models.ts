@@ -212,6 +212,7 @@ const HF_TYPE_KEYWORD_MATCHERS_BASE = {
   "hf.lora_sd": ["lora"],
   "hf.lora_sdxl": ["lora", "sdxl"],
   "hf.lora_qwen_image": ["lora", "qwen"],
+  "hf.lora_ltx": ["lora", "ltx"],
   "hf.vae": ["vae"],
   "hf.unet": ["unet"],
   "hf.clip": ["clip"],
@@ -557,6 +558,10 @@ const HF_SEARCH_TYPE_CONFIG_BASE = {
     repo_pattern: ["*lora*sdxl*", "*sdxl*lora*"]
   },
   "hf.lora_qwen_image": { repo_pattern: ["*lora*qwen*"], pipeline_tag: [] },
+  "hf.lora_ltx": {
+    repo_pattern: ["*lora*ltx*", "*ltx*lora*"],
+    pipeline_tag: []
+  },
   "hf.unet": {
     repo_pattern: [
       ...KNOWN_REPO_PATTERNS.flux,

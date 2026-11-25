@@ -143,6 +143,11 @@
         "file": "sandbox/generated/lib.mail.js"
       },
       {
+        "name": "lib.mcp",
+        "kind": "js",
+        "file": "sandbox/generated/lib.mcp.js"
+      },
+      {
         "name": "lib.sqlite",
         "kind": "js",
         "file": "sandbox/generated/lib.sqlite.js"

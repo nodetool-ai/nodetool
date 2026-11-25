@@ -34,8 +34,8 @@ class FakeWebSocket {
     FakeWebSocket.instances.push(this);
   }
 
-  send(message: unknown): void {
-    this.sent.push(message as Record<string, unknown>);
+  send(message: Record<string, unknown>): void {
+    this.sent.push(message);
   }
 
   close(code = 1000, reason = ""): void {

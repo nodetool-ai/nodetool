@@ -2318,6 +2318,7 @@
     "lib.mail.GmailSearch": "integration",
     "lib.mail.MoveToArchive": "integration",
     "lib.mail.SendEmail": "integration",
+    "lib.mcp.CallMcpTool": "integration",
     "lib.sqlite.GetDatabasePath": "automation",
     "lib.stable_diffusion_cpp.GenerateImage": "integration",
     "lib.svg.Document": "text",
@@ -2612,6 +2613,7 @@
     "nodetool.triggers.FileWatchTrigger": "automation",
     "nodetool.triggers.IntervalTrigger": "automation",
     "nodetool.triggers.ManualTrigger": "automation",
+    "nodetool.triggers.ScheduleTrigger": "automation",
     "nodetool.triggers.Wait": "automation",
     "nodetool.triggers.WebhookTrigger": "automation",
     "nodetool.variable.GetVariable": "core",
@@ -3515,7 +3517,7 @@
       "id": "automation",
       "installBytes": 0,
       "kind": "node-pack",
-      "nodeCount": 7,
+      "nodeCount": 8,
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/automation-nodes",
@@ -3973,7 +3975,7 @@
       "id": "integration",
       "installBytes": 0,
       "kind": "node-pack",
-      "nodeCount": 17,
+      "nodeCount": 18,
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/integration-nodes",

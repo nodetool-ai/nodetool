@@ -188,6 +188,13 @@ export type Competitor = {
   /** The short answer above the table, when the generic one in `shortAnswer` would only repeat the hero. */
   answer?: string;
 
+  /**
+   * Alternatives grouped by what the searcher needs, shown under the hero for
+   * pages whose searchers want the list ("comfyui alternatives"). Name only
+   * tools the list below carries, or the tool's own hosted edition.
+   */
+  quickPicks?: { need: string; tools: string }[];
+
   /** Optional search snippet for pages with a distinct, high-volume query intent. */
   seo?: { title: string; description: string };
   starter?: { id: SearchStarter; source: LandingPage; heading: string };
@@ -1408,10 +1415,17 @@ export const competitors: Competitor[] = [
     starter: { id: "generate-then-upscale-a-poster", source: "comfyui", heading: "Try a generation graph in NodeTool" },
     name: "ComfyUI",
     seo: {
-      title: "ComfyUI Alternatives: NodeTool, Figma Weave, Flora, Krea",
+      title: "8 ComfyUI Alternatives: Open Source, Mac, Linux & Online",
       description:
-        "ComfyUI alternatives compared by platform and license: NodeTool (open source, macOS, Windows, Linux), InvokeAI, SwarmUI, Forge, Figma Weave, Flora, and Krea.",
+        "ComfyUI alternatives by need. Open source and local: NodeTool, InvokeAI, SwarmUI, Forge. Online: Figma Weave, Flora, Krea. Mac: Draw Things. Licenses checked.",
     },
+    quickPicks: [
+      { need: "Open source, on your own computer", tools: "NodeTool, InvokeAI, SwarmUI, Stable Diffusion WebUI Forge" },
+      { need: "Easier than a node graph", tools: "Forge or SwarmUI for settings in forms, NodeTool for an agent that builds the graph" },
+      { need: "Mac and Linux", tools: "NodeTool, InvokeAI, SwarmUI, Draw Things (Mac only)" },
+      { need: "In the browser, nothing to install", tools: "Figma Weave, Flora, Krea, or ComfyUI's own Comfy Cloud" },
+      { need: "Keep running your ComfyUI graphs", tools: "NodeTool, through its Run ComfyUI Workflow node" },
+    ],
     theme: "blue",
     category: "Node editor",
     og: {
@@ -1472,6 +1486,11 @@ export const competitors: Competitor[] = [
         question: "Is there an easier alternative to ComfyUI?",
         answer:
           "It depends on which part is hard. If the graph is the obstacle, Stable Diffusion WebUI Forge puts the settings in forms, and SwarmUI shows a form first and keeps the graph in a separate tab. If setup is the obstacle, a hosted canvas such as Krea or Flora needs no install. In NodeTool you describe the result and the agent builds and validates the workflow, or you start from a template, and hosted models need no graphics card or model downloads.",
+      },
+      {
+        question: "ComfyUI vs n8n: which one do I need?",
+        answer:
+          "They do different jobs. ComfyUI builds image and video generation graphs and runs the models on your own GPU or Comfy Cloud. n8n automates business apps, with 400+ integrations, and reaches AI models through API calls. To use both, an n8n HTTP Request node can send a workflow to a ComfyUI server's API. NodeTool sits on the generation side: native image, video, audio, and text nodes, plus the Run ComfyUI Workflow node for graphs you already have.",
       },
       {
         question: "Is there a free, open-source ComfyUI alternative?",
