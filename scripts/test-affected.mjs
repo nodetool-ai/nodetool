@@ -100,7 +100,7 @@ export const PATH_CHECKS = [
       { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
     ]
   },
-  { path: /^native\/(?:files|gpu-preview|media-player|graph-runner|jobs|kernels|model-picker|node-editor|realtime|storyboard|timeline)\//, steps: [NATIVE_CTEST] },
+  { path: /^native\/(?:files|gpu-preview|media-player|graph-runner|jobs|kernels|model-picker|node-editor|realtime|storyboard|timeline|timeline-player)\//, steps: [NATIVE_CTEST] },
   {
     path: /^native\/parity\//,
     steps: [
@@ -186,6 +186,21 @@ export const PATH_CHECKS = [
     ]
   },
   { path: /^marketing\//, steps: [] },
+  // Engineering skills and their helper scripts. No suite reads them, and
+  // `npm run check:agents-docs` (part of `npm run lint`) checks the tree.
+  { path: /^\.agents\//, steps: [] },
+  // The backlog lint configs. Only `npm run lint` and the anti-slop
+  // scripts read them.
+  { path: /^\.oxlintrc\.anti-slop(?:-enforced)?\.json$/, steps: [] },
+  // Python training scripts run by hand on a rented GPU. No suite runs them.
+  { path: /^scripts\/finetune\//, steps: [] },
+  {
+    path: /^scripts\/(?:crap-score\.mjs|__tests__\/crap-score\.test\.mjs)$/,
+    steps: [{ label: "CRAP scoring", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/crap-score.test.mjs"] }]
+  },
+  // Any other script suite. It tests a script, not a workspace. `fallback`:
+  // used only when no entry above names the file.
+  { path: /^scripts\/__tests__\//, fallback: true, steps: [{ label: "script regressions", command: "npm", args: ["run", "test:scripts"] }] },
   {
     // The JUCE helper builds with CMake. The VST host workflow runs the same
     // build on macOS and Windows.
@@ -293,7 +308,9 @@ export function buildPlan(files, packages, computeAffected) {
   const globalFiles = [];
   for (const file of result.unmatched) {
     if (DOC_ONLY.test(file)) continue;
-    const checks = PATH_CHECKS.filter((c) => c.path.test(file));
+    const matching = PATH_CHECKS.filter((c) => c.path.test(file));
+    const specific = matching.filter((c) => !c.fallback);
+    const checks = specific.length > 0 ? specific : matching;
     if (checks.length === 0) globalFiles.push(file);
     for (const step of checks.flatMap((c) => c.steps)) pathSteps.set(step.label, step);
   }
