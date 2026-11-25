@@ -58,6 +58,24 @@ export function intervalTrigger(inputs: IntervalTriggerInputs, options?: NodeOpt
   return createNode("nodetool.triggers.IntervalTrigger", inputs, { id: options?.id, outputNames: ["tick", "elapsed_seconds", "interval_seconds", "timestamp", "source", "event_type"], outputTypes: {"tick":"int","elapsed_seconds":"float","interval_seconds":"float","timestamp":"str","source":"str","event_type":"str"}, streaming: true });
 }
 
+// Schedule Trigger — nodetool.triggers.ScheduleTrigger
+export type ScheduleTriggerInputs = {
+  max_events?: Connectable<number>;
+  cron_expr?: Connectable<string>;
+  cron_tz?: Connectable<string>;
+};
+
+export interface ScheduleTriggerOutputs {
+  scheduled_at: string;
+  timestamp: string;
+  source: string;
+  event_type: string;
+}
+
+export function scheduleTrigger(inputs: ScheduleTriggerInputs, options?: NodeOptions): NodeWithOutputs<ScheduleTriggerOutputs> {
+  return createNode("nodetool.triggers.ScheduleTrigger", inputs, { id: options?.id, outputNames: ["scheduled_at", "timestamp", "source", "event_type"], outputTypes: {"scheduled_at":"str","timestamp":"str","source":"str","event_type":"str"}, streaming: true });
+}
+
 // Webhook Trigger — nodetool.triggers.WebhookTrigger
 export type WebhookTriggerInputs = {
 };

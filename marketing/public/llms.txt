@@ -36,6 +36,7 @@
 - [AI model directory](https://nodetool.ai/models): every supported image, video, audio, and language model, by provider.
 - [Node-based AI](https://nodetool.ai/node-based-ai): build AI workflows with nodes instead of prompts.
 - [Node-based workflows](https://nodetool.ai/node-based-workflows): node-based workflows you can check, run, and rerun.
+- [Live demo](https://nodetool.ai/demo): the timeline editor and node editor running in the browser, with no download or sign-in.
 - [Documentation](https://docs.nodetool.ai/llms.txt): install guides, key concepts, node reference, API reference, CLI.
 
 ## Editors and capabilities

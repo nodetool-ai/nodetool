@@ -1,7 +1,7 @@
 /**
  * Formatting for a schedule trigger's cadence and next fire time.
  *
- * Both `interval_seconds` and `next_fire_at` are optional on the wire — a
+ * `interval_seconds`, `cron_expr`, `cron_tz` and `next_fire_at` are optional on the wire — a
  * webhook or manual registration never carries them, and an older server
  * omits them entirely. Every helper here returns `null` for anything it
  * cannot render, so the caller shows nothing instead of "Invalid Date".
@@ -60,4 +60,21 @@ export const formatSchedule = (
   if (cadence) return `Runs every ${cadence}`;
   if (next) return next.charAt(0).toUpperCase() + next.slice(1);
   return null;
+};
+
+/**
+ * The schedule summary for a cron trigger, e.g.
+ * "Cron 0 8 * * 1-5 (Europe/Berlin) — next in 14h 5m". Null when there is no
+ * expression to show.
+ */
+export const formatCronSchedule = (
+  cronExpr: string | null | undefined,
+  cronTz: string | null | undefined,
+  nextFireAt: string | null | undefined,
+  now: number = Date.now()
+): string | null => {
+  if (!cronExpr) return null;
+  const cadence = cronTz ? `Cron ${cronExpr} (${cronTz})` : `Cron ${cronExpr}`;
+  const next = formatNextFire(nextFireAt, now);
+  return next ? `${cadence} — ${next}` : cadence;
 };

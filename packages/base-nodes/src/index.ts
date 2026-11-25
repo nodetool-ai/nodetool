@@ -201,6 +201,7 @@ export {
   WaitNode,
   ManualTriggerNode,
   IntervalTriggerNode,
+  ScheduleTriggerNode,
   WebhookTriggerNode,
   FileWatchTriggerNode,
   TRIGGER_NODES

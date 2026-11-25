@@ -3,7 +3,9 @@
  *
  * Each pack installs from PyPI under the name of its GitHub repo. The catalog ships with the
  * app, so adding or removing a pack is a change to this file. List only packs that are
- * published on PyPI: an entry without a release fails on Install.
+ * published on PyPI: an entry without a release fails on Install. An engine a
+ * pack imports but cannot depend on, because it is not on PyPI, goes in the
+ * pack's `requirements`.
  *
  * Every pack releases on its own schedule. The desktop app never pins a pack to the app
  * version. Compatibility with the app is the bridge protocol floor
@@ -35,7 +37,21 @@ export interface PythonNodePack {
   minMacOSVersion?: number;
   /** What the pack needs, named in the refusal on an unsupported platform. */
   platformRequirement?: string;
+  /**
+   * PEP 508 requirements installed in the same resolve as the pack, on every
+   * install and update. For engines that are not on PyPI, so the pack cannot
+   * declare them: PyPI refuses a release with a direct URL dependency. Pin
+   * each URL to a commit archive, which needs no git on the user's machine.
+   */
+  requirements?: readonly string[];
 }
+
+/**
+ * ltx-2-mlx v0.18.0 (MIT), the LTX-2.5 engine of nodetool-mlx's video nodes.
+ * Its packages are not on PyPI.
+ */
+const LTX_2_MLX_ARCHIVE =
+  "https://github.com/dgrauet/ltx-2-mlx/archive/b82b97e3d000e01361f8cfcb745244b15b89a521.tar.gz";
 
 /** A declared Python-pack namespace, including its node type suffix. */
 export function isPythonNodeType(nodeType: string): boolean {
@@ -61,7 +77,11 @@ export const PYTHON_NODE_PACKS: readonly PythonNodePack[] = [
     platforms: ["darwin-arm64"],
     // MLX ships macOS 14+ wheels only.
     minMacOSVersion: 14,
-    platformRequirement: "a Mac with Apple Silicon and macOS 14 or newer"
+    platformRequirement: "a Mac with Apple Silicon and macOS 14 or newer",
+    requirements: [
+      `ltx-core-mlx @ ${LTX_2_MLX_ARCHIVE}#subdirectory=packages/ltx-core-mlx`,
+      `ltx-pipelines-mlx @ ${LTX_2_MLX_ARCHIVE}#subdirectory=packages/ltx-pipelines-mlx`
+    ]
   },
   {
     name: "HuggingFace",

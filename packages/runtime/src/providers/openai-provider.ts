@@ -907,6 +907,24 @@ export class OpenAIProvider extends BaseProvider {
     );
   }
 
+  /**
+   * The `size` and `seconds` a video request sends, before defaults. A
+   * subclass whose endpoint declares its own sizes and durations overrides
+   * this instead of the Sora snapping below.
+   */
+  protected async resolveVideoRequest(
+    params: TextToVideoParams | ImageToVideoParams
+  ): Promise<{ size: string | null; seconds: number | null }> {
+    return {
+      size: OpenAIProvider.resolveVideoSize(
+        params.aspectRatio,
+        params.resolution,
+        params.model.id
+      ),
+      seconds: OpenAIProvider.secondsFromParams(params)
+    };
+  }
+
   static secondsFromParams(params: {
     durationSeconds?: number | null;
     numFrames?: number | null;
@@ -2493,12 +2511,9 @@ export class OpenAIProvider extends BaseProvider {
       throw new Error("The input prompt cannot be empty.");
     }
 
-    const size = OpenAIProvider.resolveVideoSize(
-      params.aspectRatio,
-      params.resolution,
-      params.model.id
-    );
-    const seconds = OpenAIProvider.secondsFromParams(params) ?? 4;
+    const { size, seconds: requestedSeconds } =
+      await this.resolveVideoRequest(params);
+    const seconds = requestedSeconds ?? 4;
 
     const request: Record<string, unknown> = {
       model: params.model.id,
@@ -2577,14 +2592,11 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     const [width, height] = OpenAIProvider.extractImageDimensions(image);
-    const requestedSize = OpenAIProvider.resolveVideoSize(
-      params.aspectRatio,
-      params.resolution,
-      params.model.id
-    );
+    const { size: requestedSize, seconds: requestedSeconds } =
+      await this.resolveVideoRequest(params);
     const size =
       requestedSize ?? OpenAIProvider.snapToValidVideoDimensions(width, height);
-    const seconds = OpenAIProvider.secondsFromParams(params) ?? 4;
+    const seconds = requestedSeconds ?? 4;
 
     const [targetW, targetH] = size.split("x").map(Number);
     const resized =

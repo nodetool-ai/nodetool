@@ -8,7 +8,8 @@ import { describe, expect, it, vi } from "vitest";
 import { PythonProvider } from "../../src/providers/python-provider.js";
 import {
   RECOMMENDED_MLX_IMAGE_MODELS,
-  RECOMMENDED_MLX_LANGUAGE_MODELS
+  RECOMMENDED_MLX_LANGUAGE_MODELS,
+  RECOMMENDED_MLX_VIDEO_MODELS
 } from "../../src/providers/mlx-models.js";
 import type { PythonBridgeBase } from "../../src/python-bridge-base.js";
 
@@ -53,6 +54,42 @@ describe("MLX recommended models", () => {
     const edit = models.find((m) => m.id.includes("qwen-image-edit"))!;
     expect(edit.supportedTasks).toEqual(["image_to_image"]);
     expect(edit.adapter?.artifactRef?.repoId).toBe(edit.id);
+  });
+
+  it("offers the recommended video models with their exact download targets", async () => {
+    const models = await makeProvider("mlx", []).getAvailableVideoModels();
+    expect(models.map((m) => m.id)).toEqual(RECOMMENDED_MLX_VIDEO_MODELS.map((m) => m.id));
+    expect(models.every((m) => m.provider === "mlx" && m.endFrame === "optional")).toBe(true);
+    const ltx = models.find((m) => m.id === "dgrauet/ltx-2.5-mlx-q8")!;
+    expect(ltx.supportedTasks).toEqual(["text_to_video", "image_to_video"]);
+    expect(ltx.adapter?.artifactRef?.allowPatterns).toContain("transformer-distilled.safetensors");
+    expect(ltx.adapter?.artifactRef?.allowPatterns).not.toContain("transformer-dev.safetensors");
+    expect(ltx.adapter?.extraArtifactRefs).toBeUndefined();
+    const h3 = models.find((m) => m.id === "MiniMaxAI/MiniMax-H3:fast")!;
+    expect(
+      [h3.adapter?.artifactRef, ...(h3.adapter?.extraArtifactRefs ?? [])].map((r) => r?.repoId)
+    ).toEqual([
+      "DeepBeepMeep/MiniMax-H3",
+      "ddalcu/MiniMax-H3-FL2VA-MLX-Serve-8bit",
+      "MiniMaxAI/MiniMax-H3"
+    ]);
+    expect(h3.adapter?.extraArtifactRefs?.[1]?.allowPatterns).toEqual([
+      "FL2VA/text_encoder/config.json",
+      "FL2VA/model_index.json"
+    ]);
+  });
+
+  it("keeps one row for a cached recommended video model", async () => {
+    const models = await makeProvider("mlx", [
+      { id: "MiniMaxAI/MiniMax-H3", name: "MiniMax H3 MLX", supported_tasks: ["text_to_video"] }
+    ]).getAvailableVideoModels();
+    const rows = models.filter((m) => m.id === "MiniMaxAI/MiniMax-H3");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.adapter?.artifactRef?.repoId).toBe("DeepBeepMeep/MiniMax-H3");
+  });
+
+  it("adds no video models to other Python providers", async () => {
+    expect(await makeProvider("huggingface", []).getAvailableVideoModels()).toEqual([]);
   });
 
   it("gives each speech model its repository as a download target", async () => {

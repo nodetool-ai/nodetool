@@ -15,6 +15,12 @@ function intervalTrigger(inputs) {
 intervalTrigger.stream = function(inputs) {
   return streamNode("nodetool.triggers.IntervalTrigger", inputs);
 };
+function scheduleTrigger(inputs) {
+  return callNode("nodetool.triggers.ScheduleTrigger", inputs);
+}
+scheduleTrigger.stream = function(inputs) {
+  return streamNode("nodetool.triggers.ScheduleTrigger", inputs);
+};
 function webhookTrigger(inputs) {
   return callNode("nodetool.triggers.WebhookTrigger", inputs ?? {});
 }
@@ -28,6 +34,7 @@ export {
   fileWatchTrigger,
   intervalTrigger,
   manualTrigger,
+  scheduleTrigger,
   wait,
   webhookTrigger
 };

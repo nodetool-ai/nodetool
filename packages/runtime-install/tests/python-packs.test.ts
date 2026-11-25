@@ -242,6 +242,37 @@ describe('installPythonPack', () => {
     expect(host.saved.get('TORCH_PLATFORM_DETECTED')).toBeDefined();
   });
 
+  test('installs the engines a pack lists in its catalog requirements', async () => {
+    host = fakeHost({ platform: 'darwin', arch: 'arm64', osVersion: '15.4' });
+    fakeUv([{ name: 'nodetool-core', version: '0.8.2' }]);
+    fakePyPI('nodetool-mlx', '0.7.4');
+    detectTorchPlatform.mockResolvedValue({ platform: 'mps', backend: 'auto', indexUrl: null });
+
+    const result = await installPackage('nodetool-ai/nodetool-mlx');
+
+    expect(result.success).toBe(true);
+    const [args] = installCalls();
+    const engines = args.filter((arg) => arg.startsWith('ltx-'));
+    expect(engines).toEqual([
+      expect.stringMatching(
+        /^ltx-core-mlx @ https:\/\/github\.com\/dgrauet\/ltx-2-mlx\/archive\/[0-9a-f]{40}\.tar\.gz#subdirectory=packages\/ltx-core-mlx$/
+      ),
+      expect.stringMatching(/^ltx-pipelines-mlx @ .*#subdirectory=packages\/ltx-pipelines-mlx$/),
+    ]);
+    expect(args.indexOf('nodetool-mlx==0.7.4')).toBeLessThan(args.indexOf(engines[0]));
+  });
+
+  test('installs no extra requirements for a pack without them', async () => {
+    fakeUv([{ name: 'nodetool-core', version: '0.8.2' }]);
+    fakePyPI('nodetool-huggingface', '0.8.1');
+    detectTorchPlatform.mockResolvedValue({ platform: 'cpu', backend: 'cpu', indexUrl: null });
+
+    await installPackage('nodetool-ai/nodetool-huggingface');
+
+    const [args] = installCalls();
+    expect(args.some((arg) => arg.includes(' @ '))).toBe(false);
+  });
+
   test('does not save a failed detection', async () => {
     fakeUv([{ name: 'nodetool-core', version: '0.8.1' }]);
     fakePyPI('nodetool-huggingface', '0.8.1');

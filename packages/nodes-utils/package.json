@@ -18,7 +18,8 @@
     "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/runtime": "*"
+    "@nodetool-ai/runtime": "*",
+    "croner": "^11.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

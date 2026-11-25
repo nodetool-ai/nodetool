@@ -54,7 +54,10 @@ import {
   describeTriggerDisabledReason,
   isTriggerNodeType
 } from "@nodetool-ai/protocol";
-import { formatSchedule } from "../../utils/triggerSchedule";
+import {
+  formatCronSchedule,
+  formatSchedule
+} from "../../utils/triggerSchedule";
 
 /** Stable empty fallback, so a pending query doesn't hand every render a new
  * array identity and re-create the callbacks that close over it. */
@@ -343,7 +346,12 @@ const TriggerActivationButton: React.FC = () => {
               );
               const schedule =
                 kind === "schedule"
-                  ? formatSchedule(reg?.interval_seconds, reg?.next_fire_at)
+                  ? (formatCronSchedule(
+                      reg?.cron_expr,
+                      reg?.cron_tz,
+                      reg?.next_fire_at
+                    ) ??
+                    formatSchedule(reg?.interval_seconds, reg?.next_fire_at))
                   : null;
               const stoppedBecause = describeTriggerDisabledReason(
                 reg?.disabled_reason,

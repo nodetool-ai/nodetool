@@ -105,6 +105,7 @@ import {
   createAssetModelInterface,
   updateAssetBytesModelInterface
 } from "./lib/asset-model-interface.js";
+import { getAssetInfoModelInterface } from "@nodetool-ai/asset-services/text-documents";
 import {
   IMPORTED_DIRECTORY,
   saveProjectAsset
@@ -228,17 +229,7 @@ function buildAgentToolContext(userId: string): ProcessingContext {
   context.setModelInterfaces({
     createAsset: createAssetModelInterface,
     updateAssetBytes: updateAssetBytesModelInterface,
-    getAssetInfo: async ({ userId, assetId }) => {
-      const asset = await Asset.find(userId, assetId);
-      if (!asset) return null;
-      return {
-        id: asset.id,
-        content_type: asset.content_type,
-        name: asset.name,
-        metadata: asset.metadata ?? null,
-        workspace_path: asset.workspace_path ?? null
-      };
-    }
+    getAssetInfo: getAssetInfoModelInterface
   });
   return context;
 }

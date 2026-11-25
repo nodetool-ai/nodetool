@@ -18,7 +18,7 @@ npm install @nodetool-ai/automation-nodes
 **SQLite** (`lib.sqlite.*`) — `GetDatabasePath`.
 
 **Triggers** (`nodetool.triggers.*`) — `Wait`, `ManualTrigger`,
-`IntervalTrigger`, `WebhookTrigger`, `FileWatchTrigger`.
+`IntervalTrigger`, `ScheduleTrigger`, `WebhookTrigger`, `FileWatchTrigger`.
 
 ## What moved to the sandbox
 

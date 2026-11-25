@@ -42,7 +42,9 @@ export type NodePropertyValidationCode =
   /** An inline dynamic-slot value does not match the slot's declared type. */
   | "dynamic_type_mismatch"
   /** An inline value cannot be read as the property's declared scalar type. */
-  | "property_type_mismatch";
+  | "property_type_mismatch"
+  /** A value has the right type but is not one the node can use, such as a cron expression that does not parse. */
+  | "invalid_value";
 
 export interface NodePropertyValidationIssue {
   /** Node id, when known. */
