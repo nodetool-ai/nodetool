@@ -103,7 +103,7 @@ export async function runSimulateSweep(document: GameDocument, options: SweepOpt
   const runs: GameBotRunResult[] = [];
   for (let offset = 0; offset < seedCount; offset += 1) {
     const saves = await dependencies.createSaves();
-    runs.push(await runGameBot(document, { bot: spec, seed: firstSeed + offset, ticks, endEvents,
+    runs.push(await runGameBot(document, { bot: spec, seed: firstSeed + offset, ticks, endEvents, sessionOptions: { test: true },
       prepareInput: (input) => saves.prepare(input), afterStep: (result, session) => saves.after(result, session) }));
   }
 

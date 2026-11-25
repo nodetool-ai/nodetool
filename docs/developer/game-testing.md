@@ -93,13 +93,31 @@ A skill bot runs the game's own policy from `--bot-file`. The file is a function
 
 `--seeds N` runs seeds `--seed` to `--seed + N - 1`, with fresh saves for each run. Without `--bot` it replays `--inputs` on each seed. A session ends at a win or at a trigger event named with `--end-event`. Each run reports its end tick, score, win, decision count and any script error with its tick. The summary has wins, ended runs, the score range and the session length range in ticks.
 
-Every sweep fails when a run has a script or bot error. These options add checks over every run, and a failed check lists its seeds:
+Every sweep fails when a run has a script or bot error, including a failed script `assert`. These options add checks over every run, and a failed check lists its seeds:
 
 - `--expect-win` and `--expect-no-win`.
 - `--expect-min-score` and `--expect-max-score`. The engine has no star rating, so cap a weak bot's result with a score.
 - `--max-session-ticks`: each session must end within this many ticks. A session that never ends fails it. Run it with the weakest bot, which plays longest.
 
 `--assertions`, `--verify-replay` and `--expect-score` check one run and are refused in a sweep.
+
+## Test-mode scripts
+
+`simulate` is a test run, with or without a bot. Scripts read `input.test` as `true`, and two commands help a test read what the game does:
+
+- `{ kind: "assert", ok, message }` fails the run when `ok` is false. The report has `scriptFailure` with the tick and message, and the exit status is 1. Play drops asserts, so write each promise of a level as one assert and keep it in the game.
+- `{ kind: "log", message, tag, data }` adds a line to the report's `logs`. Text output prints tagged lines, warnings and errors. Lines logged before a failure stay in the report.
+
+A script failure of any kind, not only an assert, ends the run with `scriptFailure` and the log lines before it. A script that branches on `input.test` behaves differently in play, so replay a test run only as another test run.
+
+```bash
+nodetool game simulate game.json --ticks 1200 --json --param spawnRate=0.4 --param boss:health=80
+nodetool game simulate game.json --ticks 60 --scene kit --json
+nodetool game capture game.json --ticks 1 --scene kit --out kit.png
+```
+
+- `--param name=value` sets a declared script parameter for this run. `entity:name=value` sets it on one entity only. The value is JSON when it parses as JSON, otherwise text. The document checks it against the declaration, and a parameter that no script declares is an error. The file is not changed. Sweep a constant this way and write the best value back with the Inspector or the agent.
+- `--scene <id>` starts in that scene instead of the entry scene. Keep a debug scene, for example a kit scene that draws every sprite in each animation state at full size, and capture it before you build the game logic.
 
 ## Regression fixtures
 
