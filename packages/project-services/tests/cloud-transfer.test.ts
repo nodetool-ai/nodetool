@@ -686,6 +686,33 @@ describe("cloud transfers on PostgreSQL", { timeout: 30_000 }, () => {
     ]);
   });
 
+  it("refuses an already-in-target move_document when the caller does not own the document or target project", async () => {
+    const { projectId: victimProject, workflowId: victimWorkflow } = await publishedProject(host);
+    const attacker = "user-attacker";
+    const attackerProject = id();
+    await Project.create<Project>({ id: attackerProject, user_id: attacker, name: "Attacker", kind: "project" });
+
+    host.publishedCalls = [];
+    const transferId = id();
+    const manifest = manifestFor([
+      {
+        op: "move_document",
+        kind: "workflow",
+        document_id: victimWorkflow,
+        base_project_id: attackerProject,
+        target_project_id: victimProject
+      }
+    ]);
+    await openTransfer(host, attacker, { transfer_id: transferId, project_id: attackerProject, first_publication: false, manifest });
+    const result = await commitTransfer(host, attacker, commitInput(transferId, manifest, []));
+
+    expect(result).toMatchObject({
+      outcome: "refused",
+      failures: [{ code: "ACCESS_REMOVED", kind: "workflow", document_id: victimWorkflow }]
+    });
+    expect(host.publishedCalls).toEqual([]);
+  });
+
   it("records both names of each rename, and nothing for the same name again (V6)", async () => {
     const { projectId, workflowId } = await publishedProject(host);
     const rename = async (baseName: string, name: string) => {

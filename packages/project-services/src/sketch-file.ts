@@ -45,6 +45,7 @@ import {
   type DocumentFileContent,
   type DocumentFileFailure
 } from "./document-file-sync.js";
+import { unzipBounded } from "./timeline-bundle.js";
 
 /** The directory sketch files are written in. */
 export const SKETCH_FILE_DIRECTORY = "Sketches";
@@ -487,11 +488,16 @@ function importedSketchFile(entries: Record<string, Uint8Array>): Json {
   };
 }
 
+/** Largest sketch zip {@link decodeSketchFile} inflates. */
+const MAX_SKETCH_ARCHIVE_BYTES = 256 * 1024 * 1024;
+/** Largest thumbnail PNG {@link sketchFileThumbnail} inflates. */
+const MAX_SKETCH_THUMBNAIL_BYTES = 16 * 1024 * 1024;
+
 /** The document text of a sketch zip. Throws when the bytes are no sketch file. */
 export async function decodeSketchFile(bytes: Uint8Array): Promise<string> {
   let entries: Record<string, Uint8Array>;
   try {
-    entries = unzipSync(bytes);
+    entries = unzipBounded(bytes, { maxBytes: MAX_SKETCH_ARCHIVE_BYTES });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`The file is not a zip: ${reason}`);
@@ -536,7 +542,9 @@ export const sketchFileCodec: DocumentFileCodec = {
 export function sketchFileThumbnail(bytes: Uint8Array): Uint8Array | null {
   try {
     return unzipSync(bytes, {
-      filter: (entry) => entry.name === SKETCH_THUMBNAIL_ENTRY
+      filter: (entry) =>
+        entry.name === SKETCH_THUMBNAIL_ENTRY &&
+        entry.originalSize <= MAX_SKETCH_THUMBNAIL_BYTES
     })[SKETCH_THUMBNAIL_ENTRY] ?? null;
   } catch {
     return null;

@@ -198,6 +198,25 @@ describe("transfer file operations on PostgreSQL", { timeout: 30_000 }, () => {
     expect(await listRecoveryCopies(projectId)).toEqual([]);
   });
 
+  it("sanitizes path separators and traversal segments in device_name when keeping a conflicting file beside another", async () => {
+    const { projectId } = await published();
+    const mine = encoder.encode("conflict from weird device");
+    const result = await send(
+      projectId,
+      false,
+      [{ op: "put_workspace_file", path: "notes.txt", hash: sha(mine), size: mine.byteLength, base_hash: sha(encoder.encode("older")) }],
+      [mine],
+      { device_name: "a/../../outside\\evil" }
+    );
+    expect(result.outcome).toBe("committed");
+    if (result.outcome !== "committed") throw new Error("expected a commit");
+    const keptPath = result.kept_beside?.[0]?.kept_path ?? "";
+    expect(keptPath).not.toContain("/");
+    expect(keptPath).not.toContain("\\");
+    expect(keptPath).not.toContain("..");
+    expect(await text(projectId, keptPath)).toBe("conflict from weird device");
+  });
+
   it("keeps a changed asset's sent bytes as a new asset beside it (V22)", async () => {
     const { projectId, assetId } = await published();
     const mine = encoder.encode("my clip");

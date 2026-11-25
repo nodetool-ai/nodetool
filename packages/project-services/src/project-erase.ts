@@ -20,6 +20,7 @@
  * Latest delivery snapshots are not checked: they arrive with phase 4.
  */
 import {
+  Asset,
   assetIdsWithContentHash,
   appendDocumentActivity,
   deleteProjectBlobRows,
@@ -151,9 +152,21 @@ async function ownedProject(host: EraseHost, userId: string, projectId: string, 
  * document row stays locked until it ends.
  */
 async function inspect(project: Project, hash: string): Promise<Omit<ErasePreview, "size">> {
-  const assetIds = await assetIdsWithContentHash(hash);
-  const held = new Set(assetIds);
-  const refers = (files: readonly string[]) => files.some((file) => held.has(file));
+  const held = new Set(await assetIdsWithContentHash(hash));
+  const projectAssets = await Asset.listByProject(project.user_id, project.id);
+  const scopedAssetIds = new Set(
+    projectAssets.filter((asset) => asset.content_hash === hash).map((asset) => asset.id)
+  );
+  const refers = (files: readonly string[]) => {
+    let matched = false;
+    for (const file of files) {
+      if (held.has(file)) {
+        scopedAssetIds.add(file);
+        matched = true;
+      }
+    }
+    return matched;
+  };
   const current: EraseBlocker[] = [];
   const references: EraseReference[] = [];
   for (const document of await projectDocuments(project)) {
@@ -181,7 +194,7 @@ async function inspect(project: Project, hash: string): Promise<Omit<ErasePrevie
       references.push({ kind: deleted.kind, document_id: deleted.documentId, name: deleted.name, where: "deleted", version_ids: [] });
     }
   }
-  return { hash, asset_ids: assetIds, current, references };
+  return { hash, asset_ids: [...scopedAssetIds].sort(), current, references };
 }
 
 /** The size the project's committed row records, or the not-found refusal. */
