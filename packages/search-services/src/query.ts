@@ -160,7 +160,8 @@ function itemConditions(request: LibrarySearchRequest): SQL {
     parts.push(sql`i.content_type LIKE ${`${escapeLike(filter.contentType)}%`} ESCAPE '\\'`);
   }
   if (filter.folder) {
-    const folder = filter.folder.replace(/\/+$/, "");
+    let folder = filter.folder;
+    while (folder.endsWith("/")) folder = folder.slice(0, -1);
     parts.push(
       sql`(i.folder_path = ${folder} OR i.folder_path LIKE ${`${escapeLike(folder)}/%`} ESCAPE '\\')`
     );
