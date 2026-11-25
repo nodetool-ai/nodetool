@@ -39,10 +39,14 @@ of model ids instead.
 An aggregator often lists chat, image and video models side by side. Each
 listed model goes to the matching node pickers:
 
-- A vendor field decides first. A `type`, `model_type`, `task`, `category` or
-  `mode` naming image or video counts, as does OpenRouter-style
-  `output_modalities`. A model whose output is image and text stays a chat
-  model.
+- An exact `capability` of `text_to_image`, `image_to_image`,
+  `text_to_video` or `image_to_video` decides the picker and advertises only
+  that task. Image and video rows with a missing or different `capability`,
+  including hand-written model lists, continue to advertise both directions.
+- Other vendor fields decide the media kind next. A `type`, `model_type`,
+  `task`, `category` or `mode` naming image or video counts, as does
+  OpenRouter-style `output_modalities`. A model whose output is image and text
+  stays a chat model.
 - Otherwise the id decides. Family names such as `flux`, `dall-e`, `seedream`
   and `imagen` mean image, and `kling`, `veo`, `sora` and `seedance` mean
   video. A model classified only by its id also stays in the chat picker, so a

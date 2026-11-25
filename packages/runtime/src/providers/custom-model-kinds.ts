@@ -6,8 +6,9 @@
  * aggregator that serves chat, image and video models from one endpoint lists
  * them side by side. Two signals separate them, in order of trust:
  *
- * 1. Vendor metadata. Several gateways add a `type` (`"image"`, `"video"`,
- *    `"chat"`), and OpenRouter-style listings carry `output_modalities`.
+ * 1. Vendor metadata. An exact `capability` preserves the generation direction.
+ *    Several gateways also add a `type` (`"image"`, `"video"`, `"chat"`), and
+ *    OpenRouter-style listings carry `output_modalities`.
  * 2. The model id. Image and video families have recognisable names
  *    (`flux`, `dall-e`, `seedream`, `kling`, `veo`, `sora`, …).
  *
@@ -19,9 +20,15 @@
 import { isNonEmptyString, isRecord, isString } from "@nodetool-ai/protocol";
 
 export type ListedModelKind = "language" | "image" | "video";
+export type ListedModelCapability =
+  | "text_to_image"
+  | "image_to_image"
+  | "text_to_video"
+  | "image_to_video";
 
 export interface ListedModelClassification {
   kind: ListedModelKind;
+  capability?: ListedModelCapability;
   /**
    * `metadata` when a field the endpoint sent decided the kind, `id` when only
    * the name did, `default` when neither said anything and it counts as chat.
@@ -52,6 +59,20 @@ const IMAGE_ID_PATTERN = new RegExp(
     "ideogram|recraft|kolors|hidream|playground-v|cogview|" +
     `${WORD_START}(?:sd-?3|t2i)`
 );
+
+function listedCapability(
+  row: Record<string, unknown>
+): ListedModelCapability | null {
+  switch (row.capability) {
+    case "text_to_image":
+    case "image_to_image":
+    case "text_to_video":
+    case "image_to_video":
+      return row.capability;
+    default:
+      return null;
+  }
+}
 
 function kindFromTypeValue(value: string): ListedModelKind | null {
   const lower = value.toLowerCase();
@@ -106,6 +127,14 @@ export function kindFromModelId(id: string): ListedModelKind {
 export function classifyListedModel(
   row: Record<string, unknown> & { id: string }
 ): ListedModelClassification {
+  const capability = listedCapability(row);
+  if (capability) {
+    return {
+      kind: capability.endsWith("_image") ? "image" : "video",
+      source: "metadata",
+      capability
+    };
+  }
   const fromMetadata = kindFromMetadata(row);
   if (fromMetadata) return { kind: fromMetadata, source: "metadata" };
   const fromId = kindFromModelId(row.id);
