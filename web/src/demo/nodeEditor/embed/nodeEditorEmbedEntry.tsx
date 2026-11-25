@@ -19,7 +19,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { ReactFlowProvider, type NodeTypes } from "@xyflow/react";
 import { useColorScheme } from "@mui/material/styles";
-import AddIcon from "@mui/icons-material/Add";
+import AddIcon from "@mui/icons-material/AddOutlined";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
 import "@xyflow/react/dist/style.css";
