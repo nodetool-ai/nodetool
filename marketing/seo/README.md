@@ -98,9 +98,11 @@ re-running the same command is idempotent), `--provider` (default `fal_ai`),
 `--dry-run` (no network — deterministic fake prompts + 1×1 PNGs, for offline
 checks).
 
-Prompt writing goes through Claude Code (the Claude Agent SDK): no API key — it
-spawns the `claude` CLI, which authenticates from the logged-in subscription
-(`~/.claude`) locally, or from `CLAUDE_CODE_OAUTH_TOKEN` in CI. Rendering
+Prompt writing goes through the installed Claude Code CLI, with no API key. The
+`claude` executable must be on `PATH` (or named by `CLAUDE_CLI_PATH`), and no npm
+dependency provides it. It authenticates from the logged-in subscription
+(`~/.claude`) locally, or from `CLAUDE_CODE_OAUTH_TOKEN` in CI, where
+`seo-seed.yml` installs a pinned `@anthropic-ai/claude-code`. Rendering
 requires `FAL_API_KEY` in the local secret store (the same store `nodetool serve`
 uses) or the environment.
 
