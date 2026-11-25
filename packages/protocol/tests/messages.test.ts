@@ -382,6 +382,26 @@ describe("sanitizeMemoryUris", () => {
     expect(sanitizeMemoryUris(null)).toBe(null);
     expect(sanitizeMemoryUris(undefined)).toBe(undefined);
   });
+
+  it("preserves binary typed arrays and does not pollute prototypes via __proto__", () => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    const samples = new Float32Array([0.5, -0.5]);
+    const sanitized = sanitizeMemoryUris({
+      binary: bytes,
+      samples,
+      uri: "memory://secret"
+    });
+    expect(sanitized.binary).toBeInstanceOf(Uint8Array);
+    expect(Array.from(sanitized.binary)).toEqual([1, 2, 3]);
+    expect(sanitized.samples).toBeInstanceOf(Float32Array);
+    expect(Array.from(sanitized.samples)).toEqual([0.5, -0.5]);
+    expect(sanitized.uri).toBe("");
+
+    const withProto = JSON.parse('{"__proto__":{"polluted":true},"a":"memory://x"}') as Record<string, unknown>;
+    const sanitizedProto = sanitizeMemoryUris(withProto);
+    expect(Object.getPrototypeOf(sanitizedProto)).toBe(Object.prototype);
+    expect((sanitizedProto as { polluted?: boolean }).polluted).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------

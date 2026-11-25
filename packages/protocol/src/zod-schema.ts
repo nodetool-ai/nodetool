@@ -41,7 +41,17 @@ function cloneForMutation(value: JsonValue): JsonValue {
   if (isObjectLike(value)) {
     const cloned: { [key: string]: JsonValue } = {};
     for (const [key, nested] of Object.entries(value)) {
-      cloned[key] = cloneForMutation(nested);
+      const copied = cloneForMutation(nested);
+      if (key === "__proto__") {
+        Object.defineProperty(cloned, key, {
+          value: copied,
+          enumerable: true,
+          writable: true,
+          configurable: true
+        });
+      } else {
+        cloned[key] = copied;
+      }
     }
     return cloned;
   }
@@ -198,7 +208,8 @@ function keysAtPath(schema: ZodType, path: readonly PropertyKey[]): string[] {
   for (const segment of path) {
     const shape = objectShape(current);
     if (!shape) return [];
-    current = shape[String(segment)];
+    const key = String(segment);
+    current = Object.hasOwn(shape, key) ? shape[key] : undefined;
     if (current === undefined) return [];
   }
   return Object.keys(objectShape(current) ?? {});
@@ -243,7 +254,7 @@ function remediesFor(schema: ZodType, keys: readonly string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const key of keys) {
-    const remedy = table[key];
+    const remedy = Object.hasOwn(table, key) ? table[key] : undefined;
     if (remedy === undefined || seen.has(remedy)) continue;
     seen.add(remedy);
     out.push(remedy);

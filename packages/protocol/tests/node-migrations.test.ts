@@ -536,4 +536,13 @@ describe("save node consolidation (document editor PRD R26, R27)", () => {
     };
     expect(migrateGraphNodeTypes(graph)).toBe(graph);
   });
+
+  it("does not rewrite an edge targetHandle that matches an inherited Object.prototype key", () => {
+    const graph = {
+      nodes: [{ id: "c", type: "nodetool.text.SaveTextFile", data: { name: "out.txt" } }],
+      edges: [{ source: "s", target: "c", sourceHandle: "output", targetHandle: "toString" }]
+    };
+    const migrated = migrateGraphNodeTypes(graph);
+    expect(migrated.edges[0]?.targetHandle).toBe("toString");
+  });
 });

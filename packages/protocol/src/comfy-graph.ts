@@ -233,7 +233,7 @@ function inputProperties(
     return out;
   }
 
-  const primitive = PRIMITIVES[kind];
+  const primitive = Object.hasOwn(PRIMITIVES, kind) ? PRIMITIVES[kind] : undefined;
   if (primitive) {
     let def: unknown = opts.default;
     if (def === undefined) {
