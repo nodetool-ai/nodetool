@@ -1760,7 +1760,9 @@ nodetool storage refresh-cache-control
 
 ### `nodetool collections`
 
-Manage the RAG vector-store collections behind semantic search. Runs in-process
+Manage the RAG vector-store collections that workflows index and query. The
+collections library search keeps for itself are hidden here (see
+[`nodetool search`](#nodetool-search)). Runs in-process
 against the default vector provider — sqlite-vec unless
 `NODETOOL_VECTOR_PROVIDER` points elsewhere — so no server has to be running.
 
@@ -1794,6 +1796,37 @@ nodetool collections delete my_docs --yes
 
 Re-indexing the same file replaces its chunks rather than adding a second copy,
 so an `index` run is safe to repeat after a document changes.
+
+### `nodetool search`
+
+Search the library index and manage it, in process against the local database.
+Library search covers assets, workflows and every other document. It is not a
+collection you create. See [Search services](https://github.com/nodetool-ai/nodetool/blob/main/packages/search-services/README.md).
+
+**Subcommands:**
+
+- `query <text...>` — search by words and, when set up, by meaning.
+  `--kinds image,document`, `--project <id>`, `--mode auto|keyword|semantic`,
+  `--limit <n>`.
+- `read <id>` — an item's passages, or the passage at `--locator '<json>'` with
+  `--before` and `--after` neighbours.
+- `status` — items by state, passages with vectors, the embedding model and its
+  collections.
+- `setup [--model <provider:model>] [--off]` — turn search by meaning on. The
+  default model is `transformers_js:Xenova/all-MiniLM-L6-v2`, which runs
+  locally. A hosted model receives the passage text.
+- `rebuild [--vectors]` — extract and embed every item again, or only embed.
+- `indexer [--once]` — run the indexer in this process, or until the queue is
+  empty.
+
+Every subcommand takes `--json`.
+
+```bash
+nodetool search setup
+nodetool search indexer --once
+nodetool search query "fox in the snow" --kinds image
+nodetool search status --json
+```
 
 ## Spend Tracking
 

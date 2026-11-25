@@ -45,6 +45,8 @@ const h = vi.hoisted(() => {
 });
 
 vi.mock("@nodetool-ai/vectorstore", () => ({
+  isManagedCollection: (name: string, metadata?: Record<string, unknown>) =>
+    name.startsWith("nodetool_library__") || Boolean(metadata?.managed),
   getDefaultVectorProvider: () => ({
     getCollection: h.getCollection,
     getOrCreateCollection: h.getOrCreateCollection
@@ -170,6 +172,12 @@ describe("CollectionNode", () => {
     expect(out).toEqual({
       output: { type: "collection", name: "my-collection" }
     });
+  });
+
+  it("refuses a name reserved for library search", async () => {
+    const node = new CollectionNode();
+    node.assign({ name: "nodetool_library__abc" });
+    await expect(node.process()).rejects.toThrow(/reserved/);
   });
 });
 

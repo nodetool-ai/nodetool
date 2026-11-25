@@ -36,7 +36,9 @@ vi.mock("@nodetool-ai/vectorstore", () => ({
     deleteCollection
   }),
   splitDocument,
-  CollectionNotFoundError
+  CollectionNotFoundError,
+  isManagedCollection: (name: string, metadata?: Record<string, unknown>) =>
+    name.startsWith("nodetool_library__") || Boolean(metadata?.managed)
 }));
 
 vi.mock("@nodetool-ai/models", () => ({
@@ -122,6 +124,25 @@ describe("collections list", () => {
     const rows = JSON.parse(stdout.trim()) as Array<{ name: string }>;
     expect(rows).toHaveLength(1);
     expect(rows[0]!.name).toBe("good");
+  });
+
+  it("hides the collections library search owns", async () => {
+    listCollections.mockResolvedValueOnce([
+      { name: "good", metadata: {} },
+      { name: "nodetool_library__abc_def", metadata: { managed: "library" } }
+    ]);
+    getCollection.mockReset().mockImplementation(async ({ name }) => ({
+      name,
+      metadata: {},
+      count: async () => 1,
+      query,
+      upsert
+    }));
+    const program = await buildProgram();
+    const { stdout } = await captureOutput(() =>
+      program.parseAsync(["node", "cli", "collections", "list", "--json"])
+    );
+    expect((JSON.parse(stdout.trim()) as Array<{ name: string }>).map((row) => row.name)).toEqual(["good"]);
   });
 
   it("surfaces a non-not-found error instead of hiding it (exit 1)", async () => {

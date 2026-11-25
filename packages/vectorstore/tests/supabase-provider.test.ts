@@ -533,6 +533,22 @@ describe("SupabaseProvider — record operations", () => {
     );
   });
 
+  it("query maps a partition to a metadata filter on the partition key", async () => {
+    fake.on((c) => c.table === "nodetool_vec_collections" && c.op === "insert", {
+      data: null,
+      error: null
+    });
+    fake.on((c) => c.rpc === "nodetool_vec_match", { data: [], error: null });
+    const col = await provider.createCollection({ name: "library", partitionKey: "project_id" });
+    expect(col.metadata).toMatchObject({ partition_key: "project_id" });
+    await col.query({ embedding: [1, 2, 3], partition: "p1", filter: { kind: "x" } });
+    const rpc = fake.find((c) => c.rpc === "nodetool_vec_match");
+    expect((rpc.args as { p_metadata_filter: unknown }).p_metadata_filter).toEqual({
+      kind: "x",
+      project_id: "p1"
+    });
+  });
+
   it("query rejects $or and rich operators loudly", async () => {
     fake.on((c) => c.rpc === "nodetool_vec_match", { data: [], error: null });
     const col = await provider.getCollection({ name: "docs" });

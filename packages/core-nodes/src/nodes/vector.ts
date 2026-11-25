@@ -8,6 +8,7 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 import {
   getDefaultVectorProvider,
+  isManagedCollection,
   OllamaEmbeddingFunction,
   type RecordMetadata,
   type VectorCollection,
@@ -16,7 +17,11 @@ import {
 } from "@nodetool-ai/vectorstore";
 
 async function getCollectionByName(name: string): Promise<VectorCollection> {
-  return getDefaultVectorProvider().getCollection({ name });
+  const collection = await getDefaultVectorProvider().getCollection({ name });
+  if (isManagedCollection(name, collection.metadata)) {
+    throw new Error(`Collection ${name} belongs to library search and cannot be used here.`);
+  }
+  return collection;
 }
 
 function flattenMetadata(obj: Record<string, unknown>): RecordMetadata {
@@ -131,6 +136,9 @@ export class CollectionNode extends BaseNode {
 
     if (!name.trim()) {
       throw new Error("Collection name cannot be empty");
+    }
+    if (isManagedCollection(name)) {
+      throw new Error(`Collection ${name} uses a name reserved for library search.`);
     }
 
     const provider = getDefaultVectorProvider();

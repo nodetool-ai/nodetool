@@ -358,6 +358,35 @@ s(
   ["true", "false"]
 );
 
+// Library search (docs/plans/library-search.md, D26 and D27). The group is
+// not "Search": that one holds the web-search providers.
+s(
+  "NODETOOL_SEARCH_SEMANTIC",
+  "Library Search",
+  "Search the library by meaning as well as by words. Needs an embedding model.",
+  ["on", "off"]
+);
+s(
+  "NODETOOL_SEARCH_EMBEDDING_PROVIDER",
+  "Library Search",
+  "Provider of the embedding model for library search, such as transformers_js for the local model or openai."
+);
+s(
+  "NODETOOL_SEARCH_EMBEDDING_MODEL",
+  "Library Search",
+  "Embedding model for library search, such as Xenova/all-MiniLM-L6-v2. Changing it rebuilds the index in the background."
+);
+s(
+  "NODETOOL_SEARCH_EXCLUDED_PROJECTS",
+  "Library Search",
+  "Comma-separated project ids whose text is never sent to an embedding model. Their items stay findable by words."
+);
+s(
+  "NODETOOL_SEARCH_DAILY_SPEND_LIMIT",
+  "Library Search",
+  "Most US dollars hosted embedding for library search may cost in one day. Empty means no limit."
+);
+
 // Search
 s(
   "SERP_PROVIDER",

@@ -585,6 +585,7 @@ describe("exportPersonalData", () => {
       "nodetool_generation_webhook_deliveries",
       "nodetool_search_chunks",
       "nodetool_search_items",
+      "nodetool_search_leases",
       "nodetool_team_tasks",
       "oauth_pending_entries",
       "project_blobs",

@@ -37,8 +37,29 @@ export const OWNER_METADATA_KEY = "owner_user_id";
  * so they are stripped from client input and re-applied from server state.
  */
 export const RESERVED_COLLECTION_METADATA_KEYS: readonly string[] = [
-  OWNER_METADATA_KEY
+  OWNER_METADATA_KEY,
+  "managed"
 ];
+
+/**
+ * Name prefix of the collections the library search indexer owns
+ * (docs/plans/library-search.md, D7). No authoring surface may create, read
+ * or delete them (D8).
+ */
+export const MANAGED_COLLECTION_PREFIX = "nodetool_library__";
+
+/** Metadata key marking a collection the system owns, with the owner as value. */
+export const MANAGED_METADATA_KEY = "managed";
+
+/** Whether a collection belongs to the system rather than to a person. */
+export function isManagedCollection(
+  name: string,
+  metadata?: ReadableMetadata
+): boolean {
+  if (name.startsWith(MANAGED_COLLECTION_PREFIX)) return true;
+  const managed = metadata?.[MANAGED_METADATA_KEY];
+  return managed !== undefined && managed !== null && managed !== false && managed !== "";
+}
 
 /** Longest accepted collection name. */
 export const MAX_COLLECTION_NAME_LENGTH = 128;
@@ -75,6 +96,8 @@ export function canAccessCollection(
   metadata: ReadableMetadata | undefined,
   userId: string
 ): boolean {
+  // A system collection is reachable only through its own service.
+  if (isManagedCollection("", metadata)) return false;
   const owner = collectionOwner(metadata);
   return owner === null || owner === userId;
 }
@@ -116,6 +139,9 @@ export function validateCollectionName(name: string): string | null {
   }
   if (name !== name.trim()) {
     return "Collection name must not start or end with whitespace";
+  }
+  if (name.startsWith(MANAGED_COLLECTION_PREFIX)) {
+    return `Collection names starting with ${MANAGED_COLLECTION_PREFIX} are reserved`;
   }
   if (name.includes("/") || name.includes("\\")) {
     return "Collection name must not contain path separators";

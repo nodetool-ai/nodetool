@@ -22,10 +22,15 @@ import { setPriority, constants as osConstants } from "node:os";
 import { createLogger, getDefaultDbPath, getPostgresDatabaseUrl } from "@nodetool-ai/config";
 import { initDb, initPostgresDb } from "@nodetool-ai/models";
 import {
+  IN_PROCESS_EMBEDDING_PROVIDERS,
   runLibraryIndexer,
+  setLibraryEmbedder,
   setLibraryIndexerWake,
-  wakeLibraryIndexer
+  setLibraryQueryEmbedder,
+  wakeLibraryIndexer,
+  type EmbeddingSpace
 } from "@nodetool-ai/search-services";
+import { embedWithProvider, providerLibraryEmbedder } from "./search-embedder.js";
 
 const log = createLogger("nodetool.search.indexer");
 
@@ -48,8 +53,65 @@ const RESTART_DELAYS_MS = [1_000, 5_000, 30_000, 120_000];
 /** A child that ran this long resets the restart backoff. */
 const HEALTHY_RUN_MS = 60_000;
 
+/** How long the server waits for the indexer to embed a query. The first call may load the model. */
+const QUERY_EMBED_TIMEOUT_MS = 20_000;
+
 export interface SearchIndexerSupervisor {
   stop(): void;
+  /** A query vector from the indexer process, or null when it is not running or too slow. */
+  embedQuery(text: string, space: EmbeddingSpace, userId: string): Promise<number[] | null>;
+}
+
+interface EmbedQueryMessage {
+  type: "embed-query";
+  id: number;
+  text: string;
+  space: EmbeddingSpace;
+  userId: string;
+}
+
+interface EmbeddedMessage {
+  type: "embedded";
+  id: number;
+  vector: number[] | null;
+  error?: string;
+}
+
+function isEmbedded(message: unknown): message is EmbeddedMessage {
+  return (
+    typeof message === "object" &&
+    message !== null &&
+    (message as { type?: unknown }).type === "embedded" &&
+    typeof (message as { id?: unknown }).id === "number"
+  );
+}
+
+function isEmbedQuery(message: unknown): message is EmbedQueryMessage {
+  if (typeof message !== "object" || message === null) return false;
+  const value = message as Partial<EmbedQueryMessage>;
+  return (
+    value.type === "embed-query" &&
+    typeof value.id === "number" &&
+    typeof value.text === "string" &&
+    typeof value.userId === "string" &&
+    typeof value.space?.provider === "string" &&
+    typeof value.space?.model === "string"
+  );
+}
+
+/**
+ * How this server embeds a search query (D13). A hosted model is called from
+ * here. A local model runs only in the indexer process, so the query goes
+ * there; without that process the search falls back to words.
+ */
+export function installLibraryQueryEmbedder(indexer: SearchIndexerSupervisor | null): void {
+  setLibraryQueryEmbedder(async (text, space, userId) => {
+    if (IN_PROCESS_EMBEDDING_PROVIDERS.has(space.provider)) {
+      return indexer ? indexer.embedQuery(text, space, userId) : null;
+    }
+    const [vector] = await embedWithProvider([text], space, userId);
+    return vector ?? null;
+  });
 }
 
 /**
@@ -62,6 +124,12 @@ export function superviseSearchIndexer(): SearchIndexerSupervisor {
   let stopped = false;
   let failures = 0;
   let restartTimer: NodeJS.Timeout | null = null;
+  let nextQueryId = 0;
+  const waiting = new Map<number, (vector: number[] | null) => void>();
+  const settleAll = (): void => {
+    for (const resolve of waiting.values()) resolve(null);
+    waiting.clear();
+  };
 
   const start = (): void => {
     if (stopped || !entry) return;
@@ -73,11 +141,17 @@ export function superviseSearchIndexer(): SearchIndexerSupervisor {
       stdio: ["ignore", "inherit", "inherit", "ipc"]
     });
     child = spawned;
+    spawned.on("message", (message: unknown) => {
+      if (!isEmbedded(message)) return;
+      if (message.error) log.debug("Library query not embedded", { error: message.error });
+      waiting.get(message.id)?.(Array.isArray(message.vector) ? message.vector : null);
+    });
     spawned.on("error", (error) => {
       log.warn("Library indexer process error", { error: error.message });
     });
     spawned.on("exit", (code, signal) => {
       if (child === spawned) child = null;
+      settleAll();
       if (stopped) return;
       failures = Date.now() - startedAt >= HEALTHY_RUN_MS ? 0 : failures + 1;
       const delay = RESTART_DELAYS_MS[Math.min(failures, RESTART_DELAYS_MS.length - 1)]!;
@@ -98,14 +172,51 @@ export function superviseSearchIndexer(): SearchIndexerSupervisor {
   start();
 
   return {
+    embedQuery(text, space, userId): Promise<number[] | null> {
+      const target = child;
+      if (!target?.connected) return Promise.resolve(null);
+      const id = (nextQueryId += 1);
+      return new Promise<number[] | null>((resolve) => {
+        const timer = setTimeout(() => finish(null), QUERY_EMBED_TIMEOUT_MS);
+        timer.unref?.();
+        const finish = (vector: number[] | null): void => {
+          clearTimeout(timer);
+          waiting.delete(id);
+          resolve(vector);
+        };
+        waiting.set(id, finish);
+        const message: EmbedQueryMessage = { type: "embed-query", id, text, space, userId };
+        target.send(message, (error) => {
+          if (error) finish(null);
+        });
+      });
+    },
     stop(): void {
       stopped = true;
+      settleAll();
       setLibraryIndexerWake(null);
       if (restartTimer) clearTimeout(restartTimer);
       child?.kill("SIGTERM");
       child = null;
     }
   };
+}
+
+/** Embed a query for the server and send the vector back. */
+async function answerQuery(message: EmbedQueryMessage): Promise<void> {
+  let reply: EmbeddedMessage;
+  try {
+    const [vector] = await embedWithProvider([message.text], message.space, message.userId);
+    reply = { type: "embedded", id: message.id, vector: vector ?? null };
+  } catch (error) {
+    reply = {
+      type: "embedded",
+      id: message.id,
+      vector: null,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+  process.send?.(reply);
 }
 
 /**
@@ -135,8 +246,14 @@ export async function runSearchIndexerProcess(): Promise<never> {
   // The server's exit closes the IPC channel. No orphan indexer outlives it.
   process.on("disconnect", stop);
 
+  // Local models load here, never in the server (D13).
+  setLibraryEmbedder(providerLibraryEmbedder);
   const running = runLibraryIndexer({ signal: controller.signal });
   process.on("message", (message: unknown) => {
+    if (isEmbedQuery(message)) {
+      void answerQuery(message);
+      return;
+    }
     if (message && typeof message === "object" && (message as { type?: unknown }).type === "wake") {
       // runLibraryIndexer installed its own wake handler; route the server's to it.
       wakeLibraryIndexer();

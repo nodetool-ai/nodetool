@@ -1,6 +1,6 @@
 /**
- * The indexer loop (D13, D14): reconcile, then claim pending items and
- * extract their content, one at a time. It runs in its own OS process in a
+ * The indexer loop (D13, D14): reconcile, claim pending items and extract
+ * their content one at a time, then embed chunks that lack a vector. It runs in its own OS process in a
  * server deployment (the `search-indexer` role) and in process for the CLI
  * and tests. The database is the queue, so any number of loops may run.
  */
@@ -9,6 +9,7 @@ import { hostname } from "node:os";
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import { extractContent } from "./content.js";
+import { runEmbedPass } from "./embed.js";
 import { claimPendingItems, completeItem, dropClaimedItem, failItem } from "./queue.js";
 import { reconcileLibraryIndex, setLibraryIndexerWake } from "./sync.js";
 
@@ -130,6 +131,19 @@ export async function runLibraryIndexer(options: LibraryIndexerOptions = {}): Pr
       if (pass.processed > 0) {
         log.debug("Library indexer pass", { ...pass });
         continue;
+      }
+      // Extraction first, so a saved file is searchable by words before it is embedded.
+      try {
+        const embedded = await runEmbedPass({ signal: options.signal, limit: 256, owner });
+        if (embedded.embedded > 0) {
+          log.debug("Library embed pass", { ...embedded });
+          continue;
+        }
+      } catch (error) {
+        // A provider error waits for the next poll instead of spinning.
+        log.warn("Library embedding failed", {
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
       if (pending.woken || options.signal?.aborted) continue;
       await new Promise<void>((resolve) => {

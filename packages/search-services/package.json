@@ -19,6 +19,7 @@
     "@nodetool-ai/document-processing": "*",
     "@nodetool-ai/models": "*",
     "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/vectorstore": "*",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {

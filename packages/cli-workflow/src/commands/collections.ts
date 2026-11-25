@@ -11,15 +11,30 @@ import { basename } from "node:path";
 import type { Command } from "commander";
 import {
   getDefaultVectorProvider,
+  isManagedCollection,
   splitDocument,
   CollectionNotFoundError,
-  type MetadataValue
+  type MetadataValue,
+  type VectorCollection
 } from "@nodetool-ai/vectorstore";
 import { Workflow } from "@nodetool-ai/models";
-
 import { asJson, printTable, printKv, confirm } from "@nodetool-ai/cli-common/commands/output";
 import { setupLocalDb } from "@nodetool-ai/cli-local/local-db";
 import { isNonEmptyString } from "@nodetool-ai/cli-common/predicates";
+
+/** Library search owns these collections (D8). */
+function rejectManaged(name: string, metadata?: VectorCollection["metadata"]): void {
+  if (isManagedCollection(name, metadata)) {
+    throw new Error(`Collection ${name} belongs to library search. Use \`nodetool search status\`.`);
+  }
+}
+
+async function userCollection(name: string): Promise<VectorCollection> {
+  rejectManaged(name);
+  const collection = await getDefaultVectorProvider().getCollection({ name });
+  rejectManaged(name, collection.metadata);
+  return collection;
+}
 
 function fail(e: unknown): never {
   if (e instanceof CollectionNotFoundError) {
@@ -66,6 +81,8 @@ export function registerCollectionCommands(program: Command): void {
           workflow: string;
         }[] = [];
         for (const info of infos) {
+          // Library search collections are inspected with `nodetool search status`.
+          if (isManagedCollection(info.name, info.metadata)) continue;
           try {
             const collection = await provider.getCollection({ name: info.name });
             const count = await collection.count();
@@ -103,9 +120,7 @@ export function registerCollectionCommands(program: Command): void {
     .action(async (name: string, opts: { json?: boolean }) => {
       try {
         await setupLocalDb();
-        const collection = await getDefaultVectorProvider().getCollection({
-          name
-        });
+        const collection = await userCollection(name);
         const count = await collection.count();
         const metadata = collection.metadata ?? {};
         if (opts.json) {
@@ -177,6 +192,7 @@ export function registerCollectionCommands(program: Command): void {
           process.exit(1);
         }
         await setupLocalDb();
+        rejectManaged(name);
         await getDefaultVectorProvider().deleteCollection(name);
         const message = `Collection ${name} deleted successfully`;
         if (opts.json) {
@@ -207,9 +223,7 @@ export function registerCollectionCommands(program: Command): void {
         }
         try {
           await setupLocalDb();
-          const collection = await getDefaultVectorProvider().getCollection({
-            name
-          });
+          const collection = await userCollection(name);
           const matches = await collection.query({
             text: text.join(" "),
             topK: nResults
@@ -242,9 +256,7 @@ export function registerCollectionCommands(program: Command): void {
     .action(async (name: string, files: string[], opts: { json?: boolean }) => {
       try {
         await setupLocalDb();
-        const collection = await getDefaultVectorProvider().getCollection({
-          name
-        });
+        const collection = await userCollection(name);
         const results: { file: string; chunks: number; error: string }[] = [];
         for (const file of files) {
           try {

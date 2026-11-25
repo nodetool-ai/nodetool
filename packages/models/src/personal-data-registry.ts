@@ -630,6 +630,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Passages of text from the person's assets and documents, kept for search. Deleted with the person's index items. Not exported, because the text is a copy of content the export already holds."
   },
   {
+    table: "nodetool_search_leases",
+    schemaExport: "searchLeases",
+    disposition: "not-personal",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "Cross-process leases of the library indexers, such as the hosted embedding budget. Each row names a lease and the indexer process holding it, never an account."
+  },
+  {
     table: "image_documents",
     schemaExport: "imageDocuments",
     disposition: "delete",
