@@ -10,6 +10,7 @@ import ProjectSection from "../../components/ProjectSection";
 import StudioHero from "../../components/StudioHero";
 import SpecStrip from "../../components/SpecStrip";
 import SurfaceShowcase from "../../components/SurfaceShowcase";
+import TimelineEditorDemo from "../../components/TimelineEditorDemo";
 import TimelineShowcase from "../../components/TimelineShowcase";
 import { EDITIONS } from "../../data/editions";
 import PageUpdated from "@/components/PageUpdated";
@@ -48,6 +49,9 @@ export default function StudioPage() {
 
       {/* Finished films whose editable timelines open in Studio */}
       <TimelineShowcase />
+
+      {/* The real timeline editor, read-only, loaded when the reader asks */}
+      <TimelineEditorDemo />
 
       <section
         id="ownership"
