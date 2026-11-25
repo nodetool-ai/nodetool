@@ -221,4 +221,122 @@ describe("syncRegistrations", () => {
     expect(secondConfig.webhook_token).toBe(firstConfig.webhook_token);
     expect(secondConfig.webhook_secret_hash).toBe(firstConfig.webhook_secret_hash);
   });
+
+  describe("ScheduleTrigger", () => {
+    const cronNode = (props: Record<string, unknown> = {}) =>
+      triggerNode("c1", "nodetool.triggers.ScheduleTrigger", props);
+
+    it("compiles to a schedule registration with the cron settings snapshotted", async () => {
+      const wf = await makeWorkflow([
+        cronNode({ cron_expr: "0 8 * * 1-5", cron_tz: "Europe/Berlin" })
+      ]);
+
+      const [row] = await syncRegistrations(wf, { enabled: true });
+
+      expect(row.kind).toBe("schedule");
+      expect(row.enabled).toBe(1);
+      expect(row.config_json).toMatchObject({
+        cron_expr: "0 8 * * 1-5",
+        cron_tz: "Europe/Berlin"
+      });
+    });
+
+    it("fills the defaults for a property the graph left unset", async () => {
+      const wf = await makeWorkflow([cronNode({})]);
+
+      const [row] = await syncRegistrations(wf, {});
+
+      expect(row.config_json).toEqual({
+        cron_expr: "0 8 * * 1-5",
+        cron_tz: "UTC"
+      });
+    });
+
+    it("does not arm an invalid expression, and says why in last_error", async () => {
+      const wf = await makeWorkflow([cronNode({ cron_expr: "0 8 * *" })]);
+
+      const [row] = await syncRegistrations(wf, { enabled: true });
+
+      expect(row.enabled).toBe(0);
+      expect(row.last_error).toContain("Schedule not armed");
+      expect(row.last_error).toContain("4 fields");
+    });
+
+    it("does not arm an unknown timezone", async () => {
+      const wf = await makeWorkflow([cronNode({ cron_tz: "Mars/Base" })]);
+
+      const [row] = await syncRegistrations(wf, { enabled: true });
+
+      expect(row.enabled).toBe(0);
+      expect(row.last_error).toContain("Mars/Base");
+    });
+
+    it("disarms an armed trigger when a save breaks its expression, and clears the error once fixed", async () => {
+      const wf = await makeWorkflow([cronNode({ cron_expr: "0 8 * * *" })]);
+      const [armed] = await syncRegistrations(wf, { enabled: true });
+      expect(armed.enabled).toBe(1);
+
+      wf.graph = { nodes: [cronNode({ cron_expr: "oops" })], edges: [] };
+      await wf.save();
+      const [broken] = await syncRegistrations(wf, {});
+      expect(broken.enabled).toBe(0);
+      expect(broken.last_error).toContain("Schedule not armed");
+
+      wf.graph = { nodes: [cronNode({ cron_expr: "0 9 * * *" })], edges: [] };
+      await wf.save();
+      const [fixed] = await syncRegistrations(wf, {});
+      expect(fixed.last_error).toBeNull();
+      // Fixing the schedule does not arm it. That stays the user's choice.
+      expect(fixed.enabled).toBe(0);
+    });
+
+    it("keeps a failure recorded by a run when the schedule is valid", async () => {
+      const wf = await makeWorkflow([cronNode({ cron_expr: "0 8 * * *" })]);
+      const [row] = await syncRegistrations(wf, { enabled: true });
+      row.last_error = "Run failed: boom";
+      await row.save();
+
+      const [again] = await syncRegistrations(wf, {});
+
+      expect(again.last_error).toBe("Run failed: boom");
+    });
+
+    it("starts the clock when the schedule is edited, so a slot that already passed is not owed", async () => {
+      const wf = await makeWorkflow([cronNode({ cron_expr: "0 8 * * *" })]);
+      const [initial] = await syncRegistrations(wf, { enabled: true });
+      expect(initial.cursor).toBeNull();
+
+      const before = Date.now();
+      wf.graph = { nodes: [cronNode({ cron_expr: "0 9 * * *" })], edges: [] };
+      await wf.save();
+      const [edited] = await syncRegistrations(wf, {});
+
+      expect(Date.parse(edited.cursor as string)).toBeGreaterThanOrEqual(before);
+      // A save that changes nothing leaves the anchor alone.
+      const anchor = edited.cursor;
+      const [again] = await syncRegistrations(wf, {});
+      expect(again.cursor).toBe(anchor);
+    });
+
+    it("starts the clock when a save switches the trigger on", async () => {
+      const wf = await makeWorkflow([cronNode({ cron_expr: "0 8 * * *" })]);
+      const [off] = await syncRegistrations(wf, {});
+      expect(off.enabled).toBe(0);
+      expect(off.cursor).toBeNull();
+
+      const [on] = await syncRegistrations(wf, { enabled: true });
+
+      expect(on.enabled).toBe(1);
+      expect(on.cursor).not.toBeNull();
+    });
+
+    it("leaves interval registrations without a cursor", async () => {
+      const wf = await makeWorkflow([
+        triggerNode("n1", "nodetool.triggers.IntervalTrigger", { interval_seconds: 60 })
+      ]);
+      await syncRegistrations(wf, {});
+      const [on] = await syncRegistrations(wf, { enabled: true });
+      expect(on.cursor).toBeNull();
+    });
+  });
 });

@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import type { StreamingOutputs, TriggerEvent } from "@nodetool-ai/node-sdk";
 import {
   IntervalTriggerNode,
+  ScheduleTriggerNode,
   WebhookTriggerNode,
   FileWatchTriggerNode,
   ManualTriggerNode,
@@ -43,8 +44,9 @@ function event(nodeId: string, payload: unknown): TriggerEvent {
 }
 
 describe("isTrigger flag", () => {
-  it("marks the four trigger nodes, not Wait", () => {
+  it("marks the five trigger nodes, not Wait", () => {
     expect(IntervalTriggerNode.isTrigger).toBe(true);
+    expect(ScheduleTriggerNode.isTrigger).toBe(true);
     expect(WebhookTriggerNode.isTrigger).toBe(true);
     expect(FileWatchTriggerNode.isTrigger).toBe(true);
     expect(ManualTriggerNode.isTrigger).toBe(true);
@@ -139,6 +141,32 @@ describe("IntervalTriggerNode.emitTriggerEvent", () => {
   });
 });
 
+describe("ScheduleTriggerNode.emitTriggerEvent", () => {
+  it("emits the slot the scheduler fired for and the delivery time", async () => {
+    const node = new ScheduleTriggerNode({});
+    const { outputs, emitted } = collectOutputs();
+    await node.emitTriggerEvent(
+      event("sc", {
+        scheduled_at: "2026-07-27T06:00:00.000Z",
+        timestamp: "2026-07-27T06:00:03.000Z"
+      }),
+      outputs
+    );
+    expect(emitted.get("scheduled_at")).toBe("2026-07-27T06:00:00.000Z");
+    expect(emitted.get("timestamp")).toBe("2026-07-27T06:00:03.000Z");
+    expect(emitted.get("source")).toBe("cron");
+    expect(emitted.get("event_type")).toBe("tick");
+  });
+
+  it("falls back to the current time for an empty payload", async () => {
+    const node = new ScheduleTriggerNode({});
+    const { outputs, emitted } = collectOutputs();
+    await node.emitTriggerEvent(event("sc", {}), outputs);
+    expect(typeof emitted.get("scheduled_at")).toBe("string");
+    expect(typeof emitted.get("timestamp")).toBe("string");
+  });
+});
+
 describe("FileWatchTriggerNode.emitTriggerEvent", () => {
   it("maps event/path/dest_path/is_directory onto the declared slots", async () => {
     const node = new FileWatchTriggerNode({});
@@ -201,6 +229,11 @@ describe("emitTriggerEvent emits only declared output slots", () => {
       cls: IntervalTriggerNode,
       make: () => new IntervalTriggerNode({}),
       payload: { tick: 1, bogus_slot: true }
+    },
+    {
+      cls: ScheduleTriggerNode,
+      make: () => new ScheduleTriggerNode({}),
+      payload: { scheduled_at: "2026-07-27T06:00:00.000Z", bogus_slot: true }
     },
     {
       cls: FileWatchTriggerNode,

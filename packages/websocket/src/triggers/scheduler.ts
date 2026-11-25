@@ -1,7 +1,7 @@
 /**
  * Scheduler adapter — the host-owned ingestion adapter for `schedule`
- * registrations (compiled from `IntervalTriggerNode`s, see
- * `registration-sync.ts`).
+ * registrations (compiled from `IntervalTriggerNode`s and
+ * `ScheduleTriggerNode`s, see `registration-sync.ts`).
  *
  * One coarse sweep timer (not one `setTimeout` per registration) re-reads
  * enabled `schedule` registrations every tick and delivers a synthesized
@@ -21,7 +21,11 @@
 import { createLogger } from "@nodetool-ai/config";
 import { TriggerRegistration } from "@nodetool-ai/models";
 import type { TriggerWakeupService } from "@nodetool-ai/kernel";
-import { computeScheduleTiming, SCHEDULE_KIND } from "./schedule-timing.js";
+import {
+  computeScheduleTiming,
+  SCHEDULE_KIND,
+  type ScheduleTiming
+} from "./schedule-timing.js";
 import { isFunctionValue } from "../lib/wire-values.js";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
@@ -48,24 +52,38 @@ interface StartSchedulerOptions {
 /** Cancels a running `startScheduler` timer. */
 export type SchedulerHandle = () => void;
 
-function synthesizeTickPayload(
-  dueTickIndex: number,
-  intervalSeconds: number,
-  nowMs: number
-) {
+function synthesizeTickPayload(due: DueTick, nowMs: number) {
+  const timestamp = new Date(nowMs).toISOString();
+  if (due.timing.mode === "cron") {
+    return {
+      scheduled_at: new Date(due.dueAt).toISOString(),
+      timestamp,
+      source: "schedule",
+      event_type: "tick"
+    };
+  }
   return {
-    tick: dueTickIndex,
-    interval_seconds: intervalSeconds,
-    timestamp: new Date(nowMs).toISOString(),
+    tick: Math.floor(due.dueAt / due.timing.intervalMs),
+    interval_seconds: due.timing.intervalSeconds,
+    timestamp,
     source: "schedule",
     event_type: "tick"
   };
 }
 
+/**
+ * The idempotency key for one due slot. An interval slot is its tick index. A
+ * cron slot is its instant, which no other slot of the registration shares.
+ */
+function dueInputId(registration: TriggerRegistration, due: DueTick): string {
+  return due.timing.mode === "cron"
+    ? `${registration.id}:cron:${due.dueAt}`
+    : `${registration.id}:${Math.floor(due.dueAt / due.timing.intervalMs)}`;
+}
+
 interface DueTick {
   dueAt: number;
-  dueTickIndex: number;
-  intervalSeconds: number;
+  timing: ScheduleTiming;
 }
 
 /**
@@ -80,15 +98,8 @@ function computeDueTick(
 ): DueTick | null {
   const timing = computeScheduleTiming(registration);
   if (!timing) return null;
-
-  const { nextFireAtMs: dueAt, intervalMs, intervalSeconds } = timing;
-  if (nowMs < dueAt) return null;
-
-  return {
-    dueAt,
-    dueTickIndex: Math.floor(dueAt / intervalMs),
-    intervalSeconds
-  };
+  if (nowMs < timing.nextFireAtMs) return null;
+  return { dueAt: timing.nextFireAtMs, timing };
 }
 
 async function fireRegistration(
@@ -98,12 +109,8 @@ async function fireRegistration(
   nowMs: number,
   notify?: (event: SchedulerNotifyEvent) => void
 ): Promise<void> {
-  const inputId = `${registration.id}:${due.dueTickIndex}`;
-  const payload = synthesizeTickPayload(
-    due.dueTickIndex,
-    due.intervalSeconds,
-    nowMs
-  );
+  const inputId = dueInputId(registration, due);
+  const payload = synthesizeTickPayload(due, nowMs);
 
   try {
     await wakeupService.deliverTriggerInput({

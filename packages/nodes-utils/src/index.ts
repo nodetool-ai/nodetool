@@ -16,6 +16,8 @@
  *     browser bundle alike.
  *   - `save-target.ts` — the `save_to_workspace` toggle and the numbered
  *     filenames every `Save*File` node shares.
+ *   - `cron-schedule.ts` — cron expression validation and next-fire time in an
+ *     IANA timezone, shared by the Schedule Trigger node and the scheduler.
  */
 
 export {
@@ -77,3 +79,12 @@ export {
   projectDocumentRef
 } from "./project-document.js";
 export type { ProjectDocumentContext } from "./project-document.js";
+
+export {
+  DEFAULT_CRON_EXPR,
+  DEFAULT_CRON_TZ,
+  cronExprError,
+  cronScheduleError,
+  cronTimezoneError,
+  nextCronFireMs
+} from "./cron-schedule.js";

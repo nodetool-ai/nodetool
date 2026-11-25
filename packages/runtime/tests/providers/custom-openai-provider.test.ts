@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import type OpenAI from "openai";
 import { CustomOpenAIProvider } from "../../src/providers/custom-openai-provider.js";
 import {
   syncCustomProviders,
@@ -352,6 +353,168 @@ describe("CustomOpenAIProvider", () => {
       "seedream-4"
     ]);
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("narrows picker options to a declared media profile", async () => {
+    const fetchFn = mockChatFetch(
+      chatJsonResponse({
+        data: [
+          {
+            id: "square-painter",
+            capability: "text_to_image",
+            sizes: ["768x768"]
+          },
+          {
+            id: "clip-maker",
+            capability: "text_to_video",
+            sizes: ["1280x720", "720x1280"],
+            durations: [5, 10]
+          },
+          { id: "plain-painter", type: "image" }
+        ]
+      })
+    );
+    const provider = new CustomOpenAIProvider(CONFIG, { fetchFn });
+
+    expect(await provider.getAvailableImageModels()).toEqual([
+      {
+        id: "square-painter",
+        name: "square-painter",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_image"],
+        aspectRatios: ["1:1"]
+      },
+      {
+        id: "plain-painter",
+        name: "plain-painter",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      }
+    ]);
+    expect(await provider.getAvailableVideoModels()).toEqual([
+      {
+        id: "clip-maker",
+        name: "clip-maker",
+        provider: "custom_myproxy",
+        supportedTasks: ["text_to_video"],
+        aspectRatios: ["16:9", "9:16"],
+        resolutions: ["720p"],
+        durations: [5, 10]
+      }
+    ]);
+  });
+
+  it("refuses an undeclared image size before calling the endpoint", async () => {
+    const fetchFn = mockChatFetch(
+      chatJsonResponse({
+        data: [
+          { id: "square-painter", capability: "text_to_image", sizes: ["768x768"] }
+        ]
+      })
+    );
+    const generate = vi.fn(async () => ({
+      data: [{ b64_json: Buffer.from([1, 2, 3]).toString("base64") }]
+    }));
+    const client = { images: { generate } } as unknown as OpenAI;
+    const provider = new CustomOpenAIProvider(CONFIG, { fetchFn, client });
+    const model = { id: "square-painter", name: "", provider: "custom_myproxy" };
+
+    await expect(
+      provider.textToImage({ model, prompt: "a fox", width: 1024, height: 1024 })
+    ).rejects.toThrow(
+      'Model "square-painter" does not accept size 1024x1024. The endpoint lists: 768x768.'
+    );
+    expect(generate).not.toHaveBeenCalled();
+
+    await provider.textToImage({ model, prompt: "a fox", width: 768, height: 768 });
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(generate.mock.calls[0]?.[0]).toMatchObject({ size: "768x768" });
+  });
+
+  it("refuses more edit images than the model declares", async () => {
+    const fetchFn = mockChatFetch(
+      chatJsonResponse({
+        data: [
+          { id: "one-ref-edit", capability: "image_to_image", max_input_images: 1 }
+        ]
+      })
+    );
+    const edit = vi.fn();
+    const client = { images: { edit } } as unknown as OpenAI;
+    const provider = new CustomOpenAIProvider(CONFIG, { fetchFn, client });
+    const model = { id: "one-ref-edit", name: "", provider: "custom_myproxy" };
+    const png = new Uint8Array([1, 2, 3]);
+
+    await expect(
+      provider.imageToImage([png, png], { model, prompt: "merge" })
+    ).rejects.toThrow('Model "one-ref-edit" accepts at most 1 input image, got 2.');
+    expect(edit).not.toHaveBeenCalled();
+  });
+
+  it("sends the declared video size and duration instead of snapping", async () => {
+    const fetchFn = mockChatFetch(
+      chatJsonResponse({
+        data: [
+          {
+            id: "clip-maker",
+            capability: "text_to_video",
+            sizes: ["960x540"],
+            durations: [5, 10]
+          }
+        ]
+      })
+    );
+    const create = vi.fn(async () => ({ id: "vid_1", status: "completed" }));
+    const downloadContent = vi.fn(
+      async () => new Response(new Uint8Array([1, 2, 3]))
+    );
+    const client = {
+      videos: { create, retrieve: vi.fn(), downloadContent }
+    } as unknown as OpenAI;
+    const provider = new CustomOpenAIProvider(CONFIG, { fetchFn, client });
+    const model = { id: "clip-maker", name: "", provider: "custom_myproxy" };
+
+    await expect(
+      provider.textToVideo({ model, prompt: "waves", durationSeconds: 8 })
+    ).rejects.toThrow(/does not accept a 8s duration/);
+    expect(create).not.toHaveBeenCalled();
+
+    await provider.textToVideo({
+      model,
+      prompt: "waves",
+      aspectRatio: "16:9",
+      resolution: "540p",
+      durationSeconds: 5
+    });
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      size: "960x540",
+      seconds: "5"
+    });
+  });
+
+  it("keeps the OpenAI video defaults for a model with no profile", async () => {
+    const fetchFn = mockChatFetch(
+      chatJsonResponse({ data: [{ id: "plain-clip", type: "video" }] })
+    );
+    const create = vi.fn(async () => ({ id: "vid_1", status: "completed" }));
+    const client = {
+      videos: {
+        create,
+        retrieve: vi.fn(),
+        downloadContent: vi.fn(async () => new Response(new Uint8Array([1])))
+      }
+    } as unknown as OpenAI;
+    const provider = new CustomOpenAIProvider(CONFIG, { fetchFn, client });
+
+    await provider.textToVideo({
+      model: { id: "plain-clip", name: "", provider: "custom_myproxy" },
+      prompt: "waves",
+      durationSeconds: 6
+    });
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      size: "1280x720",
+      seconds: "4"
+    });
   });
 
   it("sends the requested image size instead of snapping to OpenAI's sizes", () => {

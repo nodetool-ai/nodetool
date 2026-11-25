@@ -3,7 +3,7 @@ layout: page
 title: "nodetool Nodes"
 ---
 
-This namespace contains 382 node(s).
+This namespace contains 383 node(s).
 
 ## Sub-namespaces
 
@@ -32,7 +32,7 @@ This namespace contains 382 node(s).
 - **[test](test/)** - 22 node(s)
 - **[text](text/)** - 51 node(s)
 - **[timeline](timeline/)** - 5 node(s)
-- **[triggers](triggers/)** - 5 node(s)
+- **[triggers](triggers/)** - 6 node(s)
 - **[variable](variable/)** - 2 node(s)
 - **[video](video/)** - 37 node(s)
 - **[workflows](workflows/)** - 4 node(s)

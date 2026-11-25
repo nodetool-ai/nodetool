@@ -13,6 +13,14 @@
  * what makes the scheduler's `input_id` reproducible across a crash between
  * delivering an input and persisting the new `last_fired_at`.
  *
+ * A registration compiled from a Schedule Trigger node carries `cron_expr`
+ * and `cron_tz` instead of `interval_seconds`. Its fire time is the next
+ * calendar match after an anchor: the last of `created_at`, `cursor` (stamped
+ * when the trigger is armed or its schedule edited, so arming at 15:00 does
+ * not fire for a slot that passed on Tuesday) and `last_fired_at`. After
+ * downtime the first missed slot is due, and fires once. Its `last_fired_at`
+ * then moves the anchor past every other missed slot, so there is no burst.
+ *
  * `include_drift_compensation` is deliberately not read here: it is an
  * in-process concern of `IntervalTriggerNode`'s own loop. The host schedules
  * from the last fire, so a slow sweep shifts the next tick rather than
@@ -20,13 +28,22 @@
  */
 
 import type { TriggerRegistration } from "@nodetool-ai/models";
+import { DEFAULT_CRON_TZ, nextCronFireMs } from "@nodetool-ai/nodes-utils";
 
 /** The registration kind whose `last_fired_at` doubles as the sweep cursor. */
 export const SCHEDULE_KIND = "schedule";
 
 export const DEFAULT_INTERVAL_SECONDS = 60;
 
-interface ScheduleTiming {
+/** The cron expression and timezone of a Schedule Trigger registration. */
+interface CronSettings {
+  expr: string;
+  timezone: string;
+}
+
+/** A fixed-interval registration, from an Interval Trigger node. */
+interface IntervalScheduleTiming {
+  mode: "interval";
   /** `interval_seconds` from config, or the 60s default. */
   intervalSeconds: number;
   /** The same interval in milliseconds, floored at 1ms. */
@@ -34,6 +51,16 @@ interface ScheduleTiming {
   /** Epoch ms of the next instant this registration is due to fire. */
   nextFireAtMs: number;
 }
+
+/** A calendar registration, from a Schedule Trigger node. */
+interface CronScheduleTiming {
+  mode: "cron";
+  cron: CronSettings;
+  /** Epoch ms of the next instant this registration is due to fire. */
+  nextFireAtMs: number;
+}
+
+export type ScheduleTiming = IntervalScheduleTiming | CronScheduleTiming;
 
 function readNumber(
   config: Record<string, unknown> | null,
@@ -56,6 +83,63 @@ function readBool(
 }
 
 /**
+ * The cron settings of a schedule registration, or `null` for an interval
+ * one. The `cron_expr` key marks a registration as cron. Registration sync
+ * writes both keys, filling defaults for a property the graph left unset.
+ */
+export function scheduleCronSettings(
+  registration: TriggerRegistration
+): CronSettings | null {
+  if (registration.kind !== SCHEDULE_KIND) return null;
+  const config = registration.config_json;
+  if (!config || typeof config.cron_expr !== "string") return null;
+  return {
+    expr: config.cron_expr,
+    timezone:
+      typeof config.cron_tz === "string" ? config.cron_tz : DEFAULT_CRON_TZ
+  };
+}
+
+/**
+ * Start a cron registration's clock at `nowMs`. Called when it is armed and
+ * when its schedule is edited, so slots that passed while it was off or under
+ * the old expression are not fired. Does nothing for an interval registration,
+ * which measures from `created_at` and `last_fired_at`.
+ */
+export function anchorCronSchedule(
+  registration: TriggerRegistration,
+  nowMs: number
+): void {
+  if (scheduleCronSettings(registration)) {
+    registration.cursor = new Date(nowMs).toISOString();
+  }
+}
+
+function parseMs(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function computeCronTiming(
+  registration: TriggerRegistration,
+  cron: CronSettings
+): CronScheduleTiming | null {
+  const anchors = [
+    parseMs(registration.created_at),
+    parseMs(registration.cursor),
+    parseMs(registration.last_fired_at)
+  ].filter((ms): ms is number => ms !== null);
+  if (anchors.length === 0) return null;
+  const nextFireAtMs = nextCronFireMs(
+    cron.expr,
+    cron.timezone,
+    Math.max(...anchors)
+  );
+  return nextFireAtMs === null ? null : { mode: "cron", cron, nextFireAtMs };
+}
+
+/**
  * The next due instant for a `schedule` registration, honoring
  * `interval_seconds` (default 60), `initial_delay_seconds` (default 0), and
  * `emit_on_start` (default true) from `config_json`.
@@ -66,6 +150,9 @@ function readBool(
 export function computeScheduleTiming(
   registration: TriggerRegistration
 ): ScheduleTiming | null {
+  const cron = scheduleCronSettings(registration);
+  if (cron) return computeCronTiming(registration, cron);
+
   const config = registration.config_json;
   const intervalSeconds = readNumber(
     config,
@@ -78,6 +165,7 @@ export function computeScheduleTiming(
     const lastFiredMs = Date.parse(registration.last_fired_at);
     if (Number.isFinite(lastFiredMs)) {
       return {
+        mode: "interval",
         intervalSeconds,
         intervalMs,
         nextFireAtMs: lastFiredMs + intervalMs
@@ -92,6 +180,7 @@ export function computeScheduleTiming(
   const emitOnStart = readBool(config, "emit_on_start", true);
 
   return {
+    mode: "interval",
     intervalSeconds,
     intervalMs,
     nextFireAtMs:
@@ -113,11 +202,15 @@ export function nextFireAtIso(registration: TriggerRegistration): string | null 
   return new Date(timing.nextFireAtMs).toISOString();
 }
 
-/** `interval_seconds` for a schedule registration, `null` for other kinds. */
+/**
+ * `interval_seconds` for an interval registration, `null` for other kinds and
+ * for a cron registration, which has no fixed interval.
+ */
 export function scheduleIntervalSeconds(
   registration: TriggerRegistration
 ): number | null {
   if (registration.kind !== SCHEDULE_KIND) return null;
+  if (scheduleCronSettings(registration)) return null;
   return readNumber(
     registration.config_json,
     "interval_seconds",

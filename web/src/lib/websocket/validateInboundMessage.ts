@@ -25,13 +25,17 @@ import { isObjectLike, isString } from "../../utils/typePredicates";
 export const VALIDATE_INBOUND_MESSAGES: boolean =
   process.env.NODE_ENV !== "production";
 
-const schemasByType = {
+interface InboundSchema {
+  safeParse: (value: unknown) => {
+    success: boolean;
+    error?: { issues: unknown };
+  };
+}
+
+const schemasByType: Record<string, InboundSchema> = {
   ...processingMessageSchemas,
   ...outboundControlMessageSchemas
-} as Record<
-  string,
-  { safeParse: (value: unknown) => { success: boolean; error?: { issues: unknown } } }
->;
+};
 
 /**
  * Validate one inbound (already msgpack-decoded) message against the shared
@@ -49,7 +53,7 @@ export function validateInboundMessage(message: unknown): void {
     return;
   }
 
-  const type = (message as { type?: unknown }).type;
+  const type = message.type;
   if (!isString(type)) {
     return;
   }

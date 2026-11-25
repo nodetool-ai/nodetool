@@ -33,6 +33,12 @@ npm install @nodetool-ai/nodes-utils
 | `resolveSaveFolder` | function | Pick the workspace folder or the node's own `folder` property |
 | `uniqueFilePath` | function | `name.ext` → `name_1.ext`, `name_2.ext`, … past what is already there |
 | `folderPathOf` | function | Read a folder property (path, `file://` URI or folder ref) |
+| `cronScheduleError` | function | Why a cron expression and IANA timezone cannot schedule, or `null` |
+| `cronExprError` | function | Same check for the 5-field expression alone |
+| `cronTimezoneError` | function | Same check for the timezone alone |
+| `nextCronFireMs` | function | Epoch ms of the first fire after an instant, with DST-correct calendar rules |
+| `DEFAULT_CRON_EXPR` | const | `0 8 * * 1-5`, the Schedule Trigger default |
+| `DEFAULT_CRON_TZ` | const | `UTC`, the Schedule Trigger default timezone |
 | `SAVE_TO_WORKSPACE_TITLE` | const | Title every save node shows on the workspace toggle |
 | `SAVE_TO_WORKSPACE_DESCRIPTION` | const | Description every save node shows on the workspace toggle |
 | `VISIBLE_WHEN_NOT_SAVING_TO_WORKSPACE` | const | `json_schema_extra` (`visible_when`) that shows the folder field only while the toggle is off |

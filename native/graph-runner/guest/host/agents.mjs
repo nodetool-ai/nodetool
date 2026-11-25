@@ -18,6 +18,11 @@ import { capabilityRunForTools } from '../../../../packages/agents/src/capabilit
 // The native host has no ambient server toolbelt. Context-injected tools are
 // mounted by the sandbox adapter and are the run's complete capability grant.
 export function assembleSandboxToolbelt() { return []; }
+// The native host reaches no external MCP servers: it cannot start a stdio
+// server or hold the user's MCP pool. A Code node body that names an MCP tool
+// runs with the context-injected tools only.
+export function mcpToolsMentioned() { return false; }
+export async function workflowExternalMcp() { return null; }
 class InjectedCapabilityTool extends RealTool {
   constructor(tool){super();this.tool=tool;}
   get name(){return this.tool.name;}

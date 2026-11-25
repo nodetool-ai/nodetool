@@ -68,6 +68,28 @@ intervalTrigger.stream = function (inputs: IntervalTriggerInputs): AsyncIterable
   return streamNode<Partial<IntervalTriggerOutputs>>("nodetool.triggers.IntervalTrigger", inputs);
 };
 
+// Schedule Trigger — nodetool.triggers.ScheduleTrigger
+export type ScheduleTriggerInputs = {
+  max_events?: number;
+  cron_expr?: string;
+  cron_tz?: string;
+};
+
+export interface ScheduleTriggerOutputs {
+  scheduled_at: string;
+  timestamp: string;
+  source: string;
+  event_type: string;
+}
+
+export function scheduleTrigger(inputs: ScheduleTriggerInputs): Promise<ScheduleTriggerOutputs> {
+  return callNode<ScheduleTriggerOutputs>("nodetool.triggers.ScheduleTrigger", inputs);
+}
+
+scheduleTrigger.stream = function (inputs: ScheduleTriggerInputs): AsyncIterable<Partial<ScheduleTriggerOutputs>> {
+  return streamNode<Partial<ScheduleTriggerOutputs>>("nodetool.triggers.ScheduleTrigger", inputs);
+};
+
 // Webhook Trigger — nodetool.triggers.WebhookTrigger
 export type WebhookTriggerInputs = {
 };

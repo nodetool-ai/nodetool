@@ -13,6 +13,7 @@ import {
 } from "../../triggers/dispatcher.js";
 import {
   nextFireAtIso,
+  scheduleCronSettings,
   scheduleIntervalSeconds
 } from "../../triggers/schedule-timing.js";
 
@@ -39,6 +40,8 @@ const editorRegistrationOutput = z.object({
   max_runs: z.number().nullable(),
   next_fire_at: z.string().nullable(),
   interval_seconds: z.number().nullable(),
+  cron_expr: z.string().nullable(),
+  cron_tz: z.string().nullable(),
   webhook_token: z.string().nullable(),
   webhook_secret: z.string().nullable()
 });
@@ -58,14 +61,16 @@ const fireOutput = z.object({ job_id: z.string() });
  * `config_json` is not returned wholesale: only the webhook token and secret
  * are surfaced, and the stored digest is never sent.
  *
- * `next_fire_at` and `interval_seconds` are derived, not stored: both come
- * from `schedule-timing.ts`, the same helper the scheduler sweep schedules
- * from. They are non-null only for a `schedule` registration, and
- * `next_fire_at` additionally only while it is enabled — a disabled schedule
- * has no next fire.
+ * `next_fire_at`, `interval_seconds`, `cron_expr` and `cron_tz` are derived,
+ * not stored: all come from `schedule-timing.ts`, the same helper the
+ * scheduler sweep schedules from. They are non-null only for a `schedule`
+ * registration, `interval_seconds` only for an interval one, and the cron pair
+ * only for a cron one. `next_fire_at` is also null while it is disabled, since
+ * a disabled schedule has no next fire.
  */
 function toEditorRegistration(reg: TriggerRegistration) {
   const config = reg.config_json ?? {};
+  const cron = scheduleCronSettings(reg);
   const isWebhook = reg.kind === "webhook";
   return {
     id: reg.id,
@@ -82,6 +87,8 @@ function toEditorRegistration(reg: TriggerRegistration) {
     max_runs: reg.max_runs ?? null,
     next_fire_at: nextFireAtIso(reg),
     interval_seconds: scheduleIntervalSeconds(reg),
+    cron_expr: cron?.expr ?? null,
+    cron_tz: cron?.timezone ?? null,
     webhook_token: isWebhook
       ? ((config.webhook_token as string | undefined) ?? null)
       : null,

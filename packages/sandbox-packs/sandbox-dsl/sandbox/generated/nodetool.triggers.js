@@ -9,6 +9,9 @@ function manualTrigger(inputs, options) {
 function intervalTrigger(inputs, options) {
   return createNode("nodetool.triggers.IntervalTrigger", inputs, { id: options?.id, outputNames: ["tick", "elapsed_seconds", "interval_seconds", "timestamp", "source", "event_type"], outputTypes: { "tick": "int", "elapsed_seconds": "float", "interval_seconds": "float", "timestamp": "str", "source": "str", "event_type": "str" }, streaming: true });
 }
+function scheduleTrigger(inputs, options) {
+  return createNode("nodetool.triggers.ScheduleTrigger", inputs, { id: options?.id, outputNames: ["scheduled_at", "timestamp", "source", "event_type"], outputTypes: { "scheduled_at": "str", "timestamp": "str", "source": "str", "event_type": "str" }, streaming: true });
+}
 function webhookTrigger(inputs, options) {
   return createNode("nodetool.triggers.WebhookTrigger", inputs ?? {}, { id: options?.id, outputNames: ["body", "headers", "query", "method", "path", "timestamp", "source", "event_type"], outputTypes: { "body": "any", "headers": "dict[str, any]", "query": "dict[str, any]", "method": "str", "path": "str", "timestamp": "str", "source": "str", "event_type": "str" } });
 }
@@ -19,6 +22,7 @@ export {
   fileWatchTrigger,
   intervalTrigger,
   manualTrigger,
+  scheduleTrigger,
   wait,
   webhookTrigger
 };
