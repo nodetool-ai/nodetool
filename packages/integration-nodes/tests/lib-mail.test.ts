@@ -32,6 +32,8 @@ import { TRIGGER_KIND_BY_NODE_TYPE } from "@nodetool-ai/protocol";
 
 interface StoredMessage {
   uid: number;
+  /** When the server received it. The Date header (`date`) is the sender's claim. */
+  internalDate?: Date;
   messageId: string;
   subject: string;
   from: string;
@@ -194,6 +196,7 @@ vi.mock("imapflow", () => {
             date: m.date,
             messageId: m.messageId
           },
+          internalDate: m.internalDate ?? m.date,
           source: Buffer.from(m.source)
         };
       }
@@ -526,8 +529,9 @@ describe("lib.mail.GmailSearch", () => {
       subject: "Invoice",
       body: "total",
       text: "anywhere",
-      keyword: "Receipts"
+      labels: { has: ["Receipts"] }
     });
+    expect(query).not.toHaveProperty("keyword");
     expect((query as { since: Date }).since).toBeInstanceOf(Date);
     expect(options).toEqual({ uid: true });
     expect(callsNamed("lock")[0][1]).toBe("[Gmail]/Sent Mail");
@@ -656,6 +660,57 @@ describe("lib.mail.GmailSearch", () => {
     imap.messages = [message(1, { date: sent })];
     const result = await searchNode().process();
     expect(result.date).toBe(sent.toISOString());
+  });
+
+  it("searches several Gmail labels at once, trimming each", async () => {
+    imap.messages = [message(1)];
+    await searchNode({ keywords: " Receipts , Travel ,, " }).process();
+    const [, query] = callsNamed("search")[0];
+    expect((query as { labels: unknown }).labels).toEqual({
+      has: ["Receipts", "Travel"]
+    });
+  });
+
+  it("sends no label filter for a blank keywords field", async () => {
+    imap.messages = [message(1)];
+    await searchNode({ keywords: "  ,  " }).process();
+    const [, query] = callsNamed("search")[0];
+    expect(query).not.toHaveProperty("labels");
+  });
+
+  it("filters by arrival time, so a stale Date header cannot hide recent mail", async () => {
+    // UID 101 arrived a minute ago with a Date header from three days ago, as
+    // mail that sat in a queue does. With max_results 1 the newest match is
+    // 101, and judging it by its header would return nothing at all.
+    imap.messages = [
+      message(100, { date: new Date(Date.now() - 2 * 60_000) }),
+      message(101, {
+        date: new Date(Date.now() - 3 * 24 * HOUR),
+        internalDate: new Date(Date.now() - 60_000)
+      })
+    ];
+    const result = await searchNode({
+      date_filter: "SINCE_ONE_HOUR",
+      max_results: 1
+    }).process();
+    expect(result.message_ids).toEqual(["<m101@example.com>"]);
+  });
+
+  it("drops mail that arrived before the window even when its Date header is recent", async () => {
+    imap.messages = [
+      message(1, {
+        date: new Date(Date.now() - 60_000),
+        internalDate: new Date(Date.now() - 3 * HOUR)
+      })
+    ];
+    const result = await searchNode({ date_filter: "SINCE_ONE_HOUR" }).process();
+    expect(result.message_ids).toEqual([]);
+  });
+
+  it("asks the server for each message's arrival time", async () => {
+    imap.messages = [message(1)];
+    await searchNode().process();
+    expect(callsNamed("fetch")[0][2]).toMatchObject({ internalDate: true });
   });
 
   it("returns empty outputs when nothing matches", async () => {

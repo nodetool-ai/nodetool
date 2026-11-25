@@ -53,7 +53,7 @@ An install with no login cannot connect Google Workspace. A workflow there can s
 2. Open **Settings → Models & providers**, find **Google Mail**, and enter your address and the app password.
 3. Add a **Gmail Search**, **Add Label**, **Move To Archive**, **Send Email** or **Email Trigger** node to a workflow.
 
-Gmail Search takes plain filters (sender, recipient, subject, body, keywords and a date range) and returns the newest matches first. It does not understand Gmail search terms such as `from:alice is:unread`. Add Label and Move To Archive act on the `message_id` that Gmail Search returns.
+Gmail Search takes plain filters (sender, recipient, subject, body, Gmail labels and a date range) and returns the newest matches first. The date range counts from when a message arrived, not from its `Date` header. Put several labels in the Keywords field separated by commas and a message must carry all of them. It does not understand Gmail search terms such as `from:alice is:unread`. Add Label and Move To Archive act on the `message_id` that Gmail Search returns.
 
 Send Email sends through `smtp.gmail.com` with the same app password. It takes `to`, `cc` and `bcc` as plain addresses separated by commas, a subject, a text body and an optional HTML body, and returns the `message_id`. It refuses a subject or address that contains a line break. It does not send attachments.
 
