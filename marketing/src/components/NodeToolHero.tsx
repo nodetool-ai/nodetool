@@ -40,31 +40,29 @@ export default function NodeToolHero() {
   return (
     <div className="relative w-full text-slate-200">
       <div className="hero-rise mx-auto flex max-w-4xl flex-col items-center text-center">
-        {/* The category line stays visible above the headline
-            (NARRATIVE.md § Positioning line). */}
+        {/* The three homepage pillars sit above the headline
+            (NARRATIVE.md § Positioning line). The h1 carries "open source". */}
         <p className="inline-flex max-w-full items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-blue-300 sm:text-[11px] sm:tracking-[0.18em]">
-          Open-source AI film studio
-          {/* The second half wraps the badge onto two lines on a phone. */}
-          <span className="hidden sm:inline">&nbsp;· agent + node workflows</span>
+          Films · agent · node workflows
         </p>
 
         <h1
           id="hero-title"
           className="mt-5 text-balance text-[2.125rem] font-bold leading-[1.05] tracking-tight text-slate-50 sm:mt-6 sm:text-6xl lg:text-7xl"
         >
-          Direct AI films,{" "}
-          <span className="text-sky-200">shot by shot.</span>
+          The open-source AI studio{" "}
+          <span className="text-sky-200">you actually control.</span>
         </h1>
 
         <p className="mt-5 max-w-2xl text-pretty text-base leading-relaxed text-slate-300 sm:mt-6 sm:text-xl">
-          Start with one sentence. The agent writes the story, draws a still
-          for every shot, and cuts the clips on a timeline. Approve each still
-          before you pay for its clip, reshoot any shot on its own, and save
-          what works as a workflow you can run again.
+          Storyboard, generate, and cut video on a live timeline backed by
+          editable node graphs. Run local models or your own API keys at list
+          price.
         </p>
 
         <div className="mt-7 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
           <SmartDownloadButton
+            labelPrefix="Download"
             icon={<Download className="h-5 w-5" />}
             classNameOverride="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60 focus-ring sm:w-auto"
           />
@@ -75,22 +73,23 @@ export default function NodeToolHero() {
             onClick={() => track("Try Cloud")}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring sm:w-auto"
           >
-            Try it in your browser
+            Try in your browser
           </a>
         </div>
 
         {/* Setup line, directly under the CTA (NARRATIVE.md § Positioning
-            line): how the agent gets a model, then the trust facts. Plan
-            sign-in is Studio only (SubscriptionSection), and Cloud is still
-            in alpha (site-editorial.spec.md § Global rules, honest limits). */}
+            line). Plan sign-in is Studio only (SubscriptionSection), and Cloud
+            is still in alpha (site-editorial.spec.md § Global rules, honest
+            limits). The trust line names list prices on your keys, not "zero
+            markup": Cloud credits exist in code and are unpriced
+            (NARRATIVE.md § Cost, once). */}
         <p className="mt-5 max-w-xl text-pretty text-sm leading-relaxed text-slate-300">
-          In the desktop app, sign in with your ChatGPT or Claude plan and the
-          agent runs on it. Or add your own provider keys and pay list price,
-          with nothing added.
+          In the desktop app, the agent can also run on your ChatGPT or Claude
+          plan. The browser version is in alpha.
         </p>
         <p className="mt-2 text-xs text-slate-400">
-          Free and open source for macOS, Windows, and Linux. The browser
-          version is in alpha.
+          Open source (AGPL-3.0) · macOS, Windows, Linux · Provider list prices
+          on your keys
         </p>
       </div>
 

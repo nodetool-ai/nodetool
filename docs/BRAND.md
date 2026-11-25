@@ -40,9 +40,9 @@ change.
   serves the built-in agent and Claude Code, Codex, or Cursor over MCP.
 
 The pitch above is the general-purpose one — docs, conference blurb, app store
-listing. The marketing homepage and the README lead with the film promise
-instead: the line "Open-source AI film studio · agent + node workflows" and
-the headline "Direct AI films, shot by shot."
+listing. The marketing homepage and the README lead with the studio promise
+instead: the line "Films · agent · node workflows" and the headline "The
+open-source AI studio you actually control."
 [marketing/NARRATIVE.md](../marketing/NARRATIVE.md) owns the page narrative,
 the [shared lines](../marketing/NARRATIVE.md#shared-copy) and where each one
 appears, and [where "creative harness" belongs](../marketing/NARRATIVE.md#the-harness-line).

@@ -131,7 +131,7 @@ test.describe("marketing smoke", () => {
     }
     // The plan sign-in sits by Download, and "alpha" stays out of the buttons.
     await expect(
-      page.getByText(/sign in with your ChatGPT or Claude plan and the agent runs on it/i)
+      page.getByText(/the agent can also run on your ChatGPT or Claude plan/i)
     ).toBeVisible();
     await expect(
       page

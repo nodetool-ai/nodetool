@@ -19,7 +19,7 @@ test.describe("home page on a phone", () => {
   });
 
   test("the hero badge fits one line and the download button is above the fold", async ({ page }) => {
-    const badge = page.getByText(/^Open-source AI film studio/);
+    const badge = page.getByText(/^Films · agent · node workflows/);
     const badgeBox = await badge.boundingBox();
     expect(badgeBox?.height ?? 0).toBeLessThan(32);
 
