@@ -138,12 +138,16 @@ public:
     bool openLive(const QString& instance, const QString& path, const QString& uid, const QString& state,
                   double sampleRate, int maxBlockFrames, const QString& shmPath, const QString& sockPath,
                   int* latencySamples = nullptr, QString* error = nullptr, int timeoutMs = 30000,
-                  std::uint64_t* latencyGeneration = nullptr);
+                  std::uint64_t* latencyGeneration = nullptr, int renderQuantumFrames = 0,
+                  int* configuredQuantumOut = nullptr);
     // Re-prepares an open live instance for `sampleRate` on the host's message thread,
     // so the live worker never has to (processLiveBlock refuses a mismatched rate).
+    // When `schedulingOnly` is true, updates only the host worker's RT scheduling period
+    // for `renderQuantumFrames` without resetting the plug-in.
     bool prepareLive(const QString& instance, double sampleRate, int maxBlockFrames, int* latencySamples = nullptr,
                      QString* error = nullptr, int timeoutMs = 15000,
-                     std::uint64_t* latencyGeneration = nullptr);
+                     std::uint64_t* latencyGeneration = nullptr, int renderQuantumFrames = 0,
+                     bool schedulingOnly = false, int* configuredQuantumOut = nullptr);
     bool probeLiveLatency(const QString& instance, double sampleRate, int maxBlockFrames, int* latencySamples,
                           QString* error = nullptr, int timeoutMs = 15000,
                           std::uint64_t* latencyGeneration = nullptr);

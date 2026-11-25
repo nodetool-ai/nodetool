@@ -4,6 +4,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <algorithm>
 #include <atomic>
+#include <chrono>
+#include <thread>
 #include <vector>
 
 class GainEffect : public juce::AudioProcessor, private juce::AudioProcessorParameter::Listener {
@@ -50,6 +52,10 @@ public:
         const int lat = std::clamp(latency_->get(), 0, kMaxLatency);
         activeDelay_.store(lat, std::memory_order_release);
         setLatencySamples(lat);
+        injectDelayMs_ = juce::SystemStats::getEnvironmentVariable("NT_GAIN_INJECT_DELAY_MS", "0").getIntValue();
+        injectDelayEvery_ = juce::SystemStats::getEnvironmentVariable("NT_GAIN_INJECT_DELAY_EVERY", "0").getIntValue();
+        injectDelayStart_ = juce::SystemStats::getEnvironmentVariable("NT_GAIN_INJECT_DELAY_START", "0").getIntValue();
+        blockCounter_ = 0;
         reset();
     }
     void releaseResources() override {}
@@ -61,6 +67,12 @@ public:
     }
 
     void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) override {
+        if (injectDelayMs_ > 0 && injectDelayEvery_ > 0) {
+            const int blk = blockCounter_++;
+            if (blk >= injectDelayStart_ && ((blk - injectDelayStart_) % injectDelayEvery_ == 0)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(injectDelayMs_));
+            }
+        }
         const bool bypassed = bypass_ && bypass_->get();
         const float g = gain_->get();
         const int numCh = buffer.getNumChannels();
@@ -129,6 +141,10 @@ private:
     std::vector<float> delayR_;
     size_t writePos_ = 0;
     size_t validFrames_ = 0;
+    int injectDelayMs_ = 0;
+    int injectDelayEvery_ = 0;
+    int injectDelayStart_ = 0;
+    int blockCounter_ = 0;
 };
 
 // native-rules #4: returns a raw owning pointer the caller must free

@@ -13,11 +13,157 @@ int effectiveLatencyOf(const juce::AudioProcessor* plugin) {
 }
 } // namespace
 
+void LiveRenderState::clearTrackedMidiState() noexcept {
+    for (auto& ch : heldNoteVel) ch.fill(0);
+    for (auto& ch : curCc) ch.fill(-1);
+    for (auto& ch : curPolyPressure) ch.fill(-1);
+    curPitchBend.fill(-1);
+    curChanPressure.fill(-1);
+}
+
+void LiveRenderState::clearOverflowReleased() noexcept {
+    for (auto& ch : ovReleased) ch.fill(0);
+    for (auto& ch : ovReleaseVel) ch.fill(0);
+    ovResetAllControllers.fill(0);
+}
+
+void LiveRenderState::trackMidiEvent(const ShmMidiEvent& ev, bool inContention) noexcept {
+    const std::uint8_t kind = ev.status & 0xF0u;
+    const std::size_t ch = static_cast<std::size_t>(ev.status & 0x0Fu);
+    if (kind == 0x90u && ev.data2 > 0) {
+        const std::size_t pitch = static_cast<std::size_t>(ev.data1 & 0x7Fu);
+        heldNoteVel[ch][pitch] = ev.data2;
+        if (inContention) {
+            ovReleased[ch][pitch] = 0u;
+            ovReleaseVel[ch][pitch] = 0u;
+        }
+    } else if (kind == 0x80u || (kind == 0x90u && ev.data2 == 0)) {
+        const std::size_t pitch = static_cast<std::size_t>(ev.data1 & 0x7Fu);
+        heldNoteVel[ch][pitch] = 0u;
+        if (inContention) {
+            ovReleased[ch][pitch] = 1u;
+            ovReleaseVel[ch][pitch] = static_cast<std::uint8_t>(ev.data2 & 0x7Fu);
+        }
+    } else if (kind == 0xB0u) {
+        const std::size_t cc = static_cast<std::size_t>(ev.data1 & 0x7Fu);
+        const auto val = static_cast<std::int8_t>(ev.data2 & 0x7Fu);
+        if (cc < 120) {
+            curCc[ch][cc] = val;
+        } else if (cc == 120 || cc == 123) {
+            // All Sound Off (CC 120) and All Notes Off (CC 123) cancel held notes on this channel.
+            for (std::size_t p = 0; p < 128; ++p) {
+                if (heldNoteVel[ch][p] > 0u) {
+                    heldNoteVel[ch][p] = 0u;
+                    if (inContention) {
+                        ovReleased[ch][p] = 1u;
+                        ovReleaseVel[ch][p] = 0u;
+                    }
+                }
+            }
+        } else if (cc == 121) {
+            // Reset All Controllers.
+            curCc[ch].fill(-1);
+            curCc[ch][64] = 0;
+            curPitchBend[ch] = 8192;
+            curChanPressure[ch] = 0;
+            curPolyPressure[ch].fill(-1);
+            if (inContention) {
+                ovResetAllControllers[ch] = 1u;
+            }
+        }
+    } else if (kind == 0xE0u) {
+        curPitchBend[ch] = static_cast<std::int16_t>((ev.data1 & 0x7Fu) | ((ev.data2 & 0x7Fu) << 7));
+    } else if (kind == 0xD0u) {
+        curChanPressure[ch] = static_cast<std::int8_t>(ev.data1 & 0x7Fu);
+    } else if (kind == 0xA0u) {
+        const std::size_t pitch = static_cast<std::size_t>(ev.data1 & 0x7Fu);
+        curPolyPressure[ch][pitch] = static_cast<std::int8_t>(ev.data2 & 0x7Fu);
+    }
+}
+
+void LiveRenderState::writeContendedBlock(int numFrames, bool reset,
+                                          const ShmMidiEvent* midiEvents, int numMidiEvents,
+                                          float* outL, float* outR) noexcept {
+    if (reset) {
+        pendingReset = true;
+        pendingMidiCount = 0;
+        pendingOverflow = false;
+        clearTrackedMidiState();
+        clearOverflowReleased();
+    }
+    if (midiEvents && numMidiEvents > 0) {
+        for (int i = 0; i < numMidiEvents; ++i) {
+            trackMidiEvent(midiEvents[i], /*inContention=*/true);
+            if (!pendingOverflow) {
+                if (pendingMidiCount < kMaxPendingMidi) {
+                    ShmMidiEvent ev = midiEvents[i];
+                    ev.sampleOffset = 0;
+                    pendingMidi[pendingMidiCount++] = ev;
+                } else {
+                    // C5 / E1: Transition to reset + held-note/controller re-chase on overflow.
+                    pendingOverflow = true;
+                    pendingMidiCount = 0;
+                }
+            }
+        }
+    }
+    if (!paused) {
+        paused = true;
+        fadeOutStartL = lastOutL;
+        fadeOutStartR = lastOutR;
+        fadeOutPos = 0;
+        fadingIn = false;
+        fadeInPos = 0;
+    }
+    if (outL && outR && numFrames > 0) {
+        for (int i = 0; i < numFrames; ++i) {
+            if (fadeOutPos < kFadeFrames) {
+                const float g = 1.0f - static_cast<float>(fadeOutPos + 1) / static_cast<float>(kFadeFrames);
+                outL[i] = fadeOutStartL * g;
+                outR[i] = fadeOutStartR * g;
+                ++fadeOutPos;
+            } else {
+                outL[i] = 0.0f;
+                outR[i] = 0.0f;
+            }
+        }
+        lastOutL = outL[numFrames - 1];
+        lastOutR = outR[numFrames - 1];
+    }
+}
+
+void LiveRenderState::finishRenderedBlock(int numFrames, float* outL, float* outR) noexcept {
+    if (!outL || !outR || numFrames <= 0) return;
+    if (paused) {
+        paused = false;
+        fadeOutPos = 0;
+        fadingIn = true;
+        fadeInPos = 0;
+        fadeInFromL = lastOutL;
+        fadeInFromR = lastOutR;
+    }
+    if (fadingIn) {
+        for (int i = 0; i < numFrames && fadingIn; ++i) {
+            const float alpha = static_cast<float>(fadeInPos + 1) / static_cast<float>(kFadeFrames);
+            const float oneMinus = 1.0f - alpha;
+            outL[i] = fadeInFromL * oneMinus + outL[i] * alpha;
+            outR[i] = fadeInFromR * oneMinus + outR[i] * alpha;
+            ++fadeInPos;
+            if (fadeInPos >= kFadeFrames) {
+                fadingIn = false;
+            }
+        }
+    }
+    lastOutL = outL[numFrames - 1];
+    lastOutR = outR[numFrames - 1];
+}
+
 Instance::~Instance() {
     poller_.stopTimer();
     setLatencyChangedCallback({});
     {
         std::lock_guard<std::recursive_mutex> guard(lock);
+        pluginLoaded_.store(false, std::memory_order_release);
         if (plugin_) {
             plugin_->removeListener(&listener_);
             plugin_.reset();
@@ -206,50 +352,193 @@ bool Instance::load(const juce::String& path, const juce::String& uid, juce::Str
     }
     auto plugin = formats_.createPluginInstance(*pick, rate, block_, error);
     if (!plugin) return false;
-    std::lock_guard<std::recursive_mutex> guard(lock);
-    if (plugin_) {
-        plugin_->removeListener(&listener_);
+    juce::MemoryBlock initStateBlock;
+    std::uint64_t loadedVersion = 0;
+    {
+        std::lock_guard<std::recursive_mutex> guard(lock);
+        if (plugin_) {
+            plugin_->removeListener(&listener_);
+        }
+        plugin_ = std::move(plugin);
+        pluginLoaded_.store(true, std::memory_order_release);
+        plugin_->addListener(&listener_);
+        path_ = path;
+        uid_ = pick->createIdentifierString();
+        isInstrument_ = pick->isInstrument;
+        preparedRate_ = 0;
+        preparedBlockSize_ = 0;
+        const int ch = std::max(2, std::max(plugin_->getTotalNumInputChannels(), plugin_->getTotalNumOutputChannels()));
+        preparedChannels_.store(ch, std::memory_order_release);
+        const int initLat = effectiveLatencyOf(plugin_.get());
+        const std::uint32_t nextGen = unpackGeneration(packedLatency_.load(std::memory_order_acquire)) + 1u;
+        packedLatency_.store(packLatency(nextGen, initLat), std::memory_order_release);
+        lastNotifiedLatency_ = initLat;
+        forceNotifyPending_.store(false, std::memory_order_release);
+        latencyNotifyPending_.store(false, std::memory_order_release);
+        plugin_->getStateInformation(initStateBlock);
+        {
+            std::lock_guard<std::mutex> stateGuard(stateMutex_);
+            loadedVersion = ++stateVersion_;
+            appliedState_.clear();
+            defaultState_.clear();
+        }
     }
-    plugin_ = std::move(plugin);
-    plugin_->addListener(&listener_);
-    path_ = path;
-    uid_ = pick->createIdentifierString();
-    isInstrument_ = pick->isInstrument;
-    appliedState_ = {};
-    preparedRate_ = 0;
-    preparedBlockSize_ = 0;
-    const int initLat = effectiveLatencyOf(plugin_.get());
-    const std::uint32_t nextGen = unpackGeneration(packedLatency_.load(std::memory_order_acquire)) + 1u;
-    packedLatency_.store(packLatency(nextGen, initLat), std::memory_order_release);
-    lastNotifiedLatency_ = initLat;
-    forceNotifyPending_.store(false, std::memory_order_release);
-    latencyNotifyPending_.store(false, std::memory_order_release);
-    defaultState_ = getState();
+    const juce::String encodedDefault = initStateBlock.isEmpty()
+        ? juce::String()
+        : juce::Base64::toBase64(initStateBlock.getData(), initStateBlock.getSize());
+    {
+        std::lock_guard<std::mutex> stateGuard(stateMutex_);
+        defaultState_ = encodedDefault;
+        if (stateVersion_ == loadedVersion) {
+            appliedState_ = encodedDefault;
+        }
+    }
+    return true;
+}
+
+bool Instance::loadPluginForTest(std::unique_ptr<juce::AudioPluginInstance> plugin, bool isInstrument) {
+    if (!plugin) return false;
+    juce::MemoryBlock initStateBlock;
+    std::uint64_t loadedVersion = 0;
+    {
+        std::lock_guard<std::recursive_mutex> guard(lock);
+        if (plugin_) {
+            plugin_->removeListener(&listener_);
+        }
+        plugin_ = std::move(plugin);
+        pluginLoaded_.store(true, std::memory_order_release);
+        plugin_->addListener(&listener_);
+        path_ = "test://in-process";
+        uid_ = plugin_->getName();
+        isInstrument_ = isInstrument;
+        preparedRate_ = 0;
+        preparedBlockSize_ = 0;
+        const int ch = std::max(2, std::max(plugin_->getTotalNumInputChannels(), plugin_->getTotalNumOutputChannels()));
+        preparedChannels_.store(ch, std::memory_order_release);
+        const int initLat = effectiveLatencyOf(plugin_.get());
+        const std::uint32_t nextGen = unpackGeneration(packedLatency_.load(std::memory_order_acquire)) + 1u;
+        packedLatency_.store(packLatency(nextGen, initLat), std::memory_order_release);
+        lastNotifiedLatency_ = initLat;
+        forceNotifyPending_.store(false, std::memory_order_release);
+        latencyNotifyPending_.store(false, std::memory_order_release);
+        plugin_->getStateInformation(initStateBlock);
+        {
+            std::lock_guard<std::mutex> stateGuard(stateMutex_);
+            loadedVersion = ++stateVersion_;
+            appliedState_.clear();
+            defaultState_.clear();
+        }
+    }
+    const juce::String encodedDefault = initStateBlock.isEmpty()
+        ? juce::String()
+        : juce::Base64::toBase64(initStateBlock.getData(), initStateBlock.getSize());
+    {
+        std::lock_guard<std::mutex> stateGuard(stateMutex_);
+        defaultState_ = encodedDefault;
+        if (stateVersion_ == loadedVersion) {
+            appliedState_ = encodedDefault;
+        }
+    }
     return true;
 }
 
 juce::String Instance::pluginName() const { return plugin_ ? plugin_->getName() : juce::String(); }
 
+void Instance::setGetStatePublishHookForTest(std::function<void()> hook) {
+    std::lock_guard<std::mutex> stateGuard(stateMutex_);
+    getStatePublishHook_ = std::move(hook);
+    hasGetStatePublishHook_.store(static_cast<bool>(getStatePublishHook_), std::memory_order_release);
+}
+
 juce::String Instance::getState() {
-    std::lock_guard<std::recursive_mutex> guard(lock);
-    if (!plugin_) return {};
     juce::MemoryBlock mb;
-    plugin_->getStateInformation(mb);
+    std::uint64_t capturedVersion = 0;
+    {
+        std::lock_guard<std::recursive_mutex> guard(lock);
+        if (!plugin_) return {};
+        {
+            std::lock_guard<std::mutex> stateGuard(stateMutex_);
+            capturedVersion = stateVersion_;
+        }
+        plugin_->getStateInformation(mb);
+    }
     if (mb.isEmpty()) return {};
-    appliedState_ = juce::Base64::toBase64(mb.getData(), mb.getSize());
-    return appliedState_;
+    const juce::String encoded = juce::Base64::toBase64(mb.getData(), mb.getSize());
+    if (hasGetStatePublishHook_.load(std::memory_order_acquire)) {
+        std::function<void()> hook;
+        {
+            std::lock_guard<std::mutex> stateGuard(stateMutex_);
+            hook = getStatePublishHook_;
+        }
+        if (hook) hook();
+    }
+    {
+        std::lock_guard<std::mutex> stateGuard(stateMutex_);
+        if (stateVersion_ == capturedVersion) {
+            appliedState_ = encoded;
+        }
+    }
+    return encoded;
+}
+
+std::optional<juce::String> Instance::tryGetState() {
+    juce::MemoryBlock mb;
+    std::uint64_t capturedVersion = 0;
+    {
+        std::unique_lock<std::recursive_mutex> guard(lock, std::try_to_lock);
+        if (!guard.owns_lock()) return std::nullopt;
+        if (!plugin_) return juce::String();
+        {
+            std::lock_guard<std::mutex> stateGuard(stateMutex_);
+            capturedVersion = stateVersion_;
+        }
+        plugin_->getStateInformation(mb);
+    }
+    if (mb.isEmpty()) return juce::String();
+    const juce::String encoded = juce::Base64::toBase64(mb.getData(), mb.getSize());
+    if (hasGetStatePublishHook_.load(std::memory_order_acquire)) {
+        std::function<void()> hook;
+        {
+            std::lock_guard<std::mutex> stateGuard(stateMutex_);
+            hook = getStatePublishHook_;
+        }
+        if (hook) hook();
+    }
+    {
+        std::lock_guard<std::mutex> stateGuard(stateMutex_);
+        if (stateVersion_ == capturedVersion) {
+            appliedState_ = encoded;
+        }
+    }
+    return encoded;
 }
 
 bool Instance::setState(const juce::String& base64, juce::String& error) {
-    std::lock_guard<std::recursive_mutex> guard(lock);
-    if (!plugin_) { error = "No plug-in loaded"; return false; }
-    const juce::String& target = base64.isEmpty() ? defaultState_ : base64;
-    if (target.isEmpty() || target == appliedState_) return true;
+    if (!pluginLoaded_.load(std::memory_order_acquire)) { error = "No plug-in loaded"; return false; }
+    juce::String target;
+    {
+        std::lock_guard<std::mutex> stateGuard(stateMutex_);
+        target = base64.isEmpty() ? defaultState_ : base64;
+        if (target.isEmpty() || target == appliedState_) return true;
+    }
+    // Decode base64 outside `lock` so live processing never contends with serialization work.
     juce::MemoryOutputStream decoded;
     if (!juce::Base64::convertFromBase64(decoded, target)) { error = "Plug-in state is not valid base64"; return false; }
-    plugin_->setStateInformation(decoded.getData(), (int)decoded.getDataSize());
-    appliedState_ = target;
-    (void)recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false);
+    {
+        std::lock_guard<std::recursive_mutex> guard(lock);
+        if (!plugin_) { error = "No plug-in loaded"; return false; }
+        {
+            std::lock_guard<std::mutex> stateGuard(stateMutex_);
+            if (target == appliedState_) return true;
+        }
+        plugin_->setStateInformation(decoded.getData(), (int)decoded.getDataSize());
+        (void)recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false);
+        {
+            std::lock_guard<std::mutex> stateGuard(stateMutex_);
+            ++stateVersion_;
+            appliedState_ = target;
+        }
+    }
     return true;
 }
 
@@ -299,7 +588,11 @@ bool Instance::selectPreset(const juce::var& requested, const juce::String& name
     }
     if (index < 0) { error = "Unknown preset"; return false; }
     plugin_->setCurrentProgram(index);
-    appliedState_.clear();
+    {
+        std::lock_guard<std::mutex> stateGuard(stateMutex_);
+        ++stateVersion_;
+        appliedState_.clear();
+    }
     return true;
 }
 
@@ -373,7 +666,11 @@ bool Instance::setParameters(const juce::var& changes, juce::String& error) {
         parameter->setValueNotifyingHost(value);
         parameter->endChangeGesture();
     }
-    appliedState_.clear();
+    {
+        std::lock_guard<std::mutex> stateGuard(stateMutex_);
+        ++stateVersion_;
+        appliedState_.clear();
+    }
     return true;
 }
 
@@ -402,6 +699,8 @@ void Instance::prepare(double sampleRate, bool nonRealtime, int blockSize) {
     preparedRate_ = sampleRate;
     preparedNonRealtime_ = nonRealtime;
     preparedBlockSize_ = blockSize;
+    const int ch = std::max(2, std::max(plugin_->getTotalNumInputChannels(), plugin_->getTotalNumOutputChannels()));
+    preparedChannels_.store(ch, std::memory_order_release);
     (void)recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false);
 }
 
@@ -437,10 +736,21 @@ bool Instance::processLiveBlock(double sampleRate, int numFrames, bool reset,
                                 float* outL, float* outR,
                                 const ShmMidiEvent* midiEvents, int numMidiEvents,
                                 juce::AudioBuffer<float>& scratchBlock, juce::MidiBuffer& scratchMidi,
-                                int* latencySamples, std::uint64_t* latencyGeneration) {
+                                int* latencySamples, std::uint64_t* latencyGeneration,
+                                LiveRenderState* liveState) {
     const ScopedDenormalGuard denormalGuard;
-    std::lock_guard<std::recursive_mutex> guard(lock);
-    if (!plugin_ || numFrames <= 0 || numFrames > static_cast<int>(kShmMaxFrames)) return false;
+    if (numFrames <= 0 || numFrames > static_cast<int>(kShmMaxFrames)) return false;
+    LiveRenderState& state = liveState ? *liveState : defaultLiveState_;
+    // C2 / D6 / D9: never block live processing behind state save/load or control work on `lock`.
+    // When contended, capture reset/MIDI and fade smoothly to silence; resume with a crossfade.
+    std::unique_lock<std::recursive_mutex> guard(lock, std::try_to_lock);
+    if (!guard.owns_lock()) {
+        state.writeContendedBlock(numFrames, reset, midiEvents, numMidiEvents, outL, outR);
+        if (latencySamples) *latencySamples = this->latencySamples();
+        if (latencyGeneration) *latencyGeneration = this->latencyGeneration();
+        return true;
+    }
+    if (!plugin_) return false;
     // The live worker never prepares: prepareToPlay allocates and blocks. The control side
     // calls prepareLive() for the real rate. A mismatch drops the block, never prepares.
     if (preparedRate_ <= 0 || !juce::exactlyEqual(preparedRate_, sampleRate) || preparedNonRealtime_ ||
@@ -450,11 +760,47 @@ bool Instance::processLiveBlock(double sampleRate, int numFrames, bool reset,
     const int inChannels = plugin_->getTotalNumInputChannels();
     const int outChannels = plugin_->getTotalNumOutputChannels();
     const int channels = std::max(2, std::max(inChannels, outChannels));
-    if (scratchBlock.getNumChannels() < channels || scratchBlock.getNumSamples() < numFrames) {
-        scratchBlock.setSize(channels, std::max(numFrames, static_cast<int>(kShmMaxFrames)), false, false, true);
+    // C5: never allocate scratch in process. Caller must preallocate for preparedChannels() x kShmMaxFrames.
+    const int origChannels = scratchBlock.getNumChannels();
+    const int origSamples = scratchBlock.getNumSamples();
+    if (origChannels < channels || origSamples < numFrames) {
+        return false;
     }
-    scratchBlock.setSize(channels, numFrames, false, false, true);
+    // D7: For <32 channels, use a stack-backed non-owning view (JUCE's inline preallocatedChannelSpace[32]
+    // does zero heap allocations and never mutates scratchBlock). For >=32 channels, shrink scratchBlock
+    // in-place with avoidReallocating=true and restore its preallocated dimensions on exit (zero heap
+    // allocations when scratchBlock was preallocated via setSize()).
+    struct ScratchRestoreGuard {
+        juce::AudioBuffer<float>* buf = nullptr;
+        int ch = 0;
+        int samples = 0;
+        ~ScratchRestoreGuard() {
+            if (buf) buf->setSize(ch, samples, false, false, true);
+        }
+    } scratchRestore;
+    juce::AudioBuffer<float> smallView;
+    juce::AudioBuffer<float>* workBlock = &scratchBlock;
+    if (channels < 32) {
+        smallView.setDataToReferTo(scratchBlock.getArrayOfWritePointers(), channels, numFrames);
+        workBlock = &smallView;
+    } else if (origChannels != channels || origSamples != numFrames) {
+        scratchRestore.buf = &scratchBlock;
+        scratchRestore.ch = origChannels;
+        scratchRestore.samples = origSamples;
+        scratchBlock.setSize(channels, numFrames, false, false, true);
+    }
+
+    const bool effectiveReset = reset || state.pendingReset;
+    state.pendingReset = false;
     if (reset) {
+        // A current-block reset supersedes any older queued MIDI events and tracked live state.
+        state.pendingMidiCount = 0;
+        state.pendingOverflow = false;
+        state.clearTrackedMidiState();
+        state.clearOverflowReleased();
+    }
+
+    if (effectiveReset) {
         if (isInstrument_) {
             scratchMidi.clear();
             for (int ch = 1; ch <= 16; ++ch) {
@@ -463,57 +809,121 @@ bool Instance::processLiveBlock(double sampleRate, int numFrames, bool reset,
                 scratchMidi.addEvent(juce::MidiMessage::controllerEvent(ch, 64, 0), 0);
                 scratchMidi.addEvent(juce::MidiMessage::pitchWheel(ch, 8192), 0);
             }
-            scratchBlock.clear();
-            plugin_->processBlock(scratchBlock, scratchMidi);
+            workBlock->clear();
+            plugin_->processBlock(*workBlock, scratchMidi);
         }
         plugin_->reset();
     }
-    scratchBlock.clear();
+    workBlock->clear();
     if (!isInstrument_ && inL && inR) {
-        if (inChannels >= 1) scratchBlock.copyFrom(0, 0, inL, numFrames);
-        if (inChannels >= 2) scratchBlock.copyFrom(1, 0, inR, numFrames);
+        if (inChannels >= 1) workBlock->copyFrom(0, 0, inL, numFrames);
+        if (inChannels >= 2) workBlock->copyFrom(1, 0, inR, numFrames);
     }
     scratchMidi.clear();
-    if (midiEvents && numMidiEvents > 0) {
-        for (int i = 0; i < numMidiEvents; ++i) {
-            const auto& e = midiEvents[i];
-            const int offset = juce::jlimit(0, numFrames - 1, static_cast<int>(e.sampleOffset));
-            const std::uint8_t kind = e.status & 0xF0u;
-            const int ch = (e.status & 0x0Fu) + 1;
-            // Control change, pitch bend and channel pressure reach a VST3 through
-            // JUCE's IMidiMapping conversion into parameter changes (the VST3 way
-            // for a host to send them). Poly pressure becomes a PolyPressureEvent.
-            if (kind == 0x90u && e.data2 > 0) {
-                scratchMidi.addEvent(juce::MidiMessage::noteOn(ch, e.data1 & 0x7Fu, e.data2), offset);
-            } else if (kind == 0x80u || (kind == 0x90u && e.data2 == 0)) {
-                scratchMidi.addEvent(juce::MidiMessage::noteOff(ch, e.data1 & 0x7Fu, static_cast<juce::uint8>(e.data2 & 0x7Fu)), offset);
-            } else if (kind == 0xB0u) {
-                scratchMidi.addEvent(juce::MidiMessage::controllerEvent(ch, e.data1 & 0x7Fu, e.data2 & 0x7Fu), offset);
-            } else if (kind == 0xE0u) {
-                scratchMidi.addEvent(juce::MidiMessage::pitchWheel(ch, (e.data1 & 0x7F) | ((e.data2 & 0x7F) << 7)), offset);
-            } else if (kind == 0xD0u) {
-                scratchMidi.addEvent(juce::MidiMessage::channelPressureChange(ch, e.data1 & 0x7Fu), offset);
-            } else if (kind == 0xA0u) {
-                scratchMidi.addEvent(juce::MidiMessage::aftertouchChange(ch, e.data1 & 0x7Fu, e.data2 & 0x7Fu), offset);
-            } else if (e.status == kShmStatusNoteExpression) {
-                NoteExpressionValue expression;
-                if (decodeNoteExpression(e, expression)) droppedNoteExpression_.fetch_add(1, std::memory_order_relaxed);
+    const auto pushShmMidi = [&](const ShmMidiEvent& e, int offset) {
+        const std::uint8_t kind = e.status & 0xF0u;
+        const int ch = (e.status & 0x0Fu) + 1;
+        // Control change, pitch bend and channel pressure reach a VST3 through
+        // JUCE's IMidiMapping conversion into parameter changes (the VST3 way
+        // for a host to send them). Poly pressure becomes a PolyPressureEvent.
+        if (kind == 0x90u && e.data2 > 0) {
+            scratchMidi.addEvent(juce::MidiMessage::noteOn(ch, e.data1 & 0x7Fu, e.data2), offset);
+        } else if (kind == 0x80u || (kind == 0x90u && e.data2 == 0)) {
+            scratchMidi.addEvent(juce::MidiMessage::noteOff(ch, e.data1 & 0x7Fu, static_cast<juce::uint8>(e.data2 & 0x7Fu)), offset);
+        } else if (kind == 0xB0u) {
+            scratchMidi.addEvent(juce::MidiMessage::controllerEvent(ch, e.data1 & 0x7Fu, e.data2 & 0x7Fu), offset);
+        } else if (kind == 0xE0u) {
+            scratchMidi.addEvent(juce::MidiMessage::pitchWheel(ch, (e.data1 & 0x7F) | ((e.data2 & 0x7F) << 7)), offset);
+        } else if (kind == 0xD0u) {
+            scratchMidi.addEvent(juce::MidiMessage::channelPressureChange(ch, e.data1 & 0x7Fu), offset);
+        } else if (kind == 0xA0u) {
+            scratchMidi.addEvent(juce::MidiMessage::aftertouchChange(ch, e.data1 & 0x7Fu, e.data2 & 0x7Fu), offset);
+        } else if (e.status == kShmStatusNoteExpression) {
+            NoteExpressionValue expression;
+            if (decodeNoteExpression(e, expression)) droppedNoteExpression_.fetch_add(1, std::memory_order_relaxed);
+        }
+    };
+    // D6 / C5 / E1: Inject any MIDI events captured during lock/scratch contention at sample offset 0.
+    // On capture overflow, replay a sustain-off (CC64=0) + all-notes-off (CC123=0) reset (plus
+    // explicit Note-Offs for released notes so synths ignoring CC123 release cleanly), then re-chase
+    // current controllers and currently held notes/poly pressure so sustain transitions never stick.
+    if (state.pendingOverflow) {
+        for (int ch = 0; ch < 16; ++ch) {
+            scratchMidi.addEvent(juce::MidiMessage::controllerEvent(ch + 1, 64, 0), 0);
+            scratchMidi.addEvent(juce::MidiMessage::allNotesOff(ch + 1), 0);
+            for (int p = 0; p < 128; ++p) {
+                const auto chIdx = static_cast<std::size_t>(ch);
+                const auto pIdx = static_cast<std::size_t>(p);
+                if (state.ovReleased[chIdx][pIdx] != 0u && state.heldNoteVel[chIdx][pIdx] == 0u) {
+                    scratchMidi.addEvent(juce::MidiMessage::noteOff(ch + 1, p, state.ovReleaseVel[chIdx][pIdx]), 0);
+                }
             }
         }
+        for (int ch = 0; ch < 16; ++ch) {
+            const auto chIdx = static_cast<std::size_t>(ch);
+            if (state.ovResetAllControllers[chIdx] != 0u) {
+                scratchMidi.addEvent(juce::MidiMessage::controllerEvent(ch + 1, 121, 0), 0);
+            }
+            for (int cc = 0; cc < 120; ++cc) {
+                const auto val = state.curCc[chIdx][static_cast<std::size_t>(cc)];
+                if (val >= 0) {
+                    scratchMidi.addEvent(juce::MidiMessage::controllerEvent(ch + 1, cc, static_cast<int>(val)), 0);
+                }
+            }
+            if (state.curPitchBend[chIdx] >= 0) {
+                scratchMidi.addEvent(
+                    juce::MidiMessage::pitchWheel(ch + 1, static_cast<int>(state.curPitchBend[chIdx])), 0);
+            }
+            if (state.curChanPressure[chIdx] >= 0) {
+                scratchMidi.addEvent(
+                    juce::MidiMessage::channelPressureChange(ch + 1, static_cast<int>(state.curChanPressure[chIdx])), 0);
+            }
+        }
+        for (int ch = 0; ch < 16; ++ch) {
+            const auto chIdx = static_cast<std::size_t>(ch);
+            for (int p = 0; p < 128; ++p) {
+                const auto vel = state.heldNoteVel[chIdx][static_cast<std::size_t>(p)];
+                if (vel > 0u) {
+                    scratchMidi.addEvent(juce::MidiMessage::noteOn(ch + 1, p, vel), 0);
+                }
+            }
+            for (int p = 0; p < 128; ++p) {
+                const auto val = state.curPolyPressure[chIdx][static_cast<std::size_t>(p)];
+                if (val >= 0) {
+                    scratchMidi.addEvent(juce::MidiMessage::aftertouchChange(ch + 1, p, static_cast<int>(val)), 0);
+                }
+            }
+        }
+        state.clearOverflowReleased();
+        state.pendingOverflow = false;
+    } else {
+        for (std::size_t i = 0; i < state.pendingMidiCount; ++i) {
+            pushShmMidi(state.pendingMidi[i], 0);
+        }
+        state.pendingMidiCount = 0;
+        state.clearOverflowReleased();
     }
-    plugin_->processBlock(scratchBlock, scratchMidi);
+    if (midiEvents && numMidiEvents > 0) {
+        for (int i = 0; i < numMidiEvents; ++i) {
+            state.trackMidiEvent(midiEvents[i], /*inContention=*/false);
+            const int offset = juce::jlimit(0, numFrames - 1, static_cast<int>(midiEvents[i].sampleOffset));
+            pushShmMidi(midiEvents[i], offset);
+        }
+    }
+    plugin_->processBlock(*workBlock, scratchMidi);
     const std::uint64_t packed = recordLatencyUpdate(effectiveLatencyOf(plugin_.get()), false);
     if (latencySamples) *latencySamples = unpackLatency(packed);
     if (latencyGeneration) *latencyGeneration = unpackGeneration(packed);
     if (outL && outR) {
         if (outChannels >= 1) {
-            std::memcpy(outL, scratchBlock.getReadPointer(0), static_cast<size_t>(numFrames) * sizeof(float));
-            std::memcpy(outR, scratchBlock.getReadPointer(outChannels > 1 ? 1 : 0),
+            std::memcpy(outL, workBlock->getReadPointer(0), static_cast<size_t>(numFrames) * sizeof(float));
+            std::memcpy(outR, workBlock->getReadPointer(outChannels > 1 ? 1 : 0),
                         static_cast<size_t>(numFrames) * sizeof(float));
         } else {
             std::memset(outL, 0, static_cast<size_t>(numFrames) * sizeof(float));
             std::memset(outR, 0, static_cast<size_t>(numFrames) * sizeof(float));
         }
+        state.finishRenderedBlock(numFrames, outL, outR);
     }
     return true;
 }

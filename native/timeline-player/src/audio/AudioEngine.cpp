@@ -257,6 +257,7 @@ struct AudioEngine::Impl {
     std::atomic<Session*> wrapSlot{nullptr};
     std::atomic<Session*> inUseWrap{nullptr};
     double sampleRate = 48000.0;
+    int devicePeriodFrames = kMixBlockFrames;
     std::atomic<double> deviceLatencySec{0.0};
     std::atomic<int> pdcLatencyFrames{0};
     std::atomic<int> masterLimiterLatencyFrames{0};
@@ -1169,6 +1170,8 @@ struct AudioEngine::Impl {
 
     void workerLoop() {
         bool idle = false;
+        bool wasPlaying = false;
+        bool wasDeviceStopped = false;
         std::uint64_t seenVersion = 0;
         for (;;) {
             {
@@ -1188,11 +1191,19 @@ struct AudioEngine::Impl {
                 seenVersion = planVersion;
             }
             drainDevicePublications();
+            const bool nowDeviceStopped = deviceStopped.load(std::memory_order_acquire);
             const playback::TransportCommand cmd = feed.command.load();
             Session* current = published.load();
             const auto now = std::chrono::steady_clock::now();
             const bool scrubWait = cmd.scrub && !cmd.playing && current &&
                 std::chrono::duration<double, std::milli>(now - lastScrubBuild).count() < kScrubMs;
+            bool armedThisIter = false;
+            const auto armIfReady = [&](const std::shared_ptr<const MixPlan>& targetPlan) {
+                if (targetPlan) {
+                    armMixPlanForPlayback(*targetPlan);
+                    armedThisIter = true;
+                }
+            };
             if (cmd.seekSeq != 0 && !scrubWait && (!current || current->seekSeq.load() != cmd.seekSeq)) {
                 if (cmd.scrub && !cmd.playing) lastScrubBuild = now;
                 std::uint64_t version = 0;
@@ -1203,10 +1214,14 @@ struct AudioEngine::Impl {
                 if (current && !current->consumed.load() && current->startMs == cmd.seekMs &&
                     current->planVersion == version) {
                     // A play at the paused-seek position reuses its rings.
+                    // Arm async processors before exposing seekSeq to the RT callback (G1).
+                    if (cmd.playing || cmd.scrub) armIfReady(current->plan);
                     current->seekSeq.store(cmd.seekSeq, std::memory_order_release);
                 } else {
                     auto s = buildSession(cmd.seekSeq, cmd.seekMs);
-                    s->primed.store(fill(*s, cmd.playing), std::memory_order_release);
+                    const bool sPrimed = fill(*s, cmd.playing);
+                    s->primed.store(sPrimed, std::memory_order_release);
+                    if (cmd.playing || cmd.scrub) armIfReady(s->plan);
                     current = s.get();
                     sessions.push_back(std::move(s));
                     published.store(current, std::memory_order_seq_cst);
@@ -1234,11 +1249,15 @@ struct AudioEngine::Impl {
             if (current && current->planVersion != version) {
                 const double liveMs = std::max(current->startMs, current->doneMs.load(std::memory_order_acquire));
                 auto replacement = buildSession(current->seekSeq.load(), liveMs, current);
+                if (cmd.playing || cmd.scrub) armIfReady(replacement->plan);
                 current = replacement.get();
                 sessions.push_back(std::move(replacement));
                 // Gain/removal edits are visible immediately. Filling a new
                 // voice cannot hold up publication or the continuing voices.
                 published.store(current, std::memory_order_seq_cst);
+            }
+            if (!armedThisIter && current && ((cmd.playing && !wasPlaying) || (wasDeviceStopped && !nowDeviceStopped && cmd.playing))) {
+                armIfReady(current->plan);
             }
             {
                 std::lock_guard lock(mutex);
@@ -1266,17 +1285,25 @@ struct AudioEngine::Impl {
             }
             if (current) {
                 const bool primed = fill(*current, cmd.playing);
-                if (primed) current->primed.store(true, std::memory_order_release);
+                if (primed) {
+                    if (!current->primed.load(std::memory_order_relaxed) && (cmd.playing || cmd.scrub)) {
+                        armIfReady(current->plan);
+                    }
+                    current->primed.store(true, std::memory_order_release);
+                }
             }
             maintainWrap(cmd, current);
             if (current && cmd.scrub && !cmd.playing && cmd.seekSeq == current->seekSeq.load() && cmd.seekSeq != lastScrubArmed &&
                 current->primed.load(std::memory_order_acquire)) {
+                armIfReady(current->plan);
                 lastScrubArmed = cmd.seekSeq;
                 scrubRequest.store(cmd.seekSeq, std::memory_order_release);
             }
             produceShuttle(current);
             evictSources(current, wrapSlot.load(std::memory_order_seq_cst));
             retire();
+            wasPlaying = cmd.playing;
+            wasDeviceStopped = nowDeviceStopped;
             idle = !cmd.playing && (!current || (current->seekSeq.load() == cmd.seekSeq &&
                                                  current->primed.load(std::memory_order_acquire) &&
                                                  !(cmd.scrub && cmd.seekSeq != lastScrubArmed)));
@@ -1332,9 +1359,10 @@ std::uint64_t AudioEngine::publishPlan(std::shared_ptr<const Timeline> timeline)
         plan=std::make_shared<MixPlan>(*previous);
     } else {
         plan=std::make_shared<MixPlan>(timeline ? buildMixPlan(*timeline) : MixPlan{});
-        prepareMixPlan(*plan,d.sampleRate);
+        prepareMixPlan(*plan,d.sampleRate,d.devicePeriodFrames);
         d.planBuilds.fetch_add(1);
     }
+    armMixPlanForPlayback(*plan);
     const int nextPdcLatency = computeEffectivePlanLatency(*plan);
     const int nextLimiterLatency = plan->masterLimiterEnabled
         ? MasterLimiter::latencyFramesForRate(d.sampleRate) : 0;
@@ -1406,12 +1434,16 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     }
     if (manual) {
         d.sampleRate = options.sampleRate > 0 ? options.sampleRate : kDefaultMixRate;
+        d.devicePeriodFrames = options.periodFrames > 0 ? options.periodFrames : kMixBlockFrames;
     } else {
         if (ma_device_init(&d.context, &config, &d.device) != MA_SUCCESS) return fail("cannot open the audio device");
         d.deviceReady = true;
         d.sampleRate = static_cast<double>(d.device.sampleRate);
+        const int internalPeriod = static_cast<int>(d.device.playback.internalPeriodSizeInFrames);
+        d.devicePeriodFrames = internalPeriod > 0 ? internalPeriod : std::max(64, options.periodFrames);
     }
-    prepareMixPlan(*d.plan, d.sampleRate);
+    prepareMixPlan(*d.plan, d.sampleRate, d.devicePeriodFrames);
+    armMixPlanForPlayback(*d.plan);
     // Before the device starts, so the callback never sees a half-built meter or limiter.
     d.liveLoudness.reset();
     d.meterPlaying = false;
@@ -1607,7 +1639,7 @@ std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, doubl
     const ScopedDenormalGuard denormalGuard;
     const auto interrupted = [&] { return cancelled && cancelled(); };
     if (interrupted()) return {};
-    const MixPlan plan = buildMixPlan(timeline);
+    const MixPlan plan = buildMixPlan(timeline, RenderMode::Offline);
     prepareMixPlan(plan, sampleRate);
     reprobeMixPlanLatency(plan, sampleRate);
     const double sr = sampleRate;

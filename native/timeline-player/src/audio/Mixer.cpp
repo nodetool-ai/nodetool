@@ -412,6 +412,7 @@ struct MixPlan::State {
     bool dynamicTrackPdc = false;
     int quantumCursor = 0;
     double sampleRate = 0;
+    int deviceBlockFrames = 0;
     double nextMs = std::numeric_limits<double>::quiet_NaN();
 };
 namespace {
@@ -661,7 +662,7 @@ int planLatencySamples(const MixPlan& plan) noexcept {
            plan.state->masterPluginLatency.load(std::memory_order_acquire);
 }
 
-MixPlan buildMixPlan(const Timeline& document) {
+MixPlan buildMixPlan(const Timeline& document, RenderMode mode) {
     std::optional<Timeline> projected;
     if (document.raw.value("music").isObject()) {
         const double ms = document.raw.value("music").toObject().value("autoCrossfadeMs").toDouble(10);
@@ -672,6 +673,7 @@ MixPlan buildMixPlan(const Timeline& document) {
     }
     const auto& tl = projected ? *projected : document;
     MixPlan plan;
+    plan.renderMode = mode;
     plan.masterGain = dbToGain(tl.masterVolumeDb);
     plan.masterLimiterEnabled = masterLimiterEnabled(tl);
 
@@ -768,8 +770,11 @@ MixPlan buildMixPlan(const Timeline& document) {
     return plan;
 }
 
-void prepareMixPlan(const MixPlan& plan, double sampleRate) {
-    if (!plan.state || plan.state->sampleRate == sampleRate) { return; }
+void prepareMixPlan(const MixPlan& plan, double sampleRate, int deviceBlockFrames) {
+    const int blockFrames = deviceBlockFrames > 0 ? deviceBlockFrames : kMixBlockFrames;
+    if (!plan.state || (plan.state->sampleRate == sampleRate && plan.state->deviceBlockFrames == blockFrames)) {
+        return;
+    }
     auto& state = *plan.state;
     state.voiceLatency.assign(plan.voices.size(), 0);
     state.trackVoiceLatency.assign(plan.tracks.size(), 0);
@@ -782,7 +787,7 @@ void prepareMixPlan(const MixPlan& plan, double sampleRate) {
         const bool hasProc = !plan.voices[first].processors.empty();
         anyVoiceProc |= hasProc;
         for (const auto& processor : plan.voices[first].processors) {
-            processor->prepare(sampleRate);
+            processor->prepare(sampleRate, blockFrames);
             sum += processor->effectiveLatencySamples();
         }
         state.voiceLatency[first] = sum;
@@ -839,7 +844,7 @@ void prepareMixPlan(const MixPlan& plan, double sampleRate) {
         procLats.reserve(plan.tracks[i].processors.size());
         if (!plan.tracks[i].processors.empty()) { anyTrackProc = true; }
         for (const auto& processor : plan.tracks[i].processors) {
-            processor->prepare(sampleRate);
+            processor->prepare(sampleRate, blockFrames);
             const int lat = processor->effectiveLatencySamples();
             procLats.push_back(lat);
             sum += lat;
@@ -851,7 +856,7 @@ void prepareMixPlan(const MixPlan& plan, double sampleRate) {
     state.masterProcLatencies.clear();
     state.masterProcLatencies.reserve(plan.processors.size());
     for (const auto& processor : plan.processors) {
-        processor->prepare(sampleRate);
+        processor->prepare(sampleRate, blockFrames);
         const int lat = processor->effectiveLatencySamples();
         state.masterProcLatencies.push_back(lat);
         masterLatency += lat;
@@ -868,6 +873,7 @@ void prepareMixPlan(const MixPlan& plan, double sampleRate) {
     state.maxTrackLatency.store(maxTrackLatency, std::memory_order_release);
     state.masterPluginLatency.store(masterLatency, std::memory_order_release);
     state.sampleRate = sampleRate;
+    state.deviceBlockFrames = blockFrames;
     state.quantumCursor = 0;
     state.nextMs = std::numeric_limits<double>::quiet_NaN();
 }
@@ -973,6 +979,22 @@ void serviceMixPlanControl(const MixPlan& plan) {
         for (const auto& delay : plan.state->trackDelay) {
             if (delay) { (void)delay->serviceOverflow(); }
         }
+    }
+}
+
+void armMixPlanForPlayback(const MixPlan& plan) {
+    for (const auto& voice : plan.voices) {
+        for (const auto& processor : voice.processors) {
+            if (processor) processor->armForPlayback();
+        }
+    }
+    for (const auto& track : plan.tracks) {
+        for (const auto& processor : track.processors) {
+            if (processor) processor->armForPlayback();
+        }
+    }
+    for (const auto& processor : plan.processors) {
+        if (processor) processor->armForPlayback();
     }
 }
 

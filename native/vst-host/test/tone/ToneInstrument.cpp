@@ -1,8 +1,10 @@
 // A minimal VST3 instrument for vst_host_test: one sine voice per note and a
 // level parameter that its state saves, so the test needs no third-party plug-in.
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <chrono>
 #include <cmath>
 #include <map>
+#include <thread>
 #include <vector>
 
 // Host calls are serialized by Instance::lock, including audio processing and program changes.
@@ -35,6 +37,11 @@ public:
     void prepareToPlay(double sampleRate, int) override {
         rate_ = sampleRate;
         logPath_ = juce::SystemStats::getEnvironmentVariable("NT_TONE_MIDI_LOG", {});
+        injectDelayMs_ = juce::SystemStats::getEnvironmentVariable("NT_TONE_INJECT_DELAY_MS", "0").getIntValue();
+        injectDelayEvery_ = juce::SystemStats::getEnvironmentVariable("NT_TONE_INJECT_DELAY_EVERY", "0").getIntValue();
+        injectDelayStart_ = juce::SystemStats::getEnvironmentVariable("NT_TONE_INJECT_DELAY_START", "0").getIntValue();
+        injectStateDelayMs_ = juce::SystemStats::getEnvironmentVariable("NT_TONE_INJECT_STATE_DELAY_MS", "0").getIntValue();
+        blockCounter_ = 0;
         notes_.clear();
         setLatencySamples(latency_->get());
         delay_.assign(static_cast<size_t>(getLatencySamples()), 0.0f);
@@ -44,6 +51,12 @@ public:
     void reset() override { notes_.clear(); std::fill(delay_.begin(), delay_.end(), 0.0f); delayAt_ = 0; }
 
     void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override {
+        if (injectDelayMs_ > 0 && injectDelayEvery_ > 0) {
+            const int blk = blockCounter_++;
+            if (blk >= injectDelayStart_ && ((blk - injectDelayStart_) % injectDelayEvery_ == 0)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(injectDelayMs_));
+            }
+        }
         buffer.clear();
         int pos = 0;
         for (const auto meta : midi) {
@@ -66,11 +79,17 @@ public:
     }
 
     void getStateInformation(juce::MemoryBlock& dest) override {
+        if (injectStateDelayMs_ > 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(injectStateDelayMs_));
+        }
         juce::MemoryOutputStream stream(dest, false);
         stream.writeFloat(level_->get());
         stream.writeInt(currentProgram_);
     }
     void setStateInformation(const void* data, int size) override {
+        if (injectStateDelayMs_ > 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(injectStateDelayMs_));
+        }
         if (size >= static_cast<int>(sizeof(float))) {
             juce::MemoryInputStream stream(data, static_cast<size_t>(size), false);
             *level_ = stream.readFloat();
@@ -116,6 +135,11 @@ private:
     juce::String logPath_;
     double rate_ = 48000;
     int currentProgram_ = 0;
+    int injectDelayMs_ = 0;
+    int injectDelayEvery_ = 0;
+    int injectDelayStart_ = 0;
+    int injectStateDelayMs_ = 0;
+    int blockCounter_ = 0;
 };
 
 // native-rules #4: returns a raw owning pointer the caller must free

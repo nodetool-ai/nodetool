@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <numbers>
@@ -1515,6 +1516,8 @@ for line in sys.stdin:
             for (int b = 0; b < 50; ++b) {
                 engine.renderManual(block, static_cast<std::int64_t>(b) * 10'000'000LL);
                 recorded.insert(recorded.end(), block.begin(), block.end());
+                // Pace manual callbacks so the non-blocking RT IPC worker stays ahead of the loop.
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
             engine.stop();
             // Note starts at tick 480 = 250ms = frame 12000 -> frames 14000..22000 must sound at ~0.5x!
@@ -1723,6 +1726,7 @@ for line in sys.stdin:
             for (int b = 0; b < 10; ++b) {
                 engine.renderManual(block, static_cast<std::int64_t>(b) * 10'000'000LL);
                 liveOut.insert(liveOut.end(), block.begin(), block.end());
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
             engine.stop();
             const auto [liveFrame, liveVal] = peakFrame(liveOut, 0, static_cast<int>(liveOut.size() / 2));
@@ -1794,16 +1798,18 @@ for line in sys.stdin:
             vp.linearCount = 4096;
             std::vector<float> out(std::size_t{128} * 2, 0.0f);
             nt::audio::MixStats st;
-            // 8 blocks = 1024 frames at latency=0 -> dry ring must record these 0.5f frames.
-            for (int b = 0; b < 8; ++b) {
+            // 12 blocks = 1536 frames at latency=0 -> primes async pipeline + dry ring with 0.5f frames.
+            for (int b = 0; b < 12; ++b) {
                 nt::audio::mixBlock(plan, &vp, 48000.0, b * 128 * 1000.0 / 48000.0, 1000.0 / 48000.0, 128, out.data(), st);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
             // Dynamically switch live plugin latency 0 -> 512 (same instance id "fx:a1:d7-fx").
             QVERIFY2(client->setLiveState(QStringLiteral("fx:a1:d7-fx"), state512, &error), qPrintable(error));
-            // Process 2 blocks: first block updates channel->latencySamples to 512; second reads from dry ring at delay=512.
+            // Process 3 blocks: updates channel->latencySamples to 512 and reads from dry ring at delay=512+async.
             float minSample = 1.0f;
-            for (int b = 8; b < 11; ++b) {
+            for (int b = 12; b < 15; ++b) {
                 nt::audio::mixBlock(plan, &vp, 48000.0, b * 128 * 1000.0 / 48000.0, 1000.0 / 48000.0, 128, out.data(), st);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 for (std::size_t f = 0; f < 128; ++f) {
                     minSample = std::min(minSample, out[f * 2]);
                 }
@@ -1869,20 +1875,24 @@ for line in sys.stdin:
             nt::audio::VoicePcm vp[2]{};
             vp[0].linear = imp.data(); vp[0].linearCount = 4096;
             vp[1].linear = imp.data(); vp[1].linearCount = 4096;
-            std::vector<float> out(std::size_t{2048} * 2, 0.0f);
+            std::vector<float> out(std::size_t{2560} * 2, 0.0f);
             nt::audio::MixStats st;
             // Warm up 1 block, then kill the host!
             nt::audio::mixBlock(plan, vp, 48000.0, 0.0, 1000.0 / 48000.0, 128, out.data(), st);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
             client->terminateHostForTest();
-            for (int at = 128; at < 2048; at += 128) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            for (int at = 128; at < 2560; at += 128) {
                 nt::audio::mixBlock(plan, vp, 48000.0, at * 1000.0 / 48000.0, 1000.0 / 48000.0, 128,
                                     out.data() + static_cast<std::size_t>(at) * 2, st);
             }
-            // No unaligned early impulse at frame 1000; both tracks align at frame 1512 (0.5 + 0.5 = 1.0).
+            // No unaligned early impulse at frame 1000; both tracks align at frame 1000 + 512 + kAsyncLatencyFrames.
+            const std::size_t alignedFrame = static_cast<std::size_t>(1512 + VstLiveChannel::kAsyncLatencyFrames);
             QVERIFY2(std::abs(out[std::size_t{1000} * 2]) < 1e-4f,
                      qPrintable(QStringLiteral("D9 early undelayed passthrough at frame 1000: %1").arg(out[std::size_t{1000} * 2])));
-            QVERIFY2(std::abs(out[std::size_t{1512} * 2] - 1.0f) < 1e-3f,
-                     qPrintable(QStringLiteral("D9 expected aligned dry sum 1.0 at frame 1512, got %1").arg(out[std::size_t{1512} * 2])));
+            QVERIFY2(std::abs(out[alignedFrame * 2] - 1.0f) < 1e-3f,
+                     qPrintable(QStringLiteral("D9 expected aligned dry sum 1.0 at frame %1, got %2")
+                                    .arg(alignedFrame).arg(out[alignedFrame * 2])));
         }
     }
 
@@ -2129,9 +2139,11 @@ for line in sys.stdin:
 
         // 2. Mutate the live plug-in instance's latency in the host to 512 while keeping the timeline's
         //    `state` IDENTICAL to state0 (and stale the channel's cached latency back to 0).
-        //    VstLivePool::acquire sees appliedState() == state0 so it does NOT call setLiveState, and
-        //    prepareRate(48000) is a no-op; ONLY reprobeMixPlanLatency() can discover 512 from the host.
+        //    Verify reprobeMixPlanLatency() discovers 512 on the live plan WITHOUT flipping it to offline,
+        //    AND verify renderOffline() uses an isolated offline channel without disturbing `pooled`.
         {
+            const auto livePlan = nt::audio::buildMixPlan(makeTl(state0));
+            nt::audio::prepareMixPlan(livePlan, 48000.0);
             auto pooled = sharedVstLivePool().acquire(*client, QStringLiteral("fx:t1:reprobe-fx"),
                                                       gain->path, gain->uid, state0, 48000.0, &error);
             QVERIFY2(pooled && pooled->connected(), qPrintable(error));
@@ -2143,14 +2155,21 @@ for line in sys.stdin:
             QCOMPARE(pooled->latencySamples(), 0);
             QCOMPARE(pooled->appliedState(), state0);
 
-            const auto secondOut = nt::audio::renderOffline(makeTl(state0), 48000, 0, 200);
+            nt::audio::reprobeMixPlanLatency(livePlan, 48000.0);
             QCOMPARE(pooled->latencySamples(), 512);
+            QCOMPARE(nt::audio::planLatencySamples(livePlan), 512 + VstLiveChannel::kAsyncLatencyFrames);
+
+            // Offline render uses its own isolated channel (D11) and compensates state512's 512-sample latency.
+            const auto secondOut = nt::audio::renderOffline(makeTl(state512), 48000, 0, 200);
             QVERIFY2(std::abs(secondOut[std::size_t{kImpulseFrame} * 2] - 0.75f) < 1e-3f,
                      qPrintable(QStringLiteral("reprobed offline render misaligned at frame 1000: got %1 expected 0.75")
                                     .arg(secondOut[std::size_t{kImpulseFrame} * 2])));
             QVERIFY2(std::abs(secondOut[std::size_t{kImpulseFrame + 512} * 2]) < 1e-4f,
-                     qPrintable(QStringLiteral("uncompensated ghost at +512 after pooled latency change: %1")
+                     qPrintable(QStringLiteral("uncompensated ghost at +512 after offline render: %1")
                                     .arg(secondOut[std::size_t{kImpulseFrame + 512} * 2])));
+            // Isolated offline render with state0 must NOT mutate or disturb the live pooled channel (still 512).
+            (void)nt::audio::renderOffline(makeTl(state0), 48000, 0, 200);
+            QCOMPARE(pooled->latencySamples(), 512);
         }
 
         // 2b. D4: Continuous-sine live bypass/un-bypass on VstLiveEffectProcessor (wet == 1.0, 512 latency)
@@ -2178,6 +2197,7 @@ for line in sys.stdin:
                 nt::audio::BlockContext ctx{48000.0, static_cast<double>(at) * 1000.0 / 48000.0,
                                             1000.0 / 48000.0, false, 0};
                 (void)fxProc->processBlock(blk, ctx);
+                std::this_thread::sleep_for(std::chrono::microseconds(500));
             }
             for (int boundary : {2048, 4096}) {
                 float maxStep = 0.0f;
@@ -2266,9 +2286,10 @@ for line in sys.stdin:
             engine.feed().command.store(cmd);
             QTRY_VERIFY(engine.stats().sessions >= 1);
             QTest::qWait(60);
+            const int expectedLivePdc = 512 + VstLiveChannel::kAsyncLatencyFrames;
             std::vector<float> blk(std::size_t{480} * 2, 0.0f);
             engine.renderManual(blk, 0);
-            QCOMPARE(engine.stats().pdcLatencyFrames, 512);
+            QCOMPARE(engine.stats().pdcLatencyFrames, expectedLivePdc);
             const auto buildsBeforeBypass = engine.stats().planBuilds;
             // Pause and bypass: workerLoop must keep pdcLatencyFrames at 0 even before next audio block.
             cmd.seq = 2; cmd.playing = false;
@@ -2284,7 +2305,7 @@ for line in sys.stdin:
             QCOMPARE(engine.stats().pdcLatencyFrames, 0);
             engine.setTimeline(activeTl);
             engine.renderManual(blk, 20'000'000LL);
-            QCOMPARE(engine.stats().pdcLatencyFrames, 512);
+            QCOMPARE(engine.stats().pdcLatencyFrames, expectedLivePdc);
             QCOMPARE(engine.stats().planBuilds, buildsBeforeBypass);
             engine.stop();
         }
@@ -2450,6 +2471,7 @@ for line in sys.stdin:
                 }
                 nt::audio::mixBlock(plan, &vp, 48000.0, at * 1000.0 / 48000.0, 1000.0 / 48000.0, 128,
                                     out.data() + static_cast<std::size_t>(at) * 2, st);
+                std::this_thread::sleep_for(std::chrono::microseconds(500));
             }
 
             const double inputRms = rmsInterleaved(sine, kJumpAt, kTotal);
@@ -2614,6 +2636,1606 @@ for line in sys.stdin:
             QVERIFY(!QFileInfo::exists(seen.value(QStringLiteral("shmPath")).toString()));
             QVERIFY(!QFileInfo::exists(seen.value(QStringLiteral("sockPath")).toString()));
         }
+#endif
+    }
+
+    // VST2 (C3/F1 + F2): Headless stress test with ToneInstrument injecting 35 ms host delays.
+    // Asserts: callback never blocks past a small bound, channel never disconnects permanently,
+    // no permanent silence after delays, and underrun transitions fade smoothly without clicks.
+    void vst2_hostDelayStressNoCallbackStallNoPermanentSilenceAndFadeConcealment() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        if (hostExe.isEmpty() || toneVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or ToneInstrument.vst3 not built in native/vst-host/build");
+        }
+
+        // Inject 35 ms host stalls (> old 25 ms timeout) every 30 blocks starting at block 15.
+        qputenv("NT_TONE_INJECT_DELAY_MS", "35");
+        qputenv("NT_TONE_INJECT_DELAY_EVERY", "30");
+        qputenv("NT_TONE_INJECT_DELAY_START", "15");
+        const auto restoreEnv = qScopeGuard([] {
+            qunsetenv("NT_TONE_INJECT_DELAY_MS");
+            qunsetenv("NT_TONE_INJECT_DELAY_EVERY");
+            qunsetenv("NT_TONE_INJECT_DELAY_START");
+        });
+
+        VstHostClient client;
+        client.setOverrideExecutable(hostExe);
+        client.setExtraScanDirs({QFileInfo(toneVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* tone = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
+        }
+        QVERIFY(tone != nullptr);
+
+        const QJsonObject toneRef{{"uid", tone->uid}, {"name", tone->name}, {"vendor", tone->vendor}, {"path", tone->path}};
+        const QJsonObject raw{
+            {"id", "tl-vst2-stress"}, {"name", "VST2 Stress"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+            {"durationMs", 2000},
+            {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}},
+            {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+            {"tracks", QJsonArray{
+                QJsonObject{{"id", "m1"}, {"name", "Synth"}, {"type", "midi"}, {"index", 0},
+                            {"volumeDb", 0}, {"pan", 0}, {"muted", false}, {"solo", false},
+                            {"instrument", QJsonObject{{"type", "vst"}, {"plugin", toneRef}, {"state", QJsonValue::Null}, {"gainDb", 0}}},
+                            {"effects", QJsonArray{}}}}},
+            {"clips", QJsonArray{
+                QJsonObject{{"id", "c1"}, {"trackId", "m1"}, {"name", "Hold"}, {"startMs", 0}, {"durationMs", 2000},
+                            {"inPointMs", 0}, {"outPointMs", 2000}, {"mediaType", "midi"}, {"sourceType", "generated"},
+                            {"status", "ready"}, {"locked", false},
+                            {"notes", QJsonArray{QJsonObject{{"id", "n1"}, {"pitch", 60}, {"velocity", 110},
+                                                             {"startTick", 0}, {"durationTick", 3840}}}}}}}};
+        const auto tl = parseRaw(raw);
+        // Build base plan without triggering global sharedVstHostClient stage, then attach isolated client/pool.
+        QJsonObject rawNoInst = raw;
+        auto noInstTracks = rawNoInst.value(u"tracks").toArray();
+        auto noInstTrack0 = noInstTracks[0].toObject();
+        noInstTrack0.remove(QStringLiteral("instrument"));
+        noInstTracks[0] = noInstTrack0;
+        rawNoInst.insert(QStringLiteral("tracks"), noInstTracks);
+        nt::audio::MixPlan plan = nt::audio::buildMixPlan(parseRaw(rawNoInst));
+        for (auto& trackPlan : plan.tracks) {
+            trackPlan.processors.clear();
+        }
+        VstLivePool pool;
+        runVstInstrumentsStage(tl, plan, client, pool);
+        // Force prepareMixPlan to run at 48000 Hz after attaching the isolated VST processor.
+        nt::audio::prepareMixPlan(plan, 44100.0);
+        nt::audio::prepareMixPlan(plan, 48000.0);
+
+        auto ch = pool.acquire(client, QStringLiteral("inst:m1"), tone->path, tone->uid, {}, 48000.0, &error);
+        QVERIFY2(ch && ch->connected(), qPrintable(error));
+        // C3/F1: live VST instrument must report the added async pipeline block latency to PDC.
+        QCOMPARE(nt::audio::planLatencySamples(plan), VstLiveChannel::kAsyncLatencyFrames);
+
+        constexpr int kBlocks = 140;
+        constexpr int kBlockFrames = 128;
+        std::vector<float> recorded(static_cast<std::size_t>(kBlocks) * kBlockFrames * 2, 0.0f);
+        double maxCallbackMs = 0.0;
+        int overBound = 0;
+        nt::audio::MixStats stats;
+
+        for (int b = 0; b < kBlocks; ++b) {
+            const double tMs = static_cast<double>(b * kBlockFrames) * 1000.0 / 48000.0;
+            const auto t0 = std::chrono::steady_clock::now();
+            nt::audio::mixBlock(plan, nullptr, 48000.0, tMs, 1000.0 / 48000.0, kBlockFrames,
+                                recorded.data() + static_cast<std::size_t>(b * kBlockFrames) * 2, stats);
+            const double cbMs = std::chrono::duration<double, std::milli>(
+                                    std::chrono::steady_clock::now() - t0)
+                                    .count();
+            maxCallbackMs = std::max(maxCallbackMs, cbMs);
+            if (cbMs > 2.0) ++overBound;
+            std::this_thread::sleep_for(std::chrono::microseconds(2667));
+        }
+
+        const double tailRms = rmsInterleaved(recorded, static_cast<std::size_t>(kBlocks - 35) * kBlockFrames,
+                                              static_cast<std::size_t>(kBlocks) * kBlockFrames);
+        float maxStep = 0.0f;
+        for (std::size_t f = 1; f < static_cast<std::size_t>(kBlocks) * kBlockFrames; ++f) {
+            const float step = std::abs(recorded[f * 2] - recorded[(f - 1) * 2]);
+            maxStep = std::max(maxStep, step);
+        }
+        const std::uint64_t underruns = ch->underrunCount();
+        qInfo("VST2_STRESS maxCallbackMs=%.3f over2ms=%d connected=%d underruns=%llu tailRms=%.5f maxStep=%.5f",
+              maxCallbackMs, overBound, ch->connected() ? 1 : 0,
+              static_cast<unsigned long long>(underruns), tailRms, maxStep);
+
+        QVERIFY2(maxCallbackMs < 2.0,
+                 qPrintable(QStringLiteral("Callback blocked for %1 ms (bound 2.0 ms)").arg(maxCallbackMs, 0, 'f', 3)));
+        QVERIFY2(ch->connected(), "Late host block must never set connected=false");
+        QVERIFY2(underruns > 0, "Expected injected 35 ms host delays to record underruns in atomic counter");
+        QVERIFY2(tailRms > 0.02,
+                 qPrintable(QStringLiteral("Permanent silence after host stalls: tailRms=%1").arg(tailRms)));
+        QVERIFY2(maxStep < 0.015f,
+                 qPrintable(QStringLiteral("Hard click at underrun boundary: maxStep=%1").arg(maxStep)));
+        pool.evictAll(&client);
+#endif
+    }
+
+    // VST2 (F2): Killing the host peer mid-stream must not block the callback, must fade out cleanly,
+    // and must recover automatically on the control thread via serviceMixPlanControl().
+    void vst2_deadHostPeerRecoversOnControlThreadWithoutBlockingCallback() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        if (hostExe.isEmpty() || toneVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or ToneInstrument.vst3 not built in native/vst-host/build");
+        }
+
+        VstHostClient client;
+        client.setOverrideExecutable(hostExe);
+        client.setExtraScanDirs({QFileInfo(toneVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* tone = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
+        }
+        QVERIFY(tone != nullptr);
+
+        // Two long held notes (no note-off clicks from the envelope-less test synth):
+        // note 1 plays across the host crash (b=30, ~80 ms) and note 2 starts after control recovery (~150 ms).
+        const QJsonArray notes{
+            QJsonObject{{"id", "n0"}, {"pitch", 60}, {"velocity", 110}, {"startTick", 0}, {"durationTick", 3840}},
+            QJsonObject{{"id", "n1"}, {"pitch", 64}, {"velocity", 110}, {"startTick", 288}, {"durationTick", 3840}},
+        };
+        const QJsonObject toneRef{{"uid", tone->uid}, {"name", tone->name}, {"vendor", tone->vendor}, {"path", tone->path}};
+        const QJsonObject raw{
+            {"id", "tl-vst2-recover"}, {"name", "VST2 Recover"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+            {"durationMs", 2000},
+            {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}},
+            {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+            {"tracks", QJsonArray{
+                QJsonObject{{"id", "m1"}, {"name", "Synth"}, {"type", "midi"}, {"index", 0},
+                            {"volumeDb", 0}, {"pan", 0}, {"muted", false}, {"solo", false},
+                            {"instrument", QJsonObject{{"type", "vst"}, {"plugin", toneRef}, {"state", QJsonValue::Null}, {"gainDb", 0}}},
+                            {"effects", QJsonArray{}}}}},
+            {"clips", QJsonArray{
+                QJsonObject{{"id", "c1"}, {"trackId", "m1"}, {"name", "Pulse"}, {"startMs", 0}, {"durationMs", 2000},
+                            {"inPointMs", 0}, {"outPointMs", 2000}, {"mediaType", "midi"}, {"sourceType", "generated"},
+                            {"status", "ready"}, {"locked", false}, {"notes", notes}}}}};
+
+        QJsonObject rawNoInst = raw;
+        auto noInstTracks = rawNoInst.value(u"tracks").toArray();
+        auto noInstTrack0 = noInstTracks[0].toObject();
+        noInstTrack0.remove(QStringLiteral("instrument"));
+        noInstTracks[0] = noInstTrack0;
+        rawNoInst.insert(QStringLiteral("tracks"), noInstTracks);
+
+        const auto tl = parseRaw(raw);
+        nt::audio::MixPlan plan = nt::audio::buildMixPlan(parseRaw(rawNoInst));
+        for (auto& trackPlan : plan.tracks) {
+            trackPlan.processors.clear();
+        }
+        VstLivePool pool;
+        runVstInstrumentsStage(tl, plan, client, pool);
+        nt::audio::prepareMixPlan(plan, 44100.0);
+        nt::audio::prepareMixPlan(plan, 48000.0);
+
+        auto ch = pool.acquire(client, QStringLiteral("inst:m1"), tone->path, tone->uid, {}, 48000.0, &error);
+        QVERIFY2(ch && ch->connected(), qPrintable(error));
+
+        constexpr int kBlocks = 140;
+        constexpr int kBlockFrames = 128;
+        std::vector<float> recorded(static_cast<std::size_t>(kBlocks) * kBlockFrames * 2, 0.0f);
+        double maxCallbackMs = 0.0;
+        nt::audio::MixStats stats;
+        bool killed = false;
+        bool recovered = false;
+
+        for (int b = 0; b < kBlocks; ++b) {
+            if (b == 30 && !killed) {
+                killed = true;
+                client.terminateHostForTest();
+            }
+            if (b >= 45 && !recovered && ch->peerDead()) {
+                nt::audio::serviceMixPlanControl(plan);
+                recovered = (ch->recoveryCount() >= 1);
+            }
+            const double tMs = static_cast<double>(b * kBlockFrames) * 1000.0 / 48000.0;
+            const auto t0 = std::chrono::steady_clock::now();
+            nt::audio::mixBlock(plan, nullptr, 48000.0, tMs, 1000.0 / 48000.0, kBlockFrames,
+                                recorded.data() + static_cast<std::size_t>(b * kBlockFrames) * 2, stats);
+            const double cbMs = std::chrono::duration<double, std::milli>(
+                                    std::chrono::steady_clock::now() - t0)
+                                    .count();
+            maxCallbackMs = std::max(maxCallbackMs, cbMs);
+            std::this_thread::sleep_for(std::chrono::microseconds(2667));
+        }
+
+        const double preCrashRms = rmsInterleaved(recorded, 8 * kBlockFrames, 28 * kBlockFrames);
+        const double postRecoverRms = rmsInterleaved(recorded, 95 * kBlockFrames, 135 * kBlockFrames);
+        float maxStep = 0.0f;
+        for (std::size_t f = 1; f < static_cast<std::size_t>(kBlocks) * kBlockFrames; ++f) {
+            maxStep = std::max(maxStep, std::abs(recorded[f * 2] - recorded[(f - 1) * 2]));
+        }
+        qInfo("VST2_RECOVER maxCallbackMs=%.3f recoveries=%llu underruns=%llu preRms=%.5f postRms=%.5f maxStep=%.5f",
+              maxCallbackMs, static_cast<unsigned long long>(ch->recoveryCount()),
+              static_cast<unsigned long long>(ch->underrunCount()), preCrashRms, postRecoverRms, maxStep);
+
+        QVERIFY2(maxCallbackMs < 2.0,
+                 qPrintable(QStringLiteral("Callback stalled during crash/recovery: %1 ms").arg(maxCallbackMs, 0, 'f', 3)));
+        QVERIFY2(ch->recoveryCount() >= 1, "Control thread must recover dead host peer");
+        QVERIFY2(ch->connected(), "Recovered channel must be connected");
+        QVERIFY2(ch->underrunCount() > 0, "Crash window must record underruns");
+        QVERIFY2(preCrashRms > 0.02 && postRecoverRms > 0.02,
+                 qPrintable(QStringLiteral("Expected audio before and after recovery: pre=%1 post=%2")
+                                .arg(preCrashRms).arg(postRecoverRms)));
+        QVERIFY2(maxStep < 0.015f,
+                 qPrintable(QStringLiteral("Hard click across crash/recovery fade: maxStep=%1").arg(maxStep)));
+        pool.evictAll(&client);
+#endif
+    }
+
+    // VST2 D1 / D2 / D3 / D13: Sync processBlock timeout must mark peerDead and recover cleanly
+    // without permanent socket framing desync, and close() while parked on peerDead must never deadlock.
+    void vst2_syncTimeoutAndParkedCloseNeverDesyncOrDeadlock() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        if (hostExe.isEmpty() || toneVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or ToneInstrument.vst3 not built in native/vst-host/build");
+        }
+
+        // Inject one 60 ms delay on block 1 only (every=1000, start=1).
+        qputenv("NT_TONE_INJECT_DELAY_MS", "60");
+        qputenv("NT_TONE_INJECT_DELAY_EVERY", "1000");
+        qputenv("NT_TONE_INJECT_DELAY_START", "1");
+        const auto restoreEnv = qScopeGuard([] {
+            qunsetenv("NT_TONE_INJECT_DELAY_MS");
+            qunsetenv("NT_TONE_INJECT_DELAY_EVERY");
+            qunsetenv("NT_TONE_INJECT_DELAY_START");
+        });
+
+        VstHostClient client;
+        client.setOverrideExecutable(hostExe);
+        client.setExtraScanDirs({QFileInfo(toneVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* tone = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
+        }
+        QVERIFY(tone != nullptr);
+
+        auto ch = VstLiveChannel::open(client, QStringLiteral("inst:d1-sync-timeout"),
+                                       tone->path, tone->uid, {}, 48000.0, &error);
+        QVERIFY2(ch && ch->connected(), qPrintable(error));
+
+        std::vector<float> blk(std::size_t{128} * 2, 0.0f);
+        const vsthost::ShmMidiEvent noteOn{0, 0x90, 60, 110, 0, 1, 0.0f};
+        // Block 0: succeeds quickly (no delay).
+        QVERIFY(ch->processBlock(blk, std::span<const vsthost::ShmMidiEvent>(&noteOn, 1), 48000.0, true, 50));
+        // Block 1: hits 60 ms delay with 15 ms sync timeout -> must fail AND mark peerDead so no framing desync occurs.
+        std::fill(blk.begin(), blk.end(), 0.0f);
+        QVERIFY(!ch->processBlock(blk, {}, 48000.0, false, 15));
+        QTRY_VERIFY_WITH_TIMEOUT(ch->peerDead(), 500);
+        // Wait for host delay to finish, then recover on control thread and verify subsequent blocks succeed cleanly!
+        QTest::qWait(80);
+        QVERIFY2(ch->recoverIfNeeded(), "D1: recoverIfNeeded must reopen clean transport after timeout");
+        QVERIFY(ch->connected());
+        std::fill(blk.begin(), blk.end(), 0.0f);
+        QVERIFY2(ch->processBlock(blk, std::span<const vsthost::ShmMidiEvent>(&noteOn, 1), 48000.0, true, 100),
+                 "D1: post-timeout recovered exchange must not fail with BlockError/desync");
+        QVERIFY(rmsInterleaved(blk, 0, 128) > 0.02);
+        ch->close(&client);
+
+        // D2: Tight loop killing host and calling close() immediately while worker parks on m_peerDead.
+        qunsetenv("NT_TONE_INJECT_DELAY_MS");
+        qunsetenv("NT_TONE_INJECT_DELAY_EVERY");
+        qunsetenv("NT_TONE_INJECT_DELAY_START");
+        for (int iter = 0; iter < 5; ++iter) {
+            auto chPark = VstLiveChannel::open(client, QStringLiteral("inst:d2-park-%1").arg(iter),
+                                               tone->path, tone->uid, {}, 48000.0, &error);
+            QVERIFY2(chPark && chPark->connected(), qPrintable(error));
+            client.terminateHostForTest();
+            (void)chPark->processBlockAsync(blk, {}, 48000.0, false);
+            QTRY_VERIFY_WITH_TIMEOUT(chPark->peerDead(), 1000);
+            const auto t0 = std::chrono::steady_clock::now();
+            chPark->close(&client);
+            const double closeMs = std::chrono::duration<double, std::milli>(
+                                       std::chrono::steady_clock::now() - t0).count();
+            QVERIFY2(closeMs < 1000.0, qPrintable(QStringLiteral("D2 close took %1 ms").arg(closeMs)));
+        }
+#endif
+    }
+
+    // VST2 D4: Fast dead-peer recovery completing BEFORE the next audio callback must not enter
+    // an infinite underrun loop, must preserve PDC alignment, and must re-chase the held note.
+    void vst2_fastDeadPeerRecoveryBetweenCallbacksRechasesHeldNote() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        if (hostExe.isEmpty() || toneVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or ToneInstrument.vst3 not built in native/vst-host/build");
+        }
+
+        VstHostClient client;
+        client.setOverrideExecutable(hostExe);
+        client.setExtraScanDirs({QFileInfo(toneVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* tone = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
+        }
+        QVERIFY(tone != nullptr);
+
+        // Single held note n0 ONLY (no second note after recovery!).
+        const QJsonArray notes{
+            QJsonObject{{"id", "n0"}, {"pitch", 60}, {"velocity", 110}, {"startTick", 0}, {"durationTick", 3840}},
+        };
+        const QJsonObject toneRef{{"uid", tone->uid}, {"name", tone->name}, {"vendor", tone->vendor}, {"path", tone->path}};
+        const QJsonObject raw{
+            {"id", "tl-vst2-d4"}, {"name", "VST2 D4"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+            {"durationMs", 2000},
+            {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}},
+            {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+            {"tracks", QJsonArray{
+                QJsonObject{{"id", "m1"}, {"name", "Synth"}, {"type", "midi"}, {"index", 0},
+                            {"volumeDb", 0}, {"pan", 0}, {"muted", false}, {"solo", false},
+                            {"instrument", QJsonObject{{"type", "vst"}, {"plugin", toneRef}, {"state", QJsonValue::Null}, {"gainDb", 0}}},
+                            {"effects", QJsonArray{}}}}},
+            {"clips", QJsonArray{
+                QJsonObject{{"id", "c1"}, {"trackId", "m1"}, {"name", "Hold"}, {"startMs", 0}, {"durationMs", 2000},
+                            {"inPointMs", 0}, {"outPointMs", 2000}, {"mediaType", "midi"}, {"sourceType", "generated"},
+                            {"status", "ready"}, {"locked", false}, {"notes", notes}}}}};
+
+        QJsonObject rawNoInst = raw;
+        auto noInstTracks = rawNoInst.value(u"tracks").toArray();
+        auto noInstTrack0 = noInstTracks[0].toObject();
+        noInstTrack0.remove(QStringLiteral("instrument"));
+        noInstTracks[0] = noInstTrack0;
+        rawNoInst.insert(QStringLiteral("tracks"), noInstTracks);
+
+        const auto tl = parseRaw(raw);
+        nt::audio::MixPlan plan = nt::audio::buildMixPlan(parseRaw(rawNoInst));
+        for (auto& trackPlan : plan.tracks) trackPlan.processors.clear();
+        VstLivePool pool;
+        runVstInstrumentsStage(tl, plan, client, pool);
+        nt::audio::prepareMixPlan(plan, 44100.0);
+        nt::audio::prepareMixPlan(plan, 48000.0);
+
+        auto ch = pool.acquire(client, QStringLiteral("inst:m1"), tone->path, tone->uid, {}, 48000.0, &error);
+        QVERIFY2(ch && ch->connected(), qPrintable(error));
+
+        constexpr int kBlocks = 100;
+        constexpr int kBlockFrames = 128;
+        std::vector<float> recorded(static_cast<std::size_t>(kBlocks) * kBlockFrames * 2, 0.0f);
+        nt::audio::MixStats stats;
+        std::uint64_t underrunsAfterRecovery = 0;
+
+        for (int b = 0; b < kBlocks; ++b) {
+            if (b == 25) {
+                // Kill host and immediately wait for worker to detect peerDead and recover BEFORE callback 25 runs!
+                client.terminateHostForTest();
+                // Push one idle wait for worker to notice EOF on socket or notice on next queued block.
+                // Actually wait for peerDead via socket EOF if host died, or trigger on block 25 then recover before 26.
+                const double tMs25 = static_cast<double>(25 * kBlockFrames) * 1000.0 / 48000.0;
+                nt::audio::mixBlock(plan, nullptr, 48000.0, tMs25, 1000.0 / 48000.0, kBlockFrames,
+                                    recorded.data() + static_cast<std::size_t>(25 * kBlockFrames) * 2, stats);
+                QTRY_VERIFY_WITH_TIMEOUT(ch->peerDead(), 1000);
+                // Recover BEFORE callback 26 ever runs (callback never sees dead==true!).
+                nt::audio::serviceMixPlanControl(plan);
+                QVERIFY2(ch->recoveryCount() >= 1 && ch->connected(), "D4: recovery must complete between callbacks");
+                underrunsAfterRecovery = ch->underrunCount();
+                continue;
+            }
+            const double tMs = static_cast<double>(b * kBlockFrames) * 1000.0 / 48000.0;
+            nt::audio::mixBlock(plan, nullptr, 48000.0, tMs, 1000.0 / 48000.0, kBlockFrames,
+                                recorded.data() + static_cast<std::size_t>(b * kBlockFrames) * 2, stats);
+            std::this_thread::sleep_for(std::chrono::microseconds(2667));
+        }
+
+        const double preRms = rmsInterleaved(recorded, 8 * kBlockFrames, 24 * kBlockFrames);
+        const double postRms = rmsInterleaved(recorded, 55 * kBlockFrames, 95 * kBlockFrames);
+        const std::uint64_t extraUnderruns = ch->underrunCount() - underrunsAfterRecovery;
+        QVERIFY2(preRms > 0.02, qPrintable(QStringLiteral("D4 preRms=%1").arg(preRms)));
+        QVERIFY2(postRms > 0.02,
+                 qPrintable(QStringLiteral("D4 held note silent or stuck in underrun loop after fast recovery: postRms=%1 extraUnderruns=%2")
+                                .arg(postRms).arg(extraUnderruns)));
+        QVERIFY2(extraUnderruns <= 2,
+                 qPrintable(QStringLiteral("D4 infinite underrun loop after fast recovery: extraUnderruns=%1").arg(extraUnderruns)));
+        pool.evictAll(&client);
+#endif
+    }
+
+    // VST2 D8: VstEffectProcessor host-delay stress (wet=0.5) and dead-peer fallback/recovery crossfade.
+    void vst2_effectHostDelayStressAndDeadPeerCrossfade() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString gainVst = findTestArtifact(QStringLiteral("GainEffect_artefacts/Release/VST3/NodeTool Test Gain.vst3"));
+        if (hostExe.isEmpty() || gainVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or GainEffect.vst3 not built in native/vst-host/build");
+        }
+
+        // Part A: 35 ms host-delay stress on VstEffectProcessor with wet = 0.5.
+        {
+            qputenv("NT_GAIN_INJECT_DELAY_MS", "35");
+            qputenv("NT_GAIN_INJECT_DELAY_EVERY", "25");
+            qputenv("NT_GAIN_INJECT_DELAY_START", "12");
+            const auto restoreEnv = qScopeGuard([] {
+                qunsetenv("NT_GAIN_INJECT_DELAY_MS");
+                qunsetenv("NT_GAIN_INJECT_DELAY_EVERY");
+                qunsetenv("NT_GAIN_INJECT_DELAY_START");
+            });
+
+            VstHostClient client;
+            client.setOverrideExecutable(hostExe);
+            client.setExtraScanDirs({QFileInfo(gainVst).absolutePath()});
+            std::vector<VstPluginInfo> plugins;
+            QString error;
+            QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+            const VstPluginInfo* gain = nullptr;
+            for (const auto& p : plugins) {
+                if (QFileInfo(p.path).canonicalFilePath() == gainVst) gain = &p;
+            }
+            QVERIFY(gain != nullptr);
+
+            const QJsonObject gainRef{{"uid", gain->uid}, {"name", gain->name}, {"vendor", gain->vendor}, {"path", gain->path}};
+            const QJsonObject fx{{"id", "fx-stress"}, {"type", "vst"}, {"enabled", true},
+                                 {"plugin", gainRef}, {"state", QJsonValue::Null}, {"wet", 0.5}};
+            const QJsonObject raw{
+                {"id", "tl-d8-stress"}, {"name", "D8 Stress"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+                {"durationMs", 2000}, {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+                {"tracks", QJsonArray{QJsonObject{{"id", "a1"}, {"name", "A1"}, {"type", "audio"}, {"index", 0},
+                                                  {"volumeDb", 0}, {"pan", 0}, {"effects", QJsonArray{fx}}}}},
+                {"clips", QJsonArray{QJsonObject{{"id", "c1"}, {"trackId", "a1"}, {"name", "Sine"}, {"startMs", 0},
+                                                 {"durationMs", 2000}, {"inPointMs", 0}, {"mediaType", "audio"},
+                                                 {"status", "generated"}, {"mediaPath", "unused.wav"}}}}};
+            QJsonObject rawNoFx = raw;
+            auto tr = rawNoFx.value(u"tracks").toArray();
+            auto tr0 = tr[0].toObject();
+            // Keep a dummy built-in gain effect so buildMixPlan allocates plan.state, then replace with VST effect.
+            tr0.insert(QStringLiteral("effects"), QJsonArray{
+                QJsonObject{{"id", "dummy-gain"}, {"type", "gain"}, {"enabled", true}, {"gainDb", 0.0}}});
+            tr[0] = tr0;
+            rawNoFx.insert(QStringLiteral("tracks"), tr);
+
+            const auto tl = parseRaw(raw);
+            auto plan = nt::audio::buildMixPlan(parseRaw(rawNoFx));
+            QVERIFY(plan.state != nullptr);
+            for (auto& tp : plan.tracks) tp.processors.clear();
+            VstLivePool pool;
+            runVstEffectsStage(tl, plan, client, pool);
+            nt::audio::prepareMixPlan(plan, 44100.0);
+            nt::audio::prepareMixPlan(plan, 48000.0);
+            auto ch = pool.acquire(client, QStringLiteral("fx:a1:fx-stress"), gain->path, gain->uid, {}, 48000.0, &error);
+            QVERIFY2(ch && ch->connected(), qPrintable(error));
+
+            constexpr int kBlocks = 100;
+            constexpr int kBlockFrames = 128;
+            constexpr int kTotalFrames = kBlocks * kBlockFrames;
+            std::vector<float> sine(static_cast<std::size_t>(kTotalFrames) * 2, 0.0f);
+            for (int i = 0; i < kTotalFrames; ++i) {
+                const float s = static_cast<float>(0.4 * std::sin(2.0 * std::numbers::pi * 220.0 * i / 48000.0));
+                sine[static_cast<std::size_t>(i) * 2] = s;
+                sine[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            nt::audio::VoicePcm vp{};
+            vp.linear = sine.data();
+            vp.linearCount = kTotalFrames;
+            std::vector<float> out(static_cast<std::size_t>(kTotalFrames) * 2, 0.0f);
+            nt::audio::MixStats st;
+            double maxCbMs = 0.0;
+            for (int b = 0; b < kBlocks; ++b) {
+                const auto t0 = std::chrono::steady_clock::now();
+                nt::audio::mixBlock(plan, &vp, 48000.0, static_cast<double>(b * kBlockFrames) * 1000.0 / 48000.0,
+                                    1000.0 / 48000.0, kBlockFrames,
+                                    out.data() + static_cast<std::size_t>(b * kBlockFrames) * 2, st);
+                maxCbMs = std::max(maxCbMs, std::chrono::duration<double, std::milli>(
+                                                std::chrono::steady_clock::now() - t0).count());
+                std::this_thread::sleep_for(std::chrono::microseconds(2667));
+            }
+            float maxStep = 0.0f;
+            for (int f = 1; f < kTotalFrames; ++f) {
+                maxStep = std::max(maxStep, std::abs(out[static_cast<std::size_t>(f) * 2] -
+                                                     out[static_cast<std::size_t>(f - 1) * 2]));
+            }
+            const double tailRms = rmsInterleaved(out, (kBlocks - 25) * kBlockFrames, kTotalFrames);
+            QVERIFY2(maxCbMs < 2.0, qPrintable(QStringLiteral("D8 effect maxCbMs=%1").arg(maxCbMs)));
+            QVERIFY(ch->connected());
+            QVERIFY(ch->underrunCount() > 0);
+            QVERIFY2(tailRms > 0.1, qPrintable(QStringLiteral("D8 effect tailRms=%1").arg(tailRms)));
+            QVERIFY2(maxStep < 0.04f, qPrintable(QStringLiteral("D8 effect stress maxStep=%1").arg(maxStep)));
+            pool.evictAll(&client);
+        }
+
+        // Part B: VstEffectProcessor dead-peer fallback and recovery must crossfade smoothly (no wet->dry or dry->silence click).
+        {
+            VstHostClient client;
+            client.setOverrideExecutable(hostExe);
+            client.setExtraScanDirs({QFileInfo(gainVst).absolutePath()});
+            std::vector<VstPluginInfo> plugins;
+            QString error;
+            QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+            const VstPluginInfo* gain = nullptr;
+            for (const auto& p : plugins) {
+                if (QFileInfo(p.path).canonicalFilePath() == gainVst) gain = &p;
+            }
+            QVERIFY(gain != nullptr);
+
+            const QJsonObject gainRef{{"uid", gain->uid}, {"name", gain->name}, {"vendor", gain->vendor}, {"path", gain->path}};
+            const QJsonObject fx{{"id", "fx-d8"}, {"type", "vst"}, {"enabled", true},
+                                 {"plugin", gainRef}, {"state", QJsonValue::Null}, {"wet", 1.0}};
+            const QJsonObject raw{
+                {"id", "tl-d8-xfade"}, {"name", "D8 Xfade"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+                {"durationMs", 2000}, {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+                {"tracks", QJsonArray{QJsonObject{{"id", "a1"}, {"name", "A1"}, {"type", "audio"}, {"index", 0},
+                                                  {"volumeDb", 0}, {"pan", 0}, {"effects", QJsonArray{fx}}}}},
+                {"clips", QJsonArray{QJsonObject{{"id", "c1"}, {"trackId", "a1"}, {"name", "DC"}, {"startMs", 0},
+                                                 {"durationMs", 2000}, {"inPointMs", 0}, {"mediaType", "audio"},
+                                                 {"status", "generated"}, {"mediaPath", "unused.wav"}}}}};
+            QJsonObject rawNoFx = raw;
+            auto tr = rawNoFx.value(u"tracks").toArray();
+            auto tr0 = tr[0].toObject();
+            tr0.insert(QStringLiteral("effects"), QJsonArray{
+                QJsonObject{{"id", "dummy-gain"}, {"type", "gain"}, {"enabled", true}, {"gainDb", 0.0}}});
+            tr[0] = tr0;
+            rawNoFx.insert(QStringLiteral("tracks"), tr);
+
+            const auto tl = parseRaw(raw);
+            auto plan = nt::audio::buildMixPlan(parseRaw(rawNoFx));
+            QVERIFY(plan.state != nullptr);
+            for (auto& tp : plan.tracks) tp.processors.clear();
+            VstLivePool pool;
+            runVstEffectsStage(tl, plan, client, pool);
+            nt::audio::prepareMixPlan(plan, 44100.0);
+            nt::audio::prepareMixPlan(plan, 48000.0);
+            auto ch = pool.acquire(client, QStringLiteral("fx:a1:fx-d8"), gain->path, gain->uid, {}, 48000.0, &error);
+            QVERIFY2(ch && ch->connected(), qPrintable(error));
+
+            // Use a slow 60 Hz sine (amplitude 0.6 -> natural max step ~0.0047/sample, wet gain 0.5 -> dry is 0.6, wet is 0.3).
+            constexpr int kBlocks = 100;
+            constexpr int kBlockFrames = 128;
+            constexpr int kTotalFrames = kBlocks * kBlockFrames;
+            std::vector<float> sine(static_cast<std::size_t>(kTotalFrames) * 2, 0.0f);
+            for (int i = 0; i < kTotalFrames; ++i) {
+                const float s = static_cast<float>(0.6 * std::sin(2.0 * std::numbers::pi * 60.0 * i / 48000.0));
+                sine[static_cast<std::size_t>(i) * 2] = s;
+                sine[static_cast<std::size_t>(i) * 2 + 1] = s;
+            }
+            nt::audio::VoicePcm vp{};
+            vp.linear = sine.data();
+            vp.linearCount = kTotalFrames;
+            std::vector<float> out(static_cast<std::size_t>(kTotalFrames) * 2, 0.0f);
+            nt::audio::MixStats st;
+            bool killed = false;
+            bool recovered = false;
+
+            for (int b = 0; b < kBlocks; ++b) {
+                if (b == 25 && !killed) {
+                    killed = true;
+                    client.terminateHostForTest();
+                }
+                if (b >= 45 && !recovered && ch->peerDead()) {
+                    nt::audio::serviceMixPlanControl(plan);
+                    recovered = (ch->recoveryCount() >= 1);
+                }
+                nt::audio::mixBlock(plan, &vp, 48000.0, static_cast<double>(b * kBlockFrames) * 1000.0 / 48000.0,
+                                    1000.0 / 48000.0, kBlockFrames,
+                                    out.data() + static_cast<std::size_t>(b * kBlockFrames) * 2, st);
+                std::this_thread::sleep_for(std::chrono::microseconds(2667));
+            }
+            QVERIFY(recovered);
+            float maxStep = 0.0f;
+            for (int f = 1; f < kTotalFrames; ++f) {
+                maxStep = std::max(maxStep, std::abs(out[static_cast<std::size_t>(f) * 2] -
+                                                     out[static_cast<std::size_t>(f - 1) * 2]));
+            }
+            QVERIFY2(maxStep < 0.03f,
+                     qPrintable(QStringLiteral("D8 hard click during effect dead-peer fallback/recovery: maxStep=%1").arg(maxStep)));
+            pool.evictAll(&client);
+        }
+#endif
+    }
+
+    // VST2 D10: Variable / non-divisor block sizes (64, 480, 512, mixed) under host stalls must not click.
+    void vst2_variableBlockSizesUnderHostStallsNoClicks() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        if (hostExe.isEmpty() || toneVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or ToneInstrument.vst3 not built in native/vst-host/build");
+        }
+
+        qputenv("NT_TONE_INJECT_DELAY_MS", "35");
+        qputenv("NT_TONE_INJECT_DELAY_EVERY", "12");
+        qputenv("NT_TONE_INJECT_DELAY_START", "6");
+        const auto restoreEnv = qScopeGuard([] {
+            qunsetenv("NT_TONE_INJECT_DELAY_MS");
+            qunsetenv("NT_TONE_INJECT_DELAY_EVERY");
+            qunsetenv("NT_TONE_INJECT_DELAY_START");
+        });
+
+        VstHostClient client;
+        client.setOverrideExecutable(hostExe);
+        client.setExtraScanDirs({QFileInfo(toneVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* tone = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
+        }
+        QVERIFY(tone != nullptr);
+
+        auto ch = VstLiveChannel::open(client, QStringLiteral("inst:d10-varblock"),
+                                       tone->path, tone->uid, {}, 48000.0, &error);
+        QVERIFY2(ch && ch->connected(), qPrintable(error));
+
+        const std::array<int, 5> pattern{480, 64, 512, 128, 480};
+        const vsthost::ShmMidiEvent noteOn{0, 0x90, 60, 120, 0, 1, 0.0f};
+        std::vector<float> recorded;
+        recorded.reserve(50000);
+        for (int b = 0; b < 60; ++b) {
+            const int nf = pattern[static_cast<std::size_t>(b) % pattern.size()];
+            std::vector<float> blk(static_cast<std::size_t>(nf) * 2, 0.0f);
+            const auto res = ch->processBlockAsync(
+                blk,
+                b == 0 ? std::span<const vsthost::ShmMidiEvent>(&noteOn, 1) : std::span<const vsthost::ShmMidiEvent>{},
+                48000.0, b == 0);
+            QVERIFY(!res.peerDead);
+            recorded.insert(recorded.end(), blk.begin(), blk.end());
+            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(nf * 1000000.0 / 48000.0)));
+        }
+        const std::size_t totalFrames = recorded.size() / 2;
+        float maxStep = 0.0f;
+        for (std::size_t f = 1; f < totalFrames; ++f) {
+            maxStep = std::max(maxStep, std::abs(recorded[f * 2] - recorded[(f - 1) * 2]));
+        }
+        const double tailRms = rmsInterleaved(recorded, totalFrames - 2048, totalFrames);
+        QVERIFY(ch->underrunCount() > 0);
+        QVERIFY2(tailRms > 0.02, qPrintable(QStringLiteral("D10 tailRms=%1").arg(tailRms)));
+        QVERIFY2(maxStep < 0.015f,
+                 qPrintable(QStringLiteral("D10 hard click on partial-frame underrun: maxStep=%1").arg(maxStep)));
+        ch->close(&client);
+#endif
+    }
+
+    // VST2 D11 / D12 / D14: reprobeMixPlanLatency must not latch a live plan to offline;
+    // record-armed / live-monitored instrument tracks use small look-ahead (<=128) with per-track PDC;
+    // seek flushes ahead queue cleanly without stale bleed.
+    void vst2_reprobeLiveModeLowLatencyArmedTracksAndSeekFlush() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        if (hostExe.isEmpty() || toneVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or ToneInstrument.vst3 not built in native/vst-host/build");
+        }
+
+        VstHostClient client;
+        client.setOverrideExecutable(hostExe);
+        client.setExtraScanDirs({QFileInfo(toneVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* tone = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
+        }
+        QVERIFY(tone != nullptr);
+
+        const QJsonObject toneRef{{"uid", tone->uid}, {"name", tone->name}, {"vendor", tone->vendor}, {"path", tone->path}};
+        auto makeMidiTl = [&](bool recordArmed, bool liveMonitor, bool withPlaybackTrack) {
+            QJsonArray tracks{
+                QJsonObject{{"id", "m1"}, {"name", "ArmedSynth"}, {"type", "midi"}, {"index", 0},
+                            {"volumeDb", 0}, {"pan", 0}, {"muted", false}, {"solo", false},
+                            {"recordArmed", recordArmed}, {"liveMonitor", liveMonitor},
+                            {"instrument", QJsonObject{{"type", "vst"}, {"plugin", toneRef}, {"state", QJsonValue::Null}, {"gainDb", 0}}},
+                            {"effects", QJsonArray{}}}
+            };
+            QJsonArray clips{
+                QJsonObject{{"id", "c1"}, {"trackId", "m1"}, {"name", "N1"}, {"startMs", 0}, {"durationMs", 500},
+                            {"inPointMs", 0}, {"outPointMs", 500}, {"mediaType", "midi"}, {"sourceType", "generated"},
+                            {"status", "ready"}, {"locked", false},
+                            {"notes", QJsonArray{QJsonObject{{"id", "n1"}, {"pitch", 60}, {"velocity", 110},
+                                                             {"startTick", 0}, {"durationTick", 960}}}}}
+            };
+            if (withPlaybackTrack) {
+                tracks.append(QJsonObject{
+                    {"id", "m2"}, {"name", "PlaybackSynth"}, {"type", "midi"}, {"index", 1},
+                    {"volumeDb", 0}, {"pan", 0}, {"muted", false}, {"solo", false},
+                    {"instrument", QJsonObject{{"type", "vst"}, {"plugin", toneRef}, {"state", QJsonValue::Null}, {"gainDb", 0}}},
+                    {"effects", QJsonArray{}}});
+                clips.append(QJsonObject{
+                    {"id", "c2"}, {"trackId", "m2"}, {"name", "N2"}, {"startMs", 0}, {"durationMs", 500},
+                    {"inPointMs", 0}, {"outPointMs", 500}, {"mediaType", "midi"}, {"sourceType", "generated"},
+                    {"status", "ready"}, {"locked", false},
+                    {"notes", QJsonArray{QJsonObject{{"id", "n2"}, {"pitch", 60}, {"velocity", 110},
+                                                     {"startTick", 0}, {"durationTick", 960}}}}});
+            }
+            return parseRaw(QJsonObject{
+                {"id", "tl-d11-d12"}, {"name", "D11D12"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+                {"durationMs", 2000},
+                {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}},
+                {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+                {"tracks", tracks}, {"clips", clips}});
+        };
+
+        auto buildIsolatedLivePlan = [&](const nt::Timeline& tl, VstLivePool& pool) {
+            QJsonObject rawNoInst = tl.raw;
+            auto tracks = rawNoInst.value(u"tracks").toArray();
+            for (int i = 0; i < tracks.size(); ++i) {
+                auto t = tracks[i].toObject();
+                t.remove(QStringLiteral("instrument"));
+                tracks[i] = t;
+            }
+            rawNoInst.insert(QStringLiteral("tracks"), tracks);
+            auto plan = nt::audio::buildMixPlan(parseRaw(rawNoInst));
+            for (auto& tp : plan.tracks) tp.processors.clear();
+            runVstInstrumentsStage(tl, plan, client, pool);
+            return plan;
+        };
+
+        // 1. D11: reprobeMixPlanLatency on a live plan must NOT switch it to offline mode or zero its async latency.
+        {
+            VstLivePool pool;
+            const auto tl = makeMidiTl(false, false, false);
+            auto plan = buildIsolatedLivePlan(tl, pool);
+            nt::audio::prepareMixPlan(plan, 44100.0);
+            nt::audio::prepareMixPlan(plan, 48000.0);
+            QCOMPARE(nt::audio::planLatencySamples(plan), VstLiveChannel::kAsyncLatencyFrames);
+            nt::audio::reprobeMixPlanLatency(plan, 48000.0);
+            QCOMPARE(nt::audio::planLatencySamples(plan), VstLiveChannel::kAsyncLatencyFrames);
+            pool.evictAll(&client);
+        }
+
+        // 2. C1 / D12: record-armed instrument track uses one device callback lookahead
+        //    covering the submitted quantum (64 -> 64, 128 -> 128, 480 -> 480, 512 -> 512)
+        //    and renders audio cleanly at 480 and 512 frames without permanent silence.
+        {
+            VstLivePool pool;
+            const auto tlArmed = makeMidiTl(true, false, false);
+            auto plan = buildIsolatedLivePlan(tlArmed, pool);
+            nt::audio::prepareMixPlan(plan, 48000.0, 64);
+            QCOMPARE(nt::audio::planLatencySamples(plan), 64);
+            nt::audio::prepareMixPlan(plan, 48000.0, 128);
+            QCOMPARE(nt::audio::planLatencySamples(plan), 128);
+            for (const int blockFrames : {480, 512}) {
+                nt::audio::prepareMixPlan(plan, 48000.0, blockFrames);
+                QCOMPARE(nt::audio::planLatencySamples(plan), blockFrames);
+                auto ch = pool.acquire(client, QStringLiteral("inst:m1"), tone->path, tone->uid, {}, 48000.0, &error);
+                QVERIFY2(ch && ch->connected(), qPrintable(error));
+                const std::uint64_t underrunsBefore = ch->underrunCount();
+                constexpr int kCallbacks = 14;
+                std::vector<float> rendered(static_cast<std::size_t>(kCallbacks * blockFrames) * 2, 0.0f);
+                nt::audio::MixStats st;
+                for (int b = 0; b < kCallbacks; ++b) {
+                    nt::audio::mixBlock(plan, nullptr, 48000.0,
+                                        static_cast<double>(b * blockFrames) * 1000.0 / 48000.0,
+                                        1000.0 / 48000.0, blockFrames,
+                                        rendered.data() + static_cast<std::size_t>(b * blockFrames) * 2, st);
+                    std::this_thread::sleep_for(
+                        std::chrono::microseconds(static_cast<int>(blockFrames * 1000000.0 / 48000.0)));
+                }
+                const double tailRms = rmsInterleaved(rendered, 4 * blockFrames, kCallbacks * blockFrames);
+                const std::uint64_t newUnderruns = ch->underrunCount() - underrunsBefore;
+                QVERIFY2(tailRms > 0.02,
+                         qPrintable(QStringLiteral("C1 armed %1-frame callback silent: rms=%2").arg(blockFrames).arg(tailRms)));
+                QVERIFY2(newUnderruns == 0,
+                         qPrintable(QStringLiteral("C1 armed %1-frame callback had %2 underruns").arg(blockFrames).arg(newUnderruns)));
+            }
+            pool.evictAll(&client);
+        }
+
+        // 3. D12 / C7: live-monitored instrument track uses small lookahead (64 at 64-frame callback) AND
+        //    per-track PDC aligns a hard-left 64-frame armed track with a hard-right 512-frame playback
+        //    track to the exact sample (separately identifiable L vs R channels).
+        {
+            VstLivePool pool;
+            const auto tlMon = makeMidiTl(false, true, false);
+            auto monPlan = buildIsolatedLivePlan(tlMon, pool);
+            nt::audio::prepareMixPlan(monPlan, 48000.0, 64);
+            QCOMPARE(nt::audio::planLatencySamples(monPlan), 64);
+            pool.evictAll(&client);
+
+            auto tlMixed = makeMidiTl(true, false, true);
+            // Pan armed track m1 hard left (-1.0) and playback track m2 hard right (+1.0).
+            QJsonObject mixedRaw = tlMixed.raw;
+            QJsonArray mixedTracks = mixedRaw.value(u"tracks").toArray();
+            auto tr0 = mixedTracks[0].toObject();
+            tr0.insert(QStringLiteral("pan"), -1.0);
+            mixedTracks[0] = tr0;
+            auto tr1 = mixedTracks[1].toObject();
+            tr1.insert(QStringLiteral("pan"), 1.0);
+            mixedTracks[1] = tr1;
+            mixedRaw.insert(QStringLiteral("tracks"), mixedTracks);
+            tlMixed = parseRaw(mixedRaw);
+
+            auto mixedPlan = buildIsolatedLivePlan(tlMixed, pool);
+            nt::audio::prepareMixPlan(mixedPlan, 48000.0, 64);
+            QCOMPARE(nt::audio::planLatencySamples(mixedPlan), VstLiveChannel::kPlaybackAsyncLatencyFrames);
+            QVERIFY(mixedPlan.tracks.size() == 2);
+            QCOMPARE(mixedPlan.tracks[0].processors[0]->effectiveLatencySamples(), 64);
+            QCOMPARE(mixedPlan.tracks[1].processors[0]->effectiveLatencySamples(),
+                     VstLiveChannel::kPlaybackAsyncLatencyFrames);
+            constexpr int kTotalFrames = 16 * 64;
+            std::vector<float> mixedOut(static_cast<std::size_t>(kTotalFrames) * 2, 0.0f);
+            nt::audio::MixStats st;
+            for (int b = 0; b < 16; ++b) {
+                nt::audio::mixBlock(mixedPlan, nullptr, 48000.0, static_cast<double>(b * 64) * 1000.0 / 48000.0,
+                                    1000.0 / 48000.0, 64,
+                                    mixedOut.data() + static_cast<std::size_t>(b * 64) * 2, st);
+                std::this_thread::sleep_for(std::chrono::microseconds(1500));
+            }
+            int firstNonZeroL = -1;
+            int firstNonZeroR = -1;
+            double sumSqBeforeL = 0.0, sumSqBeforeR = 0.0;
+            double sumSqAfterL = 0.0, sumSqAfterR = 0.0;
+            float maxChannelDiff = 0.0f;
+            for (int f = 0; f < kTotalFrames; ++f) {
+                const float l = mixedOut[static_cast<std::size_t>(f) * 2];
+                const float r = mixedOut[static_cast<std::size_t>(f) * 2 + 1];
+                if (firstNonZeroL < 0 && std::abs(l) > 1e-5f) firstNonZeroL = f;
+                if (firstNonZeroR < 0 && std::abs(r) > 1e-5f) firstNonZeroR = f;
+                if (f < 512) {
+                    sumSqBeforeL += static_cast<double>(l) * l;
+                    sumSqBeforeR += static_cast<double>(r) * r;
+                } else {
+                    sumSqAfterL += static_cast<double>(l) * l;
+                    sumSqAfterR += static_cast<double>(r) * r;
+                    maxChannelDiff = std::max(maxChannelDiff, std::abs(l - r));
+                }
+            }
+            const double beforeL = std::sqrt(sumSqBeforeL / 512.0);
+            const double beforeR = std::sqrt(sumSqBeforeR / 512.0);
+            const double afterL = std::sqrt(sumSqAfterL / static_cast<double>(kTotalFrames - 512));
+            const double afterR = std::sqrt(sumSqAfterR / static_cast<double>(kTotalFrames - 512));
+            QVERIFY2(beforeL < 1e-5 && beforeR < 1e-5,
+                     qPrintable(QStringLiteral("C7 early leak before 512 PDC: L=%1 R=%2").arg(beforeL).arg(beforeR)));
+            QVERIFY2(afterL > 0.04 && afterR > 0.04,
+                     qPrintable(QStringLiteral("C7 track silent after PDC: L=%1 R=%2").arg(afterL).arg(afterR)));
+            QVERIFY2(firstNonZeroL >= 512 && firstNonZeroL <= 514 && firstNonZeroL == firstNonZeroR,
+                     qPrintable(QStringLiteral("C7 armed(L) vs playback(R) onset mismatch: L=%1 R=%2")
+                                    .arg(firstNonZeroL).arg(firstNonZeroR)));
+            QVERIFY2(maxChannelDiff < 1e-4f,
+                     qPrintable(QStringLiteral("C7 armed(L) vs playback(R) sample alignment diff=%1").arg(maxChannelDiff)));
+            pool.evictAll(&client);
+        }
+
+        // 3b. D9: LiveSession::reprepare() during continuous live playback fades smoothly without clicks.
+        {
+            auto ch = VstLiveChannel::open(client, QStringLiteral("inst:d9-reprepare"),
+                                           tone->path, tone->uid, {}, 48000.0, &error);
+            QVERIFY2(ch && ch->connected(), qPrintable(error));
+            const vsthost::ShmMidiEvent noteOn{0, 0x90, 60, 120, 0, 1, 0.0f};
+            std::vector<float> recorded;
+            recorded.reserve(60 * 128 * 2);
+            std::thread repThread;
+            for (int b = 0; b < 50; ++b) {
+                if (b == 18) {
+                    repThread = std::thread([&] {
+                        QString repErr;
+                        (void)client.prepareLive(QStringLiteral("inst:d9-reprepare"), 48000.0, 512, nullptr, &repErr);
+                    });
+                }
+                std::vector<float> blk(std::size_t{128} * 2, 0.0f);
+                (void)ch->processBlockAsync(
+                    blk,
+                    b == 0 ? std::span<const vsthost::ShmMidiEvent>(&noteOn, 1) : std::span<const vsthost::ShmMidiEvent>{},
+                    48000.0, b == 0);
+                recorded.insert(recorded.end(), blk.begin(), blk.end());
+                std::this_thread::sleep_for(std::chrono::microseconds(2500));
+            }
+            if (repThread.joinable()) repThread.join();
+            float maxStep = 0.0f;
+            for (std::size_t f = 1; f < recorded.size() / 2; ++f) {
+                maxStep = std::max(maxStep, std::abs(recorded[f * 2] - recorded[(f - 1) * 2]));
+            }
+            QVERIFY2(maxStep < 0.015f,
+                     qPrintable(QStringLiteral("D9 hard click during LiveSession::reprepare(): maxStep=%1").arg(maxStep)));
+            ch->close(&client);
+        }
+
+        // 3c. D3/D13/C7/E3: Deterministic checkpoint-gated concurrent close() with processBlock()
+        //     and recoverIfNeeded() on a genuinely peerDead channel. Gates close() on observed
+        //     checkpoints both right before (iter 0,1) and right after (iter 2,3) openTransportSession(),
+        //     releases recovery deliberately, and asserts each checkpoint was reached without deadlock/crash.
+        {
+            for (int iter = 0; iter < 4; ++iter) {
+                const QString key = QStringLiteral("inst:d3-race-%1").arg(iter);
+                auto ch = VstLiveChannel::open(client, key, tone->path, tone->uid, {}, 48000.0, &error);
+                QVERIFY2(ch && ch->connected(), qPrintable(error));
+                // Force genuine peerDead before launching recovery vs close race.
+                client.terminateHostForTest();
+                std::vector<float> probe(std::size_t{128} * 2, 0.0f);
+                (void)ch->processBlockAsync(probe, {}, 48000.0, false);
+                QTRY_VERIFY_WITH_TIMEOUT(ch->peerDead(), 1000);
+
+                const bool gateAfterOpen = (iter >= 2);
+                std::mutex cpMu;
+                std::condition_variable cpCv;
+                bool checkpointReached = false;
+                bool releaseRecovery = false;
+                ch->setRecoveryHookForTest([&](bool afterOpen) {
+                    if (afterOpen != gateAfterOpen) return;
+                    std::unique_lock<std::mutex> lk(cpMu);
+                    checkpointReached = true;
+                    cpCv.notify_all();
+                    cpCv.wait(lk, [&] { return releaseRecovery; });
+                });
+
+                std::atomic<bool> recoverResult{true};
+                std::thread recoverCaller([&] {
+                    recoverResult.store(ch->recoverIfNeeded(), std::memory_order_release);
+                });
+                std::thread syncCaller([&] {
+                    std::vector<float> b(std::size_t{128} * 2, 0.0f);
+                    for (int k = 0; k < 4; ++k) {
+                        (void)ch->processBlock(b, {}, 48000.0, false, 20);
+                    }
+                });
+
+                // Wait until recoverIfNeeded() deterministically reaches the openTransportSession checkpoint.
+                bool observedCheckpoint = false;
+                {
+                    std::unique_lock<std::mutex> lk(cpMu);
+                    observedCheckpoint = cpCv.wait_for(
+                        lk, std::chrono::seconds(5), [&] { return checkpointReached; });
+                }
+                QVERIFY2(observedCheckpoint,
+                         qPrintable(QStringLiteral("E3 iter %1 never reached recovery checkpoint (afterOpen=%2)")
+                                        .arg(iter).arg(gateAfterOpen)));
+
+                // Launch close() while recoverIfNeeded() is held inside m_controlMutex at the checkpoint.
+                // Alternate close(&client) and close(nullptr) to cover D13 closeLiveAsync cleanup.
+                std::thread closeCaller([&] {
+                    ch->close((iter % 2 == 0) ? &client : nullptr);
+                });
+                // Wait until close() has published m_closed/m_stop and is contending on m_controlMutex.
+                QTRY_VERIFY_WITH_TIMEOUT(ch->closed(), 1000);
+
+                // Deliberately release the blocked recovery operation so it completes/cleans up against close().
+                {
+                    std::lock_guard<std::mutex> lk(cpMu);
+                    releaseRecovery = true;
+                }
+                cpCv.notify_all();
+
+                closeCaller.join();
+                recoverCaller.join();
+                syncCaller.join();
+                ch->setRecoveryHookForTest({});
+
+                QVERIFY(ch->closed());
+                QVERIFY2(!recoverResult.load(std::memory_order_acquire),
+                         "E3: recoverIfNeeded() must abort cleanly when close() wins during openTransportSession");
+                QCOMPARE(ch->recoveryCount(), std::uint64_t{0});
+            }
+        }
+
+        // 4. D14: Transport seek in async mode flushes pre-seek blocks without stale bleed.
+        {
+            VstLivePool pool;
+            const auto tl = makeMidiTl(false, false, false);
+            auto plan = buildIsolatedLivePlan(tl, pool);
+            nt::audio::prepareMixPlan(plan, 44100.0);
+            nt::audio::prepareMixPlan(plan, 48000.0);
+            nt::audio::MixStats st;
+            std::vector<float> blk(std::size_t{128} * 2, 0.0f);
+            // Play 20 blocks inside note [0..500 ms] so ahead queue is full of non-zero tone.
+            for (int b = 0; b < 20; ++b) {
+                nt::audio::mixBlock(plan, nullptr, 48000.0, static_cast<double>(b * 128) * 1000.0 / 48000.0,
+                                    1000.0 / 48000.0, 128, blk.data(), st);
+                std::this_thread::sleep_for(std::chrono::microseconds(2500));
+            }
+            QVERIFY(rmsInterleaved(blk, 0, 128) > 0.02);
+            // Seek to 1200 ms (silent region after note end at 500 ms).
+            std::vector<float> postSeek(std::size_t{12 * 128} * 2, 0.0f);
+            for (int b = 0; b < 12; ++b) {
+                nt::audio::mixBlock(plan, nullptr, 48000.0, 1200.0 + static_cast<double>(b * 128) * 1000.0 / 48000.0,
+                                    1000.0 / 48000.0, 128,
+                                    postSeek.data() + static_cast<std::size_t>(b * 128) * 2, st);
+                std::this_thread::sleep_for(std::chrono::microseconds(2500));
+            }
+            // After the 64-sample fade-out, output in silent region must be pure silence (no stale pre-seek bleed!).
+            const double postSeekRms = rmsInterleaved(postSeek, 128, 12 * 128);
+            QVERIFY2(postSeekRms < 1e-4,
+                     qPrintable(QStringLiteral("D14 stale pre-seek audio bled after seek: rms=%1").arg(postSeekRms)));
+            pool.evictAll(&client);
+        }
+#endif
+    }
+
+    // VST2 C1: 512-frame callbacks with 128-frame configured look-ahead must not enter permanent silence.
+    void vst2_c1_largeCallbackWithSmallLookaheadNoPermanentSilence() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        if (hostExe.isEmpty() || toneVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or ToneInstrument.vst3 not built in native/vst-host/build");
+        }
+
+        VstHostClient client;
+        client.setOverrideExecutable(hostExe);
+        client.setExtraScanDirs({QFileInfo(toneVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* tone = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
+        }
+        QVERIFY(tone != nullptr);
+
+        auto ch = VstLiveChannel::open(client, QStringLiteral("inst:c1-512-vs-128"),
+                                       tone->path, tone->uid, {}, 48000.0, &error);
+        QVERIFY2(ch && ch->connected(), qPrintable(error));
+        ch->setAsyncLatencyFrames(128);
+
+        constexpr int kFrames = 512;
+        constexpr int kCallbacks = 20;
+        const vsthost::ShmMidiEvent noteOn{0, 0x90, 60, 120, 0, 1, 0.0f};
+        std::vector<float> recorded(static_cast<std::size_t>(kCallbacks * kFrames) * 2, 0.0f);
+        for (int b = 0; b < kCallbacks; ++b) {
+            auto dst = std::span<float>(recorded.data() + static_cast<std::size_t>(b * kFrames) * 2,
+                                        static_cast<std::size_t>(kFrames) * 2);
+            const auto res = ch->processBlockAsync(
+                dst,
+                b == 0 ? std::span<const vsthost::ShmMidiEvent>(&noteOn, 1) : std::span<const vsthost::ShmMidiEvent>{},
+                48000.0, b == 0);
+            QVERIFY(!res.peerDead);
+            std::this_thread::sleep_for(std::chrono::microseconds(10667));
+        }
+        const double tailRms = rmsInterleaved(recorded, 4 * kFrames, kCallbacks * kFrames);
+        QVERIFY2(tailRms > 0.02,
+                 qPrintable(QStringLiteral("C1 permanent silence on 512-frame callback with 128 look-ahead: tailRms=%1")
+                                .arg(tailRms)));
+        QVERIFY(ch->connected());
+        ch->close(&client);
+#endif
+    }
+
+    // VST2 C2: Constructing and preparing a replacement MixPlan must not mutate the active plan's
+    // pooled VstLiveChannel look-ahead before plan handoff (playback512->armed64 and armed64->armed64).
+    void vst2_c2_oldPlanUnaffectedWhilePreparingReplacement() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        if (hostExe.isEmpty() || toneVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or ToneInstrument.vst3 not built in native/vst-host/build");
+        }
+
+        VstHostClient client;
+        client.setOverrideExecutable(hostExe);
+        client.setExtraScanDirs({QFileInfo(toneVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* tone = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
+        }
+        QVERIFY(tone != nullptr);
+
+        const QJsonObject toneRef{{"uid", tone->uid}, {"name", tone->name}, {"vendor", tone->vendor}, {"path", tone->path}};
+        auto makeTl = [&](bool armed) {
+            return parseRaw(QJsonObject{
+                {"id", "tl-c2"}, {"name", "C2"}, {"fps", 30}, {"width", 1920}, {"height", 1080},
+                {"durationMs", 3000},
+                {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}},
+                {"master", QJsonObject{{"volumeDb", 0}, {"limiter", false}, {"effects", QJsonArray{}}}},
+                {"tracks", QJsonArray{
+                    QJsonObject{{"id", "m1"}, {"name", "Synth"}, {"type", "midi"}, {"index", 0},
+                                {"volumeDb", 0}, {"pan", 0}, {"muted", false}, {"solo", false},
+                                {"recordArmed", armed}, {"liveMonitor", false},
+                                {"instrument", QJsonObject{{"type", "vst"}, {"plugin", toneRef}, {"state", QJsonValue::Null}, {"gainDb", 0}}},
+                                {"effects", QJsonArray{}}}}},
+                {"clips", QJsonArray{
+                    QJsonObject{{"id", "c1"}, {"trackId", "m1"}, {"name", "Hold"}, {"startMs", 0}, {"durationMs", 3000},
+                                {"inPointMs", 0}, {"outPointMs", 3000}, {"mediaType", "midi"}, {"sourceType", "generated"},
+                                {"status", "ready"}, {"locked", false},
+                                {"notes", QJsonArray{QJsonObject{{"id", "n1"}, {"pitch", 60}, {"velocity", 110},
+                                                                 {"startTick", 0}, {"durationTick", 5760}}}}}}}});
+        };
+        auto buildLivePlan = [&](const nt::Timeline& tl, VstLivePool& pool) {
+            QJsonObject rawNoInst = tl.raw;
+            auto tracks = rawNoInst.value(u"tracks").toArray();
+            auto t0 = tracks[0].toObject();
+            t0.remove(QStringLiteral("instrument"));
+            tracks[0] = t0;
+            rawNoInst.insert(QStringLiteral("tracks"), tracks);
+            auto plan = nt::audio::buildMixPlan(parseRaw(rawNoInst));
+            for (auto& tp : plan.tracks) tp.processors.clear();
+            runVstInstrumentsStage(tl, plan, client, pool);
+            return plan;
+        };
+
+        VstLivePool pool;
+        const auto tlPlay = makeTl(false);
+        const auto tlArmed = makeTl(true);
+
+        // Part A: Old plan (playback512) rendering while replacement plan (armed64) is constructed & prepared.
+        auto oldPlan = buildLivePlan(tlPlay, pool);
+        nt::audio::prepareMixPlan(oldPlan, 48000.0, 64);
+        QCOMPARE(nt::audio::planLatencySamples(oldPlan), VstLiveChannel::kPlaybackAsyncLatencyFrames);
+        auto ch = pool.acquire(client, QStringLiteral("inst:m1"), tone->path, tone->uid, {}, 48000.0, &error);
+        QVERIFY2(ch && ch->connected(), qPrintable(error));
+
+        constexpr int kBlockFrames = 64;
+        std::vector<float> oldOut;
+        oldOut.reserve(60 * kBlockFrames * 2);
+        nt::audio::MixStats st;
+        int blkIdx = 0;
+        // Prime & stabilize oldPlan (playback512 = 8 blocks of 64 frames).
+        for (; blkIdx < 16; ++blkIdx) {
+            std::vector<float> blk(std::size_t{kBlockFrames} * 2, 0.0f);
+            nt::audio::mixBlock(oldPlan, nullptr, 48000.0, static_cast<double>(blkIdx * kBlockFrames) * 1000.0 / 48000.0,
+                                1000.0 / 48000.0, kBlockFrames, blk.data(), st);
+            oldOut.insert(oldOut.end(), blk.begin(), blk.end());
+            std::this_thread::sleep_for(std::chrono::microseconds(1500));
+        }
+        const std::size_t prePrepEndFrame = oldOut.size() / 2;
+        const double prePrepRms = rmsInterleaved(oldOut, 10 * kBlockFrames, prePrepEndFrame);
+        QVERIFY2(prePrepRms > 0.02, qPrintable(QStringLiteral("C2 oldPlan prePrepRms=%1").arg(prePrepRms)));
+        const std::uint64_t underrunsBeforePrep = ch->underrunCount();
+
+        // Construct AND prepare replacement plan (armed64) while oldPlan is STILL the active plan!
+        auto newPlan = buildLivePlan(tlArmed, pool);
+        nt::audio::prepareMixPlan(newPlan, 48000.0, 64);
+        QCOMPARE(nt::audio::planLatencySamples(newPlan), 64);
+        // Old plan must still report 512 AND continue rendering uninterrupted with zero re-prime/dropout!
+        QCOMPARE(nt::audio::planLatencySamples(oldPlan), VstLiveChannel::kPlaybackAsyncLatencyFrames);
+        for (; blkIdx < 32; ++blkIdx) {
+            std::vector<float> blk(std::size_t{kBlockFrames} * 2, 0.0f);
+            nt::audio::mixBlock(oldPlan, nullptr, 48000.0, static_cast<double>(blkIdx * kBlockFrames) * 1000.0 / 48000.0,
+                                1000.0 / 48000.0, kBlockFrames, blk.data(), st);
+            oldOut.insert(oldOut.end(), blk.begin(), blk.end());
+            std::this_thread::sleep_for(std::chrono::microseconds(1500));
+        }
+        // Check EVERY 64-frame block rendered by oldPlan after newPlan preparation: none may drop out or click!
+        float maxStepOld = 0.0f;
+        for (std::size_t f = 10 * kBlockFrames + 1; f < oldOut.size() / 2; ++f) {
+            maxStepOld = std::max(maxStepOld, std::abs(oldOut[f * 2] - oldOut[(f - 1) * 2]));
+        }
+        double minPostBlockRms = 1.0;
+        for (int b = 16; b < 32; ++b) {
+            minPostBlockRms = std::min(minPostBlockRms, rmsInterleaved(oldOut, b * kBlockFrames, (b + 1) * kBlockFrames));
+        }
+        QVERIFY2(minPostBlockRms > 0.02,
+                 qPrintable(QStringLiteral("C2 oldPlan dropped out during replacement preparation: minBlockRms=%1")
+                                .arg(minPostBlockRms)));
+        QVERIFY2(maxStepOld < 0.015f,
+                 qPrintable(QStringLiteral("C2 oldPlan clicked during replacement preparation: maxStep=%1").arg(maxStepOld)));
+        QCOMPARE(ch->underrunCount(), underrunsBeforePrep);
+
+        // Now hand off to newPlan (armed64) starting at timeline 0 ms (fresh note onset) and verify
+        // it renders cleanly AND armed64->armed64 rebuild does not cause any re-prime or click!
+        std::vector<float> armedOut;
+        armedOut.reserve(32 * kBlockFrames * 2);
+        int armedBlkIdx = 0;
+        for (; armedBlkIdx < 12; ++armedBlkIdx) {
+            std::vector<float> blk(std::size_t{kBlockFrames} * 2, 0.0f);
+            nt::audio::mixBlock(newPlan, nullptr, 48000.0, static_cast<double>(armedBlkIdx * kBlockFrames) * 1000.0 / 48000.0,
+                                1000.0 / 48000.0, kBlockFrames, blk.data(), st);
+            armedOut.insert(armedOut.end(), blk.begin(), blk.end());
+            std::this_thread::sleep_for(std::chrono::microseconds(1500));
+        }
+        // Construct & prepare a second armed64 plan while newPlan continues rendering: must NOT touch channel!
+        auto armedPlan2 = buildLivePlan(tlArmed, pool);
+        // Render one block of newPlan right after construction (before prepareMixPlan on armedPlan2)
+        // to catch constructor temporarily writing 128 onto the pooled channel!
+        {
+            std::vector<float> blk(std::size_t{kBlockFrames} * 2, 0.0f);
+            nt::audio::mixBlock(newPlan, nullptr, 48000.0, static_cast<double>(armedBlkIdx * kBlockFrames) * 1000.0 / 48000.0,
+                                1000.0 / 48000.0, kBlockFrames, blk.data(), st);
+            armedOut.insert(armedOut.end(), blk.begin(), blk.end());
+            ++armedBlkIdx;
+            std::this_thread::sleep_for(std::chrono::microseconds(1500));
+        }
+        nt::audio::prepareMixPlan(armedPlan2, 48000.0, 64);
+        for (int b = 0; b < 10; ++b) {
+            std::vector<float> blk(std::size_t{kBlockFrames} * 2, 0.0f);
+            nt::audio::mixBlock(newPlan, nullptr, 48000.0, static_cast<double>((armedBlkIdx + b) * kBlockFrames) * 1000.0 / 48000.0,
+                                1000.0 / 48000.0, kBlockFrames, blk.data(), st);
+            armedOut.insert(armedOut.end(), blk.begin(), blk.end());
+            std::this_thread::sleep_for(std::chrono::microseconds(1500));
+        }
+        // Every block from index 4 onward in armedOut must be continuous tone with zero dropout!
+        double minArmedBlockRms = 1.0;
+        for (int b = 4; b < 23; ++b) {
+            minArmedBlockRms = std::min(minArmedBlockRms, rmsInterleaved(armedOut, b * kBlockFrames, (b + 1) * kBlockFrames));
+        }
+        QVERIFY2(minArmedBlockRms > 0.02,
+                 qPrintable(QStringLiteral("C2 armed64->armed64 rebuild caused dropout/reprime: minBlockRms=%1")
+                                .arg(minArmedBlockRms)));
+        pool.evictAll(&client);
+#endif
+    }
+
+    // VST2 C3 + C6: Pure atomic callback handoff streams 64-frame low-latency callbacks without
+    // underruns, and host RT thread scheduling accepts renderQuantumFrames separately from SHM
+    // capacity during quiescent handshake and scheduling-only updates without resetting the plugin.
+    void vst2_c3_c6_pureAtomicHandoffAndSeparateRenderQuantum() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        if (hostExe.isEmpty() || toneVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or ToneInstrument.vst3 not built in native/vst-host/build");
+        }
+
+        VstHostClient client;
+        client.setOverrideExecutable(hostExe);
+        client.setExtraScanDirs({QFileInfo(toneVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* tone = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
+        }
+        QVERIFY(tone != nullptr);
+
+        // Open with 64-frame render quantum (distinct from 512-frame SHM capacity).
+        auto ch = VstLiveChannel::open(client, QStringLiteral("inst:c3-c6-q64"),
+                                       tone->path, tone->uid, {}, 48000.0, &error, /*renderQuantumFrames=*/64);
+        QVERIFY2(ch && ch->connected(), qPrintable(error));
+        QCOMPARE(ch->configuredRenderQuantumFrames(), 64);
+
+        const vsthost::ShmMidiEvent noteOn{0, 0x90, 60, 120, 0, 1, 0.0f};
+        constexpr int kFrames = 64;
+        std::vector<float> recorded;
+        recorded.reserve(40 * kFrames * 2);
+        double maxCbMs = 0.0;
+        for (int b = 0; b < 32; ++b) {
+            if (b == 16) {
+                // C6: Update render quantum to 128 at same sample rate -> scheduling-only update,
+                // must NOT reset held note or glitch audio!
+                QVERIFY2(ch->prepareRate(48000.0, &error, 128), qPrintable(error));
+                QCOMPARE(ch->configuredRenderQuantumFrames(), 128);
+            }
+            std::vector<float> blk(std::size_t{kFrames} * 2, 0.0f);
+            const auto t0 = std::chrono::steady_clock::now();
+            const auto res = ch->processBlockAsync(
+                blk,
+                b == 0 ? std::span<const vsthost::ShmMidiEvent>(&noteOn, 1) : std::span<const vsthost::ShmMidiEvent>{},
+                48000.0, b == 0, /*desiredLatencyFrames=*/64);
+            const double cbMs = std::chrono::duration<double, std::milli>(
+                                    std::chrono::steady_clock::now() - t0).count();
+            maxCbMs = std::max(maxCbMs, cbMs);
+            QVERIFY(!res.peerDead);
+            recorded.insert(recorded.end(), blk.begin(), blk.end());
+            std::this_thread::sleep_for(std::chrono::microseconds(1333));
+        }
+        const double tailRms = rmsInterleaved(recorded, 20 * kFrames, 32 * kFrames);
+        QVERIFY2(maxCbMs < 0.5, qPrintable(QStringLiteral("C3 atomic callback maxCbMs=%1").arg(maxCbMs)));
+        QVERIFY2(tailRms > 0.02,
+                 qPrintable(QStringLiteral("C6 scheduling-only quantum update silenced held note: tailRms=%1").arg(tailRms)));
+        QCOMPARE(ch->underrunCount(), std::uint64_t{0});
+        ch->close(&client);
+#endif
+    }
+
+    // VST2 E2: Stopped-transport worker must NOT spin indefinitely; idle path sleeps only
+    // (low per-thread CPU time) and multi-channel 64-frame streaming meets deadlines with zero underruns.
+    void vst2_e2_stoppedTransportWorkerCpuAndMultiChannel() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        if (hostExe.isEmpty() || toneVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or ToneInstrument.vst3 not built in native/vst-host/build");
+        }
+
+        VstHostClient client;
+        client.setOverrideExecutable(hostExe);
+        client.setExtraScanDirs({QFileInfo(toneVst).absolutePath()});
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client.scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* tone = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
+        }
+        QVERIFY(tone != nullptr);
+
+        // Open 4 retained 64-frame/48 kHz channels: 2 will stream, 2 stay stopped (idle).
+        constexpr int kChannels = 4;
+        std::array<std::shared_ptr<VstLiveChannel>, kChannels> channels;
+        for (int i = 0; i < kChannels; ++i) {
+            channels[static_cast<std::size_t>(i)] = VstLiveChannel::open(
+                client, QStringLiteral("inst:e2-ch-%1").arg(i), tone->path, tone->uid, {}, 48000.0, &error, 64);
+            QVERIFY2(channels[static_cast<std::size_t>(i)] && channels[static_cast<std::size_t>(i)]->connected(),
+                     qPrintable(error));
+        }
+
+        // Stream a short burst on channel 0, then stop transport on all channels.
+        const vsthost::ShmMidiEvent noteOn{0, 0x90, 60, 110, 0, 1, 0.0f};
+        std::vector<float> blk(std::size_t{64} * 2, 0.0f);
+        for (int b = 0; b < 8; ++b) {
+            (void)channels[0]->processBlockAsync(
+                blk, b == 0 ? std::span<const vsthost::ShmMidiEvent>(&noteOn, 1) : std::span<const vsthost::ShmMidiEvent>{},
+                48000.0, b == 0, 64);
+            std::this_thread::sleep_for(std::chrono::microseconds(1333));
+        }
+
+        // Let the stopped-transport channel settle past the post-handoff active/warm windows into deep idle.
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        const std::int64_t cpuBefore0 = channels[0]->workerCpuTimeUs();
+        const std::int64_t cpuBefore1 = channels[1]->workerCpuTimeUs();
+        QVERIFY2(cpuBefore0 >= 0 && cpuBefore1 >= 0, "E2: workerCpuTimeUs must be supported on POSIX/macOS");
+
+        // Measure 500 ms of stopped-transport idle wall time.
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        const std::int64_t cpuAfter0 = channels[0]->workerCpuTimeUs();
+        const std::int64_t cpuAfter1 = channels[1]->workerCpuTimeUs();
+        const std::int64_t deltaUs0 = cpuAfter0 - cpuBefore0;
+        const std::int64_t deltaUs1 = cpuAfter1 - cpuBefore1;
+        qInfo().noquote() << QStringLiteral("VST2_E2_IDLE cpu0=%1us cpu1=%2us (500ms wall)")
+                                 .arg(deltaUs0).arg(deltaUs1);
+        // Sleep-only idle path must use < 5 ms CPU over 500 ms wall time (< 1% of one core).
+        // (Prior spin-every-poll bug burned ~69,000 us = ~14% of one core per channel.)
+        QVERIFY2(deltaUs0 >= 0 && deltaUs0 < 5000,
+                 qPrintable(QStringLiteral("E2 stopped-transport worker 0 burned %1 us CPU in 500 ms wall").arg(deltaUs0)));
+        QVERIFY2(deltaUs1 >= 0 && deltaUs1 < 5000,
+                 qPrintable(QStringLiteral("E2 stopped-transport worker 1 burned %1 us CPU in 500 ms wall").arg(deltaUs1)));
+
+        // Multi-channel restart deadline test (G1): arm/wake channels 0 and 1 from the non-RT
+        // transport-start path before callbacks begin, with NO warm-up exclusion, asserting
+        // first-response deadline (callback 1 outputs onset audio) and zero underruns across all
+        // 32 callbacks while channels 2 and 3 remain deep idle.
+        constexpr int kFrames = 64;
+        const std::int64_t idle2Before = channels[2]->workerCpuTimeUs();
+        const std::int64_t idle3Before = channels[3]->workerCpuTimeUs();
+        const std::uint64_t underruns0Before = channels[0]->underrunCount();
+        const std::uint64_t underruns1Before = channels[1]->underrunCount();
+        channels[0]->armForPlayback();
+        channels[1]->armForPlayback();
+        std::vector<float> rec0, rec1;
+        rec0.reserve(32 * kFrames * 2);
+        rec1.reserve(32 * kFrames * 2);
+        double firstRespRms0 = 0.0;
+        double firstRespRms1 = 0.0;
+        for (int b = 0; b < 32; ++b) {
+            std::vector<float> b0(std::size_t{kFrames} * 2, 0.0f);
+            std::vector<float> b1(std::size_t{kFrames} * 2, 0.0f);
+            const auto midi = (b == 0) ? std::span<const vsthost::ShmMidiEvent>(&noteOn, 1)
+                                       : std::span<const vsthost::ShmMidiEvent>{};
+            const auto r0 = channels[0]->processBlockAsync(b0, midi, 48000.0, b == 0, 64);
+            const auto r1 = channels[1]->processBlockAsync(b1, midi, 48000.0, b == 0, 64);
+            QVERIFY2(!r0.peerDead && !r1.peerDead, "G1: peer died during restart");
+            QVERIFY2(r0.outputReady && r1.outputReady,
+                     qPrintable(QStringLiteral("G1: underrun on callback %1 from deep-idle restart (r0=%2 r1=%3)")
+                                    .arg(b).arg(r0.outputReady).arg(r1.outputReady)));
+            if (b == 1) {
+                firstRespRms0 = rmsInterleaved(b0, 0, kFrames);
+                firstRespRms1 = rmsInterleaved(b1, 0, kFrames);
+            }
+            rec0.insert(rec0.end(), b0.begin(), b0.end());
+            rec1.insert(rec1.end(), b1.begin(), b1.end());
+            std::this_thread::sleep_for(std::chrono::microseconds(1333));
+        }
+        const std::int64_t idle2Delta = channels[2]->workerCpuTimeUs() - idle2Before;
+        const std::int64_t idle3Delta = channels[3]->workerCpuTimeUs() - idle3Before;
+        QVERIFY2(idle2Delta >= 0 && idle2Delta < 3000 && idle3Delta >= 0 && idle3Delta < 3000,
+                 qPrintable(QStringLiteral("E2 idle retained channels burned CPU during active render: ch2=%1 us ch3=%2 us")
+                                .arg(idle2Delta).arg(idle3Delta)));
+        QVERIFY2(firstRespRms0 > 0.01 && firstRespRms1 > 0.01,
+                 qPrintable(QStringLiteral("G1: first-response block after 64-frame seed lost onset audio: rms0=%1 rms1=%2")
+                                .arg(firstRespRms0).arg(firstRespRms1)));
+        QVERIFY2(rmsInterleaved(rec0, 4 * kFrames, 32 * kFrames) > 0.02, "E2 active channel 0 silent");
+        QVERIFY2(rmsInterleaved(rec1, 4 * kFrames, 32 * kFrames) > 0.02, "E2 active channel 1 silent");
+        QVERIFY2((channels[0]->underrunCount() - underruns0Before) == 0 &&
+                     (channels[1]->underrunCount() - underruns1Before) == 0,
+                 qPrintable(QStringLiteral("G1: restart from deep idle had underruns without warmup exclusion: ch0=%1 ch1=%2")
+                                .arg(channels[0]->underrunCount() - underruns0Before)
+                                .arg(channels[1]->underrunCount() - underruns1Before)));
+
+        for (auto& ch : channels) {
+            ch->close(&client);
+        }
+#endif
+    }
+
+    // VST2 G1: Non-RT transport-start and plan-publish paths in AudioEngine must arm/wake deep-idle
+    // VstLiveChannel workers BEFORE real-time callbacks begin, so 64-frame/48 kHz restart meets
+    // the first-response deadline with zero underruns and no warm-up exclusion.
+    void vst2_g1_audioEngineTransportStartAndPlanPublishWake() {
+#ifdef Q_OS_WIN
+        QSKIP("POSIX shared memory live channel tests are not supported on Windows");
+#else
+        const QString hostExe = findTestArtifact(QStringLiteral("tst_vsthostprotocol_artefacts/Release/tst_vsthostprotocol"));
+        const QString toneVst = findTestArtifact(QStringLiteral("ToneInstrument_artefacts/Release/VST3/NodeTool Test Tone.vst3"));
+        if (hostExe.isEmpty() || toneVst.isEmpty()) {
+            QSKIP("NodeToolVstHost or ToneInstrument.vst3 not built in native/vst-host/build");
+        }
+
+        auto client = sharedVstHostClient();
+        client->setOverrideExecutable(hostExe);
+        client->setExtraScanDirs({QFileInfo(toneVst).absolutePath()});
+        registerVstAudioStages(client);
+
+        std::vector<VstPluginInfo> plugins;
+        QString error;
+        QVERIFY2(client->scanSync(true, &plugins, &error), qPrintable(error));
+        const VstPluginInfo* tone = nullptr;
+        for (const auto& p : plugins) {
+            if (QFileInfo(p.path).canonicalFilePath() == toneVst) tone = &p;
+        }
+        QVERIFY(tone != nullptr);
+
+        const QString trackId = QStringLiteral("g1-midi-track");
+        const QString instanceKey = QStringLiteral("inst:") + trackId;
+        const auto cleanup = qScopeGuard([&] {
+            sharedVstLivePool().closeInstance(instanceKey, client.get());
+        });
+
+        auto makeTimeline = [&](double volumeDb) {
+            QJsonObject plugin{
+                {"path", tone->path},
+                {"uid", tone->uid},
+                {"name", tone->name},
+                {"format", tone->format},
+            };
+            QJsonObject instrument{
+                {"type", "vst"},
+                {"plugin", plugin},
+                {"gainDb", 0.0},
+            };
+            // At 125 BPM, 1 quarter = 480 ms = 960 ticks -> 0.5 ms/tick.
+            // 15 blocks of 64 frames @ 48 kHz = 960 frames = 20.0 ms = 40 ticks exactly,
+            // so n1 triggers on Step 1 (0 ms) and n2 triggers on Step 2 resume (20.0 ms).
+            QJsonObject note1{
+                {"id", "n1"},
+                {"pitch", 60},
+                {"velocity", 115},
+                {"startTick", 0},
+                {"durationTick", 1920},
+                {"channel", 0},
+            };
+            QJsonObject note2{
+                {"id", "n2"},
+                {"pitch", 64},
+                {"velocity", 115},
+                {"startTick", 40},
+                {"durationTick", 1920},
+                {"channel", 0},
+            };
+            QJsonObject clip{
+                {"id", "c1"},
+                {"trackId", trackId},
+                {"mediaType", "midi"},
+                {"startMs", 0.0},
+                {"durationMs", 2000.0},
+                {"inPointMs", 0.0},
+                {"notes", QJsonArray{note1, note2}},
+            };
+            QJsonObject track{
+                {"id", trackId},
+                {"type", "midi"},
+                {"name", "G1 Synth"},
+                {"volumeDb", volumeDb},
+                {"pan", 0.0},
+                {"muted", false},
+                {"solo", false},
+                {"recordArmed", true},
+                {"instrument", instrument},
+            };
+            QJsonObject raw{
+                {"id", "g1-tl"},
+                {"name", "G1"},
+                {"fps", 30},
+                {"width", 1920},
+                {"height", 1080},
+                {"tempo", QJsonObject{{"bpm", 125.0}}},
+                {"master", QJsonObject{{"volumeDb", 0.0}, {"limiter", false}}},
+                {"tracks", QJsonArray{track}},
+                {"clips", QJsonArray{clip}},
+            };
+            return std::make_shared<const nt::Timeline>(parseRaw(raw));
+        };
+
+        auto tl1 = makeTimeline(0.0);
+        auto tl2 = makeTimeline(-1.0);
+
+        nt::audio::AudioEngine engine;
+        engine.setTimeline(tl1);
+        nt::audio::AudioEngine::Options opts;
+        opts.backend = nt::audio::AudioEngine::Backend::Manual;
+        opts.sampleRate = 48000;
+        opts.periodFrames = 64;
+        std::string startErr;
+        QVERIFY2(engine.start(opts, &startErr), startErr.c_str());
+
+        auto ch = sharedVstLivePool().acquire(*client, instanceKey, tone->path, tone->uid, {}, 48000.0, &error);
+        QVERIFY2(ch && ch->connected(), qPrintable(error));
+
+        constexpr int kFrames = 64;
+        constexpr std::int64_t kStepNs = 1'333'333LL;
+        std::int64_t hostNs = 0;
+
+        // 1. Transport-start from deep idle: let worker settle past 250 ms idle, then start playback.
+        std::this_thread::sleep_for(std::chrono::milliseconds(260));
+        const std::uint64_t underrunsBeforeStart = ch->underrunCount();
+        const std::int64_t sessionsBeforeStart = engine.stats().sessions;
+        nt::playback::TransportCommand cmd;
+        cmd.seq = 1;
+        cmd.playing = true;
+        cmd.rate = 1.0;
+        cmd.seekSeq = 1;
+        cmd.seekMs = 0.0;
+        engine.feed().command.store(cmd);
+        QTRY_VERIFY_WITH_TIMEOUT(engine.stats().sessions > sessionsBeforeStart, 2000);
+
+        double firstRespRmsStart = 0.0;
+        for (int b = 0; b < 15; ++b) {
+            std::vector<float> out(std::size_t{kFrames} * 2, 0.0f);
+            engine.renderManual(out, hostNs);
+            hostNs += kStepNs;
+            if (b == 1) {
+                firstRespRmsStart = rmsInterleaved(out, 0, kFrames);
+            }
+            std::this_thread::sleep_for(std::chrono::microseconds(1333));
+        }
+        QVERIFY2(firstRespRmsStart > 0.01,
+                 qPrintable(QStringLiteral("G1 transport-start first-response missed deadline: rms=%1").arg(firstRespRmsStart)));
+        QCOMPARE(ch->underrunCount() - underrunsBeforeStart, std::uint64_t{0});
+
+        // 2. Pause -> deep idle (>250 ms) -> plan publish (setTimeline) -> immediate same-seekSeq
+        //    resume (proving publishPlan() itself armed/woke the worker before callbacks start).
+        cmd.seq = 2;
+        cmd.playing = false;
+        engine.feed().command.store(cmd);
+        {
+            std::vector<float> out(std::size_t{kFrames} * 2, 0.0f);
+            engine.renderManual(out, hostNs);
+            hostNs += kStepNs;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(260));
+
+        const std::uint64_t underrunsBeforePublish = ch->underrunCount();
+        engine.setTimeline(tl2);
+        // Resume immediately with the SAME seekSeq (no seek wait in CallbackClockDriver), so
+        // callback 0 enters mixSession immediately relying purely on publishPlan()'s wake/arm.
+        cmd.seq = 3;
+        cmd.playing = true;
+        engine.feed().command.store(cmd);
+
+        double firstRespRmsRestart = 0.0;
+        for (int b = 0; b < 24; ++b) {
+            std::vector<float> out(std::size_t{kFrames} * 2, 0.0f);
+            engine.renderManual(out, hostNs);
+            hostNs += kStepNs;
+            if (b == 1) {
+                firstRespRmsRestart = rmsInterleaved(out, 0, kFrames);
+            }
+            std::this_thread::sleep_for(std::chrono::microseconds(1333));
+        }
+        QVERIFY2(firstRespRmsRestart > 0.01,
+                 qPrintable(QStringLiteral("G1 plan-publish/restart first-response missed deadline: rms=%1")
+                                .arg(firstRespRmsRestart)));
+        QCOMPARE(ch->underrunCount() - underrunsBeforePublish, std::uint64_t{0});
+
+        engine.stop();
 #endif
     }
 };

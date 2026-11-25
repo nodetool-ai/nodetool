@@ -306,6 +306,7 @@ MidiTrackStream buildStream(const Timeline& timeline, const std::string& trackId
                 const std::int32_t noteId = nextNoteId++;
                 events.push_back(MidiStreamEvent{onMs, static_cast<std::uint8_t>(0x90u | channel), pitch, vel, noteId, 0.0f});
                 events.push_back(MidiStreamEvent{offMs, static_cast<std::uint8_t>(0x80u | channel), pitch, release, noteId, 0.0f});
+                stream.heldNotes.push_back(MidiHeldNote{onMs, offMs, channel, pitch, vel, noteId});
                 if (n.contains(u"expression")) {
                     addNoteExpression(n, onMs, offMs, msPerQuarter, noteId, events);
                 }
@@ -670,6 +671,33 @@ LiveBlockMidi assembleLiveBlockMidi(const MidiTrackStream& stream, std::size_t& 
 
 namespace {
 
+bool isLowLatencyInstrumentTrack(const Track& track) {
+    if (track.type != TrackType::Midi) return false;
+    const auto& r = track.raw;
+    const QJsonObject inst = r.value(u"instrument").toObject();
+    return r.value(u"recordArmed").toBool(false) ||
+           r.value(u"liveMonitor").toBool(false) ||
+           r.value(u"inputMonitoring").toBool(false) ||
+           r.value(u"inputMonitor").toBool(false) ||
+           inst.value(u"liveMonitor").toBool(false);
+}
+
+int resolveAsyncLookahead(bool lowLatency, int deviceBlockFrames) noexcept {
+    // C1: look-ahead must always cover the submitted callback quantum so the async pipeline
+    // never accrues permanent debt on large callbacks (e.g. 480/512 frames).
+    const int block = std::clamp(deviceBlockFrames > 0 ? deviceBlockFrames : kMixBlockFrames,
+                                 1, VstLiveChannel::kMaxAsyncLatencyFrames);
+    if (!lowLatency) {
+        return std::max(VstLiveChannel::kPlaybackAsyncLatencyFrames, block);
+    }
+    return block;
+}
+
+QString makeOfflineInstanceKey(const QString& baseInstance) {
+    return QStringLiteral("offline:%1:%2")
+        .arg(QUuid::createUuid().toString(QUuid::Id128).left(12), baseInstance);
+}
+
 // Real-time shared-memory VST3 instrument BlockProcessor.
 // Thread affinity: constructed on the plan-build worker thread; process() and
 // reset() run on the audio render thread with zero locks and zero allocations.
@@ -678,25 +706,68 @@ public:
     VstLiveInstrumentProcessor(std::shared_ptr<VstLiveChannel> channel,
                                MidiTrackStream stream,
                                std::vector<ClipEnvelope> envelopes,
-                               double gain)
+                               double gain,
+                               bool offline,
+                               bool lowLatency,
+                               VstHostClient* offlineOwnerClient = nullptr)
         : m_channel(std::move(channel)),
           m_stream(std::move(stream)),
           m_envelopes(std::move(envelopes)),
-          m_gain(static_cast<float>(gain)) {
+          m_gain(static_cast<float>(gain)),
+          m_offline(offline),
+          m_lowLatency(lowLatency),
+          m_asyncLatencyFrames(offline ? 0 : resolveAsyncLookahead(lowLatency, kMixBlockFrames)),
+          m_offlineOwnerClient(offlineOwnerClient),
+          m_lastRecoveryCount(m_channel ? m_channel->recoveryCount() : 0) {
         id = "vst-instrument";
+        // C2: Never mutate the pooled channel's async latency during construction/preparation;
+        // `m_asyncLatencyFrames` is activated on the audio thread when this plan actually renders.
     }
 
-    // Control thread (prepareMixPlan): prepares the plug-in at the real device or render rate.
+    ~VstLiveInstrumentProcessor() override {
+        if (m_offlineOwnerClient && m_channel) {
+            const QString instKey = m_channel->instance();
+            m_channel->close(m_offlineOwnerClient);
+            if (!instKey.isEmpty()) {
+                m_offlineOwnerClient->disposeAsync(instKey);
+            }
+        }
+    }
+
+    // Control thread (prepareMixPlan): prepares the plug-in at the real device or render rate
+    // and computes per-track async look-ahead depth (activated at plan handoff on audio thread).
     void prepare(double sampleRate) override {
-        if (m_channel) (void)m_channel->prepareRate(sampleRate);
+        prepare(sampleRate, kMixBlockFrames);
+    }
+
+    void prepare(double sampleRate, int deviceBlockFrames) override {
+        if (!m_offline) {
+            m_asyncLatencyFrames = resolveAsyncLookahead(m_lowLatency, deviceBlockFrames);
+        }
+        const int quantum = std::clamp(deviceBlockFrames > 0 ? deviceBlockFrames : kMixBlockFrames,
+                                       16, kMixBlockFrames);
+        if (m_channel) (void)m_channel->prepareRate(sampleRate, nullptr, quantum);
     }
 
     void reprobeLatency(double sampleRate) override {
+        // D11: Never mutate m_offline here; render mode is set explicitly at plan construction.
         if (m_channel) (void)m_channel->probeLatency(sampleRate);
     }
 
+    void serviceControlThread() override {
+        if (m_channel) (void)m_channel->recoverIfNeeded();
+    }
+
+    void armForPlayback() override {
+        if (!m_offline && m_channel) {
+            m_channel->armForPlayback();
+        }
+    }
+
     int latencySamples() const noexcept override {
-        return (bypassed() || !m_channel) ? 0 : std::max(0, m_channel->latencySamples());
+        if (bypassed() || !m_channel) return 0;
+        const int pluginLatency = std::max(0, m_channel->latencySamples());
+        return pluginLatency + (m_offline ? 0 : m_asyncLatencyFrames);
     }
 
     void onBypassedBlock(std::span<const float>, const BlockContext&) noexcept override {
@@ -709,20 +780,29 @@ public:
         m_cursor = 0;
         m_activeNotes = 0;
         m_tailFrames = 0;
+        m_pendingRecoveryChase = false;
+        if (m_channel) {
+            m_lastRecoveryCount = m_channel->recoveryCount();
+        }
     }
 
     bool hasPendingOutput(int) const noexcept override {
-        return m_channel && m_channel->connected() && (!m_stream.events.empty() || m_activeNotes > 0 || m_tailFrames > 0);
+        return m_channel && !m_channel->closed() &&
+               (!m_stream.events.empty() || m_activeNotes > 0 || m_tailFrames > 0);
     }
 
     void process(std::span<float> stereo, const BlockContext& ctx) noexcept override {
-        if (!m_channel || !m_channel->connected() || stereo.empty() || ctx.msPerFrame <= 0.0) return;
+        if (!m_channel || m_channel->closed() || stereo.empty() || ctx.msPerFrame <= 0.0) return;
         const int frames = static_cast<int>(stereo.size() / 2);
         if (frames <= 0 || frames > kMixBlockFrames) return;
 
         const double blockStartMs = ctx.timelineMs;
         const double blockEndMs = blockStartMs + frames * ctx.msPerFrame;
-        const bool discontinuous = m_clock.isDiscontinuous(blockStartMs);
+        const std::uint64_t recNow = (!m_offline) ? m_channel->recoveryCount() : m_lastRecoveryCount;
+        const bool peerAlive = !m_channel->peerDead();
+        const bool recoveredBeforeCall =
+            !m_offline && peerAlive && (recNow != m_lastRecoveryCount || m_pendingRecoveryChase);
+        const bool discontinuous = m_clock.isDiscontinuous(blockStartMs) || recoveredBeforeCall;
         if (discontinuous) {
             m_activeNotes = 0;
             m_tailFrames = 0;
@@ -731,24 +811,75 @@ public:
         std::array<vsthost::ShmMidiEvent, vsthost::kShmMaxMidiEvents> blockMidi{};
         const LiveBlockMidi assembled = assembleLiveBlockMidi(m_stream, m_cursor, discontinuous, blockStartMs,
                                                               blockEndMs, ctx.msPerFrame, frames, blockMidi);
-        const std::size_t midiCount = assembled.count;
+        std::size_t midiCount = assembled.count;
         m_activeNotes += assembled.noteOns;
+
+        // D4: On the first post-recovery block, re-chase all MIDI notes currently held across
+        // blockStartMs so long sustained notes resume immediately after a host crash/recovery.
+        if (recoveredBeforeCall && !m_stream.heldNotes.empty()) {
+            std::size_t insertAt = 0;
+            while (insertAt < midiCount && blockMidi[insertAt].sampleOffset == 0 &&
+                   (blockMidi[insertAt].status & 0xF0u) != 0x90u &&
+                   blockMidi[insertAt].status != vsthost::kShmStatusNoteExpression) {
+                ++insertAt;
+            }
+            for (const MidiHeldNote& note : m_stream.heldNotes) {
+                if (midiCount >= blockMidi.size()) break;
+                if (note.onMs < blockStartMs - 1e-4 && note.offMs > blockStartMs + 1e-4) {
+                    std::move_backward(blockMidi.begin() + static_cast<std::ptrdiff_t>(insertAt),
+                                       blockMidi.begin() + static_cast<std::ptrdiff_t>(midiCount),
+                                       blockMidi.begin() + static_cast<std::ptrdiff_t>(midiCount + 1));
+                    blockMidi[insertAt++] = vsthost::ShmMidiEvent{
+                        0, static_cast<std::uint8_t>(0x90u | (note.channel & 0x0Fu)),
+                        note.pitch, note.velocity, 0, note.noteId, 0.0f};
+                    ++midiCount;
+                    ++m_activeNotes;
+                }
+            }
+        }
+
         if (assembled.noteOffs > 0) {
             m_activeNotes = std::max(0, m_activeNotes - assembled.noteOffs);
-            m_tailFrames = static_cast<int>(ctx.sampleRate * 5.0);
+            m_tailFrames = std::max(static_cast<int>(ctx.sampleRate * 5.0),
+                                    m_asyncLatencyFrames + kMixBlockFrames);
         }
 
         const std::size_t samples = static_cast<std::size_t>(frames) * 2;
         auto scratch = std::span<float>(m_scratch.data(), samples);
         std::fill(scratch.begin(), scratch.end(), 0.0f);
 
-        if (!m_channel->processBlock(scratch, std::span<const vsthost::ShmMidiEvent>(blockMidi.data(), midiCount),
-                                     ctx.sampleRate, discontinuous, kLiveBlockTimeoutMs)) {
-            // A lost block lost its reset and chase: the next block must run them again.
-            m_clock.invalidate();
-            return;
+        if (m_offline) {
+            if (!m_channel->connected() ||
+                !m_channel->processBlock(scratch, std::span<const vsthost::ShmMidiEvent>(blockMidi.data(), midiCount),
+                                         ctx.sampleRate, discontinuous, kLiveBlockTimeoutMs)) {
+                m_clock.invalidate();
+                return;
+            }
+            m_clock.advance(blockEndMs);
+        } else {
+            // Live callback: never wait on the socket. Read finished blocks (or smooth underrun
+            // concealment) from the IPC worker's lock-free queue, activating this plan's look-ahead.
+            const auto res = m_channel->processBlockAsync(
+                scratch, std::span<const vsthost::ShmMidiEvent>(blockMidi.data(), midiCount),
+                ctx.sampleRate, discontinuous, m_asyncLatencyFrames);
+            if (res.submitted) {
+                if (res.recovered && !recoveredBeforeCall) {
+                    // Recovery landed between our pre-check and processBlockAsync: force re-chase next block.
+                    m_pendingRecoveryChase = true;
+                    m_clock.invalidate();
+                } else {
+                    m_clock.advance(blockEndMs);
+                    m_lastRecoveryCount = recNow;
+                    m_pendingRecoveryChase = false;
+                }
+            } else {
+                // Input/MIDI could not be submitted (peer dead or queue full): re-chase once recovered.
+                m_clock.invalidate();
+                if (res.peerDead) {
+                    m_pendingRecoveryChase = true;
+                }
+            }
         }
-        m_clock.advance(blockEndMs);
 
         if (m_activeNotes == 0 && m_tailFrames > 0) {
             m_tailFrames = std::max(0, m_tailFrames - frames);
@@ -772,11 +903,18 @@ public:
     }
 
 private:
-    // Shared with VstLivePool so the live plug-in and open editor persist across plan swaps.
+    // Shared with VstLivePool (live) or uniquely owned by this offline plan processor.
     std::shared_ptr<VstLiveChannel> m_channel;
     MidiTrackStream m_stream;
     std::vector<ClipEnvelope> m_envelopes;
     float m_gain = 1.0f;
+    bool m_offline = false;
+    bool m_lowLatency = false;
+    int m_asyncLatencyFrames = VstLiveChannel::kPlaybackAsyncLatencyFrames;
+    // Non-owning client pointer set only for isolated offline channels (outlives offline plan).
+    VstHostClient* m_offlineOwnerClient = nullptr;
+    std::uint64_t m_lastRecoveryCount = 0;
+    bool m_pendingRecoveryChase = false;
     LiveBlockClock m_clock;
     std::size_t m_cursor = 0;
     int m_activeNotes = 0;
@@ -789,29 +927,58 @@ private:
 // reset() run on the audio render thread with zero locks and zero allocations.
 class VstLiveEffectProcessor final : public BlockProcessor {
 public:
-    VstLiveEffectProcessor(std::string effectId, std::shared_ptr<VstLiveChannel> channel, double wet)
-        : m_channel(std::move(channel)), m_wet(static_cast<float>(std::clamp(wet, 0.0, 1.0))) {
+    VstLiveEffectProcessor(std::string effectId, std::shared_ptr<VstLiveChannel> channel, double wet,
+                           bool offline, bool lowLatency, VstHostClient* offlineOwnerClient = nullptr)
+        : m_channel(std::move(channel)),
+          m_wet(static_cast<float>(std::clamp(wet, 0.0, 1.0))),
+          m_offline(offline),
+          m_lowLatency(lowLatency),
+          m_asyncLatencyFrames(offline ? 0 : resolveAsyncLookahead(lowLatency, kMixBlockFrames)),
+          m_offlineOwnerClient(offlineOwnerClient),
+          m_lastRecoveryCount(m_channel ? m_channel->recoveryCount() : 0) {
         id = std::move(effectId);
+        // C2: Never mutate the pooled channel's async latency during construction/preparation;
+        // `m_asyncLatencyFrames` is activated on the audio thread when this plan actually renders.
+    }
+
+    ~VstLiveEffectProcessor() override {
+        if (m_offlineOwnerClient && m_channel) {
+            const QString instKey = m_channel->instance();
+            m_channel->close(m_offlineOwnerClient);
+            if (!instKey.isEmpty()) {
+                m_offlineOwnerClient->disposeAsync(instKey);
+            }
+        }
     }
 
     void prepare(double sampleRate) override {
-        if (m_channel) (void)m_channel->prepareRate(sampleRate);
-        const int latency = m_channel ? std::max(0, m_channel->latencySamples()) : 0;
+        prepare(sampleRate, kMixBlockFrames);
+    }
+
+    void prepare(double sampleRate, int deviceBlockFrames) override {
+        if (!m_offline) {
+            m_asyncLatencyFrames = resolveAsyncLookahead(m_lowLatency, deviceBlockFrames);
+        }
+        const int quantum = std::clamp(deviceBlockFrames > 0 ? deviceBlockFrames : kMixBlockFrames,
+                                       16, kMixBlockFrames);
+        if (m_channel) (void)m_channel->prepareRate(sampleRate, nullptr, quantum);
+        const int latency = totalLatencySamples();
         // Always prepare dry-path PDC ring on the control thread so parallel blends and
         // disconnect/timeout passthrough stay latency-aligned without audio-thread allocations.
         m_dryDelay.prepare(sampleRate, latency);
     }
 
     void reprobeLatency(double sampleRate) override {
+        // D11: Never mutate m_offline here; render mode is set explicitly at plan construction.
         if (m_channel) (void)m_channel->probeLatency(sampleRate);
-        const int latency = m_channel ? std::max(0, m_channel->latencySamples()) : 0;
+        const int latency = totalLatencySamples();
         if (static_cast<std::size_t>(latency) > m_dryDelay.maxDelay()) {
             m_dryDelay.prepare(sampleRate, latency);
         }
     }
 
     int latencySamples() const noexcept override {
-        return (bypassed() || !m_channel) ? 0 : std::max(0, m_channel->latencySamples());
+        return (bypassed() || !m_channel) ? 0 : totalLatencySamples();
     }
 
     void onBypassedBlock(std::span<const float> stereo, const BlockContext& ctx) noexcept override {
@@ -820,7 +987,9 @@ public:
         if (frames <= 0 || frames > kMixBlockFrames) return;
         const double blockStartMs = ctx.timelineMs;
         const double blockEndMs = blockStartMs + frames * ctx.msPerFrame;
-        const bool vstDiscontinuous = m_vstClock.isDiscontinuous(blockStartMs);
+        const std::uint64_t recNow = (!m_offline && m_channel) ? m_channel->recoveryCount() : m_lastRecoveryCount;
+        const bool recoveredBeforeCall = !m_offline && m_channel && !m_channel->peerDead() && (recNow != m_lastRecoveryCount);
+        const bool vstDiscontinuous = m_vstClock.isDiscontinuous(blockStartMs) || recoveredBeforeCall;
         const bool dryDiscontinuous = m_dryClock.isDiscontinuous(blockStartMs);
         const std::size_t samples = static_cast<std::size_t>(frames) * 2;
         auto dryOut = std::span<float>(m_dry.data(), samples);
@@ -828,11 +997,11 @@ public:
         (void)m_dryDelay.process(stereo, dryOut, 0, dryDiscontinuous);
         m_dryClock.advance(blockEndMs);
 
-        if (!m_channel || !m_channel->connected()) {
+        if (!m_channel || m_channel->closed()) {
             m_vstClock.invalidate();
             return;
         }
-        const int preLatency = std::max(0, m_channel->latencySamples());
+        const int preLatency = totalLatencySamples();
         bool hasInput = false;
         for (float s : stereo) {
             if (s != 0.0f) { hasInput = true; break; }
@@ -847,10 +1016,26 @@ public:
         // delay line stays continuously warm and un-bypassing never resets into a mute hole.
         auto scratch = std::span<float>(m_in.data(), samples);
         std::copy_n(stereo.begin(), samples, scratch.begin());
-        if (m_channel->processBlock(scratch, {}, ctx.sampleRate, vstDiscontinuous, kLiveBlockTimeoutMs)) {
-            m_vstClock.advance(blockEndMs);
+        if (m_offline) {
+            if (m_channel->connected() &&
+                m_channel->processBlock(scratch, {}, ctx.sampleRate, vstDiscontinuous, kLiveBlockTimeoutMs)) {
+                m_vstClock.advance(blockEndMs);
+            } else {
+                m_vstClock.invalidate();
+            }
         } else {
-            m_vstClock.invalidate();
+            const auto res = m_channel->processBlockAsync(scratch, {}, ctx.sampleRate, vstDiscontinuous,
+                                                          m_asyncLatencyFrames);
+            if (res.submitted) {
+                if (res.recovered && !recoveredBeforeCall) {
+                    m_vstClock.invalidate();
+                } else {
+                    m_vstClock.advance(blockEndMs);
+                    m_lastRecoveryCount = recNow;
+                }
+            } else {
+                m_vstClock.invalidate();
+            }
         }
         if (!hasInput && m_tailFrames > 0) {
             m_tailFrames = std::max(0, m_tailFrames - frames);
@@ -859,6 +1044,13 @@ public:
 
     void serviceControlThread() override {
         (void)m_dryDelay.serviceOverflow();
+        if (m_channel) (void)m_channel->recoverIfNeeded();
+    }
+
+    void armForPlayback() override {
+        if (!m_offline && m_channel) {
+            m_channel->armForPlayback();
+        }
     }
 
     void reset() noexcept override {
@@ -866,6 +1058,11 @@ public:
         m_vstClock.invalidate();
         m_dryClock.invalidate();
         m_tailFrames = 0;
+        m_dryFallbackMix = 0.0f;
+        m_fallbackInitialized = false;
+        if (m_channel) {
+            m_lastRecoveryCount = m_channel->recoveryCount();
+        }
         m_dryDelay.reset();
     }
 
@@ -880,9 +1077,11 @@ public:
 
         const double blockStartMs = ctx.timelineMs;
         const double blockEndMs = blockStartMs + frames * ctx.msPerFrame;
-        const bool vstDiscontinuous = m_vstClock.isDiscontinuous(blockStartMs);
+        const std::uint64_t recNow = (!m_offline) ? m_channel->recoveryCount() : m_lastRecoveryCount;
+        const bool recoveredBeforeCall = !m_offline && !m_channel->peerDead() && (recNow != m_lastRecoveryCount);
+        const bool vstDiscontinuous = m_vstClock.isDiscontinuous(blockStartMs) || recoveredBeforeCall;
         const bool dryDiscontinuous = m_dryClock.isDiscontinuous(blockStartMs);
-        const int preLatency = std::max(0, m_channel->latencySamples());
+        const int preLatency = totalLatencySamples();
 
         bool hasInput = false;
         for (float s : stereo) {
@@ -901,9 +1100,37 @@ public:
         auto inCopy = std::span<float>(m_in.data(), samples);
         std::copy_n(stereo.begin(), samples, inCopy.begin());
 
-        const bool vstOk = m_channel->connected() &&
-            m_channel->processBlock(stereo, {}, ctx.sampleRate, vstDiscontinuous, kLiveBlockTimeoutMs);
-        const int postLatency = std::max(0, m_channel->latencySamples());
+        bool fallbackToDry = false;
+        if (m_offline) {
+            const bool vstOk = m_channel->connected() &&
+                m_channel->processBlock(stereo, {}, ctx.sampleRate, vstDiscontinuous, kLiveBlockTimeoutMs);
+            if (!vstOk) {
+                m_vstClock.invalidate();
+                fallbackToDry = true;
+            } else {
+                m_vstClock.advance(blockEndMs);
+            }
+        } else {
+            const auto res = m_channel->processBlockAsync(stereo, {}, ctx.sampleRate, vstDiscontinuous,
+                                                          m_asyncLatencyFrames);
+            if (res.submitted) {
+                if (res.recovered && !recoveredBeforeCall) {
+                    m_vstClock.invalidate();
+                } else {
+                    m_vstClock.advance(blockEndMs);
+                    m_lastRecoveryCount = recNow;
+                }
+            } else {
+                m_vstClock.invalidate();
+            }
+            // On dead peer (crashed host) fall back to latency-aligned dry passthrough.
+            // On a transient late block, keep the smooth concealed wet output without disconnecting.
+            if (res.peerDead && !res.outputReady) {
+                fallbackToDry = true;
+            }
+        }
+
+        const int postLatency = totalLatencySamples();
         if (hasInput && postLatency > preLatency) {
             m_tailFrames = std::max(m_tailFrames, postLatency + kMixBlockFrames);
         }
@@ -911,17 +1138,6 @@ public:
         auto dryOut = std::span<float>(m_dry.data(), samples);
         (void)m_dryDelay.process(inCopy, dryOut, postLatency, dryDiscontinuous);
         m_dryClock.advance(blockEndMs);
-
-        if (!vstOk) {
-            m_vstClock.invalidate();
-            // Keep passthrough latency-aligned with PDC-delayed sibling tracks without comb-filtering.
-            std::copy_n(dryOut.begin(), samples, stereo.begin());
-            if (!hasInput && m_tailFrames > 0) {
-                m_tailFrames = std::max(0, m_tailFrames - frames);
-            }
-            return;
-        }
-        m_vstClock.advance(blockEndMs);
 
         if (!hasInput && m_tailFrames > 0) {
             m_tailFrames = std::max(0, m_tailFrames - frames);
@@ -933,12 +1149,50 @@ public:
                 stereo[i] = m_dry[i] * dryGain + stereo[i] * m_wet;
             }
         }
+
+        // D8: Crossfade smoothly over 64 frames when entering or leaving dead-peer dry fallback
+        // so neither wet->dry crash fallback nor dry->silence recovery causes a hard click.
+        const float targetFallback = fallbackToDry ? 1.0f : 0.0f;
+        if (!m_fallbackInitialized) {
+            m_dryFallbackMix = targetFallback;
+            m_fallbackInitialized = true;
+        }
+        if (m_dryFallbackMix != targetFallback || m_dryFallbackMix > 0.0f) {
+            constexpr float kStep = 1.0f / static_cast<float>(kFallbackCrossfadeFrames);
+            for (int f = 0; f < frames; ++f) {
+                if (m_dryFallbackMix < targetFallback) {
+                    m_dryFallbackMix = std::min(targetFallback, m_dryFallbackMix + kStep);
+                } else if (m_dryFallbackMix > targetFallback) {
+                    m_dryFallbackMix = std::max(targetFallback, m_dryFallbackMix - kStep);
+                }
+                const float wetWeight = 1.0f - m_dryFallbackMix;
+                const std::size_t idx = static_cast<std::size_t>(f) * 2;
+                stereo[idx] = stereo[idx] * wetWeight + dryOut[idx] * m_dryFallbackMix;
+                stereo[idx + 1] = stereo[idx + 1] * wetWeight + dryOut[idx + 1] * m_dryFallbackMix;
+            }
+        }
     }
 
 private:
-    // Shared with VstLivePool so the live plug-in and open editor persist across plan swaps.
+    static constexpr int kFallbackCrossfadeFrames = 64;
+
+    int totalLatencySamples() const noexcept {
+        if (!m_channel) return 0;
+        const int pluginLatency = std::max(0, m_channel->latencySamples());
+        return pluginLatency + (m_offline ? 0 : m_asyncLatencyFrames);
+    }
+
+    // Shared with VstLivePool (live) or uniquely owned by this offline plan processor.
     std::shared_ptr<VstLiveChannel> m_channel;
     float m_wet = 1.0f;
+    bool m_offline = false;
+    bool m_lowLatency = false;
+    int m_asyncLatencyFrames = VstLiveChannel::kPlaybackAsyncLatencyFrames;
+    // Non-owning client pointer set only for isolated offline channels (outlives offline plan).
+    VstHostClient* m_offlineOwnerClient = nullptr;
+    std::uint64_t m_lastRecoveryCount = 0;
+    float m_dryFallbackMix = 0.0f;
+    bool m_fallbackInitialized = false;
     LiveBlockClock m_vstClock;
     LiveBlockClock m_dryClock;
     int m_tailFrames = 0;
@@ -981,7 +1235,8 @@ bool timelineUsesVstEffect(const Timeline& timeline) {
 }
 
 void interleaveVstEffects(const QJsonArray& effects, const QString& instancePrefix,
-                          Processors& processors, VstHostClient& client, VstLivePool& pool) {
+                          Processors& processors, VstHostClient& client, VstLivePool& pool,
+                          bool offline, bool lowLatency) {
     if (!hasEnabledVstEffect(effects)) return;
 
     // Separate any leading instrument generator from built-in insert processors.
@@ -1006,14 +1261,18 @@ void interleaveVstEffects(const QJsonArray& effects, const QString& instancePref
             const QJsonObject plugin = e.value(u"plugin").toObject();
             if (!isValidVstPlugin(plugin)) continue;
             const QString instance = instancePrefix + id;
-            auto channel = pool.acquire(client, instance,
-                                        plugin.value(u"path").toString(),
-                                        plugin.value(u"uid").toString(),
-                                        e.value(u"state").toString(),
-                                        kVstRenderSampleRate);
+            const QString path = plugin.value(u"path").toString();
+            const QString uid = plugin.value(u"uid").toString();
+            const QString state = e.value(u"state").toString();
+            // D11: Keep offline export channels isolated from live pooled channels so
+            // synchronous offline export never interleaves with live playback state.
+            auto channel = offline
+                ? VstLiveChannel::open(client, makeOfflineInstanceKey(instance), path, uid, state, kVstRenderSampleRate)
+                : pool.acquire(client, instance, path, uid, state, kVstRenderSampleRate);
             if (!channel) continue;
             const double wet = e.value(u"wet").toDouble(1.0);
-            ordered.push_back(std::make_shared<VstLiveEffectProcessor>(id.toStdString(), std::move(channel), wet));
+            ordered.push_back(std::make_shared<VstLiveEffectProcessor>(
+                id.toStdString(), std::move(channel), wet, offline, lowLatency, offline ? &client : nullptr));
         } else {
             auto it = builtInById.find(id.toStdString());
             if (it != builtInById.end() && it->second) {
@@ -1147,6 +1406,7 @@ std::vector<VstNoteEvent> extractMidiNoteEvents(const QJsonObject& clipRaw, doub
 void runVstInstrumentsStage(const Timeline& timeline, MixPlan& plan, VstHostClient& client, VstLivePool& pool) {
     if (!client.available()) return;
 
+    const bool offline = (plan.renderMode == RenderMode::Offline);
     const bool soloed = hasSoloedSoundTrack(timeline);
     const double bpm = resolveBpm(timeline);
 
@@ -1165,11 +1425,13 @@ void runVstInstrumentsStage(const Timeline& timeline, MixPlan& plan, VstHostClie
         std::vector<ClipEnvelope> envelopes;
         auto stream = buildStream(timeline, track.id, bpm, &envelopes);
         const QString instance = QStringLiteral("inst:") + QString::fromStdString(track.id);
-        auto channel = pool.acquire(client, instance,
-                                    plugin.value(u"path").toString(),
-                                    plugin.value(u"uid").toString(),
-                                    inst.value(u"state").toString(),
-                                    kVstRenderSampleRate);
+        const QString path = plugin.value(u"path").toString();
+        const QString uid = plugin.value(u"uid").toString();
+        const QString state = inst.value(u"state").toString();
+        // D11: Keep offline export channels isolated from live pooled channels.
+        auto channel = offline
+            ? VstLiveChannel::open(client, makeOfflineInstanceKey(instance), path, uid, state, kVstRenderSampleRate)
+            : pool.acquire(client, instance, path, uid, state, kVstRenderSampleRate);
         if (!channel) continue;
 
         auto [it, inserted] = trackBusIndex.try_emplace(track.id, plan.tracks.size());
@@ -1182,8 +1444,10 @@ void runVstInstrumentsStage(const Timeline& timeline, MixPlan& plan, VstHostClie
         }
 
         const double gain = dbToGain(inst.value(u"gainDb").toDouble(0.0));
+        const bool lowLatency = !offline && isLowLatencyInstrumentTrack(track);
         auto processor = std::make_shared<VstLiveInstrumentProcessor>(
-            std::move(channel), std::move(stream), std::move(envelopes), gain);
+            std::move(channel), std::move(stream), std::move(envelopes), gain,
+            offline, lowLatency, offline ? &client : nullptr);
         auto& procs = plan.tracks[it->second].processors;
         procs.insert(procs.begin(), std::move(processor));
     }
@@ -1192,15 +1456,19 @@ void runVstInstrumentsStage(const Timeline& timeline, MixPlan& plan, VstHostClie
 void runVstEffectsStage(const Timeline& timeline, MixPlan& plan, VstHostClient& client, VstLivePool& pool) {
     if (!client.available()) return;
 
+    const bool offline = (plan.renderMode == RenderMode::Offline);
     for (auto& bus : plan.tracks) {
         const Track* track = timeline.findTrack(bus.trackId);
         if (!track || !isSoundTrack(*track)) continue;
         const QString prefix = QStringLiteral("fx:") + QString::fromStdString(track->id) + QChar(':');
-        interleaveVstEffects(track->raw.value(u"effects").toArray(), prefix, bus.processors, client, pool);
+        const bool lowLatency = !offline && isLowLatencyInstrumentTrack(*track);
+        interleaveVstEffects(track->raw.value(u"effects").toArray(), prefix, bus.processors, client, pool,
+                             offline, lowLatency);
     }
 
     const QJsonArray masterEffects = timeline.raw.value(u"master").toObject().value(u"effects").toArray();
-    interleaveVstEffects(masterEffects, QStringLiteral("master-fx:"), plan.processors, client, pool);
+    interleaveVstEffects(masterEffects, QStringLiteral("master-fx:"), plan.processors, client, pool,
+                         offline, /*lowLatency=*/false);
 }
 
 void registerVstAudioStages(std::shared_ptr<VstHostClient> client) {

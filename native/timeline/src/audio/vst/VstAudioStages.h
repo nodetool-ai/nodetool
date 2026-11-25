@@ -65,11 +65,24 @@ struct MidiChaseLane {
     std::vector<Point> points;    // timeline ms, non-decreasing
 };
 
+// Active note interval kept for RT-safe held-note re-chasing after dead-peer recovery.
+// Built on the plan-build thread, read-only on the audio thread.
+struct MidiHeldNote {
+    double onMs = 0.0;
+    double offMs = 0.0;
+    std::uint8_t channel = 0;
+    std::uint8_t pitch = 60;
+    std::uint8_t velocity = 100;
+    std::int32_t noteId = vsthost::kShmNoNoteId;
+};
+
 // Everything one track plays: events sorted by time (at one time: note-offs,
-// then controllers, then note-ons, then note expression) plus the lanes to chase.
+// then controllers, then note-ons, then note expression), controller lanes to chase,
+// and note intervals for recovery re-chase.
 struct MidiTrackStream {
     std::vector<MidiStreamEvent> events;
     std::vector<MidiChaseLane> chase;
+    std::vector<MidiHeldNote> heldNotes;
 };
 
 // The playback stream of the midi clips of `trackId`. Rules: muted notes make no

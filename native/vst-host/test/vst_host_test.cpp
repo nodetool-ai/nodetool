@@ -2,16 +2,290 @@
 //   vst_host_test <path to NodeTool Test Tone.vst3>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cmath>
+#include <condition_variable>
 #include <cstdio>
 #include <cstdlib>
+#include <mutex>
 #include <thread>
 #if JUCE_MAC
 #include <CoreFoundation/CoreFoundation.h>
+#include <malloc/malloc.h>
+#include <pthread.h>
 #endif
 #include "../source/VstHost.h"
 
+#if JUCE_MAC
+extern "C" {
+using MallocLoggerFn = void (*)(uint32_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uint32_t);
+extern MallocLoggerFn malloc_logger;
+}
+#endif
+
 namespace {
+#if JUCE_MAC
+// Per-thread heap allocation counter via macOS malloc_logger (catches malloc, calloc, realloc, and operator new).
+// Uses atomic pthread_t comparison (never thread_local, which can recurse into malloc during thread exit).
+// native-rules #14: test-only atomic allocation tracking globals
+static std::atomic<pthread_t> g_trackedThread{nullptr};
+static std::atomic<std::uint64_t> g_trackedAllocCount{0};
+
+void testMallocLogger(uint32_t type, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uint32_t) {
+    // 2 = MALLOC_LOG_TYPE_ALLOCATE, 4 = MALLOC_LOG_TYPE_DEALLOCATE (realloc sets both 2|4 = 6).
+    if ((type & 2u) != 0u && pthread_self() == g_trackedThread.load(std::memory_order_relaxed)) {
+        g_trackedAllocCount.fetch_add(1, std::memory_order_relaxed);
+    }
+}
+
+struct ScopedAllocCounter {
+    ScopedAllocCounter() {
+        g_trackedAllocCount.store(0, std::memory_order_relaxed);
+        g_trackedThread.store(pthread_self(), std::memory_order_release);
+    }
+    ~ScopedAllocCounter() {
+        g_trackedThread.store(nullptr, std::memory_order_release);
+    }
+    [[nodiscard]] std::uint64_t count() const noexcept {
+        return g_trackedAllocCount.load(std::memory_order_acquire);
+    }
+};
+#else
+struct ScopedAllocCounter {
+    [[nodiscard]] std::uint64_t count() const noexcept { return 0; }
+};
+#endif
+
+// Real 36-output-channel zero-allocation AudioPluginInstance fixture for C4, C5, and C7.
+// Rejects non-36-channel layouts so Instance::prepare() keeps all 36 output channels
+// (selecting the >=32-channel branch in Instance::processLiveBlock()).
+class WideChannelTestPlugin final : public juce::AudioPluginInstance {
+public:
+    static constexpr int kOutputChannels = 36;
+
+    WideChannelTestPlugin()
+        : juce::AudioPluginInstance(
+              BusesProperties().withOutput("Out36", juce::AudioChannelSet::discreteChannels(kOutputChannels), true)) {}
+
+    const juce::String getName() const override { return "Wide36TestPlugin"; }
+    void fillInPluginDescription(juce::PluginDescription& d) const override {
+        d.name = getName();
+        d.pluginFormatName = "Test";
+        d.isInstrument = true;
+        d.numInputChannels = 0;
+        d.numOutputChannels = kOutputChannels;
+    }
+    bool isBusesLayoutSupported(const BusesLayout& layouts) const override {
+        return layouts.inputBuses.isEmpty() && layouts.outputBuses.size() == 1 &&
+               layouts.outputBuses[0].size() == kOutputChannels;
+    }
+    void prepareToPlay(double, int) override {}
+    void releaseResources() override {}
+    void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override {
+        lastNumChannels = buffer.getNumChannels();
+        lastNumSamples = buffer.getNumSamples();
+        int evCount = 0;
+        int noteOns = 0;
+        int noteOffs = 0;
+        int lastCc74 = -1;
+        for (const auto meta : midi) {
+            ++evCount;
+            if (meta.numBytes >= 3) {
+                const auto st = meta.data[0] & 0xF0u;
+                if (st == 0x90u && meta.data[2] > 0) ++noteOns;
+                else if (st == 0x80u || (st == 0x90u && meta.data[2] == 0)) ++noteOffs;
+                else if (meta.data[0] == 0xB0u && meta.data[1] == 74) lastCc74 = meta.data[2];
+            }
+        }
+        lastMidiCount = evCount;
+        lastNoteOnCount = noteOns;
+        lastNoteOffCount = noteOffs;
+        lastCc74Value = lastCc74;
+        // Write deterministic non-zero marker on channel 0 & 1 without allocating.
+        for (int i = 0; i < buffer.getNumSamples(); ++i) {
+            buffer.setSample(0, i, 0.25f);
+            buffer.setSample(1, i, 0.25f);
+        }
+    }
+    double getTailLengthSeconds() const override { return 0.0; }
+    bool acceptsMidi() const override { return true; }
+    bool producesMidi() const override { return false; }
+    juce::AudioProcessorEditor* createEditor() override { return nullptr; }
+    bool hasEditor() const override { return false; }
+    int getNumPrograms() override { return 1; }
+    int getCurrentProgram() override { return 0; }
+    void setCurrentProgram(int) override {}
+    const juce::String getProgramName(int) override { return {}; }
+    void changeProgramName(int, const juce::String&) override {}
+    void getStateInformation(juce::MemoryBlock&) override {}
+    void setStateInformation(const void*, int) override {}
+
+    int lastNumChannels = 0;
+    int lastNumSamples = 0;
+    int lastMidiCount = 0;
+    int lastNoteOnCount = 0;
+    int lastNoteOffCount = 0;
+    int lastCc74Value = -1;
+};
+
+// Deterministic state-race AudioPluginInstance fixture for C7/D13/E4.
+// Paired with Instance::setGetStatePublishHookForTest() to deterministically hold getState()/tryGetState()
+// after snapshot unlock and before cache publication while setState(B) completes.
+class BarrierStateTestPlugin final : public juce::AudioPluginInstance {
+public:
+    static constexpr std::size_t kPayloadBytes = 64;
+
+    BarrierStateTestPlugin()
+        : juce::AudioPluginInstance(BusesProperties().withOutput("Out", juce::AudioChannelSet::stereo(), true)) {}
+
+    const juce::String getName() const override { return "BarrierStateTestPlugin"; }
+    void fillInPluginDescription(juce::PluginDescription& d) const override {
+        d.name = getName();
+        d.pluginFormatName = "Test";
+        d.isInstrument = true;
+        d.numInputChannels = 0;
+        d.numOutputChannels = 2;
+    }
+    void prepareToPlay(double, int) override {}
+    void releaseResources() override {}
+    void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) override { buffer.clear(); }
+    double getTailLengthSeconds() const override { return 0.0; }
+    bool acceptsMidi() const override { return true; }
+    bool producesMidi() const override { return false; }
+    juce::AudioProcessorEditor* createEditor() override { return nullptr; }
+    bool hasEditor() const override { return false; }
+    int getNumPrograms() override { return 1; }
+    int getCurrentProgram() override { return 0; }
+    void setCurrentProgram(int) override {}
+    const juce::String getProgramName(int) override { return {}; }
+    void changeProgramName(int, const juce::String&) override {}
+    void getStateInformation(juce::MemoryBlock& dest) override {
+        const unsigned char tag = stateTag_.load(std::memory_order_acquire);
+        const std::size_t sz = (tag == 'A') ? kPayloadBytes : 16u;
+        dest.setSize(sz, false);
+        std::memset(dest.getData(), tag, sz);
+    }
+    void setStateInformation(const void* data, int size) override {
+        if (data && size > 0) {
+            stateTag_.store(static_cast<const unsigned char*>(data)[0], std::memory_order_release);
+            setStateCalls_.fetch_add(1, std::memory_order_acq_rel);
+        }
+    }
+
+    std::atomic<unsigned char> stateTag_{'A'};
+    std::atomic<int> setStateCalls_{0};
+};
+
+// Sustain-aware AudioPluginInstance fixture for E1 (sustain pedal + overflow reconciliation).
+// Models MIDI CC64 sustain pedal (>=64 holds released notes until CC64 < 64) and CC123 All Notes Off
+// without allocating in processBlock().
+class SustainTestPlugin final : public juce::AudioPluginInstance {
+public:
+    SustainTestPlugin()
+        : juce::AudioPluginInstance(BusesProperties().withOutput("Out", juce::AudioChannelSet::stereo(), true)) {}
+
+    const juce::String getName() const override { return "SustainTestPlugin"; }
+    void fillInPluginDescription(juce::PluginDescription& d) const override {
+        d.name = getName();
+        d.pluginFormatName = "Test";
+        d.isInstrument = true;
+        d.numInputChannels = 0;
+        d.numOutputChannels = 2;
+    }
+    void prepareToPlay(double, int) override { resetState(); }
+    void releaseResources() override {}
+    void reset() override { resetState(); }
+    void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) override {
+        buffer.clear();
+        for (const auto meta : midi) {
+            if (meta.numBytes < 2) continue;
+            const auto st = meta.data[0] & 0xF0u;
+            const auto ch = static_cast<std::size_t>(meta.data[0] & 0x0Fu);
+            if (st == 0x90u && meta.numBytes >= 3 && meta.data[2] > 0) {
+                const auto p = static_cast<std::size_t>(meta.data[1] & 0x7Fu);
+                held_[ch][p] = true;
+                sounding_[ch][p] = true;
+            } else if (st == 0x80u || (st == 0x90u && meta.numBytes >= 3 && meta.data[2] == 0)) {
+                const auto p = static_cast<std::size_t>(meta.data[1] & 0x7Fu);
+                held_[ch][p] = false;
+                if (!sustain_[ch]) {
+                    sounding_[ch][p] = false;
+                }
+            } else if (st == 0xB0u && meta.numBytes >= 3) {
+                const auto cc = meta.data[1] & 0x7Fu;
+                const auto val = meta.data[2] & 0x7Fu;
+                lastCc_[ch][cc] = static_cast<int>(val);
+                if (cc == 64) {
+                    const bool down = (val >= 64);
+                    sustain_[ch] = down;
+                    if (!down) {
+                        for (std::size_t p = 0; p < 128; ++p) {
+                            if (!held_[ch][p]) sounding_[ch][p] = false;
+                        }
+                    }
+                } else if (cc == 120 || cc == 123) {
+                    for (std::size_t p = 0; p < 128; ++p) {
+                        held_[ch][p] = false;
+                        if (cc == 120 || !sustain_[ch]) sounding_[ch][p] = false;
+                    }
+                } else if (cc == 121) {
+                    // MIDI RP-015 Reset All Controllers: modulation->0, expression->127, sustain->0.
+                    ++resetAllControllersCount_[ch];
+                    sustain_[ch] = false;
+                    lastCc_[ch][1] = 0;
+                    lastCc_[ch][11] = 127;
+                    lastCc_[ch][64] = 0;
+                    for (std::size_t p = 0; p < 128; ++p) {
+                        if (!held_[ch][p]) sounding_[ch][p] = false;
+                    }
+                }
+            }
+        }
+        bool anySounding = false;
+        for (std::size_t ch = 0; ch < 16 && !anySounding; ++ch) {
+            for (std::size_t p = 0; p < 128; ++p) {
+                if (sounding_[ch][p]) { anySounding = true; break; }
+            }
+        }
+        if (anySounding) {
+            for (int i = 0; i < buffer.getNumSamples(); ++i) {
+                buffer.setSample(0, i, 0.25f);
+                buffer.setSample(1, i, 0.25f);
+            }
+        }
+    }
+    double getTailLengthSeconds() const override { return 0.0; }
+    bool acceptsMidi() const override { return true; }
+    bool producesMidi() const override { return false; }
+    juce::AudioProcessorEditor* createEditor() override { return nullptr; }
+    bool hasEditor() const override { return false; }
+    int getNumPrograms() override { return 1; }
+    int getCurrentProgram() override { return 0; }
+    void setCurrentProgram(int) override {}
+    const juce::String getProgramName(int) override { return {}; }
+    void changeProgramName(int, const juce::String&) override {}
+    void getStateInformation(juce::MemoryBlock&) override {}
+    void setStateInformation(const void*, int) override {}
+
+    void resetState() noexcept {
+        for (auto& c : held_) c.fill(false);
+        for (auto& c : sounding_) c.fill(false);
+        sustain_.fill(false);
+        for (auto& c : lastCc_) {
+            c.fill(-1);
+            c[1] = 0;
+            c[11] = 127;
+        }
+        resetAllControllersCount_.fill(0);
+    }
+
+    std::array<std::array<bool, 128>, 16> held_{};
+    std::array<std::array<bool, 128>, 16> sounding_{};
+    std::array<bool, 16> sustain_{};
+    std::array<std::array<int, 128>, 16> lastCc_{};
+    std::array<int, 16> resetAllControllersCount_{};
+};
 void pumpMessageQueue(int milliseconds) {
 #if JUCE_MAC
     const auto end = juce::Time::getMillisecondCounterHiRes() + static_cast<double>(milliseconds);
@@ -567,6 +841,833 @@ int main(int argc, char** argv) {
                     dynFx.setLatencyChangedCallback({});
                 }
             }
+        }
+    }
+
+    // VST2 C5: processLiveBlock must reject undersized scratch buffers without allocating.
+    {
+        Instance c5Inst;
+        juce::String c5Err;
+        const bool c5Ready = c5Inst.load(path, {}, c5Err) && c5Inst.prepareLive(rate, 128, c5Err);
+        check(c5Ready, "VST2 C5: loads and prepares ToneInstrument", c5Err);
+        if (c5Ready) {
+            juce::AudioBuffer<float> tinyScratch(1, 64);
+            const float* ptrBefore = tinyScratch.getReadPointer(0);
+            juce::MidiBuffer tinyMidi;
+            tinyMidi.ensureSize(1024);
+            std::vector<float> outL(128, 0.0f), outR(128, 0.0f);
+            const bool accepted = c5Inst.processLiveBlock(rate, 128, false, nullptr, nullptr,
+                                                          outL.data(), outR.data(), nullptr, 0,
+                                                          tinyScratch, tinyMidi);
+            check(!accepted, "VST2 C5: processLiveBlock rejects undersized scratch instead of reallocating");
+            check(tinyScratch.getNumChannels() == 1 && tinyScratch.getNumSamples() == 64 &&
+                      tinyScratch.getReadPointer(0) == ptrBefore,
+                  "VST2 C5: undersized scratch buffer was not reallocated in processLiveBlock",
+                  "ch=" + juce::String(tinyScratch.getNumChannels()) +
+                      " samples=" + juce::String(tinyScratch.getNumSamples()));
+        }
+    }
+
+    // VST2 C2 / D6 / D7 / D9 / D14: slow getState AND real (non-short-circuited) setState must
+    // not block live processLiveBlock, must not drop MIDI/reset during contention, must fade
+    // cleanly even across short (<64 frame) contended blocks, and must handle >=32-ch scratch.
+    {
+        setTestEnv("NT_TONE_INJECT_STATE_DELAY_MS", "30");
+        Instance c2Inst;
+        juce::String c2Err;
+        const bool c2Ready = c2Inst.load(path, {}, c2Err) && c2Inst.prepareLive(rate, 128, c2Err);
+        check(c2Ready, "VST2 C2: loads ToneInstrument with 30 ms state delay", c2Err);
+        if (c2Ready) {
+            const juce::String defaultState = c2Inst.getState();
+            // Create a distinct saved state (program 1 = Bright, level 0.9) so setState cannot short-circuit.
+            juce::String presetErr;
+            check(c2Inst.selectPreset(1, {}, presetErr), "VST2 D14: selects Bright preset for distinct state", presetErr);
+            const juce::String brightState = c2Inst.getState();
+            check(brightState.isNotEmpty() && brightState != defaultState,
+                  "VST2 D14: distinct state differs from default state");
+
+            std::atomic<bool> startFlag{false};
+            std::atomic<bool> noteOnContentionActive{false};
+            std::atomic<bool> noteOffContentionActive{false};
+            std::atomic<bool> resetContentionActive{false};
+            std::atomic<double> maxBlockMs{0.0};
+            std::atomic<int> blocksDone{0};
+            std::vector<float> recordedL;
+            recordedL.reserve(static_cast<size_t>(128) * 160);
+            double rmsAfterContendedNoteOn = 0.0;
+            double rmsAfterContendedNoteOff = 0.0;
+            double rmsAfterContendedReset = 0.0;
+
+            std::thread liveWorker([&] {
+                // Use 40 channels (>= 32) to exercise D7 non-allocating large channel scratch too.
+                juce::AudioBuffer<float> scratch(40, static_cast<int>(kShmMaxFrames));
+                const float* scratchCh0Before = scratch.getReadPointer(0);
+                juce::MidiBuffer midi;
+                midi.ensureSize(4096);
+                std::vector<float> outL(128, 0.0f), outR(128, 0.0f);
+                ShmMidiEvent noteOn60{0, 0x90, 60, 110, 0, 1, 0.0f};
+                ShmMidiEvent noteOn64{0, 0x90, 64, 110, 0, 2, 0.0f};
+                ShmMidiEvent noteOff60{0, 0x80, 60, 0, 0, 1, 0.0f};
+                ShmMidiEvent noteOff64{0, 0x80, 64, 0, 0, 2, 0.0f};
+                bool sentContendedNoteOn = false;
+                bool sentContendedNoteOff = false;
+                bool sentContendedReset = false;
+                int postNoteOnBlocks = 0;
+                int postNoteOffBlocks = 0;
+                int postResetBlocks = 0;
+                double sumSqOn = 0.0, sumSqOff = 0.0, sumSqReset = 0.0;
+                int nOn = 0, nOff = 0, nReset = 0;
+
+                startFlag.store(true, std::memory_order_release);
+                for (int blk = 0; blk < 120; ++blk) {
+                    const ShmMidiEvent* ev = nullptr;
+                    int evCount = 0;
+                    bool doReset = (blk == 0);
+                    if (blk == 0) {
+                        ev = &noteOn60;
+                        evCount = 1;
+                    } else if (!sentContendedNoteOn && noteOnContentionActive.load(std::memory_order_acquire)) {
+                        ev = &noteOn64;
+                        evCount = 1;
+                        sentContendedNoteOn = true;
+                    } else if (blk == 42) {
+                        // Silence note 60 so only note 64 (sent during contention) remains!
+                        ev = &noteOff60;
+                        evCount = 1;
+                    } else if (!sentContendedNoteOff && noteOffContentionActive.load(std::memory_order_acquire)) {
+                        // Send noteOff for note 64 WHILE setState holds lock!
+                        ev = &noteOff64;
+                        evCount = 1;
+                        sentContendedNoteOff = true;
+                    } else if (blk == 82) {
+                        // Start note 60 again before testing contended reset.
+                        ev = &noteOn60;
+                        evCount = 1;
+                    } else if (!sentContendedReset && resetContentionActive.load(std::memory_order_acquire)) {
+                        doReset = true;
+                        sentContendedReset = true;
+                    }
+
+                    const auto t0 = std::chrono::steady_clock::now();
+                    const bool ok = c2Inst.processLiveBlock(
+                        rate, 128, doReset, nullptr, nullptr, outL.data(), outR.data(),
+                        ev, evCount, scratch, midi);
+                    const double ms = std::chrono::duration<double, std::milli>(
+                                          std::chrono::steady_clock::now() - t0)
+                                          .count();
+                    double prev = maxBlockMs.load(std::memory_order_relaxed);
+                    while (ms > prev && !maxBlockMs.compare_exchange_weak(prev, ms)) {}
+                    if (ok) {
+                        recordedL.insert(recordedL.end(), outL.begin(), outL.end());
+                        if (blk >= 45 && blk < 52) {
+                            for (float s : outL) { sumSqOn += s * s; ++nOn; }
+                            ++postNoteOnBlocks;
+                        }
+                        if (blk >= 72 && blk < 80) {
+                            for (float s : outL) { sumSqOff += s * s; ++nOff; }
+                            ++postNoteOffBlocks;
+                        }
+                        if (blk >= 110 && blk < 118) {
+                            for (float s : outL) { sumSqReset += s * s; ++nReset; }
+                            ++postResetBlocks;
+                        }
+                    }
+                    blocksDone.fetch_add(1, std::memory_order_release);
+                    std::this_thread::sleep_for(std::chrono::microseconds(2500));
+                }
+                check(scratch.getNumChannels() == 40 && scratch.getNumSamples() == static_cast<int>(kShmMaxFrames) &&
+                          scratch.getReadPointer(0) == scratchCh0Before,
+                      "VST2 D7: 40-channel scratch buffer kept capacity without reallocation");
+                if (nOn > 0) rmsAfterContendedNoteOn = std::sqrt(sumSqOn / nOn);
+                if (nOff > 0) rmsAfterContendedNoteOff = std::sqrt(sumSqOff / nOff);
+                if (nReset > 0) rmsAfterContendedReset = std::sqrt(sumSqReset / nReset);
+                (void)postNoteOnBlocks; (void)postNoteOffBlocks; (void)postResetBlocks;
+            });
+
+            while (!startFlag.load(std::memory_order_acquire)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            // Phase 1: getState contention while worker sends noteOn64.
+            while (blocksDone.load(std::memory_order_acquire) < 6) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            noteOnContentionActive.store(true, std::memory_order_release);
+            const juce::String got = c2Inst.getState();
+            noteOnContentionActive.store(false, std::memory_order_release);
+
+            // Phase 2: REAL setState contention (defaultState != brightState) while worker sends noteOff64.
+            while (blocksDone.load(std::memory_order_acquire) < 55) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            noteOffContentionActive.store(true, std::memory_order_release);
+            juce::String setErr;
+            const auto setT0 = std::chrono::steady_clock::now();
+            const bool setOk = c2Inst.setState(defaultState, setErr);
+            const double setMs = std::chrono::duration<double, std::milli>(
+                                     std::chrono::steady_clock::now() - setT0).count();
+            noteOffContentionActive.store(false, std::memory_order_release);
+
+            // Phase 3: REAL setState contention (brightState != defaultState) while worker sends reset.
+            while (blocksDone.load(std::memory_order_acquire) < 88) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            resetContentionActive.store(true, std::memory_order_release);
+            const bool setOk2 = c2Inst.setState(brightState, setErr);
+            resetContentionActive.store(false, std::memory_order_release);
+
+            liveWorker.join();
+            clearTestEnv("NT_TONE_INJECT_STATE_DELAY_MS");
+
+            float maxStepContention1 = 0.0f;
+            // Measure maxStep across the Phase 1 getState contention + resume window (before blk 42 noteOff60).
+            const size_t phase1End = std::min(recordedL.size(), static_cast<size_t>(40) * 128);
+            for (size_t i = 1; i < phase1End; ++i) {
+                maxStepContention1 = std::max(maxStepContention1, std::abs(recordedL[i] - recordedL[i - 1]));
+            }
+            check(got.isNotEmpty() && setOk && setOk2,
+                  "VST2 C2/D14: getState and distinct setState succeeded during live rendering", setErr);
+            check(setMs >= 20.0,
+                  "VST2 D14: setState actually acquired lock and ran setStateInformation (not short-circuited)",
+                  "setMs=" + juce::String(setMs, 2));
+            check(maxBlockMs.load() < 5.0,
+                  "VST2 C2: live processLiveBlock never stalls on 30 ms getState/setState",
+                  "maxBlockMs=" + juce::String(maxBlockMs.load(), 3));
+            check(maxStepContention1 < 0.05f,
+                  "VST2 C2: live pause/resume around state access fades without hard click",
+                  "maxStep=" + juce::String(maxStepContention1, 4));
+            check(rmsAfterContendedNoteOn > 0.02,
+                  "VST2 D6: Note-On sent during lock contention is queued and sounds after resume",
+                  "rms=" + juce::String(rmsAfterContendedNoteOn, 5));
+            check(rmsAfterContendedNoteOff < 1e-4,
+                  "VST2 D6: Note-Off sent during lock contention is queued (no stuck note)",
+                  "rms=" + juce::String(rmsAfterContendedNoteOff, 5));
+            check(rmsAfterContendedReset < 1e-4,
+                  "VST2 D6: reset sent during lock contention is queued and silences held note",
+                  "rms=" + juce::String(rmsAfterContendedReset, 5));
+
+            // D13 / C7 / E4: Deterministic checkpoint-controlled getState()/tryGetState() vs setState() race.
+            // Hold the getter right after snapshot unlock (Base64 encoded, before appliedState_ publish)
+            // until setState(B) completes, then release the getter and verify stale publication cannot
+            // poison appliedState_ or suppress restoring A.
+            {
+                Instance raceInst;
+                auto racePlugin = std::make_unique<BarrierStateTestPlugin>();
+                auto* rawRace = racePlugin.get();
+                check(raceInst.loadPluginForTest(std::move(racePlugin), true),
+                      "VST2 C7/D13/E4: loads BarrierStateTestPlugin");
+
+                const juce::String stateA = raceInst.getState();
+                std::array<unsigned char, 16> rawB{};
+                rawB.fill('B');
+                const juce::String stateB = juce::Base64::toBase64(rawB.data(), rawB.size());
+                check(stateA.isNotEmpty() && stateB.isNotEmpty() && stateA != stateB,
+                      "VST2 C7/D13/E4: distinct states A and B prepared");
+
+                for (const bool useTryGet : {false, true}) {
+                    juce::String prepErr;
+                    (void)raceInst.setState(stateA, prepErr);
+                    std::mutex barrierMu;
+                    std::condition_variable barrierCv;
+                    bool atPublishBoundary = false;
+                    bool setterCompleted = false;
+
+                    raceInst.setGetStatePublishHookForTest([&] {
+                        std::unique_lock<std::mutex> lk(barrierMu);
+                        atPublishBoundary = true;
+                        barrierCv.notify_all();
+                        barrierCv.wait(lk, [&] { return setterCompleted; });
+                    });
+
+                    juce::String gotA;
+                    std::thread getterThread([&] {
+                        if (useTryGet) {
+                            auto opt = raceInst.tryGetState();
+                            gotA = opt.value_or(juce::String());
+                        } else {
+                            gotA = raceInst.getState();
+                        }
+                    });
+
+                    bool checkpointReached = false;
+                    {
+                        std::unique_lock<std::mutex> lk(barrierMu);
+                        checkpointReached = barrierCv.wait_for(
+                            lk, std::chrono::seconds(2), [&] { return atPublishBoundary; });
+                    }
+                    check(checkpointReached,
+                          useTryGet ? "VST2 E4: tryGetState() reached unlocked publish checkpoint"
+                                    : "VST2 E4: getState() reached unlocked publish checkpoint");
+
+                    juce::String setErrB;
+                    const bool setOkB = raceInst.setState(stateB, setErrB);
+                    {
+                        std::lock_guard<std::mutex> lk(barrierMu);
+                        setterCompleted = true;
+                    }
+                    barrierCv.notify_all();
+                    getterThread.join();
+                    raceInst.setGetStatePublishHookForTest({});
+
+                    check(gotA == stateA && setOkB && rawRace->stateTag_.load(std::memory_order_acquire) == 'B',
+                          useTryGet ? "VST2 E4: deterministic tryGetState(A) vs setState(B) succeeded"
+                                    : "VST2 E4: deterministic getState(A) vs setState(B) succeeded",
+                          setErrB);
+
+                    // Now restore stateA: if stale getState(A)/tryGetState(A) had overwritten appliedState_,
+                    // this would falsely short-circuit and leave the plugin on 'B'!
+                    const int callsBefore = rawRace->setStateCalls_.load(std::memory_order_acquire);
+                    juce::String restoreErr;
+                    check(raceInst.setState(stateA, restoreErr),
+                          "VST2 C7/D13/E4: setState(A) after deterministic publish race succeeded", restoreErr);
+                    const int callsAfter = rawRace->setStateCalls_.load(std::memory_order_acquire);
+                    check(callsAfter == callsBefore + 1 && rawRace->stateTag_.load(std::memory_order_acquire) == 'A',
+                          useTryGet ? "VST2 E4: stale tryGetState(A) did not poison appliedState_ (no false short-circuit)"
+                                    : "VST2 E4: stale getState(A) did not poison appliedState_ (no false short-circuit)",
+                          "callsDelta=" + juce::String(callsAfter - callsBefore) +
+                              " tag=" + juce::String::charToString(static_cast<juce::juce_wchar>(rawRace->stateTag_.load())));
+                }
+            }
+        } else {
+            clearTestEnv("NT_TONE_INJECT_STATE_DELAY_MS");
+        }
+    }
+
+    // VST2 D9: Short-block (<64 frames) lock contention must crossfade from the actual last emitted sample.
+    {
+        Instance d9Inst;
+        juce::String d9Err;
+        const bool d9Ready = d9Inst.load(path, {}, d9Err) && d9Inst.prepareLive(rate, 128, d9Err);
+        check(d9Ready, "VST2 D9: loads ToneInstrument for short-block contention fade test", d9Err);
+        if (d9Ready) {
+            juce::AudioBuffer<float> scratch(4, static_cast<int>(kShmMaxFrames));
+            juce::MidiBuffer midi;
+            midi.ensureSize(1024);
+            std::vector<float> outL(32, 0.0f), outR(32, 0.0f);
+            ShmMidiEvent noteOn{0, 0x90, 69, 127, 0, 1, 0.0f};
+            std::vector<float> stream;
+            // Warm up 6 blocks of 32 frames until the sine wave is near a non-zero peak.
+            for (int blkIdx = 0; blkIdx < 6; ++blkIdx) {
+                check(d9Inst.processLiveBlock(rate, 32, blkIdx == 0, nullptr, nullptr, outL.data(), outR.data(),
+                                              blkIdx == 0 ? &noteOn : nullptr, blkIdx == 0 ? 1 : 0, scratch, midi),
+                      "VST2 D9: warmup block");
+                stream.insert(stream.end(), outL.begin(), outL.end());
+            }
+            // Hold lock on another thread for ONE 32-frame block (< kFadeFrames = 64).
+            std::atomic<bool> locked{false};
+            std::atomic<bool> release{false};
+            std::thread holder([&] {
+                std::lock_guard<std::recursive_mutex> g(d9Inst.lock);
+                locked.store(true, std::memory_order_release);
+                while (!release.load(std::memory_order_acquire)) {
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                }
+            });
+            while (!locked.load(std::memory_order_acquire)) {
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
+            }
+            check(d9Inst.processLiveBlock(rate, 32, false, nullptr, nullptr, outL.data(), outR.data(),
+                                          nullptr, 0, scratch, midi),
+                  "VST2 D9: contended 32-frame block");
+            stream.insert(stream.end(), outL.begin(), outL.end());
+            release.store(true, std::memory_order_release);
+            holder.join();
+
+            // Resume with 4 more 32-frame blocks.
+            for (int blkIdx = 0; blkIdx < 4; ++blkIdx) {
+                check(d9Inst.processLiveBlock(rate, 32, false, nullptr, nullptr, outL.data(), outR.data(),
+                                              nullptr, 0, scratch, midi),
+                      "VST2 D9: resumed 32-frame block");
+                stream.insert(stream.end(), outL.begin(), outL.end());
+            }
+            float maxResumeStep = 0.0f;
+            for (size_t i = 1; i < stream.size(); ++i) {
+                maxResumeStep = std::max(maxResumeStep, std::abs(stream[i] - stream[i - 1]));
+            }
+            check(maxResumeStep < 0.02f,
+                  "VST2 D9: short-block (<64 frames) contention resume crossfades from actual last sample",
+                  "maxStep=" + juce::String(maxResumeStep, 5));
+        }
+    }
+
+    // VST2 C5: Contended MIDI overflow (>1024 events during a long state operation) must not
+    // silently drop Note-Offs (causing stuck notes) or lose a still-held Note-On.
+    {
+        Instance c5OverInst;
+        juce::String c5OverErr;
+        const bool c5OverReady = c5OverInst.load(path, {}, c5OverErr) && c5OverInst.prepareLive(rate, 128, c5OverErr);
+        check(c5OverReady, "VST2 C5: loads ToneInstrument for contended MIDI overflow test", c5OverErr);
+        if (c5OverReady) {
+            juce::AudioBuffer<float> scratch;
+            scratch.setSize(4, static_cast<int>(kShmMaxFrames), false, true, false);
+            juce::MidiBuffer midi;
+            midi.ensureSize(65536);
+            std::vector<float> outL(128, 0.0f), outR(128, 0.0f);
+            LiveRenderState liveState;
+
+            // Start note 60 BEFORE contention so we verify both pre-contention and in-contention notes release.
+            ShmMidiEvent noteOn60{0, 0x90, 60, 110, 0, 1, 0.0f};
+            for (int blkIdx = 0; blkIdx < 4; ++blkIdx) {
+                check(c5OverInst.processLiveBlock(rate, 128, blkIdx == 0, nullptr, nullptr, outL.data(), outR.data(),
+                                                  blkIdx == 0 ? &noteOn60 : nullptr, blkIdx == 0 ? 1 : 0, scratch, midi,
+                                                  nullptr, nullptr, &liveState),
+                      "VST2 C5: pre-contention noteOn60 block");
+            }
+
+            // Hold inst.lock on another thread to force contention while sending >1024 MIDI events.
+            std::atomic<bool> locked{false};
+            std::atomic<bool> release{false};
+            std::thread holder([&] {
+                std::lock_guard<std::recursive_mutex> g(c5OverInst.lock);
+                locked.store(true, std::memory_order_release);
+                while (!release.load(std::memory_order_acquire)) {
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                }
+            });
+            while (!locked.load(std::memory_order_acquire)) {
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
+            }
+
+            // Block 0 of contention: Note-On 64 + 255 CC events.
+            std::vector<ShmMidiEvent> burst(256);
+            burst[0] = ShmMidiEvent{0, 0x90, 64, 110, 0, 2, 0.0f};
+            for (int i = 1; i < 256; ++i) {
+                burst[static_cast<size_t>(i)] = ShmMidiEvent{0, 0xB0, 1, static_cast<std::uint8_t>(i & 0x7F), 0, kShmNoNoteId, 0.0f};
+            }
+            check(c5OverInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                              burst.data(), static_cast<int>(burst.size()), scratch, midi,
+                                              nullptr, nullptr, &liveState),
+                  "VST2 C5: contended burst 0");
+            // 4 more blocks of 256 CC events = 1280 events total (> kMaxPendingMidi = 1024).
+            for (int blk = 0; blk < 4; ++blk) {
+                for (int i = 0; i < 256; ++i) {
+                    burst[static_cast<size_t>(i)] = ShmMidiEvent{0, 0xB0, 1, static_cast<std::uint8_t>((blk + i) & 0x7F), 0, kShmNoNoteId, 0.0f};
+                }
+                check(c5OverInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                                  burst.data(), static_cast<int>(burst.size()), scratch, midi,
+                                                  nullptr, nullptr, &liveState),
+                      "VST2 C5: contended CC flood block");
+            }
+            // Final contended block AFTER overflow: release both note 60 (pre-contention) and note 64 (in-contention).
+            const std::array<ShmMidiEvent, 2> releases{
+                ShmMidiEvent{0, 0x80, 60, 0, 0, 1, 0.0f},
+                ShmMidiEvent{0, 0x80, 64, 0, 0, 2, 0.0f},
+            };
+            check(c5OverInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                              releases.data(), static_cast<int>(releases.size()), scratch, midi,
+                                              nullptr, nullptr, &liveState),
+                  "VST2 C5: contended post-overflow Note-Off block");
+
+            release.store(true, std::memory_order_release);
+            holder.join();
+
+            // Resume and render 8 blocks: both notes must be completely silent (no stuck note!).
+            double sumSq = 0.0;
+            int nSamples = 0;
+            for (int blkIdx = 0; blkIdx < 8; ++blkIdx) {
+                check(c5OverInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                                  nullptr, 0, scratch, midi, nullptr, nullptr, &liveState),
+                      "VST2 C5: post-overflow resume block");
+                if (blkIdx >= 2) {
+                    for (float s : outL) { sumSq += static_cast<double>(s) * s; ++nSamples; }
+                }
+            }
+            const double postReleaseRms = std::sqrt(sumSq / std::max(1, nSamples));
+            check(postReleaseRms < 1e-4,
+                  "VST2 C5: post-overflow Note-Offs reconciled without stuck notes",
+                  "rms=" + juce::String(postReleaseRms, 5));
+
+            // Second overflow pass (starting from clean silence): flood >1024 CC events then Note-On 67 -> Note 67 must sound!
+            (void)c5OverInst.processLiveBlock(rate, 128, true, nullptr, nullptr, outL.data(), outR.data(),
+                                              nullptr, 0, scratch, midi, nullptr, nullptr, &liveState);
+            locked.store(false, std::memory_order_release);
+            release.store(false, std::memory_order_release);
+            std::thread holder2([&] {
+                std::lock_guard<std::recursive_mutex> g(c5OverInst.lock);
+                locked.store(true, std::memory_order_release);
+                while (!release.load(std::memory_order_acquire)) {
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                }
+            });
+            while (!locked.load(std::memory_order_acquire)) {
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
+            }
+            for (int blk = 0; blk < 5; ++blk) {
+                for (int i = 0; i < 256; ++i) {
+                    burst[static_cast<size_t>(i)] = ShmMidiEvent{0, 0xB0, 74, static_cast<std::uint8_t>((blk * 17 + i) & 0x7F), 0, kShmNoNoteId, 0.0f};
+                }
+                (void)c5OverInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                                  burst.data(), static_cast<int>(burst.size()), scratch, midi,
+                                                  nullptr, nullptr, &liveState);
+            }
+            ShmMidiEvent noteOn67{0, 0x90, 67, 110, 0, 3, 0.0f};
+            (void)c5OverInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                              &noteOn67, 1, scratch, midi, nullptr, nullptr, &liveState);
+            release.store(true, std::memory_order_release);
+            holder2.join();
+
+            double sumSqHeld = 0.0;
+            int nHeld = 0;
+            for (int blkIdx = 0; blkIdx < 8; ++blkIdx) {
+                (void)c5OverInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                                  nullptr, 0, scratch, midi, nullptr, nullptr, &liveState);
+                if (blkIdx >= 2) {
+                    for (float s : outL) { sumSqHeld += static_cast<double>(s) * s; ++nHeld; }
+                }
+            }
+            const double postHeldRms = std::sqrt(sumSqHeld / std::max(1, nHeld));
+            check(postHeldRms > 0.02,
+                  "VST2 C5: post-overflow held Note-On sounds after resume",
+                  "rms=" + juce::String(postHeldRms, 5));
+        }
+    }
+
+    // VST2 C4 + C7: Real 36-output-channel (>=32) AudioPluginInstance fixture with allocation
+    // instrumentation asserting ZERO heap allocations during:
+    //  1) >=32-channel scratch shrink/restore in processLiveBlock()
+    //  2) Maximum-size normal MIDI replay (1024 captured + 256 current = 1280 events)
+    //  3) Maximum-size overflow reconciled MIDI replay (>1024 contended + 256 current events)
+    {
+        Instance wideInst;
+        auto widePlugin = std::make_unique<WideChannelTestPlugin>();
+        auto* rawWide = widePlugin.get();
+        juce::String wideErr;
+        const bool wideReady = wideInst.loadPluginForTest(std::move(widePlugin), true) &&
+                               wideInst.prepareLive(rate, static_cast<int>(kShmMaxFrames), wideErr);
+        check(wideReady, "VST2 C4/C7: loads and prepares 36-output-channel fixture", wideErr);
+        check(wideInst.preparedChannels() == WideChannelTestPlugin::kOutputChannels,
+              "VST2 C7: preparedChannels() reports real >=32 output count (36)",
+              "preparedChannels=" + juce::String(wideInst.preparedChannels()));
+        if (wideReady) {
+#if JUCE_MAC
+            const MallocLoggerFn prevMallocLogger = malloc_logger;
+            malloc_logger = &testMallocLogger;
+            struct RestoreLogger {
+                MallocLoggerFn prev;
+                ~RestoreLogger() { malloc_logger = prev; }
+            } restoreLogger{prevMallocLogger};
+#endif
+            // Allocate scratch buffers exactly as LiveSession does before starting its RT worker.
+            juce::AudioBuffer<float> scratch;
+            scratch.setSize(40, static_cast<int>(kShmMaxFrames), false, true, false);
+            juce::MidiBuffer midi;
+            midi.ensureSize(LiveRenderState::kWorstCaseReplayMidiBytes);
+            const float* scratchPtrBefore = scratch.getReadPointer(0);
+            const juce::uint8* midiPtrBefore = midi.data.begin();
+            std::vector<float> outL(128, 0.0f), outR(128, 0.0f);
+            LiveRenderState wideState;
+
+            // 1) Normal >=32-channel block: verify 36 channels active and ZERO allocations.
+            {
+                ScopedAllocCounter allocs;
+                const bool ok = wideInst.processLiveBlock(rate, 128, false, nullptr, nullptr,
+                                                          outL.data(), outR.data(), nullptr, 0,
+                                                          scratch, midi, nullptr, nullptr, &wideState);
+                const std::uint64_t nAllocs = allocs.count();
+                check(ok && rawWide->lastNumChannels == 36 && rawWide->lastNumSamples == 128,
+                      "VST2 C7: 36-output plugin executed >=32-channel processLiveBlock branch",
+                      "ch=" + juce::String(rawWide->lastNumChannels) + " n=" + juce::String(rawWide->lastNumSamples));
+                check(nAllocs == 0 && scratch.getNumChannels() == 40 &&
+                          scratch.getNumSamples() == static_cast<int>(kShmMaxFrames) &&
+                          scratch.getReadPointer(0) == scratchPtrBefore,
+                      "VST2 C7: >=32-channel shrink/restore caused zero heap allocations",
+                      "allocs=" + juce::String(static_cast<juce::int64>(nAllocs)));
+            }
+
+            // 2) C4: Maximum-size normal replay (1024 captured + 256 current = 1280 events) -> ZERO allocations.
+            std::vector<ShmMidiEvent> maxBurst(256);
+            for (int i = 0; i < 256; ++i) {
+                maxBurst[static_cast<size_t>(i)] =
+                    ShmMidiEvent{i % 128, 0xB0, static_cast<std::uint8_t>(i & 0x7F),
+                                 static_cast<std::uint8_t>((i * 3) & 0x7F), 0, kShmNoNoteId, 0.0f};
+            }
+            {
+                std::atomic<bool> locked{false};
+                std::atomic<bool> release{false};
+                std::thread holder([&] {
+                    std::lock_guard<std::recursive_mutex> g(wideInst.lock);
+                    locked.store(true, std::memory_order_release);
+                    while (!release.load(std::memory_order_acquire)) {
+                        std::this_thread::sleep_for(std::chrono::microseconds(100));
+                    }
+                });
+                while (!locked.load(std::memory_order_acquire)) {
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                }
+                ScopedAllocCounter contendedAllocs;
+                for (int k = 0; k < 4; ++k) {
+                    (void)wideInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                                    maxBurst.data(), static_cast<int>(maxBurst.size()),
+                                                    scratch, midi, nullptr, nullptr, &wideState);
+                }
+                const std::uint64_t nContendedAllocs = contendedAllocs.count();
+                release.store(true, std::memory_order_release);
+                holder.join();
+                check(nContendedAllocs == 0,
+                      "VST2 C4: capturing 1024 contended MIDI events caused zero allocations",
+                      "allocs=" + juce::String(static_cast<juce::int64>(nContendedAllocs)));
+
+                ScopedAllocCounter replayAllocs;
+                const bool ok = wideInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                                          maxBurst.data(), static_cast<int>(maxBurst.size()),
+                                                          scratch, midi, nullptr, nullptr, &wideState);
+                const std::uint64_t nReplayAllocs = replayAllocs.count();
+                check(ok && rawWide->lastMidiCount == 1280,
+                      "VST2 C4: maximum-size replay delivered all 1024+256=1280 MIDI events",
+                      "midiCount=" + juce::String(rawWide->lastMidiCount));
+                check(nReplayAllocs == 0 && midi.data.begin() == midiPtrBefore &&
+                          scratch.getReadPointer(0) == scratchPtrBefore,
+                      "VST2 C4: maximum-size 1280-event MIDI replay caused zero host allocations",
+                      "allocs=" + juce::String(static_cast<juce::int64>(nReplayAllocs)));
+            }
+
+            // 3) C4 + C5: Worst-case overflow reconciliation (>1024 events across all channels + 256 current) -> ZERO allocations.
+            {
+                std::atomic<bool> locked{false};
+                std::atomic<bool> release{false};
+                std::thread holder([&] {
+                    std::lock_guard<std::recursive_mutex> g(wideInst.lock);
+                    locked.store(true, std::memory_order_release);
+                    while (!release.load(std::memory_order_acquire)) {
+                        std::this_thread::sleep_for(std::chrono::microseconds(100));
+                    }
+                });
+                while (!locked.load(std::memory_order_acquire)) {
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                }
+                // Populate all 16 channels with notes and non-channel-mode CCs (0..119, avoiding CC 120/123 panic).
+                std::vector<ShmMidiEvent> ovEvents;
+                ovEvents.reserve(256);
+                std::vector<ShmMidiEvent> currentBurst(256);
+                for (int i = 0; i < 256; ++i) {
+                    const auto ccNum = static_cast<std::uint8_t>((i % 70) + 1);  // CC 1..70 (leaves CC 74 untouched)
+                    currentBurst[static_cast<size_t>(i)] =
+                        ShmMidiEvent{i % 128, 0xB0u, ccNum, static_cast<std::uint8_t>((i * 3) & 0x7F),
+                                     0, kShmNoNoteId, 0.0f};
+                }
+                ScopedAllocCounter ovCaptureAllocs;
+                for (int ch = 0; ch < 16; ++ch) {
+                    ovEvents.clear();
+                    for (int p = 0; p < 128; ++p) {
+                        ovEvents.push_back(ShmMidiEvent{0, static_cast<std::uint8_t>(0x90u | static_cast<unsigned>(ch)),
+                                                        static_cast<std::uint8_t>(p), 100, 0, kShmNoNoteId, 0.0f});
+                    }
+                    for (int cc = 0; cc < 120; ++cc) {
+                        ovEvents.push_back(ShmMidiEvent{0, static_cast<std::uint8_t>(0xB0u | static_cast<unsigned>(ch)),
+                                                        static_cast<std::uint8_t>(cc), static_cast<std::uint8_t>((cc + ch) & 0x7F),
+                                                        0, kShmNoNoteId, 0.0f});
+                    }
+                    (void)wideInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                                    ovEvents.data(), static_cast<int>(ovEvents.size()),
+                                                    scratch, midi, nullptr, nullptr, &wideState);
+                }
+                // Release half of ch 0's notes and set CC 74 = 99 on ch 0 after overflow.
+                ovEvents.clear();
+                for (int p = 0; p < 64; ++p) {
+                    ovEvents.push_back(ShmMidiEvent{0, 0x80u, static_cast<std::uint8_t>(p), 0, 0, kShmNoNoteId, 0.0f});
+                }
+                ovEvents.push_back(ShmMidiEvent{0, 0xB0u, 74, 99, 0, kShmNoNoteId, 0.0f});
+                (void)wideInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                                ovEvents.data(), static_cast<int>(ovEvents.size()),
+                                                scratch, midi, nullptr, nullptr, &wideState);
+                const std::uint64_t nOvCaptureAllocs = ovCaptureAllocs.count();
+                release.store(true, std::memory_order_release);
+                holder.join();
+                check(nOvCaptureAllocs == 0,
+                      "VST2 C5: overflow folding of >3900 contended MIDI events caused zero allocations",
+                      "allocs=" + juce::String(static_cast<juce::int64>(nOvCaptureAllocs)));
+
+                ScopedAllocCounter ovReplayAllocs;
+                const bool ok = wideInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                                          currentBurst.data(), static_cast<int>(currentBurst.size()),
+                                                          scratch, midi, nullptr, nullptr, &wideState);
+                const std::uint64_t nOvReplayAllocs = ovReplayAllocs.count();
+                check(ok && rawWide->lastNoteOffCount == 64 && rawWide->lastNoteOnCount == (16 * 128 - 64) &&
+                          rawWide->lastCc74Value == 99,
+                      "VST2 C5: overflow replay delivered exact reconciled Note-Offs, Note-Ons, and latest CC",
+                      "offs=" + juce::String(rawWide->lastNoteOffCount) +
+                          " ons=" + juce::String(rawWide->lastNoteOnCount) +
+                          " cc74=" + juce::String(rawWide->lastCc74Value));
+                check(nOvReplayAllocs == 0 && midi.data.begin() == midiPtrBefore &&
+                          scratch.getReadPointer(0) == scratchPtrBefore,
+                      "VST2 C4/C5: worst-case overflow + current MIDI replay caused zero host allocations",
+                      "allocs=" + juce::String(static_cast<juce::int64>(nOvReplayAllocs)));
+            }
+        }
+    }
+
+    // VST2 E1: Sustain-aware overflow reconciliation.
+    // Start with a released note (60) still sounding under sustain (CC64=127) and a held note (62).
+    // During contention, exceed 1024 events, release sustain (CC64=0), then depress sustain again (CC64=127),
+    // start held note (64), and update CC74=88. On resume, note 60 MUST NOT remain stuck under sustain,
+    // held notes 62 and 64 MUST sound, and CC64=127 & CC74=88 MUST be chased without heap allocations.
+    {
+        Instance susInst;
+        auto susPlugin = std::make_unique<SustainTestPlugin>();
+        auto* rawSus = susPlugin.get();
+        juce::String susErr;
+        const bool susReady = susInst.loadPluginForTest(std::move(susPlugin), true) &&
+                              susInst.prepareLive(rate, static_cast<int>(kShmMaxFrames), susErr);
+        check(susReady, "VST2 E1: loads and prepares SustainTestPlugin", susErr);
+        if (susReady) {
+            juce::AudioBuffer<float> scratch;
+            scratch.setSize(4, static_cast<int>(kShmMaxFrames), false, true, false);
+            juce::MidiBuffer midi;
+            midi.ensureSize(LiveRenderState::kWorstCaseReplayMidiBytes);
+            std::vector<float> outL(128, 0.0f), outR(128, 0.0f);
+            LiveRenderState susState;
+
+            // Pre-contention: press sustain (CC64=127), play & release note 60 (sustained only),
+            // and hold note 62 (physically held).
+            const std::array<ShmMidiEvent, 4> preEvents{
+                ShmMidiEvent{0, 0xB0, 64, 127, 0, kShmNoNoteId, 0.0f},
+                ShmMidiEvent{0, 0x90, 60, 100, 0, 1, 0.0f},
+                ShmMidiEvent{1, 0x80, 60, 0, 0, 1, 0.0f},
+                ShmMidiEvent{2, 0x90, 62, 105, 0, 2, 0.0f},
+            };
+            check(susInst.processLiveBlock(rate, 128, true, nullptr, nullptr, outL.data(), outR.data(),
+                                           preEvents.data(), static_cast<int>(preEvents.size()),
+                                           scratch, midi, nullptr, nullptr, &susState),
+                  "VST2 E1: pre-contention sustained note 60 + held note 62 block");
+            check(rawSus->sounding_[0][60] && !rawSus->held_[0][60] && rawSus->sounding_[0][62] && rawSus->held_[0][62],
+                  "VST2 E1: pre-contention note 60 is sustained-only and note 62 is held");
+
+            // Hold inst.lock to force contention, overflow >1024 events, release pedal (CC64=0),
+            // re-depress pedal (CC64=127), press held note 64, and set CC74=88.
+            std::atomic<bool> locked{false};
+            std::atomic<bool> release{false};
+            std::thread holder([&] {
+                std::lock_guard<std::recursive_mutex> g(susInst.lock);
+                locked.store(true, std::memory_order_release);
+                while (!release.load(std::memory_order_acquire)) {
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                }
+            });
+            while (!locked.load(std::memory_order_acquire)) {
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
+            }
+            std::vector<ShmMidiEvent> ccFlood(256);
+            for (int blk = 0; blk < 5; ++blk) {
+                for (int i = 0; i < 256; ++i) {
+                    ccFlood[static_cast<size_t>(i)] =
+                        ShmMidiEvent{0, 0xB0, 1, static_cast<std::uint8_t>((blk + i) & 0x7F), 0, kShmNoNoteId, 0.0f};
+                }
+                (void)susInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                               ccFlood.data(), static_cast<int>(ccFlood.size()),
+                                               scratch, midi, nullptr, nullptr, &susState);
+            }
+            const std::array<ShmMidiEvent, 4> pedalToggleAndHold{
+                ShmMidiEvent{0, 0xB0, 64, 0, 0, kShmNoNoteId, 0.0f},
+                ShmMidiEvent{0, 0xB0, 64, 127, 0, kShmNoNoteId, 0.0f},
+                ShmMidiEvent{0, 0x90, 64, 115, 0, 3, 0.0f},
+                ShmMidiEvent{0, 0xB0, 74, 88, 0, kShmNoNoteId, 0.0f},
+            };
+            (void)susInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                           pedalToggleAndHold.data(), static_cast<int>(pedalToggleAndHold.size()),
+                                           scratch, midi, nullptr, nullptr, &susState);
+            release.store(true, std::memory_order_release);
+            holder.join();
+
+            // Resume rendering and verify sustain transition + held note/controller re-chase (zero allocs).
+#if JUCE_MAC
+            const MallocLoggerFn prevSusMallocLogger = malloc_logger;
+            malloc_logger = &testMallocLogger;
+            struct RestoreSusLogger {
+                MallocLoggerFn prev;
+                ~RestoreSusLogger() { malloc_logger = prev; }
+            } restoreSusLogger{prevSusMallocLogger};
+#endif
+            std::uint64_t nSusAllocs = 0;
+            bool susResumed = false;
+            {
+                ScopedAllocCounter susReplayAllocs;
+                susResumed = susInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                                      nullptr, 0, scratch, midi, nullptr, nullptr, &susState);
+                nSusAllocs = susReplayAllocs.count();
+            }
+            check(susResumed, "VST2 E1: post-overflow resume block");
+            check(nSusAllocs == 0,
+                  "VST2 E1: sustain-aware overflow reset + re-chase caused zero heap allocations",
+                  "allocs=" + juce::String(static_cast<juce::int64>(nSusAllocs)));
+            check(!rawSus->sounding_[0][60],
+                  "VST2 E1: previously sustained note 60 released across CC64 0->127 overflow (no stuck voice)");
+            check(rawSus->sounding_[0][62] && rawSus->held_[0][62],
+                  "VST2 E1: pre-contention held note 62 re-chased after overflow reset");
+            check(rawSus->sounding_[0][64] && rawSus->held_[0][64],
+                  "VST2 E1: in-contention held note 64 re-chased after overflow reset");
+            check(rawSus->sustain_[0] && rawSus->lastCc_[0][64] == 127 && rawSus->lastCc_[0][74] == 88,
+                  "VST2 E1: final sustain (CC64=127) and controller (CC74=88) state re-chased",
+                  "cc64=" + juce::String(rawSus->lastCc_[0][64]) + " cc74=" + juce::String(rawSus->lastCc_[0][74]));
+
+            // VST2 G2: Reset All Controllers (CC121) during overflow reconciliation must be retained
+            // per channel and emitted before chasing subsequent controller values.
+            // Start from non-default modulation (CC1=127) and expression (CC11=40) on ch 0,
+            // plus CC1=111 on ch 1 (which must NOT be reset).
+            const std::array<ShmMidiEvent, 4> preModExpr{
+                ShmMidiEvent{0, 0xB0, 1, 127, 0, kShmNoNoteId, 0.0f},
+                ShmMidiEvent{0, 0xB0, 11, 40, 0, kShmNoNoteId, 0.0f},
+                ShmMidiEvent{0, 0xB0, 74, 20, 0, kShmNoNoteId, 0.0f},
+                ShmMidiEvent{0, 0xB1, 1, 111, 0, kShmNoNoteId, 0.0f},
+            };
+            check(susInst.processLiveBlock(rate, 128, true, nullptr, nullptr, outL.data(), outR.data(),
+                                           preModExpr.data(), static_cast<int>(preModExpr.size()),
+                                           scratch, midi, nullptr, nullptr, &susState),
+                  "VST2 G2: pre-contention non-default modulation/expression block");
+            check(rawSus->lastCc_[0][1] == 127 && rawSus->lastCc_[0][11] == 40 && rawSus->lastCc_[1][1] == 111,
+                  "VST2 G2: pre-contention CC1=127, CC11=40 on ch 0 and CC1=111 on ch 1 applied");
+
+            locked.store(false, std::memory_order_release);
+            release.store(false, std::memory_order_release);
+            std::thread holderG2([&] {
+                std::lock_guard<std::recursive_mutex> g(susInst.lock);
+                locked.store(true, std::memory_order_release);
+                while (!release.load(std::memory_order_acquire)) {
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                }
+            });
+            while (!locked.load(std::memory_order_acquire)) {
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
+            }
+            // Send CC121=0 on ch 0, overflow with >1024 unrelated events on ch 2, then send CC74=88 on ch 0.
+            const ShmMidiEvent resetAllCh0{0, 0xB0, 121, 0, 0, kShmNoNoteId, 0.0f};
+            (void)susInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                           &resetAllCh0, 1, scratch, midi, nullptr, nullptr, &susState);
+            for (int blk = 0; blk < 5; ++blk) {
+                for (int i = 0; i < 256; ++i) {
+                    ccFlood[static_cast<size_t>(i)] =
+                        ShmMidiEvent{0, 0xB2, 20, static_cast<std::uint8_t>((blk + i) & 0x7F), 0, kShmNoNoteId, 0.0f};
+                }
+                (void)susInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                               ccFlood.data(), static_cast<int>(ccFlood.size()),
+                                               scratch, midi, nullptr, nullptr, &susState);
+            }
+            const ShmMidiEvent postResetCc74{0, 0xB0, 74, 88, 0, kShmNoNoteId, 0.0f};
+            (void)susInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                           &postResetCc74, 1, scratch, midi, nullptr, nullptr, &susState);
+            release.store(true, std::memory_order_release);
+            holderG2.join();
+
+            std::uint64_t nG2Allocs = 0;
+            bool g2Resumed = false;
+            {
+                ScopedAllocCounter g2ReplayAllocs;
+                g2Resumed = susInst.processLiveBlock(rate, 128, false, nullptr, nullptr, outL.data(), outR.data(),
+                                                     nullptr, 0, scratch, midi, nullptr, nullptr, &susState);
+                nG2Allocs = g2ReplayAllocs.count();
+            }
+            check(g2Resumed, "VST2 G2: post-overflow resume block after CC121");
+            check(nG2Allocs == 0,
+                  "VST2 G2: CC121 overflow reconciliation caused zero heap allocations",
+                  "allocs=" + juce::String(static_cast<juce::int64>(nG2Allocs)));
+            check(rawSus->resetAllControllersCount_[0] == 1 && rawSus->resetAllControllersCount_[1] == 0,
+                  "VST2 G2: CC121 emitted on ch 0 only during overflow reconciliation",
+                  "ch0=" + juce::String(rawSus->resetAllControllersCount_[0]) +
+                      " ch1=" + juce::String(rawSus->resetAllControllersCount_[1]));
+            check(rawSus->lastCc_[0][1] == 0 && rawSus->lastCc_[0][11] == 127,
+                  "VST2 G2: modulation (CC1) and expression (CC11) reset to defaults (not retained)",
+                  "cc1=" + juce::String(rawSus->lastCc_[0][1]) + " cc11=" + juce::String(rawSus->lastCc_[0][11]));
+            check(rawSus->lastCc_[0][74] == 88 && rawSus->lastCc_[1][1] == 111,
+                  "VST2 G2: subsequent CC74=88 chased after CC121 and ch 1 CC1=111 preserved",
+                  "ch0_cc74=" + juce::String(rawSus->lastCc_[0][74]) + " ch1_cc1=" + juce::String(rawSus->lastCc_[1][1]));
         }
     }
 

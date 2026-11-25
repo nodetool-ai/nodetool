@@ -887,8 +887,9 @@ bool VstHostClient::processAudio(const QString& path, const QString& uid, const 
 bool VstHostClient::openLive(const QString& instance, const QString& path, const QString& uid, const QString& state,
                              double sampleRate, int maxBlockFrames, const QString& shmPath, const QString& sockPath,
                              int* latencySamples, QString* error, int timeoutMs,
-                             std::uint64_t* latencyGeneration) {
-    const QJsonObject req{
+                             std::uint64_t* latencyGeneration, int renderQuantumFrames,
+                             int* configuredQuantumOut) {
+    QJsonObject req{
         {QStringLiteral("cmd"), QStringLiteral("openLive")},
         {QStringLiteral("instance"), instance},
         {QStringLiteral("path"), path},
@@ -899,29 +900,45 @@ bool VstHostClient::openLive(const QString& instance, const QString& path, const
         {QStringLiteral("shmPath"), shmPath},
         {QStringLiteral("sockPath"), sockPath},
     };
+    if (renderQuantumFrames > 0) {
+        req.insert(QStringLiteral("renderQuantumFrames"), renderQuantumFrames);
+    }
     QJsonObject reply;
     if (!sendSync(req, &reply, error, timeoutMs)) return false;
     if (latencySamples) *latencySamples = std::clamp(reply.value(u"latencySamples").toInt(0), 0, kMaxVstLatencySamples);
     if (latencyGeneration) {
         *latencyGeneration = static_cast<std::uint64_t>(std::max<qint64>(0, reply.value(u"latencyGeneration").toInteger(0)));
     }
+    if (configuredQuantumOut) {
+        *configuredQuantumOut = reply.value(u"renderQuantumFrames").toInt(renderQuantumFrames > 0 ? renderQuantumFrames : maxBlockFrames);
+    }
     return true;
 }
 
 bool VstHostClient::prepareLive(const QString& instance, double sampleRate, int maxBlockFrames,
                                 int* latencySamples, QString* error, int timeoutMs,
-                                std::uint64_t* latencyGeneration) {
-    const QJsonObject req{
+                                std::uint64_t* latencyGeneration, int renderQuantumFrames,
+                                bool schedulingOnly, int* configuredQuantumOut) {
+    QJsonObject req{
         {QStringLiteral("cmd"), QStringLiteral("prepareLive")},
         {QStringLiteral("instance"), instance},
         {QStringLiteral("sampleRate"), sampleRate},
         {QStringLiteral("maxBlockFrames"), maxBlockFrames},
     };
+    if (renderQuantumFrames > 0) {
+        req.insert(QStringLiteral("renderQuantumFrames"), renderQuantumFrames);
+    }
+    if (schedulingOnly) {
+        req.insert(QStringLiteral("schedulingOnly"), true);
+    }
     QJsonObject reply;
     if (!sendSync(req, &reply, error, timeoutMs)) return false;
     if (latencySamples) *latencySamples = std::clamp(reply.value(u"latencySamples").toInt(0), 0, kMaxVstLatencySamples);
     if (latencyGeneration) {
         *latencyGeneration = static_cast<std::uint64_t>(std::max<qint64>(0, reply.value(u"latencyGeneration").toInteger(0)));
+    }
+    if (configuredQuantumOut) {
+        *configuredQuantumOut = reply.value(u"renderQuantumFrames").toInt(renderQuantumFrames > 0 ? renderQuantumFrames : maxBlockFrames);
     }
     return true;
 }

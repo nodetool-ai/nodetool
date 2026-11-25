@@ -59,6 +59,14 @@
 #endif
 #if JUCE_MAC
 #include "MacApplication.h"
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+#include <mach/thread_policy.h>
+#include <pthread.h>
+#include <pthread/qos.h>
+#elif !JUCE_WINDOWS
+#include <pthread.h>
+#include <sched.h>
 #endif
 
 using namespace juce;
@@ -252,14 +260,102 @@ private:
     ShmBuffer* ptr_ = nullptr;
 };
 
+struct RtPolicyStatus {
+    bool qosOk = false;
+    bool rtPolicyOk = false;
+    int qosErr = 0;
+    int rtErr = 0;
+};
+
+// Configures real-time scheduling policy for `targetThread` derived from the actual render quantum
+// (never SHM capacity) and checks every policy return code (C6). Called strictly during quiescent
+// startup handshake or control-plane reprepare/scheduling updates — NEVER inside a render block deadline.
+static RtPolicyStatus applyHostAudioTimeConstraint(std::thread::native_handle_type targetThread,
+                                                   double sampleRate, int renderQuantumFrames,
+                                                   bool isCurrentThread) noexcept {
+    RtPolicyStatus status;
+#if JUCE_MAC
+    if (isCurrentThread) {
+        status.qosErr = pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+        status.qosOk = (status.qosErr == 0);
+    } else {
+        status.qosOk = true;
+    }
+    mach_timebase_info_data_t tb{};
+    const kern_return_t tbRes = mach_timebase_info(&tb);
+    if (tbRes != KERN_SUCCESS || tb.numer == 0) {
+        status.rtErr = static_cast<int>(tbRes);
+        return status;
+    }
+    const double sr = (sampleRate >= 8000.0 && sampleRate <= 384000.0) ? sampleRate : 48000.0;
+    const int frames = std::clamp(renderQuantumFrames, 16, static_cast<int>(kShmMaxFrames));
+    const double periodNs = (static_cast<double>(frames) / sr) * 1e9;
+    const auto nsToMach = [&](double ns) -> uint32_t {
+        return static_cast<uint32_t>(std::max(1.0, ns * static_cast<double>(tb.denom) / static_cast<double>(tb.numer)));
+    };
+    const uint32_t periodMach = nsToMach(periodNs);
+    const uint32_t compMach = std::clamp(nsToMach(periodNs * 0.5), uint32_t{1}, periodMach);
+    const uint32_t constraintMach = std::clamp(nsToMach(periodNs * 0.85), compMach, periodMach);
+    thread_time_constraint_policy_data_t policy{};
+    policy.period = periodMach;
+    policy.computation = compMach;
+    policy.constraint = constraintMach;
+    policy.preemptible = 1;
+    const kern_return_t kr = thread_policy_set(
+        pthread_mach_thread_np(targetThread),
+        THREAD_TIME_CONSTRAINT_POLICY,
+        reinterpret_cast<thread_policy_t>(&policy),
+        THREAD_TIME_CONSTRAINT_POLICY_COUNT);
+    status.rtErr = static_cast<int>(kr);
+    status.rtPolicyOk = (kr == KERN_SUCCESS);
+#elif !JUCE_WINDOWS
+    (void)sampleRate;
+    (void)renderQuantumFrames;
+    (void)isCurrentThread;
+    status.qosOk = true;
+    sched_param sp{};
+    const int maxPrio = sched_get_priority_max(SCHED_FIFO);
+    if (maxPrio > 0) {
+        sp.sched_priority = std::max(1, maxPrio / 2);
+        status.rtErr = pthread_setschedparam(targetThread, SCHED_FIFO, &sp);
+        status.rtPolicyOk = (status.rtErr == 0);
+    } else {
+        status.rtErr = errno;
+    }
+#else
+    (void)targetThread; (void)sampleRate; (void)renderQuantumFrames; (void)isCurrentThread;
+#endif
+    return status;
+}
+
 // Real-time shared-memory audio session for one live plug-in instance.
 // Thread affinity: constructed and destroyed on the JUCE message thread;
 // owns `worker_` which runs the real-time block loop until `sock_` closes.
+// `scratchBlock_` and `scratchMidi_` are preallocated for `inst_->preparedChannels()`
+// and worst-case MIDI replay before `worker_` starts, and reallocated only off the worker
+// while paused in reprepare(). `liveState_` is owned and touched solely by `worker_`.
 class LiveSession {
 public:
-    LiveSession(std::shared_ptr<Instance> inst, MappedShm shm, ScopedFd sock)
-        : inst_(std::move(inst)), shm_(std::move(shm)), sock_(std::move(sock)) {
+    LiveSession(std::shared_ptr<Instance> inst, MappedShm shm, ScopedFd sock,
+                double sampleRate, int maxFrames, int renderQuantumFrames)
+        : inst_(std::move(inst)),
+          shm_(std::move(shm)),
+          sock_(std::move(sock)),
+          rtSampleRate_(sampleRate),
+          rtQuantumFrames_(std::clamp(renderQuantumFrames > 0 ? renderQuantumFrames : maxFrames,
+                                      16, static_cast<int>(kShmMaxFrames))) {
+        // Use setSize() (16-byte-aligned channelListSize) so subsequent avoidReallocating=true
+        // shrink/restore calls in processLiveBlock() never reallocate for >=32 channels (D7).
+        scratchBlock_.setSize(std::max(2, inst_ ? inst_->preparedChannels() : 2),
+                              static_cast<int>(kShmMaxFrames), false, true, false);
+        // C4: Preallocate worst-case replay storage (overflow reconciliation + current block)
+        // before starting the worker so host render thread never allocates on MIDI replay.
+        scratchMidi_.ensureSize(LiveRenderState::kWorstCaseReplayMidiBytes);
         worker_ = std::thread([this] { run(); });
+        // C6: Quiescent startup handshake — wait until the worker has applied QoS and
+        // real-time thread policy before openLive replies and any render work is accepted.
+        std::unique_lock<std::mutex> lk(readyMutex_);
+        readyCv_.wait(lk, [this] { return workerReady_; });
     }
     ~LiveSession() {
         stop_.store(true, std::memory_order_release);
@@ -271,12 +367,61 @@ public:
     LiveSession(const LiveSession&) = delete;
     LiveSession& operator=(const LiveSession&) = delete;
 
+    [[nodiscard]] int configuredQuantumFrames() const noexcept { return rtQuantumFrames_; }
+    [[nodiscard]] bool rtPolicyApplied() const noexcept { return lastPolicy_.rtPolicyOk; }
+
+    // Message thread only: re-prepares the plug-in, grows scratch for any new bus layout,
+    // and updates host worker scheduling off the render thread (C6).
+    bool reprepare(double sampleRate, int maxFrames, int renderQuantumFrames, String& error) {
+        std::lock_guard<std::mutex> scratchGuard(scratchMutex_);
+        if (!inst_->prepareLive(sampleRate, maxFrames, error)) return false;
+        const int neededChannels = std::max(2, inst_->preparedChannels());
+        if (scratchBlock_.getNumChannels() < neededChannels ||
+            scratchBlock_.getNumSamples() < static_cast<int>(kShmMaxFrames)) {
+            scratchBlock_.setSize(neededChannels, static_cast<int>(kShmMaxFrames), false, true, false);
+        }
+        applySchedulingLocked(sampleRate, renderQuantumFrames > 0 ? renderQuantumFrames : maxFrames);
+        // D9: Signal the worker to crossfade smoothly from lastOutL/R after prepareLive() resets plugin state.
+        reprepared_.store(true, std::memory_order_release);
+        return true;
+    }
+
+    // Message thread only: updates worker RT scheduling period without resetting the plug-in (C2 + C6).
+    void updateScheduling(double sampleRate, int renderQuantumFrames) {
+        if (renderQuantumFrames <= 0) return;
+        applySchedulingLocked(sampleRate, renderQuantumFrames);
+    }
+
 private:
+    void applySchedulingLocked(double sampleRate, int renderQuantumFrames) noexcept {
+        const int clampedQuantum = std::clamp(renderQuantumFrames, 16, static_cast<int>(kShmMaxFrames));
+        rtSampleRate_ = sampleRate;
+        rtQuantumFrames_ = clampedQuantum;
+        if (worker_.joinable()) {
+            lastPolicy_ = applyHostAudioTimeConstraint(worker_.native_handle(), sampleRate, clampedQuantum,
+                                                       /*isCurrentThread=*/false);
+            if (!lastPolicy_.rtPolicyOk) {
+                std::cerr << "NodeToolVstHost: RT thread policy update failed (err=" << lastPolicy_.rtErr
+                          << ", rate=" << sampleRate << ", quantum=" << clampedQuantum << ")" << std::endl;
+            }
+        }
+    }
+
     void run() {
-        // Pre-allocate scratch buffers once so processBlock performs zero allocations.
-        AudioBuffer<float> scratchBlock(4, static_cast<int>(kShmMaxFrames));
-        MidiBuffer scratchMidi;
-        scratchMidi.ensureSize(4096);
+        const RtPolicyStatus startupPolicy =
+            applyHostAudioTimeConstraint(pthread_self(), rtSampleRate_, rtQuantumFrames_, /*isCurrentThread=*/true);
+        if (!startupPolicy.rtPolicyOk || !startupPolicy.qosOk) {
+            std::cerr << "NodeToolVstHost: startup RT thread policy partial/failed (qosErr=" << startupPolicy.qosErr
+                      << ", rtErr=" << startupPolicy.rtErr << ", rate=" << rtSampleRate_
+                      << ", quantum=" << rtQuantumFrames_ << ")" << std::endl;
+        }
+        {
+            std::lock_guard<std::mutex> lk(readyMutex_);
+            lastPolicy_ = startupPolicy;
+            workerReady_ = true;
+        }
+        readyCv_.notify_all();
+
         auto* shm = shm_.get();
         while (!stop_.load(std::memory_order_acquire)) {
             std::uint8_t ping = 0;
@@ -300,16 +445,30 @@ private:
             }
             const int frames = static_cast<int>(std::min<std::uint32_t>(shm->header.numFrames, kShmMaxFrames));
             const int numMidi = static_cast<int>(std::min<std::uint32_t>(shm->header.numMidiEvents, kShmMaxMidiEvents));
+            const bool resetFlag = (flags & kShmFlagReset) != 0;
             int latency = 0;
             std::uint64_t latencyGen = 0;
             bool ok = false;
             {
-                // Re-assert FTZ/DAZ each block in case a plug-in alters FP control state.
-                const ScopedDenormalGuard denormalGuard;
-                ok = inst_->processLiveBlock(
-                    shm->header.sampleRate, frames, (flags & kShmFlagReset) != 0,
-                    shm->inLeft, shm->inRight, shm->outLeft, shm->outRight,
-                    shm->midi, numMidi, scratchBlock, scratchMidi, &latency, &latencyGen);
+                std::unique_lock<std::mutex> scratchGuard(scratchMutex_, std::try_to_lock);
+                if (scratchGuard.owns_lock()) {
+                    if (reprepared_.exchange(false, std::memory_order_acq_rel)) {
+                        liveState_.paused = true;
+                    }
+                    // Re-assert FTZ/DAZ each block in case a plug-in alters FP control state.
+                    const ScopedDenormalGuard denormalGuard;
+                    ok = inst_->processLiveBlock(
+                        shm->header.sampleRate, frames, resetFlag,
+                        shm->inLeft, shm->inRight, shm->outLeft, shm->outRight,
+                        shm->midi, numMidi, scratchBlock_, scratchMidi_, &latency, &latencyGen, &liveState_);
+                } else {
+                    // D9 + D6: smooth fade-out and MIDI/reset capture while reprepare() holds scratchMutex_.
+                    liveState_.writeContendedBlock(frames, resetFlag, shm->midi, numMidi,
+                                                   shm->outLeft, shm->outRight);
+                    latency = inst_->latencySamples();
+                    latencyGen = inst_->latencyGeneration();
+                    ok = true;
+                }
             }
             // Read under the instance lock inside processLiveBlock: a state load changes it.
             shm->header.latencySamples = latency;
@@ -326,6 +485,21 @@ private:
     std::shared_ptr<Instance> inst_;
     MappedShm shm_;
     ScopedFd sock_;
+    // Guards scratchBlock_/scratchMidi_ against rare prepareLive channel layout changes.
+    std::mutex scratchMutex_;
+    AudioBuffer<float> scratchBlock_;
+    MidiBuffer scratchMidi_;
+    // Touched solely by `worker_`.
+    LiveRenderState liveState_;
+    // Quiescent startup handshake synchronization (message thread waits before openLive replies).
+    std::mutex readyMutex_;
+    std::condition_variable readyCv_;
+    bool workerReady_ = false;
+    // Message-thread-only after workerReady_ becomes true.
+    double rtSampleRate_ = 48000.0;
+    int rtQuantumFrames_ = static_cast<int>(kShmMaxFrames);
+    RtPolicyStatus lastPolicy_{};
+    std::atomic<bool> reprepared_{false};
     std::atomic<bool> stop_{false};
     std::thread worker_;
 };
@@ -395,7 +569,10 @@ public:
             auto inst = ensure(key, req, error, editors_.count(key) == 0);
             if (!inst) { fail(id, error); return; }
             const double rate = (double)req["sampleRate"];
-            const int maxFrames = std::max(64, (int)req["maxBlockFrames"]);
+            const int maxFrames = std::clamp((int)req["maxBlockFrames"], 64, static_cast<int>(kShmMaxFrames));
+            const int quantumFrames = req.hasProperty("renderQuantumFrames")
+                ? std::clamp((int)req["renderQuantumFrames"], 16, maxFrames)
+                : maxFrames;
             // Stop the old session first: its worker must not run while prepareLive changes the plug-in.
             liveSessions_.erase(key);
             if (!inst->prepareLive(rate, maxFrames, error)) { fail(id, error); return; }
@@ -419,10 +596,16 @@ public:
             }
             std::uint64_t latencyGen = 0;
             const int latency = inst->refreshLatency(&latencyGen);
-            liveSessions_[key] = std::make_unique<LiveSession>(std::move(inst), std::move(shm), std::move(sock));
+            auto session = std::make_unique<LiveSession>(std::move(inst), std::move(shm), std::move(sock),
+                                                         rate, maxFrames, quantumFrames);
+            const int configuredQuantum = session->configuredQuantumFrames();
+            const bool policyApplied = session->rtPolicyApplied();
+            liveSessions_[key] = std::move(session);
             auto body = object();
             body.getDynamicObject()->setProperty("latencySamples", latency);
             body.getDynamicObject()->setProperty("latencyGeneration", static_cast<juce::int64>(latencyGen));
+            body.getDynamicObject()->setProperty("renderQuantumFrames", configuredQuantum);
+            body.getDynamicObject()->setProperty("rtPolicyApplied", policyApplied);
             reply(id, body);
 #else
             fail(id, "Live shared-memory VST hosting is not supported on Windows yet");
@@ -432,15 +615,37 @@ public:
             auto it = instances_.find(key);
             if (it == instances_.end()) { fail(id, "Unknown instance " + key); return; }
             String error;
-            if (!it->second->prepareLive((double)req["sampleRate"], std::max(64, (int)req["maxBlockFrames"]), error)) {
-                fail(id, error);
-                return;
+            const double rate = (double)req["sampleRate"];
+            const int maxFrames = std::clamp((int)req["maxBlockFrames"], 64, static_cast<int>(kShmMaxFrames));
+            const int quantumFrames = req.hasProperty("renderQuantumFrames")
+                ? std::clamp((int)req["renderQuantumFrames"], 16, maxFrames)
+                : maxFrames;
+            const bool schedulingOnly = static_cast<bool>(req["schedulingOnly"]);
+            int configuredQuantum = quantumFrames;
+            bool policyApplied = false;
+            if (liveSessions_.count(key) > 0) {
+                auto& session = liveSessions_[key];
+                if (schedulingOnly) {
+                    session->updateScheduling(rate, quantumFrames);
+                } else if (!session->reprepare(rate, maxFrames, quantumFrames, error)) {
+                    fail(id, error);
+                    return;
+                }
+                configuredQuantum = session->configuredQuantumFrames();
+                policyApplied = session->rtPolicyApplied();
+            } else if (!schedulingOnly) {
+                if (!it->second->prepareLive(rate, maxFrames, error)) {
+                    fail(id, error);
+                    return;
+                }
             }
             std::uint64_t latencyGen = 0;
             const int latency = it->second->refreshLatency(&latencyGen);
             auto body = object();
             body.getDynamicObject()->setProperty("latencySamples", latency);
             body.getDynamicObject()->setProperty("latencyGeneration", static_cast<juce::int64>(latencyGen));
+            body.getDynamicObject()->setProperty("renderQuantumFrames", configuredQuantum);
+            body.getDynamicObject()->setProperty("rtPolicyApplied", policyApplied);
             reply(id, body);
 #else
             fail(id, "Live shared-memory VST hosting is not supported on Windows yet");
@@ -724,9 +929,10 @@ private:
         for (auto& [key, editor] : editors_) {
             auto inst = instances_.find(key);
             if (inst == instances_.end()) continue;
-            std::unique_lock<std::recursive_mutex> guard(inst->second->lock, std::try_to_lock);
-            if (!guard.owns_lock()) continue;
-            const auto state = inst->second->getState();
+            // C2: tryGetState() holds `lock` only for getStateInformation(), never for Base64/JSON/stdout.
+            const auto maybeState = inst->second->tryGetState();
+            if (!maybeState.has_value()) continue;
+            const auto& state = *maybeState;
             if (state != editor.lastState) {
                 editor.lastState = state;
                 event("state", key, state, generations_[key]);

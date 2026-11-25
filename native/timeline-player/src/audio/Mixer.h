@@ -41,6 +41,8 @@ inline constexpr int kMaxProcessorLatencySamples = 960000;
 // AudioEngine::Options defaults to 48000, AudioCli::kRate renders at 48000.
 inline constexpr double kDefaultMixRate = 48000;
 
+enum class RenderMode { Live, Offline };
+
 struct BlockContext {
     double sampleRate;
     double timelineMs;
@@ -58,6 +60,7 @@ public:
     virtual ~BlockProcessor() = default;
     virtual void process(std::span<float> stereo, const BlockContext&) noexcept = 0;
     virtual void prepare(double) {}
+    virtual void prepare(double sampleRate, int /*deviceBlockFrames*/) { prepare(sampleRate); }
     virtual void reset() noexcept {
         activeInQuantum_ = false;
         bypassStateInitialized_ = false;
@@ -91,6 +94,9 @@ public:
     // Non-audio control/worker thread maintenance (e.g., growing overflowed delay buffers
     // off the audio thread and publishing them atomically). Never called on the audio thread.
     virtual void serviceControlThread() {}
+    // Non-audio control/worker thread hook called on plan publish and transport start
+    // before real-time callbacks begin (e.g., waking/arming an IPC worker from deep idle).
+    virtual void armForPlayback() {}
 private:
     static constexpr int kBypassCrossfadeFrames = 64;
     bool activeInQuantum_ = false;
@@ -152,6 +158,7 @@ struct VoicePlan {
 };
 
 struct MixPlan {
+    RenderMode renderMode = RenderMode::Live;
     std::vector<VoicePlan> voices;
     double masterGain = 1.0;
     // Project setting `master.limiter` (defaults to true when absent).
@@ -169,13 +176,15 @@ struct MixPlan {
 // Total plug-in delay compensation latency of `plan` (max track chain + master inserts), in samples.
 [[nodiscard]] int planLatencySamples(const MixPlan& plan) noexcept;
 
-MixPlan buildMixPlan(const Timeline& timeline);
-// Control-thread preparation. A rate change resets all effect state.
-void prepareMixPlan(const MixPlan& plan, double sampleRate);
+MixPlan buildMixPlan(const Timeline& timeline, RenderMode mode = RenderMode::Live);
+// Control-thread preparation. A rate or block-size change updates processors and PDC.
+void prepareMixPlan(const MixPlan& plan, double sampleRate, int deviceBlockFrames = kMixBlockFrames);
 // Control/offline-thread latency re-probe before offline render.
 void reprobeMixPlanLatency(const MixPlan& plan, double sampleRate);
 // Control/worker-thread maintenance for processors in `plan` (never call on audio thread).
 void serviceMixPlanControl(const MixPlan& plan);
+// Control/worker-thread arming for processors in `plan` before callbacks start (never call on audio thread).
+void armMixPlanForPlayback(const MixPlan& plan);
 
 // Registration is a startup/control-thread operation. Stages run in ascending
 // priority then registration order, after voices/buses exist. P1 uses priority
