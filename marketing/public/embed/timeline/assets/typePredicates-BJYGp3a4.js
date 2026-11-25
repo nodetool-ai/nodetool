@@ -1,0 +1,1 @@
+var i=r=>typeof r=="string",s=r=>typeof r=="string"&&r!=="",t=r=>typeof r=="number",a=r=>typeof r=="boolean",o=r=>typeof r=="number"&&Number.isFinite(r),e=r=>Array.isArray(r),n=r=>typeof r=="object"&&r!==null&&!Array.isArray(r),y=r=>typeof r=="object"&&r!==null,p=r=>typeof r=="function";export{s as a,n as c,p as i,i as l,a as n,t as o,o as r,y as s,e as t};
