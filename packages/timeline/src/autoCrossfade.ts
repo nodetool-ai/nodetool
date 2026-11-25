@@ -1,15 +1,17 @@
 /**
  * Automatic crossfade between touching audio clips (CE7, D54).
  *
- * In a music project, audio clips on one track that touch or overlap by less
- * than `autoCrossfadeMs` get a short fade at the cut, so an edit does not
- * click. It is a render-time projection: the stored clips keep their own
- * fades, and a fade the document stores wins over the automatic one. Preview,
- * browser export and server export all read the clips through this function.
+ * In a music project, audio clips on one track that touch or overlap get a
+ * crossfade at the cut, so an edit does not click. It is a render-time
+ * projection: the stored clips keep their own fades, and any stored fade
+ * (including an explicit 0) wins over the automatic one. Preview, browser
+ * export and server export all read the clips through this function.
  *
- * An overlap of L ms is crossfaded over L ms along the equal-power curve. A
- * butt joint has no overlap to share, so each side takes half the length and
- * the level dips for that instant.
+ * A staggered overlap of L ms that fits in both clips is crossfaded over L ms
+ * along the equal-power curve. A heavier layered overlap or contained clip
+ * smooths its interior edges over `autoCrossfadeMs`. A butt joint has no
+ * overlap to share, so each side takes half the length and the level dips for
+ * that instant.
  */
 
 import type { ClipFadeShape } from "./audioFade.js";
@@ -34,6 +36,9 @@ export function autoCrossfadeMsOf(doc: {
 }
 
 const endOf = (c: TimelineClip): number => c.startMs + c.durationMs;
+
+const hasStoredFade = (ms: number | undefined): boolean =>
+  typeof ms === "number" && Number.isFinite(ms) && ms >= 0;
 
 /**
  * `clips` with the automatic fades applied. Returns the same array when
@@ -79,21 +84,28 @@ export function applyAutoCrossfade<C extends TimelineClip>(
         let outMs: number;
         let inMs: number;
         let shape: ClipFadeShape;
-        if (overlap > durationMs) {
-          // A long overlap is layering, but each clip edge inside the other
-          // still clicks: smooth the edges over the setting.
-          outMs = endOf(a) <= endOf(b) + EPS_MS ? durationMs : 0;
-          inMs = durationMs;
-          shape = "linear";
-        } else if (overlap > EPS_MS) {
-          outMs = inMs = overlap;
-          shape = "plus3dB";
+        const staggered =
+          b.startMs > a.startMs + EPS_MS && endOf(a) < endOf(b) - EPS_MS;
+        const bEndsInside = endOf(b) < endOf(a) - EPS_MS;
+        if (overlap > EPS_MS) {
+          if (
+            staggered &&
+            (overlap <= durationMs ||
+              (overlap <= a.durationMs / 2 && overlap <= b.durationMs / 2))
+          ) {
+            outMs = inMs = overlap;
+            shape = "plus3dB";
+          } else {
+            // Layered or contained clip: smooth interior edges over the setting.
+            outMs = endOf(a) < endOf(b) - EPS_MS ? durationMs : 0;
+            inMs = b.startMs > a.startMs + EPS_MS ? durationMs : 0;
+            shape = "linear";
+          }
         } else {
           outMs = inMs = durationMs / 2;
           shape = "linear";
         }
         // A clip inside the other ends inside it too: that edge clicks as well.
-        const bEndsInside = endOf(b) < endOf(a) - EPS_MS;
         const bOutMs = bEndsInside ? Math.min(durationMs, overlap > EPS_MS ? overlap : durationMs) : 0;
         want(outs, a.id, room(a, "fadeInMs", outMs), shape);
         want(ins, b.id, room(b, "fadeOutMs", inMs), shape);
@@ -115,11 +127,11 @@ export function applyAutoCrossfade<C extends TimelineClip>(
   for (const list of byTrack.values()) {
     for (const c of list) {
       const o = outs.get(c.id);
-      if (o && !((c.fadeOutMs ?? 0) > 0)) {
+      if (o && !hasStoredFade(c.fadeOutMs)) {
         Object.assign(patch(c), { fadeOutMs: o.ms, fadeOutShape: o.shape });
       }
       const n = ins.get(c.id);
-      if (n && !((c.fadeInMs ?? 0) > 0)) {
+      if (n && !hasStoredFade(c.fadeInMs)) {
         Object.assign(patch(c), { fadeInMs: n.ms, fadeInShape: n.shape });
       }
     }

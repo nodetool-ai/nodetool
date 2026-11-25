@@ -58,8 +58,8 @@ describe("F4 pair finding", () => {
     expect(applyAutoCrossfade(gap, 0.5)).toBe(gap);
   });
 
-  it("smooths the edges of an overlap longer than the setting", () => {
-    const out = applyAutoCrossfade([audio("a", 0, 1020), audio("b", 1000, 1000)], 10);
+  it("smooths the edges of a layered overlap wider than half a clip", () => {
+    const out = applyAutoCrossfade([audio("a", 0, 1000), audio("b", 400, 1000)], 10);
     expect(byId(out, "a").fadeOutMs).toBe(10);
     expect(byId(out, "b").fadeInMs).toBe(10);
   });

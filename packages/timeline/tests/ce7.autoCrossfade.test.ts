@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makeClip, type TimelineClip } from "../src/index.js";
+import { clipFadeGain, makeClip, type TimelineClip } from "../src/index.js";
 import {
   DEFAULT_AUTO_CROSSFADE_MS,
   applyAutoCrossfade,
@@ -97,5 +97,43 @@ describe("CE7 round 2", () => {
     const out = applyAutoCrossfade([audio("a", 0, 2000), audio("b", 500, 500)], 10);
     expect(byId(out, "b").fadeInMs).toBe(10);
     expect(byId(out, "b").fadeOutMs).toBe(10);
+  });
+});
+
+describe("CE7 A22r fixes", () => {
+  it("R1: keeps explicit stored zero fades instead of overwriting them", () => {
+    const input = [
+      audio("a", 0, 1000, { fadeOutMs: 0 }),
+      audio("b", 1000, 1000, { fadeInMs: 0 })
+    ];
+    const out = applyAutoCrossfade(input, 10);
+    expect(out).toBe(input);
+    expect(byId(out, "a").fadeOutMs).toBe(0);
+    expect(byId(out, "b").fadeInMs).toBe(0);
+
+    const mixed = applyAutoCrossfade(
+      [audio("a", 0, 1000, { fadeOutMs: 0 }), audio("b", 1000, 1000)],
+      10
+    );
+    expect(byId(mixed, "a").fadeOutMs).toBe(0);
+    expect(byId(mixed, "b").fadeInMs).toBe(5);
+  });
+
+  it("R2: gives a short overlap longer than the setting a real equal-power crossfade", () => {
+    const out = applyAutoCrossfade([audio("a", 0, 1020), audio("b", 1000, 1000)], 10);
+    const a = byId(out, "a");
+    const b = byId(out, "b");
+    expect(a.fadeOutMs).toBe(20);
+    expect(b.fadeInMs).toBe(20);
+    expect(a.fadeOutShape).toBe("plus3dB");
+    expect(b.fadeInShape).toBe("plus3dB");
+
+    for (const t of [1005, 1010, 1015]) {
+      const gainA = clipFadeGain(a, a.durationMs, t - a.startMs);
+      const gainB = clipFadeGain(b, b.durationMs, t - b.startMs);
+      expect(gainA).toBeLessThan(1);
+      expect(gainB).toBeLessThan(1);
+      expect(gainA * gainA + gainB * gainB).toBeCloseTo(1, 6);
+    }
   });
 });
