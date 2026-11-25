@@ -1089,6 +1089,13 @@ const SEARCH_INDEX_PG_FTS_DDL: readonly string[] = [
   "CREATE INDEX IF NOT EXISTS idx_search_chunks_tsv ON nodetool_search_chunks USING GIN (text_tsv)"
 ];
 
+/** Enrichment state on library items (D15): what the caption or transcript was made from. */
+const SEARCH_ENRICHMENT_COLUMNS: ReadonlyArray<readonly [string, string]> = [
+  ["enriched_version", "TEXT"],
+  ["enrich_attempts", "INTEGER NOT NULL DEFAULT 0"],
+  ["enrich_error", "TEXT"]
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
@@ -1136,7 +1143,10 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...RECEIVE_WORKSPACE_FILES_DDL,
   ...TEXT_DOCUMENT_VERSIONS_DDL,
   ...SEARCH_INDEX_TABLES_DDL,
-  ...SEARCH_INDEX_SQLITE_FTS_DDL
+  ...SEARCH_INDEX_SQLITE_FTS_DDL,
+  ...SEARCH_ENRICHMENT_COLUMNS.map(
+    ([name, type]) => `ALTER TABLE nodetool_search_items ADD COLUMN ${name} ${type}`
+  )
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5869,6 +5879,26 @@ export const migrations: MigrationDef[] = [
       }
       await db.execute("DROP TABLE IF EXISTS nodetool_search_chunks");
       await db.execute("DROP TABLE IF EXISTS nodetool_search_items");
+    }
+  },
+  // ── Library index enrichment state ──────────────────────────────────
+  // docs/plans/library-search.md, D15: captions and transcripts are written
+  // by a separate pass, so each item records what it was enriched from.
+  {
+    version: "20261204_000001",
+    name: "add_library_search_enrichment",
+    createsTables: [],
+    modifiesTables: ["nodetool_search_items"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_search_items"))) return;
+      for (const [name, type] of SEARCH_ENRICHMENT_COLUMNS) {
+        if (!(await db.columnExists("nodetool_search_items", name))) {
+          await db.execute(`ALTER TABLE nodetool_search_items ADD COLUMN ${name} ${type}`);
+        }
+      }
+    },
+    async down() {
+      // The columns stay: dropping them would only make every item enrich again.
     }
   }
 ];

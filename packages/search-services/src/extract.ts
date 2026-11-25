@@ -91,7 +91,7 @@ export interface DocumentSource {
 
 /** The document kind each document table holds. */
 export const DOCUMENT_KIND_BY_RESOURCE: Record<
-  Exclude<SearchResourceType, "asset">,
+  Exclude<SearchResourceType, "asset" | "project_file">,
   SearchKind
 > = {
   workflow: "workflow",
@@ -274,7 +274,7 @@ export function assetSourceVersion(asset: Pick<AssetSource, "updated_at" | "cont
 
 /** What the index stores for a document row of any kind. */
 export function extractDocument(
-  resourceType: Exclude<SearchResourceType, "asset">,
+  resourceType: Exclude<SearchResourceType, "asset" | "project_file">,
   doc: DocumentSource
 ): ExtractedItem {
   const kind = DOCUMENT_KIND_BY_RESOURCE[resourceType];

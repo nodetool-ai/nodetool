@@ -1,6 +1,7 @@
 /**
  * The indexer loop (D13, D14): reconcile, claim pending items and extract
- * their content one at a time, then embed chunks that lack a vector. It runs in its own OS process in a
+ * their content one at a time, embed chunks that lack a vector, then add
+ * captions and transcripts when enrichment is on. It runs in its own OS process in a
  * server deployment (the `search-indexer` role) and in process for the CLI
  * and tests. The database is the queue, so any number of loops may run.
  */
@@ -10,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import { extractContent } from "./content.js";
 import { runEmbedPass } from "./embed.js";
+import { runEnrichPass } from "./enrich.js";
 import { claimPendingItems, completeItem, dropClaimedItem, failItem } from "./queue.js";
 import { reconcileLibraryIndex, setLibraryIndexerWake } from "./sync.js";
 
@@ -142,6 +144,18 @@ export async function runLibraryIndexer(options: LibraryIndexerOptions = {}): Pr
       } catch (error) {
         // A provider error waits for the next poll instead of spinning.
         log.warn("Library embedding failed", {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+      // Enrichment last: it costs the most, and its chunks are embedded on the next round.
+      try {
+        const enriched = await runEnrichPass({ signal: options.signal, limit: 16 });
+        if (enriched.enriched > 0) {
+          log.debug("Library enrich pass", { ...enriched });
+          continue;
+        }
+      } catch (error) {
+        log.warn("Library enrichment failed", {
           error: error instanceof Error ? error.message : String(error)
         });
       }

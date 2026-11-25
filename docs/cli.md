@@ -1793,7 +1793,8 @@ collection you create. See [Search services](../packages/search-services/README.
 
 - `query <text...>` — search by words and, when set up, by meaning.
   `--kinds image,document`, `--project <id>`, `--mode auto|keyword|semantic`,
-  `--limit <n>`.
+  `--limit <n>`. `--similar-to <id>` ranks items by nearness in meaning to
+  that item instead of matching text.
 - `read <id>` — an item's passages, or the passage at `--locator '<json>'` with
   `--before` and `--after` neighbours.
 - `status` — items by state, passages with vectors, the embedding model and its

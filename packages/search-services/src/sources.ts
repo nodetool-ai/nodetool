@@ -32,7 +32,10 @@ export interface ExcludedSource {
   sourceVersion: string;
 }
 
-export type DocumentResourceType = Exclude<SearchResourceType, "asset">;
+export type DocumentResourceType = Exclude<SearchResourceType, "asset" | "project_file">;
+
+/** The resource types stored in a database table. */
+export type TableResourceType = Exclude<SearchResourceType, "project_file">;
 
 type DocumentTable =
   | typeof workflows
@@ -56,7 +59,7 @@ export const DOCUMENT_TABLES: Record<DocumentResourceType, DocumentTable> = {
 };
 
 /** The model class each resource type is saved through, as `ModelObserver` names it. */
-export const RESOURCE_TYPE_BY_MODEL: Record<string, SearchResourceType> = {
+export const RESOURCE_TYPE_BY_MODEL: Record<string, TableResourceType> = {
   Asset: "asset",
   Workflow: "workflow",
   Application: "application",
@@ -87,7 +90,7 @@ function sourceCondition(resourceType: SearchResourceType): SQL | undefined {
 
 /** Id, owner and version of every source row, optionally for one owner. */
 export async function listSourceVersions(
-  resourceType: SearchResourceType,
+  resourceType: TableResourceType,
   userId?: string
 ): Promise<Array<{ id: string; userId: string; version: string }>> {
   const db = getPortableDb();
@@ -139,7 +142,7 @@ async function assetFolderPaths(
  * is absent from the result.
  */
 export async function extractSources(
-  resourceType: SearchResourceType,
+  resourceType: TableResourceType,
   userId: string,
   ids: readonly string[]
 ): Promise<Map<string, ExtractedItem | ExcludedSource>> {
@@ -176,13 +179,18 @@ export async function extractSources(
   return out;
 }
 
-/** The ids among `ids` whose source row still exists for `userId`. */
+/**
+ * The ids among `ids` whose source row still exists for `userId`. Project
+ * folder files are taken as existing: only the indexer process reads the
+ * folders, and its reconcile removes the items of deleted files.
+ */
 export async function existingSourceIds(
   resourceType: SearchResourceType,
   userId: string,
   ids: readonly string[]
 ): Promise<Set<string>> {
   if (ids.length === 0) return new Set();
+  if (resourceType === "project_file") return new Set(ids);
   const table = resourceType === "asset" ? assets : DOCUMENT_TABLES[resourceType];
   const rows = await getPortableDb()
     .select({ id: table.id })

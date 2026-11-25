@@ -61,6 +61,7 @@ export {
   type LibraryIndexerOptions
 } from "./indexer.js";
 export {
+  findLibraryItem,
   readLibraryPassage,
   type LibraryPassage,
   type LibraryReadRequest,
@@ -86,5 +87,28 @@ export {
   type LibraryEmbedder,
   type LibraryQueryEmbedder
 } from "./semantic.js";
+export {
+  extractProjectFile,
+  parseProjectFileResourceId,
+  projectFileContentType,
+  projectFileResourceId,
+  projectFileSource,
+  setProjectFileSource,
+  type ProjectFile,
+  type ProjectFileSource
+} from "./project-files.js";
+export {
+  enrichmentModels,
+  libraryEnricher,
+  MAX_ENRICH_ATTEMPTS,
+  runEnrichPass,
+  setLibraryEnricher,
+  transcriptChunks,
+  type EnrichInput,
+  type EnrichModel,
+  type EnrichPass,
+  type LibraryEnricher,
+  type TranscriptSegment
+} from "./enrich.js";
 export { EMBED_JOB_PREFIX, runEmbedPass, unembeddedChunkCount, type EmbedPass } from "./embed.js";
 export { libraryIndexStatus, rebuildLibraryIndex, type LibraryIndexStatus } from "./status.js";

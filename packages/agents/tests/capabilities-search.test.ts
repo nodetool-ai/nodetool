@@ -121,6 +121,11 @@ describe("search capability module", () => {
     const read = await call(SEARCH_CAPABILITIES, "search_read", { id: "0123456789ab" });
     expect(read.error).toMatch(/No library item/);
   });
+
+  it("answers similar_to for an unknown item with a message, not a throw", async () => {
+    const result = await call(SEARCH_CAPABILITIES, "search", { similar_to: "0123456789ab" });
+    expect(result.error).toMatch(/No library item/);
+  });
 });
 
 describe("document list tools route query through the library index", () => {

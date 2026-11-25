@@ -51,7 +51,11 @@ export const searchItems = sqliteTable(
     error: text("error"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull(),
-    indexed_at: text("indexed_at")
+    indexed_at: text("indexed_at"),
+    /** `source_version|model` the captions or transcript were made from. */
+    enriched_version: text("enriched_version"),
+    enrich_attempts: integer("enrich_attempts").notNull().default(0),
+    enrich_error: text("enrich_error")
   },
   (table) => [
     uniqueIndex("idx_search_items_resource").on(

@@ -31,7 +31,9 @@ export const LIBRARY_SEARCH_SETTINGS = {
   provider: "NODETOOL_SEARCH_EMBEDDING_PROVIDER",
   model: "NODETOOL_SEARCH_EMBEDDING_MODEL",
   excludedProjects: "NODETOOL_SEARCH_EXCLUDED_PROJECTS",
-  dailySpendLimit: "NODETOOL_SEARCH_DAILY_SPEND_LIMIT"
+  dailySpendLimit: "NODETOOL_SEARCH_DAILY_SPEND_LIMIT",
+  captionModel: "NODETOOL_SEARCH_CAPTION_MODEL",
+  transcriptModel: "NODETOOL_SEARCH_TRANSCRIPT_MODEL"
 } as const;
 
 /**
@@ -120,7 +122,7 @@ function vectors(): VectorProvider {
   return vectorProvider ?? getDefaultVectorProvider();
 }
 
-async function readSetting(key: string): Promise<string | null> {
+export async function readSetting(key: string): Promise<string | null> {
   try {
     const row = await Setting.find("1", key);
     if (row && row.value.trim()) return row.value.trim();

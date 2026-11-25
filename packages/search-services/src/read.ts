@@ -64,7 +64,8 @@ function locatorMatches(want: Record<string, unknown>, have: Record<string, unkn
   return true;
 }
 
-async function findItem(userId: string, id: string) {
+/** An owner's item by item id or resource id, full or as an exact 12-character prefix. */
+export async function findLibraryItem(userId: string, id: string) {
   const db = getPortableDb();
   const owner = eq(searchItems.user_id, userId);
   if (isShortResourceId(id)) {
@@ -86,7 +87,7 @@ async function findItem(userId: string, id: string) {
 
 /** Read the passage at a locator of one item and its neighbours. */
 export async function readLibraryPassage(request: LibraryReadRequest): Promise<LibraryReadResult> {
-  const found = await findItem(request.userId, request.id);
+  const found = await findLibraryItem(request.userId, request.id);
   if ("error" in found && found.error) return { ok: false, error: found.error };
   const item = found.row;
   if (!item || item.state === "excluded") {

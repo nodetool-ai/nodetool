@@ -12,6 +12,11 @@ import { Asset, getPortableDb } from "@nodetool-ai/models";
 import type { SearchResourceType } from "@nodetool-ai/protocol";
 import { chunkLines, chunkMarkdown, chunkPlainText } from "./chunking.js";
 import { assetContentFormat, type ExtractedChunk } from "./extract.js";
+import {
+  parseProjectFileResourceId,
+  projectFileContentType,
+  projectFileSource
+} from "./project-files.js";
 import { DOCUMENT_TABLES, type DocumentResourceType } from "./sources.js";
 
 /** Largest file the indexer reads. */
@@ -42,6 +47,11 @@ let readBytes: AssetBytesReader = defaultReadBytes;
 /** Replace how asset bytes are read, or restore the default with `null`. */
 export function setAssetBytesReader(reader: AssetBytesReader | null): void {
   readBytes = reader ?? defaultReadBytes;
+}
+
+/** The bytes of an asset's file, through the installed reader. */
+export function readAssetBytes(asset: Asset): Promise<Uint8Array> {
+  return readBytes(asset);
 }
 
 function capped(text: string): string {
@@ -84,16 +94,20 @@ async function pdfPassages(bytes: Uint8Array): Promise<ContentResult> {
   return { status: "ready", chunks };
 }
 
-async function assetContent(asset: Asset): Promise<ContentResult> {
-  const format = assetContentFormat(asset.content_type, asset.name);
-  if (!format) return { status: "skipped", reason: `No extractor for ${asset.content_type}.` };
-  if (asset.size !== null && asset.size !== undefined && asset.size > MAX_CONTENT_BYTES) {
-    return { status: "skipped", reason: `The file is larger than ${MAX_CONTENT_BYTES / 1024 / 1024} MB.` };
+const TOO_LARGE = `The file is larger than ${MAX_CONTENT_BYTES / 1024 / 1024} MB.`;
+
+/** Passages of one file, read by `read` once its declared size passes the limit. */
+async function fileContent(
+  file: { contentType: string; name: string; size: number | null | undefined },
+  read: () => Promise<Uint8Array>
+): Promise<ContentResult> {
+  const format = assetContentFormat(file.contentType, file.name);
+  if (!format) return { status: "skipped", reason: `No extractor for ${file.contentType}.` };
+  if (file.size !== null && file.size !== undefined && file.size > MAX_CONTENT_BYTES) {
+    return { status: "skipped", reason: TOO_LARGE };
   }
-  const bytes = await readBytes(asset);
-  if (bytes.byteLength > MAX_CONTENT_BYTES) {
-    return { status: "skipped", reason: `The file is larger than ${MAX_CONTENT_BYTES / 1024 / 1024} MB.` };
-  }
+  const bytes = await read();
+  if (bytes.byteLength > MAX_CONTENT_BYTES) return { status: "skipped", reason: TOO_LARGE };
   if (format === "pdf") return withTimeout(pdfPassages(bytes), "Reading the PDF");
   if (format === "docx") {
     const mammoth = await importOptionalModule<MammothModule>("mammoth");
@@ -108,6 +122,26 @@ async function assetContent(asset: Asset): Promise<ContentResult> {
     status: "ready",
     chunks: format === "markdown" ? chunkMarkdown(text) : chunkPlainText(text)
   };
+}
+
+function assetContent(asset: Asset): Promise<ContentResult> {
+  return fileContent(
+    { contentType: asset.content_type, name: asset.name, size: asset.size },
+    () => readBytes(asset)
+  );
+}
+
+/** A project folder file's passages, or null when the file or its project is gone. */
+async function projectFileContent(userId: string, resourceId: string): Promise<ContentResult | null> {
+  const parsed = parseProjectFileResourceId(resourceId);
+  if (!parsed) return null;
+  const folders = projectFileSource();
+  if (!folders) throw new Error("This process cannot read project folders.");
+  const contentType = projectFileContentType(parsed.path);
+  if (!contentType) return null;
+  const bytes = await folders.read(userId, parsed.projectId, parsed.path);
+  if (bytes === null) return null;
+  return fileContent({ contentType, name: parsed.path, size: bytes.byteLength }, async () => bytes);
 }
 
 /** The locator key each document kind names its parts by (D6). */
@@ -256,6 +290,7 @@ export async function extractContent(
     const asset = await Asset.find(userId, resourceId);
     return asset ? assetContent(asset) : null;
   }
+  if (resourceType === "project_file") return projectFileContent(userId, resourceId);
   return documentContent(resourceType, userId, resourceId);
 }
 

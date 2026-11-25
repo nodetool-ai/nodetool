@@ -20,6 +20,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import { unembeddedChunkCount } from "./embed.js";
 import { deleteItemsById } from "./index-writer.js";
+import { findLibraryItem } from "./read.js";
 import {
   embedLibraryQuery,
   existingLibraryCollection,
@@ -65,6 +66,13 @@ export interface LibrarySearchRequest {
    * vector layer is unavailable.
    */
   mode?: LibrarySearchMode;
+  /**
+   * An item id or resource id. Ranks items by how near their meaning is to
+   * that item's, nearest first, and leaves the item itself out. `query` is
+   * not used then. Needs search by meaning; without it the answer is empty
+   * and `index.note` says why.
+   */
+  similarTo?: string;
 }
 
 export type LibrarySearchMode = "auto" | "keyword" | "semantic";
@@ -353,8 +361,49 @@ interface Ranked {
   chunks: Map<string, string[]>;
 }
 
+const SIMILAR_NEEDS_MEANING_NOTE = "Finding similar items needs search by meaning, which is not set up.";
+/** Characters of an item's text that stand for it in a similarity query. */
+const SIMILAR_TEXT_CHARS = 1_000;
+
+/** The text that stands for an item: its title, then its best passages. */
+async function itemQueryText(itemId: string, title: string): Promise<string> {
+  const chunks = await getPortableDb()
+    .select({ field: searchChunks.field, ordinal: searchChunks.ordinal, text: searchChunks.text })
+    .from(searchChunks)
+    .where(eq(searchChunks.item_id, itemId));
+  chunks.sort((a, b) => (FIELD_ORDER[a.field] ?? 9) - (FIELD_ORDER[b.field] ?? 9) || a.ordinal - b.ordinal);
+  let text = title;
+  for (const chunk of chunks) {
+    if (chunk.field === "title") continue;
+    if (text.length >= SIMILAR_TEXT_CHARS) break;
+    text = `${text}\n\n${chunk.text}`;
+  }
+  return text.slice(0, SIMILAR_TEXT_CHARS);
+}
+
+/** Rank items by how near they are in meaning to `request.similarTo`. */
+async function rankSimilar(request: LibrarySearchRequest, limit: number, offset: number): Promise<Ranked> {
+  const found = await findLibraryItem(request.userId, request.similarTo ?? "");
+  if ("error" in found && found.error) throw new Error(found.error);
+  const source = found.row;
+  if (!source || source.state === "excluded") throw new Error(`No library item ${request.similarTo}.`);
+  const semantic = await rankByMeaning(request, await itemQueryText(source.id, source.title));
+  if (semantic === null || "note" in semantic) {
+    return {
+      ids: [],
+      total: 0,
+      mode: "keyword",
+      chunks: new Map(),
+      note: semantic?.note ?? SIMILAR_NEEDS_MEANING_NOTE
+    };
+  }
+  const ids = semantic.ids.filter((id) => id !== source.id);
+  return { ids: ids.slice(offset, offset + limit), total: ids.length, mode: "semantic", chunks: semantic.chunks };
+}
+
 /** Run the layers the request and the setup allow, and merge them. */
 async function rankRequest(request: LibrarySearchRequest, limit: number, offset: number): Promise<Ranked> {
+  if (request.similarTo) return rankSimilar(request, limit, offset);
   const raw = request.query.trim();
   const lexicalOnly =
     request.mode === "keyword" || raw.length < MIN_FULL_QUERY_CHARS || queryTerms(raw).length === 0;
@@ -416,7 +465,7 @@ async function matchesFor(
   nearest: ReadonlyMap<string, readonly string[]> = new Map()
 ): Promise<Map<string, LibrarySearchMatch[]>> {
   const out = new Map<string, LibrarySearchMatch[]>();
-  if (itemIds.length === 0 || terms.length === 0) return out;
+  if (itemIds.length === 0 || (terms.length === 0 && nearest.size === 0)) return out;
   const chunks = await getPortableDb()
     .select({
       id: searchChunks.id,

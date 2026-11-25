@@ -57,8 +57,8 @@ export async function unembeddedChunkCount(userId: string, space: EmbeddingSpace
   return Number(row?.n ?? 0);
 }
 
-/** US dollars hosted library embedding cost since midnight UTC. */
-async function spentToday(): Promise<number> {
+/** US dollars hosted library search calls (embedding, captions, transcripts) cost since midnight UTC. */
+export async function spentToday(): Promise<number> {
   const midnight = new Date();
   midnight.setUTCHours(0, 0, 0, 0);
   const [row] = await getPortableDb()

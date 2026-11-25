@@ -14,9 +14,13 @@ import { openSettingsTab } from "../../workspace/openPageTab";
 jest.mock("../../../lib/chat/openResource", () => ({ openResource: jest.fn() }));
 jest.mock("../../workspace/openPageTab", () => ({ openSettingsTab: jest.fn() }));
 jest.mock("../../../hooks/useProjects", () => ({
-  useProjects: () => ({ data: [{ id: "p1", name: "Harbour film" }] })
+  useProjects: () => ({ data: [{ id: "p1", name: "Harbour film", folder: { workspace_id: "ws1" } }] })
 }));
 jest.mock("../../../utils/browser", () => ({ isElectron: true }));
+const mockOpenTab = jest.fn();
+jest.mock("../../../stores/WorkspaceTabsStore", () => ({
+  useWorkspaceTabsStore: (select: (state: { openTab: jest.Mock }) => unknown) => select({ openTab: mockOpenTab })
+}));
 jest.mock("../../ui_primitives", () => {
   const actual = jest.requireActual("../../ui_primitives");
   return { ...actual, ResponsiveImage: ({ alt }: { alt: string }) => <img alt={alt} data-testid="thumbnail" /> };
@@ -87,6 +91,32 @@ it("shows a hit with its passage and location, and opens it on select", async ()
   expect(screen.getByText("Harbour film / Notes")).toBeInTheDocument();
   await userEvent.click(screen.getByText("logbook.txt"));
   expect(openResource).toHaveBeenCalledWith({ kind: "asset", id: "asset-1" });
+});
+
+it("opens a project folder file as a file tab of its project's folder", async () => {
+  queryHook.mockReturnValue({
+    data: answer([
+      {
+        ...hit,
+        resource_type: "project_file",
+        resource_id: "p1:notes/launch.md",
+        title: "launch.md",
+        folder_path: "notes"
+      }
+    ]),
+    isFetching: false,
+    isError: false
+  });
+  renderGroup("launch");
+  await userEvent.click(await screen.findByText("launch.md"));
+  expect(openResource).not.toHaveBeenCalled();
+  expect(mockOpenTab).toHaveBeenCalledWith({
+    type: "workspace-file",
+    ref: "ws1::notes/launch.md",
+    mode: "view",
+    title: "launch.md",
+    projectId: "p1"
+  });
 });
 
 it("names the scope when nothing matches", async () => {
