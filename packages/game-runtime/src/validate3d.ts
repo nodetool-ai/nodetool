@@ -26,6 +26,10 @@ export interface GameValidationResult3D {
 /** Horizontal size, in world units, from which a casting mesh is treated as terrain or ground. */
 const LARGE_SHADOW_CASTER_3D = 100;
 
+function own<T>(record: Readonly<Record<string, T>> | undefined, key: string): T | undefined {
+  return record && Object.hasOwn(record, key) ? record[key] : undefined;
+}
+
 /** The larger horizontal extent of an entity's casting mesh, or undefined when it casts no shadow. */
 function shadowCasterFootprint3D(document: GameDocument3D, entity: GameEntity3D): number | undefined {
   if (entity.templateOnly) { return undefined; }
@@ -34,7 +38,7 @@ function shadowCasterFootprint3D(document: GameDocument3D, entity: GameEntity3D)
     const { x, z } = entity.primitive.dimensions;
     return Math.max(x * scale.x, z * scale.z);
   }
-  const asset = entity.model?.castShadow ? document.assets[entity.model.assetId] : undefined;
+  const asset = entity.model?.castShadow ? own(document.assets, entity.model.assetId) : undefined;
   if (asset?.mediaKind !== "model") { return undefined; }
   return Math.max((asset.bounds.max.x - asset.bounds.min.x) * scale.x, (asset.bounds.max.z - asset.bounds.min.z) * scale.z);
 }
@@ -164,13 +168,13 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
         if (entity.primitive && entity.model) { add("competing_visual", [...entityPath, "model"], "Entity must choose either primitive or model rendering"); }
         if (entity.interactionActor && !entity.collider3d) { add("missing_interaction_collider", [...entityPath, "interactionActor"], "Interaction actors require a collider"); }
         const checkAsset = (slot: string, kind: "model" | "collider" | "audio" | "image", componentPath: (string | number)[]): void => {
-          const asset = document.assets[slot];
+          const asset = own(document.assets, slot);
           if (!asset || asset.mediaKind !== kind) { add("missing_asset", componentPath, `Asset ${slot} must be a ${kind} binding`); }
           if (prefab && !prefab.externalAssets.includes(slot)) { add("undeclared_external_asset", componentPath, `Prefab must declare asset ${slot}`); }
         };
         if (entity.model) {
           checkAsset(entity.model.assetId, "model", [...entityPath, "model", "assetId"]);
-          const asset = document.assets[entity.model.assetId];
+          const asset = own(document.assets, entity.model.assetId);
           if (asset?.mediaKind === "model" && entity.model.nodeId && !asset.nodeIds.includes(entity.model.nodeId)) {
             add("missing_model_node", [...entityPath, "model", "nodeId"], "Stable model node ID does not exist");
           }
@@ -185,7 +189,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
         }
         if (entity.collider3d?.kind === "convexHull" || entity.collider3d?.kind === "triangleMesh") {
           checkAsset(entity.collider3d.assetId, "collider", [...entityPath, "collider3d", "assetId"]);
-          const binding = document.assets[entity.collider3d.assetId];
+          const binding = own(document.assets, entity.collider3d.assetId);
           if (binding?.mediaKind === "collider" && binding.shape !== entity.collider3d.kind) {
             add("collider_shape_mismatch", [...entityPath, "collider3d", "assetId"], "Prepared collider shape does not match the component");
           }
@@ -202,25 +206,25 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
           if (emitter.sprite) { checkAsset(emitter.sprite.assetId, "image", [...entityPath, "particles", "emitters", index, "sprite", "assetId"]); }
         }
         if (entity.animator3d) {
-          const asset = entity.model && document.assets[entity.model.assetId];
+          const asset = entity.model && own(document.assets, entity.model.assetId);
           if (!asset || asset.mediaKind !== "model") { add("missing_animation_model", [...entityPath, "animator3d"], "Animator requires a model binding"); }
           else {
             for (const [alias, clip] of Object.entries(entity.animator3d.clips)) {
               if (!asset.clipIds.includes(clip)) { add("missing_animation_clip", [...entityPath, "animator3d", "clips", alias], `Prepared clip ${clip} does not exist`); }
             }
           }
-          if (entity.animator3d.initialClip && !(entity.animator3d.initialClip in entity.animator3d.clips)) {
+          if (entity.animator3d.initialClip && !Object.hasOwn(entity.animator3d.clips, entity.animator3d.initialClip)) {
             add("missing_animation_clip", [...entityPath, "animator3d", "initialClip"], "Initial clip alias does not exist");
           }
           validateAnimatorGraph3D(document, entity, asset || undefined, [...entityPath, "animator3d"], add);
-          const graph = entity.animator3d.graph && document.animationGraphs?.[entity.animator3d.graph];
+          const graph = entity.animator3d.graph && own(document.animationGraphs, entity.animator3d.graph);
           if (asset?.mediaKind === "model" && !asset.clipDurations && graph && graph.layers.some(layer => Object.values(layer.states).some(node => node.motion.kind !== "clip"))) {
             warnings.push({ code: "legacy_animation_phase", path: [...entityPath, "animator3d"], message: "Reprepare the model to preserve blend phase when parameters change. Legacy bindings without clip durations use elapsed-time sampling." });
           }
         }
         for (const [behaviorIndex, behavior] of entity.behaviors.entries()) {
           if (behavior.kind === "script") {
-            for (const issue of scriptParamReferenceIssues(behavior, prefab ? null : (target) => byId.has(target), (slot) => document.assets[slot]?.mediaKind)) {
+            for (const issue of scriptParamReferenceIssues(behavior, prefab ? null : (target) => byId.has(target), (slot) => own(document.assets, slot)?.mediaKind)) {
               add("invalid_script_param_reference", [...entityPath, "behaviors", behaviorIndex, ...issue.path], issue.message);
             }
             for (const [name, param] of Object.entries(behavior.params ?? {})) {
@@ -230,7 +234,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
               }
             }
           }
-          if (behavior.kind === "spawn" && !document.prefabs[behavior.prefabId] && (prefab || !byId.get(behavior.prefabId)?.templateOnly)) {
+          if (behavior.kind === "spawn" && !own(document.prefabs, behavior.prefabId) && (prefab || !byId.get(behavior.prefabId)?.templateOnly)) {
             add("missing_prefab", [...entityPath, "behaviors", behaviorIndex, "prefabId"], `Prefab ${behavior.prefabId} does not exist`);
           }
           if (behavior.kind === "sceneTransition") {
@@ -253,12 +257,12 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
       }
       if (scene.environment.fog && "near" in scene.environment.fog && scene.environment.fog.near >= scene.environment.fog.far) { add("invalid_fog", [...path, "environment", "fog"], "Fog near must be less than far"); }
       const sky = scene.environment.sky;
-      if (sky?.kind === "hdri" && document.assets[sky.assetId]?.mediaKind !== "hdri") { add("missing_asset", [...path, "environment", "sky", "assetId"], "HDRI sky requires an hdri binding"); }
+      if (sky?.kind === "hdri" && own(document.assets, sky.assetId)?.mediaKind !== "hdri") { add("missing_asset", [...path, "environment", "sky", "assetId"], "HDRI sky requires an hdri binding"); }
       if (sky?.kind === "procedural" && sky.sunEntityId !== undefined) {
         const sun = scene.entities.find((entity) => entity.id === sky.sunEntityId);
         if (!sun || sun.templateOnly || sun.light3d?.kind !== "directional") { add("invalid_sky_sun", [...path, "environment", "sky", "sunEntityId"], "Procedural sky sun must select a directional light in the scene"); }
       }
-      if (scene.music && document.assets[scene.music.assetId]?.mediaKind !== "audio") { add("missing_asset", [...path, "music", "assetId"], "Scene music requires an audio binding"); }
+      if (scene.music && own(document.assets, scene.music.assetId)?.mediaKind !== "audio") { add("missing_asset", [...path, "music", "assetId"], "Scene music requires an audio binding"); }
       const sunCasts = scene.entities.some((entity) => !entity.templateOnly && entity.light3d?.kind === "directional" && entity.light3d.castShadow);
       if (scene.environment.shadows.enabled && scene.environment.shadows.cascades && sunCasts) {
         for (const [entityIndex, entity] of scene.entities.entries()) {
@@ -274,7 +278,7 @@ export function validateGame3D(value: unknown): GameValidationResult3D {
       const roots = prefab.entities.filter((entity) => !entity.parentId);
       if (roots.length !== 1 || roots[0]?.id !== prefab.rootId) { add("invalid_prefab_root", [...path, "rootId"], "Prefab must contain exactly one declared root"); }
       if (prefab.entities.some((entity) => entity.templateOnly)) { add("nested_prefab", [...path, "entities"], "Prefab entities cannot be templateOnly"); }
-      for (const slot of prefab.externalAssets) { if (!document.assets[slot]) { add("missing_asset", [...path, "externalAssets"], `External asset ${slot} does not exist`); } }
+      for (const slot of prefab.externalAssets) { if (!own(document.assets, slot)) { add("missing_asset", [...path, "externalAssets"], `External asset ${slot} does not exist`); } }
       for (const sceneId of prefab.externalScenes) { if (!scenes.has(sceneId)) { add("missing_scene", [...path, "externalScenes"], `External scene ${sceneId} does not exist`); } }
       validateEntities(prefab.entities, [...path, "entities"], prefab);
     }

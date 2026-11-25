@@ -118,10 +118,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+const RESERVED_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 function deepMerge(base: unknown, patch: unknown): unknown {
   if (!isRecord(base) || !isRecord(patch)) { return patch; }
   const result: Record<string, unknown> = { ...base };
-  for (const [key, value] of Object.entries(patch)) result[key] = deepMerge(base[key], value);
+  for (const [key, value] of Object.entries(patch)) {
+    if (RESERVED_KEYS.has(key)) { continue; }
+    result[key] = deepMerge(Object.hasOwn(base, key) ? base[key] : undefined, value);
+  }
   return result;
 }
 
@@ -182,7 +187,7 @@ function responsibleOpIndex(document: GameDocument, ops: readonly GameDocumentOp
 
 function referencesAsset(document: GameDocument, slot: string): boolean {
   if (document.renderEffects?.some((effect) => effect.kind === "lut" && effect.assetId === slot)) { return true; }
-  if (document.audio?.mixer && slot in document.audio.mixer.assetBuses) { return true; }
+  if (document.audio?.mixer && Object.hasOwn(document.audio.mixer.assetBuses, slot)) { return true; }
   return document.scenes.some((scene) => scene.music?.assetId === slot ||
     scene.backgrounds?.some((background) => background.assetId === slot) ||
     scene.entities.some((entity) => entity.sprite?.assetId === slot || entity.tilemap?.assetId === slot || entity.audioSource?.assetId === slot));
@@ -205,7 +210,14 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
       case "set_override_membership":
       case "set_authoring_membership": { applyGameOwnershipOperation(draft, op, ownershipDeltas, opIndex); break; }
       case "reset_override":
-      case "detach_entity": { draft = gameDocument.parse(applyGameAuthoringOperation(draft, op)); break; }
+      case "detach_entity": {
+        draft = gameDocument.parse(applyGameAuthoringOperation(draft, op));
+        entityIndexesByScene.clear();
+        for (const scene of draft.scenes) {
+          entityIndexesByScene.set(scene.id, indexEntities(scene));
+        }
+        break;
+      }
       case "set_document": {
         draft = { ...op.document, id: document.id, revision: document.revision };
         entityIndexesByScene.clear();
@@ -454,9 +466,13 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
         else { draft.audio = { ...draft.audio, mixer: op.mixer }; }
         break;
       }
-      case "bind_asset": draft.assets[op.slot] = op.binding; break;
+      case "bind_asset": {
+        if (RESERVED_KEYS.has(op.slot)) { fail(opIndex, ["slot"], `Asset slot ${op.slot} is reserved`); }
+        draft.assets[op.slot] = op.binding;
+        break;
+      }
       case "unbind_asset": {
-        if (!(op.slot in draft.assets)) fail(opIndex, ["slot"], `Asset slot ${op.slot} does not exist`);
+        if (!Object.hasOwn(draft.assets, op.slot)) fail(opIndex, ["slot"], `Asset slot ${op.slot} does not exist`);
         if (referencesAsset(draft, op.slot)) fail(opIndex, ["slot"], `Asset slot ${op.slot} is still referenced`);
         delete draft.assets[op.slot];
         break;

@@ -104,13 +104,16 @@ function fail(opIndex: number, path: (string | number)[], message: string): neve
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+const RESERVED_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 function merge(base: unknown, patch: unknown): unknown {
   if (!isRecord(base) || !isRecord(patch)) { return patch; }
   if (patch.kind !== undefined && base.kind !== patch.kind || patch.type !== undefined && base.type !== patch.type) { return patch; }
   const result: Record<string, unknown> = { ...base };
   for (const [key, value] of Object.entries(patch)) {
+    if (RESERVED_KEYS.has(key)) { continue; }
     if (value === null) { delete result[key]; }
-    else { result[key] = merge(base[key], value); }
+    else { result[key] = merge(Object.hasOwn(base, key) ? base[key] : undefined, value); }
   }
   return result;
 }
@@ -305,14 +308,18 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
         Object.assign(scene, applyEnvironmentPreset3D(scene, op.preset));
         break;
       }
-      case "set_prefab": draft.prefabs[op.prefab_id] = op.prefab; break;
+      case "set_prefab": {
+        if (RESERVED_KEYS.has(op.prefab_id)) { fail(opIndex, ["prefab_id"], `Prefab ID ${op.prefab_id} is reserved`); }
+        draft.prefabs[op.prefab_id] = op.prefab;
+        break;
+      }
       case "remove_prefab": {
-        if (!draft.prefabs[op.prefab_id]) { fail(opIndex, ["prefab_id"], "Prefab does not exist"); }
+        if (!Object.hasOwn(draft.prefabs, op.prefab_id)) { fail(opIndex, ["prefab_id"], "Prefab does not exist"); }
         delete draft.prefabs[op.prefab_id]; break;
       }
       case "instantiate_prefab": {
         const scene = findScene(op.scene_id, opIndex);
-        const prefab = draft.prefabs[op.prefab_id];
+        const prefab = Object.hasOwn(draft.prefabs, op.prefab_id) ? draft.prefabs[op.prefab_id] : undefined;
         if (!prefab) { fail(opIndex, ["prefab_id"], "Prefab does not exist"); }
         const result = instantiateGamePrefab3D(prefab, op.instance_id, op.transform);
         const existingIds = new Set(scene.entities.map((existing) => existing.id));
@@ -351,13 +358,25 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
         if (op.ui === null) { delete owner.ui; } else { owner.ui = op.ui; }
         break;
       }
-      case "bind_asset": draft.assets[op.slot] = op.binding; break;
+      case "bind_asset": {
+        if (RESERVED_KEYS.has(op.slot)) { fail(opIndex, ["slot"], `Asset slot ${op.slot} is reserved`); }
+        draft.assets[op.slot] = op.binding;
+        break;
+      }
       case "unbind_asset": {
-        if (!draft.assets[op.slot]) { fail(opIndex, ["slot"], "Asset slot does not exist"); }
+        if (!Object.hasOwn(draft.assets, op.slot)) { fail(opIndex, ["slot"], "Asset slot does not exist"); }
         delete draft.assets[op.slot]; break;
       }
-      case "set_animation_graph": draft.animationGraphs = { ...draft.animationGraphs, [op.graph_id]: op.graph }; break;
-      case "set_material": draft.materials = { ...draft.materials, [op.material_id]: op.material }; break;
+      case "set_animation_graph": {
+        if (RESERVED_KEYS.has(op.graph_id)) { fail(opIndex, ["graph_id"], `Animation graph ID ${op.graph_id} is reserved`); }
+        draft.animationGraphs = { ...draft.animationGraphs, [op.graph_id]: op.graph };
+        break;
+      }
+      case "set_material": {
+        if (RESERVED_KEYS.has(op.material_id)) { fail(opIndex, ["material_id"], `Material ID ${op.material_id} is reserved`); }
+        draft.materials = { ...draft.materials, [op.material_id]: op.material };
+        break;
+      }
       case "remove_material": {
         if (!draft.materials || !Object.hasOwn(draft.materials, op.material_id)) { fail(opIndex, ["material_id"], "Material does not exist"); }
         delete draft.materials[op.material_id];
@@ -365,7 +384,7 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
         break;
       }
       case "remove_animation_graph": {
-        if (!draft.animationGraphs?.[op.graph_id]) { fail(opIndex, ["graph_id"], "Animation graph does not exist"); }
+        if (!draft.animationGraphs || !Object.hasOwn(draft.animationGraphs, op.graph_id)) { fail(opIndex, ["graph_id"], "Animation graph does not exist"); }
         delete draft.animationGraphs[op.graph_id];
         if (Object.keys(draft.animationGraphs).length === 0) { delete draft.animationGraphs; }
         break;

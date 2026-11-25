@@ -27,7 +27,7 @@ function graphOf(document: GameDocument3D, state: EntityState3D): { readonly id:
   if (graphId === undefined) {
     return undefined;
   }
-  const graph = document.animationGraphs?.[graphId];
+  const graph = document.animationGraphs && Object.hasOwn(document.animationGraphs, graphId) ? document.animationGraphs[graphId] : undefined;
   if (!graph) {
     throw new Error(`Animation graph ${graphId} does not exist (${state.definition.id})`);
   }
@@ -101,7 +101,7 @@ function ensureAnimationGraph3D(document: GameDocument3D, state: EntityState3D):
 /** Applies a `setAnimParam` script command. Triggers take `true` to fire and `false` to reset. */
 export function setAnimationParameter3D(document: GameDocument3D, state: EntityState3D, name: string, value: number | boolean): void {
   const bound = ensureAnimationGraph3D(document, state);
-  const parameter = bound?.graph.parameters[name];
+  const parameter = bound && Object.hasOwn(bound.graph.parameters, name) ? bound.graph.parameters[name] : undefined;
   if (!bound || !parameter) {
     throw new Error(`Unknown animation parameter ${name} for ${state.definition.id}`);
   }
