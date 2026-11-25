@@ -44,6 +44,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/cli-*` command features | Independently installed command implementations, selected through the pack manager |
 | `@nodetool-ai/cli-common`, `@nodetool-ai/cli-execution`, `@nodetool-ai/cli-local`, `@nodetool-ai/cli-providers` | Shared command implementation libraries, separate from feature registration |
 | `@nodetool-ai/asset-services`, `@nodetool-ai/document-services`, `@nodetool-ai/workflow-services`, `@nodetool-ai/project-services`, `@nodetool-ai/error-trace-services` | Canonical persistence and archive services shared by CLI and HTTP hosts |
+| [`@nodetool-ai/search-services`](search-services/README.md) | Library search: the index of assets and documents, its inline writes and reconcile, and the one query every search surface calls |
 | `@nodetool-ai/pack-host` | HTTP-independent node-pack composition with explicit provider hooks |
 | `@nodetool-ai/deploy` | Cloud deployment utilities |
 | `@nodetool-ai/dsl` | Workflow DSL for programmatic workflow creation |

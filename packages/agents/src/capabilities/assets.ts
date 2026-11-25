@@ -130,7 +130,7 @@ function resolveLimit(raw: unknown): number {
     : DEFAULT_LIMIT;
 }
 
-/** The paging/filter bag `Asset.paginate` and `searchAssetsGlobal` take. */
+/** The paging/filter bag `Asset.paginate` and `searchAssets` take. */
 interface AssetQueryOptions {
   contentType?: string;
   projectId?: string;
@@ -279,18 +279,15 @@ const listAssets: CapabilityExport = {
     // resolving the read project touches the database.
     const projectId = await resolveReadProjectId(run, {});
 
-    const { Asset } = await import("@nodetool-ai/models");
     if (query) {
+      const { searchAssets } = await import("@nodetool-ai/search-services");
       const search: AssetQueryOptions = { limit, projectId };
       if (contentType) search.contentType = contentType;
-      const [assets, next] = await Asset.searchAssetsGlobal(
-        userId,
-        query,
-        search
-      );
-      return { assets: assets.map(assetRecord), next: next || null };
+      const result = await searchAssets(userId, query, search);
+      return { assets: result.assets.map(assetRecord), next: result.nextCursor };
     }
 
+    const { Asset } = await import("@nodetool-ai/models");
     const page: AssetQueryOptions = { limit, projectId };
     if (contentType) page.contentType = contentType;
     const [assets, next] = await Asset.paginate(userId, page);
@@ -665,17 +662,19 @@ const assetSearch: CapabilityExport = {
     const limit = resolveLimit(params.limit);
 
     try {
-      const { Asset } = await import("@nodetool-ai/models");
+      const { searchAssets } = await import("@nodetool-ai/search-services");
       const search: AssetQueryOptions = {
         limit,
         projectId: await resolveReadProjectId(run, {})
       };
       if (contentType) search.contentType = contentType;
-      const [rows] = await Asset.searchAssetsGlobal(userId, query, search);
-      const assets = rows
-        .filter((a) => a.content_type !== "folder")
-        .map((a) => toHandle(a));
-      return { success: true, count: assets.length, assets };
+      const result = await searchAssets(userId, query, search);
+      const assets = result.assets.map((asset) => {
+        // The part of the asset the query matched, such as its prompt.
+        const field = result.hits.get(asset.id)?.matches[0]?.field;
+        return field ? { ...toHandle(asset), matched: field } : toHandle(asset);
+      });
+      return { success: true, count: assets.length, total: result.total, assets };
     } catch (e) {
       return {
         success: false,
@@ -700,18 +699,16 @@ const assetList: CapabilityExport = {
     const limit = resolveLimit(params.limit);
 
     try {
-      // `searchAssetsGlobal` with an empty query orders by created_at DESC and
-      // supports a content_type prefix — exactly a "recent assets" listing.
-      const { Asset } = await import("@nodetool-ai/models");
+      // An empty library search lists items newest first, with the content
+      // type prefix applied — exactly a "recent assets" listing.
+      const { searchAssets } = await import("@nodetool-ai/search-services");
       const recent: AssetQueryOptions = {
         limit,
         projectId: await resolveReadProjectId(run, {})
       };
       if (contentType) recent.contentType = contentType;
-      const [rows] = await Asset.searchAssetsGlobal(userId, "", recent);
-      const assets = rows
-        .filter((a) => a.content_type !== "folder")
-        .map((a) => toHandle(a));
+      const result = await searchAssets(userId, "", recent);
+      const assets = result.assets.map((a) => toHandle(a));
       return { success: true, count: assets.length, assets };
     } catch (e) {
       return {
@@ -737,10 +734,10 @@ const listImagesImpl: CapabilityImpl = async (run, params) => {
   const query = isString(params["query"]) ? params["query"].trim() : "";
 
   try {
-    // searchAssetsGlobal does a content_type prefix match, so "image/"
-    // returns the whole image family; an empty query matches all names.
-    const { Asset } = await import("@nodetool-ai/models");
-    const [rows] = await Asset.searchAssetsGlobal(userId, query, {
+    // The content type filter is a prefix match, so "image/" returns the
+    // whole image family; an empty query lists every image, newest first.
+    const { searchAssets } = await import("@nodetool-ai/search-services");
+    const { assets: rows } = await searchAssets(userId, query, {
       contentType: "image/",
       projectId: await resolveReadProjectId(run, {}),
       limit
@@ -1102,7 +1099,7 @@ const viewImage: CapabilityExport = {
 
 /** Every asset capability, in the order `getAllMcpTools` offered them. */
 /**
- * Rename or re-file one of the caller's own assets.
+ * Rename, re-file or tag one of the caller's own assets.
  *
  * Deliberately narrow. `Asset.find` is user-scoped, so another user's asset
  * reads as missing; a move goes through `Asset.validateParent`, the same rule
@@ -1141,8 +1138,16 @@ const updateAsset: CapabilityExport = {
       asset.parent_id = parentId;
       touched = true;
     }
+    if (Array.isArray(params["tags"])) {
+      const { normalizeSearchTags } = await import("@nodetool-ai/protocol");
+      asset.metadata = {
+        ...(asset.metadata ?? {}),
+        tags: normalizeSearchTags(params["tags"])
+      };
+      touched = true;
+    }
     if (!touched) {
-      return { error: "Nothing to update — pass name or parent_id." };
+      return { error: "Nothing to update — pass name, parent_id or tags." };
     }
 
     // An asset that is a file in its project folder is renamed on disk too.

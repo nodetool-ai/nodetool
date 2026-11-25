@@ -1,0 +1,58 @@
+{
+  "name": "@nodetool-ai/search-services",
+  "version": "0.8.11",
+  "description": "Library search index and query for NodeTool hosts",
+  "type": "module",
+  "engines": {
+    "node": "24.22.1"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/models": "*",
+    "@nodetool-ai/protocol": "*",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1",
+    "@types/node": "^22.0.0",
+    "@electric-sql/pglite": "^0.5.8"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/search-services"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "search",
+    "library"
+  ]
+}
