@@ -138,6 +138,11 @@
         "file": "sandbox/generated/lib.image.warp.js"
       },
       {
+        "name": "lib.mail",
+        "kind": "js",
+        "file": "sandbox/generated/lib.mail.js"
+      },
+      {
         "name": "lib.sqlite",
         "kind": "js",
         "file": "sandbox/generated/lib.sqlite.js"

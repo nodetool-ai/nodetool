@@ -53611,6 +53611,478 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
+    title: 'Gmail Search',
+    description: 'Searches a Gmail mailbox over IMAP by sender, recipient, subject, body, keyword and date, and yields the matching emails newest first. Each field is a plain filter. Gmail search operators such as from: or is:unread are not supported.\n' +
+      '    email, gmail, search\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Search for emails based on specific criteria\n' +
+      '    - Retrieve emails from a specific sender\n' +
+      '    - Filter emails by subject, sender, or date',
+    namespace: 'lib.mail',
+    node_type: 'lib.mail.GmailSearch',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'from_address',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'From Address',
+        description: "Sender's email address to search for",
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'to_address',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'To Address',
+        description: "Recipient's email address to search for",
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'subject',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Subject',
+        description: 'Text to search for in email subject',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'body',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Body',
+        description: 'Text to search for in email body',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'date_filter',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            'SINCE_ONE_HOUR',
+            'SINCE_ONE_DAY',
+            'SINCE_ONE_WEEK',
+            'SINCE_ONE_MONTH',
+            'SINCE_ONE_YEAR'
+          ]
+        },
+        required: false,
+        title: 'Date Filter',
+        description: 'Date filter to search for',
+        min: undefined,
+        max: undefined,
+        values: [
+          'SINCE_ONE_HOUR',
+          'SINCE_ONE_DAY',
+          'SINCE_ONE_WEEK',
+          'SINCE_ONE_MONTH',
+          'SINCE_ONE_YEAR'
+        ],
+        json_schema_extra: undefined,
+        default: 'SINCE_ONE_DAY'
+      },
+      {
+        name: 'keywords',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Keywords',
+        description: 'Custom keywords or labels to search for',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'folder',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            'INBOX',
+            '[Gmail]/Sent Mail',
+            '[Gmail]/Drafts',
+            '[Gmail]/Spam',
+            '[Gmail]/Trash'
+          ]
+        },
+        required: false,
+        title: 'Folder',
+        description: 'Email folder to search in',
+        min: undefined,
+        max: undefined,
+        values: [
+          'INBOX',
+          '[Gmail]/Sent Mail',
+          '[Gmail]/Drafts',
+          '[Gmail]/Spam',
+          '[Gmail]/Trash'
+        ],
+        json_schema_extra: undefined,
+        default: 'INBOX'
+      },
+      {
+        name: 'text',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Text',
+        description: 'General text to search for anywhere in the email',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'max_results',
+        type: {
+          type: 'int',
+          type_args: []
+        },
+        required: false,
+        title: 'Max Results',
+        description: 'Maximum number of emails to return, newest first',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 50
+      }
+    ],
+    outputs: [
+      {
+        name: 'email',
+        type: {
+          type: 'dict',
+          type_args: []
+        }
+      },
+      {
+        name: 'message_id',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'subject',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'sender',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'date',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'body',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'emails',
+        type: {
+          type: 'list',
+          type_args: []
+        }
+      },
+      {
+        name: 'message_ids',
+        type: {
+          type: 'list',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'from_address',
+      'subject'
+    ],
+    input_fields: [
+      'text'
+    ],
+    required_settings: [
+      'GOOGLE_MAIL_USER',
+      'GOOGLE_APP_PASSWORD'
+    ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: true,
+    input_mode: 'buffered',
+    output_correlation: {
+      email: {
+        kind: 'iteration',
+        source: '__execution__',
+        group: 'items'
+      },
+      message_id: {
+        kind: 'iteration',
+        source: '__execution__',
+        group: 'items'
+      },
+      subject: {
+        kind: 'iteration',
+        source: '__execution__',
+        group: 'items'
+      },
+      sender: {
+        kind: 'iteration',
+        source: '__execution__',
+        group: 'items'
+      },
+      date: {
+        kind: 'iteration',
+        source: '__execution__',
+        group: 'items'
+      },
+      body: {
+        kind: 'iteration',
+        source: '__execution__',
+        group: 'items'
+      },
+      emails: {
+        kind: 'single',
+        source: '__execution__'
+      },
+      message_ids: {
+        kind: 'single',
+        source: '__execution__'
+      }
+    },
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Add Label',
+    description: 'Adds a label to a Gmail message.\n    email, gmail, label',
+    namespace: 'lib.mail',
+    node_type: 'lib.mail.AddLabel',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'message_id',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Message Id',
+        description: 'Message ID to label',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'label',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Label',
+        description: 'Label to add to the message',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      }
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'bool',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'message_id',
+      'label'
+    ],
+    input_fields: [],
+    required_settings: [
+      'GOOGLE_MAIL_USER',
+      'GOOGLE_APP_PASSWORD'
+    ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Move To Archive',
+    description: 'Moves specified emails to Gmail archive.\n    email, gmail, archive',
+    namespace: 'lib.mail',
+    node_type: 'lib.mail.MoveToArchive',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'message_id',
+        type: {
+          type: 'str',
+          type_args: []
+        },
+        required: false,
+        title: 'Message Id',
+        description: 'Message ID to archive',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      }
+    ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'bool',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'message_id'
+    ],
+    input_fields: [],
+    required_settings: [
+      'GOOGLE_MAIL_USER',
+      'GOOGLE_APP_PASSWORD'
+    ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
     title: 'Chat Complete',
     description: "Generate text using Mistral AI's chat completion models.\n" +
       '    mistral, chat, ai, text generation, llm, completion\n' +

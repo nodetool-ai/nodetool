@@ -30,6 +30,16 @@ npm install @nodetool-ai/integration-nodes
 long-lived connection, which is what a script cannot do; sending a message is a
 `fetch` call and is one.
 
+**Mail** (`lib.mail.*`) — Gmail over IMAP with a Google app password, for
+installs that have no Google sign-in: `GmailSearch`, `AddLabel`, `MoveToArchive`.
+IMAP is a long-lived socket protocol, which `fetch` cannot speak, so these stay
+nodes. `GmailSearch` returns the newest matches first, with the body decoded to
+text. `AddLabel` and `MoveToArchive` find a message by its `Message-ID` header
+and act on it by UID. Sent, Drafts, Spam, Trash and All Mail are found by their
+IMAP role, so they work when Gmail names them in another language or under
+`[Google Mail]`. A workflow that runs under a Google sign-in can use the
+`gmail_*` capabilities from a Code node instead, with no app password.
+
 **ComfyUI** (`lib.comfy.*`) — `RunWorkflow` runs an API-format ComfyUI workflow
 against any reachable ComfyUI server, streaming each output file as its save node
 finishes. `RunWorkflowOnWorker` runs the same workflow on a NodeTool worker that
@@ -90,17 +100,19 @@ then `http://127.0.0.1:7866/mcp`. The
 cancelled run cancels the remote job. The cloud profile excludes these nodes.
 See [Wan2GP](../../docs/wan2gp.md).
 
-Mail is not a node package any more. Gmail reaches agents through the
-Google Workspace `gmail_*` capabilities, and a Code node through
-`@nodetool-ai/sandbox-nodetool/google`, with the OAuth token held host-side. `lib.secret.GetSecret` went too — `getSecret(name)`
-in the sandbox does the same read, bound by the run's declared secret scope.
+Gmail also reaches agents through the Google Workspace `gmail_*` capabilities,
+and a Code node through `@nodetool-ai/sandbox-nodetool/google`, with the OAuth
+token held host-side. That path needs a Google sign-in, which a local install
+does not have, so the `lib.mail.*` nodes above remain for it. `lib.secret.GetSecret`
+is gone — `getSecret(name)` in the sandbox does the same read, bound by the
+run's declared secret scope.
 
 ## Configuration
 
 Set the keys for the services you use in NodeTool's secret store (Settings → API
 Keys) or as environment variables:
 
-- Mail: `GOOGLE_APP_PASSWORD`
+- Mail: `GOOGLE_MAIL_USER` and `GOOGLE_APP_PASSWORD`
 - KIE: `KIE_API_KEY`
 - Discord: `DISCORD_BOT_TOKEN`
 - Telegram: `TELEGRAM_BOT_TOKEN`

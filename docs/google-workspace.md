@@ -45,6 +45,16 @@ Click **Disconnect** on the Google Workspace card. NodeTool deletes the stored G
 
 This removes the connection from NodeTool only. To revoke access on Google's side as well, remove NodeTool from your Google account's third-party access page.
 
+## Gmail without a Google login
+
+An install with no login cannot connect Google Workspace. A workflow there can still read and sort Gmail with a Google [app password](https://support.google.com/accounts/answer/185833) instead of a sign-in. Google offers app passwords only on accounts with 2-step verification.
+
+1. Create an app password in your Google account.
+2. Open **Settings → Models & providers**, find **Google Mail**, and enter your address and the app password.
+3. Add a **Gmail Search**, **Add Label** or **Move To Archive** node to a workflow.
+
+Gmail Search takes plain filters (sender, recipient, subject, body, keywords and a date range) and returns the newest matches first. It does not understand Gmail search terms such as `from:alice is:unread`. Add Label and Move To Archive act on the `message_id` that Gmail Search returns. These nodes read your real mailbox over IMAP and reach only Gmail, not Drive, Docs, Sheets or Calendar. See the [Gmail Search reference](nodes/lib/mail/gmailsearch.md) and the [settings table](environment-variables.md) for `GOOGLE_MAIL_USER` and `GOOGLE_APP_PASSWORD`.
+
 ## When something goes wrong
 
 | What you see | What to do |

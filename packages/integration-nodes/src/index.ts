@@ -4,8 +4,10 @@ import { COMFY_NODES } from "./nodes/comfy.js";
 import { STABLE_DIFFUSION_CPP_NODES } from "./nodes/stable-diffusion-cpp.js";
 import { WAN2GP_NODES } from "./nodes/wan2gp.js";
 import { MESSAGING_NODES } from "./nodes/messaging.js";
+import { LIB_MAIL_NODES } from "./nodes/lib-mail.js";
 
 export * from "./nodes/messaging.js";
+export * from "./nodes/lib-mail.js";
 export * from "./nodes/kie-dynamic.js";
 export * from "./nodes/comfy-sdk.js";
 export * from "./nodes/comfy-cloud.js";
@@ -22,6 +24,7 @@ export const ALL_INTEGRATION_NODES: readonly NodeClass[] = [
   ...STABLE_DIFFUSION_CPP_NODES,
   ...WAN2GP_NODES,
   ...MESSAGING_NODES,
+  ...LIB_MAIL_NODES,
 ];
 
 export function registerIntegrationNodes(registry: NodeRegistry): void {

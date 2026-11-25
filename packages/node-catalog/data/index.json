@@ -2313,6 +2313,9 @@
     "lib.image.warp.PolarRemap": "image",
     "lib.image.warp.Spherize": "image",
     "lib.image.warp.Tile": "image",
+    "lib.mail.AddLabel": "integration",
+    "lib.mail.GmailSearch": "integration",
+    "lib.mail.MoveToArchive": "integration",
     "lib.sqlite.GetDatabasePath": "automation",
     "lib.stable_diffusion_cpp.GenerateImage": "integration",
     "lib.svg.Document": "text",
@@ -3968,7 +3971,7 @@
       "id": "integration",
       "installBytes": 0,
       "kind": "node-pack",
-      "nodeCount": 12,
+      "nodeCount": 15,
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/integration-nodes",
@@ -3984,6 +3987,8 @@
       "secrets": [
         "COMFY_API_KEY",
         "DISCORD_BOT_TOKEN",
+        "GOOGLE_APP_PASSWORD",
+        "GOOGLE_MAIL_USER",
         "KIE_API_KEY",
         "TELEGRAM_BOT_TOKEN"
       ]

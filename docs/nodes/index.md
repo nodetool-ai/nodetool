@@ -5,7 +5,7 @@ title: "Node Reference"
 
 A node is one step in a NodeTool workflow. It takes inputs, does one job such as calling a model, resizing an image or branching on a condition, and passes the result to the next node. This reference is generated from the node registry. Each node page shows the node type, its properties with their types, descriptions and defaults, and its outputs.
 
-The reference covers 559 nodes in 85 namespaces, grouped below by what you work with.
+The reference covers 562 nodes in 86 namespaces, grouped below by what you work with.
 
 ## Text and LLMs
 
@@ -165,6 +165,7 @@ Namespaces not yet assigned to a group.
 
 | Namespace | What it does | Nodes |
 |---|---|---|
+| [lib.mail](lib/mail/) |  | 3 |
 | [nodetool.blender](nodetool/blender/) |  | 5 |
 | [nodetool.entity](nodetool/entity/) |  | 3 |
 | [nodetool.storyboard](nodetool/storyboard/) |  | 7 |

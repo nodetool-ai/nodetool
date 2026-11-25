@@ -625,6 +625,16 @@ sec(
   "Vertex AI API key (express mode, or a Google Cloud API key bound to a service account), used instead of a service account key."
 );
 sec(
+  "GOOGLE_MAIL_USER",
+  "Google Mail",
+  "Gmail address the lib.mail nodes (Gmail Search, Add Label, Move To Archive) sign in with."
+);
+sec(
+  "GOOGLE_APP_PASSWORD",
+  "Google Mail",
+  "Google app password for the lib.mail nodes. Needs 2-step verification on the account. Create one at https://myaccount.google.com/apppasswords"
+);
+sec(
   "HF_TOKEN",
   "HF",
   "Token for HuggingFace Inference Providers. Get yours at https://huggingface.co/settings/tokens"

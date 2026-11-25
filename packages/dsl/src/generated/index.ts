@@ -25,6 +25,7 @@ export * as libImageFilter from "./lib.image.filter.js";
 export * as libImageKeyer from "./lib.image.keyer.js";
 export * as libImageMask from "./lib.image.mask.js";
 export * as libImageWarp from "./lib.image.warp.js";
+export * as libMail from "./lib.mail.js";
 export * as libSqlite from "./lib.sqlite.js";
 export * as libStable_diffusion_cpp from "./lib.stable_diffusion_cpp.js";
 export * as libSvg from "./lib.svg.js";

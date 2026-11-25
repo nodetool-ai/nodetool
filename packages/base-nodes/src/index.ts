@@ -458,6 +458,12 @@ export {
   COMFY_NODES
 } from "@nodetool-ai/integration-nodes/nodes/comfy";
 export { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
+export {
+  GmailSearchLibNode,
+  AddLabelLibNode,
+  MoveToArchiveLibNode,
+  LIB_MAIL_NODES
+} from "@nodetool-ai/integration-nodes/nodes/lib-mail";
 export { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 export { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
@@ -524,6 +530,7 @@ export { StableDiffusionCppGenerateNode, STABLE_DIFFUSION_CPP_NODES } from "@nod
 import { WAN2GP_NODES } from "@nodetool-ai/integration-nodes/nodes/wan2gp";
 export { WAN2GP_NODES } from "@nodetool-ai/integration-nodes/nodes/wan2gp";
 import { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
+import { LIB_MAIL_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-mail";
 import { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
@@ -598,6 +605,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...STABLE_DIFFUSION_CPP_NODES,
   ...WAN2GP_NODES,
   ...MESSAGING_NODES,
+  ...LIB_MAIL_NODES,
   ...MISTRAL_NODES,
   ...OPENAI_NODES,
   ...XAI_NODES,
