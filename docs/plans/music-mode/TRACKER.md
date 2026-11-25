@@ -25,18 +25,16 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 
 | ID | Task | Model | Depends on |
 |---|---|---|---|
-| SQ2-sortui | Switch the web row sort from localStorage to the new `rowSort` field | Opus | SQ2 inspector |
-| SQ2-browser | Browser folder UI and drag pattern to track | Opus | pattern folder ops |
-| SQ2-insp | Inspector controls (F19, F20) | Opus | SQ2 regions |
-| SQ2-rest | Value-drag audition, Learn inputs, length choices, page menus, menu parity test, coverage (F23, F27, F31, F41, F42), cross-row loop drag (F10) | Opus | SQ2 inspector |
 | P1c | Web tracks pass 5: muted Logic-like palette (current colours too saturated), thinner name band, Arp region shows no notes under the chord strip, master pan control (field done) | Opus | SQ2 (one web UI agent at a time) |
 | A22r | Close CE6/CE7: second-review check of round 2 | Sol | none |
 | P2 | Native polish: piano roll, automation, mixer, tracks (offscreen) | Opus | A10, D62-D68 |
-| A16 | Native automation follow-up, incl. A12 F20 (pending lane creation commits after Undo) | Sol | A23 (one Codex task at a time) |
+| A16 | Native automation follow-up: F20 and AU6 fixed, in review; AU1-AU5 QML gaps in an Opus pass | Sol, Opus | none |
 | A17 | Native follow-up after A16 and A8 | Sol | A16 |
-| VST3 | VST follow-up: F35 duplicate setState on the live pool, F36 agent edit can overwrite an editor change not yet polled; F24 master fader live preview | Sol | none |
 | A24b | set_clip_params parity: inPointMs/outPointMs re-slicing, group duration, visual and text style fields (A24 F13 rest) | Sol | none |
-| SQ3b | Step Sequencer follow-up: S-F31 1- and 2-step lengths, S-F32 stale row name on reassign, insert-effect rows in Add Row, Learn and recording (SQ38-SQ40), MIDI Out audition, user pattern library (folders, save) | Opus | none |
+| DSP1 | Engine must-haves: plug-in delay compensation incl. dry path of the wet/dry blend (F1), master true-peak limiter and clip indicator (F3), TPDF dither on 16-bit export (F4), denormal protection FTZ/DAZ in the audio callback and host (F6) | Neon | A16 |
+| DSP2 | Engine should-haves: 32-bit float WAV export and export rate option (F5), windowed-sinc varispeed and higher swresample quality (F7), effect parameter smoothing per block (F8) | Sol | DSP1 |
+| DSP3 | Pan law project setting 0/-3/-4.5 dB and stereo balance (F9) | Sol | DSP2 |
+| SQ3c | Step Sequencer: hardware MIDI input for Learn and Step Input (S1), step-record CC values, live pattern recording (SQ39), MIDI Out audition, Step Input cursor stops at the last row | Sol, then Opus | native MIDI input |
 | CHK | Rerun lost native checks: A2, A2b, A5, A7 | Sol | none |
 | CRV | Lost Codex second reviews: A14, A2b | Sol | none |
 
@@ -75,6 +73,9 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 | VST2 | Native VST: AU scan, presets, parameters, assistant tools; Sol F25-F34 fixed in 4 rounds; closure: 2 new -> VST3 | d6f92a9818..fbcb91a258 |
 | A24 | Native clip editing CE5-CE8; Neon F1-F22, 2 Sol rounds; closure: 2 new -> SQ3b, F13 rest -> A24b | c81e8860f1, 393287395f, b7a0b07d4b |
 | SQ3 | Native Step Sequencer panel, row model, 32 pattern tools; Neon F1-F26 (3 disputes upheld by Sol), F27-F30, 2 Opus rounds | same commits; tst_stepsequencerui 25, tst_patternops 41 |
+| VST3 | VST state sync F35/F36, master fader preview F24; Neon V1-V10, 3 Sol rounds, closure: 2 new fixed | 80da682fb6; vst and automation ctest 9/9 |
+| SQ3b | Step Sequencer 1/2-step lengths, effect rows, Learn, step input, user library; Neon S1-S18, Sol closure (S3, S18 disputes upheld), N1-N2 fixed; Opus visual pass | bdf3048a0c; ctest 6/6; sq3b-shots/after2/ |
+| WEB-GRIP | Fade-in grip below the clip name; vst effect kind in web tables | 0bc0f014e8, 9bf8697655 |
 | A27 | Model routing rule | [agent-model-routing.md](../../agent-model-routing.md), check:agents-docs exit 0 |
 | RA | Reviewer model analysis | [review-model-analysis.md](review-model-analysis.md) |
 | UI | Music editor UI spec | [MUSIC_EDITOR_UI.md](../../design/MUSIC_EDITOR_UI.md) |
@@ -82,6 +83,8 @@ Status values: `running`, `review`, `fix`, `queued`, `blocked`, `done`.
 
 ## Backlog (needs a decision before work)
 
+- Later: sends, aux return tracks, buses and groups (DSP audit F2). Needs a contract first: document, protocol, both mixers, agent tools.
+- Nice-to-have: 64-bit summing bus (DSP audit F10). No audible gain.
 - Alias clips, bounce in place, audio glue, reverse, web normalize, comping, audio that follows tempo.
 - Crossfades between internal repeats of a looped audio region.
 - `dropResolve` and `rippleEdit` callers without the tempo offset (partly fixed in A22 round 2).
