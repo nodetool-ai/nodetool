@@ -15,6 +15,7 @@ import { basename, isAbsolute, relative, sep } from "node:path";
 import { Asset, Project, moveTargetOf } from "@nodetool-ai/models";
 import type { Asset as AssetModel } from "@nodetool-ai/models";
 import { createLogger } from "@nodetool-ai/config";
+import { searchAssets, type AssetSearchOptions } from "@nodetool-ai/search-services";
 
 const log = createLogger("nodetool.assets");
 import {
@@ -62,6 +63,7 @@ import {
   listsByDirectory,
   parentDirectory,
   parseProjectDirectoryId,
+  normalizeSearchTags,
   type ProjectDirectoryRef
 } from "@nodetool-ai/protocol";
 import {
@@ -801,6 +803,9 @@ async function applyUpdateFields(
     asset.timeline_id = input.timeline_id;
   }
   if (input.favorite !== undefined) asset.favorite = input.favorite;
+  if (input.tags !== undefined) {
+    asset.metadata = { ...(asset.metadata ?? {}), tags: normalizeSearchTags(input.tags) };
+  }
   // An external asset's size is its file's, recorded by import or relink.
   // A project file's size is recorded when the file is written.
   if (input.size !== undefined && !isExternal && !hasProjectFile) {
@@ -1652,31 +1657,24 @@ export const assetsRouter = router({
     .input(searchInput)
     .output(searchOutput)
     .query(async ({ ctx, input }) => {
-      // Filter by name at the DB level across ALL of the user's assets. The
-      // previous implementation paginated the first `page_size` assets and then
-      // filtered those in memory, so anything past the first page (e.g. a "Cat"
-      // asset in a 500-item library) was never found.
-      const searchOptions: Parameters<typeof Asset.searchAssetsGlobal>[2] = {
-        limit: input.page_size
-      };
-      if (input.content_type) {
-        searchOptions.contentType = input.content_type;
-      }
-      if (input.project_id !== undefined) {
-        searchOptions.projectId = input.project_id;
-      }
-      if (input.cursor) {
-        searchOptions.cursor = input.cursor;
-      }
-      const [matched, nextCursor] = await Asset.searchAssetsGlobal(
-        ctx.userId,
-        input.query,
-        searchOptions
-      );
+      // One query over the library index: name, prompt, description and
+      // tags across all of the user's assets, ranked, with the folder each
+      // one is shown under and the total across pages.
+      const options: AssetSearchOptions = { limit: input.page_size };
+      if (input.content_type) options.contentType = input.content_type;
+      if (input.project_id !== undefined) options.projectId = input.project_id;
+      if (input.workflow_id) options.workflowId = input.workflow_id;
+      if (input.cursor) options.cursor = input.cursor;
+      const result = await searchAssets(ctx.userId, input.query, options);
       return {
-        assets: await Promise.all(matched.map((a) => toAssetResponse(a))),
-        next_cursor: nextCursor || null,
-        total_count: matched.length,
+        assets: await Promise.all(
+          result.assets.map(async (asset) => ({
+            ...(await toAssetResponse(asset)),
+            folder_path: result.folderPaths.get(asset.id) ?? null
+          }))
+        ),
+        next_cursor: result.nextCursor,
+        total_count: result.total,
         is_global_search: input.workflow_id === undefined
       };
     })

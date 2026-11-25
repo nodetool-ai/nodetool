@@ -301,6 +301,35 @@ describe("assets capabilities against the database", () => {
     expect(stored?.parent_id).toBe(folder.id);
   });
 
+  it("finds an asset by its prompt and by tags set through update_asset", async () => {
+    const asset = (await Asset.create({
+      user_id: USER,
+      name: "render-001.png",
+      content_type: "image/png",
+      metadata: { prompt: "A red fox sleeping in the snow" }
+    })) as Asset;
+
+    const ctx = makeContext();
+    const byPrompt = (await asTool("asset_search", ctx).process(ctx, {
+      query: "fox"
+    })) as { assets: Array<Record<string, unknown>> };
+    expect(byPrompt.assets).toEqual([
+      expect.objectContaining({ asset_id: asset.id, matched: "prompt" })
+    ]);
+
+    const updated = (await asTool("update_asset", ctx).process(ctx, {
+      asset_id: asset.id,
+      tags: ["Hero", "hero", " Winter "]
+    })) as Record<string, unknown>;
+    expect(updated.error).toBeUndefined();
+    expect((await Asset.find(USER, asset.id))?.metadata?.tags).toEqual(["hero", "winter"]);
+
+    const byTag = (await asTool("asset_search", ctx).process(ctx, {
+      query: "winter"
+    })) as { assets: Array<Record<string, unknown>> };
+    expect(byTag.assets.map((a) => a.asset_id)).toEqual([asset.id]);
+  });
+
   it("refuses to update a shipped system asset", async () => {
     const preset = (await Asset.create({
       user_id: USER,

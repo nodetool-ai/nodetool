@@ -86,7 +86,8 @@ export const ASSET_SEARCH_SCHEMA: JsonSchema = {
     query: {
       type: "string",
       description:
-        "Name substring to match. Empty matches everything (recent first)."
+        "Words to find in the asset's name, generation prompt, description " +
+        "or tags. Empty matches everything (recent first)."
     },
     content_type: {
       type: "string",
@@ -242,11 +243,12 @@ export const readAssetSpec: CapabilitySpec = {
 export const assetSearchSpec: CapabilitySpec = {
   name: "asset_search",
   description:
-    "Search the user's assets by name (case-insensitive substring), across " +
-    "every media type, so you can find and reuse something already generated " +
-    "or uploaded — a rendered video, a generated image, an audio clip. " +
-    "Returns lightweight handles with asset:// uris. Filter by content_type " +
-    "prefix (e.g. 'image/', 'video/', 'audio/').",
+    "Search the user's assets by name, generation prompt, description and " +
+    "tags (case-insensitive, best match first), across every media type, so " +
+    "you can find and reuse something already generated or uploaded — a " +
+    "rendered video, a generated image, an audio clip. Returns lightweight " +
+    "handles with asset:// uris; `matched` names the field the query hit. " +
+    "Filter by content_type prefix (e.g. 'image/', 'video/', 'audio/').",
   inputSchema: ASSET_SEARCH_SCHEMA,
   category: "read",
   userMessage: (params) => {
@@ -300,10 +302,11 @@ export const viewImageSpec: CapabilitySpec = {
 export const updateAssetSpec: CapabilitySpec = {
   name: "update_asset",
   description:
-    "Rename one of your assets, or move it into a different folder. Pass " +
-    'parent_id to move it; the folder must be yours, must be a folder, and ' +
-    "must not sit under the asset itself. Content type and bytes cannot be " +
-    "changed here — replace the asset instead.",
+    "Rename one of your assets, move it into a different folder, or set its " +
+    "tags. Pass parent_id to move it; the folder must be yours, must be a " +
+    "folder, and must not sit under the asset itself. Pass tags to replace " +
+    "its tags; asset_search finds assets by them. Content type and bytes " +
+    "cannot be changed here — replace the asset instead.",
   inputSchema: {
     type: "object",
     properties: {
@@ -313,6 +316,12 @@ export const updateAssetSpec: CapabilitySpec = {
         type: "string",
         description:
           "Id of the destination folder. Your user id names the top-level Home folder."
+      },
+      tags: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "The asset's tags, replacing the current ones. Stored lower case without duplicates. Pass [] to clear them."
       }
     },
     required: ["asset_id"]

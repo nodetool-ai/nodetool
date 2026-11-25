@@ -1002,6 +1002,93 @@ const TEXT_DOCUMENT_VERSIONS_DDL: readonly string[] = [
   "CREATE UNIQUE INDEX IF NOT EXISTS idx_tdv_asset_version ON text_document_versions (asset_id, version)"
 ];
 
+/**
+ * DDL for the library index tables (docs/plans/library-search.md, D2), valid
+ * on both dialects. The lexical index differs per dialect and follows in
+ * {@link SEARCH_INDEX_SQLITE_FTS_DDL} and {@link SEARCH_INDEX_PG_FTS_DDL}.
+ */
+const SEARCH_INDEX_TABLES_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_search_items (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    project_id TEXT NOT NULL DEFAULT 'default',
+    resource_type TEXT NOT NULL,
+    resource_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    content_type TEXT,
+    provider TEXT,
+    model TEXT,
+    workflow_id TEXT,
+    favorite INTEGER NOT NULL DEFAULT 0,
+    folder_path TEXT,
+    tags TEXT,
+    metadata TEXT,
+    source_version TEXT NOT NULL DEFAULT '',
+    extractor_version INTEGER NOT NULL DEFAULT 0,
+    state TEXT NOT NULL DEFAULT 'pending',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at TEXT,
+    priority INTEGER NOT NULL DEFAULT 0,
+    lease_owner TEXT,
+    lease_expires_at TEXT,
+    lease_version INTEGER NOT NULL DEFAULT 0,
+    error TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    indexed_at TEXT
+  )`,
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_search_items_resource ON nodetool_search_items (user_id, resource_type, resource_id)",
+  "CREATE INDEX IF NOT EXISTS idx_search_items_user_project ON nodetool_search_items (user_id, project_id)",
+  "CREATE INDEX IF NOT EXISTS idx_search_items_queue ON nodetool_search_items (state, next_attempt_at)",
+  `CREATE TABLE IF NOT EXISTS nodetool_search_chunks (
+    id TEXT PRIMARY KEY NOT NULL,
+    item_id TEXT NOT NULL REFERENCES nodetool_search_items (id) ON DELETE CASCADE,
+    ordinal INTEGER NOT NULL DEFAULT 0,
+    field TEXT NOT NULL,
+    text TEXT NOT NULL,
+    locator TEXT,
+    embedding_space TEXT
+  )`,
+  "CREATE INDEX IF NOT EXISTS idx_search_chunks_item ON nodetool_search_chunks (item_id, ordinal)"
+];
+
+/**
+ * SQLite's lexical index: an external-content FTS5 table over the chunk text,
+ * kept in step by triggers. The prefix indexes serve type-ahead.
+ */
+const SEARCH_INDEX_SQLITE_FTS_DDL: readonly string[] = [
+  `CREATE VIRTUAL TABLE IF NOT EXISTS nodetool_search_chunks_fts USING fts5(
+    text,
+    content='nodetool_search_chunks',
+    content_rowid='rowid',
+    tokenize='unicode61 remove_diacritics 2',
+    prefix='2 3'
+  )`,
+  `CREATE TRIGGER IF NOT EXISTS nodetool_search_chunks_ai AFTER INSERT ON nodetool_search_chunks BEGIN
+    INSERT INTO nodetool_search_chunks_fts (rowid, text) VALUES (new.rowid, new.text);
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS nodetool_search_chunks_ad AFTER DELETE ON nodetool_search_chunks BEGIN
+    INSERT INTO nodetool_search_chunks_fts (nodetool_search_chunks_fts, rowid, text) VALUES ('delete', old.rowid, old.text);
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS nodetool_search_chunks_au AFTER UPDATE ON nodetool_search_chunks BEGIN
+    INSERT INTO nodetool_search_chunks_fts (nodetool_search_chunks_fts, rowid, text) VALUES ('delete', old.rowid, old.text);
+    INSERT INTO nodetool_search_chunks_fts (rowid, text) VALUES (new.rowid, new.text);
+  END`
+];
+
+/**
+ * PostgreSQL's lexical index: a generated `tsvector` column with a GIN index.
+ * The `simple` configuration lower-cases without stemming. Punctuation is
+ * replaced with spaces first, because the default parser reads a name such
+ * as `sunset-beach.png` as one host token. Both steps match the SQLite
+ * tokenizer, which splits on everything but letters and digits.
+ */
+const SEARCH_INDEX_PG_FTS_DDL: readonly string[] = [
+  "ALTER TABLE nodetool_search_chunks ADD COLUMN IF NOT EXISTS text_tsv tsvector GENERATED ALWAYS AS (to_tsvector('simple', regexp_replace(text, '[^[:alnum:]]+', ' ', 'g'))) STORED",
+  "CREATE INDEX IF NOT EXISTS idx_search_chunks_tsv ON nodetool_search_chunks USING GIN (text_tsv)"
+];
+
 export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_ids TEXT",
   "ALTER TABLE nodetool_predictions ADD COLUMN preset_warnings TEXT",
@@ -1047,7 +1134,9 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...PROJECT_FILE_LISTS_DDL,
   ...CLOUD_LINK_WORKSPACE_FILES_DDL,
   ...RECEIVE_WORKSPACE_FILES_DDL,
-  ...TEXT_DOCUMENT_VERSIONS_DDL
+  ...TEXT_DOCUMENT_VERSIONS_DDL,
+  ...SEARCH_INDEX_TABLES_DDL,
+  ...SEARCH_INDEX_SQLITE_FTS_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -5755,6 +5844,31 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_tdv_user");
       await db.execute("DROP INDEX IF EXISTS idx_tdv_asset");
       await db.execute("DROP TABLE IF EXISTS text_document_versions");
+    }
+  },
+  // ── Create the library index ────────────────────────────────────────
+  // docs/plans/library-search.md, D2: item and chunk tables plus the lexical
+  // index, an FTS5 table on SQLite and a tsvector column on PostgreSQL.
+  {
+    version: "20261203_000001",
+    name: "create_library_search_index",
+    createsTables: ["nodetool_search_items", "nodetool_search_chunks"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of SEARCH_INDEX_TABLES_DDL) await db.execute(statement);
+      const lexical =
+        db.dbType === "postgres" ? SEARCH_INDEX_PG_FTS_DDL : SEARCH_INDEX_SQLITE_FTS_DDL;
+      for (const statement of lexical) await db.execute(statement);
+    },
+    async down(db) {
+      if (db.dbType === "sqlite") {
+        await db.execute("DROP TRIGGER IF EXISTS nodetool_search_chunks_au");
+        await db.execute("DROP TRIGGER IF EXISTS nodetool_search_chunks_ad");
+        await db.execute("DROP TRIGGER IF EXISTS nodetool_search_chunks_ai");
+        await db.execute("DROP TABLE IF EXISTS nodetool_search_chunks_fts");
+      }
+      await db.execute("DROP TABLE IF EXISTS nodetool_search_chunks");
+      await db.execute("DROP TABLE IF EXISTS nodetool_search_items");
     }
   }
 ];
