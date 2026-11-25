@@ -617,6 +617,7 @@ void MixRenderLease::mix(std::span<VoicePcm> pcm, double sampleRate, double time
         auto masterContext = context;
         masterContext.silent = masterSilent;
         process(plan.processors, dest, masterContext);
+        if (plan.gainSource) { plan.gainSource->beginBlock(masterContext,n,plan.masterGain); }
         for (int f = 0; f < n; ++f) {
             const double gain = plan.gainSource ? plan.gainSource->valueAt(context.timelineMs + f * msPerFrame, plan.masterGain) : plan.masterGain;
             dest[2 * f] *= gain;

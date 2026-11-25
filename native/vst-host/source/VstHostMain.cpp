@@ -33,7 +33,9 @@
 // While an instance's editor is open the window is the source of truth: a
 // render's "state" is not applied over it, so a render cannot undo a tweak the
 // caller has not heard about yet. Explicit setState requests restore document
-// history even with an editor open.
+// history even with an editor open. joinLiveState verifies a prior live load,
+// restores any mismatch, and advances the editor generation without reloading
+// an already matching state.
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <atomic>
@@ -419,10 +421,27 @@ public:
 #else
             fail(id, "Live shared-memory VST hosting is not supported on Windows yet");
 #endif
-        } else if (cmd == "setState") {
+        } else if (cmd == "setState" || cmd == "joinLiveState") {
             String error;
             auto inst = ensure(key, req, error, false);
-            if (!inst || !inst->setState(req["state"].toString(), error)) { fail(id, error); return; }
+            if (!inst) { fail(id, error); return; }
+            // A prior live load may have failed or skipped an open editor.
+            // Verify on the host message thread before adopting its generation.
+            const auto state = req["state"].toString();
+            // Compare and restore on the message thread, where editor gestures run.
+            // A knob edit after assistant capture must survive the document commit.
+            if (req.hasProperty("expectedState") && inst->getState() != req["expectedState"].toString()) {
+                generations_[key] = req["generation"];
+                const auto current = inst->getState();
+                if (auto editor = editors_.find(key); editor != editors_.end()) {
+                    editor->second.lastState = current;
+                }
+                fail(id, "Editor changed during plugin request. Read its state and retry.");
+                event("state", key, current, generations_[key]);
+                return;
+            }
+            if ((cmd != "joinLiveState" || inst->getState() != state)
+                && !inst->setState(state, error)) { fail(id, error); return; }
             generations_[key] = req["generation"];
             if (auto editor = editors_.find(key); editor != editors_.end()) {
                 editor->second.lastState = inst->getState();

@@ -202,6 +202,8 @@ struct Timeline {
     int width = 1920;
     int height = 1080;
     double durationMs = 0.0;
+    // Shared by the UI model and audio plans for atomic live master preview.
+    std::shared_ptr<MixerOverride> masterMixerOverride;
     double masterVolumeDb = 0.0;  // `master.volumeDb`
     std::vector<Track> tracks;
     std::vector<Clip> clips;

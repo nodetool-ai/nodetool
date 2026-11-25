@@ -175,7 +175,82 @@ public:
                          : QStringLiteral("Failed to start NodeToolVstHost at %1").arg(executable));
             return;
         }
+        const auto cmd=request.value("cmd").toString();
+        const auto instance=request.value("instance").toString();
+        const auto key=instance.toStdString();
+        if (cmd=="setLiveState") {
+            auto restore=m_restorations.find(key);
+            if (restore!=m_restorations.end() && restore->second.state==request.value("state").toString()) {
+                if (auto pending=m_pending.find(restore->second.id); pending!=m_pending.end()) {
+                    auto original=std::move(pending->second.callback);
+                    pending->second.callback=[original=std::move(original),joined=std::move(callback)](bool ok,const QJsonObject& reply,const QString& error) {
+                        original(ok,reply,error);
+                        joined(ok,reply,error);
+                    };
+                    return;
+                }
+                callback(true, {}, {});
+                return;
+            }
+            m_restorations.erase(key);
+        } else if (cmd=="openLive" || cmd=="openEditor" || cmd=="dispose") {
+            m_restorations.erase(key);
+        }
+        // Consume one live-load receipt. The host verifies the current state before
+        // adopting the generation, so failed loads or intervening editor edits
+        // still perform the requested restoration.
+        if (cmd=="setState") {
+            const auto edit=m_assistantEdits.find(key);
+            if (edit!=m_assistantEdits.end()) {
+                if (edit->second.result==request.value("state").toString()) {
+                    request.insert("expectedState",edit->second.captured);
+                }
+                m_assistantEdits.erase(edit);
+            }
+            const auto live=m_liveLoads.find(key);
+            if (live!=m_liveLoads.end() && live->second==request.value("state").toString()) {
+                request.insert("cmd", "joinLiveState");
+            }
+        }
+        if (cmd=="setLiveState") {
+            m_liveLoads[key]=request.value("state").toString();
+        } else if (cmd!="getState" && cmd!="getParameters") {
+            m_liveLoads.erase(key);
+        }
         const int id = m_nextId++;
+        if (cmd=="openEditor") {
+            m_editors.erase(key);
+            m_editorRequests[key]=id;
+            const QPointer<HostWorker> self(this);
+            callback=[self,key,id,request,finished=std::move(callback)](bool ok,const QJsonObject& reply,const QString& error) {
+                if (self) {
+                    const auto pending=self->m_editorRequests.find(key);
+                    if (pending!=self->m_editorRequests.end() && pending->second==id) {
+                        if (ok) { self->m_editors[key]={{"path",request.value("path")},{"uid",request.value("uid")}}; }
+                        self->m_editorRequests.erase(pending);
+                    }
+                }
+                finished(ok,reply,error);
+            };
+        } else if (cmd=="closeEditor" || cmd=="dispose") {
+            m_editorRequests.erase(key);
+            m_editors.erase(key);
+            m_assistantEdits.erase(key);
+        }
+        if (cmd=="setState") {
+            const auto state=request.value("state").toString();
+            m_restorations[key]={id,state,static_cast<quint64>(request.value("generation").toDouble())};
+            const QPointer<HostWorker> self(this);
+            callback=[self,key,id,finished=std::move(callback)](bool ok,const QJsonObject& reply,const QString& error) {
+                if (self) {
+                    auto it=self->m_restorations.find(key);
+                    if (!ok && it!=self->m_restorations.end() && it->second.id==id) {
+                        self->m_restorations.erase(it);
+                    }
+                }
+                finished(ok,reply,error);
+            };
+        }
         request.insert(QStringLiteral("id"), id);
         auto timer = std::make_unique<QTimer>();
         timer->setSingleShot(true);
@@ -190,11 +265,55 @@ public:
         }
     }
 
+    void sendAssistantRequest(const QString& executable,const QJsonObject& original,QJsonObject isolated,
+                              std::chrono::steady_clock::time_point deadline,std::function<bool()> active,Callback callback) {
+        const QPointer<HostWorker> self(this);
+        const auto originalInstance=original.value("instance").toString().toStdString();
+        auto dispatch=[self,executable,originalInstance,isolated=std::move(isolated),deadline,active,callback]
+            (const QJsonObject& captured) mutable {
+            const auto remaining=std::chrono::duration_cast<std::chrono::milliseconds>(deadline-std::chrono::steady_clock::now()).count();
+            if (!self || !active() || remaining<=0) { callback(false,{},QStringLiteral("Plugin request expired or cancelled")); return; }
+            if (captured.value("state").isString()) { isolated.insert("state",captured.value("state")); }
+            const auto temporary=isolated.value("instance").toString();
+            const bool mutation=isolated.value("cmd")=="setParameters" || isolated.value("cmd")=="selectPreset";
+            self->sendRequest(executable,std::move(isolated),static_cast<int>(remaining),
+                [self,executable,temporary,originalInstance,mutation,captured,callback=std::move(callback)](bool ok,const QJsonObject& reply,const QString& error) {
+                    if (self && ok && mutation && self->m_editors.contains(originalInstance) && captured.value("state").isString() && reply.value("state").isString()) {
+                        self->m_assistantEdits[originalInstance]={captured.value("state").toString(),reply.value("state").toString()};
+                    }
+                    callback(ok,reply,error);
+                    if (self) { self->disposeTemporary(executable,temporary); }
+                });
+        };
+        const auto instance=original.value("instance").toString();
+        const auto editor=m_editors.find(instance.toStdString());
+        if (editor==m_editors.end() || editor->second.value("path")!=original.value("path") ||
+            editor->second.value("uid")!=original.value("uid")) {
+            dispatch({});
+            return;
+        }
+        const auto remaining=std::chrono::duration_cast<std::chrono::milliseconds>(deadline-std::chrono::steady_clock::now()).count();
+        if (!active() || remaining<=0) { dispatch({}); return; }
+        // A closed editor has no state to capture. The disposable request can use the document state.
+        sendRequest(executable,{{"cmd","getState"},{"instance",instance}},static_cast<int>(remaining),
+            [self,instance,callback,dispatch=std::move(dispatch)](bool ok,const QJsonObject& reply,const QString& error) mutable {
+                if (!ok && error.startsWith("Unknown instance")) {
+                    if (self) { self->m_editors.erase(instance.toStdString()); }
+                    dispatch({});
+                    return;
+                }
+                if (!ok || !reply.value("state").isString()) { callback(false,{},ok ? QStringLiteral("Editor returned no plugin state") : error); return; }
+                dispatch(reply);
+            });
+    }
+
     void disposeTemporary(const QString& executable, const QString& instance) {
         if (m_shuttingDown || !m_process || m_process->state() != QProcess::Running || m_startedPath != executable) { return; }
         sendRequest(executable, {{"cmd", "dispose"}, {"instance", instance}}, 15000,
                     [](bool, const QJsonObject&, const QString&) {});
     }
+
+    std::size_t editorRequestCount() const { return m_editorRequests.size(); }
 
     void terminateOnWorkerThread() {
         if (m_process && m_process->state() != QProcess::NotRunning) {
@@ -219,9 +338,25 @@ public:
         }
         m_process.reset();
         failAll(QStringLiteral("VST host shut down"));
+        m_restorations.clear();
+        m_liveLoads.clear();
+        m_editors.clear();
+        m_editorRequests.clear();
+        m_assistantEdits.clear();
     }
 
 private:
+    // Worker-thread-only restoration receipts join pool syncs to the same state load.
+    struct Restoration { int id; QString state; quint64 generation; };
+    std::unordered_map<std::string,Restoration> m_restorations;
+    // Worker-owned, single-use receipts for in-flight or completed live loads.
+    std::unordered_map<std::string,QString> m_liveLoads;
+    std::unordered_map<std::string,QJsonObject> m_editors;
+    std::unordered_map<std::string,int> m_editorRequests;
+    // Worker-owned last assistant mutation per open editor. Cleared on restore or editor disposal.
+    struct AssistantEdit { QString captured; QString result; };
+    std::unordered_map<std::string,AssistantEdit> m_assistantEdits;
+
     struct Pending {
         Callback callback;
         std::unique_ptr<QTimer> timer;
@@ -253,6 +388,11 @@ private:
         if (!proc->waitForStarted(5000)) {
             return false;
         }
+        m_restorations.clear();
+        m_liveLoads.clear();
+        m_editors.clear();
+        m_editorRequests.clear();
+        m_assistantEdits.clear();
         m_buffer.clear();
         m_startedPath = executable;
         m_process = std::move(proc);
@@ -281,6 +421,10 @@ private:
             const QString instance = msg.value(u"instance").toString();
             const QString state = msg.value(u"state").toString();
             const auto generation = static_cast<quint64>(msg.value("generation").toDouble());
+            const auto restoration=m_restorations.find(instance.toStdString());
+            if (restoration!=m_restorations.end() && generation>=restoration->second.generation) {
+                m_restorations.erase(restoration);
+            }
             const QPointer<VstHostClient> owner = m_owner;
             if (!owner) return;
             if (event == u"state") {
@@ -288,6 +432,9 @@ private:
                     if (owner) emit owner->pluginStateChanged(instance, state, generation);
                 }, Qt::QueuedConnection);
             } else if (event == u"editorClosed") {
+                m_editors.erase(instance.toStdString());
+                m_editorRequests.erase(instance.toStdString());
+                m_assistantEdits.erase(instance.toStdString());
                 QMetaObject::invokeMethod(owner, [owner, instance, state, generation]() {
                     if (owner) emit owner->pluginEditorClosed(instance, state, generation);
                 }, Qt::QueuedConnection);
@@ -307,6 +454,11 @@ private:
 
     void onExited() {
         failAll(QStringLiteral("VST host process exited unexpectedly"));
+        m_restorations.clear();
+        m_liveLoads.clear();
+        m_editors.clear();
+        m_editorRequests.clear();
+        m_assistantEdits.clear();
         const QPointer<VstHostClient> owner = m_owner;
         if (owner) {
             owner->m_hostEpoch.fetch_add(1, std::memory_order_acq_rel);
@@ -417,6 +569,7 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
         if (error) *error = QStringLiteral("VST host is not running");
         return false;
     }
+    const auto deadline=std::chrono::steady_clock::now()+std::chrono::milliseconds(timeoutMs);
     const QString exe = executablePath();
     if (exe.isEmpty()) {
         if (error) *error = unavailableReason();
@@ -438,7 +591,7 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
     });
     QMetaObject::invokeMethod(
         worker,
-        [worker, exe, request, timeoutMs, waiter, stop]() {
+        [worker, exe, request, timeoutMs, deadline, waiter, stop]() {
             if (!worker || stop.stop_requested()) { return; }
             auto dispatched = request;
             const auto cmd = request.value("cmd").toString();
@@ -447,7 +600,7 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
             // Assistant results become live only through the document commit. An
             // abandoned request must never alter an editor or live audio instance.
             if (isolated) { dispatched.insert("instance", temporary); }
-            worker->sendRequest(exe, dispatched, timeoutMs, [waiter, worker, exe, temporary](bool ok, const QJsonObject& r, const QString& err) {
+            auto completed = [waiter](bool ok, const QJsonObject& r, const QString& err) {
                 {
                     std::lock_guard<std::mutex> lock(waiter->mutex);
                     waiter->done = true;
@@ -456,15 +609,17 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
                     waiter->error = err;
                 }
                 waiter->cv.notify_one();
-                if (worker && !temporary.isEmpty()) {
-                    worker->disposeTemporary(exe, temporary);
-                }
-            });
+            };
+            if (isolated) {
+                auto active=[waiter,stop] { std::lock_guard<std::mutex> guard(waiter->mutex); return !waiter->cancelled && !stop.stop_requested(); };
+                worker->sendAssistantRequest(exe,request,std::move(dispatched),deadline,std::move(active),std::move(completed));
+            }
+            else { worker->sendRequest(exe,std::move(dispatched),timeoutMs,std::move(completed)); }
         },
         Qt::QueuedConnection);
 
     std::unique_lock<std::mutex> lock(waiter->mutex);
-    const bool finished = waiter->cv.wait_for(lock, std::chrono::milliseconds(timeoutMs + 2000),
+    const bool finished = waiter->cv.wait_until(lock, deadline,
                                               [&] { return waiter->cancelled || (waiter->done && !stop.stop_requested()); });
     if (stop.stop_requested()) {
         waiter->cv.wait_for(lock, std::chrono::milliseconds(2000), [&] { return waiter->cancelled; });
@@ -472,6 +627,7 @@ bool VstHostClient::sendSync(const QJsonObject& request, QJsonObject* reply, QSt
         return false;
     }
     if (!finished) {
+        waiter->cancelled=true;
         if (error) *error = QStringLiteral("VST host request timed out");
         return false;
     }
@@ -726,6 +882,16 @@ void VstHostClient::closeLiveAsync(const QString& instance) {
         worker,
         [worker, exe, req]() { worker->sendRequest(exe, req, 15000, [](bool, const QJsonObject&, const QString&) {}); },
         Qt::QueuedConnection);
+}
+
+std::size_t VstHostClient::editorRequestCountForTest() {
+    std::size_t count=0;
+    if (m_shutDown || !m_worker || !m_thread.isRunning()) { return count; }
+    const QPointer<HostWorker> worker(m_worker.get());
+    QMetaObject::invokeMethod(worker,[worker,&count] {
+        if (worker) { count=worker->editorRequestCount(); }
+    },Qt::BlockingQueuedConnection);
+    return count;
 }
 
 void VstHostClient::terminateHostForTest() {

@@ -5,6 +5,8 @@
 #include <QTemporaryDir>
 #include <cmath>
 #include "audio/automation/Automation.h"
+#include "audio/automation/AutomationCurves.h"
+#include "app/EditRegistry.h"
 #include "audio/automation/MeterReadings.h"
 #include "audio/Mixer.h"
 #include "audio/AudioEngine.h"
@@ -13,6 +15,7 @@
 #include "audio/automation/AutomationController.h"
 #include <cmath>
 #include <algorithm>
+#include <array>
 #include "model/TimelineModel.h"
 #include "model/TimelineJson.h"
 #include "playback/PlaybackClock.h"
@@ -111,6 +114,84 @@ private slots:
         window.reset(); root.reset(); engine.reset();
         QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
         QCoreApplication::processEvents();
+    }
+    void masterCurvePreservedV8() {
+        struct Curve final : nt::audio::ParameterSource {
+            double valueAt(double t,double) const noexcept override { return t<100 ? .25 : .5; }
+        };
+        auto snapshot=*model.snapshot();
+        nt::audio::MixPlan plan; plan.gainSource=std::make_shared<Curve>();
+        nt::automation::refreshMixerAutomation(snapshot,plan);
+        QCOMPARE(plan.gainSource->valueAt(0,1),.25);
+        nt::automation::refreshMixerAutomation(snapshot,plan);
+        QCOMPARE(plan.gainSource->valueAt(200,1),.5);
+        snapshot.masterMixerOverride.reset(); nt::automation::refreshMixerAutomation(snapshot,plan);
+        QCOMPARE(plan.gainSource->valueAt(0,1),.25);
+    }
+    void masterBaseReceivesBeginBlockN2() {
+        // The plan owns the source. Only the rendering thread changes its block cache.
+        struct Curve final : nt::audio::ParameterSource {
+            mutable double cached=0;
+            void beginBlock(const nt::audio::BlockContext& context,int,double) const noexcept override { cached=context.timelineMs; }
+            double valueAt(double,double) const noexcept override { return cached; }
+        };
+        auto snapshot=*model.snapshot();
+        nt::audio::MixPlan plan; plan.gainSource=std::make_shared<Curve>();
+        nt::automation::refreshMixerAutomation(snapshot,plan);
+        nt::audio::BlockContext context; context.timelineMs=25;
+        plan.gainSource->beginBlock(context,128,1);
+        QCOMPARE(plan.gainSource->valueAt(25,1),25.);
+        context.timelineMs=50;
+        plan.gainSource->beginBlock(context,128,1);
+        QCOMPARE(plan.gainSource->valueAt(50,1),50.);
+    }
+    void masterTrackNamespaceV9() {
+        auto raw=doc(); auto tracks=raw["tracks"].toArray(); auto t=tracks[0].toObject(); t["id"]="master"; tracks[0]=t; raw["tracks"]=tracks;
+        auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson()); QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        const auto snapshot=model.snapshot();
+        QVERIFY2(snapshot->masterMixerOverride!=snapshot->tracks[0].mixerOverride,"V9: master and a track named master need distinct handoffs");
+        AutomationController master; master.setTimeline(&model); master.master=true; master.previewMixer("volumeDb",-12);
+        QVERIFY(std::isnan(snapshot->tracks[0].mixerOverride->volumeDb.load()));
+    }
+    void masterPayloadV10() {
+        QJsonObject captured;
+        const auto original=nt::app::edits().value("setMasterVolume");
+        nt::app::edits()["setMasterVolume"]=[&captured,original](QJsonObject raw,const QJsonObject& payload) { captured=payload; return original(std::move(raw),payload); };
+        const auto restore=qScopeGuard([original] { nt::app::edits()["setMasterVolume"]=original; });
+        AutomationController controller; controller.setTimeline(&model); controller.master=true; controller.trackId="recycled";
+        controller.commitMixer("volumeDb",-12);
+        QCOMPARE(captured,QJsonObject({{"db",-12}}));
+    }
+    void masterPreviewSmoothF24() {
+        AutomationController controller; controller.setTimeline(&model); controller.master=true;
+        const auto plan=nt::audio::buildMixPlan(*model.snapshot());
+        std::array<float,256> output{}; nt::audio::MixStats stats;
+        constexpr double step=1000./48000;
+        nt::audio::mixBlock(plan,nullptr,48000,0,step,128,output.data(),stats);
+        controller.previewMixer("volumeDb",-12);
+        nt::audio::mixBlock(plan,nullptr,48000,128*step,step,128,output.data(),stats);
+        QVERIFY2(std::abs(plan.gainSource->valueAt(128*step,1)-1)<1e-8,
+                 "F24: rendered master preview must begin a smooth gain transition");
+        QVERIFY(std::abs(plan.gainSource->valueAt(128*step+10,1)-0.2511886432)<1e-8);
+    }
+    void masterPreviewF24() {
+        AutomationController controller; controller.setTimeline(&model); controller.master=true;
+        auto plan=nt::audio::buildMixPlan(*model.snapshot());
+        controller.previewMixer("volumeDb",-12);
+        QVERIFY2(model.mixerOverrideValue("master","volumeDb",true),"F24: master drag must publish a live override");
+        QVERIFY(plan.gainSource);
+        QVERIFY(std::abs(plan.gainSource->valueAt(0,plan.masterGain)-0.2511886432)<1e-8);
+        controller.previewMixer("volumeDb",std::numeric_limits<double>::quiet_NaN());
+        QCOMPARE(plan.gainSource->valueAt(0,plan.masterGain),1.);
+        QVERIFY(open(R"(ChannelStrip { width:180; height:500; required timeline; master:true })"));
+        QVERIFY(QMetaObject::invokeMethod(root.get(),"preview",Q_ARG(QVariant,QString("volumeDb")),Q_ARG(QVariant,-18.)));
+        QCOMPARE(model.mixerOverrideValue("master","volumeDb",true).value_or(0),-18.);
+        QVERIFY(QMetaObject::invokeMethod(root.get(),"commit",Q_ARG(QVariant,QString("volumeDb")),Q_ARG(QVariant,-18.)));
+        QCOMPARE(model.timeline().masterVolumeDb,-18.);
+        QVERIFY(std::abs(plan.gainSource->valueAt(0,plan.masterGain)-0.1258925412)<1e-8);
+        const auto committed=nt::audio::buildMixPlan(*model.snapshot());
+        QVERIFY(std::abs(committed.gainSource->valueAt(0,committed.masterGain)-0.1258925412)<1e-8);
+
     }
     void previewBecomesLatchF17_data() {
         QTest::addColumn<QString>("mode"); QTest::addColumn<bool>("volume");

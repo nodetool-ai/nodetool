@@ -77,9 +77,9 @@ public:
     // document makes a new snapshot; an old one stays valid while held.
     std::shared_ptr<const nt::Timeline> snapshot() const override;
     // UI-thread writes, audio-thread atomic reads. Never changes document/undo.
-    std::optional<double> mixerOverrideValue(const QString& trackId, const QString& param) const;
-    void setMixerOverride(const QString& trackId, const QString& param, std::optional<double> value);
-    void holdMixerOverride(const QString& trackId,const QString& param,double value);
+    std::optional<double> mixerOverrideValue(const QString& trackId, const QString& param, bool master = false) const;
+    void setMixerOverride(const QString& trackId, const QString& param, std::optional<double> value, bool master = false);
+    void holdMixerOverride(const QString& trackId,const QString& param,double value, bool master = false);
     void releaseMixerOverride(const QString& trackId,const QString& param,double endMs,double value,double after);
 
     QString timelineId() const { return QString::fromStdString(m_timeline->id); }
@@ -209,6 +209,8 @@ private:
     void markClipsChanged(QSet<QString> clipIds, QSet<QString> trackIds);
     std::optional<QSet<QString>> m_changedClipIds;
     // UI-only map. The model and published plans share each atomic handoff.
+    // Model and published audio snapshots share the atomic master handoff.
+    mutable std::shared_ptr<nt::MixerOverride> m_masterMixerOverride;
     mutable QHash<QString, std::shared_ptr<nt::MixerOverride>> m_mixerOverrides;
     // Shared with snapshot readers. Keep the source alive to compare cache identity safely.
     mutable std::shared_ptr<const nt::Timeline> m_mixerSnapshotSource, m_mixerSnapshot;

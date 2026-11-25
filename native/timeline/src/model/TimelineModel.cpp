@@ -853,6 +853,10 @@ std::shared_ptr<const nt::Timeline> TimelineModel::snapshot() const {
     if (m_mixerSnapshotSource==m_timeline && m_mixerSnapshot) { return m_mixerSnapshot; }
     auto next=std::make_shared<nt::Timeline>(*m_timeline);
     QSet<QString> present;
+    auto& master=m_masterMixerOverride;
+    // The model and immutable audio plans share this atomic handoff.
+    if (!master) { master=std::make_shared<nt::MixerOverride>(); }
+    next->masterMixerOverride=master;
     for (auto& track:next->tracks) {
         if (track.type!=nt::TrackType::Audio && track.type!=nt::TrackType::Midi) { continue; }
         const auto id=QString::fromStdString(track.id); present.insert(id);
@@ -871,13 +875,13 @@ std::shared_ptr<const nt::Timeline> TimelineModel::snapshot() const {
     m_mixerSnapshotSource=m_timeline; m_mixerSnapshot=next;
     return next;
 }
-void TimelineModel::setMixerOverride(const QString& trackId,const QString& param,std::optional<double> value) {
-    if (param!="volumeDb" && param!="pan") { return; }
-    auto state=m_mixerOverrides.value(trackId);
+void TimelineModel::setMixerOverride(const QString& trackId,const QString& param,std::optional<double> value,bool master) {
+    if ((master && param!="volumeDb") || (param!="volumeDb" && param!="pan")) { return; }
+    auto state=master ? m_masterMixerOverride : m_mixerOverrides.value(trackId);
     if (!state) {
-        if (!value || !m_timeline->findTrack(trackId.toStdString())) { return; }
+        if (!value || (!master && !m_timeline->findTrack(trackId.toStdString()))) { return; }
         state=std::make_shared<nt::MixerOverride>();
-        m_mixerOverrides.insert(trackId,state);
+        if (master) { m_masterMixerOverride=state; } else { m_mixerOverrides.insert(trackId,state); }
     }
     if (!value) { (param=="volumeDb" ? state->volumeReturn : state->panReturn).publish({}); }
     auto& slot=param=="volumeDb" ? state->volumeDb : state->pan;
@@ -885,8 +889,8 @@ void TimelineModel::setMixerOverride(const QString& trackId,const QString& param
     const double previous=slot.exchange(next,std::memory_order_release);
     if (previous!=next && !(std::isnan(previous) && std::isnan(next))) { emit mixerOverrideChanged(trackId,param); }
 }
-void TimelineModel::holdMixerOverride(const QString& trackId,const QString& param,double value) {
-    const auto state=m_mixerOverrides.value(trackId);
+void TimelineModel::holdMixerOverride(const QString& trackId,const QString& param,double value,bool master) {
+    const auto state=master ? m_masterMixerOverride : m_mixerOverrides.value(trackId);
     if (!state || (param!="volumeDb" && param!="pan") || !std::isfinite(value)) { return; }
     nt::MixerReturn::Snapshot hold;
     hold.untilPlan=true;
@@ -920,6 +924,11 @@ TimelineModel::~TimelineModel() {
     clearMixerOverrides();
 }
 void TimelineModel::clearMixerOverrides() {
+    if (m_masterMixerOverride) {
+        m_masterMixerOverride->volumeReturn.publish({});
+        m_masterMixerOverride->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
+        m_masterMixerOverride.reset();
+    }
     for (const auto& state : m_mixerOverrides) {
         state->volumeReturn.publish({}); state->panReturn.publish({});
         state->volumeDb.store(std::numeric_limits<double>::quiet_NaN(),std::memory_order_release);
@@ -928,8 +937,8 @@ void TimelineModel::clearMixerOverrides() {
     m_mixerOverrides.clear();
     m_mixerSnapshot.reset(); m_mixerSnapshotSource.reset();
 }
-std::optional<double> TimelineModel::mixerOverrideValue(const QString& trackId, const QString& param) const {
-    const auto state=m_mixerOverrides.value(trackId);
+std::optional<double> TimelineModel::mixerOverrideValue(const QString& trackId, const QString& param,bool master) const {
+    const auto state=master ? m_masterMixerOverride : m_mixerOverrides.value(trackId);
     if (!state) { return {}; }
     const double value=(param=="pan" ? state->pan : state->volumeDb).load(std::memory_order_relaxed);
     return std::isfinite(value) ? std::optional<double>(value) : std::nullopt;

@@ -47,13 +47,15 @@ public:
         int frames=0;
         MixerReturn::Snapshot release;
     };
-    LiveParameter(std::shared_ptr<MixerOverride> state,std::unique_ptr<const audio::ParameterSource> curve,bool gain,
+    LiveParameter(std::shared_ptr<MixerOverride> state,std::shared_ptr<const audio::ParameterSource> curve,bool gain,
                   std::shared_ptr<Glide> glide={})
         : state_(std::move(state)),curve_(std::move(curve)),gain_(gain),
           curveGeneration_((gain ? state_->volumeReturn : state_->panReturn).generation()),
           glide_(glide ? std::move(glide) : std::make_shared<Glide>()) {}
     std::shared_ptr<Glide> glide() const { return glide_; }
+    std::shared_ptr<const audio::ParameterSource> curve() const { return curve_; }
     void beginBlock(const audio::BlockContext& context,int frames,double base) const noexcept override {
+        if (curve_) { curve_->beginBlock(context,frames,base); }
         auto& g=*glide_;
         const double time=context.timelineMs;
         const double previous=g.prepared ? valueAt(g.blockTime+g.frames*g.step,base) : curveAt(time,base,g.release);
@@ -89,9 +91,9 @@ private:
         if (release.generation>curveGeneration_ && release.active(time)) { return release.at(time); }
         return curve_ ? curve_->valueAt(time,base) : base;
     }
-    // The model and plans share the atomic input. Each source uniquely owns its immutable curve.
+    // The model and plans share the atomic input. Immutable plans share their base curve across live-override refreshes.
     std::shared_ptr<MixerOverride> state_;
-    std::unique_ptr<const audio::ParameterSource> curve_;
+    std::shared_ptr<const audio::ParameterSource> curve_;
     bool gain_;
     const std::uint64_t curveGeneration_;
     // Old/new immutable plans coexist during publication. Their shared prepared mix's
@@ -175,6 +177,12 @@ void attach(const nt::Timeline& tl,audio::MixPlan& plan) {
 }
 
 void refreshMixerAutomation(const nt::Timeline& tl,audio::MixPlan& plan) {
+    const auto* previousMaster=dynamic_cast<const LiveParameter*>(plan.gainSource.get());
+    const auto masterCurve=previousMaster ? previousMaster->curve() : plan.gainSource;
+    if (tl.masterMixerOverride) {
+        // Plans share the atomic handoff and the render continuation across publication.
+        plan.gainSource=std::make_shared<LiveParameter>(tl.masterMixerOverride,masterCurve,true,previousMaster ? previousMaster->glide() : nullptr);
+    } else { plan.gainSource=masterCurve; }
     for (auto& bus:plan.tracks) {
         const auto* track=tl.findTrack(bus.trackId);
         if (!track || (track->type!=TrackType::Audio && track->type!=TrackType::Midi)) { continue; }

@@ -46,21 +46,22 @@ void AutomationController::edit(const QString& action, QJsonObject payload) {
     timeline_->applyEdit(action, payload);
 }
 void AutomationController::previewMixer(const QString& param, double value) {
-    if (!timeline_ || master) { return; }
-    if (std::isnan(value)) { timeline_->setMixerOverride(trackId,param,std::nullopt); return; }
+    if (!timeline_ || (master && param!="volumeDb")) { return; }
+    if (std::isnan(value)) { timeline_->setMixerOverride(trackId,param,std::nullopt,master); return; }
     if (timeline_->readOnly() || !std::isfinite(value) || (param!="volumeDb" && param!="pan")) { return; }
-    timeline_->setMixerOverride(trackId,param,std::clamp(value,param=="pan" ? -1. : -120.,param=="pan" ? 1. : 24.));
+    timeline_->setMixerOverride(trackId,param,std::clamp(value,param=="pan" ? -1. : -120.,param=="pan" ? 1. : 24.),master);
 }
 void AutomationController::commitMixer(const QString& param,double value) {
-    if (!timeline_ || master || timeline_->readOnly() || !std::isfinite(value) || (param!="volumeDb" && param!="pan")) {
+    if (!timeline_ || (master && param!="volumeDb") || timeline_->readOnly() || !std::isfinite(value) || (param!="volumeDb" && param!="pan")) {
         previewMixer(param,std::numeric_limits<double>::quiet_NaN());
         return;
     }
     value=std::clamp(value,param=="pan" ? -1. : -120.,param=="pan" ? 1. : 24.);
     // Publish before edit observers can compile a plan containing the committed value.
-    timeline_->holdMixerOverride(trackId,param,value);
-    const bool written=timeline_->applyEdit(param=="pan" ? "setTrackPan" : "setTrackVolume",
-        {{"trackId",trackId},{param=="pan" ? "pan" : "db",value}});
+    timeline_->holdMixerOverride(trackId,param,value,master);
+    QJsonObject payload{{param=="pan" ? "pan" : "db",value}};
+    if (!master) { payload.insert("trackId",trackId); }
+    const bool written=timeline_->applyEdit(master ? "setMasterVolume" : param=="pan" ? "setTrackPan" : "setTrackVolume",payload);
     if (!written) { previewMixer(param,std::numeric_limits<double>::quiet_NaN()); }
 }
 void AutomationController::setPoints(const QString& laneId, const QJsonArray& points, quint64 generation) {

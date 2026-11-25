@@ -302,6 +302,259 @@ for line in sys.stdin:
         client->setOverrideExecutable({});
     }
 
+    void reverseOrderStateLoadsV2_data() {
+        QTest::addColumn<bool>("applied");
+        QTest::newRow("in-flight") << false;
+        QTest::newRow("applied") << true;
+    }
+    void reverseOrderStateLoadsV2() {
+        QFETCH(bool, applied);
+        QTemporaryDir dir; QFile helper(dir.filePath("host")); QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json,sys,time
+for line in sys.stdin:
+    r=json.loads(line)
+    if r['cmd']=='quit': break
+    if r['cmd']=='joinLiveState':
+        assert r['generation']==1 and r['state']=='saved'
+        with open(__file__+'.generation','w') as f: f.write(str(r['generation']))
+    else:
+        with open(__file__+'.requests','a') as f: f.write(r['cmd']+'\n')
+    if r['cmd']=='setLiveState': time.sleep(.3)
+    print(json.dumps(dict(id=r['id'],ok=True)),flush=True)
+)PY");
+        helper.close(); QVERIFY(helper.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        VstHostClient client; client.setOverrideExecutable(helper.fileName());
+        std::jthread caller([&] { QString error; client.setLiveState("inst:m1","saved",&error); });
+        QTRY_VERIFY(QFileInfo::exists(helper.fileName()+".requests"));
+        if (applied) { caller.join(); }
+        QSignalSpy restored(&client,&VstHostClient::stateRestored);
+        client.restoreStateAsync("inst:m1",{{"state","saved"}},1);
+        if (caller.joinable()) { caller.join(); }
+        QTRY_COMPARE(restored.count(),1);
+        QVERIFY(QFileInfo::exists(helper.fileName()+".generation"));
+        QFile log(helper.fileName()+".requests"); QVERIFY(log.open(QIODevice::ReadOnly));
+        QCOMPARE(log.readAll(),QByteArray("setLiveState\n"));
+        client.restoreStateAsync("inst:m1",{{"state","saved"}},2);
+        QTRY_COMPARE(restored.count(),2);
+        QCOMPARE(log.readAll(),QByteArray("setState\n"));
+    }
+    void restorationReceiptInvalidatedByDifferentStateV1() {
+        QTemporaryDir dir;
+        QFile helper(dir.filePath("host")); QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json, sys
+for line in sys.stdin:
+    r=json.loads(line)
+    if r['cmd']=='quit': break
+    with open(__file__+'.requests','a') as f: f.write(r['cmd']+'\n')
+    print(json.dumps(dict(id=r['id'],ok=True)),flush=True)
+)PY");
+        helper.close(); QVERIFY(helper.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        VstHostClient client; client.setOverrideExecutable(helper.fileName());
+        QSignalSpy restored(&client,&VstHostClient::stateRestored);
+        client.restoreStateAsync("inst:m1",{{"state","saved"}},1);
+        QTRY_COMPARE(restored.count(),1);
+        QString error; QVERIFY(client.setLiveState("inst:m1","different",&error));
+        QVERIFY(client.setLiveState("inst:m1","saved",&error));
+        QFile log(helper.fileName()+".requests"); QVERIFY(log.open(QIODevice::ReadOnly));
+        QCOMPARE(log.readAll(),QByteArray("setState\nsetLiveState\nsetLiveState\n"));
+    }
+    void workerDoesNotEnterPoolV3V4() {
+        QFile source(QDir(QFileInfo(QStringLiteral(__FILE__)).absolutePath()).filePath("VstHostClient.cpp"));
+        QVERIFY(source.open(QIODevice::ReadOnly));
+        const auto bytes=source.readAll(); QVERIFY(!bytes.isEmpty());
+        QVERIFY2(!bytes.contains("sharedVstLivePool().noteStateFromEditor"),
+                 "V3/V4: worker must not enter a blocking process-global pool");
+    }
+    void editorLifecycleV5_data() {
+        QTest::addColumn<QString>("closing");
+        QTest::newRow("close") << QString("close");
+        QTest::newRow("dispose") << QString("dispose");
+        QTest::newRow("failed-replacement") << QString("replace");
+    }
+    void editorLifecycleV5() {
+        QFETCH(QString,closing);
+        QTemporaryDir dir; QFile helper(dir.filePath("host")); QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json,sys,time
+for line in sys.stdin:
+    r=json.loads(line)
+    if r['cmd']=='quit': break
+    with open(__file__+'.requests','a') as f: f.write(r['cmd']+'\n')
+    if r['cmd']=='openEditor': time.sleep(.1)
+    print(json.dumps(dict(id=r['id'],ok=r.get('uid')!='bad',state='editor')),flush=True)
+)PY");
+        helper.close(); QVERIFY(helper.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        VstHostClient client; client.setOverrideExecutable(helper.fileName());
+        QSignalSpy opened(&client,&VstHostClient::editorOpened);
+        client.openEditorAsync("inst:m1","/tone","tone","saved","Synth");
+        if(closing=="close") { client.closeEditorAsync("inst:m1"); }
+        else if(closing=="dispose") { client.disposeAsync("inst:m1"); }
+        else { QTRY_COMPARE(opened.count(),1); client.openEditorAsync("inst:m1","/tone","bad","saved","Synth"); }
+        QTRY_COMPARE(opened.count(),closing=="replace" ? 2 : 1);
+        QJsonObject reply; QString error;
+        QVERIFY(client.getParameters({{"instance","inst:m1"},{"path","/tone"},{"uid","tone"},{"state","saved"}},&reply,&error));
+        QFile log(helper.fileName()+".requests"); QVERIFY(log.open(QIODevice::ReadOnly));
+        QVERIFY2(!log.readAll().contains("getState"),"V5: closed or failed replacement editor must not be resurrected");
+    }
+    void closedEditorFallbackV6() {
+        QTemporaryDir dir; QFile helper(dir.filePath("host")); QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json,sys
+for line in sys.stdin:
+    r=json.loads(line)
+    if r['cmd']=='quit': break
+    with open(__file__+'.requests','a') as f: f.write(r['cmd']+'\n')
+    print(json.dumps(dict(id=r['id'],ok=r['cmd']!='getState',state=r.get('state',''),error='Unknown instance')),flush=True)
+)PY");
+        helper.close(); QVERIFY(helper.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        VstHostClient client; client.setOverrideExecutable(helper.fileName()); QSignalSpy opened(&client,&VstHostClient::editorOpened);
+        client.openEditorAsync("inst:m1","/tone","tone","saved","Synth"); QTRY_COMPARE(opened.count(),1);
+        QJsonObject reply; QString error;
+        QVERIFY2(client.setParameters({{"instance","inst:m1"},{"path","/tone"},{"uid","tone"},{"state","saved"}},&reply,&error),"V6: missing editor must fall back to document state");
+        QCOMPARE(reply.value("state").toString(),QString("saved"));
+    }
+    void captureTimeoutDoesNotDispatchV7() {
+        QTemporaryDir dir; QFile helper(dir.filePath("host")); QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json,sys,time
+for line in sys.stdin:
+    r=json.loads(line)
+    if r['cmd']=='quit': break
+    if r['cmd']=='getState': time.sleep(30.3)
+    with open(__file__+'.requests','a') as f: f.write(r['cmd']+'\n')
+    print(json.dumps(dict(id=r['id'],ok=True,state='late')),flush=True)
+)PY");
+        helper.close(); QVERIFY(helper.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        VstHostClient client; client.setOverrideExecutable(helper.fileName()); QSignalSpy opened(&client,&VstHostClient::editorOpened);
+        client.openEditorAsync("inst:m1","/tone","tone","saved","Synth"); QTRY_COMPARE(opened.count(),1);
+        QJsonObject reply; QString error; QElapsedTimer elapsed; elapsed.start();
+        QVERIFY(!client.setParameters({{"instance","inst:m1"},{"path","/tone"},{"uid","tone"}},&reply,&error));
+        QVERIFY(elapsed.elapsed()<31000);
+        QTest::qWait(800);
+        QFile log(helper.fileName()+".requests"); QVERIFY(log.open(QIODevice::ReadOnly)); const auto bytes=log.readAll();
+        QVERIFY2(!bytes.contains("setParameters"),"V7: timed-out capture must not dispatch isolated work");
+        QVERIFY2(!bytes.contains("dispose"),"V6: timed-out capture never created a temporary instance");
+    }
+    void cancelledCaptureDoesNotDispatchV7() {
+        QTemporaryDir dir; QFile helper(dir.filePath("host")); QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json,sys,time
+for line in sys.stdin:
+    r=json.loads(line)
+    if r['cmd']=='quit': break
+    if r['cmd']=='getState':
+        open(__file__+'.capture','w').close()
+        time.sleep(.4)
+    with open(__file__+'.requests','a') as f: f.write(r['cmd']+'\n')
+    print(json.dumps(dict(id=r['id'],ok=True,state='captured')),flush=True)
+)PY");
+        helper.close(); QVERIFY(helper.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        VstHostClient client; client.setOverrideExecutable(helper.fileName()); QSignalSpy opened(&client,&VstHostClient::editorOpened);
+        client.openEditorAsync("inst:m1","/tone","tone","saved","Synth"); QTRY_COMPARE(opened.count(),1);
+        std::stop_source stop;
+        std::jthread caller([&] { QJsonObject reply; QString error; client.setParameters({{"instance","inst:m1"},{"path","/tone"},{"uid","tone"}},&reply,&error,stop.get_token()); });
+        QTRY_VERIFY(QFileInfo::exists(helper.fileName()+".capture")); stop.request_stop(); caller.join(); QTest::qWait(600);
+        QFile log(helper.fileName()+".requests"); QVERIFY(log.open(QIODevice::ReadOnly)); const auto bytes=log.readAll();
+        QVERIFY2(!bytes.contains("setParameters"),"V7: abandoned capture must not dispatch isolated work");
+        QVERIFY2(!bytes.contains("dispose"),"V6: an uncreated temporary instance must not be disposed");
+    }
+
+    void temporaryRequestsReleaseEditorBookkeepingN1() {
+        QTemporaryDir dir;
+        QFile helper(dir.filePath("host")); QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json,sys
+for line in sys.stdin:
+    r=json.loads(line)
+    if r['cmd']=='quit': break
+    print(json.dumps(dict(id=r['id'],ok=True,state='saved')),flush=True)
+)PY");
+        helper.close(); QVERIFY(helper.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        VstHostClient client; client.setOverrideExecutable(helper.fileName());
+        for (int i=0;i<32;++i) {
+            QJsonObject reply; QString error;
+            QVERIFY(client.getParameters({{"instance","inst:m1"}},&reply,&error));
+        }
+        QCOMPARE(client.editorRequestCountForTest(),std::size_t{0});
+    }
+
+    void poolSyncJoinsPendingRestorationF35() {
+        QTemporaryDir dir; QVERIFY(dir.isValid());
+        QFile helper(dir.filePath("host")); QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json, sys, time
+for line in sys.stdin:
+    r = json.loads(line)
+    if r['cmd'] == 'quit': break
+    with open(__file__ + '.requests', 'a') as log: log.write(r['cmd'] + '\n')
+    if r['cmd'] == 'setState': time.sleep(.2)
+    print(json.dumps(dict(id=r['id'], ok=True)), flush=True)
+)PY");
+        helper.close(); QVERIFY(helper.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        VstHostClient client; client.setOverrideExecutable(helper.fileName());
+        client.restoreStateAsync("inst:m1",{{"plugin",QJsonObject{{"path","/tone.vst3"},{"uid","tone"}}},{"state","restored"}},1);
+        QString error;
+        QVERIFY2(client.setLiveState("inst:m1","restored",&error),qPrintable(error));
+        QTest::qWait(20);
+        QVERIFY2(client.setLiveState("inst:m1","restored",&error),qPrintable(error));
+        QFile requests(helper.fileName()+".requests"); QVERIFY(requests.open(QIODevice::ReadOnly));
+        QCOMPARE(requests.readAll(),QByteArray("setState\n"));
+    }
+
+    void assistantCommitGuardsLaterKnobChangeF36() {
+        QTemporaryDir dir;
+        QFile helper(dir.filePath("host")); QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json,sys
+for line in sys.stdin:
+    r=json.loads(line)
+    if r['cmd']=='quit': break
+    state='captured' if r['cmd']=='getState' else 'agent-result'
+    ok=True
+    if r['cmd']=='setState':
+        # The knob changed after capture, without a polling event reaching the UI.
+        ok=r.get('expectedState')!='captured'
+    print(json.dumps(dict(id=r['id'],ok=ok,state=state,error='' if ok else 'Editor changed during plugin request')),flush=True)
+)PY");
+        helper.close(); QVERIFY(helper.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        VstHostClient client; client.setOverrideExecutable(helper.fileName());
+        QSignalSpy opened(&client,&VstHostClient::editorOpened);
+        client.openEditorAsync("inst:m1","/tone","tone","saved","Synth"); QTRY_COMPARE(opened.count(),1);
+        QJsonObject reply; QString error;
+        QVERIFY(client.setParameters({{"instance","inst:m1"},{"path","/tone"},{"uid","tone"},{"state","saved"}},&reply,&error));
+        QSignalSpy restored(&client,&VstHostClient::stateRestored);
+        client.restoreStateAsync("inst:m1",{{"plugin",QJsonObject{{"path","/tone"},{"uid","tone"}}},{"state",reply.value("state")}},1);
+        QTRY_COMPARE(restored.count(),1);
+        QVERIFY2(!restored[0][2].toString().isEmpty(),"F36: a later knob change must reject the stale assistant restore");
+    }
+
+    void assistantCapturesUnreportedEditorStateF36() {
+        QTemporaryDir dir; QVERIFY(dir.isValid());
+        QFile helper(dir.filePath("host")); QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write(R"PY(#!/usr/bin/env python3
+import json, sys
+for line in sys.stdin:
+    r = json.loads(line)
+    if r['cmd'] == 'quit': break
+    state = 'unreported-knob' if r['cmd'] == 'getState' else r.get('state', '')
+    if r['cmd'] == 'setParameters':
+        assert r['instance'].startswith('request:')
+        state += ':agent'
+    print(json.dumps(dict(id=r['id'], ok=True, state=state)), flush=True)
+)PY");
+        helper.close(); QVERIFY(helper.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        VstHostClient client; client.setOverrideExecutable(helper.fileName());
+        QSignalSpy opened(&client,&VstHostClient::editorOpened);
+        client.openEditorAsync("inst:m1","/tone.vst3","tone","document-before-knob","Synth");
+        QTRY_COMPARE(opened.count(),1);
+        QJsonObject reply; QString error;
+        QVERIFY2(client.setParameters({{"instance","inst:m1"},{"path","/tone.vst3"},{"uid","tone"},
+            {"state","document-before-knob"},{"changes",QJsonArray{QJsonObject{{"id","level"},{"value",.5}}}}},&reply,&error),qPrintable(error));
+        QCOMPARE(reply.value("state").toString(),QStringLiteral("unreported-knob:agent"));
+    }
+
     void pluginAssistantCancellation_data() {
         QTest::addColumn<QString>("operation");
         for (const auto *op : {"list_plugins", "list_plugin_presets", "select_plugin_preset", "get_plugin_parameters", "set_plugin_parameters"}) {

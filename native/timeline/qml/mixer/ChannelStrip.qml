@@ -18,9 +18,10 @@ Ui.Surface {
     property var previewing: ({})
     property TimelineModel previewTimeline: null
     property string previewTrackId: ""
+    property bool previewMaster: false
     property var gestures: ({})
     function preview(param, value) {
-        if (master) { return }
+        previewMaster = master
         previewTimeline = timeline
         previewTrackId = trackId
         previewing[param] = true
@@ -73,7 +74,7 @@ Ui.Surface {
     signal openInstrument(string trackId, var anchor)
     objectName: "mixer-strip-" + channelId
     implicitWidth: 120; implicitHeight: 300
-    AutomationController { id: previewController; timeline: root.previewTimeline; trackId: root.previewTrackId }
+    AutomationController { id: previewController; timeline: root.previewTimeline; trackId: root.previewTrackId; master: root.previewMaster }
     AutomationController { id: controller; timeline: root.timeline; trackId: root.trackId; master: root.master }
     Rectangle { x: 1; y: 0; width: parent.width-2; height: 3; color: root.accent; radius: Ui.Metrics.micro }
     Connections { target: root.timeline; function onDocumentReplaced() { view.cancelGesture() } }

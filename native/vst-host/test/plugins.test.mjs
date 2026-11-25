@@ -45,6 +45,15 @@ test('plugin RPCs match the Electron contract and persist changes', { timeout: 3
     const changed = await request('setParameters', { changes: [{ id: parameter.id, value: 0.8 }] });
     assert.ok(Math.abs(changed.parameters[0].value - 0.8) < 0.001);
     assert.ok(changed.state.length);
+    await request('setLiveState', { state: changed.state });
+    await request('joinLiveState', { state: changed.state, generation: 6 });
+    assert.equal((await request('getState')).state, changed.state, 'join must preserve the applied live state');
+    await assert.rejects(
+      request('setState', { state: preset.state, expectedState: defaultState, generation: 6 }),
+      /Editor changed during plugin request/,
+      'F36: restoring an assistant result must compare the captured editor state'
+    );
+    assert.equal((await request('getState')).state, changed.state, 'a later knob change must survive a rejected restore');
     await request('openEditor', { title: 'VST history regression' });
     await request('setState', { state: preset.state });
     assert.equal((await request('getState')).state, preset.state, 'undo must restore the live helper state');
@@ -71,7 +80,10 @@ test('plugin RPCs match the Electron contract and persist changes', { timeout: 3
     await request('setState', { state: changed.state, generation: 7 });
     await request('setParameters', { changes: [{ index: 0, value: 0.2 }] });
     await waitForEvent(7);
-    await request('setState', { state: changed.state, generation: 8 });
+    // Live sync skips an open editor. Joining must still restore the target
+    // and adopt the new generation before subsequent editor events.
+    await request('setLiveState', { state: changed.state });
+    await request('joinLiveState', { state: changed.state, generation: 8 });
     assert.equal((await request('getState')).state, changed.state, 'restoration must finish on the document state');
     const countAfterRestore = events.length;
     await new Promise(resolve => setTimeout(resolve, 150));

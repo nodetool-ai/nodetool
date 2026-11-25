@@ -107,6 +107,7 @@ public:
 
     // Terminates the child process immediately (for crash-isolation testing).
     void terminateHostForTest();
+    [[nodiscard]] std::size_t editorRequestCountForTest();
 
     void openEditorAsync(const QString& instance, const QString& path, const QString& uid,
                          const QString& state, const QString& title, quint64 generation = 0);
