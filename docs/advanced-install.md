@@ -77,7 +77,7 @@ To set up the environment by hand:
    The MLX video nodes also need the LTX engine, which is not on PyPI. The
    Package Manager installs it with `nodetool-mlx`. By hand, install the two
    `ltx-*-mlx` requirements listed for the MLX entry in
-   [`packages/protocol/src/python-packs.ts`](../packages/protocol/src/python-packs.ts).
+   `packages/protocol/src/python-packs.ts`.
 
 4. Start the server so it finds that interpreter:
 
