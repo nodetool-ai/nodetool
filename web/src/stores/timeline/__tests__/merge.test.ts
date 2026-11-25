@@ -142,7 +142,7 @@ describe("timelineUnitsTouchedByOp", () => {
       clips: [clipOf("C1", "T1", { durationMs: 900 })],
       master: {
         volumeDb: 0,
-        effects: [{ id: "fx1", type: "vst", enabled: true, wet: 1, plugin: null, state: "U1R8" }]
+        effects: [{ id: "fx1", type: "vst" as const, enabled: true, wet: 1, plugin: null, state: "U1R8" }]
       }
     };
     const merged = mergeTimelineDocuments(base, draft, server, [

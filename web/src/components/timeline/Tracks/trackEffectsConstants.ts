@@ -17,7 +17,8 @@ export const DEVICE_WIDTHS = {
   videoBlur: 220,
   sharpen: 240,
   vignette: 260,
-  chromaKey: 280
+  chromaKey: 280,
+  vst: 320
 } satisfies Record<TrackEffect["type"], number>;
 
 /** Human-readable label per effect type. */
@@ -31,7 +32,8 @@ export const EFFECT_LABELS = {
   videoBlur: "Blur",
   sharpen: "Sharpen",
   vignette: "Vignette",
-  chromaKey: "Chroma key"
+  chromaKey: "Chroma key",
+  vst: "Plug-in"
 } satisfies Record<TrackEffect["type"], string>;
 
 /**
@@ -141,5 +143,7 @@ export const KNOBS: KnobTable = {
     { key: "tolerance", label: "Tolerance", min: 0, max: 1, step: 0.01 },
     { key: "softness", label: "Softness", min: 0, max: 1, step: 0.01 },
     { key: "spill", label: "Spill", min: 0, max: 1, step: 0.01 }
-  ]
+  ],
+  // Plug-in inserts render their own parameter view.
+  vst: []
 };

@@ -93,7 +93,7 @@ describe("useTimelineAgentBridge VST/AU plugin tools", () => {
           vendor: "Acme",
           version: "1.0",
           path: "/plugins/AcmePad.vst3",
-          format: "vst3",
+          format: "vst3" as const,
           isInstrument: true
         },
         {
@@ -102,7 +102,7 @@ describe("useTimelineAgentBridge VST/AU plugin tools", () => {
           vendor: "WavesCo",
           version: "2.0",
           path: "/plugins/StudioComp.component",
-          format: "au",
+          format: "au" as const,
           isInstrument: false
         }
       ]),
