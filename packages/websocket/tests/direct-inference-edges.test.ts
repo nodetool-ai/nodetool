@@ -252,6 +252,71 @@ describe("handleInference", () => {
       { type: "chunk", content: "first", seq: 5 }
     ]);
   });
+
+  it("refuses a managed inference call the credit gate denies before resolving the provider", async () => {
+    const userId = "cg-deny-inference";
+    reserveSpend(userId, "blocker", 1_000_000_000);
+    try {
+      let resolved = false;
+      const provider = asProvider({
+        getTotalCost: () => 0,
+        async *generateMessagesTraced() {
+          yield { type: "chunk", content: "should not run" };
+        }
+      });
+      const { handler, session } = makeHandler(provider, {
+        userId,
+        onResolve: () => {
+          resolved = true;
+        }
+      });
+      await handler.handleInference(
+        {
+          provider: "nodetool",
+          model: "nodetool/director",
+          messages: [{ role: "user", content: "hi" }]
+        },
+        1
+      );
+      expect(resolved).toBe(false);
+      expect(session.messages).toHaveLength(1);
+      expect(session.messages[0].type).toBe("error");
+      expect(String(session.messages[0].message)).toMatch(/credit/i);
+    } finally {
+      releaseSpend(userId, "blocker");
+    }
+  });
+
+  it("holds a reservation during managed inference, releases it, and records Prediction cost", async () => {
+    const userId = "cg-hold-inference";
+    let reservedDuringCall = 0;
+    const provider = asProvider({
+      getTotalCost: () => 0.08,
+      async *generateMessagesTraced() {
+        reservedDuringCall = reservedSpendUsd(userId);
+        yield { type: "chunk", content: "ok" };
+      }
+    });
+    const { handler, session } = makeHandler(provider, { userId });
+    await handler.handleInference(
+      {
+        provider: "nodetool",
+        model: "nodetool/director",
+        messages: [{ role: "user", content: "hi" }]
+      },
+      1
+    );
+    expect(reservedDuringCall).toBeGreaterThan(0);
+    expect(reservedSpendUsd(userId)).toBe(0);
+    expect(session.messages).toEqual([
+      { type: "chunk", content: "ok", seq: 1 },
+      { type: "inference_done", seq: 1 }
+    ]);
+    const [rows] = await Prediction.paginate(userId, { provider: "nodetool" });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].cost).toBeCloseTo(0.08);
+    expect(rows[0].node_type).toBe("direct.inference");
+  });
 });
 
 describe("runDirectTextGeneration", () => {
@@ -583,6 +648,55 @@ describe("runDirectMediaGeneration", () => {
     expect(mid.asset_ids).toHaveLength(3);
     const row = await Asset.find("1", mid.asset_ids[0]);
     expect(row?.content_type).toBe("image/png");
+  });
+
+  it("defaults NaN variations to 1 without poisoning credit reservations", async () => {
+    const userId = "cg-nan-variations";
+    let seenCount = 0;
+    let reservedDuringCall = -1;
+    const provider = asProvider({
+      getTotalCost: () => 0.01,
+      async textToImages(_params: unknown, n: number) {
+        seenCount = n;
+        reservedDuringCall = reservedSpendUsd(userId);
+        return Array.from({ length: n }, () => PNG_1x1);
+      }
+    });
+    const { handler } = makeHandler(provider, { userId });
+    const result = await handler.runDirectMediaGeneration(
+      mediaReq({ provider: "nodetool", model: "nodetool/flux-schnell", variations: Number.NaN })
+    );
+    expect(seenCount).toBe(1);
+    expect(Number.isFinite(reservedDuringCall)).toBe(true);
+    expect(reservedSpendUsd(userId)).toBe(0);
+    expect(result.asset_ids).toHaveLength(1);
+  });
+
+  it("forwards the abort signal to provider.extendVideo in video_extend mode", async () => {
+    const sourceId = await createStoredAsset("1", "video/mp4", new Uint8Array([9, 9]));
+    let receivedSignal: AbortSignal | undefined;
+    const controller = new AbortController();
+    const provider = asProvider({
+      getTotalCost: () => 0,
+      async extendVideo(_source: Uint8Array, params: { signal?: AbortSignal }) {
+        receivedSignal = params.signal;
+        return new Uint8Array([1, 2, 3]);
+      }
+    });
+    const { handler } = makeHandler(provider);
+    await handler.runDirectMediaGeneration(
+      mediaReq({
+        mode: "video_extend",
+        sourceAssetId: sourceId,
+        extensionMode: "end",
+        durationSeconds: 5,
+        signal: controller.signal
+      })
+    );
+    expect(receivedSignal).toBeDefined();
+    expect(receivedSignal?.aborted).toBe(false);
+    controller.abort(new Error("cancelled"));
+    expect(receivedSignal?.aborted).toBe(true);
   });
 
   it("routes video without a source through textToVideo and with one through imageToVideo", async () => {

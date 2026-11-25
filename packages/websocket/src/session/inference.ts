@@ -548,6 +548,12 @@ async function assertTextToImageModel(
   }
 }
 
+/** Clamp a requested variation count into [1, 8], defaulting non-finite values to 1. */
+function clampVariations(raw: unknown): number {
+  const n = Number(raw ?? 1);
+  return Number.isFinite(n) ? Math.max(1, Math.min(Math.trunc(n), 8)) : 1;
+}
+
 /**
  * One-shot model calls that skip the chat thread and the workflow runner:
  * the streamed `inference` command, and the direct text / media / speech
@@ -623,7 +629,8 @@ export class DirectInferenceHandler {
       })
       .filter((t) => t.name.length > 0);
 
-    const quota = await admitQuota(this.session.requireUserId(), [
+    const userId = this.session.requireUserId();
+    const quota = await admitQuota(userId, [
       { kind: "tokens", provider: providerId }
     ]);
     if (!quota.allowed) {
@@ -631,34 +638,78 @@ export class DirectInferenceHandler {
       return;
     }
 
-    const provider = await this.session.resolveProvider(
-      providerId,
-      this.session.requireUserId()
-    );
-    for await (const item of provider.generateMessagesTraced({
-      messages,
-      model,
-      tools: tools.length > 0 ? tools : undefined,
-      signal
-    })) {
-      if (requestSeq !== this.deps.currentRequestSeq()) break; // cancelled
-      if (isToolCall(item)) {
-        log.info("Tool call", { tool: item.name, args: item.args });
-        await this.session.send({
-          type: "tool_call",
-          id: item.id,
-          name: item.name,
-          args: item.args,
-          seq: requestSeq
-        });
-      } else if (item.type === "chunk") {
-        await this.session.send({ ...item, seq: requestSeq });
+    let reservationKey: string | null = null;
+    if (providerId === "nodetool") {
+      const estimatedUsd = estimateDirectTextSpend({
+        provider: providerId,
+        model,
+        messages
+      });
+      const decision = await admitSpend(userId, estimatedUsd, [model]);
+      if (!decision.allowed) {
+        await this.session.send({ type: "error", message: decision.reason });
+        return;
       }
+      reservationKey = `inference:${randomUUID()}`;
+      reserveSpend(userId, reservationKey, estimatedUsd);
     }
 
-    if (requestSeq === this.deps.currentRequestSeq()) {
-      log.debug("Inference complete");
-      await this.session.send({ type: "inference_done", seq: requestSeq });
+    try {
+      const provider = await this.session.resolveProvider(providerId, userId);
+      try {
+        for await (const item of provider.generateMessagesTraced({
+          messages,
+          model,
+          tools: tools.length > 0 ? tools : undefined,
+          signal
+        })) {
+          if (requestSeq !== this.deps.currentRequestSeq()) break; // cancelled
+          if (isToolCall(item)) {
+            log.info("Tool call", { tool: item.name, args: item.args });
+            await this.session.send({
+              type: "tool_call",
+              id: item.id,
+              name: item.name,
+              args: item.args,
+              seq: requestSeq
+            });
+          } else if (item.type === "chunk") {
+            await this.session.send({ ...item, seq: requestSeq });
+          }
+        }
+      } finally {
+        if (providerId === "nodetool" && typeof provider.getTotalCost === "function") {
+          const cost = provider.getTotalCost();
+          if (cost > 0) {
+            try {
+              await Prediction.create<Prediction>({
+                user_id: userId,
+                provider: "nodetool",
+                model,
+                node_type: "direct.inference",
+                cost,
+                currency: "USD",
+                billing_unit: "tokens",
+                quantity: 1,
+                workflow_id: null,
+                node_id: "",
+                status: "completed"
+              });
+            } catch (err) {
+              this.session.logError("direct inference cost persistence failed", err);
+            }
+          }
+        }
+      }
+
+      if (requestSeq === this.deps.currentRequestSeq()) {
+        log.debug("Inference complete");
+        await this.session.send({ type: "inference_done", seq: requestSeq });
+      }
+    } finally {
+      if (reservationKey !== null) {
+        releaseSpend(userId, reservationKey);
+      }
     }
   }
 
@@ -975,7 +1026,7 @@ export class DirectInferenceHandler {
     // balance actually decrements. Cost is the larger of the delegate's own
     // tracked cost and the unit-price estimate — fal-style delegates bill
     // per unit and track nothing themselves.
-    const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+    const variations = clampVariations(req.variations);
     const effectiveDurationSeconds =
       req.mode === "video_extend"
         ? req.durationSeconds
@@ -1074,7 +1125,7 @@ export class DirectInferenceHandler {
     videoEditReferences?: VideoEditReferences
   ): Promise<DirectMediaGenerationResult> {
     const userId = this.session.requireUserId();
-    const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+    const variations = clampVariations(req.variations);
 
     req.signal?.throwIfAborted();
     const { generate, seamAssetId, storeAsset } = createGenerationRun({
@@ -1308,7 +1359,7 @@ export class DirectInferenceHandler {
             source_context: req.sourceContext
           },
           { mime: "video/mp4" },
-          () => provider.extendVideo(editSource, params)
+          (abort) => provider.extendVideo(editSource, { ...params, signal: abort })
         );
         const assetId =
           seamAssetId(generated) ??
@@ -1710,7 +1761,7 @@ export class DirectInferenceHandler {
 
   /** The catalog price of a direct media request, or 0 when it has none. */
   private estimateMediaUsd(req: DirectMediaGenerationRequest): number {
-    const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+    const variations = clampVariations(req.variations);
     const unit = getModelUnitPrice(
       { id: req.model, provider: req.provider },
       extractPricingParams({
