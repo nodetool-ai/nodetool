@@ -12,10 +12,14 @@ import {
   analyze,
   coverageCommand,
   crapScore,
+  findClangTidy,
   functionsInSource,
+  isCppFile,
+  isSourceFile,
   loadLcov,
   main,
   parseArgs,
+  parseClangTidyComplexity,
   parseLcov,
   percentForSpan,
   selectFiles
@@ -256,8 +260,30 @@ describe("coverageCommand", () => {
 
 describe("parseArgs", () => {
   it("reads options and rejects bad ones", () => {
-    expect(parseArgs(["--base", "origin/main", "--threshold", "30", "--top", "5", "--json", "src"])).toMatchObject({
+    expect(
+      parseArgs([
+        "--base",
+        "origin/main",
+        "--build",
+        "native/timeline/build-sanitize",
+        "--clang-tidy",
+        "/usr/bin/clang-tidy",
+        "--extra-arg",
+        "-DFOO=1",
+        "--extra-arg",
+        "-DBAR=2",
+        "--threshold",
+        "30",
+        "--top",
+        "5",
+        "--json",
+        "src"
+      ])
+    ).toMatchObject({
       base: "origin/main",
+      build: "native/timeline/build-sanitize",
+      clangTidy: "/usr/bin/clang-tidy",
+      extraArgs: ["-DFOO=1", "-DBAR=2"],
       changed: true,
       threshold: 30,
       top: 5,
@@ -266,7 +292,98 @@ describe("parseArgs", () => {
     });
     expect(() => parseArgs(["--threshold", "x"])).toThrow("--threshold requires a number");
     expect(() => parseArgs(["--lcov"])).toThrow("--lcov requires a value");
+    expect(() => parseArgs(["--build"])).toThrow("--build requires a value");
     expect(() => parseArgs(["--bogus"])).toThrow("Unknown option: --bogus");
     expect(() => parseArgs(["--no-coverage", "--run-coverage"])).toThrow();
+  });
+});
+
+describe("C/C++ clang-tidy CRAP", () => {
+  it("recognizes C/C++ source files and skips C/C++ test files", () => {
+    expect(isCppFile("native/realtime/src/dsp.cpp")).toBe(true);
+    expect(isSourceFile("native/realtime/src/dsp.cpp")).toBe(true);
+    expect(isSourceFile("native/realtime/src/dsp_test.cpp")).toBe(false);
+    expect(isSourceFile("native/realtime/src/test_dsp.cpp")).toBe(false);
+    expect(isSourceFile("native/realtime/src/dsp_tests.cc")).toBe(false);
+  });
+
+  it("parses readability-function-size warnings into CC = branches + 1 and line spans", () => {
+    const root = "/repo";
+    const output = [
+      "/repo/native/a.cpp:2:5: warning: function 'simple' exceeds recommended size/complexity thresholds [readability-function-size]",
+      "/repo/native/a.cpp:2:5: note: 1 statements (threshold 0)",
+      "/repo/native/a.cpp:5:5: warning: function 'branchy' exceeds recommended size/complexity thresholds [readability-function-size]",
+      "/repo/native/a.cpp:5:5: note: 7 lines including whitespace and comments (threshold 0)",
+      "/repo/native/a.cpp:5:5: note: 3 branches (threshold 0)",
+      // Template instantiation duplicate at the same line keeps max values.
+      "/repo/native/a.cpp:5:5: warning: function 'branchy' exceeds recommended size/complexity thresholds [readability-function-size]",
+      "/repo/native/a.cpp:5:5: note: 7 lines including whitespace and comments (threshold 0)",
+      "/repo/native/a.cpp:5:5: note: 3 branches (threshold 0)",
+      // Overloaded function in the same file gets disambiguated.
+      "/repo/native/a.cpp:20:5: warning: function 'simple' exceeds recommended size/complexity thresholds [readability-function-size]",
+      "/repo/native/a.cpp:20:5: note: 3 lines including whitespace and comments (threshold 0)",
+      "/repo/native/a.cpp:20:5: note: 1 branches (threshold 0)",
+      // Header outside allowedFiles is ignored.
+      "/repo/native/a.h:10:5: warning: function 'helper' exceeds recommended size/complexity thresholds [readability-function-size]",
+      "/repo/native/a.h:10:5: note: 2 branches (threshold 0)"
+    ].join("\n");
+
+    const allowed = new Set(["/repo/native/a.cpp"]);
+    const fns = parseClangTidyComplexity(output, root, allowed);
+    expect(fns).toEqual([
+      { name: "simple", file: "native/a.cpp", absFile: "/repo/native/a.cpp", line: 2, endLine: 2, complexity: 1 },
+      { name: "branchy", file: "native/a.cpp", absFile: "/repo/native/a.cpp", line: 5, endLine: 12, complexity: 4 },
+      { name: "simple#2", file: "native/a.cpp", absFile: "/repo/native/a.cpp", line: 20, endLine: 23, complexity: 2 }
+    ]);
+  });
+
+  const clangTidy = findClangTidy();
+  describe.skipIf(!clangTidy)("with real clang-tidy", () => {
+    let dir;
+    afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+    it("scores C++ functions with LCOV coverage", () => {
+      dir = mkdtempSync(join(tmpdir(), "crap-cpp-"));
+      mkdirSync(join(dir, "src"), { recursive: true });
+      const cppPath = join(dir, "src", "calc.cpp");
+      writeFileSync(
+        cppPath,
+        [
+          "int simple(int x) { return x + 1; }",
+          "int branchy(int a, int b) {",
+          "  if (a > 0) {",
+          "    for (int i = 0; i < a; ++i) {",
+          "      if (i == b) return i;",
+          "    }",
+          "  }",
+          "  return b;",
+          "}"
+        ].join("\n") + "\n"
+      );
+      const lcovPath = join(dir, "lcov.info");
+      writeFileSync(
+        lcovPath,
+        [
+          `SF:${cppPath}`,
+          "DA:1,1",
+          "DA:2,1",
+          "DA:3,1",
+          "DA:4,0",
+          "DA:5,0",
+          "DA:8,1",
+          "end_of_record"
+        ].join("\n") + "\n"
+      );
+
+      const coverage = loadLcov([lcovPath], dir);
+      const files = selectFiles({ ...parseArgs([]), root: dir });
+      expect(files).toEqual([cppPath]);
+      const entries = analyze(files, dir, coverage, { clangTidy });
+      const branchy = entries.find((entry) => entry.name === "branchy");
+      const simple = entries.find((entry) => entry.name === "simple");
+      // branchy: 3 branches -> CC 4; 3 of 5 lines covered -> 60% -> 16 * 0.4^3 + 4 = 5.024
+      expect(branchy).toMatchObject({ file: "src/calc.cpp", line: 2, complexity: 4, coverage: 60, crap: 5.024 });
+      expect(simple).toMatchObject({ file: "src/calc.cpp", line: 1, complexity: 1, coverage: 100, crap: 1 });
+    });
   });
 });
