@@ -6,11 +6,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
-import { Asset, ModelObserver, TimelineSequence, Workflow, initTestDb } from "@nodetool-ai/models";
+import { Asset, ImageDocument, JsScript, ModelObserver, TimelineSequence, Workflow, initTestDb } from "@nodetool-ai/models";
+import { emptyJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import { runIndexerPass, setAssetBytesReader, stopLibraryIndexWrites } from "@nodetool-ai/search-services";
 import { OPEN_WITH, SEARCH_CAPABILITIES, module as searchModule } from "../src/capabilities/search.js";
 import { UNGATED, createCapabilityRun, toolFromCapability } from "../src/capabilities/index.js";
 import { capabilityCategoryFor, capabilityModuleIssues, loadCapabilityModule } from "../src/capabilities/registry.js";
+import { JS_SCRIPT_CAPABILITIES } from "../src/capabilities/js-scripts.js";
+import { SKETCH_CAPABILITIES } from "../src/capabilities/sketches.js";
 import { TIMELINE_CAPABILITIES } from "../src/capabilities/timelines.js";
 import { WORKFLOW_CAPABILITIES } from "../src/capabilities/workflows.js";
 import type { CapabilityExport } from "../src/capabilities/types.js";
@@ -151,5 +154,46 @@ describe("document list tools route query through the library index", () => {
     await TimelineSequence.create({ user_id: USER, name: "Mountain cut", project_id: "default" });
     const result = await call(TIMELINE_CAPABILITIES, "list_timelines", { query: "harbor" });
     expect((result.timelines as Array<{ id: string }>).map((t) => t.id)).toEqual([cut.id]);
+  });
+
+  it("list_sketches matches by name through the index", async () => {
+    const document = JSON.stringify({
+      sketch: {
+        version: 3,
+        canvas: { width: 64, height: 64, backgroundColor: "#ffffff" },
+        layers: [],
+        activeLayerId: null,
+        maskLayerId: null
+      },
+      layerBindings: []
+    });
+    const sketch = (await ImageDocument.create({
+      user_id: USER,
+      project_id: "default",
+      name: "Harbor poster",
+      document
+    })) as ImageDocument;
+    await ImageDocument.create({ user_id: USER, project_id: "default", name: "Mountain poster", document });
+    const listed = JSON.stringify(await call(SKETCH_CAPABILITIES, "list_sketches", { query: "harbor" }));
+    expect(listed).toContain(sketch.id);
+    expect(listed).not.toContain("Mountain");
+  });
+
+  it("list_js_scripts matches the description and the code", async () => {
+    const summer = new JsScript({
+      user_id: USER,
+      name: "Summer",
+      document: JSON.stringify({ ...emptyJsScriptDocument(), description: "Adds numbers.", code: "return lighthouse;" })
+    });
+    await summer.save();
+    const other = new JsScript({ user_id: USER, name: "Other", document: JSON.stringify(emptyJsScriptDocument()) });
+    await other.save();
+    await call(SEARCH_CAPABILITIES, "search", { query: "" });
+    await runIndexerPass();
+
+    for (const query of ["adds", "lighthouse"]) {
+      const result = await call(JS_SCRIPT_CAPABILITIES, "list_js_scripts", { query });
+      expect((result.js_scripts as Array<{ id: string }>).map((s) => s.id)).toEqual([summer.id]);
+    }
   });
 });
