@@ -56,6 +56,56 @@ class TestEditActions : public QObject {
     Q_OBJECT
 
 private slots:
+    void clipParamsCombinedWindowKeepsOriginalAnimation() {
+        auto c = clip("a", "v1", 0, 2000);
+        c.insert("inPointMs", 0);
+        c.insert("outPointMs", 2000);
+        c.insert("animations", sourceAnchoredAnimation());
+        const auto result = applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params",
+            {{"target", "a"}, {"durationMs", 500}, {"outPointMs", 2000}});
+        const auto frames = result.value("clips").toArray()[0].toObject().value("animations").toArray()[0]
+            .toObject().value("custom").toObject().value("curves").toArray()[0].toObject().value("keyframes").toArray();
+        QCOMPARE(frames.last().toObject().value("value").toDouble(), 0.5);
+        QCOMPARE(frames.last().toObject().value("sourceMs").toDouble(), 2000.0);
+    }
+    void clipParamsOversizedShape() {
+        const auto c = clip("a", "v1", 0, 1000, "shape");
+        QJsonObject result;
+        try { result = applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params",
+            {{"target", "a"}, {"shapeStyle", QJsonObject{{"kind", "rect"}, {"width", 2.5}, {"height", 3}}}}); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        const auto style = result.value("clips").toArray()[0].toObject().value("shapeStyle").toObject();
+        QCOMPARE(style.value("width").toDouble(), 2.5);
+        QCOMPARE(style.value("height").toDouble(), 3.0);
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(result, "set_clip_params",
+            {{"target", "a"}, {"shapeStyle", QJsonObject{{"kind", "rect"}, {"width", -1}}}}));
+    }
+    void clipParamsStylePatchKeepsSavedValues_data() {
+        QTest::addColumn<QString>("kind");
+        QTest::newRow("caption") << QString("captionStyle");
+        QTest::newRow("text") << QString("textStyle");
+        QTest::newRow("font-size") << QString("fontSizePx");
+    }
+    void clipParamsStylePatchKeepsSavedValues() {
+        QFETCH(QString, kind);
+        auto c = clip("a", "v1", 0, 1000, "text");
+        c.insert("textStyle", QJsonObject{{"text", "Title"}, {"color", "red"}, {"fontSizePx", 40}, {"maxWidthFrac", 1.5}});
+        c.insert("caption", QJsonObject{{"words", QJsonArray{}}, {"style", QJsonObject{{"bottomMarginFrac", 1.5}, {"color", "red"}}}});
+        const QJsonObject patch = kind == u"fontSizePx" ? QJsonObject{{"target", "a"}, {kind, 72}}
+            : QJsonObject{{"target", "a"}, {kind, QJsonObject{{"color", "blue"}}}};
+        QJsonObject result;
+        try { result = applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params", patch); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        const auto next = result.value("clips").toArray()[0].toObject();
+        const auto style = kind == u"captionStyle" ? next.value("caption").toObject().value("style").toObject()
+            : next.value("textStyle").toObject();
+        QCOMPARE(style.value(kind == u"captionStyle" ? "bottomMarginFrac" : "maxWidthFrac").toDouble(), 1.5);
+        QCOMPARE(style.value(kind == u"fontSizePx" ? "fontSizePx" : "color"), kind == u"fontSizePx" ? QJsonValue(72) : QJsonValue("blue"));
+        if (kind != u"fontSizePx") {
+            QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(result, "set_clip_params",
+                {{"target", "a"}, {kind, QJsonObject{{kind == u"captionStyle" ? "bottomMarginFrac" : "maxWidthFrac", 1.5}}}}));
+        }
+    }
     void reviewPatternSpeedAndDuration() {
         auto c = clip("a", "v1", 0, 1000, "midi");
         c.insert("pattern", QJsonObject{{"notes", QJsonArray{}}});

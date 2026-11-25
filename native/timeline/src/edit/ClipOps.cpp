@@ -2590,8 +2590,8 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
                     if (!QStringList{"rect", "ellipse", "line", "polygon", "star", "path"}.contains(style.value("kind").toString())) { throw OpError("Invalid shape kind"); }
                     if (style.contains("lineCap") && !QStringList{"butt", "round", "square"}.contains(style.value("lineCap").toString())) { throw OpError("Invalid shape line cap"); }
                     if (style.contains("lineJoin") && !QStringList{"miter", "round", "bevel"}.contains(style.value("lineJoin").toString())) { throw OpError("Invalid shape line join"); }
-                    for (const auto* field : {"strokeWidthPx", "cornerRadius"}) { validateStyleRange(style, QLatin1String(field), 0); }
-                    for (const auto* field : {"width", "height", "innerRadius", "trimStart", "trimEnd"}) { validateStyleRange(style, QLatin1String(field), 0, 1); }
+                    for (const auto* field : {"strokeWidthPx", "cornerRadius", "width", "height"}) { validateStyleRange(style, QLatin1String(field), 0); }
+                    for (const auto* field : {"innerRadius", "trimStart", "trimEnd"}) { validateStyleRange(style, QLatin1String(field), 0, 1); }
                     validateStyleRange(style, "sides", 3, static_cast<double>(std::numeric_limits<int>::max()) / 2);
                     if (style.contains("sides") && std::floor(style.value("sides").toDouble()) != style.value("sides").toDouble()) { throw OpError("Shape sides must be an integer"); }
                     if (style.contains("fill") && !style.value("fill").isString()) { validateStyleFill(style.value("fill")); }
@@ -2613,12 +2613,12 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
                     auto style = c.value("caption").toObject().value("style").toObject();
                     const auto update = value.toObject();
                     for (auto field = update.begin(); field != update.end(); ++field) { style.insert(field.key(), field.value()); }
-                    validateFontFamily(style.value("fontFamily"));
-                    validateStyleRange(style, "fontSizeFrac", 0, 1, true);
-                    validateStyleRange(style, "bottomMarginFrac", 0, 1);
-                    validateStyleFields(style, {"fontSizeFrac", "bottomMarginFrac"}, {"fontFamily", "color", "activeColor"});
-                    validateStyleDecoration(style.value("outline"), {"widthPx"});
-                    validateStyleDecoration(style.value("background"), {"paddingPx"});
+                    validateFontFamily(update.value("fontFamily"));
+                    validateStyleRange(update, "fontSizeFrac", 0, 1, true);
+                    validateStyleRange(update, "bottomMarginFrac", 0, 1);
+                    validateStyleFields(update, {"fontSizeFrac", "bottomMarginFrac"}, {"fontFamily", "color", "activeColor"});
+                    validateStyleDecoration(update.value("outline"), {"widthPx"});
+                    validateStyleDecoration(update.value("background"), {"paddingPx"});
                     auto caption = c.value("caption").toObject();
                     caption.insert("style", style);
                     c.insert("caption", caption);
@@ -2731,33 +2731,40 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
             }
             if (patch.contains("textStyle") || patch.contains("fontSizePx")) {
                 auto style = c.value("textStyle").toObject();
-                const auto update = patch.value("textStyle").toObject();
+                auto update = patch.value("textStyle").toObject();
                 if (patch.contains("fontSizePx") && update.isEmpty() && style.isEmpty()) { throw OpError("Clip carries no text to size"); }
                 for (auto field = update.begin(); field != update.end(); ++field) {
                     if (field.value().isNull() && !QStringList{"text", "fontSizePx", "color"}.contains(field.key())) { style.remove(field.key()); }
                     else { style.insert(field.key(), field.value()); }
                 }
-                if (patch.contains("fontSizePx")) { style.insert("fontSizePx", patch.value("fontSizePx")); }
+                for (auto field = update.begin(); field != update.end();) {
+                    if (field.value().isNull() && !QStringList{"text", "fontSizePx", "color"}.contains(field.key())) { field = update.erase(field); }
+                    else { ++field; }
+                }
+                if (patch.contains("fontSizePx")) {
+                    style.insert("fontSizePx", patch.value("fontSizePx"));
+                    update.insert("fontSizePx", patch.value("fontSizePx"));
+                }
                 if (!style.contains("color")) { style.insert("color", "#FFFFFF"); }
                 if (!style.value("text").isString() || !style.value("fontSizePx").isDouble() || !style.value("color").isString()) { throw OpError("Text style requires text, fontSizePx and color"); }
                 const QStringList numbers{"fontSizePx", "fontWeight", "maxWidthFrac", "letterSpacingPx", "lineHeight"};
                 const QStringList words{"text", "path", "fontFamily", "color", "fontStyle", "verticalAlign"};
-                for (auto field = style.begin(); field != style.end(); ++field) {
+                for (auto field = update.begin(); field != update.end(); ++field) {
                     if (numbers.contains(field.key()) && !finiteNumber(field.value())) { throw OpError("Text style field must be numeric"); }
                     if (words.contains(field.key()) && !field.value().isString()) { throw OpError("Text style field must be text"); }
                     if (field.key() == u"strikethrough" && !field.value().isBool()) { throw OpError("strikethrough must be boolean"); }
                     if (field.key() == u"align" && !QStringList{"left", "center", "right"}.contains(field.value().toString())) { throw OpError("Invalid text alignment"); }
                     if (QStringList{"stroke", "shadow", "background", "fill"}.contains(field.key()) && !field.value().isObject()) { throw OpError("Text decoration must be an object"); }
                 }
-                validateStyleDecoration(style.value("stroke"), {"widthPx"});
-                validateStyleDecoration(style.value("shadow"), {"blurPx", "offsetX", "offsetY"});
-                validateStyleDecoration(style.value("background"), {"paddingPx"});
-                validateStyleFill(style.value("fill"));
-                validateFontFamily(style.value("fontFamily"));
-                for (const auto* field : {"fontSizePx", "fontWeight", "lineHeight"}) { validateStyleRange(style, QLatin1String(field), 0, std::numeric_limits<double>::infinity(), true); }
-                validateStyleRange(style, "maxWidthFrac", 0, 1, true);
-                if (style.contains("fontStyle") && !QStringList{"normal", "italic"}.contains(style.value("fontStyle").toString())) { throw OpError("Invalid font style"); }
-                if (style.contains("verticalAlign") && !QStringList{"top", "middle", "bottom"}.contains(style.value("verticalAlign").toString())) { throw OpError("Invalid vertical alignment"); }
+                validateStyleDecoration(update.value("stroke"), {"widthPx"});
+                validateStyleDecoration(update.value("shadow"), {"blurPx", "offsetX", "offsetY"});
+                validateStyleDecoration(update.value("background"), {"paddingPx"});
+                validateStyleFill(update.value("fill"));
+                validateFontFamily(update.value("fontFamily"));
+                for (const auto* field : {"fontSizePx", "fontWeight", "lineHeight"}) { validateStyleRange(update, QLatin1String(field), 0, std::numeric_limits<double>::infinity(), true); }
+                validateStyleRange(update, "maxWidthFrac", 0, 1, true);
+                if (update.contains("fontStyle") && !QStringList{"normal", "italic"}.contains(update.value("fontStyle").toString())) { throw OpError("Invalid font style"); }
+                if (update.contains("verticalAlign") && !QStringList{"top", "middle", "bottom"}.contains(update.value("verticalAlign").toString())) { throw OpError("Invalid vertical alignment"); }
                 c.insert("textStyle", style);
             }
             clips[i] = c;
@@ -2839,6 +2846,7 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
                             (!patch.contains("inPointMs") && !patch.contains("durationMs")))) { continue; }
                         if (sectionLocked(raw, member) || isGroupClip(member)) { throw OpError("Source edits require unlocked media clips"); }
                         if (sourceEdit) { assertNotTimeRemapped(member, "set_clip_params"); }
+                        const auto originalAnimations = member.value("animations");
                         const double oldIn = effectiveIn(member);
                         double nextIn = !patch.contains("inPointMs") ? member.value("inPointMs").toDouble() :
                             primary ? patch.value("inPointMs").toDouble() : oldIn + sourceShiftMs * sourceRate(member);
@@ -2862,8 +2870,15 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
                             member.insert("inPointMs", 0);
                         }
                         if (sourceEdit && present(member, "animations")) {
-                            member.insert("animations", resliceSourceAnimations(member.value("animations").toArray(),
-                                member.value("inPointMs").toDouble(), outPointOf(member), clipDurationMs(member)));
+                            auto animations = member.value("animations").toArray();
+                            const auto originals = originalAnimations.toArray();
+                            for (qsizetype k = 0; k < animations.size() && k < originals.size(); ++k) {
+                                if (isSourceAnchoredAnimation(originals[k].toObject())) {
+                                    animations[k] = sliceSourceAnimation(originals[k].toObject(),
+                                        member.value("inPointMs").toDouble(), outPointOf(member), clipDurationMs(member));
+                                }
+                            }
+                            member.insert("animations", animations);
                         }
                         changed[j] = member;
                     }
