@@ -114,6 +114,30 @@ private slots:
         QCOMPARE(model.findClip(QStringLiteral("clip-1-2"))->mediaPath, std::string("/resolved/clip.mp4"));
     }
 
+    void clipParamsIsOneUndoCommand() {
+        TimelineModel model;
+        load(model);
+        const auto before = model.timeline().raw;
+        QVERIFY(model.applyEdit("set_clip_params", {{"target", "clip-0-0"}, {"startMs", 100},
+            {"durationMs", 500}, {"inPointMs", 250}, {"outPointMs", 750},
+            {"transform", QJsonObject{{"rotation", 30}}}, {"borderRadius", 8}}));
+        QCOMPARE(model.undoStack()->count(), 1);
+        const auto after = model.timeline().raw;
+        QJsonObject edited;
+        for (const auto& value : after.value("clips").toArray()) {
+            if (value.toObject().value("id").toString() == u"clip-0-0") { edited = value.toObject(); }
+        }
+        QCOMPARE(edited.value("startMs").toDouble(), 100.0);
+        QCOMPARE(edited.value("durationMs").toDouble(), 500.0);
+        QCOMPARE(edited.value("inPointMs").toDouble(), 250.0);
+        QCOMPARE(edited.value("outPointMs").toDouble(), 750.0);
+        QCOMPARE(edited.value("transform").toObject().value("rotation").toDouble(), 30.0);
+        QCOMPARE(edited.value("borderRadius").toDouble(), 8.0);
+        model.undoStack()->undo();
+        QCOMPARE(model.timeline().raw, before);
+        model.undoStack()->redo();
+        QCOMPARE(model.timeline().raw, after);
+    }
     // F13: moveClip finds the clip by id and makes one undo entry.
     void moveClipIsOneEdit() {
         TimelineModel model;

@@ -1,5 +1,6 @@
 #include "edit/ClipOps.h"
 #include "edit/EditActions.h"
+#include "edit/groups/GroupOps.h"
 #include "edit/speed/SpeedOperations.h"
 #include "scene/Animation.h"
 #include "midi/RegionParams.h"
@@ -30,6 +31,67 @@ std::function<QString()>& idGenerator() {
     // native-rules #14: static mutable id generator
     static std::function<QString()> generator;
     return generator;
+}
+
+bool finiteNumber(const QJsonValue& value) {
+    return value.isDouble() && std::isfinite(value.toDouble());
+}
+
+void validateStyleRange(const QJsonObject& style, const QString& key, double minimum,
+                        double maximum = std::numeric_limits<double>::infinity(), bool positive = false) {
+    if (!style.contains(key)) { return; }
+    const auto value = style.value(key);
+    if (!finiteNumber(value) || value.toDouble() < minimum || value.toDouble() > maximum ||
+        (positive && value.toDouble() == minimum)) {
+        throw OpError(("Invalid style range: " + key).toStdString());
+    }
+}
+
+void validateFontFamily(const QJsonValue& value) {
+    if (value.isUndefined()) { return; }
+    if (!value.isString()) { throw OpError("Font family must be text"); }
+    auto family = value.toString().section(',', 0, 0).trimmed();
+    if (family.startsWith('"') || family.startsWith('\'')) { family.remove(0, 1); }
+    if (family.endsWith('"') || family.endsWith('\'')) { family.chop(1); }
+    if (QStringList{"sans-serif", "serif", "monospace", "cursive", "fantasy", "system-ui", "ui-sans-serif", "ui-serif", "ui-monospace", "ui-rounded", "math", "emoji", "fangsong", "-apple-system", "blinkmacsystemfont"}.contains(family.trimmed().toLower())) {
+        throw OpError("Name a typeface instead of a generic font family");
+    }
+}
+
+void validateStyleFields(const QJsonObject& style, const QStringList& numbers, const QStringList& words) {
+    for (auto field = style.begin(); field != style.end(); ++field) {
+        if (numbers.contains(field.key()) && !finiteNumber(field.value())) { throw OpError("Style field must be numeric"); }
+        if (words.contains(field.key()) && !field.value().isString()) { throw OpError("Style field must be text"); }
+    }
+}
+
+void validateStyleDecoration(const QJsonValue& value, const QStringList& requiredNumbers) {
+    if (value.isUndefined()) { return; }
+    if (!value.isObject()) { throw OpError("Style decoration must be an object"); }
+    const auto decoration = value.toObject();
+    if (!decoration.value("color").isString()) { throw OpError("Style decoration requires a color"); }
+    for (const auto& field : requiredNumbers) {
+        if (!finiteNumber(decoration.value(field))) { throw OpError("Style decoration requires numeric dimensions"); }
+        if (field != u"offsetX" && field != u"offsetY") { validateStyleRange(decoration, field, 0); }
+    }
+    validateStyleRange(decoration, "radiusPx", 0);
+}
+
+void validateStyleFill(const QJsonValue& value) {
+    if (value.isUndefined()) { return; }
+    if (!value.isObject()) { throw OpError("Style fill must be an object"); }
+    const auto fill = value.toObject();
+    const auto type = fill.value("type").toString();
+    if (type == u"solid") {
+        if (!fill.value("color").isString()) { throw OpError("Solid fill requires a color"); }
+        return;
+    }
+    if ((type != u"linear" && type != u"radial") || !fill.value("stops").isArray() ||
+        (type == u"linear" && !finiteNumber(fill.value("angle"))) || fill.value("stops").toArray().size() < 2) { throw OpError("Invalid gradient fill"); }
+    for (const auto& value : fill.value("stops").toArray()) {
+        const auto stop = value.toObject();
+        if (!finiteNumber(stop.value("offset")) || stop.value("offset").toDouble() < 0 || stop.value("offset").toDouble() > 1 || !stop.value("color").isString()) { throw OpError("Invalid gradient stop"); }
+    }
 }
 
 bool present(const QJsonObject& c, const char* key) {
@@ -2471,6 +2533,10 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
         return raw;
     }
     if (operation == u"set_clip_params") {
+        const auto sourceLimit = p.value("maxSourceDurationMs");
+        if (!sourceLimit.isUndefined() && (!finiteNumber(sourceLimit) || sourceLimit.toDouble() <= 0)) {
+            throw OpError("maxSourceDurationMs must be finite and positive");
+        }
         auto clips = raw.value("clips").toArray();
         const auto target = musicResourceId(clips, p.value("clipId").toString(p.value("target").toString()), "clip");
         auto patch = p.contains("patch") ? p.value("patch").toObject() : p;
@@ -2509,13 +2575,100 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
                             if (!value.isDouble() || !std::isfinite(n) || std::floor(n) != n || std::abs(n) > limit) { throw OpError("Invalid MIDI region parameter"); }
                         }
                     }
-                } else if (key == u"startMs" || key == u"durationMs") {
+                } else if (key == u"startMs" || key == u"durationMs" || key == u"inPointMs" || key == u"outPointMs") {
                     if (!value.isDouble() || !std::isfinite(value.toDouble()) || value.toDouble() < 0 ||
                         (key == u"durationMs" && value.toDouble() == 0)) { throw OpError("Invalid clip timing"); }
-                    if (key == u"durationMs" && isGroupClip(c)) { throw OpError("Trim a group's duration through the group trim command"); }
                     continue;
                 } else if (key == u"trackId") {
                     if (!value.isString()) { throw OpError("trackId must be a track id"); }
+                    continue;
+                } else if (key == u"shapeStyle") {
+                    if (!value.isObject() || !value.toObject().value("kind").isString()) { throw OpError("shapeStyle requires a kind"); }
+                    auto style = value.toObject();
+                    validateStyleFields(style, {"strokeWidthPx", "x", "y", "width", "height", "x2", "y2", "sides", "innerRadius", "cornerRadius", "trimStart", "trimEnd"},
+                        {"kind", "stroke", "d", "lineCap", "lineJoin"});
+                    if (!QStringList{"rect", "ellipse", "line", "polygon", "star", "path"}.contains(style.value("kind").toString())) { throw OpError("Invalid shape kind"); }
+                    if (style.contains("lineCap") && !QStringList{"butt", "round", "square"}.contains(style.value("lineCap").toString())) { throw OpError("Invalid shape line cap"); }
+                    if (style.contains("lineJoin") && !QStringList{"miter", "round", "bevel"}.contains(style.value("lineJoin").toString())) { throw OpError("Invalid shape line join"); }
+                    for (const auto* field : {"strokeWidthPx", "cornerRadius"}) { validateStyleRange(style, QLatin1String(field), 0); }
+                    for (const auto* field : {"width", "height", "innerRadius", "trimStart", "trimEnd"}) { validateStyleRange(style, QLatin1String(field), 0, 1); }
+                    validateStyleRange(style, "sides", 3, static_cast<double>(std::numeric_limits<int>::max()) / 2);
+                    if (style.contains("sides") && std::floor(style.value("sides").toDouble()) != style.value("sides").toDouble()) { throw OpError("Shape sides must be an integer"); }
+                    if (style.contains("fill") && !style.value("fill").isString()) { validateStyleFill(style.value("fill")); }
+                    validateStyleFill(style.value("fillStyle"));
+                    if (style.contains("dash")) {
+                        if (!style.value("dash").isArray()) { throw OpError("Shape dash must be an array"); }
+                        for (const auto& dash : style.value("dash").toArray()) { if (!finiteNumber(dash) || dash.toDouble() < 0) { throw OpError("Shape dash must contain numbers"); } }
+                    }
+                    if (style.value("kind").toString() == u"line") {
+                        if (!style.contains("stroke")) { style.insert("stroke", "#FFFFFF"); }
+                        if (!style.contains("strokeWidthPx")) { style.insert("strokeWidthPx", 8); }
+                    } else if (!style.contains("fill") && !style.contains("fillStyle") && !style.contains("stroke")) {
+                        style.insert("fill", "#FFFFFF");
+                    } else if (style.contains("stroke") && !style.contains("strokeWidthPx")) { style.insert("strokeWidthPx", 8); }
+                    c.insert("shapeStyle", style);
+                    continue;
+                } else if (key == u"captionStyle") {
+                    if (!value.isObject() || !c.value("caption").isObject()) { throw OpError("Clip carries no caption to style"); }
+                    auto style = c.value("caption").toObject().value("style").toObject();
+                    const auto update = value.toObject();
+                    for (auto field = update.begin(); field != update.end(); ++field) { style.insert(field.key(), field.value()); }
+                    validateFontFamily(style.value("fontFamily"));
+                    validateStyleRange(style, "fontSizeFrac", 0, 1, true);
+                    validateStyleRange(style, "bottomMarginFrac", 0, 1);
+                    validateStyleFields(style, {"fontSizeFrac", "bottomMarginFrac"}, {"fontFamily", "color", "activeColor"});
+                    validateStyleDecoration(style.value("outline"), {"widthPx"});
+                    validateStyleDecoration(style.value("background"), {"paddingPx"});
+                    auto caption = c.value("caption").toObject();
+                    caption.insert("style", style);
+                    c.insert("caption", caption);
+                    continue;
+                } else if (key == u"fontSizePx") {
+                    if (!finiteNumber(value) || value.toDouble() <= 0) { throw OpError("fontSizePx must be positive and finite"); }
+                    continue;
+                } else if (key == u"textStyle") {
+                    if (!value.isObject()) { throw OpError("textStyle must be an object"); }
+                    continue;
+                } else if (key == u"blendMode") {
+                    if (!value.isNull() && (!value.isString() || !QStringList{"normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "add"}.contains(value.toString()))) { throw OpError("Invalid blendMode"); }
+                } else if (key == u"borderRadius") {
+                    if (!finiteNumber(value) || value.toDouble() < 0) { throw OpError("borderRadius must be nonnegative and finite"); }
+                } else if (key == u"crop") {
+                    if (!value.isNull()) {
+                        if (!value.isObject()) { throw OpError("crop must be an object or null"); }
+                        const auto crop = value.toObject();
+                        for (const auto* edge : {"left", "right", "top", "bottom"}) {
+                            const auto n = crop.value(QLatin1String(edge));
+                            if (!finiteNumber(n) || n.toDouble() < 0 || n.toDouble() > 1) { throw OpError("Crop insets must be numbers from 0 to 1"); }
+                        }
+                        if (crop.value("left").toDouble() + crop.value("right").toDouble() >= 1 - 1e-4 ||
+                            crop.value("top").toDouble() + crop.value("bottom").toDouble() >= 1 - 1e-4) { throw OpError("Crop keeps no picture"); }
+                    }
+                } else if (key == u"transform") {
+                    if (!value.isObject()) { throw OpError("transform must be an object"); }
+                    auto transform = c.value("transform").toObject();
+                    const auto change = value.toObject();
+                    for (auto field = change.begin(); field != change.end(); ++field) {
+                        if (field.key() == u"position" || field.key() == u"scale" || field.key() == u"anchor") { continue; }
+                        if (!QStringList{"rotation", "rotationX", "rotationY", "perspective"}.contains(field.key()) || (!finiteNumber(field.value()) || (field.key() == u"perspective" && field.value().toDouble() <= 0))) { throw OpError("Invalid transform field"); }
+                        transform.insert(field.key(), field.value());
+                    }
+                    for (const auto* field : {"position", "scale", "anchor"}) {
+                        const auto name = QLatin1String(field);
+                        const double fallback = name == u"scale" ? 1 : name == u"anchor" ? 0.5 : 0;
+                        auto point = transform.value(name).toObject();
+                        const auto update = change.value(name);
+                        if (!update.isUndefined() && !update.isObject()) { throw OpError("Transform coordinates must be objects"); }
+                        for (const auto* axis : {"x", "y"}) {
+                            const auto key = QLatin1String(axis);
+                            const auto n = update.toObject().value(key);
+                            if (!n.isUndefined() && !finiteNumber(n)) { throw OpError("Transform coordinates must be numbers"); }
+                            point.insert(key, n.isUndefined() ? point.value(key).toDouble(fallback) : n.toDouble());
+                        }
+                        transform.insert(name, point);
+                    }
+                    if (!transform.contains("rotation")) { transform.insert("rotation", 0); }
+                    c.insert(key, transform);
                     continue;
                 } else if (key == u"audioEffects") {
                     if (!value.isArray()) { throw OpError("audioEffects must be an array"); }
@@ -2576,13 +2729,165 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
                 } else { throw OpError(("Unsupported clip parameter: " + key).toStdString()); }
                 if (value.isNull() || ((key == u"transpose" || key == u"velocityOffset") && value.toDouble() == 0)) { c.remove(key); } else { c.insert(key, value); }
             }
+            if (patch.contains("textStyle") || patch.contains("fontSizePx")) {
+                auto style = c.value("textStyle").toObject();
+                const auto update = patch.value("textStyle").toObject();
+                if (patch.contains("fontSizePx") && update.isEmpty() && style.isEmpty()) { throw OpError("Clip carries no text to size"); }
+                for (auto field = update.begin(); field != update.end(); ++field) {
+                    if (field.value().isNull() && !QStringList{"text", "fontSizePx", "color"}.contains(field.key())) { style.remove(field.key()); }
+                    else { style.insert(field.key(), field.value()); }
+                }
+                if (patch.contains("fontSizePx")) { style.insert("fontSizePx", patch.value("fontSizePx")); }
+                if (!style.contains("color")) { style.insert("color", "#FFFFFF"); }
+                if (!style.value("text").isString() || !style.value("fontSizePx").isDouble() || !style.value("color").isString()) { throw OpError("Text style requires text, fontSizePx and color"); }
+                const QStringList numbers{"fontSizePx", "fontWeight", "maxWidthFrac", "letterSpacingPx", "lineHeight"};
+                const QStringList words{"text", "path", "fontFamily", "color", "fontStyle", "verticalAlign"};
+                for (auto field = style.begin(); field != style.end(); ++field) {
+                    if (numbers.contains(field.key()) && !finiteNumber(field.value())) { throw OpError("Text style field must be numeric"); }
+                    if (words.contains(field.key()) && !field.value().isString()) { throw OpError("Text style field must be text"); }
+                    if (field.key() == u"strikethrough" && !field.value().isBool()) { throw OpError("strikethrough must be boolean"); }
+                    if (field.key() == u"align" && !QStringList{"left", "center", "right"}.contains(field.value().toString())) { throw OpError("Invalid text alignment"); }
+                    if (QStringList{"stroke", "shadow", "background", "fill"}.contains(field.key()) && !field.value().isObject()) { throw OpError("Text decoration must be an object"); }
+                }
+                validateStyleDecoration(style.value("stroke"), {"widthPx"});
+                validateStyleDecoration(style.value("shadow"), {"blurPx", "offsetX", "offsetY"});
+                validateStyleDecoration(style.value("background"), {"paddingPx"});
+                validateStyleFill(style.value("fill"));
+                validateFontFamily(style.value("fontFamily"));
+                for (const auto* field : {"fontSizePx", "fontWeight", "lineHeight"}) { validateStyleRange(style, QLatin1String(field), 0, std::numeric_limits<double>::infinity(), true); }
+                validateStyleRange(style, "maxWidthFrac", 0, 1, true);
+                if (style.contains("fontStyle") && !QStringList{"normal", "italic"}.contains(style.value("fontStyle").toString())) { throw OpError("Invalid font style"); }
+                if (style.contains("verticalAlign") && !QStringList{"top", "middle", "bottom"}.contains(style.value("verticalAlign").toString())) { throw OpError("Invalid vertical alignment"); }
+                c.insert("textStyle", style);
+            }
             clips[i] = c;
             raw.insert("clips", clips);
-            if (patch.contains("durationMs")) {
-                QJsonObject trim{{"clipId", target}, {"durationMs", patch.value("durationMs")},
-                    {"linked", p.value("linked").toBool(true)}};
-                if (p.contains("maxSourceDurationMs")) { trim.insert("maxSourceDurationMs", p.value("maxSourceDurationMs")); }
-                raw = applyMusicClipEdit(std::move(raw), QStringLiteral("trim_clip"), trim);
+            if (patch.contains("durationMs") || patch.contains("inPointMs") || patch.contains("outPointMs")) {
+                const bool sourceEdit = patch.contains("inPointMs") || patch.contains("outPointMs");
+                const auto link = p.value("linked").toBool(true) ? clipLinkId(c) : QString();
+                const double deltaDuration = patch.contains("durationMs") ? patch.value("durationMs").toDouble() - clipDurationMs(c) : 0;
+                const double ticksPerMs = sectionBpm(raw) * 960 / 60000;
+                const auto effectiveIn = [ticksPerMs](const QJsonObject& member) {
+                    return member.value("inPointMs").toDouble() +
+                        (member.value("pattern").isObject() ? member.value("patternPhaseTicks").toDouble() / ticksPerMs : 0);
+                };
+                const double sourceShiftMs = patch.contains("inPointMs")
+                    ? (patch.value("inPointMs").toDouble() - effectiveIn(c)) / sourceRate(c) : 0;
+                ClipList members;
+                for (const auto& value : clips) { members.push_back(value.toObject()); }
+                auto changed = clips;
+                if (isGroupClip(c)) {
+                    if (sourceEdit) { throw OpError("Groups carry no source media"); }
+                    const auto unit = moveUnitIds(members, {target}, p.value("linked").toBool(true));
+                    for (const auto& member : members) {
+                        if (unit.count(clipId(member)) && sectionLocked(raw, member)) { throw OpError("Group trim requires unlocked clips and tracks"); }
+                    }
+                    auto trimmed = members;
+                    // Trim linked roots by the same delta, and keep each group's descendants inside it.
+                    for (size_t j = 0; j < members.size(); ++j) {
+                        const auto& member = members[j];
+                        if (clipId(member) != target && (link.isEmpty() || clipLinkId(member) != link)) { continue; }
+                        if (trimmed[j] != member) { continue; }
+                        if (isGroupClip(member)) { trimmed = groups::trimGroup(trimmed, clipId(member), "end", deltaDuration); }
+                        else { trimmed[j] = trimClip(member, "end", deltaDuration); }
+                    }
+                    if (p.value("linked").toBool(true)) {
+                        QHash<QString, std::vector<size_t>> byLink;
+                        std::vector<size_t> pending;
+                        IdSet propagated;
+                        for (size_t j = 0; j < members.size(); ++j) {
+                            if (!clipLinkId(members[j]).isEmpty()) { byLink[clipLinkId(members[j])].push_back(j); }
+                            if (trimmed[j] != members[j]) { pending.push_back(j); }
+                        }
+                        // A child trimmed by the group carries its linked media with it too.
+                        for (size_t cursor = 0; cursor < pending.size(); ++cursor) {
+                            const auto index = pending[cursor];
+                            const auto memberLink = clipLinkId(members[index]);
+                            if (memberLink.isEmpty() || !propagated.insert(memberLink).second) { continue; }
+                            const double headDelta = clipStartMs(members[index]) - clipStartMs(trimmed[index]);
+                            const double tailDelta = clipEndMs(trimmed[index]) - clipEndMs(members[index]);
+                            for (const auto peer : byLink.value(memberLink)) {
+                                if (trimmed[peer] != members[peer]) { continue; }
+                                if (isGroupClip(members[peer])) {
+                                    const auto before = trimmed;
+                                    if (headDelta != 0) { trimmed = groups::trimGroup(trimmed, clipId(members[peer]), "start", headDelta); }
+                                    if (tailDelta != 0) { trimmed = groups::trimGroup(trimmed, clipId(members[peer]), "end", tailDelta); }
+                                    for (size_t k = 0; k < trimmed.size(); ++k) {
+                                        if (trimmed[k] != before[k]) { pending.push_back(k); }
+                                    }
+                                } else {
+                                    if (headDelta != 0) { trimmed[peer] = trimClip(trimmed[peer], "start", headDelta); }
+                                    if (tailDelta != 0) { trimmed[peer] = trimClip(trimmed[peer], "end", tailDelta); }
+                                    pending.push_back(peer);
+                                }
+                            }
+                        }
+                    }
+                    changed = {};
+                    for (const auto& member : trimmed) {
+                        if (unit.count(clipId(member)) && !sourceLimit.isUndefined() &&
+                            outPointOf(member) > sourceLimit.toDouble() + SOURCE_BOUND_TOLERANCE_MS) {
+                            throw OpError("Group trim exceeds source duration");
+                        }
+                        changed.append(member);
+                    }
+                } else {
+                    for (qsizetype j = 0; j < changed.size(); ++j) {
+                        auto member = changed[j].toObject();
+                        const bool primary = clipId(member) == target;
+                        if (!primary && (link.isEmpty() || clipLinkId(member) != link ||
+                            (!patch.contains("inPointMs") && !patch.contains("durationMs")))) { continue; }
+                        if (sectionLocked(raw, member) || isGroupClip(member)) { throw OpError("Source edits require unlocked media clips"); }
+                        if (sourceEdit) { assertNotTimeRemapped(member, "set_clip_params"); }
+                        const double oldIn = effectiveIn(member);
+                        double nextIn = !patch.contains("inPointMs") ? member.value("inPointMs").toDouble() :
+                            primary ? patch.value("inPointMs").toDouble() : oldIn + sourceShiftMs * sourceRate(member);
+                        if (!std::isfinite(nextIn) || nextIn < -SOURCE_BOUND_TOLERANCE_MS) { throw OpError("Linked slip extends before source start"); }
+                        nextIn = std::max(0.0, nextIn);
+                        if (sourceEdit && patch.contains("inPointMs")) {
+                            member.insert("inPointMs", nextIn);
+                            const double loop = member.value("loopLengthMs").toDouble();
+                            const double window = loop > 0 && loop < clipDurationMs(member) ? loop : clipDurationMs(member);
+                            member.insert("outPointMs", nextIn + window * sourceRate(member));
+                            if (member.value("caption").isObject()) { member.insert("caption", retimeCaption(member.value("caption").toObject(), -(nextIn - oldIn) / sourceRate(member))); }
+                        }
+                        if (patch.contains("durationMs")) { member = trimClip(member, "end", deltaDuration); }
+                        if (primary && patch.contains("outPointMs")) { member.insert("outPointMs", patch.value("outPointMs")); }
+                        if (member.value("outPointMs").isDouble() && member.value("outPointMs").toDouble() <= nextIn) { throw OpError("outPointMs must exceed inPointMs"); }
+                        if (!sourceLimit.isUndefined() && outPointOf(member) > sourceLimit.toDouble() + SOURCE_BOUND_TOLERANCE_MS) { throw OpError("outPointMs exceeds source duration"); }
+                        if (member.value("pattern").isObject() && patch.contains("inPointMs")) {
+                            const double phase = std::floor(nextIn * ticksPerMs + 0.5);
+                            if (phase > 0) { member.insert("patternPhaseTicks", phase); } else { member.remove("patternPhaseTicks"); }
+                            member.insert("outPointMs", member.value("outPointMs").toDouble() - nextIn);
+                            member.insert("inPointMs", 0);
+                        }
+                        if (sourceEdit && present(member, "animations")) {
+                            member.insert("animations", resliceSourceAnimations(member.value("animations").toArray(),
+                                member.value("inPointMs").toDouble(), outPointOf(member), clipDurationMs(member)));
+                        }
+                        changed[j] = member;
+                    }
+                }
+                raw.insert("clips", changed);
+            }
+            if (patch.contains("durationMs") || patch.contains("inPointMs") || patch.contains("outPointMs")) {
+                QHash<QString, QJsonObject> originalById;
+                for (const auto& value : clips) { originalById.insert(clipId(value.toObject()), value.toObject()); }
+                QHash<QString, QJsonObject> changedById;
+                for (const auto& value : raw.value("clips").toArray()) {
+                    const auto member = value.toObject();
+                    if (originalById.value(clipId(member)) != member) { changedById.insert(clipId(member), member); }
+                }
+                auto media = raw.value("mediaTracks").toArray();
+                for (qsizetype j = 0; j < media.size(); ++j) {
+                    const auto track = media[j].toObject();
+                    const auto member = changedById.constFind(track.value("clipId").toString());
+                    if (member == changedById.cend()) { continue; }
+                    auto sliced = nt::targeting::sliceMediaTrack(track, *member);
+                    sliced.insert("id", track.value("id"));
+                    media[j] = sliced;
+                }
+                if (raw.contains("mediaTracks")) { raw.insert("mediaTracks", media); }
             }
             if (patch.contains("startMs") || patch.contains("trackId")) {
                 QJsonObject move{{"clipId", target}, {"linked", p.value("linked").toBool(true)}};

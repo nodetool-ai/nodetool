@@ -8,9 +8,12 @@
 #include "midi/PatternExpand.h"
 
 #include <QJsonArray>
+#include <QJsonDocument>
+#include <limits>
 #include <QTest>
 #include <QSet>
 #include <algorithm>
+#include <cmath>
 
 using namespace nt::edit;
 
@@ -53,6 +56,369 @@ class TestEditActions : public QObject {
     Q_OBJECT
 
 private slots:
+    void reviewPatternSpeedAndDuration() {
+        auto c = clip("a", "v1", 0, 1000, "midi");
+        c.insert("pattern", QJsonObject{{"notes", QJsonArray{}}});
+        c.insert("speedMultiplier", 2);
+        QJsonObject raw{{"clips", QJsonArray{c}}};
+        try {
+            raw = applyMusicClipEdit(raw, "set_clip_params", {{"target", "a"}, {"inPointMs", 1500}});
+            const auto slipped = raw.value("clips").toArray()[0].toObject();
+            QCOMPARE(slipped.value("patternPhaseTicks").toDouble(), 2880.0);
+            QCOMPARE(slipped.value("outPointMs").toDouble(), 2000.0);
+            raw = applyMusicClipEdit(raw, "set_clip_params", {{"target", "a"}, {"durationMs", 500}});
+            const auto trimmed = raw.value("clips").toArray()[0].toObject();
+            QCOMPARE(trimmed.value("patternPhaseTicks").toDouble(), 2880.0);
+            QCOMPARE(trimmed.value("outPointMs").toDouble(), 1000.0);
+        } catch (const OpError& error) { QFAIL(error.what()); }
+    }
+    void reviewLinkedGroupTrimOptions() {
+        auto group = clip("g", "v1", 0, 2000, "group");
+        group.insert("linkId", "pair");
+        auto child = clip("child", "v1", 0, 2000);
+        child.insert("parentId", "g");
+        auto partner = clip("b", "a1", 0, 2000, "audio");
+        partner.insert("linkId", "pair");
+        const QJsonObject raw{{"clips", QJsonArray{group, child, partner}}};
+        for (bool linked : {true, false}) {
+            const auto result = applyMusicClipEdit(raw, "set_clip_params", {{"target", "g"}, {"durationMs", 1000}, {"linked", linked}});
+            const auto clips = result.value("clips").toArray();
+            QCOMPARE(clips[0].toObject().value("durationMs").toDouble(), 1000.0);
+            QCOMPARE(clips[1].toObject().value("durationMs").toDouble(), 1000.0);
+            QCOMPARE(clips[2].toObject().value("durationMs").toDouble(), linked ? 1000.0 : 2000.0);
+        }
+    }
+    void reviewLargeGroupLinkedTrim() {
+        QJsonArray clips{clip("g", "v1", 0, 2000, "group")};
+        for (int i = 0; i < 5000; ++i) {
+            const auto id = QString::number(i);
+            auto child = clip("child-" + id, "v1", 0, 2000);
+            child.insert("parentId", "g"); child.insert("linkId", "pair-" + id);
+            auto partner = clip("partner-" + id, "a1", 0, 2000, "audio");
+            partner.insert("linkId", "pair-" + id);
+            clips.append(child); clips.append(partner);
+        }
+        const auto result = applyMusicClipEdit({{"clips", clips}}, "set_clip_params", {{"target", "g"}, {"durationMs", 1000}});
+        const auto next = result.value("clips").toArray();
+        QCOMPARE(next.size(), clips.size());
+        for (const auto& value : next) { QCOMPARE(value.toObject().value("durationMs").toDouble(), 1000.0); }
+    }
+    void reviewGroupChildLinkedPartner() {
+        auto group = clip("g", "v1", 0, 2000, "group");
+        auto child = clip("child", "v1", 0, 2000);
+        child.insert("parentId", "g"); child.insert("linkId", "pair");
+        auto partner = clip("b", "a1", 0, 2000, "audio");
+        partner.insert("linkId", "pair");
+        const auto result = applyMusicClipEdit({{"clips", QJsonArray{group, child, partner}}}, "set_clip_params", {{"target", "g"}, {"durationMs", 1000}});
+        QCOMPARE(result.value("clips").toArray()[2].toObject().value("durationMs").toDouble(), 1000.0);
+    }
+    void reviewOptionalTextResetAndValidStyles() {
+        auto c = clip("a", "v1", 0, 1000, "text");
+        QJsonObject style{{"text", "Title"}, {"fontSizePx", 40}, {"color", "white"}};
+        QJsonObject reset;
+        for (const auto* key : {"fontFamily", "fontWeight", "fontStyle", "verticalAlign", "maxWidthFrac", "strikethrough", "stroke", "shadow", "background", "fill"}) {
+            style.insert(QLatin1String(key), "old");
+            reset.insert(QLatin1String(key), QJsonValue::Null);
+        }
+        c.insert("textStyle", style);
+        const auto result = applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params", {{"target", "a"}, {"textStyle", reset}, {"maxSourceDurationMs", 2000}});
+        QCOMPARE(result.value("clips").toArray()[0].toObject().value("textStyle").toObject(), (QJsonObject{{"text", "Title"}, {"fontSizePx", 40}, {"color", "white"}}));
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(result, "set_clip_params", {{"target", "a"}, {"textStyle", QJsonObject{{"text", QJsonValue::Null}}}}));
+        const auto valid = applyMusicClipEdit(result, "set_clip_params", {{"target", "a"}, {"borderRadius", 0}, {"textStyle", QJsonObject{
+            {"fontFamily", "Inter"}, {"fontStyle", "italic"}, {"verticalAlign", "top"}, {"maxWidthFrac", 1}, {"fontWeight", 600}, {"lineHeight", 1.2},
+            {"shadow", QJsonObject{{"color", "black"}, {"blurPx", 0}, {"offsetX", -4}, {"offsetY", -2}}}}}});
+        QCOMPARE(valid.value("clips").toArray()[0].toObject().value("textStyle").toObject().value("fontFamily").toString(), QString("Inter"));
+    }
+    void reviewRegressions_data() {
+        QTest::addColumn<QJsonObject>("raw");
+        QTest::addColumn<QJsonArray>("patches");
+        QTest::addColumn<QJsonObject>("expected");
+        QTest::addColumn<bool>("reject");
+        QTest::newRow("C1-slip-past-out") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"inPointMs\":5000}]").array() << QJsonDocument::fromJson("{\"a\":{\"inPointMs\":5000,\"outPointMs\":6000}}").object() << false;
+        QTest::newRow("C2-combined-bound") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":500,\"inPointMs\":1500,\"outPointMs\":2000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"durationMs\":1500,\"inPointMs\":0,\"outPointMs\":1500,\"maxSourceDurationMs\":2000}]").array() << QJsonDocument::fromJson("{\"a\":{\"durationMs\":1500,\"inPointMs\":0,\"outPointMs\":1500}}").object() << false;
+        QTest::newRow("C3-duration-500") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"durationMs\":500,\"inPointMs\":500}]").array() << QJsonDocument::fromJson("{\"a\":{\"durationMs\":500,\"inPointMs\":500,\"outPointMs\":1000}}").object() << false;
+        QTest::newRow("C3-duration-2000") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"durationMs\":2000,\"inPointMs\":500}]").array() << QJsonDocument::fromJson("{\"a\":{\"durationMs\":2000,\"inPointMs\":500,\"outPointMs\":2500}}").object() << false;
+        QTest::newRow("C4-slip-bound") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":2000,\"inPointMs\":0,\"outPointMs\":null,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"inPointMs\":2500,\"maxSourceDurationMs\":3000}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C5-slip-zero") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":116,\"outPointMs\":1866,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"speedMultiplier\":1.75}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"inPointMs\":0}]").array() << QJsonDocument::fromJson("{\"a\":{\"inPointMs\":0}}").object() << false;
+        QTest::newRow("C6-linked-pattern-backward") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"linkId\":\"pair\"},{\"id\":\"b\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"midi\",\"sourceType\":\"imported\",\"pattern\":{\"notes\":[]},\"patternPhaseTicks\":0,\"linkId\":\"pair\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"inPointMs\":500},{\"target\":\"a\",\"inPointMs\":250}]").array() << QJsonDocument::fromJson("{\"b\":{\"patternPhaseTicks\":480}}").object() << false;
+        QTest::newRow("C6-direct-pattern-backward") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"midi\",\"sourceType\":\"imported\",\"pattern\":{\"notes\":[]}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"inPointMs\":500},{\"target\":\"a\",\"inPointMs\":250}]").array() << QJsonDocument::fromJson("{\"a\":{\"patternPhaseTicks\":480}}").object() << false;
+        QTest::newRow("C7-group-child-track-lock") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":2000,\"inPointMs\":0,\"outPointMs\":2000,\"mediaType\":\"group\",\"sourceType\":\"imported\"},{\"id\":\"child\",\"trackId\":\"v2\",\"startMs\":0,\"durationMs\":2000,\"inPointMs\":0,\"outPointMs\":2000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"parentId\":\"a\"}],\"tracks\":[{\"id\":\"v1\"},{\"id\":\"v2\",\"locked\":true}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"durationMs\":1000}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C7-group-linked-lock") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":2000,\"inPointMs\":0,\"outPointMs\":2000,\"mediaType\":\"group\",\"sourceType\":\"imported\",\"linkId\":\"pair\"},{\"id\":\"child\",\"trackId\":\"v2\",\"startMs\":0,\"durationMs\":2000,\"inPointMs\":0,\"outPointMs\":2000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"parentId\":\"a\"},{\"id\":\"b\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"linkId\":\"pair\",\"locked\":true}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"durationMs\":1000}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C7-group-source-bound") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":2000,\"inPointMs\":0,\"outPointMs\":2000,\"mediaType\":\"group\",\"sourceType\":\"imported\"},{\"id\":\"child\",\"trackId\":\"v2\",\"startMs\":0,\"durationMs\":2000,\"inPointMs\":0,\"outPointMs\":2000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"parentId\":\"a\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"durationMs\":3000,\"maxSourceDurationMs\":2500}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C8-linked-window") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"linkId\":\"pair\"},{\"id\":\"b\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"linkId\":\"pair\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"durationMs\":750,\"inPointMs\":250,\"outPointMs\":1000}]").array() << QJsonDocument::fromJson("{\"b\":{\"durationMs\":750,\"inPointMs\":250,\"outPointMs\":1000}}").object() << false;
+        QTest::newRow("C9-caption-retime") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"caption\":{\"words\":[{\"text\":\"Hello\",\"startMs\":750,\"endMs\":1000}],\"style\":{\"fontFamily\":\"Inter\",\"fontSizeFrac\":0.05,\"color\":\"yellow\"}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"durationMs\":500,\"inPointMs\":500,\"outPointMs\":1000}]").array() << QJsonDocument::fromJson("{\"a\":{\"caption\":{\"words\":[{\"text\":\"Hello\",\"startMs\":250,\"endMs\":500}],\"style\":{\"fontFamily\":\"Inter\",\"fontSizeFrac\":0.05,\"color\":\"yellow\"}}}}").object() << false;
+        QTest::newRow("C10-caption-merge") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"caption\":{\"words\":[{\"text\":\"Hello\",\"startMs\":750,\"endMs\":1000}],\"style\":{\"fontFamily\":\"Inter\",\"fontSizeFrac\":0.05,\"color\":\"yellow\"}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"captionStyle\":{\"color\":\"white\"}}]").array() << QJsonDocument::fromJson("{\"a\":{\"caption\":{\"words\":[{\"text\":\"Hello\",\"startMs\":750,\"endMs\":1000}],\"style\":{\"fontFamily\":\"Inter\",\"fontSizeFrac\":0.05,\"color\":\"white\"}}}}").object() << false;
+        QTest::newRow("C11-caption-generic") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"caption\":{\"words\":[{\"text\":\"Hello\",\"startMs\":750,\"endMs\":1000}],\"style\":{\"fontFamily\":\"Inter\",\"fontSizeFrac\":0.05,\"color\":\"yellow\"}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"captionStyle\":{\"fontFamily\":\"\\\"sans-serif\\\"\"}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C12-clear-optional") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\",\"stroke\":{\"color\":\"black\",\"widthPx\":2}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"textStyle\":{\"stroke\":null}}]").array() << QJsonDocument::fromJson("{\"a\":{\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\"}}}").object() << false;
+        QTest::newRow("C13-blend-invalid-mode") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"blendMode\":\"invalid-mode\"}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C13-blend-empty") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"blendMode\":\"\"}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C13-blend-clear") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"blendMode\":\"multiply\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"blendMode\":null}]").array() << QJsonDocument::fromJson("{\"a\":{}}").object() << false;
+        QTest::newRow("C14-radius") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"borderRadius\":-25}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C15-gradient-20") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"fillStyle\":{\"type\":\"linear\",\"angle\":45,\"stops\":[]}}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C15-gradient-21") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"fillStyle\":{\"type\":\"linear\",\"angle\":45,\"stops\":[{\"offset\":0,\"color\":\"white\"}]}}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C15-gradient-22") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"fillStyle\":{\"type\":\"linear\",\"angle\":45,\"stops\":[{\"offset\":-2,\"color\":\"white\"},{\"offset\":5,\"color\":\"black\"}]}}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C16-stroke") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\",\"stroke\":{\"color\":\"black\",\"widthPx\":2}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"textStyle\":{\"stroke\":{\"color\":\"white\",\"widthPx\":-10}}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C16-shadow") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\",\"stroke\":{\"color\":\"black\",\"widthPx\":2}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"textStyle\":{\"shadow\":{\"color\":\"black\",\"blurPx\":-5,\"offsetX\":0,\"offsetY\":0}}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C16-background") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\",\"stroke\":{\"color\":\"black\",\"widthPx\":2}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"textStyle\":{\"background\":{\"color\":\"black\",\"paddingPx\":0,\"radiusPx\":-4}}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C17-fontSizePx") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\",\"stroke\":{\"color\":\"black\",\"widthPx\":2}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"textStyle\":{\"fontSizePx\":-12}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C17-lineHeight") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\",\"stroke\":{\"color\":\"black\",\"widthPx\":2}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"textStyle\":{\"lineHeight\":0}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C17-fontWeight") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\",\"stroke\":{\"color\":\"black\",\"widthPx\":2}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"textStyle\":{\"fontWeight\":0}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C17-maxWidthFrac") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\",\"stroke\":{\"color\":\"black\",\"widthPx\":2}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"textStyle\":{\"maxWidthFrac\":1.1}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C17-fontStyle") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\",\"stroke\":{\"color\":\"black\",\"widthPx\":2}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"textStyle\":{\"fontStyle\":\"bogus\"}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C17-verticalAlign") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\",\"stroke\":{\"color\":\"black\",\"widthPx\":2}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"textStyle\":{\"verticalAlign\":\"sideways\"}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C17-size-shorthand") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"textStyle\":{\"text\":\"Title\",\"fontSizePx\":40,\"color\":\"white\",\"stroke\":{\"color\":\"black\",\"widthPx\":2}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"fontSizePx\":0}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C17-fontSizeFrac") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"caption\":{\"words\":[{\"text\":\"Hello\",\"startMs\":750,\"endMs\":1000}],\"style\":{\"fontFamily\":\"Inter\",\"fontSizeFrac\":0.05,\"color\":\"yellow\"}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"captionStyle\":{\"fontSizeFrac\":0}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C17-bottomMarginFrac") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\",\"caption\":{\"words\":[{\"text\":\"Hello\",\"startMs\":750,\"endMs\":1000}],\"style\":{\"fontFamily\":\"Inter\",\"fontSizeFrac\":0.05,\"color\":\"yellow\"}}}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"captionStyle\":{\"bottomMarginFrac\":-1}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-kind") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"invalid\"}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-strokeWidthPx") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"strokeWidthPx\":-4}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-width") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"width\":-1}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-height") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"height\":-1}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-sides") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"sides\":1}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-innerRadius") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"innerRadius\":-1}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-cornerRadius") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"cornerRadius\":-1}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-trimStart") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"trimStart\":2}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-trimEnd") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"trimEnd\":-1}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-dash") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"dash\":[-5,0]}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-lineCap") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"lineCap\":\"pointy\"}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C18-lineJoin") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"shapeStyle\":{\"kind\":\"rect\",\"lineJoin\":\"bogus\"}}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C20-bound-2000") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"maxSourceDurationMs\":\"2000\"}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C20-bound-0") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"maxSourceDurationMs\":0}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C20-bound--1") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"maxSourceDurationMs\":-1}]").array() << QJsonDocument::fromJson("{}").object() << true;
+        QTest::newRow("C20-bound-None") << QJsonDocument::fromJson("{\"clips\":[{\"id\":\"a\",\"trackId\":\"v1\",\"startMs\":0,\"durationMs\":1000,\"inPointMs\":0,\"outPointMs\":1000,\"mediaType\":\"audio\",\"sourceType\":\"imported\"}]}").object() << QJsonDocument::fromJson("[{\"target\":\"a\",\"maxSourceDurationMs\":null}]").array() << QJsonDocument::fromJson("{}").object() << true;
+    }
+    void reviewRegressions() {
+        QFETCH(QJsonObject, raw);
+        QFETCH(QJsonArray, patches);
+        QFETCH(QJsonObject, expected);
+        QFETCH(bool, reject);
+        try {
+            for (const auto& patch : patches) { raw = applyMusicClipEdit(raw, "set_clip_params", patch.toObject()); }
+            QVERIFY2(!reject, "Invalid edit was accepted");
+            for (auto it = expected.begin(); it != expected.end(); ++it) {
+                QJsonObject actual;
+                for (const auto& v : raw.value("clips").toArray()) {
+                    if (v.toObject().value("id").toString() == it.key()) { actual = v.toObject(); }
+                }
+                QVERIFY(!actual.isEmpty());
+                const auto fields = it.value().toObject();
+                for (auto field = fields.begin(); field != fields.end(); ++field) { QCOMPARE(actual.value(field.key()), field.value()); }
+                if (qPrintable(QTest::currentDataTag()) == QString("C13-blend-clear")) { QVERIFY(!actual.contains("blendMode")); }
+            }
+        } catch (const OpError& error) { QVERIFY2(reject, error.what()); }
+    }
+    void reviewC19Nonfinite_data() {
+        QTest::addColumn<QJsonObject>("patch");
+        for (double n : {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity()}) {
+            const auto tag = std::isnan(n) ? QString("nan") : QString("inf");
+            const QJsonObject patches[] = {
+                {{"crop", QJsonObject{{"left", n}, {"right", 0}, {"top", 0}, {"bottom", 0}}}},
+                {{"transform", QJsonObject{{"perspective", n}}}},
+                {{"transform", QJsonObject{{"position", QJsonObject{{"x", n}}}}}},
+                {{"fontSizePx", n}}, {{"textStyle", QJsonObject{{"lineHeight", n}}}},
+                {{"shapeStyle", QJsonObject{{"kind", "rect"}, {"width", n}}}},
+                {{"captionStyle", QJsonObject{{"fontSizeFrac", n}}}},
+                {{"textStyle", QJsonObject{{"stroke", QJsonObject{{"color", "white"}, {"widthPx", n}}}}}},
+                {{"shapeStyle", QJsonObject{{"kind", "rect"}, {"fillStyle", QJsonObject{{"type", "linear"}, {"angle", n}, {"stops", QJsonArray{QJsonObject{{"offset", 0}, {"color", "white"}}, QJsonObject{{"offset", 1}, {"color", "black"}}}}}}}}},
+                {{"maxSourceDurationMs", n}, {"outPointMs", 500}}};
+            int i = 0;
+            for (const auto& patch : patches) { QTest::newRow(qPrintable(tag + QString::number(i++))) << patch; }
+        }
+    }
+    void reviewC19Nonfinite() {
+        QFETCH(QJsonObject, patch);
+        auto c = clip("a", "v1", 0, 1000);
+        c.insert("textStyle", QJsonObject{{"text", "Title"}, {"fontSizePx", 40}, {"color", "white"}});
+        c.insert("caption", QJsonObject{{"words", QJsonArray{}}});
+        patch.insert("target", "a");
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params", patch));
+    }
+    void reviewC21CropKeepsNoPicture() {
+        const QJsonObject raw{{"clips", QJsonArray{clip("a", "v1", 0, 1000)}}};
+        try {
+            applyMusicClipEdit(raw, "set_clip_params", {{"target", "a"}, {"crop", QJsonObject{{"left", 0.8}, {"right", 0.2}, {"top", 0}, {"bottom", 0}}}});
+            QFAIL("Empty crop accepted");
+        } catch (const OpError& error) { QCOMPARE(QString(error.what()), QString("Crop keeps no picture")); }
+    }
+    void clipParamsSlipReslicesSourceAnimations() {
+        auto a = clip("a", "v1", 0, 1000);
+        auto b = clip("b", "v1", 0, 500);
+        a.insert("linkId", "pair");
+        b.insert("linkId", "pair");
+        b.insert("speedMultiplier", 2);
+        a.insert("animations", sourceAnchoredAnimation());
+        b.insert("animations", sourceAnchoredAnimation());
+        const auto result = applyMusicClipEdit({{"clips", QJsonArray{a, b}}}, "set_clip_params",
+                                              {{"target", "a"}, {"inPointMs", 1000}});
+        const auto clips = result.value("clips").toArray();
+        for (qsizetype i = 0; i < clips.size(); ++i) {
+            const auto keys = clips[i].toObject().value("animations").toArray()[0].toObject()
+                                  .value("custom").toObject().value("curves").toArray()[0].toObject()
+                                  .value("keyframes").toArray();
+            QCOMPARE(keys.first().toObject().value("value").toDouble(), i == 0 ? 0.25 : 0.5);
+            QCOMPARE(keys.last().toObject().value("value").toDouble(), i == 0 ? 0.5 : 0.75);
+            QCOMPARE(keys.first().toObject().value("t").toDouble(), 0.0);
+            QCOMPARE(keys.last().toObject().value("t").toDouble(), 1.0);
+        }
+    }
+    void clipParamsSlipRejectsTimeRemap_data() {
+        QTest::addColumn<bool>("linkedRemap");
+        QTest::newRow("primary") << false;
+        QTest::newRow("linked") << true;
+    }
+    void clipParamsSlipRejectsTimeRemap() {
+        QFETCH(bool, linkedRemap);
+        auto a = clip("a", "v1", 0, 1000);
+        auto b = clip("b", "v1", 0, 1000);
+        a.insert("linkId", "pair");
+        b.insert("linkId", "pair");
+        const QJsonObject remap{{"keyframes", QJsonArray{
+            QJsonObject{{"t", 0}, {"sourceMs", 0}},
+            QJsonObject{{"t", 0.5}, {"sourceMs", 250}},
+            QJsonObject{{"t", 1}, {"sourceMs", 1000}}}}};
+        if (linkedRemap) { b.insert("timeRemap", remap); }
+        else { a.insert("timeRemap", remap); }
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit({{"clips", QJsonArray{a, b}}},
+            "set_clip_params", {{"target", "a"}, {"inPointMs", 500}}));
+    }
+    void clipParamsSourceWindow() {
+        auto c = clip("a", "a", 0, 2000, "audio");
+        c.insert("inPointMs", 0); c.insert("outPointMs", 2000);
+        QJsonObject result;
+        try { result = applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params", {{"target", "a"}, {"inPointMs", 500}}); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        const auto next = result.value("clips").toArray()[0].toObject();
+        QCOMPARE(next.value("inPointMs").toDouble(), 500.0);
+        QCOMPARE(next.value("outPointMs").toDouble(), 2500.0);
+        QCOMPARE(next.value("durationMs").toDouble(), 2000.0);
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(result, "set_clip_params", {{"target", "a"}, {"outPointMs", 400}}));
+    }
+    void clipParamsReslicesLinkedMedia() {
+        auto a = clip("a", "v", 0, 1000);
+        auto b = clip("b", "v", 0, 500, "audio");
+        a.insert("linkId", "pair"); b.insert("linkId", "pair"); b.insert("speedMultiplier", 2);
+        const QJsonObject track{{"id", "tracking"}, {"clipId", "a"}, {"samples", QJsonArray{
+            QJsonObject{{"sourceMs", 0}, {"x", 0}}, QJsonObject{{"sourceMs", 2000}, {"x", 20}}}}};
+        const QJsonObject raw{{"clips", QJsonArray{a, b}}, {"mediaTracks", QJsonArray{track}}};
+        const auto result = applyMusicClipEdit(raw, "set_clip_params", {{"target", "a"}, {"inPointMs", 500}});
+        const auto partner = result.value("clips").toArray()[1].toObject();
+        QCOMPARE(partner.value("inPointMs").toDouble(), 1000.0);
+        QCOMPARE(partner.value("outPointMs").toDouble(), 2000.0);
+        const auto sliced = result.value("mediaTracks").toArray()[0].toObject();
+        QCOMPARE(sliced.value("id").toString(), QString("tracking"));
+        QCOMPARE(sliced.value("sourceStartMs").toDouble(), 500.0);
+        QCOMPARE(sliced.value("sourceEndMs").toDouble(), 1500.0);
+        QCOMPARE(sliced.value("samples").toArray()[0].toObject().value("x").toDouble(), 5.0);
+        const auto explicitWindow = applyMusicClipEdit(raw, "set_clip_params", {{"target", "a"}, {"durationMs", 750}, {"inPointMs", 250}, {"outPointMs", 1000}});
+        const auto explicitPartner = explicitWindow.value("clips").toArray()[1].toObject();
+        QCOMPARE(explicitPartner.value("durationMs").toDouble(), 250.0);
+        QCOMPARE(explicitPartner.value("inPointMs").toDouble(), 500.0);
+        QCOMPARE(explicitPartner.value("outPointMs").toDouble(), 1000.0);
+        const auto next = explicitWindow.value("clips").toArray()[0].toObject();
+        QCOMPARE(next.value("inPointMs").toDouble(), 250.0);
+        QCOMPARE(next.value("outPointMs").toDouble(), 1000.0);
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(raw, "set_clip_params", {{"target", "a"}, {"outPointMs", 2001}, {"maxSourceDurationMs", 2000}}));
+        b.insert("locked", true);
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit({{"clips", QJsonArray{a, b}}}, "set_clip_params", {{"target", "a"}, {"inPointMs", 500}}));
+    }
+    void clipParamsSlipsPastPreviousOut() {
+        auto c = clip("a", "v", 0, 1000, "audio");
+        c.insert("outPointMs", 1000);
+        QJsonObject result;
+        try { result = applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params", {{"target", "a"}, {"inPointMs", 1000}}); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        QCOMPARE(result.value("clips").toArray()[0].toObject().value("outPointMs").toDouble(), 2000.0);
+    }
+    void clipParamsReslicesLargeDocument() {
+        QJsonArray clips, tracks;
+        for (int i = 0; i < 10000; ++i) {
+            const auto id = QString::number(i);
+            auto c = clip(id, "v", 0, 1000, "audio");
+            c.insert("linkId", "pair"); clips.append(c);
+            tracks.append(QJsonObject{{"id", "track-" + id}, {"clipId", id}, {"samples", QJsonArray{}}});
+        }
+        const auto result = applyMusicClipEdit({{"clips", clips}, {"mediaTracks", tracks}}, "set_clip_params", {{"target", "0"}, {"inPointMs", 250}});
+        QCOMPARE(result.value("mediaTracks").toArray().size(), 10000);
+        QCOMPARE(result.value("mediaTracks").toArray().last().toObject().value("sourceStartMs").toDouble(), 250.0);
+        QCOMPARE(result.value("clips").toArray().last().toObject().value("outPointMs").toDouble(), 1250.0);
+    }
+    void clipParamsSlipIgnoresInactiveLoopWindow() {
+        auto c = clip("a", "v", 0, 1000, "audio");
+        c.insert("loopLengthMs", 2000);
+        const auto result = applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params", {{"target", "a"}, {"inPointMs", 250}});
+        QCOMPARE(result.value("clips").toArray()[0].toObject().value("outPointMs").toDouble(), 1250.0);
+    }
+    void clipParamsGroupDuration() {
+        auto g = clip("g", "v", 0, 2000, "group");
+        auto child = clip("child", "v", 500, 1500);
+        child.insert("parentId", "g");
+        QJsonObject result;
+        try { result = applyMusicClipEdit({{"clips", QJsonArray{g, child}}}, "set_clip_params", {{"target", "g"}, {"durationMs", 1000}}); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        QCOMPARE(result.value("clips").toArray()[0].toObject().value("durationMs").toDouble(), 1000.0);
+        QCOMPARE(result.value("clips").toArray()[1].toObject().value("durationMs").toDouble(), 500.0);
+    }
+    void clipParamsVisualFields() {
+        auto c = clip("v", "v", 0, 1000);
+        c.insert("transform", QJsonObject{{"position", QJsonObject{{"x", 10}, {"y", 20}}}});
+        const QJsonObject crop{{"left", 0.1}, {"right", 0.2}, {"top", 0}, {"bottom", 0}};
+        QJsonObject result;
+        try { result = applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params", {{"target", "v"},
+            {"transform", QJsonObject{{"position", QJsonObject{{"x", 30}}}}}, {"crop", crop}, {"blendMode", "multiply"}, {"borderRadius", 8}}); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        const auto next = result.value("clips").toArray()[0].toObject();
+        QCOMPARE(next.value("transform").toObject().value("position").toObject(), (QJsonObject{{"x", 30}, {"y", 20}}));
+        QCOMPARE(next.value("transform").toObject().value("scale").toObject(), (QJsonObject{{"x", 1}, {"y", 1}}));
+        QCOMPARE(next.value("crop").toObject(), crop);
+        QCOMPARE(next.value("blendMode").toString(), QString("multiply"));
+        QCOMPARE(next.value("borderRadius").toDouble(), 8.0);
+        const auto cleared = applyMusicClipEdit(result, "set_clip_params", {{"target", "v"}, {"crop", QJsonValue::Null}});
+        QVERIFY(!cleared.value("clips").toArray()[0].toObject().contains("crop"));
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(result, "set_clip_params", {{"target", "v"}, {"crop", QJsonObject{{"left", 0.8}, {"right", 0.2}, {"top", 0}, {"bottom", 0}}}}));
+    }
+    void clipParamsTextStyles() {
+        auto c = clip("t", "v", 0, 1000, "text");
+        c.insert("textStyle", QJsonObject{{"text", "Title"}, {"fontSizePx", 40}, {"color", "red"}});
+        QJsonObject result;
+        try { result = applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params", {{"target", "t"}, {"fontSizePx", 72},
+            {"textStyle", QJsonObject{{"color", "blue"}, {"strikethrough", true}, {"stroke", QJsonObject{{"color", "white"}, {"widthPx", 2}}}}}}); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        const auto style = result.value("clips").toArray()[0].toObject().value("textStyle").toObject();
+        QCOMPARE(style.value("text").toString(), QString("Title"));
+        QCOMPARE(style.value("fontSizePx").toDouble(), 72.0);
+        QCOMPARE(style.value("color").toString(), QString("blue"));
+        QVERIFY(style.value("strikethrough").toBool());
+        QCOMPARE(style.value("stroke").toObject().value("widthPx").toDouble(), 2.0);
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit({{"clips", QJsonArray{clip("v", "v", 0, 1000)}}}, "set_clip_params", {{"target", "v"}, {"fontSizePx", 72}}));
+    }
+    void clipParamsShapeAndCaptionStyles() {
+        auto c = clip("s", "v", 0, 1000, "shape");
+        c.insert("caption", QJsonObject{{"words", QJsonArray{QJsonObject{{"text", "Hello"}, {"startMs", 0}, {"endMs", 500}}}}});
+        const QJsonObject captionStyle{{"fontFamily", "Inter"}, {"fontSizeFrac", 0.05}, {"color", "yellow"}};
+        QJsonObject result;
+        try { result = applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params", {{"target", "s"},
+            {"shapeStyle", QJsonObject{{"kind", "line"}}}, {"captionStyle", captionStyle}}); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        const auto next = result.value("clips").toArray()[0].toObject();
+        QCOMPARE(next.value("shapeStyle").toObject().value("stroke").toString(), QString("#FFFFFF"));
+        QCOMPARE(next.value("shapeStyle").toObject().value("strokeWidthPx").toDouble(), 8.0);
+        QCOMPARE(next.value("caption").toObject().value("style").toObject(), captionStyle);
+        QCOMPARE(next.value("caption").toObject().value("words"), c.value("caption").toObject().value("words"));
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit({{"clips", QJsonArray{clip("v", "v", 0, 1000)}}}, "set_clip_params", {{"target", "v"}, {"captionStyle", captionStyle}}));
+    }
+    void clipParamsRejectsMalformedStyles_data() {
+        QTest::addColumn<QJsonObject>("patch");
+        QTest::newRow("generic-font") << QJsonObject{{"textStyle", QJsonObject{{"fontFamily", "sans-serif"}}}};
+        QTest::newRow("stroke-width") << QJsonObject{{"textStyle", QJsonObject{{"stroke", QJsonObject{{"color", "white"}, {"widthPx", "wide"}}}}}};
+        QTest::newRow("shape-width") << QJsonObject{{"shapeStyle", QJsonObject{{"kind", "rect"}, {"width", "wide"}}}};
+        QTest::newRow("caption-size") << QJsonObject{{"captionStyle", QJsonObject{{"fontSizeFrac", "large"}}}};
+    }
+    void clipParamsRejectsMalformedStyles() {
+        QFETCH(QJsonObject, patch);
+        auto c = clip("t", "v", 0, 1000, "text");
+        c.insert("textStyle", QJsonObject{{"text", "Title"}, {"fontSizePx", 40}, {"color", "white"}});
+        c.insert("caption", QJsonObject{{"words", QJsonArray{}}});
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit({{"clips", QJsonArray{c}}}, "set_clip_params", {{"target", "t"}, {"patch", patch}}));
+    }
     void clipParamsMovesAndTrimsLinkedClips() {
         auto a = clip("a", "a", 1000, 2000, "audio");
         auto b = clip("b", "b", 1000, 2000, "audio");

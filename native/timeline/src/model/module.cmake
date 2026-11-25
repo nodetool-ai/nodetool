@@ -29,6 +29,7 @@ function(nt_model_tests)
 
     # Change notification costs of TimelineModel edits.
     qt_add_executable(tst_timelinemodel tests/tst_timelinemodel.cpp
+        src/music/MusicEdits.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
         src/audio/automation/AutomationRecorder.h
         src/audio/automation/AutomationRecorder.cpp
