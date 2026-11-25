@@ -122,6 +122,9 @@ QJsonObject parameterSchema(const Param& param) {
     case ParamKind::NullableText:
         schema = {{"type", QJsonArray{"string", "null"}}};
         break;
+    case ParamKind::Array:
+        schema = {{"type", "array"}, {"items", QJsonObject{{"type", "object"}}}};
+        break;
     case ParamKind::Object:
         schema = {{"type", "object"}};
         break;
@@ -376,6 +379,10 @@ Prepared prepare(const Command& command, const QJsonObject& params, const QJsonO
             if (!value.isNull() && !value.isString()) { out.error = param.name + " must be text or null."; }
             out.payload.insert(key, value);
             break;
+        case ParamKind::Array:
+            if (!value.isArray()) { out.error = param.name + " must be an array."; }
+            out.payload.insert(key, value);
+            break;
         case ParamKind::Object:
             if (!value.isObject()) { out.error = param.name + " must be an object."; }
             out.payload.insert(key, value);
@@ -525,7 +532,7 @@ QJsonObject editPayload(const Command& command, const Prepared& prepared, ClipGe
     }
     if (command.linked) { payload.insert("linked", gestures.linkedSelection()); }
     if (command.sourceLimit) {
-        if (const double limit = gestures.sourceCapMs(payload.value("clipId").toString()); limit >= 0) { payload.insert("maxSourceDurationMs", limit); }
+        if (const double limit = gestures.sourceCapMs(payload.value("clipId").toString(payload.value("target").toString())); limit >= 0) { payload.insert("maxSourceDurationMs", limit); }
     }
     if (command.sourceLimits) { payload.insert("sourceCaps", knownSourceLimits(model)); }
     return payload;
@@ -795,7 +802,13 @@ QJsonObject AssistantCommands::runCommand(const QJsonObject& args) {
         });
     };
     const QString lockedReason = QStringLiteral("That clip or its track is locked. Unlock it first.");
-    if (command->runs == Runs::Edit && id != u"duplicate_clip") {
+    auto statePatch = prepared.payload;
+    statePatch.remove("clipId");
+    statePatch.remove("target");
+    const bool unlockOnly = id == u"set_clip_params" && statePatch.size() == 1 &&
+        statePatch.value("locked") == QJsonValue(false);
+    // The edit checks the owning track's lock even for a clip-only unlock.
+    if (command->runs == Runs::Edit && id != u"duplicate_clip" && !unlockOnly) {
         QStringList targets;
         if (const auto clip = prepared.payload.value("clipId"); clip.isString()) { targets.append(clip.toString()); }
         if (const auto clip = prepared.payload.value("target"); clip.isString()) { targets.append(clip.toString()); }

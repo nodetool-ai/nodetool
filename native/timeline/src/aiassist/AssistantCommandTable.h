@@ -41,6 +41,7 @@ enum class ParamKind {
     NullableObject,
     NullableText,
     Object,
+    Array,
     Boolean,
     Text,
     Choice,

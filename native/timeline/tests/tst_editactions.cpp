@@ -4,6 +4,7 @@
 #include "edit/EditActions.h"
 #include "edit/groups/GroupOps.h"
 #include "edit/clipboard/RawDocument.h"
+#include "edit/clipboard/ClipboardOps.h"
 #include "midi/PatternExpand.h"
 
 #include <QJsonArray>
@@ -52,6 +53,86 @@ class TestEditActions : public QObject {
     Q_OBJECT
 
 private slots:
+    void clipParamsMovesAndTrimsLinkedClips() {
+        auto a = clip("a", "a", 1000, 2000, "audio");
+        auto b = clip("b", "b", 1000, 2000, "audio");
+        a.insert("linkId", "pair"); b.insert("linkId", "pair");
+        const QJsonObject raw{{"clips", QJsonArray{a, b}}, {"tracks", QJsonArray{
+            QJsonObject{{"id", "a"}, {"type", "audio"}}, QJsonObject{{"id", "b"}, {"type", "audio"}},
+            QJsonObject{{"id", "c"}, {"type", "audio"}}}}};
+        QJsonObject result;
+        try { result = applyMusicClipEdit(raw, "set_clip_params", {{"target", "a"}, {"startMs", 500},
+            {"trackId", "c"}, {"durationMs", 1000}, {"name", "Short"}}); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        const auto clips = result.value("clips").toArray();
+        for (const auto& value : clips) {
+            const auto c = value.toObject();
+            QCOMPARE(c.value("startMs").toDouble(), 500.0);
+            QCOMPARE(c.value("durationMs").toDouble(), 1000.0);
+            QCOMPARE(c.value("outPointMs").toDouble(), 1000.0);
+        }
+        QCOMPARE(clips[0].toObject().value("trackId").toString(), QString("c"));
+        QCOMPARE(clips[1].toObject().value("trackId").toString(), QString("b"));
+        QCOMPARE(clips[0].toObject().value("name").toString(), QString("Short"));
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(raw, "set_clip_params", {{"target", "a"}, {"durationMs", 0}}));
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit(raw, "set_clip_params", {{"target", "a"}, {"startMs", -1}}));
+    }
+    void clipParamsCanLockAfterChangingTiming() {
+        const QJsonObject raw{{"clips", QJsonArray{clip("a", "a", 1000, 2000, "audio")}}};
+        QJsonObject result;
+        try { result = applyMusicClipEdit(raw, "set_clip_params", {{"target", "a"}, {"durationMs", 1000}, {"locked", true}}); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        const auto c = result.value("clips").toArray()[0].toObject();
+        QVERIFY(c.value("locked").toBool());
+        QCOMPARE(c.value("durationMs").toDouble(), 1000.0);
+    }
+    void clipParamsRetimesLinkedAudio() {
+        auto a = clip("a", "a", 0, 2000, "audio");
+        auto b = clip("b", "b", 0, 2000, "audio");
+        a.insert("linkId", "pair"); b.insert("linkId", "pair");
+        a.insert("outPointMs", 2000); b.insert("outPointMs", 2000);
+        const QJsonObject raw{{"clips", QJsonArray{a, b}}};
+        QJsonObject result;
+        try { result = applyMusicClipEdit(raw, "set_clip_params", {{"target", "a"}, {"speedMultiplier", 2}}); }
+        catch (const OpError& error) { QFAIL(error.what()); }
+        for (const auto& value : result.value("clips").toArray()) {
+            const auto c = value.toObject();
+            QCOMPARE(c.value("speedMultiplier").toDouble(), 2.0);
+            QCOMPARE(c.value("durationMs").toDouble(), 1000.0);
+            QCOMPARE(c.value("outPointMs").toDouble(), 2000.0);
+        }
+        b.insert("locked", true);
+        QVERIFY_THROWS_EXCEPTION(OpError, applyMusicClipEdit({{"clips", QJsonArray{a, b}}},
+            "set_clip_params", {{"target", "a"}, {"speedMultiplier", 2}}));
+    }
+    void clipboardSplitsUseProjectTempoAndOrigin_data() {
+        QTest::addColumn<QString>("mode");
+        QTest::newRow("insert") << QString("insert");
+        QTest::newRow("overwrite") << QString("overwrite");
+    }
+    void clipboardSplitsUseProjectTempoAndOrigin() {
+        QFETCH(QString, mode);
+        auto c = clip("m", "m", 0, 2000, "midi");
+        c.insert("quantize", QJsonObject{{"grid", "1/4"}, {"strength", 100}});
+        c.insert("notes", QJsonArray{QJsonObject{{"id", "n"}, {"pitch", 60}, {"velocity", 90}, {"startTick", 100}, {"durationTick", 100}}});
+        const QJsonObject raw{{"clips", QJsonArray{c}}, {"tracks", QJsonArray{QJsonObject{{"id", "m"}, {"type", "midi"}}}},
+            {"tempo", QJsonObject{{"bpm", 90}, {"offsetMs", 125}}}};
+        clipboard::copyClipsToClipboard({clip("paste", "m", 0, 100, "midi")});
+        const auto result = clipboard::applyClipboardEdit("paste", raw, {{"atMs", 50}, {"mode", mode}});
+        clipboard::clearClipClipboard();
+        const auto clips = result.value("clips").toArray();
+        QJsonObject left, right;
+        for (const auto& value : clips) {
+            const auto part = value.toObject();
+            if (part.value("startMs").toDouble() == 0) { left = part; }
+            if (part.value("startMs").toDouble() == 150) { right = part; }
+        }
+        QVERIFY(!left.isEmpty());
+        QVERIFY(left.value("notes").toArray().isEmpty());
+        if (mode == u"insert") {
+            QCOMPARE(right.value("notes").toArray()[0].toObject().value("startTick").toInt(), 108);
+        }
+    }
     void joinPatternRegions_data() {
         QTest::addColumn<double>("nextStart");
         QTest::addColumn<bool>("keepsPattern");

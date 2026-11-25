@@ -288,6 +288,72 @@ private slots:
             QVERIFY(!midiNoop.value("changed").toBool()); QCOMPARE(model.undoStack()->count(), 1);
         }
     }
+    void reviewF13TimingParameters() {
+        auto raw = musicDocument(false);
+        raw.insert("id", "aaaaaaaaaaaa00000000000000000001");
+        raw.insert("clips", QJsonArray{audioClip("one", "a", 1000, 2000)});
+        openDocument(raw);
+        nt::aiassist::AssistantCommands commands(model, clock);
+        commands.setEditor(view->rootObject());
+        const auto result = commands.execute("ui_timeline_run_command", {{"timeline_id", raw.value("id").toString()},
+            {"command", "set_clip_params"}, {"params", QVariantMap{{"target", "one"}, {"trackId", "b"}, {"startMs", 500}, {"durationMs", 1000}}}});
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        QCOMPARE(clip("one").value("startMs").toDouble(), 500.0);
+        QCOMPARE(clip("one").value("durationMs").toDouble(), 1000.0);
+        QCOMPARE(clip("one").value("trackId").toString(), QString("b"));
+        QCOMPARE(model.undoStack()->count(), 1);
+    }
+    void reviewF13AudioEffectParameters() {
+        auto raw = musicDocument(false);
+        raw.insert("id", "aaaaaaaaaaaa00000000000000000001");
+        raw.insert("clips", QJsonArray{audioClip("one", "a", 0, 1000)});
+        openDocument(raw);
+        nt::aiassist::AssistantCommands commands(model, clock);
+        commands.setEditor(view->rootObject());
+        const auto run = [&](const QVariantMap& params) {
+            return commands.execute("ui_timeline_run_command", {{"timeline_id", raw.value("id").toString()},
+                {"command", "set_clip_params"}, {"params", params}});
+        };
+        const QVariantList effects{QVariantMap{{"id", "gain"}, {"type", "gain"}, {"enabled", true}, {"gainDb", -6}}};
+        const auto result = run({{"target", "one"}, {"audioEffects", effects}, {"speedMultiplier", 2}});
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        QCOMPARE(clip("one").value("audioEffects").toArray(), QJsonArray::fromVariantList(effects));
+        QCOMPARE(clip("one").value("durationMs").toDouble(), 500.0);
+        QCOMPARE(model.undoStack()->count(), 1);
+        const auto before = doc();
+        QVERIFY(!run({{"target", "one"}, {"audioEffects", QVariantList{QVariantMap{{"type", "gain"}}}}}).value("ok").toBool());
+        QCOMPARE(doc(), before);
+        const auto cleared = run({{"target", "one"}, {"audioEffects", QVariantList{}}});
+        QVERIFY2(cleared.value("ok").toBool(), qPrintable(cleared.value("error").toString()));
+        QVERIFY(clip("one").value("audioEffects").toArray().isEmpty());
+    }
+    void reviewF23UnlockClipParameters() {
+        auto raw = musicDocument(false);
+        raw.insert("id", "aaaaaaaaaaaa00000000000000000001");
+        raw.insert("clips", QJsonArray{audioClip("one", "a", 0, 1000)});
+        openDocument(raw);
+        nt::aiassist::AssistantCommands commands(model, clock);
+        commands.setEditor(view->rootObject());
+        const auto run = [&](const QVariantMap& params) {
+            return commands.execute("ui_timeline_run_command", {{"timeline_id", raw.value("id").toString()},
+                {"command", "set_clip_params"}, {"params", params}});
+        };
+        QVERIFY(run({{"target", "one"}, {"locked", true}}).value("ok").toBool());
+        const auto locked = doc();
+        QVERIFY(!run({{"target", "one"}, {"locked", false}, {"name", "Bypass"}}).value("ok").toBool());
+        QCOMPARE(doc(), locked);
+        const auto result = run({{"target", "one"}, {"locked", false}});
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        QVERIFY(!clip("one").value("locked").toBool());
+        QCOMPARE(model.undoStack()->count(), 2);
+        model.undoStack()->undo();
+        QVERIFY(clip("one").value("locked").toBool());
+        auto tracks = locked.value("tracks").toArray();
+        auto track = tracks[0].toObject(); track.insert("locked", true); tracks[0] = track;
+        auto trackLocked = locked; trackLocked.insert("tracks", tracks);
+        QVERIFY_THROWS_EXCEPTION(nt::edit::OpError, nt::edit::applyMusicClipEdit(trackLocked,
+            "set_clip_params", {{"target", "one"}, {"locked", false}}));
+    }
     void reviewF11TempoAndSession() {
         auto raw = musicDocument(false); raw.insert("id", "aaaaaaaaaaaa00000000000000000001");
         auto c = audioClip("m", "a", 2000, 1000); c.insert("mediaType", "midi"); c.insert("inPointMs", 100); c.insert("loopLengthMs", 400);

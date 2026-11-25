@@ -37,6 +37,43 @@ Rectangle {
     function setSteps(values) {
         if (row && steps.length) panel.op("set_steps", {row: row.id, steps: Modes.oneBased(steps), values: values})
     }
+    // Condition key: "always", "first", "last" or "<iteration>:<cycles>" (p. 757).
+    readonly property var conditionOptions: {
+        const out = [{label: qsTr("Always"), value: "always"}, {label: qsTr("First"), value: "first"}, {label: qsTr("Last"), value: "last"}]
+        for (let c = 2; c <= 8; ++c) for (let i = 1; i <= c; ++i) out.push({label: i + ":" + c, value: i + ":" + c})
+        return out
+    }
+    function conditionKey(cond) {
+        if (!cond || !cond.type || cond.type === "always") return "always"
+        return cond.type === "recurrence" ? cond.iteration + ":" + cond.cycles : cond.type
+    }
+    readonly property var sharedCondition: {
+        if (!row || !steps.length) return null
+        const first = conditionKey(row.steps[steps[0]].condition)
+        return steps.every(s => conditionKey(row.steps[s].condition) === first) ? first : null
+    }
+    function setCondition(key) {
+        const parts = String(key).split(":")
+        setSteps({condition: parts.length === 2 ? {type: "recurrence", iteration: Number(parts[0]), cycles: Number(parts[1])} : {type: key}})
+    }
+    // Row assignment entries: the Add Row groups, applied to the selected row.
+    readonly property var assignEntries: panel.sequencer.addRowGroups.map(g => ({
+        id: "group-" + g.id, label: g.label,
+        submenu: g.choices.map((c, i) => ({id: g.id + ":" + i, label: c.label}))
+    }))
+    function assignRow(spec) {
+        const parts = spec.split(":")
+        const group = panel.sequencer.addRowGroups.find(g => g.id === parts[0])
+        const choice = group ? group.choices[Number(parts[1])] : null
+        if (!choice || !row) return
+        const args = {row: row.id, assignment: choice.assignment}
+        if (choice.name) args.name = choice.name
+        const list = []
+        if (choice.assignment.type === "degree" && settings.pitchSource !== "chords") list.push({op: "set_pattern", args: {pitchSource: "chords"}})
+        list.push({op: "set_pattern_row", args: args})
+        panel.ops(list)
+    }
+    readonly property var colorOptions: [{label: qsTr("Automatic"), value: ""}].concat(Modes.ROW_PALETTE.map((c, i) => ({label: qsTr("Color %1").arg(i + 1), value: c})))
     function commitStep(mode, next) {
         if (!row || !steps.length) return
         const common = shared(mode)
@@ -115,6 +152,21 @@ Rectangle {
                 Row {
                     width: parent.width
                     height: Ui.Metrics.compact
+                    Caption { text: qsTr("Assignment") }
+                    Ui.MenuButton {
+                        objectName: "stepInspectorAssignment"
+                        width: parent.width - root.labelWidth
+                        density: Ui.EditorButton.Compact
+                        text: root.row ? root.row.label : ""
+                        accessibleName: qsTr("Row Assignment")
+                        enabled: root.editable
+                        menu: assignMenu
+                        Ui.ContextMenu { id: assignMenu; entries: root.assignEntries; onEntryTriggered: id => root.assignRow(id) }
+                    }
+                }
+                Row {
+                    width: parent.width
+                    height: Ui.Metrics.compact
                     Caption { text: qsTr("Name") }
                     Ui.TextField {
                         objectName: "stepInspectorRowName"
@@ -132,6 +184,9 @@ Rectangle {
                 NumberRow { visible: !!root.row && root.row.type === "kit"
                     label: qsTr("Kit Pad"); value: root.row && root.row.assignment ? (root.row.assignment.pad || 0) + 1 : 1; from: 1; to: 16
                     onCommit: v => root.panel.op("set_pattern_row", {row: root.row.id, assignment: {type: "kit", pad: v - 1}}) }
+                SelectField { objectName: "stepInspectorRowColor"; label: qsTr("Color"); options: root.colorOptions
+                    value: root.row && root.row.color ? root.row.color : ""
+                    onCommit: v => root.panel.op("set_pattern_row", {row: root.row.id, color: v === "" ? null : v}) }
                 SelectField { visible: !!root.row && root.row.type === "automation"; label: qsTr("Automation")
                     options: [{label: qsTr("Latch"), value: "latch"}, {label: qsTr("Slide"), value: "slide"}]
                     value: root.row ? root.row.automationMode || "latch" : "latch"
@@ -155,6 +210,8 @@ Rectangle {
                 SwitchRow { label: qsTr("On/Off"); checked: root.shared("onOff") === 1; mixed: root.shared("onOff") === null; onCommit: v => root.setSteps({on: v}) }
                 StepNumber { label: qsTr("Chance"); mode: "chance"; unit: "%"; from: 0; to: 100 }
                 SelectField { label: qsTr("Step Rate"); options: [{label: qsTr("Row"), value: ""}].concat(root.rateOptions); value: root.stepField("stepRate") === undefined ? "" : (root.stepField("stepRate") || ""); onCommit: v => root.setSteps({stepRate: v === "" ? null : v}) }
+                SelectField { objectName: "stepInspectorCondition"; label: qsTr("Condition"); options: root.conditionOptions
+                    value: root.sharedCondition === null ? undefined : root.sharedCondition; onCommit: v => root.setCondition(v) }
                 SwitchRow { label: qsTr("Skip"); checked: root.shared("skip") === 1; mixed: root.shared("skip") === null; onCommit: v => root.setSteps({skip: v}) }
                 Header { text: qsTr("General") }
                 StepNumber { objectName: "stepInspectorVelocity"; label: qsTr("Velocity"); mode: "velocity"; from: 1; to: 127 }
@@ -162,11 +219,12 @@ Rectangle {
                 SwitchRow { label: qsTr("Tie"); checked: root.shared("tie") === 1; mixed: root.shared("tie") === null; onCommit: v => root.setSteps({tie: v}) }
                 StepNumber { label: qsTr("Offset"); mode: "offset"; unit: "%"; from: -50; to: 50 }
                 NumberRow { label: qsTr("MIDI Channel"); from: 1; to: 16; value: root.stepField("midiChannel") || root.settings.midiChannel || 1; onCommit: v => root.setSteps({midiChannel: v}) }
+                StepNumber { objectName: "stepInspectorArticulation"; label: qsTr("Articulation"); mode: "articulation"; from: 0; to: 255 }
                 Header { text: qsTr("Repeats") }
                 StepNumber { label: qsTr("Repeat"); mode: "repeat"; from: 1; to: 16 }
-                NumberRow { label: qsTr("Velocity Ramp"); unit: "%"; from: -100; to: 100; value: root.stepField("velocityRamp") || 0; onCommit: v => root.setSteps({velocityRamp: v}) }
-                NumberRow { label: qsTr("Velocity Curve"); unit: "%"; from: -100; to: 100; value: root.stepField("velocityCurve") || 0; onCommit: v => root.setSteps({velocityCurve: v}) }
-                NumberRow { label: qsTr("Distribution"); unit: "%"; from: -100; to: 100; value: root.stepField("distribution") || 0; onCommit: v => root.setSteps({distribution: v}) }
+                StepNumber { objectName: "stepInspectorVelocityRamp"; label: qsTr("Velocity Ramp"); mode: "velocityRamp"; unit: "%"; from: -100; to: 100 }
+                StepNumber { objectName: "stepInspectorVelocityCurve"; label: qsTr("Velocity Curve"); mode: "velocityCurve"; unit: "%"; from: -100; to: 100 }
+                StepNumber { objectName: "stepInspectorDistribution"; label: qsTr("Distribution"); mode: "distribution"; unit: "%"; from: -100; to: 100 }
             }
         }
     }

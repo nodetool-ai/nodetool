@@ -23,6 +23,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace nt::midi {
@@ -98,6 +99,8 @@ struct StepKey {
 [[nodiscard]] QJsonObject normalizePattern(const QJsonObject& partial = {});
 [[nodiscard]] QStringList validateStepPattern(const QJsonObject& pattern);
 [[nodiscard]] QString stepNoteName(int pitch);
+// The GM drum lanes the Add Row menu offers (stepEditor.ts GM_DRUM_LANES): pitch and name.
+[[nodiscard]] std::vector<std::pair<int, QString>> gmDrumLanes();
 [[nodiscard]] std::optional<int> parseStepNoteName(const QString& name);
 [[nodiscard]] QString rowLabel(const QJsonObject& row, const QJsonObject& instrument = {});
 
@@ -190,6 +193,7 @@ struct StepSpan {
 };
 struct PatternStepSpans {
     // Row id -> spans sorted by startTick. A row whose schedule fails is absent.
+    // A clip past the 16384 loop segment budget has no rows.
     QHash<QString, std::vector<StepSpan>> rows;
     std::int64_t clipLengthTicks = 0;
     double ticksPerMs = 0;

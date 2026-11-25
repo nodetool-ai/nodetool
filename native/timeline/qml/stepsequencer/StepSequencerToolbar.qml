@@ -118,7 +118,6 @@ Rectangle {
         Icon { objectName: "stepSequencerBrowserToggle"; iconName: "queueMusic"; tip: qsTr("Pattern Browser"); active: root.panel.browserVisible; onClicked: root.panel.runAction("browser") }
         Icon { objectName: "stepSequencerInspectorToggle"; iconName: "tune"; tip: qsTr("Inspector"); active: root.panel.inspectorVisible; onClicked: root.panel.runAction("inspector") }
         Divider {}
-        Icon { objectName: "stepSequencerMidiOut"; iconName: root.panel.midiOut ? "volumeUpOutlined" : "volumeOffOutlined"; tip: qsTr("MIDI Out"); active: root.panel.midiOut; iconColor: active ? Ui.Theme.statusSuccess : undefined; onClicked: root.panel.midiOut = !root.panel.midiOut }
         Icon { objectName: "stepSequencerMono"; iconName: "filterCenterFocus"; tip: qsTr("Mono Mode"); active: !!root.panel.settings.mono; enabled: root.editable; onClicked: root.panel.runAction("mono") }
         Divider {}
         Ui.EditorButton {

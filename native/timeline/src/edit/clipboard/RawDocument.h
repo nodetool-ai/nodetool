@@ -63,6 +63,8 @@ inline QJsonObject withClips(QJsonObject raw, const ClipList &clips) {
 inline RippleOptions rippleOptions(const QJsonObject &raw, const QJsonObject &p, const EditDoc &doc,
                                    const IdSet &editedTracks) {
     RippleOptions options;
+    options.bpm = doc.bpm;
+    options.gridOffsetMs = doc.gridOffsetMs;
     options.lockedTrackIds = lockedTrackIds(doc);
     options.lockedClipIds = lockedUserTargetIds(doc);
     const auto syncOff = stateIds(raw, p, "syncLockOffTrackIds");

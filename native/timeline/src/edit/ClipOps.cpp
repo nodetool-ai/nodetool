@@ -1,5 +1,6 @@
 #include "edit/ClipOps.h"
 #include "edit/EditActions.h"
+#include "edit/speed/SpeedOperations.h"
 #include "scene/Animation.h"
 #include "midi/RegionParams.h"
 #include "midi/PatternExpand.h"
@@ -10,6 +11,7 @@
 
 #include <QJsonArray>
 #include <QHash>
+#include <QMap>
 #include <QUuid>
 
 #include <algorithm>
@@ -2471,11 +2473,20 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
     if (operation == u"set_clip_params") {
         auto clips = raw.value("clips").toArray();
         const auto target = musicResourceId(clips, p.value("clipId").toString(p.value("target").toString()), "clip");
-        const auto patch = p.contains("patch") ? p.value("patch").toObject() : p;
+        auto patch = p.contains("patch") ? p.value("patch").toObject() : p;
+        patch.remove("linked");
+        patch.remove("maxSourceDurationMs");
         for (qsizetype i = 0; i < clips.size(); ++i) {
             auto c = clips[i].toObject();
             if (clipId(c) != target) { continue; }
-            if (sectionLocked(raw, c)) { throw OpError("Unlock the clip first"); }
+            auto lockProbe = c;
+            auto statePatch = patch;
+            statePatch.remove("clipId");
+            statePatch.remove("target");
+            if (statePatch.size() == 1 && statePatch.value("locked") == QJsonValue(false)) {
+                lockProbe.insert("locked", false);
+            }
+            if (sectionLocked(raw, lockProbe)) { throw OpError("Unlock the clip first"); }
             for (auto it = patch.begin(); it != patch.end(); ++it) {
                 const auto key = it.key(); const auto value = it.value();
                 if (key == u"clipId" || key == u"target") { continue; }
@@ -2498,16 +2509,101 @@ QJsonObject applyMusicClipEdit(QJsonObject raw, const QString& operation, const 
                             if (!value.isDouble() || !std::isfinite(n) || std::floor(n) != n || std::abs(n) > limit) { throw OpError("Invalid MIDI region parameter"); }
                         }
                     }
+                } else if (key == u"startMs" || key == u"durationMs") {
+                    if (!value.isDouble() || !std::isfinite(value.toDouble()) || value.toDouble() < 0 ||
+                        (key == u"durationMs" && value.toDouble() == 0)) { throw OpError("Invalid clip timing"); }
+                    if (key == u"durationMs" && isGroupClip(c)) { throw OpError("Trim a group's duration through the group trim command"); }
+                    continue;
+                } else if (key == u"trackId") {
+                    if (!value.isString()) { throw OpError("trackId must be a track id"); }
+                    continue;
+                } else if (key == u"audioEffects") {
+                    if (!value.isArray()) { throw OpError("audioEffects must be an array"); }
+                    const QMap<QString, QStringList> fields{
+                        {"gain", {"gainDb"}},
+                        {"eq3", {"lowFreq", "lowGainDb", "midFreq", "midQ", "midGainDb", "highFreq", "highGainDb"}},
+                        {"filter", {"frequency", "q"}},
+                        {"compressor", {"thresholdDb", "ratio", "attackMs", "releaseMs", "kneeDb"}},
+                        {"echo", {"delayMs", "feedback", "mix"}}, {"reverb", {"decaySec", "mix"}},
+                        {"distortion", {"driveDb", "outputDb"}}};
+                    const QMap<QString, std::pair<double, double>> bounds{
+                        {"delayMs", {1, 5000}}, {"feedback", {0, 0.95}}, {"mix", {0, 1}},
+                        {"decaySec", {0.05, 20}}, {"driveDb", {0, 60}}, {"outputDb", {-60, 24}}};
+                    IdSet ids;
+                    for (const auto& entry : value.toArray()) {
+                        const auto effect = entry.toObject();
+                        const auto type = effect.value("type").toString();
+                        if (!entry.isObject() || !fields.contains(type) || !effect.value("id").isString() ||
+                            !effect.value("enabled").isBool() || !ids.insert(effect.value("id").toString()).second) {
+                            throw OpError("Invalid clip audio effect");
+                        }
+                        auto allowed = fields.value(type);
+                        for (const auto& field : allowed) {
+                            const auto number = effect.value(field);
+                            if (!number.isDouble() || !std::isfinite(number.toDouble()) ||
+                                (bounds.contains(field) && (number.toDouble() < bounds.value(field).first || number.toDouble() > bounds.value(field).second))) {
+                                throw OpError(("Invalid audio effect field: " + field).toStdString());
+                            }
+                        }
+                        if (type == u"filter") {
+                            if (!QStringList{"lowpass", "highpass", "bandpass"}.contains(effect.value("mode").toString())) { throw OpError("Invalid filter mode"); }
+                            allowed.append("mode");
+                        }
+                        allowed.append({"id", "type", "enabled"});
+                        for (auto field = effect.begin(); field != effect.end(); ++field) {
+                            if (!allowed.contains(field.key())) { throw OpError(("Unsupported audio effect field: " + field.key()).toStdString()); }
+                        }
+                    }
+                } else if (key == u"speedMultiplier") {
+                    if (!value.isDouble() || !std::isfinite(value.toDouble()) || value.toDouble() <= 0) { throw OpError("Speed must be positive"); }
+                    const auto link = p.value("linked").toBool(true) ? clipLinkId(c) : QString();
+                    for (const auto& memberValue : clips) {
+                        const auto member = memberValue.toObject();
+                        if (clipId(member) != target && (link.isEmpty() || clipLinkId(member) != link)) { continue; }
+                        if (sectionLocked(raw, member) || isGroupClip(member) ||
+                            !member.value("timeRemap").toObject().value("keyframes").toArray().isEmpty()) {
+                            throw OpError("Speed requires unlocked clips without a group or time remap");
+                        }
+                    }
+                    continue;
                 } else if (key == u"volumeDb" || key == u"fadeInMs" || key == u"fadeOutMs" || key == u"opacity") {
                     if (!value.isDouble() || !std::isfinite(value.toDouble()) || (key == u"opacity" && (value.toDouble() < 0 || value.toDouble() > 1))) { throw OpError("Invalid clip number"); }
                 } else if (key == u"muted" || key == u"hidden" || key == u"locked") {
                     if (!value.isBool()) { throw OpError("Clip state must be boolean"); }
+                    if (key == u"locked") { continue; }
                 } else if (key == u"fadeInShape" || key == u"fadeOutShape") {
                     if (!QStringList{"linear", "sCurve", "plus3dB", "minus3dB"}.contains(value.toString())) { throw OpError("Invalid fade shape"); }
                 } else { throw OpError(("Unsupported clip parameter: " + key).toStdString()); }
                 if (value.isNull() || ((key == u"transpose" || key == u"velocityOffset") && value.toDouble() == 0)) { c.remove(key); } else { c.insert(key, value); }
             }
-            clips[i] = c; raw.insert("clips", clips); return raw;
+            clips[i] = c;
+            raw.insert("clips", clips);
+            if (patch.contains("durationMs")) {
+                QJsonObject trim{{"clipId", target}, {"durationMs", patch.value("durationMs")},
+                    {"linked", p.value("linked").toBool(true)}};
+                if (p.contains("maxSourceDurationMs")) { trim.insert("maxSourceDurationMs", p.value("maxSourceDurationMs")); }
+                raw = applyMusicClipEdit(std::move(raw), QStringLiteral("trim_clip"), trim);
+            }
+            if (patch.contains("startMs") || patch.contains("trackId")) {
+                QJsonObject move{{"clipId", target}, {"linked", p.value("linked").toBool(true)}};
+                for (const auto* key : {"startMs", "trackId"}) {
+                    if (patch.contains(QLatin1String(key))) { move.insert(QLatin1String(key), patch.value(QLatin1String(key))); }
+                }
+                raw = applyMusicClipEdit(std::move(raw), QStringLiteral("move_clip"), move);
+            }
+            if (patch.contains("speedMultiplier")) {
+                raw = nt::speed::setClipSpeed(std::move(raw), {{"clipId", target},
+                    {"speedMultiplier", patch.value("speedMultiplier")}, {"linked", p.value("linked").toBool(true)}});
+            }
+            if (patch.contains("locked")) {
+                auto changed = raw.value("clips").toArray();
+                for (qsizetype j = 0; j < changed.size(); ++j) {
+                    auto member = changed[j].toObject();
+                    if (clipId(member) == target) { member.insert("locked", patch.value("locked")); changed[j] = member; break; }
+                }
+                raw.insert("clips", changed);
+            }
+            return raw;
         }
     }
     if (operation == u"join_clips") {

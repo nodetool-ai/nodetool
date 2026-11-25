@@ -3092,6 +3092,8 @@ PatternStepSpans patternStepSpans(const QJsonObject& clip, const QJsonObject& do
     const std::int64_t inPointTicks =
         std::max<std::int64_t>(0, jsRoundInt64(msToTicks(clip.value(u"inPointMs").toDouble(0.0), bpm)));
     const double phase = jsRoundInt64(clip.value(u"patternPhaseTicks").toDouble(0.0)) + inPointTicks;
+    // The expander's segment budget: past it, expandPattern reports a resource error.
+    if (loopTicks && std::ceil(static_cast<double>(out.clipLengthTicks) / *loopTicks) > 16384) return out;
     const auto segments = buildSegments(static_cast<double>(out.clipLengthTicks), loopTicks, phase);
     const auto pattern = clip.value(u"pattern").toObject();
     const std::uint32_t seed = readSeed(pattern.value(u"seed"), 1u);
@@ -3119,6 +3121,13 @@ PatternStepSpans patternStepSpans(const QJsonObject& clip, const QJsonObject& do
         }
         out.rows.insert(rowId, std::move(spans));
     }
+    return out;
+}
+
+std::vector<std::pair<int, QString>> gmDrumLanes() {
+    std::vector<std::pair<int, QString>> out;
+    out.reserve(kGmDrumLanes.size());
+    for (const auto& lane : kGmDrumLanes) out.emplace_back(lane.pitch, QString::fromLatin1(lane.name));
     return out;
 }
 

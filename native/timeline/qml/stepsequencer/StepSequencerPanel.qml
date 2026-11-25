@@ -77,7 +77,6 @@ Rectangle {
     property bool inspectorVisible: true
     property bool browserVisible: false
     property bool linkOn: true
-    property bool midiOut: true
     property bool rowColors: true
     property string displayValues: "selected"   // "editing" | "selected" | "all" (D100)
     property real rowZoom: 1
@@ -305,7 +304,9 @@ Rectangle {
         const n = span.length
         return span.map((s, k) => {
             const t = n > 1 ? (g.start <= g.end ? k : n - 1 - k) / (n - 1) : 0
-            return {step: s, value: Math.round(g.from + (g.to - g.from) * t)}
+            const v = g.from + (g.to - g.from) * t
+            // Device parameters are 0..1 and keep fractions, like fromFraction.
+            return {step: s, value: Modes.isDeviceValue(g.row, g.mode) ? Math.round(v * 1000) / 1000 : Math.round(v)}
         })
     }
     function isRamp(g) { return g.kind === "cmdAlt" && Modes.spec(g.mode).kind === "number" && g.start !== g.end }
@@ -499,26 +500,30 @@ Rectangle {
         else if (selectedRowId) op("transpose_pattern", {row: selectedRowId, semitones: semitones})
         else op("transpose_pattern", {semitones: semitones})
     }
-    // Step rates ordered from long to short; up is faster.
+    // Step rates ordered by duration from long to short (PatternExpand kRateTable ticks); up is faster.
     function nudgedRate(rate, delta) {
-        const order = ["4", "2", "1", "1D", "1/2", "1T", "2D", "1/4", "2T", "4D", "1/8", "4T", "8D", "1/16", "8T", "16D", "1/32", "16T", "32D", "1/64", "32T", "64D"]
+        const order = ["4", "2", "1D", "1", "2D", "1T", "1/2", "4D", "2T", "1/4", "8D", "4T", "1/8", "16D", "8T", "1/16", "32D", "16T", "1/32", "64D", "32T", "1/64"]
         const i = order.indexOf(rate || "1/16")
-        return order[Math.max(0, Math.min(order.length - 1, (i < 0 ? 13 : i) + delta))]
+        return order[Math.max(0, Math.min(order.length - 1, (i < 0 ? order.indexOf("1/16") : i) + delta))]
     }
     function cycleMode(delta) {
         const list = Modes.MODES.map(m => m.value)
         const i = list.indexOf(editMode === "value" ? "velocity" : editMode)
         editMode = list[(i + delta + list.length) % list.length]
     }
+    // spec: "<group id>:<choice index>" into sequencer.addRowGroups. A degree row
+    // switches the pitch source to the chord track in the same undo entry (SQ19).
     function addRow(spec) {
-        // spec: "note:38", "cc:74", "pitchBend", "channelPressure"
         const parts = spec.split(":")
-        let row = null
-        if (parts[0] === "note") row = {assignment: {type: "note", pitch: Number(parts[1])}}
-        else if (parts[0] === "melodic") row = {assignment: {type: "melodic", pitch: Number(parts[1])}}
-        else if (parts[0] === "cc") row = {assignment: {type: "automation", target: {kind: "cc", cc: Number(parts[1])}}}
-        else if (parts[0] === "pitchBend" || parts[0] === "channelPressure") row = {assignment: {type: "automation", target: {kind: parts[0]}}}
-        if (row) op("add_pattern_rows", {rows: [row]})
+        const group = controller.addRowGroups.find(g => g.id === parts[0])
+        const choice = group ? group.choices[Number(parts[1])] : null
+        if (!choice) return
+        const row = {assignment: choice.assignment}
+        if (choice.name) row.name = choice.name
+        const list = []
+        if (choice.assignment.type === "degree" && settings.pitchSource !== "chords") list.push({op: "set_pattern", args: {pitchSource: "chords"}})
+        list.push({op: "add_pattern_rows", args: {rows: [row]}})
+        ops(list)
     }
 
     // Keys (SQ34, SQ35). Names are macOS: Command is Ctrl in Qt, Control is Meta.
@@ -582,6 +587,20 @@ Rectangle {
         if (plain && !shift && ch === "'") return "toggleStep"
         return ""
     }
+    // The action for a key event ({key, text}) and its modifiers. Off macOS,
+    // Ctrl+Alt first tries Command-Option, then Control, then Control-Option,
+    // so Control-Option-S (On/Off) stays reachable.
+    function resolveKeyAction(event, modifiers, mac) {
+        const ctrl = (modifiers & Qt.ControlModifier) !== 0
+        const alt = (modifiers & Qt.AltModifier) !== 0
+        const shift = (modifiers & Qt.ShiftModifier) !== 0
+        const meta = (modifiers & Qt.MetaModifier) !== 0
+        if (mac) return keyAction(event, ctrl, alt, shift, meta)
+        let action = keyAction(event, ctrl, alt, shift, false)
+        if (!action && ctrl && alt) action = keyAction(event, false, false, shift, true)
+        if (!action && ctrl && alt) action = keyAction(event, false, true, shift, true)
+        return action
+    }
     Keys.onReleased: event => { keyModifiers = event.modifiers }
     Keys.onPressed: event => {
         keyModifiers = event.modifiers
@@ -590,13 +609,7 @@ Rectangle {
         const alt = (event.modifiers & Qt.AltModifier) !== 0
         const shift = (event.modifiers & Qt.ShiftModifier) !== 0
         const meta = (event.modifiers & Qt.MetaModifier) !== 0
-        let action = ""
-        if (mac) {
-            action = keyAction(event, ctrl, alt, shift, meta)
-        } else {
-            action = keyAction(event, ctrl, alt, shift, false)
-            if (!action && ctrl && alt) action = keyAction(event, false, false, shift, true)
-        }
+        const action = resolveKeyAction(event, event.modifiers, mac)
         const plain = !ctrl && !alt && !(mac && meta)
         if (!action && plain && !shift && event.text.length === 1) {
             const m = Modes.modeForKey(event.text.toLowerCase())

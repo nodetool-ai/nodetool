@@ -38,12 +38,35 @@ class StepSequencerRowModel : public QAbstractListModel {
     std::vector<int> m_playing;
 };
 
+// The Pattern Browser list (SQ43): a section header per kind, then its factory
+// entries. A search inserts and removes rows, never resets, so the ListView
+// keeps its delegates. Owned by StepSequencerController. UI thread only.
+class StepSequencerLibraryModel : public QAbstractListModel {
+    Q_OBJECT
+    QML_ANONYMOUS
+  public:
+    enum Role { HeaderRole = Qt::UserRole + 1, EntryIdRole, NameRole, KindRole, CategoryRole };
+    explicit StepSequencerLibraryModel(const QVariantList& library, QObject* parent = nullptr);
+    int rowCount(const QModelIndex& parent = {}) const override { return parent.isValid() ? 0 : static_cast<int>(m_rows.size()); }
+    QVariant data(const QModelIndex& index, int role) const override;
+    QHash<int, QByteArray> roleNames() const override;
+    void setQuery(const QString& query);
+
+  private:
+    struct Item {
+        QString header;  // Empty for an entry.
+        QVariantMap entry;
+    };
+    std::vector<Item> m_all;
+    std::vector<int> m_rows;  // Indices into m_all, in order.
+};
+
 // The Step Sequencer's view of one pattern region (web StepSequencer.tsx). It
 // reads `clip.pattern` and writes every edit through the same step pattern
 // operations the assistant tools run (PatternOps.h), so a person and an agent
 // reach the same edits. Each mutating runOp call is one "Edit Step Pattern"
 // undo entry.
-// Owned by its QML parent. It owns its row model (QObject child). UI thread only.
+// Owned by its QML parent. It owns its row and library models (QObject children). UI thread only.
 class StepSequencerController : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -71,6 +94,12 @@ class StepSequencerController : public QObject {
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
     // Factory patterns and templates: id, name, kind, category, tags. Parsed once.
     Q_PROPERTY(QVariantList library READ library CONSTANT)
+    // The browser rows after setLibraryQuery: header, entryId, name, kind, category.
+    Q_PROPERTY(QAbstractItemModel* libraryModel READ libraryModel CONSTANT)
+    // The Add Row and row assignment choices (web stepRowAssignments.ts):
+    // [{id, label, choices: [{id, label, name, assignment}]}]. Kit, drums, notes,
+    // melodic, degrees, controllers and instrument parameters.
+    Q_PROPERTY(QVariantList addRowGroups READ addRowGroups NOTIFY addRowGroupsChanged)
     // Timeline time in ms of the playhead, or negative when nothing plays.
     Q_PROPERTY(double playheadMs READ playheadMs WRITE setPlayheadMs NOTIFY playheadMsChanged)
 
@@ -96,6 +125,9 @@ class StepSequencerController : public QObject {
     QString patternText() const { return m_patternText; }
     QString lastError() const { return m_lastError; }
     QVariantList library() const;
+    QAbstractItemModel* libraryModel() const { return m_libraryModel; }
+    QVariantList addRowGroups() const;
+    Q_INVOKABLE void setLibraryQuery(const QString& query) { m_libraryModel->setQuery(query); }
     double playheadMs() const { return m_playheadMs; }
     void setPlayheadMs(double ms);
 
@@ -120,16 +152,21 @@ class StepSequencerController : public QObject {
     void patternChanged();
     void lastErrorChanged();
     void playheadMsChanged();
+    // The track instrument changed, so the Add Row menus rebuild only then.
+    void addRowGroupsChanged();
 
   private:
     void onTimelineChanged();
     void reload();
     void setLastError(const QString& error);
     void ensureSpans();
+    QJsonObject tempoDoc() const;
+    QJsonObject trackRaw() const;
     int stepAt(const QString& rowId, double ms);
 
     QPointer<TimelineModel> m_timeline;
     StepSequencerRowModel* m_rowModel = nullptr;
+    StepSequencerLibraryModel* m_libraryModel = nullptr;
     QString m_clipId;
     bool m_valid = false;
     bool m_convertible = false;
@@ -144,6 +181,7 @@ class StepSequencerController : public QObject {
     QString m_lastError;
     QJsonObject m_clipRaw;
     QJsonObject m_tempoDoc;
+    QJsonObject m_trackRaw;
     nt::midi::PatternStepSpans m_spans;
     bool m_spansDirty = true;
     double m_playheadMs = -1;

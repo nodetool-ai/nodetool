@@ -32,7 +32,16 @@ var MODES = [
     {value: "loop", label: "Loop", kind: "loop", field: "", key: "l"}
 ]
 
+// Step fields the inspector edits that are not grid modes (p. 757).
+var INSPECTOR_FIELDS = [
+    {value: "articulation", label: "Articulation", kind: "number", field: "articulation", key: ""},
+    {value: "velocityRamp", label: "Velocity Ramp", kind: "number", field: "velocityRamp", unit: "%", key: ""},
+    {value: "velocityCurve", label: "Velocity Curve", kind: "number", field: "velocityCurve", unit: "%", key: ""},
+    {value: "distribution", label: "Distribution", kind: "number", field: "distribution", unit: "%", key: ""}
+]
+
 function spec(mode) {
+    for (var j = 0; j < INSPECTOR_FIELDS.length; ++j) if (INSPECTOR_FIELDS[j].value === mode) return INSPECTOR_FIELDS[j]
     if (mode === "value") return {value: "value", label: "Value", kind: "number", field: "value", key: "v"}
     for (var i = 0; i < MODES.length; ++i) if (MODES[i].value === mode) return MODES[i]
     return MODES[0]
@@ -76,6 +85,8 @@ function range(row, mode) {
     case "chance": return {min: 0, max: 100}
     case "offset": return {min: -50, max: 50}
     case "stepRate": return {min: 0, max: STEP_RATES.length - 1}
+    case "articulation": return {min: 0, max: 255}
+    case "velocityRamp": case "velocityCurve": case "distribution": return {min: -100, max: 100}
     default: return {min: 0, max: 1}
     }
 }
@@ -118,6 +129,7 @@ function value(row, index, mode) {
     case "offset": return n.offset
     case "stepRate": return STEP_RATES.indexOf(n.stepRate !== undefined ? n.stepRate : row.stepRate)
     case "loop": return index >= row.loopStart && index < row.loopEnd ? 1 : 0
+    case "articulation": case "velocityRamp": case "velocityCurve": case "distribution": return n[mode] || 0
     }
     return 0
 }

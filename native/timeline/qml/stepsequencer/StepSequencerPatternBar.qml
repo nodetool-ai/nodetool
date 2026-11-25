@@ -14,29 +14,20 @@ Rectangle {
     readonly property bool editable: panel.editable
     readonly property var settings: panel.settings
     readonly property string mode: panel.editMode
-    readonly property var drums: [
-        {pitch: 36, label: qsTr("Kick")}, {pitch: 38, label: qsTr("Snare")}, {pitch: 39, label: qsTr("Clap")},
-        {pitch: 42, label: qsTr("Closed Hi-Hat")}, {pitch: 46, label: qsTr("Open Hi-Hat")}, {pitch: 49, label: qsTr("Crash")},
-        {pitch: 51, label: qsTr("Ride")}, {pitch: 45, label: qsTr("Low Tom")}, {pitch: 48, label: qsTr("High Tom")},
-        {pitch: 37, label: qsTr("Side Stick")}, {pitch: 56, label: qsTr("Cowbell")}, {pitch: 70, label: qsTr("Maracas")}
-    ]
-    readonly property var addEntries: [
-        {id: "notes", label: qsTr("Notes"), submenu: [
-            {id: "drums", label: qsTr("Drums"), submenu: drums.map(d => ({id: "addRow:note:" + d.pitch, label: d.label}))},
-            {id: "addRow:melodic:60", label: qsTr("Melodic Row (C3)")},
-            {id: "addRow:melodic:48", label: qsTr("Melodic Row (C2)")}
-        ]},
-        {id: "automation", label: qsTr("Automation"), submenu: [
-            {id: "addRow:cc:1", label: qsTr("Modulation (CC 1)")},
-            {id: "addRow:cc:7", label: qsTr("Volume (CC 7)")},
-            {id: "addRow:cc:10", label: qsTr("Pan (CC 10)")},
-            {id: "addRow:cc:11", label: qsTr("Expression (CC 11)")},
-            {id: "addRow:cc:74", label: qsTr("Brightness (CC 74)")},
-            {id: "addRow:pitchBend", label: qsTr("Pitch Bend")},
-            {id: "addRow:channelPressure", label: qsTr("Channel Pressure")}
-        ]}
-    ]
-    readonly property var lengthOptions: [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64].map(n => ({label: qsTr("%1 Steps").arg(n), value: n}))
+    // Add Row: one submenu per assignment group (web stepRowAssignments.ts).
+    readonly property var addEntries: panel.sequencer.addRowGroups.map(g => ({
+        id: "group-" + g.id, label: g.label,
+        submenu: g.choices.map((c, i) => ({id: "addRow:" + g.id + ":" + i, label: c.label}))
+    }))
+    // Length sections: multiples of 4, 3, 5 and 7 up to 64 (SQ7, p. 731).
+    readonly property var lengthEntries: {
+        const out = []
+        for (const base of [4, 3, 5, 7]) {
+            out.push({header: qsTr("%1 Based").arg(base)})
+            for (let n = base; n <= 64; n += base) out.push({id: "length:" + n, label: qsTr("%1 Steps").arg(n), checked: n === (settings.lengthSteps || 16)})
+        }
+        return out
+    }
 
     Row {
         height: parent.height
@@ -113,26 +104,28 @@ Rectangle {
                 color: Ui.Theme.surfacePanel
                 border.width: Ui.Metrics.border
                 border.color: root.panel.page === index ? Ui.Theme.textSecondary : Ui.Theme.borderSubtle
-                readonly property int rowCount: Math.min(8, root.panel.rows.length)
-                Repeater {
-                    model: page.rowCount
-                    delegate: Item {
-                        id: line
-                        required property int index
-                        readonly property var row: root.panel.rows[index]
-                        y: Ui.Metrics.micro + index * (page.height - Ui.Metrics.micro * 2) / page.rowCount
-                        width: page.width
-                        height: (page.height - Ui.Metrics.micro * 2) / page.rowCount
-                        Repeater {
-                            model: 16
-                            delegate: Rectangle {
-                                required property int index
-                                readonly property int step: page.index * 16 + index
-                                visible: !!line.row && step < line.row.lengthSteps && !!line.row.steps[step].on
-                                x: Ui.Metrics.micro + index * (page.width - Ui.Metrics.micro * 2) / 16
-                                width: Math.max(Ui.Metrics.border, (page.width - Ui.Metrics.micro * 2) / 16 - Ui.Metrics.border)
-                                height: Math.max(Ui.Metrics.border, line.height - Ui.Metrics.border)
-                                color: Modes.rowColor(line.row || {}, line.index)
+                // One Canvas per page draws the first 8 rows, not one item per step.
+                Canvas {
+                    id: overview
+                    anchors.fill: parent
+                    readonly property var rows: root.panel.rows
+                    onRowsChanged: requestPaint()
+                    onPaint: {
+                        const ctx = getContext("2d")
+                        ctx.reset()
+                        const list = rows.slice(0, 8)
+                        if (!list.length) return
+                        const inset = Ui.Metrics.micro
+                        const lineH = (height - inset * 2) / list.length
+                        const cellW = (width - inset * 2) / 16
+                        for (let r = 0; r < list.length; ++r) {
+                            const row = list[r]
+                            ctx.fillStyle = Modes.rowColor(row, r)
+                            for (let i = 0; i < 16; ++i) {
+                                const step = page.index * 16 + i
+                                if (step >= row.lengthSteps || !(row.steps[step] && row.steps[step].on)) continue
+                                ctx.fillRect(inset + i * cellW, inset + r * lineH, Math.max(Ui.Metrics.border, cellW - Ui.Metrics.border),
+                                             Math.max(Ui.Metrics.border, lineH - Ui.Metrics.border))
                             }
                         }
                     }
@@ -141,18 +134,17 @@ Rectangle {
             }
         }
     }
-    Ui.Select {
+    Ui.MenuButton {
         objectName: "stepSequencerLength"
         anchors.right: parent.right
         anchors.rightMargin: Ui.Metrics.md
         anchors.verticalCenter: parent.verticalCenter
-        width: Ui.Metrics.xxxl * 2.8
         density: Ui.EditorButton.Compact
+        text: qsTr("%1 Steps").arg(root.settings.lengthSteps || 16)
         accessibleName: qsTr("Pattern Length")
         enabled: root.editable
-        options: root.lengthOptions
-        value: root.settings.lengthSteps || 16
-        onValueCommitted: next => root.panel.op("set_pattern", {lengthSteps: next})
+        menu: lengthMenu
+        Ui.ContextMenu { id: lengthMenu; entries: root.lengthEntries; onEntryTriggered: id => root.panel.op("set_pattern", {lengthSteps: Number(id.slice(7))}) }
     }
     Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Ui.Metrics.border; color: Ui.Theme.borderSubtle }
 

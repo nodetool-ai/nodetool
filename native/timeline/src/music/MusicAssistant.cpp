@@ -2,7 +2,6 @@
 #include "audio/vst/PluginAssistant.h"
 
 #include "aiassist/AssistDocument.h"
-#include "app/EditRegistry.h"
 #include "midi/PatternOps.h"
 #include "model/TimelineModel.h"
 #include "music/MusicDocument.h"
@@ -86,14 +85,6 @@ QString resolveTrack(const QString& input, const QJsonArray& tracks, QString* er
     }
     return {};
 }
-
-// Single-undo-step edit hook for SQ55 step sequencer assistant mutations.
-[[maybe_unused]] const bool stepPatternEditRegistered =
-    nt::app::registerEdit(QStringLiteral("midi.stepPatternOp"), [](QJsonObject before, const QJsonObject& payload) {
-        const auto outcome = nt::midi::runStepPatternOp(before, payload.value(u"operation").toString(), payload.value(u"args").toObject());
-        if (!outcome.ok) throw std::runtime_error(outcome.error.toStdString());
-        return outcome.nextDocument;
-    });
 
 }  // namespace
 

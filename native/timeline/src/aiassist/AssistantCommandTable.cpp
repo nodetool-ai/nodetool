@@ -102,9 +102,14 @@ QList<Command> buildAllowed() {
         P{"auto_crossfade_ms", ParamKind::Number, false, "Automatic crossfade in milliseconds. Zero disables it.", {}, {}, 0, 1000}});
     edit("music.setAutoCrossfade", "Set automatic crossfade", {
         P{"autoCrossfadeMs", ParamKind::Number, true, "Automatic audio crossfade length in ms. Zero disables it. Default 10.", {}, {}, 0, 1000}});
-    edit("set_clip_params", "Set clip parameters", {
+    auto& clipParams = edit("set_clip_params", "Set clip parameters", {
         P{"target", ParamKind::ClipId, false, "The clip id."},
         P{"clipId", ParamKind::ClipId, false, "Alias for target."},
+        P{"startMs", ParamKind::Number, false, "Timeline start in milliseconds.", {}, {}, 0},
+        P{"durationMs", ParamKind::Number, false, "Timeline duration in milliseconds.", {}, {}, 0},
+        P{"trackId", ParamKind::TrackId, false, "Destination track."},
+        P{"audioEffects", ParamKind::Array, false, "The complete clip audio-effect chain. An empty array clears it."},
+        P{"speedMultiplier", ParamKind::Number, false, "Playback speed. Retimes the linked clips.", {}, {}, 0},
         P{"volumeDb", ParamKind::Number, false, "Clip gain in decibels."},
         P{"fadeInMs", ParamKind::Number, false, "Fade-in duration."},
         P{"fadeOutMs", ParamKind::Number, false, "Fade-out duration."},
@@ -119,6 +124,8 @@ QList<Command> buildAllowed() {
         P{"transpose", ParamKind::NullableNumber, false, "MIDI semitones, or null to clear.", {}, {}, -48, 48},
         P{"velocityOffset", ParamKind::NullableNumber, false, "MIDI velocity offset, or null to clear.", {}, {}, -127, 127},
         P{"quantize", ParamKind::NullableObject, false, "MIDI {grid, strength} or null to clear."}});
+    clipParams.linked = true;
+    clipParams.sourceLimit = true;
     edit("join_clips", "Join clips", {P{"clips", ParamKind::ClipIds, false, "MIDI clips on one track, or continuous pieces of one audio source."}});
     edit("loop_clip", "Loop clip", {musicClip,
         P{"times", ParamKind::Number, false, "How many source-window repetitions, including a partial final repeat.", {}, {}, 0},
@@ -409,7 +416,7 @@ QHash<QString, QString> buildDenied() {
     deny({"assistant.foldedCommand"}, internal);
     deny({"assistant.ui_timeline_delete_clip", "assistant.ui_timeline_move_clip", "assistant.ui_timeline_plan_beats", "assistant.ui_timeline_remove_beat",
           "assistant.ui_timeline_set_clip_binding", "assistant.ui_timeline_set_setup", "assistant.ui_timeline_split_clip", "assistant.ui_timeline_update_beat",
-          "midi.stepPatternOp", "midi.setNotes", "midi.setControllers", "midi.setEvents", "music.createMidiClip"},
+          "midi.setNotes", "midi.setControllers", "midi.setEvents", "music.createMidiClip"},
          "the Assistant has its own tool for it");
     deny({"setTrackAutomationMode", "writeTrackAutomationPass"}, "it is a step of automation recording, which a person performs during playback");
     deny({"setTrackInstrument", "setTrackInstrumentState"}, "the Assistant uses ui_timeline_load_plugin, ui_timeline_select_plugin_preset and ui_timeline_set_plugin_parameters");

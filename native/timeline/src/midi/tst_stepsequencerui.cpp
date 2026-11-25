@@ -1,5 +1,6 @@
 #include "../../tests/RequireValue.h"
 #include "../../tests/TestAssetCacheRoot.h"
+#include "app/EditRegistry.h"
 #include "midi/PatternExpand.h"
 #include "midi/PatternOps.h"
 #include "model/TimelineJson.h"
@@ -7,6 +8,7 @@
 #include "playback/PlaybackClock.h"
 
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -15,6 +17,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QRegularExpression>
+#include <QSignalSpy>
 #include <QUndoStack>
 #include <QtTest>
 
@@ -70,6 +73,17 @@ class TestStepSequencerUi : public QObject {
             QMetaObject::invokeMethod(panel(), method, Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, a), Q_ARG(QVariant, b));
         }
         return result;
+    }
+    QObject* sequencer() const { return panel()->property("sequencer").value<QObject*>(); }
+    int playingStep(const QString& rowId, double ms) const {
+        int result = -1;
+        QMetaObject::invokeMethod(sequencer(), "playingStep", Q_RETURN_ARG(int, result), Q_ARG(QString, rowId), Q_ARG(double, ms));
+        return result;
+    }
+    int descendants(QQuickItem* at) const {
+        int n = 0;
+        for (auto* child : at->childItems()) n += 1 + descendants(child);
+        return n;
     }
     QVariantMap op(const QString& name, const QVariantMap& args) {
         return call("op", name, args).toMap();
@@ -247,7 +261,7 @@ Item {
     // SQ28: the menu bar and pattern bar controls exist.
     void barsHoldEveryControl() {
         for (const char* name : {"stepSequencerEditMenu", "stepSequencerFunctionsMenu", "stepSequencerViewMenu",
-                                 "stepSequencerBrowserToggle", "stepSequencerInspectorToggle", "stepSequencerMidiOut",
+                                 "stepSequencerBrowserToggle", "stepSequencerInspectorToggle",
                                  "stepSequencerMono", "stepSequencerOnOff", "stepSequencerModeSelect", "stepSequencerZoom",
                                  "stepSequencerStepWidthMin", "stepSequencerStepWidthMax", "stepSequencerAddRow",
                                  "stepSequencerRate", "stepSequencerPlayback", "stepSequencerPatternName",
@@ -291,6 +305,145 @@ Item {
         QVERIFY(!bad["ok"].toBool());
         QVERIFY(bad["error"].toString().contains("velocity"));
     }
+
+    // F27: a long clip with a tiny loop stays inside the segment budget.
+    void stepSpansHonourTheSegmentBudget() {
+        auto clip = QJsonDocument::fromJson(model.documentJson()).object()["clips"].toArray()[0].toObject();
+        clip["durationMs"] = 3600000.0;
+        clip["loopLengthMs"] = 1.0;
+        QElapsedTimer timer;
+        timer.start();
+        const auto spans = nt::midi::patternStepSpans(clip, QJsonObject{{"tempo", QJsonObject{{"bpm", 120}}}});
+        QVERIFY2(timer.elapsed() < 20, qPrintable(QString::number(timer.elapsed())));
+        QVERIFY(spans.rows.isEmpty());
+    }
+
+    // F28: a tempo-only or track-only edit reloads the panel.
+    void tempoAndTrackEditsReload() {
+        QCOMPARE(playingStep("k", 600.0), 4);
+        model.applyEdit(QStringLiteral("Tempo"), {}, [](QJsonObject doc, const QJsonObject&) {
+            auto tempo = doc["tempo"].toObject();
+            tempo["bpm"] = 60;
+            doc["tempo"] = tempo;
+            return doc;
+        });
+        QCOMPARE(playingStep("k", 600.0), 2);
+        model.applyEdit(QStringLiteral("Track"), {}, [](QJsonObject doc, const QJsonObject&) {
+            auto tracks = doc["tracks"].toArray();
+            auto track = tracks[0].toObject();
+            track["name"] = "Beats";
+            track["locked"] = true;
+            tracks[0] = track;
+            doc["tracks"] = tracks;
+            return doc;
+        });
+        QCOMPARE(sequencer()->property("trackName").toString(), QStringLiteral("Beats"));
+        QVERIFY(!sequencer()->property("editable").toBool());
+    }
+
+    // F29: a device automation ramp keeps fractional values.
+    void deviceRampKeepsFractions() {
+        const QVariantMap g{{"kind", "cmdAlt"}, {"mode", "value"}, {"start", 0}, {"end", 2}, {"from", 0.2}, {"to", 0.8},
+                            {"row", QVariantMap{{"type", "automation"}, {"targetKind", "device"}}}};
+        const auto list = call("rampValues", g).toList();
+        QCOMPARE(list.size(), 3);
+        QCOMPARE(list[0].toMap()["value"].toDouble(), 0.2);
+        QCOMPARE(list[1].toMap()["value"].toDouble(), 0.5);
+        QCOMPARE(list[2].toMap()["value"].toDouble(), 0.8);
+    }
+
+    // F30: Faster always shortens the step.
+    void fasterShortensTheRate() {
+        QCOMPARE(call("nudgedRate", "1", 1).toString(), QStringLiteral("2D"));
+        QCOMPARE(call("nudgedRate", "1", -1).toString(), QStringLiteral("1D"));
+        QCOMPARE(call("nudgedRate", "1/16", 1).toString(), QStringLiteral("32D"));
+        QCOMPARE(call("nudgedRate", "1/4", -1).toString(), QStringLiteral("2T"));
+    }
+
+    // F24: off macOS, Control-Option-S (Ctrl+Alt+S) selects On/Off.
+    void onOffKeyOffMac() {
+        const QVariantMap event{{"key", int(Qt::Key_S)}, {"text", "s"}};
+        QVariant result;
+        QMetaObject::invokeMethod(panel(), "resolveKeyAction", Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, event),
+                                  Q_ARG(QVariant, int(Qt::ControlModifier | Qt::AltModifier)), Q_ARG(QVariant, false));
+        QCOMPARE(result.toString(), QStringLiteral("onOffMode"));
+        QMetaObject::invokeMethod(panel(), "resolveKeyAction", Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, event),
+                                  Q_ARG(QVariant, int(Qt::MetaModifier | Qt::AltModifier)), Q_ARG(QVariant, true));
+        QCOMPARE(result.toString(), QStringLiteral("onOffMode"));
+    }
+
+    // F26: Add Row offers the web choices, Length has the 4/3/5/7 sections, no dead MIDI Out.
+    void addRowAndLengthChoices() {
+        const auto groups = sequencer()->property("addRowGroups").toList();
+        QHash<QString, QVariantList> byId;
+        for (const auto& g : groups) byId.insert(g.toMap()["id"].toString(), g.toMap()["choices"].toList());
+        QCOMPARE(byId["drums"].size(), 16);
+        bool lowTom = false;
+        for (const auto& c : byId["drums"]) {
+            const auto m = c.toMap();
+            if (m["label"].toString() == "Low Tom") lowTom = m["assignment"].toMap()["pitch"].toInt() == 41;
+        }
+        QVERIFY(lowTom);
+        QCOMPARE(byId["notes"].size(), 128);
+        QCOMPARE(byId["degrees"].size(), 7);
+        QCOMPARE(byId["controllers"].size(), 130);
+        QVERIFY(byId.contains("melodic"));
+        const int before = pattern()["rows"].toArray().size();
+        call("runAction", "addRow:degrees:2");
+        QCOMPARE(pattern()["rows"].toArray().size(), before + 1);
+        QCOMPARE(pattern()["pitchSource"].toString(), QStringLiteral("chords"));
+        QCOMPARE(pattern()["rows"].toArray().last().toObject()["assignment"].toObject()["degree"].toString(), QStringLiteral("3rd"));
+        QStringList lengths;
+        for (const auto& e : item("stepSequencerPatternBar")->property("lengthEntries").toList()) {
+            const auto m = e.toMap();
+            if (m.contains("id")) lengths << m["id"].toString();
+        }
+        for (const char* n : {"length:3", "length:5", "length:7", "length:63", "length:64"}) QVERIFY2(lengths.contains(n), n);
+        QVERIFY(!item("stepSequencerMidiOut"));
+    }
+
+    // F26: the inspector shows assignment, color, condition, articulation, and ramps edit relatively.
+    void inspectorShowsEveryField() {
+        op("set_steps", {{"row", "k"}, {"steps", "1"}, {"values", QVariantMap{{"velocityRamp", 10}}}});
+        op("set_steps", {{"row", "k"}, {"steps", "2"}, {"values", QVariantMap{{"velocityRamp", 30}}}});
+        QMetaObject::invokeMethod(panel(), "selectStep", Q_ARG(QVariant, "k"), Q_ARG(QVariant, 0), Q_ARG(QVariant, false));
+        QMetaObject::invokeMethod(panel(), "selectStep", Q_ARG(QVariant, "k"), Q_ARG(QVariant, 1), Q_ARG(QVariant, true));
+        auto* inspector = item("stepSequencerInspector");
+        QMetaObject::invokeMethod(inspector, "commitStep", Q_ARG(QVariant, "velocityRamp"), Q_ARG(QVariant, 5));
+        QTRY_COMPARE(step(0, 0)["velocityRamp"].toInt(), 15);
+        QCOMPARE(step(0, 1)["velocityRamp"].toInt(), 35);
+        for (const char* name : {"stepInspectorCondition", "stepInspectorArticulation", "stepInspectorVelocityCurve", "stepInspectorDistribution"}) {
+            QVERIFY2(item(name), name);
+        }
+        panel()->setProperty("inspectorTab", "row");
+        for (const char* name : {"stepInspectorAssignment", "stepInspectorRowColor"}) QVERIFY2(item(name), name);
+        QMetaObject::invokeMethod(inspector, "setCondition", Q_ARG(QVariant, "2:4"));
+        QTRY_COMPARE(step(0, 0)["condition"].toObject()["cycles"].toInt(), 4);
+        QCOMPARE(step(0, 1)["condition"].toObject()["iteration"].toInt(), 2);
+    }
+
+    // F17: page overviews draw without one item per step.
+    void pageOverviewsStaySmall() {
+        auto* pages = item("stepSequencerPages");
+        QVERIFY(pages);
+        QVERIFY2(descendants(pages) < 12, qPrintable(QString::number(descendants(pages))));
+    }
+
+    // F19: a browser search updates rows in place, without a model reset.
+    void browserSearchKeepsTheModel() {
+        auto* library = sequencer()->property("libraryModel").value<QAbstractItemModel*>();
+        QVERIFY(library);
+        const int all = library->rowCount();
+        QSignalSpy resets(library, &QAbstractItemModel::modelReset);
+        QMetaObject::invokeMethod(sequencer(), "setLibraryQuery", Q_ARG(QString, "boom"));
+        QVERIFY(library->rowCount() > 0 && library->rowCount() < all);
+        QMetaObject::invokeMethod(sequencer(), "setLibraryQuery", Q_ARG(QString, ""));
+        QCOMPARE(library->rowCount(), all);
+        QCOMPARE(resets.count(), 0);
+    }
+
+    // F12: the unused step pattern edit is not registered.
+    void noUnusedStepPatternEdit() { QVERIFY(!nt::app::findEdit(QStringLiteral("midi.stepPatternOp"))); }
 
     // Review screenshots, written when NT_PANEL_SCREENSHOTS is set.
     void screenshots() {

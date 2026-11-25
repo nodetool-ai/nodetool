@@ -12,18 +12,7 @@ Rectangle {
     color: Ui.Theme.surfacePanel
     clip: true
     property string query: ""
-    readonly property var entries: {
-        const q = query.trim().toLowerCase()
-        const all = panel.sequencer.library.filter(e => !q || e.search.indexOf(q) >= 0)
-        const out = []
-        for (const kind of ["pattern", "template"]) {
-            const list = all.filter(e => e.kind === kind)
-            if (!list.length) continue
-            out.push({header: kind === "pattern" ? qsTr("Patterns") : qsTr("Templates")})
-            for (const e of list) out.push(e)
-        }
-        return out
-    }
+    onQueryChanged: panel.sequencer.setLibraryQuery(query)
 
     Ui.TextField {
         id: search
@@ -46,14 +35,17 @@ Rectangle {
         width: parent.width
         height: parent.height - y
         clip: true
-        model: root.entries
+        model: root.panel.sequencer.libraryModel
         reuseItems: true
         boundsBehavior: Flickable.StopAtBounds
         delegate: Item {
             id: entry
-            required property var modelData
-            required property int index
-            readonly property bool isHeader: modelData.header !== undefined
+            required property string header
+            required property string entryId
+            required property string name
+            required property string kind
+            required property string category
+            readonly property bool isHeader: header !== ""
             width: ListView.view.width
             height: isHeader ? Ui.Metrics.small + Ui.Metrics.sm : Ui.Metrics.compact
             Ui.Text {
@@ -61,25 +53,25 @@ Rectangle {
                 x: Ui.Metrics.md
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: Ui.Metrics.xs
-                text: entry.isHeader ? entry.modelData.header : ""
+                text: entry.header
                 role: Ui.Typography.SansCaption
                 tone: Ui.Text.Secondary
                 font.capitalization: Font.AllUppercase
             }
             Ui.EditorButton {
                 visible: !entry.isHeader
-                objectName: entry.isHeader ? "" : "stepSequencerBrowserEntry-" + entry.modelData.id
+                objectName: entry.isHeader ? "" : "stepSequencerBrowserEntry-" + entry.entryId
                 x: Ui.Metrics.xs
                 width: parent.width - Ui.Metrics.xs * 2
                 height: parent.height
                 variant: Ui.EditorButton.Flat
                 density: Ui.EditorButton.Compact
                 contentAlignment: Qt.AlignLeft
-                iconName: entry.isHeader ? "" : (entry.modelData.kind === "template" ? "dataArray" : "queueMusic")
-                text: entry.isHeader ? "" : entry.modelData.name
-                description: entry.isHeader ? "" : entry.modelData.category
+                iconName: entry.isHeader ? "" : (entry.kind === "template" ? "dataArray" : "queueMusic")
+                text: entry.isHeader ? "" : entry.name
+                description: entry.isHeader ? "" : entry.category
                 enabled: root.panel.editable
-                onClicked: root.panel.op("apply_step_pattern", {pattern: entry.modelData.id})
+                onClicked: root.panel.op("apply_step_pattern", {pattern: entry.entryId})
             }
         }
     }
