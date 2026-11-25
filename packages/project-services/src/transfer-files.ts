@@ -134,6 +134,17 @@ function keptName(name: string, keptPath: string): string {
   return file || name;
 }
 
+/** Keeps a client-supplied device name to one safe filename segment. */
+function sanitizeDeviceName(device: string | undefined): string {
+  const cleaned = (device ?? "")
+    .replace(/[/\\\p{Cc}]+/gu, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\.{2,}/g, ".")
+    .replace(/^\.+|\.+$/g, "");
+  return cleaned || "Another device";
+}
+
 /**
  * Checks the file operations against the cloud and plans their apply.
  * `workspace` is null for a first publication, whose folder holds nothing.
@@ -149,7 +160,7 @@ export async function planFileOperations(input: {
   now: Date;
 }): Promise<FileOperationPlan> {
   const { projectId, userId, operations, failures, now } = input;
-  const device = input.deviceName ?? "Another device";
+  const device = sanitizeDeviceName(input.deviceName);
   const cloud = await CloudPaths.open(projectId, input.workspace);
   const plan: FileOperationPlan = { placements: [], assets: [], keptBeside: [], keptAssetIndex: new Map() };
   const fail = (code: TransferFailure["code"], message: string, extra: Partial<TransferFailure>) => {
